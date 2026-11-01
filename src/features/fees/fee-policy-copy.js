@@ -3,6 +3,20 @@ import { DAILY_BONUS_POLICY } from '../../../config/daily-bonus.js';
 import {referralRatePresentation} from './referral-rate-copy.js';
 import {feeDistributionPresentation,FEE_PERCENT_BASIS} from './distribution-summary.js';
 
+export function sharedFeeAllocationCopy(fee=FEE_DISTRIBUTION) {
+  return feeDistributionPresentation(fee).rows.filter(row=>row.key!=='creator').map(row=>`${row.percent}% ${row.label}`).join(' · ');
+}
+
+export function savedFeeAllocationCopy(policy) {
+  const saved=policy?.fixedFunded;
+  const rows=[['Operations & marketing',saved?.operations],['Referral network',saved?.appReferral],
+    ['Daily bonus',saved?.communityRewards],['$FUNDED buyback & burn',saved?.fundedBuyback],
+    ...(saved?.marketingAgency?[['AI marketing & coin buybacks',saved.marketingAgency]]:[])];
+  if(saved?.percent!==20||rows.some(([,row])=>typeof row?.effectivePercentOfCreatorFees!=='number'||!Number.isFinite(row.effectivePercentOfCreatorFees)||row.effectivePercentOfCreatorFees<0)
+    ||Math.abs(rows.reduce((sum,[,row])=>sum+row.effectivePercentOfCreatorFees,0)-20)>0.000001)return 'Operations & marketing and reward allocations: inspect the saved policy';
+  return rows.map(([label,row])=>`${row.effectivePercentOfCreatorFees}% ${label}`).join(' · ');
+}
+
 export function bonusRankCopy() {
   return `1st ${DAILY_BONUS_POLICY.rankPercents[0]}% · 2nd ${DAILY_BONUS_POLICY.rankPercents[1]}% · 3rd ${DAILY_BONUS_POLICY.rankPercents[2]}% of the category budget`;
 }

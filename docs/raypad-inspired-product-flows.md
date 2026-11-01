@@ -20,8 +20,8 @@ Existing holder cutoff/payout targets, token snapshot/deadline views, X claims, 
 
 ## Launch and creator retention
 
-- Creator income: existing 80% creator / 20% protocol route.
-- Holder rewards: fills 40% creator / 40% eligible holders / 20% protocol, with X at zero.
+- Creator income: 80% creator-directed, 8% Operations & marketing for the app, and 12% in separate referral, Daily bonus and buyback budgets.
+- Holder rewards: fills 40% creator / 40% eligible holders, with X at zero. The separate allocations remain 8% Operations & marketing and 12% ecosystem benefits.
 - Custom: uses the existing editable controls and signed validation. All presets show the live fee summary and preserve the two-step wizard, thesis, page preview, advanced options, and cost review.
 - Token facts disclose confirmed RPC authority checks and their timestamp, recorded fee routing, creator wallet provenance, reserve evidence links, and advisory exact normalized name/ticker/image-URI matches. The registry check does not inspect image content or off-platform coins and is not a safety score.
 - Creator wallet activity notifications are opt-in, saved on this device, and do not require X sign-in. Existing verified X identities still govern X creator-page management and X claims.

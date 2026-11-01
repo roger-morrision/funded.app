@@ -1,4 +1,4 @@
-# Daily bonus and protocol fee policy
+# Daily bonus and creator-fee allocation policy
 
 ## Recipient delivery and timing
 
@@ -22,9 +22,9 @@ A combined payment can cover multiple categories. Its verified net receipt is at
 
 ## Allocation, eligibility and execution
 
-The current configuration allocates gross collected creator fees as 80% creator-directed, 8% Operations & marketing, 3% referral network, 4% Daily bonus, and 5% $FUNDED buyback. In `config/protocol-fee-split.js`, the values are percentages of the protocol's 20% share: 40 / 15 / 20 / 25. Existing mint policies and their historical obligations retain their recorded rates. A saved admin policy takes precedence over configuration; publishing the 40/20 operations/community values through the authenticated admin editor is necessary if an earlier override exists.
+The published new-launch configuration allocates collected creator fees as 80% creator-directed, **8% Operations & marketing for the app**, 1% referral network, 4% Daily bonus, 5% $FUNDED buyback and 2% AI marketing and own-coin buybacks. The app does not retain the referral, bonus or burn budgets. Internal allocation weights normalize the shared pool; the historical `config/protocol-fee-split.js` fallback has older referral rates and must not be presented as the current published policy. Existing mint policies and their historical obligations retain their recorded rates. A saved admin policy takes precedence over configuration; publishing the 40/20 operations/community values through the authenticated admin editor is necessary if an earlier override exists.
 
-The [approved agency update](marketing-agency-policy.md#approved-rules) changes referral funding to 1% and adds 2% agency funding after activation. **Daily bonus remains 4% of gross collected creator fees under both policies.** Each of the three categories receives one third of that pool; each category's 1st/2nd/3rd receives 50%/30%/20% of its category budget. The actual source budget follows the coin's saved policy and exact lamport rounding.
+The [published agency allocation](marketing-agency-policy.md#approved-rules) includes 1% referral funding and 2% agency funding for new launches. Publishing an allocation does not establish executor readiness or a completed payment. **Daily bonus remains 4% of gross collected creator fees under both policies.** Each of the three categories receives one third of that pool; each category's 1st/2nd/3rd receives 50%/30%/20% of its category budget. The actual source budget follows the coin's saved policy and exact lamport rounding.
 
 For example, 300 SOL in gross collected creator fees at the 4% bonus rate allocates 12 SOL to bonuses: 4 SOL per category. Within each category, 1st receives 2 SOL, 2nd 1.2 SOL and 3rd 0.8 SOL, assuming three eligible winners. Empty ranks retain their amounts. These are allocations; payment still requires funding and finalized proof.
 

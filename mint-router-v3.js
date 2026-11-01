@@ -37,7 +37,7 @@ export function protocolGrossUnits(split = PROTOCOL_FEE_SPLIT) {
   const checked = validateProtocolFeeSplit(split);
   const rates = [checked.operationsPercent, ...checked.referralLevelPercents,
     checked.communityPercent, checked.buybackPercent,...(checked.agencyPercent===undefined?[]:[checked.agencyPercent])];
-  // One percent of the protocol's fixed 20% is 20,000 ten-millionths of gross fees.
+  // One normalized allocation-weight percentage point is 20,000 ten-millionths of gross collected creator fees.
   const units = rates.map(rate => Math.round(rate * 20_000));
   if (rates.some((rate, index) => Math.abs(rate * 20_000 - units[index]) > 0.000001)
     || units.reduce((sum, rate) => sum + rate, 0) !== 2_000_000) {

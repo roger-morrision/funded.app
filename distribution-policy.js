@@ -7,7 +7,7 @@ export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
   const rates = [split?.operationsPercent, ...(Array.isArray(levels) ? levels : []), split?.communityPercent, split?.buybackPercent,...(agency===undefined?[]:[agency])];
   if (!Array.isArray(levels) || levels.length !== 3 || rates.some(rate => typeof rate !== 'number' || !Number.isFinite(rate) || rate < 0 || rate > 100 || Math.abs(Math.round(rate * 10_000) - rate * 10_000) > 0.000001)
     || Math.abs(rates.reduce((sum, rate) => sum + rate, 0) - 100) > 0.000001) {
-    throw new Error('Protocol fee split must contain operations, three referral levels, community, and buyback percentages totaling 100% of the 20% app share.');
+    throw new Error('Shared allocation weights must contain Operations & marketing, three referral levels, Daily bonus, buyback and any agency budget, totaling 100% of the allocation pool.');
   }
   return {
     operationsPercent: split.operationsPercent,
@@ -60,7 +60,7 @@ export function setActiveProtocolFeeSplit(input) {
 
 function splitFromSnapshot(fixedFunded) {
   if (!fixedFunded) return DEFAULT_PROTOCOL_SPLIT;
-  if (Number(fixedFunded.percent) !== FEE_DISTRIBUTION.fundedPercent) throw new Error('Launch fee policy must preserve the 20% app share.');
+  if (Number(fixedFunded.percent) !== FEE_DISTRIBUTION.fundedPercent) throw new Error('Saved shared allocations must match the fixed launch policy; the pool includes both Operations & marketing and ecosystem budgets.');
   return validateProtocolFeeSplit({
     operationsPercent: fixedFunded.operations?.percentOfFundedRevenue,
     referralLevelPercents: fixedFunded.appReferral?.levels?.map(level => level.percentOfFundedRevenue),

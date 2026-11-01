@@ -1,4 +1,4 @@
-# Protocol fee split configuration
+# Creator-fee allocation configuration
 
 The default agency policy for new V3 launches is **80% creator-directed / 8% Operations & marketing / 1% referral network / 2% AI agency / 4% Daily bonus / 5% $FUNDED buyback**, measured against gross collected Pump creator fees. Referral levels are 0.6% / 0.25% / 0.15%. The creator-directed 80% follows the launch-time wallet, holder and X allocation; it is not necessarily all paid to the creator wallet.
 
@@ -6,7 +6,7 @@ The authoritative policy is the verified on-chain configuration published throug
 
 `config/marketing-agency.js` contains the new-launch defaults. `config/agency-rules.js` contains default thresholds and claim/billing intervals. `config/protocol-fee-split.js` remains the older seven-category fallback (including its 3% referral total), which must not be presented as the published agency policy. Existing coins retain their recorded rates. File edits alone cannot change on-chain configuration or a saved mint policy.
 
-Protocol categories are percentages of the fixed 20% app share and must total 100% of that share. Multiply by 0.2 to obtain the gross-fee rate. New agency configuration is authority-signed, revision-bound and verified before publication. Browser bootstrap reads `/api/fee-policy`; token-specific allocations use that token's saved policy.
+Internal category weights normalize the shared allocation pool to 100%. That pool is 20% of collected creator fees, combining the 8% app allocation for Operations & marketing with 12% for referrals, bonuses and buybacks. It is not app revenue. Multiply a normalized weight by 0.2 to obtain its gross-fee rate; for example, an Operations & marketing weight of 40 means 8% of collected creator fees. New agency configuration is authority-signed, revision-bound and verified before publication. Browser bootstrap reads `/api/fee-policy`; token-specific allocations use that token's saved policy.
 
 V3 initializes per-mint category units on-chain and uses the recorded policy for settlement and protected category withdrawals. Deployment, enabled gates and finalized transaction evidence must be checked independently; seeing a policy on a page is not proof of a funded vault, payout or burn. Current application routes use V3.
 

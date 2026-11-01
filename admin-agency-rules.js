@@ -7,7 +7,7 @@ export function initAdminAgencyRules({api,post,show,refresh}){
   const anchor=document.querySelector('#agency-policy-form')?.closest('section');if(!anchor)return;
   const panel=document.createElement('section');panel.className='panel';
   panel.innerHTML=`<h2>Future-launch rules</h2>
-    <p>Keep the creator-directed 80%. Set the remaining 20% below. Changes require the router authority wallet and a finalized transaction. Existing coins and open claims keep their saved terms. X publishing stays paused.</p>
+    <p>Keep the creator-directed 80%. The published app allocation is 8% for Operations &amp; marketing; referrals, Daily bonus and both buyback programs have separate budgets. Review each allocation below as a percentage of collected creator fees. Changes require the router authority wallet and a finalized transaction. Existing coins and open claims keep their saved terms. X publishing stays paused.</p>
     <button type="button" data-rules-load>Load verified settings</button>
     <form data-rules-form><fieldset disabled><legend>Percentage of gross collected creator fees</legend><div class="withdraw-fields">
     <label>Operations &amp; marketing %<input name="operations" type="number" min="0" max="20" step="0.00002" required></label>

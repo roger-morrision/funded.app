@@ -1,3 +1,4 @@
+import {sharedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchReviewController(appState) {
   // app-source: 619
@@ -196,7 +197,7 @@ export function createLaunchReviewController(appState) {
       ? 'Mint-specific V3 PDA' : `${appState.feeRouterState.address.slice(0, 7)}…${appState.feeRouterState.address.slice(-6)}`;
     document.querySelector('#launch-review-route-address').textContent = v3Route
       ? 'Derived from the new mint and verified after launch' : appState.feeRouterState.address;
-    document.querySelector('#launch-review-route-split').textContent = `${shares.creatorWalletPercent}% wallet · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · 20% protocol`;
+    document.querySelector('#launch-review-route-split').textContent = `${shares.creatorWalletPercent}% wallet · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · ${sharedFeeAllocationCopy()}`;
     document.querySelector('#launch-review-details').innerHTML = appState.launchReviewMarkup(reviewedCost);
     document.querySelector('#launch-review-dialog').showModal();
     appState.renderPendingLaunchReview();

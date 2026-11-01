@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>funded.vip | From coin launch to community value</title>
+  <style>
+    :root{--ink:#eaf4ff;--muted:#a8bacb;--line:#294455;--bg:#06141e;--panel:#102633;--cyan:#57e2da;--lime:#c6f36a;--gold:#ffc56a;--pink:#f29bc1;--blue:#85aaf7}
+    *{box-sizing:border-box} html{background:#04111b} body{margin:0;color:var(--ink);font:20px/1.42 Arial,Helvetica,sans-serif;background:radial-gradient(circle at 8% 4%,#174452 0,transparent 29%),radial-gradient(circle at 91% 48%,#173342 0,transparent 28%),#06141e}
+    .sheet{width:1440px;min-height:100vh;margin:auto;padding:64px 72px 50px;position:relative;overflow:hidden}
+    .sheet:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#ffffff06 1px,transparent 1px),linear-gradient(90deg,#ffffff06 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+    .sheet>*{position:relative}.top{display:flex;justify-content:space-between;align-items:center;gap:32px}.brand{font-weight:900;letter-spacing:-1px;font-size:27px}.brand b{color:var(--cyan)}.tag{border:1px solid #6be0d785;border-radius:100px;color:var(--cyan);padding:8px 18px;font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;background:#0c2e35}
+    h1{font-size:76px;line-height:1.04;letter-spacing:-4px;margin:38px 0 14px;max-width:1120px}h1 em{font-style:normal;color:var(--cyan)}.dek{font-size:24px;line-height:1.45;color:#b9cede;max-width:1120px;margin:0 0 45px}
+    .route{display:flex;align-items:center;gap:10px;margin-bottom:38px}.route span{padding:10px 17px;background:#173442;border:1px solid #39606b;border-radius:100px;font-size:16px;font-weight:800;color:#d9f3f5}.route i{width:28px;height:2px;background:var(--cyan);position:relative}.route i:after{content:"";position:absolute;right:0;top:-4px;border-left:7px solid var(--cyan);border-top:5px solid transparent;border-bottom:5px solid transparent}
+    .stage{position:relative;background:linear-gradient(135deg,#13303e,#0c2230 72%);border:1px solid #3a5967;border-radius:30px;padding:35px 36px 38px;margin-bottom:32px;box-shadow:0 22px 45px #0002}.stage:after{content:"";position:absolute;left:66px;bottom:-33px;width:2px;height:32px;background:var(--cyan)}.stage:before{content:"";position:absolute;left:62px;bottom:-34px;border-top:7px solid var(--cyan);border-left:5px solid transparent;border-right:5px solid transparent;z-index:2}.stage.last:before,.stage.last:after{display:none}
+    .stagehead{display:flex;align-items:flex-start;gap:22px;margin-bottom:26px}.num{flex:none;width:58px;height:58px;border-radius:18px;background:var(--cyan);color:#082229;display:grid;place-items:center;font-size:25px;font-weight:900;box-shadow:0 8px 20px #57e2da30}.eyebrow{display:block;font-size:15px;font-weight:900;letter-spacing:2.2px;text-transform:uppercase;color:var(--cyan);margin:1px 0 6px}.stage h2{font-size:37px;line-height:1.12;letter-spacing:-1px;margin:0}.stagelead{color:var(--muted);font-size:18px;margin:9px 0 0}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.card{border:1px solid #345364;background:#0a202c;border-radius:22px;padding:24px;min-height:205px}.card.gold{border-color:#9d713a;background:linear-gradient(150deg,#302719,#142330)}.card.pink{border-color:#9b5c7a;background:linear-gradient(150deg,#30232c,#142330)}.card h3{font-size:25px;margin:0 0 7px}.pill{display:inline-block;border-radius:20px;padding:5px 10px;font-size:13px;font-weight:900;letter-spacing:.5px;background:#234953;color:var(--cyan);margin-bottom:13px}.gold .pill{background:#62472a;color:var(--gold)}.pink .pill{background:#57394d;color:var(--pink)}.card p{font-size:17px;color:#c3d2dc;margin:0 0 12px}.card strong{color:#fff}.foot{font-size:15px;color:#9eb7c4;margin-top:15px}.callout{margin-top:17px;border:1px solid #3f6769;background:#12373b;border-radius:16px;padding:16px 20px;font-size:17px;color:#d6f0ed}.callout b{color:var(--cyan)}
+    .flowband{display:flex;align-items:center;gap:12px;margin:15px 0 20px}.flowband div{flex:1;text-align:center;border-radius:14px;background:#21414d;border:1px solid #4b6f7a;padding:14px 12px;font-size:17px;font-weight:800}.flowband span{color:var(--cyan);font-weight:900;font-size:24px}.split{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}.bigsplit{border-radius:22px;background:#183b46;border:1px solid #54bdb5;padding:25px}.bigsplit h3,.smallshare h3{margin:0 0 12px;font-size:24px}.percent{font-size:62px;line-height:1;font-weight:900;color:var(--cyan);letter-spacing:-3px}.bigsplit p{font-size:17px;color:#cbdde4;margin:9px 0 0}.sharegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.smallshare{background:#132f3b;border:1px solid #385462;border-radius:17px;padding:17px}.smallshare b{font-size:29px;color:var(--lime)}.smallshare h3{font-size:16px;margin:4px 0 0}.smallshare p{font-size:14px;color:var(--muted);margin:3px 0 0}.future{margin-top:18px;border:1px dashed #bd9c61;border-radius:17px;padding:16px 20px;background:#292a27;color:#f6dfb4;font-size:17px}.future b{color:var(--gold)}
+    .airdrop-visual{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:11px}.airdrop-visual .card{min-height:165px}.airdrop-visual .card h3{font-size:21px}.airdrop-visual .card p{font-size:16px}.arrow{align-self:center;color:var(--cyan);font-size:36px;font-weight:900}.mini{font-size:14px;color:#94b1bf;margin-top:15px}.status{display:inline-block;color:var(--gold);background:#4b3624;border:1px solid #8f6a3e;border-radius:20px;font-size:13px;font-weight:900;padding:5px 11px;letter-spacing:.3px;margin-left:12px;vertical-align:middle}
+    .engine{border:1px solid #3d6371;background:#0a202c;border-radius:22px;padding:25px}.engine h3{font-size:25px;margin:0 0 12px}.engine .metric{font-size:39px;font-weight:900;line-height:1.04;letter-spacing:-1px;color:var(--lime);margin:9px 0}.engine p{font-size:17px;color:#c7d6df;margin:9px 0 0}.engine ol{margin:12px 0 0;padding-left:24px;font-size:17px;color:#c7d6df}.engine li{padding:2px 0}.engine.agency{border-color:#a78254;background:linear-gradient(135deg,#2b2922,#0e2430)}.engine.agency .metric{color:var(--gold)}.agentrows{margin-top:12px;display:grid;gap:8px}.agentrow{border-radius:11px;background:#56452c88;padding:8px 12px;font-size:16px}.agentrow b{color:#fff3d5}
+    .benefits{background:linear-gradient(145deg,#163948,#102633);border:1px solid #426475;border-radius:30px;padding:34px 36px 38px;margin-top:38px}.benefits h2{font-size:37px;margin:0 0 8px}.benefits>p{color:var(--muted);margin:0 0 22px;font-size:18px}.benefitgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.benefit{background:#0b2430;border:1px solid #385363;border-radius:15px;padding:17px 18px;min-height:117px}.benefit b{display:block;color:var(--cyan);font-size:17px;margin-bottom:7px}.benefit span{display:block;font-size:15px;color:#c0d0d9}.note{font-size:14px;line-height:1.5;color:#93aeba;margin:30px 0 0}.note a{color:#a9e9e3;text-decoration:underline}.fine{border-top:1px solid #2e4c5d;padding-top:15px;margin-top:20px;color:#7495a4;font-size:13px;display:flex;justify-content:space-between}
+    @media(max-width:1450px){.sheet{margin:0}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{width:1440px}}
+  </style>
+</head>
+<body>
+<main class="sheet">
+  <header>
+    <div class="top"><div class="brand">funded<b>.vip</b></div><div class="tag">Devnet product flow · October 2026</div></div>
+    <h1>One coin launch.<br><em>Many paths to value.</em></h1>
+    <p class="dek">A visual guide from launch promotion to creator fee rewards, migration airdrops, and two distinct buyback and burn programs.</p>
+    <div class="route" aria-label="Flow stages"><span>Launch</span><i></i><span>Trade & collect</span><i></i><span>Distribute</span><i></i><span>Migrate</span><i></i><span>Buy & burn</span></div>
+  </header>
+
+  <section class="stage" aria-labelledby="launch-title">
+    <div class="stagehead"><div class="num">01</div><div><span class="eyebrow">Creator chooses the starting package</span><h2 id="launch-title">Launch a coin and set its growth plan</h2><p class="stagelead">Every verified launch enters discovery and saves its fee policy. A promotion tier adds a distinct launch campaign.</p></div></div>
+    <div class="grid3">
+      <div class="card"><span class="pill">STANDARD</span><h3>Start on the map</h3><p>Verified coin page and directory listing, plus one basic platform X launch announcement when publishing is active.</p><p><strong>Launch service:</strong> default 0.02 SOL.</p></div>
+      <div class="card gold"><span class="pill">PRO · OPTIONAL</span><h3>Featured launch</h3><p>One featured platform X launch post with verified Pro status when publishing is active.</p><p><strong>Promotion quote:</strong> default $150 in $FUNDED, burned in the launch transaction.</p></div>
+      <div class="card pink"><span class="pill">PREMIER · OPTIONAL</span><h3>Featured + follow-up</h3><p>One featured post and a separate follow-up eligible at least 24 hours after launch, subject to publisher rules.</p><p><strong>Promotion quote:</strong> default $300 in $FUNDED, burned at launch.</p></div>
+    </div>
+    <div class="callout"><b>Creator benefit:</b> choose visibility and define how the creator-directed 80% is shared among the creator wallet, coin holders, and a named X account. <b>Community benefit:</b> a launch reserve may earmark 3–50% of the new coin supply for a later migration airdrop.</div>
+    <div class="foot">Paid package prices are admin configurable quotes. Launch posts require a verified creation and an active platform publisher; a paid tier burn does not prove a post was published.</div>
+  </section>
+
+  <section class="stage" aria-labelledby="fees-title">
+    <div class="stagehead"><div class="num">02</div><div><span class="eyebrow">Economic engine</span><h2 id="fees-title">Trades create creator fees; the router allocates them</h2><p class="stagelead">Pump creator fees collected for each verified mint flow through its V3 router. Collection, creator approval, funding, and final payment are separate steps.</p></div></div>
+    <div class="flowband"><div>Verified trades</div><span>→</span><div>Per-mint fee collection</div><span>→</span><div>Creator-signed settlement</div><span>→</span><div>Funded rewards & payouts</div></div>
+    <div class="split">
+      <div class="bigsplit"><div class="percent">80%</div><h3>Creator-directed</h3><p>The creator’s saved split sends SOL to the creator wallet, eligible coin holders, and a named X account. Holder rewards are automatic after funding and eligibility checks; the named X recipient claims with identity and wallet verification.</p></div>
+      <div class="sharegrid" aria-label="Separate Operations &amp; marketing and ecosystem allocations">
+        <div class="smallshare"><b>8%</b><h3>Operations & marketing</h3><p>App services and growth.</p></div>
+        <div class="smallshare"><b>1%</b><h3>Referral network</h3><p>Qualified three-level uplines.</p></div>
+        <div class="smallshare"><b>4%</b><h3>Daily bonus</h3><p>Top creators, referrers, traders.</p></div>
+        <div class="smallshare"><b>5%</b><h3>$FUNDED buyback</h3><p>Dedicated purchase and burn vault.</p></div>
+        <div class="smallshare"><b>2%</b><h3>AI marketing &amp; coin buybacks</h3><p>All three agents are included with new launches.</p></div>
+      </div>
+    </div>
+    <div class="future"><b>Only 8% for app Operations &amp; marketing.</b> The other 92% is allocated to creators and ecosystem benefits. Published allocations do not establish executor readiness or a completed payment. Existing coins keep their saved rates.</div>
+    <div class="foot">All percentages above refer to gross creator fees actually collected, not trade volume or all trading fees. App launch/trade service charges are separate.</div>
+  </section>
+
+  <section class="stage" aria-labelledby="migration-title">
+    <div class="stagehead"><div class="num">03</div><div><span class="eyebrow">Migration milestone</span><h2 id="migration-title">New-coin airdrop to eligible $FUNDED holders</h2><p class="stagelead">A funded launch reserve and an exact migration-time holder snapshot are prerequisites for any claim.</p></div></div>
+    <div class="airdrop-visual">
+      <div class="card"><span class="pill">AT LAUNCH</span><h3>Reserve new tokens</h3><p>Creator earmarks 3–50% of the launched coin supply; exact vault custody must be verified.</p></div><div class="arrow">→</div>
+      <div class="card"><span class="pill">AT MIGRATION</span><h3>Snapshot $FUNDED holders</h3><p>Verified balances at the migration slot set pro-rata eligibility. Later buys do not qualify retroactively.</p></div><div class="arrow">→</div>
+      <div class="card"><span class="pill">AFTER PROOF</span><h3>Claim the launched coin</h3><p>Eligible wallets claim once with a published proof, normally within 90 days; receipt confirms token delivery.</p></div>
+    </div>
+    <div class="callout"><b>$FUNDED holder benefit:</b> eligible holders can receive a share of the launched coin. <b>New project benefit:</b> distribution reaches an existing holder community. <b>Claim rule:</b> reserve, snapshot, proof, and token-account delta must all verify.</div>
+  </section>
+
+  <section class="stage last" aria-labelledby="burn-title">
+    <div class="stagehead"><div class="num">04</div><div><span class="eyebrow">Ongoing token support</span><h2 id="burn-title">Two buyback engines. Two different tokens.</h2><p class="stagelead">A buyback is counted only after a protected purchase, burn instruction, and finalized supply change.</p></div></div>
+    <div class="grid2">
+      <div class="engine"><span class="pill">CURRENT FEE POLICY</span><h3>Platform $FUNDED buyback</h3><div class="metric">5% of collected creator fees</div><p>Accrues in a dedicated vault. Once the aggregate trigger and market checks pass, the worker buys and burns <strong>$FUNDED</strong>.</p><ol><li>Fee claim funds the vault</li><li>Protected swap buys $FUNDED</li><li>BurnChecked reduces $FUNDED supply</li></ol><p class="mini">Normal aggregate trigger: 5 SOL. Unspent funds remain pending.</p></div>
+      <div class="engine agency"><span class="pill">INCLUDED · EXECUTION CONDITIONAL</span><h3>AI marketing agency for the launched coin</h3><div class="metric">2% agency budget</div><p>All three included agents split this dedicated budget equally. Their actions support <strong>the project’s own coin</strong>.</p><div class="agentrows"><div class="agentrow"><b>Agent 1 · Awareness:</b> verified platform X promotion, at most once per coin per 24 h; currently paused.</div><div class="agentrow"><b>Agent 2 · $100k:</b> one own-coin buyback and burn at verified USD market cap ≥ $100,000.</div><div class="agentrow"><b>Agent 3 · $300k:</b> one own-coin buyback and burn at verified USD market cap ≥ $300,000.</div></div><p class="mini">Normal agency launches and execution acceptance remain gated; a selected agent or market-cap reading is not a completed action.</p></div>
+    </div>
+  </section>
+
+  <section class="benefits" aria-labelledby="benefits-title">
+    <span class="eyebrow">Who benefits, and when</span><h2 id="benefits-title">A stakeholder view across the full journey</h2><p>Benefits are opportunities governed by each coin’s saved policy, eligibility, funding, and verified receipts.</p>
+    <div class="benefitgrid">
+      <div class="benefit"><b>Coin creator · launch → fees</b><span>Choose promotion, reach discovery, and direct 80% of collected creator fees to the chosen recipient mix.</span></div>
+      <div class="benefit"><b>Coin holders · trading → rewards</b><span>Receive eligible SOL holder rewards after the funded payout cycle and verified sampling.</span></div>
+      <div class="benefit"><b>Named X account · fees → claim</b><span>Claim its saved SOL share after identity, wallet, and funding checks.</span></div>
+      <div class="benefit"><b>Referrers · fee settlement</b><span>Qualified uplines receive the saved referral allocation; direct referrers can also compete in Daily bonus.</span></div>
+      <div class="benefit"><b>Creators, referrers, traders · daily</b><span>Each category can compete for a separate top-three SOL bonus pool from completed, funded days.</span></div>
+      <div class="benefit"><b>$FUNDED holders · migration</b><span>Eligible snapshot holders can claim the new coin’s reserved tokens with proof.</span></div>
+      <div class="benefit"><b>New-coin community · milestones</b><span>Every new token includes X promotion and both own-coin buyback agents. Actions require verified funding and saved milestones.</span></div>
+      <div class="benefit"><b>$FUNDED ecosystem · launch & fees</b><span>Paid-tier burns and the separate 5% fee-funded buyback can reduce $FUNDED supply when confirmed.</span></div>
+      <div class="benefit"><b>Platform · ongoing</b><span>Receives its operations allocation and separate disclosed service charges to support the product.</span></div>
+    </div>
+  </section>
+  <p class="note"><strong>Read the flow as a policy map.</strong> This is a Devnet product infographic, not proof that any specific launch, X post, airdrop, payout, agency action, or burn executed. The fee policy saved at each launch governs that coin. Sources: <a href="x-launch-marketing.md">launch packages</a> · <a href="creator-fee-collector.md">creator fees</a> · <a href="community-airdrop-devnet.md">migration airdrop</a> · <a href="marketing-agency-policy.md">agency policy</a> · <a href="buyback-devnet-executor.md">$FUNDED buyback</a>.</p>
+  <footer class="fine"><span>funded.vip / flow infographic</span><span>Devnet policy map · 31 Oct 2026</span></footer>
+</main>
+</body>
+</html>

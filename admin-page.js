@@ -113,7 +113,7 @@ function feeTotal() {
   $('#fee-gross-preview').textContent = `Gross collected fees: 80% creator-directed · ${gross(split.operationsPercent)} Operations & marketing · ${gross(split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0))} referrals · ${gross(split.communityPercent)} Daily bonus · ${gross(split.buybackPercent)} buyback. Existing coins retain their saved policy.`;
   if(split.agencyPercent!==undefined)$('#fee-gross-preview').textContent+=` AI agency: ${gross(split.agencyPercent)} of gross. Use the authority-signed configuration publication below for updates.`;
   const target = $('#fee-total');
-  target.textContent = `Protocol share total: ${total.toFixed(4)}% / 100%`;
+  target.textContent = `Allocation-weight total: ${total.toFixed(4)}% / 100%`;
   target.classList.toggle('invalid', Math.abs(total - 100) > 0.000001);
 }
 async function refresh() {
@@ -188,7 +188,7 @@ $('#more-vaults').addEventListener('click', () => loadVaults().catch(error => sh
 $('#fee-form').addEventListener('input', feeTotal);
 $('#fee-form').addEventListener('submit', event => { event.preventDefault(); (async () => {
   const split = validateProtocolFeeSplit(readSplit());
-  if (!confirm(`Publish this split for future V3 launches?\nOperations & marketing ${split.operationsPercent}% · referrals ${split.referralLevelPercents.join('/')}% · Daily bonus ${split.communityPercent}% · buyback ${split.buybackPercent}% (all percentages of the protocol share)\nExisting mint policies remain unchanged.`)) return;
+  if (!confirm(`Publish this split for future V3 launches?\nOperations & marketing ${Number((split.operationsPercent/5).toFixed(6))}% · referrals ${split.referralLevelPercents.map(rate=>Number((rate/5).toFixed(6))).join('/')}% · Daily bonus ${Number((split.communityPercent/5).toFixed(6))}% · $FUNDED buyback ${Number((split.buybackPercent/5).toFixed(6))}% (percentages of collected creator fees)\nExisting mint policies remain unchanged.`)) return;
   const updated = await post('/api/admin/fee-policy', { split, expectedRevision:policy.revision });
   policy = updated; renderPolicy(); show(`Fee policy revision ${updated.revision} published for future launches.`);
   await refreshAudit();

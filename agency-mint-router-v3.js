@@ -32,7 +32,7 @@ export function agencyProtocolSplit(units=agencyProtocolUnits()){
 }
 export function agencyCategoryTargets(total,units=agencyProtocolUnits()){
   if(!Array.isArray(units)||units.length!==7||units.some(n=>!Number.isInteger(n)||n<0)
-    ||units.reduce((sum,n)=>sum+n,0)!==2000000)throw new Error('Protocol categories must total 20%; the creator-directed allocation remains fixed at 80%.');
+    ||units.reduce((sum,n)=>sum+n,0)!==2000000)throw new Error('Shared allocation categories must total 20% of collected creator fees; the creator-directed allocation remains fixed at 80%.');
   const amount=agencyU64(total);let cumulative=0n,prior=0n;
   return [8000000,...units].map(n=>{cumulative+=BigInt(n);const boundary=amount*cumulative/10000000n,delta=boundary-prior;prior=boundary;return delta;});
 }

@@ -13,8 +13,8 @@ addresses; `.secrets/devnet-admin-qa-keypair.json` is a local ignored test key.
 `node scripts/provision-admin-qa-wallet.mjs` provisions that key once without
 printing its secret.
 
-The Fee distribution editor changes only the protocol's fixed 20% share. Six rates must
-total 100% of that share and fit V3 integer on-chain units. A successful save
+The advanced legacy Fee distribution editor uses normalized allocation weights, not gross app fees. Six weights must
+total 100% of the shared pool and fit V3 integer on-chain units. The current app allocation is only 8% for Operations & marketing; referral, bonus and burn budgets are separate. A successful save
 creates a versioned persisted policy for **future launches**. The browser
 fetches that policy at startup; a page already open before a change should be
 reloaded. Existing launches retain their signed policy and on-chain category
@@ -61,13 +61,13 @@ store. The panel links to existing launch, claim, buyback, and analytics flows.
 
 The Daily bonus panel exposes worker/snapshot status and recovery actions. Snapshots and funded payouts are normally automatic; recipients do not claim. For an unstarted stale snapshot, review the old and replacement hashes and supply an audit reason before reconciliation. Prepared, assigned, on-chain or paid cycles must retain their immutable manifests and require operator review rather than replacement.
 
-The default operations/community entries are 40% / 20% **of the protocol share**, equivalent to 8% Operations & marketing and 4% Daily bonus **of gross creator fees**. The creator-directed 80% is fixed. Editing policy does not rewrite existing mint policies, snapshots, receipts or balances. A healthy gate or successful admin sign-in does not establish a payout or withdrawal.
+The default operations/community entries are 40% / 20% **of the shared allocation pool**, equivalent to 8% Operations & marketing and 4% Daily bonus **of gross creator fees**. The creator-directed 80% is fixed. Editing policy does not rewrite existing mint policies, snapshots, receipts or balances. A healthy gate or successful admin sign-in does not establish a payout or withdrawal.
 
 See [fee configuration](protocol-fee-split-config.md), [Daily bonus](daily-bonus-policy.md) and in-app `#docs/admin` for current scope.
 
 ### Authority-signed agency policy publication
 
-After the reviewed eight-category program is deployed, its router authority must initialize or update the on-chain configuration. The new-launch referral default is **0.6% / 0.25% / 0.15% of gross collected creator fees**; these are **3% / 1.25% / 0.75% of the protocol's 20%**, with 10% of the protocol share reserved for agency funding.
+After the reviewed eight-category program is deployed, its router authority must initialize or update the on-chain configuration. The new-launch referral default is **0.6% / 0.25% / 0.15% of gross collected creator fees**; these are **3% / 1.25% / 0.75% of the shared allocation pool**, with a normalized weight of 10 for agency funding (2% of collected creator fees). These weights do not describe the app’s retained share.
 
 In Admin, enter the finalized configuration signature, exact on-chain configuration revision and an audit reason under **Publish verified agency fee configuration**. `POST /api/admin/agency-fee-policy` requires the allowlisted admin session and configured origin. It independently verifies the reviewed Devnet binary, router authority, current configuration, and the exact authority-signed configuration transaction before publishing matching rates. A stale policy revision, different instruction, failed transaction or changed configuration is rejected. Repeating an already verified publication returns its saved result. Existing mint records remain intact.
 

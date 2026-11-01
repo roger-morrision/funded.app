@@ -1,3 +1,4 @@
+import {sharedFeeAllocationCopy} from '../fees/fee-policy-copy.js';
 import { el } from './view-utils.js';
 
 export function initializeLaunchTerms() {
@@ -8,7 +9,7 @@ export function initializeLaunchTerms() {
   const body=el('p');terms.append(body);submit.before(terms);
   function review(){
     const value=id=>document.getElementById(id)?.value||'0';
-    body.textContent=`Review before signing: ${value('token-name')} ($${value('token-symbol')}). Creator ${value('creator-wallet-share')}%, holders ${value('holder-airdrop-share')}%, X ${value('x-share')}%, protocol 20%. Mint identity and signed fee terms are fixed at launch. Holder cutoffs, ranked daily bonus windows, funding and recipient eligibility still apply. A cutoff does not promise immediate payment. Current costs appear in the budget and wallet review.`;
+    body.textContent=`Review before signing: ${value('token-name')} ($${value('token-symbol')}). Creator ${value('creator-wallet-share')}%, holders ${value('holder-airdrop-share')}%, X ${value('x-share')}%. Shared allocations: ${sharedFeeAllocationCopy()}. Mint identity and signed fee terms are fixed at launch. Holder cutoffs, ranked daily bonus windows, funding and recipient eligibility still apply. A cutoff does not promise immediate payment. Current costs appear in the budget and wallet review.`;
   }
   form.addEventListener('input',review);window.addEventListener('funded:launch-step',review);review();
 }

@@ -1,3 +1,4 @@
+import {savedFeeAllocationCopy} from '../fees/fee-policy-copy.js';
 import { mountReserveFacts } from './reserve-facts.js';
 import { link, el, address, reportContextLink } from './view-utils.js';
 export function identityMatches(candidate, launches) {
@@ -33,7 +34,7 @@ export function initializeLaunchFacts(app) {
     fact('Mint authority', Object.hasOwn(parsedMint, 'mintAuthority') ? parsedMint.mintAuthority || 'Revoked' : 'Unavailable', explorer);
     fact('Freeze authority', Object.hasOwn(parsedMint, 'freezeAuthority') ? parsedMint.freezeAuthority || 'Revoked' : 'Unavailable', explorer);
     const shares = launch?.feeDistribution?.creatorDirected?.shares;
-    fact('Saved fee routing', launch?.onchainVerified && shares ? `${shares.creatorWalletPercent}% creator · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · 20% protocol` : 'Verified saved policy unavailable', `/api/launches`);
+    fact('Saved fee routing', launch?.onchainVerified && shares ? `${shares.creatorWalletPercent}% creator · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · ${savedFeeAllocationCopy(launch.feeDistribution)}` : 'Verified saved policy unavailable', `/api/launches`);
     fact('Community reserve custody', 'Inspect reserve funding, vault and claim evidence separately. A launch allocation does not prove custody.', '/api/airdrops/reserves');
     fact('Creator provenance', launch?.onchainVerified ? `Recorded launch wallet: ${launch.creatorWallet}. Wallet identity does not imply an X endorsement.` : 'Verified launch wallet unavailable', explorer);
     const matches = identityMatches({ ...launch, mint }, app.verifiedLaunchPolicies);
