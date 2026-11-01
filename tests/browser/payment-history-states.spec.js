@@ -276,10 +276,10 @@ async function bonus077Font(link) {
     await document.fonts.ready;const s=getComputedStyle(e),faces=await document.fonts.load(s.fontWeight+' '+s.fontSize+' "Manrope"',e.textContent);await document.fonts.ready;
     return {family:s.fontFamily,weight:s.fontWeight,size:parseFloat(s.fontSize),faces:faces.map(f=>({family:f.family,weight:f.weight,status:f.status}))};
   });
-  expect(font.family).toContain('Manrope');expect(font.weight).toBe('700');expect(font.size).toBeGreaterThanOrEqual(14);
-  expect(font.faces.length,'font unavailable: actual Manrope700 required').toBeGreaterThan(0);
+  expect(font.family).toContain('Manrope');expect(font.weight).toBe('600');expect(font.size).toBeGreaterThanOrEqual(14);
+  expect(font.faces.length,'font unavailable: actual Manrope600 required').toBeGreaterThan(0);
   expect(font.faces.every(f=>f.family==='Manrope'&&f.status==='loaded')).toBe(true);
-  expect(font.faces.some(f=>{const w=f.weight.split(/\s+/).map(Number);return w.length===1?w[0]===700:w.length===2&&w[0]<=700&&w[1]>=700;})).toBe(true);
+  expect(font.faces.some(f=>{const w=f.weight.split(/\s+/).map(Number);return w.length===1?w[0]===600:w.length===2&&w[0]<=600&&w[1]>=600;})).toBe(true);
   return font;
 }
 async function bonus077Identity(original,focused=false) {

@@ -62,8 +62,8 @@ for(const [width,override] of [[390,false],[1440,true]]) test(`reward actions, F
   await page.setViewportSize({width,height:900});await fixtures(page,override);
   await page.goto('/#docs/fees');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const article=page.locator('#docs-guide-article'), ops=override ? 6:8, bonus=override ? 6:4;
-  await expect(article).toContainText(`${ops}% Operations & marketing`);
-  await expect(article).toContainText(`${bonus}% Daily bonus pool`);
+    await expect(article).toContainText(new RegExp(`${ops}%[\\s·]*Operations & marketing`));
+    await expect(article).toContainText(new RegExp(`${bonus}%[\\s·]*Daily bonus`));
   await expect(article).toContainText('gross collected creator fees at each coin’s saved rate');
   await expect(article).toContainText('each receive one third');
   await expect(article).toContainText('1st 50% · 2nd 30% · 3rd 20% of the category budget');

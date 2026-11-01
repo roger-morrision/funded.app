@@ -38,8 +38,11 @@ for(const reducedMotion of ['no-preference','reduce'])for(const width of [360,39
     for(const tier of ['pro','premier']){
       await page.locator(`button[data-burn-tier="${tier}"]`).click();
       if(tier==='pro'){await page.keyboard.press('Tab');await expect(page.locator('button[data-burn-tier="premier"]')).toBeFocused();}
-      await page.keyboard.press('Tab');await clear();
-      await page.keyboard.press('Shift+Tab');await expect(page.locator('button[data-burn-tier="premier"]')).toBeFocused();
+      // Paid packages expose description and roadmap fields before the banner.
+      // Follow the native order through those fields without forcing focus.
+      for(let step=0;step<8&&!await banner.evaluate(e=>e===document.activeElement);step++)await page.keyboard.press('Tab');
+      await clear();
+      await page.keyboard.press('Shift+Tab');await expect(page.locator('#token-roadmap')).toBeFocused();
       await page.keyboard.press('Tab');await clear();
       // Exercise the real passive price/balance refresh handler without moving
       // native keyboard focus or supplying a wallet/upload/approved quote.

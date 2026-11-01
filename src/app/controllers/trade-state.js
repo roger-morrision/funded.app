@@ -179,6 +179,7 @@ export function createTradeStateController(appState) {
     clearTimeout(appState.tradeQuoteTimer);
     appState.tradeQuoteTimer = null;
     appState.tradePreview = null;
+    const retry=document.querySelector('#trade-quote-retry');if(retry)retry.hidden=true;
     document.querySelector('#trade-live-countdown')?.replaceChildren();
     const reviewDialog = document.querySelector('#trade-review-dialog');
     if (reviewDialog?.open) reviewDialog.close();
@@ -192,6 +193,7 @@ export function createTradeStateController(appState) {
   // app-source: 564
   function tradePreviewFailureMessage(error, side){
     const message = String(error?.message || error || 'Unknown error');
+    if(/429|rate.?limit|busy;|queue.*(?:full|deadline)/i.test(message))return 'Quote unavailable: Solana is busy. Retry the quote shortly. No trade was submitted.';
     if (side === 'sell' && /Associated token account not found for mint:/i.test(message)) {
       return 'Sell unavailable: this wallet has no token account for this mint. Connect a wallet that holds the token. No trade was submitted.';
     }

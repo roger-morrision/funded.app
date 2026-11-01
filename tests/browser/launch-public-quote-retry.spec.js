@@ -7,7 +7,7 @@ const root=fileURLToPath(new URL('../../',import.meta.url));let sourceServer;
 // or alternate source endpoint is included in the production application.
 async function controlledOrigin(){
  if(!sourceServer){
-  sourceServer=await createServer({root,configFile:false,cacheDir:root+'../../tmp/dev-053-read-fixture-cache',plugins:[{name:'test-only-public-quote-read-dependencies',enforce:'pre',transform(code,id){
+  sourceServer=await createServer({root,configFile:false,cacheDir:root+'node_modules/.vite/public-quote-'+process.pid,plugins:[{name:'test-only-public-quote-read-dependencies',enforce:'pre',transform(code,id){
    if(!id.replaceAll('\\','/').endsWith('/src/app/controllers/launch-preview.js'))return;
    const marker='export function createLaunchPreviewController(appState) {';
    return code.replace(marker,marker+`
@@ -18,7 +18,7 @@ async function controlledOrigin(){
      updateCostSummaryView:{value:(state,deps)=>{window.__retryFixture.quote=structuredClone(state.publicQuote);return base.updateCostSummaryView(state,{...deps,getLaunchFeeLamports:()=> '20000000'});}}
     });window.__retryState=appState;
    `).replace('} catch (error) {','} catch (error) { window.__retryFixture.error=String(error);');
-  }}],server:{host:'127.0.0.1',port:4504,strictPort:true}});await sourceServer.listen();
+  }}],server:{host:'127.0.0.1',port:4504,strictPort:true,hmr:false,watch:{ignored:['**/tmp/**','**/test-results/**','**/dist/**']}}});await sourceServer.listen();
  }return'http://127.0.0.1:4504';
 }
 test.afterAll(async()=>{await sourceServer?.close()});

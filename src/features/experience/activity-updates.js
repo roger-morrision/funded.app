@@ -1,7 +1,7 @@
 import { activityRows, isActivityHidden } from './activity-model.js';
 import { array } from './view-utils.js';
-let latestExperience = null;
-globalThis.addEventListener?.('funded:financial-experience',event=>{latestExperience=event.detail;});
+let latestExperience = null, experienceCheckedAt = 0;
+globalThis.addEventListener?.('funded:financial-experience',event=>{latestExperience=event.detail;experienceCheckedAt=Date.now();});
 
 // Notifications still consume shared activity records after the Home feed is removed.
 export function initializeActivityUpdates(app) {
@@ -15,9 +15,9 @@ export function initializeActivityUpdates(app) {
     if(busy||!document.body.classList.contains('page-route-overview'))return;busy=true;
     try{
       const read=path=>app.apiRequest(path,{signal:AbortSignal.timeout(15000)}).catch(()=>null);
-      const cached=latestExperience?.cluster==='devnet'&&Date.now()-Date.parse(latestExperience.generatedAt)<60000;
+      const cached=latestExperience?.cluster==='devnet'&&Date.now()-experienceCheckedAt<30000;
       const [experience,content]=await Promise.all([cached?Promise.resolve({available:true,data:latestExperience}):read('/api/rewards/experience'),read('/api/financial/activity')]);
-      if(experience?.available)latestExperience=experience.data;
+      if(experience?.available){latestExperience=experience.data;experienceCheckedAt=Date.now();}
       if(content?.available&&content.data?.cluster==='devnet')statements=array(content.data.statements);
       publish();
     }finally{busy=false;}
@@ -25,5 +25,6 @@ export function initializeActivityUpdates(app) {
   for(const name of ['funded:financial-experience','funded:token-list-markets','funded:content-preferences'])window.addEventListener(name,publish);
   document.addEventListener('funded:token-list-markets',publish);
   window.addEventListener('funded:route-change',()=>void refresh());
+  window.addEventListener('funded:reward-identity-change',()=>{latestExperience=null;experienceCheckedAt=0;void refresh();});
   void refresh();
 }

@@ -54,7 +54,9 @@ export function createSolanaRpcProxy({
     if (!await store.chargeRpcRate(rateKey, cost, rateLimit, windowStart)
       || (['sendTransaction', 'requestAirdrop'].includes(request.method) && !await store.chargeRpcRate(`rpc-write:${client}`, 1, 10, windowStart))) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC limit reached; retry shortly.' } });
     if (cached?.expiresAt > now) return json(res, 200, { ...cached.data, id: request.id });
-    if (rpcInflight >= 12) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is busy; retry shortly.' } });
+    // Reserve three of the existing twelve slots for explicit previews/writes.
+    const interactive=previewRead||['sendTransaction','simulateTransaction'].includes(request.method);
+    if (rpcInflight >= (interactive?12:9)) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is busy; retry shortly.' } });
     rpcInflight += 1;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);

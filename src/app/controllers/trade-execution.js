@@ -2,10 +2,16 @@ import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../featur
 import { estimateTradeNetworkFee, renderTradeCostDisclosure } from '../../features/experience/trade-costs.js';
 import { recordTradeRecovery,uncertainTrade } from '../../features/experience/trade-recovery-store.js';
 import {expiredUnlandedTrade} from '../../features/experience/trade-expiry.js';
+import {createTradeQuoteRetry} from '../../features/experience/trade-quote-retry.js';
 import { assertTradeLimits, readTradePreferences } from '../../features/experience/trade-preferences.js';
 import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_REVIEW_REFRESH_AFTER_MS } from '../../../trade-quote-policy.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
+  let retryInputKey='';
+  const quoteRetry=createTradeQuoteRetry(document.querySelector('#trade-quote-retry'),{
+    isCurrent:()=>!appState.tradeActionBusy&&retryInputKey===JSON.stringify({...appState.tradeInputs(),wallet:appState.connectedWalletAddress}),
+    retry:()=>{if(holdUncertainTrade(appState.tradeInputs().mint))return;appState.invalidateTradePreview();appState.queueTradeQuote(0);}
+  });
   // app-source: 565
   function queueTradeQuote(delay = 350){
     clearTimeout(appState.tradeQuoteTimer);
@@ -39,6 +45,7 @@ export function createTradeExecutionController(appState) {
     if (appState.tradeQuoteInFlight?.inputKey === inputKey && appState.tradeQuoteInFlight.version === appState.tradeQuoteVersion) return appState.tradeQuoteInFlight.promise;
     const version = appState.tradeQuoteVersion;
     const request = (async () => {
+      quoteRetry.reset();
       appState.setTradeStatus('Calculating the current on-chain quote…');
       await refreshServiceFees(appState); appState.assertWalletSessionCurrent(session);
       const previewConnection = await appState.getTradePreviewConnection();
@@ -83,9 +90,11 @@ export function createTradeExecutionController(appState) {
         const card = document.querySelector('#trade-live-estimate');
         card?.classList.add('is-unavailable');
         document.querySelector('#trade-live-amount').textContent = 'Quote unavailable';
-        document.querySelector('#trade-live-detail').textContent = error.message;
+        document.querySelector('#trade-live-detail').textContent = appState.tradePreviewFailureMessage(error, side);
         document.querySelector('#trade-quote').textContent = appState.tradePreviewFailureMessage(error, side);
         appState.setTradeStatus(appState.tradePreviewFailureMessage(error, side), true);
+        retryInputKey=JSON.stringify({...appState.tradeInputs(),wallet:appState.connectedWalletAddress});
+        quoteRetry.failed();
       }
       throw error;
     } finally { if (appState.tradeQuoteInFlight?.promise === request) appState.tradeQuoteInFlight = null; }

@@ -111,7 +111,8 @@ test('buyback availability stays separate from the suspended X publisher',async(
   await expect(page.locator('#agency-policy-title')).toHaveText('Published new-launch fee policy');
   await page.goto('/#launch');await page.locator('#token-name').fill('Paused QA');await page.locator('#token-symbol').fill('PQA');await page.locator('#launch-next').click();
   await expect(page.locator('#launch-agency-options .agency-included-badge')).toHaveCount(3);
-  await expect(page.locator('#launch-agency-help')).toContainText('X promotion is paused');
+  await expect(page.locator('[data-agency-status]')).toContainText('X promotion stays paused');
+  await expect(page.locator('#launch-agency-help')).toContainText('Actions wait for verified funding');
   await expect(page.locator('#launch-agency-options')).not.toContainText('preview');
 });
 

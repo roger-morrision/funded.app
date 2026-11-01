@@ -355,7 +355,7 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
     targetConnected:Boolean(target?.isConnected),targetCurrent:target===document.querySelector(selector),
     next:{id:next?.id,tag:next?.tagName,retry:next?.hasAttribute('data-verified-feed-retry')}};
   },{selector,predecessorSelector,source:observeHomeRetryFocus.toString()});
-  expect(armed.predecessor).toBe(true); expect(armed.nextIsOriginal).toBe(true);
+  expect(armed.predecessor).toBe(true); expect(armed.nextIsOriginal,JSON.stringify(armed)).toBe(true);
   expect(armed.targetConnected).toBe(true); expect(armed.targetCurrent).toBe(true);
   const original = await page.evaluateHandle(() => window.__homeRetryNative.original);
   await page.keyboard.press('Tab');

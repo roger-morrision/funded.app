@@ -9,7 +9,7 @@ for(const width of[320,390,1440])test(`step one fee split stays visible, validat
   await page.goto('/#launch');await page.locator('body.workspace-ready.product-experience-ready.product-flows-ready').waitFor();
   const first=page.locator('[data-launch-step="1"]'),second=page.locator('[data-launch-step="2"]'),fees=page.locator('#custom-policy'),creator=page.locator('#creator-wallet-share'),holders=page.locator('#holder-airdrop-share'),x=page.locator('#x-share'),recipient=page.locator('#x-recipient'),next=page.locator('#launch-next');
   const overview=page.locator('#launch-fee-overview'),summary=overview.locator(':scope > summary');
-  await expect(overview).not.toHaveAttribute('open','');await expect(summary).toContainText('8% Operations & marketing');await expect(overview.locator('.launch-fixed-distribution')).toBeHidden();
+  await expect(overview).not.toHaveAttribute('open','');await expect(summary).toHaveText('Fee breakdown');await expect(overview.locator('.launch-fixed-distribution')).toBeHidden();
   await page.screenshot({path:info.outputPath(`launch-first-screen-${width}.png`)});
   await summary.focus();await page.keyboard.press('Enter');await expect(overview).toHaveAttribute('open','');await expect(overview.locator('[data-fee-category] > strong')).toHaveText(['80%','8%','1%','4%','5%','2%']);await page.keyboard.press('Space');await expect(overview).not.toHaveAttribute('open','');await expect(summary).toBeFocused();
   await expect(page.locator('[data-launch-step-target="2"]')).toHaveAccessibleName('Step 2: Launch settings');

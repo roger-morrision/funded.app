@@ -21,7 +21,7 @@ for(const width of [360,390,1440])test(`per-coin snapshot guidance and native Ai
   await expect(article).not.toContainText(/90 days|at migration/);
   await expect(link).toHaveAttribute('href','#airdrops');
   await expect(page.locator('.reward-upcoming-grid article').first()).toContainText('An hourly payout needs finalized holdings');
-  await expect(page.locator('.reward-upcoming-note')).toHaveText('Creator, X, and referral SOL depend on collected fees. X rewards require a claim; referral payouts are creator signed and appear after confirmation.');
+  await expect(page.locator('.reward-upcoming-note')).toHaveText('Creator, X, and referral SOL depend on collected fees. X rewards require a claim. Active automatic routes pay referrals after funding; manual routes can require creator approval. Check finalized receipts.');
   await link.focus();await expect(link).toBeFocused();
   await expect.poll(()=>link.evaluate(element=>{
     const r=element.getBoundingClientRect(),style=getComputedStyle(element),m=(parseFloat(style.outlineWidth)||0)+Math.max(0,parseFloat(style.outlineOffset)||0);
