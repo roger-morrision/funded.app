@@ -4,12 +4,17 @@ import {Connection} from '@solana/web3.js';
 // otherwise create new connections for each proof/readiness check.
 const sharedFetch=(target,options={})=>fetch(target,{...options,
   signal:options.signal?AbortSignal.any([options.signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)});
-let pending=Promise.resolve(),nextRequestAt=0;
+let pending=Promise.resolve(),nextRequestAt=0,nextBlockRequestAt=0;
 function pacedFetch(transport,target,options={}) {
+  let blockRead=false;
+  try {blockRead=JSON.parse(options.body||'{}').method==='getBlock';} catch { /* The SDK validates its request. */ }
   const request=pending.then(async()=>{
     options.signal?.throwIfAborted();
-    await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
+    await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now(),blockRead?nextBlockRequestAt-Date.now():0)));
     options.signal?.throwIfAborted();nextRequestAt=Date.now()+500;
+    // Historical snapshots must read every block. Pace the expensive method
+    // separately instead of bypassing complete replay when public RPC throttles.
+    if(blockRead)nextBlockRequestAt=Date.now()+2500;
     return transport(target,options);
   });
   pending=request.catch(()=>{});return request;

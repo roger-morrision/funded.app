@@ -29,3 +29,14 @@ test('independent server connections share a serial request budget',async()=>{
   assert.deepEqual(await Promise.all([first.getGenesisHash(),second.getGenesisHash()]),['devnet','devnet']);
   assert.equal(maximum,1);
 });
+
+test('historical block reads share a stricter budget across connections',async()=>{
+  const starts=[];
+  const transport=async(_url,options)=>{
+    const request=JSON.parse(options.body);starts.push(performance.now());
+    return Response.json({jsonrpc:'2.0',id:request.id,result:null});
+  };
+  const first=new SharedRpcConnection('https://rpc.invalid',{fetch:transport}),second=new SharedRpcConnection('https://rpc.invalid',{fetch:transport});
+  assert.deepEqual(await Promise.all([first.getParsedBlock(1),second.getParsedBlock(2)]),[null,null]);
+  assert(starts[1]-starts[0]>=2400,'block requests must not burst at the ordinary RPC rate');
+});
