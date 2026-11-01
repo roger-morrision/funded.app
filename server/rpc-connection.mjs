@@ -23,6 +23,10 @@ export class SharedRpcConnection extends Connection {
   constructor(endpoint,options='finalized') {
     const config=typeof options==='string'?{commitment:options}:options;
     const transport=config?.fetch||sharedFetch;
-    super(endpoint,{disableRetryOnRateLimit:true,...config,fetch:(target,options)=>pacedFetch(transport,target,options)});
+    const central=process.env.FUNDED_RPC_GATEWAY_ENABLED==='true'&&process.env.FUNDED_RPC_GATEWAY_URL
+      &&new URL(endpoint).href===new URL(process.env.FUNDED_RPC_GATEWAY_URL).href;
+    // Parallel requests must reach the gateway together to share its atomic
+    // account batches. Direct-provider deployments retain the local budget.
+    super(endpoint,{disableRetryOnRateLimit:true,...config,fetch:central?transport:(target,options)=>pacedFetch(transport,target,options)});
   }
 }

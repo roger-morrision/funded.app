@@ -9,6 +9,7 @@ export function createSolanaRpcProxy({
   clientKey,
   json,
   rpcMethods,
+  centralized = process.env.FUNDED_RPC_GATEWAY_ENABLED === 'true',
   fetch = (...args) => globalThis.fetch(...args),
 }) {
   const rpcCache = new Map();
@@ -38,7 +39,7 @@ export function createSolanaRpcProxy({
       // forwarding so omitted and explicit capped limits use the same request.
       request.params = [request.params[0], { ...config, limit }];
     }
-    const cacheable = !['sendTransaction', 'simulateTransaction', 'requestAirdrop'].includes(request.method);
+    const cacheable = !centralized && !['sendTransaction', 'simulateTransaction', 'requestAirdrop'].includes(request.method);
     const cacheKey = cacheable ? JSON.stringify([request.method, request.params]) : null;
     const cached = cacheKey && rpcCache.get(cacheKey);
     const client = clientKey(req);

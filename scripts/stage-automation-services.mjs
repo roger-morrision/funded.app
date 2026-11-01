@@ -16,6 +16,8 @@ const env={...process.env,FUNDED_RELEASE_IMAGE:image,FUNDED_APP_IMAGE:image,FUND
 const rendered=execFileSync('docker',['compose','--project-name','fundedapp','--profile','*','--env-file','.env.deploy','--env-file','.env.x',
   ...files.flatMap(path=>['-f',path]),'config','--format','json'],{env,encoding:'utf8',maxBuffer:8*1024*1024});
 const config=JSON.parse(rendered);
+const gatewayEnabled=Boolean(config.services['rpc-gateway']);
+const clientRpc=gatewayEnabled?'http://rpc-gateway:8899':process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com';
 const inactive=process.argv.includes('--inactive');
 const deployment=inactive ? {programDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256}
   : JSON.parse(await readFile('tmp/automation-release/deployed-program.json','utf8'));
@@ -44,15 +46,14 @@ for(const name of ['app','fee-collector','buyback-worker','agency-buyback-worker
   config.services[name].image=image;delete config.services[name].build;
   config.services[name].environment={...config.services[name].environment,FUNDED_BUILD_ID:sha,
     FUNDED_V3_PROGRAM_DATA_SHA256:deployment.programDataSha256,
-    SOLANA_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com'};
+    SOLANA_RPC_URL:clientRpc};
   config.services[name].labels={...config.services[name].labels,'org.opencontainers.image.revision':sha,
     'org.opencontainers.image.source':'https://github.com/roger-morrision/funded.app'};
 }
 Object.assign(config.services.app.environment,{FUNDED_BUILD_ID:sha,FUNDED_V3_PROGRAM_DATA_SHA256:deployment.programDataSha256,
   FUNDED_V3_AUTO_SETTLEMENT_ENABLED:String(!inactive),FUNDED_V3_AUTO_DISBURSEMENT_ENABLED:String(!inactive),
-  SOLANA_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',
-  SOLANA_HOLDER_INDEX_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',
-  FUNDED_PROGRAM_EVIDENCE_RPC_URL:process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com'});
+  SOLANA_RPC_URL:clientRpc,SOLANA_HOLDER_INDEX_RPC_URL:clientRpc,
+  FUNDED_PROGRAM_EVIDENCE_RPC_URL:gatewayEnabled?'':clientRpc});
 if(inactive)for(const flag of ['LAUNCH','COLLECTION','SETTLEMENT','HOLDER_WORKER','BUYBACK','COMMUNITY_FUNDING',
   'CREATOR_REWARD_FUNDING','CREATOR_WALLET_PAYOUT','OPERATIONS_PAYOUT','REFERRAL_PAYOUT'])
   config.services.app.environment[`FUNDED_V3_${flag}_ENABLED`]='false';

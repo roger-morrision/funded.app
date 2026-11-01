@@ -1,0 +1,50 @@
+# Append after the app, collector and agency overlays. Only this service gets
+# the Helius/public-RPC URL. The deployment helper also removes old RPC mounts.
+x-rpc-client: &rpc-client
+  SOLANA_RPC_URL: http://rpc-gateway:8899
+  SOLANA_DEVNET_RPC_URL: http://rpc-gateway:8899
+  SOLANA_HOLDER_INDEX_RPC_URL: http://rpc-gateway:8899
+  FUNDED_PROGRAM_EVIDENCE_RPC_URL: ''
+  FUNDED_RPC_GATEWAY_ENABLED: 'true'
+  FUNDED_RPC_GATEWAY_URL: http://rpc-gateway:8899
+  FUNDED_RPC_GATEWAY_WS_URL: ws://rpc-gateway:8900
+services:
+  rpc-gateway:
+    image: ${FUNDED_RELEASE_IMAGE:?Set the tested gateway image}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    user: node
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    command: [node, scripts/run-rpc-gateway.mjs]
+    environment:
+      SOLANA_CLUSTER: devnet
+      FUNDED_RPC_UPSTREAM_URL_FILE: /run/secrets/rpc_gateway_upstream
+    secrets: [rpc_gateway_upstream]
+    ports: ['127.0.0.1:8899:8899']
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8899/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  app:
+    environment: *rpc-client
+    depends_on:
+      rpc-gateway: {condition: service_healthy}
+  fee-collector:
+    environment: *rpc-client
+    depends_on:
+      rpc-gateway: {condition: service_healthy}
+  buyback-worker:
+    environment: *rpc-client
+    depends_on:
+      rpc-gateway: {condition: service_healthy}
+  agency-buyback-worker:
+    environment: *rpc-client
+    depends_on:
+      rpc-gateway: {condition: service_healthy}
+secrets:
+  rpc_gateway_upstream:
+    file: ${FUNDED_RPC_UPSTREAM_URL_FILE:?Set the host file containing only the upstream RPC URL}

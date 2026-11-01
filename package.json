@@ -144,7 +144,8 @@
     "buffer": "^6.0.3",
     "lightweight-charts": "5.2.1",
     "pg": "^8.23.1",
-    "tweetnacl": "^1.0.3"
+    "tweetnacl": "^1.0.3",
+    "ws": "8.21.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
