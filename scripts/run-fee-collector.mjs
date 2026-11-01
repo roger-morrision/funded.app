@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import { createWorkerLifecycle, WorkerStoppingError } from './worker-lifecycle.mjs';
 import { createTradeWakePoll } from './trade-wake-poll.mjs';
+import {runFeeCollectorLoop} from './fee-collector-loop.mjs';
 
 const heartbeat = join(tmpdir(),'funded-fee-collector-status.json');
 const intervalMs = Math.max(60_000, Number(process.env.FUNDED_FEE_COLLECTION_TICK_MS || 300_000));
@@ -74,17 +75,12 @@ if (process.argv.includes('--check')) {
       collected, settled, disbursed, settlementErrors, pausedMints:[...pausedMints], pendingSettlement:(candidates.pendingV3Settlements || []).length };
     await writeFile(heartbeat, JSON.stringify(status));
     console.log(JSON.stringify(status));
+    return status;
   }
-  while (!lifecycle.stopped) {
-    if(!process.argv.includes('--once')&&!await shouldRun(()=>request('/api/automation/wakeup'))){
-      await lifecycle.wait(5000);continue;
-    }
-    try { await tick(); }
-    catch (error) { if (!(error instanceof WorkerStoppingError)) {
+  await runFeeCollectorLoop({lifecycle,once:process.argv.includes('--once'),
+    shouldRun:()=>shouldRun(()=>request('/api/automation/wakeup')),tick,
+    onError:error=>{if (!(error instanceof WorkerStoppingError)) {
       console.error(`Fee collector: ${String(error.message || error)}`); if(process.argv.includes('--once'))process.exitCode=1;
-    } }
-    if(process.argv.includes('--once') || lifecycle.stopped)break;
-    await lifecycle.wait(5000);
-  }
+    }}});
   } finally { lifecycle.dispose(); }
 }
