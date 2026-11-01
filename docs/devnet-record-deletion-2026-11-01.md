@@ -12,7 +12,7 @@ Removed from live storage:
 
 Shared watchlist and index-cursor records were scrubbed of old token references. Unrelated records and account configuration were retained. The maintenance job used the exact 20-mint inventory, stopped the app and its three financial workers, matched a fresh deletion-plan hash, held the database advisory lock, and verified zero remaining references to the old mint and receipt identities in all inspected live tables and the reward ledger. All four services restarted with their existing images. App health returned HTTP 200, the active launch list was empty, and old launch/metadata endpoints returned HTTP 404.
 
-The source also excludes the deleted mint addresses from launch registration, metadata creation and automatic unindexed buyback discovery. The exclusion inventory contains addresses only; it does not retain launch metadata, receipts or payout records.
+The guards were deployed as `fundedapp-devnet:delete-old-155fdcaa`, source revision `155fdcaa8ad6c1ba35a9bc4c7eb036c9691425ff`. They exclude the deleted mint addresses from launch registration, metadata creation and automatic unindexed buyback discovery. The exclusion inventory contains addresses only; it does not retain launch metadata, receipts or payout records. A live attempt to re-register a deleted mint returned HTTP 410. Post-deployment checks confirmed zero launch rows, collection rows, holder programs, schedules and bonus snapshots; 19 unrelated referral-wallet records remained, and the app was healthy.
 
 The October 31 archive backup remains. Automatic approval review rejected destruction of that backup because it was not explicitly authorized; separate user approval has been requested. No claim that the backup was deleted is made.
 
