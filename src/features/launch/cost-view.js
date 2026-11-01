@@ -113,11 +113,11 @@ export function updateCostSummary(
     if (mobileBudgetValue) mobileBudgetValue.textContent = value || 'Calculating…';
     if (mobileBudgetNote) mobileBudgetNote.textContent = wallet
       ? estimatedLaunchFeeLamports != null
-        ? 'Estimated total includes the approved app launch service fee, network fees and account rent. Review again before signing.'
-        : 'Checking the wallet-specific network fees and account rent before signing.'
+        ? 'Includes the launch fee, network fees and account rent. Review before signing.'
+        : 'Checking wallet costs before signing.'
       : publicBudget
-        ? 'Planning estimate. Review the itemized costs below; wallet-specific simulation is required before signing.'
-        : 'A current public Pump quote and app fee policy are needed. No wallet is required to view the planning budget.';
+        ? 'Planning estimate. Your wallet costs are checked before signing.'
+        : 'Waiting for a current quote and fee policy. No wallet needed.';
   };
   const burnNode = document.querySelector('#cost-burn');
   const burnRow = document.querySelector('#cost-burn-row');

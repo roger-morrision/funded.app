@@ -41,7 +41,10 @@ export function createLaunchActionsController(appState) {
       appState.setLaunchMode('custom');return;
     }
     const xShare = Number(document.querySelector('#x-share')?.value) || 0;
-    document.querySelector('#x-recipient').disabled = xShare <= 0;
+    const recipient=document.querySelector('#x-recipient');
+    recipient.disabled = xShare <= 0;
+    const recipientLabel=recipient.closest('label');
+    if(recipientLabel)recipientLabel.hidden=xShare <= 0;
     appState.updateLaunchPreview();
     appState.updateLaunchButton();
   }

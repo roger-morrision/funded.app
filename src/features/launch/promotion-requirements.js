@@ -47,7 +47,7 @@ export function renderPromotionRequirements(policy,{document=globalThis.document
     const label=input.closest('label')||document.querySelector(`label[for="${id}"]`);
     let badge=label?.querySelector('.optional');
     if(!badge&&label){badge=document.createElement('span');badge.className='optional';label.insertBefore(badge,input.parentElement===label?input:null);}
-    if(badge){badge.textContent=paid?'required for promotion':'optional';badge.classList.toggle('promotion-required',paid);}
+    if(badge){badge.textContent=paid?'required':'optional';badge.classList.toggle('promotion-required',paid);}
   }
   let root=document.getElementById('launch-promotion-requirements');
   if(!root){

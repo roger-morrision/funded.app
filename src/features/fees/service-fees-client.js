@@ -62,8 +62,8 @@ export function initServiceFeeCopy() {
     if(promotions && !document.getElementById('launch-service-fee-note')) { const p=document.createElement('p'); p.id='launch-service-fee-note'; p.className='field-help'; promotions.append(p); }
     const note=document.getElementById('launch-service-fee-note');
     if (note) note.textContent = verifiedLaunchFeeLamports == null
-      ? 'Checking the current app launch service fee. A complete SOL budget needs the verified fee policy.'
-      : `Every launch pays ${serviceFeeSol(verifiedLaunchFeeLamports)} SOL, plus network, reserve and account costs. Pro and Premier add the displayed promotion burn. Listing is included.`;
+      ? 'Checking the launch fee. Review the full SOL budget before signing.'
+      : `Launch fee: ${serviceFeeSol(verifiedLaunchFeeLamports)} SOL + network, reserve and account costs. Promotion burns are separate.`;
     const target = document.querySelector('#capital-flow');
     if (target && !document.getElementById('service-fee-guide')) {
       const details = document.createElement('details'); details.id = 'service-fee-details'; details.className = 'ui-disclosure';

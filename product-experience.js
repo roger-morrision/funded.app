@@ -77,7 +77,9 @@ function launch() {
   const packages = $('.creator-burn-section');
   if (options && packages) {
     packages.classList.remove('launch-tier-first');
-    options.querySelector('.launch-funding-section')?.after(packages);
+    options.querySelector('.launch-cost-jump')?.after(packages);
+    const story=options.querySelector('#launch-story-options');
+    if(story)options.querySelector('.launch-funding-section')?.after(story);
   }
   const first = $('[data-launch-step="1"]');
   const description = first?.querySelector('label:has(#token-description)');
@@ -104,11 +106,12 @@ function launch() {
   if (funding && !funding.querySelector('.product-airdrop-note')) {
     const note = document.createElement('p');
     note.className = 'product-airdrop-note';
-    note.textContent = 'Airdrops use your token; fee rewards use SOL. Both require verified eligibility and funding.';
+    note.textContent = 'Airdrops use your token. Fee rewards use SOL.';
     funding.querySelector('.section-label-row')?.after(note);
   }
   setText('.launch-preview-heading span', 'Preview');
-  setText('#custom-policy-title', 'Choose your fee split');
+  setText('#custom-policy-title', 'Split your 80%');
+  setText('#custom-policy .section-label-row > span', 'Must total 80%');
   mountStepOneFeeSplit();
   setText('.launch-total-cost-note', 'Review network fees, optional purchases, and any $FUNDED burn before signing.');
 }

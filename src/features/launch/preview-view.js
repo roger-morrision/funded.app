@@ -34,7 +34,7 @@ export function updateLaunchPreview(
   document.querySelector('#preview-symbol').textContent = symbol || 'TICKER';
   const description = document.querySelector('#token-description')?.value || '';
   const descriptionCounter = document.querySelector('#token-description-counter');
-  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280 · shown on your coin page`;
+  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280`;
   const tagline = document.querySelector('#token-tagline')?.value.trim() || '';
   const taglinePreview = document.querySelector('#preview-tagline');
   if (taglinePreview) taglinePreview.textContent = tagline || description.trim() || 'Your coin description appears here.';
@@ -82,6 +82,8 @@ export function updateLaunchPreview(
   if (previewBuy) previewBuy.textContent = buyLabel;
   const buyTokensNode = document.querySelector('#creator-buy-token-amount');
   const buySolNode = document.querySelector('#creator-buy-sol-amount');
+  const buyPreview=buyTokensNode?.closest?.('.creator-buy-preview');
+  if(buyPreview)buyPreview.hidden=!(creatorBuy.sol>0);
   if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : quotedBuyTokens > 0 ? `${Math.round(quotedBuyTokens).toLocaleString()} tokens` : creatorBuy.sol > 0 ? wallet ? 'Calculating…' : publicQuote?.status === 'unavailable' ? 'Quote unavailable' : 'Calculating…' : 'None';
   if (buySolNode) buySolNode.textContent = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL developer buy` : 'No developer buy';
   const image = getPreparedImage();

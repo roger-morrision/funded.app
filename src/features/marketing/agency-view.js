@@ -40,7 +40,7 @@ export function initMarketingAgency(document = globalThis.document) {
   if (promotion && !document.getElementById('launch-agency-options')) {
     const fieldset = document.createElement('fieldset'); fieldset.id = 'launch-agency-options'; fieldset.className = 'agency-options';
     const legend = document.createElement('legend'); legend.textContent = 'AI marketing team'; fieldset.append(legend);
-    const included = document.createElement('p'); included.className = 'agency-included-intro'; included.textContent = 'Buyback agents are included. X promotion requires a promotion package.';
+    const included = document.createElement('p'); included.className = 'agency-included-intro'; included.textContent = 'Buyback agents are included. Pro/Premier adds X promotion.';
     const help = document.createElement('p'); help.id = 'launch-agency-help'; help.textContent = 'New launches wait for verified fee vaults and executors. Agent execution is not yet available.'; help.setAttribute('role','status');
     fieldset.append(included); fieldset.setAttribute('aria-describedby', help.id);
     const team = document.createElement('ul'); team.className = 'agency-included-list'; fieldset.append(team);
@@ -53,9 +53,9 @@ export function initMarketingAgency(document = globalThis.document) {
     const update = () => {
       const selected=readLaunchAgencySelection({requiresBurn:['boost','pro','premier'].includes(promotion.dataset.selectedTier)});
       for(const row of team.children){const included=selected.includes(row.dataset.launchAgent);row.dataset.included=String(included);row.querySelector('.agency-included-badge').textContent=included?'Included':'Promotion only';}
-      split.textContent=`${agencyGrossPercent}% of collected creator fees is shared equally across the ${selected.length} included agents. Unused budgets stay reserved until an action is ready.`;
-      help.textContent=agencyReady?'Included agents and fee rates are signed at launch. Actions wait for verified funding and their saved milestones.':'New launches wait for verified fee vaults and executors. Agent execution is not yet available.';
-      if(publishingPaused&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved until reinstatement and verified delivery.';
+      split.textContent=`${agencyGrossPercent}% of collected creator fees · shared equally across the ${selected.length} included agents.`;
+      help.textContent=agencyReady?'Actions wait for verified funding and their milestones.':'Agent execution is not yet available.';
+      if(publishingPaused&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved.';
     };
     updateLaunchTeam=update;view.addEventListener('funded:launch-promotion',update);
     fieldset.append(help); fieldset.addEventListener('change', update); update(); promotion.append(fieldset);

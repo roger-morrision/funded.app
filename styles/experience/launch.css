@@ -253,6 +253,13 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
 #launch-dialog .launch-availability[data-state="unavailable"] { border-color: #614f35; }
 #launch-dialog .launch-availability[data-state="verified"] { border-color: #31574b; }
 #launch-dialog .launch-fields :is(select,textarea,input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"])) { min-height: 44px; border-radius: 8px; border-color: var(--line); }
+#launch-dialog .launch-fee-editor .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#launch-dialog .launch-fee-editor label { min-width: 0; font-size: 12px; font-weight: 600; line-height: 1.5; }
+#launch-dialog .launch-fee-editor .field-help { font-weight: 400; }
+#launch-dialog .launch-fee-editor input { font-size: 16px; }
+#launch-dialog .launch-fee-editor .full-span { grid-column: 1 / -1; }
+#launch-dialog :is(.launch-fee-editor label, .launch-tier-balance, .creator-buy-preview, #launch-tier-quote-status)[hidden] { display: none; }
+#launch-dialog .creator-burn-card > em { display: none; }
 #launch-dialog #launch-availability-label { font-size: 14px; line-height: 1.5; }
 #launch-dialog #launch-availability-guidance,
 #launch-dialog #launch-availability-details .field-help {
