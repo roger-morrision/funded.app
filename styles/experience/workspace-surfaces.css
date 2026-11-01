@@ -76,7 +76,7 @@
 .reward-program-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; }
 /* The rates panel keeps the explanation link; the invite card owns the main action. */
 body.page-route-referrals #main-content #route-guide-primary { display: none; }
-body.page-route-referrals #main-content #route-guide .route-guide-actions { display: flex; flex-wrap: wrap; }
+body.page-route-referrals #main-content #route-guide .route-guide-actions { display: none; }
 .page-route-payments .payments-summary,
 .page-route-payments #payments > .panel { padding: 20px; }
 .page-route-analytics-detail .analytics-kpis { gap: 9px; }

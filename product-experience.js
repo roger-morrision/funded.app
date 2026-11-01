@@ -1,6 +1,7 @@
 import { productEvent } from './product-events.js';
 import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
 import { mountStepOneFeeSplit } from './src/features/launch/fee-split-step.js';
+import { initializeLeaderboardScroll } from './src/features/leaderboard/table-scroll.js';
 
 // Compose existing controls; their data sources and transaction handlers stay authoritative.
 const $ = selector => document.querySelector(selector);
@@ -164,19 +165,7 @@ function details() {
   }
 }
 
-function leaderboard() {
-  const table = $('#leaderboard-table');
-  if (!table) return;
-  table.tabIndex = 0;
-  if (!table.parentElement.querySelector('.leaderboard-scroll-hint')) {
-    const hint = document.createElement('p');
-    hint.className = 'leaderboard-scroll-hint';
-    hint.textContent = 'Scroll horizontally to see the remaining columns →';
-    table.after(hint);
-  }
-}
-
-home(); explore(); launch(); portfolio(); details(); leaderboard();
+home(); explore(); launch(); portfolio(); details(); initializeLeaderboardScroll();
 // New route-scoped disclosures are created after the workspace's initial sync.
 window.dispatchEvent(new Event('funded:layout-change'));
 document.body.classList.add('product-experience-ready');
