@@ -1,7 +1,8 @@
 import { homeLaunchFeeIndex } from '../home-launch-fee-index.mjs';
 import { PublicKey } from '@solana/web3.js';
 import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
-import { creatorVaultPda, OnlinePumpSdk } from '@pump-fun/pump-sdk';
+import { creatorVaultPda } from '@pump-fun/pump-sdk';
+import {readPumpCreatorFeeBalance} from '../pump-fee-balance.mjs';
 import { solFromLamports } from '../../fee-activity-amount.js';
 
 export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond }) {
@@ -26,10 +27,9 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
     try {
       const owner = new PublicKey(launch.creator);
       pumpVault = creatorVaultPda(owner).toBase58();
-      const online = new OnlinePumpSdk(new Connection(solanaRpcUrl, 'confirmed'));
       const amount = await Promise.race([
-        online.getCreatorVaultBalanceBothPrograms(owner),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Pump vault read timed out')), 4500)),
+        readPumpCreatorFeeBalance({connection:new Connection(solanaRpcUrl, 'confirmed'),creator:owner}),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Pump vault read timed out')), 15000)),
       ]);
       pumpAccruedLamports = amount.toString();
     } catch { pumpError = 'Pump vault balance verification is temporarily unavailable.'; }
