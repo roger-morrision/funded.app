@@ -1,8 +1,8 @@
 import {execFileSync} from 'node:child_process';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {Connection,PublicKey} from '@solana/web3.js';
-import {readProgramDataEvidence} from '../server/automatic-reward-chain.mjs';
+import {PublicKey} from '@solana/web3.js';
+import {createHash} from 'node:crypto';
 const docker=args=>execFileSync('docker',args,{encoding:'utf8',maxBuffer:8*1024*1024});
 const [current]=JSON.parse(docker(['inspect','fundedapp-app-1']));
 const files=current.Config.Labels['com.docker.compose.project.config_files'].split(',');
@@ -21,11 +21,22 @@ const deployment=inactive ? {programDataSha256:process.env.FUNDED_V3_PROGRAM_DAT
   : JSON.parse(await readFile('tmp/automation-release/deployed-program.json','utf8'));
 if(!inactive&&deployment.status!=='finalized-exact-binary')throw Error('The upgraded program is not confirmed.');
 if(!inactive){
-  const connection=new Connection(process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',{
-    commitment:'finalized',disableRetryOnRateLimit:true,
-    fetch:(url,options)=>globalThis.fetch(url,{...options,signal:AbortSignal.timeout(30000)})});
-  if(await connection.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('Not Devnet');
-  if((await readProgramDataEvidence(connection,new PublicKey(deployment.program))).sha256!==deployment.programDataSha256)
+  const rpc=process.env.FUNDED_AUTOMATION_RPC_URL||'https://api.devnet.solana.com',program=new PublicKey(deployment.program);
+  const loader=new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
+  const [programData]=PublicKey.findProgramAddressSync([program.toBuffer()],loader);
+  const response=await fetch(rpc,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify([
+    {jsonrpc:'2.0',id:1,method:'getGenesisHash',params:[]},
+    {jsonrpc:'2.0',id:2,method:'getMultipleAccounts',params:[[program.toBase58(),programData.toBase58()],{encoding:'base64',commitment:'finalized'}]},
+  ]),signal:AbortSignal.timeout(30000)});
+  if(!response.ok)throw Error(`Release verification RPC HTTP ${response.status}`);
+  const rows=await response.json();if(!Array.isArray(rows)||rows.some(row=>row.error))throw Error('Release verification RPC failed');
+  if(rows.find(row=>row.id===1)?.result!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('Not Devnet');
+  const snapshot=rows.find(row=>row.id===2)?.result,[account,dataAccount]=snapshot?.value||[];
+  const accountBytes=Buffer.from(account?.data?.[0]||'','base64'),dataBytes=Buffer.from(dataAccount?.data?.[0]||'','base64');
+  if(!Number.isSafeInteger(snapshot?.context?.slot)||!account?.executable||account.owner!==loader.toBase58()
+    ||accountBytes.length!==36||accountBytes.readUInt32LE(0)!==2||!new PublicKey(accountBytes.subarray(4,36)).equals(programData)
+    ||dataAccount?.owner!==loader.toBase58()||dataAccount.executable||dataBytes.length<45||dataBytes.readUInt32LE(0)!==3
+    ||createHash('sha256').update(dataBytes).digest('hex')!==deployment.programDataSha256)
     throw Error('Finalized ProgramData differs from deployment evidence');
 }
 for(const name of ['app','fee-collector','buyback-worker','agency-buyback-worker']){

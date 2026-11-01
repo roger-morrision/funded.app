@@ -1,4 +1,5 @@
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, bonusWindowKey, bonusWindow } from './daily-bonus-schedule.mjs';
+import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
 export function dailyBonusWork({ app, ledger, now, limit = 3, schedule = DEFAULT_BONUS_SCHEDULE }) {
   const timestamps = Object.values(app.launches || {}).filter(row => row.cluster === 'devnet'
     && row.onchainVerified === true && row.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version === 1
@@ -11,7 +12,7 @@ export function dailyBonusWork({ app, ledger, now, limit = 3, schedule = DEFAULT
   for (let time = first; time < currentBonusStart(now,schedule); time += period) {
     const day = bonusWindowKey(time,schedule);
     const row = snapshots[day];
-    if (!row || row.evidenceCoverageVersion !== 1 && row.status !== 'reconciliation-required') missing.push(day);
+    if (!row || row.evidenceCoverageVersion !== BONUS_EVIDENCE_COVERAGE_VERSION && row.status !== 'reconciliation-required') missing.push(day);
   }
   const pending = Object.entries(snapshots).filter(([day,row]) => {
     try { bonusWindow(day,now); } catch { return false; }

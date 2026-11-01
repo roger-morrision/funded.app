@@ -3,7 +3,8 @@ import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 import { bonusHash } from './daily-bonus.mjs';
 
-const discriminators=['settle_mint_v3','recover_qa_settlement_v3','settle_agency_mint_v3']
+const discriminators=['settle_mint_v3','recover_qa_settlement_v3','settle_agency_mint_v3',
+  'settle_mint_v3_auto','settle_agency_mint_v3_auto']
   .map(name=>createHash('sha256').update(`global:${name}`).digest().subarray(0,8));
 const address=value=>new PublicKey(value.pubkey||value).toBase58();
 

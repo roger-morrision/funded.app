@@ -168,7 +168,7 @@ test('a legacy snapshot keeps its original hash, manifest and paid receipt after
   assert.equal((await f.service.status()).snapshots[0].eligibilityBasis,'collection-time-v1');
   await f.service.capture(day);
   await f.service.execute(day);
-  assert.deepEqual(f.rewardStore.data.dailyBonusSnapshots[day],paid);
+  assert.deepEqual(f.rewardStore.data.dailyBonusSnapshots[day],{...paid,evidenceCoverageVersion:2});
   assert.equal(f.rewardStore.data.dailyBonusAssignments.collection,legacy.hash);
   assert.deepEqual(f.counts(),{cycles:1,payments:3});
 });

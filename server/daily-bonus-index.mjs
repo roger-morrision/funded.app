@@ -10,6 +10,7 @@ import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { dailyBonusWindow, bonusHash } from './daily-bonus.mjs';
 import { dailyBonusSettlementReferences, finalizedBonusSettlementSources } from './daily-bonus-settlements.mjs';
 import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
+import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
 
 const signature = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const launchFingerprint = row => bonusHash({ mint:row.mint, creator:row.creatorWallet,
@@ -34,6 +35,14 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       cutoffSlot:finalizedSlot, mints:{}, routes:{}, trades:{}, collections:{}, verifiedCollections:{} };
     if (job.version !== 1 || job.programId !== programId) throw new Error('Daily bonus index network or program changed.');
     job.settlements ||= {};
+    if(settlementTime&&job.settlementDetectionVersion!==BONUS_EVIDENCE_COVERAGE_VERSION){
+      // Re-read only settlement routes. Preserve source proofs, trade coverage,
+      // frozen snapshots and every existing payment/assignment.
+      for(const [id,route] of Object.entries(job.routes))if(route.kind==='settlements')job.routes[id]={
+        mint:route.mint,kind:route.kind,address:route.address,complete:false,before:null,
+        previousSlot:Number.MAX_SAFE_INTEGER,pending:[],seen:{}};
+      job.settlementDetectionVersion=BONUS_EVIDENCE_COVERAGE_VERSION;
+    }
     const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified === true
       && row.cluster === 'devnet' && row.pumpFeeRoute?.scope === 'per-mint-v3'
       && row.pumpFeeRoute.programId === programId && row.pumpFeeRoute.verified === true
