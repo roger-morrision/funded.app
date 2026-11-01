@@ -2,7 +2,7 @@
 
 The app, browser RPC proxy, collector and automation workers use one private `rpc-gateway` service. Only the gateway mounts the configured Helius or public-RPC URL. Change `.secrets/rpc-gateway-upstream-url` to switch providers, then recreate the gateway. Never point that file at the gateway itself.
 
-The gateway keeps one persistent provider HTTP socket and one serial request budget: ordinary requests start at least 500 ms apart, and historical block reads at least 2.5 seconds apart. Provider rate limits trigger a shared cooldown. An explicitly method-specific limit cools down only that method, so unrelated financial reads can continue. Health and metrics requests use local state and consume no provider requests.
+The gateway keeps one persistent provider HTTP socket and one serial request budget. Ordinary requests start at least 250 ms apart for a Helius host and 500 ms apart for other providers. Historical block reads remain at least 2.5 seconds apart; transaction submissions are separately paced at one per second. These Helius budgets stay below the documented [Free RPC limits](https://www.helius.dev/solana-rpc-nodes). Provider rate limits trigger a shared cooldown. An explicitly method-specific limit cools down only that method, so unrelated financial reads can continue. Health and metrics requests use local state and consume no provider requests.
 
 Simultaneous identical reads share one upstream request. Compatible base64 account reads are grouped into one atomic `getMultipleAccounts` request, with the same commitment, encoding, data slice and minimum context slot. Each caller receives its original account and response ID. Batches are capped at the [Solana limit of 100 accounts](https://solana.com/docs/rpc/http/getmultipleaccounts).
 

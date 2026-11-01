@@ -35,18 +35,19 @@ export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxRespo
   transport.close=()=>agent.destroy();return transport;
 }
 
-export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=2500,batchWindowMs=15,
+export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=2500,sendIntervalMs=1000,batchWindowMs=15,
   maxQueue=48,maxQueueWaitMs=12000,cacheMaxEntries=1000,cacheMaxBytes=32*1024*1024,
   cooldownMs=30000,now=Date.now,wait=pause,sharedCache}={}){
   if(typeof transport!=='function')throw Error('RPC transport is required');
   const cache=new Map(),inflight=new Map(),accountGroups=new Map(),methodCooldowns=new Map();
   const counters={requests:0,upstreamRequests:0,cacheHits:0,coalescedReads:0,accountBatchSavings:0,
     accountBatches:0,uncacheableRequests:0,upstreamFailures:0,rateLimited:0,queueRejected:0,redisCacheHits:0,redisCacheErrors:0};
-  let tail=Promise.resolve(),queued=0,nextAt=0,nextBlockAt=0,sequence=0,generation=0,cacheBytes=0,blockedUntil=0,verified=false,initializing;
+  let tail=Promise.resolve(),queued=0,nextAt=0,nextBlockAt=0,nextSendAt=0,sequence=0,generation=0,cacheBytes=0,blockedUntil=0,verified=false,initializing;
   const stats=()=>({...counters,queueDepth:queued,cacheEntries:cache.size,cacheBytes,
     cooldownRemainingMs:Math.max(0,blockedUntil-now()),
     methodCooldowns:Object.fromEntries([...methodCooldowns].filter(([,until])=>until>now()).map(([method,until])=>[method,until-now()])),
-    upstreamVerified:verified,cluster:'devnet',redis:sharedCache?.stats?.()||{enabled:false}});
+    upstreamVerified:verified,cluster:'devnet',redis:sharedCache?.stats?.()||{enabled:false},
+    pacing:{minIntervalMs,blockIntervalMs,sendIntervalMs}});
   const cooling=method=>Math.max(blockedUntil,methodCooldowns.get(method)||0)>now();
   const erase=key=>{const entry=cache.get(key);if(entry){cacheBytes-=entry.bytes;cache.delete(key);}};
   function cacheDuration(request,result){
@@ -86,10 +87,12 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
     const enqueuedAt=now();queued++;
     const operation=tail.then(async()=>{
       if(cooling(request.method))return failure(429,'RPC provider is cooling down; retry later.');
-      const delay=Math.max(0,nextAt-now(),request.method==='getBlock'?nextBlockAt-now():0);
+      const delay=Math.max(0,nextAt-now(),request.method==='getBlock'?nextBlockAt-now():0,
+        request.method==='sendTransaction'?nextSendAt-now():0);
       if(now()-enqueuedAt+delay>maxQueueWaitMs){counters.queueRejected++;return failure(503,'RPC gateway queue deadline reached.');}
       await wait(delay);
       nextAt=now()+minIntervalMs;if(request.method==='getBlock')nextBlockAt=now()+blockIntervalMs;
+      if(request.method==='sendTransaction')nextSendAt=now()+sendIntervalMs;
       const payload={jsonrpc:'2.0',id:++sequence,method:request.method,params:request.params};
       counters.upstreamRequests++;
       let response;try{response=await transport(payload);}catch{counters.upstreamFailures++;return failure(503,'RPC upstream is unavailable.');}

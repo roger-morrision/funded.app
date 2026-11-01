@@ -6,7 +6,7 @@ COPY vendor ./vendor
 RUN --mount=type=secret,id=proxy_ca \
     if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
     npm ci --omit=dev --strict-ssl=true --no-audit --no-fund
-COPY server/rpc-gateway.mjs server/rpc-gateway-server.mjs server/redis-rpc-cache.mjs ./server/
+COPY server/rpc-gateway.mjs server/rpc-gateway-server.mjs server/redis-rpc-cache.mjs server/rpc-gateway-pacing.mjs ./server/
 COPY scripts/run-rpc-gateway.mjs ./scripts/
 ARG FUNDED_SOURCE_REVISION
 LABEL org.opencontainers.image.source="https://github.com/roger-morrision/funded.app" \

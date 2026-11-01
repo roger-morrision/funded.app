@@ -34,6 +34,18 @@ test('Redis reuse keeps the original expiry even after an L1 refresh',async()=>{
   assert.equal(f.calls.filter(r=>r.method==='getTransaction').length,2);
 });
 
+test('twenty unique receipts avoid twenty provider calls after the real memory-tier duration',async()=>{
+  const f=fixture(),gateway=f.gateway();await gateway.initialize();
+  const requests=Array.from({length:20},(_,id)=>rpc(id,'getTransaction',['receipt-'+id,{commitment:'finalized',encoding:'base64'}]));
+  await Promise.all(requests.map(r=>gateway.request(r)));
+  assert.equal(f.calls.filter(r=>r.method==='getTransaction').length,20);
+  f.advance(300001);const before=gateway.stats();
+  const replies=await Promise.all(requests.map(r=>gateway.request({...r,id:'repeat-'+r.id})));
+  const after=gateway.stats();assert.equal(after.upstreamRequests-before.upstreamRequests,0);
+  assert.equal(after.redisCacheHits-before.redisCacheHits,20);assert.equal(after.cacheHits-before.cacheHits,20);
+  assert.equal(after.coalescedReads-before.coalescedReads,0);assert(replies.every(r=>r.body.result.slot===42));
+});
+
 test('all RPC options affect Redis keys; confirmed history, nulls, errors and financial state bypass storage',async()=>{
   const f=fixture(),a=f.gateway();await a.initialize();
   for(const method of ['getBalance','getAccountInfo','getLatestBlockhash','getSignatureStatuses','getTokenAccountsByOwner',
