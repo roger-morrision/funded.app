@@ -1,4 +1,5 @@
 import {Buffer} from 'buffer';
+import bs58 from 'bs58';
 import {Connection,Transaction} from '@solana/web3.js';
 import {validateAgencyRules} from './config/agency-rules.js';
 import {verifyPreparedAgencyRules} from './agency-rules-review.js';
@@ -28,7 +29,8 @@ export function initAdminAgencyRules({api,post,show,refresh}){
     <button type="button" data-rules-sign hidden>Sign, finalize and publish reviewed settings</button>`;
   anchor.after(panel);
   const form=panel.querySelector('form'),status=panel.querySelector('[data-rules-review]'),sign=panel.querySelector('[data-rules-sign]');
-  let current,prepared,generation=0;
+  let current,prepared,generation=0,signing=false;
+  const workspace=document.querySelector('#workspace'),active=epoch=>!workspace||!workspace.hidden&&workspace.dataset.sessionEpoch===epoch;
   const invalidate=()=>{generation++;prepared=null;sign.hidden=true;};form.addEventListener('input',invalidate);
   panel.querySelector('[data-rules-load]').addEventListener('click',()=>load().catch(error=>show(error.message,true)));
   async function load(){
@@ -53,23 +55,33 @@ export function initAdminAgencyRules({api,post,show,refresh}){
     status.textContent=`Review: Operations ${n('operations')}%, referrals ${n('l1')}% / ${n('l2')}% / ${n('l3')}%, Daily bonus ${n('bonus')}%, buyback ${n('buyback')}%, agency ${n('agency')}%. Agent thresholds $${n('cap1')} / $${n('cap2')}; claim window ${n('window')} seconds; promotion billing interval ${n('interval')} seconds; recipient ${prepared.promotionRecipient}. Future launches only. Network fees and account storage may apply.`;
     sign.hidden=false;
   })().catch(error=>show(error.message,true));});
-  sign.addEventListener('click',()=>{(async()=>{
+  if(workspace)new MutationObserver(()=>{if(workspace.hidden)invalidate();}).observe(workspace,{attributes:true,attributeFilter:['hidden']});
+  sign.addEventListener('click',()=>{if(signing)return;const epoch=workspace?.dataset.sessionEpoch;if(!active(epoch))return;signing=true;(async()=>{
     const provider=window.phantom?.solana||window.solana,review=prepared;
     if(!review||provider?.publicKey?.toBase58()!==review.authority||!provider.signTransaction)
       throw new Error(`Connect the router authority wallet ${review?.authority||current?.authority} to sign this configuration.`);
     sign.disabled=true;
-    const tx=Transaction.from(Buffer.from(review.transaction,'base64')),message=Buffer.from(tx.serializeMessage()),signed=await provider.signTransaction(tx);
-    if(prepared!==review||!Buffer.from(signed.serializeMessage()).equals(message))throw new Error('Configuration review changed. Prepare it again.');
     const rpc=new Connection(`${location.origin}/api/solana/rpc`,'finalized');
-    const signature=await rpc.sendRawTransaction(signed.serialize(),{skipPreflight:false});
-    status.textContent=`Configuration submitted: ${signature}. Waiting for finalization; do not submit another update.`;
+    if(await rpc.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw new Error('The browser RPC is not Devnet.');
+    if(!active(epoch))return;
+    const tx=Transaction.from(Buffer.from(review.transaction,'base64')),message=Buffer.from(tx.serializeMessage()),signed=await provider.signTransaction(tx);
+    if(!active(epoch))return;
+    if(prepared!==review||provider.publicKey?.toBase58()!==review.authority||!Buffer.from(signed.serializeMessage()).equals(message))throw new Error('Configuration review changed. Prepare it again.');
+    if(!(await rpc.isBlockhashValid(review.blockhash,'confirmed')).value)throw new Error('Configuration review expired. Prepare it again.');
+    if(!active(epoch))return;
+    const wire=signed.serialize(),signature=bs58.encode(signed.signature);
+    status.textContent=`Configuration prepared: ${signature}. Check this exact transaction before preparing another update.`;
     const recovery=document.querySelector('#agency-policy-form');
     if(recovery){recovery.elements.signature.value=signature;recovery.elements.configRevision.value=String(BigInt(review.configRevision)+1n);}
+    prepared=null;sign.hidden=true;
+    const sent=await rpc.sendRawTransaction(wire,{skipPreflight:false,preflightCommitment:'confirmed',maxRetries:2});
+    if(sent!==signature)throw new Error('RPC returned a different signature. Reconcile the saved configuration.');
+    status.textContent=`Configuration submitted: ${signature}. Waiting for finalization; do not submit another update.`;
     const result=await rpc.confirmTransaction({signature,blockhash:review.blockhash,lastValidBlockHeight:review.lastValidBlockHeight},'finalized');
     if(result.value.err)throw new Error('Configuration transaction failed.');
     const published=await api('/api/fee-policy');
     await post('/api/admin/agency-fee-policy',{expectedRevision:published.revision,signature,
       configRevision:String(BigInt(review.configRevision)+1n),reason:form.elements.reason.value.trim()});
     show(`Settings finalized and published: ${signature}`);await load();await refresh();
-  })().catch(error=>show(error.message,true)).finally(()=>{sign.disabled=false;});});
+  })().catch(error=>{if(active(epoch))show(error.message,true);}).finally(()=>{signing=false;sign.disabled=false;});});
 }

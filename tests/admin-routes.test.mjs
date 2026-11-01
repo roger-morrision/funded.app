@@ -26,7 +26,7 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   const blockhash = Keypair.generate().publicKey.toBase58();
   let parsed = null, sourceBalance = 2_000_000_000, networkFee = 5000;
   let policyAddress = null, policyAccount = null, vaultAddress = null, vaultAccount = null;
-  let reserveAddress = null, reserveAccount = null;
+  let reserveAddress = null, reserveAccount = null,rewardAddress=null,rewardAccount=null;
   const connectionFactory = () => ({
     getGenesisHash:async () => DEVNET_GENESIS_HASH,
     getBalance:async () => sourceBalance,
@@ -35,8 +35,8 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
     getParsedTransaction:async () => parsed,
     getAccountInfo:async address => address.equals(policyAddress) ? policyAccount : null,
     getMultipleAccountsInfo:async addresses => addresses.map(address => address.equals(vaultAddress) ? vaultAccount
-      : address.equals(reserveAddress) ? reserveAccount : null),
-    getMinimumBalanceForRentExemption:async size => size === 81 ? 1_500_000 : 890_880,
+      : address.equals(reserveAddress) ? reserveAccount : address.equals(rewardAddress)?rewardAccount:null),
+    getMinimumBalanceForRentExemption:async size => size === 73 ? 1_500_000 : 890_880,
   });
   const operations = [];
   const dailyBonusRuntime = { async operate(action, value, actor) {
@@ -57,6 +57,7 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   };
   assert.equal((await call('GET', '/api/admin/overview')).status, 401);
   assert.equal((await call('GET','/api/admin/x-posts')).status,401);
+  assert.equal((await call('GET','/api/admin/rpc-health')).status,401);
   assert.equal((await call('POST','/api/admin/x-posts/review',{})).status,401);
   assert.equal((await call('POST','/api/admin/agency-fee-policy',{})).status,401);
   assert.equal((await call('POST','/api/admin/agency-fee-policy',{}, {origin:'https://evil.example'})).status,403);
@@ -143,6 +144,11 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   parsed.transaction.message.accountKeys[0].pubkey = keeper.publicKey;
   parsed.transaction.message.instructions[0].parsed.info.source = address(keeper);
   assert.equal((await call('POST', '/api/admin/withdrawals/reconcile', { signature:txSignature })).status, 409);
+  env.FUNDED_PUMP_REVENUE_WALLET=address(keeper);
+  const collision=await call('GET','/api/admin/overview');
+  assert(collision.value.wallets.filter(r=>r.address===address(keeper)).every(r=>!r.withdrawable&&r.custody==='server signer'));
+  assert.equal((await call('POST','/api/admin/withdrawals/prepare',{source:address(keeper),destination:address(admin),amountLamports:1000000})).status,400);
+  env.FUNDED_PUMP_REVENUE_WALLET=address(treasury);
 
   const mint = Keypair.generate().publicKey.toBase58();
   const programId = Keypair.generate().publicKey.toBase58();
@@ -163,13 +169,17 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   policyAccount = { owner:new PublicKey(programId), data };
   vaultAccount = { owner:SystemProgram.programId, data:Buffer.alloc(0), lamports:2_890_880 };
   const rewardVault = deriveCommunityRewardVaultV3(programId, mint, address(keeper));
+  rewardAddress=rewardVault;
+  const rewardData=Buffer.alloc(73);createHash('sha256').update('account:RewardVault').digest().copy(rewardData,0,0,8);
+  keeper.publicKey.toBuffer().copy(rewardData,8);new PublicKey(mint).toBuffer().copy(rewardData,40);
+  rewardAccount={owner:new PublicKey(programId),data:rewardData,lamports:5500000};
   reserveAddress = rewardReserveAddress({ programId, vault:rewardVault, asset:'SOL' });
   const reserveData = Buffer.alloc(81);
   createHash('sha256').update('account:RewardReserve').digest().copy(reserveData, 0, 0, 8);
   rewardVault.toBuffer().copy(reserveData, 8);
   new PublicKey(SOL_ASSET_MINT).toBuffer().copy(reserveData, 40);
   reserveData.writeBigUInt64LE(4_000_000n, 72);
-  reserveAccount = { owner:new PublicKey(programId), data:reserveData, lamports:5_500_000 };
+  reserveAccount = { owner:new PublicKey(programId), data:reserveData, lamports:1_000_000 };
   const vaults = await call('GET', '/api/admin/vaults');
   assert.equal(vaults.status, 200);
   assert.equal(vaults.value.vaults[0].categories[0].payableLamports, '2000000');
@@ -177,6 +187,9 @@ test('admin wallet signature gates policy edits, inventory, and exact finalized 
   assert.equal(vaults.value.vaults[0].categories[0].unassignedLamports, '0');
   assert.equal(vaults.value.vaults[0].categories[7].payableLamports, '4000000');
   assert.equal(vaults.value.vaults[0].categories[7].rentReserveLamports, '1500000');
+  assert.equal(vaults.value.vaults[0].categories[7].address,rewardVault.toBase58());
+  assert.equal(vaults.value.vaults[0].categories[7].lamports,'5500000');
+  assert.equal(vaults.value.vaults[0].categories[7].shortfallLamports,'0');
   policyAccount = null;
   const unverified = await call('GET', '/api/admin/vaults');
   assert.equal(unverified.value.vaults[0].categories[0].payableLamports, null);

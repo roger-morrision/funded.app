@@ -82,5 +82,7 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
       await refreshAudit();
     });
   });
+  const workspace=$('#workspace');if(workspace)new MutationObserver(()=>{if(workspace.hidden){clear();snapshots=[];day.value='';hash.value='';preview.textContent='';render();}})
+    .observe(workspace,{attributes:true,attributeFilter:['hidden']});
   render(); return {refresh};
 }

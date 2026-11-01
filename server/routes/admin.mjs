@@ -5,21 +5,20 @@ import { handleIssueAdmin } from './issue-admin.mjs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
-import { DEVNET_GENESIS_HASH, parseReserve, rewardReserveAddress } from '../automatic-reward-chain.mjs';
-import { SOL_ASSET_MINT } from '../../reward-merkle.js';
+import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
+import {readAdminVaults} from '../admin-vaults.mjs';
+import {readAdminRpcHealth} from '../admin-rpc-health.mjs';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import { validateProtocolFeeSplit } from '../../distribution-policy.js';
-import { protocolGrossUnits, deriveMintVaultsV3, deriveCommunityRewardVaultV3, verifyMintPolicyV3Account } from '../../mint-router-v3.js';
+import { protocolGrossUnits } from '../../mint-router-v3.js';
 import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../v3-allocation-residuals.mjs';
 import {verifyV3LaunchRouterReadiness} from '../v3-launch-readiness.mjs';
 import {publishAgencyFeePolicy,prepareAgencyRules} from '../admin-agency-policy.mjs';
 import {readAgencyDeployment} from '../agency-deployment.mjs';
-import {deriveAgencyVaultsV3} from '../../agency-mint-router-v3.js';
 
 const COOKIE = 'funded_admin';
 const CHALLENGE_MS = 5 * 60_000;
 const SESSION_MS = 30 * 60_000;
-const CATEGORIES = ['Creator', 'Operations', 'Referral L1', 'Referral L2', 'Referral L3', 'Community', 'Buyback'];
 const validWallet = value => {
   try { return new PublicKey(value).toBase58(); } catch { return null; }
 };
@@ -65,7 +64,7 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     .split(',').map(value => validWallet(value.trim())).filter(Boolean));
   const roleAddresses = () => {
     const signer = read => { try { return read()?.publicKey?.toBase58() || null; } catch { return null; } };
-    return [
+    const rows = [
       { role:'Pump fee keeper', address:signer(keeperKeypair), custody:'server signer', withdrawable:false },
       { role:'V3 router authority', address:signer(v3AuthorityKeypair), custody:'server signer', withdrawable:false },
       { role:'Referral payout funder', address:signer(referralPayoutKeypair), custody:'server signer', withdrawable:false },
@@ -74,6 +73,8 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
       { role:'Trading fee treasury', address:validWallet(env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER), custody:'external wallet', withdrawable:true },
       { role:'Boost payment wallet', address:validWallet(env.FUNDED_BOOST_PAYMENT_WALLET), custody:'external wallet', withdrawable:true },
     ].filter(row => row.address);
+    const signers=new Set(rows.filter(row=>row.custody==='server signer').map(row=>row.address));
+    return rows.map(row=>signers.has(row.address)?{...row,custody:'server signer',withdrawable:false}:row);
   };
   const finalizedTransfer = async (rpc, signature) => {
     const tx = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -129,6 +130,10 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
+    if(req.method==='GET'&&path==='/api/admin/rpc-health'){
+      try{return json(res,200,await readAdminRpcHealth({env}));}
+      catch{return json(res,503,{error:'RPC gateway health is unavailable. Refresh to retry.'});}
+    }
     if(await handleIssueAdmin(req,res,url,{store,body,json}))return true;
     if(req.method==='GET'&&path==='/api/admin/financial-health'){
       const health=(await automaticRewardStore?.read?.())?.financialFlowHealth;
@@ -224,63 +229,17 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
         withdrawalDestinations:[...withdrawalDestinations()],
         gates:{ launch:env.FUNDED_V3_LAUNCH_ENABLED === 'true', collection:env.FUNDED_V3_COLLECTION_ENABLED === 'true',
           settlement:env.FUNDED_V3_SETTLEMENT_ENABLED === 'true', holder:env.FUNDED_V3_HOLDER_WORKER_ENABLED === 'true',
+          automaticSettlement:env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED==='true',automaticPayouts:env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED==='true',
+          agencyBuybacks:env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true',rpcGateway:env.FUNDED_RPC_GATEWAY_ENABLED==='true',
           referral:env.FUNDED_V3_REFERRAL_PAYOUT_ENABLED === 'true', xClaims:env.FUNDED_V3_X_CLAIMS_ENABLED === 'true',
           buyback:env.FUNDED_V3_BUYBACK_ENABLED === 'true' } });
     }
     if (req.method === 'GET' && path === '/api/admin/vaults') {
       const state = await store.read();
-      const launches = Object.values(state.launches || {}).filter(row => row.pumpFeeRoute?.scope === 'per-mint-v3' && row.pumpFeeRoute.programId);
       const offset = Number(url.searchParams.get('offset') || 0);
       if (!Number.isSafeInteger(offset) || offset < 0) return json(res, 400, { error:'Invalid vault page.' });
-      const page = launches.slice(offset, offset + 10);
-      const rewardVaults = page.map(row => deriveCommunityRewardVaultV3(row.pumpFeeRoute.programId, row.mint, row.pumpFeeRoute.initialAuthority));
-      const addressGroups = page.map((row, index) => [
-        ...(row.pumpFeeRoute.protocolSplit?.agencyPercent===undefined?deriveMintVaultsV3:deriveAgencyVaultsV3)(row.pumpFeeRoute.programId, row.mint),
-        rewardReserveAddress({ programId:row.pumpFeeRoute.programId, vault:rewardVaults[index], asset:'SOL' }),
-      ]);
-      const addresses=addressGroups.flat(),offsets=addressGroups.map((_,index)=>addressGroups.slice(0,index).reduce((sum,group)=>sum+group.length,0));
-      const rpc = connection();
-      const genesis = await rpc.getGenesisHash();
-      if (genesis !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
-      const accounts = addresses.length ? await rpc.getMultipleAccountsInfo(addresses, 'finalized') : [];
-      const rentReserve = page.length ? BigInt(await rpc.getMinimumBalanceForRentExemption(0, 'finalized')) : 0n;
-      const rewardRentReserve = page.length ? BigInt(await rpc.getMinimumBalanceForRentExemption(81, 'finalized')) : 0n;
-      const policies = await Promise.all(page.map(async launch => {
-        try {
-          return await verifyMintPolicyV3Account({ connection:rpc,
-            programId:launch.pumpFeeRoute.programId, mint:launch.mint,
-            creator:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
-            split:launch.pumpFeeRoute.protocolSplit });
-        } catch { return { verified:false, reason:'v3-policy-read-unavailable' }; }
-      }));
-      const vaults = page.map((launch, index) => ({ mint:launch.mint, symbol:launch.symbol || null,
-        policyStatus:policies[index].verified ? 'verified' : policies[index].reason,
-        categories:[...CATEGORIES,...(addressGroups[index].length===9?['AI agency']:[]), 'Holder and X SOL reserve'].map((category, categoryIndex) => {
-          const account = accounts[offsets[index] + categoryIndex];
-          const balance = BigInt(account?.lamports || 0);
-          const standardVault = categoryIndex < addressGroups[index].length-1;
-          const accountValid = !account || account.owner?.equals(SystemProgram.programId)
-            && Buffer.from(account.data || []).length === 0;
-          const reward = !standardVault && account?.owner?.equals(new PublicKey(launch.pumpFeeRoute.programId))
-            ? parseReserve(account) : null;
-          const rewardValid = reward?.vault === rewardVaults[index].toBase58() && reward.asset === SOL_ASSET_MINT;
-          const payable = standardVault ? policies[index].verified && accountValid
-            ? policies[index].paidLamports[categoryIndex] - policies[index].withdrawnLamports[categoryIndex] : null
-            : rewardValid ? BigInt(reward.outstanding) : null;
-          const reserve = account ? standardVault ? rentReserve : rewardRentReserve : 0n;
-          const excess = payable == null ? null : balance > reserve + payable ? balance - reserve - payable : 0n;
-          const shortfall = payable == null ? null : balance < reserve + payable ? reserve + payable - balance : 0n;
-          return { category, address:addressGroups[index][categoryIndex].toBase58(),
-            lamports:String(balance), payableLamports:payable == null ? null : String(payable),
-            rentReserveLamports:account ? String(reserve) : null,
-            unassignedLamports:excess == null ? null : String(excess),
-            shortfallLamports:shortfall == null ? null : String(shortfall),
-            accountingStatus:!standardVault ? rewardValid ? 'verified' : 'reward-reserve-unverified' : !accountValid ? 'vault-account-unverified'
-              : policies[index].verified ? 'verified' : 'policy-unverified',
-            custody:'V3 program vault', withdrawable:false };
-        }) }));
-      return json(res, 200, { totalLaunches:launches.length, offset, nextOffset:offset + page.length < launches.length ? offset + page.length : null, vaults,
-        note:'Category payable amounts are finalized policy paid minus withdrawn counters; the SOL reward reserve uses its outstanding counter. Unassigned excess is not authorized for withdrawal.' });
+      try{return json(res,200,await readAdminVaults({state,offset,rpc:connection()}));}
+      catch(error){return json(res,503,{error:String(error.message||'Vault balances unavailable.')});}
     }
     if (req.method === 'POST' && path === '/api/admin/withdrawals/prepare') {
       const input = await body(req) || {};

@@ -39,7 +39,7 @@ for (const qa of [false,true]) test(`Devnet admin policy and guarded snapshot re
     if (path === '/api/admin/daily-bonus/reconcile') {
       recoveryApplied=JSON.parse(route.request().postData());return send(200,{snapshots:[]});
     }
-    if (path === '/api/admin/withdrawals/reconcile') return send(200, { amountLamports:'1000000', signature:JSON.parse(route.request().postData()).signature, finalized:true });
+    if (path === '/api/admin/withdrawals/reconcile') return send(200, { amountLamports:'1000000', signature:JSON.parse(route.request().postData()).signature, finalized:true,balanceDeltaVerified:true });
     if (path === '/api/admin/fee-policy') { revision += 1; return send(200, { revision, split:JSON.parse(route.request().postData()).split, effectiveFor:'future launches only' }); }
     if (path === '/api/admin/vaults') {
       vaultCalls++;await new Promise(resolve=>setTimeout(resolve,150));
