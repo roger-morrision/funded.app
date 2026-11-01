@@ -54,7 +54,8 @@ export function createLaunchFormController(appState) {
     appState.launchMode = mode === 'custom' ? 'custom' : 'quick';
     const custom = appState.launchMode === 'custom';
     appState.setLaunchProfile(custom ? 'community' : 'fast');
-    document.querySelector('#custom-policy').hidden = !custom;
+    const policy=document.querySelector('#custom-policy');
+    policy.hidden = !custom && !policy.closest('[data-launch-step="1"]');
     document.querySelector('#launch-mode-quick').classList.toggle('active', !custom);
     document.querySelector('#launch-mode-quick').setAttribute('aria-pressed', String(!custom));
     document.querySelector('#launch-mode-custom').classList.toggle('active', custom);
@@ -104,7 +105,7 @@ export function createLaunchFormController(appState) {
     }
     const hint = document.querySelector('#wizard-hint');
     if (hint && appState.launchStep === 1 && !document.querySelector('#token-name')?.value.trim()) {
-      hint.textContent = appState.launchProfile === 'fast' ? 'Quick setup: your 80% creator share goes to your wallet. Add a name and ticker.' : 'Community setup: choose holder and X rewards in Launch settings.';
+      hint.textContent = appState.launchProfile === 'fast' ? 'Quick setup: your 80% creator share goes to your wallet. Add a name and ticker.' : 'Community setup: choose holder and X rewards in the fee split form in step 1.';
     }
   }
   // app-source-end

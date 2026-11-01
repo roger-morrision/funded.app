@@ -142,6 +142,10 @@ body.page-route-launch .launch-page-flat .launch-tier-first .creator-burn-card >
 .launch-page-flat .launch-fee-options > h3 span { flex: 1; color: #91aab3; font-size: 11px; font-weight: 500; text-align: right; }
 .launch-page-flat .launch-fee-options-body { padding: 0 15px 15px; border-top: 1px solid #2d4650; }
 .launch-page-flat .launch-fee-options .benefit-grid { margin: 14px 0; }
+.launch-fee-editor .launch-mode-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0; }
+.launch-fee-editor .launch-mode-card { min-height:44px; padding:10px; }
+.launch-fee-editor .launch-mode-card :is(span,small) { display:none; }
+.launch-fee-editor .launch-mode-card strong { margin:0; font-size:12px; line-height:1.5; }
 #custom-policy #fee-distribution-status.funded-mint-invalid {
   margin: 12px 0 0;
   padding: 12px 14px;

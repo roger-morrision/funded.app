@@ -122,6 +122,20 @@ test('submission validation refuses stale estimates, insufficient balance and a 
   assert.match(getLaunchSubmissionState(f.state, f.services).message, /Connect a wallet/);
 });
 
+test('step one owns fee totals and recipient validation while readiness remains a final-stage check',()=>{
+  const f=fixture();
+  f.services.getFeeDistributionInputs=()=>({creatorWalletPercent:60,holderAirdropPercent:30,solClaimPercent:0});
+  assert.equal(getLaunchStepState(1,f.state,f.services).field,'#creator-wallet-share');
+  f.services.getFeeDistributionInputs=()=>({creatorWalletPercent:0,holderAirdropPercent:90,solClaimPercent:0});
+  assert.equal(getLaunchStepState(1,f.state,f.services).field,'#holder-airdrop-share');
+  f.services.getFeeDistributionInputs=()=>({creatorWalletPercent:60,holderAirdropPercent:10,solClaimPercent:10,xRecipient:''});
+  assert.equal(getLaunchStepState(1,f.state,f.services).field,'#x-recipient');
+  f.services.getFeeDistributionInputs=()=>({creatorWalletPercent:60,holderAirdropPercent:10,solClaimPercent:10,xRecipient:'@example'});
+  f.state.xFeeStatus.ready=false;f.services.xFeeFailureDetail=()=> 'identity unavailable';
+  assert.equal(getLaunchStepState(1,f.state,f.services).valid,true);
+  assert.match(getLaunchStepState(2,f.state,f.services).message,/identity unavailable/);
+});
+
 test('review confirmation disables immediately when wallet or consent changes', () => {
   const f = fixture();
   f.nodes.get('#launch-review-dialog').open = true;

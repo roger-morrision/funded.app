@@ -1,5 +1,6 @@
 import { productEvent } from './product-events.js';
 import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
+import { mountStepOneFeeSplit } from './src/features/launch/fee-split-step.js';
 
 // Compose existing controls; their data sources and transaction handlers stay authoritative.
 const $ = selector => document.querySelector(selector);
@@ -111,6 +112,7 @@ function launch() {
   setText('#launch-mode-custom strong', 'Share with your community');
   setText('#launch-mode-custom small', 'Split your share between your wallet, token holders, and an X account.');
   setText('#custom-policy-title', 'Choose your fee split');
+  mountStepOneFeeSplit();
   setText('.launch-total-cost-note', 'Review network fees, optional purchases, and any $FUNDED burn before signing.');
 }
 
