@@ -13,10 +13,15 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   const mobileNavigation=window.matchMedia('(max-width: 700px)');
+  // CSS can hide the mobile rail and blur its link before the media event fires.
+  let mobileFocusOwner=null;
+  document.addEventListener('focusin',event=>{mobileFocusOwner=event.target.closest('.mobile-navigation-links a');});
+  document.addEventListener('pointerdown',event=>{if(!event.target.closest('.mobile-navigation-links a'))mobileFocusOwner=null;});
   appState.setMenuOpen(false);
   mobileNavigation.addEventListener('change', () => {
     const active=document.activeElement;
-    const mobileLink=active?.closest('.mobile-navigation-links a');
+    const mobileLink=active?.closest('.mobile-navigation-links a')||(active===document.body?mobileFocusOwner:null);
+    mobileFocusOwner=null;
     const sidebarOwnedFocus=document.querySelector('#sidebar')?.contains(active);
     appState.setMenuOpen(false,mobileNavigation.matches&&sidebarOwnedFocus);
     if (!mobileNavigation.matches) {
