@@ -25,6 +25,9 @@ export const MARKETING_AGENCY_POLICY = Object.freeze({
   ]),
 });
 
+// New launches include the full team. Historical selections remain canonical below.
+export const NEW_LAUNCH_AGENT_IDS = Object.freeze(MARKETING_AGENCY_POLICY.agents.map(agent => agent.id));
+
 export function canonicalAgencySelection(input = []) {
   const ids = MARKETING_AGENCY_POLICY.agents.map(agent => agent.id);
   if (!Array.isArray(input) || input.length > ids.length

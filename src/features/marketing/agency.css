@@ -22,8 +22,12 @@ html body.product-experience-style #marketing-agency .agency-status { margin-blo
 .agency-funds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .agency-funds dd { margin: 10px 0 0; font-weight: 700; }
 .agency-options { margin: 20px 0; }
-.agency-options label { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; }
-.agency-options input[type=checkbox] { width: 20px; height: 20px; flex: 0 0 20px; accent-color: #f2b700; }
+.agency-options .agency-included-intro { margin-top: 0; }
+.agency-included-list { list-style: none; margin: 12px 0; padding: 0; }
+.agency-included-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #353a54; }
+.agency-included-list li:last-child { border-bottom: 0; }
+.agency-included-list [data-launch-agent-name] { min-width: 0; overflow-wrap: anywhere; }
+.agency-included-badge { flex-shrink: 0; font-size: 12px; color: #9ee5bc; background: #152c28; border: 1px solid #2d5a48; border-radius: 4px; padding: 3px 7px; }
 .agency-options p { line-height: 1.6; }
 .agency-options :focus-visible, .agency-page :focus-visible { outline: 2px solid #f2b700; outline-offset: 4px; }
 @media (max-width: 760px) { .agency-agent-grid, .agency-funds { grid-template-columns: 1fr; } .agency-page { padding: 16px 8px; } }

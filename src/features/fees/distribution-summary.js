@@ -20,7 +20,7 @@ export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
     ['referrals',fee.appReferralEffectivePercent,'Referral network','Reward qualified creator referrals across the saved three-level network.'],
     ['community',fee.communityEffectivePercent,'Daily bonus','Top traders, creators and referrers share this pool: top 3 per category, with equal category budgets.'],
     ['buyback',fee.buybackEffectivePercent,'$FUNDED buyback & burn','Funds automatic purchases and burns of $FUNDED when funding and execution conditions are met.'],
-    ...(fee.agencyEffectivePercent===undefined?[]:[['agency',fee.agencyEffectivePercent,'AI marketing & coin buybacks','Funds selected agents, including automatic buyback and burn of the launched coin at its saved milestones. Unused budgets stay reserved.']]),
+    ...(fee.agencyEffectivePercent===undefined?[]:[['agency',fee.agencyEffectivePercent,'AI marketing & coin buybacks','Every new launch includes X promotion and both own-coin buyback agents. Actions require verified funding and saved milestones. Unused budgets stay reserved.']]),
   ].map(([key,percent,label,benefit])=>({key,percent,label,benefit}));
   const total=rows.reduce((sum,row)=>sum+row.percent,0);
   if(rows.some(row=>!Number.isFinite(row.percent)||row.percent<0)||Math.abs(total-100)>0.000001)throw Error('Fee presentation must account for 100% of collected creator fees.');
