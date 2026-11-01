@@ -13,7 +13,7 @@ body .header-search-field input { flex: 1; width: 100%; min-width: 0; height: 46
 .header-search-panel > p { margin: 12px 0 0; color: #81909b; font-size: 12px; }
 .header-search-results-head { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0 8px; color: #f4a340; font: 700 10px 'DM Mono', monospace; letter-spacing: .08em; }
 .header-search-results-head span { color: #65747c; }
-.header-search-results { max-height: min(46vh, 390px); overflow-y: auto; border-top: 1px solid #29343a; }
+.header-search-results { max-height: min(46vh, 390px); overflow-y: auto; border-top: 1px solid #29343a; padding-bottom: 4px; scroll-padding-block: 4px; }
 .header-search-result { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 64px; padding: 10px 8px; border-bottom: 1px solid #273138; color: #e6e9ed; text-decoration: none; }
 .header-search-result:hover, .header-search-result[aria-selected="true"] { background: #111b2e; outline: 1px solid #9a6d36; outline-offset: -1px; }
 html body.product-experience-style #header-search-dialog { border-radius: 8px; border-color: var(--line); }

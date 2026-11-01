@@ -37,11 +37,12 @@ async function expectSelection(page, input, mint, index) {
   await expect(option).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#header-search-results [aria-selected=true]')).toHaveCount(1);
   await expect(input).toBeFocused();
-  expect(await option.evaluate(node => {
+  const visibility=await option.evaluate(node => {
     const box = node.getBoundingClientRect();
     const list = node.closest('.header-search-results').getBoundingClientRect();
-    return box.top >= list.top && box.bottom <= list.bottom && box.left >= 0 && box.right <= innerWidth;
-  })).toBe(true);
+    return {visible:box.top>=list.top&&box.bottom<=list.bottom&&box.left>=0&&box.right<=innerWidth,box:box.toJSON(),list:list.toJSON(),scrollTop:node.parentElement.scrollTop,scrollHeight:node.parentElement.scrollHeight,clientHeight:node.parentElement.clientHeight,fonts:document.fonts.status};
+  });
+  expect(visibility.visible,JSON.stringify(visibility)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
 
