@@ -1,7 +1,9 @@
+import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCoinStateController(appState) {
   // app-source: 979
   function resetCoinSurface(mintAddress){
+    renderCoinBurnDashboard({mint:mintAddress,status:'loading',cluster:appState.EXPLORE_CLUSTER});
     appState.coinTradeEstimate = null;
     appState.renderTradeAmountEstimate();
     document.querySelector('#coin-profile-about-tab')?.click();

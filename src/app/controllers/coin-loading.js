@@ -1,5 +1,6 @@
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
+import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
 
 export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
   const router = ledgerData?.sharedRouter;
@@ -19,6 +20,7 @@ export function createCoinLoadingController(appState) {
   // app-source: 981
   async function loadCoinOnChain(mintAddress){
     const loadId = ++appState.coinLoadId;
+    renderCoinBurnDashboard({mint:mintAddress,status:mintAddress?'loading':'unavailable',cluster:appState.EXPLORE_CLUSTER});
     globalThis.window?.dispatchEvent?.(new Event('funded:coin-facts-loading'));
     if (!mintAddress){ appState.renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
     const feeLedgerPromise=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`,
@@ -55,6 +57,7 @@ export function createCoinLoadingController(appState) {
       const largestAccounts = largestResult.status === 'fulfilled' ? largestResult.value.accounts : [];
       const parsedMint = mintInfo.value?.data?.parsed?.info;
       if (!parsedMint) throw new Error('Mint account was not returned by Solana RPC.');
+      renderCoinBurnDashboard({mint:mintAddress,parsedMint,curve,tokenProgram:mintInfo.value.owner?.toBase58?.(),cluster:appState.EXPLORE_CLUSTER,checkedAt:Date.now()});
       const decimals = Number(parsedMint.decimals ?? 0);
       const supply = Number(parsedMint.supply) / (10 ** decimals);
       let graduatedPool = null;
@@ -182,6 +185,7 @@ export function createCoinLoadingController(appState) {
       else { appState.coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals }; appState.renderCoinSummary(); appState.renderCoinPricePath(); appState.renderCoinFlow(NaN, NaN); appState.renderCoinPulse(); appState.setCoinField('#coin-trade-count', 'Unavailable'); appState.setCoinField('#coin-trade-breakdown', 'Pump curve required'); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); }
     } catch (error) {
       if (loadId !== appState.coinLoadId) return;
+      renderCoinBurnDashboard({mint:mintAddress,status:'unavailable',cluster:appState.EXPLORE_CLUSTER});
       const detail = coinUnavailableMessage(error?.message);
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, error:true}}));
       console.error('On-chain token detail failed', detail);

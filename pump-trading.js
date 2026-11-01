@@ -160,6 +160,7 @@ export function formatBondingCurveSnapshot({ mint, bondingCurve, slot = null, ob
   return {
     mint: requireMint(mint).toBase58(),
     complete: Boolean(bondingCurve.complete),
+    tokenTotalSupplyBaseUnits: bondingCurve.tokenTotalSupply?.toString(10) ?? null,
     virtualTokenReserves: virtualToken,
     virtualQuoteReservesSol: virtualQuote,
     realTokenReserves: realToken,
