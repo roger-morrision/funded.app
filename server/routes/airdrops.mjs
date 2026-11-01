@@ -128,6 +128,9 @@ export function createAirdropsRoutes({
       if (!launch?.onchainVerified || launch.cluster !== 'devnet' || !receipt?.signature
         || !Number.isSafeInteger(Number(launch.communityAirdrop?.reservedTokens)) || Number(launch.communityAirdrop.reservedTokens) <= 0)
         return json(res, 404, { error:'Verified Solana launch and community funding receipt are required.' });
+      // Complete exact-slot replay can require 256 paced block reads. Keep its
+      // response alive beyond the server's ordinary two-minute idle timeout.
+      res.setTimeout?.(15*60_000);
       try {
         const record = await (await communityClaimService(mint)).prepare({ mint, creator:launch.creatorWallet,
           reservedTokens:Number(launch.communityAirdrop.reservedTokens), fundingSignature:receipt.signature,
