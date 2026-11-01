@@ -29,7 +29,8 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
       if(width<=700){
         const bottomNavigation=page.locator('.mobile-workspace-nav');
         await expect(bottomNavigation).toHaveJSProperty('inert',true);
-        await expect(bottomNavigation.getByRole('link')).toHaveCount(0);
+        await bottomNavigation.locator('a').first().evaluate(link=>link.focus());
+        await expect(page.locator('#close-menu')).toBeFocused();
         await page.locator('#close-menu').click();await expect(page.locator('#sidebar')).toHaveAttribute('inert','');
       }
     };
