@@ -39,7 +39,6 @@ export function createLaunchSubmitController(appState) {
     if (invalidSocial) { const details = invalidSocial.closest('details'); if (details) details.open = true; invalidSocial.reportValidity(); appState.setLaunchStatus(invalidSocial.validationMessage, true); return; }
     if (!Number.isSafeInteger(communityTokens) || communityTokens < appState.MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > appState.MAX_COMMUNITY_AIRDROP_TOKENS || !Number.isFinite(communityAllocation)) { appState.setLaunchStatus('Community airdrop must be between 30,000,000 and 500,000,000 tokens.', true); return; }
      if (feeDistributionInput.solClaimPercent > 0 && !/^@[A-Za-z0-9_]{1,15}$/.test(xRecipient)) { appState.setLaunchStatus('Enter a valid X handle such as @account when X account rewards are above 0%.', true); return; }
-    if (feeDistributionInput.solClaimPercent > 0 && !appState.xFeeStatus.ready) { appState.setLaunchStatus(`X account rewards unavailable: ${appState.xFeeFailureDetail()}.`, true); return; }
     if (!feeDistribution.valid) { appState.setLaunchStatus('Creator fee shares must total exactly 80%. Check the wallet, holder, and X percentages.', true); return; }
     if (!launchBurnValidation.valid) { appState.setLaunchStatus('The fixed $FUNDED mint must be configured before a paid launch tier can be used.', true); return; }
     if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id)) {
@@ -74,7 +73,7 @@ export function createLaunchSubmitController(appState) {
         appState.setLaunchStatus('Resolving the X account to its stable user ID before signing…');
         const resolved = await appState.apiRequest(`/api/x/resolve?handle=${encodeURIComponent(xRecipient)}`);
         appState.assertWalletSessionCurrent(session);
-        if (!resolved.available || !/^\d{1,24}$/.test(String(resolved.data?.id || '')) || resolved.data.handle.toLowerCase() !== xRecipient.toLowerCase()) throw new Error('X account identity could not be verified before launch. No coin transaction was sent.');
+        if (!resolved.available || !/^\d{1,24}$/.test(String(resolved.data?.id || '')) || String(resolved.data?.handle || '').toLowerCase() !== xRecipient.toLowerCase()) throw new Error('X account could not be checked. Retry before launching.');
         xUserId = resolved.data.id;
       }
       const unresolved=appState.readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state));

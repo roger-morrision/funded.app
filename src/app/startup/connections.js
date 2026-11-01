@@ -369,11 +369,6 @@ export function initializeConnections(appState) {
   initializeAppState(appState, 'feeRouterRefreshPromise', feeRouterRefreshPromise);
   // app-source-end
 
-  // app-source: 212
-  let xFeeStatus = { ready: false, reasons: ['X fee service has not been verified'] };
-  initializeAppState(appState, 'xFeeStatus', xFeeStatus);
-  // app-source-end
-
   // app-source: 213
   const APP_ECONOMICS = Object.freeze({
     fundedSharePercent: appState.FEE_DISTRIBUTION.fundedPercent,

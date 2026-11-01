@@ -41,7 +41,6 @@ export function getLaunchStepState(
   {
     MIN_COMMUNITY_AIRDROP_TOKENS,
     MAX_COMMUNITY_AIRDROP_TOKENS,
-    xFeeStatus,
     launchMode,
   },
   {
@@ -50,7 +49,6 @@ export function getLaunchStepState(
     getCommunityAirdropTokens,
     getCreatorBuySol,
     developerBuyLimitReached,
-    xFeeFailureDetail,
     getLaunchBurnPolicy,
     formatLaunchBurnAmount,
     document = globalThis.document,
@@ -80,7 +78,6 @@ export function getLaunchStepState(
     if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy must be a valid SOL amount of zero or more.' };
     if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
     const splitError=feeSplitError(distribution);if(splitError)return splitError;
-    if (distribution.shares.solClaimPercent > 0 && !xFeeStatus.ready) return { valid: false, message: `X account rewards unavailable: ${xFeeFailureDetail()}.` };
     const launchBurn = getLaunchBurnPolicy();
     const burnValidation = validateLaunchBurnPolicy(launchBurn);
     if (!burnValidation.valid) return { valid: false, message: 'The protocol $FUNDED mint must be configured before a paid burn tier can launch.' };

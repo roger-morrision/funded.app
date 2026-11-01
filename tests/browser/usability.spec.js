@@ -48,17 +48,27 @@ for (const width of [1280, 900, 620, 390, 320]) test(`Explore Filters stay in vi
   await expect(popover).toBeHidden();
 });
 
-test('a stalled optional fee-status provider does not block the workspace', async ({ page }) => {
-  let requested = false;
-  let feeStatusFinished = false;
-  page.on('requestfailed', request => { if (request.url().endsWith('/api/x-fee/status')) feeStatusFinished = true; });
-  page.on('response', response => { if (response.url().endsWith('/api/x-fee/status')) feeStatusFinished = true; });
-  await page.route('**/api/x-fee/status', () => { requested = true; });
-  await page.goto('/#explore', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  expect(requested).toBe(true);
-  expect(feeStatusFinished, 'The workspace becomes usable before the optional status request finishes').toBe(false);
-  await expect(page.locator('#explore-search')).toBeVisible();
+for (const width of [390, 1440]) test(`X launch setup ignores global reward-service status at ${width}px (mocked APIs)`, async ({ page, baseURL }, info) => {
+  await page.setViewportSize({width,height:900});
+  const requests=[], errors=[], writes=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.route('**/*',route=>{const q=route.request(),u=new URL(q.url());return u.origin===new URL(baseURL).origin&&(q.method()==='GET'||u.pathname.startsWith('/api/'))?route.fallback():route.abort();});
+  await page.route('**/api/**',route=>{const q=route.request(),path=new URL(q.url()).pathname;requests.push(path);if(q.method()!=='GET'&&path!=='/api/solana/rpc')writes.push(path);return route.fulfill({status:503,json:{error:'signal timed out'}});});
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{revision:6,split:{operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10}}}));
+  await page.goto('/#launch');await page.locator('body.workspace-ready.product-experience-ready.product-flows-ready').waitFor();
+  await page.locator('#token-name').fill('X reward launch');await page.locator('#token-symbol').fill('XQA');
+  await page.locator('#creator-wallet-share').fill('70');await page.locator('#x-share').fill('10');
+  await page.locator('#launch-next').click();await expect(page.locator('#x-recipient')).toBeFocused();
+  await page.locator('#x-recipient').fill('@example');await expect(page.locator('#fee-distribution-status')).toBeHidden();
+  await expect(page.locator('#x-share-help')).toHaveText('SOL rewards for the named X account. Account checked before launch.');
+  await page.locator('#launch-next').click();await expect(page.locator('#benefits-step-title')).toBeVisible();
+  await expect(page.locator('#launch-summary-x')).toHaveText('10%');await expect(page.locator('#launch-button')).toBeDisabled();
+  await expect(page.locator('#wizard-hint')).not.toContainText('X account rewards unavailable');
+  await page.locator('#launch-back').click();await expect(page.locator('#x-recipient')).toHaveValue('@example');
+  await expect(page.locator('#fee-distribution-status')).toBeHidden();
+  await page.screenshot({path:info.outputPath('x-rewards-without-service-gate.png')});
+  expect(requests.filter(path=>path==='/api/x-fee/status'||path==='/api/x/resolve')).toEqual([]);
+  expect(errors).toEqual([]);expect(writes).toEqual([]);
 });
 
 test('an unavailable optional module leaves navigation usable and explains reload recovery', async ({ page }) => {

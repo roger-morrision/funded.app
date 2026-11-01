@@ -6,7 +6,6 @@ export function updateLaunchPreview(
   {
     wallet,
     feeRouterState,
-    xFeeStatus,
     publicQuote,
   },
   {
@@ -19,7 +18,6 @@ export function updateLaunchPreview(
     creatorBuyExceedsWalletBalance,
     formatVerifiedPercent,
     formatLaunchBurnAmount,
-    xFeeFailureDetail,
     renderLaunchBurnSelection,
     updateLaunchNavigation,
     document = globalThis.document,
@@ -141,15 +139,13 @@ export function updateLaunchPreview(
   if (feeStatus) {
     const validation = validateFeeDistribution(feeDistribution);
     feeStatus.textContent = validation.valid
-      ? feeDistribution.solClaimPercent > 0
-        ? xFeeStatus.ready ? 'X rewards use an isolated per-coin fee router and verified X + wallet claim.' : `X account rewards unavailable: ${xFeeFailureDetail()}.`
-        : ''
+      ? ''
       : !validation.sharesValid
         ? 'Each creator destination must be between 0% and 80%.'
         : !validation.xRecipientValid
           ? 'Enter a valid X account for the SOL reward.'
           : 'Creator wallet, holder rewards, and X account reward must total exactly 80%.';
-    feeStatus.className = `field-help ${validation.valid && (feeDistribution.solClaimPercent === 0 || xFeeStatus.ready) ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
+    feeStatus.className = `field-help ${validation.valid ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
     feeStatus.style.display = feeStatus.textContent ? '' : 'none';
     const invalidShares = !validation.sharesValid || Math.abs(validation.total - FEE_DISTRIBUTION.creatorPercent) >= 0.001;
     for (const id of ['creator-wallet-share', 'holder-airdrop-share', 'x-share']) {

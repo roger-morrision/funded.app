@@ -53,8 +53,6 @@ export function createWalletMetricsController(appState) {
         reserveTokens:appState.getCommunityAirdropTokens(), developerBaseUnits:developerBuy.amountBaseUnits });
       initialBuy.curvePremiumBps = appState.initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
       const mint = Keypair.generate();
-      const xLinked = appState.getFeeDistributionInputs().solClaimPercent > 0;
-      if (xLinked && !appState.xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on Solana.');
       const v3 = appState.feeRouterState.v3FeeRouter;
       if (!v3 || appState.feeRouterState.scope !== 'per-mint-v3') throw new Error('V3 launch configuration is not verified.');
       const{readLaunchAgencySelection}=await import('../../features/marketing/agency-selection.js');

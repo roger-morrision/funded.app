@@ -40,6 +40,23 @@ function fixture() {
 }
 const signingWallet = () => ({ publicKey: { toBase58: () => 'test-wallet' }, signTransaction() {} });
 
+test('X reward-service timeouts do not block connecting, estimating or reviewing a launch', () => {
+  const f = fixture(), button = f.nodes.get('#launch-button');
+  f.state.xFeeStatus = { ready: false, reasons: ['signal timed out'] };
+  f.services.getFeeDistributionInputs = () => ({ creatorWalletPercent: 70, holderAirdropPercent: 0, solClaimPercent: 10, xRecipient: '@example' });
+  f.render();
+  assert.equal(button.dataset.launchAction, 'connect-wallet');
+  assert.equal(button.disabled, false);
+  f.state.wallet = signingWallet();
+  f.render();
+  assert.equal(button.dataset.launchAction, 'launch');
+  assert.equal(button.disabled, false);
+  f.state.launchCostReview = { ...f.state.launchCostReview, expiresAt: 0 };
+  f.render();
+  assert.equal(button.dataset.launchAction, 'refresh-estimate');
+  assert.equal(button.disabled, false);
+});
+
 test('launch action follows wallet connection, quote expiry, signing readiness and consent', () => {
   const f = fixture(), button = f.nodes.get('#launch-button');
   f.render();
@@ -94,7 +111,7 @@ test('over-limit developer buy blocks launch and clears its invalid marker after
   assert.equal(f.nodes.get('#launch-button').disabled, false);
 });
 
-test('form validation reports identity, reserve, distribution and unavailable X reward errors', () => {
+test('form validation checks identity, reserve and distribution without a global X reward gate', () => {
   const f = fixture();
   assert.equal(getLaunchStepState(1, f.state, f.services).valid, true);
   f.nodes.get('#token-symbol').value = 'INVALID!';
@@ -107,7 +124,7 @@ test('form validation reports identity, reserve, distribution and unavailable X 
   f.services.getFeeDistributionInputs = () => ({ creatorWalletPercent: 0, solClaimPercent: 80, xRecipient: '@example' });
   f.state.xFeeStatus.ready = false;
   f.services.xFeeFailureDetail = () => 'identity unavailable';
-  assert.match(getLaunchStepState(2, f.state, f.services).message, /identity unavailable/);
+  assert.equal(getLaunchStepState(2, f.state, f.services).valid, true);
 });
 
 test('submission validation refuses stale estimates, insufficient balance and a disconnected wallet', () => {
@@ -133,7 +150,7 @@ test('step one owns fee totals and recipient validation while readiness remains 
   f.services.getFeeDistributionInputs=()=>({creatorWalletPercent:60,holderAirdropPercent:10,solClaimPercent:10,xRecipient:'@example'});
   f.state.xFeeStatus.ready=false;f.services.xFeeFailureDetail=()=> 'identity unavailable';
   assert.equal(getLaunchStepState(1,f.state,f.services).valid,true);
-  assert.match(getLaunchStepState(2,f.state,f.services).message,/identity unavailable/);
+  assert.equal(getLaunchStepState(2,f.state,f.services).valid,true);
 });
 
 test('review confirmation disables immediately when wallet or consent changes', () => {

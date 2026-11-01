@@ -79,7 +79,6 @@ export const appStateSchema = {
   SELECTABLE_LAUNCH_TIERS: 'const',
   feeRouterState: 'let',
   feeRouterRefreshPromise: 'let',
-  xFeeStatus: 'let',
   APP_ECONOMICS: 'const',
   renderPublishedFeeRates: 'const',
   renderFeeFlowCalculator: 'const',

@@ -280,12 +280,7 @@ assert.doesNotMatch(app, /launchFeeSol/);
 assert.doesNotMatch(app, /handleMobileWalletCallback/);
 assert.doesNotMatch(app, /mobile signing setup required/i);
 
-const xFeeFailureDetailSource = app.match(/function xFeeFailureDetail\(\)\{[\s\S]*?\n\}/)?.[0];
-assert.ok(xFeeFailureDetailSource, 'X fee unavailability needs a reusable sentence-safe reason formatter.');
-const xFeeFailureDetail = new Function('xFeeStatus', `${xFeeFailureDetailSource}\nreturn xFeeFailureDetail;`)({
-  reasons: ['API service unavailable. Check the local API and database services, then retry.'],
-});
-assert.equal(xFeeFailureDetail(), 'API service unavailable. Check the local API and database services, then retry');
-assert.match(app, /`Unavailable: \$\{xFeeFailureDetail\(\)\}\.`/, 'The X reward gate should add one final sentence period.');
+assert.doesNotMatch(app, /xFeeStatus|X account rewards unavailable/, 'Launch preparation must not depend on global X reward-service readiness.');
+assert.match(app, /\/api\/x\/resolve\?handle=/, 'Resolve the named X account before signing.');
 
 console.log('launch wizard checks passed');

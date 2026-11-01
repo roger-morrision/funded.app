@@ -244,7 +244,7 @@ export async function initializeNavigation(appState) {
 
   // app-source: 889
   // Launch controls stay gated by their verified state while the workspace renders.
-  void Promise.allSettled([appState.refreshFeeRouterConfig(), appState.refreshXFeeStatus()]);
+  void appState.refreshFeeRouterConfig();
   // app-source-end
 
   // app-source: 890
