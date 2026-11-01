@@ -1,8 +1,8 @@
 import {expandDocsBrowser} from './docs-menu-helpers.js';
 import{test,expect}from'@playwright/test';import{createHash}from'node:crypto';import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 const titles={'reward-actions':'Automatic payouts or claims?',claims:'Claiming rewards'};
-// Frozen text hash from actual public8d280d7 six-row baseline, not fabricated receipts.
-const baselineRows='d826ea3ec96555cd5bc305e3874a489743f471ee5cdc581a79ab64719c406a4b';
+// Reviewed six-row text for automatic/manual saved-policy execution (2026-11-01).
+const baselineRows='876a63b1068202c32c2471485f8da53fc95be69a4d7b986219d6f30cc6abfb3b';
 for(const width of[360,390,1440])test(`FQA-028 Docs comparison native keyboard and touch at ${width}px (offline API)`,async({page},info)=>{
  test.setTimeout(90000);await page.setViewportSize({width,height:width===1440?900:844});const errors=[],writes=[],observations=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('https://**/*',r=>r.abort());await page.route('**/api/**',r=>{const q=r.request();if(!['GET','HEAD','OPTIONS'].includes(q.method())){if(!(new URL(q.url()).pathname==='/api/solana/rpc'&&['getSlot','getAccountInfo','getMultipleAccounts'].includes(q.postDataJSON()?.method)))writes.push(q.url());return r.abort()}return new URL(q.url()).pathname==='/api/fee-policy'?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline Docs fixture'}})});

@@ -12,7 +12,7 @@ export function rewards() {
     </div><p class="reward-upcoming-note">Creator, X, and referral SOL depend on collected fees. X rewards require a claim. Active automatic routes pay referrals after funding; manual routes can require creator approval. Check finalized receipts.</p></section>
     <nav class="reward-program-links" aria-label="More reward programs"><a href="#bonuses">Daily bonuses →</a><a href="#referrals">Referral rewards →</a></nav>`;
   const creator = node('div'); creator.id = 'rewards-creator';
-  creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator rewards</h2><p>Claim SOL from your tokens below.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
+  creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator rewards</h2><p>Track SOL payments from your launches.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
   const personal = $('[data-personal-rewards]'); if(personal)creator.append(personal);
   const xSummary = $('[data-x-rewards]',personal || creator);if(xSummary)x.prepend(xSummary);
   const holder = node('div'); holder.id = 'rewards-holder';

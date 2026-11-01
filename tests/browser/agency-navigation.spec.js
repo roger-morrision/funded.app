@@ -20,11 +20,11 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
         await expect(page.locator('#sidebar')).not.toHaveAttribute('inert','');
         await expect(page.locator('#sidebar')).not.toHaveAttribute('aria-hidden','true');
       }
-      const geometry=await page.evaluate(()=>{
+      const geometry=()=>page.evaluate(()=>{
         const sidebar=document.querySelector('#sidebar'),rail=sidebar.getBoundingClientRect(),main=document.querySelector('#main-content').getBoundingClientRect(),style=getComputedStyle(sidebar);
         return {x:rail.x,y:rail.y,width:Math.round(rail.width),height:Math.round(rail.height),direction:style.flexDirection,position:style.position,contentLeft:main.x,overflow:document.documentElement.scrollWidth>innerWidth};
       });
-      expect(geometry).toEqual({x:0,y:0,width:width<=700?280:220,height:900,direction:'column',position:'fixed',contentLeft:width<=700?0:220,overflow:false});
+      await expect.poll(geometry,{timeout:1000}).toEqual({x:0,y:0,width:width<=700?280:220,height:900,direction:'column',position:'fixed',contentLeft:width<=700?0:220,overflow:false});
       await expect(page.locator('#sidebar a[href="#launch"]')).toBeVisible();
       if(width<=700){
         const bottomNavigation=page.locator('.mobile-workspace-nav');

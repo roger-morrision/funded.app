@@ -69,10 +69,10 @@ export function referralFaqs() {
   return [
     ['referral-rates','What are the referral rates?',`<p>${referralRatePresentation().guide}</p><a href="#docs/referrals">Read referral payout rules →</a>`],
     ['referral-qualified','When do rewards become payable?',`<p>${copy.referrals} Creating an account, recruiting or launching without collected fees does not create a payout.</p>`],
-    ['referral-claim','Do I need to claim a referral bonus?', '<p>There is no separate V3 recipient claim. Connect and verify the earning wallet to view its private referral dashboard. The launch creator’s approval and a finalized transfer are required before a referral-network reward is paid. Daily referrer bonuses are sent automatically after their daily snapshot and funding checks.</p>'],
+    ['referral-claim','Do I need to claim a referral bonus?', '<p>There is no separate V3 recipient claim. Connect and verify the earning wallet to view its private referral dashboard. Active automatic routes pay the saved upline after verified settlement and funding. Manual routes can require creator approval. Check the finalized transfer. Daily referrer bonuses are sent automatically after their daily snapshot and funding checks.</p>'],
     ['referral-missing','What happens when a level is missing?',`<p>${copy.reserve}</p>`],
     ['referral-daily','How do I qualify for the Daily referrer bonus?',`<p>${copy.bonus} ${copy.bonusFunding}</p><a href="#bonuses">See Daily bonus rankings and history →</a>`],
-    ['referral-finality','Why does my dashboard show pending or no payout?', '<p>Check first-touch attribution, qualified collections, saved upline, creator settlement and payout approvals, then the finalized receipt. A pending or unavailable proof is not a zero balance or a successful payout. Rewards depend on collected activity and are not guaranteed.</p>'],
+    ['referral-finality','Why does my dashboard show pending or no payout?', '<p>Check first-touch attribution, qualified collections, saved upline, settlement and funding, any approvals required by a manual route, then the finalized receipt. A pending or unavailable proof is not a zero balance or a successful payout. Rewards depend on collected activity and are not guaranteed.</p>'],
   ];
 }
 
