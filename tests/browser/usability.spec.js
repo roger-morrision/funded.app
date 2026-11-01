@@ -50,6 +50,7 @@ for (const width of [1280, 900, 620, 390, 320]) test(`Explore Filters stay in vi
 
 for (const width of [390, 1440]) test(`X launch setup ignores global reward-service status at ${width}px (mocked APIs)`, async ({ page, baseURL }, info) => {
   await page.setViewportSize({width,height:900});
+  await page.unroute('https://**/*');
   const requests=[], errors=[], writes=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/*',route=>{const q=route.request(),u=new URL(q.url());return u.origin===new URL(baseURL).origin&&(q.method()==='GET'||u.pathname.startsWith('/api/'))?route.fallback():route.abort();});
