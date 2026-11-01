@@ -49,6 +49,11 @@ for (const width of [1440, 390, 320]) test(`launch package and X previews update
   const disclosure=page.locator('#launch-presentation-preview'), summary=disclosure.locator(':scope > summary');
   await expect(disclosure).not.toHaveAttribute('open','');await expect(page.locator('#launch-package-example')).toBeHidden();
   await expect(summary).toHaveText('Preview token page & X posts · Standard');
+  if(width<700){
+    await expect(page.locator('#wizard-hint')).toBeVisible();
+    const layout=await page.locator('#wizard-hint').evaluate(e=>{const hint=e.getBoundingClientRect(),row=e.parentElement.getBoundingClientRect(),back=document.getElementById('launch-back').getBoundingClientRect();return{width:hint.width,rowWidth:row.width,bottom:hint.bottom,backTop:back.top};});
+    expect(layout.width).toBeGreaterThanOrEqual(layout.rowWidth-2);expect(layout.bottom).toBeLessThanOrEqual(layout.backTop);
+  }
   await page.screenshot({path:info.outputPath(`launch-options-${width}.png`),fullPage:true});
   await summary.focus();await page.keyboard.press('Enter');await expect(disclosure).toHaveAttribute('open','');
   await expect(page.locator('#launch-package-example')).toBeVisible();

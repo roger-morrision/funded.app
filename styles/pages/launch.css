@@ -9,8 +9,13 @@
 #launch-dialog #launch-agency-options p { margin-block: 6px; font-size: 13px; line-height: 1.5; }
 #launch-dialog #launch-agency-options .agency-included-list { margin-block: 8px; }
 #launch-dialog #launch-agency-options .agency-included-list li { padding-block: 7px; font-size: 13px; }
+#launch-dialog #wizard-hint { min-width: 0; font: 13px/1.5 Manrope, system-ui, sans-serif; text-align: left; }
 @media (min-width: 700px) { #launch-dialog .creator-burn-tiers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 699px) {
+  #launch-dialog .wizard-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  #launch-dialog #wizard-hint { grid-column: 1 / -1; grid-row: 1; }
+  #launch-dialog #launch-back { grid-column: 1; }
+  #launch-dialog :is(#launch-next, #launch-review-retry) { grid-column: 2; }
   #launch-dialog .creator-burn-tiers { grid-template-columns: minmax(0, 1fr); }
   #launch-dialog .creator-burn-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; min-height: 0; padding: 12px; }
   #launch-dialog .creator-burn-card > span { justify-self: start; }
