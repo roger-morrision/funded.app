@@ -39,6 +39,8 @@ html body.product-experience-style .home-launch-card .home-launch-evidence { dis
 html body.product-experience-style .home-launch-card .home-launch-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; }
 html body.product-experience-style .home-launch-card .card-review-buy { flex: 1 0 72px; justify-content: center; gap: 8px; min-height: 44px; margin: 0; padding: 8px; border-radius: 6px; font-size: 12px; background: #282b2b; border-color: #786442; }
 html body.product-experience-style .home-launch-card .home-launch-card-actions > button { flex: none; min-height: 44px; min-width: 44px; margin: 0; padding: 8px; border-radius: 6px; font-size: 11px; }
+html body.product-experience-style #main-content .home-launch-card .home-launch-card-actions > button { border: 1px solid #3b4b62; background: #1b283c; color: #d5e1ef; }
+html body.product-experience-style #main-content .home-launch-card .home-launch-card-actions > button:is(:hover,.active,[aria-pressed="true"]) { border-color: #b68b42; color: #ffd28a; }
 html body.product-experience-style .home-launch-card .home-launch-card-actions > .token-card-action-share { margin-right: 0; }
 html body.product-experience-style .home-launch-card .home-launch-card-actions > .token-card-action-watch { width: 44px; padding: 10px; }
 html body.product-experience-style .home-card-details { position: relative; z-index: 2; min-width: 0; border-top: 1px solid #2b374b; }

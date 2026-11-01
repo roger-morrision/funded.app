@@ -2,6 +2,10 @@ import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-age
 import { renderAgencyHistory } from './agency-history.js';
 import { readLaunchAgencySelection } from './agency-selection.js';
 
+const agentDescription = agent => agent.id === 'x-promotion'
+  ? 'Up to one X post per 24 hours. Billed after the post is verified.'
+  : `One-time token buyback and burn at a verified $${agent.marketCapUsd.toLocaleString('en-US')} market cap.`;
+
 export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
   if (!main || document.getElementById('marketing-agency')) return;
@@ -9,7 +13,7 @@ export function initMarketingAgency(document = globalThis.document) {
   let publishingPaused=false,agencyGrossPercent=2,agencyReady=false,updateLaunchTeam=()=>{};
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
-  page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Marketing agents</h1><p>Both milestone buyback agents are included. X promotion comes with a promotion package.</p></div><button type="button" data-agency-refresh>Refresh status</button></header>
+  page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Marketing agents</h1><p>Buyback agents are included. Promotion packages add X promotion.</p></div><button type="button" data-agency-refresh>Refresh</button></header>
     <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
     <details class="agency-policy"><summary>Fee policy</summary><div class="agency-policy-body"><h2 id="agency-policy-title">New-launch agency allocation</h2>
@@ -18,12 +22,12 @@ export function initMarketingAgency(document = globalThis.document) {
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
       <p>The separate $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
       <a href="#capital-flow">View the currently active fee policy →</a></div></details>
-    <section aria-labelledby="agency-budget-title"><h2 id="agency-budget-title">Agency funds &amp; activity</h2><dl class="agency-funds"><div><dt>Verified agency funding</dt><dd data-agency-funded>Unavailable</dd></div><div><dt>Verified agency spending</dt><dd data-agency-spent>Unavailable</dd></div></dl><p data-agency-history>No agency execution history has been verified.</p></section>
+    <section aria-labelledby="agency-budget-title"><h2 id="agency-budget-title">Agency funds &amp; activity</h2><dl class="agency-funds"><div><dt>Verified funding</dt><dd data-agency-funded>Unavailable</dd></div><div><dt>Verified spending</dt><dd data-agency-spent>Unavailable</dd></div></dl><p data-agency-history>No agency execution history has been verified.</p></section>
     <a class="text-button" href="#launch">Review launch promotions →</a>`;
   for (const agent of POLICY.agents) {
     const card = document.createElement('article'); card.className = 'agency-agent';
     const title = document.createElement('h2'); title.textContent = agent.name;
-    const description = document.createElement('p'); description.textContent = agent.description;
+    const description = document.createElement('p'); description.textContent = agentDescription(agent);
     const state = document.createElement('span'); state.className = 'data-badge'; state.textContent = 'Not activated';
     card.append(title, description, state); page.querySelector('[data-agency-cards]').append(card);
   }
