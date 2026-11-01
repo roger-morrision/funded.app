@@ -11,7 +11,10 @@ const sha=execFileSync('git',['rev-parse','--verify',`${revision}^{commit}`],{en
 const image=`fundedapp-devnet:rpc-cache-${sha.slice(0,8)}`,[built]=JSON.parse(docker(['image','inspect',image]));
 assert.equal(built.Config.Labels['org.opencontainers.image.revision'],sha);
 const [current]=JSON.parse(docker(['inspect','fundedapp-rpc-gateway-1']));
-const files=current.Config.Labels['com.docker.compose.project.config_files'].split(',');
+// App/worker releases can advance independently of a gateway-only release.
+// Preserve their latest active compose baseline, not the gateway's older one.
+const [app]=JSON.parse(docker(['inspect','fundedapp-app-1']));
+const files=app.Config.Labels['com.docker.compose.project.config_files'].split(',');
 const rendered=docker(['compose','--project-name','fundedapp','--profile','*',...files.flatMap(file=>['-f',file]),'config','--format','json']);
 const base=JSON.parse(rendered),config=applyRpcGatewayRedisConfig(base,{image,revision:sha});
 assert.equal(config.services['rpc-gateway'].environment.SOLANA_CLUSTER,'devnet');

@@ -1,0 +1,213 @@
+{
+  "status": "passed-real-devnet-and-real-redis",
+  "at": "2026-11-01T04:32:28.367Z",
+  "release": {
+    "sha": "48dc3a06a5df12a9c19ec999ad75295cdaec1e17",
+    "image": "fundedapp-devnet:rpc-cache-48dc3a06",
+    "imageId": "sha256:8e3ecb90708ff821bb9bb18f4a80d99856fedb03dec599018a3743f0bc2fd1b4",
+    "redisImage": "redis@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+    "previousGatewayRevision": "da8862eb7ea4f5c84c62af0da3d834b40c6b042c"
+  },
+  "cold": {
+    "at": "2026-11-01T04:27:54.919Z",
+    "signature": "5ped18mLzF3YVBzZcfL2W5LyxLgSfzM513UdpbUXqGPQHaD2rKVszct1ZbXxem5BEmqpDZb764thRT9aEjGVxSbV",
+    "slot": 517339032,
+    "resultHash": "e8c4bf324ad7cdccb956c7eb072f9ab6148688bc7eba423d8b65d43a52eadd9b",
+    "ttlMs": 86399592,
+    "upstreamRequests": 1,
+    "redisWrites": 1
+  },
+  "redisRestart": {
+    "at": "2026-11-01T04:27:55.978Z",
+    "sameStoredEntry": true,
+    "originalDeadlinePreserved": true,
+    "ttlMs": 86398531
+  },
+  "gatewayRestart": {
+    "at": "2026-11-01T04:28:26.938Z",
+    "signature": "5ped18mLzF3YVBzZcfL2W5LyxLgSfzM513UdpbUXqGPQHaD2rKVszct1ZbXxem5BEmqpDZb764thRT9aEjGVxSbV",
+    "slot": 517339032,
+    "identicalReplies": 20,
+    "redisHits": 1,
+    "upstreamRequests": 0,
+    "coalescedReads": 3
+  },
+  "freshBalances": {
+    "reads": 2,
+    "upstreamRequests": 7,
+    "observedRedisReadDelta": 0
+  },
+  "preservedServices": [
+    {
+      "name": "fundedapp-app-1",
+      "id": "6833cb4a4fab11962f96c804211401c3cabeaae52dc57026c2db978982327398",
+      "image": "sha256:92bcddcf7d49a2729f99c30a080a3d415a8b10963c2f59d77cfd9444cf6a4d2a",
+      "source": "bd621326ecb5defa15f00c4560bd5b50a351e823",
+      "frontend": "d183b3e5cce9071979ecdb48af5772dddc8fa09d",
+      "status": "running",
+      "health": "healthy",
+      "preserved": true
+    },
+    {
+      "name": "fundedapp-fee-collector-1",
+      "id": "e3e21117d841c2c6be9acb79419376753dfffa4e71f5d57d4f26fc1094597e9e",
+      "image": "sha256:92bcddcf7d49a2729f99c30a080a3d415a8b10963c2f59d77cfd9444cf6a4d2a",
+      "source": "bd621326ecb5defa15f00c4560bd5b50a351e823",
+      "status": "running",
+      "health": "healthy",
+      "preserved": true
+    },
+    {
+      "name": "fundedapp-buyback-worker-1",
+      "id": "ff13e50e1b77424d8addbada4c141bdc5e8e3496a0746c6e1944a844fdccf70d",
+      "image": "sha256:92bcddcf7d49a2729f99c30a080a3d415a8b10963c2f59d77cfd9444cf6a4d2a",
+      "source": "bd621326ecb5defa15f00c4560bd5b50a351e823",
+      "status": "running",
+      "preserved": true
+    },
+    {
+      "name": "fundedapp-agency-buyback-worker-1",
+      "id": "fa93bb524b364865b872fa904c9870b7ec5647d54e96265e604d4a25e4b66b0a",
+      "image": "sha256:92bcddcf7d49a2729f99c30a080a3d415a8b10963c2f59d77cfd9444cf6a4d2a",
+      "source": "bd621326ecb5defa15f00c4560bd5b50a351e823",
+      "status": "running",
+      "preserved": true
+    }
+  ],
+  "privateRedisNetwork": true,
+  "redisHostPorts": 0,
+  "redisVersion": "Redis server v=8.10.3 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=defa938dbe2c41f",
+  "publicStatus": {
+    "cluster": "devnet",
+    "build": "bd621326ecb5defa15f00c4560bd5b50a351e823",
+    "status": "operational",
+    "checks": [
+      {
+        "id": "storage",
+        "status": "operational"
+      },
+      {
+        "id": "network",
+        "status": "operational"
+      }
+    ],
+    "observedAt": "2026-11-01T04:31:42.924Z",
+    "scope": "storage-network-and-v3-settlement-evidence",
+    "settlementVerified": true,
+    "settlementEvidence": {
+      "verified": true,
+      "scope": "all-recorded-v3-collections",
+      "recorded": 3,
+      "checked": 3,
+      "status": "verified",
+      "checkedAt": "2026-11-01T04:31:28.314Z",
+      "expiresAt": "2026-11-01T04:32:28.314Z",
+      "cached": true
+    },
+    "mainnetActivationAuthorized": false,
+    "respondedAt": "2026-11-01T04:32:22.555Z"
+  },
+  "publicReady": {
+    "ready": true,
+    "cluster": "devnet",
+    "beneficiaryRoutingOnChainEnforced": true,
+    "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "initialAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "protocolSplit": {
+      "operationsPercent": 40,
+      "referralLevelPercents": [
+        3,
+        1.25,
+        0.75
+      ],
+      "communityPercent": 20,
+      "buybackPercent": 25,
+      "agencyPercent": 10
+    },
+    "agency": {
+      "version": "marketing-agency-v1",
+      "configRevision": "8",
+      "rules": {
+        "marketCapUsd": [
+          100000,
+          300000
+        ],
+        "communityWindowSeconds": 7776000,
+        "promotionIntervalSeconds": 86400,
+        "source": "on-chain-snapshot"
+      }
+    },
+    "reasons": []
+  },
+  "metrics": {
+    "requests": 922,
+    "upstreamRequests": 397,
+    "cacheHits": 168,
+    "coalescedReads": 74,
+    "accountBatchSavings": 281,
+    "accountBatches": 85,
+    "uncacheableRequests": 0,
+    "upstreamFailures": 0,
+    "rateLimited": 0,
+    "queueRejected": 0,
+    "redisCacheHits": 7,
+    "redisCacheErrors": 0,
+    "queueDepth": 3,
+    "cacheEntries": 18,
+    "cacheBytes": 183113,
+    "cooldownRemainingMs": 0,
+    "methodCooldowns": {},
+    "upstreamVerified": true,
+    "cluster": "devnet",
+    "redis": {
+      "enabled": true,
+      "ready": true,
+      "reads": 17,
+      "hits": 7,
+      "misses": 10,
+      "writes": 10,
+      "errors": 0,
+      "invalidEntries": 0,
+      "oversizedEntries": 0,
+      "cooldownRemainingMs": 0
+    }
+  },
+  "financialTransactionsSubmitted": 0,
+  "gatewayHealth": "healthy",
+  "redisHealth": "healthy",
+  "tests": {
+    "source": "48dc3a06a5df12a9c19ec999ad75295cdaec1e17",
+    "tests": 46,
+    "passed": 46,
+    "failed": 0,
+    "skipped": 0,
+    "realRedisIntegration": true,
+    "sourceStructure": {
+      "preExistingEntryPointOverBudget": {
+        "lines": 504,
+        "bytes": 34518
+      },
+      "unchangedByRedis": true,
+      "gatewayImageIncludesEntryPoint": false
+    }
+  },
+  "policy": {
+    "cachedMethods": [
+      "getTransaction",
+      "getBlock"
+    ],
+    "requiredCommitment": "finalized",
+    "nullsCached": false,
+    "errorsCached": false,
+    "redisTtlMs": 86400000,
+    "memoryTtlMs": 300000,
+    "originalDeadlinePreserved": true,
+    "commandResponseDeadlineMs": 200,
+    "mutableStateCached": false,
+    "transactionSubmissionsCached": false,
+    "automaticSubmissionRetries": false,
+    "cacheMaxMemoryMiB": 128
+  },
+  "billingCreditSavingsMeasured": false,
+  "scope": "Gateway/cache only. Real finalized Devnet receipt plus real Redis restart and timeout tests; no new financial transaction."
+}

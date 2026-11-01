@@ -22,13 +22,15 @@ For a gateway-only release, build `Dockerfile.rpc-gateway` with the exact `FUNDE
 
 Run the focused tests with `node --test tests/redis-rpc-cache.test.mjs tests/rpc-gateway-redis.test.mjs tests/rpc-gateway-config.test.mjs`. For a disposable real Redis instance, set `FUNDED_TEST_REDIS_URL` and run `node --test tests/redis-rpc-integration.test.mjs`; it checks actual Redis persistence across clients, server TTL, a stalled command deadline, fallback and recovery with a local RPC fixture. No Helius call or transaction is made by that integration test. The gateway-only image includes the official [Node Redis client](https://redis.io/docs/latest/develop/clients/nodejs/produsage/).
 
+The active Redis rollout, measured repeat-read savings and restart verification are recorded in [November 1 Redis acceptance](devnet-redis-cache-2026-11-01.md). The later financial-flow acceptance is recorded [separately](devnet-helius-e2e-2026-11-01.md); the initial deployment below is historical.
+
 Browser signature subscriptions pass through `/api/solana/ws`. Internal SDKs use the private WebSocket port 8900. The gateway polls unique signatures together over its existing HTTP transport; it does not open a provider WebSocket. Only transaction-signature subscriptions are supported. Origin checks, bounded subscriptions and the existing public HTTP rate limits remain in place.
 
 Use `compose.rpc-gateway.yml` after the normal app/collector/agency overlays, or run `node scripts/stage-rpc-gateway.mjs --revision=<tested-sha>` against the existing deployment. The staging helper preserves financial policies and removes provider secret mounts from the clients. Start the gateway first, confirm Devnet and the pinned program hash through it, then switch the app and workers. `scripts/stage-automation-services.mjs` preserves central routing on later releases.
 
 Local tools can use `http://127.0.0.1:8899` and `ws://127.0.0.1:8900`; both host ports bind only to loopback. Provider credentials remain inside the gateway. Metrics at `/metrics` expose request, upstream, cache, coalescing, atomic-batch, queue and cooldown counts without addresses, signed transactions or credentials. Request-count savings do not by themselves measure a provider's billed credits.
 
-## November 1 live deployment
+## Initial November 1 deployment (historical)
 
 All five services run `fundedapp-devnet:rpc-da8862eb`, source `da8862eb7ea4f5c84c62af0da3d834b40c6b042c`, image identity `sha256:dbe9e3aea1d83c333777e231b97c7e10cd95af8f9f02bc5b43afa93d4010d0e0`. The isolated release branch is `codex/rpc-gateway-20261101`. The preserved frontend is `c6157636334c868251cbfcc3ea146fc6f71c0929`, which changes only the connection controller from the previously served frontend revision. Its read-only artifact mount and public entry scripts were verified.
 
