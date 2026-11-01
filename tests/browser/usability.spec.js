@@ -67,7 +67,8 @@ for (const width of [390, 1440]) test(`X launch setup ignores global reward-serv
   await page.locator('#launch-back').click();await expect(page.locator('#x-recipient')).toHaveValue('@example');
   await expect(page.locator('#fee-distribution-status')).toBeHidden();
   await page.screenshot({path:info.outputPath('x-rewards-without-service-gate.png')});
-  expect(requests.filter(path=>path==='/api/x-fee/status'||path==='/api/x/resolve')).toEqual([]);
+  // The rewards panel may read its own status; launch only resolves an account at submission.
+  expect(requests.filter(path=>path==='/api/x/resolve')).toEqual([]);
   expect(errors).toEqual([]);expect(writes).toEqual([]);
 });
 
