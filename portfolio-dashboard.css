@@ -11,7 +11,7 @@ html body.product-experience-style #main-content .portfolio-disconnected { paddi
 html body.product-experience-style #main-content .portfolio-disconnected h3 { margin: 0 0 6px; }
 html body.product-experience-style #main-content .portfolio-disconnected > p { margin: 0; }
 html body.product-experience-style #main-content .portfolio-disconnected .projects-empty-actions { flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-top: 12px; }
-html body.product-experience-style #main-content .portfolio-disconnected .projects-empty-actions a { flex: 1 1 120px; width: auto; margin: 0; padding: 8px 10px; border-radius: 8px; }
+html body.product-experience-style #main-content .portfolio-disconnected .projects-empty-actions a { flex: 0 1 auto; width: auto; margin: 0; padding: 8px 10px; border-radius: 8px; }
 .portfolio-disconnected a:focus-visible{outline:2px solid #f8d17a;outline-offset:3px}
 .portfolio-summary{margin-bottom:24px}
 .portfolio-summary>div{display:flex;flex-direction:column;gap:7px;padding:16px;background:#0b1120;border:1px solid #344053}

@@ -44,7 +44,7 @@ export function mountDocsReference(root) {
   nav.innerHTML = '<a class="docs-back" href="#overview">← Back to home</a>';
   const search = document.createElement('div');
   search.className = 'docs-guide-search';
-  search.innerHTML = '<label for="docs-guide-search">Search guides</label><div class="docs-guide-search-controls"><input id="docs-guide-search" type="search" autocomplete="off" aria-controls="docs-guide-topic-results"><button type="button" disabled>Clear search</button></div><p class="docs-guide-count" role="status" aria-live="polite" aria-atomic="true"></p>';
+  search.innerHTML = '<label for="docs-guide-search">Search guides</label><div class="docs-guide-search-controls"><input id="docs-guide-search" type="search" autocomplete="off" placeholder="Search topics" aria-controls="docs-guide-topic-results"><button type="button" aria-label="Clear search" title="Clear search" disabled>Clear</button></div><p class="docs-guide-count" role="status" aria-live="polite" aria-atomic="true"></p>';
   const input = search.querySelector('input');
   const clear = search.querySelector('button');
   const count = search.querySelector('[role="status"]');

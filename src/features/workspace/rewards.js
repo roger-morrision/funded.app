@@ -10,16 +10,7 @@ export function rewards() {
       <article><span>SOL · COIN HOLDERS</span><h3>Hold through an hourly cutoff</h3><p>Choose a coin with a holder fee share. An hourly payout needs finalized holdings, a fresh price, eligible wallets, and enough funded SOL. Small pools roll forward. Selected Devnet QA coins use five-minute cycles and reduced minimums; check the coin’s conditions.</p><button type="button" data-reward-open="holder">See cutoff and payout target →</button></article>
       <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Check each coin’s snapshot and deadline</h3><p>Check each coin’s verified snapshot and published claim deadline on Airdrops. Devnet QA cutoffs are separate; review the coin’s published terms.</p><a href="#airdrops">See snapshots and claim deadlines →</a></article>
     </div><p class="reward-upcoming-note">Creator, X, and referral SOL depend on collected fees. X rewards require a claim; referral payouts are creator signed and appear after confirmation.</p></section>
-    <a class="text-button" href="#bonuses">Daily bonus · payout history and top recipients →</a>
-    <div class="reward-overview-start"><h2>Explore rewards</h2><p>Eligibility varies by program.</p></div>
-    <div class="reward-action-grid">
-      <button type="button" data-reward-open="x"><span class="reward-action-icon" aria-hidden="true">𝕏</span><span><strong>X account rewards</strong><small>Sign in with X to claim SOL.</small></span><b aria-hidden="true">→</b></button>
-      <button type="button" data-reward-open="holder"><span class="reward-action-icon" aria-hidden="true">◎</span><span><strong>Coin holder rewards</strong><small>Automatic SOL for eligible holders.</small></span><b aria-hidden="true">→</b></button>
-      <button type="button" data-reward-open="funded"><span class="reward-action-icon" aria-hidden="true">ƒ</span><span><strong>$FUNDED holder airdrops</strong><small>Check token claim eligibility.</small></span><b aria-hidden="true">→</b></button>
-      <button type="button" data-reward-open="creator"><span class="reward-action-icon" aria-hidden="true">✦</span><span><strong>Creator rewards</strong><small>SOL from your launches.</small></span><b aria-hidden="true">→</b></button>
-      <button type="button" data-reward-open="history"><span class="reward-action-icon" aria-hidden="true">⇢</span><span><strong>Payment history</strong><small>Confirmed SOL payments.</small></span><b aria-hidden="true">→</b></button>
-      <a href="#referrals"><span class="reward-action-icon" aria-hidden="true">↗</span><span><strong>Referral rewards</strong><small>View your payout receipts.</small></span><b aria-hidden="true">→</b></a>
-    </div>`;
+    <nav class="reward-program-links" aria-label="More reward programs"><a href="#bonuses">Daily bonuses →</a><a href="#referrals">Referral rewards →</a></nav>`;
   const creator = node('div'); creator.id = 'rewards-creator';
   creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator rewards</h2><p>Claim SOL from your tokens below.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
   const personal = $('[data-personal-rewards]'); if(personal)creator.append(personal);
@@ -54,6 +45,7 @@ export function rewards() {
   const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'holder',label:'Coin holders',panel:holder},{key:'funded',label:'$FUNDED holders',panel:funded},{key:'creator',label:'Creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'History',panel:history}],'Reward type');
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
+  for(const tab of root.querySelectorAll(':scope > .ui-tabs > [role="tab"]'))tab.dataset.rewardOpen=tab.getAttribute('aria-controls').replace('rewards-','');
   $$('a[href="#payments"]',personal || creator).forEach(link=>link.addEventListener('click',()=>select('x',true)));
   let historyLocation;
   const syncHistoryRoute=()=>{

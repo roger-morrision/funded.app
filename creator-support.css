@@ -5,6 +5,17 @@
 .creator-support-page h1{font-size:clamp(30px,5vw,48px);line-height:1.15;margin:20px 0}
 .creator-support-page h2{margin-top:32px}.creator-support-page a,.support-shortcuts a{color:#c2b4ff}
 .creator-support-page label{display:grid;gap:8px;margin:14px 0;font-size:14px}
+html body.product-experience-style #main-content #creator-support-page.creator-settings-page { width: 100%; max-width: 1120px; margin: 20px 0; padding: 0; }
+.creator-settings-page .workspace-page-header { margin-bottom: 18px; }
+.creator-settings-page .workspace-page-header h1 { margin: 5px 0 8px; }
+.creator-settings-back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 8px; font-size: 13px; }
+.creator-settings-signin { max-width: 720px; padding: 20px; border: 1px solid var(--line, #334053); border-radius: 8px; background: var(--panel, #131c2b); }
+.creator-settings-signin > p { margin: 0 0 12px; }
+.creator-settings-signin .field-help { color: var(--muted, #a4b2c9); font-size: 13px; }
+.creator-settings-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.creator-settings-actions a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; }
+.creator-settings-page .creator-settings-actions .primary-button { color: #201606; }
+.creator-settings-page form { max-width: 760px; }
 html body.product-experience-style #creator-support-page .support-shortcuts { margin-block: 12px; gap: 8px; padding: 0; border: 0; background: transparent; }
 html body.product-experience-style #creator-support-page .support-shortcuts a { flex-direction: row; min-height: 44px; padding: 10px 8px; border-radius: 8px; font-size: 13px; line-height: 1.35; }
 html body.product-experience-style #creator-support-page .support-shortcuts a::before { width: 18px; height: 18px; margin: 0; }

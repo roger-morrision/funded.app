@@ -26,9 +26,9 @@ body.page-route-docs .docs-guide-next button { scroll-margin-block: 100px; }
 body.page-route-docs .docs-guide-nav { overflow: visible; }
 .docs-guide-search { flex: 0 0 auto; min-width: 0; }
 .docs-guide-search label { display: block; margin-bottom: 8px; font-weight: 700; }
-.docs-guide-search-controls { display: flex; flex-wrap: wrap; gap: 8px; }
-.docs-guide-search-controls input { min-width: 0; width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: #10171f; color: inherit; font: inherit; }
-body.page-route-docs .docs-guide-search-controls button { min-height: 44px; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+.docs-guide-search-controls { display: flex; flex-wrap: nowrap; gap: 8px; }
+.docs-guide-search-controls input { flex: 1; min-width: 0; width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #10171f; color: inherit; font: inherit; }
+body.page-route-docs .docs-guide-search-controls button { flex: none; width: auto; min-width: 52px; padding-inline: 10px; min-height: 44px; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
 .docs-guide-count, .docs-guide-no-results { font-size: 13px; line-height: 1.5; }
 .docs-guide-topic-results { min-height: 190px; overflow-y: auto; padding: 6px; scrollbar-width: thin; }
 body.page-route-docs .docs-guide-topic-results button { min-height: 44px; scroll-margin-block: 6px; }
