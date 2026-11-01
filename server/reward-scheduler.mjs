@@ -7,6 +7,7 @@ import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { PublicKey } from '@solana/web3.js';
 import { QA_HOLDER_POLICY, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
+import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
 
 const pricedHolderPolicy = config => ['usd-20-hourly-v1', QA_HOLDER_POLICY]
   .includes(config?.eligibilityPolicy);
@@ -407,7 +408,9 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
           await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = { status: 'paid', amount: leaf.amount, amountReceived: result.amountReceived, index: leaf.index, signature: result.signature, payment: result.payment, finalized: true, balanceDeltaVerified: true, paidAt: new Date().toISOString() }; });
           submitted += result.alreadyPaid ? 0 : 1;
         } catch (error) {
-          await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = { status: 'verification-pending', amount: leaf.amount, index: leaf.index, reason: String(error.message || error), checkedAt: new Date().toISOString() }; });
+          await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = {
+            ...(nativeRecipientFundingPending(error)||{status:'verification-pending',reason:String(error.message||error)}),
+            amount:leaf.amount,index:leaf.index,checkedAt:new Date().toISOString() }; });
         }
       }
       await store.transaction(state => {

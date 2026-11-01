@@ -10,6 +10,7 @@ import { bonusDashboardHistory, readBonusPool } from './daily-bonus-dashboard.mj
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, publicBonusSchedule, bonusWindow } from './daily-bonus-schedule.mjs';
 import {assertBonusSnapshot,appendDailyBonusResidual,bonusAssignmentMatches} from './daily-bonus-reconciliation.mjs';
 import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
+import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
 
 export function createDailyBonusService({ store, rewardStore, connection, programId, authority,
   expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
@@ -160,7 +161,16 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
             throw new Error('Daily bonus snapshot changed or was paused before payment.');
           const saved = current.payouts[source.collectionSignature].payments[leaf.recipient];
           if (saved?.finalized === true && saved.balanceDeltaVerified === true) continue;
-          const payment = await chain.submitLeaf(plan, leaf);
+          let payment;
+          try { payment = await chain.submitLeaf(plan, leaf); }
+          catch (error) {
+            const pending=nativeRecipientFundingPending(error);if(!pending)throw error;
+            await rewardStore.transaction(state=>{
+              state.dailyBonusSnapshots[day].payouts[source.collectionSignature].payments[leaf.recipient]={
+                ...pending,amount:leaf.amount,checkedAt:new Date(now()*1000).toISOString()};
+            });
+            continue;
+          }
           if (payment.finalized !== true || payment.balanceDeltaVerified !== true)
             throw new Error('Daily bonus payment lacks finalized account and balance evidence.');
           await rewardStore.transaction(state => {
@@ -169,7 +179,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
           });
         }
         await rewardStore.transaction(state => {
-          state.dailyBonusSnapshots[day].payouts[source.collectionSignature].status = 'paid';
+          const row=state.dailyBonusSnapshots[day].payouts[source.collectionSignature];
+          row.status=manifest.leaves.every(leaf=>row.payments[leaf.recipient]?.finalized===true
+            &&row.payments[leaf.recipient]?.balanceDeltaVerified===true)?'paid':'awaiting-recipient-funding';
         });
       }
       return await status();

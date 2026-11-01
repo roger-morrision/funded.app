@@ -207,6 +207,10 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     await scheduler.execute(Math.floor(Date.now() / 1000), [schedule.id]);
     const paid = (await rewardStore.read()).schedules?.[schedule.id];
     const payment = paid?.payments?.[claim.wallet];
+    if(payment?.status==='awaiting-recipient-funding')return json(res,409,{
+      status:payment.status,code:'RECIPIENT_RENT_REQUIRED',error:payment.reason,
+      minimumFundingLamports:payment.minimumFundingLamports,
+    });
     if (paid?.status !== 'paid' || payment?.status !== 'paid'
       || !payment.balanceDeltaVerified || !payment.finalized)
       return json(res, 503, { error:'X payout is pending finalized on-chain verification.' });
