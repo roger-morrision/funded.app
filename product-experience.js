@@ -104,7 +104,7 @@ function launch() {
   if (funding && !funding.querySelector('.product-airdrop-note')) {
     const note = document.createElement('p');
     note.className = 'product-airdrop-note';
-    note.textContent = 'The airdrop uses tokens of your new coin. Creator-fee rewards use collected SOL. Eligibility and payment require separate verified steps.';
+    note.textContent = 'Airdrops use your token; fee rewards use SOL. Both require verified eligibility and funding.';
     funding.querySelector('.section-label-row')?.after(note);
   }
   setText('.launch-preview-heading span', 'Preview');

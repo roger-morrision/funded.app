@@ -6,7 +6,7 @@ export function mountStepOneFeeSplit(document=globalThis.document){
   const policy=document.querySelector('#custom-policy');
   if(!first||!policy)return;
   first.append(policy);policy.hidden=false;policy.classList.add('launch-fee-editor');
-  first.querySelector(':scope > .step-heading p').textContent='Add your token details and choose how your 80% creator-fee share is split.';
+  first.querySelector(':scope > .step-heading p').textContent='Add token details and split your 80% creator share.';
   const firstTab=document.querySelector('[data-launch-step-target="1"]');
   firstTab.querySelector('span').textContent='Token & fees';firstTab.setAttribute('aria-label','Step 1: Token details and fee split');
   const secondTab=document.querySelector('[data-launch-step-target="2"]');

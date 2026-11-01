@@ -7,7 +7,10 @@ body.page-route-marketing-agency .main-content > #marketing-agency { display: bl
 .agency-agent-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
 .agency-agent, .agency-policy, .agency-options, .agency-funds > div { padding: 20px; border: 1px solid #353a54; border-radius: 12px; background: #121424; min-width: 0; }
 .agency-agent h2 { font-size: 20px; line-height: 1.4; }
-.agency-policy { margin: 24px 0; }
+.agency-policy { margin: 16px 0; padding: 0; }
+.agency-policy > summary { min-height: 44px; padding: 12px 14px; color: inherit; font-size: 14px; font-weight: 600; line-height: 1.5; cursor: pointer; }
+.agency-policy[open] > summary { border-bottom: 1px solid #353a54; }
+.agency-policy-body { padding: 14px; }
 .agency-status { border-left: 3px solid #edb800; padding: 12px 16px; background: #191a2c; }
 html body.product-experience-style #marketing-agency > .section-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; align-items: center; }
 html body.product-experience-style #marketing-agency > .section-heading > div { display: contents; }
