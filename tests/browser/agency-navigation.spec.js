@@ -27,10 +27,9 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
       expect(geometry).toEqual({x:0,y:0,width:width<=700?280:220,height:900,direction:'column',position:'fixed',contentLeft:width<=700?0:220,overflow:false});
       await expect(page.locator('#sidebar a[href="#launch"]')).toBeVisible();
       if(width<=700){
-        await expect(page.locator('.mobile-workspace-nav a').first()).not.toBeVisible();
-        const token=await page.locator('body').evaluate(body=>body.classList.contains('page-route-coin'));
-        if(!token)await expect(page.locator('.mobile-workspace-nav')).not.toBeVisible();
-        else expect(await page.locator('.mobile-workspace-nav').evaluate(nav=>{const box=nav.getBoundingClientRect();return box.left===0&&box.right<=innerWidth;})).toBe(true);
+        const bottomNavigation=page.locator('.mobile-workspace-nav');
+        await expect(bottomNavigation).toHaveJSProperty('inert',true);
+        await expect(bottomNavigation.getByRole('link')).toHaveCount(0);
         await page.locator('#close-menu').click();await expect(page.locator('#sidebar')).toHaveAttribute('inert','');
       }
     };
