@@ -71,7 +71,7 @@ try {
   const feeOptions = page.locator('.launch-fee-options');
   assert.equal(await feeOptions.evaluate(node => node.tagName), 'SECTION');
   assert.equal(await feeOptions.locator('summary').count(), 0);
-  assert.equal(await page.locator('#launch-mode-custom').isVisible(), true);
+  assert.equal(await page.locator('#creator-wallet-share').isVisible(), true);
   assert.equal(await page.locator('.launch-preview-panel').isVisible(), true);
   const logoWidth = await page.locator('#preview-token-image').evaluate(node => node.getBoundingClientRect().width);
   assert(logoWidth <= 50, 'Preview logo should stay compact');

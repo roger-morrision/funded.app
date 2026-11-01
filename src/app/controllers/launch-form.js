@@ -58,10 +58,6 @@ export function createLaunchFormController(appState) {
     appState.setLaunchProfile(custom ? 'community' : 'fast');
     const policy=document.querySelector('#custom-policy');
     policy.hidden = !custom && !policy.closest('[data-launch-step="1"]');
-    document.querySelector('#launch-mode-quick').classList.toggle('active', !custom);
-    document.querySelector('#launch-mode-quick').setAttribute('aria-pressed', String(!custom));
-    document.querySelector('#launch-mode-custom').classList.toggle('active', custom);
-    document.querySelector('#launch-mode-custom').setAttribute('aria-pressed', String(custom));
     if (!custom) {
       document.querySelector('#creator-wallet-share').value = '80';
       document.querySelector('#holder-airdrop-share').value = '0';

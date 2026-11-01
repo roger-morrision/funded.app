@@ -28,7 +28,7 @@ for(const width of[320,390,700,1440])test(`published fee distribution and config
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  }
  await page.locator('#token-name').fill('Fee Policy Test');await page.locator('#token-symbol').fill('FEES');
- await page.locator('#launch-mode-custom').click();await page.locator('#creator-wallet-share').fill('60');await page.locator('#holder-airdrop-share').fill('20');
+ await page.locator('#creator-wallet-share').fill('60');await page.locator('#holder-airdrop-share').fill('20');
  await expect(page.locator('#launch-summary-creator')).toHaveText('60%');await expect(page.locator('#launch-summary-holders')).toHaveText('20%');await summary(page.locator('.launch-fixed-distribution'));
  await page.locator('#launch-next').click();
  await expect(page.locator('[data-fee-fixed-list="launch-review"] dd')).toHaveText(['8%','1%','4%','5%','2%']);await expect(page.locator('.launch-fee-options [data-app-allocation]')).toHaveText('8%');await expect(page.locator('#launch-summary-programs-note')).toContainText('8% Operations & marketing + 12%');await expect(page.locator('#launch-button')).toBeDisabled();

@@ -16,11 +16,10 @@ for (const width of [390,1440]) {
     await page.locator('#creator-wallet-share').fill('40');await page.locator('#holder-airdrop-share').fill('40');
     await expect(page.locator('#creator-wallet-share')).toHaveValue('40');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('40');
-    await expect(page.locator('#launch-mode-custom')).toHaveAttribute('aria-pressed','true');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('40');
     await page.locator('#token-name').fill('Flow fixture');
     await expect(page.locator('.flow-note').filter({hasText:'Similar name or ticker'})).toBeVisible();
-    await page.locator('#launch-mode-quick').click();
+    await page.locator('#creator-wallet-share').fill('80');await page.locator('#holder-airdrop-share').fill('0');
     await expect(page.locator('#creator-wallet-share')).toHaveValue('80');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('0');
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);

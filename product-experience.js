@@ -107,10 +107,6 @@ function launch() {
     textContent: `${currentFeePolicyCopy().allocation} Allocation does not mean a payment has completed.`
   }));
   setText('.launch-preview-heading span', 'Preview');
-  setText('#launch-mode-quick strong', 'Keep your creator share');
-  setText('#launch-mode-quick small', 'Receive your 80% share in your wallet.');
-  setText('#launch-mode-custom strong', 'Share with your community');
-  setText('#launch-mode-custom small', 'Split your share between your wallet, token holders, and an X account.');
   setText('#custom-policy-title', 'Choose your fee split');
   mountStepOneFeeSplit();
   setText('.launch-total-cost-note', 'Review network fees, optional purchases, and any $FUNDED burn before signing.');

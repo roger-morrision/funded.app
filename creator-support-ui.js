@@ -65,7 +65,6 @@ function syncSupportShortcutState() {
 
 document.querySelectorAll('[data-launch-step-target]').forEach(button=>{const step=Number(button.dataset.launchStepTarget);button.setAttribute('aria-label',`Step ${step}: ${['Coin','Benefits','Review','Sign'][step-1]}`);});
 function applySupportPreset(handle) {
-  $('#launch-mode-custom')?.click();
   for(const [id,value] of [['creator-wallet-share','0'],['holder-airdrop-share','0'],['x-share','80'],['x-recipient',normalizeCreatorHandle(handle)]]) {
     const input=$(`#${id}`);if(!input)continue;
     input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));

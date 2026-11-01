@@ -3,8 +3,6 @@ export function mountStepOneFeeSplit(document=globalThis.document){
   const first=document.querySelector('[data-launch-step="1"]');
   const fees=document.querySelector('.launch-fee-options'),policy=document.querySelector('#custom-policy');
   if(!first||!fees||!policy)return;
-  const modes=fees.querySelector('.launch-mode-grid'),fields=policy.querySelector('.form-grid');
-  if(modes&&fields)fields.before(modes);
   first.append(policy);policy.hidden=false;policy.classList.add('launch-fee-editor');
   const feeTitle=fees.querySelector('h3');
   if(feeTitle){feeTitle.firstChild.textContent='Fee distribution ';const note=feeTitle.querySelector('span');if(note)note.textContent='Your step 1 split is shown in the launch summary';}

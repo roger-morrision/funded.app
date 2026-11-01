@@ -194,14 +194,6 @@ export function initializeLaunchActions(appState) {
   document.querySelector('#launch-back').addEventListener('click', () => appState.setLaunchStep(appState.launchStep - 1));
   // app-source-end
 
-  // app-source: 683
-  document.querySelector('#launch-mode-quick').addEventListener('click', () => appState.setLaunchMode('quick'));
-  // app-source-end
-
-  // app-source: 684
-  document.querySelector('#launch-mode-custom').addEventListener('click', () => appState.setLaunchMode('custom'));
-  // app-source-end
-
   // app-source: 686
   appState.setLaunchProfile('fast');
   // app-source-end

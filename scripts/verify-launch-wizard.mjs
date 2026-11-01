@@ -25,8 +25,7 @@ for (const step of [1, 2]) {
 }
 assert.doesNotMatch(html, /data-launch-step(?:-target)?="3"/, 'Launch must have two steps only.');
 
-assert.match(html, /id="launch-mode-quick"/);
-assert.match(html, /id="launch-mode-custom"/);
+assert.doesNotMatch(html, /id="launch-mode-(?:quick|custom)"/, 'Removed fee preset buttons must not return.');
 function launchSection(source) {
   // The launch workspace contains nested sections. Match its ID regardless of
   // attribute order, then stop at its own closing tag, not a later dialog.

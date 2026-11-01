@@ -19,21 +19,6 @@ if (firstStep) {
   }
 }
 
-const secondStep = document.querySelector('[data-launch-step="2"]');
-if (secondStep) {
-  const mode = secondStep.querySelector('.launch-mode-grid');
-  const custom = secondStep.querySelector('#custom-policy');
-  if (mode && custom && !mode.closest('.launch-fee-options')) {
-    const advanced = document.createElement('details');
-    advanced.className = 'launch-advanced-options';
-    advanced.id = 'launch-advanced-options';
-    const summary = document.createElement('summary');
-    summary.textContent = 'Custom creator fee split · optional';
-    advanced.append(summary, mode, custom);
-    secondStep.querySelector('.launch-funding-section')?.after(advanced);
-  }
-}
-
 const workspace = document.querySelector('.workspace-metrics');
 if (workspace) {
   const stats = workspace.querySelectorAll(':scope > div');
