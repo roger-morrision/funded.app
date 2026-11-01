@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
-import { Connection, Keypair, Transaction } from '@solana/web3.js';
-import { buildMintRouterV3SettlementInstruction, protocolGrossUnits } from '../mint-router-v3.js';
+import { Connection, Keypair, Transaction,TransactionInstruction } from '@solana/web3.js';
+import {createHash} from 'node:crypto';
+import { buildMintRouterV3SettlementInstruction, protocolGrossUnits,deriveMintPolicyV3 } from '../mint-router-v3.js';
 import { loadV3SettlementPosition } from '../server/v3-settlement-position.mjs';
 import { buildQaSettlementRecoveryInstruction, QA_SETTLEMENT_RECOVERY as recovery } from '../server/devnet-qa-settlement-recovery.mjs';
 const keys=Array.from({length:4},(_,i)=>Keypair.fromSeed(Buffer.alloc(32,i+10)).publicKey);
@@ -36,6 +37,20 @@ test('missing later transactions, unknown policy mutations and category mismatch
  const g=fixture();g.txs.get(sig(4)).transaction.message.instructions[0].data=bs58.encode(Buffer.alloc(48,7));
  await assert.rejects(loadV3SettlementPosition(g.input),/Unknown V3 policy mutation/);
  const h=fixture();h.input.categoryLamports[0]++;await assert.rejects(loadV3SettlementPosition(h.input),/category deltas/);
+});
+
+test('readonly automation and community instructions do not invalidate prior cumulative claims',async()=>{
+ for(const name of ['initialize_mint_automation_v3','initialize_community_drop_from_reward_vault']){
+  const f=fixture(),policyKey=deriveMintPolicyV3(keys[0],keys[1]).address;
+  const readonly=new TransactionInstruction({programId:keys[0],keys:[{pubkey:policyKey,isSigner:false,isWritable:false}],
+   data:createHash('sha256').update('global:'+name).digest().subarray(0,8)});
+  const message=new Transaction({feePayer:keys[2],recentBlockhash:keys[1].toBase58()}).add(readonly).compileMessage();
+  f.refs.unshift({signature:sig(5),slot:102,err:null,confirmationStatus:'finalized'});
+  f.txs.set(sig(5),{slot:102,meta:{err:null},transaction:{signatures:[sig(5)],message}});
+  const result=await loadV3SettlementPosition(f.input);assert.equal(result.settledBeforeLamports,'1000002');
+  message.header.numReadonlyUnsignedAccounts=0;
+  await assert.rejects(loadV3SettlementPosition(f.input),/Unknown V3 policy mutation/);
+ }
 });
 test('pruned history, duplicate references and missing finalized block order are rejected',async()=>{
  const f=fixture();f.refs.pop();await assert.rejects(loadV3SettlementPosition(f.input),/missing from finalized/);

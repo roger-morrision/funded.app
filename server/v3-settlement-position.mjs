@@ -83,8 +83,15 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
         ...(tx.meta.innerInstructions || []).flatMap(row=>row.instructions)];
       for (const instruction of instructions) {
         if (keys[instruction.programIdIndex] !== new PublicKey(programId).toBase58()) continue;
-        const accounts = (instruction.accounts || instruction.accountKeyIndexes || []).map(index=>keys[index]);
+        const indices=Array.from(instruction.accounts || instruction.accountKeyIndexes || []);
+        const accounts = indices.map(index=>keys[index]);
         if (!accounts.includes(policyAddress.toBase58())) continue;
+        // History also includes instructions which only read the mint policy,
+        // such as initializing immutable automation and opening a community
+        // drop. A successful transaction cannot change a readonly account.
+        // Unknown writable mutations still require explicit reconciliation.
+        const policyIndex=indices.find(index=>keys[index]===policyAddress.toBase58());
+        if(typeof message.isAccountWritable==='function'&&!message.isAccountWritable(policyIndex))continue;
         const data = Buffer.from(typeof instruction.data === 'string' ? bs58.decode(instruction.data) : instruction.data || []);
         const code = data.subarray(0,8).toString('hex');
         if (unchanged.has(code)) continue;
