@@ -1,6 +1,7 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 import { estimateTradeNetworkFee, renderTradeCostDisclosure } from '../../features/experience/trade-costs.js';
-import { recordTradeRecovery } from '../../features/experience/trade-recovery-store.js';
+import { recordTradeRecovery,uncertainTrade } from '../../features/experience/trade-recovery-store.js';
+import {expiredUnlandedTrade} from '../../features/experience/trade-expiry.js';
 import { assertTradeLimits, readTradePreferences } from '../../features/experience/trade-preferences.js';
 import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_REVIEW_REFRESH_AFTER_MS } from '../../../trade-quote-policy.js';
 // Dependencies and mutable application state are read live through appState.
@@ -92,9 +93,17 @@ export function createTradeExecutionController(appState) {
   // app-source-end
 
   // app-source: 568
+  function holdUncertainTrade(mint){
+    const pending=uncertainTrade(appState.connectedWalletAddress,mint,appState.pendingTradeVerifications);
+    if(!pending)return false;
+    appState.pendingTradeVerifications.set(pending.signature,pending);
+    appState.setTradeReceiptStatus('Check this saved trade before preparing another trade for this coin.',pending.signature);
+    return true;
+  }
   async function openTradeReview(){
     if (appState.tradeActionBusy) return;
     const { mint, side, amount, slippagePercent, valid } = appState.tradeInputs();
+    if(holdUncertainTrade(mint))return;
     if (!valid) return appState.setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.', true);
     // Give the wallet review a usable countdown even when the inline quote is
     // already near expiry. The refreshed quote is still checked before signing.
@@ -144,6 +153,7 @@ export function createTradeExecutionController(appState) {
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) return appState.setTradeStatus('Open this app in a signing wallet to trade.', true);
     const mint = document.querySelector('#trade-mint').value.trim(); const side = document.querySelector('#trade-side').value;
+    if(holdUncertainTrade(mint))return;
     const amount = appState.parseTradeAmountInput(document.querySelector('#trade-amount').value); const slippagePercent = Number(document.querySelector('#trade-slippage').value);
     if (!mint || !Number.isFinite(amount) || amount <= 0) { appState.setTradeStatus('Enter a valid mint and positive trade amount.', true); return; }
     if (!appTradeRecipient(appState)) { appState.setTradeStatus('Trading is disabled: configure VITE_FUNDED_TRADE_FEE_OWNER for the app owner.', true); return; }
@@ -176,23 +186,27 @@ export function createTradeExecutionController(appState) {
       if(!appState.currentTradePreview())throw new Error('The trade quote expired during fee verification. Review a fresh quote.');
       assertTradeLimits({slippagePercent,networkFeeLamports:networkFee},readTradePreferences(),{checkNetwork:true});
       const shownCoin = appState.getCoinMintAddress() === mint;
-      const result = await appState.submitTrade({ connection: activeConnection, provider: session.provider, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState), preparedTrade: appState.tradePreview.trade, tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '', tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '', assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setTradeStatus(message); } });
+      const result = await appState.submitTrade({ connection: activeConnection, provider: session.provider, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState), preparedTrade: appState.tradePreview.trade, tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '', tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '', assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onPrepared: ({signature,lastValidBlockHeight})=>{
+        appState.assertWalletSessionCurrent(session);
+        const pending={signature,lastValidBlockHeight,mint,side,walletAddress:session.address,feeLamports:appState.tradePreview.trade.feeLamports,broadcastUncertain:true};
+        recordTradeRecovery(pending);appState.pendingTradeVerifications.set(signature,pending);
+      },onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setTradeStatus(message); } });
       submittedSignature = result.signature;
-      const recovery = {signature:submittedSignature,mint,side,walletAddress:session.address,symbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent : 'token',feeLamports:result.feeLamports};
+      const recovery = {signature:submittedSignature,lastValidBlockHeight:result.lastValidBlockHeight,broadcastUncertain:false,mint,side,walletAddress:session.address,symbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent : 'token',feeLamports:result.feeLamports};
       recordTradeRecovery(recovery); appState.pendingTradeVerifications.set(submittedSignature,recovery);
       appState.setTradeReceiptStatus('Trade submitted and confirmed. Waiting for finalization before showing it as complete.', submittedSignature);
       const finalization = await appState.waitForSignatureConfirmation(activeConnection, { signature:submittedSignature, commitment:'finalized' });
       if (finalization.value?.err) { const failure = new Error('The submitted transaction failed on-chain.'); failure.finalizedFailure = true; throw failure; }
       if (!appState.isWalletSessionCurrent(session)) return;
       appState.pendingTradeVerifications.set(submittedSignature, { signature:submittedSignature, mint, side, walletAddress:session.address,
-        symbol:shownCoin ? (document.querySelector('#coin-symbol')?.textContent?.trim() || 'token') : 'token', feeLamports:result.feeLamports });
+        symbol:shownCoin ? (document.querySelector('#coin-symbol')?.textContent?.trim() || 'token') : 'token', feeLamports:result.feeLamports,lastValidBlockHeight:result.lastValidBlockHeight,broadcastUncertain:false });
       appState.setTradeReceiptStatus(`${side === 'buy' ? 'Buy' : 'Sell'} finalized. Checking token balance change and indexed trade row.`, submittedSignature);
       await appState.verifyPendingTrade(activeConnection, submittedSignature);
       void appState.refreshTradeBalances();
     } catch (error) {
       const signature = submittedSignature || error.signature;
       if (signature) {
-        const recovery = {signature,mint,side,walletAddress:session.address,feeLamports:appState.tradePreview?.trade?.feeLamports ?? null,state:error.finalizedFailure ? 'failed' : 'pending'};
+        const recovery = {signature,mint,side,walletAddress:session.address,broadcastUncertain:true,lastValidBlockHeight:error.lastValidBlockHeight??appState.pendingTradeVerifications.get(signature)?.lastValidBlockHeight,feeLamports:appState.tradePreview?.trade?.feeLamports ?? null,state:error.finalizedFailure ? 'failed' : 'pending'};
         recordTradeRecovery(recovery); if (!error.finalizedFailure) appState.pendingTradeVerifications.set(signature,recovery); else appState.pendingTradeVerifications.delete(signature);
       }
       if (appState.isWalletSessionCurrent(session)) {
@@ -227,9 +241,15 @@ export function createTradeExecutionController(appState) {
       ]);
       if (!appState.isWalletSessionCurrent(session) || appState.pendingTradeVerifications.get(pending.signature) !== pending) return;
       if(receipt.status==='fulfilled'&&receipt.value?.meta?.err!=null){appState.pendingTradeVerifications.delete(pending.signature);recordTradeRecovery({...pending,state:'failed'});appState.setTradeReceiptStatus('The transaction failed at finalized commitment. Inspect the signature before preparing another trade.',pending.signature,true);return;}
+      if(receipt.status==='fulfilled'&&receipt.value===null&&await expiredUnlandedTrade(rpc,pending,null)){
+        if(!appState.isWalletSessionCurrent(session)||appState.pendingTradeVerifications.get(pending.signature)!==pending)return;
+        appState.pendingTradeVerifications.delete(pending.signature);recordTradeRecovery({...pending,state:'failed'});
+        appState.setTradeReceiptStatus('Trade expired without landing. No replacement was submitted.',pending.signature,true);return;
+      }
       const evidence = appState.assessTradeCompletion({ transaction:receipt.status === 'fulfilled' ? receipt.value : null,
         marketActivity:market.status === 'fulfilled' && market.value.available ? market.value.data : null,
         wallet:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature });
+      if(evidence.receiptVerified){pending.broadcastUncertain=false;recordTradeRecovery({...pending,broadcastUncertain:false});}
       if(evidence.receiptVerified)void appState.apiRequest('/api/trades/finalized', {method:'POST',body:{
         signature:pending.signature,mint:pending.mint,wallet:pending.walletAddress},
         signal:AbortSignal.timeout(15000)}).catch(()=>{});
@@ -256,7 +276,7 @@ export function createTradeExecutionController(appState) {
       appState.showToast(`${pending.side === 'buy' ? 'Buy' : 'Sell'} verified on Solana`);
       appState.refreshWalletInfo();
       void appState.refreshPortfolioHoldings();
-    } finally { if (button) button.disabled = false; }
+    } finally { if (button) button.disabled = false;appState.updateTradeActionState(); }
   }
   // app-source-end
 

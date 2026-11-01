@@ -105,7 +105,7 @@ for (const width of [390, 1440]) {
       else if (departure === 'table') await page.locator('button[data-explore-view="table"]').click();
       else {
         const home = width === 390
-          ? page.getByRole('navigation', { name: 'Mobile workspace' }).getByRole('link', { name: 'Home' })
+          ? page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Home' })
           : page.locator('#sidebar a.nav-item[href="#overview"]');
         await home.click();
         await expect(page.locator('body')).toHaveClass(/page-route-overview/);
@@ -208,7 +208,7 @@ for(const width of[390,1440]){
  });
  test(`FQA-069 Home retains known curve snapshot after a failed native refresh at ${width}px`,async({page},info)=>{
   const f=await stageAvailabilityFixture(page,width,'curve');await f.open();await stageTab(page,'curve').click();await expect(page.locator('#home-launch-grid .home-launch-card')).toHaveCount(2);
-  const nav=name=>width===390?page.getByRole('navigation',{name:'Mobile workspace'}).getByRole('link',{name,exact:true}):page.locator('#sidebar a.nav-item[href="#'+(name==='Home'?'overview':'explore')+'"]');await nav('Explore').click();f.mode='rpc-failure';await page.locator('#explore-sort').selectOption('newest');await expect(page.locator('#explore-pulse-scope')).toHaveText('Launch stages use the last verified feed.');await nav('Home').click();await expect(stageTab(page,'curve')).toHaveAttribute('aria-selected','true');await expect(page.locator('#home-launch-grid .home-launch-card')).toHaveCount(2);await expect(page.locator('#home-launch-grid')).not.toContainText('verification is unavailable');await stageEvidence(page,info,f,'known-stale-'+width);
+  const nav=name=>width===390?page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name,exact:true}):page.locator('#sidebar a.nav-item[href="#'+(name==='Home'?'overview':'explore')+'"]');await nav('Explore').click();f.mode='rpc-failure';await page.locator('#explore-sort').selectOption('newest');await expect(page.locator('#explore-pulse-scope')).toHaveText('Launch stages use the last verified feed.');await nav('Home').click();await expect(stageTab(page,'curve')).toHaveAttribute('aria-selected','true');await expect(page.locator('#home-launch-grid .home-launch-card')).toHaveCount(2);await expect(page.locator('#home-launch-grid')).not.toContainText('verification is unavailable');await stageEvidence(page,info,f,'known-stale-'+width);
  });
 }
 
@@ -322,7 +322,7 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
   await inactive('hidden-regular-table-duplicate');
   await stageTab(page,'curve').click(); await active('retry-restored');
   const nav = name => width === 390
-   ? page.getByRole('navigation',{name:'Mobile workspace'}).getByRole('link',{name,exact:true})
+   ? page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name,exact:true})
    : page.locator('#sidebar a.nav-item[href="#'+(name==='Home'?'overview':'explore')+'"]');
   await nav('Explore').click();
   await expect(page.locator('body')).toHaveClass(/page-route-explore/);

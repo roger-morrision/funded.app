@@ -163,7 +163,7 @@ holderCache.set('mint', { count: 1, coverage: 'complete-account-list', at: Date.
 assert.equal(portfolioHolderCount({ address: 'mint' }), '—', 'Expired wallet samples must not be presented as fresh.');
 assert.match(app, /token-card-shell home-launch-card/);
 assert.match(app, /token-card-shell asset-card/);
-assert.match(portfolioCardView, /class="saved-token-row/, 'Portfolio and Favorites entries must share the current saved-token row.');
+assert.match(portfolioCardView, /class="[^"]*\bsaved-token-row\b/, 'Portfolio and Favorites entries must share the current saved-token row.');
 assert.match(app, /token-card-shell airdrop-directory-card/);
 assert.match(html, /id="airdrop-selected-program"[^>]+hidden/, 'Airdrop policy detail must be hidden until a program is selected.');
 assert.match(app, /const safeMint = escapeHtml\(program\.id\)[\s\S]*?data-directory-mint="\$\{safeMint\}"[\s\S]*?View claim status/, 'The airdrop details action must target a unique mint.');
@@ -178,7 +178,7 @@ assert.match(airdropActions, /function openAirdropDetail\(program\)[\s\S]*?appSt
 assert.doesNotMatch(app, /selected — checking eligibility for your connected wallet/, 'Selecting an airdrop must not imply a wallet check that did not run.');
 assert.match(pageCss, /One professional card surface is shared by Home, Explore, portfolios, watchlists, and rewards/);
 assert.match(pageCss, /\.analytics-kpis\.analytics-kpis-complete/);
-assert.match(app, /Explore launches, fees, payments, trades, airdrops, referrals, and burns/);
+assert.match(app, /Enter any creator-fee amount to see how every destination is calculated/);
 assert.match(app, /This preview never moves funds/);
 assert.match(pageExperience, /function upgradeAnalyticsDashboard\(/);
 assert.match(pageExperience, /Funded at a glance/);
@@ -203,14 +203,14 @@ assert.match(app, /#trade-submit'\)\?\.addEventListener\('click', openTradeRevie
 assert.match(launchReviewMarkup, /id="launch-review-dialog"[\s\S]*?id="launch-review-confirm"/, 'Launch submission must have an explicit review dialog.');
 assert.match(app, /function handleLaunchAction\(event\)[\s\S]*?openLaunchReview\(\);/, 'The launch action must open review before submitting.');
 assert.match(app, /function confirmLaunchReview\(\)[\s\S]*?launchReviewStillCurrent\(pending, currentLaunchReviewState\(\)\)[\s\S]*?void launchToken\(\)/, 'Only a fresh, unchanged launch review can start signing.');
-assert.match(app, /function openTradeReview\(\)[\s\S]*?Date\.now\(\) - tradePreview\.preparedAt > 15_000/, 'Trade review must reject expired quotes.');
+assert.match(app, /function openTradeReview\(\)[\s\S]*?Date\.now\(\) - tradePreview\.preparedAt > TRADE_REVIEW_REFRESH_AFTER_MS/, 'Trade review must refresh quotes at the configured approval deadline.');
 assert.match(app, /Maximum pool spend:.*quote\.maximumSpendSol\.toFixed\(9\)/, 'Graduated-pool preview must disclose maximum SOL spend.');
 assert.match(app, /const review = buildTradeReview\(\{ trade:prepared\.trade/, 'Trade review must use the prepared quote.');
 assert.match(tradeReviewModel, /limitLabel:'Maximum trade \+ app fee', limitAmount:sol\(maximumSpend \+ fee\)/, 'Graduated-pool review must disclose maximum SOL spend and app fee.');
 assert.match(app, /Maximum pool spend includes Pump pool fees/, 'Graduated-pool review must not double-count Pump fees.');
 assert.match(html, /<p class="nav-label">Workspace<\/p>/);
-assert.match(html, /<details class="nav-more"><summary>More/);
-assert.match(html, /class="nav-more-menu"[\s\S]*?href="#analytics-detail"[\s\S]*?href="#leaderboard"[\s\S]*?href="\/funded"/, 'The compact More menu must retain analytics, leaderboard, and $FUNDED navigation.');
+assert.match(html, /<div class="nav-more-menu">/);
+assert.match(html, /class="nav-more-menu"[\s\S]*?href="#analytics-detail"[\s\S]*?href="#leaderboard"[\s\S]*?href="\/funded"/, 'Grouped navigation must retain analytics, leaderboard, and $FUNDED destinations.');
 assert.match(html, /id="desktop-sidebar-toggle"[^>]+aria-controls="sidebar"[^>]+aria-expanded="true"/);
 assert.match(app, /funded\.desktop-sidebar-collapsed/);
 assert.match(app, /setDesktopSidebarCollapsed\(!document\.documentElement\.classList\.contains\('sidebar-collapsed'\)\)/);

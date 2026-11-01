@@ -12,7 +12,7 @@ import { createDiscoveryRoutes } from './routes/discovery.mjs';
 import { createLaunchQuoteRoutes } from './routes/launch-quotes.mjs';
 import { createRewardStatusRoutes } from './routes/reward-status.mjs';
 import { createSolanaRpcProxy } from './rpc-proxy.mjs';
-import {installRpcWebsocketProxy} from './rpc-websocket-proxy.mjs';
+import {startAppListener} from './listener.mjs';
 import { createMarketProviders, normalizePumpToken } from './market-providers.mjs';
 import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
@@ -37,9 +37,7 @@ import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode, validateInput } from './http-policy.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
-import { createServer } from 'node:http';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
-import {installRewardShutdown} from './reward-shutdown.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 
 import { createCommunityClaimService } from './community-claim-service.mjs';
@@ -493,12 +491,5 @@ async function handle(req, res) {
 }
 
 await startShareVisitCleanup({ store });
-const server = createServer();
-installRpcWebsocketProxy(server,{upstreamUrl:process.env.FUNDED_RPC_GATEWAY_WS_URL||solanaRpcUrl.replace(/^http/,'ws'),
-  allowedOrigin:process.env.CORS_ORIGIN||process.env.PUBLIC_APP_URL});
-installRewardShutdown({server,handle});
-server.headersTimeout = 10_000;
-server.requestTimeout = 30_000;
-server.timeout = 120_000;
-server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
+startAppListener({port,host,handle,solanaRpcUrl});
 startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,store});

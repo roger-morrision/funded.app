@@ -7,6 +7,7 @@ import { initMarketingAgency } from '../marketing/agency-view.js';
 import { initServiceFeeCopy } from './service-fees-client.js';
 import {referralRatePresentation} from './referral-rate-copy.js';
 import {renderFeeDistributionSummaries} from './distribution-summary.js';
+import {bindCalculatorVisibility,revealCalculatorFeedback} from './calculator-visibility.js';
 export function createFeeFlowView(APP_ECONOMICS) {
   if (typeof window !== 'undefined') {
     initMarketingAgency();
@@ -16,6 +17,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
   initDailyBonusView();
   initBonusDashboard();
   renderProductFaqs();
+  bindCalculatorVisibility();
   function formatFlowAmount(value){
     const amount = Number(value || 0);
     if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
@@ -101,7 +103,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
     const feedback = document.querySelector('#fee-flow-feedback');
     const message = unavailable ? 'Enter an amount of 0 or more to preview the split.' : 'Preview ready.';
     // Announce availability transitions, not each recalculated amount or keystroke.
-    if (feedback && feedback.textContent !== message) feedback.textContent = message;
+    if (feedback && feedback.textContent !== message){feedback.textContent = message;revealCalculatorFeedback();}
     if (unavailable) {
       ['creator', 'operations', 'referrals', 'community', 'buyback','agency'].forEach(key => {
         const node = document.querySelector(`#fee-output-${key}`);

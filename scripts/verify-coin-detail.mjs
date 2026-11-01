@@ -11,6 +11,7 @@ import { enrichMarketRecord, summarizeMarkets } from '../market-intelligence.js'
 import { buildTradePricePath, selectObservedTradeWindow, selectRecentTrades, summarizeTokenAccounts, verifiedRegistryLaunch } from '../coin-detail-model.js';
 import { readPumpMarketActivity, summarizePumpTrades } from '../server/coin-market.mjs';
 import { normalizeLargestTokenAccounts } from '../server/token-accounts.mjs';
+import {buildObservedCandles} from '../src/features/coin/chart-data.js';
 
 const appSource = [await readAppSource(), ...await Promise.all([
   '../src/features/coin/activity-view.js', '../src/features/coin/chart-view.js',
@@ -52,9 +53,11 @@ assert.deepEqual(selectObservedTradeWindow(observed, '1h', 100000).map(item => i
 assert.deepEqual(selectObservedTradeWindow(observed, '6h', 100000).map(item => item.id), ['recent', 'hour', 'older']);
 assert.equal(chartPrice.latest * 1000 * 100, 200, '0.002 SOL/token × 1,000 tokens × $100/SOL must yield MC $200.');
 assert.equal(chartPrice.low * 1000 * 100, 100);
-assert.match(appSource, /coinChartMetric === 'mcap' \? supply : 1/, 'Market-cap view must scale token price by verified supply.');
-assert.match(appSource, /coinChartUnit === 'usd' \? formatCoinSnapshotUsd/, 'USD view must use the current SOL/USD quote.');
-assert.match(appSource, /A current SOL\/USD quote is required/, 'Missing USD quotes must show an explicit chart state.');
+const chartInput=[{priceRatio:2,blockTime:1000,solLamports:'1000000000'}];
+const chartOptions={decimals:6,metric:'mcap',unit:'usd',supply:1000,solUsdPrice:100,nowSeconds:1000};
+assert.equal(buildObservedCandles(chartInput,chartOptions).latest,200,'Market cap must scale verified supply and SOL/USD.');
+assert.match(buildObservedCandles(chartInput,{...chartOptions,supply:null}).reason,/verified token supply/);
+assert.match(buildObservedCandles(chartInput,{...chartOptions,solUsdPrice:null}).reason,/current SOL\/USD quote/);
 const unevenChart = buildTradePricePath([{ priceRatio: 3, blockTime: 100 }, { priceRatio: 2, blockTime: 90 }, { priceRatio: 1, blockTime: 10 }], 6);
 assert.ok(Math.abs(unevenChart.points[1].x - 514.6667) < 0.1, 'Trade observations must use their block times on the chart axis.');
 const filterSource=appSource.match(/function marketUsdFilterToSol\(value\)\{[\s\S]*?\r?\n\}/)[0];

@@ -33,9 +33,9 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('.launch-fixed-distribution [data-fee-category="community"] > strong')).toHaveText(`${bonus}%`);
     await expect(page.locator('.launch-fee-options')).toHaveCount(0);
     await page.evaluate(() => { location.hash = 'payments'; });
-    await expect(page.getByRole('link', { name:/Daily bonus · payout history/ })).toBeVisible();
-    await expect(page.getByRole('link', { name:/Daily bonus · payout history/ })).toHaveAttribute('href', '#bonuses');
-    await expect(page.locator('.reward-upcoming-note')).toContainText('referral payouts are creator signed');
+    await expect(page.getByRole('link', { name:/Daily bonuses/ })).toBeVisible();
+    await expect(page.getByRole('link', { name:/Daily bonuses/ })).toHaveAttribute('href', '#bonuses');
+    await expect(page.locator('.reward-upcoming-note')).toContainText('Active automatic routes pay referrals after funding');
     await page.evaluate(() => { location.hash = 'paid'; });
     await expect(page.locator('#paid .app-revenue-grid')).toContainText(`${ops}% of gross fees`);
     await expect(page.locator('#paid .app-revenue-grid')).toContainText(`${bonus}% of gross fees`);
@@ -47,7 +47,7 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(guide).toBeVisible();
     await expect(guide.locator('[data-fee-category="operations"] > strong')).toHaveText(`${ops}%`);
     await expect(guide.locator('[data-fee-category="community"] > strong')).toHaveText(`${bonus}%`);
-    await expect(guide).toContainText('creator reviews and signs settlement');
+    await expect(guide).toContainText('active automatic route settles the saved mint policy');
     await expect(guide).toContainText('Standard payouts are hourly');
     await expect(guide).toContainText('selected Devnet QA coins use five-minute cycles');
     await expect(guide).toContainText('separate community airdrop uses launched coin tokens');

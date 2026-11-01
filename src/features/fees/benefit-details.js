@@ -10,8 +10,8 @@ export function feeBenefitExplanation(key){
   const explanations={
     creator:{
       who:'The creator wallet, eligible holders of this coin and the named X account, only where the coin’s saved launch split gives them a share.',
-      when:'Creator-wallet SOL is received after the creator approves a payout and it finalizes. Holder SOL uses standard hourly cutoffs after the reward program is active and funded. X rewards become receivable when the named account has an eligible funded claim.',
-      receive:'The creator approves their payout. Eligible coin holders receive SOL automatically without claiming or signing. The named X recipient must sign in with the matching X account, link a wallet and claim.',
+      when:'Creator-wallet SOL is received after the active automatic or approved manual payout finalizes. Holder SOL uses standard hourly cutoffs after the reward program is active and funded. X rewards become receivable when the named account has an eligible funded claim.',
+      receive:'An active automatic route pays the creator without a signature; manual routes can require creator approval. Eligible coin holders receive SOL automatically without claiming or signing. The named X recipient must sign in with the matching X account, link a wallet and claim.',
       conditions:`For current standard holder programs, the closing balance must meet a $${AUTOMATIC_REWARDS.minimumHolderUsd}-equivalent minimum in this coin. Rewards are weighted by balance and holding time. The pool must meet its $${AUTOMATIC_REWARDS.minimumPoolUsd}-equivalent minimum plus distribution costs. Selected, labeled Devnet QA coins use five-minute periods and reduced minimums. Each coin’s saved rules and verified price apply.`,
       links:[['Holder eligibility & schedule','#payments/holders'],['X claims','#payments/x']],
     },
@@ -23,7 +23,7 @@ export function feeBenefitExplanation(key){
     },
     referrals:{
       who:'Qualified inviter wallets in the creator’s saved first-, second- and third-level referral network. Attribution must exist before the first qualifying settlement; the upline then stays frozen. Self-referrals and referral cycles are rejected.',
-      when:'Rewards accrue from eligible collected and settled creator fees, not from a signup, a link click or trading volume alone. A recipient receives SOL after the creator approves the allocated referral transfer and its transaction finalizes; there is no fixed daily payment time.',
+      when:'Rewards accrue from eligible collected and settled creator fees, not from a signup, a link click or trading volume alone. A recipient receives SOL after the saved-policy automatic transfer, or approved manual transfer, finalizes; there is no fixed daily payment time.',
       receive:'Share your invite link before the creator qualifies. Referral recipients do not submit a separate claim. Connect the receiving wallet in Referrals to inspect its recorded entitlement and finalized payouts.',
       conditions:'Missing referral levels remain in the community reserve. Their shares are not reassigned to another inviter or added to the Daily bonus pool.',
       links:[['Invite link & referral payouts','#referrals']],
@@ -50,12 +50,12 @@ export function feeBenefitExplanation(key){
   };
   const simple={
     creator:{who:'The creator, eligible coin holders and the X account chosen in the coin’s saved split.',
-      when:'Creator: after payout approval and confirmation. Holders: hourly when eligible and funded. X account: when a funded claim is ready.',
-      receive:'Creators approve their payout. Holders receive SOL automatically. The named X account must sign in, link a wallet and claim.'},
+      when:'Creator: after an automatic or approved manual payout is verified. Holders: hourly when eligible and funded. X account: when a funded claim is ready.',
+      receive:'Creators receive automatic payouts on an active automatic route; manual routes can require approval. Holders receive SOL automatically. The named X account must sign in, link a wallet and claim.'},
     operations:{who:'funded.vip’s operations and marketing.',when:'When collected creator fees are split.',
       receive:'No user payout or claim. This share pays for running and promoting the platform.'},
     referrals:{who:'Wallets in the creator’s three-level referral network.',
-      when:'After the creator approves a funded payment and it is confirmed. Signups and clicks alone do not earn rewards.',
+      when:'After the automatic or approved manual payment is funded and verified. Signups and clicks alone do not earn rewards.',
       receive:'Invite creators before they qualify. Receive SOL in your wallet; no claim needed.'},
     community:{who:'Top 3 wallets in each group: creators, referrers and traders.',
       when:'After each UTC day closes at 00:00 UTC and rankings and funds are checked.',

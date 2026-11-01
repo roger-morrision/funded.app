@@ -84,7 +84,11 @@ export function createLaunchRegistrationRoutes({
       if(!existingLaunch&&v3Config.agency&&(policy.marketingAgency?.version!==v3Config.agency.version
         ||BigInt(policy.marketingAgency.configRevision)>BigInt(v3Config.agency.configRevision)))return json(res,409,{error:'The signed agency configuration is not available on this deployment.'});
       const requiredAgents=newLaunchAgencySelection({promotion:Boolean(policy.promotion)});
-      if(!existingLaunch&&JSON.stringify(policy.marketingAgency?.selectedAgents)!==JSON.stringify(requiredAgents))
+      const historicalAgency=!existingLaunch&&v3Config.agency&&policy.marketingAgency
+        &&BigInt(policy.marketingAgency.configRevision)<BigInt(v3Config.agency.configRevision);
+      // A prior on-chain revision may use the earlier package selection. The
+      // finalized launch and immutable policy below must prove those exact terms.
+      if(!existingLaunch&&!historicalAgency&&JSON.stringify(policy.marketingAgency?.selectedAgents)!==JSON.stringify(requiredAgents))
         return json(res,409,{error:'The signed agents must match the launch package: both buyback agents for Standard, plus X promotion for a promotion package.'});
       if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
         return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
@@ -118,7 +122,7 @@ export function createLaunchRegistrationRoutes({
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const configuredV3Program = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
-      const currentSplit = existingLaunch?.pumpFeeRoute?.protocolSplit||v3Config.protocolSplit||await activeProtocolFeeSplit(store);
+      const currentSplit = existingLaunch?.pumpFeeRoute?.protocolSplit||(historicalAgency?policy.protocolSplit:v3Config.protocolSplit)||await activeProtocolFeeSplit(store);
       const configuredV3Units = protocolGrossUnits(currentSplit);
       if (!configuredV3Program || policy.feeRouterProgramId !== configuredV3Program
         || policy.feeRouterInitialAuthority !== v3Config.initialAuthority

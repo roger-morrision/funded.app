@@ -127,5 +127,8 @@ test('asset reads wait for shared readiness and preserve the unbounded default f
   const db = database(() => ({ rows: [{ payload: { mint: 'older-launch' } }], rowCount: 1 }));
   assert.deepEqual(await createAssetsRepository(db).readLaunches(), [{ mint: 'older-launch' }]);
   assert.equal(db.calls[0].sql, 'ready');
-  assert.equal(db.calls[1].sql, 'SELECT payload FROM launches ORDER BY updated_at DESC, mint');
+  assert.equal(db.calls[1].sql, "SELECT payload FROM launches WHERE ($1::boolean OR payload->>'archivedAt' IS NULL) ORDER BY updated_at DESC, mint");
+  assert.deepEqual(db.calls[1].args,[false]);
+  await createAssetsRepository(db).readLaunches({includeArchived:true});
+  assert.deepEqual(db.calls.at(-1).args,[true]);
 });

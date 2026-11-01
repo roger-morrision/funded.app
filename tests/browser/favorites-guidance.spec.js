@@ -3,7 +3,7 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const KEY = 'funded.app.watchlist.guest.v1';
 const MINT = 'So11111111111111111111111111111111111111112';
-const intro = 'Use the star on a token in Explore to add it to Favorites. Signed-out saving uses this browser; verify a wallet or sign in with X to sync across devices.';
+const intro = 'Star coins in Explore. Favorites stay on this device; verify a wallet or sign in with X to sync.';
 const ids = ['watchlist-wallet-sync', 'watchlist-sign-in', 'watchlist-sync-retry'];
 async function fixture(page, { mints = [], malformed = false, identity = 'guest', holdSync = false } = {}) {
   const writes = [], errors = []; let releaseSync, syncFails = false;

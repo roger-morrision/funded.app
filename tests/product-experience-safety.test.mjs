@@ -187,10 +187,10 @@ test('unreadable or corrupt saved trade limits block signing instead of silently
 test('a recovered finalized failed transaction is removed from pending without a success event',async()=>{
   const priorDocument=globalThis.document,priorStorage=globalThis.localStorage;
   try{globalThis.document={querySelector:()=>null};globalThis.localStorage={getItem:()=> '[]',setItem(){}};
-    const pending={signature:sig,mint,walletAddress:wallet,side:'buy'},messages=[];
-    const state={pendingTradeVerifications:new Map([[sig,pending]]),captureWalletSession:()=>({address:wallet}),isWalletSessionCurrent:()=>true,apiRequest:async()=>({available:false}),setTradeReceiptStatus:text=>messages.push(text),assessTradeCompletion:()=>assert.fail('Failed receipts cannot be assessed as successful'),productEvent:()=>assert.fail('Failed receipts cannot emit success')};
+    const pending={signature:sig,mint,walletAddress:wallet,side:'buy'},messages=[];let controlsRefreshed=0;
+    const state={pendingTradeVerifications:new Map([[sig,pending]]),captureWalletSession:()=>({address:wallet}),isWalletSessionCurrent:()=>true,updateTradeActionState:()=>controlsRefreshed++,apiRequest:async()=>({available:false}),setTradeReceiptStatus:text=>messages.push(text),assessTradeCompletion:()=>assert.fail('Failed receipts cannot be assessed as successful'),productEvent:()=>assert.fail('Failed receipts cannot emit success')};
     await createTradeExecutionController(state).verifyPendingTrade({getParsedTransaction:async()=>({meta:{err:{InstructionError:[0,'custom']}}})},sig);
-    assert.equal(state.pendingTradeVerifications.size,0);assert.match(messages[0],/failed at finalized commitment/);
+    assert.equal(state.pendingTradeVerifications.size,0);assert.match(messages[0],/failed at finalized commitment/);assert.equal(controlsRefreshed,1);
   }finally{globalThis.document=priorDocument;globalThis.localStorage=priorStorage;}
 });
 test('admin report inventory and status routes remain behind the existing admin session',async()=>{

@@ -1,5 +1,6 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 import { TRADE_QUOTE_TTL_MS } from '../../../trade-quote-policy.js';
+import {uncertainTrade} from '../../features/experience/trade-recovery-store.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeStateController(appState) {
   // app-source: 545
@@ -166,7 +167,9 @@ export function createTradeStateController(appState) {
     const sufficient = current && valid && (side === 'buy'
       ? appState.hasBuyBalance(appState.tradeBalanceState.solLamports, { amountSol:amount, slippagePercent:inputs.slippagePercent, feeBps:appTradeBps(appState), trade:preview?.trade })
       : appState.tradeBalanceState.tokenRaw != null && amount <= Number(appState.tradeBalanceState.tokenRaw) / (10 ** appState.tradeBalanceState.tokenDecimals));
-    if (submit) submit.disabled = appState.tradeActionBusy || !appState.wallet || !appState.canSignTransactions(appState.wallet) || !valid || !preview || !sufficient;
+    const pending=uncertainTrade(appState.connectedWalletAddress,inputs.mint,appState.pendingTradeVerifications);
+    if (submit){submit.disabled = !!pending || appState.tradeActionBusy || !appState.wallet || !appState.canSignTransactions(appState.wallet) || !valid || !preview || !sufficient;
+      submit.title=pending?'Check the saved trade receipt before trading this coin again.':'';}
   }
   // app-source-end
 

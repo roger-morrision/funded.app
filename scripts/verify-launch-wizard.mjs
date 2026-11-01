@@ -152,10 +152,11 @@ assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, form: '
 assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, termsConsent: false }, 150), false, 'Consent withdrawal must block the wallet handoff.');
 assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, image: {} }, 150), false, 'Changing the image must require a new review.');
 assert.doesNotMatch(launchPage, /review-referrer|<span>Inviter<\/span>|Gross fees across three app levels|<small>Referrals<\/small>/);
-assert.match(launchPage, /APP ALLOCATION · OPERATIONS &amp; MARKETING<\/span><strong data-app-allocation>8%/);
-assert.match(launchPage, /8% Operations &amp; marketing · 1% referrals · 4% Daily bonus · 5% \$FUNDED buyback &amp; burn · 2% AI marketing &amp; coin buybacks/);
+assert.match(launchPage, /data-fee-distribution="launch"/, 'Launch must mount the shared published-policy summary.');
+const feeSummary = await readFile(new URL('../src/features/fees/distribution-summary.js',import.meta.url),'utf8');
+assert.match(feeSummary, /feeDistributionPresentation\(fee\)/, 'Launch rates must come from the current policy model.');
 assert.doesNotMatch(launchPage, /automated funding and settlement are not live yet/, 'The removed Devnet policy paragraph must not return to the launch form.');
-assert.match(launchPage, /Paid packages burn \$FUNDED when you launch/);
+assert.match(launchPage, /Pro and Premier burn \$FUNDED when you launch/);
 assert.doesNotMatch(launchPage, /claim-example-receipt|Example for 1 SOL claimed|Illustration only; this is not a revenue forecast or a live claim/, 'The removed after-launch example card must not return.');
 assert.match(html, /data-burn-tier="standard"/);
 assert.doesNotMatch(launchPage, /class="creator-burn-card boost"|data-burn-tier="boost"/, 'Boost must not appear as a new launch tier.');
@@ -190,11 +191,10 @@ assert.match(app, /if \(wallet\) refreshWalletInfo\(\);/, 'Switching back to Sta
 assert.match(app, /if \(input\.matches\('#token-name, #token-symbol, #creator-buy-sol'\)\) scheduleLaunchCostRefresh\(\)/, 'Editing launch metadata or the developer buy must invalidate and refresh the estimate.');
 assert.match(app, /shouldAutoRefreshLaunchEstimate\([\s\S]*?scheduleLaunchCostRefresh\(\)/, 'A visible connected launch page must refresh expired or transiently failed estimates without user action.');
 assert.doesNotMatch(app, /Launch estimate unavailable: \$\{walletEstimateError\} Refresh the estimate before launching\./, 'The removed launch-estimate sentence must not return.');
-assert.match(html, /X account reward %/);
+assert.match(html, /X account %/);
 assert.doesNotMatch(html, /An X handle cannot receive SOL directly/);
 assert.doesNotMatch(app, /Creator-directed policy totals 80%\. This coin gets its own automatic-reward route\./);
-assert.match(app, /if \(feeDistributionInput\.solClaimPercent > 0 && !xFeeStatus\.ready\)/);
-assert.match(app, /X account rewards unavailable/);
+assert.match(app, /\/api\/x\/resolve\?handle=/, 'Named X allocations must resolve their actual identity before signing.');
 assert.match(app, /if \(wallet\) scheduleLaunchCostRefresh\(\);/, 'Tier changes must invalidate and recalculate the connected wallet estimate.');
 for (const id of ['profile-wallet-address', 'launch-path-wallet']) {
   assert.match(html, new RegExp(`id="${id}"`));

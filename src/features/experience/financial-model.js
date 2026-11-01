@@ -28,9 +28,11 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
     for (const collection of overview.collections || []) {
       const href = `/token/${overview.mint}`;
       if (collection.settlement !== 'finalized') {
-        rows.push({ id:`settle:${collection.signature}`, mint:overview.mint, title:'Settle collected creator fees', stage:'Awaiting approval',ready:overview.gates?.settlement === true,
-          amount:solText(collection.amountLamports), wallet, href, action:'Review settlement',
-          detail:overview.gates?.settlement === true ? 'Launch creator must review and sign settlement.' : 'Settlement is unavailable under the current service configuration.' });
+        const automatic=overview.automaticSettlementEnabled===true;
+        rows.push({ id:`settle:${collection.signature}`, mint:overview.mint, title:'Settle collected creator fees', stage:automatic?'Processing':'Awaiting approval',ready:!automatic&&overview.gates?.settlement === true,
+          amount:solText(collection.amountLamports), wallet, href, action:automatic?'Check automation':'Review settlement',
+          detail:automatic?'Automatic saved-policy settlement is pending. Inspect service readiness and receipts; no creator signature is required.'
+            :overview.gates?.settlement === true ? 'Launch creator must review and sign settlement.' : 'Settlement is unavailable under the current service configuration.' });
         continue;
       }
       for (const action of creatorPayoutActions(collection)) {
@@ -38,12 +40,13 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
         const funding = action.action.endsWith('funding');
         if (action.finalized && !funding) continue; // Payment receipts come from the verified recipient projection above.
         const funded = action.finalized && collection[`${action.gate}Verified`] === true;
-        const processing = collection[action.gate] === 'verification-pending' || action.finalized && !funded;
+        const automatic=overview.automaticDisbursementEnabled===true;
+        const processing = automatic&&!funded || collection[action.gate] === 'verification-pending' || action.finalized && !funded;
         rows.push({ id:`${collection.signature}:${action.action}`, mint:overview.mint, title:action.label,
           stage:funded ? 'Funded' : processing ? 'Processing' : 'Awaiting approval',ready:!funded && !processing && overview.gates?.[action.gate] === true,
           amount:solText(action.amount), wallet, href, action:action.finalized ? 'Inspect funding' : processing ? 'Check outcome' : 'Review approval',
           detail:funded ? 'Recorded vault funding and balance delta verified. Eligibility and the payout window still apply; this is not recipient delivery.'
-            : processing ? 'Outcome needs reconciliation before another approval.'
+            : processing ? automatic?'Automatic funding or payout is pending. Check service readiness and the existing receipt; no creator signature is required.':'Outcome needs reconciliation before another approval.'
               : overview.gates?.[action.gate] === true ? 'Launch creator approval required. Network costs apply.' : 'This action is blocked by the current service configuration.' });
       }
     }

@@ -87,8 +87,9 @@ function renderCreatorCards(list, rows) {
     link.textContent = 'Review V3 payouts';
     link.setAttribute('aria-label',`Review V3 payouts for ${row.name}`);
     const note = document.createElement('p'); note.className = 'field-help';
-    note.textContent = row.ready ? 'Open the token page to review and sign the exact V3 payout.'
-      : row.pendingSettlementCount ? 'Collection settlement is awaiting creator approval on the token page.'
+    note.textContent = row.automatic&&row.unclaimed>0n ? 'Automatic payout is pending. Open the token page to inspect readiness and receipts; no creator signature is required.'
+      : row.ready ? 'Open the token page to review and sign the exact V3 payout.'
+      : row.pendingSettlementCount ? row.overview.automaticSettlementEnabled===true?'Automatic settlement is pending. Inspect readiness and receipts on the token page.':'Collection settlement is awaiting creator approval on the token page.'
       : row.unclaimed > 0n ? 'V3 payout is not activated for this allocation.'
         : 'No creator wallet allocation is awaiting payout.';
     const details = document.createElement('details'); details.className = 'advanced-details'; details.open = expandedMints.has(row.mint);

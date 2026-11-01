@@ -1,5 +1,6 @@
 import { assertPositiveQuoteAmount, assertTradeConfirmed, buildTradeFeePolicy, buildTradeTransaction, describeTradeQuote, estimateBuyTokenAmountFromSnapshot, formatBondingCurveSnapshot, formatGraduatedPoolSnapshot, submitTrade } from '../pump-trading.js';
 import BN from 'bn.js';
+import bs58 from 'bs58';
 import { Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 
 const fee = buildTradeFeePolicy({ feeOwner: '11111111111111111111111111111111', feeBps: 50 });
@@ -72,17 +73,18 @@ try {
   });
 } catch (error) { staleQuoteRejected = error.message.includes('no longer matches'); }
 if (!staleQuoteRejected) throw new Error('Changed quote was accepted for signing.');
+const failedPayer=Keypair.generate();
 let failedSubmitRejected = false;
 try {
   await submitTrade({
     connection: {
       getLatestBlockhash: async () => ({ blockhash: '11111111111111111111111111111111', lastValidBlockHeight: 1 }),
-      sendRawTransaction: async () => 'failed-signature',
+      sendRawTransaction: async wire => bs58.encode(Transaction.from(wire).signature),
       confirmTransaction: async () => ({ value: { err: { InstructionError: [0, 'Custom'] } } }),
     },
-    provider: { signTransaction: async () => ({ serialize: () => Buffer.from([1]) }) },
-    side: 'buy', mint: user, user, amount: 1, slippagePercent: 1,
-    preparedTrade: { side: 'buy', mint: user, user, inputAmount: 1, slippagePercent: 1, outputAmount: new BN(1), instructions: [SystemProgram.transfer({ fromPubkey: user, toPubkey: user, lamports: 1 })] },
+    provider: { signTransaction: async tx => {tx.sign(failedPayer);return tx;} },
+    side: 'buy', mint: user, user:failedPayer.publicKey, amount: 1, slippagePercent: 1,
+    preparedTrade: { side: 'buy', mint: user, user:failedPayer.publicKey, inputAmount: 1, slippagePercent: 1, outputAmount: new BN(1), instructions: [SystemProgram.transfer({ fromPubkey: failedPayer.publicKey, toPubkey: user, lamports: 1 })] },
   });
 } catch (error) { failedSubmitRejected = error.message.includes('did not confirm successfully'); }
 if (!failedSubmitRejected) throw new Error('Failed submitted transaction was reported as confirmed.');
@@ -90,17 +92,17 @@ const mobilePayer = Keypair.generate();
 const originalBlockhash = Keypair.generate().publicKey.toBase58();
 const refreshedBlockhash = Keypair.generate().publicKey.toBase58();
 const mobileTrade = { side:'buy', mint:user, user:mobilePayer.publicKey, inputAmount:0.01, slippagePercent:1, quoteAmount:new BN(10_000_000), outputAmount:new BN(1), tokenDecimals:6, feeLamports:5_000, instructions:[SystemProgram.transfer({ fromPubkey:mobilePayer.publicKey, toPubkey:user, lamports:1 })] };
-let broadcastOptions, confirmationStrategy, mobileSummary, reportedSignature;
+let broadcastOptions, confirmationStrategy, mobileSummary, reportedSignature,mobileSignature;
 const mobileConnection = {
   getLatestBlockhash:async () => ({ blockhash:originalBlockhash, lastValidBlockHeight:100 }),
   getBlockHeight:async () => 50,
-  sendRawTransaction:async (bytes, options) => { broadcastOptions=options; if (Transaction.from(bytes).recentBlockhash !== refreshedBlockhash) throw new Error('The signed blockhash was not refreshed.'); return 'mobile-signature'; },
+  sendRawTransaction:async (bytes, options) => { broadcastOptions=options; if (Transaction.from(bytes).recentBlockhash !== refreshedBlockhash) throw new Error('The signed blockhash was not refreshed.'); return mobileSignature=bs58.encode(Transaction.from(bytes).signature); },
   confirmTransaction:async strategy => { confirmationStrategy=strategy; return { value:{ err:null } }; },
 };
 const mobileProvider = { remoteMobile:true, signTransaction:async unsigned => { mobileSummary=unsigned.fundedTradeSummary; unsigned.recentBlockhash=refreshedBlockhash; unsigned.sign(mobilePayer); unsigned.fundedLastValidBlockHeight=100; return unsigned; }, reportTradeSubmission:async signature => { reportedSignature=signature; } };
 const mobileResult = await submitTrade({ connection:mobileConnection, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:mobileTrade, tokenName:'Funded Clean QA', tokenSymbol:'FCQA' });
 if (mobileSummary?.tokenName !== 'Funded Clean QA' || mobileSummary?.tokenSymbol !== 'FCQA' || mobileSummary?.spendSol !== '0.010000000' || mobileSummary?.maximumSpendSol !== '0.010100000' || mobileSummary?.targetTotalSol !== '0.010005000' || mobileSummary?.maximumTotalSol !== '0.010105000' || mobileSummary?.appFeeSol !== '0.000005000') throw new Error('Mobile buy review is missing the token or maximum SOL cost.');
-if (mobileResult.signature !== 'mobile-signature' || reportedSignature !== 'mobile-signature' || broadcastOptions.preflightCommitment !== 'confirmed' || confirmationStrategy.blockhash !== refreshedBlockhash) throw new Error('Refreshed mobile trade was not broadcast, reported, and confirmed with the signed blockhash.');
+if (mobileResult.signature !== mobileSignature || reportedSignature !== mobileSignature || broadcastOptions.preflightCommitment !== 'confirmed' || confirmationStrategy.blockhash !== refreshedBlockhash) throw new Error('Refreshed mobile trade was not broadcast, reported, and confirmed with the signed blockhash.');
 await submitTrade({ connection:mobileConnection, provider:mobileProvider, side:'buy', mint:user, user:mobilePayer.publicKey, amount:0.01, slippagePercent:1, preparedTrade:{ ...mobileTrade, route:'graduated-pool', maximumInputAmount:new BN(10_200_000) }, tokenName:'Funded Clean QA', tokenSymbol:'FCQA' });
 if (mobileSummary?.maximumSpendSol !== '0.010200000' || mobileSummary?.maximumTotalSol !== '0.010205000') throw new Error('Mobile pool buy review omitted the pool maximum spend.');
 const mobileSellTrade = { ...mobileTrade, side:'sell', inputAmount:10_000_000, quoteAmount:new BN(11_733_814), outputAmount:new BN(11_733_814), feeLamports:58_670 };
