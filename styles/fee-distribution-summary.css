@@ -38,3 +38,13 @@ html body .fee-distribution-summary--compact .fee-distribution-caption { margin:
 .fee-distribution-details dd { margin: 3px 0 0; color: #aabdd3; font-size: 12px; line-height: 1.6; }
 html body .fee-distribution-details > p { color: #a7bad0; font-size: 12px; line-height: 1.6; margin: 8px 0; }
 @media(max-width:420px) { html body .fee-distribution-summary--compact .fee-distribution-categories > article { grid-template-columns: 1fr; gap: 4px; } }
+.fee-distribution-details .fee-benefit-detail { padding-block:8px 14px; border-bottom:1px solid #304055; }
+.fee-distribution-details .fee-benefit-detail dt { color:#ffc46b; font-size:13px; }
+html body .fee-distribution-details .fee-benefit-purpose { margin:5px 0 10px; color:#aabdd3; font-size:12px; line-height:1.6; }
+.fee-distribution-details .fee-benefit-facts { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+.fee-distribution-details .fee-benefit-facts li { display:grid; gap:3px; margin:0; padding:0; min-width:0; font-size:12px; line-height:1.6; }
+.fee-distribution-details .fee-benefit-facts strong { color:#dbe7f7; font-size:12px; }
+.fee-distribution-details .fee-benefit-links { display:flex; flex-wrap:wrap; gap:4px 16px; margin-top:6px; }
+.fee-distribution-details .fee-benefit-links a { display:inline-flex; align-items:center; min-height:44px; max-width:100%; color:#aebfff; font-size:12px; overflow-wrap:anywhere; }
+.fee-distribution-details .fee-benefit-links a:focus-visible { outline:2px solid #a9bcff; outline-offset:2px; }
+.fee-distribution-details .fee-benefit-separate strong { color:#dbe7f7; }
