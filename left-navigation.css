@@ -14,8 +14,8 @@ html body.page-route #sidebar .primary-nav {
   padding: 0; overscroll-behavior: contain; scrollbar-width: thin;
 }
 html body.page-route #sidebar .nav-horizontal-only { display: none !important; }
-html body.page-route #sidebar .nav-more { position: static; margin-top: 16px; }
 html body.page-route #sidebar .nav-more-menu { position: static; width: auto; min-width: 0; max-height: none; padding: 0; overflow: visible; border: 0; box-shadow: none; }
+html body.page-route #sidebar .nav-item:focus-visible { outline-offset: -2px; }
 html body.page-route #sidebar .sidebar-footer { display: block; flex: none; margin-top: auto; padding-top: 12px; }
 html body.page-route #main-content {
   width: calc(100% - var(--navigation-width)); max-width: 1680px;
@@ -26,6 +26,7 @@ html body.page-route #main-content > .topbar {
   width: 100%; height: 64px; padding: 0; gap: 12px; background: var(--bg);
 }
 @media (min-width: 701px) {
+  html body.page-route #sidebar .nav-item { min-height: 40px; margin-block: 2px; padding-block: 8px; }
   html body.page-route #sidebar .desktop-sidebar-toggle { display: grid; top: 0; right: -27px; }
   html body.page-route #sidebar .brand { white-space: nowrap; }
 }
@@ -34,6 +35,7 @@ html body.page-route #main-content > .topbar {
   html body.page-route #header-search-trigger { display: grid; }
 }
 @media (max-width: 700px) {
+  html body.page-route #sidebar .nav-item { min-height: 44px; }
   html, html.sidebar-collapsed { --navigation-width: 0px; }
   html body.page-route #sidebar { z-index: 50; width: min(280px, calc(100vw - 24px)); padding: 20px 16px; transform: translateX(-100%); visibility: hidden; transition: transform .2s ease; }
   html body.page-route #sidebar .brand-row { justify-content: space-between; padding: 0 4px 24px; }

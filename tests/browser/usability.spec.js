@@ -71,7 +71,7 @@ test('an unavailable optional module leaves navigation usable and explains reloa
   await expect(page.locator('#service-status [role=status]')).toContainText('unavailable');
 });
 
-test('desktop primary destinations are unique and More closes with keyboard focus restored', async ({ page }) => {
+test('desktop destinations are unique and secondary navigation stays visible', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page, 'explore');
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
@@ -79,15 +79,15 @@ test('desktop primary destinations are unique and More closes with keyboard focu
     await expect(nav.locator(`a[href="#${destination}"]`)).toHaveCount(1);
     await expect(nav.locator(`a[href="#${destination}"]`)).toBeVisible();
   }
-  const more = nav.locator('.nav-more');
-  const summary = more.locator('summary');
-  await summary.focus(); await page.keyboard.press('Enter');
-  await expect(more).toHaveAttribute('open', '');
+  await expect(nav.locator('details')).toHaveCount(0);
+  const more = nav.locator('.nav-more-menu');
+  await expect(more).toBeVisible();
+  await more.locator('a').first().focus();
   await page.keyboard.press('Tab');
-  await expect(more.locator('a').first()).toBeFocused();
+  await expect(more.locator('a').nth(1)).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(more).not.toHaveAttribute('open', '');
-  await expect(summary).toBeFocused();
+  await expect(more).toBeVisible();
+  await expect(more.locator('a').nth(1)).toBeFocused();
 });
 
 test('navigation links and leaderboard tabs change views without generic success toasts', async ({ page }) => {
@@ -115,7 +115,7 @@ test('primary portfolio and rewards remain reachable on compact desktop Home', a
       await expect(nav.locator(`a[href="#${destination}"]`)).toHaveCount(1);
       await expect(nav.locator(`a[href="#${destination}"]`)).toBeVisible();
     }
-    for (const control of await nav.locator('a[href="#my-launches"], a[href="#payments"], .nav-more > summary').all()) {
+    for (const control of await nav.locator('a[href="#my-launches"], a[href="#payments"], a[href="#analytics-detail"]').all()) {
       await expect.poll(() => control.evaluate(element => {
         const box = element.getBoundingClientRect();
         return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));

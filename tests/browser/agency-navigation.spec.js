@@ -1,8 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B';
-test.beforeEach(async({page})=>{
-  await page.route('https://**/*',route=>route.abort());
+test.beforeEach(async({page,baseURL})=>{
+  await page.route('https://**/*',route=>route.request().method()==='GET'&&new URL(route.request().url()).origin===new URL(baseURL).origin?route.fallback():route.abort());
   await page.route('**/api/**',route=>new URL(route.request().url()).pathname==='/api/fee-policy'
     ?route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):route.fulfill({status:503,json:{error:'Offline navigation fixture'}}));
 });
@@ -55,8 +55,8 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
       await page.locator('#desktop-sidebar-toggle').click();await check();
     }
     if(width<=700)await page.locator('#open-menu').click();
-    await page.locator('.nav-more > summary').click();await expect(page.locator('.nav-more-menu')).toBeVisible();
-    await page.locator('.nav-more a[href="#docs"]').click();await expect(page.locator('body')).toHaveClass(/page-route-docs/);await check();
+    await expect(page.locator('.primary-nav details')).toHaveCount(0);await expect(page.locator('.nav-more-menu')).toBeVisible();
+    await page.locator('.nav-more-menu a[href="#docs"]').click();await expect(page.locator('body')).toHaveClass(/page-route-docs/);await check();
     await page.evaluate(()=>scrollTo(0,document.body.scrollHeight));
     expect(await page.locator('#sidebar').evaluate(element=>element.getBoundingClientRect().top)).toBe(0);
   });

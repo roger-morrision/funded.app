@@ -70,10 +70,9 @@ test('reduced motion, narrow layout, direct page routing and invalid-network sta
   await expect(page.locator('[data-bonus-history-rows]')).toContainText('2026-10-17');
   await page.locator('#open-menu').click();
   await expect(page.locator('#sidebar')).toHaveClass(/open/);
-  if (await page.locator('.nav-more').getAttribute('open') === null) await page.locator('.nav-more summary').click();
-  await expect(page.locator('.nav-more a[href="#bonuses"]')).toBeVisible();
-  await expect(page.locator('.nav-more a[href="#bonuses"]')).toHaveAttribute('aria-current', 'page');
-  await page.locator('.nav-more a[href="#bonuses"]').click();
+  await expect(page.locator('.nav-more-menu a[href="#bonuses"]')).toBeVisible();
+  await expect(page.locator('.nav-more-menu a[href="#bonuses"]')).toHaveAttribute('aria-current', 'page');
+  await page.locator('.nav-more-menu a[href="#bonuses"]').click();
   await expect(page.locator('#sidebar')).not.toHaveClass(/open/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('[data-bonus-history-category]').selectOption('referrals');

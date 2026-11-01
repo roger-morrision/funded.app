@@ -33,7 +33,6 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   await expect(page.locator('.main-content > #capital-flow')).toBeVisible();
   await expect(page.locator('#analytics-detail')).toBeHidden();
   await expect(page.locator('nav[aria-label="Analytics sections"]')).toHaveCount(0);
-  await page.locator('.nav-more summary').click();
   await page.locator('.primary-nav a[href="#analytics-detail"]').click();
   await expect(page.locator('#analytics-detail')).toBeVisible();
   await expect(page.locator('#capital-flow')).toBeHidden();

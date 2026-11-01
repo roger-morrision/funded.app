@@ -18,7 +18,6 @@ export function navigation() {
   $('#home-feed-pause').innerHTML = icon('pause');
   $('.home-feed-settings summary').innerHTML = icon('filter');
   $('#coin-copy-address').innerHTML = icon('copy');
-  $('.nav-more summary span').innerHTML = icon('chevronDown');
   $('[data-home-view="grid"]').innerHTML = `${icon('grid')} Grid`;
   $('[data-home-view="table"]').innerHTML = `${icon('table')} Table`;
   Object.entries({
@@ -229,9 +228,6 @@ export function navigation() {
   network.title = EXPLORE_CLUSTER === 'devnet' ? 'Solana Devnet uses test SOL with no monetary value.' : APP_MAINNET_READ_ONLY ? 'Solana Mainnet preview: transactions are disabled.' : 'Solana Mainnet: transactions use real SOL.';
   network.setAttribute('aria-label', network.title);
   if (!network.isConnected) $('.top-actions')?.prepend(network);
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') { const more = $('.nav-more'); if (more?.open) { more.open = false; $('summary', more).focus(); } }
-  });
   const preference = node('label', 'workspace-preference', 'Start page');
   const select = node('select'); select.setAttribute('aria-label', 'Preferred start page');
   select.innerHTML = '<option value="overview">Home</option><option value="explore">Explore</option>';

@@ -69,7 +69,7 @@ test('landing benefits, FAQ and app links remain useful without JavaScript',asyn
 for(const width of[390,1440])test(`app navigation opens the platform introduction at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/#overview');await page.locator('body.product-flows-ready').waitFor();
   if(width<1000)await page.getByRole('button',{name:'Open menu',exact:true}).click();
-  const more=page.locator('.primary-nav .nav-more');if(!await more.evaluate(e=>e.open))await more.locator(':scope > summary').click();
+  await expect(page.locator('.primary-nav details')).toHaveCount(0);
   await page.getByRole('link',{name:'About funded.vip',exact:true}).click();await expect(page).toHaveURL(/\/welcome$/);
   await expect(page.locator('h1')).toContainText('Launch your token.');await expect(page.locator('body')).toHaveClass('landing-page');
 });
