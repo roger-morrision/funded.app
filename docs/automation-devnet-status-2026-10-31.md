@@ -1,5 +1,7 @@
 # Devnet automation delivery status — 2026-10-31
 
+Superseded by [the November 1 deployment and acceptance report](devnet-automation-release-2026-11-01.md). The program upgrade subsequently finalized, and the old app records and backup archive were permanently deleted with authorization.
+
 Status: source and app services updated; on-chain program upgrade and live end-to-end acceptance blocked by RPC availability.
 
 ## Delivered

@@ -8,4 +8,8 @@ The collector service calls authenticated keeper routes. It preserves transactio
 
 Token creation and discretionary trades require the initiating wallet signature. X identity requires OAuth; token airdrop claims require the applicable ownership proof. Real Pump migration requires Pump's actual conditions. Tests using fabricated eligibility or migration fixtures must be labelled as fixtures. Signatures and HTTP responses alone do not prove payment: finalized transactions, policy receipts and exact balance changes are required.
 
-Old Devnet launches may be archived from active listings and new automation. Their receipts, balances and Solana history remain available; archiving does not erase a mint or spend its balances. Back up state and record an exact mint manifest before applying an archive.
+The old Devnet app records and their October 31 backup archive were permanently deleted with explicit authorization. An address-only exclusion list prevents their reimport. Their Solana mints, balances and transaction history remain on-chain. See `devnet-record-deletion-2026-11-01.md`.
+
+Server financial requests using the shared RPC connection share an HTTP pool and a 500 ms request budget, with historical block reads paced separately at 2.5 seconds. Only a tagged collection-readiness failure proven to precede transaction construction is automatically retryable. Signed or uncertain payouts retain their existing reconciliation guard. Receipt-only recovery verifies the exact finalized transaction, policy, withdrawal receipt, vault debit and recipient credit without resubmitting payment.
+
+The November 1 [deployment and acceptance report](devnet-automation-release-2026-11-01.md) records the finalized program, exact service release, real payment proofs, restored standard policies and remaining live acceptance limits.
