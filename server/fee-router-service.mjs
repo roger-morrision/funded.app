@@ -125,7 +125,10 @@ export function createFeeRouterService({
       mint:mintKey, creatorWallet:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit });
     if (!readiness.ready || readiness.configuredRouter !== router.address.toBase58()) {
-      throw new Error(`V3 collection program and mint policy are not verified: ${readiness.error || 'router mismatch'}.`);
+      const error=new Error(`V3 collection program and mint policy are not verified: ${readiness.error || 'router mismatch'}.`);
+      // This check precedes transaction construction, signing and broadcasting.
+      if(readiness.status===503)Object.assign(error,{code:'V3_COLLECTION_PREFLIGHT_UNAVAILABLE',transactionSubmitted:false});
+      throw error;
     }
     const online = new OnlinePumpSdk(connection);
     const curve = await online.fetchBondingCurve(mintKey);

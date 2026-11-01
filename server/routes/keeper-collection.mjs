@@ -104,7 +104,7 @@ export function createKeeperCollectionRoutes({
         return json(res, 410, { error:'V2 fee collection is retired. A verified V3 launch is required.' });
       const started = await store.update(state => {
         const key = `fee-collect:${mintKey}`;
-        if (state.alerts?.[key] && !['complete','nothing-to-collect','no-fees'].includes(state.alerts[key].status)) return false;
+        if (state.alerts?.[key] && !['complete','nothing-to-collect','no-fees','retryable-before-submission'].includes(state.alerts[key].status)) return false;
         const pending = Object.values(state.collections || {}).find(row=>row.mint===mintKey
           && row.scope==='per-mint-v3' && state.v3Settlements?.[row.signature]?.status!=='finalized');
         if(pending) return { awaitingSettlement:pending.signature };
@@ -119,7 +119,10 @@ export function createKeeperCollectionRoutes({
       let result;
       try { result = await collectPumpCreatorFees({ requestedMint: mintKey }); }
       catch (error) {
-        await store.update(state => { state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`], status:'review-required', reason:String(error.message || error).slice(0, 240) }; });
+        const beforeSubmission=error.code==='V3_COLLECTION_PREFLIGHT_UNAVAILABLE'&&error.transactionSubmitted===false;
+        await store.update(state => { state.alerts[`fee-collect:${mintKey}`] = { ...state.alerts[`fee-collect:${mintKey}`],
+          status:beforeSubmission?'retryable-before-submission':'review-required',
+          ...(beforeSubmission?{code:error.code,transactionSubmitted:false}:{}),reason:String(error.message || error).slice(0, 240) }; });
         throw error;
       }
       await store.update(state => {

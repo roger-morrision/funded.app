@@ -58,7 +58,7 @@ if (process.argv.includes('--check')) {
     for (const candidate of candidates.mints || []) {
       lifecycle.assertRunning();
       if(pausedMints.has(candidate.mint))continue;
-      if (candidate.collectionStatus && !['complete','nothing-to-collect','no-fees'].includes(candidate.collectionStatus)) continue;
+      if (candidate.collectionStatus && !['complete','nothing-to-collect','no-fees','retryable-before-submission'].includes(candidate.collectionStatus)) continue;
       const activity = await request(`/api/tokens/${encodeURIComponent(candidate.mint)}/fee-activity`);
       const pump = activity.overview?.pump;
       if (activity.overview?.available !== true || pump?.status !== 'confirmed' || !/^\d+$/.test(String(pump.accruedLamports))) continue;
