@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
+import {readIndexedCommunityBase} from './community-indexed-base.mjs';
 
 const TOKEN_ACCOUNT_MIN_SIZE = 165;
 const MAX_REPLAY_SLOTS = 256;
@@ -111,6 +112,14 @@ function sum(rows) {
 
 async function completeFinalizedBase(connection, mintKey) {
   const mintAddress = mintKey.toBase58();
+  try {
+    const indexed=await readIndexedCommunityBase({connection,mintKey});
+    if(indexed)return indexed;
+  } catch(error) {
+    if(/mint authority/.test(String(error?.message||error)))throw error;
+    // Standard RPCs can lack this index. The existing atomic paths below
+    // remain available; every successful path still proves full supply.
+  }
   // For a small holder set, one atomic account read is enough. Completeness
   // follows from the fixed mint supply, not from a top-20 assumption.
   try {
