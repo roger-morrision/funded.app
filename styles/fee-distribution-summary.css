@@ -52,6 +52,6 @@ html body .fee-distribution-details .fee-benefit-purpose { margin:5px 0 10px; co
 .fee-distribution-details .fee-benefit-separate strong { color:#dbe7f7; }
 
 .fee-distribution-details .fee-benefit-rules { margin-top: 6px; border-top: 1px solid #304055; }
-.fee-distribution-details .fee-benefit-rules > summary { min-height: 44px; align-content: center; color: #aebfff; font-size: 12px; cursor: pointer; }
+.fee-distribution-details .fee-benefit-rules > summary { min-height: 44px; align-content: center; color: #aebfff; font-size: 12px; cursor: pointer; scroll-margin-block: 100px 110px; }
 .fee-distribution-details .fee-benefit-rules > summary:focus-visible { outline: 2px solid #a9bcff; outline-offset: 2px; }
 .fee-distribution-details .fee-benefit-rule-body { padding: 0 0 12px; }
