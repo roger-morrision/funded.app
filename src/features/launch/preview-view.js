@@ -51,6 +51,8 @@ export function updateLaunchPreview(
   }
   const packageLabel = document.querySelector('#launch-package-label');
   if (packageLabel) packageLabel.textContent = launchBurn.label;
+  const previewSummary = document.querySelector('#launch-presentation-preview > summary');
+  if (previewSummary) previewSummary.textContent = `Preview token page & X posts · ${launchBurn.label}`;
   const packageArtBadge = document.querySelector('#launch-package-art-badge');
   if (packageArtBadge) packageArtBadge.textContent = `${launchBurn.label.toUpperCase()} PROMOTION`;
   const cleanedXLabel = (name || symbol || 'Token name').normalize('NFKC')

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
@@ -8,6 +9,7 @@ const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { execut
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   await page.route('**/api/**', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"mocked offline API"}' }));
+  await page.route('**/api/fee-policy', route => route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.goto(`${base}/#launch`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.body.classList.contains('workspace-ready') && !!document.querySelector('#launch-package-example'), { timeout: 30_000 });
   await page.locator('#token-name').fill('Orbit Fox');
@@ -29,7 +31,9 @@ try {
   await page.locator('#launch-package-example-art.has-image').waitFor({ state: 'attached' });
   assert.equal(await page.locator('#preview-token-image.has-image').count(), 1);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  assert.equal(await page.locator('.launch-package-preview').evaluate(node => Boolean(node.closest('details'))), false, 'Package preview must not be collapsible.');
+  const presentation = page.locator('#launch-presentation-preview');
+  assert.equal(await presentation.getAttribute('open'), null, 'Optional visual preview starts closed.');
+  await presentation.locator(':scope > summary').click();
 
   for (const [tier, postCount, text, artVisible] of [
     ['standard', '1 post', 'New project on funded.vip', false],
@@ -68,13 +72,15 @@ try {
   assert.equal(await page.locator('#token-banner-preview').isVisible(), false);
   assert.equal(await page.locator('#token-banner-status').textContent(), 'No banner selected.');
 
-  const feeOptions = page.locator('.launch-fee-options');
+  await page.locator('#launch-back').click();
+  const feeOptions = page.locator('#custom-policy');
   assert.equal(await feeOptions.evaluate(node => node.tagName), 'SECTION');
   assert.equal(await feeOptions.locator('summary').count(), 0);
   assert.equal(await page.locator('#creator-wallet-share').isVisible(), true);
   assert.equal(await page.locator('.launch-preview-panel').isVisible(), true);
+  await page.locator('#launch-next').click();
   const logoWidth = await page.locator('#preview-token-image').evaluate(node => node.getBoundingClientRect().width);
-  assert(logoWidth <= 50, 'Preview logo should stay compact');
+  assert(logoWidth > 0 && logoWidth <= 50, 'Visible preview logo should stay compact');
 
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 850 });

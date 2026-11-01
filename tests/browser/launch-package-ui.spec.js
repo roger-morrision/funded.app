@@ -2,11 +2,12 @@ import { test, expect } from '@playwright/test';
 import { FEE_DISTRIBUTION } from '../../distribution-policy.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
+  await page.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
   await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
     ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
     : route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Offline QA fixture"}' }));
-  await page.route('https://**/*', route => route.abort());
+  await page.route('https://**/*', route => route.request().method()==='GET' && new URL(route.request().url()).origin===new URL(baseURL).origin ? route.fallback() : route.abort());
 });
 
 test('launch stays blocked when V3 readiness is unavailable', async ({ page }) => {
@@ -33,7 +34,7 @@ test('protocol allocation copy agrees across FAQ, buyback, and fee flow', async 
   await expect(page.locator('.fee-route-bar i.burn')).toHaveAttribute('style', new RegExp(`width:\\s*${buyback}%`));
 });
 
-for (const width of [1440, 390]) test(`launch package and X previews update at ${width}px`, async ({ page }) => {
+for (const width of [1440, 390, 320]) test(`launch package and X previews update at ${width}px`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
@@ -44,6 +45,12 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
   await expect(page.locator('#preview-symbol')).toHaveText('SAMPLE');
   await expect(page.locator('#launch-x-post-preview')).toContainText('Sample Coin');
   await page.locator('#launch-next').click();
+  await expect(page.locator('.launch-fee-options')).toHaveCount(0);
+  const disclosure=page.locator('#launch-presentation-preview'), summary=disclosure.locator(':scope > summary');
+  await expect(disclosure).not.toHaveAttribute('open','');await expect(page.locator('#launch-package-example')).toBeHidden();
+  await expect(summary).toHaveText('Preview token page & X posts · Standard');
+  await page.screenshot({path:info.outputPath(`launch-options-${width}.png`),fullPage:true});
+  await summary.focus();await page.keyboard.press('Enter');await expect(disclosure).toHaveAttribute('open','');
   await expect(page.locator('#launch-package-example')).toBeVisible();
   await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
   await expect(page.locator('.launch-package-preview')).toBeVisible();
@@ -53,6 +60,12 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
   await expect(page.locator('#launch-package-example')).toHaveAttribute('data-tier', 'premier');
   await expect(page.locator('#launch-x-post-count')).toHaveText('2 posts');
   await expect(page.locator('#launch-x-followup')).toBeVisible();
+  await expect(disclosure).toHaveAttribute('open','');await expect(summary).toHaveText('Preview token page & X posts · Premier');
+  await summary.focus();await page.keyboard.press('Space');await expect(disclosure).not.toHaveAttribute('open','');await expect(summary).toBeFocused();
+  await page.locator('.creator-burn-card[data-burn-tier="standard"]').click();await expect(disclosure).not.toHaveAttribute('open','');
+  await expect(summary).toHaveText('Preview token page & X posts · Standard');
+  await summary.focus();await page.keyboard.press('Enter');await expect(page.locator('#preview-name')).toHaveText('Sample Coin');await expect(page.locator('#launch-x-post-count')).toHaveText('1 post');
+  await expect(page.locator('#launch-button')).toBeDisabled();await expect(page.locator('#launch-agency-options .agency-included-list li')).toHaveCount(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -64,6 +77,7 @@ for (const width of [1440, 390]) test(`launch preview stays readable when option
   await page.locator('#token-name').fill('Sample Coin');
   await page.locator('#token-symbol').fill('SAMPLE');
   await page.locator('#launch-next').click();
+  await page.locator('#launch-presentation-preview > summary').click();
   await expect(page.locator('#launch-package-example')).toBeVisible();
   const preview = page.locator('.launch-package-preview');
   await expect(preview).toBeVisible();

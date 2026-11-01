@@ -29,8 +29,9 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('#fee-policy-faq')).toContainText(`${ops}% Operations & marketing`);
     await expect(page.locator('#fee-policy-faq')).toContainText(`${bonus}% Daily bonus`);
     await page.evaluate(() => { location.hash = 'launch'; });
-    await expect(page.locator('.launch-fee-options .benefit-grid article:last-child small')).toContainText(`${ops}% Operations & marketing`);
-    await expect(page.locator('.launch-fee-options .benefit-grid article:last-child small')).toContainText(`${bonus}% Daily bonus`);
+    await expect(page.locator('.launch-fixed-distribution [data-fee-category="operations"] > strong')).toHaveText(`${ops}%`);
+    await expect(page.locator('.launch-fixed-distribution [data-fee-category="community"] > strong')).toHaveText(`${bonus}%`);
+    await expect(page.locator('.launch-fee-options')).toHaveCount(0);
     await page.evaluate(() => { location.hash = 'payments'; });
     await expect(page.getByRole('link', { name:/Daily bonus · payout history/ })).toBeVisible();
     await expect(page.getByRole('link', { name:/Daily bonus · payout history/ })).toHaveAttribute('href', '#bonuses');

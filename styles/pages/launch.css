@@ -1,3 +1,22 @@
+/* Funding controls use the same quiet surfaces as the token form. */
+#launch-dialog .launch-funding-grid { gap: 16px; }
+#launch-dialog .launch-funding-grid > label { padding: 0; border: 0; background: transparent; gap: 6px; }
+#launch-dialog .launch-funding-grid .amount-presets { margin-top: 4px; }
+#launch-dialog .launch-funding-grid .creator-buy-preview { margin-top: 4px; padding: 8px 10px; }
+#launch-dialog .launch-funding-grid .creator-buy-preview strong { margin-block: 3px; font-size: 15px; }
+#launch-dialog #launch-agency-options { margin: 16px 0; padding: 12px; border-radius: 8px; background: transparent; }
+#launch-dialog #launch-agency-options legend { padding-inline: 5px; font-size: 14px; }
+#launch-dialog #launch-agency-options p { margin-block: 6px; font-size: 13px; line-height: 1.5; }
+#launch-dialog #launch-agency-options .agency-included-list { margin-block: 8px; }
+#launch-dialog #launch-agency-options .agency-included-list li { padding-block: 7px; font-size: 13px; }
+@media (min-width: 700px) { #launch-dialog .creator-burn-tiers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 699px) {
+  #launch-dialog .creator-burn-tiers { grid-template-columns: minmax(0, 1fr); }
+  #launch-dialog .creator-burn-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; min-height: 0; padding: 12px; }
+  #launch-dialog .creator-burn-card > span { justify-self: start; }
+  #launch-dialog .creator-burn-card > strong { grid-column: 2; grid-row: 1; margin: 0; text-align: right; font-size: 14px; }
+  #launch-dialog .creator-burn-card > :is(small, em, b) { grid-column: 1 / -1; margin: 0; }
+}
 /* Keep the creation form and its live preview visible together on desktop. */
 @media (min-width: 1220px) {
   body.page-route-launch #launch-route-shell { position: relative; padding-top: 22px; }

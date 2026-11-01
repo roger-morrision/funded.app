@@ -77,7 +77,7 @@ function launch() {
   const packages = $('.creator-burn-section');
   if (options && packages) {
     packages.classList.remove('launch-tier-first');
-    options.querySelector('.launch-fee-options')?.after(packages);
+    options.querySelector('.launch-funding-section')?.after(packages);
   }
   const first = $('[data-launch-step="1"]');
   const description = first?.querySelector('label:has(#token-description)');
@@ -87,7 +87,11 @@ function launch() {
     disclosure(description, 'Description · optional');
   }
   const packagePreview = $('.launch-package-preview');
-  if (options && packagePreview) options.append(packagePreview);
+  if (options && packagePreview) {
+    const preview = packagePreview.closest('#launch-presentation-preview') || disclosure(packagePreview, 'Preview token page & X posts');
+    preview.id = 'launch-presentation-preview';
+    options.append(preview);
+  }
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
   setText('#launch-route-title', 'Launch a token');
@@ -101,11 +105,6 @@ function launch() {
     note.textContent = 'The airdrop uses tokens of your new coin. Creator-fee rewards use collected SOL. Eligibility and payment require separate verified steps.';
     funding.querySelector('.section-label-row')?.after(note);
   }
-  const fees = $('.launch-fee-options');
-  if (fees && !fees.querySelector('.product-fee-example')) fees.querySelector('.benefit-grid')?.after(Object.assign(document.createElement('p'), {
-    className: 'product-fee-example',
-    textContent: `${currentFeePolicyCopy().allocation} Allocation does not mean a payment has completed.`
-  }));
   setText('.launch-preview-heading span', 'Preview');
   setText('#custom-policy-title', 'Choose your fee split');
   mountStepOneFeeSplit();

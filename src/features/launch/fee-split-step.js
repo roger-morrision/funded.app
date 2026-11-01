@@ -3,11 +3,9 @@ import {feeDistributionPresentation} from '../fees/distribution-summary.js';
 // Move the original controls so listeners, draft values and signed-policy IDs stay intact.
 export function mountStepOneFeeSplit(document=globalThis.document){
   const first=document.querySelector('[data-launch-step="1"]');
-  const fees=document.querySelector('.launch-fee-options'),policy=document.querySelector('#custom-policy');
-  if(!first||!fees||!policy)return;
+  const policy=document.querySelector('#custom-policy');
+  if(!first||!policy)return;
   first.append(policy);policy.hidden=false;policy.classList.add('launch-fee-editor');
-  const feeTitle=fees.querySelector('h3');
-  if(feeTitle){feeTitle.firstChild.textContent='Fee distribution ';const note=feeTitle.querySelector('span');if(note)note.textContent='Your step 1 split is shown in the launch summary';}
   first.querySelector(':scope > .step-heading p').textContent='Add your token details and choose how your 80% creator-fee share is split.';
   const firstTab=document.querySelector('[data-launch-step-target="1"]');
   firstTab.querySelector('span').textContent='Token & fees';firstTab.setAttribute('aria-label','Step 1: Token details and fee split');
