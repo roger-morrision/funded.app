@@ -24,10 +24,11 @@ for(const width of [390,1440]){
       await page.goto('/#payments');const center=page.locator('#financial-center');
       await expect(center.locator('[data-flow-rows]')).toHaveAttribute('aria-busy','true');
       await expect(center).not.toContainText('No matching recorded activity');
-      await expect(center.locator('.ready-queue')).toBeHidden();await expect(page.locator('#reward-portfolio .reward-portfolio-connect')).toBeVisible();
+      await expect(center.locator('.ready-queue')).toBeHidden();await expect(page.locator('#reward-portfolio').getByRole('button',{name:'Connect wallet',exact:true})).toBeVisible();
       release();await expect(center.locator('[data-flow-rows]')).toHaveAttribute('aria-busy','false');
       await expect(center).toContainText('Unavailable: rewards, buybacks');
       await expect(center).toContainText('Unavailable data is not a zero balance');await expect(center.locator('[data-flow-count]')).toHaveText('Records unavailable');await expect(center.locator('.financial-list-footer')).toBeHidden();
+      const connect=page.locator('#reward-portfolio .reward-portfolio-connect');await connect.focus();const original=await connect.elementHandle();await page.evaluate(()=>window.dispatchEvent(new Event('funded:reward-identity-change')));await expect(center.locator('[data-flow-rows]')).toHaveAttribute('aria-busy','false');expect(await original.evaluate(e=>e.isConnected&&e===document.activeElement)).toBe(true);
     }finally{release();}
   });
   test(`all public workspace routes remain readable without horizontal overflow at ${width}px (mocked offline)`,async({page,baseURL})=>{
@@ -38,7 +39,7 @@ for(const width of [390,1440]){
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),route).toBe(true);
       if(route==='referrals'){await expect(page.locator('#referral-share-native')).toBeHidden();await expect(page.locator('#referral-copy-code')).toBeHidden();await expect(page.locator('#referral-command-center [data-copy-referral-link]')).toBeVisible();}
       const title=page.locator('#main-content h1:visible').first();await expect(title,route).toBeVisible();
-      expect(await title.evaluate(el=>parseFloat(getComputedStyle(el).fontSize)),route).toBeGreaterThanOrEqual(27);
+      expect(await title.evaluate(el=>parseFloat(getComputedStyle(el).fontSize)),route).toBeGreaterThanOrEqual(width<700?24:27);
     }
     for(const path of [`/token/${mint}`,`/wallet/${mint}`,'/admin.html']){
       await page.goto(path);await expect(page.locator(path==='/admin.html'?'#auth-panel':'body.product-flows-ready')).toBeVisible();

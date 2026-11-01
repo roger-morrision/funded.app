@@ -83,9 +83,11 @@ let latest = null;
 function renderPortfolio(data, referralData, xData) {
   const body = document.querySelector('[data-reward-portfolio]'); if (!body) return;
   const wallet = data?.wallet;
+  const focused=body.contains(document.activeElement)||document.activeElement===byId('reward-portfolio')?.querySelector('[data-reward-connect]');
   byId('reward-portfolio')?.classList.toggle('reward-no-wallet', !wallet);
   const connectButton = byId('reward-portfolio')?.querySelector('[data-reward-connect]');
   if (connectButton) connectButton.hidden = Boolean(wallet);
+  if(!wallet&&body.querySelector('.reward-portfolio-empty'))return;
   body.replaceChildren();
   if (!wallet) {
     const empty = node('div', 'reward-portfolio-empty');
@@ -97,6 +99,7 @@ function renderPortfolio(data, referralData, xData) {
     button.addEventListener('click', () => byId('connect-button')?.click());
     empty.append(copy, button);
     body.append(empty);
+    if(focused)button.focus({preventScroll:true});
     return;
   }
   if (data.evidence.status === 'unavailable') { body.textContent = 'We cannot check reward payments right now. Try again shortly to see your totals.'; return; }
