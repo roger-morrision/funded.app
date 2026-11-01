@@ -1,0 +1,441 @@
+{
+  "at": "2026-11-01T10:20:14.122Z",
+  "task": "Review admin page, fix bugs and gaps",
+  "sourceCommit": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+  "fixes": [
+    "Reward vault cash and reserve metadata are verified separately",
+    "Server signer aliases cannot become treasury withdrawal sources",
+    "Session expiry and stale response isolation",
+    "Duplicate signing prevention, intent checks and saved public receipt recovery",
+    "Authority configuration signing checks and exact known receipt",
+    "Private Redis/RPC metrics and honest freshness",
+    "Mobile signature wrapping and cleared sensitive reviews"
+  ],
+  "tests": {
+    "backend": {
+      "passed": 11,
+      "files": [
+        "tests/admin-vaults.test.mjs",
+        "tests/admin-rpc-health.test.mjs",
+        "tests/admin-routes.test.mjs",
+        "tests/admin-agency-policy.test.mjs",
+        "tests/v3-allocation-admin-review.test.mjs"
+      ],
+      "scope": "Actual backend code with deterministic chain fixtures"
+    },
+    "browser": {
+      "passed": 15,
+      "scope": "API and RPC fixtures, browser-only ephemeral signing wallet; no real transfers"
+    },
+    "deployedCompiledBrowser": {
+      "passed": 6,
+      "overlapsLocalBrowser": true,
+      "scope": "Actual deployed compiled frontend; intercepted API fixtures"
+    },
+    "signedHttpPostgres": {
+      "checkedAt": "2026-11-01T10:09:05.429Z",
+      "actor": "128ERPm95qivb5ESjSv1Eg1hMivVZsHixEj4QF172a92",
+      "checks": [
+        "Real QA wallet signature authenticates the actual admin HTTP route and isolated PostgreSQL",
+        "Concurrent pre-approval refresh cannot overwrite the saved review state",
+        "Browser approval and rejection persist exact content hashes, signed actor and append-only audit",
+        "Stale hash rejected without audit mutation; approved content cannot dispatch while paused",
+        "Legacy individual payouts remain hidden and unapprovable; unsolicited mentions cannot be approved",
+        "Exact nine-decimal fee policy persists through signed HTTP and PostgreSQL without rounding",
+        "Out-of-order fee refreshes cannot replace a newer revision with stale prices",
+        "Stale and invalid fee writes cannot change current policy or audit history",
+        "Logout invalidates fee editing even when a previously authenticated read arrives late"
+      ],
+      "browserErrors": [],
+      "xRequests": 0,
+      "xPosts": 0,
+      "solanaTransactions": 0,
+      "scope": "Isolated real HTTP, PostgreSQL, QA signature and actual admin fee/X review components. No API mocks, X client or worker."
+    },
+    "publicSmoke": {
+      "at": "2026-11-01T10:17:25.092Z",
+      "origin": "https://funded.vip",
+      "checks": [
+        {
+          "viewport": {
+            "width": 1440,
+            "height": 1000
+          },
+          "workspaceLocked": true,
+          "noHorizontalOverflow": true
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "workspaceLocked": true,
+          "noHorizontalOverflow": true
+        }
+      ],
+      "browserErrors": [],
+      "appWriteRequests": [],
+      "cloudflareBeacons": 2,
+      "scope": "Actual deployed frontend and unauthenticated API, fresh browser context, no wallet or API mocks."
+    },
+    "sourceChecks": {
+      "changedFiles": 21,
+      "syntax": "passed",
+      "changedFileBudgets": "passed",
+      "diffWhitespace": "passed",
+      "repositoryWideBudget": {
+        "status": "pre-existing-failure",
+        "file": "server/index.mjs",
+        "lines": 504,
+        "limit": 500,
+        "modifiedByAdminPatch": false
+      }
+    },
+    "productionBuild": "passed"
+  },
+  "deployment": {
+    "image": "fundedapp-devnet:admin-60bf5135-r2",
+    "imageId": "sha256:19ce46cf129e0406eec74510610f47b7af13a0c55591a32e9e4b4fede0dd2f6d",
+    "financialBase": "fundedapp-devnet:redis-e2e-6645520e",
+    "sourceScope": "Explicit admin overlay on tested financial base; preserved registration patches",
+    "frontend": "f1780bb72ae31fe08141e69bbaccc6c5cbb2690c",
+    "frontendSourceDigest": "c81c7256873df8825ae559646b064d48ede31243a8800dfc905aa4c764b63634",
+    "frontendArtifactDigest": "748fe331567263274c85aaaec6aae8bcc3ccc611b46872c5332acb5aa90985c0",
+    "files": {
+      "admin-agency-rules.js": "f00a13c2ad1301ec9a2551e4503c949ae79ea32cd72ddb3c010e014bf79cd97e",
+      "admin-daily-bonus.js": "2374cdf72e1cf7c128b5fd5f80a91338fe4aaecdf873a3ea244b4529757010c8",
+      "admin-financial-health.js": "3341c3110f73f3c41f6b853be593185277be679e1a0e42be31f6d32d4489dc0f",
+      "admin-page.js": "eac204f1295e4aeaabcca825b08829f7df8496b75b0d744e4005127d8262402e",
+      "admin-x-posts.js": "2adafc1015a943edc1e61ca4fe7bfdfe0cf48392799ca3f7d9a95ec3b4d665cf",
+      "admin.css": "bf33122c68d9947fb59e36ae9c138ef0d711dc847aa420a631e8439785e5af1a",
+      "admin-rpc-health.js": "480ca8faa60c4db2f1780dd9803da62243805ce9b484498b672e02abc5d9c57a",
+      "admin-session.js": "335579b378aefa585da9304e62c92e08a9769e05adc884f7ad0073db06d4f7ee",
+      "admin-withdrawals.js": "e9bfb0d8d668e18d8fc2de001a52ccc222298b43b8b7a05d4ddd7a8c9860f006",
+      "server/routes/admin.mjs": "157d68c5c402504d797dc6c21005080cf648050f66546f7f0c08f9aad5e0a86a",
+      "server/admin-rpc-health.mjs": "5c483176117d638e28d0d8efad6ce7a879db99cbcfaa7d0cab8e43da1ad3c5ba",
+      "server/admin-vaults.mjs": "d83c00e2f448c8a95fad8f277662f01f77fbb54854d459fe212eaaa8edd01914"
+    },
+    "services": [
+      {
+        "name": "fundedapp-app-1",
+        "image": "sha256:19ce46cf129e0406eec74510610f47b7af13a0c55591a32e9e4b4fede0dd2f6d",
+        "source": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "startedAt": "2026-11-01T10:15:44.046025605Z",
+        "status": "running",
+        "health": "healthy",
+        "rpc": "http://rpc-gateway:8899",
+        "build": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "qaMinimums": "false",
+        "frontend": "f1780bb72ae31fe08141e69bbaccc6c5cbb2690c"
+      },
+      {
+        "name": "fundedapp-fee-collector-1",
+        "image": "sha256:19ce46cf129e0406eec74510610f47b7af13a0c55591a32e9e4b4fede0dd2f6d",
+        "source": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "startedAt": "2026-11-01T10:15:45.717366432Z",
+        "status": "running",
+        "health": "healthy",
+        "rpc": "http://rpc-gateway:8899",
+        "build": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-buyback-worker-1",
+        "image": "sha256:19ce46cf129e0406eec74510610f47b7af13a0c55591a32e9e4b4fede0dd2f6d",
+        "source": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "startedAt": "2026-11-01T10:15:47.333351755Z",
+        "status": "running",
+        "health": null,
+        "rpc": "http://rpc-gateway:8899",
+        "build": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-agency-buyback-worker-1",
+        "image": "sha256:19ce46cf129e0406eec74510610f47b7af13a0c55591a32e9e4b4fede0dd2f6d",
+        "source": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "startedAt": "2026-11-01T10:16:03.570188364Z",
+        "status": "running",
+        "health": null,
+        "rpc": "http://rpc-gateway:8899",
+        "build": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-rpc-gateway-1",
+        "image": "sha256:e4b4ec345cab408b9de8876524d41f5e094359eca1ccdb3e25ce155ab5e592bb",
+        "source": "bd90a8d69de612f35ab9688c1a7e200a3833084a",
+        "startedAt": "2026-11-01T05:10:51.803834042Z",
+        "status": "running",
+        "health": "healthy",
+        "rpc": null,
+        "build": "bd90a8d69de612f35ab9688c1a7e200a3833084a"
+      },
+      {
+        "name": "fundedapp-rpc-cache-1",
+        "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+        "startedAt": "2026-11-01T04:27:55.252230373Z",
+        "status": "running",
+        "health": "healthy",
+        "rpc": null
+      }
+    ],
+    "gatewayNotRestarted": true,
+    "redisNotRestarted": true,
+    "normalDevnetMinimums": true,
+    "preservedRegistrationPatches": true,
+    "privateApi": {
+      "/api/admin/session": 401,
+      "/api/admin/overview": 401,
+      "/api/admin/vaults": 401,
+      "/api/admin/rpc-health": 401
+    },
+    "sourceHashesVerified": true
+  },
+  "live": {
+    "at": "2026-11-01T10:19:50.479Z",
+    "origin": "https://funded.vip",
+    "vaultInventory": {
+      "totalLaunches": 1,
+      "offset": 0,
+      "nextOffset": null,
+      "vaults": [
+        {
+          "mint": "ANi8jBnhX8E8t7ZYcEWxMXxZKGGzTFmZttEVyNJy9bAW",
+          "symbol": "REDQA",
+          "policyStatus": "verified",
+          "categories": [
+            {
+              "category": "Creator",
+              "address": "CyJcX8DCPUvKxC2Bxna3ZvBknPiVzTnzykDqQZLyg8Et",
+              "lamports": "650240",
+              "payableLamports": "0",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "Operations",
+              "address": "83menjhufLKtkTfzve2Lnu3JbHcUf54BMdnP6gNB7Tvk",
+              "lamports": "650240",
+              "payableLamports": "0",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "Referral L1",
+              "address": "5pjx5RYqrp4TGC6Ud2vSmdYyrwT9bQGZjp6E1xMafNGN",
+              "lamports": "650240",
+              "payableLamports": "0",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "Referral L2",
+              "address": "HRLkmgeVAZrqwDGy9sQfSWXW6M1cJJbRSKPq7meYfK1J",
+              "lamports": "650240",
+              "payableLamports": "0",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "Referral L3",
+              "address": "99gYZXXVHjG2uQoXjxwcgBspRsaLvy8Fg1TMWDd2qmtP",
+              "lamports": "650240",
+              "payableLamports": "0",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "Community",
+              "address": "9suWq6Wj38SysTZrnTzhCgFQkLgGQALu2Dt4PtWGVTEi",
+              "lamports": "650240",
+              "payableLamports": "0",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "Buyback",
+              "address": "73hfX6gTTWWJawXwHZjqAKnqC77hWyos1LJYxMHEdF5j",
+              "lamports": "650240",
+              "payableLamports": "0",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "AI agency",
+              "address": "FuG67tpujBzbd5jHndDfKzJJPaX8H7Qqs5RtuWFqJ5my",
+              "lamports": "673169",
+              "payableLamports": "22929",
+              "rentReserveLamports": "650240",
+              "unassignedLamports": "0",
+              "shortfallLamports": "0",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            },
+            {
+              "category": "Holder and X SOL reserve",
+              "address": "2wduTabgznZvGb3jDMT3GkzPLdV6eHrt6ih4sbd4xnu6",
+              "lamports": "1079003",
+              "payableLamports": "10201",
+              "rentReserveLamports": "1021080",
+              "unassignedLamports": "47722",
+              "shortfallLamports": "0",
+              "reserveAddress": "CN4DvCPqiQnotx1Rs69LKnwsMn6BA2gwArtm1cwDGgTV",
+              "accountingStatus": "verified",
+              "custody": "V3 program vault",
+              "withdrawable": false
+            }
+          ]
+        }
+      ],
+      "note": "Reward SOL is held in the reward vault; its separate reserve account records outstanding liabilities. Unassigned SOL is not authorized for withdrawal."
+    },
+    "gateway": {
+      "enabled": true,
+      "checkedAt": "2026-11-01T10:19:48.550Z",
+      "cluster": "devnet",
+      "verified": true,
+      "redis": {
+        "enabled": true,
+        "ready": true
+      },
+      "counts": {
+        "requests": 50002,
+        "upstreamRequests": 23808,
+        "cacheHits": 9205,
+        "redisCacheHits": 1183,
+        "coalescedReads": 4934,
+        "accountBatchSavings": 12025,
+        "upstreamFailures": 0,
+        "rateLimited": 0,
+        "queueRejected": 28,
+        "queueDepth": 4
+      },
+      "memoryCacheHits": 8022,
+      "avoidedProviderAttempts": 26164,
+      "scope": "Gateway counters since its last restart; request attempts, not billed credits."
+    },
+    "publicStatus": {
+      "at": "2026-11-01T10:19:42.618Z",
+      "results": [
+        {
+          "path": "/api/status",
+          "status": 200,
+          "data": {
+            "cluster": "devnet",
+            "build": "60bf51356b718b585a0c4bc4031fb052eb3dee3f",
+            "status": "operational",
+            "checks": [
+              {
+                "id": "storage",
+                "status": "operational"
+              },
+              {
+                "id": "network",
+                "status": "operational"
+              }
+            ],
+            "observedAt": "2026-11-01T10:19:13.215Z",
+            "scope": "storage-network-and-v3-settlement-evidence",
+            "settlementVerified": true,
+            "settlementEvidence": {
+              "verified": true,
+              "scope": "all-recorded-v3-collections",
+              "recorded": 6,
+              "checked": 6,
+              "status": "verified",
+              "checkedAt": "2026-11-01T10:19:22.817Z",
+              "expiresAt": "2026-11-01T10:20:22.817Z",
+              "cached": true
+            },
+            "mainnetActivationAuthorized": false,
+            "respondedAt": "2026-11-01T10:19:42.578Z"
+          }
+        },
+        {
+          "path": "/api/health",
+          "status": 200,
+          "data": {
+            "ok": true,
+            "service": "funded-api",
+            "launchPolicy": {
+              "cluster": "devnet",
+              "feeRouterProgramId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+              "feeRouterScope": "per-mint-v3",
+              "fundedMint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+              "burnAmounts": {
+                "boost": 1
+              },
+              "burnUsdTargets": {
+                "pro": 150,
+                "premier": 300
+              },
+              "serviceFees": {
+                "policy": {
+                  "tradeBps": 50,
+                  "launchLamports": "20000000",
+                  "proUsd": 150,
+                  "premierUsd": 300,
+                  "listingUsd": 300
+                },
+                "revision": 2,
+                "hash": "6ceb18661aa6860544c72936a476178f9435e82ac6f55271f6bb5eb825045f07",
+                "updatedAt": "2026-10-19T06:27:30.621Z",
+                "appliesTo": "new quotes; issued quotes retain their approved amount until expiry"
+              },
+              "burnPricing": "verified-pool-spot"
+            },
+            "external": {
+              "solanaKeeper": true,
+              "automaticRewards": true,
+              "feeRouter": true,
+              "birdeye": false,
+              "pumpFun": true,
+              "xOAuth": true
+            }
+          }
+        }
+      ]
+    }
+  },
+  "limitations": {
+    "newSolanaTransactions": 0,
+    "newSmartContractDeployment": false,
+    "liveAdminWrites": false,
+    "xRequests": 0,
+    "xPosts": 0,
+    "privateKeysPersisted": false,
+    "treasuryTransferRpc": "mocked",
+    "livePrivateGetScope": "Actual deployed helper via read-only process; signed-out HTTP endpoints verified",
+    "pushed": false
+  }
+}
