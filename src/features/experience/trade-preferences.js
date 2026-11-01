@@ -17,13 +17,16 @@ export function assertTradeLimits({slippagePercent,networkFeeLamports=null},pref
 }
 export function initializeTradePreferences(app){
   const parent=document.querySelector('#profile');if(!parent)return;
-  const root=panel('trade-preferences','Trade limits','Applied to quote review and checked again before submission on this device. The network cap covers the prepared transaction fee estimate; account rent and trade spending are additional. The wallet shows final costs.');
+  const explanation='Applied to quote review and checked again before submission on this device. The network cap covers the prepared transaction fee estimate; account rent and trade spending are additional. The wallet shows final costs.';
+  const root=panel('trade-preferences','Trade limits','Limits apply on this device and are checked before signing.');
   const form=el('form'),prefs=readTradePreferences(),slippage=el('input'),network=el('input');slippage.type='number';slippage.min='.1';slippage.max='10';slippage.step='.1';slippage.required=true;slippage.value=prefs.slippageCap;network.inputMode='decimal';network.value=prefs.maximumNetworkSol;network.maxLength=12;
-  const a=el('label','Maximum slippage (%)'),b=el('label','Maximum estimated network fee (SOL; blank disables)');a.append(slippage);b.append(network);const status=el('p');status.setAttribute('role','status');
-  form.append(a,b,button('Save trade limits',()=>{
+  const a=el('label','Maximum slippage (%)'),b=el('label','Estimated network fee cap (SOL)');a.append(slippage);b.append(network);const status=el('p');status.setAttribute('role','status');
+  const fields=el('div',null,'settings-field-grid');fields.append(a,b);
+  const help=el('details',null,'settings-help');help.append(el('summary','How trade limits work'),el('p',explanation),el('p','Transactions use the configured Pump route. Protected routing is unavailable here; no MEV protection guarantee is made.'));
+  form.append(fields,el('p','Leave the fee cap blank to turn it off. Trade spending and account rent are separate.','field-help'),button('Save trade limits',()=>{
     if(!form.reportValidity())return;
     const input={slippageCap:Number(slippage.value),maximumNetworkSol:network.value.trim()},next=normalizeTradePreferences(input);
     if(next.maximumNetworkSol!==input.maximumNetworkSol){status.textContent='Enter a positive SOL fee limit below 100 with up to nine decimals, or leave blank.';return;}
     try{localStorage.setItem(KEY,JSON.stringify(next));app.invalidateTradePreview();document.querySelector('#trade-review-dialog')?.close();status.textContent='Limits saved. Any open quote must be reviewed again.';}catch{status.textContent='Limits could not be saved. Check browser storage.';}
-  }),el('p','Transactions use the configured Pump route. Protected routing is unavailable here; no MEV protection guarantee is made.'),status);form.addEventListener('submit',event=>event.preventDefault());root.append(form);parent.append(root);
+  }),help,status);form.addEventListener('submit',event=>event.preventDefault());root.append(form);parent.append(root);
 }

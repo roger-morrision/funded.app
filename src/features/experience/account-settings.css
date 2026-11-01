@@ -1,0 +1,29 @@
+/* Expanded settings share one surface and keep native labels and controls. */
+html body.product-experience-style #main-content #profile .settings-disclosure { container-type: inline-size; container-name: account-setting; }
+html body.product-experience-style #main-content #profile .settings-disclosure > .flow-panel { margin: 0; padding: 16px; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; background: var(--panel); }
+html body.product-experience-style #profile .settings-disclosure :is(form,fieldset,section) { min-width: 0; }
+html body.product-experience-style #profile .settings-disclosure fieldset { margin: 0; padding: 0; border: 0; }
+html body.product-experience-style #profile .settings-disclosure legend { margin-bottom: 6px; padding: 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+html body.product-experience-style #profile .settings-option-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px 12px; }
+html body.product-experience-style #profile .settings-disclosure label:has(> input[type="checkbox"]) { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; min-height: 44px; margin: 0; text-align: left; }
+html body.product-experience-style #profile .settings-disclosure input[type="checkbox"] { flex: none; width: 18px; min-width: 18px; height: 18px; min-height: 18px; margin: 0; accent-color: var(--yellow,#ffbe68); }
+html body.product-experience-style #profile .settings-field-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
+html body.product-experience-style #profile .settings-hour-range { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+html body.product-experience-style #profile .settings-hour-range > label { display: flex; flex-direction: column; justify-content: space-between; }
+html body.product-experience-style #profile .settings-quiet-hours > small { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+html body.product-experience-style #profile .settings-disclosure :is(input:not([type="checkbox"]),select,textarea) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; margin-top: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg,#0b1020); color: var(--text); }
+html body.product-experience-style #profile .settings-disclosure :is(button,summary) { min-height: 44px; }
+html body.product-experience-style #profile .settings-disclosure form > button { justify-self: start; }
+html body.product-experience-style #profile .settings-disclosure [role="status"]:empty { margin: 0; }
+html body.product-experience-style #profile .settings-help { margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; }
+html body.product-experience-style #profile .settings-help > summary { box-sizing: border-box; padding: 12px; font-size: 13px; cursor: pointer; }
+html body.product-experience-style #profile .settings-help > p { margin: 0; padding: 0 12px 12px; color: var(--muted); font-size: 12px; }
+html body.product-experience-style #profile .settings-transfer-section h3 { margin: 0 0 8px; font-size: 15px; }
+html body.product-experience-style #profile .settings-transfer-section + .settings-transfer-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+html body.product-experience-style #profile .settings-transfer-section > p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+html body.product-experience-style #profile .settings-transfer-section > label { margin-top: 12px; }
+html body.product-experience-style #profile .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+html body.product-experience-style #profile .settings-actions > button { margin: 0; }
+html body.product-experience-style #profile #preference-transfer-data { font-family: var(--ui-font-mono,monospace); font-size: 13px; line-height: 1.6; resize: vertical; }
+@container account-setting (min-width: 440px) { html body.product-experience-style #profile .settings-field-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 700px) { html body.product-experience-style #profile .settings-disclosure :is(input:not([type="checkbox"]),select,textarea) { font-size: 16px; } }

@@ -1,4 +1,5 @@
 import { disclose } from '../workspace/dom.js';
+import './account-settings.css';
 
 export function mountSettingsDisclosures() {
   for (const [id,label] of [['issue-reports','Report a problem'],['notification-preferences','Notification preferences'],['trade-preferences','Trade limits'],['preference-transfer','Import, export & sync']]) {

@@ -3,7 +3,7 @@ import { readReminders } from './creator-activity.js';
 import { el, panel, button, array } from './view-utils.js';
 export function initializePreferenceTransfer(app){
   const parent=document.querySelector('#profile');if(!parent)return;
-  const root=panel('preference-transfer','Keep your follows and reminders','Guest progress stays on this device. Export or review an explicit merge. Optional account sync uses your verified X session and never starts automatically. Wallets remain separate from X identity.');
+  const root=panel('preference-transfer','Keep your follows and reminders','Back up follows and reminders, or review an import before applying it.');
   const text=el('textarea');text.rows=5;text.maxLength=100000;text.setAttribute('aria-label','Preference import or export JSON');
   const status=el('p');status.setAttribute('role','status');let prepared=null,owner=null;
   const read=()=>validatePreferenceTransfer({version:1,wallets:app.getFollowedWallets(),creators:array(JSON.parse(localStorage.getItem('funded.creator.following')||'[]')),reminders:readReminders()});
@@ -22,5 +22,13 @@ export function initializePreferenceTransfer(app){
       if(!response.available||response.data?.saved!==true)throw new Error('Save could not be verified. Check the account before retrying.');status.textContent=`Preferences saved to @${current.user.username}. Nothing is imported automatically.`;
     }catch(error){status.textContent=error.message;}}),status);parent.append(root);
   text.addEventListener('input',()=>{prepared=null;apply.disabled=true;});
+  const [exportButton,reviewButton,,loadButton,saveButton]=root.querySelectorAll(':scope > button');
+  exportButton.textContent='Export preferences';reviewButton.textContent='Review import';loadButton.textContent='Load from X account';saveButton.textContent='Save to X account';
+  text.id='preference-transfer-data';text.setAttribute('aria-label','Follows & reminders data (Preference import or export JSON)');const dataLabel=el('label','Follows & reminders data');dataLabel.htmlFor=text.id;
+  const device=el('section',null,'settings-transfer-section'),deviceHeading=el('h3','On this device');deviceHeading.id='settings-device-backup';device.setAttribute('aria-labelledby',deviceHeading.id);
+  const actions=el('div',null,'settings-actions');actions.append(reviewButton,apply);device.append(deviceHeading,exportButton,dataLabel,text,actions);
+  const sync=el('section',null,'settings-transfer-section'),syncHeading=el('h3','X account sync');syncHeading.id='settings-account-sync';sync.setAttribute('aria-labelledby',syncHeading.id);
+  const accountActions=el('div',null,'settings-actions');accountActions.append(loadButton,saveButton);sync.append(syncHeading,el('p','Uses your signed-in X account. Wallets stay separate; nothing syncs automatically.'),accountActions);
+  status.before(device,sync);
   window.addEventListener('funded:reward-identity-change',()=>{if(owner){prepared=null;owner=null;apply.disabled=true;status.textContent='Identity changed. Review the import again.';}});
 }
