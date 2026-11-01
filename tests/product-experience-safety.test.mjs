@@ -126,6 +126,12 @@ test('preference merges are explicit, bounded, public-field only and reject arbi
   const one={version:1,wallets:[{address:wallet,roles:['creator'],secret:'excluded'}],creators:['123'],reminders:[]},two={version:1,wallets:[{address:other,roles:[]}],creators:['123','456'],reminders:[]};
   const clean=validatePreferenceTransfer(one);assert.equal(clean.wallets[0].secret,undefined);assert.equal(mergePreferences(clean,two).wallets.length,2);assert.equal(mergePreferences(clean,two).creators.length,2);assert.throws(()=>validatePreferenceTransfer({...one,privateKey:'x'}));assert.throws(()=>validatePreferenceTransfer({...one,reminders:[{id:'x',at:now,href:'https://evil.example'}]}));
 });
+test('preference merging preserves existing wallet roles without changing either input',()=>{
+  const current={version:1,wallets:[{address:wallet,roles:['creator']}],creators:[],reminders:[]},incoming={version:1,wallets:[{address:wallet,roles:['trader']}],creators:[],reminders:[]};
+  assert.deepEqual(mergePreferences(current,incoming).wallets,[{address:wallet,roles:['creator','trader']}]);
+  assert.deepEqual(current.wallets[0].roles,['creator']);assert.deepEqual(incoming.wallets[0].roles,['trader']);
+});
+
 test('reserve facts require mint, cluster and verification and keep base units exact',()=>{
   const row={mint,verified:true,totalBaseUnits:'9007199254740993000',claimedBaseUnits:'1',remainingBaseUnits:'9007199254740992999'};
   assert.equal(reserveFacts({cluster:'devnet',reserves:[row]},mint).remainingBaseUnits,row.remainingBaseUnits);assert.equal(reserveFacts({cluster:'mainnet-beta',reserves:[row]},mint),null);assert.equal(reserveFacts({cluster:'devnet',reserves:[{...row,verified:false}]},mint),null);

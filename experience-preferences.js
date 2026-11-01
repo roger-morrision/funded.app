@@ -8,5 +8,10 @@ export function validatePreferenceTransfer(value){
     creators:[...new Set(value.creators)],reminders:[...new Map(value.reminders.map(({id,at,label,href})=>[id,{id,at,label,href}])).values()]};
 }
 export function mergePreferences(current,incoming){
-  return validatePreferenceTransfer({version:1,wallets:[...new Map([...current.wallets,...incoming.wallets].map(row=>[row.address,row])).values()],creators:[...new Set([...current.creators,...incoming.creators])],reminders:[...new Map([...current.reminders,...incoming.reminders].map(row=>[row.id,row])).values()]});
+  const wallets=new Map();
+  for(const row of [...current.wallets,...incoming.wallets]){
+    const roles=[...new Set([...(wallets.get(row.address)?.roles||[]),...row.roles])];
+    wallets.set(row.address,{address:row.address,roles});
+  }
+  return validatePreferenceTransfer({version:1,wallets:[...wallets.values()],creators:[...new Set([...current.creators,...incoming.creators])],reminders:[...new Map([...current.reminders,...incoming.reminders].map(row=>[row.id,row])).values()]});
 }
