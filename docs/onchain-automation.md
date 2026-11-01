@@ -13,3 +13,5 @@ The old Devnet app records and their October 31 backup archive were permanently 
 Server financial requests using the shared RPC connection share an HTTP pool and a 500 ms request budget, with historical block reads paced separately at 2.5 seconds. Only a tagged collection-readiness failure proven to precede transaction construction is automatically retryable. Signed or uncertain payouts retain their existing reconciliation guard. Receipt-only recovery verifies the exact finalized transaction, policy, withdrawal receipt, vault debit and recipient credit without resubmitting payment.
 
 The November 1 [deployment and acceptance report](devnet-automation-release-2026-11-01.md) records the finalized program, exact service release, real payment proofs, restored standard policies and remaining live acceptance limits.
+
+The subsequent [shared RPC gateway release](rpc-gateway.md) centralizes provider connections, read deduplication, atomic account batches and confirmation polling across the deployed app and workers. In gateway mode, the shared connection delegates pacing to that service so concurrent account reads can join one batch.

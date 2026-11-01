@@ -1,5 +1,7 @@
 # Devnet automation deployment and acceptance
 
+The subsequent [RPC gateway release](rpc-gateway.md) supersedes this report's service-image revision while retaining the same finalized program and financial policies. The results below describe the earlier bounded financial acceptance run.
+
 Deployment is complete. Full unattended end-to-end acceptance remains incomplete because of RPC capacity and unexercised eligibility/milestone conditions. This report distinguishes direct contract tests from deployed worker/API evidence.
 
 ## Deployed artifacts

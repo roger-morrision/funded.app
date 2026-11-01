@@ -12,7 +12,7 @@ const image=`fundedapp-devnet:rpc-${sha.slice(0,8)}`,[built]=JSON.parse(docker([
 assert.equal(built.Config.Labels['org.opencontainers.image.revision'],sha);
 const [current]=JSON.parse(docker(['inspect','fundedapp-app-1']));
 const files=current.Config.Labels['com.docker.compose.project.config_files'].split(',');
-const rendered=docker(['compose','--project-name','fundedapp',...files.flatMap(file=>['-f',file]),'config','--format','json']);
+const rendered=docker(['compose','--project-name','fundedapp','--profile','*',...files.flatMap(file=>['-f',file]),'config','--format','json']);
 const base=JSON.parse(rendered),deployment=JSON.parse(await readFile('tmp/automation-release/deployed-program.json','utf8'));
 assert.equal(deployment.status,'finalized-exact-binary');
 for(const name of ['app','fee-collector','buyback-worker','agency-buyback-worker']){

@@ -14,4 +14,18 @@ Use `compose.rpc-gateway.yml` after the normal app/collector/agency overlays, or
 
 Local tools can use `http://127.0.0.1:8899` and `ws://127.0.0.1:8900`; both host ports bind only to loopback. Provider credentials remain inside the gateway. Metrics at `/metrics` expose request, upstream, cache, coalescing, atomic-batch, queue and cooldown counts without addresses, signed transactions or credentials. Request-count savings do not by themselves measure a provider's billed credits.
 
-Live deployment and measured verification are recorded below after activation.
+## November 1 live deployment
+
+All five services run `fundedapp-devnet:rpc-da8862eb`, source `da8862eb7ea4f5c84c62af0da3d834b40c6b042c`, image identity `sha256:dbe9e3aea1d83c333777e231b97c7e10cd95af8f9f02bc5b43afa93d4010d0e0`. The isolated release branch is `codex/rpc-gateway-20261101`. The preserved frontend is `c6157636334c868251cbfcc3ea146fc6f71c0929`, which changes only the connection controller from the previously served frontend revision. Its read-only artifact mount and public entry scripts were verified.
+
+The app, collector and both buyback workers use `http://rpc-gateway:8899`; their provider secret mounts were removed. The gateway has no signing keys. The app, collector and gateway Docker health checks are healthy; the two buyback workers have running processes without Docker health checks. The agency buyback heartbeat reported `ready` at 02:06:52 UTC, and the public status endpoint reported `operational` at the subsequent check. Financial gates, standard reward schedules and the pinned program hash remain unchanged.
+
+A controlled real Devnet test sent 20 logical account reads for two addresses. The gateway made one upstream atomic account request, coalesced 18 duplicate reads, and returned every result at finalized slot 517338560. A separate finalized read verified full ProgramData SHA-256 `f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca` before the clients switched. This is measured request reduction, rather than a claim about billed Helius credits.
+
+One memo-only Devnet transaction, `5ped18mLzF3YVBzZcfL2W5LyxLgSfzM513UdpbUXqGPQHaD2rKVszct1ZbXxem5BEmqpDZb764thRT9aEjGVxSbV`, finalized at slot 517339032. Its exact memo and 5,000-lamport fee matched the receipt. Internal SDK confirmation and the public `wss://funded.vip/api/solana/ws` notification both passed. Exactly one transaction was submitted; no token transfer or provider WebSocket was used.
+
+At 02:06:58 UTC the gateway counters recorded 343 logical requests, 170 upstream requests, 57 cache hits, 20 coalesced reads and 96 account-batch savings, with no upstream transport failures or queue rejections. Two jobs were still queued, so these cumulative counters are a live snapshot rather than a completed billing-period comparison. The startup provider limit produced one shared cooldown and subsequently recovered.
+
+Deployment tools using `.env.deploy` or `scripts/with-automation-rpc.mjs` now use the loopback gateway. The separate provider file retains the real HTTPS upstream URL, preventing a gateway-to-itself loop. The current gateway uses the selected public Devnet RPC; a working Helius URL can replace it in the same provider file.
+
+All 39 focused gateway, WebSocket, browser-proxy and existing transport/rate-limit regression tests passed. Actual operational evidence is retained in ignored `tmp/rpc-gateway-release/`, including pre-switch request counts, program proof, transaction receipt and final service checks. Compose files in that folder contain private configuration and must not be published. The public all-collections settlement-status re-verification was still asynchronous/pending; this task did not repeat the earlier full financial acceptance campaign.
