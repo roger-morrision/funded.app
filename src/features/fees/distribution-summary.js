@@ -15,7 +15,7 @@ export function approvedFeePresentation() {
 
 export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
   const rows=[
-    ['creator',fee.creatorPercent,'Creator-directed','Keep your share or distribute it to eligible coin holders and a named X account.'],
+    ['creator',fee.creatorPercent,'Creator, community & X account','Keep your share or distribute it to eligible coin holders and a named X account.'],
     ['operations',fee.operationsEffectivePercent,'Operations & marketing','The app allocation funds platform operations and marketing.'],
     ['referrals',fee.appReferralEffectivePercent,'Referral network','Reward qualified creator referrals across the saved three-level network.'],
     ['community',fee.communityEffectivePercent,'Daily bonus','Top traders, creators and referrers share this pool: top 3 per category, with equal category budgets.'],
