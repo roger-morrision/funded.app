@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import {isDeletedDevnetMint} from '../deleted-devnet-mints.mjs';
 import bs58 from 'bs58';
 import { Connection, PublicKey, TransactionInstruction, VersionedTransaction } from '@solana/web3.js';
 import { deriveMintVaultsV3 } from '../../mint-router-v3.js';
@@ -49,6 +50,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     let mint;
     try{mint=new PublicKey(decodeURIComponent(match[1])).toBase58();}
     catch{return json(res,400,{error:'A valid V3 source mint is required.'});}
+    if(isDeletedDevnetMint(mint))return json(res,410,{error:'This old Devnet launch was permanently removed from the app.'});
     const requestedSource=decodeURIComponent(match[2]);
     const aggregate=requestedSource==='aggregate';
     if(aggregate&&env.FUNDED_V3_BUYBACK_AGGREGATION_ENABLED!=='true')

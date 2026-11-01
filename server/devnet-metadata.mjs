@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
+import {isDeletedDevnetMint} from './deleted-devnet-mints.mjs';
 import { devnetImageUri, devnetBannerUri, metadataStatement, LEGACY_DEVNET_METADATA_ORIGIN, normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
 import { canonicalLaunchSocialUrl } from '../launch-social-url.js';
 
@@ -21,6 +22,7 @@ function imageMime(bytes, declared) {
 
 export function parseSignedMetadata(input) {
   const mint = new PublicKey(String(input.mint || '')).toBase58();
+  if(isDeletedDevnetMint(mint))throw new Error('This old Devnet launch was permanently removed from the app.');
   const creatorWallet = new PublicKey(String(input.creatorWallet || '')).toBase58();
   const name = text(input.name, 32, 'Token name');
   const symbol = text(input.symbol, 10, 'Ticker');

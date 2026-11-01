@@ -4,6 +4,7 @@ import { deriveMintPolicyV3, deriveMintVaultsV3,
 import { v3BuybackSourceSpent, verifiedV3BuybackOrder } from './v3-buyback-orders.mjs';
 import { latestUnindexedV3Burn } from './v3-buyback-chain-history.mjs';
 import { STANDARD_BUYBACK_TRIGGER_LAMPORTS } from './devnet-qa-minimums.mjs';
+import {isDeletedDevnetMint} from './deleted-devnet-mints.mjs';
 
 export const BUYBACK_TRIGGER_LAMPORTS = STANDARD_BUYBACK_TRIGGER_LAMPORTS;
 
@@ -25,7 +26,7 @@ export async function readUnindexedV3BuybackVaults({ connection, programId, inde
     if (data.length !== 249 || !data.subarray(0, 8).equals(POLICY_DISCRIMINATOR)) continue;
     const mint = new PublicKey(data.subarray(8, 40));
     const derived = deriveMintPolicyV3(programId, mint);
-    if (indexedMints.has(mint.toBase58()) || !pubkey.equals(derived.address)
+    if (isDeletedDevnetMint(mint.toBase58()) || indexedMints.has(mint.toBase58()) || !pubkey.equals(derived.address)
       || data[248] !== derived.bump) continue;
     const rates = Array.from({ length:6 }, (_, index) => data.readUInt32LE(104 + index * 4));
     const paid = Array.from({ length:7 }, (_, index) => data.readBigUInt64LE(136 + index * 8));

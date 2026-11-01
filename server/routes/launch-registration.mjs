@@ -19,6 +19,7 @@ import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { verifyFeeRouterAccount } from '../../fee-router.js';
 import { createV3LaunchConfig } from '../v3-launch-config.mjs';
 import nacl from 'tweetnacl';
+import {isDeletedDevnetMint} from '../deleted-devnet-mints.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -64,6 +65,7 @@ export function createLaunchRegistrationRoutes({
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
+      if(isDeletedDevnetMint(input.mint,solanaCluster))return json(res,410,{error:'This old Devnet launch was permanently removed from the app.'});
       if (input.marketingAgency != null&&env.FUNDED_V3_AGENCY_ENABLED!=='true') return json(res, 409, { error: 'Agency-enabled launches require verified dedicated V3 agency accounting. The agency fee policy is not activated.' });
       const policy = validateInput(() => canonicalLaunchPolicy(input));
       const existingLaunch = await store.readLaunch(policy.mint);
