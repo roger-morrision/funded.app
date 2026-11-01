@@ -33,7 +33,7 @@ html body.page-route-overview .main-content > .home-daily-bonuses { order: 5; di
 .bonus-wallet-list { list-style: none; margin: 0; padding: 0; }
 .bonus-wallet-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #30354b; font-size: 12px; }
 .bonus-wallet-list li span { text-align: right; font-variant-numeric: tabular-nums; }
-.bonus-history-page :is(button, select) { min-height: 42px; padding: 8px 12px; border: 1px solid #42475f; border-radius: 7px; background: #171a2f; color: #edf2fb; cursor: pointer; }
+.bonus-history-page :is(button, select) { min-height: 44px; padding: 8px 12px; border: 1px solid #42475f; border-radius: 7px; background: #171a2f; color: #edf2fb; cursor: pointer; }
 .bonus-history-page button:disabled { opacity: .45; cursor: default; }
 .bonus-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin: 18px 0 26px; }
 .bonus-history-page .field-help, .home-daily-bonuses .field-help { color: #acb8cf; line-height: 1.6; }
