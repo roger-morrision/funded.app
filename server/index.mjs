@@ -42,6 +42,7 @@ import {installRewardShutdown} from './reward-shutdown.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 
 import { createCommunityClaimService } from './community-claim-service.mjs';
+import { SharedRpcConnection } from './rpc-connection.mjs';
 import { communityProgramForLaunch } from './community-program-config.mjs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -122,7 +123,7 @@ const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.F
 async function communityClaimService(mint) {
   if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
   const config = communityProgramForLaunch(await store.readLaunch(mint), process.env, v3AuthorityKeypair);
-  return createCommunityClaimService({ connection:new Connection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
+  return createCommunityClaimService({ connection:new SharedRpcConnection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
     programId:config.programId, authority:config.authority,
     eligibilityMint:fundedTokenMint, cluster:solanaCluster,
     expectedCommunityProgramDataSha256:config.expectedHash,

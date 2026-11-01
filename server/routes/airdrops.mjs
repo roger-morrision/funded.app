@@ -1,4 +1,5 @@
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { SharedRpcConnection as Connection } from '../rpc-connection.mjs';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { mapBounded } from '../bounded-map.mjs';
 import { readCommunityReserveStatus, verifiedCommunityClaimedWalletCount } from '../community-reserve-status.mjs';
@@ -135,7 +136,11 @@ export function createAirdropsRoutes({
           snapshotHash:record.manifest.snapshotHash, migrationSlot:record.snapshot.slot,
           snapshotBasis:record.snapshotBasis, recipients:record.manifest.leaves.length,
           totalAmount:record.manifest.totalAmount, status:'prepared' });
-      } catch { return json(res, 422, { error:'Community claim preparation failed. Check the launch and migration evidence.' }); }
+      } catch (error) {
+        console.warn(JSON.stringify({event:'community_claim_preparation_failed',mint,
+          reason:String(error?.message || error).replace(/https?:\/\/[^\s"']+/g,'[redacted-url]').slice(0,400)}));
+        return json(res, 422, { error:'Community claim preparation failed. Check the launch and migration evidence.' });
+      }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/opening-instruction') {
       const input = await body(req);
