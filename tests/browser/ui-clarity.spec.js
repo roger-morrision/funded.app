@@ -13,11 +13,9 @@ for(const width of [390,1440]){
     await setup(page,width);
     await page.goto('/#overview');await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
     await expect(page.locator('.home-launch-board')).toBeVisible();
-    await page.goto('/#my-launches');await expect(page.locator('#launch-control-room')).toBeVisible();
-    const layout=await page.evaluate(()=>{const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width};};return {heading:rect('#my-launches h1'),drafts:rect('#launch-control-room'),recovery:rect('#recovery-inbox'),overflow:document.documentElement.scrollWidth>innerWidth+1};});
-    expect(layout.heading.y).toBeLessThan(layout.drafts.y);expect(layout.heading.y).toBeLessThan(layout.recovery.y);expect(layout.overflow).toBe(false);
-    if(width>700){expect(Math.abs(layout.drafts.y-layout.recovery.y)).toBeLessThan(2);expect(Math.abs(layout.recovery.x-layout.drafts.x)).toBeGreaterThan(100);}
-    else expect(Math.abs(layout.recovery.y-layout.drafts.y)).toBeGreaterThan(100);
+    await page.goto('/#my-launches');await expect(page.locator('#launch-control-room')).toHaveCount(0);await expect(page.locator('#recovery-inbox')).toBeVisible();
+    const layout=await page.evaluate(()=>{const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width};};return {heading:rect('#my-launches h1'),tools:rect('.portfolio-tools'),recovery:rect('#recovery-inbox'),overflow:document.documentElement.scrollWidth>innerWidth+1};});
+    expect(layout.heading.y).toBeLessThan(layout.recovery.y);expect(layout.overflow).toBe(false);expect(Math.abs(layout.tools.width-layout.recovery.width)).toBeLessThan(2);
   });
   test(`rewards distinguishes loading, anonymous actions and unavailable records at ${width}px (mocked)`,async({page})=>{
     await setup(page,width);let release;const held=new Promise(resolve=>{release=resolve;});

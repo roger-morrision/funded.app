@@ -35,7 +35,7 @@ export function initializeRecoveryInbox(app) {
         finally { control.disabled = false; }
       }));
       else if (address(item.mint)) row.append(link('Inspect coin and registration',`/token/${item.mint}`));
-      else row.append(link('Return to launch draft','#launch'));
+      else row.append(link('Open launch form','#launch'));
       list.append(row);
     }
   }

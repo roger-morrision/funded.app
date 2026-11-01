@@ -252,7 +252,7 @@ html body.product-experience-style #main-content :is(.ui-tabs,.portfolio-view-ta
 }
 html body.product-experience-style #main-content :is(.flow-panel h2,.flow-panel h3) { color: var(--text); }
 html body.product-experience-style #main-content .flow-panel { scroll-margin-top: 96px; }
-html body.product-experience-style #main-content .portfolio-tools { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-block: 24px; }
+html body.product-experience-style #main-content .portfolio-tools { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; margin-block: 24px; }
 html body.product-experience-style #main-content .portfolio-tools > .flow-panel { margin: 0; }
 html body.product-experience-style #main-content .flow-panel.is-empty { padding-block: 16px; }
 html body.product-experience-style #main-content .flow-panel.is-empty h2 { font-size: 18px !important; }

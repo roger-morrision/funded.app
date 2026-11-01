@@ -10,7 +10,7 @@ import { initializeOperationsView } from './operations-view.js';
 import { initializeIssuesView } from './issues-view.js';
 import { initializeActivityUpdates } from './activity-updates.js';
 import { initializeNotificationPreferences } from './notification-preferences.js';
-import { initializeLaunchPlans } from './launch-plans.js';
+import { initializeLaunchTerms } from './launch-terms.js';
 import { initializeTradePreferences } from './trade-preferences.js';
 import { initializePreferenceTransfer } from './preference-transfer.js';
 import { initializeCreatorWalletFacts } from './creator-wallet-facts.js';
@@ -33,7 +33,7 @@ export function initializeProductFlows(app) {
     initializeIssuesView(app);
     initializeActivityUpdates(app);
     initializeNotificationPreferences();
-    initializeLaunchPlans(app);
+    initializeLaunchTerms();
     initializeTradePreferences(app);
     initializePreferenceTransfer(app);
     initializeCreatorWalletFacts(app);

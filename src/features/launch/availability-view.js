@@ -32,7 +32,7 @@ export function updateLaunchAvailabilityView(appState, document = globalThis.doc
       ? ['verified', 'Launch service verified', 'Your wallet, quote and final launch checks are still required.']
       : checking
         ? ['checking', 'Checking launch service', 'You can prepare token details while this check runs.']
-        : ['unavailable', 'Submission unavailable', 'You can keep preparing your draft. Launch service verification has not passed.'];
+        : ['unavailable', 'Submission unavailable', 'You can review token details while launch service verification is pending.'];
     row.dataset.state = presentation[0];
     if (label.textContent !== presentation[1]) label.textContent = presentation[1];
     if (guidance.textContent !== presentation[2]) guidance.textContent = presentation[2];

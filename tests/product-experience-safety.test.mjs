@@ -13,7 +13,6 @@ import { notificationAllowed,normalizeNotifications } from '../src/features/expe
 import { assertTradeLimits,normalizeTradePreferences,readTradePreferences } from '../src/features/experience/trade-preferences.js';
 import { createTradeExecutionController } from '../src/app/controllers/trade-execution.js';
 import { createAdminRoutes } from '../server/routes/admin.mjs';
-import { validateLaunchPlan } from '../src/features/experience/launch-plans.js';
 import { validatePreferenceTransfer,mergePreferences } from '../experience-preferences.js';
 import { reserveFacts } from '../src/features/experience/reserve-facts.js';
 import { typedSearch,candidateHref } from '../src/features/experience/search-model.js';
@@ -122,10 +121,6 @@ test('quiet hours cross midnight and amount thresholds use exact lamports',()=>{
 test('saved trade limits fail closed for excessive slippage, fee and unavailable fees',()=>{
   const prefs=normalizeTradePreferences({slippageCap:1,maximumNetworkSol:'0.000005'});
   assert.throws(()=>assertTradeLimits({slippagePercent:2},prefs));assert.throws(()=>assertTradeLimits({slippagePercent:1},prefs,{checkNetwork:true}));assert.throws(()=>assertTradeLimits({slippagePercent:1,networkFeeLamports:'5001'},prefs,{checkNetwork:true}));assert.doesNotThrow(()=>assertTradeLimits({slippagePercent:1,networkFeeLamports:'5000'},prefs,{checkNetwork:true}));
-});
-test('launch planning saves only allowed public draft fields and never a signer',()=>{
-  const value=validateLaunchPlan({at:now+60000,draft:{'token-name':'Plan','token-symbol':'PLAN',privateKey:'must not persist'}},now);assert.equal(value.draft.privateKey,undefined);assert.equal(value.at,now+60000);
-  for(const at of [NaN,now,now+91*86400000])assert.throws(()=>validateLaunchPlan({at,draft:{'token-name':'A','token-symbol':'A'}},now));
 });
 test('preference merges are explicit, bounded, public-field only and reject arbitrary keys',()=>{
   const one={version:1,wallets:[{address:wallet,roles:['creator'],secret:'excluded'}],creators:['123'],reminders:[]},two={version:1,wallets:[{address:other,roles:[]}],creators:['123','456'],reminders:[]};

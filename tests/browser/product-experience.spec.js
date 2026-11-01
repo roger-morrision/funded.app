@@ -3,7 +3,7 @@ import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B',wallet='So11111111111111111111111111111111111111112',sig='4'.repeat(64);
 async function setup(page,width){
   await page.setViewportSize({width,height:900});await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
-  await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Mocked offline'}}));
+  await page.route('https://**/*',route=>process.env.BUILT_BASE&&new URL(route.request().url()).origin===new URL(process.env.BUILT_BASE).origin?route.fallback():route.abort());await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Mocked offline'}}));
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/launches',route=>route.fulfill({json:[{mint,creatorWallet:wallet,onchainVerified:true,cluster:'devnet',name:'Recorded fixture',symbol:'REC',createdAt:'2026-10-01T00:00:00Z'}]}));
   await page.route('**/api/rewards/experience**',route=>route.fulfill({json:{cluster:'devnet',evidence:{status:'recorded-finalized-v3'},events:[],tokens:[]}}));
@@ -23,13 +23,21 @@ for(const width of [390,1440]){
     const report=page.locator('#issue-reports');await report.getByLabel('Describe what happened').fill('The form was unavailable during testing');await report.getByRole('button',{name:'Review report',exact:true}).click();await expect(report.locator('pre')).toContainText('The form was unavailable');await expect(report.getByRole('button',{name:'Send reviewed report'})).toBeDisabled();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);expect(errors).toEqual([]);
   });
-  test(`launch control room requires a return and signature at ${width}px`,async({page})=>{
+  test(`launch form omits planning and saved-draft controls at ${width}px`,async({page},info)=>{
+    await page.addInitScript(()=>{
+      const key='funded.launch-plans.v1';localStorage.setItem(key,JSON.stringify([{id:'11111111-1111-4111-8111-111111111111',at:Date.now()+60000,draft:{'token-name':'Old planned token','token-symbol':'OLD'}}]));
+      window.removedDraftReads=0;const read=Storage.prototype.getItem;Storage.prototype.getItem=function(name){if(name===key)window.removedDraftReads++;return read.call(this,name);};
+    });
     await setup(page,width);const writes=[];page.on('request',req=>{if(req.method()==='POST'){if(req.url().includes('/api/solana/rpc')){const body=req.postDataJSON();for(const row of Array.isArray(body)?body:[body])expect(row.method).toMatch(/^get/);}else writes.push(req.url());}});await ready(page,'/#launch');await expect(page.locator('#personal-activity-feed')).not.toBeVisible();
-    await page.locator('#token-name').fill('Planned fixture');await page.locator('#token-symbol').fill('PLAN');const date=new Date(Date.now()+600000),local=new Date(date-date.getTimezoneOffset()*60000).toISOString().slice(0,16);
-    await page.locator('#launch-planner input').fill(local);await page.locator('#launch-planner').getByRole('button',{name:'Save planned draft'}).click();await expect(page.locator('#launch-planner')).toContainText('no launch was submitted');
-    await page.goto('/#my-launches');await expect(page.locator('#launch-control-room')).toContainText('Planned fixture');await expect(page.locator('#launch-control-room')).toContainText('Planned return');
-    page.once('dialog',dialog=>dialog.accept());await page.locator('#launch-control-room').getByRole('button',{name:'Resume draft'}).click();await expect(page.locator('#token-name')).toHaveValue('Planned fixture');await expect(page).toHaveURL(/#launch$/);expect(writes.filter(url=>!url.includes('/api/product/'))).toEqual([]);
+    await expect(page.locator('#launch-planner,#launch-control-room')).toHaveCount(0);await expect(page.locator('#launch-form input[type="datetime-local"]')).toHaveCount(0);
+    await expect(page.locator('#token-name')).toHaveValue('');await page.locator('#token-name').fill('Clean launch');await page.locator('#token-symbol').fill('CLEAN');await page.locator('#launch-next').click();
+    const terms=page.locator('#launch-final-terms');await expect(terms).toBeVisible();await terms.locator('summary').click();await expect(terms).toContainText('Clean launch ($CLEAN)');await expect(terms).toContainText('ranked daily bonus windows');
+    await expect(page.locator('#launch-agency-options .agency-included-badge')).toHaveCount(3);await expect(page.locator('#launch-button')).toBeDisabled();
+    await page.evaluate(()=>{location.hash='my-launches';});await expect(page.locator('#my-launches')).toBeVisible();await expect(page.locator('#launch-control-room')).toHaveCount(0);
+    await expect(page.getByRole('button',{name:/Save planned draft|Resume draft|Delete plan/})).toHaveCount(0);await expect(page.locator('.portfolio-tools')).toHaveAttribute('aria-label','Transaction recovery');
+    expect(await page.evaluate(()=>window.removedDraftReads)).toBe(0);expect(writes.filter(url=>!url.includes('/api/product/'))).toEqual([]);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
+    await page.screenshot({path:info.outputPath(`portfolio-without-drafts-${width}.png`),fullPage:true});
   });
   test(`exact receipt links preserve evidence and unknown costs at ${width}px`,async({page})=>{
     await setup(page,width);await page.route(`**/api/financial/receipts/${sig}**`,route=>route.fulfill({json:{cluster:'devnet',signature:sig,evidence:'recorded-finalized-v3',currentRpcRecheck:false,events:[{mint,kind:'holder-paid',label:'Holder reward paid',amountLamports:'15',at:null}],recipients:[{wallet,amountLamports:'15',kind:'holder-paid'}],burns:[],sourceSignatures:[],coverage:'Recorded fixture only'}}));

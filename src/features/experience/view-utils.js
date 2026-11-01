@@ -30,6 +30,6 @@ export function panel(id, title, text) {
 }
 export function portfolioTools(parent) {
   let tools=parent.querySelector(':scope > .portfolio-tools');
-  if(!tools){tools=el('div',null,'portfolio-tools');tools.setAttribute('role','group');tools.setAttribute('aria-label','Saved drafts and transaction recovery');parent.append(tools);}
+  if(!tools){tools=el('div',null,'portfolio-tools');tools.setAttribute('role','group');tools.setAttribute('aria-label','Transaction recovery');parent.append(tools);}
   return tools;
 }
