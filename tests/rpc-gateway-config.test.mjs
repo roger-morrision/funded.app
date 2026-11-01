@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyRpcGatewayConfig} from '../server/rpc-gateway-config.mjs';
+import {applyRpcGatewayConfig,applyRpcGatewayRedisConfig} from '../server/rpc-gateway-config.mjs';
 import {createSolanaRpcProxy} from '../server/rpc-proxy.mjs';
 const revision='a'.repeat(40);
 test('only the gateway receives the provider secret and existing financial policies remain unchanged',()=>{
@@ -22,6 +22,24 @@ test('only the gateway receives the provider secret and existing financial polic
   assert.equal(gateway.user,'node');assert.equal(gateway.read_only,true);assert.equal(gateway.environment.SOLANA_RPC_URL,undefined);
   assert.deepEqual(gateway.ports.map(row=>row.target),[8899,8900]);assert(gateway.ports.every(row=>row.host_ip==='127.0.0.1'));
   assert(!JSON.stringify(result.services.app).includes('private.invalid'));
+});
+
+test('Redis deployment changes only the gateway and persists an isolated bounded cache',()=>{
+  const input={services:{app:{image:'preserved',environment:{financialPolicy:'unchanged'}},
+    'rpc-gateway':{image:'old',environment:{SOLANA_CLUSTER:'devnet'},networks:{default:{}},secrets:['provider']},
+    'fee-collector':{image:'preserved-worker'}},networks:{default:{}}};
+  const before=structuredClone(input),result=applyRpcGatewayRedisConfig(input,{image:'exact-gateway',revision});
+  assert.deepEqual(input,before);assert.deepEqual(result.services.app,input.services.app);
+  assert.deepEqual(result.services['fee-collector'],input.services['fee-collector']);
+  const gateway=result.services['rpc-gateway'],redis=result.services['rpc-cache'];
+  assert.equal(gateway.image,'exact-gateway');assert.deepEqual(gateway.secrets,['provider']);
+  assert.equal(gateway.environment.FUNDED_RPC_REDIS_URL,'redis://rpc-cache:6379');
+  assert.equal(result.networks['rpc-cache'].internal,true);assert.deepEqual(redis.networks,{'rpc-cache':{}});
+  assert.equal(redis.ports,undefined);assert.equal(redis.secrets,undefined);assert.equal(redis.mem_limit,'256m');
+  assert(redis.command.includes('allkeys-lru'));assert(redis.command.includes('128mb'));
+  assert.equal(redis.volumes[0].source,'rpc_cache_data');assert(result.volumes.rpc_cache_data);
+  assert(gateway.networks.default);assert.equal(gateway.depends_on['rpc-cache'].condition,'service_started');
+  assert.equal(gateway.depends_on['rpc-cache'].required,false);
 });
 
 test('the browser proxy keeps its public limits and delegates raw caching to the central gateway',async()=>{

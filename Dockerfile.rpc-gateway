@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1
+FROM node:24-bookworm-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY vendor ./vendor
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
+    npm ci --omit=dev --strict-ssl=true --no-audit --no-fund
+COPY server/rpc-gateway.mjs server/rpc-gateway-server.mjs server/redis-rpc-cache.mjs ./server/
+COPY scripts/run-rpc-gateway.mjs ./scripts/
+ARG FUNDED_SOURCE_REVISION
+LABEL org.opencontainers.image.source="https://github.com/roger-morrision/funded.app" \
+      org.opencontainers.image.revision=$FUNDED_SOURCE_REVISION
+ENV NODE_ENV=production FUNDED_BUILD_ID=$FUNDED_SOURCE_REVISION
+USER node
+EXPOSE 8899 8900
+CMD ["node", "scripts/run-rpc-gateway.mjs"]

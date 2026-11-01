@@ -26,5 +26,26 @@ export function applyRpcGatewayConfig(input,{image,revision,upstreamFile}={}){
     if(service.secrets)service.secrets=service.secrets.filter(secret=>!rpcSecrets.has(typeof secret==='string'?secret:secret.source));
     service.depends_on||={};service.depends_on['rpc-gateway']={condition:'service_healthy',required:true};
   }
+  return applyRpcGatewayRedisConfig(config);
+}
+
+// This overlay changes only the gateway/cache. Existing worker releases,
+// frontend mounts, signing secrets and financial policies are preserved.
+export function applyRpcGatewayRedisConfig(input,{image,revision}={}){
+  if(!input.services?.['rpc-gateway'])throw Error('The central RPC gateway is required');
+  if((image||revision)&&(!image||!/^[a-f0-9]{40}$/.test(revision||'')))throw Error('An exact gateway image and revision are required');
+  const config=structuredClone(input),gateway=config.services['rpc-gateway'];
+  if(image){gateway.image=image;delete gateway.build;gateway.labels={...gateway.labels,'org.opencontainers.image.revision':revision};}
+  gateway.environment={...gateway.environment,FUNDED_RPC_REDIS_URL:'redis://rpc-cache:6379',...(revision?{FUNDED_BUILD_ID:revision}:{})};
+  gateway.depends_on={...gateway.depends_on,'rpc-cache':{condition:'service_started',required:false}};
+  gateway.networks={...(gateway.networks||{default:{}}),'rpc-cache':{}};
+  config.services['rpc-cache']={image:'redis:8-alpine',init:true,restart:'unless-stopped',read_only:true,user:'redis',
+    cap_drop:['ALL'],security_opt:['no-new-privileges:true'],tmpfs:['/tmp'],mem_limit:'256m',
+    command:['redis-server','--bind','0.0.0.0','--protected-mode','no','--dir','/data','--save','',
+      '--appendonly','yes','--appendfsync','everysec','--maxmemory','128mb','--maxmemory-policy','allkeys-lru'],
+    volumes:[{type:'volume',source:'rpc_cache_data',target:'/data'}],networks:{'rpc-cache':{}},
+    healthcheck:{test:['CMD','redis-cli','ping'],interval:'10s',timeout:'3s',retries:3,start_period:'5s'}};
+  config.networks={...config.networks,'rpc-cache':{internal:true}};
+  config.volumes={...config.volumes,rpc_cache_data:config.volumes?.rpc_cache_data||{}};
   return config;
 }

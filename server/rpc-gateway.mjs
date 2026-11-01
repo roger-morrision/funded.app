@@ -37,16 +37,16 @@ export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxRespo
 
 export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=2500,batchWindowMs=15,
   maxQueue=48,maxQueueWaitMs=12000,cacheMaxEntries=1000,cacheMaxBytes=32*1024*1024,
-  cooldownMs=30000,now=Date.now,wait=pause}={}){
+  cooldownMs=30000,now=Date.now,wait=pause,sharedCache}={}){
   if(typeof transport!=='function')throw Error('RPC transport is required');
   const cache=new Map(),inflight=new Map(),accountGroups=new Map(),methodCooldowns=new Map();
   const counters={requests:0,upstreamRequests:0,cacheHits:0,coalescedReads:0,accountBatchSavings:0,
-    accountBatches:0,uncacheableRequests:0,upstreamFailures:0,rateLimited:0,queueRejected:0};
+    accountBatches:0,uncacheableRequests:0,upstreamFailures:0,rateLimited:0,queueRejected:0,redisCacheHits:0,redisCacheErrors:0};
   let tail=Promise.resolve(),queued=0,nextAt=0,nextBlockAt=0,sequence=0,generation=0,cacheBytes=0,blockedUntil=0,verified=false,initializing;
   const stats=()=>({...counters,queueDepth:queued,cacheEntries:cache.size,cacheBytes,
     cooldownRemainingMs:Math.max(0,blockedUntil-now()),
     methodCooldowns:Object.fromEntries([...methodCooldowns].filter(([,until])=>until>now()).map(([method,until])=>[method,until-now()])),
-    upstreamVerified:verified,cluster:'devnet'});
+    upstreamVerified:verified,cluster:'devnet',redis:sharedCache?.stats?.()||{enabled:false}});
   const cooling=method=>Math.max(blockedUntil,methodCooldowns.get(method)||0)>now();
   const erase=key=>{const entry=cache.get(key);if(entry){cacheBytes-=entry.bytes;cache.delete(key);}};
   function cacheDuration(request,result){
@@ -55,13 +55,30 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
     if(['getTransaction','getBlock'].includes(request.method)&&request.params?.[1]?.commitment==='finalized')return 300000;
     return 0; // Mutable balances, blockhashes, indexes and status results stay fresh.
   }
-  function remember(key,request,response){
+  function remember(key,request,response,remainingMs=Infinity){
     const ttl=response.httpStatus===200&&!response.body.error?cacheDuration(request,response.body.result):0;
     if(!ttl)return;
     const bytes=Buffer.byteLength(JSON.stringify(response));if(bytes>cacheMaxBytes/2)return;
     erase(key);
     while(cache.size&&(cache.size>=cacheMaxEntries||cacheBytes+bytes>cacheMaxBytes))erase(cache.keys().next().value);
-    cache.set(key,{response,expiresAt:now()+ttl,bytes});cacheBytes+=bytes;
+    cache.set(key,{response,expiresAt:now()+Math.min(ttl,remainingMs),bytes});cacheBytes+=bytes;
+  }
+  const persistentHistory=request=>['getTransaction','getBlock'].includes(request.method)
+    &&request.params?.[1]?.commitment==='finalized';
+  async function historyRead(input,key){
+    let entry;
+    try{entry=await sharedCache.get(key);}catch{counters.redisCacheErrors++;}
+    const response=entry?.response,remaining=entry?.expiresAt-now();
+    if(remaining>0&&remaining<=86400000&&response?.httpStatus===200&&response.body?.jsonrpc==='2.0'
+      &&!response.body.error&&!Object.hasOwn(response.body,'id')&&cacheDuration(input,response.body.result)>0){
+      counters.cacheHits++;counters.redisCacheHits++;remember(key,input,response,remaining);return response;
+    }
+    const fresh=await upstream(input);
+    remember(key,input,fresh);
+    if(fresh.httpStatus===200&&!fresh.body.error&&cacheDuration(input,fresh.body.result)>0){
+      try{await sharedCache.set(key,fresh,86400000);}catch{counters.redisCacheErrors++;}
+    }
+    return fresh;
   }
   function upstream(request){
     if(cooling(request.method))return Promise.resolve(failure(429,'RPC provider is cooling down; retry later.'));
@@ -138,9 +155,10 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
     if(cached?.expiresAt>now()){counters.cacheHits++;return finish(cached.response);}if(cached)erase(key);
     const flightKey=stable([generation,key]);
     if(inflight.has(flightKey)){counters.coalescedReads++;return finish(await inflight.get(flightKey));}
-    const operation=(batchable(input)?accountRead(input,generation):upstream(input)).then(response=>{remember(key,input,response);return response;});
+    const operation=persistentHistory(input)&&sharedCache?historyRead(input,key):
+      (batchable(input)?accountRead(input,generation):upstream(input)).then(response=>{remember(key,input,response);return response;});
     inflight.set(flightKey,operation);
     try{return finish(await operation);}finally{if(inflight.get(flightKey)===operation)inflight.delete(flightKey);}
   }
-  return{request,initialize,stats,close:()=>transport.close?.()};
+  return{request,initialize,stats,close:()=>{sharedCache?.close();transport.close?.();}};
 }
