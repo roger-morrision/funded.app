@@ -109,6 +109,15 @@ test('provider throttling opens a shared cooldown instead of repeated upstream c
   advance(20001);limited=false;assert.equal((await gateway.request(rpc(3,'getBalance',[address(2)]))).body.result,7);assert.equal(calls.length,2);
 });
 
+test('an explicitly method-scoped public limit does not stall unrelated financial reads',async()=>{
+  const {gateway,calls}=await fixture(request=>request.method==='getTokenLargestAccounts'
+    ?{status:429,headers:{},body:{error:{code:429,message:'Too many requests for a specific RPC call'}}}:ok(request,7));
+  assert.equal((await gateway.request(rpc(1,'getTokenLargestAccounts',[address(1)]))).httpStatus,429);
+  assert.equal((await gateway.request(rpc(2,'getBalance',[address(1)]))).body.result,7);
+  assert.equal((await gateway.request(rpc(3,'getTokenLargestAccounts',[address(1)]))).httpStatus,429);
+  assert.equal(calls.length,2);assert(gateway.stats().methodCooldowns.getTokenLargestAccounts>0);
+});
+
 test('a full queue rejects excess work without forwarding or retrying it',async()=>{
   let release,started;const ready=new Promise(resolve=>{started=resolve;});
   const {gateway,calls}=await fixture(async request=>{started();await new Promise(resolve=>{release=resolve;});return ok(request,1);},{maxQueue:1});

@@ -20,7 +20,8 @@ test('only the gateway receives the provider secret and existing financial polic
   assert.equal(result.services.app.depends_on.db.condition,'service_healthy');assert.equal(result.services.app.depends_on['rpc-gateway'].condition,'service_healthy');
   const gateway=result.services['rpc-gateway'];assert.deepEqual(gateway.secrets,[{source:'rpc_gateway_upstream',target:'rpc_gateway_upstream'}]);
   assert.equal(gateway.user,'node');assert.equal(gateway.read_only,true);assert.equal(gateway.environment.SOLANA_RPC_URL,undefined);
-  assert.equal(gateway.ports[0].host_ip,'127.0.0.1');assert(!JSON.stringify(result.services.app).includes('private.invalid'));
+  assert.deepEqual(gateway.ports.map(row=>row.target),[8899,8900]);assert(gateway.ports.every(row=>row.host_ip==='127.0.0.1'));
+  assert(!JSON.stringify(result.services.app).includes('private.invalid'));
 });
 
 test('the browser proxy keeps its public limits and delegates raw caching to the central gateway',async()=>{

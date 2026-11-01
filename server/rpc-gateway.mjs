@@ -39,12 +39,15 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
   maxQueue=48,maxQueueWaitMs=12000,cacheMaxEntries=1000,cacheMaxBytes=32*1024*1024,
   cooldownMs=30000,now=Date.now,wait=pause}={}){
   if(typeof transport!=='function')throw Error('RPC transport is required');
-  const cache=new Map(),inflight=new Map(),accountGroups=new Map();
+  const cache=new Map(),inflight=new Map(),accountGroups=new Map(),methodCooldowns=new Map();
   const counters={requests:0,upstreamRequests:0,cacheHits:0,coalescedReads:0,accountBatchSavings:0,
     accountBatches:0,uncacheableRequests:0,upstreamFailures:0,rateLimited:0,queueRejected:0};
   let tail=Promise.resolve(),queued=0,nextAt=0,nextBlockAt=0,sequence=0,generation=0,cacheBytes=0,blockedUntil=0,verified=false,initializing;
   const stats=()=>({...counters,queueDepth:queued,cacheEntries:cache.size,cacheBytes,
-    cooldownRemainingMs:Math.max(0,blockedUntil-now()),upstreamVerified:verified,cluster:'devnet'});
+    cooldownRemainingMs:Math.max(0,blockedUntil-now()),
+    methodCooldowns:Object.fromEntries([...methodCooldowns].filter(([,until])=>until>now()).map(([method,until])=>[method,until-now()])),
+    upstreamVerified:verified,cluster:'devnet'});
+  const cooling=method=>Math.max(blockedUntil,methodCooldowns.get(method)||0)>now();
   const erase=key=>{const entry=cache.get(key);if(entry){cacheBytes-=entry.bytes;cache.delete(key);}};
   function cacheDuration(request,result){
     if(result===null||result===undefined)return 0;
@@ -61,11 +64,11 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
     cache.set(key,{response,expiresAt:now()+ttl,bytes});cacheBytes+=bytes;
   }
   function upstream(request){
-    if(blockedUntil>now())return Promise.resolve(failure(429,'RPC provider is cooling down; retry later.'));
+    if(cooling(request.method))return Promise.resolve(failure(429,'RPC provider is cooling down; retry later.'));
     if(queued>=maxQueue){counters.queueRejected++;return Promise.resolve(failure(429,'RPC gateway queue is full.'));}
     const enqueuedAt=now();queued++;
     const operation=tail.then(async()=>{
-      if(blockedUntil>now())return failure(429,'RPC provider is cooling down; retry later.');
+      if(cooling(request.method))return failure(429,'RPC provider is cooling down; retry later.');
       const delay=Math.max(0,nextAt-now(),request.method==='getBlock'?nextBlockAt-now():0);
       if(now()-enqueuedAt+delay>maxQueueWaitMs){counters.queueRejected++;return failure(503,'RPC gateway queue deadline reached.');}
       await wait(delay);
@@ -75,7 +78,9 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
       let response;try{response=await transport(payload);}catch{counters.upstreamFailures++;return failure(503,'RPC upstream is unavailable.');}
       if(response.status===429||response.status===503||response.body?.error?.code===429){
         const retry=Number(response.headers?.['retry-after']);
-        blockedUntil=now()+Math.max(5000,Math.min(300000,Number.isFinite(retry)&&retry>0?retry*1000:cooldownMs));
+        const until=now()+Math.max(5000,Math.min(300000,Number.isFinite(retry)&&retry>0?retry*1000:cooldownMs));
+        if(/(?:specific RPC call|method rate limit)/i.test(response.body?.error?.message||''))methodCooldowns.set(request.method,until);
+        else blockedUntil=until;
         counters.rateLimited++;return failure(429,'RPC provider is rate limited; retry later.');
       }
       if(response.status!==200||response.body?.jsonrpc!=='2.0'||response.body.id!==payload.id

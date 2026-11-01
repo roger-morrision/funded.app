@@ -23,7 +23,7 @@ services:
       SOLANA_CLUSTER: devnet
       FUNDED_RPC_UPSTREAM_URL_FILE: /run/secrets/rpc_gateway_upstream
     secrets: [rpc_gateway_upstream]
-    ports: ['127.0.0.1:8899:8899']
+    ports: ['127.0.0.1:8899:8899', '127.0.0.1:8900:8900']
     healthcheck:
       test: [CMD, node, -e, "fetch('http://127.0.0.1:8899/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 10s
