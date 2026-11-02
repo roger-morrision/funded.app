@@ -69,7 +69,7 @@ export function createBuybackController(appState) {
       if(eligible&&sizes&&/^\d+$/.test(sizes.orderSizeEligibleLamports)&&/^\d+$/.test(sizes.belowMinimumLamports))
         note.textContent+=` · Meets order minimum: ${formatSol(BigInt(sizes.orderSizeEligibleLamports))} · Retained below minimum: ${formatSol(BigInt(sizes.belowMinimumLamports))}`;
       if(!eligible&&appState.buybackNetworkState.lastVerified?.checkedAt)
-        note.textContent+=` · Last verified ${appState.buybackNetworkState.lastVerified.checkedAt}; current verification pending`;
+        note.textContent+=` · Last verified ${appState.formatOnchainAge(Date.parse(appState.buybackNetworkState.lastVerified.checkedAt))}; current verification pending`;
       const progress = eligible && threshold ? Number(lamports > threshold ? threshold : lamports) / Number(threshold) * 100 : 0;
       track.setAttribute('aria-label', trigger ? `Eligible buyback progress toward ${trigger}` : 'Eligible buyback progress unavailable');
       if (threshold) {

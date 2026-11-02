@@ -151,6 +151,8 @@ test('mobile header actions do not overlap and touched controls have usable hit 
     expect(wallet.height).toBeGreaterThanOrEqual(44);
     const targets = route === 'overview' ? '.home-market-window button, #home-ticker-back, #home-ticker-forward' : '#launch-close';
     for (const target of await page.locator(targets).all()) {
+      // The ticker stays hidden until it has verified activity.
+      if (!await target.isVisible()) continue;
       expect((await target.boundingBox()).height).toBeGreaterThanOrEqual(44);
     }
   }

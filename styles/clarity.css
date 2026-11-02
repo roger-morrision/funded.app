@@ -1,0 +1,54 @@
+/*
+  Final presentation layer. Loaded last in index.html.
+  New UI work uses the --fv-* tokens below instead of raw hex values,
+  and new rules here must not use !important (see scripts/verify-css-budget.mjs).
+*/
+:root {
+  --fv-bg: #0b0d1a;
+  --fv-surface: #121a26;
+  --fv-surface-raised: #182233;
+  --fv-border: #29323a;
+  --fv-text: #f3f6fa;
+  --fv-text-muted: #a8b2bc;
+  --fv-text-subtle: #77869b;
+  --fv-accent: #f4a340;
+  --fv-accent-soft: #f4a3401f;
+  --fv-success: #73e8c3;
+  --fv-warning: #f1c873;
+  --fv-danger: #f78989;
+  --fv-space-1: 4px;
+  --fv-space-2: 8px;
+  --fv-space-3: 12px;
+  --fv-space-4: 16px;
+  --fv-space-5: 24px;
+  --fv-space-6: 32px;
+  --fv-radius-sm: 6px;
+  --fv-radius-md: 10px;
+  --fv-radius-lg: 16px;
+  --fv-font-ui: 'Manrope', system-ui, sans-serif;
+  --fv-font-data: 'DM Mono', ui-monospace, monospace;
+}
+
+/* Home: lead with the value proposition, then show only figures that loaded. */
+html body.page-route-overview #main-content .hero-section { order: 1; padding: var(--fv-space-6) 0 var(--fv-space-5); }
+html body.page-route-overview #main-content .hero-section h1 { max-width: 760px; margin: 0 0 var(--fv-space-3); color: var(--fv-text); }
+html body.page-route-overview #main-content .hero-copy { max-width: 620px; margin: 0 0 var(--fv-space-5); color: var(--fv-text-muted); font-size: 16px; line-height: 1.55; }
+html body.page-route-overview #main-content .home-hero-kicker { display: block; margin: 0 0 var(--fv-space-2); color: var(--fv-accent); font: 700 12px var(--fv-font-data); letter-spacing: .08em; text-transform: uppercase; }
+
+html body.page-route-overview #main-content .home-launch-highlights,
+html body.page-route-overview #main-content .home-kpi-dashboard { order: 2; }
+
+/* A ticker with no verified activity reads as a dead product; hide it until it has items. */
+html body.page-route-overview #main-content .home-launch-highlights:has(.home-ticker-empty) { display: none; }
+
+/* Platform figures: allocations and burn detail live on Analytics and $FUNDED. */
+html body.page-route-overview #main-content #home-kpi-burn-card,
+html body.page-route-overview #main-content #home-kpi-airdrop-card { display: none; }
+html body.page-route-overview #main-content .home-kpi-card:not([data-state='available'], [data-state='partial']) { display: none; }
+html body.page-route-overview #main-content .home-kpi-dashboard:not(:has(.home-kpi-card[data-state='available'], .home-kpi-card[data-state='partial'])) { display: none; }
+html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+html body.page-route-overview #main-content .home-kpi-freshness { display: none; }
+
+/* Token cards: loading placeholders add noise without information. */
+html body #main-content .home-launch-evidence:empty,
+html body #main-content .home-launch-progress-row[data-progress-state='loading'] { display: none; }

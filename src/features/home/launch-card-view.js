@@ -163,7 +163,7 @@ export function homeLaunchCardMarkup(
     const progressMarkup = `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Migration progress</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : '<i style="--launch-progress:100%"></i>'}</div></div>`;
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const activityAt = Number(item.marketActivityObservedAt);
-    const activityLabel = Number.isFinite(activityAt) && activityAt > 0 ? `Activity checked ${formatOnchainAge(activityAt)} · ${item.observedCoverage === 'complete' ? 'observed window' : 'partial coverage'}` : 'Activity freshness unavailable';
+    const activityLabel = Number.isFinite(activityAt) && activityAt > 0 ? `Activity checked ${formatOnchainAge(activityAt)} · ${item.observedCoverage === 'complete' ? 'observed window' : 'partial coverage'}` : '';
     const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
     const capLabel = item.migrated === true ? 'Market cap' : 'Curve cap';
     const hasNoObservedTrades = item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0;

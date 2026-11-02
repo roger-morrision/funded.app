@@ -26,7 +26,7 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   await page.route('https://**/*', route => route.abort());
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  const capitalMenu = page.locator('.primary-nav > a[href="#capital-flow"]');
+  const capitalMenu = page.locator('.primary-nav a[href="#capital-flow"]');
   await expect(capitalMenu).toBeVisible();
   await expect(capitalMenu).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('body')).not.toHaveClass(/page-route-analytics-detail/);

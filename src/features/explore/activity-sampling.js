@@ -78,7 +78,7 @@ export function renderActivityCoverage(document, id, records, { hidden = false }
   const partial = known < records.length || records.some(item => item.windowCoverage === 'partial');
   node.dataset.state = partial ? 'partial' : known ? 'available' : 'unavailable';
   node.textContent = !records.length ? 'Activity data will appear after launches are verified.'
-    : `Activity: ${known}/${records.length} tokens checked. ${known < records.length
-      ? 'Rankings and activity filters are partial. More tokens are checked on refresh.'
-      : partial ? 'Some trade histories are incomplete.' : 'All listed tokens have snapshots.'} Snapshots may be up to 5 min old.`;
+    : `${known}/${records.length} tokens checked${known < records.length
+      ? ' · rankings update as more load'
+      : partial ? ' · some trade histories incomplete' : ''} · up to 5 min old`;
 }

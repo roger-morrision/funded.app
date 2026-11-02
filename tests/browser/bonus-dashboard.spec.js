@@ -124,7 +124,7 @@ test('Capital flow refreshes on entry and ignores an older overlapping snapshot 
     await page.goto('/#overview');
     await expect(page.locator('body')).toHaveClass(/workspace-ready/);
     await expect.poll(()=>requests).toBe(1);
-    await page.locator('.primary-nav > a[href="#capital-flow"]').click();
+    await page.locator('.primary-nav a[href="#capital-flow"]').click();
     await expect.poll(()=>requests).toBe(2);
     const status=page.locator('#daily-bonus-dashboard [data-bonus-status]');
     await expect(status).toContainText('10:10:00 UTC');

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "verify:css-budget": "node scripts/verify-css-budget.mjs",
     "verify:legal-dialogs": "node scripts/verify-legal-dialogs.mjs",
     "verify:jackpot-prototype": "node scripts/verify-jackpot-prototype.mjs",
     "verify:jackpot-end-to-end": "node scripts/verify-jackpot-end-to-end.mjs",

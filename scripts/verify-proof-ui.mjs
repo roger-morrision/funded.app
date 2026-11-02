@@ -210,7 +210,7 @@ assert.match(tradeReviewModel, /limitLabel:'Maximum trade \+ app fee', limitAmou
 assert.match(app, /Maximum pool spend includes Pump pool fees/, 'Graduated-pool review must not double-count Pump fees.');
 assert.match(html, /<p class="nav-label">Workspace<\/p>/);
 assert.match(html, /<div class="nav-more-menu">/);
-assert.match(html, /class="nav-more-menu"[\s\S]*?href="#analytics-detail"[\s\S]*?href="#leaderboard"[\s\S]*?href="\/funded"/, 'Grouped navigation must retain analytics, leaderboard, and $FUNDED destinations.');
+assert.match(html, /class="nav-more-menu"[\s\S]*?href="#leaderboard"[\s\S]*?href="\/funded"[\s\S]*?href="#analytics-detail"/, 'Grouped navigation must retain analytics, leaderboard, and $FUNDED destinations.');
 assert.match(html, /id="desktop-sidebar-toggle"[^>]+aria-controls="sidebar"[^>]+aria-expanded="true"/);
 assert.match(app, /funded\.desktop-sidebar-collapsed/);
 assert.match(app, /setDesktopSidebarCollapsed\(!document\.documentElement\.classList\.contains\('sidebar-collapsed'\)\)/);
