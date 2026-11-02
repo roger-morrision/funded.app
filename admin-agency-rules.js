@@ -37,11 +37,15 @@ export function initAdminAgencyRules({api,post,show,refresh}){
     sign.disabled=signing;
   };
   const invalidate=()=>{generation++;prepared=null;sign.hidden=true;};form.addEventListener('input',invalidate);
-  panel.querySelector('[data-rules-load]').addEventListener('click',()=>load().catch(error=>show(error.message,true)));
+  panel.querySelector('[data-rules-load]').addEventListener('click',()=>load().catch(error=>{
+    if(!workspace?.hidden){status.textContent='Verified settings unavailable. Load settings to retry.';show(error.message,true);}
+  }));
   async function load(afterSave=false){
     if(signing&&!afterSave||workspace?.hidden)return;
-    invalidate();const serial=generation,value=await api('/api/admin/agency-rules');if(serial!==generation)return;current=value;const split=current.protocolSplit,rules=current.rules;
-    if(!current.verified||!rules)throw new Error('Verified program settings are unavailable.');
+    invalidate();current=null;controls();status.textContent='Verifying on-chain settings…';
+    const serial=generation,value=await api('/api/admin/agency-rules');if(serial!==generation)return;
+    if(!value.verified||!value.rules||!value.protocolSplit)throw new Error('Verified program settings are unavailable.');
+    current=value;const split=current.protocolSplit,rules=current.rules;
     const values={operations:split.operationsPercent/5,l1:split.referralLevelPercents[0]/5,l2:split.referralLevelPercents[1]/5,
       l3:split.referralLevelPercents[2]/5,bonus:split.communityPercent/5,buyback:split.buybackPercent/5,agency:split.agencyPercent/5,
       cap1:rules.marketCapUsd[0],cap2:rules.marketCapUsd[1],window:rules.communityWindowSeconds,

@@ -139,3 +139,16 @@ test('a pending legacy fee save cannot block a fresh admin session (mocked API)'
   }finally{gate.resolve();}
   await expect(page.locator('#message')).not.toContainText('Old fee policy response');
 });
+
+test('a failed on-chain settings refresh locks the authority form until a verified retry (mocked API)',async({page})=>{
+  let unavailable=false;
+  await adminFixture(page,async({path,send})=>{
+    if(path!=='/api/admin/agency-rules')return false;
+    await send(unavailable?503:200,unavailable?{error:'Configuration RPC unavailable'}:{verified:true,revision:'7',authority:'Labeled QA authority',promotionRecipient:'Labeled QA recipient',rules:DEFAULT_AGENCY_RULES,
+      protocolSplit:{operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10}});return true;
+  });
+  await page.goto('/admin.html');const load=page.getByRole('button',{name:'Load verified settings'}),reason=page.locator('[data-rules-form] [name=reason]');
+  await load.click();await expect(reason).toBeEnabled();unavailable=true;await load.click();await expect(page.locator('[data-rules-review]')).toContainText('unavailable');
+  await expect(reason).toBeDisabled();await expect(page.locator('[data-rules-sign]')).toBeHidden();
+  unavailable=false;await load.click();await expect(reason).toBeEnabled();
+});
