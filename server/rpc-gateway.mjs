@@ -14,11 +14,11 @@ const validRequest=request=>request?.jsonrpc==='2.0'&&typeof request.method==='s
   &&(request.id===null||typeof request.id==='string'&&request.id.length<=128||Number.isSafeInteger(request.id));
 
 // One persistent provider socket. Neither transport errors nor writes retry.
-export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxResponseBytes=32*1024*1024}={}){
+export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxResponseBytes=32*1024*1024,maxSockets=1}={}){
   const url=new URL(upstreamUrl);
   if(url.username||url.password||url.hash||!['https:','http:'].includes(url.protocol)
     ||url.protocol==='http:'&&!['127.0.0.1','localhost','[::1]'].includes(url.hostname))throw Error('Invalid RPC upstream configuration');
-  const client=url.protocol==='https:'?https:http,agent=new client.Agent({keepAlive:true,maxSockets:1,maxFreeSockets:1});
+  const client=url.protocol==='https:'?https:http,agent=new client.Agent({keepAlive:true,maxSockets,maxFreeSockets:maxSockets});
   const transport=payload=>new Promise((resolve,reject)=>{
     const bytes=Buffer.from(JSON.stringify(payload));
     const request=client.request(url,{method:'POST',agent,headers:{'content-type':'application/json','content-length':bytes.length}},response=>{
@@ -35,19 +35,19 @@ export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxRespo
   transport.close=()=>agent.destroy();return transport;
 }
 
-export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=2500,sendIntervalMs=1000,batchWindowMs=15,
+export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=2500,sendIntervalMs=1000,maxConcurrent=1,batchWindowMs=15,
   maxQueue=48,maxQueueWaitMs=12000,cacheMaxEntries=1000,cacheMaxBytes=32*1024*1024,
   cooldownMs=30000,now=Date.now,wait=pause,sharedCache}={}){
   if(typeof transport!=='function')throw Error('RPC transport is required');
-  const cache=new Map(),inflight=new Map(),accountGroups=new Map(),methodCooldowns=new Map();
+  const cache=new Map(),inflight=new Map(),accountGroups=new Map(),methodCooldowns=new Map(),waiters=[];
   const counters={requests:0,upstreamRequests:0,cacheHits:0,coalescedReads:0,accountBatchSavings:0,
     accountBatches:0,uncacheableRequests:0,upstreamFailures:0,rateLimited:0,queueRejected:0,redisCacheHits:0,redisCacheErrors:0};
-  let tail=Promise.resolve(),queued=0,nextAt=0,nextBlockAt=0,nextSendAt=0,sequence=0,generation=0,cacheBytes=0,blockedUntil=0,verified=false,initializing;
+  let tail=Promise.resolve(),queued=0,active=0,nextAt=0,nextBlockAt=0,nextSendAt=0,sequence=0,generation=0,cacheBytes=0,blockedUntil=0,verified=false,initializing;
   const stats=()=>({...counters,queueDepth:queued,cacheEntries:cache.size,cacheBytes,
     cooldownRemainingMs:Math.max(0,blockedUntil-now()),
     methodCooldowns:Object.fromEntries([...methodCooldowns].filter(([,until])=>until>now()).map(([method,until])=>[method,until-now()])),
     upstreamVerified:verified,cluster:'devnet',redis:sharedCache?.stats?.()||{enabled:false},
-    pacing:{minIntervalMs,blockIntervalMs,sendIntervalMs}});
+    pacing:{minIntervalMs,blockIntervalMs,sendIntervalMs,maxConcurrent}});
   const cooling=method=>Math.max(blockedUntil,methodCooldowns.get(method)||0)>now();
   const erase=key=>{const entry=cache.get(key);if(entry){cacheBytes-=entry.bytes;cache.delete(key);}};
   function cacheDuration(request,result){
@@ -85,32 +85,49 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
     if(cooling(request.method))return Promise.resolve(failure(429,'RPC provider is cooling down; retry later.'));
     if(queued>=maxQueue){counters.queueRejected++;return Promise.resolve(failure(429,'RPC gateway queue is full.'));}
     const enqueuedAt=now();queued++;
-    const operation=tail.then(async()=>{
-      if(cooling(request.method))return failure(429,'RPC provider is cooling down; retry later.');
+    // Starts stay paced and FIFO through one chain; up to maxConcurrent
+    // requests may then wait on the provider at once.
+    const slot=tail.then(async()=>{
+      await acquire();
+      if(cooling(request.method)){release();return failure(429,'RPC provider is cooling down; retry later.');}
       const delay=Math.max(0,nextAt-now(),request.method==='getBlock'?nextBlockAt-now():0,
         request.method==='sendTransaction'?nextSendAt-now():0);
-      if(now()-enqueuedAt+delay>maxQueueWaitMs){counters.queueRejected++;return failure(503,'RPC gateway queue deadline reached.');}
+      if(now()-enqueuedAt+delay>maxQueueWaitMs){release();counters.queueRejected++;return failure(503,'RPC gateway queue deadline reached.');}
       await wait(delay);
       nextAt=now()+minIntervalMs;if(request.method==='getBlock')nextBlockAt=now()+blockIntervalMs;
       if(request.method==='sendTransaction')nextSendAt=now()+sendIntervalMs;
-      const payload={jsonrpc:'2.0',id:++sequence,method:request.method,params:request.params};
-      counters.upstreamRequests++;
-      let response;try{response=await transport(payload);}catch{counters.upstreamFailures++;return failure(503,'RPC upstream is unavailable.');}
-      if(response.status===429||response.status===503||response.body?.error?.code===429){
-        const retry=Number(response.headers?.['retry-after']);
-        const until=now()+Math.max(5000,Math.min(300000,Number.isFinite(retry)&&retry>0?retry*1000:cooldownMs));
-        if(/(?:specific RPC call|method rate limit)/i.test(response.body?.error?.message||''))methodCooldowns.set(request.method,until);
-        else blockedUntil=until;
-        counters.rateLimited++;return failure(429,'RPC provider is rate limited; retry later.');
-      }
-      if(response.status!==200||response.body?.jsonrpc!=='2.0'||response.body.id!==payload.id
-        ||!Object.hasOwn(response.body,'result')&&!response.body.error){counters.upstreamFailures++;return failure(502,'RPC upstream returned an invalid response.');}
-      if(response.body.error){const error=response.body.error;return{httpStatus:200,body:{jsonrpc:'2.0',error:{code:error.code,
-        message:String(error.message||'RPC request failed').replace(/https?:\/\/[^\s"']+/g,'[provider]').slice(0,500),
-        ...(error.data!==undefined?{data:error.data}:{})}}};}
-      return{httpStatus:200,body:{jsonrpc:'2.0',result:response.body.result}};
+      return null;
+    });
+    tail=slot.catch(()=>{});
+    const operation=slot.then(async rejected=>{
+      if(rejected)return rejected;
+      try{return await forward(request);}finally{release();}
     }).finally(()=>{queued--;});
-    tail=operation.catch(()=>{});return operation;
+    return operation;
+  }
+  function acquire(){
+    if(active<maxConcurrent){active++;return Promise.resolve();}
+    return new Promise(resolve=>waiters.push(resolve));
+  }
+  function release(){const next=waiters.shift();if(next)next();else active--;}
+  async function forward(request){
+    if(cooling(request.method))return failure(429,'RPC provider is cooling down; retry later.');
+    const payload={jsonrpc:'2.0',id:++sequence,method:request.method,params:request.params};
+    counters.upstreamRequests++;
+    let response;try{response=await transport(payload);}catch{counters.upstreamFailures++;return failure(503,'RPC upstream is unavailable.');}
+    if(response.status===429||response.status===503||response.body?.error?.code===429){
+      const retry=Number(response.headers?.['retry-after']);
+      const until=now()+Math.max(5000,Math.min(300000,Number.isFinite(retry)&&retry>0?retry*1000:cooldownMs));
+      if(/(?:specific RPC call|method rate limit)/i.test(response.body?.error?.message||''))methodCooldowns.set(request.method,until);
+      else blockedUntil=until;
+      counters.rateLimited++;return failure(429,'RPC provider is rate limited; retry later.');
+    }
+    if(response.status!==200||response.body?.jsonrpc!=='2.0'||response.body.id!==payload.id
+      ||!Object.hasOwn(response.body,'result')&&!response.body.error){counters.upstreamFailures++;return failure(502,'RPC upstream returned an invalid response.');}
+    if(response.body.error){const error=response.body.error;return{httpStatus:200,body:{jsonrpc:'2.0',error:{code:error.code,
+      message:String(error.message||'RPC request failed').replace(/https?:\/\/[^\s"']+/g,'[provider]').slice(0,500),
+      ...(error.data!==undefined?{data:error.data}:{})}}};}
+    return{httpStatus:200,body:{jsonrpc:'2.0',result:response.body.result}};
   }
   function batchable(request){
     if(request.method!=='getAccountInfo'||!Array.isArray(request.params)||request.params.length!==2)return false;

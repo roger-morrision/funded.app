@@ -25,7 +25,7 @@ test('built candidate exposes its tested identity and registered-operation cover
 test('built inspector displays the historical receipt independently rechecked by the acceptance runner',async({page})=>{
   const response=await page.request.get(`${report.base}/api/financial/receipts/${report.recordedReceipt}`);expect(response.ok()).toBe(true);const data=await response.json();
   expect(data.currentRpcRecheck).toBe(false);expect(data.burns[0].spentLamports).toBe(report.chainProof.spentLamports);expect(data.burns[0].burnedBaseUnits).toBe(report.chainProof.burnedBaseUnits);
-  await page.goto(`${report.base}/?receipt=${report.recordedReceipt}#payments/activity`);await expect(page.locator('#receipt-inspector')).toBeVisible();await expect(page.locator('#receipt-inspector')).toContainText(report.recordedReceipt);await expect(page.locator('#receipt-inspector')).toContainText(`${report.chainProof.burnedBaseUnits} $FUNDED base units`);await expect(page.locator('#receipt-inspector')).toContainText('current RPC recheck is not included');
+  await page.goto(`${report.base}/?receipt=${report.recordedReceipt}#payments/activity`);await expect(page.locator('#receipt-inspector')).toBeVisible();await expect(page.locator('#receipt-inspector')).toContainText(report.recordedReceipt);await expect(page.locator('#receipt-inspector')).toContainText(`${report.chainProof.burnedBaseUnits} $FUNDED base units`);await expect(page.locator('#receipt-inspector')).toContainText('current network recheck is not included');
 });
 test('guest report is submitted and reloaded through the real candidate API',async({page})=>{
   await page.goto(`${report.base}/#profile`);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);

@@ -5,9 +5,9 @@ import {createRpcGateway,RPC_GATEWAY_DEVNET_GENESIS} from '../server/rpc-gateway
 
 test('Helius uses conservative provider-specific pacing without accelerating other providers',()=>{
  assert.deepEqual(rpcGatewayPacing('https://devnet.helius-rpc.com/?api-key=fixture'),
-  {minIntervalMs:250,blockIntervalMs:2500,sendIntervalMs:1000});
+  {minIntervalMs:250,blockIntervalMs:2500,sendIntervalMs:1000,maxConcurrent:4});
  for(const url of ['https://api.devnet.solana.com','https://fake-helius-rpc.com','https://helius-rpc.com.attacker.invalid'])
-  assert.equal(rpcGatewayPacing(url).minIntervalMs,500);
+  assert.deepEqual([rpcGatewayPacing(url).minIntervalMs,rpcGatewayPacing(url).maxConcurrent],[500,1]);
  assert.throws(()=>rpcGatewayPacing('invalid'),/Invalid RPC gateway pacing configuration/);
 });
 
@@ -34,4 +34,21 @@ test('a supported read burst fits the queue deadline at the Helius budget and re
  const helius=await run('https://devnet.helius-rpc.com');assert(helius.replies.every(r=>r.httpStatus===200));assert.equal(helius.stats.queueRejected,0);
  const publicRpc=await run('https://api.devnet.solana.com');assert(publicRpc.stats.queueRejected>0);
  assert.equal(publicRpc.stats.pacing.minIntervalMs,500);
+});
+
+test('a slow Helius response does not hold later paced starts, and in-flight reads stay capped',async()=>{
+ let time=0,active=0,maximum=0;const starts=[],releases=[];
+ const gateway=createRpcGateway({...rpcGatewayPacing('https://devnet.helius-rpc.com'),now:()=>time,wait:async ms=>{time+=ms;},
+  transport:async request=>{
+   if(request.method==='getGenesisHash')return{status:200,body:{jsonrpc:'2.0',id:request.id,result:RPC_GATEWAY_DEVNET_GENESIS}};
+   starts.push(time);active++;maximum=Math.max(maximum,active);
+   await new Promise(resolve=>releases.push(resolve));active--;
+   return{status:200,body:{jsonrpc:'2.0',id:request.id,result:1}};}});
+ assert(await gateway.initialize());
+ const replies=Array.from({length:6},(_,id)=>gateway.request({jsonrpc:'2.0',id,method:'getBalance',params:[id]}));
+ while(starts.length<4)await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(starts.length,4);for(let i=1;i<starts.length;i++)assert(starts[i]-starts[i-1]>=250);
+ while(starts.length<6){releases.shift()?.();await new Promise(resolve=>setImmediate(resolve));}
+ while(releases.length)releases.shift()();
+ assert((await Promise.all(replies)).every(reply=>reply.httpStatus===200));assert.equal(maximum,4);
 });

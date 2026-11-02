@@ -107,6 +107,6 @@ test('recorded buyback history does not imply current execution readiness',async
   await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('.reward-buyback-stats')).toContainText('Recorded buybacks1');
   await expect(page.locator('.reward-source-note')).toContainText('automatic execution readiness could not be verified');
-  await expect(page.locator('#buyback-route-last-time')).toHaveText('Burn verification unavailable');
+  await expect(page.locator('#buyback-route-last-time')).toHaveText('Waiting for the next burn update');
   await expect(page.locator('#buyback-ledger')).toContainText('0.001 $FUNDED bought and burned');
 });

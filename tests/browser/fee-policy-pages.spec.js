@@ -17,7 +17,7 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('#fee-output-community')).toHaveText(`${bonus} SOL`);
     await expect(page.locator('#daily-bonus-dashboard')).toContainText(`${bonus}% Daily bonus pool`);
     await expect(page.locator('#daily-bonus-dashboard')).toContainText('completed UTC day closes at 00:00 UTC');
-    await expect(page.locator('#capital-flow .route-timeline')).toContainText('keeper settles automatically');
+    await expect(page.locator('#capital-flow .route-timeline')).toContainText('automation settles automatically');
     await expect(page.locator('#capital-flow .panel-explainer').first()).toContainText('Existing coins');
     await expect(page.locator('[data-money-flow-poster="distribution"] .money-flow-steps').first()).toContainText(`${ops}% Operations & marketing`);
     await expect(page.locator('[data-money-flow-poster="distribution"] .money-flow-steps').first()).toContainText(`${bonus}% Daily bonus`);

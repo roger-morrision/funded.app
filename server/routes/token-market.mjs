@@ -92,54 +92,68 @@ export function createTokenMarketRoutes({
       const hasTradeBreakdown = data => data && Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
         && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
-      const cached = coinMarketCache.get(address);
-      if (cached && Date.now() - cached.at < 60_000 && hasTradeBreakdown(cached.data)) return json(res, 200, cached.data);
-      const persisted = await store.readMarketActivity(address, solanaCluster);
-      if (persisted && Date.now() - Date.parse(persisted.observedAt) < 60_000 && hasTradeBreakdown(persisted)) {
-        coinMarketCache.set(address, { at: Date.parse(persisted.observedAt), data: persisted });
-        return json(res, 200, persisted);
+      // A scan costs up to ~50 RPC reads. Results under a minute old are
+      // current; results up to five minutes old (the client's activity window)
+      // are served at once while a background scan replaces them.
+      const fresh = entry => entry && Date.now() - entry.at < 60_000 && hasTradeBreakdown(entry.data);
+      const usable = entry => entry && Date.now() - entry.at < 5 * 60_000 && hasTradeBreakdown(entry.data);
+      let cached = coinMarketCache.get(address);
+      if (fresh(cached)) return json(res, 200, cached.data);
+      if (!usable(cached)) {
+        const persisted = await store.readMarketActivity(address, solanaCluster);
+        const entry = persisted ? { at: Date.parse(persisted.observedAt), data: persisted } : null;
+        // A concurrent scan may have completed while the persisted read was pending.
+        const refreshed = coinMarketCache.get(address);
+        cached = fresh(refreshed) ? refreshed : usable(entry) ? entry : refreshed;
+        if (cached === entry) coinMarketCache.set(address, entry);
+        if (fresh(cached)) return json(res, 200, cached.data);
       }
-      // A concurrent scan may have completed while the persisted read was pending.
-      const refreshed = coinMarketCache.get(address);
-      if (refreshed && Date.now() - refreshed.at < 60_000 && hasTradeBreakdown(refreshed.data))
-        return json(res, 200, refreshed.data);
-      let pending = coinMarketInflight.get(address);
-      if (!pending) {
-        if (coinMarketInflight.size >= maxActiveMarketScans + maxWaitingMarketScans)
-          return json(res, 429, { error:'Market activity refresh is busy; retry shortly.' });
-        pending = (async () => {
-          const busy = () => coinMarketActive >= maxActiveMarketScans
-            && coinMarketWaiting.length >= maxWaitingMarketScans;
-          if (busy()) return { status:429, data:{ error:'Market activity refresh is busy; retry shortly.' } };
-          const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
-          if (!await store.chargeRpcRate(`market:${clientKey(req)}`, 10, 60, windowStart))
-            return { status:429, data:{ error:'Market activity refresh limit reached; retry shortly.' } };
-          if (busy()) return { status:429, data:{ error:'Market activity refresh is busy; retry shortly.' } };
-          const data = await new Promise((resolve, reject) => {
-            const start = () => {
-              coinMarketActive += 1;
-              (async () => {
-                const metrics = await readMarketActivity({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint });
-                const result = { mint: address, cluster: solanaCluster, source: 'confirmed-pump-trade-events', observedAt: new Date().toISOString(), ...metrics };
-                await store.writeMarketActivity(address, solanaCluster, result);
-                if (coinMarketCache.size >= 500) coinMarketCache.delete(coinMarketCache.keys().next().value);
-                coinMarketCache.set(address, { at: Date.now(), data:result });
-                return result;
-              })().then(resolve, reject).finally(() => {
-                coinMarketActive -= 1;
-                coinMarketWaiting.shift()?.();
-              });
-            };
-            if (coinMarketActive < maxActiveMarketScans) start();
-            else coinMarketWaiting.push(start);
-          });
-          return { status:200, data };
-        })().finally(() => { coinMarketInflight.delete(address); });
-        coinMarketInflight.set(address, pending);
+      if (usable(cached)) {
+        startMarketScan(address, mint, req)?.catch(() => {});
+        return json(res, 200, cached.data);
       }
+      const pending = startMarketScan(address, mint, req);
+      if (!pending) return json(res, 429, { error:'Market activity refresh is busy; retry shortly.' });
       try { const result = await pending; return json(res, result.status, result.data); }
       catch { return json(res, 502, { error: 'Market activity provider is unavailable.' }); }
     }
     return false;
   };
+
+  function startMarketScan(address, mint, req) {
+    let pending = coinMarketInflight.get(address);
+    if (!pending) {
+      if (coinMarketInflight.size >= maxActiveMarketScans + maxWaitingMarketScans) return null;
+      pending = (async () => {
+        const busy = () => coinMarketActive >= maxActiveMarketScans
+          && coinMarketWaiting.length >= maxWaitingMarketScans;
+        if (busy()) return { status:429, data:{ error:'Market activity refresh is busy; retry shortly.' } };
+        const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
+        if (!await store.chargeRpcRate(`market:${clientKey(req)}`, 10, 60, windowStart))
+          return { status:429, data:{ error:'Market activity refresh limit reached; retry shortly.' } };
+        if (busy()) return { status:429, data:{ error:'Market activity refresh is busy; retry shortly.' } };
+        const data = await new Promise((resolve, reject) => {
+          const start = () => {
+            coinMarketActive += 1;
+            (async () => {
+              const metrics = await readMarketActivity({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint });
+              const result = { mint: address, cluster: solanaCluster, source: 'confirmed-pump-trade-events', observedAt: new Date().toISOString(), ...metrics };
+              await store.writeMarketActivity(address, solanaCluster, result);
+              if (coinMarketCache.size >= 500) coinMarketCache.delete(coinMarketCache.keys().next().value);
+              coinMarketCache.set(address, { at: Date.now(), data:result });
+              return result;
+            })().then(resolve, reject).finally(() => {
+              coinMarketActive -= 1;
+              coinMarketWaiting.shift()?.();
+            });
+          };
+          if (coinMarketActive < maxActiveMarketScans) start();
+          else coinMarketWaiting.push(start);
+        });
+        return { status:200, data };
+      })().finally(() => { coinMarketInflight.delete(address); });
+      coinMarketInflight.set(address, pending);
+    }
+    return pending;
+  }
 }

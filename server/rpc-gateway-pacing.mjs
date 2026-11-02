@@ -5,5 +5,7 @@ export function rpcGatewayPacing(upstreamUrl){
  let hostname;
  try{hostname=new URL(upstreamUrl).hostname;}catch{throw Error('Invalid RPC gateway pacing configuration');}
  const helius=hostname==='helius-rpc.com'||hostname.endsWith('.helius-rpc.com');
- return{minIntervalMs:helius?250:500,blockIntervalMs:2500,sendIntervalMs:1000};
+ // Helius limits requests per second, not open connections: let a few reads
+ // wait on the provider at once so one slow response does not stall the queue.
+ return{minIntervalMs:helius?250:500,blockIntervalMs:2500,sendIntervalMs:1000,maxConcurrent:helius?4:1};
 }

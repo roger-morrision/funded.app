@@ -41,7 +41,7 @@ for(const width of [390,1440]){
   });
   test(`exact receipt links preserve evidence and unknown costs at ${width}px`,async({page})=>{
     await setup(page,width);await page.route(`**/api/financial/receipts/${sig}**`,route=>route.fulfill({json:{cluster:'devnet',signature:sig,evidence:'recorded-finalized-v3',currentRpcRecheck:false,events:[{mint,kind:'holder-paid',label:'Holder reward paid',amountLamports:'15',at:null}],recipients:[{wallet,amountLamports:'15',kind:'holder-paid'}],burns:[],sourceSignatures:[],coverage:'Recorded fixture only'}}));
-    await ready(page,`/?receipt=${sig}&mint=${mint}&wallet=${wallet}#payments/activity`);const dialog=page.locator('#receipt-inspector');await expect(dialog).toBeVisible();await expect(dialog).toContainText('current RPC recheck is not included');await expect(dialog).toContainText('Time unavailable');await expect(dialog).toContainText('0.000000015 SOL');await expect(dialog).toContainText('Fee payer and recipient net after network costs: unavailable');
+    await ready(page,`/?receipt=${sig}&mint=${mint}&wallet=${wallet}#payments/activity`);const dialog=page.locator('#receipt-inspector');await expect(dialog).toBeVisible();await expect(dialog).toContainText('current network recheck is not included');await expect(dialog).toContainText('Time unavailable');await expect(dialog).toContainText('0.000000015 SOL');await expect(dialog).toContainText('Fee payer and recipient net after network costs: unavailable');
     await dialog.getByRole('button',{name:'Close receipt'}).click();await expect(dialog).not.toBeVisible();await expect(page).not.toHaveURL(/receipt=/);
   });
   test(`followed creator notifications still receive receipts without the Home feed at ${width}px`,async({page})=>{

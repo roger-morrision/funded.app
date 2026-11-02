@@ -89,8 +89,8 @@ test('empty history shows no synthetic recipients and Home does not invent rewar
   empty.totalPayments = 0; empty.unavailableReceipts = 0; empty.history = { page:1, pages:1, rows:[], total:0, category:'all' };
   empty.pool = { status:'unavailable', categoryLamports:null };
   await setup(page, () => empty); await page.goto('/#bonuses');
-  await expect(page.locator('[data-bonus-leaders]')).toContainText('No finalized bonus payout yet');
-  await expect(page.locator('[data-bonus-history-rows]')).toContainText('No finalized bonus payouts');
+  await expect(page.locator('[data-bonus-leaders]')).toContainText('No confirmed bonus payout yet');
+  await expect(page.locator('[data-bonus-history-rows]')).toContainText('No confirmed bonus payouts');
   await page.goto('/#overview');
   await expect(page.locator('[data-bonus-pool="creators"]')).toHaveText('Unavailable');
 });
@@ -465,7 +465,7 @@ test.describe('FQA-071 original bonus history ownership', () => {
         expect(fallback.events.filter(event => event.original)).toHaveLength(1);
         expect(await original.evaluate(element => element.isConnected)).toBe(false);
         if (state === 'unavailable') { await expect(page.locator(bonusHistoryRows)).toBeEmpty(); await expect(page.locator('[data-bonus-history-status]')).toContainText('unavailable'); }
-        else if (state === 'empty') await expect(page.locator(bonusHistoryRows)).toHaveText('No finalized bonus payouts in this category.');
+        else if (state === 'empty') await expect(page.locator(bonusHistoryRows)).toHaveText('No confirmed bonus payouts in this category.');
         else await expect(page.locator(bonusRecipient)).toHaveAttribute('href','/wallet/' + '9'.repeat(44));
         const recovery = await f.trigger(); f.rows = [bonusReceipt({ amount:'161' })]; recovery.release();
         await expect(page.locator(`${bonusHistoryRows} tbody td:nth-child(3)`)).toHaveText('0.000000161 SOL');
@@ -479,7 +479,7 @@ test.describe('FQA-071 original bonus history ownership', () => {
       try {
         await f.open();
         let gate = await f.trigger(); const refreshOwner = await page.locator(bonusRefresh).elementHandle();
-        f.rows = []; gate.release(); await expect(page.locator(bonusHistoryRows)).toContainText('No finalized');
+        f.rows = []; gate.release(); await expect(page.locator(bonusHistoryRows)).toContainText('No confirmed');
         expect(await refreshOwner.evaluate(element => element.isConnected && document.activeElement === element)).toBe(true);
         gate = await f.trigger(); gate.status = 503; gate.release(); await expect(page.locator(bonusHistoryRows)).toBeEmpty();
         expect(await refreshOwner.evaluate(element => document.activeElement === element)).toBe(true);

@@ -22,7 +22,7 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
   if(tab==='trades')countText(coinMarketActivity.status==='loading'?'Loading recent trades…':'Recent trades unavailable');
   if (tab === 'chat') { renderCoinChat(activity); return; }
   if (tab === 'trades' && coinMarketActivity.status === 'loading') {
-    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Reading confirmed Pump trades…</strong><small>The 24-hour activity feed is loading from Solana RPC.</small></div>';
+    activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Loading recent trades…</strong><small>The 24-hour activity feed is loading from Solana RPC.</small></div>';
     return;
   }
   if (tab === 'trades' && coinMarketActivity.status === 'unavailable') {

@@ -5,9 +5,9 @@ const offlineFixture=route=>new URL(route.request().url()).pathname==='/api/fee-
   : route.fulfill({status:503,json:{error:'Offline fixture'}});
 
 for(const [name,status,dashboard,expected] of [
-  ['transport failure',503,null,'Burn verification unavailable'],
-  ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Burn verification unavailable'],
-  ['verified empty history',200,{status:'verified',collectedLamports:'0',lastBurn:null},'No verified burn yet'],
+  ['transport failure',503,null,'Waiting for the next burn update'],
+  ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Waiting for the next burn update'],
+  ['verified empty history',200,{status:'verified',collectedLamports:'0',lastBurn:null},'No burns yet'],
   ['known burn during a vault verification gap',200,{status:'partial',lastBurn:{signature:'3'.repeat(64),burnedAt:'2026-10-18T12:00:00Z'}},/2026/],
 ]) test(`buyback last-burn panels distinguish ${name}`,async({page})=>{
   await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offlineFixture);
