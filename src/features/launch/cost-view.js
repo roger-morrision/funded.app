@@ -13,7 +13,7 @@ function publicPlanningStatus(quote, fee) {
 function syncPlanningPresentation(wallet, document) {
   document.querySelector('#cost-summary')?.classList.toggle('public-launch-planning', !wallet);
   const synopsis = document.querySelector('#preview-launch-cost')?.parentElement;
-  if (synopsis) synopsis.hidden = !wallet;
+  if (synopsis) synopsis.hidden = false;
   const tier = document.querySelector('#cost-public-tier-note');
   if (tier) tier.hidden = Boolean(wallet);
 }
@@ -40,9 +40,11 @@ export function renderPublicQuoteRetry({wallet, publicQuote, active}, {document 
   if (!visible) {
     delete button.dataset.quoteRetryShown;
     if (wasFocused && active && !wallet && publicQuote?.status === 'ready') {
-      const heading = document.querySelector('#public-launch-cost-heading');
-      heading?.setAttribute('tabindex', '-1');
-      heading?.focus();
+      const total = document.querySelector('#preview-launch-cost');
+      total?.setAttribute('tabindex', '-1');
+      total?.setAttribute('aria-describedby', 'preview-cost-label');
+      total?.focus();
+      total?.scrollIntoView?.({block: 'center', behavior: 'instant'});
     }
     return;
   }
@@ -234,15 +236,16 @@ export function renderLaunchCostDetails(
 ) {
   let node=document.querySelector('#launch-cost-details');
   if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
-  const fee = wallet ? null : getLaunchFeeLamports();
-  const publicBudget = !wallet ? publicLaunchBudget(publicQuote, fee) : null;
   syncPlanningPresentation(wallet, document);
+  if (!wallet) {
+    node.hidden = true;
+    node.innerHTML = '';
+    return;
+  }
   node.hidden = false;
   const expanded = node.querySelector('details')?.open;
   const refreshMessage = launchEstimateRefreshMessage({ wallet, loading: walletMetricsLoading, retry: launchEstimateRetry });
-  if (publicBudget) node.innerHTML = `<section class="launch-review-costs" aria-labelledby="public-launch-cost-heading"><h3 id="public-launch-cost-heading">Review launch costs</h3><dl><div><dt>Holder reserve + optional developer buy</dt><dd>${formatLaunchCost(publicBudget.purchase)}</dd></div><div><dt>Purchase allowance (1%)</dt><dd>${formatLaunchCost(publicBudget.allowance)}</dd></div><div><dt>App launch service fee</dt><dd>${formatLaunchCost(publicBudget.serviceFee)}</dd></div><div><dt>Network fees + account rent planning allowance</dt><dd>${formatLaunchCost(publicBudget.overhead)}</dd></div><div><dt>Estimated total SOL budget</dt><dd>${formatLaunchCost(publicBudget.total)}</dd></div></dl><p>Planning estimate only. Wallet-specific simulation replaces the network and account allowance before signing.</p></section>`;
-  else if (!wallet) node.innerHTML = `<section class="launch-review-costs" aria-labelledby="public-launch-cost-heading"><h3 id="public-launch-cost-heading">Review launch costs</h3><p class="launch-public-budget-status">${publicPlanningStatus(publicQuote, fee)}</p><p>A complete planning budget needs a current public Pump quote and app fee policy. No wallet is required to view it; retry when either service is available.</p></section>`;
-  else if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
+  if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
   else node.innerHTML=launchReviewMarkup(launchCostReview);
   if (expanded && node.querySelector('details')) node.querySelector('details').open = true;
 }

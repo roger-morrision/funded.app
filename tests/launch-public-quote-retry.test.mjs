@@ -11,7 +11,7 @@ assert(marker.test(source));
 const body=source.replace(/^import[^\n]*\n/,'').replace('export function createLaunchPreviewController','function createLaunchPreviewController').replace(marker,'await loadReadModules()');
 function fixture(){
  let now=100000,next=0;const timers=new Map(),document={hidden:false,activeElement:null},fields=new Map();
- for(const id of['launch-public-quote-retry','launch-public-quote-retry-button','launch-public-quote-retry-status','public-launch-cost-heading'])fields.set('#'+id,{dataset:{},hidden:false,attributes:{},setAttribute(k,v){this.attributes[k]=v},focus(){document.activeElement=this}});
+ for(const id of['launch-public-quote-retry','launch-public-quote-retry-button','launch-public-quote-retry-status','preview-launch-cost'])fields.set('#'+id,{dataset:{},hidden:false,attributes:{},setAttribute(k,v){this.attributes[k]=v},focus(){document.activeElement=this}});
  document.querySelector=s=>fields.get(s)||null;
  const clock={now:()=>now,setTimeout:(fn,delay)=>{const id=++next;timers.set(id,{fn,at:now+delay});return id},clearTimeout:id=>timers.delete(id),async advance(ms){const end=now+ms;for(let i=0;i<100;i++){const entry=[...timers].filter(([,v])=>v.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];if(!entry)break;now=entry[1].at;timers.delete(entry[0]);entry[1].fn();for(let j=0;j<20;j++)await Promise.resolve()}now=end;for(let j=0;j<20;j++)await Promise.resolve()}};
  let failure=true,hold=null,reads=0,view,route='launch',reserve=30000000,buy=0;
@@ -25,7 +25,7 @@ test('unavailable quote retries once after unchanged cooldown, debounce and load
  const f=fixture();f.controller.updateCostSummary();await f.clock.advance(299);assert.equal(f.reads,0);await f.clock.advance(1);assert.equal(f.reads,1);assert.equal(f.quote.status,'unavailable');assert.equal(f.button.attributes['aria-disabled'],'true');assert.match(f.status.textContent,/15s/);
  for(let i=0;i<5;i++)f.controller.updateCostSummary();assert.equal(f.reads,1);await f.clock.advance(14999);f.controller.updateCostSummary();assert.equal(f.quote.status,'unavailable');await f.clock.advance(1);f.setFailure(false);f.button.focus();f.controller.refreshQuoteClocks();assert.equal(f.button.attributes['aria-disabled'],'false');assert.equal(f.reads,1);
  const done=f.defer();f.controller.updateCostSummary();for(let i=0;i<5;i++)f.controller.updateCostSummary();await f.clock.advance(300);assert.equal(f.reads,2);assert.equal(f.quote.status,'loading');assert.match(f.status.textContent,/Requesting/);assert.equal(f.document.activeElement,f.button);
- done({solAmountLamports:'8715246',maxSolAmountLamports:'8802399'});await f.clock.advance(0);assert.equal(f.quote.status,'ready');assert.equal(f.group.hidden,true);assert.equal(f.document.activeElement,f.fields.get('#public-launch-cost-heading'));
+ done({solAmountLamports:'8715246',maxSolAmountLamports:'8802399'});await f.clock.advance(0);assert.equal(f.quote.status,'ready');assert.equal(f.group.hidden,true);assert.equal(f.document.activeElement,f.fields.get('#preview-launch-cost'));
  for(let i=0;i<5;i++)f.controller.updateCostSummary();await f.clock.advance(59999);f.controller.updateCostSummary();assert.equal(f.reads,2);await f.clock.advance(1);f.controller.updateCostSummary();await f.clock.advance(300);assert.equal(f.reads,3);
 });
 test('failure retains focus and a second cooldown without automatically retrying',async()=>{

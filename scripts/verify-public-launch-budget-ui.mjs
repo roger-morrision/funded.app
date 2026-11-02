@@ -83,20 +83,10 @@ try {
       assert.equal(result.purchase,`${(Number(variant.maximum)/1e9).toFixed(6)} SOL`);
       assert.match(result.overhead,/0\.050000 SOL planning allowance/);
       assert.equal(result.label,`Launch service fee: ${Number(variant.fee)/1e9} SOL`);
-      assert.equal(result.visible,true);
-      assert.equal(result.detailLayout.length,5);
-      assert.ok(result.detailLayout.every(item => item.labelWidth >= 80 && item.labelHeight <= 70
-        && item.amountBelowLabel && item.withinRow), 'Every cost label and amount must stay readable without overlap.');
-      assert.match(result.details,/Purchase allowance \(1%\)/);
-      assert.match(result.details,new RegExp(`App launch service fee\\s*${variant.row.replace('.', '\\.')}`));
-      assert.match(result.details,/Network fees \+ account rent planning allowance/);
-      assert.match(result.details,new RegExp(`Estimated total SOL budget\\s*${variant.total.replace('.', '\\.')}`));
-    } else {
-      assert.equal(result.visible,true);
-      assert.match(result.details,/Review launch costs/);
-      assert.match(result.details,/complete planning budget needs/);
-      assert.doesNotMatch(result.details,/Estimated total SOL budget/);
     }
+    assert.equal(result.visible,false);
+    assert.equal(result.details,'');
+    assert.equal(result.detailLayout.length,0);
     if (process.env.FUNDED_BUDGET_SCREENSHOT_DIR && variant.status === 'ready'
       && variant.fee === '20000000' && variant.purchase === '840000000') {
       await page.screenshot({ path:`${process.env.FUNDED_BUDGET_SCREENSHOT_DIR}/local-${width}.png`, fullPage:true });
