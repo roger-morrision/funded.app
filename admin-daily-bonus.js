@@ -4,6 +4,7 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
   const reviewButton = $('#bonus-recovery-review'), applyButton = $('#bonus-recovery-apply');
   const preview = $('#bonus-recovery-preview'), status = $('#bonus-recovery-status');
   let snapshots = [], reviewed = null, busy = false, generation = 0;
+  let refreshGeneration=0;
   const started = row => row?.sources?.some(source => ['prepared','distributing','paid'].includes(source.status));
   const clear = () => { generation++; reviewed = null; applyButton.disabled = true; };
   function render() {
@@ -24,8 +25,10 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
     hash.value = row?.hash || ''; preview.textContent = ''; render();
   }
   async function refresh() {
+    const request=++refreshGeneration,current=generation;
     try {
       const data = await api('/api/daily-bonus');
+      if(request!==refreshGeneration||current!==generation||$('#workspace')?.hidden||busy)return;
       if (data.cluster !== 'devnet' || !Array.isArray(data.snapshots)) throw new Error();
       const qa = data.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
       const cutoff = Date.parse(data.nextCutoffAt || '');
@@ -37,7 +40,7 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
         const option = document.createElement('option'); option.value = row.day; choices?.append(option);
       }
       snapshots = data.snapshots; selectDay();
-    } catch { status.textContent = 'Snapshot status is unavailable. Index a completed day or enter a current snapshot hash for server verification.'; }
+    } catch { if(request===refreshGeneration&&current===generation&&!$('#workspace')?.hidden)status.textContent = 'Snapshot status is unavailable. Index a completed day or enter a current snapshot hash for server verification.'; }
   }
   const run = action => { if (busy) return; busy = true; render();
     action().catch(error => show(error.message,true)).finally(() => { busy = false; render(); });
@@ -73,8 +76,10 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
     const reason = $('#bonus-recovery-reason').value.trim();
     if (reason.length < 10) { show('Enter an audit reason of at least 10 characters.',true); return; }
     const input = {...reviewed,reason};
+    const current=generation;
     run(async() => {
       const result = await post('/api/admin/daily-bonus/reconcile',input);
+      if(current!==generation)return;
       clear(); preview.textContent = JSON.stringify(result,null,2);
       show(input.mode==='append-only-frozen-rankings-v1'
         ?'Added funding reconciled. Original ranks, manifests and paid receipts were preserved.'
@@ -82,7 +87,7 @@ export function initAdminDailyBonus({ document, api, post, show, refreshAudit })
       await refreshAudit();
     });
   });
-  const workspace=$('#workspace');if(workspace)new MutationObserver(()=>{if(workspace.hidden){clear();snapshots=[];day.value='';hash.value='';preview.textContent='';render();}})
+  const workspace=$('#workspace');if(workspace)new MutationObserver(()=>{if(workspace.hidden){clear();refreshGeneration++;snapshots=[];day.value='';hash.value='';$('#bonus-recovery-reason').value='';preview.textContent='';render();}})
     .observe(workspace,{attributes:true,attributeFilter:['hidden']});
   render(); return {refresh};
 }

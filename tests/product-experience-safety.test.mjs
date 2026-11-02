@@ -162,7 +162,7 @@ test('guest issue reporting requires origin, returns an owner token, and status 
   const submitted=await request('POST','/api/creator-support/issues',body);assert.equal(submitted.status,201);const {id,token}=submitted.data;assert.equal(state.productIssues[id].token,undefined);assert.notEqual(state.productIssues[id].tokenHash,token);
   assert.equal((await request('GET',`/api/creator-support/issues/${id}`)).status,404);
   const viewed=await request('GET',`/api/creator-support/issues/${id}`,{}, {'x-issue-token':token});assert.equal(viewed.status,200);assert.equal(viewed.data.description,undefined);assert.equal(viewed.data.tokenHash,undefined);
-  const out=response();await handleIssueAdmin({method:'POST'},out.res,new URL(`http://localhost/api/admin/product-issues/${id}`),{store,body:async()=>({status:'investigating',note:'Reproduced on mobile'}),json:(res,status,data)=>{res.writeHead(status);res.end(JSON.stringify(data));return true;}});
+  const out=response();await handleIssueAdmin({method:'POST'},out.res,new URL(`http://localhost/api/admin/product-issues/${id}`),{store,body:async()=>({status:'investigating',note:'Reproduced on mobile',expectedUpdatedAt:state.productIssues[id].updatedAt}),json:(res,status,data)=>{res.writeHead(status);res.end(JSON.stringify(data));return true;}});
   assert.equal((await request('GET',`/api/creator-support/issues/${id}`,{}, {'x-issue-token':token})).data.status,'investigating');
 });
 test('account preference writes use the verified session and CSRF; public profiles omit them',async()=>{

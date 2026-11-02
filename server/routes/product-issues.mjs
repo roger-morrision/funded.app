@@ -1,7 +1,8 @@
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { readJsonBody } from '../request-body.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
-export const issueStates = ['received','investigating','fixed','needs-information'];
+import {reviewProductIssue} from '../product-issue-review.mjs';
+export {issueStates} from '../product-issue-review.mjs';
 const hash = value => createHash('sha256').update(value).digest('hex');
 export function validateIssue(input) {
   if (!input || typeof input.description !== 'string' || input.description.trim().length < 10 || input.description.length > 2000
@@ -23,10 +24,8 @@ export function createProductIssueRoutes({store,cluster,requireAuthorized}) {
       if (!allowedAuthOrigin(req,process.env.CORS_ORIGIN)) return json(403,{error:'Submit from the app origin.'});
       if (id && url.pathname.endsWith('/status')) {
         if (!requireAuthorized || !requireAuthorized(req,res)) return requireAuthorized ? true : json(503,{error:'Operator review is unavailable.'});
-        const input = await readJsonBody(req,{maxBytes:1000});
-        if (!issueStates.includes(input.status) || typeof input.note !== 'string' || input.note.length > 500) return json(400,{error:'Choose a valid status and a note up to 500 characters.'});
-        const saved = await store.update(state=>{const row=state.productIssues?.[id];if(!row)return null;row.status=input.status;row.note=input.note;row.updatedAt=new Date().toISOString();return row;});
-        return saved ? json(200,{id,status:saved.status,note:saved.note}) : json(404,{error:'Report not found.'});
+        const result=await reviewProductIssue({store,id,input:await readJsonBody(req,{maxBytes:1000})});
+        return json(result.status,result.data);
       }
       if (url.pathname !== '/api/creator-support/issues') return json(404,{error:'Report route not found.'});
       const client = req.socket?.remoteAddress || 'local';

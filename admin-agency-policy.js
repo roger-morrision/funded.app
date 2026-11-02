@@ -8,12 +8,23 @@ export function initAdminAgencyPolicy({api,post,show,refresh}) {
   anchor.after(panel);
   initAdminAgencyRules({api,post,show,refresh});
   const form=panel.querySelector('form'),status=panel.querySelector('[data-agency-policy-review]');
-  form.addEventListener('submit',event=>{event.preventDefault();(async()=>{
-    const current=await api('/api/fee-policy');
-    const result=await post('/api/admin/agency-fee-policy',{expectedRevision:current.revision,
-      signature:form.elements.signature.value.trim(),configRevision:form.elements.configRevision.value.trim(),reason:form.elements.reason.value.trim()});
+  const workspace=panel.closest('#workspace');let busy=false,generation=0;
+  const current=(epoch,request)=>request===generation&&(!workspace||!workspace.hidden&&workspace.dataset.sessionEpoch===epoch);
+  const controls=()=>{for(const node of form.querySelectorAll('input,button'))node.disabled=busy||!!workspace?.hidden;};
+  if(workspace)new MutationObserver(()=>{
+    if(workspace.hidden){generation++;busy=false;form.reset();status.textContent='Review the authority-approved transaction and its rates before publishing.';}controls();
+  }).observe(workspace,{attributes:true,attributeFilter:['hidden']});controls();
+  form.addEventListener('submit',event=>{event.preventDefault();
+    if(busy||workspace?.hidden||!form.reportValidity())return;
+    const epoch=workspace?.dataset.sessionEpoch,request=++generation;
+    const input={signature:form.elements.signature.value.trim(),configRevision:form.elements.configRevision.value.trim(),reason:form.elements.reason.value.trim()};
+    busy=true;controls();(async()=>{
+    const policy=await api('/api/fee-policy');
+    if(request!==generation||workspace?.hidden||workspace&&workspace.dataset.sessionEpoch!==epoch)return;
+    const result=await post('/api/admin/agency-fee-policy',{expectedRevision:policy.revision,...input});
+    if(request!==generation||workspace?.hidden||workspace&&workspace.dataset.sessionEpoch!==epoch)return;
     const rates=result.split.referralLevelPercents.map(rate=>Number((rate/5).toFixed(6)));
     status.textContent=`Published revision ${result.revision}: L1 ${rates[0]}% · L2 ${rates[1]}% · L3 ${rates[2]}% of gross collected creator fees. Configuration revision ${result.configRevision}; finalized slot ${result.configSlot}.`;
     show('Authority-signed policy verified and published for future launches.');await refresh();
-  })().catch(error=>show(error.message,true));});
+  })().catch(error=>{if(current(epoch,request))show(error.message,true);}).finally(()=>{if(current(epoch,request)){busy=false;controls();}});});
 }

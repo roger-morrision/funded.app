@@ -6,7 +6,7 @@ export function initAdminServiceFees({ api, post, show }) {
   panel.innerHTML = `<h2>App service fees</h2><p>These charges are separate from the 80/20 creator-fee distribution. New quotes use the saved prices; already issued quotes retain their price until expiry. Funded.vip launches include listing.</p><p data-service-revision>Sign in to load current prices.</p><form id="service-fee-form"><div class="fee-fields"><label>Trading fee · buys and sells (%)<input name="tradePercent" type="number" min="0" max="5" step="0.01" required></label><label>Launch service fee (SOL)<input name="launchSol" type="number" min="0" max="5" step="0.000000001" required></label><label>Pro promotion ($FUNDED burn · USD)<input name="proUsd" type="number" min="1" max="100000" step="1" required></label><label>Premier promotion ($FUNDED burn · USD)<input name="premierUsd" type="number" min="1" max="100000" step="1" required></label><label>External listing ($FUNDED burn · USD)<input name="listingUsd" type="number" min="1" max="100000" step="1" required></label></div><label>Audit reason<input name="reason" minlength="10" maxlength="500" required></label><div class="actions"><button type="button" data-service-load>Refresh fees</button><button type="submit" disabled>Review and save fees</button></div></form>`;
   workspace.prepend(panel);
   const form = panel.querySelector('form'), submit = form.querySelector('[type=submit]'), refresh = panel.querySelector('[data-service-load]');
-  let snapshot, generation = 0, saving = false;
+  let snapshot, generation = 0, sessionGeneration = 0, saving = false;
   const field = name => form.elements.namedItem(name);
   async function load(afterSave = false) {
     if (saving && !afterSave) return false;
@@ -29,7 +29,8 @@ export function initAdminServiceFees({ api, post, show }) {
   }
   refresh.addEventListener('click', () => { void load(); });
   form.addEventListener('submit', async event => {
-    event.preventDefault(); if (!snapshot || saving) return;
+    event.preventDefault(); if (!snapshot || saving || workspace.hidden) return;
+    const sessionToken=sessionGeneration;
     try {
       const bps = Number(field('tradePercent').value)*100;
       if (Math.abs(bps-Math.round(bps)) > 1e-7) throw new Error('Use whole basis points and exact lamports.');
@@ -45,15 +46,23 @@ export function initAdminServiceFees({ api, post, show }) {
       const loaded = await load(true);
       if (!workspace.hidden) show(loaded ? 'Service fees saved. New quotes use the new revision.' : 'Service fees saved. Refresh fees to load the current prices.', !loaded);
     } catch(error) {
+      if(sessionToken!==sessionGeneration)return;
       if (saving) snapshot = null;
       if (!workspace.hidden) show(error.message + (saving ? ' Refresh fees before saving again.' : ''),true);
     } finally {
-      saving = false; refresh.disabled = false; submit.disabled = !snapshot;
-      for (const input of form.querySelectorAll('input')) input.disabled = false;
+      if(sessionToken===sessionGeneration){
+        saving = false; refresh.disabled = false; submit.disabled = !snapshot;
+        for (const input of form.querySelectorAll('input')) input.disabled = false;
+      }
     }
   });
   new MutationObserver(() => {
-    if (workspace.hidden) { generation++; snapshot = null; submit.disabled = true; }
+    if (workspace.hidden) {
+      generation++; sessionGeneration++; saving=false; snapshot = null;
+      form.reset();submit.disabled=true;refresh.disabled=false;
+      for(const input of form.querySelectorAll('input'))input.disabled=false;
+      panel.querySelector('[data-service-revision]').textContent='Sign in to load current prices.';
+    }
     else if (!snapshot) void load();
   }).observe(workspace,{attributes:true,attributeFilter:['hidden']});
   if (!workspace.hidden) void load();

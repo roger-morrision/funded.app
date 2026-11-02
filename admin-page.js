@@ -35,7 +35,7 @@ const sol = lamports => (Number(lamports) / 1_000_000_000).toLocaleString(undefi
 let connected = null, overview = null, policy = null, nextVault = 0, vaultLoading = false;
 let authBusy=false,feeSaving=false,refreshGeneration=0,auditGeneration=0,vaultGeneration=0,withdrawals;
 const session=createAdminSession({document,onEnd:()=>{
- overview=policy=null;refreshGeneration++;auditGeneration++;vaultGeneration++;nextVault=0;vaultLoading=false;
+ overview=policy=null;feeSaving=false;refreshGeneration++;auditGeneration++;vaultGeneration++;nextVault=0;vaultLoading=false;
  $('#refresh').disabled=false;
  for(const id of ['summary','wallet-rows','audit','vaults','gates'])document.getElementById(id).replaceChildren();
  $('#withdraw-source').replaceChildren();$('#withdraw-destination').replaceChildren();
@@ -153,9 +153,16 @@ async function refresh() {
  }finally{if(request===refreshGeneration)$('#refresh').disabled=false;}
 }
 async function refreshAudit() {
- const epoch=session.epoch,request=++auditGeneration,result=await api('/api/admin/audit');
- if(!session.current(epoch)||!session.active||request!==auditGeneration)return;
- $('#audit').innerHTML=result.entries.length?result.entries.map(entry=>`<p><strong>${escape(entry.action)}</strong> · ${escape(entry.at)} · ${escape(entry.wallet)}${entry.signature?` · <code>${escape(entry.signature)}</code>`:''}</p>`).join(''):'<p>No admin actions recorded yet.</p>';
+ if(!session.active)return;
+ const epoch=session.epoch,request=++auditGeneration;
+ try{
+  const result=await api('/api/admin/audit');
+  if(!session.current(epoch)||!session.active||request!==auditGeneration)return;
+  $('#audit').innerHTML=result.entries.length?result.entries.map(entry=>`<p><strong>${escape(entry.action)}</strong> · ${escape(entry.at)} · ${escape(entry.wallet)}${entry.signature?` · <code>${escape(entry.signature)}</code>`:''}</p>`).join(''):'<p>No admin actions recorded yet.</p>';
+ }catch(error){
+  if(session.current(epoch)&&session.active&&request===auditGeneration)$('#audit').textContent='Audit history unavailable. Refresh to retry.';
+  throw error;
+ }
 }
 async function loadVaults() {
   if (!session.active || nextVault == null || vaultLoading) return;
@@ -187,8 +194,9 @@ $('#fee-form').addEventListener('submit', event => { event.preventDefault(); (as
   if(!session.active||!policy||feeSaving)return;
   const split = validateProtocolFeeSplit(readSplit());
   if (!confirm(`Publish this split for future V3 launches?\nOperations & marketing ${Number((split.operationsPercent/5).toFixed(6))}% · referrals ${split.referralLevelPercents.map(rate=>Number((rate/5).toFixed(6))).join('/')}% · Daily bonus ${Number((split.communityPercent/5).toFixed(6))}% · $FUNDED buyback ${Number((split.buybackPercent/5).toFixed(6))}% (percentages of collected creator fees)\nExisting mint policies remain unchanged.`)) return;
-  feeSaving=true;refreshGeneration++;renderPolicy();
-  let updated;try{updated=await post('/api/admin/fee-policy',{split,expectedRevision:policy.revision});}finally{feeSaving=false;$('#refresh').disabled=false;if(policy&&session.active)renderPolicy();}
+  const epoch=session.epoch;feeSaving=true;refreshGeneration++;renderPolicy();
+  let updated;try{updated=await post('/api/admin/fee-policy',{split,expectedRevision:policy.revision});}finally{if(session.current(epoch)){feeSaving=false;$('#refresh').disabled=false;if(policy&&session.active)renderPolicy();}}
+  if(!session.current(epoch)||!session.active)return;
   policy = updated; renderPolicy(); show(`Fee policy revision ${updated.revision} published for future launches.`);
   await refreshAudit();
 })().catch(error => show(error.message, true)); });
