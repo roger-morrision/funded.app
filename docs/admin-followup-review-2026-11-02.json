@@ -1,0 +1,379 @@
+{
+  "checkedAt": "2026-11-02T02:12:41.027Z",
+  "scope": "Admin workspace review and fixes; Devnet only. This is not a completed new all-pages/on-chain campaign.",
+  "commits": [
+    "70991abef66d47a579da200843696bfb03ac4d2c",
+    "6aa743db5e8efda194e93f69ad2528b16a163d4c"
+  ],
+  "findings": [
+    {
+      "id": "ADMIN-01",
+      "fix": "Clear private issue descriptions, notes and review controls across sign-out and expired sessions; discard stale reads and writes."
+    },
+    {
+      "id": "ADMIN-02",
+      "fix": "Require the reviewed issue version on both operator endpoints, reject conflicting writes with HTTP 409, and validate malformed input. Freeze reviewed fields during save; require a reload after an uncertain or conflicting save."
+    },
+    {
+      "id": "ADMIN-03",
+      "fix": "Prevent duplicate configuration-publication submissions; capture and lock the exact proof and audit reason during publication."
+    },
+    {
+      "id": "ADMIN-04",
+      "fix": "Discard pending daily-bonus reconciliation results after the selected day or reviewed hash changes."
+    },
+    {
+      "id": "ADMIN-05",
+      "fix": "Recover service-fee and legacy-policy editing in a new session while an old save is unresolved; old callbacks cannot reset the new form."
+    },
+    {
+      "id": "ADMIN-06",
+      "fix": "Clear authority rules and audit reasons on logout; lock signing controls while signing and after failed settings verification. Check the original session again after asynchronous finalization and before publication."
+    },
+    {
+      "id": "ADMIN-07",
+      "fix": "Replace stale audit history with an explicit unavailable state and refresh action when reads fail."
+    }
+  ],
+  "validation": {
+    "backend": {
+      "passed": 43,
+      "failed": 0,
+      "scope": "Route/helper tests with deterministic chain fixtures; includes real ephemeral-wallet signed HTTP using an in-memory store."
+    },
+    "sourceBrowser": {
+      "initialSuite": {
+        "startTime": "2026-11-02T02:00:31.096Z",
+        "duration": 111760.831,
+        "expected": 33,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "finalAuthorityAndSafetyFollowup": {
+        "startTime": "2026-11-02T02:04:21.265Z",
+        "duration": 60361.444,
+        "expected": 13,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "scope": "Actual UI with intercepted API/RPC fixtures. Counts overlap; not additional unique flows."
+    },
+    "compiledBrowser": {
+      "stats": {
+        "startTime": "2026-11-02T02:07:22.507Z",
+        "duration": 47055.583,
+        "expected": 24,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "source": "6aa743db5e8efda194e93f69ad2528b16a163d4c",
+      "scope": "Final frozen production bundle; authenticated API/RPC fixtures; includes four concurrent community-page checks."
+    },
+    "signedHttpPostgres": {
+      "checkedAt": "2026-11-02T01:59:05.257Z",
+      "actor": "F5kyHWFUdRybCyCjVhpHF8k4kA56WhYmwzdMSpP5jiSA",
+      "checks": [
+        "Real QA wallet signature authenticates the actual admin HTTP route and isolated PostgreSQL",
+        "Concurrent pre-approval refresh cannot overwrite the saved review state",
+        "Browser approval and rejection persist exact content hashes, signed actor and append-only audit",
+        "Stale hash rejected without audit mutation; approved content cannot dispatch while paused",
+        "Legacy individual payouts remain hidden and unapprovable; unsolicited mentions cannot be approved",
+        "Exact nine-decimal fee policy persists through signed HTTP and PostgreSQL without rounding",
+        "Out-of-order fee refreshes cannot replace a newer revision with stale prices",
+        "Stale and invalid fee writes cannot change current policy or audit history",
+        "Logout invalidates fee editing even when a previously authenticated read arrives late"
+      ],
+      "browserErrors": [],
+      "xRequests": 0,
+      "xPosts": 0,
+      "solanaTransactions": 0,
+      "scope": "Isolated real HTTP, PostgreSQL, QA signature and actual admin fee/X review components. No API mocks, X client or worker."
+    },
+    "publicBrowser": {
+      "at": "2026-11-02T02:12:41.027Z",
+      "sha": "6aa743db5e8efda194e93f69ad2528b16a163d4c",
+      "scope": "Actual published Devnet admin page; no API interception, wallet, sign-in, publishing or chain transactions.",
+      "assetProof": [
+        {
+          "path": "/assets/favicon-DyjySFjS.svg",
+          "sha256": "dacb4eddbdaad5b336218198eef3ae9f114659b897c8ea0444e488d6921cd212"
+        },
+        {
+          "path": "/assets/admin-DPtcAB1g.js",
+          "sha256": "7875bc677519f81159f5340d5bec9ee58fe3c3ba6ea25decebdb4134af7f64f5"
+        },
+        {
+          "path": "/assets/modulepreload-polyfill-P2Xu9kJm.js",
+          "sha256": "418c206484b89b68ef5f067277831e583fc9193a62aadf4de269acaaeb12a85f"
+        },
+        {
+          "path": "/assets/rolldown-runtime-C0FnF6B9.js",
+          "sha256": "e0a79ad36c6ca1ffbc796c80aa5661803a9d1bc684e29d1587f48b4ba9a82714"
+        },
+        {
+          "path": "/assets/buffer-polyfill-BmNRc5Wd.js",
+          "sha256": "bd4e86fb93ab3f961112b47ca4f85e3bdfbab932f833c2a5b004d2e6545a712d"
+        },
+        {
+          "path": "/assets/preload-helper-DjzSQ1t3.js",
+          "sha256": "66c990b6727d220a346b45d00ee48d433c8d59ef03fbf8b91c6cdadeeadfdf3f"
+        },
+        {
+          "path": "/assets/ui-icons-D-PKB2qr.js",
+          "sha256": "c49f18fdfbc4aa09090653245f67ecd44f16bdb503989b03ffcf5f450eb63a3e"
+        },
+        {
+          "path": "/assets/admin-DuYn-x_f.css",
+          "sha256": "8eafaa2454990b2739ecebb294dfeff7b3904c023aaf48bacfc8f30586623dea"
+        },
+        {
+          "path": "/assets/left-navigation-BUS5pzqk.css",
+          "sha256": "65e6583d7b553595dd122cbe3e1408125d7b2eded67f3c199ad65e29129a5286"
+        }
+      ],
+      "states": [
+        {
+          "width": 320,
+          "signedOut": true,
+          "privateWorkspaceHidden": true,
+          "noOverflow": true
+        },
+        {
+          "width": 390,
+          "signedOut": true,
+          "privateWorkspaceHidden": true,
+          "noOverflow": true
+        },
+        {
+          "width": 768,
+          "signedOut": true,
+          "privateWorkspaceHidden": true,
+          "noOverflow": true
+        },
+        {
+          "width": 1440,
+          "signedOut": true,
+          "privateWorkspaceHidden": true,
+          "noOverflow": true
+        }
+      ],
+      "pageErrors": [],
+      "applicationWrites": [],
+      "cloudflareTelemetryPosts": 4
+    },
+    "sourceBudgets": {
+      "passed": true,
+      "maintainedCodeFiles": 1626
+    },
+    "syntax": {
+      "passed": true,
+      "files": 11
+    }
+  },
+  "deployment": {
+    "at": "2026-11-02T02:12:07.102Z",
+    "sha": "6aa743db5e8efda194e93f69ad2528b16a163d4c",
+    "image": "fundedapp-devnet:admin-6aa743db5e8e",
+    "imageId": "sha256:6b988028c9895efc745f04dc41d4850bdecc31bca3cd060ff70bea519cadf76e",
+    "frontend": {
+      "schemaVersion": 1,
+      "cluster": "devnet",
+      "exploreCluster": "devnet",
+      "mainnetEnabled": false,
+      "mainnetReadOnly": false,
+      "devWalletEnabled": false,
+      "sourceDigest": "0305a4251363a982f30b111bd4ce7062a16cbe2f95e66fb379f2daca59048804"
+    },
+    "services": [
+      {
+        "name": "app",
+        "id": "59f58d51e8e214f3e7a2bb66b68e9a24290ef93a3563ee2462bffe6d682e005e",
+        "image": "sha256:6b988028c9895efc745f04dc41d4850bdecc31bca3cd060ff70bea519cadf76e",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-02T02:09:17.036803146Z",
+        "build": "6aa743db5e8efda194e93f69ad2528b16a163d4c",
+        "rpc": "http://rpc-gateway:8899"
+      },
+      {
+        "name": "fee-collector",
+        "id": "142e5f7b016c362237dc44cdd6d54b9c1baab17467c1452a1ba7a964b5abb709",
+        "image": "sha256:6b988028c9895efc745f04dc41d4850bdecc31bca3cd060ff70bea519cadf76e",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-02T02:09:22.833494053Z",
+        "build": "6aa743db5e8efda194e93f69ad2528b16a163d4c",
+        "rpc": "http://rpc-gateway:8899"
+      },
+      {
+        "name": "buyback-worker",
+        "id": "9abd75d9f46a49933d028c80a3b6cf06de2653cea41bf1fadadd07cbfad92b76",
+        "image": "sha256:6b988028c9895efc745f04dc41d4850bdecc31bca3cd060ff70bea519cadf76e",
+        "status": "running",
+        "health": null,
+        "startedAt": "2026-11-02T02:09:22.836277655Z",
+        "build": "6aa743db5e8efda194e93f69ad2528b16a163d4c",
+        "rpc": "http://rpc-gateway:8899"
+      },
+      {
+        "name": "agency-buyback-worker",
+        "id": "815b754108f29681c5edfe676f962ed3956fe4b94f3f879ea93389344d7a226a",
+        "image": "sha256:6b988028c9895efc745f04dc41d4850bdecc31bca3cd060ff70bea519cadf76e",
+        "status": "running",
+        "health": null,
+        "startedAt": "2026-11-02T02:09:17.01129424Z",
+        "build": "6aa743db5e8efda194e93f69ad2528b16a163d4c",
+        "rpc": "http://rpc-gateway:8899"
+      },
+      {
+        "name": "rpc-gateway",
+        "id": "33f89f51fe249c64638d1b0561441b492562b9e9228f2772b1299514230040fa",
+        "image": "sha256:e4b4ec345cab408b9de8876524d41f5e094359eca1ccdb3e25ce155ab5e592bb",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-02T01:56:56.283655996Z"
+      },
+      {
+        "name": "rpc-cache",
+        "id": "5665bdc5f7ec2683c828c9dfb9ae5e473797c4d4549aed2b3eca5b66eb1346f7",
+        "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-02T01:56:55.872187403Z"
+      },
+      {
+        "name": "db",
+        "id": "fd9de17469d21df267f2b2fb10b386a45199be1c4ddb30cfe94077b191c83d47",
+        "image": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-02T01:56:55.584092973Z"
+      },
+      {
+        "name": "tunnel",
+        "id": "c12d5711b52a026281a980d3f2a197a4f1c9020ad63b4b3d59d01cad7a5d3c80",
+        "image": "sha256:b269e8abd07a5bf6f3f4be65d5050b2174eca89c56a0241a8ff32a16aec454e4",
+        "status": "running",
+        "health": null,
+        "startedAt": "2026-11-02T01:57:12.625806774Z"
+      }
+    ],
+    "privateApi": {
+      "/api/admin/session": 401,
+      "/api/admin/overview": 401,
+      "/api/admin/vaults": 401,
+      "/api/admin/rpc-health": 401,
+      "/api/admin/product-issues": 401,
+      "/api/admin/service-fees": 401
+    },
+    "health": {
+      "status": 200,
+      "data": {
+        "ok": true,
+        "service": "funded-api",
+        "launchPolicy": {
+          "cluster": "devnet",
+          "feeRouterProgramId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+          "feeRouterScope": "per-mint-v3",
+          "fundedMint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "burnAmounts": {
+            "boost": 1
+          },
+          "burnUsdTargets": {
+            "pro": 150,
+            "premier": 300
+          },
+          "serviceFees": {
+            "policy": {
+              "tradeBps": 50,
+              "launchLamports": "20000000",
+              "proUsd": 150,
+              "premierUsd": 300,
+              "listingUsd": 300
+            },
+            "revision": 2,
+            "hash": "6ceb18661aa6860544c72936a476178f9435e82ac6f55271f6bb5eb825045f07",
+            "updatedAt": "2026-10-19T06:27:30.621Z",
+            "appliesTo": "new quotes; issued quotes retain their approved amount until expiry"
+          },
+          "burnPricing": "verified-pool-spot"
+        },
+        "external": {
+          "solanaKeeper": true,
+          "automaticRewards": true,
+          "feeRouter": true,
+          "birdeye": false,
+          "pumpFun": true,
+          "xOAuth": true
+        }
+      }
+    },
+    "records": {
+      "launchCount": 9,
+      "campaignMintPresent": true,
+      "uiMintPresent": true
+    },
+    "protectedFiles": {
+      "server/index.mjs": "8e946bd2683b0d2e3f0d8c489094af99f442380730be10c2f4b5db0a73242e16",
+      "server/listener.mjs": "18cd4b98d29b4895884398a01aa59cc60cfba6cff26007de8a981fcb2c3a9b25",
+      "server/routes/launch-registration.mjs": "e4f68b03712ad49bc41bc9334e84aeecac51b42cfc7e3329d8ae424a802c2a55",
+      "server/rpc-proxy.mjs": "92f6e7839d4a4df0d36eabd56f9f6a06c87444f6fe8dc837811c4ebbe5980cb0"
+    },
+    "overlayFiles": {
+      "experience-preferences.js": "90178e78480ca146a4af1cc1d9e162e82a559f1df73d4c0c8e84ce4714df217b",
+      "admin-agency-policy.js": "601dddff23704ea649e084f977128f7e380d10e1cfa7bd4abac8a6a8ea2530c4",
+      "admin-agency-rules.js": "777280d9902a3fbe0792ca0de4cd2a26f63f24e35bde22c5c4dc56314e453599",
+      "admin-daily-bonus.js": "5845d93a620e059355ddf88d6644065cece2942f9286fcebed02bed14cf8b1fb",
+      "admin-page.js": "04043acce9a8457f4bff48e4b5c37e66d7a1c437bc9e8fc37b607d5e35b7fda9",
+      "admin-product-issues.js": "7195ca0bb7ea974405c7534995644bb30d1191ad80aa54fab0b0c4f374417f11",
+      "admin-service-fees.js": "a8aa97e95d4eb3211d43c1c0022e524f34924d9c97e3f6e68628c1328dfee007",
+      "server/product-issue-review.mjs": "1ed5023b575fef424862e8ac3fc957c65409f470e556dd573714d7e2ed33253e",
+      "server/routes/issue-admin.mjs": "edcb06ccb1cd4e68667a730abe6dfcdc5766d8d049a59aa4d7007a3244e65bf9",
+      "server/routes/product-issues.mjs": "eb243d89e286c68fb33304eb77cc7e22b4280e562780d5279958553cac60002b"
+    },
+    "otherEnvironmentAndMountsPreserved": true,
+    "mountPathsCanonicalized": true,
+    "infrastructureNotRestartedDuringDeployment": true,
+    "gateway": {
+      "verified": true,
+      "redis": {
+        "enabled": true,
+        "ready": true,
+        "reads": 318,
+        "hits": 191,
+        "misses": 127,
+        "writes": 127,
+        "errors": 0,
+        "invalidEntries": 0,
+        "oversizedEntries": 0,
+        "cooldownRemainingMs": 0
+      }
+    }
+  },
+  "runtimeRecovery": {
+    "dockerInitiallyStopped": true,
+    "restoredExistingContainers": true,
+    "gatewayRedisDatabaseTunnelRestartedBeforeDeployment": true,
+    "sameInfrastructureContainersAndStartTimesPreservedDuringRelease": true,
+    "liveXPublishingPaused": true
+  },
+  "limitations": [
+    "Live admin financial mutations were not run against treasury balances. Signing, expiry, tampering and lost-acknowledgement paths used mocked Devnet RPC.",
+    "Signed HTTP/PostgreSQL policy and review mutations used a disposable database and an in-memory ephemeral administrator; no X client or publishing worker was connected.",
+    "No new Solana transaction or X post was submitted by the audit runners. Ordinary restored workers continue their existing policies.",
+    "The prior 929-case all-pages run stopped at 215 completions after host/browser-worker interruption; it is not reported as passing here.",
+    "Release is a reviewed overlay on financial image 604ae992, retaining four existing backend hotfixes and the mounted marketing configuration; it is not a full backend rebuild."
+  ],
+  "delivery": {
+    "committedLocally": true,
+    "pushed": false
+  },
+  "reproductionEvidence": {
+    "unitBefore": "tmp/admin-review-20261102/unit-before.log",
+    "browserBefore": "tmp/admin-review-20261102/browser-before.json",
+    "additionalBrowserBefore": "tmp/admin-review-20261102/browser-extra-before.json"
+  }
+}
