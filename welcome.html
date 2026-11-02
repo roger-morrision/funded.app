@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/styles/landing.css" />
   <link rel="stylesheet" href="/styles/diagram-controls.css" /><link rel="stylesheet" href="/styles/fee-distribution-summary.css" />
   <script type="module" src="/src/features/landing/welcome.js"></script>
+  <script type="module" src="/src/features/landing/story.js"></script>
   <title>funded.vip — Launch your token. Grow your community.</title>
 </head>
 <body class="landing-page">
@@ -25,8 +26,12 @@
     <p class="nav-label">Meet the platform</p>
     <nav aria-label="Page sections">
       <a href="#platform" aria-current="location"><span data-icon="home"></span>Overview</a>
+      <a href="#why"><span data-icon="coin"></span>Why funded.vip</a>
+      <a href="#for-you"><span data-icon="users"></span>What you get</a>
       <a href="#creators"><span data-icon="launch"></span>For creators</a>
       <a href="#rewards"><span data-icon="rewards"></span>Community rewards</a>
+      <a href="#reward-flow"><span data-icon="wallet"></span>How you get paid</a>
+      <a href="#viral"><span data-icon="share"></span>Built to spread</a>
       <a href="#discovery"><span data-icon="explore"></span>Token discovery</a>
       <a href="#transparency"><span data-icon="coin"></span>Fees &amp; proof</a>
       <a href="#tools"><span data-icon="analytics"></span>Growth tools</a>
@@ -41,7 +46,7 @@
   </header>
   <dialog id="landing-menu" aria-labelledby="landing-menu-title">
     <div class="drawer-heading"><strong id="landing-menu-title">Explore funded.vip</strong><button class="icon-button" type="button" aria-label="Close navigation" data-close-menu><span data-icon="close"></span></button></div>
-    <nav aria-label="Mobile page sections"><a href="#platform">Overview</a><a href="#creators">For creators</a><a href="#rewards">Community rewards</a><a href="#discovery">Token discovery</a><a href="#transparency">Fees &amp; proof</a><a href="#tools">Growth tools</a><a href="#questions">Questions</a></nav>
+    <nav aria-label="Mobile page sections"><a href="#platform">Overview</a><a href="#why">Why funded.vip</a><a href="#for-you">What you get</a><a href="#creators">For creators</a><a href="#rewards">Community rewards</a><a href="#reward-flow">How you get paid</a><a href="#viral">Built to spread</a><a href="#discovery">Token discovery</a><a href="#transparency">Fees &amp; proof</a><a href="#tools">Growth tools</a><a href="#questions">Questions</a></nav>
     <a class="button primary" href="/#overview">Open app <span aria-hidden="true">↗</span></a>
   </dialog>
   <main id="main" tabindex="-1">
@@ -63,7 +68,79 @@
       </div>
     </section>
     <div class="value-strip" aria-label="Platform essentials"><span><i data-icon="wallet"></i>Wallet-controlled actions</span><span><i data-icon="users"></i>Community-focused rewards</span><span><i data-icon="analytics"></i>Inspectable on-chain records</span></div>
-    <nav class="landing-basic-index" id="landing-page-index" aria-labelledby="landing-page-index-title" tabindex="-1"><p id="landing-page-index-title">On this page</p><div><a href="#platform">Overview</a><a href="#creators">For creators</a><a href="#rewards">Community rewards</a><a href="#discovery">Token discovery</a><a href="#transparency">Fees &amp; proof</a><a href="#tools">Growth tools</a><a href="#questions">Questions</a></div></nav>
+    <div class="launch-marquee" aria-label="Key benefits"><span class="marquee-label"><i class="live-dot" aria-hidden="true"></i>On every coin</span><div class="marquee-window"><div class="marquee-track" data-marquee-track><span>80% of creator fees directed by the creator</span><span>≥3% of supply airdropped to $FUNDED holders</span><span>5% buys &amp; burns $FUNDED</span><span>Daily SOL bonus for top creators, referrers &amp; traders</span><span>3-level referral rewards</span><span>Every payout has a Solana receipt</span></div></div></div>
+
+    <section class="section-anchor why-section" id="why" aria-labelledby="why-title" tabindex="-1">
+      <div class="section-heading reveal"><div><p class="eyebrow">Why funded.vip</p><h2 id="why-title">Every trade feeds the community.</h2><p>Most launchpads keep the fees. Here, trading fees on every coin are split by a published rule that is saved on Solana when the coin launches.</p></div></div>
+      <div class="selling-grid">
+        <article class="reveal"><strong class="big-number" data-count-to="80" data-suffix="%">80%</strong><h3>Of creator fees go where the creator decides</h3><p>Keep them, or share them with your holders and an X partner.</p></article>
+        <article class="reveal"><strong class="big-number" data-count-to="3" data-prefix="≥" data-suffix="%">≥3%</strong><h3>Of every new coin airdropped to $FUNDED holders</h3><p>Every launch reserves part of its supply for people who hold $FUNDED.</p></article>
+        <article class="reveal"><strong class="big-number" data-count-to="5" data-suffix="%">5%</strong><h3>Buys and burns $FUNDED</h3><p>Fees from every coin buy $FUNDED and remove it from supply for good.</p></article>
+        <article class="reveal"><strong class="big-number" data-count-to="4" data-suffix="%">4%</strong><h3>Daily bonus pool</h3><p>Top 3 creators, referrers and traders are paid in SOL every day.</p></article>
+        <article class="reveal"><strong class="big-number" data-count-to="3" data-suffix=" levels">3 levels</strong><h3>Referral network</h3><p>Earn from coins launched by people you invite, and by the people they invite.</p></article>
+        <article class="reveal"><strong class="big-number">100%</strong><h3>On-chain receipts</h3><p>Every payout, airdrop and burn links to its Solana transaction.</p></article>
+      </div>
+    </section>
+
+    <section class="section-anchor audience-section" id="for-you" aria-labelledby="for-you-title" tabindex="-1">
+      <div class="section-heading reveal"><div><p class="eyebrow">Made for every role</p><h2 id="for-you-title">What you get here.</h2><p>Pick the way you take part. Most people do all four.</p></div></div>
+      <div class="audience-tabs" role="tablist" aria-label="Who funded.vip is for">
+        <button type="button" role="tab" id="aud-holders-tab" aria-controls="aud-holders" aria-selected="true" data-audience="holders">$FUNDED holders</button>
+        <button type="button" role="tab" id="aud-creators-tab" aria-controls="aud-creators" aria-selected="false" tabindex="-1" data-audience="creators">Coin creators</button>
+        <button type="button" role="tab" id="aud-traders-tab" aria-controls="aud-traders" aria-selected="false" tabindex="-1" data-audience="traders">Traders</button>
+        <button type="button" role="tab" id="aud-referrers-tab" aria-controls="aud-referrers" aria-selected="false" tabindex="-1" data-audience="referrers">Referrers</button>
+      </div>
+      <div class="audience-panel" role="tabpanel" id="aud-holders" aria-labelledby="aud-holders-tab">
+        <div><h3>Hold $FUNDED, share in every launch.</h3>
+          <ul class="benefit-list">
+            <li><b>Airdrops from new coins.</b> Each launch reserves at least 3% of its supply for eligible $FUNDED holders.</li>
+            <li><b>Constant buy and burn.</b> 5% of collected fees on every coin buys $FUNDED and burns it.</li>
+            <li><b>More burns from growth.</b> Pro and Premier launch packages and paid listings are paid by burning $FUNDED.</li>
+            <li><b>The longer you hold, the more snapshots you’re in.</b> Airdrops use holder snapshots, so holders stay eligible launch after launch.</li>
+          </ul>
+          <div class="panel-actions"><a class="button primary" href="/funded">Get $FUNDED <span aria-hidden="true">↗</span></a><a class="text-link" href="/#airdrops">See airdrops <span aria-hidden="true">→</span></a></div>
+        </div>
+        <div class="audience-visual holders-visual" aria-hidden="true"><span class="orbit-token">$F</span><span class="orbit-dot d1">+3%</span><span class="orbit-dot d2">🔥</span><span class="orbit-dot d3">+3%</span></div>
+      </div>
+      <div class="audience-panel" role="tabpanel" id="aud-creators" aria-labelledby="aud-creators-tab" hidden>
+        <div><h3>Launch a coin that pays you and your community.</h3>
+          <ul class="benefit-list">
+            <li><b>80% of creator fees are yours to direct.</b> Keep them, or reward holders and an X partner to grow faster.</li>
+            <li><b>Built-in audience.</b> Every $FUNDED holder gets an airdrop of your coin, so you launch with holders on day one.</li>
+            <li><b>Visibility when you want it.</b> Pro and Premier packages, paid listings and boosts put your coin on top.</li>
+            <li><b>An AI marketing agent.</b> 2% of fees fund X promotion and buybacks of your own coin at milestones.</li>
+            <li><b>Daily creator bonus.</b> The top 3 creators by fees earn SOL from the 4% pool every day.</li>
+          </ul>
+          <div class="panel-actions"><a class="button primary" href="/#launch">Launch a coin <span aria-hidden="true">↗</span></a><a class="text-link" href="/#docs/launch">Read the launch guide <span aria-hidden="true">→</span></a></div>
+        </div>
+        <div class="audience-visual creators-visual" aria-hidden="true"><span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span><span class="bar b4"></span></div>
+      </div>
+      <div class="audience-panel" role="tabpanel" id="aud-traders" aria-labelledby="aud-traders-tab" hidden>
+        <div><h3>Trade new coins with rewards attached.</h3>
+          <ul class="benefit-list">
+            <li><b>Earn while you hold.</b> Coins whose creators share fees with holders pay SOL to eligible holders automatically.</li>
+            <li><b>Daily trader bonus.</b> The top 3 traders by volume each day are paid in SOL.</li>
+            <li><b>See the rules before you buy.</b> Every card shows the coin’s fee split, package, boosts, burns and airdrop.</li>
+            <li><b>Fast discovery.</b> Trending, new and boosted coins with charts, trades and holders in one place.</li>
+          </ul>
+          <div class="panel-actions"><a class="button primary" href="/#explore">Explore coins <span aria-hidden="true">↗</span></a><a class="text-link" href="/#bonuses">See today’s bonus <span aria-hidden="true">→</span></a></div>
+        </div>
+        <div class="audience-visual traders-visual" aria-hidden="true"><svg viewBox="0 0 200 90" class="spark"><path d="M0 70 L25 62 L45 66 L70 40 L95 48 L120 25 L150 32 L175 12 L200 18" /></svg></div>
+      </div>
+      <div class="audience-panel" role="tabpanel" id="aud-referrers" aria-labelledby="aud-referrers-tab" hidden>
+        <div><h3>Invite once, earn on every trade after.</h3>
+          <ul class="benefit-list">
+            <li><b>Three levels deep.</b> 0.6% from creators you invite, 0.25% from their invites, 0.15% from the next level.</li>
+            <li><b>Paid on collected fees, not sign-ups.</b> The more your network’s coins trade, the more you earn.</li>
+            <li><b>Daily referrer bonus.</b> The top 3 referrers each day share part of the 4% pool.</li>
+            <li><b>One link, ready to share.</b> Copy your link or post a share card to X in one tap.</li>
+          </ul>
+          <div class="panel-actions"><a class="button primary" href="/#referrals">Get your invite link <span aria-hidden="true">↗</span></a></div>
+        </div>
+        <div class="audience-visual referrers-visual" aria-hidden="true"><span class="node n0">You</span><span class="node n1">L1</span><span class="node n2">L2</span><span class="node n3">L3</span></div>
+      </div>
+    </section>
+    <nav class="landing-basic-index" id="landing-page-index" aria-labelledby="landing-page-index-title" tabindex="-1"><p id="landing-page-index-title">On this page</p><div><a href="#platform">Overview</a><a href="#why">Why funded.vip</a><a href="#for-you">What you get</a><a href="#creators">For creators</a><a href="#rewards">Community rewards</a><a href="#reward-flow">How you get paid</a><a href="#viral">Built to spread</a><a href="#discovery">Token discovery</a><a href="#transparency">Fees &amp; proof</a><a href="#tools">Growth tools</a><a href="#questions">Questions</a></div></nav>
 
     <section class="section-anchor creators-section" id="creators" aria-labelledby="creators-title" tabindex="-1">
       <div class="section-intro"><p class="eyebrow">01 / For the builders</p><h2 id="creators-title">More than a<br />mint button.</h2><p>Go from an idea to a token people can discover, follow, and understand.</p><a class="text-link" href="/#launch">Prepare your launch <span aria-hidden="true">→</span></a></div>
@@ -86,6 +163,36 @@
         <article><span class="reward-number">06</span><div><h3>Community airdrops</h3><p>Check launched-token airdrops for eligible $FUNDED holders, including allocation proofs and the published claim window.</p><a href="/#airdrops">Token airdrops <span aria-hidden="true">→</span></a></div></article>
       </div>
       <p class="section-note">Allocations are not completed payments. Eligibility, verified funding, required approvals, and network readiness still apply.</p>
+    </section>
+
+    <section class="section-anchor flow-section" id="reward-flow" aria-labelledby="reward-flow-title" tabindex="-1">
+      <div class="section-heading reveal"><div><p class="eyebrow">How rewards reach you</p><h2 id="reward-flow-title">From one trade to your wallet.</h2><p>No claim forms for most rewards. Payouts go straight to eligible wallets with a receipt.</p></div></div>
+      <ol class="reward-flow">
+        <li class="reveal"><span class="flow-step">1</span><strong>Someone trades a coin</strong><small>Every buy and sell on the curve pays a creator fee.</small></li>
+        <li class="reveal"><span class="flow-step">2</span><strong>Fees are collected</strong><small>Automation collects them into the coin’s fee router on Solana.</small></li>
+        <li class="reveal"><span class="flow-step">3</span><strong>Split by the saved rule</strong><small>80% creator-directed · 8% operations · 4% daily bonus · 5% $FUNDED burn · 2% AI marketing · 1% referrals.</small></li>
+        <li class="reveal"><span class="flow-step">4</span><strong>Paid out with a receipt</strong><small>SOL to creators, holders, X partners, referrers and daily winners. Burns and airdrops link to Solana.</small></li>
+      </ol>
+      <div class="payout-chips reveal" aria-label="What you can receive"><span><b>SOL</b> creator share</span><span><b>SOL</b> holder rewards</span><span><b>SOL</b> referral payouts</span><span><b>SOL</b> daily bonus</span><span><b>Coins</b> airdrops to $FUNDED holders</span><span><b>Burn</b> $FUNDED supply</span></div>
+    </section>
+
+    <section class="section-anchor viral-section" id="viral" aria-labelledby="viral-title" tabindex="-1">
+      <div class="section-heading reveal"><div><p class="eyebrow">Built to spread</p><h2 id="viral-title">Every launch brings the next one.</h2><p>Rewards are designed so sharing pays. Each step brings in people who start the loop again.</p></div></div>
+      <div class="viral-layout">
+        <div class="viral-loop reveal" aria-hidden="true">
+          <span class="loop-ring"></span><span class="loop-runner"></span>
+          <span class="loop-node ln1">Launch</span><span class="loop-node ln2">Share</span><span class="loop-node ln3">Invite</span><span class="loop-node ln4">Trade</span><span class="loop-node ln5">Earn</span>
+          <span class="loop-center">funded<b>.vip</b></span>
+        </div>
+        <ol class="viral-steps">
+          <li class="reveal"><b>Launch</b> — creators start with $FUNDED holders already airdropped into their coin.</li>
+          <li class="reveal"><b>Share</b> — one-tap share cards for launches and trades, made for X.</li>
+          <li class="reveal"><b>Invite</b> — referral links pay three levels deep, so people invite people.</li>
+          <li class="reveal"><b>Trade</b> — daily leaderboards for creators, referrers and traders give a reason to come back.</li>
+          <li class="reveal"><b>Earn</b> — creators can reward holders and an X partner, who then promote the coin too.</li>
+        </ol>
+      </div>
+      <p class="section-note">Rewards depend on each coin’s saved policy, eligibility and verified funding. Token prices can go down as well as up; nothing on this page is financial advice.</p>
     </section>
 
     <section class="section-anchor discovery-section" id="discovery" aria-labelledby="discovery-title" tabindex="-1">

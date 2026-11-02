@@ -18,7 +18,7 @@ for(const width of[320,360,390,700,1024,1440])test(`public benefits and native F
   await expect(page.locator('.reward-grid article')).toHaveCount(6);
   await expect(page.locator('.preview-notice')).toContainText('Currently on Solana Devnet');
   await expect(page.locator('.illustration-note')).toContainText('not a live token or payout');
-  const sections=page.locator('.section-anchor');expect(await sections.count()).toBe(7);
+  const sections=page.locator('.section-anchor');expect(await sections.count()).toBe(11);
   for(const section of await sections.all()){
     await section.scrollIntoViewIfNeeded();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
