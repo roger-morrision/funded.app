@@ -262,7 +262,7 @@ assert.equal(verifiedBudget['#cost-total-enabled'].textContent, '0.035000 SOL');
 assert.match(actions, /ready \? \(launchBurn\.requiresBurn \? `Review launch · \$\{launchBurn\.label\}` : 'Review launch'\)/, 'The ready action must explicitly lead to transaction review.');
 assert.match(pageStyles, /\.launch-token-preview-image \{[^}]*aspect-ratio: 1 \/ 1/, 'The token preview must retain a square image area.');
 assert.match(pageStyles, /\.preview-promotion-badge\.premier/, 'The preview badge must support the Premier promotion tier.');
-assert.match(pageStyles, /\.launch-enhanced-preview/, 'The enhanced token-page preview must remain styled.');
+assert.doesNotMatch(html, /class="launch-enhanced-preview"/, 'The removed content-completion section must not appear in the launch form.');
 assert.match(workspaceStyles, /launch-page-wizard/, 'The launch layout must have dedicated responsive styles.');
 assert.match(pageStyles, /#cost-burn-row\[hidden\] \{ display: none; \}/, 'The free tier must fully hide the zero-value $FUNDED burn row.');
 assert.match(pageStyles, /\.launch-page input:not\(\[type='checkbox'\]\):not\(\[type='file'\]\)[\s\S]*?font-size: 14px/, 'Launch page fields must keep readable input text.');

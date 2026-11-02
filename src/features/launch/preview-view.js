@@ -86,17 +86,6 @@ export function updateLaunchPreview(
   if(buyPreview)buyPreview.hidden=!(creatorBuy.sol>0);
   if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : quotedBuyTokens > 0 ? `${Math.round(quotedBuyTokens).toLocaleString()} tokens` : creatorBuy.sol > 0 ? wallet ? 'Calculating…' : publicQuote?.status === 'unavailable' ? 'Quote unavailable' : 'Calculating…' : 'None';
   if (buySolNode) buySolNode.textContent = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL developer buy` : 'No developer buy';
-  const image = getPreparedImage();
-  const roadmap = document.querySelector('#token-roadmap')?.value.trim() || '';
-  const website = document.querySelector('#token-website')?.value.trim() || '';
-  const quality = [Boolean(image), Boolean(tagline), Boolean(website || document.querySelector('#token-x')?.value.trim() || document.querySelector('#token-telegram')?.value.trim() || document.querySelector('#token-discord')?.value.trim()), Boolean(roadmap)];
-  const qualityLabels = ['logo', 'thesis', 'links', 'roadmap'];
-  const qualityCount = quality.filter(Boolean).length;
-  const qualityScore = document.querySelector('#preview-quality-score');
-  const qualityFill = document.querySelector('#preview-quality-fill');
-  if (qualityScore) qualityScore.textContent = `${qualityCount} / 4 added`;
-  if (qualityFill) qualityFill.style.width = `${qualityCount / 4 * 100}%`;
-  qualityLabels.forEach((key, index) => { const node = document.querySelector(`#preview-quality-${key}`); if (node) { node.textContent = `${quality[index] ? '✓' : '○'} ${key === 'links' ? 'Official link' : key === 'roadmap' ? 'Milestones' : key[0].toUpperCase() + key.slice(1)}`; node.classList.toggle('ready', quality[index]); } });
   const compactPreviewValues = {
     '#preview-launchpad': 'Pump.fun',
     '#preview-supply': '1 billion',

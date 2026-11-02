@@ -36,10 +36,9 @@ for(const width of [320,390,768,1440])test(`launch review keeps amounts readable
   await page.locator('#launch-next').click();await page.locator('#launch-story-options > summary').click();
   await page.locator('#token-tagline').fill('A clear community project');await page.locator('#token-roadmap').fill('Launch the community\nShip the first release');
   const preview=page.locator('#launch-presentation-preview');await expect(preview).not.toHaveAttribute('open','');
-  await expect(page.locator('.launch-preview .launch-enhanced-preview')).toHaveCount(0);await expect(preview.locator('.launch-enhanced-preview')).toHaveCount(1);
-  await expect(preview.locator('#preview-quality-score')).toHaveText('2 / 4 added');await expect(preview.locator('.launch-enhanced-preview')).toBeHidden();
-  await preview.locator(':scope > summary').focus();await page.keyboard.press('Enter');await expect(preview.locator('.launch-enhanced-preview')).toBeVisible();
-  await expect(preview.locator('#preview-quality-thesis')).toContainText('✓');await expect(preview.locator('#preview-quality-roadmap')).toContainText('✓');
+  await expect(page.locator('.launch-enhanced-preview,.preview-quality')).toHaveCount(0);
+  await preview.locator(':scope > summary').focus();await page.keyboard.press('Enter');await expect(preview.locator('.launch-package-preview')).toBeVisible();
+  await expect(preview.locator('#preview-tagline')).toHaveText('A clear community project');await expect(page.locator('#token-roadmap')).toHaveValue('Launch the community\nShip the first release');
   await preview.locator(':scope > summary').focus();await page.keyboard.press('Space');await expect(preview).not.toHaveAttribute('open','');
   await page.locator('#fee-route-agree').focus();await expect(page.locator('#fee-route-agree')).toBeFocused();await page.keyboard.press('Tab');await expect(page.locator('#terms-agree')).toBeFocused();
   await expect(page.locator('#fee-route-agree')).not.toBeChecked();await expect(page.locator('#terms-agree')).not.toBeChecked();await expect(page.locator('#launch-button')).toBeDisabled();
