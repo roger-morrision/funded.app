@@ -270,6 +270,8 @@ const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: sola
 const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore, store,
   connectionFactory:() => createReceiptRpcConnection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
   officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash(), v3Only:true });
+// Build the payout history once at start so the first visitor is not kept waiting.
+void readPaymentHistory().catch(() => {});
 
 const handleWatchlist = createWatchlistHandler({ store, cluster: solanaCluster, getSession: xSession, getWalletSession: referralSession });
 const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence, requireAuthorized,

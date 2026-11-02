@@ -56,13 +56,6 @@ export function initializeCreatorActivity(app) {
     } catch { message.textContent = 'Saved reminders are unavailable. Check browser storage.'; }
   }
   checkbox.addEventListener('change', () => { try { saveNotifications({...readNotifications(),enabled:checkbox.checked}); } catch { checkbox.checked = false; message.textContent = 'Preference could not be saved.'; } render(); });
-  const coin = document.querySelector('#coin-page');
-  if (coin) {
-    const form = document.createElement('form'); form.className = 'flow-panel return-reminder';
-    form.innerHTML = '<h3>Return to this coin</h3><label>Remind me on this device<input type="datetime-local" required aria-label="Return reminder time"></label><button type="submit">Save reminder</button><button type="button" data-open-activity>View reminders</button><p role="status">Return to review eligibility, announcements, or a fresh quote. You approve any transaction yourself.</p>';
-    coin.append(form);
-    form.addEventListener('submit', event => { event.preventDefault(); save(new Date(form.querySelector('input').value).getTime(), location.pathname, 'Review token', form.querySelector('p')); });
-  }
   function save(at, href, label, status) {
     if (!Number.isFinite(at) || at <= Date.now() || at > Date.now() + 90 * 86400000) { status.textContent = 'Choose a time in the next 90 days.'; return; }
     try {

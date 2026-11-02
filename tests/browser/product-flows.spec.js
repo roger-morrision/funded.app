@@ -30,14 +30,8 @@ for (const width of [390,1440]) {
     await expect(page.locator('#trade-amount')).toHaveValue('0.25');
     await expect(page.locator('#trade-review-dialog')).not.toBeVisible();
     if (width < 700) { await expect(page.locator('#trade-panel')).toHaveAttribute('aria-modal','true'); await page.locator('.mobile-trade-close').click(); await page.locator('.mobile-trade-sell').click(); await expect(page.locator('#trade-side')).toHaveValue('sell'); await page.locator('.mobile-trade-close').click(); await expect(page.locator('.mobile-trade-sell')).toBeFocused(); }
-    const date = new Date(Date.now() + 3600000); const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0,16);
-    await page.locator('.return-reminder input').fill(local);
-    await page.locator('.return-reminder [type="submit"]').click();
-    await expect(page.locator('.return-reminder p')).toContainText('Reminder saved');
-    await page.locator('.return-reminder [data-open-activity]').click();
-    await expect(page.locator('[data-reminders]')).toContainText('Review token');
-    await page.locator('[data-reminders] button').click();
-    await expect(page.locator('[data-reminders]')).toContainText('No return reminders');
+    // The token page no longer offers a return-reminder form.
+    await expect(page.locator('.return-reminder')).toHaveCount(0);
   });
   test(`financial activity evidence and filter at ${width}px (mocked receipts)`, async ({page}) => {
     await setup(page,width);

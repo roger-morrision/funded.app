@@ -192,16 +192,6 @@ html body #main-content #coin-page .coin-stat-strip #coin-strip-market-cap { col
 html body #main-content #coin-page .trading-panel { border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
 html body #main-content #coin-page .coin-quick-amounts button,
 html body #main-content #coin-page .coin-slippage-presets button { min-height: 32px; border-radius: 999px; font: 600 12px var(--fv-font-data); }
-/* Phone token pages: Buy/Sell bar above the bottom navigation. */
-.coin-mobile-trade-bar { display: none; }
-@media (max-width: 700px) {
-  body.page-route-coin .coin-mobile-trade-bar { position: fixed; z-index: 29; left: var(--fv-space-4); right: var(--fv-space-4); bottom: calc(80px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: var(--fv-space-2); }
-  body.page-route-coin .coin-mobile-trade-bar button { min-height: 48px; border: 0; border-radius: var(--fv-radius-md); font: 700 15px var(--fv-font-ui); box-shadow: 0 8px 24px #0008; }
-  body.page-route-coin .coin-mobile-trade-buy { background: var(--fv-success); color: var(--fv-bg); }
-  body.page-route-coin .coin-mobile-trade-sell { background: var(--fv-danger); color: var(--fv-bg); }
-  body.page-route-coin .technical-notice-stack { bottom: calc(140px + env(safe-area-inset-bottom)); }
-  body.page-route-coin #main-content { padding-bottom: 160px; }
-}
 /* Get listed: verified listings use the shared listing card on the card grid. */
 html body #main-content #list-live-items:has(.home-launch-card) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--fv-space-3); }
 html body #main-content .home-launch-card .home-launch-chip.is-trust { color: var(--fv-success); border-color: color-mix(in srgb, var(--fv-success) 35%, transparent); }
