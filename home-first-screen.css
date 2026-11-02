@@ -24,6 +24,8 @@ body:not(.page-route-overview) .home-launch-highlights { display: none !importan
 html body.page-route-overview .main-content > .home-kpi-dashboard { order: 1; margin-block: 12px 16px; }
 html body.page-route-overview .main-content > .hero-section { order: 2; }
 html body.page-route-overview .main-content > .home-launch-board { order: 3; }
+html body.page-route-overview .main-content > .home-fee-route-panel { order: 5; width: 100%; margin-bottom: 24px; }
+body:not(.page-route-overview) .home-fee-route-panel { display: none !important; }
 html body.page-route-overview .main-content > .public-discovery { order: 4; }
 html body.page-route-overview .home-launch-grid { min-height: 320px; }
 /* Icon replacement must not resize the controls during startup. */
