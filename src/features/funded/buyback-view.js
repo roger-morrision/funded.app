@@ -109,7 +109,9 @@ export function renderBuybackDashboard(
     });
   }
   updateFundedBurnButton();
+  // The example-calculator panel was removed; its status line is optional.
   const status = document.querySelector('#buyback-preview-status');
+  if (!status) return;
   if (message) status.textContent = message;
   else if (pendingSol > 0) status.textContent = `${formatBuybackAmount(pendingSol)} SOL appears in the local preview. Only verified on-chain vault fees count toward automatic execution.`;
   else status.textContent = buybackNetworkState.automationEnabled

@@ -2,7 +2,7 @@
 export function createBuybackPreviewController(appState) {
   // app-source: 356
   function recordBuybackPreviewClaim(){
-    const fees = Number(document.querySelector('#buyback-example-fees').value);
+    const fees = Number(document.querySelector('#buyback-example-fees')?.value);
     if (!Number.isFinite(fees) || fees <= 0) { appState.renderBuybackDashboard('Enter a gross creator-fee amount above zero.'); return; }
     const state = appState.getBuybackPreviewState();
     const signature = `preview-claim-${Date.now()}-${state.accruals.length + 1}`;
