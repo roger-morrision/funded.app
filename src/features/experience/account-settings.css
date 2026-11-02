@@ -25,5 +25,9 @@ html body.product-experience-style #profile .settings-transfer-section > label {
 html body.product-experience-style #profile .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 html body.product-experience-style #profile .settings-actions > button { margin: 0; }
 html body.product-experience-style #profile #preference-transfer-data { font-family: var(--ui-font-mono,monospace); font-size: 13px; line-height: 1.6; resize: vertical; }
+html body.product-experience-style #profile #issue-reports .issue-review-actions > button { min-height: 44px; border-color: var(--yellow,#ffbe68); background: var(--yellow,#ffbe68); color: #101827; }
+html body.product-experience-style #profile #issue-reports .issue-delivery-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 0; }
+html body.product-experience-style #profile #issue-reports .issue-delivery-actions > button { width: 100%; padding-inline: 8px; white-space: normal; }
+html body.product-experience-style #profile #issue-reports pre { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg,#0b1020); }
 @container account-setting (min-width: 440px) { html body.product-experience-style #profile .settings-field-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 700px) { html body.product-experience-style #profile .settings-disclosure :is(input:not([type="checkbox"]),select,textarea) { font-size: 16px; } }

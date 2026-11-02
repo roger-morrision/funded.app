@@ -44,6 +44,13 @@ html body.product-experience-style #header-search-dialog .header-search-result {
 .help-topics-answer strong { color: #e9f5ea; font-size: 13px; }
 .help-topics-answer p { margin: 7px 0 12px; color: #9ead9f; font-size: 12px; line-height: 1.5; }
 .help-topics-answer a { color: #ffc270; font-size: 11px; text-decoration: none; }
+html body.product-experience-style .help-topics-panel { border-radius: 8px; border-color: var(--line); background: var(--panel); scroll-padding-block: 76px 14px; }
+html body.product-experience-style .help-topics-panel header { position: sticky; top: 0; z-index: 1; padding: 12px 14px; background: var(--panel); }
+html body.product-experience-style .help-topics-panel header button { display: grid; place-items: center; flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; }
+html body.product-experience-style .help-topics-choices { gap: 8px; padding: 12px 14px; }
+html body.product-experience-style .help-topics-choices button { min-height: 44px; border-radius: 8px; font-size: 12px; }
+html body.product-experience-style .help-topics-intro { padding-inline: 14px; }
+html body.product-experience-style .help-topics-answer { min-height: 0; margin: 0 14px 14px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
 @media (max-width: 520px) { .help-topics-trigger { right: 12px; bottom: 82px; } .help-topics-panel { right: 12px; bottom: 136px; } }
 @media (max-width: 520px) { .header-search-results-head span, .header-search-market small { display: none; } .header-search-panel { padding: 16px; } }
 @media (max-width: 700px) { .header-search-trigger { display: grid; } }
