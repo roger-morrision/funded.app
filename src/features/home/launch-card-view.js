@@ -194,14 +194,15 @@ export function homeLaunchCardMarkup(
     // Trust checks traders look for first, from confirmed mint data.
     const sameTicker = sameTickerCount(item);
     const trustChips = [
-      item.mintAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can mint more of this coin">✓ Mint revoked</span>' : '',
-      item.freezeAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can freeze holder wallets">✓ Freeze revoked</span>' : '',
+      item.mintAuthorityRevoked === true && item.freezeAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can mint more of this coin or freeze holder wallets">✓ No mint/freeze</span>'
+        : item.mintAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can mint more of this coin">✓ Mint revoked</span>'
+          : item.freezeAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can freeze holder wallets">✓ Freeze revoked</span>' : '',
       sameTicker > 0 ? `<span class="home-launch-chip is-warning" title="Check the contract address before buying">⚠ ${sameTicker} other coin${sameTicker === 1 ? ' uses' : 's use'} $${escapeHtml(item.symbol || '')}</span>` : '',
     ].join('');
     const protocolChips = trustChips + [
       listing ? `<span class="home-launch-chip is-listed" title="Paid listing confirmed on Solana">${icon('listingBag')}Listed</span>` : '',
       burnedTokens ? `<span class="home-launch-chip is-burn" title="$FUNDED burned for this coin's launch package and listing">${icon('burn')}${escapeHtml(burnedTokens.toLocaleString())} $FUNDED burned</span>` : '',
-      airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $FUNDED holders">${icon('send')}${escapeHtml(airdropPercent)} airdrop to $FUNDED holders</span>` : '',
+      airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $FUNDED holders">${icon('send')}${escapeHtml(airdropPercent)} to $FUNDED holders</span>` : '',
     ].join('');
     const socialLinks = exploreSocialLinksMarkup(item);
     const boost = verifiedBoosts[item.address];

@@ -2,8 +2,14 @@
 import { createExploreActivitySampler } from '../../features/explore/activity-sampling.js';
 export { scanExploreMarketsBounded } from '../../features/explore/activity-sampling.js';
 
+// Sorts only change which feed order is requested; a load is still valid
+// for a new sort that asks the feeds for the same order.
+const feedOrder = (sort, devnet) => [sort === 'newest' ? 'created_timestamp' : 'last_trade_timestamp',
+  devnet ? '' : sort === 'change' ? 'price_change_24h_percent' : sort === 'market-cap' ? 'market_cap' : 'volume_24h_usd'].join('|');
+
 export function createExploreLoadingController(appState) {
   let sampleActivity;
+  const sameFeed = (a, b) => a === b || feedOrder(a, appState.EXPLORE_CLUSTER === 'devnet') === feedOrder(b, appState.EXPLORE_CLUSTER === 'devnet');
   // app-source: 523
   async function loadOnchainExploreData(signal){
     if (appState.exploreLoadInFlight) return appState.exploreLoadInFlight;
@@ -13,7 +19,7 @@ export function createExploreLoadingController(appState) {
     try { return await load; }
     finally {
       if (appState.exploreLoadInFlight === load) appState.exploreLoadInFlight = null;
-      if (requestedSort !== appState.exploreSort && !signal?.aborted) void appState.loadOnchainExploreData(signal).catch(() => {});
+      if (!sameFeed(requestedSort, appState.exploreSort) && !signal?.aborted) void appState.loadOnchainExploreData(signal).catch(() => {});
     }
   }
   // app-source-end
@@ -118,7 +124,7 @@ export function createExploreLoadingController(appState) {
         } catch (error) { exploreVerificationFailed = true; exploreRateLimited = /429|rate.?limit|too many requests/i.test(String(error?.message || '')); }
       }
       signal?.throwIfAborted();
-      if (requestedSort !== appState.exploreSort) return;
+      if (!sameFeed(requestedSort, appState.exploreSort)) return;
       if (exploreRateLimited) appState.exploreBackoffUntil = Date.now() + 60_000;
       else if (!exploreVerificationFailed) appState.exploreBackoffUntil = 0;
       if ((exploreVerificationFailed || !pumpFeed.available) && appState.assets.length && appState.exploreLastVerifiedAt) {
@@ -134,6 +140,15 @@ export function createExploreLoadingController(appState) {
       let scannedCount = 0;
       let marketScanRateLimited = false;
       if (appState.EXPLORE_CLUSTER === 'devnet' && !exploreVerificationFailed) {
+        // Show market caps from the confirmed curve reads now; per-coin trade
+        // activity can take seconds and fills in on the render below.
+        if (verified.length) {
+          appState.assets = appState.includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
+          appState.publishVerifiedCurves(appState.assets);
+          appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
+          appState.renderExploreAssets();
+          appState.renderHomeLaunchBoard();
+        }
         sampleActivity ||= createExploreActivitySampler({cache:appState.exploreActivityCache});
         scannedCount = await sampleActivity(verified, async item => {
           const response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(item.address)}/market-activity`, { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000) }).catch(error => {
@@ -144,7 +159,7 @@ export function createExploreLoadingController(appState) {
         }, signal);
       }
       signal?.throwIfAborted();
-      if (requestedSort !== appState.exploreSort) return;
+      if (!sameFeed(requestedSort, appState.exploreSort)) return;
       appState.exploreScannedCount = scannedCount;
       if (marketScanRateLimited) appState.exploreBackoffUntil = Date.now() + 60_000;
     appState.assets = appState.includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
