@@ -153,6 +153,11 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
       if (kind === 'error') showError(text);
       else groups[kind].add(text);
     }
+    // Figure groups that would show only "—" placeholders stay out of view.
+    for (const group of root.querySelectorAll('[data-hide-when-empty]')) {
+      const empty = ![...group.querySelectorAll('strong')].some(value => /\d/.test(value.textContent));
+      if (empty) group.style.setProperty('display', 'none'); else group.style.removeProperty('display');
+    }
     renderSummary(groups);
   }
 

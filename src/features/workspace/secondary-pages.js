@@ -147,7 +147,7 @@ export function protocolPage() {
 
 export function mergePurposePages() {
   const groups = [
-    { host: '#my-launches', child: '#community', after: ':scope > .section-heading', childAtEnd: true, label: 'Portfolio sections', links: [['my-launches', 'Portfolio'], ['community', 'Favorites']] },
+    { host: '#my-launches', child: '#community', after: ':scope > .section-heading', childAtEnd: true, label: 'Portfolio sections', links: [['my-launches', 'Overview'], ['community', 'Favorites']] },
     { host: '#paid', child: '#buybacks', after: ':scope > .paid-reference-metrics', label: '$FUNDED sections', links: [['paid', 'Token overview'], ['buybacks', 'Buy & burn']] },
   ];
   for (const group of groups) {
