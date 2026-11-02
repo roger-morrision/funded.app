@@ -28,8 +28,8 @@ test('protocol allocation copy agrees across FAQ, buyback, and fee flow', async 
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('#fee-policy-faq')).toContainText(`${buyback}% $FUNDED buyback & burn`);
-  await expect(page.locator('#buyback-policy-heading')).toHaveText(`Preview the ${buyback}% policy`);
-  await expect(page.locator('#buyback-policy-note')).toContainText('Local calculation only');
+
+
   await expect(page.locator('.home-receipt-card .receipt-rows span').last()).toHaveText(`${buyback} SOL Buyback allocation`);
   await expect(page.locator('.fee-route-bar i.burn')).toHaveAttribute('style', new RegExp(`width:\\s*${buyback}%`));
 });
@@ -134,7 +134,7 @@ test('Home opens the live launch form and old pilot links resolve there', async 
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const create = page.locator('.hero-actions a[href="#launch"]');
   await expect(create).toHaveAttribute('href', '#launch');
-  await expect(create).toHaveText(/Launch a token/);
+  await expect(create).toHaveText(/Launch a coin/);
   await expect(page.locator('.home-hero-kicker')).not.toContainText(/pilot|devnet/i);
   await create.click();
   await expect(page.locator('#launch-route-shell')).toBeVisible();

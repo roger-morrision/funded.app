@@ -55,8 +55,6 @@ export function createFundedTradingController(appState) {
     if (appState.fundedBuyBusy || appState.fundedBuyRoute.status !== 'ready') return;
     const amount = Number(document.querySelector('#funded-buy-amount')?.value);
     if (!Number.isFinite(amount) || amount <= 0) return appState.renderFundedBuyControl('Enter a positive SOL amount to preview.');
-    const maxAmount = Math.min(0.01, appState.fundedBuyRoute.snapshot.quoteReservesSol * 0.03);
-    if (amount > maxAmount) return appState.renderFundedBuyControl(`This test pool limits each buy to ${maxAmount.toFixed(6)} SOL (3% of verified reserves).`);
     if (!appState.wallet) { await appState.connectWallet(); if (!appState.wallet) return; }
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) return appState.renderFundedBuyControl('Open the app in a wallet that can sign Solana transactions.');

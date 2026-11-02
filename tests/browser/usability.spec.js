@@ -106,8 +106,8 @@ test('navigation links and leaderboard tabs change views without generic success
   await open(page, 'launch');
   await page.getByRole('link', { name: 'Read the launch guide →' }).click();
   await expect(page).toHaveURL(/#docs\/launch$/);
-  await expect(page.locator('#docs-guide-article h1')).toHaveText('Launch a token');
-  await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText('Launch a token');
+  await expect(page.locator('#docs-guide-article h1')).toHaveText('Launch a coin');
+  await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText('Launch a coin');
   await expect(page.locator('#toast')).not.toContainText('View updated.');
 
   await open(page, 'leaderboard');

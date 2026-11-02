@@ -61,7 +61,7 @@ export function renderCreatorLaunches(
   list.classList.toggle('compact-empty', !launches.length);
   list.classList.toggle('creator-launch-list', launches.length > 0);
   if (!launches.length) {
-    paginateHistory(list, {label:'Created tokens', selector:'.project-token-card', key:connectedWalletAddress});
+    paginateHistory(list, {label:'Created coins', selector:'.project-token-card', key:connectedWalletAddress});
     const state = !connectedWalletAddress ? 'disconnected' : verifiedLaunchPoliciesStatus;
     const empty = document.createElement('div');
     empty.className = 'projects-empty-content';
@@ -119,5 +119,5 @@ export function renderCreatorLaunches(
     loadPortfolioLogo(card, launch);
     setWatchButtonState(card.querySelector('.watch-button'), getWatchlist().includes(launch.mint));
   }
-  paginateHistory(list, {label:'Created tokens', selector:'.project-token-card', key:connectedWalletAddress});
+  paginateHistory(list, {label:'Created coins', selector:'.project-token-card', key:connectedWalletAddress});
 }

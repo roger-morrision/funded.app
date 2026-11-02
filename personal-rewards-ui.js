@@ -33,7 +33,7 @@ async function refreshCreator(card, walletAddress, current) {
     if (!Array.isArray(launches)) throw new Error('Launch registry unavailable');
     const mine = launches.filter(launch => verifiedV3CreatorLaunch(launch, walletAddress, EXPLORE_CLUSTER));
     if (!mine.length) {
-      if (current()) setCard(card, { unclaimed: '0 SOL', claimed: '0 SOL', note: 'No creator rewards yet. Launch a token to get started.' });
+      if (current()) setCard(card, { unclaimed: '0 SOL', claimed: '0 SOL', note: 'No creator rewards yet. Launch a coin to get started.' });
       return;
     }
     const activities = await Promise.all(mine.map(launch => getJson(`/api/tokens/${encodeURIComponent(launch.mint)}/fee-activity`)));

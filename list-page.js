@@ -6,6 +6,7 @@ import { apiRequest } from './client.js';
 import { waitForSignatureConfirmation } from './funded-burn.js';
 import { LISTING_PRICE_USD, LISTING_DEVNET_GENESIS_HASH, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent, setListingPriceUsd } from './listing-policy.js';
 import { canSignTransactions } from './wallet-core.js';
+import { paidListingCardMarkup } from './src/features/home/paid-listing-view.js';
 import { readPendingListing, savePendingListing, clearPendingListing } from './listing-recovery.js';
 
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
@@ -176,16 +177,9 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (!live) return;
     live.replaceChildren();
     if (!listings.length) { const empty = document.createElement('p'); empty.textContent = 'No paid listings have been verified on Solana yet.'; live.append(empty); return; }
-    for (const item of listings) {
-      const row = document.createElement('a'); row.href = `/token/${encodeURIComponent(item.mint)}`; row.setAttribute('role', 'listitem');
-      const title = document.createElement('strong'); title.textContent = `${item.name} · ${item.symbol}`;
-      const mint = document.createElement('code'); mint.textContent = item.mint;
-      const amount = Number(item.amountTokens);
-      const amountLabel = Number.isFinite(amount) && amount > 0
-        ? amount.toLocaleString('en-US', { maximumFractionDigits:Number.isInteger(item.decimals) ? item.decimals : 9 }) : burnLabel();
-      const note = document.createElement('small'); note.textContent = `${item.usd ? `$${item.usd} listing · ` : ''}${amountLabel} $FUNDED burned · token details verified`;
-      row.append(title, mint, note); live.append(row);
-    }
+    // Same listing card as the Home "Paid Listing" tab: logo, identity, burn and proof.
+    live.innerHTML = listings.map(item => `<div role="listitem">${paidListingCardMarkup(item)}</div>`).join('');
+    live.dispatchEvent(new CustomEvent('funded:token-logos', { bubbles: true }));
   }
   async function refreshListings() {
     try {

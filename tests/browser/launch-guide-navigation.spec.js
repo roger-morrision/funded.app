@@ -13,8 +13,8 @@ const ready=async page=>{
 };
 const launchArticle=async page=>{
   await expect(page).toHaveURL(/#docs\/launch$/);
-  await expect(page.locator('#docs-guide-article h1')).toHaveText('Launch a token');
-  await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText('Launch a token');
+  await expect(page.locator('#docs-guide-article h1')).toHaveText('Launch a coin');
+  await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText('Launch a coin');
   await expect.poll(()=>page.locator('#docs-guide-article h1').evaluate(e=>{
     const r=e.getBoundingClientRect(),nav=document.querySelector('.mobile-workspace-nav');
     const bottom=nav?.getClientRects().length?nav.getBoundingClientRect().top:innerHeight;
@@ -54,5 +54,5 @@ for(const width of[390,1440])test(`FQA-020 direct/reloaded launch topic and gene
   const next=page.locator('.docs-guide-next button'),title=await next.textContent();await next.click();
   await expect(page.locator('#docs-guide-article h1')).toHaveText(title);
   await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText(title);
-  await expandDocsBrowser(page);await page.locator('.docs-guide-nav button',{hasText:'Launch a token'}).click();await launchArticle(page);
+  await expandDocsBrowser(page);await page.locator('.docs-guide-nav button',{hasText:'Launch a coin'}).click();await launchArticle(page);
 });

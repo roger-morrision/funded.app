@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-const loading = 'Checking finalized payout receipts.';
+const loading = 'Checking confirmed payout receipts.';
 const unavailable = 'Payment history is temporarily unavailable.';
 const incomplete = 'Verification coverage is incomplete. Confirmed payments are not available in this response.';
 const empty = 'No confirmed payments are available to show yet.';

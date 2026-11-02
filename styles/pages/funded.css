@@ -86,4 +86,4 @@ body .coin-page .coin-trade-panel,
 body .coin-page .coin-stat-strip > * { border-radius: 2px; }
 body .coin-page .coin-section-nav { border-bottom: 1px solid var(--line); }
 body .coin-page .coin-section-nav button.active { color: #f4a340; border-color: #f4a340; }
-body.page-route-coin .main-content.coin-view > #coin-page:not([hidden]) { display: block !important; }
+body.page-route-coin .main-content.coin-view > #coin-page:not([hidden]) { display: flex !important; flex-direction: column; }

@@ -76,3 +76,126 @@ html body #main-content .home-launch-progress-row[data-progress-state='loading']
 .technical-notice.is-compact { justify-self: end; padding: var(--fv-space-1) var(--fv-space-1) var(--fv-space-1) var(--fv-space-3); border-radius: 999px; }
 .technical-notice.is-compact .technical-notice-title { font-size: 12px; font-weight: 600; color: var(--fv-text-muted); }
 .technical-notice.is-compact p, .technical-notice.is-compact details { display: none; }
+
+/* Token card: one layout everywhere (launch-card-view.js). Benchmarked on
+   compact launchpad cards: identity + socials, market figures, curve, actions. */
+html body #main-content .token-card-shell.home-launch-card { position: relative; display: flex; flex-direction: column; gap: var(--fv-space-3); min-height: 0; padding: var(--fv-space-4); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); box-shadow: none; transition: border-color .15s, transform .15s; }
+html body #main-content .token-card-shell.home-launch-card:hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); transform: translateY(-1px); }
+html body #main-content .home-launch-card .home-card-overview { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: var(--fv-space-3); margin: 0; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-media { width: 56px; height: 56px; margin: 0; }
+html body #main-content .home-launch-card .home-launch-card-media img,
+html body #main-content .home-launch-card .home-token-avatar { width: 56px; height: 56px; border-radius: var(--fv-radius-md); object-fit: cover; }
+html body #main-content .home-launch-card .home-card-info { display: grid; gap: var(--fv-space-1); min-width: 0; }
+html body #main-content .home-launch-card .home-card-heading { display: flex; align-items: center; gap: var(--fv-space-2); min-width: 0; }
+html body #main-content .home-launch-card .home-token-identity { display: flex; align-items: baseline; gap: var(--fv-space-2); min-width: 0; }
+html body #main-content .home-launch-card .home-token-identity strong { color: var(--fv-text); font: 800 16px var(--fv-font-ui); letter-spacing: -.01em; }
+html body #main-content .home-launch-card .home-token-identity small { overflow: hidden; color: var(--fv-text-muted); font: 500 13px var(--fv-font-ui); text-overflow: ellipsis; white-space: nowrap; }
+html body #main-content .home-launch-card .home-launch-media-badges { display: inline-flex; flex: 0 0 auto; gap: var(--fv-space-1); margin: 0; }
+html body #main-content .home-launch-card .home-launch-media-badges:empty { display: none; }
+html body #main-content .home-launch-card .home-card-meta { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-card-addresses { display: inline-flex; align-items: center; gap: 2px; margin: 0; }
+html body #main-content .home-launch-card .home-launch-card-addresses code { color: var(--fv-text-subtle); font: 12px var(--fv-font-data); }
+html body #main-content .home-launch-card .home-launch-copy-address { width: 24px; height: 24px; min-height: 0; padding: 0; border: 0; border-radius: var(--fv-radius-sm); background: transparent; color: var(--fv-text-subtle); }
+html body #main-content .home-launch-card .home-launch-copy-address:hover { background: var(--fv-accent-soft); color: var(--fv-text); }
+html body #main-content .home-launch-card .explore-social-links { display: inline-flex; gap: 2px; margin: 0; }
+html body #main-content .home-launch-card .explore-social-link { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: var(--fv-radius-sm); color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .explore-social-link:hover { background: var(--fv-accent-soft); color: var(--fv-text); }
+html body #main-content .home-launch-card .explore-social-link svg,
+html body #main-content .home-launch-card .home-launch-copy-address svg { width: 14px; height: 14px; }
+html body #main-content .home-launch-card > .home-card-overview > .home-launch-change { align-self: start; padding: 2px var(--fv-space-2); border-radius: 999px; background: color-mix(in srgb, var(--fv-text) 6%, transparent); color: var(--fv-text-muted); font: 600 12px var(--fv-font-data); }
+html body #main-content .home-launch-card > .home-card-overview > .home-launch-change.is-positive { background: color-mix(in srgb, var(--fv-success) 12%, transparent); color: var(--fv-success); }
+html body #main-content .home-launch-card > .home-card-overview > .home-launch-change.is-negative { background: color-mix(in srgb, var(--fv-danger) 12%, transparent); color: var(--fv-danger); }
+html body #main-content .home-launch-card .home-launch-card-stats { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-stats > span { display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-stats small { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-ui); letter-spacing: .02em; text-transform: uppercase; }
+html body #main-content .home-launch-card .home-launch-card-stats strong { overflow: hidden; color: var(--fv-text); font: 600 14px var(--fv-font-data); text-overflow: ellipsis; white-space: nowrap; }
+html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { color: var(--fv-accent); font-size: 16px; }
+html body #main-content .home-launch-card .home-card-market-summary { display: grid; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-progress-heading { display: flex; justify-content: space-between; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); font: 500 11px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-fee-route { color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-card-actions { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 36px); gap: var(--fv-space-2); margin-top: auto; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-actions > * { min-width: 0; height: 36px; min-height: 0; margin: 0; padding: 0; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: transparent; color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy) { display: inline-grid; place-items: center; font-size: 0; }
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy) svg { width: 16px; height: 16px; }
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy):hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); color: var(--fv-text); }
+html body #main-content .home-launch-card .home-launch-card-actions > .card-review-buy { display: inline-flex; align-items: center; justify-content: center; gap: var(--fv-space-1); border-color: var(--fv-accent); background: var(--fv-accent); color: var(--fv-bg); font: 700 14px var(--fv-font-ui); text-decoration: none; }
+html body #main-content .home-launch-card .home-launch-card-actions > .card-review-buy:hover { filter: brightness(1.08); }
+html body #main-content .home-launch-card .home-launch-note { color: var(--fv-text-subtle); font-size: 12px; }
+html body #main-content .home-launch-card .home-launch-protocol { position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: var(--fv-space-1); }
+html body #main-content .home-launch-card .home-launch-protocol:not(:has(*:not(:empty))) { display: none; }
+html body #main-content .home-launch-card .home-launch-media-package:empty { display: none; }
+html body #main-content .home-launch-card .home-launch-protocol > *,
+html body #main-content .home-launch-card .home-launch-media-package > *,
+html body #main-content .home-launch-card .boost-package-badge { display: inline-flex; align-items: center; gap: var(--fv-space-1); min-height: 22px; margin: 0; padding: 0 var(--fv-space-2); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 11px var(--fv-font-ui); text-decoration: none; white-space: nowrap; }
+html body #main-content .home-launch-card .home-launch-media-package,
+html body #main-content .home-launch-card .boost-package-badges { display: contents; }
+html body #main-content .home-launch-card .home-launch-chip svg { width: 12px; height: 12px; }
+html body #main-content .home-launch-card .home-launch-media-package [data-tier='premier'],
+html body #main-content .home-launch-card .home-launch-media-package .promotion-premier { border-color: var(--fv-accent); color: var(--fv-accent); }
+html body #main-content .home-launch-card .boost-package-badge { border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); color: var(--fv-warning); }
+html body #main-content .home-launch-card .home-launch-chip.is-burn { color: var(--fv-danger); border-color: color-mix(in srgb, var(--fv-danger) 35%, transparent); }
+html body #main-content .home-launch-card .home-launch-chip.is-airdrop { color: var(--fv-success); border-color: color-mix(in srgb, var(--fv-success) 35%, transparent); }
+html body #main-content .home-launch-card .home-launch-chip.is-listed { color: var(--fv-text); }
+html body #main-content .home-launch-card .home-launch-fee-route { display: flex; gap: var(--fv-space-2); align-items: baseline; }
+html body #main-content .home-launch-card .home-launch-fee-route small { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-ui); text-transform: uppercase; letter-spacing: .02em; }
+html body #main-content .home-launch-card .home-launch-fee-route span { color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .home-launch-card-media { overflow: hidden; border: 0; border-radius: var(--fv-radius-md); background: var(--fv-surface-raised); }
+/* Every token-card list uses the same grid. */
+html body #main-content #home-launch-grid:has(> .home-launch-card),
+html body #main-content #asset-grid:has(> .home-launch-card),
+html body #main-content #watchlist-items:has(> .home-launch-card) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--fv-space-3); }
+
+/* Token detail page: header → key stats → chart beside a trade panel that stays
+   in view → activity tabs → protocol and fee detail. */
+html body #main-content #coin-page:not([hidden]) { display: flex; flex-direction: column; gap: var(--fv-space-4); }
+html body #main-content #coin-page > .coin-breadcrumb { order: 0; }
+html body #main-content #coin-page > .coin-hero-card { order: 1; }
+html body #main-content #coin-page > .coin-stat-strip { order: 2; }
+html body #main-content #coin-page > .coin-layout { order: 3; }
+html body #main-content #coin-page > .coin-burn-dashboard { order: 4; }
+html body #main-content #coin-page > .coin-fixed-fee-details { order: 5; }
+html body #main-content #coin-page > .coin-summary-dashboard,
+html body #main-content #coin-page > #coin-fee-dashboard { order: 6; }
+html body #main-content #coin-page .coin-hero-card { padding: var(--fv-space-4) var(--fv-space-5); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+html body #main-content #coin-page .coin-record-shortcuts { display: none; }
+html body #main-content #coin-page .coin-socials { display: flex; flex-wrap: wrap; gap: var(--fv-space-2); }
+html body #main-content #coin-page .coin-socials > a:not([hidden]),
+html body #main-content #coin-page .coin-socials > button { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); text-decoration: none; }
+html body #main-content #coin-page .coin-socials > a:hover,
+html body #main-content #coin-page .coin-socials > button:hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); color: var(--fv-text); }
+html body #main-content #coin-page .coin-stat-strip { gap: 1px; overflow: hidden; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-border); }
+html body #main-content #coin-page .coin-stat-strip > div { padding: var(--fv-space-3) var(--fv-space-4); background: var(--fv-surface); }
+html body #main-content #coin-page .coin-stat-strip strong { color: var(--fv-text); font: 600 18px var(--fv-font-data); }
+html body #main-content #coin-page .coin-stat-strip #coin-strip-market-cap { color: var(--fv-accent); }
+@media (min-width: 1100px) {
+  html body #main-content #coin-page .coin-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: var(--fv-space-4); }
+  html body #main-content #coin-page .coin-side-column { position: sticky; top: 80px; display: grid; gap: var(--fv-space-4); }
+}
+@media (max-width: 1099px) {
+  /* Narrow screens: buy right after the chart, not after every table. */
+  html body #main-content #coin-page .coin-layout { display: flex; flex-direction: column; gap: var(--fv-space-4); }
+  html body #main-content #coin-page .coin-main-column,
+  html body #main-content #coin-page .coin-side-column { display: contents; }
+  html body #main-content #coin-page .coin-chart-panel { order: 1; }
+  html body #main-content #coin-page .trading-panel { order: 2; }
+  html body #main-content #coin-page .coin-pulse-panel { order: 3; }
+  html body #main-content #coin-page .coin-tabs-panel { order: 4; }
+  html body #main-content #coin-page .coin-policy-card { order: 5; }
+  html body #main-content #coin-page .coin-main-column > .launch-facts { order: 6; }
+}
+html body #main-content #coin-page .trading-panel { border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+html body #main-content #coin-page .coin-quick-amounts button,
+html body #main-content #coin-page .coin-slippage-presets button { min-height: 32px; border-radius: 999px; font: 600 12px var(--fv-font-data); }
+/* Phone token pages: Buy/Sell bar above the bottom navigation. */
+.coin-mobile-trade-bar { display: none; }
+@media (max-width: 700px) {
+  body.page-route-coin .coin-mobile-trade-bar { position: fixed; z-index: 29; left: var(--fv-space-4); right: var(--fv-space-4); bottom: calc(80px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: var(--fv-space-2); }
+  body.page-route-coin .coin-mobile-trade-bar button { min-height: 48px; border: 0; border-radius: var(--fv-radius-md); font: 700 15px var(--fv-font-ui); box-shadow: 0 8px 24px #0008; }
+  body.page-route-coin .coin-mobile-trade-buy { background: var(--fv-success); color: var(--fv-bg); }
+  body.page-route-coin .coin-mobile-trade-sell { background: var(--fv-danger); color: var(--fv-bg); }
+  body.page-route-coin .technical-notice-stack { bottom: calc(140px + env(safe-area-inset-bottom)); }
+  body.page-route-coin #main-content { padding-bottom: 160px; }
+}
+/* Get listed: verified listings use the shared listing card on the card grid. */
+html body #main-content #list-live-items:has(.home-launch-card) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--fv-space-3); }

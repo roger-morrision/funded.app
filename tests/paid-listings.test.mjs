@@ -21,7 +21,7 @@ test('paid listing cards show burn proof without claiming launch metrics', () =>
   const card = paidListingCardMarkup(listing);
   const row = paidListingTableMarkup(listing);
   assert.match(card, /Paid listing/);
-  assert.match(card, /Payment verified on Devnet/);
+  assert.match(card, /Listed [A-Z][a-z]{2} \d+, \d{4}/);
   assert.match(card, /explorer\.solana\.com\/tx\/3+\?cluster=devnet/);
   assert.doesNotMatch(card, /<img src=x/);
   assert.doesNotMatch(card, /On curve|Standard launch|Market cap/);

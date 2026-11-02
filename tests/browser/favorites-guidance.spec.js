@@ -66,7 +66,7 @@ for (const width of [360, 390, 1440]) test(`Favorites native guidance and existi
   await expect(summary.locator('..')).not.toHaveAttribute('open', '');
   await page.keyboard.press('Tab'); await expect(summary).toBeFocused(); await page.keyboard.press('Enter'); await expect(summary.locator('..')).toHaveAttribute('open', '');
   await page.keyboard.press('Enter'); await expect(summary.locator('..')).not.toHaveAttribute('open', '');
-  const empty = page.locator('#watchlist-empty'), explore = empty.getByRole('link', { name: 'Explore tokens', exact: true });
+  const empty = page.locator('#watchlist-empty'), explore = empty.getByRole('link', { name: 'Explore coins', exact: true });
   await expect(empty).toContainText('No favorite tokens'); await expect(empty.locator('p')).toHaveText('Select the star on a token in Explore to add it here.');
   const e = await explore.boundingBox(); expect(e.height).toBeGreaterThanOrEqual(44); expect(e.width).toBeGreaterThanOrEqual(44);
   await page.keyboard.press('Tab'); await clearFocus(page, explore); await expect(explore).toHaveAttribute('href', '#explore');

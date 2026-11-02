@@ -429,6 +429,9 @@ export function initializeLaunchActions(appState) {
   document.querySelector('#trade-side')?.addEventListener('change', appState.updateTradeAmountLabel);
   // app-source-end
 
+  // Standalone pages (Get listed) render shared token cards and ask the app for logos.
+  document.addEventListener('funded:token-logos', event => appState.loadVerifiedTokenLogos(event.target));
+
   // app-source: 730
   document.querySelectorAll('[data-coin-trade-side]').forEach(button => button.addEventListener('click', () => {
     const side = button.dataset.coinTradeSide;

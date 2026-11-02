@@ -22,8 +22,8 @@ function home() {
   const explore = actions?.querySelector('[href="#explore"]');
   const launch = actions?.querySelector('[href="#launch"]');
   if (explore && launch) {
-    explore.className = 'primary-button'; explore.textContent = 'Explore tokens';
-    launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a token';
+    explore.className = 'primary-button'; explore.textContent = 'Explore coins';
+    launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a coin';
     actions.prepend(explore);
   }
   const rewardGroups = $('.home-rewards-stack');
@@ -47,11 +47,11 @@ function home() {
 }
 
 function explore() {
-  setText('.explore-hero h1', 'Explore tokens');
+  setText('.explore-hero h1', 'Explore coins');
   setText('.explore-lede', 'Find a token, compare its activity, and explore its community.');
   setText('button[data-explore-tab="trending"]', 'Trending');
   setText('.workspace-watch-link', 'Following');
-  $('#explore-search')?.setAttribute('placeholder', 'Search tokens or paste an address');
+  $('#explore-search')?.setAttribute('placeholder', 'Search coins or paste an address');
   const bar = $('.explore-control-bar');
   const sort = $('#explore-sort');
   const label = sort?.closest('label');
@@ -62,6 +62,22 @@ function explore() {
   }
   const labels = { boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', turnover:'Volume / market cap', 'recent-trade':'Recent activity', holders:'Holder count', change:'24h change', newest:'Newest' };
   for (const option of sort?.options || []) if (labels[option.value]) option.textContent = labels[option.value];
+  // Common sorts first; protocol-specific and detailed sorts in labelled groups.
+  if (sort && !sort.querySelector('optgroup')) {
+    const groups = [
+      ['funded.vip rewards', ['boosted', 'tier-burn', 'airdrop', 'holder-fee', 'x-fee']],
+      ['More', ['trades', 'turnover', 'liquidity', 'recent-trade']],
+    ];
+    for (const value of ['volume', 'market-cap', 'newest', 'holders', 'change']) {
+      const option = sort.querySelector(`option[value="${value}"]`);
+      if (option) sort.append(option);
+    }
+    for (const [label, values] of groups) {
+      const group = document.createElement('optgroup'); group.label = label;
+      for (const value of values) { const option = sort.querySelector(`option[value="${value}"]`); if (option) group.append(option); }
+      if (group.children.length) sort.append(group);
+    }
+  }
   const filters = $('#explore-filter-popover');
   filters?.setAttribute('role', 'dialog'); filters?.setAttribute('aria-label', 'Token filters');
   // Keyboard users can dismiss the drawer and return to the invoking control.
@@ -97,7 +113,7 @@ function launch() {
   }
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
-  setText('#launch-route-title', 'Launch a token');
+  setText('#launch-route-title', 'Launch a coin');
   setText('#launch-route-shell .page-lede', `Control your 80% creator share. ${currentFeePolicyCopy().headline}. Review the full fee distribution and launch cost before signing.`);
   setText('#benefits-step-title', 'Choose your fee route');
   setText('[data-launch-step="2"] > .step-heading p', 'The recommended setup directs 80% of collected creator fees to your wallet. Airdrop size, developer buy, and promotion are separate choices.');
@@ -128,7 +144,7 @@ function portfolio() {
     const button = document.createElement('button');
     button.id = 'portfolio-created-tab'; button.type = 'button'; button.dataset.portfolioTab = 'created';
     button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', 'false'); button.setAttribute('aria-controls', panel.id);
-    button.tabIndex = -1; button.textContent = 'Created tokens'; bar.append(button);
+    button.tabIndex = -1; button.textContent = 'Created coins'; bar.append(button);
   }
   setText('#portfolio-trades-tab', 'Activity');
   setText('#watchlist-heading', 'Following');
@@ -152,7 +168,7 @@ function details() {
   const headerAside = $('#coin-page .coin-hero-aside');
   if (about && headerAside) { about.classList.add('product-token-about'); headerAside.prepend(about); }
   setText('.coin-market-aside-title', 'Launch progress');
-  setText('.header-search-results-head strong', 'Explore tokens');
+  setText('.header-search-results-head strong', 'Explore coins');
   const trade = $('#trade-panel');
   const quote = trade?.querySelector('.coin-trade-quote-details');
   const submit = trade?.querySelector('.trade-actions');

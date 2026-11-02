@@ -74,7 +74,7 @@ function compactBuyback() {
   }
 
   for (const [selector, label, className] of [
-    ['.burn-policy-preview', 'Preview the 5% allocation', 'concise-policy-preview'],
+
     ['.burn-tier-card', 'Launch tier burn amounts', 'concise-tier-preview'],
   ]) {
     const panel = root.querySelector(selector);

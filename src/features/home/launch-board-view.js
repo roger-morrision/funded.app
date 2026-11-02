@@ -165,7 +165,14 @@ export function renderHomeLaunchBoard(state, {
       if (paidTableBody) paidTableBody.innerHTML = `<tr><td colspan="4" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;
       return;
     }
-    grid.innerHTML = listings.map(paidListingCardMarkup).join('');
+    // Listed coins use the same token card as every other list; the listing-only
+    // card remains for a coin the market feed has not loaded yet.
+    const byMint = new Map(verified.map(item => [item.address, item]));
+    grid.innerHTML = listings.map(listing => {
+      const item = byMint.get(listing.mint);
+      return item ? homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item) }) : paidListingCardMarkup(listing);
+    }).join('');
+    grid.querySelectorAll('.home-launch-card:not(.paid-listing-card)').forEach(card => decorateHomeLaunchCard(card, card.dataset.mint));
     if (paidTableBody) paidTableBody.innerHTML = listings.map(paidListingTableMarkup).join('');
     loadVerifiedTokenLogos(grid);
     if (paidTableBody) loadVerifiedTokenLogos(paidTableBody);

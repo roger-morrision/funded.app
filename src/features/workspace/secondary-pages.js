@@ -33,7 +33,7 @@ export function secondaryPages() {
   for (const button of $$('[data-referral-campaign]')) button.addEventListener('focus', revealCampaignFocus);
   const receipts=$('.burn-receipts-panel');
   if(receipts)receipts.prepend(node('p','field-help','This history shows confirmed burns available to funded.vip. Total supply can include other burns.'));
-  disclose($('.burn-policy-preview'), 'Fee-funded buyback policy · example calculator');
+
   const airdrops=$('#airdrops');
   if(airdrops){
     const group=(name,selectors,open=false)=>{const panel=node('section','airdrop-workspace');for(const selector of selectors){for(const item of $$(selector,airdrops))panel.append(item);} if(!panel.childElementCount)return; airdrops.append(panel);return disclose(panel,name,{open});};
