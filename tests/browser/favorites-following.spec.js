@@ -591,7 +591,7 @@ async function following082Focus(page,target,evidence) {
 
 // FQA-082 / UX-066: actual bootstrap with controlled same-origin storage and read fixtures.
 const following082Key='funded.app.followed.wallets.v1';
-const following082Empty='No followed wallets yet. Open a wallet from the Burners, Creators, or Traders tabs in Leaderboard, or from a token page, then choose Follow wallet.';
+const following082Empty='No followed wallets yet. Open a wallet from the Wallets, Creators, or Traders tabs in Leaderboard, or from a token page, then choose Follow wallet.';
 async function following082Fixture(context,page) {
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await context.addInitScript(key=>{

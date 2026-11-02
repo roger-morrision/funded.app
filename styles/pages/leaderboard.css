@@ -1,5 +1,5 @@
 /* Rankings take priority over decoration and repeated framing. */
-html body.product-experience-style #main-content .leaderboard-hero { padding: 16px; margin-block: 16px 8px; border-radius: 8px; background: var(--panel); }
+html body.product-experience-style #main-content #leaderboard .leaderboard-hero { min-height: 0; padding: 0 0 16px; margin-block: 16px 8px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
 html body.product-experience-style #main-content #leaderboard-source-note { margin-block: 8px; padding: 0; }
 html body.product-experience-style #main-content .leaderboard-toolbar { min-height: 0; margin-block: 8px 12px; padding: 0; border: 0; }
 html body.product-experience-style #main-content .leaderboard-toolbar .leaderboard-tabs { margin: 0; padding: 0; border-bottom: 1px solid var(--line); }
@@ -29,3 +29,9 @@ body.page-route-leaderboard .leaderboard-table > .empty-state { min-height: 92px
 body.page-route-leaderboard .leaderboard-table > .empty-state strong,
 body.page-route-leaderboard .leaderboard-table > .empty-state span { display: block; }
 body.page-route-leaderboard .leaderboard-table > .empty-state strong { margin-bottom: 5px; color: #e0eae1; }
+html body.product-experience-style #leaderboard .leaderboard-profile { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 44px; padding: 2px 0; border-radius: 6px; color: var(--text); text-decoration: none; }
+html body.product-experience-style #leaderboard .leaderboard-profile > :is(.leaderboard-profile-copy,.leaderboard-token-label) { display: grid; gap: 3px; min-width: 0; flex: 1; }
+html body.product-experience-style #leaderboard .leaderboard-profile :is(strong,small) { display: block; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body.product-experience-style #leaderboard .leaderboard-profile .leader-avatar { flex: none; width: 36px; height: 36px; border-radius: 8px; }
+html body.product-experience-style #leaderboard .leaderboard-proof { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; font-size: 12px; }
+html body.product-experience-style #leaderboard .leaderboard-profile:hover { color: var(--yellow,#ffbe68); }

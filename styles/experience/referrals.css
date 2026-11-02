@@ -218,3 +218,5 @@
 }
 
 #referral-share-native[hidden], #referral-copy-code[hidden] { display: none !important; }
+html body.product-experience-style #referral-command-center :is(.referral-share-tools button,#referral-claim-center button,.referral-receipt-actions button,.share-insights > summary) { min-height: 44px; }
+html body.product-experience-style #referral-command-center .share-insights > summary { display: list-item; box-sizing: border-box; padding-block: 12px; }

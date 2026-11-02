@@ -439,7 +439,7 @@ export function createFollowingController(appState) {
       const roles = [...new Set([...row.roles, creators.has(row.address) ? 'creator' : '', traders.has(row.address) ? 'trader' : ''].filter(Boolean))];
       const address = appState.escapeHtml(row.address);
       return `<article class="followed-wallet-row"><a href="/wallet/${encodeURIComponent(row.address)}" title="${address}"><strong>${appState.escapeHtml(appState.shortAddress(row.address))}</strong><small>${address}</small></a><span class="followed-wallet-roles">${roles.map(role => `<span>${role === 'creator' ? 'Creator' : 'Trader'}</span>`).join('') || '<span>Wallet</span>'}</span><button type="button" data-unfollow-wallet="${address}" aria-label="Unfollow wallet ${address}">Unfollow</button></article>`;
-    }).join('') || '<p class="followed-wallet-empty">No followed wallets yet. Open a wallet from the Burners, Creators, or Traders tabs in Leaderboard, or from a token page, then choose Follow wallet.</p>';
+    }).join('') || '<p class="followed-wallet-empty">No followed wallets yet. Open a wallet from the Wallets, Creators, or Traders tabs in Leaderboard, or from a token page, then choose Follow wallet.</p>';
   }
   // app-source-end
 

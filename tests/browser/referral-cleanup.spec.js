@@ -20,6 +20,7 @@ async function fixtures(page) {
   await page.route('**/api/referrals/dashboard?*',route=>route.fulfill({json:{networkCreators:3,qualifiedCreators:2,conversionRate:66.67}}));
   await page.route('https://**/*',route=>route.abort());
   await page.addInitScript(address=>{
+    let clipboard='';Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{clipboard=text;},readText:async()=>clipboard}});
     const listeners=new Map();
     const provider={isPhantom:true,isConnected:false,publicKey:null,
       on(event,callback){listeners.set(event,[...(listeners.get(event)||[]),callback]);},
@@ -54,6 +55,7 @@ for(const width of [320,390,1440])test(`referral invite and private receipt hist
   await expect(dashboard.locator('#referral-history-note')).toContainText('Only paid receipts count');
   await expect(dashboard.getByRole('link',{name:'Transaction ↗'})).toHaveAttribute('href',`https://explorer.solana.com/tx/${signature}?cluster=devnet`);
   await expect(dashboard.locator('.share-insights')).not.toHaveAttribute('open','');
+  for(const control of await dashboard.locator('.referral-share-tools button:visible,.share-insights > summary').all())expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);
   await dashboard.locator('[data-copy-referral-link]').click();
   await expect(dashboard.locator('#referral-link-status')).toHaveText('Ready to share');
   await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toContain(`?ref=${code}`);
