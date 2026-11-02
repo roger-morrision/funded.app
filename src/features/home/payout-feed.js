@@ -30,8 +30,14 @@ function age(blockTime, now = Date.now()) {
 export async function mountPayoutFeed({ document = globalThis.document, request = apiRequest } = {}) {
   const host = document?.querySelector('.hero-section .hero-copy-column');
   if (!host || host.querySelector('.home-payout-feed')) return null;
+  // A cold server builds this list from on-chain receipts (about 15s); once
+  // cached it answers immediately, so wait longer and retry once.
   let data;
-  try { data = (await request('/api/evidence/payment-history?limit=24', { signal: AbortSignal.timeout(8000) })).data; } catch { return null; }
+  for (let attempt = 0; attempt < 2 && !data; attempt++) {
+    try { data = (await request('/api/evidence/payment-history?limit=24', { signal: AbortSignal.timeout(25_000) })).data; }
+    catch { if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 5_000)); }
+  }
+  if (!data || host.querySelector('.home-payout-feed')) return null;
   const payouts = (Array.isArray(data?.verifiedPayouts) ? data.verifiedPayouts : [])
     .filter(row => /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(row?.signature || '')) && formatPayoutSol(row.amountLamports))
     .sort((a, b) => Number(b.blockTime) - Number(a.blockTime)).slice(0, 12);
