@@ -189,8 +189,14 @@ export function createHomeFeedController(appState) {
   // app-source-end
 
   // app-source: 489
+  // Other coins using the same ticker (copycat warning on cards).
+  function sameTickerCount(item){
+    const symbol = String(item?.symbol || '').trim().toUpperCase();
+    if (!symbol) return 0;
+    return new Set((appState.assets || []).filter(other => other.address !== item.address && String(other.symbol || '').trim().toUpperCase() === symbol).map(other => other.address)).size;
+  }
   function homeLaunchCardMarkup(item, { volumeLabel, volumeValue, extraClass = '', extraActions = '', footerNote = '', compact = false }){
-    return appState.homeLaunchCardMarkupView(item, { volumeLabel, volumeValue, extraClass, extraActions, footerNote, compact }, { verifiedBoosts: appState.verifiedBoosts, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, exploreProviderStatus: appState.exploreProviderStatus }, { exploreStageLabel: appState.exploreStageLabel, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, homeLaunchFeeRouteMarkup: appState.homeLaunchFeeRouteMarkup, exploreSocialLinksMarkup: appState.exploreSocialLinksMarkup, tokenCardWatchMarkup: appState.tokenCardWatchMarkup, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, tokenCardShareMarkup: appState.tokenCardShareMarkup, promotionForMint: appState.promotionForMint, verifiedPaidListingPayment: appState.verifiedPaidListingPayment, formatVerifiedPercent: appState.formatVerifiedPercent });
+    return appState.homeLaunchCardMarkupView(item, { volumeLabel, volumeValue, extraClass, extraActions, footerNote, compact }, { verifiedBoosts: appState.verifiedBoosts, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, exploreProviderStatus: appState.exploreProviderStatus }, { exploreStageLabel: appState.exploreStageLabel, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, homeLaunchFeeRouteMarkup: appState.homeLaunchFeeRouteMarkup, exploreSocialLinksMarkup: appState.exploreSocialLinksMarkup, tokenCardWatchMarkup: appState.tokenCardWatchMarkup, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, tokenCardShareMarkup: appState.tokenCardShareMarkup, promotionForMint: appState.promotionForMint, verifiedPaidListingPayment: appState.verifiedPaidListingPayment, formatVerifiedPercent: appState.formatVerifiedPercent, sameTickerCount: sameTickerCount });
   }
   // app-source-end
 

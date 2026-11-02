@@ -156,6 +156,7 @@ export function homeLaunchCardMarkup(
     promotionForMint = () => null,
     verifiedPaidListingPayment = () => null,
     formatVerifiedPercent = value => `${value}%`,
+    sameTickerCount = () => 0,
     document = globalThis.document,
   } = {}
 ) {
@@ -190,10 +191,17 @@ export function homeLaunchCardMarkup(
     const burnedTokens = [promotion?.amountTokens, listing?.amountTokens]
       .map(Number).filter(amount => Number.isFinite(amount) && amount > 0).reduce((sum, amount) => sum + amount, 0);
     const airdropPercent = item.communityAirdropPercent == null ? null : formatVerifiedPercent(item.communityAirdropPercent);
-    const protocolChips = [
+    // Trust checks traders look for first, from confirmed mint data.
+    const sameTicker = sameTickerCount(item);
+    const trustChips = [
+      item.mintAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can mint more of this coin">✓ Mint revoked</span>' : '',
+      item.freezeAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can freeze holder wallets">✓ Freeze revoked</span>' : '',
+      sameTicker > 0 ? `<span class="home-launch-chip is-warning" title="Check the contract address before buying">⚠ ${sameTicker} other coin${sameTicker === 1 ? ' uses' : 's use'} $${escapeHtml(item.symbol || '')}</span>` : '',
+    ].join('');
+    const protocolChips = trustChips + [
       listing ? `<span class="home-launch-chip is-listed" title="Paid listing confirmed on Solana">${icon('listingBag')}Listed</span>` : '',
       burnedTokens ? `<span class="home-launch-chip is-burn" title="$FUNDED burned for this coin's launch package and listing">${icon('burn')}${escapeHtml(burnedTokens.toLocaleString())} $FUNDED burned</span>` : '',
-      airdropPercent ? `<a class="home-launch-chip is-airdrop" href="#airdrops" title="Share of this coin's supply reserved for $FUNDED holders">${icon('send')}${escapeHtml(airdropPercent)} airdrop to $FUNDED holders</a>` : '',
+      airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $FUNDED holders">${icon('send')}${escapeHtml(airdropPercent)} airdrop to $FUNDED holders</span>` : '',
     ].join('');
     const socialLinks = exploreSocialLinksMarkup(item);
     const boost = verifiedBoosts[item.address];
@@ -216,11 +224,11 @@ export function homeLaunchCardMarkup(
           ${socialLinks}
         </div>
       </div>
-      ${changeClass || hasNoObservedTrades ? `<span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(changeLabel)}</span>` : ''}
+      <div class="home-card-star">${tokenCardWatchMarkup(item.address, item.symbol)}</div>
       </div>
       <div class="home-launch-card-stats">
-        <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}</strong></span>
-        <span><small>${escapeHtml(volumeLabel)} vol</small><strong>${escapeHtml(shownVolume)}</strong></span>
+        <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}${changeClass || hasNoObservedTrades ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(changeLabel)}</span>` : ''}</strong></span>
+        <span><small>${escapeHtml(volumeLabel)} volume</small><strong>${escapeHtml(shownVolume)}</strong></span>
         <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
       </div>
       <div class="home-card-market-summary">
@@ -233,7 +241,7 @@ export function homeLaunchCardMarkup(
       ${feeRoute}
       ${footerNote ? `<small class="home-launch-note">${escapeHtml(footerNote)}</small>` : ''}
       </div>
-      <div class="home-launch-card-actions"><a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=0.1">Buy <span aria-hidden="true">→</span></a>${tokenCardWatchMarkup(item.address, item.symbol)}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
+      <div class="home-launch-card-actions"><a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=0.1">Buy <span aria-hidden="true">→</span></a>${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
     </article>`;
 }
 

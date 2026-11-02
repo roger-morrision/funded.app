@@ -58,10 +58,10 @@ for (const width of [360, 390, 1440]) test(`shared token cards retain square log
         }) };
     }, { selector, logo });
     const value = await measured.jsonValue();
-    expect(value.logo.width).toBeCloseTo(width < 700 ? 76 : 80, 2);
+    expect(value.logo.width).toBeCloseTo(56, 2);
     expect(value.logo.height).toBeCloseTo(value.logo.width, 2);
     expect(value.logo.radius).toBe('8px'); expect(value.radius).toBe('10px');
-    expect(value.background).toBe('rgb(17, 26, 41)'); expect(value.overflow).toBe(false);
+    expect(value.background).toBe('rgb(17, 26, 41)'); expect(value.overflow, label).toBe(false);
     for (const control of value.controls) { expect(control.width).toBeGreaterThanOrEqual(43.99); expect(control.height).toBeGreaterThanOrEqual(43.99); }
     measurements.push({ label, ...value });
   };

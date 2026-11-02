@@ -10,7 +10,7 @@ const VALUE_STYLE = { 'font-size': '0' };
 const VISUALLY_HIDDEN = { position: 'absolute', width: '1px', height: '1px', margin: '-1px', padding: '0',
   overflow: 'hidden', 'clip-path': 'inset(50%)', 'white-space': 'nowrap', border: '0' };
 const SKIP = 'h1, h2, h3, h4, button, a, label, input, select, textarea, summary, option, dialog, kbd, code, [contenteditable], [id$="-error"], .field-error, [role="alert"], #docs, #privacy, #terms, #disclosures, #opt-out, .technical-notice';
-const JARGON_SKIP = 'input, textarea, select, option, code, kbd, [contenteditable], #docs, #privacy, #terms, #disclosures, #opt-out';
+const JARGON_SKIP = 'input, textarea, select, option, code, kbd, [contenteditable], .workspace-network, #docs, #privacy, #terms, #disclosures, #opt-out';
 const HIDDEN = 'data-technical-notice';
 const INLINE = 'i, b, strong, em, span, abbr, time, wbr, br';
 // A status line is a leaf, or a short text element whose children are only
@@ -32,6 +32,9 @@ const PLAIN_WORDS = [
   [/\bindexed\b/g, 'recorded'], [/\bIndexed\b/g, 'Recorded'],
   [/\bworker(?=[ -]recorded| snapshots?\b)/g, 'automation'],
   [/\bSolana RPC\b/g, 'Solana network'], [/\bRPC\b/g, 'network'],
+  // The network is shown once, in the top label; page copy does not repeat it.
+  [/\s*·\s*Devnet QA\b/g, ''], [/\bDevnet QA\b/g, 'QA'], [/\s+(?:on|for) (?:Solana )?Devnet\b/g, ''],
+  [/\bSolana Devnet\b/g, 'Solana'], [/\s*\(Devnet\)/g, ''], [/\bDevnet\s+(?=[a-z])/g, ''], [/\bDevnet\s+(?=[A-Z])/g, ''],
 ];
 
 export function plainWording(text) {
@@ -141,10 +144,13 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
         if (element.hasAttribute(HIDDEN)) {
           element.removeAttribute(HIDDEN); element.removeAttribute(VALUE);
           for (const property of Object.keys(styles)) element.style.removeProperty(property);
+          element.style.removeProperty('--fv-cell-size');
         }
         continue;
       }
       element.setAttribute(HIDDEN, kind);
+      // "Updating…" keeps the cell's own text size so the layout does not shift.
+      if (valueCell && !element.hasAttribute(VALUE)) element.style.setProperty('--fv-cell-size', view.getComputedStyle(element).fontSize);
       if (valueCell) element.setAttribute(VALUE, '');
       for (const [property, value] of Object.entries(styles)) element.style.setProperty(property, value);
       // Only report lines from the part of the page the visitor is on.

@@ -13,12 +13,12 @@ for(const width of[320,360,390,700,1024,1440])test(`public benefits and native F
   const api=[],errors=[],scripts=[];
   page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))api.push(r.url());if(r.resourceType()==='script')scripts.push(r.url());});
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/welcome');await expect(page.locator('.hero h1')).toContainText('Launch your token.');
+  await page.goto('/welcome');await expect(page.locator('.hero h1')).toContainText('Launch coins');
   await expect(page.locator('#landing-menu-button')).not.toHaveAttribute('hidden','');
   await expect(page.locator('.reward-grid article')).toHaveCount(6);
-  await expect(page.locator('.preview-notice')).toContainText('Currently on Solana Devnet');
+  await expect(page.locator('.landing-topbar .network-pill')).toHaveText('Devnet · test SOL');await expect(page.locator('main')).not.toContainText('Devnet');
   await expect(page.locator('.illustration-note')).toContainText('not a live token or payout');
-  const sections=page.locator('.section-anchor');expect(await sections.count()).toBe(11);
+  const sections=page.locator('.section-anchor');expect(await sections.count()).toBe(10);
   for(const section of await sections.all()){
     await section.scrollIntoViewIfNeeded();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
@@ -59,7 +59,7 @@ for(const width of[390,1440])for(const[selector,hash]of[['.hero-actions .primary
 
 test('landing benefits, FAQ and app links remain useful without JavaScript',async({browser})=>{
   const context=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}}),page=await context.newPage();
-  try{await page.route('https://**/*',r=>r.abort());await page.goto('/welcome');await expect(page.locator('h1')).toContainText('Grow your community.');
+  try{await page.route('https://**/*',r=>r.abort());await page.goto('/welcome');await expect(page.locator('h1')).toContainText('that pay everyone.');
     const summary=page.getByText('Which network does the app use?',{exact:true});await summary.click();await expect(summary.locator('..').locator('p')).toBeVisible();
     await expect(page.locator('.hero-actions .primary')).toHaveAttribute('href','/#launch');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
@@ -71,7 +71,7 @@ for(const width of[390,1440])test(`app navigation opens the platform introductio
   if(width<1000)await page.getByRole('button',{name:'Open menu',exact:true}).click();
   await expect(page.locator('.primary-nav details')).toHaveCount(0);
   await page.getByRole('link',{name:'About funded.vip',exact:true}).click();await expect(page).toHaveURL(/\/welcome$/);
-  await expect(page.locator('h1')).toContainText('Launch your token.');await expect(page.locator('body')).toHaveClass('landing-page');
+  await expect(page.locator('h1')).toContainText('Launch coins');await expect(page.locator('body')).toHaveClass('landing-page');
 });
 
 test('shortlist benefit opens the existing Favorites filter',async({page})=>{

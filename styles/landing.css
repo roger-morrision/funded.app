@@ -356,3 +356,6 @@ body:has(#landing-menu[open]) { overflow:hidden; }
   .marquee-track, .orbit-dot, .creators-visual .bar, .spark path, .referrers-visual .node, .loop-ring, .loop-runner, .reward-flow li::after, .live-dot { animation:none; }
   .spark path { stroke-dashoffset:0; }
 }
+.network-pill { flex:0 0 auto; padding:4px 10px; border:1px solid var(--gold); border-radius:999px; color:var(--gold); font-size:11px; font-weight:700; white-space:nowrap; }
+@media (max-width:700px) { .landing-topbar .topbar-label { display:none; } }
+@media (max-width:420px) { .network-pill .pill-extra { display:none; } }

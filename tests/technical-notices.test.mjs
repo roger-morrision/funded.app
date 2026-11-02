@@ -29,3 +29,10 @@ test('RPC wording reads as the Solana network', () => {
   assert.equal(plainWording('Checked against Solana RPC'), 'Checked against Solana network');
   assert.equal(plainWording('RPC only'), 'network only');
 });
+
+test('devnet wording is removed from page copy', () => {
+  assert.equal(plainWording('0.0005 SOL from collected creator fees · finalized on Devnet'), '0.0005 SOL from collected creator fees · confirmed');
+  assert.equal(plainWording('Top 3. Every 5 minutes · Devnet QA.'), 'Top 3. Every 5 minutes.');
+  assert.equal(plainWording('Pump · Solana Devnet'), 'Pump · Solana');
+  assert.equal(plainWording('Devnet preview'), 'preview');
+});

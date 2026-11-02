@@ -1,4 +1,16 @@
-// Landing motion and audience tabs. Presentation only: no API, RPC or wallet access.
+/// Landing motion and audience tabs. Presentation only: no API, RPC or wallet access.
+import { plainWording } from '../experience/technical-notices.js';
+
+// Shared policy copy uses the same display wording as the app (no network names).
+const main = document.querySelector('main');
+if (main) {
+  const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const plain = plainWording(node.nodeValue);
+    if (plain !== node.nodeValue) node.nodeValue = plain;
+  }
+}
+
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function countUp(element) {

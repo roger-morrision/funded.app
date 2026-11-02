@@ -31,7 +31,7 @@ for (const width of [360,390,1440]) test(`bonus rules disclosure keeps QA schedu
   await expect(page.locator('#bonuses-title')).toHaveText('Daily bonuses');await expect(details).not.toHaveAttribute('open','');await expect(rules).toBeHidden();
   expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
   await summary.focus();await page.keyboard.press('Enter');await expect(rules).toBeVisible();
-  await expect(rules).toContainText('Devnet QA snapshots close every 5 minutes');await expect(rules).toContainText('of the category budget');await expect(rules).toContainText('after snapshot and funding verification');
+  await expect(rules).toContainText('QA snapshots close every 5 minutes');await expect(rules).toContainText('of the category budget');await expect(rules).toContainText('after snapshot and funding verification');
   const original=await details.elementHandle(),amounts=await page.locator('[data-bonus-history-rows] td').allTextContents();
   const updated=page.waitForResponse(r=>r.url().includes('/api/daily-bonus/dashboard?'));await page.locator('[data-bonus-history-refresh]').click();await updated;
   await expect(details).toHaveAttribute('open','');expect(await original.evaluate(e=>e===document.querySelector('.bonus-policy-disclosure'))).toBe(true);await expect(page.locator('[data-bonus-history-rows] td')).toHaveText(amounts);
@@ -105,8 +105,8 @@ test('Devnet QA schedule shows five-minute cutoffs consistently on Home, history
   await expect(page.locator('#home-daily-bonuses')).toContainText('Automatic payouts follow snapshot and funding verification');
   await expect(page.locator('#home-daily-bonuses')).not.toContainText('After the daily snapshot');
   await expect(page.locator('[data-bonus-countdown]')).toContainText('00:04:');
-  await page.goto('/#bonuses');await expect(page.locator('[data-bonus-delivery]')).toContainText('Devnet QA snapshots close every 5 minutes');
-  await page.goto('/#capital-flow');await expect(page.locator('#daily-bonus-title')).toHaveText('Top 3. Every 5 minutes · Devnet QA.');
+  await page.goto('/#bonuses');await expect(page.locator('[data-bonus-delivery]')).toContainText('QA snapshots close every 5 minutes');
+  await page.goto('/#capital-flow');await expect(page.locator('#daily-bonus-title')).toHaveText('Top 3. Every 5 minutes.');
   await expect(page.locator('[data-bonus-status]')).not.toContainText('Processing');
 });
 

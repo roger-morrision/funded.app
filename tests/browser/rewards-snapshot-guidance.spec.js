@@ -17,7 +17,7 @@ for(const width of [360,390,1440])test(`per-coin snapshot guidance and native Ai
   const article=link.locator('..');
   await expect(article.getByRole('heading')).toHaveText('Check each coin’s snapshot and deadline');
   await expect(article).toContainText('verified snapshot and published claim deadline');
-  await expect(article).toContainText('Devnet QA cutoffs are separate');
+  await expect(article).toContainText('QA cutoffs are separate');
   await expect(article).not.toContainText(/90 days|at migration/);
   await expect(link).toHaveAttribute('href','#airdrops');
   await expect(page.locator('.reward-upcoming-grid article').first()).toContainText('An hourly payout needs confirmed holdings');

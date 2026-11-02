@@ -93,7 +93,7 @@ test('verified deployment shows timestamped worker budget scope and finalized re
     verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm',approvedHash:'a'.repeat(64),build:'b'.repeat(40),configRevision:'1'},
     funding:{status:'worker-verified-snapshots',collectedLamports:'20000000',spentLamports:'1000000'},
     history:[{agent:0,signature:'3'.repeat(88),status:'worker-recorded-finalized',amountLamports:'1000000',finalizedAt:'2026-10-19T12:00:00Z'}]}}));
-  await page.goto('/#marketing-agency');await expect(page.locator('[data-agency-status]')).toContainText('execution enabled on Devnet');
+  await page.goto('/#marketing-agency');await expect(page.locator('[data-agency-status]')).toContainText('execution enabled');
   await expect(page.locator('[data-agency-funded]')).toHaveText('0.02 SOL');await expect(page.locator('[data-agency-spent]')).toHaveText('0.001 SOL');
   await expect(page.locator('[data-agency-history]')).toContainText('timestamped confirmed automation snapshots');
   await expect(page.locator('[data-agency-history] a')).toHaveAttribute('href',`https://explorer.solana.com/tx/${'3'.repeat(88)}?cluster=devnet`);

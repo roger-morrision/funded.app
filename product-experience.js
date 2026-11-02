@@ -17,7 +17,7 @@ function disclosure(target, label) {
 }
 
 function home() {
-  setText('.home-hero-kicker', 'Solana token launchpad');
+  setText('.home-hero-kicker', 'Every trade feeds the community');
   const actions = $('.hero-actions');
   const explore = actions?.querySelector('[href="#explore"]');
   const launch = actions?.querySelector('[href="#launch"]');
@@ -28,13 +28,10 @@ function home() {
   }
   const rewardGroups = $('.home-rewards-stack');
   const board = $('.home-launch-board');
-  if (rewardGroups && board) {
-    board.after(rewardGroups);
-    disclosure(rewardGroups, 'Community rewards');
-  }
-  if (board && $('.workspace-network')?.textContent?.includes('Devnet')) {
-    setText('.home-launch-board-title', 'Devnet launches');
-  }
+  // The Community rewards panels are not shown on Home; Rewards, Airdrops and
+  // token pages carry the same information. The element stays detached so its
+  // renderer keeps working.
+  rewardGroups?.remove();
   if (board && !board.querySelector('.product-follow-note')) {
     const note = document.createElement('p');
     note.className = 'product-follow-note';
