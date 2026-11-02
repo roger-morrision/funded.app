@@ -13,7 +13,7 @@ export function initMarketingAgency(document = globalThis.document) {
   let publishingPaused=false,agencyGrossPercent=2,agencyReady=false,updateLaunchTeam=()=>{};
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
-  page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Marketing agents</h1><p>Buyback agents are included. Promotion packages add X promotion.</p></div><button type="button" data-agency-refresh>Refresh</button></header>
+  page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Marketing agents</h1></div><button type="button" data-agency-refresh>Refresh</button></header>
     <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
     <details class="agency-policy"><summary>Fee policy</summary><div class="agency-policy-body"><h2 id="agency-policy-title">New-launch agency allocation</h2>
@@ -44,9 +44,8 @@ export function initMarketingAgency(document = globalThis.document) {
   if (promotion && !document.getElementById('launch-agency-options')) {
     const fieldset = document.createElement('fieldset'); fieldset.id = 'launch-agency-options'; fieldset.className = 'agency-options';
     const legend = document.createElement('legend'); legend.textContent = 'AI marketing team'; fieldset.append(legend);
-    const included = document.createElement('p'); included.className = 'agency-included-intro'; included.textContent = 'Buyback agents are included. Promotion packages add X promotion.';
     const help = document.createElement('p'); help.id = 'launch-agency-help'; help.textContent = 'New launches wait for verified fee vaults and executors. Agent execution is not yet available.'; help.setAttribute('role','status');
-    fieldset.append(included); fieldset.setAttribute('aria-describedby', help.id);
+    fieldset.setAttribute('aria-describedby', help.id);
     const team = document.createElement('ul'); team.className = 'agency-included-list'; fieldset.append(team);
     for (const agent of POLICY.agents) {
       const row = document.createElement('li'), name = document.createElement('span'), badge = document.createElement('span');
