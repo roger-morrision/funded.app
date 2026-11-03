@@ -136,6 +136,7 @@ html body #main-content .home-launch-card .home-launch-card-stats small { color:
 html body #main-content .home-launch-card .home-launch-card-stats strong { overflow: hidden; color: var(--fv-text); font: 600 14px var(--fv-font-data); text-overflow: ellipsis; white-space: nowrap; }
 html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { color: var(--fv-accent); font-size: 16px; }
 html body #main-content .home-launch-card .home-launch-card-stats strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
+html body #main-content .home-market-ticker-items small.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 html body #main-content .home-launch-card .home-card-market-summary { display: grid; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-progress-heading { display: flex; justify-content: space-between; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); font: 500 11px var(--fv-font-ui); }
