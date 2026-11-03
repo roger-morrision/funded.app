@@ -54,7 +54,8 @@ function explore() {
   const label = sort?.closest('label');
   if (label && bar) {
     label.classList.add('product-sort');
-    label.firstChild.textContent = 'Sort';
+    // Own span so phones can drop the visible word; the select keeps its aria-label.
+    label.firstChild.replaceWith(Object.assign(document.createElement('span'), { className:'product-sort-label', textContent:'Sort' }));
     bar.append(label);
   }
   const labels = { boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', turnover:'Volume / market cap', 'recent-trade':'Recent activity', holders:'Holder count', change:'24h change', newest:'Newest' };

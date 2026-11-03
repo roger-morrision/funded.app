@@ -259,8 +259,13 @@ html body.product-experience-style #main-content .workspace-shortcuts { grid-tem
   html body.product-experience-style #main-content :is(.panel,.role-panel,.flow-panel,.support-card,.community-card,.agency-agent,.agency-policy,.reward-experience-panel) { padding: 14px; }
   html body.product-experience-style #main-content :is(#launch-route-shell,#my-launches,#payments,#airdrops,#paid,#list,#bonuses,#marketing-agency,#privacy,#creator-support-page) { padding-block: 12px 20px; }
   html body.product-experience-style #main-content :is(#bonuses,#privacy) { padding: 14px; }
-  html body.product-experience-style #explore .explore-control-bar .product-sort { flex: 1 1 100%; margin: 0; }
-  html body.product-experience-style #explore .explore-control-bar .review-buy-setting { flex: 1 1 100%; justify-content: flex-end; }
+  /* Sort and buy amount share one row so the first coin shows sooner on phones. */
+  html body.product-experience-style #explore .explore-control-bar .product-sort { flex: 1 1 0; min-width: 150px; gap: 6px; margin: 0; }
+  html body.product-experience-style #explore .explore-control-bar .product-sort select { min-width: 0; padding-inline: 8px; }
+  html body.product-experience-style #explore .explore-control-bar .product-sort-label { display: none; }
+  html body.product-experience-style #explore .explore-control-bar .review-buy-setting { flex: 0 0 auto; gap: 6px; justify-content: flex-end; }
+  html body.product-experience-style #explore .explore-control-bar .review-buy-setting > span { font-size: 11px; }
+  html body.product-experience-style #explore .explore-control-bar .review-buy-setting input { width: 60px; }
   html body.product-experience-style #main-content .home-launch-toolbar .review-buy-setting { justify-content: flex-end; width: 100%; }
   html body.product-experience-style #main-content .launch-page .launch-fields { padding: 14px; }
   html body.product-experience-style #main-content .launch-page .launch-steps button { flex-direction: row; min-height: 44px; }
