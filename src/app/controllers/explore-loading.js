@@ -65,7 +65,12 @@ export function createExploreLoadingController(appState) {
           const { PublicKey, getAssociatedTokenAddressSync, unpackAccount, unpackMint, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
           const exploreRpc = await appState.getExploreConnection();
           const candidates = records.flatMap(record => { try { return [{ record, mint: new PublicKey(record.address) }]; } catch { return []; } });
-          const accountBatch = candidates.length ? await exploreRpc.getMultipleAccountsInfo([...candidates.map(item => item.mint), ...candidates.map(item => appState.bondingCurvePda(item.mint))], 'confirmed') : [];
+          // The feed carries the server's recent read of these accounts; use it
+          // when it covers every coin and only fall back to a browser RPC read.
+          const snapshot = pumpFeed.data?.accountSnapshot?.accounts;
+          const fromSnapshot = account => account ? { owner: new PublicKey(account.owner), lamports: account.lamports, executable: account.executable, data: appState.Buffer.from(account.data, 'base64') } : null;
+          const snapshotBatch = snapshot && candidates.every(item => snapshot[item.record.address]) ? [...candidates.map(item => fromSnapshot(snapshot[item.record.address].mint)), ...candidates.map(item => fromSnapshot(snapshot[item.record.address].curve))] : null;
+          const accountBatch = snapshotBatch || (candidates.length ? await exploreRpc.getMultipleAccountsInfo([...candidates.map(item => item.mint), ...candidates.map(item => appState.bondingCurvePda(item.mint))], 'confirmed') : []);
           const accounts = accountBatch.slice(0, candidates.length);
           const curveAccounts = accountBatch.slice(candidates.length);
           for (let index = 0; index < candidates.length; index += 1) {
