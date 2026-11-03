@@ -66,9 +66,10 @@ export function launchCardProgressState(item, providerStatus = '') {
   const stage = migrated ? 'Migrated' : complete ? 'Curve complete' : item.complete === false ? 'On curve' : '';
   const retained = stale || (loading && value !== null);
   const text = migrated ? 'Migrated' : complete ? 'Curve complete · Migration not yet verified'
-    : item.complete === false ? `On curve · ${loading ? 'Checking progress…' : 'Progress unavailable'}`
+    : item.complete === false ? (loading ? 'On curve · Checking progress…' : 'On curve')
       : loading ? 'Checking progress…' : 'Progress unavailable';
-  // The current real/virtual ratio has no admitted per-mint starting basis.
+  // The current real/virtual ratio has no admitted per-mint starting basis, so a known
+  // curve stage shows alone instead of repeating "Progress unavailable" on every card.
   return {
     kind: retained ? 'stale' : migrated ? 'migrated' : complete ? 'complete' : loading ? 'loading' : 'unavailable',
     value,
@@ -112,7 +113,7 @@ export function syncLaunchCardProgressFreshness(document, providerStatus) {
       for (const row of rows) {
         const value = row.querySelector('.home-launch-progress-heading > strong');
         if (!value) continue;
-        const settled = value.textContent.replace('Checking progress…', 'Progress unavailable');
+        const settled = value.textContent.replace('On curve · Checking progress…', 'On curve').replace('Checking progress…', 'Progress unavailable');
         const text = settled.startsWith('Last verified · ') ? settled : `Last verified · ${settled}`;
         if (value.textContent !== text) value.textContent = text;
         row.dataset.progressState = 'stale';

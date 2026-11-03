@@ -275,7 +275,7 @@ for(const width of[360,390,1440])test(`FQA-070 shared actual Home and Explore st
  for(const mode of['unknown','curve','complete','migrated']){
   if(mode!=='unknown'){f.mode=mode;await f.refresh();await expect(page.locator('#asset-grid .home-launch-progress-row').first()).toHaveAttribute('data-progress-state',mode==='curve'?'unavailable':mode);if(mode==='curve')await expect(page.locator('#asset-grid .home-launch-progress-row').first()).toContainText('On curve');}
   for(const route of['Home','Explore']){await f.nav(route);const snapshot=await sharedCardEvidence(page,info,f,mode+'-'+route+'-'+width);expect(snapshot.cards).toHaveLength(3);for(const c of snapshot.cards){
-   if(['unknown','curve'].includes(mode)){expect(c.progress).toContain('Progress unavailable');expect(c.value).toBeNull();expect(c.role).toBeNull();}
+   if(['unknown','curve'].includes(mode)){expect(c.progress).toContain(mode==='curve'?'On curve':'Progress unavailable');if(mode==='curve')expect(c.progress).not.toContain('Progress unavailable');expect(c.value).toBeNull();expect(c.role).toBeNull();}
    else{expect(c.value).toBe('100');expect(c.role).toBe('progressbar');expect(c.progress).toContain(mode==='migrated'?'Migrated':'Migration not yet verified');}
   }
   if(mode==='unknown'){const prefix=route==='Home'?'#home-launch-grid':'#asset-grid',original=await sharedNativeEntry(page,prefix+' .home-launch-card:first-child [data-copy-kind="token"]',info,'native-copy-'+route+'-'+width);await page.keyboard.press('Enter');expect(await original.evaluate(e=>e.isConnected&&document.activeElement===e)).toBe(true);expect(await page.evaluate(()=>window.__sharedCopies.at(-1))).toBe(records[0].mint);}
