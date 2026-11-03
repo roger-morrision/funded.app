@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="/styles/diagram-controls.css" /><link rel="stylesheet" href="/styles/fee-distribution-summary.css" />
   <script type="module" src="/src/features/landing/welcome.js"></script>
   <script type="module" src="/src/features/landing/story.js"></script>
+  <script type="module" src="/src/features/landing/proof-card.js"></script>
   <title>funded.vip — Launch coins that pay everyone</title>
 </head>
 <body class="landing-page">
@@ -53,17 +54,15 @@
       <div class="hero-copy">
         <p class="eyebrow"><img src="/solana-logomark.svg" alt="" width="16" height="16" />Every trade feeds the community.</p>
         <h1 id="hero-title">Launch coins<br /><span>that pay everyone.</span></h1>
-        <p class="hero-description">Creators earn up to 80% of fees. $FUNDED holders get airdrops from every launch. Traders and referrers win SOL every day. Every payout has a receipt on Solana.</p>
+        <p class="hero-description">Creators keep up to 80% of fees, holders and top traders get paid in SOL, and every payout has a receipt on Solana.</p>
         <div class="hero-actions"><a class="button primary" href="/#launch">Launch a coin <span aria-hidden="true">↗</span></a><a class="button outline" href="/#explore">Explore coins <span aria-hidden="true">→</span></a></div>
         <p class="hero-note">Browse without a wallet. Connect when you’re ready to act.</p>
       </div>
-      <div class="launch-story" aria-labelledby="story-title">
-        <div class="story-heading"><span class="eyebrow" id="story-title">Your launch, connected</span><span class="concept-tag">Illustration</span></div>
-        <div class="token-identity"><div class="token-logo"><img src="/wolf-mark.svg" alt="" width="72" height="72" /></div><div><span class="eyebrow">Your idea starts here</span><strong>YOUR TOKEN</strong><span>A name. A story. A community.</span></div></div>
-        <div class="story-route"><div><span data-icon="launch"></span><strong>Launch</strong><small>Make it yours</small></div><span class="route-arrow" aria-hidden="true">→</span><div><span data-icon="users"></span><strong>Connect</strong><small>Share the journey</small></div><span class="route-arrow" aria-hidden="true">→</span><div><span data-icon="rewards"></span><strong>Reward</strong><small>Follow the rules</small></div></div>
-        <div class="story-proof"><span class="proof-mark" data-icon="coin"></span><div><strong>A record you can inspect</strong><span>Launch details, saved fee policy, and payment receipts.</span></div><span aria-hidden="true">↗</span></div>
-        <p class="illustration-note">A view of the platform journey, not a live token or payout.</p>
-      </div>
+      <aside class="launch-story proof-card" aria-labelledby="story-title" data-proof-card data-state="loading">
+        <div class="story-heading"><span class="eyebrow" id="story-title"><i class="live-dot" aria-hidden="true"></i>Paid out so far</span><span class="concept-tag">Live</span></div>
+        <div class="proof-card-grid" data-proof-grid><p class="proof-card-status">Checking payment records…</p></div>
+        <a class="story-proof" href="/#analytics-detail"><span class="proof-mark" data-icon="coin"></span><div><strong>See every receipt</strong><span>Each payout links to its Solana transaction.</span></div><span aria-hidden="true">→</span></a>
+      </aside>
     </section>
     <div class="value-strip" aria-label="Platform essentials"><span><i data-icon="wallet"></i>Wallet-controlled actions</span><span><i data-icon="users"></i>Community-focused rewards</span><span><i data-icon="analytics"></i>Inspectable on-chain records</span></div>
     <div class="launch-marquee" aria-label="Key benefits"><span class="marquee-label"><i class="live-dot" aria-hidden="true"></i>On every coin</span><div class="marquee-window"><div class="marquee-track" data-marquee-track><span>80% of creator fees directed by the creator</span><span>≥3% of supply airdropped to $FUNDED holders</span><span>5% buys &amp; burns $FUNDED</span><span>Daily SOL bonus for top creators, referrers &amp; traders</span><span>3-level referral rewards</span><span>Every payout has a Solana receipt</span></div></div></div>

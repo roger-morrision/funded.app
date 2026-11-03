@@ -19,7 +19,7 @@ for(const[width,height]of[[360,740],[390,844],[1440,900]])for(const motion of['n
     }
     expect(visited).toBeGreaterThan(30);
   }
-  expect(api).toEqual([]);
+  expect(api.map(url=>new URL(url).pathname).filter(path=>!['/api/analytics/summary','/api/market/sol-usd'].includes(path))).toEqual([]);
 });
 
 for(const mode of['JavaScript disabled','script bundle blocked','dialog unavailable'])test(`mobile section navigation remains usable with ${mode}`,async({browser,baseURL})=>{
@@ -35,7 +35,7 @@ for(const mode of['JavaScript disabled','script bundle blocked','dialog unavaila
     const index=page.getByRole('navigation',{name:'On this page'});await expect(index).toBeVisible();await index.getByRole('link',{name:'Questions',exact:true}).click();
     await expect(page).toHaveURL(/#questions$/);const question=page.getByText('Which network does the app use?',{exact:true});await question.click();await expect(question.locator('..').locator('p')).toBeVisible();
     const rect=await page.locator('#questions-title').boundingBox(),header=await page.locator('.landing-topbar').boundingBox();expect(rect.y).toBeGreaterThanOrEqual(header.y+header.height);
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(api).toEqual([]);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(api.filter(path=>!['/api/analytics/summary','/api/market/sol-usd'].includes(path))).toEqual([]);
     if(mode==='script bundle blocked')expect(blocked.length).toBeGreaterThan(0);
   }finally{await context.close();}
 });

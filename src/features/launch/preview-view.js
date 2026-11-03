@@ -113,6 +113,8 @@ export function updateLaunchPreview(
     if (label) label.textContent = `${value}%`;
     if (bar) bar.style.width = `${Math.max(0, Math.min(100, value))}%`;
   }
+  const plainSplit = document.querySelector('#launch-summary-plain');
+  if (plainSplit) plainSplit.textContent = launchFeeSentence({ symbol, creator: summaryShares.creator, holders: summaryShares.holders, x: summaryShares.x, xHandle: feeDistribution.xRecipient });
   const previewBurnTier = document.querySelector('#preview-burn-tier');
   if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label; previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
   const promotionBadge = document.querySelector('#preview-promotion-badge');
@@ -147,4 +149,15 @@ export function updateLaunchPreview(
   }
   renderLaunchBurnSelection();
   updateLaunchNavigation();
+}
+
+// The creator fee split in one plain sentence, so a creator can check who gets
+// paid without reading the bar and legend.
+export function launchFeeSentence({ symbol = '', creator = 0, holders = 0, x = 0, xHandle = '' } = {}) {
+  const n = value => (Number.isFinite(Number(value)) ? Number(value) : 0);
+  const parts = [`you keep ${n(creator)}%`];
+  if (n(holders) > 0) parts.push(`holders share ${n(holders)}%`);
+  if (n(x) > 0) parts.push(`${/^@[A-Za-z0-9_]{1,15}$/.test(xHandle || '') ? xHandle : 'the X account'} gets ${n(x)}%`);
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0];
+  return `Of every creator fee ${symbol ? `$${symbol}` : 'your coin'} earns, ${list}. The other ${Math.max(0, 100 - n(creator) - n(holders) - n(x))}% pays for operations, referrals, the Daily bonus and $FUNDED burns.`;
 }
