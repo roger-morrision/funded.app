@@ -131,3 +131,16 @@ test('slow pool RPC cannot block recorded payout history; failed pool stays unav
   assert.equal(result.history.rows[0].receivedLamports, '149');
   await service.dashboard({}); assert.equal(calls, 1);
 });
+test('a stale pool read on the same bonus day answers at once and refreshes in the background', async () => {
+  let clock = 1792320000, calls = 0, release;
+  const service = createDailyBonusService({ cluster:'devnet', store:{ read:async () => ({}) },
+    rewardStore:{ read:async () => ({}) }, chainFactory:() => ({}), now:() => clock,
+    readPool:async () => { calls++; if (calls === 2) await new Promise(resolve => { release = resolve; });
+      return { status:'ready', categoryLamports:{ creators:String(calls) } }; } });
+  assert.equal((await service.dashboard({})).pool.categoryLamports.creators, '1');
+  clock += 60;
+  const stale = await service.dashboard({});
+  assert.equal(stale.pool.categoryLamports.creators, '1'); assert.equal(calls, 2);
+  release(); await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal((await service.dashboard({})).pool.categoryLamports.creators, '2'); assert.equal(calls, 2);
+});

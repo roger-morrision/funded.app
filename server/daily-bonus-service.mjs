@@ -25,7 +25,8 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   let poolCache, poolRead;
   async function dashboard(options) {
     const at = now();
-    if (!poolCache || at - poolCache.at >= 30 || poolCache.day !== currentBonusStart(at,schedule)) {
+    const sameDay = poolCache?.day === currentBonusStart(at,schedule);
+    if (!sameDay || at - poolCache.at >= 30) {
       poolRead ||= (async () => {
         let value, timer; const controller = new AbortController();
         try {
@@ -40,7 +41,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         finally { clearTimeout(timer); }
         poolCache = { at, day:currentBonusStart(at,schedule), value };
       })().finally(() => { poolRead = null; });
-      await poolRead;
+      // Same bonus day: answer with the last read and refresh it in the background,
+      // so a slow pool RPC (up to poolTimeoutMs) never holds the Home page.
+      if (!sameDay) await poolRead;
     }
     return { cluster, serverTime:new Date(now() * 1000).toISOString(),
       schedule:publicBonusSchedule(schedule),
