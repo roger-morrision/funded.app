@@ -156,10 +156,11 @@ export function renderExplorePayoutStats(
         : !available ? 'Checking finalized community claims'
           : leader ? `${shortAddress(leader.recipient)} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
             : 'No finalized community claims yet';
+      // The section note already shows when payouts were checked; keep this card's own time as a tooltip.
       const checkedAt = Date.parse(group?.indexedAt || '');
       const freshness = Number.isFinite(checkedAt)
-        ? `<small>Finalized index checked ${escapeHtml(new Date(checkedAt).toISOString().slice(11, 16))} UTC</small>` : '';
-      return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small>${freshness}</article>`;
+        ? ` title="Claims checked ${escapeHtml(new Date(checkedAt).toISOString().slice(11, 16))} UTC"` : '';
+      return `<article data-state="${group?.status || 'loading'}"${freshness}><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`;
     }
     const amount = card.top ? leader?.paidLamports : group?.paidLamports;
     const count = card.top ? leader?.payoutCount : group?.payoutCount;
