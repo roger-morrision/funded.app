@@ -196,11 +196,13 @@ export function renderLeaderboard(
     table.setAttribute('aria-label', 'Observed Solana trader leaderboard for the last 24 hours');
     const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Wallet</span><span role="columnheader">Trades</span><span role="columnheader">SOL volume</span><span role="columnheader">Proof</span></div>';
     if (loading || unavailable || !scannedTokens || !traders.length) {
-      const heading = loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : !scannedTokens ? 'No trades in the last 24 hours yet' : 'No trades in this sample';
-      const detail = loading ? 'Reading recent trades from verified tokens.' : unavailable ? 'Try again when the verified launch registry and trade feed are available.' : !scannedTokens
-        ? 'Buy or sell any verified coin and your wallet appears here.'
-        : 'No wallet-attributed trades were found in the recent scanned activity.';
-      replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span></div></div>`);
+      // Empty board: say it plainly and give one next step, the same way for both empty cases.
+      const empty = !loading && !unavailable;
+      const heading = loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : 'No trades in the last 24 hours yet';
+      const detail = loading ? 'Reading recent trades from verified tokens.' : unavailable ? 'Try again when the verified launch registry and trade feed are available.'
+        : 'Buy or sell any coin and your wallet appears here.';
+      const action = empty ? '<a class="text-button" href="#explore">Explore coins →</a>' : '';
+      replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span>${action}</div></div>`);
       return;
     }
     replaceLeaderboardRows(table, `${header}${traders.slice(0, 50).map((item, index) => {
