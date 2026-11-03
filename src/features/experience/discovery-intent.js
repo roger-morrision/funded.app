@@ -11,7 +11,7 @@ export function initializeDiscoveryIntent(app) {
     if (!label) {
       label = document.createElement('label'); label.className = 'review-buy-setting';
       const helpId = `review-buy-help-${inputs.length}`;
-      label.innerHTML = `<span>Buy review · SOL</span><input inputmode="decimal" aria-label="Saved review buy amount in SOL" aria-describedby="${helpId}" maxlength="13"><small id="${helpId}" class="visually-hidden">Used when opening a trade review. Review a fresh quote before signing; changing this amount does not place a trade.</small>`;
+      label.innerHTML = `<span>Buy amount · SOL</span><input inputmode="decimal" aria-label="Buy amount in SOL for the card Buy button" aria-describedby="${helpId}" maxlength="13"><small id="${helpId}" class="visually-hidden">Prefills the Buy button on each card. Review a fresh quote before signing; changing this amount does not place a trade.</small>`;
       parent.append(label);
     }
     const input = label.querySelector('input'); input.value = amount; input.disabled = false; inputs.push(input);
