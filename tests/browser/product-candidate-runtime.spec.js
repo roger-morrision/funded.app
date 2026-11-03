@@ -19,7 +19,7 @@ test('built candidate exposes its tested identity and registered-operation cover
   const caps=await page.request.get(`${report.base}/api/capabilities`);expect((await caps.json()).build).toBe(report.build);
   const settings=await (await page.request.get(`${report.base}/build-settings.json`)).json();expect(settings.devWalletEnabled).toBe(false);expect(settings.mainnetEnabled).toBe(false);expect(settings.sourceDigest).toBe(report.builtSettings.sourceDigest);
   await page.goto(`${report.base}/#payments/activity`);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
-  await page.getByText('Financial engine health & creator delivery',{exact:true}).click();await expect(page.locator('#financial-engine')).toContainText('registered V3 launch policies');await expect(page.locator('#financial-engine')).not.toContainText('Financial engine health unavailable');
+  await page.getByText('Payout speed & system status',{exact:true}).click();await expect(page.locator('#financial-engine')).toContainText('registered V3 launch policies');await expect(page.locator('#financial-engine')).not.toContainText('Payout status unavailable');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
 });
 test('built inspector displays the historical receipt independently rechecked by the acceptance runner',async({page})=>{
