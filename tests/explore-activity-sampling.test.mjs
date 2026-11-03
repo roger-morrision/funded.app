@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createExploreActivitySampler, ACTIVITY_MAX_AGE_MS } from '../src/features/explore/activity-sampling.js';
+import { createExploreActivitySampler, ACTIVITY_MAX_AGE_MS, renderActivityCoverage } from '../src/features/explore/activity-sampling.js';
 import { withMarketWindow, filterMarketRecords } from '../market-intelligence.js';
 import { createExploreActionsController } from '../src/app/controllers/explore-actions.js';
 const data = (value=1) => ({observedCoverage:'complete',coverage:'complete',volume24hSol:value,tradeCount24h:1,buyCount24h:1,sellCount24h:0,
@@ -50,4 +50,12 @@ test('freshness follows the server snapshot time rather than extending an old sn
  assert.equal(cache.get('older').at,540_000);
  time+=ACTIVITY_MAX_AGE_MS-60_000;
  assert.equal(await refresh([item],async()=>null),0);assert.equal(item.volume24hSol,null);
+});
+test('coverage notice does not claim stale stats when none have loaded yet',()=>{
+ const node={dataset:{},hidden:false,textContent:''},doc={getElementById:()=>node};
+ renderActivityCoverage(doc,'x',[{windowVolumeSol:null},{windowVolumeSol:null}]);
+ assert.equal(node.textContent,'Trade stats are still loading · rankings will update when they arrive');
+ assert.equal(node.dataset.state,'partial');
+ renderActivityCoverage(doc,'x',[{windowVolumeSol:1},{windowVolumeSol:null}]);
+ assert.match(node.textContent,/^Stats loaded for 1 of 2 coins · rankings may shift · up to 5 min old$/);
 });
