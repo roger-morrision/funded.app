@@ -358,7 +358,7 @@ async function listingGuideDestination(page,info,width,phase,originalMint,readin
   await expect(page).toHaveURL(/#list$/);await expect(page.locator('body')).toHaveClass(/page-route-list/);
   await expect(page.locator('#list-title')).toHaveText('Get your token listed');await expect(page.locator('#list-mint')).toHaveValue('');
   expect(await originalMint.evaluate(e=>e.isConnected&&e===document.getElementById('list-mint'))).toBe(true);
-  await expect(page.locator('#list-mint-help')).toHaveText('Enter a Solana token address to check its format.');
+  await expect(page.locator('#list-mint-help')).toHaveText('Paste the token mint address to see if it can be listed.');
   await expect(page.locator('#list-availability')).toHaveText('$FUNDED price unavailable');await expect(page.locator('#list-live-items')).toHaveText('The verified listing index is unavailable.');
   await expect(page.locator('#list-pay')).toBeHidden();await expect(page.locator('#list-pay')).toBeDisabled();await expect(page.locator('#list-review')).toBeHidden();await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect.poll(()=>f.api.filter(x=>x.path==='/api/listings'&&x.phase===phase).length).toBeGreaterThan(0);
