@@ -251,7 +251,15 @@ export async function initializeNavigation(appState) {
 
   // app-source: 889
   // Launch controls stay gated by their verified state while the workspace renders.
-  void appState.refreshFeeRouterConfig();
+  // Only Launch needs this slow readiness check; run it once, when Launch first opens.
+  let launchReadinessRequested = false;
+  const requestLaunchReadiness = () => {
+    if (launchReadinessRequested || appState.requestedPageRoute() !== 'launch') return;
+    launchReadinessRequested = true;
+    void appState.refreshFeeRouterConfig();
+  };
+  requestLaunchReadiness();
+  window.addEventListener('funded:route-change', requestLaunchReadiness);
   // app-source-end
 
   // app-source: 890
