@@ -13,7 +13,7 @@ for(const width of [390,1440])test(`task pages keep short copy and complete rule
   await page.locator('#token-name').fill('Short Copy QA');await page.locator('#token-symbol').fill('COPY');await page.locator('#launch-next').click();await brief('.product-airdrop-note',17);
   await expect(page.locator('#launch-summary-creator')).toHaveText('80%');await expect(page.locator('[data-fee-fixed-list="launch-review"] dd')).toHaveText(['8%','1%','4%','5%','2%']);
   await expect(page.locator('#fee-route-agree')).not.toBeChecked();await expect(page.locator('#terms-agree')).not.toBeChecked();await expect(page.locator('#launch-button')).toBeDisabled();
-  await route('payments');await brief('.rewards-page-header > p:last-child',10);
+  await route('payments');await brief('.rewards-page-header > p:last-child',10);await expect(page.locator('.rewards-page-header > p:last-child')).toContainText('arrive automatically');
   await expect(page.locator('#payments > .ui-tabs').getByRole('tab')).toHaveCount(6);await expect(page.locator('.reward-action-grid')).toHaveCount(0);
   await expect(page.locator('#financial-center')).toContainText('Unavailable data is not a zero balance');
   await route('airdrops');await brief('.airdrop-intro',24);await brief('.airdrop-wallet-gate-body > p',11);await brief('.airdrop-public-programs > .airdrop-stage-help:not([id])',14);await expect(page.locator('.airdrop-intro')).toContainText('at least 3%');
