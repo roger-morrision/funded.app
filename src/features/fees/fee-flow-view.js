@@ -61,7 +61,8 @@ export function createFeeFlowView(APP_ECONOMICS) {
     setAll('.home-referral-levels article strong', displayGross.map(percent));
     setAll('.referral-tier-strip > span b', displayGross.map(percent));
     set('.referral-tier-strip .eyebrow',referral.heading);
-    set('.referral-tier-strip > div > small',referral.scopeDetail);
+    set('.referral-tier-strip > div > small:not([data-referral-example])',referral.scopeDetail);
+    set('.referral-tier-strip [data-referral-example]',referral.example);
     set('.home-referral-guide-head > div > p:last-child',`Invite creators with your personal link. ${referral.scope}`);
     setAll('.app-revenue-grid > span b', effective.map(percent));
     setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED burn']);

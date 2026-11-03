@@ -29,6 +29,7 @@
 #referral-command-center .referral-tier-strip > a { grid-column: 1 / -1; min-width: 0; }
 #referral-command-center .referral-tier-strip > div strong { margin: 8px 0; color: #f0f2f8; font-size: 15px; }
 #referral-command-center .referral-tier-strip > div small { color: #a0acc2; font-size: 12px; line-height: 1.5; }
+#referral-command-center .referral-tier-strip > div .referral-tier-example { margin-top: 8px; color: var(--fv-text); }
 #referral-command-center .referral-tier-strip > span { min-width: 0; text-align: left; }
 #referral-command-center .referral-tier-strip > span b { color: #ffcc40; font-size: 24px; }
 #referral-command-center .referral-tier-strip > span small { margin-top: 7px; color: #a0acc2; font-size: 11px; line-height: 1.5; }
