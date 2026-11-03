@@ -67,7 +67,10 @@ export function initializeFinancialCenter(app) {
   root.querySelector('[data-flow-refresh]').addEventListener('click', () => void refresh(true));
   window.addEventListener('hashchange', () => void refresh());
   window.addEventListener('funded:route-change', () => void refresh());
-  window.addEventListener('funded:reward-identity-change', () => { ++request; loading = false; rows = []; limit=10; hasLoaded=false; missingSources=[]; expanded.clear(); render(); ready(rows,{checking:!!app.connectedWalletAddress}); root.querySelector('[data-flow-scope]').textContent='Checking rewards for this wallet…';root.querySelector('[data-flow-checked]').textContent='';status.textContent = 'Wallet changed. Loading activity for this wallet…'; void refresh(true); });
+  // Wallet-state updates (and X claim summaries) fire this event even when the
+  // wallet is unchanged; only a different wallet should reset these records.
+  let identity = app.connectedWalletAddress || '';
+  window.addEventListener('funded:reward-identity-change', () => { const wallet = app.connectedWalletAddress || ''; if (wallet === identity) return; identity = wallet; ++request; loading = false; rows = []; limit=10; hasLoaded=false; missingSources=[]; expanded.clear(); render(); ready(rows,{checking:!!app.connectedWalletAddress}); root.querySelector('[data-flow-scope]').textContent=wallet?'Checking rewards for this wallet…':'';root.querySelector('[data-flow-checked]').textContent='';status.textContent = wallet ? 'Wallet changed. Loading activity for this wallet…' : 'Wallet disconnected. Loading public activity…'; void refresh(true); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) void refresh(); });
   setInterval(() => void refresh(), 60000); void refresh();
 }
