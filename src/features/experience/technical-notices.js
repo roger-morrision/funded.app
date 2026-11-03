@@ -70,8 +70,11 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
   let category = null, shownKey = '', compactTimer = 0;
   // The summary shrinks to a small pill after a few seconds so it stops
   // covering page controls; selecting the pill expands it again.
+  // Phones start with the pill: the full card would sit over the content and
+  // the trade bar, which leaves little room on a small screen.
   const compactLater = () => {
     view?.clearTimeout(compactTimer);
+    if (view?.matchMedia?.('(max-width: 700px)').matches) { panel.classList.add('is-compact'); return; }
     compactTimer = view?.setTimeout(() => panel.classList.add('is-compact'), COMPACT_AFTER_MS);
   };
   function renderSummary(groups) {
@@ -86,7 +89,11 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
     const head = document.createElement('div'); head.className = 'technical-notice-head';
     const title = document.createElement('button'); title.type = 'button'; title.className = 'technical-notice-title';
     title.textContent = COPY[next].title;
-    title.addEventListener('click', () => { panel.classList.remove('is-compact'); compactLater(); });
+    title.addEventListener('click', () => {
+      panel.classList.remove('is-compact');
+      view?.clearTimeout(compactTimer);
+      compactTimer = view?.setTimeout(() => panel.classList.add('is-compact'), COMPACT_AFTER_MS);
+    });
     const close = document.createElement('button'); close.type = 'button'; close.className = 'technical-notice-close';
     close.setAttribute('aria-label', 'Dismiss notice'); close.textContent = '×';
     close.addEventListener('click', () => { dismiss(category); shownKey = ''; panel.hidden = true; });

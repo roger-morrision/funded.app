@@ -74,8 +74,13 @@ html body #main-content .home-launch-progress-row[data-progress-state='loading']
 .technical-notice details { margin-top: var(--fv-space-2); color: var(--fv-text-subtle); font-size: 12px; }
 .technical-notice summary { cursor: pointer; color: var(--fv-accent); }
 .technical-notice ul { margin: var(--fv-space-2) 0 0; padding-left: var(--fv-space-4); }
+/* Native focus scrolling stops above the notice while it is open. */
+html:has(.technical-notice:not([hidden]):not(.is-compact)) { scroll-padding-bottom: 240px; }
+html:has(.technical-notice.is-compact:not([hidden])) { scroll-padding-bottom: 112px; }
 @media (max-width: 700px) {
-  .technical-notice-stack { right: var(--fv-space-4); bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .technical-notice-stack { right: var(--fv-space-4); bottom: calc(var(--mobile-bottom-height, 72px) + var(--fv-space-3)); }
+  /* Keep keyboard focus clear of the notice pill as well as the bottom navigation. */
+  html:has(body.page-route:not(.page-route-admin)):has(.technical-notice:not([hidden])) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 64px); }
 }
 [data-technical-value]::after { content: 'Updating…'; font-size: var(--fv-cell-size, 1rem); color: var(--fv-text-muted); font-weight: 500; }
 .technical-notice-title { padding: 0; border: 0; background: none; color: inherit; font: 700 14px var(--fv-font-ui); text-align: left; cursor: pointer; }
