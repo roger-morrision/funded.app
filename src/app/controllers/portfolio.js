@@ -184,6 +184,7 @@ export function createPortfolioController(appState) {
       appState.portfolioHoldings = { wallet: address, status: 'unavailable', accounts: [], coverage: 'RPC unavailable' };
     }
     appState.renderPortfolio();
+    globalThis.document?.dispatchEvent?.(new Event('funded:portfolio-holdings'));
   }
   // app-source-end
 

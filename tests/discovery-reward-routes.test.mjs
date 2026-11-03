@@ -138,3 +138,18 @@ test('reward experience checks rate and address validity before ledger reads', a
   await f.request('/api/rewards/experience?wallet=invalid');
   assert.equal(f.responses[1].status, 400);
 });
+
+test('the devnet feed carries recent stored trade activity and drops stale rows', async () => {
+  const mints = ['So11111111111111111111111111111111111111112', 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'];
+  const launches = mints.map(mint => ({ mint, chain: 'solana', cluster: 'devnet', onchainVerified: true, pumpFeeRoute:{scope:'per-mint-v3'} }));
+  const observed = { [mints[0]]: new Date().toISOString(), [mints[1]]: new Date(Date.now() - 10 * 60_000).toISOString() };
+  const f = fixture(createDiscoveryRoutes, {
+    Connection: class {}, solanaRpcUrl: 'http://unused.invalid', readAccountSnapshot: async () => null,
+    store: { readLaunches: async () => launches, chargeRpcRate: async () => true, read: async () => ({}),
+      readMarketActivity: async mint => ({ mint, cluster: 'devnet', observedAt: observed[mint], volume24hSol: 1 }) },
+  });
+  await f.request('/api/pump/explore');
+  const { marketActivity, accountSnapshot } = f.responses[0].data;
+  assert.deepEqual(Object.keys(marketActivity), [mints[0]]);
+  assert.equal(accountSnapshot, undefined);
+});

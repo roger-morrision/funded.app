@@ -130,8 +130,9 @@ export function createCoinLoadingController(appState) {
       appState.setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
       appState.coinSolUsdValues = { spot: spotPriceSol, marketCap: marketCapSol, reserve: realQuote, virtualQuote: curve?.virtualQuoteReservesSol ?? NaN, supply };
       appState.renderCoinSummary();
-      appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(marketCapSol)); appState.setCoinField('#coin-change', '24h change unavailable');
+      appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(marketCapSol)); appState.setCoinField('#coin-change', '24h —');
       appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(marketCapSol));
+      appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
       appState.setCoinField('#coin-volume', curve && appState.EXPLORE_CLUSTER === 'devnet' ? 'Reading trades…' : '$—'); appState.setCoinField('#coin-liquidity', appState.formatCoinUsd(realQuote));
       appState.setCoinField('#coin-market-cap-label', graduatedPool ? 'Estimated PumpSwap market cap' : 'Estimated curve market cap');
       appState.setCoinField('#coin-market-cap-source', graduatedPool ? 'PumpSwap vault ratio · indicative RPC snapshot' : 'Confirmed Pump curve RPC snapshot');

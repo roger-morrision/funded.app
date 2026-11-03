@@ -40,6 +40,7 @@ export function createCoinMarketController(appState) {
     appState.renderFundedTokenLanding();
     appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
     appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
+    appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
     appState.setCoinField('#coin-liquidity', appState.formatCoinUsd(appState.coinSolUsdValues.reserve));
     appState.renderCoinSummary();
     if (appState.coinMarketActivity.graduated && appState.coinMarketActivity.status === 'unavailable') appState.setCoinField('#coin-volume', 'Pool activity unavailable');

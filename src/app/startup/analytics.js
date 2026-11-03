@@ -41,7 +41,7 @@ export function initializeAnalytics(appState) {
   // app-source-end
 
   // app-source: 450
-  let leaderboardView = 'burners';
+  let leaderboardView = 'traders';
   initializeAppState(appState, 'leaderboardView', leaderboardView);
   // app-source-end
 

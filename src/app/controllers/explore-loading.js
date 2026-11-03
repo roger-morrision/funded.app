@@ -1,5 +1,5 @@
 // Dependencies and mutable application state are read live through appState.
-import { createExploreActivitySampler } from '../../features/explore/activity-sampling.js';
+import { createExploreActivitySampler, applyActivitySnapshot, ACTIVITY_MAX_AGE_MS } from '../../features/explore/activity-sampling.js';
 export { scanExploreMarketsBounded } from '../../features/explore/activity-sampling.js';
 
 // Sorts only change which feed order is requested; a load is still valid
@@ -145,9 +145,17 @@ export function createExploreLoadingController(appState) {
       let scannedCount = 0;
       let marketScanRateLimited = false;
       if (appState.EXPLORE_CLUSTER === 'devnet' && !exploreVerificationFailed) {
+        // Activity the feed already carries counts as a fresh scan, so the
+        // per-coin requests below only run for coins it did not cover.
+        for (const [mint, market] of Object.entries(pumpFeed.data?.marketActivity || {})) {
+          const at = Date.parse(market?.observedAt || '');
+          if (market?.mint !== mint || market?.cluster !== appState.EXPLORE_CLUSTER || !Number.isFinite(at)) continue;
+          if (!(appState.exploreActivityCache.get(mint)?.at >= at)) appState.exploreActivityCache.set(mint, { at, data: market });
+        }
         // Show market caps from the confirmed curve reads now; per-coin trade
         // activity can take seconds and fills in on the render below.
         if (verified.length) {
+          for (const item of verified) { const row = appState.exploreActivityCache.get(item.address); if (row && Date.now() - row.at < ACTIVITY_MAX_AGE_MS) applyActivitySnapshot(item, row.data, row.at); }
           appState.assets = appState.includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
           appState.publishVerifiedCurves(appState.assets);
           appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
