@@ -183,6 +183,8 @@ html body #main-content #coin-page .coin-socials > a:not([hidden]),
 html body #main-content #coin-page .coin-socials > button { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); text-decoration: none; }
 html body #main-content #coin-page .coin-socials > a:hover,
 html body #main-content #coin-page .coin-socials > button:hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); color: var(--fv-text); }
+/* Phone token headers list only the project links the creator provided. */
+@media (max-width: 700px) { html body #main-content #coin-page .coin-socials > a.is-unavailable { display: none; } }
 html body #main-content #coin-page .coin-stat-strip { gap: 1px; overflow: hidden; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-border); }
 html body #main-content #coin-page .coin-stat-strip > div { padding: var(--fv-space-3) var(--fv-space-4); background: var(--fv-surface); }
 html body #main-content #coin-page .coin-stat-strip strong { color: var(--fv-text); font: 600 18px var(--fv-font-data); }
