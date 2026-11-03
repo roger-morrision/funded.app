@@ -175,7 +175,6 @@ export function homeLaunchCardMarkup(
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
     const capLabel = item.migrated === true ? 'Market cap' : 'Curve cap';
-    const hasNoObservedTrades = item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0;
     const shownVolume = volumeValue;
     const value = EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(capSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—';
     const providerHolders = item.holders == null || item.holders === '' ? NaN : Number(item.holders);
@@ -215,7 +214,7 @@ export function homeLaunchCardMarkup(
     const activeBoost = boostMultiplier > 0;
     // One card layout for every token list (Home, Explore, Favorites, Following,
     // Portfolio): identity and socials up top, market figures, curve, then actions.
-    const changeLabel = hasNoObservedTrades ? 'No trades' : change;
+    // "No trades" lives in the volume cell only; repeating it beside the cap clipped the cap on phones.
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
       <div class="home-card-overview">
@@ -233,7 +232,7 @@ export function homeLaunchCardMarkup(
       <div class="home-card-star">${tokenCardWatchMarkup(item.address, item.symbol)}</div>
       </div>
       <div class="home-launch-card-stats">
-        <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}${changeClass || hasNoObservedTrades ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(changeLabel)}</span>` : ''}</strong></span>
+        <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}${changeClass ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(change)}</span>` : ''}</strong></span>
         <span><small>${escapeHtml(volumeLabel)} volume</small>${unknownStatMarkup(shownVolume) || `<strong>${escapeHtml(shownVolume)}</strong>`}</span>
         <span title="${escapeHtml(holderTitle)}"><small>Holders</small>${unknownStatMarkup(holderCount) || `<strong>${escapeHtml(holderCount)}</strong>`}</span>
       </div>
