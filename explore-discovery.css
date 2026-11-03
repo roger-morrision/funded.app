@@ -58,6 +58,8 @@
 .explore-payout-head h4 { margin:0; color:#e9eef8; font-size:15px; }
 .explore-payout-head small { color:#8f9fb7; font:10px 'DM Mono',monospace; }
 .explore-payout-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.explore-payout-coverage { grid-column:1 / -1; margin:0; color:var(--fv-text-muted); font:11px var(--fv-font-ui); }
+.explore-payout-coverage[data-state="stale"] { color:var(--fv-warning); }
 .explore-payout-grid article { display:flex; flex-direction:column; gap:8px; min-width:0; min-height:112px; padding:13px; border:1px solid #334158; border-radius:9px; background:linear-gradient(145deg,#172132,#111923); }
 .explore-payout-grid article>span { color:#9eafc7; font:700 10px 'DM Mono',monospace; text-transform:uppercase; }
 .explore-payout-grid article>strong { overflow-wrap:anywhere; color:#eef4ff; font:600 clamp(15px,1.7vw,20px) 'DM Mono',monospace; }
