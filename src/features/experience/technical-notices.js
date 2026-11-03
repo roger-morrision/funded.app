@@ -66,6 +66,19 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
   panel.setAttribute('aria-live', 'polite');
   panel.hidden = true;
   host.append(panel);
+  // Phones show the summary inline under the topbar so it never covers coin
+  // cards or the trade bar; error alerts keep floating.
+  const slot = document.createElement('div');
+  slot.className = 'technical-notice-inline';
+  const phone = view?.matchMedia?.('(max-width: 700px)');
+  const place = () => {
+    if (!phone?.matches) { host.append(panel); slot.remove(); return; }
+    const topbar = root.querySelector(':scope > .topbar');
+    if (topbar) topbar.after(slot); else root.prepend(slot);
+    slot.append(panel);
+  };
+  place();
+  phone?.addEventListener?.('change', place);
 
   let category = null, shownKey = '', compactTimer = 0;
   // The summary shrinks to a small pill after a few seconds so it stops
@@ -195,7 +208,7 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
   observer.observe(root, { subtree: true, childList: true, characterData: true });
   view?.addEventListener('hashchange', schedule);
   scan();
-  return { scan, disconnect: () => { observer.disconnect(); host.remove(); } };
+  return { scan, disconnect: () => { observer.disconnect(); phone?.removeEventListener?.('change', place); host.remove(); slot.remove(); } };
 }
 
 if (typeof document !== 'undefined') {
