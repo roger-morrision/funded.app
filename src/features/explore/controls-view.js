@@ -107,10 +107,10 @@ export function renderExploreBenefitLeaders(
     if (!leader && !hasVerifiedField) return '';
     const value = leader
       ? definition.policy ? formatVerifiedPercent(leader[definition.field]) : formatExploreUsd(leader[definition.field], { partial: leader.windowCoverage === 'partial' })
-      : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
+      : hasVerifiedField && definition.policy ? 'None yet' : 'Unavailable';
     const detail = leader
       ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
-      : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
+      : hasVerifiedField && definition.policy ? 'No launch offers this yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
     const canRank = leader && !document.querySelector(`#explore-sort option[value="${definition.sort}"]`)?.disabled;
     return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${canRank ? '' : 'disabled'} ${leader && !canRank ? 'title="Ranking needs more verified data"' : ''}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
   }).filter(Boolean);
