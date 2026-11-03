@@ -1,4 +1,4 @@
-import { financialRows } from './financial-model.js';
+import { financialRows, newestFirst } from './financial-model.js';
 import { initializeReadyQueue } from './ready-queue.js';
 import { renderFinancialRecords } from './financial-activity-view.js';
 import {focusFilterRecovery} from '../shared/filter-recovery.js';
@@ -23,7 +23,7 @@ export function initializeFinancialCenter(app) {
     more.disabled=loading;
     if(preserveRows)return;
     const filter = root.querySelector('select').value;
-    const selected = rows.filter(row => filter === 'all' || row.stage === filter);
+    const selected = newestFirst(rows.filter(row => filter === 'all' || row.stage === filter));
     renderFinancialRecords(list,selected.slice(0,limit),expanded,root.querySelector('#financial-center-title'));
     root.querySelector('[data-flow-count]').textContent=loading?'':missingSources.length&&!rows.length?'Records unavailable':`${Math.min(limit,selected.length)} of ${selected.length} loaded records`;
     root.querySelector('.financial-list-footer').hidden=!selected.length||loading;
