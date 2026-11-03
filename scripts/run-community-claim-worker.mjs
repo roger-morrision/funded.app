@@ -34,7 +34,7 @@ if (process.argv.includes('--check')) {
   const connection = new Connection(rpcUrl, 'finalized');
   async function request(path, payload) {
     const response = await fetch(`${api}${path}`, { method:payload ? 'POST' : 'GET',
-      headers:{ authorization:`Bearer ${token}`, ...(payload ? { 'content-type':'application/json' } : {}) },
+      headers:{ authorization:`Bearer ${token}`, ...(path==='/api/airdrops/claims/prepare' ? {Prefer:'respond-async'} : {}), ...(payload ? { 'content-type':'application/json' } : {}) },
       body:payload ? JSON.stringify(payload) : undefined,
       signal:AbortSignal.timeout(payload ? 90_000 : 60_000) });
     const data = await response.json();
@@ -108,9 +108,9 @@ if (process.argv.includes('--check')) {
         const migrationSignature = await findMigration(mint);
         if (!migrationSignature) continue;
         await request('/api/airdrops/claims/prepare', { mint, migrationSignature });
-        prepared += 1;
         status = await request(`/api/airdrops/claims/status?mint=${encodeURIComponent(mint)}`);
       }
+      if (status.status === 'prepared') prepared += 1;
       if (status.status !== 'prepared' || !status.drop) continue;
       const result = await open(mint, status.drop);
       if (result === 'opened') opened += 1;

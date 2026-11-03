@@ -12,6 +12,7 @@ export function createAirdropsRoutes({
   communityClaimService, v3AuthorityKeypair,
   respond,
 }) {
+  const preparing = new Map();
   let communityReserveSnapshot = null;
   const invalidateReserveCache = () => { communityReserveSnapshot = null; };
   const json = (...args) => { respond(...args); return true; };
@@ -122,7 +123,8 @@ export function createAirdropsRoutes({
         return json(res, 200, record ? { status:record.openingSignature ? 'opened' : 'prepared', mint:record.mint,
           drop:record.manifest.drop, openingSignature:record.openingSignature,
           migrationSignature:record.migrationSignature, migrationSlot:record.snapshot.slot,
-          snapshotBasis:record.snapshotBasis || 'pump-migration' } : { status:'unprepared', mint });
+          snapshotBasis:record.snapshotBasis || 'pump-migration', root:record.manifest.root, snapshotHash:record.manifest.snapshotHash,
+          recipients:record.manifest.leaves.length, totalAmount:record.manifest.totalAmount } : { status:preparing.has(mint) ? 'preparing' : 'unprepared', mint });
       } catch { return json(res, 503, { error:'Community claim status is temporarily unavailable.' }); }
     }
     if (req.method === 'POST' && ['/api/airdrops/claims/prepare', '/api/airdrops/claims/prepare-qa'].includes(url.pathname)) {
@@ -141,9 +143,25 @@ export function createAirdropsRoutes({
       // response alive beyond the server's ordinary two-minute idle timeout.
       res.setTimeout?.(15*60_000);
       try {
-        const record = await (await communityClaimService(mint)).prepare({ mint, creator:launch.creatorWallet,
+        const service = await communityClaimService(mint);
+        const args = { mint, creator:launch.creatorWallet,
           reservedTokens:Number(launch.communityAirdrop.reservedTokens), fundingSignature:receipt.signature,
-          migrationSignature, snapshotBasis:qaCutoff ? 'devnet-qa-cutoff' : 'pump-migration' });
+          migrationSignature, snapshotBasis:qaCutoff ? 'devnet-qa-cutoff' : 'pump-migration' };
+        if (req.headers?.prefer === 'respond-async') {
+          const identity = JSON.stringify(args);
+          const active = preparing.get(mint);
+          if (active && active !== identity) return json(res,409,{ error:'A different migration is already being verified.' });
+          if (!active) {
+            preparing.set(mint, identity);
+            Promise.resolve().then(() => service.prepare(args)).catch(error => {
+              console.warn(JSON.stringify({ event:'community_claim_preparation_failed', mint,
+                reason:String(error.message).replace(/https?:\/\/[^\s"']+/g,'[redacted-url]').slice(0,400) }));
+            }).finally(() => preparing.delete(mint));
+          }
+          res.setHeader('Location','/api/airdrops/claims/status?mint='+mint);
+          return json(res,202,{mint,status:'preparing'});
+        }
+        const record = await service.prepare(args);
         return json(res, 200, { mint:record.mint, drop:record.manifest.drop, root:record.manifest.root,
           snapshotHash:record.manifest.snapshotHash, migrationSlot:record.snapshot.slot,
           snapshotBasis:record.snapshotBasis, recipients:record.manifest.leaves.length,
