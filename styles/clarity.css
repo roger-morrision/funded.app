@@ -139,7 +139,7 @@ html body #main-content .home-launch-card .home-launch-card-stats strong.is-unkn
 html body #main-content .home-market-ticker-items small.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 html body #main-content .home-launch-card .home-card-market-summary { display: grid; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-progress-heading { display: flex; justify-content: space-between; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
-html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); font: 500 11px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); text-align: end; font: 500 11px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-fee-route { color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-card-actions { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, 44px); gap: var(--fv-space-2); margin-top: auto; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-card-actions > * { min-width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: transparent; color: var(--fv-text-muted); }
