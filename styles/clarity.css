@@ -193,6 +193,7 @@ html body #main-content #coin-page .coin-price-line #coin-price { color: var(--f
 html body #main-content #coin-page .coin-price-line .coin-change { padding: 2px var(--fv-space-2); border-radius: 999px; background: color-mix(in srgb, var(--fv-text-muted) 12%, transparent); color: var(--fv-text-muted); font: 600 13px var(--fv-font-data); }
 html body #main-content #coin-page .coin-price-line .coin-change[data-trend="up"] { background: color-mix(in srgb, var(--fv-success) 12%, transparent); color: var(--fv-success); }
 html body #main-content #coin-page .coin-price-line .coin-change[data-trend="down"] { background: color-mix(in srgb, var(--fv-danger) 12%, transparent); color: var(--fv-danger); }
+html body #main-content #coin-page .coin-price-line .coin-change:empty { display: none; }
 html body #main-content #coin-page .coin-socials { display: flex; flex-wrap: wrap; gap: var(--fv-space-2); }
 html body #main-content #coin-page .coin-socials > a:not([hidden]),
 html body #main-content #coin-page .coin-socials > button { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); text-decoration: none; }
