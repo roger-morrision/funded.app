@@ -171,9 +171,9 @@ export function renderLeaderboard(
   if (leaderboardView === 'traders') {
     document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-traders-tab');
     document.querySelector('#leaderboard .leaderboard-grid')?.closest('details')?.setAttribute('hidden', '');
-    setCoinField('#leaderboard-table-kicker', 'Observed Pump trades · last 24 hours');
+    setCoinField('#leaderboard-table-kicker', 'Observed trades · last 24 hours');
     setCoinField('#leaderboard-table-title', 'Observed trader leaderboard');
-    setCoinField('#leaderboard-hero-description', 'A partial ranking of wallet SOL volume from recent, confirmed Pump trades across sampled verified tokens.');
+    setCoinField('#leaderboard-hero-description', 'Top wallets by SOL traded in the last 24 hours.');
     const { scannedTokens, traders } = rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
     // Before the registry and the first feed read finish, say so instead of "unavailable".
     const loading = EXPLORE_CLUSTER === 'devnet' && (verifiedLaunchPoliciesStatus === 'loading' || (!exploreFeedAvailable && !exploreUpdatedAt));
@@ -182,7 +182,7 @@ export function renderLeaderboard(
       ? 'Reading recent trades from verified tokens…'
       : unavailable
       ? 'The verified launch registry or trade feed is unavailable.'
-      : `24-hour sample from ${scannedTokens} verified token${scannedTokens === 1 ? '' : 's'}. The feed keeps up to 20 recent trades per token and scans a limited set of tokens; ranks do not represent all trading.`);
+      : `Sample of ${scannedTokens} verified token${scannedTokens === 1 ? '' : 's'}, up to 20 recent trades per token. Not all trading is counted.`);
     setCoinField('#leaderboard-status-title', loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} observed trading wallet${traders.length === 1 ? '' : 's'}` : 'No observed traders yet');
     // A connected wallet sees its own place first: the reason to come back.
     const yourIndex = connectedWalletAddress ? traders.findIndex(item => item.wallet === connectedWalletAddress) : -1;
@@ -197,7 +197,7 @@ export function renderLeaderboard(
       const heading = loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : !scannedTokens ? 'Waiting for trade scans' : 'No trades in this sample';
       const detail = loading ? 'Reading recent trades from verified tokens.' : unavailable ? 'Try again when the verified launch registry and trade feed are available.' : !scannedTokens
         ? 'The leaderboard will populate after verified tokens have been scanned.'
-        : 'No wallet-attributed Pump trades were found in the recent scanned activity.';
+        : 'No wallet-attributed trades were found in the recent scanned activity.';
       replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span></div></div>`);
       return;
     }
