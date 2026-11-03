@@ -86,6 +86,8 @@ html:has(.technical-notice-stack .technical-notice.is-compact:not([hidden])) { s
   .technical-notice-inline:not(:has(> .technical-notice:not([hidden]))) { display: none; }
   .technical-notice-inline .technical-notice { width: 100%; box-shadow: none; }
   .technical-notice-inline .technical-notice.is-compact { width: auto; }
+  /* Home hero is a two-column grid on phones; give the third CTA the full row instead of a lone half-width wrapped button. */
+  html body.page-route-overview #main-content .hero-actions > [data-launch-for-x] { grid-column: 1 / -1; }
 }
 [data-technical-value]::after { content: 'Updating…'; font-size: var(--fv-cell-size, 1rem); color: var(--fv-text-muted); font-weight: 500; }
 .technical-notice-title { padding: 0; border: 0; background: none; color: inherit; font: 700 14px var(--fv-font-ui); text-align: left; cursor: pointer; }
