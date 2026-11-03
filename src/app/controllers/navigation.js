@@ -1,6 +1,7 @@
 // Dependencies and mutable application state are read live through appState.
 export function createNavigationController(appState) {
   let historyRouteLocation = globalThis.location?.href;
+  let unknownRouteNotified = '';
   let historyRouteTransition = false;
   // app-source: 847
   function setDesktopSidebarCollapsed(collapsed){
@@ -224,6 +225,13 @@ export function createNavigationController(appState) {
     }
     if (route === 'buybacks' || route === 'paid' || (route === 'airdrops' && appState.connectedWalletAddress)) void appState.loadFundedBurnState();
     if (route !== 'overview' && requestedHash !== 'referral-faq') window.scrollTo({ top: 0, behavior: 'auto' });
+    // Mistyped or outdated shared links fall back to Home; say so once per link.
+    const unknownHash = route === 'overview' && requestedHash && requestedHash !== 'overview' && !requestedHash.startsWith('coin/')
+      && !infoRoute && !creatorSupportRoute && requestedHash !== 'creator-settings' && !document.getElementById(requestedHash);
+    if (unknownHash && location.href !== unknownRouteNotified) {
+      unknownRouteNotified = location.href;
+      appState.showToast?.('Page not found. Showing Home instead.');
+    }
     window.dispatchEvent(new CustomEvent('funded:route-change', {detail: {route}}));
   }
   // app-source-end
