@@ -125,6 +125,9 @@ export function createNavigationController(appState) {
     if (hash === 'referral-faq') return 'referrals';
     if (hash.startsWith('docs/')) return 'docs';
     if (hash === 'funded-holder-token-rewards' || /^payments\/(history|holders|activity|creator|x)$/.test(hash)) return 'payments';
+    // Shared links often use the sidebar label instead of the route name.
+    const labelRoutes = { rewards: 'payments', portfolio: 'my-launches', listing: 'list', 'get-listed': 'list', 'daily-bonuses': 'bonuses', analytics: 'analytics-detail', help: 'docs' };
+    if (labelRoutes[hash]) return labelRoutes[hash];
     return appState.pageRouteTargets[hash] ? appState.mergedPageRoutes[hash] || hash : 'overview';
   }
   // app-source-end
