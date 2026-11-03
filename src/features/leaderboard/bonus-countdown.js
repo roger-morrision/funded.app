@@ -33,7 +33,11 @@ export function bonusCountdownMarkup(summary, { solUsd = null } = {}) {
   if (!summary) return '';
   const pool = summary.poolLamports;
   const usd = formatProofUsd(pool, solUsd);
-  const prize = item => `<li><b>#${item.rank}</b><span>${escape(item.lamports == null ? `${item.percent}%` : formatProofSol(item.lamports))}</span><small>${item.lamports == null ? 'of the pool' : `${escape(item.percent)}% of pool`}</small></li>`;
+  // An empty pool shows each rank's share instead of three "0 SOL" rows.
+  const prize = item => {
+    const share = item.lamports == null || pool === 0;
+    return `<li><b>#${item.rank}</b><span>${escape(share ? `${item.percent}%` : formatProofSol(item.lamports))}</span><small>${share ? 'of the pool' : `${escape(item.percent)}% of pool`}</small></li>`;
+  };
   return `<div class="bonus-countdown-clock"><p class="eyebrow">Daily bonus · top 3 ${escape(summary.category.label)}</p><strong data-bonus-countdown aria-live="off">${escape(formatCountdown(summary.remainingMs))}</strong><small>left until today's ranking closes (00:00 UTC)</small></div>
 <div class="bonus-countdown-pool"><span>Pool so far today</span><strong>${escape(pool == null ? '—' : formatProofSol(pool))}</strong>${usd ? `<em>≈ ${escape(usd)}</em>` : ''}<small>${pool == null ? 'Total appears once today’s fees are checked' : pool === 0 ? 'Grows with every fee collected today' : `Ranked by ${escape(summary.category.metric)}`}</small></div>
 <ol class="bonus-countdown-prizes" aria-label="Estimated payout if the ranking closed now">${summary.prizes.map(prize).join('')}</ol>
