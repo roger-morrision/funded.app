@@ -1,4 +1,5 @@
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
+import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCoinStateController(appState) {
   // app-source: 979
@@ -40,7 +41,8 @@ export function createCoinStateController(appState) {
     appState.invalidateTradePreview();
     appState.queueTradeQuote();
     appState.setCoinTabLabels(); appState.renderCoinActivityTab();
-    appState.setCoinField('#coin-avatar', '?'); appState.setCoinField('#coin-symbol', 'TOKEN'); appState.setCoinField('#coin-artwork-symbol', 'TOKEN'); appState.setCoinField('#coin-page-title', 'Loading token…'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
+    const known = serverCoinIdentity(mintAddress);
+    appState.setCoinField('#coin-avatar', known ? known.symbol.slice(0, 1).toUpperCase() : '?'); appState.setCoinField('#coin-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-artwork-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-page-title', known?.name || 'Loading token…'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinFact('#coin-stage', 'Checking curve'); appState.setCoinFact('#coin-fee-owner', 'Checking route'); appState.setCoinFact('#coin-metadata-status', 'Reading mint');
     appState.setCoinFact('#coin-mint-authority', 'Checking…'); appState.setCoinFact('#coin-freeze-authority', 'Checking…');
     const avatar = document.querySelector('#coin-avatar'); if (avatar) { avatar.style.backgroundImage = ''; avatar.removeAttribute('title'); }

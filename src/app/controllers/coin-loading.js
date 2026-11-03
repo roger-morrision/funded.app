@@ -1,6 +1,7 @@
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
+import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 
 export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
   const router = ledgerData?.sharedRouter;
@@ -33,7 +34,8 @@ export function createCoinLoadingController(appState) {
       appState.renderCoinFeeDashboard(ledger.overview);
     });
     void appState.loadCoinChat(mintAddress, loadId);
-    appState.setCoinField('#coin-page-title', 'Loading token…'); appState.setCoinField('#coin-symbol', 'TOKEN'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
+    const known = serverCoinIdentity(mintAddress);
+    appState.setCoinField('#coin-page-title', known?.name || 'Loading token…'); appState.setCoinField('#coin-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinField('#coin-description', 'Checking coin details on Solana…');
     try {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
