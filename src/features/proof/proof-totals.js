@@ -29,13 +29,13 @@ export function proofTotals(summary) {
   const exact = summary.exactLamports || {};
   const allocations = summary.homeFeeAllocations || {};
   const holder = summary.rewardPaid?.holder || summary.feePayoutStats?.holder || {};
-  const burns = count(allocations.verifiedBurnCount);
+  const buybacks = allocations.protocolBuybacks;
   return [
     { key: 'fees', label: 'Fees collected', lamports: lamports(exact.collectedLamports ?? summary.collectedLamports), note: `From ${plural(count(summary.collections), 'verified collection')}`, href: '#payments/history' },
     { key: 'holders', label: 'Paid to holders', lamports: lamports(holder.paidLamports), note: `${plural(count(holder.payoutCount), 'payment')} in SOL`, href: '#payments/history' },
     { key: 'referrals', label: 'Referrals paid', lamports: lamports(exact.referralPaidLamports ?? summary.referralPaidLamports), note: plural(count(summary.referralPayoutCount), 'payment'), href: '#referrals' },
     { key: 'bonus', label: 'Daily bonus paid', lamports: lamports(exact.dailyBonusPaidLamports ?? summary.dailyBonusPaidLamports), note: plural(count(summary.dailyBonusPayoutCount), 'winner payment'), href: '#bonuses' },
-    { key: 'buyback', label: '$FUNDED buyback', lamports: lamports(allocations.buybackLamports), note: burns ? `${count(allocations.burnedTokens).toLocaleString('en-US')} $FUNDED burned in ${plural(burns, 'burn')}` : 'Set aside to buy and burn $FUNDED', href: '#buybacks' },
+    { key: 'buyback', label: 'SOL spent buying $FUNDED', lamports: buybacks ? lamports(buybacks.spentLamports) : null, note: buybacks ? `${BigInt(buybacks.burnedBaseUnits).toLocaleString('en-US')} $FUNDED base units burned · ${plural(buybacks.count, 'indexed buyback')}` : 'Verified buyback receipts unavailable', href: '#buybacks' },
     { key: 'launches', label: 'Coins launched', value: count(summary.launches).toLocaleString('en-US'), note: 'Each with its fee rule saved on Solana', href: '#explore' },
   ];
 }

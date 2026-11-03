@@ -1,6 +1,29 @@
 import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 import { validateProtocolFeeSplit } from '../distribution-policy.js';
 
+import { verifiedV3BuybackOrder } from './v3-buyback-orders.mjs';
+import { V3_DEVNET_FUNDED_MINT } from './v3-buyback-instruction.mjs';
+
+export function protocolBuybackTotals(state, cluster) {
+  if (cluster !== 'devnet' || !state.v3BuybackOrders) return null;
+  const receipts = new Map();
+  for (const order of Object.values(state.v3BuybackOrders)) {
+    if (!verifiedV3BuybackOrder(order) || (order.category ?? 6) !== 6 || order.fundedMint !== V3_DEVNET_FUNDED_MINT.toBase58()) continue;
+    const launch = state.launches?.[order.mint];
+    if (!launch?.onchainVerified || launch.cluster !== cluster || !order.programId || launch.pumpFeeRoute?.programId !== order.programId) continue;
+    if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(order.signature) || !/^[1-9]\d*$/.test(order.spentLamports) || !/^[1-9]\d*$/.test(order.burnedBaseUnits)) return null;
+    const previous = receipts.get(order.signature);
+    if (previous && (previous.spentLamports !== order.spentLamports || previous.burnedBaseUnits !== order.burnedBaseUnits || previous.receipt !== order.receipt)) return null;
+    receipts.set(order.signature, order);
+  }
+  let spent = 0n, burned = 0n;
+  for (const row of receipts.values()) {
+    spent += BigInt(row.spentLamports);
+    burned += BigInt(row.burnedBaseUnits);
+  }
+  return { count: receipts.size, spentLamports: String(spent), burnedBaseUnits: String(burned), mint: V3_DEVNET_FUNDED_MINT.toBase58() };
+}
+
 function lamports(value) {
   return /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : 0n;
 }
@@ -75,6 +98,7 @@ export function homeFeeAllocationSummary(state, evidence, cluster) {
     settledCollections,
     currentPolicy,
     ...Object.fromEntries(Object.entries(totals).map(([key, value]) => [key, value.toString()])),
+    protocolBuybacks:protocolBuybackTotals(state, cluster),
     verifiedBurnCount:burns.size,
     burnedTokens:[...burns.values()].reduce((sum, amount) => sum + amount, 0),
   };

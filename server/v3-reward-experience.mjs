@@ -69,7 +69,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
           || payment.balanceDeltaVerified !== true) continue;
         payouts.push({ kind:'holder', wallet:recipient, signature:payment.signature,
           amountLamports:String(payment.amount), paidAt:payment.paidAt || null,
-          source:'finalized-v3-reward-cycle', feeSourceVerified:true,sourceSignatures:linkedSources.map(id=>v3SourceAllocation(state,id.slice(3)).collectionSignature) });
+          round:schedule.id, cutoffAt:schedule.cutoffAt, source:'finalized-v3-reward-cycle', feeSourceVerified:true,sourceSignatures:linkedSources.map(id=>v3SourceAllocation(state,id.slice(3)).collectionSignature) });
       }
     }
     for (const [source, claim] of Object.entries(state.v3XClaims || {})) {
@@ -102,6 +102,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
     }
     for (const payout of payouts) events.push({ mint, kind:`${payout.kind}-paid`,
       signature:payout.signature, amountLamports:payout.amountLamports, at:payout.paidAt,
+      ...(payout.kind === 'holder' ? {round:payout.round, cutoffAt:payout.cutoffAt} : {}),
       label:`${payout.kind} reward paid`, feeSourceVerified:true,wallet:payout.wallet,sourceSignatures:payout.sourceSignatures });
     const burns = Object.entries(state.v3BuybackOrders || {}).filter(([source, row]) =>
       row.mint===mint&&row.programId===launch.pumpFeeRoute.programId&&(sourceSignatures.has(source)||sourceSignatures.has(row.collectionSignature)||row.sourceKind==='aggregate-collections'
@@ -150,6 +151,11 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
           referenceOnly:cluster === 'devnet' } : null,
       xPaidWallets:new Set(xPaid.map(row => row.wallet)).size, xPayoutCount:xPaid.length,
       xPaidLamports:xPaid.reduce((sum, row) => sum + value(row.amountLamports), 0n).toString(),
+      availableHolderPoolLamports: rewardState.rewardPools && rewardState.programs?.[mint]?.enabled
+        ? Object.values(rewardState.rewardPools).filter(pool => pool.mint === mint && pool.asset === 'SOL'
+          && pool.status === 'available' && pool.balanceDeltaVerified === true
+          && pool.fundedAt >= rewardState.programs[mint].activatedAt).reduce((sum, pool) => sum + value(pool.amount), 0n).toString()
+        : null,
       lastHolderPayout, buybackBurnCount:burns.length,
       buybackBurnedBaseUnits:burns.reduce((sum, [, row]) => sum + value(row.burnedBaseUnits), 0n).toString(),
       status:holderPaid.length ? 'holders-paid' : totals.holder > 0n ? 'holder-fees-allocated'

@@ -18,7 +18,8 @@ test('proof totals read paid amounts from the analytics summary', () => {
   assert.equal(by.fees.lamports, 15669055);
   assert.equal(by.holders.lamports, 1566306);
   assert.equal(by.referrals.note, '15 payments');
-  assert.equal(by.buyback.note, '1,199 $FUNDED burned in 4 burns');
+  assert.equal(by.buyback.lamports, null);
+  assert.match(by.buyback.note, /receipts unavailable/);
   assert.equal(by.launches.value, '9');
   assert.equal(proofTotals(null), null);
 });
@@ -43,7 +44,7 @@ test('holder rewards card shows paid, waiting pot and payout rule, hidden withou
   const markup = holderRewardsMarkup(result, { now: Date.parse('2026-11-01T07:19:30Z') });
   assert.match(markup, /\$REDQA holders earn 10% of creator fees/);
   assert.match(markup, /9 payments to 4 wallets/);
-  assert.match(markup, /Paid in SOL every hour to everyone holding \$REDQA \(at least \$20 worth\)/);
+  assert.match(markup, /Paid in SOL every hour to eligible holders of \$REDQA \(at least \$20 worth\)/);
   assert.match(markup, /1 h ago/);
   assert.equal(holderRewardsSummary({ ...token, holderSharePercent: 0 }), null);
   assert.equal(holderRewardsSummary({ ...token, holderPaidLamports: '999999999' }).waiting, 0);

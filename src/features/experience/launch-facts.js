@@ -1,4 +1,5 @@
 import {savedFeeAllocationCopy} from '../fees/fee-policy-copy.js';
+import { mountCoinAgents } from './coin-agents.js';
 import { mountReserveFacts } from './reserve-facts.js';
 import { link, el, address, reportContextLink } from './view-utils.js';
 export function identityMatches(candidate, launches) {
@@ -10,9 +11,10 @@ export function identityMatches(candidate, launches) {
 export function initializeLaunchFacts(app) {
   const coin = document.querySelector('#coin-page'); if (!coin) return;
   const root = document.createElement('details'); root.className = 'flow-panel launch-facts';
-  root.innerHTML = '<summary>Verified launch facts</summary><p data-facts-status>Waiting for the token’s RPC snapshot.</p><dl></dl><p>Facts describe the checked records. Similar identities are advisory; a paid promotion is not a risk assessment.</p>';
+  root.innerHTML = '<summary>Verified launch facts, migration airdrop and agent receipts</summary><p data-facts-status>Waiting for the token’s RPC snapshot.</p><dl></dl><p>Facts describe the checked records. Similar identities are advisory; a paid promotion is not a risk assessment.</p>';
   (coin.querySelector('.coin-main-column') || coin).append(root);
   mountReserveFacts(root,app);
+  mountCoinAgents(root,app);
   const report=reportContextLink('Report this coin');root.append(report);
   const reset = () => { root.querySelector('dl').replaceChildren(); root.querySelector('[data-facts-status]').textContent = 'Checking this token’s RPC snapshot…'; };
   window.addEventListener('funded:coin-facts-loading', reset);

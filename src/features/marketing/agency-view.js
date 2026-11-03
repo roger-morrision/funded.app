@@ -10,7 +10,7 @@ export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
   if (!main || document.getElementById('marketing-agency')) return;
   const view = document.defaultView, page = document.createElement('section');
-  let publishingPaused=false,agencyGrossPercent=2,agencyReady=false,updateLaunchTeam=()=>{};
+  let verifiedRates=null, publishingPaused=null,agencyGrossPercent=2,agencyReady=false,updateLaunchTeam=()=>{};
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
   page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Marketing agents</h1></div><button type="button" data-agency-refresh>Refresh</button></header>
@@ -45,6 +45,7 @@ export function initMarketingAgency(document = globalThis.document) {
     const fieldset = document.createElement('fieldset'); fieldset.id = 'launch-agency-options'; fieldset.className = 'agency-options';
     const legend = document.createElement('legend'); legend.textContent = 'AI marketing team'; fieldset.append(legend);
     const help = document.createElement('p'); help.id = 'launch-agency-help'; help.textContent = 'New launches wait for verified fee vaults and executors. Agent execution is not yet available.'; help.setAttribute('role','status');
+    const terms = document.createElement('p'); terms.id = 'launch-package-terms'; fieldset.append(terms);
     fieldset.setAttribute('aria-describedby', help.id);
     const team = document.createElement('ul'); team.className = 'agency-included-list'; fieldset.append(team);
     for (const agent of POLICY.agents) {
@@ -56,7 +57,19 @@ export function initMarketingAgency(document = globalThis.document) {
     const update = () => {
       const selected=readLaunchAgencySelection({requiresBurn:['boost','pro','premier'].includes(promotion.dataset.selectedTier)});
       for(const row of team.children){const included=selected.includes(row.dataset.launchAgent);row.dataset.included=String(included);row.querySelector('.agency-included-badge').textContent=included?'Included':'Promotion only';}
-      split.textContent=`${agencyGrossPercent}% of collected creator fees · shared equally across the ${selected.length} included agents.`;
+      const postStatus = publishingPaused === true ? 'X publishing is paused. Package posts await reinstatement.' : publishingPaused === false ? 'Package posts require a confirmed launch and available publishing.' : 'X publishing availability is unverified.';
+      for (const card of promotion.querySelectorAll('[data-burn-tier]')) {
+        let note = card.querySelector('[data-post-availability]');
+        if (!note) { note = document.createElement('small'); note.dataset.postAvailability = ''; card.append(note); }
+        note.textContent = publishingPaused === true ? 'X posts paused' : '';
+        note.hidden = !note.textContent;
+      }
+      const rates = verifiedRates;
+      const example = rates ? Object.entries({'creator-directed':rates.creator, operations:rates.operations, referrals:rates.referrals, 'daily bonus':rates.dailyBonus, '$FUNDED buyback':rates.fundedBuyback, agents:rates.agency}).map(([label, rate]) => `${rate / 100} SOL ${label}`).join(', ') : '';
+      terms.textContent = [postStatus, selected.includes('x-promotion') ? 'Recurring agent posts are billed separately after verified delivery.' : '', example && 'For 1 SOL of collected creator fees: ' + example + '.'].filter(Boolean).join(' ');
+      const review = document.getElementById('launch-review-package');
+      if (review) review.textContent = terms.textContent + ' ' + agencyGrossPercent + '% shared equally among ' + selected.length + ' included agents (' + (agencyGrossPercent / selected.length).toLocaleString(undefined,{maximumFractionDigits:4}) + '% each, rounded).';
+      split.textContent=`${agencyGrossPercent}% of collected creator fees · shared equally across the ${selected.length} included agents (≈${(agencyGrossPercent/selected.length).toLocaleString(undefined,{maximumFractionDigits:4})}% each).`;
       help.textContent=agencyReady?'Actions wait for verified funding and their milestones.':'Agent execution is not yet available.';
       if(publishingPaused&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved.';
     };
@@ -90,7 +103,7 @@ export function initMarketingAgency(document = globalThis.document) {
           throw new Error('Unverified per-agent readiness');
         const rates=data.requiredGrossPercent;
         if(rates&&Object.values(rates).every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0)){
-          agencyGrossPercent=rates.agency;
+          verifiedRates=rates; agencyGrossPercent=rates.agency;
           page.querySelector('[data-agency-policy-split]').textContent=`${rates.creator}% creator-directed · ${rates.operations}% Operations & marketing · ${rates.referrals}% referrals · ${rates.agency}% AI marketing & coin buybacks · ${rates.dailyBonus}% Daily bonus · ${rates.fundedBuyback}% $FUNDED buyback & burn.`;
           page.querySelector('[data-agency-policy-referrals]').textContent=`Both buyback agents are included in every new launch. Promotion packages also include X promotion. Included agents share the agency allocation equally. Existing coins keep their saved selections. Referral levels: ${data.referralGrossPercents.map((n,i)=>`L${i+1} ${n}%`).join(' · ')} of gross collected creator fees.`;
         }
@@ -114,7 +127,7 @@ export function initMarketingAgency(document = globalThis.document) {
       }
       if (data.status !== 'activation-blocked' || data.active !== false || data.executionEnabled !== false
         || data.policy?.version !== POLICY.version) throw new Error('Unverified agency capability');
-      publishingPaused=data.publishingPaused===true;teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch agency allocation';
+      verifiedRates=null; publishingPaused=data.publishingPaused===true;teamReadiness(false);page.querySelector('#agency-policy-title').textContent='New-launch agency allocation';
       if(data.feePolicy?.status==='published')page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
       page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
         node.textContent=data.agents?.find(row=>row.id===POLICY.agents[index].id)?.status==='paused'?'Paused · X account suspended':'Readiness unavailable';
@@ -124,13 +137,13 @@ export function initMarketingAgency(document = globalThis.document) {
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
       renderAgencyHistory(page.querySelector('[data-agency-history]'),data);
     } catch {
-      if (id === serial){teamReadiness(false);page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
+      if (id === serial){verifiedRates=null; publishingPaused=null; teamReadiness(false);page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
         page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});renderAgencyHistory(page.querySelector('[data-agency-history]'),null);}
     } finally { view.clearTimeout(timeout); }
   }
-  const active = () => ['#marketing-agency','#launch'].includes(view.location.hash) && !document.hidden;
+  const active = () => ['marketing-agency','launch'].includes((view.location.hash || view.location.pathname).replace(/^([#/]+)/,'')) && !document.hidden;
   const route = () => { if (active()) void refresh(); };
   page.querySelector('[data-agency-refresh]').addEventListener('click', () => { void refresh(); });
-  view.addEventListener('hashchange', route); document.addEventListener('visibilitychange', route); route();
-  return () => { ++serial; request?.abort(); view.removeEventListener('hashchange', route);view.removeEventListener('funded:agency-readiness',readiness);view.removeEventListener('funded:launch-promotion',updateLaunchTeam); document.removeEventListener('visibilitychange', route); };
+  view.addEventListener('funded:route-change', route); view.addEventListener('hashchange', route); document.addEventListener('visibilitychange', route); route();
+  return () => { ++serial; request?.abort(); view.removeEventListener('funded:route-change', route); view.removeEventListener('hashchange', route);view.removeEventListener('funded:agency-readiness',readiness);view.removeEventListener('funded:launch-promotion',updateLaunchTeam); document.removeEventListener('visibilitychange', route); };
 }

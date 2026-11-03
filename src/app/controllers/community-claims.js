@@ -215,6 +215,12 @@ export function createCommunityClaimsController(appState) {
       const claimedAmount = appState.formatTokenBaseUnits(review.amount, mintInfo.data[44], 4);
       if (claimedProgram) appState.updateDirectoryWalletAmount(session, claimedProgram, 'claimed', claimedAmount);
       status.append(document.createTextNode(` Claimed ${claimedAmount} ${claimedProgram?.symbol || 'tokens'} and verified on Solana.`));
+      const transfer = document.createElement('a');
+      transfer.href = appState.exploreExplorer('tx/' + submittedSignature);
+      transfer.target = '_blank';
+      transfer.rel = 'noopener noreferrer';
+      transfer.textContent = ' View finalized claim transfer ↗';
+      status.append(transfer);
       appState.showToast('Community tokens claimed and verified on Solana');
       // The claim is already proven by finalized token and payment deltas.
       // Refreshing every public reserve can be slow and must not delay or

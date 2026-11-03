@@ -190,7 +190,7 @@ export function createLaunchReviewController(appState) {
     appState.pendingLaunchReview = { ...appState.currentLaunchReviewState(), wallet: session.address };
     document.querySelector('#launch-review-token').textContent = `${name} (${symbol})`;
     document.querySelector('#launch-review-tier').textContent = burn.requiresBurn
-      ? `${burn.label} · ${appState.formatLaunchBurnAmount(burn.amountTokens)} $FUNDED (≈$${burn.usdTarget})`
+      ? `${burn.label} · ${appState.formatLaunchBurnAmount(burn.amountTokens)} $FUNDED (≈$${burn.usdTarget}) · quote expires ${new Date(appState.launchTierQuote.expiresAt).toLocaleTimeString()}`
       : `${burn.label} tier`;
     document.querySelector('#launch-review-wallet').textContent = session.address;
     document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} tokens`;

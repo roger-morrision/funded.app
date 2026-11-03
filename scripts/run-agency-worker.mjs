@@ -1,3 +1,4 @@
+import {DEFAULT_AGENCY_RULES} from '../config/agency-rules.js';
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import bs58 from 'bs58';
@@ -102,7 +103,10 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
       budgets[mint]={mint,programId:config.programId,approvedHash:config.approvedHash,build:config.build,
         checkedAt:new Date(now()).toISOString(),slot:context.slot,policyFingerprint:context.policyFingerprint,
         paidLamports:String(context.policy.paidLamports[7]),spentLamports:String(context.policy.withdrawnLamports[7]),
-        selectedMask:context.policy.selectedMask,completedMask:context.policy.completedMask,agentRemaining:context.agentRemaining,
+        selectedMask:context.policy.selectedMask,completedMask:context.policy.completedMask,agentRemaining:context.agentRemaining, rules:context.policy.rules || DEFAULT_AGENCY_RULES,
+        milestoneChecks:events.filter(event=>event.mint===mint && [1,2].includes(event.agent)).map(event=>({
+          agent:event.agent,status:event.status,...(event.observation?{observation:event.observation}:{})
+        })),
         scope:'finalized-pump-sources-and-agency-vault',verified:true};
     }
     if(!shouldStop()){

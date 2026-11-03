@@ -71,7 +71,7 @@ export function createAutomaticRewardStore(path) {
     }
   }
   return {async read(){return structuredClone(await readState());},
-  readFinancialSnapshot:()=>project(['version','programs','schedules','dailyBonusSnapshots']),
+  readFinancialSnapshot:()=>project(['version','programs','schedules','rewardPools','dailyBonusSnapshots']),
   readStatusSnapshot:()=>project(['serviceStatus','schedules']),
   readAutomationSnapshot:()=>project(['serviceStatus','schedules','communityClaimIndex','communityDrops','buybackWorkerHeartbeat']),
   readWorkerHealth:()=>project(['serviceStatus','dailyBonusServiceStatus','buybackWorkerHeartbeat']),
