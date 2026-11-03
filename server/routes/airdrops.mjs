@@ -18,14 +18,22 @@ export function createAirdropsRoutes({
   async function handle(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
       if (solanaCluster !== 'devnet') return json(res, 503, { error:'Verified Solana community reserve checks are unavailable.' });
-      if (communityReserveSnapshot?.expiresAt > Date.now()) return json(res, 200, communityReserveSnapshot.value);
+      const mint = url.searchParams.get('mint');
+      if (mint !== null && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) return json(res, 400, { error:'Invalid reserve mint.' });
+      if (communityReserveSnapshot?.expiresAt > Date.now()) {
+        const snapshot = communityReserveSnapshot.value;
+        if (!mint) return json(res, 200, snapshot);
+        const cached = snapshot.reserves.find(row => row.mint === mint);
+        if (cached) return json(res, 200, { cluster:solanaCluster, checkedAt:snapshot.checkedAt, reserves:[cached] });
+      }
       try {
         const connection = new Connection(solanaRpcUrl, 'finalized');
         if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Reward RPC is not Devnet.');
         const state = await store.read();
-        const claimLedger = await automaticRewardStore.read();
+        const claimLedger = typeof automaticRewardStore.readAutomationSnapshot === 'function'
+          ? await automaticRewardStore.readAutomationSnapshot() : await automaticRewardStore.read();
         const configuredReceipts = JSON.parse(process.env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON || '{}');
-        const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified && row.cluster === 'devnet'
+        const launches = Object.values(state.launches || {}).filter(row => (!mint || row.mint === mint) && row.onchainVerified && row.cluster === 'devnet'
           && row.pumpFeeRoute?.scope === 'per-mint-v3'
           && Number.isSafeInteger(Number(row.communityAirdrop?.reservedTokens))
           && Number(row.communityAirdrop.reservedTokens) > 0).slice(0, 100);
@@ -63,6 +71,7 @@ export function createAirdropsRoutes({
               reason:'Community reserve could not be verified for this mint.' };
           }
         });
+        if (mint) return json(res, 200, { cluster:solanaCluster, checkedAt:new Date().toISOString(), reserves });
         const authorities = new Set(reserves.filter(row => row.verified).map(row => row.authority));
         const result = { cluster:'devnet', checkedAt:new Date().toISOString(), claimPolicy:{ windowDays:90,
           unclaimedRecipient:authorities.size === 1 ? [...authorities][0] : null,

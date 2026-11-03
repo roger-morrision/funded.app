@@ -10,7 +10,7 @@ export function reserveFacts(data,mint){
 export function mountReserveFacts(root,app){
   const box=el('section');box.dataset.reserveFacts='';root.append(box);let serial=0,last='';
   async function refresh(){const mint=app.getCoinMintAddress();if(!root.open||!address(mint)||last===mint)return;last=mint;const id=++serial;box.replaceChildren(el('h3','Checking reserve custody…'));
-    try{const response=await app.apiRequest('/api/airdrops/reserves',{signal:AbortSignal.timeout(18000)});
+    try{const response=await app.apiRequest('/api/airdrops/reserves?mint='+encodeURIComponent(mint),{signal:AbortSignal.timeout(45000)});
       if(id!==serial||mint!==app.getCoinMintAddress())return;
       const row=response.available?reserveFacts(response.data,mint):null;
       box.replaceChildren(el('h3','Migration airdrop'), el('p','Hold $FUNDED at the verified snapshot to qualify. Eligible wallets claim this launched coin during its claim window.'),
