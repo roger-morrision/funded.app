@@ -38,7 +38,8 @@ export function initializeFinancialCenter(app) {
     if (selected.length > 60 && limit>=60) list.append(Object.assign(document.createElement('p'), { textContent:'Showing 60 records. Open the program pages for more history.' }));
   }
   async function refresh(force = false) {
-    if (document.hidden || !location.hash.startsWith('#payments')) return;
+    // #rewards and #funded-holder-token-rewards are shared-link aliases for the payments route.
+    if (document.hidden || !/^#(?:payments|rewards$|funded-holder-token-rewards$)/.test(location.hash)) return;
     const wallet = app.connectedWalletAddress || '', key = wallet;
     if (!force && lastKey === key && Date.now() - lastAt < 30000) return;
     lastKey = key; lastAt = Date.now(); const id = ++request;
