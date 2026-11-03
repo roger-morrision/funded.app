@@ -17,7 +17,7 @@ for(const width of[320,360,390,700,1024,1440])test(`public benefits and native F
   await expect(page.locator('#landing-menu-button')).not.toHaveAttribute('hidden','');
   await expect(page.locator('.reward-grid article')).toHaveCount(6);
   await expect(page.locator('.landing-topbar .network-pill')).toHaveText('Devnet · test SOL');await expect(page.locator('main')).not.toContainText('Devnet');
-  await expect(page.locator('.illustration-note')).toContainText('not a live token or payout');
+  await expect(page.locator('[data-proof-card]')).toHaveAttribute('data-state','unavailable');await expect(page.locator('[data-proof-card]')).toContainText('Every receipt is still listed');
   const sections=page.locator('.section-anchor');expect(await sections.count()).toBe(10);
   for(const section of await sections.all()){
     await section.scrollIntoViewIfNeeded();
@@ -30,7 +30,7 @@ for(const width of[320,360,390,700,1024,1440])test(`public benefits and native F
   await page.evaluate(()=>scrollTo(0,0));
   if(width>=1000){const box=await page.locator('.landing-sidebar').boundingBox();expect(box.x).toBe(0);await expect(page.locator('.landing-mobile-nav')).toBeHidden();}
   else {await expect(page.locator('.landing-mobile-nav a')).toHaveCount(5);await expect(page.locator('.landing-mobile-nav')).toBeVisible();}
-  expect(api).toEqual([]);expect(scripts.some(x=>/solana|pump-sdk|bootstrap-entry/.test(x))).toBe(false);expect(errors).toEqual([]);
+  expect(api.map(url=>new URL(url).pathname).sort()).toEqual(['/api/analytics/summary','/api/market/sol-usd']);expect(scripts.some(x=>/solana|pump-sdk|bootstrap-entry/.test(x))).toBe(false);expect(errors).toEqual([]);
   await page.screenshot({path:testInfo.outputPath(`welcome-${width}.png`),fullPage:true});
 });
 

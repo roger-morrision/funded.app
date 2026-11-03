@@ -15,6 +15,9 @@ import { initializeCreatorWalletFacts } from './creator-wallet-facts.js';
 import { initializePortfolioFocus } from '../portfolio/focus-visibility.js';
 import { mountSettingsDisclosures } from './settings-disclosures.js';
 import { renderYourHome } from '../home/your-home.js';
+import { renderProofStrip } from '../proof/proof-totals.js';
+import { mountHolderRewardsCard } from '../coin/holder-rewards-card.js';
+import { mountBonusCountdown } from '../leaderboard/bonus-countdown.js';
 
 export function initializeProductFlows(app) {
   initializeLaunchFacts(app);
@@ -38,6 +41,9 @@ export function initializeProductFlows(app) {
     initializePortfolioFocus();
     mountSettingsDisclosures();
     mountYourHome(app);
+    mountProofStrip(app);
+    mountHolderRewardsCard(app);
+    mountBonusCountdown(app);
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;
@@ -54,5 +60,12 @@ function mountYourHome(app) {
   document.addEventListener('funded:verified-search-index', render);
   document.addEventListener('funded:portfolio-holdings', render);
   window.addEventListener('funded:reward-identity-change', render);
+  render();
+}
+
+// Analytics "Paid out so far" strip, redrawn whenever the summary reloads.
+function mountProofStrip(app) {
+  const render = () => renderProofStrip(app);
+  document.addEventListener('funded:analytics-summary', render);
   render();
 }

@@ -246,3 +246,49 @@ html body #main-content .your-home-stat:hover { border-color: color-mix(in srgb,
 html body #main-content .your-home-stat span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
 html body #main-content .your-home-stat strong { color: var(--fv-text); font: 700 20px var(--fv-font-data); }
 html body #main-content .your-home-stat small { color: var(--fv-text-muted); font: 500 12px var(--fv-font-ui); }
+/* Proof totals, coin holder rewards and Daily bonus countdown: same stat-card language as the Home panel. */
+html body #main-content :is(.proof-totals, .holder-rewards-card, .bonus-countdown) { display: grid; gap: var(--fv-space-3); margin: 0 0 var(--fv-space-4); padding: var(--fv-space-4) var(--fv-space-5); border: 1px solid color-mix(in srgb, var(--fv-accent) 30%, var(--fv-border)); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+html body #main-content :is(.holder-rewards-card, .bonus-countdown)[hidden] { display: none; }
+html body #main-content .proof-totals-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--fv-space-2); }
+html body #main-content .proof-totals-head strong { color: var(--fv-text); font: 700 16px var(--fv-font-ui); }
+html body #main-content .proof-totals-head :is(a, small) { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .proof-totals-head a:hover { color: var(--fv-accent); }
+html body #main-content .proof-totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--fv-space-2); }
+html body #main-content .proof-total { display: grid; align-content: start; gap: 2px; min-width: 0; padding: var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); color: inherit; text-decoration: none; }
+html body #main-content .proof-total:hover { border-color: color-mix(in srgb, var(--fv-accent) 45%, transparent); }
+html body #main-content .proof-total span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .proof-total strong { color: var(--fv-text); font: 700 18px var(--fv-font-data); overflow-wrap: anywhere; }
+html body #main-content :is(.proof-total, .holder-rewards-grid > div, .bonus-countdown-pool) em { color: var(--fv-success); font: 600 12px var(--fv-font-data); font-style: normal; }
+html body #main-content .proof-total small { color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
+html body #main-content .holder-rewards-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--fv-space-2); }
+html body #main-content .holder-rewards-head .eyebrow { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--fv-success); }
+html body #main-content .holder-rewards-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--fv-success); }
+html body #main-content .holder-rewards-head h2 { margin: 2px 0 0; color: var(--fv-text); font: 700 18px var(--fv-font-ui); }
+html body #main-content .holder-rewards-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: var(--fv-space-2); }
+html body #main-content .holder-rewards-grid > div { display: grid; align-content: start; gap: 2px; min-width: 0; padding: var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); }
+html body #main-content .holder-rewards-grid span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .holder-rewards-grid strong { color: var(--fv-text); font: 700 18px var(--fv-font-data); overflow-wrap: anywhere; }
+html body #main-content .holder-rewards-main strong { font-size: 24px; }
+html body #main-content .holder-rewards-grid small, html body #main-content .holder-rewards-rule { margin: 0; color: var(--fv-text-muted); font: 500 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown { grid-template-columns: auto auto 1fr; align-items: center; column-gap: var(--fv-space-5); }
+html body #main-content .bonus-countdown > .text-button { grid-column: 1 / -1; justify-self: end; }
+html body #main-content .bonus-countdown-clock, html body #main-content .bonus-countdown-pool { display: grid; gap: 2px; min-width: 0; }
+html body #main-content .bonus-countdown-clock .eyebrow { margin: 0; }
+html body #main-content .bonus-countdown-clock strong { color: var(--fv-accent); font: 700 26px var(--fv-font-data); font-variant-numeric: tabular-nums; }
+html body #main-content .bonus-countdown-pool span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown-pool strong { color: var(--fv-text); font: 700 18px var(--fv-font-data); }
+html body #main-content :is(.bonus-countdown-clock, .bonus-countdown-pool) small { color: var(--fv-text-muted); font: 500 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown-prizes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--fv-space-2); margin: 0; padding: 0; list-style: none; }
+html body #main-content .bonus-countdown-prizes li { display: grid; gap: 1px; min-width: 76px; padding: var(--fv-space-2) var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); }
+html body #main-content .bonus-countdown-prizes b { color: var(--fv-accent); font: 700 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown-prizes span { color: var(--fv-text); font: 700 14px var(--fv-font-data); }
+html body #main-content .bonus-countdown-prizes small { color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
+@media (max-width: 899px) {
+  html body #main-content .bonus-countdown { grid-template-columns: 1fr; row-gap: var(--fv-space-3); }
+  html body #main-content .bonus-countdown-prizes { justify-content: flex-start; }
+  html body #main-content .bonus-countdown > .text-button { justify-self: start; }
+  html body #main-content .holder-rewards-grid { grid-template-columns: 1fr 1fr; }
+  html body #main-content .holder-rewards-main { grid-column: 1 / -1; }
+  html body #main-content :is(.proof-totals, .holder-rewards-card, .bonus-countdown) { padding: var(--fv-space-3) var(--fv-space-4); }
+}
+html body #launch-dialog .launch-summary-plain { margin: var(--fv-space-2) 0; padding: var(--fv-space-2) var(--fv-space-3); border-left: 3px solid var(--fv-accent); border-radius: var(--fv-radius-sm); background: var(--fv-accent-soft); color: var(--fv-text); font: 600 12px/1.5 var(--fv-font-ui); }
