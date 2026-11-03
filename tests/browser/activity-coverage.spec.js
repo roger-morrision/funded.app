@@ -22,11 +22,11 @@ for(const width of [320,390,1440])test(`partial activity is visible and older to
   fixture.request=async item=>{fixture.calls++;const value=item.address==='8'?100:1;return{observedCoverage:'complete',coverage:'complete',volume24hSol:value,tradeCount24h:1,buyCount24h:1,sellCount24h:0,activityWindows:Object.fromEntries(['1h','6h','24h'].map(period=>[period,{volumeSol:value,tradeCount:1,traderCount:1,coverage:'complete'}]))};};
   window.activityFixture=fixture;await fixture.refresh(fixture.items,fixture.request);fixture.render();
  });
- await expect(page.locator('#home-activity-coverage')).toContainText('5/9 tokens checked');
- await expect(page.locator('#home-activity-coverage')).toContainText('rankings update as more load');
+ await expect(page.locator('#home-activity-coverage')).toContainText('Stats loaded for 5 of 9 coins');
+ await expect(page.locator('#home-activity-coverage')).toContainText('rankings may shift');
  await page.evaluate(async()=>{const f=window.activityFixture;f.time+=60000;await f.refresh(f.items,f.request);f.render();});
- await expect(page.locator('#home-activity-coverage')).toContainText('9/9 tokens checked');
- await expect(page.locator('#home-activity-coverage')).not.toContainText('rankings update as more load');
+ await expect(page.locator('#home-activity-coverage')).toContainText('Stats loaded for all 9 coins');
+ await expect(page.locator('#home-activity-coverage')).not.toContainText('rankings may shift');
  expect(await page.evaluate(()=>window.activityFixture.winner)).toBe('8');
  expect(await page.evaluate(()=>window.activityFixture.calls)).toBe(9);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

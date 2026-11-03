@@ -140,6 +140,7 @@ export function renderLeaderboard(
     coinSolUsdPrice,
     verifiedLaunchPoliciesStatus,
     exploreFeedAvailable,
+    exploreUpdatedAt = null,
     EXPLORE_CLUSTER,
     connectedWalletAddress = null,
   },
@@ -174,23 +175,27 @@ export function renderLeaderboard(
     setCoinField('#leaderboard-table-title', 'Observed trader leaderboard');
     setCoinField('#leaderboard-hero-description', 'A partial ranking of wallet SOL volume from recent, confirmed Pump trades across sampled verified tokens.');
     const { scannedTokens, traders } = rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
-    const unavailable = EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
-    setCoinField('#leaderboard-source-note', unavailable
+    // Before the registry and the first feed read finish, say so instead of "unavailable".
+    const loading = EXPLORE_CLUSTER === 'devnet' && (verifiedLaunchPoliciesStatus === 'loading' || (!exploreFeedAvailable && !exploreUpdatedAt));
+    const unavailable = !loading && (EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable);
+    setCoinField('#leaderboard-source-note', loading
+      ? 'Reading recent trades from verified tokens…'
+      : unavailable
       ? 'The verified launch registry or trade feed is unavailable.'
       : `24-hour sample from ${scannedTokens} verified token${scannedTokens === 1 ? '' : 's'}. The feed keeps up to 20 recent trades per token and scans a limited set of tokens; ranks do not represent all trading.`);
-    setCoinField('#leaderboard-status-title', unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} observed trading wallet${traders.length === 1 ? '' : 's'}` : 'No observed traders yet');
+    setCoinField('#leaderboard-status-title', loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} observed trading wallet${traders.length === 1 ? '' : 's'}` : 'No observed traders yet');
     // A connected wallet sees its own place first: the reason to come back.
     const yourIndex = connectedWalletAddress ? traders.findIndex(item => item.wallet === connectedWalletAddress) : -1;
-    setCoinField('#leaderboard-status-note', unavailable ? 'Verified trade activity could not be loaded.'
+    setCoinField('#leaderboard-status-note', loading ? 'Ranks appear as soon as recent trades are read.' : unavailable ? 'Verified trade activity could not be loaded.'
       : yourIndex >= 0 ? `Your rank: #${yourIndex + 1} of ${traders.length} · ranked by SOL volume in the last 24 hours.`
       : connectedWalletAddress ? 'You are not ranked yet. Buy or sell any coin to join the ranking.'
       : 'Ranked by observed SOL volume in the last 24 hours. Connect a wallet to see your rank.');
-    setCoinField('#leaderboard-status-badge', unavailable ? 'Unavailable' : 'Partial history');
+    setCoinField('#leaderboard-status-badge', loading ? 'Loading' : unavailable ? 'Unavailable' : 'Partial history');
     table.setAttribute('aria-label', 'Observed Solana trader leaderboard for the last 24 hours');
     const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Wallet</span><span role="columnheader">Trades</span><span role="columnheader">SOL volume</span><span role="columnheader">Proof</span></div>';
-    if (unavailable || !scannedTokens || !traders.length) {
-      const heading = unavailable ? 'Trader ranking unavailable' : !scannedTokens ? 'Waiting for trade scans' : 'No trades in this sample';
-      const detail = unavailable ? 'Try again when the verified launch registry and trade feed are available.' : !scannedTokens
+    if (loading || unavailable || !scannedTokens || !traders.length) {
+      const heading = loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : !scannedTokens ? 'Waiting for trade scans' : 'No trades in this sample';
+      const detail = loading ? 'Reading recent trades from verified tokens.' : unavailable ? 'Try again when the verified launch registry and trade feed are available.' : !scannedTokens
         ? 'The leaderboard will populate after verified tokens have been scanned.'
         : 'No wallet-attributed Pump trades were found in the recent scanned activity.';
       replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span></div></div>`);
@@ -253,7 +258,7 @@ export function renderLeaderboard(
   replaceLeaderboardRows(table, `${header}${ranked.map((item, index) => {
     const symbol = String(item.symbol || 'TOKEN').trim() || 'TOKEN';
     const name = String(item.name || symbol).trim() || symbol;
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leaderboard-token-cell" data-logo-mint="${escapeHtml(item.address)}"><a class="leaderboard-profile" href="/token/${encodeURIComponent(item.address)}"><span class="leader-avatar leader-token-logo ${avatarClass(index)}" aria-hidden="true">${escapeHtml(symbol.slice(0, 2).toUpperCase())}</span><span class="leaderboard-token-label"><strong>${escapeHtml(symbol)}</strong><small title="${escapeHtml(name)}">${escapeHtml(name)}</small></span></a></span><span role="cell" class="leader-identity leaderboard-creator-cell"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.creator)}"><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.creator))}</strong><small>Creator wallet</small></span></a></span><span role="cell"><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Pool MC' : 'Curve MC'}</small></span><span role="cell" class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leaderboard-token-cell" data-logo-mint="${escapeHtml(item.address)}"><a class="leaderboard-profile" href="/token/${encodeURIComponent(item.address)}"><span class="leader-avatar leader-token-logo ${avatarClass(index)}" aria-hidden="true">${escapeHtml(symbol.slice(0, 2).toUpperCase())}</span><span class="leaderboard-token-label"><strong>${escapeHtml(symbol)}</strong><small title="${escapeHtml(name)}">${escapeHtml(name)}</small></span></a></span><span role="cell" class="leader-identity leaderboard-creator-cell"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.creator)}"><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.creator))}</strong><small>Creator wallet</small></span></a></span><span role="cell"><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Market cap · pool' : 'Market cap · curve'}</small></span><span role="cell" class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`;
   }).join('')}`);
   loadVerifiedTokenLogos?.(table);
 }

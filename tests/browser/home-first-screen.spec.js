@@ -31,3 +31,25 @@ for (const width of [320, 390, 1440]) test(`Home discovery and header stay in pl
       && document.documentElement.scrollWidth<=innerWidth;
   })).toBe(true);
 });
+
+for (const width of [1024, 1280, 1440]) test(`Home platform figures show in full beside long unit badges at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height:900 });
+  await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
+    ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
+    : route.fulfill({ status:503, json:{ error:'Offline layout fixture' } }));
+  await page.route('https://**/*', route => route.abort());
+  await page.goto('/#overview', { waitUntil:'domcontentloaded' });
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  const clipped = await page.evaluate(() => {
+    const figures = { 'home-pulse-launches':'9', 'home-pulse-volume':'≥$107.85', 'home-kpi-fees':'$1.44', 'home-kpi-referrals':'<$0.01', 'home-kpi-holder-paid':'$0.14' };
+    for (const [id, text] of Object.entries(figures)) {
+      const figure = document.getElementById(id);
+      figure.textContent = text;
+      figure.closest('.home-kpi-card').dataset.state = 'available';
+    }
+    return Object.keys(figures).map(id => document.getElementById(id))
+      .filter(figure => figure.clientWidth > 0 && figure.scrollWidth > figure.clientWidth + 1)
+      .map(figure => `${figure.id}: ${figure.clientWidth}/${figure.scrollWidth}px`);
+  });
+  expect(clipped, 'Figures cut off by their unit badge').toEqual([]);
+});

@@ -161,6 +161,8 @@ export function createExploreLoadingController(appState) {
           appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
           appState.renderExploreAssets();
           appState.renderHomeLaunchBoard();
+          // Rank from the activity the feed already carried; slow per-coin reads refine it below.
+          appState.renderLeaderboard();
         }
         sampleActivity ||= createExploreActivitySampler({cache:appState.exploreActivityCache});
         scannedCount = await sampleActivity(verified, async item => {

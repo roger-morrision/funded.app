@@ -59,8 +59,8 @@ test('trader tab shows ranked wallet proof and discloses the sample limit', () =
   assert.equal(nodes.get('#leaderboard-panel')['aria-labelledby'], 'leaderboard-traders-tab');
 });
 
-test('trader tab distinguishes an unavailable feed from a scanned feed with no trades', () => {
-  const render = available => {
+test('trader tab distinguishes loading, an unavailable feed and a scanned feed with no trades', () => {
+  const render = (available, exploreUpdatedAt = '2026-11-03T00:00:00.000Z') => {
     const nodes = new Map();
     const document = { querySelector(selector) {
       if (!nodes.has(selector)) nodes.set(selector, { textContent: '', innerHTML: '', dataset: {},
@@ -69,10 +69,11 @@ test('trader tab distinguishes an unavailable feed from a scanned feed with no t
     } };
     renderLeaderboard({ leaderboardView: 'traders', assets: [{ address: 'mint-a', recentTrades: [] }],
       verifiedLaunchPolicies: [policy('mint-a')], verifiedLaunchPoliciesStatus: 'ready',
-      exploreFeedAvailable: available, EXPLORE_CLUSTER: 'devnet' },
+      exploreFeedAvailable: available, exploreUpdatedAt, EXPLORE_CLUSTER: 'devnet' },
     { document, rankObservedTraders: (assets, policies) => rankObservedTraders(assets, policies, { nowSeconds }) });
     return nodes.get('#leaderboard-table').innerHTML;
   };
+  assert.match(render(false, null), /Loading trader ranking/);
   assert.match(render(false), /Trader ranking unavailable/);
   assert.match(render(true), /No trades in this sample/);
 });

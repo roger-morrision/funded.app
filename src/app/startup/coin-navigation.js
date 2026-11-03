@@ -182,7 +182,16 @@ export function initializeCoinNavigation(appState) {
     const record = event.target.closest('[data-coin-record-target]');
     if (record) { openCoinRecord(record.dataset.coinRecordTarget); return; }
     const tab = event.target.closest('[data-coin-tab]');
-    if (tab){ document.querySelectorAll('[data-coin-tab]').forEach(item => item.classList.toggle('active', item === tab)); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); }
+    if (tab){
+      document.querySelectorAll('[data-coin-tab]').forEach(item => item.classList.toggle('active', item === tab)); appState.setCoinTabLabels(); appState.renderCoinActivityTab();
+      // On phones the record tabs scroll sideways; keep the chosen tab fully in view.
+      const strip = tab.closest('.coin-tabs');
+      if (strip) {
+        const left = strip.getBoundingClientRect().left + strip.clientLeft, right = left + strip.clientWidth, box = tab.getBoundingClientRect(), gap = 8;
+        if (box.left - gap < left) strip.scrollLeft -= Math.ceil(left - box.left + gap);
+        else if (box.right + gap > right) strip.scrollLeft += Math.ceil(box.right + gap - right);
+      }
+    }
   });
   // app-source-end
 

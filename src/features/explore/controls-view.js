@@ -144,7 +144,9 @@ export function renderExplorePayoutStats(
     { label:'Top $FUNDED holder paid', kind:'fundedHolder', top:true },
     { label:'Top creator paid', kind:'creator', top:true },
   ];
-  container.innerHTML = cards.map(card => {
+  // One coverage note for the whole section instead of repeating it on every card.
+  const coverageMarkup = loading ? '' : `<p class="explore-payout-coverage"${coverage.reason ? ` data-state="stale"` : ''}>${escapeHtml(coverage.text)}${coverage.reason ? ` · ${escapeHtml(coverage.reason)}` : ''}</p>`;
+  container.innerHTML = coverageMarkup + cards.map(card => {
     const group = ready && stats[card.kind] ? stats[card.kind] : loading ? null : { status: 'unavailable' };
     const available = ['verified', 'partial'].includes(group?.status);
     const leader = available && card.top ? group.top : null;
@@ -177,7 +179,6 @@ export function renderExplorePayoutStats(
     const detailMarkup = profile
       ? `<a href="${escapeHtml(profile)}" target="_blank" rel="noopener noreferrer">${escapeHtml(detail)} ↗</a>`
       : `<small>${escapeHtml(detail)}</small>`;
-    const coverageMarkup = loading ? '' : `<small>${escapeHtml(coverage.text)}</small>${coverage.reason ? `<small>${escapeHtml(coverage.reason)}</small>` : ''}`;
-    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${coverageMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
+    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
   }).join('');
 }

@@ -314,7 +314,7 @@
               </div><div class="home-filter-actions"><button type="button" id="home-filter-reset">Reset</button><button type="button" id="home-filter-save-open">Save</button><button type="submit" class="home-filter-apply">Apply</button></div></form>
               <div id="home-filter-saved" class="home-filter-saved" role="tabpanel" hidden><label>Preset name<input id="home-filter-preset-name" type="text" maxlength="40" placeholder="Name this filter" /></label><button type="button" id="home-filter-save">Save current filters</button><div id="home-filter-saved-list" aria-live="polite"></div></div>
             </div></details>
-            <label class="review-buy-setting"><span>Buy review · SOL</span><input inputmode="decimal" aria-label="Saved review buy amount in SOL" aria-describedby="review-buy-help-home" maxlength="13" disabled><small id="review-buy-help-home" class="visually-hidden">Used when opening a trade review. Review a fresh quote before signing; changing this amount does not place a trade.</small></label>
+            <label class="review-buy-setting"><span>Buy amount · SOL</span><input inputmode="decimal" aria-label="Buy amount in SOL for the card Buy button" aria-describedby="review-buy-help-home" maxlength="13" disabled><small id="review-buy-help-home" class="visually-hidden">Prefills the Buy button on each card. Review a fresh quote before signing; changing this amount does not place a trade.</small></label>
             </div>
           </div>
           <p id="home-activity-coverage" class="activity-coverage" role="status">Checking token activity…</p>
@@ -462,6 +462,11 @@
                   <div class="list-recovery" id="list-recovery" hidden><p>A signed burn may need receipt verification. Keep this tab open and retry the original receipt before another payment. Recovery is saved in this tab, not across tab closure.</p><button type="button" class="secondary-button" id="list-retry">Retry receipt verification</button></div>
                 </div>
               </div>
+              <ul class="list-benefits" aria-label="What a paid listing includes">
+                <li><strong>Shown in Explore and on Home</strong><span>Once the mint and burn are confirmed.</span></li>
+                <li><strong>Paid Listing tab</strong><span>Traders can filter for listed tokens.</span></li>
+                <li><strong>"Listed" badge</strong><span>On your token card, backed by the on-chain receipt.</span></li>
+              </ul>
               <div class="list-process-heading"><span aria-hidden="true">||||||||||||</span><span>How listing works</span></div>
               <ol class="list-steps">
                 <li><span>01</span><h2>Enter your token</h2><p>Paste the Solana token address. We check its format before you continue.</p></li>
@@ -644,13 +649,13 @@
       <div class="section-heading"><div><h2 id="referral-command-title">Your dashboard</h2><p class="panel-explainer">Earn from collected creator fees when your invited creators settle their fees.</p></div><span class="section-state" role="status">Connect wallet to view</span></div>
       <div class="referral-command-grid">
         <article class="panel referral-share-panel">
-          <div class="panel-heading"><h3>Your invite link</h3><span class="data-badge" id="referral-link-status">Connect wallet</span></div>
-          <div class="referral-link-box"><strong data-referral-link>Connect wallet to generate</strong></div>
+          <div class="panel-heading"><h3>Your invite link</h3><span class="data-badge" id="referral-link-status" hidden></span></div>
+          <div class="referral-link-box"><strong data-referral-link>Your link appears here</strong></div>
           <div class="referral-share-tools"><button type="button" class="primary-button" data-copy-referral-link>Get invite link</button><button type="button" class="secondary-button" id="referral-share-native" hidden>Share</button><button type="button" class="text-button" id="referral-copy-code" hidden>Copy code</button></div>
-          <p class="field-help" id="referral-share-help">Connect your wallet and approve a free sign-in message to activate your link.</p>
+          <p class="field-help" id="referral-share-help">Connect your wallet, then approve one free sign-in message. No transaction.</p>
         </article>
         <aside class="referral-tier-strip" aria-label="Referral rates">
-          <div><span class="eyebrow">Approved referral rates · 1% total</span><strong>Share of collected creator fees</strong><small>Awaiting V3 agency activation. Existing coins keep their saved rates.</small></div><span><b>0.6%</b><small>Direct</small></span><span><b>0.25%</b><small>Second level</small></span><span><b>0.15%</b><small>Third level</small></span><a href="#referral-faq" class="text-button">How rewards work →</a>
+          <div><span class="eyebrow">Approved referral rates · 1% total</span><strong>Share of collected creator fees</strong><small>Awaiting V3 agency activation. Existing coins keep their saved rates.</small><small class="referral-tier-example" data-referral-example>Example at the approved rates: a creator you invited collects 10 SOL in creator fees. As their direct referrer you receive 0.06 SOL.</small></div><span><b>0.6%</b><small>Direct</small></span><span><b>0.25%</b><small>Second level</small></span><span><b>0.15%</b><small>Third level</small></span><a href="#referral-faq" class="text-button">How rewards work →</a>
         </aside>
       </div>
       <div class="referral-kpi-grid" aria-label="Referral performance summary" data-hide-when-empty><article><span>Paid rewards</span><strong id="referral-paid-total">—</strong><small>Finalized payments · SOL</small></article><article><span>Qualified creators</span><strong id="referral-active-creators">—</strong><small>Creators with settled fees</small></article><article><span>Conversion rate</span><strong id="referral-conversion-rate">—</strong><small>Invited creators who qualified</small></article></div>

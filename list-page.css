@@ -103,6 +103,11 @@ body.page-route-list .list-pay-button:disabled { cursor: not-allowed; opacity: .
 .list-steps li > span { color: #66737b; font: 11px 'DM Mono', monospace; }
 .list-steps h2 { margin: 12px 0; color: #eff1ef; font-size: 15px; font-weight: 800; letter-spacing: -.035em; text-transform: uppercase; }
 .list-steps p { margin: 0; color: #97a1a5; font-size: 12px; line-height: 1.7; }
+.list-benefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--fv-space-3, 12px); margin: 22px 0 0; padding: 0; list-style: none; }
+.list-benefits li { min-width: 0; padding: 14px 16px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md, 10px); background: color-mix(in srgb, var(--fv-accent) 5%, transparent); }
+.list-benefits strong { display: block; color: var(--fv-text); font-size: 13px; }
+.list-benefits span { display: block; margin-top: 4px; color: var(--fv-text-muted); font-size: 12px; line-height: 1.5; }
+@media (max-width: 700px) { .list-benefits { grid-template-columns: 1fr; } }
 .list-disclosure { margin: 22px 0 0; color: #697980; font-size: 11px; line-height: 1.6; }
 .list-art { min-height: 455px; overflow: hidden; border: 1px solid #30373b; border-radius: 3px; background: #111b2e; }
 .list-art img { display: block; width: 100%; height: 100%; min-height: 455px; object-fit: cover; object-position: center; }

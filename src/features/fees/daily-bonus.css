@@ -26,6 +26,7 @@ html body.page-route-overview .main-content > .home-daily-bonuses { order: 5; di
 .bonus-category-mark { color: #f4be26; font: 12px 'DM Mono', monospace; }
 .bonus-pool-grid h3 { margin: 14px 0 18px; font-size: 17px; }
 .bonus-pool-grid article > strong { display: block; min-height: 36px; color: #f4be26; font: 600 clamp(17px, 1.8vw, 25px) 'DM Mono', monospace; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bonus-pool-grid article > strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 .bonus-pool-grid p, .bonus-pool-grid small { display: block; color: #acb8cf; font-size: 12px; line-height: 1.6; }
 .bonus-pool-grid a { display: inline-block; margin-top: 18px; font-size: 12px; }
 .bonus-history-page > section { margin: 32px 0; }

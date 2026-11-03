@@ -53,6 +53,11 @@ export function launchCardVolumeUsd(
   return window === '24h' && item.volume24hUsd != null ? formatDashboardUsd(item.volume24hUsd) : '$—';
 }
 
+// Unknown figures render as one muted dash, not "$—", so empty cards read as pending rather than broken.
+function unknownStatMarkup(value) {
+  return value === '$—' || value === '—' ? '<strong class="is-unknown" title="Not reported yet">—</strong>' : '';
+}
+
 export function launchCardProgressState(item, providerStatus = '') {
   const migrated = item.migrated === true, complete = item.complete === true;
   const loading = providerStatus === 'On-chain only · loading';
@@ -229,8 +234,8 @@ export function homeLaunchCardMarkup(
       </div>
       <div class="home-launch-card-stats">
         <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small><strong>${escapeHtml(value)}${changeClass || hasNoObservedTrades ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(changeLabel)}</span>` : ''}</strong></span>
-        <span><small>${escapeHtml(volumeLabel)} volume</small><strong>${escapeHtml(shownVolume)}</strong></span>
-        <span title="${escapeHtml(holderTitle)}"><small>Holders</small><strong>${escapeHtml(holderCount)}</strong></span>
+        <span><small>${escapeHtml(volumeLabel)} volume</small>${unknownStatMarkup(shownVolume) || `<strong>${escapeHtml(shownVolume)}</strong>`}</span>
+        <span title="${escapeHtml(holderTitle)}"><small>Holders</small>${unknownStatMarkup(holderCount) || `<strong>${escapeHtml(holderCount)}</strong>`}</span>
       </div>
       <div class="home-card-market-summary">
       ${progressMarkup}

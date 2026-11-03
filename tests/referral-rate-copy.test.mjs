@@ -10,13 +10,14 @@ test('approved 1% referral display and guidance distinguish the pending update f
     setActiveProtocolFeeSplit(PROTOCOL_FEE_SPLIT);
     const saved=buildFeeDistributionPolicy({creatorWalletPercent:80});
     const copy=referralRatePresentation();assert.deepEqual(copy.levels.map(row=>row.rate),[0.6,0.25,0.15]);
-    assert.equal(copy.total,1);assert.equal(copy.pending,true);assert.match(copy.scope,/Awaiting V3 agency activation/);
+    assert.equal(copy.total,1);assert.equal(copy.pending,true);
+    assert.equal(copy.example,'Example at the approved rates: a creator you invited collects 10 SOL in creator fees. As their direct referrer you receive 0.06 SOL.');assert.match(copy.scope,/Awaiting V3 agency activation/);
     assert.match(referralGuide(),/Level 1: 0\.6%/);assert.match(referralGuide(),/Level 2: 0\.25%/);assert.match(referralGuide(),/Level 3: 0\.15%/);
     assert.match(referralFaqs()[0][2],/1% total/);assert.match(referralGuide(),/published deployment uses L1 2%/);
     assert.equal(saved.fixedFunded.appReferral.effectivePercentOfCreatorFees,3);
     setActiveProtocolFeeSplit(agencyProtocolSplit());
     const published=referralRatePresentation();assert.equal(published.pending,false);assert.equal(published.total,1);
-    assert.match(published.scope,/Published rates/);assert.doesNotMatch(published.guide,/Until activation/);
+    assert.match(published.scope,/Published rates/);assert.match(published.example,/^Example: .* you receive 0\.06 SOL\.$/);assert.doesNotMatch(published.guide,/Until activation/);
     assert.equal(saved.fixedFunded.appReferral.effectivePercentOfCreatorFees,3);
   }finally{setActiveProtocolFeeSplit(PROTOCOL_FEE_SPLIT);}
 });

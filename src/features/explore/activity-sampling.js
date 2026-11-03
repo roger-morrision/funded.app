@@ -78,7 +78,7 @@ export function renderActivityCoverage(document, id, records, { hidden = false }
   const partial = known < records.length || records.some(item => item.windowCoverage === 'partial');
   node.dataset.state = partial ? 'partial' : known ? 'available' : 'unavailable';
   node.textContent = !records.length ? 'Activity data will appear after launches are verified.'
-    : `${known}/${records.length} tokens checked${known < records.length
-      ? ' · rankings update as more load'
-      : partial ? ' · some trade histories incomplete' : ''} · up to 5 min old`;
+    : `${known < records.length
+      ? `Stats loaded for ${known} of ${records.length} coins · rankings may shift`
+      : `Stats loaded for all ${records.length} coins${partial ? ' · some trade history incomplete' : ''}`} · up to 5 min old`;
 }

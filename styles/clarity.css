@@ -47,6 +47,12 @@ html body.page-route-overview #main-content #home-kpi-airdrop-card { display: no
 html body.page-route-overview #main-content .home-kpi-card:not([data-state='available'], [data-state='partial']) { display: none; }
 html body.page-route-overview #main-content .home-kpi-dashboard:not(:has(.home-kpi-card[data-state='available'], .home-kpi-card[data-state='partial'])) { display: none; }
 html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+/* Long unit badges ("USD · OBSERVED") drop under the figure instead of cutting it to "≥…". */
+html body.page-route-overview #main-content .home-kpi-value { flex-wrap: wrap; }
+/* Phones: two figures per row so coins start one screen sooner. */
+@media (max-width: 520px) {
+  html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 html body.page-route-overview #main-content .home-kpi-freshness { display: none; }
 
 /* Token cards: loading placeholders add noise without information. */
@@ -68,8 +74,13 @@ html body #main-content .home-launch-progress-row[data-progress-state='loading']
 .technical-notice details { margin-top: var(--fv-space-2); color: var(--fv-text-subtle); font-size: 12px; }
 .technical-notice summary { cursor: pointer; color: var(--fv-accent); }
 .technical-notice ul { margin: var(--fv-space-2) 0 0; padding-left: var(--fv-space-4); }
+/* Native focus scrolling stops above the notice while it is open. */
+html:has(.technical-notice:not([hidden]):not(.is-compact)) { scroll-padding-bottom: 240px; }
+html:has(.technical-notice.is-compact:not([hidden])) { scroll-padding-bottom: 112px; }
 @media (max-width: 700px) {
-  .technical-notice-stack { right: var(--fv-space-4); bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .technical-notice-stack { right: var(--fv-space-4); bottom: calc(var(--mobile-bottom-height, 72px) + var(--fv-space-3)); }
+  /* Keep keyboard focus clear of the notice pill as well as the bottom navigation. */
+  html:has(body.page-route:not(.page-route-admin)):has(.technical-notice:not([hidden])) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 64px); }
 }
 [data-technical-value]::after { content: 'Updating…'; font-size: var(--fv-cell-size, 1rem); color: var(--fv-text-muted); font-weight: 500; }
 .technical-notice-title { padding: 0; border: 0; background: none; color: inherit; font: 700 14px var(--fv-font-ui); text-align: left; cursor: pointer; }
@@ -115,6 +126,7 @@ html body #main-content .home-launch-card .home-launch-card-stats > span { displ
 html body #main-content .home-launch-card .home-launch-card-stats small { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-ui); letter-spacing: .02em; text-transform: uppercase; }
 html body #main-content .home-launch-card .home-launch-card-stats strong { overflow: hidden; color: var(--fv-text); font: 600 14px var(--fv-font-data); text-overflow: ellipsis; white-space: nowrap; }
 html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { color: var(--fv-accent); font-size: 16px; }
+html body #main-content .home-launch-card .home-launch-card-stats strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 html body #main-content .home-launch-card .home-card-market-summary { display: grid; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-progress-heading { display: flex; justify-content: space-between; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); font: 500 11px var(--fv-font-ui); }
@@ -176,6 +188,8 @@ html body #main-content #coin-page .coin-socials > a:not([hidden]),
 html body #main-content #coin-page .coin-socials > button { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); text-decoration: none; }
 html body #main-content #coin-page .coin-socials > a:hover,
 html body #main-content #coin-page .coin-socials > button:hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); color: var(--fv-text); }
+/* Phone token headers list only the project links the creator provided. */
+@media (max-width: 700px) { html body #main-content #coin-page .coin-socials > a.is-unavailable { display: none; } }
 html body #main-content #coin-page .coin-stat-strip { gap: 1px; overflow: hidden; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-border); }
 html body #main-content #coin-page .coin-stat-strip > div { padding: var(--fv-space-3) var(--fv-space-4); background: var(--fv-surface); }
 html body #main-content #coin-page .coin-stat-strip strong { color: var(--fv-text); font: 600 18px var(--fv-font-data); }
@@ -234,6 +248,18 @@ html body.page-route-overview #main-content > .home-reference-footer { order: 99
 
 /* Leaderboard: the connected wallet's own row */
 html body #main-content #leaderboard .leaderboard-row.is-you { box-shadow: inset 3px 0 0 var(--fv-accent); background: color-mix(in srgb, var(--fv-accent) 8%, transparent); }
+/* Phone Traders board: two-line rows instead of a table that scrolls sideways. */
+@media (max-width: 700px) {
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] { overflow-x: visible; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-table-head { display: none; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row { min-width: 0; grid-template-columns: 32px minmax(0, 1fr) auto; grid-template-areas: "rank who value" "rank trades proof"; align-items: center; gap: var(--fv-space-1) var(--fv-space-3); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(1) { grid-area: rank; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(2) { grid-area: who; min-width: 0; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(3) { grid-area: trades; display: flex; align-items: baseline; gap: var(--fv-space-2); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(3) b::after { content: ' trades'; font-weight: 400; color: var(--fv-text-muted); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(4) { grid-area: value; text-align: right; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(5) { grid-area: proof; text-align: right; }
+}
 
 /* Home: the connected wallet's own panel */
 html body #main-content .your-home { grid-column: 1 / -1; order: 5; display: grid; gap: var(--fv-space-3); padding: var(--fv-space-4) var(--fv-space-5); border: 1px solid color-mix(in srgb, var(--fv-accent) 30%, var(--fv-border)); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }

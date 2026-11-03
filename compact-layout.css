@@ -247,7 +247,7 @@ html body.product-experience-style #main-content .workspace-shortcuts { grid-tem
   }
   html body.product-experience-style .topbar #open-menu { grid-area: 1 / 1; width: 44px; height: 44px; }
   html body.product-experience-style .topbar #header-search-trigger {
-    grid-area: 1 / 2; display: grid; place-items: center; width: 44px; min-width: 44px;
+    grid-area: 1 / 2; display: grid; place-items: center; place-content: center; width: 44px; min-width: 44px;
     height: 44px; padding: 0; font-size: 0;
   }
   html body.product-experience-style .topbar #header-search-trigger::after { display: none; }
