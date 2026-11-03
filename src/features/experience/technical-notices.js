@@ -129,9 +129,20 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
     }
   }
 
+  function restore(element) {
+    element.removeAttribute(HIDDEN); element.removeAttribute(VALUE);
+    for (const property of new Set([...Object.keys(VALUE_STYLE), ...Object.keys(VISUALLY_HIDDEN)])) element.style.removeProperty(property);
+    element.style.removeProperty('--fv-cell-size');
+  }
+
   function scan() {
     rewordJargon();
     const groups = { network: new Set(), verification: new Set() };
+    // A hidden line that has since been replaced with real content (or no
+    // longer reads as a status line) comes back into view.
+    for (const element of root.querySelectorAll(`[${HIDDEN}]`)) {
+      if (!plainLine(element) || element.closest(SKIP)) restore(element);
+    }
     for (const element of root.querySelectorAll(CANDIDATES)) {
       if (!plainLine(element) || element.closest(SKIP)) continue;
       // Value cells keep their place and read as "Updating…"; other lines are
@@ -141,11 +152,7 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
       const kind = classifyTechnicalText(element.textContent, { valueCell });
       const styles = valueCell ? VALUE_STYLE : VISUALLY_HIDDEN;
       if (!kind) {
-        if (element.hasAttribute(HIDDEN)) {
-          element.removeAttribute(HIDDEN); element.removeAttribute(VALUE);
-          for (const property of Object.keys(styles)) element.style.removeProperty(property);
-          element.style.removeProperty('--fv-cell-size');
-        }
+        if (element.hasAttribute(HIDDEN)) restore(element);
         continue;
       }
       element.setAttribute(HIDDEN, kind);
@@ -169,7 +176,15 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
 
   let timer = 0;
   const schedule = () => { view?.clearTimeout(timer); timer = view?.setTimeout(scan, 300); };
-  const observer = new view.MutationObserver(schedule);
+  // Content replacing a hidden status line shows at once, not after the
+  // debounced rescan.
+  const observer = new view.MutationObserver(mutations => {
+    for (const { target } of mutations) {
+      const element = target.nodeType === 1 ? target : target.parentElement;
+      if (element?.hasAttribute(HIDDEN) && !plainLine(element)) restore(element);
+    }
+    schedule();
+  });
   observer.observe(root, { subtree: true, childList: true, characterData: true });
   view?.addEventListener('hashchange', schedule);
   scan();

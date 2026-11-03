@@ -54,7 +54,7 @@ export function createCoinStateController(appState) {
     appState.setCoinField('#coin-liquidity-label', 'Reserve');
     const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = appState.exploreExplorer(`address/${encodeURIComponent(mintAddress)}`); explorerLink.hidden = !mintAddress; }
     document.querySelectorAll('.coin-chart-panel .chart-tools button').forEach(button => { button.disabled = true; button.title = 'Historical candles are not indexed for this token.'; });
-    ['#coin-market-cap','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, 'Loading…'));
+    ['#coin-market-cap','#coin-price','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, 'Loading…'));
     appState.setCoinField('#coin-volume-source', 'RPC trade scan if available'); appState.setCoinField('#coin-trade-breakdown', 'Confirmed Pump events'); appState.setCoinField('#coin-accounts-source', 'Largest-account sample, not holder count'); appState.setCoinCurveProgress(null);
     appState.setCoinField('#coin-chart-heading', 'Reading trade observations…');
     const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Price history is unavailable</span>';
@@ -116,6 +116,7 @@ export function createCoinStateController(appState) {
       appState.coinSolUsdPrice = quote;
       appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
       appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
+      appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
       appState.setCoinField('#coin-liquidity', appState.formatCoinUsd(appState.coinSolUsdValues.reserve));
     }
     appState.coinMarketActivity = { status: hasTradeRows ? 'ready' : 'summary-only', trades: hasTradeRows ? market.recentTrades : [], activityWindows: market.activityWindows, coverage: market.coverage, decimals, graduated: Boolean(graduated), poolTradeCount24h: Number(market.poolTradeCount24h) || 0, tradeCount: Number(market.tradeCount24h) || 0, volume24hSol: Number(market.volume24hSol), buyVolume24hSol: Number(market.buyVolume24hSol), sellVolume24hSol: Number(market.sellVolume24hSol) };
@@ -137,6 +138,8 @@ export function createCoinStateController(appState) {
     appState.setCoinField('#coin-change', noTrades ? 'No 24h trades' : market.priceChangePercent != null && Number.isFinite(change) && basis
       ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}% ${basis === '24h' ? '24h' : 'since first trade'}`
       : '24h change unavailable');
+    const trendNode = globalThis.document?.querySelector?.('#coin-change');
+    if (trendNode) trendNode.dataset.trend = !noTrades && Number.isFinite(change) && basis ? (change > 0 ? 'up' : change < 0 ? 'down' : 'flat') : 'none';
   }
   // app-source-end
 

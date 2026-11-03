@@ -472,4 +472,25 @@ export function initializeLaunchActions(appState) {
   initializeAppState(appState, 'coinQuickAmountButtons', coinQuickAmountButtons);
   // app-source-end
 
+  // "Launch for an X creator": open the launch form with half of the creator
+  // share going to a named X account. A ?forX=handle link prefills the name.
+  const prepareXCreatorLaunch = handle => {
+    const creatorShare = document.querySelector('#creator-wallet-share');
+    const xShare = document.querySelector('#x-share');
+    const recipient = document.querySelector('#x-recipient');
+    if (!creatorShare || !xShare || !recipient) return;
+    appState.setLaunchMode('custom');
+    creatorShare.value = '40';
+    xShare.value = '40';
+    appState.updateLaunchPolicyControls();
+    const name = appState.normalizeXHandle(String(handle || '').replace(/[^A-Za-z0-9_@]/g, '').slice(0, 16));
+    if (name.length > 1) recipient.value = name;
+    recipient.dispatchEvent(new Event('input', { bubbles: true }));
+    setTimeout(() => recipient.focus({ preventScroll: false }), 300);
+  };
+  document.addEventListener('click', event => {
+    if (event.target.closest?.('[data-launch-for-x]')) prepareXCreatorLaunch('');
+  });
+  const forX = new URLSearchParams(location.search).get('forX');
+  if (forX) prepareXCreatorLaunch(forX);
 }

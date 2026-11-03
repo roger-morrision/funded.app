@@ -141,6 +141,7 @@ export function renderLeaderboard(
     verifiedLaunchPoliciesStatus,
     exploreFeedAvailable,
     EXPLORE_CLUSTER,
+    connectedWalletAddress = null,
   },
   {
     loadWalletBurnBoard,
@@ -178,7 +179,12 @@ export function renderLeaderboard(
       ? 'The verified launch registry or trade feed is unavailable.'
       : `24-hour sample from ${scannedTokens} verified token${scannedTokens === 1 ? '' : 's'}. The feed keeps up to 20 recent trades per token and scans a limited set of tokens; ranks do not represent all trading.`);
     setCoinField('#leaderboard-status-title', unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} observed trading wallet${traders.length === 1 ? '' : 's'}` : 'No observed traders yet');
-    setCoinField('#leaderboard-status-note', unavailable ? 'Verified trade activity could not be loaded.' : 'Ranked by observed SOL volume in the last 24 hours.');
+    // A connected wallet sees its own place first: the reason to come back.
+    const yourIndex = connectedWalletAddress ? traders.findIndex(item => item.wallet === connectedWalletAddress) : -1;
+    setCoinField('#leaderboard-status-note', unavailable ? 'Verified trade activity could not be loaded.'
+      : yourIndex >= 0 ? `Your rank: #${yourIndex + 1} of ${traders.length} · ranked by SOL volume in the last 24 hours.`
+      : connectedWalletAddress ? 'You are not ranked yet. Buy or sell any coin to join the ranking.'
+      : 'Ranked by observed SOL volume in the last 24 hours. Connect a wallet to see your rank.');
     setCoinField('#leaderboard-status-badge', unavailable ? 'Unavailable' : 'Partial history');
     table.setAttribute('aria-label', 'Observed Solana trader leaderboard for the last 24 hours');
     const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Wallet</span><span role="columnheader">Trades</span><span role="columnheader">SOL volume</span><span role="columnheader">Proof</span></div>';
@@ -193,7 +199,7 @@ export function renderLeaderboard(
     replaceLeaderboardRows(table, `${header}${traders.slice(0, 50).map((item, index) => {
       const amount = item.volumeSol > 0 && item.volumeSol < 0.000001 ? '<0.000001' : item.volumeSol.toLocaleString(undefined, { maximumFractionDigits: 6 });
       const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-      return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar blue" aria-hidden="true">${escapeHtml(item.wallet.slice(0, 2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.tokenCount} token${item.tokenCount === 1 ? '' : 's'} observed</small></span></a></span><span role="cell"><b>${item.tradeCount}</b><small>${item.buyCount} buy · ${item.sellCount} sell</small></span><span role="cell" class="leader-value">${escapeHtml(amount)} SOL</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer" aria-label="View recent transaction for ${escapeHtml(shortAddress(item.wallet))} on Solana Explorer">Trade ↗</a></span></div>`;
+      return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}${index === yourIndex ? ' is-you' : ''}" role="row"${index === yourIndex ? ' aria-current="true"' : ''}><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar blue" aria-hidden="true">${escapeHtml(item.wallet.slice(0, 2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.tokenCount} token${item.tokenCount === 1 ? '' : 's'} observed</small></span></a></span><span role="cell"><b>${item.tradeCount}</b><small>${item.buyCount} buy · ${item.sellCount} sell</small></span><span role="cell" class="leader-value">${escapeHtml(amount)} SOL</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer" aria-label="View recent transaction for ${escapeHtml(shortAddress(item.wallet))} on Solana Explorer">Trade ↗</a></span></div>`;
     }).join('')}`);
     return;
   }

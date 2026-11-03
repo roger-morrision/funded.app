@@ -15,6 +15,16 @@ export function createDiscoveryRoutes({
   let snapshotConnection = null;
   const readSnapshot = readAccountSnapshot || createExploreAccountSnapshot({ getConnection: () => snapshotConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
   const json = (...args) => { respond(...args); return true; };
+  // Trade activity the market-activity route stored in the last five minutes,
+  // so cards show volume with the feed instead of one request per coin.
+  const readRecentActivity = async mints => {
+    if (typeof store.readMarketActivity !== 'function') return {};
+    const rows = await Promise.all(mints.map(mint => store.readMarketActivity(mint, 'devnet').catch(() => null)));
+    return Object.fromEntries(rows.flatMap((row, index) => {
+      const at = Date.parse(row?.observedAt || '');
+      return Number.isFinite(at) && Date.now() - at < 5 * 60_000 && row.mint === mints[index] ? [[mints[index], row]] : [];
+    }));
+  };
   return async function handleDiscoveryRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {
       const { limit, offset } = explorePagination(url.searchParams);
@@ -59,8 +69,11 @@ export function createDiscoveryRoutes({
         }
         const uniqueItems = [...uniqueByMint.values()];
         const page = sortDevnetLaunches(uniqueItems, sort).slice(offset, offset + limit);
-        const accountSnapshot = await readSnapshot(page.map(item => item.mint)).catch(() => null);
-        return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, ...(accountSnapshot ? { accountSnapshot } : {}) });
+        const [accountSnapshot, activity] = await Promise.all([
+          readSnapshot(page.map(item => item.mint)).catch(() => null),
+          readRecentActivity(page.map(item => item.mint)),
+        ]);
+        return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
       }
       const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
       return json(res, 200, { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) });

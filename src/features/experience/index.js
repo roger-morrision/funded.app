@@ -14,6 +14,7 @@ import { initializePreferenceTransfer } from './preference-transfer.js';
 import { initializeCreatorWalletFacts } from './creator-wallet-facts.js';
 import { initializePortfolioFocus } from '../portfolio/focus-visibility.js';
 import { mountSettingsDisclosures } from './settings-disclosures.js';
+import { renderYourHome } from '../home/your-home.js';
 
 export function initializeProductFlows(app) {
   initializeLaunchFacts(app);
@@ -36,6 +37,7 @@ export function initializeProductFlows(app) {
     initializeCreatorWalletFacts(app);
     initializePortfolioFocus();
     mountSettingsDisclosures();
+    mountYourHome(app);
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;
@@ -43,4 +45,14 @@ export function initializeProductFlows(app) {
   if (mount()) return;
   const observer = new MutationObserver(() => { if (mount()) observer.disconnect(); });
   observer.observe(document.body, { attributes:true, attributeFilter:['class'] });
+}
+
+// Redraw the connected wallet's Home panel when the data it summarizes
+// (launch feed, holdings, wallet) changes.
+function mountYourHome(app) {
+  const render = () => renderYourHome(app);
+  document.addEventListener('funded:verified-search-index', render);
+  document.addEventListener('funded:portfolio-holdings', render);
+  window.addEventListener('funded:reward-identity-change', render);
+  render();
 }
