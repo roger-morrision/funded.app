@@ -64,7 +64,8 @@ export function launchCardProgressState(item, providerStatus = '') {
   const stale = /\bstale\b/i.test(String(providerStatus));
   const value = migrated || complete ? 100 : null;
   const stage = migrated ? 'Migrated' : complete ? 'Curve complete' : item.complete === false ? 'On curve' : '';
-  const retained = stale || (loading && value !== null);
+  // Migration is final, so a migrated coin never needs a "Last verified" caveat.
+  const retained = !migrated && (stale || (loading && value !== null));
   const text = migrated ? 'Migrated' : complete ? 'Curve complete · Migration not yet verified'
     : item.complete === false ? (loading ? 'On curve · Checking progress…' : 'On curve')
       : loading ? 'Checking progress…' : 'Progress unavailable';
@@ -73,8 +74,8 @@ export function launchCardProgressState(item, providerStatus = '') {
   return {
     kind: retained ? 'stale' : migrated ? 'migrated' : complete ? 'complete' : loading ? 'loading' : 'unavailable',
     value,
-    text: `${retained || (loading && stage) ? 'Last verified · ' : ''}${text}`,
-    stage: stage ? `${stale || loading ? 'Last verified · ' : ''}${stage}` : '',
+    text: `${retained || (loading && stage && !migrated) ? 'Last verified · ' : ''}${text}`,
+    stage: stage ? `${!migrated && (stale || loading) ? 'Last verified · ' : ''}${stage}` : '',
   };
 }
 
@@ -111,6 +112,7 @@ export function syncLaunchCardProgressFreshness(document, providerStatus) {
       }
       stop();
       for (const row of rows) {
+        if (row.dataset.progressState === 'migrated') continue;
         const value = row.querySelector('.home-launch-progress-heading > strong');
         if (!value) continue;
         const settled = value.textContent.replace('On curve · Checking progress…', 'On curve').replace('Checking progress…', 'Progress unavailable');

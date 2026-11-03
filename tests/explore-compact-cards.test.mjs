@@ -48,9 +48,9 @@ test('strict existing stage endpoints and retained snapshots have explicit progr
   [{complete:false,migrated:true},'',100,'migrated','Migrated'],[{complete:1,migrated:'true'},'',null,'unavailable','Progress unavailable'],
   [{},loading,null,'loading','Checking progress…'],[{complete:false},loading,null,'loading','Last verified · On curve · Checking progress…'],
   [{complete:true},loading,100,'stale','Last verified · Curve complete · Migration not yet verified'],
-  [{migrated:true},loading,100,'stale','Last verified · Migrated'],[{},stale,null,'stale','Last verified · Progress unavailable'],
+  [{migrated:true},loading,100,'migrated','Migrated'],[{},stale,null,'stale','Last verified · Progress unavailable'],
   [{complete:false},stale,null,'stale','Last verified · On curve'],
-  [{complete:true},stale,100,'stale','Last verified · Curve complete · Migration not yet verified'],[{migrated:true},stale,100,'stale','Last verified · Migrated'],
+  [{complete:true},stale,100,'stale','Last verified · Curve complete · Migration not yet verified'],[{migrated:true},stale,100,'migrated','Migrated'],
  ];
  for(const [flags,status,value,kind,text]of rows){const item={...cases[0].item,...flags,curveProgressPercent:50},actual=launchCardProgressState(item,status);
   assert.equal(actual.value,value);assert.equal(actual.kind,kind);assert.equal(actual.text,text);
