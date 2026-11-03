@@ -25,7 +25,8 @@ export function initializeFinancialCenter(app) {
     const filter = root.querySelector('select').value;
     const selected = newestFirst(rows.filter(row => filter === 'all' || row.stage === filter));
     renderFinancialRecords(list,selected.slice(0,limit),expanded,root.querySelector('#financial-center-title'));
-    root.querySelector('[data-flow-count]').textContent=loading?'':missingSources.length&&!rows.length?'Records unavailable':`${Math.min(limit,selected.length)} of ${selected.length} loaded records`;
+    // "0 of 0" would repeat the empty-state message, so the count stays blank.
+    root.querySelector('[data-flow-count]').textContent=loading?'':missingSources.length&&!rows.length?'Records unavailable':selected.length?`${Math.min(limit,selected.length)} of ${selected.length} loaded records`:'';
     root.querySelector('.financial-list-footer').hidden=!selected.length||loading;
     // A status filter over zero loaded records only adds noise (common with no wallet connected).
     filterControl.closest('label').hidden=hasLoaded&&!loading&&!rows.length&&filterControl.value==='all';
