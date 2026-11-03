@@ -75,12 +75,17 @@ html body #main-content .home-launch-progress-row[data-progress-state='loading']
 .technical-notice summary { cursor: pointer; color: var(--fv-accent); }
 .technical-notice ul { margin: var(--fv-space-2) 0 0; padding-left: var(--fv-space-4); }
 /* Native focus scrolling stops above the notice while it is open. */
-html:has(.technical-notice:not([hidden]):not(.is-compact)) { scroll-padding-bottom: 240px; }
-html:has(.technical-notice.is-compact:not([hidden])) { scroll-padding-bottom: 112px; }
+html:has(.technical-notice-stack .technical-notice:not([hidden]):not(.is-compact)) { scroll-padding-bottom: 240px; }
+html:has(.technical-notice-stack .technical-notice.is-compact:not([hidden])) { scroll-padding-bottom: 112px; }
 @media (max-width: 700px) {
   .technical-notice-stack { right: var(--fv-space-4); bottom: calc(var(--mobile-bottom-height, 72px) + var(--fv-space-3)); }
   /* Keep keyboard focus clear of the notice pill as well as the bottom navigation. */
-  html:has(body.page-route:not(.page-route-admin)):has(.technical-notice:not([hidden])) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 64px); }
+  html:has(body.page-route:not(.page-route-admin)):has(.technical-notice-stack .technical-notice:not([hidden])) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 64px); }
+  /* The status summary sits in the page flow under the topbar (technical-notices.js). */
+  .technical-notice-inline { display: flex; justify-content: flex-end; padding: var(--fv-space-2) var(--fv-space-4) 0; }
+  .technical-notice-inline:not(:has(> .technical-notice:not([hidden]))) { display: none; }
+  .technical-notice-inline .technical-notice { width: 100%; box-shadow: none; }
+  .technical-notice-inline .technical-notice.is-compact { width: auto; }
 }
 [data-technical-value]::after { content: 'Updating…'; font-size: var(--fv-cell-size, 1rem); color: var(--fv-text-muted); font-weight: 500; }
 .technical-notice-title { padding: 0; border: 0; background: none; color: inherit; font: 700 14px var(--fv-font-ui); text-align: left; cursor: pointer; }
