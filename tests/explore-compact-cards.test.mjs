@@ -25,7 +25,7 @@ test('shared presentation preserves all text and action/proof/address attributes
 });
 test('compact unknown and zero-trade states retain exact metric meanings and never evaluate escaped names',()=>{
  const unknown=homeLaunchCardMarkup(cases[0].item,{...options(cases[0]),compact:true},state,deps),zero=homeLaunchCardMarkup(cases[3].item,{...options(cases[3]),compact:true},state,deps),escaped=homeLaunchCardMarkup(cases[4].item,{...options(cases[4]),compact:true},state,deps);
- assert.match(unknown,/\$—/);assert.match(zero,/No trades/);assert.match(escaped,/&lt;img src=x onerror=bad\(\)&gt;/);assert.doesNotMatch(escaped,/<img src=x/);
+ assert.match(unknown,/<small>Curve cap<\/small><strong class="is-unknown"[^>]*>—<\/strong>/);assert.doesNotMatch(unknown,/\$—/);assert.match(zero,/No trades/);assert.match(escaped,/&lt;img src=x onerror=bad\(\)&gt;/);assert.doesNotMatch(escaped,/<img src=x/);
  assert.match(unknown,/Progress unavailable/);assert.doesNotMatch(unknown,/aria-valuenow/);
 });
 test('rendering compact and default cards leaves records and policy context unchanged',()=>{
