@@ -15,7 +15,9 @@ const shortWallet = address => `${String(address).slice(0, 4)}…${String(addres
 export function formatPayoutSol(lamports) {
   const sol = Number(lamports) / 1_000_000_000;
   if (!Number.isFinite(sol) || sol <= 0) return '';
-  if (sol < 0.0001) return '<0.0001 SOL';
+  // Small payouts keep two significant digits (0.000042 SOL) so the strip
+  // shows what was actually paid instead of a row of identical "<0.0001".
+  if (sol < 0.0001) return `${sol.toLocaleString('en-US', { maximumSignificantDigits: 2, maximumFractionDigits: 9 })} SOL`;
   return `${sol.toLocaleString('en-US', { maximumFractionDigits: sol < 1 ? 4 : 2 })} SOL`;
 }
 
