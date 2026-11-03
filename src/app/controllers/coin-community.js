@@ -1,4 +1,5 @@
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
+import { chatCalloutBadge } from '../../features/callouts/callouts.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createCoinCommunityController(appState) {
@@ -33,7 +34,7 @@ export function createCoinCommunityController(appState) {
   function tokenChatMessageMarkup(item){
     const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
     const action = own ? `<footer><button type="button" data-chat-delete="${appState.escapeHtml(item.id)}">Delete</button></footer>` : `<footer><button type="button" data-chat-report="${appState.escapeHtml(item.id)}" title="Report spam or a scam for moderation review">Report spam or scam</button><button type="button" data-chat-hide="${appState.escapeHtml(item.author)}">Hide this wallet</button></footer>`;
-    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${appState.escapeHtml(appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div><p>${appState.escapeHtml(item.text)}</p>${action}</article>`;
+    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${appState.escapeHtml(appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div>${item.callout ? chatCalloutBadge(item.callout, appState.coinSolUsdValues?.marketCap, appState.coinSolUsdPrice) : ''}<p>${appState.escapeHtml(item.text)}</p>${action}</article>`;
   }
   // app-source-end
 
@@ -46,7 +47,7 @@ export function createCoinCommunityController(appState) {
     const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · no approval needed for each post` : `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · sign in once to use token discussions`;
     const hidden = appState.readHiddenChatAuthors(appState.EXPLORE_CLUSTER);
     const unhide = hidden.size ? `<button type="button" data-chat-unhide>Show ${hidden.size} hidden wallet${hidden.size === 1 ? '' : 's'}</button>` : '';
-    return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${appState.TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;
+    return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${appState.TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><label class="chat-callout-toggle" title="Saves this coin's market cap now and tracks how your call does on the Callouts board"><input type="checkbox" name="callout" /> <span aria-hidden="true">📣</span> Call it</label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;
   }
   // app-source-end
 

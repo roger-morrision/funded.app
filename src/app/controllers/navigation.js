@@ -177,6 +177,7 @@ export function createNavigationController(appState) {
     let copy = {
       overview: ['Overview', 'Verified activity and next steps'],
       explore: ['Explore', 'Verified launches and market signals'],
+      callouts: ['Callouts', 'Live calls from verified wallets'],
       list: ['Get listed', 'Listing status and token mint check'],
       payments: ['Rewards', 'Claims and payout receipts'],
       'analytics-detail': ['Analytics', 'Indexed platform activity'],

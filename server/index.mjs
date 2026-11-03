@@ -33,6 +33,8 @@ import { createTokenMarketRoutes } from './routes/token-market.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
+import { createCalloutRoutes, createCalloutFeed } from './routes/callouts.mjs';
+import { createCalloutMarketReader, createHolderShareReader } from './callout-market.mjs';
 import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode, validateInput } from './http-policy.mjs';
 import { readJsonBody } from './request-body.mjs';
@@ -303,9 +305,13 @@ const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsR
   solanaCluster, solanaRpcUrl, store, automaticRewardStore, fundedTokenMint, clientKey, body,
   requireAuthorized, communityClaimService, v3AuthorityKeypair, respond: json,
 });
+let calloutConnection = null;
+const readCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
 const handleTokenChatRoutes = createTokenChatRoutes({
-  body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json,
+  body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json, readMarketCaps: readCalloutMarketCaps,
+  readHolderShare: createHolderShareReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') }),
 });
+const handleCalloutRoutes = createCalloutRoutes({ readFeed: createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps }), respond: json });
 const handleReferralIdentityRoutes = createReferralIdentityRoutes({
   referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes, respond: json,
 });
@@ -462,6 +468,7 @@ async function handle(req, res) {
     if (await handleKeeperStatus(req, res, url)) return;
     if (await handleDiscoveryRoutes(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
+    if (await handleCalloutRoutes(req, res, url)) return;
     if (await handleV3Routes(req, res, url, requestId)) return;
     if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;

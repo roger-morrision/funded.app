@@ -51,6 +51,7 @@ export async function initializeNavigation(appState) {
     launch: '#launch-route-shell',
     list: '#list',
     explore: '#explore',
+    callouts: '#callouts',
     payments: '#payments',
     'analytics-detail': '#analytics-detail',
     'my-launches': '#my-launches',

@@ -14,11 +14,12 @@ export function initializeCoinChat(appState) {
     const button = form.querySelector('button');
     if (button) button.disabled = true;
     try {
-      const response = await appState.tokenChatRequest('post', { text: appState.normalizeTokenChatText(text) });
+      const callout = Boolean(form.querySelector('input[name="callout"]')?.checked);
+      const response = await appState.tokenChatRequest('post', { text: appState.normalizeTokenChatText(text), ...(callout ? { callout: true } : {}) });
       if (response.available && response.data?.message) appState.coinChatMessages = [...appState.coinChatMessages, response.data.message].slice(-50);
       input.value = '';
       appState.renderCoinActivityTab();
-      appState.showToast('Wallet-verified message posted');
+      appState.showToast(callout ? 'Call recorded. Follow it on the Callouts board.' : 'Wallet-verified message posted');
     } catch (error) { appState.showToast(error.message || 'Chat message could not be sent'); }
     finally { if (button) button.disabled = false; }
   });

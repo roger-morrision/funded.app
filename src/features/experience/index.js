@@ -18,6 +18,7 @@ import { renderYourHome } from '../home/your-home.js';
 import { renderProofStrip } from '../proof/proof-totals.js';
 import { mountHolderRewardsCard } from '../coin/holder-rewards-card.js';
 import { mountBonusCountdown } from '../leaderboard/bonus-countdown.js';
+import { mountCallouts } from '../callouts/callouts.js';
 
 export function initializeProductFlows(app) {
   initializeLaunchFacts(app);
@@ -44,6 +45,7 @@ export function initializeProductFlows(app) {
     mountProofStrip(app);
     mountHolderRewardsCard(app);
     mountBonusCountdown(app);
+    mountCallouts(app);
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;
