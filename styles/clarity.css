@@ -248,6 +248,18 @@ html body.page-route-overview #main-content > .home-reference-footer { order: 99
 
 /* Leaderboard: the connected wallet's own row */
 html body #main-content #leaderboard .leaderboard-row.is-you { box-shadow: inset 3px 0 0 var(--fv-accent); background: color-mix(in srgb, var(--fv-accent) 8%, transparent); }
+/* Phone Traders board: two-line rows instead of a table that scrolls sideways. */
+@media (max-width: 700px) {
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] { overflow-x: visible; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-table-head { display: none; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row { min-width: 0; grid-template-columns: 32px minmax(0, 1fr) auto; grid-template-areas: "rank who value" "rank trades proof"; align-items: center; gap: var(--fv-space-1) var(--fv-space-3); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(1) { grid-area: rank; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(2) { grid-area: who; min-width: 0; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(3) { grid-area: trades; display: flex; align-items: baseline; gap: var(--fv-space-2); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(3) b::after { content: ' trades'; font-weight: 400; color: var(--fv-text-muted); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(4) { grid-area: value; text-align: right; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(5) { grid-area: proof; text-align: right; }
+}
 
 /* Home: the connected wallet's own panel */
 html body #main-content .your-home { grid-column: 1 / -1; order: 5; display: grid; gap: var(--fv-space-3); padding: var(--fv-space-4) var(--fv-space-5); border: 1px solid color-mix(in srgb, var(--fv-accent) 30%, var(--fv-border)); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
