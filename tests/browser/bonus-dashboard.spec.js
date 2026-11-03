@@ -92,7 +92,9 @@ test('empty history shows no synthetic recipients and Home does not invent rewar
   await expect(page.locator('[data-bonus-leaders]')).toContainText('No confirmed bonus payout yet');
   await expect(page.locator('[data-bonus-history-rows]')).toContainText('No confirmed bonus payouts');
   await page.goto('/#overview');
-  await expect(page.locator('[data-bonus-pool="creators"]')).toHaveText('Unavailable');
+  await expect(page.locator('[data-bonus-pool="creators"]')).toHaveText('— SOL');
+  await expect(page.locator('[data-bonus-pool="creators"]')).toHaveClass(/is-unknown/);
+  await expect(page.locator('[data-bonus-pool="creators"]')).toHaveAttribute('aria-label', 'Pool not confirmed yet');
 });
 
 test('Devnet QA schedule shows five-minute cutoffs consistently on Home, history and Capital flow',async({page})=>{

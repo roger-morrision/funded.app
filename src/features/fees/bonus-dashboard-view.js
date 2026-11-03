@@ -163,7 +163,9 @@ export function initBonusDashboard(document = globalThis.document) {
   function animate(el, value) {
     if (frames.has(el)) view.cancelAnimationFrame(frames.get(el));
     const to = integer(value), from = integer(el.dataset.amount) ?? 0n;
-    if (to == null) { delete el.dataset.amount; el.textContent = 'Unavailable'; el.removeAttribute('aria-label'); return; }
+    // One status line below the grid explains a missing pool, so each card shows a quiet dash instead of repeating it.
+    el.classList.toggle('is-unknown', to == null);
+    if (to == null) { delete el.dataset.amount; el.textContent = '— SOL'; el.setAttribute('aria-label', 'Pool not confirmed yet'); return; }
     el.dataset.amount = String(to); el.setAttribute('aria-label', bonusSol(to));
     if (view.matchMedia('(prefers-reduced-motion: reduce)').matches || document.hidden || from === to) { el.textContent = bonusSol(to); return; }
     const start = view.performance.now();
