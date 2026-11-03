@@ -11,9 +11,11 @@ export function createCoinHeaderController(appState) {
   // app-source-end
 
   // app-source: 925
-  function renderCoinCreatorRoute(address){
+  function renderCoinCreatorRoute(address, { loading = false } = {}){
     const route = document.querySelector('#coin-creator-route');
     if (!route) return;
+    // While the curve is still being read, say so instead of "could not be verified".
+    if (!address && loading) { route.innerHTML = '<strong>Reading fee recipient…</strong><small>Checking the curve fee-owner address on Solana.</small>'; return; }
     if (!address) { route.innerHTML = '<strong>Fee recipient unavailable</strong><small>The curve fee-owner address could not be verified.</small>'; return; }
     const safe = appState.escapeHtml(address);
     route.innerHTML = `<strong>Pump fee recipient</strong><a class="coin-creator-link" href="/wallet/${encodeURIComponent(address)}">${safe}</a><button type="button" class="copy-creator-wallet" id="coin-copy-creator" aria-label="Copy fee recipient">${appState.icon('copy')}</button><small>Curve fee authority; may be a program/router, not the human creator.</small>`;
