@@ -32,7 +32,8 @@ export function formatCountdown(ms) {
 export function bonusCountdownMarkup(summary, { solUsd = null } = {}) {
   if (!summary) return '';
   const pool = summary.poolLamports;
-  const usd = formatProofUsd(pool, solUsd);
+  // "0 SOL ≈ $0.00" says nothing twice; the note below explains an empty pool.
+  const usd = pool > 0 ? formatProofUsd(pool, solUsd) : '';
   // An empty pool shows each rank's share instead of three "0 SOL" rows.
   const prize = item => {
     const share = item.lamports == null || pool === 0;
