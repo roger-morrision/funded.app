@@ -358,7 +358,13 @@ body:has(#landing-menu[open]) { overflow:hidden; }
 }
 .network-pill { flex:0 0 auto; padding:4px 10px; border:1px solid var(--gold); border-radius:999px; color:var(--gold); font-size:11px; font-weight:700; white-space:nowrap; }
 @media (max-width:700px) { .landing-topbar .topbar-label { display:none; } }
-@media (max-width:420px) { .network-pill .pill-extra { display:none; } }
+@media (max-width:420px) {
+  .network-pill .pill-extra { display:none; }
+  /* Keep "Open app" on one line next to the brand and Devnet pill on small phones. */
+  .landing-topbar { gap:8px; }
+  .landing-topbar .button { white-space:nowrap; }
+  .landing-topbar .button [aria-hidden="true"] { display:none; }
+}
 /* Live payout proof card in the hero (replaces the static illustration). */
 .proof-card .story-heading .eyebrow { display:inline-flex; align-items:center; gap:7px; }
 .proof-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:18px 0; }
