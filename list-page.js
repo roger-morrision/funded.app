@@ -30,6 +30,8 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   let config = null;
   let listings = [];
   let listingsAvailable = false;
+  let listingsChecked = false;
+  let configChecked = false;
   let busy = false;
   let prepared = null;
   let lookup = null;
@@ -129,7 +131,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const ready = listingsAvailable && config?.enabled === true && config.cluster === 'devnet' && config.fundedMint === fundedMint
       && amountTokens != null && cluster === 'devnet' && !mainnetReadOnly;
     renderBurnCopy();
-    availability.textContent = existing?.included ? 'Listing included with launch · no additional fee' : ready ? `$${LISTING_PRICE_USD} in $FUNDED · about ${burnLabel()} tokens` : '$FUNDED price unavailable';
+    availability.textContent = existing?.included ? 'Listing included with launch · no additional fee' : ready ? `$${LISTING_PRICE_USD} in $FUNDED · about ${burnLabel()} tokens` : !configChecked || !listingsChecked ? 'Checking $FUNDED price…' : '$FUNDED price unavailable';
     payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending) || Boolean(recoveryError);
     payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? `Review $${LISTING_PRICE_USD} listing burn` : 'Listing unavailable';
     if (recoveryError) setStatus(recoveryError, pending?.signature);
@@ -187,6 +189,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (!result.available || result.data?.cluster !== 'devnet' || !Array.isArray(result.data.listings)) throw new Error('Listing index unavailable.');
       listings = result.data.listings;
       listingsAvailable = true;
+      listingsChecked = true;
       const pending = readPending();
       if (pending && listings.some(item => item.mint === pending.mint && item.signature === pending.signature
         && item.onchainVerified === true && item.cluster === 'devnet' && (item.wallet == null || item.wallet === pending.wallet))) {
@@ -197,7 +200,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (mintValue() && listings.some(item => item.mint === mintValue() && item.onchainVerified === true)) queueLookup();
       else draw();
       return true;
-    } catch { listings = []; listingsAvailable = false; live.textContent = 'The verified listing index is unavailable.'; setStatus('The public listing index is unavailable. Payment is paused.'); draw(); return false; }
+    } catch { listings = []; listingsAvailable = false; listingsChecked = true; live.textContent = 'The verified listing index is unavailable.'; setStatus('The public listing index is unavailable. Payment is paused.'); draw(); return false; }
   }
   async function refreshConfig() {
     try {
@@ -208,6 +211,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       setStatus(pending ? 'A prior burn is awaiting receipt verification. Retry the receipt before another payment.'
         : config?.enabled ? `Enter a token mint to review the $${LISTING_PRICE_USD} $FUNDED burn.` : 'Listing payments are unavailable until the verified $FUNDED price can be loaded.', pending?.signature);
     } catch { config = null; setStatus('Listing payment service unavailable. No burn can be submitted.'); }
+    configChecked = true;
     draw();
   }
   async function preparePayment() {
