@@ -1,5 +1,5 @@
 /* A compact, evidence-led activity view. Values and action gates stay in their source modules. */
-#financial-center .ready-queue[hidden],#financial-center .financial-list-footer[hidden],#financial-center [data-flow-empty][hidden] { display: none !important; }
+#financial-center .ready-queue[hidden],#financial-center .financial-list-footer[hidden],#financial-center [data-flow-empty][hidden],#financial-center .financial-toolbar > label[hidden] { display: none !important; }
 #financial-center[data-state="unavailable"] [data-flow-count] { color: #d7ba83; }
 html body.product-experience-style #financial-center[data-state="unavailable"] .financial-empty { border-style: solid; border-color: #614f35; background: #201c18; }
 html body.product-experience-style #financial-center { padding: 24px; background: #101827; border-color: #2b374b; }
