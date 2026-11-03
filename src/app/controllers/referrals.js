@@ -288,11 +288,12 @@ function updateReferralStatus(state){
   // app-source: 244
   function updateReferralLink(){
     const code = appState.getReferralCode();
-    const value = code ? appState.buildReferralUrl(code) : 'Connect wallet to generate';
+    const value = code ? appState.buildReferralUrl(code) : 'Your link appears here';
     document.querySelectorAll('[data-referral-link]').forEach(node => { node.textContent = value; });
     let registered = null;
     try { registered = JSON.parse(localStorage.getItem(`${appState.REFERRAL_SERVER_KEY_PREFIX}${appState.connectedWalletAddress}`) || 'null'); } catch {}
-    const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Activate link when sharing';
+    // The button and help line already ask for a wallet, so the badge waits for one.
+    const status = document.querySelector('#referral-link-status'); if (status) { status.hidden = !code; status.textContent = registered?.code === code ? 'Ready to share' : 'Activate link when sharing'; }
     const copy = document.querySelector('#referral-command-center [data-copy-referral-link]');
     if (copy) copy.textContent = !code ? 'Get invite link' : registered?.code === code ? 'Copy link' : 'Activate invite link';
     const shareReady=Boolean(code&&registered?.code===code);
@@ -301,7 +302,7 @@ function updateReferralStatus(state){
       if(button.hidden&&focused)copy?.focus({preventScroll:true});
     }
     const help = document.querySelector('#referral-share-help');
-    if (help) help.textContent = shareReady ? 'Invite creators with this link. Rewards depend on their collected and settled fees.' : code ? 'Approve a free sign-in message to activate your invite link.' : 'Connect your wallet and approve a free sign-in message to activate your link.';
+    if (help) help.textContent = shareReady ? 'Invite creators with this link. Rewards depend on their collected and settled fees.' : code ? 'Approve a free sign-in message to activate your invite link.' : 'Connect your wallet, then approve one free sign-in message. No transaction.';
   }
   // app-source-end
 
