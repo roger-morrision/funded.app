@@ -47,6 +47,11 @@ html body.page-route-overview #main-content #home-kpi-airdrop-card { display: no
 html body.page-route-overview #main-content .home-kpi-card:not([data-state='available'], [data-state='partial']) { display: none; }
 html body.page-route-overview #main-content .home-kpi-dashboard:not(:has(.home-kpi-card[data-state='available'], .home-kpi-card[data-state='partial'])) { display: none; }
 html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+/* Phones: two figures per row so coins start one screen sooner. */
+@media (max-width: 520px) {
+  html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html body.page-route-overview #main-content .home-kpi-value { flex-wrap: wrap; }
+}
 html body.page-route-overview #main-content .home-kpi-freshness { display: none; }
 
 /* Token cards: loading placeholders add noise without information. */
