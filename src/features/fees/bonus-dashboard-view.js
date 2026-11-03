@@ -16,6 +16,11 @@ export function bonusCountdown(cutoff, serverAt, elapsed) {
   return [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60]
     .map(value => String(value).padStart(2, '0')).join(':');
 }
+// Daily snapshots close at 00:00 UTC, so the clock can run before the server answers.
+export function nextUtcCutoff(now) {
+  const date = new Date(now);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1);
+}
 const short = wallet => `${wallet.slice(0, 5)}…${wallet.slice(-5)}`;
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 // Match only producer-supported typed identities, never a wallet or row position alone.
@@ -45,7 +50,7 @@ export function initBonusDashboard(document = globalThis.document) {
   const leaders = page.querySelector('[data-bonus-leaders]'), rows = page.querySelector('[data-bonus-history-rows]');
   const previous = page.querySelector('[data-bonus-previous]'), next = page.querySelector('[data-bonus-next]');
   const pageLabel = page.querySelector('[data-bonus-page]'), clock = home.querySelector('[data-bonus-countdown]');
-  const frames = new Map(); let request, serial = 0, pageNumber = 1, data, clockBase;
+  const frames = new Map(); let request, serial = 0, pageNumber = 1, data, clockBase, qaSchedule = false;
   const node = (tag, text) => { const el = document.createElement(tag); if (text != null) el.textContent = text; return el; };
   const walletLink = wallet => {
     const link = node('a', short(wallet)); link.href = `/wallet/${encodeURIComponent(wallet)}`; link.title = wallet; return link;
@@ -170,13 +175,18 @@ export function initBonusDashboard(document = globalThis.document) {
     frames.set(el, view.requestAnimationFrame(step));
   }
   function tick() {
-    if (!clockBase) { clock.textContent = '—:—:—'; return; }
+    if (!clockBase) {
+      const now = Date.now();
+      clock.textContent = qaSchedule ? '—:—:—' : bonusCountdown(nextUtcCutoff(now), now, 0);
+      return;
+    }
     const elapsed = view.performance.now() - clockBase.started;
     if (elapsed > 120_000) { clock.textContent = 'Refresh needed'; return; }
     clock.textContent = bonusCountdown(clockBase.cutoff, clockBase.at, elapsed);
   }
   function render(owner) {
     const qa = data.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
+    qaSchedule = qa;
     home.querySelector('[data-bonus-schedule]').textContent = qa
       ? 'Devnet QA: top 3 in each group. Snapshots every 5 minutes for selected test coins.'
       : 'Three leaderboards. Top 3 in each. One snapshot every UTC day.';
@@ -247,7 +257,7 @@ export function initBonusDashboard(document = globalThis.document) {
   view.addEventListener('hashchange', route); document.addEventListener('visibilitychange', route);
   const clockTimer = view.setInterval(() => { if (active()) tick(); }, 1000);
   const refreshTimer = view.setInterval(route, 30_000);
-  route();
+  tick(); route();
   return () => {
     forgetHistoryOwner();
     ++serial; request?.abort(); view.clearInterval(clockTimer); view.clearInterval(refreshTimer);

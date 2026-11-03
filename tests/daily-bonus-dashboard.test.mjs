@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bonusDashboardHistory, readBonusPool } from '../server/daily-bonus-dashboard.mjs';
 import { buildDailyBonusSnapshot } from '../server/daily-bonus.mjs';
-import { bonusCountdown, bonusSol } from '../src/features/fees/bonus-dashboard-view.js';
+import { bonusCountdown, bonusSol, nextUtcCutoff } from '../src/features/fees/bonus-dashboard-view.js';
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 import { PublicKey } from '@solana/web3.js';
 import { createDailyBonusRuntime } from '../server/daily-bonus-runtime.mjs';
@@ -60,6 +60,11 @@ test('amount display preserves lamports and countdown uses UTC server time, stop
   assert.equal(bonusSol('100000000000000000001'), '100000000000.000000001 SOL');
   assert.equal(bonusCountdown(86400000, 86338000, 0), '00:01:02');
   assert.equal(bonusCountdown(86400000, 86338000, 62001), 'Snapshot processing');
+});
+test('local clock counts down to the next 00:00 UTC before the dashboard answers', () => {
+  assert.equal(nextUtcCutoff(Date.parse('2026-11-03T04:13:05Z')), Date.parse('2026-11-04T00:00:00Z'));
+  assert.equal(nextUtcCutoff(Date.parse('2026-12-31T23:59:59Z')), Date.parse('2027-01-01T00:00:00Z'));
+  assert.equal(nextUtcCutoff(Date.parse('2026-11-03T00:00:00Z')), Date.parse('2026-11-04T00:00:00Z'));
 });
 test('mutated snapshot awards fail integrity checks instead of publishing recipient totals', () => {
   const row = saved('2026-10-16'); row.snapshot.rankings.creators[0].rank = 2;
