@@ -17,9 +17,13 @@ let lastSyncedRoute = null;
 let scrollRequest = 0;
 // Coin tabs and bookmarks keep the coin name instead of a generic "Token" title.
 const coinRoute=()=>/^\/(token|launch\/coin)\//.test(location.pathname)&&!location.hash||location.hash.startsWith('#coin/');
+// The server already names verified coins in <title>; keep it while the page loads.
+const serverCoinTitle=coinRoute()&&!location.hash&&/ \| funded\.vip$/.test(document.title)&&!document.title.startsWith('Token verification unavailable')
+  ?{path:location.pathname,title:document.title}:null;
 function coinTitle() {
   const name=coinRoute()?$('#coin-page-title')?.textContent?.trim():'';
-  return name&&!/^(Loading token|Token data unavailable)/.test(name)?`${name} · funded.vip`:'';
+  if(name&&!/^(Loading token|Token data unavailable)/.test(name))return `${name} · funded.vip`;
+  return coinRoute()&&!location.hash&&location.pathname===serverCoinTitle?.path?serverCoinTitle.title:'';
 }
 const routeTitle=()=>coinTitle()||`${$('[data-route-label]')?.textContent||'funded.vip'} · funded.vip`;
 function syncRoute() {
