@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-const aliases = [['rewards', 'payments'], ['portfolio', 'my-launches'], ['listing', 'list'], ['get-listed', 'list']];
+const aliases = [['rewards', 'payments'], ['portfolio', 'my-launches'], ['listing', 'list'], ['listings', 'list'], ['get-listed', 'list'], ['leaderboards', 'leaderboard'], ['referral', 'referrals'], ['airdrop', 'airdrops']];
 
 test('sidebar-label hashes open their page instead of falling back to Home (mocked APIs)', async ({ page }) => {
   await page.route('https://**/*', route => route.abort());
