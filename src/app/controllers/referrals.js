@@ -112,7 +112,8 @@ export function createReferralsController(appState) {
 function updateReferralStatus(state){
   const label = referralStatusLabel(state);
   document.documentElement.dataset.referralStatus = label;
-  document.querySelectorAll('#referral-command-center .section-state').forEach(node => { node.textContent = label; });
+  // The invite link button already asks for a wallet, so the header tag waits for one.
+  document.querySelectorAll('#referral-command-center .section-state').forEach(node => { node.textContent = label; node.hidden = state === 'disconnected'; });
   if (document.body.classList.contains('page-route-referrals')) { const node = document.querySelector('#route-guide-state'); if (node) node.textContent = label; }
 }
 
@@ -126,7 +127,7 @@ function updateReferralStatus(state){
   }
 
 
-  function renderReferralClaimPrompt(title = 'Connect wallet to check referral rewards', note = 'Finalized creator-signed V3 payouts appear in your history.', approve = false){
+  function renderReferralClaimPrompt(title = 'Your payouts appear here', note = 'Get your invite link above to connect. Payout history stays private to your wallet.', approve = false){
     const panel = document.querySelector('#referral-claim-center');
     if (!panel) return;
     panel.hidden = false;
@@ -142,9 +143,6 @@ function updateReferralStatus(state){
       const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Sign in with wallet';
       button.addEventListener('click', async () => { button.disabled = true; try { await appState.refreshReferralClaims({ interactive: true }); } finally { button.disabled = false; } });
       panel.append(button);
-    } else if (!appState.captureWalletSession()) {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Connect wallet';
-      button.addEventListener('click', () => document.querySelector('#connect-button')?.click()); panel.append(button);
     }
   }
   // app-source-end

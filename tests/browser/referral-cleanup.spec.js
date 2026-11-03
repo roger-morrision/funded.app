@@ -45,7 +45,8 @@ for(const width of [320,390,1440])test(`referral invite and private receipt hist
   await expect(dashboard.locator('.referral-progress-panel,.referral-quick-steps')).toHaveCount(0);
   await expect(dashboard.locator('#referral-ledger-list')).toBeHidden();
   expect(fixture.privateRequests()).toBe(0);
-  await dashboard.locator('[data-referral-connect]').click();
+  await expect(dashboard.locator('#referral-claim-center button,.section-state:visible')).toHaveCount(0);
+  await page.locator('#connect-button').click();
   await page.locator('[data-wallet-choice="phantom"]').click();
   await expect(dashboard.locator('#referral-paid-total')).toHaveText('0.000057714 SOL');
   await expect(dashboard.locator('#referral-active-creators')).toHaveText('2');
