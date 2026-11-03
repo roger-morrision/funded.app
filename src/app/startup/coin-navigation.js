@@ -150,8 +150,8 @@ export function initializeCoinNavigation(appState) {
     if (chartUnit){ appState.coinChartUnit = chartUnit.dataset.coinChartUnit; appState.renderCoinPricePath(); return; }
     const pulsePeriod = event.target.closest('[data-coin-pulse-period]');
     if (pulsePeriod){ appState.coinPulsePeriod = pulsePeriod.dataset.coinPulsePeriod; appState.renderCoinPulse(); return; }
-    const refresh = event.target.closest('#coin-refresh');
-    if (refresh){ const mint = appState.getCoinMintAddress(); appState.resetCoinSurface(mint); appState.loadCoinOnChain(mint); return; }
+    const refresh = event.target.closest('#coin-refresh, #coin-retry');
+    if (refresh){ const mint = appState.getCoinMintAddress(); if (refresh.id === 'coin-retry') document.querySelector('#coin-refresh')?.focus(); appState.resetCoinSurface(mint); appState.loadCoinOnChain(mint); return; }
     const watch = event.target.closest('#coin-watch');
     if (watch){ const mint = appState.getCoinMintAddress(); if (!mint || !await appState.saveWatchlist(mint, { remove: watch.getAttribute('aria-pressed') === 'true' })) return; appState.renderWatchlist(); appState.setWatchButtonState(watch, appState.lastKnownWatchlist.includes(mint)); return; }
     const share = event.target.closest('#coin-share-link');

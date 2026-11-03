@@ -66,6 +66,7 @@
 .coin-page .coin-profile-tagline{margin:0 0 12px;color:#edfff0;font-size:17px;font-weight:700;line-height:1.3}
 .coin-page .coin-profile-tagline[hidden]{display:none!important}
 .coin-page .coin-hero-about .coin-description{display:block!important;max-width:none;max-height:none;overflow:visible;margin:0;color:inherit;font-size:inherit;line-height:inherit;-webkit-line-clamp:unset}
+.coin-page .coin-retry{margin-top:12px}.coin-page .coin-retry[hidden]{display:none}
 .coin-page .coin-profile-roadmap-section,.coin-page .coin-profile-links{flex:1;min-height:0;max-height:290px;overflow-y:auto;padding:17px 18px;color:#c7d8ca;font-size:12px;line-height:1.65}
 .coin-page .coin-profile-roadmap-section[hidden]{display:none!important}
 .coin-page .coin-profile-links[hidden]{display:none!important}

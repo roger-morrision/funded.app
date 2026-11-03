@@ -4,6 +4,7 @@ import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 export function createCoinStateController(appState) {
   // app-source: 979
   function resetCoinSurface(mintAddress){
+    const retry = document.querySelector('#coin-retry'); if (retry) retry.hidden = true;
     renderCoinBurnDashboard({mint:mintAddress,status:'loading',cluster:appState.EXPLORE_CLUSTER});
     appState.coinTradeEstimate = null;
     appState.renderTradeAmountEstimate();
