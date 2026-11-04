@@ -134,7 +134,7 @@ test('failed optional handoff removal preserves stored data while the explicit t
   await expect(page).toHaveURL(new RegExp(`/token/${TOKEN_MINT}$`));
 });
 
-test('a failed optional handoff write still opens the selected watchlist token through native Trade',async({page})=>{
+test('denied optional handoff storage still opens the saved token through its native Buy link',async({page})=>{
   await page.addInitScript(({key,mint})=>{
     localStorage.setItem('funded.app.community.watchlist',JSON.stringify([mint]));
     const original=Storage.prototype.setItem;Storage.prototype.setItem=function(name,value){if(this===sessionStorage&&name===key)throw new DOMException('Quota exceeded','QuotaExceededError');return original.call(this,name,value);};
@@ -153,8 +153,9 @@ test('a failed optional handoff write still opens the selected watchlist token t
   await page.route('**/api/solana/rpc*',mockRpc);
   await page.route('https://api.devnet.solana.com/**',mockRpc);
   await page.goto('/#community');await ready(page);
-  const trade=page.locator(`#watchlist-items [data-trade-mint="${TOKEN_MINT}"]`);await expect(trade).toBeVisible();
-  await trade.click();await expect(page).toHaveURL(new RegExp(`/token/${TOKEN_MINT}$`));await ready(page);
+  const trade=page.locator('#watchlist-items').getByRole('link',{name:'Buy',exact:true});await expect(trade).toBeVisible();
+  await expect(trade).toHaveAttribute('href',`/token/${TOKEN_MINT}?reviewBuy=0.1`);
+  await trade.click();await expect(page).toHaveURL(new RegExp(`/token/${TOKEN_MINT}\\?reviewBuy=0\\.1$`));await ready(page);
   await expect(page.locator('#trade-mint')).toHaveValue(TOKEN_MINT);expect(await page.evaluate(key=>sessionStorage.getItem(key),HANDOFF_KEY)).toBeNull();
   expect(rpcMethods).toContain('getMultipleAccounts');expect(rpcMethods.some(method=>/sendTransaction|requestAirdrop/i.test(method))).toBe(false);
 });

@@ -51,7 +51,8 @@ export function classifyTechnicalText(text, { valueCell = false } = {}) {
 export function mountTechnicalNotices({ document = globalThis.document, root = document?.querySelector('#main-content') } = {}) {
   if (!document || !root) return null;
   const view = document.defaultView;
-  const store = view?.sessionStorage;
+  let store;
+  try { store = view?.sessionStorage; } catch { /* Notices still work when browser storage is denied. */ }
   const dismissedUntil = category => { try { return Number(store?.getItem(`funded.notice.${category}`)) || 0; } catch { return 0; } };
   const dismiss = category => { try { store?.setItem(`funded.notice.${category}`, String(Date.now() + DISMISS_MS)); } catch {} };
   const shownErrors = new Set();
