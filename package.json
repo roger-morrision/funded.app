@@ -155,8 +155,8 @@
   },
   "overrides": {
     "bigint-buffer": "file:vendor/bigint-buffer",
-    "stream-json": "^3.6.0",
-    "toml": "^5.0.0",
+    "jayson": "^5.0.0",
+    "toml": "^5.0.1",
     "uuid": "^14.0.2"
   },
   "engines": {
