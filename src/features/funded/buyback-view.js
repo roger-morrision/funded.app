@@ -1,9 +1,16 @@
 import { summarizeBuybackLedger } from '../../../buyback-policy.js';
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
-import { escapeHtml } from '../shared/display.js';
+import { escapeHtml, formatTokenDisplay } from '../shared/display.js';
 import { canSignTransactions } from '../../../wallet-core.js';
 import { newestBuybackReceipts } from './buyback-receipts.js';
 import { preserveBuybackLedgerFocus } from './buyback-ledger-focus.js';
+
+// Compact for reading (1.89M); the exact value stays in the tooltip.
+function setTokenAmount(node, exact) {
+  if (!node) return;
+  node.textContent = exact == null ? '—' : formatTokenDisplay(exact);
+  if (exact == null) node.removeAttribute('title'); else node.title = `${exact} $FUNDED`;
+}
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderBuybackDashboard(
@@ -37,8 +44,8 @@ export function renderBuybackDashboard(
   const walletLaunchBurns = launchBurns.filter(launch => launch.creatorWallet === connectedWalletAddress);
   const standaloneReceipts = fundedBurnState.wallet === connectedWalletAddress ? fundedBurnState.receipts : [];
   const receiptSignatures = new Set([...walletLaunchBurns.map(launch => launch.creatorLaunchBurn.receipt.signature), ...standaloneReceipts.map(receipt => receipt.signature)].filter(Boolean));
-  document.querySelector('#buyback-pending').textContent = walletBalanceReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : '—';
-  document.querySelector('#buyback-burned').textContent = fundedBurnState.status === 'ready' ? formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 6) : '—';
+  setTokenAmount(document.querySelector('#buyback-pending'), walletBalanceReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null);
+  setTokenAmount(document.querySelector('#buyback-burned'), fundedBurnState.status === 'ready' ? formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 6) : null);
   document.querySelector('#buyback-claims').textContent = connectedWalletAddress && fundedBurnState.status === 'ready' ? String(receiptSignatures.size) : '—';
   const feeReceipts = newestBuybackReceipts(buybackNetworkState.receipts);
   const totalReceiptCount = feeReceipts.length + launchBurns.length + standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).length;

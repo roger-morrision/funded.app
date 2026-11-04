@@ -90,7 +90,9 @@ export function calloutRowMarkup(row, { solUsd, wallet, nowMs = Date.now(), fres
 
 export function topCallersMarkup(rows, wallet) {
   if (!rows?.length) return '<li class="callouts-leaders-empty">No ranked callers yet this week. Make the first call.</li>';
-  return rows.map((row, index) => `<li${wallet && row.author === wallet ? ' class="is-you" aria-current="true"' : ''}><span class="callouts-rank">#${index + 1}</span><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><button type="button" class="callout-author" data-callout-author="${escape(row.author)}">${escape(shortWallet(row.author))}</button><b data-trend="${multipleTrend(row.avgMultiple)}">${escape(formatMultiple(row.avgMultiple))} mean peak</b><small>${Number.isInteger(row.hits) ? row.hits : Math.round(row.hitRate * row.calls)} of ${row.calls} calls reached 2x${row.calls < 5 ? ' · small sample' : ''}</small></li>`).join('');
+  // Servers mark callers below the minimum call count as unranked (ranked:false).
+  let rank = 0;
+  return rows.map(row => `<li${wallet && row.author === wallet ? ' class="is-you" aria-current="true"' : ''}><span class="callouts-rank"${row.ranked === false ? ' title="Needs 3 calls in 7 days to rank"' : ''}>${row.ranked === false ? '—' : `#${++rank}`}</span><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><button type="button" class="callout-author" data-callout-author="${escape(row.author)}">${escape(shortWallet(row.author))}</button><b data-trend="${multipleTrend(row.avgMultiple)}">${escape(formatMultiple(row.avgMultiple))} mean peak</b><small>${Number.isInteger(row.hits) ? row.hits : Math.round(row.hitRate * row.calls)} of ${row.calls} calls reached 2x${row.ranked === false ? ' · unranked until 3 calls' : row.calls < 5 ? ' · small sample' : ''}</small></li>`).join('');
 }
 
 const readSeen = () => { try { return localStorage.getItem(SEEN_KEY) || ''; } catch { return ''; } };

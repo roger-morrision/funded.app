@@ -361,6 +361,7 @@ const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaC
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
   store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json,
+  warmMarketActivity: mints => handleTokenMarketRoutes.warmMarketActivity(mints),
 });
 const handleLaunchQuoteRoutes = createLaunchQuoteRoutes({
   store, solanaCluster, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id, respond: json,

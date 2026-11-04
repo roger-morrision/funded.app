@@ -1,0 +1,31 @@
+/* Phone tap areas. Small icon and filter buttons keep their look, but an
+   invisible ::after extends the hit area toward 44px, without moving layout. */
+@media (max-width: 767px) {
+  .coin-page .copy-inline,
+  .payment-copy-receiver,
+  .technical-notice-title,
+  .coin-holders-aside-link,
+  .coin-page .coin-trade-filters button,
+  .payment-history-wallet {
+    position: relative;
+  }
+  .coin-page .copy-inline::after,
+  .payment-copy-receiver::after {
+    content: ""; position: absolute; inset: -12px;
+  }
+  .technical-notice-title::after,
+  .coin-holders-aside-link::after,
+  .payment-history-wallet::after {
+    content: ""; position: absolute; inset: -12px -4px;
+  }
+  .coin-page .coin-trade-filters button { min-height: 40px; }
+}
+
+/* Referral earnings calculator (Referrals page). */
+.referral-calculator{display:grid;gap:8px;margin-top:12px;padding:12px;border:1px solid var(--line,#2b384e);border-radius:10px}
+.referral-calculator label{display:grid;gap:6px;font-size:13px}
+.referral-calculator label span{display:flex;align-items:center;gap:8px}
+.referral-calculator input{width:100%;max-width:180px;min-height:40px;padding:8px 10px;border:1px solid var(--line,#2b384e);border-radius:8px;background:transparent;color:inherit;font:inherit}
+.referral-calculator ul{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.referral-calculator li{display:flex;justify-content:space-between;gap:12px;font-size:13px}
+.referral-calculator small{color:var(--muted,#a6b4c8)}

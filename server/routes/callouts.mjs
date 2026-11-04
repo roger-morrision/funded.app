@@ -9,6 +9,10 @@ export function calloutMultiple(called, current) {
   return Number.isFinite(called) && called > 0 && Number.isFinite(current) && current > 0 ? current / called : null;
 }
 
+// One lucky call should not top the board: callers need this many calls in
+// the window for a numbered rank. Others are listed after, marked unranked.
+export const MIN_RANKED_CALLS = 3;
+
 export function rankCallers(entries, nowMs = Date.now()) {
   const byAuthor = new Map();
   for (const entry of entries) {
@@ -21,8 +25,8 @@ export function rankCallers(entries, nowMs = Date.now()) {
     byAuthor.set(entry.author, row);
   }
   return [...byAuthor.values()]
-    .map(({ totalMultiple, ...row }) => ({ ...row, avgMultiple: totalMultiple / row.calls, hitRate: row.hits / row.calls }))
-    .sort((a, b) => b.avgMultiple - a.avgMultiple || b.calls - a.calls || a.author.localeCompare(b.author))
+    .map(({ totalMultiple, ...row }) => ({ ...row, avgMultiple: totalMultiple / row.calls, hitRate: row.hits / row.calls, ranked: row.calls >= MIN_RANKED_CALLS }))
+    .sort((a, b) => Number(b.ranked) - Number(a.ranked) || b.avgMultiple - a.avgMultiple || b.calls - a.calls || a.author.localeCompare(b.author))
     .slice(0, 10);
 }
 

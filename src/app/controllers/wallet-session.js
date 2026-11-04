@@ -17,6 +17,16 @@ export function createWalletSessionController(appState) {
     const dialog = document.querySelector('#info-dialog');
     dialog.dataset.infoKind = kind;
     dialog.dataset.routeDriven = routeDriven ? 'true' : 'false';
+    // #terms, #privacy and #disclosures are shareable links: name the tab after
+    // the document instead of the page underneath, and restore it on close.
+    if (!dialog.dataset.previousTitle) {
+      dialog.dataset.previousTitle = document.title;
+      dialog.addEventListener('close', () => {
+        if (dialog.dataset.previousTitle) document.title = dialog.dataset.previousTitle;
+        delete dialog.dataset.previousTitle;
+      }, { once: true });
+    }
+    document.title = `${content[0]} · funded.vip`;
     if (!dialog.open) dialog.showModal();
   }
   // app-source-end

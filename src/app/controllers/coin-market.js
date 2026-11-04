@@ -1,3 +1,5 @@
+import { formatTinyDecimal } from '../../features/shared/display.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createCoinMarketController(appState) {
   // app-source: 948
@@ -15,10 +17,7 @@ export function createCoinMarketController(appState) {
     if (solValue == null || !Number.isFinite(Number(solValue)) || !Number.isFinite(appState.coinSolUsdPrice) || appState.coinSolUsdPrice <= 0) return '$—';
     const usd = Number(solValue) * appState.coinSolUsdPrice;
     if (!Number.isFinite(usd) || usd < 0) return '$—';
-    if (usd > 0 && usd < 0.0001) {
-      const digits = Math.min(18, Math.max(8, Math.ceil(-Math.log10(usd)) + 4));
-      return usd < 0.00000000000001 ? `$${usd.toExponential(4)}` : `$${usd.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')}`;
-    }
+    if (usd > 0 && usd < 0.0001) return usd < 1e-14 ? `$${usd.toExponential(4)}` : `$${formatTinyDecimal(usd)}`;
     return appState.formatUsd(usd);
   }
   // app-source-end

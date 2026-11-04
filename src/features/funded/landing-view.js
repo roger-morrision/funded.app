@@ -1,6 +1,10 @@
 import { LAUNCH_TIER_USD } from '../../../launch-tier-quote.js';
 import { formatDashboardUsd, formatCompactUsd, formatDashboardQuantity } from '../shared/display.js';
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
+import { APP_CLUSTER } from '../../../app-config.js';
+
+// Devnet pool prices are test values; say so next to every USD estimate.
+const TEST_VALUE = APP_CLUSTER === 'devnet' ? ' · Devnet test value, not real money' : '';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderFundedTokenLanding(
@@ -57,7 +61,7 @@ export function renderFundedTokenLanding(
     : 'Verified quote unavailable';
   set('funded-token-price', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 6 })
     : poolReady ? poolSpotSol.toPrecision(6) + ' SOL' : '$—');
-  set('funded-token-price-note', poolReady ? 'Current Solana pool quote' : Number.isFinite(quote) ? 'Current market estimate' : poolUnavailableNote);
+  set('funded-token-price-note', poolReady ? 'Current Solana pool quote' + TEST_VALUE : Number.isFinite(quote) ? 'Current market estimate' + TEST_VALUE : poolUnavailableNote);
   const supplyReady = fundedBurnState.status === 'ready' && mintReady;
   const supplyTokens = supplyReady ? Number(fundedBurnState.supplyBaseUnits) / 10 ** fundedBurnState.decimals : null;
   const poolCapSol = poolReady && Number.isFinite(supplyTokens) ? poolSpotSol * supplyTokens : null;
@@ -67,7 +71,7 @@ export function renderFundedTokenLanding(
   set('funded-token-market-cap', marketCap);
   const capValue = document.getElementById('funded-token-market-cap');
   if (capValue) capValue.title = Number.isFinite(poolCapSol) && solUsdReady ? `${formatDashboardUsd(poolCapSol * coinSolUsdPrice)} estimated from the verified pool spot price and live mint supply` : '';
-  set('funded-token-market-cap-note', Number.isFinite(poolCapSol) ? 'Pool spot × live mint supply · estimate' : marketCap === '$—' ? poolUnavailableNote : 'Verified market snapshot');
+  set('funded-token-market-cap-note', Number.isFinite(poolCapSol) ? 'Pool spot × live mint supply · estimate' + TEST_VALUE : marketCap === '$—' ? poolUnavailableNote : 'Verified market snapshot' + TEST_VALUE);
   const burnedTokens = supplyReady ? Number(formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 2)) : null;
   set('funded-token-burned', Number.isFinite(burnedTokens) ? formatDashboardQuantity(burnedTokens) : '—');
   const burnedValue = document.getElementById('funded-token-burned');

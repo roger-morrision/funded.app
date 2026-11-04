@@ -50,6 +50,18 @@ test('callers rank by average peak gain over the last 7 days', () => {
   assert.deepEqual(rows.map(row => [row.author, row.calls, row.hitRate]), [['steady', 2, 0.5], ['lucky', 1, 0]]);
 });
 
+test('callers below the minimum call count rank after qualified callers', () => {
+  const nowMs = Date.parse('2026-11-10T00:00:00.000Z');
+  const at = hour => `2026-11-09T0${hour}:00:00.000Z`;
+  const rows = rankCallers([
+    { author: 'lucky', createdAt: at(0), peakMultiple: 18 },
+    { author: 'steady', createdAt: at(1), peakMultiple: 2 },
+    { author: 'steady', createdAt: at(2), peakMultiple: 2 },
+    { author: 'steady', createdAt: at(3), peakMultiple: 2 },
+  ], nowMs);
+  assert.deepEqual(rows.map(row => [row.author, row.ranked]), [['steady', true], ['lucky', false]]);
+});
+
 test('a wallet cannot call the same coin twice within 30 minutes, and a call needs a live market cap', async () => {
   const nowMs = Date.parse('2026-11-03T01:00:00.000Z');
   const store = memoryStore([{ id: 'a', mint: 'm1', author: 'w1', createdAt: new Date(nowMs - CALLOUT_REPEAT_MS + 1000).toISOString(), marketCapSol: 1 }]);

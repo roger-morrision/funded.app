@@ -20,7 +20,29 @@ export function createTokenMarketRoutes({
   const maxActiveMarketScans = 4;
   const maxWaitingMarketScans = 24;
   const json = (...args) => { respond(...args); return true; };
-  return async function handleTokenMarketRoutes(req, res, url, requestId) {
+  // Explore cards only had stats for coins a visitor opened in the last five
+  // minutes. The discovery feed calls this with its uncovered mints; it starts
+  // at most WARM_BATCH scans, only when no visitor scan is running, under its
+  // own per-minute RPC budget (the "server-warmer" client key).
+  const WARM_BATCH = 2, WARM_FRESH_MS = 4 * 60_000;
+  const WARMER_REQUEST = { socket: { remoteAddress: 'server-warmer' }, headers: {} };
+  function warmMarketActivity(mints) {
+    if (solanaCluster !== 'devnet' || coinMarketInflight.size > 0) return 0;
+    let started = 0;
+    for (const raw of Array.isArray(mints) ? mints : []) {
+      if (started >= WARM_BATCH) break;
+      let mint;
+      try { mint = new PublicKey(raw); } catch { continue; }
+      const address = mint.toBase58(), cached = coinMarketCache.get(address);
+      if (cached && Date.now() - cached.at < WARM_FRESH_MS) continue;
+      startMarketScan(address, mint, WARMER_REQUEST)?.catch(() => {});
+      started += 1;
+    }
+    return started;
+  }
+  handleTokenMarketRoutes.warmMarketActivity = warmMarketActivity;
+  return handleTokenMarketRoutes;
+  async function handleTokenMarketRoutes(req, res, url, requestId) {
     const walletMatch=req.method==='GET'?/^\/api\/wallets\/([^/]+)\/trades$/.exec(url.pathname):null;
     if (walletMatch) {
       if (solanaCluster!=='devnet') return json(res,503,{error:'Wallet trade scanning requires Devnet.'});
@@ -118,7 +140,7 @@ export function createTokenMarketRoutes({
       catch { return json(res, 502, { error: 'Market activity provider is unavailable.' }); }
     }
     return false;
-  };
+  }
 
   function startMarketScan(address, mint, req) {
     let pending = coinMarketInflight.get(address);

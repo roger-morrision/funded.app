@@ -1,5 +1,6 @@
 import { withMarketWindow } from '../../../market-intelligence.js';
 import { formatDashboardUsd } from '../shared/display.js';
+import { platformVolume24h } from '../shared/platform-volume.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderHomeOnchainSnapshot(
@@ -35,25 +36,18 @@ export function renderHomeOnchainSnapshot(
   const pulseLaunchesNote = document.querySelector('#home-pulse-launches-note');
   const pulseTrades = document.querySelector('#home-pulse-trades');
   const pulseTradesNote = document.querySelector('#home-pulse-trades-note');
-  const pulseVolume = document.querySelector('#home-pulse-volume');
-  const pulseVolumeNote = document.querySelector('#home-pulse-volume-note');
   const pulseGraduated = document.querySelector('#home-pulse-graduated');
   const pulseGraduatedNote = document.querySelector('#home-pulse-graduated-note');
   const windowed = verified.map(item => withMarketWindow(item, '24h'));
   const tradeRecords = windowed.filter(item => item.windowTradeCount != null);
-  const volumeRecords = windowed.filter(item => item.windowVolumeSol != null);
   const totalTrades = tradeRecords.length ? tradeRecords.reduce((sum, item) => sum + Number(item.windowTradeCount || 0), 0) : null;
-  const totalVolume = volumeRecords.length ? volumeRecords.reduce((sum, item) => sum + Number(item.windowVolumeSol || 0), 0) : null;
   const partialTrades = tradeRecords.some(item => item.windowCoverage === 'partial') || tradeRecords.length < verified.length;
-  const partialVolume = volumeRecords.some(item => item.windowCoverage === 'partial') || volumeRecords.length < verified.length;
   if (pulseStatus) pulseStatus.textContent = `Solana RPC · confirmed`;
   if (pulseNetwork) pulseNetwork.textContent = `Solana`;
   if (pulseLaunches) pulseLaunches.textContent = registeredLaunches ? String(registeredLaunches) : '—';
   if (pulseLaunchesNote) pulseLaunchesNote.textContent = registeredLaunches ? 'Verified launch records' : 'No confirmed launches';
   if (pulseTrades) pulseTrades.textContent = totalTrades == null ? '—' : formatExploreTradeCount(totalTrades, partialTrades ? 'partial' : 'complete');
   if (pulseTradesNote) pulseTradesNote.textContent = totalTrades == null ? 'Not available from current feed' : `${partialTrades ? 'Partial scan · ' : ''}confirmed Pump events`;
-  if (pulseVolume) pulseVolume.textContent = totalVolume == null ? '—' : formatExploreUsd(totalVolume, { partial: partialVolume });
-  if (pulseVolumeNote) pulseVolumeNote.textContent = totalVolume == null ? 'Not available from current feed' : `${partialVolume ? 'Partial scan · ' : ''}${Number.isFinite(coinSolUsdPrice) ? 'USD equivalent · ' : ''}SOL volume`;
   const graduated = verified.filter(item => item.migrated === true).length;
   if (pulseGraduated) pulseGraduated.textContent = graduated ? String(graduated) : verified.length ? '0' : '—';
   if (pulseGraduatedNote) pulseGraduatedNote.textContent = verified.length ? 'Verified PumpSwap stage' : 'Waiting for verified mints';
@@ -97,9 +91,7 @@ export function renderOnchainReportState(
   if (feeCard) { feeCard.querySelector('span').textContent = 'Fees collected'; feeCard.querySelector('strong').textContent = '—'; feeCard.querySelector('small').innerHTML = '<b>SOL</b>Checking fee history'; }
   if (launchCard) { launchCard.querySelector('strong').textContent = launchCount ? String(launchCount) : '—'; launchCard.querySelector('small').innerHTML = `<b>COUNT</b>${indexedLaunches != null ? feedChecked && !marketUnavailable && verified.length === indexedLaunches ? 'Confirmed launches' : 'Some launch activity may be missing' : !feedChecked ? 'Checking launches' : marketUnavailable ? 'Launch activity unavailable' : verified.length ? 'Confirmed launches' : 'No confirmed launches'}`; }
   if (payoutCard) { payoutCard.querySelector('span').textContent = 'Recent finalized payments'; payoutCard.querySelector('strong').textContent = '—'; payoutCard.querySelector('small').innerHTML = '<b>COUNT</b>Checking payment history'; }
-  const volumeSol = verified.reduce((sum, item) => sum + (Number.isFinite(Number(item.volume24hSol)) ? Number(item.volume24hSol) : 0), 0);
-  const hasVolume = verified.some(item => item.volume24hSol != null && Number.isFinite(Number(item.volume24hSol)));
-  const partialVolume = verified.some(item => item.volumeCoverage === 'partial' || item.volume24hSol == null);
+  const { volumeSol, partial: partialVolume, available: hasVolume } = platformVolume24h(verified);
   if (volumeCard) {
     volumeCard.querySelector('strong').textContent = hasVolume && (!partialVolume || volumeSol > 0) && Number.isFinite(coinSolUsdPrice) ? formatDashboardUsd(volumeSol * coinSolUsdPrice, { partial: partialVolume }) : '—';
     volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasVolume ? partialVolume && volumeSol === 0 ? 'Some trade history is unavailable' : volumeSol === 0 ? 'No trades in the past 24 hours' : `Confirmed trades${partialVolume ? ' · some history may be missing' : ''}` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed trading volume'}`;

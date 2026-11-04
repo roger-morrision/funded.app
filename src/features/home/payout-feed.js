@@ -10,6 +10,7 @@ const SOURCES = {
   'x-fee-claim': 'X partner reward',
 };
 const sourceLabel = source => SOURCES[source] || (/creator/i.test(source) ? 'Creator fees' : /referr/i.test(source) ? 'Referral reward' : /bonus/i.test(source) ? 'Daily bonus' : 'Reward');
+const MIN_STRIP_LAMPORTS = 10_000;
 const shortWallet = address => `${String(address).slice(0, 4)}…${String(address).slice(-4)}`;
 
 export function formatPayoutSol(lamports) {
@@ -40,9 +41,13 @@ export async function mountPayoutFeed({ document = globalThis.document, request 
     catch { if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 5_000)); }
   }
   if (!data || host.querySelector('.home-payout-feed')) return null;
-  const payouts = (Array.isArray(data?.verifiedPayouts) ? data.verifiedPayouts : [])
+  const verified = (Array.isArray(data?.verifiedPayouts) ? data.verifiedPayouts : [])
     .filter(row => /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(row?.signature || '')) && formatPayoutSol(row.amountLamports))
-    .sort((a, b) => Number(b.blockTime) - Number(a.blockTime)).slice(0, 12);
+    .sort((a, b) => Number(b.blockTime) - Number(a.blockTime));
+  // Dust rows (0.000000018 SOL) read as broken; the strip prefers payouts of
+  // at least 0.00001 SOL. The count and total above still include every payout.
+  const visible = verified.filter(row => Number(row.amountLamports) >= MIN_STRIP_LAMPORTS);
+  const payouts = (visible.length ? visible : verified).slice(0, 12);
   if (!payouts.length) return null;
   const cluster = data.cluster === 'devnet' ? '?cluster=devnet' : '';
   const feed = document.createElement('div');

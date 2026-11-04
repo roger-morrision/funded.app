@@ -42,6 +42,8 @@ test('last market observation survives registry fallback, stays network scoped, 
 test('one-call rank and falling price distinguish observed peak, current value and sample',()=>{
   assert.match(topCallersMarkup([{author:mint,calls:1,hits:1,avgMultiple:18.528,hitRate:1}]),/18.5x mean peak/);
   assert.match(topCallersMarkup([{author:mint,calls:1,hits:1,avgMultiple:18.528,hitRate:1}]),/1 of 1 calls reached 2x · small sample/);
+  const unranked=topCallersMarkup([{author:mint,calls:3,hits:1,avgMultiple:2,hitRate:1/3,ranked:true},{author:mint,calls:1,hits:1,avgMultiple:18,hitRate:1,ranked:false}]);
+  assert.match(unranked,/#1<\/span>/);assert.doesNotMatch(unranked,/#2/);assert.match(unranked,/unranked until 3 calls/);
   const row=calloutRowMarkup({id:'one',mint,author:mint,text:'test',createdAt:'2026-11-04T00:00:00Z',multiple:.5,peakMultiple:3,calledMarketCapSol:10,currentMarketCapSol:5});
   assert.match(row,/-50%/);assert.match(row,/observed peak 3.0x/);
 });
@@ -67,5 +69,5 @@ test('support context keeps only approved operation and failure stage',()=>{
 });
 test('burn display separates spent SOL, readable tokens and exact units',()=>{
   const summary={homeFeeAllocations:{protocolBuybacks:{spentLamports:'1000000000',burnedBaseUnits:'99070',count:4}}};
-  const row=proofTotals(summary,{decimals:6}).find(r=>r.key==='buyback');assert.equal(row.lamports,1e9);assert.match(row.note,/0.09907 \$FUNDED burned/);assert.match(row.note,/99,070 \$FUNDED base units/);
+  const row=proofTotals(summary,{decimals:6}).find(r=>r.key==='buyback');assert.equal(row.lamports,1e9);assert.match(row.note,/0.09907 \$FUNDED burned/);assert.doesNotMatch(row.note,/base units/);assert.match(proofTotals(summary).find(r=>r.key==='buyback').note,/99,070 \$FUNDED base units/);
 });

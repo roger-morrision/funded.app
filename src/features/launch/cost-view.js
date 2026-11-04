@@ -132,7 +132,7 @@ export function updateCostSummary(
   const publicTier = document.querySelector('#cost-public-tier-note');
   if (publicTier) publicTier.textContent = burnPolicy.requiresBurn
     ? `Selected tier: ${burnPolicy.label}. The $FUNDED burn is separate from the SOL budget.`
-    : 'Standard has no $FUNDED burn.';
+    : 'Standard needs no $FUNDED tier burn (the 5% fee buyback still applies).';
   const creatorBuy = getCreatorBuySummary();
   const retrySeconds = launchEstimateRetry?.retryable
     ? Math.max(0, Math.ceil((launchEstimateRetry.nextAt - Date.now()) / 1000)) : null;
@@ -218,7 +218,7 @@ export function updateCostSummary(
   if (previewLaunchNode) previewLaunchNode.textContent = launchCost;
   noteNode.textContent = burnPolicy.requiresBurn
     ? 'SOL total includes the approved app launch service fee, network fees, account reserve, and any developer buy. The $FUNDED burn is separate.'
-    : 'Standard has no $FUNDED burn. Total includes the approved app launch service fee, network fees, account reserve, and any creator buy with its 1% allowance.';
+    : 'Standard needs no $FUNDED tier burn (the 5% fee buyback still applies). Total includes the approved app launch service fee, network fees, account reserve, and any creator buy with its 1% allowance.';
   syncMobileBudget();
 }
 

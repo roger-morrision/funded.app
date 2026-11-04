@@ -188,3 +188,18 @@ test('a recent market result is served at once while a background scan replaces 
   await g.request(path);
   assert.equal(g.responses[0].data.source, 'confirmed-pump-trade-events', 'results over five minutes old wait for a new scan');
 });
+
+test('explore warmer scans at most two uncovered mints under its own client key', async () => {
+  const keys = [], scanned = [];
+  const handle = createTokenMarketRoutes({ route, solanaCluster:'devnet', solanaRpcUrl:'http://127.0.0.1:1',
+    respond: () => {}, clientKey: req => req.socket.remoteAddress,
+    readMarketActivity: async ({ mint: key }) => { scanned.push(key.toBase58()); return { tradeCount24h:null }; },
+    store: { chargeRpcRate: async key => { keys.push(key); return true; }, writeMarketActivity: async () => {} } });
+  const mints = [mint, Keypair.generate().publicKey.toBase58(), Keypair.generate().publicKey.toBase58(), 'not-a-mint'];
+  assert.equal(handle.warmMarketActivity(mints), 2);
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.deepEqual(keys, ['market:server-warmer', 'market:server-warmer']);
+  assert.deepEqual(scanned, mints.slice(0, 2));
+  // Recently scanned mints are skipped on the next feed request.
+  assert.equal(handle.warmMarketActivity(mints.slice(0, 2)), 0);
+});

@@ -28,7 +28,7 @@ async function fixture(page,getData){
 async function assertRows(page){
   const links=page.locator('[data-agency-history] a');await expect(links).toHaveCount(2);
   for(const [i,row]of history.entries()){
-    await expect(links.nth(i)).toHaveText(`Agent ${row.agent+1} · Own-coin buyback · Saved trigger $${row.agent} · 0.000025502 SOL · ${row.finalizedAt} ↗`);
+    await expect(links.nth(i)).toHaveText(`Agent ${row.agent+1} · Own-coin buyback · Saved trigger $${row.agent} · 0.000025502 SOL · ${row.finalizedAt.slice(0,16).replace('T',' ')} UTC ↗`);
     await expect(links.nth(i)).toHaveAttribute('href',`https://explorer.solana.com/tx/${row.signature}?cluster=devnet`);
   }
 }

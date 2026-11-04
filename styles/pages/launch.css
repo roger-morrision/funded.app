@@ -63,3 +63,6 @@ html body.page-route-launch #launch-dialog .launch-preview { min-width: 0; min-h
   body.page-route-launch #launch-dialog .launch-tier-first .creator-burn-card strong { font-size: 12px; }
   body.page-route-launch #launch-dialog .launch-tier-first .creator-burn-card small { font-size: 10px; }
 }
+
+/* AI marketing share is reserved but agents are not executing yet. */
+[data-fixed-fee-category="agency"][data-agency-state="paused"] dt::after{content:" · not active yet";color:var(--muted,#8a93a6);font-weight:400}

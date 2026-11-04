@@ -27,6 +27,32 @@ export function formatUsd(value){
   return `$${amount.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')}`;
 }
 
+const SUBSCRIPT_DIGITS = '₀₁₂₃₄₅₆₇₈₉';
+// 0.00000054621 → "0.0₆5462": the subscript counts the zeros after "0.",
+// so very small prices stay readable instead of a long run of zeros.
+export function formatTinyDecimal(value, significant = 4){
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return formatOnChainNumber(amount, 6);
+  // toExponential rounds first, so 0.000099999 becomes 1.000e-4, not 0.0₄1.
+  const [mantissa, exponent] = amount.toExponential(significant - 1).split('e');
+  const zeros = -Number(exponent) - 1;
+  if (zeros < 4) return amount.toFixed(Math.min(12, zeros + significant + 1)).replace(/0+$/, '').replace(/\.$/, '');
+  const digits = mantissa.replace('.', '').replace(/0+$/, '') || '0';
+  const count = String(zeros).split('').map(d => SUBSCRIPT_DIGITS[Number(d)]).join('');
+  return `0.0${count}${digits}`;
+}
+
+// Token amounts from exact decimal strings: compact from a million up,
+// otherwise grouped with up to 2 decimals.
+export function formatTokenDisplay(value){
+  const amount = Number(String(value).replace(/,/g, ''));
+  if (!Number.isFinite(amount) || amount < 0) return '—';
+  if (amount > 0 && amount < 0.01) return '<0.01';
+  return amount >= 1_000_000
+    ? Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(amount)
+    : amount.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
 export function formatCompactUsd(value){
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount <= 0) return '—';

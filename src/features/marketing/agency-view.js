@@ -71,6 +71,7 @@ export function initMarketingAgency(document = globalThis.document) {
       if (review) review.textContent = terms.textContent + ' ' + agencyGrossPercent + '% shared equally among ' + selected.length + ' included agents (' + (agencyGrossPercent / selected.length).toLocaleString(undefined,{maximumFractionDigits:4}) + '% each, rounded).';
       split.textContent=`${agencyGrossPercent}% of collected creator fees · shared equally across the ${selected.length} included agents (≈${(agencyGrossPercent/selected.length).toLocaleString(undefined,{maximumFractionDigits:4})}% each).`;
       help.textContent=agencyReady?'Actions wait for verified funding and their milestones.':'Agent execution is not yet available.';
+      for(const row of document.querySelectorAll('[data-fixed-fee-category="agency"]')){row.dataset.agencyState=agencyReady?'ready':'paused';row.title=agencyReady?'':'Agent execution is not yet available. This share stays reserved for the agents of this coin.';}
       if(publishingPaused&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved.';
     };
     updateLaunchTeam=update;view.addEventListener('funded:launch-promotion',update);

@@ -3,6 +3,14 @@ import { mountBuybackProgressPanels } from '../../features/funded/buyback-progre
 import { fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
 
 // Dependencies and mutable application state are read live through appState.
+// Share of the trigger already in eligible vaults, e.g. "<0.01%" or "42.5%".
+export function triggerProgressPercent(lamports, threshold) {
+  if (typeof lamports !== 'bigint' || typeof threshold !== 'bigint' || threshold <= 0n) return 'progress unavailable';
+  const basisPoints = lamports >= threshold ? 10_000n : lamports * 10_000n / threshold;
+  if (basisPoints === 0n) return lamports > 0n ? '<0.01%' : '0%';
+  return `${(Number(basisPoints) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
+}
+
 export function createBuybackController(appState) {
   // app-source: 341
   function getBuybackPreviewState(){
@@ -65,7 +73,7 @@ export function createBuybackController(appState) {
             : dashboard.triggerReached && !appState.buybackNetworkState.executionReady
               ? `${trigger} aggregate trigger reached · no executable allocation yet`
               : dashboard.triggerReached ? `${trigger} trigger reached · protected execution ready`
-                : `Verified eligible funds · awaiting ${trigger}`;
+                : `Verified eligible funds · ${triggerProgressPercent(lamports, threshold)} of the ${trigger} trigger`;
       const sizes=appState.buybackNetworkState.budgetSummary;
       if(eligible&&sizes&&/^\d+$/.test(sizes.orderSizeEligibleLamports)&&/^\d+$/.test(sizes.belowMinimumLamports))
         note.textContent+=` · Meets order minimum: ${formatSol(BigInt(sizes.orderSizeEligibleLamports))} · Retained below minimum: ${formatSol(BigInt(sizes.belowMinimumLamports))}`;

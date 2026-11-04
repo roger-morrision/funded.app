@@ -1,6 +1,7 @@
 import { communityClaimUnit } from '../../../community-claim-summary.js';
 import { formatDashboardUsd, formatSmallDashboardUsd, formatDashboardQuantity } from '../shared/display.js';
 import { renderHomeProtocolFeeRoute } from './protocol-fee-route.js';
+import { platformVolume24h } from '../shared/platform-volume.js';
 
 // Presentation only: callers own state, requests, and transaction lifecycles.
 export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdatedAt, coinSolUsdPrice, verifiedLaunchPoliciesStatus, analyticsSummary, EXPLORE_CLUSTER, receiptEvidence, PROTOCOL_FUNDED_MINT }, { verifiedLaunchPolicyForMint, setHomeDashboardMetric, homeFeeAllocations, currentCommunityClaimSummary, renderFundedTokenLanding, document = globalThis.document } = {}){
@@ -140,19 +141,17 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
       : recordedPayouts ? 'Recorded payouts are awaiting receipt verification' : 'USD quote or payout evidence unavailable',
     referralAvailable ? partialReferrals ? 'partial' : referralCount ? 'available' : 'empty' : 'unavailable');
 
-  const volumeRecords = fundedLaunchRecords.filter(item => item.observedVolumeSol != null
-    && Number.isFinite(Number(item.observedVolumeSol)) && Number(item.observedVolumeSol) >= 0);
-  const totalVolumeSol = volumeRecords.reduce((sum, item) => sum + Number(item.observedVolumeSol), 0);
-  const partialVolume = volumeRecords.length < fundedLaunchRecords.length
-    || volumeRecords.some(item => item.observedCoverage === 'partial');
-  const volumeAvailable = volumeRecords.length > 0 && solQuoteReady;
+  // Same 24h definition as Analytics, over the same verified launch list.
+  const volume = platformVolume24h(records);
+  const totalVolumeSol = volume.volumeSol, partialVolume = volume.partial;
+  const volumeAvailable = volume.available && solQuoteReady;
   const volumeCard = document.querySelector('#home-kpi-volume-card');
   const volumeValue = document.querySelector('#home-pulse-volume');
   const volumeNote = document.querySelector('#home-pulse-volume-note');
   if (volumeCard) volumeCard.dataset.state = volumeAvailable ? (partialVolume ? 'partial' : 'available') : 'unavailable';
   if (volumeValue) volumeValue.textContent = volumeAvailable ? formatDashboardUsd(totalVolumeSol * coinSolUsdPrice, { partial:partialVolume }) : '$—';
   if (volumeNote) volumeNote.textContent = volumeAvailable
-    ? `${volumeRecords.length}/${fundedLaunchRecords.length} launches scanned across available trade history${partialVolume ? ' · partial coverage' : ''}`
+    ? `Last 24 hours · ${volume.scanned}/${volume.total} launches with trade data${partialVolume ? ' · partial coverage' : ''}`
     : 'Observed trade history or USD quote unavailable';
 
   const heroLaunches = document.querySelector('#home-hero-launches');

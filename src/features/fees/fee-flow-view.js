@@ -6,6 +6,7 @@ import { renderProductFaqs } from '../help/product-guidance.js';
 import { initMarketingAgency } from '../marketing/agency-view.js';
 import { initServiceFeeCopy } from './service-fees-client.js';
 import {referralRatePresentation} from './referral-rate-copy.js';
+import {mountReferralCalculator} from './referral-calculator.js';
 import {renderFeeDistributionSummaries} from './distribution-summary.js';
 import {bindCalculatorVisibility,revealCalculatorFeedback} from './calculator-visibility.js';
 export function createFeeFlowView(APP_ECONOMICS) {
@@ -63,6 +64,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
     set('.referral-tier-strip .eyebrow',referral.heading);
     set('.referral-tier-strip > div > small:not([data-referral-example])',referral.scopeDetail);
     set('.referral-tier-strip [data-referral-example]',referral.example);
+    for(const example of document.querySelectorAll('.referral-tier-strip [data-referral-example]'))mountReferralCalculator(example.parentElement,referral.levels);
     set('.home-referral-guide-head > div > p:last-child',`Invite creators with your personal link. ${referral.scope}`);
     setAll('.app-revenue-grid > span b', effective.map(percent));
     setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED burn']);

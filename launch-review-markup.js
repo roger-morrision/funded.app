@@ -15,7 +15,7 @@ export function mountLaunchReviewDialog(document = globalThis.document) {
           <div><span class="launch-review-label">Paying wallet</span><code id="launch-review-wallet"></code></div>
         </section>
         <div class="launch-review-highlights">
-          <div><span>Airdrop to $funded holders</span><strong id="launch-review-reserve"></strong></div>
+          <div><span>Airdrop to $FUNDED holders</span><strong id="launch-review-reserve"></strong></div>
           <div><span>Developer buy</span><strong id="launch-review-buy"></strong></div>
         </div>
         <p id="launch-review-package"></p><div id="launch-review-details"></div>

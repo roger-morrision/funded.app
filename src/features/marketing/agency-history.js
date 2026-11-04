@@ -1,6 +1,12 @@
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { AGENCY_RECEIPT_PROGRAM, AGENCY_RECEIPT_SCOPE } from '../../../config/agency-history.js';
 
+// Same readable UTC style as payment and bonus history: 2026-11-01 05:57 UTC.
+export function utcMinute(value) {
+  const time = Date.parse(String(value || ''));
+  return Number.isFinite(time) ? new Date(time).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
+}
+
 export function renderAgencyHistory(container, data, { currentVerified = false } = {}) {
   const document = container.ownerDocument, proof = data?.historyVerification;
   const trusted = currentVerified || (proof?.scope === AGENCY_RECEIPT_SCOPE
@@ -29,7 +35,7 @@ export function renderAgencyHistory(container, data, { currentVerified = false }
     }
     link.href = `https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}?cluster=devnet`;
     link.target = '_blank'; link.rel = 'noopener noreferrer';
-    link.textContent = `${caption} · ${amount} · ${row.finalizedAt || 'Finalized'} ↗`;
+    link.textContent = `${caption} · ${amount} · ${utcMinute(row.finalizedAt) || 'Finalized'} ↗`;
     item.append(link); list.append(item);
   }
   if (list.childElementCount) container.append(list);
