@@ -151,13 +151,8 @@ function portfolio() {
 
 function details() {
   const summary = $('#coin-summary-title');
-  if (summary && !$('#coin-fee-status-guide')) {
-    const guide = document.createElement('p');
-    guide.id = 'coin-fee-status-guide';
-    guide.className = 'coin-fee-status-guide';
-    guide.textContent = 'Read this coin in order: launch and policy verified on Solana → creator fees collected → split allocated → payment confirmed by receipt. Each step needs its own evidence; an allocation is not a completed payout.';
-    summary.closest('.coin-summary-heading')?.after(guide);
-  }
+  // The "Read this coin in order…" guide line was removed by request.
+  void summary;
   disclosure($('.reward-upcoming'), 'How to qualify for upcoming rewards');
   setText('.coin-profile-updates > strong', 'No updates yet');
   setText('.coin-profile-updates > p', 'Updates from this project will appear here.');

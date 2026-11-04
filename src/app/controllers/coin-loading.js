@@ -153,7 +153,7 @@ export function createCoinLoadingController(appState) {
       appState.setCoinField('#coin-top-ten-share', distribution ? distribution.otherCount ? `${appState.formatOnChainNumber(distribution.topTenOtherShare, 2)}% of supply` : 'None in sample' : 'Unavailable');
       appState.setCoinAuthority('#coin-mint-authority', parsedMint.mintAuthority); appState.setCoinAuthority('#coin-freeze-authority', parsedMint.freezeAuthority);
       appState.setCoinField('#coin-supply', `${appState.formatOnChainNumber(supply, 6)} ${symbol}`); appState.setCoinCurveProgress(curve?.complete ? 100 : curve?.progressPercent);
-      const curveProgress = document.querySelector('.coin-curve-track > span'); if (curveProgress) curveProgress.textContent = graduatedPool ? 'Migration complete' : 'Bonding curve progress';
+      const curveProgress = document.querySelector('.coin-curve-track > span'); if (curveProgress) curveProgress.textContent = graduatedPool ? 'migrated' : 'to migration';
       appState.setCoinField('#coin-chart-heading', `${symbol} · market cap in USD`); appState.setCoinField('#coin-full-address', mintAddress);
       const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer'); if (chartFooter) chartFooter.innerHTML = `<span>Total supply <b>${appState.formatOnChainNumber(supply, 6)}</b></span>`;
       const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';

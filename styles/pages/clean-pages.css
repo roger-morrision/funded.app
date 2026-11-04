@@ -1,0 +1,183 @@
+/* Clean page layer for Rewards, Airdrops, Portfolio and wallet detail.
+   Pattern (as in Birdeye/GMGN portfolio views and Phantom/Jupiter rewards):
+   compact header, the wallet's own state first, then scannable lists with
+   one primary action per row. Loaded last; scoped by page route class. */
+
+:root {
+  --cp-surface: #121b2e;
+  --cp-surface-2: #0f1727;
+  --cp-line: #26344b;
+  --cp-line-strong: #34465f;
+  --cp-text: #eef2fa;
+  --cp-muted: #9aa8bf;
+  --cp-accent: #ffc46b;
+  --cp-radius: 8px;  /* the app-wide panel radius */
+}
+
+/* ---------- Shared: headers, panels, tabs ---------- */
+html body #main-content :is(#payments, #airdrops, #my-launches) :is(.workspace-page-header, .section-heading) p:not(.eyebrow) {
+  color: var(--cp-muted); max-width: 62ch;
+}
+html body #main-content :is(#payments, #airdrops) .eyebrow,
+html body #main-content #my-launches .section-heading .eyebrow { letter-spacing: .08em; font-size: 11px; }
+
+/* ---------- Rewards ---------- */
+html body #main-content #rewards-overview:not([hidden]) { display: flex; flex-direction: column; gap: 16px; }
+/* The wallet's own rewards come first; the program explainer follows. */
+html body #main-content #rewards-overview > #reward-portfolio { order: -1; }
+html body #main-content #rewards-overview > :is(details, section, nav) { width: 100%; max-width: none; box-sizing: border-box; margin: 0; }
+html body #main-content #rewards-overview > details.product-details {
+  border: 1px solid var(--cp-line); border-radius: var(--cp-radius); background: var(--cp-surface); padding: 0 16px;
+}
+html body #main-content #rewards-overview > .reward-program-links { display: flex; flex-wrap: wrap; gap: 8px; }
+html body #main-content #reward-portfolio {
+  width: 100%; max-width: none; box-sizing: border-box;
+  border: 1px solid var(--cp-line-strong); border-radius: var(--cp-radius);
+  background: linear-gradient(135deg, #182640 0%, #121b2e 60%);
+}
+html body #main-content .reward-program-guide {
+  padding: 4px 16px 16px; border: 1px solid var(--cp-line); border-radius: var(--cp-radius); background: var(--cp-surface);
+}
+/* <details> renders its content in its own box; grid that box. */
+html body #main-content .reward-program-guide[open]::details-content {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+}
+html body #main-content .reward-program-guide > summary { grid-column: 1 / -1; padding: 12px 0 4px; font-weight: 700; cursor: pointer; }
+html body #main-content .reward-program-guide > article {
+  margin: 0; padding: 14px; border: 1px solid var(--cp-line); border-radius: 12px; background: var(--cp-surface-2);
+  transition: border-color .15s ease;
+}
+html body #main-content .reward-program-guide > article:hover { border-color: var(--cp-line-strong); }
+html body #main-content .reward-program-guide > article > a {
+  display: block; margin-bottom: 6px; color: var(--cp-text); font-weight: 700; text-decoration: none;
+}
+html body #main-content .reward-program-guide > article > a::after { content: " →"; color: var(--cp-accent); }
+html body #main-content .reward-program-guide > article > p { margin: 0; color: var(--cp-muted); font-size: 13px; line-height: 1.5; }
+html body #main-content #financial-center { border-radius: var(--cp-radius); }
+
+/* ---------- Airdrops: table-like rows ---------- */
+html body #main-content #airdrops .airdrop-wallet-gate { border-radius: var(--cp-radius); }
+html body #main-content #airdrop-directory { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+html body #main-content #airdrop-directory > .airdrop-directory-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px;
+  margin: 0; padding: 12px 16px; border: 1px solid var(--cp-line); border-radius: 12px; background: var(--cp-surface);
+  transition: border-color .15s ease, background .15s ease;
+}
+html body #main-content #airdrop-directory > .airdrop-directory-card:hover { border-color: var(--cp-line-strong); background: #15203a; }
+html body #main-content #airdrop-directory .directory-card-top { display: flex; align-items: center; gap: 14px; min-width: 0; }
+html body #main-content #airdrop-directory .claim-token-mark { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 10px; overflow: hidden; }
+html body #main-content #airdrop-directory .claim-token-mark img { width: 100%; height: 100%; object-fit: cover; }
+html body #main-content #airdrop-directory .directory-project-info { display: grid; gap: 2px; min-width: 0; }
+html body #main-content #airdrop-directory .directory-token-identity { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+html body #main-content #airdrop-directory .directory-token-identity a { color: var(--cp-muted); text-decoration: none; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body #main-content #airdrop-directory :is(.directory-allocation-line, .directory-funding-line) { margin: 0; color: var(--cp-muted); font-size: 12px; }
+html body #main-content #airdrop-directory .token-card-more > summary { min-height: 0; padding: 2px 0; color: var(--cp-muted); font-size: 12px; }
+html body #main-content #airdrop-directory .directory-footer {
+  display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0;
+  grid-column: -2 / -1;
+}
+html body #main-content #airdrop-directory .directory-wallet-allocation {
+  display: grid; gap: 2px; padding: 6px 12px; border-left: 1px solid var(--cp-line); text-align: right; font-size: 12px; color: var(--cp-muted);
+}
+html body #main-content #airdrop-directory .directory-wallet-allocation b { color: var(--cp-text); font-weight: 600; }
+html body #main-content #airdrop-directory .directory-footer .token-card-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
+html body #main-content #airdrop-directory .directory-footer .directory-claim { width: auto; min-height: 40px; padding: 8px 16px; white-space: nowrap; }
+html body #main-content #airdrop-directory .airdrop-status {
+  padding: 4px 10px; border: 1px solid var(--cp-line-strong); border-radius: 999px; font-size: 12px; white-space: nowrap;
+}
+
+/* ---------- Portfolio ---------- */
+html body #main-content #my-launches .section-heading { align-items: center; }
+html body #main-content #my-launches .projects-launch-button { width: auto; flex: 0 0 auto; }
+html body #main-content #my-launches .portfolio-dashboard {
+  padding: 16px; border: 1px solid var(--cp-line); border-radius: var(--cp-radius); background: var(--cp-surface);
+}
+html body #main-content #my-launches .portfolio-disconnected {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 16px; text-align: center;
+  border: 1px dashed var(--cp-line-strong); border-radius: 12px; background: transparent;
+}
+html body #main-content #my-launches .portfolio-disconnected > :is(div, p):last-child { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+html body #main-content #my-launches .portfolio-disconnected :is(.primary-button, .secondary-button, a) { margin-inline: 4px; }
+html body #main-content #my-launches #recovery-inbox.is-empty { border-radius: var(--cp-radius); }
+
+/* ---------- Wallet detail ---------- */
+html body #main-content #wallet-page .wallet-detail-hero {
+  border: 1px solid var(--cp-line); border-radius: var(--cp-radius); background: linear-gradient(135deg, #172238 0%, #111a2c 70%);
+}
+html body #main-content #wallet-page .wallet-detail-stats { gap: 0; border-top: 1px solid var(--cp-line); }
+html body #main-content #wallet-page .wallet-detail-stats > div { padding: 14px 16px; border-right: 1px solid var(--cp-line); }
+html body #main-content #wallet-page .wallet-detail-stats > div:last-child { border-right: 0; }
+/* Sentence-case labels, like the rest of the app, instead of mono capitals. */
+html body #main-content #wallet-page .wallet-detail-stats > div > :first-child {
+  font-family: inherit; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--cp-muted);
+}
+html body #main-content #wallet-page .wallet-detail-stats > div strong { font-size: 20px; color: var(--cp-text); }
+html body #main-content #wallet-page .wallet-detail-stats > div small { color: var(--cp-muted); font-size: 12px; }
+html body #main-content #wallet-page .wallet-detail-tabs > button { font-family: inherit; text-transform: none; letter-spacing: 0; }
+html body #main-content #wallet-page .wallet-detail-filters > button {
+  min-height: 32px; padding: 4px 12px; border-radius: 999px; text-transform: none; letter-spacing: 0; font: 600 12px inherit;
+}
+html body #main-content #wallet-page .wallet-detail-content {
+  border: 1px solid var(--cp-line); border-radius: var(--cp-radius); background: var(--cp-surface);
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 900px) {
+  html body #main-content .reward-program-guide[open]::details-content { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  /* Coin page side panels shrank to their content width on phones. */
+  html body #main-content #coin-page :is(.coin-side-column > .panel, .coin-pulse-panel, .coin-layout > .panel, .coin-main-column > .panel) { width: 100%; max-width: none; box-sizing: border-box; align-self: stretch; justify-self: stretch; }
+}
+@media (max-width: 640px) {
+  html body #main-content #wallet-page .wallet-detail-stats > div { border-right: 0; border-bottom: 1px solid var(--cp-line); }
+  html body #main-content .reward-program-guide[open]::details-content { grid-template-columns: 1fr; }
+  html body #main-content #airdrop-directory > .airdrop-directory-card { grid-template-columns: 1fr; gap: 10px; }
+  html body #main-content #airdrop-directory .directory-footer { flex-wrap: wrap; justify-content: space-between; grid-column: auto; }
+  html body #main-content #airdrop-directory .directory-footer .token-card-actions { flex: 1 1 100%; }
+  html body #main-content #airdrop-directory .directory-footer .directory-claim { flex: 1 1 auto; }
+  html body #main-content #airdrop-directory .directory-wallet-allocation { border-left: 0; padding: 0; text-align: left; }
+  html body #main-content #my-launches .section-heading { flex-wrap: wrap; }
+}
+
+/* ---------- Copy rule: sentence case for links and buttons ----------
+   Capitals are reserved for small eyebrow labels. These links and buttons
+   were forced to capitals on some pages and not others. */
+html body #main-content :is(.airdrop-back, .list-back, .burn-back-link, .docs-back, .home-reference-faq-intro > a, .list-footer-links a, .burn-primary) {
+  text-transform: none; letter-spacing: 0;
+}
+/* The brand is always written "funded.vip", never in capitals. */
+html body #main-content .list-footer-bottom span { text-transform: none; letter-spacing: 0; }
+/* Callouts: three short steps instead of one 50-word paragraph. */
+html body #main-content .callouts-footnote { display: grid; gap: 6px; }
+html body #main-content .callouts-footnote ol { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+html body #main-content .callouts-footnote small { color: var(--cp-muted); }
+
+/* Coin chart: no visible-range, evidence or copyright lines under the chart.
+   TradingView attribution stays as the chart's built-in logo (attributionLogo). */
+html body #main-content #coin-page :is(.coin-chart-window, .coin-chart-evidence, .coin-chart-attribution) { display: none; }
+/* Migration progress: a small ring inline with the price ("◔ 17.16% to migration"). */
+html body #main-content #coin-page .coin-identity .coin-header-curve {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0 0 0 10px; padding: 0; border: 0; vertical-align: middle;
+  grid-template-columns: none;
+}
+html body #main-content #coin-page .coin-identity .coin-header-curve::before {
+  content: ""; flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(#8b76ff calc(var(--curve-progress, 0) * 1%), #2a3446 0);
+  -webkit-mask: radial-gradient(circle, transparent 5px, #000 6px); mask: radial-gradient(circle, transparent 5px, #000 6px);
+}
+html body #main-content #coin-page .coin-identity .coin-header-curve > strong { order: 1; color: #c4ead9; font-size: 13px; }
+html body #main-content #coin-page .coin-identity .coin-header-curve > span { order: 2; color: var(--cp-muted); font-size: 12px; }
+html body #main-content #coin-page .coin-identity .coin-header-curve > .coin-curve-rail { display: none; }
+html body #main-content #coin-page .coin-readiness[hidden] { display: none !important; }
+/* Holder distribution panel removed from the coin page; the Holders tab remains. */
+html body #main-content #coin-page .coin-holders-aside { display: none; }
+
+/* Token card social icons: small plain icons, not boxed buttons. */
+/* The icon is 14px with no box; each link keeps a 44px tap area. */
+html body #main-content .home-launch-card .explore-social-links { display: inline-flex; align-items: center; gap: 0; vertical-align: middle; }
+html body #main-content .home-launch-card .explore-social-link { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--cp-muted); }
+html body #main-content .home-launch-card .explore-social-link:hover { color: var(--cp-text); }
+html body #main-content .home-launch-card .explore-social-link svg { width: 14px; height: 14px; }
+/* Price: the zero count after "0.0" is a real subscript, readable in any font. */
+html body #main-content #coin-price sub { font-size: .62em; vertical-align: -0.25em; line-height: 0; margin: 0 1px; opacity: .85; }

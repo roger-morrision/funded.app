@@ -12,10 +12,14 @@ export function mountCoinJourney(app) {
   const report = reportContextLink('Report this step');
   const retry = button('Retry market check', () => document.querySelector('#coin-refresh')?.click());
   nav.append(claims, report, retry); panel.append(state, age, nav);
+  // Hidden by request: the stage line duplicated the coin header. The panel stays
+  // in the DOM so flow timing and report context keep working.
+  panel.hidden = true;
   coin.querySelector('.coin-hero-card')?.after(panel);
   const checklist = el('details', null, 'flow-panel launch-checklist');
   checklist.append(el('summary', 'After launch · receipts and next steps'));
-  const steps = el('ol'); checklist.append(steps); coin.querySelector('.coin-main-column')?.append(checklist);
+  // Not shown on the coin page (removed by request); steps are still built for reuse.
+  const steps = el('ol'); checklist.append(steps);
   let start = performance.now(), seen = false;
   const reset = () => { start = performance.now(); state.textContent = 'Checking market stage…'; age.textContent = 'A fresh quote is required before signing.'; steps.replaceChildren(); };
   window.addEventListener('funded:coin-facts-loading', reset);

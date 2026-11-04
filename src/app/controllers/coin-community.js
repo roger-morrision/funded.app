@@ -106,7 +106,20 @@ export function createCoinCommunityController(appState) {
       chat.setAttribute('aria-controls', 'coin-activity-list');
       chat.tabIndex = -1;
     }
-    if (chat.nextElementSibling !== trades) trades.before(chat);
+    if (chat.nextElementSibling !== trades && chat.nextElementSibling?.dataset.coinTab !== 'rewards') trades.before(chat);
+    // "My rewards" sits beside Chat.
+    let rewards = document.querySelector('.coin-tabs [data-coin-tab="rewards"]');
+    if (!rewards) {
+      rewards = document.createElement('button');
+      rewards.type = 'button';
+      rewards.dataset.coinTab = 'rewards';
+      rewards.textContent = 'My rewards';
+      rewards.setAttribute('role', 'tab');
+      rewards.setAttribute('aria-selected', 'false');
+      rewards.setAttribute('aria-controls', 'coin-activity-list');
+      rewards.tabIndex = -1;
+    }
+    if (chat.nextElementSibling !== rewards) chat.after(rewards);
   }
   // app-source-end
 
@@ -163,7 +176,7 @@ export function createCoinCommunityController(appState) {
 
   // app-source: 977
   function renderCoinActivityTab(){
-    return appState.renderCoinActivityTabView({ coinMarketActivity: appState.coinMarketActivity, coinActivity: appState.coinActivity, COIN_TRADE_COLUMNS: appState.COIN_TRADE_COLUMNS, coinTradeSort: appState.coinTradeSort, coinTradeFilter: appState.coinTradeFilter, coinTradeOpenFilter: appState.coinTradeOpenFilter, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice }, { updateCoinTradeFilterPanel: appState.updateCoinTradeFilterPanel, renderCoinChat: appState.renderCoinChat, coinTradeFilterValues: appState.coinTradeFilterValues, getCoinMintAddress: appState.getCoinMintAddress, formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, exploreExplorer: appState.exploreExplorer, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
+    return appState.renderCoinActivityTabView({ coinMarketActivity: appState.coinMarketActivity, coinActivity: appState.coinActivity, COIN_TRADE_COLUMNS: appState.COIN_TRADE_COLUMNS, coinTradeSort: appState.coinTradeSort, coinTradeFilter: appState.coinTradeFilter, coinTradeOpenFilter: appState.coinTradeOpenFilter, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, connectedWalletAddress: appState.connectedWalletAddress }, { updateCoinTradeFilterPanel: appState.updateCoinTradeFilterPanel, apiRequest: appState.apiRequest, renderCoinChat: appState.renderCoinChat, coinTradeFilterValues: appState.coinTradeFilterValues, getCoinMintAddress: appState.getCoinMintAddress, formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, exploreExplorer: appState.exploreExplorer, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
   }
   // app-source-end
 

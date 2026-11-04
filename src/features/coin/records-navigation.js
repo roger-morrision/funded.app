@@ -1,4 +1,4 @@
-const RECORDS = new Set(['trades','payments','claims','chat','holders']);
+const RECORDS = new Set(['trades','payments','claims','chat','rewards','holders']);
 let revealFrame = 0;
 let stopWatching = () => {};
 

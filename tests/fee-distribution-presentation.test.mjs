@@ -6,8 +6,10 @@ test('the new-launch presentation accounts for every percent and separates the a
   const fee=approvedFeePresentation(),model=feeDistributionPresentation(fee);
   assert.deepEqual(model.rows.map(row=>[row.key,row.percent]),[['creator',80],['operations',8],['referrals',1],['community',4],['buyback',5],['agency',2]]);
   assert.equal(model.total,100);assert.equal(model.operations,8);assert.equal(model.benefits,92);assert.equal(model.ecosystem,12);
-  const markup=feeDistributionMarkup({fee});assert.match(markup,/not trade volume/);assert.match(markup,/Trading, launch and optional promotion charges, plus network costs, are separate/);
-  assert.match(markup,/top 3 per category/);assert.match(markup,/eligible coin holders and a named X account/);assert.match(markup,/Unused budgets stay reserved/);assert.match(markup,/finalized receipts/);
+  const markup=feeDistributionMarkup({fee});
+  // The basis/scope fine print and the separate-airdrop footer were removed by request.
+  assert.doesNotMatch(markup,/100% accounted for|Separate community token airdrops|Timing does not guarantee payment/);
+  assert.match(markup,/top 3 per category/);assert.match(markup,/eligible coin holders and a named X account/);assert.match(markup,/Unused budgets stay reserved/);
 });
 
 test('historical and alternative policies keep their actual gross rates and cannot be presented as the new 8 percent policy',()=>{

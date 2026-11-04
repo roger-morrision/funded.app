@@ -61,8 +61,7 @@ for(const width of [390,1440]){
   test(`reserve custody and reviewed issue context at ${width}px (mocked RPC facts)`,async({page})=>{
     await setup(page,width);await page.route('**/api/airdrops/reserves*',route=>route.fulfill({json:{cluster:'devnet',checkedAt:new Date().toISOString(),reserves:[{mint,verified:true,status:'drop-active',reservedTokens:'100',fundedTokens:'100',totalBaseUnits:'100000000',claimedBaseUnits:'1',remainingBaseUnits:'99999999',authority:wallet,vault:wallet}]}}));
     await ready(page,`/token/${mint}`);await page.evaluate(mint=>window.dispatchEvent(new CustomEvent('funded:coin-facts',{detail:{mint,parsedMint:{mintAuthority:null,freezeAuthority:null},launch:{onchainVerified:true,creatorWallet:mint},checkedAt:Date.now()}})),mint);
-    const facts=page.locator('.launch-facts');await facts.locator(':scope > summary').click();await expect(facts.locator('[data-reserve-facts]')).toContainText('99999999');await expect(facts).toContainText('These token balances are not SOL rewards');
-    await facts.getByRole('link',{name:'Report this coin'}).click();const report=page.locator('#issue-reports');await report.getByLabel('Describe what happened').fill('Please investigate the reserve display');await report.getByLabel('Include this page and public transaction details').check();await report.getByRole('button',{name:'Review report',exact:true}).click();await expect(report.locator('pre')).toContainText(mint);await expect(report.locator('pre')).toContainText(`/token/${mint}`);
+    const facts=page.locator('.launch-facts');await facts.locator(':scope > summary').click();await expect(facts.locator('[data-reserve-facts]')).toContainText('Airdrop rule');await expect(facts).not.toContainText('These token balances are not SOL rewards');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
   });
 }

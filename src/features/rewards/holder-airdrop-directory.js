@@ -63,7 +63,7 @@ export function renderHolderAirdropDirectory(data) {
   root.querySelector('#holder-airdrop-note').textContent = groups.partial
     ? 'Partial receipt coverage. Upcoming means no payment is confirmed in the available records.'
     : active === 'upcoming' ? hourly || qaFast
-      ? `Payouts require finalized holder history, a fresh price, an eligible holding, and a funded pool plus distribution costs. Standard cadence is hourly with $20 wallet and pool minimums.${qaFast ? ' Selected Devnet QA payouts run every 5 minutes.' : ''}${qaNote} Devnet dollar values are test references; unpaid SOL carries forward.`
+      ? `Paid hourly to eligible holders once the pool is funded ($20 minimum).${qaFast ? ' Selected Devnet QA payouts run every 5 minutes.' : ''}${qaNote} Devnet dollar values are test references; unpaid SOL carries forward.`
       : 'Published fee-sharing policies awaiting their first confirmed holder payout. Timing depends on funding and an eligible snapshot.'
     : 'Projects with recorded holder payments. These projects may still receive additional rewards; this is payment history, not the current payout queue.';
   const result = directoryPage(groups[active], root.querySelector('input').value, page);

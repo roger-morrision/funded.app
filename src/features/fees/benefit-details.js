@@ -74,10 +74,10 @@ export function feeBenefitExplanation(key){
 export function feeBenefitDetailsMarkup(rows){
   return `<dl>${rows.map(row=>{
     const detail=feeBenefitExplanation(row.key);if(!detail)return '';
-    const fields=[['Who receives it',detail.who],['When it is received',detail.when],['How to receive it',detail.receive]];
+    // Simplified view: one line on who receives it; timing and how-to live under Full rules.
     const rules=detail.rules,fullFields=[['Who receives it',rules.who],['When it is received',rules.when],['How to receive it',rules.receive],...(rules.conditions?[['Eligibility & amounts',rules.conditions]]:[])];
     const facts=rows=>rows.map(([label,value])=>`<li><strong>${label}</strong><span>${escapeHtml(value)}</span></li>`).join('');
     const fullRules=`<details class="fee-benefit-rules"><summary>Full rules</summary><div class="fee-benefit-rule-body"><p class="fee-benefit-purpose">${escapeHtml(row.benefit)}</p><ul class="fee-benefit-facts">${facts(fullFields)}</ul></div></details>`;
-    return `<div class="fee-benefit-detail" data-fee-benefit="${escapeHtml(row.key)}"><dt>${row.percent}% · ${escapeHtml(row.label)}</dt><dd><ul class="fee-benefit-facts">${facts(fields)}</ul>${fullRules}<nav class="fee-benefit-links" aria-label="${escapeHtml(row.label)} details">${detail.links.map(([label,href])=>`<a href="${href}">${escapeHtml(label)} →</a>`).join('')}</nav></dd></div>`;
-  }).join('')}</dl><details class="fee-benefit-rules fee-benefit-separate"><summary>Separate community token airdrops</summary><div class="fee-benefit-rule-body"><p>These use the launched coin’s reserved tokens, rather than this SOL fee split. Eligible $FUNDED-holder wallets need a verified eligibility snapshot and a funded, active drop, then claim within its saved window (normally ${DEFAULT_AGENCY_RULES.communityWindowSeconds/86400} days). Standard snapshots are tied to migration; explicitly labeled Devnet QA drops may use a separate QA cutoff. Holding $FUNDED is different from holding this coin for its holder SOL rewards.</p></div></details><p>Timing does not guarantee payment. Rewards need an enabled program, enough funds, any required approval or claim, and a finalized receipt.</p>`;
+    return `<div class="fee-benefit-detail" data-fee-benefit="${escapeHtml(row.key)}"><dt>${row.percent}% · ${escapeHtml(row.label)}</dt><dd><p class="fee-benefit-summary">${escapeHtml(detail.who)}</p>${fullRules}<nav class="fee-benefit-links" aria-label="${escapeHtml(row.label)} details">${detail.links.map(([label,href])=>`<a href="${href}">${escapeHtml(label)} →</a>`).join('')}</nav></dd></div>`;
+  }).join('')}</dl>`;
 }

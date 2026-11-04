@@ -17,8 +17,8 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
       : lock.status==='not-selected'?'No developer token purchase was made at launch.'
       : lock.status==='not-required-for-legacy-launch'?'This older launch has no required developer-token escrow.'
       : 'Developer token custody could not be verified. Refresh before signing.';
-    panel.append(text('p',lockText),text('p','The token lock covers the declared initial developer purchase. Creator SOL fees have no 12-hour hold. Other wallets can still trade.'));
-    if(lock.verified&&lock.lock){const proof=text('p','');proof.append(link('View escrow','address',lock.lock));if(lock.fundingSignature){proof.append(' · ',link('Launch receipt','tx',lock.fundingSignature));}panel.append(proof);}
+    panel.append(text('p',lockText),text('p','The token lock covers the declared initial developer purchase. Other wallets can still trade.'));
+    if(lock.verified&&lock.lock){const proof=text('p','');proof.append(lock.fundingSignature?link('View lock transaction','tx',lock.fundingSignature):link('View lock account','address',lock.lock));panel.append(proof);}
     let pending=false;try{pending=Boolean(window.localStorage.getItem(developerReleaseStorageKey(activeMint,data.creatorWallet)));}catch{}
     if((lock.status==='claimable'||pending)&&data.creatorWallet===appState.connectedWalletAddress){
       const claim=text('button',pending?'Verify token release':'Claim unlocked developer tokens');claim.type='button';claim.disabled=busy||!lock.verified;
@@ -31,22 +31,7 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
         }catch(error){appState.showToast(error.message);}finally{busy=false;if(activeMint===mint)await refresh(false);}
       };panel.append(claim);
     }
-    const detection=data.bundleDetection||{},coverage=detection.coverage;
-    panel.append(text('h4','Bundle-wallet signals'));
-    panel.append(text('p',detection.scanning?'Checking finalized early buys and funding links…'
-      :detection.status==='not-scanned'?'Run a bounded check of early buyers and their direct SOL funding links.'
-      :detection.status==='suspected-coordination'?'Suspected coordinated wallets found. This does not prove a bundle or shared ownership.'
-      :detection.status==='signals-observed'?'Early trading or shared-funding signals were observed. These are not proof of bundling.'
-      :detection.status==='no-indicators-in-scanned-data'?'No indicators found in the scanned data. This is not a guarantee that the coin is bundle-free.'
-      :'Risk history is unavailable; no safety assessment can be made.'));
-    if(coverage){panel.append(text('p',`Coverage: ${coverage.status}. ${coverage.reasons?.join(' ')||'Only the stated scan window and limits were assessed.'}`));}
-    for(const cluster of detection.clusters||[]){
-      const details=document.createElement('details');details.append(text('summary',`${cluster.wallets.length} wallets · ${cluster.status} · ${cluster.holdingPercent==null?'holdings unknown':cluster.holdingPercent+'% current combined wallet holdings'}`));
-      details.append(text('p',cluster.caveat),link('Shared funding source','address',cluster.source));
-      const list=document.createElement('ul');for(const wallet of cluster.wallets){const item=document.createElement('li');item.append(link(wallet.slice(0,6)+'…'+wallet.slice(-4),'address',wallet));const proof=cluster.fundingProofs.find(p=>p.wallet===wallet);if(proof)item.append(' · ',link('Funding receipt','tx',proof.signature));list.append(item);}details.append(list);panel.append(details);
-    }
-    const refreshButton=text('button',detection.scanning?'Refresh check':'Check launch risk / refresh lock');refreshButton.type='button';
-    refreshButton.onclick=()=>{void refresh(!detection.scanning);};panel.append(refreshButton);
+    // Bundle-wallet signals were removed from the coin page by request.
   }
   async function refresh(scan=false,polls=0){
     if(!activeMint)return;const mint=activeMint,id=generation;

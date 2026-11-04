@@ -1,4 +1,5 @@
 import { filterAndSortRecentTrades } from '../../../coin-detail-model.js';
+import { renderCoinMyRewards } from './my-rewards-view.js';
 import { formatTradeAmountInput } from '../../../trade-amount-input.js';
 import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
 import { escapeHtml, shortAddress, formatOnChainNumber, formatUsd } from '../shared/display.js';
@@ -6,7 +7,7 @@ import { solFromLamports, feeAllocationSol, formatFeeSol } from '../../../fee-ac
 const filterKeys=['side','wallet','dateFrom','dateTo','minUsd','maxUsd','minToken','maxToken','minSol','maxSol','minPrice','maxPrice','signature'];
 
 // Presentation only: callers own state, requests, and transaction lifecycles.
-export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_TRADE_COLUMNS, coinTradeSort, coinTradeFilter, coinTradeOpenFilter, coinSolUsdValues, coinSolUsdPrice }, { updateCoinTradeFilterPanel, renderCoinChat, coinTradeFilterValues, getCoinMintAddress, formatCoinSnapshotUsd, formatOnchainAge, formatCoinUsd, exploreExplorer, loadVerifiedTokenLogos, document = globalThis.document } = {}){
+export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_TRADE_COLUMNS, coinTradeSort, coinTradeFilter, coinTradeOpenFilter, coinSolUsdValues, coinSolUsdPrice, connectedWalletAddress = null }, { updateCoinTradeFilterPanel, apiRequest, renderCoinChat, coinTradeFilterValues, getCoinMintAddress, formatCoinSnapshotUsd, formatOnchainAge, formatCoinUsd, exploreExplorer, loadVerifiedTokenLogos, document = globalThis.document } = {}){
   const activity = document.querySelector('#coin-activity-list');
   if (!activity) return;
   const tab = document.querySelector('[data-coin-tab].active')?.dataset.coinTab || 'trades';
@@ -21,6 +22,11 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
   const countText=value=>{if(count&&count.textContent!==value)count.textContent=value;};
   if(tab==='trades')countText(coinMarketActivity.status==='loading'?'Loading recent trades…':'Recent trades unavailable');
   if (tab === 'chat') { renderCoinChat(activity); return; }
+  if (tab === 'rewards') {
+    renderCoinMyRewards(activity, { mint: getCoinMintAddress?.(), wallet: connectedWalletAddress, apiRequest,
+      isActive: () => Boolean(document.querySelector('[data-coin-tab="rewards"].active')) });
+    return;
+  }
   if (tab === 'trades' && coinMarketActivity.status === 'loading') {
     activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Loading recent trades…</strong><small>The 24-hour activity feed is loading from Solana RPC.</small></div>';
     return;

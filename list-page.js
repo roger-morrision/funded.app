@@ -70,7 +70,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const reviewCopy = byId('list-review-copy');
     const reviewPayment = byId('list-review-payment');
     if (step) step.textContent = `Approve a permanent burn of $${LISTING_PRICE_USD} worth of $FUNDED. The exact token amount is quoted before wallet approval.`;
-    if (disclosure) disclosure.textContent = `You pay $${LISTING_PRICE_USD} by burning $FUNDED at the current pool price, so the token amount can change. You approve the burn in your wallet, and your listing goes live once the burn is confirmed on Solana.`;
+    if (disclosure) disclosure.textContent = `Pay $${LISTING_PRICE_USD} by burning $FUNDED at the current pool price. Your listing goes live once the burn is confirmed.`;
     if (reviewCopy) reviewCopy.textContent = prepared
       ? `Burning ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $FUNDED for this $${LISTING_PRICE_USD} listing is permanent. The quote expires ${new Date(prepared.quote.expiresAt).toLocaleTimeString()}. Your listing appears after the finalized burn and token details are verified.`
       : `The exact $FUNDED burn will be shown after a verified $${LISTING_PRICE_USD} quote is prepared.`;

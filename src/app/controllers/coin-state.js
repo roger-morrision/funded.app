@@ -139,9 +139,11 @@ export function createCoinStateController(appState) {
     const change = Number(market.priceChangePercent);
     const basis = market.priceChangeBasis;
     appState.setCoinField('#coin-change', noTrades ? 'No 24h trades' : market.priceChangePercent != null && Number.isFinite(change) && basis
-      ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}% ${basis === '24h' ? '24h' : 'since first trade'}`
+      ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%${basis === '24h' ? ' 24h' : ''}`
       : '24h change unavailable');
     const trendNode = globalThis.document?.querySelector?.('#coin-change');
+    // The basis stays available on hover instead of as visible text.
+    if (trendNode) trendNode.title = !noTrades && Number.isFinite(change) && basis ? (basis === '24h' ? 'Change over the last 24 hours' : 'Change since the first trade') : '';
     if (trendNode) trendNode.dataset.trend = !noTrades && Number.isFinite(change) && basis ? (change > 0 ? 'up' : change < 0 ? 'down' : 'flat') : 'none';
   }
   // app-source-end

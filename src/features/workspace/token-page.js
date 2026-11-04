@@ -1,8 +1,28 @@
 import { $, node, $$, tabs, disclose } from './dom.js';
 import { openCoinRecord } from '../coin/records-navigation.js';
 
+// Tiny prices arrive as "$0.0₇3415"; subscript glyphs read like a comma in
+// the price font, so the zero count is re-rendered as a real <sub> element.
+function watchPriceSubscript(price) {
+  if (!price) return;
+  const SUB = '₀₁₂₃₄₅₆₇₈₉';
+  const render = () => {
+    const text = price.textContent || '';
+    const match = /^(.*?0\.0)([₀-₉]+)(.*)$/.exec(text);
+    if (!match) return;
+    const count = [...match[2]].map(ch => SUB.indexOf(ch)).join('');
+    const sub = document.createElement('sub'); sub.textContent = count;
+    sub.setAttribute('aria-hidden', 'true');
+    price.setAttribute('aria-label', `${match[1]}${'0'.repeat(Math.max(0, Number(count) - 1))}${match[3]}`);
+    price.replaceChildren(match[1], sub, match[3]);
+  };
+  new MutationObserver(render).observe(price, { childList: true, characterData: true, subtree: true });
+  render();
+}
+
 export function tokenPage() {
   const root=$('#coin-page');if(!root)return;
+  watchPriceSubscript($('#coin-price', root));
   const revealMobileFocus = element => {
     if (!matchMedia('(max-width:700px)').matches) return;
     const box = element.getBoundingClientRect(), style = getComputedStyle(element);
@@ -119,11 +139,10 @@ export function tokenPage() {
   const curve=$('.coin-curve-track',root);
   const flow=$('.coin-flow',root);
   flow?.remove();
-  if(trade&&curve){
-    const market=node('section','panel coin-market-aside');
-    market.append(node('h2','coin-market-aside-title','Bonding curve'),curve);
-    trade.after(market);
-  }
+  // Migration progress lives in the coin header, under the price, instead of
+  // a separate "Launch progress" panel beside the trade box.
+  const priceLine=$('.coin-identity .coin-price-line',root);
+  if(curve&&priceLine){curve.classList.add('coin-header-curve');curve.querySelector('span').textContent='to migration';priceLine.append(curve);}
   if(pulse&&trade)trade.after(pulse);
   const policy=$('.coin-policy-card',root);
   const distribution=$('#coin-account-distribution',root);

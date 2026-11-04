@@ -13,23 +13,12 @@ export function mountReserveFacts(root,app){
     try{const response=await app.apiRequest('/api/airdrops/reserves?mint='+encodeURIComponent(mint),{signal:AbortSignal.timeout(45000)});
       if(id!==serial||mint!==app.getCoinMintAddress())return;
       const row=response.available?reserveFacts(response.data,mint):null;
-      box.replaceChildren(el('h3','Migration airdrop'), el('p','Hold $FUNDED at the verified snapshot to qualify. Eligible wallets claim this launched coin during its claim window.'),
-        link('Check wallet eligibility and claim receipts', `/?airdropMint=${encodeURIComponent(mint)}#airdrops`));
-      if(!row){box.append(el('p','Verified reserve custody unavailable for this mint. A launch allocation does not prove the tokens are funded.'));last='';return;}
-      const active=['drop-active','drop-closed'].includes(row.status),list=el('dl');
-      const market = app.assets?.find(asset => asset.address === mint);
-      const qa = row.snapshotBasis === 'devnet-qa-cutoff';
-      const migration = active && !qa && row.snapshotBasis === 'pump-migration' ? 'Confirmed at slot ' + row.migrationSlot
-        : market?.migrated === true || market?.complete === true ? 'Migrated' : market?.complete === false ? 'On curve · waiting for migration' : 'Migration evidence unavailable';
-      const claim = airdropClaimState(row);
-      for(const [label,value] of [['Migration',migration],['Eligibility snapshot',active ? (qa ? 'Devnet QA cutoff' : 'Verified snapshot') + ' · slot ' + row.snapshotSlot : 'Awaiting verified snapshot'],
-        ['Claim window',claim.label],['Verified state',row.status],['Checked',utc(row.checkedAt)],['Funding authority',row.authority||'Unavailable'],
-        ['Reserved allocation (whole tokens)',row.reservedTokens??'Unavailable'],['Funded amount (whole tokens)',row.fundedTokens??'Unavailable'],
-        ['Active drop total (token base units)',active?row.totalBaseUnits??'Unavailable':'No verified active drop'],['Claimed (token base units)',active?row.claimedBaseUnits??'Unavailable':'Unavailable'],
-        ['Remaining in drop (token base units)',active?row.remainingBaseUnits??'Unavailable':'Unavailable'],['Claim deadline',utc(row.expiresAt)],['Snapshot',row.snapshotHash||'Unavailable'],['Custody scope',row.scope||'Unavailable']])list.append(el('dt',label),el('dd',String(value)));
-      box.append(list,el('p','Reserved allocation, custody, and recipient claims are separate. These token balances are not SOL rewards or supply burns.'));
-      for(const [label,value] of [['Reserve vault',row.vault],['Drop token account',row.dropTokenAccount||row.tokenAccount]])if(address(value))box.append(link(`${label} ${value} ↗`,`https://explorer.solana.com/address/${value}?cluster=devnet`,true));
-      for(const [label,value] of [['Funding receipt',row.fundingSignature],['Drop opening receipt',row.dropOpeningSignature]])if(signature(value))box.append(link(`${label} ↗`,`https://explorer.solana.com/tx/${value}?cluster=devnet`,true));
+      const reserved=row?.reservedTokens!=null?Number(row.reservedTokens).toLocaleString('en-US'):null;
+      box.replaceChildren(el('h3','Airdrop rule'),
+        el('p',`${reserved?reserved+' tokens of this coin are':'Part of this coin’s supply is'} reserved for $FUNDED holders. Hold $FUNDED at the migration snapshot to qualify; claims open after migration.`));
+      if(row)box.append(el('p','Claim window: '+airdropClaimState(row).label));
+      box.append(link('Check your allocation', `/?airdropMint=${encodeURIComponent(mint)}#airdrops`));
+      if(!row)last='';
     }catch{if(id===serial){box.replaceChildren(el('p','Reserve verification unavailable. Close and reopen these facts to retry.'));last='';}}
   }
   window.addEventListener('funded:coin-facts-loading',()=>{serial++;last='';box.replaceChildren();});root.addEventListener('toggle',()=>{last='';serial++;void refresh();});window.addEventListener('funded:coin-facts',()=>void refresh());

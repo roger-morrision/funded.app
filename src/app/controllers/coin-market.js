@@ -76,6 +76,8 @@ export function createCoinMarketController(appState) {
     appState.setCoinField('#coin-curve-progress', valid ? `${appState.formatOnChainNumber(value, 2)}%` : 'Unavailable');
     const fill = document.querySelector('#coin-curve-fill');
     if (fill) fill.style.width = `${valid ? Math.max(0, Math.min(100, value)) : 0}%`;
+    // The header ring reads the same value as a CSS variable.
+    document.querySelector('.coin-curve-track')?.style.setProperty('--curve-progress', String(valid ? Math.max(0, Math.min(100, value)) : 0));
   }
   // app-source-end
 
@@ -120,6 +122,7 @@ export function createCoinMarketController(appState) {
     const labels = {
       trades: `Trades ${['ready', 'summary-only'].includes(appState.coinMarketActivity.status) ? appState.coinMarketActivity.tradeCount : '—'}`,
       chat: 'Chat',
+      rewards: 'My rewards',
       payments: `Fee collections ${appState.coinActivity.status === 'ready' && appState.coinActivity.ledgerAvailable ? appState.coinActivity.collections.length : '—'}`,
       claims: `Allocations ${appState.coinActivity.status === 'ready' && appState.coinActivity.ledgerAvailable ? appState.coinActivity.claims.length : '—'}`,
       holders: `Holders ${appState.coinActivity.holderDistribution ? appState.coinActivity.holderCount : '—'}`,

@@ -21,7 +21,7 @@ export function renderCoinAccountDistribution(distribution, decimals = 6, symbol
   setCoinField('#coin-distribution-vault-name', vaultLabel);
   setCoinField('#coin-vault-fact-label', `${vaultLabel} balance`);
   setCoinField('#coin-distribution-other-name', `${distribution.walletCount} holder wallet${distribution.walletCount === 1 ? '' : 's'}`);
-  setCoinField('#coin-distribution-note', `Balances across all ${distribution.accountCount} funded token accounts match the total supply. Accounts owned by the same wallet are grouped together.`);
+  setCoinField("#coin-distribution-note", "");
   const list = document.querySelector('#coin-distribution-wallets');
   if (list) {
     list.replaceChildren();
