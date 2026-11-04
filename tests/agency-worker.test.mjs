@@ -59,6 +59,25 @@ test('verified buyback progress keeps a long serial cycle fresh and fails closed
   assert.equal(f.state.adminSettings.agencyBuybackWorker.status,'degraded');
   assert(!agencyBuybackWorkerHealth(f.state,{...health,now:clock}));
 });
+test('verified custody progress keeps readiness fresh across a slow multi-mint budget sweep',async()=>{
+  const f=fixture(true);f.input.config={...f.input.config,buybacksOnly:true};
+  let clock=Date.now();f.input.now=()=>clock;
+  const mints=Array.from({length:5},(_,i)=>key(110+i).publicKey.toBase58());
+  f.state.launches=Object.fromEntries(mints.map(mint=>[mint,{mint,cluster:'devnet',pumpFeeRoute:{programId,protocolSplit:{agencyPercent:10}}}]));
+  await runAgencyCycle(f.input);
+  const health={programId,approvedHash:f.input.config.approvedHash,authority:authority.publicKey.toBase58(),revision:'1',build:f.input.config.build};
+  const readContext=f.input.readContext,observations=[];
+  f.input.readContext=async args=>{
+    clock+=25_000;
+    observations.push(agencyBuybackWorkerHealth(f.state,{...health,now:clock}));
+    return readContext(args);
+  };
+  await runAgencyCycle(f.input);
+  assert.equal(observations.length,5);
+  assert(observations.every(Boolean),'Verified custody reads must not leave a healthy worker stale mid-cycle.');
+  assert(!agencyBuybackWorkerHealth(f.state,{...health,now:clock+90_000}),'A stalled worker must still expire.');
+});
+
 test('dedicated worker verifies account, dispatches only agency events and distinguishes heartbeat readiness from execution success',async()=>{
   const f=fixture(true);await runAgencyCycle(f.input);assert.deepEqual(f.counts,{writes:1,promotions:2,buys:2,posts:1});
   const row=f.state.adminSettings.agencyWorker;assert.equal(row.status,'ready');assert.equal(row.pendingExecutions,2);
