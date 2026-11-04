@@ -79,3 +79,12 @@ test('trader tab distinguishes loading, an unavailable feed and a scanned feed w
   assert.match(render(true), /href="#explore">Explore coins/);
   assert.doesNotMatch(render(false), /href="#explore"/);
 });
+
+test('wallets seen in a full 20-trade sample are marked as possibly undercounted', () => {
+  const full = Array.from({ length: 20 }, (_, i) => ({ ...trade(alice, 'C', 1_000_000), signature: 'ABCDEFGHJKLMNPQRSTUVWXYZ'[i].repeat(88) }));
+  const result = rankObservedTraders([
+    { address: 'mint-a', recentTrades: full },
+    { address: 'mint-b', recentTrades: [trade(bob, 'D', 1_000_000)] },
+  ], [policy('mint-a'), policy('mint-b')], { nowSeconds });
+  assert.deepEqual(result.traders.map(row => [row.wallet, row.tradeCount, row.sampleCapped]), [[alice, 20, true], [bob, 1, false]]);
+});

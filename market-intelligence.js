@@ -170,6 +170,9 @@ export function rankObservedTraders(records, verifiedLaunchPolicies, { nowSecond
   for (const record of records || []) {
     if (!verifiedMints.has(record?.address) || !Array.isArray(record.recentTrades)) continue;
     scannedTokens++;
+    // The feed keeps the newest 20 trades per coin; a wallet seen in a full
+    // sample may have traded more than its counted trades.
+    const capped = record.recentTrades.length >= 20;
     for (const trade of record.recentTrades) {
       const wallet = String(trade?.trader || '');
       const signature = String(trade?.signature || '');
@@ -185,6 +188,7 @@ export function rankObservedTraders(records, verifiedLaunchPolicies, { nowSecond
       seen.add(eventKey);
       const row = wallets.get(wallet) || { wallet, tradeCount: 0, buyCount: 0, sellCount: 0, volumeLamports: 0n, tokenMints: new Set(), latestSignature: '', latestBlockTime: 0 };
       row.tradeCount++;
+      if (capped) row.sampleCapped = true;
       row[trade.side === 'buy' ? 'buyCount' : 'sellCount']++;
       row.volumeLamports += amount;
       row.tokenMints.add(record.address);
@@ -200,6 +204,7 @@ export function rankObservedTraders(records, verifiedLaunchPolicies, { nowSecond
       : a.volumeLamports > b.volumeLamports ? -1 : 1).map(row => ({
     wallet: row.wallet,
     tradeCount: row.tradeCount,
+    sampleCapped: row.sampleCapped === true,
     buyCount: row.buyCount,
     sellCount: row.sellCount,
     volumeSol: Number(row.volumeLamports) / 1_000_000_000,
