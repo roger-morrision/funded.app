@@ -15,9 +15,9 @@ html body #main-content .callouts-author-filter[hidden] { display: none; }
 html body #main-content .callouts-leaders { display: flex; align-items: center; gap: var(--fv-space-3); min-width: 0; padding: var(--fv-space-2) var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
 html body #main-content .callouts-leaders-title { flex: none; margin: 0; color: var(--fv-text-muted); font-size: 12px; font-weight: 600; }
 html body #main-content .callouts-top { display: flex; gap: var(--fv-space-2); min-width: 0; margin: 0; padding: 0; overflow-x: auto; list-style: none; scrollbar-width: thin; }
-html body #main-content .callouts-top li { display: flex; flex: none; align-items: center; gap: 6px; padding: 4px var(--fv-space-2); border: 1px solid var(--fv-border); border-radius: 999px; font-size: 12px; }
+html body #main-content .callouts-top li { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; padding: 8px var(--fv-space-2); border: 1px solid var(--fv-border); border-radius: 12px; font-size: 12px; }
 html body #main-content .callouts-top li.is-you { border-color: var(--fv-accent); background: var(--fv-accent-soft); }
-html body #main-content .callouts-top li small { color: var(--fv-text-subtle); font-size: 11px; }
+html body #main-content .callouts-top li small { flex-basis: 100%; white-space: normal; color: var(--fv-text-subtle); font-size: 11px; }
 html body #main-content .callouts-top .callout-avatar { width: 20px; height: 20px; font-size: 9px; }
 html body #main-content .callouts-top b { font-family: var(--fv-font-data); }
 html body #main-content .callouts-rank { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-data); }

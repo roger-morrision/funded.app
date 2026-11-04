@@ -1,6 +1,7 @@
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
+import { rememberCoinJourney } from '../../features/experience/coin-journey-state.js';
 
 export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
   const router = ledgerData?.sharedRouter;
@@ -20,6 +21,7 @@ export function createCoinLoadingController(appState) {
   // app-source: 981
   async function loadCoinOnChain(mintAddress){
     const loadId = ++appState.coinLoadId;
+    rememberCoinJourney({mint:mintAddress,status:'loading'});
     renderCoinBurnDashboard({mint:mintAddress,status:mintAddress?'loading':'unavailable',cluster:appState.EXPLORE_CLUSTER});
     globalThis.window?.dispatchEvent?.(new Event('funded:coin-facts-loading'));
     if (!mintAddress){ appState.renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
@@ -126,9 +128,10 @@ export function createCoinLoadingController(appState) {
       appState.setCoinField('#coin-address', appState.shortAddress(mintAddress)); appState.setCoinField('#coin-full-address', mintAddress);
       appState.setCoinField('#coin-description', graduatedPool ? 'Trading pool confirmed.' : 'Coin details confirmed on Solana.');
       appState.setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
-      globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-market-facts', {detail:{mint:mintAddress,
+      const journey = rememberCoinJourney({mint:mintAddress,status:'verified',
         stage:graduatedPool ? 'Migrated' : curve?.complete === false ? 'On curve' : curve?.complete === true ? 'Curve complete · pool unavailable' : 'Stage unverified', checkedAt:Date.now(),
-        market:{address:mintAddress, verifiedAt:new Date().toISOString(), complete:curve ? Boolean(curve.complete) : null, migrated:Boolean(graduatedPool), curveCapSol:graduatedPool ? null : marketCapSol, poolMarketCapSol:graduatedPool ? marketCapSol : null, source:'Solana RPC'}}}));
+        market:{address:mintAddress, verifiedAt:new Date().toISOString(), complete:curve ? Boolean(curve.complete) : null, migrated:Boolean(graduatedPool), curveCapSol:graduatedPool ? null : marketCapSol, poolMarketCapSol:graduatedPool ? marketCapSol : null, source:'Solana RPC'}});
+      globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-market-facts', {detail:journey}));
       appState.setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? appState.shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
       appState.setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
       appState.coinSolUsdValues = { spot: spotPriceSol, marketCap: marketCapSol, reserve: realQuote, virtualQuote: curve?.virtualQuoteReservesSol ?? NaN, supply };
@@ -191,6 +194,7 @@ export function createCoinLoadingController(appState) {
       if (loadId !== appState.coinLoadId) return;
       renderCoinBurnDashboard({mint:mintAddress,status:'unavailable',cluster:appState.EXPLORE_CLUSTER});
       const detail = coinUnavailableMessage(error?.message);
+      rememberCoinJourney({mint:mintAddress,status:'unavailable',error:true});
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, error:true}}));
       console.error('On-chain token detail failed', detail);
       appState.renderOnChainUnavailable(detail);

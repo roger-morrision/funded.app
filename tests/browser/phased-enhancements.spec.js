@@ -25,6 +25,8 @@ for(const width of [390,1280]){
     await page.route('**/api/tokens/*/chat',async r=>{await new Promise(resolve=>setTimeout(resolve,300));await r.fulfill({json:{enabled:true,messages:[]}});});
     await expect(page.locator('#callouts-top')).toContainText('1 of 1 calls reached 2x');
     await expect(page.locator('#callouts-top')).toContainText('18.5x mean peak');
+    const sample=await page.locator('#callouts-top li small').boundingBox();
+    expect(sample.x).toBeGreaterThanOrEqual(0);expect(sample.x+sample.width).toBeLessThanOrEqual(width);
     await expect(page.locator('.callouts-method')).toContainText('Devnet test activity');
     await page.evaluate(mint=>{window.fundedVerifiedSearchCandidates=()=>[{mint,name:'Flow QA',symbol:'FLOWQA',stage:'Migrated'}];},mint);
     await page.getByRole('link',{name:'Make a call',exact:true}).click();
@@ -53,7 +55,6 @@ for(const width of [390,1280]){
   });
   test(`readiness stays local and support context is opt-in at ${width}px (mocked)`,async({page},info)=>{
     await setup(page,width);await ready(page,'/token/'+mint);
-    await page.evaluate(mint=>window.dispatchEvent(new CustomEvent('funded:coin-facts',{detail:{mint,error:true}})),mint);
     await expect(page.locator('.coin-readiness')).toContainText('Market verification unavailable');
     await expect(page.locator('.coin-readiness p')).toBeVisible();
     await expect(page.locator('.coin-readiness a').first()).toHaveAttribute('href',`/?airdropMint=${mint}#airdrops`);

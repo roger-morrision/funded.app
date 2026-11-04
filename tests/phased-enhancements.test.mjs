@@ -8,7 +8,15 @@ import { flowTimingSummary, recordFlowTiming } from '../src/features/experience/
 import { validateIssue } from '../server/routes/product-issues.mjs';
 import { proofTotals } from '../src/features/proof/proof-totals.js';
 import { createExploreFiltersController } from '../src/app/controllers/explore-filters.js';
+import { rememberCoinJourney, currentCoinJourney } from '../src/features/experience/coin-journey-state.js';
 const mint = 'APjV65KZhb2AshXJDoHVVatxsGWV4GUEWdU6Q3WZoVMn';
+test('late readiness mount reads the completed result and retries reset its timing',()=>{
+  rememberCoinJourney({mint,status:'loading'},10);rememberCoinJourney({mint,status:'unavailable',error:true},35);
+  assert.equal(currentCoinJourney(mint).status,'unavailable');assert.equal(currentCoinJourney(mint).elapsedMs,25);
+  assert.equal(currentCoinJourney('another-mint'),null);
+  rememberCoinJourney({mint,status:'loading'},50);rememberCoinJourney({mint,status:'verified',stage:'Migrated'},90);
+  assert.equal(currentCoinJourney(mint).stage,'Migrated');assert.equal(currentCoinJourney(mint).elapsedMs,40);
+});
 
 test('included launch is recognized without metadata RPC or a payment quote', async () => {
   let sent, reads=0;
