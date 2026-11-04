@@ -4,6 +4,7 @@ import { activeBoostMultiplier } from '../../../boost-offer.js';
 import { renderActivityCoverage } from './activity-sampling.js';
 import { createExploreEmptyAction } from './empty-action.js';
 import { syncLaunchCardProgressFreshness } from '../home/launch-card-view.js';
+import { exploreStatusText, exploreSourceLabel } from './status-copy.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderExploreAssets(
@@ -63,8 +64,9 @@ export function renderExploreAssets(
     status.hidden = loaded;
     const badge = status.closest('.live-label');
     if (badge) badge.hidden = loaded;
+    if (!loaded) status.textContent = exploreStatusText(exploreProviderStatus);
   }
-  if (clusterLabel) clusterLabel.textContent = `${exploreProviderStatus.includes('Verified launch registry') ? 'Verified launch registry' : exploreProviderStatus.includes('stale') ? 'last verified snapshot' : exploreProviderStatus.includes('RPC verified') ? 'RPC verified' : exploreProviderStatus.includes('unavailable') ? 'data unavailable' : 'awaiting verification'}`;
+  if (clusterLabel) clusterLabel.textContent = exploreSourceLabel(exploreProviderStatus);
   if (scope && EXPLORE_CLUSTER !== 'devnet') scope.textContent = 'Solana mainnet discovery · Pump.fun listings are shown only after mint verification. Missing market figures stay unavailable.';
   const records = assets.map(item => withVerifiedExploreBenefits(EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(item, exploreWindow) : enrichMarketRecord(item)));
   const visible = filterExploreTabRecords(records);
