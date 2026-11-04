@@ -1,3 +1,4 @@
+@import "../src/features/callouts/callouts.css";
 /*
   Final presentation layer. Loaded last in index.html.
   New UI work uses the --fv-* tokens below instead of raw hex values,
@@ -165,7 +166,7 @@ html body #main-content .home-launch-card .home-launch-fee-route span { color: v
 html body #main-content .home-launch-card .home-launch-card-media { overflow: hidden; border: 0; border-radius: 8px; background: var(--fv-surface-raised); }
 /* Every token-card list uses the same grid. */
 html body #main-content #home-launch-grid:has(> .home-launch-card),
-html body #main-content #asset-grid:has(> .home-launch-card),
+html body #main-content #asset-grid:not([hidden]):has(> .home-launch-card),
 html body #main-content #watchlist-items:has(> .home-launch-card) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--fv-space-3); }
 
 /* Token detail page: header → key stats → chart beside a trade panel that stays
@@ -325,80 +326,3 @@ html body #main-content .bonus-countdown-prizes small { color: var(--fv-text-sub
 html body #launch-dialog .launch-summary-plain { margin: var(--fv-space-2) 0; padding: var(--fv-space-2) var(--fv-space-3); border-left: 3px solid var(--fv-accent); border-radius: var(--fv-radius-sm); background: var(--fv-accent-soft); color: var(--fv-text); font: 600 12px/1.5 var(--fv-font-ui); }
 
 /* Callouts: live board of coin calls in three columns, and the call toggle and badge in coin chat. */
-html body #main-content #callouts { display: none; }
-html body.page-route-callouts #main-content #callouts { display: grid; gap: var(--fv-space-3); min-height: calc(100vh - 76px); }
-html body #main-content .callouts-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--fv-space-4); }
-html body #main-content .callouts-head h1 { margin: var(--fv-space-1) 0; color: var(--fv-text); font-size: 30px; letter-spacing: -.03em; }
-html body #main-content .callouts-head p:not(.eyebrow) { max-width: 680px; margin: 0; color: var(--fv-text-muted); font-size: 13px; line-height: 1.5; }
-html body #main-content .callouts-head .eyebrow { display: inline-flex; align-items: center; gap: var(--fv-space-2); }
-html body #main-content #callouts .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fv-success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--fv-success) 22%, transparent); }
-html body #main-content .callouts-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fv-space-2); }
-html body #main-content .callouts-toolbar small { margin-left: auto; color: var(--fv-text-subtle); font: 12px var(--fv-font-data); }
-html body #main-content :is(.callouts-filters, .callouts-tabs) { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--fv-border); border-radius: 999px; }
-html body #main-content :is(.callouts-filters, .callouts-tabs) button, html body #main-content .callouts-author-filter { min-height: 32px; padding: 0 var(--fv-space-3); border: 0; border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); cursor: pointer; }
-html body #main-content :is(.callouts-filters, .callouts-tabs) button[aria-pressed="true"] { background: var(--fv-accent-soft); color: var(--fv-text); }
-html body #main-content .callouts-author-filter { border: 1px solid var(--fv-accent); color: var(--fv-text); }
-html body #main-content .callouts-author-filter[hidden] { display: none; }
-html body #main-content .callouts-leaders { display: flex; align-items: center; gap: var(--fv-space-3); min-width: 0; padding: var(--fv-space-2) var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
-html body #main-content .callouts-leaders-title { flex: none; margin: 0; color: var(--fv-text-muted); font-size: 12px; font-weight: 600; }
-html body #main-content .callouts-top { display: flex; gap: var(--fv-space-2); min-width: 0; margin: 0; padding: 0; overflow-x: auto; list-style: none; scrollbar-width: thin; }
-html body #main-content .callouts-top li { display: flex; flex: none; align-items: center; gap: 6px; padding: 4px var(--fv-space-2); border: 1px solid var(--fv-border); border-radius: 999px; font-size: 12px; }
-html body #main-content .callouts-top li.is-you { border-color: var(--fv-accent); background: var(--fv-accent-soft); }
-html body #main-content .callouts-top li small { color: var(--fv-text-subtle); font-size: 11px; }
-html body #main-content .callouts-top .callout-avatar { width: 20px; height: 20px; font-size: 9px; }
-html body #main-content .callouts-top b { font-family: var(--fv-font-data); }
-html body #main-content .callouts-rank { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-data); }
-html body #main-content .callouts-leaders-empty { color: var(--fv-text-subtle); font-size: 12px; }
-html body #main-content .callouts-tabs { display: none; }
-html body #main-content .callouts-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--fv-space-3); align-items: start; }
-html body #main-content .callouts-column { display: grid; gap: var(--fv-space-2); min-width: 0; padding: var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
-html body #main-content .callouts-column > header h2 { display: flex; align-items: center; gap: var(--fv-space-2); margin: 0; color: var(--fv-text); font-size: 15px; }
-html body #main-content .callouts-column > header h2 span { padding: 0 6px; border-radius: 999px; background: var(--fv-surface-raised); color: var(--fv-text-subtle); font: 600 11px/18px var(--fv-font-data); }
-html body #main-content .callouts-column > header small { color: var(--fv-text-subtle); font-size: 11px; }
-html body #main-content .callouts-list { display: grid; gap: var(--fv-space-2); max-height: calc(100vh - 300px); min-height: 240px; margin: 0; padding: 0 2px 0 0; overflow-y: auto; list-style: none; scrollbar-width: thin; }
-html body #main-content .callout-card { display: grid; gap: var(--fv-space-2); padding: var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: var(--fv-surface-raised); }
-html body #main-content .callout-card.is-conviction { border-color: color-mix(in srgb, var(--fv-warning) 55%, var(--fv-border)); }
-html body #main-content .callout-card.is-new { animation: callout-arrive 1.6s ease-out; }
-@keyframes callout-arrive { from { border-color: var(--fv-accent); background: var(--fv-accent-soft); } }
-@media (prefers-reduced-motion: reduce) { html body #main-content .callout-card.is-new { animation: none; border-color: var(--fv-accent); } }
-html body #main-content .callout-card > header { display: flex; align-items: center; gap: var(--fv-space-2); min-width: 0; }
-html body #main-content .callout-avatar { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: hsl(var(--callout-hue, 200) 45% 32%); color: var(--fv-text); font: 700 11px var(--fv-font-data); text-transform: uppercase; }
-html body #main-content .callout-who { display: grid; flex: 1; min-width: 0; }
-html body #main-content .callout-who small { overflow: hidden; color: var(--fv-text-subtle); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-html body #main-content .callout-who em { margin-left: 4px; color: var(--fv-accent); font-size: 11px; font-style: normal; font-weight: 700; }
-html body #main-content .callout-author { padding: 0; border: 0; background: none; color: var(--fv-text); font: 600 13px var(--fv-font-data); text-align: left; cursor: pointer; }
-html body #main-content .callout-author:hover { color: var(--fv-accent); text-decoration: underline; }
-html body #main-content .callout-conviction { flex: none; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--fv-warning) 16%, transparent); color: var(--fv-warning); font: 700 11px var(--fv-font-data); }
-html body #main-content .callout-card time { flex: none; color: var(--fv-success); font: 12px var(--fv-font-data); }
-html body #main-content .callout-text { margin: 0; color: var(--fv-text); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
-html body #main-content .callout-chip { display: inline-flex; align-items: center; gap: 6px; justify-self: start; max-width: 100%; padding: 4px var(--fv-space-2); border: 1px solid var(--fv-border); border-radius: 999px; background: var(--fv-surface); color: var(--fv-text); font-size: 12px; text-decoration: none; }
-html body #main-content .callout-chip:hover { border-color: var(--fv-accent); }
-html body #main-content .callout-chip img, html body #main-content .callout-token-initial { flex: none; width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
-html body #main-content .callout-token-initial { display: grid; place-items: center; background: var(--fv-accent-soft); font-size: 10px; font-weight: 700; }
-html body #main-content .callout-chip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-html body #main-content .callout-chip > span:last-child { color: var(--fv-text-subtle); }
-html body #main-content .callout-multiple { color: var(--fv-text-muted); font: 700 12px var(--fv-font-data); }
-html body #main-content :is(.callout-multiple, .callouts-top b)[data-trend="up"] { color: var(--fv-success); }
-html body #main-content :is(.callout-multiple, .callouts-top b)[data-trend="down"] { color: var(--fv-danger); }
-html body #main-content .callout-figures { margin: 0; color: var(--fv-text-subtle); font: 11px var(--fv-font-data); }
-html body #main-content .callouts-empty-note { padding: var(--fv-space-4) var(--fv-space-2); color: var(--fv-text-muted); font-size: 12px; line-height: 1.5; text-align: center; }
-html body #main-content .callouts-footnote { margin: 0; color: var(--fv-text-subtle); font-size: 12px; line-height: 1.5; }
-html body .nav-item .nav-live-count { margin-left: auto; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--fv-accent); color: var(--fv-bg); font: 700 10px/18px var(--fv-font-data); text-align: center; }
-html body .nav-item .nav-live-count[hidden] { display: none; }
-html body #main-content #coin-page .chat-callout-toggle { display: inline-flex; flex: none; flex-direction: row; align-items: center; gap: 4px; min-height: 40px; padding: 0 var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); cursor: pointer; white-space: nowrap; }
-html body #main-content #coin-page .chat-callout-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--fv-accent); }
-html body #main-content #coin-page .chat-callout-toggle:has(input:checked) { border-color: var(--fv-accent); background: var(--fv-accent-soft); color: var(--fv-text); }
-html body #main-content #coin-page .chat-callout-badge { display: inline-flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; padding: 2px var(--fv-space-2); border-radius: 999px; background: var(--fv-accent-soft); color: var(--fv-text); font: 600 12px var(--fv-font-data); }
-@media (max-width: 1099px) {
-  html body #main-content .callouts-tabs { display: inline-flex; justify-self: start; }
-  html body #main-content .callouts-columns { grid-template-columns: minmax(0, 1fr); }
-  html body #main-content .callouts-column { display: none; }
-  html body #main-content #callouts:is([data-column="latest"]) [data-callouts-column="latest"],
-  html body #main-content #callouts:is([data-column="top"]) [data-callouts-column="top"],
-  html body #main-content #callouts:is([data-column="conviction"]) [data-callouts-column="conviction"] { display: grid; }
-  html body #main-content .callouts-list { max-height: none; }
-}
-@media (max-width: 700px) {
-  html body #main-content .callouts-toolbar small { width: 100%; margin-left: 0; }
-  html body #main-content .callouts-leaders { display: grid; }
-}

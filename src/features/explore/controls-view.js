@@ -72,7 +72,7 @@ export function renderExploreControls(
     button.setAttribute('aria-pressed', String(active));
   });
   const checked = document.querySelector('#explore-last-updated');
-  if (checked) checked.hidden = Boolean(exploreUpdatedAt);
+  if (checked) { checked.hidden = false; checked.dataset.inlineStatus = ''; }
   if (checked) checked.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
 }
 

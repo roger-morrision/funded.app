@@ -239,7 +239,7 @@ export function createLaunchSubmitController(appState) {
         ...(burnReceipt && !burnReceipt.atomicWithPumpLaunch ? [{ label: 'Verify separate $FUNDED burn on Explorer ↗', href: devnetExplorer(`tx/${burnReceipt.signature}`) }] : []),
         { label: 'View mint on Explorer ↗', href: devnetExplorer(`address/${result.mint.publicKey.toBase58()}`) },
         { label: 'Open My launches →', href: '#my-launches' },
-        { label: 'Publish community airdrop →', href: '#airdrops' },
+        { label: 'Review this coin’s migration airdrop →', href: `/?airdropMint=${launchPolicy.mint}#airdrops` },
       ];
       appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed · ${savedFeeAllocationCopy(launchPolicy.feeDistribution)}${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
       document.querySelector('#launch-status').classList.add('launch-complete');

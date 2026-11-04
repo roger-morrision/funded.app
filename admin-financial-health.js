@@ -14,6 +14,6 @@ export async function refreshFinancialHealth({api,document=globalThis.document})
     for(const alert of health.alerts||[]){
       const line=document.createElement('p');line.textContent=`${alert.code} · ${alert.mint||''} · ${alert.source||alert.scheduleId||''}`;root.append(line);
     }
-    const note=document.createElement('p');note.textContent='Recorded ledger checks. Every payout and burn still requires finalized on-chain proof.';root.append(note);
+    const note=document.createElement('p');note.textContent='These are historical ledger checks. Worker heartbeat and last execution are separate from a currently spendable vault balance. Check RPC & worker health for the current heartbeat, then the vault’s protected obligations before spending. Every payout and burn requires finalized on-chain proof.';root.append(note);
   }catch{if(current())root.textContent='Financial monitoring is unavailable. Refresh after the worker reports.';}
 }

@@ -14,7 +14,7 @@ export function mountReserveFacts(root,app){
       if(id!==serial||mint!==app.getCoinMintAddress())return;
       const row=response.available?reserveFacts(response.data,mint):null;
       box.replaceChildren(el('h3','Migration airdrop'), el('p','Hold $FUNDED at the verified snapshot to qualify. Eligible wallets claim this launched coin during its claim window.'),
-        link('Check wallet eligibility and claim receipts', '#airdrops'));
+        link('Check wallet eligibility and claim receipts', `/?airdropMint=${encodeURIComponent(mint)}#airdrops`));
       if(!row){box.append(el('p','Verified reserve custody unavailable for this mint. A launch allocation does not prove the tokens are funded.'));last='';return;}
       const active=['drop-active','drop-closed'].includes(row.status),list=el('dl');
       const market = app.assets?.find(asset => asset.address === mint);

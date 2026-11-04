@@ -159,6 +159,7 @@ export function createExploreLoadingController(appState) {
           appState.assets = appState.includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
           appState.publishVerifiedCurves(appState.assets);
           appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
+          document.dispatchEvent(new Event('funded:verified-search-index'));
           appState.renderExploreAssets();
           appState.renderHomeLaunchBoard();
           // Rank from the activity the feed already carried; slow per-coin reads refine it below.

@@ -143,7 +143,7 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
     const walker = document.createTreeWalker(root, view.NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const parent = node.parentElement;
-      if (!parent || parent.closest(JARGON_SKIP)) continue;
+      if (!parent || parent.closest(JARGON_SKIP) || parent.closest('[data-inline-status]')) continue;
       const plain = plainWording(node.nodeValue);
       if (plain !== node.nodeValue) node.nodeValue = plain;
     }
@@ -161,10 +161,10 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
     // A hidden line that has since been replaced with real content (or no
     // longer reads as a status line) comes back into view.
     for (const element of root.querySelectorAll(`[${HIDDEN}]`)) {
-      if (!plainLine(element) || element.closest(SKIP)) restore(element);
+      if (!plainLine(element) || element.closest(SKIP) || element.closest('[data-inline-status]')) restore(element);
     }
     for (const element of root.querySelectorAll(CANDIDATES)) {
-      if (!plainLine(element) || element.closest(SKIP)) continue;
+      if (!plainLine(element) || element.closest(SKIP) || element.closest('[data-inline-status]')) continue;
       // Value cells keep their place and read as "Updating…"; other lines are
       // removed visually but stay available to screen readers. Inline styles
       // outrank the page's route-specific layout rules.

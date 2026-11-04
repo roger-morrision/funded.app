@@ -56,6 +56,7 @@ export function createCalloutFeed({ store, readMarketCaps, readTokenMeta = mint 
         calledMarketCapSol: entry.marketCapSol, currentMarketCapSol: current, peakMarketCapSol: peak,
         multiple: calloutMultiple(entry.marketCapSol, current), peakMultiple: calloutMultiple(entry.marketCapSol, peak),
         graduated: Boolean(caps[entry.mint]?.graduated),
+        marketObservedAt: caps[entry.mint]?.observedAt || null,
       };
     });
     // Peaks are only seen while someone watches; save new highs at most every 30s.

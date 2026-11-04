@@ -19,6 +19,13 @@ import { renderProofStrip } from '../proof/proof-totals.js';
 import { mountHolderRewardsCard } from '../coin/holder-rewards-card.js';
 import { mountBonusCountdown } from '../leaderboard/bonus-countdown.js';
 import { mountCallouts } from '../callouts/callouts.js';
+import { mountCalloutIntent } from '../callouts/composer-intent.js';
+import { mountRewardGuidance } from './reward-guidance.js';
+import './journeys.css';
+import { mountCoinJourney } from './coin-journey.js';
+import { mountFlowDiagnostics } from './flow-timing.js';
+import { mountJourneySupport } from './journey-support.js';
+import { mountExploreReturn } from '../explore/return-position.js';
 
 export function initializeProductFlows(app) {
   initializeLaunchFacts(app);
@@ -46,6 +53,12 @@ export function initializeProductFlows(app) {
     mountHolderRewardsCard(app);
     mountBonusCountdown(app);
     mountCallouts(app);
+    mountCalloutIntent(app);
+    mountRewardGuidance(app);
+    mountCoinJourney(app);
+    mountFlowDiagnostics();
+    mountJourneySupport();
+    mountExploreReturn();
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;

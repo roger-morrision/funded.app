@@ -23,6 +23,7 @@ export function createLaunchRegistryController(appState) {
       if (program) appState.renderAirdropProgramDetail(program, { preserveStatus });
     }
     appState.renderRegistry();
+    document.dispatchEvent(new Event('funded:reserves-updated'));
   }
   // app-source-end
 
@@ -74,6 +75,7 @@ export function createLaunchRegistryController(appState) {
       && launch.cluster === appState.EXPLORE_CLUSTER
       && (launch.creatorWallet || launch.feePayer));
     appState.assets = appState.includeVerifiedRegistryLaunches(appState.assets);
+    document.dispatchEvent(new Event('funded:verified-search-index'));
     appState.updateExploreSortAvailability();
     appState.renderCreatorLaunches();
     appState.renderExploreAssets();

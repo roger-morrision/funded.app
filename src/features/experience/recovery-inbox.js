@@ -1,5 +1,6 @@
 import { readLaunchJournal, journalRecovery } from '../../../launch-journal.js';
 import { readTradeRecovery } from './trade-recovery-store.js';
+import { recordFlowTiming } from './flow-timing.js';
 import { el, panel, link, button, address, signature, utc, portfolioTools } from './view-utils.js';
 export function recoveryItems(wallet, launches, trades) {
   if (!address(wallet)) return [];
@@ -28,11 +29,11 @@ export function initializeRecoveryInbox(app) {
       if (signature(item.signature)) row.append(link('Inspect transaction ↗',`https://explorer.solana.com/tx/${item.signature}?cluster=devnet`,true));
       if (item.kind === 'trade') row.append(button('Check recorded trade',async event => {
         if (wallet !== app.connectedWalletAddress) return;
-        const control = event.currentTarget; control.disabled = true;
+        const control = event.currentTarget; control.disabled = true; const started=performance.now();
         app.pendingTradeVerifications.set(item.signature, item);
         try { await app.verifyPendingTrade(null,item.signature); render(); }
         catch { status.textContent = 'Verification unavailable. The recorded transaction is preserved; try checking it again later.'; }
-        finally { control.disabled = false; }
+        finally { control.disabled = false; recordFlowTiming('recovery', performance.now()-started, app.pendingTradeVerifications.has(item.signature) ? 'pending' : 'verified'); }
       }));
       else if (address(item.mint)) row.append(link('Inspect coin and registration',`/token/${item.mint}`));
       else row.append(link('Open launch form','#launch'));

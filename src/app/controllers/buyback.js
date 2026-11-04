@@ -202,6 +202,7 @@ export function createBuybackController(appState) {
           ? (indexed.available ? 'Your balance and burn history are ready.' : 'Your balance is ready; burn history is unavailable.')
           : 'Live Solana supply loaded. Connect a wallet to view its balance and burn receipts.',
       };
+      document.dispatchEvent(new Event('funded:analytics-summary'));
     } catch (error) {
       if (request !== appState.fundedBurnRequest) return;
       appState.fundedBurnState = { ...appState.fundedBurnState, status: 'error', wallet: address,

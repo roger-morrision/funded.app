@@ -15,7 +15,9 @@ for(const width of [1280,390])test(`holder self-payment shows its signed net cha
   await page.goto('/#payments');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.locator('[data-reward-open="history"]').click();
   const row=page.locator('#payment-list .payment-history-row');await expect(row).toHaveCount(1);
-  await expect(row.locator('.payment-amount')).toHaveText('-0.000947354SOL net change');
+  await expect(row.locator('.payment-amount')).toHaveText('-0.000947354SOL net wallet change');
+  await expect(row.locator('.payment-gross-headline')).toHaveText('Reward 0.000215886 SOL');
+  await expect(row.locator('.payment-cost-explanation')).toContainText('Costs exceed this reward');
   await row.locator('summary').click();
   await expect(row.locator('.payment-history-gross')).toContainText('0.000215886 SOL');
   await expect(row.locator('.payment-history-details')).toContainText('Payment account rent 0.00115824 SOL');

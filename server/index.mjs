@@ -41,7 +41,6 @@ import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
-
 import { createCommunityClaimService } from './community-claim-service.mjs';
 import { SharedRpcConnection } from './rpc-connection.mjs';
 import { communityProgramForLaunch } from './community-program-config.mjs';
@@ -51,17 +50,13 @@ import { isIP } from 'node:net';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, Keypair, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
-
 import { createReferralCode } from '../referral-program.js';
 import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
-
 import { createProductMetricsStore, createProductMetricsHandler, confirmedProductTotals } from './product-metrics.mjs';
 import { financialOperations } from './product-insights.mjs';
-
 import { createCreatorSupportHandler } from './creator-support.mjs';
 import { createWatchlistHandler } from './watchlists.mjs';
-
 import { CREATOR_SUPPORT_VERSION } from '../creator-support-model.js';
 import { createXAuth, cookieValue, allowedAuthOrigin, callbackUrlFor, SESSION_SECONDS } from './x-auth.mjs';
 import { createMobileWalletRelay } from './mobile-wallet-relay.mjs';

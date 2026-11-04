@@ -1,6 +1,7 @@
 // Platform proof totals: what the fee rules have actually paid out, read from
 // /api/analytics/summary. Shared by the Analytics page strip and the welcome
 // page card, so both show the same numbers with the same wording.
+import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
 const LAMPORTS = 1_000_000_000;
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const lamports = value => { const number = Number(value); return Number.isFinite(number) && number >= 0 ? number : null; };
@@ -24,7 +25,7 @@ export function formatProofUsd(value, solUsd) {
 
 const plural = (number, word) => `${number.toLocaleString('en-US')} ${word}${number === 1 ? '' : 's'}`;
 
-export function proofTotals(summary) {
+export function proofTotals(summary, {decimals = null} = {}) {
   if (!summary || typeof summary !== 'object') return null;
   const exact = summary.exactLamports || {};
   const allocations = summary.homeFeeAllocations || {};
@@ -35,7 +36,7 @@ export function proofTotals(summary) {
     { key: 'holders', label: 'Paid to holders', lamports: lamports(holder.paidLamports), note: `${plural(count(holder.payoutCount), 'payment')} in SOL`, href: '#payments/history' },
     { key: 'referrals', label: 'Referrals paid', lamports: lamports(exact.referralPaidLamports ?? summary.referralPaidLamports), note: plural(count(summary.referralPayoutCount), 'payment'), href: '#referrals' },
     { key: 'bonus', label: 'Daily bonus paid', lamports: lamports(exact.dailyBonusPaidLamports ?? summary.dailyBonusPaidLamports), note: plural(count(summary.dailyBonusPayoutCount), 'winner payment'), href: '#bonuses' },
-    { key: 'buyback', label: 'SOL spent buying $FUNDED', lamports: buybacks ? lamports(buybacks.spentLamports) : null, note: buybacks ? `${BigInt(buybacks.burnedBaseUnits).toLocaleString('en-US')} $FUNDED base units burned · ${plural(buybacks.count, 'indexed buyback')}` : 'Verified buyback receipts unavailable', href: '#buybacks' },
+    { key: 'buyback', label: 'SOL spent buying $FUNDED', lamports: buybacks ? lamports(buybacks.spentLamports) : null, note: buybacks ? `${Number.isInteger(decimals) ? formatTokenBaseAmount(buybacks.burnedBaseUnits, decimals, decimals) + ' $FUNDED burned · ' : ''}${BigInt(buybacks.burnedBaseUnits).toLocaleString('en-US')} $FUNDED base units burned · ${plural(buybacks.count, 'indexed buyback')}` : 'Verified buyback receipts unavailable', href: '#buybacks' },
     { key: 'launches', label: 'Coins launched', value: count(summary.launches).toLocaleString('en-US'), note: 'Each with its fee rule saved on Solana', href: '#explore' },
   ];
 }
@@ -64,7 +65,7 @@ export function renderProofStrip(app, document = globalThis.document) {
     strip.setAttribute('aria-label', 'Paid out so far');
     (section.querySelector('.section-heading') || section.firstElementChild)?.after(strip);
   }
-  const items = proofTotals(app.analyticsSummary);
+  const items = proofTotals(app.analyticsSummary, {decimals:app.fundedBurnState?.status === 'ready' && app.analyticsSummary?.homeFeeAllocations?.protocolBuybacks?.mint === app.PROTOCOL_FUNDED_MINT ? app.fundedBurnState.decimals : null});
   const markup = items
     ? `<div class="proof-totals-head"><strong>Paid out so far</strong><a href="#payments/history">See every receipt →</a></div><div class="proof-totals-grid">${proofTotalsMarkup(items, { solUsd: app.coinSolUsdPrice })}</div>`
     : '<div class="proof-totals-head"><strong>Paid out so far</strong><small>Checking payment records…</small></div>';

@@ -23,6 +23,7 @@ export function mountCoinAgents(root, app) {
     const result = await app.apiRequest('/api/marketing-agency?mint=' + mint, {signal:AbortSignal.timeout(10000)}).catch(() => null);
     if (request !== serial || mint !== app.getCoinMintAddress()) return;
     box.replaceChildren(el('h3','Marketing agents'));
+    box.append(el('p','The launch package announcement and the recurring X agent are separate deliveries. Recurring posts use this coin’s protected agency budget and are billed after verified delivery.'));
     const data = result?.available ? result.data : null;
     const current = data?.active === true && data.verification?.scope === 'reviewed-devnet-program-and-fresh-worker'
       && data.verification.programId === launch.pumpFeeRoute?.programId;

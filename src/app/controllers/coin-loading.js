@@ -126,6 +126,9 @@ export function createCoinLoadingController(appState) {
       appState.setCoinField('#coin-address', appState.shortAddress(mintAddress)); appState.setCoinField('#coin-full-address', mintAddress);
       appState.setCoinField('#coin-description', graduatedPool ? 'Trading pool confirmed.' : 'Coin details confirmed on Solana.');
       appState.setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
+      globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-market-facts', {detail:{mint:mintAddress,
+        stage:graduatedPool ? 'Migrated' : curve?.complete === false ? 'On curve' : curve?.complete === true ? 'Curve complete · pool unavailable' : 'Stage unverified', checkedAt:Date.now(),
+        market:{address:mintAddress, verifiedAt:new Date().toISOString(), complete:curve ? Boolean(curve.complete) : null, migrated:Boolean(graduatedPool), curveCapSol:graduatedPool ? null : marketCapSol, poolMarketCapSol:graduatedPool ? marketCapSol : null, source:'Solana RPC'}}}));
       appState.setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? appState.shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
       appState.setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
       appState.coinSolUsdValues = { spot: spotPriceSol, marketCap: marketCapSol, reserve: realQuote, virtualQuote: curve?.virtualQuoteReservesSol ?? NaN, supply };

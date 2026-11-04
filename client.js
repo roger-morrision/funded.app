@@ -1,3 +1,4 @@
+import { beginApiTiming } from './src/features/experience/flow-timing.js';
 // Solana hosts the API on the same origin. Keep that route available even when
 // an image build accidentally passes an empty VITE_API_BASE_URL.
 const CONFIGURED_API_BASE = String(import.meta.env?.VITE_API_BASE_URL || (String(import.meta.env?.VITE_SOLANA_CLUSTER || 'devnet') === 'devnet' ? '/' : '')).trim();
@@ -5,6 +6,8 @@ const API_BASE = CONFIGURED_API_BASE === '/' ? '' : CONFIGURED_API_BASE.replace(
 
 export async function apiRequest(path, options = {}) {
   if (!CONFIGURED_API_BASE) return { available: false, data: null };
+  const finishTiming = beginApiTiming(path);
+  try {
   const headers = { ...(options.headers || {}) };
   if (options.body != null && !Object.keys(headers).some(name => name.toLowerCase() === 'content-type')) headers['content-type'] = 'application/json';
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers, body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : options.body });
@@ -18,7 +21,9 @@ export async function apiRequest(path, options = {}) {
     error.status = response.status;
     throw error;
   }
+  finishTiming(response.status === 202 ? 'pending' : 'available');
   return { available: true, data };
+  } catch (error) { finishTiming('unavailable'); throw error; }
 }
 
 export async function persistLaunchPolicy(policy) {

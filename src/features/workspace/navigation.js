@@ -94,6 +94,7 @@ export function navigation() {
       identity.append(node('strong', '', candidate.name), node('small', '', candidate.type ? `${candidate.symbol} · ${candidate.subtitle}` : `$${candidate.symbol} · ${candidate.mint.slice(0, 5)}…${candidate.mint.slice(-4)}`));
       const market = node('span', 'header-search-market');
       market.append(node('strong', '', candidate.marketCap), node('small', '', candidate.stage));
+      if (candidate.freshness) { const age=node('small', 'market-freshness', candidate.freshness); age.dataset.inlineStatus=''; market.append(age); }
       token.append(avatar, identity);
       link.append(token, market);
       link.addEventListener('click', () => searchDialog.close());

@@ -107,7 +107,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const note = document.createElement('small');
       if (verified) {
         title.textContent = lookup.name;
-        note.textContent = `${lookup.symbol} · Verified Solana token metadata`;
+        note.textContent = `${lookup.symbol} · ${lookup.included ? 'Saved Funded launch · listing included' : 'Verified Solana token metadata'}`;
         if (existing) {
           const link = document.createElement('a');
           link.href = `/token/${encodeURIComponent(mint)}`;
@@ -161,7 +161,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         if (sequence !== lookupSequence || mint !== mintValue()) return;
         if (!result.available || result.data?.cluster !== 'devnet' || result.data.mint !== mint
           || !result.data.name || !result.data.symbol) throw new Error('Verified token metadata is unavailable.');
-        lookup = { mint, status:'verified', name:result.data.name, symbol:result.data.symbol };
+        lookup = { mint, status:'verified', name:result.data.name, symbol:result.data.symbol, included:result.data.included === true };
         nameInput.value = lookup.name;
         symbolInput.value = lookup.symbol;
         setStatus('Token metadata verified on Solana. Review remains gated by listing availability and wallet checks.');

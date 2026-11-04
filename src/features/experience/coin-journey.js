@@ -1,0 +1,48 @@
+import { el, link, button, address, utc, reportContextLink } from './view-utils.js';
+import { rememberMarketFacts } from '../explore/market-facts.js';
+import { recordFlowTiming } from './flow-timing.js';
+
+export function mountCoinJourney(app) {
+  const coin = document.querySelector('#coin-page'); if (!coin) return;
+  const panel = el('section', null, 'coin-readiness'); panel.dataset.inlineStatus = '';
+  panel.setAttribute('aria-label', 'Coin readiness');
+  const state = el('p', 'Checking market stage…'), age = el('small'), nav = el('nav');
+  const claims = link('Check airdrop eligibility', '#airdrops');
+  const report = reportContextLink('Report this step');
+  const retry = button('Retry market check', () => document.querySelector('#coin-refresh')?.click());
+  nav.append(claims, report, retry); panel.append(state, age, nav);
+  coin.querySelector('.coin-hero-card')?.after(panel);
+  const checklist = el('details', null, 'flow-panel launch-checklist');
+  checklist.append(el('summary', 'After launch · receipts and next steps'));
+  const steps = el('ol'); checklist.append(steps); coin.querySelector('.coin-main-column')?.append(checklist);
+  let start = performance.now(), seen = false;
+  const reset = () => { start = performance.now(); state.textContent = 'Checking market stage…'; age.textContent = 'A fresh quote is required before signing.'; steps.replaceChildren(); };
+  window.addEventListener('funded:coin-facts-loading', reset);
+  window.addEventListener('funded:coin-market-facts', event => {
+    const {mint, stage, checkedAt, market} = event.detail;
+    if (mint !== app.getCoinMintAddress()) return;
+    state.textContent = `${stage} · review a fresh quote to check trade availability`;
+    age.textContent = `Confirmed Solana snapshot · ${utc(checkedAt)}`;
+    rememberMarketFacts([market], app.EXPLORE_CLUSTER);
+    document.dispatchEvent(new Event('funded:verified-search-index'));
+    claims.href = `/?airdropMint=${mint}#airdrops`;
+    report.dataset.reportContext = `/token/${mint}?operation=token-detail&stage=verified`;
+    recordFlowTiming('token-detail', performance.now() - start, 'verified', seen ? 'warm' : 'cold'); seen = true;
+    steps.replaceChildren();
+    for (const [text, href] of [
+      ['Confirm the mint and saved fee policy', `/token/${mint}`],
+      ['Check reserve custody, snapshot and claim deadline', `/?airdropMint=${mint}#airdrops`],
+      ['Review delivered promotion and recurring agent receipts', '#marketing-agency'],
+      ['Review finalized payments', '#payments/history'],
+    ]) { const li = el('li'); li.append(link(text, href)); steps.append(li); }
+    const facts = coin.querySelector('.launch-facts');
+    steps.children[2]?.append(button('Open this coin’s agent facts', () => { if (!facts) return; facts.open = true; facts.scrollIntoView({block:'start'}); }));
+  });
+  window.addEventListener('funded:coin-facts', event => {
+    if (!event.detail.error || event.detail.mint !== app.getCoinMintAddress()) return;
+    state.textContent = 'Market verification unavailable'; age.textContent = 'Refresh token data to retry. Existing transaction receipts remain available.';
+    report.dataset.reportContext = `/token/${event.detail.mint}?operation=token-detail&stage=verification-unavailable`;
+    recordFlowTiming('token-detail', performance.now() - start, 'unavailable', seen ? 'warm' : 'cold'); seen = true;
+  });
+  if (address(app.getCoinMintAddress())) claims.href = `/?airdropMint=${app.getCoinMintAddress()}#airdrops`;
+}

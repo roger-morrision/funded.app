@@ -1,4 +1,5 @@
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
+import { issueOperationContext } from '../../issue-context.js';
 import { readJsonBody } from '../request-body.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import {reviewProductIssue} from '../product-issue-review.mjs';
@@ -8,7 +9,7 @@ export function validateIssue(input) {
   if (!input || typeof input.description !== 'string' || input.description.trim().length < 10 || input.description.length > 2000
     || !['bug','impersonation','spam','request'].includes(input.category)) throw new Error('Choose a category and describe the issue in 10–2000 characters.');
   const context = input.context || {};
-  return {category:input.category,description:input.description.trim(),context:{cluster:'devnet',
+  return {category:input.category,description:input.description.trim(),context:{cluster:'devnet',...issueOperationContext(context),
     route:typeof context.route === 'string' && /^\/[A-Za-z0-9/_#-]*$/.test(context.route) ? context.route.slice(0,160) : '/',
     mint:/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(context.mint || '') ? context.mint : null,
     signature:/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(context.signature || '') ? context.signature : null}};

@@ -1,6 +1,7 @@
 import { escapeHtml, formatDashboardUsd, formatCompactUsd } from '../shared/display.js';
 import { activeBoostMultiplier } from '../../../boost-offer.js';
 import { icon } from '../../../ui-icons.js';
+import { marketFreshness, marketFacts } from '../explore/market-facts.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function homeLaunchFeeRouteMarkup(
@@ -168,13 +169,14 @@ export function homeLaunchCardMarkup(
     const change = item.change || '—';
     const changeValue = Number.parseFloat(change);
     const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
-    const progress = launchCardProgressState(item, exploreProviderStatus);
+    const displayMarket = marketFacts(item, EXPLORE_CLUSTER);
+    const progress = launchCardProgressState(displayMarket, exploreProviderStatus);
     const trackAttributes = progress.value === null ? 'aria-hidden="true"'
       : `role="progressbar" aria-label="Migration progress for ${escapeHtml(item.symbol || item.name || 'token')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="${escapeHtml(progress.text)}"`;
     const progressMarkup = `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : '<i style="--launch-progress:100%"></i>'}</div></div>`;
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
-    const capSol = item.migrated === true ? item.poolMarketCapSol : item.curveCapSol;
-    const capLabel = item.migrated === true ? 'Market cap' : 'Curve cap';
+    const capSol = displayMarket.migrated === true ? displayMarket.poolMarketCapSol : displayMarket.curveCapSol;
+    const capLabel = displayMarket.migrated === true ? 'Market cap' : 'Curve cap';
     const shownVolume = volumeValue;
     const value = EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(capSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—';
     const providerHolders = item.holders == null || item.holders === '' ? NaN : Number(item.holders);
@@ -217,7 +219,7 @@ export function homeLaunchCardMarkup(
     // "No trades" lives in the volume cell only; repeating it beside the cap clipped the cap on phones.
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
-      <div class="home-card-overview">
+      <small class="market-freshness" data-inline-status>${escapeHtml(marketFreshness(item, EXPLORE_CLUSTER))}</small><div class="home-card-overview">
       <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span></div>
       <div class="home-card-info">
         <div class="home-card-heading">

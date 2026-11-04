@@ -1,5 +1,6 @@
 import { initializeAppState } from '../runtime.js';
 import { typedSearch } from '../../features/experience/search-model.js';
+import { marketFreshness, marketFacts } from '../../features/explore/market-facts.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeBuybackPreview(appState) {
@@ -12,6 +13,7 @@ export function initializeBuybackPreview(appState) {
   window.fundedVerifiedSearchCandidates = (query = '') => {
     const term = String(query).trim().toLowerCase();
     const capUsd = item => {
+      item = marketFacts(item, appState.EXPLORE_CLUSTER);
       const raw = appState.EXPLORE_CLUSTER === 'devnet'
         ? Number(item.migrated === true ? item.poolMarketCapSol : item.curveCapSol) * appState.coinSolUsdPrice
         : Number(item.marketCapUsd);
@@ -25,7 +27,7 @@ export function initializeBuybackPreview(appState) {
       .slice(0, term ? 8 : 5)
       .map(item => {
         const launch = appState.EXPLORE_CLUSTER === 'devnet' ? appState.verifiedLaunchPolicyForMint(item.address) : null;
-        return { name: item.name || item.symbol || 'Token', symbol: item.symbol || 'TOKEN', mint: item.address, verifiedLaunch: Boolean(launch), imageUri: launch?.imageUri || null, stage: appState.exploreStageLabel(item), marketCap: appState.exploreMarketCapUsd(item) };
+        return { name: item.name || item.symbol || 'Token', symbol: item.symbol || 'TOKEN', mint: item.address, verifiedLaunch: Boolean(launch), imageUri: launch?.imageUri || null, stage: appState.exploreStageLabel(item), marketCap: appState.exploreMarketCapUsd(item), freshness:marketFreshness(item, appState.EXPLORE_CLUSTER) };
       });
     return [...tokens,...typedSearch(query,appState.verifiedLaunchPolicies,appState.getFollowedWallets?.()||[])];
   };

@@ -5,9 +5,21 @@ import { chatCalloutBadge } from '../../features/callouts/callouts.js';
 export function createCoinCommunityController(appState) {
   // app-source: 962
   function renderCoinChat(activity){
+    const previous = activity.querySelector('#coin-chat-form');
+    const draft = previous?.querySelector('#coin-chat-input');
+    const focused = draft === document.activeElement;
+    const text = draft?.value || '';
+    const callout = previous?.elements.namedItem('callout')?.checked === true;
     const messages = appState.visibleCoinChatMessages();
     const rows = messages.length ? messages.map(appState.tokenChatMessageMarkup).join('') : appState.coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : appState.tokenChatEmptyMarkup();
     activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${appState.escapeHtml(appState.coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${appState.tokenChatComposerMarkup('coin-chat')}</div>`;
+    const form = activity.querySelector('#coin-chat-form');
+    if (form) {
+      form.querySelector('#coin-chat-input').value = text;
+      form.elements.namedItem('callout').checked = callout;
+      if (focused) form.querySelector('#coin-chat-input').focus({preventScroll:true});
+    }
+    window.dispatchEvent(new Event('funded:coin-chat-rendered'));
   }
   // app-source-end
 

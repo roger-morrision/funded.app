@@ -24,7 +24,7 @@ export function formatCalloutCap(capSol, solUsd) {
 export function formatMultiple(multiple) {
   if (!Number.isFinite(multiple) || multiple <= 0) return '—';
   if (multiple < 1) return `${Math.round((multiple - 1) * 100)}%`;
-  return `${multiple >= 10 ? multiple.toFixed(0) : multiple.toFixed(multiple >= 2 ? 1 : 2)}x`;
+  return `${multiple.toFixed(multiple >= 2 ? 1 : 2)}x`;
 }
 
 export function multipleTrend(multiple) {
@@ -78,19 +78,19 @@ export function calloutRowMarkup(row, { solUsd, wallet, nowMs = Date.now(), fres
     : `<span class="callout-token-initial" aria-hidden="true">${escape(symbol.slice(0, 1).toUpperCase())}</span>`;
   const you = wallet && row.author === wallet ? ' <em>you</em>' : '';
   const caller = callers.get(row.author);
-  const record = caller ? `${caller.calls} call${caller.calls === 1 ? '' : 's'} · ${formatMultiple(caller.avgMultiple)} avg` : 'Wallet-verified caller';
+  const record = caller ? `${caller.calls} call${caller.calls === 1 ? '' : 's'} · ${formatMultiple(caller.avgMultiple)} mean observed peak` : 'Wallet-verified caller';
   const conviction = row.holdingPercent > 0 ? `<span class="callout-conviction" title="Share of supply this wallet held when it made the call">Holds ${escape(formatHolding(row.holdingPercent))}</span>` : '';
   return `<li class="callout-card${row.holdingPercent > 0 ? ' is-conviction' : ''}${fresh ? ' is-new' : ''}" data-callout-id="${escape(row.id)}">
 <header><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><span class="callout-who"><span><button type="button" class="callout-author" data-callout-author="${escape(row.author)}" title="Show only this wallet's calls">${escape(shortWallet(row.author))}</button>${you}</span><small>${escape(record)}</small></span>${conviction}<time datetime="${escape(row.createdAt)}">${escape(timeAgo(row.createdAt, nowMs))}</time></header>
 <p class="callout-text">${escape(row.text)}</p>
 <a class="callout-chip" href="#coin/${escape(row.mint)}" title="${escape(row.token?.name || 'Open coin')}">${image}<strong>$${escape(symbol)}</strong><b class="callout-multiple" data-trend="${multipleTrend(row.multiple)}" aria-label="Change since the call">${escape(formatMultiple(row.multiple))}</b><span aria-hidden="true">›</span></a>
-<p class="callout-figures">Called at ${escape(formatCalloutCap(row.calledMarketCapSol, solUsd))} · now ${escape(formatCalloutCap(row.currentMarketCapSol, solUsd))} · peak ${escape(formatMultiple(row.peakMultiple))}</p>
+<p class="callout-figures">Called at ${escape(formatCalloutCap(row.calledMarketCapSol, solUsd))} · now ${escape(formatCalloutCap(row.currentMarketCapSol, solUsd))} · observed peak ${escape(formatMultiple(row.peakMultiple))}</p><small class="callout-coverage">${row.currentMarketCapSol == null ? 'Current quote unavailable · ' : row.marketObservedAt ? `Market checked ${escape(timeAgo(row.marketObservedAt, nowMs))} · ` : 'Market check time unavailable · '}Called ${escape(new Date(row.createdAt).toLocaleString())} · <a href="/wallet/${escape(row.author)}">Caller profile</a></small>
 </li>`;
 }
 
 export function topCallersMarkup(rows, wallet) {
   if (!rows?.length) return '<li class="callouts-leaders-empty">No ranked callers yet this week. Make the first call.</li>';
-  return rows.map((row, index) => `<li${wallet && row.author === wallet ? ' class="is-you" aria-current="true"' : ''}><span class="callouts-rank">#${index + 1}</span><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><button type="button" class="callout-author" data-callout-author="${escape(row.author)}">${escape(shortWallet(row.author))}</button><b data-trend="${multipleTrend(row.avgMultiple)}">${escape(formatMultiple(row.avgMultiple))}</b><small>${row.calls} call${row.calls === 1 ? '' : 's'} · ${Math.round(row.hitRate * 100)}% hit 2x</small></li>`).join('');
+  return rows.map((row, index) => `<li${wallet && row.author === wallet ? ' class="is-you" aria-current="true"' : ''}><span class="callouts-rank">#${index + 1}</span><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><button type="button" class="callout-author" data-callout-author="${escape(row.author)}">${escape(shortWallet(row.author))}</button><b data-trend="${multipleTrend(row.avgMultiple)}">${escape(formatMultiple(row.avgMultiple))} mean peak</b><small>${Number.isInteger(row.hits) ? row.hits : Math.round(row.hitRate * row.calls)} of ${row.calls} calls reached 2x${row.calls < 5 ? ' · small sample' : ''}</small></li>`).join('');
 }
 
 const readSeen = () => { try { return localStorage.getItem(SEEN_KEY) || ''; } catch { return ''; } };
@@ -105,6 +105,8 @@ export function mountCallouts(app, document = globalThis.document) {
   const page = document?.querySelector('#callouts');
   if (!page || page.dataset.mounted) return;
   page.dataset.mounted = 'true';
+  const network = page.querySelector('[data-callouts-network]');
+  if (network && app.EXPLORE_CLUSTER === 'devnet') network.textContent = 'Devnet test activity includes QA wallets and test trades.';
   const columns = Object.fromEntries(['latest', 'top', 'conviction'].map(name => [name, page.querySelector(`[data-callouts-list="${name}"]`)]));
   const leaders = page.querySelector('#callouts-top');
   const status = page.querySelector('#callouts-status');

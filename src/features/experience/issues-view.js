@@ -1,4 +1,5 @@
 import { panel, el, button, array, utc, address, signature } from './view-utils.js';
+import { issueOperationContext } from '../../../issue-context.js';
 const KEY='funded.issue-reports.v1';
 export function initializeIssuesView(app) {
   const parent=document.querySelector('#profile');if(!parent)return;
@@ -15,6 +16,7 @@ export function initializeIssuesView(app) {
     if(sending)return;
     if(!form.reportValidity())return;const url=sourceContext||new URL(location.href),mint=url.pathname.match(/^\/token\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1]||url.searchParams.get('mint');
     prepared={category:category.value,description:description.value,context:include.checked?{route:url.pathname+url.hash,mint:address(mint)?mint:null,signature:signature(url.searchParams.get('receipt'))?url.searchParams.get('receipt'):null}: {route:'/'}};
+    if (include.checked) Object.assign(prepared.context, issueOperationContext(Object.fromEntries(url.searchParams)));
     preview.textContent=JSON.stringify(prepared,null,2);preview.hidden=false;copy.disabled=false;submit.disabled=!enabled;status.textContent=enabled?'Review this exact report, then send it.':'Report service unavailable. Save the reviewed text locally.';
   });
   const categoryLabel=el('label','Category');categoryLabel.append(category);

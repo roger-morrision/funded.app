@@ -1,4 +1,5 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
+import { recordFlowTiming } from '../../features/experience/flow-timing.js';
 import { estimateTradeNetworkFee, renderTradeCostDisclosure } from '../../features/experience/trade-costs.js';
 import { recordTradeRecovery,uncertainTrade } from '../../features/experience/trade-recovery-store.js';
 import {expiredUnlandedTrade} from '../../features/experience/trade-expiry.js';
@@ -7,7 +8,7 @@ import { assertTradeLimits, readTradePreferences } from '../../features/experien
 import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_REVIEW_REFRESH_AFTER_MS } from '../../../trade-quote-policy.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
-  let retryInputKey='';
+  let retryInputKey='', quoteSeen=false;
   const quoteRetry=createTradeQuoteRetry(globalThis.document?.querySelector('#trade-quote-retry'),{
     isCurrent:()=>!appState.tradeActionBusy&&retryInputKey===JSON.stringify({...appState.tradeInputs(),wallet:appState.connectedWalletAddress}),
     retry:()=>{if(holdUncertainTrade(appState.tradeInputs().mint))return;appState.invalidateTradePreview();appState.queueTradeQuote(0);}
@@ -44,6 +45,7 @@ export function createTradeExecutionController(appState) {
     if (appState.tradePreview?.inputKey === inputKey && Date.now() - appState.tradePreview.preparedAt < TRADE_QUOTE_TTL_MS) return appState.tradePreview;
     if (appState.tradeQuoteInFlight?.inputKey === inputKey && appState.tradeQuoteInFlight.version === appState.tradeQuoteVersion) return appState.tradeQuoteInFlight.promise;
     const version = appState.tradeQuoteVersion;
+    const started = performance.now(), temperature = quoteSeen ? 'warm' : 'cold'; quoteSeen = true;
     const request = (async () => {
       quoteRetry.reset();
       appState.setTradeStatus('Calculating the current on-chain quote…');
@@ -78,12 +80,14 @@ export function createTradeExecutionController(appState) {
       document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
       appState.setTradeStatus('Review this quote and the transaction in your wallet before signing.');
       appState.productEvent('trade_quote_ready');
+      recordFlowTiming('quote', performance.now()-started, 'available', temperature);
       appState.tradeQuoteTimer = setTimeout(() => appState.refreshTradeQuoteWhenIdle(version), TRADE_QUOTE_REFRESH_MS);
       return appState.tradePreview;
     })();
     appState.tradeQuoteInFlight = { inputKey, version, promise:request };
     try { return await request; }
     catch (error) {
+      recordFlowTiming('quote', performance.now()-started, 'unavailable', temperature);
       if (version === appState.tradeQuoteVersion && appState.isWalletSessionCurrent(session)) {
         appState.tradePreview = null;
         appState.renderTradeBalances();
