@@ -80,3 +80,40 @@ start either publisher; a separate reviewed activation is required.
 Agents 2 and 3 retain their real $100,000 / $300,000 verified USD market-cap
 thresholds, one execution per agent per mint, protected payer reserve and
 finalized debit/burn receipt checks. Availability is not an executed burn.
+
+### Worker diagnostics
+
+Agency workers emit `agency-worker-step` or `agency-buyback-worker-step` JSON
+records. Match `cycleId` and `step` to pair a `started` record with its
+`completed`, `pending`, or `failed` record. A start without an end identifies
+the last in-flight phase if a worker stalls or exits. `elapsedMs` uses a
+monotonic clock. Nested phase durations overlap; do not sum them. The final
+cycle record includes `diagnostics.cycleDurationMs` and the last 128 completed
+steps, with `droppedSteps` reporting truncation.
+
+Phases distinguish deployment, lookup-table and publisher verification,
+state/custody reads, market observations, quotes, execution, execution proof,
+promotion, dispatch, billing and heartbeat writes. A completed phase means
+the call returned; only the existing receipt verification establishes a
+finalized purchase or burn. An unmigrated market remains `pending`.
+
+Failures include only allowlisted reason codes, phase, duration and public
+mint/agent identifiers. Provider messages, URLs, credentials, stacks and
+transaction payloads are excluded from these diagnostic records. Unknown
+errors remain `verification-unavailable`; HTTP status alone does not identify
+which provider failed. `market-snapshot-stale`, `price-reference-unavailable`
+and `price-reference-stale` distinguish the market freshness gates. These
+codes do not claim why an upstream price reader returned no reference.
+
+The existing `adminSettings.agencyWorker` / `agencyBuybackWorker` heartbeat
+writes retain the bounded diagnostic snapshot. Its final heartbeat-write
+duration is available in logs after that write completes. Public budget
+summaries do not include diagnostics. Blocked-cycle records also carry the
+innermost failed phase and are logged before attempting to save the blocked
+heartbeat, so a database failure cannot hide the original diagnostic.
+
+Diagnostics never renew readiness on a step start, retry a transaction or
+change the 90-second readiness window, 60-second market freshness limit,
+protected reserve, fee policy or creator-buy limit. Logger failures do not
+interrupt the worker. Investigate the recorded phase before changing any
+readiness gate; a previous generic outage cannot be attributed retroactively.

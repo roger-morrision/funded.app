@@ -15,9 +15,10 @@ import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
 // milestone, including when future fees replenish this agent's sub-budget.
 export async function runAgencyMilestone({store,connection,mint,agent,programId,approvedHash,authority,lookupAddress,
   readContext=readAgencyMintContext,readObservation=readAgencyMarketObservation,quote=quoteAgencyBuyback,
-  journal=executeAgencyJournal,loadProof=loadFinalizedV3Buyback,now=()=>Date.now()}){
+  journal=executeAgencyJournal,loadProof=loadFinalizedV3Buyback,now=()=>Date.now(),diagnostics}){
+  const step=(phase,action)=>diagnostics?diagnostics.step(phase,{mint,agent},action):action();
   if(![1,2].includes(agent))throw new Error('An own-coin milestone agent is required.');
-  const state=await store.read(),context=await readContext({connection,state,mint,programId,approvedHash,authority:authority.publicKey});
+  const state=await step('state-read',()=>store.read()),context=await step('custody',()=>readContext({connection,state,mint,programId,approvedHash,authority:authority.publicKey}));
   const key=`agency:${mint}:${agent}:0`,saved=state.v3AgencyExecutions?.[key];
   if(!saved&&(!(context.policy.selectedMask&(1<<agent))||context.policy.completedMask&(1<<agent)))return{status:'not-payable',mint,agent};
   const intent=saved?.intent||{cluster:'devnet',mint,programId:String(programId),approvedHash,agent,
@@ -30,19 +31,20 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
   // qualify; an already signed intent is always reconciled without requoting.
   let observation=null;
   if(!saved?.signature){
-    observation=await readObservation({connection,mint});
+    observation=await step('market-observation',()=>readObservation({connection,mint}));
     if(BigInt(observation.marketCapUsdMicros)<BigInt((context.policy.rules||DEFAULT_AGENCY_RULES).marketCapUsd[agent-1])*1000000n)return{status:'below-threshold',mint,agent,
       observation:{slot:observation.slot,observedAt:observation.observedAt,marketCapUsdMicros:String(observation.marketCapUsdMicros)}};
   }
   const buybackId=createHash('sha256').update(`funded.agency.own-coin.v1:${mint}:${agent}`).digest();
-  return journal({store,connection,key,intent,authority,prepare:async()=>{
-    const fresh=await readContext({connection,state:await store.read(),mint,programId,approvedHash,authority:authority.publicKey});
+  return step('execution',()=>journal({store,connection,key,intent,authority,prepare:async()=>{
+    const currentState=await step('state-read',()=>store.read());
+    const fresh=await step('custody',()=>readContext({connection,state:currentState,mint,programId,approvedHash,authority:authority.publicKey}));
     if(!(fresh.policy.selectedMask&(1<<agent))||fresh.policy.completedMask&(1<<agent)
       ||BigInt(fresh.agentRemaining[agent])<BigInt(intent.maxBudgetLamports))throw new Error('The protected milestone budget or completion state changed.');
-    observation=await readObservation({connection,mint});
+    observation=await step('market-observation',()=>readObservation({connection,mint}));
     if(!observation.verified||observation.slot<fresh.slot||now()-observation.observedAt*1000>60000
       ||now()<observation.observedAt*1000)throw new Error('A current finalized own-coin observation is required.');
-    const vault=deriveAgencyVaultsV3(programId,mint)[7],quoted=await quote({observation,vault,budgetLamports:intent.maxBudgetLamports});
+    const vault=deriveAgencyVaultsV3(programId,mint)[7],quoted=await step('quote',()=>quote({observation,vault,budgetLamports:intent.maxBudgetLamports}));
     const agencyExecution={agent,pool:observation.pool,observationSlot:String(observation.slot),observedAt:observation.observedAt,
       marketCapUsdMicros:observation.marketCapUsdMicros,rules:fresh.policy.rules||DEFAULT_AGENCY_RULES,observationHash:Buffer.from(observation.observationHash,'hex')};
     const built=buildV3BuybackInstruction({programId,sourceMint:mint,creator:intent.creator,authority:authority.publicKey,
@@ -55,7 +57,7 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
     const prepared=prepareV3BuybackTransaction({instruction:built.instruction,authority:authority.publicKey,blockhash:latest.blockhash,lookupTable:lookup.value,setupInstructions});
     const transaction=VersionedTransaction.deserialize(Buffer.from(prepared,'base64'));
     const simulation=await connection.simulateTransaction(transaction,{sigVerify:false,replaceRecentBlockhash:true,commitment:'finalized'});
-    if(simulation.value.err)throw new Error('Protected agency buyback simulation failed before signing.');
+    if(simulation.value.err)throw Object.assign(new Error('Protected agency buyback simulation failed before signing.'),{code:'AGENCY_SIMULATION_FAILED'});
     // Conservative maximum for two ATAs, volume PDA and receipt, including
     // temporary refundable rent. Preserve reserve before, during and after CPI.
     const rents=await Promise.all([connection.getMinimumBalanceForRentExemption(10240,'finalized'),
@@ -71,10 +73,10 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
   },prove:async row=>{
     const saved=row.evidence;if(!saved?.agencyExecution||!saved.pump)return null;
     const execution={...saved.agencyExecution,observationHash:Buffer.from(saved.agencyExecution.observationHash,'hex')};
-    return loadProof({connection,signature:row.signature,programId,sourceMint:mint,creator:intent.creator,initialAuthority:intent.initialAuthority,
+    return step('execution-proof',()=>loadProof({connection,signature:row.signature,programId,sourceMint:mint,creator:intent.creator,initialAuthority:intent.initialAuthority,
       authority:authority.publicKey,buybackId,agencyPolicy:true,agencyExecution:execution,split:context.launch.pumpFeeRoute.protocolSplit,
       baseTokenProgram:saved.baseTokenProgram,spendableQuoteIn:saved.spendableQuoteIn,minBaseAmountOut:saved.minBaseAmountOut,maxTotalDebit:saved.maxTotalDebit,
       pumpBuyInstruction:new TransactionInstruction({programId:new PublicKey(saved.pump.programId),data:Buffer.from(saved.pump.data,'base64'),
-        keys:saved.pump.keys.map(value=>({...value,pubkey:new PublicKey(value.pubkey)}))})});
-  }});
+        keys:saved.pump.keys.map(value=>({...value,pubkey:new PublicKey(value.pubkey)}))})}));
+  }}));
 }

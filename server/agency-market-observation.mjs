@@ -34,9 +34,12 @@ export async function readAgencyMarketObservation({connection,mint,readSolUsd=cr
   const slot=snapshot?.context?.slot;
   if(!Number.isSafeInteger(slot)||slot<1||snapshot.value?.length!==5)throw new Error('A complete finalized market snapshot is required.');
   const [poolInfo,mintInfo,curveInfo,baseInfo,quoteInfo]=snapshot.value,observedAt=await connection.getBlockTime(slot),at=now();
-  if(!Number.isSafeInteger(observedAt)||at-observedAt*1000<0||at-observedAt*1000>maxAge||usd?.source!=='coingecko'
-    ||!Number.isSafeInteger(Date.parse(usd.fetchedAt))||at-Date.parse(usd.fetchedAt)<0||at-Date.parse(usd.fetchedAt)>maxAge)
-    throw new Error('Fresh finalized reserves and an independently fetched SOL/USD reference are required.');
+  if(!Number.isSafeInteger(observedAt)||at-observedAt*1000<0||at-observedAt*1000>maxAge)
+    throw Object.assign(new Error('Fresh finalized reserves and an independently fetched SOL/USD reference are required.'),{code:'AGENCY_MARKET_STALE'});
+  if(usd?.source!=='coingecko')
+    throw Object.assign(new Error('Fresh finalized reserves and an independently fetched SOL/USD reference are required.'),{code:'AGENCY_PRICE_UNAVAILABLE'});
+  if(!Number.isSafeInteger(Date.parse(usd.fetchedAt))||at-Date.parse(usd.fetchedAt)<0||at-Date.parse(usd.fetchedAt)>maxAge)
+    throw Object.assign(new Error('Fresh finalized reserves and an independently fetched SOL/USD reference are required.'),{code:'AGENCY_PRICE_STALE'});
   if(!poolInfo?.owner.equals(PUMP_AMM_PROGRAM_ID)||!curveInfo?.owner.equals(PUMP_PROGRAM_ID)
     ||![TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID].some(program=>mintInfo?.owner.equals(program)))throw new Error('Market account ownership differs.');
   const pool=decodePool(poolInfo),curve=decodeCurve(curveInfo);

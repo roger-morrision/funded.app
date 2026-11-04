@@ -44,3 +44,10 @@ test('unmigrated markets, stale bank/USD data, configured prices and altered res
     f=>f.layout.poolBaseTokenAccount=mint,f=>f.snapshot.value[1].owner=PUMP_PROGRAM_ID];
   for(const edit of edits){const f=fixture();edit(f);await assert.rejects(()=>readAgencyMarketObservation(f.input));}
 });
+
+test('market diagnostics distinguish stale finalized banks from missing and stale price references',async()=>{
+  const cases=[['AGENCY_MARKET_STALE',f=>f.input.connection.getBlockTime=async()=>at/1000-61],
+    ['AGENCY_PRICE_UNAVAILABLE',f=>f.input.readSolUsd=async()=>null],
+    ['AGENCY_PRICE_STALE',f=>f.usd.fetchedAt=new Date(at-60001).toISOString()]];
+  for(const [code,edit] of cases){const f=fixture();edit(f);await assert.rejects(()=>readAgencyMarketObservation(f.input),{code});}
+});

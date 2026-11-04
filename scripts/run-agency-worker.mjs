@@ -13,6 +13,7 @@ import {readAgencyMintContext} from '../server/agency-mint-context.mjs';
 import {runAgencyPromotion,createAgencyPublisher} from '../server/agency-promotion-executor.mjs';
 import {runAgencyMilestone} from '../server/agency-buyback-executor.mjs';
 import {xPostingRetryWait} from '../config/x-posting.js';
+import {createAgencyDiagnostics,agencyErrorDiagnostics} from '../server/agency-worker-diagnostics.mjs';
 
 export function agencyWorkerConfig(env,args=[]){
   if(args.includes('--status'))throw new Error('Use --once or --loop; omit --execute for a read-only execution preview.');
@@ -33,29 +34,40 @@ export function agencyWorkerBlocked(error,{config,authority,now=Date.now()}){
     403:['x-permission-denied','X denied publishing-account or app access.'],
     429:['x-rate-limited','X rate limits prevent current publishing verification.'],
   };
-  const known=Number.isInteger(error?.status)&&Object.hasOwn(failures,error.status)?failures[error.status]:null;
-  const [reasonCode,reason]=known||['verification-unavailable',
+  const diagnostics=agencyErrorDiagnostics(error),phase=diagnostics?.failure?.phase;
+  const known=(!phase||phase==='publisher-account')&&!config.buybacksOnly
+    &&Number.isInteger(error?.status)&&Object.hasOwn(failures,error.status)?failures[error.status]:null;
+  const [reasonCode,reason]=known||[diagnostics?.failure?.reasonCode||'verification-unavailable',
     'Reviewed deployment, signing, funding, X access or finalized execution evidence is unavailable.'];
-  return{status:'blocked',reasonCode,reason,build:config.build,programId:config.programId,
+  return{status:'blocked',reasonCode,reason:config.buybacksOnly?'Reviewed Devnet deployment, protected custody, or execution proof is unavailable.':reason,
+    ...(diagnostics?{diagnostics}:{}),build:config.build,programId:config.programId,
     approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),checkedAt:new Date(now).toISOString()};
 }
-export async function runAgencyCycle({config,store,outbox,connection,authority,publisher,shouldStop=()=>false,
+export async function runAgencyCycle(input){
+  const diagnostics=createAgencyDiagnostics({monotonicNow:input.monotonicNow,onStep:input.onDiagnosticStep});
+  try{return{...await executeAgencyCycle({...input,diagnostics}),diagnostics:diagnostics.snapshot()};}
+  catch(error){diagnostics.attach(error);throw error;}
+}
+async function executeAgencyCycle({config,store,outbox,connection,authority,publisher,diagnostics,shouldStop=()=>false,
   readDeployment=readAgencyDeployment,readContext=readAgencyMintContext,promotion=runAgencyPromotion,milestone=runAgencyMilestone,
   dispatch=runXPostWorker,now=()=>Date.now()}){
-  const deployment=await readDeployment({connection,programId:config.programId,approvedHash:config.approvedHash,authority:authority.publicKey});
+  const step=(phase,action,context={})=>diagnostics.step(phase,context,action);
+  const deployment=await step('deployment',()=>readDeployment({connection,programId:config.programId,approvedHash:config.approvedHash,authority:authority.publicKey}));
+  await step('lookup-table',async()=>{
   const lookup=(await connection.getAddressLookupTable(new PublicKey(config.lookupAddress),{commitment:'finalized'})).value;
   if(!lookup?.key.equals(new PublicKey(config.lookupAddress))||lookup.state.deactivationSlot!==0xffffffffffffffffn)
-    throw new Error('Agency buyback lookup table is not active.');
+    throw Object.assign(new Error('Agency buyback lookup table is not active.'),{code:'AGENCY_LOOKUP_INACTIVE'});
+  });
   const buybacksOnly=config.buybacksOnly===true;
-  const account=config.execute&&!buybacksOnly?await publisher.verifyAccount():null;
-  const state=await store.read(),mints=Object.values(state.launches||{}).filter(row=>row.cluster==='devnet'
+  const account=config.execute&&!buybacksOnly?await step('publisher-account',()=>publisher.verifyAccount()):null;
+  const state=await step('state-read',()=>store.read()),mints=Object.values(state.launches||{}).filter(row=>row.cluster==='devnet'
     &&row.pumpFeeRoute?.programId===config.programId&&row.pumpFeeRoute?.protocolSplit?.agencyPercent!==undefined).map(row=>row.mint).sort();
   const heartbeatKey=buybacksOnly?'agencyBuybackWorker':'agencyWorker';
   const mintLimit=config.mintLimit??5;
   if(!Number.isInteger(mintLimit)||mintLimit<1||mintLimit>5)throw new Error('Agency cycle mint limit must be between one and five.');
   const previous=state.adminSettings?.[heartbeatKey]?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,mintLimit);
   const base={store,outbox,connection,authority,publisher,programId:config.programId,approvedHash:config.approvedHash,
-    lookupAddress:config.lookupAddress,readContext,publicOrigin:config.origin},events=[];
+    lookupAddress:config.lookupAddress,readContext,diagnostics,publicOrigin:config.origin},events=[];
   const health=buybacksOnly?agencyBuybackWorkerHealth:agencyWorkerHealth;
   const identity={programId:config.programId,approvedHash:config.approvedHash,
     authority:authority.publicKey.toBase58(),revision:deployment.revision,build:config.build};
@@ -66,42 +78,45 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
   // step supplies another progress check; a stalled step still expires.
   const refreshProgress=async()=>{
     if(!config.execute||shouldStop()||!hadVerifiedReadiness)return;
-    await store.update(current=>{
+    await step('heartbeat',()=>store.update(current=>{
       if(!health(current,{...identity,now:now()}))return;
       const row=current.adminSettings[heartbeatKey];
       if(events.some(event=>event.status==='execution-unavailable'))row.status='degraded';
       row.checkedAt=new Date(now()).toISOString();
-    });
+      row.diagnostics=diagnostics.snapshot();
+    }));
   };
   await refreshProgress();
   let readinessStatus=null;
   for(const mint of ordered){
     if(shouldStop())break;
     if(!config.execute){
-      const context=await readContext({...base,mint,state,authority:authority.publicKey});
+      const context=await step('custody',()=>readContext({...base,mint,state,authority:authority.publicKey}),{mint});
       events.push({mint,status:'dry-run',selectedMask:context.policy.selectedMask,remainingLamports:context.remainingLamports});continue;
     }
-    if(!buybacksOnly)events.push(await promotion({...base,mint}));
+    if(!buybacksOnly)events.push(await step('promotion',()=>promotion({...base,mint}),{mint}));
     for(const agent of [1,2]){
       if(shouldStop())break;
-      try{events.push({...await milestone({...base,mint,agent}),mint,agent});}
-      catch(error){events.push({mint,agent,status:error.code==='AGENCY_MARKET_NOT_MIGRATED'?'awaiting-migration':'execution-unavailable'});}
+      try{events.push({...await step('milestone',()=>milestone({...base,mint,agent}),{mint,agent}),mint,agent});}
+      catch(error){events.push({mint,agent,status:error?.code==='AGENCY_MARKET_NOT_MIGRATED'?'awaiting-migration':'execution-unavailable',
+        diagnostic:diagnostics.failure(error)});}
       await refreshProgress();
     }
   }
   if(config.execute&&!shouldStop()){
     if(!buybacksOnly){
     const publish=createAgencyPublisher({...base});
-    const sent=await dispatch({store:outbox,publish,enabled:true,dryRun:false,maxPosts:config.maxPosts,kinds:['agency_promotion']});
+    const sent=await step('x-dispatch',()=>dispatch({store:outbox,publish,enabled:true,dryRun:false,maxPosts:config.maxPosts,kinds:['agency_promotion']}));
     events.push({status:'x-dispatch',...sent});
     // Publication and billing are separate. Each billing re-fetches exact X
     // author/text/time and independently verifies finalized chain receipts.
-    for(const mint of ordered){if(shouldStop())break;events.push(await promotion({...base,mint}));}
+    for(const mint of ordered){if(shouldStop())break;events.push(await step('promotion-billing',()=>promotion({...base,mint}),{mint}));}
     }
     const budgets={};
     for(const mint of ordered){
       if(shouldStop())break;
-      const context=await readContext({...base,mint,state:await store.read(),authority:authority.publicKey});
+      const currentState=await step('state-read',()=>store.read(),{mint});
+      const context=await step('custody',()=>readContext({...base,mint,state:currentState,authority:authority.publicKey}),{mint});
       // Each finalized custody read is verified progress, just like a milestone
       // check. Keep the existing readiness window fresh during this serial sweep.
       await refreshProgress();
@@ -116,14 +131,14 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
     }
     if(!shouldStop()){
     const status=events.some(row=>row.status==='execution-unavailable')?'degraded':'ready';
-    await store.update(current=>{
+    await step('heartbeat',()=>store.update(current=>{
       current.adminSettings||={};current.adminSettings[heartbeatKey]={status,version:buybacksOnly?'agency-buyback-executor-v1':'agency-executor-v1',cluster:'devnet',
         programId:config.programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),configRevision:deployment.revision,
         build:config.build,...(buybacksOnly?{}:{xAccountId:account.id}),capabilities:buybacksOnly?['buyback-100k','buyback-300k']:['x-promotion','buyback-100k','buyback-300k'],
-        checkedAt:new Date(now()).toISOString(),lastMint:ordered.at(-1)||previous,
+        checkedAt:new Date(now()).toISOString(),lastMint:ordered.at(-1)||previous,diagnostics:diagnostics.snapshot(),
         pendingExecutions:events.filter(row=>!['finalized','not-payable','below-threshold','cadence-wait','x-dispatch'].includes(row.status)).length};
       current.adminSettings.agencyBudgets={...(current.adminSettings.agencyBudgets||{}),...budgets};
-    });
+    }));
     readinessStatus=status;
     }
   }
@@ -149,12 +164,13 @@ async function main(args){
     if(config.execute&&(await outbox.safetyStatus()).paused)throw new Error('The durable X account pause is active. No provider request was made.');
     do{
       let waitMs=config.intervalMs;
-      try{console.log(JSON.stringify(await runAgencyCycle({config,store,outbox,connection,authority,publisher,shouldStop:()=>stopped})));}
+      try{console.log(JSON.stringify(await runAgencyCycle({config,store,outbox,connection,authority,publisher,shouldStop:()=>stopped,
+        onDiagnosticStep:row=>console.log(JSON.stringify({event:'agency-worker-step',...row}))})));}
       catch(error){
         waitMs=xPostingRetryWait(error,waitMs);
         const blocked=agencyWorkerBlocked(error,{config,authority});
-        if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyWorker=blocked;});
         console.error(JSON.stringify({event:'agency-worker-blocked',...blocked}));
+        if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyWorker=blocked;});
         if(config.mode!=='loop')process.exitCode=1;
       }
       if(config.mode!=='loop'||stopped)break;

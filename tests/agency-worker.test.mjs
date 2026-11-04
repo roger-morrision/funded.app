@@ -151,3 +151,32 @@ test('unknown worker errors do not expose raw diagnostics or invent a provider r
   assert.doesNotMatch(JSON.stringify(failure),/private RPC URL and credential/);
   assert.equal(agencyWorkerBlocked({status:'constructor'},{config,authority}).reasonCode,'verification-unavailable');
 });
+
+test('cycle diagnostics distinguish RPC and X rate limits while preserving the thrown error and write count',async()=>{
+  for(const phase of ['deployment','publisher-account']){
+    const f=fixture(true),error=Object.assign(new Error('secret URL with API token'),{status:429});
+    if(phase==='deployment')f.input.readDeployment=async()=>{throw error;};
+    else f.input.publisher.verifyAccount=async()=>{throw error;};
+    await assert.rejects(()=>runAgencyCycle(f.input),actual=>actual===error);
+    const blocked=agencyWorkerBlocked(error,{config:f.input.config,authority});
+    assert.equal(blocked.diagnostics.failure.phase,phase);
+    assert.equal(blocked.reasonCode,phase==='deployment'?'provider-rate-limited':'x-rate-limited');
+    assert.equal(f.counts.writes,0);assert.doesNotMatch(JSON.stringify(blocked),/secret URL|API token/);
+  }
+});
+
+test('degraded heartbeat retains sanitized milestone timings without leaking diagnostics into public budgets',async()=>{
+  const f=fixture(true);f.input.config={...f.input.config,buybacksOnly:true};
+  let clock=0;f.input.monotonicNow=()=>clock;
+  f.input.milestone=async({diagnostics,mint,agent})=>diagnostics.step('market-observation',{mint,agent},async()=>{
+    clock+=15000;throw Object.assign(new Error('private RPC payload'),{name:'TimeoutError'});
+  });
+  const result=await runAgencyCycle(f.input),heartbeat=f.state.adminSettings.agencyBuybackWorker;
+  assert.equal(result.readinessStatus,'degraded');assert.equal(result.diagnostics.cycleDurationMs,30000);
+  assert.equal(result.events[0].diagnostic.phase,'market-observation');assert.equal(result.events[0].diagnostic.elapsedMs,15000);
+  assert.equal(result.events[0].diagnostic.reasonCode,'request-timeout');
+  assert.equal(heartbeat.diagnostics.cycleId,result.diagnostics.cycleId);
+  assert.deepEqual(f.counts,{writes:1,promotions:0,buys:0,posts:0});
+  assert.doesNotMatch(JSON.stringify(result),/private RPC payload/);
+  assert.doesNotMatch(JSON.stringify(f.state.adminSettings.agencyBudgets),/diagnostic|elapsedMs|reasonCode/);
+});

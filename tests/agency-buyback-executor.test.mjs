@@ -6,6 +6,7 @@ import {NATIVE_MINT,TOKEN_PROGRAM_ID} from '@solana/spl-token';
 import {PUMP_AMM_PROGRAM_ID} from '@pump-fun/pump-swap-sdk';
 import {quoteAgencyBuyback} from '../server/agency-buyback-quote.mjs';
 import {runAgencyMilestone} from '../server/agency-buyback-executor.mjs';
+import {createAgencyDiagnostics} from '../server/agency-worker-diagnostics.mjs';
 const key=n=>Keypair.fromSeed(Buffer.alloc(32,n)).publicKey;
 test('own-coin quote uses only snapshot reserves and clips expenditure to the smaller budget or liquidity limit',async()=>{
   const mint=key(201),pool=key(202),vault=key(203),observation={verified:true,cluster:'devnet',commitment:'finalized',poolKey:pool,mintKey:mint,
@@ -45,4 +46,14 @@ test('signed milestone recovery retains the exact intent without using a later q
   f.context.policy.completedMask=2;f.context.agentRemaining[1]='9000000';
   assert.equal((await runAgencyMilestone(f.input)).status,'verification-pending');assert.equal(f.observations,before);
   assert.deepEqual(f.captured.intent,intent);
+});
+
+test('market failures retain their timed phase and cannot create a financial journal',async()=>{
+  const f=fixture();let clock=0;const diagnostics=createAgencyDiagnostics({monotonicNow:()=>clock});
+  const error=Object.assign(new Error('sensitive provider response'),{code:'AGENCY_PRICE_UNAVAILABLE'});
+  f.input.readObservation=async()=>{clock+=15000;throw error;};
+  await assert.rejects(()=>runAgencyMilestone({...f.input,diagnostics}),actual=>actual===error);
+  assert.equal(f.journals,0);assert.equal(diagnostics.failure(error).phase,'market-observation');
+  assert.equal(diagnostics.failure(error).elapsedMs,15000);
+  assert.equal(diagnostics.failure(error).reasonCode,'price-reference-unavailable');
 });
