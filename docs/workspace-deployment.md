@@ -61,6 +61,35 @@ For the existing funded.vip Devnet stack, deploy `app`, `fee-collector`, `buybac
 
 After the workers complete startup verification, run `node scripts/verify-deployment-readiness.mjs fundedapp <full-tested-commit> https://funded.vip`. This read-only check requires matching images and revisions, Devnet configuration, running services, healthy configured health checks, the expected public API build and a ready developer escrow launch gate. Workers without Docker health checks are reported as `not-configured`, never as healthy. A failed check means deployment acceptance is incomplete; do not weaken the on-chain readiness gate to make it pass. It does not prove trades or payouts.
 
+## Release the existing funded.vip stack as one unit
+
+Use `npm run release:devnet -- ...` for an existing, explicitly selected Devnet stack. This host-side helper replaces the app and all three financial workers together. It never starts Docker Desktop, starts infrastructure dependencies, builds/pulls images, prunes storage, or reverses database migrations. Keep Docker stopped when only preparing or checking a bundle.
+
+Prepare a release from **resolved Compose JSON** (`docker compose ... config --format json` using the current stack's exact configuration files), an already built immutable image ID, its full source revision, and the HTTPS origin:
+
+```sh
+npm run release:devnet -- prepare /private/resolved-compose.json sha256:<64-hex-image-id> <40-hex-revision> https://funded.vip
+npm run release:devnet -- check <returned-release-id>
+```
+
+Preparation works with Docker stopped. It stores private release bundles under `.secrets/funded-vip-deployment/releases/`, outside `tmp/` and excluded from Git and Docker build context. Treat the resolved Compose input as private: environment values can contain credentials. Preparation freezes all read-only host mounts (including the reviewed `/app/dist` frontend and existing configuration overrides) and Compose config files, recording checksums and the exact input inventory. Secret files remain references to stable absolute paths so credential rotation is not rolled back. Existing volume and network names become external references; writable host binds, temporary secret paths, unresolved inheritance and missing Devnet workers are rejected.
+
+For each new release, the resolved input must point at that release's reviewed frontend. Existing runtime overrides remain part of the bundle; they are not silently discarded or claimed to be part of the base image. Build the frontend and image from the same reviewed source. Deployment compares the image's revision and embedded frontend digest against the bundle before replacement. The image filesystem is inspected through a temporary container that is **never started**, receives no credentials, and is removed afterward.
+
+Once Docker and the existing infrastructure are deliberately running and the source/image have passed their required tests:
+
+```sh
+npm run release:devnet -- deploy <release-id>
+npm run release:devnet -- verify <release-id>
+npm run release:devnet -- rollback
+```
+
+`deploy` checks the immutable image, existing dependencies, switch-time capacity and bundle checksums. It calls Compose once for `app`, `fee-collector`, `buyback-worker` and `agency-buyback-worker`, with no dependency startup, build or pull. Acceptance requires every service to run the prepared image/revision on Devnet, configured Docker health checks to pass, and public API/frontend identity, 1% trading fees and the ready 12-hour escrow gate to match. A worker without a Docker health check is explicitly reported as `not-configured`; public launch readiness is still required. These checks do not establish new on-chain transaction outcomes.
+
+Only successful acceptance changes `state.json`. A failed or interrupted replacement retains `pending.json` and the previous accepted release. Retry that same bundle or use `rollback`; a different candidate is refused while recovery is unresolved. Rollback can restore the previous accepted bundle even when the current app is unhealthy, then repeats the same verification. **The first deployment has no verified rollback target**: do not describe an imported, untested configuration as a verified backup. Later rollback also requires the prior image to remain available and the database schema to remain compatible; it does not undo financial transactions or database writes. Retain both current and previous bundles/images during cleanup.
+
+A filesystem lock prevents overlapping releases. If the host process was killed, inspect the pending journal and running containers before manually removing a stale `release.lock`. Do not edit bundle files to repair a failed release; prepare a new bundle after resolving the interrupted operation. CLI errors omit raw Docker/Compose output because it may contain credentials.
+
 ## Clean local staging files
 
 `tmp/` is excluded from Git, but an existing deployment can still depend on files there. Before removing old staging files, inspect the app container's `com.docker.compose.project.config_files` label, render that exact Compose chain, and check its build context and bind mounts. Preserve every referenced configuration file, the current build source, deployment and rollback tools, and recovery backups.

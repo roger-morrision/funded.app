@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "release:devnet": "node scripts/funded-release.mjs",
     "verify:css-budget": "node scripts/verify-css-budget.mjs",
     "verify:legal-dialogs": "node scripts/verify-legal-dialogs.mjs",
     "verify:jackpot-prototype": "node scripts/verify-jackpot-prototype.mjs",
