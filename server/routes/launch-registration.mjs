@@ -1,5 +1,6 @@
 import { validateInput, invalidRequest } from '../http-policy.mjs';
 import { newLaunchProtection, registerLaunchProtection } from '../launch-protections.mjs';
+import { developerLockConfig, verifyLaunchDeveloperLock } from '../developer-token-lock.mjs';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../../launch-policy-auth.js';
 import { createMarketingAgencyRoutes } from './marketing-agency.mjs';
 import { verifyLaunchServiceFee } from '../launch-service-fee-proof.mjs';
@@ -62,8 +63,10 @@ export function createLaunchRegistrationRoutes({
         return json(res, 503, { error:'The V3 atomic community reserve is not ready.',
           reasons:config.reasons });
       }
+      const developerTokenLock=await developerLockConfig({connection:connectionFactory(solanaRpcUrl),env});
+      if(!developerTokenLock.ready)return json(res,503,{error:developerTokenLock.reason});
       return json(res, 200, { cluster:'devnet', authority:config.initialAuthority,
-        programId:config.programId, lookupTable:env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE });
+        programId:config.programId, lookupTable:env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE,developerTokenLock });
     }
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
@@ -165,10 +168,19 @@ export function createLaunchRegistrationRoutes({
         if (!verifiedReserve.verified || verifiedReserve.status !== 'funded' || verifiedReserve.fundingSignature !== proof.signature)
           return json(res, 422, { error:'Launch transaction did not fund the exact community reserve in the reward vault.', reserve:verifiedReserve });
       }
+      let developerTokenLock=existingLaunch?.developerTokenLock;
+      if(!existingLaunch){
+        const lockConnection=connectionFactory(solanaRpcUrl);
+        try{developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,
+          transaction:await lockConnection.getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
+          config:await developerLockConfig({connection:lockConnection,env})});}
+        catch{return json(res,422,{error:'The finalized launch must escrow its exact developer token purchase for 12 hours. Escrow verification failed; recover this launch receipt before creating another coin.'});}
+      }
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter },{fundedSplit:currentSplit});
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
         launchProtection:newLaunchProtection(proof, policy.creatorWalletPercent),
+        ...(developerTokenLock?{developerTokenLock}:{}),
         ...(serviceFeeReceipt ? { launchServiceFee:serviceFeeReceipt } : {}),
         ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
         ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: devnetBannerUri(proof.mint, metadataRecordOrigin(preparedMetadata)) } : {}),

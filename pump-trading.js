@@ -8,7 +8,7 @@ import {inspectPhantomTradeTransaction} from './phantom-mobile-crypto.js';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-export const DEFAULT_TRADE_FEE_BPS = 50;
+export const DEFAULT_TRADE_FEE_BPS = 100;
 
 export function buildTradeFeePolicy({ feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS } = {}) {
   const owner = String(feeOwner || '').trim();

@@ -9,12 +9,14 @@ export function createLaunchQuoteRoutes({
   store, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id,
   respond,
   env = process.env,
+  solanaCluster = String(env.VITE_SOLANA_CLUSTER || env.SOLANA_CLUSTER || 'devnet').trim(),
 }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleLaunchQuoteRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/service-fees') {
+      if (!['devnet','mainnet-beta'].includes(solanaCluster)) return json(res,503,{error:'Service fees are unavailable for this network.'});
       const fees = await readServiceFees(store);
-      return json(res,200,{ ...fees, cluster:'devnet', recipient:serviceFeeRecipient(env),
+      return json(res,200,{ ...fees, cluster:solanaCluster, recipient:serviceFeeRecipient(env),
         tradeRecipient:new PublicKey(env.FUNDED_TRADE_FEE_OWNER).toBase58() });
     }
     if (req.method === 'POST' && url.pathname === '/api/launch-service-quote') {

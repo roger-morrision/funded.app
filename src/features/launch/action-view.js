@@ -44,14 +44,14 @@ export function updateLaunchButton(
   const launchBurn = getLaunchBurnPolicy();
   const promotionReady=promotionContentState(launchBurn,{document}).valid;
   const creatorBuySol = getCreatorBuySol();
-  const overBuyLimit = developerBuyLimitReached();
-  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const overBuyLimit = developerBuyLimitReached() || estimatedInitialBuyTokens > LAUNCH_TOKEN_SUPPLY * .2;
+  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit;
   const buyHelp = document.querySelector('#creator-buy-help');
   if (buyHelp) buyHelp.textContent = overBuyLimit
-    ? /^Developer buy cannot exceed 20% of the token supply\./.test(walletEstimateError || '')
+    ? /^Developer buy (?:cannot exceed 20% of the token supply|exceeds the available launch supply)/.test(walletEstimateError || '')
       ? walletEstimateError
-      : 'This SOL amount would buy over 20% of the supply. Lower it or set it to 0; the quote will update automatically.'
-    : 'Enter the SOL to buy from the fresh curve. Maximum 20% of supply.';
+      : 'Developer buy is limited to 20% of supply and the curve tokens available after the community reserve. Lower the SOL amount; the quote will update automatically.'
+    : 'Maximum developer buy: 20% of token supply. The community airdrop is separate; both purchases must fit the available curve supply.';
   const buyInput = document.querySelector('#creator-buy-sol');
   if (buyInput) {
     if (overBuyLimit) {
@@ -63,7 +63,7 @@ export function updateLaunchButton(
     }
   }
   const buyTokens = document.querySelector('#creator-buy-token-amount');
-  if (buyTokens && overBuyLimit) buyTokens.textContent = 'Over 20% limit';
+  if (buyTokens && overBuyLimit) buyTokens.textContent = 'Exceeds buy limit';
   const communityTokens = getCommunityAirdropTokens();
   const communityValid = Number.isSafeInteger(communityTokens) && communityTokens >= MIN_COMMUNITY_AIRDROP_TOKENS && communityTokens <= MAX_COMMUNITY_AIRDROP_TOKENS;
   const burnConfigured = validateLaunchBurnPolicy(launchBurn).valid;

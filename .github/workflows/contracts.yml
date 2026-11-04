@@ -28,17 +28,21 @@ jobs:
         run: '"$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --arch v0 --tools-version v1.54 -- --locked'
       - name: Execute local bytecode transaction regressions
         working-directory: contracts/funded-fee-router
-        run: cargo test --locked
+        run: |
+          "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/developer-token-lock/Cargo.toml --tools-version v1.53 -- --locked
+          DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" cargo test --locked
       - name: Record source and bytecode hashes
         working-directory: contracts/funded-fee-router
         run: |
           git rev-parse HEAD > target/deploy/source-revision.txt
           sha256sum target/deploy/funded_fee_router.so > target/deploy/bytecode.sha256
+          sha256sum target/deploy/developer_token_lock.so >> target/deploy/bytecode.sha256
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tested-contract-bytecode-${{ github.sha }}
           path: |
             contracts/funded-fee-router/target/deploy/funded_fee_router.so
+            contracts/funded-fee-router/target/deploy/developer_token_lock.so
             contracts/funded-fee-router/target/deploy/source-revision.txt
             contracts/funded-fee-router/target/deploy/bytecode.sha256
           retention-days: 30

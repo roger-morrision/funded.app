@@ -21,6 +21,6 @@ for(const long of [false,true])for(const buyPercent of [0,.1,10,20])for(const bu
   try{const plan=buildPumpLaunchPlan({payer,mint,blockhash:Keypair.generate().publicKey.toBase58(),launchInstructions:instructions,burnInstruction,mintRouterInstruction:router.instruction});assert.ok(plan.steps.every(step=>step.bytes<=1232));if(burn)assert.ok(plan.steps.at(-1).transaction.instructions.includes(burnInstruction));passed++;if(plan.mintRouterSeparate)splitCount++;}
   catch(error){assert.match(error.message,/size limit/);blocked++;}
 }
-for(const initialBuyPercent of [-1,20.01,21,NaN,Infinity])assert.throws(()=>normalizeInitialBuy({initialBuyPercent,supply:1000000000,decimals:6}));
+for(const initialBuyPercent of [-1,20.001,20.01,21,NaN,Infinity])assert.throws(()=>normalizeInitialBuy({initialBuyPercent,supply:1000000000,decimals:6}));
 assert.equal(passed+blocked,16);
-console.log(`V3 launch matrix: 16 combinations; ${passed} fit, ${splitCount} use split router setup, ${blocked} safely blocked pre-signing; max 20% integer supply verified (local-only).`);
+console.log(`V3 launch matrix: 16 combinations; ${passed} fit, ${splitCount} use split router setup, ${blocked} safely blocked pre-signing; 20% developer cap and integer supply normalization verified (local-only).`);

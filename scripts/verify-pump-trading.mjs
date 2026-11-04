@@ -5,6 +5,8 @@ import { Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 
 const fee = buildTradeFeePolicy({ feeOwner: '11111111111111111111111111111111', feeBps: 50 });
 if (!fee.enabled || fee.percent !== 0.5) throw new Error('Expected 50 bps trade fee policy.');
+const defaultFee = buildTradeFeePolicy({ feeOwner: '11111111111111111111111111111111' });
+if (!defaultFee.enabled || defaultFee.feeBps !== 100 || defaultFee.percent !== 1) throw new Error('Expected a default 1% platform trading fee.');
 if (buildTradeFeePolicy({ feeBps: 50 }).enabled) throw new Error('Missing owner must disable trading.');
 
 const snapshot = formatBondingCurveSnapshot({

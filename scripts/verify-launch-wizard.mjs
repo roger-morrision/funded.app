@@ -177,7 +177,7 @@ assert.match(app, /history\.replaceState\(\{\}, '', `\$\{location\.pathname\}\$\
 assert.match(app, /fee-route-agree/);
 assert.match(app, /function setLaunchBurnTier\(/);
 assert.match(app, /launchBurnReadiness/);
-assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction,\s*mintRouterInstruction: mintRouter\?\.instruction, reserveInstructions:\[\.\.\.reserve\.instructions,\.\.\.launchServiceFeeInstructions\(\{payer,mint:mint\.publicKey,quote:serviceQuote\}\)\], lookupTable \}\)/, 'Estimate must include the same reserve and service-fee instructions as launch.');
+assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction,\s*mintRouterInstruction: mintRouter\?\.instruction, reserveInstructions:\[\.\.\.reserve\.instructions,\.\.\.developerLockLaunchInstructions\(\{mint:mint\.publicKey,creator:payer,\s*amount:developerBuy\.amountBaseUnits,config:reserveConfig\.developerTokenLock\}\),\.\.\.launchServiceFeeInstructions\(\{payer,mint:mint\.publicKey,quote:serviceQuote\}\)\], lookupTable \}\)/, 'Estimate must include the same reserve, developer escrow and service-fee instructions as launch.');
 assert.match(app, /for \(let blockhashAttempt = 0; blockhashAttempt < 2; blockhashAttempt \+= 1\)[\s\S]*?getLatestBlockhash\('finalized'\)/, 'Launch estimation must use a finalized blockhash and one bounded retry.');
 assert.match(app, /BlockhashNotFound\|blockhash not found[\s\S]*?if \(!blockhashMissing \|\| blockhashAttempt > 0\) throw error/, 'Only BlockhashNotFound may retry, and only once.');
 assert.match(app, /blockhashAttempt > 0\) await new Promise\(resolve => setTimeout\(resolve, 1100\)\)/, 'The blockhash retry must outwait the one-second RPC proxy cache.');
@@ -188,7 +188,7 @@ assert.match(app, /estimatedSpend = balance - simulatedPayerBalance/, 'Launch es
 assert.doesNotMatch(app.split('const fee = estimates.reduce')[1]?.split('if (request !== metricsRequest')[0] || '', /simulatedPayerBalance/, 'The aggregate launch estimate must not reference a per-transaction simulation variable.');
 assert.match(app, /function formatLaunchCost\(lamports\).*toFixed\(6\)/, 'Launch cost must show enough SOL precision for rent and transaction fees.');
 assert.match(app, /if \(wallet\) refreshWalletInfo\(\);/, 'Switching back to Standard must refresh the estimate.');
-assert.match(app, /if \(input\.matches\('#token-name, #token-symbol, #creator-buy-sol'\)\) scheduleLaunchCostRefresh\(\)/, 'Editing launch metadata or the developer buy must invalidate and refresh the estimate.');
+assert.match(app, /if \(input\.matches\('#token-name, #token-symbol, #creator-buy-sol, #community-airdrop-tokens'\)\) scheduleLaunchCostRefresh\(\)/, 'Editing launch metadata, the developer buy or community reserve must invalidate and refresh the estimate.');
 assert.match(app, /shouldAutoRefreshLaunchEstimate\([\s\S]*?scheduleLaunchCostRefresh\(\)/, 'A visible connected launch page must refresh expired or transiently failed estimates without user action.');
 assert.doesNotMatch(app, /Launch estimate unavailable: \$\{walletEstimateError\} Refresh the estimate before launching\./, 'The removed launch-estimate sentence must not return.');
 assert.match(html, /X account %/);
@@ -215,7 +215,7 @@ function costSummaryFor({ connected = false, loading = false, fee = null, error 
     formatLaunchBurnAmount: amount => Number(amount).toLocaleString('en-US'), formatLaunchCost: lamports => (Number(lamports) / 1_000_000_000).toFixed(6) + ' SOL',
     getLaunchFeeLamports: () => launchFeeLamports,
     creatorBuyExceedsWalletBalance: () => false,
-    developerBuyLimitReached: () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'),
+    developerBuyLimitReached: () => /^Developer buy (?:cannot exceed 20% of the token supply|exceeds the available launch supply)/.test(error),
   });
   return nodes;
 }
@@ -246,10 +246,10 @@ const retrying = costSummaryFor({ connected: true, error: 'Solana RPC is rate li
   retry: { retryable: true, nextAt: Date.now() + 15_000 } });
 assert.match(retrying['#cost-launch'].textContent, /^Retrying in \d+s$/);
 assert.match(retrying['#cost-creator-buy'].textContent, /^1 SOL · retrying in \d+s$/);
-const overLimit = costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.' });
+const overLimit = costSummaryFor({ connected: true, error: 'Developer buy exceeds the available launch supply.' });
 assert.match(overLimit['#cost-note'].textContent, /lower the SOL amount or set it to 0/i);
 assert.doesNotMatch(overLimit['#cost-note'].textContent, /Refresh the estimate to try again/i);
-assert.equal(costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.', buySol: 1 })['#cost-creator-buy'].textContent, '1 SOL · over 20% limit');
+assert.equal(costSummaryFor({ connected: true, error: 'Developer buy exceeds the available launch supply.', buySol: 1 })['#cost-creator-buy'].textContent, '1 SOL · exceeds buy limit');
 assert.match(validation, /developerBuyLimitReached\(\)\) return \{ valid: false, field: '#creator-buy-sol'/);
 assert.match(actions, /developerBuyLimitReached\(\) \? 'Edit developer buy' : 'Retry checks'/);
 assert.doesNotMatch(launchPage, /A submitted transaction is pending until confirmed/, 'The form must not imply a transaction was sent before signing.');

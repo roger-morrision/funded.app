@@ -75,7 +75,7 @@ export function getLaunchStepState(
     if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS) return { valid: false, field: '#community-airdrop-tokens', message: 'Community airdrop must be between 30,000,000 and 500,000,000 tokens.' };
     const creatorBuySol = getCreatorBuySol();
     if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy must be a valid SOL amount of zero or more.' };
-    if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
+    if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds its 20% cap or the curve supply available after the community reserve. Lower the SOL amount or set it to 0.' };
     const splitError=feeSplitError(distribution);if(splitError)return splitError;
     const launchBurn = getLaunchBurnPolicy();
     const burnValidation = validateLaunchBurnPolicy(launchBurn);
@@ -117,7 +117,7 @@ export function getLaunchSubmissionState(
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };
     if (walletMetricsLoading) return { valid: false, message: 'Wait while the launch cost is calculated.' };
     if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add SOL before continuing.' };
-    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
+    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds its 20% cap or the curve supply available after the community reserve. Lower the SOL amount or set it to 0.' };
     if (!freshLaunchReview(launchCostReview)) return { valid:false, message:'Refresh the launch estimate before continuing; quotes expire after one minute.' };
     if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) return { valid: false, message: walletEstimateError ? `Launch estimate unavailable: ${walletEstimateError}` : 'Refresh the wallet balance and launch estimate.' };
     if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add SOL before continuing.' };

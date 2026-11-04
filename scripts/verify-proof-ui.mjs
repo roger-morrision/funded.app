@@ -25,7 +25,7 @@ const coinSummaryModel = await readFile(new URL('../coin-summary-model.js', impo
 
 assert.match(html, /id="capital-flow"/);
 assert.doesNotMatch(html, /id="coin-rpc-status"/, 'The removed token header confirmation badge must not be rendered.');
-assert.match(html, /id="referral-claim-center"[\s\S]*?Connect your earning wallet[\s\S]*?Sign in to view your private referral payouts\.[\s\S]*?data-referral-connect/, 'Disconnected referral state must request a wallet without claiming verified absence of payouts.');
+assert.match(html, /id="referral-claim-center"[\s\S]*?Your payouts appear here[\s\S]*?Get your invite link above to connect\. Payout history stays private to your wallet\./, 'Disconnected referral state must request a wallet without claiming verified absence of payouts.');
 assert.match(html, /id="referral-ledger-list" hidden/, 'The payout ledger stays hidden before receipt verification.');
 const referralSource = await readFile(new URL('../src/app/controllers/referrals.js', import.meta.url), 'utf8');
 assert.match(referralSource, /if \(!history\)[\s\S]*?renderReferralLedgerEmpty\('Receipts unavailable', 'Payout receipts could not be loaded\./, 'Unavailable history must not become a verified empty payout state.');
@@ -48,11 +48,11 @@ assert.doesNotMatch(app, /can automatically settle configured creator and holder
 assert.match(paymentReceiptView, /const rangeConflict = presentPaymentHistoryDateRange\(document\);\s+const filtered = rangeConflict \? \[\] : filterPaymentHistory\(historyPayouts, filters\);[\s\S]*?for \(const receipt of filtered\)[\s\S]*?list\.append\(row\)/, 'Payment history must suppress rows for an invalid native range and render the original filtered finalized payouts for valid criteria.');
 assert.match(paymentReceiptView, /const emptyMessages = \{[\s\S]*?complete:'No confirmed payments are available to show yet\.'/, 'Only the complete history state may use the confirmed-empty receipt message.');
 assert.match(paymentReceiptView, /if \(!filtered\.length\) \{[\s\S]*?rangeConflict \? 'Correct the date range to view matching payments\.' : historyPayouts\.length \? noMatch : emptyMessages\[historyState\]/, 'Invalid date criteria need neutral correction guidance; otherwise preserve source coverage and genuine filtered no-match messages.');
-assert.match(html, /id="leaderboard-panel" role="tabpanel" aria-labelledby="leaderboard-burners-tab"/, 'The active leaderboard panel must be associated with its selected tab.');
+assert.match(html, /id="leaderboard-panel" role="tabpanel" aria-labelledby="leaderboard-traders-tab"/, 'The active leaderboard panel must be associated with its selected tab.');
 assert.match(html, /id="notifications-button" aria-label="Notifications">♧<\/button>/);
 assert.doesNotMatch(html, /No verified notifications|Notification feed unavailable/, 'The page must not hard-code notification claims without a verified feed.');
 assert.doesNotMatch(html, /Devnet launch flow ready|Fee estimate refreshed/);
-assert.match(html, /id="leaderboard-burn-board-tab"[^>]*>Burn board<\/button>/, 'The project burn board must be available.');
+assert.match(html, /id="leaderboard-burn-board-tab"[^>]*>Projects<\/button>/, 'The project burn board must be available.');
 assert.match(app, /leaderboardBadge\.textContent = connected \? 'Indexer pending' : 'Wallet required'/);
 assert.match(app, /leaderboardTitle\.textContent = connected \? 'Rank unavailable until activity is indexed' : 'Connect to see your rank'/);
 assert.match(app, /const creator = policy\?\.onchainVerified \? policy\.creatorWallet \|\| policy\.feePayer : null/, 'Leaderboard attribution requires a verified funded launch policy.');
@@ -62,14 +62,15 @@ assert.match(app, /const fundedLaunchRecords = records\.filter\(item => \{[\s\S]
 assert.match(app, /verifiedLaunchPolicies = response\.data\.filter\(launch => launch\.onchainVerified[\s\S]*?&& \(launch\.creatorWallet \|\| launch\.feePayer\)\)/, 'Explore benefit badges must require a creator-attributed funded policy.');
 assert.match(homeLaunchBoard, /function renderHomeLaunchBoard\([\s\S]*?const verified = assets\.filter\(item => verifiedLaunchPolicyForMint\(item\.address\)\)[\s\S]*?let visible = \[\.\.\.verified\]/, 'The Home launch board must exclude mints without a funded policy.');
 assert.match(html, /<p class="eyebrow">Confirmed activity<\/p><h1 id="leaderboard-title">Leaderboard<\/h1>/, 'The leaderboard must label its evidence scope.');
-assert.match(html, /id="leaderboard-burners-tab"[^>]*aria-selected="true"[^>]*>Burners<\/button>/, 'Verified wallet burn leaderboard tab should be selected.');
+assert.match(html, /id="leaderboard-traders-tab"[^>]*aria-selected="true"[^>]*>Traders<\/button>/, 'The trader leaderboard should be selected initially.');
+assert.match(html, /id="leaderboard-burners-tab"[^>]*aria-selected="false"[^>]*>Wallets<\/button>/, 'The wallet burn leaderboard must remain available.');
 assert.doesNotMatch(app, /escapeHtml\(initials\(item\.wallet\)\)/, 'Wallet burn rows must not call an undefined avatar helper.');
 assert.match(html, /id="leaderboard-creators-tab"[^>]*>Creators<\/button>/, 'Verified creator leaderboard tab should be available.');
 assert.match(html, /id="leaderboard-traders-tab"[^>]*>Traders<\/button>/, 'The trader tab must expose its unavailable state.');
-assert.match(app, /const unavailable = EXPLORE_CLUSTER !== 'devnet' \|\| verifiedLaunchPoliciesStatus !== 'ready' \|\| !exploreFeedAvailable/, 'Trader ranking must require the verified launch registry and trade feed.');
-assert.match(app, /Verified trade activity could not be loaded\./, 'Trader ranking must explain when its evidence is unavailable.');
+assert.match(app, /const unavailable = !loading && \(EXPLORE_CLUSTER !== 'devnet' \|\| verifiedLaunchPoliciesStatus !== 'ready' \|\| !exploreFeedAvailable\)/, 'Trader ranking must require the verified launch registry and trade feed after loading.');
+assert.match(app, /Recent trades could not be loaded\. Try again shortly\./, 'Trader ranking must explain when its evidence is unavailable.');
 assert.match(html, /disabled title="Rankings use all available verified activity\."/);
-assert.match(html, /Verified \$FUNDED burns/);
+assert.match(app, /Projects ranked by verified \$FUNDED burns attributed to their launches\./);
 assert.match(app, /Ranked from confirmed launch policies and available market caps/, 'Creator ranking must describe its verified inputs and market-cap order.');
 assert.match(app, /View Solana status →/);
 assert.match(app, /leaderboardLink\.href = connected \? '#docs' : '#profile'/, 'The leaderboard status action must route connected wallets to status and disconnected wallets to setup.');

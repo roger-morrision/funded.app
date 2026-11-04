@@ -90,7 +90,7 @@ export function updateLaunchPreview(
     '#preview-launchpad': 'Pump.fun',
     '#preview-supply': '1 billion',
     '#preview-community': Number.isFinite(allocation) ? formatVerifiedPercent(allocation) : '—',
-    '#preview-creator-wallet-share': `${feeDistribution.creatorWalletPercent}%${feeDistribution.creatorWalletPercent > 0 ? ' · locked 12h' : ''}`,
+    '#preview-creator-wallet-share': `${feeDistribution.creatorWalletPercent}%`,
     '#preview-holder-share': `${feeDistribution.holderAirdropPercent}%`,
     '#preview-x-share': `${feeDistribution.solClaimPercent}%`,
     '#preview-funded-share': `${FEE_DISTRIBUTION.fundedPercent}%`,

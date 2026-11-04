@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-for (const width of [390,1440]) test(`launch explains ticker protection and creator fee lock at ${width}px (mocked APIs)`,async({page})=>{
+for (const width of [390,1440]) test(`launch explains ticker protection and developer token lock at ${width}px (mocked APIs)`,async({page})=>{
   await page.setViewportSize({width,height:900});
   await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Local UI fixture'}}));
@@ -9,7 +9,8 @@ for (const width of [390,1440]) test(`launch explains ticker protection and crea
   await expect(page.locator('#token-symbol-help')).toContainText('case-insensitive');
   await expect(page.locator('#token-symbol-help')).toContainText('12 hours');
   await expect(page.locator('#creator-fee-lock-help')).toBeVisible();
-  await expect(page.locator('#creator-fee-lock-help')).toContainText('does not lock your tokens');
+  await expect(page.locator('#creator-fee-lock-help')).toContainText('no 12-hour fee hold');
+  await expect(page.locator('#creator-fee-lock-help')).toContainText('locked on-chain for 12 hours');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 

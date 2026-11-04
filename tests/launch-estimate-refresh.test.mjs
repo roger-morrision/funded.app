@@ -13,7 +13,7 @@ test('transient failures use bounded backoff and honor server retry-after', () =
   assert.equal(launchEstimateRetry({ message: '503', response: { headers: { get: () => '180' } } }, {}, 0).nextAt, 180000);
   for (const message of ['Failed to fetch', 'Network request failed', 'BlockhashNotFound', 'Estimate took too long and expired.'])
     assert.equal(launchEstimateRetry(new Error(message)).retryable, true);
-  for (const message of ['Developer buy cannot exceed 20% of supply', 'Insufficient SOL', 'Creator shares must total 80%', 'Fee-router policy is not verified'])
+  for (const message of ['Developer buy exceeds the available launch supply', 'Insufficient SOL', 'Creator shares must total 80%', 'Fee-router policy is not verified'])
     assert.equal(launchEstimateRetry(new Error(message)).retryable, false);
 });
 

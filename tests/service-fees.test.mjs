@@ -12,7 +12,7 @@ import { launchTierAmounts } from '../launch-tier-quote.js';
 import { listingBurnBaseUnitsForUsd, listingQuoteCurrent } from '../listing-policy.js';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
-import { quoteLaunchServiceFee } from '../src/features/fees/service-fees-client.js';
+import { quoteLaunchServiceFee, refreshServiceFees, appTradeBps } from '../src/features/fees/service-fees-client.js';
 
 const payer = Keypair.generate(), treasury = Keypair.generate(), mint = Keypair.generate();
 const address = key => key.publicKey.toBase58();
@@ -44,9 +44,35 @@ function fixture() {
 }
 
 test('recommended service fees are exact, bounded and independent from creator distribution', () => {
-  assert.deepEqual(validateServiceFees(DEFAULT_SERVICE_FEES),{tradeBps:50,launchLamports:'20000000',proUsd:150,premierUsd:300,listingUsd:300});
+  assert.deepEqual(validateServiceFees(DEFAULT_SERVICE_FEES),{tradeBps:100,launchLamports:'20000000',proUsd:150,premierUsd:300,listingUsd:300});
   for (const patch of [{tradeBps:501},{tradeBps:0.5},{launchLamports:'0.02'},{launchLamports:20000000},{launchLamports:'5000000001'},{proUsd:0},{premierUsd:150},{listingUsd:300.5},{other:1}])
     assert.throws(() => validateServiceFees({...DEFAULT_SERVICE_FEES,...patch}));
+});
+
+test('Devnet and Mainnet expose and load their own 1% trading fee policy', async () => {
+  for (const cluster of ['devnet','mainnet-beta']) {
+    const {context,call} = fixture();
+    const handler = createLaunchQuoteRoutes({...context,solanaCluster:cluster});
+    const response = await call(handler,'GET','/api/service-fees');
+    assert.equal(response.status,200);
+    assert.equal(response.data.cluster,cluster);
+    assert.equal(response.data.policy.tradeBps,100);
+    const appState = {APP_CLUSTER:cluster,TRADE_FEE_BPS:50,apiRequest:async()=>({available:true,data:response.data})};
+    await refreshServiceFees(appState);
+    assert.equal(appTradeBps(appState),100);
+  }
+});
+
+test('trading refuses service fee policies from a different or unsupported network', async () => {
+  const {context,call} = fixture();
+  for (const cluster of ['devnet','mainnet-beta']) {
+    const response = await call(createLaunchQuoteRoutes({...context,solanaCluster:cluster}),'GET','/api/service-fees');
+    const appState = {APP_CLUSTER:cluster==='devnet'?'mainnet-beta':'devnet',apiRequest:async()=>({available:true,data:response.data})};
+    await assert.rejects(refreshServiceFees(appState),/unavailable/);
+    assert.equal(appState.serviceFeeConfig,undefined);
+  }
+  const unsupported = await call(createLaunchQuoteRoutes({...context,solanaCluster:'testnet'}),'GET','/api/service-fees');
+  assert.equal(unsupported.status,503);
 });
 
 test('launch quote refuses payment preparation if a store silently drops its write',async()=>{
@@ -61,9 +87,12 @@ test('admin policy uses revision/hash compare and immutable audit; stale writes 
   const {state,store,context} = fixture(); let output;
   const save = async value => handleAdminServiceFees({ req:{method:'POST'},res:{},url:new URL('https://funded.vip/api/admin/service-fees'),
     store,body:async()=>value,respond:(_,status,data)=>{output={status,data};},session:{wallet:address(payer)} });
-  const old = serviceFeeSnapshot(state), policy = {...old.policy,tradeBps:80,proUsd:175};
+  state.adminSettings.serviceFees = {policy:{...DEFAULT_SERVICE_FEES,tradeBps:50},revision:0};
+  const old = serviceFeeSnapshot(state), policy = {...old.policy,tradeBps:100};
   await save({policy,expectedRevision:0,expectedHash:old.hash,reason:'QA reviewed pricing update'});
   assert.equal(output.status,200); assert.equal(output.data.revision,1); assert.equal(state.adminAudit['service-fees:1'].wallet,address(payer));
+  assert.deepEqual(output.data.policy,{...old.policy,tradeBps:100});
+  assert.deepEqual(state.adminAudit['service-fees:1'].previous,old.policy);
   assert.notEqual(output.data.hash,old.hash);
   await save({policy,expectedRevision:0,expectedHash:old.hash,reason:'Stale second pricing update'});
   assert.equal(output.status,409); assert.equal(state.adminSettings.serviceFees.revision,1);

@@ -152,7 +152,7 @@ export function updateCostSummary(
   if (summaryNode) summaryNode.classList.toggle('free-launch', !burnPolicy.requiresBurn);
   if (creatorBuyNode && creatorBuy.sol > 0) {
     const buyStatus = creatorBuyExceedsWalletBalance() ? 'insufficient SOL'
-      : developerBuyLimitReached() ? 'over 20% limit'
+      : developerBuyLimitReached() ? 'exceeds buy limit'
         : walletEstimateError ? retrySeconds == null ? 'estimate unavailable' : `retrying in ${retrySeconds}s`
           : walletMetricsLoading ? 'calculating…'
             : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} tokens`
@@ -181,7 +181,9 @@ export function updateCostSummary(
         if (serviceFeeNode) serviceFeeNode.textContent = launchFeeLamports == null ? 'Unavailable' : formatLaunchCost(BigInt(launchFeeLamports));
         totalNode.textContent = pending;
         if (previewLaunchNode) previewLaunchNode.textContent = pending;
-        noteNode.textContent = 'The full planning budget needs a current public Pump quote and app fee policy. No wallet is required to view it; retry when either service is available.';
+        noteNode.textContent = publicQuote?.status === 'invalid' && publicQuote.message
+          ? publicQuote.message
+          : 'The full planning budget needs a current public Pump quote and app fee policy. No wallet is required to view it; retry when either service is available.';
       }
       syncMobileBudget(totalNode.textContent);
       return;
@@ -196,7 +198,7 @@ export function updateCostSummary(
     noteNode.textContent = walletMetricsLoading
         ? 'Building and estimating the Solana transaction…'
         : developerBuyLimitReached()
-          ? 'Developer buy exceeds 20% of the token supply. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
+          ? 'Developer buy exceeds its 20% cap or the curve supply available after the community reserve. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
           : walletEstimateError
             ? `Could not estimate the transaction: ${walletEstimateError} ${launchEstimateRetry?.retryable ? launchEstimateRefreshMessage({ wallet, retry: launchEstimateRetry }) : 'Correct the issue, then retry the estimate.'}`
             : 'The launch cost is not verified. Refresh the estimate before signing.';

@@ -1,4 +1,5 @@
 import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
+import { developerLockLaunchInstructions } from '../../../developer-token-lock.js';
 import { refreshServiceFees, quoteLaunchServiceFee } from '../../features/fees/service-fees-client.js';
 import { launchServiceFeeInstructions } from '../../../launch-service-fee.js';
 // Dependencies and mutable application state are read live through appState.
@@ -48,7 +49,7 @@ export function createWalletMetricsController(appState) {
       const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase() || 'COIN';
       const input = normalizeLaunchInput({ name, symbol, supply: appState.LAUNCH_TOKEN_SUPPLY, decimals: 6 });
       const reserveConfig = await appState.getLaunchReserveConfig();
-      const developerBuy = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, initialBuySol: appState.getCreatorBuySol() } });
+      const developerBuy = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens: appState.getCommunityAirdropTokens(), initialBuySol: appState.getCreatorBuySol() } });
       const initialBuy = await appState.quoteAtomicReserveBuy({ connection: appState.connection, supply:input.supply, decimals:input.decimals,
         reserveTokens:appState.getCommunityAirdropTokens(), developerBaseUnits:developerBuy.amountBaseUnits });
       initialBuy.curvePremiumBps = appState.initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
@@ -78,7 +79,8 @@ export function createWalletMetricsController(appState) {
         if (blockhashAttempt > 0) await new Promise(resolve => setTimeout(resolve, 1100));
         const latest = await appState.connection.getLatestBlockhash('finalized');
         plan = appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions, burnInstruction: burnPlan?.instruction,
-          mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote})], lookupTable });
+          mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
+            amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock}),...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote})], lookupTable });
         const estimateTransactions = plan.steps.map(step => step.transaction);
         try {
           // The split path still simulates every transaction; the legacy path is the original full launch simulation: connection.simulateTransaction(launchTransaction, undefined, [payer]).

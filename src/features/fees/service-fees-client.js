@@ -8,11 +8,12 @@ export const currentVerifiedLaunchFeeLamports = () => verifiedLaunchFeeLamports;
 
 export async function refreshServiceFees(appState = null) {
   const request = ++latestFeeRequest;
+  const cluster = appState?.APP_CLUSTER ?? String(import.meta.env?.VITE_SOLANA_CLUSTER || 'devnet').trim();
   let data;
   try {
     const response = await (appState?.apiRequest || apiRequest)('/api/service-fees', { signal:AbortSignal.timeout(8000) });
     data = response.data;
-    if (!response.available || data?.cluster !== 'devnet' || !/^[a-f0-9]{64}$/.test(data.hash || '')
+    if (!response.available || !['devnet','mainnet-beta'].includes(cluster) || data?.cluster !== cluster || !/^[a-f0-9]{64}$/.test(data.hash || '')
       || !Number.isSafeInteger(data.revision) || data.revision < 0 || typeof data.recipient !== 'string'
       || typeof data.tradeRecipient !== 'string') throw new Error('Current app service fees are unavailable. Refresh before signing.');
     validateServiceFees(data.policy);

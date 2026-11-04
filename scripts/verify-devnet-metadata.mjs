@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { request } from 'node:http';
+import { request, createServer as createHttpServer } from 'node:http';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Keypair } from '@solana/web3.js';
@@ -65,6 +65,17 @@ assert.throws(() => parseSignedMetadata({ ...bannerInput, bannerBase64: Buffer.f
 assert.throws(() => parseSignedMetadata({ ...bannerInput, bannerBase64: '' }), /Banner checksum/);
 
 const directory = await mkdtemp(join(tmpdir(), 'funded-devnet-metadata-'));
+// Ticker reservation now verifies that a proposed mint does not exist on chain.
+// Keep this storage/HTTP test deterministic and disconnected from real RPCs.
+const rpc = createHttpServer(async (req,res) => {
+  const chunks=[]; for await (const chunk of req) chunks.push(chunk);
+  const input=JSON.parse(Buffer.concat(chunks).toString());
+  res.setHeader('content-type','application/json');
+  res.end(JSON.stringify({jsonrpc:'2.0',id:input.id,...(input.method==='getAccountInfo'
+    ? {result:{context:{slot:1},value:null}} : {error:{code:-32601,message:'Unexpected fixture RPC method'}})}));
+});
+await new Promise(resolve=>rpc.listen(0,'127.0.0.1',resolve));
+const rpcUrl=`http://127.0.0.1:${rpc.address().port}`;
 try {
   const path = join(directory, 'state.json');
   const store = createStore(path, '');
@@ -78,7 +89,7 @@ try {
   assert.equal(await reopened.readMetadataBanner(mint), null);
   await assert.rejects(reopened.writeMetadata({ ...prepared.record, description: 'Changed' }, prepared.image, prepared.imageType), /Immutable/);
   const port = await new Promise((resolve, reject) => { const socket = createServer(); socket.once('error', reject); socket.listen(0, '127.0.0.1', () => { const chosen = socket.address().port; socket.close(() => resolve(chosen)); }); });
-  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, FUNDED_STORE_PATH: path, DATABASE_URL: '', HOST: '127.0.0.1', PORT: String(port), NODE_ENV: 'test', VITE_SOLANA_CLUSTER: 'devnet', FUNDED_SKIP_LOCAL_ENV: 'true', DEVNET_METADATA_ORIGIN: 'https://funded-preview.onrender.com', SOLANA_RPC_URL: 'http://127.0.0.1:9' }, stdio: 'ignore' });
+  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, FUNDED_STORE_PATH: path, DATABASE_URL: '', HOST: '127.0.0.1', PORT: String(port), NODE_ENV: 'test', VITE_SOLANA_CLUSTER: 'devnet', FUNDED_SKIP_LOCAL_ENV: 'true', DEVNET_METADATA_ORIGIN: 'https://funded-preview.onrender.com', SOLANA_RPC_URL: rpcUrl }, stdio: 'ignore' });
   try {
     let ready = false;
     for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -106,7 +117,7 @@ try {
     };
     assert.equal((await postMetadata(input)).uri, devnetMetadataUri(mint), 'Legacy repeat uploads must retain the original origin.');
     for (const withImage of [false, true]) {
-      const freshRecord = { ...record, mint:Keypair.generate().publicKey.toBase58(), imageSha256:withImage ? record.imageSha256 : '' };
+      const freshRecord = { ...record, symbol:withImage?'METAIMG':'METATXT', mint:Keypair.generate().publicKey.toBase58(), imageSha256:withImage ? record.imageSha256 : '' };
       const freshInput = { ...freshRecord, metadataOrigin:'https://attacker.example', imageBase64:withImage ? input.imageBase64 : '', imageType:withImage ? 'image/png' : '', signature:bs58.encode(nacl.sign.detached(new TextEncoder().encode(metadataStatement(freshRecord)), creator.secretKey)) };
       const saved = await postMetadata(freshInput);
       assert.equal(saved.uri, devnetMetadataUri(freshRecord.mint, 'https://funded-preview.onrender.com'));
@@ -126,6 +137,7 @@ try {
     assert.equal((await hostedRequest(port, '/api/devnet-metadata', 'POST')).status, 404);
   } finally { child.kill(); await new Promise(resolve => child.once('exit', resolve)); }
 } finally {
+  await new Promise(resolve=>rpc.close(resolve));
   if (directory.startsWith(`${tmpdir()}\\funded-devnet-metadata-`) || directory.startsWith(`${tmpdir()}/funded-devnet-metadata-`)) await rm(directory, { recursive: true, force: true });
 }
 console.log('Devnet metadata signature, validation, image, and storage checks passed');

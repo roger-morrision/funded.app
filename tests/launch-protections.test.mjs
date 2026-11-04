@@ -74,20 +74,21 @@ test('registration atomically claims the symbol and finalizes its verified 12h d
   assert.equal(next.mint,'second');
 });
 
-test('creator-only fees lock until the exact boundary; zero and legacy shares remain eligible',()=>{
-  assert.equal(creatorFeeLock(launch(),start+duration-1).locked,true);
+test('creator SOL fees have no time hold including previously saved v1 policies',()=>{
+  assert.equal(creatorFeeLock(launch(),start+duration-1).locked,false);
   assert.equal(creatorFeeLock(launch(),start+duration).locked,false);
   assert.equal(creatorFeeLock(launch('first','COIN',0),start).applies,false);
   assert.equal(creatorFeeLock({createdTimestamp:start/1000},start).locked,false);
-  assert.equal(creatorFeeLock({launchProtection:{version:1,creatorFeeUnlockAt:'invalid'}},start).locked,true);
-  assert.equal(creatorFeeLock({launchProtection:{version:2,creatorFeeUnlockAt:new Date(start).toISOString()}},start).locked,true);
+  assert.equal(creatorFeeLock({launchProtection:{version:1,creatorFeeUnlockAt:'invalid'}},start).locked,false);
+  assert.equal(creatorFeeLock({launchProtection:{version:1,creatorFeeUnlockAt:new Date(start+duration).toISOString()}},start).locked,false);
+  assert.equal(newLaunchProtection({blockTime:start/1000},80).creatorFeeUnlockAt,null);
   assert.throws(()=>newLaunchProtection({blockTime:null},80),/verified launch timestamp/);
 });
 
-test('keeper skips only locked creator payouts and automatically becomes eligible at unlock',()=>{
+test('keeper includes creator SOL payouts immediately with other eligible beneficiaries',()=>{
   const state={launches:{first:launch()},v3Settlements:{source:{mint:'first',status:'finalized',allocationPlan:{status:'allocated-not-funded',
     creatorDirected:{walletLamports:'80',holderLamports:'10',xLamports:'0'},protocol:{communityLamports:'5',operationsLamports:'5'}}}}};
-  assert.deepEqual(automaticV3Actions(state,start).map(row=>row.action),['creator-reward-funding','community-funding','operations-payout']);
+  assert.deepEqual(automaticV3Actions(state,start).map(row=>row.action),['creator-wallet-payout','creator-reward-funding','community-funding','operations-payout']);
   assert.equal(automaticV3Actions(state,start+duration)[0].action,'creator-wallet-payout');
 });
 

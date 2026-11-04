@@ -27,7 +27,7 @@ assert.match(appSource, /recordedPayouts \? 'Recorded payouts are awaiting recei
 assert.match(appSource, /registryUnavailable \? outage\.title : `\$\{filtered\.length\} of \$\{registryLaunches\.length\} shown`/, 'Explore must explain the current outage instead of showing a verified zero result while its sources are unavailable.');
 assert.match(appSource, /if \(exploreLoadInFlight\) return exploreLoadInFlight;[\s\S]*?exploreLoadInFlight = load;[\s\S]*?exploreLoadInFlight = null;/, 'Overlapping Explore refreshes must share one load instead of racing their scan counter.');
 const exploreLoadingSource = readFileSync(new URL('../src/app/controllers/explore-loading.js', import.meta.url), 'utf8');
-assert.match(exploreLoadingSource, /let scannedCount = 0;[\s\S]*?scannedCount = await sampleActivity\(verified,[\s\S]*?if \(requestedSort !== appState\.exploreSort\) return;[\s\S]*?appState\.exploreScannedCount = scannedCount;/, 'A completed Explore load must publish its own sampler count only after the requested sort is current.');
+assert.match(exploreLoadingSource, /let scannedCount = 0;[\s\S]*?scannedCount = await sampleActivity\(verified,[\s\S]*?if \(!sameFeed\(requestedSort, appState\.exploreSort\)\) return;[\s\S]*?appState\.exploreScannedCount = scannedCount;/, 'A completed Explore load must publish its own sampler count only after the requested sort is current.');
 let sampledAt = 600_000;
 const sample = createExploreActivitySampler({ cache:new Map(), now:()=>sampledAt });
 const sampledItems = [{ address:'verified' }, { address:'unavailable' }];

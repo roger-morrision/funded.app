@@ -98,16 +98,29 @@ test('over-limit developer buy blocks launch and clears its invalid marker after
   const f = fixture(), input = f.nodes.get('#creator-buy-sol');
   let exceeded = true;
   f.services.developerBuyLimitReached = () => exceeded;
-  f.state.walletEstimateError = 'Developer buy cannot exceed 20% of the token supply. 1 SOL would buy about 53.4%; enter 0.231386 SOL or less at the current Devnet quote.';
+  f.state.walletEstimateError = 'Developer buy cannot exceed 20% of the token supply. Enter 0.069415 SOL or less at the current quote.';
   f.render();
   assert.equal(f.nodes.get('#launch-button').disabled, true);
   assert.equal(input.attributes['aria-invalid'], 'true');
-  assert.match(f.nodes.get('#creator-buy-token-amount').textContent, /Over 20%/);
-  assert.match(f.nodes.get('#creator-buy-help').textContent, /0\.231386 SOL or less/);
+  assert.match(f.nodes.get('#creator-buy-token-amount').textContent, /Exceeds buy limit/);
+  assert.match(f.nodes.get('#creator-buy-help').textContent, /0\.069415 SOL or less/);
   exceeded = false;
   f.render();
   assert.equal(input.attributes['aria-invalid'], undefined);
   assert.equal(input.dataset.overLimit, undefined);
+  assert.equal(f.nodes.get('#launch-button').disabled, false);
+});
+
+test('a quoted developer allocation above 20% blocks launch review', () => {
+  const f = fixture();
+  f.state.wallet = signingWallet();
+  f.state.estimatedInitialBuyTokens = 500_000_000;
+  f.services.getCreatorBuySol = () => 0.3;
+  f.render();
+  assert.equal(f.nodes.get('#launch-button').disabled, true);
+  assert.match(f.nodes.get('#creator-buy-help').textContent, /20%/);
+  f.state.estimatedInitialBuyTokens = 200_000_000;
+  f.render();
   assert.equal(f.nodes.get('#launch-button').disabled, false);
 });
 

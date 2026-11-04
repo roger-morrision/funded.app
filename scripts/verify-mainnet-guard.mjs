@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { submitPumpDevnetLaunch } from '../launch-flow.js';
 import { assessMainnetConfig, mainnetReadinessPreflight } from './mainnet-readiness-preflight.mjs';
+import { createV3Routes } from '../server/routes/v3-routes.mjs';
 
 // This is a release regression gate. It deliberately uses no RPC endpoint,
 // wallet, private key, or transaction. Mainnet activation requires a separate
@@ -22,7 +23,7 @@ const server = await readFile(new URL('../server/index.mjs', import.meta.url), '
 const keeperRoutes = await readFile(new URL('../server/routes/keeper-collection.mjs', import.meta.url), 'utf8');
 const launchRoutes = await readFile(new URL('../server/routes/launch-registration.mjs', import.meta.url), 'utf8');
 const marketRoutes = await readFile(new URL('../server/routes/token-market.mjs', import.meta.url), 'utf8');
-const creatorRoutes = await readFile(new URL('../server/routes/creator-fees.mjs', import.meta.url), 'utf8');
+const metadataRoutes = await readFile(new URL('../server/routes/devnet-metadata.mjs', import.meta.url), 'utf8');
 const launchHandler = app.slice(app.indexOf('async function launchToken(){'), app.indexOf('async function launchToken(){') + 500);
 assert.match(launchHandler, /if\s*\(APP_CLUSTER\s*!==\s*'devnet'\)\s*\{[\s\S]*?return;/,
   'The browser launch handler must reject Mainnet before wallet use.');
@@ -32,10 +33,19 @@ function routeGuard(route, guard, source = server) {
   assert.ok(at >= 0, `Missing server route: ${route}`);
   assert.match(source.slice(at, at + 400), guard, `Missing Devnet guard near ${route}`);
 }
-routeGuard("url.pathname === '/api/devnet-metadata'", /solanaCluster\s*!==\s*'devnet'/);
+routeGuard("url.pathname !== '/api/devnet-metadata'", /solanaCluster\s*!==\s*'devnet'/, metadataRoutes);
 routeGuard("url.pathname === '/api/keeper/collect'", /solanaCluster\s*!==\s*'devnet'/, keeperRoutes);
 routeGuard("req.method === 'POST' && url.pathname === '/api/launches'", /solanaCluster\s*!==\s*'devnet'/, launchRoutes);
-routeGuard('if (creatorClaimMatch) {', /solanaCluster\s*!==\s*'devnet'/, creatorRoutes);
+// Legacy creator claims were retired, so test their current dispatcher instead
+// of searching for a removed handler in creator-fees.mjs.
+let retiredResponse;
+const retiredRoutes = createV3Routes({solanaCluster:'mainnet-beta',
+  respond:(_res,status,data)=>{retiredResponse={status,data};}});
+for (const action of ['prepare','request','settle']) {
+  assert.equal(await retiredRoutes({method:'POST'},{},new URL(`https://funded.vip/api/tokens/test/creator-claim/${action}`)),true);
+  assert.equal(retiredResponse.status,410);
+  assert.match(retiredResponse.data.error,/V2 fee route is retired/);
+}
 routeGuard('if (tokenMarketMint) {', /solanaCluster\s*!==\s*'devnet'/, marketRoutes);
 
 const mainnetFixture = {

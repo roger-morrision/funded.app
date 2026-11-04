@@ -5,6 +5,7 @@ import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlineP
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
 import { devnetMetadataUri } from './devnet-metadata.js';
+import { developerLockLaunchInstructions } from './developer-token-lock.js';
 import { verifyFeeRouterAccount } from './fee-router.js';
 import { buildPumpLaunchPlan } from './mint-router-launch.js';
 import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits, protocolGrossUnits,
@@ -12,7 +13,7 @@ import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits, pr
   verifyMintRouterV3Account } from './mint-router-v3.js';
 import { executeLaunchPlan } from './launch-executor.js';
 import { initialCurvePremiumBps } from './launch-review.js';
-import { launchReserveInstructions, quoteAtomicReserveBuy } from './launch-community-reserve.js';
+import { launchReserveInstructions, quoteAtomicReserveBuy, launchBuyCapacity } from './launch-community-reserve.js';
 import { launchServiceFeeInstructions } from './launch-service-fee.js';
 import {buildAgencyMintV3InitializeInstruction,agencySelectionMask} from './agency-mint-router-v3.js';
 import {MARKETING_AGENCY_POLICY,canonicalAgencySelection} from './config/marketing-agency.js';
@@ -75,10 +76,10 @@ export function buildLaunchMintRouter({ mint, payer, v3FeeRouter, feeShares }) {
 export function normalizeInitialBuy(input = {}) {
   const percent = Number(input.initialBuyPercent ?? 0);
   if (!Number.isFinite(percent) || percent < 0 || percent > 20) throw new Error('Creator buy must be between 0% and 20% of supply.');
-  const tenths = Math.round(percent * 10);
+  const hundredths = Math.round(percent * 100);
   const supplyBaseUnits = BigInt(input.supply) * (10n ** BigInt(input.decimals));
-  const amountBaseUnits = supplyBaseUnits * BigInt(tenths) / 1000n;
-  return { percent: tenths / 10, amountBaseUnits, amountTokens: Number(input.supply) * tenths / 1000 };
+  const amountBaseUnits = supplyBaseUnits * BigInt(hundredths) / 10000n;
+  return { percent: hundredths / 100, amountBaseUnits, amountTokens: Number(input.supply) * hundredths / 10000 };
 }
 
 export async function getInitialBuyQuote({ connection, input }) {
@@ -89,6 +90,12 @@ export async function getInitialBuyQuote({ connection, input }) {
     const requestedLamports = BigInt(Math.round(requestedSol * 1_000_000_000));
     if (requestedLamports <= 0n || requestedLamports > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Developer buy SOL amount is outside the supported range.');
     const global = await new OnlinePumpSdk(connection).fetchGlobal();
+    const capacity = launchBuyCapacity({ global, decimals: launchInput.decimals, reserveTokens: input.reserveTokens });
+    const limitBaseUnits = capacity.developerBaseUnits;
+    const limitLamports = BigInt(getBuySolAmountFromTokenAmount({
+      global, feeConfig: null, mintSupply: null, bondingCurve: null,
+      amount: new BN(limitBaseUnits.toString()), quoteMint: NATIVE_MINT,
+    }).toString());
     const amountBaseUnits = BigInt(getBuyTokenAmountFromSolAmount({
       global,
       feeConfig: null,
@@ -97,15 +104,10 @@ export async function getInitialBuyQuote({ connection, input }) {
       amount: new BN(requestedLamports.toString()),
       quoteMint: NATIVE_MINT,
     }).toString());
-    const supplyBaseUnits = BigInt(launchInput.supply) * (10n ** BigInt(launchInput.decimals));
     if (amountBaseUnits <= 0n) throw new Error('Developer buy is too small to receive tokens.');
-    if (amountBaseUnits * 100n > supplyBaseUnits * 20n) {
-      const limitBaseUnits = supplyBaseUnits / 5n;
+    if (amountBaseUnits > limitBaseUnits || requestedLamports > limitLamports) {
       let low = 0n;
-      let high = BigInt(getBuySolAmountFromTokenAmount({
-        global, feeConfig: null, mintSupply: null, bondingCurve: null,
-        amount: new BN(limitBaseUnits.toString()), quoteMint: NATIVE_MINT,
-      }).toString());
+      let high = limitLamports;
       const tokensAt = lamports => BigInt(getBuyTokenAmountFromSolAmount({
         global, feeConfig: null, mintSupply: null, bondingCurve: null,
         amount: new BN(lamports.toString()), quoteMint: NATIVE_MINT,
@@ -119,8 +121,10 @@ export async function getInitialBuyQuote({ connection, input }) {
       } else low = high;
       const safeSixDecimalLamports = low / 1000n * 1000n;
       const maxSol = `${safeSixDecimalLamports / 1_000_000_000n}.${String(safeSixDecimalLamports % 1_000_000_000n).padStart(9, '0').slice(0, 6)}`.replace(/\.?0+$/, '');
-      const estimatedPercent = Number(amountBaseUnits * 10_000n / supplyBaseUnits) / 100;
-      throw new Error(`Developer buy cannot exceed 20% of the token supply. ${requestedSol} SOL would buy about ${estimatedPercent.toFixed(1)}%; enter ${maxSol} SOL or less at the current Devnet quote.`);
+      const reason = limitBaseUnits === capacity.creatorCapBaseUnits
+        ? 'Developer buy cannot exceed 20% of the token supply.'
+        : 'Developer buy exceeds the available launch supply after the community reserve.';
+      throw new Error(`${reason} Enter ${maxSol} SOL or less at the current quote.`);
     }
     const tokenDivisor = 10 ** launchInput.decimals;
     const amountTokens = Number(amountBaseUnits) / tokenDivisor;
@@ -137,6 +141,9 @@ export async function getInitialBuyQuote({ connection, input }) {
   const buy = normalizeInitialBuy({ ...launchInput, initialBuyPercent: input?.initialBuyPercent });
   if (buy.amountBaseUnits === 0n) return { ...buy, solAmountLamports: 0n, maxSolAmountLamports:0n, curvePremiumBps:0 };
   const global = await new OnlinePumpSdk(connection).fetchGlobal();
+  const capacity = launchBuyCapacity({ global, decimals: launchInput.decimals, reserveTokens: input.reserveTokens });
+  if (buy.amountBaseUnits > capacity.developerBaseUnits)
+    throw new Error('Developer buy exceeds the available launch supply after the community reserve. Lower the purchase percentage.');
   const solAmountLamports = getBuySolAmountFromTokenAmount({
     global,
     feeConfig: null,
@@ -233,7 +240,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const latest = await connection.getLatestBlockhash('confirmed');
   const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
     burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
-    reserveInstructions:[...reserve.instructions,...serviceInstructions], lookupTable });
+    reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
+      amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock}),...serviceInstructions], lookupTable });
   let symbolReservationExpiresAt = null;
   if (prepareMetadata) {
     onStatus('Storing signed Solana image and metadata before wallet transaction approval…');

@@ -9,26 +9,20 @@ export function verifiedLaunchTime(launch) {
   return Number.isSafeInteger(seconds) && seconds > 0 ? seconds * 1000 : null;
 }
 
-export function newLaunchProtection(proof, creatorWalletPercent) {
+export function newLaunchProtection(proof) {
   const launchedAt = verifiedLaunchTime(proof);
   if (!launchedAt || launchedAt > Date.now() + 60_000)
     throw conflict('A verified launch timestamp is required for the 12-hour protections.');
-  return { version:1, launchedAt:new Date(launchedAt).toISOString(),
+  return { version:2, launchedAt:new Date(launchedAt).toISOString(),
     symbolBlockedUntil:new Date(launchedAt + LAUNCH_PROTECTION_MS).toISOString(),
-    creatorFeeUnlockAt:Number(creatorWalletPercent) > 0
-      ? new Date(launchedAt + LAUNCH_PROTECTION_MS).toISOString() : null,
+    creatorFeeUnlockAt:null,
     enforcement:'funded-platform-authority' };
 }
 
-export function creatorFeeLock(launch, now = Date.now()) {
-  const protection = launch?.launchProtection;
-  if (!protection) return { applies:false, locked:false, unlockAt:null };
-  if (protection.version === 1 && protection.creatorFeeUnlockAt === null)
-    return { applies:false, locked:false, unlockAt:null };
-  const timestamp = Date.parse(protection.creatorFeeUnlockAt);
-  return { applies:true, locked:protection.version !== 1 || !Number.isFinite(timestamp) || now < timestamp,
-    unlockAt:Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null,
-    enforcement:'funded-platform-authority' };
+export function creatorFeeLock() {
+  // Retained for older clients and saved v1 records. The creator fee hold is
+  // retired for all launches; token custody is enforced by a separate program.
+  return { applies:false, locked:false, unlockAt:null };
 }
 
 export function assertSymbolAvailable(state, { symbol, mint }, now = Date.now()) {

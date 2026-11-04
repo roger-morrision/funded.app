@@ -69,7 +69,7 @@ export function initializeLaunchActions(appState) {
     if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; appState.updateLaunchIdentityWarnings(); }
     if (appState.LAUNCH_SOCIAL_FIELDS.includes(input.id)) appState.updateLaunchSocialValidity(input);
     if (input.matches('#community-airdrop-tokens')) appState.syncCommunityAirdropPresets();
-    if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) appState.scheduleLaunchCostRefresh();
+    if (input.matches('#token-name, #token-symbol, #creator-buy-sol, #community-airdrop-tokens')) appState.scheduleLaunchCostRefresh();
     appState.updateLaunchPreview();
     appState.updateCostSummary();
     appState.updateLaunchButton();
