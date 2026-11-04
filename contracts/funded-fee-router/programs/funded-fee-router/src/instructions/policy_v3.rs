@@ -103,8 +103,39 @@ pub fn settle_mint_v3_handler<'info>(ctx: Context<'info, SettleMintV3<'info>>,
         ctx.bumps.router, claim_id, expected_lamports)
 }
 
-// Shared accounting only. Each entry point enforces its own authorization
-// before entering; normal settlement still requires the creator's signature.
+// The allocation is fixed by the mint policy and the seven derived vaults.
+// The authority pays for the claim and vault rent; the creator need not be online.
+#[derive(Accounts)]
+#[instruction(claim_id: [u8; 32])]
+pub struct SettleMintV3Auto<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    /// CHECK: Matched against the immutable creator in the mint policy.
+    pub creator: UncheckedAccount<'info>,
+    pub mint: UncheckedAccount<'info>,
+    #[account(seeds = [SEED], bump)]
+    pub legacy_router: UncheckedAccount<'info>,
+    #[account(mut, seeds = [MINT_ROUTER_V3_SEED, mint.key().as_ref()], bump)]
+    pub router: UncheckedAccount<'info>,
+    #[account(mut, seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
+        constraint = policy.mint == mint.key() && policy.creator == creator.key()
+            @ ErrorCode::InvalidMintFeePolicyV3)]
+    pub policy: Account<'info, MintFeePolicyV3>,
+    #[account(init, payer = authority, space = 8 + MintClaimRecordV3::INIT_SPACE,
+        seeds = [MINT_CLAIM_V3_SEED, mint.key().as_ref(), claim_id.as_ref()], bump)]
+    pub claim: Account<'info, MintClaimRecordV3>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn settle_mint_v3_auto_handler<'info>(ctx: Context<'info, SettleMintV3Auto<'info>>,
+    claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+    settle_collection(ctx.program_id, &ctx.accounts.authority, &ctx.accounts.mint,
+        &ctx.accounts.legacy_router, &ctx.accounts.router, &mut ctx.accounts.policy,
+        &mut ctx.accounts.claim, &ctx.accounts.system_program, ctx.remaining_accounts,
+        ctx.bumps.router, claim_id, expected_lamports)
+}
+
+// Shared accounting only. Each entry point enforces its own authorization.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'info>,
     mint: &UncheckedAccount<'info>, legacy_router: &UncheckedAccount<'info>,

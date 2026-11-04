@@ -32,9 +32,11 @@ function fixture(proofResponse) {
   const status = { append: (...nodes) => statusText.push(...nodes.map(node => node.text ?? node.textContent ?? '')) };
   const panel = { dataset: { mint: program.id } };
   const context = {
+    AbortSignal,
     wallet: provider, connectedWalletAddress: 'fixture-wallet', walletVersion: 1,
     communityWalletAllocations: new Map(), communityClaimReview: null,
     walletAddress: wallet => wallet.publicKey.toBase58(),
+    readPendingCommunityClaim: () => null,
     getAirdropPrograms: () => [program],
     renderAirdropDirectory() {},
     document: {
@@ -87,6 +89,7 @@ test('proof arriving after an account switch cannot populate the new wallet card
   const pending = new Promise(resolve => { finish = resolve; });
   const f = fixture(() => pending);
   const checking = f.context.checkCommunityClaim(f.program.id);
+  const initialProgress = [...f.statusText];
   assert.equal(f.context.directoryWalletAmount(f.program), 'Checking…');
   f.context.walletVersion++;
   f.context.connectedWalletAddress = 'next-wallet';
@@ -96,5 +99,5 @@ test('proof arriving after an account switch cannot populate the new wallet card
   await checking;
   assert.equal(f.context.directoryWalletAmount(f.program), 'Check allocation');
   assert.equal(f.context.communityClaimReview, null);
-  assert.deepEqual(f.statusText, []);
+  assert.deepEqual(f.statusText, initialProgress);
 });

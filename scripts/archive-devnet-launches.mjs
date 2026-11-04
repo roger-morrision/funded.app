@@ -1,0 +1,14 @@
+import {mkdir,writeFile} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {createHash} from 'node:crypto';
+import {loadServerEnvironment} from '../server/environment.mjs';
+import {createStore} from '../server/store.mjs';
+import {archiveDevnetLaunches} from '../server/archive-devnet-launches.mjs';
+loadServerEnvironment();if(process.env.SOLANA_CLUSTER!=='devnet')throw Error('Only Devnet can be archived.');
+const store=createStore(undefined,process.env.DATABASE_URL),state=await store.read();
+const mints=Object.values(state.launches||{}).filter(row=>row.cluster==='devnet'&&!row.archivedAt).map(row=>row.mint);
+const folder=resolve(process.env.FUNDED_ARCHIVE_OUTPUT||'tmp/automation-release/archive');await mkdir(folder,{recursive:true});
+const snapshot=JSON.stringify(state);await writeFile(join(folder,'state-before-archive.json'),snapshot,{flag:'wx'});
+const beforeHash=createHash('sha256').update(snapshot).digest('hex');
+const result=process.argv.includes('--apply')?await store.update(current=>archiveDevnetLaunches(current,mints)):{mode:'dry-run',mints,count:mints.length};
+await writeFile(join(folder,'manifest.json'),JSON.stringify({...result,beforeHash},null,2));console.log(JSON.stringify({...result,beforeHash}));await store.close?.();

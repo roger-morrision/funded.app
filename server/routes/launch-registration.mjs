@@ -1,11 +1,14 @@
 import { validateInput, invalidRequest } from '../http-policy.mjs';
+import { newLaunchProtection, registerLaunchProtection } from '../launch-protections.mjs';
+import { developerLockConfig, verifyLaunchDeveloperLock } from '../developer-token-lock.mjs';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../../launch-policy-auth.js';
 import { createMarketingAgencyRoutes } from './marketing-agency.mjs';
 import { verifyLaunchServiceFee } from '../launch-service-fee-proof.mjs';
 import { createLaunchBurnTiers } from '../../launch-burn-policy.js';
 import { verifyPumpLaunch } from '../launch-verification.mjs';
-import { Connection, PublicKey } from '@solana/web3.js';
-import { devnetMetadataUri, devnetBannerUri } from '../../devnet-metadata.js';
+import { PublicKey } from '@solana/web3.js';
+import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
+import { devnetMetadataUri, devnetLaunchMetadataUri, devnetBannerUri } from '../../devnet-metadata.js';
 import { verifiedPromotionBadge } from '../../promotion-badge.js';
 import { metadataRecordOrigin, publicMetadata } from '../devnet-metadata.mjs';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH, createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
@@ -19,6 +22,8 @@ import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
 import { verifyFeeRouterAccount } from '../../fee-router.js';
 import { createV3LaunchConfig } from '../v3-launch-config.mjs';
 import nacl from 'tweetnacl';
+import {isDeletedDevnetMint} from '../deleted-devnet-mints.mjs';
+import {newLaunchAgencySelection} from '../../config/marketing-agency.js';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -58,12 +63,15 @@ export function createLaunchRegistrationRoutes({
         return json(res, 503, { error:'The V3 atomic community reserve is not ready.',
           reasons:config.reasons });
       }
+      const developerTokenLock=await developerLockConfig({connection:connectionFactory(solanaRpcUrl),env});
+      if(!developerTokenLock.ready)return json(res,503,{error:developerTokenLock.reason});
       return json(res, 200, { cluster:'devnet', authority:config.initialAuthority,
-        programId:config.programId, lookupTable:env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE });
+        programId:config.programId, lookupTable:env.FUNDED_LAUNCH_RESERVE_LOOKUP_TABLE,developerTokenLock });
     }
     if (req.method === 'POST' && url.pathname === '/api/launches') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Coin launching is unavailable for this configuration. No launch policy was registered.' });
       const input = await body(req); if (!input.mint || input.chain !== 'solana' || input.cluster !== solanaCluster) return json(res, 400, { error: 'A Solana launch on the configured cluster is required.' });
+      if(isDeletedDevnetMint(input.mint,solanaCluster))return json(res,410,{error:'This old Devnet launch was permanently removed from the app.'});
       if (input.marketingAgency != null&&env.FUNDED_V3_AGENCY_ENABLED!=='true') return json(res, 409, { error: 'Agency-enabled launches require verified dedicated V3 agency accounting. The agency fee policy is not activated.' });
       const policy = validateInput(() => canonicalLaunchPolicy(input));
       const existingLaunch = await store.readLaunch(policy.mint);
@@ -74,8 +82,18 @@ export function createLaunchRegistrationRoutes({
       if (!v3Config.ready || v3Config.beneficiaryRoutingOnChainEnforced !== true)
         return json(res, 503, { error:'V3 normal flows are not ready to accept a new launch.',
           reasons:v3Config.reasons });
+      // A finalized launch can predate a later global configuration publication.
+      // Below, the Pump receipt, creator signature and immutable mint policy must
+      // still match the exact signed revision, shares and agent selection.
       if(!existingLaunch&&v3Config.agency&&(policy.marketingAgency?.version!==v3Config.agency.version
-        ||policy.marketingAgency.configRevision!==v3Config.agency.configRevision))return json(res,409,{error:'The signed agency configuration changed; refresh before launching.'});
+        ||BigInt(policy.marketingAgency.configRevision)>BigInt(v3Config.agency.configRevision)))return json(res,409,{error:'The signed agency configuration is not available on this deployment.'});
+      const requiredAgents=newLaunchAgencySelection({promotion:Boolean(policy.promotion)});
+      const historicalAgency=!existingLaunch&&v3Config.agency&&policy.marketingAgency
+        &&BigInt(policy.marketingAgency.configRevision)<BigInt(v3Config.agency.configRevision);
+      // A prior on-chain revision may use the earlier package selection. The
+      // finalized launch and immutable policy below must prove those exact terms.
+      if(!existingLaunch&&!historicalAgency&&JSON.stringify(policy.marketingAgency?.selectedAgents)!==JSON.stringify(requiredAgents))
+        return json(res,409,{error:'The signed agents must match the launch package: both buyback agents for Standard, plus X promotion for a promotion package.'});
       if (xLinked && env.FUNDED_V3_X_CLAIMS_ENABLED !== 'true')
         return json(res, 503, { error:'V3 X payout and claim verification are not activated.' });
       if (xLinked && (await resolveXUser(policy.xRecipient)).id !== policy.xUserId) return json(res, 409, { error: 'The X account ID changed since launch preparation; registration is blocked.' });
@@ -103,12 +121,13 @@ export function createLaunchRegistrationRoutes({
       const serviceFeeReceipt = !existingLaunch ? verifyLaunchServiceFee({
         transaction:await connectionFactory(solanaRpcUrl).getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
         signature:proof.signature, mint:proof.mint, payer:proof.feePayer, quote:serviceQuote }) : existingLaunch.launchServiceFee;
-      const preparedMetadataUri = devnetMetadataUri(proof.mint, metadataRecordOrigin(preparedMetadata));
+      const legacyMetadataUri=devnetMetadataUri(proof.mint,metadataRecordOrigin(preparedMetadata));
+      const preparedMetadataUri=proof.uri===devnetLaunchMetadataUri(proof.mint)?proof.uri:legacyMetadataUri;
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
       const configuredV3Program = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
-      const currentSplit = existingLaunch?.pumpFeeRoute?.protocolSplit||v3Config.protocolSplit||await activeProtocolFeeSplit(store);
+      const currentSplit = existingLaunch?.pumpFeeRoute?.protocolSplit||(historicalAgency?policy.protocolSplit:v3Config.protocolSplit)||await activeProtocolFeeSplit(store);
       const configuredV3Units = protocolGrossUnits(currentSplit);
       if (!configuredV3Program || policy.feeRouterProgramId !== configuredV3Program
         || policy.feeRouterInitialAuthority !== v3Config.initialAuthority
@@ -150,9 +169,19 @@ export function createLaunchRegistrationRoutes({
         if (!verifiedReserve.verified || verifiedReserve.status !== 'funded' || verifiedReserve.fundingSignature !== proof.signature)
           return json(res, 422, { error:'Launch transaction did not fund the exact community reserve in the reward vault.', reserve:verifiedReserve });
       }
+      let developerTokenLock=existingLaunch?.developerTokenLock;
+      if(!existingLaunch){
+        const lockConnection=connectionFactory(solanaRpcUrl);
+        try{developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,serviceQuote,
+          transaction:await lockConnection.getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
+          config:await developerLockConfig({connection:lockConnection,env})});}
+        catch{return json(res,422,{error:'The finalized launch must escrow its exact developer token purchase for 12 hours. Escrow verification failed; recover this launch receipt before creating another coin.'});}
+      }
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter },{fundedSplit:currentSplit});
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
+        launchProtection:newLaunchProtection(proof, policy.creatorWalletPercent),
+        ...(developerTokenLock?{developerTokenLock}:{}),
         ...(serviceFeeReceipt ? { launchServiceFee:serviceFeeReceipt } : {}),
         ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
         ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: devnetBannerUri(proof.mint, metadataRecordOrigin(preparedMetadata)) } : {}),
@@ -181,6 +210,7 @@ export function createLaunchRegistrationRoutes({
           return existing;
         }
         if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw invalidRequest('This creator opted out during verification. Registration is blocked.');
+        registerLaunchProtection(state, record);
         state.launches[record.mint] = record;
         if (verifiedReserve) {
           state.communityReserveReceipts ||= {};

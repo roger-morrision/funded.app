@@ -40,7 +40,7 @@ for(const width of[360,390,1440])test(`native Portfolio holdings partial coverag
  await recover('token2022-fails','—');await expect(rows).toContainText('Some token balances could not be checked');await expect(status).toContainText('0 observed tokens');
  await page.screenshot({path:info.outputPath(`partial-empty-${width}.png`)});
  await recover('partial-nonempty','—');await expect(rows.locator('.portfolio-holding-row')).toHaveCount(1);await expect(status).toContainText('1 observed token ·');await expect(rows).toContainText('2');
- await recover('both-fail','—');await expect(rows).toContainText('unavailable from Solana RPC. Select Refresh to retry.');
+ await recover('both-fail','—');await expect(rows).toContainText('unavailable from Solana network. Select Refresh to retry.');
  await recover('complete','$0.00');await expect(rows).toContainText('No SPL token holdings');
  for(const tab of['trades','holdings']){await page.locator(`[data-portfolio-tab="${tab}"]`).click();await expect(page.locator(`[data-portfolio-tab="${tab}"]`)).toHaveAttribute('aria-selected','true')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

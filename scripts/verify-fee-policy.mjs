@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, calculateCreatorFeeClaim, FEE_DISTRIBUTION, settleCreatorFeeClaim, validateFeeDistribution, validateProtocolFeeSplit } from '../distribution-policy.js';
+import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, calculateCreatorFeeClaim, FEE_DISTRIBUTION, setActiveProtocolFeeSplit, settleCreatorFeeClaim, validateFeeDistribution, validateProtocolFeeSplit } from '../distribution-policy.js';
 import { createFeeFlowView } from '../src/features/fees/fee-flow-view.js';
 import { readFileSync } from 'node:fs';
 import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
@@ -77,10 +77,7 @@ assert.deepEqual([alternateClaim.fundedApp.operations, alternateClaim.fundedApp.
 assert.equal(alternateClaim.totalAllocated, 100);
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 assert.match(productFaqs().map(([, , body]) => body).join(''), /id="fee-policy-faq"/, 'the current FAQ renderer must expose its configured-policy target');
-for (const id of ['buyback-policy-heading', 'buyback-policy-note']) {
-  assert.match(html, new RegExp(`id="${id}"`), `${id} must be rendered from the configured policy`);
-}
-const nodes = new Map([...['#fee-policy-faq', '#buyback-policy-heading', '#buyback-policy-note']].map(selector => [selector, { textContent: '' }]));
+const nodes = new Map([...['#fee-policy-faq']].map(selector => [selector, { textContent: '' }]));
 const bars = Array.from({ length: 5 }, () => ({ style: {} }));
 const rows = Array.from({ length: 5 }, () => ({ textContent: '' }));
 const previousDocument = globalThis.document;
@@ -91,20 +88,19 @@ globalThis.document = {
     : selector === '.home-receipt-card .receipt-rows span' ? rows : [],
 };
 try {
+  setActiveProtocolFeeSplit(alternate);
   createFeeFlowView({ creatorSharePercent: 80, fundedSharePercent: 20,
     operationsEffectivePercent: 10, appReferralEffectivePercent: 4, communityEffectivePercent: 4, buybackEffectivePercent: 2,
     operationsRateOfFundedRevenue: 50, appReferralRateOfFundedRevenue: 20, communityRateOfFundedRevenue: 20, buybackRateOfFundedRevenue: 10,
     appReferralLevels: alternatePolicy.fixedFunded.appReferral.levels }).renderPublishedFeeRates();
-  assert.match(nodes.get('#fee-policy-faq').textContent, /referrals \(4%\).*Daily bonus \(4%\).*buyback allocation \(2%\)/);
-  assert.equal(nodes.get('#buyback-policy-heading').textContent, 'Preview the 2% policy');
-  assert.match(nodes.get('#buyback-policy-note').textContent, /0\.100 SOL.*Local calculation only/);
+  assert.match(nodes.get('#fee-policy-faq').textContent, /4% Referral network.*4% Daily bonus.*2% \$FUNDED buyback/);
   assert.deepEqual(bars.map(node => node.style.width), ['80%', '10%', '4%', '4%', '2%']);
   assert.equal(rows[4].textContent, '2 SOL Buyback allocation');
-} finally { globalThis.document = previousDocument; }
+} finally { globalThis.document = previousDocument;setActiveProtocolFeeSplit(configured); }
 const legacyPolicy = buildFeeDistributionPolicy({ creatorWalletPercent: 80 }, { fundedSplit: { operationsPercent: 70, referralLevelPercents: [10, 3, 2], communityPercent: 10, buybackPercent: 5 } });
 const oldClaim = calculateCreatorFeeClaim(100, { creatorWalletPercent: 80 }, { fixedFunded: legacyPolicy.fixedFunded, referralRecipients: ['L1', 'L2', 'L3'] });
 assert.deepEqual([oldClaim.fundedApp.operations, oldClaim.fundedApp.referralPayout, oldClaim.fundedApp.community, oldClaim.fundedApp.buyback], [14, 3, 2, 1]);
-assert.throws(() => calculateCreatorFeeClaim(100, { creatorWalletPercent: 80 }, { fixedFunded: { ...alternatePolicy.fixedFunded, percent: 25 } }), /20% app share/);
+assert.throws(() => calculateCreatorFeeClaim(100, { creatorWalletPercent: 80 }, { fixedFunded: { ...alternatePolicy.fixedFunded, percent: 25 } }), /Saved shared allocations must match the fixed launch policy/);
 for (let lamports = 1; lamports <= 1000; lamports++) {
   const exact = calculateCreatorFeeClaim(lamports / 1_000_000_000, { creatorWalletPercent: 80 }, { fixedFunded: alternatePolicy.fixedFunded, referralRecipients: ['L1', 'L2', 'L3'] });
   assert.equal(Math.round(exact.totalAllocated * 1_000_000_000), lamports);

@@ -40,6 +40,19 @@ function showWalletGateBeforeAirdrops() {
   }
 }
 
+function showProfileWalletBeforeGuidance() {
+  const root = document.getElementById('profile');
+  const heading = root?.querySelector(':scope > .section-heading');
+  const wallet = root?.querySelector(':scope > .profile-grid');
+  const safety = wallet?.querySelector('.profile-safety-card');
+  const note = root?.querySelector('#profile-source-note');
+  if (heading && wallet && heading.nextElementSibling !== wallet) heading.after(wallet);
+  if (safety && note && !safety.contains(note)) safety.querySelector('summary')?.after(note);
+  const guide = root?.querySelector(':scope > .page-cleanup-guide[data-guide="profile"]');
+  const anchor = root?.querySelector(':scope > .workspace-shortcuts') || wallet;
+  if (guide && anchor && anchor.nextElementSibling !== guide) anchor.after(guide);
+}
+
 function showExploreResultsBeforeExtras() {
   const root = document.getElementById('explore');
   const cards = root?.querySelector(':scope > #asset-grid');
@@ -98,6 +111,7 @@ function refreshPageCleanup() {
     refreshQueued = false;
     foldVisualGuides();
     showWalletGateBeforeAirdrops();
+    showProfileWalletBeforeGuidance();
     showExploreResultsBeforeExtras();
     setupHomeTierShortcuts();
   });

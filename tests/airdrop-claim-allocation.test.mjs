@@ -18,6 +18,7 @@ test('connected wallet receives its verified claim amount once per snapshot with
     const state = {
       wallet: {}, connectedWalletAddress: wallet, communityWalletAllocations: allocations,
       captureWalletSession: () => session, isWalletSessionCurrent: current => current === session,
+      readPendingCommunityClaim: () => null,
       getAirdropPrograms: () => programs,
       updateDirectoryWalletAmount(current, program, status, amount) {
         if (current !== session) return false;

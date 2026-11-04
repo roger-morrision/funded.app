@@ -1,6 +1,7 @@
 // Dependencies and mutable application state are read live through appState.
 export function createNavigationController(appState) {
   let historyRouteLocation = globalThis.location?.href;
+  let unknownRouteNotified = '';
   let historyRouteTransition = false;
   // app-source: 847
   function setDesktopSidebarCollapsed(collapsed){
@@ -33,6 +34,8 @@ export function createNavigationController(appState) {
     document.querySelector('#menu-backdrop').hidden=!visible;
     opener.setAttribute('aria-expanded',String(visible));
     document.body.classList.toggle('menu-open',visible);
+    const bottomNavigation=document.querySelector('.mobile-workspace-nav');
+    if (bottomNavigation) bottomNavigation.inert=visible;
     if (visible) document.querySelector('#close-menu').focus();
     else if (restoreFocus&&mobile) opener.focus();
   }
@@ -47,13 +50,14 @@ export function createNavigationController(appState) {
   // app-source: 859
   function focusCurrentPageRoute(){
     const explicitRewardHash = location.hash;
-    if (explicitRewardHash === '#payments/history' || explicitRewardHash === '#payments/holders') {
+    const explicitRewardType = /^#payments\/(history|holders|creator|x)$/.exec(explicitRewardHash)?.[1];
+    if (explicitRewardType) {
       historyRouteTransition = false;
       // Browser traversal restores scroll after the route renderers run.
       // Reveal the explicit destination after that layout, as other aliases do.
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
         if (location.hash !== explicitRewardHash) return;
-        const tab = document.querySelector(explicitRewardHash === '#payments/holders' ? '#rewards-holder-tab' : '#rewards-history-tab');
+        const tab = document.querySelector(`#rewards-${explicitRewardType === 'holders' ? 'holder' : explicitRewardType}-tab`);
         if (tab?.getClientRects().length && tab.getAttribute('aria-selected') === 'true') {
           tab.scrollIntoView({block:'center',behavior:'instant'});
           tab.focus({preventScroll:true});
@@ -121,7 +125,10 @@ export function createNavigationController(appState) {
     if (hash.startsWith('coin/')) return 'overview';
     if (hash === 'referral-faq') return 'referrals';
     if (hash.startsWith('docs/')) return 'docs';
-    if (hash === 'funded-holder-token-rewards' || hash === 'payments/history' || hash === 'payments/holders') return 'payments';
+    if (hash === 'funded-holder-token-rewards' || /^payments\/(history|holders|activity|creator|x)$/.test(hash)) return 'payments';
+    // Shared links often use the sidebar label instead of the route name.
+    const labelRoutes = { rewards: 'payments', portfolio: 'my-launches', listing: 'list', listings: 'list', 'get-listed': 'list', leaderboards: 'leaderboard', referral: 'referrals', airdrop: 'airdrops', 'daily-bonuses': 'bonuses', analytics: 'analytics-detail', help: 'docs' };
+    if (labelRoutes[hash]) return labelRoutes[hash];
     return appState.pageRouteTargets[hash] ? appState.mergedPageRoutes[hash] || hash : 'overview';
   }
   // app-source-end
@@ -140,7 +147,7 @@ export function createNavigationController(appState) {
     // Same-location data refreshes must preserve a visitor's tab and caret.
     if (location.href !== historyRouteLocation) {
       historyRouteTransition = [new URL(historyRouteLocation).hash, location.hash]
-        .some(hash => hash === '#payments/history' || hash === '#payments/holders');
+        .some(hash => /^#payments\/(history|holders|creator|x)$/.test(hash));
       if (historyRouteTransition) appState.requestPageRouteFocus();
     }
     historyRouteLocation = location.href;
@@ -171,6 +178,7 @@ export function createNavigationController(appState) {
     let copy = {
       overview: ['Overview', 'Verified activity and next steps'],
       explore: ['Explore', 'Verified launches and market signals'],
+      callouts: ['Callouts', 'Live calls from verified wallets'],
       list: ['Get listed', 'Listing status and token mint check'],
       payments: ['Rewards', 'Claims and payout receipts'],
       'analytics-detail': ['Analytics', 'Indexed platform activity'],
@@ -203,7 +211,7 @@ export function createNavigationController(appState) {
     }
     const guide = appState.routeGuideCopy[route];
     const routeGuide = document.querySelector('#route-guide');
-    routeGuide.hidden = !guide || requestedHash === 'payments/history' || requestedHash === 'payments/holders';
+    routeGuide.hidden = !guide || /^payments\/(history|holders|creator|x)$/.test(requestedHash);
     if (guide) {
       document.querySelector('#route-guide-group').textContent = guide.group;
       document.querySelector('#route-guide-state').textContent = route === 'referrals' ? document.documentElement.dataset.referralStatus || (appState.connectedWalletAddress ? 'Verify wallet' : 'Connect wallet') : guide.state;
@@ -217,6 +225,13 @@ export function createNavigationController(appState) {
     }
     if (route === 'buybacks' || route === 'paid' || (route === 'airdrops' && appState.connectedWalletAddress)) void appState.loadFundedBurnState();
     if (route !== 'overview' && requestedHash !== 'referral-faq') window.scrollTo({ top: 0, behavior: 'auto' });
+    // Mistyped or outdated shared links fall back to Home; say so once per link.
+    const unknownHash = route === 'overview' && requestedHash && requestedHash !== 'overview' && !requestedHash.startsWith('coin/')
+      && !infoRoute && !creatorSupportRoute && requestedHash !== 'creator-settings' && !document.getElementById(requestedHash);
+    if (unknownHash && location.href !== unknownRouteNotified) {
+      unknownRouteNotified = location.href;
+      appState.showToast?.('Page not found. Showing Home instead.');
+    }
     window.dispatchEvent(new CustomEvent('funded:route-change', {detail: {route}}));
   }
   // app-source-end

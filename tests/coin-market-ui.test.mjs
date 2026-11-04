@@ -96,7 +96,7 @@ test('chart separates loading and unavailable prices from a confirmed empty hist
   const view = (status, coverage = null) => {
     const panel = { innerHTML:'' };
     const document = { querySelector:selector => selector === '#coin-price-path' ? panel : null, querySelectorAll:() => [] };
-    renderCoinPricePath({coinMarketActivity:{status, coverage, trades:[], decimals:6}, coinChartPeriod:'24h', coinChartMetric:'mcap', coinChartUnit:'usd'}, { document });
+    renderCoinPricePath({coinMarketActivity:{status, coverage, trades:[], decimals:6}, coinChartPeriod:'24h', coinChartMetric:'price', coinChartUnit:'sol'}, { document });
     return panel.innerHTML;
   };
   assert.match(view('loading'), /Loading chart/);
@@ -129,4 +129,12 @@ test('chart renders fresh supply and currency state without requiring a global d
   render();
   assert.equal(heading.textContent, 'Token · Price in SOL');
   assert.match(panel.innerHTML, /0\.002 SOL/);
+});
+
+test('a positive SOL price below fixed decimal precision is never displayed as zero', () => {
+  const panel = { innerHTML: '' }, now = Math.floor(Date.now() / 1000);
+  const document = { querySelector: selector => selector === '#coin-price-path' ? panel : null, querySelectorAll: () => [] };
+  renderCoinPricePath({ coinMarketActivity: { status: 'ready', coverage: 'complete', decimals: 6, trades: [{ blockTime: now, priceRatio: 2e-20 }] },
+    coinChartPeriod: '24h', coinChartMetric: 'price', coinChartUnit: 'sol', coinSolUsdValues: {} }, { document });
+  assert.match(panel.innerHTML, /2\.0000e-23 SOL/);
 });

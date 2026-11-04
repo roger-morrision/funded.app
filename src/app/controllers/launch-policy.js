@@ -80,7 +80,7 @@ export function createLaunchPolicyController(appState) {
   // app-source: 224
   function developerBuyLimitReached(error = appState.walletEstimateError){
     return (error === appState.walletEstimateError && appState.estimatedInitialBuyTokens > appState.LAUNCH_TOKEN_SUPPLY * .2)
-      || /developer buy cannot exceed 20% of the token supply/i.test(String(error));
+      || /developer buy (?:cannot exceed 20% of the token supply|exceeds the available launch supply)/i.test(String(error));
   }
   // app-source-end
 

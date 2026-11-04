@@ -1,0 +1,22 @@
+html body.product-experience-style #coin-price-path { min-width: 0; min-height: 0; padding: 12px; background: #0e1726; border: 1px solid #2b374b; border-radius: 8px; }
+html body.product-experience-style #coin-price-path .coin-price-path-head { align-items: center; min-width: 0; gap: 12px; margin-bottom: 8px; }
+html body.product-experience-style #coin-price-path .coin-chart-readout { min-width: 0; color: #d4e1f0; font: 500 12px/1.6 var(--ui-font-mono,monospace); overflow-wrap: anywhere; }
+html body.product-experience-style #coin-price-path [data-chart-reset] { flex: none; min-width: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid #3b4b62; border-radius: 6px; background: #1b283c; color: #c8d8eb; font-size: 11px; cursor: pointer; }
+html body.product-experience-style #coin-price-path [data-chart-reset]:focus-visible { outline: 2px solid #ffd28a; outline-offset: 3px; }
+html body.product-experience-style #coin-price-path .coin-tradingview-stage { position: relative; min-width: 0; height: 360px; }
+html body.product-experience-style #coin-price-path .coin-tradingview-canvas { position: absolute; inset: 0; min-width: 0; height: 100%; }
+html body.product-experience-style #coin-price-path .coin-tradingview-canvas svg { width: auto; height: auto; margin: 0; }
+html body.product-experience-style #coin-price-path .coin-chart-status { position: absolute; z-index: 2; inset: 0 52px 32px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px; background: #0e1726dd; text-align: center; pointer-events: none; }
+html body.product-experience-style #coin-price-path .coin-chart-status[hidden] { display: none; }
+html body.product-experience-style #coin-price-path .coin-chart-status strong { color: #e7edf5; font-size: 15px; }
+html body.product-experience-style #coin-price-path .coin-chart-status small { max-width: 44ch; color: #9fb0c7; font: 400 12px/1.6 var(--ui-font,system-ui); }
+html body.product-experience-style #coin-price-path .coin-chart-evidence { margin: 12px 0 0; color: #9fb0c7; font: 400 11px/1.6 var(--ui-font,system-ui); }
+html body.product-experience-style #coin-price-path .coin-chart-attribution { display: block; margin-top: 6px; color: #9fb0c7; font: 400 10px/1.6 var(--ui-font,system-ui); }
+html body.product-experience-style #coin-price-path .coin-chart-attribution a { color: #b2c8e4; }
+html body.product-experience-style #coin-price-path .coin-chart-window { display: block; margin-top: 8px; color: #9fb0c7; font: 400 10px/1.5 var(--ui-font-mono,monospace); overflow-wrap: anywhere; }
+@media(max-width:700px) {
+  html body.product-experience-style #coin-price-path { padding: 8px; }
+  html body.product-experience-style #coin-price-path .coin-tradingview-stage { height: 285px; }
+  html body.product-experience-style #coin-price-path .coin-price-path-head { align-items: start; }
+  html body.product-experience-style #coin-price-path .coin-chart-readout { font-size: 11px; }
+}

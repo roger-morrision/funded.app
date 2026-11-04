@@ -67,6 +67,10 @@ if(job==='fee-startup'){
 }
 globalThis.fetch=async(target,options={})=>{
   const path=new URL(target).pathname,method=options.method||'GET'; trace(method+' '+path);
+  if(path==='/api/automation/wakeup'){
+    if(job.endsWith('wake-read'))await finish();
+    return response({cluster:'devnet',revision:0});
+  }
   if(path==='/api/keeper/collection-candidates'){
     if(job==='fee-read')await finish();
     return response({cluster:'devnet',mints:[{mint},{mint:'3'.repeat(32)}]});
@@ -89,7 +93,7 @@ globalThis.fetch=async(target,options={})=>{
   trace('FORBIDDEN '+method+' '+path);throw Error('Unexpected request in shutdown fixture');
 };
 `);
-    const cases=['fee-startup','fee-read','fee-detail-read','fee-write','fee-uncertain','fee-json',
+    const cases=['fee-startup','fee-wake-read','buyback-wake-read','fee-read','fee-detail-read','fee-write','fee-uncertain','fee-json',
       'buyback-read','buyback-write','buyback-uncertain','buyback-json','buyback-heartbeat','buyback-heartbeat-error'];
     const results=await Promise.allSettled(cases.map(async job=>{
       const fee=job.startsWith('fee');

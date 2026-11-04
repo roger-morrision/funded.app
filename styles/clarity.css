@@ -1,0 +1,333 @@
+/*
+  Final presentation layer. Loaded last in index.html.
+  New UI work uses the --fv-* tokens below instead of raw hex values,
+  and new rules here must not use !important (see scripts/verify-css-budget.mjs).
+*/
+:root {
+  --fv-bg: #0b0d1a;
+  --fv-surface: #121a26;
+  --fv-surface-raised: #182233;
+  --fv-border: #29323a;
+  --fv-text: #f3f6fa;
+  --fv-text-muted: #a8b2bc;
+  --fv-text-subtle: #77869b;
+  --fv-accent: #f4a340;
+  --fv-accent-soft: #f4a3401f;
+  --fv-success: #73e8c3;
+  --fv-warning: #f1c873;
+  --fv-danger: #f78989;
+  --fv-space-1: 4px;
+  --fv-space-2: 8px;
+  --fv-space-3: 12px;
+  --fv-space-4: 16px;
+  --fv-space-5: 24px;
+  --fv-space-6: 32px;
+  --fv-radius-sm: 6px;
+  --fv-radius-md: 10px;
+  --fv-radius-lg: 16px;
+  --fv-font-ui: 'Manrope', system-ui, sans-serif;
+  --fv-font-data: 'DM Mono', ui-monospace, monospace;
+}
+
+/* Home: lead with the value proposition, then show only figures that loaded. */
+html body.page-route-overview #main-content .hero-section { order: 1; padding: var(--fv-space-6) 0 var(--fv-space-5); }
+html body.page-route-overview #main-content .hero-section h1 { max-width: 760px; margin: 0 0 var(--fv-space-3); color: var(--fv-text); }
+html body.page-route-overview #main-content .hero-copy { max-width: 620px; margin: 0 0 var(--fv-space-5); color: var(--fv-text-muted); font-size: 16px; line-height: 1.55; }
+html body.page-route-overview #main-content .home-hero-kicker { display: block; margin: 0 0 var(--fv-space-2); color: var(--fv-accent); font: 700 12px var(--fv-font-data); letter-spacing: .08em; text-transform: uppercase; }
+
+html body.page-route-overview #main-content .home-launch-highlights,
+html body.page-route-overview #main-content .home-kpi-dashboard { order: 2; }
+
+/* A ticker with no verified activity reads as a dead product; hide it until it has items. */
+html body.page-route-overview #main-content .home-launch-highlights:has(.home-ticker-empty) { display: none; }
+
+/* Platform figures: allocations and burn detail live on Analytics and $FUNDED. */
+html body.page-route-overview #main-content #home-kpi-burn-card,
+html body.page-route-overview #main-content #home-kpi-airdrop-card { display: none; }
+html body.page-route-overview #main-content .home-kpi-card:not([data-state='available'], [data-state='partial']) { display: none; }
+html body.page-route-overview #main-content .home-kpi-dashboard:not(:has(.home-kpi-card[data-state='available'], .home-kpi-card[data-state='partial'])) { display: none; }
+html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+/* Long unit badges ("USD · OBSERVED") drop under the figure instead of cutting it to "≥…". */
+html body.page-route-overview #main-content .home-kpi-value { flex-wrap: wrap; }
+/* Phones: two figures per row so coins start one screen sooner. */
+@media (max-width: 520px) {
+  html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+html body.page-route-overview #main-content .home-kpi-freshness { display: none; }
+
+/* Token cards: loading placeholders add noise without information. */
+html body #main-content .home-launch-evidence:empty,
+html body #main-content .home-launch-progress-row[data-progress-state='loading'] { display: none; }
+
+/* Technical status lines move into one notice (src/features/experience/technical-notices.js).
+   It sits above the sticky topbar (25), below the navigation drawer (40), and clear of the Help button. */
+.technical-notice-stack { position: fixed; z-index: 30; right: var(--fv-space-4); bottom: 60px; display: grid; gap: var(--fv-space-2); width: min(360px, calc(100vw - 2 * var(--fv-space-4))); pointer-events: none; }
+.technical-notice { pointer-events: auto; padding: var(--fv-space-3) var(--fv-space-4); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: var(--fv-surface-raised); box-shadow: 0 12px 32px #0008; color: var(--fv-text); font: 13px/1.45 var(--fv-font-ui); }
+.technical-notice[hidden] { display: none; }
+.technical-notice-error { border-color: var(--fv-danger); }
+.technical-notice-head { display: flex; align-items: center; justify-content: space-between; gap: var(--fv-space-3); }
+.technical-notice-head strong { font-size: 14px; }
+.technical-notice-error .technical-notice-head strong { color: var(--fv-danger); }
+.technical-notice p { margin: var(--fv-space-1) 0 0; color: var(--fv-text-muted); }
+.technical-notice-close { min-width: 32px; min-height: 32px; border: 0; border-radius: var(--fv-radius-sm); background: transparent; color: var(--fv-text-muted); font-size: 18px; cursor: pointer; }
+.technical-notice-close:hover { background: var(--fv-accent-soft); color: var(--fv-text); }
+.technical-notice details { margin-top: var(--fv-space-2); color: var(--fv-text-subtle); font-size: 12px; }
+.technical-notice summary { cursor: pointer; color: var(--fv-accent); }
+.technical-notice ul { margin: var(--fv-space-2) 0 0; padding-left: var(--fv-space-4); }
+/* Native focus scrolling stops above the notice while it is open. */
+html:has(.technical-notice-stack .technical-notice:not([hidden]):not(.is-compact)) { scroll-padding-bottom: 240px; }
+html:has(.technical-notice-stack .technical-notice.is-compact:not([hidden])) { scroll-padding-bottom: 112px; }
+@media (max-width: 700px) {
+  .technical-notice-stack { right: var(--fv-space-4); bottom: calc(var(--mobile-bottom-height, 72px) + var(--fv-space-3)); }
+  /* Keep keyboard focus clear of the notice pill as well as the bottom navigation. */
+  html:has(body.page-route:not(.page-route-admin)):has(.technical-notice-stack .technical-notice:not([hidden])) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 64px); }
+  /* The status summary sits in the page flow under the topbar (technical-notices.js). */
+  .technical-notice-inline { display: flex; justify-content: flex-end; padding: var(--fv-space-2) var(--fv-space-4) 0; }
+  .technical-notice-inline:not(:has(> .technical-notice:not([hidden]))) { display: none; }
+  .technical-notice-inline .technical-notice { width: 100%; box-shadow: none; }
+  .technical-notice-inline .technical-notice.is-compact { width: auto; }
+  /* Home hero is a two-column grid on phones; give the third CTA the full row instead of a lone half-width wrapped button. */
+  html body.page-route-overview #main-content .hero-actions > [data-launch-for-x] { grid-column: 1 / -1; }
+  /* Explore on phones: the title says enough; drop the lede so the first coin starts higher. */
+  html body.page-route-explore .explore-hero .explore-lede { display: none; }
+}
+[data-technical-value]::after { content: 'Updating…'; font-size: var(--fv-cell-size, 1rem); color: var(--fv-text-muted); font-weight: 500; }
+.technical-notice-title { padding: 0; border: 0; background: none; color: inherit; font: 700 14px var(--fv-font-ui); text-align: left; cursor: pointer; }
+.technical-notice.is-compact { justify-self: end; padding: var(--fv-space-1) var(--fv-space-1) var(--fv-space-1) var(--fv-space-3); border-radius: 999px; }
+.technical-notice.is-compact .technical-notice-title { font-size: 12px; font-weight: 600; color: var(--fv-text-muted); }
+.technical-notice.is-compact p, .technical-notice.is-compact details { display: none; }
+
+/* Token card: one layout everywhere (launch-card-view.js). Benchmarked on
+   compact launchpad cards: identity + socials, market figures, curve, actions. */
+html body #main-content .token-card-shell.home-launch-card { position: relative; display: flex; flex-direction: column; gap: var(--fv-space-3); min-height: 0; padding: var(--fv-space-4); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: var(--token-card-surface, var(--fv-surface)); box-shadow: none; transition: border-color .15s, transform .15s; }
+html body #main-content .token-card-shell.home-launch-card:hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); transform: translateY(-1px); }
+html body #main-content .home-launch-card .home-card-overview { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: var(--fv-space-3); margin: 0; padding: 0 36px 0 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-media { align-self: start; width: 56px; height: 56px; min-height: 0; max-height: 56px; aspect-ratio: 1; margin: 0; }
+html body #main-content .home-launch-card .home-launch-card-media img,
+html body #main-content .home-launch-card .home-token-avatar { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; }
+html body #main-content .home-launch-card .home-card-info { display: grid; gap: var(--fv-space-1); min-width: 0; }
+html body #main-content .home-launch-card .home-card-heading { display: flex; align-items: center; gap: var(--fv-space-2); min-width: 0; }
+html body #main-content .home-launch-card .home-token-identity { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--fv-space-2); min-width: 0; }
+html body #main-content .home-launch-card .home-token-identity strong { color: var(--fv-text); font: 800 16px var(--fv-font-ui); letter-spacing: -.01em; }
+html body #main-content .home-launch-card .home-token-identity small { min-width: 0; color: var(--fv-text-muted); font: 500 13px var(--fv-font-ui); overflow-wrap: anywhere; white-space: normal; }
+html body #main-content .home-launch-card .home-launch-media-badges { display: inline-flex; flex: 0 0 auto; gap: var(--fv-space-1); margin: 0; }
+html body #main-content .home-launch-card .home-launch-media-badges:empty { display: none; }
+html body #main-content .home-launch-card .home-card-meta { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-card-addresses { display: inline-flex; align-items: center; gap: 2px; margin: 0; }
+html body #main-content .home-launch-card .home-launch-card-addresses code { color: var(--fv-text-subtle); font: 12px var(--fv-font-data); }
+html body #main-content .home-launch-card .home-launch-copy-address { width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: var(--fv-radius-sm); background: transparent; color: var(--fv-text-subtle); }
+html body #main-content .home-launch-card .home-launch-copy-address:hover { background: var(--fv-accent-soft); color: var(--fv-text); }
+html body #main-content .home-launch-card .explore-social-links { display: inline-flex; gap: 2px; margin: 0; }
+html body #main-content .home-launch-card .explore-social-link { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: 0; border-radius: var(--fv-radius-sm); color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .explore-social-link:hover { background: var(--fv-accent-soft); color: var(--fv-text); }
+html body #main-content .home-launch-card .explore-social-link svg,
+html body #main-content .home-launch-card .home-launch-copy-address svg { width: 14px; height: 14px; }
+html body #main-content .home-launch-card .home-card-star { position: absolute; z-index: 2; top: 4px; right: 4px; }
+html body #main-content .home-launch-card .home-card-star .watch-button { display: inline-grid; place-items: center; width: 44px; height: 44px; min-height: 0; padding: 0; border: 0; border-radius: var(--fv-radius-md); background: transparent; color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .home-card-star .watch-button:hover { color: var(--fv-accent); }
+html body #main-content .home-launch-card .home-card-star .watch-button.active { color: var(--fv-accent); }
+html body #main-content .home-launch-card .home-card-star .watch-button svg { width: 20px; height: 20px; }
+html body #main-content .home-launch-card .home-launch-cap .home-launch-change { display: inline-block; margin-left: var(--fv-space-1); vertical-align: middle; font-size: 11px; padding: 2px var(--fv-space-2); border-radius: 999px; background: color-mix(in srgb, var(--fv-text) 6%, transparent); color: var(--fv-text-muted); font: 600 12px var(--fv-font-data); }
+html body #main-content .home-launch-card  .home-launch-cap .home-launch-change.is-positive { background: color-mix(in srgb, var(--fv-success) 12%, transparent); color: var(--fv-success); }
+html body #main-content .home-launch-card  .home-launch-cap .home-launch-change.is-negative { background: color-mix(in srgb, var(--fv-danger) 12%, transparent); color: var(--fv-danger); }
+html body #main-content .home-launch-card .home-launch-card-stats { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-stats > span { display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-stats small { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-ui); letter-spacing: .02em; text-transform: uppercase; }
+html body #main-content .home-launch-card .home-launch-card-stats strong { overflow: hidden; color: var(--fv-text); font: 600 14px var(--fv-font-data); text-overflow: ellipsis; white-space: nowrap; }
+html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { color: var(--fv-accent); font-size: 16px; }
+html body #main-content .home-launch-card .home-launch-card-stats strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
+html body #main-content .home-market-ticker-items small.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
+html body #main-content .home-launch-card .home-card-market-summary { display: grid; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-progress-heading { display: flex; justify-content: space-between; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); text-align: end; font: 500 11px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-fee-route { color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-card-actions { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, 44px); gap: var(--fv-space-2); margin-top: auto; padding: 0; border: 0; }
+html body #main-content .home-launch-card .home-launch-card-actions > * { min-width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: transparent; color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy) { display: inline-grid; place-items: center; font-size: 0; }
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy) svg { width: 16px; height: 16px; }
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy):hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); color: var(--fv-text); }
+html body #main-content .home-launch-card .home-launch-card-actions > .card-review-buy { display: inline-flex; align-items: center; justify-content: center; gap: var(--fv-space-1); border-color: var(--fv-accent); background: var(--fv-accent); color: var(--fv-bg); font: 700 14px var(--fv-font-ui); text-decoration: none; }
+html body #main-content .home-launch-card .home-launch-card-actions > .card-review-buy:hover { filter: brightness(1.08); }
+html body #main-content .home-launch-card .home-launch-note { color: var(--fv-text-subtle); font-size: 12px; }
+html body #main-content .home-launch-card .home-launch-protocol { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--fv-space-1); min-height: 44px; }
+html body #main-content .home-launch-card .home-launch-protocol:not(:has(*:not(:empty))) { display: none; }
+html body #main-content .home-launch-card .home-launch-media-package:empty { display: none; }
+html body #main-content .home-launch-card .home-launch-protocol > *,
+html body #main-content .home-launch-card .home-launch-media-package > *,
+html body #main-content .home-launch-card .boost-package-badge { display: inline-flex; align-items: center; gap: var(--fv-space-1); min-height: 22px; margin: 0; padding: 0 var(--fv-space-2); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 11px var(--fv-font-ui); text-decoration: none; white-space: nowrap; }
+html body #main-content .home-launch-card .home-launch-media-package,
+html body #main-content .home-launch-card .boost-package-badges { display: contents; }
+html body #main-content .home-launch-card .home-launch-chip svg { width: 12px; height: 12px; }
+html body #main-content .home-launch-card .home-launch-media-package [data-tier='premier'],
+html body #main-content .home-launch-card .home-launch-media-package .promotion-premier { border-color: var(--fv-accent); color: var(--fv-accent); }
+html body #main-content .home-launch-card .boost-package-badge { border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); color: var(--fv-warning); }
+html body #main-content .home-launch-card .home-launch-chip.is-burn { color: var(--fv-danger); border-color: color-mix(in srgb, var(--fv-danger) 35%, transparent); }
+html body #main-content .home-launch-card .home-launch-chip.is-airdrop { color: var(--fv-success); border-color: color-mix(in srgb, var(--fv-success) 35%, transparent); }
+html body #main-content .home-launch-card .home-launch-chip.is-listed { color: var(--fv-text); }
+html body #main-content .home-launch-card .home-launch-fee-route { display: flex; gap: var(--fv-space-2); align-items: baseline; }
+html body #main-content .home-launch-card .home-launch-fee-route small { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-ui); text-transform: uppercase; letter-spacing: .02em; }
+html body #main-content .home-launch-card .home-launch-fee-route span { color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .home-launch-card-media { overflow: hidden; border: 0; border-radius: 8px; background: var(--fv-surface-raised); }
+/* Every token-card list uses the same grid. */
+html body #main-content #home-launch-grid:has(> .home-launch-card),
+html body #main-content #asset-grid:not([hidden]):has(> .home-launch-card),
+html body #main-content #watchlist-items:has(> .home-launch-card) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--fv-space-3); }
+
+/* Token detail page: header → key stats → chart beside a trade panel that stays
+   in view → activity tabs → protocol and fee detail. */
+html body #main-content #coin-page:not([hidden]) { display: flex; flex-direction: column; gap: var(--fv-space-4); }
+html body #main-content #coin-page > .coin-breadcrumb { order: 0; }
+html body #main-content #coin-page > .coin-hero-card { order: 1; }
+html body #main-content #coin-page > .coin-stat-strip { order: 2; }
+html body #main-content #coin-page > .coin-layout { order: 3; }
+html body #main-content #coin-page > .coin-burn-dashboard { order: 4; }
+html body #main-content #coin-page > .coin-fixed-fee-details { order: 5; }
+html body #main-content #coin-page > .coin-summary-dashboard,
+html body #main-content #coin-page > #coin-fee-dashboard { order: 6; }
+html body #main-content #coin-page .coin-hero-card { padding: var(--fv-space-4) var(--fv-space-5); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+html body #main-content #coin-page .coin-record-shortcuts { display: none; }
+/* Inset focus ring: the filter strip can sit flush with a narrow screen edge. */
+html body #main-content #coin-page .coin-trade-filters button:focus-visible { outline-offset: -2px; }
+html body #main-content #coin-page .coin-price-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--fv-space-2); margin: var(--fv-space-1) 0 var(--fv-space-2); }
+html body #main-content #coin-page .coin-price-line #coin-price { color: var(--fv-text); font: 700 22px var(--fv-font-data); }
+html body #main-content #coin-page .coin-price-line .coin-change { padding: 2px var(--fv-space-2); border-radius: 999px; background: color-mix(in srgb, var(--fv-text-muted) 12%, transparent); color: var(--fv-text-muted); font: 600 13px var(--fv-font-data); }
+html body #main-content #coin-page .coin-price-line .coin-change[data-trend="up"] { background: color-mix(in srgb, var(--fv-success) 12%, transparent); color: var(--fv-success); }
+html body #main-content #coin-page .coin-price-line .coin-change[data-trend="down"] { background: color-mix(in srgb, var(--fv-danger) 12%, transparent); color: var(--fv-danger); }
+html body #main-content #coin-page .coin-price-line .coin-change:empty { display: none; }
+html body #main-content #coin-page .coin-socials { display: flex; flex-wrap: wrap; gap: var(--fv-space-2); }
+html body #main-content #coin-page .coin-socials > a:not([hidden]),
+html body #main-content #coin-page .coin-socials > button { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); text-decoration: none; }
+html body #main-content #coin-page .coin-socials > a:hover,
+html body #main-content #coin-page .coin-socials > button:hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); color: var(--fv-text); }
+/* Phone token headers list only the project links the creator provided. */
+@media (max-width: 700px) { html body #main-content #coin-page .coin-socials > a.is-unavailable { display: none; } }
+html body #main-content #coin-page .coin-stat-strip { gap: 1px; overflow: hidden; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-border); }
+html body #main-content #coin-page .coin-stat-strip > div { padding: var(--fv-space-3) var(--fv-space-4); background: var(--fv-surface); }
+html body #main-content #coin-page .coin-stat-strip strong { color: var(--fv-text); font: 600 18px var(--fv-font-data); }
+html body #main-content #coin-page .coin-stat-strip #coin-strip-market-cap { color: var(--fv-accent); }
+@media (min-width: 1100px) {
+  html body #main-content #coin-page .coin-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: var(--fv-space-4); }
+  html body #main-content #coin-page .coin-side-column { position: sticky; top: 80px; display: grid; gap: var(--fv-space-4); }
+}
+@media (max-width: 1099px) {
+  /* Narrow screens: buy right after the chart, not after every table. */
+  html body #main-content #coin-page .coin-layout { display: flex; flex-direction: column; gap: var(--fv-space-4); }
+  html body #main-content #coin-page .coin-main-column,
+  html body #main-content #coin-page .coin-side-column { display: contents; }
+  html body #main-content #coin-page .coin-chart-panel { order: 1; }
+  html body #main-content #coin-page .trading-panel { order: 2; }
+  html body #main-content #coin-page .coin-pulse-panel { order: 3; }
+  html body #main-content #coin-page .coin-tabs-panel { order: 4; }
+  html body #main-content #coin-page .coin-policy-card { order: 5; }
+  html body #main-content #coin-page .coin-main-column > .launch-facts { order: 6; }
+  /* Panels keep to the column width; wide toolbars wrap instead of pushing it. */
+  html body #main-content #coin-page :is(.coin-main-column, .coin-side-column) > * { min-width: 0; max-width: 100%; }
+  html body #main-content #coin-page .coin-trade-controls { flex-wrap: wrap; min-width: 0; }
+}
+html body #main-content #coin-page .trading-panel { border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+html body #main-content #coin-page .coin-quick-amounts button,
+html body #main-content #coin-page .coin-slippage-presets button { min-height: 32px; border-radius: 999px; font: 600 12px var(--fv-font-data); }
+/* Get listed: verified listings use the shared listing card on the card grid. */
+html body #main-content #list-live-items:has(.home-launch-card) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--fv-space-3); }
+html body #main-content .home-launch-card .home-launch-chip.is-trust { color: var(--fv-success); border-color: color-mix(in srgb, var(--fv-success) 35%, transparent); }
+html body #main-content .home-launch-card .home-launch-chip.is-warning { color: var(--fv-warning); border-color: color-mix(in srgb, var(--fv-warning) 45%, transparent); }
+/* Home proof strip: recent confirmed payouts (payout-feed.js). */
+html body #main-content .home-payout-feed { display: flex; align-items: center; gap: var(--fv-space-3); max-width: 760px; margin-top: var(--fv-space-4); padding: var(--fv-space-2) var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: var(--fv-surface); overflow: hidden; }
+html body #main-content .home-payout-label { flex: 0 0 auto; color: var(--fv-success); font: 700 12px var(--fv-font-ui); white-space: nowrap; }
+html body #main-content .home-payout-window { flex: 1; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
+html body #main-content .home-payout-track { display: flex; gap: var(--fv-space-4); width: max-content; animation: fv-payout-scroll 45s linear infinite; }
+html body #main-content .home-payout-track:hover { animation-play-state: paused; }
+html body #main-content .home-payout-track a { color: var(--fv-text-muted); font: 500 12px var(--fv-font-ui); text-decoration: none; white-space: nowrap; }
+html body #main-content .home-payout-track a b { color: var(--fv-accent); font-family: var(--fv-font-data); }
+@keyframes fv-payout-scroll { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { html body #main-content .home-payout-track { animation: none; flex-wrap: wrap; width: auto; } }
+@media (max-width: 700px) { html body #main-content .home-payout-feed { flex-direction: column; align-items: stretch; } }
+/* Launch package badges: one color per package; boost and listing badges beside them. */
+html body #main-content .home-launch-card .home-launch-package-standard { color: var(--fv-text-muted); }
+html body #main-content .home-launch-card .promotion-badge--boost { color: var(--fv-warning); border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); }
+html body #main-content .home-launch-card .promotion-badge--pro { color: #aaa0ff; border-color: color-mix(in srgb, #aaa0ff 55%, transparent); background: color-mix(in srgb, #aaa0ff 10%, transparent); }
+html body #main-content .home-launch-card .promotion-badge--premier { color: var(--fv-bg); border-color: var(--fv-accent); background: var(--fv-accent); }
+html body #main-content .home-launch-card .home-launch-chip.is-listed { border-color: var(--fv-text-muted); font-weight: 700; }
+/* Package badge links to its burn receipt: 44px tap area, small visible pill. */
+html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge { position: relative; z-index: 0; min-height: 44px; border-color: transparent; background: transparent; }
+html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge::before { content: ""; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--fv-border); border-radius: 999px; }
+html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge--boost::before { border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); }
+html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge--pro::before { border-color: color-mix(in srgb, #aaa0ff 55%, transparent); background: color-mix(in srgb, #aaa0ff 10%, transparent); }
+html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge--premier::before { border-color: var(--fv-accent); background: var(--fv-accent); }
+/* Home: the brand and legal footer is always the last block. */
+html body.page-route-overview #main-content > .home-reference-footer { order: 99; }
+
+/* Leaderboard: the connected wallet's own row */
+html body #main-content #leaderboard .leaderboard-row.is-you { box-shadow: inset 3px 0 0 var(--fv-accent); background: color-mix(in srgb, var(--fv-accent) 8%, transparent); }
+/* Phone Traders board: two-line rows instead of a table that scrolls sideways. */
+@media (max-width: 700px) {
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] { overflow-x: visible; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-table-head { display: none; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row { min-width: 0; grid-template-columns: 32px minmax(0, 1fr) auto; grid-template-areas: "rank who value" "rank trades proof"; align-items: center; gap: var(--fv-space-1) var(--fv-space-3); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(1) { grid-area: rank; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(2) { grid-area: who; min-width: 0; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(3) { grid-area: trades; display: flex; align-items: baseline; gap: var(--fv-space-2); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(3) b::after { content: ' trades'; font-weight: 400; color: var(--fv-text-muted); }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(4) { grid-area: value; text-align: right; }
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(5) { grid-area: proof; text-align: right; }
+}
+
+/* Home: the connected wallet's own panel */
+html body #main-content .your-home { grid-column: 1 / -1; order: 5; display: grid; gap: var(--fv-space-3); padding: var(--fv-space-4) var(--fv-space-5); border: 1px solid color-mix(in srgb, var(--fv-accent) 30%, var(--fv-border)); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+html body #main-content .your-home[hidden] { display: none; }
+html body #main-content .your-home-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--fv-space-2); }
+html body #main-content .your-home-head h2 { margin: 0; color: var(--fv-text); font: 700 20px var(--fv-font-ui); }
+html body #main-content .your-home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--fv-space-2); }
+html body #main-content .your-home-stat { display: grid; gap: 2px; min-height: 44px; padding: var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); color: inherit; text-decoration: none; }
+html body #main-content .your-home-stat:hover { border-color: color-mix(in srgb, var(--fv-accent) 45%, transparent); }
+html body #main-content .your-home-stat span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .your-home-stat strong { color: var(--fv-text); font: 700 20px var(--fv-font-data); }
+html body #main-content .your-home-stat small { color: var(--fv-text-muted); font: 500 12px var(--fv-font-ui); }
+/* Proof totals, coin holder rewards and Daily bonus countdown: same stat-card language as the Home panel. */
+html body #main-content :is(.proof-totals, .holder-rewards-card, .bonus-countdown) { display: grid; gap: var(--fv-space-3); margin: 0 0 var(--fv-space-4); padding: var(--fv-space-4) var(--fv-space-5); border: 1px solid color-mix(in srgb, var(--fv-accent) 30%, var(--fv-border)); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+html body #main-content :is(.holder-rewards-card, .bonus-countdown)[hidden] { display: none; }
+html body #main-content .proof-totals-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--fv-space-2); }
+html body #main-content .proof-totals-head strong { color: var(--fv-text); font: 700 16px var(--fv-font-ui); }
+html body #main-content .proof-totals-head :is(a, small) { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .proof-totals-head a:hover { color: var(--fv-accent); }
+html body #main-content .proof-totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--fv-space-2); }
+html body #main-content .proof-total { display: grid; align-content: start; gap: 2px; min-width: 0; padding: var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); color: inherit; text-decoration: none; }
+html body #main-content .proof-total:hover { border-color: color-mix(in srgb, var(--fv-accent) 45%, transparent); }
+html body #main-content .proof-total span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .proof-total strong { color: var(--fv-text); font: 700 18px var(--fv-font-data); overflow-wrap: anywhere; }
+html body #main-content :is(.proof-total, .holder-rewards-grid > div, .bonus-countdown-pool) em { color: var(--fv-success); font: 600 12px var(--fv-font-data); font-style: normal; }
+html body #main-content .proof-total small { color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
+html body #main-content .holder-rewards-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--fv-space-2); }
+html body #main-content .holder-rewards-head .eyebrow { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--fv-success); }
+html body #main-content .holder-rewards-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--fv-success); }
+html body #main-content .holder-rewards-head h2 { margin: 2px 0 0; color: var(--fv-text); font: 700 18px var(--fv-font-ui); }
+html body #main-content .holder-rewards-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: var(--fv-space-2); }
+html body #main-content .holder-rewards-grid > div { display: grid; align-content: start; gap: 2px; min-width: 0; padding: var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); }
+html body #main-content .holder-rewards-grid span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .holder-rewards-grid strong { color: var(--fv-text); font: 700 18px var(--fv-font-data); overflow-wrap: anywhere; }
+html body #main-content .holder-rewards-main strong { font-size: 24px; }
+html body #main-content .holder-rewards-grid small, html body #main-content .holder-rewards-rule { margin: 0; color: var(--fv-text-muted); font: 500 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown { grid-template-columns: auto auto 1fr; align-items: center; column-gap: var(--fv-space-5); }
+html body #main-content .bonus-countdown > .text-button { grid-column: 1 / -1; justify-self: end; }
+html body #main-content .bonus-countdown-clock, html body #main-content .bonus-countdown-pool { display: grid; gap: 2px; min-width: 0; }
+html body #main-content .bonus-countdown-clock .eyebrow { margin: 0; }
+html body #main-content .bonus-countdown-clock strong { color: var(--fv-accent); font: 700 26px var(--fv-font-data); font-variant-numeric: tabular-nums; }
+html body #main-content .bonus-countdown-pool span { color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown-pool strong { color: var(--fv-text); font: 700 18px var(--fv-font-data); }
+html body #main-content :is(.bonus-countdown-clock, .bonus-countdown-pool) small { color: var(--fv-text-muted); font: 500 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown-prizes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--fv-space-2); margin: 0; padding: 0; list-style: none; }
+html body #main-content .bonus-countdown-prizes li { display: grid; gap: 1px; min-width: 76px; padding: var(--fv-space-2) var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); }
+html body #main-content .bonus-countdown-prizes b { color: var(--fv-accent); font: 700 12px var(--fv-font-ui); }
+html body #main-content .bonus-countdown-prizes span { color: var(--fv-text); font: 700 14px var(--fv-font-data); }
+html body #main-content .bonus-countdown-prizes small { color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
+@media (max-width: 899px) {
+  html body #main-content .bonus-countdown { grid-template-columns: 1fr; row-gap: var(--fv-space-3); }
+  html body #main-content .bonus-countdown-prizes { justify-content: flex-start; }
+  html body #main-content .bonus-countdown > .text-button { justify-self: start; }
+  html body #main-content .holder-rewards-grid { grid-template-columns: 1fr 1fr; }
+  html body #main-content .holder-rewards-main { grid-column: 1 / -1; }
+  html body #main-content :is(.proof-totals, .holder-rewards-card, .bonus-countdown) { padding: var(--fv-space-3) var(--fv-space-4); }
+}
+html body #launch-dialog .launch-summary-plain { margin: var(--fv-space-2) 0; padding: var(--fv-space-2) var(--fv-space-3); border-left: 3px solid var(--fv-accent); border-radius: var(--fv-radius-sm); background: var(--fv-accent-soft); color: var(--fv-text); font: 600 12px/1.5 var(--fv-font-ui); }
+
+/* Callouts: live board of coin calls in three columns, and the call toggle and badge in coin chat. */

@@ -25,8 +25,7 @@ for (const step of [1, 2]) {
 }
 assert.doesNotMatch(html, /data-launch-step(?:-target)?="3"/, 'Launch must have two steps only.');
 
-assert.match(html, /id="launch-mode-quick"/);
-assert.match(html, /id="launch-mode-custom"/);
+assert.doesNotMatch(html, /id="launch-mode-(?:quick|custom)"/, 'Removed fee preset buttons must not return.');
 function launchSection(source) {
   // The launch workspace contains nested sections. Match its ID regardless of
   // attribute order, then stop at its own closing tag, not a later dialog.
@@ -153,10 +152,11 @@ assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, form: '
 assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, termsConsent: false }, 150), false, 'Consent withdrawal must block the wallet handoff.');
 assert.equal(launchReviewStillCurrent(pendingReview, { ...currentReview, image: {} }, 150), false, 'Changing the image must require a new review.');
 assert.doesNotMatch(launchPage, /review-referrer|<span>Inviter<\/span>|Gross fees across three app levels|<small>Referrals<\/small>/);
-assert.match(launchPage, /APP PROTOCOL<\/span><strong>20%/);
-assert.match(launchPage, /app-level referrals, \$FUNDED buyback and burn, community programs, and operations\/marketing/);
+assert.match(launchPage, /data-fee-distribution="launch"/, 'Launch must mount the shared published-policy summary.');
+const feeSummary = await readFile(new URL('../src/features/fees/distribution-summary.js',import.meta.url),'utf8');
+assert.match(feeSummary, /feeDistributionPresentation\(fee\)/, 'Launch rates must come from the current policy model.');
 assert.doesNotMatch(launchPage, /automated funding and settlement are not live yet/, 'The removed Devnet policy paragraph must not return to the launch form.');
-assert.match(launchPage, /Paid packages burn \$FUNDED when you launch/);
+assert.match(launchPage, /Pro and Premier burn \$FUNDED when you launch/);
 assert.doesNotMatch(launchPage, /claim-example-receipt|Example for 1 SOL claimed|Illustration only; this is not a revenue forecast or a live claim/, 'The removed after-launch example card must not return.');
 assert.match(html, /data-burn-tier="standard"/);
 assert.doesNotMatch(launchPage, /class="creator-burn-card boost"|data-burn-tier="boost"/, 'Boost must not appear as a new launch tier.');
@@ -177,7 +177,7 @@ assert.match(app, /history\.replaceState\(\{\}, '', `\$\{location\.pathname\}\$\
 assert.match(app, /fee-route-agree/);
 assert.match(app, /function setLaunchBurnTier\(/);
 assert.match(app, /launchBurnReadiness/);
-assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction,\s*mintRouterInstruction: mintRouter\?\.instruction, reserveInstructions:\[\.\.\.reserve\.instructions,\.\.\.launchServiceFeeInstructions\(\{payer,mint:mint\.publicKey,quote:serviceQuote\}\)\], lookupTable \}\)/, 'Estimate must include the same reserve and service-fee instructions as launch.');
+assert.match(app, /buildPumpLaunchPlan\(\{ payer, mint, blockhash: latest\.blockhash, launchInstructions, burnInstruction: burnPlan\?\.instruction,\s*mintRouterInstruction: mintRouter\?\.instruction, reserveInstructions:\[\.\.\.reserve\.instructions,\.\.\.developerLockLaunchInstructions\(\{mint:mint\.publicKey,creator:payer,\s*amount:developerBuy\.amountBaseUnits,config:reserveConfig\.developerTokenLock,quoteId:serviceQuote\.id\}\),\.\.\.launchServiceFeeInstructions\(\{payer,mint:mint\.publicKey,quote:serviceQuote,escrowReceiptMarker:developerBuy\.amountBaseUnits>0n\}\)\], lookupTable \}\)/, 'Estimate must include the same reserve, developer escrow and service-fee instructions as launch.');
 assert.match(app, /for \(let blockhashAttempt = 0; blockhashAttempt < 2; blockhashAttempt \+= 1\)[\s\S]*?getLatestBlockhash\('finalized'\)/, 'Launch estimation must use a finalized blockhash and one bounded retry.');
 assert.match(app, /BlockhashNotFound\|blockhash not found[\s\S]*?if \(!blockhashMissing \|\| blockhashAttempt > 0\) throw error/, 'Only BlockhashNotFound may retry, and only once.');
 assert.match(app, /blockhashAttempt > 0\) await new Promise\(resolve => setTimeout\(resolve, 1100\)\)/, 'The blockhash retry must outwait the one-second RPC proxy cache.');
@@ -188,14 +188,13 @@ assert.match(app, /estimatedSpend = balance - simulatedPayerBalance/, 'Launch es
 assert.doesNotMatch(app.split('const fee = estimates.reduce')[1]?.split('if (request !== metricsRequest')[0] || '', /simulatedPayerBalance/, 'The aggregate launch estimate must not reference a per-transaction simulation variable.');
 assert.match(app, /function formatLaunchCost\(lamports\).*toFixed\(6\)/, 'Launch cost must show enough SOL precision for rent and transaction fees.');
 assert.match(app, /if \(wallet\) refreshWalletInfo\(\);/, 'Switching back to Standard must refresh the estimate.');
-assert.match(app, /if \(input\.matches\('#token-name, #token-symbol, #creator-buy-sol'\)\) scheduleLaunchCostRefresh\(\)/, 'Editing launch metadata or the developer buy must invalidate and refresh the estimate.');
+assert.match(app, /if \(input\.matches\('#token-name, #token-symbol, #creator-buy-sol, #community-airdrop-tokens'\)\) scheduleLaunchCostRefresh\(\)/, 'Editing launch metadata, the developer buy or community reserve must invalidate and refresh the estimate.');
 assert.match(app, /shouldAutoRefreshLaunchEstimate\([\s\S]*?scheduleLaunchCostRefresh\(\)/, 'A visible connected launch page must refresh expired or transiently failed estimates without user action.');
 assert.doesNotMatch(app, /Launch estimate unavailable: \$\{walletEstimateError\} Refresh the estimate before launching\./, 'The removed launch-estimate sentence must not return.');
-assert.match(html, /X account reward %/);
+assert.match(html, /X account %/);
 assert.doesNotMatch(html, /An X handle cannot receive SOL directly/);
 assert.doesNotMatch(app, /Creator-directed policy totals 80%\. This coin gets its own automatic-reward route\./);
-assert.match(app, /if \(feeDistributionInput\.solClaimPercent > 0 && !xFeeStatus\.ready\)/);
-assert.match(app, /X account rewards unavailable/);
+assert.match(app, /\/api\/x\/resolve\?handle=/, 'Named X allocations must resolve their actual identity before signing.');
 assert.match(app, /if \(wallet\) scheduleLaunchCostRefresh\(\);/, 'Tier changes must invalidate and recalculate the connected wallet estimate.');
 for (const id of ['profile-wallet-address', 'launch-path-wallet']) {
   assert.match(html, new RegExp(`id="${id}"`));
@@ -216,7 +215,7 @@ function costSummaryFor({ connected = false, loading = false, fee = null, error 
     formatLaunchBurnAmount: amount => Number(amount).toLocaleString('en-US'), formatLaunchCost: lamports => (Number(lamports) / 1_000_000_000).toFixed(6) + ' SOL',
     getLaunchFeeLamports: () => launchFeeLamports,
     creatorBuyExceedsWalletBalance: () => false,
-    developerBuyLimitReached: () => error.startsWith('Developer buy cannot exceed 20% of the token supply.'),
+    developerBuyLimitReached: () => /^Developer buy (?:cannot exceed 20% of the token supply|exceeds the available launch supply)/.test(error),
   });
   return nodes;
 }
@@ -247,10 +246,10 @@ const retrying = costSummaryFor({ connected: true, error: 'Solana RPC is rate li
   retry: { retryable: true, nextAt: Date.now() + 15_000 } });
 assert.match(retrying['#cost-launch'].textContent, /^Retrying in \d+s$/);
 assert.match(retrying['#cost-creator-buy'].textContent, /^1 SOL · retrying in \d+s$/);
-const overLimit = costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.' });
+const overLimit = costSummaryFor({ connected: true, error: 'Developer buy exceeds the available launch supply.' });
 assert.match(overLimit['#cost-note'].textContent, /lower the SOL amount or set it to 0/i);
 assert.doesNotMatch(overLimit['#cost-note'].textContent, /Refresh the estimate to try again/i);
-assert.equal(costSummaryFor({ connected: true, error: 'Developer buy cannot exceed 20% of the token supply.', buySol: 1 })['#cost-creator-buy'].textContent, '1 SOL · over 20% limit');
+assert.equal(costSummaryFor({ connected: true, error: 'Developer buy exceeds the available launch supply.', buySol: 1 })['#cost-creator-buy'].textContent, '1 SOL · exceeds buy limit');
 assert.match(validation, /developerBuyLimitReached\(\)\) return \{ valid: false, field: '#creator-buy-sol'/);
 assert.match(actions, /developerBuyLimitReached\(\) \? 'Edit developer buy' : 'Retry checks'/);
 assert.doesNotMatch(launchPage, /A submitted transaction is pending until confirmed/, 'The form must not imply a transaction was sent before signing.');
@@ -263,7 +262,7 @@ assert.equal(verifiedBudget['#cost-total-enabled'].textContent, '0.035000 SOL');
 assert.match(actions, /ready \? \(launchBurn\.requiresBurn \? `Review launch · \$\{launchBurn\.label\}` : 'Review launch'\)/, 'The ready action must explicitly lead to transaction review.');
 assert.match(pageStyles, /\.launch-token-preview-image \{[^}]*aspect-ratio: 1 \/ 1/, 'The token preview must retain a square image area.');
 assert.match(pageStyles, /\.preview-promotion-badge\.premier/, 'The preview badge must support the Premier promotion tier.');
-assert.match(pageStyles, /\.launch-enhanced-preview/, 'The enhanced token-page preview must remain styled.');
+assert.doesNotMatch(html, /class="launch-enhanced-preview"/, 'The removed content-completion section must not appear in the launch form.');
 assert.match(workspaceStyles, /launch-page-wizard/, 'The launch layout must have dedicated responsive styles.');
 assert.match(pageStyles, /#cost-burn-row\[hidden\] \{ display: none; \}/, 'The free tier must fully hide the zero-value $FUNDED burn row.');
 assert.match(pageStyles, /\.launch-page input:not\(\[type='checkbox'\]\):not\(\[type='file'\]\)[\s\S]*?font-size: 14px/, 'Launch page fields must keep readable input text.');
@@ -281,12 +280,7 @@ assert.doesNotMatch(app, /launchFeeSol/);
 assert.doesNotMatch(app, /handleMobileWalletCallback/);
 assert.doesNotMatch(app, /mobile signing setup required/i);
 
-const xFeeFailureDetailSource = app.match(/function xFeeFailureDetail\(\)\{[\s\S]*?\n\}/)?.[0];
-assert.ok(xFeeFailureDetailSource, 'X fee unavailability needs a reusable sentence-safe reason formatter.');
-const xFeeFailureDetail = new Function('xFeeStatus', `${xFeeFailureDetailSource}\nreturn xFeeFailureDetail;`)({
-  reasons: ['API service unavailable. Check the local API and database services, then retry.'],
-});
-assert.equal(xFeeFailureDetail(), 'API service unavailable. Check the local API and database services, then retry');
-assert.match(app, /`Unavailable: \$\{xFeeFailureDetail\(\)\}\.`/, 'The X reward gate should add one final sentence period.');
+assert.doesNotMatch(app, /xFeeStatus|X account rewards unavailable/, 'Launch preparation must not depend on global X reward-service readiness.');
+assert.match(app, /\/api\/x\/resolve\?handle=/, 'Resolve the named X account before signing.');
 
 console.log('launch wizard checks passed');

@@ -5,9 +5,9 @@ const offlineFixture=route=>new URL(route.request().url()).pathname==='/api/fee-
   : route.fulfill({status:503,json:{error:'Offline fixture'}});
 
 for(const [name,status,dashboard,expected] of [
-  ['transport failure',503,null,'Burn verification unavailable'],
-  ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Burn verification unavailable'],
-  ['verified empty history',200,{status:'verified',collectedLamports:'0',lastBurn:null},'No verified burn yet'],
+  ['transport failure',503,null,'Waiting for the next burn update'],
+  ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Waiting for the next burn update'],
+  ['verified empty history',200,{status:'verified',collectedLamports:'0',lastBurn:null},'No burns yet'],
   ['known burn during a vault verification gap',200,{status:'partial',lastBurn:{signature:'3'.repeat(64),burnedAt:'2026-10-18T12:00:00Z'}},/2026/],
 ]) test(`buyback last-burn panels distinguish ${name}`,async({page})=>{
   await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offlineFixture);
@@ -38,6 +38,21 @@ for(const width of [1280,390])test(`small buyback allocations explain retained f
   await expect(rows.nth(1)).toContainText('in progress');
   await expect(page.locator('.reward-buyback-stats')).toContainText('Recorded unspent allocations');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('aggregate buyback trigger does not claim execution when every source is below its order minimum',async({page})=>{
+  await page.route('https://**/*',route=>route.abort());
+  await page.route('**/api/**',offlineFixture);
+  await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',automationEnabled:true,
+    executionReady:false,minimumOrderLamports:'10000',receipts:[],pending:[
+      {mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',amountLamports:'8911',status:'below-minimum-order'},
+      {mint:'26ds5kv2n8JuWZ2uRu1goxEw7xy7YirpdsqdiLycy1Zg',amountLamports:'8889',status:'below-minimum-order'}],
+    dashboard:{status:'verified',thresholdLamports:'10000',collectedLamports:'17800',triggerReached:true}}}));
+  await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  for(const prefix of ['home-buyback','buyback-route']){
+    await expect(page.locator(`#${prefix}-status`)).toContainText('individual allocations below 0.00001 SOL order minimum');
+    await expect(page.locator(`#${prefix}-policy`)).toContainText('minimum');
+  }
 });
 
 test('buyback history shows the newest eight confirmed receipts with their matching proof links',async({page})=>{
@@ -73,10 +88,14 @@ test('buyback disclosures preserve open and closed choices across polling and te
   });
   await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const queue=page.locator('.concise-buyback-queue'),more=page.locator('.concise-ledger-more');
+  const policy=page.locator('#buyback-route-panel .buyback-policy-disclosure'),policySummary=policy.locator('summary'),originalPolicy=await policy.elementHandle();
+  await expect(policy).not.toHaveAttribute('open','');expect((await policySummary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await policySummary.focus();await page.keyboard.press('Enter');await expect(policy.locator('p')).toBeVisible();
   await queue.locator('summary').click();await more.locator('summary').click();
   revision=100;
   await page.clock.fastForward(60_001);
-  await expect(queue).toHaveAttribute('open','');await expect(more).toHaveAttribute('open','');
+  await expect(queue).toHaveAttribute('open','');await expect(more).toHaveAttribute('open','');await expect(policy).toHaveAttribute('open','');
+  expect(await originalPolicy.evaluate(e=>e===document.querySelector('#buyback-route-panel .buyback-policy-disclosure'))).toBe(true);
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1104 $FUNDED base units burned');
   await expect(page.locator('#buyback-ledger')).toContainText('0.001104 $FUNDED bought and burned');
   unavailable=true;await page.clock.fastForward(60_001);
@@ -86,10 +105,11 @@ test('buyback disclosures preserve open and closed choices across polling and te
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1204 $FUNDED base units burned');
   await expect(queue).toHaveAttribute('open','');await expect(more).toHaveAttribute('open','');
   await queue.locator('summary').click();await more.locator('summary').click();
+  await policySummary.focus();await page.keyboard.press('Space');await expect(policy.locator('p')).toBeHidden();await expect(policySummary).toBeFocused();
   const before=requests;revision=300;await page.clock.fastForward(60_001);
   await expect.poll(()=>requests).toBeGreaterThan(before);
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1304 $FUNDED base units burned');
-  await expect(queue).not.toHaveAttribute('open','');await expect(more).not.toHaveAttribute('open','');
+  await expect(queue).not.toHaveAttribute('open','');await expect(more).not.toHaveAttribute('open','');await expect(policy).not.toHaveAttribute('open','');
 });
 
 test('a verified buyback scan lasting more than eight seconds fills both history views',async({page})=>{

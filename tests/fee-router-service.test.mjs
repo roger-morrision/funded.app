@@ -182,6 +182,13 @@ test('collection propagates uncertain broadcast outcomes without retrying', asyn
   assert.equal(attempts, 1);
 });
 
+test('transient collection readiness failure is explicitly proven to precede every send',async()=>{
+  const f=v3Fixture({verifyV3LaunchRouterReadiness:async()=>({ready:false,status:503,error:'RPC unavailable'})});
+  await assert.rejects(f.service.collectPumpCreatorFees({requestedMint:f.mint}),error=>
+    error.code==='V3_COLLECTION_PREFLIGHT_UNAVAILABLE'&&error.transactionSubmitted===false);
+  assert.equal(f.state.sends,0);
+});
+
 test('V3 collection needs its separate gate, immutable policy, and finalized Pump proof', async () => {
   const v3Program = key(7).publicKey;
   const v3Router = deriveMintRouterV3(v3Program, key(6).publicKey).address;

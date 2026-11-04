@@ -72,6 +72,12 @@
 .page-route-capital-flow #capital-flow,
 .page-route-docs #docs { margin-top: 0; }
 .page-route-payments #payments { gap: 12px; }
+.reward-program-links { display: flex; flex-wrap: wrap; gap: var(--fv-space-2); margin: 10px 0; }
+.reward-program-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--fv-space-4); border: 1px solid var(--fv-border); border-radius: 999px; background: var(--fv-surface); color: var(--fv-text-muted); font: 600 13px var(--fv-font-ui); text-decoration: none; }
+.reward-program-links a:hover, .reward-program-links a:focus-visible { border-color: var(--fv-accent); background: var(--fv-accent-soft); color: var(--fv-text); }
+/* The rates panel keeps the explanation link; the invite card owns the main action. */
+body.page-route-referrals #main-content #route-guide-primary { display: none; }
+body.page-route-referrals #main-content #route-guide .route-guide-actions { display: none; }
 .page-route-payments .payments-summary,
 .page-route-payments #payments > .panel { padding: 20px; }
 .page-route-analytics-detail .analytics-kpis { gap: 9px; }

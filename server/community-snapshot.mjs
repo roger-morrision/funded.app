@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
+import {readIndexedCommunityBase} from './community-indexed-base.mjs';
 
 const TOKEN_ACCOUNT_MIN_SIZE = 165;
 const MAX_REPLAY_SLOTS = 256;
@@ -38,6 +39,12 @@ function transactionKeys(transaction) {
   return keys;
 }
 
+function instructionBytes(instruction) {
+  if(typeof instruction.data==='string')return Buffer.from(bs58.decode(instruction.data));
+  if(instruction.data instanceof Uint8Array)return Buffer.from(instruction.data);
+  throw new Error('Unsupported compiled instruction data.');
+}
+
 export function verifyPumpMigrationTransaction({ transaction, launchMint }) {
   if (!transaction?.meta || transaction.meta.err || !Number.isSafeInteger(transaction.slot)
     || !Number.isSafeInteger(transaction.blockTime)) throw new Error('Finalized, successful migration receipt is required.');
@@ -47,12 +54,13 @@ export function verifyPumpMigrationTransaction({ transaction, launchMint }) {
   const migration = instructions.find(instruction => {
     const program = keys[instruction.programIdIndex];
     if (!program?.equals(PUMP_PROGRAM_ID)) return false;
-    try { return Buffer.from(bs58.decode(instruction.data)).subarray(0, 8).equals(MIGRATE_V2_DISCRIMINATOR); }
+    try { return instructionBytes(instruction).subarray(0, 8).equals(MIGRATE_V2_DISCRIMINATOR); }
     catch { return false; }
   });
-  if (!migration || !Array.isArray(migration.accounts)
-    || !migration.accounts.some(index => keys[index]?.equals(launch))
-    || !migration.accounts.some(index => keys[index]?.equals(pool))) {
+  const accounts=migration?.accounts || migration?.accountKeyIndexes;
+  if (!migration || !(Array.isArray(accounts) || accounts instanceof Uint8Array)
+    || !accounts.some(index => keys[index]?.equals(launch))
+    || !accounts.some(index => keys[index]?.equals(pool))) {
     throw new Error('Receipt does not contain Pump migrate_v2 for this launch mint and canonical pool.');
   }
   return { pool, slot:transaction.slot, blockTime:transaction.blockTime };
@@ -76,7 +84,7 @@ export function verifyQaCommunityCutoffTransaction({ transaction, signature, lau
   const memo = qaCommunityCutoffMemo({ launchMint, eligibilityMint });
   const matching = (message.instructions || message.compiledInstructions || []).filter(instruction => {
     if (!keys[instruction.programIdIndex]?.equals(QA_MEMO_PROGRAM)) return false;
-    try { return Buffer.from(bs58.decode(instruction.data)).toString('utf8') === memo; }
+    try { return instructionBytes(instruction).toString('utf8') === memo; }
     catch { return false; }
   });
   if (matching.length !== 1) throw new Error('QA cutoff receipt lacks the exact launch and eligibility memo.');
@@ -111,6 +119,14 @@ function sum(rows) {
 
 async function completeFinalizedBase(connection, mintKey) {
   const mintAddress = mintKey.toBase58();
+  try {
+    const indexed=await readIndexedCommunityBase({connection,mintKey});
+    if(indexed)return indexed;
+  } catch(error) {
+    if(/mint authority/.test(String(error?.message||error)))throw error;
+    // Standard RPCs can lack this index. The existing atomic paths below
+    // remain available; every successful path still proves full supply.
+  }
   // For a small holder set, one atomic account read is enough. Completeness
   // follows from the fixed mint supply, not from a top-20 assumption.
   try {

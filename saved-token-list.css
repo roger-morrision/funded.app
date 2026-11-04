@@ -96,6 +96,15 @@
 }
 
 /* Favorites guidance and existing account controls only; saved rows stay unchanged. */
+html body.product-experience-style #community #watchlist-empty:not([hidden]) { display: grid; grid-template-columns: 32px minmax(0,1fr); align-items: start; gap: 4px 12px; min-height: 0; padding: 14px 0; text-align: left; }
+html body.product-experience-style #community #watchlist-empty > span { grid-column: 1; grid-row: 1 / 3; margin: 0; }
+html body.product-experience-style #community #watchlist-empty > strong { grid-column: 2; margin: 0; }
+html body.product-experience-style #community #watchlist-empty > p { grid-column: 2; margin: 0; }
+html body.product-experience-style #community #watchlist-empty > a { grid-column: 2; justify-self: start; margin-top: 8px; }
+@media (min-width: 701px) {
+  html body.product-experience-style #community #watchlist-empty:not([hidden]) { grid-template-columns: 32px minmax(0,1fr) auto; }
+  html body.product-experience-style #community #watchlist-empty > a { grid-column: 3; grid-row: 1 / 3; align-self: center; margin: 0; }
+}
 #community .section-heading .panel-explainer { max-width: 68ch; font-size: 14px; line-height: 1.6; }
 #community .favorites-sync { display: grid; gap: 8px; margin: 16px 0; }
 #community #favorites-sync-label { margin: 0; color: #a8b4c6; font-size: 14px; font-weight: 700; }

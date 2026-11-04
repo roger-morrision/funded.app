@@ -19,18 +19,20 @@ async function requestAirdropOnce(publicKey, lamports) {
 const payer = Keypair.generate();
 const input = normalizeLaunchInput({ name: 'Funded Verify', symbol: 'FVERIFY', supply: 1000, decimals: 6 });
 
-console.log(`devnet payer: ${payer.publicKey.toBase58()}`);
 let airdropSignature;
 try {
   airdropSignature = await requestAirdropOnce(payer.publicKey, 1_000_000_000);
 } catch (error) {
-  if (String(error?.message).includes('429')) {
-    console.error('Devnet faucet quota is exhausted. Fund this temporary payer from https://faucet.solana.com, then rerun npm run verify:devnet. No private key was written or printed.');
+  if (/\b429\b|quota|faucet is closed/i.test(String(error?.message || ''))) {
+    console.error('Devnet faucet is unavailable. Rerun verification when the faucet is available; each run uses a new in-memory payer. No private key was written or printed.');
     process.exit(2);
   }
   throw error;
 }
-await connection.confirmTransaction(airdropSignature, 'confirmed');
+const airdropConfirmation = await connection.confirmTransaction(airdropSignature, 'confirmed');
+assert.equal(airdropConfirmation.value.err, null, 'Devnet airdrop transaction failed');
+assert.ok(await connection.getBalance(payer.publicKey, 'confirmed') >= 1_000_000_000, 'Devnet payer was not funded');
+console.log(`devnet payer: ${payer.publicKey.toBase58()}`);
 console.log(`airdrop confirmed: ${devnetExplorer(`tx/${airdropSignature}`)}`);
 
 const plan = await buildLaunchTransaction({ connection, payer: payer.publicKey, supply: input.supply, decimals: input.decimals });
@@ -39,7 +41,8 @@ plan.transaction.recentBlockhash = latest.blockhash;
 plan.transaction.feePayer = payer.publicKey;
 plan.transaction.partialSign(plan.mint, payer);
 const signature = await connection.sendRawTransaction(plan.transaction.serialize(), { skipPreflight: false });
-await connection.confirmTransaction({ signature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
+const launchConfirmation = await connection.confirmTransaction({ signature, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }, 'confirmed');
+assert.equal(launchConfirmation.value.err, null, 'Devnet launch transaction failed');
 
 const mint = await getMint(connection, plan.mint.publicKey);
 const account = await getAccount(connection, plan.ata);

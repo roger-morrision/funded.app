@@ -1,9 +1,11 @@
 // Reward lists reuse the feed's mint, curve and pool checks.
+import { rememberMarketFacts, marketFacts } from './src/features/explore/market-facts.js';
 let markets = new Map();
 export function publishTokenListMarkets(items, cluster, solUsdPrice) {
+  rememberMarketFacts(items, cluster);
   markets = new Map(items.map(item => [item.address, {
     createdTimestamp: item.createdTimestamp,
-    marketCap: tokenMarketCap(item, cluster, solUsdPrice),
+    marketCap: tokenMarketCap(marketFacts(item, cluster), cluster, solUsdPrice),
   }]));
   document.dispatchEvent(new Event('funded:token-list-markets'));
 }

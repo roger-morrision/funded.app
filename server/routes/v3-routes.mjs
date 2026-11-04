@@ -2,6 +2,7 @@ import { createV3CreatorSettlementRoutes } from './v3-creator-settlement.mjs';
 import { createV3RewardFundingRoutes } from './v3-reward-funding.mjs';
 import { createV3XClaimRoutes } from './v3-x-claims.mjs';
 import { createV3BuybackRoutes } from './v3-buyback.mjs';
+import {createTradeFinancialWakeRoutes} from './trade-financial-wakeup.mjs';
 
 const retiredV2Path = path => path === '/api/settlements/claims'
   || path === '/api/payout-obligations/sol'
@@ -19,12 +20,13 @@ export function createV3Routes(dependencies) {
   const rewardFunding = createV3RewardFundingRoutes(dependencies);
   const xClaims = createV3XClaimRoutes(dependencies);
   const buyback = createV3BuybackRoutes(dependencies);
+  const tradeWake=createTradeFinancialWakeRoutes(dependencies);
   return async (req, res, url) => {
     if (['GET', 'POST'].includes(req.method) && retiredV2Path(url.pathname)) {
       dependencies.respond(res, 410, { error:'The V2 fee route is retired. This action requires a verified V3 launch and payout path.' });
       return true;
     }
-    return await settlement(req, res, url) || await rewardFunding(req, res, url)
+    return await tradeWake(req,res,url) || await settlement(req, res, url) || await rewardFunding(req, res, url)
       || await xClaims(req, res, url) || await buyback(req, res, url);
   };
 }

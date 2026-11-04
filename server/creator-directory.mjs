@@ -1,7 +1,7 @@
 import { validXId, validMint, normalizeCreatorHandle } from '../creator-support-model.js';
 
 export function eligibleSupportLaunches(state, cluster) {
-  return Object.values(state.launches || {}).filter(launch => launch.onchainVerified === true && launch.cluster === cluster
+  return Object.values(state.launches || {}).filter(launch => !launch.archivedAt && launch.onchainVerified === true && launch.cluster === cluster
     && validXId(launch.xUserId) && validMint(launch.mint) && launch.policySignature
     && launch.pumpFeeRoute?.verified === true && launch.pumpFeeRoute?.scope === 'per-mint-v3'
     && launch.pumpFeeRoute.router === launch.creator

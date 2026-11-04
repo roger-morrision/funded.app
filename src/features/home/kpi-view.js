@@ -48,13 +48,13 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
   renderHomeProtocolFeeRoute(allocation, document);
   const allocationReady = ['verified', 'partial'].includes(allocation?.status);
   const partialAllocation = allocation?.status === 'partial';
-  const appRevenueLamports = allocationReady ? Number(allocation.appRevenueLamports) : NaN;
+  const appRevenueLamports = allocationReady && allocation.operationsLamports != null ? Number(allocation.operationsLamports) : NaN;
   const appRevenueAvailable = allocationReady && solQuoteReady && Number.isSafeInteger(appRevenueLamports) && appRevenueLamports >= 0;
   setHomeDashboardMetric('app-revenue', appRevenueAvailable
     ? formatSmallDashboardUsd(appRevenueLamports / 1_000_000_000 * coinSolUsdPrice, { partial:partialAllocation }) : '$—',
     appRevenueAvailable
-      ? `20% protocol share of collected fees · ${allocation.settledCollections} verified settlement${allocation.settledCollections === 1 ? '' : 's'}${partialAllocation ? ' · partial coverage' : ''} · includes earmarked rewards and reserves`
-      : allocationReady ? 'Current SOL/USD quote unavailable' : 'Verified protocol fee allocations unavailable',
+      ? `Operations & marketing only · ${allocation.settledCollections} verified settlement${allocation.settledCollections === 1 ? '' : 's'}${partialAllocation ? ' · partial coverage' : ''} · each coin keeps its saved rate`
+      : !Number.isSafeInteger(appRevenueLamports) ? 'Verified Operations & marketing allocations unavailable' : 'Current SOL/USD quote unavailable',
     appRevenueAvailable ? partialAllocation ? 'partial' : appRevenueLamports ? 'available' : 'empty' : 'unavailable');
   const allocationMetrics = [
     ['holders', 'holderLamports', 'Holder reward allocation; payment requires a verified receipt'],

@@ -58,6 +58,27 @@ test('community claim routes select the service for the requested mint', async (
   assert.deepEqual(responses, [{ status:200, payload:{ status:'unprepared', mint:'requested-mint' } }]);
 });
 
+test('community claim failures never expose dependency URLs or credentials', async () => {
+  const responses = [];
+  const handle = airdropHandler({
+    respond: (_res, status, payload) => responses.push({ status, payload }),
+    body: async () => ({ mint:'requested-mint', wallet:'requested-wallet' }),
+    requireAuthorized: () => true,
+    clientKey: () => 'test-client',
+    store: { chargeRpcRate: async () => true },
+    communityClaimService: async () => { throw new Error('https://private-rpc.example/?api-key=secret'); },
+  });
+  for (const [method,path] of [
+    ['GET','/api/airdrops/claims/status?mint=requested-mint'],
+    ['GET','/api/airdrops/claims/proof?mint=requested-mint&wallet=requested-wallet'],
+    ['POST','/api/airdrops/claims/opening-instruction'],
+    ['POST','/api/airdrops/claims/claim-instruction'],
+  ]) assert.equal(await handle({ method }, {}, url(path)), true);
+  assert.deepEqual(responses.map(row => row.status), [503,503,422,422]);
+  assert(responses.every(row => !JSON.stringify(row.payload).includes('secret')
+    && !JSON.stringify(row.payload).includes('private-rpc')));
+});
+
 test('boost input validation handles bad mints without RPC access', async () => {
   const responses = [];
   const handle = createBoostRoutes({ store: { read: async () => ({ boostReceipts: {} }) },

@@ -1,0 +1,111 @@
+/* The same card treatment across discovery, favorites and reward surfaces. */
+html body.product-experience-style :is(.saved-token-row,.home-reward-token-card,.airdrop-directory-card,.claim-card,.holder-airdrop-row) {
+  min-width: 0; box-sizing: border-box; padding: var(--token-card-gap);
+  border: 1px solid var(--token-card-border); border-radius: var(--token-card-radius);
+  background: var(--token-card-surface); color: #e7edf5;
+}
+html body.product-experience-style :is(.saved-token-row,.home-reward-token-card,.airdrop-directory-card,.claim-card,.holder-airdrop-row):hover { border-color: #687b98; }
+html body.product-experience-style :is(.saved-token-row,.home-reward-token-card,.airdrop-directory-card,.claim-card,.holder-airdrop-row) :is(a,button,summary):focus-visible { outline: 2px solid #ffd28a; outline-offset: 3px; }
+html body.product-experience-style :is(.saved-token-row,.home-reward-token-card,.airdrop-directory-card,.claim-card,.holder-airdrop-row) :is(.portfolio-token-avatar,.home-reward-token-logo,.claim-token-mark,.claim-token > span) {
+  display: grid; place-items: center; flex: none; box-sizing: border-box;
+  width: var(--token-card-logo); height: var(--token-card-logo); aspect-ratio: 1;
+  overflow: hidden; border: 1px solid #2c3b52; border-radius: 8px;
+  background: #1b283c; color: #ffd28a; font: 700 30px/1 var(--ui-font,system-ui);
+}
+html body.product-experience-style :is(.saved-token-row,.home-reward-token-card,.airdrop-directory-card,.claim-card,.holder-airdrop-row) :is(.portfolio-token-avatar,.home-reward-token-logo,.claim-token-mark,.claim-token > span) img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+html body.product-experience-style :is(.saved-token-identity,.home-reward-token-identity,.directory-token-identity,.claim-token > div) { min-width: 0; }
+html body.product-experience-style :is(.saved-token-identity,.home-reward-token-identity,.directory-token-identity,.claim-token > div) strong {
+  display: block; color: #e7edf5; font: 700 15px/1.3 var(--ui-font,system-ui);
+  overflow: visible; white-space: normal; overflow-wrap: anywhere;
+}
+html body.product-experience-style :is(.saved-token-identity a > span,.home-reward-token-identity small,.directory-token-identity > a,.claim-token small) {
+  display: block; margin-top: 3px; color: var(--token-card-muted);
+  font: 400 12px/1.4 var(--ui-font,system-ui); text-align: left;
+  white-space: normal; overflow: visible; overflow-wrap: anywhere;
+}
+html body.product-experience-style :is(.token-card-actions,.saved-token-actions) {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px;
+  margin: 0; padding: 8px 0 0; border-top: 1px solid var(--token-card-border);
+}
+html body.product-experience-style :is(.token-card-actions,.saved-token-actions) > :is(button,a) {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 6px;
+  box-sizing: border-box; min-width: 44px; min-height: 44px; height: auto;
+  padding: 8px; border: 1px solid #3b4b62; border-radius: 6px;
+  background: #1b283c; color: #d5e1ef; font: 600 11px/1.4 var(--ui-font,system-ui);
+  text-decoration: none; white-space: normal; overflow-wrap: anywhere;
+}
+html body.product-experience-style :is(.token-card-actions,.saved-token-actions) > .token-card-action-watch { flex: 0 0 44px; width: 44px; padding: 10px; }
+html body.product-experience-style :is(.token-card-actions,.saved-token-actions) > .token-card-action-watch.active { color: #ffd28a; border-color: #b68b42; }
+html body.product-experience-style :is(.token-card-actions,.saved-token-actions) > :is(.saved-token-view,.directory-claim,.claim-action) { flex: 1 1 90px; background: #282b2b; border-color: #786442; color: #f4d7a2; }
+html body.product-experience-style .token-card-shell .token-card-copy-address { width: 44px; height: 44px; min-height: 44px; padding: 11px; border-radius: 6px; }
+html body.product-experience-style .token-card-shell :is(.token-card-more,.home-card-details) { margin: 0; padding: 0; border-top: 1px solid var(--token-card-border); }
+html body.product-experience-style .token-card-shell :is(.token-card-more,.home-card-details) > summary { min-height: 44px; padding: 12px 0; color: #a9bed9; font: 400 11px/1.5 var(--ui-font,system-ui); }
+html body.product-experience-style .token-card-shell .token-card-more .token-card-addresses { grid-template-columns: minmax(0,1fr); max-width: none; gap: 8px; }
+html body.product-experience-style .token-card-shell .token-card-more .token-card-addresses > span { text-align: left; }
+html body.product-experience-style .token-card-shell .token-card-more .token-card-addresses code { text-align: left; }
+html body.product-experience-style .token-card-shell .token-card-more .explore-social-link { width: 44px; height: 44px; border-radius: 6px; }
+html body.product-experience-style .home-card-extra-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
+html body.product-experience-style .home-card-extra-stats :is(small,strong) { display: block; overflow-wrap: anywhere; }
+html body.product-experience-style .home-card-extra-stats small { color: #95a6bf; font: 400 10px/1.4 var(--ui-font,system-ui); }
+html body.product-experience-style .home-card-extra-stats strong { font: 600 13px/1.4 var(--ui-font-mono,monospace); }
+
+html body.product-experience-style #watchlist-items { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: start; gap: var(--token-card-gap); }
+html body.product-experience-style .saved-token-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+html body.product-experience-style .saved-token-main { display: flex; flex-wrap: nowrap; align-items: start; gap: var(--token-card-gap); }
+html body.product-experience-style .saved-token-identity { flex: 1; }
+html body.product-experience-style .saved-token-address { display: flex; align-items: center; gap: 6px; }
+html body.product-experience-style .saved-token-address code { flex: 1; min-width: 0; color: #a9bed9; font: 11px/1.4 var(--ui-font-mono,monospace); }
+html body.product-experience-style .saved-token-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 12px; }
+html body.product-experience-style .saved-token-metrics small { font: 400 10px/1.4 var(--ui-font,system-ui); color: #95a6bf; }
+html body.product-experience-style .saved-token-metrics strong { font: 600 13px/1.4 var(--ui-font-mono,monospace); white-space: normal; overflow-wrap: anywhere; }
+html body.product-experience-style .saved-token-row .portfolio-token-stage { align-self: flex-start; max-width: 100%; margin: 0; white-space: normal; font-size: 10px; }
+html body.product-experience-style .watchlist-unavailable-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+html body.product-experience-style .watchlist-unavailable-actions button { min-width: 44px; min-height: 44px; }
+
+html body.product-experience-style .home-reward-token-head { align-items: start; gap: var(--token-card-gap); }
+html body.product-experience-style .home-rewards-stack .home-rewards-grid .home-reward-token-card { padding: var(--token-card-gap); border: 1px solid var(--token-card-border); border-radius: var(--token-card-radius); background: var(--token-card-surface); }
+html body.product-experience-style .home-reward-token-values { gap: 8px; }
+html body.product-experience-style .home-reward-token-values small { color: #95a6bf; font: 400 11px/1.4 var(--ui-font,system-ui); }
+html body.product-experience-style .home-reward-token-values strong { color: #e7edf5; font: 600 13px/1.4 var(--ui-font-mono,monospace); }
+html body.product-experience-style .home-reward-token-card .home-reward-snapshot { border-color: var(--token-card-border); }
+html body.product-experience-style .home-reward-token-card .home-reward-snapshot span { color: var(--token-card-muted); font: 400 11px/1.5 var(--ui-font-mono,monospace); }
+
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-card-top { display: flex; align-items: start; gap: var(--token-card-gap); padding: 0; border: 0; }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-project-info { flex: 1; min-width: 0; }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-token-identity { display: block; }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-footer { min-width: 0; padding: 0; margin: 0; gap: 8px; }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-footer .token-card-actions { flex-wrap: wrap; }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-footer .token-card-actions > .token-card-action-watch { flex: 0 0 44px; }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-footer .token-card-actions > .directory-claim { min-width: 90px; }
+html body.product-experience-style #airdrops .airdrop-public-programs .airdrop-directory-card { padding: var(--token-card-gap); border-radius: var(--token-card-radius); background: var(--token-card-surface); }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-card-top .claim-token-mark { width: var(--token-card-logo); height: var(--token-card-logo); border-radius: 8px; }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-card-top .directory-token-identity > strong { font: 700 15px/1.3 var(--ui-font,system-ui); }
+html body.product-experience-style #airdrops .airdrop-public-programs .directory-footer .token-card-actions > button { min-width: 44px; min-height: 44px; border-radius: 6px; }
+html body.product-experience-style .claim-token { display: flex; align-items: start; gap: var(--token-card-gap); }
+html body.product-experience-style #airdrops .holder-airdrop-row { --token-card-logo: 48px; margin-bottom: 8px; border-bottom: 1px solid var(--token-card-border); }
+html body.product-experience-style #airdrops .holder-airdrop-info { min-width: 0; }
+html body.product-experience-style #airdrops .holder-airdrop-info a { white-space: normal; overflow-wrap: anywhere; }
+html body.product-experience-style #airdrops .holder-airdrop-link { display: inline-flex; align-items: center; min-height: 44px; }
+
+html body.product-experience-style :is(.reward-discovery-card,.creator-coin-card) { min-width: 0; padding: var(--token-card-gap); border: 1px solid var(--token-card-border); border-radius: var(--token-card-radius); background: var(--token-card-surface); }
+html body.product-experience-style :is(.reward-discovery-card,.creator-coin-card) :is(.reward-token-avatar,.creator-coin-logo) { display: grid; place-items: center; flex: none; width: var(--token-card-logo); height: var(--token-card-logo); overflow: hidden; border: 1px solid #2c3b52; border-radius: 8px; background: #1b283c; font-size: 30px; }
+html body.product-experience-style :is(.reward-discovery-card,.creator-coin-card) img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+html body.product-experience-style .creator-coin-card > a { display: flex; align-items: start; gap: var(--token-card-gap); }
+html body.product-experience-style .creator-coin-card h3 { min-width: 0; margin: 0; }
+html body.product-experience-style :is(.reward-token-info > a,.creator-coin-card h3) strong { display: block; font: 700 15px/1.3 var(--ui-font,system-ui); overflow-wrap: anywhere; }
+html body.product-experience-style :is(.reward-token-info > a,.creator-coin-card h3) small { display: block; margin-top: 3px; color: var(--token-card-muted); font: 400 12px/1.4 var(--ui-font,system-ui); white-space: normal; overflow-wrap: anywhere; }
+html body.product-experience-style :is(.reward-token-info,.reward-token-identity) { min-width: 0; }
+html body.product-experience-style .reward-discovery-card .reward-row-head { align-items: start; }
+html body.product-experience-style #reward-discovery .reward-discovery-list .reward-discovery-card { padding: var(--token-card-gap); border-color: var(--token-card-border); border-radius: var(--token-card-radius); background: var(--token-card-surface); }
+html body.product-experience-style #reward-discovery .reward-discovery-card .reward-token-actions { grid-column: 1 / -1; grid-row: auto; justify-content: flex-start; }
+html body.product-experience-style .creator-coin-card > small { display: block; overflow-wrap: anywhere; }
+html body.product-experience-style .home-holder-reward-avatar { border-radius: 8px; background: #1b283c; }
+html body.product-experience-style .home-holder-reward-avatar img { object-fit: contain; }
+
+@media(min-width:1700px) { html body.product-experience-style #watchlist-items { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media(max-width:1199px) { html body.product-experience-style #watchlist-items { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:1049px) { html body.product-experience-style #watchlist-items { grid-template-columns: minmax(0,1fr); } }
+@media(max-width:700px) {
+  html body.product-experience-style #airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns: minmax(0,1fr); }
+  html body.product-experience-style #airdrops .holder-airdrop-row { grid-template-columns: minmax(0,1fr); }
+}

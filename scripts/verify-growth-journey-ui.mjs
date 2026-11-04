@@ -32,8 +32,7 @@ try {
   const order = await page.locator('#launch-form [data-launch-step="1"] #token-name, #launch-form [data-launch-step="1"] #token-symbol, #launch-form [data-launch-step="1"] #token-image, #launch-form [data-launch-step="1"] .launch-optional-story').evaluateAll(elements => elements.map(element => element.id || element.className));
   assert.deepEqual(order, ['token-name','token-symbol','token-image','launch-optional-story']);
   assert.equal(await page.locator('.launch-optional-story').getAttribute('open'), null);
-  assert.equal(await page.locator('.launch-profile-grid').count(), 1);
-  assert.equal(await page.locator('#launch-profile-fast').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('.launch-profile-grid').count(), 0);
   assert.equal(await page.locator('.launch-preview-heading span').textContent(), 'LOCAL PREVIEW');
   assert.equal(await page.locator('#token-name').isVisible(), true);
   assert.equal(await page.locator('#token-symbol').isVisible(), true);

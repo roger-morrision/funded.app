@@ -8,12 +8,13 @@ import { createAnalyticsSummaryReader } from '../analytics-summary-reader.mjs';
 // Return true only after sending a response; false lets the router continue.
 export function createPublicReportsRoutes({
   publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl,
+  analyticsDeadlineMs = 6_000,
   respond,
 }) {
   const readSummary = createAnalyticsSummaryReader([
     () => store.read(), () => automaticRewardStore.read(),
     () => readFinalizedEvidence(), () => readPaymentHistory(),
-  ]);
+  ], { deadlineMs:analyticsDeadlineMs });
 
   const json = (...args) => { respond(...args); return true; };
   return async function handlePublicReportsRoutes(req, res, url, requestId) {

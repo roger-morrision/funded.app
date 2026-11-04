@@ -136,6 +136,13 @@ function updateResultPreview() {
 }
 
 export function openShareComposer({ kind = 'coin', title, text, url, result = null, network = '', publicShareApproval = null }) {
+  if (['trade','roundtrip'].includes(kind) && result?.verified === true && result.network === 'devnet' && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(result.receipt || '')) {
+    const exact = new URL('/',location.origin); exact.searchParams.set('receipt',result.receipt);
+    if (/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(result.buyReceipt || '')) exact.searchParams.set('buyReceipt',result.buyReceipt);
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(result.mint || '')) exact.searchParams.set('mint',result.mint);
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(result.wallet || '')) exact.searchParams.set('wallet',result.wallet);
+    exact.hash='payments/activity'; url=exact.href;
+  }
   const dialog = document.querySelector('#share-dialog');
   if (!dialog) throw new Error('Share menu is unavailable');
   activeShare = { kind, title: cleanText(title, 100), url: taggedShareUrl(url), result };
@@ -144,9 +151,11 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
   dialog.querySelector('#share-link').value = activeShare.url;
   dialog.querySelector('#share-network').textContent = result?.network || network || (kind === 'coin' ? 'Check token page for network' : 'Referral link');
   const amountOption = dialog.querySelector('#share-hide-amount')?.closest('label');
+  for(const [id,label] of [['share-hide-amount',' Hide amount on image'],['share-hide-wallet',' Hide wallet on image']]){const wrap=dialog.querySelector(`#${id}`)?.closest('label');if(wrap?.lastChild?.nodeType===3)wrap.lastChild.textContent=label;}
   if (amountOption) amountOption.hidden = kind === 'trade';
   const note = dialog.querySelector('#share-result-note');
   if (note) note.textContent = kind === 'trade' ? 'This card confirms one finalized trade. It does not show profit, cost basis, or future returns.' : kind === 'roundtrip' ? 'The amount is the wallet SOL balance change in two finalized transactions, including fees, rent, and any other SOL movements in those receipts. It is not wallet-wide trading profit or a future return.' : 'Paid referral earnings are not trading profit or a prediction of future returns.';
+  if(note&&result)note.textContent+=' Image privacy controls do not hide public receipt links, transaction wallets, amounts, or text you choose to share.';
   status('Choose a channel or copy your link. You review the post before publishing.');
   updateResultPreview();
   dialog.querySelector('#public-trade-share')?.remove();

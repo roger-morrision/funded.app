@@ -4,12 +4,13 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 for (const scale of [1.25, 1.5]) {
   test.describe(`FQA-016 fractional desktop scale ${scale}`, () => {
     test('Home content stays clear of the tablet sidebar at a fractional CSS width (mocked APIs)', async ({}, testInfo) => {
-      const nativeLaunchWidth=process.platform==='win32'?({1.25:1195,1.5:1197})[scale]:({1.25:1177,1.5:1179})[scale];
       const browser = await chromium.launch({ headless: true,
         ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
-        args: [`--force-device-scale-factor=${scale}`, `--window-size=${nativeLaunchWidth},1000`] });
+        args: [`--force-device-scale-factor=${scale}`] });
       const page = await browser.newPage({ viewport: null });
       try {
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width:1179, height:900, deviceScaleFactor:scale, mobile:false });
       await page.route('https://**/*', route => route.abort());
       await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
         ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
@@ -19,12 +20,14 @@ for (const scale of [1.25, 1.5]) {
         await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
         await page.evaluate(() => document.fonts.ready);
         const media = await page.evaluate(() => ({
-          roundedWidth: innerWidth, dpr: devicePixelRatio,
+          roundedWidth: innerWidth, fractionalWidth: visualViewport.width, dpr: devicePixelRatio,
           oldTablet: matchMedia('(max-width:1179px)').matches,
           desktop: matchMedia('(min-width:1180px)').matches,
           tablet: matchMedia('(width < 1180px)').matches,
         }));
         expect(media, 'Exercise the real fractional gap, not a rounded integer viewport').toMatchObject({ roundedWidth: 1179, oldTablet: false, desktop: false, tablet: true });
+        expect(media.fractionalWidth).toBeGreaterThan(1179);
+        expect(media.fractionalWidth).toBeLessThan(1180);
         await testInfo.attach(`${label} viewport`, { body: JSON.stringify(media), contentType: 'application/json' });
         await page.screenshot({ path: testInfo.outputPath(`${label.replaceAll(' ', '-')}.png`) });
         await expect(page.locator('#sidebar')).toHaveCSS('width', '220px');

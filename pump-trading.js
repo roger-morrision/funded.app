@@ -3,10 +3,12 @@ import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount, getSellSolAmou
 import { OnlinePumpAmmSdk, PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, buyQuoteInput, canonicalPumpPoolPda, poolPda, sellBaseInput } from '@pump-fun/pump-swap-sdk';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import bs58 from 'bs58';
+import {inspectPhantomTradeTransaction} from './phantom-mobile-crypto.js';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-export const DEFAULT_TRADE_FEE_BPS = 50;
+export const DEFAULT_TRADE_FEE_BPS = 100;
 
 export function buildTradeFeePolicy({ feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS } = {}) {
   const owner = String(feeOwner || '').trim();
@@ -160,6 +162,7 @@ export function formatBondingCurveSnapshot({ mint, bondingCurve, slot = null, ob
   return {
     mint: requireMint(mint).toBase58(),
     complete: Boolean(bondingCurve.complete),
+    tokenTotalSupplyBaseUnits: bondingCurve.tokenTotalSupply?.toString(10) ?? null,
     virtualTokenReserves: virtualToken,
     virtualQuoteReservesSol: virtualQuote,
     realTokenReserves: realToken,
@@ -283,7 +286,7 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
   return { route: 'curve', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: solAmount, tokenDecimals, feeLamports, feePolicy, snapshot };
 }
 
-export async function submitTrade({ connection, provider, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, preparedTrade = null, tokenName = '', tokenSymbol = '', onStatus = () => {}, assertWalletCurrent = () => {} }) {
+export async function submitTrade({ connection, provider, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, preparedTrade = null, tokenName = '', tokenSymbol = '', onStatus = () => {}, onPrepared = () => {}, assertWalletCurrent = () => {} }) {
   if (!provider?.signTransaction) throw new Error('Connect a wallet that can sign transactions.');
   onStatus(`Reading ${side} quote and Solana state…`);
   const trade = preparedTrade || await buildTradeTransaction({ connection, side, mint, user, amount, slippagePercent, feeOwner, feeBps });
@@ -319,19 +322,26 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   }
   assertWalletCurrent();
   onStatus('Waiting for wallet approval…');
+  const reviewed=Transaction.from(transaction.serialize({requireAllSignatures:false,verifySignatures:false}));
   const signed = await provider.signTransaction(transaction);
   assertWalletCurrent();
+  if(!(signed instanceof Transaction))throw new Error('Wallet returned an invalid trade transaction. Nothing was submitted.');
+  if(provider.remoteMobile)reviewed.recentBlockhash=signed.recentBlockhash;
+  if(!inspectPhantomTradeTransaction(reviewed,signed).ok)throw new Error('Wallet changed the reviewed trade. Nothing was submitted.');
   const signedBlockhash = signed.recentBlockhash || latest.blockhash;
   const lastValidBlockHeight = signed.fundedLastValidBlockHeight || latest.lastValidBlockHeight;
   if (provider.remoteMobile) {
     const currentHeight = await connection.getBlockHeight('confirmed');
     if (currentHeight >= lastValidBlockHeight - 10) throw new Error('The Solana transaction expired during phone approval. Preview the trade and sign again.');
   }
-  let signature;
+  const wire=signed.serialize(),signature=bs58.encode(signed.signature);
+  await onPrepared({signature,lastValidBlockHeight,blockhash:signedBlockhash});
+  assertWalletCurrent();
   try {
-    signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed' });
+    const returned=await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed',maxRetries:2 });
+    if(returned!==signature)throw new Error('RPC returned a different signature. Check the saved trade before retrying.');
   } catch (error) {
-    if (/blockhash not found/i.test(String(error?.message || ''))) throw new Error('The Solana transaction expired during phone approval. Preview the trade and sign again.');
+    error.signature=signature;error.lastValidBlockHeight=lastValidBlockHeight;
     throw error;
   }
   if (provider.remoteMobile && typeof provider.reportTradeSubmission === 'function') {
@@ -342,8 +352,8 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
     const confirmation = await connection.confirmTransaction({ signature, blockhash: signedBlockhash, lastValidBlockHeight }, 'confirmed');
     assertTradeConfirmed(confirmation);
   } catch (error) {
-    error.signature = signature;
+    error.signature = signature;error.lastValidBlockHeight=lastValidBlockHeight;
     throw error;
   }
-  return { ...trade, signature, confirmedAt: new Date().toISOString() };
+  return { ...trade, signature,lastValidBlockHeight, confirmedAt: new Date().toISOString() };
 }

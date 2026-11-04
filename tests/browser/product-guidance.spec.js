@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async({page,baseURL})=>{
+  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
+  await page.route('**/*',route=>{const request=route.request(),url=new URL(request.url());return url.origin===new URL(baseURL).origin&&(request.method()==='GET'||url.pathname.startsWith('/api/'))?route.fallback():route.abort();});
+});
+
 for(const width of[390,1440])test(`FQA-029 ranking help preserves native topic navigation at ${width}px (mocked APIs)`,async({page},info)=>{
   test.setTimeout(90000);await fixtures(page);await page.setViewportSize({width,height:width===390?844:900});const errors=[],observations=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/#leaderboard');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);
@@ -28,7 +33,6 @@ async function fixtures(page, override=false) {
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Unavailable fixture'}}));
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{revision:19,split:{
     operationsPercent:override ? 30:40,referralLevelPercents:[10,3,2],communityPercent:override ? 30:20,buybackPercent:25}}}));
-  await page.route('https://**/*',route=>route.abort());
 }
 
 test('all Docs topics navigate, have deep links, and link only to existing documentation topics',async({page})=>{
@@ -58,12 +62,13 @@ for(const [width,override] of [[390,false],[1440,true]]) test(`reward actions, F
   await page.setViewportSize({width,height:900});await fixtures(page,override);
   await page.goto('/#docs/fees');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const article=page.locator('#docs-guide-article'), ops=override ? 6:8, bonus=override ? 6:4;
-  await expect(article).toContainText(`${ops}% Operations & marketing`);
-  await expect(article).toContainText(`${bonus}% Daily bonus pool`);
+    await expect(article).toContainText(new RegExp(`${ops}%[\\s·]*Operations & marketing`));
+    await expect(article).toContainText(new RegExp(`${bonus}%[\\s·]*Daily bonus`));
   await expect(article).toContainText('gross collected creator fees at each coin’s saved rate');
   await expect(article).toContainText('each receive one third');
   await expect(article).toContainText('1st 50% · 2nd 30% · 3rd 20% of the category budget');
   await expect(article).toContainText('No manual claim or recipient signature is required');
+  if(width<700)await page.getByRole('button',{name:'Browse guides',exact:true}).click();
   await page.locator('.docs-guide-nav').getByRole('button',{name:'Automatic payouts or claims?',exact:true}).click();
   const daily=article.locator('tbody tr').filter({hasText:'Daily bonus'});
   await expect(daily).toContainText('Automatic transfer');

@@ -67,9 +67,18 @@ export function createDirectoryRoutes({
       try { listingMint = new PublicKey(listingMintMatch[1]).toBase58(); }
       catch { return json(res, 400, { error:'A valid token mint is required.' }); }
       try {
+        const trustedLaunch = await store.readLaunch(listingMint);
+        // Inclusion is a saved launch entitlement. It does not depend on today's
+        // metadata RPC, pool quote, or the paid-listing price being available.
+        if (trustedLaunch?.onchainVerified === true && trustedLaunch.cluster === 'devnet'
+          && trustedLaunch.pumpFeeRoute?.scope === 'per-mint-v3') {
+          return json(res, 200, { cluster:'devnet', mint:listingMint, included:true,
+            name:trustedLaunch.name || 'Funded launch', symbol:trustedLaunch.symbol || 'TOKEN',
+            source:'verified-launch-registry', marketStatus:'not-requested' });
+        }
         const rpc = new Connection(solanaRpcUrl, 'finalized');
         if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'Listing mint checks require a Solana RPC.' });
-        const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(listingMint), store.readMetadata(listingMint)]);
+        const signedMetadata = await store.readMetadata(listingMint);
         return json(res, 200, { cluster:'devnet', included:Boolean(trustedLaunch?.onchainVerified && trustedLaunch.cluster==='devnet' && trustedLaunch.pumpFeeRoute?.scope==='per-mint-v3'), ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
       } catch (error) { return json(res, 409, { error:error.message || 'Verified token metadata is unavailable.' }); }
     }

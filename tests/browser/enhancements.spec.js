@@ -99,11 +99,13 @@ test('chat wallet hiding persists on this device and can be reversed', async ({ 
     enabled: true, messages: [{ id: 'chat-fixture', author: 'So11111111111111111111111111111111111111112', text: 'A useful fixture message', createdAt: new Date().toISOString() }],
   }) }));
   await page.goto(`/token/${mint}`);
-  await expect(page.locator('#coin-community-feed')).toContainText('A useful fixture message');
+  await page.locator('[data-coin-tab="chat"]').click();
+  await expect(page.locator('#coin-activity-list')).toContainText('A useful fixture message');
   await page.getByRole('button', { name: 'Hide this wallet', exact: true }).click();
-  await expect(page.locator('#coin-community-feed')).not.toContainText('A useful fixture message');
+  await expect(page.locator('#coin-activity-list')).not.toContainText('A useful fixture message');
   await page.reload();
-  await expect(page.locator('#coin-community-feed')).toContainText('Messages from hidden wallets');
+  await page.locator('[data-coin-tab="chat"]').click();
+  await expect(page.locator('#coin-activity-list')).toContainText('Messages from hidden wallets');
   await page.locator('[data-chat-unhide]').click();
-  await expect(page.locator('#coin-community-feed')).toContainText('A useful fixture message');
+  await expect(page.locator('#coin-activity-list')).toContainText('A useful fixture message');
 });

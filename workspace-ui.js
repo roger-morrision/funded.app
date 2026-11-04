@@ -15,9 +15,20 @@ function home() {
 
 let lastSyncedRoute = null;
 let scrollRequest = 0;
+// Coin tabs and bookmarks keep the coin name instead of a generic "Token" title.
+const coinRoute=()=>/^\/(token|launch\/coin)\//.test(location.pathname)&&!location.hash||location.hash.startsWith('#coin/');
+// The server already names verified coins in <title>; keep it while the page loads.
+const serverCoinTitle=coinRoute()&&!location.hash&&/ \| funded\.vip$/.test(document.title)&&!document.title.startsWith('Token verification unavailable')
+  ?{path:location.pathname,title:document.title}:null;
+function coinTitle() {
+  const name=coinRoute()?$('#coin-page-title')?.textContent?.trim():'';
+  if(name&&!/^(Loading token|Token data unavailable)/.test(name))return `${name} · funded.vip`;
+  return coinRoute()&&!location.hash&&location.pathname===serverCoinTitle?.path?serverCoinTitle.title:'';
+}
+const routeTitle=()=>coinTitle()||`${$('[data-route-label]')?.textContent||'funded.vip'} · funded.vip`;
 function syncRoute() {
   const route=location.hash.slice(1)||(/^\/funded\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'launch':/^\/explore\/?$/.test(location.pathname)?'explore':'overview');
-  const mergedRoutes={pilot:'launch',community:'my-launches',buybacks:'paid','referral-faq':'referrals','payments/history':'payments','payments/holders':'payments'};
+  const mergedRoutes={pilot:'launch',community:'my-launches',buybacks:'paid','referral-faq':'referrals','payments/history':'payments','payments/holders':'payments','payments/activity':'payments','payments/creator':'payments','payments/x':'payments'};
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
   const creatorSupportRoute = route==='creators'||/^creator\/\d{1,24}$/.test(route)
@@ -27,10 +38,9 @@ function syncRoute() {
     ? (/^\/wallet\//.test(location.pathname) ? 'my-launches' : /^\/launch\/coin\//.test(location.pathname) ? 'launch' : 'explore')
     : creatorSupportRoute ? 'explore'
     : route==='creator-settings' ? 'my-launches'
-    : ({ community: 'my-launches', leaderboard: 'explore', airdrops: 'payments', referrals: 'payments', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
+    : ({ community: 'my-launches', leaderboard: 'explore', 'analytics-detail': 'explore', airdrops: 'payments', referrals: 'payments', bonuses: 'payments', 'capital-flow': 'payments', 'marketing-agency': 'launch', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
   $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${mobileRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
-  const more=$('.nav-more');if(more)more.open=!matchMedia('(min-width:1180px)').matches && Boolean($('a[aria-current="page"]',more));
   const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
   if(route==='funded-holder-token-rewards'){
     $('#rewards-funded-tab')?.click();
@@ -44,7 +54,7 @@ function syncRoute() {
   }
   if(pageRoute==='payments')document.title='Rewards · funded.vip';
   else if(route==='launch')document.title='Create a coin · funded.vip';
-  else document.title=`${$('[data-route-label]')?.textContent||'funded.vip'} · funded.vip`;
+  else document.title=routeTitle();
   const request = ++scrollRequest;
   const fragment = location.hash;
   if(route==='referral-faq') {
@@ -82,4 +92,6 @@ document.addEventListener('click',event=>{
   }
 });
 matchMedia('(min-width:1180px)').addEventListener('change',syncRoute);
+const coinPageTitle=$('#coin-page-title');
+if(coinPageTitle)new MutationObserver(()=>{if(coinRoute())document.title=routeTitle();}).observe(coinPageTitle,{childList:true,characterData:true,subtree:true});
 syncRoute();

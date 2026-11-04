@@ -1,0 +1,94 @@
+@import './financial-activity.css';
+@import './compact-token-cards.css';
+@import './styles/experience/compact-card-variants.css';
+@import './styles/coin/tradingview.css';
+/* Discovery, signed launch choices, and evidence-led activity share the app palette. */
+html body.page-route-overview.product-experience-style .hero-section { padding:16px 0 !important; }
+html body.page-route-overview .hero-copy-column { max-width:980px; }
+html body.page-route-overview.product-experience-style .hero-section h1 { max-width:980px; font-size:clamp(28px,2.6vw,40px) !important; }
+html body.page-route-overview.product-experience-style .hero-copy { max-width:760px; font-size:13px; }
+html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media {
+  aspect-ratio:auto; height:112px; min-height:0; border-bottom-width:1px;
+}
+html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .home-token-avatar { font-size:38px; }
+html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .home-token-avatar img { object-fit:contain; }
+.card-review-buy { display:flex; position:relative; z-index:4; justify-content:space-between; gap:8px; margin:10px 0 2px; padding:11px 12px; border:1px solid #8c744c; border-radius:7px; background:#332a1d; color:#ffe0a3; font-weight:700; font-size:12px; text-decoration:none; }
+html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card > .home-launch-media-badges { position:static; display:flex; align-items:center; gap:6px; margin-block:6px; pointer-events:auto; }
+.review-buy-setting { display:flex; flex-wrap:wrap; align-items:center; gap:6px; color:#c8cdd5; font-size:11px; }
+.review-buy-setting input { width:76px; min-height:36px; padding:6px; border:1px solid #61543e; border-radius:6px; background:#171c26; color:#fff0ce; }
+.review-buy-setting small { color:#a5afbc; }
+.flow-panel { min-width:0; padding:20px; margin-block:18px; border:1px solid var(--line,#2b374b); border-radius:12px; background:var(--panel,#111a2a); color:var(--text,#e9eef6); overflow-wrap:anywhere; }
+.flow-panel h2,.flow-panel h3 { margin:0 0 10px; color:var(--text,#e9eef6); }
+.flow-panel p,.flow-note { color:var(--muted,#a6b3c6); font-size:14px; line-height:1.65; }
+.flow-panel header { display:flex; justify-content:space-between; align-items:start; gap:16px; }
+.flow-panel button,.flow-panel select,.flow-panel input:not([type=checkbox]) { min-height:44px; padding:9px 12px; border:1px solid #3b4960; border-radius:8px; color:#e3eaf4; background:#182236; }
+.flow-panel input[type=checkbox] { margin-right:8px; }
+.flow-panel nav { display:flex; flex-wrap:wrap; gap:10px 18px; margin-block:16px; }
+.flow-panel a { color:#b8d2ff; text-underline-offset:3px; }
+.flow-stages { display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; }
+.flow-stages li,.flow-stage { padding:6px 10px; border:1px solid #68583d; border-radius:6px; color:#eed2a3; font-size:11px; }
+.flow-stages li+li::before { content:'→ '; }
+.flow-activity-row { border-top:1px solid #394252; padding:16px 0; }
+.flow-activity-row h3 { margin-top:8px; font-size:16px; }
+.flow-activity-row small { display:block; color:#a6b3c6; font-size:12px; margin-bottom:8px; }
+.flow-activity-row a+a { margin-left:12px; }
+.flow-activity-row[data-stage=Verified] .flow-stage { color:#b0eac9; border-color:#3d8060; }
+.launch-facts summary { cursor:pointer; color:#f0d09a; font-weight:700; min-height:28px; }
+.launch-facts dl { display:grid; grid-template-columns:minmax(110px,1fr) minmax(0,3fr); gap:12px; font-size:12px; line-height:1.5; }
+.launch-facts dt { color:#f0d09a; }.launch-facts dd { margin:0; }
+.creator-activity [data-reminders] button { margin-left:10px; }
+.return-reminder { grid-column:1/-1; }.return-reminder label { display:inline-flex; flex-wrap:wrap; gap:10px; align-items:center; margin:8px 12px 8px 0; }
+.mobile-trade-sell,.mobile-dock-buy { display:none; }
+.flow-panel form { display:grid; gap:12px; min-width:0; }
+.flow-panel label { display:block; line-height:1.6; font-size:12px; }
+.flow-panel textarea { display:block; width:100%; max-width:100%; padding:10px; border:1px solid #786445; border-radius:6px; background:#1b212b; color:#e9e2d4; font:inherit; }
+.flow-panel pre { white-space:pre-wrap; max-width:100%; overflow-wrap:anywhere; font-size:12px; }
+.flow-tabs,.ready-queue>div { display:flex; flex-wrap:wrap; gap:8px; margin-block:12px; }
+.flow-tabs [aria-pressed=true] { border-color:#e1ba77; background:#473a26; }
+.flow-panel details>summary { cursor:pointer; min-height:44px; padding-block:12px; }
+.flow-panel dl { display:grid; grid-template-columns:minmax(100px,1fr) minmax(0,2fr); gap:10px; font-size:12px; }
+.flow-panel dd { margin:0; }.flow-panel>button,.flow-panel> a { margin:6px 12px 6px 0; }
+.financial-receipt-dialog { width:min(780px,94vw); max-height:90dvh; overflow:auto; overflow-wrap:anywhere; }
+.flow-panel [hidden],.flow-panel[hidden] { display:none !important; }
+@media(max-width:700px) {
+  html body.page-route-overview.product-experience-style .hero-section h1 { max-width:28ch; font-size:26px !important; }
+  .flow-panel { padding:15px; }.flow-panel header { flex-direction:column; }
+  .launch-facts dl { grid-template-columns:1fr; gap:6px; }.launch-facts dd { margin-bottom:12px; }
+  html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media { height:84px; }
+  .review-buy-setting { width:100%; }.review-buy-setting input { min-height:44px; }
+  body.page-route-coin .mobile-workspace-nav :is(.mobile-dock-buy,.mobile-trade-sell) { display:block; min-width:0; min-height:62px; margin:0; padding:7px 2px; border:1px solid #ac8a4a; border-radius:10px; font:800 13px Manrope,sans-serif; background:#30291e; color:#f1d6a2; }
+  body.page-route-coin .mobile-workspace-nav .mobile-trade-sell { background:#242a38; color:#f4b2ab; border-color:#946c6b; }
+  .card-review-buy { min-height:44px; align-items:center; }
+}
+html body #main-content #explore[data-explore-view="table"] #asset-grid { display: none; }
+html body #main-content #explore[data-explore-view="grid"] .scanner-scroll { display: none; }
+html body #main-content #explore[data-explore-view="table"] .scanner-scroll { display: block; }
+html body #main-content #explore .explore-view-switch { display: inline-flex; }
+.flow-picker { width: min(540px, calc(100vw - 32px)); max-height: 85dvh; padding: 24px; border: 1px solid var(--fv-border); border-radius: 16px; background: var(--fv-surface); color: var(--fv-text); }
+.flow-picker::backdrop { background: #000a; }
+.flow-picker input { width: 100%; min-height: 44px; margin-bottom: 12px; }
+.flow-picker a { display: block; padding: 14px 8px; overflow-wrap: anywhere; }
+.flow-picker button { min-height: 44px; margin-top: 12px; }
+.reward-program-guide article { padding: 8px 0; border-bottom: 1px solid var(--fv-border); }
+.reward-program-guide p { margin: 6px 0; }
+.payment-cost-explanation, .payment-gross-headline { display: block; white-space: normal; overflow-wrap: anywhere; }
+.callout-coverage { color: var(--fv-text-muted); overflow-wrap: anywhere; }
+.market-freshness { font-size: 11px; color: var(--fv-text-muted); overflow-wrap: anywhere; }
+.coin-readiness { padding: 12px 16px; border: 1px solid var(--fv-border); border-radius: 12px; }
+.coin-readiness p { margin: 4px 0; }
+.coin-readiness nav { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+.coin-readiness nav a, .flow-picker a { color: var(--fv-accent); text-decoration: none; }
+.coin-readiness nav a:hover, .flow-picker a:hover { text-decoration: underline; }
+.coin-readiness button, .flow-picker button { padding: 8px 12px; border: 1px solid var(--fv-border); border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+.coin-readiness nav { align-items: center; }
+.launch-checklist li { margin: 8px 0; }
+html body #main-content #coin-page > .coin-readiness { order: 2; }
+html body #main-content #coin-page .launch-checklist { order: 12; }
+@media (max-width: 700px) {
+  html body #main-content #coin-page .coin-hero-card { padding: 12px; }
+  html body #main-content #coin-page .coin-hero-card { display: contents; }
+  html body #main-content #coin-page .coin-identity { order: 1; }
+  html body #main-content #coin-page .coin-hero-card > :not(.coin-identity) { order: 7; }
+  .coin-readiness { padding: 10px; font-size: 12px; }
+  .coin-readiness nav { gap: 12px; }
+}

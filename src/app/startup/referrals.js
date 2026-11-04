@@ -4,7 +4,6 @@ import { initializeAppState } from '../runtime.js';
 export function initializeReferrals(appState) {
   // app-source: 246
   appState.initShareComposer();
-  document.querySelector('[data-referral-connect]')?.addEventListener('click', () => document.querySelector('#connect-button')?.click());
   // app-source-end
 
   // app-source: 249

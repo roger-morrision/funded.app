@@ -2,24 +2,12 @@ import { initializeAppState } from '../runtime.js';
 import { initializePaymentHistoryControls } from '../../features/payments/history-controls.js';
 import { bindPublicQuoteRetry } from '../../features/launch/cost-view.js';
 import { bindLaunchCostNavigation } from '../../features/launch/cost-navigation.js';
+import { initializeLaunchRegistrationRecovery } from './launch-registration-recovery.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeLaunchActions(appState) {
   // app-source: 664
-  window.addEventListener('funded:recover-registration',async event=>{
-    const report=message=>window.dispatchEvent(new CustomEvent('funded:recovery-result',{detail:message}));
-    try{
-      const {mint,id}=event.detail||{};const row=appState.readLaunchJournal().find(r=>r.id===id&&r.mint===mint&&r.state==='registration-pending');
-      if(!row||row.cluster!=='devnet')throw new Error('No pending Solana registration matches this request.');
-      const policy=JSON.parse(localStorage.getItem(`funded.launch.${mint}`)||'null');if(!appState.policyMatchesJournal(policy,row))throw new Error('Saved policy does not match this launch. Do not recreate the coin.');
-      const session=appState.captureWalletSession();if(!session||session.address!==row.payer)throw new Error('Connect the original launch wallet before registration.');appState.assertWalletSessionCurrent(session);
-      if(!policy.policySignature){if(typeof session.provider.signMessage!=='function')throw new Error('This wallet must support message signing.');const signed=await session.provider.signMessage(new TextEncoder().encode(appState.launchPolicyStatement(policy)));appState.assertWalletSessionCurrent(session);policy.policySignature=appState.bs58.encode(signed.signature||signed);localStorage.setItem(`funded.launch.${mint}`,JSON.stringify(policy));}
-      report('Checking the original launch and policy with the API. No coin transaction is being sent.');
-      const result=await appState.apiRequest('/api/launches',{method:'POST',body:policy});if(!result.available||result.data?.mint!==mint||!result.data?.onchainVerified)throw new Error('Registration is still pending verified API evidence.');
-      if (appState.verifiedPilotLaunchRegistration(result, mint)) appState.emitPilotSignal('launch-confirmed');
-      appState.recordLaunchEvent(id,{state:'completed'});report('Original launch registered. No duplicate launch was created.');void appState.loadVerifiedLaunchPolicies();
-    }catch(error){report(error.message);}
-  });
+  initializeLaunchRegistrationRecovery(appState);
   // app-source-end
 
   // app-source: 665
@@ -81,7 +69,7 @@ export function initializeLaunchActions(appState) {
     if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; appState.updateLaunchIdentityWarnings(); }
     if (appState.LAUNCH_SOCIAL_FIELDS.includes(input.id)) appState.updateLaunchSocialValidity(input);
     if (input.matches('#community-airdrop-tokens')) appState.syncCommunityAirdropPresets();
-    if (input.matches('#token-name, #token-symbol, #creator-buy-sol')) appState.scheduleLaunchCostRefresh();
+    if (input.matches('#token-name, #token-symbol, #creator-buy-sol, #community-airdrop-tokens')) appState.scheduleLaunchCostRefresh();
     appState.updateLaunchPreview();
     appState.updateCostSummary();
     appState.updateLaunchButton();
@@ -165,7 +153,9 @@ export function initializeLaunchActions(appState) {
     if (status) status.textContent = file ? 'Preparing banner…' : 'No banner selected.';
     if (remove) remove.hidden = !file;
     try {
-      const banner = await appState.prepareLaunchBanner(file);
+      const preparation = appState.prepareLaunchBanner(file);
+      appState.updateLaunchPreview(); appState.updateLaunchButton();
+      const banner = await preparation;
       if (revision !== bannerPreparationRevision || file !== event.target.files?.[0]) return;
       if (banner) {
         if (preview) { preview.style.backgroundImage = `url("${banner.url}")`; preview.hidden = false; }
@@ -202,18 +192,6 @@ export function initializeLaunchActions(appState) {
 
   // app-source: 682
   document.querySelector('#launch-back').addEventListener('click', () => appState.setLaunchStep(appState.launchStep - 1));
-  // app-source-end
-
-  // app-source: 683
-  document.querySelector('#launch-mode-quick').addEventListener('click', () => appState.setLaunchMode('quick'));
-  // app-source-end
-
-  // app-source: 684
-  document.querySelector('#launch-mode-custom').addEventListener('click', () => appState.setLaunchMode('custom'));
-  // app-source-end
-
-  // app-source: 685
-  document.querySelectorAll('[data-launch-profile]').forEach(card => card.addEventListener('click', () => appState.setLaunchMode(card.dataset.launchProfile === 'community' ? 'custom' : 'quick')));
   // app-source-end
 
   // app-source: 686
@@ -451,6 +429,9 @@ export function initializeLaunchActions(appState) {
   document.querySelector('#trade-side')?.addEventListener('change', appState.updateTradeAmountLabel);
   // app-source-end
 
+  // Standalone pages (Get listed) render shared token cards and ask the app for logos.
+  document.addEventListener('funded:token-logos', event => appState.loadVerifiedTokenLogos(event.target));
+
   // app-source: 730
   document.querySelectorAll('[data-coin-trade-side]').forEach(button => button.addEventListener('click', () => {
     const side = button.dataset.coinTradeSide;
@@ -491,4 +472,25 @@ export function initializeLaunchActions(appState) {
   initializeAppState(appState, 'coinQuickAmountButtons', coinQuickAmountButtons);
   // app-source-end
 
+  // "Launch for an X creator": open the launch form with half of the creator
+  // share going to a named X account. A ?forX=handle link prefills the name.
+  const prepareXCreatorLaunch = handle => {
+    const creatorShare = document.querySelector('#creator-wallet-share');
+    const xShare = document.querySelector('#x-share');
+    const recipient = document.querySelector('#x-recipient');
+    if (!creatorShare || !xShare || !recipient) return;
+    appState.setLaunchMode('custom');
+    creatorShare.value = '40';
+    xShare.value = '40';
+    appState.updateLaunchPolicyControls();
+    const name = appState.normalizeXHandle(String(handle || '').replace(/[^A-Za-z0-9_@]/g, '').slice(0, 16));
+    if (name.length > 1) recipient.value = name;
+    recipient.dispatchEvent(new Event('input', { bubbles: true }));
+    setTimeout(() => recipient.focus({ preventScroll: false }), 300);
+  };
+  document.addEventListener('click', event => {
+    if (event.target.closest?.('[data-launch-for-x]')) prepareXCreatorLaunch('');
+  });
+  const forX = new URLSearchParams(location.search).get('forX');
+  if (forX) prepareXCreatorLaunch(forX);
 }

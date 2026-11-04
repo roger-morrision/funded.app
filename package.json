@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "verify:css-budget": "node scripts/verify-css-budget.mjs",
     "verify:legal-dialogs": "node scripts/verify-legal-dialogs.mjs",
     "verify:jackpot-prototype": "node scripts/verify-jackpot-prototype.mjs",
     "verify:jackpot-end-to-end": "node scripts/verify-jackpot-end-to-end.mjs",
@@ -60,6 +61,7 @@
     "verify:launch-package-preview": "node scripts/verify-launch-package-preview.mjs",
     "verify:devnet-metadata": "node scripts/verify-devnet-metadata.mjs",
     "verify:local-flow": "node scripts/verify-local-flow.mjs",
+    "verify:local-onchain-launch": "node scripts/verify-local-onchain-launch.mjs",
     "verify:fee-policy": "node scripts/verify-fee-policy.mjs",
     "verify:fee-router": "node scripts/verify-fee-router.mjs",
     "verify:mint-router-v3": "node scripts/verify-mint-router-v3.mjs",
@@ -141,8 +143,11 @@
     "bigint-buffer": "file:vendor/bigint-buffer",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
+    "lightweight-charts": "5.2.1",
     "pg": "^8.23.1",
-    "tweetnacl": "^1.0.3"
+    "redis": "6.3.1",
+    "tweetnacl": "^1.0.3",
+    "ws": "8.21.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

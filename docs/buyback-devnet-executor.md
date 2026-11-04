@@ -14,6 +14,22 @@ Home and Buy & burn show eligible SOL, trigger, last verified execution timestam
 
 Sources: [worker policy](../server/v3-buyback-worker-policy.mjs), [quote](../server/v3-buyback-quote.mjs), [transaction](../server/v3-buyback-transaction.mjs), [proof](../server/v3-buyback-proof.mjs), [dashboard](../server/v3-buyback-dashboard.mjs), [QA minima](devnet-qa-minimums.md).
 
+### Trade wake-ups, aggregation and execution limits
+
+Verified in-app trades wake the worker in addition to its one-minute recovery scan. A wake-up does not bypass collection, creator settlement, market or custody checks. Buyback remains a separate protected purchase-and-burn transaction.
+
+`FUNDED_V3_BUYBACK_AGGREGATION_ENABLED=true` permits a same-mint aggregate of two to 32 remaining collection budgets. Every source settlement/allocation is independently reconstructed; the receipt ID binds the source list and round. One atomic vault debit is attributed in deterministic source order against frozen budgets. Individual and aggregate submissions exclude each other while a signed result is pending. Partial purchases preserve the exact unspent source balances. Different mints and beneficiary categories are never combined. This application path does not require a new program instruction; enabling it still requires exact-source Devnet receipt verification.
+
+Per-order spending defaults to at most 1 SOL and the daily cap to 5 SOL; `FUNDED_V3_BUYBACK_MAX_ORDER_LAMPORTS` and `FUNDED_V3_BUYBACK_DAILY_CAP_LAMPORTS` configure positive safe integer lamport limits. The daily budget includes verified finalized debit plus maximum debit reserved by every unresolved signed order, and is checked again inside the signing-state lock. Market liquidity/slippage controls may further reduce an order. These are execution caps, not changes to the saved fee percentage.
+
+`FUNDED_V3_BUYBACK_MAX_WAIT_SECONDS=0` disables age-based execution by default. An explicitly configured wait may permit an old finalized source to execute below the aggregate trigger, only with `FUNDED_V3_BUYBACK_AGE_MIN_LAMPORTS` (default 0.01 SOL) and every existing market/custody gate. The minimum wait is one hour, or five minutes with explicit Devnet QA minimums; the maximum is seven days. An aggregate requires every participating settlement to satisfy the age condition. Age-triggered execution queues only the selected source.
+
+`FUNDED_V3_BUYBACK_DYNAMIC_FEES=true` simulates compute consumption, adds 15% headroom within the network maximum, and selects a recent priority-fee observation capped by `FUNDED_V3_BUYBACK_MAX_PRIORITY_LAMPORTS` (default 10,000 lamports). Fee and setup-rent reserve checks use the final message. Simulation errors fail before signing.
+
+New signed intents save blockhash expiry and the immutable receipt address. Recovery can rebuild only after finalized block height exceeds expiry and signature history, confirmed transaction and receipt-account reads all show absence. The same receipt ID is retained and old signatures remain audited. Older incomplete intents require manual reconciliation.
+
+Public status returns within its bounded proof-wait budget while background verification continues. `lastVerified` is explicitly historical (`fresh:false`) and cannot authorize execution. The worker uses authenticated `?wait=worker` to wait for the full bounded scan. Budget summaries distinguish allocations meeting the order-size minimum from retained smaller balances; meeting the size minimum alone does not establish market execution readiness.
+
 ## Historical executor evidence
 
 > **Retired V2 procedure.** The worker and Compose commands below describe an earlier implementation. They are historical evidence, not instructions or activation status for the current V3 executor above.

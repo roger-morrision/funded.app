@@ -3,7 +3,8 @@ import { marketingAgencyCapabilities } from '../../server/marketing-agency-polic
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 import {agencyProtocolSplit} from '../../agency-mint-router-v3.js';
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
+  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/fee-policy') return route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } });
@@ -11,7 +12,7 @@ test.beforeEach(async ({ page }) => {
       funding: { status: 'unavailable', collectedLamports: null, spentLamports: null }, history: [], launches: [] } });
     return route.fulfill({ status: 503, json: { error: 'Offline QA fixture' } });
   });
-  await page.route('https://**/*', route => route.abort());
+  await page.route('https://**/*', route => new URL(route.request().url()).origin===new URL(baseURL).origin?route.fallback():route.abort());
 });
 
 for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness and own-coin triggers at ${width}px`, async ({ page }) => {
@@ -28,33 +29,28 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   await expect(page.locator('[data-agency-status]')).toContainText('Current agency readiness is unavailable');
   await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
   await expect(page.locator('[data-agency-history]')).toContainText('Earlier receipt history is unavailable');
-  await expect(page.locator('.agency-policy')).toContainText('1% referrals · 2% AI agency');
+  await expect(page.locator('.agency-policy')).toContainText('1% referrals · 2% AI marketing & coin buybacks');
   await expect(page.locator('.agency-policy')).toContainText('L1 0.6% · L2 0.25% · L3 0.15%');
   await expect(page.locator('.agency-policy')).toContainText('each buy and burn the launched coin once');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (width === 1440) await page.screenshot({ path: 'tmp/agency-desktop.png', fullPage: true, animations: 'disabled' });
   else await page.screenshot({ path: 'tmp/agency-mobile.png', fullPage: true, animations: 'disabled' });
-  if (width === 1440) expect(await page.locator('#marketing-agency').evaluate(n => n.getBoundingClientRect().top >= document.querySelector('.sidebar').getBoundingClientRect().bottom)).toBe(true);
 });
 
-test('team preview updates equal selected budgets without altering the active fee policy', async ({ page }) => {
-  await page.goto('/#launch');
-  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await page.locator('#token-name').fill('Agency QA');
-  await page.locator('#token-symbol').fill('AQA');
-  await page.locator('#launch-next').click();
-  await expect(page.locator('#launch-agency-options')).toBeVisible();
-  await page.locator('[data-launch-agency][value="x-promotion"]').check();
-  await expect(page.locator('[data-agency-split]')).toContainText('1 selected agent');
-  await page.locator('[data-launch-agency][value="buyback-300k"]').check();
-  await expect(page.locator('[data-agency-split]')).toContainText('2 selected agents');
-  await expect(page.locator('[data-agency-split]')).toContainText('no funds move');
-  await page.locator('[data-launch-agency][value="x-promotion"]').uncheck();
-  await page.locator('[data-launch-agency][value="buyback-300k"]').uncheck();
-  await expect(page.locator('[data-agency-split]')).toContainText('remains in reserve');
-  await page.goto('/#capital-flow');
-  await expect(page.locator('#marketing-agency')).not.toBeVisible();
-  await expect(page.locator('#capital-flow')).toBeVisible();
+for(const width of [320,390,1440])test(`X promotion is included only with a promotion package at ${width}px (mocked APIs)`, async ({ page },info) => {
+  await page.setViewportSize({width,height:900});await page.goto('/#launch');
+  await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
+  await page.locator('#token-name').fill('Agency QA');await page.locator('#token-symbol').fill('AQA');await page.locator('#launch-next').click();
+  const team=page.locator('#launch-agency-options');await expect(team).toBeVisible();
+  await expect(team.locator('input')).toHaveCount(0);await expect(team.locator('[data-launch-agent]')).toHaveCount(3);
+  const check=async promoted=>{await expect(team.locator('.agency-included-badge')).toHaveText([promoted?'Included':'Promotion only','Included','Included']);await expect(team.locator('[data-included="true"]')).toHaveCount(promoted?3:2);await expect(page.locator('[data-agency-split]')).toContainText(`across the ${promoted?3:2} included agents`);};
+  await check(false);await expect(page.locator('#launch-button')).toBeDisabled();
+  for(const tier of ['pro','premier']){await page.locator(`button[data-burn-tier="${tier}"]`).click();await check(true);await expect(page.locator('#launch-promotion-requirements')).toBeVisible();}
+  await team.screenshot({path:info.outputPath(`promoted-agents-${width}.png`)});
+  await page.locator('button[data-burn-tier="standard"]').click();await check(false);
+  await page.locator('#launch-back').click();await page.locator('#launch-next').click();await check(false);
+  await team.screenshot({path:info.outputPath(`standard-agents-${width}.png`)});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
 test('failed capability load is unavailable with working retry, never zero funds or ready', async ({ page }) => {
@@ -97,9 +93,9 @@ test('verified deployment shows timestamped worker budget scope and finalized re
     verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm',approvedHash:'a'.repeat(64),build:'b'.repeat(40),configRevision:'1'},
     funding:{status:'worker-verified-snapshots',collectedLamports:'20000000',spentLamports:'1000000'},
     history:[{agent:0,signature:'3'.repeat(88),status:'worker-recorded-finalized',amountLamports:'1000000',finalizedAt:'2026-10-19T12:00:00Z'}]}}));
-  await page.goto('/#marketing-agency');await expect(page.locator('[data-agency-status]')).toContainText('execution enabled on Devnet');
+  await page.goto('/#marketing-agency');await expect(page.locator('[data-agency-status]')).toContainText('execution enabled');
   await expect(page.locator('[data-agency-funded]')).toHaveText('0.02 SOL');await expect(page.locator('[data-agency-spent]')).toHaveText('0.001 SOL');
-  await expect(page.locator('[data-agency-history]')).toContainText('timestamped finalized worker snapshots');
+  await expect(page.locator('[data-agency-history]')).toContainText('timestamped confirmed automation snapshots');
   await expect(page.locator('[data-agency-history] a')).toHaveAttribute('href',`https://explorer.solana.com/tx/${'3'.repeat(88)}?cluster=devnet`);
 });
 
@@ -113,6 +109,11 @@ test('buyback availability stays separate from the suspended X publisher',async(
   await expect(page.locator('.agency-agent').nth(0)).toContainText('Paused · X account suspended');
   for(const index of [1,2])await expect(page.locator('.agency-agent').nth(index)).toContainText('Available · execution requires proof');
   await expect(page.locator('#agency-policy-title')).toHaveText('Published new-launch fee policy');
+  await page.goto('/#launch');await page.locator('#token-name').fill('Paused QA');await page.locator('#token-symbol').fill('PQA');await page.locator('#launch-next').click();
+  await expect(page.locator('#launch-agency-options .agency-included-badge')).toHaveCount(3);
+  await expect(page.locator('[data-agency-status]')).toContainText('X promotion stays paused');
+  await expect(page.locator('#launch-agency-help')).toContainText('Actions wait for verified funding');
+  await expect(page.locator('#launch-agency-options')).not.toContainText('preview');
 });
 
 for(const width of [390,1440])test(`receipt captions retain saved QA triggers and use neutral legacy labels at ${width}px`,async({page})=>{

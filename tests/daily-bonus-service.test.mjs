@@ -23,7 +23,7 @@ function setup() {
     blockTime:start + 1, settlementBlockTime:start + 1, finalized:true, amountLamports:'75000', communityLamports:'3000', dailyBonusVersion:1 }],
     trades:[{ signature:'trade', logIndex:1, mint, wallet:addresses[5], blockTime:start + 2,
       finalized:true, amountLamports:'5000' }] };
-  let cycles = 0, payments = 0, failAt = null;
+  let cycles = 0, payments = 0, failAt = null, rentBlocked = null;
   const connection = { getAccountInfo:async () => null };
   const service = createDailyBonusService({ store, rewardStore, connection, programId, authority,
     cluster:'devnet', payoutEnabled:true, now:() => start + 86_400,
@@ -33,9 +33,22 @@ function setup() {
       inspectLeaf:async (_plan,leaf)=>({payment:addresses[7],amount:leaf.amount,amountReceived:leaf.amount,finalized:true}),
       ensureCycle:async () => { cycles++; return { address:addresses[6], signature:'cycle' }; },
       submitLeaf:async (_, leaf) => { if(payments===failAt)throw new Error('QA interrupted before the next transfer.');
+        if(leaf.recipient===rentBlocked)throw Object.assign(Error('Recipient needs SOL funding.'),{code:'RECIPIENT_RENT_REQUIRED',minimumFundingLamports:'890880'});
         payments++; return { signature:`paid-${leaf.index}`, payment:addresses[7],amountReceived:leaf.amount, finalized:true, balanceDeltaVerified:true }; } }) });
-  return { service, app, rewardStore, evidence, mint, connection, counts:() => ({ cycles, payments }),failAfter:value=>{failAt=value;} };
+  return { service, app, rewardStore, evidence, mint, connection, counts:() => ({ cycles, payments }),failAfter:value=>{failAt=value;},blockRent:value=>{rentBlocked=value;} };
 }
+
+test('one empty bonus recipient stays pending while others pay and resumes its unchanged leaf after funding',async()=>{
+ const f=setup(),captured=await f.service.capture('2026-10-17');
+ const wallet=captured.snapshot.sources[0].allocations[0].recipient;f.blockRent(wallet);
+ await f.service.execute('2026-10-17');const first=structuredClone(f.rewardStore.data.dailyBonusSnapshots['2026-10-17']);
+ assert.equal(f.counts().payments,2);assert.equal(first.payouts.collection.status,'awaiting-recipient-funding');
+ assert.equal(first.payouts.collection.payments[wallet].status,'awaiting-recipient-funding');assert.equal(first.snapshot.hash,captured.snapshot.hash);
+ f.blockRent(null);await f.service.execute('2026-10-17');await f.service.execute('2026-10-17');
+ const last=f.rewardStore.data.dailyBonusSnapshots['2026-10-17'];assert.equal(last.payouts.collection.status,'paid');
+ assert.equal(f.counts().payments,3);assert.deepEqual(last.snapshot,first.snapshot);
+ for(const [recipient,payment]of Object.entries(first.payouts.collection.payments))if(recipient!==wallet)assert.deepEqual(last.payouts.collection.payments[recipient],payment);
+});
 test('funded daily awards use frozen manifests and cannot replay on repeated execution', async () => {
   const f = setup(); await f.service.execute('2026-10-17'); await f.service.execute('2026-10-17');
   assert.deepEqual(f.counts(), { cycles:1, payments:3 });
@@ -168,7 +181,7 @@ test('a legacy snapshot keeps its original hash, manifest and paid receipt after
   assert.equal((await f.service.status()).snapshots[0].eligibilityBasis,'collection-time-v1');
   await f.service.capture(day);
   await f.service.execute(day);
-  assert.deepEqual(f.rewardStore.data.dailyBonusSnapshots[day],paid);
+  assert.deepEqual(f.rewardStore.data.dailyBonusSnapshots[day],{...paid,evidenceCoverageVersion:2});
   assert.equal(f.rewardStore.data.dailyBonusAssignments.collection,legacy.hash);
   assert.deepEqual(f.counts(),{cycles:1,payments:3});
 });

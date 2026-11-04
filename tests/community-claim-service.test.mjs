@@ -20,7 +20,7 @@ const makeStore = () => {
 };
 const pin = 'ab'.repeat(32);
 function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'funded', openingOverrides = {}, snapshot = fixedSnapshot,
-  qaCutoffMints = mint } = {}) {
+  qaCutoffMints = mint, captureSnapshotFn = async () => snapshot } = {}) {
   const paymentAccounts = new Map();
   const connection = { getGenesisHash:async () => DEVNET_GENESIS_HASH,
     getAccountInfo:async address => address.toBase58() === mint ? { owner:TOKEN_PROGRAM_ID, data:mintBytes } : paymentAccounts.get(address.toBase58()) || null,
@@ -33,11 +33,27 @@ function fixture({ store = makeStore(), observedHash = pin, reserveStatus = 'fun
       ...openingOverrides };
   };
   return { store, paymentAccounts, service:createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
-    expectedCommunityProgramDataSha256:pin, captureSnapshot:async () => snapshot,
+    expectedCommunityProgramDataSha256:pin, captureSnapshot:captureSnapshotFn,
     captureQaSnapshot:async () => snapshot, qaCutoffMint:qaCutoffMints, qaCutoffAuthority:authority, reserveReader,
     programEvidence:async () => ({ account:{ executable:true }, sha256:observedHash }) }) };
 }
 const input = { mint, creator, reservedTokens:1000, fundingSignature:'funded-finalized', migrationSignature };
+
+test('concurrent HTTP service instances share one replay and committed manifests avoid new RPC snapshots',async()=>{
+ const store=makeStore(),started=Promise.withResolvers(),gate=Promise.withResolvers();let captures=0;
+ const captureSnapshotFn=async()=>{captures++;started.resolve();await gate.promise;return fixedSnapshot;};
+ const first=fixture({store,captureSnapshotFn}).service,second=fixture({store,captureSnapshotFn}).service;
+ const a=first.prepare(input);await started.promise;
+ const b=second.prepare(input);
+ await assert.rejects(second.prepare({...input,migrationSignature:bs58.encode(Buffer.alloc(64,9))}),/immutable/);
+ gate.resolve();const [one,two]=await Promise.all([a,b]);assert.equal(captures,1);assert.deepEqual(one,two);
+ two.manifest.root='changed-by-caller';const cached=await second.prepare(input);
+ assert.equal(cached.manifest.root,one.manifest.root);assert.equal(captures,1);
+});
+test('a failed replay releases the in-flight intent for a later verified retry',async()=>{
+ let attempts=0;const {service}=fixture({captureSnapshotFn:async()=>{if(++attempts===1)throw Error('Missing finalized block');return fixedSnapshot;}});
+ await assert.rejects(service.prepare(input),/Missing finalized block/);assert((await service.prepare(input)).manifest.root);assert.equal(attempts,2);
+});
 
 test('persists one immutable exact-slot manifest and leaves proofs unavailable before opening', async () => {
   const { service } = fixture();

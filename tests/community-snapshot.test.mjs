@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import bs58 from 'bs58';
-import { Keypair, PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
@@ -79,4 +79,21 @@ test('Devnet QA cutoff requires an exact signed launch and eligibility memo', ()
   assert.throws(() => verifyQaCommunityCutoffTransaction({ ...input, launchMint:key() }), /exact launch/);
   assert.throws(() => verifyQaCommunityCutoffTransaction({ ...input, authority:key() }), /did not sign/);
   assert.throws(() => verifyQaCommunityCutoffTransaction({ ...input, signature:'4'.repeat(64) }), /receipt/);
+});
+
+test('accepts SDK v0 compiled bytes for exact cutoff and migration while rejecting changed identities',()=>{
+  const authority=Keypair.generate().publicKey,launchMint=Keypair.generate().publicKey,signature='5'.repeat(64);
+  const compile=instructions=>new TransactionMessage({payerKey:authority,recentBlockhash:key(),instructions}).compileToV0Message();
+  const memo=new TransactionInstruction({programId:new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
+    keys:[{pubkey:authority,isSigner:true,isWritable:false}],data:Buffer.from(qaCommunityCutoffMemo({launchMint,eligibilityMint:mint}))});
+  const receipt={slot:123,blockTime:1_800_000_000,meta:{err:null},transaction:{signatures:[signature],message:compile([memo])}};
+  const input={transaction:receipt,signature,authority,launchMint,eligibilityMint:mint};
+  assert.equal(verifyQaCommunityCutoffTransaction(input).slot,123);
+  assert.throws(()=>verifyQaCommunityCutoffTransaction({...input,eligibilityMint:key()}),/exact launch/);
+  const pool=canonicalPumpPoolPda(launchMint,NATIVE_MINT);
+  const migration=new TransactionInstruction({programId:PUMP_PROGRAM_ID,keys:[{pubkey:launchMint,isSigner:false,isWritable:true},
+    {pubkey:pool,isSigner:false,isWritable:true}],data:createHash('sha256').update('global:migrate_v2').digest().subarray(0,8)});
+  receipt.transaction.message=compile([migration]);
+  assert.equal(verifyPumpMigrationTransaction({transaction:receipt,launchMint}).pool.toBase58(),pool.toBase58());
+  assert.throws(()=>verifyPumpMigrationTransaction({transaction:receipt,launchMint:key()}),/canonical pool/);
 });

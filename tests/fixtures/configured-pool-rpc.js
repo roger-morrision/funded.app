@@ -15,7 +15,7 @@ async function withPoolSource(info,action,poolFixture,profile){
  try{
   for(const path of ['index.html','app.js','app-config.js','src/app/startup/connections.js','src/app/controllers/connections.js','src/app/controllers/funded-trading.js','src/features/funded/buy-feedback.js','pump-trading.js','package-lock.json']){const bytes=await readFile(sourceRoot+path);contract.sourcePins.push({path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
   const define=Object.fromEntries(Object.entries(contract.effectiveDefines).map(([key,value])=>['import.meta.env.'+key,JSON.stringify(value)]));
-  server=await createServer({root:sourceRoot,configFile:false,envDir:false,logLevel:'silent',cacheDir:contract.cache,define,server:{host:'127.0.0.1',port:0,strictPort:true}});
+  server=await createServer({root:sourceRoot,configFile:false,envDir:false,logLevel:'silent',cacheDir:contract.cache,define,server:{host:'127.0.0.1',port:0,strictPort:true,hmr:false,watch:{ignored:['**/tmp/**','**/test-results/**','**/dist/**']}}});
   await server.listen();const address=server.httpServer.address();if(!address||typeof address==='string'||address.address!=='127.0.0.1')throw Error('Configured source fixture is not loopback.');
   contract.origin='http://127.0.0.1:'+address.port;contract.events.push({event:'listening',at:new Date().toISOString(),address});
   await action(contract.origin,contract);

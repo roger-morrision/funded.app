@@ -43,6 +43,8 @@ The helper checks available bytes and free inodes on the workspace filesystem an
 
 The check creates no container, writes no data and performs no cleanup. If it fails, leave the healthy app and image selectors alone, inspect capacity, and choose an explicit recovery action. Preserve database/application volumes, backups, the current image and its rollback image. Do not turn a capacity failure into an automatic system or volume prune; record any selected cache cleanup and re-run both checks before continuing.
 
+On Windows with Docker Desktop's Linux engine, the capacity and image verifiers use its explicit local named pipe. Windows workspace inode counters are unsupported and returned as zero by libuv, so the workspace check requires the byte reserve only. The Linux application container still has to meet both byte and inode thresholds; unavailable readings still fail closed. See [libuv filesystem statistics](https://docs.libuv.org/en/v1.x/fs.html).
+
 ## Verify the image before deployment
 
 The Docker build normalizes application permissions after building and pruning development dependencies, before copying files into the runtime image. Keep this normalization: source archives can contain files readable only by their original owner. Application files remain owned by root and readable by the non-root Node user; only the data directory needs application ownership. Repeating recursive permission changes after the runtime copy adds another image layer containing copied-up files.

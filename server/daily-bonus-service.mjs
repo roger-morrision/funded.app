@@ -9,6 +9,8 @@ import { v3DisbursementId } from './v3-disbursement-id.mjs';
 import { bonusDashboardHistory, readBonusPool } from './daily-bonus-dashboard.mjs';
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, publicBonusSchedule, bonusWindow } from './daily-bonus-schedule.mjs';
 import {assertBonusSnapshot,appendDailyBonusResidual,bonusAssignmentMatches} from './daily-bonus-reconciliation.mjs';
+import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
+import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
 
 export function createDailyBonusService({ store, rewardStore, connection, programId, authority,
   expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
@@ -23,7 +25,8 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   let poolCache, poolRead;
   async function dashboard(options) {
     const at = now();
-    if (!poolCache || at - poolCache.at >= 30 || poolCache.day !== currentBonusStart(at,schedule)) {
+    const sameDay = poolCache?.day === currentBonusStart(at,schedule);
+    if (!sameDay || at - poolCache.at >= 30) {
       poolRead ||= (async () => {
         let value, timer; const controller = new AbortController();
         try {
@@ -38,14 +41,16 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         finally { clearTimeout(timer); }
         poolCache = { at, day:currentBonusStart(at,schedule), value };
       })().finally(() => { poolRead = null; });
-      await poolRead;
+      // Same bonus day: answer with the last read and refresh it in the background,
+      // so a slow pool RPC (up to poolTimeoutMs) never holds the Home page.
+      if (!sameDay) await poolRead;
     }
     return { cluster, serverTime:new Date(now() * 1000).toISOString(),
       schedule:publicBonusSchedule(schedule),
       nextCutoffAt:new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),
       poolCheckedAt:new Date(poolCache.at * 1000).toISOString(),
       pool:poolCache.day === currentBonusStart(now(),schedule) ? poolCache.value : { status:'unavailable', categoryLamports:null },
-      ...bonusDashboardHistory(await rewardStore.read(), options) };
+      ...bonusDashboardHistory(await (rewardStore.readBonusSnapshot?.() || rewardStore.read()), options) };
   }
   const ready = async () => {
     if (!(await chain.readiness()).constrainedPayouts) throw new Error('Daily bonus requires the reviewed V3 program and authority.');
@@ -87,9 +92,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         prior.reason = 'Finalized evidence changed after the immutable daily snapshot.';
         return null;
       }
-      if (prior) { prior.evidenceCoverageVersion = 1; return structuredClone(prior); }
+      if (prior) { prior.evidenceCoverageVersion = BONUS_EVIDENCE_COVERAGE_VERSION; return structuredClone(prior); }
       return state.dailyBonusSnapshots[day] = { snapshot, status:'snapshotted',
-        evidenceCoverageVersion:1, createdAt:new Date(now() * 1000).toISOString(), payouts:{} };
+        evidenceCoverageVersion:BONUS_EVIDENCE_COVERAGE_VERSION, createdAt:new Date(now() * 1000).toISOString(), payouts:{} };
     });
     if (!result) throw new Error('Daily bonus evidence changed; reconcile before further payouts.');
     return result;
@@ -159,7 +164,16 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
             throw new Error('Daily bonus snapshot changed or was paused before payment.');
           const saved = current.payouts[source.collectionSignature].payments[leaf.recipient];
           if (saved?.finalized === true && saved.balanceDeltaVerified === true) continue;
-          const payment = await chain.submitLeaf(plan, leaf);
+          let payment;
+          try { payment = await chain.submitLeaf(plan, leaf); }
+          catch (error) {
+            const pending=nativeRecipientFundingPending(error);if(!pending)throw error;
+            await rewardStore.transaction(state=>{
+              state.dailyBonusSnapshots[day].payouts[source.collectionSignature].payments[leaf.recipient]={
+                ...pending,amount:leaf.amount,checkedAt:new Date(now()*1000).toISOString()};
+            });
+            continue;
+          }
           if (payment.finalized !== true || payment.balanceDeltaVerified !== true)
             throw new Error('Daily bonus payment lacks finalized account and balance evidence.');
           await rewardStore.transaction(state => {
@@ -168,14 +182,16 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
           });
         }
         await rewardStore.transaction(state => {
-          state.dailyBonusSnapshots[day].payouts[source.collectionSignature].status = 'paid';
+          const row=state.dailyBonusSnapshots[day].payouts[source.collectionSignature];
+          row.status=manifest.leaves.every(leaf=>row.payments[leaf.recipient]?.finalized===true
+            &&row.payments[leaf.recipient]?.balanceDeltaVerified===true)?'paid':'awaiting-recipient-funding';
         });
       }
       return await status();
     } finally { running = false; }
   }
   async function status() {
-    const state = await rewardStore.read();
+    const state = await (rewardStore.readBonusSnapshot?.() || rewardStore.read());
     const app=await store.read();
     const pendingSettlementSources=Object.values(app.collections||{}).filter(row=>row.scope==='per-mint-v3'
       &&row.cluster==='devnet'&&row.programId===programId&&row.status==='collected'
@@ -245,7 +261,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       row.revisions ||= [];
       row.revisions.push({ snapshot:row.snapshot, mode:reserved?'append-only-frozen-rankings-v1':'replace-unused-v1',reason:reason.trim().slice(0,500), actor,
         replacedAt:new Date(now() * 1000).toISOString() });
-      row.snapshot = next; row.status = 'snapshotted'; row.evidenceCoverageVersion = 1; delete row.reason;
+      row.snapshot = next; row.status = 'snapshotted'; row.evidenceCoverageVersion = BONUS_EVIDENCE_COVERAGE_VERSION; delete row.reason;
     });
     return await status();
   }

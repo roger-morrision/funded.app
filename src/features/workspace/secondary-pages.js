@@ -1,4 +1,5 @@
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
+import { feeDistributionMarkup } from '../fees/distribution-summary.js';
 import { mountHolderAirdropDirectory } from '../rewards/holder-airdrop-directory.js';
 import './airdrop-discovery.css';
 import { text, $, node, $$, disclose } from './dom.js';
@@ -32,7 +33,7 @@ export function secondaryPages() {
   for (const button of $$('[data-referral-campaign]')) button.addEventListener('focus', revealCampaignFocus);
   const receipts=$('.burn-receipts-panel');
   if(receipts)receipts.prepend(node('p','field-help','This history shows confirmed burns available to funded.vip. Total supply can include other burns.'));
-  disclose($('.burn-policy-preview'), 'Fee-funded buyback policy · example calculator');
+
   const airdrops=$('#airdrops');
   if(airdrops){
     const group=(name,selectors,open=false)=>{const panel=node('section','airdrop-workspace');for(const selector of selectors){for(const item of $$(selector,airdrops))panel.append(item);} if(!panel.childElementCount)return; airdrops.append(panel);return disclose(panel,name,{open});};
@@ -42,7 +43,7 @@ export function secondaryPages() {
     heading?.before(back);
     const walletGate=node('section','airdrop-wallet-gate');
     walletGate.setAttribute('aria-label','Wallet eligibility');
-    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>Your airdrops</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Check your airdrops</h3><p>Connect the wallet that held $FUNDED at a launch’s snapshot to see its eligibility and claim status.</p><button type="button" class="primary-button">Connect wallet</button></div>';
+    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>Your airdrops</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Check your airdrops</h3><p>Connect the wallet that held $FUNDED at the snapshot.</p><button type="button" class="primary-button">Connect wallet</button></div>';
     walletGate.querySelector('button').addEventListener('click',()=>$('#connect-button')?.click());
     const fundedBalance=$('#airdrop-funded-balance',airdrops);
     if(fundedBalance)walletGate.querySelector('button').before(fundedBalance);
@@ -51,10 +52,10 @@ export function secondaryPages() {
     heroArt.innerHTML=`<img src="${airdropWolfDropUrl}" alt="A black wolf watching a descending community supply parcel" loading="lazy" />`;
     intro?.after(heroLayout);
     heroLayout.append(walletGate,heroArt);
-    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Select a launch below to check your allocation based on your $FUNDED balance at its snapshot.':'Connect the wallet that held $FUNDED at a launch’s snapshot to see its eligibility and claim status.';walletGate.querySelector('button').hidden=Boolean(address);};
+    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Choose a launch to check your $FUNDED snapshot allocation.':'Connect the wallet that held $FUNDED at the snapshot.';walletGate.querySelector('button').hidden=Boolean(address);};
     window.addEventListener('funded:reward-identity-change',syncAirdropWallet);syncAirdropWallet();
     const publicPrograms=node('section','airdrop-public-programs');
-    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="all">All <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="curve">On curve <span>—</span></button></div><p class="airdrop-stage-help">Token allocations for eligible $FUNDED wallets. Claims open after a verified eligibility snapshot; Devnet QA cutoffs are identified separately.</p>';
+    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="all">All <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="curve">On curve <span>—</span></button></div><p class="airdrop-stage-help">Claims open once the holder snapshot is taken and the airdrop is funded. Test coins are labeled.</p>';
     for(const selector of ['.airdrop-directory-head','.airdrop-directory','#airdrop-directory-pagination','#airdrop-selected-program']){const item=$(selector,airdrops);if(item)publicPrograms.append(item);}
     heroLayout.after(publicPrograms);
     text('.airdrop-directory-head h2','Airdrop for $FUNDED holders');
@@ -117,15 +118,16 @@ export function protocolPage() {
   facts.setAttribute('aria-label', '$FUNDED token and tier metrics');
   facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$FUNDED BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$FUNDED burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$FUNDED burn per launch</small></div>';
   const story = node('div', 'funded-token-story');
-  story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. Standard has no promotion burn; every launch pays the configured SOL service fee.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>The protocol share funds Operations &amp; marketing, referrals, Daily bonus, and $FUNDED buyback and burn. <a href="#capital-flow">Follow the fee route →</a></p></article>';
+  story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. Standard has no promotion burn; every launch pays the configured SOL service fee.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>Operations &amp; marketing is the app allocation. Referrals, Daily bonus, $FUNDED buyback and burn, and AI coin buybacks use separate budgets. <a href="#capital-flow">Follow the fee route →</a></p></article>';
   const contract = node('div', 'funded-token-contract');
   contract.innerHTML = '<span>CONTRACT</span><code id="funded-token-mint">Mint not configured</code><button type="button" id="funded-token-copy" class="secondary-button" disabled>COPY</button>';
-  const policy = node('details', 'funded-policy-details');
+  const policy = node('details', 'funded-policy-details advanced-details');
   const policySummary = node('summary', '', 'Read the full fee route policy');
   policy.append(policySummary, ...policyContent);
   const footer = node('footer', 'funded-token-footer');
   footer.innerHTML = '<div><a class="funded-token-footer-brand" href="#overview"><span aria-hidden="true">ƒ</span> funded.vip</a><p>Launches, rewards, and market activity on Solana with a route you can inspect.</p></div><nav aria-label="Funded protocol"><strong>PROTOCOL</strong><a href="#launch">Launch</a><a href="/funded" aria-current="page">$FUNDED</a><a href="#buybacks">Burn $FUNDED</a><a href="#explore">Explore</a><a href="#airdrops">Airdrops</a><a href="#docs">Docs</a></nav><nav aria-label="Legal"><strong>LEGAL</strong><a href="#privacy">Privacy</a><a href="#terms" data-info="terms">Terms</a><a href="#disclosures" data-info="disclosures">Disclosures</a><a href="#opt-out" data-info="opt-out">Opt out</a></nav><small>© 2026 FUNDED.VIP · POWERED BY $FUNDED</small>';
-  root.append(hero, facts, story, contract, policy, footer);
+  const distribution=node('section');distribution.dataset.feeDistribution='protocol';distribution.innerHTML=feeDistributionMarkup({compact:true});
+  root.append(hero, facts, distribution, story, contract, policy, footer);
   const tape = node('aside', 'funded-token-tape');
   tape.setAttribute('aria-label', 'Verified Solana token figures');
   tape.innerHTML = '<div id="funded-token-tape-items"><span>Checking verified Solana figures…</span></div>';
@@ -145,7 +147,7 @@ export function protocolPage() {
 
 export function mergePurposePages() {
   const groups = [
-    { host: '#my-launches', child: '#community', after: ':scope > .section-heading', childAtEnd: true, label: 'Portfolio sections', links: [['my-launches', 'Portfolio'], ['community', 'Favorites']] },
+    { host: '#my-launches', child: '#community', after: ':scope > .section-heading', childAtEnd: true, label: 'Portfolio sections', links: [['my-launches', 'Overview'], ['community', 'Favorites']] },
     { host: '#paid', child: '#buybacks', after: ':scope > .paid-reference-metrics', label: '$FUNDED sections', links: [['paid', 'Token overview'], ['buybacks', 'Buy & burn']] },
   ];
   for (const group of groups) {

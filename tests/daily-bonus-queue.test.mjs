@@ -18,3 +18,12 @@ test('a launch created today cannot allocate a future or pre-activation daily bo
  const current=structuredClone(app);current.launches.mint.createdTimestamp=now+1;
  assert.deepEqual(dailyBonusWork({app:current,ledger:{},now:now+10}).missing,[]);
 });
+
+test('legacy settlement coverage is revisited while reviewed snapshots and paid data remain intact',()=>{
+ const current=structuredClone(app);current.launches.mint.createdTimestamp=now-86400;
+ const day='2026-10-17',row={status:'snapshotted',evidenceCoverageVersion:1,snapshot:{sources:[]},payouts:{paid:{signature:'preserved'}}};
+ const ledger={dailyBonusSnapshots:{[day]:row}},before=structuredClone(ledger);
+ assert.deepEqual(dailyBonusWork({app:current,ledger,now}).missing,[day]);assert.deepEqual(ledger,before);
+ row.evidenceCoverageVersion=2;assert.deepEqual(dailyBonusWork({app:current,ledger,now}).missing,[]);
+ row.evidenceCoverageVersion=1;row.status='reconciliation-required';assert.deepEqual(dailyBonusWork({app:current,ledger,now}).missing,[]);
+});

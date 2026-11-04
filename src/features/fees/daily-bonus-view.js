@@ -13,7 +13,7 @@ export function initDailyBonusView(document = globalThis.document) {
   const root = document.createElement('section');
   root.id = 'daily-bonus-dashboard'; root.className = 'panel daily-bonus-dashboard';
   root.setAttribute('aria-labelledby', 'daily-bonus-title');
-  root.innerHTML = `<div class="panel-heading"><div><p class="eyebrow">Daily bonus · SOL</p><h2 id="daily-bonus-title">Top 3. Every 24 hours.</h2></div><button type="button" data-bonus-refresh>Refresh</button></div><p>${currentFeePolicyCopy().bonus}</p><p class="field-help">${currentFeePolicyCopy().bonusFunding}</p><p data-bonus-status role="status">Checking daily snapshots…</p><label data-bonus-day-label hidden>Snapshot day (UTC)<select data-bonus-day aria-label="Daily bonus snapshot day"></select></label><div data-bonus-results></div>`;
+  root.innerHTML = `<div class="panel-heading"><div><p class="eyebrow">Daily bonus · SOL</p><h2 id="daily-bonus-title">Top 3. Every 24 hours.</h2></div><button type="button" data-bonus-refresh>Refresh</button></div><p>Top 3 creators, referrers and traders. Automatic SOL payouts require verified snapshots and funding.</p><details class="ui-disclosure daily-bonus-rules"><summary>Ranking &amp; payout rules</summary><p>${currentFeePolicyCopy().bonus}</p><p class="field-help">${currentFeePolicyCopy().bonusFunding}</p></details><p data-bonus-status role="status">Checking daily snapshots…</p><label data-bonus-day-label hidden>Snapshot day (UTC)<select data-bonus-day aria-label="Daily bonus snapshot day"></select></label><div data-bonus-results></div>`;
   parent.append(root);
   const results = root.querySelector('[data-bonus-results]'), status = root.querySelector('[data-bonus-status]');
   const select = root.querySelector('select');

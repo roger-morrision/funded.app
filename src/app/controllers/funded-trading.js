@@ -1,7 +1,9 @@
+import { createBurnRecovery, readPendingBurn, savePendingBurn } from '../../features/funded/burn-recovery.js';
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 import { fundedBuyFailureMessage, fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
 // Dependencies and mutable application state are read live through appState.
 export function createFundedTradingController(appState) {
+  const burnRecovery = createBurnRecovery(appState);
   // app-source: 351
   function renderFundedBuyControl(message = null){
     const input = document.querySelector('#funded-buy-amount');
@@ -55,8 +57,6 @@ export function createFundedTradingController(appState) {
     if (appState.fundedBuyBusy || appState.fundedBuyRoute.status !== 'ready') return;
     const amount = Number(document.querySelector('#funded-buy-amount')?.value);
     if (!Number.isFinite(amount) || amount <= 0) return appState.renderFundedBuyControl('Enter a positive SOL amount to preview.');
-    const maxAmount = Math.min(0.01, appState.fundedBuyRoute.snapshot.quoteReservesSol * 0.03);
-    if (amount > maxAmount) return appState.renderFundedBuyControl(`This test pool limits each buy to ${maxAmount.toFixed(6)} SOL (3% of verified reserves).`);
     if (!appState.wallet) { await appState.connectWallet(); if (!appState.wallet) return; }
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) return appState.renderFundedBuyControl('Open the app in a wallet that can sign Solana transactions.');
@@ -120,6 +120,8 @@ export function createFundedTradingController(appState) {
 
   // app-source: 355
   async function submitFundedBurn(){
+    if (appState.fundedBurnBusy) return;
+    if (readPendingBurn()) return burnRecovery.check();
     if (!appState.wallet) { await appState.connectWallet(); if (!appState.wallet) return; }
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) { appState.fundedBurnState.message = 'Open this page in a signing wallet to burn $FUNDED.'; appState.renderBuybackDashboard(); return; }
@@ -134,57 +136,48 @@ export function createFundedTradingController(appState) {
     try { burnPlan = appState.planTokenAccountBurns(appState.fundedBurnState.tokenAccounts, amount); }
     catch (error) { appState.fundedBurnState.message = error.message; appState.renderBuybackDashboard(); return; }
     const button = document.querySelector('#funded-burn-submit');
-    const previousSupply = appState.fundedBurnState.supplyBaseUnits;
+    const { decimals, tokenProgram } = appState.fundedBurnState;
+    appState.fundedBurnBusy = true;
     appState.fundedBurnState.status = 'submitting';
     appState.fundedBurnState.message = 'Review and approve the permanent burn in your wallet.';
     button.textContent = 'Awaiting approval…';
     appState.renderBuybackDashboard();
     let submittedBurnSignature = null;
-    let burnFailedOnChain = false;
+
     try {
-      const { PublicKey, Transaction, TransactionInstruction, createBurnCheckedInstruction, getAccount, getMint } = await appState.getSolana();
+      const { PublicKey, Transaction, TransactionInstruction, createBurnCheckedInstruction } = await appState.getSolana();
       appState.assertWalletSessionCurrent(session);
       const mint = new PublicKey(appState.PROTOCOL_FUNDED_MINT);
       const latest = await appState.connection.getLatestBlockhash('confirmed');
       const transaction = new Transaction({ feePayer: session.provider.publicKey, recentBlockhash: latest.blockhash });
       for (const burn of burnPlan) transaction.add(
-        createBurnCheckedInstruction(burn.address, mint, session.provider.publicKey, burn.amount, appState.fundedBurnState.decimals, [], appState.fundedBurnState.tokenProgram),
+        createBurnCheckedInstruction(burn.address, mint, session.provider.publicKey, burn.amount, decimals, [], tokenProgram),
       );
       if (projectMint) transaction.add(new TransactionInstruction({
         programId: new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'), keys: [], data: appState.Buffer.from(appState.projectBurnMemo(projectMint), 'utf8'),
       }));
       const signed = await session.provider.signTransaction(transaction);
       appState.assertWalletSessionCurrent(session);
-      const signature = await appState.connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
+      if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned an unsigned burn. No burn was sent.');
+      const signature = appState.bs58.encode(signed.signature);
+      const pending = { cluster:'devnet', signature, wallet:session.address, fundedMint:appState.PROTOCOL_FUNDED_MINT,
+        amountBaseUnits:amount.toString(), projectMint, lastValidBlockHeight:latest.lastValidBlockHeight };
+      savePendingBurn(pending);
       submittedBurnSignature = signature;
-      appState.fundedBurnState.message = `Burn submitted (${signature.slice(0, 8)}…). Waiting for Solana confirmation.`;
+      await appState.connection.sendRawTransaction(signed.serialize(), { skipPreflight:false, maxRetries:3 });
+      appState.fundedBurnState.message = `Burn submitted (${signature.slice(0, 8)}...). Waiting for finalization.`;
       appState.renderBuybackDashboard();
-      const confirmation = await appState.waitForSignatureConfirmation(appState.connection, { signature, lastValidBlockHeight: latest.lastValidBlockHeight });
-      if (confirmation.value.err) { burnFailedOnChain = true; throw new Error('Burn transaction failed on Solana.'); }
-      const [accountResults, mintAfter] = await Promise.all([
-        Promise.all(burnPlan.map(async burn => ({ burn, account: await getAccount(appState.connection, burn.address, 'confirmed', appState.fundedBurnState.tokenProgram) }))),
-        getMint(appState.connection, mint, 'confirmed', appState.fundedBurnState.tokenProgram),
-      ]);
-      const accountDelta = accountResults.reduce((total, { burn, account }) => {
-        const before = appState.fundedBurnState.tokenAccounts.find(item => item.address.equals(burn.address))?.amount;
-        return before == null ? total : total + (before - account.amount);
-      }, 0n);
-      if (accountDelta !== amount || previousSupply - mintAfter.supply !== amount) throw new Error(`Burn confirmed as ${signature}, but the expected balance and supply deltas were not observed.`);
-      const indexed = await appState.apiRequest('/api/burn-receipts', { method: 'POST', body: { signature, wallet: session.address, amountBaseUnits: amount.toString(), projectMint } });
-      appState.fundedBurnState.message = indexed.available ? `Burn confirmed: ${signature}` : `Burn confirmed on Solana. Burn history is temporarily unavailable: ${signature}`;
-      input.value = '';
-      appState.showToast('Burn confirmed on Solana');
-      appState.fundedBurnState.status = 'idle';
-      await appState.loadFundedBurnState({ force: true });
+      await appState.waitForSignatureConfirmation(appState.connection, { signature, commitment:'finalized', lastValidBlockHeight:latest.lastValidBlockHeight });
+      await burnRecovery.reconcile(pending);
     } catch (error) {
+      if (appState.connectedWalletAddress !== session.address) return;
       appState.fundedBurnState.status = 'ready';
       const signature = error.signature || submittedBurnSignature;
       appState.fundedBurnState.message = signature
-        ? burnFailedOnChain ? `Burn failed on Solana: ${signature}. Review the transaction before trying again.`
-          : `Burn confirmation is uncertain for ${signature}. Check that signature on Solana before trying again.`
+        ? `Burn verification is pending: ${signature}. Use Check burn status to verify the original receipt.`
         : fundedBurnFailureMessage(error);
       appState.renderBuybackDashboard();
-    } finally { button.textContent = 'Burn $FUNDED'; appState.updateFundedBurnButton(); }
+    } finally { appState.fundedBurnBusy = false; appState.updateFundedBurnButton(); }
   }
   // app-source-end
 

@@ -12,7 +12,8 @@ const SHARES:[u32;3]=[6_000_000,1_000_000,1_000_000];
 const GROSS:u64=1_000_000_000;
 struct Fixture{svm:LiteSVM,program:Pubkey,authority:Keypair,creator:Keypair,mint:Keypair,billing:Keypair,
     legacy:Pubkey,config:Pubkey,router:Pubkey,policy:Pubkey,vaults:[Pubkey;8]}
-fn send(svm:&mut LiteSVM,payer:&Keypair,signers:&[&Keypair],ix:Instruction)->bool{
+fn send(svm:&mut LiteSVM,payer:&Keypair,signers:&[&Keypair],mut ix:Instruction)->bool{
+    for meta in &mut ix.accounts { if signers.iter().any(|signer| signer.pubkey() == meta.pubkey) { meta.is_signer = true; } }
     let message=Message::new_with_blockhash(&[ix],Some(&payer.pubkey()),&svm.latest_blockhash());
     let Ok(tx)=VersionedTransaction::try_new(VersionedMessage::Legacy(message),signers)else{return false;};
     let result=svm.send_transaction(tx);svm.expire_blockhash();
@@ -55,6 +56,13 @@ impl Fixture{
     metas.extend(self.vaults.map(|pubkey|AccountMeta::new(pubkey,false)));
     Instruction::new_with_bytes(self.program,&funded_fee_router::instruction::SettleAgencyMintV3{claim_id,expected_lamports:GROSS}.data(),metas)
  }
+ fn settle_auto_ix(&self,id:u8)->Instruction{
+    let claim_id=[id;32];let claim=Pubkey::find_program_address(&[b"mint-fee-claim-v3",self.mint.pubkey().as_ref(),&claim_id],&self.program).0;
+    let mut metas=funded_fee_router::accounts::SettleAgencyMintV3Auto{authority:self.authority.pubkey(),creator:self.creator.pubkey(),mint:self.mint.pubkey(),legacy_router:self.legacy,
+      router:self.router,policy:self.policy,claim,system_program:anchor_lang::system_program::ID}.to_account_metas(None);
+    metas.extend(self.vaults.map(|pubkey|AccountMeta::new(pubkey,false)));
+    Instruction::new_with_bytes(self.program,&funded_fee_router::instruction::SettleAgencyMintV3Auto{claim_id,expected_lamports:GROSS}.data(),metas)
+ }
  fn fund(&mut self){assert!(send(&mut self.svm,&self.authority,&[&self.authority],system_instruction::transfer(&self.authority.pubkey(),&self.router,GROSS)));}
  fn settle(&mut self,id:u8){self.fund();let ix=self.settle_ix(id);assert!(send(&mut self.svm,&self.authority,&[&self.authority,&self.creator],ix));}
  fn policy(&self)->MintAgencyPolicyV3{MintAgencyPolicyV3::try_deserialize(&mut &self.svm.get_account(&self.policy).unwrap().data[..]).unwrap()}
@@ -71,6 +79,35 @@ impl Fixture{
       funded_fee_router::accounts::BillAgencyPromotionV3{authority:self.authority.pubkey(),mint:self.mint.pubkey(),legacy_router:self.legacy,policy:self.policy,
       vault:self.vaults[7],recipient,receipt,system_program:anchor_lang::system_program::ID}.to_account_metas(None))
  }
+}
+
+#[test]fn agency_fixed_policy_settles_without_creator_signature(){
+ let mut f=Fixture::new();f.initialize();f.fund();
+ let ix=f.settle_auto_ix(19);
+ assert!(send(&mut f.svm,&f.authority,&[&f.authority],ix.clone()));
+ assert_eq!(f.policy().settled_lamports,GROSS);
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],ix));
+}
+
+#[test]fn automatic_payouts_require_immutable_destinations_and_preserve_budgets(){
+ let mut f=Fixture::new();f.initialize();f.settle(21);
+ let automation=Pubkey::find_program_address(&[b"mint-automation-v3",f.mint.pubkey().as_ref()],&f.program).0;
+ let init=Instruction::new_with_bytes(f.program,&funded_fee_router::instruction::InitializeMintAutomationV3{
+   recipients:[f.billing.pubkey(),Pubkey::default(),Pubkey::default(),Pubkey::default()]}.data(),
+   funded_fee_router::accounts::InitializeMintAutomationV3{authority:f.authority.pubkey(),creator:f.creator.pubkey(),mint:f.mint.pubkey(),legacy_router:f.legacy,
+     policy:f.policy,automation,system_program:anchor_lang::system_program::ID}.to_account_metas(None));
+ let unsigned=f.disburse(22,0,0,1_000_000,0,f.creator.pubkey());
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],unsigned.clone()));
+ assert!(send(&mut f.svm,&f.authority,&[&f.authority],init.clone()));
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],init));
+ let mut wrong=f.disburse(23,0,0,1_000_000,0,f.billing.pubkey());wrong.accounts.push(AccountMeta::new_readonly(automation,false));
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],wrong));
+ let mut valid=unsigned;valid.accounts.push(AccountMeta::new_readonly(automation,false));
+ assert!(send(&mut f.svm,&f.authority,&[&f.authority],valid.clone()));
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],valid));
+ let mut excessive=f.disburse(24,0,0,GROSS,0,f.creator.pubkey());excessive.accounts.push(AccountMeta::new_readonly(automation,false));
+ assert!(!send(&mut f.svm,&f.authority,&[&f.authority],excessive));
+ assert_eq!(f.policy().withdrawn_lamports[0],1_000_000);
 }
 
 #[test]fn agency_launch_requires_current_config_and_immutable_selection(){

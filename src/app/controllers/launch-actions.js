@@ -36,8 +36,15 @@ export function createLaunchActionsController(appState) {
 
   // app-source: 699
   function updateLaunchPolicyControls(){
+    const split=appState.getFeeDistributionInputs();
+    if(appState.launchMode==='quick'&&(split.creatorWalletPercent!==80||split.holderAirdropPercent!==0||split.solClaimPercent!==0)){
+      appState.setLaunchMode('custom');return;
+    }
     const xShare = Number(document.querySelector('#x-share')?.value) || 0;
-    document.querySelector('#x-recipient').disabled = xShare <= 0;
+    const recipient=document.querySelector('#x-recipient');
+    recipient.disabled = xShare <= 0;
+    const recipientLabel=recipient.closest('label');
+    if(recipientLabel)recipientLabel.hidden=xShare <= 0;
     appState.updateLaunchPreview();
     appState.updateLaunchButton();
   }

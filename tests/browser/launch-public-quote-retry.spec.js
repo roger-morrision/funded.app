@@ -7,7 +7,7 @@ const root=fileURLToPath(new URL('../../',import.meta.url));let sourceServer;
 // or alternate source endpoint is included in the production application.
 async function controlledOrigin(){
  if(!sourceServer){
-  sourceServer=await createServer({root,configFile:false,cacheDir:root+'../../tmp/dev-053-read-fixture-cache',plugins:[{name:'test-only-public-quote-read-dependencies',enforce:'pre',transform(code,id){
+  sourceServer=await createServer({root,configFile:false,cacheDir:root+'node_modules/.vite/public-quote-'+process.pid,plugins:[{name:'test-only-public-quote-read-dependencies',enforce:'pre',transform(code,id){
    if(!id.replaceAll('\\','/').endsWith('/src/app/controllers/launch-preview.js'))return;
    const marker='export function createLaunchPreviewController(appState) {';
    return code.replace(marker,marker+`
@@ -18,7 +18,7 @@ async function controlledOrigin(){
      updateCostSummaryView:{value:(state,deps)=>{window.__retryFixture.quote=structuredClone(state.publicQuote);return base.updateCostSummaryView(state,{...deps,getLaunchFeeLamports:()=> '20000000'});}}
     });window.__retryState=appState;
    `).replace('} catch (error) {','} catch (error) { window.__retryFixture.error=String(error);');
-  }}],server:{host:'127.0.0.1',port:4504,strictPort:true}});await sourceServer.listen();
+  }}],server:{host:'127.0.0.1',port:4504,strictPort:true,hmr:false,watch:{ignored:['**/tmp/**','**/test-results/**','**/dist/**']}}});await sourceServer.listen();
  }return'http://127.0.0.1:4504';
 }
 test.afterAll(async()=>{await sourceServer?.close()});
@@ -37,7 +37,7 @@ for(const width of[360,390,1440])test(`source read dependencies: public quote su
  await expect(retry).toHaveAttribute('aria-disabled','true');await retry.focus();await page.keyboard.press('Enter');expect(await page.evaluate(()=>__retryFixture.attempts)).toBe(initial);await clear(page,retry);expect((await retry.boundingBox()).height).toBeGreaterThanOrEqual(44);
  await page.clock.install();await page.evaluate(()=>{__retryFixture.available=true;__retryFixture.hold=true;window.__retryFinish=null});await page.clock.fastForward(16000);expect(await page.evaluate(()=>__retryFixture.attempts)).toBe(initial);await expect(retry).toHaveAttribute('aria-disabled','false');
  await page.keyboard.press('Enter');await expect(status).toHaveText('Requesting a planning quote…');for(let i=0;i<3;i++)await page.keyboard.press('Enter');await page.clock.runFor(300);await expect.poll(()=>page.evaluate(()=>typeof window.__retryFinish)).toBe('function');expect(await page.evaluate(()=>__retryFixture.attempts)).toBe(initial+1);await expect(retry).toBeFocused();
- await page.evaluate(()=>__retryFinish({solAmountLamports:'8715246',maxSolAmountLamports:'8802399'}));await expect(page.locator('#launch-cost-details dl>div')).toHaveCount(5);await expect(page.locator('#launch-public-quote-retry')).toBeHidden();const heading=page.locator('#public-launch-cost-heading');await clear(page,heading);await expect(page.locator('#launch-cost-details')).toContainText('0.078802 SOL');expect(await draft(page)).toEqual(before);
+ await page.evaluate(()=>__retryFinish({solAmountLamports:'8715246',maxSolAmountLamports:'8802399'}));await expect(page.locator('#launch-cost-details')).toBeHidden();await expect(page.locator('#launch-public-quote-retry')).toBeHidden();const heading=page.locator('#preview-launch-cost');await clear(page,heading);await expect(page.locator('#preview-launch-cost')).toHaveText('0.078802 SOL');expect(await draft(page)).toEqual(before);
  await expect(page.locator('#terms-agree')).not.toBeChecked();await expect(page.locator('#fee-route-agree')).not.toBeChecked();expect(await page.evaluate(()=>!!__retryState.wallet)).toBe(false);await expect(page.locator('#launch-button')).not.toHaveAttribute('data-launch-action','launch');
  // New input starts a new guarded request; success must respect moved focus.
  await page.evaluate(()=>{__retryFixture.available=false;__retryFixture.hold=false});

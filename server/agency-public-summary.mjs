@@ -16,8 +16,8 @@ function savedMilestone(row){
     return validateAgencyRules(execution.rules).marketCapUsd[row.intent.agent-1];
   }catch{return null;}
 }
-export function agencyPublicSummary({state,programId,approvedHash,build,now=Date.now()}){
-  const launches=Object.values(state.launches||{}).filter(launch=>launch.cluster==='devnet'
+export function agencyPublicSummary({state,programId,approvedHash,build,mint=null,now=Date.now()}){
+  const launches=Object.values(state.launches||{}).filter(launch=>(!mint || launch.mint===mint) && launch.cluster==='devnet'
     &&launch.onchainVerified===true&&launch.pumpFeeRoute?.programId===programId&&Number.isFinite(launch.pumpFeeRoute.protocolSplit?.agencyPercent));
   let paid=0n,spent=0n;
   const rows=launches.map(launch=>{
@@ -31,11 +31,15 @@ export function agencyPublicSummary({state,programId,approvedHash,build,now=Date
     return{...row,status:'worker-verified-snapshot',name:launch.name||launch.symbol||launch.mint};
   });
   const complete=rows.every(row=>row.status==='worker-verified-snapshot');
-  const history=Object.values(state.v3AgencyExecutions||{}).filter(row=>row.status==='finalized'
+  const history=Object.values(state.v3AgencyExecutions||{}).filter(row=>(!mint || row.intent?.mint===mint) && row.status==='finalized'
     &&row.intent?.programId===programId&&row.intent.approvedHash===approvedHash&&row.proof?.finalized===true
     &&row.proof.balanceDeltaVerified===true&&row.proof.signature===row.signature).map(row=>({mint:row.intent.mint,agent:row.intent.agent,
       signature:row.signature,finalizedAt:row.proof.burnedAt||row.finalizedAt,slot:row.proof.slot,amountLamports:row.proof.amount||row.proof.spentLamports,
+      ownCoinBurnVerified:row.proof.fundedMint===row.intent.mint && row.proof.sourceMint===row.intent.mint
+        && row.proof.agent===row.intent.agent && row.proof.category===7 && row.proof.agencyPolicy===true
+        && row.proof.burnInstructionVerified===true && row.proof.vaultDebitVerified===true && exact(row.proof.burnedBaseUnits),
       burnedBaseUnits:row.proof.burnedBaseUnits||null,postUrl:row.proof.post?.url||null,
+      observedMarketCapUsdMicros:savedMilestone(row) != null ? row.evidence.agencyExecution.marketCapUsdMicros?.toString() : null,
       savedMarketCapUsd:savedMilestone(row),status:'worker-recorded-finalized'}))
     .sort((a,b)=>String(b.finalizedAt).localeCompare(String(a.finalizedAt))).slice(0,50);
   return{funding:{status:complete?'worker-verified-snapshots':'partial',scope:'last-finalized-worker-snapshots-of-registered-launches',

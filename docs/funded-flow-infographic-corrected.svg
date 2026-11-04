@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">funded.vip coin capital flow</title>
+  <desc id="description">Concise Devnet policy infographic. Launch with Standard, Pro or Premier; paid tiers burn FUNDED. Trades accrue creator fees. Verified collection, creator-approved settlement and funding precede distribution. Current default shares of gross collected creator fees are 80 percent creator-directed, 8 percent operations, 1 percent creator referrals, 4 percent Daily bonus and 5 percent FUNDED buyback and burn. A separate launched-coin reserve can be claimed by eligible FUNDED holders after a verified migration snapshot. A separate 2 percent AI agent budget is included for new launches. Only 8 percent is the app allocation.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08182a"/><stop offset=".58" stop-color="#0d1931"/><stop offset="1" stop-color="#14213b"/></linearGradient>
+    <radialGradient id="orb"><stop stop-color="#235d80" stop-opacity=".45"/><stop offset="1" stop-color="#235d80" stop-opacity="0"/></radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#172d48"/><stop offset="1" stop-color="#101f35"/></linearGradient>
+    <linearGradient id="goldCard" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#362b25"/><stop offset="1" stop-color="#192337"/></linearGradient>
+    <linearGradient id="violetCard" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#282641"/><stop offset="1" stop-color="#151f37"/></linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#7e9fc0" stroke-opacity=".09"/></pattern>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="13" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto"><path d="M1 1 9 5 1 9" fill="none" stroke="#6de8e1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="purpleArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto"><path d="M1 1 9 5 1 9" fill="none" stroke="#c2aaff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+  <style>
+    text{font-family:Arial,Helvetica,sans-serif}.brand{font-size:37px;font-weight:900;letter-spacing:-1.7px;fill:#f1f7ff}.heading{font-size:44px;font-weight:900;letter-spacing:-1.5px;fill:#f3f8ff}.sub{font-size:18px;fill:#a9c3d6}.over{font-size:16px;font-weight:900;letter-spacing:2px;fill:#75e6de}.step{font-size:17px;font-weight:900;letter-spacing:1.4px;fill:#77e6df}.cardTitle{font-size:29px;font-weight:900;fill:#f4f8fd}.body{font-size:20px;fill:#c7d9e4}.small{font-size:17px;fill:#9fb8ca}.tiny{font-size:15px;fill:#9fb8ca}.big{font-size:60px;font-weight:900;fill:#70e7dd}.sectionTitle{font-size:30px;font-weight:900;fill:#f4f8fd}.chip{font-size:21px;font-weight:800;fill:#ecf7ff}.chipSmall{font-size:17px;font-weight:700;fill:#e0eff6}.gold{fill:#ffd17e}.violet{fill:#cfb9ff}.footer{font-size:15px;fill:#a1b9ca}.line{fill:none;stroke:#69e8e0;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrow)}.branch{fill:none;stroke:#69e8e0;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrow)}
+  </style>
+
+  <rect width="1600" height="900" fill="url(#bg)"/><rect width="1600" height="900" fill="url(#grid)"/>
+  <circle cx="65" cy="60" r="280" fill="url(#orb)"/><circle cx="1535" cy="855" r="340" fill="url(#orb)"/>
+  <rect x="28" y="27" width="1544" height="846" rx="28" fill="none" stroke="#395575" stroke-width="2"/>
+
+  <!-- Header and legend -->
+  <g transform="translate(52 47)"><rect width="62" height="62" rx="16" fill="#111b2f"/><path d="M9 29 11 4 25 19 32 17 39 19 53 4 55 29 51 43 40 54 32 61 24 54 13 43Z" fill="#e99b49"/><path d="M14 29 15 15 26 25 32 22 38 25 49 15 50 29 47 41 38 50 32 56 26 50 17 41Z" fill="#151d2c"/><path d="M20 36 27 32 32 35 37 32 44 36 38 39 32 38 26 39Z" fill="#aebbd0"/><path d="M23 40 32 35 41 40 38 49 32 54 26 49Z" fill="#d7d3c9"/><path d="M27 42 32 40 37 42 32 47Z" fill="#151d2c"/><circle cx="25" cy="34" r="1.8" fill="#f4a340"/><circle cx="39" cy="34" r="1.8" fill="#f4a340"/></g>
+  <text x="129" y="90" class="brand">funded<tspan fill="#ffc77a">.vip</tspan></text>
+  <text x="504" y="76" class="heading">FROM LAUNCH TO VERIFIED REWARDS</text>
+  <text x="506" y="105" class="sub">Solana Devnet · current policy</text>
+  <circle cx="1280" cy="103" r="7" fill="#6de8e1"/><text x="1295" y="109" class="tiny">SOL</text><circle cx="1360" cy="103" r="7" fill="#ffd17e"/><text x="1375" y="109" class="tiny">$FUNDED</text><circle cx="1480" cy="103" r="7" fill="#cfb9ff"/><text x="1495" y="109" class="tiny">New coin</text>
+
+  <!-- Four step route -->
+  <rect x="54" y="149" width="338" height="193" rx="23" fill="url(#card)" stroke="#397ca2" stroke-width="2"/>
+  <circle cx="92" cy="190" r="22" fill="#244f6a" stroke="#4ebcf0" stroke-width="2"/><text x="92" y="198" text-anchor="middle" font-size="22" font-weight="900" fill="#e9f8ff">1</text>
+  <text x="128" y="196" class="step">LAUNCH</text><text x="77" y="246" class="cardTitle">Choose a tier</text>
+  <text x="77" y="279" class="body">Standard · Pro · Premier</text><text x="77" y="314" class="small">Paid tiers burn <tspan class="gold">$FUNDED</tspan></text>
+
+  <rect x="438" y="149" width="338" height="193" rx="23" fill="url(#card)" stroke="#397ca2" stroke-width="2"/>
+  <circle cx="476" cy="190" r="22" fill="#244f6a" stroke="#4ebcf0" stroke-width="2"/><text x="476" y="198" text-anchor="middle" font-size="22" font-weight="900" fill="#e9f8ff">2</text>
+  <text x="512" y="196" class="step">TRADE</text><text x="461" y="246" class="cardTitle">Fees accrue</text>
+  <path d="M464 303 492 281 518 292 547 265 574 273 603 254 628 265 657 243 687 251 716 229" fill="none" stroke="#70e7dd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="716" cy="229" r="6" fill="#70e7dd" filter="url(#softGlow)"/>
+  <text x="461" y="324" class="small">Pump creator-fee route</text>
+
+  <rect x="822" y="149" width="338" height="193" rx="23" fill="url(#card)" stroke="#397ca2" stroke-width="2"/>
+  <circle cx="860" cy="190" r="22" fill="#244f6a" stroke="#4ebcf0" stroke-width="2"/><text x="860" y="198" text-anchor="middle" font-size="22" font-weight="900" fill="#e9f8ff">3</text>
+  <text x="896" y="196" class="step">COLLECT</text><text x="845" y="246" class="cardTitle">Settle &amp; fund</text>
+  <text x="845" y="279" class="body">Verified router claim</text><text x="845" y="314" class="small">Creator approval required</text>
+
+  <rect x="1206" y="149" width="338" height="193" rx="23" fill="#173a48" stroke="#62cfc4" stroke-width="2"/>
+  <circle cx="1244" cy="190" r="22" fill="#286c68" stroke="#70e7dd" stroke-width="2"/><text x="1244" y="198" text-anchor="middle" font-size="22" font-weight="900" fill="#e9f8ff">4</text>
+  <text x="1280" y="196" class="step">DISTRIBUTE</text><text x="1230" y="266" class="big">80% <tspan font-size="29" fill="#c8e5e8">/</tspan> 20%</text>
+  <text x="1230" y="313" class="small">Saved mint policy</text>
+  <path class="line" d="M393 246 H426"/><path class="line" d="M777 246 H810"/><path class="line" d="M1161 246 H1194"/>
+
+  <!-- Current distribution -->
+  <text x="57" y="385" class="over">CURRENT DEFAULT · OF GROSS CREATOR FEES COLLECTED</text>
+  <rect x="54" y="406" width="723" height="234" rx="23" fill="#102b39" stroke="#3f8b95" stroke-width="2"/>
+  <text x="82" y="461" class="big">80%</text><text x="245" y="459" class="sectionTitle">Creator-directed</text>
+  <text x="82" y="495" class="small">Creator's saved recipient mix</text>
+  <rect x="82" y="523" width="201" height="73" rx="15" fill="#1b4353"/><circle cx="106" cy="548" r="10" fill="#83e7de"/><text x="125" y="556" class="chipSmall">Creator wallet</text>
+  <rect x="296" y="523" width="208" height="73" rx="15" fill="#1b4353"/><circle cx="321" cy="548" r="10" fill="#83e7de"/><text x="340" y="556" class="chipSmall">Coin holders</text>
+  <rect x="517" y="523" width="232" height="73" rx="15" fill="#1b4353"/><circle cx="542" cy="548" r="10" fill="#83e7de"/><text x="561" y="556" class="chipSmall">Named X account</text>
+  <text x="82" y="624" class="tiny">Payout or claim follows eligibility and funding.</text>
+
+  <rect x="799" y="406" width="745" height="234" rx="23" fill="#102b39" stroke="#3f8b95" stroke-width="2"/>
+  <text x="827" y="461" class="big">20%</text><text x="990" y="459" class="sectionTitle">Shared allocations</text>
+  <rect x="827" y="493" width="318" height="53" rx="13" fill="#1a3e4e"/><text x="848" y="528" class="chip"><tspan fill="#8af3e6">8%</tspan> Operations</text>
+  <rect x="1158" y="493" width="358" height="53" rx="13" fill="#1a3e4e"/><text x="1179" y="528" class="chip"><tspan fill="#8af3e6">1%</tspan> Creator referrals</text>
+  <rect x="827" y="559" width="318" height="53" rx="13" fill="#1a3e4e"/><text x="848" y="594" class="chip"><tspan fill="#8af3e6">4%</tspan> Daily bonus</text>
+  <rect x="1158" y="559" width="358" height="53" rx="13" fill="#3c322b" stroke="#9d7b4d"/><text x="1179" y="594" class="chip"><tspan class="gold">5%</tspan> $FUNDED buy + burn</text>
+
+  <text x="827" y="632" class="footer">Includes 2% AI agents · app Operations &amp; marketing is only 8%</text>
+  <!-- Separate token path and AI-agent budget -->
+  <rect x="54" y="673" width="723" height="151" rx="23" fill="url(#violetCard)" stroke="#8f78c7" stroke-width="2"/>
+  <circle cx="90" cy="714" r="11" fill="#cfb9ff"/><text x="114" y="721" class="over violet">MIGRATION · PUMPSWAP</text>
+  <text x="82" y="767" class="cardTitle">New-coin airdrop</text>
+  <text x="82" y="800" class="body">Eligible $FUNDED snapshot holders claim</text>
+  <path d="M546 752 H697" fill="none" stroke="#c2aaff" stroke-width="4" stroke-linecap="round" marker-end="url(#purpleArrow)"/>
+  <circle cx="548" cy="752" r="17" fill="#6e5a9e" stroke="#c2aaff" stroke-width="2"/><text x="548" y="758" text-anchor="middle" font-size="18" font-weight="900" fill="#f2eaff">✦</text>
+
+  <rect x="799" y="673" width="745" height="151" rx="23" fill="url(#goldCard)" stroke="#b68e56" stroke-width="2" stroke-dasharray="10 6"/>
+  <circle cx="835" cy="714" r="11" fill="#ffd17e"/><text x="859" y="721" class="over gold">INCLUDED · AI AGENTS</text>
+  <text x="827" y="766" class="cardTitle">2% shared by included agents</text>
+  <text x="827" y="801" class="body">X posts · own-coin burns at $100k / $300k MC</text>
+
+  <text x="56" y="859" class="footer">Policy view only · Payouts and burns require verified funding and finalized receipts.</text>
+</svg>

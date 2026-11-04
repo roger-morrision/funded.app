@@ -72,7 +72,7 @@ export function renderWalletBurnersBoard(
     const amount = Number(item.burnedTokens).toLocaleString(undefined,{maximumFractionDigits:6});
     const firstBurn = item.firstBurnAt ? formatOnchainAge(Date.parse(item.firstBurnAt)) : 'Time unavailable';
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index+1).padStart(2,'0')}</span><span role="cell" class="leader-identity"><span class="leader-avatar">${escapeHtml(String(item.wallet || '').slice(0,2).toUpperCase())}</span><span><a href="/wallet/${encodeURIComponent(item.wallet)}"><strong>${escapeHtml(shortAddress(item.wallet))}</strong></a><small>${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}</small></span></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(firstBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index+1).padStart(2,'0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar" aria-hidden="true">${escapeHtml(String(item.wallet || '').slice(0,2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(firstBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
   }).join('')}`);
 }
 
@@ -127,7 +127,7 @@ export function renderProjectBurnBoard(
     const amount = Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 });
     const tokenHref = `/token/${encodeURIComponent(item.mint)}`;
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><span class="leader-avatar mint">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span><a href="${escapeHtml(tokenHref)}"><strong>${escapeHtml(item.name)}</strong></a><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="${escapeHtml(tokenHref)}"><span class="leader-avatar mint" aria-hidden="true">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
   }).join('')}`);
 }
 
@@ -140,7 +140,9 @@ export function renderLeaderboard(
     coinSolUsdPrice,
     verifiedLaunchPoliciesStatus,
     exploreFeedAvailable,
+    exploreUpdatedAt = null,
     EXPLORE_CLUSTER,
+    connectedWalletAddress = null,
   },
   {
     loadWalletBurnBoard,
@@ -169,31 +171,44 @@ export function renderLeaderboard(
   if (leaderboardView === 'traders') {
     document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-traders-tab');
     document.querySelector('#leaderboard .leaderboard-grid')?.closest('details')?.setAttribute('hidden', '');
-    setCoinField('#leaderboard-table-kicker', 'Observed Pump trades · last 24 hours');
-    setCoinField('#leaderboard-table-title', 'Observed trader leaderboard');
-    setCoinField('#leaderboard-hero-description', 'A partial ranking of wallet SOL volume from recent, confirmed Pump trades across sampled verified tokens.');
+    setCoinField('#leaderboard-table-kicker', 'Trades · last 24 hours');
+    setCoinField('#leaderboard-table-title', 'Top traders');
+    setCoinField('#leaderboard-hero-description', 'Top wallets by SOL traded in the last 24 hours.');
     const { scannedTokens, traders } = rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
-    const unavailable = EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
-    setCoinField('#leaderboard-source-note', unavailable
-      ? 'The verified launch registry or trade feed is unavailable.'
-      : `24-hour sample from ${scannedTokens} verified token${scannedTokens === 1 ? '' : 's'}. The feed keeps up to 20 recent trades per token and scans a limited set of tokens; ranks do not represent all trading.`);
-    setCoinField('#leaderboard-status-title', unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} observed trading wallet${traders.length === 1 ? '' : 's'}` : 'No observed traders yet');
-    setCoinField('#leaderboard-status-note', unavailable ? 'Verified trade activity could not be loaded.' : 'Ranked by observed SOL volume in the last 24 hours.');
-    setCoinField('#leaderboard-status-badge', unavailable ? 'Unavailable' : 'Partial history');
-    table.setAttribute('aria-label', 'Observed Solana trader leaderboard for the last 24 hours');
+    // Before the registry and the first feed read finish, say so instead of "unavailable".
+    const loading = EXPLORE_CLUSTER === 'devnet' && (verifiedLaunchPoliciesStatus === 'loading' || (!exploreFeedAvailable && !exploreUpdatedAt));
+    const unavailable = !loading && (EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable);
+    setCoinField('#leaderboard-source-note', loading
+      ? 'Reading recent trades…'
+      : unavailable
+      ? 'Trade data is unavailable right now.'
+      : !scannedTokens
+      ? 'No trades in the last 24 hours yet.'
+      : `Based on ${scannedTokens} coin${scannedTokens === 1 ? '' : 's'}, up to 20 recent trades per token. Not all trading is counted.`);
+    setCoinField('#leaderboard-status-title', loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} trading wallet${traders.length === 1 ? '' : 's'}` : 'No traders yet');
+    // A connected wallet sees its own place first: the reason to come back.
+    const yourIndex = connectedWalletAddress ? traders.findIndex(item => item.wallet === connectedWalletAddress) : -1;
+    setCoinField('#leaderboard-status-note', loading ? 'Ranks appear as soon as recent trades are read.' : unavailable ? 'Recent trades could not be loaded. Try again shortly.'
+      : yourIndex >= 0 ? `Your rank: #${yourIndex + 1} of ${traders.length} · ranked by SOL volume in the last 24 hours.`
+      : connectedWalletAddress ? 'You are not ranked yet. Buy or sell any coin to join the ranking.'
+      : 'Ranked by SOL traded in the last 24 hours. Connect a wallet to see your rank.');
+    setCoinField('#leaderboard-status-badge', loading ? 'Loading' : unavailable ? 'Unavailable' : 'Partial history');
+    table.setAttribute('aria-label', 'Top Solana traders in the last 24 hours');
     const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Wallet</span><span role="columnheader">Trades</span><span role="columnheader">SOL volume</span><span role="columnheader">Proof</span></div>';
-    if (unavailable || !scannedTokens || !traders.length) {
-      const heading = unavailable ? 'Trader ranking unavailable' : !scannedTokens ? 'Waiting for trade scans' : 'No trades in this sample';
-      const detail = unavailable ? 'Try again when the verified launch registry and trade feed are available.' : !scannedTokens
-        ? 'The leaderboard will populate after verified tokens have been scanned.'
-        : 'No wallet-attributed Pump trades were found in the recent scanned activity.';
-      replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span></div></div>`);
+    if (loading || unavailable || !scannedTokens || !traders.length) {
+      // Empty board: say it plainly and give one next step, the same way for both empty cases.
+      const empty = !loading && !unavailable;
+      const heading = loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : 'No trades in the last 24 hours yet';
+      const detail = loading ? 'Reading recent trades.' : unavailable ? 'Trade data is unavailable right now. Try again shortly.'
+        : 'Buy or sell any coin and your wallet appears here.';
+      const action = empty ? '<a class="text-button" href="#explore">Explore coins →</a>' : '';
+      replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span>${action}</div></div>`);
       return;
     }
     replaceLeaderboardRows(table, `${header}${traders.slice(0, 50).map((item, index) => {
       const amount = item.volumeSol > 0 && item.volumeSol < 0.000001 ? '<0.000001' : item.volumeSol.toLocaleString(undefined, { maximumFractionDigits: 6 });
       const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-      return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><span class="leader-avatar blue" aria-hidden="true">${escapeHtml(item.wallet.slice(0, 2).toUpperCase())}</span><span><a href="/wallet/${encodeURIComponent(item.wallet)}"><strong>${escapeHtml(shortAddress(item.wallet))}</strong></a><small>${item.tokenCount} token${item.tokenCount === 1 ? '' : 's'} observed</small></span></span><span role="cell"><b>${item.tradeCount}</b><small>${item.buyCount} buy · ${item.sellCount} sell</small></span><span role="cell" class="leader-value">${escapeHtml(amount)} SOL</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer" aria-label="View recent transaction for ${escapeHtml(shortAddress(item.wallet))} on Solana Explorer">Trade ↗</a></span></div>`;
+      return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}${index === yourIndex ? ' is-you' : ''}" role="row"${index === yourIndex ? ' aria-current="true"' : ''}><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar blue" aria-hidden="true">${escapeHtml(item.wallet.slice(0, 2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.tokenCount} coin${item.tokenCount === 1 ? '' : 's'} traded</small></span></a></span><span role="cell"><b>${item.tradeCount}</b><small>${item.buyCount} buy · ${item.sellCount} sell</small></span><span role="cell" class="leader-value">${escapeHtml(amount)} SOL</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer" aria-label="View recent transaction for ${escapeHtml(shortAddress(item.wallet))} on Solana Explorer">Trade ↗</a></span></div>`;
     }).join('')}`);
     return;
   }
@@ -231,11 +246,11 @@ export function renderLeaderboard(
   const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Token</span><span role="columnheader">Creator</span><span role="columnheader">Market cap</span><span role="columnheader">Launched</span></div>';
   const creatorRankingUnavailable = verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable;
   const empty = creatorRankingUnavailable
-    ? '<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>Creator ranking unavailable.</strong><span>The verified launch registry or market feed could not be loaded; an empty ranking is not evidence of zero launches.</span></div></div>'
+    ? '<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>Creator ranking unavailable.</strong><span>Launch data is unavailable right now. Try again shortly.</span></div></div>'
     : '<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>No verified creator launches yet.</strong><span>Launches appear after their policy and mint are confirmed on Solana.</span></div></div>';
   if (!ranked.length) {
     if (title) title.textContent = creatorRankingUnavailable ? 'Creator ranking unavailable' : EXPLORE_CLUSTER === 'devnet' ? 'No verified Solana launches yet' : 'Leaderboard unavailable on this cluster';
-    if (note) note.textContent = creatorRankingUnavailable ? 'Launch registry or market feed unavailable; creator count not verified.' : 'No confirmed creator launches are available to rank.';
+    if (note) note.textContent = creatorRankingUnavailable ? 'Launch data unavailable right now.' : 'No confirmed creator launches are available to rank.';
     if (badge) badge.textContent = 'Unavailable';
     replaceLeaderboardRows(table, `${header}${empty}`);
     return;
@@ -247,7 +262,7 @@ export function renderLeaderboard(
   replaceLeaderboardRows(table, `${header}${ranked.map((item, index) => {
     const symbol = String(item.symbol || 'TOKEN').trim() || 'TOKEN';
     const name = String(item.name || symbol).trim() || symbol;
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leaderboard-token-cell" data-logo-mint="${escapeHtml(item.address)}"><span class="leader-avatar leader-token-logo ${avatarClass(index)}" aria-hidden="true">${escapeHtml(symbol.slice(0, 2).toUpperCase())}</span><span class="leaderboard-token-label"><a href="/token/${encodeURIComponent(item.address)}"><strong>${escapeHtml(symbol)}</strong></a><small title="${escapeHtml(name)}">${escapeHtml(name)}</small></span></span><span role="cell" class="leader-identity leaderboard-creator-cell"><span><a href="/wallet/${encodeURIComponent(item.creator)}"><strong>${escapeHtml(shortAddress(item.creator))}</strong></a><small>Creator wallet</small></span></span><span role="cell"><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Pool MC' : 'Curve MC'}</small></span><span role="cell" class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leaderboard-token-cell" data-logo-mint="${escapeHtml(item.address)}"><a class="leaderboard-profile" href="/token/${encodeURIComponent(item.address)}"><span class="leader-avatar leader-token-logo ${avatarClass(index)}" aria-hidden="true">${escapeHtml(symbol.slice(0, 2).toUpperCase())}</span><span class="leaderboard-token-label"><strong>${escapeHtml(symbol)}</strong><small title="${escapeHtml(name)}">${escapeHtml(name)}</small></span></a></span><span role="cell" class="leader-identity leaderboard-creator-cell"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.creator)}"><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.creator))}</strong><small>Creator wallet</small></span></a></span><span role="cell"><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Market cap · pool' : 'Market cap · curve'}</small></span><span role="cell" class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`;
   }).join('')}`);
   loadVerifiedTokenLogos?.(table);
 }

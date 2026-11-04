@@ -257,6 +257,8 @@ export function createBoostCheckoutController(appState) {
           appState.boostCheckout.message = 'Your boost is active. You can buy another boost or view your receipt below.';
           await appState.loadVerifiedBoosts();
           await appState.loadExploreBoostHistory(mint);
+          void appState.refreshWalletBalance({ force:true });
+          void appState.refreshTradeBalances();
           return;
         }
         await new Promise(resolve => setTimeout(resolve, 3000));

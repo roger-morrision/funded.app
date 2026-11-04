@@ -8,9 +8,6 @@ if (firstStep) {
   const socials = firstStep.querySelector('.social-section');
   const enhanced = firstStep.querySelector('.enhanced-token-page');
   const enhancedWrapper = enhanced?.parentElement?.tagName === 'DETAILS' ? enhanced.parentElement : null;
-  const choiceHeading = firstStep.querySelector('.launch-profile-heading');
-  const choiceGrid = firstStep.querySelector('.launch-profile-grid');
-  const choiceWrapper = choiceGrid?.closest('details.ui-disclosure');
   if (name && story && socials && enhanced) {
     const more = document.createElement('details');
     more.className = 'launch-optional-story';
@@ -18,24 +15,7 @@ if (firstStep) {
     summary.textContent = 'Optional project story';
     more.append(summary, story, enhanced);
     socials.after(more);
-    if (choiceHeading && choiceGrid) socials.before(choiceHeading, choiceGrid);
     enhancedWrapper?.remove();
-    choiceWrapper?.remove();
-  }
-}
-
-const secondStep = document.querySelector('[data-launch-step="2"]');
-if (secondStep) {
-  const mode = secondStep.querySelector('.launch-mode-grid');
-  const custom = secondStep.querySelector('#custom-policy');
-  if (mode && custom && !mode.closest('.launch-fee-options')) {
-    const advanced = document.createElement('details');
-    advanced.className = 'launch-advanced-options';
-    advanced.id = 'launch-advanced-options';
-    const summary = document.createElement('summary');
-    summary.textContent = 'Custom creator fee split · optional';
-    advanced.append(summary, mode, custom);
-    secondStep.querySelector('.launch-funding-section')?.after(advanced);
   }
 }
 

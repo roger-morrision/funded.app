@@ -1,9 +1,11 @@
 // One route instance owns one live join. Retired loads retain their slot until
 // every started dependency settles, even if another dependency rejects early.
 // A timeout stops waiting for the report; it does not cancel financial readers.
-export function createAnalyticsSummaryReader(readers) {
+export function createAnalyticsSummaryReader(readers, { deadlineMs = 6_000 } = {}) {
   if (!Array.isArray(readers) || readers.length !== 4 || readers.some(read => typeof read !== 'function'))
     throw new TypeError('Analytics requires four fixed read dependencies.');
+  if (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 30_000)
+    throw new TypeError('Analytics deadline must be a bounded positive millisecond value.');
   const dependencies = [...readers];
   const unavailable = Object.freeze({ available:false });
   const loads = new Set();
@@ -19,7 +21,7 @@ export function createAnalyticsSummaryReader(readers) {
     void Promise.allSettled(started).then(() => loads.delete(load));
     let timer;
     const outcome = Promise.all(started).then(values => ({ available:true, values }), () => unavailable);
-    const deadline = new Promise(resolve => { timer = setTimeout(() => resolve(unavailable), 6_000); });
+    const deadline = new Promise(resolve => { timer = setTimeout(() => resolve(unavailable), deadlineMs); });
     load.reply = Promise.race([outcome, deadline]).finally(() => {
       clearTimeout(timer);
       if (current === load) current = null;

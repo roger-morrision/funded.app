@@ -1,3 +1,14 @@
+// First visit to the bare app URL opens the About page once. Deep links,
+// hashes and query strings (referrals, receipts) always open the app directly.
+try {
+  const firstVisit = location.pathname === '/' && !location.hash && !location.search
+    && !navigator.webdriver && !localStorage.getItem('funded.landing.seen');
+  if (firstVisit) {
+    localStorage.setItem('funded.landing.seen', '1');
+    location.replace('/welcome');
+  }
+} catch {}
+
 try {
   if (localStorage.getItem('funded.desktop-sidebar-collapsed') === 'true') {
     document.documentElement.classList.add('sidebar-collapsed');

@@ -1,4 +1,5 @@
 import { openCoinRecord } from '../../features/coin/records-navigation.js';
+import {focusFilterRecovery} from '../../features/shared/filter-recovery.js';
 
 function bindTokenControlFocus(appState) {
   const page = document.querySelector('#coin-page');
@@ -102,7 +103,7 @@ export function initializeCoinNavigation(appState) {
   // app-source-end
 
   // app-source: 989
-  document.querySelector('#asset-grid')?.addEventListener('click', event => { if (event.target.closest('button, a')) return; const card = event.target.closest('.asset-card, .explore-compact-card, .explore-launch-card'); const mint = card?.dataset.mint; if (!mint) return; location.href = `/token/${encodeURIComponent(mint)}`; });
+  document.querySelector('#asset-grid')?.addEventListener('click', event => { if (event.target.closest('button, a, details, input, select, textarea')) return; const card = event.target.closest('.asset-card, .explore-compact-card, .explore-launch-card'); const mint = card?.dataset.mint; if (!mint) return; location.href = `/token/${encodeURIComponent(mint)}`; });
   // app-source-end
 
   // app-source: 990
@@ -114,7 +115,10 @@ export function initializeCoinNavigation(appState) {
         if (hideAuthor) appState.hideChatAuthor(appState.EXPLORE_CLUSTER, hideAuthor.dataset.chatHide);
         else appState.resetHiddenChatAuthors(appState.EXPLORE_CLUSTER);
         appState.renderCoinCommunityPanel();
-        if (document.querySelector('[data-coin-tab="chat"].active')) appState.renderCoinActivityTab();
+        if (document.querySelector('[data-coin-tab="chat"].active')) {
+          const next = document.querySelector(hideAuthor ? '#coin-activity-list [data-chat-unhide]' : '#coin-activity-list [data-chat-hide], #coin-chat-input');
+          next?.focus();
+        }
         appState.showToast(hideAuthor ? 'Wallet hidden on this device.' : 'Hidden wallets are visible again.');
       } catch { appState.showToast('Device storage is unavailable. Your chat preferences could not be saved.'); }
       return;
@@ -146,8 +150,8 @@ export function initializeCoinNavigation(appState) {
     if (chartUnit){ appState.coinChartUnit = chartUnit.dataset.coinChartUnit; appState.renderCoinPricePath(); return; }
     const pulsePeriod = event.target.closest('[data-coin-pulse-period]');
     if (pulsePeriod){ appState.coinPulsePeriod = pulsePeriod.dataset.coinPulsePeriod; appState.renderCoinPulse(); return; }
-    const refresh = event.target.closest('#coin-refresh');
-    if (refresh){ const mint = appState.getCoinMintAddress(); appState.resetCoinSurface(mint); appState.loadCoinOnChain(mint); return; }
+    const refresh = event.target.closest('#coin-refresh, #coin-retry');
+    if (refresh){ const mint = appState.getCoinMintAddress(); if (refresh.id === 'coin-retry') document.querySelector('#coin-refresh')?.focus(); appState.resetCoinSurface(mint); appState.loadCoinOnChain(mint); return; }
     const watch = event.target.closest('#coin-watch');
     if (watch){ const mint = appState.getCoinMintAddress(); if (!mint || !await appState.saveWatchlist(mint, { remove: watch.getAttribute('aria-pressed') === 'true' })) return; appState.renderWatchlist(); appState.setWatchButtonState(watch, appState.lastKnownWatchlist.includes(mint)); return; }
     const share = event.target.closest('#coin-share-link');
@@ -156,8 +160,17 @@ export function initializeCoinNavigation(appState) {
     if (boost) { const mint = appState.getCoinMintAddress(); if (mint) appState.openExploreBoost(mint); return; }
     const copy = event.target.closest('#coin-copy-address, #coin-copy-full');
     if (copy){ const address = appState.getCoinMintAddress(); if (!address) return appState.showToast('No mint address in this route'); try { await navigator.clipboard.writeText(address); appState.showToast('Token address copied'); } catch { appState.showToast(address); } }
-    const clearTradeFilters = event.target.closest('#coin-trade-clear');
-    if (clearTradeFilters){ appState.coinTradeFilter = 'all'; appState.coinTradeSort = { key: 'date', direction: 'desc' }; document.querySelectorAll('[data-coin-trade-filter]').forEach(button => { const active = button.dataset.coinTradeFilter === 'all'; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }); document.querySelectorAll('#coin-page [data-coin-trade-input]').forEach(input => { input.value = input.dataset.coinTradeInput === 'side' ? 'all' : ''; }); appState.renderCoinActivityTab(); return; }
+    const clearTradeFilters = event.target.closest('#coin-trade-clear, [data-coin-trade-reset]');
+    if (clearTradeFilters){
+      const recovery=clearTradeFilters.hasAttribute('data-coin-trade-reset'),owned=clearTradeFilters.contains(document.activeElement);
+      appState.coinTradeFilter='all';
+      if(recovery)appState.coinTradeOpenFilter=null;else appState.coinTradeSort={key:'date',direction:'desc'};
+      document.querySelectorAll('[data-coin-trade-filter]').forEach(button=>{const active=button.dataset.coinTradeFilter==='all';button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
+      document.querySelectorAll('#coin-page [data-coin-trade-input]').forEach(input=>{input.value=input.dataset.coinTradeInput==='side'?'all':'';});
+      appState.renderCoinActivityTab();
+      if(recovery&&owned)focusFilterRecovery(document.querySelector('[data-coin-trade-filter="all"]'));
+      return;
+    }
     const tradeSort = event.target.closest('[data-coin-trade-sort]');
     if (tradeSort){ const key = tradeSort.dataset.coinTradeSort; appState.coinTradeSort = { key, direction: appState.coinTradeSort.key === key && appState.coinTradeSort.direction === 'asc' ? 'desc' : 'asc' }; appState.renderCoinActivityTab(); document.querySelector(`[data-coin-trade-sort="${key}"]`)?.focus(); return; }
     const columnFilter = event.target.closest('[data-coin-column-filter]');
@@ -169,7 +182,16 @@ export function initializeCoinNavigation(appState) {
     const record = event.target.closest('[data-coin-record-target]');
     if (record) { openCoinRecord(record.dataset.coinRecordTarget); return; }
     const tab = event.target.closest('[data-coin-tab]');
-    if (tab){ document.querySelectorAll('[data-coin-tab]').forEach(item => item.classList.toggle('active', item === tab)); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); }
+    if (tab){
+      document.querySelectorAll('[data-coin-tab]').forEach(item => item.classList.toggle('active', item === tab)); appState.setCoinTabLabels(); appState.renderCoinActivityTab();
+      // On phones the record tabs scroll sideways; keep the chosen tab fully in view.
+      const strip = tab.closest('.coin-tabs');
+      if (strip) {
+        const left = strip.getBoundingClientRect().left + strip.clientLeft, right = left + strip.clientWidth, box = tab.getBoundingClientRect(), gap = 8;
+        if (box.left - gap < left) strip.scrollLeft -= Math.ceil(left - box.left + gap);
+        else if (box.right + gap > right) strip.scrollLeft += Math.ceil(box.right + gap - right);
+      }
+    }
   });
   // app-source-end
 

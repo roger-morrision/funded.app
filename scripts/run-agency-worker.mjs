@@ -1,3 +1,4 @@
+import {DEFAULT_AGENCY_RULES} from '../config/agency-rules.js';
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import bs58 from 'bs58';
@@ -7,7 +8,7 @@ import {createXPostStore} from '../server/x-post-store.mjs';
 import {createXPublisher} from '../server/x-post-client.mjs';
 import {runXPostWorker} from '../server/x-post-worker.mjs';
 import {xWorkerConfig} from './run-x-post-worker.mjs';
-import {readAgencyDeployment} from '../server/agency-deployment.mjs';
+import {readAgencyDeployment,agencyWorkerHealth,agencyBuybackWorkerHealth} from '../server/agency-deployment.mjs';
 import {readAgencyMintContext} from '../server/agency-mint-context.mjs';
 import {runAgencyPromotion,createAgencyPublisher} from '../server/agency-promotion-executor.mjs';
 import {runAgencyMilestone} from '../server/agency-buyback-executor.mjs';
@@ -53,6 +54,24 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
   const previous=state.adminSettings?.[heartbeatKey]?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,5);
   const base={store,outbox,connection,authority,publisher,programId:config.programId,approvedHash:config.approvedHash,
     lookupAddress:config.lookupAddress,readContext,publicOrigin:config.origin},events=[];
+  const health=buybacksOnly?agencyBuybackWorkerHealth:agencyWorkerHealth;
+  const identity={programId:config.programId,approvedHash:config.approvedHash,
+    authority:authority.publicKey.toBase58(),revision:deployment.revision,build:config.build};
+  const hadVerifiedReadiness=health(state,{...identity,now:now()});
+  // A full cycle can take longer than the 90-second readiness window. Keep a
+  // previously ready worker fresh only after this cycle has reverified its
+  // deployment, lookup and (for publishing) X account. Every completed mint
+  // step supplies another progress check; a stalled step still expires.
+  const refreshProgress=async()=>{
+    if(!config.execute||shouldStop()||!hadVerifiedReadiness)return;
+    await store.update(current=>{
+      if(!health(current,{...identity,now:now()}))return;
+      const row=current.adminSettings[heartbeatKey];
+      if(events.some(event=>event.status==='execution-unavailable'))row.status='degraded';
+      row.checkedAt=new Date(now()).toISOString();
+    });
+  };
+  await refreshProgress();
   let readinessStatus=null;
   for(const mint of ordered){
     if(shouldStop())break;
@@ -65,6 +84,7 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
       if(shouldStop())break;
       try{events.push({...await milestone({...base,mint,agent}),mint,agent});}
       catch(error){events.push({mint,agent,status:error.code==='AGENCY_MARKET_NOT_MIGRATED'?'awaiting-migration':'execution-unavailable'});}
+      await refreshProgress();
     }
   }
   if(config.execute&&!shouldStop()){
@@ -80,10 +100,16 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
     for(const mint of ordered){
       if(shouldStop())break;
       const context=await readContext({...base,mint,state:await store.read(),authority:authority.publicKey});
+      // Each finalized custody read is verified progress, just like a milestone
+      // check. Keep the existing readiness window fresh during this serial sweep.
+      await refreshProgress();
       budgets[mint]={mint,programId:config.programId,approvedHash:config.approvedHash,build:config.build,
         checkedAt:new Date(now()).toISOString(),slot:context.slot,policyFingerprint:context.policyFingerprint,
         paidLamports:String(context.policy.paidLamports[7]),spentLamports:String(context.policy.withdrawnLamports[7]),
-        selectedMask:context.policy.selectedMask,completedMask:context.policy.completedMask,agentRemaining:context.agentRemaining,
+        selectedMask:context.policy.selectedMask,completedMask:context.policy.completedMask,agentRemaining:context.agentRemaining, rules:context.policy.rules || DEFAULT_AGENCY_RULES,
+        milestoneChecks:events.filter(event=>event.mint===mint && [1,2].includes(event.agent)).map(event=>({
+          agent:event.agent,status:event.status,...(event.observation?{observation:event.observation}:{})
+        })),
         scope:'finalized-pump-sources-and-agency-vault',verified:true};
     }
     if(!shouldStop()){

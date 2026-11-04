@@ -70,6 +70,8 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
     body:async req => req.input, store:{ read:async () => state, update:async fn => fn(state) },
     solanaCluster:'devnet', solanaRpcUrl:'https://unused.invalid',
     v3AuthorityKeypair:() => authority,
+    requireAuthorized:()=>true,
+    ensureAutomation:async()=>{},
     rewardStore:{ read:async () => rewardState },
     schedulerFactory:() => ({
       register:async input => { registrations.push(input); rewardState.programs[input.mint] = input; },
@@ -80,6 +82,7 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
       },
     }),
     env:{ FUNDED_V3_COMMUNITY_FUNDING_ENABLED:enabled ? 'true' : 'false',
+      FUNDED_V3_AUTO_DISBURSEMENT_ENABLED:'true',
       FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED:enabled ? 'true' : 'false',
       FUNDED_V3_REFERRAL_PAYOUT_ENABLED:enabled ? 'true' : 'false',
@@ -113,8 +116,33 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
   });
   return { state, responses, holderPools, registrations, auditHash, auditSource,get submitted(){return submitted;},
     setFinalized:value => { finalized=value; },
-    request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')) };
+    request:input => handle({ method:'POST', input, headers:{} }, {}, new URL(path,'https://funded.vip')),
+    requestAuto:()=>handle({method:'POST',input:{mint:mint.publicKey.toBase58(),collectionSignature,
+      action:`${kind}-${suffix}`,...(kind==='referral'?{level:1}:{})},headers:{}},{},new URL('/api/keeper/disburse-v3','https://funded.vip')) };
 }
+
+test('old creator fee hold no longer blocks preparation, signed submission or residual payouts',async()=>{
+  for(const residual of [false,true]) {
+    const f=fixture({kind:'creator-wallet',residual,protectedPolicy:residual});
+    f.state.launches[mint.publicKey.toBase58()].launchProtection={version:1,creatorFeeUnlockAt:new Date(Date.now()+43_200_000).toISOString()};
+    const input=residual?{residualPlanHash:f.auditHash}:{};
+    await f.request(input);assert.equal(f.responses.at(-1).status,202);
+    const creatorSignedTransaction=signPrepared(f.responses.at(-1).data.transaction);
+    await f.request({...input,creatorSignedTransaction});assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+  }
+});
+
+test('future old creator lock permits normal automatic payout and finalized balance proof',async()=>{
+  const f=fixture({kind:'creator-wallet',protectedPolicy:true});
+  f.state.launches[mint.publicKey.toBase58()].launchProtection={version:1,creatorFeeUnlockAt:new Date(Date.now()+43_200_000).toISOString()};
+  await f.requestAuto();assert.equal(f.responses.at(-1).status,200,JSON.stringify(f.responses.at(-1).data));assert.equal(f.submitted,1);assert.equal(f.state.v3CreatorWalletPayout[collectionSignature].balanceDeltaVerified,true);
+});
+
+test('automatic community funding uses only the authority and records finalized proof',async()=>{
+  const f=fixture({protectedPolicy:true});await f.requestAuto();
+  assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+  await f.requestAuto();assert.equal(f.submitted,1);
+});
 
 function signPrepared(base64) {
   const tx = Transaction.from(Buffer.from(base64, 'base64'));

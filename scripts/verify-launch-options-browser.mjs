@@ -55,9 +55,7 @@ try {
   await page.locator('#creator-buy-sol').fill('0.01');
   assert.match(await page.locator('#preview-creator-buy').textContent(), /0\.01 SOL/);
   assert.equal(await advanced.locator(':scope > summary').count(), 0, 'Fee sharing must not be collapsible.');
-  assert(await page.locator('#launch-mode-custom').isVisible(), 'Fee sharing controls must be visible by default.');
-  await page.locator('#launch-mode-custom').click();
-  assert.equal(await page.locator('#launch-mode-custom').getAttribute('aria-pressed'), 'true');
+  assert(await page.locator('#creator-wallet-share').isVisible(), 'Fee sharing controls must be visible by default.');
   await page.locator('#creator-wallet-share').fill('60');
   await page.locator('#holder-airdrop-share').fill('20');
   assert.equal((await page.locator('#launch-summary-creator').textContent()).trim(), '60%');

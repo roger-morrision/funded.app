@@ -73,7 +73,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
   const verifiedAutomatic = new Map();
   const verifiedReferrals = new Map();
   const verifiedDaily = new Map();
-  return () => cache('recent', async () => {
+  const rebuild = () => cache('recent', async () => {
     const [evidence, ledger, state] = await Promise.all([readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
     const dailySelection = cluster === 'devnet' ? dailyPaymentCandidates(ledger) : {candidates:[],checked:0,unavailable:0};
     let daily = {rows:[],checked:dailySelection.checked,
@@ -275,4 +275,20 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
       unavailablePayouts:unavailable, generatedAt:new Date().toISOString(),
       note:'Amounts show verified recipient balance changes. A receiver paying transaction fees and payment-account rent can have a net debit despite receiving a gross reward.' };
   });
+  return serveLatest(rebuild, { refreshAfterMs: 30_000 });
+}
+
+// A rebuild re-checks receipts on Solana and can take tens of seconds. After
+// the first build, callers get the latest result at once while one background
+// rebuild replaces it; a failed rebuild keeps the previous result.
+export function serveLatest(load, { refreshAfterMs, now = Date.now } = {}) {
+  let latest, builtAt = 0, pending = null;
+  const refresh = () => pending ||= Promise.resolve().then(load)
+    .then(result => { latest = result; builtAt = now(); return result; })
+    .finally(() => { pending = null; });
+  return () => {
+    if (latest === undefined) return refresh();
+    if (now() - builtAt >= refreshAfterMs) refresh().catch(() => {});
+    return Promise.resolve(latest);
+  };
 }

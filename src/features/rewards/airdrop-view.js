@@ -39,7 +39,7 @@ export function renderAirdropProgramDetail(
   const unknownEvidence = unknownClaim ? program.claimVerification === 'checking' ? 'Checking verification…' : 'Verification unavailable' : null;
   const stats = document.querySelector('#airdrop-selected-stats');
   const nextStats = document.createElement?.('div') || { innerHTML: '', querySelectorAll: () => [] };
-  nextStats.innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${escapeHtml(claimWindow)}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || unknownEvidence || 'Pending verified snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || unknownEvidence || 'Pending published proof')}</strong></span></div></details>`;
+  nextStats.innerHTML = `<span><small>Airdrop allocation</small><strong>${formatTokenAmount(program.reservedTokens)} tokens · ${program.allocationPercent}% of supply</strong></span><span><small>Claimed</small><strong>${formatVerifiedAirdropAmount(program.claimedTokens)}</strong></span><span><small>Eligible wallets</small><strong>${formatVerifiedAirdropAmount(program.eligibleWallets)}</strong></span><span><small>Claim window</small><strong>${escapeHtml(claimWindow)}</strong></span><details class="airdrop-verification-details advanced-details"><summary>Advanced details · verification</summary><div class="airdrop-program-detail-stats"><span><small>Snapshot</small><strong>${escapeHtml(program.snapshot)}</strong></span><span><small>Snapshot hash</small><strong class="airdrop-proof-value">${escapeHtml(program.snapshotHash || unknownEvidence || 'Shown after the holder snapshot')}</strong></span><span><small>Proof root</small><strong class="airdrop-proof-value">${escapeHtml(program.merkleRoot || unknownEvidence || 'Shown once claims open')}</strong></span></div></details>`;
   const currentValues = stats.querySelectorAll?.('strong') || [];
   const nextValues = nextStats.querySelectorAll('strong');
   if (currentValues.length === nextValues.length && stats.querySelector?.('details')) {
@@ -48,7 +48,8 @@ export function renderAirdropProgramDetail(
   const status = document.querySelector('#airdrop-selected-status');
   // Background verification may refresh the stats while a wallet review,
   // signature request or submitted transaction still owns these controls.
-  if (preserveStatus || (!open && status.contains(document.activeElement))) return;
+  if (preserveStatus || (!open && status.contains(document.activeElement)
+    && !document.activeElement?.matches?.('[data-retry-community-mint]'))) return;
   if (status.dataset) {
     delete status.dataset.communityClaimWallet;
     delete status.dataset.communityClaimMint;
@@ -64,6 +65,12 @@ export function renderAirdropProgramDetail(
     : program.vaultVerified
     ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Claims will open after the token moves to its trading pool and the eligible wallet list is confirmed.`
     : 'This airdrop is planned. Funding and wallet eligibility must be confirmed before claims can open.');
+  if (program.claimVerification === 'unavailable' || program.claimVerification === 'checking') {
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.className = 'secondary-button'; retry.dataset.retryCommunityMint = program.id;
+    retry.textContent = 'Retry verification for this mint';
+    status.append(document.createElement('br'), retry);
+  }
   if (program.claimActive) {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'secondary-button'; button.dataset.checkCommunityMint = program.id;

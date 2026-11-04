@@ -1,4 +1,6 @@
 .daily-bonus-dashboard { margin-top: 24px; }
+.daily-bonus-dashboard [data-bonus-refresh] { min-height:44px; padding:9px 12px; border:1px solid var(--line,#353a54); border-radius:8px; background:var(--panel,#121b2d); color:var(--text,#f2f5fb); font-size:13px; cursor:pointer; }
+.daily-bonus-dashboard [data-bonus-refresh]:hover { border-color:var(--gold,#ffb443); }
 .daily-bonus-dashboard > p { max-width: 85ch; line-height: 1.6; }
 .daily-bonus-dashboard label { display: grid; gap: 8px; max-width: 260px; margin: 20px 0; }
 .daily-bonus-dashboard select { padding: 10px; background: var(--bg-panel, #121522); color: inherit; border: 1px solid #353a54; border-radius: 8px; }
@@ -24,6 +26,7 @@ html body.page-route-overview .main-content > .home-daily-bonuses { order: 5; di
 .bonus-category-mark { color: #f4be26; font: 12px 'DM Mono', monospace; }
 .bonus-pool-grid h3 { margin: 14px 0 18px; font-size: 17px; }
 .bonus-pool-grid article > strong { display: block; min-height: 36px; color: #f4be26; font: 600 clamp(17px, 1.8vw, 25px) 'DM Mono', monospace; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bonus-pool-grid article > strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 .bonus-pool-grid p, .bonus-pool-grid small { display: block; color: #acb8cf; font-size: 12px; line-height: 1.6; }
 .bonus-pool-grid a { display: inline-block; margin-top: 18px; font-size: 12px; }
 .bonus-history-page > section { margin: 32px 0; }
@@ -31,10 +34,34 @@ html body.page-route-overview .main-content > .home-daily-bonuses { order: 5; di
 .bonus-wallet-list { list-style: none; margin: 0; padding: 0; }
 .bonus-wallet-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #30354b; font-size: 12px; }
 .bonus-wallet-list li span { text-align: right; font-variant-numeric: tabular-nums; }
-.bonus-history-page :is(button, select) { min-height: 42px; padding: 8px 12px; border: 1px solid #42475f; border-radius: 7px; background: #171a2f; color: #edf2fb; cursor: pointer; }
+.bonus-history-page :is(button, select) { min-height: 44px; padding: 8px 12px; border: 1px solid #42475f; border-radius: 7px; background: #171a2f; color: #edf2fb; cursor: pointer; }
 .bonus-history-page button:disabled { opacity: .45; cursor: default; }
 .bonus-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin: 18px 0 26px; }
 .bonus-history-page .field-help, .home-daily-bonuses .field-help { color: #acb8cf; line-height: 1.6; }
+html body.product-experience-style #bonuses > .bonus-section-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: start; margin-bottom: 12px; }
+html body.product-experience-style #bonuses .bonus-policy-disclosure { margin-block: 12px; background: var(--panel); }
+html body.product-experience-style #bonuses .bonus-policy-disclosure > p { margin: 0; padding: 0 12px 12px; }
+html body.product-experience-style #bonuses > section { margin-block: 20px; }
+html body.product-experience-style #bonuses section .bonus-section-heading { gap: 8px; margin-bottom: 12px; }
+html body.product-experience-style #bonuses section .bonus-section-heading label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
+html body.product-experience-style #bonuses section .bonus-section-heading select { min-height: 44px; }
+html body.product-experience-style #bonuses .daily-bonus-table :is(th,td) { padding: 8px 10px; }
+html body.product-experience-style #bonuses .bonus-pagination button { min-height: 44px; }
+html body.product-experience-style #bonuses :is(.bonus-policy-disclosure,.bonus-receipt-help) > summary { min-height: 44px; padding: 12px; box-sizing: border-box; }
+html body.product-experience-style #bonuses .bonus-receipt-help { margin-block: 0 12px; background: var(--panel); }
+html body.product-experience-style #bonuses .bonus-receipt-help > p { margin: 0; padding: 0 12px 12px; }
+html body.product-experience-style #bonuses .bonus-history-toolbar { flex-direction: row; flex-wrap: wrap; align-items: center; }
+html body.product-experience-style #bonuses .bonus-history-toolbar h2 { margin: 0; }
+html body.product-experience-style #bonuses .bonus-history-toolbar label { margin-left: auto; }
+html body.product-experience-style #bonuses .bonus-leaders-grid > section { padding: 14px; border-radius: 8px; background: var(--panel); }
+html body.product-experience-style #bonuses .bonus-leaders-grid h3 { margin-bottom: 8px; font-size: 15px; }
+html body.product-experience-style #bonuses .bonus-leaders-grid > section:has(> p) { display: grid; grid-template-columns: minmax(76px,1fr) minmax(0,2fr); align-items: center; gap: 12px; }
+html body.product-experience-style #bonuses .bonus-leaders-grid > section:has(> p) :is(h3,p) { margin: 0; }
+html body.product-experience-style #bonuses .bonus-leaders-grid > section > p { color: var(--muted); font-size: 12px; line-height: 1.5; }
+html body.product-experience-style #bonuses .bonus-wallet-list li:last-child { border-bottom: 0; }
+html body.product-experience-style #bonuses .bonus-wallet-list a { display: inline-flex; align-items: center; min-height: 44px; }
+html body.product-experience-style #bonuses .bonus-wallet-list li { align-items: center; padding-block: 2px; }
+html body.product-experience-style #bonuses .bonus-pagination { margin-block: 12px; }
 body.page-route-bonuses #bonuses:not([hidden]) [data-bonus-history-rows] tbody td:nth-child(2) a { scroll-margin-block: 100px; }
 @media (max-width: 1050px) { .bonus-leaders-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {

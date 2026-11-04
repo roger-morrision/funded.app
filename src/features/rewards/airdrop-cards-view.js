@@ -37,7 +37,7 @@ export function renderHomeRewardCards({ homeSpotlight, homeFundedTokens, homeRes
     const reserve = matched.get(launch.mint);
     const active = reserve.status === 'drop-active'
       && Number.isSafeInteger(reserve.expiresAt) && reserve.expiresAt > (Date.now() + offset) / 1000;
-    const card = document.createElement('article'); card.className = 'home-reward-token-card'; card.dataset.rewardMint = launch.mint;
+    const card = document.createElement('article'); card.className = 'token-card-shell home-reward-token-card'; card.dataset.rewardMint = launch.mint;
     const head = document.createElement('div'); head.className = 'home-reward-token-head';
     const avatar = document.createElement('span'); avatar.className = 'home-reward-token-logo'; avatar.setAttribute('aria-hidden', 'true');
     avatar.textContent = String(launch.symbol || launch.name || 'T').slice(0, 1).toUpperCase();

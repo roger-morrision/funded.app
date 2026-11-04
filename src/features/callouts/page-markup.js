@@ -1,0 +1,16 @@
+export function mountCalloutsPage(document = globalThis.document) {
+  if (document.getElementById("callouts")) return;
+  document.getElementById("leaderboard")?.insertAdjacentHTML("beforebegin", `<div class="callouts-page" id="callouts" role="region" aria-labelledby="callouts-title" data-column="latest">
+  <header class="callouts-head"><div><p class="eyebrow"><i class="live-dot" aria-hidden="true"></i>Live calls</p><h1 id="callouts-title">Callouts</h1><p>Wallet-signed observations with call-time, current and observed peak market caps. Rankings describe market observations.</p></div><a class="primary-button" href="#explore">Make a call</a></header>
+  <div class="callouts-toolbar"><div class="callouts-filters" role="group" aria-label="Filter calls"><button type="button" data-callouts-filter="all" aria-pressed="true">All</button><button type="button" data-callouts-filter="hot" aria-pressed="false">Hot · 2x+</button><button type="button" data-callouts-filter="mine" aria-pressed="false">Mine</button></div><button type="button" class="callouts-author-filter" id="callouts-author-filter" hidden>Wallet <span></span> ✕</button><small id="callouts-status" role="status">Loading calls…</small></div>
+  <p class="callouts-method" data-inline-status>Ranked by mean observed peak market-cap multiple over 7 days, from up to 500 recorded calls. Peaks are sampled while the feed is read. These are not realized wallet returns. <span data-callouts-network></span></p>
+  <div class="callouts-leaders" aria-labelledby="callouts-top-title"><p class="callouts-leaders-title" id="callouts-top-title">Top callers · 7 days</p><ol class="callouts-top" id="callouts-top"></ol></div>
+  <div class="callouts-tabs" role="group" aria-label="Choose a column"><button type="button" data-callouts-tab="latest" aria-pressed="true">Latest</button><button type="button" data-callouts-tab="top" aria-pressed="false">Top callers</button><button type="button" data-callouts-tab="conviction" aria-pressed="false">Conviction</button></div>
+  <div class="callouts-columns">
+    <div class="callouts-column" data-callouts-column="latest"><header><h2>Latest <span data-callouts-count="latest">0</span></h2><small>Every call, newest first</small></header><ol class="callouts-list" data-callouts-list="latest"><li class="callouts-empty-note">Loading calls…</li></ol></div>
+    <div class="callouts-column" data-callouts-column="top"><header><h2>Top callers <span data-callouts-count="top">0</span></h2><small>Calls from the ranked sample</small></header><ol class="callouts-list" data-callouts-list="top"><li class="callouts-empty-note">Loading calls…</li></ol></div>
+    <div class="callouts-column" data-callouts-column="conviction"><header><h2>Conviction <span data-callouts-count="conviction">0</span></h2><small>Callers who held the coin when they called it</small></header><ol class="callouts-list" data-callouts-list="conviction"><li class="callouts-empty-note">Loading calls…</li></ol></div>
+  </div>
+  <p class="callouts-footnote"><strong>How to make a call:</strong> open any coin, write in its Chat tab, tick “Call it” and post. The market cap and your holding are read on Solana when you post. Up to 10 calls an hour, one per coin every 30 minutes. A call is an opinion, not advice.</p>
+</div>`);
+}

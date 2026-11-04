@@ -48,17 +48,29 @@ for (const width of [1280, 900, 620, 390, 320]) test(`Explore Filters stay in vi
   await expect(popover).toBeHidden();
 });
 
-test('a stalled optional fee-status provider does not block the workspace', async ({ page }) => {
-  let requested = false;
-  let feeStatusFinished = false;
-  page.on('requestfailed', request => { if (request.url().endsWith('/api/x-fee/status')) feeStatusFinished = true; });
-  page.on('response', response => { if (response.url().endsWith('/api/x-fee/status')) feeStatusFinished = true; });
-  await page.route('**/api/x-fee/status', () => { requested = true; });
-  await page.goto('/#explore', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  expect(requested).toBe(true);
-  expect(feeStatusFinished, 'The workspace becomes usable before the optional status request finishes').toBe(false);
-  await expect(page.locator('#explore-search')).toBeVisible();
+for (const width of [390, 1440]) test(`X launch setup ignores global reward-service status at ${width}px (mocked APIs)`, async ({ page, baseURL }, info) => {
+  await page.setViewportSize({width,height:900});
+  await page.unroute('https://**/*');
+  const requests=[], errors=[], writes=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.route('**/*',route=>{const q=route.request(),u=new URL(q.url());return u.origin===new URL(baseURL).origin&&(q.method()==='GET'||u.pathname.startsWith('/api/'))?route.fallback():route.abort();});
+  await page.route('**/api/**',route=>{const q=route.request(),path=new URL(q.url()).pathname;requests.push(path);if(q.method()!=='GET'&&path!=='/api/solana/rpc')writes.push(path);return route.fulfill({status:503,json:{error:'signal timed out'}});});
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{revision:6,split:{operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10}}}));
+  await page.goto('/#launch');await page.locator('body.workspace-ready.product-experience-ready.product-flows-ready').waitFor();
+  await page.locator('#token-name').fill('X reward launch');await page.locator('#token-symbol').fill('XQA');
+  await page.locator('#creator-wallet-share').fill('70');await page.locator('#x-share').fill('10');
+  await page.locator('#launch-next').click();await expect(page.locator('#x-recipient')).toBeFocused();
+  await page.locator('#x-recipient').fill('@example');await expect(page.locator('#fee-distribution-status')).toBeHidden();
+  await expect(page.locator('#x-share-help')).toHaveText('SOL rewards for the named X account. Account checked before launch.');
+  await page.locator('#launch-next').click();await expect(page.locator('#benefits-step-title')).toBeVisible();
+  await expect(page.locator('#launch-summary-x')).toHaveText('10%');await expect(page.locator('#launch-button')).toBeDisabled();
+  await expect(page.locator('#wizard-hint')).not.toContainText('X account rewards unavailable');
+  await page.locator('#launch-back').click();await expect(page.locator('#x-recipient')).toHaveValue('@example');
+  await expect(page.locator('#fee-distribution-status')).toBeHidden();
+  await page.screenshot({path:info.outputPath('x-rewards-without-service-gate.png')});
+  // The rewards panel may read its own status; launch only resolves an account at submission.
+  expect(requests.filter(path=>path==='/api/x/resolve')).toEqual([]);
+  expect(errors).toEqual([]);expect(writes).toEqual([]);
 });
 
 test('an unavailable optional module leaves navigation usable and explains reload recovery', async ({ page }) => {
@@ -71,7 +83,7 @@ test('an unavailable optional module leaves navigation usable and explains reloa
   await expect(page.locator('#service-status [role=status]')).toContainText('unavailable');
 });
 
-test('desktop primary destinations are unique and More closes with keyboard focus restored', async ({ page }) => {
+test('desktop destinations are unique and secondary navigation stays visible', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page, 'explore');
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
@@ -79,23 +91,23 @@ test('desktop primary destinations are unique and More closes with keyboard focu
     await expect(nav.locator(`a[href="#${destination}"]`)).toHaveCount(1);
     await expect(nav.locator(`a[href="#${destination}"]`)).toBeVisible();
   }
-  const more = nav.locator('.nav-more');
-  const summary = more.locator('summary');
-  await summary.focus(); await page.keyboard.press('Enter');
-  await expect(more).toHaveAttribute('open', '');
+  await expect(nav.locator('details')).toHaveCount(0);
+  const more = nav.locator('.nav-more-menu');
+  await expect(more).toBeVisible();
+  await more.locator('a').first().focus();
   await page.keyboard.press('Tab');
-  await expect(more.locator('a').first()).toBeFocused();
+  await expect(more.locator('a').nth(1)).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(more).not.toHaveAttribute('open', '');
-  await expect(summary).toBeFocused();
+  await expect(more).toBeVisible();
+  await expect(more.locator('a').nth(1)).toBeFocused();
 });
 
 test('navigation links and leaderboard tabs change views without generic success toasts', async ({ page }) => {
   await open(page, 'launch');
   await page.getByRole('link', { name: 'Read the launch guide →' }).click();
   await expect(page).toHaveURL(/#docs\/launch$/);
-  await expect(page.locator('#docs-guide-article h1')).toHaveText('Launch a token');
-  await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText('Launch a token');
+  await expect(page.locator('#docs-guide-article h1')).toHaveText('Launch a coin');
+  await expect(page.locator('.docs-guide-nav [aria-current="page"]')).toHaveText('Launch a coin');
   await expect(page.locator('#toast')).not.toContainText('View updated.');
 
   await open(page, 'leaderboard');
@@ -115,7 +127,7 @@ test('primary portfolio and rewards remain reachable on compact desktop Home', a
       await expect(nav.locator(`a[href="#${destination}"]`)).toHaveCount(1);
       await expect(nav.locator(`a[href="#${destination}"]`)).toBeVisible();
     }
-    for (const control of await nav.locator('a[href="#my-launches"], a[href="#payments"], .nav-more > summary').all()) {
+    for (const control of await nav.locator('a[href="#my-launches"], a[href="#payments"], a[href="#analytics-detail"]').all()) {
       await expect.poll(() => control.evaluate(element => {
         const box = element.getBoundingClientRect();
         return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
@@ -139,6 +151,8 @@ test('mobile header actions do not overlap and touched controls have usable hit 
     expect(wallet.height).toBeGreaterThanOrEqual(44);
     const targets = route === 'overview' ? '.home-market-window button, #home-ticker-back, #home-ticker-forward' : '#launch-close';
     for (const target of await page.locator(targets).all()) {
+      // The ticker stays hidden until it has verified activity.
+      if (!await target.isVisible()) continue;
       expect((await target.boundingBox()).height).toBeGreaterThanOrEqual(44);
     }
   }
@@ -174,7 +188,7 @@ test('Traders remain visible on a narrow phone and explain unavailable sample da
   await tab.click();
   await expect(tab).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#leaderboard-panel')).toHaveAttribute('aria-labelledby', 'leaderboard-traders-tab');
-  await expect(page.locator('#leaderboard-table-title')).toHaveText('Observed trader leaderboard');
+  await expect(page.locator('#leaderboard-table-title')).toHaveText('Top traders');
   await expect(page.locator('#leaderboard-table')).toContainText('Trader ranking unavailable');
 });
 

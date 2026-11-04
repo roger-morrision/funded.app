@@ -1,3 +1,5 @@
+import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
+
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchFormController(appState) {
   // app-source: 641
@@ -54,11 +56,8 @@ export function createLaunchFormController(appState) {
     appState.launchMode = mode === 'custom' ? 'custom' : 'quick';
     const custom = appState.launchMode === 'custom';
     appState.setLaunchProfile(custom ? 'community' : 'fast');
-    document.querySelector('#custom-policy').hidden = !custom;
-    document.querySelector('#launch-mode-quick').classList.toggle('active', !custom);
-    document.querySelector('#launch-mode-quick').setAttribute('aria-pressed', String(!custom));
-    document.querySelector('#launch-mode-custom').classList.toggle('active', custom);
-    document.querySelector('#launch-mode-custom').setAttribute('aria-pressed', String(custom));
+    const policy=document.querySelector('#custom-policy');
+    policy.hidden = !custom && !policy.closest('[data-launch-step="1"]');
     if (!custom) {
       document.querySelector('#creator-wallet-share').value = '80';
       document.querySelector('#holder-airdrop-share').value = '0';
@@ -81,7 +80,7 @@ export function createLaunchFormController(appState) {
       communityTokens: Number(value('community-airdrop-tokens')), creatorBuySol: Number(value('creator-buy-sol')),
       creatorWalletPercent: Number(value('creator-wallet-share')), holderAirdropPercent: Number(value('holder-airdrop-share')),
       solClaimPercent: Number(value('x-share')), xRecipient: appState.normalizeXHandle(value('x-recipient')),
-      agencySelection:[...document.querySelectorAll('[data-launch-agency]:checked')].map(input=>input.value).sort(),
+      agencySelection:readLaunchAgencySelection(appState.getLaunchBurnPolicy()),
     };
   }
   // app-source-end
@@ -89,11 +88,6 @@ export function createLaunchFormController(appState) {
   // app-source: 644
   function setLaunchProfile(profile){
     appState.launchProfile = profile === 'fast' ? 'fast' : 'community';
-    document.querySelectorAll('[data-launch-profile]').forEach(card => {
-      const active = card.dataset.launchProfile === appState.launchProfile;
-      card.classList.toggle('active', active);
-      card.setAttribute('aria-pressed', String(active));
-    });
     const pageDetails = document.querySelector('.launch-page-details');
     if (appState.launchProfile === 'community') {
       if (pageDetails) pageDetails.open = true;
@@ -104,7 +98,7 @@ export function createLaunchFormController(appState) {
     }
     const hint = document.querySelector('#wizard-hint');
     if (hint && appState.launchStep === 1 && !document.querySelector('#token-name')?.value.trim()) {
-      hint.textContent = appState.launchProfile === 'fast' ? 'Quick setup: your 80% creator share goes to your wallet. Add a name and ticker.' : 'Community setup: choose holder and X rewards in Launch settings.';
+      hint.textContent = appState.launchProfile === 'fast' ? 'Quick setup: your 80% creator share goes to your wallet. Add a name and ticker.' : 'Community setup: choose holder and X rewards in the fee split form in step 1.';
     }
   }
   // app-source-end

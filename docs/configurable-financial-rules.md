@@ -1,6 +1,6 @@
 # Financial enforcement and configurable launch rules
 
-The program keeps custody, the 80% creator-directed / 20% protocol boundary,
+The program keeps custody, the 80% creator-directed / 20% shared-allocation boundary,
 per-category spending limits, recipient authorization, duplicate-payment
 protection, reward proofs, and atomic purchase/burn verification on-chain.
 Workers calculate eligibility and rankings, obtain external data, schedule
@@ -15,7 +15,7 @@ the publisher independently verifies the exact transaction, signature,
 configuration revision and current deployment before publishing the settings.
 An admin sign-in alone cannot authorize custody spending or replace that signature.
 
-All seven protocol categories must total 20% of gross collected creator fees.
+The seven shared-allocation categories together total 20% of collected creator fees. Only the Operations & marketing category is the app allocation; its published rate is 8%. The other 12% funds separate ecosystem benefits.
 Defaults remain Operations & marketing 8%, referrals 0.6% / 0.25% / 0.15%,
 Daily bonuses 4%, FUNDED buyback 5%, and agency 2%. Agency is configurable
 within that total. These are allocations of collected fees, not trading charges.

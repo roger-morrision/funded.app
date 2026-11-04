@@ -1,6 +1,10 @@
 
 
 /* The launch preview keeps its layout even if optional page styling fails to load. */
+#launch-dialog #launch-presentation-preview { margin: 16px 0 0; border: 1px solid var(--line, #354a60); border-radius: 8px; background: transparent; }
+#launch-dialog #launch-presentation-preview > summary { min-height: 44px; padding: 12px 14px; color: var(--text, #f1f5f6); font-size: 14px; line-height: 20px; cursor: pointer; }
+#launch-dialog #launch-presentation-preview > summary:focus-visible { outline: 3px solid var(--yellow, #ffd28a); outline-offset: 3px; }
+#launch-dialog #launch-presentation-preview .launch-package-preview { margin: 0; padding: 14px; border: 0; border-top: 1px solid var(--line, #354a60); border-radius: 0; background: transparent; }
 #launch-dialog .launch-package-preview {
   min-width: 0;
   margin: 20px 0 6px;

@@ -13,8 +13,8 @@ export function createTokenCardActions({ mint, symbol = 'TOKEN', name = '', clas
   watch.className = `watch-button token-card-action-watch${saved ? ' active' : ''}`;
   watch.dataset.mint = mint;
   watch.setAttribute('aria-pressed', String(saved));
-  watch.setAttribute('aria-label', saved ? 'Remove token from watchlist' : `Save ${symbol} to watchlist`);
-  watch.title = saved ? 'Remove from watchlist' : 'Save to watchlist';
+  watch.setAttribute('aria-label', saved ? 'Remove token from favorites' : `Add ${symbol} to favorites`);
+  watch.title = saved ? 'Remove from favorites' : 'Add to favorites';
   watch.innerHTML = icon(saved ? 'starFilled' : 'star');
 
   const share = document.createElement('button');

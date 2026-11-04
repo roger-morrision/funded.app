@@ -165,6 +165,10 @@ export function createTokenCardsController(appState) {
 
   // app-source: 312
   function portfolioTokenCardMarkup({ mint, name, symbol, removable = false }){
+    // Saved coins with market data use the shared token card; the compact row
+    // remains for coins known only from their launch policy.
+    const asset = appState.assets.find(item => item.address === mint);
+    if (asset) return appState.homeLaunchCardMarkup(asset, { volumeLabel: appState.exploreWindow, volumeValue: appState.launchCardVolumeUsd(asset, appState.exploreWindow), extraClass: removable ? ' watchlist-token-card' : '' });
     return appState.portfolioTokenCardMarkupView({ mint, name, symbol, removable }, { assets: appState.assets, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { exploreStageLabel: appState.exploreStageLabel, formatCoinUsd: appState.formatCoinUsd, launchCardVolumeUsd: appState.launchCardVolumeUsd, portfolioHolderCount: appState.portfolioHolderCount, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, tokenCardWatchMarkup: appState.tokenCardWatchMarkup, tokenCardShareMarkup: appState.tokenCardShareMarkup });
   }
   // app-source-end

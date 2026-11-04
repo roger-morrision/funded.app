@@ -14,7 +14,10 @@ export function initializeExploreFilters(appState) {
 
   // app-source: 432
   document.querySelector('#asset-grid')?.addEventListener('focusout', () => {
-    queueMicrotask(() => {
+    // Native pointer focus briefly leaves activeElement on body between blur and
+    // focus. Wait until that transition finishes before replacing pending cards,
+    // so moving between card actions cannot remove the clicked button.
+    requestAnimationFrame(() => {
       const grid = document.querySelector('#asset-grid');
       if (grid?.dataset.refreshPending && !grid.contains(document.activeElement)) appState.renderExploreAssets();
     });

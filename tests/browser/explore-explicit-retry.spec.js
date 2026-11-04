@@ -105,7 +105,7 @@ for (const width of [390, 1440]) {
       else if (departure === 'table') await page.locator('button[data-explore-view="table"]').click();
       else {
         const home = width === 390
-          ? page.getByRole('navigation', { name: 'Mobile workspace' }).getByRole('link', { name: 'Home' })
+          ? page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Home' })
           : page.locator('#sidebar a.nav-item[href="#overview"]');
         await home.click();
         await expect(page.locator('body')).toHaveClass(/page-route-overview/);
@@ -208,7 +208,7 @@ for(const width of[390,1440]){
  });
  test(`FQA-069 Home retains known curve snapshot after a failed native refresh at ${width}px`,async({page},info)=>{
   const f=await stageAvailabilityFixture(page,width,'curve');await f.open();await stageTab(page,'curve').click();await expect(page.locator('#home-launch-grid .home-launch-card')).toHaveCount(2);
-  const nav=name=>width===390?page.getByRole('navigation',{name:'Mobile workspace'}).getByRole('link',{name,exact:true}):page.locator('#sidebar a.nav-item[href="#'+(name==='Home'?'overview':'explore')+'"]');await nav('Explore').click();f.mode='rpc-failure';await page.locator('#explore-sort').selectOption('newest');await expect(page.locator('#explore-pulse-scope')).toHaveText('Launch stages use the last verified feed.');await nav('Home').click();await expect(stageTab(page,'curve')).toHaveAttribute('aria-selected','true');await expect(page.locator('#home-launch-grid .home-launch-card')).toHaveCount(2);await expect(page.locator('#home-launch-grid')).not.toContainText('verification is unavailable');await stageEvidence(page,info,f,'known-stale-'+width);
+  const nav=name=>width===390?page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name,exact:true}):page.locator('#sidebar a.nav-item[href="#'+(name==='Home'?'overview':'explore')+'"]');await nav('Explore').click();f.mode='rpc-failure';await page.locator('#explore-sort').selectOption('newest');await expect(page.locator('#explore-pulse-scope')).toHaveText('Launch stages use the last verified feed.');await nav('Home').click();await expect(stageTab(page,'curve')).toHaveAttribute('aria-selected','true');await expect(page.locator('#home-launch-grid .home-launch-card')).toHaveCount(2);await expect(page.locator('#home-launch-grid')).not.toContainText('verification is unavailable');await stageEvidence(page,info,f,'known-stale-'+width);
  });
 }
 
@@ -322,7 +322,7 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
   await inactive('hidden-regular-table-duplicate');
   await stageTab(page,'curve').click(); await active('retry-restored');
   const nav = name => width === 390
-   ? page.getByRole('navigation',{name:'Mobile workspace'}).getByRole('link',{name,exact:true})
+   ? page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name,exact:true})
    : page.locator('#sidebar a.nav-item[href="#'+(name==='Home'?'overview':'explore')+'"]');
   await nav('Explore').click();
   await expect(page.locator('body')).toHaveClass(/page-route-explore/);
@@ -334,7 +334,7 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
   const selector = view === 'grid' ? '#home-launch-grid [data-verified-feed-retry]'
    : '#home-launch-table-body [data-verified-feed-retry]';
   const retry = page.locator(selector);
-  const predecessorSelector = view === 'grid' ? '.home-feed-settings > summary' : '#home-table-sort-mc';
+  const predecessorSelector = view === 'grid' ? '.home-launch-toolbar .review-buy-setting input' : '#home-table-sort-mc';
   const predecessor = page.locator(predecessorSelector), walk = [];
   for (let i=0;i<80;i++) {
    const at = await predecessor.evaluate(e => ({same:document.activeElement===e,id:document.activeElement?.id,tag:document.activeElement?.tagName}));
@@ -345,7 +345,8 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
    const target = document.querySelector(selector), predecessor = document.querySelector(predecessorSelector);
    const tabbable = [...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
     .filter(e => e.tabIndex >= 0 && !e.disabled && !e.closest('[hidden],[inert]') && e.getClientRects().length
-     && getComputedStyle(e).visibility === 'visible');
+     && getComputedStyle(e).visibility === 'visible'
+     && (!e.closest('details:not([open])') || e.matches('details:not([open]) > summary')));
    const index = tabbable.indexOf(predecessor), next = tabbable[index+1];
    const observer = new Function('return ('+source+')')();
    const state = window.__homeRetryNative = {began:performance.now(),original:target};
@@ -353,9 +354,9 @@ for (const width of [390,1440]) for (const view of ['grid','table']) {
    document.addEventListener('keydown',e => {state.key={key:e.key,trusted:e.isTrusted,at:performance.now()};},{capture:true,once:true});
    return {at:performance.now(),predecessor:document.activeElement===predecessor,nextIsOriginal:index >= 0 && next===target,
     targetConnected:Boolean(target?.isConnected),targetCurrent:target===document.querySelector(selector),
-    next:{id:next?.id,tag:next?.tagName,retry:next?.hasAttribute('data-verified-feed-retry')}};
+    next:{id:next?.id,tag:next?.tagName,html:next?.outerHTML.slice(0,350),ancestor:next?.parentElement?.outerHTML.slice(0,450),retry:next?.hasAttribute('data-verified-feed-retry')}};
   },{selector,predecessorSelector,source:observeHomeRetryFocus.toString()});
-  expect(armed.predecessor).toBe(true); expect(armed.nextIsOriginal).toBe(true);
+  expect(armed.predecessor).toBe(true); expect(armed.nextIsOriginal,JSON.stringify(armed)).toBe(true);
   expect(armed.targetConnected).toBe(true); expect(armed.targetCurrent).toBe(true);
   const original = await page.evaluateHandle(() => window.__homeRetryNative.original);
   await page.keyboard.press('Tab');

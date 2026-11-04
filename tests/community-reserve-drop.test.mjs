@@ -3,10 +3,11 @@ import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import bs58 from 'bs58';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Keypair, SystemProgram } from '@solana/web3.js';
+import { Keypair, SystemProgram, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { communityAddresses } from '../server/community-claim-chain.mjs';
 import { rewardAddresses, rewardReserveAddress } from '../server/automatic-reward-chain.mjs';
 import { readCommunityReserveStatus, verifiedCommunityClaimedWalletCount } from '../server/community-reserve-status.mjs';
+import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 
 const key = () => Keypair.generate().publicKey;
 const programId = key(), authority = key(), creator = key(), mint = key(), eligibilityMint = key();
@@ -92,4 +93,31 @@ test('claimed wallet count requires payment PDAs that reconcile with on-chain cl
   await assert.rejects(verifiedCommunityClaimedWalletCount({ ...input, claimedBaseUnits:'31' }), /reconcile/);
   await assert.rejects(verifiedCommunityClaimedWalletCount({ ...input,
     connection:{ getProgramAccounts:async () => [{ pubkey:key(), account:{ owner:programId, data:bytes } }] } }), /does not match/);
+});
+
+test('verifies an SDK v0 opening receipt and exact debits without legacy instruction fields',async()=>{
+  const ix=new TransactionInstruction({programId,keys:openingKeys.slice(0,15).map((pubkey,index)=>({pubkey,isSigner:index===0,isWritable:true})),
+    data:Buffer.from(bs58.decode(openingData))});
+  const message=new TransactionMessage({payerKey:authority,recentBlockhash:key().toBase58(),instructions:[ix]}).compileToV0Message();
+  const sourceIndex=message.staticAccountKeys.findIndex(row=>row.equals(source)),destinationIndex=message.staticAccountKeys.findIndex(row=>row.equals(destination));
+  const transaction={slot:124,transaction:{message},meta:{err:null,
+    preTokenBalances:[tokenRow(sourceIndex,100),tokenRow(destinationIndex,0)],
+    postTokenBalances:[tokenRow(sourceIndex,0),tokenRow(destinationIndex,100)]}};
+  const status=await readCommunityReserveStatus({...input,connection:{...connection,getTransaction:async()=>transaction}});
+  assert.equal(status.verified,true);assert.equal(status.status,'drop-active');
+  transaction.meta.postTokenBalances=[tokenRow(sourceIndex,1),tokenRow(destinationIndex,99)];
+  assert.equal((await readCommunityReserveStatus({...input,connection:{...connection,getTransaction:async()=>transaction}})).verified,false);
+});
+
+test('binds the appended agency policy on a current 16-account v0 opening receipt',async()=>{
+  const receipt=policy=>{
+    const ix=new TransactionInstruction({programId,keys:[...openingKeys.slice(0,15),policy].map((pubkey,index)=>({pubkey,isSigner:index===0,isWritable:true})),
+      data:Buffer.from(bs58.decode(openingData))});
+    const message=new TransactionMessage({payerKey:authority,recentBlockhash:key().toBase58(),instructions:[ix]}).compileToV0Message();
+    const from=message.staticAccountKeys.findIndex(row=>row.equals(source)),to=message.staticAccountKeys.findIndex(row=>row.equals(destination));
+    return{slot:124,transaction:{message},meta:{err:null,preTokenBalances:[tokenRow(from,100),tokenRow(to,0)],postTokenBalances:[tokenRow(from,0),tokenRow(to,100)]}};
+  };
+  const check=transaction=>readCommunityReserveStatus({...input,connection:{...connection,getTransaction:async()=>transaction}});
+  assert.equal((await check(receipt(deriveAgencyPolicyV3(programId,mint).address))).verified,true);
+  assert.equal((await check(receipt(key()))).verified,false);
 });

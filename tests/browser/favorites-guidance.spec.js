@@ -3,7 +3,7 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const KEY = 'funded.app.watchlist.guest.v1';
 const MINT = 'So11111111111111111111111111111111111111112';
-const intro = 'Use the star on a token in Explore to add it to Favorites. Signed-out saving uses this browser; verify a wallet or sign in with X to sync across devices.';
+const intro = 'Star coins in Explore. Favorites stay on this device; verify a wallet or sign in with X to sync.';
 const ids = ['watchlist-wallet-sync', 'watchlist-sign-in', 'watchlist-sync-retry'];
 async function fixture(page, { mints = [], malformed = false, identity = 'guest', holdSync = false } = {}) {
   const writes = [], errors = []; let releaseSync, syncFails = false;
@@ -66,7 +66,7 @@ for (const width of [360, 390, 1440]) test(`Favorites native guidance and existi
   await expect(summary.locator('..')).not.toHaveAttribute('open', '');
   await page.keyboard.press('Tab'); await expect(summary).toBeFocused(); await page.keyboard.press('Enter'); await expect(summary.locator('..')).toHaveAttribute('open', '');
   await page.keyboard.press('Enter'); await expect(summary.locator('..')).not.toHaveAttribute('open', '');
-  const empty = page.locator('#watchlist-empty'), explore = empty.getByRole('link', { name: 'Explore tokens', exact: true });
+  const empty = page.locator('#watchlist-empty'), explore = empty.getByRole('link', { name: 'Explore coins', exact: true });
   await expect(empty).toContainText('No favorite tokens'); await expect(empty.locator('p')).toHaveText('Select the star on a token in Explore to add it here.');
   const e = await explore.boundingBox(); expect(e.height).toBeGreaterThanOrEqual(44); expect(e.width).toBeGreaterThanOrEqual(44);
   await page.keyboard.press('Tab'); await clearFocus(page, explore); await expect(explore).toHaveAttribute('href', '#explore');

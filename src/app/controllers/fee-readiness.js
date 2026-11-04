@@ -76,25 +76,5 @@ export function createFeeReadinessController(appState) {
   }
   // app-source-end
 
-  // app-source: 258
-  async function refreshXFeeStatus(){
-    try {
-      const result = await appState.apiRequest('/api/x-fee/status', { signal: AbortSignal.timeout(8000) });
-      appState.xFeeStatus = result.available && result.data?.ready === true ? result.data : { ready: false, reasons: result.data?.reasons || ['X fee service is unavailable'] };
-    } catch (error) { appState.xFeeStatus = { ready: false, reasons: [error.message || 'X fee service is unavailable'] }; }
-    const help = document.querySelector('#x-share-help');
-    if (help) help.textContent = appState.xFeeStatus.ready ? 'Verified X accounts can claim their share after mint-specific creator fees are collected.' : `Unavailable: ${appState.xFeeFailureDetail()}.`;
-    appState.updateLaunchPreview();
-    appState.updateLaunchButton();
-    if (appState.wallet) appState.scheduleLaunchCostRefresh();
-  }
-  // app-source-end
-
-  // app-source: 259
-  function xFeeFailureDetail(){
-    return appState.xFeeStatus.reasons.join('; ').trim().replace(/[.!?]+$/, '') || 'X fee service is unavailable';
-  }
-  // app-source-end
-
-  return { updateFundedMintConfig, refreshFeeRouterConfig, checkFeeRouterConfig, refreshXFeeStatus, xFeeFailureDetail };
+  return { updateFundedMintConfig, refreshFeeRouterConfig, checkFeeRouterConfig };
 }

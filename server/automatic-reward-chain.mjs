@@ -15,6 +15,7 @@ import {
 } from '@solana/spl-token';
 import { SOL_ASSET_MINT, verifyRewardProof } from '../reward-merkle.js';
 import {readProgramDataEvidence} from './program-data-evidence.mjs';
+import {requireNativeRewardRecipient} from './native-reward-recipient.mjs';
 export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
@@ -299,6 +300,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     let vaultTokenAddress = null, vaultTokenBefore = null;
     if (plan.manifest.asset === 'SOL') {
       before = await connection.getBalance(recipient, 'finalized');
+      await requireNativeRewardRecipient(connection,recipient,leaf.amount,before);
       keys.push({ pubkey: payment, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
     } else {
       const mint = new PublicKey(plan.manifest.asset);

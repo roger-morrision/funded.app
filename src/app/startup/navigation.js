@@ -13,11 +13,21 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   const mobileNavigation=window.matchMedia('(max-width: 700px)');
+  // CSS can hide the mobile rail and blur its link before the media event fires.
+  let mobileFocusOwner=null;
+  document.addEventListener('focusin',event=>{mobileFocusOwner=event.target.closest('.mobile-navigation-links a');});
+  document.addEventListener('pointerdown',event=>{if(!event.target.closest('.mobile-navigation-links a'))mobileFocusOwner=null;});
   appState.setMenuOpen(false);
   mobileNavigation.addEventListener('change', () => {
-    if (!mobileNavigation.matches&&document.activeElement===document.querySelector('#close-menu'))
-      appState.desktopSidebarToggle?.focus();
-    appState.setMenuOpen(false,mobileNavigation.matches);
+    const active=document.activeElement;
+    const mobileLink=active?.closest('.mobile-navigation-links a')||(active===document.body?mobileFocusOwner:null);
+    mobileFocusOwner=null;
+    const sidebarOwnedFocus=document.querySelector('#sidebar')?.contains(active);
+    appState.setMenuOpen(false,mobileNavigation.matches&&sidebarOwnedFocus);
+    if (!mobileNavigation.matches) {
+      if (mobileLink) [...document.querySelectorAll('#sidebar .nav-item')].find(link=>link.getAttribute('href')===mobileLink.getAttribute('href'))?.focus();
+      else if (active===document.querySelector('#close-menu')||active===document.querySelector('#open-menu')) appState.desktopSidebarToggle?.focus();
+    }
   });
 
   // app-source: 851
@@ -41,6 +51,7 @@ export async function initializeNavigation(appState) {
     launch: '#launch-route-shell',
     list: '#list',
     explore: '#explore',
+    callouts: '#callouts',
     payments: '#payments',
     'analytics-detail': '#analytics-detail',
     'my-launches': '#my-launches',
@@ -73,9 +84,9 @@ export async function initializeNavigation(appState) {
   // app-source: 861
   const routeGuideCopy = {
     payments: { group: 'Workspace', state: 'Confirmed payments', description: 'See rewards linked to your wallet and check what is ready to claim.', primary: ['View analytics', '#analytics-detail'], secondary: ['How claims work', '#docs'] },
-    'analytics-detail': { group: 'Workspace', state: 'Platform activity', description: 'Explore launches, fees, payments, trades, airdrops, referrals, and burns.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
+    'analytics-detail': { group: 'Workspace', state: 'Platform activity', description: 'Launches, fees, rewards and trading activity.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
     'my-launches': { group: 'Build', state: 'Your portfolio', description: 'See your launches, market activity, and token actions together.', primary: ['Launch a project', '#launch'], secondary: ['Launch guide', '#docs'] },
-    referrals: { group: 'Growth', state: 'Connect wallet to view payouts', description: 'Share your invite link and follow creator activity and rewards.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
+    referrals: { group: 'Growth', state: 'Connect wallet to view payouts', description: 'Invite creators. Track rewards.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
     community: { group: 'Growth', state: 'Account favorites', description: 'Verify the same wallet or sign in with X to sync favorite tokens across devices.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
     leaderboard: { group: 'Growth', state: 'Confirmed activity', description: 'Explore creator and $FUNDED burn rankings.', primary: ['Explore launches', '#explore'], secondary: ['View service status', '#docs'] },
     airdrops: { group: 'Growth', state: 'Claim status', description: 'Check planned airdrops, eligibility, and claims for each launch.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
@@ -218,7 +229,8 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 884
-  void appState.refreshLaunchTierPricing();
+  // Only Launch and the $FUNDED page show tier prices; other pages skip this slow quote.
+  if (['launch', 'paid'].includes(appState.requestedPageRoute())) void appState.refreshLaunchTierPricing();
   // app-source-end
 
   // app-source: 885
@@ -226,7 +238,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 886
-  appState.createRoutePoller({ run: () => appState.refreshLaunchTierPricing(), active: () => appState.requestedPageRoute() === 'launch', intervalMs: 60_000 });
+  appState.createRoutePoller({ run: () => appState.refreshLaunchTierPricing(), active: () => ['launch', 'paid'].includes(appState.requestedPageRoute()), intervalMs: 60_000 });
   // app-source-end
 
   // app-source: 887
@@ -239,7 +251,15 @@ export async function initializeNavigation(appState) {
 
   // app-source: 889
   // Launch controls stay gated by their verified state while the workspace renders.
-  void Promise.allSettled([appState.refreshFeeRouterConfig(), appState.refreshXFeeStatus()]);
+  // Only Launch needs this slow readiness check; run it once, when Launch first opens.
+  let launchReadinessRequested = false;
+  const requestLaunchReadiness = () => {
+    if (launchReadinessRequested || appState.requestedPageRoute() !== 'launch') return;
+    launchReadinessRequested = true;
+    void appState.refreshFeeRouterConfig();
+  };
+  requestLaunchReadiness();
+  window.addEventListener('funded:route-change', requestLaunchReadiness);
   // app-source-end
 
   // app-source: 890

@@ -1,7 +1,8 @@
 import bs58 from 'bs58';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey, Transaction } from '@solana/web3.js';
+import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { buildMintRouterV3SettlementInstruction } from '../../mint-router-v3.js';
-import {buildV3PolicySettlement} from '../v3-policy-builders.mjs';
+import {buildV3PolicySettlement, buildV3AutoPolicySettlement} from '../v3-policy-builders.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
 import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
@@ -12,7 +13,7 @@ import { allowedAuthOrigin } from '../x-auth.mjs';
 import { v3ReferralUpline } from '../v3-referral-entitlement.mjs';
 
 export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, solanaRpcUrl,
-  v3AuthorityKeypair, respond, env = process.env,
+  v3AuthorityKeypair, requireAuthorized = () => false, respond, env = process.env,
   connectionFactory = url => new Connection(url, 'finalized'),
   verifyReadiness = verifyV3LaunchRouterReadiness,
   loadCollection = loadFinalizedV3PumpCollection,
@@ -24,23 +25,28 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
   originAllowed = allowedAuthOrigin }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleV3CreatorSettlement(req, res, url) {
+    const automatic = req.method === 'POST' && url.pathname === '/api/keeper/settle-v3';
     const match = req.method === 'POST'
       ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/v3-settlement\/([^/]+)$/) : null;
-    if (!match) return false;
-    if (solanaCluster !== 'devnet' || !originAllowed(req, env.CORS_ORIGIN)) {
+    if (!match && !automatic) return false;
+    if (automatic && !requireAuthorized(req, res)) return true;
+    if (solanaCluster !== 'devnet' || !automatic && !originAllowed(req, env.CORS_ORIGIN)) {
       return json(res, 403, { error:'V3 settlement requires the Devnet app origin.' });
     }
     if (env.FUNDED_V3_SETTLEMENT_ENABLED !== 'true') {
-      return json(res, 503, { error:'Creator-signed V3 settlement is not activated.' });
+      return json(res, 503, { error:'V3 settlement is not activated.' });
     }
+    if (automatic && env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED !== 'true') {
+      return json(res, 503, { error:'Automatic V3 settlement requires the upgraded Devnet program and explicit activation.' });
+    }
+    const input = await body(req);
     let mint;
-    try { mint = new PublicKey(decodeURIComponent(match[1])).toBase58(); }
+    try { mint = new PublicKey(automatic ? String(input?.mint || '') : decodeURIComponent(match[1])).toBase58(); }
     catch { return json(res, 400, { error:'A valid mint is required.' }); }
-    const collectionSignature = decodeURIComponent(match[2]);
+    const collectionSignature = automatic ? String(input?.collectionSignature || '') : decodeURIComponent(match[2]);
     if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(collectionSignature)) {
       return json(res, 400, { error:'A valid collection signature is required.' });
     }
-    const input = await body(req);
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim();
     if (!programId || !/^[a-f0-9]{64}$/i.test(approvedHash)) {
@@ -115,10 +121,10 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
         blockhash:prior.blockhash });
       if (!retry.retry) return json(res, 409, { error:retry.reason });
     }
-    const settlement = buildV3PolicySettlement({ programId, mint,split:launch.pumpFeeRoute.protocolSplit,
+    const settlement = (automatic ? buildV3AutoPolicySettlement : buildV3PolicySettlement)({ programId, mint,split:launch.pumpFeeRoute.protocolSplit,
       authority:authority.publicKey, creator:launch.creatorWallet,
       claimId:source.claimId, expectedLamports:source.expectedLamports });
-    if (!input?.creatorSignedTransaction) {
+    if (!automatic && !input?.creatorSignedTransaction) {
       const latest = await connection.getLatestBlockhash('finalized');
       return json(res, 202, { status:'awaiting-creator-signature', mint,
         collectionSignature, creatorWallet:launch.creatorWallet,
@@ -127,9 +133,13 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
           authority:authority.publicKey, blockhash:latest.blockhash }),
         lastValidBlockHeight:latest.lastValidBlockHeight });
     }
-    const transaction = verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
-      instruction:settlement.instruction, authority:authority.publicKey,
-      creator:launch.creatorWallet });
+    const transaction = automatic
+      ? new Transaction({feePayer:authority.publicKey,
+        recentBlockhash:(await connection.getLatestBlockhash('finalized')).blockhash})
+        .add(settlement.instruction)
+      : verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
+        instruction:settlement.instruction, authority:authority.publicKey,
+        creator:launch.creatorWallet });
     transaction.partialSign(authority);
     const settlementSignature = bs58.encode(transaction.signature);
     const locked = await store.update(current => {
@@ -147,7 +157,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
       return true;
     });
     if (!locked) return json(res, 409, { error:'V3 settlement state changed before submission.' });
-    const submitted = await submitTransaction({ connection, transaction, authority });
+    const submitted = await submitTransaction({ connection, transaction, authority, automatic });
     if (submitted !== settlementSignature) throw new Error('Finalized V3 settlement signature changed.');
     const finalized = await loadSettlement({ ...proofInput, signature:submitted });
     if (!finalized || finalized.claimId !== collection.claimId

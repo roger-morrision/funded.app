@@ -8,6 +8,10 @@ import { receiptFingerprint } from './receipt-history.mjs';
 import { followingWindow } from './following-updates.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { validateInput } from './http-policy.mjs';
+import { publicCreatorUpdates, upcomingCreatorUpdates, creatorUpdateMutation } from './creator-announcements.mjs';
+import { saveCreatorBrief } from './creator-brief.mjs';
+import { createProductIssueRoutes } from './routes/product-issues.mjs';
+import { validatePreferenceTransfer } from '../experience-preferences.js';
 export { eligibleSupportLaunches } from './creator-directory.mjs';
 const financialInputs=state=>Object.fromEntries(['launches','collections','v3Settlements','v3CreatorRewardFunding','v3XClaims'].map(bucket=>[bucket,state[bucket]||{}]));
 const sameFinancialInputs=(before,after)=>receiptFingerprint('creator-inputs',financialInputs(before))===receiptFingerprint('creator-inputs',financialInputs(after));
@@ -62,7 +66,9 @@ export function buildCreatorSupport(state, id, evidence, cluster) {
     coins: launches.map(launch => ({ mint: launch.mint, name: launch.name || 'Unnamed coin', symbol: launch.symbol || '',
       creatorWallet: launch.creatorWallet, sharePercent: launch.feeDistribution.creatorDirected.shares.solClaimPercent,
       authorization: creatorAuthorization(profile, launch.mint) })),
-    updates: profile?.identityVerified ? (profile.updates || []).slice(-20).reverse() : [],
+    updates: profile?.identityVerified ? publicCreatorUpdates(profile.updates).slice(-20).reverse() : [],
+    upcoming: profile?.identityVerified ? upcomingCreatorUpdates(profile.updates) : [],
+    brief:profile?.identityVerified ? profile.brief || null : null,
     receipts, paidLamports,
     evidenceStatus:'recorded-finalized-v3',
     coverage:'Finalized V3 X claim records; independent RPC recheck is not included.',
@@ -83,11 +89,13 @@ export function updateCreatorProfile(state, user, input, now = new Date().toISOS
     authorizedMints: input.optedOut ? [] : [...new Set(input.authorizedMints)], updatedAt: now };
 }
 
-export function createCreatorSupportHandler({ store, cluster, getSession, readEvidence, readFinalizedEvidence, capabilities }) {
+export function createCreatorSupportHandler({ store, cluster, getSession, readEvidence, readFinalizedEvidence, capabilities, requireAuthorized }) {
+  const issues = createProductIssueRoutes({store,cluster,requireAuthorized});
   const cards=new Map();
   const capabilityCache=createReadCache({ttlMs:15000,maxEntries:1});
   const respond = (res, status, data) => { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(data)); return true; };
   return async (req, res, url) => {
+    if (await issues(req,res,url)) return true;
     if (!url.pathname.startsWith('/api/creators') && !url.pathname.startsWith('/api/creator-support') && url.pathname !== '/api/capabilities') return false;
     if(req.method==='GET'&&!await store.chargeRpcRate(`creator-read:${req.socket?.remoteAddress||'local'}`,1,120,Math.floor(Date.now()/60000)*60000))return respond(res,429,{error:'Creator read limit reached. Please wait before refreshing.'});
     if (req.method === 'GET' && url.pathname === '/api/capabilities') return respond(res, 200, await capabilityCache('capabilities',capabilities));
@@ -102,16 +110,18 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
       session.creatorCsrf ||= randomBytes(24).toString('hex');
       const state = await store.readCreatorState(String(session.user.id),cluster,{financial:false});
       return respond(res, 200, { csrf: session.creatorCsrf, user: { id: session.user.id, username: session.user.username },
+        announcements:{ scheduling:cluster === 'devnet', maxPending:10, maxDays:30 },
+        content:{briefs:cluster === 'devnet',preferenceSync:cluster === 'devnet'},
         profile: state.creatorProfiles?.[session.user.id] || null,
         coins: eligibleSupportLaunches(state, cluster).filter(row => row.xUserId === session.user.id).map(row => ({ mint: row.mint, name: row.name })) });
     }
-    if (req.method === 'POST' && ['/api/creator-support/profile', '/api/creator-support/updates', '/api/creator-support/preferences'].includes(url.pathname)) {
+    if (req.method === 'POST' && ['/api/creator-support/profile', '/api/creator-support/updates', '/api/creator-support/preferences', '/api/creator-support/brief', '/api/creator-support/device-preferences'].includes(url.pathname)) {
       if (cluster !== 'devnet') return respond(res, 503, { error: 'Creator support is unavailable for this configuration.' });
       if (!session?.user?.id) return respond(res, 401, { error: 'Verified X sign-in is required.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN) || !session.creatorCsrf || req.headers['x-creator-csrf'] !== session.creatorCsrf) return respond(res, 403, { error: 'Reload your creator settings before saving.' });
       if (!await store.chargeRpcRate(`creator-write:${session.user.id}`, 1, 10, Math.floor(Date.now()/60000)*60000)) return respond(res, 429, { error: 'Please wait before updating again.' });
       let input;
-      try { input = await readJsonBody(req, { maxBytes: 16000 }); }
+      try { input = await readJsonBody(req, { maxBytes: url.pathname.endsWith('/device-preferences')?100000:16000 }); }
       catch (error) {
         if (!req.complete) { res.shouldKeepAlive = false; res.setHeader('connection', 'close'); }
         return respond(res, error.statusCode || 400, { error: error.message });
@@ -119,6 +129,8 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
       try {
         const result = await store.updateCreatorProfile(String(session.user.id), state => validateInput(() => {
           if (url.pathname.endsWith('/profile')) return updateCreatorProfile(state, session.user, input);
+          if (url.pathname.endsWith('/brief')) return saveCreatorBrief(state.creatorProfiles?.[session.user.id],input);
+          if(url.pathname.endsWith('/device-preferences')){const preferences=validatePreferenceTransfer(input);state.creatorProfiles||={};const profile=state.creatorProfiles[session.user.id]||={id:String(session.user.id)};profile.workspacePreferences=preferences;return {saved:true,preferences};}
           if(url.pathname.endsWith('/preferences')) {
             if(!Array.isArray(input.following)||input.following.length>200||input.following.some(id=>typeof id!=='string'||!validXId(id)))throw new Error('Choose up to 200 valid creator accounts.');
             state.creatorProfiles ||= {};const profile=state.creatorProfiles[session.user.id] ||= {id:String(session.user.id)};
@@ -126,10 +138,7 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
           }
           const profile = state.creatorProfiles?.[session.user.id];
           if (!profile?.identityVerified || profile.optedOut || !profile.listed) throw new Error('Opt in to your public creator page before publishing updates.');
-          const text = typeof input.text === 'string' ? input.text.trim() : '';
-          if (!text || text.length > 280) throw new Error('Updates must contain 1–280 characters.');
-          const update = { id: randomBytes(12).toString('hex'), text, createdAt: new Date().toISOString() };
-          profile.updates = [...(profile.updates || []), update].slice(-20); return update;
+          return creatorUpdateMutation(profile, input, randomBytes(12).toString('hex'));
         }));
         return respond(res, 200, result);
       } catch (error) {

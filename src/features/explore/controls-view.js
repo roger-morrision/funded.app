@@ -66,13 +66,13 @@ export function renderExploreControls(
     ['#scanner-volume-heading', `${exploreWindow} volume`],
     ['#scanner-trades-heading', `${exploreWindow} trades`],
   ]) { const node = document.querySelector(selector); if (node) node.textContent = label; }
-  document.querySelectorAll('[data-explore-view]').forEach(button => {
+  document.querySelectorAll('button[data-explore-view]').forEach(button => {
     const active = button.dataset.exploreView === exploreView;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
   const checked = document.querySelector('#explore-last-updated');
-  if (checked) checked.hidden = Boolean(exploreUpdatedAt);
+  if (checked) { checked.hidden = false; checked.dataset.inlineStatus = ''; }
   if (checked) checked.textContent = exploreUpdatedAt ? `Checked ${new Date(exploreUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for first check';
 }
 
@@ -107,10 +107,10 @@ export function renderExploreBenefitLeaders(
     if (!leader && !hasVerifiedField) return '';
     const value = leader
       ? definition.policy ? formatVerifiedPercent(leader[definition.field]) : formatExploreUsd(leader[definition.field], { partial: leader.windowCoverage === 'partial' })
-      : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
+      : hasVerifiedField && definition.policy ? 'None yet' : 'Unavailable';
     const detail = leader
       ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
-      : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
+      : hasVerifiedField && definition.policy ? 'No launch offers this yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
     const canRank = leader && !document.querySelector(`#explore-sort option[value="${definition.sort}"]`)?.disabled;
     return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${canRank ? '' : 'disabled'} ${leader && !canRank ? 'title="Ranking needs more verified data"' : ''}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
   }).filter(Boolean);
@@ -144,7 +144,9 @@ export function renderExplorePayoutStats(
     { label:'Top $FUNDED holder paid', kind:'fundedHolder', top:true },
     { label:'Top creator paid', kind:'creator', top:true },
   ];
-  container.innerHTML = cards.map(card => {
+  // One coverage note for the whole section instead of repeating it on every card.
+  const coverageMarkup = loading ? '' : `<p class="explore-payout-coverage"${coverage.reason ? ` data-state="stale"` : ''}>${escapeHtml(coverage.text)}${coverage.reason ? ` · ${escapeHtml(coverage.reason)}` : ''}</p>`;
+  container.innerHTML = coverageMarkup + cards.map(card => {
     const group = ready && stats[card.kind] ? stats[card.kind] : loading ? null : { status: 'unavailable' };
     const available = ['verified', 'partial'].includes(group?.status);
     const leader = available && card.top ? group.top : null;
@@ -154,10 +156,11 @@ export function renderExplorePayoutStats(
         : !available ? 'Checking finalized community claims'
           : leader ? `${shortAddress(leader.recipient)} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
             : 'No finalized community claims yet';
+      // The section note already shows when payouts were checked; keep this card's own time as a tooltip.
       const checkedAt = Date.parse(group?.indexedAt || '');
       const freshness = Number.isFinite(checkedAt)
-        ? `<small>Finalized index checked ${escapeHtml(new Date(checkedAt).toISOString().slice(11, 16))} UTC</small>` : '';
-      return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small>${freshness}</article>`;
+        ? ` title="Claims checked ${escapeHtml(new Date(checkedAt).toISOString().slice(11, 16))} UTC"` : '';
+      return `<article data-state="${group?.status || 'loading'}"${freshness}><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`;
     }
     const amount = card.top ? leader?.paidLamports : group?.paidLamports;
     const count = card.top ? leader?.payoutCount : group?.payoutCount;
@@ -177,7 +180,6 @@ export function renderExplorePayoutStats(
     const detailMarkup = profile
       ? `<a href="${escapeHtml(profile)}" target="_blank" rel="noopener noreferrer">${escapeHtml(detail)} ↗</a>`
       : `<small>${escapeHtml(detail)}</small>`;
-    const coverageMarkup = loading ? '' : `<small>${escapeHtml(coverage.text)}</small>${coverage.reason ? `<small>${escapeHtml(coverage.reason)}</small>` : ''}`;
-    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${coverageMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
+    return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong>${detailMarkup}${group?.status === 'partial' ? `<em${group.reason ? ` title="${escapeHtml(group.reason)}"` : ''}>Partial coverage</em>` : ''}</article>`;
   }).join('');
 }

@@ -141,6 +141,7 @@ export function initializeExploreFiltersActions(appState) {
     const program = appState.getAirdropPrograms().find(item => item.id === button.dataset.directoryMint);
     if (!program) return;
     openAirdropDetail(program);
+    void appState.loadCommunityReserveStatuses({ mint:program.id });
     if (appState.connectedWalletAddress && program.claimActive)
       void appState.checkCommunityClaim(program.id).catch(error => appState.showToast(String(error.message || error)));
   });
@@ -152,6 +153,11 @@ export function initializeExploreFiltersActions(appState) {
 
   // app-source: 819
   document.querySelector('#airdrop-selected-status')?.addEventListener('click', event => {
+    const retry = event.target.closest('[data-retry-community-mint]');
+    if (retry && !retry.disabled) {
+      retry.disabled = true; retry.textContent = 'Checking this mint...';
+      void appState.loadCommunityReserveStatuses({ mint:retry.dataset.retryCommunityMint });
+    }
     const button = event.target.closest('[data-fund-community-mint]');
     if (button) void appState.fundCommunityReserve(button.dataset.fundCommunityMint);
     const check = event.target.closest('[data-check-community-mint]');

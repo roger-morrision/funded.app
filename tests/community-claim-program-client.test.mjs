@@ -20,6 +20,7 @@ async function attemptClaim({ scope, routeProgram, reserveProgram, instructionPr
   const session = { address:wallet, provider };
   const appState = {
     captureWalletSession:() => session, canSignTransactions:() => true,
+    readPendingCommunityClaim:() => null,
     communityClaimReview:{ mint, wallet, amount:'5', index:0, at:Date.now() },
     apiRequest:async () => ({ available:true, data:{ accounts:[], amount:'5', programId:instructionProgram } }),
     getSolana:async () => ({ PublicKey:class { constructor(value) { this.value = value; } toBase58() { return this.value; } } }),

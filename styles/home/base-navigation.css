@@ -45,49 +45,6 @@ body.page-route-overview .preview-status-drawer {
 body.page-route-overview .preview-status-drawer a { color: var(--home-green); }
 
 /* Turn the existing navigation into the slim horizontal bar in the reference. */
-@media (min-width: 1180px) {
-  html.sidebar-collapsed body.page-route-overview .main-content { width: 100%; margin-left: 0; }
-  body.page-route-overview .sidebar,
-  .sidebar-collapsed body.page-route-overview .sidebar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 32px;
-    width: 100%;
-    height: 58px;
-    padding: 0 max(32px, calc((100vw - 1540px) / 2));
-    border: 0;
-    border-bottom: 1px solid var(--home-line);
-    background: #080a0df5;
-    box-shadow: none;
-  }
-  body.page-route-overview .sidebar .brand-row { flex: none; padding: 0; }
-  html.sidebar-collapsed body.page-route-overview .sidebar .brand-row { justify-content: flex-start; }
-  body.page-route-overview .sidebar .brand { font-size: 17px; white-space: nowrap; }
-  html.sidebar-collapsed body.page-route-overview .sidebar .brand { gap: 9px; }
-  html.sidebar-collapsed body.page-route-overview .sidebar .brand > span:last-child { display: inline; }
-  body.page-route-overview .sidebar .brand-mark { border-radius: 4px; background: var(--home-green); }
-  body.page-route-overview .sidebar .primary-nav { display: flex; align-items: center; gap: 4px; padding: 0; overflow: visible; }
-  body.page-route-overview .sidebar .nav-label,
-  body.page-route-overview .sidebar .nav-icon,
-  body.page-route-overview .sidebar-footer,
-  body.page-route-overview .desktop-sidebar-toggle { display: none; }
-  body.page-route-overview .sidebar .nav-item { min-height: 36px; margin: 0; padding: 8px 11px; border: 0; border-radius: 2px; background: transparent; box-shadow: none; color: #808b97; font: 700 10px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
-  body.page-route-overview .sidebar .nav-item:hover,
-  body.page-route-overview .sidebar .nav-item.active { color: var(--home-green); }
-  html.sidebar-collapsed body.page-route-overview .sidebar .nav-item { justify-content: flex-start; gap: 12px; min-height: 36px; padding: 8px 11px; font-size: 10px; }
-  html.sidebar-collapsed body.page-route-overview .sidebar .primary-nav { overflow: visible; }
-  body.page-route-overview .sidebar .nav-more { margin: 0 0 0 2px; }
-  body.page-route-overview .sidebar .nav-more summary { color: #87919b; font: 700 10px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
-}
-@media (min-width: 1201px) {
-  body.page-route-overview .sidebar .nav-horizontal-only { display: inline-flex; }
-  body.page-route-overview .sidebar { gap: 18px; }
-  body.page-route-overview .sidebar .nav-item { padding-inline: 7px; }
-}
 body.page-route-overview .topbar {
   position: absolute;
   top: 0;

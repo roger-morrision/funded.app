@@ -143,8 +143,8 @@ async function favoriteFixture(page, width, { account = false, market = false, o
   };
   f.releaseInitial=()=>{f.initialReleased=true;f.reserveGates.forEach(gate=>gate.release());};
   f.hold=key=>{expect(f[key]).toBeUndefined();const gate=favoriteGate();f[key]=gate;f.allGates.push(gate);return gate;};
-  f.home=async()=>{if(width<700)await page.getByRole('navigation',{name:'Mobile workspace'}).getByRole('link',{name:'Home',exact:true}).click();else await page.locator('#sidebar a[href="#overview"]').first().click();await expect(page).toHaveURL(/#overview$/);};
-  f.favorites=async()=>{if(width<700)await page.getByRole('navigation',{name:'Mobile workspace'}).getByRole('link',{name:'Portfolio',exact:true}).click();else await page.locator('#sidebar a[href="#my-launches"]').first().click();await expect(page).toHaveURL(/#my-launches$/);await page.getByRole('navigation',{name:'Portfolio sections'}).getByRole('link',{name:'Favorites',exact:true}).click();await expect(page).toHaveURL(/#community$/);};
+  f.home=async()=>{if(width<700)await page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name:'Home',exact:true}).click();else await page.locator('#sidebar a[href="#overview"]').first().click();await expect(page).toHaveURL(/#overview$/);};
+  f.favorites=async()=>{if(width<700)await page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name:'Portfolio',exact:true}).click();else await page.locator('#sidebar a[href="#my-launches"]').first().click();await expect(page).toHaveURL(/#my-launches$/);await page.getByRole('navigation',{name:'Portfolio sections'}).getByRole('link',{name:'Favorites',exact:true}).click();await expect(page).toHaveURL(/#community$/);};
   f.registryRefresh=async()=>{const gate=f.hold('registryGate');await f.home();await gate.started;await f.favorites();return gate;};
   f.finish=async info=>{f.initialReleased=true;f.oldLogoReleased=true;f.allGates.forEach(gate=>gate.release());await info.attach('requests-and-guards',{body:JSON.stringify({reads:f.reads,forbidden:f.forbidden,errors:f.errors},null,2),contentType:'application/json'});expect(f.forbidden).toEqual([]);expect(f.errors).toEqual([]);};
   return f;
@@ -495,7 +495,7 @@ function following082Observe(page) {
   };
   page.on('request',request=>{
     const u=new URL(request.url());if(!u.pathname.startsWith('/api/'))return;
-    const row={request,path:u.pathname,method:request.method(),state:'pending',
+    const row={request,path:u.pathname,method:request.method(),state:'pending',priorRequestEvents:requests.filter(row=>row.request===request).length,
       phase:closing?'owned-context-close':'journey',startedDuringOwnedClose:Boolean(closing)};
     requests.push(row);
     if(contextClosed)failed(row,'request-observed-after-owned-close','Owned context is already closed; no response-body completion claimed');
@@ -503,9 +503,10 @@ function following082Observe(page) {
   page.on('requestfailed',request=>{
     const row=requests.find(r=>r.request===request);if(row)failed(row,'requestfailed',request.failure()?.errorText||'Request failed');
   });
+  page.on('requestfinished',request=>{const row=requests.find(row=>row.request===request);if(row)row.networkFinished=true;});
   page.on('response',response=>{
     const row=requests.find(r=>r.request===response.request());if(!row)return;
-    row.status=response.status();
+    row.status=response.status();row.responseEvents=(row.responseEvents||0)+1;
     const work=(async()=>{try{
       row.finishedError=await response.finished();
       if(row.finishedError!==null){failed(row,'response-finished-error',row.finishedError);return;}
@@ -519,8 +520,9 @@ function following082Observe(page) {
       for(const row of requests)if(row.state==='pending'&&row.startedDuringOwnedClose)
         failed(row,'owned-context-closed-without-response-event','Actual owned context close completed; no response-body completion claimed');
     },settle:async({allowCloseCancellation=false}={})=>{
-    await expect.poll(()=>pending.size).toBe(0);
-    await expect.poll(()=>requests.filter(r=>r.state==='pending').length).toBe(0);
+    try{await expect.poll(()=>pending.size).toBe(0);
+    await expect.poll(()=>requests.filter(r=>r.state==='pending').length).toBe(0);}
+    catch(error){error.message+='\nAPI observation state: '+JSON.stringify(requests.filter(row=>row.state!=='complete').map(({request,...row})=>row));throw error;}
     const unacceptable=requests.filter(row=>!(row.state==='complete'&&row.jsonComplete===true&&row.finishedError===null)
       && !(allowCloseCancellation&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason)
       && !(contextClosed&&row.startedDuringOwnedClose&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason));
@@ -589,7 +591,7 @@ async function following082Focus(page,target,evidence) {
 
 // FQA-082 / UX-066: actual bootstrap with controlled same-origin storage and read fixtures.
 const following082Key='funded.app.followed.wallets.v1';
-const following082Empty='No followed wallets yet. Open a wallet from the Burners, Creators, or Traders tabs in Leaderboard, or from a token page, then choose Follow wallet.';
+const following082Empty='No followed wallets yet. Open a wallet from the Wallets, Creators, or Traders tabs in Leaderboard, or from a token page, then choose Follow wallet.';
 async function following082Fixture(context,page) {
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await context.addInitScript(key=>{

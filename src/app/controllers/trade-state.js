@@ -1,4 +1,6 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
+import { TRADE_QUOTE_TTL_MS } from '../../../trade-quote-policy.js';
+import {uncertainTrade} from '../../features/experience/trade-recovery-store.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeStateController(appState) {
   // app-source: 545
@@ -151,7 +153,7 @@ export function createTradeStateController(appState) {
   function currentTradePreview(inputs = appState.tradeInputs()){
     const session = appState.captureWalletSession();
     const key = `${inputs.mint}:${inputs.side}:${inputs.amount}:${inputs.slippagePercent}:${session?.address || ''}`;
-    return appState.tradePreview?.inputKey === key && Date.now() - appState.tradePreview.preparedAt < 15_000 ? appState.tradePreview : null;
+    return appState.tradePreview?.inputKey === key && Date.now() - appState.tradePreview.preparedAt < TRADE_QUOTE_TTL_MS ? appState.tradePreview : null;
   }
   // app-source-end
 
@@ -165,7 +167,9 @@ export function createTradeStateController(appState) {
     const sufficient = current && valid && (side === 'buy'
       ? appState.hasBuyBalance(appState.tradeBalanceState.solLamports, { amountSol:amount, slippagePercent:inputs.slippagePercent, feeBps:appTradeBps(appState), trade:preview?.trade })
       : appState.tradeBalanceState.tokenRaw != null && amount <= Number(appState.tradeBalanceState.tokenRaw) / (10 ** appState.tradeBalanceState.tokenDecimals));
-    if (submit) submit.disabled = appState.tradeActionBusy || !appState.wallet || !appState.canSignTransactions(appState.wallet) || !valid || !preview || !sufficient;
+    const pending=uncertainTrade(appState.connectedWalletAddress,inputs.mint,appState.pendingTradeVerifications);
+    if (submit){submit.disabled = !!pending || appState.tradeActionBusy || !appState.wallet || !appState.canSignTransactions(appState.wallet) || !valid || !preview || !sufficient;
+      submit.title=pending?'Check the saved trade receipt before trading this coin again.':'';}
   }
   // app-source-end
 
@@ -175,6 +179,7 @@ export function createTradeStateController(appState) {
     clearTimeout(appState.tradeQuoteTimer);
     appState.tradeQuoteTimer = null;
     appState.tradePreview = null;
+    const retry=document.querySelector('#trade-quote-retry');if(retry)retry.hidden=true;
     document.querySelector('#trade-live-countdown')?.replaceChildren();
     const reviewDialog = document.querySelector('#trade-review-dialog');
     if (reviewDialog?.open) reviewDialog.close();
@@ -188,6 +193,7 @@ export function createTradeStateController(appState) {
   // app-source: 564
   function tradePreviewFailureMessage(error, side){
     const message = String(error?.message || error || 'Unknown error');
+    if(/429|rate.?limit|busy;|queue.*(?:full|deadline)/i.test(message))return 'Quote unavailable: Solana is busy. Retry the quote shortly. No trade was submitted.';
     if (side === 'sell' && /Associated token account not found for mint:/i.test(message)) {
       return 'Sell unavailable: this wallet has no token account for this mint. Connect a wallet that holds the token. No trade was submitted.';
     }

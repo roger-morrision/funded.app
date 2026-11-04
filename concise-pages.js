@@ -1,4 +1,5 @@
 import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
+import { feeDistributionPresentation } from './src/features/fees/distribution-summary.js';
 
 // Reorganize secondary information without changing data, policies, or transaction controls.
 function compactHomeJackpot() {
@@ -16,7 +17,8 @@ function compactAirdrop() {
   const root = document.getElementById('airdrops');
   if (!root) return;
   const intro = root.querySelector('.airdrop-intro');
-  if (intro) intro.textContent = 'Every token launch reserves at least 3% of its supply for an airdrop to $FUNDED holders. Eligibility uses a verified snapshot; Devnet QA cutoffs are labeled separately.';
+  const copy = 'Each launch reserves at least 3% of token supply for eligible $FUNDED holders. Snapshot and funding checks apply; QA cutoffs are labeled.';
+  if (intro && intro.textContent !== copy) intro.textContent = copy;
   const directory = root.querySelector('.airdrop-public-programs');
   const poster = root.querySelector('.airdrop-trust:has([data-infographic-poster="airdrops"])');
   if (directory && poster && directory.nextElementSibling !== poster) directory.after(poster);
@@ -72,7 +74,7 @@ function compactBuyback() {
   }
 
   for (const [selector, label, className] of [
-    ['.burn-policy-preview', 'Preview the 5% allocation', 'concise-policy-preview'],
+
     ['.burn-tier-card', 'Launch tier burn amounts', 'concise-tier-preview'],
   ]) {
     const panel = root.querySelector(selector);
@@ -119,9 +121,9 @@ function compactBuyback() {
 
 function compactTokenStory() {
   const story = document.querySelector('#paid .funded-token-story');
-  if (!story || story.dataset.conciseStory === '2') return;
-  story.innerHTML = '<article><h2>Launch tiers</h2><p>Optional packages burn $FUNDED. Standard is the free package choice; network costs still apply.</p></article><article><h2>$FUNDED holder airdrops</h2><p>Launched coin tokens use separate snapshot eligibility and claim windows. <a href="#airdrops">View airdrops →</a></p></article><article><h2>How fees are shared</h2><p>Collected creator fees follow each coin’s saved V3 policy. Holder SOL and Daily bonuses are automatic after verification. <a href="#capital-flow">View the fee split →</a></p></article>';
-  story.dataset.conciseStory = '2';
+  if (!story || story.dataset.conciseStory === '3') return;
+  story.innerHTML = '<article><h2>Launch tiers</h2><p>Standard has no promotion burn. Launch and network fees still apply.</p></article><article><h2>Holder airdrops</h2><p>Token claims need a verified snapshot and funding. <a href="#airdrops">View airdrops →</a></p></article><article><h2>Fee sharing</h2><p>Each coin keeps its saved fee policy. <a href="#capital-flow">View the fee split →</a></p></article>';
+  story.dataset.conciseStory = '3';
 }
 
 function compactRewardsSpotlight() {
@@ -223,17 +225,17 @@ function shortenPageCopy() {
   const edits = [
     ['#payments > .workspace-page-header > p:last-child', 'Claim rewards and track your payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
-    ['#capital-flow > .section-heading .panel-explainer', currentFeePolicyCopy().scope],
-    ['#launch-route-shell > .page-lede', 'Add your token details, choose rewards, and review the total before signing.'],
+    ['#capital-flow > .section-heading .panel-explainer', 'Rates for new launches. Existing coins keep saved rates. Allocations are not payments.'],
+    ['#launch-route-shell > .page-lede', 'Add details, set rewards, then review and sign.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
-    ['#community .section-heading .panel-explainer', 'Use the star on a token in Explore to add it to Favorites. Signed-out saving uses this browser; verify a wallet or sign in with X to sync across devices.'],
-    ['#capital-flow-title', 'Where every SOL goes'],
-    ['#analytics-detail .split-detail', currentFeePolicyCopy().scope],
+    ['#community .section-heading .panel-explainer', 'Star coins in Explore. Favorites stay on this device; verify a wallet or sign in with X to sync.'],
+    ['#capital-flow-title', 'How creator fees are split'],
+    ['#analytics-detail .split-detail', 'Saved rates apply per coin. Allocations are not payments.'],
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
-    ['#referral-command-center .section-heading .panel-explainer', 'Share your link. Rewards come from collected creator fees, not signups.'],
-    ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Buy from the verified Solana pool. Check spend, then approve in your wallet.'],
-    ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Choose a project if you want to link this burn to it, then approve in your wallet.'],
+    ['#referral-command-center .section-heading .panel-explainer', 'Earn from collected creator fees, not signups.'],
+    ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Review the pool quote, then approve in your wallet.'],
+    ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Optionally link a project. Review and approve the permanent burn.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by funded.vip. Total supply can include other burns.'],
     ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL and Daily bonuses are automatic after verification; X rewards need matching sign-in and a claim.'],
     ['#reward-discovery > small', 'Eligible wallets receive SOL automatically when funds are available. “0 paid wallets” means no holder payment is confirmed.'],
@@ -256,14 +258,14 @@ function shortenPageCopy() {
 const moneyFlowPosters = [
   {
     selector: '[data-page-infographic="capital"]', image: 'fee-distribution-flow-v1.webp',
-    key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
-    metricLabel: 'creator-directed / protocol',
+    key: 'distribution', title: 'COLLECTED CREATOR-FEE SPLIT', metric: () => `${feeDistributionPresentation().operations}% / ${feeDistributionPresentation().benefits}%`,
+    metricLabel: 'Operations & marketing / creators + ecosystem',
     steps: () => currentFeePolicyCopy().steps,
   },
   {
     selector: '[data-infographic-poster="fees"]', image: 'fee-distribution-flow-v1.webp',
-    key: 'distribution', title: 'CLAIMED FEE SPLIT', metric: '80% / 20%',
-    metricLabel: 'creator-directed / protocol',
+    key: 'distribution', title: 'COLLECTED CREATOR-FEE SPLIT', metric: () => `${feeDistributionPresentation().operations}% / ${feeDistributionPresentation().benefits}%`,
+    metricLabel: 'Operations & marketing / creators + ecosystem',
     steps: () => currentFeePolicyCopy().steps,
   },
   {
@@ -287,7 +289,9 @@ function decorateMoneyFlowPosters() {
     const picture = figure?.querySelector('img');
     if (!poster || !figure || !picture) continue;
     const labels = typeof flow.steps === 'function' ? flow.steps() : flow.steps;
+    const metricValue=typeof flow.metric==='function'?flow.metric():flow.metric;
     if (poster.dataset.moneyFlowPoster) {
+      const metric=figure.querySelector('.money-flow-stat b');if(metric&&metric.textContent!==metricValue)metric.textContent=metricValue;
       figure.querySelectorAll('.money-flow-steps > span').forEach((item, i) => {
         if (item.textContent !== labels[i]) item.textContent = labels[i];
       });
@@ -307,7 +311,7 @@ function decorateMoneyFlowPosters() {
     const stat = document.createElement('span');
     stat.className = 'money-flow-stat';
     const metric = document.createElement('b');
-    metric.textContent = flow.metric;
+    metric.textContent = metricValue;
     const metricLabel = document.createElement('small');
     metricLabel.textContent = flow.metricLabel;
     stat.append(metric, metricLabel);

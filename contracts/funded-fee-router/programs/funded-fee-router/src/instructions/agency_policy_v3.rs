@@ -140,28 +140,62 @@ pub struct SettleAgencyMintV3<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+#[instruction(claim_id: [u8; 32])]
+pub struct SettleAgencyMintV3Auto<'info> {
+    #[account(mut)] pub authority: Signer<'info>,
+    /// CHECK: Matched against the immutable agency policy creator.
+    pub creator: UncheckedAccount<'info>,
+    pub mint: UncheckedAccount<'info>,
+    #[account(seeds = [SEED], bump)] pub legacy_router: UncheckedAccount<'info>,
+    #[account(mut, seeds = [MINT_ROUTER_V3_SEED, mint.key().as_ref()], bump)] pub router: UncheckedAccount<'info>,
+    #[account(mut, seeds = [AGENCY_POLICY_SEED, mint.key().as_ref()], bump = policy.bump,
+        constraint = policy.mint == mint.key() && policy.creator == creator.key() @ ErrorCode::InvalidAgencyPolicyV3)]
+    pub policy: Account<'info, MintAgencyPolicyV3>,
+    #[account(init, payer = authority, space = 8 + MintAgencyClaimV3::INIT_SPACE,
+        seeds = [MINT_CLAIM_V3_SEED, mint.key().as_ref(), claim_id.as_ref()], bump)] pub claim: Account<'info, MintAgencyClaimV3>,
+    pub system_program: Program<'info, System>,
+}
+
 pub fn settle<'info>(ctx: Context<'info, SettleAgencyMintV3<'info>>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
-    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
-    let mint = ctx.accounts.mint.key(); let router = &ctx.accounts.router;
-    require!(router.owner == ctx.program_id && router.data_len() == MINT_ROUTER_DATA_LEN, ErrorCode::InvalidMintRouter);
+    settle_collection(ctx.program_id, &ctx.accounts.authority, &ctx.accounts.mint,
+        &ctx.accounts.legacy_router, &ctx.accounts.router, &mut ctx.accounts.policy,
+        &mut ctx.accounts.claim, &ctx.accounts.system_program, ctx.remaining_accounts,
+        ctx.bumps.router, claim_id, expected_lamports)
+}
+
+pub fn settle_auto<'info>(ctx: Context<'info, SettleAgencyMintV3Auto<'info>>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+    settle_collection(ctx.program_id, &ctx.accounts.authority, &ctx.accounts.mint,
+        &ctx.accounts.legacy_router, &ctx.accounts.router, &mut ctx.accounts.policy,
+        &mut ctx.accounts.claim, &ctx.accounts.system_program, ctx.remaining_accounts,
+        ctx.bumps.router, claim_id, expected_lamports)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'info>, mint_account: &UncheckedAccount<'info>,
+    legacy_router: &UncheckedAccount<'info>, router: &UncheckedAccount<'info>, policy: &mut Account<'info, MintAgencyPolicyV3>,
+    claim: &mut Account<'info, MintAgencyClaimV3>, system_program: &Program<'info, System>,
+    vaults: &[AccountInfo<'info>], router_bump: u8, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
+    assert_current_router_authority(&legacy_router.to_account_info(), &authority.key(), program_id)?;
+    let mint = mint_account.key();
+    require!(router.owner == program_id && router.data_len() == MINT_ROUTER_DATA_LEN, ErrorCode::InvalidMintRouter);
     let data = router.try_borrow_data()?;
     require!(&data[..8] == MINT_ROUTER_V3_MAGIC && data[8] == MINT_ROUTER_V3_VERSION
-        && data[9..41] == POLICY_HASH && data[41..73] == ctx.accounts.policy.authority.to_bytes()
-        && data[73..105] == mint.to_bytes() && data[105] == ctx.bumps.router, ErrorCode::InvalidMintRouter); drop(data);
+        && data[9..41] == POLICY_HASH && data[41..73] == policy.authority.to_bytes()
+        && data[73..105] == mint.to_bytes() && data[105] == router_bump, ErrorCode::InvalidMintRouter); drop(data);
     require!(expected_lamports > 0 && router.lamports().saturating_sub(Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN)) >= expected_lamports,
         ErrorCode::MintClaimAmountMismatchV3);
-    require!(ctx.remaining_accounts.len() == 8, ErrorCode::InvalidAgencyPolicyV3);
-    let policy = &mut ctx.accounts.policy;
+    require!(vaults.len() == 8, ErrorCode::InvalidAgencyPolicyV3);
     let total = policy.settled_lamports.checked_add(expected_lamports).ok_or(ErrorCode::AmountOverflow)?;
     let targets = agency_category_targets(total, policy.protocol_units)?;
     let mut delta = [0u64; 8]; let reserve = Rent::get()?.minimum_balance(0);
-    for (index, vault) in ctx.remaining_accounts.iter().enumerate() {
-        let (expected, _) = Pubkey::find_program_address(&[MINT_VAULT_V3_SEED, mint.as_ref(), &[index as u8]], ctx.program_id);
+    for (index, vault) in vaults.iter().enumerate() {
+        let (expected, _) = Pubkey::find_program_address(&[MINT_VAULT_V3_SEED, mint.as_ref(), &[index as u8]], program_id);
         require!(vault.key() == expected && vault.is_writable && vault.owner == &System::id() && vault.data_is_empty(), ErrorCode::InvalidMintFeeVaultV3);
         delta[index] = targets[index].checked_sub(policy.paid_lamports[index]).ok_or(ErrorCode::AmountOverflow)?;
         if delta[index] > 0 {
-            if vault.lamports() < reserve { invoke(&system_instruction::transfer(&ctx.accounts.authority.key(), &vault.key(), reserve - vault.lamports()),
-                &[ctx.accounts.authority.to_account_info(), vault.clone(), ctx.accounts.system_program.to_account_info()])?; }
+            if vault.lamports() < reserve { invoke(&system_instruction::transfer(&authority.key(), &vault.key(), reserve - vault.lamports()),
+                &[authority.to_account_info(), vault.clone(), system_program.to_account_info()])?; }
             let router_balance = router.lamports().checked_sub(delta[index]).ok_or(ErrorCode::AmountOverflow)?;
             let vault_balance = vault.lamports().checked_add(delta[index]).ok_or(ErrorCode::AmountOverflow)?;
             **router.try_borrow_mut_lamports()? = router_balance;
@@ -169,7 +203,7 @@ pub fn settle<'info>(ctx: Context<'info, SettleAgencyMintV3<'info>>, claim_id: [
         }
     }
     policy.settled_lamports = total; policy.paid_lamports = targets;
-    let claim = &mut ctx.accounts.claim; claim.claim_id = claim_id; claim.mint = mint;
+    claim.claim_id = claim_id; claim.mint = mint;
     claim.total_lamports = expected_lamports; claim.category_lamports = delta; claim.created_at = Clock::get()?.unix_timestamp;
     Ok(())
 }

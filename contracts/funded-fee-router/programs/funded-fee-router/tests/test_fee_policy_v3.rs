@@ -42,6 +42,17 @@ fn settle_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: Pubke
         &funded_fee_router::instruction::SettleMintV3 { claim_id, expected_lamports }.data(), metas)
 }
 
+fn settle_auto_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: Pubkey,
+    legacy_router: Pubkey, router: Pubkey, policy: Pubkey, claim_id: [u8; 32],
+    destinations: [Pubkey; 7], expected_lamports: u64) -> Instruction {
+    let (claim, _) = Pubkey::find_program_address(&[b"mint-fee-claim-v3", mint.as_ref(), &claim_id], &program);
+    let mut metas = funded_fee_router::accounts::SettleMintV3Auto { authority, creator, mint,
+        legacy_router, router, policy, claim, system_program: anchor_lang::system_program::ID }.to_account_metas(None);
+    metas.extend(destinations.map(|pubkey| AccountMeta::new(pubkey, false)));
+    Instruction::new_with_bytes(program,
+        &funded_fee_router::instruction::SettleMintV3Auto { claim_id, expected_lamports }.data(), metas)
+}
+
 fn disburse_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: Pubkey,
     legacy_router: Pubkey, policy: Pubkey, category: u8, vault: Pubkey, recipient: Pubkey,
     withdrawal_id: [u8; 32], amount: u64) -> Instruction {
@@ -118,18 +129,18 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
     let original = destinations;
     destinations[6] = Keypair::new().pubkey();
     let claim_id = [7u8; 32];
-    assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
+    assert!(!send(&mut svm, &authority, &[&authority], settle_auto_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, destinations, amount)));
-    assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
+    assert!(!send(&mut svm, &authority, &[&authority], settle_auto_v3_ix(program,
         authority.pubkey(), creator.pubkey(), Keypair::new().pubkey(), legacy_router, router, policy, claim_id, original, amount)));
     assert_eq!(svm.get_account(&router).unwrap().lamports, rent + amount);
     svm.expire_blockhash();
-    assert!(!send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
+    assert!(!send(&mut svm, &authority, &[&authority], settle_auto_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy,
         claim_id, original, amount + 1)));
     assert_eq!(svm.get_account(&router).unwrap().lamports, rent + amount);
     svm.expire_blockhash();
-    assert!(send(&mut svm, &authority, &[&authority, &creator], settle_v3_ix(program,
+    assert!(send(&mut svm, &authority, &[&authority], settle_auto_v3_ix(program,
         authority.pubkey(), creator.pubkey(), mint.pubkey(), legacy_router, router, policy, claim_id, original, amount)));
     let expected = [80_000_000_000u64, 10_000_000_000, 2_000_000_000, 600_000_000,
         400_000_000, 2_000_000_000, 5_000_000_000];

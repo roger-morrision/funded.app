@@ -41,7 +41,7 @@ for(const width of [360,390,1440])test(`earlier receipts survive unavailable rea
   for(const i of [1,2])await expect(page.locator('.agency-agent').nth(i)).toContainText('Readiness unavailable');
   await expect(page.locator('.agency-agent').nth(1)).toContainText('$100,000');await expect(page.locator('.agency-agent').nth(2)).toContainText('$300,000');
   await page.screenshot({path:`tmp/agency-history-unready-${width}.png`,fullPage:true});
-  const refresh=page.getByRole('button',{name:'Refresh status',exact:true});data=ready();await refresh.click();
+  const refresh=page.locator('#marketing-agency').getByRole('button',{name:'Refresh',exact:true});data=ready();await refresh.click();
   await expect(page.locator('[data-agency-funded]')).toHaveText('0.00001 SOL');await assertRows(page);await expect(refresh).toBeFocused();
   data=blocked();await refresh.click();await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');await assertRows(page);await expect(refresh).toBeFocused();
   data=null;await refresh.click();await expect(page.locator('[data-agency-status]')).toContainText('Agency status unavailable');
@@ -56,7 +56,7 @@ for(const width of [360,390,1440])test(`earlier receipts survive unavailable rea
 });
 test('unavailable and malformed historical context never invents empty or current verified history',async({page})=>{
   let data=blocked();await fixture(page,()=>data);await page.goto('/#marketing-agency');await assertRows(page);
-  const refresh=page.getByRole('button',{name:'Refresh status',exact:true});
+  const refresh=page.locator('#marketing-agency').getByRole('button',{name:'Refresh',exact:true});
   for(const mutate of [d=>delete d.historyVerification,d=>d.historyVerification.programId='So11111111111111111111111111111111111111112',
     d=>d.historyVerification.approvedHash='wrong',d=>d.historyStatus='unavailable',d=>d.history=null]){
     data=blocked();mutate(data);await refresh.click();await expect(page.locator('[data-agency-history]')).toHaveText('Earlier receipt history is unavailable.');

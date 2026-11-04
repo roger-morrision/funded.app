@@ -25,6 +25,13 @@ export const MARKETING_AGENCY_POLICY = Object.freeze({
   ]),
 });
 
+// New launches include both buyback agents; promotion packages also include X promotion.
+export const NEW_LAUNCH_AGENT_IDS = Object.freeze(MARKETING_AGENCY_POLICY.agents.map(agent => agent.id));
+
+export function newLaunchAgencySelection({promotion=false}={}) {
+  return NEW_LAUNCH_AGENT_IDS.filter(id=>id!=='x-promotion'||promotion===true);
+}
+
 export function canonicalAgencySelection(input = []) {
   const ids = MARKETING_AGENCY_POLICY.agents.map(agent => agent.id);
   if (!Array.isArray(input) || input.length > ids.length

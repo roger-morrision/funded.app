@@ -71,12 +71,12 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
             page:Number(url.searchParams.get('page') || 1) });
           respond(res, 200, { ...value, snapshotEnabled:env.FUNDED_DAILY_BONUS_ENABLED === 'true',
             payoutEnabled:env.FUNDED_DAILY_BONUS_PAYOUT_ENABLED === 'true',
-            worker:(await rewardStore.read()).dailyBonusServiceStatus || { status:'not-started' } });
+            worker:(await (rewardStore.readWorkerHealth?.() || rewardStore.read())).dailyBonusServiceStatus || { status:'not-started' } });
         } catch (error) { respond(res, 400, { error:String(error.message || error) }); }
         return true;
       }
       if (req.method === 'GET' && url.pathname === '/api/daily-bonus') {
-        const health = (await rewardStore.read()).dailyBonusServiceStatus || { status:'not-started' };
+        const health = (await (rewardStore.readWorkerHealth?.() || rewardStore.read())).dailyBonusServiceStatus || { status:'not-started' };
         respond(res, 200, service ? { ...await service.status(), worker:health, snapshotEnabled:env.FUNDED_DAILY_BONUS_ENABLED === 'true' }
           : { cluster:solanaCluster, policy:DAILY_BONUS_POLICY, snapshots:[], payoutEnabled:false, snapshotEnabled:false,
             worker:{ status:'unavailable', reason:unavailable } });

@@ -1,0 +1,5 @@
+.launch-protection-panel{padding:16px;margin:16px 0;border:1px solid var(--line,#344258);border-radius:12px;background:var(--panel,#111827);overflow-wrap:anywhere}
+.launch-protection-panel h3,.launch-protection-panel h4{margin:0 0 10px;font-size:16px}
+.launch-protection-panel h4{margin-top:18px}.launch-protection-panel p{font-size:13px;line-height:1.6;color:var(--muted,#aebbd0)}
+.launch-protection-panel button{min-height:44px;padding:10px 14px;margin:8px 8px 0 0;border:1px solid var(--line,#344258);border-radius:8px;background:var(--panel-2,#202a3a);color:var(--text,#eef0fa);cursor:pointer}
+.launch-protection-panel button:disabled{opacity:.55;cursor:wait}.launch-protection-panel details{padding:10px 0}.launch-protection-panel summary{cursor:pointer;font-size:13px}.launch-protection-panel a{color:var(--blue,#9db6ff)}

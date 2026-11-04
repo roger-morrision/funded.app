@@ -22,6 +22,7 @@ export function createExploreRegistryController(appState) {
       appState.renderExplorePayoutStats();
       appState.renderOnchainReportState(appState.assets);
       appState.renderHomeKpiDashboard(appState.assets);
+      globalThis.document?.dispatchEvent?.(new Event('funded:analytics-summary'));
     } finally { appState.receiptEvidenceLoading = false; }
   }
   // app-source-end

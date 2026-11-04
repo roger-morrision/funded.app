@@ -12,8 +12,9 @@ import { createReadCache } from '../server/read-cache.mjs';
 import { readFile } from 'node:fs/promises';
 
 const [uiHtml,uiApp]=await Promise.all([readFile(new URL('../index.html',import.meta.url),'utf8'),readAppSource()]);
-assert.match(uiHtml,/id="referral-command-center"[\s\S]*?id="referral-claim-center"[\s\S]*?Connect your earning wallet[\s\S]*?Sign in to view your private referral payouts\.[\s\S]*?data-referral-connect/, 'Disconnected referral claims must prompt for a wallet without asserting an empty payout history.');
-assert.match(uiApp,/function renderReferralClaimPrompt\(title = 'Connect wallet to check referral rewards'/, 'The connected referral state must retain a specific wallet prompt.');
+assert.match(uiHtml,/id="referral-command-center"[\s\S]*?id="referral-claim-center"[\s\S]*?Your payouts appear here[\s\S]*?Get your invite link above to connect\. Payout history stays private to your wallet\./, 'Disconnected referral claims must prompt for a wallet without asserting an empty payout history.');
+assert.match(uiApp,/function renderReferralClaimPrompt\(title = 'Your payouts appear here', note = 'Get your invite link above to connect\. Payout history stays private to your wallet\.'/,'The referral prompt must explain how to connect and keep payout history private.');
+assert.match(uiHtml,/data-copy-referral-link>Get invite link<\/button>/,'The disconnected referral prompt must retain its invite-link action.');
 assert.match(uiApp,/const dashboard = document\.querySelector\('#referral-command-center'\)/, 'Manual referral claims must mount on the visible Referrals page.');
 assert.match(uiApp,/renderReferralClaimPrompt\('Referral payout history unavailable'/, 'The visible referral center must explain unavailable payout receipts.');
 

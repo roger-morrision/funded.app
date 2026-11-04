@@ -1,0 +1,344 @@
+/* Shared density for task pages. Token cards, charts and signing sheets keep
+   their own layouts; mobile actions retain a minimum 44px touch target. */
+@import './styles/experience/mobile-actions.css';
+html body.product-experience-style #main-content { font-family: var(--ui-font); }
+html body.product-experience-style :is(#sidebar,.topbar) :is(a,button,span,small) { font-family: var(--ui-font); }
+html body.product-experience-style #main-content > #route-guide h1 { font-size: var(--ui-page-title) !important; }
+html body.product-experience-style #main-content > #route-guide:not([hidden]) { margin-block: 16px !important; padding-block: 0 12px !important; }
+html body.product-experience-style #main-content :is(h1,h2,h3) { margin-block: 0 8px; }
+html body.product-experience-style #main-content .eyebrow { margin-block: 0 6px; }
+html body.product-experience-style #main-content :is(.route-guide,.workspace-page-header,.section-heading,.explore-heading) {
+  min-height: 0; gap: 12px; margin-block: 16px; padding-block: 0;
+}
+html body.product-experience-style #main-content :is(.route-guide,.workspace-page-header,.section-heading) > p:last-child { margin-bottom: 0; }
+html body.product-experience-style #main-content :is(.ui-tabs,.portfolio-view-tabs,.purpose-page-nav,.leaderboard-tabs) { gap: 4px; margin-block: 12px 16px; padding-bottom: 0; }
+html body.product-experience-style #main-content :is(.ui-tabs,.portfolio-view-tabs,.purpose-page-nav,.leaderboard-tabs) :is(a,button) { padding: 8px 12px; }
+html body.product-experience-style #main-content :is(.panel,.role-panel,.flow-panel,.support-card,.community-card,.agency-agent,.agency-policy,.reward-experience-panel) {
+  padding: 16px; border-radius: 8px; box-shadow: none;
+}
+html body.product-experience-style #main-content :is(.panel-header,.role-panel-head,.flow-panel-head) { gap: 12px; margin-bottom: 12px; }
+html body.product-experience-style #main-content :is(.ui-disclosure,.page-cleanup-guide) { margin-block: 12px; border-radius: 8px; }
+html body.product-experience-style #main-content :is(.ui-disclosure,.page-cleanup-guide) > summary { min-height: 44px; box-sizing: border-box; padding: 12px; }
+html body.product-experience-style #main-content .empty-state { min-height: 0; padding: 20px 16px; }
+html body.product-experience-style #main-content .portfolio-tools { gap: 12px; margin-block: 16px; }
+html body.product-experience-style #main-content .workspace-preference { gap: 12px; padding: 12px 16px; margin-block: 12px; border-radius: 8px; }
+html body.product-experience-style #main-content #profile .profile-safety-card > .source-note { margin: 10px 0; padding: 0; border: 0; background: transparent; }
+html body.product-experience-style #main-content .docs-guide-article p { line-height: 1.75; }
+html body.product-experience-style #main-content .docs-guide-layout { gap: 20px; }
+html body.product-experience-style #main-content .docs-guide-next { margin-top: 24px; padding-top: 12px; }
+html body.product-experience-style #main-content .docs-guide-browser { display: flex; flex: 1; flex-direction: column; min-height: 0; gap: 8px; }
+html body.product-experience-style #main-content :is(.docs-guide-browser,.docs-guide-browse)[hidden] { display: none; }
+html body.product-experience-style #main-content .docs-guide-browse { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); text-align: left; cursor: pointer; }
+html body.product-experience-style #main-content .docs-guide-browse::after { content: '⌄'; font-size: 18px; }
+html body.product-experience-style #main-content .docs-guide-browse[aria-expanded="true"]::after { content: '⌃'; }
+
+/* Discovery controls read as one toolbar instead of separate centered blocks. */
+html body.product-experience-style #main-content .review-buy-setting {
+  display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center;
+  justify-content: flex-start; gap: 8px; width: auto; margin: 0; text-align: left;
+}
+html body.product-experience-style #main-content .review-buy-setting > span { white-space: nowrap; font-size: 12px; }
+html body.product-experience-style #main-content .review-buy-setting input { flex: none; width: 76px; min-height: 44px; margin: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font-size: 13px; }
+html body.product-experience-style #main-content .review-buy-setting .visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+html body.product-experience-style #explore .explore-search-row { margin-block: 12px 8px; }
+html body.product-experience-style #explore .explore-search-label { min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+html body.product-experience-style #explore .explore-search-label input { height: 44px; min-height: 44px; padding-block: 8px; border: 0; border-radius: 0; background: transparent; font-size: 14px; }
+html body.product-experience-style #explore .explore-search-label:focus-within { outline: 2px solid var(--yellow,#ffbe68); outline-offset: 2px; border-color: var(--yellow,#ffbe68); box-shadow: none; }
+html body.product-experience-style #explore .explore-search-label input:focus-visible { outline: 0; box-shadow: none; }
+html body.product-experience-style #explore .explore-control-bar { gap: 8px 12px; margin-block: 8px 12px; flex-wrap: wrap; }
+html body.product-experience-style #explore .product-sort { gap: 8px; }
+html body.product-experience-style #explore .explore-benefit-leaders { padding: 16px; margin-top: 16px; }
+
+/* Smaller heroes keep live content and the first form fields in view. */
+html body.product-experience-style.page-route-overview #main-content .hero-section {
+  display: block; min-height: 0 !important; padding: 16px 0 !important; margin-block: 0 12px;
+  background-image: none !important; border-bottom: 1px solid var(--line);
+}
+html body.product-experience-style.page-route-overview #main-content .hero-copy-column { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: 'title actions' 'copy actions'; align-items: center; gap: 6px 20px; width: 100%; max-width: none; }
+html body.product-experience-style.page-route-overview #main-content .home-hero-kicker { display: none; }
+html body.product-experience-style.page-route-overview #main-content .hero-section h1 { grid-area: title; margin: 0; }
+html body.product-experience-style.page-route-overview #main-content .hero-section .hero-copy { grid-area: copy; margin: 0; }
+html body.product-experience-style.page-route-overview #main-content .hero-actions { grid-area: actions; align-self: center; }
+html body.product-experience-style.page-route-overview #main-content .hero-section h1 { max-width: none; }
+html body.product-experience-style.page-route-overview #main-content .hero-section p { margin-block: 8px 16px; }
+html body.product-experience-style.page-route-overview #main-content .hero-actions { margin-top: 0; gap: 8px; }
+html body.product-experience-style #main-content .home-launch-toolbar { gap: 10px; padding-block: 8px; margin-block: 0 12px; }
+html body.product-experience-style #main-content :is(.home-launch-display-controls,.home-launch-preference-controls) { display: contents; }
+html body.product-experience-style #home-launch-grid:has(> .empty-state:only-child) { min-height: 0; }
+html body.product-experience-style #main-content :is(#home-daily-bonuses,#home-buyback-panel,#home-protocol-route) { padding: 16px; margin-top: 24px; border-radius: 8px; }
+html body.product-experience-style #main-content .leaderboard-hero { min-height: 0; padding: 20px; margin-block: 16px; }
+html body.product-experience-style #main-content :is(#launch-route-shell,#my-launches,#payments,#airdrops,#paid,#list,#bonuses,#marketing-agency,#privacy,#creator-support-page) { padding: 16px 0 24px; }
+html body.product-experience-style #main-content :is(#bonuses,#privacy) { padding: 16px; }
+html body.product-experience-style #main-content .paid-reference-hero { min-height: 0; padding-block: 16px; }
+html body.product-experience-style #main-content .paid-hero-mark { width: 64px; height: 64px; }
+html body.product-experience-style #main-content #buyback-route-panel { padding: 16px; }
+html body.product-experience-style #main-content .paid-reference-hero h1 { max-width: 26ch; }
+html body.product-experience-style #main-content .list-hero { gap: 20px; padding-block: 0; }
+
+/* Launch, portfolio and rewards share the same compact panel rhythm. */
+html body.product-experience-style #main-content #launch-route-shell > .eyebrow { margin-top: 0; }
+html body.product-experience-style #main-content #launch-route-shell .route-shell-actions { margin-top: 12px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+html body.product-experience-style #main-content #launch-route-shell .route-shell-actions :is(a,button) { display: inline-flex; align-items: center; min-height: 44px; margin: 0; }
+html body.product-experience-style #main-content #launch-close { border: 0; padding: 0 4px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
+html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading { display: block; margin: 0 0 12px; }
+html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading > :is(span,p) { display: none; }
+html body.product-experience-style #main-content #launch-dialog [data-launch-step="1"] > .step-heading h3 { margin: 0; font-size: 16px; line-height: 1.5; }
+html body.product-experience-style #main-content .launch-page { margin-top: 8px; }
+html body.product-experience-style #main-content .launch-page-back { margin-block: 0 12px; }
+html body.product-experience-style #main-content .launch-page .launch-layout { gap: 16px; }
+html body.product-experience-style #main-content .launch-page .launch-fields { padding: 16px; border-radius: 8px; }
+html body.product-experience-style #main-content .launch-page :is(.launch-preview-panel,.launch-pay-summary) { padding: 14px; border-radius: 8px; }
+html body.product-experience-style #main-content .launch-page .launch-steps { margin-bottom: 16px; }
+html body.product-experience-style #main-content .launch-page .wizard-actions { margin-top: 16px; padding-top: 16px; }
+html body.product-experience-style #main-content .launch-page .creator-burn-card { min-height: 0; padding: 12px; }
+html body.product-experience-style #main-content .portfolio-dashboard { padding: 16px; }
+html body.product-experience-style #main-content .portfolio-dashboard > .ui-tabs { margin-top: 0; }
+html body.product-experience-style #main-content .portfolio-dashboard .empty-state { padding: 16px; border: 0; background: transparent; }
+html body.product-experience-style #main-content .rewards-page-header { margin-top: 0; margin-bottom: 12px; padding-bottom: 12px; }
+html body.product-experience-style #main-content #payments { gap: 12px; }
+html body.product-experience-style #main-content #payments > .ui-tabs { margin-block: 0; }
+html body.product-experience-style #main-content #rewards-overview { gap: 16px; }
+html body.product-experience-style #main-content #rewards-overview > :is(.product-details,.reward-overview-start,.reward-action-grid,#reward-portfolio,#financial-center) { margin-block: 0; }
+html body.product-experience-style #main-content #reward-portfolio { padding: 16px; margin-top: 12px; }
+html body.product-experience-style #main-content .reward-overview-start { margin-top: 16px; }
+html body.product-experience-style #main-content .reward-overview-start p { margin-block: 6px 12px; }
+html body.product-experience-style #main-content .reward-program-grid { gap: 8px; }
+html body.product-experience-style #main-content #financial-center { padding: 16px; margin-top: 20px; }
+html body.product-experience-style #main-content .airdrop-hero-layout { margin-top: 16px; gap: 16px; }
+html body.product-experience-style #main-content .airdrop-wallet-gate-body { padding: 14px 16px; }
+html body.product-experience-style #main-content .airdrop-public-programs { margin-top: 20px; }
+html body.product-experience-style #main-content .airdrop-public-programs > .section-heading { padding: 0; }
+html body.product-experience-style #main-content :is(.flow-policy-grid,.profile-layout,.agency-grid) { gap: 12px; }
+html body.product-experience-style #main-content .route-timeline { gap: 8px; }
+html body.product-experience-style #main-content .route-timeline > li { padding: 12px; }
+html body.product-experience-style #main-content #financial-center .financial-heading { gap: 12px; padding-bottom: 12px; }
+html body.product-experience-style #main-content #financial-center .ready-queue { margin-bottom: 16px; padding: 12px; }
+html body.product-experience-style #main-content #financial-center .financial-toolbar { gap: 8px 12px; padding-top: 12px; }
+html body.product-experience-style #main-content [data-open-activity] { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; width: fit-content; margin-block: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); cursor: pointer; }
+
+/* Secondary forms share the same field shape without changing their widths. */
+html body.product-experience-style #main-content :is(#profile,.referral-dashboard,#bonuses,.payment-history-filters,.financial-toolbar,#list,.fee-input-label) :is(select,textarea,input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"])) {
+  box-sizing: border-box; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); color: var(--text); font-family: var(--ui-font); color-scheme: dark;
+}
+html body.product-experience-style #main-content .fee-output-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+html body.product-experience-style #main-content .fee-output-grid > div { min-width: 0; padding: 12px; }
+html body.product-experience-style #main-content .fee-output-grid span { font-size: 11px; line-height: 1.5; }
+html body.product-experience-style #main-content .fee-output-grid strong { font-size: 14px; overflow-wrap: anywhere; }
+html body.product-experience-style #main-content .paid-reference-metrics { margin-bottom: 20px; }
+html body.product-experience-style #main-content .paid-reference-metrics > div { min-height: 0; padding: 12px; }
+html body.product-experience-style #main-content .paid-hero-actions a { min-height: 44px; }
+/* Receipt precision keeps its established type hierarchy and native disclosure. */
+html body.product-experience-style #main-content .payment-history-details > small { font-family: 'DM Mono',monospace !important; font-size: 11px !important; line-height: 16.5px; }
+html body.product-experience-style #main-content .payment-history-details > summary { font-family: Manrope,system-ui,sans-serif !important; }
+@media (min-width: 601px) {
+  html body.product-experience-style #main-content .payment-history-row { padding-block: 11px; }
+}
+html body.product-experience-style #main-content :is(.x-claim-activity,.buyback-ledger-panel,.referral-ledger-panel,.burn-leaderboard-panel,.wallet-page,.airdrop-wallets-card) table :is(th,td) { padding: 8px 10px; }
+
+/* Keep secondary footers small; the persistent menu carries primary navigation. */
+html body.product-experience-style #main-content .home-reference-footer { display: grid; grid-template-columns: minmax(0,1fr) minmax(300px,1fr); gap: 20px 32px; padding: 20px 0; }
+html body.product-experience-style #main-content .home-reference-footer > div { max-width: 350px; }
+html body.product-experience-style #main-content .home-reference-footer p { margin-top: 8px; }
+html body.product-experience-style #main-content .home-reference-footer nav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-content: start; gap: 0 12px; min-width: 0; }
+html body.product-experience-style #main-content .home-reference-footer nav strong { grid-column: 1 / -1; margin: 0 0 4px; }
+html body.product-experience-style #main-content .home-reference-footer nav a { display: flex; align-items: center; min-height: 44px; font-size: 12px; }
+html body.product-experience-style #main-content .list-footer { gap: 16px 24px; margin-top: 24px; padding-top: 20px; }
+html body.product-experience-style #main-content .list-footer-brand p { margin-top: 8px; }
+html body.product-experience-style #main-content .list-footer nav { gap: 0 12px; }
+html body.product-experience-style #main-content .list-footer nav a { display: flex; align-items: center; min-height: 44px; }
+html body.product-experience-style #main-content .list-footer-bottom { padding-top: 12px; }
+html body.product-experience-style #main-content .funded-token-footer { gap: 16px 24px; padding-top: 20px; }
+html body.product-experience-style #main-content .funded-token-footer nav { gap: 0; }
+html body.product-experience-style #main-content .funded-token-footer nav a { display: flex; align-items: center; min-height: 44px; }
+html body.product-experience-style #main-content .funded-token-footer p { margin-top: 8px; }
+html body.product-experience-style #main-content .funded-token-footer small { padding-top: 12px; }
+@media (min-width: 701px) {
+  html body.product-experience-style #main-content :is(.home-reference-footer,.list-footer,.funded-token-footer) nav a { min-height: 32px; }
+}
+@media (max-width: 700px) {
+  html body.product-experience-style #main-content :is(.review-buy-setting input,.explore-search-label input) { font-size: 16px; }
+  html body.product-experience-style #main-content .fee-output-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  html body.product-experience-style #main-content .fee-output-grid > div:first-child { grid-column: auto; }
+  html body.product-experience-style.page-route-paid:not(.page-route-buybacks) #main-content .paid-reference-hero { grid-template-columns: 48px minmax(0,1fr); gap: 6px 12px; align-items: center; }
+  html body.product-experience-style.page-route-paid #main-content .paid-hero-mark { grid-row: 1 / 3; width: 48px; height: 48px; margin: 0; }
+  html body.product-experience-style.page-route-paid #main-content .paid-reference-hero > div { display: contents; }
+  html body.product-experience-style.page-route-paid #main-content .paid-reference-hero :is(.eyebrow,h1) { grid-column: 2; margin: 0; }
+  html body.product-experience-style.page-route-paid #main-content .paid-reference-hero > div > p:not(.eyebrow) { grid-column: 1 / -1; }
+  html body.product-experience-style.page-route-paid #main-content .paid-hero-actions { grid-column: 1 / -1; margin-top: 6px; }
+  html body.product-experience-style #main-content .paid-reference-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  html body.product-experience-style #main-content .paid-reference-metrics > div:nth-child(3) { grid-column: 1 / -1; }
+  html body.product-experience-style #main-content .home-reference-footer { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  html body.product-experience-style #main-content .home-reference-footer nav { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 600px) {
+  html body.product-experience-style #main-content .payment-history-details > small { font-size: 14px !important; line-height: 20px; }
+}
+
+/* Detail headers give market data and activity priority over decoration. */
+html body.product-experience-style #main-content :is(#coin-page,.wallet-page) { padding: 16px 0 24px; }
+html body.product-experience-style #main-content .coin-hero-card { grid-template-rows: 104px auto auto; min-height: 0; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) { grid-template-rows: auto auto; }
+html body.product-experience-style #main-content .coin-artwork { height: 104px; min-height: 0 !important; aspect-ratio: auto !important; }
+html body.product-experience-style #main-content .coin-artwork::before { width: 140px; box-shadow: none; }
+html body.product-experience-style #main-content .coin-artwork .coin-artwork-symbol { position: absolute; left: 14px; bottom: 12px; font-size: 28px; line-height: 1.1; text-align: left; }
+html body.product-experience-style #main-content .coin-identity { gap: 12px; padding: 14px; }
+html body.product-experience-style #main-content .coin-avatar { width: 64px; height: 64px; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .coin-record-shortcuts { margin-block: 8px; }
+html body.product-experience-style #main-content .coin-hero-about { height: auto; min-height: 0; }
+html body.product-experience-style #main-content .coin-hero-about > .ui-tabs { margin-block: 0; }
+html body.product-experience-style #main-content .coin-hero-about :is(.coin-profile-panel,.coin-profile-roadmap-section,.coin-profile-links) { padding: 12px; max-height: 200px; overflow: auto; overscroll-behavior: contain; }
+/* Reveal keyboard focus immediately instead of animating under the fixed header. */
+html:has(body.page-route-coin #coin-profile:focus-within) { scroll-behavior: auto; }
+html body.product-experience-style #main-content .coin-hero-card > .coin-stat-strip { grid-template-columns: repeat(3,minmax(0,1fr)); }
+html body.product-experience-style #main-content .coin-hero-card > .coin-stat-strip:has(> .coin-fee-route:not([hidden])) { grid-template-columns: repeat(4,minmax(0,1fr)); }
+html body.product-experience-style #main-content .coin-hero-card > .coin-stat-strip > div { grid-column: auto; min-height: 60px; padding: 10px 12px; }
+html body.product-experience-style #main-content .coin-hero-card > .coin-stat-strip span { white-space: normal; }
+html body.product-experience-style #main-content .mobile-trade-open { border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); box-shadow: none; }
+@container coin-detail (max-width: 760px) {
+  html body.product-experience-style #main-content .coin-hero-card > .coin-stat-strip:has(> .coin-fee-route:not([hidden])) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  html body.product-experience-style #main-content .coin-record-shortcuts > span { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+}
+@container coin-detail (min-width: 340px) and (max-width: 760px) {
+  html body.product-experience-style #main-content .coin-record-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
+  html body.product-experience-style #main-content .coin-record-actions button { min-width: 44px; padding: 8px 4px; font-size: 12px; }
+}
+html body.product-experience-style #main-content .wallet-detail-hero { margin-top: 12px; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .wallet-detail-primary { min-height: 0; padding: 20px; gap: 16px; background: var(--panel); }
+html body.product-experience-style #main-content .wallet-detail-avatar { width: 56px; height: 56px; border-radius: 8px; box-shadow: none; }
+html body.product-experience-style #main-content .wallet-detail-stats > div { min-height: 76px; padding: 12px; }
+html body.product-experience-style #main-content .wallet-detail-empty { min-height: 100px; padding: 20px; }
+html body.product-experience-style.page-route-profile #main-content #profile { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+html body.product-experience-style #main-content #profile > * { grid-column: 1 / -1; margin-block: 0; }
+html body.product-experience-style #main-content #profile > :is(#notification-preferences-details,#trade-preferences-details) { grid-column: auto; }
+html body.product-experience-style #main-content #profile > .flow-panel { margin-block: 0; }
+html body.product-experience-style #main-content #profile :is(.profile-wallet-card,.profile-safety-card) { min-height: 0; }
+html body.product-experience-style #main-content #profile .sign-checklist { margin-bottom: 8px; }
+html body.product-experience-style #main-content #profile .sign-checklist li { margin-block: 6px; }
+html body.product-experience-style #main-content .workspace-shortcuts { grid-template-columns: repeat(auto-fit,minmax(min(220px,100%),1fr)); gap: 12px; margin-block: 12px; }
+
+@container coin-detail (max-width: 760px) {
+  html body.product-experience-style #main-content .coin-hero-card { grid-template-rows: 96px auto auto auto; }
+  html body.product-experience-style #main-content .coin-hero-card:is([data-launch-tier="standard"],[data-launch-tier="unknown"]) { grid-template-rows: auto auto auto; }
+  html body.product-experience-style #main-content .coin-artwork { height: 96px; }
+}
+@container coin-detail (max-width: 520px) {
+  html body.product-experience-style #main-content .coin-identity { grid-template-columns: 56px minmax(0,1fr); gap: 8px 12px; }
+  html body.product-experience-style #main-content .coin-avatar { grid-area: 1 / 1 / 4 / 2; align-self: start; width: 56px; height: 56px; }
+  html body.product-experience-style #main-content .coin-title-row { grid-area: 1 / 2; }
+  html body.product-experience-style #main-content .coin-identity h1 { grid-area: 2 / 2; margin: 0; }
+  html body.product-experience-style #main-content .coin-address { grid-area: 3 / 2; margin: 0; }
+  html body.product-experience-style #main-content .coin-attribution { grid-area: 4 / 1 / 5 / -1; margin: 0; }
+  html body.product-experience-style #main-content .coin-record-shortcuts { grid-area: 5 / 1 / 6 / -1; margin: 0; }
+  html body.product-experience-style #main-content .coin-socials.is-compact { grid-area: 6 / 1 / 7 / -1; margin-top: 0; gap: 6px; }
+  html body.product-experience-style #main-content .coin-package-rail { grid-area: 7 / 1 / 8 / -1; display: grid; grid-template-columns: 44px repeat(2,minmax(0,1fr)); align-items: center; gap: 6px; }
+  html body.product-experience-style #main-content .coin-package-rail :is(.coin-package-chip,#coin-promotion-badge) { width: 100%; min-height: 44px; }
+  html body.product-experience-style #main-content .coin-package-rail .coin-watch { width: 44px; min-height: 44px; margin: 0; align-self: center; }
+}
+
+@media (max-width: 700px) {
+  /* Menu, search, network and wallet fit without the old second header row. */
+  html body.product-experience-style #main-content > .topbar {
+    display: grid !important; grid-template-columns: 44px 44px minmax(0,1fr) !important;
+    grid-template-rows: 64px; height: 64px !important; min-height: 64px; padding: 0 !important; gap: 4px;
+  }
+  html body.product-experience-style .topbar #open-menu { grid-area: 1 / 1; width: 44px; height: 44px; }
+  html body.product-experience-style .topbar #header-search-trigger {
+    grid-area: 1 / 2; display: grid; place-items: center; place-content: center; width: 44px; min-width: 44px;
+    height: 44px; padding: 0; font-size: 0;
+  }
+  html body.product-experience-style .topbar #header-search-trigger::after { display: none; }
+  html body.product-experience-style .topbar #header-search-trigger svg { width: 18px; height: 18px; }
+  html body.product-experience-style .topbar .top-actions { grid-area: 1 / 3; justify-content: flex-end; width: 100%; gap: 6px; margin: 0; position: static; }
+  html body.product-experience-style .topbar .top-actions .workspace-network { position: static; max-width: none; padding: 4px; font-size: 10px; }
+  html body.product-experience-style .topbar .connect-button { min-height: 44px; max-width: 144px; padding: 8px; font-size: 12px; white-space: nowrap; }
+  html body.product-experience-style #main-content :is(.route-guide,.workspace-page-header,.section-heading,.explore-heading) { margin-block: 12px; }
+  html body.product-experience-style #main-content :is(.panel,.role-panel,.flow-panel,.support-card,.community-card,.agency-agent,.agency-policy,.reward-experience-panel) { padding: 14px; }
+  html body.product-experience-style #main-content :is(#launch-route-shell,#my-launches,#payments,#airdrops,#paid,#list,#bonuses,#marketing-agency,#privacy,#creator-support-page) { padding-block: 12px 20px; }
+  html body.product-experience-style #main-content :is(#bonuses,#privacy) { padding: 14px; }
+  /* Sort and buy amount share one row so the first coin shows sooner on phones. */
+  html body.product-experience-style #explore .explore-control-bar .product-sort { flex: 1 1 0; min-width: 150px; gap: 6px; margin: 0; }
+  html body.product-experience-style #explore .explore-control-bar .product-sort select { min-width: 0; padding-inline: 8px; }
+  html body.product-experience-style #explore .explore-control-bar .product-sort-label { display: none; }
+  html body.product-experience-style #explore .explore-control-bar .review-buy-setting { flex: 0 0 auto; gap: 6px; justify-content: flex-end; }
+  html body.product-experience-style #explore .explore-control-bar .review-buy-setting > span { font-size: 11px; }
+  html body.product-experience-style #explore .explore-control-bar .review-buy-setting input { width: 60px; }
+  html body.product-experience-style #main-content .home-launch-toolbar .review-buy-setting { justify-content: flex-end; width: 100%; }
+  html body.product-experience-style #main-content .launch-page .launch-fields { padding: 14px; }
+  html body.product-experience-style #main-content .launch-page .launch-steps button { flex-direction: row; min-height: 44px; }
+  html body.product-experience-style #main-content #launch-route-shell { padding-top: 12px !important; }
+  html body.product-experience-style #main-content #launch-dialog { padding-top: 0 !important; }
+  html body.product-experience-style #main-content #launch-dialog .launch-page-back { min-height: 44px; margin-bottom: 4px; }
+  html body.product-experience-style #main-content #launch-dialog .launch-steps { margin-bottom: 12px; }
+  html body.product-experience-style #main-content .docs-guide-nav { max-height: none; padding: 0 0 12px; }
+  html body.product-experience-style #main-content .docs-guide-topic-results { height: 192px; min-height: 190px; max-height: 240px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 0; }
+  html body.product-experience-style #main-content .docs-guide-search-controls { flex-wrap: nowrap; }
+  html body.product-experience-style #main-content .docs-guide-search-controls input { flex: 1; width: 0; }
+  html body.product-experience-style #main-content .docs-guide-search-controls button { width: auto; padding-inline: 10px; }
+  html body.product-experience-style #main-content .docs-guide-count { margin-block: 6px; }
+  html body.product-experience-style #main-content .docs-guide-topic-results button { min-height: 44px; }
+  html body.product-experience-style #main-content .docs-guide-article { padding-top: 0; }
+  html body.product-experience-style #main-content #payments > .ui-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 4px; overflow: visible; }
+  html body.product-experience-style #main-content #payments > .ui-tabs button { min-width: 0; min-height: 44px; padding: 8px 4px; white-space: normal; }
+  html body.product-experience-style #main-content .hero-actions a { min-height: 44px; min-width: 0; padding-inline: 14px; }
+  html body.product-experience-style #main-content .leaderboard-hero { padding: 16px; }
+  html body.product-experience-style #main-content #reward-portfolio > header { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; }
+  html body.product-experience-style #main-content #reward-portfolio > header .eyebrow { display: none; }
+  html body.product-experience-style #main-content #reward-portfolio .reward-portfolio-top-actions { align-items: end; max-width: 122px; }
+  html body.product-experience-style #main-content #payments .reward-action-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  html body.product-experience-style #main-content #payments .reward-action-grid > :is(a,button) { position: relative; align-items: flex-start; min-height: 88px; padding: 12px 20px 12px 12px; }
+  html body.product-experience-style #main-content #payments .reward-action-icon { display: none; }
+  html body.product-experience-style #main-content #payments .reward-action-grid :is(a,button) > span:nth-child(2) { gap: 4px; }
+  html body.product-experience-style #main-content #payments .reward-action-grid b { position: absolute; right: 8px; top: 12px; }
+  html body.product-experience-style #main-content #profile > :is(#notification-preferences-details,#trade-preferences-details) { grid-column: 1 / -1; }
+  html body.product-experience-style #main-content .home-launch-toolbar { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
+  html body.product-experience-style #main-content .home-launch-display-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  html body.product-experience-style #main-content .home-launch-display-controls :is(.home-board-sort,.home-board-view) { display: flex; gap: 4px; min-width: 0; margin: 0; }
+  html body.product-experience-style #main-content .home-launch-display-controls button { flex: 1; min-width: 0; min-height: 44px; padding-inline: 6px; font-size: 12px; white-space: normal; }
+  html body.product-experience-style #main-content .home-launch-preference-controls { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  html body.product-experience-style #main-content .home-launch-preference-controls > :is(button,details) { flex: none; width: 44px; height: 44px; margin: 0; }
+  html body.product-experience-style #main-content .home-launch-preference-controls summary { width: 44px; height: 44px; min-height: 44px; box-sizing: border-box; }
+  html body.product-experience-style #main-content .home-launch-preference-controls .review-buy-setting { flex: 1; min-width: 0; width: auto; gap: 6px; }
+  html body.product-experience-style #main-content .home-launch-preference-controls .review-buy-setting > span { font-size: 11px; }
+  html body.product-experience-style #main-content .home-market-ticker { display: grid; grid-template-columns: minmax(0,1fr) auto !important; grid-template-rows: 44px 44px; gap: 4px 8px; margin-block: 0 !important; padding-block: 4px !important; }
+  html body.product-experience-style #main-content .home-market-ticker-heading { grid-area: 1 / 1 / 2 / -1; display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 6px; }
+  html body.product-experience-style #main-content .home-market-ticker-label { font-size: 9px; letter-spacing: .04em; }
+  html body.product-experience-style #main-content .home-market-window { display: flex; gap: 2px; }
+  html body.product-experience-style #main-content .home-market-window button { min-width: 44px; min-height: 44px; padding-inline: 4px; }
+  html body.product-experience-style #main-content .home-market-ticker-items { grid-column: 1 !important; grid-row: 2 !important; min-height: 44px; align-items: center; }
+  html body.product-experience-style #main-content .home-market-ticker-arrows { grid-column: 2 !important; grid-row: 2 !important; display: flex; gap: 4px; }
+  html body.product-experience-style #main-content .home-market-ticker-arrows button { min-width: 44px; width: 44px; height: 44px; }
+  html body.product-experience-style #main-content .home-board-footer { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: center; min-height: 44px; margin: 0; padding: 0; }
+  html body.product-experience-style #main-content .home-board-footer .home-board-count { margin: 0; font-size: 11px !important; line-height: 1.4; }
+  html body.product-experience-style #main-content .home-board-footer .home-launch-all { display: inline-flex; align-items: center; min-height: 44px; margin: 0; font-size: 10px; }
+}
+@media (max-width: 1100px) {
+  html body.product-experience-style.page-route-overview #main-content .hero-copy-column { grid-template-columns: minmax(0,1fr); grid-template-areas: 'title' 'copy' 'actions'; gap: 8px; }
+}
+@media (max-width: 350px) {
+  html body.product-experience-style .topbar .top-actions { gap: 4px; }
+  html body.product-experience-style .topbar .top-actions .workspace-network { max-width: 64px; white-space: normal; line-height: 1.2; text-align: center; }
+}
+
+/* Route actions and recovery buttons share one readable control size. */
+html body.product-experience-style #main-content :is(.route-guide-actions a,.explore-empty-action,[data-verified-feed-retry],.reward-portfolio-connect) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 10px 14px; border-radius: 8px;
+  font-family: var(--ui-font); font-size: 13px; line-height: 1.4; font-weight: 600;
+}
+html body.product-experience-style #main-content :is(.route-guide-actions a,.explore-empty-action,[data-verified-feed-retry],.reward-portfolio-connect):focus-visible {
+  outline: 2px solid var(--yellow,#ffbe68); outline-offset: 3px;
+}
+
+/* Loading, empty and unavailable launch feeds keep one neutral surface. */
+html body.product-experience-style #main-content .empty-state.onchain-empty {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  min-width: 0; padding: 20px 16px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); text-align: left;
+}
+html body.product-experience-style #main-content .empty-state.onchain-empty > :is(strong,span,button) { margin: 0; }
+html body.product-experience-style #main-content .empty-state.onchain-empty > strong { font-size: 14px; font-weight: 600; line-height: 1.5; }
+html body.product-experience-style #main-content .empty-state.onchain-empty > span { max-width: 64ch; font-size: 13px; line-height: 1.6; color: var(--muted); }

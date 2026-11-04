@@ -10,7 +10,7 @@ import {canonicalAgencySelection,MARKETING_AGENCY_POLICY as POLICY} from './conf
 export const AGENCY_V3_DISCRIMINATORS=Object.freeze({
   configure_agency_rules_v3:'fcff468becf89818',
   initialize_agency_config_v3:'9499224dfd359bdb',update_agency_config_v3:'03446109a7439c95',
-  initialize_agency_mint_v3:'2e7888a3cdecc35b',settle_agency_mint_v3:'7f493f692a129ef4',
+  initialize_agency_mint_v3:'2e7888a3cdecc35b',settle_agency_mint_v3:'7f493f692a129ef4',settle_agency_mint_v3_auto:'e6466c237642db31',
   approve_agency_withdrawal_v3:'5aa819a4af260af8',disburse_agency_mint_v3:'20fbe4d5ce06717b',
   bill_agency_promotion_v3:'3c0ac017b74ea8e0',buyback_agency_mint_v3:'4327dcdb2e4fcf97',
   MintAgencyPolicyV3:'42306090e0e9719a',MintAgencyClaimV3:'9cb1a9997701bbe8',
@@ -32,7 +32,7 @@ export function agencyProtocolSplit(units=agencyProtocolUnits()){
 }
 export function agencyCategoryTargets(total,units=agencyProtocolUnits()){
   if(!Array.isArray(units)||units.length!==7||units.some(n=>!Number.isInteger(n)||n<0)
-    ||units.reduce((sum,n)=>sum+n,0)!==2000000)throw new Error('Protocol categories must total 20%; the creator-directed allocation remains fixed at 80%.');
+    ||units.reduce((sum,n)=>sum+n,0)!==2000000)throw new Error('Shared allocation categories must total 20% of collected creator fees; the creator-directed allocation remains fixed at 80%.');
   const amount=agencyU64(total);let cumulative=0n,prior=0n;
   return [8000000,...units].map(n=>{cumulative+=BigInt(n);const boundary=amount*cumulative/10000000n,delta=boundary-prior;prior=boundary;return delta;});
 }
@@ -108,10 +108,12 @@ export function buildAgencyMintV3InitializeInstruction({programId,mint,authority
 }
 export function buildAgencyMintV3SettlementInstruction(input){
   const result=buildMintRouterV3SettlementInstruction(input),policy=deriveAgencyPolicyV3(input.programId,input.mint),vaults=deriveAgencyVaultsV3(input.programId,input.mint);
-  const data=Buffer.from(result.instruction.data);agencyDiscriminator('settle_agency_mint_v3').copy(data);
+  const data=Buffer.from(result.instruction.data);agencyDiscriminator(input.auto?'settle_agency_mint_v3_auto':'settle_agency_mint_v3').copy(data);
   const keys=result.instruction.keys.slice(0,8);keys[5]=meta(policy.address,false,true);keys.push(...vaults.map(pubkey=>meta(pubkey,false,true)));
   return{...result,policy,vaults,instruction:new TransactionInstruction({programId:key(input.programId),data,keys})};
 }
+export const buildAgencyMintV3AutoSettlementInstruction = input =>
+  buildAgencyMintV3SettlementInstruction({ ...input, auto:true });
 function adaptProtected(input,approval){
   const result=(approval?buildProtectedMintV3ApprovalInstruction:buildProtectedMintV3DisbursementInstruction)(input),policy=deriveAgencyPolicyV3(input.programId,input.mint);
   if(deriveAgencyVaultsV3(input.programId,input.mint).some(v=>v.equals(key(input.recipient)))||deriveMintRouterV3(input.programId,input.mint).address.equals(key(input.recipient)))throw new Error('Agency categories cannot be reclassified.');

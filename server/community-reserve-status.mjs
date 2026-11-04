@@ -4,6 +4,7 @@ import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID 
 import { PublicKey } from '@solana/web3.js';
 import { rewardAddresses } from './automatic-reward-chain.mjs';
 import { communityAddresses } from './community-claim-chain.mjs';
+import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 
 const vaultDiscriminator = createHash('sha256').update('account:RewardVault').digest().subarray(0, 8);
 const dropDiscriminator = createHash('sha256').update('account:CommunityDrop').digest().subarray(0, 8);
@@ -120,16 +121,18 @@ async function verifiedDrop({ connection, program, issuer, funder, mintKey, toke
       const destinationAfter = tokenAmount(transaction.meta.postTokenBalances, destinationIndex);
       const ix = (message.instructions || message.compiledInstructions || []).find(instruction => {
         const instructionProgram = keys[instruction.programIdIndex];
-        const accounts = instruction.accounts;
+        const accounts = instruction.accounts || instruction.accountKeyIndexes;
         // V3 opening includes the RewardReserve PDA at index 6. Bind every
         // token movement account to the actual V3 instruction layout.
-        if (!instructionProgram?.equals(program) || !Array.isArray(accounts) || accounts.length !== 15
+        if (!instructionProgram?.equals(program) || !(Array.isArray(accounts) || accounts instanceof Uint8Array)
+          || ![15,16].includes(accounts.length)
+          || (accounts.length===16&&!keys[accounts[15]]?.equals(deriveAgencyPolicyV3(program,mintKey).address))
           || !keys[accounts[0]]?.equals(issuer) || !keys[accounts[1]]?.equals(funder)
           || !keys[accounts[3]]?.equals(mintKey)
           || !expectedEligibilityMint || !keys[accounts[4]]?.equals(new PublicKey(expectedEligibilityMint))
           || !keys[accounts[5]]?.equals(sourceVault) || !keys[accounts[7]]?.equals(sourceTokenAccount)
           || !keys[accounts[8]]?.equals(drop) || !keys[accounts[10]]?.equals(destination)) return false;
-        try { return Buffer.from(bs58.decode(instruction.data)).subarray(0, 8).equals(openingDiscriminator); }
+        try { return Buffer.from(typeof instruction.data==='string' ? bs58.decode(instruction.data) : instruction.data).subarray(0, 8).equals(openingDiscriminator); }
         catch { return false; }
       });
       receiptVerified = Boolean(ix) && transaction.slot >= migrationSlot

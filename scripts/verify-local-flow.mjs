@@ -31,4 +31,13 @@ assert.deepEqual(states, [
   'Waiting for wallet approval…',
   'Confirming on Solana…',
 ]);
+await assert.rejects(
+  submitLaunch({
+    connection: { ...connection, confirmTransaction: async () => ({ value: { err: { InstructionError: [0, 'Custom'] } } }) },
+    provider,
+    payer: payer.publicKey,
+    input: { name: 'Failed Flow Coin', symbol: 'FAIL', supply: 1234, decimals: 6 },
+  }),
+  /did not confirm successfully/,
+);
 console.log('local launch flow verification passed');

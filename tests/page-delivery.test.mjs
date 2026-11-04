@@ -13,11 +13,12 @@ async function fixture(run) {
   const staticRoot = join(root, 'dist');
   await mkdir(join(staticRoot, 'assets'), { recursive: true });
   await writeFile(join(staticRoot, 'index.html'), template);
+  await writeFile(join(staticRoot, 'welcome.html'), '<html><title>Welcome</title><h1>Launch your token</h1></html>');
   await writeFile(join(staticRoot, 'assets/app-12345678.js'), 'console.log("fixture")');
   await writeFile(join(root, 'outside.txt'), 'Must never be served');
-  const records = { launch: null, metadata: null, image: null, creatorReads: [] };
+  const records = { launch: null, metadata: null, image: null, creatorReads: [], discoveryReads: 0 };
   const delivery = createPageDelivery({ staticRoot, solanaCluster: 'devnet',
-    store: { readLaunch: async () => records.launch, readLaunches: async () => [],
+    store: { readLaunch: async () => records.launch, readLaunches: async () => { records.discoveryReads++; return []; },
       readMetadata: async () => records.metadata,
       readMetadataImage: async () => records.image,
       readCreatorState: async (...args) => { records.creatorReads.push(args); return {}; } },
@@ -58,6 +59,20 @@ test('missing files, directories and traversal do not expose files outside the s
     assert.equal(response.endCount, 1);
     assert.doesNotMatch(String(response.content), /Must never be served/);
   }
+}));
+
+test('landing aliases serve a separate public page without discovery reads', () => fixture(async ({ request, records }) => {
+  for (const path of ['/welcome', '/welcome/', '/welcome.html']) {
+    const response = await request(path);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers['content-type'], 'text/html; charset=utf-8');
+    assert.equal(response.headers['cache-control'], 'no-cache');
+    assert.match(String(response.content), /<h1>Launch your token/);
+    assert.doesNotMatch(String(response.content), /Fixture/);
+    assert.equal(response.endCount, 1);
+  }
+  assert.equal((await request('/welcome', { method:'POST' })).handled, false);
+  assert.equal(records.discoveryReads, 0);
 }));
 
 test('unmatched API paths and POST requests fall through without writing a response', () => fixture(async ({ request }) => {
@@ -132,4 +147,15 @@ test('social pages retain verification labels, escaping, no-store headers and no
   assert.equal(creator.headers['cache-control'], 'no-store');
   assert.deepEqual(records.creatorReads, [['123', 'devnet', { financial: false }]]);
   assert.match(creator.content, /noindex/);
+}));
+
+
+test('compact launch metadata alias preserves content and legacy image origin without weakening fallback verification', () => fixture(async ({request,records}) => {
+  records.metadata={mint,name:'Prepared coin',symbol:'PREP',metadataOrigin:'https://metadata.funded.vip'};
+  const legacy=await request(`/devnet-metadata/${mint}`,{publicMetadata:true});
+  const compact=await request(`/m/${mint}`,{publicMetadata:true});
+  assert.equal(compact.status,200);assert.equal(compact.content,legacy.content);
+  assert.equal((await request(`/m/${mint}`,{method:'POST',publicMetadata:true})).handled,false);
+  records.metadata=null;assert.equal((await request(`/m/${mint}`,{publicMetadata:true,metadataHost:true})).status,404);
+  assert.equal((await request(`/m/${mint}`)).status,404);
 }));

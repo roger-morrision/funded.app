@@ -5,7 +5,7 @@ export function createConnectionsController(appState) {
     return {
       commitment: 'confirmed',
       disableRetryOnRateLimit: true,
-      ...(appState.APP_RPC_URL ? { wsEndpoint: web3.clusterApiUrl(cluster).replace(/^http/, 'ws') } : {}),
+      ...(appState.APP_RPC_URL ? { wsEndpoint: appState.APP_RPC_URL.replace(/^http/, 'ws').replace(/\/api\/solana\/rpc(?:\?.*)?$/, '/api/solana/ws') } : {}),
     };
   }
   // app-source-end

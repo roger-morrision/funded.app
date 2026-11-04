@@ -36,7 +36,7 @@ for(const width of [1440,390])test(`new fee schedule is consistent in launch, li
   await expect(page.locator('#cost-tier-label')).toContainText('0.02 SOL');
   await expect(page.locator('.creator-burn-section [data-burn-tier="pro"] > span')).toContainText('$150');
   await expect(page.locator('.creator-burn-section [data-burn-tier="premier"] > span')).toContainText('$300');
-  await page.goto('/#capital-flow'); await expect(page.locator('#service-fee-guide')).toContainText('0.5% on buys and sells');
+  await page.goto('/#capital-flow'); await expect(page.locator('#service-fee-guide')).toContainText('1% on buys and sells');
   await expect(page.locator('#service-fee-guide')).toContainText('Listing is included');
   await page.goto('/#docs/fees'); await expect(page.locator('#docs')).toContainText('Every coin launch: 0.02 SOL');
   await page.goto('/#list'); await expect(page.locator('#list-burn-disclosure')).toContainText('$300');
@@ -59,16 +59,16 @@ test('published admin prices replace build defaults across all price displays',a
 });
 
 test('admin edits and reviews service fees with revision and audit reason',async({page})=>{
-  const fixture=await mock(page); await page.goto('/admin.html');
+  const fixture=await mock(page,{...DEFAULT_SERVICE_FEES,tradeBps:50}); await page.goto('/admin.html');
   await expect(page.locator('#service-fee-form')).toBeVisible();
   await expect(page.locator('#service-fee-form [name=tradePercent]')).toHaveValue('0.5');
-  await page.locator('#service-fee-form [name=tradePercent]').fill('0.8');
+  await page.locator('#service-fee-form [name=tradePercent]').fill('1');
   await page.locator('#service-fee-form [name=launchSol]').fill('0.03');
   await page.locator('#service-fee-form [name=reason]').fill('Reviewed Devnet test pricing change');
   page.once('dialog',async dialog=>{expect(dialog.message()).toContain('Launch: 0.03 SOL');await dialog.accept();});
   await page.locator('#service-fee-form [type=submit]').click();
   await expect(page.locator('[data-service-revision]')).toContainText('Revision 1');
-  expect(fixture.saved().policy.tradeBps).toBe(80);
+  expect(fixture.saved().policy.tradeBps).toBe(100);
   expect(fixture.saved().policy.launchLamports).toBe('30000000');
   await page.setViewportSize({width:390,height:1000});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

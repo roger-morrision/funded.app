@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
   const apiTarget = String(process.env.API_PROXY_TARGET || env.API_PROXY_TARGET || '').trim();
   const apiProxy = apiTarget && !mainnetReadOnly ? {
     '/api': { target: apiTarget, changeOrigin: false },
+    '^/devnet-metadata/': { target: apiTarget, changeOrigin: false },
     '/devnet-images': { target: apiTarget, changeOrigin: false },
   } : undefined;
   return {
@@ -38,6 +39,8 @@ export default defineConfig(({ mode }) => {
     }],
     optimizeDeps: { entries: ['index.html'] },
     server: {
+      // Trace HTML and generated evidence must not reload an active app or test page.
+      watch: { ignored:['**/tmp/**', '**/test-results/**', '**/playwright-report/**'] },
       // Keep the browser Host so OAuth callback inference and exact-origin POST checks
       // use the Vite origin that owns the session cookie.
       proxy: apiProxy,
@@ -45,7 +48,7 @@ export default defineConfig(({ mode }) => {
     preview: { proxy: apiProxy },
     build: {
       rollupOptions: {
-        input: { main:'index.html', admin:'admin.html' },
+        input: { main:'index.html', admin:'admin.html', welcome:'welcome.html' },
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;

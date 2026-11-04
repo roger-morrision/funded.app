@@ -5,6 +5,7 @@ import { PublicKey } from '@solana/web3.js';
 import { validateInput } from '../http-policy.mjs';
 import { validateTokenChatText, tokenChatPostStatement, tokenChatDeleteStatement } from '../../token-chat.js';
 import { randomBytes, createHash } from 'node:crypto';
+import { recordCallout } from './callouts.mjs';
 
 const tokenChatSignatureWindowMs = 5 * 60 * 1000;
 
@@ -15,6 +16,7 @@ function tokenChatPublicMessage(message) {
     author: message.author,
     text: message.text,
     createdAt: message.createdAt,
+    ...(message.callout ? { callout: { marketCapSol: message.callout.marketCapSol, holdingPercent: message.callout.holdingPercent ?? null } } : {}),
   };
 }
 function validTokenChatEnvelope(input) {
@@ -36,7 +38,7 @@ function verifyTokenChatSignature(statement, signatureValue, publicKey) {
 // Return true only after sending a response; false lets the router continue.
 export function createTokenChatRoutes({
   body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized,
-  respond,
+  respond, readMarketCaps = null, readHolderShare = null,
 }) {
 
   const json = (...args) => { respond(...args); return true; };
@@ -105,6 +107,14 @@ export function createTokenChatRoutes({
         if (sessionAddress ? sessionAddress !== author : !verifyTokenChatSignature(tokenChatPostStatement({ mint, author, text, ...envelope }), input.signature, new PublicKey(author))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
         const minute = Math.floor(Date.now() / 60_000) * 60_000;
         if (!await store.chargeRpcRate(`chat-wallet:${author}`, 1, 5, minute)) return json(res, 429, { error: 'Posting limit reached. Wait a minute before posting again.' });
+        let callout = null;
+        if (input.callout === true) {
+          if (!readMarketCaps || !store.updateCallouts) return json(res, 503, { error: 'Callouts are unavailable right now.' });
+          if (!await store.chargeRpcRate(`callout-wallet:${author}`, 1, 10, Math.floor(Date.now() / 3_600_000) * 3_600_000)) return json(res, 429, { error: 'Callout limit reached. You can make 10 calls an hour.' });
+          const checked = await recordCallout({ store, readMarketCaps, readHolderShare, mint, author });
+          if (checked.error) return json(res, checked.status, { error: checked.error });
+          callout = { marketCapSol: checked.cap.marketCapSol, holdingPercent: checked.holdingPercent, observedAt: checked.cap.observedAt };
+        }
         const messageId = sessionAddress ? `chat_${randomBytes(12).toString('hex')}` : `chat_${createHash('sha256').update(String(input.signature)).digest('hex').slice(0, 24)}`;
         const createdAt = new Date().toISOString();
         const outcome = await store.updateCoinChat(mint, messages => {
@@ -113,10 +123,11 @@ export function createTokenChatRoutes({
           if (recentByAuthor && Date.now() - Date.parse(recentByAuthor.createdAt) < 10_000) return { status: 429, error: 'Wait a few seconds before posting again.' };
           const duplicate = messages.some(message => message.author === author && message.text === text && Date.now() - Date.parse(message.createdAt) < 10 * 60_000);
           if (duplicate) return { status: 409, error: 'This message was already posted recently.' };
-          const message = { id: messageId, mint, author, text, createdAt, status: 'visible', reports: {}, ...(sessionAddress ? { auth: 'wallet-session' } : { signature: String(input.signature) }) };
+          const message = { id: messageId, mint, author, text, createdAt, status: 'visible', reports: {}, ...(callout ? { callout } : {}), ...(sessionAddress ? { auth: 'wallet-session' } : { signature: String(input.signature) }) };
           messages.push(message);
           return { status: 201, message: tokenChatPublicMessage(message) };
         });
+        if (callout && !outcome.error) await store.updateCallouts(list => { list.push({ id: messageId, mint, author, text, createdAt, marketCapSol: callout.marketCapSol, peakMarketCapSol: callout.marketCapSol, holdingPercent: callout.holdingPercent }); });
         return json(res, outcome.status, outcome.error ? { error: outcome.error } : { message: outcome.message });
       }
       const messageId = String(input.messageId || '').trim();
@@ -132,6 +143,7 @@ export function createTokenChatRoutes({
         message.status = 'deleted'; message.deletedAt = new Date().toISOString(); message.text = '';
         return { status: 200, deleted: true, messageId };
       });
+      if (outcome.deleted) await store.updateCallouts?.(list => { const index = list.findIndex(entry => entry.id === messageId); if (index >= 0) list.splice(index, 1); });
       return json(res, outcome.status, outcome.error ? { error: outcome.error } : outcome);
     }
     if (url.pathname === '/api/ops/token-chat' && req.method === 'GET') {
@@ -160,6 +172,7 @@ export function createTokenChatRoutes({
         message.moderatedBy = 'operations';
         return { ...tokenChatPublicMessage(message), status: message.status, moderationReason: message.moderationReason, moderatedAt: message.moderatedAt };
       });
+      if (outcome) await store.updateCallouts?.(list => { const entry = list.find(row => row.id === messageId); if (entry) entry.hidden = action === 'hide'; });
       return outcome ? json(res, 200, outcome) : json(res, 404, { error: 'Discussion message not found.' });
     }
     return false;

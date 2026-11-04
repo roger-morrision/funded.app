@@ -48,10 +48,10 @@ for (const width of [390, 1440]) for (const reducedMotion of ['no-preference', '
   test.describe(`${width}px ${reducedMotion}`, () => {
     test.use({ viewport: { width, height: width === 390 ? 844 : 900 }, reducedMotion });
 
-    test('both guide links reveal visible focus by click, Enter and repeated activation', async ({ page }) => {
+    test('the visible guide link reveals focus by click, Enter and repeated activation', async ({ page }) => {
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
-      for (const selector of ['.referral-tier-strip a[href="#referral-faq"]', '#route-guide a[href="#referral-faq"]']) {
+      for (const selector of ['.referral-tier-strip a[href="#referral-faq"]']) {
         for (const keyboard of [false, true]) {
           await ready(page, 'referrals');
           const link = page.locator(selector);
@@ -77,7 +77,7 @@ for (const width of [390, 1440]) for (const reducedMotion of ['no-preference', '
       await expect(page).toHaveURL(/#launch$/);
       await page.waitForTimeout(600);
       expect(await page.evaluate(() => scrollY)).toBe(0);
-      await expect(page.getByRole('heading', { name: 'Launch a token', exact: true })).toBeInViewport();
+      await expect(page.getByRole('heading', { name: 'Launch a coin', exact: true })).toBeInViewport();
       await page.goBack();
       await visibleGuide(page);
       await page.goForward();

@@ -27,8 +27,7 @@ body.page-route .page-cleanup-guide > :is(.page-infographic,.infographic-poster)
 body.page-route-docs:not(.docs-subtopic-without-poster) .page-cleanup-guide[data-guide="docs-subtopic"] { display: none; }
 body.page-route-buybacks #paid > .page-cleanup-guide[data-guide="fees"] { display: none; }
 
-/* One global create action is enough; the page itself has the form. */
-body.page-route #sidebar .primary-nav > a.nav-item[href="#launch"] { display: none !important; }
+/* The left menu retains Launch on every route, including small screens. */
 body.page-route-launch .topbar .create-coin-button { display: none !important; }
 
 /* Keep discovery and action controls in the first viewport. */

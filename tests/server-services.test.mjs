@@ -55,15 +55,15 @@ test('RPC concurrency slots are released after upstream failure', async () => {
   let started = 0;
   const pending = [];
   const api = rpcFixture({ fetch: () => { started++; return new Promise((_resolve, reject) => pending.push(reject)); } });
-  const requests = Array.from({ length: 12 }, (_, i) => api.request('getSlot', i));
+  const requests = Array.from({ length: 9 }, (_, i) => api.request('getSlot', i));
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(started, 12);
+  assert.equal(started, 9);
   assert.equal((await api.request()).status, 429);
   pending.splice(0).forEach(reject => reject(new Error('Synthetic outage')));
   assert.ok((await Promise.all(requests)).every(result => result.status === 502));
   const retry = api.request();
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(started, 13);
+  assert.equal(started, 10);
   pending[0](new Error('Synthetic outage'));
   assert.equal((await retry).status, 502);
 });
@@ -73,6 +73,19 @@ test('RPC error responses are not cached and recovered reads can succeed', async
   const api = rpcFixture({ fetch: async () => ++count === 1
     ? reply({ error: { code: -32000 } }) : reply({ result: 42 }) });
   assert.ok((await api.request()).body.error);
+  assert.equal((await api.request()).body.result, 42);
+  assert.equal(count, 2);
+});
+
+test('plain-text upstream rate limits remain 429 and never enter the RPC cache', async () => {
+  let count = 0;
+  const api = rpcFixture({ fetch: async () => ++count === 1
+    ? { status: 429, ok: false, json: async () => { throw new SyntaxError('not JSON'); } }
+    : reply({ jsonrpc: '2.0', id: 1, result: 42 }) });
+  const limited = await api.request();
+  assert.equal(limited.status, 429);
+  assert.equal(limited.body.error.code, 429);
+  assert.match(limited.body.error.message, /rate limited/i);
   assert.equal((await api.request()).body.result, 42);
   assert.equal(count, 2);
 });

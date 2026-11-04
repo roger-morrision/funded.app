@@ -1,5 +1,6 @@
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
 import { tokensToBaseUnits, validateLaunchBurnPolicy } from '../../../launch-burn-policy.js';
+import { renderPromotionRequirements } from './promotion-requirements.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderLaunchBurnSelection(
@@ -22,9 +23,18 @@ export function renderLaunchBurnSelection(
 ) {
   const policy = getLaunchBurnPolicy();
   const tierSection = document.querySelector('.creator-burn-section');
-  if (tierSection) tierSection.dataset.selectedTier = policy.tier;
+  if (tierSection && tierSection.dataset.selectedTier !== policy.tier) {
+    tierSection.dataset.selectedTier = policy.tier;
+    const view=document.defaultView;
+    if(view?.CustomEvent)view.dispatchEvent(new view.CustomEvent('funded:launch-promotion'));
+  }
   const bannerUpload = document.querySelector('#launch-banner-upload');
   if (bannerUpload) bannerUpload.hidden = !policy.requiresBurn;
+  renderPromotionRequirements(policy,{document});
+  const balancePanel=document.querySelector('.launch-tier-balance');
+  if(balancePanel)balancePanel.hidden=!policy.requiresBurn;
+  const priceStatus=document.querySelector('#launch-tier-quote-status');
+  if(priceStatus)priceStatus.hidden=!policy.requiresBurn;
   const amounts = currentLaunchTierAmounts();
   const walletReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
   const walletBalance = walletReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;

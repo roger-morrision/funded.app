@@ -54,7 +54,7 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>Your reward status</h2><p>See SOL received by this wallet and creator fees awaiting payout. X rewards need a matching X sign-in; launched coin tokens are checked in Airdrops.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Check snapshot and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>SOL rewards</h2><p>Recorded payments and creator rewards for your connected wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Check snapshot and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
     const publicHistory = payments.querySelector('.x-claim-activity');
     if (publicHistory && rewardsOverview === payments) payments.insertBefore(section, publicHistory);
     else rewardsOverview.prepend(section);
@@ -83,20 +83,23 @@ let latest = null;
 function renderPortfolio(data, referralData, xData) {
   const body = document.querySelector('[data-reward-portfolio]'); if (!body) return;
   const wallet = data?.wallet;
+  const focused=body.contains(document.activeElement)||document.activeElement===byId('reward-portfolio')?.querySelector('[data-reward-connect]');
   byId('reward-portfolio')?.classList.toggle('reward-no-wallet', !wallet);
   const connectButton = byId('reward-portfolio')?.querySelector('[data-reward-connect]');
   if (connectButton) connectButton.hidden = Boolean(wallet);
+  if(!wallet&&body.querySelector('.reward-portfolio-empty'))return;
   body.replaceChildren();
   if (!wallet) {
     const empty = node('div', 'reward-portfolio-empty');
     const copy = node('div', 'reward-portfolio-empty-copy');
     copy.append(node('span', 'reward-portfolio-empty-icon', '◈'), node('h3', '', 'Connect to see your SOL rewards'),
-      node('p', '', 'Connect your wallet to check balances and payments.'));
+      node('p', '', 'View recorded SOL rewards and payout history.'));
     const button = node('button', 'reward-portfolio-connect', 'Connect wallet');
     button.type = 'button';
     button.addEventListener('click', () => byId('connect-button')?.click());
     empty.append(copy, button);
     body.append(empty);
+    if(focused)button.focus({preventScroll:true});
     return;
   }
   if (data.evidence.status === 'unavailable') { body.textContent = 'We cannot check reward payments right now. Try again shortly to see your totals.'; return; }
@@ -177,7 +180,7 @@ function renderDiscovery(data) {
   if (!tokens.length) { root.textContent = data ? 'No tokens match this reward filter yet.' : 'Reward programs are unavailable right now.'; return; }
   const list = node('div', 'reward-discovery-list');
   for (const row of tokens.slice(0, 30)) {
-    const article = node('article');
+    const article = node('article', 'token-card-shell reward-discovery-card');
     const title = node('div','reward-row-head');
     const identity = node('div','reward-token-identity');
     const avatar = node('span', 'reward-token-avatar', String(row.symbol || row.name || '?').slice(0, 2));
@@ -191,7 +194,9 @@ function renderDiscovery(data) {
     });
     avatar.append(logo);
     const info = node('div', 'reward-token-info');
-    info.append(link(`${row.symbol || short(row.mint)} · ${row.name}`, tokenUrl(row.mint)));
+    const tokenLink = link('', tokenUrl(row.mint));
+    tokenLink.append(node('strong', '', row.symbol || short(row.mint)), node('small', '', row.name || 'Unnamed token'));
+    info.append(tokenLink);
     const market = tokenListMarket(row.mint);
     const age = tokenAge(row.createdTimestamp || market?.createdTimestamp || row.createdAt);
     const metadata = node('div', 'reward-token-metadata');
@@ -295,7 +300,12 @@ function captureAlerts(data) {
 }
 async function fetchJson(path, timeoutMs = 18000) {
   const response = await fetch(path, { credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(timeoutMs) });
-  if (!response.ok) throw new Error(`Status ${response.status}`);
+  if (!response.ok) {
+    // Consume the bounded error response before leaving the fetch, including
+    // when a history navigation restores this document. Keep its status an error.
+    await response.arrayBuffer().catch(() => {});
+    throw new Error(`Status ${response.status}`);
+  }
   return response.json();
 }
 let refreshToken = 0;
@@ -324,7 +334,8 @@ async function refresh({ force = false } = {}) {
   ]);
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
-  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'onchain-indexed' ? 'Payments checked' : latest?.evidence?.status === 'partial' ? 'Some payment history is missing' : latest?.evidence?.status === 'no-records' ? 'No confirmed payments yet' : 'Unable to check payments'; });
+  if (!scoped) window.dispatchEvent(new CustomEvent('funded:financial-experience', {detail:latest}));
+  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'recorded-finalized-v3' ? 'Recorded finalized V3 evidence' : latest?.evidence?.status === 'onchain-indexed' ? 'Payments checked' : latest?.evidence?.status === 'partial' ? 'Some payment history is missing' : latest?.evidence?.status === 'no-records' ? 'No confirmed payments yet' : 'Unable to check payments'; });
   renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
   renderDiscovery(scoped ? null : latest);
   renderBuybacks(buybacks.status === 'fulfilled' ? buybacks.value : null);

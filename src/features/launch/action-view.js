@@ -3,6 +3,7 @@ import { validateFeeDistribution } from '../../../distribution-policy.js';
 import { validateLaunchBurnPolicy } from '../../../launch-burn-policy.js';
 import { canSignTransactions } from '../../../wallet-core.js';
 import { launchReviewStillCurrent } from '../../../launch-review-gate.js';
+import { promotionContentState } from './promotion-requirements.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function updateLaunchButton(
@@ -16,7 +17,6 @@ export function updateLaunchButton(
     MIN_COMMUNITY_AIRDROP_TOKENS,
     MAX_COMMUNITY_AIRDROP_TOKENS,
     launchBurnReadiness,
-    xFeeStatus,
     feeRouterState,
     walletMetricsLoading,
     walletEstimateError,
@@ -42,15 +42,16 @@ export function updateLaunchButton(
     const balanceUnknown = wallet && (walletBalanceLamports == null || estimatedLaunchFeeLamports == null || !freshLaunchReview(launchCostReview));
   const feeDistribution = validateFeeDistribution(getFeeDistributionInputs());
   const launchBurn = getLaunchBurnPolicy();
+  const promotionReady=promotionContentState(launchBurn,{document}).valid;
   const creatorBuySol = getCreatorBuySol();
-  const overBuyLimit = developerBuyLimitReached();
-  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit && (estimatedInitialBuyTokens <= 0 || estimatedInitialBuyTokens <= LAUNCH_TOKEN_SUPPLY * .2);
+  const overBuyLimit = developerBuyLimitReached() || estimatedInitialBuyTokens > LAUNCH_TOKEN_SUPPLY * .2;
+  const buyValid = Number.isFinite(creatorBuySol) && creatorBuySol >= 0 && !overBuyLimit;
   const buyHelp = document.querySelector('#creator-buy-help');
   if (buyHelp) buyHelp.textContent = overBuyLimit
-    ? /^Developer buy cannot exceed 20% of the token supply\./.test(walletEstimateError || '')
+    ? /^Developer buy (?:cannot exceed 20% of the token supply|exceeds the available launch supply)/.test(walletEstimateError || '')
       ? walletEstimateError
-      : 'This SOL amount would buy over 20% of the supply. Lower it or set it to 0; the quote will update automatically.'
-    : 'Enter the SOL to buy from the fresh curve. Maximum 20% of supply.';
+      : 'Developer buy is limited to 20% of supply and the curve tokens available after the community reserve. Lower the SOL amount; the quote will update automatically.'
+    : 'Maximum developer buy: 20% of token supply. The community airdrop is separate; both purchases must fit the available curve supply.';
   const buyInput = document.querySelector('#creator-buy-sol');
   if (buyInput) {
     if (overBuyLimit) {
@@ -62,14 +63,13 @@ export function updateLaunchButton(
     }
   }
   const buyTokens = document.querySelector('#creator-buy-token-amount');
-  if (buyTokens && overBuyLimit) buyTokens.textContent = 'Over 20% limit';
+  if (buyTokens && overBuyLimit) buyTokens.textContent = 'Exceeds buy limit';
   const communityTokens = getCommunityAirdropTokens();
   const communityValid = Number.isSafeInteger(communityTokens) && communityTokens >= MIN_COMMUNITY_AIRDROP_TOKENS && communityTokens <= MAX_COMMUNITY_AIRDROP_TOKENS;
   const burnConfigured = validateLaunchBurnPolicy(launchBurn).valid;
   const burnReady = !launchBurn.requiresBurn || launchBurnReadiness.ready;
-  const xRouteReady = feeDistribution.shares.solClaimPercent === 0 || xFeeStatus.ready;
   const identityValid = getLaunchStepState(1).valid;
-  const policyValid = identityValid && getLaunchStepState(2).valid && feeDistribution.valid && xRouteReady && feeRouterState.verified && burnConfigured && burnReady && buyValid && communityValid;
+  const policyValid = promotionReady && identityValid && getLaunchStepState(2).valid && feeDistribution.valid && feeRouterState.verified && burnConfigured && burnReady && buyValid && communityValid;
   const ready = Boolean(canSignTransactions(wallet) && !walletMetricsLoading && !balanceUnknown && !insufficient && policyValid && document.querySelector('#terms-agree')?.checked && document.querySelector('#fee-route-agree')?.checked && document.querySelector('#token-name').value.trim() && document.querySelector('#token-symbol').value.trim());
   const estimateRefreshReady = launchEstimateRefreshAvailable({
     policyValid,
@@ -79,11 +79,12 @@ export function updateLaunchButton(
     developerBuyBlocked: insufficientDeveloperBuy,
     estimateUnavailable: balanceUnknown,
   });
-  const connectReady = !wallet && !APP_MAINNET_READ_ONLY && feeRouterState.verified && identityValid && getLaunchStepState(2).valid && feeDistribution.valid && xRouteReady && burnConfigured && buyValid && communityValid;
+  const connectReady = !wallet && !APP_MAINNET_READ_ONLY && feeRouterState.verified && identityValid && getLaunchStepState(2).valid && feeDistribution.valid && burnConfigured && promotionReady && buyValid && communityValid;
   button.disabled = !(ready || estimateRefreshReady || connectReady);
   button.dataset.launchAction = connectReady ? 'connect-wallet' : estimateRefreshReady ? 'refresh-estimate' : 'launch';
-  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !xRouteReady ? 'X account rewards unavailable' : !feeRouterState.verified ? 'Launch paused — check status' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
+  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !feeRouterState.verified ? 'Launch paused — check status' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
   if (connectReady) button.textContent = 'Connect wallet to create coin';
+  if(!promotionReady)button.textContent='Complete promotion content';
   updateLaunchNavigation();
 }
 
@@ -113,7 +114,7 @@ export function updateLaunchNavigation(
   back.hidden = launchStep === 1;
   next.hidden = launchStep === 2;
   next.disabled = false;
-  next.textContent = 'Continue to rewards';
+  next.textContent = 'Continue';
   if (retry) {
     retry.hidden = launchStep !== 2 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;

@@ -6,11 +6,13 @@ const wallet='7'.repeat(32), other='6'.repeat(32), mint='8'.repeat(32), signatur
 const wallets=[{wallet,burnedTokens:12,receiptCount:1,latestSignature:signature},{wallet:other,burnedTokens:4,receiptCount:1,latestSignature:signature}];
 const policy={revision:3,split:{operationsPercent:40,referralLevelPercents:[10,3,2],communityPercent:20,buybackPercent:25}};
 
-for(const width of [360,390,1440]) test(`FQA-032 native leaderboard link focus reveals only necessary horizontal distance at ${width}px`,async({page},info)=>{
+for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link focus reveals only necessary horizontal distance at ${width}px`,async({page},info)=>{
   test.setTimeout(90000);await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/**',r=>{const p=new URL(r.request().url()).pathname;return r.fulfill(p==='/api/fee-policy'?{json:policy}:p==='/api/leaderboard/burners'?{json:{cluster:'devnet',wallets}}:{status:503,json:{error:'Unavailable fixture'}});});
   await page.route('https://**/*',r=>r.abort());await page.goto('/#leaderboard');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);
   const table=page.locator('#leaderboard-table');await expect(table.locator('.leaderboard-row')).toHaveCount(2);
+  await expect(page.getByRole('tab',{name:'Wallets',exact:true})).toBeVisible();await expect(page.getByRole('tab',{name:'Projects',exact:true})).toBeVisible();
+  await page.screenshot({path:info.outputPath(`rankings-${width}.png`)});
   // Capture native focus before the table's bubbling listener. No focus/scroll override.
   await page.evaluate(()=>{
     window.focusObservations=[];window.focusInputTimes=[];
@@ -55,6 +57,7 @@ for(const width of [360,390,1440]) test(`FQA-032 native leaderboard link focus r
       deps.renderWalletBurnersBoard=()=>board.renderWalletBurnersBoard(state,deps);deps.renderProjectBurnBoard=()=>board.renderProjectBurnBoard(state,deps);board.renderLeaderboard(state,deps);
     },{view,wallet,other,mint,signature,wallets});
     await expect(table.getByRole('columnheader')).toHaveCount(5);await expect(table.locator('.leaderboard-row')).toHaveCount(2);for(const row of await table.locator('.leaderboard-row').all())await expect(row.getByRole('cell')).toHaveCount(5);
+    for(const link of await table.locator('a').all()){const box=await link.boundingBox();expect(box.height,`${view} link target height`).toBeGreaterThanOrEqual(44);expect(box.width,`${view} link target width`).toBeGreaterThanOrEqual(44);}
     await table.focus();await table.evaluate(t=>{t.scrollLeft=t.scrollWidth;});await page.keyboard.press('Tab');await expect(table.locator('a').first()).toBeFocused();await checkFocus(`${view}: first forward Tab from right`);
     // No-op for a visible link and native reverse navigation to that same link.
     await page.keyboard.press('Tab');await checkFocus(`${view}: next forward Tab`);await page.keyboard.press('Shift+Tab');await checkFocus(`${view}: first reverse ShiftTab`);

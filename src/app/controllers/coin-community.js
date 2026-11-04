@@ -1,12 +1,25 @@
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
+import { chatCalloutBadge } from '../../features/callouts/callouts.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createCoinCommunityController(appState) {
   // app-source: 962
   function renderCoinChat(activity){
+    const previous = activity.querySelector('#coin-chat-form');
+    const draft = previous?.querySelector('#coin-chat-input');
+    const focused = draft === document.activeElement;
+    const text = draft?.value || '';
+    const callout = previous?.elements.namedItem('callout')?.checked === true;
     const messages = appState.visibleCoinChatMessages();
-    const rows = messages.length ? messages.map(appState.tokenChatMessageMarkup).join('') : appState.tokenChatEmptyMarkup();
+    const rows = messages.length ? messages.map(appState.tokenChatMessageMarkup).join('') : appState.coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : appState.tokenChatEmptyMarkup();
     activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${appState.escapeHtml(appState.coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${appState.tokenChatComposerMarkup('coin-chat')}</div>`;
+    const form = activity.querySelector('#coin-chat-form');
+    if (form) {
+      form.querySelector('#coin-chat-input').value = text;
+      form.elements.namedItem('callout').checked = callout;
+      if (focused) form.querySelector('#coin-chat-input').focus({preventScroll:true});
+    }
+    window.dispatchEvent(new Event('funded:coin-chat-rendered'));
   }
   // app-source-end
 
@@ -33,7 +46,7 @@ export function createCoinCommunityController(appState) {
   function tokenChatMessageMarkup(item){
     const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
     const action = own ? `<footer><button type="button" data-chat-delete="${appState.escapeHtml(item.id)}">Delete</button></footer>` : `<footer><button type="button" data-chat-report="${appState.escapeHtml(item.id)}" title="Report spam or a scam for moderation review">Report spam or scam</button><button type="button" data-chat-hide="${appState.escapeHtml(item.author)}">Hide this wallet</button></footer>`;
-    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${appState.escapeHtml(appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div><p>${appState.escapeHtml(item.text)}</p>${action}</article>`;
+    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${appState.escapeHtml(appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div>${item.callout ? chatCalloutBadge(item.callout, appState.coinSolUsdValues?.marketCap, appState.coinSolUsdPrice) : ''}<p>${appState.escapeHtml(item.text)}</p>${action}</article>`;
   }
   // app-source-end
 
@@ -46,39 +59,21 @@ export function createCoinCommunityController(appState) {
     const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · no approval needed for each post` : `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · sign in once to use token discussions`;
     const hidden = appState.readHiddenChatAuthors(appState.EXPLORE_CLUSTER);
     const unhide = hidden.size ? `<button type="button" data-chat-unhide>Show ${hidden.size} hidden wallet${hidden.size === 1 ? '' : 's'}</button>` : '';
-    return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${appState.TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;
+    return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${appState.TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><label class="chat-callout-toggle" title="Saves this coin's market cap now and tracks how your call does on the Callouts board"><input type="checkbox" name="callout" /> <span aria-hidden="true">📣</span> Call it</label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;
   }
   // app-source-end
 
   // app-source: 968
   function renderCoinCommunityPanel(){
-    const feed = document.querySelector('#coin-community-feed');
-    if (!feed) return;
-    const messages = appState.visibleCoinChatMessages();
-    feed.innerHTML = messages.length ? messages.slice(-12).map(appState.tokenChatMessageMarkup).join('') : appState.coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : appState.tokenChatEmptyMarkup();
-    const panel = feed.closest('.coin-community-panel');
-    const badge = panel?.querySelector('.data-badge');
-    if (badge) { badge.textContent = appState.coinChatState.loading ? 'LOADING' : appState.coinChatState.enabled ? 'LIVE' : 'OFFLINE'; badge.classList.toggle('is-live', appState.coinChatState.enabled); }
-    panel?.querySelector('.coin-community-form')?.remove();
-    panel?.querySelector('.coin-chat-note')?.remove();
-    panel?.insertAdjacentHTML('beforeend', appState.tokenChatComposerMarkup('coin-community'));
+    const activity = document.querySelector('#coin-activity-list');
+    if (activity && document.querySelector('[data-coin-tab="chat"].active')) appState.renderCoinChat(activity);
   }
   // app-source-end
 
   // app-source: 969
   function ensureCoinCommunityPanel(){
-    const page = document.querySelector('#coin-page');
-    if (!page) return;
-    const existing = page.querySelector('.coin-community-panel');
-    if (existing) {
-      if (existing !== page.lastElementChild) page.append(existing);
-      return;
-    }
-    const panel = document.createElement('aside');
-    panel.className = 'panel coin-community-panel';
-    panel.innerHTML = '<div class="coin-community-head"><div><p class="eyebrow">Community</p><h2>Chat</h2></div><span class="data-badge">LOADING</span></div><div id="coin-community-feed" class="coin-community-feed"></div>';
-    page.append(panel);
-    appState.renderCoinCommunityPanel();
+    document.querySelector('#coin-page .coin-community-panel')?.remove();
+    appState.ensureCoinChatTab();
   }
   // app-source-end
 
@@ -98,9 +93,20 @@ export function createCoinCommunityController(appState) {
 
   // app-source: 971
   function ensureCoinChatTab(){
-    document.querySelector('.coin-tabs [data-coin-tab="chat"]')?.remove();
-    const holders = document.querySelector('.coin-tabs [data-coin-tab="holders"]');
-    if (holders) holders.textContent = 'Holders —';
+    const trades = document.querySelector('.coin-tabs [data-coin-tab="trades"]');
+    if (!trades) return;
+    let chat = document.querySelector('.coin-tabs [data-coin-tab="chat"]');
+    if (!chat) {
+      chat = document.createElement('button');
+      chat.type = 'button';
+      chat.dataset.coinTab = 'chat';
+      chat.textContent = 'Chat';
+      chat.setAttribute('role', 'tab');
+      chat.setAttribute('aria-selected', 'false');
+      chat.setAttribute('aria-controls', 'coin-activity-list');
+      chat.tabIndex = -1;
+    }
+    if (chat.nextElementSibling !== trades) trades.before(chat);
   }
   // app-source-end
 
@@ -161,6 +167,23 @@ export function createCoinCommunityController(appState) {
   }
   // app-source-end
 
+  // A Refresh button right under the failure message, so the recovery step the
+  // message names is next to it instead of only in the header icon row.
+  function showCoinRetry(){
+    const description = document.querySelector('#coin-description');
+    if (!description) return;
+    let retry = document.querySelector('#coin-retry');
+    if (!retry){
+      retry = document.createElement('button');
+      retry.type = 'button';
+      retry.id = 'coin-retry';
+      retry.className = 'secondary-button coin-retry';
+      retry.textContent = 'Refresh';
+    }
+    if (retry.previousElementSibling !== description) description.after(retry);
+    retry.hidden = false;
+  }
+
   // app-source: 978
   function renderOnChainUnavailable(message){
     const displayMessage = coinUnavailableMessage(message);
@@ -176,8 +199,10 @@ export function createCoinCommunityController(appState) {
     appState.setCoinTabLabels(); appState.renderCoinActivityTab();
     appState.setCoinField('#coin-page-title', 'Token data unavailable');
     appState.setCoinField('#coin-avatar', '?'); appState.setCoinField('#coin-symbol', '—'); appState.setCoinField('#coin-description', displayMessage);
+    showCoinRetry();
     ['#coin-stage','#coin-fee-owner','#coin-metadata-status','#coin-mint-authority','#coin-freeze-authority'].forEach(selector => appState.setCoinFact(selector, 'Unavailable'));
-    ['#coin-market-cap','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, 'Unavailable'));
+    appState.setCoinField('#coin-price', '—'); appState.setCoinField('#coin-change', '');
+    ['#coin-market-cap','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, '—'));
     appState.setCoinField('#coin-volume-source', 'RPC trade history unavailable'); appState.setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable'); appState.setCoinField('#coin-accounts-source', 'Largest-account sample unavailable'); appState.setCoinCurveProgress(null);
     appState.setCoinField('#coin-chart-heading', 'Chart unavailable');
     appState.setCoinField('#coin-market-cap-label', 'Estimated market cap'); appState.setCoinField('#coin-market-cap-source', 'Confirmed Solana RPC snapshot');

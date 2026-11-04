@@ -3,9 +3,10 @@ import { initializeAppState } from '../runtime.js';
 // Startup runs in the order declared in start.js.
 export function initializeTradeExecution(appState) {
   // app-source: 571
-  document.querySelector('#trade-verify')?.addEventListener('click', () => {
-    void appState.verifyPendingTrade().catch(error => {
-      const pending = appState.pendingTradeVerifications.values().next().value;
+  document.querySelector('#trade-verify')?.addEventListener('click', event => {
+    const signature = event.currentTarget.dataset.pendingSignature || null;
+    void appState.verifyPendingTrade(null, signature).catch(error => {
+      const pending = signature ? appState.pendingTradeVerifications.get(signature) : appState.pendingTradeVerifications.values().next().value;
       if (pending) appState.setTradeReceiptStatus(`Trade verification is unavailable: ${error.message}. Check status again later.`, pending.signature);
     });
   });

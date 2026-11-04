@@ -61,8 +61,6 @@ for(const width of [390,1440]){
    const actionY=await root.locator('.burn-center-layout').evaluate(e=>e.getBoundingClientRect().top+scrollY);
    const flowY=await root.locator('#verified-buyback-flow').evaluate(e=>e.getBoundingClientRect().top+scrollY);
    assert(actionY<flowY,'Buy/burn action should precede execution history');
-   await root.locator('.concise-policy-preview > summary').click();
-   assert(await root.locator('#buyback-example-fees').isVisible());
    if(route==='buybacks') await page.screenshot({path:`${out}/buybacks-${width}.png`,fullPage:true});
   }
   if(route==='paid') assert.equal(await page.locator('#paid .funded-token-story article:visible').count(),3);

@@ -47,3 +47,25 @@ test('V3 settlement proof binds signed instruction, exact router debit, claim an
   tx.transaction.message.instructions[0].programIdIndex = keys.indexOf(creator.toBase58());
   assert.equal(await loadFinalizedV3Settlement(input), null);
 });
+
+test('automatic fixed-policy settlement needs only the authority signer', async () => {
+  const programId=Keypair.generate().publicKey, mint=Keypair.generate().publicKey;
+  const authority=Keypair.generate().publicKey, creator=Keypair.generate().publicKey;
+  const claimId=Buffer.alloc(32,9), signature='2'.repeat(64);
+  const built=buildMintRouterV3SettlementInstruction({programId,mint,authority,creator,
+    claimId,expectedLamports:30n,auto:true});
+  assert.equal(built.instruction.keys[1].isSigner,false);
+  const message=new Transaction({feePayer:authority,
+    recentBlockhash:Keypair.generate().publicKey.toBase58()}).add(built.instruction).compileMessage();
+  assert.equal(message.header.numRequiredSignatures,1);
+  const keys=message.accountKeys.map(value=>value.toBase58());
+  const routerIndex=keys.indexOf(built.router.address.toBase58());
+  const before=keys.map(()=>0), after=keys.map(()=>0);
+  before[routerIndex]=100;after[routerIndex]=70;
+  const input={connection:{getTransaction:async()=>({slot:42,meta:{err:null,preBalances:before,
+    postBalances:after},transaction:{signatures:[signature],message}})},signature,
+    programId,mint,authority,creator,claimId,expectedLamports:30n,
+    verifyClaim:async()=>({verified:true,address:built.claim,categoryLamports:[24n,3n,1n,1n,0n,1n,0n]}),
+    verifyPolicy:async()=>({verified:true,address:built.policy.address,settledLamports:30n})};
+  assert.equal((await loadFinalizedV3Settlement(input))?.authorization,'authority-fixed-policy');
+});

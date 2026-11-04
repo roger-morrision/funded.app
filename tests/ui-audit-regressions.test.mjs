@@ -41,7 +41,7 @@ test('in-app test wallet preserves versioned and legacy transaction types and si
 
 test('Explore table uses the same migrated market-cap value as token cards', () => {
   const helper = source.match(/function exploreMarketCapUsd\(record\)\{[\s\S]*?\n\}/)?.[0];
-  const format = new Function('record', `const EXPLORE_CLUSTER='devnet', coinSolUsdPrice=100;
+  const format = new Function('record', `const EXPLORE_CLUSTER='devnet', coinSolUsdPrice=100, marketFacts=value=>value;
     const formatDashboardUsd=value=>'$'+value; ${helper}; return exploreMarketCapUsd(record);`);
   assert.equal(format({ migrated:true, poolMarketCapSol:27, curveCapSol:99 }), '$2700');
   assert.equal(format({ migrated:false, curveCapSol:4 }), '$400');

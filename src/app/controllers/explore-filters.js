@@ -1,4 +1,5 @@
 // Dependencies and mutable application state are read live through appState.
+import { marketFacts } from '../../features/explore/market-facts.js';
 export function createExploreFiltersController(appState) {
   // app-source: 405
   function formatFeedAge(timestamp){
@@ -28,7 +29,7 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 408
   function filterExploreTabRecords(records, query = appState.exploreQuery){
-    const filtered = appState.filterMarketRecords(records, appState.exploreFilterOptions(query));
+    const filtered = appState.filterMarketRecords(records.map(record => marketFacts(record, appState.EXPLORE_CLUSTER)), appState.exploreFilterOptions(query));
     if (appState.exploreTab === 'favorites') {
       const saved = new Set(appState.getWatchlist());
       return filtered.filter(record => saved.has(record.address));
@@ -68,6 +69,7 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 412
   function exploreStageLabel(record){
+    record = marketFacts(record, appState.EXPLORE_CLUSTER);
     if (appState.verifiedPaidListingPayment(record) && record.complete == null) return 'Paid listing · mint verified';
     if (record.registryFallback && record.complete == null) return 'Market stage unavailable';
     return record.migrated === true ? 'Migrated' : record.complete === true ? 'Curve complete' : record.complete === false ? 'On curve' : 'Stage unverified';
@@ -96,6 +98,7 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 418
   function exploreMarketCapUsd(record){
+    record = marketFacts(record, appState.EXPLORE_CLUSTER);
     const cap = appState.EXPLORE_CLUSTER === 'devnet' ? record.migrated === true ? record.poolMarketCapSol : record.curveCapSol : record.marketCapUsd;
     if (cap == null || cap === '' || (appState.EXPLORE_CLUSTER === 'devnet' && !Number.isFinite(appState.coinSolUsdPrice))) return '$—';
     const usd = appState.EXPLORE_CLUSTER === 'devnet' ? Number(cap) * appState.coinSolUsdPrice : Number(cap);

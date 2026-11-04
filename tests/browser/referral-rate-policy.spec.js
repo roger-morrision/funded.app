@@ -45,5 +45,5 @@ test('published agency referral policy removes the pending label without reprici
   await expect(page.locator('#fee-output-agency')).toHaveText('6 SOL');
   await expect(page.locator('#fee-flow-note')).toContainText('allocates exactly 300 SOL');
   await page.goto('/#docs/fees');
-  await expect(page.locator('#docs-guide-article')).toContainText('2% AI agency');
+  await expect(page.locator('#docs-guide-article')).toContainText(/2%\s*AI marketing & coin buybacks/);
 });

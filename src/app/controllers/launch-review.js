@@ -1,12 +1,16 @@
+import {sharedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
+import {promotionContentState} from '../../features/launch/promotion-requirements.js';
+import {devnetLaunchMetadataUri} from '../../../devnet-metadata.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchReviewController(appState) {
   // app-source: 619
   async function prepareLaunchMetadata({ mint, name, symbol }, session = appState.captureWalletSession()){
+    const content=promotionContentState(appState.getLaunchBurnPolicy());if(!content.valid)throw new Error(content.message);
     appState.assertWalletSessionCurrent(session);
     if (typeof session.provider.signMessage !== 'function') throw new Error('This wallet must sign a metadata message before the Solana transaction.');
     const preview = appState.getLaunchMetadataPreview();
     appState.assertImageReady();
-    if (appState.getLaunchBurnPolicy().requiresBurn) appState.assertBannerReady();
+    if (appState.getLaunchBurnPolicy().requiresBurn) appState.assertBannerReady({required:true});
     const image = appState.getPreparedImage();
     const banner = appState.getLaunchBurnPolicy().requiresBurn ? appState.getPreparedBanner() : null;
     if (image && (!['image/png', 'image/jpeg', 'image/webp'].includes(image.type) || image.size > 600_000)) throw new Error('Choose a PNG, JPG, or WEBP image under 600 KB.');
@@ -29,8 +33,9 @@ export function createLaunchReviewController(appState) {
     appState.assertWalletSessionCurrent(session);
     const response = await appState.apiRequest('/api/devnet-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', bannerBase64, bannerType: banner?.type || '', signature: appState.bs58.encode(signed.signature || signed) } });
     appState.assertWalletSessionCurrent(session);
-    if (!response.available || response.data?.uri !== appState.devnetMetadataUri(mint)) throw new Error('Solana metadata could not be published. No token transaction was sent.');
-    return response.data.uri;
+    if (!response.available || response.data?.uri !== devnetLaunchMetadataUri(mint)) throw new Error(response.data?.error || 'Solana metadata could not be published. No token transaction was sent.');
+    if (!Number.isFinite(Date.parse(response.data.symbolReservationExpiresAt))) throw new Error('Ticker reservation could not be verified. No token transaction was sent.');
+    return { uri:response.data.uri, symbolReservationExpiresAt:response.data.symbolReservationExpiresAt };
   }
   // app-source-end
 
@@ -98,7 +103,7 @@ export function createLaunchReviewController(appState) {
 
   // app-source: 629
   function updateLaunchButton(){
-    return appState.updateLaunchButtonView({ walletBalanceLamports: appState.walletBalanceLamports, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, wallet: appState.wallet, launchCostReview: appState.launchCostReview, estimatedInitialBuyTokens: appState.estimatedInitialBuyTokens, LAUNCH_TOKEN_SUPPLY: appState.LAUNCH_TOKEN_SUPPLY, MIN_COMMUNITY_AIRDROP_TOKENS: appState.MIN_COMMUNITY_AIRDROP_TOKENS, MAX_COMMUNITY_AIRDROP_TOKENS: appState.MAX_COMMUNITY_AIRDROP_TOKENS, launchBurnReadiness: appState.launchBurnReadiness, xFeeStatus: appState.xFeeStatus, feeRouterState: appState.feeRouterState, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, APP_MAINNET_READ_ONLY: appState.APP_MAINNET_READ_ONLY }, { creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, getFeeDistributionInputs: appState.getFeeDistributionInputs, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySol: appState.getCreatorBuySol, developerBuyLimitReached: appState.developerBuyLimitReached, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getLaunchStepState: appState.getLaunchStepState, launchEstimateRefreshAvailable: appState.launchEstimateRefreshAvailable, updateLaunchNavigation: appState.updateLaunchNavigation });
+    return appState.updateLaunchButtonView({ walletBalanceLamports: appState.walletBalanceLamports, estimatedLaunchFeeLamports: appState.estimatedLaunchFeeLamports, wallet: appState.wallet, launchCostReview: appState.launchCostReview, estimatedInitialBuyTokens: appState.estimatedInitialBuyTokens, LAUNCH_TOKEN_SUPPLY: appState.LAUNCH_TOKEN_SUPPLY, MIN_COMMUNITY_AIRDROP_TOKENS: appState.MIN_COMMUNITY_AIRDROP_TOKENS, MAX_COMMUNITY_AIRDROP_TOKENS: appState.MAX_COMMUNITY_AIRDROP_TOKENS, launchBurnReadiness: appState.launchBurnReadiness, feeRouterState: appState.feeRouterState, walletMetricsLoading: appState.walletMetricsLoading, walletEstimateError: appState.walletEstimateError, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, APP_MAINNET_READ_ONLY: appState.APP_MAINNET_READ_ONLY }, { creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, getFeeDistributionInputs: appState.getFeeDistributionInputs, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getCreatorBuySol: appState.getCreatorBuySol, developerBuyLimitReached: appState.developerBuyLimitReached, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getLaunchStepState: appState.getLaunchStepState, launchEstimateRefreshAvailable: appState.launchEstimateRefreshAvailable, updateLaunchNavigation: appState.updateLaunchNavigation });
   }
   // app-source-end
 
@@ -128,6 +133,7 @@ export function createLaunchReviewController(appState) {
         ? JSON.stringify(appState.feeRouterState.v3FeeRouter) : appState.feeRouterState.address,
       form: JSON.stringify(appState.launchFormSnapshot()),
       image: appState.getPreparedImage(),
+      banner: appState.getLaunchBurnPolicy().requiresBurn ? appState.getPreparedBanner() : null,
       feeConsent: document.querySelector('#fee-route-agree').checked,
       termsConsent: document.querySelector('#terms-agree').checked,
     };
@@ -186,7 +192,7 @@ export function createLaunchReviewController(appState) {
     appState.pendingLaunchReview = { ...appState.currentLaunchReviewState(), wallet: session.address };
     document.querySelector('#launch-review-token').textContent = `${name} (${symbol})`;
     document.querySelector('#launch-review-tier').textContent = burn.requiresBurn
-      ? `${burn.label} · ${appState.formatLaunchBurnAmount(burn.amountTokens)} $FUNDED (≈$${burn.usdTarget})`
+      ? `${burn.label} · ${appState.formatLaunchBurnAmount(burn.amountTokens)} $FUNDED (≈$${burn.usdTarget}) · quote expires ${new Date(appState.launchTierQuote.expiresAt).toLocaleTimeString()}`
       : `${burn.label} tier`;
     document.querySelector('#launch-review-wallet').textContent = session.address;
     document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} tokens`;
@@ -196,7 +202,7 @@ export function createLaunchReviewController(appState) {
       ? 'Mint-specific V3 PDA' : `${appState.feeRouterState.address.slice(0, 7)}…${appState.feeRouterState.address.slice(-6)}`;
     document.querySelector('#launch-review-route-address').textContent = v3Route
       ? 'Derived from the new mint and verified after launch' : appState.feeRouterState.address;
-    document.querySelector('#launch-review-route-split').textContent = `${shares.creatorWalletPercent}% wallet · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · 20% protocol`;
+    document.querySelector('#launch-review-route-split').textContent = `${shares.creatorWalletPercent}% wallet · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · ${sharedFeeAllocationCopy()}`;
     document.querySelector('#launch-review-details').innerHTML = appState.launchReviewMarkup(reviewedCost);
     document.querySelector('#launch-review-dialog').showModal();
     appState.renderPendingLaunchReview();
@@ -232,7 +238,7 @@ export function createLaunchReviewController(appState) {
 
   // app-source: 638
   function getLaunchStepState(step){
-    return appState.getLaunchStepStateView(step, { MIN_COMMUNITY_AIRDROP_TOKENS: appState.MIN_COMMUNITY_AIRDROP_TOKENS, MAX_COMMUNITY_AIRDROP_TOKENS: appState.MAX_COMMUNITY_AIRDROP_TOKENS, xFeeStatus: appState.xFeeStatus, launchMode: appState.launchMode }, { invalidLaunchSocial: appState.invalidLaunchSocial, getFeeDistributionInputs: appState.getFeeDistributionInputs, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCreatorBuySol: appState.getCreatorBuySol, developerBuyLimitReached: appState.developerBuyLimitReached, xFeeFailureDetail: appState.xFeeFailureDetail, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, formatLaunchBurnAmount: appState.formatLaunchBurnAmount });
+    return appState.getLaunchStepStateView(step, { MIN_COMMUNITY_AIRDROP_TOKENS: appState.MIN_COMMUNITY_AIRDROP_TOKENS, MAX_COMMUNITY_AIRDROP_TOKENS: appState.MAX_COMMUNITY_AIRDROP_TOKENS, launchMode: appState.launchMode }, { invalidLaunchSocial: appState.invalidLaunchSocial, getFeeDistributionInputs: appState.getFeeDistributionInputs, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getCreatorBuySol: appState.getCreatorBuySol, developerBuyLimitReached: appState.developerBuyLimitReached, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, formatLaunchBurnAmount: appState.formatLaunchBurnAmount });
   }
   // app-source-end
 

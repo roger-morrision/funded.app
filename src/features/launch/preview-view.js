@@ -6,7 +6,6 @@ export function updateLaunchPreview(
   {
     wallet,
     feeRouterState,
-    xFeeStatus,
     publicQuote,
   },
   {
@@ -19,7 +18,6 @@ export function updateLaunchPreview(
     creatorBuyExceedsWalletBalance,
     formatVerifiedPercent,
     formatLaunchBurnAmount,
-    xFeeFailureDetail,
     renderLaunchBurnSelection,
     updateLaunchNavigation,
     document = globalThis.document,
@@ -36,7 +34,7 @@ export function updateLaunchPreview(
   document.querySelector('#preview-symbol').textContent = symbol || 'TICKER';
   const description = document.querySelector('#token-description')?.value || '';
   const descriptionCounter = document.querySelector('#token-description-counter');
-  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280 · shown on your coin page`;
+  if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280`;
   const tagline = document.querySelector('#token-tagline')?.value.trim() || '';
   const taglinePreview = document.querySelector('#preview-tagline');
   if (taglinePreview) taglinePreview.textContent = tagline || description.trim() || 'Your coin description appears here.';
@@ -51,6 +49,8 @@ export function updateLaunchPreview(
   }
   const packageLabel = document.querySelector('#launch-package-label');
   if (packageLabel) packageLabel.textContent = launchBurn.label;
+  const previewSummary = document.querySelector('#launch-presentation-preview > summary');
+  if (previewSummary) previewSummary.textContent = `Preview token page & X posts · ${launchBurn.label}`;
   const packageArtBadge = document.querySelector('#launch-package-art-badge');
   if (packageArtBadge) packageArtBadge.textContent = `${launchBurn.label.toUpperCase()} PROMOTION`;
   const cleanedXLabel = (name || symbol || 'Token name').normalize('NFKC')
@@ -82,19 +82,10 @@ export function updateLaunchPreview(
   if (previewBuy) previewBuy.textContent = buyLabel;
   const buyTokensNode = document.querySelector('#creator-buy-token-amount');
   const buySolNode = document.querySelector('#creator-buy-sol-amount');
+  const buyPreview=buyTokensNode?.closest?.('.creator-buy-preview');
+  if(buyPreview)buyPreview.hidden=!(creatorBuy.sol>0);
   if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : quotedBuyTokens > 0 ? `${Math.round(quotedBuyTokens).toLocaleString()} tokens` : creatorBuy.sol > 0 ? wallet ? 'Calculating…' : publicQuote?.status === 'unavailable' ? 'Quote unavailable' : 'Calculating…' : 'None';
   if (buySolNode) buySolNode.textContent = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL developer buy` : 'No developer buy';
-  const image = getPreparedImage();
-  const roadmap = document.querySelector('#token-roadmap')?.value.trim() || '';
-  const website = document.querySelector('#token-website')?.value.trim() || '';
-  const quality = [Boolean(image), Boolean(tagline), Boolean(website || document.querySelector('#token-x')?.value.trim() || document.querySelector('#token-telegram')?.value.trim() || document.querySelector('#token-discord')?.value.trim()), Boolean(roadmap)];
-  const qualityLabels = ['logo', 'thesis', 'links', 'roadmap'];
-  const qualityCount = quality.filter(Boolean).length;
-  const qualityScore = document.querySelector('#preview-quality-score');
-  const qualityFill = document.querySelector('#preview-quality-fill');
-  if (qualityScore) qualityScore.textContent = `${qualityCount} / 4 ready`;
-  if (qualityFill) qualityFill.style.width = `${qualityCount / 4 * 100}%`;
-  qualityLabels.forEach((key, index) => { const node = document.querySelector(`#preview-quality-${key}`); if (node) { node.textContent = `${quality[index] ? '✓' : '○'} ${key === 'links' ? 'Official link' : key === 'roadmap' ? 'Milestones' : key[0].toUpperCase() + key.slice(1)}`; node.classList.toggle('ready', quality[index]); } });
   const compactPreviewValues = {
     '#preview-launchpad': 'Pump.fun',
     '#preview-supply': '1 billion',
@@ -122,6 +113,8 @@ export function updateLaunchPreview(
     if (label) label.textContent = `${value}%`;
     if (bar) bar.style.width = `${Math.max(0, Math.min(100, value))}%`;
   }
+  const plainSplit = document.querySelector('#launch-summary-plain');
+  if (plainSplit) plainSplit.textContent = launchFeeSentence({ symbol, creator: summaryShares.creator, holders: summaryShares.holders, x: summaryShares.x, xHandle: feeDistribution.xRecipient });
   const previewBurnTier = document.querySelector('#preview-burn-tier');
   if (previewBurnTier) { previewBurnTier.textContent = launchBurn.label; previewBurnTier.className = `tier-badge ${launchBurn.tier}`; }
   const promotionBadge = document.querySelector('#preview-promotion-badge');
@@ -139,15 +132,13 @@ export function updateLaunchPreview(
   if (feeStatus) {
     const validation = validateFeeDistribution(feeDistribution);
     feeStatus.textContent = validation.valid
-      ? feeDistribution.solClaimPercent > 0
-        ? xFeeStatus.ready ? 'X rewards use an isolated per-coin fee router and verified X + wallet claim.' : `X account rewards unavailable: ${xFeeFailureDetail()}.`
-        : ''
+      ? ''
       : !validation.sharesValid
         ? 'Each creator destination must be between 0% and 80%.'
         : !validation.xRecipientValid
           ? 'Enter a valid X account for the SOL reward.'
           : 'Creator wallet, holder rewards, and X account reward must total exactly 80%.';
-    feeStatus.className = `field-help ${validation.valid && (feeDistribution.solClaimPercent === 0 || xFeeStatus.ready) ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
+    feeStatus.className = `field-help ${validation.valid ? 'funded-mint-valid' : 'funded-mint-invalid'}`;
     feeStatus.style.display = feeStatus.textContent ? '' : 'none';
     const invalidShares = !validation.sharesValid || Math.abs(validation.total - FEE_DISTRIBUTION.creatorPercent) >= 0.001;
     for (const id of ['creator-wallet-share', 'holder-airdrop-share', 'x-share']) {
@@ -158,4 +149,15 @@ export function updateLaunchPreview(
   }
   renderLaunchBurnSelection();
   updateLaunchNavigation();
+}
+
+// The creator fee split in one plain sentence, so a creator can check who gets
+// paid without reading the bar and legend.
+export function launchFeeSentence({ symbol = '', creator = 0, holders = 0, x = 0, xHandle = '' } = {}) {
+  const n = value => (Number.isFinite(Number(value)) ? Number(value) : 0);
+  const parts = [`you keep ${n(creator)}%`];
+  if (n(holders) > 0) parts.push(`holders share ${n(holders)}%`);
+  if (n(x) > 0) parts.push(`${/^@[A-Za-z0-9_]{1,15}$/.test(xHandle || '') ? xHandle : 'the X account'} gets ${n(x)}%`);
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0];
+  return `Of every creator fee ${symbol ? `$${symbol}` : 'your coin'} earns, ${list}. The other ${Math.max(0, 100 - n(creator) - n(holders) - n(x))}% pays for operations, referrals, the Daily bonus and $FUNDED burns.`;
 }

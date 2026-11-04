@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyHttpPolicy, publicError, staticCacheControl, validateInput } from '../server/http-policy.mjs';
+import { applyHttpPolicy, publicError, staticCacheControl, transientDependencyCode, validateInput } from '../server/http-policy.mjs';
 
 test('only hashed build assets receive immutable caching', () => {
   for (const path of ['index.html', 'app.js', 'styles.css', 'favicon.svg', 'assets/app.js', 'images/logo-deadbeef.png']) assert.equal(staticCacheControl(path), 'no-cache');
@@ -24,4 +24,10 @@ test('explicit input validators retain actionable client errors', () => {
     assert.deepEqual(publicError(error, 'id'), { status: 400, body: { error: 'Invalid wallet.', requestId: 'id' } });
     return true;
   });
+});
+test('transient RPC rate limits are classified without exposing private endpoint text', () => {
+  assert.equal(transientDependencyCode(new Error('HTTP 429 from https://private-rpc/?api-key=secret')),'RPC_RATE_LIMIT');
+  assert.equal(transientDependencyCode(new Error('outer',{cause:{response:{status:503},message:'secret'}})),'HTTP_503');
+  assert.equal(transientDependencyCode(new Error('Invalid wallet 429')) ,null);
+  assert.equal(transientDependencyCode(new Error('database credentials')),null);
 });

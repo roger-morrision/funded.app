@@ -10,19 +10,20 @@ agency allocation. The referral overview, FAQ, Help and Docs identify this as
 pending until the eight-category V3 agency policy is activated. Existing coins
 and recorded payments retain their saved rates.
 
-## Published deployment policy before agency activation
+## Published new-launch fee allocation
 
 The current new-launch default, as a percentage of **gross creator fees collected**, is:
 
 | Destination | Gross share | Meaning |
 | --- | ---: | --- |
 | Creator-directed | 80% | Saved split between the creator wallet, coin holders and a named X account |
-| Operations & marketing | 8% | 40% of the protocol's fixed 20% |
-| Referral network | 3% | Levels 1/2/3: 2% / 0.6% / 0.4% of gross |
+| Operations & marketing | 8% | The app allocation for platform operations and marketing |
+| Referral network | 1% | Levels 1/2/3: 0.6% / 0.25% / 0.15% of gross |
 | Daily bonus | 4% | Equal creator, direct-referrer and trader category pools |
 | $FUNDED buyback | 5% | Dedicated V3 vault allocations for protected purchase and burn |
+| AI marketing & coin buybacks | 2% | Both buyback agents are included; promotion packages add X promotion. Execution requires verified funding and readiness |
 
-These are percentages of creator fees, not trade volume or every Pump fee. The protocol split is configured in [config/protocol-fee-split.js](config/protocol-fee-split.js); a saved admin policy overrides the build default for future launches. Existing coins and settlements retain their recorded on-chain category units. Collection, creator-approved settlement, source funding and finalized recipient payment are separate stages.
+These are percentages of creator fees, not trade volume or every Pump fee. Only **8%** is the app allocation for Operations & marketing; **92%** is allocated to creators and ecosystem benefits. The published `/api/fee-policy` and verified on-chain configuration govern new launches. [config/marketing-agency.js](config/marketing-agency.js) contains the current defaults; [config/protocol-fee-split.js](config/protocol-fee-split.js) is the historical fallback, not the current agency policy. Existing coins and settlements retain their recorded on-chain category units. Collection, creator-approved settlement, source funding and finalized recipient payment are separate stages.
 
 ## Automatic rewards and claims
 

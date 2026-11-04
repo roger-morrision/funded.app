@@ -36,6 +36,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.boostReceipts ||= {};
     state.launchTierQuotes ||= {};
     state.launchServiceQuotes ||= {};
+    state.launchSymbolReservations ||= {};
     state.xPublicTradeShares ||= {};
     state.collections ||= {};
     state.v3Settlements ||= {};
@@ -162,7 +163,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     async readCreatorState(id, cluster, options) { return scopedCreatorState(await load(),id,cluster,options); },
     async readCreatorDirectory({ cluster, ...options }) { return directoryPage(creatorDirectoryRecords(await load(), cluster), options); },
     async read() { return structuredClone(await load()); },
-    async readLaunches({ limit = null, offset = 0 } = {}) { const items = Object.values((await load()).launches || {}); return limit == null ? items : items.slice(offset, offset + limit); },
+    async readLaunches({ limit = null, offset = 0, includeArchived = false } = {}) { const items = Object.values((await load()).launches || {}).filter(row=>includeArchived||!row.archivedAt); return limit == null ? items : items.slice(offset, offset + limit); },
     async readLaunch(mint) { return (await load()).launches?.[mint] || null; },
     async writeMetadata(record, image, imageType, banner = null, bannerType = null) {
       const metadataPath = `${filePath}.metadata.${record.mint}.json`;
@@ -189,6 +190,16 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     async readReferralClaimsForWallet(wallet) { return Object.values((await load()).referralClaims || {}).filter(item => item.recipientWallet === wallet); },
     async readCoinFeeActivity(mint, cluster) { const current = await load(); return coinFeeActivity(current.collections, current.settlements, mint, cluster); },
     async readRouterFeeActivity(router, cluster) { const current = await load(); return routerFeeActivity(current.collections, router, cluster); },
+    async readCallouts(limit = 200) { return (await load()).callouts?.slice(-limit) || []; },
+    async updateCallouts(mutator, limit = 500) {
+      return this.update(state => {
+        const callouts = state.callouts ||= [];
+        const result = mutator(callouts);
+        if (result && typeof result.then === 'function') throw new Error('Callout mutations must be synchronous.');
+        state.callouts = callouts.slice(-limit);
+        return result;
+      });
+    },
     async readCoinChat(mint, limit = 50) { return (await load()).coinChats?.[mint]?.slice(-limit) || []; },
     async appendCoinChat(mint, message, limit = 100) { return this.update(current => { current.coinChats ||= {}; current.coinChats[mint] = [...(current.coinChats[mint] || []), message].slice(-limit); return message; }); },
     async update(mutator) {

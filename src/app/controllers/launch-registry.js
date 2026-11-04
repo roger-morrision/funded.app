@@ -1,3 +1,4 @@
+import { createReserveLoader } from '../../features/rewards/reserve-loader.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchRegistryController(appState) {
   // app-source: 262
@@ -5,12 +6,7 @@ export function createLaunchRegistryController(appState) {
   // app-source-end
 
   // app-source: 271
-  async function loadCommunityReserveStatuses(){
-    const response = await appState.apiRequest('/api/airdrops/reserves').catch(() => ({ available:false }));
-    appState.communityReserveStatus = response.available && response.data?.cluster === 'devnet' && Array.isArray(response.data.reserves) ? 'ready' : 'unavailable';
-    appState.verifiedCommunityReserves = appState.communityReserveStatus === 'ready'
-      ? new Map(response.data.reserves.filter(row => row?.mint).map(row => [row.mint, row])) : new Map();
-    appState.communityClaimPolicy = appState.communityReserveStatus === 'ready' ? response.data.claimPolicy || null : null;
+  const loadCommunityReserveStatuses = createReserveLoader(appState, () => {
     appState.renderHomeKpiDashboard(appState.assets);
     appState.renderAirdropClaims();
     const panel = globalThis.document?.querySelector('#airdrop-selected-program');
@@ -23,7 +19,8 @@ export function createLaunchRegistryController(appState) {
       if (program) appState.renderAirdropProgramDetail(program, { preserveStatus });
     }
     appState.renderRegistry();
-  }
+    document.dispatchEvent(new Event('funded:reserves-updated'));
+  });
   // app-source-end
 
   // app-source: 272
@@ -74,6 +71,7 @@ export function createLaunchRegistryController(appState) {
       && launch.cluster === appState.EXPLORE_CLUSTER
       && (launch.creatorWallet || launch.feePayer));
     appState.assets = appState.includeVerifiedRegistryLaunches(appState.assets);
+    document.dispatchEvent(new Event('funded:verified-search-index'));
     appState.updateExploreSortAvailability();
     appState.renderCreatorLaunches();
     appState.renderExploreAssets();

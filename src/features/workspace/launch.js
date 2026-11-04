@@ -1,11 +1,13 @@
-import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
 import { $, $$, text, node, disclose } from './dom.js';
 import { icon } from '../../../ui-icons.js';
 
 export function launch() {
+  // Keep the route's secondary actions on the same row above the form.
+  const routeActions = $('#launch-route-shell .route-shell-actions');
+  const back = $('#launch-close');
+  if (routeActions && back) routeActions.prepend(back);
   $('#wizard-hint')?.setAttribute('tabindex','-1');
-  $$('[data-launch-step-target]').forEach(button=>button.setAttribute('aria-label',`Step ${button.dataset.launchStepTarget}: ${['Token details','Rewards and launch'][Number(button.dataset.launchStepTarget)-1]}`));
-  disclose($('.enhanced-token-page'), 'Optional story and roadmap');
+  disclose($('.enhanced-token-page'), 'Optional story and roadmap', {id:'launch-story-options'});
   const tier = $('.creator-burn-section');
   const firstStep = $('[data-launch-step="1"]');
   if (tier && firstStep) { tier.classList.add('launch-tier-first'); firstStep.prepend(tier); }
@@ -53,9 +55,6 @@ export function launch() {
     const amount = Number(reserve.value);
     if (funding) funding.textContent = Number.isSafeInteger(amount) ? `${amount.toLocaleString()} tokens · ${(amount / 1e9 * 100).toFixed(2)}% of supply. Allowed: 30M–500M.` : 'Enter a whole token amount between 30M and 500M.';
   });
-  const copy = currentFeePolicyCopy();
-  const protocol = $('.launch-fee-options .benefit-grid article:last-child small');
-  if (protocol) protocol.textContent = `${copy.steps.join(' · ')} of gross collected fees. ${copy.scope}`;
   // The initial step is set by the application; align first paint before any interaction.
   page.dataset.step = '1';
   $$('[data-launch-step]',page).forEach(panel=>panel.hidden=panel.dataset.launchStep!=='1');

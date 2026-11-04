@@ -125,7 +125,8 @@ export function renderHomeLaunchBoard(state, {
       .sort((a, b) => volumeRank(b) - volumeRank(a)).slice(0, 6);
     const tickerMarkup = ranked.length ? ranked.map((item, index) => {
       const currentCap = capUsd(item);
-      const marketCap = currentCap >= 0 ? formatCompactUsd(currentCap) : '$—';
+      // Unknown figures read as one muted dash, not "$—", matching the coin cards.
+      const marketCap = currentCap >= 0 ? formatCompactUsd(currentCap) : '—';
       const windowActivity = item.activityWindows?.[homeLaunchWindow];
       const sinceFirstTrade = EXPLORE_CLUSTER === 'devnet' && windowActivity?.coverage === 'complete'
         && windowActivity.priceChangeBasis === 'since-first-trade';
@@ -146,7 +147,7 @@ export function renderHomeLaunchBoard(state, {
       const boostDetail = boostQuantity ? `${boostQuantity} active boost${boostQuantity === 1 ? '' : 's'} · ${boostMultiplier.toLocaleString()}x total` : '';
       const capSource = item.migrated === true ? 'pool' : item.complete === false ? 'curve' : 'market';
       const detail = `${symbol}${boostDetail ? ` · ${boostDetail}` : ''} · ${changeLabel} ${change} · ${capSource} MC ${marketCap}`;
-      return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${boostQuantity ? `<span class="home-ticker-boost" title="${escapeHtml(boostDetail)}" aria-label="${escapeHtml(boostDetail)}">⚡${boostMultiplier.toLocaleString()}</span>` : ''}<span class="home-ticker-change ${trendClass}" title="${escapeHtml(hasChange ? changeLabel : 'Market cap change unavailable')}">${escapeHtml(change)}</span><small class="home-ticker-mc">MC ${escapeHtml(marketCap)}</small></a>`;
+      return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${boostQuantity ? `<span class="home-ticker-boost" title="${escapeHtml(boostDetail)}" aria-label="${escapeHtml(boostDetail)}">⚡${boostMultiplier.toLocaleString()}</span>` : ''}${hasChange ? `<span class="home-ticker-change ${trendClass}" title="${escapeHtml(changeLabel)}">${escapeHtml(change)}</span>` : ''}<small class="home-ticker-mc${currentCap >= 0 ? '' : ' is-unknown'}"${currentCap >= 0 ? '' : ' title="Not reported yet"'}>MC ${escapeHtml(marketCap)}</small></a>`;
     }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : exploreProviderStatus === 'On-chain only · loading' ? 'Checking verified market activity' : 'Market activity unavailable'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
   }
@@ -165,7 +166,14 @@ export function renderHomeLaunchBoard(state, {
       if (paidTableBody) paidTableBody.innerHTML = `<tr><td colspan="4" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;
       return;
     }
-    grid.innerHTML = listings.map(paidListingCardMarkup).join('');
+    // Listed coins use the same token card as every other list; the listing-only
+    // card remains for a coin the market feed has not loaded yet.
+    const byMint = new Map(verified.map(item => [item.address, item]));
+    grid.innerHTML = listings.map(listing => {
+      const item = byMint.get(listing.mint);
+      return item ? homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item) }) : paidListingCardMarkup(listing);
+    }).join('');
+    grid.querySelectorAll('.home-launch-card:not(.paid-listing-card)').forEach(card => decorateHomeLaunchCard(card, card.dataset.mint));
     if (paidTableBody) paidTableBody.innerHTML = listings.map(paidListingTableMarkup).join('');
     loadVerifiedTokenLogos(grid);
     if (paidTableBody) loadVerifiedTokenLogos(paidTableBody);

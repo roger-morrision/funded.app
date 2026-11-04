@@ -36,7 +36,7 @@ export function createLaunchPreviewController(appState) {
               import('../../../launch-flow.js'), import('../../../launch-core.js'),
             ]);
             const input = normalizeLaunchInput({ name: 'Solana Coin', symbol: 'COIN', supply: appState.LAUNCH_TOKEN_SUPPLY, decimals: 6 });
-            const developer = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, initialBuySol: creatorBuySol } });
+            const developer = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens, initialBuySol: creatorBuySol } });
             const quote = await appState.quoteAtomicReserveBuy({ connection: appState.connection, supply: input.supply,
               decimals: input.decimals, reserveTokens, developerBaseUnits: developer.amountBaseUnits });
             return { developer, quote };
@@ -50,7 +50,7 @@ export function createLaunchPreviewController(appState) {
       } catch (error) {
         if (request !== publicQuoteRequest || appState.wallet) return;
         publicQuote = { status: /developer buy|community reserve|launch supply/i.test(String(error?.message || ''))
-          ? 'invalid' : 'unavailable', updatedAt: Date.now() };
+          ? 'invalid' : 'unavailable', message: String(error?.message || ''), updatedAt: Date.now() };
       } finally {
         clearTimeout(timeout);
       }
@@ -221,7 +221,7 @@ export function createLaunchPreviewController(appState) {
 
   // app-source: 617
   function updateLaunchPreview(){
-    return appState.updateLaunchPreviewView({ wallet: appState.wallet, feeRouterState: appState.feeRouterState, xFeeStatus: appState.xFeeStatus, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, publicQuote }, { getCommunityAllocationPercent: appState.getCommunityAllocationPercent, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getFeeDistributionInputs: appState.getFeeDistributionInputs, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getBannerPreviewUrl: appState.getBannerPreviewUrl, getCreatorBuySummary: appState.getCreatorBuySummary, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, formatVerifiedPercent: appState.formatVerifiedPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, xFeeFailureDetail: appState.xFeeFailureDetail, renderLaunchBurnSelection: appState.renderLaunchBurnSelection, updateLaunchNavigation: appState.updateLaunchNavigation });
+    return appState.updateLaunchPreviewView({ wallet: appState.wallet, feeRouterState: appState.feeRouterState, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, publicQuote }, { getCommunityAllocationPercent: appState.getCommunityAllocationPercent, getCommunityAirdropTokens: appState.getCommunityAirdropTokens, getFeeDistributionInputs: appState.getFeeDistributionInputs, getLaunchBurnPolicy: appState.getLaunchBurnPolicy, getBannerPreviewUrl: appState.getBannerPreviewUrl, getCreatorBuySummary: appState.getCreatorBuySummary, creatorBuyExceedsWalletBalance: appState.creatorBuyExceedsWalletBalance, formatVerifiedPercent: appState.formatVerifiedPercent, formatLaunchBurnAmount: appState.formatLaunchBurnAmount, renderLaunchBurnSelection: appState.renderLaunchBurnSelection, updateLaunchNavigation: appState.updateLaunchNavigation });
   }
   // app-source-end
 

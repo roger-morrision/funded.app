@@ -12,6 +12,7 @@ const offline=route=>new URL(route.request().url()).pathname==='/api/fee-policy'
   ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):route.fulfill({status:503,json:{error:'Unavailable fixture'}});
 
 for(const width of [390,1440])test(`RPC HTML errors remain concise and buy controls disabled at ${width}px`,async({page},info)=>{
+  test.setTimeout(90_000); // This case starts a fresh Vite server with isolated source transforms.
   await page.setViewportSize({width,height:900});
   await withConfiguredPoolSource(info,async(origin)=>withRpcHtmlReads(page,info,origin,expect,async f=>{
     await page.goto(origin+'/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
@@ -48,6 +49,7 @@ for(const width of [390,1440])test(`Canonical pool profile stays unavailable at 
 });
 
 for(const width of [390,1440])test(`Unconfigured source pool stays unavailable at ${width}px (explicit empty source defines)`,async({page},info)=>{
+  test.setTimeout(90_000); // The isolated source server builds its own dependency cache.
   await page.setViewportSize({width,height:900});
   await withUnconfiguredPoolSource(info,async origin=>withRpcHtmlReads(page,info,origin,expect,async f=>{
     await page.goto(origin+'/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
@@ -79,7 +81,7 @@ for(const mode of ['outage','partial','pending','active'])test(`airdrop ${mode} 
     await expect(page.locator('#airdrop-selected-status')).toContainText('Claim availability could not be verified');
     await page.locator('#airdrop-selected-program .airdrop-verification-details summary').click();
     await expect(page.locator('#airdrop-selected-program .airdrop-proof-value')).toHaveText(['Verification unavailable','Verification unavailable']);
-    await expect(page.locator('#airdrop-selected-program')).not.toContainText('Pending verified snapshot');
+    await expect(page.locator('#airdrop-selected-program')).not.toContainText('Shown after the holder snapshot');
     await claimTab.click();
     await expect(list).toContainText('Claim availability could not be verified');
     await expect(list).not.toContainText('No claims are open yet');
@@ -105,6 +107,6 @@ test('recorded buyback history does not imply current execution readiness',async
   await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('.reward-buyback-stats')).toContainText('Recorded buybacks1');
   await expect(page.locator('.reward-source-note')).toContainText('automatic execution readiness could not be verified');
-  await expect(page.locator('#buyback-route-last-time')).toHaveText('Burn verification unavailable');
+  await expect(page.locator('#buyback-route-last-time')).toHaveText('Waiting for the next burn update');
   await expect(page.locator('#buyback-ledger')).toContainText('0.001 $FUNDED bought and burned');
 });

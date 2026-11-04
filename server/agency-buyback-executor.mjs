@@ -31,7 +31,8 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
   let observation=null;
   if(!saved?.signature){
     observation=await readObservation({connection,mint});
-    if(BigInt(observation.marketCapUsdMicros)<BigInt((context.policy.rules||DEFAULT_AGENCY_RULES).marketCapUsd[agent-1])*1000000n)return{status:'below-threshold',mint,agent};
+    if(BigInt(observation.marketCapUsdMicros)<BigInt((context.policy.rules||DEFAULT_AGENCY_RULES).marketCapUsd[agent-1])*1000000n)return{status:'below-threshold',mint,agent,
+      observation:{slot:observation.slot,observedAt:observation.observedAt,marketCapUsdMicros:String(observation.marketCapUsdMicros)}};
   }
   const buybackId=createHash('sha256').update(`funded.agency.own-coin.v1:${mint}:${agent}`).digest();
   return journal({store,connection,key,intent,authority,prepare:async()=>{

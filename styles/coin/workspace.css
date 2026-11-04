@@ -66,6 +66,7 @@
 .coin-page .coin-profile-tagline{margin:0 0 12px;color:#edfff0;font-size:17px;font-weight:700;line-height:1.3}
 .coin-page .coin-profile-tagline[hidden]{display:none!important}
 .coin-page .coin-hero-about .coin-description{display:block!important;max-width:none;max-height:none;overflow:visible;margin:0;color:inherit;font-size:inherit;line-height:inherit;-webkit-line-clamp:unset}
+.coin-page .coin-retry{margin-top:12px}.coin-page .coin-retry[hidden]{display:none}
 .coin-page .coin-profile-roadmap-section,.coin-page .coin-profile-links{flex:1;min-height:0;max-height:290px;overflow-y:auto;padding:17px 18px;color:#c7d8ca;font-size:12px;line-height:1.65}
 .coin-page .coin-profile-roadmap-section[hidden]{display:none!important}
 .coin-page .coin-profile-links[hidden]{display:none!important}
@@ -158,6 +159,11 @@
 .coin-page .coin-transactions-table tbody tr:hover{background:#26354d}
 .coin-page .coin-trade-toolbar{display:grid;grid-template-columns:minmax(0,1fr);justify-content:stretch;gap:8px}
 .coin-page .coin-trade-controls{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.coin-page .coin-trade-results{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-width:0;color:#a7bad0;font-size:12px;line-height:1.5}
+.coin-page .coin-trade-results>span{min-width:0;overflow-wrap:anywhere}
+.coin-page .coin-trade-results button,.coin-page .coin-trade-empty-state button{min-height:44px;padding:8px 12px;font-size:12px}
+.coin-page .coin-trade-empty-state{display:grid;justify-items:start;gap:10px;min-width:0;margin:12px;padding:14px;border:1px dashed #3b4d64;border-radius:7px;background:#121d2b}
+.coin-page .coin-trade-empty-state .coin-trade-no-results{margin:0;color:#b5c5da;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
 .coin-page .coin-trade-wallet-search{display:flex;align-items:center;gap:8px;flex:1 1 220px;max-width:410px;min-width:190px;color:#aebdd0;font:10px 'DM Mono',monospace;white-space:nowrap}
 .coin-page .coin-trade-wallet-search input{min-width:0;width:100%;box-sizing:border-box;border:1px solid #35465b;border-radius:6px;padding:8px 10px;background:#0d1622;color:#e5edf6;font:11px 'DM Mono',monospace}
 .coin-page .coin-trade-wallet-search input:focus-visible{outline:2px solid #e9e1cf;outline-offset:1px}
@@ -210,6 +216,8 @@
   .coin-page .coin-identity>.coin-identity-main{display:contents}
   .coin-page .coin-avatar{grid-column:1;grid-row:1 / span 4;align-self:center}
   .coin-page .coin-title-row,.coin-page .coin-identity h1,.coin-page .coin-address,.coin-page .coin-attribution{grid-column:2;min-width:0}
+  /* Long sub-cent prices need the full row; auto-placement would squeeze them into the avatar column. */
+  .coin-page .coin-price-line{grid-column:1/-1;min-width:0}
   /* Reserve both attribution lines while their verified identities load. */
   .coin-page .coin-attribution{min-height:calc(2lh + 4px);font-size:10px;line-height:1.4;align-content:start}
   .coin-page .coin-attribution a,.coin-page .coin-attribution #coin-launched-by{line-height:1.4}

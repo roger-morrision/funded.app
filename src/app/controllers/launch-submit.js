@@ -1,11 +1,14 @@
+import {savedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
+import {promotionContentState} from '../../features/launch/promotion-requirements.js';
 import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
+import { deriveMintRouterV3 } from '../../../mint-router-v3.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchSubmitController(appState) {
   // app-source: 662
   async function launchToken(){
-    const agencySelection=readLaunchAgencySelection();
+    const agencySelection=readLaunchAgencySelection(appState.getLaunchBurnPolicy());
     if (agencySelection.length&&!appState.feeRouterState?.v3FeeRouter?.agency) {
       appState.setLaunchStatus('AI agency launch is unavailable until its dedicated V3 fee budget and executors are verified. No transaction was sent.', true);
       return;
@@ -14,6 +17,8 @@ export function createLaunchSubmitController(appState) {
       appState.setLaunchStatus('Coin launching is unavailable in this workspace.', true);
       return;
     }
+    const content=promotionContentState(appState.getLaunchBurnPolicy());
+    if(!content.valid){appState.setLaunchStatus(content.message,true);return;}
     if (!appState.wallet) { await appState.connectWallet(); if (!appState.wallet) return; }
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) { appState.setLaunchStatus('Open this app inside a signing wallet to launch.', true); return; }
@@ -34,7 +39,6 @@ export function createLaunchSubmitController(appState) {
     if (invalidSocial) { const details = invalidSocial.closest('details'); if (details) details.open = true; invalidSocial.reportValidity(); appState.setLaunchStatus(invalidSocial.validationMessage, true); return; }
     if (!Number.isSafeInteger(communityTokens) || communityTokens < appState.MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > appState.MAX_COMMUNITY_AIRDROP_TOKENS || !Number.isFinite(communityAllocation)) { appState.setLaunchStatus('Community airdrop must be between 30,000,000 and 500,000,000 tokens.', true); return; }
      if (feeDistributionInput.solClaimPercent > 0 && !/^@[A-Za-z0-9_]{1,15}$/.test(xRecipient)) { appState.setLaunchStatus('Enter a valid X handle such as @account when X account rewards are above 0%.', true); return; }
-    if (feeDistributionInput.solClaimPercent > 0 && !appState.xFeeStatus.ready) { appState.setLaunchStatus(`X account rewards unavailable: ${appState.xFeeFailureDetail()}.`, true); return; }
     if (!feeDistribution.valid) { appState.setLaunchStatus('Creator fee shares must total exactly 80%. Check the wallet, holder, and X percentages.', true); return; }
     if (!launchBurnValidation.valid) { appState.setLaunchStatus('The fixed $FUNDED mint must be configured before a paid launch tier can be used.', true); return; }
     if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id)) {
@@ -69,7 +73,7 @@ export function createLaunchSubmitController(appState) {
         appState.setLaunchStatus('Resolving the X account to its stable user ID before signing…');
         const resolved = await appState.apiRequest(`/api/x/resolve?handle=${encodeURIComponent(xRecipient)}`);
         appState.assertWalletSessionCurrent(session);
-        if (!resolved.available || !/^\d{1,24}$/.test(String(resolved.data?.id || '')) || resolved.data.handle.toLowerCase() !== xRecipient.toLowerCase()) throw new Error('X account identity could not be verified before launch. No coin transaction was sent.');
+        if (!resolved.available || !/^\d{1,24}$/.test(String(resolved.data?.id || '')) || String(resolved.data?.handle || '').toLowerCase() !== xRecipient.toLowerCase()) throw new Error('X account could not be checked. Retry before launching.');
         xUserId = resolved.data.id;
       }
       const unresolved=appState.readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state));
@@ -96,9 +100,45 @@ export function createLaunchSubmitController(appState) {
         throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
       journalId=crypto.randomUUID();appState.recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
       appState.emitPilotSignal('launch-submission-started');
-      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:event=>appState.recordLaunchEvent(journalId,event), onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
+      let recoveryMint = null;
+      const recordAndSaveRecovery = event => {
+        const row = appState.recordLaunchEvent(journalId, event);
+        if (event.state === 'prepared' && event.mint) {
+          recoveryMint = event.mint;
+          const routeAddress = deriveMintRouterV3(v3FeeRouter.programId, recoveryMint).address.toBase58();
+          const draft = {
+            chain:'solana', cluster:'devnet', mint:recoveryMint,
+            creatorWallet:session.address, name, symbol, communityAllocation,
+            feeDistribution:appState.buildFeeDistributionPolicy({ ...feeDistributionInput,
+              feeRouterAddress:routeAddress }, { fundedSplit:v3FeeRouter.split }),
+            pumpFeeRoute:{ scope:'per-mint-v3', router:routeAddress,
+              programId:v3FeeRouter.programId, initialAuthority:v3FeeRouter.initialAuthority,
+              protocolSplit:v3FeeRouter.split },
+            ...(v3FeeRouter.agency ? { marketingAgency:v3FeeRouter.agency } : {}),
+            ...(launchBurn.requiresBurn ? { creatorLaunchBurn:{ tier:launchBurn.tier,
+              amountTokens:launchBurn.amountTokens, fundedMint:launchBurn.fundedMint,
+              quoteId:launchBurn.quoteId } } : {}),
+            launchServiceFee:{ quoteId:appState.launchServiceQuote.id,
+              policyHash:appState.launchServiceQuote.policyHash,
+              amountLamports:appState.launchServiceQuote.amountLamports,
+              recipient:appState.launchServiceQuote.recipient },
+          };
+          // Save before any broadcast so a confirmed mint remains registerable
+          // if a later RPC verification fails or the page closes.
+          localStorage.setItem(`funded.launch.${recoveryMint}`, JSON.stringify(draft));
+        }
+        if (event.state === 'verification-pending' && event.signature && recoveryMint) {
+          const key = `funded.launch.${recoveryMint}`;
+          const draft = JSON.parse(localStorage.getItem(key) || 'null');
+          if (!draft || draft.mint !== recoveryMint) throw new Error('Launch recovery draft is missing. Check the confirmed transaction before another launch.');
+          draft.signature = event.signature;
+          draft.pumpFeeRoute.transaction = event.signature;
+          localStorage.setItem(key, JSON.stringify(draft));
+        }
+        return row;
+      };
+      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:recordAndSaveRecovery, onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
       const routeAddress = result.feeRouter.toBase58();
-      const { deriveMintRouterV3 } = await import('../../../mint-router-v3.js');
       const routeState = { ...deriveMintRouterV3(v3FeeRouter.programId, result.mint.publicKey),
         address:routeAddress, scope:'per-mint-v3',agencyPolicy:Boolean(v3FeeRouter.agency) };
       const launchPolicy = {
@@ -199,9 +239,9 @@ export function createLaunchSubmitController(appState) {
         ...(burnReceipt && !burnReceipt.atomicWithPumpLaunch ? [{ label: 'Verify separate $FUNDED burn on Explorer ↗', href: devnetExplorer(`tx/${burnReceipt.signature}`) }] : []),
         { label: 'View mint on Explorer ↗', href: devnetExplorer(`address/${result.mint.publicKey.toBase58()}`) },
         { label: 'Open My launches →', href: '#my-launches' },
-        { label: 'Publish community airdrop →', href: '#airdrops' },
+        { label: 'Review this coin’s migration airdrop →', href: `/?airdropMint=${launchPolicy.mint}#airdrops` },
       ];
-      appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed / 20% app protocol${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
+      appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed · ${savedFeeAllocationCopy(launchPolicy.feeDistribution)}${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
       document.querySelector('#launch-status').classList.add('launch-complete');
       appState.showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); appState.renderAirdropClaims(); appState.refreshWalletBalance(); appState.openLaunchedCoinPage(launchPolicy);
     } catch (error) {

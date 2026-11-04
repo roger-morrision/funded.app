@@ -3,6 +3,7 @@ import { verifyFeeRouterAccount } from '../fee-router.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
 import { loadFinalizedV3PumpCollection } from './v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
+import { allocationAuditHash } from './allocation-audit-hash.mjs';
 
 const HEX_32 = /^[a-f0-9]{64}$/i;
 const result = (verified, recorded, checked, reason) => ({
@@ -16,7 +17,7 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
   approvedHash, maxRecords = 100, readProgram = readProgramDataEvidence,
   verifyGlobal = verifyFeeRouterAccount,
   loadCollection = loadFinalizedV3PumpCollection,
-  loadSettlement = loadFinalizedV3Settlement }) {
+  loadSettlement = loadFinalizedV3Settlement, verifiedProofCache }) {
   const collections = Object.values(state?.collections || {}).filter(row =>
     row?.scope === 'per-mint-v3' && row.cluster === 'devnet');
   const recorded = collections.length;
@@ -52,6 +53,14 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
         || settlement.expectedLamports !== String(collection.collectedLamports)
         || !settlement.settlementSignature)
         return 'record-mismatch-or-pending';
+      // Finalized receipts cannot change. Remember only complete verified
+      // pairs, keyed by every stored input and the freshly checked deployment.
+      // An interrupted 30-second scan can then finish its remaining records on
+      // the next pass without trusting a stale label or changed policy.
+      const cacheKey=verifiedProofCache&&allocationAuditHash({collection,settlement,launch,
+        program,approvedHash,authority:global.authority.toBase58()});
+      const cachedAt=cacheKey&&verifiedProofCache.get(cacheKey);
+      if(Number.isSafeInteger(cachedAt)&&Date.now()-cachedAt>=0&&Date.now()-cachedAt<300000)return null;
       const source = await loadCollection({ connection, signature:collection.signature,
         programId:program, mint:collection.mint, launch });
       if (!source || source.signature !== collection.signature
@@ -72,6 +81,10 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
         return 'settlement-proof-unavailable';
       if (proof.authorization !== settlement.authorization)
         return 'settlement-authorization-mismatch';
+      if(cacheKey){
+        verifiedProofCache.set(cacheKey,Date.now());
+        while(verifiedProofCache.size>100)verifiedProofCache.delete(verifiedProofCache.keys().next().value);
+      }
       return null;
     };
     let checked = 0;

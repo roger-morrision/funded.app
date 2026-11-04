@@ -21,6 +21,12 @@ function fixture(overrides = {}) {
   };
 }
 
+test('health uses the fresh status projection without cloning unrelated reward indexes',async()=>{
+  let reads=0;
+  const request=fixture({automaticRewardStore:{read:async()=>{throw Error('Full ledger must not be cloned');},readStatusSnapshot:async()=>{reads++;return {};}}});
+  const result=await request('handleServiceStatus','/api/health');assert.equal(result.status,200);assert.equal(result.data.ok,true);assert.equal(result.data.external.automaticRewards,false);assert.equal(reads,1);
+});
+
 test('status handlers fall through without writing for unrelated methods and paths', async () => {
   const request = fixture();
   for (const handler of ['handleServiceStatus', 'handleOperationsStatus', 'handleKeeperStatus']) {

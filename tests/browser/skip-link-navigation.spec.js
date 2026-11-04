@@ -17,8 +17,8 @@ const visibleFocus=page=>page.evaluate(()=>{
 
 test('skip bypasses navigation without replacing Explore or a nested Docs article',async ({page})=>{
   for(const [width,height,route,heading,content] of [
-    [390,844,'explore','Explore tokens','#explore'],
-    [1440,900,'explore','Explore tokens','#explore'],
+    [390,844,'explore','Explore coins','#explore'],
+    [1440,900,'explore','Explore coins','#explore'],
     [390,844,'docs/trading','Buying and selling','#docs-guide-article'],
     [1440,900,'docs/trading','Buying and selling','#docs-guide-article'],
   ]){

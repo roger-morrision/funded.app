@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-const loading = 'Checking finalized payout receipts.';
+const loading = 'Checking confirmed payout receipts.';
 const unavailable = 'Payment history is temporarily unavailable.';
 const incomplete = 'Verification coverage is incomplete. Confirmed payments are not available in this response.';
 const empty = 'No confirmed payments are available to show yet.';
@@ -261,7 +261,7 @@ async function bonus077Read(page,action,available) {
   const status=page.locator('#bonuses [data-bonus-history-status]'),rows=page.locator('#bonuses [data-bonus-history-rows]');
   if(available){
     expect(response.status()).toBe(200);expect(body).toEqual(bonus077Payload());
-    await expect(status).toContainText('1 finalized receipt(s).');await expect(status).toContainText('Bonus snapshots are not enabled.');
+    await expect(status).toContainText('1 confirmed receipt(s).');await expect(status).toContainText('Bonus snapshots are not enabled.');
     await expect(rows.locator('tbody tr')).toHaveCount(1);await expect(rows).toContainText('2026-10-20');await expect(rows).toContainText('0.00000045 SOL');
     await expect(page.locator('#bonuses [data-bonus-page]')).toHaveText('Page 1 of 1 · 1 payments');
   }else{
@@ -276,10 +276,10 @@ async function bonus077Font(link) {
     await document.fonts.ready;const s=getComputedStyle(e),faces=await document.fonts.load(s.fontWeight+' '+s.fontSize+' "Manrope"',e.textContent);await document.fonts.ready;
     return {family:s.fontFamily,weight:s.fontWeight,size:parseFloat(s.fontSize),faces:faces.map(f=>({family:f.family,weight:f.weight,status:f.status}))};
   });
-  expect(font.family).toContain('Manrope');expect(font.weight).toBe('700');expect(font.size).toBeGreaterThanOrEqual(14);
-  expect(font.faces.length,'font unavailable: actual Manrope700 required').toBeGreaterThan(0);
+  expect(font.family).toContain('Manrope');expect(font.weight).toBe('600');expect(font.size).toBeGreaterThanOrEqual(14);
+  expect(font.faces.length,'font unavailable: actual Manrope600 required').toBeGreaterThan(0);
   expect(font.faces.every(f=>f.family==='Manrope'&&f.status==='loaded')).toBe(true);
-  expect(font.faces.some(f=>{const w=f.weight.split(/\s+/).map(Number);return w.length===1?w[0]===700:w.length===2&&w[0]<=700&&w[1]>=700;})).toBe(true);
+  expect(font.faces.some(f=>{const w=f.weight.split(/\s+/).map(Number);return w.length===1?w[0]===600:w.length===2&&w[0]<=600&&w[1]>=600;})).toBe(true);
   return font;
 }
 async function bonus077Identity(original,focused=false) {

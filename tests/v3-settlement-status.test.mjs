@@ -121,6 +121,30 @@ test('checks finalized proofs in bounded parallel batches and keeps ordered fail
   assert.equal(partial.failures[1].reason,'finalized-evidence-unavailable');
 });
 
+test('verified finalized receipts are reused but changed inputs require fresh proof',async()=>{
+  const input=fixture(),cache=new Map(),original=input.loadSettlement;
+  let calls=0,fail=true;
+  input.verifiedProofCache=cache;
+  input.loadSettlement=async args=>{
+    calls++;
+    if(fail)throw new Error('RPC interrupted');
+    return original(args);
+  };
+  assert.equal((await verifyRecordedV3Settlements(input)).verified,false);
+  assert.equal(cache.size,0);
+  fail=false;
+  assert.equal((await verifyRecordedV3Settlements(input)).verified,true);
+  assert.equal(cache.size,1);assert.equal(calls,2);
+  assert.equal((await verifyRecordedV3Settlements(input)).verified,true);
+  assert.equal(calls,2,'The same finalized proof may be reused after fresh program verification.');
+  input.state.v3Settlements[signature].authorization='changed';
+  assert.equal((await verifyRecordedV3Settlements(input)).reason,'settlement-authorization-mismatch');
+  assert.equal(calls,3,'Changed stored settlement inputs must bypass the receipt cache.');
+  input.readProgram=async()=>({account:{executable:true},sha256:'c'.repeat(64)});
+  assert.equal((await verifyRecordedV3Settlements(input)).reason,'approved-program-unverified');
+  assert.equal(calls,3,'A program mismatch must fail before cached receipt use.');
+});
+
 test('status covers the 26th collection and still rejects ledgers beyond its bounded budget before RPC',async()=>{
   const input=fixture(),collection=input.state.collections[signature],settlement=input.state.v3Settlements[signature];
   const fill=count=>{

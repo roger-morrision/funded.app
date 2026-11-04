@@ -27,7 +27,8 @@ test('current page rules follow saved policy without rewriting historical token 
 
 test('active agency allocation copy includes every category and sums to the fixed gross fee total',()=>{
   try{setActiveProtocolFeeSplit(agencyProtocolSplit());
-    const copy=currentFeePolicyCopy();assert.match(copy.allocation,/1% Referral network/);assert.match(copy.allocation,/2% AI agency/);
-    assert.equal([...copy.allocation.matchAll(/([\d.]+)%/g)].reduce((sum,row)=>sum+Number(row[1]),0),100);
+    const copy=currentFeePolicyCopy();assert.match(copy.allocation,/1% Referral network/);assert.match(copy.allocation,/2% AI marketing & coin buybacks/);
+    assert.equal(copy.headline,'Fee distribution');assert.match(copy.benefits,/92%/);
+    assert.equal([...copy.steps.join(' ').matchAll(/([\d.]+)%/g)].reduce((sum,row)=>sum+Number(row[1]),0),100);
   }finally{setActiveProtocolFeeSplit(PROTOCOL_FEE_SPLIT);}
 });

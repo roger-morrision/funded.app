@@ -67,6 +67,8 @@ import { boostHistoryRows } from '../../boost-history-view.js';
 import { productEvent } from '../../product-events.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from '../../pilot-event-signals.js';
 import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, archiveVerifiedBoostFromHistory, saveSignedBoostPayment } from '../../boost-checkout-recovery.js';
+import { readPendingCommunityFunding, savePendingCommunityFunding, clearPendingCommunityFunding } from '../../community-funding-recovery.js';
+import { readPendingCommunityClaim, savePendingCommunityClaim, clearPendingCommunityClaim } from '../../community-claim-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from '../../token-chat-preferences.js';
 import { createRoutePoller } from '../../route-polling.js';
 import { Buffer } from 'buffer';
@@ -212,6 +214,12 @@ export const appDependencies = {
   archiveBoostPayment,
   archiveVerifiedBoostFromHistory,
   saveSignedBoostPayment,
+  readPendingCommunityFunding,
+  savePendingCommunityFunding,
+  clearPendingCommunityFunding,
+  readPendingCommunityClaim,
+  savePendingCommunityClaim,
+  clearPendingCommunityClaim,
   readHiddenChatAuthors,
   hideChatAuthor,
   resetHiddenChatAuthors,

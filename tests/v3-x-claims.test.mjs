@@ -19,7 +19,7 @@ const mintAddress = mint.publicKey.toBase58();
 const vault = deriveCommunityRewardVaultV3(program.publicKey, mint.publicKey, authority.publicKey);
 
 function fixture({ enabled = true, xUserId = '12345', proof = true,
-  sessionUsername = 'qa',residual=false } = {}) {
+  sessionUsername = 'qa',residual=false,needsFunding=false } = {}) {
   const launch = { mint:mintAddress, onchainVerified:true, cluster:'devnet',
     creatorWallet:creator.publicKey.toBase58(), xUserId,
     pumpFeeRoute:{ scope:'per-mint-v3', programId:program.publicKey.toBase58(),
@@ -91,6 +91,8 @@ function fixture({ enabled = true, xUserId = '12345', proof = true,
       execute:async (_now, ids) => {
         assert.deepEqual(ids, [`direct:x:${sourceKey}`]);
         const row = rewards.schedules[ids[0]];
+        if(needsFunding){row.status='distributing';row.payments={[wallet.publicKey.toBase58()]:{
+          status:'awaiting-recipient-funding',reason:'Recipient needs SOL funding.',minimumFundingLamports:'890880'}};return;}
         if(row.status==='paid')return;submitted++;
         row.status = 'paid';
         row.payments = { [wallet.publicKey.toBase58()]:{
@@ -107,6 +109,15 @@ function fixture({ enabled = true, xUserId = '12345', proof = true,
       new URL(`/api/tokens/${mintAddress}/v3-x-claim/${encodeURIComponent(sourceKey)}/${action}`,
         'https://funded.vip')) };
 }
+
+test('a verified X wallet with a pending native minimum receives an actionable funding response',async()=>{
+ const f=fixture({needsFunding:true});await f.request('prepare',{wallet:wallet.publicKey.toBase58()});
+ const statement=f.responses.at(-1).data.statement;
+ await f.request('verify',{wallet:wallet.publicKey.toBase58(),signature:bs58.encode(nacl.sign.detached(new TextEncoder().encode(statement),wallet.secretKey))});
+ await f.request('execute');assert.equal(f.responses.at(-1).status,409);
+ assert.equal(f.responses.at(-1).data.code,'RECIPIENT_RENT_REQUIRED');assert.equal(f.responses.at(-1).data.minimumFundingLamports,'890880');
+ assert.notEqual(f.state.v3XClaims[collectionSignature].status,'paid');assert.equal(f.submitted,0);
+});
 
 test('an audited residual X claim uses its own wallet challenge, funding receipt and replay-safe cycle',async()=>{
   const f=fixture({residual:true});

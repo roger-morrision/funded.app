@@ -8,6 +8,7 @@ import {createAutomaticRewardStore} from '../server/automatic-reward-store.mjs';
 import bs58 from 'bs58';
 import {Keypair} from '@solana/web3.js';
 import {deriveMintPolicyV3} from '../mint-router-v3.js';
+import {deriveAgencyPolicyV3,agencyProtocolSplit,agencyCategoryTargets} from '../agency-mint-router-v3.js';
 import {createDailyBonusEvidenceIndex} from '../server/daily-bonus-index.mjs';
 import {buildDailyBonusSnapshot} from '../server/daily-bonus.mjs';
 import {DEVNET_GENESIS_HASH} from '../server/automatic-reward-chain.mjs';
@@ -16,12 +17,13 @@ const keys=Array.from({length:5},(_,n)=>Keypair.fromSeed(Buffer.alloc(32,n+60)).
 const [programId,mint,creator,authority,referrer]=keys;
 const start=Date.parse('2026-10-18')/1000,day='2026-10-18',now=start+86400;
 const signature=n=>bs58.encode(Buffer.alloc(64,n));
-function fixture(){
-  const policy=deriveMintPolicyV3(programId,mint).address.toBase58(),claimId=Buffer.alloc(32,3);
+function fixture(instructionName='settle_mint_v3'){
+  const agency=instructionName.includes('agency');
+  const policy=(agency?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address.toBase58(),claimId=Buffer.alloc(32,3);
   const source=signature(1),settlement=signature(2);
   const reference={signature:settlement,slot:500,blockTime:start+10,confirmationStatus:'finalized',err:null};
   const data=Buffer.alloc(48);
-  createHash('sha256').update('global:settle_mint_v3').digest().copy(data,0,0,8);
+  createHash('sha256').update('global:'+instructionName).digest().copy(data,0,0,8);
   claimId.copy(data,8);data.writeBigUInt64LE(1000000n,40);
   const transaction={slot:500,blockTime:reference.blockTime,meta:{err:null},transaction:{signatures:[settlement],message:{
     accountKeys:[programId,mint,policy],instructions:[{programIdIndex:0,accounts:[1,2],data:bs58.encode(data)}]}}};
@@ -36,12 +38,27 @@ function fixture(){
     v3Settlements:{[source]:{mint,collectionSignature:source,status:'finalized',settlementSignature:settlement,referralUpline:[referrer]}}};
   const proof={signature:settlement,slot:500,blockTime:reference.blockTime,claimId:claimId.toString('hex'),
     expectedLamports:'1000000',categoryLamports:['800000','80000','20000','6000','4000','40000','50000']};
+  if(agency){launch.pumpFeeRoute.protocolSplit=agencyProtocolSplit();proof.categoryLamports=agencyCategoryTargets('1000000').map(String);}
   const connection={getGenesisHash:async()=>DEVNET_GENESIS_HASH,getSlot:async()=>600,getBlockTime:async()=>now,
     getSignaturesForAddress:async address=>address.toBase58()===policy?[reference]:[],
     getTransaction:async id=>id===source?collectionTx:id===settlement?transaction:null};
   const options={rewardStore,verifyCollection:async()=>({claimId,expectedLamports:1000000n}),loadSettlement:async()=>structuredClone(proof)};
   return {state,proof,source,connection,rewardStore,options,args:{state,connection,programId,day,now,eligibilityBasis:'settlement-time-v1'}};
 }
+
+test('both automatic settlement instructions enter creator rankings after a legacy index is resumed',async()=>{
+  for(const instructionName of ['settle_mint_v3_auto','settle_agency_mint_v3_auto']){
+    const f=fixture(instructionName),policy=(instructionName.includes('agency')?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address.toBase58();
+    f.rewardStore.data.dailyBonusSettlementIndexes={[day]:{version:1,programId,day,revision:0,cutoffSlot:600,mints:{},
+      routes:{[`${mint}:settlements`]:{mint,kind:'settlements',address:policy,complete:true,pending:[],seen:{},before:f.source}},
+      trades:{},collections:{},settlements:{},verifiedCollections:{}}};
+    const result=await createDailyBonusEvidenceIndex(f.options)(f.args);
+    assert.equal(result.complete,true);assert.equal(result.collections.length,1);
+    const snapshot=buildDailyBonusSnapshot({day,now,...result});
+    assert.equal(snapshot.sources.length,1);assert.equal(snapshot.rankings.creators[0].wallet,creator);
+    assert.equal(f.rewardStore.data.dailyBonusSettlementIndexes[day].settlementDetectionVersion,2);
+  }
+});
 
 test('a prior-day collection enters its finalized settlement window and unrelated unsettled fees do not block it',async()=>{
   const f=fixture();f.state.collections.unsettled={...f.state.collections[f.source],signature:'unsettled'};

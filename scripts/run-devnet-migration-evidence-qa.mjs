@@ -103,10 +103,18 @@ const mintInfo=await c.getAccountInfo(mint,'finalized');
 const manifest=buildCommunityManifest({drop:drop.toBase58(),launchMint:mint.toBase58(),eligibilityMint:eligibilityMint.toBase58(),
   migrationSignature:journal.migrationSignature,migrationSlot:snapshot.slot,migrationBlockTime:snapshot.blockTime,snapshot,
   amountBaseUnits:String(30_000_000n*10n**BigInt(mintInfo.data[44])),excludedWallets:[authority.toBase58(),vault.toBase58(),drop.toBase58()]});
-const response=await fetch(base+'/api/airdrops/claims/prepare',{method:'POST',headers:{origin:base,'content-type':'application/json',
+const response=await fetch(base+'/api/airdrops/claims/prepare',{method:'POST',headers:{origin:base,Prefer:'respond-async','content-type':'application/json',
   authorization:'Bearer '+readFileSync('.secrets/funded-api-token','utf8').trim()},
   body:JSON.stringify({mint:mint.toBase58(),migrationSignature:journal.migrationSignature}),signal:AbortSignal.timeout(90000)});
-const prepared=await response.json();assert(response.ok,prepared.error);assert.equal(prepared.snapshotBasis,'pump-migration');
+let prepared=await response.json();assert(response.ok,prepared.error);
+const deadline=Date.now()+15*60_000;
+while(prepared.status==='preparing' && Date.now()<deadline){
+  await new Promise(resolve=>setTimeout(resolve,2500));
+  const status=await fetch(base+'/api/airdrops/claims/status?mint='+mint,{headers:{authorization:'Bearer '+readFileSync('.secrets/funded-api-token','utf8').trim()},redirect:'error',signal:AbortSignal.timeout(30000)});
+  assert(status.ok,'Migration status unavailable');prepared=await status.json();
+}
+assert(['prepared','opened'].includes(prepared.status),'Exact-slot preparation did not complete.');
+assert.equal(prepared.snapshotBasis,'pump-migration');
 assert.equal(prepared.root,manifest.root);assert.equal(prepared.snapshotHash,manifest.snapshotHash);
 assert.equal(prepared.migrationSlot,snapshot.slot);assert.equal(prepared.recipients,manifest.leaves.length);
 journal.reviewedManifest=manifest;journal.snapshot=snapshot;journal.prepared=prepared;journal.finishedAt=new Date().toISOString();save();

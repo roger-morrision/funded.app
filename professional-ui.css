@@ -1,11 +1,36 @@
 /* Shared editorial pass: readable type, quieter surfaces, and one clear task per route. */
 html body.product-experience-style {
-  --ui-surface: #16182a;
+  --ui-font: Manrope, Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --ui-font-mono: "DM Mono", ui-monospace, Consolas, monospace;
+  --ui-page-title: clamp(26px, 2.2vw, 30px);
+  --ui-surface: #111a2a;
+  --panel: #111a2a; --panel-2: #182236; --line: #2b374b;
+  --text: #e9eef6; --muted: #a6b3c6;
   --ui-neutral: #c1cbdf; --ui-neutral-bg: #22273a; --ui-neutral-border: #465068;
   --ui-pro: #dfcaff; --ui-pro-bg: #2c2140; --ui-pro-border: #80639e;
   --ui-premier: #ffe1a0; --ui-premier-bg: #342b19; --ui-premier-border: #9c7e3f;
   --ui-success: #afe4c2; --ui-success-bg: #19362c; --ui-success-border: #416f59;
   --ui-pending: #f2d394; --ui-pending-bg: #332c1e; --ui-pending-border: #79663e;
+}
+
+/* Browse and account dialogs use the same spacing as workspace panels. */
+html body.product-experience-style :is(#wallet-onboarding-dialog,#notification-dialog,#profile-dialog) { padding: 20px; border-radius: 8px; border-color: var(--line); font-family: var(--ui-font); }
+html body.product-experience-style :is(#wallet-onboarding-dialog,#notification-dialog,#profile-dialog) h2 { margin: 0 40px 12px 0; padding: 0; font-size: 22px; line-height: 1.3; letter-spacing: -.025em; }
+html body.product-experience-style :is(#wallet-onboarding-dialog,#notification-dialog,#profile-dialog) .dialog-kicker { margin: 0 40px 8px 0; }
+html body.product-experience-style :is(#wallet-onboarding-dialog,#notification-dialog,#profile-dialog) p:not(.dialog-kicker) { margin-block: 8px; font-size: 13px; line-height: 1.55; }
+html body.product-experience-style :is(#wallet-onboarding-dialog,#notification-dialog,#profile-dialog) .dialog-close { display: grid; place-items: center; top: 8px; right: 8px; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; }
+html body.product-experience-style #wallet-onboarding-dialog .wallet-onboarding-steps { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-block: 12px; }
+html body.product-experience-style #wallet-onboarding-dialog .wallet-onboarding-steps li { flex-direction: column; gap: 6px; min-width: 0; text-align: center; font-size: 13px; }
+html body.product-experience-style #wallet-onboarding-dialog .wallet-onboarding-steps b { width: 20px; height: 20px; }
+html body.product-experience-style #wallet-onboarding-dialog .wallet-onboarding-option { min-height: 44px; margin-block: 8px; padding: 10px; border-radius: 8px; }
+html body.product-experience-style #wallet-onboarding-dialog .advanced-details > summary { min-height: 44px; padding: 10px 12px; }
+html body.product-experience-style #notification-dialog .flow-panel { margin-top: 16px; padding: 14px; border-radius: 8px; }
+html body.product-experience-style #notification-dialog .flow-panel h3 { margin: 0 0 8px; font-size: 14px; }
+html body.product-experience-style #notification-dialog .flow-panel label { display: flex; flex-direction: row; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; line-height: 1.5; text-align: left; }
+html body.product-experience-style #notification-dialog .flow-panel label input[type="checkbox"] { flex: 0 0 18px; width: 18px; height: 18px; margin: 0; }
+html body.product-experience-style #notification-dialog .flow-panel [data-creator-notices] + h3 { margin-top: 12px; }
+@media (max-width: 520px) {
+  html body.product-experience-style :is(#wallet-onboarding-dialog,#notification-dialog,#profile-dialog) { padding: 16px; }
 }
 
 /* Package colors have the same meaning in cards, tables, previews and details. */
@@ -93,7 +118,7 @@ html body.product-experience-style :is(.reward-overview-start,.explore-pulse-hea
   html body.product-experience-style .creator-burn-tiers { grid-template-columns: 1fr; }
 }
 body.page-route .main-content :is(.panel, .role-panel, .support-card, .airdrop-analytics-card, .airdrop-wallets-card, .reward-experience-panel) {
-  border-radius: 10px !important;
+  border-radius: 8px !important;
 }
 body.page-route .main-content :is(.eyebrow, .data-badge, .section-state, .panel-count) {
   font-size: 11px;
@@ -202,3 +227,65 @@ html body.product-experience-style #launch-dialog .preview-promotion-badge { max
   }
   html body.product-experience-style .topbar .header-search-trigger { grid-row: 2; grid-column: 1 / -1; }
 }
+
+/* A shared reading hierarchy for dashboards, forms, guides and detail pages. */
+html body.product-experience-style #main-content :is(h1,h2,h3,p,small,label,a,button,input,select,textarea,summary) {
+  font-family: var(--ui-font) !important;
+}
+html body.product-experience-style #main-content h1 {
+  font-size: var(--ui-page-title) !important; font-weight: 700 !important; line-height: 1.18 !important; letter-spacing: -.035em !important;
+}
+html body.product-experience-style #main-content h2 { font-size: 19px !important; font-weight: 600 !important; line-height: 1.3; letter-spacing: -.025em; }
+html body.product-experience-style #main-content h3 { font-size: 16px; font-weight: 600 !important; line-height: 1.35; }
+html body.product-experience-style #main-content p { font-size: 13px !important; line-height: 1.6; }
+html body.product-experience-style #main-content small { font-size: 12px !important; line-height: 1.5; }
+html body.product-experience-style #main-content .eyebrow { font-size: 11px !important; line-height: 1.5; letter-spacing: .08em; }
+html body.product-experience-style #main-content :is(.page-lede,.panel-explainer,.projects-lede,.hero-copy) { max-width: 72ch; }
+html body.product-experience-style #main-content :is(.panel,.role-panel,.flow-panel,.support-card,.community-card) {
+  border-color: var(--line); border-radius: 12px; background: var(--panel); box-shadow: none;
+}
+html body.product-experience-style #main-content :is(button,.primary-button,.secondary-button,.create-coin-button) {
+  border-radius: 8px; font-weight: 600; letter-spacing: 0;
+}
+html body.product-experience-style #main-content :is(.ui-tabs,.portfolio-view-tabs,.purpose-page-nav) :is(button,a) {
+  text-transform: none; letter-spacing: 0; font-size: 13px;
+}
+html body.product-experience-style #main-content :is(.flow-panel h2,.flow-panel h3) { color: var(--text); }
+html body.product-experience-style #main-content .flow-panel { scroll-margin-top: 96px; }
+html body.product-experience-style #main-content .portfolio-tools { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; margin-block: 24px; }
+html body.product-experience-style #main-content .portfolio-tools > .flow-panel { margin: 0; }
+html body.product-experience-style #main-content .flow-panel.is-empty { padding-block: 16px; }
+html body.product-experience-style #main-content .flow-panel.is-empty h2 { font-size: 18px !important; }
+html body.product-experience-style #main-content .ready-queue { margin-block: 18px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+html body.product-experience-style #main-content .ready-queue > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+html body.product-experience-style #main-content .ready-queue > div > p { flex-basis: 100%; margin-bottom: 0; }
+html body.product-experience-style #main-content .workspace-preference { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; margin-block: 18px; border: 1px solid var(--line); border-radius: 12px; text-align: left; background: var(--panel); }
+html body.product-experience-style #main-content .workspace-preference select { width: min(50%,200px); margin: 0; }
+html body.product-experience-style #main-content .support-check { flex-direction: row; }
+html body.product-experience-style #main-content .docs-guide-article p { max-width: 72ch; font-size: 15px !important; line-height: 1.75; }
+html body.product-experience-style #main-content .flow-panel > summary { min-height: 44px; cursor: pointer; font-weight: 600; }
+html body.product-experience-style #main-content > .hero-section { background-image: linear-gradient(90deg,#0b1020 0%,#0b1020eb 55%,#0b1020ba 100%),url('/home-wolf-hero.webp'); }
+html body.product-experience-style #main-content .hero-actions { gap: 12px; }
+html body.product-experience-style #main-content .hero-actions a { border-radius: 8px; }
+html body.product-experience-style #home-launch-grid:has(> .empty-state:only-child) { min-height: 160px; }
+html body.product-experience-style #main-content .review-buy-setting small { max-width: 180px; text-align: center; font-weight: 400; }
+html body.product-experience-style .top-actions .platform-x-topbar { display: none; }
+@media(max-width:700px) {
+  html body.product-experience-style { --ui-page-title: 26px; }
+  html body.product-experience-style #main-content h2 { font-size: 19px !important; }
+  html body.product-experience-style #main-content :is(input:not([type=checkbox]):not([type=range]),select,textarea) { font-size: 16px; }
+  html body.product-experience-style #main-content .workspace-preference { padding: 16px; }
+  html body.product-experience-style #main-content .portfolio-tools { grid-template-columns: minmax(0,1fr); }
+}
+
+/* Card labels use the same reading weight as the surrounding workspace. */
+html body.product-experience-style #main-content .reward-action-grid strong { font-weight: 600; }
+html body.product-experience-style #main-content .reward-action-grid small { font-weight: 400; color: var(--muted); }
+
+/* Listing and token information reuse the workspace's quiet panel treatment. */
+html body.product-experience-style #main-content :is(.list-form-card,.funded-token-story article) {
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: none;
+}
+html body.product-experience-style #main-content .list-form-head { border-color: var(--line); background: transparent; }
+html body.product-experience-style #main-content .paid-reference-metrics { border-radius: 8px; padding: 0; overflow: hidden; }
+html body.product-experience-style #main-content .paid-reference-metrics > div { background: var(--panel); }

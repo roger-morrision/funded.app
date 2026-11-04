@@ -1,4 +1,5 @@
 import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
+import { developerLockLaunchInstructions } from '../../../developer-token-lock.js';
 import { refreshServiceFees, quoteLaunchServiceFee } from '../../features/fees/service-fees-client.js';
 import { launchServiceFeeInstructions } from '../../../launch-service-fee.js';
 // Dependencies and mutable application state are read live through appState.
@@ -48,22 +49,20 @@ export function createWalletMetricsController(appState) {
       const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase() || 'COIN';
       const input = normalizeLaunchInput({ name, symbol, supply: appState.LAUNCH_TOKEN_SUPPLY, decimals: 6 });
       const reserveConfig = await appState.getLaunchReserveConfig();
-      const developerBuy = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, initialBuySol: appState.getCreatorBuySol() } });
+      const developerBuy = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens: appState.getCommunityAirdropTokens(), initialBuySol: appState.getCreatorBuySol() } });
       const initialBuy = await appState.quoteAtomicReserveBuy({ connection: appState.connection, supply:input.supply, decimals:input.decimals,
         reserveTokens:appState.getCommunityAirdropTokens(), developerBaseUnits:developerBuy.amountBaseUnits });
       initialBuy.curvePremiumBps = appState.initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
       const mint = Keypair.generate();
-      const xLinked = appState.getFeeDistributionInputs().solClaimPercent > 0;
-      if (xLinked && !appState.xFeeStatus.ready) throw new Error('Mint-specific X fee claims are not ready on Solana.');
       const v3 = appState.feeRouterState.v3FeeRouter;
       if (!v3 || appState.feeRouterState.scope !== 'per-mint-v3') throw new Error('V3 launch configuration is not verified.');
       const{readLaunchAgencySelection}=await import('../../features/marketing/agency-selection.js');
-      const launchV3={...v3,...(v3.agency?{agency:{...v3.agency,selectedAgents:readLaunchAgencySelection()}}:{})};
+      const launchV3={...v3,...(v3.agency?{agency:{...v3.agency,selectedAgents:readLaunchAgencySelection(appState.getLaunchBurnPolicy())}}:{})};
       const mintRouter = buildLaunchMintRouter({mint:mint.publicKey,payer,v3FeeRouter:launchV3,feeShares:appState.getFeeDistributionInputs()});
       const router = mintRouter.router.address;
       const launchInstructions = initialBuy.amountBaseUnits > 0n
-        ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
-        : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer, mayhemMode: false, holderReward: false })];
+        ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
+        : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, mayhemMode: false, holderReward: false })];
       const launchBurn = appState.getLaunchBurnPolicy();
       const burnPlan = launchBurn.requiresBurn
         ? await prepareFundedLaunchBurn({ connection: appState.connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
@@ -80,7 +79,8 @@ export function createWalletMetricsController(appState) {
         if (blockhashAttempt > 0) await new Promise(resolve => setTimeout(resolve, 1100));
         const latest = await appState.connection.getLatestBlockhash('finalized');
         plan = appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions, burnInstruction: burnPlan?.instruction,
-          mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote})], lookupTable });
+          mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
+            amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:serviceQuote.id}),...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote,escrowReceiptMarker:developerBuy.amountBaseUnits>0n})], lookupTable });
         const estimateTransactions = plan.steps.map(step => step.transaction);
         try {
           // The split path still simulates every transaction; the legacy path is the original full launch simulation: connection.simulateTransaction(launchTransaction, undefined, [payer]).

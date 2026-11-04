@@ -245,6 +245,19 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const amountUnit = document.createElement('small');
     amountUnit.textContent = receipt.recipientRentLamports > 0 ? 'SOL net change' : 'SOL received';
     amount.append(amountValue, amountUnit);
+    if (String(receipt.amountLamports) !== String(receipt.actualReceivedLamports)) {
+      const payout = document.createElement('small');
+      payout.className = 'payment-gross-headline';
+      payout.textContent = `Reward ${formatTokenBaseAmount(receipt.amountLamports, 9, 9)} SOL`;
+      identity.append(payout);
+      if (receipt.actualReceivedLamports < 0) {
+        const costs = document.createElement('small');
+        costs.className = 'payment-cost-explanation';
+        costs.textContent = `Receiver paid ${formatTokenBaseAmount(receipt.feePayer === receipt.to ? receipt.feeLamports ?? 0 : 0, 9, 9)} SOL fee${receipt.recipientRentLamports > 0 ? ` + ${formatTokenBaseAmount(receipt.recipientRentLamports, 9, 9)} SOL account rent` : ''}. Costs exceed this reward.`;
+        identity.append(costs);
+      }
+      amountUnit.textContent = 'SOL net wallet change';
+    }
     const proof = document.createElement('a');
     proof.className = 'payment-receipt-link';
     proof.href = exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`);

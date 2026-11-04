@@ -1,0 +1,510 @@
+{
+  "at": "2026-11-01T13:41:54.316Z",
+  "scope": "Second complete UI audit over a frozen candidate, followed by public deployment checks",
+  "revision": "93d290a50d9e6fc77eee9e9314eb2899eb31ed7d",
+  "digest": "3656240236366f61bd55e46a8e8623e755606128201b41e7bf10cdfbcf62cbcd",
+  "fixes": [
+    {
+      "area": "Search result visibility",
+      "behavior": "Bottom padding and scroll padding prevent the final selected option from being clipped by fractional layout rounding."
+    },
+    {
+      "area": "Preference review",
+      "behavior": "Exporting, editing or starting another import invalidates the old reviewed merge."
+    },
+    {
+      "area": "Concurrent preferences",
+      "behavior": "Apply checks the exact saved device snapshot and requires review again if another tab changed it."
+    },
+    {
+      "area": "Wallet roles",
+      "behavior": "Merging the same public wallet retains both creator and trader roles."
+    },
+    {
+      "area": "Account response ordering",
+      "behavior": "Late account responses cannot replace newer device edits or survive an identity change."
+    },
+    {
+      "area": "Report submission",
+      "behavior": "A pending POST blocks another send while preserving a new unsent draft after acknowledgement. Received reports do not remain ready to resend after local storage failure."
+    },
+    {
+      "area": "Font availability",
+      "behavior": "Manrope and DM Mono load from local licensed assets, without external font DNS or stylesheet requests."
+    }
+  ],
+  "verification": {
+    "unit": {
+      "tests": 1519,
+      "pass": 1498,
+      "fail": 0,
+      "skipped": 21
+    },
+    "unitRevision": "01d9f1e39436af81a1b5aba9b327d0c50280f7b9",
+    "compiledSearch": {
+      "revision": "93d290a50d9e6fc77eee9e9314eb2899eb31ed7d",
+      "stats": {
+        "startTime": "2026-11-01T13:28:50.858Z",
+        "duration": 48147.183000000005,
+        "expected": 12,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "browser": {
+      "revision": "01d9f1e39436af81a1b5aba9b327d0c50280f7b9",
+      "total": 919,
+      "stats": {
+        "startTime": "2026-11-01T13:05:22.038Z",
+        "duration": 2039339.696,
+        "expected": 909,
+        "skipped": 1,
+        "unexpected": 9,
+        "flaky": 0
+      },
+      "skipped": [
+        {
+          "title": "Launch availability presentation preserves ordinary entry and step request counts",
+          "reasons": [
+            "A separate read-only accepted669 baseline server must be admitted in runner metadata."
+          ]
+        }
+      ],
+      "initialFailures": [
+        "UX-011 preserved option stays visible in a scrolling result list at 1440px (controlled index)",
+        "Desktop and connected cost review keep original data, consents and navigation",
+        "Cost navigation fails closed for stale context and preserves invalid draft and guide history",
+        "Mobile cost jump and return preserve draft at 360x740, no-preference",
+        "Mobile cost jump and return preserve draft at 360x740, reduce",
+        "Mobile cost jump and return preserve draft at 360x844, no-preference",
+        "Mobile cost jump and return preserve draft at 360x844, reduce",
+        "Mobile cost jump and return preserve draft at 390x844, no-preference",
+        "Mobile cost jump and return preserve draft at 390x844, reduce"
+      ],
+      "followup": {
+        "revision": "93d290a50d9e6fc77eee9e9314eb2899eb31ed7d",
+        "stats": {
+          "startTime": "2026-11-01T13:23:56.167Z",
+          "duration": 596544.624,
+          "expected": 28,
+          "skipped": 1,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "resolved": [
+          "UX-011 preserved option stays visible in a scrolling result list at 1440px (controlled index)",
+          "Desktop and connected cost review keep original data, consents and navigation",
+          "Cost navigation fails closed for stale context and preserves invalid draft and guide history",
+          "Mobile cost jump and return preserve draft at 360x740, no-preference",
+          "Mobile cost jump and return preserve draft at 360x740, reduce",
+          "Mobile cost jump and return preserve draft at 360x844, no-preference",
+          "Mobile cost jump and return preserve draft at 360x844, reduce",
+          "Mobile cost jump and return preserve draft at 390x844, no-preference",
+          "Mobile cost jump and return preserve draft at 390x844, reduce"
+        ],
+        "unresolved": []
+      },
+      "qualification": "One complete frozen-source run with the original failures retained, followed by scoped fixes and passing follow-ups. These are separate runs. Three actual API journeys use the isolated compiled candidate; other financial transports use labeled deterministic fixtures."
+    },
+    "newCases": {
+      "stats": {
+        "startTime": "2026-11-01T13:02:02.121Z",
+        "duration": 85722.24799999999,
+        "expected": 22,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "initialReproductions": {
+        "startTime": "2026-11-01T12:54:02.810Z",
+        "duration": 164986.092,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 10,
+        "flaky": 0
+      },
+      "qualification": "Ten initial failing mobile/desktop reproductions covered five bugs. The expanded 22-case follow-up passed, then all new cases also passed in the complete suite."
+    },
+    "httpCandidate": {
+      "scope": "local-only API acceptance against copied recorded Devnet data",
+      "checks": [
+        "API-only health; no keeper or active worker heartbeat",
+        "Candidate build and Devnet identity",
+        "New operations endpoint over copied financial records",
+        "Public activity endpoint",
+        "Exact recorded burn receipt with historical evidence label",
+        "Independent finalized program, receipt, vault-debit and burn verification",
+        "Guest reporting advertised without token holding",
+        "Guest issue persists through actual HTTP dispatcher",
+        "Report unavailable without private view token",
+        "Owner can read report status",
+        "Admin reports require existing admin session",
+        "Creator brief rejects missing verified session",
+        "Account sync rejects missing verified session",
+        "Report survives complete API process restart",
+        "Reviewed public API retains its original build"
+      ],
+      "build": "local-product-7bdd904f06c616514600",
+      "rpc": {
+        "forwarded": 6,
+        "blocked": 0
+      },
+      "chainProof": {
+        "signature": "6rZHpopt7qbT7XnKoZVT1putfTHHsR4wRkBYHMpzp3ABiy9MzvuACiqBmvyAvfo5xXftjRFzPfqvSs3Db9oQvxm",
+        "slot": 517401948,
+        "spentLamports": "14820",
+        "burnedBaseUnits": "1873",
+        "programDataSha256": "f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca",
+        "evidence": "fresh-finalized-rpc-burn-and-vault-delta"
+      },
+      "builtSettings": {
+        "schemaVersion": 1,
+        "cluster": "devnet",
+        "exploreCluster": "devnet",
+        "mainnetEnabled": false,
+        "mainnetReadOnly": false,
+        "devWalletEnabled": false,
+        "sourceDigest": "0a6d81363329d8fbd14b114e0fb68a8643dd117a14f32cb53893d9e83e5afdee"
+      },
+      "runtimeCases": [
+        "built candidate exposes its tested identity and registered-operation coverage without mock API responses",
+        "built inspector displays the historical receipt independently rechecked by the acceptance runner",
+        "guest report is submitted and reloaded through the real candidate API"
+      ]
+    },
+    "realHttpOverlap": {
+      "at": "2026-11-01T13:06:16.527Z",
+      "scope": "Actual compiled candidate and real copied-data HTTP API; only the original successful response is delayed, no fabricated API data or live app writes",
+      "revision": "01d9f1e39436af81a1b5aba9b327d0c50280f7b9",
+      "digest": "0a6d81363329d8fbd14b114e0fb68a8643dd117a14f32cb53893d9e83e5afdee",
+      "base": "http://127.0.0.1:8790",
+      "checks": [
+        "One actual POST while another draft is typed",
+        "Original reviewed report persisted exactly once",
+        "New draft preserved after actual acknowledgement",
+        "Private status rejects missing owner token"
+      ],
+      "posts": 1,
+      "persistedIssueId": "3fac8ec531b00f54c0bf3643a0023fab",
+      "newDraftPreserved": true,
+      "browserErrors": [],
+      "liveAppWrites": 0,
+      "solanaTransactions": 0,
+      "xPosts": 0
+    },
+    "compiledFonts": {
+      "at": "2026-11-01T13:08:45.703Z",
+      "scope": "Actual compiled candidate server; external network blocked, native FontFaceSet loading and byte-for-byte asset verification",
+      "revision": "01d9f1e39436af81a1b5aba9b327d0c50280f7b9",
+      "faces": [
+        {
+          "spec": "400 14px Manrope",
+          "faces": [
+            {
+              "family": "Manrope",
+              "status": "loaded"
+            }
+          ]
+        },
+        {
+          "spec": "700 14px Manrope",
+          "faces": [
+            {
+              "family": "Manrope",
+              "status": "loaded"
+            }
+          ]
+        },
+        {
+          "spec": "500 12px \"DM Mono\"",
+          "faces": [
+            {
+              "family": "DM Mono",
+              "status": "loaded"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "path": "Manrope-Variable.ttf",
+          "status": 200,
+          "contentType": "application/octet-stream",
+          "bytes": 164700,
+          "sha256": "3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6"
+        },
+        {
+          "path": "DMMono-Regular.ttf",
+          "status": 200,
+          "contentType": "application/octet-stream",
+          "bytes": 49744,
+          "sha256": "55b4c98f123daebb3ed27947ba47b2af00554fc6284d639a540bcef5e6258ad2"
+        },
+        {
+          "path": "DMMono-Medium.ttf",
+          "status": 200,
+          "contentType": "application/octet-stream",
+          "bytes": 50360,
+          "sha256": "fd327daf461db87b44a87def475d251bf03b997f7c07d9680592d75dbbfaad0b"
+        }
+      ],
+      "externalFontRequests": 0
+    },
+    "publishedFonts": {
+      "at": "2026-11-01T13:41:43.365Z",
+      "scope": "Actual final public server; external network blocked, native FontFaceSet loading and byte-for-byte asset verification",
+      "revision": "93d290a50d9e6fc77eee9e9314eb2899eb31ed7d",
+      "faces": [
+        {
+          "spec": "400 14px Manrope",
+          "faces": [
+            {
+              "family": "Manrope",
+              "status": "loaded"
+            }
+          ]
+        },
+        {
+          "spec": "700 14px Manrope",
+          "faces": [
+            {
+              "family": "Manrope",
+              "status": "loaded"
+            }
+          ]
+        },
+        {
+          "spec": "500 12px \"DM Mono\"",
+          "faces": [
+            {
+              "family": "DM Mono",
+              "status": "loaded"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "path": "Manrope-Variable.ttf",
+          "status": 200,
+          "contentType": "application/octet-stream",
+          "bytes": 164700,
+          "sha256": "3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6"
+        },
+        {
+          "path": "DMMono-Regular.ttf",
+          "status": 200,
+          "contentType": "application/octet-stream",
+          "bytes": 49744,
+          "sha256": "55b4c98f123daebb3ed27947ba47b2af00554fc6284d639a540bcef5e6258ad2"
+        },
+        {
+          "path": "DMMono-Medium.ttf",
+          "status": 200,
+          "contentType": "application/octet-stream",
+          "bytes": 50360,
+          "sha256": "fd327daf461db87b44a87def475d251bf03b997f7c07d9680592d75dbbfaad0b"
+        }
+      ],
+      "externalFontRequests": 0
+    },
+    "publicUi": {
+      "at": "2026-11-01T13:41:41.391Z",
+      "scope": "Actual deployed public UI and APIs; signed out, no mocks, signatures, app writes or X posts; navigation/layout smoke only",
+      "states": 64,
+      "revision": "93d290a50d9e6fc77eee9e9314eb2899eb31ed7d",
+      "errors": [],
+      "overflow": 0
+    },
+    "sourceSize": {
+      "files": 1619,
+      "status": "passed"
+    }
+  },
+  "deployment": {
+    "at": "2026-11-01T13:40:38.880Z",
+    "backend": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+    "frontend": "93d290a50d9e6fc77eee9e9314eb2899eb31ed7d",
+    "frontendDigest": "3656240236366f61bd55e46a8e8623e755606128201b41e7bf10cdfbcf62cbcd",
+    "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+    "workerAndInfrastructureIdsPreserved": true,
+    "changedBrowserSources": [
+      "experience-preferences.js",
+      "index.html",
+      "public/fonts.css",
+      "public/fonts/DMMono-Medium.ttf",
+      "public/fonts/DMMono-OFL.txt",
+      "public/fonts/DMMono-Regular.ttf",
+      "public/fonts/Manrope-OFL.txt",
+      "public/fonts/Manrope-Variable.ttf",
+      "public/fonts/README.txt",
+      "src/features/experience/issues-view.js",
+      "src/features/experience/preference-transfer.js",
+      "styles/pages/theme.css",
+      "welcome.html"
+    ],
+    "testStats": {
+      "startTime": "2026-11-01T13:05:22.038Z",
+      "duration": 2039339.696,
+      "expected": 909,
+      "skipped": 1,
+      "unexpected": 9,
+      "flaky": 0
+    },
+    "followupStats": {
+      "startTime": "2026-11-01T13:23:56.167Z",
+      "duration": 596544.624,
+      "expected": 28,
+      "skipped": 1,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "compiledSearchStats": {
+      "startTime": "2026-11-01T13:28:50.858Z",
+      "duration": 48147.183000000005,
+      "expected": 12,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "services": [
+      {
+        "name": "fundedapp-app-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "frontend": "93d290a50d9e6fc77eee9e9314eb2899eb31ed7d",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T13:40:36.957647137Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-fee-collector-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T11:35:45.508299121Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-buyback-worker-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "status": "running",
+        "health": null,
+        "startedAt": "2026-11-01T11:35:48.490096941Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-agency-buyback-worker-1",
+        "image": "sha256:595e1b635cfd8a88f5f700aac6552e7032d6747e8ade16e55418112cf330d248",
+        "build": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "source": "604ae99227c7ffb705b37b6008d0c077b0a00cce",
+        "status": "running",
+        "health": null,
+        "startedAt": "2026-11-01T11:35:59.950749549Z",
+        "rpc": "http://rpc-gateway:8899",
+        "qaMinimums": "false"
+      },
+      {
+        "name": "fundedapp-rpc-gateway-1",
+        "image": "sha256:e4b4ec345cab408b9de8876524d41f5e094359eca1ccdb3e25ce155ab5e592bb",
+        "build": "bd90a8d69de612f35ab9688c1a7e200a3833084a",
+        "source": "bd90a8d69de612f35ab9688c1a7e200a3833084a",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T05:10:51.803834042Z",
+        "rpc": null
+      },
+      {
+        "name": "fundedapp-rpc-cache-1",
+        "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-11-01T04:27:55.252230373Z",
+        "rpc": null
+      }
+    ],
+    "privateApi": {
+      "/api/admin/overview": 401,
+      "/api/admin/vaults": 401,
+      "/api/admin/rpc-health": 401,
+      "/api/admin/creator-search": 401,
+      "/api/admin/product-issues": 401,
+      "/api/admin/service-fees": 401
+    },
+    "sourceHashesVerified": true,
+    "gatewayNotRestarted": true,
+    "redisNotRestarted": true,
+    "mainnetEnabled": false,
+    "qaMinimumsEnabled": false
+  },
+  "freshOnchainReads": {
+    "burn": {
+      "signature": "6rZHpopt7qbT7XnKoZVT1putfTHHsR4wRkBYHMpzp3ABiy9MzvuACiqBmvyAvfo5xXftjRFzPfqvSs3Db9oQvxm",
+      "slot": 517401948,
+      "spentLamports": "14820",
+      "burnedBaseUnits": "1873",
+      "programDataSha256": "f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca",
+      "evidence": "fresh-finalized-rpc-burn-and-vault-delta"
+    },
+    "trades": {
+      "at": "2026-11-01T13:12:20.476Z",
+      "scope": "Fresh read-only public API verification of the earlier finalized Devnet buy/sell; no new trade, signature or profit claim",
+      "rows": [
+        {
+          "side": "buy",
+          "signature": "2mU26xAQeMbTpdebUqdqCgzc5PwJmxFy4zwcTjQUeqnEUr454s6h2PoZ4rsiMuyvmTC5mft2GgBzhn5MGHSz26Ve",
+          "evidence": "finalized-rpc-trade",
+          "currentRpcRecheck": true,
+          "trade": {
+            "wallet": "AeGgGPZopudWTMTkJurfm2HVxDMxfDPwzYqWbcpGKFXU",
+            "mint": "GWGEXyxWkGoBXepemri5nfEQBgSqqt96A32t8YcTsxbo",
+            "side": "buy",
+            "tokenAmountRaw": "31362421677856",
+            "decimals": 6,
+            "solLamports": "9900989",
+            "networkFeeLamports": "5000",
+            "feePayer": "AeGgGPZopudWTMTkJurfm2HVxDMxfDPwzYqWbcpGKFXU"
+          }
+        },
+        {
+          "side": "sell",
+          "signature": "67GEqoQfy8ueCJYUuCVBWYuQVe9BZHvL2TCc3BPUpkZBEJD8JxLkXLE9v9t1ZpBVenUNGuJfHGgv6Jy85PJUiHCK",
+          "evidence": "finalized-rpc-trade",
+          "currentRpcRecheck": true,
+          "trade": {
+            "wallet": "AeGgGPZopudWTMTkJurfm2HVxDMxfDPwzYqWbcpGKFXU",
+            "mint": "GWGEXyxWkGoBXepemri5nfEQBgSqqt96A32t8YcTsxbo",
+            "side": "sell",
+            "tokenAmountRaw": "1000000000",
+            "decimals": 6,
+            "solLamports": "325",
+            "networkFeeLamports": "5000",
+            "feePayer": "AeGgGPZopudWTMTkJurfm2HVxDMxfDPwzYqWbcpGKFXU"
+          }
+        }
+      ],
+      "newTransactions": 0
+    },
+    "newTransactions": 0
+  },
+  "previousEvidence": "ui-full-audit-2026-11-01.md",
+  "limits": [
+    "Browser coverage uses Chromium, with desktop and emulated mobile viewports and touch; it is not a cross-browser or physical mobile-wallet certification. Financial fixture successes are not new payments.",
+    "21 unit cases and one historical accepted669 baseline comparison were skipped; the baseline server was unavailable. The three actual candidate-HTTP cases ran and passed inside the full suite.",
+    "Live X OAuth/publishing, paid Pro/Premier burns, listing/boost writes, migration/airdrop claims, time-gated payouts and milestone buybacks were not freshly executed. Their existing evidence and deterministic UI coverage remain separate.",
+    "This follow-up submitted no Solana transaction and used no participant wallet signer. It freshly verified the earlier burn and buy/sell receipts read-only.",
+    "The preceding UI audit contains the actual launch, atomic reserve funding, buy/sell balance deltas and refunds. Those executions are not counted as new here.",
+    "The API-only HTTP candidate used a redacted copy of Devnet records, a separate local store and read-only RPC forwarding. Its report writes did not affect live app records.",
+    "Redis/gateway identities and start times were preserved. API-credit savings were not remeasured in this UI run."
+  ]
+}

@@ -1,3 +1,4 @@
+import {expandDocsBrowser} from './docs-menu-helpers.js';
 import{test,expect}from'@playwright/test';
 import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 test.beforeEach(async({page})=>{
@@ -6,7 +7,7 @@ test.beforeEach(async({page})=>{
 });
 const controls=page=>({input:page.getByRole('searchbox',{name:'Search guides',exact:true}),clear:page.getByRole('button',{name:'Clear search',exact:true}),results:page.locator('#docs-guide-topic-results'),count:page.locator('.docs-guide-count'),article:page.locator('#docs-guide-article')});
 const visibleIds=results=>results.getByRole('button').evaluateAll(nodes=>nodes.map(node=>node.dataset.docsTopic));
-async function open(page,width){await page.setViewportSize({width,height:width<700?844:900});await page.goto('/#docs');await page.locator('body.workspace-ready.product-experience-ready').waitFor();const c=controls(page);await expect(c.results.getByRole('button')).toHaveCount(29);await expect(c.count).toHaveText('29 guides');await page.evaluate(()=>document.fonts.ready);return c}
+async function open(page,width){await page.setViewportSize({width,height:width<700?844:900});await page.goto('/#docs');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expandDocsBrowser(page);const c=controls(page);await expect(c.results.getByRole('button')).toHaveCount(29);await expect(c.count).toHaveText('29 guides');await page.evaluate(()=>document.fonts.ready);return c}
 for(const width of[360,390,1440])test(`literal local guide filter preserves article/hash/IME and native history at${width}px`,async({page},info)=>{
  const c=await open(page,width),original=await c.article.innerHTML(),hash=new URL(page.url()).hash;await c.input.focus();await c.input.fill('   ');await expect(c.results.getByRole('button')).toHaveCount(29);await expect(c.count).toHaveText('29 guides');await c.input.fill('  WALLET  ');await expect(c.count).toHaveText('3 of 29 guides');expect(await visibleIds(c.results)).toEqual(['wallet','profile','history']);await expect(c.input).toBeFocused();expect(await c.article.innerHTML()).toBe(original);expect(new URL(page.url()).hash).toBe(hash);
  await page.keyboard.press('ArrowDown');await expect(c.input).toBeFocused();const beforeCaret=await c.input.evaluate(e=>e.selectionStart);await page.keyboard.press('ArrowLeft');expect(await c.input.evaluate(e=>e.selectionStart)).toBe(beforeCaret-1);
@@ -14,7 +15,7 @@ for(const width of[360,390,1440])test(`literal local guide filter preserves arti
  await c.input.fill('no-such-guide-050');await expect(c.count).toHaveText('No guides found');await expect(c.results.getByRole('button')).toHaveCount(0);await expect(c.results.locator('.docs-guide-no-results')).toBeVisible();await page.keyboard.press('ArrowDown');await expect(c.input).toBeFocused();expect(await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]))).not.toContain('no-such-guide-050');expect(await c.article.innerHTML()).toBe(original);expect(new URL(page.url()).hash).toBe(hash);
  await c.clear.click();await expect(c.input).toBeFocused();await expect(c.count).toHaveText('29 guides');await c.input.evaluate(e=>{e.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));e.value='fees';e.setSelectionRange(2,2);e.dispatchEvent(new InputEvent('input',{bubbles:true,data:'fees',isComposing:true}))});await expect(c.results.getByRole('button')).toHaveCount(29);await expect(c.count).toHaveText('29 guides');expect(await c.input.evaluate(e=>e.selectionStart)).toBe(2);await c.input.evaluate(e=>e.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'fees'})));await expect(c.count).toHaveText('8 of 29 guides');await expect(c.input).toBeFocused();expect(await c.input.evaluate(e=>e.selectionStart)).toBe(2);expect(await c.article.innerHTML()).toBe(original);expect(await page.evaluate(()=>window.__docsFilterIo)).toEqual([]);
  await c.clear.click();await expect(c.input).toHaveValue('');await expect(c.results.getByRole('button')).toHaveCount(29);await c.input.fill('pending');const pending=c.results.getByRole('button',{name:'Pending, unavailable or failed',exact:true});await pending.focus();await page.keyboard.press('Enter');await expect(c.article.locator('h1')).toHaveText('Pending, unavailable or failed');await expect(c.article).toBeFocused();await expect(page).toHaveURL(/#docs\/troubleshooting$/);const selected=await c.article.innerHTML();await c.input.fill('wallet');await expect(c.count).toHaveText('3 of 29 guides');await expect(pending).toBeHidden();expect(await c.article.innerHTML()).toBe(selected);await c.article.locator('.docs-guide-next button').click();await expect(page).toHaveURL(/#docs\/verification$/);await expect(c.article.locator('h1')).toHaveText('Current availability');await page.goBack();await expect(c.article.locator('h1')).toHaveText('Pending, unavailable or failed');await c.clear.click();await expect(c.input).toBeFocused();await expect(c.count).toHaveText('29 guides');await expect(page).toHaveURL(/#docs\/troubleshooting$/);
- await page.goto('/#docs/launch');await expect(c.article.locator('h1')).toHaveText('Launch a token');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await info.attach('scope',{body:JSON.stringify({width,io:await page.evaluate(()=>window.__docsFilterIo),label:'Actual application/native controls with offlineAPI; IMEcomposition events are modeled, not a physicalIME/device claim. Articlebody/hash/query-storage guards checked; no wallet/financial action.'}),contentType:'application/json'});await page.screenshot({path:info.outputPath(`docs-filter-${width}.png`),fullPage:true});
+ await page.goto('/#docs/launch');await expect(c.article.locator('h1')).toHaveText('Launch a coin');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await info.attach('scope',{body:JSON.stringify({width,io:await page.evaluate(()=>window.__docsFilterIo),label:'Actual application/native controls with offlineAPI; IMEcomposition events are modeled, not a physicalIME/device claim. Articlebody/hash/query-storage guards checked; no wallet/financial action.'}),contentType:'application/json'});await page.screenshot({path:info.outputPath(`docs-filter-${width}.png`),fullPage:true});
 });
 for(const width of[360,390,1440])test(`topic boundary focus stays inside results clip/header/nav at${width}px`,async({page},info)=>{
  const c=await open(page,width);const geometry=button=>button.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),extent=(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0),p=e.closest('.docs-guide-topic-results'),clip=p.getBoundingClientRect(),top=clip.top+p.clientTop,bottom=top+p.clientHeight,h=document.querySelector('.topbar'),n=document.querySelector('.mobile-workspace-nav'),vt=h?.getClientRects().length?Math.max(0,h.getBoundingClientRect().bottom):0,vb=n?.getClientRects().length?Math.min(innerHeight,n.getBoundingClientRect().top):innerHeight;return{outline:s.outlineStyle,extent,focusVisible:e.matches(':focus-visible'),full:r.top-extent>=top-1&&r.bottom+extent<=bottom+1&&r.top-extent>=vt-1&&r.bottom+extent<=vb+1&&r.left-extent>=clip.left-1&&r.right+extent<=clip.right+1,height:r.height,resultsHeight:p.clientHeight,scrollTop:p.scrollTop}});
@@ -170,6 +171,7 @@ async function chartGuideFixture(page,width) {
   return f;
 }
 async function chartGuideFont(page) {
+  await expandDocsBrowser(page);
   const font=await page.evaluate(async()=>{
     const request='700 14px "Manrope"',faces=await document.fonts.load(request,'Coin pages and charts');await document.fonts.ready;
     return{request,available:document.fonts.check(request,'Coin pages and charts'),faces:faces.map(f=>({family:f.family,weight:f.weight,status:f.status,style:f.style}))};
@@ -199,7 +201,7 @@ for(const width of[360,390,1440])test(`Chart guide discovery reading and recover
   test.setTimeout(30000);const f=await chartGuideFixture(page,width),reading=[],queries=[];
   try {
     await page.goto('/#docs');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await chartGuideFont(page);
-    const c=controls(page),originalArticle=await c.article.elementHandle();expect(originalArticle).not.toBeNull();
+    await expandDocsBrowser(page);const c=controls(page),originalArticle=await c.article.elementHandle();expect(originalArticle).not.toBeNull();
     await expect(c.count).toHaveText('29 guides');const initialArticle=await c.article.innerHTML(),initialHash=new URL(page.url()).hash;
     const storage=await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]));
     await chartGuideTabTo(page,'.docs-back');await chartGuideArm(page,'#docs-guide-search','#docs','Tab');await page.keyboard.press('Tab');await chartGuideProof(page,'search-entry');
@@ -248,7 +250,7 @@ for(const width of[360,390,1440])test(`Chart guide discovery reading and recover
     const beforeReload=await page.evaluate(()=>performance.timeOrigin);await page.reload();await page.locator('body.workspace-ready.product-experience-ready').waitFor();
     expect(await page.evaluate(()=>performance.timeOrigin)).not.toBe(beforeReload);await expect(page).toHaveURL(/#docs\/coin-pages$/);await expect(c.article.locator('h1')).toHaveText(chartGuideCopy.title);await expect(c.count).toHaveText('29 guides');
     // New document nodes after reload are not labelled original. Capture before this final native Tab only.
-    await chartGuideTabTo(page,'[data-docs-topic="faq"]');await chartGuideArm(page,'#docs-guide-article > .docs-guide-link','#docs/coin-pages','Tab');await page.keyboard.press('Tab');await chartGuideProof(page,'find-coin-link');
+    await expandDocsBrowser(page);await chartGuideTabTo(page,'[data-docs-topic="faq"]');await chartGuideArm(page,'#docs-guide-article > .docs-guide-link','#docs/coin-pages','Tab');await page.keyboard.press('Tab');await chartGuideProof(page,'find-coin-link');
     await expect(c.article.locator(':scope > .docs-guide-link')).toHaveText('Find a coin →');await expect(c.article.locator(':scope > .docs-guide-link')).toHaveAttribute('href','#explore');await page.keyboard.press('Enter');await expect(page).toHaveURL(/#explore$/);
     await expect(page.locator('body')).toHaveClass(/page-route-explore/);await page.goBack();await expect(page).toHaveURL(/#docs\/coin-pages$/);await expect(c.article.locator('h1')).toHaveText(chartGuideCopy.title);await expect(page).toHaveTitle('Docs · funded.vip');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.evaluate(()=>window.__docsFilterIo)).toEqual([]);
@@ -258,7 +260,7 @@ for(const width of[360,390,1440])test(`Chart guide discovery reading and recover
 });
 
 // FQA-075 / UX-056: contextual existing-token listing entry; no financial action.
-const listingGuideOriginalParagraphs=["Launch packages: Standard is the free package option; optional Boost, Pro and Premier packages burn the $FUNDED amount displayed in the launch form. Network/account costs still apply.", "Paid listings: adding an existing Devnet mint has a separate quoted $FUNDED burn and mint-verification requirement. A listing receipt is not a creator-fee payment.", "Directory SOL boosts: when enabled, a verified token can buy sponsored placement through a separate Devnet SOL quote. Review the package, duration, exact lamports, destination and unique quote memo. Placement activates only after the matching payment is finalized; signing or submitting alone is insufficient. The current card/checkout shows available packages and prices.", "Sponsored placement, launch tiers and paid listings are different products with different receipts. None changes the coin\u2019s saved fee split, creates referral or Daily bonus revenue by itself, or guarantees trading activity."];
+const listingGuideOriginalParagraphs=["Launch packages: Standard has no promotion burn. Optional Boost, Pro and Premier packages burn the displayed $FUNDED amount. The launch service fee and network/account costs still apply.", "Paid listings: adding an existing Devnet mint has a separate quoted $FUNDED burn and mint-verification requirement. A listing receipt is not a creator-fee payment.", "Directory SOL boosts: when enabled, a verified token can buy sponsored placement through a separate Devnet SOL quote. Review the package, duration, exact lamports, destination and unique quote memo. Placement activates only after the matching payment is finalized; signing or submitting alone is insufficient. The current card/checkout shows available packages and prices.", "Sponsored placement, launch tiers and paid listings are different products with different receipts. None changes the coin\u2019s saved fee split, creates referral or Daily bonus revenue by itself, or guarantees trading activity."];
 async function listingGuideArm(page,selector,hash) {
   const original=await page.locator(selector).elementHandle();expect(original).not.toBeNull();
   await original.evaluate((element,{source,hash})=>{
@@ -341,6 +343,7 @@ async function listingGuideFixture(page,width) {
   });return f;
 }
 async function listingGuideFont(page) {
+  await expandDocsBrowser(page);
   const f=await page.evaluate(async()=>{const request='700 14px "Manrope"',faces=await document.fonts.load(request,'List an existing token');await document.fonts.ready;return{request,available:document.fonts.check(request,'List an existing token'),faces:faces.map(f=>({family:f.family,weight:f.weight,status:f.status,style:f.style}))};});
   await test.info().attach('listing-guide-loaded-font',{body:JSON.stringify(f),contentType:'application/json'});
   expect(f.available&&f.faces.length>0).toBe(true);expect(f.faces.some(f=>{const w=f.weight==='bold'?[700]:f.weight.split(/\s+/).map(Number);return f.family.replaceAll('"','').replaceAll("'",'')==='Manrope'&&f.status==='loaded'&&f.style==='normal'&&(w.length===1?w[0]===700:w.length===2&&w[0]<=700&&w[1]>=700);})).toBe(true);
@@ -355,7 +358,7 @@ async function listingGuideDestination(page,info,width,phase,originalMint,readin
   await expect(page).toHaveURL(/#list$/);await expect(page.locator('body')).toHaveClass(/page-route-list/);
   await expect(page.locator('#list-title')).toHaveText('Get your token listed');await expect(page.locator('#list-mint')).toHaveValue('');
   expect(await originalMint.evaluate(e=>e.isConnected&&e===document.getElementById('list-mint'))).toBe(true);
-  await expect(page.locator('#list-mint-help')).toHaveText('Enter a Solana token address to check its format.');
+  await expect(page.locator('#list-mint-help')).toHaveText('Paste the token mint address to see if it can be listed.');
   await expect(page.locator('#list-availability')).toHaveText('$FUNDED price unavailable');await expect(page.locator('#list-live-items')).toHaveText('The verified listing index is unavailable.');
   await expect(page.locator('#list-pay')).toBeHidden();await expect(page.locator('#list-pay')).toBeDisabled();await expect(page.locator('#list-review')).toBeHidden();await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect.poll(()=>f.api.filter(x=>x.path==='/api/listings'&&x.phase===phase).length).toBeGreaterThan(0);
@@ -480,6 +483,7 @@ for(const width of[360,390,1440])test.describe(`listing guide guard viewport${wi
       await page.reload();await page.locator('body.workspace-ready.product-experience-ready').waitFor();
       observations.reload=await page.evaluate(()=>window.__listingGuideGuard.snapshot());
       expect(observations.reload.events.filter(e=>e.type==='focusin'&&e.target.article)).toEqual([]);
+      await expandDocsBrowser(page);
       const c=controls(page),originalArticle=await c.article.elementHandle(),originalInput=await c.input.elementHandle();
       const originalBody=await c.article.innerHTML(),originalHash=new URL(page.url()).hash;
       const storage=await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]));

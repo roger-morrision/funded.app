@@ -13,7 +13,7 @@ function publicPlanningStatus(quote, fee) {
 function syncPlanningPresentation(wallet, document) {
   document.querySelector('#cost-summary')?.classList.toggle('public-launch-planning', !wallet);
   const synopsis = document.querySelector('#preview-launch-cost')?.parentElement;
-  if (synopsis) synopsis.hidden = !wallet;
+  if (synopsis) synopsis.hidden = false;
   const tier = document.querySelector('#cost-public-tier-note');
   if (tier) tier.hidden = Boolean(wallet);
 }
@@ -40,9 +40,11 @@ export function renderPublicQuoteRetry({wallet, publicQuote, active}, {document 
   if (!visible) {
     delete button.dataset.quoteRetryShown;
     if (wasFocused && active && !wallet && publicQuote?.status === 'ready') {
-      const heading = document.querySelector('#public-launch-cost-heading');
-      heading?.setAttribute('tabindex', '-1');
-      heading?.focus();
+      const total = document.querySelector('#preview-launch-cost');
+      total?.setAttribute('tabindex', '-1');
+      total?.setAttribute('aria-describedby', 'preview-cost-label');
+      total?.focus();
+      total?.scrollIntoView?.({block: 'center', behavior: 'instant'});
     }
     return;
   }
@@ -113,11 +115,11 @@ export function updateCostSummary(
     if (mobileBudgetValue) mobileBudgetValue.textContent = value || 'Calculating…';
     if (mobileBudgetNote) mobileBudgetNote.textContent = wallet
       ? estimatedLaunchFeeLamports != null
-        ? 'Estimated total includes the approved app launch service fee, network fees and account rent. Review again before signing.'
-        : 'Checking the wallet-specific network fees and account rent before signing.'
+        ? 'Includes the launch fee, network fees and account rent. Review before signing.'
+        : 'Checking wallet costs before signing.'
       : publicBudget
-        ? 'Planning estimate. Review the itemized costs below; wallet-specific simulation is required before signing.'
-        : 'A current public Pump quote and app fee policy are needed. No wallet is required to view the planning budget.';
+        ? 'Planning estimate. Your wallet costs are checked before signing.'
+        : 'Waiting for a current quote and fee policy. No wallet needed.';
   };
   const burnNode = document.querySelector('#cost-burn');
   const burnRow = document.querySelector('#cost-burn-row');
@@ -150,7 +152,7 @@ export function updateCostSummary(
   if (summaryNode) summaryNode.classList.toggle('free-launch', !burnPolicy.requiresBurn);
   if (creatorBuyNode && creatorBuy.sol > 0) {
     const buyStatus = creatorBuyExceedsWalletBalance() ? 'insufficient SOL'
-      : developerBuyLimitReached() ? 'over 20% limit'
+      : developerBuyLimitReached() ? 'exceeds buy limit'
         : walletEstimateError ? retrySeconds == null ? 'estimate unavailable' : `retrying in ${retrySeconds}s`
           : walletMetricsLoading ? 'calculating…'
             : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} tokens`
@@ -179,7 +181,9 @@ export function updateCostSummary(
         if (serviceFeeNode) serviceFeeNode.textContent = launchFeeLamports == null ? 'Unavailable' : formatLaunchCost(BigInt(launchFeeLamports));
         totalNode.textContent = pending;
         if (previewLaunchNode) previewLaunchNode.textContent = pending;
-        noteNode.textContent = 'The full planning budget needs a current public Pump quote and app fee policy. No wallet is required to view it; retry when either service is available.';
+        noteNode.textContent = publicQuote?.status === 'invalid' && publicQuote.message
+          ? publicQuote.message
+          : 'The full planning budget needs a current public Pump quote and app fee policy. No wallet is required to view it; retry when either service is available.';
       }
       syncMobileBudget(totalNode.textContent);
       return;
@@ -194,7 +198,7 @@ export function updateCostSummary(
     noteNode.textContent = walletMetricsLoading
         ? 'Building and estimating the Solana transaction…'
         : developerBuyLimitReached()
-          ? 'Developer buy exceeds 20% of the token supply. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
+          ? 'Developer buy exceeds its 20% cap or the curve supply available after the community reserve. Return to Launch settings and lower the SOL amount or set it to 0. A new estimate will run after you change it.'
           : walletEstimateError
             ? `Could not estimate the transaction: ${walletEstimateError} ${launchEstimateRetry?.retryable ? launchEstimateRefreshMessage({ wallet, retry: launchEstimateRetry }) : 'Correct the issue, then retry the estimate.'}`
             : 'The launch cost is not verified. Refresh the estimate before signing.';
@@ -234,15 +238,16 @@ export function renderLaunchCostDetails(
 ) {
   let node=document.querySelector('#launch-cost-details');
   if(!node){node=document.createElement('div');node.id='launch-cost-details';node.className='adoption-panel';document.querySelector('#cost-note')?.after(node);}
-  const fee = wallet ? null : getLaunchFeeLamports();
-  const publicBudget = !wallet ? publicLaunchBudget(publicQuote, fee) : null;
   syncPlanningPresentation(wallet, document);
+  if (!wallet) {
+    node.hidden = true;
+    node.innerHTML = '';
+    return;
+  }
   node.hidden = false;
   const expanded = node.querySelector('details')?.open;
   const refreshMessage = launchEstimateRefreshMessage({ wallet, loading: walletMetricsLoading, retry: launchEstimateRetry });
-  if (publicBudget) node.innerHTML = `<section class="launch-review-costs" aria-labelledby="public-launch-cost-heading"><h3 id="public-launch-cost-heading">Review launch costs</h3><dl><div><dt>Holder reserve + optional developer buy</dt><dd>${formatLaunchCost(publicBudget.purchase)}</dd></div><div><dt>Purchase allowance (1%)</dt><dd>${formatLaunchCost(publicBudget.allowance)}</dd></div><div><dt>App launch service fee</dt><dd>${formatLaunchCost(publicBudget.serviceFee)}</dd></div><div><dt>Network fees + account rent planning allowance</dt><dd>${formatLaunchCost(publicBudget.overhead)}</dd></div><div><dt>Estimated total SOL budget</dt><dd>${formatLaunchCost(publicBudget.total)}</dd></div></dl><p>Planning estimate only. Wallet-specific simulation replaces the network and account allowance before signing.</p></section>`;
-  else if (!wallet) node.innerHTML = `<section class="launch-review-costs" aria-labelledby="public-launch-cost-heading"><h3 id="public-launch-cost-heading">Review launch costs</h3><p class="launch-public-budget-status">${publicPlanningStatus(publicQuote, fee)}</p><p>A complete planning budget needs a current public Pump quote and app fee policy. No wallet is required to view it; retry when either service is available.</p></section>`;
-  else if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
+  if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
   else node.innerHTML=launchReviewMarkup(launchCostReview);
   if (expanded && node.querySelector('details')) node.querySelector('details').open = true;
 }

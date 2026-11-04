@@ -1,4 +1,5 @@
 import { initializeInitialState } from './startup/initial-state.js';
+import { initializeProductFlows } from '../features/experience/index.js';
 import { initializeConnections } from './startup/connections.js';
 import { initializeLaunchPolicy } from './startup/launch-policy.js';
 import { initializeReferrals } from './startup/referrals.js';
@@ -72,15 +73,18 @@ export async function startApp(appState) {
   initializeTradeControls(appState);
   initializeExploreSearchActions(appState);
   initializeExploreFiltersActions(appState);
+  // Start the SOL/USD quote before the first route waits on market data, so
+  // card values can be shown in USD as soon as they are known.
+  initializeCoinMarket(appState);
   await initializeNavigation(appState);
   initializeDeferredArtwork();
   initializeCreatorFees(appState);
   initializeCoinHeader(appState);
   initializePortfolio(appState);
-  initializeCoinMarket(appState);
   initializeCoinCommunity(appState);
   initializeCoinLoading(appState);
   initializeCoinNavigation(appState);
   initializeCoinChat(appState);
   initializeRewardIdentity(appState);
+  initializeProductFlows(appState);
 }

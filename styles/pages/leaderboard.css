@@ -1,4 +1,10 @@
-/* The reference leaderboard leads with artwork and gives the verified table priority. */
+/* Rankings take priority over decoration and repeated framing. */
+html body.product-experience-style #main-content #leaderboard .leaderboard-hero { min-height: 0; padding: 0 0 16px; margin-block: 16px 8px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+html body.product-experience-style #main-content #leaderboard-source-note { margin-block: 8px; padding: 0; }
+html body.product-experience-style #main-content .leaderboard-toolbar { min-height: 0; margin-block: 8px 12px; padding: 0; border: 0; }
+html body.product-experience-style #main-content .leaderboard-toolbar .leaderboard-tabs { margin: 0; padding: 0; border-bottom: 1px solid var(--line); }
+html body.product-experience-style #main-content .leaderboard-toolbar .leaderboard-tabs button { min-height: 44px; }
+html body.product-experience-style #main-content .leaderboard-table-panel .panel-heading { gap: 12px; margin: 0 0 12px; padding: 0; }
 body.page-route-leaderboard .leaderboard-hero {
   min-height: 360px;
   background: linear-gradient(90deg,#0b1020ed 0%,#0b1020b8 33%,#0b102029 65%,#0b102012 100%),url('../../leaderboard-wolf-peak.webp') center right / cover no-repeat;
@@ -23,3 +29,9 @@ body.page-route-leaderboard .leaderboard-table > .empty-state { min-height: 92px
 body.page-route-leaderboard .leaderboard-table > .empty-state strong,
 body.page-route-leaderboard .leaderboard-table > .empty-state span { display: block; }
 body.page-route-leaderboard .leaderboard-table > .empty-state strong { margin-bottom: 5px; color: #e0eae1; }
+html body.product-experience-style #leaderboard .leaderboard-profile { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 44px; padding: 2px 0; border-radius: 6px; color: var(--text); text-decoration: none; }
+html body.product-experience-style #leaderboard .leaderboard-profile > :is(.leaderboard-profile-copy,.leaderboard-token-label) { display: grid; gap: 3px; min-width: 0; flex: 1; }
+html body.product-experience-style #leaderboard .leaderboard-profile :is(strong,small) { display: block; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body.product-experience-style #leaderboard .leaderboard-profile .leader-avatar { flex: none; width: 36px; height: 36px; border-radius: 8px; }
+html body.product-experience-style #leaderboard .leaderboard-proof { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; font-size: 12px; }
+html body.product-experience-style #leaderboard .leaderboard-profile:hover { color: var(--yellow,#ffbe68); }

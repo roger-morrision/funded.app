@@ -19,6 +19,10 @@ export function devnetMetadataUri(mint, origin = DEVNET_METADATA_ORIGIN) {
   return `${normalizeDevnetMetadataOrigin(origin)}/devnet-metadata/${mint}`;
 }
 
+// New launches use the public app's compact read-only alias. Existing metadata
+// and image URLs retain their configured origin and remain valid.
+export const devnetLaunchMetadataUri = mint => `https://funded.vip/m/${mint}`;
+
 export function devnetImageUri(mint, origin = DEVNET_METADATA_ORIGIN) {
   return `${normalizeDevnetMetadataOrigin(origin)}/devnet-images/${mint}`;
 }

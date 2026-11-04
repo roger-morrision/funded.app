@@ -18,6 +18,7 @@ const paths = {
   coin: '<circle cx="12" cy="12" r="9"/><path d="M9 9h6M9 12h6M9 15h6"/>',
   users: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5v1"/>',
   wallet: '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 9V5a2 2 0 0 1 2-2h13M15 13h6v4h-6a2 2 0 0 1 0-4Z"/>',
+  callout: '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 9a3 3 0 0 1 0 6"/><path d="M18 6a7 7 0 0 1 0 12"/>',
   listingBag: '<path d="M4 8h16l-1.5 13h-13L4 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/>',
   pause: '<path d="M9 5v14M15 5v14"/>',
   play: '<path d="m8 5 11 7-11 7Z"/>',

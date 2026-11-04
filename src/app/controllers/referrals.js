@@ -112,7 +112,8 @@ export function createReferralsController(appState) {
 function updateReferralStatus(state){
   const label = referralStatusLabel(state);
   document.documentElement.dataset.referralStatus = label;
-  document.querySelectorAll('#referral-command-center .section-state').forEach(node => { node.textContent = label; });
+  // The invite link button already asks for a wallet, so the header tag waits for one.
+  document.querySelectorAll('#referral-command-center .section-state').forEach(node => { node.textContent = label; node.hidden = state === 'disconnected'; });
   if (document.body.classList.contains('page-route-referrals')) { const node = document.querySelector('#route-guide-state'); if (node) node.textContent = label; }
 }
 
@@ -126,7 +127,7 @@ function updateReferralStatus(state){
   }
 
 
-  function renderReferralClaimPrompt(title = 'Connect wallet to check referral rewards', note = 'Finalized creator-signed V3 payouts appear in your history.', approve = false){
+  function renderReferralClaimPrompt(title = 'Your payouts appear here', note = 'Get your invite link above to connect. Payout history stays private to your wallet.', approve = false){
     const panel = document.querySelector('#referral-claim-center');
     if (!panel) return;
     panel.hidden = false;
@@ -142,9 +143,6 @@ function updateReferralStatus(state){
       const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Sign in with wallet';
       button.addEventListener('click', async () => { button.disabled = true; try { await appState.refreshReferralClaims({ interactive: true }); } finally { button.disabled = false; } });
       panel.append(button);
-    } else if (!appState.captureWalletSession()) {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button'; button.textContent = 'Connect wallet';
-      button.addEventListener('click', () => document.querySelector('#connect-button')?.click()); panel.append(button);
     }
   }
   // app-source-end
@@ -212,7 +210,7 @@ function updateReferralStatus(state){
       const creators = Number(dashboardResult.data.networkCreators || 0);
       appState.renderReferralActivityEmpty(creators > 0 ? 'Network summary available' : 'No qualified activity yet', creators > 0
         ? `${creators} network creator${creators === 1 ? '' : 's'} reported. Individual activity is not available in this view.`
-        : 'Qualified activity appears after verified fee collection is indexed.');
+        : 'Activity shows up here once coins from people you referred start earning fees.');
     } else { clearReferralMetrics({ payouts:false }); appState.renderReferralActivityEmpty('Activity unavailable', 'The referral dashboard could not be loaded. Try again later.'); }
     if (dashboardResult.available) { const active = document.querySelector('#referral-active-creators'); if (active) active.textContent = String(dashboardResult.data.qualifiedCreators ?? '—'); const conversion = document.querySelector('#referral-conversion-rate'); if (conversion) conversion.textContent = dashboardResult.data.conversionRate == null ? '—' : `${dashboardResult.data.conversionRate}%`; }
     const history = result.available ? readReferralHistory(result.data?.claims) : null;
@@ -222,12 +220,12 @@ function updateReferralStatus(state){
     const paidLamports = history.paidLamports;
     const paidNode = document.querySelector('#referral-paid-total'); if (paidNode) paidNode.textContent = `${formatReferralLamports(paidLamports)} SOL`;
     const ledger = document.querySelector('#referral-ledger-list');
-    if (ledger) { ledger.hidden = false; ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No payouts yet', 'Finalized referral payouts will appear here after creator-approved settlement.'); }
+    if (ledger) { ledger.hidden = false; ledger.replaceChildren(); if (!claims.length) appState.renderReferralLedgerEmpty('No payouts yet', 'Your referral payouts show up here once they are sent, each with a Solana receipt.'); }
     let panel = document.querySelector('#referral-claim-center');
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
     panel.replaceChildren(); panel.hidden = true;
     const note = document.querySelector('#referral-history-note');
-    if (note) note.textContent = claims.some(claim => claim.status !== 'paid') ? 'Recorded allocations and finalized payouts. Only paid receipts count toward paid rewards.' : 'Creator-approved payouts are sent to your wallet. No manual claim is needed.';
+    if (note) note.textContent = claims.some(claim => claim.status !== 'paid') ? 'Pending and sent payouts. Only paid receipts count toward your paid total.' : 'Payouts are sent to your wallet automatically, each with a Solana receipt. No claim needed.';
     for (const claim of claims.slice().reverse()) {
       const row = document.createElement('div'); row.className = 'referral-ledger-row';
       const label = document.createElement('div'), level = document.createElement('strong'), status = document.createElement('small');
@@ -288,15 +286,21 @@ function updateReferralStatus(state){
   // app-source: 244
   function updateReferralLink(){
     const code = appState.getReferralCode();
-    const value = code ? appState.buildReferralUrl(code) : 'Connect wallet to generate';
+    const value = code ? appState.buildReferralUrl(code) : 'Your link appears here';
     document.querySelectorAll('[data-referral-link]').forEach(node => { node.textContent = value; });
     let registered = null;
     try { registered = JSON.parse(localStorage.getItem(`${appState.REFERRAL_SERVER_KEY_PREFIX}${appState.connectedWalletAddress}`) || 'null'); } catch {}
-    const status = document.querySelector('#referral-link-status'); if (status) status.textContent = !code ? 'Connect wallet' : registered?.code === code ? 'Ready to share' : 'Activate link when sharing';
+    // The button and help line already ask for a wallet, so the badge waits for one.
+    const status = document.querySelector('#referral-link-status'); if (status) { status.hidden = !code; status.textContent = registered?.code === code ? 'Ready to share' : 'Activate link when sharing'; }
     const copy = document.querySelector('#referral-command-center [data-copy-referral-link]');
     if (copy) copy.textContent = !code ? 'Get invite link' : registered?.code === code ? 'Copy link' : 'Activate invite link';
+    const shareReady=Boolean(code&&registered?.code===code);
+    for(const button of document.querySelectorAll('#referral-share-native,#referral-copy-code')){
+      const focused=button===document.activeElement;button.hidden=!shareReady;
+      if(button.hidden&&focused)copy?.focus({preventScroll:true});
+    }
     const help = document.querySelector('#referral-share-help');
-    if (help) help.textContent = registered?.code === code && code ? 'Invite creators with this link. Rewards depend on their collected and settled fees.' : 'Connect your wallet and approve a free sign-in message to activate your link.';
+    if (help) help.textContent = shareReady ? 'Invite creators with this link. Rewards depend on their collected and settled fees.' : code ? 'Approve a free sign-in message to activate your invite link.' : 'Connect your wallet, then approve one free sign-in message. No transaction.';
   }
   // app-source-end
 

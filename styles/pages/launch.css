@@ -1,3 +1,49 @@
+/* One review surface keeps the token, allocation and costs together. */
+html body.page-route-launch #launch-dialog .launch-preview { min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+#launch-dialog .launch-preview-sticky { border: 1px solid var(--line, #344258); border-radius: 10px; background: var(--panel, #111827); }
+#launch-dialog .launch-preview-panel { min-width: 0; padding: 16px; border: 0; border-radius: 0; background: transparent; }
+#launch-dialog .launch-summary-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 12px 0 0; }
+#launch-dialog .launch-summary-specs > div:not([hidden]) { grid-template-columns: minmax(0, 1fr); gap: 3px; padding: 0; border: 0; }
+#launch-dialog .launch-summary-specs span { color: var(--muted, #aebbd0); font-size: 12px; line-height: 1.5; }
+#launch-dialog .launch-summary-specs strong { text-align: left; font-size: 13px; line-height: 1.5; }
+#launch-dialog #preview-burn-tier { font-size: 12px; line-height: 1.5; }
+#launch-dialog .launch-summary-policy { margin-top: 16px; padding-top: 12px; }
+#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) > div { display: grid; grid-template-rows: minmax(34px, auto) auto; gap: 4px; border: 0; padding-block: 8px; }
+#launch-dialog .launch-summary-policy dt { min-width: 0; font-size: 12px; line-height: 1.4; }
+#launch-dialog .launch-summary-policy dd { font-size: 13px; line-height: 1.4; }
+#launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) dd { font-size: 18px; }
+#launch-dialog .launch-summary-policy [data-fee-fixed-list] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+#launch-dialog .launch-summary-policy [data-fee-fixed-list] > div { gap: 6px; align-items: baseline; }
+#launch-dialog .launch-summary-policy [data-fee-fixed-list] > div:last-child { grid-column: 1 / -1; }
+#launch-dialog .launch-pay-summary { margin: 0; border: 0; border-top: 1px solid var(--line, #344258); border-radius: 0; background: transparent; }
+#launch-dialog .launch-pay-consents .terms-check { min-height: 44px; font-size: 12px; line-height: 1.5; }
+#launch-dialog .launch-package-preview .launch-enhanced-preview { margin-top: 14px; padding: 14px 0 0; border: 0; border-top: 1px solid var(--line, #344258); background: transparent; }
+
+/* Funding controls use the same quiet surfaces as the token form. */
+#launch-dialog .launch-funding-grid { gap: 16px; }
+#launch-dialog .launch-funding-grid > label { padding: 0; border: 0; background: transparent; gap: 6px; }
+#launch-dialog .launch-funding-grid .amount-presets { margin-top: 4px; }
+#launch-dialog .launch-funding-grid .creator-buy-preview { margin-top: 4px; padding: 8px 10px; }
+#launch-dialog .launch-funding-grid .creator-buy-preview strong { margin-block: 3px; font-size: 15px; }
+#launch-dialog #launch-agency-options { margin: 16px 0; padding: 12px; border-radius: 8px; background: transparent; }
+#launch-dialog #launch-agency-options legend { padding-inline: 5px; font-size: 14px; }
+#launch-dialog #launch-agency-options p { margin-block: 6px; font-size: 13px; line-height: 1.5; }
+#launch-dialog #launch-agency-options .agency-included-list { margin-block: 8px; }
+#launch-dialog #launch-agency-options .agency-included-list li { padding-block: 7px; font-size: 13px; }
+#launch-dialog #wizard-hint { min-width: 0; font: 13px/1.5 Manrope, system-ui, sans-serif; text-align: left; }
+@media (min-width: 700px) { #launch-dialog .creator-burn-tiers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 699px) {
+  #launch-dialog .wizard-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  #launch-dialog #wizard-hint { grid-column: 1 / -1; grid-row: 1; }
+  #launch-dialog #launch-back { grid-column: 1; }
+  #launch-dialog :is(#launch-next, #launch-review-retry) { grid-column: 2; }
+  #launch-dialog .creator-burn-tiers { grid-template-columns: minmax(0, 1fr); }
+  #launch-dialog .creator-burn-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; min-height: 0; padding: 12px; }
+  #launch-dialog .creator-burn-card > span { justify-self: start; }
+  #launch-dialog .creator-burn-card > strong { grid-column: 2; grid-row: 1; margin: 0; text-align: right; font-size: 14px; }
+  #launch-dialog .creator-burn-card > :is(small, em, b) { grid-column: 1 / -1; margin: 0; }
+}
 /* Keep the creation form and its live preview visible together on desktop. */
 @media (min-width: 1220px) {
   body.page-route-launch #launch-route-shell { position: relative; padding-top: 22px; }

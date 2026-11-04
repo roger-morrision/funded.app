@@ -1,14 +1,15 @@
 import bs58 from 'bs58';
 import { Buffer } from 'buffer';
-import { VersionedTransaction } from '@solana/web3.js';
+import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 
 // Never retry a send automatically: a timeout may hide a successful broadcast.
-export async function executeLaunchPlan({connection,provider,payer,mint,plan,onEvent=()=>{},assertWalletCurrent=()=>{}}) {
+export async function executeLaunchPlan({connection,provider,payer,mint,plan,onEvent=()=>{},assertWalletCurrent=()=>{},beforeBroadcast=()=>{}}) {
   const result={signature:null,mintRouterSignature:null};
   for(const step of plan.steps) {
     let broadcast=false, signature=null;
     try {
+      await beforeBroadcast();
       // A finalized hash is slightly older but is visible across every backend
       // in a load-balanced Solana RPC pool. A merely confirmed hash can be
       // returned by one backend and rejected as unknown by the next.
@@ -20,17 +21,23 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
       step.transaction.fundedLastValidBlockHeight=latest.lastValidBlockHeight;
       assertWalletCurrent();
       onEvent({state:'awaiting-approval',step:step.kind,lastValidBlockHeight:latest.lastValidBlockHeight});
+      // Wallet adapters can mutate and return the same object. Capture the
+      // reviewed message before handing over that object, for both wire formats.
+      const reviewedMessage=Buffer.from(versioned?step.transaction.message.serialize():step.transaction.serializeMessage());
       const signed=await provider.signTransaction(step.transaction);assertWalletCurrent();
       if(versioned){
-        if(!(signed instanceof VersionedTransaction) || !Buffer.from(signed.message.serialize()).equals(Buffer.from(step.transaction.message.serialize())))
+        if(!(signed instanceof VersionedTransaction) || !Buffer.from(signed.message.serialize()).equals(reviewedMessage))
           throw new Error('Wallet changed the atomic reserve transaction. Nothing was submitted.');
         const message=signed.message.serialize();
         for(let index=0;index<signed.message.header.numRequiredSignatures;index++)
           if(!nacl.sign.detached.verify(message,signed.signatures[index],signed.message.staticAccountKeys[index].toBytes()))
             throw new Error('Atomic reserve transaction has an invalid wallet or mint signature. Nothing was submitted.');
+      }else if(!(signed instanceof Transaction)||!Buffer.from(signed.serializeMessage()).equals(reviewedMessage)){
+        throw new Error('Wallet changed the reviewed launch transaction. Nothing was submitted.');
       }
       const raw=signed.serialize();if(raw.length>1232)throw new Error('Transaction exceeds the Solana packet limit.');
       signature=bs58.encode(versioned?signed.signatures[0]:signed.signature);
+      await beforeBroadcast();
       onEvent({state:'broadcasting',step:step.kind,signature,lastValidBlockHeight:latest.lastValidBlockHeight});
       broadcast=true;
       const returned=await connection.sendRawTransaction(raw,{skipPreflight:false});

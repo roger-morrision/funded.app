@@ -68,6 +68,19 @@ test('legacy ledger changes keep entity and projection writes in one transaction
   assert.equal(statements.at(-1), 'release');
 });
 
+test('symbol reservation is durably written under the ledger advisory lock',async()=>{
+  const db=database();
+  await createLedgerRepository(db).update(state=>{
+    state.launchSymbolReservations.COIN={mint:'mint',creatorWallet:'wallet',expiresAt:123,holdUntil:123};
+  });
+  const lock=db.calls.findIndex(c=>c.sql==='SELECT pg_advisory_xact_lock(81730421)');
+  const write=db.calls.findIndex(c=>c.sql.startsWith('INSERT INTO state_entities')&&c.args[0]==='launchSymbolReservations');
+  assert.ok(lock>=0&&write>lock);
+  assert.equal(db.calls[write].args[1],'COIN');
+  assert.equal(JSON.parse(db.calls[write].args[2]).mint,'mint');
+  assert.ok(db.calls.findIndex(c=>c.sql==='COMMIT')>write);
+});
+
 test('V3 settlement state is stored separately from legacy settlement projections', async () => {
   const db = database();
   await createLedgerRepository(db).update(state => {
@@ -94,6 +107,18 @@ test('audited residual plans survive ledger serialization and a separate read wi
   assert.deepEqual(rows.map(row=>row.bucket),['v3AllocationResidualPlans']);
 });
 
+test('private product reports survive ledger serialization and independent repository reads',async()=>{
+  const rows=[],db=database((sql,args)=>{
+    if(sql==='SELECT bucket, entity_key, payload FROM state_entities')return {rows:structuredClone(rows),rowCount:rows.length};
+    if(sql.startsWith('INSERT INTO state_entities'))rows.push({bucket:args[0],entity_key:args[1],payload:JSON.parse(args[2])});
+    return {rows:[],rowCount:0};
+  });
+  const report={id:'a'.repeat(32),status:'received',tokenHash:'b'.repeat(64)};
+  await createLedgerRepository(db).update(state=>{state.productIssues[report.id]=report;});
+  assert.deepEqual((await createLedgerRepository(db).read()).productIssues[report.id],report);
+  assert.deepEqual(rows.map(row=>row.bucket),['productIssues']);
+});
+
 test('chat append still delegates through the composed repository and bounds retained messages', async () => {
   const messages = [{ id: 1 }, { id: 2 }];
   const db = database(sql => ({ rows: sql.startsWith('SELECT payload FROM state_entities') ? [{ payload: messages }] : [], rowCount: 0 }));
@@ -115,5 +140,8 @@ test('asset reads wait for shared readiness and preserve the unbounded default f
   const db = database(() => ({ rows: [{ payload: { mint: 'older-launch' } }], rowCount: 1 }));
   assert.deepEqual(await createAssetsRepository(db).readLaunches(), [{ mint: 'older-launch' }]);
   assert.equal(db.calls[0].sql, 'ready');
-  assert.equal(db.calls[1].sql, 'SELECT payload FROM launches ORDER BY updated_at DESC, mint');
+  assert.equal(db.calls[1].sql, "SELECT payload FROM launches WHERE ($1::boolean OR payload->>'archivedAt' IS NULL) ORDER BY updated_at DESC, mint");
+  assert.deepEqual(db.calls[1].args,[false]);
+  await createAssetsRepository(db).readLaunches({includeArchived:true});
+  assert.deepEqual(db.calls.at(-1).args,[true]);
 });

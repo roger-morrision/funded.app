@@ -20,5 +20,6 @@
 @container coin-detail (max-width:420px){
   .coin-page .coin-chart-panel>.coin-hero-stat{grid-template-columns:1fr}
   .coin-page .coin-chart-panel>.coin-hero-stat b{grid-column:1;grid-row:3;text-align:left}
-  .coin-page .coin-hero-about .coin-fact-ribbon{grid-template-columns:1fr}
+  .coin-page .coin-hero-about .coin-fact-ribbon{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .coin-page .coin-hero-about .coin-fact-ribbon>div:nth-child(3):last-child{grid-column:1/-1}
 }

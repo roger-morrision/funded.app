@@ -7,7 +7,7 @@ const value = input => /^(0|[1-9]\d*)$/.test(String(input)) ? BigInt(input) : 0n
 
 // Public reward discovery is a V3 projection of finalized ledger records.
 // A recorded allocation is never presented as a payment.
-export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet', wallet = null, selectedMint = null) {
+export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet', wallet = null, selectedMint = null, {signature = null} = {}) {
   if (wallet != null && !ADDRESS.test(wallet)) throw new Error('A valid Solana wallet is required.');
   if (selectedMint != null && !ADDRESS.test(selectedMint)) throw new Error('A valid Solana mint is required.');
   const rewardState = rewards && typeof rewards === 'object' ? rewards : {};
@@ -54,7 +54,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
     const payouts = [];
     for (const schedule of Object.values(rewardState.schedules || {})) {
       if (schedule.mint !== mint || schedule.kind !== 'holder' || schedule.asset !== 'SOL') continue;
-      const linked = (schedule.poolIds || []).some(id => {
+      const linkedSources = (schedule.poolIds || []).filter(id => {
         if (!id.startsWith('v3:')) return false;
         let source;try{source=v3SourceAllocation(state,id.slice(3));}catch{return false;}
         if(!sourceSignatures.has(source.collectionSignature))return false;
@@ -62,14 +62,14 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         return funded?.status === 'finalized' && funded.balanceDeltaVerified === true
           &&(!source.residualPlanHash||funded.residualPlanHash===source.residualPlanHash);
       });
-      if (!linked) continue;
+      if (!linkedSources.length) continue;
       for (const [recipient, payment] of Object.entries(schedule.payments || {})) {
         if (!ADDRESS.test(recipient) || !SIGNATURE.test(String(payment.signature || ''))
           || payment.status !== 'paid' || payment.finalized !== true
           || payment.balanceDeltaVerified !== true) continue;
         payouts.push({ kind:'holder', wallet:recipient, signature:payment.signature,
           amountLamports:String(payment.amount), paidAt:payment.paidAt || null,
-          source:'finalized-v3-reward-cycle', feeSourceVerified:true });
+          round:schedule.id, cutoffAt:schedule.cutoffAt, source:'finalized-v3-reward-cycle', feeSourceVerified:true,sourceSignatures:linkedSources.map(id=>v3SourceAllocation(state,id.slice(3)).collectionSignature) });
       }
     }
     for (const [source, claim] of Object.entries(state.v3XClaims || {})) {
@@ -83,7 +83,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         || claim.payment?.finalized !== true || claim.payment?.balanceDeltaVerified !== true) continue;
       payouts.push({ kind:'x', wallet:claim.wallet, signature:claim.payment.signature,
         amountLamports:String(claim.amountLamports), paidAt:claim.paidAt || null,
-        source:'finalized-v3-x-claim', feeSourceVerified:true });
+        source:'finalized-v3-x-claim', feeSourceVerified:true,sourceSignatures:[identity.collectionSignature] });
     }
     for (const [key,payout] of Object.entries(state.v3CreatorWalletPayout||{})) {
       let identity;try{identity=v3SourceAllocation(state,key);}catch{continue;}
@@ -98,13 +98,15 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         || !SIGNATURE.test(String(payout.signature || ''))) continue;
       payouts.push({ kind:'creator', wallet:launch.creatorWallet, signature:payout.signature,
         amountLamports:payout.amount, paidAt:payout.finalizedAt || null,
-        source:'finalized-v3-creator-wallet-payout', feeSourceVerified:true });
+        source:'finalized-v3-creator-wallet-payout', feeSourceVerified:true,sourceSignatures:[source] });
     }
     for (const payout of payouts) events.push({ mint, kind:`${payout.kind}-paid`,
       signature:payout.signature, amountLamports:payout.amountLamports, at:payout.paidAt,
-      label:`${payout.kind} reward paid`, feeSourceVerified:true });
+      ...(payout.kind === 'holder' ? {round:payout.round, cutoffAt:payout.cutoffAt} : {}),
+      label:`${payout.kind} reward paid`, feeSourceVerified:true,wallet:payout.wallet,sourceSignatures:payout.sourceSignatures });
     const burns = Object.entries(state.v3BuybackOrders || {}).filter(([source, row]) =>
-      sourceSignatures.has(source) && row.status === 'finalized' && row.finalized === true
+      row.mint===mint&&row.programId===launch.pumpFeeRoute.programId&&(sourceSignatures.has(source)||sourceSignatures.has(row.collectionSignature)||row.sourceKind==='aggregate-collections'
+        &&Array.isArray(row.sourceBudgets)&&row.sourceBudgets.length>0&&row.sourceBudgets.every(budget=>sourceSignatures.has(budget.source))) && row.status === 'finalized' && row.finalized === true
       && row.vaultDebitVerified === true && row.burnInstructionVerified === true);
     for (const [, row] of burns) if (SIGNATURE.test(String(row.signature || '')))
       events.push({ mint, kind:'buyback-burned', signature:row.signature,
@@ -149,6 +151,11 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
           referenceOnly:cluster === 'devnet' } : null,
       xPaidWallets:new Set(xPaid.map(row => row.wallet)).size, xPayoutCount:xPaid.length,
       xPaidLamports:xPaid.reduce((sum, row) => sum + value(row.amountLamports), 0n).toString(),
+      availableHolderPoolLamports: rewardState.rewardPools && rewardState.programs?.[mint]?.enabled
+        ? Object.values(rewardState.rewardPools).filter(pool => pool.mint === mint && pool.asset === 'SOL'
+          && pool.status === 'available' && pool.balanceDeltaVerified === true
+          && pool.fundedAt >= rewardState.programs[mint].activatedAt).reduce((sum, pool) => sum + value(pool.amount), 0n).toString()
+        : null,
       lastHolderPayout, buybackBurnCount:burns.length,
       buybackBurnedBaseUnits:burns.reduce((sum, [, row]) => sum + value(row.burnedBaseUnits), 0n).toString(),
       status:holderPaid.length ? 'holders-paid' : totals.holder > 0n ? 'holder-fees-allocated'
@@ -178,5 +185,5 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
       referralRolloverLamports:'0', fundedLamports:String(communityFunded),
       vaultAddress:communityVaults.size === 1 ? [...communityVaults][0] : null,
       paidLamports:null, status:communityFunded > 0n ? 'vault-funded-no-program-payout'
-        : 'allocated-awaiting-vault-funding' }, events:events.slice(0, 100) };
+        : 'allocated-awaiting-vault-funding' }, events:events.filter(row => !signature || row.signature === signature).slice(0, 100) };
 }

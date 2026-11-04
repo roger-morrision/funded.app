@@ -23,6 +23,13 @@ for (const width of [1440, 1024, 901, 390]) test(`launch navigation remains usab
       return element === point || element.contains(point);
     }), `${selector} must not be covered`).toBe(true);
   }
+  if (width <= 700) {
+    const gaps = await page.locator('#header-search-trigger').evaluate(element => {
+      const box = element.getBoundingClientRect(), icon = element.querySelector('svg').getBoundingClientRect();
+      return [icon.left - box.left, box.right - icon.right];
+    });
+    expect(Math.abs(gaps[0] - gaps[1]), 'search icon must be centered in its button').toBeLessThanOrEqual(2);
+  }
 });
 
 test('mobile menu restores keyboard focus after closing', async ({ page }) => {

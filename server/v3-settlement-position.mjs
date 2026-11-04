@@ -12,6 +12,8 @@ const address = value => typeof value === 'string' ? value : value?.pubkey
 const discriminator = name => createHash('sha256').update(`global:${name}`).digest().subarray(0,8).toString('hex');
 const settle = discriminator('settle_mint_v3');
 const agencySettle=discriminator('settle_agency_mint_v3');
+const autoSettle=discriminator('settle_mint_v3_auto');
+const agencyAutoSettle=discriminator('settle_agency_mint_v3_auto');
 const unchanged = new Set(['disburse_mint_v3','approve_protected_withdrawal_v3',
   'disburse_protected_mint_v3','buyback_mint_v3','disburse_agency_mint_v3',
   'approve_agency_withdrawal_v3','bill_agency_promotion_v3','buyback_agency_mint_v3'].map(discriminator));
@@ -81,16 +83,24 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
         ...(tx.meta.innerInstructions || []).flatMap(row=>row.instructions)];
       for (const instruction of instructions) {
         if (keys[instruction.programIdIndex] !== new PublicKey(programId).toBase58()) continue;
-        const accounts = (instruction.accounts || instruction.accountKeyIndexes || []).map(index=>keys[index]);
+        const indices=Array.from(instruction.accounts || instruction.accountKeyIndexes || []);
+        const accounts = indices.map(index=>keys[index]);
         if (!accounts.includes(policyAddress.toBase58())) continue;
+        // History also includes instructions which only read the mint policy,
+        // such as initializing immutable automation and opening a community
+        // drop. A successful transaction cannot change a readonly account.
+        // Unknown writable mutations still require explicit reconciliation.
+        const policyIndex=indices.find(index=>keys[index]===policyAddress.toBase58());
+        if(typeof message.isAccountWritable==='function'&&!message.isAccountWritable(policyIndex))continue;
         const data = Buffer.from(typeof instruction.data === 'string' ? bs58.decode(instruction.data) : instruction.data || []);
         const code = data.subarray(0,8).toString('hex');
         if (unchanged.has(code)) continue;
         const recovery = code === QA_RECOVERY_DISCRIMINATOR.toString('hex');
-        if ((code !== (split?.agencyPercent!==undefined?agencySettle:settle) && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
+        const automatic = code === (split?.agencyPercent!==undefined?agencyAutoSettle:autoSettle);
+        if ((code !== (split?.agencyPercent!==undefined?agencySettle:settle) && !automatic && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
         const amount = data.readBigUInt64LE(40);
         const build = recovery ? buildQaSettlementRecoveryInstruction : buildV3PolicySettlement;
-        const expected = build({programId,mint,authority,creator,split,
+        const expected = build({programId,mint,authority,creator,split,auto:automatic,
           claimId:data.subarray(8,40),expectedLamports:amount}).instruction;
         if (accounts.length !== expected.keys.length || expected.keys.some((key,index)=>key.pubkey.toBase58() !== accounts[index]))
           throw new Error('Later V3 settlement does not match the immutable policy.');

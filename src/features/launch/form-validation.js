@@ -4,6 +4,16 @@ import { validateFeeDistribution } from '../../../distribution-policy.js';
 import { validateLaunchBurnPolicy } from '../../../launch-burn-policy.js';
 import { canSignTransactions } from '../../../wallet-core.js';
 import { freshLaunchReview } from '../../../launch-review.js';
+import { promotionContentState } from './promotion-requirements.js';
+
+function feeSplitError(distribution){
+  if(distribution.valid)return null;
+  const target={creatorWalletPercent:'#creator-wallet-share',holderAirdropPercent:'#holder-airdrop-share',solClaimPercent:'#x-share'};
+  const field=Object.keys(target).find(key=>!Number.isFinite(distribution.shares[key])||distribution.shares[key]<0||distribution.shares[key]>80);
+  if(!distribution.sharesValid)return {valid:false,field:target[field]||'#creator-wallet-share',messageTarget:'#fee-distribution-status',message:'Each creator destination must be between 0% and 80%.'};
+  if(!distribution.xRecipientValid)return {valid:false,field:'#x-recipient',messageTarget:'#fee-distribution-status',message:'Enter a valid X account for the SOL reward.'};
+  return {valid:false,field:'#creator-wallet-share',messageTarget:'#fee-distribution-status',message:'Creator wallet, holder rewards, and X account reward must total exactly 80%.'};
+}
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function getLaunchMetadataPreview(
@@ -31,7 +41,6 @@ export function getLaunchStepState(
   {
     MIN_COMMUNITY_AIRDROP_TOKENS,
     MAX_COMMUNITY_AIRDROP_TOKENS,
-    xFeeStatus,
     launchMode,
   },
   {
@@ -40,7 +49,6 @@ export function getLaunchStepState(
     getCommunityAirdropTokens,
     getCreatorBuySol,
     developerBuyLimitReached,
-    xFeeFailureDetail,
     getLaunchBurnPolicy,
     formatLaunchBurnAmount,
     document = globalThis.document,
@@ -56,21 +64,19 @@ export function getLaunchStepState(
     if (!/^[A-Z0-9]{1,10}$/.test(symbol)) return { valid: false, field: '#token-symbol', message: 'Use 1–10 letters or numbers for the ticker.' };
     const invalidSocial = invalidLaunchSocial();
     if (invalidSocial) return { valid: false, field: `#${invalidSocial.id}`, message: invalidSocial.validationMessage };
+    const splitError=feeSplitError(validateFeeDistribution(getFeeDistributionInputs()));
+    if(splitError)return splitError;
     return { valid: true, message: 'Coin identity is ready.' };
   }
   const distribution = validateFeeDistribution(getFeeDistributionInputs());
   if (step === 2) {
+    const content=promotionContentState(getLaunchBurnPolicy(),{document});if(!content.valid)return content;
     const communityTokens = getCommunityAirdropTokens();
     if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS) return { valid: false, field: '#community-airdrop-tokens', message: 'Community airdrop must be between 30,000,000 and 500,000,000 tokens.' };
     const creatorBuySol = getCreatorBuySol();
     if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy must be a valid SOL amount of zero or more.' };
-    if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
-    if (!distribution.valid) {
-      if (!distribution.sharesValid) return { valid: false, message: 'Each creator destination must be between 0% and 80%.' };
-      if (!distribution.xRecipientValid) return { valid: false, message: 'Enter a valid X account for the SOL reward.' };
-      return { valid: false, field: '#creator-wallet-share', messageTarget: '#fee-distribution-status', message: 'Creator wallet, holder rewards, and X account reward must total exactly 80%.' };
-    }
-    if (distribution.shares.solClaimPercent > 0 && !xFeeStatus.ready) return { valid: false, message: `X account rewards unavailable: ${xFeeFailureDetail()}.` };
+    if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds its 20% cap or the curve supply available after the community reserve. Lower the SOL amount or set it to 0.' };
+    const splitError=feeSplitError(distribution);if(splitError)return splitError;
     const launchBurn = getLaunchBurnPolicy();
     const burnValidation = validateLaunchBurnPolicy(launchBurn);
     if (!burnValidation.valid) return { valid: false, message: 'The protocol $FUNDED mint must be configured before a paid burn tier can launch.' };
@@ -97,6 +103,7 @@ export function getLaunchSubmissionState(
     document = globalThis.document,
   } = {}
 ) {
+    const content=promotionContentState(getLaunchBurnPolicy(),{document});if(!content.valid)return content;
     if (!feeRouterState.verified) return { valid: false, message: feeRouterState.status === 'checking'
       ? 'Checking the Solana fee router…'
       : feeRouterState.status === 'router-verification-unavailable'
@@ -110,7 +117,7 @@ export function getLaunchSubmissionState(
     if (!canSignTransactions(wallet)) return { valid: false, message: 'Open this app inside your wallet to sign.' };
     if (walletMetricsLoading) return { valid: false, message: 'Wait while the launch cost is calculated.' };
     if (creatorBuyExceedsWalletBalance()) return { valid: false, message: 'Reduce the developer buy or add SOL before continuing.' };
-    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds 20% of supply. Lower the SOL amount or set it to 0.' };
+    if (developerBuyLimitReached()) return { valid: false, message: 'Developer buy exceeds its 20% cap or the curve supply available after the community reserve. Lower the SOL amount or set it to 0.' };
     if (!freshLaunchReview(launchCostReview)) return { valid:false, message:'Refresh the launch estimate before continuing; quotes expire after one minute.' };
     if (walletBalanceLamports == null || estimatedLaunchFeeLamports == null) return { valid: false, message: walletEstimateError ? `Launch estimate unavailable: ${walletEstimateError}` : 'Refresh the wallet balance and launch estimate.' };
     if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add SOL before continuing.' };

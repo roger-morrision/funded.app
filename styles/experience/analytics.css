@@ -1,4 +1,5 @@
 /* Analytics needs to respond to its content area, which is narrower beside the sidebar. */
+html body.product-experience-style #main-content .analytics-kpis-complete article { border-radius: 8px; background: var(--panel); }
 .page-route-analytics-detail #analytics-detail { container: analytics / inline-size; }
 .page-route-analytics-detail .analytics-fee-explainer {
   max-width: 75ch;
@@ -7,17 +8,17 @@
   font: 500 13px/1.6 Manrope, sans-serif;
 }
 .page-route-analytics-detail .analytics-kpis.analytics-kpis-complete {
-  gap: 12px;
-  margin: 20px 0 24px;
+  gap: 10px;
+  margin: 12px 0 16px;
 }
 .page-route-analytics-detail .analytics-kpis-complete article {
   display: flex;
   min-width: 0;
-  min-height: 162px;
+  min-height: 0;
   flex-direction: column;
-  padding: 20px;
+  padding: 12px;
   border-color: #34415a;
-  border-radius: 12px;
+  border-radius: 8px;
   background: linear-gradient(155deg, #171e30, #111622);
 }
 .page-route-analytics-detail .analytics-kpis-complete article > span {
@@ -26,7 +27,7 @@
   line-height: 1.4;
 }
 .page-route-analytics-detail .analytics-kpis-complete article > strong {
-  margin: 14px 0 12px;
+  margin: 8px 0;
   overflow-wrap: anywhere;
   color: #f7f8ff;
   font: 600 clamp(20px, 1.85vw, 25px) 'DM Mono', monospace;
@@ -35,7 +36,7 @@
 }
 .page-route-analytics-detail .analytics-kpis-complete article > small {
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid #2a3549;
   color: #9baac2;
   font-size: 12px !important;
@@ -97,10 +98,12 @@
   .page-route-analytics-detail .analytics-kpis.analytics-kpis-complete { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @container analytics (max-width: 560px) {
-  .page-route-analytics-detail .analytics-kpis.analytics-kpis-complete { grid-template-columns: minmax(0, 1fr); }
-  .page-route-analytics-detail .analytics-kpis-complete article { min-height: 138px; }
+  .page-route-analytics-detail .analytics-kpis-complete article { min-height: 0; }
   .page-route-analytics-detail .recipients-panel { padding: 18px; }
   .page-route-analytics-detail .recipients-panel .payment-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+@container analytics (max-width: 320px) {
+  .page-route-analytics-detail .analytics-kpis.analytics-kpis-complete { grid-template-columns: minmax(0,1fr); }
 }
 
 /* Only the optional sparse available-collection disclosure. */

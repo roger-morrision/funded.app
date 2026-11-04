@@ -9,6 +9,7 @@ export function createSolanaRpcProxy({
   clientKey,
   json,
   rpcMethods,
+  centralized = process.env.FUNDED_RPC_GATEWAY_ENABLED === 'true',
   fetch = (...args) => globalThis.fetch(...args),
 }) {
   const rpcCache = new Map();
@@ -38,7 +39,7 @@ export function createSolanaRpcProxy({
       // forwarding so omitted and explicit capped limits use the same request.
       request.params = [request.params[0], { ...config, limit }];
     }
-    const cacheable = !['sendTransaction', 'simulateTransaction', 'requestAirdrop'].includes(request.method);
+    const cacheable = !centralized && !['sendTransaction', 'simulateTransaction', 'requestAirdrop'].includes(request.method);
     const cacheKey = cacheable ? JSON.stringify([request.method, request.params]) : null;
     const cached = cacheKey && rpcCache.get(cacheKey);
     const client = clientKey(req);
@@ -53,13 +54,16 @@ export function createSolanaRpcProxy({
     if (!await store.chargeRpcRate(rateKey, cost, rateLimit, windowStart)
       || (['sendTransaction', 'requestAirdrop'].includes(request.method) && !await store.chargeRpcRate(`rpc-write:${client}`, 1, 10, windowStart))) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC limit reached; retry shortly.' } });
     if (cached?.expiresAt > now) return json(res, 200, { ...cached.data, id: request.id });
-    if (rpcInflight >= 12) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is busy; retry shortly.' } });
+    // Reserve three of the existing twelve slots for explicit previews/writes.
+    const interactive=previewRead||['sendTransaction','simulateTransaction'].includes(request.method);
+    if (rpcInflight >= (interactive?12:9)) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is busy; retry shortly.' } });
     rpcInflight += 1;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
       const upstream = await fetch(solanaRpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request), signal: controller.signal });
       const result = await upstream.json().catch(() => null);
+      if (upstream.status === 429) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is rate limited; retry shortly.' } });
       if (!result || typeof result !== 'object') return json(res, 502, { jsonrpc: '2.0', id: request.id, error: { code: -32000, message: 'Solana RPC returned an invalid response.' } });
       if (cacheKey && upstream.ok && !result.error) {
         if (rpcCache.size > 500) rpcCache.clear();

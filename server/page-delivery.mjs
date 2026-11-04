@@ -49,7 +49,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
       res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'" });
       return end(res, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="48" fill="#111827"/><circle cx="128" cy="128" r="68" fill="#d7b65d"/><text x="128" y="148" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="70" fill="#111827">F</text></svg>');
     }
-    const publicMint = req.method === 'GET' ? url.pathname.match(/^\/devnet-(?:metadata|images|banners)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
+    const publicMint = req.method === 'GET' ? url.pathname.match(/^\/(?:devnet-(?:metadata|images|banners)|m)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
     if (publicMint && url.pathname.startsWith('/devnet-banners/')) {
       const banner = await store.readMetadataBanner(publicMint);
       if (!banner) return json(res, 404, { error: 'Banner not found.' });
@@ -69,7 +69,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
       res.writeHead(200, { 'content-type': image.mime, 'content-length': image.bytes.length, 'cache-control': 'public, max-age=86400, immutable', 'x-content-type-options': 'nosniff', 'access-control-allow-origin': '*' });
       return end(res, image.bytes);
     }
-    if (publicMint && url.pathname.startsWith('/devnet-metadata/')) {
+    if (publicMint && (url.pathname.startsWith('/devnet-metadata/')||url.pathname.startsWith('/m/'))) {
       const prepared = await store.readMetadata(publicMint);
       if (prepared) return json(res, 200, publicMetadata(prepared));
       if (metadataHost) return json(res, 404, { error: 'Solana metadata not found.' });
@@ -78,7 +78,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
   }
 
   async function handlePages(req, res, url) {
-    const metadataMint = req.method === 'GET' ? url.pathname.match(/^\/devnet-metadata\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
+    const metadataMint = req.method === 'GET' ? url.pathname.match(/^\/(?:devnet-metadata|m)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
     if (metadataMint) {
       const launch = await store.readLaunch(metadataMint);
       if (!launch || launch.cluster !== 'devnet' || !launch.onchainVerified
@@ -99,6 +99,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
       const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search);
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return end(res, page);
     }
+    if (req.method === 'GET' && /^\/welcome\/?$/.test(url.pathname)) return await serveStatic('/welcome.html', res);
     if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname === '/admin/')) return await serveStatic('/admin.html', res);
     if (req.method === 'GET' && ['/', '/explore', '/explore/'].includes(url.pathname)) {
       const [template, launches] = await Promise.all([

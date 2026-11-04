@@ -40,6 +40,7 @@ export function createCoinMarketController(appState) {
     appState.renderFundedTokenLanding();
     appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
     appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
+    appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
     appState.setCoinField('#coin-liquidity', appState.formatCoinUsd(appState.coinSolUsdValues.reserve));
     appState.renderCoinSummary();
     if (appState.coinMarketActivity.graduated && appState.coinMarketActivity.status === 'unavailable') appState.setCoinField('#coin-volume', 'Pool activity unavailable');
@@ -81,7 +82,7 @@ export function createCoinMarketController(appState) {
 
   // app-source: 956
   function renderCoinPricePath(){
-    return appState.renderCoinPricePathView({ coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
+    return appState.renderCoinPricePathView({ coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, coinMint: appState.getCoinMintAddress() }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
   }
   // app-source-end
 

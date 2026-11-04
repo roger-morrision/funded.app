@@ -152,3 +152,39 @@ test('concurrent requests for one mint share one scan and one rate charge', asyn
   assert.equal(charges, 1);
   assert.deepEqual(f.responses.map(response => response.status), [200, 200, 200, 200, 200]);
 });
+
+test('a recent market result is served at once while a background scan replaces it', async () => {
+  let started = 0, release;
+  const stale = { observedAt:new Date(Date.now() - 3 * 60_000).toISOString(), poolHistoryCoverage:'complete',
+    observedCoverage:'complete', tradeCount24h:null };
+  const old = { ...stale, observedAt:new Date(Date.now() - 10 * 60_000).toISOString() };
+  let persisted = stale;
+  const f = fixture(createTokenMarketRoutes, {
+    solanaRpcUrl:'https://api.devnet.solana.com', clientKey:() => 'catalog',
+    store:{ readMarketActivity:async () => persisted, chargeRpcRate:async () => true, writeMarketActivity:async () => {} },
+    readMarketActivity:() => new Promise(resolve => {
+      started++; release = () => resolve({ poolHistoryCoverage:'complete', observedCoverage:'complete', tradeCount24h:null });
+    }),
+  });
+  const path = `/api/tokens/${Keypair.generate().publicKey.toBase58()}/market-activity`;
+  await f.request(path);
+  assert.equal(f.responses[0].data, stale);
+  await waitFor(() => started === 1);
+  await f.request(path);
+  assert.equal(started, 1, 'a second request reuses the running background scan');
+  release();
+  await waitFor(() => f.responses.length === 2);
+  await new Promise(resolve => setImmediate(resolve));
+  await f.request(path);
+  assert.notEqual(f.responses[2].data, stale);
+  assert.equal(f.responses[2].data.source, 'confirmed-pump-trade-events');
+
+  persisted = old;
+  const g = fixture(createTokenMarketRoutes, {
+    solanaRpcUrl:'https://api.devnet.solana.com', clientKey:() => 'catalog',
+    store:{ readMarketActivity:async () => persisted, chargeRpcRate:async () => true, writeMarketActivity:async () => {} },
+    readMarketActivity:async () => ({ poolHistoryCoverage:'complete', observedCoverage:'complete', tradeCount24h:null }),
+  });
+  await g.request(path);
+  assert.equal(g.responses[0].data.source, 'confirmed-pump-trade-events', 'results over five minutes old wait for a new scan');
+});

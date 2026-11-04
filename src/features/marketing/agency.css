@@ -7,19 +7,37 @@ body.page-route-marketing-agency .main-content > #marketing-agency { display: bl
 .agency-agent-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
 .agency-agent, .agency-policy, .agency-options, .agency-funds > div { padding: 20px; border: 1px solid #353a54; border-radius: 12px; background: #121424; min-width: 0; }
 .agency-agent h2 { font-size: 20px; line-height: 1.4; }
-.agency-policy { margin: 24px 0; }
+.agency-policy { margin: 16px 0; padding: 0; }
+.agency-policy > summary { min-height: 44px; padding: 12px 14px; color: inherit; font-size: 14px; font-weight: 600; line-height: 1.5; cursor: pointer; }
+.agency-policy[open] > summary { border-bottom: 1px solid #353a54; }
+.agency-policy-body { padding: 14px; }
 .agency-status { border-left: 3px solid #edb800; padding: 12px 16px; background: #191a2c; }
+html body.product-experience-style #marketing-agency > .section-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; align-items: center; }
+html body.product-experience-style #marketing-agency > .section-heading > div { display: contents; }
+html body.product-experience-style #marketing-agency > .section-heading .eyebrow { grid-column: 1 / -1; margin: 0; }
+html body.product-experience-style #marketing-agency > .section-heading h1 { grid-column: 1; grid-row: 2; margin: 0; }
+html body.product-experience-style #marketing-agency > .section-heading > button { grid-column: 2; grid-row: 2; }
+html body.product-experience-style #marketing-agency > .section-heading p:not(.eyebrow) { grid-column: 1 / -1; margin: 0; }
+html body.product-experience-style #marketing-agency .agency-agent-grid { gap: 12px; margin-block: 12px; }
+html body.product-experience-style #marketing-agency .agency-agent { padding: 14px; border-radius: 8px; background: var(--panel); }
+html body.product-experience-style #marketing-agency .agency-agent p { margin-block: 6px 10px; }
+html body.product-experience-style #marketing-agency .agency-agent h2 { font-size: 18px; }
+html body.product-experience-style #marketing-agency .agency-funds { gap: 10px; margin-block: 12px; }
+html body.product-experience-style #marketing-agency .agency-funds > div { padding: 14px; border-radius: 8px; background: var(--panel); }
+html body.product-experience-style #marketing-agency .agency-funds dt { color: var(--muted); font-size: 12px; }
+html body.product-experience-style #marketing-agency .agency-funds dd { margin-top: 6px; font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+html body.product-experience-style #marketing-agency .agency-status { margin-block: 12px; padding: 10px 12px; }
 .agency-funds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .agency-funds dd { margin: 10px 0 0; font-weight: 700; }
 .agency-options { margin: 20px 0; }
-.agency-options label { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; }
-.agency-options input[type=checkbox] { width: 20px; height: 20px; flex: 0 0 20px; accent-color: #f2b700; }
+.agency-included-list { list-style: none; margin: 12px 0; padding: 0; }
+.agency-included-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #353a54; }
+.agency-included-list li:last-child { border-bottom: 0; }
+.agency-included-list [data-launch-agent-name] { min-width: 0; overflow-wrap: anywhere; }
+.agency-included-list li[data-included="false"] .agency-included-badge { color: #a9b8cd; background: #171d28; border-color: #3c4759; }
+.agency-included-badge { flex-shrink: 0; font-size: 12px; color: #9ee5bc; background: #152c28; border: 1px solid #2d5a48; border-radius: 4px; padding: 3px 7px; }
 .agency-options p { line-height: 1.6; }
 .agency-options :focus-visible, .agency-page :focus-visible { outline: 2px solid #f2b700; outline-offset: 4px; }
-@media (max-width: 760px) { .agency-agent-grid, .agency-funds { grid-template-columns: 1fr; } .agency-page { padding: 16px 8px; } }
-@media (width > 700px) and (width < 1180px) {
-  body.page-route-marketing-agency .sidebar { width: 220px; }
-  html body.page-route.page-route-marketing-agency .main-content { width: calc(100% - 220px) !important; max-width: none; margin-left: 220px !important; padding: 0 24px 48px; }
-  html.sidebar-collapsed body.page-route-marketing-agency .sidebar { width: 76px; }
-  html.sidebar-collapsed body.page-route.page-route-marketing-agency .main-content { width: calc(100% - 76px) !important; margin-left: 76px !important; }
-}
+@media (max-width: 1050px) { .agency-agent-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .agency-funds { grid-template-columns: 1fr; } .agency-page { padding: 16px 8px; } }
+@media (min-width: 351px) and (max-width: 760px) { html body.product-experience-style #marketing-agency .agency-funds { grid-template-columns: repeat(2,minmax(0,1fr)); } }

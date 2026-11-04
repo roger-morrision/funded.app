@@ -78,6 +78,27 @@ test('verified V3 collection shows settlement to owner and funding after finaliz
   } finally { f.restore(); }
 });
 
+test('activated automatic settlement shows status without a creator approval button', () => {
+  const f = fixture();
+  try {
+    f.controller.renderCoinFeeDashboard({...overview,automaticSettlementEnabled:true});
+    assert.equal(f.root.children[0].children.length,1);
+    assert.match(f.root.children[0].children[0].children[2].textContent,/queued for the keeper/);
+  } finally { f.restore(); }
+});
+
+test('zero holder and X allocation has an explicit disabled explanation', () => {
+  const f = fixture();
+  try {
+    f.controller.renderCoinFeeDashboard({ ...overview, collections:[{ ...overview.collections[0],
+      settlement:'finalized',allocationPlan:{status:'allocated-not-funded',
+        protocol:{communityLamports:'100'},creatorDirected:{holderLamports:'0',xLamports:'0',walletLamports:'300'}} }] });
+    const action=f.root.children[0].children[2];
+    assert.equal(action.disabled,true);
+    assert.equal(action.textContent,'No holder or X allocation for this collection');
+  } finally { f.restore(); }
+});
+
 test('V3 settlement signs once and accepts only finalized result', async () => {
   const f = fixture();
   try {

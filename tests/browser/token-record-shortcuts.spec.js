@@ -3,7 +3,8 @@ import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
 const targets=[['trades','Trades'],['payments','Fee collections'],['claims','Allocations'],['holders','Holders']];
-for(const width of [360,390,1440])for(const motion of ['no-preference','reduce'])test(`record shortcuts at ${width}px with ${motion} motion reuse native views`,async({page},testInfo)=>{
+for(const width of [360,390,1440])for(const motion of ['no-preference','reduce'])test(`record shortcuts at ${width}px with ${motion} motion reuse native views`,async({page,baseURL},testInfo)=>{
+  test.setTimeout(60000);
   await page.setViewportSize({width,height:width<700?844:900});await page.emulateMedia({reducedMotion:motion});
   if(process.env.FUNDED_RECORD_FOCUS_DIAGNOSTIC==='true')await page.addInitScript(()=>{
     const events=[];window.__recordFocusDiagnostic=events;
@@ -21,9 +22,9 @@ for(const width of [360,390,1440])for(const motion of ['no-preference','reduce']
     return route.fulfill({json:{mint,cluster:'devnet',overview:{available:true,scope:'per-mint-v3'},collections:state==='empty'?[]:[{signature,collectedLamports:'25887'}],claims:state==='empty'?[]:[{claimSignature:signature,grossLamports:'25887',grossCreatorFees:'0.000025887',grossCreatorFeesUnit:'SOL',asset:'SOL',status:'finalized'}]}});
   });
   await page.route('**/api/solana/rpc',async route=>{if(state==='loading')await rpcGate;return route.fulfill({status:503,json:{error:'Synthetic unavailable token read'}})});
-  await page.route('https://**/*',route=>route.abort());
+  await page.route('https://**/*',route=>{const request=route.request(),url=new URL(request.url());return url.origin===new URL(baseURL).origin&&(request.method()==='GET'||url.pathname.startsWith('/api/'))?route.fallback():route.abort();});
   const ready=async()=>{await page.goto(`/token/${mint}`);await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready)};
-  const canonical=key=>page.locator(`.coin-tabs [data-coin-tab="${key}"]`),shortcut=key=>page.locator(`[data-coin-record-target="${key}"]`);
+  const canonical=key=>page.locator(`.coin-tabs [data-coin-tab="${key}"]`);
   const clear=async tab=>{
     await expect(tab).toBeFocused();
     let geometry;
@@ -37,28 +38,26 @@ for(const width of [360,390,1440])for(const motion of ['no-preference','reduce']
   };
   const nativeMove=async(key,target)=>{await page.keyboard.press(key);await expect(canonical(target)).toHaveAttribute('aria-selected','true');await expect(page.locator('.coin-tabs [aria-selected="true"]')).toHaveCount(1);await clear(canonical(target));};
   const nativeSequence=async()=>{
-    for(const [key,target] of [['Home','trades'],['ArrowLeft','holders'],['ArrowRight','trades'],['End','holders'],['ArrowLeft','claims'],['ArrowRight','holders'],['Home','trades'],['ArrowRight','payments']])await nativeMove(key,target);
+    for(const [key,target] of [['Home','chat'],['ArrowLeft','holders'],['ArrowRight','chat'],['End','holders'],['ArrowLeft','claims'],['ArrowLeft','payments'],['ArrowLeft','trades'],['ArrowLeft','chat'],['ArrowRight','trades'],['ArrowRight','payments']])await nativeMove(key,target);
     // Check after native focus scrolling has settled, as well as immediately.
     await page.waitForTimeout(1000);await clear(canonical('payments'));
   };
-  const activate=async(key,keyboard=true)=>{if(keyboard){await shortcut(key).focus();await page.keyboard.press(key==='claims'?'Space':'Enter')}else await shortcut(key).click();await expect(canonical(key)).toHaveAttribute('aria-selected','true');await expect(page.locator('.coin-tabs [aria-selected="true"]')).toHaveCount(1);await clear(canonical(key));};
+  const activate=async(key,keyboard=true)=>{if(keyboard){await canonical(key).focus();await page.keyboard.press(key==='claims'?'Space':'Enter')}else await canonical(key).click();await expect(canonical(key)).toHaveAttribute('aria-selected','true');await expect(page.locator('.coin-tabs [aria-selected="true"]')).toHaveCount(1);await clear(canonical(key));};
   try {
   await ready();
-  await expect(page.getByRole('group',{name:'Token records shortcuts'}).getByRole('button')).toHaveCount(4);
-  const layout=await page.locator('.coin-record-shortcuts').evaluate(element=>{
-    const bounds=element.getBoundingClientRect(),socials=document.querySelector('.coin-socials').getBoundingClientRect();
-    return {right:bounds.right,bottom:bounds.bottom,socialTop:socials.top,targets:[...element.querySelectorAll('button')].map(button=>({width:button.getBoundingClientRect().width,height:button.getBoundingClientRect().height})),viewport:innerWidth};
-  });
-  expect(layout.bottom).toBeLessThanOrEqual(layout.socialTop+1);expect(layout.right).toBeLessThanOrEqual(width);for(const target of layout.targets){expect(target.width).toBeGreaterThanOrEqual(44);expect(target.height).toBeGreaterThanOrEqual(44);}
-  await page.locator('#coin-copy-address').focus();await page.keyboard.press('Tab');await expect(shortcut('trades')).toBeFocused();await page.keyboard.press('Enter');await clear(canonical('trades'));
+  expect(await page.locator('.coin-tabs [data-coin-tab]').evaluateAll(tabs=>tabs.map(tab=>tab.dataset.coinTab))).toEqual(['chat','trades','payments','claims','holders']);
+  await expect(page.locator('#coin-page > .coin-community-panel')).toHaveCount(0);
+  // The header record shortcuts are hidden by design; the record tabs are the only entry.
+  await expect(page.locator('.coin-record-shortcuts')).toBeHidden();
+  await canonical('trades').click();await clear(canonical('trades'));
   for(const [key] of targets)await activate(key);
   await expect(page.locator('#coin-activity-list')).toContainText('Reading token records');
   await activate('holders');await nativeSequence();state='populated';releaseLedger();releaseRpc();
   await expect(page.locator('#coin-activity-list')).toContainText('0.000025887 SOL');await clear(canonical('payments'));await page.screenshot({path:testInfo.outputPath(`focused-collections-${width}-${motion}-mocked.png`)});
   for(const [key] of targets){await activate(key);const text=await page.locator('#coin-activity-list').innerText();await canonical(key).click();await expect(page.locator('#coin-activity-list')).toHaveText(text,{useInnerText:true});}
   await activate('payments');const before=await page.evaluate(()=>({y:scrollY,x:document.querySelector('.coin-tabs').scrollLeft}));
-  await shortcut('payments').evaluate(button=>button.click());await clear(canonical('payments'));expect(await page.evaluate(()=>({y:scrollY,x:document.querySelector('.coin-tabs').scrollLeft}))).toEqual(before);
-  await shortcut('payments').evaluate(button=>{button.click();document.querySelector('#coin-copy-address').focus({preventScroll:true});});
+  await canonical('payments').evaluate(button=>button.click());await clear(canonical('payments'));expect(await page.evaluate(()=>({y:scrollY,x:document.querySelector('.coin-tabs').scrollLeft}))).toEqual(before);
+  await canonical('payments').evaluate(button=>{button.click();document.querySelector('#coin-copy-address').focus({preventScroll:true});});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await expect(page.locator('#coin-copy-address')).toBeFocused();expect(await page.evaluate(()=>({y:scrollY,x:document.querySelector('.coin-tabs').scrollLeft}))).toEqual(before);await canonical('payments').focus();
   await nativeSequence();
   await expect(page.locator('.coin-tabs [data-coin-tab="payments"]')).toContainText('Fee collections');await expect(page.locator('.coin-tabs')).not.toContainText('Fee claims');
@@ -66,9 +65,30 @@ for(const width of [360,390,1440])for(const motion of ['no-preference','reduce']
   await page.locator('.coin-holders-aside-link').click();await clear(canonical('holders'));
   if(width<700){await page.locator('.mobile-trade-open').click();await expect(page.locator('.token-trading-panel')).toHaveAttribute('role','dialog');await page.keyboard.press('Escape');await expect(page.locator('#coin-page')).not.toHaveClass(/trade-sheet-open/);}
   expect(feeReads).toBe(1);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-  await page.locator('.coin-record-shortcuts').scrollIntoViewIfNeeded();await page.screenshot({path:testInfo.outputPath(`shortcuts-${width}-${motion}-mocked.png`),fullPage:true});
+  await page.locator('.coin-tabs').scrollIntoViewIfNeeded();await page.screenshot({path:testInfo.outputPath(`records-${width}-${motion}-mocked.png`),fullPage:true});
   for(const nextState of ['empty','unavailable']){state=nextState;await ready();await expect(page.locator('#coin-description')).toContainText('We could not load');await activate('payments',false);await expect(page.locator('#coin-activity-list')).toContainText(nextState==='empty'?'No fee collections recorded':'Token data unavailable');await activate('claims');await expect(page.locator('#coin-activity-list')).toContainText(nextState==='empty'?'No reward shares recorded':'Token data unavailable');await nativeSequence();}
-  await activate('payments');const missingBefore=await page.evaluate(()=>({active:document.activeElement.dataset.coinTab,y:scrollY}));await canonical('holders').evaluate(element=>element.remove());await shortcut('holders').evaluate(button=>button.click());expect(await page.evaluate(()=>({active:document.activeElement.dataset.coinTab,y:scrollY}))).toEqual(missingBefore);
   await page.getByRole('link',{name:/Back to explore/i}).click();await expect(page).toHaveURL(/#explore$/);
   } finally {releaseLedger();releaseRpc();}
+});
+
+for(const width of [360,1440])test(`Chat precedes Trades and retains messages and device moderation at ${width}px (mocked API)`,async({page,baseURL})=>{
+  await page.setViewportSize({width,height:844});await page.emulateMedia({reducedMotion:'reduce'});
+  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
+  await page.route('**/*',route=>{const request=route.request(),url=new URL(request.url());return url.origin===new URL(baseURL).origin&&(request.method()==='GET'||url.pathname.startsWith('/api/'))?route.fallback():route.abort();});
+  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline Chat layout fixture'}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
+  await page.route(`**/api/tokens/${mint}/chat`,route=>route.fulfill({json:{enabled:true,messages:[{id:'fixture-message',author:mint,text:'Token community fixture message',createdAt:'2026-10-31T00:00:00.000Z'}]}}));
+  await page.goto(`/token/${mint}`);await page.locator('body.workspace-ready.product-experience-ready').waitFor();
+  const chat=page.getByRole('tab',{name:'Chat',exact:true}),trades=page.getByRole('tab',{name:/^Trades/}),activity=page.locator('#coin-activity-list');
+  await trades.click();await page.keyboard.press('ArrowLeft');await expect(chat).toBeFocused();await expect(chat).toHaveAttribute('aria-selected','true');
+  await expect(activity).toContainText('Token community fixture message');await expect(activity.locator('#coin-chat-form')).toHaveCount(1);await expect(activity).toContainText('Connect a Solana wallet to post');
+  await activity.getByRole('button',{name:'Hide this wallet',exact:true}).click();await expect(activity).not.toContainText('Token community fixture message');await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
+  const restore=activity.getByRole('button',{name:'Show 1 hidden wallet',exact:true});await expect(restore).toBeFocused();
+  if(width<700)for(const control of[restore,activity.locator('#coin-chat-input')]){expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);}
+  await page.keyboard.press('Enter');await expect(activity).toContainText('Token community fixture message');await expect(activity.getByRole('button',{name:'Hide this wallet',exact:true})).toBeFocused();
+  await page.keyboard.press('Enter');await expect(restore).toBeFocused();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
+  await chat.focus();await page.keyboard.press('ArrowRight');await expect(trades).toBeFocused();await expect(trades).toHaveAttribute('aria-selected','true');await expect(activity.locator('.coin-chat')).toHaveCount(0);
+  await page.keyboard.press('ArrowLeft');await expect(chat).toBeFocused();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
+  await page.locator('#coin-refresh').click();await expect(page.locator('.coin-tabs [data-coin-tab]')).toHaveCount(5);await chat.click();await expect(activity.getByRole('status')).toContainText('Messages from hidden wallets');
+  await expect(page.locator('#coin-page > .coin-community-panel')).toHaveCount(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

@@ -9,9 +9,9 @@ test('omitted and legacy compact options share canonical Home hierarchy and hone
   const opt=options(row);if(flag!==undefined)opt.compact=flag;const html=homeLaunchCardMarkup(row.item,opt,state,deps);
   assert.match(html,/home-launch-card-media/);assert.doesNotMatch(html,/explore-compact-(?:card|heading|details)/);
   assert.equal((html.match(/class="home-launch-progress-row"/g)||[]).length,1);
-  const order=['home-launch-card-stats','home-launch-progress-row','home-launch-meta','home-launch-card-actions'].map(k=>html.indexOf('class="'+k+'"'));
+  const order=['home-launch-card-stats','home-launch-progress-row','home-launch-protocol','home-launch-card-actions'].map(k=>html.indexOf('class="'+k+'"'));
   assert(order.every(n=>n>=0));assert.deepEqual([...order].sort((a,b)=>a-b),order);
-  assert.match(html,/Progress unavailable/);assert.doesNotMatch(html,/aria-valuenow|% filled|Market stage unavailable/);
+  assert.match(html,row.item.complete===false?/On curve</:/Progress unavailable/);assert.doesNotMatch(html,/aria-valuenow|% filled|Market stage unavailable/);
   assert.match(html,new RegExp('data-copy-address="'+row.item.address+'"'));assert.match(html,/Creator 80%/);
  }
 });
@@ -25,7 +25,7 @@ test('shared presentation preserves all text and action/proof/address attributes
 });
 test('compact unknown and zero-trade states retain exact metric meanings and never evaluate escaped names',()=>{
  const unknown=homeLaunchCardMarkup(cases[0].item,{...options(cases[0]),compact:true},state,deps),zero=homeLaunchCardMarkup(cases[3].item,{...options(cases[3]),compact:true},state,deps),escaped=homeLaunchCardMarkup(cases[4].item,{...options(cases[4]),compact:true},state,deps);
- assert.match(unknown,/\$—/);assert.match(zero,/No trades/);assert.match(escaped,/&lt;img src=x onerror=bad\(\)&gt;/);assert.doesNotMatch(escaped,/<img src=x/);
+ assert.match(unknown,/<small>Curve cap<\/small><strong class="is-unknown"[^>]*>—<\/strong>/);assert.doesNotMatch(unknown,/\$—/);assert.match(zero,/No trades/);assert.match(escaped,/&lt;img src=x onerror=bad\(\)&gt;/);assert.doesNotMatch(escaped,/<img src=x/);
  assert.match(unknown,/Progress unavailable/);assert.doesNotMatch(unknown,/aria-valuenow/);
 });
 test('rendering compact and default cards leaves records and policy context unchanged',()=>{
@@ -34,7 +34,7 @@ test('rendering compact and default cards leaves records and policy context unch
 test('raw intermediate inputs never become migration percentages without a per-mint producer',()=>{
  for(const raw of[undefined,null,NaN,Infinity,-1,0,50,100,'0','50','100','',true]){
   const item={...cases[0].item,complete:false,curveProgressPercent:raw},model=launchCardProgressState(item),html=homeLaunchCardMarkup(item,options(cases[0]),state,deps);
-  assert.equal(model.value,null);assert.equal(model.kind,'unavailable');assert.match(model.text,/On curve.*Progress unavailable/);
+  assert.equal(model.value,null);assert.equal(model.kind,'unavailable');assert.equal(model.text,'On curve');
   assert.match(html,/home-launch-progress-row/);assert.match(html,/class="home-launch-progress" aria-hidden="true"><\/div>/);
   assert.doesNotMatch(html,/aria-valuenow|--launch-progress:|% filled/);
  }
@@ -43,14 +43,14 @@ test('strict existing stage endpoints and retained snapshots have explicit progr
  // Model fixtures represent the existing normalized bool contract, not new chain proof.
  const loading='On-chain only · loading',stale='RPC unavailable · last verified snapshot · stale';
  const rows=[
-  [{},'',null,'unavailable','Progress unavailable'],[{complete:false},'',null,'unavailable','On curve · Progress unavailable'],
+  [{},'',null,'unavailable','Progress unavailable'],[{complete:false},'',null,'unavailable','On curve'],
   [{complete:true},'',100,'complete','Curve complete · Migration not yet verified'],[{complete:true,migrated:true},'',100,'migrated','Migrated'],
   [{complete:false,migrated:true},'',100,'migrated','Migrated'],[{complete:1,migrated:'true'},'',null,'unavailable','Progress unavailable'],
   [{},loading,null,'loading','Checking progress…'],[{complete:false},loading,null,'loading','Last verified · On curve · Checking progress…'],
   [{complete:true},loading,100,'stale','Last verified · Curve complete · Migration not yet verified'],
-  [{migrated:true},loading,100,'stale','Last verified · Migrated'],[{},stale,null,'stale','Last verified · Progress unavailable'],
-  [{complete:false},stale,null,'stale','Last verified · On curve · Progress unavailable'],
-  [{complete:true},stale,100,'stale','Last verified · Curve complete · Migration not yet verified'],[{migrated:true},stale,100,'stale','Last verified · Migrated'],
+  [{migrated:true},loading,100,'migrated','Migrated'],[{},stale,null,'stale','Last verified · Progress unavailable'],
+  [{complete:false},stale,null,'stale','Last verified · On curve'],
+  [{complete:true},stale,100,'stale','Last verified · Curve complete · Migration not yet verified'],[{migrated:true},stale,100,'migrated','Migrated'],
  ];
  for(const [flags,status,value,kind,text]of rows){const item={...cases[0].item,...flags,curveProgressPercent:50},actual=launchCardProgressState(item,status);
   assert.equal(actual.value,value);assert.equal(actual.kind,kind);assert.equal(actual.text,text);
@@ -65,7 +65,7 @@ test('progress accessibility labels escape token identity and keep unavailable t
  assert.match(html,/aria-label="Migration progress for A&quot;&lt;unsafe&gt;&amp;"/);assert.match(html,/Migration not yet verified/);
  const plain=html.replace(/<[^>]*>/g,' ');assert.equal((plain.match(/6h ago/g)||[]).length,1);
  const unknown=homeLaunchCardMarkup({...item,complete:null},options(cases[0]),state,deps);
- const row=unknown.slice(unknown.indexOf('<div class="home-launch-progress-row"'),unknown.indexOf('<div class="home-launch-meta"'));
+ const row=unknown.slice(unknown.indexOf('<div class="home-launch-progress-row"'),unknown.indexOf('<div class="home-launch-protocol"'));
  assert.doesNotMatch(row,/tabindex|<button|<a\s|aria-valuenow/);assert.match(row,/Progress unavailable/);
 });
 // Explicit fake DOM/RAF: lifecycle and identity logic only, not browser paint proof.

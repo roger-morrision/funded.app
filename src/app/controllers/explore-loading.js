@@ -1,9 +1,16 @@
 // Dependencies and mutable application state are read live through appState.
-import { createExploreActivitySampler } from '../../features/explore/activity-sampling.js';
+import { exploreStatusText } from '../../features/explore/status-copy.js';
+import { createExploreActivitySampler, applyActivitySnapshot, ACTIVITY_MAX_AGE_MS } from '../../features/explore/activity-sampling.js';
 export { scanExploreMarketsBounded } from '../../features/explore/activity-sampling.js';
+
+// Sorts only change which feed order is requested; a load is still valid
+// for a new sort that asks the feeds for the same order.
+const feedOrder = (sort, devnet) => [sort === 'newest' ? 'created_timestamp' : 'last_trade_timestamp',
+  devnet ? '' : sort === 'change' ? 'price_change_24h_percent' : sort === 'market-cap' ? 'market_cap' : 'volume_24h_usd'].join('|');
 
 export function createExploreLoadingController(appState) {
   let sampleActivity;
+  const sameFeed = (a, b) => a === b || feedOrder(a, appState.EXPLORE_CLUSTER === 'devnet') === feedOrder(b, appState.EXPLORE_CLUSTER === 'devnet');
   // app-source: 523
   async function loadOnchainExploreData(signal){
     if (appState.exploreLoadInFlight) return appState.exploreLoadInFlight;
@@ -13,7 +20,7 @@ export function createExploreLoadingController(appState) {
     try { return await load; }
     finally {
       if (appState.exploreLoadInFlight === load) appState.exploreLoadInFlight = null;
-      if (requestedSort !== appState.exploreSort && !signal?.aborted) void appState.loadOnchainExploreData(signal).catch(() => {});
+      if (!sameFeed(requestedSort, appState.exploreSort) && !signal?.aborted) void appState.loadOnchainExploreData(signal).catch(() => {});
     }
   }
   // app-source-end
@@ -59,7 +66,12 @@ export function createExploreLoadingController(appState) {
           const { PublicKey, getAssociatedTokenAddressSync, unpackAccount, unpackMint, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
           const exploreRpc = await appState.getExploreConnection();
           const candidates = records.flatMap(record => { try { return [{ record, mint: new PublicKey(record.address) }]; } catch { return []; } });
-          const accountBatch = candidates.length ? await exploreRpc.getMultipleAccountsInfo([...candidates.map(item => item.mint), ...candidates.map(item => appState.bondingCurvePda(item.mint))], 'confirmed') : [];
+          // The feed carries the server's recent read of these accounts; use it
+          // when it covers every coin and only fall back to a browser RPC read.
+          const snapshot = pumpFeed.data?.accountSnapshot?.accounts;
+          const fromSnapshot = account => account ? { owner: new PublicKey(account.owner), lamports: account.lamports, executable: account.executable, data: appState.Buffer.from(account.data, 'base64') } : null;
+          const snapshotBatch = snapshot && candidates.every(item => snapshot[item.record.address]) ? [...candidates.map(item => fromSnapshot(snapshot[item.record.address].mint)), ...candidates.map(item => fromSnapshot(snapshot[item.record.address].curve))] : null;
+          const accountBatch = snapshotBatch || (candidates.length ? await exploreRpc.getMultipleAccountsInfo([...candidates.map(item => item.mint), ...candidates.map(item => appState.bondingCurvePda(item.mint))], 'confirmed') : []);
           const accounts = accountBatch.slice(0, candidates.length);
           const curveAccounts = accountBatch.slice(candidates.length);
           for (let index = 0; index < candidates.length; index += 1) {
@@ -118,7 +130,7 @@ export function createExploreLoadingController(appState) {
         } catch (error) { exploreVerificationFailed = true; exploreRateLimited = /429|rate.?limit|too many requests/i.test(String(error?.message || '')); }
       }
       signal?.throwIfAborted();
-      if (requestedSort !== appState.exploreSort) return;
+      if (!sameFeed(requestedSort, appState.exploreSort)) return;
       if (exploreRateLimited) appState.exploreBackoffUntil = Date.now() + 60_000;
       else if (!exploreVerificationFailed) appState.exploreBackoffUntil = 0;
       if ((exploreVerificationFailed || !pumpFeed.available) && appState.assets.length && appState.exploreLastVerifiedAt) {
@@ -134,6 +146,26 @@ export function createExploreLoadingController(appState) {
       let scannedCount = 0;
       let marketScanRateLimited = false;
       if (appState.EXPLORE_CLUSTER === 'devnet' && !exploreVerificationFailed) {
+        // Activity the feed already carries counts as a fresh scan, so the
+        // per-coin requests below only run for coins it did not cover.
+        for (const [mint, market] of Object.entries(pumpFeed.data?.marketActivity || {})) {
+          const at = Date.parse(market?.observedAt || '');
+          if (market?.mint !== mint || market?.cluster !== appState.EXPLORE_CLUSTER || !Number.isFinite(at)) continue;
+          if (!(appState.exploreActivityCache.get(mint)?.at >= at)) appState.exploreActivityCache.set(mint, { at, data: market });
+        }
+        // Show market caps from the confirmed curve reads now; per-coin trade
+        // activity can take seconds and fills in on the render below.
+        if (verified.length) {
+          for (const item of verified) { const row = appState.exploreActivityCache.get(item.address); if (row && Date.now() - row.at < ACTIVITY_MAX_AGE_MS) applyActivitySnapshot(item, row.data, row.at); }
+          appState.assets = appState.includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
+          appState.publishVerifiedCurves(appState.assets);
+          appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
+          document.dispatchEvent(new Event('funded:verified-search-index'));
+          appState.renderExploreAssets();
+          appState.renderHomeLaunchBoard();
+          // Rank from the activity the feed already carried; slow per-coin reads refine it below.
+          appState.renderLeaderboard();
+        }
         sampleActivity ||= createExploreActivitySampler({cache:appState.exploreActivityCache});
         scannedCount = await sampleActivity(verified, async item => {
           const response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(item.address)}/market-activity`, { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000) }).catch(error => {
@@ -144,7 +176,7 @@ export function createExploreLoadingController(appState) {
         }, signal);
       }
       signal?.throwIfAborted();
-      if (requestedSort !== appState.exploreSort) return;
+      if (!sameFeed(requestedSort, appState.exploreSort)) return;
       appState.exploreScannedCount = scannedCount;
       if (marketScanRateLimited) appState.exploreBackoffUntil = Date.now() + 60_000;
     appState.assets = appState.includeVerifiedRegistryLaunches(Array.from(new Map(verified.map(item => [item.address, item])).values()), records);
@@ -164,7 +196,7 @@ export function createExploreLoadingController(appState) {
       void appState.loadHomeHolderCounts(appState.assets);
       void appState.loadHomeFeeIndex();
       if (feedStatus) {
-        feedStatus.textContent = appState.exploreProviderStatus;
+        feedStatus.textContent = exploreStatusText(appState.exploreProviderStatus);
       }
       appState.renderRegistry();
       appState.updateExploreSortAvailability();

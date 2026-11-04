@@ -36,12 +36,12 @@ try {
       referralLamports:'30000000', communityLamports:'20000000', buybackLamports:'50000000' });
   });
   assert.equal(await page.locator('[data-protocol-destination]').count(), 4);
-  assert.match(await page.locator('[data-protocol-destination="operations"]').innerText(), /50% of app share[\s\S]*0\.1 SOL allocated/);
-  assert.match(await page.locator('[data-protocol-destination="buyback"]').innerText(), /25% of app share[\s\S]*0\.05 SOL allocated/);
+  assert.match(await page.locator('[data-protocol-destination="operations"]').innerText(), /10%[\s\S]*0\.1 SOL allocated/);
+  assert.match(await page.locator('[data-protocol-destination="buyback"]').innerText(), /5%[\s\S]*0\.05 SOL allocated/);
   assert.match(await page.locator('#home-protocol-route-status').innerText(), /not wallet balances or paid rewards/);
   await page.setViewportSize({ width:390, height:800 });
   assert.equal(await page.locator('.home-protocol-route-grid').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length), 1);
-  console.log('Home 20% route and responsive destination cards render (mocked receipt fixture).');
+  console.log('Home fixed-allocation route and responsive destination cards render (mocked receipt fixture).');
 } finally {
   await browser.close();
   await new Promise(resolve => server.httpServer.close(resolve));

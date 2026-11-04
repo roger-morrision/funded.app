@@ -7,7 +7,46 @@ export function createCommunityClaimsController(appState) {
     const session = appState.captureWalletSession();
     if (!session) { if (!silent) status.append(document.createTextNode(' Connect a Solana wallet to check this allocation.')); return; }
     const program = appState.getAirdropPrograms().find(row => row.id === mintAddress);
-    if (!program?.claimActive) { if (!silent) status.append(document.createTextNode(' Claims are not open for this token.')); return; }
+    const saved = appState.readPendingCommunityClaim();
+    let recoveredProof = null;
+    if (saved) {
+      if (saved.wallet !== session.address || saved.mint !== mintAddress) {
+        if (!silent) status.append(document.createTextNode(' Another signed community claim in this browser needs verification before a new one.'));
+        return;
+      }
+      if (silent) return;
+      try {
+        const rpc = await appState.getTradePreviewConnection();
+        const receipt = (await rpc.getSignatureStatuses([saved.signature], { searchTransactionHistory:true })).value?.[0];
+        if (receipt?.err) {
+          appState.clearPendingCommunityClaim(saved);
+          status.append(document.createTextNode(' The original claim failed on Solana. Check eligibility again before signing.'));
+        } else if (receipt?.confirmationStatus === 'finalized') {
+          const response = await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`, { signal:AbortSignal.timeout(60_000) });
+          if (!response.available || response.data?.status !== 'claimed'
+            || response.data.recipient && response.data.recipient !== session.address
+            || response.data.mint && response.data.mint !== mintAddress) {
+            appState.appendPendingCommunityClaim(status, mintAddress, saved.signature, false, true);
+            return;
+          }
+          appState.clearPendingCommunityClaim(saved);
+          recoveredProof = response;
+        } else {
+          appState.appendPendingCommunityClaim(status, mintAddress, saved.signature);
+          return;
+        }
+      } catch {
+        appState.appendPendingCommunityClaim(status, mintAddress, saved.signature);
+        return;
+      }
+    }
+    if (!program) {
+      if (!silent) status.append(document.createTextNode(recoveredProof
+        ? ' The original claim is verified, but this token is not in the current directory.'
+        : ' This token is not in the current airdrop directory.'));
+      return;
+    }
+    if (!program.claimActive && !recoveredProof) { if (!silent) status.append(document.createTextNode(' Claims are not open for this token.')); return; }
     const pending = appState.communityWalletAllocations.get(mintAddress);
     if (pending && pending.wallet === session.address && pending.snapshotHash === program.snapshotHash
       && (pending.status === 'checking' || silent)) return;
@@ -16,8 +55,9 @@ export function createCommunityClaimsController(appState) {
       status.dataset.communityClaimMint = mintAddress;
     }
     appState.updateDirectoryWalletAmount(session, program, 'checking');
+    if (!silent) status.append(document.createTextNode(' Checking your allocation against the finalized snapshot...'));
     try {
-      const response = await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
+      const response = recoveredProof || await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`, { signal:AbortSignal.timeout(60_000) });
       if (!appState.isWalletSessionCurrent(session)) return;
       const proof = response.data;
       if (!response.available || !proof?.status) {
@@ -56,6 +96,8 @@ export function createCommunityClaimsController(appState) {
     } catch (error) {
       if (!appState.isWalletSessionCurrent(session)) return;
       appState.updateDirectoryWalletAmount(session, program, 'unavailable');
+      if (!silent && document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(' Allocation verification is unavailable or timed out. Use Check my allocation to retry; no claim was sent.'));
       throw error;
     }
   }
@@ -74,7 +116,16 @@ export function createCommunityClaimsController(appState) {
     const session = appState.captureWalletSession();
     const status = document.querySelector('#airdrop-selected-status');
     const review = appState.communityClaimReview;
-    let submittedSignature = null, claimExecutionRequested = false, claimVerified = false;
+    let submittedSignature = null, claimExecutionRequested = false, claimVerified = false, claimFailedOnChain = false;
+    let saved;
+    try { saved = appState.readPendingCommunityClaim(); }
+    catch (error) { status.append(document.createTextNode(` Claim stopped: ${String(error.message || error)}`)); return; }
+    if (saved) {
+      if (saved.wallet === session?.address && saved.mint === mintAddress)
+        appState.appendPendingCommunityClaim(status, mintAddress, saved.signature);
+      else status.append(document.createTextNode(' Another signed community claim needs verification before a new one.'));
+      return;
+    }
     if (!session || !appState.canSignTransactions(session.provider) || !review || review.mint !== mintAddress
       || review.wallet !== session.address || Date.now() - review.at > 60_000) {
       status.append(document.createTextNode(' Check the allocation again before signing.'));
@@ -140,32 +191,56 @@ export function createCommunityClaimsController(appState) {
         pubkey:new PublicKey(row.pubkey), isSigner:row.isSigner, isWritable:row.isWritable })), data }));
       const signed = await session.provider.signTransaction(transaction);
       appState.assertWalletSessionCurrent(session);
+      const signedBytes = signed.serialize();
+      if (!appState.Buffer.from(signed.serializeMessage()).equals(appState.Buffer.from(transaction.serializeMessage())))
+        throw new Error('Wallet changed the reviewed claim transaction. No claim was sent.');
+      if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned an unsigned claim transaction. No claim was sent.');
+      const pending = appState.savePendingCommunityClaim({ mint:mintAddress, wallet:session.address,
+        signature:appState.bs58.encode(signed.signature), cluster:'devnet' });
+      submittedSignature = pending.signature;
       claimExecutionRequested = true;
-      submittedSignature = await rpc.sendRawTransaction(signed.serialize(), { skipPreflight:false, maxRetries:3 });
+      const returned = await rpc.sendRawTransaction(signedBytes, { skipPreflight:false, maxRetries:3 });
+      if (returned !== submittedSignature) throw new Error('RPC returned a different signature. Check the original signed claim.');
       const confirmation = await appState.waitForSignatureConfirmation(rpc, { signature:submittedSignature,
         lastValidBlockHeight:latest.lastValidBlockHeight, commitment:'finalized' });
-      if (confirmation.value.err) throw new Error(`Claim transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      if (confirmation.value.err) {
+        appState.clearPendingCommunityClaim(pending);
+        claimFailedOnChain = true;
+        throw new Error(`Claim transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
       const after = BigInt((await rpc.getTokenAccountBalance(recipientToken, 'finalized')).value.amount);
       if (after - before !== BigInt(review.amount) || !(await rpc.getAccountInfo(payment, 'finalized'))?.owner.equals(program))
         throw new Error('Claim finalized without the exact token and payment-record deltas.');
+      appState.clearPendingCommunityClaim(pending);
       claimVerified = true;
       appState.emitPilotSignal('claim-verified');
-      await appState.loadCommunityReserveStatuses();
       const claimedProgram = appState.getAirdropPrograms().find(row => row.id === mintAddress);
-      if (claimedProgram) appState.updateDirectoryWalletAmount(session, claimedProgram, 'claimed');
-      appState.renderAirdropProgramDetail(appState.getAirdropPrograms().find(row => row.id === mintAddress));
+      const claimedAmount = appState.formatTokenBaseUnits(review.amount, mintInfo.data[44], 4);
+      if (claimedProgram) appState.updateDirectoryWalletAmount(session, claimedProgram, 'claimed', claimedAmount);
+      status.append(document.createTextNode(` Claimed ${claimedAmount} ${claimedProgram?.symbol || 'tokens'} and verified on Solana.`));
+      const transfer = document.createElement('a');
+      transfer.href = appState.exploreExplorer('tx/' + submittedSignature);
+      transfer.target = '_blank';
+      transfer.rel = 'noopener noreferrer';
+      transfer.textContent = ' View finalized claim transfer ↗';
+      status.append(transfer);
       appState.showToast('Community tokens claimed and verified on Solana');
+      // The claim is already proven by finalized token and payment deltas.
+      // Refreshing every public reserve can be slow and must not delay or
+      // replace the recipient's confirmed result in this browser.
+      void appState.loadCommunityReserveStatuses().catch(() => {});
     } catch (error) {
       if (!claimVerified) appState.emitPilotSignal(appState.pilotInterruptedSignal('claim', error, claimExecutionRequested));
       if (!appState.isWalletSessionCurrent(session)) return;
-      if (submittedSignature) appState.appendPendingCommunityClaim(status, mintAddress, submittedSignature);
+      if (claimVerified) { status.append(document.createTextNode(' Claim verified on Solana, but the display could not refresh.')); return; }
+      if (submittedSignature) appState.appendPendingCommunityClaim(status, mintAddress, submittedSignature, claimFailedOnChain);
       else status.append(document.createTextNode(` Claim stopped: ${String(error.message || error)}`));
     } finally { if (button) button.disabled = Boolean(submittedSignature); }
   }
   // app-source-end
 
   // app-source: 335
-  function appendPendingCommunityClaim(status, mintAddress, signature){
+  function appendPendingCommunityClaim(status, mintAddress, signature, failedOnChain = false, proofPending = false){
     const receipt = document.createElement('a');
     receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${appState.APP_EXPLORER_QUERY}`;
     receipt.target = '_blank'; receipt.rel = 'noopener noreferrer';
@@ -173,7 +248,11 @@ export function createCommunityClaimsController(appState) {
     const check = document.createElement('button');
     check.type = 'button'; check.className = 'secondary-button';
     check.dataset.checkCommunityMint = mintAddress; check.textContent = 'Check claim status';
-    status.append(document.createElement('br'), document.createTextNode('Your claim was submitted, but confirmation could not be loaded. Check its status before trying again. '), receipt, document.createTextNode(' '), check);
+    const message = failedOnChain
+      ? 'The claim transaction failed on Solana. No tokens were claimed. Check eligibility again before trying a new transaction. '
+      : proofPending ? 'The claim finalized on Solana, but its allocation receipt is not verified yet. Check this claim status again before trying another transaction. '
+      : 'Your claim was submitted, but confirmation could not be loaded. Check its status before trying again. ';
+    status.append(document.createElement('br'), document.createTextNode(message), receipt, document.createTextNode(' '), check);
   }
   // app-source-end
 
@@ -182,14 +261,43 @@ export function createCommunityClaimsController(appState) {
     const session = appState.captureWalletSession();
     const button = document.querySelector('[data-fund-community-mint]');
     const status = document.querySelector('#airdrop-selected-status');
-    let submittedSignature = null;
+    let submittedSignature = null, fundingFailedOnChain = false;
     if (!session || !appState.canSignTransactions(session.provider)) return;
     if (status?.dataset) {
       status.dataset.communityClaimWallet = session.address;
       status.dataset.communityClaimMint = mintAddress;
     }
     button.disabled = true;
+    const recordFinalized = async pending => {
+      const recorded = await appState.apiRequest('/api/airdrops/reserves/receipt', { method:'POST',
+        body:{ mint:pending.mint, signature:pending.signature } });
+      if (!recorded.available || !recorded.data?.verified) throw new Error('The server did not verify the finalized creator funding receipt.');
+      appState.clearPendingCommunityFunding(pending);
+      if (!appState.isWalletSessionCurrent(session)) return;
+      try {
+        await appState.loadCommunityReserveStatuses();
+        appState.renderAirdropProgramDetail(appState.getAirdropPrograms().find(row => row.id === mintAddress));
+      } catch { /* The verified transfer remains complete when the display refresh is unavailable. */ }
+      appState.showToast('Community reserve funded and verified on Solana');
+    };
     try {
+      const saved = appState.readPendingCommunityFunding();
+      if (saved) {
+        if (saved.wallet !== session.address || saved.mint !== mintAddress)
+          throw new Error('Another signed reserve transfer needs verification before a new one.');
+        submittedSignature = saved.signature;
+        const rpc = await appState.getTradePreviewConnection();
+        const receipt = (await rpc.getSignatureStatuses([saved.signature], { searchTransactionHistory:true })).value?.[0];
+        if (receipt?.err) {
+          appState.clearPendingCommunityFunding(saved);
+          fundingFailedOnChain = true;
+          throw new Error(`Funding transaction failed: ${JSON.stringify(receipt.err)}`);
+        }
+        if (receipt?.confirmationStatus !== 'finalized')
+          throw new Error('The original transfer has no finalized result yet. Check this signature again later.');
+        await recordFinalized(saved);
+        return;
+      }
       const launch = appState.verifiedLaunchPolicies.find(row => row.mint === mintAddress && row.onchainVerified && row.cluster === 'devnet');
       if (!launch || launch.creatorWallet !== session.address || appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY) throw new Error('Only the verified Solana launch creator can fund this reserve.');
       const fresh = await appState.apiRequest('/api/airdrops/reserves');
@@ -223,25 +331,48 @@ export function createCommunityClaimsController(appState) {
       );
       const signed = await session.provider.signTransaction(transaction);
       appState.assertWalletSessionCurrent(session);
-      submittedSignature = await rpc.sendRawTransaction(signed.serialize(), { skipPreflight:false, maxRetries:3 });
+      const signedBytes = signed.serialize();
+      if (!appState.Buffer.from(signed.serializeMessage()).equals(appState.Buffer.from(transaction.serializeMessage())))
+        throw new Error('Wallet changed the reviewed reserve transfer. No transfer was sent.');
+      if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned an unsigned reserve transfer. No transfer was sent.');
+      const pending = appState.savePendingCommunityFunding({ mint:mintAddress, wallet:session.address,
+        signature:appState.bs58.encode(signed.signature), cluster:'devnet' });
+      submittedSignature = pending.signature;
+      const returned = await rpc.sendRawTransaction(signedBytes, { skipPreflight:false, maxRetries:3 });
+      if (returned !== submittedSignature) throw new Error('RPC returned a different signature. Verify the original signed transfer.');
       const confirmation = await appState.waitForSignatureConfirmation(rpc, { signature:submittedSignature, lastValidBlockHeight:latest.lastValidBlockHeight, commitment:'finalized' });
-      if (confirmation.value.err) throw new Error(`Funding transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      if (confirmation.value.err) {
+        appState.clearPendingCommunityFunding(pending);
+        fundingFailedOnChain = true;
+        throw new Error(`Funding transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
       const [sourceAfter, destinationAfter] = await Promise.all([
         rpc.getTokenAccountBalance(source, 'finalized').then(row => BigInt(row.value.amount)),
         rpc.getTokenAccountBalance(destination, 'finalized').then(row => BigInt(row.value.amount)),
       ]);
       if (sourceBefore - sourceAfter !== amount || destinationAfter - destinationBefore !== amount) throw new Error('Funding finalized, but exact token balance changes were not observed.');
-      const recorded = await appState.apiRequest('/api/airdrops/reserves/receipt', { method:'POST', body:{ mint:mintAddress, signature:submittedSignature } });
-      if (!recorded.available || !recorded.data?.verified) throw new Error('The server did not verify the finalized creator funding receipt.');
-      await appState.loadCommunityReserveStatuses();
-      appState.renderAirdropProgramDetail(appState.getAirdropPrograms().find(row => row.id === mintAddress));
-      appState.showToast('Community reserve funded and verified on Solana');
+      await recordFinalized(pending);
     } catch (error) {
       appState.communityFundingPreview = null;
       status.append(document.createTextNode(submittedSignature
-        ? ` Funding status is uncertain for ${submittedSignature}. Check the Solana transaction before retrying: ${String(error.message || error)}`
+        ? fundingFailedOnChain
+          ? ` Funding failed on Solana for ${submittedSignature}. No reserve tokens were transferred. Check eligibility before trying again.`
+          : ` Funding status needs verification for ${submittedSignature}. Use Check transfer status before signing another transfer: ${String(error.message || error)}`
         : ` Funding stopped: ${String(error.message || error)}`));
-    } finally { button.disabled = false; }
+      if (submittedSignature) {
+        const receipt = document.createElement('a');
+        receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(submittedSignature)}${appState.APP_EXPLORER_QUERY}`;
+        receipt.target = '_blank'; receipt.rel = 'noopener noreferrer';
+        receipt.textContent = 'View original transfer ↗';
+        status.append(document.createTextNode(' '), receipt);
+      }
+    } finally {
+      button.disabled = false;
+      try {
+        if (appState.readPendingCommunityFunding()) button.textContent = 'Check transfer status';
+        else if (fundingFailedOnChain) button.textContent = 'Review reserve funding';
+      } catch { button.disabled = true; }
+    }
   }
   // app-source-end
 

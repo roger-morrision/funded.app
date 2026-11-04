@@ -2,11 +2,12 @@ import { test, expect } from '@playwright/test';
 import { FEE_DISTRIBUTION } from '../../distribution-policy.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
+  await page.addInitScript(() => sessionStorage.setItem('funded.app.wallet.manual-disconnect', '1'));
   await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
     ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
     : route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Offline QA fixture"}' }));
-  await page.route('https://**/*', route => route.abort());
+  await page.route('https://**/*', route => route.request().method()==='GET' && new URL(route.request().url()).origin===new URL(baseURL).origin ? route.fallback() : route.abort());
 });
 
 test('launch stays blocked when V3 readiness is unavailable', async ({ page }) => {
@@ -26,14 +27,14 @@ test('protocol allocation copy agrees across FAQ, buyback, and fee flow', async 
   const buyback = FEE_DISTRIBUTION.buybackEffectivePercent;
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await expect(page.locator('#fee-policy-faq')).toContainText(`buyback allocation (${buyback}%)`);
-  await expect(page.locator('#buyback-policy-heading')).toHaveText(`Preview the ${buyback}% policy`);
-  await expect(page.locator('#buyback-policy-note')).toContainText('Local calculation only');
+  await expect(page.locator('#fee-policy-faq')).toContainText(`${buyback}% $FUNDED buyback & burn`);
+
+
   await expect(page.locator('.home-receipt-card .receipt-rows span').last()).toHaveText(`${buyback} SOL Buyback allocation`);
   await expect(page.locator('.fee-route-bar i.burn')).toHaveAttribute('style', new RegExp(`width:\\s*${buyback}%`));
 });
 
-for (const width of [1440, 390]) test(`launch package and X previews update at ${width}px`, async ({ page }) => {
+for (const width of [1440, 390, 320]) test(`launch package and X previews update at ${width}px`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
@@ -44,6 +45,17 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
   await expect(page.locator('#preview-symbol')).toHaveText('SAMPLE');
   await expect(page.locator('#launch-x-post-preview')).toContainText('Sample Coin');
   await page.locator('#launch-next').click();
+  await expect(page.locator('.launch-fee-options')).toHaveCount(0);
+  const disclosure=page.locator('#launch-presentation-preview'), summary=disclosure.locator(':scope > summary');
+  await expect(disclosure).not.toHaveAttribute('open','');await expect(page.locator('#launch-package-example')).toBeHidden();
+  await expect(summary).toHaveText('Preview token page & X posts · Standard');
+  if(width<700){
+    await expect(page.locator('#wizard-hint')).toBeVisible();
+    const layout=await page.locator('#wizard-hint').evaluate(e=>{const hint=e.getBoundingClientRect(),row=e.parentElement.getBoundingClientRect(),back=document.getElementById('launch-back').getBoundingClientRect();return{width:hint.width,rowWidth:row.width,bottom:hint.bottom,backTop:back.top};});
+    expect(layout.width).toBeGreaterThanOrEqual(layout.rowWidth-2);expect(layout.bottom).toBeLessThanOrEqual(layout.backTop);
+  }
+  await page.screenshot({path:info.outputPath(`launch-options-${width}.png`),fullPage:true});
+  await summary.focus();await page.keyboard.press('Enter');await expect(disclosure).toHaveAttribute('open','');
   await expect(page.locator('#launch-package-example')).toBeVisible();
   await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
   await expect(page.locator('.launch-package-preview')).toBeVisible();
@@ -53,6 +65,12 @@ for (const width of [1440, 390]) test(`launch package and X previews update at $
   await expect(page.locator('#launch-package-example')).toHaveAttribute('data-tier', 'premier');
   await expect(page.locator('#launch-x-post-count')).toHaveText('2 posts');
   await expect(page.locator('#launch-x-followup')).toBeVisible();
+  await expect(disclosure).toHaveAttribute('open','');await expect(summary).toHaveText('Preview token page & X posts · Premier');
+  await summary.focus();await page.keyboard.press('Space');await expect(disclosure).not.toHaveAttribute('open','');await expect(summary).toBeFocused();
+  await page.locator('.creator-burn-card[data-burn-tier="standard"]').click();await expect(disclosure).not.toHaveAttribute('open','');
+  await expect(summary).toHaveText('Preview token page & X posts · Standard');
+  await summary.focus();await page.keyboard.press('Enter');await expect(page.locator('#preview-name')).toHaveText('Sample Coin');await expect(page.locator('#launch-x-post-count')).toHaveText('1 post');
+  await expect(page.locator('#launch-button')).toBeDisabled();await expect(page.locator('#launch-agency-options .agency-included-list li')).toHaveCount(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -64,6 +82,7 @@ for (const width of [1440, 390]) test(`launch preview stays readable when option
   await page.locator('#token-name').fill('Sample Coin');
   await page.locator('#token-symbol').fill('SAMPLE');
   await page.locator('#launch-next').click();
+  await page.locator('#launch-presentation-preview > summary').click();
   await expect(page.locator('#launch-package-example')).toBeVisible();
   const preview = page.locator('.launch-package-preview');
   await expect(preview).toBeVisible();
@@ -104,7 +123,7 @@ for (const width of [1440, 390]) test(`launch review lives in the right summary 
   await expect(page.locator('#launch-summary-name')).toHaveText('Sample Coin');
   await expect(page.locator('#launch-summary-symbol')).toHaveText('SAMPLE');
   await expect(page.locator('#launch-summary-creator')).toHaveText('80%');
-  await expect(page.locator('#launch-summary-protocol')).toHaveText('20%');
+  await expect(page.locator('[data-fee-fixed-list="launch-review"] [data-fixed-fee-category="operations"] dd')).toHaveText('8%');
   await page.locator('#creator-buy-sol').fill('0.5');
   await expect(page.locator('#preview-creator-buy')).toContainText('0.5 SOL');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -113,12 +132,22 @@ for (const width of [1440, 390]) test(`launch review lives in the right summary 
 test('Home opens the live launch form and old pilot links resolve there', async ({ page }) => {
   await page.goto('/#overview');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  const create = page.locator('.hero-actions a[href="#launch"]');
+  const create = page.locator('.hero-actions a[href="#launch"]:not([data-launch-for-x])');
   await expect(create).toHaveAttribute('href', '#launch');
-  await expect(create).toHaveText(/Launch a token/);
+  await expect(create).toHaveText(/Launch a coin/);
   await expect(page.locator('.home-hero-kicker')).not.toContainText(/pilot|devnet/i);
   await create.click();
   await expect(page.locator('#launch-route-shell')).toBeVisible();
   await page.goto('/#pilot');
   await expect(page.locator('#launch-route-shell')).toBeVisible();
+});
+
+test('Home phone hero gives the X creator CTA its own full row', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/#overview');
+  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+  const actions = await page.locator('.hero-actions').boundingBox();
+  const xLaunch = await page.locator('.hero-actions [data-launch-for-x]').boundingBox();
+  expect(Math.abs(xLaunch.width - actions.width)).toBeLessThanOrEqual(1);
+  expect(xLaunch.height).toBeLessThanOrEqual(48);
 });

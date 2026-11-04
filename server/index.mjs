@@ -1,4 +1,5 @@
 import { createPublicTradeSharingRoutes } from './routes/public-trade-sharing.mjs';
+import {startApiFinancialWorkerServices} from './api-financial-workers.mjs';
 import { createLaunchSupportRoutes } from './routes/launch-support.mjs';
 import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
 import { createServiceStatusRoutes } from './routes/service-status.mjs';
@@ -9,8 +10,10 @@ import { createFeeRouterService } from './fee-router-service.mjs';
 import { createPageDelivery } from './page-delivery.mjs';
 import { createDiscoveryRoutes } from './routes/discovery.mjs';
 import { createLaunchQuoteRoutes } from './routes/launch-quotes.mjs';
+import { createDevnetMetadataRoutes } from './routes/devnet-metadata.mjs';
 import { createRewardStatusRoutes } from './routes/reward-status.mjs';
 import { createSolanaRpcProxy } from './rpc-proxy.mjs';
+import {startAppListener} from './listener.mjs';
 import { createMarketProviders, normalizePumpToken } from './market-providers.mjs';
 import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
@@ -28,19 +31,20 @@ import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
 import { createTokenMarketRoutes } from './routes/token-market.mjs';
+import { createLaunchProtectionRoutes } from './routes/launch-protection.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
+import { createCalloutRoutes, createCalloutFeed } from './routes/callouts.mjs';
+import { createCalloutMarketReader, createHolderShareReader } from './callout-market.mjs';
 import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
-import { applyHttpPolicy, invalidRequest, publicError, validateInput } from './http-policy.mjs';
+import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode } from './http-policy.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
-import { createServer } from 'node:http';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
-import {installRewardShutdown} from './reward-shutdown.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
-
 import { createCommunityClaimService } from './community-claim-service.mjs';
+import { SharedRpcConnection } from './rpc-connection.mjs';
 import { communityProgramForLaunch } from './community-program-config.mjs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -48,17 +52,13 @@ import { isIP } from 'node:net';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Connection, Keypair, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
-
 import { createReferralCode } from '../referral-program.js';
 import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
-
 import { createProductMetricsStore, createProductMetricsHandler, confirmedProductTotals } from './product-metrics.mjs';
-
-
+import { financialOperations } from './product-insights.mjs';
 import { createCreatorSupportHandler } from './creator-support.mjs';
 import { createWatchlistHandler } from './watchlists.mjs';
-
 import { CREATOR_SUPPORT_VERSION } from '../creator-support-model.js';
 import { createXAuth, cookieValue, allowedAuthOrigin, callbackUrlFor, SESSION_SECONDS } from './x-auth.mjs';
 import { createMobileWalletRelay } from './mobile-wallet-relay.mjs';
@@ -69,8 +69,7 @@ import { createPaymentHistoryReader } from './payment-history.mjs';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 
 
-import { parseSignedMetadata, publicMetadata, metadataRecordOrigin } from './devnet-metadata.mjs';
-import { devnetMetadataUri, normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
+import { normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
 
 import { createTokenChatSessions } from './token-chat-session.mjs';
 import { createXUserResolver } from './x-user-lookup.mjs';
@@ -114,13 +113,14 @@ publicPostPaths.add('/api/launch-service-quote');
 publicPostPaths.add('/api/listings/quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
+publicPostPaths.add('/api/trades/finalized');
 
 const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
 const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 async function communityClaimService(mint) {
   if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
   const config = communityProgramForLaunch(await store.readLaunch(mint), process.env, v3AuthorityKeypair);
-  return createCommunityClaimService({ connection:new Connection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
+  return createCommunityClaimService({ connection:new SharedRpcConnection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
     programId:config.programId, authority:config.authority,
     eligibilityMint:fundedTokenMint, cluster:solanaCluster,
     expectedCommunityProgramDataSha256:config.expectedHash,
@@ -268,9 +268,11 @@ const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: sola
 const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore, store,
   connectionFactory:() => createReceiptRpcConnection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
   officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash(), v3Only:true });
+// Build the payout history once at start so the first visitor is not kept waiting.
+void readPaymentHistory().catch(() => {});
 
 const handleWatchlist = createWatchlistHandler({ store, cluster: solanaCluster, getSession: xSession, getWalletSession: referralSession });
-const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence,
+const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solanaCluster, getSession: xSession, readEvidence: readReceiptEvidence, readFinalizedEvidence, requireAuthorized,
   capabilities: async () => ({ version: CREATOR_SUPPORT_VERSION, build: process.env.FUNDED_BUILD_ID || CREATOR_SUPPORT_VERSION,
     cluster: solanaCluster, creatorPages: true, creatorIdentity: Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET),
     sessions: { storage: databaseUrl ? 'postgresql' : 'local-file-single-process', absoluteLifetimeSeconds: SESSION_SECONDS },
@@ -287,8 +289,8 @@ const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics
   origin:process.env.PUBLIC_APP_URL || process.env.CORS_ORIGIN || '', authorized,
   charge:req => store.chargeRpcRate(`journey:${clientKey(req)}`,1,30,Math.floor(Date.now()/60000)*60000),
   confirmedTotals:async () => {
-    const [state,evidence] = await Promise.all([store.read(),readFinalizedEvidence()]);
-    return {...confirmedProductTotals(state,evidence,solanaCluster),tradingActivity:await productMetrics.trades(solanaCluster)};
+    const [state,evidence,rewards] = await Promise.all([store.read(),readFinalizedEvidence(),automaticRewardStore.read().catch(()=>null)]);
+    return {...confirmedProductTotals(state,evidence,solanaCluster),financialProcessing:financialOperations(state,rewards,solanaCluster).timing,tradingActivity:await productMetrics.trades(solanaCluster)};
   },
 });
 
@@ -299,15 +301,19 @@ const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsR
   solanaCluster, solanaRpcUrl, store, automaticRewardStore, fundedTokenMint, clientKey, body,
   requireAuthorized, communityClaimService, v3AuthorityKeypair, respond: json,
 });
+let calloutConnection = null;
+const readCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
 const handleTokenChatRoutes = createTokenChatRoutes({
-  body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json,
+  body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json, readMarketCaps: readCalloutMarketCaps,
+  readHolderShare: createHolderShareReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') }),
 });
+const handleCalloutRoutes = createCalloutRoutes({ readFeed: createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps }), respond: json });
 const handleReferralIdentityRoutes = createReferralIdentityRoutes({
   referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes, respond: json,
 });
 
 const handlePublicReportsRoutes = createPublicReportsRoutes({
-  publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl, respond: json,
+  publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl, analyticsDeadlineMs:12_000, respond: json,
 });
 const handleQuoteAssetsRoutes = createQuoteAssetsRoutes({
   configuredQuoteAssets, solanaRpcUrl, solanaCluster, respond: json,
@@ -317,6 +323,7 @@ const handleDirectoryRoutes = createDirectoryRoutes({
 });
 const dailyBonusRuntime = createDailyBonusRuntime({ store, rewardStore:automaticRewardStore,
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair });
+const handleLaunchProtectionRoutes=createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,clientKey,respond:json});
 const handleTokenMarketRoutes = createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
 });
@@ -346,18 +353,19 @@ const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond: json,
 });
 const handleV3Routes = createV3Routes({
-  body, store, rewardStore:automaticRewardStore, xSession, walletSignature,
+  body, store, rewardStore:automaticRewardStore, xSession, walletSignature,clientKey,requireAuthorized,
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
 const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaCluster,
-  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime });
+  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime,automaticRewardStore });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
   store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json,
 });
 const handleLaunchQuoteRoutes = createLaunchQuoteRoutes({
-  store, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id, respond: json,
+  store, solanaCluster, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id, respond: json,
 });
+const handleDevnetMetadataRoutes = createDevnetMetadataRoutes({store,solanaCluster,solanaRpcUrl,devnetMetadataOrigin,body,respond:json});
 const handleRewardStatusRoutes = createRewardStatusRoutes({
   store, automaticRewardStore, solanaCluster, solanaRpcUrl,
   readFinalizedEvidence, clientKey, respond: json, requireAuthorized,
@@ -391,7 +399,7 @@ async function handle(req, res) {
   catch { throw invalidRequest('Invalid request URL.'); }
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images|devnet-banners)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
-  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session' }); return res.end(); }
+  if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session, x-creator-csrf, x-issue-token' }); return res.end(); }
     if (req.method === 'GET' && url.pathname === '/api/fee-policy') return json(res, 200, await publicFeePolicy(store));
     if (await handleAdminRoutes(req, res, url)) return;
     if (await handleProductMetrics(req,res,url)) return;
@@ -414,13 +422,7 @@ async function handle(req, res) {
     }
     if (req.method === 'POST' && url.pathname === '/api/solana/rpc') return await proxySolanaRpc(req, res);
     if (await handleBoostRoutes(req, res, url, requestId)) return;
-    if (req.method === 'POST' && url.pathname === '/api/devnet-metadata') {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Metadata publishing is Devnet-only.' });
-      const input = await body(req);
-      const { record, image, imageType, banner, bannerType } = validateInput(() => parseSignedMetadata(input));
-      const saved = await store.writeMetadata({ ...record, metadataOrigin: devnetMetadataOrigin }, image, imageType, banner, bannerType);
-      return json(res, 201, { uri: devnetMetadataUri(saved.mint, metadataRecordOrigin(saved)), image: publicMetadata(saved).image, mint: saved.mint });
-    }
+    if (await handleDevnetMetadataRoutes(req, res, url)) return;
     if (req.method === 'GET' && url.pathname === '/api/dev-wallet') {
       if (!devMode) return json(res, 403, { error: 'Automatic wallet access is unavailable here.' });
       const wallet = devWalletKeypair();
@@ -458,8 +460,10 @@ async function handle(req, res) {
     if (await handleKeeperStatus(req, res, url)) return;
     if (await handleDiscoveryRoutes(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
+    if (await handleCalloutRoutes(req, res, url)) return;
     if (await handleV3Routes(req, res, url, requestId)) return;
     if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
+    if (await handleLaunchProtectionRoutes(req,res,url)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
     if (await handleReferralIdentityRoutes(req, res, url, requestId)) return;
@@ -476,8 +480,9 @@ async function handle(req, res) {
   } catch (error) {
     if (res.headersSent || res.destroyed) { res.destroy(); return; }
     if (!req.complete) { res.shouldKeepAlive = false; res.setHeader('connection', 'close'); }
-    if (error.severity || ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT'].includes(error.code)) {
-      console.error(JSON.stringify({ event: 'dependency_failure', requestId, code: error.code || 'DEPENDENCY_ERROR' }));
+    const dependencyCode = transientDependencyCode(error);
+    if (error?.severity || dependencyCode) {
+      console.error(JSON.stringify({ event: 'dependency_failure', requestId, code: dependencyCode || 'DEPENDENCY_ERROR' }));
       return json(res, 503, { error: 'Backend dependency is temporarily unavailable.', requestId });
     }
     if (error instanceof URIError) error = Object.assign(new Error('Invalid URL encoding.'), { statusCode: 400 });
@@ -488,13 +493,5 @@ async function handle(req, res) {
 }
 
 await startShareVisitCleanup({ store });
-const server = createServer();
-installRewardShutdown({server,handle});
-server.headersTimeout = 10_000;
-server.requestTimeout = 30_000;
-server.timeout = 120_000;
-server.listen(port, host, () => console.log(`funded.vip app listening on http://${host}:${port}`));
-const {startApiFinancialWorkerServices}=await import('./api-financial-workers.mjs');
-console.log(JSON.stringify({event:'api-financial-worker-role',...startApiFinancialWorkerServices({
-  solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,
-})}));
+startAppListener({port,host,handle,solanaRpcUrl});
+startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,store});

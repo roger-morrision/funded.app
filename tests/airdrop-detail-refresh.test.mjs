@@ -5,7 +5,7 @@ import {renderAirdropProgramDetail} from '../src/features/rewards/airdrop-view.j
 
 test('reserve completion refreshes the currently open detail, preserves wallet work, and leaves closed details closed',async()=>{
   const previous=globalThis.document,panel={hidden:false,dataset:{mint:'selected'}},status={dataset:{}},calls=[];
-  globalThis.document={querySelector:selector=>selector==='#airdrop-selected-program'?panel:status};
+  globalThis.document={querySelector:selector=>selector==='#airdrop-selected-program'?panel:status,dispatchEvent(){}};
   const state={assets:[],connectedWalletAddress:null,apiRequest:async()=>({available:true,data:{cluster:'devnet',reserves:[{mint:'selected',verified:true,claimedBaseUnits:'870114755'}]}}),
     renderHomeKpiDashboard(){},renderAirdropClaims(){},renderRegistry(){},
     getAirdropPrograms(){return[{id:'selected',claimed:this.verifiedCommunityReserves.get('selected').claimedBaseUnits}];},

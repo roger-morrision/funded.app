@@ -56,8 +56,8 @@ test('mobile close paths and breakpoint changes retain visible focus and navigat
     })).toBe(true);
   }
   await opener.click();
-  await page.locator('.nav-more summary').click();
-  await expect(page.locator('.nav-more')).toHaveAttribute('open','');
+  await expect(sidebar.locator('details')).toHaveCount(0);
+  await expect(sidebar.locator('a[href="#analytics-detail"]')).toBeVisible();
   await page.setViewportSize({width:1440,height:900});
   await expect(sidebar).not.toHaveAttribute('inert','');
   await expect(sidebar).not.toHaveAttribute('aria-hidden','true');

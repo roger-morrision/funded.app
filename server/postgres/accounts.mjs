@@ -64,5 +64,26 @@ export function createAccountsRepository({ pool, ensureReady }) {
     async appendCoinChat(mint, message, limit = 100) {
       return this.updateCoinChat(mint, messages => { messages.push(message); messages.splice(0, Math.max(0, messages.length - limit)); return message; });
     },
+    async readCallouts(limit = 200) {
+      await ensureReady();
+      const result = await pool.query('SELECT payload FROM state_entities WHERE bucket = $1 AND entity_key = $2', ['callouts', 'recent']);
+      return Array.isArray(result.rows[0]?.payload) ? result.rows[0].payload.slice(-limit) : [];
+    },
+    async updateCallouts(mutator, limit = 500) {
+      await ensureReady();
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('SELECT pg_advisory_xact_lock(81730426, 0)');
+        const row = await client.query('SELECT payload FROM state_entities WHERE bucket=$1 AND entity_key=$2', ['callouts', 'recent']);
+        const callouts = Array.isArray(row.rows[0]?.payload) ? row.rows[0].payload : [];
+        const result = mutator(callouts);
+        if (result && typeof result.then === 'function') throw new Error('Callout mutations must be synchronous.');
+        await client.query('INSERT INTO state_entities(bucket,entity_key,payload) VALUES($1,$2,$3::jsonb) ON CONFLICT(bucket,entity_key) DO UPDATE SET payload=EXCLUDED.payload', ['callouts', 'recent', JSON.stringify(callouts.slice(-limit))]);
+        await client.query('COMMIT');
+        return result;
+      } catch (error) { await client.query('ROLLBACK'); throw error; }
+      finally { client.release(); }
+    },
   };
 }

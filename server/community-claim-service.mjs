@@ -10,6 +10,10 @@ import { readCommunityReserveStatus } from './community-reserve-status.mjs';
 import { captureExactCommunitySnapshot, captureQaCommunitySnapshot } from './community-snapshot.mjs';
 
 const key = value => new PublicKey(value).toBase58();
+const recentReadProgramProofs = new Map();
+const inflightReadProgramProofs = new Map();
+const pendingPreparations = new WeakMap();
+const READ_PROGRAM_PROOF_TTL_MS = 15_000;
 const paymentDiscriminator = createHash('sha256').update('account:CommunityPayment').digest().subarray(0, 8);
 const u64 = value => {
   if (!/^\d+$/.test(String(value)) || BigInt(value) <= 0n || BigInt(value) > 0xffffffffffffffffn)
@@ -30,13 +34,27 @@ export function createCommunityClaimService({ connection, store, programId, auth
     if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Community claim RPC failed verification.');
   }
 
-  async function assertReviewedProgram() {
+  async function assertReviewedProgram(allowRecentRead = false) {
     await assertDevnet();
     if (!/^[a-f0-9]{64}$/i.test(String(expectedCommunityProgramDataSha256 || '')))
       throw new Error('Reviewed community program-data hash is not pinned.');
-    const evidence = await programEvidence(connection, program);
-    if (!evidence.account?.executable || evidence.sha256 !== expectedCommunityProgramDataSha256)
-      throw new Error('Current on-chain community program differs from the reviewed build.');
+    const cacheKey = `${program.toBase58()}:${expectedCommunityProgramDataSha256}`;
+    if (allowRecentRead && programEvidence === readProgramDataEvidence) {
+      const recent = recentReadProgramProofs.get(cacheKey);
+      if (recent && Date.now() - recent < READ_PROGRAM_PROOF_TTL_MS) return;
+      const pending = inflightReadProgramProofs.get(cacheKey);
+      if (pending) return pending;
+    }
+    const verify = async () => {
+      const evidence = await programEvidence(connection, program);
+      if (!evidence.account?.executable || evidence.sha256 !== expectedCommunityProgramDataSha256)
+        throw new Error('Current on-chain community program differs from the reviewed build.');
+      if (programEvidence === readProgramDataEvidence) recentReadProgramProofs.set(cacheKey, Date.now());
+    };
+    if (!allowRecentRead || programEvidence !== readProgramDataEvidence) return verify();
+    const pending = verify().finally(() => inflightReadProgramProofs.delete(cacheKey));
+    inflightReadProgramProofs.set(cacheKey, pending);
+    return pending;
   }
 
   async function readReserve(row, openingSignature = null) {
@@ -50,7 +68,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
     return records[key(mint)] || null;
   }
 
-  async function prepare({ mint, creator, reservedTokens, fundingSignature, migrationSignature,
+  async function prepareFresh({ mint, creator, reservedTokens, fundingSignature, migrationSignature,
     snapshotBasis = 'pump-migration' }) {
     await assertDevnet();
     const launchMint = new PublicKey(mint), creatorAddress = key(creator);
@@ -114,6 +132,40 @@ export function createCommunityClaimService({ connection, store, programId, auth
     });
   }
 
+  async function prepare(input) {
+    await assertDevnet();
+    const args={mint:key(input.mint),creator:key(input.creator),reservedTokens:input.reservedTokens,
+      fundingSignature:input.fundingSignature,migrationSignature:input.migrationSignature,
+      snapshotBasis:input.snapshotBasis||'pump-migration'};
+    if(!['pump-migration','devnet-qa-cutoff'].includes(args.snapshotBasis))throw new Error('Unsupported community snapshot basis.');
+    if(!Number.isSafeInteger(args.reservedTokens)||args.reservedTokens<=0||args.reservedTokens>500_000_000
+      ||!args.fundingSignature||!args.migrationSignature)throw new Error('Verified launch reserve and migration identities are required.');
+    if(args.snapshotBasis==='devnet-qa-cutoff'){
+      const allowed=String(qaCutoffMint||'').split(',').map(value=>value.trim()).filter(Boolean);
+      if(!qaCutoffAuthority||!allowed.length||allowed.length>8||allowed.some(value=>key(value)!==value)||!allowed.includes(args.mint))
+        throw new Error('Devnet QA cutoff is not configured for this exact launch mint.');
+    }
+    const prior=await prepared(args.mint);
+    if(prior){
+      if(prior.creator!==args.creator||prior.reservedTokens!==args.reservedTokens||prior.fundingSignature!==args.fundingSignature
+        ||prior.migrationSignature!==args.migrationSignature||(prior.snapshotBasis||'pump-migration')!==args.snapshotBasis
+        ||prior.programId!==program.toBase58()||prior.authority!==issuer.toBase58()||prior.eligibilityMint!==eligible.toBase58())
+        throw new Error('Community manifest for this mint is immutable and conflicts with new preparation inputs.');
+      return structuredClone(prior);
+    }
+    // Factories are recreated per HTTP request. Share only the in-flight exact
+    // intent for this persistent store and verified program configuration.
+    let jobs=pendingPreparations.get(store);if(!jobs){jobs=new Map();pendingPreparations.set(store,jobs);}
+    const scope=JSON.stringify([program.toBase58(),issuer.toBase58(),eligible.toBase58(),expectedCommunityProgramDataSha256,
+      qaCutoffMint,qaCutoffAuthority,args.mint]),identity=JSON.stringify(args),existing=jobs.get(scope);
+    if(existing){
+      if(existing.identity!==identity)throw new Error('An immutable community preparation with different inputs is already in progress.');
+      return structuredClone(await existing.promise);
+    }
+    const job={identity,promise:prepareFresh(args)};jobs.set(scope,job);
+    try{return structuredClone(await job.promise);}finally{if(jobs.get(scope)===job)jobs.delete(scope);}
+  }
+
   async function openingInstruction(mint) {
     await assertReviewedProgram();
     const record = await prepared(mint);
@@ -167,8 +219,8 @@ export function createCommunityClaimService({ connection, store, programId, auth
     });
   }
 
-  async function recipientProof({ mint, wallet }) {
-    await assertReviewedProgram();
+  async function recipientProof({ mint, wallet, allowRecentProgramProof = true }) {
+    await assertReviewedProgram(allowRecentProgramProof);
     const record = await prepared(mint);
     if (!record?.openingSignature) return { status:'unavailable', reason:'No verified CommunityDrop opening receipt.' };
     const verified = await readReserve(record, record.openingSignature);
@@ -207,7 +259,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
   }
 
   async function claimInstruction({ mint, wallet }) {
-    const proof = await recipientProof({ mint, wallet });
+    const proof = await recipientProof({ mint, wallet, allowRecentProgramProof:false });
     if (proof.status !== 'claimable') throw new Error(proof.reason || 'No verified unclaimed community allocation exists for this wallet.');
     const record = await prepared(mint);
     return buildCommunityClaimInstruction({ programId:program, authority:issuer, mint:record.mint,

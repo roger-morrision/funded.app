@@ -104,9 +104,15 @@ for(const mode of ['static-visible','offscreen','moving-scroll','stolen-focus','
   if(mode==='offscreen')document.querySelector('#target').style.top='2200px';
   if(mode==='moving-scroll'){let y=10;function move(){scrollTo(0,y===10?11:10);y=y===10?11:10;requestAnimationFrame(move)}requestAnimationFrame(move)}
   if(mode==='stolen-focus')document.querySelector('#other').focus({preventScroll:true});
-  if(mode==='late-visible'){document.querySelector('#target').style.top='2200px';setTimeout(()=>document.querySelector('#target').style.top='100px',950)}
+  if(mode==='late-visible')document.querySelector('#target').style.top='2200px';
  },mode);
- const result=await target.evaluate(observeStableFocus,{timeoutMs:1000,stableMs:100});
+ // Start the late-visible timer and observer in the same browser task, so host
+ // scheduling cannot consume part of the negative control's 950ms delay.
+ const result=await target.evaluate((element,{mode,source})=>{
+  const observe=new Function('return ('+source+')')();
+  if(mode==='late-visible')setTimeout(()=>element.style.top='100px',950);
+  return observe(element,{timeoutMs:1000,stableMs:100});
+ },{mode,source:observeStableFocus.toString()});
  await info.attach('receipt-focus-measurement-control',{body:JSON.stringify({mode,...result},null,2),contentType:'application/json'});
  expect(result.pass).toBe(mode==='static-visible');
  if(result.pass){expect(result.elapsedMs).toBeLessThanOrEqual(1000);expect(result.stableForMs).toBeGreaterThanOrEqual(100)}

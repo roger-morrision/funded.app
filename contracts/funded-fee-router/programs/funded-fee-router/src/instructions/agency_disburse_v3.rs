@@ -7,7 +7,8 @@ use super::{agency_policy_v3::{AGENCY_POLICY_SEED,agent_targets}, rotate::assert
 #[instruction(withdrawal_id: [u8; 32])]
 pub struct ApproveAgencyWithdrawalV3<'info> {
     #[account(mut)] pub authority: Signer<'info>,
-    pub creator: Signer<'info>, pub mint: UncheckedAccount<'info>,
+    /// CHECK: Signature or immutable automation record is required by the handler.
+    pub creator: UncheckedAccount<'info>, pub mint: UncheckedAccount<'info>,
     #[account(seeds = [SEED], bump)] pub legacy_router: UncheckedAccount<'info>,
     #[account(seeds = [AGENCY_POLICY_SEED, mint.key().as_ref()], bump = policy.bump,
         constraint = policy.mint == mint.key() && policy.creator == creator.key() @ ErrorCode::InvalidAgencyPolicyV3)]
@@ -20,6 +21,8 @@ pub struct ApproveAgencyWithdrawalV3<'info> {
 }
 
 pub fn approve(ctx: Context<ApproveAgencyWithdrawalV3>, withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64) -> Result<()> {
+    super::automation_v3::authorize(ctx.program_id, &ctx.accounts.creator.to_account_info(),
+        &ctx.accounts.mint.key(), &ctx.accounts.policy.key(), category, &ctx.accounts.recipient.key(), ctx.remaining_accounts)?;
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(amount > 0 && (1..=4).contains(&category) && beneficiary == category + 2, ErrorCode::InvalidMintApprovalV3);
     let recipient = &ctx.accounts.recipient;
@@ -35,7 +38,8 @@ pub fn approve(ctx: Context<ApproveAgencyWithdrawalV3>, withdrawal_id: [u8; 32],
 #[instruction(withdrawal_id: [u8; 32], category: u8)]
 pub struct DisburseAgencyMintV3<'info> {
     #[account(mut)] pub authority: Signer<'info>,
-    pub creator: Signer<'info>, pub mint: UncheckedAccount<'info>,
+    /// CHECK: Signature or immutable automation record is required by the handler.
+    pub creator: UncheckedAccount<'info>, pub mint: UncheckedAccount<'info>,
     #[account(seeds = [SEED], bump)] pub legacy_router: UncheckedAccount<'info>,
     #[account(mut, seeds = [AGENCY_POLICY_SEED, mint.key().as_ref()], bump = policy.bump,
         constraint = policy.mint == mint.key() && policy.creator == creator.key() @ ErrorCode::InvalidAgencyPolicyV3)]
@@ -60,6 +64,8 @@ fn directed_targets(pool: u64, units: [u32; 3]) -> Result<[u64; 3]> {
 }
 
 pub fn disburse(ctx: Context<DisburseAgencyMintV3>, withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64, holder_amount: u64) -> Result<()> {
+    super::automation_v3::authorize(ctx.program_id, &ctx.accounts.creator.to_account_info(),
+        &ctx.accounts.mint.key(), &ctx.accounts.policy.key(), category, &ctx.accounts.recipient.key(), ctx.remaining_accounts)?;
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(category < 6 && amount > 0, ErrorCode::InvalidMintWithdrawalV3);
     let policy = &mut ctx.accounts.policy; let index = usize::from(category);

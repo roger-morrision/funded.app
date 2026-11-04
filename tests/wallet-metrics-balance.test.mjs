@@ -71,6 +71,7 @@ async function fixture({ balance = null, fetchedAt = 12345 } = {}) {
       quoteLaunchServiceFee:async () => ({}),
     },
     '../../../launch-service-fee.js':{ launchServiceFeeInstructions:() => { throw Error('No launch construction admitted'); } },
+    '../../../developer-token-lock.js':{ developerLockLaunchInstructions:() => { throw Error('No launch construction admitted'); } },
   };
   const module = new SourceTextModule(controllerSource, { context, identifier:'actual-wallet-metrics-controller' });
   await module.link(specifier => {

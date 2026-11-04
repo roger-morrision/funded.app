@@ -1,4 +1,7 @@
 import { productEvent } from './product-events.js';
+import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
+import { mountStepOneFeeSplit } from './src/features/launch/fee-split-step.js';
+import { initializeLeaderboardScroll } from './src/features/leaderboard/table-scroll.js';
 
 // Compose existing controls; their data sources and transaction handlers stay authoritative.
 const $ = selector => document.querySelector(selector);
@@ -14,25 +17,21 @@ function disclosure(target, label) {
 }
 
 function home() {
-  setText('.hero-copy', 'Launch a Solana token with an 80/20 creator-fee policy. Choose your rewards and follow verified payments.');
-  setText('.home-hero-kicker', 'Solana launchpad · published fee route');
+  setText('.home-hero-kicker', 'Every trade feeds the community');
   const actions = $('.hero-actions');
   const explore = actions?.querySelector('[href="#explore"]');
   const launch = actions?.querySelector('[href="#launch"]');
   if (explore && launch) {
-    explore.className = 'primary-button'; explore.textContent = 'Explore tokens';
-    launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a token';
+    explore.className = 'primary-button'; explore.textContent = 'Explore coins';
+    launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a coin';
     actions.prepend(explore);
   }
   const rewardGroups = $('.home-rewards-stack');
   const board = $('.home-launch-board');
-  if (rewardGroups && board) {
-    board.after(rewardGroups);
-    disclosure(rewardGroups, 'Community rewards');
-  }
-  if (board && $('.workspace-network')?.textContent?.includes('Devnet')) {
-    setText('.home-launch-board-title', 'Devnet launches');
-  }
+  // The Community rewards panels are not shown on Home; Rewards, Airdrops and
+  // token pages carry the same information. The element stays detached so its
+  // renderer keeps working.
+  rewardGroups?.remove();
   if (board && !board.querySelector('.product-follow-note')) {
     const note = document.createElement('p');
     note.className = 'product-follow-note';
@@ -45,21 +44,38 @@ function home() {
 }
 
 function explore() {
-  setText('.explore-hero h1', 'Explore tokens');
+  setText('.explore-hero h1', 'Explore coins');
   setText('.explore-lede', 'Find a token, compare its activity, and explore its community.');
   setText('button[data-explore-tab="trending"]', 'Trending');
   setText('.workspace-watch-link', 'Following');
-  $('#explore-search')?.setAttribute('placeholder', 'Search tokens or paste an address');
+  $('#explore-search')?.setAttribute('placeholder', 'Search coins or paste an address');
   const bar = $('.explore-control-bar');
   const sort = $('#explore-sort');
   const label = sort?.closest('label');
   if (label && bar) {
     label.classList.add('product-sort');
-    label.firstChild.textContent = 'Sort';
+    // Own span so phones can drop the visible word; the select keeps its aria-label.
+    label.firstChild.replaceWith(Object.assign(document.createElement('span'), { className:'product-sort-label', textContent:'Sort' }));
     bar.append(label);
   }
   const labels = { boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', turnover:'Volume / market cap', 'recent-trade':'Recent activity', holders:'Holder count', change:'24h change', newest:'Newest' };
   for (const option of sort?.options || []) if (labels[option.value]) option.textContent = labels[option.value];
+  // Common sorts first; protocol-specific and detailed sorts in labelled groups.
+  if (sort && !sort.querySelector('optgroup')) {
+    const groups = [
+      ['funded.vip rewards', ['boosted', 'tier-burn', 'airdrop', 'holder-fee', 'x-fee']],
+      ['More', ['trades', 'turnover', 'liquidity', 'recent-trade']],
+    ];
+    for (const value of ['volume', 'market-cap', 'newest', 'holders', 'change']) {
+      const option = sort.querySelector(`option[value="${value}"]`);
+      if (option) sort.append(option);
+    }
+    for (const [label, values] of groups) {
+      const group = document.createElement('optgroup'); group.label = label;
+      for (const value of values) { const option = sort.querySelector(`option[value="${value}"]`); if (option) group.append(option); }
+      if (group.children.length) sort.append(group);
+    }
+  }
   const filters = $('#explore-filter-popover');
   filters?.setAttribute('role', 'dialog'); filters?.setAttribute('aria-label', 'Token filters');
   // Keyboard users can dismiss the drawer and return to the invoking control.
@@ -76,7 +92,9 @@ function launch() {
   const packages = $('.creator-burn-section');
   if (options && packages) {
     packages.classList.remove('launch-tier-first');
-    options.querySelector('.launch-fee-options')?.after(packages);
+    options.querySelector('.launch-cost-jump')?.after(packages);
+    const story=options.querySelector('#launch-story-options');
+    if(story)options.querySelector('.launch-funding-section')?.after(story);
   }
   const first = $('[data-launch-step="1"]');
   const description = first?.querySelector('label:has(#token-description)');
@@ -86,40 +104,37 @@ function launch() {
     disclosure(description, 'Description · optional');
   }
   const packagePreview = $('.launch-package-preview');
-  if (options && packagePreview) options.append(packagePreview);
+  if (options && packagePreview) {
+    const preview = packagePreview.closest('#launch-presentation-preview') || disclosure(packagePreview, 'Preview token page & X posts');
+    preview.id = 'launch-presentation-preview';
+    options.append(preview);
+  }
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
-  setText('#launch-route-title', 'Launch a token');
-  setText('#launch-route-shell .page-lede', 'Name your coin, review the recommended 80/20 fee route and 3% community token reserve, then check the exact cost before signing.');
+  setText('#launch-route-title', 'Launch a coin');
+  setText('#launch-route-shell .page-lede', `Control your 80% creator share. ${currentFeePolicyCopy().headline}. Review the full fee distribution and launch cost before signing.`);
   setText('#benefits-step-title', 'Choose your fee route');
   setText('[data-launch-step="2"] > .step-heading p', 'The recommended setup directs 80% of collected creator fees to your wallet. Airdrop size, developer buy, and promotion are separate choices.');
   const funding = $('.launch-funding-section');
   if (funding && !funding.querySelector('.product-airdrop-note')) {
     const note = document.createElement('p');
     note.className = 'product-airdrop-note';
-    note.textContent = 'The airdrop uses tokens of your new coin. Creator-fee rewards use collected SOL. Eligibility and payment require separate verified steps.';
+    note.textContent = 'Airdrops use your token. Fee rewards use SOL.';
     funding.querySelector('.section-label-row')?.after(note);
   }
-  const fees = $('.launch-fee-options');
-  if (fees && !fees.querySelector('.product-fee-example')) fees.querySelector('.benefit-grid')?.after(Object.assign(document.createElement('p'), {
-    className: 'product-fee-example',
-    textContent: 'Example: if 1 SOL of creator fees is collected, the policy allocates 0.8 SOL to your chosen creator destinations and 0.2 SOL to funded.vip programs. Allocation does not mean a payment has completed.'
-  }));
   setText('.launch-preview-heading span', 'Preview');
-  setText('#launch-mode-quick strong', 'Keep your creator share');
-  setText('#launch-mode-quick small', 'Receive your 80% share in your wallet.');
-  setText('#launch-mode-custom strong', 'Share with your community');
-  setText('#launch-mode-custom small', 'Split your share between your wallet, token holders, and an X account.');
-  setText('#custom-policy-title', 'Choose your fee split');
+  setText('#custom-policy-title', 'Split your 80%');
+  setText('#custom-policy .section-label-row > span', 'Must total 80%');
+  mountStepOneFeeSplit();
   setText('.launch-total-cost-note', 'Review network fees, optional purchases, and any $FUNDED burn before signing.');
 }
 
 function portfolio() {
   const root = $('#my-launches');
   const heading = $('.portfolio-launches-heading');
-  const grid = heading?.nextElementSibling;
+  const grid = root?.querySelector(':scope > .role-grid');
   const bar = $('.portfolio-view-tabs');
-  if (root && heading && grid?.matches('.role-grid') && bar) {
+  if (root && heading && grid && bar && !$('#portfolio-created-tab')) {
     const panel = document.createElement('section');
     panel.id = 'portfolio-created-panel'; panel.className = 'portfolio-tab-panel'; panel.hidden = true;
     panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', 'portfolio-created-tab'); panel.tabIndex = 0;
@@ -127,7 +142,7 @@ function portfolio() {
     const button = document.createElement('button');
     button.id = 'portfolio-created-tab'; button.type = 'button'; button.dataset.portfolioTab = 'created';
     button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', 'false'); button.setAttribute('aria-controls', panel.id);
-    button.tabIndex = -1; button.textContent = 'Created tokens'; bar.append(button);
+    button.tabIndex = -1; button.textContent = 'Created coins'; bar.append(button);
   }
   setText('#portfolio-trades-tab', 'Activity');
   setText('#watchlist-heading', 'Following');
@@ -151,7 +166,7 @@ function details() {
   const headerAside = $('#coin-page .coin-hero-aside');
   if (about && headerAside) { about.classList.add('product-token-about'); headerAside.prepend(about); }
   setText('.coin-market-aside-title', 'Launch progress');
-  setText('.header-search-results-head strong', 'Explore tokens');
+  setText('.header-search-results-head strong', 'Explore coins');
   const trade = $('#trade-panel');
   const quote = trade?.querySelector('.coin-trade-quote-details');
   const submit = trade?.querySelector('.trade-actions');
@@ -162,19 +177,7 @@ function details() {
   }
 }
 
-function leaderboard() {
-  const table = $('#leaderboard-table');
-  if (!table) return;
-  table.tabIndex = 0;
-  if (!table.parentElement.querySelector('.leaderboard-scroll-hint')) {
-    const hint = document.createElement('p');
-    hint.className = 'leaderboard-scroll-hint';
-    hint.textContent = 'Scroll horizontally to see the remaining columns →';
-    table.after(hint);
-  }
-}
-
-home(); explore(); launch(); portfolio(); details(); leaderboard();
+home(); explore(); launch(); portfolio(); details(); initializeLeaderboardScroll();
 // New route-scoped disclosures are created after the workspace's initial sync.
 window.dispatchEvent(new Event('funded:layout-change'));
 document.body.classList.add('product-experience-ready');

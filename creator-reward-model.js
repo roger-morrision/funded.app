@@ -35,10 +35,11 @@ export function creatorRewardRow(launch, activity, wallet, cluster) {
     if (collection.creatorWalletPayoutVerified === true) paid += allocated;
     else unclaimed += allocated;
   }
-  const ready = unclaimed > 0n && overview.gates?.creatorWalletPayout === true;
+  const automatic=overview.automaticDisbursementEnabled===true;
+  const ready = unclaimed > 0n && !automatic && overview.gates?.creatorWalletPayout === true;
   return { mint:launch.mint, name:launch.symbol || launch.name || launch.mint.slice(0,8), fullName:launch.name || launch.symbol || launch.mint, overview,
-    unclaimed, paid, available:unclaimed, pendingSettlementCount, ready,
-    status:ready ? 'Ready for V3 payout' : unclaimed > 0n ? 'Payout unavailable'
+    unclaimed, paid, available:unclaimed, pendingSettlementCount, ready,automatic,
+    status:ready ? 'Ready for V3 payout' : unclaimed > 0n ? automatic?'Automatic payout pending':'Payout unavailable'
       : pendingSettlementCount ? 'Settlement pending' : paid > 0n ? 'Recorded paid' : 'No creator allocation' };
 }
 

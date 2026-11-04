@@ -6,6 +6,8 @@ import { renderProductFaqs } from '../help/product-guidance.js';
 import { initMarketingAgency } from '../marketing/agency-view.js';
 import { initServiceFeeCopy } from './service-fees-client.js';
 import {referralRatePresentation} from './referral-rate-copy.js';
+import {renderFeeDistributionSummaries} from './distribution-summary.js';
+import {bindCalculatorVisibility,revealCalculatorFeedback} from './calculator-visibility.js';
 export function createFeeFlowView(APP_ECONOMICS) {
   if (typeof window !== 'undefined') {
     initMarketingAgency();
@@ -15,6 +17,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
   initDailyBonusView();
   initBonusDashboard();
   renderProductFaqs();
+  bindCalculatorVisibility();
   function formatFlowAmount(value){
     const amount = Number(value || 0);
     if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
@@ -22,6 +25,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
   }
 
   function renderPublishedFeeRates(){
+    renderFeeDistributionSummaries();
     renderProductFaqs();
     const copy = currentFeePolicyCopy();
     const effective = [APP_ECONOMICS.operationsEffectivePercent, APP_ECONOMICS.appReferralEffectivePercent, APP_ECONOMICS.communityEffectivePercent, APP_ECONOMICS.buybackEffectivePercent];
@@ -34,10 +38,10 @@ export function createFeeFlowView(APP_ECONOMICS) {
     const referral=referralRatePresentation(),displayGross=referral.levels.map(level=>level.rate);
     const agency=APP_ECONOMICS.agencyEffectivePercent;
     const agencyFields=[['.home-receipt-card .receipt-bars','span',''],['.fee-route-bar','i',''],
-      ['.home-receipt-card .receipt-rows','span',`${agency} SOL AI agency`],
-      ['.app-revenue-grid','span',`<b>${APP_ECONOMICS.agencyRateOfFundedRevenue}%</b><em>AI agency</em><small>${agency}% of gross fees</small>`],
-      ['.allocation-chips','span',`<b>${agency}%</b><small>AI agency</small>`],
-      ['.fee-output-grid','div',`<span>AI agency</span><strong id="fee-output-agency">—</strong><small>${agency}% of gross</small>`]];
+      ['.home-receipt-card .receipt-rows','span',`${agency} SOL AI marketing & coin buybacks`],
+      ['.app-revenue-grid','span',`<b>${agency}%</b><em>AI marketing & coin buybacks</em><small>${agency}% of collected creator fees</small>`],
+      ['.allocation-chips','span',`<b>${agency}%</b><small>AI marketing & coin buybacks</small>`],
+      ['.fee-output-grid','div',`<span>AI marketing & coin buybacks</span><strong id="fee-output-agency">—</strong><small>${agency}% of gross</small>`]];
     for(const [selector,tag,html] of agencyFields){
       const parent=document.querySelector(selector);if(!parent)continue;
       let node=parent.querySelector('[data-agency-fee]');
@@ -46,7 +50,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
       node.innerHTML=html;
       if(!html){node.style.width=percent(agency);node.style.background='#6bd6c3';}
     }
-    set('.home-receipt-card h2',agency===undefined?'One claim. Five destinations.':'One claim. Six destinations.');
+    set('.home-receipt-card h2',copy.headline);set('[data-operations-allocation]',percent(effective[0]));
     setWidths('.home-receipt-card .receipt-bars span', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setWidths('.fee-route-bar i', [APP_ECONOMICS.creatorSharePercent, ...effective]);
     setAll('.home-receipt-card .receipt-rows span', [
@@ -57,14 +61,15 @@ export function createFeeFlowView(APP_ECONOMICS) {
     setAll('.home-referral-levels article strong', displayGross.map(percent));
     setAll('.referral-tier-strip > span b', displayGross.map(percent));
     set('.referral-tier-strip .eyebrow',referral.heading);
-    set('.referral-tier-strip > div > small',referral.scopeDetail);
+    set('.referral-tier-strip > div > small:not([data-referral-example])',referral.scopeDetail);
+    set('.referral-tier-strip [data-referral-example]',referral.example);
     set('.home-referral-guide-head > div > p:last-child',`Invite creators with your personal link. ${referral.scope}`);
-    setAll('.app-revenue-grid > span b', [APP_ECONOMICS.operationsRateOfFundedRevenue, APP_ECONOMICS.appReferralRateOfFundedRevenue, APP_ECONOMICS.communityRateOfFundedRevenue, APP_ECONOMICS.buybackRateOfFundedRevenue].map(percent));
+    setAll('.app-revenue-grid > span b', effective.map(percent));
     setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED burn']);
     setAll('.allocation-chips span b', effective.map(percent));
     setAll('.allocation-chips span small', ['Operations & marketing', 'Referral network', 'Daily bonus', 'Buyback allocation']);
     setAll('.app-revenue-grid > span small', [
-      `${percent(effective[0])} of gross fees`, levels.map(level => `L${level.level} ${percent(level.percentOfFundedRevenue)}`).join(' · '),
+      `${percent(effective[0])} of gross fees`, levels.map(level => `L${level.level} ${percent(level.effectivePercentOfCreatorFees)}`).join(' · '),
       `${percent(effective[2])} of gross fees`, `${percent(effective[3])} of gross fees`,
     ]);
     setAll('.fee-output-grid > div small', [
@@ -80,10 +85,10 @@ export function createFeeFlowView(APP_ECONOMICS) {
     set('.home-referral-guide .data-badge', `${percent(referral.total)} total · ${referral.pending?'activation pending':'published policy'}`);
     set('#referral-faq .section-heading .data-badge',referral.pending?'Approved policy · activation pending':'Published policy');
     set('#paid .revenue-model > .field-help', `Levels 1–3 receive ${levelGross.map(percent).join(', ')} of gross creator fees. ${copy.reserve} Existing coins keep their recorded split.`);
-    set('#fee-policy-faq', `For each finalized collection, ${percent(APP_ECONOMICS.creatorSharePercent)} follows the creator's launch-time split between their wallet, coin holders, and an eligible X account. The other ${percent(APP_ECONOMICS.fundedSharePercent)} funds Operations & marketing (${percent(effective[0])}), referrals (${percent(effective[1])}), Daily bonus (${percent(effective[2])}), and the $FUNDED buyback allocation (${percent(effective[3])})${agency===undefined?'':`, plus AI agency (${percent(agency)})`}. Existing coins keep their saved policy.`);
+    set('#fee-policy-faq', `${copy.allocation} ${copy.scope}`);
     set('#capital-flow > .section-heading .panel-explainer', copy.scope);
     set('#capital-flow .route-timeline li:nth-child(2) small', 'The keeper collects verified fees into the coin’s V3 router.');
-    set('#capital-flow .route-timeline li:nth-child(3) small', 'The creator signs settlement under the coin’s saved fee policy.');
+  set('#capital-flow .route-timeline li:nth-child(3) small', 'The keeper settles automatically under the coin’s saved fee policy when the upgraded route is active.');
     set('#capital-flow .route-timeline li:nth-child(4) small', 'Fund allocations, then verify each eligible recipient’s payment.');
     set('#buyback-policy-heading', `Preview the ${percent(effective[3])} policy`);
     set('#buyback-policy-note', `A 5 SOL claim allocates ${formatFlowAmount(5 * effective[3] / 100)} to the buyback allocation. Local calculation only; no claim recorded.`);
@@ -99,7 +104,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
     const feedback = document.querySelector('#fee-flow-feedback');
     const message = unavailable ? 'Enter an amount of 0 or more to preview the split.' : 'Preview ready.';
     // Announce availability transitions, not each recalculated amount or keystroke.
-    if (feedback && feedback.textContent !== message) feedback.textContent = message;
+    if (feedback && feedback.textContent !== message){feedback.textContent = message;revealCalculatorFeedback();}
     if (unavailable) {
       ['creator', 'operations', 'referrals', 'community', 'buyback','agency'].forEach(key => {
         const node = document.querySelector(`#fee-output-${key}`);

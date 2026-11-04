@@ -1,0 +1,99 @@
+/* One navigation geometry for every route, including token and wallet pages. */
+html { --navigation-width: 220px; }
+html.sidebar-collapsed { --navigation-width: 76px; }
+html body.page-route .app-shell { display: block; }
+html body.page-route #sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 40; display: flex;
+  flex-direction: column; align-items: stretch; gap: 0;
+  width: var(--navigation-width); height: 100dvh; padding: 20px 12px 12px;
+  border: 0; border-right: 1px solid var(--line); transform: none; box-shadow: none;
+}
+html body.page-route #sidebar .brand-row { display: flex; align-items: center; flex: none; position: relative; padding: 0 4px 24px; }
+html body.page-route #sidebar .primary-nav {
+  display: block; flex: 1; min-height: 0; width: 100%; overflow-y: auto; overflow-x: hidden;
+  padding: 0; overscroll-behavior: contain; scrollbar-width: thin;
+}
+html body.page-route #sidebar .nav-horizontal-only { display: none !important; }
+html body.page-route #sidebar .nav-more-menu { position: static; width: auto; min-width: 0; max-height: none; padding: 0; overflow: visible; border: 0; box-shadow: none; }
+html body.page-route #sidebar .nav-item:focus-visible { outline-offset: -2px; }
+html body.page-route #sidebar .sidebar-footer { display: block; flex: none; margin-top: auto; padding-top: 12px; }
+html body.page-route #main-content {
+  width: calc(100% - var(--navigation-width)); max-width: 1680px;
+  margin-left: var(--navigation-width); padding: 0 24px 32px; min-width: 0;
+}
+html body.page-route #main-content > .topbar {
+  position: sticky; inset: 0 auto auto; z-index: 25; justify-content: space-between;
+  width: 100%; height: 64px; padding: 0; gap: 12px; background: var(--bg);
+}
+@media (min-width: 701px) {
+  html body.page-route #sidebar .nav-item { min-height: 40px; margin-block: 2px; padding-block: 8px; }
+  html body.page-route #sidebar .desktop-sidebar-toggle { display: grid; top: 0; right: -27px; }
+  html body.page-route #sidebar .brand { white-space: nowrap; }
+}
+@media (min-width: 701px) and (max-width: 1499px) {
+  html body.page-route .topbar .search-box { display: none; }
+  html body.page-route #header-search-trigger { display: grid; }
+}
+@media (max-width: 700px) {
+  html body.page-route #sidebar .nav-item { min-height: 44px; }
+  html, html.sidebar-collapsed { --navigation-width: 0px; }
+  html body.page-route #sidebar { z-index: 50; width: min(280px, calc(100vw - 24px)); padding: 20px 16px; transform: translateX(-100%); visibility: hidden; transition: transform .2s ease; }
+  html body.page-route #sidebar .brand-row { justify-content: space-between; padding: 0 4px 24px; }
+  html body.page-route #sidebar .nav-icon { display: grid; place-items: center; width: 20px; }
+  html body.page-route #sidebar #close-menu { display: block; }
+  html body.page-route #sidebar.open { transform: none; visibility: visible; }
+  html body.page-route #sidebar.open ~ #main-content::after { display: none; }
+  html body.page-route .menu-backdrop:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 45; width: 100%; border: 0; background: #0009; cursor: pointer; }
+  html body.page-route.menu-open { overflow: hidden; }
+  html body.page-route #main-content { padding: 0 12px 32px; }
+  html body.page-route #main-content > .topbar { height: 64px; gap: 6px; }
+  html body.page-route .topbar .top-actions { gap: 6px; min-width: 0; }
+  html body.page-route .topbar .workspace-network { max-width: 84px; font-size: 10px; }
+  html { --mobile-nav-height: 72px; --mobile-trade-height: 64px; --mobile-bottom-height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom)); }
+  html:has(body.page-route-coin) { --mobile-bottom-height: calc(var(--mobile-nav-height) + var(--mobile-trade-height) + env(safe-area-inset-bottom)); }
+  html body.page-route.product-experience-style .mobile-workspace-nav {
+    display: block; position: fixed; inset: auto 0 0; z-index: 35;
+    box-sizing: border-box; width: 100vw; min-height: 0; height: var(--mobile-bottom-height);
+    padding: 0 max(6px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px,env(safe-area-inset-left)); border-top: 1px solid var(--line);
+    background: #101621fa; box-shadow: 0 -4px 16px #0005;
+  }
+  html body.page-route .mobile-navigation-links {
+    display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 2px;
+    box-sizing: border-box; height: calc(var(--mobile-nav-height) - 1px); padding: 6px 0;
+  }
+  html body.page-route .mobile-navigation-links > a {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-width: 0; min-height: 44px; margin: 0; padding: 5px 1px; gap: 4px;
+    border: 1px solid transparent; border-radius: 8px; box-shadow: none;
+    color: #aab8cc; background: transparent; font: 600 11px/1.2 var(--ui-font,system-ui);
+    text-align: center; text-decoration: none;
+  }
+  html body.page-route .mobile-navigation-links > a svg { width: 20px; height: 20px; flex: none; }
+  html body.page-route .mobile-navigation-links > a[aria-current="page"] { color: #ffd28a; background: #30291e; border-color: #786442; box-shadow: none; }
+  html body.page-route .mobile-navigation-links > a:focus-visible { outline: 2px solid #ffd28a; outline-offset: -2px; }
+  html body.page-route .mobile-trade-actions { display: none; }
+  html body.page-route-coin .mobile-trade-actions {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: center; gap: 8px;
+    height: var(--mobile-trade-height); box-sizing: border-box; padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  html body.page-route .mobile-trade-actions :is(.mobile-dock-buy,.mobile-trade-sell) { min-height: 48px; height: 48px; padding: 8px; border-radius: 7px; }
+  html body.page-route:not(.page-route-admin) #main-content { padding-bottom: calc(var(--mobile-bottom-height) + 24px); }
+  html:has(body.page-route:not(.page-route-admin)) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 16px); }
+  html body.page-route .toast { left: 12px; bottom: calc(var(--mobile-bottom-height) + 12px); }
+  html body.page-route .help-topics-trigger { bottom: calc(var(--mobile-bottom-height) + 12px); }
+  html body.page-route .help-topics-panel { bottom: calc(var(--mobile-bottom-height) + 64px); max-height: calc(100dvh - var(--mobile-bottom-height) - 140px); }
+  html body.page-route .launch-page-wizard .launch-preview-submit { bottom: calc(var(--mobile-bottom-height) + 8px); }
+}
+/* Admin uses the same rail while retaining its separate authentication flow. */
+.page-route-admin { --bg: #0b1020; --line: #2b374b; }
+.admin-navigation { background: #101621; }
+.admin-navigation .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+.admin-navigation .nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 4px 0; padding: 10px 12px; border-radius: 8px; color: #c4cbda; text-decoration: none; }
+.admin-navigation .nav-item.active { background: #292744; color: #ffc270; }
+.admin-navigation .nav-item:focus-visible { outline: 2px solid #ffd28a; outline-offset: -2px; }
+.admin-navigation .nav-icon svg { width: 20px; height: 20px; }
+.page-route-admin #main-content .top { min-width: 0; margin-bottom: 24px; padding: 18px 0; flex-wrap: wrap; }
+.page-route-admin :is(#open-menu,#close-menu) { display: none; }
+@media(max-width:700px) { .page-route-admin :is(#open-menu,#close-menu) { display: block; min-height: 44px; min-width: 44px; border: 1px solid var(--line); background: #15172d; color: inherit; font: inherit; cursor: pointer; } }
+@media(prefers-reduced-motion:reduce) { html body.page-route #sidebar { transition: none; } }

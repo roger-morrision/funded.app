@@ -13,7 +13,7 @@ async function fixture(page){
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{}}));
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/launches',route=>route.fulfill({json:launches}));
-  await page.route('**/api/airdrops/reserves',async route=>{
+  await page.route('**/api/airdrops/reserves*',async route=>{
     await delayed;
     await route.fulfill({json:{cluster:'devnet',reserves:[{mint:mints[1],verified:true,status:'drop-active',
       reservedTokens:30000000,totalBaseUnits:'30000000000000',claimedBaseUnits:'870114755',

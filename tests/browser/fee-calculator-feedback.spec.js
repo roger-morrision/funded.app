@@ -34,6 +34,8 @@ for(const width of [360,390,430,1440])test(`FQA-024 native calculator feedback a
   await edit('1e999');const nonfinite=await input.inputValue();expect(['','1e999']).toContain(nonfinite);await check(nonfinite,true,Array(6).fill('—'));
   await edit('0.25');await check('0.25',false,amounts['0.25']);await page.screenshot({path:info.outputPath('calculator-recovered.png')});
   await page.keyboard.press('Tab');await expect(input).not.toBeFocused();expect(await feedback.evaluate(e=>e.tabIndex)).toBe(-1);
-  expect(blocked.filter(x=>!(x.path==='/api/solana/rpc'&&['getSlot','getMultipleAccounts','getAccountInfo'].includes(x.rpc))&&!(liveBase&&x.path==='/cdn-cgi/rum'))).toEqual([]);expect(errors).toEqual([]);
+  // Background holder discovery may request this read alongside the existing
+  // account reads. The request guard above still aborts every non-GET request.
+  expect(blocked.filter(x=>!(x.path==='/api/solana/rpc'&&['getSlot','getMultipleAccounts','getAccountInfo','getTokenLargestAccounts'].includes(x.rpc))&&!(liveBase&&x.path==='/cdn-cgi/rum'))).toEqual([]);expect(errors).toEqual([]);
   await info.attach('native-feedback-evidence',{body:JSON.stringify({label:liveBase?'Actual public GET-only; every nonGET aborted':'Mocked canonical fee policy and unavailable API',states,mutations,blocked,errors},null,2),contentType:'application/json'});
 });

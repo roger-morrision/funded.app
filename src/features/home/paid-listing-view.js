@@ -1,4 +1,5 @@
 import { escapeHtml } from '../shared/display.js';
+import { icon } from '../../../ui-icons.js';
 
 function listingParts(listing) {
   const mint = String(listing.mint);
@@ -15,14 +16,22 @@ function listingParts(listing) {
 
 export function paidListingCardMarkup(listing) {
   const { mint, symbol, name, shortMint, proofUrl, listedDate } = listingParts(listing);
+  const amount = Number(listing.amountTokens);
+  const burned = Number.isFinite(amount) && amount > 0 ? amount.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '';
+  const price = Number(listing.usd) > 0 ? `$${Number(listing.usd).toLocaleString('en-US')}` : '';
   return `<article class="token-card-shell home-launch-card paid-listing-card" data-mint="${mint}" data-logo-mint="${mint}">
     <a class="home-launch-card-link" href="/token/${encodeURIComponent(mint)}" aria-label="Open ${name} token details"></a>
-    <div class="home-launch-card-media"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(String(listing.symbol).slice(0, 1))}</span><span class="home-launch-media-stage">Paid listing</span></div>
-    <div class="home-launch-card-top"><span class="home-token-identity"><strong>${symbol}</strong><small>${name}</small></span>
-      <div class="home-launch-card-addresses"><span title="Token mint: ${mint}"><small>Mint</small><code>${shortMint}</code></span></div>
+    <div class="home-card-overview"><div class="home-launch-card-media"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(String(listing.symbol).slice(0, 1))}</span></div>
+    <div class="home-card-info"><div class="home-launch-card-top"><span class="home-token-identity"><strong>${symbol}</strong><small>${name}</small></span>
+      <div class="home-launch-card-addresses"><span title="Token mint: ${mint}"><small>Mint</small><code>${shortMint}</code><button type="button" class="home-launch-copy-address" data-copy-address="${mint}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span></div>
+      <span class="home-launch-media-stage">Paid listing</span>
+    </div></div></div>
+    <div class="home-launch-protocol" aria-label="Listing details">
+      <span class="home-launch-chip is-listed">${icon('listingBag')}Listed ${listedDate}</span>
+      ${burned ? `<span class="home-launch-chip is-burn">${icon('burn')}${escapeHtml(burned)} $FUNDED burned</span>` : ''}
+      ${price ? `<span class="home-launch-chip">${escapeHtml(price)} listing</span>` : ''}
     </div>
-    <div class="paid-listing-verification"><strong>Payment verified on Devnet</strong><span>$FUNDED BurnChecked · listed ${listedDate}</span></div>
-    <div class="home-launch-card-actions"><a class="paid-listing-proof" href="${proofUrl}" target="_blank" rel="noopener noreferrer">View burn proof ↗</a></div>
+    <div class="home-launch-card-actions"><a class="card-review-buy" href="/token/${encodeURIComponent(mint)}">View token <span aria-hidden="true">→</span></a><a class="paid-listing-proof" href="${proofUrl}" target="_blank" rel="noopener noreferrer">View burn proof ↗</a></div>
   </article>`;
 }
 

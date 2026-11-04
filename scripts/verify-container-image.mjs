@@ -2,12 +2,15 @@
 // data-directory probe that is removed immediately. No chain or X requests.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { localDockerHost } from './check-deployment-capacity.mjs';
 
 const container = process.argv[2];
 if (!container || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(container)) throw new Error('Pass the local Devnet application container name.');
 const expectedBuild = process.env.FUNDED_EXPECT_BUILD;
 assert.ok(typeof expectedBuild === 'string' && expectedBuild.length > 0 && expectedBuild.length <= 128, 'FUNDED_EXPECT_BUILD must identify the expected source revision.');
-const docker = args => execFileSync('docker', ['--host=unix:///var/run/docker.sock', ...args], { encoding: 'utf8', maxBuffer: 1024 * 1024 });
+const dockerEnv = { ...process.env };
+for (const name of ['DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH']) delete dockerEnv[name];
+const docker = args => execFileSync('docker', [`--host=${localDockerHost()}`, ...args], { env: dockerEnv, encoding: 'utf8', maxBuffer: 1024 * 1024 });
 const [metadata] = JSON.parse(docker(['inspect', container]));
 const [image] = JSON.parse(docker(['image', 'inspect', metadata.Image]));
 assert.equal(metadata.State.Running, true, 'Application container must be running.');
