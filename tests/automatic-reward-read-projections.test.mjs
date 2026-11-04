@@ -14,7 +14,7 @@ test('public reward projections omit large indexing buckets and observe independ
       serviceStatus:{status:'active'},holderSnapshots:{unused:{large:'excluded'}},dailyBonusSettlementIndexes:{unused:{large:'excluded'}}};
     await writeFile(path,JSON.stringify(state));
     const financial=await store.readFinancialSnapshot();
-    assert.deepEqual(Object.keys(financial).sort(),['dailyBonusSnapshots','programs','schedules','version']);
+    assert.deepEqual(Object.keys(financial).sort(),['dailyBonusSnapshots','programs','rewardPools','schedules','version']);
     assert.deepEqual(financial.schedules,state.schedules);assert.deepEqual(financial.dailyBonusSnapshots,state.dailyBonusSnapshots);
     assert.deepEqual(await store.readStatusSnapshot(),{serviceStatus:state.serviceStatus,schedules:state.schedules});
     financial.schedules.cycle.status='caller-mutation';
