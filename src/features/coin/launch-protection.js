@@ -31,17 +31,20 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
         }catch(error){appState.showToast(error.message);}finally{busy=false;if(activeMint===mint)await refresh(false);}
       };panel.append(claim);
     }
+    const refreshButton=text('button','Refresh token lock');refreshButton.type='button';refreshButton.disabled=busy;
+    refreshButton.onclick=()=>{refreshButton.disabled=true;void refresh(false);};panel.append(refreshButton);
     // Bundle-wallet signals were removed from the coin page by request.
   }
   async function refresh(scan=false,polls=0){
     if(!activeMint)return;const mint=activeMint,id=generation;
     let response;try{response=await appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/launch-protection${scan?'?scan=1':''}`);}catch{response={available:false};}
     if(id!==generation||activeMint!==mint)return;
-    if(!response.available||response.data?.mint!==mint){panel.hidden=false;panel.replaceChildren(text('h3','Developer tokens & launch risk'),text('p',response.data?.error||'Protection verification is unavailable. Refresh to retry.'));const retry=text('button','Refresh protection');retry.type='button';retry.onclick=()=>{void refresh(false);};panel.append(retry);return;}
+    if(!response.available||response.data?.mint!==mint){latest=null;panel.hidden=false;panel.replaceChildren(text('h3','Developer tokens & launch risk'),text('p',response.data?.error||'Protection verification is unavailable. Refresh to retry.'));const retry=text('button','Refresh protection');retry.type='button';retry.onclick=()=>{void refresh(false);};panel.append(retry);return;}
     latest=response.data;render(latest);window.clearTimeout(timer);
     if(latest.bundleDetection?.scanning&&polls<4)timer=window.setTimeout(()=>{void refresh(false,polls+1);},15000);
   }
   window.addEventListener('funded:coin-facts',event=>{generation++;window.clearTimeout(timer);activeMint=event.detail?.launch?.mint||null;latest=null;panel.hidden=!activeMint;if(activeMint){panel.replaceChildren(text('p','Checking launch protection…'));void refresh(false);}});
   window.addEventListener('hashchange',()=>{if(!appState.getCoinMintAddress?.()){generation++;activeMint=null;window.clearTimeout(timer);panel.hidden=true;}});
+  window.addEventListener('funded:reward-identity-change',()=>{if(activeMint&&latest)render(latest);});
   return {refresh,render,panel};
 }

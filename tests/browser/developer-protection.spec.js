@@ -6,7 +6,9 @@ async function mount(page,tokenLock,bundleDetection={status:'not-scanned'}){
   const host=document.createElement('div');host.id='coin-summary-dashboard';document.body.append(host);
   window.Buffer=(await import('/tests/browser/listing-fixture-deps.js')).Buffer;
   const {initializeLaunchProtection}=await import('/src/features/coin/launch-protection.js');
-  window.protection=initializeLaunchProtection({connectedWalletAddress:creator,apiRequest:async()=>({available:true,data:{mint,creatorWallet:creator,tokenLock,bundleDetection}})});
+  window.protectionData={mint,creatorWallet:creator,tokenLock,bundleDetection};
+  window.protectionState={connectedWalletAddress:creator,apiRequest:async()=>({available:true,data:window.protectionData})};
+  window.protection=initializeLaunchProtection(window.protectionState);
   window.dispatchEvent(new CustomEvent('funded:coin-facts',{detail:{launch:{mint}}}));
  },{mint,creator,tokenLock,bundleDetection});
  await expect(page.locator('#coin-launch-protection')).toBeVisible();
@@ -17,6 +19,27 @@ for(const width of [390,1440])test(`locked developer allocation and partial risk
   {status:'suspected-coordination',coverage:{status:'partial',reasons:['Funding scan limit reached.']},clusters:[{wallets:[creator,mint,creator],source:creator,status:'suspected-coordination',holdingPercent:null,caveat:'Shared funding is not proof of ownership.',fundingProofs:[{wallet:creator,signature:'funding-proof'}]}]});
  const panel=page.locator('#coin-launch-protection');await expect(panel).toContainText('125 developer tokens');await expect(panel).not.toContainText('12-hour hold');await expect(panel).not.toContainText('Bundle-wallet signals');await expect(panel.getByRole('button',{name:'Claim unlocked developer tokens'})).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+
+test('connecting, switching and disconnecting wallets updates the escrow claim action (mocked)',async({page})=>{
+ await mount(page,{verified:true,status:'claimable',amount:'1',unlockAt:1800000000,lock:mint});
+ const claim=page.getByRole('button',{name:'Claim unlocked developer tokens'});
+ for(const address of [null,'different-wallet',creator,null]){
+  await page.evaluate(address=>{window.protectionState.connectedWalletAddress=address;window.dispatchEvent(new Event('funded:reward-identity-change'));},address);
+  await expect(claim).toHaveCount(address===creator?1:0);
+ }
+});
+
+test('refresh checks finalized lock status before offering a claim and removes stale claims on failure (mocked)',async({page})=>{
+ await mount(page,{verified:true,status:'locked',amount:'1',unlockAt:1800000000,lock:mint});
+ const claim=page.getByRole('button',{name:'Claim unlocked developer tokens'});
+ await page.evaluate(()=>{window.protectionData.tokenLock.status='claimable';});
+ await expect(claim).toHaveCount(0);
+ await page.getByRole('button',{name:'Refresh token lock'}).click();await expect(claim).toBeVisible();
+ await page.evaluate(()=>{window.protectionState.apiRequest=async()=>({available:false});});
+ await page.getByRole('button',{name:'Refresh token lock'}).click();await expect(claim).toHaveCount(0);
+ await page.evaluate(()=>window.dispatchEvent(new Event('funded:reward-identity-change')));
+ await expect(claim).toHaveCount(0);
 });
 test('claim is offered only after verified unlock; unavailable history never becomes safe (mocked)',async({page})=>{
  await mount(page,{verified:true,status:'claimable',amount:'1',unlockAt:1800000000,lock:mint},{status:'unavailable'});
