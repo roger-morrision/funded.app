@@ -1,4 +1,3 @@
-@import "../src/features/callouts/callouts.css";
 /*
   Final presentation layer. Loaded last in index.html.
   New UI work uses the --fv-* tokens below instead of raw hex values,

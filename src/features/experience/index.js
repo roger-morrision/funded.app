@@ -21,7 +21,6 @@ import { mountBonusCountdown } from '../leaderboard/bonus-countdown.js';
 import { mountCallouts } from '../callouts/callouts.js';
 import { mountCalloutIntent } from '../callouts/composer-intent.js';
 import { mountRewardGuidance } from './reward-guidance.js';
-import './journeys.css';
 import { mountCoinJourney } from './coin-journey.js';
 import { mountFlowDiagnostics } from './flow-timing.js';
 import { mountJourneySupport } from './journey-support.js';
