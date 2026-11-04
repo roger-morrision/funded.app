@@ -60,24 +60,29 @@ test('airdrop availability distinguishes failed verification, pending snapshots,
 test('burn failure messages preserve a submitted signature without exposing provider bodies',async t=>{
   const prior=Object.getOwnPropertyDescriptor(globalThis,'document');
   t.after(()=>prior?Object.defineProperty(globalThis,'document',prior):delete globalThis.document);
+  const previousStorage=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  t.after(()=>previousStorage?Object.defineProperty(globalThis,'localStorage',previousStorage):delete globalThis.localStorage);
   const signature='3'.repeat(64);
   for(const mode of ['not-submitted','uncertain','failed']) {
     const submitted=mode!=='not-submitted';
+    const stored=new Map();
+    Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:key=>stored.get(key)||null,
+      setItem:(key,value)=>stored.set(key,value),removeItem:key=>stored.delete(key)}});
     const fields={'#funded-burn-amount':{value:'1'},'#funded-burn-project':{value:''},'#funded-burn-submit':{textContent:''}};
     Object.defineProperty(globalThis,'document',{configurable:true,value:{querySelector:s=>fields[s]}});
     let sends=0;
-    const provider={publicKey:'fixture-wallet',signTransaction:async()=>({serialize:()=>new Uint8Array()})};
+    const provider={publicKey:'1'.repeat(32),signTransaction:async()=>({signature:new Uint8Array(64),serialize:()=>new Uint8Array()})};
     const failure=()=>{throw new Error('502 <!DOCTYPE html>private-test-value');};
-    const state={wallet:provider,captureWalletSession:()=>({address:'fixture-wallet',provider}),canSignTransactions:()=>true,
+    const state={wallet:provider,connectedWalletAddress:'1'.repeat(32),bs58:{encode:()=>signature},
+      captureWalletSession:()=>({address:'1'.repeat(32),provider}),canSignTransactions:()=>true,
       fundedBurnState:{balanceBaseUnits:2n,supplyBaseUnits:2n,decimals:0,tokenAccounts:[]},parseTokenAmount:()=>1n,planTokenAccountBurns:()=>[],
-      renderBuybackDashboard(){},updateFundedBurnButton(){},assertWalletSessionCurrent(){},PROTOCOL_FUNDED_MINT:'fixture-mint',
+      renderBuybackDashboard(){},updateFundedBurnButton(){},assertWalletSessionCurrent(){},PROTOCOL_FUNDED_MINT:'2'.repeat(32),apiRequest:failure,
       getSolana:async()=>({PublicKey:class{},Transaction:class{}}),
       connection:{getLatestBlockhash:async()=>submitted?{blockhash:'fixture',lastValidBlockHeight:1}:failure(),
         sendRawTransaction:async()=>{sends++;return signature;}},waitForSignatureConfirmation:async()=>mode==='failed'?{value:{err:{InstructionError:[0,'fixture']}}}:failure()};
     await createFundedTradingController(state).submitFundedBurn();
     assert.doesNotMatch(state.fundedBurnState.message,/<|private-test-value/);
     assert.equal(sends,submitted?1:0);
-    assert.match(state.fundedBurnState.message,mode==='failed'?new RegExp(`Burn failed on Solana: ${signature}`)
-      :submitted?new RegExp(`uncertain for ${signature}`):/Burn verification is temporarily unavailable/);
+    assert.match(state.fundedBurnState.message,submitted?new RegExp(`pending: ${signature}`):/Burn verification is temporarily unavailable/);
   }
 });

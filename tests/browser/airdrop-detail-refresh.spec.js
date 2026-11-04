@@ -8,7 +8,7 @@ for(const width of [1440,390])test(`open airdrop details refresh when delayed re
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/launches',route=>route.fulfill({json:[{mint,name:'Delayed QA',symbol:'DQA',cluster:'devnet',onchainVerified:true,
     creatorWallet:'11111111111111111111111111111111',communityAirdrop:{allocationPercent:3,reservedTokens:30000000}}]}));
-  await page.route('**/api/airdrops/reserves',async route=>{await delayed;await route.fulfill({json:{cluster:'devnet',reserves:[{mint,verified:true,status:'drop-active',
+  await page.route('**/api/airdrops/reserves*',async route=>{await delayed;await route.fulfill({json:{cluster:'devnet',reserves:[{mint,verified:true,status:'drop-active',
     reservedTokens:30000000,totalBaseUnits:'30000000000000',claimedBaseUnits:'870114755',leafCount:13,snapshotHash:'verified-snapshot',merkleRoot:'verified-root',migrationSlot:512511237,
     migrationAt:Math.floor(Date.now()/1000)-60,expiresAt:Math.floor(Date.now()/1000)+86400,snapshotBasis:'pump-migration'}]}});});
   await page.route('https://**/*',route=>route.abort());
