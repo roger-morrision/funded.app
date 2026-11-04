@@ -23,9 +23,9 @@ export function readCurveMetrics(curve, mint) {
   const realQuote = asFinite(curve.realQuoteReserves);
   const supply = asFinite(mint.supply);
   const tokenScale = 10 ** mint.decimals;
-  const curveProgressPercent = virtualToken > 0 && realToken != null
-    ? Math.max(0, Math.min(100, (1 - realToken / virtualToken) * 100))
-    : null;
+  // 1 − real/virtual is not migration progress (a new coin reads ~26%).
+  // Callers add curveMigrationProgress() with Pump's global basis instead.
+  const curveProgressPercent = null;
   if (!Number.isFinite(tokenScale) || !virtualToken || virtualQuote == null || supply == null) {
     return { curvePriceSol: null, curveCapSol: null, curveReserveSol: realQuote == null ? null : realQuote / 1e9, curveProgressPercent };
   }

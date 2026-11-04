@@ -218,7 +218,7 @@ assert.equal(windowRecords[0].windowVolumeSol, 0, 'Confirmed empty window is zer
 assert.equal(windowRecords[1].windowCoverage, 'partial');
 assert.equal(withMarketWindow({ volume24hSol: 3, tradeCount24h: 4 }, '1h').windowVolumeSol, null, 'Missing short-window history must not borrow 24h data.');
 assert.equal(discovery[0].riskFlags.includes('thin-liquidity'), false, 'Missing USD liquidity must not be read as zero USD liquidity.');
-assert.equal(readCurveMetrics({ complete: false, virtualTokenReserves: 100n, realTokenReserves: 15n, virtualQuoteReserves: 100n, realQuoteReserves: 0n }, { supply: 100n, decimals: 0 }).curveProgressPercent, 85);
+assert.equal(readCurveMetrics({ complete: false, virtualTokenReserves: 100n, realTokenReserves: 15n, virtualQuoteReserves: 100n, realQuoteReserves: 0n }, { supply: 100n, decimals: 0 }).curveProgressPercent, null);
 const devnetRegistry = [
   { mint: 'a', createdTimestamp: 100, lastTradeTimestamp: 400, marketCapUsd: null },
   { mint: 'b', createdTimestamp: 200, lastTradeTimestamp: 250, marketCapUsd: 2 },
