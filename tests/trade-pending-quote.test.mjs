@@ -34,6 +34,7 @@ test('verified balance clears the blocking message and resumes quotes even while
   try{
     await createTradeExecutionController(state).verifyPendingTrade(null,signature);
     assert.equal(queued,1);assert.equal(pending.broadcastUncertain,false);
+    assert.equal(pending.progress,'indexing');assert.equal(button.textContent,'Check trade history');
     assert.match(messages.at(-1),/balance change verified/);
     assert.equal(button.hidden,false);assert.equal(button.dataset.pendingSignature,signature);
   }finally{globalThis.document=previous;}

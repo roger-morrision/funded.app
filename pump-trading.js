@@ -351,6 +351,7 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   await onPrepared({signature,lastValidBlockHeight,blockhash:signedBlockhash});
   assertWalletCurrent();
   try {
+    onStatus('Wallet signed. Submitting trade to Solana…');
     const returned=await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed',maxRetries:2 });
     if(returned!==signature)throw new Error('RPC returned a different signature. Check the saved trade before retrying.');
   } catch (error) {

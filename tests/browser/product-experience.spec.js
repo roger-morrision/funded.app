@@ -97,6 +97,34 @@ test('recovery inbox labels its in-tab fallback when device storage is full (moc
   const inbox=page.locator('#recovery-inbox');await expect(inbox).toContainText('1 unresolved');await expect(inbox).toContainText('This record remains in this tab only');await expect(inbox.getByRole('link',{name:'Inspect transaction'})).toHaveAttribute('href',new RegExp(sig));
   await page.getByRole('button',{name:'Review 1 saved transaction',exact:true}).click();await expect(inbox).toBeFocused();await expect(inbox).toBeInViewport();
 });
+
+for(const width of [390,1440])test(`trade recovery distinguishes signing, confirmation and indexing at ${width}px (mocked receipts)`,async({page})=>{
+  await page.addInitScript(()=>performance.setResourceTimingBufferSize(3000));await setup(page,width);await ready(page,'/#my-launches');
+  const mount=async seed=>page.evaluate(async({mint,wallet,seed})=>{
+    const loaded=name=>performance.getEntriesByType('resource').find(row=>new URL(row.name).pathname.endsWith('/'+name))?.name;
+    const {recordTradeRecovery}=await import(loaded('trade-recovery-store.js'));
+    const {initializeRecoveryInbox}=await import(loaded('recovery-inbox.js'));
+    if(seed)for(const [i,progress]of ['signed','confirmed','indexing'].entries())recordTradeRecovery({mint,walletAddress:wallet,
+      signature:String(i+3).repeat(64),side:'buy',symbol:progress.toUpperCase(),progress,broadcastUncertain:progress==='signed'});
+    document.querySelector('#recovery-inbox').remove();window.recoveryChecks=[];
+    const pending=new Map(),existing={signature:'5'.repeat(64),mint,walletAddress:wallet,progress:'indexing'};pending.set(existing.signature,existing);
+    initializeRecoveryInbox({connectedWalletAddress:wallet,pendingTradeVerifications:pending,verifyPendingTrade:async(_rpc,signature)=>{
+      window.recoveryChecks.push(signature);if(signature===existing.signature&&pending.get(signature)!==existing)throw Error('Active verification was replaced');
+    }});
+  },{mint,wallet,seed});
+  await mount(true);
+  const inbox=page.locator('#recovery-inbox');
+  await expect(inbox).toContainText('3 unresolved');await expect(inbox).toContainText('A timeout does not prove it failed');
+  await expect(inbox.getByRole('button',{name:'Check recorded trade',exact:true})).toBeVisible();
+  await expect(inbox.getByRole('button',{name:'Check finalization',exact:true})).toBeVisible();
+  await inbox.getByRole('button',{name:'Check trade history',exact:true}).click();
+  expect(await page.evaluate(()=>window.recoveryChecks)).toEqual(['5'.repeat(64)]);
+  await expect(inbox).not.toContainText('Verification unavailable');
+  await page.reload();await expect(page.locator('body')).toHaveClass(/product-flows-ready/);await mount(false);
+  await expect(inbox).toContainText('Trade history is still being updated');
+  await expect(inbox.getByRole('button',{name:'Check trade history',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
+});
 test('on-chain-policy burns keep a working Explorer proof link (mocked recorded receipt)',async({page})=>{
   await setup(page,390);await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',pending:[],receipts:[{mint,signature:sig,sourceKind:'onchain-policy',status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'123'}]}}));
   await ready(page,'/#payments/activity');const proof=page.locator('[data-flow-rows]').getByRole('link',{name:'Inspect on-chain policy burn'});await expect(proof).toHaveAttribute('href',`https://explorer.solana.com/tx/${sig}?cluster=devnet`);await expect(proof).toHaveAttribute('target','_blank');

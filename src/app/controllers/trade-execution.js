@@ -4,11 +4,13 @@ import { estimateTradeNetworkFee, renderTradeCostDisclosure } from '../../featur
 import { recordTradeRecovery,uncertainTrade } from '../../features/experience/trade-recovery-store.js';
 import {expiredUnlandedTrade} from '../../features/experience/trade-expiry.js';
 import {createTradeQuoteRetry} from '../../features/experience/trade-quote-retry.js';
+import {tradeRecoveryCopy,tradeVerificationUnavailable} from '../../features/experience/trade-progress.js';
 import { assertTradeLimits, readTradePreferences } from '../../features/experience/trade-preferences.js';
 import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_REVIEW_REFRESH_AFTER_MS } from '../../../trade-quote-policy.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
   let retryInputKey='', quoteSeen=false;
+  const verificationInFlight=new Set();
   const quoteRetry=createTradeQuoteRetry(globalThis.document?.querySelector('#trade-quote-retry'),{
     isCurrent:()=>!appState.tradeActionBusy&&retryInputKey===JSON.stringify({...appState.tradeInputs(),wallet:appState.connectedWalletAddress}),
     retry:()=>{if(holdUncertainTrade(appState.tradeInputs().mint))return;appState.invalidateTradePreview();appState.queueTradeQuote(0);}
@@ -168,6 +170,7 @@ export function createTradeExecutionController(appState) {
 
   // app-source: 569
   async function executeTrade(){
+    if (appState.tradeActionBusy) return;
     if (!appState.wallet) return appState.setTradeStatus('Connect a signing wallet to trade.', true);
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) return appState.setTradeStatus('Open this app in a signing wallet to trade.', true);
@@ -207,31 +210,34 @@ export function createTradeExecutionController(appState) {
       const shownCoin = appState.getCoinMintAddress() === mint;
       const result = await appState.submitTrade({ connection: activeConnection, provider: session.provider, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState), preparedTrade: appState.tradePreview.trade, tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '', tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '', assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onPrepared: ({signature,lastValidBlockHeight})=>{
         appState.assertWalletSessionCurrent(session);
-        const pending={signature,lastValidBlockHeight,mint,side,walletAddress:session.address,feeLamports:appState.tradePreview.trade.feeLamports,broadcastUncertain:true};
+        submittedSignature=signature;
+        const pending={signature,lastValidBlockHeight,mint,side,walletAddress:session.address,feeLamports:appState.tradePreview.trade.feeLamports,broadcastUncertain:true,progress:'signed'};
         recordTradeRecovery(pending);appState.pendingTradeVerifications.set(signature,pending);
       },onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setTradeStatus(message); } });
       submittedSignature = result.signature;
-      const recovery = {signature:submittedSignature,lastValidBlockHeight:result.lastValidBlockHeight,broadcastUncertain:false,mint,side,walletAddress:session.address,symbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent : 'token',feeLamports:result.feeLamports};
+      const recovery = {signature:submittedSignature,lastValidBlockHeight:result.lastValidBlockHeight,broadcastUncertain:false,progress:'confirmed',mint,side,walletAddress:session.address,symbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent : 'token',feeLamports:result.feeLamports};
       recordTradeRecovery(recovery); appState.pendingTradeVerifications.set(submittedSignature,recovery);
-      appState.setTradeReceiptStatus('Trade submitted and confirmed. Waiting for finalization before showing it as complete.', submittedSignature);
+      if(appState.isWalletSessionCurrent(session))appState.setTradeReceiptStatus('Trade confirmed on Solana. Waiting for finalization, then checking token balance change and trade history.', submittedSignature);
       const finalization = await appState.waitForSignatureConfirmation(activeConnection, { signature:submittedSignature, commitment:'finalized' });
       if (finalization.value?.err) { const failure = new Error('The submitted transaction failed on-chain.'); failure.finalizedFailure = true; throw failure; }
       if (!appState.isWalletSessionCurrent(session)) return;
       appState.pendingTradeVerifications.set(submittedSignature, { signature:submittedSignature, mint, side, walletAddress:session.address,
-        symbol:shownCoin ? (document.querySelector('#coin-symbol')?.textContent?.trim() || 'token') : 'token', feeLamports:result.feeLamports,lastValidBlockHeight:result.lastValidBlockHeight,broadcastUncertain:false });
+        symbol:shownCoin ? (document.querySelector('#coin-symbol')?.textContent?.trim() || 'token') : 'token', feeLamports:result.feeLamports,lastValidBlockHeight:result.lastValidBlockHeight,broadcastUncertain:false,progress:'confirmed' });
       appState.setTradeReceiptStatus(`${side === 'buy' ? 'Buy' : 'Sell'} finalized. Checking token balance change and indexed trade row.`, submittedSignature);
       await appState.verifyPendingTrade(activeConnection, submittedSignature);
       void appState.refreshTradeBalances();
     } catch (error) {
       const signature = submittedSignature || error.signature;
       if (signature) {
-        const recovery = {signature,mint,side,walletAddress:session.address,broadcastUncertain:true,lastValidBlockHeight:error.lastValidBlockHeight??appState.pendingTradeVerifications.get(signature)?.lastValidBlockHeight,feeLamports:appState.tradePreview?.trade?.feeLamports ?? null,state:error.finalizedFailure ? 'failed' : 'pending'};
+        const previous=appState.pendingTradeVerifications.get(signature);
+        const recovery = {signature,mint,side,walletAddress:session.address,broadcastUncertain:previous?.broadcastUncertain??true,progress:previous?.progress||'signed',lastValidBlockHeight:error.lastValidBlockHeight??previous?.lastValidBlockHeight,feeLamports:appState.tradePreview?.trade?.feeLamports ?? null,state:error.finalizedFailure ? 'failed' : 'pending'};
         recordTradeRecovery(recovery); if (!error.finalizedFailure) appState.pendingTradeVerifications.set(signature,recovery); else appState.pendingTradeVerifications.delete(signature);
       }
       if (appState.isWalletSessionCurrent(session)) {
         const message = error.finalizedFailure
         ? 'Trade failed on-chain. Review the receipt before making another trade.'
-        : signature ? `Trade outcome is uncertain until the signature is checked. ${error.message} Do not retry before reviewing it.`
+        : signature ? tradeVerificationUnavailable(appState.pendingTradeVerifications.get(signature)||{})
+          : error.code===4001 ? 'Wallet approval cancelled. No trade was submitted. Review the quote when you are ready.'
           : `Trade was not submitted or could not be prepared. ${error.message}`;
         if (signature) appState.setTradeReceiptStatus(message, signature, error.finalizedFailure);
         else appState.setTradeStatus(message, true);
@@ -250,8 +256,11 @@ export function createTradeExecutionController(appState) {
     if (!pending) return;
     const session = appState.captureWalletSession();
     if (!session || session.address !== pending.walletAddress) return;
+    const verificationKey=`${pending.walletAddress}:${pending.signature}`;
+    if(verificationInFlight.has(verificationKey))return;
+    verificationInFlight.add(verificationKey);
     const button = document.querySelector('#trade-verify');
-    if (button) { button.hidden = false; button.disabled = true; button.dataset.pendingSignature = pending.signature; }
+    if (button) { button.hidden = false; button.disabled = true; button.dataset.pendingSignature = pending.signature; button.textContent='Checking…'; }
     try {
       const rpc = activeConnection || appState.connection || (await appState.getSolana(), appState.connection);
       const [receipt, market] = await Promise.allSettled([
@@ -269,7 +278,7 @@ export function createTradeExecutionController(appState) {
         marketActivity:market.status === 'fulfilled' && market.value.available ? market.value.data : null,
         wallet:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature });
       if(evidence.receiptVerified){
-        pending.broadcastUncertain=false;recordTradeRecovery({...pending,broadcastUncertain:false});
+        pending.broadcastUncertain=false;pending.progress='indexing';recordTradeRecovery({...pending,broadcastUncertain:false,progress:'indexing'});
         if (appState.tradeInputs().mint === pending.mint) {
           appState.setTradeStatus('Trade finalized and balance change verified. Preparing the next quote.');
           if (!appState.tradeActionBusy) { appState.invalidateTradePreview(); appState.queueTradeQuote(0); }
@@ -279,10 +288,12 @@ export function createTradeExecutionController(appState) {
         signature:pending.signature,mint:pending.mint,wallet:pending.walletAddress},
         signal:AbortSignal.timeout(15000)}).catch(()=>{});
       if (!evidence.complete) {
-        const reason = !evidence.receiptVerified ? 'Finalized token balance change is not verified yet.' : 'Trade finalized and token balance change verified. History indexing is pending; no need to submit this trade again.';
+        const reason = !evidence.receiptVerified
+          ? receipt.status==='rejected'||pending.progress==='indexing'?tradeVerificationUnavailable(pending):'Finalized token balance change is not verified yet. Check this transaction again before retrying the trade.'
+          : 'Trade finalized and token balance change verified. History indexing is pending; no need to submit this trade again.';
         appState.pendingTradeVerifications.delete(pending.signature);
         appState.pendingTradeVerifications.set(pending.signature, pending);
-        appState.setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'} outcome checking: ${reason} ${appState.pendingTradeVerifications.size} receipt${appState.pendingTradeVerifications.size === 1 ? '' : 's'} pending. Check status again before treating it as complete.`, pending.signature);
+        appState.setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'}: ${reason} ${appState.pendingTradeVerifications.size} receipt${appState.pendingTradeVerifications.size === 1 ? '' : 's'} pending.`, pending.signature);
         return;
       }
       appState.pendingTradeVerifications.delete(pending.signature);
@@ -301,8 +312,15 @@ export function createTradeExecutionController(appState) {
       appState.showToast(`${pending.side === 'buy' ? 'Buy' : 'Sell'} verified on Solana`);
       appState.refreshWalletInfo();
       void appState.refreshPortfolioHoldings();
+    } catch {
+      if(appState.isWalletSessionCurrent(session)&&appState.pendingTradeVerifications.get(pending.signature)===pending)
+        appState.setTradeReceiptStatus(tradeVerificationUnavailable(pending),pending.signature);
     } finally {
-      if (button) { button.disabled = false; if (!appState.pendingTradeVerifications.has(button.dataset.pendingSignature)) button.hidden = true; }
+      verificationInFlight.delete(verificationKey);
+      if (button && button.dataset.pendingSignature===pending.signature) {
+        button.disabled = false;button.textContent=tradeRecoveryCopy(pending).action;
+        if (!appState.pendingTradeVerifications.has(button.dataset.pendingSignature)) button.hidden = true;
+      }
       appState.updateTradeActionState();
     }
   }

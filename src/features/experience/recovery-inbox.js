@@ -1,5 +1,6 @@
 import { readLaunchJournal, journalRecovery } from '../../../launch-journal.js';
 import { readTradeRecovery } from './trade-recovery-store.js';
+import { tradeRecoveryCopy } from './trade-progress.js';
 import { recordFlowTiming } from './flow-timing.js';
 import { el, panel, link, button, address, signature, utc, portfolioTools } from './view-utils.js';
 export function recoveryItems(wallet, launches, trades) {
@@ -7,7 +8,7 @@ export function recoveryItems(wallet, launches, trades) {
   return [...launches.filter(row => row.cluster === 'devnet' && row.payer === wallet && row.state !== 'completed')
     .map(row => ({...row,kind:'launch',label:`Launch ${row.symbol || row.name || ''}`,detail:journalRecovery(row),at:row.updatedAt})),
   ...trades.filter(row => row.walletAddress === wallet && row.state === 'pending').map(row => ({...row,kind:'trade',
-    label:`${row.side === 'buy' ? 'Buy' : 'Sell'} ${row.symbol}`,detail:'Check finalization, token balance changes, and indexed trade evidence before submitting another trade.'}))];
+    label:`${row.side === 'buy' ? 'Buy' : 'Sell'} ${row.symbol}`,detail:tradeRecoveryCopy(row).detail}))];
 }
 export function initializeRecoveryInbox(app) {
   const parent = document.querySelector('#my-launches'); if (!parent) return;
@@ -27,10 +28,10 @@ export function initializeRecoveryInbox(app) {
       const row = el('article', null, 'flow-activity-row'); row.append(el('h3', item.label),el('p',item.detail),el('small',`${wallet} · ${utc(item.at)}`));
       if(item.kind==='trade'&&!item.persisted)row.append(el('p','Browser storage is unavailable. This record remains in this tab only; preserve its transaction signature before closing.'));
       if (signature(item.signature)) row.append(link('Inspect transaction ↗',`https://explorer.solana.com/tx/${item.signature}?cluster=devnet`,true));
-      if (item.kind === 'trade') row.append(button('Check recorded trade',async event => {
+      if (item.kind === 'trade') row.append(button(tradeRecoveryCopy(item).action,async event => {
         if (wallet !== app.connectedWalletAddress) return;
         const control = event.currentTarget; control.disabled = true; const started=performance.now();
-        app.pendingTradeVerifications.set(item.signature, item);
+        if(!app.pendingTradeVerifications.has(item.signature))app.pendingTradeVerifications.set(item.signature, item);
         try { await app.verifyPendingTrade(null,item.signature); render(); }
         catch { status.textContent = 'Verification unavailable. The recorded transaction is preserved; try checking it again later.'; }
         finally { control.disabled = false; recordFlowTiming('recovery', performance.now()-started, app.pendingTradeVerifications.has(item.signature) ? 'pending' : 'verified'); }
