@@ -107,10 +107,10 @@ export function renderExploreBenefitLeaders(
     if (!leader && !hasVerifiedField) return '';
     const value = leader
       ? definition.policy ? formatVerifiedPercent(leader[definition.field]) : formatExploreUsd(leader[definition.field], { partial: leader.windowCoverage === 'partial' })
-      : hasVerifiedField && definition.policy ? '0%' : 'Unavailable';
+      : hasVerifiedField && definition.policy ? 'None yet' : 'Unavailable';
     const detail = leader
       ? `${leader.symbol || shortAddress(leader.address)}${definition.suffix ? ` · ${definition.suffix}` : leader.windowCoverage === 'partial' ? ' · partial history' : ' · scanned'}`
-      : hasVerifiedField && definition.policy ? 'No matching launch yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
+      : hasVerifiedField && definition.policy ? 'No launch offers this yet' : definition.policy ? 'Details unavailable' : 'Activity unavailable';
     const canRank = leader && !document.querySelector(`#explore-sort option[value="${definition.sort}"]`)?.disabled;
     return `<button type="button" class="${definition.sort === exploreSort ? 'active' : ''}" data-explore-leader-sort="${definition.sort}" data-state="${leader ? 'ready' : hasVerifiedField ? 'empty' : 'unavailable'}" aria-pressed="${definition.sort === exploreSort}" ${canRank ? '' : 'disabled'} ${leader && !canRank ? 'title="Ranking needs more verified data"' : ''}><span>${escapeHtml(definition.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></button>`;
   }).filter(Boolean);
@@ -156,10 +156,11 @@ export function renderExplorePayoutStats(
         : !available ? 'Checking finalized community claims'
           : leader ? `${shortAddress(leader.recipient)} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
             : 'No finalized community claims yet';
+      // The section note already shows when payouts were checked; keep this card's own time as a tooltip.
       const checkedAt = Date.parse(group?.indexedAt || '');
       const freshness = Number.isFinite(checkedAt)
-        ? `<small>Finalized index checked ${escapeHtml(new Date(checkedAt).toISOString().slice(11, 16))} UTC</small>` : '';
-      return `<article data-state="${group?.status || 'loading'}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small>${freshness}</article>`;
+        ? ` title="Claims checked ${escapeHtml(new Date(checkedAt).toISOString().slice(11, 16))} UTC"` : '';
+      return `<article data-state="${group?.status || 'loading'}"${freshness}><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`;
     }
     const amount = card.top ? leader?.paidLamports : group?.paidLamports;
     const count = card.top ? leader?.payoutCount : group?.payoutCount;

@@ -66,6 +66,7 @@
 .coin-page .coin-profile-tagline{margin:0 0 12px;color:#edfff0;font-size:17px;font-weight:700;line-height:1.3}
 .coin-page .coin-profile-tagline[hidden]{display:none!important}
 .coin-page .coin-hero-about .coin-description{display:block!important;max-width:none;max-height:none;overflow:visible;margin:0;color:inherit;font-size:inherit;line-height:inherit;-webkit-line-clamp:unset}
+.coin-page .coin-retry{margin-top:12px}.coin-page .coin-retry[hidden]{display:none}
 .coin-page .coin-profile-roadmap-section,.coin-page .coin-profile-links{flex:1;min-height:0;max-height:290px;overflow-y:auto;padding:17px 18px;color:#c7d8ca;font-size:12px;line-height:1.65}
 .coin-page .coin-profile-roadmap-section[hidden]{display:none!important}
 .coin-page .coin-profile-links[hidden]{display:none!important}
@@ -215,6 +216,8 @@
   .coin-page .coin-identity>.coin-identity-main{display:contents}
   .coin-page .coin-avatar{grid-column:1;grid-row:1 / span 4;align-self:center}
   .coin-page .coin-title-row,.coin-page .coin-identity h1,.coin-page .coin-address,.coin-page .coin-attribution{grid-column:2;min-width:0}
+  /* Long sub-cent prices need the full row; auto-placement would squeeze them into the avatar column. */
+  .coin-page .coin-price-line{grid-column:1/-1;min-width:0}
   /* Reserve both attribution lines while their verified identities load. */
   .coin-page .coin-attribution{min-height:calc(2lh + 4px);font-size:10px;line-height:1.4;align-content:start}
   .coin-page .coin-attribution a,.coin-page .coin-attribution #coin-launched-by{line-height:1.4}

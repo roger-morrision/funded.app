@@ -167,6 +167,23 @@ export function createCoinCommunityController(appState) {
   }
   // app-source-end
 
+  // A Refresh button right under the failure message, so the recovery step the
+  // message names is next to it instead of only in the header icon row.
+  function showCoinRetry(){
+    const description = document.querySelector('#coin-description');
+    if (!description) return;
+    let retry = document.querySelector('#coin-retry');
+    if (!retry){
+      retry = document.createElement('button');
+      retry.type = 'button';
+      retry.id = 'coin-retry';
+      retry.className = 'secondary-button coin-retry';
+      retry.textContent = 'Refresh';
+    }
+    if (retry.previousElementSibling !== description) description.after(retry);
+    retry.hidden = false;
+  }
+
   // app-source: 978
   function renderOnChainUnavailable(message){
     const displayMessage = coinUnavailableMessage(message);
@@ -182,8 +199,10 @@ export function createCoinCommunityController(appState) {
     appState.setCoinTabLabels(); appState.renderCoinActivityTab();
     appState.setCoinField('#coin-page-title', 'Token data unavailable');
     appState.setCoinField('#coin-avatar', '?'); appState.setCoinField('#coin-symbol', '—'); appState.setCoinField('#coin-description', displayMessage);
+    showCoinRetry();
     ['#coin-stage','#coin-fee-owner','#coin-metadata-status','#coin-mint-authority','#coin-freeze-authority'].forEach(selector => appState.setCoinFact(selector, 'Unavailable'));
-    ['#coin-market-cap','#coin-price','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, 'Unavailable'));
+    appState.setCoinField('#coin-price', '—'); appState.setCoinField('#coin-change', '');
+    ['#coin-market-cap','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, '—'));
     appState.setCoinField('#coin-volume-source', 'RPC trade history unavailable'); appState.setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable'); appState.setCoinField('#coin-accounts-source', 'Largest-account sample unavailable'); appState.setCoinCurveProgress(null);
     appState.setCoinField('#coin-chart-heading', 'Chart unavailable');
     appState.setCoinField('#coin-market-cap-label', 'Estimated market cap'); appState.setCoinField('#coin-market-cap-source', 'Confirmed Solana RPC snapshot');

@@ -29,6 +29,7 @@ for(const width of [360,390,1440]) test(`token error recovery and fee records re
     await expect(holders).toBeFocused();
     await expect(holders).toHaveAttribute('aria-selected','true');
     await expect(page.getByRole('button',{name:'Refresh token data'})).toBeEnabled();
+    await expect(page.getByRole('button',{name:'Refresh',exact:true})).toBeVisible();
     const errorText=await page.locator('#coin-description').innerText();
     expect(errorText.length).toBeLessThan(120);
     expect(errorText).not.toMatch(/DOCTYPE|footer|script|192\.0\.2\.1|rpc\.example|diagnostic/);

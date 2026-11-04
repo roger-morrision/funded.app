@@ -70,6 +70,20 @@ test('Home table retains filters and escapes token metadata', () => {
   assert.match(f.fields.get('#home-launch-grid').innerHTML, /No favorite tokens/);
 });
 
+test('Home launch ticker shows a muted dash for unknown cap and drops an unknown change', () => {
+  const f = homeFixture();
+  const ticker = f.add('#home-market-ticker-items');
+  let markup = '';
+  f.callbacks.setupHomeTicker = (_node, html) => { markup = html; };
+  f.state.assets = [coin('known', { volume24hUsd: 5, priceChange24hPercent: 1.5 }), coin('blank', { marketCapUsd: null })];
+  f.render();
+  assert(ticker);
+  assert.doesNotMatch(markup, /\$—/);
+  assert.match(markup, /<small class="home-ticker-mc is-unknown" title="Not reported yet">MC —<\/small>/);
+  assert.match(markup, /<span class="home-ticker-change is-positive"[^>]*>\+1\.50%<\/span>/);
+  assert.equal((markup.match(/home-ticker-change/g) || []).length, 1);
+});
+
 function registryFixture() {
   const ui = dom();
   for (const selector of ['#scanner-count', '#scanner-range', '#scanner-page-label', '#scanner-pagination', '#scanner-page-numbers',

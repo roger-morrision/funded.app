@@ -86,6 +86,10 @@ html:has(.technical-notice-stack .technical-notice.is-compact:not([hidden])) { s
   .technical-notice-inline:not(:has(> .technical-notice:not([hidden]))) { display: none; }
   .technical-notice-inline .technical-notice { width: 100%; box-shadow: none; }
   .technical-notice-inline .technical-notice.is-compact { width: auto; }
+  /* Home hero is a two-column grid on phones; give the third CTA the full row instead of a lone half-width wrapped button. */
+  html body.page-route-overview #main-content .hero-actions > [data-launch-for-x] { grid-column: 1 / -1; }
+  /* Explore on phones: the title says enough; drop the lede so the first coin starts higher. */
+  html body.page-route-explore .explore-hero .explore-lede { display: none; }
 }
 [data-technical-value]::after { content: 'Updating…'; font-size: var(--fv-cell-size, 1rem); color: var(--fv-text-muted); font-weight: 500; }
 .technical-notice-title { padding: 0; border: 0; background: none; color: inherit; font: 700 14px var(--fv-font-ui); text-align: left; cursor: pointer; }
@@ -132,9 +136,10 @@ html body #main-content .home-launch-card .home-launch-card-stats small { color:
 html body #main-content .home-launch-card .home-launch-card-stats strong { overflow: hidden; color: var(--fv-text); font: 600 14px var(--fv-font-data); text-overflow: ellipsis; white-space: nowrap; }
 html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { color: var(--fv-accent); font-size: 16px; }
 html body #main-content .home-launch-card .home-launch-card-stats strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
+html body #main-content .home-market-ticker-items small.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 html body #main-content .home-launch-card .home-card-market-summary { display: grid; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-progress-heading { display: flex; justify-content: space-between; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
-html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); font: 500 11px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-progress-heading strong { color: var(--fv-text-muted); text-align: end; font: 500 11px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-fee-route { color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-card-actions { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, 44px); gap: var(--fv-space-2); margin-top: auto; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-card-actions > * { min-width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: transparent; color: var(--fv-text-muted); }
@@ -188,6 +193,7 @@ html body #main-content #coin-page .coin-price-line #coin-price { color: var(--f
 html body #main-content #coin-page .coin-price-line .coin-change { padding: 2px var(--fv-space-2); border-radius: 999px; background: color-mix(in srgb, var(--fv-text-muted) 12%, transparent); color: var(--fv-text-muted); font: 600 13px var(--fv-font-data); }
 html body #main-content #coin-page .coin-price-line .coin-change[data-trend="up"] { background: color-mix(in srgb, var(--fv-success) 12%, transparent); color: var(--fv-success); }
 html body #main-content #coin-page .coin-price-line .coin-change[data-trend="down"] { background: color-mix(in srgb, var(--fv-danger) 12%, transparent); color: var(--fv-danger); }
+html body #main-content #coin-page .coin-price-line .coin-change:empty { display: none; }
 html body #main-content #coin-page .coin-socials { display: flex; flex-wrap: wrap; gap: var(--fv-space-2); }
 html body #main-content #coin-page .coin-socials > a:not([hidden]),
 html body #main-content #coin-page .coin-socials > button { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font: 600 12px var(--fv-font-ui); text-decoration: none; }

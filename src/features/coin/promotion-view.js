@@ -51,7 +51,8 @@ export function renderCoinPromotionBadge(
   document.querySelector('#coin-page-title')?.classList.toggle('golden-ticker', verifiedBoostsAvailable && activeMultiplier >= 500);
   const boostTotal = rail.querySelector('#coin-boost-total');
   if (boostTotal) boostTotal.textContent = verifiedBoostsAvailable
-    ? (activeMultiplier ? `${activeMultiplier.toLocaleString()}x total` : 'No active boost')
+    // With no boost running, the chip invites the action instead of reporting an absence.
+    ? (activeMultiplier ? `${activeMultiplier.toLocaleString()}x total` : 'Boost this coin')
     : 'Status unavailable';
   const boostButton = rail.querySelector('#coin-boost');
   if (boostButton) {
@@ -59,7 +60,7 @@ export function renderCoinPromotionBadge(
     boostButton.title = verifiedBoostsAvailable
       ? (activeMultiplier ? `${activeBoostPackages(active).length} verified boost payment${activeBoostPackages(active).length === 1 ? '' : 's'} · active total ${activeMultiplier}x` : 'No active verified boost · view packages')
       : 'Boost status unavailable · view packages';
-    boostButton.setAttribute('aria-label', `View boost packages · ${boostTotal?.textContent || 'status unavailable'}`);
+    boostButton.setAttribute('aria-label', `View boost packages · ${verifiedBoostsAvailable ? (activeMultiplier ? `${activeMultiplier.toLocaleString()}x total` : 'no active boost') : 'status unavailable'}`);
   }
   let holder = document.querySelector('#coin-promotion-badge');
   if (!holder) {

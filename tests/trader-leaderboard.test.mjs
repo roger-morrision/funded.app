@@ -75,5 +75,7 @@ test('trader tab distinguishes loading, an unavailable feed and a scanned feed w
   };
   assert.match(render(false, null), /Loading trader ranking/);
   assert.match(render(false), /Trader ranking unavailable/);
-  assert.match(render(true), /No trades in this sample/);
+  assert.match(render(true), /No trades in the last 24 hours yet/);
+  assert.match(render(true), /href="#explore">Explore coins/);
+  assert.doesNotMatch(render(false), /href="#explore"/);
 });

@@ -1,4 +1,5 @@
 // Dependencies and mutable application state are read live through appState.
+import { exploreStatusText } from '../../features/explore/status-copy.js';
 import { createExploreActivitySampler, applyActivitySnapshot, ACTIVITY_MAX_AGE_MS } from '../../features/explore/activity-sampling.js';
 export { scanExploreMarketsBounded } from '../../features/explore/activity-sampling.js';
 
@@ -195,7 +196,7 @@ export function createExploreLoadingController(appState) {
       void appState.loadHomeHolderCounts(appState.assets);
       void appState.loadHomeFeeIndex();
       if (feedStatus) {
-        feedStatus.textContent = appState.exploreProviderStatus;
+        feedStatus.textContent = exploreStatusText(appState.exploreProviderStatus);
       }
       appState.renderRegistry();
       appState.updateExploreSortAvailability();

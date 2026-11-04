@@ -1,8 +1,10 @@
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
+import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCoinStateController(appState) {
   // app-source: 979
   function resetCoinSurface(mintAddress){
+    const retry = document.querySelector('#coin-retry'); if (retry) retry.hidden = true;
     renderCoinBurnDashboard({mint:mintAddress,status:'loading',cluster:appState.EXPLORE_CLUSTER});
     appState.coinTradeEstimate = null;
     appState.renderTradeAmountEstimate();
@@ -40,7 +42,8 @@ export function createCoinStateController(appState) {
     appState.invalidateTradePreview();
     appState.queueTradeQuote();
     appState.setCoinTabLabels(); appState.renderCoinActivityTab();
-    appState.setCoinField('#coin-avatar', '?'); appState.setCoinField('#coin-symbol', 'TOKEN'); appState.setCoinField('#coin-artwork-symbol', 'TOKEN'); appState.setCoinField('#coin-page-title', 'Loading token…'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
+    const known = serverCoinIdentity(mintAddress);
+    appState.setCoinField('#coin-avatar', known ? known.symbol.slice(0, 1).toUpperCase() : '?'); appState.setCoinField('#coin-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-artwork-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-page-title', known?.name || 'Loading token…'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinFact('#coin-stage', 'Checking curve'); appState.setCoinFact('#coin-fee-owner', 'Checking route'); appState.setCoinFact('#coin-metadata-status', 'Reading mint');
     appState.setCoinFact('#coin-mint-authority', 'Checking…'); appState.setCoinFact('#coin-freeze-authority', 'Checking…');
     const avatar = document.querySelector('#coin-avatar'); if (avatar) { avatar.style.backgroundImage = ''; avatar.removeAttribute('title'); }
@@ -57,10 +60,10 @@ export function createCoinStateController(appState) {
     ['#coin-market-cap','#coin-price','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, 'Loading…'));
     appState.setCoinField('#coin-volume-source', 'RPC trade scan if available'); appState.setCoinField('#coin-trade-breakdown', 'Confirmed Pump events'); appState.setCoinField('#coin-accounts-source', 'Largest-account sample, not holder count'); appState.setCoinCurveProgress(null);
     appState.setCoinField('#coin-chart-heading', 'Reading trade observations…');
-    const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Price history is unavailable</span>';
+    const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Loading price history…</span>';
     const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';
     const policyTitle = document.querySelector('.coin-policy-card h2'); if (policyTitle) policyTitle.textContent = 'Reading Pump curve…';
-    appState.renderCoinCreatorRoute('');
+    appState.renderCoinCreatorRoute('', { loading: true });
     const policySplit = document.querySelector('.policy-split'); if (policySplit) policySplit.innerHTML = '<span><b>—</b><small>Curve state</small></span><span><b>—</b><small>Real tokens</small></span>';
     const policyBar = document.querySelector('.policy-bar'); if (policyBar) { policyBar.style.display = 'block'; policyBar.innerHTML = '<i style="display:block;height:100%;width:100%;background:#667085"></i>'; }
     const policyLink = document.querySelector('.policy-link'); if (policyLink) policyLink.hidden = true;

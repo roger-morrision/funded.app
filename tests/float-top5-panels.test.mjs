@@ -59,6 +59,10 @@ test('bonus countdown splits today\'s pool by rank and counts down to the cutoff
   assert.match(bonusCountdownMarkup(result), /0.5 SOL/);
   const creators = bonusCountdownSummary({ dashboard: { nextCutoffAt: '2026-11-04T00:00:00.000Z', pool: { categoryLamports: { creators: '0' } } }, view: 'creators', now });
   assert.match(bonusCountdownMarkup(creators), /Grows with every fee collected today/);
+  assert.match(bonusCountdownMarkup(creators), /<span>50%<\/span><small>of the pool<\/small>/);
+  assert.doesNotMatch(bonusCountdownMarkup(creators), /<li><b>#1<\/b><span>0 SOL/);
+  assert.doesNotMatch(bonusCountdownMarkup(creators, { solUsd: 150 }), /<em>/);
+  assert.match(bonusCountdownMarkup(result, { solUsd: 150 }), /<em>≈ /);
   const scheduleOnly = bonusCountdownSummary({ bonus: { nextCutoffAt: '2026-11-04T00:00:00.000Z' }, now });
   assert.equal(scheduleOnly.poolLamports, null);
   assert.match(bonusCountdownMarkup(scheduleOnly), /Total appears once/);

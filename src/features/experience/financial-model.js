@@ -7,6 +7,11 @@ export function solText(value) {
   const n = BigInt(value), fraction = String(n % 1000000000n).padStart(9, '0').replace(/0+$/, '');
   return `${n / 1000000000n}${fraction ? '.' + fraction : ''} SOL`;
 }
+// Open items (no timestamp) stay on top; dated records follow newest first. Sort is stable for ties.
+export function newestFirst(rows) {
+  const time = row => { const at = Date.parse(row?.at || ''); return Number.isFinite(at) ? at : Infinity; };
+  return [...rows].sort((a, b) => time(b) - time(a) || 0);
+}
 export function financialRows({ experience, buybacks, overviews = [], wallet }) {
   const rows = [];
   const validExperience = experience?.cluster === 'devnet' && ['recorded-finalized-v3', 'onchain-indexed', 'partial', 'no-records'].includes(experience.evidence?.status);

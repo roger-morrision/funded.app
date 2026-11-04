@@ -52,7 +52,7 @@ for(const[path]of routes)test(`the fee flow has a compact native text alternativ
   await page.setViewportSize({width:360,height:480});const figure=await open(page,path),guide=page.locator('.flow-text-guide'),summary=guide.locator('summary');
   expect(await figure.locator('.flow-text-guide').count()).toBe(0);await expect(guide).not.toHaveAttribute('open','');expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
   await summary.focus();await page.keyboard.press('Enter');await expect(guide).toHaveAttribute('open','');await expect(summary).toBeFocused();
-  await expect(guide.locator('li')).toHaveCount(4);await expect(guide).toContainText('Ranked bonus windows must close');await expect(guide).toContainText('separate paths');
+  await expect(guide.locator('li')).toHaveCount(4);await expect(guide).toContainText('Daily bonus winners are paid after the day closes');await expect(guide).toContainText('handled separately');
   for(const step of await guide.locator('li').all()){await step.scrollIntoViewIfNeeded();await expect(step).toBeVisible();expect(await step.evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;})).toBe(true);}
   await summary.focus();await page.keyboard.press('Space');await expect(guide).not.toHaveAttribute('open','');await expect(summary).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
@@ -89,7 +89,7 @@ test('the landing diagram remains static, scrollable and opens at full size with
   try{await context.route('**/*',r=>new URL(r.request().url()).origin===new URL(baseURL).origin&&r.request().method()==='GET'&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());await page.goto('/welcome');
     const figure=page.locator('[data-flow-diagram]'),region=figure.getByRole('region');await expect(figure.locator('[data-diagram-motion]')).toBeHidden();await expect(figure.locator('img')).toHaveAttribute('src','/about-capital-flow-static.svg');
     await region.focus();await page.keyboard.press('ArrowRight');await expect.poll(()=>region.evaluate(e=>e.scrollLeft)).toBeGreaterThan(0);
-    const guide=page.locator('.flow-text-guide'),summary=guide.locator('summary');await summary.focus();await page.keyboard.press('Enter');await expect(guide).toHaveAttribute('open','');await expect(guide.locator('li')).toHaveCount(4);await expect(guide).toContainText('Ranked bonus windows must close');await page.keyboard.press('Space');await expect(guide).not.toHaveAttribute('open','');
+    const guide=page.locator('.flow-text-guide'),summary=guide.locator('summary');await summary.focus();await page.keyboard.press('Enter');await expect(guide).toHaveAttribute('open','');await expect(guide.locator('li')).toHaveCount(4);await expect(guide).toContainText('Daily bonus winners are paid after the day closes');await page.keyboard.press('Space');await expect(guide).not.toHaveAttribute('open','');
     const popupPromise=context.waitForEvent('page');await figure.getByRole('link',{name:/View full diagram/}).click();const popup=await popupPromise;await popup.waitForLoadState();await expect(popup).toHaveURL(/\/about-capital-flow-static\.svg$/);await expect(popup.locator('svg')).toBeVisible();
   }finally{await context.close();}
 });

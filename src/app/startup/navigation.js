@@ -229,7 +229,8 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 884
-  void appState.refreshLaunchTierPricing();
+  // Only Launch and the $FUNDED page show tier prices; other pages skip this slow quote.
+  if (['launch', 'paid'].includes(appState.requestedPageRoute())) void appState.refreshLaunchTierPricing();
   // app-source-end
 
   // app-source: 885
@@ -237,7 +238,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 886
-  appState.createRoutePoller({ run: () => appState.refreshLaunchTierPricing(), active: () => appState.requestedPageRoute() === 'launch', intervalMs: 60_000 });
+  appState.createRoutePoller({ run: () => appState.refreshLaunchTierPricing(), active: () => ['launch', 'paid'].includes(appState.requestedPageRoute()), intervalMs: 60_000 });
   // app-source-end
 
   // app-source: 887
@@ -250,7 +251,15 @@ export async function initializeNavigation(appState) {
 
   // app-source: 889
   // Launch controls stay gated by their verified state while the workspace renders.
-  void appState.refreshFeeRouterConfig();
+  // Only Launch needs this slow readiness check; run it once, when Launch first opens.
+  let launchReadinessRequested = false;
+  const requestLaunchReadiness = () => {
+    if (launchReadinessRequested || appState.requestedPageRoute() !== 'launch') return;
+    launchReadinessRequested = true;
+    void appState.refreshFeeRouterConfig();
+  };
+  requestLaunchReadiness();
+  window.addEventListener('funded:route-change', requestLaunchReadiness);
   // app-source-end
 
   // app-source: 890

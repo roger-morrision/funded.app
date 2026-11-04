@@ -31,3 +31,13 @@ for(const width of [390,1440]){
     await page.screenshot({path:testInfo.outputPath(`activity-${width}.png`)});
   });
 }
+test('the #rewards shared-link alias loads recorded activity',async({page,baseURL})=>{
+  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
+  await page.route('https://**/*',route=>route.request().method()==='GET'&&new URL(route.request().url()).origin===new URL(baseURL).origin?route.continue():route.abort());
+  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Mocked unavailable'}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
+  await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',pending:[],receipts:[{mint,signature:letters[0].repeat(64),status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'1806189',finalizedAt:'2026-10-13T11:06:01.383Z'}]}}));
+  await page.goto('/#rewards');const center=page.locator('#financial-center');
+  await expect(center.locator('.financial-record')).toHaveCount(1);
+  await expect(center.locator('[data-flow-status]')).not.toContainText('Open Rewards');
+});
