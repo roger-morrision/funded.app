@@ -4,6 +4,7 @@ import bs58 from 'bs58';
 import {readProgramDataEvidence,DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
 import {successfulEventLogs} from './product-trade-index.mjs';
 import {decodePumpTrades} from './coin-market.mjs';
+import {completeFinalizedEventReceipt} from './finalized-event-receipt.mjs';
 import {DEVELOPER_TOKEN_LOCK_PROGRAM_ID,DEVELOPER_TOKEN_LOCK_SECONDS,developerLockAddresses,developerLockInstruction,decodeDeveloperTokenLock} from '../developer-token-lock.js';
 
 export async function developerLockConfig({connection,env=process.env,readEvidence=readProgramDataEvidence}) {
@@ -21,6 +22,7 @@ export async function verifyLaunchDeveloperLock({connection,proof,reserve,transa
   if(!config?.ready)throw Error('The approved developer token escrow is unavailable.');
   if(!transaction||transaction.meta?.err!==null||transaction.transaction?.signatures?.[0]!==proof.signature||transaction.slot!==proof.slot)
     throw Error('A finalized launch transaction is required for developer-token verification.');
+  transaction=await completeFinalizedEventReceipt({connection,transaction,signature:proof.signature});
   const mint=new PublicKey(proof.mint),creator=proof.feePayer;
   const trades=successfulEventLogs(transaction.meta.logMessages).filter(e=>e.program===PUMP_PROGRAM_ID.toBase58())
     .flatMap(e=>decodePumpTrades([e.log],mint));

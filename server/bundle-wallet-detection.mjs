@@ -5,6 +5,7 @@ import bs58 from 'bs58';
 import {successfulEventLogs} from './product-trade-index.mjs';
 import {decodePumpTrades} from './coin-market.mjs';
 import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
+import {completeFinalizedEventReceipt} from './finalized-event-receipt.mjs';
 
 export const BUNDLE_SCAN_POLICY=Object.freeze({windowSeconds:60,maxReceipts:24,maxWallets:8,fundingReferences:6,
   fundingReceipts:3,minFundingLamports:'10000000',clusterWallets:3,coordinationSeconds:10});
@@ -80,7 +81,9 @@ export async function scanBundleWallets({connection,launch,excludedFunders=[]}){
   if(selected.length>BUNDLE_SCAN_POLICY.maxReceipts)reasons.add('Early transaction scan limit reached.');
   selected=selected.slice(0,BUNDLE_SCAN_POLICY.maxReceipts);
   const trades=[];
-  for(const ref of selected){try{trades.push(...receiptBuyers(await connection.getTransaction(ref.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),ref,launch.mint));}
+  for(const ref of selected){try{
+    const transaction=await connection.getTransaction(ref.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+    trades.push(...receiptBuyers(await completeFinalizedEventReceipt({connection,transaction,signature:ref.signature}),ref,launch.mint));}
     catch{reasons.add('One or more early trade receipts could not be verified.');}}
   const first=new Map();for(const row of trades)if(!first.has(row.wallet))first.set(row.wallet,row);
   if(first.size>BUNDLE_SCAN_POLICY.maxWallets)reasons.add('Wallet funding scan limit reached.');
