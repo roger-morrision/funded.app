@@ -13,7 +13,8 @@ test('connected wallet can check its airdrop card without a misleading connect p
     { mint, name: 'Funded Clean QA', symbol: 'FCQA', cluster: 'devnet', onchainVerified: true,
       creatorWallet: walletAddress, communityAirdrop: { allocationPercent: 3, reservedTokens: 30_000_000 } },
   ]) }));
-  await page.route('**/api/airdrops/reserves', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ cluster: 'devnet', reserves: [
+  // Explicit wallet checks refresh only this mint, independently of the directory.
+  await page.route('**/api/airdrops/reserves*', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ cluster: 'devnet', reserves: [
     { mint, verified: true, status: 'drop-active', reservedTokens: 30_000_000, expiresAt,
       snapshotHash: 'fixture-snapshot', migrationSlot: 123, leafCount: 13,
       claimedBaseUnits: '0', totalBaseUnits: '30000000000000000' },
@@ -64,7 +65,21 @@ test('connected wallet can check its airdrop card without a misleading connect p
   expect(proofRequests).toBe(1);
   await card.locator('.directory-claim').click();
   await expect(card).toContainText('No allocation');
-  expect(proofRequests).toBe(2);
+  await expect.poll(()=>proofRequests).toBe(2);
+  // Closing the detail while its scoped reserve read is pending must not start
+  // another wallet proof request when that obsolete read completes.
+  let releaseReserve, reserveStarted;
+  const heldReserve = new Promise(resolve => { releaseReserve = resolve; });
+  const reserveEntered = new Promise(resolve => { reserveStarted = resolve; });
+  await page.route(url => url.pathname === '/api/airdrops/reserves' && url.searchParams.has('mint'), async route => {
+    reserveStarted();await heldReserve;await route.fallback();
+  });
+  await card.locator('.directory-claim').click();await reserveEntered;
+  await page.locator('#airdrop-detail-close').click();
+  const completedReserve=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/airdrops/reserves'&&new URL(response.url()).searchParams.has('mint'));
+  releaseReserve();await (await completedReserve).finished();
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await expect(page.locator('#airdrop-selected-program')).toBeHidden();expect(proofRequests).toBe(2);
   await page.locator('#connect-button').click();
   await page.locator('#wallet-popover-disconnect').click();
   await expect(fundedBalance).toBeHidden();

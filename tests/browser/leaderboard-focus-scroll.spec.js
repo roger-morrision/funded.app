@@ -10,6 +10,7 @@ for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link foc
   test.setTimeout(90000);await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/**',r=>{const p=new URL(r.request().url()).pathname;return r.fulfill(p==='/api/fee-policy'?{json:policy}:p==='/api/leaderboard/burners'?{json:{cluster:'devnet',wallets}}:{status:503,json:{error:'Unavailable fixture'}});});
   await page.route('https://**/*',r=>r.abort());await page.goto('/#leaderboard');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);
+  await page.locator('[data-leaderboard-view="burners"]').click();
   const table=page.locator('#leaderboard-table');await expect(table.locator('.leaderboard-row')).toHaveCount(2);
   await expect(page.getByRole('tab',{name:'Wallets',exact:true})).toBeVisible();await expect(page.getByRole('tab',{name:'Projects',exact:true})).toBeVisible();
   await page.screenshot({path:info.outputPath(`rankings-${width}.png`)});
@@ -30,6 +31,13 @@ for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link foc
     },true);
   });
   const observations=[];
+  const settleScroll=async()=>expect(await table.evaluate(t=>new Promise(resolve=>{
+    const nodes=[];for(let n=t;n;n=n.parentElement)nodes.push(n);
+    const began=performance.now();let prior='',stable=began;
+    const tick=()=>{const now=performance.now(),key=JSON.stringify(nodes.map(n=>[n.scrollLeft,n.scrollTop]));
+      if(key!==prior){prior=key;stable=now;}if(now-stable>=100)return resolve(true);
+      if(now-began>1500)return resolve(false);requestAnimationFrame(tick);};requestAnimationFrame(tick);
+  }))).toBe(true);
   async function checkFocus(label){
     await expect.poll(()=>table.locator('a:focus-visible').count()).toBe(1);
     const result=await table.evaluate(async t=>{
@@ -39,9 +47,14 @@ for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link foc
     });
     observations.push({label,...result});await info.attach('native-focus-step-'+label,{body:JSON.stringify({width,label,...result}),contentType:'application/json'});
     expect(result.sameNode&&result.sameName&&result.sameHref,label).toBe(true);expect(result.left,label).toBeGreaterThanOrEqual(result.boundLeft-1);expect(result.right,label).toBeLessThanOrEqual(result.boundRight+1);expect(result.after,label).toBeCloseTo(result.expected,0);expect(result.verticalClear,label).toBe(true);if(result.verticalWasClear)expect(result.verticalUnchanged,label).toBe(true);expect(result.cellTabstops).toBe(0);
+    await settleScroll();
   }
   await page.locator('[data-leaderboard-view="burners"]').focus();await page.keyboard.press('Tab');await expect(page.locator('#leaderboard-panel a.text-button')).toBeFocused();await page.keyboard.press('Tab');await expect(table).toBeFocused();
-  if(width<700){for(let i=0;i<8;i++)await page.keyboard.press('ArrowRight',{delay:60});await page.keyboard.press('ArrowLeft',{delay:100});expect(await table.evaluate(t=>t.scrollLeft)).toBeGreaterThan(0);}
+  if(width<700){for(let i=0;i<8;i++)await page.keyboard.press('ArrowRight',{delay:60});await page.keyboard.press('ArrowLeft',{delay:100});expect(await table.evaluate(t=>t.scrollLeft)).toBeGreaterThan(0);
+    // Native Arrow scrolling animates after keyup. Observe it settling before
+    // attributing the next focus event's horizontal movement to the app.
+    const settled=await table.evaluate(t=>new Promise(resolve=>{const began=performance.now();let left=t.scrollLeft,stable=began;const tick=()=>{const now=performance.now();if(t.scrollLeft!==left){left=t.scrollLeft;stable=now;}if(now-stable>=100)return resolve(true);if(now-began>1500)return resolve(false);requestAnimationFrame(tick);};requestAnimationFrame(tick);}));expect(settled).toBe(true);
+  }
   await page.keyboard.press('Tab');await expect(table.locator('a').first()).toBeFocused();await checkFocus('Actual app mocked Burners: native right/left then Tab');
 
   // Canonical renderer in the already initialized app: deterministic populated
@@ -58,14 +71,14 @@ for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link foc
     },{view,wallet,other,mint,signature,wallets});
     await expect(table.getByRole('columnheader')).toHaveCount(5);await expect(table.locator('.leaderboard-row')).toHaveCount(2);for(const row of await table.locator('.leaderboard-row').all())await expect(row.getByRole('cell')).toHaveCount(5);
     for(const link of await table.locator('a').all()){const box=await link.boundingBox();expect(box.height,`${view} link target height`).toBeGreaterThanOrEqual(44);expect(box.width,`${view} link target width`).toBeGreaterThanOrEqual(44);}
-    await table.focus();await table.evaluate(t=>{t.scrollLeft=t.scrollWidth;});await page.keyboard.press('Tab');await expect(table.locator('a').first()).toBeFocused();await checkFocus(`${view}: first forward Tab from right`);
+    await table.focus();await table.evaluate(t=>{t.scrollLeft=t.scrollWidth;});await settleScroll();await page.keyboard.press('Tab');await expect(table.locator('a').first()).toBeFocused();await checkFocus(`${view}: first forward Tab from right`);
     // No-op for a visible link and native reverse navigation to that same link.
     await page.keyboard.press('Tab');await checkFocus(`${view}: next forward Tab`);await page.keyboard.press('Shift+Tab');await checkFocus(`${view}: first reverse ShiftTab`);
     // Native reverse entry to the final existing link, initially scrolled left.
     await table.evaluate(t=>{let after=document.querySelector('#qa-after-table');if(!after){after=document.createElement('button');after.id='qa-after-table';after.textContent='Fixture after table';t.after(after);}after.focus({preventScroll:true});t.scrollLeft=0;});
-    await page.keyboard.press('Shift+Tab');await expect(table.locator('a').last()).toBeFocused();await checkFocus(`${view}: last reverse ShiftTab from left`);
-    await table.focus();await table.evaluate(t=>{t.scrollLeft=0;});await page.keyboard.press('ArrowRight',{delay:120});if(width<700)expect(await table.evaluate(t=>t.scrollLeft)).toBeGreaterThan(0);else expect(await table.evaluate(t=>t.scrollLeft)).toBe(0);
-    if(view==='traders'&&width<700){
+    await settleScroll();await page.keyboard.press('Shift+Tab');await expect(table.locator('a').last()).toBeFocused();await checkFocus(`${view}: last reverse ShiftTab from left`);
+    await table.focus();await table.evaluate(t=>{t.scrollLeft=0;});await page.keyboard.press('ArrowRight',{delay:120});if(width<700&&view!=='traders')expect(await table.evaluate(t=>t.scrollLeft)).toBeGreaterThan(0);else expect(await table.evaluate(t=>t.scrollLeft)).toBe(0);
+    if(view==='creators'&&width<700){
       await table.evaluate(t=>{t.scrollLeft=0;});await table.scrollIntoViewIfNeeded();
       const box=await table.boundingBox(),session=await page.context().newCDPSession(page),y=box.y+20,start=box.x+box.width-30,end=box.x+30;
       await session.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:start,y}]});
@@ -74,7 +87,7 @@ for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link foc
     }
   }
   // Native tablist keys remain independent of link reveal.
-  const tabs=page.locator('[data-leaderboard-view]');await tabs.first().focus();await page.keyboard.press('End');await expect(tabs.last()).toBeFocused();await page.keyboard.press('Home');await expect(tabs.first()).toBeFocused();await page.keyboard.press('ArrowRight');await expect(page.locator('[data-leaderboard-view="burn-board"]')).toBeFocused();await page.keyboard.press('ArrowLeft');await expect(tabs.first()).toBeFocused();
+  const tabs=page.locator('[data-leaderboard-view]');await tabs.first().focus();await page.keyboard.press('End');await expect(tabs.last()).toBeFocused();await page.keyboard.press('Home');await expect(tabs.first()).toBeFocused();await page.keyboard.press('ArrowRight');await expect(page.locator('[data-leaderboard-view="burners"]')).toBeFocused();await page.keyboard.press('ArrowLeft');await expect(tabs.first()).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)).toBe(false);expect(errors).toEqual([]);
   await info.attach('native-focus-geometry',{body:JSON.stringify({width,label:'Mocked HTTP Burners and canonical four-view renderer fixtures; no live financial or chain proof',observations},null,2),contentType:'application/json'});
 });

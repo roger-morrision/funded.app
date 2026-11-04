@@ -51,7 +51,9 @@ export async function runAgencyCycle({config,store,outbox,connection,authority,p
   const state=await store.read(),mints=Object.values(state.launches||{}).filter(row=>row.cluster==='devnet'
     &&row.pumpFeeRoute?.programId===config.programId&&row.pumpFeeRoute?.protocolSplit?.agencyPercent!==undefined).map(row=>row.mint).sort();
   const heartbeatKey=buybacksOnly?'agencyBuybackWorker':'agencyWorker';
-  const previous=state.adminSettings?.[heartbeatKey]?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,5);
+  const mintLimit=config.mintLimit??5;
+  if(!Number.isInteger(mintLimit)||mintLimit<1||mintLimit>5)throw new Error('Agency cycle mint limit must be between one and five.');
+  const previous=state.adminSettings?.[heartbeatKey]?.lastMint||'',ordered=[...mints.filter(mint=>mint>previous),...mints.filter(mint=>mint<=previous)].slice(0,mintLimit);
   const base={store,outbox,connection,authority,publisher,programId:config.programId,approvedHash:config.approvedHash,
     lookupAddress:config.lookupAddress,readContext,publicOrigin:config.origin},events=[];
   const health=buybacksOnly?agencyBuybackWorkerHealth:agencyWorkerHealth;

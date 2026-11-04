@@ -33,8 +33,8 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('.launch-fixed-distribution [data-fee-category="community"] > strong')).toHaveText(`${bonus}%`);
     await expect(page.locator('.launch-fee-options')).toHaveCount(0);
     await page.evaluate(() => { location.hash = 'payments'; });
-    await expect(page.locator('#payments').getByRole('link', { name:/Daily bonuses/ })).toBeVisible();
-    await expect(page.locator('#payments').getByRole('link', { name:/Daily bonuses/ })).toHaveAttribute('href', '#bonuses');
+    await expect(page.locator('#payments').getByRole('link', { name:'Daily bonuses',exact:true })).toBeVisible();
+    await expect(page.locator('#payments').getByRole('link', { name:'Daily bonuses',exact:true })).toHaveAttribute('href', '#bonuses');
     await expect(page.locator('.reward-upcoming-note')).toContainText('Active automatic routes pay referrals after funding');
     await page.evaluate(() => { location.hash = 'paid'; });
     await expect(page.locator('#paid .app-revenue-grid')).toContainText(`${ops}% of gross fees`);

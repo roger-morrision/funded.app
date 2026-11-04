@@ -54,6 +54,17 @@ for(const width of [360,390,1440])test(`earlier receipts survive unavailable rea
   expect(requests.filter(x=>x.method!=='GET'&&!(x.method==='POST'&&x.path==='/api/solana/rpc'
     &&x.rpcMethods.length&&x.rpcMethods.every(method=>existingReadMethods.has(method))))).toEqual([]);
 });
+test('duplicate route notifications share one agency read while explicit refresh and return still reload',async({page})=>{
+  const requests=await fixture(page,blocked),reads=()=>requests.filter(row=>row.path==='/api/marketing-agency').length;
+  await page.goto('/#marketing-agency');await assertRows(page);await page.locator('body.product-flows-ready').waitFor();
+  const before=reads();
+  await page.evaluate(()=>{window.dispatchEvent(new Event('funded:route-change'));window.dispatchEvent(new Event('hashchange'));});
+  await page.locator('#marketing-agency').getByRole('button',{name:'Refresh',exact:true}).click();
+  await expect.poll(reads).toBe(before+1);await assertRows(page);
+  await page.evaluate(()=>{location.hash='#overview';});await expect(page.locator('#marketing-agency')).toBeHidden();
+  await page.evaluate(()=>{location.hash='#marketing-agency';});await assertRows(page);await expect.poll(reads).toBe(before+2);
+});
+
 test('unavailable and malformed historical context never invents empty or current verified history',async({page})=>{
   let data=blocked();await fixture(page,()=>data);await page.goto('/#marketing-agency');await assertRows(page);
   const refresh=page.locator('#marketing-agency').getByRole('button',{name:'Refresh',exact:true});

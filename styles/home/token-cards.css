@@ -45,7 +45,8 @@ body.page-route-overview .paid-listing-proof:focus-visible { outline: 2px solid 
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card { --home-green: #f4a340; min-width: 0; position: relative; display: flex; flex-direction: column; min-height: 0; padding: 0 0 12px; border: 1px solid #283039; border-radius: 0; background: linear-gradient(180deg, #111820, #0b0e12); cursor: pointer; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card:hover { border-color: #f4a340; background: #111820; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-link { position: absolute; z-index: 1; inset: 0; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card:has(.home-launch-card-link:focus-visible) { outline: 2px solid #ffd28a; outline-offset: 2px; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card:focus-within { overflow: visible; }
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-link:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; border-radius: inherit; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card a:not(.home-launch-card-link),
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card button { position: relative; z-index: 2; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media { position: relative; flex: none; width: calc(100% + 2px); aspect-ratio: 1; height: auto; margin: -1px -1px 9px; overflow: hidden; border-bottom: 2px solid var(--home-green); background: radial-gradient(circle at 50% 40%, #26354d, #111b2e 65%); }

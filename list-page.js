@@ -10,6 +10,7 @@ import { paidListingCardMarkup } from './src/features/home/paid-listing-view.js'
 import { readPendingListing, savePendingListing, clearPendingListing } from './listing-recovery.js';
 
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
+const LISTING_READ_TIMEOUT_MS = 30_000;
 const byId = id => document.getElementById(id);
 
 export function initPaidListing({ getSolana, getConnection, getSession, assertSession, connectWallet, cluster, fundedMint, mainnetReadOnly }) {
@@ -122,6 +123,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
           ? `${lookup.message} No listing payment can be reviewed.`
           : 'Reading the mint and signed metadata from Solana.';
         preview.append(title, note);
+        if (lookup?.mint === mint && lookup.status === 'error') {
+          const retry = document.createElement('button');
+          retry.type = 'button'; retry.className = 'secondary-button';
+          retry.textContent = 'Retry token lookup';
+          retry.addEventListener('click', queueLookup);
+          preview.append(retry);
+        }
       }
     }
     if (payButton) payButton.hidden = !verified || Boolean(existing);
@@ -159,7 +167,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     }
     lookupTimer = setTimeout(async () => {
       try {
-        const result = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(12000) });
+        const result = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(LISTING_READ_TIMEOUT_MS) });
         if (sequence !== lookupSequence || mint !== mintValue()) return;
         if (!result.available || result.data?.cluster !== 'devnet' || result.data.mint !== mint
           || !result.data.name || !result.data.symbol) throw new Error('Verified token metadata is unavailable.');
@@ -231,7 +239,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const mintAccount = await rpc.getAccountInfo(new PublicKey(mint), 'finalized');
       if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID)))
         throw new Error('This mint is not a supported SPL token on Solana.');
-      const listingMetadata = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(12000) });
+      const listingMetadata = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(LISTING_READ_TIMEOUT_MS) });
       if (!listingMetadata.available || listingMetadata.data?.mint !== mint || listingMetadata.data?.cluster !== 'devnet'
         || !listingMetadata.data?.name || !listingMetadata.data?.symbol)
         throw new Error('Verified token metadata is unavailable. No burn was submitted.');
@@ -244,7 +252,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const tokenProgram = fundedAccount.owner;
       const funded = await getMint(rpc, fundedKey, 'confirmed', tokenProgram);
       const quoteResponse = await apiRequest('/api/listings/quote', { method:'POST',
-        body:{ mint, payer:session.address }, signal:AbortSignal.timeout(12000) });
+        body:{ mint, payer:session.address }, signal:AbortSignal.timeout(LISTING_READ_TIMEOUT_MS) });
       const quote = quoteResponse.available ? quoteResponse.data : null;
       if (!listingQuoteCurrent(quote, { mint, payer:session.address, fundedMint:fundedMint, now:Date.now() + 60_000 })
         || quote.decimals !== funded.decimals

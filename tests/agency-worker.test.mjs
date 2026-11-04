@@ -104,6 +104,24 @@ test('paused publisher cannot pin buyback pagination to the first five coins',as
   assert.equal(f.state.adminSettings.agencyBuybackWorker.lastMint,mints[1]);
   assert.equal(f.counts.promotions,0);assert.equal(f.counts.posts,0);
 });
+test('dedicated buyback startup and degraded recovery publish bounded verified cycles without starving later mints',async()=>{
+  const f=fixture(true),mints=Array.from({length:5},(_,i)=>key(110+i).publicKey.toBase58()).sort();
+  f.input.config=agencyBuybackConfig({...env,FUNDED_V3_AGENCY_BUYBACK_ENABLED:'true'},['--loop','--execute']);
+  f.state.launches=Object.fromEntries(mints.map(mint=>[mint,{mint,cluster:'devnet',pumpFeeRoute:{programId,protocolSplit:{agencyPercent:10}}}]));
+  let clock=Date.now();f.input.now=()=>clock;const visited=[],read=f.input.readContext;
+  f.input.milestone=async({mint,agent})=>{clock+=15000;if(agent===1)visited.push(mint);return{status:'awaiting-funding'};};
+  f.input.readContext=async args=>{clock+=20000;return read(args);};
+  for(let cycle=0;cycle<mints.length;cycle++){
+    const start=clock,result=await runAgencyCycle(f.input);
+    assert.equal(result.readinessStatus,'ready');assert.equal(clock-start,50000);
+    assert.equal(f.state.adminSettings.agencyBuybackWorker.lastMint,mints[cycle]);
+  }
+  assert.deepEqual(visited,mints);
+  f.state.adminSettings.agencyBuybackWorker.status='degraded';
+  assert.equal((await runAgencyCycle(f.input)).readinessStatus,'ready');
+  assert.equal(f.state.adminSettings.agencyBuybackWorker.lastMint,mints[0]);
+});
+
 test('unexpected milestone failures degrade readiness; an incomplete migration remains explicitly pending',async()=>{
   const f=fixture(true);f.input.milestone=async({agent})=>{throw Object.assign(new Error('Unavailable'),{code:agent===1?'AGENCY_MARKET_NOT_MIGRATED':'RPC_UNAVAILABLE'});};
   const result=await runAgencyCycle(f.input);assert(result.events.some(row=>row.status==='awaiting-migration'));

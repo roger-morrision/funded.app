@@ -51,7 +51,7 @@ for(const width of[360,390])test(`mobile left drawer traps focus, closes and rea
   await expect(page.locator('.landing-sidebar .brand')).toBeFocused();expect(await page.evaluate(()=>getComputedStyle(document.body).overflow)).not.toBe('hidden');
 });
 
-for(const width of[390,1440])for(const[selector,hash]of[['.hero-actions .primary','#launch'],['.hero-actions .outline','#explore']])test(`landing CTA reaches ${hash} at ${width}px with offline API fixtures`,async({page})=>{
+for(const width of[390,1440])for(const[selector,hash]of[['.hero-actions .primary','#launch'],['.hero-actions a[href="/#explore"]','#explore']])test(`landing CTA reaches ${hash} at ${width}px with offline API fixtures`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/welcome');await page.locator(selector).click();
   await expect(page).toHaveURL(new RegExp('/'+hash+'$'));await page.locator('body.product-flows-ready').waitFor();
   await expect(page.locator(hash==='#launch'?'#launch-form':'#explore')).toBeVisible();

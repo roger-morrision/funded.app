@@ -160,9 +160,8 @@ test('mobile header actions do not overlap and touched controls have usable hit 
 
 test('unavailable feeds stay truthful and retry from Home and both Explore layouts', async ({ page }) => {
   await open(page, 'overview');
-  for (const kind of ['funded', 'coin', 'x']) {
-    await expect(page.locator(`[data-home-reward-grid="${kind}"]`)).toContainText('Verified reward data is unavailable');
-  }
+  await expect(page.locator('#home-launch-grid')).toContainText('Tokens are temporarily unavailable');
+  await expect(page.locator('#home-launch-grid .home-launch-card')).toHaveCount(0);
   async function retry() {
     const button = page.locator('[data-verified-feed-retry]:visible, [data-explore-empty-action="retry"]:visible').first();
     await expect(button).toBeVisible();

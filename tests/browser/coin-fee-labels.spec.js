@@ -53,6 +53,8 @@ function observeCollectionRegion(original, readiness = {}) {
       }
       for (let ancestor = element?.parentElement; ancestor; ancestor = ancestor.parentElement) {
         const css = getComputedStyle(ancestor), r = ancestor.getBoundingClientRect();
+        // display:contents generates no box, so its computed overflow cannot clip descendants.
+        if (css.display === 'contents') continue;
         const clipX = /^(hidden|clip|auto|scroll)$/.test(css.overflowX);
         const clipY = /^(hidden|clip|auto|scroll)$/.test(css.overflowY);
         if (clipX || clipY) {
@@ -238,7 +240,7 @@ test(`Collection region real-loader ${variant} native name and focus ${width}`, 
       const covers700 = weights.length === 1 ? weights[0] === 700 : weights.length === 2 && weights[0] <= 700 && weights[1] >= 700;
       return face.family.replaceAll('"', '').replaceAll("'", '') === 'Manrope' && face.status === 'loaded' && covers700 && face.style === 'normal';
     })).toBe(true);
-    await page.getByRole('button', { name: 'Fee collections', exact: true }).click();
+    await page.getByRole('tab', { name: /^Fee collections/ }).click();
     const tab = page.locator('.coin-tabs [data-coin-tab="payments"]'); await expect(tab).toBeFocused(); await expect(tab).toHaveAttribute('aria-selected', 'true');
     const region = page.getByRole('region', { name: label, exact: true }); await expect(region).toHaveCount(1); await expect(region).toHaveAttribute('tabindex', '0');
     const original = await region.elementHandle(), before = await collectionData(region), reads = { api: f.api.length, rpc: f.rpc.length, ledger: f.ledgerReads };

@@ -9,7 +9,7 @@ const VALUE = 'data-technical-value';
 const VALUE_STYLE = { 'font-size': '0' };
 const VISUALLY_HIDDEN = { position: 'absolute', width: '1px', height: '1px', margin: '-1px', padding: '0',
   overflow: 'hidden', 'clip-path': 'inset(50%)', 'white-space': 'nowrap', border: '0' };
-const SKIP = 'h1, h2, h3, h4, button, a, label, input, select, textarea, summary, option, dialog, kbd, code, [contenteditable], [id$="-error"], .field-error, [role="alert"], #docs, #privacy, #terms, #disclosures, #opt-out, .technical-notice, #preview-launch-cost, [data-launch-protection]';
+const SKIP = 'h1, h2, h3, h4, button, a, label, input, select, textarea, summary, option, dialog, kbd, code, [contenteditable], [id$="-error"], .field-error, .empty-state, [role="alert"], #wizard-hint, #wallet-stat-sol-note, #docs, #privacy, #terms, #disclosures, #opt-out, .technical-notice, #preview-launch-cost, [data-launch-protection]';
 // People's own words (callouts, coin chat) are never reworded; rewording made
 // the callout feed flip between versions on every refresh.
 const JARGON_SKIP = 'input, textarea, select, option, code, kbd, [contenteditable], .callout-text, .coin-chat-messages, [data-user-content], .workspace-network, #docs, #privacy, #terms, #disclosures, #opt-out';
@@ -158,6 +158,24 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
     element.style.removeProperty('--fv-cell-size');
   }
 
+  function styleLine(element) {
+    if (!plainLine(element) || element.closest(SKIP) || element.closest('[data-inline-status]')) {
+      if (element.hasAttribute(HIDDEN)) restore(element);
+      return null;
+    }
+    const valueCell = element.matches(VALUE_CELLS);
+    const kind = classifyTechnicalText(element.textContent, { valueCell });
+    if (!kind) {
+      if (element.hasAttribute(HIDDEN)) restore(element);
+      return null;
+    }
+    element.setAttribute(HIDDEN, kind);
+    if (valueCell && !element.hasAttribute(VALUE)) element.style.setProperty('--fv-cell-size', view.getComputedStyle(element).fontSize);
+    if (valueCell) element.setAttribute(VALUE, '');
+    for (const [property, value] of Object.entries(valueCell ? VALUE_STYLE : VISUALLY_HIDDEN)) element.style.setProperty(property, value);
+    return kind;
+  }
+
   function scan() {
     rewordJargon();
     const groups = { network: new Set(), verification: new Set() };
@@ -171,18 +189,8 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
       // Value cells keep their place and read as "Updating…"; other lines are
       // removed visually but stay available to screen readers. Inline styles
       // outrank the page's route-specific layout rules.
-      const valueCell = element.matches(VALUE_CELLS);
-      const kind = classifyTechnicalText(element.textContent, { valueCell });
-      const styles = valueCell ? VALUE_STYLE : VISUALLY_HIDDEN;
-      if (!kind) {
-        if (element.hasAttribute(HIDDEN)) restore(element);
-        continue;
-      }
-      element.setAttribute(HIDDEN, kind);
-      // "Updating…" keeps the cell's own text size so the layout does not shift.
-      if (valueCell && !element.hasAttribute(VALUE)) element.style.setProperty('--fv-cell-size', view.getComputedStyle(element).fontSize);
-      if (valueCell) element.setAttribute(VALUE, '');
-      for (const [property, value] of Object.entries(styles)) element.style.setProperty(property, value);
+      const kind = styleLine(element);
+      if (!kind) continue;
       // Only report lines from the part of the page the visitor is on.
       if (!element.parentElement || element.parentElement.offsetParent === null) continue;
       const text = element.textContent.trim();
@@ -202,9 +210,16 @@ export function mountTechnicalNotices({ document = globalThis.document, root = d
   // Content replacing a hidden status line shows at once, not after the
   // debounced rescan.
   const observer = new view.MutationObserver(mutations => {
-    for (const { target } of mutations) {
+    for (const { target, addedNodes } of mutations) {
       const element = target.nodeType === 1 ? target : target.parentElement;
-      if (element?.hasAttribute(HIDDEN) && !plainLine(element)) restore(element);
+      if (element?.matches(CANDIDATES)) styleLine(element);
+      // Apply presentation before the next paint. Waiting for the summary's
+      // debounce briefly expands replaced status lines and moves scroll anchors.
+      for (const node of addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches(CANDIDATES)) styleLine(node);
+        for (const child of node.querySelectorAll(CANDIDATES)) styleLine(child);
+      }
     }
     schedule();
   });

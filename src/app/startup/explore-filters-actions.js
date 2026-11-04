@@ -141,9 +141,16 @@ export function initializeExploreFiltersActions(appState) {
     const program = appState.getAirdropPrograms().find(item => item.id === button.dataset.directoryMint);
     if (!program) return;
     openAirdropDetail(program);
-    void appState.loadCommunityReserveStatuses({ mint:program.id });
-    if (appState.connectedWalletAddress && program.claimActive)
-      void appState.checkCommunityClaim(program.id).catch(error => appState.showToast(String(error.message || error)));
+    const wallet = appState.connectedWalletAddress;
+    // The scoped refresh temporarily marks this program as checking. Wait for
+    // it before reading claimActive, without reviving a closed or replaced detail.
+    void appState.loadCommunityReserveStatuses({ mint:program.id }).then(() => {
+      if (wallet && appState.connectedWalletAddress === wallet
+        && !selectedAirdrop.hidden && selectedAirdrop.dataset.mint === program.id
+        && document.body.classList.contains('page-route-airdrops')
+        && appState.getAirdropPrograms().find(item => item.id === program.id)?.claimActive)
+        return appState.checkCommunityClaim(program.id);
+    }).catch(error => appState.showToast(String(error.message || error)));
   });
   // app-source-end
 

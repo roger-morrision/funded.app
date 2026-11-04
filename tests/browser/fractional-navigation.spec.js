@@ -46,10 +46,10 @@ for (const scale of [1.25, 1.5]) {
       };
       await page.goto('/#overview');await clearance('direct Home');
       await page.screenshot({ path: testInfo.outputPath('fractional-home.png') });
-      await page.locator('.primary-nav > a[href="#marketing-agency"]').click();
+      await page.locator('.primary-nav a[href="#marketing-agency"]').click();
       await expect(page.locator('#marketing-agency')).toBeVisible();
       await expect(page.locator('.main-content')).toHaveCSS('margin-left', '220px');
-      await page.locator('.primary-nav > a[href="#overview"]').click();
+      await page.locator('.primary-nav a[href="#overview"]').click();
       await expect(page.locator('body')).toHaveClass(/page-route-overview/);await clearance('native Home');
       await page.reload();await clearance('reloaded Home');
       } finally { await browser.close(); }

@@ -1,4 +1,5 @@
 import {chromium} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../config/protocol-fee-split.js';
 
 // Let Vite finish its first SDK dependency scan before timing user interactions.
 // The warm-up has no wallet and fixtures every API/external request.
@@ -8,7 +9,9 @@ export default async function warmBrowserTests(config){
  const browser=await chromium.launch(config.projects[0].use.launchOptions||{}),context=await browser.newContext();
  try{
   await context.route('https://**/*',route=>route.abort());
-  await context.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Browser dependency warm-up fixture'}}));
+  await context.route('**/api/**',route=>new URL(route.request().url()).pathname==='/api/fee-policy'
+    ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
+    : route.fulfill({status:503,json:{error:'Browser dependency warm-up fixture'}}));
   const page=await context.newPage();
   await page.goto(base+'/#overview',{waitUntil:'domcontentloaded',timeout:120000});
   await page.locator('body.workspace-ready').waitFor({timeout:120000});

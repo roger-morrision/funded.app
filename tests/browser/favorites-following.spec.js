@@ -27,22 +27,22 @@ test('favorite tokens and followed creator wallets persist and can be removed', 
   await page.goto('/#community');
   await expect(page.locator('#followed-wallet-rows .followed-wallet-row')).toHaveCount(1);
   await expect(page.locator('#followed-wallet-rows')).toContainText('Creator');
-  await expect(page.locator('#watchlist-items .saved-token-row')).toHaveCount(1);
+  await expect(page.locator('#watchlist-items :is(.saved-token-row,.home-launch-card)')).toHaveCount(1);
   await page.reload();
   await expect(page.locator('#followed-wallet-rows .followed-wallet-row')).toHaveCount(1);
-  await expect(page.locator('#watchlist-items .saved-token-row')).toHaveCount(1);
+  await expect(page.locator('#watchlist-items :is(.saved-token-row,.home-launch-card)')).toHaveCount(1);
 
   await page.locator('#followed-wallet-rows [data-unfollow-wallet]').click();
   await expect(page.locator('#followed-wallet-rows .followed-wallet-row')).toHaveCount(0);
   await page.locator('#watchlist-items .watch-button').click();
-  await expect(page.locator('#watchlist-items .saved-token-row')).toHaveCount(0);
+  await expect(page.locator('#watchlist-items :is(.saved-token-row,.home-launch-card)')).toHaveCount(0);
 });
 
 // FQA-054 reopened functional scope: deterministic local data, actual bootstrap/native input.
 const favoriteMints = [mint, 'So11111111111111111111111111111111111111112', '9BoQNeD7MUN7Rs9x1oZS3pc3JXu9AJ8Gb89sPcGGXH2w'];
-const favoriteRows = '#watchlist-items > .saved-token-row';
-const favoriteIdentity = '#watchlist-items .saved-token-identity > a';
-const favoriteView = '#watchlist-items .saved-token-view';
+const favoriteRows = '#watchlist-items > :is(.saved-token-row,.home-launch-card)';
+const favoriteIdentity = '#watchlist-items :is(.saved-token-identity > a,.home-launch-card-link)';
+const favoriteView = '#watchlist-items :is(.saved-token-view,.card-review-buy)';
 const favoriteRefresh = '#watchlist-sync-retry';
 function favoriteGate() {
   let start, release, done;
@@ -206,7 +206,7 @@ function observeFavoriteFocus(original, readiness = {}) {
         }
       }
       const position = rect && { top:rect.top, bottom:rect.bottom, left:rect.left, right:rect.right };
-      const ready = (!readiness.text || element.closest('.saved-token-row')?.textContent.includes(readiness.text))
+      const ready = (!readiness.text || element.closest(':is(.saved-token-row,.home-launch-card)')?.textContent.includes(readiness.text))
         && (readiness.count == null || document.querySelector('#watchlist-items').children.length === readiness.count)
         && (!readiness.avatar || window.__favoriteObservation.oldAvatar?.isConnected === false);
       const clear = Boolean(ready && element.isConnected && rect && cornersClear && element === document.activeElement && element.matches(':focus-visible')
@@ -231,7 +231,7 @@ function observeFavoriteFocus(original, readiness = {}) {
 
 async function armFavorite(original, readiness = {}) {
   await original.evaluate((element,{source,readiness})=>{
-    const row=element.closest('.saved-token-row'),state=window.__favoriteObservation={original:element,row,oldAvatar:row?.querySelector('.portfolio-token-avatar'),began:performance.now(),removed:false,events:[]};
+    const row=element.closest(':is(.saved-token-row,.home-launch-card)'),state=window.__favoriteObservation={original:element,row,oldAvatar:row?.querySelector(':is(.portfolio-token-avatar,.home-token-avatar)'),began:performance.now(),removed:false,events:[]};
     const mutations=new MutationObserver(records=>{for(const record of records)for(const removed of record.removedNodes)if(removed===element||removed.contains?.(element))state.removed=true;});
     mutations.observe(document.querySelector('#watchlist-items'),{childList:true,subtree:true});
     const changed=event=>state.events.push({at:performance.now(),original:event.target===element,tag:event.target.tagName,id:event.target.id});document.addEventListener('focusin',changed,true);
@@ -252,7 +252,7 @@ async function nativeFavorite(page,selector,info,label){
   }
   expect(next).toBe(true);await armFavorite(original);await page.keyboard.press('Tab');await favoriteProof(page,info,label,{native:true});return original;
 }
-const favoriteCard = (mint=favoriteMints[0])=>`#watchlist-items .saved-token-row[data-mint="${mint}"]`;
+const favoriteCard = (mint=favoriteMints[0])=>`#watchlist-items :is(.saved-token-row,.home-launch-card)[data-mint="${mint}"]`;
 async function retainedFavorite(page,original,info,label,release,readiness={}){await armFavorite(original,readiness);release();await favoriteProof(page,info,label);}
 async function favoriteImage(page,info,label){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath(label+'.png')});}
 test.describe('FQA-054 preserved Favorites controls',()=>{
@@ -260,17 +260,17 @@ test.describe('FQA-054 preserved Favorites controls',()=>{
   test.afterEach(async({page})=>{await page.close();}); // After all assertions and fixture finalization, before context tracing closure.
   for(const width of[390,1440]){
     for(const role of['identity','view'])test(`ordinary initial reserve completion retains original ${role} and native action at${width}`,async({page},info)=>{
-      const f=await favoriteFixture(page,width);try{await f.open();const selector=favoriteCard()+(role==='identity'?' .saved-token-identity > a':' .saved-token-view'),original=await nativeFavorite(page,selector,info,'original-native-'+role);
-        const nodes=await original.evaluateHandle(element=>{const row=element.closest('.saved-token-row');return{row,original:element,identity:row.querySelector('.saved-token-identity>a'),view:row.querySelector('.saved-token-view'),actions:[...row.querySelectorAll('.saved-token-actions>button')]};});
+      const f=await favoriteFixture(page,width);try{await f.open();const selector=favoriteCard()+(role==='identity'?' :is(.saved-token-identity > a,.home-launch-card-link)':' :is(.saved-token-view,.card-review-buy)'),original=await nativeFavorite(page,selector,info,'original-native-'+role);
+        const nodes=await original.evaluateHandle(element=>{const row=element.closest(':is(.saved-token-row,.home-launch-card)');return{row,original:element,identity:row.querySelector(':is(.saved-token-identity>a,.home-launch-card-link)'),view:row.querySelector(':is(.saved-token-view,.card-review-buy)'),actions:[...row.querySelectorAll(':is(.saved-token-actions,.home-launch-card-actions)>button')]};});
         await retainedFavorite(page,original,info,'ordinary-completion-original-'+role,()=>f.releaseInitial(),{avatar:true});
-        expect(await nodes.evaluate(s=>s.row.isConnected&&s.original.isConnected&&s.row.querySelector('.saved-token-identity>a')===s.identity&&s.row.querySelector('.saved-token-view')===s.view&&s.actions.every(button=>button.isConnected&&button.closest('.saved-token-row')===s.row))).toBe(true);
+        expect(await nodes.evaluate(s=>s.row.isConnected&&s.original.isConnected&&s.row.querySelector(':is(.saved-token-identity>a,.home-launch-card-link)')===s.identity&&s.row.querySelector(':is(.saved-token-view,.card-review-buy)')===s.view&&s.actions.every(button=>button.isConnected&&button.closest(':is(.saved-token-row,.home-launch-card)')===s.row))).toBe(true);
         await expect(page.locator('#watch-count')).toHaveText('2 favorites');await favoriteImage(page,info,'ordinary-'+role+'-'+width);
-        await page.keyboard.press('Enter');await expect(page).toHaveURL(new RegExp('/token/'+favoriteMints[0]+'$'));await page.goBack();await expect(page).toHaveURL(/#community$/);await expect(page.locator(favoriteIdentity)).toHaveCount(2);
+        await page.keyboard.press('Enter');await expect(page).toHaveURL(new RegExp('/token/'+favoriteMints[0]+(role==='view'?'\\?reviewBuy=0\\.1':'')+'$'));await page.goBack();await expect(page).toHaveURL(/#community$/);await expect(page.locator(favoriteIdentity)).toHaveCount(2);
       }finally{await f.finish(info);}
     });
     test(`same-account insertion reorder and removal preserve role identity and fallback at${width}`,async({page},info)=>{
-      const f=await favoriteFixture(page,width,{account:true,registry:favoriteMints});try{await f.open();f.releaseInitial();const original=await nativeFavorite(page,favoriteCard()+' .saved-token-view',info,'account-view-entry');
-        const row=await original.evaluateHandle(element=>element.closest('.saved-token-row'));const gate=f.hold('watchGate');await page.locator(favoriteRefresh).click();await gate.started;await nativeFavorite(page,favoriteCard()+' .saved-token-view',info,'account-reacquire-before-read');
+      const f=await favoriteFixture(page,width,{account:true,registry:favoriteMints});try{await f.open();f.releaseInitial();const original=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-view,.card-review-buy)',info,'account-view-entry');
+        const row=await original.evaluateHandle(element=>element.closest(':is(.saved-token-row,.home-launch-card)'));const gate=f.hold('watchGate');await page.locator(favoriteRefresh).click();await gate.started;await nativeFavorite(page,favoriteCard()+' :is(.saved-token-view,.card-review-buy)',info,'account-reacquire-before-read');
         await original.evaluate(element=>{
           const measure=target=>{
             const r=target.getBoundingClientRect(),css=getComputedStyle(target),root=getComputedStyle(document.documentElement),edge=(parseFloat(css.outlineWidth)||0)+(parseFloat(css.outlineOffset)||0);
@@ -296,7 +296,7 @@ test.describe('FQA-054 preserved Favorites controls',()=>{
         await info.attach('account-reorder-visibility-recovery',{body:JSON.stringify(geometry,null,2),contentType:'application/json'});expect(geometry.before.active&&geometry.before.connected&&geometry.after.active&&geometry.after.connected).toBe(true);expect(geometry.before.fullOutlineWithinBounds&&geometry.after.fullOutlineWithinBounds).toBe(true);expect(geometry.nativeInputs).toEqual([]);
         if(width===390){expect(geometry.documentDownwardDisplacement).toBeGreaterThan(0);expect(geometry.scrollDeltaY).toBeGreaterThan(0);expect(geometry.hypotheticalPaintedBottomAtPriorScroll).toBeGreaterThan(geometry.after.bounds.bottom);}
         expect(await row.evaluate(element=>element.isConnected&&element===document.querySelector('#watchlist-items').children[2])).toBe(true);expect(await page.locator(favoriteRows).evaluateAll(rows=>rows.map(row=>row.dataset.mint))).toEqual(f.lists['123']);
-        const remove=f.hold('watchGate');await page.locator(favoriteRefresh).click();await remove.started;await nativeFavorite(page,favoriteCard()+' .saved-token-view',info,'account-before-removal');f.lists['123']=[favoriteMints[1]];
+        const remove=f.hold('watchGate');await page.locator(favoriteRefresh).click();await remove.started;await nativeFavorite(page,favoriteCard()+' :is(.saved-token-view,.card-review-buy)',info,'account-before-removal');f.lists['123']=[favoriteMints[1]];
         const fallback=await page.locator(favoriteRefresh).elementHandle();await armFavorite(fallback,{count:1});remove.release();const proof=await favoriteProof(page,info,'account-removed-to-refresh',{retained:false});expect(proof.events.filter(event=>event.original)).toHaveLength(1);expect(await original.evaluate(element=>element.isConnected)).toBe(false);
         await expect(page.locator('#watch-count')).toHaveText('1 favorite');await favoriteImage(page,info,'account-insert-remove-'+width);
       }finally{await f.finish(info);}
@@ -306,28 +306,28 @@ test.describe('FQA-054 preserved Favorites controls',()=>{
       const observed=request=>{if(new URL(request.url()).pathname==='/api/pump/explore')feedStarts.push({request,id:feedStarts.length+1,url:request.url(),method:request.method(),startedAt:Date.now()});};
       const responded=response=>{const item=feedStarts.find(item=>item.request===response.request());if(item)item.status=response.status();};
       const aborted=request=>{const item=feedStarts.find(item=>item.request===request);if(item)item.failure=request.failure()?.errorText;};page.on('request',observed);page.on('response',responded);page.on('requestfailed',aborted);
-      try{await f.open();f.releaseInitial();await expect(page.locator(favoriteCard()+' .saved-token-metrics')).not.toContainText('MC unavailable');
-        const before=await page.locator(favoriteCard()+' .saved-token-metrics strong').allTextContents();expect(before[0]).not.toBe('$—');
+      try{await f.open();f.releaseInitial();await expect(page.locator(favoriteCard()+' :is(.saved-token-metrics,.home-launch-card-stats)')).not.toContainText('MC unavailable');
+        const before=await page.locator(favoriteCard()+' :is(.saved-token-metrics,.home-launch-card-stats) strong').allTextContents();expect(before[0]).not.toBe('$—');
         const currentURL=page.url(),grow=f.hold('watchGate');
         const [growthRequest]=await Promise.all([page.waitForRequest(request=>request.method()==='GET'&&new URL(request.url()).pathname==='/api/watchlist'&&new URL(request.url()).searchParams.get('accountId')==='123',{timeout:15000}),page.locator(favoriteRefresh).click()]);
         await expect.poll(()=>f.watchGate).toBeUndefined();f.lists['123']=[...favoriteMints];grow.release();await expect(page.locator(favoriteRows)).toHaveCount(3);growth={url:growthRequest.url(),method:growthRequest.method(),mints:[...f.lists['123']]};
-        const retrySelector=`#watchlist-items .watchlist-unavailable [data-watch-retry="${favoriteMints[2]}"]`;await expect(page.locator(retrySelector)).toBeEnabled();expect(await page.locator(favoriteCard()+' .saved-token-metrics strong').allTextContents()).toEqual(before);
+        const retrySelector=`#watchlist-items .watchlist-unavailable [data-watch-retry="${favoriteMints[2]}"]`;await expect(page.locator(retrySelector)).toBeEnabled();expect(await page.locator(favoriteCard()+' :is(.saved-token-metrics,.home-launch-card-stats) strong').allTextContents()).toEqual(before);
         const retry=await nativeFavorite(page,retrySelector,info,'third-unavailable-native-retry'),gate=f.hold('feedGate'),priorCount=feedStarts.length;
         await retry.evaluate(element=>{window.__marketRetryEnter=undefined;element.addEventListener('keydown',event=>{window.__marketRetryEnter={key:event.key,trusted:event.isTrusted,exactTarget:event.target===element,mint:element.dataset.watchRetry,at:Date.now()};},{once:true,capture:true,passive:true});});
         const [marketRequest]=await Promise.all([page.waitForRequest(request=>request.method()==='GET'&&new URL(request.url()).pathname==='/api/pump/explore',{timeout:15000}),(async()=>{await page.keyboard.press('Enter');trustedEnter=await page.evaluate(()=>window.__marketRetryEnter);})()]);
         await expect.poll(()=>f.feedGate).toBeUndefined();expect(feedStarts).toHaveLength(priorCount+1);held=feedStarts.at(-1);expect(held.request).toBe(marketRequest);expect(trustedEnter).toMatchObject({key:'Enter',trusted:true,exactTarget:true,mint:favoriteMints[2]});expect(held.startedAt).toBeGreaterThanOrEqual(trustedEnter.at);expect(held.failure).toBeUndefined();expect(held.request.failure()).toBeNull();expect(page.url()).toBe(currentURL);
-        const original=await nativeFavorite(page,favoriteCard()+' .saved-token-identity>a',info,'market-before-update');const controls=await page.locator(favoriteCard()).evaluateHandle(row=>({row,controls:[...row.querySelectorAll('a,button')]}));
+        const original=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-identity>a,.home-launch-card-link)',info,'market-before-update');const controls=await page.locator(favoriteCard()).evaluateHandle(row=>({row,controls:[...row.querySelectorAll('a,button')]}));
         eligibility=await original.evaluate(element=>{const root=document.querySelector('#community');return{active:document.activeElement===element,connected:element.isConnected,focusVisible:element.matches(':focus-visible'),foreground:document.hasFocus()&&!document.hidden,favorites:location.hash==='#community'&&root?.isConnected&&!root.hidden&&root.getClientRects().length>0&&getComputedStyle(root).visibility==='visible'};});expect(Object.values(eligibility).every(Boolean)).toBe(true);
         f.marketVersion=1;const [response]=await Promise.all([page.waitForResponse(response=>response.request()===held.request,{timeout:15000}),retainedFavorite(page,original,info,'market-changed-current-content',()=>gate.release(),{text:'Market 1 token 0'})]);
         expect(response.status()).toBe(200);expect(held.request.failure()).toBeNull();payload=await response.json();expect(payload.items[0].name).toBe('Market 1 token 0');expect(payload.items[0].symbol).toBe('M10');
-        const after=await page.locator(favoriteCard()+' .saved-token-metrics strong').allTextContents();expect(after[0]).not.toBe(before[0]);
-        expect(await controls.evaluate(s=>s.row.isConnected&&s.controls.every(control=>control.isConnected&&control.closest('.saved-token-row')===s.row))).toBe(true);
+        const after=await page.locator(favoriteCard()+' :is(.saved-token-metrics,.home-launch-card-stats) strong').allTextContents();expect(after[0]).not.toBe(before[0]);
+        expect(await controls.evaluate(s=>s.row.isConnected&&s.controls.every(control=>control.isConnected&&control.closest(':is(.saved-token-row,.home-launch-card)')===s.row))).toBe(true);
         await expect(page.locator(favoriteCard()+' [data-share-mint]')).toHaveAttribute('data-share-name','Market 1 token 0');await expect(page.locator(favoriteCard()+' [data-share-mint]')).toHaveAttribute('data-share-symbol','M10');
-        await expect(page.locator(favoriteCard()+' [data-trade-mint]')).toHaveAttribute('data-trade-mint',favoriteMints[0]);await favoriteImage(page,info,'market-data-current-'+width);
+        await expect(page.locator(favoriteCard()+' .card-review-buy')).toHaveAttribute('href','/token/'+favoriteMints[0]+'?reviewBuy=0.1');await favoriteImage(page,info,'market-data-current-'+width);
       }finally{page.off('request',observed);page.off('response',responded);page.off('requestfailed',aborted);await info.attach('explicit-market-retry-lineage',{body:JSON.stringify({trigger:'Existing native Retry check; explicit user read, not scheduled polling',growth,requests:feedStarts.map(({request,...record})=>record),heldId:held?.id,trustedEnter,eligibility,payload},null,2),contentType:'application/json'});await f.finish(info);}
     });
     test(`native guest remove and verified-unavailable-recovery do not freeze old controls at${width}`,async({page},info)=>{
-      const f=await favoriteFixture(page,width);try{await f.open();f.releaseInitial();let gate=await f.registryRefresh();const original=await nativeFavorite(page,favoriteCard()+' .saved-token-identity>a',info,'before-kind-loss');
+      const f=await favoriteFixture(page,width);try{await f.open();f.releaseInitial();let gate=await f.registryRefresh();const original=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-identity>a,.home-launch-card-link)',info,'before-kind-loss');
         f.registry=[];const fallback=await page.locator(favoriteRefresh).elementHandle();await armFavorite(fallback);gate.release();await favoriteProof(page,info,'verified-kind-loss-fallback',{retained:false});expect(await original.evaluate(element=>element.isConnected)).toBe(false);
         await expect(page.locator('#watchlist-items .watchlist-unavailable')).toHaveCount(2);await expect(page.locator('#watchlist-items')).not.toContainText('Controlled favorite');
         const retrySelector=`#watchlist-items [data-watch-retry="${favoriteMints[0]}"]`,retry=await nativeFavorite(page,retrySelector,info,'unavailable-retry-entry');
@@ -335,29 +335,29 @@ test.describe('FQA-054 preserved Favorites controls',()=>{
         gate=f.hold('registryGate');await page.locator(retrySelector).click();await gate.started;f.registry=favoriteMints.slice(0,2).map((mint,index)=>({mint,cluster:'devnet',onchainVerified:true,creatorWallet:creator,name:'Recovered '+index,symbol:'R'+index}));gate.release();
         await expect(page.locator(favoriteIdentity)).toHaveCount(2);const remove=await nativeFavorite(page,favoriteCard()+' .watch-button',info,'native-guest-remove');await armFavorite(fallback,{count:1});await page.keyboard.press('Enter');await favoriteProof(page,info,'guest-remove-recovery-control',{retained:false});expect(await remove.evaluate(element=>element.isConnected)).toBe(false);
         expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('funded.app.watchlist.guest.v1')).mints)).toEqual([favoriteMints[1]]);
-        await nativeFavorite(page,favoriteCard(favoriteMints[1])+' .saved-token-view',info,'remaining-mint-native-entry');await page.keyboard.press('Enter');await expect(page).toHaveURL(new RegExp('/token/'+favoriteMints[1]+'$'));await page.goBack();await expect(page).toHaveURL(/#community$/);
+        await nativeFavorite(page,favoriteCard(favoriteMints[1])+' :is(.saved-token-view,.card-review-buy)',info,'remaining-mint-native-entry');await page.keyboard.press('Enter');await expect(page).toHaveURL(new RegExp('/token/'+favoriteMints[1]+'\\?reviewBuy=0\\.1$'));await page.goBack();await expect(page).toHaveURL(/#community$/);
       }finally{await f.finish(info);}
     });
     for(const outcome of['success','failure'])test(`obsolete logo ${outcome} cannot change retained current row or focus at${width}`,async({page},info)=>{
       const f=await favoriteFixture(page,width,{oldLogo:true});try{await f.open();f.releaseInitial();await expect.poll(()=>f.logoGates.length).toBeGreaterThan(0);
-        const oldAvatar=await page.locator(favoriteCard()+' .portfolio-token-avatar').elementHandle();const gate=await f.registryRefresh();const original=await nativeFavorite(page,favoriteCard()+' .saved-token-view',info,'logo-original-entry');
+        const oldAvatar=await page.locator(favoriteCard()+' :is(.portfolio-token-avatar,.home-token-avatar)').elementHandle();const gate=await f.registryRefresh();const original=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-view,.card-review-buy)',info,'logo-original-entry');
         f.registry=f.registry.map(record=>({...record,imageUri:null,name:'Current artwork owner'}));await retainedFavorite(page,original,info,'fresh-avatar-current-owner',()=>gate.release(),{text:'Current artwork owner',avatar:true});
-        expect(await oldAvatar.evaluate(element=>element.isConnected)).toBe(false);const image=page.locator(favoriteCard()+' .portfolio-token-avatar img');await expect(image).toHaveAttribute('src','/devnet-images/'+favoriteMints[0]);await expect.poll(()=>image.evaluate(element=>element.complete&&element.naturalWidth>0)).toBe(true);
+        expect(await oldAvatar.evaluate(element=>element.isConnected)).toBe(false);const image=page.locator(favoriteCard()+' :is(.portfolio-token-avatar,.home-token-avatar) img');await expect(image).toHaveAttribute('src','/devnet-images/'+favoriteMints[0]);await expect.poll(()=>image.evaluate(element=>element.complete&&element.naturalWidth>0)).toBe(true);
         const currentAvatar=await image.evaluateHandle(element=>element.parentElement);await armFavorite(original);f.oldLogoFailure=outcome==='failure';f.oldLogoReleased=true;f.logoGates.forEach(held=>held.release());await Promise.all(f.logoGates.map(held=>held.completed));
-        await favoriteProof(page,info,'obsolete-logo-completion-original-still-owned');expect(await currentAvatar.evaluate(element=>element.isConnected&&element===document.querySelector('#watchlist-items .portfolio-token-avatar'))).toBe(true);await expect(image).toHaveAttribute('src','/devnet-images/'+favoriteMints[0]);await favoriteImage(page,info,'obsolete-logo-'+outcome+'-'+width);
+        await favoriteProof(page,info,'obsolete-logo-completion-original-still-owned');expect(await currentAvatar.evaluate(element=>element.isConnected&&element===document.querySelector('#watchlist-items :is(.portfolio-token-avatar,.home-token-avatar)'))).toBe(true);await expect(image).toHaveAttribute('src','/devnet-images/'+favoriteMints[0]);await favoriteImage(page,info,'obsolete-logo-'+outcome+'-'+width);
       }finally{await f.finish(info);}
     });
     test(`header or another row route and account leave prevent stale focus transfer at${width}`,async({page},info)=>{
-      const f=await favoriteFixture(page,width,{account:true});try{await f.open();const original=await nativeFavorite(page,favoriteCard()+' .saved-token-identity>a',info,'before-user-leave');
-        const other=await nativeFavorite(page,favoriteCard(favoriteMints[1])+' .saved-token-view',info,'other-row-current-owner');await retainedFavorite(page,other,info,'initial-completion-keeps-other-row',()=>f.releaseInitial(),{avatar:true});
+      const f=await favoriteFixture(page,width,{account:true});try{await f.open();const original=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-identity>a,.home-launch-card-link)',info,'before-user-leave');
+        const other=await nativeFavorite(page,favoriteCard(favoriteMints[1])+' :is(.saved-token-view,.card-review-buy)',info,'other-row-current-owner');await retainedFavorite(page,other,info,'initial-completion-keeps-other-row',()=>f.releaseInitial(),{avatar:true});
         const held=f.hold('watchGate');await page.locator(favoriteRefresh).click();await held.started;const header=await page.locator(favoriteRefresh).elementHandle();f.lists['123']=[];held.release();await expect(page.locator(favoriteRows)).toHaveCount(0);expect(await header.evaluate(element=>element.isConnected&&document.activeElement===element)).toBe(true);
         let gate=f.hold('watchGate');await page.locator(favoriteRefresh).click();await gate.started;f.lists['123']=favoriteMints.slice(0,2);gate.release();await expect(page.locator(favoriteIdentity)).toHaveCount(2);
-        const accountA=await nativeFavorite(page,favoriteCard()+' .saved-token-view',info,'accountA-before-swap');const old=f.hold('watchGate');await page.locator(favoriteRefresh).click();await old.started;f.identity='456';await page.locator(favoriteRefresh).click();await expect(page.locator(favoriteRows)).toHaveCount(0);
+        const accountA=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-view,.card-review-buy)',info,'accountA-before-swap');const old=f.hold('watchGate');await page.locator(favoriteRefresh).click();await old.started;f.identity='456';await page.locator(favoriteRefresh).click();await expect(page.locator(favoriteRows)).toHaveCount(0);
         const accountB=f.hold('watchGate');old.release();await old.completed;await accountB.started;accountB.release();await expect(page.locator(favoriteIdentity)).toHaveCount(2);expect(await accountA.evaluate(element=>element.isConnected)).toBe(false);expect(await header.evaluate(element=>document.activeElement===element)).toBe(true);
-        const beforeChecking=await nativeFavorite(page,favoriteCard()+' .saved-token-view',info,'before-checking-owner');f.identity='checking';await page.locator(favoriteRefresh).click();await expect(page.locator(favoriteRows)).toHaveCount(0);expect(await beforeChecking.evaluate(element=>element.isConnected)).toBe(false);expect(await header.evaluate(element=>document.activeElement===element)).toBe(true);
+        const beforeChecking=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-view,.card-review-buy)',info,'before-checking-owner');f.identity='checking';await page.locator(favoriteRefresh).click();await expect(page.locator(favoriteRows)).toHaveCount(0);expect(await beforeChecking.evaluate(element=>element.isConnected)).toBe(false);expect(await header.evaluate(element=>document.activeElement===element)).toBe(true);
         f.identity='guest';await page.locator(favoriteRefresh).click();await expect(page.locator('#community .section-state')).toHaveText('Sign in to sync');await expect(page.locator(favoriteRows)).toHaveCount(0);expect(await header.evaluate(element=>document.activeElement===element)).toBe(true);
         f.identity='456';const restored=f.hold('watchGate');await page.locator(favoriteRefresh).click();await restored.started;restored.release();await expect(page.locator(favoriteIdentity)).toHaveCount(2);expect(await beforeChecking.evaluate(element=>element.isConnected)).toBe(false);
-        const leaving=await nativeFavorite(page,favoriteCard()+' .saved-token-view',info,'before-route-leave');gate=f.hold('watchGate');await page.locator(favoriteRefresh).click();await gate.started;await f.home();const outside=await page.evaluateHandle(()=>document.activeElement);f.lists['456']=[];gate.release();await expect(page.locator(favoriteRows)).toHaveCount(0);expect(await leaving.evaluate(element=>element.isConnected)).toBe(false);expect(await outside.evaluate(element=>element.isConnected&&document.activeElement===element)).toBe(true);
+        const leaving=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-view,.card-review-buy)',info,'before-route-leave');gate=f.hold('watchGate');await page.locator(favoriteRefresh).click();await gate.started;await f.home();const outside=await page.evaluateHandle(()=>document.activeElement);f.lists['456']=[];gate.release();await expect(page.locator(favoriteRows)).toHaveCount(0);expect(await leaving.evaluate(element=>element.isConnected)).toBe(false);expect(await outside.evaluate(element=>element.isConnected&&document.activeElement===element)).toBe(true);
         expect(await original.evaluate(element=>element.isConnected)).toBe(false);await favoriteImage(page,info,'route-account-owner-leave-'+width);
       }finally{await f.finish(info);}
     });
@@ -375,7 +375,7 @@ test.describe('FQA-054 deliberately offscreen retained owner',()=>{
       await f.open();f.releaseInitial();
       const grow=f.hold('watchGate');await page.locator(favoriteRefresh).click();await grow.started;f.lists['123']=mints;grow.release();await expect(page.locator(favoriteRows)).toHaveCount(mints.length);
       const held=f.hold('watchGate');await page.locator(favoriteRefresh).click();await held.started;
-      const original=await nativeFavorite(page,favoriteCard(mints.at(-1))+' .saved-token-view',info,'last-row-native-before-wheel');
+      const original=await nativeFavorite(page,favoriteCard(mints.at(-1))+' :is(.saved-token-view,.card-review-buy)',info,'last-row-native-before-wheel');
       expect(await page.evaluate(()=>scrollY)).toBeGreaterThan(0);
       await page.evaluate(()=>{window.__favoriteNativeWheel=[];window.addEventListener('wheel',event=>window.__favoriteNativeWheel.push({trusted:event.isTrusted,deltaY:event.deltaY}),{capture:true,passive:true,once:true});});
       await page.mouse.move(width/2,200);await page.mouse.wheel(0,-20000);await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);
@@ -383,7 +383,7 @@ test.describe('FQA-054 deliberately offscreen retained owner',()=>{
       expect(before.active&&before.connected&&before.focusVisible).toBe(true);expect(before.top).toBeGreaterThan(before.height);expect(before.wheel).toEqual([{trusted:true,deltaY:-20000}]);
       const expected=[mints[1],mints[0],...mints.slice(2)];
       await original.evaluate((element,{expected})=>{
-        const row=element.closest('.saved-token-row'),avatar=row.querySelector('.portfolio-token-avatar'),start=performance.now(),x=scrollX,y=scrollY;
+        const row=element.closest(':is(.saved-token-row,.home-launch-card)'),avatar=row.querySelector(':is(.portfolio-token-avatar,.home-token-avatar)'),start=performance.now(),x=scrollX,y=scrollY;
         const state=window.__favoriteWheelObservation={events:[],samples:[],removed:false};
         const focus=event=>state.events.push({original:event.target===element,tag:event.target.tagName,id:event.target.id});document.addEventListener('focusin',focus,true);
         const mutations=new MutationObserver(records=>{for(const record of records)for(const removed of record.removedNodes)if(removed===element||removed.contains?.(element))state.removed=true;});mutations.observe(document.querySelector('#watchlist-items'),{childList:true,subtree:true});
@@ -677,7 +677,7 @@ for(const width of[390,1440])test(`FQA-082 one activation preserves leaderboard 
     await page.goto('/#community');await following082Ready(page);evidence.fonts=await following082Fonts(page);await watch.settle();
     await expect(page.locator('#open-menu')).toHaveAttribute('aria-expanded','false');const link=await following082Anchor(page),original=await link.elementHandle();evidence.documents.beforeWallet=await page.evaluate(()=>({timeOrigin:performance.timeOrigin,url:location.href,navigationType:performance.getEntriesByType('navigation')[0]?.type||null}));
     await following082Focus(page,original,evidence.proofs);await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#leaderboard$/);await expect(page.locator('[data-leaderboard-view="burners"]')).toHaveAttribute('aria-selected','true');
+    await expect(page).toHaveURL(/#leaderboard$/);await expect(page.locator('[data-leaderboard-view="traders"]')).toHaveAttribute('aria-selected','true');await page.locator('[data-leaderboard-view="burners"]').click();
     const profile=page.locator('#leaderboard-table a[href="/wallet/'+creator+'"]');await expect(profile).toHaveCount(1);await watch.settle();
     if(width<700)await profile.tap();else await profile.click();await expect(page).toHaveURL(new RegExp('/wallet/'+creator+'$'));await expect(page.locator('#wallet-page')).toBeVisible();await expect(page.locator('#wallet-page-address')).toHaveText(creator);evidence.documents.wallet=await page.evaluate(()=>({timeOrigin:performance.timeOrigin,url:location.href,navigationType:performance.getEntriesByType('navigation')[0]?.type||null}));
     await watch.settle();await page.goBack();await expect(page).toHaveURL(/#leaderboard$/);await expect(page.locator('#leaderboard-table')).toBeVisible();evidence.documents.leaderboardAfterWalletBack=await page.evaluate(()=>({timeOrigin:performance.timeOrigin,url:location.href,navigationType:performance.getEntriesByType('navigation')[0]?.type||null}));
@@ -687,7 +687,7 @@ for(const width of[390,1440])test(`FQA-082 one activation preserves leaderboard 
     await page.goBack();await expect(page).toHaveURL(/#community$/);await following082Anchor(page,returnedAnchor);evidence.documents.afterHashBack=await page.evaluate(()=>({timeOrigin:performance.timeOrigin,url:location.href,navigationType:performance.getEntriesByType('navigation')[0]?.type||null}));expect(evidence.documents.afterHashBack.timeOrigin).toBe(evidence.documents.returnedCommunity.timeOrigin);
     expect(await page.evaluate(()=>window.__following082.writes)).toEqual([]);
     expect(await page.locator('#followed-wallet-count').innerText()).toBe('0 followed');expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
-    evidence.defaultView='burners';evidence.previousSelection='traders';evidence.samePublicAddress=creator;evidence.nativeKeyboardActivation=true;evidence.pointerActivation=width<700?'emulated touch':'native pointer';evidence.noFollowAction=true;evidence.sameReturnedDocumentAnchorAfterHashBack=true;evidence.fullDocumentRoundtripQualification='Observed document/timeOrigin retained; no assumption that Back always changes timeOrigin or restores old driver handles.';
+    evidence.defaultView='traders';evidence.previousSelection='burners';evidence.samePublicAddress=creator;evidence.nativeKeyboardActivation=true;evidence.pointerActivation=width<700?'emulated touch':'native pointer';evidence.noFollowAction=true;evidence.sameReturnedDocumentAnchorAfterHashBack=true;evidence.fullDocumentRoundtripQualification='Observed document/timeOrigin retained; no assumption that Back always changes timeOrigin or restores old driver handles.';
     expect(fixture.errors).toEqual([]);await page.screenshot({path:info.outputPath('following-back-'+width+'.png')});
   }catch(error){primary=error;hasPrimary=true;}finally{
     await following082Finish({context,watch,info,evidence,name:'following-navigation-'+width,primary,hasPrimary});

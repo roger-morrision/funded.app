@@ -262,7 +262,8 @@ html body #main-content #leaderboard .leaderboard-row.is-you { box-shadow: inset
 /* Phone Traders board: two-line rows instead of a table that scrolls sideways. */
 @media (max-width: 700px) {
   html body #main-content #leaderboard #leaderboard-table[data-view="traders"] { overflow-x: visible; }
-  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-table-head { display: none; }
+  /* Keep column names available to screen readers in the stacked layout. */
+  html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-table-head { position: absolute; width: 1px; min-width: 0; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row { min-width: 0; grid-template-columns: 32px minmax(0, 1fr) auto; grid-template-areas: "rank who value" "rank trades proof"; align-items: center; gap: var(--fv-space-1) var(--fv-space-3); }
   html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(1) { grid-area: rank; }
   html body #main-content #leaderboard #leaderboard-table[data-view="traders"] .leaderboard-row > :nth-child(2) { grid-area: who; min-width: 0; }

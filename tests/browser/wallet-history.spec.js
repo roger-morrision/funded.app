@@ -704,7 +704,13 @@ test.describe('FQA-073 independent wallet balance survives unavailable launch fe
       caption:document.querySelector('#wallet-stat-sol-note').textContent,
     }));
     try {
-      await f.open(balanceScopeOffCurve); expect(f.balances.length).toBe(0); armed = true;
+      await f.open(balanceScopeOffCurve); expect(f.balances.length).toBe(0);
+      // Readiness is lazy outside Launch. Initialize it through the native route
+      // before testing the separate estimate-failure path on the wallet page.
+      await page.locator('a[href="#launch"]:visible').first().click({ timeout:5000 });
+      await expect(page.locator('body')).toHaveClass(/page-route-launch/);
+      await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+      await page.goBack();await expect(page.locator('#wallet-page')).toBeVisible();armed = true;
       const balanceResponsePromise = page.waitForResponse(response => response.request() === f.balances[0]?.request, { timeout:15000 });
       await connectBalanceScopeMock(page); await expect.poll(() => held.length).toBe(1);
       const balanceResponse = await balanceResponsePromise;

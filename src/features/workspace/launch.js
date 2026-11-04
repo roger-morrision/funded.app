@@ -49,6 +49,26 @@ export function launch() {
     guideDialog.addEventListener('click', event => { if (event.target === guideDialog) guideDialog.close(); });
   }
   const page = $('#launch-dialog');
+  let focusFrame = 0;
+  page?.addEventListener('focusin', event => {
+    cancelAnimationFrame(focusFrame);
+    const target = event.target;
+    if (!target.matches('input, textarea, select, button, summary, [tabindex]')) return;
+    focusFrame = requestAnimationFrame(() => {
+      if (document.activeElement !== target || !target.isConnected
+        || !document.body.classList.contains('page-route-launch') || !target.matches(':focus-visible')) return;
+      const nav = $('.mobile-workspace-nav');
+      if (!nav?.getClientRects().length) return;
+      const rect = target.getBoundingClientRect(), style = getComputedStyle(target);
+      const outline = (parseFloat(style.outlineWidth) || 0) + Math.max(0, parseFloat(style.outlineOffset) || 0);
+      const top = Math.max(0, $('.topbar')?.getBoundingClientRect().bottom || 0);
+      const bottom = Math.min(innerHeight, nav.getBoundingClientRect().top);
+      if (rect.height + 2 * outline > bottom - top) return;
+      // Native Tab scrolling does not account for the fixed mobile navigation.
+      if (rect.top - outline < top || rect.bottom + outline > bottom)
+        target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+    });
+  });
   const funding = $('#community-airdrop-help');
   const reserve = $('#community-airdrop-tokens');
   reserve?.addEventListener('input', () => {

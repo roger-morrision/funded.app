@@ -55,6 +55,12 @@ For an already running, explicitly selected local Devnet container, set `FUNDED_
 
 Keep image-layer sizes separate from physical disk usage. Moving permissions earlier can reduce a runtime layer without reclaiming existing images or proving a lower peak build-space requirement. Do not reduce the capacity thresholds from image history alone. A local capacity failure can leave the running preview on an older revision even when source and CI are current; report both identities explicitly.
 
+## Verify app and worker release readiness
+
+For the existing funded.vip Devnet stack, deploy `app`, `fee-collector`, `buyback-worker` and `agency-buyback-worker` from the same immutable image with the same `FUNDED_BUILD_ID` and revision label. An app-only update can leave the agency worker publishing the previous build; the launch readiness gate correctly refuses new launches in that state. Include worker alignment in the release operation, even for frontend-only changes that replace the app image.
+
+After the workers complete startup verification, run `node scripts/verify-deployment-readiness.mjs fundedapp <full-tested-commit> https://funded.vip`. This read-only check requires matching images and revisions, Devnet configuration, running services, healthy configured health checks, the expected public API build and a ready developer escrow launch gate. Workers without Docker health checks are reported as `not-configured`, never as healthy. A failed check means deployment acceptance is incomplete; do not weaken the on-chain readiness gate to make it pass. It does not prove trades or payouts.
+
 ## Clean local staging files
 
 `tmp/` is excluded from Git, but an existing deployment can still depend on files there. Before removing old staging files, inspect the app container's `com.docker.compose.project.config_files` label, render that exact Compose chain, and check its build context and bind mounts. Preserve every referenced configuration file, the current build source, deployment and rollback tools, and recovery backups.

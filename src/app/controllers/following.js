@@ -194,14 +194,17 @@ export function createFollowingController(appState) {
   }
   function watchlistNodeKey(node) {
     if (node.nodeType !== 1) return '';
-    if (node.matches('.saved-token-identity > a')) return 'link:identity';
-    if (node.matches('.saved-token-view')) return 'link:view';
+    if (node.matches('.saved-token-identity > a,.home-launch-card-link')) return 'link:identity';
+    if (node.matches('.saved-token-view,.card-review-buy')) return 'link:view';
+    if (node.matches('.home-token-avatar')) return 'slot:portfolio-token-avatar';
     for (const attribute of ['data-mint', 'data-share-mint', 'data-boost-mint', 'data-trade-mint', 'data-watch-retry', 'data-copy-address', 'data-remove-watch']) {
       if (node.matches('button') && node.hasAttribute(attribute))
         return `${node.tagName}:${attribute}:${node.getAttribute(attribute)}:${node.getAttribute('data-copy-kind') || ''}`;
     }
     for (const role of ['saved-token-main', 'saved-token-identity', 'saved-token-metrics', 'saved-token-actions',
-      'portfolio-token-avatar', 'portfolio-token-stage', 'boost-package-badges', 'watchlist-unavailable-actions']) {
+      'portfolio-token-avatar', 'portfolio-token-stage', 'boost-package-badges', 'watchlist-unavailable-actions',
+      'home-card-overview','home-launch-card-media','home-card-info','home-card-heading','home-token-identity',
+      'home-card-meta','home-launch-card-addresses','home-card-star','home-launch-card-stats','home-launch-card-actions']) {
       if (node.classList.contains(role)) return `slot:${role}`;
     }
     return '';

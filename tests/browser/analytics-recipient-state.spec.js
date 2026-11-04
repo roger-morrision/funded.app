@@ -311,8 +311,8 @@ async function collectionFont(page) {
   expect(value.every(v=>v.available&&v.faces.length&&v.faces.every(f=>f.status==='loaded'))).toBe(true);
 }
 async function collectionNoDisclosureIo(page,f,action) {
-  const before={requests:f.api.length,storage:await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)])),hash:new URL(page.url()).hash};
-  await action();expect(f.api.length).toBe(before.requests);expect(new URL(page.url()).hash).toBe(before.hash);
+  const before={requests:f.receiptRequests,storage:await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)])),hash:new URL(page.url()).hash};
+  await action();expect(f.receiptRequests).toBe(before.requests);expect(new URL(page.url()).hash).toBe(before.hash);
   expect(await page.evaluate(()=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]))).toBe(before.storage);
 }
 async function collectionFinish(f,info) {

@@ -105,7 +105,7 @@ test('missing or malformed recorded payment times never become invented dates or
   await expect(panel.locator('.receipt-history-card')).toHaveCount(receipts.length);
   for(const card of await panel.locator('.receipt-history-card').all()){
     await expect(card.locator('strong')).toHaveText('0.000000015 SOL');
-    await expect(card.locator('small').first()).toHaveText('Devnet · Confirmed · Recorded payment time unavailable');
+    await expect(card.locator('small').first()).toHaveText('Devnet · Finalized · Recorded payment time unavailable');
     await expect(card).not.toContainText('1970');
   }
   await expect(panel.locator('[role=status]')).toBeFocused();
@@ -131,7 +131,7 @@ test('valid UTC and offset recorded payment times preserve their instant and fin
   expect(display[0]).toBe(display[1]);
   for(let index=0;index<receipts.length;index++){
     const card=panel.locator('.receipt-history-card').nth(index);
-    await expect(card.locator('small').first()).toHaveText(`Devnet · Confirmed · Recorded payment time: ${display[index]}`);
+    await expect(card.locator('small').first()).toHaveText(`Devnet · Finalized · Recorded payment time: ${display[index]}`);
     await expect(card.locator('strong')).toHaveText('0.000000015 SOL');
   }
   const pending=page.waitForEvent('download');await panel.getByRole('button',{name:'Download page as CSV'}).click();

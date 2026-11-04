@@ -41,7 +41,7 @@ for(const width of [390,1440]){
   });
   test(`exact receipt links preserve evidence and unknown costs at ${width}px`,async({page})=>{
     await setup(page,width);await page.route(`**/api/financial/receipts/${sig}**`,route=>route.fulfill({json:{cluster:'devnet',signature:sig,evidence:'recorded-finalized-v3',currentRpcRecheck:false,events:[{mint,kind:'holder-paid',label:'Holder reward paid',amountLamports:'15',at:null}],recipients:[{wallet,amountLamports:'15',kind:'holder-paid'}],burns:[],sourceSignatures:[],coverage:'Recorded fixture only'}}));
-    await ready(page,`/?receipt=${sig}&mint=${mint}&wallet=${wallet}#payments/activity`);const dialog=page.locator('#receipt-inspector');await expect(dialog).toBeVisible();await expect(dialog).toContainText('current network recheck is not included');await expect(dialog).toContainText('Time unavailable');await expect(dialog).toContainText('0.000000015 SOL');await expect(dialog).toContainText('Fee payer and recipient net after network costs: unavailable');
+    await ready(page,`/?receipt=${sig}&mint=${mint}&wallet=${wallet}#payments/activity`);const dialog=page.locator('#receipt-inspector');await expect(dialog).toBeVisible();await expect(dialog).toContainText(/current (?:network|RPC) recheck is not included/);await expect(dialog).toContainText('Time unavailable');await expect(dialog).toContainText('0.000000015 SOL');await expect(dialog).toContainText('Fee payer and recipient net after network costs: unavailable');
     await dialog.getByRole('button',{name:'Close receipt'}).click();await expect(dialog).not.toBeVisible();await expect(page).not.toHaveURL(/receipt=/);
   });
   test(`followed creator notifications still receive receipts without the Home feed at ${width}px`,async({page})=>{
@@ -59,10 +59,10 @@ for(const width of [390,1440]){
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
   });
   test(`reserve custody and reviewed issue context at ${width}px (mocked RPC facts)`,async({page})=>{
-    await setup(page,width);await page.route('**/api/airdrops/reserves',route=>route.fulfill({json:{cluster:'devnet',checkedAt:new Date().toISOString(),reserves:[{mint,verified:true,status:'drop-active',reservedTokens:'100',fundedTokens:'100',totalBaseUnits:'100000000',claimedBaseUnits:'1',remainingBaseUnits:'99999999',authority:wallet,vault:wallet}]}}));
+    await setup(page,width);await page.route('**/api/airdrops/reserves*',route=>route.fulfill({json:{cluster:'devnet',checkedAt:new Date().toISOString(),reserves:[{mint,verified:true,status:'drop-active',reservedTokens:'100',fundedTokens:'100',totalBaseUnits:'100000000',claimedBaseUnits:'1',remainingBaseUnits:'99999999',authority:wallet,vault:wallet}]}}));
     await ready(page,`/token/${mint}`);await page.evaluate(mint=>window.dispatchEvent(new CustomEvent('funded:coin-facts',{detail:{mint,parsedMint:{mintAuthority:null,freezeAuthority:null},launch:{onchainVerified:true,creatorWallet:mint},checkedAt:Date.now()}})),mint);
     const facts=page.locator('.launch-facts');await facts.locator(':scope > summary').click();await expect(facts.locator('[data-reserve-facts]')).toContainText('99999999');await expect(facts).toContainText('These token balances are not SOL rewards');
-    await facts.getByRole('link',{name:'Report this coin'}).click();const report=page.locator('#issue-reports');await report.getByLabel('Describe what happened').fill('Please investigate the reserve display');await report.getByLabel('Include the current app route').check();await report.getByRole('button',{name:'Review report',exact:true}).click();await expect(report.locator('pre')).toContainText(mint);await expect(report.locator('pre')).toContainText(`/token/${mint}`);
+    await facts.getByRole('link',{name:'Report this coin'}).click();const report=page.locator('#issue-reports');await report.getByLabel('Describe what happened').fill('Please investigate the reserve display');await report.getByLabel('Include this page and public transaction details').check();await report.getByRole('button',{name:'Review report',exact:true}).click();await expect(report.locator('pre')).toContainText(mint);await expect(report.locator('pre')).toContainText(`/token/${mint}`);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
   });
 }

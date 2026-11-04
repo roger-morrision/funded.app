@@ -32,6 +32,7 @@ async function clear(page,control){await expect(control).toBeFocused();await exp
 const draft=page=>page.locator('#token-name,#token-symbol,#community-airdrop-tokens,#creator-buy-sol').evaluateAll(a=>a.map(e=>({id:e.id,value:e.value})));
 
 for(const width of[360,390,1440])test(`source read dependencies: public quote success and focus recovery at ${width}px`,async({page},info)=>{
+ test.setTimeout(90000); // Includes starting and optimizing a separate source-fixture Vite server.
  await page.addInitScript(()=>{window.__retryFixture={available:false,attempts:0,reserves:0,hold:false,quote:null}});await ready(page,width,await controlledOrigin());
  const retry=page.getByRole('button',{name:'Retry budget quote',exact:true}),status=page.locator('#launch-public-quote-retry-status'),before=await draft(page),initial=await page.evaluate(()=>__retryFixture.attempts);
  await expect(retry).toHaveAttribute('aria-disabled','true');await retry.focus();await page.keyboard.press('Enter');expect(await page.evaluate(()=>__retryFixture.attempts)).toBe(initial);await clear(page,retry);expect((await retry.boundingBox()).height).toBeGreaterThanOrEqual(44);

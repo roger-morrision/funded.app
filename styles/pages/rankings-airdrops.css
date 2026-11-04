@@ -15,6 +15,8 @@ body.page-route-leaderboard .leaderboard-table-head { background: #0d1115; color
 body.page-route-leaderboard .leaderboard-scroll-hint { margin: 10px 0 2px; color: var(--muted); font-size: 12px; }
 body.page-route-leaderboard .leaderboard-scroll-hint[hidden] { display: none; }
 body.page-route-leaderboard #leaderboard-table { overflow-x: auto; overscroll-behavior-x: contain; }
+/* Native keyboard focus must finish scrolling before the fixed-chrome reveal. */
+html:has(body.page-route-leaderboard #leaderboard-table:focus-within) { scroll-behavior: auto; }
 body.page-route-leaderboard #leaderboard-table:focus-visible { outline: 2px solid var(--yellow, #ffbe68); outline-offset: 3px; }
 body.page-route-leaderboard .leaderboard-row .leader-identity strong,
 body.page-route-leaderboard .leaderboard-row > span:nth-child(3) b { font-size: 12px; }

@@ -17,12 +17,12 @@ for (const width of [1440, 390]) {
       await expect(page.locator('body')).toHaveClass(/workspace-ready/);
       await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${name}(?: |$)`));
       await expect(page.locator(selector)).toBeVisible();
-      await expect(page.locator(`.primary-nav > a[href="#${active}"]`)).toHaveAttribute('aria-current', 'page');
+      await expect(page.locator(`.primary-nav a[href="#${active}"]`)).toHaveAttribute('aria-current', 'page');
       if (width === 390) await expect(page.locator('#sidebar')).toHaveAttribute('inert', '');
     };
     const agency = async (target = 'marketing-agency') => {
       if (width === 390) await page.locator('#open-menu').click();
-      await page.locator(`.primary-nav > a[href="#${target}"]`).click();
+      await page.locator(`.primary-nav a[href="#${target}"]`).click();
       await route(target, target === 'overview' ? '.hero-section' : `#${target}`, target);
     };
     await page.goto('/#marketing-agency');
@@ -64,12 +64,12 @@ for (const width of [1440, 390]) {
       await expect(page.locator('body')).toHaveClass(/workspace-ready/);
       await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${name}(?: |$)`));
       await expect(page.locator(selector)).toBeVisible();
-      await expect(page.locator(`.primary-nav > a[href="#${active}"]`)).toHaveAttribute('aria-current', 'page');
+      await expect(page.locator(`.primary-nav a[href="#${active}"]`)).toHaveAttribute('aria-current', 'page');
       if (width === 390) await expect(page.locator('#sidebar')).toHaveAttribute('inert', '');
     };
     const agency = async (target = 'marketing-agency') => {
       if (width === 390) await page.locator('#open-menu').click();
-      await page.locator(`.primary-nav > a[href="#${target}"]`).click();
+      await page.locator(`.primary-nav a[href="#${target}"]`).click();
       await route(target, target === 'overview' ? '.hero-section' : `#${target}`, target);
     };
     await page.goto('/#explore');
@@ -77,7 +77,7 @@ for (const width of [1440, 390]) {
     await expect(page).toHaveURL(/\/#explore$/);
     await agency();
     if (width === 390) await page.locator('#open-menu').click();
-    await page.locator('.primary-nav > a[href="#explore"]').click();
+    await page.locator('.primary-nav a[href="#explore"]').click();
     await route('explore', '#explore', 'explore');
     await page.goBack();await route('marketing-agency', '#marketing-agency', 'marketing-agency');
     await page.goForward();await route('explore', '#explore', 'explore');

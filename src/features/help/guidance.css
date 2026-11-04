@@ -24,6 +24,9 @@ body.page-route-docs .docs-guide-body a[href="#list"],
 body.page-route-docs .docs-guide-link,
 body.page-route-docs .docs-guide-next button { scroll-margin-block: 100px; }
 body.page-route-docs .docs-guide-nav { overflow: visible; }
+/* Native focus must finish revealing a topic before the outline is measured.
+   Smooth document scrolling can otherwise resume after the nested-list repair. */
+html:has(body.page-route-docs .docs-guide-nav:focus-within) { scroll-behavior: auto; }
 .docs-guide-search { flex: 0 0 auto; min-width: 0; }
 .docs-guide-search label { display: block; margin-bottom: 8px; font-weight: 700; }
 .docs-guide-search-controls { display: flex; flex-wrap: nowrap; gap: 8px; }

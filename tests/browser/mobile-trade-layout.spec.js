@@ -56,7 +56,6 @@ for (const width of [360, 390, 430, 1440]) {
       await page.keyboard.press('Tab');
     }
     expect(sequence.some(item => item.trade), JSON.stringify(sequence)).toBe(true);
-    const tradeTop = sequence.at(-1).top;
     await expect(action).toBeFocused();
     const focusGeometry = await action.evaluate(element => {
       const box = element.getBoundingClientRect(), nav = document.querySelector('.mobile-workspace-nav').getBoundingClientRect();
@@ -67,7 +66,12 @@ for (const width of [360, 390, 430, 1440]) {
     expect(focusGeometry).toMatchObject({ focusVisible: true, outline: 'solid', clearOfNav: true });
     await page.keyboard.press('Tab');
     await expect(action).not.toBeFocused();
-    expect(await page.evaluate(() => document.activeElement.getBoundingClientRect().top + scrollY)).toBeGreaterThanOrEqual(tradeTop);
+    // The responsive grid may visually reorder panels; native DOM order is the
+    // keyboard contract, not the sticky action's document-coordinate position.
+    expect(await action.evaluate(button => Boolean(button.compareDocumentPosition(document.activeElement) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+    await page.keyboard.press('Shift+Tab');await expect(action).toBeFocused();
+    await page.keyboard.press('Enter');await expect(page.locator('.token-trading-panel')).toHaveAttribute('role','dialog');
+    await page.keyboard.press('Escape');await expect(page.locator('#coin-page')).not.toHaveClass(/trade-sheet-open/);await expect(action).toBeFocused();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }

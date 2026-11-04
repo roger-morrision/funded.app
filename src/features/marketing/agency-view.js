@@ -83,14 +83,14 @@ export function initMarketingAgency(document = globalThis.document) {
   const sol=value=>{if(!/^(0|[1-9]\d{0,19})$/.test(String(value)))return'Unavailable';const n=BigInt(value),fraction=String(n%1000000000n).padStart(9,'0').replace(/0+$/,'');return`${n/1000000000n}${fraction?'.'+fraction:''} SOL`;};
   let serial = 0, request;
   async function refresh() {
-    const id = ++serial; request?.abort(); request = new AbortController();
-    const timeout = view.setTimeout(() => request?.abort(), 10_000);
+    const id = ++serial; request?.abort(); const controller = new AbortController(); request = controller;
+    const timeout = view.setTimeout(() => controller.abort(), 10_000);
     page.querySelector('[data-agency-status]').textContent = 'Checking agency activation…';
     page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Checking availability';});
     page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
     page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
     try {
-      const response = await view.fetch('/api/marketing-agency', { cache: 'no-store', signal: request.signal });
+      const response = await view.fetch('/api/marketing-agency', { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('Unavailable');
       const data = await response.json(); if (id !== serial) return;
       if(data.status==='deployment-verified'&&data.active===true&&data.executionEnabled===true){
@@ -143,7 +143,13 @@ export function initMarketingAgency(document = globalThis.document) {
     } finally { view.clearTimeout(timeout); }
   }
   const active = () => ['marketing-agency','launch'].includes((view.location.hash || view.location.pathname).replace(/^([#/]+)/,'')) && !document.hidden;
-  const route = () => { if (active()) void refresh(); };
+  let activeRoute = '';
+  const route = () => {
+    const next = active() ? (view.location.hash || view.location.pathname) : '';
+    if (next === activeRoute) return;
+    activeRoute = next;
+    if (next) void refresh();
+  };
   page.querySelector('[data-agency-refresh]').addEventListener('click', () => { void refresh(); });
   view.addEventListener('funded:route-change', route); view.addEventListener('hashchange', route); document.addEventListener('visibilitychange', route); route();
   return () => { ++serial; request?.abort(); view.removeEventListener('funded:route-change', route); view.removeEventListener('hashchange', route);view.removeEventListener('funded:agency-readiness',readiness);view.removeEventListener('funded:launch-promotion',updateLaunchTeam); document.removeEventListener('visibilitychange', route); };

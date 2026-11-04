@@ -19,7 +19,9 @@ export function agencyBuybackConfig(env,args=[]){
   const lookupAddress=new PublicKey(env.FUNDED_V3_BUYBACK_LOOKUP_TABLE).toBase58();
   if(!/^[a-f0-9]{64}$/.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256))||!/^[a-f0-9]{40}$/.test(String(env.FUNDED_BUILD_ID)))
     throw new Error('An exact reviewed agency ProgramData hash and committed build are required.');
-  return{execute,mode:args.includes('--loop')?'loop':'once',buybacksOnly:true,cluster:'devnet',intervalMs:60000,
+  // Bound recovery/startup work: five serial mints can take several minutes
+  // before the first ready heartbeat. Rotation still visits every saved mint.
+  return{execute,mode:args.includes('--loop')?'loop':'once',buybacksOnly:true,mintLimit:1,cluster:'devnet',intervalMs:60000,
     programId,lookupAddress,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID};
 }
 async function main(args){

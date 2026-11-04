@@ -133,6 +133,8 @@ function observeTokenFallbackFocus(original, readiness = {}) {
       }
       for (let ancestor = element?.parentElement; ancestor; ancestor = ancestor.parentElement) {
         const css = getComputedStyle(ancestor), r = ancestor.getBoundingClientRect();
+        // display:contents generates no box, so its computed overflow cannot clip descendants.
+        if (css.display === 'contents') continue;
         const clipX = /^(hidden|clip|auto|scroll)$/.test(css.overflowX);
         const clipY = /^(hidden|clip|auto|scroll)$/.test(css.overflowY);
         if (clipX || clipY) {

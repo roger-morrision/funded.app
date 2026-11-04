@@ -69,7 +69,7 @@ function compactStableFocus(target){return new Promise(resolve=>{
 });}
 
 async function compactNavigationState(page){return page.evaluate(()=>({
- rows:[...document.querySelectorAll('#asset-grid .explore-launch-card')].map(e=>({mint:e.dataset.mint,href:e.querySelector('.home-launch-card-link').getAttribute('href'),text:e.innerText,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})),
+ rows:[...document.querySelectorAll('#asset-grid .explore-launch-card')].map(e=>({mint:e.dataset.mint,href:e.querySelector('.home-launch-card-link').getAttribute('href'),text:e.innerText,width:Math.round(e.getBoundingClientRect().width*1000)/1000,height:Math.round(e.getBoundingClientRect().height*1000)/1000})),
  sort:document.querySelector('#explore-sort').value,search:document.querySelector('#explore-search').value,
  selected:[...document.querySelectorAll('.explore-tabs button,.explore-timeframe button,.explore-view-switch button')].filter(e=>e.classList.contains('active')||e.getAttribute('aria-selected')==='true'||e.getAttribute('aria-pressed')==='true').map(e=>({text:e.textContent.trim(),tab:e.dataset.exploreTab,window:e.dataset.exploreWindow,view:e.dataset.exploreView})),
 }));}

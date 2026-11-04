@@ -99,6 +99,27 @@ async function approve(page) {
   await page.locator('#list-pay').click(); await expect(page.locator('#list-review')).toBeVisible();
   await page.locator('#list-review-confirm').click(); await expect(page.locator('#list-review')).not.toBeVisible();
 }
+test('a failed metadata lookup can be retried without requesting a burn', async ({page}) => {
+  await component(page);
+  let reads = 0;
+  await page.route('**/api/listings/mint/*', route => {
+    reads++;
+    return reads === 1 ? route.fulfill({status:503,json:{error:'Temporary metadata failure'}})
+      : route.fulfill({json:{cluster:'devnet',mint:MINT,name:'Recovered token',symbol:'REC'}});
+  });
+  await page.locator('#list-mint').fill('');
+  await page.locator('#list-mint').fill(MINT);
+  const retry = page.getByRole('button',{name:'Retry token lookup',exact:true});
+  await expect(retry).toBeVisible();
+  await expect(page.locator('#list-pay')).toBeDisabled();
+  await retry.click();
+  await expect(page.locator('#list-token-preview')).toContainText('Recovered token');
+  await expect(page.locator('#list-pay')).toBeEnabled();
+  await expect(retry).toHaveCount(0);
+  expect(reads).toBe(2);
+  expect(await page.evaluate(()=>window.listingFixture.sends)).toBe(0);
+  await expect(page.locator('#list-review')).toBeHidden();
+});
 async function fault(page, method) {
   await page.evaluate(({ key, method }) => {
     const original = Storage.prototype[method];

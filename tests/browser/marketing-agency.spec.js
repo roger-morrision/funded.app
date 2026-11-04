@@ -112,7 +112,9 @@ test('buyback availability stays separate from the suspended X publisher',async(
   await page.goto('/#launch');await page.locator('#token-name').fill('Paused QA');await page.locator('#token-symbol').fill('PQA');await page.locator('#launch-next').click();
   await expect(page.locator('#launch-agency-options .agency-included-badge')).toHaveCount(3);
   await expect(page.locator('[data-agency-status]')).toContainText('X promotion stays paused');
-  await expect(page.locator('#launch-agency-help')).toContainText('Actions wait for verified funding');
+  // This fixture verifies agency history, but leaves the independent launch
+  // reserve endpoint unavailable. Its failure must keep launch readiness closed.
+  await expect(page.locator('#launch-agency-help')).toContainText('Agent execution is not yet available');
   await expect(page.locator('#launch-agency-options')).not.toContainText('preview');
 });
 
