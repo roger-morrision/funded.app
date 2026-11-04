@@ -4,7 +4,8 @@ import { createTradeExecutionController } from '../src/app/controllers/trade-exe
 
 test('an unresolved signed trade stops both scheduled and direct quote work and explains the recovery action',async()=>{
   const previous=globalThis.document;
-  globalThis.document={querySelector:()=>null};
+  const button={hidden:true,dataset:{}};
+  globalThis.document={querySelector:selector=>selector==='#trade-verify'?button:null};
   const mint='1'.repeat(32),wallet='2'.repeat(32),signature='3'.repeat(88),messages=[];
   const state={connectedWalletAddress:wallet,tradeInputs:()=>({mint,valid:true}),
     pendingTradeVerifications:new Map([[signature,{signature,mint,walletAddress:wallet}]]),
@@ -14,5 +15,6 @@ test('an unresolved signed trade stops both scheduled and direct quote work and 
     const controller=createTradeExecutionController(state);
     controller.queueTradeQuote();assert.equal(await controller.prepareTradeQuote(),null);
     assert.equal(state.tradeQuoteTimer,undefined);assert.ok(messages.some(text=>/Check recorded trade/.test(text)));
+    assert.equal(button.hidden,false);assert.equal(button.dataset.pendingSignature,signature);
   } finally {globalThis.document=previous;}
 });

@@ -113,6 +113,8 @@ export function createTradeExecutionController(appState) {
     if(!pending)return false;
     appState.pendingTradeVerifications.set(pending.signature,pending);
     quoteRetry.reset();
+    const verify = document.querySelector('#trade-verify');
+    if (verify) { verify.hidden = false; verify.dataset.pendingSignature = pending.signature; verify.textContent = 'Check recorded trade'; }
     appState.setTradeStatus('A signed trade needs verification. Use Check recorded trade before requesting another quote.');
     appState.setTradeReceiptStatus('Check this saved trade before preparing another trade for this coin.',pending.signature);
     return true;
@@ -249,7 +251,7 @@ export function createTradeExecutionController(appState) {
     const session = appState.captureWalletSession();
     if (!session || session.address !== pending.walletAddress) return;
     const button = document.querySelector('#trade-verify');
-    if (button) { button.hidden = false; button.disabled = true; }
+    if (button) { button.hidden = false; button.disabled = true; button.dataset.pendingSignature = pending.signature; }
     try {
       const rpc = activeConnection || appState.connection || (await appState.getSolana(), appState.connection);
       const [receipt, market] = await Promise.allSettled([
@@ -293,7 +295,10 @@ export function createTradeExecutionController(appState) {
       appState.showToast(`${pending.side === 'buy' ? 'Buy' : 'Sell'} verified on Solana`);
       appState.refreshWalletInfo();
       void appState.refreshPortfolioHoldings();
-    } finally { if (button) button.disabled = false;appState.updateTradeActionState(); }
+    } finally {
+      if (button) { button.disabled = false; if (!appState.pendingTradeVerifications.has(button.dataset.pendingSignature)) button.hidden = true; }
+      appState.updateTradeActionState();
+    }
   }
   // app-source-end
 
