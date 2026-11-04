@@ -2,6 +2,21 @@
 
 The workspace deployment runs the production Node 24 application with PostgreSQL 17. It uses the Devnet-only profile, persistent Docker volumes and generated local credentials. Server signing keys, test-wallet signing, mainnet and financial background workers remain disabled. Web health does not certify a complete financial workflow.
 
+## Local browser checks without Docker
+
+Run `npm run test:browser -- <test-file>` for local UI tests. The default
+Playwright setup starts Vite through its JavaScript API on `127.0.0.1:4173`
+(`PLAYWRIGHT_PORT` overrides the port), pins the frontend to Devnet and turns
+off wallet autoconnection. It warms the app before tests and closes that same
+server during teardown. An occupied port fails startup; the suite does not
+reuse or stop an existing service. No Docker startup is involved.
+
+The setup restores its environment overrides after shutdown and closes the
+owned server if warmup fails. Explicit integration configurations with their
+own `webServer`, and non-loopback base URLs, retain their existing lifecycle.
+API fixtures and mocked wallets verify UI behavior only; they do not establish
+live on-chain outcomes.
+
 ## Open in GitHub Codespaces
 
 1. Open [the main branch](https://github.com/roger-morrision/funded.app/tree/main), then **Code → Codespaces → Create codespace on this branch**. The repository includes `.devcontainer/devcontainer.json`.

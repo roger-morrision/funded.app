@@ -3,11 +3,12 @@ import {PROTOCOL_FEE_SPLIT} from '../config/protocol-fee-split.js';
 
 // Let Vite finish its first SDK dependency scan before timing user interactions.
 // The warm-up has no wallet and fixtures every API/external request.
-export default async function warmBrowserTests(config){
+export default async function warmBrowserTests(config,{browserType=chromium}={}){
  const base=config.projects[0]?.use?.baseURL;if(!base)return;
  const url=new URL(base);if(!['127.0.0.1','localhost'].includes(url.hostname))return;
- const browser=await chromium.launch(config.projects[0].use.launchOptions||{}),context=await browser.newContext();
+ const browser=await browserType.launch(config.projects[0].use.launchOptions||{});let context;
  try{
+  context=await browser.newContext();
   await context.route('https://**/*',route=>route.abort());
   await context.route('**/api/**',route=>new URL(route.request().url()).pathname==='/api/fee-policy'
     ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
@@ -17,5 +18,5 @@ export default async function warmBrowserTests(config){
   await page.locator('body.workspace-ready').waitFor({timeout:120000});
   await page.goto(base+'/admin.html',{waitUntil:'domcontentloaded',timeout:120000});
   await page.locator('[data-rpc-health]').waitFor({state:'attached',timeout:120000});
- }finally{await context.close();await browser.close();}
+ }finally{try{await context?.close();}finally{await browser.close();}}
 }
