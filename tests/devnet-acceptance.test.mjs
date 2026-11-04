@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolve } from 'node:path';
 import { Keypair } from '@solana/web3.js';
-import { assertDevnet, assertFinalized, DEVNET_GENESIS, prepareAcceptancePayer, runAcceptance } from '../scripts/devnet-acceptance.mjs';
+import { assertDevnet, assertFinalized, DEVNET_GENESIS, keypairProvider, loadV3LaunchInputs, prepareAcceptancePayer, runAcceptance } from '../scripts/devnet-acceptance.mjs';
+import { Transaction, SystemProgram } from '@solana/web3.js';
 
 test('Devnet acceptance guard rejects mainnet, testnet and missing genesis', () => {
   assert.doesNotThrow(() => assertDevnet(DEVNET_GENESIS));
@@ -88,4 +89,53 @@ test('manual funding mode only accepts an in-memory execution wallet', async () 
   await assert.rejects(runAcceptance({ execute: false, manualFundingWaitSeconds: 1 }), /requires --execute with an ephemeral payer/);
   await assert.rejects(runAcceptance({ execute: true, walletFile: '/test/creator.json', manualFundingWaitSeconds: 1 }), /requires --execute with an ephemeral payer/);
   await assert.rejects(runAcceptance({ execute: true, manualFundingWaitSeconds: 901 }), /between 0 and 900 seconds/);
+});
+
+const V3_CONFIG = { ready:true, cluster:'devnet', programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm', initialAuthority:'7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y',
+  protocolSplit:{ operationsPercent:40, referralLevelPercents:[3,1.25,0.75], communityPercent:20, buybackPercent:25, agencyPercent:10 },
+  agency:{ version:'marketing-agency-v1', configRevision:'10' }, reasons:[] };
+function v3Fetch(overrides = {}) {
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    const path = new URL(url).pathname; calls.push({ path, method:init.method || 'GET', origin:init.headers?.origin, body:init.body });
+    const payer = init.body ? JSON.parse(init.body).payer : null;
+    const bodies = { '/api/v3-launch-config':V3_CONFIG,
+      '/api/launch-reserve-config':{ cluster:'devnet', authority:V3_CONFIG.initialAuthority, programId:V3_CONFIG.programId, lookupTable:'FqrcLjTPoiMQkhuTF9cg3X8tvPX6RVp1Dpb8XSeyghUW' },
+      '/api/service-fees':{ cluster:'devnet', hash:'a'.repeat(64) },
+      '/api/launch-service-quote':{ id:'launch_service_1_ffffffffffffffff', payer, policyHash:'a'.repeat(64), amountLamports:'20000000' }, ...overrides };
+    const body = bodies[path];
+    return new Response(JSON.stringify(body ?? {}), { status: body ? 200 : 404 });
+  };
+  return { calls, fetchImpl };
+}
+
+test('V3 launch inputs come from the live app config, with the app origin on the quote POST', async () => {
+  const payer = Keypair.generate().publicKey;
+  const { calls, fetchImpl } = v3Fetch();
+  const inputs = await loadV3LaunchInputs({ appOrigin:'https://funded.vip', payer, fetchImpl });
+  assert.equal(inputs.v3FeeRouter.programId, V3_CONFIG.programId);
+  assert.deepEqual(inputs.v3FeeRouter.split, V3_CONFIG.protocolSplit);
+  assert.equal(inputs.v3FeeRouter.agency.configRevision, '10');
+  assert(Array.isArray(inputs.v3FeeRouter.agency.selectedAgents) && !inputs.v3FeeRouter.agency.selectedAgents.includes('x-promotion'));
+  const quote = calls.find(call => call.path === '/api/launch-service-quote');
+  assert.equal(quote.method, 'POST');
+  assert.equal(quote.origin, 'https://funded.vip');
+  assert.deepEqual(JSON.parse(quote.body), { payer:payer.toBase58(), expectedHash:'a'.repeat(64) });
+});
+
+test('V3 launch inputs stop when launches are not ready or the reserve program differs', async () => {
+  const payer = Keypair.generate().publicKey;
+  await assert.rejects(loadV3LaunchInputs({ appOrigin:'https://funded.vip', payer,
+    fetchImpl:v3Fetch({ '/api/v3-launch-config':{ ...V3_CONFIG, ready:false, reasons:['paused'] } }).fetchImpl }), /not ready: paused/);
+  await assert.rejects(loadV3LaunchInputs({ appOrigin:'https://funded.vip', payer,
+    fetchImpl:v3Fetch({ '/api/launch-reserve-config':{ cluster:'devnet', programId:Keypair.generate().publicKey.toBase58(), lookupTable:'x' } }).fetchImpl }), /Reserve program differs/);
+});
+
+test('keypair provider signs legacy launch steps without replacing existing signatures', async () => {
+  const payer = Keypair.generate(), mint = Keypair.generate();
+  const transaction = new Transaction({ feePayer:payer.publicKey, recentBlockhash:'11111111111111111111111111111111' })
+    .add(SystemProgram.transfer({ fromPubkey:payer.publicKey, toPubkey:mint.publicKey, lamports:1 }), SystemProgram.transfer({ fromPubkey:mint.publicKey, toPubkey:payer.publicKey, lamports:1 }));
+  transaction.partialSign(mint);
+  const signed = await keypairProvider(payer).signTransaction(transaction);
+  assert(signed.verifySignatures());
 });

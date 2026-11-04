@@ -9,11 +9,50 @@ import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@sol
 import { OnlinePumpSdk, PUMP_SDK, PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { buildTradeTransaction } from '../pump-trading.js';
-import { buildMintRouterInitializeInstruction } from '../mint-router-launch.js';
-import { verifyFeeRouterAccount, verifyMintFeeRouterAccount } from '../fee-router.js';
+import { submitPumpDevnetLaunch } from '../launch-flow.js';
+import { newLaunchAgencySelection } from '../config/marketing-agency.js';
+import { verifyFeeRouterAccount } from '../fee-router.js';
 
 export const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const DEFAULT_PROGRAM = '61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa';
+/** Smallest community airdrop the launch policy accepts (30M of 1B tokens). */
+export const V3_ACCEPTANCE_RESERVE_TOKENS = 30_000_000;
+
+/** Signs launch steps with a local test keypair, the way a wallet adapter would. */
+export function keypairProvider(payer) {
+  const sign = transaction => {
+    if (typeof transaction.version !== 'undefined' && typeof transaction.sign === 'function' && !('partialSign' in transaction)) transaction.sign([payer]);
+    else transaction.partialSign(payer);
+    return transaction;
+  };
+  return { publicKey: payer.publicKey, signTransaction: async transaction => sign(transaction),
+    signAllTransactions: async transactions => transactions.map(sign) };
+}
+
+/** Read the live app's published V3 launch inputs, exactly as the launch page does. */
+export async function loadV3LaunchInputs({ appOrigin, payer, fetchImpl = fetch }) {
+  const read = async (path, init) => {
+    const response = await fetchImpl(`${appOrigin}${path}`, { ...init, signal: AbortSignal.timeout(20_000) });
+    const body = await response.json().catch(() => null);
+    assert(response.ok && body, `${path} returned HTTP ${response.status}.`);
+    return body;
+  };
+  const config = await read('/api/v3-launch-config');
+  assert(config.ready === true && config.cluster === 'devnet', `V3 launches are not ready: ${(config.reasons || []).join('; ') || 'not devnet'}`);
+  const reserveConfig = await read('/api/launch-reserve-config');
+  assert.equal(reserveConfig.cluster, 'devnet', 'Launch reserve config is not Devnet.');
+  assert.equal(reserveConfig.programId, config.programId, 'Reserve program differs from the V3 launch program.');
+  const fees = await read('/api/service-fees');
+  assert(fees.cluster === 'devnet' && /^[a-f0-9]{64}$/.test(fees.hash || ''), 'Service fee policy is unavailable.');
+  // Public POSTs require the app's own origin, as the launch page sends it.
+  const launchServiceQuote = await read('/api/launch-service-quote', { method: 'POST', headers: { 'content-type': 'application/json', origin: new URL(appOrigin).origin },
+    body: JSON.stringify({ payer: payer.toBase58(), expectedHash: fees.hash }) });
+  assert(launchServiceQuote.payer === payer.toBase58() && launchServiceQuote.policyHash === fees.hash, 'Launch service quote does not match the payer and policy.');
+  const v3FeeRouter = { programId: config.programId, initialAuthority: config.initialAuthority, split: config.protocolSplit,
+    ...(config.agency ? { agency: { ...config.agency, selectedAgents: newLaunchAgencySelection({ promotion: false }) } } : {}) };
+  return { v3FeeRouter, reserveConfig, launchServiceQuote };
+}
+
 export function assertDevnet(genesis) {
   assert.equal(genesis, DEVNET_GENESIS, 'RPC genesis is not Solana Devnet; no faucet or transaction is permitted.');
 }
@@ -138,10 +177,9 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
     stage = walletFile ? 'prefunded-test-payer' : manualFundingWaitSeconds ? 'manual-funding' : 'ephemeral-faucet';
     const preparedPayer = await prepareAcceptancePayer({ connection, walletFile });
     const { payer } = preparedPayer;
-    const mint = Keypair.generate();
     const feeRecipient = feeRecipientAddress ? new PublicKey(feeRecipientAddress) : Keypair.generate().publicKey;
     assert(!feeRecipient.equals(payer.publicKey), 'Fee recipient must differ from payer for exact fee delta verification.');
-    evidence.wallets = { payer: payer.publicKey.toBase58(), mint: mint.publicKey.toBase58(), feeRecipient: feeRecipient.toBase58(), payerSource: preparedPayer.source, privateKeyPersistence: walletFile ? 'payer loaded from explicit test keyfile; mint process memory only' : 'none; process memory only' };
+    evidence.wallets = { payer: payer.publicKey.toBase58(), mint: null, feeRecipient: feeRecipient.toBase58(), payerSource: preparedPayer.source, privateKeyPersistence: walletFile ? 'payer loaded from explicit test keyfile; mint process memory only' : 'none; process memory only' };
     let funded = preparedPayer.prefunded;
     if (funded) record(stage, 'passed', { payer: payer.publicKey.toBase58(), balanceLamports: preparedPayer.balanceLamports, faucetRequested: false });
     if (!funded && manualFundingWaitSeconds) {
@@ -178,8 +216,8 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
         : 'Official Devnet faucet rejected its single bounded request; ephemeral payer has no SOL. No launch, trade, collection or payout was submitted. Use --manual-funding-wait-seconds with an external Devnet top-up.');
       return evidence;
     }
-    // This isolated SDK path tests chain adapters. Public registration and the app's atomic
-    // community-reserve launch require their own configured application acceptance run.
+    // Launches through the app's own V3 path (atomic community reserve, service fee, V3 router);
+    // the coin is not registered with the app, so it stays out of public listings.
     stage = 'fee-recipient-funding';
     const feeRecipientBalance = await connection.getBalance(feeRecipient, 'finalized');
     if (feeRecipientBalance < 1_000_000) {
@@ -187,16 +225,32 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
     } else {
       record(stage, 'passed', { address: feeRecipient.toBase58(), balanceLamports: feeRecipientBalance, fundingRequired: false });
     }
-    stage = 'mint-router';
-    const mintRouter = buildMintRouterInitializeInstruction({ programId: program, mint: mint.publicKey, payer: payer.publicKey });
-    await send(stage, [mintRouter.instruction], [payer, mint]);
-    const verified = await verifyMintFeeRouterAccount({ connection, programId: program, mint: mint.publicKey, expectedAuthority: router.authority });
-    assert(verified.verified, verified.reason);
-    stage = 'isolated-pump-launch';
-    const instruction = await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: 'Disposable Devnet QA', symbol: 'DQA', uri: 'https://example.invalid/disposable-devnet-test', creator: verified.address, user: payer.publicKey, mayhemMode: false, holderReward: false });
-    await send(stage, [instruction], [payer, mint]);
+    // Production V3 path: the same submitPumpDevnetLaunch the app runs, fed by the
+    // live app's published V3, reserve and service-fee configuration.
+    stage = 'v3-launch-config';
+    const v3 = await loadV3LaunchInputs({ appOrigin: evidence.appOrigin, payer: payer.publicKey });
+    record(stage, 'passed', { programId: v3.v3FeeRouter.programId, initialAuthority: v3.v3FeeRouter.initialAuthority,
+      split: v3.v3FeeRouter.split, agencyRevision: v3.v3FeeRouter.agency?.configRevision ?? null,
+      lookupTable: v3.reserveConfig.lookupTable, serviceFeeLamports: v3.launchServiceQuote.amountLamports });
+    stage = 'v3-launch';
+    const provider = keypairProvider(payer);
+    const launched = await submitPumpDevnetLaunch({ cluster: 'devnet', connection, provider, payer: payer.publicKey,
+      input: { name: 'Devnet acceptance QA', symbol: 'DAQA', supply: 1_000_000_000, decimals: 6, initialBuySol: 0,
+        reserveTokens: V3_ACCEPTANCE_RESERVE_TOKENS,
+        feeShares: { creatorWalletPercent: 80, holderAirdropPercent: 0, solClaimPercent: 0, xRecipient: '' } },
+      feeRouterProgramId: v3.reserveConfig.programId, useMintRouter: true, v3FeeRouter: v3.v3FeeRouter,
+      launchBurn: null, launchServiceQuote: v3.launchServiceQuote, reserveConfig: v3.reserveConfig,
+      assertWalletCurrent: () => {}, onJournal: () => {}, onStatus: () => {} });
+    const mint = launched.mint;
+    const routerAddress = launched.feeRouter;
+    evidence.wallets.mint = mint.publicKey.toBase58();
+    evidence.transactions.push({ name: stage, signature: launched.signature, explorer: `https://explorer.solana.com/tx/${launched.signature}?cluster=devnet`, finalized: true });
+    if (launched.mintRouterSignature) evidence.transactions.push({ name: 'v3-mint-router', signature: launched.mintRouterSignature, finalized: true });
+    record(stage, 'passed', { signature: launched.signature, mint: mint.publicKey.toBase58(), feeRouter: routerAddress.toBase58(),
+      reserveVault: launched.reserveReceipt?.vault ?? null, separateRouterTransaction: Boolean(launched.mintRouterSignature) });
+    await persist();
     const sdk = new OnlinePumpSdk(connection);
-    assert((await sdk.fetchBondingCurve(mint.publicKey)).creator.equals(verified.address), 'Pump creator does not match the mint router.');
+    assert((await sdk.fetchBondingCurve(mint.publicKey)).creator.equals(routerAddress), 'Pump creator does not match the V3 mint router.');
     for (const side of ['buy', 'sell']) {
       stage = side;
       const prior = await connection.getBalance(feeRecipient, 'finalized');
@@ -216,15 +270,15 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
     const tokens = await connection.getParsedTokenAccountsByOwner(payer.publicKey, { mint: mint.publicKey }, 'finalized');
     assert(tokens.value.every(row => row.account.data.parsed.info.tokenAmount.amount === '0'), 'Sell left token inventory.');
     stage = 'creator-fee-collection';
-    const before = await connection.getBalance(verified.address, 'finalized');
-    const collection = await sdk.collectCoinCreatorFeeV2Instructions(verified.address, NATIVE_MINT, TOKEN_PROGRAM_ID, payer.publicKey);
+    const before = await connection.getBalance(routerAddress, 'finalized');
+    const collection = await sdk.collectCoinCreatorFeeV2Instructions(routerAddress, NATIVE_MINT, TOKEN_PROGRAM_ID, payer.publicKey);
     assert(collection.length, 'Creator-fee collection instructions missing.');
     await send(stage, collection, [payer]);
-    const delta = await connection.getBalance(verified.address, 'finalized') - before;
+    const delta = await connection.getBalance(routerAddress, 'finalized') - before;
     assert(delta > 0, 'Creator-fee collection did not credit the router.');
     record('creator-fee-delta', 'passed', { lamports: delta });
-    evidence.coverage.isolatedChainLaunchTradeCollection = true;
-    evidence.blockers.push('Allocation, claims, holder payouts, buyback, community reserve/claim and graduation are not verified by this isolated flow. They require configured application services and authorized isolated custody signers.');
+    evidence.coverage.v3LaunchTradeCollection = true;
+    evidence.notCovered = ['Allocation, claims, holder payouts, buyback, community claim and graduation are not verified by this flow. They require configured application services and authorized isolated custody signers.'];
   } catch (error) {
     record(stage, 'failed', { reason: safeError(error) });
     evidence.blockers.push(`${stage}: ${safeError(error)}`);
