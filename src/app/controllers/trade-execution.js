@@ -268,7 +268,13 @@ export function createTradeExecutionController(appState) {
       const evidence = appState.assessTradeCompletion({ transaction:receipt.status === 'fulfilled' ? receipt.value : null,
         marketActivity:market.status === 'fulfilled' && market.value.available ? market.value.data : null,
         wallet:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature });
-      if(evidence.receiptVerified){pending.broadcastUncertain=false;recordTradeRecovery({...pending,broadcastUncertain:false});}
+      if(evidence.receiptVerified){
+        pending.broadcastUncertain=false;recordTradeRecovery({...pending,broadcastUncertain:false});
+        if (appState.tradeInputs().mint === pending.mint) {
+          appState.setTradeStatus('Trade finalized and balance change verified. Preparing the next quote.');
+          if (!appState.tradeActionBusy) { appState.invalidateTradePreview(); appState.queueTradeQuote(0); }
+        }
+      }
       if(evidence.receiptVerified)void appState.apiRequest('/api/trades/finalized', {method:'POST',body:{
         signature:pending.signature,mint:pending.mint,wallet:pending.walletAddress},
         signal:AbortSignal.timeout(15000)}).catch(()=>{});

@@ -18,3 +18,23 @@ test('an unresolved signed trade stops both scheduled and direct quote work and 
     assert.equal(button.hidden,false);assert.equal(button.dataset.pendingSignature,signature);
   } finally {globalThis.document=previous;}
 });
+
+test('verified balance clears the blocking message and resumes quotes even while history indexing is pending',async()=>{
+  const previous=globalThis.document,button={hidden:false,dataset:{}};
+  globalThis.document={querySelector:selector=>selector==='#trade-verify'?button:null};
+  const wallet='2'.repeat(32),mint='1'.repeat(32),signature='4'.repeat(88),messages=[];
+  const pending={signature,mint,walletAddress:wallet,side:'buy',state:'pending'};
+  let queued=0;
+  const state={connectedWalletAddress:wallet,tradeInputs:()=>({mint}),captureWalletSession:()=>({address:wallet}),
+    isWalletSessionCurrent:()=>true,pendingTradeVerifications:new Map([[signature,pending]]),
+    connection:{getParsedTransaction:async()=>({meta:{err:null}})},apiRequest:async()=>({available:false}),
+    assessTradeCompletion:()=>({receiptVerified:true,indexed:false,complete:false}),
+    setTradeStatus:text=>messages.push(text),setTradeReceiptStatus(){},invalidateTradePreview(){},
+    queueTradeQuote:()=>queued++,updateTradeActionState(){}};
+  try{
+    await createTradeExecutionController(state).verifyPendingTrade(null,signature);
+    assert.equal(queued,1);assert.equal(pending.broadcastUncertain,false);
+    assert.match(messages.at(-1),/balance change verified/);
+    assert.equal(button.hidden,false);assert.equal(button.dataset.pendingSignature,signature);
+  }finally{globalThis.document=previous;}
+});
