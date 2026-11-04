@@ -121,6 +121,24 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
       action:`${kind}-${suffix}`,...(kind==='referral'?{level:1}:{})},headers:{}},{},new URL('/api/keeper/disburse-v3','https://funded.vip')) };
 }
 
+test('creator lock blocks manual preparation, signed submission, automatic and residual payouts',async()=>{
+  for(const residual of [false,true]) {
+    const f=fixture({kind:'creator-wallet',residual,protectedPolicy:residual});
+    f.state.launches[mint.publicKey.toBase58()].launchProtection={version:1,creatorFeeUnlockAt:new Date(Date.now()+43_200_000).toISOString()};
+    for(const input of [{},{creatorSignedTransaction:'must-not-be-decoded'},...(residual?[{residualPlanHash:f.auditHash}]:[])]){
+      await f.request(input);assert.equal(f.responses.at(-1).status,423);assert.match(f.responses.at(-1).data.error,/locked until/);
+    }
+    await f.requestAuto();assert.equal(f.responses.at(-1).status,423);assert.equal(f.submitted,0);
+    assert.equal(f.state.v3CreatorWalletPayout?.[collectionSignature]?.signature,residual?'old-wallet-receipt':undefined);
+  }
+});
+
+test('expired creator lock permits the normal automatic payout and finalized balance proof',async()=>{
+  const f=fixture({kind:'creator-wallet',protectedPolicy:true});
+  f.state.launches[mint.publicKey.toBase58()].launchProtection={version:1,creatorFeeUnlockAt:new Date(Date.now()-1).toISOString()};
+  await f.requestAuto();assert.equal(f.responses.at(-1).status,200,JSON.stringify(f.responses.at(-1).data));assert.equal(f.submitted,1);assert.equal(f.state.v3CreatorWalletPayout[collectionSignature].balanceDeltaVerified,true);
+});
+
 test('automatic community funding uses only the authority and records finalized proof',async()=>{
   const f=fixture({protectedPolicy:true});await f.requestAuto();
   assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);

@@ -234,9 +234,12 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
     burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
     reserveInstructions:[...reserve.instructions,...serviceInstructions], lookupTable });
+  let symbolReservationExpiresAt = null;
   if (prepareMetadata) {
     onStatus('Storing signed Solana image and metadata before wallet transaction approval…');
-    metadataUri = await prepareMetadata({ mint:mint.publicKey.toBase58(), name:launchInput.name, symbol:launchInput.symbol });
+    const preparedMetadata = await prepareMetadata({ mint:mint.publicKey.toBase58(), name:launchInput.name, symbol:launchInput.symbol });
+    metadataUri = typeof preparedMetadata === 'string' ? preparedMetadata : preparedMetadata?.uri;
+    symbolReservationExpiresAt = typeof preparedMetadata === 'object' ? Date.parse(preparedMetadata.symbolReservationExpiresAt) : null;
     if (metadataUri !== launchMetadataUri) throw new Error('Metadata service returned an unexpected URL. Launch was not submitted.');
   }
   plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
@@ -249,7 +252,14 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   onStatus(plan.mintRouterSeparate ? 'Approve mint router initialization, then approve the Pump launch…' : burnPlan
     ? `Approve one transaction to create the Pump coin and burn ${burnPlan.amountTokens.toLocaleString()} $FUNDED…`
     : 'Approve the Pump launch with funded.app set as creator-fee owner…');
-  const {signature,mintRouterSignature}=await executeLaunchPlan({connection,provider,payer,mint,plan,assertWalletCurrent,onEvent:onJournal});
+  const beforeBroadcast = () => {
+    // Leave enough lease time for this recent-blockhash transaction to expire
+    // before another creator may acquire the same ticker.
+    if (symbolReservationExpiresAt !== null && (!Number.isFinite(symbolReservationExpiresAt)
+      || Date.now() + 5 * 60_000 >= symbolReservationExpiresAt))
+      throw new Error('Ticker reservation expired. Start a new launch review. No transaction was sent.');
+  };
+  const {signature,mintRouterSignature}=await executeLaunchPlan({connection,provider,payer,mint,plan,assertWalletCurrent,onEvent:onJournal,beforeBroadcast});
   onJournal({state:'verification-pending',signature});
   const reserveAccount = await getAccount(connection, reserve.destination, 'finalized', TOKEN_2022_PROGRAM_ID);
   if (!reserveAccount.owner.equals(reserve.vault) || !reserveAccount.mint.equals(mint.publicKey) || reserveAccount.amount !== reserve.amount)

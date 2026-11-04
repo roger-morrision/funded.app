@@ -9,7 +9,7 @@ const VALUE = 'data-technical-value';
 const VALUE_STYLE = { 'font-size': '0' };
 const VISUALLY_HIDDEN = { position: 'absolute', width: '1px', height: '1px', margin: '-1px', padding: '0',
   overflow: 'hidden', 'clip-path': 'inset(50%)', 'white-space': 'nowrap', border: '0' };
-const SKIP = 'h1, h2, h3, h4, button, a, label, input, select, textarea, summary, option, dialog, kbd, code, [contenteditable], [id$="-error"], .field-error, [role="alert"], #docs, #privacy, #terms, #disclosures, #opt-out, .technical-notice';
+const SKIP = 'h1, h2, h3, h4, button, a, label, input, select, textarea, summary, option, dialog, kbd, code, [contenteditable], [id$="-error"], .field-error, [role="alert"], #docs, #privacy, #terms, #disclosures, #opt-out, .technical-notice, #preview-launch-cost, [data-launch-protection]';
 const JARGON_SKIP = 'input, textarea, select, option, code, kbd, [contenteditable], .workspace-network, #docs, #privacy, #terms, #disclosures, #opt-out';
 const HIDDEN = 'data-technical-notice';
 const INLINE = 'i, b, strong, em, span, abbr, time, wbr, br';

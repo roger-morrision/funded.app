@@ -1,4 +1,5 @@
 import {v3BuybackSourceSpent} from './v3-buyback-orders.mjs';
+import {creatorFeeLock} from './launch-protections.mjs';
 
 const quantity=value=>/^(0|[1-9]\d*)$/.test(String(value))?BigInt(value):null;
 const finalized=row=>row?.status==='finalized'&&row.balanceDeltaVerified===true;
@@ -25,7 +26,7 @@ export function financialFlowMonitor(state,rewards,{now=Date.now(),programId}={}
     for(const [kind,raw,receipt] of kinds) {
       const amount=quantity(raw);if(amount===null||amount<=0n)continue;
       const stage=finalized(receipt)?(['bonus','holder-and-x'].includes(kind)?'funded':'finalized-recorded')
-        :receipt?.signature?'verification-pending':'awaiting-creator-approval';
+        :receipt?.signature?'verification-pending':kind==='creator'&&creatorFeeLock(launch,now).locked?'creator-fee-locked':'awaiting-creator-approval';
       flows.push({mint:collection.mint,source,kind,stage,amountLamports:String(amount),
         since:receipt?.startedAt||settled.finalizedAt||collection.recordedAt||null});
     }

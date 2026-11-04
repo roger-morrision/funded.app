@@ -4,11 +4,12 @@ import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 
 // Never retry a send automatically: a timeout may hide a successful broadcast.
-export async function executeLaunchPlan({connection,provider,payer,mint,plan,onEvent=()=>{},assertWalletCurrent=()=>{}}) {
+export async function executeLaunchPlan({connection,provider,payer,mint,plan,onEvent=()=>{},assertWalletCurrent=()=>{},beforeBroadcast=()=>{}}) {
   const result={signature:null,mintRouterSignature:null};
   for(const step of plan.steps) {
     let broadcast=false, signature=null;
     try {
+      await beforeBroadcast();
       // A finalized hash is slightly older but is visible across every backend
       // in a load-balanced Solana RPC pool. A merely confirmed hash can be
       // returned by one backend and rejected as unknown by the next.
@@ -36,6 +37,7 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
       }
       const raw=signed.serialize();if(raw.length>1232)throw new Error('Transaction exceeds the Solana packet limit.');
       signature=bs58.encode(versioned?signed.signatures[0]:signed.signature);
+      await beforeBroadcast();
       onEvent({state:'broadcasting',step:step.kind,signature,lastValidBlockHeight:latest.lastValidBlockHeight});
       broadcast=true;
       const returned=await connection.sendRawTransaction(raw,{skipPreflight:false});

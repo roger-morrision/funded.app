@@ -30,6 +30,14 @@ export function createCreatorFeesController(appState) {
     root.hidden = !owned;
     root.replaceChildren();
     if (!owned) return;
+    if (overview.creatorFeeLock?.applies) {
+      const note = document.createElement('p');
+      note.dataset.launchProtection = '';
+      note.textContent = overview.creatorFeeLock.locked
+        ? `Creator SOL fees are locked for 12 hours after launch.${overview.creatorFeeLock.unlockAt ? ` Unlocks ${new Date(overview.creatorFeeLock.unlockAt).toLocaleString()}.` : ' Unlock time is awaiting verification.'} Fees continue to accrue; token trading remains available.`
+        : 'The 12-hour creator SOL fee lock has ended. Accrued fees follow the normal payout process.';
+      root.append(note);
+    }
     const collections = Array.isArray(overview.collections) ? overview.collections : [];
     if (!collections.length) {
       const note = document.createElement('p');

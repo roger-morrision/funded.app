@@ -68,6 +68,19 @@ test('legacy ledger changes keep entity and projection writes in one transaction
   assert.equal(statements.at(-1), 'release');
 });
 
+test('symbol reservation is durably written under the ledger advisory lock',async()=>{
+  const db=database();
+  await createLedgerRepository(db).update(state=>{
+    state.launchSymbolReservations.COIN={mint:'mint',creatorWallet:'wallet',expiresAt:123,holdUntil:123};
+  });
+  const lock=db.calls.findIndex(c=>c.sql==='SELECT pg_advisory_xact_lock(81730421)');
+  const write=db.calls.findIndex(c=>c.sql.startsWith('INSERT INTO state_entities')&&c.args[0]==='launchSymbolReservations');
+  assert.ok(lock>=0&&write>lock);
+  assert.equal(db.calls[write].args[1],'COIN');
+  assert.equal(JSON.parse(db.calls[write].args[2]).mint,'mint');
+  assert.ok(db.calls.findIndex(c=>c.sql==='COMMIT')>write);
+});
+
 test('V3 settlement state is stored separately from legacy settlement projections', async () => {
   const db = database();
   await createLedgerRepository(db).update(state => {

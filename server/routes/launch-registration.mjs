@@ -1,4 +1,5 @@
 import { validateInput, invalidRequest } from '../http-policy.mjs';
+import { newLaunchProtection, registerLaunchProtection } from '../launch-protections.mjs';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../../launch-policy-auth.js';
 import { createMarketingAgencyRoutes } from './marketing-agency.mjs';
 import { verifyLaunchServiceFee } from '../launch-service-fee-proof.mjs';
@@ -167,6 +168,7 @@ export function createLaunchRegistrationRoutes({
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter },{fundedSplit:currentSplit});
       const record = {
         ...proof, cluster: solanaCluster, creatorWallet: proof.feePayer,
+        launchProtection:newLaunchProtection(proof, policy.creatorWalletPercent),
         ...(serviceFeeReceipt ? { launchServiceFee:serviceFeeReceipt } : {}),
         ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
         ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: devnetBannerUri(proof.mint, metadataRecordOrigin(preparedMetadata)) } : {}),
@@ -195,6 +197,7 @@ export function createLaunchRegistrationRoutes({
           return existing;
         }
         if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw invalidRequest('This creator opted out during verification. Registration is blocked.');
+        registerLaunchProtection(state, record);
         state.launches[record.mint] = record;
         if (verifiedReserve) {
           state.communityReserveReceipts ||= {};

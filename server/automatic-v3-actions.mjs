@@ -1,4 +1,5 @@
-export function automaticV3Actions(state) {
+import { creatorFeeLock } from './launch-protections.mjs';
+export function automaticV3Actions(state, now = Date.now()) {
   const actions=[];
   for(const [source,settled] of Object.entries(state.v3Settlements||{})){
     const launch=state.launches?.[settled.mint],plan=settled.allocationPlan;
@@ -11,6 +12,7 @@ export function automaticV3Actions(state) {
     for(let level=1;level<=3;level++)if(settled.referralUpline?.[level-1])rows.push(
       ['referral-payout','v3ReferralPayouts',plan.protocol?.referralLamports?.[level-1],level]);
     for(const [action,ledger,amount,level] of rows){
+      if (action === 'creator-wallet-payout' && creatorFeeLock(launch, now).locked) continue;
       const key=level?`${source}:${level}`:source;
       if(!/^[1-9]\d*$/.test(String(amount||''))||state[ledger]?.[key])continue;
       actions.push({mint:settled.mint,collectionSignature:source,action,...(level?{level}:{})});

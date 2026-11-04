@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import { creatorFeeLock } from '../launch-protections.mjs';
 import {buildV3PolicyApproval,buildV3PolicyDisbursement} from '../v3-policy-builders.mjs';
 import bs58 from 'bs58';
 import { PublicKey, Transaction } from '@solana/web3.js';
@@ -95,6 +96,11 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     try { authority = v3AuthorityKeypair(); } catch {}
     let state = await store.read();
     const launch = state.launches?.[mint];
+    const feeLock = creatorFeeLock(launch);
+    if (kind === 'creator-wallet' && feeLock.locked)
+      return json(res, 423, { error:feeLock.unlockAt
+        ? `Creator SOL fees are locked until ${feeLock.unlockAt} (12 hours after launch).`
+        : 'Creator SOL fees are locked pending verification of the launch timestamp.', creatorFeeLock:feeLock });
     const collection = state.collections?.[collectionSignature];
     let settled = state.v3Settlements?.[collectionSignature];
     if (!authority?.publicKey || !launch?.onchainVerified || launch.cluster !== 'devnet'

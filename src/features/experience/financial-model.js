@@ -45,6 +45,16 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
         const funding = action.action.endsWith('funding');
         if (action.finalized && !funding) continue; // Payment receipts come from the verified recipient projection above.
         const funded = action.finalized && collection[`${action.gate}Verified`] === true;
+        const feeLocked = action.action === 'creator-wallet-payout' && overview.creatorFeeLock?.locked === true
+          && collection[action.gate] !== 'verification-pending' && !action.finalized;
+        if (feeLocked) {
+          rows.push({ id:`${collection.signature}:${action.action}`, mint:overview.mint, title:action.label,
+            stage:'Locked', ready:false, amount:solText(action.amount), wallet, href, action:'View fee lock',
+            detail:overview.creatorFeeLock.unlockAt
+              ? `Creator SOL fees unlock ${new Date(overview.creatorFeeLock.unlockAt).toLocaleString()} (12 hours after launch).`
+              : 'Creator SOL fees remain locked while the launch timestamp is verified.' });
+          continue;
+        }
         const automatic=overview.automaticDisbursementEnabled===true;
         const processing = automatic&&!funded || collection[action.gate] === 'verification-pending' || action.finalized && !funded;
         rows.push({ id:`${collection.signature}:${action.action}`, mint:overview.mint, title:action.label,

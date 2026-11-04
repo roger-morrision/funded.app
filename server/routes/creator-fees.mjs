@@ -1,4 +1,5 @@
 import { homeLaunchFeeIndex } from '../home-launch-fee-index.mjs';
+import { creatorFeeLock } from '../launch-protections.mjs';
 import { PublicKey } from '@solana/web3.js';
 import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { creatorVaultPda } from '@pump-fun/pump-sdk';
@@ -18,6 +19,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
     catch { return json(res, 400, { error:'A valid Solana mint is required.' }); }
     const state = await store.read();
     const launch = state.launches?.[mint];
+    const feeLock = creatorFeeLock(launch);
     if (!launch) return json(res, 404, { error:'Launch not found.' });
     if (!launch.onchainVerified || launch.cluster !== 'devnet' || launch.cluster !== solanaCluster
       || launch.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.pumpFeeRoute.router !== launch.creator
@@ -72,6 +74,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
       source:databaseUrl ? 'funded.app-postgresql' : 'funded.app-file-ledger',
       coverage:'verified-v3-collections', ...activity,
       overview:{ available:true, scope:'per-mint-v3', creatorWallet:launch.creatorWallet,
+        creatorFeeLock:feeLock,
         automaticSettlementEnabled:process.env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true',
         automaticDisbursementEnabled:process.env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED === 'true',
         pump:{ vault:pumpVault, accruedLamports:pumpAccruedLamports,
@@ -80,7 +83,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
         collections, gates:{ settlement:process.env.FUNDED_V3_SETTLEMENT_ENABLED === 'true',
           communityFunding:process.env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED === 'true',
           creatorRewardFunding:process.env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED === 'true',
-          creatorWalletPayout:process.env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED === 'true',
+          creatorWalletPayout:!feeLock.locked && process.env.FUNDED_V3_CREATOR_WALLET_PAYOUT_ENABLED === 'true',
           referralPayout:process.env.FUNDED_V3_REFERRAL_PAYOUT_ENABLED === 'true',
           operationsPayout:process.env.FUNDED_V3_OPERATIONS_PAYOUT_ENABLED === 'true',
           buyback:process.env.FUNDED_V3_BUYBACK_ENABLED === 'true' } },

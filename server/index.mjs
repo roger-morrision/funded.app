@@ -37,6 +37,7 @@ import { createCalloutRoutes, createCalloutFeed } from './routes/callouts.mjs';
 import { createCalloutMarketReader, createHolderShareReader } from './callout-market.mjs';
 import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode, validateInput } from './http-policy.mjs';
+import { reserveLaunchSymbol } from './launch-protections.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
@@ -423,8 +424,11 @@ async function handle(req, res) {
       if (solanaCluster !== 'devnet') return json(res, 403, { error: 'Metadata publishing is Devnet-only.' });
       const input = await body(req);
       const { record, image, imageType, banner, bannerType } = validateInput(() => parseSignedMetadata(input));
+      const reservation = await reserveLaunchSymbol({ store, record,
+        mintExists:async mint => Boolean(await new Connection(solanaRpcUrl, 'confirmed').getAccountInfo(new PublicKey(mint), 'confirmed')) });
       const saved = await store.writeMetadata({ ...record, metadataOrigin: devnetMetadataOrigin }, image, imageType, banner, bannerType);
-      return json(res, 201, { uri: devnetMetadataUri(saved.mint, metadataRecordOrigin(saved)), image: publicMetadata(saved).image, mint: saved.mint });
+      return json(res, 201, { uri: devnetMetadataUri(saved.mint, metadataRecordOrigin(saved)), image: publicMetadata(saved).image, mint: saved.mint,
+        symbolReservationExpiresAt:new Date(reservation.expiresAt).toISOString() });
     }
     if (req.method === 'GET' && url.pathname === '/api/dev-wallet') {
       if (!devMode) return json(res, 403, { error: 'Automatic wallet access is unavailable here.' });
