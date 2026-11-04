@@ -32,7 +32,7 @@ impl Fixture {
  fn deposit(&self,amount:u64)->Instruction{Instruction{program_id:developer_token_lock::id(),
   accounts:developer_token_lock::accounts::InitializeAndLock{creator:self.creator.pubkey(),mint:self.mint,source:self.source,lock:self.lock,vault:self.vault,
     token_program:TOKEN_ID,associated_token_program:ATA_ID,system_program:system_program::ID}.to_account_metas(None),
-  data:developer_token_lock::instruction::InitializeAndLock{amount}.data()}}
+  data:{let mut data=developer_token_lock::instruction::InitializeAndLock{amount}.data();data.extend_from_slice(&[1,2,3,4,5,6,7,8]);data}}}
  fn release(&self,creator:Pubkey)->Instruction{Instruction{program_id:developer_token_lock::id(),
   accounts:developer_token_lock::accounts::Release{payer:self.creator.pubkey(),creator,mint:self.mint,lock:self.lock,vault:self.vault,destination:self.source,
     token_program:TOKEN_ID,associated_token_program:ATA_ID,system_program:system_program::ID}.to_account_metas(None),data:developer_token_lock::instruction::Release{}.data()}}

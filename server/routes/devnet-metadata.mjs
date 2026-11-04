@@ -2,8 +2,8 @@ import {PublicKey} from '@solana/web3.js';
 import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import {validateInput} from '../http-policy.mjs';
 import {reserveLaunchSymbol} from '../launch-protections.mjs';
-import {parseSignedMetadata, publicMetadata, metadataRecordOrigin} from '../devnet-metadata.mjs';
-import {devnetMetadataUri} from '../../devnet-metadata.js';
+import {parseSignedMetadata, publicMetadata} from '../devnet-metadata.mjs';
+import {devnetLaunchMetadataUri} from '../../devnet-metadata.js';
 
 // Dispatch after the shared HTTP authorization/rate checks and before wallet routes.
 export function createDevnetMetadataRoutes({store,solanaCluster,solanaRpcUrl,devnetMetadataOrigin,body,respond}) {
@@ -17,7 +17,7 @@ export function createDevnetMetadataRoutes({store,solanaCluster,solanaRpcUrl,dev
     const reservation=await reserveLaunchSymbol({store,record,
       mintExists:async mint=>Boolean(await new Connection(solanaRpcUrl,'confirmed').getAccountInfo(new PublicKey(mint),'confirmed'))});
     const saved=await store.writeMetadata({...record,metadataOrigin:devnetMetadataOrigin},image,imageType,banner,bannerType);
-    respond(res,201,{uri:devnetMetadataUri(saved.mint,metadataRecordOrigin(saved)),image:publicMetadata(saved).image,mint:saved.mint,
+    respond(res,201,{uri:devnetLaunchMetadataUri(saved.mint),image:publicMetadata(saved).image,mint:saved.mint,
       symbolReservationExpiresAt:new Date(reservation.expiresAt).toISOString()});
     return true;
   };

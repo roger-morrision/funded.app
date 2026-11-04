@@ -17,7 +17,7 @@ export async function developerLockConfig({connection,env=process.env,readEviden
   }catch{return {ready:false,programId,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,reason:'Developer token escrow deployment verification is unavailable.'};}
 }
 
-export async function verifyLaunchDeveloperLock({connection,proof,reserve,transaction,config}) {
+export async function verifyLaunchDeveloperLock({connection,proof,reserve,transaction,config,serviceQuote}) {
   if(!config?.ready)throw Error('The approved developer token escrow is unavailable.');
   if(!transaction||transaction.meta?.err!==null||transaction.transaction?.signatures?.[0]!==proof.signature||transaction.slot!==proof.slot)
     throw Error('A finalized launch transaction is required for developer-token verification.');
@@ -35,7 +35,7 @@ export async function verifyLaunchDeveloperLock({connection,proof,reserve,transa
     ||balances.some(b=>b.owner===creator&&BigInt(b.uiTokenAmount.amount)!==0n))
     throw Error('The declared developer allocation must be escrowed atomically; unexpected launch token recipients were found.');
   if(amount===0n)return {version:1,status:'not-selected',verified:true,amount:'0',lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS};
-  const expected=developerLockInstruction({mint,creator,amount}).instruction;
+  const expected=developerLockInstruction({mint,creator,amount,quoteId:serviceQuote?.id}).instruction;
   const message=transaction.transaction.message;
   const keys=[...(message.accountKeys||message.staticAccountKeys||[]),...(transaction.meta.loadedAddresses?.writable||[]),...(transaction.meta.loadedAddresses?.readonly||[])].map(k=>k.toBase58());
   const instructions=message.instructions||message.compiledInstructions||[];

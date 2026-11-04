@@ -25,13 +25,21 @@ minimum amounts, authorization and payout scheduling still apply.
   seconds. There is no early-release instruction. Amounts above 20% of mint supply,
   mint/freeze authorities and custody-bypassing extensions are rejected. Only
   MetadataPointer and TokenMetadata mint extensions are accepted.
+- For a developer purchase, the escrow instruction carries an eight-byte trailing
+  service-quote nonce instead of a separate Memo instruction. The compiled Anchor
+  handler ignores this receipt marker; the API verifies it against the saved quote
+  and independently requires the exact SOL transfer and treasury balance increase.
+  The launch lookup table must include current Pump fee and buyback recipients.
+  New launch metadata uses the compact `https://funded.vip/m/<mint>` alias; old
+  metadata links and image origins remain valid. Packet-size checks keep creation,
+  reserve, escrow and service payment atomic.
 - After unlock, a permissionless instruction transfers the original allocation to
   the developer's associated token account. The coin page offers a claim button.
   Public signatures are saved before broadcast; uncertain sends are reconciled
   without signing again. Finalized failure or expiry with absent historical status
   permits a new attempt. Success requires the exact release instruction, escrow
   state and matching token debits and credits.
-- Program `XbTbbJ3AL76mJFAs71MBmgTWxoiL9z4294NfVbW9NP1` requires a pinned complete
+- Program `EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT` requires a pinned complete
   ProgramData hash in `FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256`. Missing or changed
   deployments fail closed before launch. It is upgradeable: the deployment
   authority can change program code. This is not immutable custody or an independent

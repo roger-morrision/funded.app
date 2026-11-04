@@ -8,7 +8,7 @@ import { createLaunchBurnTiers } from '../../launch-burn-policy.js';
 import { verifyPumpLaunch } from '../launch-verification.mjs';
 import { PublicKey } from '@solana/web3.js';
 import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
-import { devnetMetadataUri, devnetBannerUri } from '../../devnet-metadata.js';
+import { devnetMetadataUri, devnetLaunchMetadataUri, devnetBannerUri } from '../../devnet-metadata.js';
 import { verifiedPromotionBadge } from '../../promotion-badge.js';
 import { metadataRecordOrigin, publicMetadata } from '../devnet-metadata.mjs';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH, createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
@@ -121,7 +121,8 @@ export function createLaunchRegistrationRoutes({
       const serviceFeeReceipt = !existingLaunch ? verifyLaunchServiceFee({
         transaction:await connectionFactory(solanaRpcUrl).getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
         signature:proof.signature, mint:proof.mint, payer:proof.feePayer, quote:serviceQuote }) : existingLaunch.launchServiceFee;
-      const preparedMetadataUri = devnetMetadataUri(proof.mint, metadataRecordOrigin(preparedMetadata));
+      const legacyMetadataUri=devnetMetadataUri(proof.mint,metadataRecordOrigin(preparedMetadata));
+      const preparedMetadataUri=proof.uri===devnetLaunchMetadataUri(proof.mint)?proof.uri:legacyMetadataUri;
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
@@ -171,7 +172,7 @@ export function createLaunchRegistrationRoutes({
       let developerTokenLock=existingLaunch?.developerTokenLock;
       if(!existingLaunch){
         const lockConnection=connectionFactory(solanaRpcUrl);
-        try{developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,
+        try{developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,serviceQuote,
           transaction:await lockConnection.getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
           config:await developerLockConfig({connection:lockConnection,env})});}
         catch{return json(res,422,{error:'The finalized launch must escrow its exact developer token purchase for 12 hours. Escrow verification failed; recover this launch receipt before creating another coin.'});}

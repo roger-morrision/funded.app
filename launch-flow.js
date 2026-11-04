@@ -4,7 +4,7 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_
 import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
-import { devnetMetadataUri } from './devnet-metadata.js';
+import { devnetLaunchMetadataUri } from './devnet-metadata.js';
 import { developerLockLaunchInstructions } from './developer-token-lock.js';
 import { verifyFeeRouterAccount } from './fee-router.js';
 import { buildPumpLaunchPlan } from './mint-router-launch.js';
@@ -197,7 +197,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   initialBuy.developerAmountTokens = developerBuy.amountTokens;
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
-  const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote });
+  const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote,escrowReceiptMarker:developerBuy.amountBaseUnits>0n });
   onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
   const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter,
     feeShares:input.feeShares });
@@ -206,8 +206,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!lookupTable?.isActive()) throw new Error('Solana launch reserve lookup table is missing or inactive. No coin was created.');
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
     authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
-  const launchMetadataUri = prepareMetadata ? devnetMetadataUri(mint.publicKey.toBase58())
-    : metadataUri || devnetMetadataUri(mint.publicKey.toBase58());
+  const launchMetadataUri = prepareMetadata ? devnetLaunchMetadataUri(mint.publicKey.toBase58())
+    : metadataUri || devnetLaunchMetadataUri(mint.publicKey.toBase58());
   onStatus('Preparing Pump Solana bonding-curve launch…');
   const burnPlan = launchBurn?.amountTokens > 0
     ? await prepareFundedLaunchBurn({ connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
@@ -241,7 +241,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
     burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
     reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
-      amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock}),...serviceInstructions], lookupTable });
+      amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id}),...serviceInstructions], lookupTable });
   let symbolReservationExpiresAt = null;
   if (prepareMetadata) {
     onStatus('Storing signed Solana image and metadata before wallet transaction approval…');
@@ -334,5 +334,5 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate,
     mintRouterScope:mintRouter.scope, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
     reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },
-    metadataUri: metadataUri || devnetMetadataUri(mint.publicKey.toBase58()) };
+    metadataUri: launchMetadataUri };
 }

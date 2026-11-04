@@ -148,3 +148,14 @@ test('social pages retain verification labels, escaping, no-store headers and no
   assert.deepEqual(records.creatorReads, [['123', 'devnet', { financial: false }]]);
   assert.match(creator.content, /noindex/);
 }));
+
+
+test('compact launch metadata alias preserves content and legacy image origin without weakening fallback verification', () => fixture(async ({request,records}) => {
+  records.metadata={mint,name:'Prepared coin',symbol:'PREP',metadataOrigin:'https://metadata.funded.vip'};
+  const legacy=await request(`/devnet-metadata/${mint}`,{publicMetadata:true});
+  const compact=await request(`/m/${mint}`,{publicMetadata:true});
+  assert.equal(compact.status,200);assert.equal(compact.content,legacy.content);
+  assert.equal((await request(`/m/${mint}`,{method:'POST',publicMetadata:true})).handled,false);
+  records.metadata=null;assert.equal((await request(`/m/${mint}`,{publicMetadata:true,metadataHost:true})).status,404);
+  assert.equal((await request(`/m/${mint}`)).status,404);
+}));

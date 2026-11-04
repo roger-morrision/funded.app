@@ -38,6 +38,14 @@ test('registration verifies the atomic purchase-minus-reserve amount and exact e
  const foreign=launchReceipt();foreign.meta.logMessages=eventLogs({wallet:Keypair.generate().publicKey.toBase58()});await assert.rejects(verify(foreign),/unexpected buyer/);
  const unsafe=launchReceipt();unsafe.meta.err={InstructionError:[0,'Custom']};await assert.rejects(verify(unsafe),/finalized launch/);
 });
+test('registration binds a compact escrow marker to the exact saved service quote',async()=>{
+ const quoteId='launch_service_1_0123456789abcdef',tx=launchReceipt();
+ tx.transaction.message=new Transaction({feePayer:new PublicKey(creator),recentBlockhash:PublicKey.default.toBase58()})
+  .add(developerLockInstruction({mint,creator,amount:1n,quoteId}).instruction).compileMessage();
+ const input={connection:{getAccountInfo:async()=>lockAccount()},proof:{mint,feePayer:creator,signature,slot:100,createdTimestamp:time},reserve:{fundedTokens:100,vault:Keypair.generate().publicKey.toBase58()},transaction:tx,config,serviceQuote:{id:quoteId}};
+ assert.equal((await verifyLaunchDeveloperLock(input)).amount,'1');
+ input.serviceQuote.id='launch_service_1_1123456789abcdef';await assert.rejects(verifyLaunchDeveloperLock(input),/exact developer escrow/);
+});
 test('release receipt requires escrow state, exact instruction and both token balance changes',async()=>{
  const message=new Transaction({feePayer:new PublicKey(creator),recentBlockhash:PublicKey.default.toBase58()}).add(developerReleaseInstruction({mint,creator}).instruction).compileMessage();
  const owner=developerLockAddresses({mint,creator}).lock.toBase58(),row=(owner,amount)=>({mint,owner,uiTokenAmount:{amount}});

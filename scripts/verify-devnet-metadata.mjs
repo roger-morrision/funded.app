@@ -9,7 +9,7 @@ import { request, createServer as createHttpServer } from 'node:http';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { Keypair } from '@solana/web3.js';
-import { metadataStatement, devnetMetadataUri, devnetBannerUri } from '../devnet-metadata.js';
+import { metadataStatement, devnetMetadataUri, devnetLaunchMetadataUri, devnetBannerUri } from '../devnet-metadata.js';
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from '../launch-social-url.js';
 import { parseSignedMetadata, publicMetadata } from '../server/devnet-metadata.mjs';
 import { createStore } from '../server/store.mjs';
@@ -115,15 +115,15 @@ try {
       assert.equal(response.status, 201, await response.clone().text());
       return response.json();
     };
-    assert.equal((await postMetadata(input)).uri, devnetMetadataUri(mint), 'Legacy repeat uploads must retain the original origin.');
+    assert.equal((await postMetadata(input)).uri, devnetLaunchMetadataUri(mint), 'New uploads return the compact app alias; original links and image origins remain valid.');
     for (const withImage of [false, true]) {
       const freshRecord = { ...record, symbol:withImage?'METAIMG':'METATXT', mint:Keypair.generate().publicKey.toBase58(), imageSha256:withImage ? record.imageSha256 : '' };
       const freshInput = { ...freshRecord, metadataOrigin:'https://attacker.example', imageBase64:withImage ? input.imageBase64 : '', imageType:withImage ? 'image/png' : '', signature:bs58.encode(nacl.sign.detached(new TextEncoder().encode(metadataStatement(freshRecord)), creator.secretKey)) };
       const saved = await postMetadata(freshInput);
-      assert.equal(saved.uri, devnetMetadataUri(freshRecord.mint, 'https://funded-preview.onrender.com'));
+      assert.equal(saved.uri, devnetLaunchMetadataUri(freshRecord.mint));
       assert.equal(saved.image, withImage ? `https://funded-preview.onrender.com/devnet-images/${freshRecord.mint}` : 'https://funded-preview.onrender.com/default.svg');
       assert.deepEqual(await postMetadata(freshInput), saved, 'Idempotent uploads must retain origin and signed data.');
-      const publicResponse = await fetch(`http://127.0.0.1:${port}/devnet-metadata/${freshRecord.mint}`);
+      const publicResponse = await fetch(`http://127.0.0.1:${port}/m/${freshRecord.mint}`);
       assert.equal(publicResponse.status, 200);
       assert.equal((await publicResponse.json()).image, saved.image);
       assert.equal((await reopened.readMetadata(freshRecord.mint)).metadataOrigin, 'https://funded-preview.onrender.com');

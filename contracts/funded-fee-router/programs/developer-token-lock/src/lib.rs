@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked}};
 use anchor_spl::token_2022::spl_token_2022::{extension::{BaseStateWithExtensions, ExtensionType, StateWithExtensions}, state::Mint as SplMint};
 
-declare_id!("XbTbbJ3AL76mJFAs71MBmgTWxoiL9z4294NfVbW9NP1");
+declare_id!("EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT");
 pub const LOCK_SECONDS: i64 = 43_200;
 pub const SEED: &[u8] = b"developer-lock-v1";
 
