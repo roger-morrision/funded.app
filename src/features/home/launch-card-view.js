@@ -1,5 +1,6 @@
 import { escapeHtml, formatDashboardUsd, formatCompactUsd } from '../shared/display.js';
 import { activeBoostMultiplier } from '../../../boost-offer.js';
+import { boostPackageBadgesMarkup } from '../../../boost-card-badges.js';
 import { icon } from '../../../ui-icons.js';
 import { marketFreshness, marketFacts } from '../explore/market-facts.js';
 
@@ -227,7 +228,7 @@ export function homeLaunchCardMarkup(
       <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span></div>
       <div class="home-card-info">
         <div class="home-card-heading">
-          <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
+          <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}${activeBoost ? ` ${boostPackageBadgesMarkup(boost)}` : ''}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
         </div>
         <div class="home-card-meta">
           ${item.createdTimestamp ? `<span class="home-launch-age">${escapeHtml(ageLabel)}</span>` : ''}

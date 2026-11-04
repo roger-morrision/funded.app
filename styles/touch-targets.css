@@ -46,3 +46,6 @@ html body #main-content .home-launch-card .home-launch-card-actions > :not(.card
 html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy) > span {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
+
+/* Active boost multiplier beside the ticker on token cards. */
+.home-launch-card .home-token-identity strong .boost-package-badges { margin-left: 4px; font-size: 11px; vertical-align: middle; }

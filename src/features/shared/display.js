@@ -36,7 +36,9 @@ export function formatTinyDecimal(value, significant = 4){
   // toExponential rounds first, so 0.000099999 becomes 1.000e-4, not 0.0₄1.
   const [mantissa, exponent] = amount.toExponential(significant - 1).split('e');
   const zeros = -Number(exponent) - 1;
-  if (zeros < 4) return amount.toFixed(Math.min(12, zeros + significant + 1)).replace(/0+$/, '').replace(/\.$/, '');
+  // Small subscripts read like a comma in the card fonts, so short runs of
+  // zeros stay written out ($0.00003211); only 6+ zeros use 0.0₆…
+  if (zeros < 6) return amount.toFixed(Math.min(12, zeros + significant + 1)).replace(/0+$/, '').replace(/\.$/, '');
   const digits = mantissa.replace('.', '').replace(/0+$/, '') || '0';
   const count = String(zeros).split('').map(d => SUBSCRIPT_DIGITS[Number(d)]).join('');
   return `0.0${count}${digits}`;

@@ -226,7 +226,7 @@ function shortenPageCopy() {
     ['#payments > .workspace-page-header > p:last-child', 'Claim rewards and track your payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Rates for new launches. Existing coins keep saved rates. Allocations are not payments.'],
-    ['#launch-route-shell > .page-lede', 'Add details, set rewards, then review and sign.'],
+    ['#launch-route-shell > .page-lede', 'Add details, set rewards, then review and sign. No one can launch the same ticker on funded.vip for 12 hours, and the developer’s own token purchase is locked on-chain for 12 hours.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Star coins in Explore. Favorites stay on this device; verify a wallet or sign in with X to sync.'],
     ['#capital-flow-title', 'How creator fees are split'],
