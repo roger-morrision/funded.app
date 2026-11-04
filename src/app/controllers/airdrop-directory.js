@@ -55,7 +55,7 @@ export function createAirdropDirectoryController(appState) {
         deadline: claimState.published && reserve.expiresAt
           ? new Date(reserve.expiresAt * 1000).toLocaleString(undefined, { dateStyle:'medium', timeStyle:'long' })
           : 'After the holder snapshot',
-        snapshot: claimState.published ? `${snapshotLabel} slot ${reserve.migrationSlot}` : 'Snapshot · unverified',
+        snapshot: claimState.published ? `${snapshotLabel} slot ${reserve.migrationSlot}` : 'Not taken yet',
         walletAllocation: null,
         onCurve: isOnCurveAirdrop({ claimPublished: claimState.published }, market),
       }];

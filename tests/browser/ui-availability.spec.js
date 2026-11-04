@@ -81,7 +81,7 @@ for(const mode of ['outage','partial','pending','active'])test(`airdrop ${mode} 
     await expect(page.locator('#airdrop-selected-status')).toContainText('Claim availability could not be verified');
     await page.locator('#airdrop-selected-program .airdrop-verification-details summary').click();
     await expect(page.locator('#airdrop-selected-program .airdrop-proof-value')).toHaveText(['Verification unavailable','Verification unavailable']);
-    await expect(page.locator('#airdrop-selected-program')).not.toContainText('Pending verified snapshot');
+    await expect(page.locator('#airdrop-selected-program')).not.toContainText('Shown after the holder snapshot');
     await claimTab.click();
     await expect(list).toContainText('Claim availability could not be verified');
     await expect(list).not.toContainText('No claims are open yet');
