@@ -5,6 +5,15 @@ const asFinite = value => {
 };
 
 // The curve quote is an implied spot price, not an executable quote or USD value.
+// Migration progress = share of the curve's initial real token reserves already
+// sold: (initial − current) / initial. Pump's global initialRealTokenReserves is
+// the basis; without it there is no honest percentage, so progress stays null.
+export function curveMigrationProgress(curve, initialRealTokenReserves) {
+  const initial = asFinite(initialRealTokenReserves), real = asFinite(curve?.realTokenReserves);
+  if (!initial || real == null) return null;
+  return Math.max(0, Math.min(100, (initial - real) / initial * 100));
+}
+
 export function readCurveMetrics(curve, mint) {
   if (!curve || !mint) return { curvePriceSol: null, curveCapSol: null, curveReserveSol: null, curveProgressPercent: null };
   if (curve.complete) return { curvePriceSol: null, curveCapSol: null, curveReserveSol: null, curveProgressPercent: 100 };

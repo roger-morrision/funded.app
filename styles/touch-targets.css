@@ -22,13 +22,13 @@
 }
 
 /* Referral earnings calculator (Referrals page). */
-.referral-calculator{display:grid;gap:8px;margin-top:12px;padding:12px;border:1px solid var(--line,#2b384e);border-radius:10px}
-.referral-calculator label{display:grid;gap:6px;font-size:13px}
-.referral-calculator label span{display:flex;align-items:center;gap:8px}
-.referral-calculator input{width:100%;max-width:180px;min-height:40px;padding:8px 10px;border:1px solid var(--line,#2b384e);border-radius:8px;background:transparent;color:inherit;font:inherit}
-.referral-calculator ul{display:grid;gap:4px;margin:0;padding:0;list-style:none}
-.referral-calculator li{display:flex;justify-content:space-between;gap:12px;font-size:13px}
-.referral-calculator small{color:var(--muted,#a6b4c8)}
+.referral-earnings-calculator{display:grid;gap:8px;margin-top:12px;padding:12px;border:1px solid var(--line,#2b384e);border-radius:10px}
+.referral-earnings-calculator label{display:grid;gap:6px;font-size:13px}
+.referral-earnings-calculator label span{display:flex;align-items:center;gap:8px}
+.referral-earnings-calculator input{width:100%;max-width:180px;min-height:40px;padding:8px 10px;border:1px solid var(--line,#2b384e);border-radius:8px;background:transparent;color:inherit;font:inherit}
+.referral-earnings-calculator ul{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.referral-earnings-calculator li{display:flex;justify-content:space-between;gap:12px;font-size:13px}
+.referral-earnings-calculator small{color:var(--muted,#a6b4c8)}
 
 /* Overview on phones: 13 launch cards made the page ~12,000px tall. Show the
    first four and link to Explore for the rest. Desktop keeps the full grid. */
@@ -37,4 +37,12 @@
   #home-launch-grid > .home-launch-card:nth-child(n+5) { display: none; }
   .home-launch-more { display: flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 12px; border: 1px solid var(--line, #2b384e); border-radius: 10px; color: inherit; font-weight: 600; text-decoration: none; }
   #home-launch-grid:not(:has(> .home-launch-card:nth-child(5))) + .home-launch-more { display: none; }
+}
+
+/* Card icon buttons hide their text label with font-size:0, but the label was
+   still a grid row (plus the row gap), pushing the icon ~8px above centre.
+   Take the label out of the layout; it stays readable to screen readers. */
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy) { position: relative; }
+html body #main-content .home-launch-card .home-launch-card-actions > :not(.card-review-buy) > span {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }

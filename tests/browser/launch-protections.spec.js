@@ -9,7 +9,7 @@ for (const width of [390,1440]) test(`launch explains ticker protection and deve
   await expect(page.locator('#token-symbol-help')).toContainText('case-insensitive');
   await expect(page.locator('#token-symbol-help')).toContainText('12 hours');
   await expect(page.locator('#creator-fee-lock-help')).toBeVisible();
-  await expect(page.locator('#creator-fee-lock-help')).toContainText('no 12-hour fee hold');
+  await expect(page.locator('#creator-fee-lock-help')).not.toContainText('fee hold');
   await expect(page.locator('#creator-fee-lock-help')).toContainText('locked on-chain for 12 hours');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

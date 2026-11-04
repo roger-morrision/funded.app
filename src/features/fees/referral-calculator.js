@@ -23,7 +23,7 @@ export function mountReferralCalculator(host, levels) {
   let root = host.querySelector('[data-referral-calculator]');
   if (!root) {
     root = document.createElement('div');
-    root.className = 'referral-calculator';
+    root.className = 'referral-earnings-calculator';
     root.dataset.referralCalculator = '';
     root.innerHTML = '<label>Creator fees collected by someone you invited<span><input type="number" min="0" step="0.1" inputmode="decimal" value="10" aria-describedby="referral-calculator-note" /><b>SOL</b></span></label>'
       + '<ul aria-live="polite"></ul><small id="referral-calculator-note">Example only. Each payout follows its coin’s saved on-chain policy and needs collected, funded fees.</small>';

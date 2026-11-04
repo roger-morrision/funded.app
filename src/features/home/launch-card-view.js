@@ -63,12 +63,16 @@ export function launchCardProgressState(item, providerStatus = '') {
   const migrated = item.migrated === true, complete = item.complete === true;
   const loading = providerStatus === 'On-chain only · loading';
   const stale = /\bstale\b/i.test(String(providerStatus));
-  const value = migrated || complete ? 100 : null;
+  // A curve percentage is shown only when Explore computed it from Pump's global
+  // initial real token reserves (curveProgressBasis 'pump-global').
+  const raw = item.curveProgressBasis === 'pump-global' && typeof item.curveProgressPercent === 'number' ? item.curveProgressPercent : NaN;
+  const curvePercent = item.complete === false && !migrated && Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : null;
+  const value = migrated || complete ? 100 : curvePercent;
   const stage = migrated ? 'Migrated' : complete ? 'Curve complete' : item.complete === false ? 'On curve' : '';
   // Migration is final, so a migrated coin never needs a "Last verified" caveat.
   const retained = !migrated && (stale || (loading && value !== null));
   const text = migrated ? 'Migrated' : complete ? 'Curve complete · Migration not yet verified'
-    : item.complete === false ? (loading ? 'On curve · Checking progress…' : 'On curve')
+    : item.complete === false ? (loading ? 'On curve · Checking progress…' : curvePercent != null ? `${curvePercent < 1 && curvePercent > 0 ? '<1' : Math.floor(curvePercent)}% to migration` : 'On curve')
       : loading ? 'Checking progress…' : 'Progress unavailable';
   // The current real/virtual ratio has no admitted per-mint starting basis, so a known
   // curve stage shows alone instead of repeating "Progress unavailable" on every card.
@@ -175,8 +179,8 @@ export function homeLaunchCardMarkup(
     const displayMarket = marketFacts(item, EXPLORE_CLUSTER);
     const progress = launchCardProgressState(displayMarket, exploreProviderStatus);
     const trackAttributes = progress.value === null ? 'aria-hidden="true"'
-      : `role="progressbar" aria-label="Migration progress for ${escapeHtml(item.symbol || item.name || 'token')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="${escapeHtml(progress.text)}"`;
-    const progressMarkup = `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : '<i style="--launch-progress:100%"></i>'}</div></div>`;
+      : `role="progressbar" aria-label="Migration progress for ${escapeHtml(item.symbol || item.name || 'token')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.value)}" aria-valuetext="${escapeHtml(progress.text)}"`;
+    const progressMarkup = `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : `<i style="--launch-progress:${Number(progress.value.toFixed(2))}%"></i>`}</div></div>`;
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const capSol = displayMarket.migrated === true ? displayMarket.poolMarketCapSol : displayMarket.curveCapSol;
     const capLabel = displayMarket.migrated === true ? 'Market cap' : 'Curve cap';
@@ -203,9 +207,6 @@ export function homeLaunchCardMarkup(
     // Trust checks traders look for first, from confirmed mint data.
     const sameTicker = sameTickerCount(item);
     const trustChips = [
-      item.mintAuthorityRevoked === true && item.freezeAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can mint more of this coin or freeze holder wallets">✓ No mint/freeze</span>'
-        : item.mintAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can mint more of this coin">✓ Mint revoked</span>'
-          : item.freezeAuthorityRevoked === true ? '<span class="home-launch-chip is-trust" title="No one can freeze holder wallets">✓ Freeze revoked</span>' : '',
       sameTicker > 0 ? `<span class="home-launch-chip is-warning" title="Check the contract address before buying">⚠ ${sameTicker} other coin${sameTicker === 1 ? ' uses' : 's use'} $${escapeHtml(item.symbol || '')}</span>` : '',
     ].join('');
     const protocolChips = trustChips + [
@@ -222,7 +223,7 @@ export function homeLaunchCardMarkup(
     // "No trades" lives in the volume cell only; repeating it beside the cap clipped the cap on phones.
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
-      <small class="market-freshness" data-inline-status>${escapeHtml(marketFreshness(item, EXPLORE_CLUSTER))}</small><div class="home-card-overview">
+      <div class="home-card-overview">
       <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span></div>
       <div class="home-card-info">
         <div class="home-card-heading">

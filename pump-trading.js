@@ -153,7 +153,7 @@ export async function buildVerifiedPoolTradeTransaction({ connection, side, mint
   return buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, poolAddress:poolKey });
 }
 
-export function formatBondingCurveSnapshot({ mint, bondingCurve, slot = null, observedAt = new Date().toISOString() }) {
+export function formatBondingCurveSnapshot({ mint, bondingCurve, slot = null, observedAt = new Date().toISOString(), initialRealTokenReserves = null }) {
   if (!bondingCurve) throw new Error('Bonding curve data is unavailable.');
   const virtualToken = bnToNumber(bondingCurve.virtualTokenReserves, 6);
   const virtualQuote = bnToNumber(bondingCurve.virtualQuoteReserves, 9);
@@ -167,7 +167,11 @@ export function formatBondingCurveSnapshot({ mint, bondingCurve, slot = null, ob
     virtualQuoteReservesSol: virtualQuote,
     realTokenReserves: realToken,
     realQuoteReservesSol: realQuote,
-    progressPercent: virtualToken > 0 ? Math.max(0, Math.min(100, (1 - realToken / virtualToken) * 100)) : 0,
+    // Share of the curve's initial real tokens already sold (Pump global basis).
+    // Without the global, keep the previous estimate rather than show nothing.
+    progressPercent: initialRealTokenReserves != null && bnToNumber(initialRealTokenReserves, 6) > 0
+      ? Math.max(0, Math.min(100, (1 - realToken / bnToNumber(initialRealTokenReserves, 6)) * 100))
+      : virtualToken > 0 ? Math.max(0, Math.min(100, (1 - realToken / virtualToken) * 100)) : 0,
     creator: bondingCurve.creator?.toBase58?.() || String(bondingCurve.creator || ''),
     quoteMint: bondingCurve.quoteMint?.toBase58?.() || String(bondingCurve.quoteMint || ''),
     slot,
@@ -175,14 +179,23 @@ export function formatBondingCurveSnapshot({ mint, bondingCurve, slot = null, ob
   };
 }
 
+// Pump global initial real token reserves: the migration-progress basis. Read
+// once per page; a failed read falls back to the earlier estimate.
+let initialRealTokensRead = null;
+function pumpInitialRealTokens(sdk) {
+  initialRealTokensRead ||= sdk.fetchGlobal().then(global => global.initialRealTokenReserves).catch(() => { initialRealTokensRead = null; return null; });
+  return initialRealTokensRead;
+}
+
 export async function fetchBondingCurveSnapshot({ connection, mint }) {
   const mintKey = requireMint(mint);
   const sdk = new OnlinePumpSdk(connection);
-  const [bondingCurve, slot] = await Promise.all([
+  const [bondingCurve, slot, initialRealTokenReserves] = await Promise.all([
     sdk.fetchBondingCurve(mintKey),
     connection.getSlot('confirmed'),
+    pumpInitialRealTokens(sdk),
   ]);
-  return formatBondingCurveSnapshot({ mint: mintKey, bondingCurve, slot });
+  return formatBondingCurveSnapshot({ mint: mintKey, bondingCurve, slot, initialRealTokenReserves });
 }
 
 export function formatGraduatedPoolSnapshot({ mint, poolKey, state, tokenDecimals = 6, slot = null, observedAt = new Date().toISOString() }) {

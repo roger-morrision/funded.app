@@ -1,7 +1,12 @@
 // Dependencies and mutable application state are read live through appState.
 import { exploreStatusText } from '../../features/explore/status-copy.js';
+import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
+import { curveMigrationProgress } from '../../../explore-onchain-metrics.js';
 import { createExploreActivitySampler, applyActivitySnapshot, ACTIVITY_MAX_AGE_MS } from '../../features/explore/activity-sampling.js';
 export { scanExploreMarketsBounded } from '../../features/explore/activity-sampling.js';
+
+// Pump global initialRealTokenReserves, read once per page session.
+let pumpInitialRealTokens = null;
 
 // Sorts only change which feed order is requested; a load is still valid
 // for a new sort that asks the feeds for the same order.
@@ -65,6 +70,8 @@ export function createExploreLoadingController(appState) {
         try {
           const { PublicKey, getAssociatedTokenAddressSync, unpackAccount, unpackMint, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
           const exploreRpc = await appState.getExploreConnection();
+          // One Pump global read per page session gives the curve-progress basis.
+          pumpInitialRealTokens ??= await new OnlinePumpSdk(exploreRpc).fetchGlobal().then(global => global.initialRealTokenReserves.toString()).catch(() => null);
           const candidates = records.flatMap(record => { try { return [{ record, mint: new PublicKey(record.address) }]; } catch { return []; } });
           // The feed carries the server's recent read of these accounts; use it
           // when it covers every coin and only fall back to a browser RPC read.
@@ -83,12 +90,13 @@ export function createExploreLoadingController(appState) {
               const curveAccount = curveAccounts[index];
               const curve = curveAccount?.owner?.equals(appState.PUMP_PROGRAM_ID) ? appState.PUMP_SDK.decodeBondingCurveNullable(curveAccount) : null;
               const curveMetrics = appState.readCurveMetrics(curve, mintState);
+              const migrationProgress = curve && !curve.complete ? curveMigrationProgress(curve, pumpInitialRealTokens) : null;
               const numeric = value => value == null || value === '' ? NaN : Number(value);
               const price = numeric(record.priceUsd);
               const change = numeric(record.priceChange24hPercent);
               const marketCap = numeric(record.marketCapUsd);
               const curveTokenVault = curve ? getAssociatedTokenAddressSync(mint, appState.bondingCurvePda(mint), true, mintAccount.owner).toBase58() : null;
-              verified.push({ mint: record.address, symbol: record.symbol || 'TOKEN', name: record.name || 'Unnamed token', value: appState.EXPLORE_CLUSTER === 'devnet' && curveMetrics.curvePriceSol != null ? `MC · ${appState.formatCoinUsd(curveMetrics.curveCapSol)}` : Number.isFinite(marketCap) ? `MC · ${appState.formatUsd(marketCap)}` : 'MC unavailable', change: Number.isFinite(change) ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—', meta: Number.isFinite(marketCap) ? `MC ${appState.formatCompactUsd(marketCap)} · ${record.source || 'Pump.fun'}` : (record.source || 'Pump.fun'), icon: String(record.symbol || 'T').slice(0, 1), source: record.source || 'Pump.fun', listingPayment: record.listingPayment || null, creator: record.creator || null, website: record.website || null, twitter: record.twitter || record.x || null, telegram: record.telegram || null, discord: record.discord || null, complete: curve ? Boolean(curve.complete) : null, migrated: null, pumpSwapPool: null, quoteMint: curve?.quoteMint?.toBase58?.() || null, bondingCurve: curve ? appState.bondingCurvePda(mint).toBase58() : null, curveTokenVault, raydiumPool: record.raydiumPool || null, fetchedAt: record.fetchedAt || null, verifiedAt: new Date().toISOString(), address: record.address, mintSupplyRaw: mintState.supply.toString(), mintDecimals: mintState.decimals, mintAuthorityRevoked: mintState.mintAuthority == null, freezeAuthorityRevoked: mintState.freezeAuthority == null, volume24hUsd: record.volume24hUsd ?? null, liquidityUsd: record.liquidityUsd ?? null, holders: record.holders ?? null, marketCapUsd: Number.isFinite(marketCap) ? marketCap : null, priceChange24hPercent: Number.isFinite(change) ? change : null, createdTimestamp: record.createdTimestamp || null, lastTradeUnixTime: record.lastTradeUnixTime || null, ...curveMetrics });
+              verified.push({ ...(migrationProgress == null ? {} : { curveProgressPercent: migrationProgress, curveProgressBasis: 'pump-global' }), mint: record.address, symbol: record.symbol || 'TOKEN', name: record.name || 'Unnamed token', value: appState.EXPLORE_CLUSTER === 'devnet' && curveMetrics.curvePriceSol != null ? `MC · ${appState.formatCoinUsd(curveMetrics.curveCapSol)}` : Number.isFinite(marketCap) ? `MC · ${appState.formatUsd(marketCap)}` : 'MC unavailable', change: Number.isFinite(change) ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—', meta: Number.isFinite(marketCap) ? `MC ${appState.formatCompactUsd(marketCap)} · ${record.source || 'Pump.fun'}` : (record.source || 'Pump.fun'), icon: String(record.symbol || 'T').slice(0, 1), source: record.source || 'Pump.fun', listingPayment: record.listingPayment || null, creator: record.creator || null, website: record.website || null, twitter: record.twitter || record.x || null, telegram: record.telegram || null, discord: record.discord || null, complete: curve ? Boolean(curve.complete) : null, migrated: null, pumpSwapPool: null, quoteMint: curve?.quoteMint?.toBase58?.() || null, bondingCurve: curve ? appState.bondingCurvePda(mint).toBase58() : null, curveTokenVault, raydiumPool: record.raydiumPool || null, fetchedAt: record.fetchedAt || null, verifiedAt: new Date().toISOString(), address: record.address, mintSupplyRaw: mintState.supply.toString(), mintDecimals: mintState.decimals, mintAuthorityRevoked: mintState.mintAuthority == null, freezeAuthorityRevoked: mintState.freezeAuthority == null, volume24hUsd: record.volume24hUsd ?? null, liquidityUsd: record.liquidityUsd ?? null, holders: record.holders ?? null, marketCapUsd: Number.isFinite(marketCap) ? marketCap : null, priceChange24hPercent: Number.isFinite(change) ? change : null, createdTimestamp: record.createdTimestamp || null, lastTradeUnixTime: record.lastTradeUnixTime || null, ...curveMetrics });
            } catch {}
            }
            const completed = verified.filter(item => item.complete === true);
