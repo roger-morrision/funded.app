@@ -188,7 +188,7 @@ test('Traders remain visible on a narrow phone and explain unavailable sample da
   await tab.click();
   await expect(tab).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#leaderboard-panel')).toHaveAttribute('aria-labelledby', 'leaderboard-traders-tab');
-  await expect(page.locator('#leaderboard-table-title')).toHaveText('Observed trader leaderboard');
+  await expect(page.locator('#leaderboard-table-title')).toHaveText('Top traders');
   await expect(page.locator('#leaderboard-table')).toContainText('Trader ranking unavailable');
 });
 
