@@ -22,7 +22,7 @@ export function createCommunityClaimsController(appState) {
           appState.clearPendingCommunityClaim(saved);
           status.append(document.createTextNode(' The original claim failed on Solana. Check eligibility again before signing.'));
         } else if (receipt?.confirmationStatus === 'finalized') {
-          const response = await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
+          const response = await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`, { signal:AbortSignal.timeout(60_000) });
           if (!response.available || response.data?.status !== 'claimed'
             || response.data.recipient && response.data.recipient !== session.address
             || response.data.mint && response.data.mint !== mintAddress) {
@@ -55,8 +55,9 @@ export function createCommunityClaimsController(appState) {
       status.dataset.communityClaimMint = mintAddress;
     }
     appState.updateDirectoryWalletAmount(session, program, 'checking');
+    if (!silent) status.append(document.createTextNode(' Checking your allocation against the finalized snapshot...'));
     try {
-      const response = recoveredProof || await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`);
+      const response = recoveredProof || await appState.apiRequest(`/api/airdrops/claims/proof?mint=${encodeURIComponent(mintAddress)}&wallet=${encodeURIComponent(session.address)}`, { signal:AbortSignal.timeout(60_000) });
       if (!appState.isWalletSessionCurrent(session)) return;
       const proof = response.data;
       if (!response.available || !proof?.status) {
@@ -95,6 +96,8 @@ export function createCommunityClaimsController(appState) {
     } catch (error) {
       if (!appState.isWalletSessionCurrent(session)) return;
       appState.updateDirectoryWalletAmount(session, program, 'unavailable');
+      if (!silent && document.querySelector('#airdrop-selected-program')?.dataset.mint === mintAddress)
+        status.append(document.createTextNode(' Allocation verification is unavailable or timed out. Use Check my allocation to retry; no claim was sent.'));
       throw error;
     }
   }

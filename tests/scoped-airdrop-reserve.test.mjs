@@ -4,6 +4,18 @@ import { createAirdropsRoutes } from '../server/routes/airdrops.mjs';
 import { SharedRpcConnection } from '../server/rpc-connection.mjs';
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
 
+test('overlapping reserve requests share the same scan', async t => {
+  let release, reads=0;
+  t.mock.method(SharedRpcConnection.prototype, 'getGenesisHash', async () => DEVNET_GENESIS_HASH);
+  const routes=createAirdropsRoutes({solanaCluster:'devnet',solanaRpcUrl:'http://127.0.0.1:8899',
+    store:{read:async()=>{reads++;await new Promise(resolve=>{release=resolve;});return {launches:{}};}},
+    automaticRewardStore:{read:async()=>({})},respond:(res,status,data)=>Object.assign(res,{status,data})});
+  const one={},two={},url=new URL('https://funded.vip/api/airdrops/reserves');
+  const pending=[routes.handle({method:'GET'},one,url),routes.handle({method:'GET'},two,url)];
+  await new Promise(setImmediate);assert.equal(reads,1);release();await Promise.all(pending);
+  assert.equal(one.status,200);assert.deepEqual(one.data,two.data);
+});
+
 test('a token lookup skips unrelated launches and cannot fill the directory cache', async t => {
   t.mock.method(SharedRpcConnection.prototype, 'getGenesisHash', async () => DEVNET_GENESIS_HASH);
   let reads = 0, result;

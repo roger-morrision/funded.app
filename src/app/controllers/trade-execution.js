@@ -16,6 +16,7 @@ export function createTradeExecutionController(appState) {
   // app-source: 565
   function queueTradeQuote(delay = 350){
     clearTimeout(appState.tradeQuoteTimer);
+    if (holdUncertainTrade(appState.tradeInputs().mint)) return;
     if (!appState.tradeInputs().valid || !appState.wallet || !appState.canSignTransactions(appState.wallet) || document.visibilityState === 'hidden' || document.querySelector('#trade-panel')?.hidden) return;
     appState.tradeQuoteTimer = setTimeout(() => { void appState.prepareTradeQuote().catch(() => {}); }, delay);
   }
@@ -36,6 +37,7 @@ export function createTradeExecutionController(appState) {
   // app-source: 567
   async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     const { mint, side, amount, slippagePercent, valid } = appState.tradeInputs();
+    if (holdUncertainTrade(mint)) return null;
     if (!valid) throw new Error('Enter a positive amount and slippage between 0.1% and 10%.');
     assertTradeLimits({slippagePercent});
     if (!appState.wallet && connectIfNeeded) await appState.connectWallet();
@@ -110,6 +112,8 @@ export function createTradeExecutionController(appState) {
     const pending=uncertainTrade(appState.connectedWalletAddress,mint,appState.pendingTradeVerifications);
     if(!pending)return false;
     appState.pendingTradeVerifications.set(pending.signature,pending);
+    quoteRetry.reset();
+    appState.setTradeStatus('A signed trade needs verification. Use Check recorded trade before requesting another quote.');
     appState.setTradeReceiptStatus('Check this saved trade before preparing another trade for this coin.',pending.signature);
     return true;
   }
@@ -267,7 +271,7 @@ export function createTradeExecutionController(appState) {
         signature:pending.signature,mint:pending.mint,wallet:pending.walletAddress},
         signal:AbortSignal.timeout(15000)}).catch(()=>{});
       if (!evidence.complete) {
-        const reason = !evidence.receiptVerified ? 'Finalized token balance change is not verified yet.' : 'Matching trade row is not indexed yet.';
+        const reason = !evidence.receiptVerified ? 'Finalized token balance change is not verified yet.' : 'Trade finalized and token balance change verified. History indexing is pending; no need to submit this trade again.';
         appState.pendingTradeVerifications.delete(pending.signature);
         appState.pendingTradeVerifications.set(pending.signature, pending);
         appState.setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'} outcome checking: ${reason} ${appState.pendingTradeVerifications.size} receipt${appState.pendingTradeVerifications.size === 1 ? '' : 's'} pending. Check status again before treating it as complete.`, pending.signature);

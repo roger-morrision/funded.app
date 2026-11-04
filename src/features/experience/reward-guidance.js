@@ -31,6 +31,7 @@ export function mountRewardGuidance(app) {
     const program = app.getAirdropPrograms().find(row => row.id === mint);
     if (!program) { message.textContent = 'The linked mint is not in the loaded airdrop directory. Retry the directory before assuming there is no allocation.'; return; }
     app.renderAirdropProgramDetail(program, {open:true}); opened = true; message.remove();
+    void app.loadCommunityReserveStatuses({ mint });
     const title = document.querySelector('#airdrop-selected-title'); title.tabIndex = -1;
     title.focus({preventScroll:true}); panel.scrollIntoView({block:'start'});
   };

@@ -48,7 +48,8 @@ export function renderAirdropProgramDetail(
   const status = document.querySelector('#airdrop-selected-status');
   // Background verification may refresh the stats while a wallet review,
   // signature request or submitted transaction still owns these controls.
-  if (preserveStatus || (!open && status.contains(document.activeElement))) return;
+  if (preserveStatus || (!open && status.contains(document.activeElement)
+    && !document.activeElement?.matches?.('[data-retry-community-mint]'))) return;
   if (status.dataset) {
     delete status.dataset.communityClaimWallet;
     delete status.dataset.communityClaimMint;
@@ -64,6 +65,12 @@ export function renderAirdropProgramDetail(
     : program.vaultVerified
     ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Claims will open after the token moves to its trading pool and the eligible wallet list is confirmed.`
     : 'This airdrop is planned. Funding and wallet eligibility must be confirmed before claims can open.');
+  if (program.claimVerification === 'unavailable' || program.claimVerification === 'checking') {
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.className = 'secondary-button'; retry.dataset.retryCommunityMint = program.id;
+    retry.textContent = 'Retry verification for this mint';
+    status.append(document.createElement('br'), retry);
+  }
   if (program.claimActive) {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'secondary-button'; button.dataset.checkCommunityMint = program.id;

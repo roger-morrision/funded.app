@@ -10,8 +10,9 @@ export function createAirdropDirectoryController(appState) {
       if (!launch.mint || !Number.isFinite(allocationPercent) || !Number.isSafeInteger(reservedTokens) || reservedTokens <= 0) return [];
       const reserve = appState.verifiedCommunityReserves.get(launch.mint);
       const claimState = appState.airdropClaimState(reserve);
-      const claimVerification = appState.communityReserveStatus === 'loading' ? 'checking'
-        : appState.communityReserveStatus === 'ready' && reserve?.verified === true ? 'verified' : 'unavailable';
+      const reserveStatus = appState.communityReserveStates?.get(launch.mint) || appState.communityReserveStatus;
+      const claimVerification = reserveStatus === 'loading' ? 'checking'
+        : reserveStatus === 'ready' && reserve?.verified === true ? 'verified' : 'unavailable';
       const market = appState.assets.find(item => item.address === launch.mint);
       const claimActive = claimVerification === 'verified' && claimState.claimActive;
       const claimedTokens = claimState.published && /^\d+$/.test(String(reserve.claimedBaseUnits)) && /^\d+$/.test(String(reserve.totalBaseUnits))

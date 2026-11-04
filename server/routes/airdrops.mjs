@@ -12,9 +12,10 @@ export function createAirdropsRoutes({
   communityClaimService, v3AuthorityKeypair,
   respond,
 }) {
-  const preparing = new Map();
+  const preparing = new Map(), reserveReads = new Map();
+  let reserveEpoch = 0;
   let communityReserveSnapshot = null;
-  const invalidateReserveCache = () => { communityReserveSnapshot = null; };
+  const invalidateReserveCache = () => { communityReserveSnapshot = null; reserveEpoch++; reserveReads.clear(); };
   const json = (...args) => { respond(...args); return true; };
   async function handle(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
@@ -27,7 +28,9 @@ export function createAirdropsRoutes({
         const cached = snapshot.reserves.find(row => row.mint === mint);
         if (cached) return json(res, 200, { cluster:solanaCluster, checkedAt:snapshot.checkedAt, reserves:[cached] });
       }
-      try {
+      const scope = mint || '*', epoch = reserveEpoch;
+      if (!reserveReads.has(scope)) {
+        const work = (async () => {
         const connection = new Connection(solanaRpcUrl, 'finalized');
         if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Reward RPC is not Devnet.');
         const state = await store.read();
@@ -72,7 +75,7 @@ export function createAirdropsRoutes({
               reason:'Community reserve could not be verified for this mint.' };
           }
         });
-        if (mint) return json(res, 200, { cluster:solanaCluster, checkedAt:new Date().toISOString(), reserves });
+        if (mint) return { cluster:solanaCluster, checkedAt:new Date().toISOString(), reserves };
         const authorities = new Set(reserves.filter(row => row.verified).map(row => row.authority));
         const result = { cluster:'devnet', checkedAt:new Date().toISOString(), claimPolicy:{ windowDays:90,
           unclaimedRecipient:authorities.size === 1 ? [...authorities][0] : null,
@@ -80,9 +83,13 @@ export function createAirdropsRoutes({
           qaOnly:reserves.some(row => row.status === 'drop-active')
             && reserves.filter(row => row.status === 'drop-active')
               .every(row => row.snapshotBasis === 'devnet-qa-cutoff') }, reserves };
-        communityReserveSnapshot = { value:result, expiresAt:Date.now() + 30_000 };
-        return json(res, 200, result);
-      } catch { return json(res, 503, { error:'Community reserve verification is temporarily unavailable.' }); }
+        if (epoch === reserveEpoch) communityReserveSnapshot = { value:result, expiresAt:Date.now() + 30_000 };
+        return result;
+        })().finally(() => { if (reserveReads.get(scope) === work) reserveReads.delete(scope); });
+        reserveReads.set(scope, work);
+      }
+      try { return json(res, 200, await reserveReads.get(scope)); }
+      catch { return json(res, 503, { error:'Community reserve verification is temporarily unavailable.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/reserves/receipt') {
       if (solanaCluster !== 'devnet') return json(res, 503, { error:'Solana community reserve verification is unavailable.' });

@@ -1,3 +1,4 @@
+import { readPendingBurn } from '../../features/funded/burn-recovery.js';
 import { mountBuybackProgressPanels } from '../../features/funded/buyback-progress-ui.js';
 import { fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
 
@@ -131,6 +132,15 @@ export function createBuybackController(appState) {
     const input = document.querySelector('#funded-burn-amount');
     const button = document.querySelector('#funded-burn-submit');
     if (!input || !button) return;
+    const pending = readPendingBurn();
+    if (pending || appState.fundedBurnBusy) {
+      input.disabled = true;
+      button.textContent = appState.fundedBurnBusy ? 'Checking burn...' : 'Check burn status';
+      button.disabled = Boolean(appState.fundedBurnBusy) || pending?.wallet !== appState.connectedWalletAddress;
+      button.title = pending ? `Original burn: ${pending.signature}. Reconnect ${pending.wallet} to verify; no new burn will be signed.` : 'Waiting for your burn.';
+      return;
+    }
+    button.textContent = 'Burn $FUNDED';
     const signingReady = appState.fundedBurnState.status === 'ready' && Boolean(appState.wallet && appState.canSignTransactions(appState.wallet));
     let reason = '';
     try {
