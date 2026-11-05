@@ -38,18 +38,19 @@ for (const width of [360,390,1440]) test(`bonus rules disclosure keeps QA schedu
   await summary.focus();await page.keyboard.press('Space');await expect(rules).toBeHidden();await expect(summary).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
-test('Home bonus amounts animate to recorded totals; countdown ticks down; category links open full history', async ({ page }) => {
+test('Home keeps bonus panel hidden; Bonuses route exposes category totals and paginated history', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await setup(page); await page.goto('/#overview');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  const home = page.locator('#home-daily-bonuses'); await expect(home).toBeVisible();
+  const home = page.locator('#home-daily-bonuses'); await expect(home).toBeHidden();
   await expect(home).toContainText('each receive one third');
   await expect(home.locator('.bonus-pool-grid article small')).toHaveText(Array(3).fill('1st 50% · 2nd 30% · 3rd 20% of the category budget'));
   await expect(home.locator('[data-bonus-pool="creators"]')).toHaveText('1 SOL');
   await expect(home.locator('[data-bonus-pool="referrals"]')).toHaveText('0.999999999 SOL');
   const clock = home.locator('[data-bonus-countdown]'); const initial = await clock.textContent();
   await expect.poll(() => clock.textContent()).not.toBe(initial);
-  await home.locator('[data-bonus-category-link="traders"]').click();
+  await page.evaluate(() => { location.hash = '#bonuses'; });
+  await page.locator('[data-bonus-history-category]').selectOption('traders');
   await expect(page.locator('#bonuses')).toBeVisible(); await expect(home).toBeHidden();
   await expect(page.locator('[data-bonus-delivery]')).toContainText('of the category budget');
   await expect(page.locator('[data-bonus-history-category]')).toHaveValue('traders');
