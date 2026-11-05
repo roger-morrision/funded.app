@@ -19,6 +19,8 @@ for(const width of [320,390,768,1440]) {
     const errors=[];page.on('pageerror',error=>errors.push(error.message));await setup(page,width,`/token/${mint}`);
     await expect(page.locator('.coin-hero-card')).toHaveAttribute('data-launch-tier','pro');
     await expect(page.locator('#coin-liquidity-label')).toHaveText('Price');
+    await expect(page.locator('#coin-retry')).toHaveCount(0);await expect(page.locator('#coin-refresh')).toBeVisible();
+    await expect(page.locator('#coin-strip-volume')).toBeVisible();await expect(page.locator('#coin-strip-trades')).toBeVisible();
     await page.evaluate(mint=>CommunityFixture.mountHolderRewardsCard({getCoinMintAddress:()=>mint,coinSolUsdPrice:100,apiRequest:async()=>({available:true,data:{cluster:'devnet',tokens:[{mint,symbol:'COMM',holderSharePercent:10,holderPaidLamports:1000000,totals:{holder:2000000},holderPaidWallets:2,holderPayoutCount:2}],events:[]}})}),mint);
     await expect(page.locator('#coin-page > #holder-rewards-card')).toBeVisible();await expect(page.locator('.coin-hero-card #holder-rewards-card')).toHaveCount(0);
     const holder=await page.locator('#holder-rewards-card').boundingBox(),layout=await page.locator('.coin-layout').boundingBox();expect(holder.y).toBeGreaterThanOrEqual(layout.y+layout.height);
@@ -36,6 +38,13 @@ for(const width of [320,390,768,1440]) {
     await page.evaluate(mint=>{document.querySelector('#coin-activity-list').innerHTML=CommunityFixture.coinMyRewardsMarkup({wallet:{rows:[]}},mint);},mint);
     await expect(page.locator('.coin-my-rewards')).toContainText('No payments yet');
     await page.locator('.coin-hero-card').screenshot({path:info.outputPath(`header-${width}.png`)});expect(errors).toEqual([]);
+    if(width===1440){
+      await page.evaluate(()=>{document.querySelector('.coin-hero-card').dataset.launchTier='standard';document.querySelector('.coin-artwork').hidden=true;document.querySelector('#coin-fee-route').hidden=false;document.querySelector('#coin-fee-route-value').textContent='Holders 80%';document.querySelector('.coin-stat-strip').classList.add('has-fee-allocation');});
+      const stats=await page.locator('.coin-stat-strip > div').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width};}));
+      expect(stats).toHaveLength(6);expect(stats[0].y).toBe(stats[2].y);expect(stats[3].y).toBe(stats[5].y);expect(Math.abs(stats[3].width-stats[5].width)).toBeLessThan(1);
+      expect((await page.locator('.coin-hero-card').boundingBox()).height).toBeLessThan(420);
+      await page.locator('.coin-hero-card').screenshot({path:info.outputPath('header-standard-1440.png')});
+    }
   });
   test(`saved Portfolio tabs and confirmed-success popup at ${width}px (mocked data)`,async({page},info)=>{
     await setup(page,width,'/#my-launches');

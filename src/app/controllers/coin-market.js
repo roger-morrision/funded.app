@@ -1,4 +1,5 @@
 import { formatTinyDecimal } from '../../features/shared/display.js';
+import { renderHeaderActivity } from '../../features/coin/header-activity.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createCoinMarketController(appState) {
@@ -105,6 +106,7 @@ export function createCoinMarketController(appState) {
 
   // app-source: 958
   function renderCoinPulse(){
+    renderHeaderActivity(appState.coinMarketActivity);
     return appState.renderCoinPulseView({ coinMarketActivity: appState.coinMarketActivity, coinPulsePeriod: appState.coinPulsePeriod }, { formatExploreUsd: appState.formatExploreUsd });
   }
   // app-source-end

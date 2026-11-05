@@ -122,7 +122,7 @@ export function createCoinStateController(appState) {
       appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
       appState.setCoinField('#coin-liquidity', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
     }
-    appState.coinMarketActivity = { status: hasTradeRows ? 'ready' : 'summary-only', trades: hasTradeRows ? market.recentTrades : [], activityWindows: market.activityWindows, coverage: market.coverage, decimals, graduated: Boolean(graduated), poolTradeCount24h: Number(market.poolTradeCount24h) || 0, tradeCount: Number(market.tradeCount24h) || 0, volume24hSol: Number(market.volume24hSol), buyVolume24hSol: Number(market.buyVolume24hSol), sellVolume24hSol: Number(market.sellVolume24hSol) };
+    appState.coinMarketActivity = { status: hasTradeRows ? 'ready' : 'summary-only', trades: hasTradeRows ? market.recentTrades : [], activityWindows: market.activityWindows, coverage: market.coverage, decimals, graduated: Boolean(graduated), poolTradeCount24h: Number(market.poolTradeCount24h) || 0, tradeCount: market.tradeCount24h != null && Number.isSafeInteger(Number(market.tradeCount24h)) && Number(market.tradeCount24h) >= 0 ? Number(market.tradeCount24h) : null, volume24hSol: Number(market.volume24hSol), buyVolume24hSol: Number(market.buyVolume24hSol), sellVolume24hSol: Number(market.sellVolume24hSol) };
     appState.renderCoinSummary();
     const partial = market.coverage === 'partial';
     appState.renderCoinPricePath(); appState.renderCoinPulse();
