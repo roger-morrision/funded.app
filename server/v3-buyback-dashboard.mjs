@@ -89,7 +89,8 @@ export function v3BuybackBudget(state, programId) {
 }
 
 export async function readV3BuybackDashboard({ state, programId, connection,
-  reserveLamports = null, thresholdLamports = BUYBACK_TRIGGER_LAMPORTS }) {
+  reserveLamports = null, thresholdLamports = BUYBACK_TRIGGER_LAMPORTS,
+  readHistory = latestUnindexedV3Burn }) {
   const budget = v3BuybackBudget(state, programId);
   const reserve = reserveLamports == null
     ? BigInt(await connection.getMinimumBalanceForRentExemption(0, 'finalized'))
@@ -135,7 +136,7 @@ export async function readV3BuybackDashboard({ state, programId, connection,
     // Historical display discovery must not consume the full current-custody
     // deadline. Existing finalized app receipts remain usable when it is slow.
     const historyRead = (async () => {
-      const chainBurn = await latestUnindexedV3Burn({ connection, programId,
+      const chainBurn = await readHistory({ connection, programId,
         indexedSignatures:new Set(receipts.map(row => row.signature)),
         indexedReceipts:new Set(receipts.map(row => row.receipt).filter(Boolean)),
         signal:historyController.signal });

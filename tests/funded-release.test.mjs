@@ -41,6 +41,8 @@ test('offline preparation freezes frontend and overlays, pins four services, and
   f.config.services.app.volumes.push({type:'bind',source:overlay,target:'/app/config/runtime.js',read_only:true});
   const manifest=f.prepare(),release=loadRelease(f.stateDir,manifest.id),config=JSON.parse(fs.readFileSync(release.composeFile));
   for(const name of releaseServices){assert.equal(config.services[name].image,images[0]);assert.equal(config.services[name].environment.FUNDED_BUILD_ID,revisions[0]);assert.equal(config.services[name].build,undefined);}
+  for(const name of ['buyback-worker','agency-buyback-worker'])
+    assert.deepEqual(config.services[name].healthcheck.test,['CMD','node','scripts/worker-health.mjs',name]);
   assert.deepEqual(config.volumes.data,{name:'existing-data',external:true});assert.deepEqual(config.networks.default,{name:'existing-network',external:true});
   assert.equal(config.secrets.api.file,f.secret);assert.equal(config.services.app.environment.LITERAL,'synthetic$$value');
   fs.writeFileSync(join(f.ui,'index.html'),'changed original');fs.writeFileSync(overlay,'changed original');

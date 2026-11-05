@@ -3,6 +3,7 @@ import { v3AutomaticRewardStatus } from '../v3-automatic-status.mjs';
 import { jackpotPreview } from '../jackpot-model.mjs';
 import { v3RewardExperience } from '../v3-reward-experience.mjs';
 import { readV3BuybackDashboard } from '../v3-buyback-dashboard.mjs';
+import { createBuybackHistoryReader } from '../buyback-history-cache.mjs';
 import { buybackTriggerLamports } from '../devnet-qa-minimums.mjs';
 import { v3BuybackNextOrder, v3BuybackSourceSpent } from '../v3-buyback-orders.mjs';
 import { onchainBuybackSource } from '../v3-buyback-cycle.mjs';
@@ -132,6 +133,9 @@ export function createRewardStatusRoutes({
   let buybackSnapshot = null;
   const buybackReads = new Map();
   const rawBuybackReads=new Set();
+  const readHistory=createBuybackHistoryReader({connectionFactory:signal=>connectionFactory(solanaRpcUrl,
+    {commitment:'finalized',disableRetryOnRateLimit:true,fetch:(target,options)=>fetch(target,
+      {...options,signal:AbortSignal.any([signal,AbortSignal.timeout(15_000)])})})});
   const buybackCacheKey=(state,threshold)=>allocationAuditHash({program:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,
     hash:env.FUNDED_V3_PROGRAM_DATA_SHA256,threshold:String(threshold),settlements:state.v3Settlements||{},
     orders:state.v3BuybackOrders||{}});
@@ -187,7 +191,7 @@ export function createRewardStatusRoutes({
               timer.unref?.();
             });
             const raw=Promise.resolve().then(()=>readBuybackDashboard({ state,
-              programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,thresholdLamports,
+              programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,thresholdLamports,readHistory,
               connection:connectionFactory(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
                 fetch:(target,options)=>fetch(target,{...options,signal:controller.signal})}) }));
             rawBuybackReads.add(raw);void raw.then(()=>rawBuybackReads.delete(raw),()=>rawBuybackReads.delete(raw));

@@ -6,6 +6,7 @@ import {resolve,join,dirname,relative,isAbsolute} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {releaseServices,assessReleaseServices} from './verify-deployment-readiness.mjs';
 import {localDockerHost,deploymentCapacity} from './check-deployment-capacity.mjs';
+import {monitoredWorkers,workerHealthcheck} from './worker-health.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 const revisionPattern=/^[a-f0-9]{40}$/,imagePattern=/^sha256:[a-f0-9]{64}$/;
@@ -84,6 +85,7 @@ export function prepareRelease({config,image,revision,origin,stateDir}){
         s.image=image;s.environment.FUNDED_BUILD_ID=revision;
         s.labels={...s.labels,'org.opencontainers.image.revision':revision};
         if(name==='app')s.labels['vip.funded.frontend.revision']=revision;
+        if(monitoredWorkers.includes(name))s.healthcheck=workerHealthcheck(name);
       }
     }
     // Existing named data volumes and networks must never be silently recreated.

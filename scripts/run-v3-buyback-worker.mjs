@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { shouldAttemptV3Buyback } from '../server/v3-buyback-worker-policy.mjs';
 import { createWorkerLifecycle, WorkerStoppingError } from './worker-lifecycle.mjs';
 import { createTradeWakePoll } from './trade-wake-poll.mjs';
+import { recordWorkerCycle } from './worker-health.mjs';
 
 if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic V3 buyback worker is Devnet-only.');
 const endpoint = new URL(process.env.FUNDED_INTERNAL_APP_URL || 'http://app:8787');
@@ -68,8 +69,9 @@ while (!lifecycle.stopped) {
     const reported = await request(`/api/buyback/worker-heartbeat?status=${heartbeat}`, 'POST');
     if (reported.status !== 200 || reported.result?.recorded !== true)
       throw new Error('Buyback worker heartbeat was not recorded.');
+    recordWorkerCycle('buyback-worker',heartbeat === 'failed' ? 'failed' : 'completed',heartbeat);
   }
-  catch (error) { console.error(JSON.stringify({ event:'v3_buyback_worker_heartbeat_error',
+  catch (error) { recordWorkerCycle('buyback-worker','failed'); console.error(JSON.stringify({ event:'v3_buyback_worker_heartbeat_error',
     reason:String(error.message || error).slice(0,240) })); }
   await lifecycle.wait(5000);
 }

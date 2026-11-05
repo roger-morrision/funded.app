@@ -4,7 +4,7 @@
 
 Daily bonuses are **automatic SOL transfers**: winners do not claim or sign a recipient transaction. The worker checks every five minutes for completed UTC days and pending payouts. A day closes at **00:00 UTC** (07:00 Bangkok); the countdown starts verification, not an immediate payment guarantee. Exact source funding is still required after creator settlement/funding approval. Incomplete history, missing funding, reconciliation or an unavailable worker can delay payment.
 
-Ordinary referral-network transfers are separate: they require creator approval but no recipient claim. X SOL and community token airdrops require recipient claim actions.
+Ordinary referral-network transfers are separate: active automatic routes deliver after verified settlement and funding; manual routes may require creator approval. Recipients do not claim or sign a referral payment. X SOL and community token airdrops require recipient claim actions.
 
 ## Dashboard and payment history
 

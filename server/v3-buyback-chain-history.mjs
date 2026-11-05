@@ -36,7 +36,7 @@ export async function latestUnindexedV3Burn({ connection, programId,
   }).sort((a, b) => a.createdAt === b.createdAt ? 0 : a.createdAt > b.createdAt ? -1 : 1);
   // Refuse an unbounded chain scan on a public page. Existing app receipts
   // remain available even when the display-only history is too large.
-  if (candidates.length > 100) return null;
+  if (candidates.length > 100) throw new Error('Burn history exceeds the bounded discovery limit.');
   for (const candidate of candidates) {
     const { pubkey, mint, id } = candidate;
     // The dashboard supplies only receipts with an existing finalized burn

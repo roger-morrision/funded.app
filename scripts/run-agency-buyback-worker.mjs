@@ -5,6 +5,7 @@ import bs58 from 'bs58';
 import {createPostgresStore} from '../server/postgres-store.mjs';
 import {runAgencyCycle,agencyWorkerBlocked} from './run-agency-worker.mjs';
 import {runAgencyBuybackLoop} from '../server/agency-buyback-loop.mjs';
+import {recordWorkerCycle} from './worker-health.mjs';
 
 // This entry point has no publisher, outbox or X credential configuration.
 export function agencyBuybackConfig(env,args=[]){
@@ -39,9 +40,11 @@ async function main(args){
         const result=await runAgencyCycle({config,store,connection,authority,shouldStop:()=>stopped,
           onDiagnosticStep:row=>console.log(JSON.stringify({event:'agency-buyback-worker-step',...row}))});
         console.log(JSON.stringify({...result,cycleDurationMs:Math.round(performance.now()-startedAt)}));
+        if(!stopped)recordWorkerCycle('agency-buyback-worker','completed',result.readinessStatus);
         return result;
       },
       onBlocked:async error=>{
+        recordWorkerCycle('agency-buyback-worker','failed');
         const blocked=agencyWorkerBlocked(error,{config,authority});
         console.error(JSON.stringify({event:'agency-buyback-worker-blocked',...blocked}));
         if(config.execute)await store.update(state=>{state.adminSettings||={};state.adminSettings.agencyBuybackWorker=blocked;});
