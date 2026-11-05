@@ -129,12 +129,24 @@ html body #main-content #explore :is(.explore-timeframe,.explore-view-switch) > 
   html body #main-content #explore #explore-trade-preferences { grid-column: 2; grid-row: 2; }
 }
 @media(max-width:600px){
-  html body #main-content #explore .explore-hero { gap: 8px; margin-bottom: 16px; }
-  html body #main-content #explore .explore-control-bar { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
-  html body #main-content #explore .explore-control-left { grid-column: 1 / -1; justify-content: space-between; width: 100%; }
-  html body #main-content #explore .product-sort { grid-column: 1 / -1; grid-row: 2; }
-  html body #main-content #explore .explore-view-switch { grid-column: 1; grid-row: 3; justify-self: start; }
-  html body #main-content #explore #explore-trade-preferences { grid-column: 1 / -1; grid-row: 4; width: 100%; }
+  html body #main-content #explore .explore-hero { gap: 4px; margin-bottom: 8px; }
+  html body #main-content #explore .explore-heading { margin-bottom: 8px; }
+  html body #main-content #explore .explore-tools { gap: 8px; }
+  html body #main-content #explore .explore-control-bar { grid-template-columns: minmax(134px,1fr) 44px 92px; gap: 8px; }
+  html body #main-content #explore .explore-control-left { display: contents; }
+  html body #main-content #explore .explore-timeframe { grid-column: 1; grid-row: 1; padding: 0; justify-self: start; }
+  html body #main-content #explore .explore-timeframe > button { min-width: 44px; padding: 0; }
+  html body #main-content #explore .explore-filter-wrap { grid-column: 2; grid-row: 1; margin: 0; }
+  html body #main-content #explore #explore-filter-toggle { width: 44px; min-width: 44px; max-width: 44px; padding: 0; }
+  html body #main-content #explore #explore-filter-toggle > span:last-child { display: none !important; }
+  html body #main-content #explore .explore-view-switch { grid-column: 3; grid-row: 1; justify-self: stretch; padding: 0; }
+  html body #main-content #explore .explore-view-switch > button { min-width: 44px; padding: 0 4px; }
+  html body #main-content #explore .product-sort { grid-column: 1; grid-row: 2; display: grid; gap: 4px; }
+  html body #main-content #explore .product-sort-label { font-size: 12px; line-height: 18px; }
+  html body #main-content #explore #explore-sort { width: 100%; min-width: 0; padding-inline: 8px; }
+  html body #main-content #explore #explore-trade-preferences { grid-column: 2 / -1; grid-row: 2; width: 100%; }
+  html body #main-content #explore #explore-trade-preferences .review-buy-setting { grid-template-columns: minmax(0,1fr) auto; gap: 4px 6px; }
+  html body #main-content #explore .review-buy-setting > span:first-child { grid-column: 1 / -1; font-size: 12px; line-height: 18px; }
 }
 /* Both buy amounts, Share and Boost stay on one row with full-size tap targets. */
 html body #main-content .home-launch-card .home-launch-card-actions.has-buy-presets { grid-template-columns: repeat(2,minmax(0,1fr)) repeat(2,44px); gap: 6px; }

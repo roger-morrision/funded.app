@@ -1,12 +1,13 @@
 import{test,expect}from'@playwright/test';import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
-for(const width of[320,390,768,1280,1440])test(`Explore controls align at ${width}px`,async({page},info)=>{
+for(const width of[320,390,430,600,768,1280,1440])test(`Explore controls align at ${width}px`,async({page},info)=>{
  await page.setViewportSize({width,height:900});await page.route('https://**/*',r=>r.abort());await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Mocked offline'}}));await page.route('**/api/fee-policy',r=>r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
  await page.goto('/#explore');await page.locator('body.product-flows-ready').waitFor();
  const box=s=>page.locator(s).boundingBox();const tools=await box('.explore-tools'),search=await box('.explore-search-label');expect(Math.abs(search.x-tools.x)).toBeLessThan(2);expect(Math.abs(search.width-tools.width)).toBeLessThan(2);
  const selectors=['.explore-timeframe','#explore-filter-toggle','#explore-sort','.explore-view-switch','#explore-trade-preferences input'];const controls=await Promise.all(selectors.map(box));
- for(const r of controls){expect(r.height).toBeGreaterThanOrEqual(44);expect(r.y).toBeGreaterThanOrEqual(search.y+search.height+10);}
+ for(const r of controls){expect(r.height).toBeGreaterThanOrEqual(44);expect(r.y).toBeGreaterThanOrEqual(search.y+search.height+(width<=600?8:10));}
+ if(width<=600){const [time,filter,sort,view,amount]=controls;expect(Math.max(time.y,filter.y,view.y)-Math.min(time.y,filter.y,view.y)).toBeLessThan(2);expect(time.x+time.width).toBeLessThanOrEqual(filter.x);expect(filter.x+filter.width).toBeLessThanOrEqual(view.x);expect(Math.abs(sort.y-amount.y)).toBeLessThan(2);expect(tools.height).toBeLessThan(185);for(const button of await page.locator('.explore-timeframe button,.explore-view-switch button').all())expect((await button.boundingBox()).width).toBeGreaterThanOrEqual(44);}
  if(width>1100){expect(Math.max(...controls.map(r=>r.y))-Math.min(...controls.map(r=>r.y))).toBeLessThan(2);expect(Math.max(...controls.map(r=>r.height))-Math.min(...controls.map(r=>r.height))).toBeLessThan(3);}
  await expect(page.locator('#explore .review-buy-setting input')).toBeVisible();await expect(page.locator('#explore-trade-preferences summary')).toHaveCount(0);await expect(page.locator('#explore-trade-preferences')).toContainText('Quick buy amount');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
- await page.locator('#explore-filter-toggle').click();await expect(page.locator('#explore-filter-popover')).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('#explore-filter-toggle')).toBeFocused();
+ await page.locator('#explore-filter-toggle').click();await expect(page.locator('#explore-filter-popover')).toBeVisible();const popover=await box('#explore-filter-popover');expect(popover.x).toBeGreaterThanOrEqual(0);expect(popover.x+popover.width).toBeLessThanOrEqual(width);await page.keyboard.press('Escape');await expect(page.locator('#explore-filter-toggle')).toBeFocused();
  await page.screenshot({path:info.outputPath(`explore-aligned-${width}.png`)});
 });
