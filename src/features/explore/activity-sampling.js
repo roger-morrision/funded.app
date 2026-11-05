@@ -73,14 +73,11 @@ export function createExploreActivitySampler({ cache, now = Date.now }) {
 export function renderActivityCoverage(document, id, records, { hidden = false } = {}) {
   const node = document.getElementById?.(id) || document.querySelector?.(`#${id}`);
   if (!node) return;
-  node.hidden = hidden;
-  if (hidden) return;
   const known = records.filter(item => item.windowVolumeSol != null).length;
   const partial = known < records.length || records.some(item => item.windowCoverage === 'partial');
   node.dataset.state = partial ? 'partial' : known ? 'available' : 'unavailable';
-  node.textContent = !records.length ? 'Activity data will appear after launches are verified.'
-    : !known ? 'Trade stats are still loading · rankings will update when they arrive'
-    : `${known < records.length
-      ? `Stats loaded for ${known} of ${records.length} coins · rankings may shift`
-      : `Stats loaded for all ${records.length} coins${partial ? ' · some trade history incomplete' : ''}`} · up to 5 min old`;
+  node.hidden = hidden || known > 0;
+  node.textContent = node.hidden ? '' : !records.length
+    ? 'Activity data will appear after launches are verified.'
+    : 'Trade stats are still loading · rankings will update when they arrive';
 }

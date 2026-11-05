@@ -57,7 +57,7 @@ test('coverage notice does not claim stale stats when none have loaded yet',()=>
  assert.equal(node.textContent,'Trade stats are still loading · rankings will update when they arrive');
  assert.equal(node.dataset.state,'partial');
  renderActivityCoverage(doc,'x',[{windowVolumeSol:1},{windowVolumeSol:null}]);
- assert.match(node.textContent,/^Stats loaded for 1 of 2 coins · rankings may shift · up to 5 min old$/);
+ assert.equal(node.textContent,'');assert.equal(node.hidden,true);
 });
 
 test('one rejected RPC request does not hide successful coins in the same scan',async()=>{
