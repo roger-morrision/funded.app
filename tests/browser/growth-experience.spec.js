@@ -1,5 +1,10 @@
 import {test,expect} from '@playwright/test';
+import {build} from 'vite';
+import {fileURLToPath} from 'node:url';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+const root=fileURLToPath(new URL('../../',import.meta.url));
+const built=await build({root,configFile:false,logLevel:'silent',build:{write:false,lib:{entry:root+'tests/fixtures/community-layout.js',name:'CommunityFixture',formats:['iife']}}});
+const fixture=built[0].output.find(row=>row.type==='chunk').code;
 async function setup(page,path='/#overview'){
  await page.route('https://**/*',route=>route.abort());
  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline growth fixture'}}));
@@ -27,10 +32,11 @@ test('reward states link to the correct asset and claim flows (mocked)',async({p
 });
 test('confirmed-launch fixture opens an editable share card, pending registration cannot (mocked)',async({page})=>{
  await setup(page);
+ await page.addScriptTag({content:fixture});
  const launch={mint:'Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7',name:'Community test',symbol:'TEST',signature:'3'.repeat(88),registered:false};
- await page.evaluate(async launch=>{const m=await import('/src/features/launch/success-dialog.js');m.showLaunchSuccess(launch);},launch);
+ await page.evaluate(launch=>CommunityFixture.showLaunchSuccess(launch),launch);
  await expect(page.locator('[data-share-launch]')).toBeDisabled();await page.locator('[data-close-launch]').click();
- await page.evaluate(async launch=>{const m=await import('/src/features/launch/success-dialog.js');m.showLaunchSuccess({...launch,registered:true});},launch);
+ await page.evaluate(launch=>CommunityFixture.showLaunchSuccess({...launch,registered:true}),launch);
  await page.locator('[data-share-launch]').click();await expect(page.locator('#share-dialog')).toBeVisible();
  await expect(page.locator('#share-message')).toHaveValue(/Test funds/);await page.locator('#share-message').fill('My community invitation');
  await expect(page.locator('#share-link')).toHaveValue(new RegExp('/token/'+launch.mint));
