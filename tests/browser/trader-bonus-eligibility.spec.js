@@ -1,0 +1,22 @@
+import {test,expect} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
+for(const width of [390,1440])test(`bonus rules distinguish new signer eligibility from historical snapshots at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/api/**',r=>new URL(r.request().url()).pathname==='/api/fee-policy'?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline fixture'}}));
+ const empty={hash:'a'.repeat(64),status:'snapshotted',allocatedLamports:'0',retainedLamports:'0',rankings:{creators:[],referrals:[],traders:[]},sources:[]};
+ await page.route('**/api/daily-bonus',r=>r.fulfill({json:{cluster:'devnet',payoutEnabled:true,worker:{status:'active'},snapshots:[{...empty,day:'2026-11-05',traderEligibility:'direct-signers-v1'},{...empty,day:'2026-11-04',traderEligibility:'all-wallets-v1'}]}}));
+ await page.route('https://**/*',r=>r.abort());
+ await page.goto('/#capital-flow');
+ const dashboard=page.locator('#daily-bonus-dashboard'),results=dashboard.locator('[data-bonus-results]');
+ await expect(results).toContainText('Trader rankings include only wallets that can sign directly');
+ await dashboard.locator('[data-bonus-day]').selectOption('2026-11-04');
+ await expect(results).toContainText('This historical snapshot retains its original trader eligibility.');
+ await expect(results).not.toContainText('Trader rankings include only wallets');
+ await dashboard.locator('[data-bonus-refresh]').click();
+ await expect(dashboard.locator('[data-bonus-day]')).toHaveValue('2026-11-04');
+ await dashboard.locator('.daily-bonus-rules summary').click();
+ await expect(dashboard.locator('.daily-bonus-rules')).toContainText('program-derived addresses are excluded');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ expect(errors).toEqual([]);
+});

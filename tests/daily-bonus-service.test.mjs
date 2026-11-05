@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Keypair } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { createDailyBonusService } from '../server/daily-bonus-service.mjs';
 import { buildDailyBonusSnapshot } from '../server/daily-bonus.mjs';
 import { rewardAddresses } from '../server/automatic-reward-chain.mjs';
@@ -171,7 +171,9 @@ test('new snapshots use settlement-time eligibility and pending sources stay exp
 
 test('a legacy snapshot keeps its original hash, manifest and paid receipt after the new default', async () => {
   const f=setup(), day='2026-10-17';
-  const legacy=buildDailyBonusSnapshot({day,...f.evidence,now:start+86_400});
+  f.evidence.trades[0].wallet=PublicKey.findProgramAddressSync([Buffer.from('historical-trader')],keys[0].publicKey)[0].toBase58();
+  const legacy=buildDailyBonusSnapshot({day,...f.evidence,now:start+86_400,traderEligibility:'all-wallets-v1'});
+  assert.equal(legacy.policy.traderEligibility,undefined);
   assert.equal(legacy.eligibilityBasis,undefined);
   f.rewardStore.data.dailyBonusSnapshots={ [day]:{snapshot:legacy,status:'snapshotted',
     evidenceCoverageVersion:1,createdAt:new Date(start*1000).toISOString(),payouts:{}} };

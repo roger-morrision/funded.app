@@ -67,7 +67,8 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       .filter(row=>ledger.dailyBonusAssignments?.[row.signature] && !(prior && bonusAssignmentMatches(prior,
         prior.snapshot.sources.find(source=>source.collectionSignature===row.signature)||{collectionSignature:row.signature},ledger.dailyBonusAssignments[row.signature])))
       .map(row=>row.signature);
-    return { ...evidence,eligibilityBasis:basis, ...((excluded.length||prior?.snapshot.evidence.excludedCollectionSignatures?.length)
+    const traderEligibility=prior ? (prior.snapshot.policy.traderEligibility||'all-wallets-v1') : DAILY_BONUS_POLICY.traderEligibility;
+    return { ...evidence,eligibilityBasis:basis,traderEligibility, ...((excluded.length||prior?.snapshot.evidence.excludedCollectionSignatures?.length)
       ? { excludedCollectionSignatures:[...new Set([...excluded,...(prior?.snapshot.evidence.excludedCollectionSignatures||[])])] } : {}) };
   }
   async function capture(day = latestBonusDay(now(),schedule)) {
@@ -205,6 +206,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       snapshots:Object.values(state.dailyBonusSnapshots || {}).sort((a, b) => b.snapshot.start - a.snapshot.start)
         .slice(0, 30).map(({ snapshot, status:state, reason, payouts }) => ({ day:snapshot.day,
           eligibilityBasis:snapshot.eligibilityBasis||'collection-time-v1',reconciliation:snapshot.reconciliation||null,
+          traderEligibility:snapshot.policy.traderEligibility||'all-wallets-v1',
           cutoffAt:new Date(snapshot.end * 1000).toISOString(), hash:snapshot.hash, status:state, reason,
           rankings:snapshot.rankings, allocatedLamports:String(snapshot.sources.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)),
           retainedLamports:String(snapshot.sources.reduce((sum, row) => sum + BigInt(row.retainedLamports), 0n)),

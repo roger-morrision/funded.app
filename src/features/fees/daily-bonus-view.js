@@ -39,6 +39,9 @@ export function initDailyBonusView(document = globalThis.document) {
       ?'Fee eligibility uses finalized settlement time. Later settlements enter their applicable later window.'
       :'Historical snapshot: fee eligibility uses its original collection-time rules.';
     if(snapshot.reconciliation?.kind==='append-only-frozen-rankings-v1')eligibility.textContent+=' Audited added funding uses the original frozen ranks and scores; previous payments are preserved.';
+    eligibility.textContent+=snapshot.traderEligibility==='direct-signers-v1'
+      ?' Trader rankings include only wallets that can sign directly; program-derived addresses are excluded.'
+      :' This historical snapshot retains its original trader eligibility.';
     results.append(eligibility);
     const paidNote = document.createElement('p'); paidNote.className = 'field-help';
     paidNote.textContent = 'Totals combine all bonus categories for a wallet in each window. Five-minute test windows are marked QA.';

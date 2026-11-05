@@ -4,10 +4,10 @@ import { bonusDashboardHistory, readBonusPool } from '../server/daily-bonus-dash
 import { buildDailyBonusSnapshot } from '../server/daily-bonus.mjs';
 import { bonusCountdown, bonusSol, nextUtcCutoff } from '../src/features/fees/bonus-dashboard-view.js';
 import { DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, Keypair } from '@solana/web3.js';
 import { createDailyBonusRuntime } from '../server/daily-bonus-runtime.mjs';
 import { createDailyBonusService } from '../server/daily-bonus-service.mjs';
-const wallet = new PublicKey(new Uint8Array(32).fill(2)).toBase58(), mint = new PublicKey(new Uint8Array(32).fill(3)).toBase58();
+const wallet = Keypair.fromSeed(new Uint8Array(32).fill(2)).publicKey.toBase58(), mint = new PublicKey(new Uint8Array(32).fill(3)).toBase58();
 function saved(day, id = 0) {
   const start = Date.parse(`${day}T00:00:00Z`) / 1000;
   const signature = String(id % 8 + 1).repeat(63) + String(Math.floor(id / 8) + 1);

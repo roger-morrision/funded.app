@@ -16,6 +16,7 @@ export function verifyBonusSnapshotRevision(record){
     if(seen.has(snapshot.hash)||seen.size>=64)throw new Error('Invalid bonus revision chain.');
     seen.add(snapshot.hash);
     const rebuilt=buildDailyBonusSnapshot({day:snapshot.day,...snapshot.evidence,
+      traderEligibility:snapshot.policy.traderEligibility||'all-wallets-v1',
       eligibilityBasis:snapshot.eligibilityBasis||'collection-time-v1',now:snapshot.end});
     if(!snapshot.reconciliation){
       if(!isDeepStrictEqual(snapshot,rebuilt))throw new Error('Invalid daily snapshot.');

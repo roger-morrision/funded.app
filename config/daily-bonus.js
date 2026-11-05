@@ -10,5 +10,6 @@ export const DAILY_BONUS_POLICY = Object.freeze({
   metrics: Object.freeze({ creators: 'collected-creator-fee-lamports',
     referrals: 'direct-referred-collected-fee-lamports', traders: 'finalized-trading-volume-lamports' }),
   tieBreak: 'wallet-address-ascending',
+  traderEligibility: 'direct-signers-v1',
   unfilledRank: 'retain-in-community-vault',
 });

@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Keypair } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { buildDailyBonusSnapshot, dailyBonusWindow, dailyBonusManifest } from '../server/daily-bonus.mjs';
 import { verifyRewardProof } from '../reward-merkle.js';
 import {setActiveProtocolFeeSplit,FEE_DISTRIBUTION} from '../distribution-policy.js';
 import {PROTOCOL_FEE_SPLIT} from '../config/protocol-fee-split.js';
 import {agencyProtocolSplit} from '../agency-mint-router-v3.js';
 import {currentFeePolicyCopy} from '../src/features/fees/fee-policy-copy.js';
+import {verifyBonusSnapshotRevision} from '../server/daily-bonus-reconciliation.mjs';
 
 export const wallets = Array.from({ length:12 }, (_, n) => Keypair.fromSeed(new Uint8Array(32).fill(n + 1)).publicKey.toBase58());
 export function bonusFixture() {
@@ -58,6 +59,35 @@ test('only launches that recorded the daily bonus policy can fund awards; old co
     collections:input.collections.map(row => ({ ...row, dailyBonusVersion:null })) });
   assert.equal(snapshot.sources.length, 0);
   assert.equal(snapshot.rankings.creators.length, 3);
+});
+
+test('new trader rankings exclude program addresses before assigning ranks but preserve complete trade evidence',()=>{
+  const input=bonusFixture(),pda=PublicKey.findProgramAddressSync([Buffer.from('trader')],new PublicKey(wallets[9]))[0].toBase58();
+  const trades=[...input.trades,{...input.trades[0],signature:'program-trade',wallet:pda,amountLamports:'999999999'}];
+  const next=buildDailyBonusSnapshot({...input,trades});
+  assert.equal(next.policy.traderEligibility,'direct-signers-v1');
+  assert.deepEqual(next.rankings.traders,buildDailyBonusSnapshot(input).rankings.traders);
+  assert.equal(next.evidence.trades.length,4);
+  assert(!next.sources[0].allocations.some(row=>row.recipient===pda));
+  assert.doesNotThrow(()=>verifyBonusSnapshotRevision({snapshot:next}));
+  const onlyProgram=buildDailyBonusSnapshot({...input,trades:[trades[3]]});
+  assert.deepEqual(onlyProgram.rankings.traders,[]);
+  assert.equal(onlyProgram.sources[0].retainedLamports,'1000');
+  assert.throws(()=>buildDailyBonusSnapshot({...input,trades:[{...trades[3],finalized:false}]}),/finalized UTC/);
+  assert.throws(()=>buildDailyBonusSnapshot({...input,traderEligibility:'unknown'}),/Unknown trader/);
+});
+
+test('historical program-address rankings reproduce their original policy, hash and manifests',()=>{
+  const input=bonusFixture(),pda=PublicKey.findProgramAddressSync([Buffer.from('legacy')],new PublicKey(wallets[9]))[0].toBase58();
+  input.trades[2].wallet=pda;
+  const legacy=buildDailyBonusSnapshot({...input,traderEligibility:'all-wallets-v1'});
+  assert.equal(legacy.policy.traderEligibility,undefined);
+  assert.equal(legacy.rankings.traders[0].wallet,pda);
+  const frozen=structuredClone(legacy),manifest=dailyBonusManifest(legacy,legacy.sources[0]);
+  assert.doesNotThrow(()=>verifyBonusSnapshotRevision({snapshot:legacy}));
+  assert.deepEqual(legacy,frozen);
+  assert.deepEqual(dailyBonusManifest(legacy,legacy.sources[0]),manifest);
+  assert.notEqual(buildDailyBonusSnapshot(input).hash,legacy.hash);
 });
 
 test('published and approved policies both allocate 4% gross with equal categories and category-relative rank awards',()=>{

@@ -48,8 +48,9 @@ export function allocateDailyBonusSource(row, rankings) {
     retainedLamports:String(budget - paid), allocations:[...allocations].sort((a, b) => compareText(a[0], b[0]))
       .map(([recipient, value]) => ({ recipient, amount:String(value) })) };
 }
-export function buildDailyBonusSnapshot({ day, collections, trades, coverage, now, excludedCollectionSignatures = [], eligibilityBasis='collection-time-v1' }) {
+export function buildDailyBonusSnapshot({ day, collections, trades, coverage, now, excludedCollectionSignatures = [], eligibilityBasis='collection-time-v1', traderEligibility=DAILY_BONUS_POLICY.traderEligibility }) {
   if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
+  if(!['all-wallets-v1','direct-signers-v1'].includes(traderEligibility))throw new Error('Unknown trader bonus eligibility.');
   const settlementTime=eligibilityBasis==='settlement-time-v1';
   const window = dailyBonusWindow(day, now);
   if (!Array.isArray(coverage) || coverage.some(row => row.complete !== true))
@@ -72,6 +73,9 @@ export function buildDailyBonusSnapshot({ day, collections, trades, coverage, no
   }
   for (const row of events) {
     if (row.finalized !== true || !inWindow(row)) throw new Error('Trade does not belong to the finalized UTC day.');
+    // Keep excluded trades as verified evidence, but do not let a program address
+    // take a rank or dilute the directly signable wallets' category awards.
+    if (traderEligibility === 'direct-signers-v1' && !PublicKey.isOnCurve(new PublicKey(row.wallet).toBytes())) continue;
     include('traders', row.wallet, row.amountLamports);
   }
   const rankings = Object.fromEntries(DAILY_BONUS_POLICY.categories.map(category => [category,
@@ -82,8 +86,11 @@ export function buildDailyBonusSnapshot({ day, collections, trades, coverage, no
   if (excluded.some(id=>!fees.some(row=>row.signature === id))) throw new Error('Excluded bonus source is outside the verified window.');
   const sources = fees.filter(row => !excluded.includes(row.signature) && row.dailyBonusVersion === 1 && amount(row.communityLamports) > 0n)
     .map(row => allocateDailyBonusSource(row,rankings));
-  const policy=settlementTime?{...DAILY_BONUS_POLICY,eligibilityBasis,metrics:{...DAILY_BONUS_POLICY.metrics,
-    creators:'settled-creator-fee-lamports',referrals:'direct-referred-settled-fee-lamports'}}:DAILY_BONUS_POLICY;
+  const basePolicy={...DAILY_BONUS_POLICY};
+  // Snapshots predating this rule must reproduce their original policy and hash.
+  if(traderEligibility==='all-wallets-v1')delete basePolicy.traderEligibility;
+  const policy=settlementTime?{...basePolicy,eligibilityBasis,metrics:{...basePolicy.metrics,
+    creators:'settled-creator-fee-lamports',referrals:'direct-referred-settled-fee-lamports'}}:basePolicy;
   const snapshot = { version:1, ...window, ...(settlementTime?{eligibilityBasis}:{}), policy:window.qa ? { ...policy, periodSeconds:300, qa:true } : policy, rankings, sources,
     evidence:{ collections:fees, trades:events, coverage:[...coverage].sort((a, b) => compareText(a.mint, b.mint)),
       ...(excluded.length ? { excludedCollectionSignatures:excluded } : {}) } };
