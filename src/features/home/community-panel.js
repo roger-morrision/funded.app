@@ -15,7 +15,6 @@ export function communityMessageMarkup(row, token = {}) {
     <a class="home-community-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${esc(String(token.symbol || '?').slice(0,2).toUpperCase())}</span><strong>${esc(token.symbol ? `$${token.symbol}` : short(row.mint))}</strong></a>
     <p>${esc(row.text)}</p>
     ${row.callout ? `<dl class="home-community-metrics"><div><dt>Purchased</dt><dd title="Verified purchase cost is not available for this wallet">${number(row.callout.purchasedSol)}</dd></div><div><dt>P&amp;L</dt><dd title="Wallet cost basis is unavailable; market-cap movement is not wallet P&L">${number(row.callout.pnlSol)}</dd></div></dl>${Number.isFinite(change)?`<small class="home-community-change">MC since call: ${change>=0?'+':''}${change.toFixed(1)}%</small>`:''}`:''}
-    <button type="button" class="home-community-report" data-report-message="${esc(row.id)}" data-report-mint="${esc(row.mint)}">Report</button>
   </article>`;
 }
 
@@ -47,7 +46,7 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     if(choices.has(selected))select.value=selected;
   }
   function render(){
-    // Do not disturb a report button or selection while someone is using the feed.
+    // Do not disturb a focused token link while someone is using the feed.
     if(feed.contains(document.activeElement)&&document.activeElement!==feed)return;
     const html=messages.length?messages.map(row=>communityMessageMarkup(row,assets().find(asset=>asset.address===row.mint))).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
     if(html!==lastMarkup){const top=feed.scrollTop;feed.innerHTML=html;feed.scrollTop=top;lastMarkup=html;}
@@ -78,14 +77,6 @@ export function mountHomeCommunity(app, document = globalThis.document) {
       await refresh();
     }catch(error){status.textContent=error.message||'Could not post. Please try again.';}
     finally{busy=false;button.disabled=false;updateIdentity();}
-  });
-  panel.addEventListener('click',async event=>{
-    const report=event.target.closest('[data-report-message]');if(!report||report.disabled)return;
-    const reason=globalThis.prompt('Report reason: spam-or-scam, harassment, or impersonation','spam-or-scam');
-    if(!['spam-or-scam','harassment','impersonation'].includes(reason))return;
-    report.disabled=true;
-    try{const result=await app.tokenChatRequest('report',{messageId:report.dataset.reportMessage,reason},report.dataset.reportMint);if(!result?.data?.reported)throw new Error('Report could not be confirmed.');status.textContent='Report submitted.';}
-    catch(error){status.textContent=error.message||'Could not report this message.';report.disabled=false;}
   });
   // Allow connecting without a coin/message, while native validation still protects posts.
   button.addEventListener('click',event=>{if(!app.connectedWalletAddress){event.preventDefault();form.dispatchEvent(new Event('submit',{cancelable:true}));}});
