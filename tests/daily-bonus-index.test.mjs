@@ -63,3 +63,19 @@ test('a finalized on-chain collection blocks publication until its app record an
  f.state.v3Settlements={[ref.signature]:{mint,collectionSignature:ref.signature,status:'finalized',settlementSignature:sig(20),referralUpline:[]}};
  const complete=await reader(f.args);assert.equal(complete.complete,true);assert.equal(complete.collections.length,1);assert.equal(complete.collections[0].communityLamports,'40000');
 });
+
+test('a truncated daily trade recovers matching finalized logs and retains its pending cursor on recovery failure',async()=>{
+ const f=setup(),curve=bondingCurvePda(keys[0]).toBase58(),refs=[reference(1,start+1),reference(2,start+2)];
+ f.connection.getSignaturesForAddress=async address=>address.toBase58()===curve?refs:[];
+ f.connection.getTransaction=async signature=>{const r=refs.find(x=>x.signature===signature);return {slot:r.slot,blockTime:r.blockTime,meta:{err:null,logMessages:signature===refs[1].signature?['Log truncated']:[]},transaction:{signatures:[signature]}};};
+ let recovered=false,fallbacks=0;
+ const decodeTrade=(tx,ref,mint)=>{if(tx.meta.logMessages[0]==='Log truncated')throw Object.assign(Error('logs-incomplete'),{reason:'logs-incomplete'});return[{signature:ref.signature,logIndex:0,mint:mint.toBase58(),wallet:keys[2],amountLamports:'5',blockTime:ref.blockTime,finalized:true}];};
+ const completeReceipt=async({transaction,signature})=>{fallbacks++;assert.equal(signature,refs[1].signature);if(!recovered)throw Error('Finalized receipt providers disagree.');return {...transaction,meta:{...transaction.meta,logMessages:[]}};};
+ await assert.rejects(createDailyBonusEvidenceIndex({rewardStore:f.rewardStore,decodeTrade,completeReceipt})(f.args),/providers disagree/);
+ const saved=f.rewardStore.data.dailyBonusIndexes[f.args.day],route=saved.routes[`${keys[0]}:curve`];
+ assert.equal(Object.keys(saved.trades).length,1);assert.equal(route.pending[0].signature,refs[1].signature);assert.equal(route.complete,false);
+ recovered=true;
+ const result=await createDailyBonusEvidenceIndex({rewardStore:f.rewardStore,decodeTrade,completeReceipt})(f.args);
+ assert.equal(result.complete,true);assert.equal(result.trades.length,2);assert.equal(fallbacks,2);
+ assert.equal(Object.values(f.rewardStore.data.dailyBonusIndexes[f.args.day].routes).filter(x=>!x.complete).length,0);
+});

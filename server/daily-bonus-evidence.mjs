@@ -10,6 +10,7 @@ import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
 import { dailyBonusWindow } from './daily-bonus.mjs';
+import { completeFinalizedEventReceipt } from './finalized-event-receipt.mjs';
 
 export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePoolEvent) {
   if (!transaction || transaction.meta?.err !== null || transaction.slot !== reference.slot
@@ -38,6 +39,19 @@ export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePo
   return rows;
 }
 
+// Reuse the independently verified receipt fallback used by launch protections.
+// Only missing logs may be recovered; signature, network and balance evidence
+// must still agree before any trading volume enters the daily snapshot.
+export async function readDailyBonusTradeRows({ connection, transaction, reference, mint, pool,
+  decodePoolEvent, decodeTrade = dailyBonusTradeRows, completeReceipt = completeFinalizedEventReceipt }) {
+  try { return await decodeTrade(transaction, reference, mint, pool, decodePoolEvent); }
+  catch (error) {
+    if (!['logs-incomplete', 'logs-unavailable'].includes(error.reason)) throw error;
+    const complete = await completeReceipt({ connection, transaction, signature:reference.signature });
+    return await decodeTrade(complete, reference, mint, pool, decodePoolEvent);
+  }
+}
+
 export async function readDailyBonusTrades({ connection, launch, window, maxPages = 20, pageSize = 100 }) {
   const mint = new PublicKey(launch.mint), pool = canonicalPumpPoolPda(mint, NATIVE_MINT);
   const account = await connection.getAccountInfo(pool, 'finalized');
@@ -63,7 +77,8 @@ export async function readDailyBonusTrades({ connection, launch, window, maxPage
           throw new Error('Daily bonus trade history has an unresolved time or finality gap.');
         if (ref.err || ref.blockTime < window.start || ref.blockTime >= window.end) continue;
         const tx = await connection.getTransaction(ref.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-        rows.push(...dailyBonusTradeRows(tx, ref, mint, pool, coder.decode.bind(coder)));
+        rows.push(...await readDailyBonusTradeRows({ connection, transaction:tx, reference:ref,
+          mint, pool, decodePoolEvent:coder.decode.bind(coder) }));
       }
       if (refs.length < pageSize || refs.some(row => row.blockTime < window.start)) { complete = true; break; }
       before = refs.at(-1)?.signature;

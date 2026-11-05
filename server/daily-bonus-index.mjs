@@ -4,7 +4,7 @@ import { canonicalPumpPoolPda, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk
 import { NATIVE_MINT } from '@solana/spl-token';
 import { deriveMintRouterV3, deriveMintPolicyV3 } from '../mint-router-v3.js';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
-import { dailyBonusTradeRows } from './daily-bonus-evidence.mjs';
+import { dailyBonusTradeRows, readDailyBonusTradeRows } from './daily-bonus-evidence.mjs';
 import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { dailyBonusWindow, bonusHash } from './daily-bonus.mjs';
@@ -19,7 +19,7 @@ const launchFingerprint = row => bonusHash({ mint:row.mint, creator:row.creatorW
 // Checkpoints survive restarts. Work limits bound each tick, never the UTC day's coverage.
 export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
   pagesPerTick = 64, transactionsPerTick = 128, verifyCollection = verifyV3PumpCollection,
-  loadSettlement = loadFinalizedV3Settlement, decodeTrade = dailyBonusTradeRows }) {
+  loadSettlement = loadFinalizedV3Settlement, decodeTrade = dailyBonusTradeRows, completeReceipt }) {
   const running = new Map();
   async function read({ connection, state, programId, day, now, qaMints, eligibilityBasis='collection-time-v1' }) {
     if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
@@ -126,8 +126,15 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
                 claimId:Buffer.from(proof.claimId).toString('hex') };
             } else {
               const mint = new PublicKey(route.mint), pool = canonicalPumpPoolPda(mint,NATIVE_MINT);
-              for (const row of decodeTrade(tx,ref,mint,pool,coder.decode.bind(coder)))
-                job.trades[`${row.signature}:${row.logIndex}:${row.mint}`] = row;
+              try {
+                const rows = await readDailyBonusTradeRows({ connection, transaction:tx, reference:ref,
+                  mint, pool, decodePoolEvent:coder.decode.bind(coder), decodeTrade, completeReceipt });
+                for (const row of rows) job.trades[`${row.signature}:${row.logIndex}:${row.mint}`] = row;
+              } catch (error) {
+                // Keep the verified prefix and leave this exact receipt pending.
+                // A provider gap must not force every subsequent tick to rescan it.
+                await persist(); throw error;
+              }
             }
           }
           route.pending.shift();

@@ -86,3 +86,17 @@ test('creator and referrer ranks use finalized collected fees and the frozen dir
   delete settled.referralUpline;
   await assert.rejects(readDailyBonusEvidence(params), /attribution has not been frozen/);
 });
+
+test('daily evidence log recovery keeps signature and balance checks and never bypasses malformed proof',async()=>{
+ const {readDailyBonusTradeRows}=await import('../server/daily-bonus-evidence.mjs');
+ const {completeFinalizedEventReceipt}=await import('../server/finalized-event-receipt.mjs');
+ const full=tx();full.meta.preBalances=[100];full.meta.postBalances=[95];
+ const broken=structuredClone(full);broken.meta.logMessages=['Log truncated'];
+ const connection={getGenesisHash:async()=>DEVNET_GENESIS_HASH};let fallback=0;
+ const completeReceipt=input=>completeFinalizedEventReceipt({...input,rpcUrl:'https://evidence.example',connectionFactory:()=>({getGenesisHash:async()=>DEVNET_GENESIS_HASH,getTransaction:async()=>{fallback++;return full;}})});
+ const args={connection,transaction:broken,reference:ref,mint,pool,decodePoolEvent:coder.decode.bind(coder),completeReceipt};
+ assert.deepEqual(await readDailyBonusTradeRows(args),dailyBonusTradeRows(full,ref,mint,pool,coder.decode.bind(coder)));assert.equal(fallback,1);
+ full.meta.postBalances=[94];await assert.rejects(readDailyBonusTradeRows(args),/providers disagree/);
+ const mismatched=structuredClone(broken);mismatched.slot++;
+ await assert.rejects(readDailyBonusTradeRows({...args,transaction:mismatched}),/proof is unavailable/);assert.equal(fallback,2);
+});
