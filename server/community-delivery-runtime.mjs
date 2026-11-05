@@ -3,7 +3,10 @@ import {communityProgramForLaunch} from './community-program-config.mjs';
 import {createCommunityClaimService} from './community-claim-service.mjs';
 import {createCommunityAutoDelivery} from './community-auto-delivery.mjs';
 import {findRecentCommunityMigration} from './community-migration-discovery.mjs';
-import {rpcQuotaExhausted,rpcWorkerWaitMs} from '../rpc-retry.js';
+import {rpcQuotaExhausted,retryableRpcError,rpcWorkerWaitMs} from '../rpc-retry.js';
+
+const unavailableRpc=error=>rpcQuotaExhausted(error)||retryableRpcError(error)
+  ||/\b50[0234]\b|fetch failed|upstream is unavailable|operation was aborted|timeout/i.test(String(error?.message||error));
 
 // Runs inside the primary API process. All sends have durable journals and
 // on-chain payment PDAs, so process restarts and manual recovery cannot double pay.
@@ -14,10 +17,10 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
   scheduleTimeout=setTimeout,now=Date.now}) {
   const enabled=solanaCluster==='devnet'&&env.FUNDED_COMMUNITY_AUTO_DELIVERY_ENABLED==='true';
   const running={prepare:false,deliver:false},timers={},retryAfter={prepare:20_000,deliver:20_000};
-  let stopped=false;
+  let stopped=false,rpcRetryAt=0;
   async function tick({preparationOnly=false}={}){
     const mode=preparationOnly?'prepare':'deliver';
-    if(!enabled||running[mode]||stopped)return;
+    if(!enabled||running[mode]||stopped||now()<rpcRetryAt)return;
     running[mode]=true;retryAfter[mode]=20_000;
     let submitted=0,paid=0,prepared=0,waiting=0,examined=0;
     const failures=[];
@@ -68,18 +71,23 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
               else if(['expired','ineligible','unavailable'].includes(result.status))waiting++;
               else failures.push({mint:launch.mint,recipient:leaf.recipient,reason:result.status});
             }catch(error){
-              if(rpcQuotaExhausted(error))throw error;
+              if(unavailableRpc(error))throw error;
               failures.push({mint:launch.mint,recipient:leaf.recipient,reason:safeReason(error)});
             }
           }
           await automaticRewardStore.transaction(state=>{(state.communityDeliveryCursors||={})[launch.mint]=(cursor+checked)%Math.max(1,count);});
         }catch(error){
-          if(rpcQuotaExhausted(error))throw error;
+          if(unavailableRpc(error))throw error;
           failures.push({mint:launch.mint,reason:safeReason(error)});
         }
       }
     }catch(error){
-      if(rpcQuotaExhausted(error))retryAfter[mode]=rpcWorkerWaitMs(error,60_000);
+      if(unavailableRpc(error)){
+        // Stop the pass at the first transport failure. Both loops share the
+        // cooldown, so an outage cannot fan out across every mint and wallet.
+        retryAfter.prepare=retryAfter.deliver=rpcWorkerWaitMs(error,60_000);
+        rpcRetryAt=now()+retryAfter[mode];
+      }
       failures.push({reason:safeReason(error)});
     }finally{
       const status={status:failures.length?'degraded':submitted?'distributing':'ready',cluster:'devnet',

@@ -31,3 +31,19 @@ test('no activation, wrong network, missing funding and historical QA cutoffs ne
     assert.equal(f.payments,0);assert.equal(f.preparations,0);
   }
 });
+
+test('an RPC outage stops further recipients and pauses both loops before a fresh retry',async()=>{
+  for(const message of ['503 Service Unavailable','fetch failed','429 max usage reached']){
+    const f=fixture();let time=100000,calls=0,fail=true;
+    f.options.now=()=>time;
+    f.ledger.communityDrops={[mint]:{...f.record,manifest:{leaves:[...f.record.manifest.leaves,...f.record.manifest.leaves]}}};
+    f.options.deliveryFactory=()=>({pay:async()=>{calls++;if(fail)throw new Error(message);return {status:'finalized'};}});
+    const runtime=createCommunityDeliveryRuntime(f.options);
+    await runtime.tick();assert.equal(calls,1);assert.equal(f.ledger.communityDeliveryStatus.status,'degraded');
+    assert.equal(f.ledger.communityDeliveryStatus.failures.length,1);
+    await runtime.tick();await runtime.tick({preparationOnly:true});assert.equal(calls,1);
+    assert.equal(f.ledger.communityPreparationStatus,undefined);
+    time+=message.startsWith('429')?900000:60000;fail=false;
+    await runtime.tick();assert.equal(calls,3);assert.equal(f.ledger.communityDeliveryStatus.status,'ready');
+  }
+});
