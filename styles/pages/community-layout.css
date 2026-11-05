@@ -222,7 +222,11 @@ html body #main-content .home-community-message header { display:flex;gap:8px;al
 html body #main-content .home-community-author { color:hsl(var(--author-hue) 65% 75%);font-weight:700;text-decoration:none; }
 html body #main-content .home-community-message time { color:var(--cp-muted); }
 html body #main-content .home-community-kind { margin-left:auto;color:var(--cp-accent);font-size:10px;border:1px solid var(--cp-line);border-radius:4px;padding:2px 5px; }
-html body #main-content .home-community-token { display:inline-block;margin-top:6px;font-size:11px;color:var(--cp-muted); }
+html body #main-content .home-community-token { display:inline-flex;align-items:center;gap:7px;max-width:100%;margin-top:10px;padding:4px 8px 4px 4px;border:1px solid var(--cp-line);border-radius:7px;font-size:12px;color:var(--cp-text);text-decoration:none;background:var(--cp-surface-2); }
+html body #main-content .home-community-token .home-token-avatar { display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;border-radius:5px;overflow:hidden;background:var(--cp-line);color:var(--cp-accent);font-size:10px; }
+html body #main-content .home-community-token img { display:block;width:100%;height:100%;object-fit:cover; }
+html body #main-content .home-community-token strong { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600; }
+html body #main-content .home-community-token:hover { border-color:var(--cp-accent); }
 html body #main-content .home-community-message p { margin:6px 0;font-size:13px;line-height:1.5;color:var(--cp-text);white-space:pre-wrap; }
 html body #main-content .home-community-metrics { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px;padding:8px;background:var(--cp-surface-2);border-radius:6px; }
 html body #main-content .home-community-metrics dt { color:var(--cp-muted);font-size:10px; }

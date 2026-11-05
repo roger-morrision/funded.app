@@ -12,7 +12,7 @@ export function communityMessageMarkup(row, token = {}) {
   const change = row.callout?.marketChangePercent;
   return `<article class="home-community-message" data-message-id="${esc(row.id)}">
     <header><a class="home-community-author" style="--author-hue:${hue}" href="/wallet/${encodeURIComponent(row.author)}">${esc(short(row.author))}</a><time datetime="${esc(row.createdAt)}" title="${esc(row.createdAt)}">${esc(age(row.createdAt))}</time><span class="home-community-kind">${row.callout?'Call':'Chat'}</span></header>
-    <a class="home-community-token" href="/token/${encodeURIComponent(row.mint)}">${esc(token.symbol ? `$${token.symbol}` : short(row.mint))}</a>
+    <a class="home-community-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${esc(String(token.symbol || '?').slice(0,2).toUpperCase())}</span><strong>${esc(token.symbol ? `$${token.symbol}` : short(row.mint))}</strong></a>
     <p>${esc(row.text)}</p>
     ${row.callout ? `<dl class="home-community-metrics"><div><dt>Purchased</dt><dd title="Verified purchase cost is not available for this wallet">${number(row.callout.purchasedSol)}</dd></div><div><dt>P&amp;L</dt><dd title="Wallet cost basis is unavailable; market-cap movement is not wallet P&L">${number(row.callout.pnlSol)}</dd></div></dl>${Number.isFinite(change)?`<small class="home-community-change">MC since call: ${change>=0?'+':''}${change.toFixed(1)}%</small>`:''}`:''}
     <button type="button" class="home-community-report" data-report-message="${esc(row.id)}" data-report-mint="${esc(row.mint)}">Report</button>
@@ -51,6 +51,7 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     if(feed.contains(document.activeElement)&&document.activeElement!==feed)return;
     const html=messages.length?messages.map(row=>communityMessageMarkup(row,assets().find(asset=>asset.address===row.mint))).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
     if(html!==lastMarkup){const top=feed.scrollTop;feed.innerHTML=html;feed.scrollTop=top;lastMarkup=html;}
+    app.loadVerifiedTokenLogos?.(feed);
     updateCoins();
   }
   async function refresh(){
