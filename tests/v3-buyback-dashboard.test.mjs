@@ -18,6 +18,26 @@ const state = () => ({
   v3BuybackOrders:{},
 });
 
+test('slow optional history cannot discard verified custody or an existing finalized receipt',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const input=state();
+  input.v3BuybackOrders[source]={status:'finalized',finalized:true,vaultDebitVerified:true,
+    burnInstructionVerified:true,programId,signature:'3'.repeat(64),slot:123,
+    burnedAt:'2026-10-14T00:00:00.000Z',spentLamports:'1000000000',burnedBaseUnits:'2000000'};
+  let finishHistory;
+  const connection={getAccountInfo:async()=>({owner:SystemProgram.programId,data:Buffer.alloc(0),lamports:4_000_890_880}),
+    getSignaturesForAddress:async()=>assert.fail('Late history must stop'),
+    getProgramAccounts:async(_key,config)=>config.filters[0].dataSize===249?[]:new Promise(resolve=>{finishHistory=resolve;})};
+  const work=readV3BuybackDashboard({state:input,programId,reserveLamports:890_880n,connection});
+  await new Promise(resolve=>setImmediate(resolve));t.mock.timers.tick(5001);
+  const result=await work;
+  assert.equal(result.status,'verified');assert.equal(result.unindexedStatus,'verified');
+  assert.equal(result.verifiedCustodyLamports,'4000000000');
+  assert.equal(result.historyStatus,'unavailable');assert.equal(result.lastBurn.signature,'3'.repeat(64));
+  finishHistory([]);await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(result.historyStatus,'unavailable','Late discovery cannot rewrite a published snapshot.');
+});
+
 test('5 SOL trigger requires finalized vault custody matching the verified allocation', async () => {
   const input = state();
   const connection = { getMinimumBalanceForRentExemption:async () => 650_240,

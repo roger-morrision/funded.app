@@ -13,13 +13,15 @@ const pumpBuyDiscriminator = Buffer.from([102, 6, 61, 18, 1, 218, 235, 234]);
 // This is display-only discovery. A cleared application ledger cannot use an
 // old receipt to authorize an automatic buyback or reduce a new fee budget.
 export async function latestUnindexedV3Burn({ connection, programId,
-  indexedSignatures = new Set(), indexedReceipts = new Set(), verifyBurn = loadFinalizedV3Buyback }) {
+  indexedSignatures = new Set(), indexedReceipts = new Set(), verifyBurn = loadFinalizedV3Buyback, signal }) {
+  signal?.throwIfAborted();
   if (typeof connection.getProgramAccounts !== 'function'
     || typeof connection.getSignaturesForAddress !== 'function') return null;
   const program = new PublicKey(programId);
   const accounts = await connection.getProgramAccounts(program, {
     commitment:'finalized', filters:[{ dataSize:160 }],
   });
+  signal?.throwIfAborted();
   const candidates = accounts.flatMap(({ pubkey, account }) => {
     const data = Buffer.from(account.data || []);
     if (!account.owner?.equals(program) || data.length !== 160
@@ -45,6 +47,7 @@ export async function latestUnindexedV3Burn({ connection, programId,
       connection.getAccountInfo(policyAddress, 'finalized'),
       connection.getSignaturesForAddress(pubkey, { limit:3 }, 'finalized'),
     ]);
+    signal?.throwIfAborted();
     const policy = Buffer.from(policyAccount?.data || []);
     if (!policyAccount?.owner?.equals(program) || policy.length !== 249
       || !policy.subarray(0, 8).equals(policyDiscriminator)
@@ -57,6 +60,7 @@ export async function latestUnindexedV3Burn({ connection, programId,
       const tx = await connection.getTransaction(row.signature, {
         commitment:'finalized', maxSupportedTransactionVersion:0,
       });
+      signal?.throwIfAborted();
       if (!tx || tx.meta?.err !== null) continue;
       const message = tx.transaction?.message;
       const keys = [...(message?.accountKeys || message?.staticAccountKeys || []),
@@ -81,6 +85,7 @@ export async function latestUnindexedV3Burn({ connection, programId,
           spendableQuoteIn:data.readBigUInt64LE(40),
           minBaseAmountOut:data.readBigUInt64LE(48),
           maxTotalDebit:data.readBigUInt64LE(56), pumpBuyInstruction, split:null });
+        signal?.throwIfAborted();
         if (proof?.finalized && proof.receipt === pubkey.toBase58())
           return { ...proof, source:'onchain-unindexed' };
       }

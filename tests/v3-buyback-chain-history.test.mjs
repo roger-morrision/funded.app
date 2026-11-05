@@ -55,6 +55,15 @@ test('already proved receipt addresses need no repeated policy, signature or tra
   assert.equal(proof,null);
 });
 
+test('aborting delayed history discovery prevents subsequent RPC reads',async()=>{
+  const controller=new AbortController();let finish;
+  const work=latestUnindexedV3Burn({programId:program,signal:controller.signal,
+    connection:{...connection,getProgramAccounts:()=>new Promise(resolve=>{finish=resolve;}),
+      getAccountInfo:async()=>assert.fail('Aborted history must stop before another RPC read')}});
+  controller.abort();finish(await connection.getProgramAccounts());
+  await assert.rejects(work,{name:'AbortError'});
+});
+
 test('unindexed burn history requires a derived receipt and a full finalized proof', async () => {
   const proof = await latestUnindexedV3Burn({ connection, programId:program,
     verifyBurn:async args => {

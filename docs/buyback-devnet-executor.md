@@ -32,6 +32,8 @@ Public status returns within its bounded proof-wait budget while background veri
 
 `refreshing` is true only while the matching custody scan is pending, including the first scan before any historical result exists. The browser follows pending verification with up to thirteen additional reads two seconds apart, within an overall 30-second deadline. This covers the server's 25-second scan deadline. Failure stops those follow-up reads; route cancellation or a newer load prevents stale responses from replacing the current view.
 
+Optional burn-history discovery has a separate five-second deadline after custody verification. Slow history returns `historyStatus:unavailable` with existing finalized app receipts, without discarding current vault proofs. An unavailable history lookup is not evidence that no burns have occurred.
+
 ## Historical executor evidence
 
 > **Retired V2 procedure.** The worker and Compose commands below describe an earlier implementation. They are historical evidence, not instructions or activation status for the current V3 executor above.

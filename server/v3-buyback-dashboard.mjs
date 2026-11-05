@@ -127,29 +127,43 @@ export async function readV3BuybackDashboard({ state, programId, connection,
   const receipts = Object.values(state.v3BuybackOrders || {}).filter(row =>
     verifiedBurn(row) && row.programId === programId);
   receipts.sort((a, b) => Number(b.slot || 0) - Number(a.slot || 0));
-  let chainBurn = null;
+  let last = receipts[0] || null;
+  let burnedAt = last?.burnedAt || null, historyStatus = 'verified';
+  const historyController = new AbortController();
+  let historyTimer;
   try {
-    chainBurn = await latestUnindexedV3Burn({ connection, programId,
-      indexedSignatures:new Set(receipts.map(row => row.signature)),
-      indexedReceipts:new Set(receipts.map(row => row.receipt).filter(Boolean)) });
-  } catch { /* Display app receipts when chain history cannot be read. */ }
-  const last = chainBurn && (!receipts[0] || chainBurn.slot > receipts[0].slot)
-    ? chainBurn : receipts[0];
-  let burnedAt = last?.burnedAt || null;
-  if (last && !burnedAt && Number.isSafeInteger(last.slot)) {
-    try {
-      const blockTime = await connection.getBlockTime(last.slot);
-      if (Number.isSafeInteger(blockTime) && blockTime > 0)
-        burnedAt = new Date(blockTime * 1000).toISOString();
-    } catch { /* Keep the transaction proof even when the block timestamp is unavailable. */ }
-  }
+    // Historical display discovery must not consume the full current-custody
+    // deadline. Existing finalized app receipts remain usable when it is slow.
+    const historyRead = (async () => {
+      const chainBurn = await latestUnindexedV3Burn({ connection, programId,
+        indexedSignatures:new Set(receipts.map(row => row.signature)),
+        indexedReceipts:new Set(receipts.map(row => row.receipt).filter(Boolean)),
+        signal:historyController.signal });
+      const candidate = chainBurn && (!last || chainBurn.slot > last.slot) ? chainBurn : last;
+      let timestamp = candidate?.burnedAt || null;
+      if (candidate && !timestamp && Number.isSafeInteger(candidate.slot)) {
+        try {
+          const blockTime = await connection.getBlockTime(candidate.slot);
+          if (Number.isSafeInteger(blockTime) && blockTime > 0)
+            timestamp = new Date(blockTime * 1000).toISOString();
+        } catch { /* The finalized receipt is still valid without a timestamp. */ }
+      }
+      return {last:candidate,burnedAt:timestamp};
+    })();
+    const result = await Promise.race([historyRead,new Promise((_resolve,reject) => {
+      historyTimer = setTimeout(() => { historyController.abort(); reject(new Error('Burn history timed out.')); },5_000);
+      historyTimer.unref?.();
+    })]);
+    last = result.last; burnedAt = result.burnedAt;
+  } catch { historyStatus = 'unavailable'; }
+  finally { clearTimeout(historyTimer); historyController.abort(); }
   return { status:complete?'verified':'partial',
     cluster:'devnet', custody:'per-mint-program-vaults',
     thresholdLamports:String(thresholdLamports),
     collectedLamports:complete?String(eligibleTotal):null,
     observedLamports:String(total),
     triggerReached:complete && eligibleTotal >= thresholdLamports,
-    vaults, unindexedVaults, unindexedStatus,
+    vaults, unindexedVaults, unindexedStatus, historyStatus,
     unindexedLamports:unindexedStatus === 'verified' ? String(unindexedTotal) : null,
     verifiedCustodyLamports:verifiedCustody === null ? null : String(verifiedCustody),
     lastBurn:last ? { signature:last.signature, slot:last.slot,

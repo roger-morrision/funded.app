@@ -34,6 +34,7 @@ for(const [name,status,dashboard,expected] of [
   ['transport failure',503,null,'Waiting for the next burn update'],
   ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Waiting for the next burn update'],
   ['verified empty history',200,{status:'verified',collectedLamports:'0',lastBurn:null},'No burns yet'],
+  ['optional history timeout',200,{status:'verified',collectedLamports:'147100',historyStatus:'unavailable',lastBurn:null},'Burn history temporarily unavailable'],
   ['known burn during a vault verification gap',200,{status:'partial',lastBurn:{signature:'3'.repeat(64),burnedAt:'2026-10-18T12:00:00Z'}},/2026/],
 ]) test(`buyback last-burn panels distinguish ${name}`,async({page})=>{
   await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offlineFixture);

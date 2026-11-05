@@ -40,6 +40,13 @@ test('verification failure stops follow-up reads and does not present historical
   assert.match(f.elements.get('#buyback-route-status').textContent,/current verification unavailable/);
 });
 
+test('missing optional history does not claim there have been no burns or hide verified custody',async t=>{
+  const f=fixture(t,()=>({...verified,dashboard:{...verified.dashboard,historyStatus:'unavailable'}}));
+  await f.controller.loadBuybackNetworkState();
+  assert.equal(f.elements.get('#buyback-route-last-time').textContent,'Burn history temporarily unavailable');
+  assert.equal(f.elements.get('#buyback-route-balance').textContent,'0.0001471 SOL');
+});
+
 test('a continuously pending scan has a bounded follow-up budget',async t=>{
   const f=fixture(t,()=>pending), work=f.controller.loadBuybackNetworkState();await flush();
   for(let i=0;i<13;i++){t.mock.timers.tick(2000);await flush();}

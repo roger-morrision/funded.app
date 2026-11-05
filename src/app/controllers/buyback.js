@@ -123,7 +123,8 @@ export function createBuybackController(appState) {
       const burnedAt = burn?.burnedAt && Number.isFinite(Date.parse(burn.burnedAt)) ? new Date(burn.burnedAt) : null;
       const burnTime = burnedAt ? burnedAt.toLocaleString(undefined,{timeZone:'UTC',timeZoneName:'short'}) : 'time unavailable';
       time.textContent = burn ? `${burn.source === 'onchain-unindexed' ? 'QA on-chain burn · ' : ''}${burnTime}`
-        : dashboard?.status === 'verified' ? 'No burns yet' : 'Waiting for the next burn update';
+        : dashboard?.historyStatus === 'unavailable' ? 'Burn history temporarily unavailable'
+          : dashboard?.status === 'verified' ? 'No burns yet' : 'Waiting for the next burn update';
       const signature = String(burn?.signature || '');
       proof.hidden = !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature);
       if (!proof.hidden) proof.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
