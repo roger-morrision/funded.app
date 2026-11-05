@@ -48,6 +48,33 @@ html body #main-content #my-launches .portfolio-view-tabs button[aria-selected="
 html body #main-content #my-launches .portfolio-tab-panel > h2 { margin:0 0 8px;font-size:18px; }
 html body #main-content #my-launches .portfolio-tab-panel > p { margin:0 0 16px;font-size:13px;line-height:1.5; }
 html body #main-content #callouts :is(.callout-card,.callouts-top-strip) { border-radius:8px; }
+/* Directories fill the workspace instead of shrinking to their empty state. */
+html body.product-experience-style #main-content #creator-support-page {
+  box-sizing:border-box;width:100%;max-width:1120px;margin:16px auto 32px;padding:0;
+}
+html body #main-content .creator-directory-header { padding-bottom:16px;border-bottom:1px solid var(--cp-line); }
+html body #main-content .creator-directory-header h1 { margin:0 0 8px;font-size:30px;line-height:1.2;letter-spacing:-.035em; }
+html body #main-content .creator-directory-header .support-shortcuts { width:auto;flex-shrink:0; }
+html body #main-content .creator-directory-grid { grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr)); }
+html body #main-content #profile > .section-heading { margin:0;padding-bottom:16px;border-bottom:1px solid var(--cp-line); }
+html body #main-content #profile > .flow-note { margin:0 0 4px;max-width:85ch;color:var(--cp-muted);font-size:13px;line-height:1.6; }
+html body #main-content #profile .profile-wallet-card { min-width:0; }
+/* Back links and page introductions use the same compact spacing. */
+html body #main-content :is(.airdrop-back,.list-back,.burn-back-link) { display:inline-flex;align-items:center;min-height:44px;margin:0 0 12px;font-size:12px; }
+html body #main-content #buybacks .burn-center-hero { margin:0 0 20px;padding:0 0 16px; }
+html body #main-content #buybacks .burn-center-hero h1 { margin:4px 0 12px; }
+html body #main-content #buybacks .burn-center-layout { gap:16px; }
+html body #main-content #buybacks :is(.burn-center-main,.burn-center-aside) { gap:16px; }
+html body #main-content #buybacks .home-buyback-live-head { align-items:center;gap:12px;flex-wrap:wrap; }
+html body #main-content #buybacks .home-buyback-live-head strong { font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+/* Keep grid cards aligned even when a coin has extra promotion badges. */
+html body #main-content #asset-grid:not(.table-view) { align-items:stretch; }
+html body #main-content #asset-grid:not(.table-view) > .home-launch-card { height:100%;box-sizing:border-box; }
+html body #main-content #asset-grid > .home-launch-card .home-launch-card-actions { margin-top:auto; }
+/* Long receipt and reward filters align by their controls, not help text. */
+html body #main-content #payments .payment-history-filters { align-items:start; }
+html body #main-content #payments .payment-history-filters > button { margin-top:24px; }
+html body #main-content #profile > .section-heading h1 { margin:4px 0 8px;font-size:30px;line-height:1.2;letter-spacing:-.035em; }
 @media(max-width:620px) {
   html body #main-content :is(#my-launches,#referrals,#leaderboard,#callouts,#creators,#bonuses) > .section-heading { align-items:flex-start; }
   html body #main-content #my-launches .portfolio-dashboard { padding:12px; }
@@ -56,4 +83,47 @@ html body #main-content #callouts :is(.callout-card,.callouts-top-strip) { borde
   html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories { grid-template-columns:repeat(3,minmax(0,1fr)); }
   html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories > article { align-content:start;gap:4px;padding:8px; }
   html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories span { font-size:11px;line-height:1.4; }
+}
+@media(max-width:700px) {
+  html body #main-content #explore .product-sort { grid-column:1 / -1; }
+  html body #main-content #payments .payment-history-filters > button { margin-top:0; }
+  html body #main-content .creator-directory-header .support-shortcuts { width:100%; }
+  html body #main-content #coin-page .coin-hero-card { padding:12px; }
+  html body #main-content #coin-page .coin-identity { display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;padding:0; }
+  html body #main-content #coin-page .coin-identity > .coin-avatar { width:52px;height:52px;grid-area:1 / 1; }
+  html body #main-content #coin-page .coin-identity > .coin-identity-main { display:block;grid-area:1 / 2;min-width:0; }
+  html body #main-content #coin-page .coin-identity #coin-page-title { font-size:22px;line-height:1.2;margin:4px 0 8px;overflow-wrap:anywhere; }
+  html body #main-content #coin-page .coin-identity .coin-socials { gap:2px;flex-wrap:wrap;margin-top:8px; }
+  html body #main-content #coin-page .coin-identity > .coin-package-rail { grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px; }
+  html body #main-content #coin-page .coin-package-rail .coin-watch { align-self:center; }
+  html body #main-content #coin-page .coin-promotion-details { flex:0 1 auto;width:auto;gap:4px; }
+  html body #main-content #coin-page .coin-identity > [data-watchlist-status] { grid-column:1 / -1;margin:0; }
+  html body #main-content #coin-page .coin-identity > [data-watchlist-status]:empty { display:none; }
+  html body #main-content #coin-page .coin-hero-about > [role="tabpanel"] { padding:12px 14px; }
+  html body #main-content #coin-page .coin-fact-ribbon { gap:8px; }
+  html body #main-content #coin-page .coin-fact-ribbon > div { padding:10px; }
+  html body #main-content #coin-page .coin-burn-metrics { grid-template-columns:minmax(0,1fr); }
+  html body #main-content #coin-page .coin-burn-metrics > article { grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline; }
+  html body #main-content #coin-page .coin-burn-metrics strong { font-size:16px; }
+  html body #main-content #coin-page .coin-burn-metrics small { grid-column:1 / -1; }
+  html body #main-content #buybacks .burn-center-hero { margin-bottom:16px; }
+  html body #main-content #buybacks .burn-card-head { padding:16px;gap:8px;flex-wrap:wrap; }
+  html body #main-content #buybacks .burn-card-head h2 { margin-top:4px;font-size:18px; }
+  html body #main-content #buybacks :is(.burn-amount-field,.burn-project-field) { margin:12px 16px 0; }
+  html body #main-content #buybacks .burn-primary { width:calc(100% - 32px);margin:12px 16px;min-height:44px; }
+  html body #main-content #buybacks .burn-action-card > p { padding:12px 16px 0; }
+  html body #main-content #buybacks :is(.funded-burn-status,.burn-permanent-note) { margin:12px 16px 16px; }
+}
+/* A payout remains one record on phones, with every category and receipt visible. */
+@media(max-width:700px) {
+  html body #main-content #bonuses [data-bonus-history-rows] { overflow:visible; }
+  html body #main-content #bonuses [data-bonus-history-rows] table { display:block;min-width:0; }
+  html body #main-content #bonuses [data-bonus-history-rows] thead { position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%); }
+  html body #main-content #bonuses [data-bonus-history-rows] tbody { display:grid;gap:12px; }
+  html body #main-content #bonuses [data-bonus-history-rows] tr { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;padding:12px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-surface); }
+  html body #main-content #bonuses [data-bonus-history-rows] td { display:block;min-width:0;padding:0;border:0;font-size:12px;overflow-wrap:anywhere; }
+  html body #main-content #bonuses [data-bonus-history-rows] td:first-child { grid-column:1 / -1;padding-bottom:8px;border-bottom:1px solid var(--cp-line); }
+  html body #main-content #bonuses [data-bonus-history-rows] td::before { content:attr(data-label);display:block;margin-bottom:4px;color:var(--cp-muted);font-size:11px; }
+  html body #main-content #bonuses [data-bonus-history-rows] td:nth-child(3) { color:var(--cp-accent);font-weight:700; }
+  html body #main-content #bonuses [data-bonus-history-rows] a { display:inline-flex;align-items:center;min-height:44px; }
 }

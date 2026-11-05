@@ -2,6 +2,7 @@ import { HOME_BONUS_MARKUP, BONUS_HISTORY_MARKUP } from './bonus-dashboard-marku
 import { bonusSnapshotLabel, bonusVerificationLabel } from './bonus-labels.js';
 import {bonusCategoryCopy} from './fee-policy-copy.js';
 const GROUPS = { creators:'Creators', referrals:'Referrers', traders:'Traders' };
+const HISTORY_COLUMNS = ['UTC snapshot', 'Wallet', 'Wallet received', 'Creator bonus', 'Referral bonus', 'Trader bonus', 'Receipt'];
 const integer = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : null;
 export function bonusSol(value) {
   const n = integer(value);
@@ -130,13 +131,15 @@ export function initBonusDashboard(document = globalThis.document) {
       if (retained) ({ table, body } = historyState);
       else {
         table = node('table'); const head = node('thead'), heading = node('tr');
-        for (const title of ['UTC snapshot', 'Wallet', 'Wallet received', 'Creator bonus', 'Referral bonus', 'Trader bonus', 'Receipt']) heading.append(node('th', title));
+        for (const title of HISTORY_COLUMNS) heading.append(node('th', title));
         head.append(heading); body = node('tbody'); table.append(head, body);
       }
       const previousRecords = retained ? historyState.records : [];
       const matched = matchHistoryRecords(previousRecords, history.rows.map(receipt => ({ aliases:receiptAliases(receipt) })));
       const records = history.rows.map((receipt, index) => {
-        const record = matched[index] || newHistoryRecord(receipt); if (matched[index]) updateHistoryRecord(record, receipt); return record;
+        const record = matched[index] || newHistoryRecord(receipt); if (matched[index]) updateHistoryRecord(record, receipt);
+        [...record.tr.children].forEach((cell, column) => { cell.dataset.label = HISTORY_COLUMNS[column]; });
+        return record;
       });
       const keep = new Set(records.map(record => record.tr));
       for (const record of previousRecords) if (!keep.has(record.tr)) record.tr.remove();

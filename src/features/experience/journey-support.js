@@ -17,7 +17,7 @@ export function mountJourneySupport() {
   }
   const profile = document.querySelector('#profile');
   const scope = el('p', 'Device settings and reminders stay in this browser. Optional X sync transfers only reviewed follows and reminders. On-chain activity and published creator updates are public. Sign out to end account access.', 'flow-note');
-  profile?.prepend(scope);
+  profile?.querySelector('.section-heading')?.after(scope);
   const board = document.querySelector('#leaderboard');
   const method = el('p', 'Traders: 24h SOL volume. Creators: market cap. Projects and Wallets: verified $FUNDED burns.', 'flow-note');
   method.dataset.inlineStatus = ''; board?.querySelector('.leaderboard-hero')?.after(method);
