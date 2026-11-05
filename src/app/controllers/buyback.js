@@ -28,9 +28,9 @@ export function createBuybackController(appState) {
     try {
       // Public reads return before a slow custody scan. Follow that same scan
       // briefly so the normal minute-long polling interval does not hide it.
-      for (let attempt = 0; attempt < 6; attempt++) {
+      for (let attempt = 0; attempt < 14; attempt++) {
         await readBuybackNetworkState(current);
-        if (!appState.buybackNetworkState.refreshing || attempt === 5) break;
+        if (!appState.buybackNetworkState.refreshing || attempt === 13) break;
         await new Promise((resolve, reject) => {
           const abort = () => { clearTimeout(timer); reject(current.reason); };
           const timer = setTimeout(() => { current.removeEventListener('abort', abort); resolve(); }, 2_000);

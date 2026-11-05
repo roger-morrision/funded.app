@@ -42,9 +42,17 @@ test('verification failure stops follow-up reads and does not present historical
 
 test('a continuously pending scan has a bounded follow-up budget',async t=>{
   const f=fixture(t,()=>pending), work=f.controller.loadBuybackNetworkState();await flush();
-  for(let i=0;i<5;i++){t.mock.timers.tick(2000);await flush();}
-  await work;assert.equal(f.calls(),6);
-  t.mock.timers.tick(60_000);await flush();assert.equal(f.calls(),6);
+  for(let i=0;i<13;i++){t.mock.timers.tick(2000);await flush();}
+  await work;assert.equal(f.calls(),14);
+  t.mock.timers.tick(60_000);await flush();assert.equal(f.calls(),14);
+});
+
+test('follow-up covers a scan that finishes near the server deadline',async t=>{
+  let ready=false;
+  const f=fixture(t,()=>ready?verified:pending),work=f.controller.loadBuybackNetworkState();await flush();
+  for(let i=0;i<11;i++){t.mock.timers.tick(2000);await flush();}
+  ready=true;t.mock.timers.tick(2000);await work;
+  assert.equal(f.state.buybackNetworkState.dashboard.status,'verified');
 });
 
 test('leaving the route cancels the follow-up timer',async t=>{

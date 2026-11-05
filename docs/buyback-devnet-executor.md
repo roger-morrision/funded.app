@@ -30,7 +30,7 @@ New signed intents save blockhash expiry and the immutable receipt address. Reco
 
 Public status returns within its bounded proof-wait budget while background verification continues. `lastVerified` is explicitly historical (`fresh:false`) and cannot authorize execution. The worker uses authenticated `?wait=worker` to wait for the full bounded scan. Budget summaries distinguish allocations meeting the order-size minimum from retained smaller balances; meeting the size minimum alone does not establish market execution readiness.
 
-`refreshing` is true only while the matching custody scan is pending, including the first scan before any historical result exists. The browser follows pending verification with up to five additional reads two seconds apart, within an overall 30-second deadline. Failure stops those follow-up reads; route cancellation or a newer load prevents stale responses from replacing the current view.
+`refreshing` is true only while the matching custody scan is pending, including the first scan before any historical result exists. The browser follows pending verification with up to thirteen additional reads two seconds apart, within an overall 30-second deadline. This covers the server's 25-second scan deadline. Failure stops those follow-up reads; route cancellation or a newer load prevents stale responses from replacing the current view.
 
 ## Historical executor evidence
 
