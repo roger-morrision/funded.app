@@ -11,9 +11,9 @@ export function airdropClaimState(reserve, nowSeconds = Math.floor(Date.now() / 
     claimActive,
     status: closed ? 'closed' : claimActive ? 'claiming' : 'upcoming',
     label: closed
-      ? hasReceipts ? 'Claims closed · receipts indexed' : 'Claims closed · no receipts indexed'
+      ? hasReceipts ? 'Distribution closed · receipts indexed' : 'Distribution closed · no receipts indexed'
       : claimActive
-      ? hasReceipts ? 'Claims open · receipts indexed' : 'Claims open · no receipts indexed'
-      : 'Claims pending',
+      ? hasReceipts ? 'Automatic delivery · receipts indexed' : 'Automatic delivery · awaiting receipts'
+      : 'Waiting for migration verification',
   };
 }

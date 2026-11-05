@@ -22,15 +22,15 @@ test('On curve omits claim action and funding line while Claims open keeps them'
     const program = { id: 'So11111111111111111111111111111111111111112', name: 'Curve test', symbol: 'CURVE',
       status: 'upcoming', statusLabel: 'Claims pending', reservedTokens: 30000000, onCurve: true, claimActive: false };
     controller.renderAirdropDirectory([program]);
-    assert.match(list.innerHTML, /On curve · opens after migration/);
+    assert.match(list.innerHTML, /On curve/);
     assert.match(list.innerHTML, /Share/);
-    assert.doesNotMatch(list.innerHTML, /Funding:|View claim status|directory-claim/);
+    assert.doesNotMatch(list.innerHTML, /Funding:|View airdrop|directory-claim/);
 
-    state.airdropDirectoryStatus = 'claiming';
+    state.airdropDirectoryStatus = 'distributed';
     controller.renderAirdropDirectory([{ ...program, status: 'claiming', claimActive: true,
-      claimPublished: true, migrationAt: 1_760_000_000 }]);
+      claimPublished: true, migratedAndAirdropped:true, migrationAt: 1_760_000_000 }]);
     assert.doesNotMatch(list.innerHTML, /Funding:/);
     assert.match(list.innerHTML, /Snapshot recorded .* UTC/);
-    assert.match(list.innerHTML, /View claim status/);
+    assert.match(list.innerHTML, /View airdrop/);
   } finally { globalThis.document = previousDocument; }
 });

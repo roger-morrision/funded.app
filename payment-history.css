@@ -1,3 +1,4 @@
+@import './src/features/payments/receipt-table.css';
 /* Verified payout rows and filters on the Rewards history page. */
 .recipients-panel .recipients-heading { flex-wrap:wrap; gap:8px 16px; }
 .recipients-panel .recipients-history-link {

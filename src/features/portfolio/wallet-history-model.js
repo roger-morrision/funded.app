@@ -58,9 +58,9 @@ export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClai
     if (seen.has(id)) continue;
     seen.add(id);
     const amount = walletHistoryTokenAmount(proof.amount, entry.reservedTokens, entry.totalBaseUnits);
-    rows.push({ id, type:'airdrop', title:'Community airdrop claimed',
+    rows.push({ id, type:'airdrop', title:'Community airdrop received',
       detail:`${entry.symbol || 'Token'} · finalized payment account`,
-      amount:amount ? `${amount} ${entry.symbol || 'tokens'}` : 'Claim confirmed',
+      amount:amount ? `${amount} ${entry.symbol || 'tokens'}` : 'Received',
       href:`https://explorer.solana.com/address/${encodeURIComponent(proof.payment)}?cluster=devnet`,
       time:0 });
   }

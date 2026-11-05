@@ -11,6 +11,7 @@ import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, publicBonusSchedule, bonusWi
 import {assertBonusSnapshot,appendDailyBonusResidual,bonusAssignmentMatches} from './daily-bonus-reconciliation.mjs';
 import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
 import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
+import {createLiveBonusReader} from './daily-bonus-live.mjs';
 
 export function createDailyBonusService({ store, rewardStore, connection, programId, authority,
   expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
@@ -23,6 +24,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   const readIndexedEvidence = readEvidence || createDailyBonusEvidenceIndex({ rewardStore });
   let running = false;
   let poolCache, poolRead;
+  const liveBonus=createLiveBonusReader({connection,programId,now});
   async function dashboard(options) {
     const at = now();
     const sameDay = poolCache?.day === currentBonusStart(at,schedule);
@@ -45,7 +47,12 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       // so a slow pool RPC (up to poolTimeoutMs) never holds the Home page.
       if (!sameDay) await poolRead;
     }
+    const liveStart=currentBonusStart(now(),schedule);
+    const live=liveBonus(await store.read(),liveStart,liveStart+schedule.periodSeconds);
     return { cluster, serverTime:new Date(now() * 1000).toISOString(),
+      today:{...live,day:new Date(liveStart*1000).toISOString(),provisional:true,
+        creators:poolCache.day===liveStart?poolCache.value.liveRankings?.creators||null:null,
+        referrals:poolCache.day===liveStart?poolCache.value.liveRankings?.referrals||null:null},
       schedule:publicBonusSchedule(schedule),
       nextCutoffAt:new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),
       poolCheckedAt:new Date(poolCache.at * 1000).toISOString(),

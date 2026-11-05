@@ -1,16 +1,22 @@
 # V3 community token airdrops
 
-Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+Product workflows: [all-page guide](product-guide.md). Historical evidence below retains its original scope.
 
-## Current claim model
+## Automatic migration airdrop
 
-This airdrop pays **tokens of the launched coin** from its reserve (at least 3% of supply). It is separate from Daily bonus SOL, holder SOL rewards and missing-referral reserves.
+Every launch reserves at least **3% of its launched coin supply**. Hold **$FUNDED until the coin migrates** to qualify. Tokens are sent automatically to the eligible wallet after the exact migration snapshot, funding and on-chain approval are verified. No recipient claim, wallet signature or recipient transaction fee is required. Migration fixes eligibility; network verification and processing can delay delivery.
 
-Standard eligibility uses the launch's verified $FUNDED-holder snapshot associated with migration. Funding alone does not activate claims: exact eligibility evidence, reviewed manifest/program approval, token custody and the wallet's claim proof must also verify. Later purchases do not create retrospective eligibility.
+**Wallet allocation = airdrop pool × wallet eligible $FUNDED balance ÷ total eligible $FUNDED holdings at migration.** Amounts round down to token base units. Excluded wallets do not enter the denominator. A wallet holding 1% of eligible $FUNDED receives 1% of the pool: 300,000 tokens from a 30,000,000-token pool. Later purchases do not qualify retrospectively. These are launched coin tokens, separate from SOL rewards.
 
-Eligible wallets connect in Airdrops and claim once within the displayed window, normally 90 days. New authority-signed rules can change future windows; existing drops retain their saved deadline. Check the asset mint, deadline and finalized token-account delta. A labeled Devnet QA cutoff or QA claim does not establish a real migration snapshot.
+Open **Airdrops** or **Rewards → Token airdrops** to inspect your allocation and delivery. Missing exact-slot evidence never becomes a substitute snapshot. Existing on-chain expiry and remainder terms remain intact. Historical QA cutoffs remain explicitly labeled and are not automatically distributed by the real-migration worker.
 
-The page separates reserved allocation, funding, eligible wallets and finalized claimed tokens. Missing evidence is not a zero balance or a claimable amount. See [reward modes](automatic-rewards.md) and [Daily bonus](daily-bonus-policy.md). Current source: [service](../server/community-claim-service.mjs), [instructions](../server/community-claim-chain.mjs), [index](../server/community-claim-index.mjs).
+## Runtime and recovery
+
+The primary API process runs the Devnet-only worker when FUNDED_COMMUNITY_AUTO_DELIVERY_ENABLED=true; API-only instances do not start it. It prepares exact-slot manifests, uses the configured authority for approval/opening where authorized, and sponsors delivery to immutable recipients. The payer retains a protected 3 SOL reserve. A missing upgrade-owner signer, incomplete snapshot, unfunded reserve, expired window or unavailable RPC blocks that action without changing eligibility.
+
+Signed bytes and signatures are journaled before broadcast in communityExecutions. An uncertain transaction can only rebroadcast the same bytes. Finalized payment PDAs prevent duplicate delivery, including races with historical manual claims. The verifier checks the exact instruction, source-token debit, recipient-token credit and matching payment account. Status and per-wallet progress are persisted in the reward ledger; a healthy process alone is not payout evidence.
+
+Sources: [runtime](../server/community-delivery-runtime.mjs), [delivery](../server/community-auto-delivery.mjs), [journal](../server/community-execution-journal.mjs), [receipt verification](../server/community-delivery-proof.mjs).
 
 ## Historical Devnet observations
 

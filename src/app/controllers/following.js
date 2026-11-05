@@ -1,4 +1,5 @@
 import { followingTokenSources } from '../../../following-token-model.js';
+import {accountPreferences,saveAccountPreference} from '../../features/account/preferences.js';
 import { isWatchlistRetryPending } from '../../features/portfolio/watchlist-retry-state.js';
 
 // Dependencies and mutable application state are read live through appState.
@@ -123,6 +124,7 @@ export function createFollowingController(appState) {
 
   // app-source: 395
   async function saveWatchlist(mint, { remove = false } = {}){
+    if(!appState.watchlistSync.identity()&&!await verifyWalletFavorites())return false;
     const saved = await appState.watchlistSync.save(mint, remove);
     if (saved && !remove) window.dispatchEvent(new Event('funded:watchlist-added'));
     if (!saved) {
@@ -360,7 +362,7 @@ export function createFollowingController(appState) {
 
   // app-source: 398
   function readFollowedWallets(){
-    const rows = JSON.parse(localStorage.getItem(appState.FOLLOWED_WALLETS_KEY) || '[]');
+    const rows = accountPreferences().wallets;
     if (!Array.isArray(rows) || rows.length > 200 || rows.some(row =>
       !row || typeof row.address !== 'string' || row.address !== row.address.trim() || !appState.validateSolanaMint(row.address).valid
       || !Array.isArray(row.roles) || row.roles.some(role => !['creator', 'trader'].includes(role)))) throw new Error('Invalid followed wallets');
@@ -372,7 +374,7 @@ export function createFollowingController(appState) {
   // app-source: 399
   function getFollowedWallets(){
     try { appState.lastKnownFollowedWallets = appState.readFollowedWallets(); }
-    catch { /* Preserve the last verified list when browser storage is unavailable. */ }
+    catch { /* Preserve the last verified list when account data is unavailable. */ }
     return [...appState.lastKnownFollowedWallets];
   }
   // app-source-end
@@ -384,7 +386,7 @@ export function createFollowingController(appState) {
   // app-source-end
 
   // app-source: 401
-  function saveFollowedWallet(address, { remove = false, roles = [] } = {}){
+  async function saveFollowedWallet(address, { remove = false, roles = [] } = {}){
     try {
       if (typeof address !== 'string' || address !== address.trim() || !appState.validateSolanaMint(address).valid) throw new Error('Invalid wallet address');
       const prior = appState.readFollowedWallets();
@@ -392,9 +394,8 @@ export function createFollowingController(appState) {
         : prior.some(row => row.address === address) ? prior
           : [...prior, { address, roles: [...new Set(roles.filter(role => ['creator', 'trader'].includes(role)))] }];
       if (next.length > 200) throw new Error('Followed wallet limit reached');
-      localStorage.setItem(appState.FOLLOWED_WALLETS_KEY, JSON.stringify(next));
-      if (JSON.stringify(appState.readFollowedWallets()) !== JSON.stringify(next)) throw new Error('Followed wallets could not be verified');
-      appState.lastKnownFollowedWallets = next;
+      await saveAccountPreference('wallets',remove?address:{address,roles:[...new Set(roles.filter(role=>['creator','trader'].includes(role)))]},{remove});
+      appState.lastKnownFollowedWallets = appState.readFollowedWallets();
       window.dispatchEvent(new Event('funded:following-changed'));
       appState.renderFollowedWallets();
       if (!document.querySelector('#wallet-page')?.hidden) appState.renderWalletDetail();
@@ -402,10 +403,10 @@ export function createFollowingController(appState) {
         appState.updateExploreViews(true);
         if (!remove) void appState.refreshFollowedWalletHoldings();
       }
-      appState.showToast(remove ? 'Wallet unfollowed on this device' : 'Wallet followed on this device');
+      appState.showToast(remove ? 'Wallet unfollowed' : 'Wallet saved to your account');
       return true;
-    } catch {
-      appState.showToast('Wallet follow could not be saved. Allow browser storage and try again.');
+    } catch (error) {
+      appState.showToast(error.message||'Wallet follow could not be saved. Please sign in and try again.');
       appState.renderFollowedWallets();
       return false;
     }
@@ -422,7 +423,7 @@ export function createFollowingController(appState) {
       section.id = 'followed-wallets';
       section.className = 'followed-wallets panel';
       section.setAttribute('aria-labelledby', 'followed-wallets-title');
-      section.innerHTML = '<div class="followed-wallets-heading"><div><h3 id="followed-wallets-title">Followed wallets</h3><p>Creator and trader wallets you follow on this device. Recent activity covers listed coins and may be incomplete.</p></div><span id="followed-wallet-count"></span></div><div id="followed-wallet-rows"></div><p id="followed-wallet-status" role="status" aria-live="polite"></p>';
+      section.innerHTML = '<div class="followed-wallets-heading"><div><h3 id="followed-wallets-title">Followed wallets</h3><p>Creator and trader wallets you follow in your wallet account. Recent activity covers listed coins and may be incomplete.</p></div><span id="followed-wallet-count"></span></div><div id="followed-wallet-rows"></div><p id="followed-wallet-status" role="status" aria-live="polite"></p>';
       community.append(section);
     }
     let browse = section.querySelector('[data-followed-wallet-browse]');

@@ -37,14 +37,14 @@ export function createFeeReadinessController(appState) {
     const addressNode = document.querySelector('#fee-router-address');
     appState.feeRouterState = { status:'checking', verified:false, address:null,
       programId:null, scope:'per-mint-v3', v3FeeRouter:null };
-    if (status) { status.textContent = 'Checking V3 launch readiness…'; status.className = 'field-help'; }
+    if (status) { status.textContent = 'Checking launch availability…'; status.className = 'field-help'; }
     updateLaunchAvailability();
     try {
       const service = await appState.apiRequest('/api/v3-launch-config');
       const config = service.available ? service.data : null;
       if (config?.ready !== true || config.cluster !== 'devnet'
         || !config.programId || !config.initialAuthority || !config.protocolSplit) {
-        throw new Error(config?.reasons?.join('; ') || 'V3 launch service is unavailable');
+        throw new Error(config?.reasons?.join('; ') || 'Launch service is unavailable');
       }
       await appState.getSolana();
       const verified = await appState.withRpcRetry(() => appState.verifyFeeRouterAccount({
@@ -59,13 +59,13 @@ export function createFeeReadinessController(appState) {
           initialAuthority:config.initialAuthority, split:config.protocolSplit,...(config.agency?{agency:config.agency}:{}) } };
       window.dispatchEvent(new CustomEvent('funded:agency-readiness',{detail:{active:Boolean(config.agency)}}));
       if (addressNode) addressNode.textContent = 'Derived for each new mint';
-      if (status) { status.textContent = 'V3 policy verified. Pump fee ownership uses a new mint-specific router at launch.';
+      if (status) { status.textContent = 'Launch checks passed.';
         status.className = 'field-help funded-mint-valid'; }
     } catch (error) {
       appState.feeRouterState = { status:String(error?.message || 'V3 launch verification unavailable'),
         verified:false, address:null, programId:null, scope:'per-mint-v3', v3FeeRouter:null };
       window.dispatchEvent(new CustomEvent('funded:agency-readiness',{detail:{active:false}}));
-      if (status) { status.textContent = `Launch blocked: ${appState.feeRouterState.status}.`;
+      if (status) { status.textContent = 'Launch checks are unavailable. Retry checks to continue.';
         status.className = 'field-help funded-mint-invalid'; }
       if (addressNode) addressNode.textContent = 'Not verified';
     }

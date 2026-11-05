@@ -72,9 +72,9 @@ export function renderHomeRewardCards({ homeSpotlight, homeFundedTokens, homeRes
     addValue('Paid wallets', Number.isSafeInteger(claimedWallets) && claimedWallets >= 0
       ? `${claimedWallets.toLocaleString()} ${claimedWallets === 1 ? 'wallet' : 'wallets'}` : '—')
       .title = 'Distinct wallets with verified on-chain token claims.';
-    addValue('Tokens received', receivedTokens || '—').title = 'Tokens claimed from the verified airdrop vault; unclaimed allocation is excluded.';
+    addValue('Tokens received', receivedTokens || '—').title = 'Tokens delivered from the verified airdrop vault; unpaid allocation is excluded.';
     const proof = document.createElement('small'); proof.className = 'home-reward-token-proof';
-    proof.textContent = active ? 'Claims open' : reserve.status === 'drop-closed' ? 'Claims closed' : '';
+    proof.textContent = active ? 'Automatic delivery' : reserve.status === 'drop-closed' ? 'Distribution closed' : '';
     proof.hidden = !proof.textContent;
     const snapshot = document.createElement('div'); snapshot.className = 'home-reward-snapshot';
     const addSnapshot = value => { const line = document.createElement('span'); line.textContent = value; snapshot.append(line); };

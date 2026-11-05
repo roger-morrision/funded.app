@@ -40,7 +40,7 @@ test('airdrop proof rate limits reject before requesting chain evidence', async 
     store: { chargeRpcRate: async () => false },
     communityClaimService() { assert.fail('Rate-limited proof reached the chain service'); },
   });
-  assert.equal(await handle({ method: 'GET' }, {}, url('/api/airdrops/claims/proof?mint=mint&wallet=wallet')), true);
+  assert.equal(await handle({ method: 'GET' }, {}, url('/api/airdrops/allocation?mint=mint&wallet=wallet')), true);
   assert.deepEqual(responses, [429]);
 });
 
@@ -70,11 +70,11 @@ test('community claim failures never expose dependency URLs or credentials', asy
   });
   for (const [method,path] of [
     ['GET','/api/airdrops/claims/status?mint=requested-mint'],
-    ['GET','/api/airdrops/claims/proof?mint=requested-mint&wallet=requested-wallet'],
+    ['GET','/api/airdrops/allocation?mint=requested-mint&wallet=requested-wallet'],
     ['POST','/api/airdrops/claims/opening-instruction'],
-    ['POST','/api/airdrops/claims/claim-instruction'],
   ]) assert.equal(await handle({ method }, {}, url(path)), true);
-  assert.deepEqual(responses.map(row => row.status), [503,503,422,422]);
+  assert.equal(await handle({method:'POST'}, {}, url('/api/airdrops/claims/claim-instruction')),false);
+  assert.deepEqual(responses.map(row => row.status), [503,503,422]);
   assert(responses.every(row => !JSON.stringify(row.payload).includes('secret')
     && !JSON.stringify(row.payload).includes('private-rpc')));
 });

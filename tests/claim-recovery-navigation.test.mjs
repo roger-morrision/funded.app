@@ -11,46 +11,6 @@ function section(start, end) {
   return app.slice(from, to);
 }
 
-test('an uncertain submitted claim offers a receipt and a status check without another claim action', () => {
-  const nodes = [];
-  const context = {
-    APP_EXPLORER_QUERY: '?cluster=devnet',
-    document: {
-      createElement: tag => ({ tag, dataset: {} }),
-      createTextNode: text => ({ text }),
-    },
-  };
-  vm.runInNewContext(section('function appendPendingCommunityClaim(', 'async function fundCommunityReserve('), context);
-  context.appendPendingCommunityClaim({ append: (...items) => nodes.push(...items) }, 'test-mint', 'test-signature');
-  const receipt = nodes.find(node => node.tag === 'a');
-  assert.equal(receipt.href, 'https://explorer.solana.com/tx/test-signature?cluster=devnet');
-  assert.equal(receipt.rel, 'noopener noreferrer');
-  const action = nodes.find(node => node.tag === 'button');
-  assert.equal(action.textContent, 'Check claim status');
-  assert.equal(action.dataset.checkCommunityMint, 'test-mint');
-  assert.equal(action.dataset.claimCommunityMint, undefined);
-  assert.match(nodes.map(node => node.text || '').join(''), /submitted.*Check its status before trying again/);
-});
-
-test('a failed on-chain claim reports failure and offers a fresh eligibility check', () => {
-  const nodes = [];
-  const context = {
-    APP_EXPLORER_QUERY: '?cluster=devnet',
-    document: {
-      createElement: tag => ({ tag, dataset: {} }),
-      createTextNode: text => ({ text }),
-    },
-  };
-  vm.runInNewContext(section('function appendPendingCommunityClaim(', 'async function fundCommunityReserve('), context);
-  context.appendPendingCommunityClaim({ append: (...items) => nodes.push(...items) }, 'test-mint', 'test-signature', true);
-  const message = nodes.map(node => node.text || '').join('');
-  assert.match(message, /failed on Solana.*No tokens were claimed.*Check eligibility again/);
-  assert.doesNotMatch(message, /confirmation could not be loaded/);
-  const action = nodes.find(node => node.tag === 'button');
-  assert.equal(action.dataset.checkCommunityMint, 'test-mint');
-  assert.equal(action.dataset.claimCommunityMint, undefined);
-});
-
 test('successful launch opens its token, while invalid launch data cannot navigate', () => {
   const visits = [];
   const context = {

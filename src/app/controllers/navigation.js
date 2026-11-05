@@ -192,7 +192,7 @@ export function createNavigationController(appState) {
       referrals: ['Referrals', 'Track qualified growth'],
       community: ['Favorites', 'Favorites and verified signals'],
       leaderboard: ['Leaderboard', 'Ranked community contribution'],
-      airdrops: ['Airdrops', 'Eligibility and claim records'],
+      airdrops: ['Airdrops', 'Automatic token payouts'],
       buybacks: ['Burn $FUNDED', 'Supply reduction and burn receipts'],
       'capital-flow': ['Capital flow', 'Follow the published allocation'],
       bonuses: ['Daily bonuses', 'Payout history and all-time recipients'],

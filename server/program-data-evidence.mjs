@@ -7,7 +7,7 @@ const LOADER=new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 // An optional read-only provider serves large program accounts. It must agree
 // with the transaction provider on Devnet. Callers still pin the complete hash.
 export async function readProgramDataEvidence(connection,program,{
-  rpcUrl=process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL||'',timeoutMs=8000,
+  rpcUrl=process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL||'',timeoutMs=8000,fallbackTimeoutMs=15000,
   connectionFactory=(url,signal)=>new Connection(url,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(target,options)=>fetch(target,{...options,signal:options?.signal?AbortSignal.any([signal,options.signal]):signal})}),
 }={}) {
@@ -34,7 +34,18 @@ export async function readProgramDataEvidence(connection,program,{
   if(!rpcUrl)return read();
   try {
     return await Promise.race([read(),new Promise((_,reject)=>{timer=setTimeout(()=>{
-      controller.abort();reject(new Error('Program evidence RPC verification timed out.'));
+      controller.abort();reject(Object.assign(new Error('Program evidence RPC verification timed out.'),{code:'PROGRAM_EVIDENCE_TIMEOUT'}));
     },timeoutMs);})]);
+  } catch(error) {
+    // A slow optional provider must not disable a healthy transaction provider.
+    // Re-read full finalized bytes and the network; never fall back on a bad
+    // network, malformed account, or mismatched program commitment.
+    if(error.code!=='PROGRAM_EVIDENCE_TIMEOUT'||fallbackTimeoutMs<=0)throw error;
+    let fallbackTimer;
+    try{return await Promise.race([(async()=>{
+      if(await connection.getGenesisHash()!==GENESIS_HASHES.devnet)throw new Error('Program evidence fallback requires Devnet.');
+      return readProgramDataEvidence(connection,program,{rpcUrl:''});
+    })(),new Promise((_,reject)=>{fallbackTimer=setTimeout(()=>reject(new Error('Program evidence fallback timed out.')),fallbackTimeoutMs);})]);}
+    finally{clearTimeout(fallbackTimer);}
   } finally {clearTimeout(timer);controller.abort();}
 }

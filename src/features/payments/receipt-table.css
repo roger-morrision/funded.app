@@ -1,0 +1,39 @@
+#rewards-history .payment-history-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 20px}
+#rewards-history .payment-history-heading h2{margin:0}
+#rewards-history .payment-history-heading .payment-history-bonus-link{font-size:14px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--accent,#ffc629)}
+#rewards-history .payment-history-filters{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(135px,.8fr) minmax(135px,.8fr) auto;align-items:end;gap:12px;padding:18px 0;margin:0}
+#rewards-history .payment-history-filters label{min-width:0;margin:0;gap:7px}
+#rewards-history .payment-history-filters :is(input,select,button){width:100%;min-width:0;height:46px;margin:0;box-sizing:border-box;font-size:14px!important}
+#rewards-history .payment-history-range-error{grid-column:1/-1}
+#payment-list .payment-table-head,#payment-list .payment-history-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(180px,.8fr);gap:24px;align-items:center;padding:18px 12px}
+#payment-list .payment-table-head{padding-block:12px;border-block:1px solid var(--border,#343450);color:#a8b5d5;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+#payment-list .payment-table-head span:last-child{text-align:right}
+#payment-list .payment-history-row{border-bottom:1px solid var(--border,#343450);min-height:105px}
+#payment-list .payment-history-row:hover{background:rgba(255,255,255,.018)}
+#payment-list .payment-history-identity{gap:10px;align-content:center}
+#payment-list .payment-history-identity>strong{font-size:14px!important;white-space:normal;line-height:1.4}
+#payment-list .payment-history-identity .compact-token-link{max-width:100%;width:max-content}
+#payment-list .payment-history-metadata{min-width:0;display:grid;gap:6px}
+#payment-list .payment-history-time{font-size:12px!important;color:#9eaccb}
+#payment-list .payment-history-receiver{font-size:14px;gap:8px}
+#payment-list .payment-history-details{margin:0;padding:0;min-width:0}
+#payment-list .payment-history-details summary{font-size:12px!important;line-height:1.5}
+#payment-list .payment-history-details>small{overflow-wrap:anywhere;white-space:normal}
+#payment-list .payment-history-actions{justify-content:flex-end;gap:14px}
+#payment-list .payment-history-actions .payment-amount strong{font-size:15px!important;font-variant-numeric:tabular-nums}
+#payment-list .payment-history-actions .payment-amount small{font-size:12px!important}
+.guidance-outline{margin:12px 0;padding-left:20px;line-height:1.65}
+.guidance-outline>li+li{margin-top:6px}
+.guidance-points{line-height:1.8}
+@media(max-width:1000px){#rewards-history .payment-history-filters{grid-template-columns:1fr 1fr}#rewards-history .payment-history-search{grid-column:1/-1}#rewards-history #payment-history-clear{width:auto;justify-self:start}}
+@media(max-width:700px){
+ #rewards-history .payment-history-heading{gap:8px;align-items:center}
+ #rewards-history .payment-history-heading h2{font-size:22px}
+ #payment-list .payment-table-head{display:none}
+ #payment-list .payment-history-row{grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:18px 0}
+ #payment-list .payment-history-identity{grid-column:1;grid-row:1}
+ #payment-list .payment-history-actions{grid-column:2;grid-row:1;align-self:start;gap:8px}
+ #payment-list .payment-history-metadata{grid-column:1/-1;grid-row:2}
+ #payment-list .payment-history-details summary{min-height:44px;padding-block:12px}
+ #rewards-history .payment-history-filters :is(input,select){font-size:16px!important}
+}

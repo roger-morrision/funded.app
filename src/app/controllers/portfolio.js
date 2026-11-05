@@ -125,7 +125,7 @@ export function createPortfolioController(appState) {
     const proofs = [];
     for (let offset = 0; offset < selected.length; offset += 3) {
       const batch = await Promise.all(selected.slice(offset, offset + 3).map(async reserve => {
-        const response = await read(`/api/airdrops/claims/proof?mint=${encodeURIComponent(reserve.mint)}&wallet=${encodeURIComponent(address)}`);
+        const response = await read(`/api/airdrops/allocation?mint=${encodeURIComponent(reserve.mint)}&wallet=${encodeURIComponent(address)}`);
         return { reserve, proof:response.available ? response.data : null };
       }));
       proofs.push(...batch);

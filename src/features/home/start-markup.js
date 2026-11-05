@@ -4,7 +4,7 @@ export function mountHomeStart(document=globalThis.document) {
   if(section) section.innerHTML=`<header><p class="eyebrow">Why funded.vip</p><h2 id="home-start-title">Fees go back to the community.</h2><p class="home-start-note">Collected creator fees follow the allocation saved on Solana at launch.</p></header>
           <div class="home-start-grid">
             <a href="#launch"><span class="home-benefit-value">80%</span><h3>Of creator fees go where the creator decides</h3><p>Keep them, or share them with your holders and an X partner.</p></a>
-            <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Of each launch reserved for eligible $FUNDED holders</h3><p>Launched coin tokens. Eligibility uses a verified snapshot; claim during the published window.</p></a>
+            <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Of each launch reserved for eligible $FUNDED holders</h3><p>Launched coin tokens. Hold $FUNDED until migration to receive an automatic airdrop based on your share of eligible $FUNDED holdings.</p></a>
             <a href="#buybacks"><span class="home-benefit-value">5%</span><h3>Allocated to $FUNDED buyback & burn</h3><p>Of collected creator fees. A funded purchase and confirmed burn are required.</p></a>
             <a href="#bonuses"><span class="home-benefit-value">4%</span><h3>Daily bonus pool</h3><p>Eligible top creators, referrers and traders receive SOL after the daily cutoff and verified funding.</p></a>
             <a href="#referrals"><span class="home-benefit-value">1%</span><h3>Referral rewards</h3><p>Of collected creator fees funds the three-level referral network. Receive SOL from qualifying invited launches after settlement and funding.</p></a>

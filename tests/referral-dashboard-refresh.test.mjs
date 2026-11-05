@@ -45,6 +45,7 @@ function fixture({ claims = null } = {}) {
   let dashboardAvailable = true;
   const session = { address: 'wallet', provider: { async signMessage() { signatures++; if (signError) throw signError; return { signature: new Uint8Array(64).fill(7) }; } } };
   const context = {
+    updateReferralList() {},
     TextEncoder,
     URL,
     location:{origin:'https://funded.vip'},

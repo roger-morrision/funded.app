@@ -11,7 +11,7 @@ const guideLabels = {
   burn: 'How a burn is verified',
   fees: 'View the published fee split',
   docs: 'View the illustrated guide',
-  airdrops: 'How a claim is verified',
+  airdrops: 'How automatic airdrops work',
   privacy: 'How wallet signing works',
   visits: 'How optional visit tracking works',
 };

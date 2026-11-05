@@ -1,103 +1,28 @@
-import { readAppSource } from '../scripts/read-app-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import vm from 'node:vm';
-import { formatTokenBaseUnits } from '../funded-burn.js';
-
-// Exercise the real directory label and proof lookup with a wallet and API fixture.
-// No browser wallet, key material, signing, or chain request is involved.
-const app = await readAppSource();
-function section(start, end) {
-  const from = app.indexOf(start), to = app.indexOf(end, from);
-  assert(from >= 0 && to > from);
-  return app.slice(from, to);
+import {createCommunityClaimsController} from '../src/app/controllers/community-claims.js';
+function fixture(response){
+  let current=true;const session={address:'holder'},updates=[];
+  const state={captureWalletSession:()=>session,isWalletSessionCurrent:()=>current,communityWalletAllocations:new Map(),
+    getAirdropPrograms:()=>[{id:'mint',claimPublished:true,snapshotHash:'snapshot'}],
+    updateDirectoryWalletAmount:(_session,_program,status,amount)=>updates.push({status,amount}),
+    apiRequest:async path=>{assert.match(path,/^\/api\/airdrops\/allocation\?/);return typeof response==='function'?response():response;},
+    getSolana:async()=>({PublicKey:class{}}),getTradePreviewConnection:async()=>({getAccountInfo:async()=>({data:new Uint8Array(45)})}),
+    formatTokenBaseUnits:amount=>amount};
+  return {controller:createCommunityClaimsController(state),updates,switch:()=>current=false};
 }
-const claimsController = await readFile(new URL('../src/app/controllers/community-claims.js', import.meta.url), 'utf8');
-const source = [
-  section('function captureWalletSession(){', 'function wasWalletManuallyDisconnected(){'),
-  section('function directoryWalletAmount(program){', 'function renderAirdropDirectory('),
-  claimsController.replace('export function', 'function'),
-  `const claims = createCommunityClaimsController(globalThis);
-   Object.assign(globalThis, {
-     checkCommunityClaim: claims.checkCommunityClaim,
-     formatCommunityProofAmount: claims.formatCommunityProofAmount,
-   });`,
-].join('\n');
-
-function fixture(proofResponse) {
-  const program = { id: 'fixture-mint', symbol: 'FCQA', claimActive: true, snapshotHash: 'fixture-snapshot' };
-  const provider = { isConnected: true, publicKey: { toBase58: () => 'fixture-wallet' } };
-  const statusText = [];
-  const status = { append: (...nodes) => statusText.push(...nodes.map(node => node.text ?? node.textContent ?? '')) };
-  const panel = { dataset: { mint: program.id } };
-  const context = {
-    AbortSignal,
-    wallet: provider, connectedWalletAddress: 'fixture-wallet', walletVersion: 1,
-    communityWalletAllocations: new Map(), communityClaimReview: null,
-    walletAddress: wallet => wallet.publicKey.toBase58(),
-    readPendingCommunityClaim: () => null,
-    getAirdropPrograms: () => [program],
-    renderAirdropDirectory() {},
-    document: {
-      querySelector: selector => selector === '#airdrop-selected-status' ? status : panel,
-      createTextNode: text => ({ text }),
-      createElement: () => ({ dataset: {}, textContent: '' }),
-    },
-    apiRequest: async path => {
-      assert.match(path, /wallet=fixture-wallet/);
-      return typeof proofResponse === 'function' ? proofResponse() : proofResponse;
-    },
-    getSolana: async () => ({ PublicKey: class { constructor(value) { this.value = value; } } }),
-    getTradePreviewConnection: async () => ({ getAccountInfo: async () => ({ data: Uint8Array.from({ length: 45 }, (_, index) => index === 44 ? 6 : 0) }) }),
-    formatTokenBaseUnits,
-  };
-  vm.runInNewContext(source, context);
-  return { context, program, provider, statusText };
-}
-
-test('connected wallet sees verified allocation after checking the active airdrop', async () => {
-  const f = fixture({ available: true, data: { status: 'claimable', mint: 'fixture-mint', recipient: 'fixture-wallet',
-    snapshotHash: 'fixture-snapshot', amount: '12345678', index: 0 } });
-  assert.equal(f.context.directoryWalletAmount(f.program), 'Check allocation');
-  await f.context.checkCommunityClaim(f.program.id);
-  assert.equal(f.context.directoryWalletAmount(f.program), '12.3456 FCQA');
-  assert.match(f.statusText.join(' '), /Review claim 12\.3456 FCQA/);
-  assert.equal(f.context.communityClaimReview.wallet, 'fixture-wallet');
+test('automatic allocation lookup is read-only and exposes no manual claim or claim-status actions',async()=>{
+  const f=fixture({available:true,data:{status:'claimable',mint:'mint',recipient:'holder',amount:'750'}});
+  assert.equal(f.controller.claimCommunityDrop,undefined);assert.equal(f.controller.checkCommunityClaim,undefined);
+  await f.controller.loadCommunityAllocation('mint');assert.deepEqual(f.updates.at(-1),{status:'claimable',amount:'750'});
 });
-
-test('ineligible and claimed proofs show distinct wallet results', async () => {
-  const ineligible = fixture({ available: true, data: { status: 'ineligible', recipient: 'fixture-wallet' } });
-  await ineligible.context.checkCommunityClaim(ineligible.program.id);
-  assert.equal(ineligible.context.directoryWalletAmount(ineligible.program), 'No allocation');
-  const claimed = fixture({ available: true, data: { status: 'claimed', recipient: 'fixture-wallet' } });
-  await claimed.context.checkCommunityClaim(claimed.program.id);
-  assert.equal(claimed.context.directoryWalletAmount(claimed.program), 'Already claimed');
+test('unavailable and foreign-wallet allocation responses never become a received amount',async()=>{
+  for(const response of [{available:false},{available:true,data:{status:'claimed',mint:'mint',recipient:'other',amount:'100'}}]){
+    const f=fixture(response);await f.controller.loadCommunityAllocation('mint');assert.equal(f.updates.at(-1).status,'unavailable');
+  }
 });
-
-test('disconnected wallet is prompted, while an unavailable proof is never shown as an allocation', async () => {
-  const f = fixture({ available: false, data: { error: 'Proof service offline' } });
-  f.context.connectedWalletAddress = '';
-  assert.equal(f.context.directoryWalletAmount(f.program), 'Connect to check');
-  f.context.connectedWalletAddress = 'fixture-wallet';
-  await f.context.checkCommunityClaim(f.program.id);
-  assert.equal(f.context.directoryWalletAmount(f.program), 'Proof unavailable');
-});
-
-test('proof arriving after an account switch cannot populate the new wallet card', async () => {
-  let finish;
-  const pending = new Promise(resolve => { finish = resolve; });
-  const f = fixture(() => pending);
-  const checking = f.context.checkCommunityClaim(f.program.id);
-  const initialProgress = [...f.statusText];
-  assert.equal(f.context.directoryWalletAmount(f.program), 'Checking…');
-  f.context.walletVersion++;
-  f.context.connectedWalletAddress = 'next-wallet';
-  f.context.communityWalletAllocations.clear();
-  finish({ available: true, data: { status: 'claimable', mint: 'fixture-mint', recipient: 'fixture-wallet',
-    snapshotHash: 'fixture-snapshot', amount: '12345678', index: 0 } });
-  await checking;
-  assert.equal(f.context.directoryWalletAmount(f.program), 'Check allocation');
-  assert.equal(f.context.communityClaimReview, null);
-  assert.deepEqual(f.statusText, initialProgress);
+test('a response arriving after the wallet changes is discarded',async()=>{
+  let finish;const pending=new Promise(r=>finish=r),f=fixture(()=>pending),read=f.controller.loadCommunityAllocation('mint');
+  f.switch();finish({available:true,data:{status:'claimed',mint:'mint',recipient:'holder',amount:'750'}});await read;
+  assert.deepEqual(f.updates,[{status:'checking',amount:undefined}]);
 });

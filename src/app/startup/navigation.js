@@ -90,7 +90,7 @@ export async function initializeNavigation(appState) {
     referrals: { group: 'Growth', state: 'Connect wallet to view payouts', description: 'Invite creators. Track rewards.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
     community: { group: 'Growth', state: 'Account favorites', description: 'Verify the same wallet or sign in with X to sync favorite tokens across devices.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
     leaderboard: { group: 'Growth', state: 'Confirmed activity', description: 'Explore creator and $FUNDED burn rankings.', primary: ['Explore launches', '#explore'], secondary: ['View service status', '#docs'] },
-    airdrops: { group: 'Growth', state: 'Claim status', description: 'Check planned airdrops, eligibility, and claims for each launch.', primary: ['Explore launches', '#explore'], secondary: ['Claim guide', '#docs'] },
+    airdrops: { group: 'Growth', state: 'Automatic payouts', description: 'Hold $FUNDED until migration. Receive tokens automatically.', primary: ['Explore launches', '#explore'], secondary: ['Airdrop guide', '#docs/airdrop-policy'] },
     buybacks: { group: 'Protocol', state: 'Buy and burn', description: 'Buy or burn $FUNDED and check confirmed transactions.', primary: ['View my projects', '#my-launches'], secondary: ['Read the guide', '#docs'] },
     'capital-flow': { group: 'Protocol', state: 'Example calculator', description: 'Enter any creator-fee amount to see how every destination is calculated. This preview never moves funds.', primary: ['View payments', '#payments'], secondary: ['Read the policy', '#docs'] },
     docs: { group: 'Protocol', state: 'Help and guides', description: 'Learn how launches, rewards, and wallet approvals work.', primary: ['Open launch', '#launch'], secondary: ['See capital flow', '#capital-flow'] },
@@ -252,10 +252,11 @@ export async function initializeNavigation(appState) {
 
   // app-source: 889
   // Launch controls stay gated by their verified state while the workspace renders.
-  // Only Launch needs this slow readiness check; run it once, when Launch first opens.
+  // Revisit a failed check so a temporary service interruption cannot latch the form closed.
   let launchReadinessRequested = false;
   const requestLaunchReadiness = () => {
-    if (launchReadinessRequested || appState.requestedPageRoute() !== 'launch') return;
+    if (appState.requestedPageRoute() !== 'launch'
+      || (launchReadinessRequested && (appState.feeRouterState?.verified || appState.feeRouterRefreshPromise))) return;
     launchReadinessRequested = true;
     void appState.refreshFeeRouterConfig();
   };

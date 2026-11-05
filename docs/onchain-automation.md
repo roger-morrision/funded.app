@@ -8,7 +8,7 @@ The current router authority initializes one immutable `mint-automation-v3` PDA 
 
 The collector service calls authenticated keeper routes. It preserves transactions with uncertain outcomes for reconciliation. It does not automatically retry recorded pending transfers. Recipient rent requirements, configured minimums, market checks, holder periods, daily ranking windows and proof checks still apply.
 
-Token creation and discretionary trades require the initiating wallet signature. X identity requires OAuth; token airdrop claims require the applicable ownership proof. Real Pump migration requires Pump's actual conditions. Tests using fabricated eligibility or migration fixtures must be labelled as fixtures. Signatures and HTTP responses alone do not prove payment: finalized transactions, policy receipts and exact balance changes are required.
+Token creation and discretionary trades require the initiating wallet signature. Creator fees and three-level referral rewards require manual recipient claims. X identity requires OAuth and its claim flow. Migration token airdrops are delivered automatically using exact-slot eligibility and immutable allocation proofs. Real Pump migration requires Pump's actual conditions. Tests using fabricated eligibility or migration fixtures must be labelled as fixtures. Signatures and HTTP responses alone do not prove payment: finalized transactions, policy receipts and exact balance changes are required.
 
 The old Devnet app records and their October 31 backup archive were permanently deleted with explicit authorization. An address-only exclusion list prevents their reimport. Their Solana mints, balances and transaction history remain on-chain. See `devnet-record-deletion-2026-11-01.md`.
 

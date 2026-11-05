@@ -85,11 +85,11 @@ test('creator SOL fees have no time hold including previously saved v1 policies'
   assert.throws(()=>newLaunchProtection({blockTime:null},80),/verified launch timestamp/);
 });
 
-test('keeper includes creator SOL payouts immediately with other eligible beneficiaries',()=>{
+test('keeper funds automatic programs while creator SOL waits for a manual claim',()=>{
   const state={launches:{first:launch()},v3Settlements:{source:{mint:'first',status:'finalized',allocationPlan:{status:'allocated-not-funded',
     creatorDirected:{walletLamports:'80',holderLamports:'10',xLamports:'0'},protocol:{communityLamports:'5',operationsLamports:'5'}}}}};
-  assert.deepEqual(automaticV3Actions(state,start).map(row=>row.action),['creator-wallet-payout','creator-reward-funding','community-funding','operations-payout']);
-  assert.equal(automaticV3Actions(state,start+duration)[0].action,'creator-wallet-payout');
+  assert.deepEqual(automaticV3Actions(state,start).map(row=>row.action),['creator-reward-funding','community-funding','operations-payout']);
+  assert(!automaticV3Actions(state,start+duration).some(row=>row.action==='creator-wallet-payout'));
 });
 
 test('payments distinguish the fee lock from processing and retain pending signature recovery',()=>{

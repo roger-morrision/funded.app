@@ -8,8 +8,7 @@ export function initializeFollowing(appState) {
   // app-source-end
 
   // app-source: 404
-  window.addEventListener('storage', event => {
-    if (event.key !== appState.FOLLOWED_WALLETS_KEY && event.key !== null) return;
+  window.addEventListener('funded:account-preferences', () => {
     appState.renderFollowedWallets();
     if (!document.querySelector('#wallet-page')?.hidden) appState.renderWalletDetail();
     if (appState.exploreTab === 'following') {

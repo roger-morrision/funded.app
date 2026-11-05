@@ -1,4 +1,5 @@
 import { currentFeePolicyCopy } from './src/features/fees/fee-policy-copy.js';
+import {initializePlainCopy} from './src/features/help/plain-copy.js';
 import { feeDistributionPresentation } from './src/features/fees/distribution-summary.js';
 
 // Reorganize secondary information without changing data, policies, or transaction controls.
@@ -17,7 +18,7 @@ function compactAirdrop() {
   const root = document.getElementById('airdrops');
   if (!root) return;
   const intro = root.querySelector('.airdrop-intro');
-  const copy = 'Each launch reserves at least 3% of token supply for eligible $FUNDED holders. Snapshot and funding checks apply; QA cutoffs are labeled.';
+  const copy = 'Each launch reserves at least 3% of token supply for eligible $FUNDED holders. Hold $Funded till launched token get migrated to receive the airdrop automatically';
   if (intro && intro.textContent !== copy) intro.textContent = copy;
   const directory = root.querySelector('.airdrop-public-programs');
   const poster = root.querySelector('.airdrop-trust:has([data-infographic-poster="airdrops"])');
@@ -228,7 +229,7 @@ function shortenPageCopy() {
     ['#capital-flow > .section-heading .panel-explainer', 'Rates for new launches. Existing coins keep saved rates. Allocations are not payments.'],
     ['#launch-route-shell > .page-lede', 'Add your coin details, choose rewards and funding, then review the full cost before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
-    ['#community .section-heading .panel-explainer', 'Star coins in Explore. Favorites stay on this device; verify a wallet or sign in with X to sync.'],
+    ['#community .section-heading .panel-explainer', 'Sign in to save favorites across devices.'],
     ['#capital-flow-title', 'How creator fees are split'],
     ['#analytics-detail .split-detail', 'Saved rates apply per coin. Allocations are not payments.'],
     ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
@@ -241,8 +242,8 @@ function shortenPageCopy() {
     ['#reward-discovery > small', 'Eligible wallets receive SOL automatically when funds are available. “0 paid wallets” means no holder payment is confirmed.'],
     ['#payments .auto-rewards-intro', 'Eligible holders receive SOL automatically after each verified cutoff and funding check. No claim needed.'],
     ['#payments .auto-rewards-fineprint', 'Target time is not payment. Each cycle checks funding and eligibility.'],
-    ['#funded-holder-token-rewards > small', 'Public policy only. Check Airdrops for funding and claim status.'],
-    ['#airdrops .airdrop-trust > p', 'Claims open after eligibility and funding have been confirmed.'],
+    ['#funded-holder-token-rewards > small', 'Tokens are paid automatically after migration checks.'],
+    ['#airdrops .airdrop-trust > p', 'Hold $FUNDED until migration. Receive tokens automatically.'],
     ['#list .list-field-note', 'Verified Solana metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
     ['#profile .section-heading .panel-explainer', 'Check wallet and network before signing.'],
     ['#profile .source-note', 'Connecting shows which wallet will sign. Check each transaction before approving.'],
@@ -348,6 +349,7 @@ function refreshConcisePages() {
   });
 }
 function startConcisePages() {
+  initializePlainCopy();
   window.addEventListener('funded:fee-policy-ready', refreshConcisePages);
   refreshConcisePages();
   const observer = new MutationObserver(refreshConcisePages);

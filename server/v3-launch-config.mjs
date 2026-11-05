@@ -21,14 +21,15 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
   v3AuthorityKeypair, env = process.env,
   // Finalized ProgramData and lookup reads occasionally exceed eight seconds
   // on the reviewed Devnet RPC. Keep the bound while allowing the full proof.
-  verificationTimeoutMs = 15000,
+  verificationTimeoutMs = 30000,
   connectionFactory = (url, { signal } = {}) => new Connection(url, {
     commitment:'finalized', disableRetryOnRateLimit:true,
     fetch:(target, options) => fetch(target, { ...options,
       signal:options?.signal ? AbortSignal.any([signal,options.signal]) : signal }),
   }),
   programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount,readAgency=readAgencyDeployment }) {
-  return async () => {
+  let pending;
+  const check = async () => {
     const reasons = [];
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim().toLowerCase();
@@ -119,4 +120,7 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
       ...(agencyDeployment?{agency:{version:MARKETING_AGENCY_POLICY.version,configRevision:agencyDeployment.revision,...(agencyDeployment.rules?{rules:agencyDeployment.rules}:{})}}:{}),
       reasons:protocolSplit ? reasons : [...reasons, 'Active fee policy is unavailable'] };
   };
+  // Concurrent capability and launch requests share only in-flight evidence.
+  // Every later check reads fresh policy, worker health and finalized accounts.
+  return () => pending ||= check().finally(() => { pending = null; });
 }

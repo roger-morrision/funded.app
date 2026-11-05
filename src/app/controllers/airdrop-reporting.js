@@ -46,21 +46,21 @@ export function createAirdropReportingController(appState) {
     const filtered = claims.filter(claim => filter === 'all' || claim.state === filter);
     if (list) list.innerHTML = filtered.map(claim => {
       const isPreview = claim.id === appState.previewAirdrop.id;
-      const action = claim.state === 'claimable' ? `<button type="button" class="secondary-button claim-action" data-check-community-mint="${appState.escapeHtml(claim.id)}">Check eligibility</button>` : `<button type="button" class="secondary-button claim-action" disabled>${claim.state === 'claimed' ? 'Claim recorded' : claim.vaultVerified ? 'Opens after snapshot' : 'Requires funded vault'}</button>`;
+      const action = claim.state === 'claimable' ? `<button type="button" class="secondary-button claim-action" data-check-community-mint="${appState.escapeHtml(claim.id)}">View allocation</button>` : `<button type="button" class="secondary-button claim-action" disabled>${claim.state === 'claimed' ? 'Airdrop received' : claim.vaultVerified ? 'Automatic after migration' : 'Requires funded vault'}</button>`;
       const amount = claim.walletAllocation == null ? `${appState.formatTokenAmount(claim.reservedTokens)} ${claim.vaultVerified ? 'tokens vaulted' : 'tokens planned'}` : `${appState.formatTokenAmount(claim.walletAllocation)} ${appState.escapeHtml(claim.symbol)}`;
       const detail = isPreview
         ? 'Local interaction preview. No wallet signature or token transfer occurs.'
         : `${claim.allocationPercent}% supply policy allocation · $FUNDED-holder snapshot at migration`;
       return `<article class="token-card-shell claim-card" data-claim-state="${claim.state}" data-logo-mint="${appState.escapeHtml(claim.id)}"><div class="claim-token"><span>${appState.escapeHtml(claim.symbol.slice(0, 1))}</span><div><strong>${appState.escapeHtml(claim.symbol)}</strong><small>${appState.escapeHtml(claim.name)}</small><small>${appState.escapeHtml(claim.badge)}</small></div></div><div class="claim-amount"><span>${claim.state === 'claimed' ? 'Preview result' : claim.walletAllocation == null ? claim.vaultVerified ? 'Verified vault reserve' : 'Policy allocation' : 'Example allocation'}</span><strong>${amount}</strong></div><p>${detail}</p><div class="token-card-actions claim-token-actions">${!isPreview ? `${appState.tokenCardWatchMarkup(claim.id, claim.symbol)}${appState.tokenCardShareMarkup(claim.id, claim.symbol, claim.name)}` : ''}${action}</div></article>`;
-    }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking published allocations…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? 'Claim list unavailable right now. Try again shortly.' : 'No claims match this filter.'}</div>`;
+    }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking published allocations…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? '-' : 'No airdrops match this filter.'}</div>`;
     if (list) appState.loadVerifiedTokenLogos(list);
     document.querySelectorAll('[data-airdrop-filter]').forEach(button => button.classList.toggle('active', button.dataset.airdropFilter === filter));
     const state = document.querySelector('#claim-wallet-state');
-    if (state) state.textContent = appState.connectedWalletAddress ? `Wallet ${appState.connectedWalletAddress.slice(0, 4)}…${appState.connectedWalletAddress.slice(-4)} connected. Check an open claim for your verified allocation.` : 'Connect your wallet to check open Solana claims.';
+    if (state) state.textContent = appState.connectedWalletAddress ? `Wallet ${appState.connectedWalletAddress.slice(0, 4)}…${appState.connectedWalletAddress.slice(-4)} connected. View your automatic airdrops.` : 'Connect your wallet to view your airdrops.';
     const count = document.querySelector('#claim-program-count');
     if (count) count.textContent = appState.verifiedLaunchPoliciesStatus === 'ready'
-      ? `${programs.length} allocations · ${appState.communityReserveStatus === 'ready' && programs.every(program => program.claimVerification === 'verified') ? `${programs.filter(program => program.claimActive).length} open` : 'claims unverified'}`
-      : appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : 'Airdrops unavailable';
+      ? `${programs.length} allocations · ${appState.communityReserveStatus === 'ready' && programs.every(program => program.claimVerification === 'verified') ? `${programs.filter(program => program.claimActive).length} open` : '-'}`
+      : appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : '-';
     appState.renderAirdropSummary(programs);
     appState.renderAirdropDirectory(programs);
     appState.renderAirdropAnalytics();

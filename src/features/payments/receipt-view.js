@@ -179,6 +179,11 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   const listOpenDetails = openDetails(list);
   const restoreFocus = preserveReceiptFocus(list, document);
   list.replaceChildren();
+  if(filtered.length){
+    const headings=document.createElement('div');headings.className='payment-table-head';headings.setAttribute('aria-hidden','true');
+    for(const title of ['Reward & coin','Recipient & date','Amount & receipt']){const cell=document.createElement('span');cell.textContent=title;headings.append(cell);}
+    list.append(headings);
+  }
   for (const receipt of filtered) {
     const row = document.createElement('div');
     row.className = 'payment-row payment-history-row';
@@ -226,7 +231,8 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(receipt.mint || '')) {
       const coin=document.createElement('a');updateCompactTokenLink(coin,{mint:receipt.mint,showMarketCap:false},document);identity.append(coin);
     }
-    identity.append(recipient, paid);
+    const metadata=document.createElement('div');metadata.className='payment-history-metadata';
+    metadata.append(recipient,paid);
     const details = document.createElement('details');
     details.className = 'payment-history-details';
     const receiptKey = `${receipt.signature}:${receipt.to}:${receipt.source}`;
@@ -272,7 +278,8 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     proof.setAttribute('aria-label', `View confirmed payout transaction ${shortAddress(receipt.signature)} on Solana Explorer`);
     proof.title = 'View transaction on Solana Explorer';
     actions.append(amount, proof);
-    row.append(identity, actions, details);
+    metadata.append(details);
+    row.append(identity,metadata,actions);
     details.open = listOpenDetails.has(receiptKey);
     list.append(row);
   }

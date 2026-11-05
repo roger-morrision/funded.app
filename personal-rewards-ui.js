@@ -81,7 +81,7 @@ function renderCreatorCards(list, rows) {
     heading.append(name,state);
     const fullName=document.createElement('p');fullName.className='creator-reward-name';fullName.textContent=row.fullName;
     const amount = document.createElement('strong'); amount.className = 'creator-claim-amount'; amount.textContent = formatSol(row.unclaimed);
-    const label = document.createElement('small'); label.textContent = 'Awaiting V3 payout';
+    const label = document.createElement('small'); label.textContent = 'Awaiting payout';
     const link = document.createElement('a'); link.className = 'primary-button';
     link.href = `/token/${encodeURIComponent(row.mint)}`;
     link.textContent = 'Review V3 payouts';
@@ -143,7 +143,7 @@ function refreshPersonalRewards() {
 }
 
 if (root) {
-  creatorRewardCard.querySelector('[data-creator-unclaimed]').previousElementSibling.textContent = 'Awaiting V3 payout';
+  creatorRewardCard.querySelector('[data-creator-unclaimed]').previousElementSibling.textContent = 'Awaiting payout';
   creatorRewardCard.querySelector('[data-creator-claimed]').previousElementSibling.textContent = 'Recorded paid';
   const refreshButton = document.createElement('button'); refreshButton.type='button'; refreshButton.className='text-button'; refreshButton.textContent='Refresh rewards';
   refreshButton.addEventListener('click',refreshPersonalRewards); creatorRewardCard.append(refreshButton);

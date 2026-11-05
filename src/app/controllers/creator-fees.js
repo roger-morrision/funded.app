@@ -58,16 +58,16 @@ export function createCreatorFeesController(appState) {
         ? 'Finalized settlement needs allocation reconciliation before funding.'
         : row.settlement === 'finalized'
         ? overview.automaticDisbursementEnabled
-          ? 'Categories settled. The keeper processes bounded payouts and reward funding; buybacks follow their verified trigger.'
+          ? 'Categories settled. Claim your creator fees below. Holder and bonus funding is automatic; buybacks follow their verified trigger.'
           : 'Categories settled on Devnet. Buyback vault funds follow the verified trigger shown on Buybacks; other approved allocations are funded separately.'
         : overview.automaticSettlementEnabled
         ? 'Fixed-policy settlement is queued for the keeper. Funding and payouts are separate.'
         : 'Settlement requires the launch creator to review and sign the V3 transaction.';
       summary.append(title, amount, detail); section.append(summary);
-      const actions = overview.automaticDisbursementEnabled ? [] : row.settlement === 'finalized' && row.allocationPlan?.status === 'allocated-not-funded'
-        ? [['community-funding','communityFunding','Fund community allocation'],
+      const actions = row.settlement === 'finalized' && row.allocationPlan?.status === 'allocated-not-funded'
+        ? [...(overview.automaticDisbursementEnabled?[]:[['community-funding','communityFunding','Fund community allocation'],
           ['creator-reward-funding','creatorRewardFunding','Fund holder and X rewards'],
-          ['creator-wallet-payout','creatorWalletPayout','Receive creator allocation']]
+          ]),['creator-wallet-payout','creatorWalletPayout','Claim creator fees']]
         : row.settlement === 'finalized' || overview.automaticSettlementEnabled
           ? [] : [['settlement','settlement','Approve V3 settlement']];
       for (const [path, gate, label] of actions) {
@@ -93,7 +93,7 @@ export function createCreatorFeesController(appState) {
         if (!button.disabled) button.onclick = () => { void requestV3FeeAction(button, path, row.signature); };
         section.append(button);
       }
-      for(const action of overview.automaticDisbursementEnabled ? [] : creatorPayoutActions(row)) {
+      for(const action of overview.automaticDisbursementEnabled ? [] : creatorPayoutActions(row).filter(item=>!item.action.startsWith('referral-payout'))) {
         const extra=!['community-funding','creator-reward-funding','creator-wallet-payout'].includes(action.action);
         const payable=/^[1-9]\d*$/.test(String(action.amount));
         const enabled=signingWallet&&overview.gates?.[action.gate]===true&&!action.finalized&&payable;

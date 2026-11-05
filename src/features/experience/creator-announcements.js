@@ -3,7 +3,7 @@ export function mountUpcomingAnnouncements(page, creator) {
   const upcoming = Array.isArray(creator.upcoming) ? creator.upcoming : [];
   if (!upcoming.length) return;
   const section = document.createElement('section'); section.className = 'flow-panel';
-  section.innerHTML = '<h2>Upcoming creator announcements</h2><p>Scheduled publication times. Reload after the scheduled time to read the update. Reminders are saved on this device; open this app to see them.</p>';
+  section.innerHTML = '<h2>Upcoming creator announcements</h2><p>Scheduled publication times. Reload after the scheduled time to read the update. Reminders are saved in your wallet account; open this app to see them.</p>';
   for (const update of upcoming) {
     const row = document.createElement('p'), time = document.createElement('time'); time.dateTime = update.publishAt;
     time.textContent = new Date(update.publishAt).toLocaleString();

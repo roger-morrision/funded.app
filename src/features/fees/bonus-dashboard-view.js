@@ -1,6 +1,7 @@
 import { HOME_BONUS_MARKUP, BONUS_HISTORY_MARKUP } from './bonus-dashboard-markup.js';
 import { bonusSnapshotLabel, bonusVerificationLabel } from './bonus-labels.js';
 import {bonusCategoryCopy} from './fee-policy-copy.js';
+import {BONUS_TODAY_MARKUP,renderTodayBonuses,tickTodayBonus} from './bonus-today-view.js';
 const GROUPS = { creators:'Creators', referrals:'Referrers', traders:'Traders' };
 const HISTORY_COLUMNS = ['UTC snapshot', 'Wallet', 'Wallet received', 'Creator bonus', 'Referral bonus', 'Trader bonus', 'Receipt'];
 const integer = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : null;
@@ -41,6 +42,7 @@ export function initBonusDashboard(document = globalThis.document) {
   home.classList.add('home-daily-bonuses'); home.setAttribute('aria-labelledby', 'home-bonus-title');
   page.classList.add('bonus-history-page', 'section-block'); page.setAttribute('aria-labelledby', 'bonuses-title');
   home.innerHTML = HOME_BONUS_MARKUP; page.innerHTML = BONUS_HISTORY_MARKUP;
+  page.querySelector('.bonus-policy-disclosure').insertAdjacentHTML('afterend',BONUS_TODAY_MARKUP);
   const menu = document.querySelector('.nav-more-menu');
   if (menu && !menu.querySelector('a[href="#bonuses"]')) {
     const link = document.createElement('a'); link.className = 'nav-item'; link.href = '#bonuses'; link.textContent = 'Daily bonuses';
@@ -187,6 +189,7 @@ export function initBonusDashboard(document = globalThis.document) {
     frames.set(el, view.requestAnimationFrame(step));
   }
   function tick() {
+    tickTodayBonus(page,data,clockBase,view.performance.now());
     if (!clockBase) {
       const now = Date.now();
       clock.textContent = qaSchedule ? '—:—:—' : bonusCountdown(nextUtcCutoff(now), now, 0);
@@ -197,6 +200,7 @@ export function initBonusDashboard(document = globalThis.document) {
     clock.textContent = bonusCountdown(clockBase.cutoff, clockBase.at, elapsed);
   }
   function render(owner) {
+    renderTodayBonuses(page,data,document);
     const qa = data.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
     qaSchedule = qa;
     home.querySelector('[data-bonus-schedule]').textContent = qa
@@ -227,6 +231,7 @@ export function initBonusDashboard(document = globalThis.document) {
     previous.disabled = pageNumber <= 1; next.disabled = pageNumber >= data.history.pages;
   }
   function unavailable(owner) {
+    renderTodayBonuses(page,null,document);
     data = null; clockBase = null; tick();
     for (const el of home.querySelectorAll('[data-bonus-pool]')) animate(el, null);
     poolStatus.textContent = 'Bonus pool data is unavailable. No amount is confirmed here.';

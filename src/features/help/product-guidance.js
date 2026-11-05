@@ -2,14 +2,16 @@ import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
 import {referralRatePresentation} from '../fees/referral-rate-copy.js';
 import { serviceFeeGuide } from '../fees/service-fees-client.js';
 import { pageHelpTopics, pageFaqs } from './page-guidance.js';
+import {communityAirdropCopy,communityAirdropGuide} from '../rewards/community-airdrop-copy.js';
+import {guideOutline,outlineHtml,conciseFeePoints} from './guide-outlines.js';
 
 export const rewardActions = () => [
-  ['Creator wallet', 'SOL', 'Automatic payout on an active automatic route; manual routes require the creator’s signature.', 'The coin’s saved creator-wallet share and finalized collected fees.', '#payments'],
-  ['Coin holders', 'SOL', 'Automatic transfer; no holder claim or recipient signature.', 'A funded holder pool, complete finalized holdings and the coin’s eligibility/minimum conditions.', '#payments/holders'],
-  ['X account', 'SOL', 'Sign in with the allocated X account, verify the receiving wallet and complete the claim.', 'The launch’s named X identity, an available allocation and verified source funding.', '#payments'],
-  ['Referral network', 'SOL', 'No recipient claim. Active automatic routes pay the recorded upline; manual routes can require creator approval.', 'Qualified settled fees, frozen first-touch attribution and verified source funding.', '#referrals'],
-  ['Daily bonus', 'SOL', 'Automatic transfer to winners; no manual claim or recipient signature.', 'A completed UTC day, verified top-three rankings and exact source funding.', '#bonuses'],
-  ['Community airdrop', 'Launched coin tokens', 'Eligible wallets check their proof and claim within the displayed window.', 'Verified token funding and eligibility snapshot; QA cutoffs are identified separately.', '#airdrops'],
+  ['Creator wallet', 'SOL', 'Rewards → Coin Creator → select coin → Claim creator fees. Sign with the launch creator wallet.', 'Available after the saved wallet share is collected and settled; no 12-hour SOL hold.', '#payments/creator'],
+  ['Coin holders', 'SOL', 'Automatic; no claim or signature. Check Rewards → Coin Holder and payout history.', 'After each completed UTC hour, with a funded pool, verified holdings, prices and minimums; small pools carry forward.', '#payments/holders'],
+  ['X account', 'SOL', 'Rewards → X claims. Sign in with the named X account, link the receiving wallet and claim.', 'Available after the named account’s allocation is funded and verified.', '#payments/x'],
+  ['Referral network', 'SOL', 'Referrals → Claim reward. Sign in with the earning wallet and sign the allocation’s claim message.', 'Available after qualifying fees are collected and settled; saved first-, second- and third-level shares apply.', '#referrals'],
+  ['Daily bonus', 'SOL', 'Automatic for top creators, referrers and traders. Check Daily bonuses for rankings and receipts; no claim.', 'After the UTC day closes at 00:00 UTC and rankings and funding are verified; each category pays its top three.', '#bonuses'],
+  ['Community airdrop', 'Launched coin tokens', 'Hold $FUNDED until migration. Receive tokens automatically; no claim or signature.', 'At least 3% of supply, shared in proportion to eligible $FUNDED balances at the verified migration snapshot.', '#airdrops'],
 ];
 
 export function rewardActionsTable() {
@@ -17,12 +19,12 @@ export function rewardActionsTable() {
 }
 
 export function referralGuide() {
-  return `${referralRatePresentation().guide} First-touch wallet attribution must exist before the qualifying settlement. The upline is frozen at the first qualified settlement; self-referrals and cycles are rejected. No referral recipient claim is required. The active automatic route pays the saved upline after funding; manual routes can require creator approval. Inspect finalized transfers in the wallet-authenticated referral dashboard.`;
+  return `${referralRatePresentation().guide} First-touch wallet attribution must exist before the qualifying settlement. The upline is frozen at the first qualified settlement; self-referrals and cycles are rejected. Claim three-level referral rewards manually in Referrals after fees are collected and settled: sign in with the earning wallet, choose Claim reward and sign the allocation’s claim message. Daily bonuses for top referrers remain automatic. Inspect the finalized receipt.`;
 }
 
 export function productHelpTopics() {
   const copy = currentFeePolicyCopy();
-  return {
+  const topics = {
     ...pageHelpTopics(),
     wallet:{ title:'Wallet connection', answer:'Connect the intended Solana wallet and check the network. A one-use sign-in message authenticates private dashboard access; it is not a payment. Review each financial transaction separately and never provide a seed phrase or private key.', href:'#docs/wallet', link:'Read wallet guidance →' },
     funded:{ title:'The $FUNDED token', answer:'$FUNDED is used for optional promotion and listing burns, community-airdrop snapshot eligibility, and the platform buyback-and-burn program. Holding it does not make every SOL reward claimable. Check the mint, network and program-specific evidence.', href:'#docs/funded', link:'Read about $FUNDED →' },
@@ -33,16 +35,17 @@ export function productHelpTopics() {
     launch:{ title:'Launch receipts', answer:'Verify the mint, V3 fee owner, creator-directed split and any paid-tier burn. The selected package is recorded only after its launch and burn are confirmed.', href:'#docs/launch', link:'Read launch guidance →' },
     promotion:{ title:'Packages & boosts', answer:'Launch promotion tiers use the displayed $FUNDED burn. Paid listings have a separate quoted burn. Directory boosts can use a quoted Devnet SOL payment with a unique memo and Sponsored label. Verify the receipt for the specific action; these payments are separate from creator-fee distributions.', href:'#docs/promotions', link:'Compare promotion receipts →' },
     fees:{ title:'Fees & distribution', answer:`${copy.allocation} ${copy.collection}`, href:'#docs/fees', link:'Read the fee guide →' },
-    rewards:{ title:'Automatic or claim?', answer:'Holder SOL and Daily bonuses are automatic after verification. X rewards and community token airdrops require the eligible recipient to claim. Referral recipients do not claim; the active automatic route pays them after verified funding. Manual routes can require creator approval.', href:'#docs/reward-actions', link:'Compare reward actions →' },
+    rewards:{ title:'Automatic or claim?', answer:'Holder SOL, Daily bonuses and community token airdrops are automatic after verification. Hold $FUNDED until migration for a proportional share of the launched-token airdrop. Creator fees, X rewards and three-level referral rewards require manual recipient claims. Open Rewards → Coin Creator, Rewards → X claims, or Referrals respectively.', href:'#docs/reward-actions', link:'Compare reward actions →' },
     bonus:{ title:'Daily bonuses', answer:`${copy.bonus} ${copy.bonusFunding}`, href:'#docs/daily-bonus', link:'Read Daily bonus rules →' },
     referral:{ title:'Referral payouts', answer:referralGuide(), href:'#docs/referrals', link:'Read referral guidance →' },
-    airdrop:{ title:'Airdrop status', answer:'This pays launched coin tokens, separately from Daily bonus SOL. Check token-vault funding, the verified migration eligibility snapshot, your proof and claim deadline. A labeled Devnet QA cutoff does not prove a real migration.', href:'#docs/airdrop-policy', link:'Read airdrop guidance →' },
+    airdrop:{ title:'Automatic token airdrops', answer:Object.values(communityAirdropCopy).join(' '), href:'#docs/airdrop-policy', link:'Read airdrop guidance →' },
     x:{ title:'X claim issues', answer:'Sign in as the X account named by the launch and link the intended recipient wallet. A message signature proves wallet ownership; the payment still needs a finalized transaction and recipient balance change. Check the existing receipt before retrying.', href:'#docs/x-rewards', link:'Read X claim guidance →' },
     buyback:{ title:'Buyback & burn', answer:'The saved buyback share accrues in dedicated program vaults. The normal aggregate trigger is 5 SOL; Devnet QA may use a smaller displayed trigger. A verified market route, liquidity and purchase/burn receipts are required.', href:'#docs/buyback', link:'Read buyback guidance →' },
     history:{ title:'Payment history', answer:'Rewards History combines independently verified SOL payments, including Daily bonuses. Use program/date filters and transaction links. The Daily bonuses page has all-time recipient rankings; your wallet profile has its own reward and claim activity.', href:'#docs/history', link:'Find payment evidence →' },
     following:{ title:'Favorites & Following', answer:'Favorites contains starred tokens. Following shows holdings and trading activity from tracked trader wallets. Follow a wallet to populate it; starring a token only adds it to Favorites.', href:'#docs/following', link:'Read discovery guidance →' },
     admin:{ title:'Admin tools', answer:'The separate Devnet admin page requires an allowlisted wallet signature. Its separate editors version app service prices and the separate creator-fee allocations; issued quotes and existing launch allocations retain their saved terms. Withdrawals require an approved destination and a source-wallet signature.', href:'#docs/admin', link:'Read admin guidance →' },
   };
+  return Object.fromEntries(Object.entries(topics).map(([id,topic])=>[id,{...topic,points:guideOutline(id)||[topic.answer]}]));
 }
 
 export function productFaqs() {
@@ -55,30 +58,40 @@ export function productFaqs() {
     ['fee-base','Do these percentages apply to every trade?', '<p>They apply to gross creator fees actually collected through the funded.vip route. They are not percentages of trade volume or all Pump trading fees. The creator-directed 80% is divided according to that coin’s saved wallet, holder and X settings.</p>'],
     ['collection','How does fee collection become a payment?', `<p>${copy.collection}</p><p>A collected fee, settled allocation, funded vault and finalized recipient transfer are separate stages.</p><a href="#docs/creator-fees">Follow collection to payout →</a>`],
     ['holders','How do coin holders receive SOL?', `<p>${copy.holders} Eligible wallets receive SOL automatically; there is no holder claim button. Subminimum funding carries forward. Holding a coin alone does not guarantee eligibility.</p><a href="#docs/holders">Check holder conditions →</a>`],
-    ['recipient-actions','How do creators, X accounts, and referrers receive SOL?', '<p>An active automatic route settles, funds and pays the saved creator allocations without a creator signature. Manual routes can require creator approval. The named X account signs in, links the recipient wallet and claims an available reward. Referral recipients do not submit a claim. Saved-policy payouts appear after finalized receipt verification.</p><a href="#docs/reward-actions">Compare every reward action →</a>'],
-    ['bonus','How are Daily bonuses paid?', `<p>${copy.bonus}</p><p>${copy.bonusFunding}</p><a href="#bonuses">Open payout history and all-time top recipients →</a>`],
+    ['recipient-actions','How do creators, X accounts, and referrers receive SOL?', '<p>All three require manual claims after their allocations are available. For creator fees, open Rewards → Coin Creator, select the coin and choose Claim creator fees. For X rewards, open Rewards → X claims, sign in as the named account and link your wallet. For three-level referrals, open Referrals with the earning wallet and choose Claim reward, then sign its claim message. Inspect the finalized payment receipt.</p><a href="#docs/reward-actions">Compare every reward action →</a>'],
+    ['bonus','How are Daily bonuses paid?', `<p>${copy.bonus}</p><p>${copy.bonusFunding}</p><p>Open Daily bonuses for the snapshot countdown and today’s top five in each category. Only the top three at the verified cutoff win; live positions are provisional.</p><a href="#bonuses">Open payout history and all-time top recipients →</a>`],
     ['referrals','Is a Daily referral bonus the same as my referral-network payout?', `<p>No. Ordinary referral levels are tied to a creator’s frozen upline. The Daily referrer category ranks the top three direct referrers for a completed UTC day and pays from the separate Daily bonus pool. ${copy.reserve}</p><a href="#docs/referrals">Read both referral programs →</a>`],
-    ['airdrop','How do I receive launched coin tokens?', '<p>Each launch reserves at least 3% of its coin supply for a separate community airdrop. Eligibility uses a verified $FUNDED-holder snapshot associated with that launch’s migration. After funding and proof checks, the eligible wallet claims during the displayed window, normally 90 days. Buying after the snapshot does not create eligibility. Devnet QA cutoffs are labeled separately.</p><a href="#airdrops">Check airdrops →</a>'],
+    ['airdrop','How do I receive launched coin tokens?', communityAirdropGuide()+'<a href="#airdrops">Check automatic airdrops →</a>'],
     ['buyback','When does buyback and burn happen?', `<p>${copy.buyback} The normal aggregate trigger is 5 SOL; selected Devnet QA runs can use a smaller displayed trigger.</p><p>${copy.agency}</p><a href="#buybacks">See $FUNDED burn receipts →</a> <a href="#marketing-agency">Review launched-coin buyback agents →</a>`],
     ['proof','Why can an allocation appear before I receive anything?', '<p>An allocation is an obligation, not a completed payment. Check funding, eligibility, any required approval or claim, and a finalized receipt showing the recipient balance change. The snapshot countdown marks a cutoff; it does not promise immediate payment.</p><a href="#payments">Check payment history →</a>'],
     ['following','What is the difference between Favorites and Following?', '<p>Favorites shows your starred tokens. Following shows holding and trading activity from trader wallets you track. Star a token to save it; follow a trader wallet to track its activity.</p><a href="#explore">Open Explore →</a>'],
     ['history','Where is my reward and claim history?', '<p>Use Rewards → History for independently verified SOL payouts and filters, Daily bonuses for category rankings and bonus receipts, and your wallet profile for wallet activity, claims, rewards, airdrops and bonuses. Missing coverage is shown separately from zero payments.</p><a href="#docs/history">Find the right history →</a>'],
     ['verified','Are launches and market figures verified?', '<p>Listings use verified records. Market figures use available observations and can be partial or unavailable. Promotions require their matching package-burn or SOL-payment receipt and do not promise liquidity, activity or returns.</p><a href="#docs/promotions">Compare promotion types →</a>'],
     ['wallet','Does funded.vip control my wallet?', '<p>Your connected wallet reviews and signs its own actions. Automatic reward payouts are sent by the program’s payout worker and do not ask recipients to sign. Never provide a seed phrase or private key.</p>'],
-    ['migration','What changes when a coin migrates?', '<p>Trading moves from the Pump curve to a pool, and the community token airdrop needs a verified migration eligibility snapshot. Do not infer post-migration fee-collection coverage or claim readiness from a migrated label alone.</p><a href="#docs/airdrop-policy">Review migration evidence →</a>'],
+    ['migration','What changes when a coin migrates?', '<p>Trading moves from the Pump curve to a pool. The migration-time $FUNDED snapshot fixes eligibility and each wallet’s proportional share of the launched-token airdrop. Delivery is automatic after verification; no recipient claim is needed. A migrated label alone does not prove a completed payout.</p><a href="#docs/airdrop-policy">Review migration airdrops →</a>'],
     ['support','Something looks wrong. Where can I ask?', '<p>Open Help for the relevant guide, or use the reviewed issue-report form in Profile without wallet or X sign-in. Include public context only if you choose, review the exact report, then send. Keep its private status token. Check an existing transaction before retrying an uncertain submission. Help is guidance, not live messaging.</p><a href="#docs/troubleshooting">Troubleshoot a pending action →</a>'],
-  ];
+  ].map(([id,title,body])=>{
+    const program={assets:'reward-actions','recipient-actions':'reward-actions','service-prices':'fees',fees:'fees',collection:'creator-fees',holders:'holders',bonus:'daily-bonus',referrals:'referrals',airdrop:'airdrop-policy',buyback:'buyback',following:'following',history:'history',wallet:'wallet',migration:'airdrop-policy',support:'reporting',proof:'verification',verified:'verification'}[id];
+    const points=id==='bonus'?conciseFeePoints('bonus'):program&&guideOutline(program);
+    if(!points)return [id,title,body];
+    const links=[...body.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/g)].map(match=>match[0]).join(' ');
+    return [id,title,outlineHtml(points)+links];
+  });
 }
 
 export function referralFaqs() {
-  const copy=currentFeePolicyCopy();
+  const rates=referralRatePresentation();
+  const points=items=>`<ul>${items.map(item=>`<li>${item}</li>`).join('')}</ul>`;
   return [
-    ['referral-rates','What are the referral rates?',`<p>${referralRatePresentation().guide}</p><a href="#docs/referrals">Read referral payout rules →</a>`],
-    ['referral-qualified','When do rewards become payable?',`<p>${copy.referrals} Creating an account, recruiting or launching without collected fees does not create a payout.</p>`],
-    ['referral-claim','Do I need to claim a referral bonus?', '<p>There is no separate V3 recipient claim. Connect and verify the earning wallet to view its private referral dashboard. Active automatic routes pay the saved upline after verified settlement and funding. Manual routes can require creator approval. Check the finalized transfer. Daily referrer bonuses are sent automatically after their daily snapshot and funding checks.</p>'],
-    ['referral-missing','What happens when a level is missing?',`<p>${copy.reserve}</p>`],
-    ['referral-daily','How do I qualify for the Daily referrer bonus?',`<p>${copy.bonus} ${copy.bonusFunding}</p><a href="#bonuses">See Daily bonus rankings and history →</a>`],
-    ['referral-finality','Why does my dashboard show pending or no payout?', '<p>Check first-touch attribution, qualified collections, saved upline, settlement and funding, any approvals required by a manual route, then the finalized receipt. A pending or unavailable proof is not a zero balance or a successful payout. Rewards depend on collected activity and are not guaranteed.</p>'],
+    ['referral-rates','What are the referral rates?',points([
+      rates.levels.map(({level,rate})=>`L${level}: ${rate}%`).join(' · '),
+      `${rates.total}% total of collected creator fees.`,rates.scope,
+    ])+'<a href="#docs/referrals">Full referral rules →</a>'],
+    ['referral-qualified','When do rewards become payable?',points(['Invite creators before their qualifying fees are settled.','Rewards become available after fees are collected and settled.','Signups alone do not earn rewards.'])],
+    ['referral-claim','Do I need to claim a referral bonus?',points(['Three-level rewards: claim manually in Referrals.','Sign in with the earning wallet → Claim reward → sign the message.','Daily referrer bonus: paid automatically.'])],
+    ['referral-missing','What happens when a level is missing?',points(['Its share stays in the community reserve.','It is not reassigned or added to Daily bonuses.'])],
+    ['referral-daily','How do I qualify for the Daily referrer bonus?',points(['Rank in the top 3 by your directly referred creators’ settled fees.','Daily cutoff: 00:00 UTC. Today’s top 5 can change until then.','Category prizes: 1st 50% · 2nd 30% · 3rd 20%.','Paid automatically after rankings and funding are checked.'])+'<a href="#bonuses">View Daily bonuses →</a>'],
+    ['referral-finality','Why does my dashboard show pending or no payout?',points(['Your referrals may not have earned qualifying fees yet.','Available three-level rewards need a manual claim.','Check payout history for completed payments.'])],
   ];
 }
 

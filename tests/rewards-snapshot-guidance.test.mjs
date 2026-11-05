@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {renderAirdropProgramDetail} from '../src/features/rewards/airdrop-view.js';
 
 const cases=[
-  {id:'30 days',claimWindowDays:30,includes:'within 30 days'},
-  {id:'90 days',claimWindowDays:90,includes:'within 90 days'},
-  {id:'120 days',claimWindowDays:120,includes:'within 120 days'},
-  {id:'closed',claimActive:false,status:'closed',includes:'The claim window ended 2030-01-02 00:00 UTC'},
+  {id:'30 days',claimWindowDays:30,includes:'distribution period 30 days'},
+  {id:'90 days',claimWindowDays:90,includes:'distribution period 90 days'},
+  {id:'120 days',claimWindowDays:120,includes:'distribution period 120 days'},
+  {id:'closed',claimActive:false,status:'closed',includes:'The on-chain distribution window ended 2030-01-02 00:00 UTC'},
   {id:'not open',claimActive:false,claimPublished:false,includes:'Not open yet'},
-  {id:'verification unavailable',claimActive:false,claimVerification:'unavailable',includes:'Verification unavailable'},
-  {id:'missing window',claimWindowDays:null,includes:'before the published deadline'},
+  {id:'verification unavailable',claimActive:false,claimVerification:'unavailable',includes:'-'},
+  {id:'missing window',claimWindowDays:null,includes:'Automatic delivery to each eligible wallet'},
   {id:'Devnet QA cutoff',snapshotBasis:'devnet-qa-cutoff',claimWindowDays:30,includes:'Devnet QA'},
 ];
 for(const variant of cases)test(`per-coin detail terms retain ${variant.id} semantics`,()=>{
@@ -21,6 +21,6 @@ for(const variant of cases)test(`per-coin detail terms retain ${variant.id} sema
   const rendered=stats.innerHTML+' '+status.textContent;
   assert(rendered.includes(variant.includes));
   if(variant.claimWindowDays===30||variant.claimWindowDays===120)assert(!rendered.includes('within 90 days'));
-  if(variant.id==='Devnet QA cutoff')assert(status.textContent.includes(program.deadline));
+  if(variant.id==='Devnet QA cutoff')assert(status.textContent.includes('Historical QA allocations'));
   assert.equal(document.activeElement,null,'Background terms rendering must not move focus');
 });

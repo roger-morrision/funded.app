@@ -68,7 +68,6 @@ import { productEvent } from '../../product-events.js';
 import { emitPilotSignal, pilotInterruptedSignal, verifiedPilotLaunchRegistration } from '../../pilot-event-signals.js';
 import { validateBoostQuote, boostPaymentResolution, readPendingBoost, archiveBoostPayment, archiveVerifiedBoostFromHistory, saveSignedBoostPayment } from '../../boost-checkout-recovery.js';
 import { readPendingCommunityFunding, savePendingCommunityFunding, clearPendingCommunityFunding } from '../../community-funding-recovery.js';
-import { readPendingCommunityClaim, savePendingCommunityClaim, clearPendingCommunityClaim } from '../../community-claim-recovery.js';
 import { readHiddenChatAuthors, hideChatAuthor, resetHiddenChatAuthors } from '../../token-chat-preferences.js';
 import { createRoutePoller } from '../../route-polling.js';
 import { Buffer } from 'buffer';
@@ -123,7 +122,7 @@ import { canSignTransactions, connectWalletProvider, selectRememberedWalletProvi
 import { chooseWallet } from '../../wallet-onboarding.js';
 import { quoteCountdownMarkup, updateQuoteCountdowns } from '../../quote-countdown.js';
 import { TOKEN_CHAT_MAX_LENGTH, normalizeTokenChatText } from '../../token-chat.js';
-import { initShareComposer, openShareComposer, localShareActions } from '../../share-tools.js';
+import { initShareComposer, openShareComposer } from '../../share-tools.js';
 import { verifiedTradeReceipt } from '../../trade-share-proof.js';
 import { assessTradeCompletion } from '../../trade-completion.js';
 import { hasBuyBalance } from '../../trade-spend-guard.js';
@@ -217,9 +216,6 @@ export const appDependencies = {
   readPendingCommunityFunding,
   savePendingCommunityFunding,
   clearPendingCommunityFunding,
-  readPendingCommunityClaim,
-  savePendingCommunityClaim,
-  clearPendingCommunityClaim,
   readHiddenChatAuthors,
   hideChatAuthor,
   resetHiddenChatAuthors,
@@ -359,7 +355,7 @@ export const appDependencies = {
   normalizeTokenChatText,
   initShareComposer,
   openShareComposer,
-  localShareActions,
+
   verifiedTradeReceipt,
   assessTradeCompletion,
   hasBuyBalance,

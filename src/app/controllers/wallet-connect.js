@@ -98,8 +98,6 @@ export function createWalletConnectController(appState) {
   appState.updateReferralLink();
     appState.updateOnboardingProgress();
     appState.renderAirdropClaims();
-    const selectedAirdropCheck = document.querySelector('#airdrop-selected-status [data-check-community-mint]');
-    if (selectedAirdropCheck) selectedAirdropCheck.textContent = connected ? 'Check my allocation' : 'Connect wallet to check allocation';
     appState.updateLaunchButton();
     if (connected) { appState.setWalletMetrics({ loading: true }); void appState.refreshWalletBalance(); if (appState.feeRouterState.status !== 'checking') appState.refreshWalletInfo(); }
     else appState.setWalletMetrics();

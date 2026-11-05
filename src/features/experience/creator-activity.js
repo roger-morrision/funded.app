@@ -1,9 +1,10 @@
+import {accountPreferences,saveAccountPreference} from '../account/preferences.js';
 import { readNotifications, saveNotifications, notificationAllowed } from './notification-preferences.js';
 import { activityRows, filterActivity, isActivityHidden } from './activity-model.js';
 const REMINDERS = 'funded.return-reminders.v1';
 const validMint = value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value || ''));
-export function readReminders(storage = globalThis.localStorage) {
-  const rows = JSON.parse(storage.getItem(REMINDERS) || '[]');
+export function readReminders(storage) {
+  const rows = storage ? JSON.parse(storage.getItem(REMINDERS) || '[]') : accountPreferences().reminders;
   if (!Array.isArray(rows) || rows.length > 50 || rows.some(row => !/^[a-f0-9-]{36}$/.test(row.id || '')
     || !Number.isFinite(row.at) || typeof row.label !== 'string' || row.label.length > 100
     || !/^\/(?:token\/[1-9A-HJ-NP-Za-km-z]{32,44}|creator\/x\/\d{1,24})$/.test(row.href))) throw new Error('Reminder storage unavailable.');
@@ -13,7 +14,7 @@ export function initializeCreatorActivity(app) {
   const dialog = document.querySelector('#notification-dialog');
   if (!dialog) return;
   const root = document.createElement('section'); root.className = 'flow-panel creator-activity';
-  root.innerHTML = '<h3>Creator activity &amp; reminders</h3><label><input type="checkbox" data-creator-alerts>Show activity from followed creator wallets on this device</label><p>Public launches and recorded verified payouts and burns. Follow a creator wallet from its profile; X sign-in is optional.</p><div data-creator-notices></div><h3>Return reminders</h3><p>Shown in this app while open. Reminders never submit trades or move funds.</p><div data-reminders></div><p data-reminder-status role="status" aria-live="polite"></p>';
+  root.innerHTML = '<h3>Creator activity &amp; reminders</h3><label><input type="checkbox" data-creator-alerts>Show activity from followed creator wallets</label><p>Public launches and recorded verified payouts and burns. Follow a creator wallet from its profile; X sign-in is optional.</p><div data-creator-notices></div><h3>Return reminders</h3><p>Shown in this app while open. Reminders never submit trades or move funds.</p><div data-reminders></div><p data-reminder-status role="status" aria-live="polite"></p>';
   dialog.querySelector('.notice-list')?.after(root);
   let data = null, activity = [], personal = null;
   const checkbox = root.querySelector('input'), message = root.querySelector('[data-reminder-status]');
@@ -24,7 +25,7 @@ export function initializeCreatorActivity(app) {
     const prefs=readNotifications();checkbox.checked=prefs.enabled;
     if (checkbox.checked) {
       const follows = new Set(app.getFollowedWallets().map(row => row.address));
-      let creators=[];try{creators=JSON.parse(localStorage.getItem('funded.creator.following')||'[]');}catch{}
+      const creators=accountPreferences().creators;
       const rows=filterActivity(activity.length?activity:activityRows(app.verifiedLaunchPolicies,data),'following',follows,new Set(Array.isArray(creators)?creators.map(String):[]));
       const grouped=new Set();
       for(const event of rows){
@@ -47,24 +48,24 @@ export function initializeCreatorActivity(app) {
         item.append(anchor(`${row.at <= Date.now() ? 'Due · ' : ''}${row.label} · ${new Date(row.at).toLocaleString()}`, row.href));
         const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Dismiss';
         remove.setAttribute('aria-label', `Dismiss reminder ${row.label}`);
-        remove.addEventListener('click', () => {
-          try { localStorage.setItem(REMINDERS, JSON.stringify(readReminders().filter(other => other.id !== row.id))); render(); }
-          catch { message.textContent = 'Reminder could not be dismissed. Check browser storage.'; }
+        remove.addEventListener('click', async () => {
+          try { await saveAccountPreference('reminders',row.id,{remove:true}); render(); }
+          catch { message.textContent = 'Reminder could not be dismissed. Please sign in and try again.'; }
         }); item.append(remove); reminders.append(item);
       }
       if (!reminders.children.length) reminders.textContent = 'No return reminders. Set one on a token or creator announcement.';
     } catch { message.textContent = 'Saved reminders are unavailable. Check browser storage.'; }
   }
   checkbox.addEventListener('change', () => { try { saveNotifications({...readNotifications(),enabled:checkbox.checked}); } catch { checkbox.checked = false; message.textContent = 'Preference could not be saved.'; } render(); });
-  function save(at, href, label, status) {
+  async function save(at, href, label, status) {
     if (!Number.isFinite(at) || at <= Date.now() || at > Date.now() + 90 * 86400000) { status.textContent = 'Choose a time in the next 90 days.'; return; }
     try {
       const rows = readReminders(); if (rows.length >= 50) throw new Error();
       const row = { id:crypto.randomUUID(), at, href, label:label.slice(0, 100) };
       // Validate the same route allowlist on writes and reads.
       readReminders({ getItem:() => JSON.stringify([row]) });
-      localStorage.setItem(REMINDERS, JSON.stringify([...rows, row])); status.textContent = 'Reminder saved on this device. Open Notifications to view or dismiss it.'; render();
-    } catch { status.textContent = 'Reminder could not be saved. Check browser storage or dismiss old reminders (limit 50).'; }
+      await saveAccountPreference('reminders',row); status.textContent = 'Reminder saved to your wallet account. View it in Notifications.'; render();
+    } catch { status.textContent = 'Reminder could not be saved. Sign in and try again, or dismiss old reminders (limit 50).'; }
   }
   document.addEventListener('click', event => {
     if (event.target.closest('[data-open-activity]')) { render(); dialog.showModal(); }
@@ -81,7 +82,7 @@ export function initializeCreatorActivity(app) {
   window.addEventListener('funded:notification-preferences',render);
   window.addEventListener('funded:content-preferences',render);
   window.addEventListener('funded:following-changed', render);
-  window.addEventListener('storage', render);
+  window.addEventListener('funded:account-preferences', render);
   document.querySelector('#notifications-button')?.addEventListener('click', render);
   setInterval(() => { if (dialog.open) render(); }, 30000); render();
 }

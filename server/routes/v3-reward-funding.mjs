@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import {prepareManualReferralPayout,verifyManualReferralPayout} from '../manual-referral-payout.mjs';
 import { creatorFeeLock } from '../launch-protections.mjs';
 import {buildV3PolicyApproval,buildV3PolicyDisbursement} from '../v3-policy-builders.mjs';
 import bs58 from 'bs58';
@@ -55,6 +56,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     if(automatic&&(!['community-funding','creator-reward-funding','creator-wallet-payout','referral-payout','operations-payout'].includes(match[2])
       ||env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED!=='true'))return json(res,503,{error:'Automatic category disbursement is not activated.'});
     const kind = match[2].replace(/-(funding|payout)$/, '');
+    if(automatic&&['creator-wallet','referral'].includes(kind))
+      return json(res,409,{error:'Creator fees and three-level referral rewards require a manual recipient claim.'});
     const level = kind === 'referral' ? Number(match[4]) : null;
     if (kind === 'referral' && ![1,2,3].includes(level) || kind !== 'referral' && match[4])
       return json(res, 400, { error:'A V3 referral payout requires one level from 1 to 3.' });
@@ -192,7 +195,19 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const ledgerKey = residual?.ledgerKey||(kind === 'referral' ? `${collectionSignature}:${level}` : collectionSignature);
     const residualMetadata=residualHash?{residualPlanHash:residualHash}:{};
     const protectedPolicy = readiness.protectedPolicy === true;
-    if(automatic){
+    const recipientClaim=kind==='referral'&&!automatic;
+    const claimIntent={mint,collectionSignature,level,recipient:recipient.toBase58(),amount:String(amount)};
+    if(recipientClaim){
+      if(!protectedPolicy)return json(res,409,{error:'Manual referral delivery requires a verified protected policy.'});
+      if(!input.recipientSignature){
+        const claim=await prepareManualReferralPayout(store,claimIntent);
+        return json(res,202,{status:'awaiting-recipient-signature',...claim});
+      }
+      try{verifyManualReferralPayout(await store.read(),claimIntent,input);}
+      catch(error){return json(res,401,{error:error.message});}
+    }
+    const operatorSigned=automatic||recipientClaim;
+    if(operatorSigned){
       if(!protectedPolicy)return json(res,409,{error:'Automatic payouts require protected on-chain shares.'});
       await ensureAutomation({connection,authority,programId,mint,creator:launch.creatorWallet,
         policy:(launch.pumpFeeRoute.protocolSplit?.agencyPercent!==undefined?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address,
@@ -203,7 +218,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const holderAmount = kind === 'creator-reward'
       ? BigInt(plan.creatorDirected.holderLamports) : 0n;
     const payoutInput = { programId, mint, authority:authority.publicKey,
-      creator:launch.creatorWallet, withdrawalId, category, amount, recipient,split:launch.pumpFeeRoute.protocolSplit,auto:automatic };
+      creator:launch.creatorWallet, withdrawalId, category, amount, recipient,split:launch.pumpFeeRoute.protocolSplit,auto:operatorSigned };
     const payout = protectedPolicy
       ? buildV3PolicyDisbursement({ ...payoutInput, beneficiary, holderAmount })
       : buildMintRouterV3DisbursementInstruction(payoutInput);
@@ -311,7 +326,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
         return json(res, 409, { error:'The payout recipient needs a funded Devnet wallet before this small SOL payout can satisfy account rent.',
           recipient:recipient.toBase58(), minimumTopUpLamports:String(BigInt(rentMinimum) - BigInt(balance)) });
     }
-    if (!automatic&&!input?.creatorSignedTransaction) {
+    if (!operatorSigned&&!input?.creatorSignedTransaction) {
       const latest = await connection.getLatestBlockhash('finalized');
       return json(res, 202, { status:'awaiting-creator-signature', mint,
         collectionSignature, ...residualMetadata, ...(level ? { level } : {}), amountLamports:String(amount),
@@ -320,7 +335,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
           authority:authority.publicKey, blockhash:latest.blockhash }),
         lastValidBlockHeight:latest.lastValidBlockHeight });
     }
-    const transaction = automatic ? new Transaction({feePayer:authority.publicKey,
+    const transaction = operatorSigned ? new Transaction({feePayer:authority.publicKey,
       recentBlockhash:(await connection.getLatestBlockhash('finalized')).blockhash})
       .add(...(Array.isArray(payoutInstructions)?payoutInstructions:[payoutInstructions]))
       : verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
@@ -328,6 +343,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     transaction.partialSign(authority);
     const signature = bs58.encode(transaction.signature);
     const locked = await store.update(current => {
+      if(recipientClaim)verifyManualReferralPayout(current,claimIntent,input);
       const row = current[ledger]?.[ledgerKey];
       let currentEntitlement = entitlement;
       if (kind === 'referral') {
@@ -351,7 +367,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       return true;
     });
     if (!locked) return json(res, 409, { error:'V3 funding state changed before submission.' });
-    const submitted = await submitTransaction({ connection, transaction, authority, automatic });
+    const submitted = await submitTransaction({ connection, transaction, authority, automatic:operatorSigned });
     if (submitted !== signature) throw new Error('Finalized V3 funding signature changed.');
     const funded = await loadProof(submitted);
     if (!funded) throw new Error('Finalized V3 disbursement proof is unavailable; reconcile before retrying.');

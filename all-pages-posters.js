@@ -3,7 +3,6 @@ const pagePosterDefinitions = [
   { key: 'list', anchor: '#list h1', title: 'Get listed with proof', note: 'Submit the project, pass the checks, then appear in the directory.', steps: ['Apply', 'Check', 'Publish'] },
   { key: 'community', anchor: '#community .section-heading', title: 'Save and compare', note: 'Keep a watchlist and compare available market evidence.', steps: ['Explore', 'Watch', 'Compare'] },
   { key: 'profile', anchor: '#profile .section-heading', title: 'Sign with context', note: 'Connect the wallet, review the action, and confirm the result.', steps: ['Connect', 'Review', 'Verify'] },
-  { key: 'holder', anchor: '#rewards-holder', position: 'afterbegin', title: 'Rewards need proof', note: 'A reserve and eligibility check come before a confirmed payment.', steps: ['Reserve', 'Eligible', 'Paid'] },
   { key: 'wallet', anchor: '#wallet-page .wallet-detail-hero', title: 'Wallet activity', note: 'Inspect the address, filter the records, and open verified receipts.', steps: ['Address', 'Filter', 'Receipt'] },
 ];
 

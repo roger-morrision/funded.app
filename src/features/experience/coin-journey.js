@@ -36,7 +36,7 @@ export function mountCoinJourney(app) {
     steps.replaceChildren();
     for (const [text, href] of [
       ['Confirm the mint and saved fee policy', `/token/${mint}`],
-      ['Check reserve custody, snapshot and claim deadline', `/?airdropMint=${mint}#airdrops`],
+      ['View automatic airdrop delivery', `/?airdropMint=${mint}#airdrops`],
       ['Review delivered promotion and recurring agent receipts', '#marketing-agency'],
       ['Review finalized payments', '#payments/history'],
     ]) { const li = el('li'); li.append(link(text, href)); steps.append(li); }
