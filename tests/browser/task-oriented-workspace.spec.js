@@ -48,6 +48,11 @@ for(const width of [320,390,768,1440]){
     await page.locator('#launch-next').click();
     await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');
     await expect(page.locator('#custom-policy')).toBeVisible();
+    await expect(page.locator('#creator-buy-sol')).toHaveValue('0');
+    if(width===1440){
+      const airdrop=await page.locator('#community-airdrop-tokens').boundingBox(),buy=await page.locator('#creator-buy-sol').boundingBox();
+      expect(Math.abs(airdrop.y-buy.y)).toBeLessThan(2);
+    }
     await expect(page.locator('#launch-promotion-options')).not.toHaveAttribute('open','');
     await page.screenshot({path:info.outputPath(`funding-${width}.png`),fullPage:true,animations:'disabled'});
     await page.locator('#holder-airdrop-share').fill('20');
