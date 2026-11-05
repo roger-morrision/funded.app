@@ -13,7 +13,7 @@ const fits=async page=>expect(await page.evaluate(()=>document.documentElement.s
 for(const width of [320,390,768,1440]){
   test(`task navigation and Home at ${width}px (mocked APIs)`,async({page},info)=>{
     await setup(page,width);const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page,'/#overview');
-    await expect(page.locator('#home-hero-title')).toContainText('Reward your community');
+    await expect(page.locator('#home-hero-title')).toHaveText(/Launch coins\s*that pay everyone\./);
     await expect(page.locator('.home-benefit-value')).toHaveText(['80%','≥3%','5%','4%','1%','2%']);
     await expect(page.locator('.hero-actions > a')).toHaveText(['Launch a coin','Explore coins','Check rewards']);
     await expect(page.locator('.home-welcome-guide')).toHaveCount(0);
