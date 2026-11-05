@@ -15,11 +15,14 @@ for(const width of [320,390,768,1440]) test(`Buy presets preserve amounts and re
     if(path==='/api/pump/explore')return r.fulfill({json:{items:[],fetchedAt:new Date().toISOString()}});
     return r.fulfill({status:503,json:{error:'Mocked unavailable'}});
   });
-  for(const amount of ['0.2','0.5','1']){
+  for(const amount of ['0.2','0.5']){
     await page.goto('/#explore');await page.locator('body.product-flows-ready').waitFor();
     await expect(page.getByRole('textbox',{name:'Quick buy amount in SOL',exact:true})).toHaveValue('0.35');
     const card=page.locator('#asset-grid .home-launch-card').first();
-    await expect(card.locator('[data-review-amount]')).toHaveText(['Buy 0.2 SOL','Buy 0.5 SOL','Buy 1 SOL']);
+    await expect(card.locator('[data-review-amount]')).toHaveText(['Buy 0.2 SOL','Buy 0.5 SOL']);
+    const actions=await card.locator('.home-launch-card-actions > :is(.card-review-buy,.token-card-action-share,.token-card-action-boost)').evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return {top:r.top,height:r.height,width:r.width};}));
+    expect(actions).toHaveLength(4);expect(Math.max(...actions.map(r=>r.top))-Math.min(...actions.map(r=>r.top))).toBeLessThan(1);
+    for(const rect of actions){expect(rect.height).toBeGreaterThanOrEqual(44);expect(rect.width).toBeGreaterThanOrEqual(44);}
     const button=card.getByRole('link',{name:`Buy ${amount} SOL`,exact:true});
     await button.focus();await expect(button).toHaveAttribute('href',`/token/${mint}?reviewBuy=${amount}`);
     expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
