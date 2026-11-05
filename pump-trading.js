@@ -5,6 +5,7 @@ import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import bs58 from 'bs58';
 import {inspectPhantomTradeTransaction} from './phantom-mobile-crypto.js';
+import {waitForSignatureConfirmation} from './funded-burn.js';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
@@ -370,7 +371,11 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   }
   onStatus('Confirming trade on Solana…');
   try {
-    const confirmation = await connection.confirmTransaction({ signature, blockhash: signedBlockhash, lastValidBlockHeight }, 'confirmed');
+    // HTTP receipt polling also works when a proxy cannot establish WebSockets.
+    // Keep the signed identity and expiry on every uncertain outcome.
+    const confirmation = await waitForSignatureConfirmation(connection, {
+      signature, lastValidBlockHeight, commitment:'confirmed', pollIntervalMs:1500,
+    });
     assertTradeConfirmed(confirmation);
   } catch (error) {
     error.signature = signature;error.lastValidBlockHeight=lastValidBlockHeight;

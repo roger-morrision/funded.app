@@ -6,16 +6,22 @@ import {Keypair,Transaction,SystemProgram} from '@solana/web3.js';
 import {submitTrade} from '../pump-trading.js';
 import {expiredUnlandedTrade} from '../src/features/experience/trade-expiry.js';
 import {recordTradeRecovery,readTradeRecovery,uncertainTrade} from '../src/features/experience/trade-recovery-store.js';
-function fixture({mutate=false,lostAck=false,wrongAck=false,mobile=false}={}){
+function fixture({mutate=false,lostAck=false,wrongAck=false,mobile=false,confirmation='confirmed'}={}){
  const payer=Keypair.generate(),mint=Keypair.generate().publicKey,recipient=Keypair.generate().publicKey,hash=Keypair.generate().publicKey.toBase58();
  const state={sent:0,prepared:null,signature:null};
  const provider={remoteMobile:mobile,signTransaction:async tx=>{
   if(mobile){tx.recentBlockhash=Keypair.generate().publicKey.toBase58();tx.fundedLastValidBlockHeight=101;}
   if(mutate)tx.instructions[0].data[4]^=1;tx.sign(payer);return tx;
  }};
- const connection={getLatestBlockhash:async()=>({blockhash:hash,lastValidBlockHeight:100}),getBlockHeight:async()=>50,
+ const connection={getLatestBlockhash:async()=>({blockhash:hash,lastValidBlockHeight:100}),getBlockHeight:async()=>confirmation==='expired'?101:50,
   sendRawTransaction:async wire=>{state.sent++;assert(state.prepared,'Known identity must be recorded before broadcast');state.signature=bs58.encode(Transaction.from(wire).signature);
-   if(lostAck)throw Error('Lost RPC acknowledgement');return wrongAck?'3'.repeat(64):state.signature;},confirmTransaction:async()=>({value:{err:null}})};
+   if(lostAck)throw Error('Lost RPC acknowledgement');return wrongAck?'3'.repeat(64):state.signature;},
+  confirmTransaction:async()=>{throw Error('WebSocket confirmation must not be used');},
+  getSignatureStatuses:async(signatures,options)=>{
+   assert.deepEqual(signatures,[state.signature]);assert.equal(options.searchTransactionHistory,true);
+   if(confirmation==='unavailable')throw Error('RPC receipt unavailable');
+   return{value:[confirmation==='expired'?null:{confirmationStatus:confirmation,err:confirmation==='failed'?{InstructionError:[0,'failure']}:null}]};
+  }};
  const trade={side:'buy',mint,user:payer.publicKey,inputAmount:.01,slippagePercent:1,outputAmount:new BN(1),quoteAmount:new BN(10000000),tokenDecimals:6,feeLamports:0,
   instructions:[SystemProgram.transfer({fromPubkey:payer.publicKey,toPubkey:recipient,lamports:1000})]};
  return{state,run:()=>submitTrade({connection,provider,side:'buy',mint,user:payer.publicKey,amount:.01,slippagePercent:1,preparedTrade:trade,onPrepared:row=>{state.prepared=row;}})};
@@ -31,6 +37,10 @@ for(const mobile of [false,true]){
 for(const mode of ['lostAck','wrongAck'])test(`${mode} retains the exact signed trade and expiry`,async()=>{
  const {run,state}=fixture({[mode]:true});await assert.rejects(run,error=>error.signature===state.signature&&error.lastValidBlockHeight===100);
  assert.equal(state.sent,1);assert.equal(state.prepared.signature,state.signature);
+});
+for(const confirmation of ['failed','expired','unavailable'])test(`HTTP ${confirmation} confirmation retains identity without another broadcast`,async()=>{
+ const {run,state}=fixture({confirmation});await assert.rejects(run,error=>error.signature===state.signature&&error.lastValidBlockHeight===100);
+ assert.equal(state.sent,1);
 });
 test('non-landing needs finalized absence, sufficient block height and Devnet',async()=>{
  const row={signature:'3'.repeat(64),lastValidBlockHeight:100};let height=132,status=null,genesis='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
@@ -57,7 +67,7 @@ for(const returnedShape of ['original','roundtrip','foreign']) test(`PumpSwap sh
  let sends=0;
  const trade={side:'buy',mint,user:payer.publicKey,inputAmount:.01,slippagePercent:1,outputAmount:new BN(1),instructions};
  const connection={getLatestBlockhash:async()=>({blockhash:Keypair.generate().publicKey.toBase58(),lastValidBlockHeight:100}),
-  sendRawTransaction:async wire=>{sends++;const tx=Transaction.from(wire);assert(tx.verifySignatures());return bs58.encode(tx.signature);},confirmTransaction:async()=>({value:{err:null}})};
+  sendRawTransaction:async wire=>{sends++;const tx=Transaction.from(wire);assert(tx.verifySignatures());return bs58.encode(tx.signature);},getSignatureStatuses:async()=>({value:[{confirmationStatus:'finalized',err:null}]})};
  const provider={signTransaction:async tx=>{tx.sign(payer);return returnedShape==='original'?tx:returnedShape==='roundtrip'?Transaction.from(tx.serialize()):{serialize:()=>tx.serialize()};}};
  await submitTrade({connection,provider,side:'buy',mint,user:payer.publicKey,amount:.01,preparedTrade:trade});assert.equal(sends,1);
 });
