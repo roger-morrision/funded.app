@@ -21,7 +21,7 @@ for(const width of [390,1440])test(`selected mint retries without waiting for th
   try{
     await page.goto(`/?airdropMint=${mint}#airdrops`);
     const retry=page.locator('[data-retry-community-mint]');await expect(retry).toBeVisible();
-    await retry.click();await expect(page.locator('#airdrop-selected-status')).toContainText('Connect wallet to check allocation');
+    await retry.click();await expect(page.locator('#airdrop-selected-status')).toContainText('automatically');
     expect(scoped).toBe(2);expect(full).toBe(1);
     release();await expect(page.locator('#airdrop-selected-eyebrow')).toHaveText('Airdrop funding confirmed');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

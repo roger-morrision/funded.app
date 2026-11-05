@@ -54,7 +54,7 @@ for(const [width,height] of [[390,844],[1440,900]]){
     await expect(summary).toBeFocused();
     const scrollBefore=await page.evaluate(()=>scrollY);
     release();
-    await expect(page.locator('#airdrop-selected-eyebrow')).toHaveText('Airdrop verification unavailable');
+    await expect(page.locator('#airdrop-selected-eyebrow')).toHaveText('-');
     await expect(summary).toBeFocused();
     await expect(page.locator('#airdrop-selected-stats details')).toHaveAttribute('open','');
     expect(Math.abs((await page.evaluate(()=>scrollY))-scrollBefore)).toBeLessThan(2);

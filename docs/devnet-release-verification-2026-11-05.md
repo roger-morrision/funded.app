@@ -30,6 +30,10 @@ A failed creator-fee read for one mint previously aborted the rest of a collecto
 
 The complete unit baseline passed 1,825 tests, with 21 skips and no failures. PostgreSQL and Redis integrations were exercised separately earlier in this preparation task. The full browser baseline completed 1,053 cases: 818 passed, 231 failed and 4 skipped. Many failures referenced retired Home controls or navigation; this baseline is not a clean browser acceptance result. The focused 533-case rerun passed 451, failed 81 and skipped 1. Subsequent failure-only runs reduced the failures to zero; the complete 46-case token-control, compact-card and shared-card regression then passed. The 20 final focused collector/lifecycle/feature-view unit tests also passed. Source syntax (1,569 JS files) and size budgets (1,802 maintained code files) passed. These results precede integration of the separate reward/docs release published during verification; that combined candidate requires its own checks.
 
+## Combined reward and documentation integration
+
+The separately published main revision `1f76e305` was merged into candidate `3d691f2`. Its automatic Devnet token delivery and manual creator/referral claims are retained. The complete combined unit suite passed **1,835 tests, 21 skipped, zero failures**. A new complete browser run covers 1,039 cases; it is still in progress. Earlier creator payout evidence above records the previously deployed automatic policy, not a fresh manual creator claim under this revision.
+
 ## Remaining verification gates
 
 - Escrow matures **2026-11-06 01:22:24 UTC / 08:22:24 Bangkok**. Matured release cannot be claimed before that time. The 12-hour lock was not shortened.

@@ -35,7 +35,7 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
       }
     };
     await page.goto('/#marketing-agency');await check();
-    await expect(page.locator('[data-agency-status]')).toContainText('unavailable');
+    await expect(page.locator('[data-agency-status]')).toHaveText('-');
     for(const route of ['overview','explore','launch','my-launches','payments','marketing-agency']){
       if(width<=700)await page.locator('#open-menu').click();
       await page.locator(`.primary-nav a[href="#${route}"]`).click();await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${route}(?: |$)`));await check();
