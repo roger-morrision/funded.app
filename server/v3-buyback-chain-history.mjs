@@ -13,7 +13,7 @@ const pumpBuyDiscriminator = Buffer.from([102, 6, 61, 18, 1, 218, 235, 234]);
 // This is display-only discovery. A cleared application ledger cannot use an
 // old receipt to authorize an automatic buyback or reduce a new fee budget.
 export async function latestUnindexedV3Burn({ connection, programId,
-  indexedSignatures = new Set(), verifyBurn = loadFinalizedV3Buyback }) {
+  indexedSignatures = new Set(), indexedReceipts = new Set(), verifyBurn = loadFinalizedV3Buyback }) {
   if (typeof connection.getProgramAccounts !== 'function'
     || typeof connection.getSignaturesForAddress !== 'function') return null;
   const program = new PublicKey(programId);
@@ -37,6 +37,9 @@ export async function latestUnindexedV3Burn({ connection, programId,
   if (candidates.length > 100) return null;
   for (const candidate of candidates) {
     const { pubkey, mint, id } = candidate;
+    // The dashboard supplies only receipts with an existing finalized burn
+    // proof. Rediscovering those signatures adds RPC work to every custody scan.
+    if (indexedReceipts.has(pubkey.toBase58())) continue;
     const policyAddress = deriveMintPolicyV3(program, mint).address;
     const [policyAccount, signatures] = await Promise.all([
       connection.getAccountInfo(policyAddress, 'finalized'),

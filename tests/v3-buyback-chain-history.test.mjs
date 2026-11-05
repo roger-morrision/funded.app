@@ -47,6 +47,14 @@ const connection = {
   } } }),
 };
 
+test('already proved receipt addresses need no repeated policy, signature or transaction reads',async()=>{
+  const unexpected=async()=>assert.fail('An indexed receipt must not trigger history RPC reads');
+  const proof=await latestUnindexedV3Burn({programId:program,indexedReceipts:new Set([receipt.toBase58()]),
+    connection:{...connection,getAccountInfo:unexpected,getSignaturesForAddress:unexpected,getTransaction:unexpected},
+    verifyBurn:unexpected});
+  assert.equal(proof,null);
+});
+
 test('unindexed burn history requires a derived receipt and a full finalized proof', async () => {
   const proof = await latestUnindexedV3Burn({ connection, programId:program,
     verifyBurn:async args => {

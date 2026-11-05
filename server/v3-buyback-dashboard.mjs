@@ -130,7 +130,8 @@ export async function readV3BuybackDashboard({ state, programId, connection,
   let chainBurn = null;
   try {
     chainBurn = await latestUnindexedV3Burn({ connection, programId,
-      indexedSignatures:new Set(receipts.map(row => row.signature)) });
+      indexedSignatures:new Set(receipts.map(row => row.signature)),
+      indexedReceipts:new Set(receipts.map(row => row.receipt).filter(Boolean)) });
   } catch { /* Display app receipts when chain history cannot be read. */ }
   const last = chainBurn && (!receipts[0] || chainBurn.slot > receipts[0].slot)
     ? chainBurn : receipts[0];
