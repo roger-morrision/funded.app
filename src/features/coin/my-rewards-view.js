@@ -5,7 +5,8 @@ import { escapeHtml } from '../shared/display.js';
 // $FUNDED airdrop allocation and the wallet's Daily bonus results.
 const CACHE_MS = 60_000;
 const cache = new Map();
-const KIND_LABEL = { holder: 'Holder reward', x: 'X account reward', creator: 'Creator payout' };
+const requests = new WeakMap();
+const KIND_LABEL = { holder: 'Coin Holder', x: 'X account reward', creator: 'Creator payout' };
 
 const sol = lamports => {
   const n = Number(lamports) / 1e9;
@@ -26,15 +27,19 @@ export function coinMyRewardsMarkup(data, mint) {
   const payouts = (row?.payouts || []).filter(p => /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(p.signature || '')));
   const total = payouts.reduce((sum, p) => sum + (Number(p.amountLamports) || 0), 0);
   const list = payouts.length
-    ? `<ul class="coin-my-rewards-list">${payouts.slice(0, 20).map(p => `<li><span>${escapeHtml(KIND_LABEL[p.kind] || 'Reward')}${p.paidAt ? ` · ${escapeHtml(new Date(p.paidAt).toISOString().slice(0, 16).replace('T', ' '))} UTC` : ''}</span><strong>${escapeHtml(sol(p.amountLamports))}</strong><a href="${explorer(p.signature)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></li>`).join('')}</ul>`
-    : '<p class="coin-my-rewards-empty">No SOL rewards from this coin yet. Holder rewards are sent automatically after each funded cycle.</p>';
+    ? `<div class="coin-rewards-table-wrap" role="region" aria-label="Payment history" tabindex="0"><table class="coin-rewards-table"><caption>Recent payments · showing ${Math.min(20,payouts.length)} of ${payouts.length}</caption><thead><tr><th scope="col">Reward</th><th scope="col">Date (UTC)</th><th scope="col">Received</th><th scope="col">Receipt</th></tr></thead><tbody>${payouts.slice(0, 20).map(p => `<tr><td>${escapeHtml(KIND_LABEL[p.kind] || 'Reward')}</td><td>${Number.isFinite(Date.parse(p.paidAt)) ? escapeHtml(new Date(p.paidAt).toISOString().slice(0, 16).replace('T', ' ')) : '—'}</td><td>${escapeHtml(sol(p.amountLamports))}</td><td><a href="${explorer(p.signature)}" target="_blank" rel="noopener noreferrer" aria-label="View ${escapeHtml(KIND_LABEL[p.kind] || 'reward')} transaction">View ↗</a></td></tr>`).join('')}</tbody></table></div>`
+    : '<div class="coin-my-rewards-empty"><strong>No payments yet</strong><p>No SOL rewards from this coin have been recorded for your wallet. Eligible holder payments arrive automatically after funding and cycle checks.</p></div>';
   return `<section class="coin-my-rewards" aria-label="Your rewards from this coin">
-    <div class="coin-my-rewards-total"><span>SOL received from this coin</span><strong>${escapeHtml(sol(total))}</strong><small>${payouts.length} payment${payouts.length === 1 ? '' : 's'}</small></div>
+    <header><h3>Your rewards</h3><p>Payments from this coin to your connected wallet.</p></header>
+    <dl class="coin-my-rewards-stats"><div><dt>SOL received</dt><dd>${escapeHtml(sol(total))}</dd></div><div><dt>Payments</dt><dd>${payouts.length}</dd></div><div><dt>Holder payments</dt><dd class="coin-rewards-method">Automatic</dd></div></dl>
     ${list}${shortcuts(mint)}</section>`;
 }
 
 export function renderCoinMyRewards(activity, { mint, wallet, apiRequest, isActive }) {
   if (!activity || !mint) return;
+  const request = {};
+  requests.set(activity, request);
+  const current = () => requests.get(activity) === request && isActive();
   if (!wallet) {
     activity.innerHTML = `<section class="coin-my-rewards"><div class="empty-state coin-activity-empty"><strong>Connect a wallet to see your rewards</strong><small>SOL rewards from this coin, your airdrop allocation and Daily bonus results.</small><button type="button" class="primary-button" data-my-rewards-connect>Connect wallet</button></div>${shortcuts(mint)}</section>`;
     activity.querySelector('[data-my-rewards-connect]')?.addEventListener('click', () => document.querySelector('#connect-button')?.click());
@@ -45,13 +50,13 @@ export function renderCoinMyRewards(activity, { mint, wallet, apiRequest, isActi
   activity.innerHTML = '<div class="empty-state coin-activity-empty"><strong>Loading your rewards…</strong><small>Reading confirmed payouts for this wallet.</small></div>';
   apiRequest(`/api/rewards/experience?wallet=${encodeURIComponent(wallet)}&mint=${encodeURIComponent(mint)}`, { signal: AbortSignal.timeout(15_000) })
     .then(response => {
-      if (!isActive()) return;
+      if (!current()) return;
       if (!response?.available) throw new Error('unavailable');
       cache.set(key, { at: Date.now(), data: response.data });
       activity.innerHTML = coinMyRewardsMarkup(response.data, mint);
     })
     .catch(() => {
-      if (!isActive()) return;
+      if (!current()) return;
       activity.innerHTML = `<section class="coin-my-rewards"><div class="empty-state coin-activity-empty"><strong>Rewards are unavailable right now</strong><small>Try again in a moment.</small></div>${shortcuts(mint)}</section>`;
     });
 }

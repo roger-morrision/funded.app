@@ -1,3 +1,4 @@
+import { updateCompactTokenLink } from '../shared/compact-token.js';
 import { paginateHistory } from '../../../history-pagination.js';
 import { exactLamports } from '../../../exact-lamports.js';
 import { formatReceiptSol } from '../../../receipt-export.js';
@@ -186,7 +187,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const name = document.createElement('strong');
     name.textContent = ({ 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
       'automatic-creator':'Creator fee', 'v3-creator-wallet':'Creator fee',
-      'automatic-holder':'Holder reward', 'automatic-operations':'Protocol payout', 'v3-operations':'Operations & marketing',
+      'automatic-holder':'Coin Holder', 'automatic-operations':'Protocol payout', 'v3-operations':'Operations & marketing',
       'automatic-community':'Community payout', 'daily-bonus':'Daily bonus', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
     if (['mint-router-settle-mint', 'automatic-x'].includes(receipt.source)
       && /^@[A-Za-z0-9_]{1,15}$/.test(receipt.xHandle || '')) name.textContent += ` · ${receipt.xHandle}`;
@@ -221,7 +222,11 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     fee.className = 'payment-history-fee';
     fee.textContent = receipt.feeLamports == null ? 'Transaction fee unavailable'
       : `Transaction fee ${formatTokenBaseAmount(receipt.feeLamports, 9, 9)} SOL · paid by ${receipt.feePayer === receipt.to ? 'receiver' : shortAddress(receipt.feePayer)}`;
-    identity.append(name, recipient, paid);
+    identity.append(name);
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(receipt.mint || '')) {
+      const coin=document.createElement('a');updateCompactTokenLink(coin,{mint:receipt.mint,showMarketCap:false},document);identity.append(coin);
+    }
+    identity.append(recipient, paid);
     const details = document.createElement('details');
     details.className = 'payment-history-details';
     const receiptKey = `${receipt.signature}:${receipt.to}:${receipt.source}`;

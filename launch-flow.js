@@ -5,6 +5,7 @@ import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlineP
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
 import { devnetLaunchMetadataUri } from './devnet-metadata.js';
+import { isPinnedMetadataUri, onchainMetadataUri } from './metadata-publication.js';
 import { developerLockLaunchInstructions } from './developer-token-lock.js';
 import { verifyFeeRouterAccount } from './fee-router.js';
 import { buildPumpLaunchPlan } from './mint-router-launch.js';
@@ -206,8 +207,17 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!lookupTable?.isActive()) throw new Error('Solana launch reserve lookup table is missing or inactive. No coin was created.');
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
     authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
-  const launchMetadataUri = prepareMetadata ? devnetLaunchMetadataUri(mint.publicKey.toBase58())
-    : metadataUri || devnetLaunchMetadataUri(mint.publicKey.toBase58());
+  const hostedMetadataUri = devnetLaunchMetadataUri(mint.publicKey.toBase58());
+  let symbolReservationExpiresAt = null;
+  if (prepareMetadata) {
+    onStatus('Storing signed Solana image and metadata before wallet transaction approval…');
+    const preparedMetadata = await prepareMetadata({ mint:mint.publicKey.toBase58(), name:launchInput.name, symbol:launchInput.symbol });
+    metadataUri = typeof preparedMetadata === 'string' ? preparedMetadata : preparedMetadata?.uri;
+    symbolReservationExpiresAt = typeof preparedMetadata === 'object' ? Date.parse(preparedMetadata.symbolReservationExpiresAt) : null;
+    if (metadataUri !== hostedMetadataUri && !isPinnedMetadataUri(metadataUri)) throw new Error('Metadata service returned an unexpected URL. Launch was not submitted.');
+  }
+  const launchMetadataUri = onchainMetadataUri(metadataUri || hostedMetadataUri);
+  assertWalletCurrent();
   onStatus('Preparing Pump Solana bonding-curve launch…');
   const burnPlan = launchBurn?.amountTokens > 0
     ? await prepareFundedLaunchBurn({ connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
@@ -242,14 +252,6 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
     reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
       amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id}),...serviceInstructions], lookupTable });
-  let symbolReservationExpiresAt = null;
-  if (prepareMetadata) {
-    onStatus('Storing signed Solana image and metadata before wallet transaction approval…');
-    const preparedMetadata = await prepareMetadata({ mint:mint.publicKey.toBase58(), name:launchInput.name, symbol:launchInput.symbol });
-    metadataUri = typeof preparedMetadata === 'string' ? preparedMetadata : preparedMetadata?.uri;
-    symbolReservationExpiresAt = typeof preparedMetadata === 'object' ? Date.parse(preparedMetadata.symbolReservationExpiresAt) : null;
-    if (metadataUri !== launchMetadataUri) throw new Error('Metadata service returned an unexpected URL. Launch was not submitted.');
-  }
   plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
     kind:'launch', mint:mint.publicKey.toBase58(), tokenName:launchInput.name, tokenSymbol:launchInput.symbol,
     reserveTokens:String(input.reserveTokens), vault:reserve.vault.toBase58(),

@@ -34,7 +34,6 @@ export function mountCalloutIntent(app) {
     if (tab && !tab.classList.contains('active')) tab.click();
     const form = document.querySelector('#coin-chat-form');
     if (!form) return;
-    form.elements.namedItem('callout').checked = true;
     const field = form.querySelector('input:not([type="checkbox"])');
     field?.focus({preventScroll:true}); form.scrollIntoView({block:'center'});
     fulfilled = true;

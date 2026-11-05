@@ -1,6 +1,7 @@
 import { serviceFeeSol } from '../../../service-fees.js';
 import { currentVerifiedLaunchFeeLamports } from '../fees/service-fees-client.js';
-import { launchReviewMarkup } from '../../../launch-review.js';
+import { freshLaunchReview } from '../../../launch-review.js';
+import { quoteCountdownMarkup } from '../../../quote-countdown.js';
 import { launchEstimateRefreshMessage } from './estimate-refresh.js';
 import { publicLaunchBudget } from '../../../public-launch-budget.js';
 
@@ -245,9 +246,8 @@ export function renderLaunchCostDetails(
     return;
   }
   node.hidden = false;
-  const expanded = node.querySelector('details')?.open;
   const refreshMessage = launchEstimateRefreshMessage({ wallet, loading: walletMetricsLoading, retry: launchEstimateRetry });
   if (!launchCostReview && refreshMessage) node.textContent = refreshMessage;
-  else node.innerHTML=launchReviewMarkup(launchCostReview);
-  if (expanded && node.querySelector('details')) node.querySelector('details').open = true;
+  else node.innerHTML = freshLaunchReview(launchCostReview) ? quoteCountdownMarkup(launchCostReview.expiresAt, Date.now()) : 'Refresh the launch estimate before signing.';
+  node.className = 'launch-quote-status';
 }

@@ -18,3 +18,9 @@
 .page-route-admin .gate-grid dd{margin:4px 0 0;font-weight:650;overflow-wrap:anywhere}
 .page-route-admin :is(#connect,#sign-in):not(:disabled) { background: #f4a340; border-color: #f4a340; color: #101520; font-weight: 650; }
 @media(max-width:700px) { .page-route-admin .page-title h1 { font-size: 30px; } .page-route-admin :is(input,select,textarea) { font-size: 16px; } .page-route-admin .section-head { flex-wrap: wrap; } .page-route-admin .section-head > span { white-space: nowrap; } }
+
+.service-status-checks { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;list-style:none;padding:0; }
+.service-status-checks li { display:grid;gap:8px;padding:16px;border:1px solid #34465f;border-radius:8px; }
+.service-status-checks [data-status="available"] span { color:#8de3af; }
+.service-status-panel button { min-height:44px; }
+@media(max-width:600px){.service-status-checks { grid-template-columns:1fr; }}

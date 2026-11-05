@@ -5,28 +5,6 @@ export function validReviewAmount(value) {
 export function initializeDiscoveryIntent(app) {
   let amount = '0.1';
   try { const saved = localStorage.getItem(KEY); if (validReviewAmount(saved)) amount = saved; } catch { /* Optional preference. */ }
-  const inputs = [];
-  for (const parent of document.querySelectorAll('.home-launch-toolbar, #explore .explore-control-bar')) {
-    let label = parent.querySelector('.review-buy-setting');
-    if (!label) {
-      label = document.createElement('label'); label.className = 'review-buy-setting';
-      const helpId = `review-buy-help-${inputs.length}`;
-      label.innerHTML = `<span>Quick buy amount</span><input inputmode="decimal" aria-label="Quick buy amount in SOL" aria-describedby="${helpId}" maxlength="13"><small id="${helpId}" class="visually-hidden">Default SOL amount on token pages. Preset buttons use their shown amount. Review before signing; changing this amount does not place a trade.</small>`;
-      parent.append(label);
-    }
-    if(parent.closest('#explore')){
-      const preferences=document.createElement('div');preferences.id='explore-trade-preferences';
-      label.before(preferences);preferences.append(label);
-      const unit=document.createElement('span');unit.className='review-buy-unit';unit.textContent='SOL';unit.setAttribute('aria-hidden','true');label.append(unit);
-    }
-    const input = label.querySelector('input'); input.value = amount; input.disabled = false; inputs.push(input);
-    input.addEventListener('change', () => {
-      const valid = validReviewAmount(input.value); input.setAttribute('aria-invalid', String(!valid));
-      if (!valid) { app.showToast('Use a SOL amount above 0 and at most 100, with up to nine decimals.'); return; }
-      amount = input.value; inputs.forEach(other => { other.value = amount; });
-      try { localStorage.setItem(KEY, amount); } catch { app.showToast('Amount applies in this tab; browser storage is unavailable.'); }
-    });
-  }
   const updateIntent = event => {
     const link = event.target.closest('[data-review-buy]');
     if (!link) return;

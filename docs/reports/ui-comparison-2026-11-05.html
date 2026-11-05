@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>funded.vip — UI comparison and release review</title>
+<style>body{margin:auto;max-width:1200px;padding:32px;font:16px/1.6 system-ui;color:#172033;background:#f7f8fb}h1,h2{line-height:1.2}a{color:#184db9}table{border-collapse:collapse;width:100%;background:white}th,td{padding:14px;border:1px solid #dce1eb;text-align:left;vertical-align:top}th{background:#eaf0fb}section{margin:32px 0}.scroll{overflow:auto}small{color:#4d5d73}.tag{font-weight:700;color:#205d42}@media(max-width:600px){body{padding:16px}th,td{min-width:160px}}</style>
+<h1>funded.vip UI comparison</h1>
+<p>5 November 2026 · Desktop and mobile · Public, signed-out views</p>
+<p>Keep Home short, give every task one clear entry point, and show verified amounts with their receipts. Adopt useful competitor patterns while keeping funded.vip’s own identity and transaction safeguards.</p>
+<section><h2>Scope and evidence</h2>
+<p>The review covered 25 funded.vip routes at 1440px and 390px, plus Welcome, token detail, creation step two, wallet connection and legal dialogs. The initial route inventory found no page-level horizontal overflow or JavaScript errors. Wallet approval, successful payments, protected admin data and completed on-chain launches were not established by this visual review.</p>
+<p>Local evidence: <code>tmp/site-comparison/funded/inventory.json</code> and screenshots in <code>tmp/site-comparison/</code>. These temporary artifacts are not included in the repository. Automated UI fixtures use mocked data; they do not establish live balances or transaction success.</p></section>
+<section><h2>Patterns worth adapting</h2><div class="scroll"><table>
+<thead><tr><th>Reference</th><th>Useful pattern</th><th>Application to funded.vip</th><th>Coverage</th></tr></thead><tbody>
+<tr><td><a href="https://ansem.io/">Ansem Home</a></td><td>Clear primary actions, a compact proof strip and direct discovery controls.</td><td>Short Home overview with search, Explore shortcuts and existing verified activity metrics. Avoid turning Home into another full market feed.</td><td>Live public desktop view; no signing.</td></tr>
+<tr><td><a href="https://ansem.io/launch/coin/FtateF34Xzawa91bpbVNdX72hZYo9cymRDYqBreHHbJi">Ansem token header</a></td><td>Project story beside token identity.</td><td>About/Updates beside the header on desktop; grouped below identity on mobile.</td><td>User reference and public site.</td></tr>
+<tr><td><a href="https://bags.fm/launch">Bags launch</a></td><td>Fields, fee recipients and preview are easy to scan.</td><td>Always-visible description and project links; concise launch summary; final signing review retains costs and consents.</td><td>Public launch form only.</td></tr>
+<tr><td><a href="https://bags.fm/H8WTvo3ZXSYHJAcYqzCforbG8coR1FDAX2kHFfqHBAGS">Bags token</a></td><td>Identity, chart, trading and receipt activity have separate roles.</td><td>Compact token header, stable trade access, rewards statistics and a receipt table.</td><td>Public token page.</td></tr>
+<tr><td><a href="https://www.bonk.fun/">Bonk</a></td><td>Chart and trade controls form a coherent workspace.</td><td>Keep wallet actions near market context; use unavailable states rather than presenting unknown figures as zero.</td><td>Home and public token page.</td></tr>
+<tr><td><a href="https://jup.ag/portfolio/demo">Jupiter Portfolio</a></td><td>Holdings and activity use compact, comparable rows.</td><td>Portfolio tabs for holdings, activity, projects, tracked wallets and favorite coins.</td><td>Demo/watch-only view, not an authenticated portfolio.</td></tr>
+<tr><td><a href="https://pump.fun/explore">Pump</a></td><td>Discovery and creator/holder reward destinations.</td><td>Use clear destination labels; preserve the distinction between creator rewards and coin-holder rewards.</td><td>Official indexed pages only; automated visual access was blocked.</td></tr>
+<tr><td><a href="https://dexscreener.com/">DEX Screener</a></td><td>Comparison deferred.</td><td>No visual conclusions drawn from an inaccessible page.</td><td>Cloudflare blocked access.</td></tr>
+</tbody></table></div></section>
+<section><h2>Changes included in this release</h2>
+<ul><li>Home: compact verified activity strip alongside the short overview and discovery entry points.</li>
+<li>Explore: removed the requested quick-buy input and tightened the responsive control grid.</li>
+<li>Token detail: About/Updates in the header, a rewards dashboard/table, and one Post button. Server-verified holders create calls when market data and call limits permit; other posts remain chat.</li>
+<li>Create: visible description, cleaner steps, less duplicate cost text, “Sign &amp; approve,” a busy state during creation, and a success dialog after verified completion.</li>
+<li>Metadata: accept verified Pinata publication, use the exact IPFS content address in the transaction, and retain public image/JSON checks and exact metadata matching.</li>
+<li>Portfolio and Rewards: tracked-wallet/favorite-coin tabs, compact coin identity in reward clocks and payout receipts, and “Coin Holder” wording.</li>
+<li>Welcome: remove the duplicated fee-flow diagram; show 1% referral rewards and the 2% AI/coin-buyback allocation in a balanced six-card layout. Funding and milestone conditions remain explicit.</li>
+<li>Service status moves into the admin workspace. Listing lookup distinguishes a missing Devnet mint from an unsupported token account.</li></ul></section>
+<section><h2>Remaining page-by-page recommendations</h2><p>These are follow-up recommendations, not claims that every item has been implemented.</p><div class="scroll"><table>
+<thead><tr><th>Page or section</th><th>Next improvement</th><th>Data and safety rule</th></tr></thead><tbody>
+<tr><td>Navigation</td><td>Keep one vocabulary across menus, page titles, tabs and empty states. Standardize spacing and heading sizes.</td><td>Do not hide network identity or wallet state.</td></tr>
+<tr><td>Home</td><td>Measure visits to Explore/Create, successful searches and return visits. Keep the short overview.</td><td>No growth or retention guarantees; never animate financial figures through misleading values.</td></tr>
+<tr><td>Explore</td><td>Offer compact rows for long mobile feeds and keep sort/filter state visible.</td><td>Keep requested rankings and public payouts expanded; paid placement stays identifiable.</td></tr>
+<tr><td>Create</td><td>Move the always-visible fee distribution below primary coin fields if it dominates the first mobile viewport.</td><td>Keep exact fees, burns, recipients, developer lock, balance checks and final wallet review.</td></tr>
+<tr><td>Token detail</td><td>Use consistent spacing between story, metrics, chart, trade controls and activity.</td><td>Unknown market data stays unknown. A promotion badge does not imply safety.</td></tr>
+<tr><td>Portfolio</td><td>Use the same “Favorites” and “Following” vocabulary throughout; make empty states link to the relevant discovery action.</td><td>Tracking a wallet is read-only and never authorizes transactions.</td></tr>
+<tr><td>Rewards overview</td><td>Show Available, Waiting and Paid with concise next actions.</td><td>Keep the requested reward guide expanded. Eligibility is separate from funding and paid status.</td></tr>
+<tr><td>Coin Holder</td><td>Pair each reward clock with coin identity and clearly separate cutoff time from expected delivery.</td><td>A countdown is not a payout guarantee.</td></tr>
+<tr><td>Coin Creator</td><td>Show saved recipient, delivery route and last verified receipt in consistent rows.</td><td>Do not imply the connected wallet owns Pump creator-fee authority.</td></tr>
+<tr><td>X claims</td><td>Separate linked account, recipient wallet and claimable amount.</td><td>Identity linkage and available funded balance must be verified independently.</td></tr>
+<tr><td>All Payout History</td><td>Use desktop columns for date, type, coin, recipient, amount and receipt; compact cards on mobile.</td><td>Use finalized evidence and exact amounts; preserve fees and receipt links.</td></tr>
+<tr><td>$FUNDED-holder airdrops</td><td>Show coin, migration snapshot, allocation, claim deadline and claim state together.</td><td>Reserved tokens, eligible allocations and funded claims are different states.</td></tr>
+<tr><td>Referrals</td><td>Prioritize Copy invite, then network summary and payout history.</td><td>State when delivery is automatic and subject to qualified, funded fee settlement.</td></tr>
+<tr><td>Daily bonuses</td><td>Use category tabs on mobile and separate the current reward window from historical winners.</td><td>Current funded pool and validated winners determine delivery.</td></tr>
+<tr><td>Rankings</td><td>Keep metric, period and last update visible beside rankings.</td><td>Volume and observed market-cap changes are not realized returns.</td></tr>
+<tr><td>Coin calls</td><td>Keep a single composer and explain why a post appears as chat or a call.</td><td>Server-read holdings, fresh market observations and rate limits remain authoritative.</td></tr>
+<tr><td>Creators and wallet profiles</td><td>Widen cramped columns and align follow controls with public activity.</td><td>Do not infer ownership or trust from wallet activity or verification badges.</td></tr>
+<tr><td>$FUNDED / Buybacks</td><td>Distinguish Buy, Burn and protocol buyback history with direct tabs.</td><td>Only confirmed balance/supply deltas prove a buy or burn.</td></tr>
+<tr><td>Fee distribution / capital flow</td><td>Keep one canonical fee explanation and link to it from other pages.</td><td>Shares apply to collected creator fees, not total trading volume.</td></tr>
+<tr><td>Analytics</td><td>Reduce duplicate fee cards and label coverage near every aggregate.</td><td>Partial coverage and unavailable data cannot become zero.</td></tr>
+<tr><td>AI marketing</td><td>Use a table: agent, trigger, reserved budget, readiness, last action and receipt.</td><td>Configured agents are not necessarily running or funded.</td></tr>
+<tr><td>Get listed</td><td>Align promised placement with current Explore tabs and Home behavior.</td><td>A Mainnet mint cannot be purchased or listed through this Devnet workspace.</td></tr>
+<tr><td>Profile / settings</td><td>Group preferences by account, display and notifications, with short helper text.</td><td>Never imply a saved preference approves a trade.</td></tr>
+<tr><td>Docs and legal</td><td>Use clear task links; keep operational diagnostics in Admin.</td><td>Legal dialogs and transaction disclosures remain available.</td></tr>
+<tr><td>Welcome</td><td>Replace broad outcome promises with precise benefit descriptions and links to evidence.</td><td>No assured rewards, returns or growth claims.</td></tr>
+<tr><td>Admin</td><td>Keep status, configuration and dangerous actions visually distinct.</td><td>Protected data and write actions require their existing authentication and approval checks.</td></tr>
+</tbody></table></div></section>
+<section><h2>Release validation boundaries</h2><p>Automated checks cover responsive layout, keyboard navigation, mocked reward/portfolio states, launch cost presentation, call eligibility, metadata integrity and atomic packet size. Live release verification must additionally match the source revision, frontend artifact and all four application services. No signed-out browser check proves a real buy, burn, launch, payout or claim.</p></section>
+</html>

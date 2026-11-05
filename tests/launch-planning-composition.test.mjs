@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import{renderLaunchCostDetails,updateCostSummary}from'../src/features/launch/cost-view.js';
-import{launchReviewMarkup}from'../launch-review.js';
+import{quoteCountdownMarkup}from'../quote-countdown.js';
 import{publicLaunchBudget}from'../public-launch-budget.js';
 
 const quote={status:'ready',solAmountLamports:'8715246',maxSolAmountLamports:'8802399'};
@@ -19,10 +19,10 @@ test('public planning card stays removed for default, changed and zero fees',()=
 test('loading, invalid, unavailable and failed policy replace complete numeric planning totals',()=>{
  const f=fixture();for(const[status,fee,text]of[['loading','20000000','Calculating…'],['invalid','20000000','Enter valid amounts'],['unavailable','20000000','Quote unavailable'],['ready',null,'Fee policy unavailable']]){f.render({wallet:null,publicQuote:quote});f.render({wallet:null,publicQuote:{...quote,status}},fee);assert.equal(f.details.hidden,true);assert.equal(f.details.innerHTML,'');assert(!f.details.innerHTML.includes('0.078802 SOL'));assert(!f.details.innerHTML.includes('<dl>'));assert.equal(f.classes.has('public-launch-planning'),true)}
 });
-test('connected exact review output and expanded state survive public/connected transitions without focus movement',t=>{
+test('connected summary keeps quote expiry without a second budget panel or focus movement',t=>{
  const f=fixture(),focus=f.document.activeElement,now=Date.now(),review={available:true,wallet:'offline-wallet',balance:'1935000000',budget:'935000000',balanceAfterBudget:'1000000000',buyQuote:'840000000',allowance:'10000000',serviceFeeLamports:'35000000',otherLaunchCosts:'45000000',networkFee:'5000000',transactionCount:2,messageCount:2,curvePremiumBps:0,quotedAt:now,expiresAt:now+60000};
- t.mock.method(Date,'now',()=>now);f.render({wallet:null,publicQuote:quote});renderLaunchCostDetails({wallet:{},launchCostReview:review},{document:f.document,formatLaunchCost:format,getLaunchFeeLamports:()=>{throw Error('Connected review must not request the public fee')}});assert.equal(f.details.innerHTML,launchReviewMarkup(review));assert.equal(f.classes.has('public-launch-planning'),false);assert.equal(f.nodes.get('#preview-launch-cost').parentElement.hidden,false);assert.equal(f.nodes.get('#cost-public-tier-note').hidden,true);
- f.details.expanded.open=true;f.render({wallet:{},launchCostReview:review});assert.equal(f.details.expanded.open,true);assert.equal(f.details.innerHTML,launchReviewMarkup(review));f.render({wallet:null,publicQuote:quote});assert(!f.details.innerHTML.includes('<details'));assert.equal(f.document.activeElement,focus);
+ t.mock.method(Date,'now',()=>now);f.render({wallet:null,publicQuote:quote});renderLaunchCostDetails({wallet:{},launchCostReview:review},{document:f.document,formatLaunchCost:format,getLaunchFeeLamports:()=>{throw Error('Connected review must not request the public fee')}});assert.equal(f.details.innerHTML,quoteCountdownMarkup(review.expiresAt,now));assert.equal(f.classes.has('public-launch-planning'),false);assert.equal(f.nodes.get('#preview-launch-cost').parentElement.hidden,false);assert.equal(f.nodes.get('#cost-public-tier-note').hidden,true);
+ f.details.expanded.open=true;f.render({wallet:{},launchCostReview:review});assert.equal(f.details.expanded.open,true);assert.equal(f.details.innerHTML,quoteCountdownMarkup(review.expiresAt,now));f.render({wallet:null,publicQuote:quote});assert(!f.details.innerHTML.includes('<details'));assert.equal(f.document.activeElement,focus);
 });
 test('summary keeps compatibility values, token reserve and tier context while hiding only public duplicate presentation',()=>{
  const f=fixture();for(const id of['cost-launch','cost-service-fee','cost-total-enabled','cost-note','preview-cost-label','cost-initial-buy','cost-total-label','launch-mobile-budget-label','launch-mobile-budget-value','launch-mobile-budget-note','cost-burn','cost-burn-row','cost-tier-label','cost-creator-buy','cost-community-tokens','cost-community-detail'])f.nodes.set('#'+id,{textContent:'',innerHTML:'',hidden:false});

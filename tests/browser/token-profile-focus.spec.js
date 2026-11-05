@@ -21,7 +21,7 @@ for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [36
     await expect(page.locator('#coin-page-title')).toHaveText('Fee premier QA');
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.fonts.ready);
-    const link = page.locator('.coin-package-rail .is-premier');
+    const link = page.locator('.coin-package-rail .promotion-badge--premier');
     const about = page.locator('#coin-profile-about-tab'), updates = page.locator('#coin-profile-updates-tab');
     const clear = async control => {
       const geometry = await control.evaluate(element => {
@@ -44,7 +44,7 @@ for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [36
       });
       await page.evaluate(top => document.scrollingElement.scrollTo({ top, behavior: 'instant' }), top);
       await link.evaluate(element => element.focus({ preventScroll: true }));
-      await page.keyboard.press('Tab');
+      await page.keyboard.press('Tab');await expect(page.locator('#coin-boost')).toBeFocused();await page.keyboard.press('Tab');
       await expect(about).toBeFocused();
       await clear(about);
       const before = await about.evaluate(e => ({ y: e.getBoundingClientRect().top, scrollY }));
@@ -89,7 +89,7 @@ for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [36
         return { stationary: scrollY === before[0] && content.scrollTop === before[1], sameFocus: document.activeElement === focused };
       });
       expect(refresh).toEqual({ stationary: true, sameFocus: true });
-      await page.keyboard.press('Shift+Tab');await expect(link).toBeFocused();
+      await page.keyboard.press('Shift+Tab');await expect(page.locator('#coin-boost')).toBeFocused();await page.keyboard.press('Shift+Tab');await expect(link).toBeFocused();
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });

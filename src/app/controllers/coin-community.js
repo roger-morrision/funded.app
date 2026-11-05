@@ -9,14 +9,12 @@ export function createCoinCommunityController(appState) {
     const draft = previous?.querySelector('#coin-chat-input');
     const focused = draft === document.activeElement;
     const text = draft?.value || '';
-    const callout = previous?.elements.namedItem('callout')?.checked === true;
     const messages = appState.visibleCoinChatMessages();
     const rows = messages.length ? messages.map(appState.tokenChatMessageMarkup).join('') : appState.coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : appState.tokenChatEmptyMarkup();
     activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${appState.escapeHtml(appState.coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${appState.tokenChatComposerMarkup('coin-chat')}</div>`;
     const form = activity.querySelector('#coin-chat-form');
     if (form) {
       form.querySelector('#coin-chat-input').value = text;
-      form.elements.namedItem('callout').checked = callout;
       if (focused) form.querySelector('#coin-chat-input').focus({preventScroll:true});
     }
     window.dispatchEvent(new Event('funded:coin-chat-rendered'));
@@ -59,7 +57,7 @@ export function createCoinCommunityController(appState) {
     const note = !connected ? 'Connect a Solana wallet to post' : ready ? `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · no approval needed for each post` : `Posting as ${appState.escapeHtml(appState.shortAddress(appState.connectedWalletAddress))} · sign in once to use token discussions`;
     const hidden = appState.readHiddenChatAuthors(appState.EXPLORE_CLUSTER);
     const unhide = hidden.size ? `<button type="button" data-chat-unhide>Show ${hidden.size} hidden wallet${hidden.size === 1 ? '' : 's'}</button>` : '';
-    return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${appState.TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><label class="chat-callout-toggle" title="Saves this coin's market cap now and tracks how your call does on the Callouts board"><input type="checkbox" name="callout" /> <span aria-hidden="true">📣</span> Call it</label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Wallet verification confirms authorship, not trust. ${unhide}</small>`;
+    return `<form class="coin-chat-form coin-community-form" id="${prefix}-form"><label><span class="sr-only">Message</span><input id="${prefix}-input" maxlength="${appState.TOKEN_CHAT_MAX_LENGTH}" autocomplete="off" placeholder="Share a useful observation…" required /></label><button class="primary-button" type="submit">${buttonLabel}</button></form><small class="coin-chat-note">${note}. Verified holders post calls; other posts stay in chat. Call limits and market data availability apply. ${unhide}</small>`;
   }
   // app-source-end
 

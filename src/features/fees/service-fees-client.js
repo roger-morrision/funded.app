@@ -59,12 +59,6 @@ export function initServiceFeeCopy() {
       const label = document.querySelector(`.creator-burn-section [data-burn-tier="${tier}"] > span`);
       if (label) label.textContent = `${tier.toUpperCase()} · $${f[tier+'Usd']}`;
     }
-    const promotions = document.querySelector('.creator-burn-section');
-    if(promotions && !document.getElementById('launch-service-fee-note')) { const p=document.createElement('p'); p.id='launch-service-fee-note'; p.className='field-help'; promotions.append(p); }
-    const note=document.getElementById('launch-service-fee-note');
-    if (note) note.textContent = verifiedLaunchFeeLamports == null
-      ? 'Checking the launch fee. Review the full SOL budget before signing.'
-      : `Launch fee: ${serviceFeeSol(verifiedLaunchFeeLamports)} SOL + network, reserve and account costs. Promotion burns are separate.`;
     const target = document.querySelector('#capital-flow');
     if (target && !document.getElementById('service-fee-guide')) {
       const details = document.createElement('details'); details.id = 'service-fee-details'; details.className = 'ui-disclosure';

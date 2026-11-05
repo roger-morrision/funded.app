@@ -8,6 +8,10 @@ export const pinnedMetadataUri = cid => {
 export const isPinnedMetadataUri = uri => typeof uri === 'string' && uri.startsWith(PINATA_PUBLIC_GATEWAY)
   && validMetadataCid(uri.slice(PINATA_PUBLIC_GATEWAY.length));
 
+// Keep the content address on-chain; verify availability through the HTTPS gateway.
+export const onchainMetadataUri = uri => isPinnedMetadataUri(uri)
+  ? `ipfs://${uri.slice(PINATA_PUBLIC_GATEWAY.length)}` : uri;
+
 export function assertMetadataPublication(data, expectedUri, now = Date.now()) {
   const proof = data?.publication;
   const checkedAt = Date.parse(proof?.checkedAt);

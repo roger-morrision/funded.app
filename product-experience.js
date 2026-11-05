@@ -109,7 +109,7 @@ function launch() {
   const image = first?.querySelector('label:has(#token-image-picker)');
   if (description && image) {
     image.after(description);
-    disclosure(description, 'Description · optional');
+    description.classList.add('launch-description-field');
   }
   const packagePreview = $('.launch-package-preview');
   if (options && packagePreview) {
@@ -161,7 +161,7 @@ function portfolio() {
     const button = document.createElement('button');
     button.id = 'portfolio-created-tab'; button.type = 'button'; button.dataset.portfolioTab = 'created';
     button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', 'false'); button.setAttribute('aria-controls', panel.id);
-    button.tabIndex = -1; button.textContent = 'My projects'; bar.append(button);
+    button.tabIndex = -1; button.textContent = 'My projects'; bar.insertBefore(button, bar.querySelector('[data-portfolio-tab="tracking"]'));
   }
   setText('#portfolio-trades-tab', 'Activity');
   setText('#my-launches > .section-heading p:not(.eyebrow)', 'Your holdings, activity, and projects.');

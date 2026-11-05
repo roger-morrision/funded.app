@@ -108,12 +108,14 @@ export function createTokenChatRoutes({
         const minute = Math.floor(Date.now() / 60_000) * 60_000;
         if (!await store.chargeRpcRate(`chat-wallet:${author}`, 1, 5, minute)) return json(res, 429, { error: 'Posting limit reached. Wait a minute before posting again.' });
         let callout = null;
-        if (input.callout === true) {
-          if (!readMarketCaps || !store.updateCallouts) return json(res, 503, { error: 'Callouts are unavailable right now.' });
-          if (!await store.chargeRpcRate(`callout-wallet:${author}`, 1, 10, Math.floor(Date.now() / 3_600_000) * 3_600_000)) return json(res, 429, { error: 'Callout limit reached. You can make 10 calls an hour.' });
-          const checked = await recordCallout({ store, readMarketCaps, readHolderShare, mint, author });
-          if (checked.error) return json(res, checked.status, { error: checked.error });
-          callout = { marketCapSol: checked.cap.marketCapSol, holdingPercent: checked.holdingPercent, observedAt: checked.cap.observedAt };
+        // Authenticated posts become calls only from a current server-read holding.
+        // Unknown/zero holdings, unavailable quotes and call limits still allow chat.
+        const holding = readHolderShare ? await readHolderShare(author, mint).catch(() => null) : null;
+        if (Number.isFinite(holding) && holding > 0 && readMarketCaps && store.updateCallouts) {
+          const checked = await recordCallout({ store, readMarketCaps, readHolderShare: async () => holding, mint, author });
+          if (!checked.error && await store.chargeRpcRate(`callout-wallet:${author}`, 1, 10, Math.floor(Date.now() / 3_600_000) * 3_600_000)) {
+            callout = { marketCapSol: checked.cap.marketCapSol, holdingPercent: checked.holdingPercent, observedAt: checked.cap.observedAt };
+          }
         }
         const messageId = sessionAddress ? `chat_${randomBytes(12).toString('hex')}` : `chat_${createHash('sha256').update(String(input.signature)).digest('hex').slice(0, 24)}`;
         const createdAt = new Date().toISOString();

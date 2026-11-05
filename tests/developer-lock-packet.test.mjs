@@ -10,15 +10,16 @@ import {buildPumpLaunchPlan} from '../mint-router-launch.js';
 import {launchReserveInstructions} from '../launch-community-reserve.js';
 import {developerLockInstruction} from '../developer-token-lock.js';
 import {launchServiceFeeInstructions} from '../launch-service-fee.js';
+import {onchainMetadataUri} from '../metadata-publication.js';
 import {devnetLaunchMetadataUri as devnetMetadataUri} from '../devnet-metadata.js';
 const saved=JSON.parse(readFileSync(new URL('./fixtures/developer-lock-launch-config.json',import.meta.url),'utf8'));
 test('all launch tiers keep developer escrow, reserve, fee and burn atomic within packet limits (captured Devnet accounts)',async()=>{
  const payer=Keypair.generate().publicKey,global={feeRecipient:new PublicKey(saved.global.feeRecipient),feeRecipients:saved.global.feeRecipients.map(k=>new PublicKey(k))};
  const lookup=new AddressLookupTableAccount({key:new PublicKey(saved.lookup),state:{deactivationSlot:0xffffffffffffffffn,lastExtendedSlot:0,lastExtendedSlotStartIndex:0,authority:payer,addresses:saved.addresses.map(k=>new PublicKey(k))}});
  const funded=new PublicKey(saved.fundedMint),tokenProgram=new PublicKey(saved.fundedTokenProgram);let checked=0;
- for(const long of [false,true])for(const buy of [0n,200_000_000_000_000n])for(const burnTokens of [0n,100_000n,250_000n]){
+ for(const pinned of [false,true])for(const long of [false,true])for(const buy of [0n,200_000_000_000_000n])for(const burnTokens of [0n,100_000n,250_000n]){
   const mint=Keypair.generate(),router=buildLaunchMintRouter({mint:mint.publicKey,payer,v3FeeRouter:saved.v3,feeShares:{creatorWalletPercent:80,holderAirdropPercent:0,solClaimPercent:0}});
-  const launchInstructions=await PUMP_SDK.createV2AndBuyInstructions({global,mint:mint.publicKey,name:long?'N'.repeat(32):'EscrowQA',symbol:long?'T'.repeat(10):'EQA',uri:devnetMetadataUri(mint.publicKey.toBase58()),creator:router.router.address,user:payer,amount:new BN((30_000_000_000_000n+buy).toString()),solAmount:new BN(100000000),mayhemMode:false,cashback:false,holderReward:false});
+  const launchInstructions=await PUMP_SDK.createV2AndBuyInstructions({global,mint:mint.publicKey,name:long?'N'.repeat(32):'EscrowQA',symbol:long?'T'.repeat(10):'EQA',uri:pinned?onchainMetadataUri('https://gateway.pinata.cloud/ipfs/bafy'+'a'.repeat(55)):devnetMetadataUri(mint.publicKey.toBase58()),creator:router.router.address,user:payer,amount:new BN((30_000_000_000_000n+buy).toString()),solAmount:new BN(100000000),mayhemMode:false,cashback:false,holderReward:false});
   const reserve=launchReserveInstructions({mint:mint.publicKey,payer,programId:saved.v3.programId,authority:saved.v3.initialAuthority,reserveTokens:30000000,decimals:6});
   const quote={id:'launch_service_123_0123456789abcdef',payer:payer.toBase58(),recipient:saved.fees.recipient,policyHash:saved.fees.hash,expiresAt:new Date(Date.now()+60000).toISOString(),amountLamports:saved.fees.policy.launchLamports};
   const escrow=buy?developerLockInstruction({mint:mint.publicKey,creator:payer,amount:buy,quoteId:quote.id}).instruction:null;
@@ -29,5 +30,5 @@ test('all launch tiers keep developer escrow, reserve, fee and burn atomic withi
   for(const ix of [...launchInstructions,...reserve.instructions,...service,...(escrow?[escrow]:[]),...(burn?[burn]:[])])assert(actual.some(data=>data.equals(ix.data)));
   checked++;
  }
- assert.equal(checked,12);
+ assert.equal(checked,24);
 });

@@ -10,6 +10,6 @@ export function mountCalloutsPage(document = globalThis.document) {
     <div class="callouts-column" data-callouts-column="top"><header><h2>Top callers <span data-callouts-count="top">0</span></h2><small>Calls from the ranked sample</small></header><ol class="callouts-list" data-callouts-list="top"><li class="callouts-empty-note">Loading calls…</li></ol></div>
     <div class="callouts-column" data-callouts-column="conviction"><header><h2>Conviction <span data-callouts-count="conviction">0</span></h2><small>Callers who held the coin when they called it</small></header><ol class="callouts-list" data-callouts-list="conviction"><li class="callouts-empty-note">Loading calls…</li></ol></div>
   </div>
-  <div class="callouts-footnote"><strong>How to make a call</strong><ol><li>Open any coin and write in its Chat tab.</li><li>Tick “Call it” and post. Market cap and your holding are read on Solana.</li><li>Up to 10 calls an hour, one per coin every 30 minutes.</li></ol><small>A call is an opinion, not advice.</small></div>
+  <div class="callouts-footnote"><strong>How to make a call</strong><ol><li>Open any coin and write in its Chat tab.</li><li>Post once. Verified token holders automatically make a call; other messages stay in chat.</li><li>Up to 10 calls an hour, one per coin every 30 minutes. Other posts remain chat messages.</li></ol><small>A call is an opinion, not advice.</small></div>
 </div>`);
 }

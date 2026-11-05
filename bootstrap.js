@@ -26,7 +26,6 @@ await loadBootstrapModules([
   { name: 'Reward history', load: () => import('./reward-experience-ui.js') },
   ...(APP_JACKPOT_ENABLED ? [{ name: 'Jackpot', load: () => import('./jackpot-ui.js') }] : []),
   { name: 'Saved preferences', load: () => import('./retention-ux.js') },
-  { name: 'Service status', load: () => import('./service-status-ui.js') },
   { name: 'Anonymous usage preferences', load: () => import('./product-measurement.js') },
   { name: 'Product experience', load: () => import('./product-experience.js') },
 ], ({ name, required, error }) => {

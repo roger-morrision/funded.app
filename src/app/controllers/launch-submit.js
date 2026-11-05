@@ -3,11 +3,13 @@ import {promotionContentState} from '../../features/launch/promotion-requirement
 import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
 import { deriveMintRouterV3 } from '../../../mint-router-v3.js';
+import { showLaunchSuccess } from '../../features/launch/success-dialog.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchSubmitController(appState) {
   // app-source: 662
   async function launchToken(){
+    if (appState.launchSubmitting) return;
     const agencySelection=readLaunchAgencySelection(appState.getLaunchBurnPolicy());
     if (agencySelection.length&&!appState.feeRouterState?.v3FeeRouter?.agency) {
       appState.setLaunchStatus('AI agency launch is unavailable until its dedicated V3 fee budget and executors are verified. No transaction was sent.', true);
@@ -55,6 +57,7 @@ export function createLaunchSubmitController(appState) {
     if (appState.walletBalanceLamports != null && appState.estimatedLaunchFeeLamports != null && appState.walletBalanceLamports < appState.estimatedLaunchFeeLamports) { appState.setLaunchStatus('Insufficient SOL for this launch. Fund the wallet, then refresh the balance and fee estimate before signing.', true); return; }
     document.querySelector('#launch-button').disabled = true;
     appState.launchSubmitting = true;
+    appState.updateLaunchButton();
     let journalId, pilotLaunchVerified = false;
     try {
       const [{ submitPumpDevnetLaunch }, { devnetExplorer }] = await Promise.all([import('../../../launch-flow.js'), import('../../../launch-core.js')]);
@@ -243,7 +246,8 @@ export function createLaunchSubmitController(appState) {
       ];
       appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed · ${savedFeeAllocationCopy(launchPolicy.feeDistribution)}${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
       document.querySelector('#launch-status').classList.add('launch-complete');
-      appState.showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); appState.renderAirdropClaims(); appState.refreshWalletBalance(); appState.openLaunchedCoinPage(launchPolicy);
+      appState.showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); appState.renderAirdropClaims(); appState.refreshWalletBalance();
+      showLaunchSuccess({mint:launchPolicy.mint,name:result.name,symbol:result.symbol,signature:result.signature,registered:persistedLaunch.available});
     } catch (error) {
       let saved=appState.readLaunchJournal().find(row=>row.id===journalId);
       if(journalId&&saved?.state==='prepared')saved=appState.recordLaunchEvent(journalId,{state:'failed',message:error.message});

@@ -1,3 +1,4 @@
+import { updateCompactTokenLink } from './src/features/shared/compact-token.js';
 import { renderHomeRewardCards as renderHomeRewardCardsView } from './src/features/rewards/airdrop-cards-view.js';
 import { renderSimpleRewardCards as renderSimpleRewardCardsView } from './src/features/rewards/sol-cards-view.js';
 import { formatTokens, utcMoment } from './src/features/rewards/card-format.js';
@@ -235,8 +236,7 @@ function renderClocks() {
     const coin = panel.querySelector('[data-clock-coin]');
     coin.hidden = !schedule?.mint;
     if (schedule?.mint) {
-      coin.href = `/token/${encodeURIComponent(schedule.mint)}`;
-      coin.textContent = `${launchNames.get(schedule.mint) || `${schedule.mint.slice(0, 4)}…${schedule.mint.slice(-4)}`} · view coin →`;
+      updateCompactTokenLink(coin,{mint:schedule.mint,launch:homeVerifiedLaunches.find(row=>row.mint===schedule.mint)});
     }
     const dates = panel.querySelector('[data-clock-dates]');
     dates.hidden = !schedule?.cutoffAt || !schedule?.payoutAt;

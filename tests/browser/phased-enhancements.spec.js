@@ -34,7 +34,8 @@ for(const width of [390,1280]){
     await expect(page.getByRole('dialog',{name:'Choose a coin to call'})).toBeVisible();
     await page.getByRole('link',{name:'Flow QA · FLOWQA · Migrated'}).click();
     await page.locator('body.product-flows-ready').waitFor();
-    await expect(page.locator('#coin-chat-form input[name="callout"]')).toBeChecked();
+    await expect(page.locator('#coin-chat-form input[name="callout"]')).toHaveCount(0);
+    await expect(page.locator('.coin-chat-note')).toContainText('Verified holders post calls');
     await expect(page.locator('#coin-chat-input')).toBeFocused();
     expect(errors).toEqual([]);
     await page.screenshot({path:info.outputPath(`composer-${width}-mocked.png`)});

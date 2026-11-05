@@ -98,7 +98,7 @@ export function topCallersMarkup(rows, wallet) {
 const readSeen = () => { try { return localStorage.getItem(SEEN_KEY) || ''; } catch { return ''; } };
 const writeSeen = value => { try { localStorage.setItem(SEEN_KEY, value); } catch {} };
 const EMPTY = {
-  latest: 'No calls yet. Open any coin, write in its chat and tick “Call it”.',
+  latest: 'No calls yet. Post in a coin’s chat while holding its tokens to make a call.',
   top: 'No calls from this week’s top callers yet.',
   conviction: 'No conviction calls yet. These come from wallets that held the coin when they called it.',
 };

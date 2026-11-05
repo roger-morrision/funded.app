@@ -45,15 +45,14 @@ export function initMarketingAgency(document = globalThis.document) {
     const fieldset = document.createElement('fieldset'); fieldset.id = 'launch-agency-options'; fieldset.className = 'agency-options';
     const legend = document.createElement('legend'); legend.textContent = 'AI marketing team'; fieldset.append(legend);
     const help = document.createElement('p'); help.id = 'launch-agency-help'; help.textContent = 'New launches wait for verified fee vaults and executors. Agent execution is not yet available.'; help.setAttribute('role','status');
-    const terms = document.createElement('p'); terms.id = 'launch-package-terms'; fieldset.append(terms);
-    fieldset.setAttribute('aria-describedby', help.id);
+    const terms = document.createElement('p'); terms.id = 'launch-package-terms';
     const team = document.createElement('ul'); team.className = 'agency-included-list'; fieldset.append(team);
     for (const agent of POLICY.agents) {
       const row = document.createElement('li'), name = document.createElement('span'), badge = document.createElement('span');
       row.dataset.launchAgent = agent.id; name.dataset.launchAgentName = ''; name.textContent = agent.name;
       badge.className = 'agency-included-badge'; badge.textContent = 'Included'; row.append(name,badge); team.append(row);
     }
-    const split = document.createElement('p'); split.dataset.agencySplit = ''; split.setAttribute('role', 'status'); fieldset.append(split);
+    const split = document.createElement('p'); split.dataset.agencySplit = ''; split.setAttribute('role', 'status');
     const update = () => {
       const selected=readLaunchAgencySelection({requiresBurn:['boost','pro','premier'].includes(promotion.dataset.selectedTier)});
       for(const row of team.children){const included=selected.includes(row.dataset.launchAgent);row.dataset.included=String(included);row.querySelector('.agency-included-badge').textContent=included?'Included':'Promotion only';}
@@ -75,7 +74,7 @@ export function initMarketingAgency(document = globalThis.document) {
       if(publishingPaused&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved.';
     };
     updateLaunchTeam=update;view.addEventListener('funded:launch-promotion',update);
-    fieldset.append(help); fieldset.addEventListener('change', update); update(); promotion.append(fieldset);
+    fieldset.addEventListener('change', update); update(); promotion.append(fieldset);
   }
   function teamReadiness(active){agencyReady=active;updateLaunchTeam();}
   const readiness=event=>teamReadiness(event.detail?.active===true);

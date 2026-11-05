@@ -35,7 +35,7 @@ for (const width of [360, 390, 430, 1440]) {
       });
       expect(overlaps).toEqual([]);
     }
-    const packageLink = page.locator('.coin-package-rail .is-premier');
+    const packageLink = page.locator('.coin-package-rail .promotion-badge--premier');
     await packageLink.scrollIntoViewIfNeeded();
     await packageLink.evaluate(link => link.scrollIntoView({ behavior: 'instant', block: 'center' }));
     expect(await packageLink.evaluate(link => {
@@ -45,7 +45,7 @@ for (const width of [360, 390, 430, 1440]) {
     })).toBe(true);
     await page.evaluate(() => scrollTo({ top: 200, behavior: 'instant' }));
     await packageLink.evaluate(link => link.focus({ preventScroll: true }));
-    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');await expect(page.locator('#coin-boost')).toBeFocused();await page.keyboard.press('Tab');
     await expect(page.locator('#coin-profile-about-tab')).toBeFocused();
     const sequence = [];
     for (let index = 0; index < 20; index++) {

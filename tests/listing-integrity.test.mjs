@@ -7,6 +7,11 @@ import { verifyFundedBurn } from '../server/burn-verification.mjs';
 
 const mint = new PublicKey('So11111111111111111111111111111111111111112');
 const wallet = '11111111111111111111111111111111';
+test('missing Devnet mint explains the network mismatch without enabling a payment',async()=>{
+ let supplyReads=0;
+ await assert.rejects(readVerifiedListingMint({getAccountInfo:async()=>null,getTokenSupply:async()=>{supplyReads++;}},mint),/Token not found on Solana Devnet.*Mainnet tokens cannot be listed/);
+ assert.equal(supplyReads,0);
+});
 
 function metadata(name = 'Listed Token', symbol = 'LIST', recordedMint = mint) {
   const field = text => { const bytes = Buffer.from(text); const length = Buffer.alloc(4); length.writeUInt32LE(bytes.length); return Buffer.concat([length, bytes]); };

@@ -29,7 +29,7 @@ export function mountLaunchReviewDialog(document = globalThis.document) {
       </div>
       <footer class="launch-review-footer">
         <p>Signing starts real Solana approvals. Verify the finalized mint, fee route, and policy after submission.</p>
-        <div class="profile-actions"><button type="button" class="secondary-button" id="launch-review-cancel">Back</button><button type="button" class="primary-button" id="launch-review-confirm">Continue to wallet</button></div>
+        <div class="profile-actions"><button type="button" class="secondary-button" id="launch-review-cancel">Back</button><button type="button" class="primary-button" id="launch-review-confirm">Sign &amp; approve</button></div>
       </footer>
     </dialog>`);
 }

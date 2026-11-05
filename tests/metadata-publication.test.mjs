@@ -3,9 +3,14 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createMetadataPublisher,verifyPublishedMetadata} from '../server/metadata-publication.mjs';
 import {publicMetadata} from '../server/devnet-metadata.mjs';
-import {assertMetadataPublication,isPinnedMetadataUri,pinnedMetadataUri} from '../metadata-publication.js';
+import {assertMetadataPublication,isPinnedMetadataUri,pinnedMetadataUri,onchainMetadataUri} from '../metadata-publication.js';
 const image=Buffer.from('image fixture'),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const record={mint:'11111111111111111111111111111111',name:'Public logo',symbol:'LOGO',imageSha256:hash(image),metadataOrigin:'https://metadata.funded.vip'};
+test('canonical on-chain metadata keeps the exact verified CID and leaves other URLs unchanged',()=>{
+ const cid='bafy'+'a'.repeat(55);
+ assert.equal(onchainMetadataUri(pinnedMetadataUri(cid)),`ipfs://${cid}`);
+ for(const uri of ['https://funded.vip/m/example','https://gateway.pinata.cloud/ipfs/'+cid+'?redirect=1','https://gateway.pinata.cloud.evil.example/ipfs/'+cid,`ipfs://${cid}`])assert.equal(onchainMetadataUri(uri),uri);
+});
 const fixture=()=>{
  const uploads=[],objects=new Map();
  const fetchImpl=async(url,options)=>{

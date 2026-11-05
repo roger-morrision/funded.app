@@ -14,12 +14,12 @@ export function initializeCoinChat(appState) {
     const button = form.querySelector('button');
     if (button) button.disabled = true;
     try {
-      const callout = Boolean(form.querySelector('input[name="callout"]')?.checked);
-      const response = await appState.tokenChatRequest('post', { text: appState.normalizeTokenChatText(text), ...(callout ? { callout: true } : {}) });
-      if (response.available && response.data?.message) appState.coinChatMessages = [...appState.coinChatMessages, response.data.message].slice(-50);
+      const response = await appState.tokenChatRequest('post', { text: appState.normalizeTokenChatText(text) });
+      if (!response.available || !response.data?.message) throw new Error('Your message was not confirmed. Please try again.');
+      appState.coinChatMessages = [...appState.coinChatMessages, response.data.message].slice(-50);
       input.value = '';
       appState.renderCoinActivityTab();
-      appState.showToast(callout ? 'Call recorded. Follow it on the Callouts board.' : 'Wallet-verified message posted');
+      appState.showToast(response.data.message.callout ? 'Call recorded. Follow it on the Callouts board.' : 'Chat message posted');
     } catch (error) { appState.showToast(error.message || 'Chat message could not be sent'); }
     finally { if (button) button.disabled = false; }
   });

@@ -28,4 +28,15 @@ export function mountHomeStart(document=globalThis.document) {
           </div>
           <div class="home-receipts"><div><h3>See where the fees go.</h3><p>Review confirmed payments and their Solana receipts.</p></div><a href="#payments/history">All payout history <span aria-hidden="true">→</span></a></div>
           <aside class="home-welcome-guide" aria-labelledby="home-welcome-guide-title"><h2 id="home-welcome-guide-title">From first visit to first launch.</h2><div class="home-welcome-facts"><article><span class="home-step-number" aria-hidden="true">01</span><h3>Choose your community</h3><p>Create a coin or explore one. Check its saved fee policy.</p></article><article><span class="home-step-number" aria-hidden="true">02</span><h3>Review in your wallet</h3><p>Check amounts and fees, then approve each transaction.</p></article><article><span class="home-step-number" aria-hidden="true">03</span><h3>Track your rewards</h3><p>Check eligibility and funding, then follow confirmed payouts.</p></article></div><a href="/welcome">See the full platform overview →</a></aside>`;
+  // Reuse the original metric nodes and verification logic; no duplicate IDs or counters.
+  if(section && !section.querySelector('.home-proof-summary')) {
+    const proof=document.createElement('section');proof.className='home-proof-summary';
+    proof.setAttribute('aria-labelledby','home-proof-title');
+    proof.innerHTML='<header><h2 id="home-proof-title">On-chain activity</h2><a href="#analytics-detail">View activity →</a></header><div class="home-proof-metrics"></div>';
+    for(const id of ['home-kpi-launches-card','home-kpi-holder-paid-card','home-kpi-volume-card']) {
+      const card=document.getElementById(id);if(card)proof.lastElementChild.append(card);
+    }
+    section.prepend(proof);
+  }
+
 }

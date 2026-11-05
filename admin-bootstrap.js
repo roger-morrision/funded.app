@@ -22,3 +22,5 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&sidebar.cla
 mobile.addEventListener('change',()=>setMenu(false));setMenu(false);
 
 await import('./admin-page.js');
+
+await import('./service-status-ui.js');

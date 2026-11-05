@@ -9,6 +9,7 @@ import { verifyPumpLaunch } from '../launch-verification.mjs';
 import { PublicKey } from '@solana/web3.js';
 import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { devnetMetadataUri, devnetLaunchMetadataUri, devnetBannerUri } from '../../devnet-metadata.js';
+import { onchainMetadataUri } from '../../metadata-publication.js';
 import { verifiedPromotionBadge } from '../../promotion-badge.js';
 import { metadataRecordOrigin, publicMetadata } from '../devnet-metadata.mjs';
 import { readProgramDataEvidence, DEVNET_GENESIS_HASH, createAutomaticRewardChain } from '../automatic-reward-chain.mjs';
@@ -122,7 +123,9 @@ export function createLaunchRegistrationRoutes({
         transaction:await connectionFactory(solanaRpcUrl).getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
         signature:proof.signature, mint:proof.mint, payer:proof.feePayer, quote:serviceQuote }) : existingLaunch.launchServiceFee;
       const legacyMetadataUri=devnetMetadataUri(proof.mint,metadataRecordOrigin(preparedMetadata));
-      const preparedMetadataUri=preparedMetadata?.pinnedMetadata?.uri || (proof.uri===devnetLaunchMetadataUri(proof.mint)?proof.uri:legacyMetadataUri);
+      const pinnedUri=preparedMetadata?.pinnedMetadata?.uri;
+      const preparedMetadataUri=pinnedUri ? (proof.uri===pinnedUri ? pinnedUri : onchainMetadataUri(pinnedUri))
+        : (proof.uri===devnetLaunchMetadataUri(proof.mint)?proof.uri:legacyMetadataUri);
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });

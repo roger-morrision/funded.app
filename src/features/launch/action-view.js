@@ -19,6 +19,7 @@ export function updateLaunchButton(
     launchBurnReadiness,
     feeRouterState,
     walletMetricsLoading,
+    launchSubmitting = false,
     walletEstimateError,
     PROTOCOL_FUNDED_MINT,
     APP_MAINNET_READ_ONLY,
@@ -37,6 +38,7 @@ export function updateLaunchButton(
   } = {}
 ) {
   const button = document.querySelector('#launch-button');
+  if (launchSubmitting) { button.disabled = true; button.textContent = 'Creating coin…'; return; }
   const insufficient = walletBalanceLamports != null && estimatedLaunchFeeLamports != null && walletBalanceLamports < estimatedLaunchFeeLamports;
   const insufficientDeveloperBuy = creatorBuyExceedsWalletBalance();
     const balanceUnknown = wallet && (walletBalanceLamports == null || estimatedLaunchFeeLamports == null || !freshLaunchReview(launchCostReview));
@@ -172,6 +174,6 @@ export function renderPendingLaunchReview(
   }
   if (confirm) {
     confirm.disabled = !current;
-    confirm.textContent = current ? 'Continue to wallet' : 'Estimate expired — go back';
+    confirm.textContent = current ? 'Sign & approve' : 'Estimate expired — go back';
   }
 }

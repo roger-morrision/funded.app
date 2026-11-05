@@ -1,11 +1,11 @@
 import { apiRequest } from './client.js';
 
 const section = document.createElement('section');
-section.className = 'adoption-panel service-status-panel';
+section.className = 'panel service-status-panel';
 section.id = 'service-status';
 section.setAttribute('aria-labelledby', 'service-status-title');
-section.innerHTML = '<h2 id="service-status-title">Service status</h2><p>Check whether saved records and the Solana network are reachable.</p><button type="button" class="secondary-button">Check service status</button><p role="status" aria-live="polite">Status loads when requested.</p><ul class="service-status-checks" hidden></ul><p class="service-status-checked" hidden></p><p class="service-status-scope">These checks cover storage and network access. For a payment or claim, check its transaction receipt in Rewards.</p><a href="#payments">Open Rewards →</a>';
-document.querySelector('#docs')?.append(section);
+section.innerHTML = '<h2 id="service-status-title">Service status</h2><p>Check whether saved records and the Solana network are reachable.</p><button type="button" class="secondary-button">Check service status</button><p role="status" aria-live="polite">Status loads when requested.</p><ul class="service-status-checks" hidden></ul><p class="service-status-checked" hidden></p><p class="service-status-scope">These checks cover storage and network access. For a payment or claim, check its transaction receipt in Rewards.</p><a href="/#payments">Open Rewards →</a>';
+document.querySelector('#workspace')?.prepend(section);
 const button = section.querySelector('button');
 const status = section.querySelector('[role=status]');
 const checks = section.querySelector('ul');
