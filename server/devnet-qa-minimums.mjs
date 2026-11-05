@@ -73,6 +73,9 @@ export function buybackTriggerLamports(cluster, env = process.env) {
   if (cluster !== 'devnet')
     throw new Error('Devnet QA minimums cannot be enabled outside Devnet.');
   const raw = String(env.FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS || '');
+  // Holder/bonus QA uses the same master gate. A lower global buyback trigger
+  // requires its own explicit value; selecting one holder mint must not force it.
+  if (raw === '') return STANDARD_BUYBACK_TRIGGER_LAMPORTS;
   if (!/^[1-9]\d*$/.test(raw))
     throw new Error('A positive Devnet QA buyback trigger in lamports is required.');
   const amount = BigInt(raw);

@@ -21,9 +21,15 @@ test('explicit Devnet QA profile accepts only a bounded trigger', () => {
   assert.equal(buybackTriggerLamports('devnet', { ...env,
     FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:'10000' }), 10_000n);
   assert.throws(() => buybackTriggerLamports('mainnet-beta', env), /outside Devnet/);
-  for (const raw of ['', '9999', '100000001', '0.005', '-5000000'])
+  for (const raw of ['9999', '100000001', '0.005', '-5000000'])
     assert.throws(() => buybackTriggerLamports('devnet',
       { ...env,FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:raw }), /Devnet QA buyback trigger|positive/);
+});
+
+test('holder-only QA leaves the aggregate buyback trigger at 5 SOL',()=>{
+  const env={FUNDED_DEVNET_QA_MINIMUMS_ENABLED:'true',FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS:''};
+  assert.equal(buybackTriggerLamports('devnet',env),STANDARD_BUYBACK_TRIGGER_LAMPORTS);
+  assert.throws(()=>buybackTriggerLamports('mainnet-beta',env),/outside Devnet/);
 });
 
 test('only the selected Devnet mint gets a bounded lower fee collection floor', () => {

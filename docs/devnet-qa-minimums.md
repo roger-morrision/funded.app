@@ -22,6 +22,10 @@ V3 launch, collection, settlement, vault balance, approved program hash, and a
 protected market quote. A successful buyback still needs a finalized burn proof
 and the expected vault and token supply changes before it counts as verified.
 
+Leave `FUNDED_DEVNET_QA_BUYBACK_TRIGGER_LAMPORTS` empty when enabling only
+mint-scoped holder or bonus QA. The aggregate buyback trigger then remains
+5 SOL; holder QA no longer requires lowering the global buyback gate.
+
 ## Hourly holder QA policy
 
 For one disposable Devnet mint, the same flag can lower the wallet holding,
