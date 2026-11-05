@@ -51,9 +51,16 @@ for(const width of [390,1440]){
     await expect(notices).toContainText('New verified receipt');await expect(notices).toContainText('REC launched');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
   });
-  test(`recorded engine health and creator wallet facts at ${width}px (mocked ledger)`,async({page})=>{
+  test(`recorded engine health and creator wallet facts at ${width}px (mocked ledger)`,async({page},info)=>{
     await setup(page,width);await page.route('**/api/financial/operations',route=>route.fulfill({json:{cluster:'devnet',evidence:'recorded-finalized-v3',completedRecordedOperations:2,pendingBuybackOperations:1,failedRecordedOperations:0,retryAttempts:null,oldestPendingSeconds:60,lastVerifiedDeliveryAt:null,timing:{fundedToVerifiedHolderPayment:{samples:1,medianSeconds:10,p95Seconds:10}},creators:[{wallet,launches:2,verifiedPaymentReceipts:3,returningRecipients:1,badges:['Verified reward delivery']}],retentionCoverage:'Recorded paid wallets, not unique people',coverage:'Latest recorded events',generatedAt:new Date().toISOString()}}));
     await ready(page,'/#payments/activity');await page.getByText('Payout speed & system status',{exact:true}).click();const health=page.locator('#financial-engine');await expect(health).toContainText('10s');await expect(health).toContainText('Vault reconciliation: unavailable');await expect(health).toContainText('Retry-attempt countUnavailable');
+    await expect(health.locator('.operations-stats dd')).toHaveText(['2','1','0']);
+    await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr')).toHaveCount(4);
+    await expect(health.getByRole('table',{name:'Creator delivery'}).getByRole('link')).toHaveAttribute('href',`/wallet/${wallet}`);
+    await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr').first()).toContainText('Unavailable');
+    const refresh=health.getByRole('button',{name:'Refresh data'});await refresh.click();await expect(refresh).not.toHaveAttribute('aria-disabled','true');await expect(refresh).toBeFocused();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
+    await health.screenshot({path:info.outputPath(`payout-dashboard-${width}.png`)});
     await page.goto(`/wallet/${wallet}`);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
     await page.locator('#wallet-page summary').filter({hasText:'Creator delivery facts'}).click();await expect(page.locator('#creator-wallet-facts')).toContainText('3 recorded payment receipts');await expect(page.locator('#creator-wallet-facts')).toContainText('not an endorsement');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);

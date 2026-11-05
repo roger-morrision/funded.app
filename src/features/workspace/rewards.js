@@ -42,7 +42,7 @@ export function rewards() {
   const history = node('div'); history.id = 'rewards-history';
   const historyPanel = $('.x-claim-activity', x); if (historyPanel) history.append(historyPanel);
   root.append(overview,creator,holder,funded,x,history);
-  const select = tabs(root,[{key:'overview',label:'Overview',panel:overview},{key:'holder',label:'Holder SOL',panel:holder},{key:'funded',label:'Token airdrops',panel:funded},{key:'creator',label:'Creator SOL',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'Public history',panel:history}],'Reward type');
+  const select = tabs(root,[{key:'overview',label:'Overview',panel:overview},{key:'holder',label:'Coin Holder',panel:holder},{key:'funded',label:'Token airdrops',panel:funded},{key:'creator',label:'Coin Creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'All Payout History',panel:history}],'Reward type');
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   for(const tab of root.querySelectorAll(':scope > .ui-tabs > [role="tab"]'))tab.dataset.rewardOpen=tab.getAttribute('aria-controls').replace('rewards-','');

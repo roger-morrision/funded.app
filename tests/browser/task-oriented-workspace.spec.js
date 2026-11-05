@@ -85,7 +85,9 @@ for(const width of [320,390,768,1440]){
     const center=page.locator('#financial-center');
     await expect(center.locator('[data-flow-empty-title]')).toContainText('Connect a wallet');
     await expect(center.locator('.financial-record')).toHaveCount(0);
-    await expect(page.locator('.reward-program-guide')).not.toHaveAttribute('open','');
+    await expect(page.locator('.reward-program-guide summary')).toHaveCount(0);
+    await expect(page.locator('.reward-program-guide article')).toHaveCount(6);
+    for(const article of await page.locator('.reward-program-guide article').all()) await expect(article).toBeVisible();
     await center.getByLabel('Activity scope').selectOption('protocol');
     await expect(center.locator('.financial-record')).toHaveCount(1);
     await expect(center.locator('[data-flow-status]')).toContainText('not your rewards');
@@ -95,6 +97,6 @@ for(const width of [320,390,768,1440]){
     await page.getByRole('tab',{name:'Token airdrops',exact:true}).click();
     await expect(page.locator('#rewards-funded')).toBeVisible();
     await page.evaluate(()=>{location.hash='payments/x';});await expect(page.locator('#rewards-x')).toBeVisible();
-    await page.evaluate(()=>{location.hash='payments/history';});await expect(page.getByRole('tab',{name:'Public history',exact:true})).toHaveAttribute('aria-selected','true');
+    await page.evaluate(()=>{location.hash='payments/history';});await expect(page.getByRole('tab',{name:'All Payout History',exact:true})).toHaveAttribute('aria-selected','true');
   });
 }

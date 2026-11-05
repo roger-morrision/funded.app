@@ -12,9 +12,9 @@ export const rewardPrograms = [
 export function mountRewardGuidance(app) {
   const root = document.querySelector('#rewards-overview');
   if (root) {
-    const box = el('details', null, 'flow-panel reward-program-guide');
-    box.dataset.inlineStatus = ''; box.open = false;
-    box.append(el('summary', 'Which reward can I receive?'));
+    const box = el('section', null, 'flow-panel reward-program-guide');
+    const heading = el('h2', 'Which reward can I receive?');heading.id='reward-program-guide-title';
+    box.setAttribute('aria-labelledby',heading.id);box.append(heading);
     for (const [name, who, asset, action, href] of rewardPrograms) {
       const row = el('article'); row.append(link(name, href), el('p', `${who}. Receive ${asset}. ${action}.`)); box.append(row);
     }
