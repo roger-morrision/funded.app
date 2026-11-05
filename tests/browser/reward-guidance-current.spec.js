@@ -52,4 +52,3 @@ test('every guide and Help topic opens with concise current guidance',async({pag
     await expect(panel.locator('.help-topics-answer a')).toHaveAttribute('href',/^#docs\//);}
   expect(errors).toEqual([]);
 });
-
