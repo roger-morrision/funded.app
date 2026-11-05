@@ -126,7 +126,8 @@ test('Capital flow refreshes on entry and ignores an older overlapping snapshot 
     await page.goto('/#overview');
     await expect(page.locator('body')).toHaveClass(/workspace-ready/);
     await expect.poll(()=>requests).toBe(1);
-    await page.locator('.primary-nav a[href="#capital-flow"]').click();
+    // Exercise route entry directly; the secondary navigation is collapsed on Home.
+    await page.evaluate(() => { location.hash = '#capital-flow'; });
     await expect.poll(()=>requests).toBe(2);
     const status=page.locator('#daily-bonus-dashboard [data-bonus-status]');
     await expect(status).toContainText('10:10:00 UTC');
@@ -524,7 +525,8 @@ test.describe('FQA-071 original bonus history ownership', () => {
         const outside = await page.evaluateHandle(() => document.activeElement);
         gate.release(); await expect.poll(() => leaving.evaluate(element => element.isConnected)).toBe(false);
         expect(await outside.evaluate(element => element.isConnected && document.activeElement === element)).toBe(true);
-        await page.locator('#home-daily-bonuses a[href="#bonuses"]').first().click(); await expect(page).toHaveURL(/#bonuses$/);
+        // Home no longer exposes the embedded bonus panel; revisit the public route.
+        await page.evaluate(() => { location.hash = '#bonuses'; }); await expect(page).toHaveURL(/#bonuses$/);
         await nativeBonusRecipient(page, info, 0, 'after-native-route-return');
         await bonusSnapshot(page, info, 'owner-leave-return-' + width);
       } finally { await f.finish(info); }
