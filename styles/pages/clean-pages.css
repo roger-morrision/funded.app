@@ -37,6 +37,7 @@ html body #main-content .home-start-grid h3 { margin: 0; font-size: 18px; line-h
 html body #main-content .home-start-grid p { margin: 0; color: var(--cp-muted); font-size: 14px; line-height: 1.6; }
 html body #main-content .home-start-grid strong { margin-top: auto; padding-top: 12px; color: var(--cp-accent); font-size: 14px; }
 html body #main-content .home-step-number { color: var(--cp-accent); font: 13px var(--mono-font,monospace); }
+html body #main-content .home-benefit-value { color: var(--cp-accent); font-size: 32px; line-height: 1.2; font-weight: 700; }
 html body #main-content .home-start-note { margin: 16px 0 0; color: var(--cp-muted); font-size: 13px; line-height: 1.6; }
 body:not(.page-route-overview) .home-start { display: none !important; }
 /* Full discovery and protocol figures have dedicated destinations. Keep IDs for their readers. */

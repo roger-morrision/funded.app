@@ -17,15 +17,6 @@ function disclosure(target, label) {
 }
 
 function home() {
-  setText('.home-hero-kicker', 'Welcome to funded.vip');
-  const actions = $('.hero-actions');
-  const explore = actions?.querySelector('[href="#explore"]');
-  const launch = actions?.querySelector('[href="#launch"]');
-  if (explore && launch) {
-    explore.className = 'primary-button'; explore.textContent = 'Explore coins';
-    launch.className = 'hero-secondary-action'; launch.textContent = 'Create a coin';
-    actions.prepend(explore);
-  }
   const rewardGroups = $('.home-rewards-stack');
   const board = $('.home-launch-board');
   if (board && !board.querySelector('.home-explore-link')) {

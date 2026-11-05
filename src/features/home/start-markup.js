@@ -1,11 +1,11 @@
-// Mount before workspace routing so Home has one stable getting-started section.
+// A compact version of the platform overview, mounted before workspace routing.
 export function mountHomeStart(document=globalThis.document) {
   const section=document.querySelector('.home-start');
-  if(section) section.innerHTML=`<header><p class="eyebrow">Start here</p><h2 id="home-start-title">What would you like to do?</h2></header>
+  if(section) section.innerHTML=`<header><p class="eyebrow">Why funded.vip</p><h2 id="home-start-title">Built to share the rewards.</h2></header>
           <div class="home-start-grid">
-            <a href="#explore"><span class="home-step-number">01</span><h3>Find your community</h3><p>Explore coins and save favorites to revisit. Follow wallets and creators for their activity.</p><strong>Explore coins →</strong></a>
-            <a href="#launch"><span class="home-step-number">02</span><h3>Bring your idea to life</h3><p>Add coin details, choose how fees are shared, and review the full cost before signing.</p><strong>Create a coin →</strong></a>
-            <a href="#payments"><span class="home-step-number">03</span><h3>Understand your rewards</h3><p>See which rewards arrive automatically and which require a claim. Eligibility and funding apply.</p><strong>Check rewards →</strong></a>
+            <a href="#launch"><span class="home-benefit-value">80%</span><h3>Creator-directed fees</h3><p>Choose how this share of collected creator fees is split between you, coin holders, and an X partner.</p><strong>Create a coin →</strong></a>
+            <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Airdrops for $FUNDED holders</h3><p>Every launch reserves at least 30M tokens for eligible $FUNDED holders at its verified migration snapshot.</p><strong>Explore airdrops →</strong></a>
+            <a href="#bonuses"><span class="home-benefit-value">Top 3</span><h3>Daily SOL bonuses</h3><p>Creators, traders, and referrers can qualify in each category. Payouts follow funded-pool and winner checks.</p><strong>View daily bonuses →</strong></a>
           </div>
-          <aside class="home-welcome-guide" aria-labelledby="home-welcome-guide-title"><h2 id="home-welcome-guide-title">A few things to know</h2><div class="home-welcome-facts"><article><h3>Browse first</h3><p>You can explore without connecting a wallet. Save coins you want to revisit in Favorites.</p></article><article><h3>You approve every transaction</h3><p>Review the amount, fees, and quote before signing in your wallet. A buy shortcut only selects an amount.</p></article><article><h3>Rewards have conditions</h3><p>Each coin has its own fee policy. Eligibility and available funding determine rewards; an allocation is not a payment.</p></article></div><a href="#docs">Read the getting-started guide →</a></aside>`;
+          <aside class="home-welcome-guide" aria-labelledby="home-welcome-guide-title"><h2 id="home-welcome-guide-title">How it works</h2><div class="home-welcome-facts"><article><h3>1. Create or discover</h3><p>Launch your own coin or explore a community. Check its saved fee policy before taking part.</p></article><article><h3>2. Review and approve</h3><p>Connect when you’re ready. Check the amounts and fees, then approve each transaction in your wallet.</p></article><article><h3>3. Follow the receipts</h3><p>View eligible rewards and confirmed payouts. Funding and eligibility determine payments.</p></article></div><a href="/welcome">See the full platform overview →</a></aside>`;
 }
