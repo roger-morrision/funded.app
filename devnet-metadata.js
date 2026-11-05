@@ -1,3 +1,4 @@
+import {isPinnedMetadataUri} from './metadata-publication.js';
 export const LEGACY_DEVNET_METADATA_ORIGIN = 'https://metadata.funded.vip';
 
 // Only deployment configuration may choose the host. Never derive this from an
@@ -32,11 +33,11 @@ export function devnetBannerUri(mint, origin = DEVNET_METADATA_ORIGIN) {
 }
 
 export function isDevnetBannerUri(uri, mint) {
-  return uri === devnetBannerUri(mint) || uri === devnetBannerUri(mint, LEGACY_DEVNET_METADATA_ORIGIN);
+  return uri === devnetBannerUri(mint) || uri === devnetBannerUri(mint, LEGACY_DEVNET_METADATA_ORIGIN) || isPinnedMetadataUri(uri);
 }
 
 export function isDevnetImageUri(uri, mint) {
-  return uri === devnetImageUri(mint) || uri === devnetImageUri(mint, LEGACY_DEVNET_METADATA_ORIGIN);
+  return uri === devnetImageUri(mint) || uri === devnetImageUri(mint, LEGACY_DEVNET_METADATA_ORIGIN) || isPinnedMetadataUri(uri);
 }
 
 export function metadataStatement(record) {

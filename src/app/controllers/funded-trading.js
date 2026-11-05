@@ -11,6 +11,8 @@ export function createFundedTradingController(appState) {
     const badge = document.querySelector('#funded-buy-route-state');
     const status = document.querySelector('#funded-buy-status');
     if (!input || !button || !badge || !status) return;
+    const dialogClose = document.querySelector('#funded-buy-dialog .funded-buy-close');
+    if (dialogClose) dialogClose.disabled = appState.fundedBuyBusy;
     const ready = appState.fundedBuyRoute.status === 'ready';
     const amount = Number(input.value);
     input.disabled = !ready || appState.fundedBuyBusy;
@@ -68,6 +70,7 @@ export function createFundedTradingController(appState) {
     appState.fundedBuyBusy = true;
     appState.renderFundedBuyControl();
     let submittedSignature = null;
+    const phase = appState.fundedBuyPreview ? 'buy' : 'preview';
     try {
       const rpc = await appState.getTradePreviewConnection();
       appState.assertWalletSessionCurrent(session);
@@ -104,7 +107,7 @@ export function createFundedTradingController(appState) {
       appState.fundedBuyPreview = null;
       appState.renderFundedBuyControl(error.signature || submittedSignature
         ? `Confirmation is uncertain for ${error.signature || submittedSignature}. Check that signature on Solana before trying again.`
-        : fundedBuyFailureMessage(error, 'buy'));
+        : fundedBuyFailureMessage(error, phase));
     } finally {
       appState.fundedBuyBusy = false;
       appState.renderFundedBuyControl();

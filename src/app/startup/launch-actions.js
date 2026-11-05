@@ -3,9 +3,11 @@ import { initializePaymentHistoryControls } from '../../features/payments/histor
 import { bindPublicQuoteRetry } from '../../features/launch/cost-view.js';
 import { bindLaunchCostNavigation } from '../../features/launch/cost-navigation.js';
 import { initializeLaunchRegistrationRecovery } from './launch-registration-recovery.js';
+import { initializeFundedBuyDialog } from '../../features/funded/buy-dialog.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeLaunchActions(appState) {
+  initializeFundedBuyDialog(appState);
   // app-source: 664
   initializeLaunchRegistrationRecovery(appState);
   // app-source-end
@@ -25,7 +27,7 @@ export function initializeLaunchActions(appState) {
   document.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button || !/^connect wallet/i.test(button.textContent.trim())) return;
-    if (['connect-button', 'profile-connect', 'coin-trade-button', 'trade-connect-wallet', 'trade-submit', 'launch-button', 'airdrop-button', 'sol-claim-submit'].includes(button.id)) return;
+    if (['connect-button', 'profile-connect', 'coin-trade-button', 'trade-connect-wallet', 'trade-submit', 'funded-buy-submit', 'launch-button', 'airdrop-button', 'sol-claim-submit'].includes(button.id)) return;
     event.preventDefault();
     appState.connectWallet();
   });

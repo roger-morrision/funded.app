@@ -1,6 +1,7 @@
 import {sharedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
 import {promotionContentState} from '../../features/launch/promotion-requirements.js';
 import {devnetLaunchMetadataUri} from '../../../devnet-metadata.js';
+import {assertMetadataPublication,isPinnedMetadataUri} from '../../../metadata-publication.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchReviewController(appState) {
   // app-source: 619
@@ -31,9 +32,11 @@ export function createLaunchReviewController(appState) {
     appState.assertWalletSessionCurrent(session);
     const signed = await session.provider.signMessage(new TextEncoder().encode(appState.metadataStatement(record)));
     appState.assertWalletSessionCurrent(session);
+    appState.setLaunchStatus?.('Publishing token metadata and checking the public image before transaction approval…');
     const response = await appState.apiRequest('/api/devnet-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', bannerBase64, bannerType: banner?.type || '', signature: appState.bs58.encode(signed.signature || signed) } });
     appState.assertWalletSessionCurrent(session);
-    if (!response.available || response.data?.uri !== devnetLaunchMetadataUri(mint)) throw new Error(response.data?.error || 'Solana metadata could not be published. No token transaction was sent.');
+    if (!response.available || (response.data?.uri !== devnetLaunchMetadataUri(mint) && !isPinnedMetadataUri(response.data?.uri))) throw new Error(response.data?.error || 'Solana metadata could not be published. No token transaction was sent.');
+    assertMetadataPublication(response.data, response.data.uri);
     if (!Number.isFinite(Date.parse(response.data.symbolReservationExpiresAt))) throw new Error('Ticker reservation could not be verified. No token transaction was sent.');
     return { uri:response.data.uri, symbolReservationExpiresAt:response.data.symbolReservationExpiresAt };
   }

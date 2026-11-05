@@ -122,7 +122,7 @@ export function createLaunchRegistrationRoutes({
         transaction:await connectionFactory(solanaRpcUrl).getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
         signature:proof.signature, mint:proof.mint, payer:proof.feePayer, quote:serviceQuote }) : existingLaunch.launchServiceFee;
       const legacyMetadataUri=devnetMetadataUri(proof.mint,metadataRecordOrigin(preparedMetadata));
-      const preparedMetadataUri=proof.uri===devnetLaunchMetadataUri(proof.mint)?proof.uri:legacyMetadataUri;
+      const preparedMetadataUri=preparedMetadata?.pinnedMetadata?.uri || (proof.uri===devnetLaunchMetadataUri(proof.mint)?proof.uri:legacyMetadataUri);
       if (input.metadataUri && input.metadataUri !== preparedMetadataUri) return json(res, 409, { error: 'Launch metadata URL does not match the mint.' });
       if (input.metadataUri && !preparedMetadata) return json(res, 409, { error: 'Signed Devnet metadata is missing.' });
       if (preparedMetadata && (preparedMetadata.creatorWallet !== proof.feePayer || preparedMetadata.name !== proof.name || preparedMetadata.symbol !== proof.symbol || (proof.uri && proof.uri !== preparedMetadataUri))) return json(res, 409, { error: 'Signed metadata does not match the confirmed Pump launch.' });
@@ -184,7 +184,7 @@ export function createLaunchRegistrationRoutes({
         ...(developerTokenLock?{developerTokenLock}:{}),
         ...(serviceFeeReceipt ? { launchServiceFee:serviceFeeReceipt } : {}),
         ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
-        ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: devnetBannerUri(proof.mint, metadataRecordOrigin(preparedMetadata)) } : {}),
+        ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: publicMetadata(preparedMetadata).banner } : {}),
         communityAllocation: policy.communityAllocation,
         ...(xLinked ? { xUserId: policy.xUserId } : {}),
         communityAirdrop: verifiedReserve

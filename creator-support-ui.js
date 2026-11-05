@@ -1,4 +1,5 @@
 import { apiRequest } from './client.js';
+import {isDevnetImageUri} from './devnet-metadata.js';
 import { APP_CLUSTER } from './app-config.js';
 import { CREATOR_SUPPORT_VERSION, normalizeCreatorHandle, supportShareText } from './creator-support-model.js';
 import './creator-support.css';
@@ -37,7 +38,7 @@ async function loadCreatorCoinLogos(generation) {
       const mint = card.dataset.coinMint;
       const launch = verified.get(mint);
       if (!avatar || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)
-        || launch?.imageUri !== `https://metadata.funded.vip/devnet-images/${mint}`) return;
+        || !isDevnetImageUri(launch?.imageUri, mint)) return;
       const sources = [`/devnet-images/${encodeURIComponent(mint)}`, launch.imageUri];
       let next = 0;
       const trySource = () => {

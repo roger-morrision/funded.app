@@ -16,6 +16,16 @@
 .burn-center-main, .burn-center-aside { display: grid; gap: 12px; }
 .burn-center .panel { border-color: #2c3748; border-radius: 10px; background: #111720; }
 .burn-action-card { padding: 0; overflow: hidden; }
+#funded-buy-dialog { width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); box-sizing: border-box; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); overflow: auto; }
+#funded-buy-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+#funded-buy-dialog .funded-buy-close { display: block; margin: 0 0 12px auto; min-height: 44px; }
+#funded-buy-dialog .burn-buy-card { margin: 0; padding: 0; border: 0; background: transparent; width: 100%; box-sizing: border-box; }
+#funded-buy-dialog .burn-card-head { flex-wrap: wrap; gap: 12px; }
+#funded-buy-dialog .burn-buy-card > p { font-family: inherit; font-size: 14px; line-height: 1.6; padding-bottom: 12px; }
+#funded-buy-dialog :is(.burn-amount-field, .burn-status, .burn-primary) { font-family: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; }
+#funded-buy-dialog .burn-amount-field input { font-size: 16px; }
+#funded-buy-dialog .burn-primary { min-height: 46px; }
+#funded-buy-dialog .funded-buy-retry { display: block; margin: 12px auto 0; min-height: 44px; }
 .burn-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 13px; border-bottom: 1px solid #2a3444; }
 .burn-card-head h2 { margin: 5px 0 0; color: #eff2f7; font-size: 18px; }
 .burn-status { padding: 6px 8px; border: 1px solid #39465a; border-radius: 6px; font: 700 8px 'DM Mono', monospace; text-transform: uppercase; }

@@ -1,0 +1,12 @@
+# Optional durable metadata overlay; retain the current release and worker overlays.
+# Configure the JWT file securely before enabling. Never commit its contents.
+services:
+  app:
+    environment:
+      METADATA_STORAGE: pinata
+      PINATA_JWT_FILE: /run/secrets/pinata_jwt
+    secrets:
+      - pinata_jwt
+secrets:
+  pinata_jwt:
+    file: ${FUNDED_PINATA_JWT_FILE:?Set the absolute path to the server-only Pinata JWT file}

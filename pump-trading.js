@@ -336,9 +336,16 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   assertWalletCurrent();
   onStatus('Waiting for wallet approval…');
   const reviewed=Transaction.from(transaction.serialize({requireAllSignatures:false,verifySignatures:false}));
-  const signed = await provider.signTransaction(transaction);
+  const walletSigned = await provider.signTransaction(transaction);
   assertWalletCurrent();
-  if(!(signed instanceof Transaction))throw new Error('Wallet returned an invalid trade transaction. Nothing was submitted.');
+  // Compare canonical wire transactions on both sides. Compilation promotes
+  // account permissions across instructions; wallet objects can retain the
+  // original per-instruction flags or come from another web3.js instance.
+  let signed;
+  try { signed = Transaction.from(walletSigned.serialize()); }
+  catch { throw new Error('Wallet returned an invalid trade transaction. Nothing was submitted.'); }
+  if (!signed.verifySignatures()) throw new Error('Wallet returned an invalid trade signature. Nothing was submitted.');
+  if (provider.remoteMobile) signed.fundedLastValidBlockHeight = walletSigned.fundedLastValidBlockHeight;
   if(provider.remoteMobile)reviewed.recentBlockhash=signed.recentBlockhash;
   if(!inspectPhantomTradeTransaction(reviewed,signed).ok)throw new Error('Wallet changed the reviewed trade. Nothing was submitted.');
   const signedBlockhash = signed.recentBlockhash || latest.blockhash;

@@ -48,3 +48,26 @@ test('public recovery survives reload, blocks only the matching wallet/coin and 
  const saved=JSON.parse([...values.values()][0])[0];assert(!('wire'in saved));assert(!('secretKey'in saved));
  recordTradeRecovery({...row,broadcastUncertain:false},storage);assert.equal(uncertainTrade(wallet,mint),null);
 });
+
+for(const returnedShape of ['original','roundtrip','foreign']) test(`PumpSwap shared account permissions accept ${returnedShape} wallet results`,async()=>{
+ const payer=Keypair.generate(),recipient=Keypair.generate().publicKey,mint=Keypair.generate().publicKey;
+ const instructions=[SystemProgram.transfer({fromPubkey:payer.publicKey,toPubkey:recipient,lamports:10}),
+  // The same account is writable globally but read-only in this instruction.
+  new (await import('@solana/web3.js')).TransactionInstruction({programId:mint,keys:[{pubkey:recipient,isSigner:false,isWritable:false}],data:Buffer.from([1])})];
+ let sends=0;
+ const trade={side:'buy',mint,user:payer.publicKey,inputAmount:.01,slippagePercent:1,outputAmount:new BN(1),instructions};
+ const connection={getLatestBlockhash:async()=>({blockhash:Keypair.generate().publicKey.toBase58(),lastValidBlockHeight:100}),
+  sendRawTransaction:async wire=>{sends++;const tx=Transaction.from(wire);assert(tx.verifySignatures());return bs58.encode(tx.signature);},confirmTransaction:async()=>({value:{err:null}})};
+ const provider={signTransaction:async tx=>{tx.sign(payer);return returnedShape==='original'?tx:returnedShape==='roundtrip'?Transaction.from(tx.serialize()):{serialize:()=>tx.serialize()};}};
+ await submitTrade({connection,provider,side:'buy',mint,user:payer.publicKey,amount:.01,preparedTrade:trade});assert.equal(sends,1);
+});
+
+test('malformed and unsigned wallet results never broadcast',async()=>{
+ const payer=Keypair.generate(),mint=Keypair.generate().publicKey;
+ for(const bad of [null,{serialize:()=>Buffer.alloc(20)},'unsigned']){
+  let sends=0;const trade={side:'buy',mint,user:payer.publicKey,inputAmount:.01,slippagePercent:1,outputAmount:new BN(1),instructions:[SystemProgram.transfer({fromPubkey:payer.publicKey,toPubkey:mint,lamports:1})]};
+  await assert.rejects(submitTrade({connection:{getLatestBlockhash:async()=>({blockhash:mint.toBase58(),lastValidBlockHeight:1}),sendRawTransaction:async()=>{sends++;}},
+   provider:{signTransaction:async tx=>bad==='unsigned'?{serialize:()=>tx.serialize({requireAllSignatures:false,verifySignatures:false})}:bad},side:'buy',mint,user:payer.publicKey,amount:.01,preparedTrade:trade}),/invalid trade/);
+  assert.equal(sends,0);
+ }
+});

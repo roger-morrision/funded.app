@@ -12,6 +12,15 @@ function unavailableMessage(error, subject) {
 }
 
 export function fundedBuyFailureMessage(error, phase = 'preview') {
+  const detail = String(error?.message || '');
+  if (/invalid trade (transaction|signature)|changed the reviewed trade|returned a different transaction/i.test(detail))
+    return 'The wallet response did not match the reviewed transaction. Nothing was submitted. Reconnect your wallet and preview again.';
+  if (/insufficient (funds|lamports|SOL)|debit an account but found no record/i.test(detail))
+    return 'Not enough Devnet SOL for the buy, fees and account rent. Add Devnet SOL to this wallet, then preview again.';
+  if (/transaction expired|blockhash not found|block height exceeded/i.test(detail))
+    return 'The transaction expired before completion. Check any submitted signature before previewing again.';
+  if (/service fees.*unavailable/i.test(detail))
+    return 'Current app fees could not be verified. Refresh and preview again before signing.';
   return unavailableMessage(error,phase === 'preview' ? 'Buy preview' : 'Buy') || (phase === 'preview'
     ? 'Buy preview is unavailable because the pool could not be verified. Try again shortly.'
     : 'Buy could not be completed. Refresh the quote and try again.');

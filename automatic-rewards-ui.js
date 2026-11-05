@@ -4,6 +4,7 @@ import { formatTokens, utcMoment } from './src/features/rewards/card-format.js';
 import { distributionClock, countdownText, selectDisplaySchedule } from './automatic-rewards.js';
 import { EXPLORE_CLUSTER } from './app-config.js';
 import { verifiedCurveProgress } from './verified-curve-state.js';
+import {isDevnetImageUri} from './devnet-metadata.js';
 
 import './automatic-rewards.css';
 
@@ -36,7 +37,7 @@ let launchNames = new Map();
 function loadFundedTokenLogo(avatar, launch) {
   const mint = String(launch?.mint || '');
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)
-    || launch.imageUri !== `https://metadata.funded.vip/devnet-images/${mint}`) return;
+    || !isDevnetImageUri(launch.imageUri, mint)) return;
   const sources = [`/devnet-images/${encodeURIComponent(mint)}`, launch.imageUri];
   let next = 0;
   const trySource = () => {
