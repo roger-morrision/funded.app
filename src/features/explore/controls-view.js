@@ -30,6 +30,7 @@ export function renderExploreControls(
     document = globalThis.document,
   } = {}
 ) {
+  const rankingNote=document.querySelector('#explore-ranking-note');if(rankingNote)rankingNote.hidden=exploreSort!=='trending';
   const page = document.querySelector('#explore');
   if (page) { page.dataset.exploreView = exploreView; page.dataset.cluster = EXPLORE_CLUSTER; page.dataset.exploreTab = exploreTab; }
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => { const active = button.dataset.exploreTab === exploreTab; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });

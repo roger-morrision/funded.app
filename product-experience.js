@@ -58,6 +58,7 @@ function explore() {
     leaders.before(rankings);rankings.append(heading,leaders);
   }
   const bar = $('.explore-control-bar');
+  if(bar&&!$('#explore-ranking-note')){const note=document.createElement('p');note.id='explore-ranking-note';note.className='discovery-note';note.textContent='Participation ranks observed wallets and activity over time with capped volume influence. Paid boosts are excluded. Wallets are not unique people; missing data ranks last.';bar.after(note);}
   const sort = $('#explore-sort');
   const label = sort?.closest('label');
   if (label && bar) {
@@ -74,7 +75,7 @@ function explore() {
       ['funded.vip rewards', ['boosted', 'tier-burn', 'airdrop', 'holder-fee', 'x-fee']],
       ['More', ['trades', 'turnover', 'liquidity', 'recent-trade']],
     ];
-    for (const value of ['volume', 'market-cap', 'newest', 'holders', 'change']) {
+    for (const value of ['trending', 'volume', 'market-cap', 'newest', 'holders', 'change']) {
       const option = sort.querySelector(`option[value="${value}"]`);
       if (option) sort.append(option);
     }

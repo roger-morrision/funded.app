@@ -1,9 +1,11 @@
+import { renderMarketStatus } from '../../features/coin/market-status.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
 import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCoinStateController(appState) {
   // app-source: 979
   function resetCoinSurface(mintAddress){
+    document.querySelector('#coin-market-status')?.remove();
     const retry = document.querySelector('#coin-retry'); if (retry) retry.hidden = true;
     renderCoinBurnDashboard({mint:mintAddress,status:'loading',cluster:appState.EXPLORE_CLUSTER});
     appState.coinTradeEstimate = null;
@@ -72,25 +74,27 @@ export function createCoinStateController(appState) {
   // app-source-end
 
   // app-source: 980
-  async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated){
+  async function loadCoinMarketActivity(mintAddress, loadId, decimals, graduated, initialRequest){
     let response;
     // A cold scan can outlive a single RPC request. Rejoin its cached/in-flight
     // result once after a transient failure instead of stranding both panels.
     for (let attempt = 0; attempt < 2; attempt += 1) {
       if (loadId !== appState.coinLoadId) return;
-      response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,
-        { signal: AbortSignal.timeout(20000) }).catch(error => ({ available:false, data:null, status:error?.status }));
+      response = await (attempt===0 && initialRequest ? initialRequest : appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,
+        { signal: AbortSignal.timeout(20000) })).catch(error => ({ available:false, data:null, status:error?.status }));
       if (loadId !== appState.coinLoadId) return;
       if (response.available || (response.status && ![408,429,500,502,503,504].includes(response.status))) break;
       if (attempt === 0) await new Promise(resolve => setTimeout(resolve,500));
     }
     if (loadId !== appState.coinLoadId) return;
-    const market = response.available && response.data?.cluster === appState.EXPLORE_CLUSTER ? response.data : null;
+    const market = response.available && response.data?.cluster === appState.EXPLORE_CLUSTER && (!response.data.mint || response.data.mint===mintAddress) ? response.data : null;
     const hasPoolTradeCount = Number.isInteger(market?.poolTradeCount24h);
     const completePoolHistory = market?.poolHistoryCoverage === 'complete' && market?.coverage === 'complete';
-    if (graduated && !(hasPoolTradeCount && market.poolTradeCount24h >= 0
+    const usablePoolHistory = hasPoolTradeCount && market.poolTradeCount24h >= 0
       && (market.poolTradeCount24h > 0 || completePoolHistory)
-      && ['complete', 'partial'].includes(market.coverage) && market.volume24hSol != null && Number.isFinite(Number(market.volume24hSol)))) {
+      && ['complete', 'partial'].includes(market.coverage) && market.volume24hSol != null && Number.isFinite(Number(market.volume24hSol));
+    renderMarketStatus({mint:mintAddress,observedAt:market?.observedAt,coverage:market?.coverage,available:graduated?usablePoolHistory:market?.volume24hSol!=null&&Number.isFinite(Number(market.volume24hSol)),retry:async()=>{if(loadId!==appState.coinLoadId)return;appState.resetCoinSurface(mintAddress);await appState.loadCoinOnChain(mintAddress);}});
+    if (graduated && !usablePoolHistory) {
       const poolScanNote = !market ? 'PumpSwap trade history is unavailable right now.'
         : !hasPoolTradeCount ? 'PumpSwap trades are missing from the available history.'
           : market.coverage === 'partial' ? 'No PumpSwap trades were found. Some history is missing.'

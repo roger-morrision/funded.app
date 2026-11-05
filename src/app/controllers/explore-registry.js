@@ -31,7 +31,7 @@ export function createExploreRegistryController(appState) {
   function updateExploreSortAvailability(){
     const select = document.querySelector('#explore-sort');
     if (appState.EXPLORE_CLUSTER !== 'devnet') {
-      const labels = { 'market-cap': 'Market cap', volume: '24h volume', boosted: 'Active paid boosts', airdrop: 'Community airdrop allocation', 'tier-burn': 'Verified tier burn', 'holder-fee': 'Creator fees to holders', 'x-fee': 'Creator fees to X account', trades: '24h trades', turnover: 'Volume / cap', liquidity: 'Liquidity', 'recent-trade': 'Recent activity', holders: 'Holders', change: '24h price change', newest: 'Newest' };
+      const labels = { trending:'Participation', 'market-cap': 'Market cap', volume: '24h volume', boosted: 'Active paid boosts', airdrop: 'Community airdrop allocation', 'tier-burn': 'Verified tier burn', 'holder-fee': 'Creator fees to holders', 'x-fee': 'Creator fees to X account', trades: '24h trades', turnover: 'Volume / cap', liquidity: 'Liquidity', 'recent-trade': 'Recent activity', holders: 'Holders', change: '24h price change', newest: 'Newest' };
       if (select) for (const option of select.options) { option.textContent = labels[option.value]; option.disabled = option.value === 'trades'; }
       document.querySelectorAll('[data-explore-sort]').forEach(button => { button.disabled = false; button.title = ''; });
       const headings = document.querySelectorAll('.scanner-head span');
@@ -44,6 +44,7 @@ export function createExploreRegistryController(appState) {
     }
     const benefits = appState.assets.map(appState.withVerifiedExploreBenefits);
     const supported = {
+      trending: true,
       boosted: true,
       'market-cap': appState.assets.some(item => item.curveCapSol != null),
       volume: appState.assets.some(item => appState.withMarketWindow(item, appState.exploreWindow).windowVolumeSol != null),
@@ -63,7 +64,7 @@ export function createExploreRegistryController(appState) {
       const available = supported[button.dataset.exploreSort || button.dataset.exploreLeaderSort] !== false
         && (!button.dataset.exploreLeaderSort || button.dataset.state === 'ready');
       button.disabled = !available;
-      const activitySort = ['volume','trades','turnover'].includes(button.dataset.exploreSort || button.dataset.exploreLeaderSort);
+      const activitySort = ['trending','volume','trades','turnover'].includes(button.dataset.exploreSort || button.dataset.exploreLeaderSort);
       button.title = !available ? 'This sort needs more verified data' : activitySort && appState.exploreScannedCount < appState.assets.length
         ? `Partial ranking: activity checked for ${appState.exploreScannedCount} of ${appState.assets.length} tokens` : '';
       if (activitySort) button.setAttribute('aria-describedby','explore-activity-coverage');

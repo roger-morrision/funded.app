@@ -18,7 +18,10 @@ export function mountRewardGuidance(app) {
     for (const [name, who, asset, action, href] of rewardPrograms) {
       const row = el('article'); row.append(link(name, href), el('p', `${who}. Receive ${asset}. ${action}.`)); box.append(row);
     }
-    root.prepend(box);
+    root.append(box);
+    const states=el('section',null,'reward-status-guide');states.setAttribute('aria-label','Find your reward status');
+    states.innerHTML='<h2>Check your reward status</h2><p>These are separate stages, not balances or promised payments.</p><div><a href="#payments/history"><strong>Paid</strong><span>Confirmed SOL transfers and receipts. Check the recipient wallet.</span></a><a href="#payments/holders"><strong>Awaiting funding or eligibility</strong><span>An allocation can exist before a payout is ready. Check the pool and cutoff.</span></a><a href="#airdrops"><strong>Check token claims</strong><span>Launched coin tokens. Verify your snapshot, available proof and deadline.</span></a><a href="#payments/x"><strong>Check X claims</strong><span>SOL. Sign in with the named X account and check available funds.</span></a></div>';
+    root.prepend(states);
   }
   const mint = new URL(location.href).searchParams.get('airdropMint');
   if (!address(mint) || location.hash !== '#airdrops') return;

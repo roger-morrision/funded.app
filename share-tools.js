@@ -116,6 +116,20 @@ export function drawRoundTripCard(canvas, result, { hideAmount = false, hideWall
   return canvas;
 }
 
+export function drawLaunchCard(canvas, result) {
+  if(result?.verified!==true || result.kind!=='launch' || !result.mint || !result.receipt) throw new Error('A confirmed launch receipt is required');
+  canvas.width=1200;canvas.height=630;
+  const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Image creation is unavailable');
+  ctx.fillStyle='#101426';ctx.fillRect(0,0,1200,630);
+  ctx.fillStyle='#ffc46b';ctx.font='700 32px sans-serif';ctx.fillText('funded.vip · New community',64,80);
+  ctx.fillStyle='#fff';ctx.font='700 54px sans-serif';ctx.fillText(String(result.name||'New coin').slice(0,32),64,210,1072);
+  ctx.font='700 72px sans-serif';ctx.fillText('$'+String(result.symbol||'TOKEN').slice(0,10),64,315);
+  ctx.fillStyle='#c4ccdc';ctx.font='28px sans-serif';ctx.fillText('Explore the coin. Meet its community. Check the receipts.',64,400);
+  ctx.fillText(result.network==='devnet'?'SOLANA DEVNET · TEST FUNDS · NO MONETARY VALUE':'SOLANA · Check network and fee policy',64,470);
+  ctx.font='23px monospace';ctx.fillText(result.mint,64,545,1072);
+  return canvas;
+}
+
 function updateResultPreview() {
   const result = activeShare?.result;
   const options = document.querySelector('#share-result-options');
@@ -127,10 +141,11 @@ function updateResultPreview() {
   const canvas = document.querySelector('#share-result-canvas');
   if (!result || !canvas) return false;
   try {
-    if (result.kind === 'trade') drawTradeCard(canvas, result, { hideWallet:Boolean(document.querySelector('#share-hide-wallet')?.checked) });
+    if (result.kind === 'launch') drawLaunchCard(canvas,result);
+    else if (result.kind === 'trade') drawTradeCard(canvas, result, { hideWallet:Boolean(document.querySelector('#share-hide-wallet')?.checked) });
     else if (result.kind === 'roundtrip') drawRoundTripCard(canvas, result, { hideAmount:Boolean(document.querySelector('#share-hide-amount')?.checked), hideWallet:Boolean(document.querySelector('#share-hide-wallet')?.checked) });
     else drawEarningsCard(canvas, result, { hideAmount:Boolean(document.querySelector('#share-hide-amount')?.checked), hideWallet:Boolean(document.querySelector('#share-hide-wallet')?.checked) });
-    status(result.kind === 'trade' ? 'Finalized trade receipt verified. Profit is not calculated.' : result.kind === 'roundtrip' ? 'Closed position and both receipts verified. This is the wallet SOL change in those transactions.' : 'Paid amount and receipt verified. Sharing is optional.');
+    status(result.kind === 'launch' ? 'Confirmed launch. Edit the message and preview your card before sharing.' : result.kind === 'trade' ? 'Finalized trade receipt verified. Profit is not calculated.' : result.kind === 'roundtrip' ? 'Closed position and both receipts verified. This is the wallet SOL change in those transactions.' : 'Paid amount and receipt verified. Sharing is optional.');
     return true;
   } catch (error) { status(error.message); return false; }
 }
@@ -146,15 +161,16 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
   const dialog = document.querySelector('#share-dialog');
   if (!dialog) throw new Error('Share menu is unavailable');
   activeShare = { kind, title: cleanText(title, 100), url: taggedShareUrl(url), result };
-  dialog.querySelector('#share-title').textContent = kind === 'referral' ? 'Share your invite' : kind === 'trade' ? 'Share verified trade' : kind === 'roundtrip' ? 'Share closed trade result' : kind === 'result' ? 'Share paid earnings' : 'Share this coin';
+  dialog.querySelector('#share-title').textContent = kind === 'launch' ? 'Share your launch' : kind === 'referral' ? 'Share your invite' : kind === 'trade' ? 'Share verified trade' : kind === 'roundtrip' ? 'Share closed trade result' : kind === 'result' ? 'Share paid earnings' : 'Share this coin';
   dialog.querySelector('#share-message').value = cleanText(text);
   dialog.querySelector('#share-link').value = activeShare.url;
   dialog.querySelector('#share-network').textContent = result?.network || network || (kind === 'coin' ? 'Check token page for network' : 'Referral link');
   const amountOption = dialog.querySelector('#share-hide-amount')?.closest('label');
   for(const [id,label] of [['share-hide-amount',' Hide amount on image'],['share-hide-wallet',' Hide wallet on image']]){const wrap=dialog.querySelector(`#${id}`)?.closest('label');if(wrap?.lastChild?.nodeType===3)wrap.lastChild.textContent=label;}
-  if (amountOption) amountOption.hidden = kind === 'trade';
+  if (amountOption) amountOption.hidden = ['trade','launch'].includes(kind);
   const note = dialog.querySelector('#share-result-note');
-  if (note) note.textContent = kind === 'trade' ? 'This card confirms one finalized trade. It does not show profit, cost basis, or future returns.' : kind === 'roundtrip' ? 'The amount is the wallet SOL balance change in two finalized transactions, including fees, rent, and any other SOL movements in those receipts. It is not wallet-wide trading profit or a future return.' : 'Paid referral earnings are not trading profit or a prediction of future returns.';
+  const walletOption=dialog.querySelector('#share-hide-wallet')?.closest('label');if(walletOption)walletOption.hidden=kind==='launch';
+  if (note) note.textContent = kind === 'launch' ? 'This card confirms creation, not liquidity, safety, earnings or future returns. Test funds have no monetary value.' : kind === 'trade' ? 'This card confirms one finalized trade. It does not show profit, cost basis, or future returns.' : kind === 'roundtrip' ? 'The amount is the wallet SOL balance change in two finalized transactions, including fees, rent, and any other SOL movements in those receipts. It is not wallet-wide trading profit or a future return.' : 'Paid referral earnings are not trading profit or a prediction of future returns.';
   if(note&&result)note.textContent+=' Image privacy controls do not hide public receipt links, transaction wallets, amounts, or text you choose to share.';
   status('Choose a channel or copy your link. You review the post before publishing.');
   updateResultPreview();
@@ -199,7 +215,7 @@ export function initShareComposer() {
   dialog.querySelector('#share-download-card')?.addEventListener('click', () => {
     if (!activeShare?.result) return;
     const canvas = document.querySelector('#share-result-canvas');
-    try { if (!updateResultPreview()) return; const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = activeShare.kind === 'trade' ? 'funded-verified-trade.png' : activeShare.kind === 'roundtrip' ? 'funded-closed-trade.png' : 'funded-paid-earnings.png'; link.click(); recordAction(activeShare.kind, 'download-card'); status('Card downloaded. Share it from your preferred app.'); }
+    try { if (!updateResultPreview()) return; const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = activeShare.kind === 'launch' ? 'funded-launch.png' : activeShare.kind === 'trade' ? 'funded-verified-trade.png' : activeShare.kind === 'roundtrip' ? 'funded-closed-trade.png' : 'funded-paid-earnings.png'; link.click(); recordAction(activeShare.kind, 'download-card'); status('Card downloaded. Share it from your preferred app.'); }
     catch (error) { status(error.message || 'Card download unavailable'); }
   });
 }

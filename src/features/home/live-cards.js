@@ -26,7 +26,7 @@ export function createHomeTradeTracker(now=Date.now) {
   };
 }
 
-export function homeLiveCards(grid,records,{markup,decorate,loadLogos,now=Date.now}) {
+export function homeLiveCards(grid,records,{markup,decorate,loadLogos,now=Date.now,preserveOrder=false}) {
   let view=views.get(grid);
   if(!view){
     view={track:createHomeTradeTracker(now),pending:null,pulses:new Map()};views.set(grid,view);
@@ -34,6 +34,7 @@ export function homeLiveCards(grid,records,{markup,decorate,loadLogos,now=Date.n
     grid.addEventListener('pointerleave',resume);grid.addEventListener('focusout',resume);
   }
   const result=view.track(records);for(const [mint,signature] of result.fresh)view.pulses.set(mint,signature);
+  if(preserveOrder)result.records=records.slice(0,6);
   const render=()=>{
     const existing=new Map([...grid.querySelectorAll('.home-new-token-card')].map(card=>[card.dataset.mint,card]));
     const keep=new Set();

@@ -44,7 +44,7 @@ export function initializeBuybackPreview(appState) {
   // app-source-end
 
   // app-source: 362
-  let exploreSort = 'volume';
+  let exploreSort = 'trending';
   initializeAppState(appState, 'exploreSort', exploreSort);
   // app-source-end
 

@@ -7,3 +7,4 @@ export { mountHolderRewardsCard } from '../../src/features/coin/holder-rewards-c
 export { renderLaunchBurnSelection } from '../../src/features/launch/burn-selection-view.js';
 export { showChatPostResult } from '../../src/features/coin/chat-post-result.js';
 export {homeLiveCards} from '../../src/features/home/live-cards.js';
+export {mountHomeCommunity} from '../../src/features/home/community-panel.js';

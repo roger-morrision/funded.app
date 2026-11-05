@@ -200,6 +200,11 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
         return result;
       });
     },
+    async readRecentCoinChats(limit = 50) {
+      return Object.values((await load()).coinChats || {}).flat()
+        .filter(row => !['hidden','deleted'].includes(row.status))
+        .sort((a,b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)).slice(0, Math.min(50, Math.max(1, limit)));
+    },
     async readCoinChat(mint, limit = 50) { return (await load()).coinChats?.[mint]?.slice(-limit) || []; },
     async appendCoinChat(mint, message, limit = 100) { return this.update(current => { current.coinChats ||= {}; current.coinChats[mint] = [...(current.coinChats[mint] || []), message].slice(-limit); return message; }); },
     async update(mutator) {

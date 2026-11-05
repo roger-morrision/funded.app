@@ -59,3 +59,10 @@ test('coverage notice does not claim stale stats when none have loaded yet',()=>
  renderActivityCoverage(doc,'x',[{windowVolumeSol:1},{windowVolumeSol:null}]);
  assert.match(node.textContent,/^Stats loaded for 1 of 2 coins · rankings may shift · up to 5 min old$/);
 });
+
+test('one rejected RPC request does not hide successful coins in the same scan',async()=>{
+ const refresh=createExploreActivitySampler({cache:new Map(),now:()=>600000});
+ const items=Array.from({length:5},(_,i)=>({address:String(i)}));
+ assert.equal(await refresh(items,async item=>{if(item.address==='0')throw new Error('Unavailable');return data();}),4);
+ assert.equal(items[0].volume24hSol,null);assert.equal(items[4].volume24hSol,1);
+});

@@ -6,14 +6,53 @@ const root=fileURLToPath(new URL('../../',import.meta.url));
 const built=await build({root,configFile:false,logLevel:'silent',build:{write:false,lib:{entry:root+'tests/fixtures/community-layout.js',name:'CommunityFixture',formats:['iife']}}});
 const fixture=built[0].output.find(row=>row.type==='chunk').code;
 const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
-async function setup(page,width,path){
+for(const width of [320,390,768,1440])test(`Home unified conversation rail at ${width}px (mocked)`,async({page},info)=>{
+ const now=new Date().toISOString(),base={mint,author:mint,createdAt:now};
+ await setup(page,width,'/#overview',[
+  {...base,id:'chat_plain',text:'Hello community <script>not executable</script>'},
+  {...base,id:'chat_call',text:'Holding this coin',callout:{purchasedSol:null,pnlSol:null,marketChangePercent:12.5}},
+  ...Array.from({length:8},(_,i)=>({...base,id:`chat_${i}`,text:'Another message'}))]);
+ const panel=page.locator('#home-community');await expect(panel).toBeVisible();
+ await expect(panel.locator('.home-community-message')).toHaveCount(10);
+ await expect(panel.locator('[data-message-id="chat_plain"] .home-community-metrics')).toHaveCount(0);
+ await expect(panel.locator('[data-message-id="chat_call"]')).toContainText('PurchasedUnavailableP&LUnavailable');
+ await expect(panel.locator('[data-message-id="chat_call"]')).toContainText('MC since call: +12.5%');
+ await expect(panel.locator('script')).toHaveCount(0);await expect(panel.locator('form button')).toHaveText('Connect wallet to chat');
+ await expect(panel.locator('textarea')).toHaveAttribute('maxlength','280');
+ const rail=await panel.boundingBox(),coins=await page.locator('.home-discovery-coins').boundingBox();
+ if(width>1100)expect(rail.x).toBeGreaterThanOrEqual(coins.x+coins.width);else expect(rail.y).toBeGreaterThanOrEqual(coins.y+coins.height);
+ expect(await panel.locator('.home-community-feed').evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ await panel.screenshot({path:info.outputPath(`community-${width}.png`)});
+});
+async function setup(page,width,path,feed){
   await page.setViewportSize({width,height:900});await page.route('https://**/*',r=>r.abort());
   await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Mocked unavailable'}}));
   await page.route('**/api/fee-policy',r=>r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/launches',r=>r.fulfill({json:[{mint,signature,cluster:'devnet',onchainVerified:true,creatorWallet:mint,name:'Community fixture',symbol:'COMM',creatorLaunchBurn:{tier:'pro',status:'verified',amountTokens:1000,receipt:{signature,verified:true,atomicWithPumpLaunch:true}}}]}));
   await page.route(`**/api/tokens/${mint}/chat`,r=>r.fulfill({json:{messages:[],enabled:true}}));
+  if(feed)await page.route('**/api/token-chat/feed',r=>r.fulfill({json:{messages:feed}}));
   await page.goto(path);await page.locator('body.product-flows-ready').waitFor();await page.addScriptTag({content:fixture});
 }
+test('Home composer connects without posting, then posts to selected token and reports explicitly (mocked wallet)',async({page})=>{
+ await setup(page,390,'/#overview',[]);
+ await page.evaluate(mint=>{
+  document.querySelector('#home-community').remove();window.homeTestCalls=[];
+  const app={connectedWalletAddress:null,assets:[{address:mint,symbol:'COMM'}],tokenChatSessionReady:()=>true,
+   connectWallet:async()=>{app.connectedWalletAddress=mint;},apiRequest:async()=>({available:true,data:{messages:[]}}),
+   tokenChatRequest:async(action,payload,target)=>{homeTestCalls.push({action,payload,target});return {available:true,data:action==='post'?{message:{id:'posted'},calloutStatus:'recorded'}:{reported:true}};}};
+  CommunityFixture.mountHomeCommunity(app);
+ },mint);
+ const panel=page.locator('#home-community');await panel.getByRole('button',{name:'Connect wallet to chat'}).click();
+ expect(await page.evaluate(()=>homeTestCalls)).toEqual([]);
+ await panel.locator('select').selectOption(mint);await panel.locator('textarea').fill('My selected token');await panel.getByRole('button',{name:'Post',exact:true}).click();
+ await expect(panel.locator('[role="status"]')).toHaveText('Call posted.');await expect(panel.locator('textarea')).toHaveValue('');
+ expect(await page.evaluate(()=>homeTestCalls)).toEqual([{action:'post',payload:{text:'My selected token'},target:mint}]);
+ await panel.locator('.home-community-feed').evaluate((node,mint)=>{node.innerHTML=`<button data-report-message="chat_fixture" data-report-mint="${mint}">Report</button>`;},mint);
+ page.once('dialog',dialog=>dialog.accept('impersonation'));await panel.getByRole('button',{name:'Report',exact:true}).click();
+ await expect(panel.locator('[role="status"]')).toHaveText('Report submitted.');
+ expect(await page.evaluate(()=>homeTestCalls[1])).toEqual({action:'report',payload:{messageId:'chat_fixture',reason:'impersonation'},target:mint});
+});
 for(const width of [320,390,768,1440]) {
   test(`token header, single Post and rewards dashboard at ${width}px (mocked data)`,async({page},info)=>{
     const errors=[];page.on('pageerror',error=>errors.push(error.message));await setup(page,width,`/token/${mint}`);
@@ -75,10 +114,11 @@ test('compact coin cards load the verified logo and display supplied market data
  await expect(link).toHaveAttribute('href',`/token/${mint}`);
 });
 
-for(const width of [320,390,768,1440,1800])test(`Home compact cards are newest first and trending follows observed volume at ${width}px (mocked)`,async({page},info)=>{
+for(const width of [320,390,768,1440,1800])test(`Home compact cards are newest first and trending follows observed participation at ${width}px (mocked)`,async({page},info)=>{
  await setup(page,width,'/#overview');
  await page.evaluate(()=>{
-  const assets=Array.from({length:8},(_,i)=>({address:String(i+1).repeat(32),name:'A long community token '+i,symbol:'COIN'+i,createdTimestamp:100+i,volume24hSol:i===0?1000:i===7?null:i,curveCapSol:100+i,verifiedAt:new Date().toISOString(),complete:false}));
+  document.querySelector('.home-launch-board').dataset.discovery='new';
+  const assets=Array.from({length:8},(_,i)=>({address:String(i+1).repeat(32),name:'A long community token '+i,symbol:'COIN'+i,createdTimestamp:100+i,volume24hSol:i===0?1000:i===7?null:i,curveCapSol:100+i,verifiedAt:new Date().toISOString(),complete:false,activityWindows:{'24h':{coverage:'partial',trending:{basis:'observed-wallet-participation-v1',score:i===7?0:10-i,walletCount:3}}}}));
   const state={assets,homeLaunchWindow:'24h',homeFeeAmounts:new Map(),EXPLORE_CLUSTER:'devnet',coinSolUsdPrice:100,homeLaunchSort:'volume',verifiedBoosts:{},exploreFeedAvailable:true};
   const policy=()=>({onchainVerified:true});
   CommunityFixture.renderHomeLaunchBoard(state,{verifiedLaunchPolicyForMint:policy,withVerifiedExploreBenefits:x=>x,launchCardVolumeUsd:()=>'$1',exploreBoostAmountMarkup:()=>'',getWatchlist:()=>[],promotionForMint:()=>null,formatCoinUsd:n=>n==null?'—':`$${n}`,loadVerifiedTokenLogos:()=>{},

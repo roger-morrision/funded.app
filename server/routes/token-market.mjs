@@ -24,17 +24,20 @@ export function createTokenMarketRoutes({
   // minutes. The discovery feed calls this with its uncovered mints; it starts
   // at most WARM_BATCH scans, only when no visitor scan is running, under its
   // own per-minute RPC budget (the "server-warmer" client key).
+  const warmAttempts = new Map();
   const WARM_BATCH = 2, WARM_FRESH_MS = 4 * 60_000;
   const WARMER_REQUEST = { socket: { remoteAddress: 'server-warmer' }, headers: {} };
   function warmMarketActivity(mints) {
     if (solanaCluster !== 'devnet' || coinMarketInflight.size > 0) return 0;
     let started = 0;
-    for (const raw of Array.isArray(mints) ? mints : []) {
+    for (const raw of [...(Array.isArray(mints) ? mints : [])].sort((a,b)=>(warmAttempts.get(a)||0)-(warmAttempts.get(b)||0))) {
       if (started >= WARM_BATCH) break;
       let mint;
       try { mint = new PublicKey(raw); } catch { continue; }
       const address = mint.toBase58(), cached = coinMarketCache.get(address);
       if (cached && Date.now() - cached.at < WARM_FRESH_MS) continue;
+      if(warmAttempts.size>=500)warmAttempts.delete(warmAttempts.keys().next().value);
+      warmAttempts.set(address,Date.now());
       startMarketScan(address, mint, WARMER_REQUEST)?.catch(() => {});
       started += 1;
     }
@@ -117,8 +120,8 @@ export function createTokenMarketRoutes({
       // A scan costs up to ~50 RPC reads. Results under a minute old are
       // current; results up to five minutes old (the client's activity window)
       // are served at once while a background scan replaces them.
-      const fresh = entry => entry && Date.now() - entry.at < 60_000 && hasTradeBreakdown(entry.data);
-      const usable = entry => entry && Date.now() - entry.at < 5 * 60_000 && hasTradeBreakdown(entry.data);
+      const fresh = entry => entry && Date.now() - entry.at < (entry.data.coverage==='unavailable'?5_000:60_000) && hasTradeBreakdown(entry.data);
+      const usable = entry => entry && entry.data.coverage!=='unavailable' && Date.now() - entry.at < 5 * 60_000 && hasTradeBreakdown(entry.data);
       let cached = coinMarketCache.get(address);
       if (fresh(cached)) return json(res, 200, cached.data);
       if (!usable(cached)) {
@@ -158,7 +161,14 @@ export function createTokenMarketRoutes({
           const start = () => {
             coinMarketActive += 1;
             (async () => {
-              const metrics = await readMarketActivity({ connection: new Connection(solanaRpcUrl, 'confirmed'), mint });
+              const signal = AbortSignal.timeout(18_000);
+              const connection = new Connection(solanaRpcUrl, {commitment:'confirmed', disableRetryOnRateLimit:true,
+                fetch:(input,init)=>fetch(input,{...init,signal})});
+              const metrics = await readMarketActivity({ connection, mint });
+              // A failed scan must not erase a still-recent successful snapshot.
+              const previous = coinMarketCache.get(address);
+              if (metrics.coverage === 'unavailable' && previous?.data.volume24hSol != null
+                && Date.now()-previous.at < 5*60_000) return previous.data;
               const result = { mint: address, cluster: solanaCluster, source: 'confirmed-pump-trade-events', observedAt: new Date().toISOString(), ...metrics };
               await store.writeMarketActivity(address, solanaCluster, result);
               if (coinMarketCache.size >= 500) coinMarketCache.delete(coinMarketCache.keys().next().value);

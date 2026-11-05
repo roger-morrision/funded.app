@@ -303,11 +303,13 @@ const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsR
 });
 let calloutConnection = null;
 const readCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
+const readCalloutFeed = createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps });
 const handleTokenChatRoutes = createTokenChatRoutes({
+  readCalloutFeed,
   body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json, readMarketCaps: readCalloutMarketCaps,
   readHolderShare: createHolderShareReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') }),
 });
-const handleCalloutRoutes = createCalloutRoutes({ readFeed: createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps }), respond: json });
+const handleCalloutRoutes = createCalloutRoutes({ readFeed: readCalloutFeed, respond: json });
 const handleReferralIdentityRoutes = createReferralIdentityRoutes({
   referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes, respond: json,
 });

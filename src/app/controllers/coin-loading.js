@@ -1,3 +1,4 @@
+import { recoverMarketSnapshots } from '../../features/coin/market-recovery.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
@@ -43,9 +44,10 @@ export function createCoinLoadingController(appState) {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
       const detailConnection = await appState.getExploreConnection();
       const mint = new PublicKey(mintAddress);
+      const marketRequest=appState.EXPLORE_CLUSTER==='devnet' ? appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,{signal:AbortSignal.timeout(20000)}).catch(error=>({available:false,data:null,status:error?.status})) : null;
       const metadataProgram = new PublicKey(appState.TOKEN_METADATA_PROGRAM_ID);
       const [metadataPda] = PublicKey.findProgramAddressSync([appState.Buffer.from('metadata'), metadataProgram.toBuffer(), mint.toBuffer()], metadataProgram);
-      const rpcRequest = (promise, label) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), 12000))]);
+      const rpcRequest = async (promise,label) => {let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),12000);})]);}finally{clearTimeout(timer);}};
       const [mintResult, metadataResult, curveResult, largestResult, launchesResult] = await Promise.allSettled([
         rpcRequest(detailConnection.getParsedAccountInfo(mint, 'confirmed'), 'Mint RPC request'),
         rpcRequest(detailConnection.getAccountInfo(metadataPda, 'confirmed'), 'Metadata RPC request'),
@@ -57,18 +59,19 @@ export function createCoinLoadingController(appState) {
       if (mintResult.status === 'rejected') throw mintResult.reason;
       const mintInfo = mintResult.value;
       const metadataInfo = metadataResult.status === 'fulfilled' ? metadataResult.value : null;
-      const curve = curveResult.status === 'fulfilled' ? curveResult.value : null;
+      let curve = curveResult.status === 'fulfilled' ? curveResult.value : null;
       const largestAccounts = largestResult.status === 'fulfilled' ? largestResult.value.accounts : [];
       const parsedMint = mintInfo.value?.data?.parsed?.info;
       if (!parsedMint) throw new Error('Mint account was not returned by Solana RPC.');
       renderCoinBurnDashboard({mint:mintAddress,parsedMint,curve,tokenProgram:mintInfo.value.owner?.toBase58?.(),cluster:appState.EXPLORE_CLUSTER,checkedAt:Date.now()});
       const decimals = Number(parsedMint.decimals ?? 0);
       const supply = Number(parsedMint.supply) / (10 ** decimals);
-      let graduatedPool = null;
-      if (curve?.complete) {
-        try { graduatedPool = await rpcRequest(appState.fetchGraduatedPoolSnapshot({ connection: detailConnection, mint, tokenDecimals: decimals }), 'PumpSwap pool RPC request'); }
-        catch (error) { console.warn('Graduated PumpSwap pool snapshot unavailable', error); }
-      }
+      const recovered=await recoverMarketSnapshots({curveResult,
+        fetchCurve:()=>rpcRequest(appState.fetchBondingCurveSnapshot({connection:detailConnection,mint}),'Pump curve retry'),
+        fetchPool:()=>rpcRequest(appState.fetchGraduatedPoolSnapshot({connection:detailConnection,mint,tokenDecimals:decimals}),'PumpSwap pool RPC request'),
+        isCurrent:()=>loadId===appState.coinLoadId});
+      curve=recovered.curve;
+      const graduatedPool=recovered.pool;
       if (loadId !== appState.coinLoadId) return;
       const metadata = appState.parseOnChainMetadata(metadataInfo?.data);
       const fetchedLaunch = launchesResult.status === 'fulfilled' && launchesResult.value.available
@@ -88,7 +91,7 @@ export function createCoinLoadingController(appState) {
       appState.updateTradeAmountLabel();
       void appState.refreshTradeBalances();
       appState.renderTradeAmountEstimate();
-      const spotPriceSol = graduatedPool?.spotPriceSol ?? (curve && curve.virtualTokenReserves > 0 ? curve.virtualQuoteReservesSol / curve.virtualTokenReserves : NaN);
+      const spotPriceSol = graduatedPool?.spotPriceSol ?? (curve?.complete === false && curve.virtualTokenReserves > 0 ? curve.virtualQuoteReservesSol / curve.virtualTokenReserves : NaN);
       const marketCapSol = spotPriceSol * supply;
       const accountAvailable = largestResult.status === 'fulfilled';
       const rawSupply = Number(parsedMint.supply);
@@ -129,7 +132,7 @@ export function createCoinLoadingController(appState) {
       }
       appState.setCoinField('#coin-address', appState.shortAddress(mintAddress)); appState.setCoinField('#coin-full-address', mintAddress);
       appState.setCoinField('#coin-description', graduatedPool ? 'Trading pool confirmed.' : 'Coin details confirmed on Solana.');
-      appState.setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve ? 'clear' : 'unknown');
+      appState.setCoinFact('#coin-stage', graduatedPool ? 'Migrated · PumpSwap' : curve ? curve.complete ? 'Curve complete · pool unavailable' : 'On Pump curve' : 'Unverified', curve || graduatedPool ? 'clear' : 'unknown');
       const journey = rememberCoinJourney({mint:mintAddress,status:'verified',
         stage:graduatedPool ? 'Migrated' : curve?.complete === false ? 'On curve' : curve?.complete === true ? 'Curve complete · pool unavailable' : 'Stage unverified', checkedAt:Date.now(),
         market:{address:mintAddress, verifiedAt:new Date().toISOString(), complete:curve ? Boolean(curve.complete) : null, migrated:Boolean(graduatedPool), curveCapSol:graduatedPool ? null : marketCapSol, poolMarketCapSol:graduatedPool ? marketCapSol : null, source:'Solana RPC'}});
@@ -190,7 +193,9 @@ export function createCoinLoadingController(appState) {
         appState.compactCoinSocials();
       }).catch(() => {});
       void appState.loadSolUsdQuote();
-      if (curve && appState.EXPLORE_CLUSTER === 'devnet') void appState.loadCoinMarketActivity(mintAddress, loadId, decimals, curve.complete === true);
+      // History has an independent verified source. Reserve lookup failures
+      // must not hide it; fresh reserves remain mandatory for trade quotes.
+      if (appState.EXPLORE_CLUSTER === 'devnet') void appState.loadCoinMarketActivity(mintAddress, loadId, decimals, Boolean(graduatedPool) || curve?.complete === true, marketRequest);
       else { appState.coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals }; appState.renderCoinSummary(); appState.renderCoinPricePath(); appState.renderCoinFlow(NaN, NaN); appState.renderCoinPulse(); appState.setCoinField('#coin-trade-count', 'Unavailable'); appState.setCoinField('#coin-trade-breakdown', 'Pump curve required'); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); }
     } catch (error) {
       if (loadId !== appState.coinLoadId) return;

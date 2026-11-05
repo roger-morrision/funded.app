@@ -20,7 +20,7 @@ export function createExploreActionsController(appState) {
     appState.exploreMinMarketCapUsd = null;
     appState.exploreMinTrades = null;
     appState.exploreMinTraders = null;
-    appState.exploreSort = document.querySelector('#explore-sort option[value="volume"]:not(:disabled)') ? 'volume' : 'recent-trade';
+    appState.exploreSort = 'trending';
     for (const selector of ['#global-search', '#explore-search', '#explore-min-volume-sol', '#explore-min-cap-sol', '#explore-min-trades', '#explore-min-traders', '#explore-max-age-hours']) {
       const input = document.querySelector(selector);
       if (input) input.value = '';

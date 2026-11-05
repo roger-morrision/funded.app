@@ -5,6 +5,7 @@ import { matchesHomeLaunchFilters, homeLaunchFilterCount } from '../../../home-l
 import { paidListingCardMarkup, paidListingTableMarkup } from './paid-listing-view.js';
 import { renderActivityCoverage } from '../explore/activity-sampling.js';
 import { homeLiveCards } from './live-cards.js';
+import { rankTrending, trendingMetric } from '../../../market-trending.js';
 
 // Render current data; the application owns pagination and paused-order state.
 export function renderHomeLaunchBoard(state, {
@@ -24,6 +25,7 @@ export function renderHomeLaunchBoard(state, {
   // Home previews discovery. Ignore saved scanner filters without changing them;
   // the complete controls and list are available in Explore.
   const homePreview = Boolean(document.querySelector('.home-start'));
+  const discovery = document.querySelector('.home-launch-board')?.dataset.discovery || 'trending';
   if (homePreview) state = {...state,homeLaunchView:'grid',homeLaunchTab:'all',homeLaunchFilters:{},homeLaunchPaused:false};
   const {
     homeLaunchView,
@@ -55,7 +57,7 @@ export function renderHomeLaunchBoard(state, {
   if (tableBody?.closest('table')) tableBody.closest('table').hidden = paidListingView;
   if (paidTable) paidTable.hidden = !paidListingView;
   const boardTitle = document.querySelector('#home-launch-board-title');
-  if (boardTitle) boardTitle.textContent = homePreview ? 'New coins' : paidListingView ? 'Paid listings' : 'Live launches';
+  if (boardTitle) boardTitle.textContent = homePreview ? ({trending:'Trending coins',new:'New coins',near:'Near graduation',saved:'Your favorite coins'}[discovery] || 'Coins') : paidListingView ? 'Paid listings' : 'Live launches';
   const footerLink = document.querySelector('.home-board-footer .home-launch-all');
   if (footerLink) {
     footerLink.href = paidListingView ? '/list' : '#explore';
@@ -75,7 +77,7 @@ export function renderHomeLaunchBoard(state, {
       : exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
   }
   const tickerLabel = document.querySelector('#home-market-ticker-label');
-  if (tickerLabel) tickerLabel.textContent = homePreview ? `Trending · ${homeLaunchWindow} volume` : 'Latest launches';
+  if (tickerLabel) tickerLabel.textContent = homePreview ? `Trending · ${homeLaunchWindow} participation` : 'Latest launches';
   const volumeFilterLabel = document.querySelector('#home-filter-volume-label');
   if (volumeFilterLabel?.firstChild) volumeFilterLabel.firstChild.textContent = `${homeLaunchWindow} volume `;
   const tradesFilterLabel = document.querySelector('#home-filter-trades-label');
@@ -126,8 +128,7 @@ export function renderHomeLaunchBoard(state, {
     tableTxnsHeading.title = `${homeLaunchWindow} observed transactions`;
   }
   if (ticker) {
-    const ranked = verified.filter(item => !homePreview || volumeRank(item) > 0)
-      .sort((a, b) => volumeRank(b) - volumeRank(a)).slice(0, 6);
+    const ranked = rankTrending(verified.filter(item => trendingMetric(item,homeLaunchWindow)?.score > 0),homeLaunchWindow).slice(0,6);
     const tickerMarkup = ranked.length ? ranked.map((item, index) => {
       const currentCap = capUsd(item);
       // Unknown figures read as one muted dash, not "$—", matching the coin cards.
@@ -151,9 +152,10 @@ export function renderHomeLaunchBoard(state, {
       const boostQuantity = boostMultiplier ? boostPacks.length || Math.max(1, Number(boost?.count) || 0) : 0;
       const boostDetail = boostQuantity ? `${boostQuantity} active boost${boostQuantity === 1 ? '' : 's'} · ${boostMultiplier.toLocaleString()}x total` : '';
       const capSource = item.migrated === true ? 'pool' : item.complete === false ? 'curve' : 'market';
-      const detail = `${symbol}${boostDetail ? ` · ${boostDetail}` : ''} · ${changeLabel} ${change} · ${capSource} MC ${marketCap}`;
+      const metric=trendingMetric(item,homeLaunchWindow);
+      const detail = `${symbol}${boostDetail ? ` · Paid promotion: ${boostDetail}` : ''} · ${metric?.walletCount || 0} observed wallets${metric?.concentrated ? ' · Concentrated volume; not proof of manipulation' : ''} · ${changeLabel} ${change} · ${capSource} MC ${marketCap}`;
       return `<a href="/token/${encodeURIComponent(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><span class="home-ticker-rank" aria-hidden="true">${index + 1}</span><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon || String(symbol).slice(0, 1))}</span><strong class="${boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(symbol)}</strong>${boostQuantity ? `<span class="home-ticker-boost" title="${escapeHtml(boostDetail)}" aria-label="${escapeHtml(boostDetail)}">⚡${boostMultiplier.toLocaleString()}</span>` : ''}${hasChange ? `<span class="home-ticker-change ${trendClass}" title="${escapeHtml(changeLabel)}">${escapeHtml(change)}</span>` : ''}<small class="home-ticker-mc${currentCap >= 0 ? '' : ' is-unknown'}"${currentCap >= 0 ? '' : ' title="Not reported yet"'}>MC ${escapeHtml(marketCap)}</small></a>`;
-    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? `No verified ${escapeHtml(homeLaunchWindow)} trades in this feed` : exploreProviderStatus === 'On-chain only · loading' ? 'Checking verified market activity' : 'Market activity unavailable'}</span>`;
+    }).join('') : `<span class="home-ticker-empty">${exploreFeedAvailable ? 'Not enough observed participation to rank yet' : exploreProviderStatus === 'On-chain only · loading' ? 'Checking verified market activity' : 'Market activity unavailable'}</span>`;
     setupHomeTicker(ticker, tickerMarkup, ranked.length);
   }
   if (paidListingView) {
@@ -200,10 +202,19 @@ export function renderHomeLaunchBoard(state, {
     const frozenRank = new Map(state.homeFrozenOrder.map((mint, index) => [mint, index]));
     visible.sort((a, b) => (frozenRank.get(a.address) ?? Infinity) - (frozenRank.get(b.address) ?? Infinity));
   }
-  if (homePreview) visible.sort((a,b) => Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0));
+  if (homePreview) {
+    if(discovery==='near')visible=visible.filter(item=>item.complete===false && item.curveProgressPercent>=80);
+    if(discovery==='saved')visible=visible.filter(item=>getWatchlist().includes(item.address));
+    if(discovery==='trending'){
+      const ranked=rankTrending(visible.filter(item=>trendingMetric(item,homeLaunchWindow)?.score>0),homeLaunchWindow);
+      visible=ranked.length?ranked:visible.sort((a,b)=>Number(b.createdTimestamp||0)-Number(a.createdTimestamp||0));
+      if(!ranked.length&&visible.length&&boardTitle)boardTitle.textContent='New coins · participation ranking pending';
+    }
+    else visible.sort((a,b)=>discovery==='near' ? b.curveProgressPercent-a.curveProgressPercent : Number(b.createdTimestamp||0)-Number(a.createdTimestamp||0));
+  }
   // The full scanner retains every verified launch.
   const boardCount = document.querySelector('#home-board-count');
-  if (boardCount) boardCount.textContent = homePreview?'New launches · coins with new trades move to the front':visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
+  if (boardCount) boardCount.textContent = homePreview ? discovery==='trending' ? 'Observed participation · paid boosts excluded · history may be partial' : `${visible.length} coins · ${discovery==='near'?'at least 80% of the curve target':'verified launch records'}` : visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
   if (!visible.length) {
     const feedUnavailable = (!exploreFeedAvailable && !exploreLastVerifiedAt)
       || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus);
@@ -214,7 +225,7 @@ export function renderHomeLaunchBoard(state, {
     const stageUnavailable = !filtersActive && stage && verified.some(item => homeLaunchTab === 'curve'
       ? item.complete == null && item.migrated !== true
       : item.complete == null || (item.complete === true && item.migrated == null));
-    const title = initialCheck ? stage ? 'Checking launch stages…' : 'Checking verified launches…'
+    const title = homePreview && verified.length && !visible.length ? ({trending:'Not enough participation to rank yet.',near:'No verified coins near graduation.',saved:'No favorite coins yet.'}[discovery] || 'No coins in this view.') : initialCheck ? stage ? 'Checking launch stages…' : 'Checking verified launches…'
       : stageUnavailable ? `${stage} verification is unavailable.`
       : feedUnavailable ? 'Tokens are temporarily unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : filtersActive ? 'No launches match these filters.' : 'No verified launches in this view.';
     const detail = initialCheck ? homePreview ? 'Checking verified launches and current market activity.' : 'Current launch checks are in progress. You can select All to view verified registry tokens.'
@@ -244,7 +255,7 @@ export function renderHomeLaunchBoard(state, {
     }).join('');
     loadVerifiedTokenLogos(tableBody);
   }
-  if(homePreview){homeLiveCards(grid,visible,{markup:item=>homeLaunchCardMarkup(item,{volumeLabel:homeLaunchWindow,volumeValue:volumeUsd(item),compact:true}),decorate:decorateHomeLaunchCard,loadLogos:loadVerifiedTokenLogos});return;}
+  if(homePreview){homeLiveCards(grid,visible,{preserveOrder:discovery!=='new',markup:item=>homeLaunchCardMarkup(item,{volumeLabel:homeLaunchWindow,volumeValue:volumeUsd(item),compact:true}),decorate:(card,mint)=>{decorateHomeLaunchCard(card,mint);const item=visible.find(row=>row.address===mint),metric=item&&trendingMetric(item,homeLaunchWindow);card.querySelector('.participation-note')?.remove();if(metric){const note=document.createElement('small');note.className='participation-note';note.textContent=`${metric.walletCount} observed wallets${metric.concentrated?' · Concentrated volume':''}`;note.title='Wallets are not unique people; concentrated volume is not proof of manipulation.';card.querySelector('.home-new-token-body')?.append(note);}},loadLogos:loadVerifiedTokenLogos});return;}
   grid.innerHTML = visible.map(item => homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item), compact:false })).join('');
   grid.querySelectorAll('.home-launch-card,.home-new-token-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
   loadVerifiedTokenLogos(grid);

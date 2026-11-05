@@ -1,39 +1,18 @@
-import { readAppSourceSync } from '../scripts/read-app-source.mjs';
+import { createCoinStateController } from '../src/app/controllers/coin-state.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { renderCoinPricePath } from '../src/features/coin/chart-view.js';
 
-const appSource = readAppSourceSync();
-const loaderSource = appSource.match(/async function loadCoinMarketActivity\(mintAddress, loadId, decimals, graduated\)\{[\s\S]*?\n\}/)?.[0];
-assert.ok(loaderSource, 'Token activity loader must exist.');
-
 async function renderActivity(market) {
-  const createHarness = new Function('market', `
-    const fields = new Map();
-    const EXPLORE_CLUSTER = 'devnet';
-    let coinLoadId = 1;
-    let coinMarketActivity = {};
-    let coinSolUsdPrice = 100;
-    const coinSolUsdValues = { marketCap:1, reserve:1 };
-    const apiRequest = async () => ({ available:true, data:market });
-    const setCoinField = (selector, value) => fields.set(selector, value);
-    const formatCoinUsd = value => '$' + (Number(value) * 100).toFixed(2);
-    const renderCoinSummary = () => {};
-    const renderCoinPricePath = () => {};
-    const renderCoinFlow = () => {};
-    const renderCoinPulse = () => {};
-    const setCoinTabLabels = () => {};
-    const renderCoinActivityTab = () => {};
-    const setCoinChartView = () => {};
-    const renderCoinSnapshotUsd = () => {};
-    ${loaderSource}
-    return { run:() => loadCoinMarketActivity('5D6NrzqP94RdCjnyJan44AGxJF1fANjkVWDa6G4HtTBC', 1, 6, true),
-      fields, state:() => coinMarketActivity };
-  `);
-  const harness = createHarness(market);
-  await harness.run();
-  return harness;
+  const fields=new Map();
+  const state={EXPLORE_CLUSTER:'devnet',coinLoadId:1,coinMarketActivity:{},coinSolUsdPrice:100,
+    coinSolUsdValues:{marketCap:1,reserve:1},apiRequest:async()=>({available:true,data:market}),
+    setCoinField:(selector,value)=>fields.set(selector,value),formatCoinUsd:value=>'$'+(Number(value)*100).toFixed(2),
+    renderCoinSummary:()=>{},renderCoinPricePath:()=>{},renderCoinFlow:()=>{},renderCoinPulse:()=>{},
+    setCoinTabLabels:()=>{},renderCoinActivityTab:()=>{},setCoinChartView:()=>{},renderCoinSnapshotUsd:()=>{}};
+  await createCoinStateController(state).loadCoinMarketActivity('5D6NrzqP94RdCjnyJan44AGxJF1fANjkVWDa6G4HtTBC',1,6,true);
+  return {fields,state:()=>state.coinMarketActivity};
 }
 
 test('migrated token renders verified pool swaps and marks partial coverage', async () => {

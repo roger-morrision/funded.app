@@ -1,7 +1,7 @@
 // Presentation cache only. Never used to authorize a trade or calculate a quote.
 const snapshots = new Map();
 const STORAGE = 'funded.market-display.v1';
-const fields = ['address','verifiedAt','complete','migrated','curveCapSol','poolMarketCapSol','curveReserveSol','poolReserveSol','source'];
+const fields = ['address','verifiedAt','complete','migrated','curveCapSol','poolMarketCapSol','curvePriceSol','poolPriceSol','curveReserveSol','poolReserveSol','source'];
 const pick = item => Object.fromEntries(fields.filter(key => item[key] !== undefined).map(key => [key,item[key]]));
 try {
   const saved = JSON.parse(globalThis.sessionStorage?.getItem(STORAGE) || '[]');

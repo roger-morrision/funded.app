@@ -125,3 +125,12 @@ test('market-cap change uses a priced trade before each selected window', () => 
   const partial = summarizePumpTrades(records, { cutoffSeconds:now - 86_400, complete:false });
   assert.equal(partial.activityWindows['5m'].priceChangePercent, null);
 });
+
+for(const failedRoute of ['pool-account','pool-signatures','curve-signatures'])test(`${failedRoute} outage preserves the other route with partial coverage`,async()=>{
+ const fake=fakeConnection({includeCurve:true}),lookup=fake.getAccountInfo,scan=fake.getSignaturesForAddress;
+ fake.getAccountInfo=async address=>{if(failedRoute==='pool-account')throw new Error('RPC unavailable');return lookup(address);};
+ fake.getSignaturesForAddress=async address=>{if((failedRoute==='pool-signatures'&&address.equals(pool))||(failedRoute==='curve-signatures'&&!address.equals(pool)))throw new Error('RPC unavailable');return scan(address);};
+ const data=await readPumpMarketActivity({connection:fake,mint,nowSeconds:Math.max(...fixture.cases.map(item=>item.blockTime))+30});
+ assert.equal(data.coverage,'partial');assert(data.recentTrades.length>0);
+ assert(data.recentTrades.every(row=>row.route===(failedRoute==='curve-signatures'?'pool':'curve')));
+});

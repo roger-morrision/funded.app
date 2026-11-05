@@ -2,6 +2,7 @@ import { initializeAppState } from '../runtime.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeHomeFeed(appState) {
+  window.addEventListener('funded:home-discovery', () => appState.renderHomeLaunchBoard());
   // app-source: 480
   const homeHolderCountCache = new Map();
   initializeAppState(appState, 'homeHolderCountCache', homeHolderCountCache);

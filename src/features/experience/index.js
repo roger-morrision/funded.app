@@ -19,6 +19,7 @@ import { renderProofStrip } from '../proof/proof-totals.js';
 import { mountHolderRewardsCard } from '../coin/holder-rewards-card.js';
 import { mountBonusCountdown } from '../leaderboard/bonus-countdown.js';
 import { mountCallouts } from '../callouts/callouts.js';
+import { mountHomeCommunity } from '../home/community-panel.js';
 import { mountCalloutIntent } from '../callouts/composer-intent.js';
 import { mountRewardGuidance } from './reward-guidance.js';
 import { mountCoinJourney } from './coin-journey.js';
@@ -52,6 +53,7 @@ export function initializeProductFlows(app) {
     mountHolderRewardsCard(app);
     mountBonusCountdown(app);
     mountCallouts(app);
+    mountHomeCommunity(app);
     mountCalloutIntent(app);
     mountRewardGuidance(app);
     mountCoinJourney(app);

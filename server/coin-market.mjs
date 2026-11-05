@@ -1,12 +1,13 @@
 import { PUMP_SDK, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
 import { NATIVE_MINT } from '@solana/spl-token';
+import { summarizeTrending } from '../market-trending.js';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
 
 const TRADE_EVENT_DISCRIMINATOR = Buffer.from([189, 219, 127, 211, 78, 230, 97, 238]);
 const DAY_SECONDS = 24 * 60 * 60;
 const ACTIVITY_WINDOWS = { '5m': 5 * 60, '1h': 60 * 60, '6h': 6 * 60 * 60, '24h': DAY_SECONDS };
 
-function summarizeActivityWindow(records, cutoffSeconds, complete, sinceLaunch = false) {
+function summarizeActivityWindow(records, cutoffSeconds, complete, sinceLaunch = false, nowSeconds = cutoffSeconds + DAY_SECONDS) {
   const selected = records.filter(item => item.blockTime >= cutoffSeconds);
   const priced = selected.filter(item => Number.isFinite(item.priceRatio))
     .sort((a, b) => b.blockTime - a.blockTime || a.order - b.order);
@@ -23,6 +24,7 @@ function summarizeActivityWindow(records, cutoffSeconds, complete, sinceLaunch =
   const sellLamports = sell.reduce((sum, item) => sum + item.solLamports, 0n);
   const largestLamports = selected.reduce((largest, item) => item.solLamports > largest ? item.solLamports : largest, 0n);
   return {
+    trending: summarizeTrending(selected, cutoffSeconds, nowSeconds),
     tradeCount: selected.length,
     buyCount: buy.length,
     sellCount: sell.length,
@@ -108,7 +110,7 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
   const observedLamports = records.reduce((sum, item) => sum + item.solLamports, 0n);
   const nowSeconds = cutoffSeconds + DAY_SECONDS;
   const activityWindows = Object.fromEntries(Object.entries(ACTIVITY_WINDOWS).map(([period, seconds]) =>
-    [period, summarizeActivityWindow(records, nowSeconds - seconds, complete, sinceLaunch)]));
+    [period, summarizeActivityWindow(records, nowSeconds - seconds, complete, sinceLaunch, nowSeconds)]));
   return {
     activityWindows,
     observedVolumeSol: Number(observedLamports) / 1_000_000_000,
@@ -140,13 +142,15 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
 export async function readPumpMarketActivity({ connection, mint, nowSeconds = Math.floor(Date.now() / 1000), maxSignatures = 50 }) {
   const cutoffSeconds = nowSeconds - DAY_SECONDS;
   const pool = canonicalPumpPoolPda(mint, NATIVE_MINT);
-  const poolAccount = await connection.getAccountInfo?.(pool, 'confirmed');
+  let poolLookupFailed=false;
+  const poolAccount = await connection.getAccountInfo?.(pool, 'confirmed').catch(()=>{poolLookupFailed=true;return null;});
   const poolVerified = poolAccount?.owner?.equals(PUMP_AMM_PROGRAM_ID) === true;
   const routes = [{ kind:'curve', address:bondingCurvePda(mint) }];
   if (poolVerified) routes.push({ kind:'pool', address:pool });
   const scans = await Promise.all(routes.map(async route => ({
     ...route,
-    signatures:await connection.getSignaturesForAddress(route.address, { limit:maxSignatures }, 'confirmed'),
+    ...await connection.getSignaturesForAddress(route.address, { limit:maxSignatures }, 'confirmed')
+      .then(signatures=>({signatures,failed:false}),()=>({signatures:[],failed:true})),
   })));
   if (scans.every(scan => !scan.signatures.length)) return { poolHistoryCoverage: 'unavailable', observedVolumeSol: null, observedTradeCount: null, observedCoverage: 'unavailable', volume24hSol: null, buyVolume24hSol: null, sellVolume24hSol: null, tradeCount24h: null, poolTradeCount24h: 0, buyCount24h: null, sellCount24h: null, recentTrades: [], activityWindows: null, priceChangePercent: null, priceChangeBasis: null, coverage: 'unavailable' };
   const firstOlder = scans.some(scan => scan.signatures.some(item => item.blockTime != null && item.blockTime < cutoffSeconds));
@@ -180,13 +184,13 @@ export async function readPumpMarketActivity({ connection, mint, nowSeconds = Ma
       }
     }
   }
-  const complete = !missingTransactions && scans.every(scan => scan.signatures.every(item => item.blockTime != null)
+  const complete = !poolLookupFailed && !missingTransactions && scans.every(scan => !scan.failed && scan.signatures.every(item => item.blockTime != null)
     && (scan.signatures.length < maxSignatures || scan.signatures.some(item => item.blockTime < cutoffSeconds)));
-  const observedComplete = !missingTransactions && scans.every(scan => scan.signatures.length < maxSignatures
+  const observedComplete = !poolLookupFailed && !missingTransactions && scans.every(scan => !scan.failed && scan.signatures.length < maxSignatures
     && scan.signatures.every(item => item.blockTime != null));
   return {
     ...summarizePumpTrades(records, { cutoffSeconds, complete, observedComplete,
-      sinceLaunch:!firstOlder && scans.every(scan => scan.signatures.length < maxSignatures) }),
+      sinceLaunch:!firstOlder && scans.every(scan => !scan.failed && scan.signatures.length < maxSignatures) }),
     poolHistoryCoverage: poolVerified ? (complete ? 'complete' : 'partial') : 'unavailable',
   };
 }

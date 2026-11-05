@@ -203,3 +203,15 @@ test('explore warmer scans at most two uncovered mints under its own client key'
   // Recently scanned mints are skipped on the next feed request.
   assert.equal(handle.warmMarketActivity(mints.slice(0, 2)), 0);
 });
+
+test('failed background scans preserve a recent successful snapshot without refreshing its timestamp',async()=>{
+ const stale={observedAt:new Date(Date.now()-180000).toISOString(),coverage:'complete',poolHistoryCoverage:'complete',observedCoverage:'complete',tradeCount24h:null,volume24hSol:1};
+ let scans=0,writes=0;
+ const f=fixture(createTokenMarketRoutes,{solanaRpcUrl:'https://api.devnet.solana.com',clientKey:()=> 'cache-test',
+  store:{readMarketActivity:async()=>stale,chargeRpcRate:async()=>true,writeMarketActivity:async()=>{writes++;}},
+  readMarketActivity:async()=>{scans++;return {coverage:'unavailable',poolHistoryCoverage:'unavailable',observedCoverage:'unavailable',tradeCount24h:null,volume24hSol:null};}});
+ const path=`/api/tokens/${Keypair.generate().publicKey.toBase58()}/market-activity`;
+ await f.request(path);await waitFor(()=>scans===1);await new Promise(resolve=>setImmediate(resolve));
+ await f.request(path);assert.equal(f.responses[1].data,stale);assert.equal(writes,0);
+ assert.equal(f.responses[1].data.observedAt,stale.observedAt);
+});

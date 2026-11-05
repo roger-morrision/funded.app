@@ -38,6 +38,14 @@ export function createAccountsRepository({ pool, ensureReady }) {
       return result.rows[0]?.payload || null;
     },
     async authDelete(kind, key) { await ensureReady(); await pool.query('DELETE FROM auth_records WHERE kind = $1 AND token_hash = $2', [kind, key]); },
+    async readRecentCoinChats(limit = 50) {
+      await ensureReady();
+      const result = await pool.query(`SELECT message AS payload FROM state_entities
+        CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN bucket='coinChats' AND jsonb_typeof(payload)='array' THEN payload ELSE '[]'::jsonb END) AS message
+        WHERE bucket='coinChats' AND COALESCE(message->>'status','visible') NOT IN ('hidden','deleted')
+        ORDER BY message->>'createdAt' DESC, message->>'id' DESC LIMIT $1`, [Math.min(50, Math.max(1, limit))]);
+      return result.rows.map(row => row.payload);
+    },
     async readCoinChat(mint, limit = 50) {
       await ensureReady();
       const result = await pool.query('SELECT payload FROM state_entities WHERE bucket = $1 AND entity_key = $2', ['coinChats', mint]);

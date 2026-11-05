@@ -38,11 +38,31 @@ function verifyTokenChatSignature(statement, signatureValue, publicKey) {
 // Return true only after sending a response; false lets the router continue.
 export function createTokenChatRoutes({
   body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized,
-  respond, readMarketCaps = null, readHolderShare = null,
+  respond, readMarketCaps = null, readHolderShare = null, readCalloutFeed = null,
 }) {
 
   const json = (...args) => { respond(...args); return true; };
+  let feedCache = null;
   return async function handleTokenChatRoutes(req, res, url, requestId) {
+    if (req.method === 'GET' && url.pathname === '/api/token-chat/feed') {
+      if (feedCache && Date.now()-feedCache.at < 3_000) return json(res,200,await feedCache.value);
+      const value = (async () => {
+      const rows = (await store.readRecentCoinChats(50)).filter(row => !['hidden','deleted'].includes(row.status)).slice(0,50);
+      const calls = rows.some(row => row.callout) && readCalloutFeed ? await readCalloutFeed().catch(() => null) : null;
+      const byId = new Map((calls?.callouts || []).map(row => [row.id,row]));
+      const messages = rows.map(row => {
+        const message = tokenChatPublicMessage(row), call = byId.get(row.id);
+        // Market-cap movement is not wallet P&L. Purchase cost basis is not recorded here.
+        if (message.callout) message.callout = {...message.callout, purchasedSol:null, pnlSol:null,
+          marketChangePercent:Number.isFinite(call?.multiple) ? (call.multiple - 1) * 100 : null};
+        return message;
+      });
+      return {messages,serverTime:new Date().toISOString()};
+      })();
+      feedCache={at:Date.now(),value};
+      try { return json(res,200,await value); }
+      catch(error) { if(feedCache?.value===value)feedCache=null;throw error; }
+    }
     const tokenChatSessionAction = req.method === 'POST' ? url.pathname.match(/^\/api\/token-chat\/session\/(prepare|verify|revoke)$/)?.[1] : null;
     if (tokenChatSessionAction) {
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error: 'Chat session origin is not allowed.' });
@@ -132,6 +152,7 @@ export function createTokenChatRoutes({
           messages.push(message);
           return { status: 201, message: tokenChatPublicMessage(message) };
         });
+        feedCache=null;
         if (callout && !outcome.error) await store.updateCallouts(list => { list.push({ id: messageId, mint, author, text, createdAt, marketCapSol: callout.marketCapSol, peakMarketCapSol: callout.marketCapSol, holdingPercent: callout.holdingPercent }); });
         return json(res, outcome.status, outcome.error ? { error: outcome.error } : { message: outcome.message, calloutStatus });
       }
@@ -148,7 +169,7 @@ export function createTokenChatRoutes({
         message.status = 'deleted'; message.deletedAt = new Date().toISOString(); message.text = '';
         return { status: 200, deleted: true, messageId };
       });
-      if (outcome.deleted) await store.updateCallouts?.(list => { const index = list.findIndex(entry => entry.id === messageId); if (index >= 0) list.splice(index, 1); });
+      if (outcome.deleted) { feedCache=null; await store.updateCallouts?.(list => { const index = list.findIndex(entry => entry.id === messageId); if (index >= 0) list.splice(index, 1); }); }
       return json(res, outcome.status, outcome.error ? { error: outcome.error } : outcome);
     }
     if (url.pathname === '/api/ops/token-chat' && req.method === 'GET') {
@@ -177,6 +198,7 @@ export function createTokenChatRoutes({
         message.moderatedBy = 'operations';
         return { ...tokenChatPublicMessage(message), status: message.status, moderationReason: message.moderationReason, moderatedAt: message.moderatedAt };
       });
+      feedCache=null;
       if (outcome) await store.updateCallouts?.(list => { const entry = list.find(row => row.id === messageId); if (entry) entry.hidden = action === 'hide'; });
       return outcome ? json(res, 200, outcome) : json(res, 404, { error: 'Discussion message not found.' });
     }

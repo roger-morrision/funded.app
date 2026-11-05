@@ -47,11 +47,11 @@ export function createCoinChatController(appState) {
   // app-source-end
 
   // app-source: 997
-  async function tokenChatRequest(action, payload){
+  async function tokenChatRequest(action, payload, targetMint){
     if (!appState.wallet) await appState.connectWallet();
     const session = appState.captureWalletSession();
     if (!session) throw new Error('Connect a Solana wallet to post.');
-    const mint = appState.getCoinMintAddress();
+    const mint = targetMint || appState.getCoinMintAddress();
     if (!mint) throw new Error('Token address is unavailable.');
     const identityField = { author: session.address };
     for (let attempt = 0; attempt < 2; attempt += 1) {

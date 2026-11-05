@@ -51,7 +51,8 @@ export function createExploreActivitySampler({ cache, now = Date.now }) {
     spent += batch.length;
     await scanExploreMarketsBounded(batch, async item => {
       signal?.throwIfAborted(); attempted.set(item.address,time);
-      const market = await request(item);
+      const market = await request(item).catch(() => null);
+      signal?.throwIfAborted();
       if (!valid(market)) return;
       if (cache.size >= 500 && !cache.has(item.address)) cache.delete(cache.keys().next().value);
       const observed = Date.parse(market.observedAt || '');

@@ -181,6 +181,7 @@ export function createNavigationController(appState) {
     });
     let copy = {
       overview: ['Home', 'Your next step on Solana'],
+      'community-pilot': ['Community pilot', 'Plan a Devnet community experiment'],
       explore: ['Explore', 'Verified launches and market signals'],
       callouts: ['Callouts', 'Live calls from verified wallets'],
       list: ['Get listed', 'Listing status and token mint check'],

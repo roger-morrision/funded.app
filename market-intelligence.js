@@ -1,3 +1,4 @@
+import { rankTrending } from './market-trending.js';
 const finite = value => {
   if (value == null || value === '') return null;
   const number = Number(value);
@@ -77,6 +78,7 @@ export function withMarketWindow(record, period = '24h') {
 }
 
 export function sortMarketRecords(records, sort = 'market-cap') {
+  if (sort === 'trending') return rankTrending(records);
   const value = record => {
     if (sort === 'boosted') return Number(record.postLaunchBoostMultiplier) > 0 ? Number(record.postLaunchBoostMultiplier) : 0;
     if (sort === 'volume') return record.windowPeriod ? record.windowVolumeSol ?? -1 : record.volume24hUsd ?? record.volume24hSol ?? -1;
