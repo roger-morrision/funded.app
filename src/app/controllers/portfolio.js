@@ -1,4 +1,5 @@
 import { walletHistoryRows, walletBonusCoverage } from '../../features/portfolio/wallet-history-model.js';
+import { readPortfolioTokenAccounts, portfolioLookupReason } from '../../features/portfolio/holdings-read.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createPortfolioController(appState) {
@@ -165,12 +166,9 @@ export function createPortfolioController(appState) {
     if (!address) return;
     try {
       const { PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
-      const rpc = await appState.getExploreConnection();
+      const rpc = await appState.getExploreConnection({purpose:'portfolio'});
       const owner = new PublicKey(address);
-      const results = await Promise.allSettled([
-        rpc.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_PROGRAM_ID }, 'confirmed'),
-        rpc.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_2022_PROGRAM_ID }, 'confirmed'),
-      ]);
+      const results = await readPortfolioTokenAccounts(rpc,owner,[TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID],()=>request===appState.portfolioRequest&&address===appState.connectedWalletAddress);
       if (request !== appState.portfolioRequest || address !== appState.connectedWalletAddress) return;
       const success = results.filter(result => result.status === 'fulfilled');
       appState.portfolioHoldings = {
@@ -178,10 +176,11 @@ export function createPortfolioController(appState) {
         status: success.length ? 'ready' : 'unavailable',
         accounts: appState.aggregateTokenAccounts(success.flatMap(result => result.value?.value || [])),
         coverage: success.length === 2 ? 'SPL Token and Token-2022' : success.length ? 'Partial token-program coverage' : 'RPC unavailable',
+        reason: portfolioLookupReason(results.find(result=>result.status==='rejected')?.reason),
       };
-    } catch {
+    } catch(error) {
       if (request !== appState.portfolioRequest || address !== appState.connectedWalletAddress) return;
-      appState.portfolioHoldings = { wallet: address, status: 'unavailable', accounts: [], coverage: 'RPC unavailable' };
+      appState.portfolioHoldings = { wallet: address, status: 'unavailable', accounts: [], coverage: 'RPC unavailable',reason:portfolioLookupReason(error) };
     }
     appState.renderPortfolio();
     globalThis.document?.dispatchEvent?.(new Event('funded:portfolio-holdings'));

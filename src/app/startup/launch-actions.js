@@ -50,7 +50,7 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 671
-  document.querySelector('#airdrop-button').addEventListener('click', appState.requestAirdrop);
+  document.querySelector('#airdrop-button')?.addEventListener('click', appState.requestAirdrop);
   // app-source-end
 
   // app-source: 672

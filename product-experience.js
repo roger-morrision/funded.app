@@ -137,6 +137,8 @@ function launch() {
   mountStepOneFeeSplit();
   // Keep package costs visible and preserve the original controls and listeners.
   if (packages) {
+    const balances=packages.querySelector('.launch-tier-balance'),price=packages.querySelector('#launch-tier-quote-status');
+    packages.querySelector('.creator-burn-tiers')?.after(...[balances,price].filter(Boolean));
     const promotion = document.createElement('section');
     promotion.id = 'launch-promotion-options';promotion.setAttribute('aria-label','Promotion package');
     promotion.append(packages);options.append(promotion);
@@ -166,10 +168,6 @@ function portfolio() {
   setText('#portfolio-trades-tab', 'Activity');
   setText('#my-launches > .section-heading p:not(.eyebrow)', 'Your holdings, activity, and projects.');
   const create=$('#my-launches .projects-launch-button');if(create)create.innerHTML='Create a coin <span aria-hidden="true">↗</span>';
-  const headingActions=$('#my-launches > .section-heading');
-  if(headingActions&&!$('#portfolio-favorites-link')){
-    const favorites=document.createElement('a');favorites.id='portfolio-favorites-link';favorites.className='text-button';favorites.href='/explore?filters=1&f.tab=favorites';favorites.textContent='View favorite coins';headingActions.append(favorites);
-  }
   setText('#watchlist-heading', 'Following');
   disclosure($('#community-preferences'), 'Following preferences');
 }

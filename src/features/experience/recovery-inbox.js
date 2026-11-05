@@ -15,10 +15,6 @@ export function initializeRecoveryInbox(app) {
   const root = panel('recovery-inbox', 'Transactions to review', 'Saved on this device. Check before retrying; timeouts do not mean failure.');
   root.tabIndex=-1;
   const status = el('p'); status.setAttribute('role', 'status'); const list = el('div'); root.append(status,list); portfolioTools(parent).append(root);
-  const shortcut=button('Review saved transactions',()=>{root.scrollIntoView({block:'start',behavior:'instant'});root.focus({preventScroll:true});});
-  shortcut.className='secondary-button';
-  parent.querySelector('[data-recovery-shortcut]')?.replaceWith(shortcut);
-  shortcut.dataset.recoveryShortcut='';shortcut.hidden=true;parent.querySelector(':scope > .section-heading')?.append(shortcut);
   function render() {
     const wallet = app.connectedWalletAddress || '';
     const owned=root.contains(document.activeElement); list.replaceChildren();
@@ -27,7 +23,7 @@ export function initializeRecoveryInbox(app) {
     const savedPending=launches.some(row=>row.cluster==='devnet'&&row.state!=='completed')||trades.some(row=>row.state==='pending');
     root.hidden=wallet?items.length===0:!savedPending;
     if(owned&&root.hidden){const heading=parent.querySelector(':scope > .section-heading :is(h1,h2)');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}}
-    root.classList.toggle('is-empty',items.length===0);shortcut.hidden=items.length===0;shortcut.textContent=`Review ${items.length} saved transaction${items.length===1?'':'s'}`;
+    root.classList.toggle('is-empty',items.length===0);
     status.textContent = wallet ? `${items.length} unresolved recorded actions for ${wallet}.` : 'Connect the wallet used for these transactions.';
     for (const item of items) {
       const row = el('article', null, 'flow-activity-row'); row.append(el('h3', item.label),el('p',item.detail),el('small',`${wallet} · ${utc(item.at)}`));

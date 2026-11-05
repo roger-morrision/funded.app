@@ -120,8 +120,6 @@
 .launch-page-flat .creator-burn-card > em { display: none; }
 body.page-route-launch .launch-page-flat .launch-tier-first .creator-burn-card { min-height: 112px; }
 body.page-route-launch .launch-page-flat .launch-tier-first .creator-burn-card > em { display: none; }
-.launch-page-flat .creator-burn-section[data-selected-tier="standard"] .launch-tier-balance,
-.launch-page-flat .creator-burn-section[data-selected-tier="standard"] #launch-tier-quote-status { display: none; }
 .launch-page-flat .launch-fee-options { margin: 18px 0 0; border: 1px solid #2d4650; border-radius: 8px; background: #10242a; }
 .launch-fee-options > h3 { margin: 0 0 12px; color: var(--text); font-size: 16px; font-weight: 600; }
 .launch-fee-options > h3 span { color: var(--muted); font-size: 13px; font-weight: 400; }

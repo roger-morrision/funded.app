@@ -1,6 +1,6 @@
 import bs58 from 'bs58';
 import { Buffer } from 'buffer';
-import { Transaction, VersionedTransaction } from '@solana/web3.js';
+import { VersionedTransaction } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 
 // Never retry a send automatically: a timeout may hide a successful broadcast.
@@ -25,18 +25,18 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
       // reviewed message before handing over that object, for both wire formats.
       const reviewedMessage=Buffer.from(versioned?step.transaction.message.serialize():step.transaction.serializeMessage());
       const signed=await provider.signTransaction(step.transaction);assertWalletCurrent();
-      if(versioned){
-        if(!(signed instanceof VersionedTransaction) || !Buffer.from(signed.message.serialize()).equals(reviewedMessage))
-          throw new Error('Wallet changed the atomic reserve transaction. Nothing was submitted.');
-        const message=signed.message.serialize();
-        for(let index=0;index<signed.message.header.numRequiredSignatures;index++)
-          if(!nacl.sign.detached.verify(message,signed.signatures[index],signed.message.staticAccountKeys[index].toBytes()))
-            throw new Error('Atomic reserve transaction has an invalid wallet or mint signature. Nothing was submitted.');
-      }else if(!(signed instanceof Transaction)||!Buffer.from(signed.serializeMessage()).equals(reviewedMessage)){
+      // Wallets may return a transaction from another SDK bundle or wrap a legacy
+      // message in VersionedTransaction. Validate its wire bytes, not its JS class.
+      let raw, decoded;
+      try { raw=Buffer.from(signed.serialize());decoded=VersionedTransaction.deserialize(raw); }
+      catch { throw new Error('Wallet returned an invalid signed launch transaction. Nothing was submitted.'); }
+      if(!Buffer.from(decoded.message.serialize()).equals(reviewedMessage))
         throw new Error('Wallet changed the reviewed launch transaction. Nothing was submitted.');
-      }
-      const raw=signed.serialize();if(raw.length>1232)throw new Error('Transaction exceeds the Solana packet limit.');
-      signature=bs58.encode(versioned?signed.signatures[0]:signed.signature);
+      for(let index=0;index<decoded.message.header.numRequiredSignatures;index++)
+        if(!nacl.sign.detached.verify(reviewedMessage,decoded.signatures[index],decoded.message.staticAccountKeys[index].toBytes()))
+          throw new Error('Launch transaction has an invalid wallet or mint signature. Nothing was submitted.');
+      if(raw.length>1232)throw new Error('Transaction exceeds the Solana packet limit.');
+      signature=bs58.encode(decoded.signatures[0]);
       await beforeBroadcast();
       onEvent({state:'broadcasting',step:step.kind,signature,lastValidBlockHeight:latest.lastValidBlockHeight});
       broadcast=true;

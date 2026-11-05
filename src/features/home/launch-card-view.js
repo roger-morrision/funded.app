@@ -3,6 +3,7 @@ import { activeBoostMultiplier } from '../../../boost-offer.js';
 import { boostPackageBadgesMarkup } from '../../../boost-card-badges.js';
 import { icon } from '../../../ui-icons.js';
 import { marketFreshness, marketFacts } from '../explore/market-facts.js';
+import { compactLaunchCard } from './compact-launch-card.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function homeLaunchFeeRouteMarkup(
@@ -151,7 +152,7 @@ export function syncLaunchCardProgressFreshness(document, providerStatus) {
 
 export function homeLaunchCardMarkup(
   item,
-  { volumeLabel, volumeValue, extraClass, extraActions, footerNote },
+  { volumeLabel, volumeValue, extraClass, extraActions, footerNote, compact = false },
   {
     verifiedBoosts,
     EXPLORE_CLUSTER,
@@ -187,6 +188,7 @@ export function homeLaunchCardMarkup(
     const capLabel = displayMarket.migrated === true ? 'Market cap' : 'Curve cap';
     const shownVolume = volumeValue;
     const value = EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(capSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—';
+    if (compact) return compactLaunchCard(item,{value,change,changeClass,ageLabel,freshness:marketFreshness(item,EXPLORE_CLUSTER)});
     const providerHolders = item.holders == null || item.holders === '' ? NaN : Number(item.holders);
     const accountHolders = item.holderWalletCount == null || item.holderWalletCount === '' ? NaN : Number(item.holderWalletCount);
     const holderCount = Number.isFinite(providerHolders) && providerHolders >= 0

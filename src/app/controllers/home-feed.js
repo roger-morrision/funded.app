@@ -76,6 +76,14 @@ export function createHomeFeedController(appState) {
     appState.homeTickerCount = count;
     ticker.innerHTML = markup;
     appState.homeTickerCycleWidth = 0;
+    // The compact Home strip scrolls on demand, without cloned or moving links.
+    if (document.querySelector('.home-start')) {
+      if (appState.homeTickerFrame) cancelAnimationFrame(appState.homeTickerFrame);
+      appState.homeTickerFrame = 0;
+      appState.loadVerifiedTokenLogos(ticker);
+      requestAnimationFrame(appState.syncHomeTickerArrows);
+      return;
+    }
     if (count) {
       const originals = [...ticker.querySelectorAll(':scope > a')];
       const appendCopy = () => {

@@ -107,14 +107,17 @@ export function createTokenChatRoutes({
         if (sessionAddress ? sessionAddress !== author : !verifyTokenChatSignature(tokenChatPostStatement({ mint, author, text, ...envelope }), input.signature, new PublicKey(author))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
         const minute = Math.floor(Date.now() / 60_000) * 60_000;
         if (!await store.chargeRpcRate(`chat-wallet:${author}`, 1, 5, minute)) return json(res, 429, { error: 'Posting limit reached. Wait a minute before posting again.' });
-        let callout = null;
+        let callout = null, calloutStatus = 'holdings-unavailable';
         // Authenticated posts become calls only from a current server-read holding.
         // Unknown/zero holdings, unavailable quotes and call limits still allow chat.
         const holding = readHolderShare ? await readHolderShare(author, mint).catch(() => null) : null;
+        if(Number.isFinite(holding)&&holding===0)calloutStatus='not-holder';
         if (Number.isFinite(holding) && holding > 0 && readMarketCaps && store.updateCallouts) {
           const checked = await recordCallout({ store, readMarketCaps, readHolderShare: async () => holding, mint, author });
+          calloutStatus=checked.error?(checked.status===429?'repeat-call':'market-unavailable'):'rate-limited';
           if (!checked.error && await store.chargeRpcRate(`callout-wallet:${author}`, 1, 10, Math.floor(Date.now() / 3_600_000) * 3_600_000)) {
             callout = { marketCapSol: checked.cap.marketCapSol, holdingPercent: checked.holdingPercent, observedAt: checked.cap.observedAt };
+            calloutStatus='recorded';
           }
         }
         const messageId = sessionAddress ? `chat_${randomBytes(12).toString('hex')}` : `chat_${createHash('sha256').update(String(input.signature)).digest('hex').slice(0, 24)}`;
@@ -130,7 +133,7 @@ export function createTokenChatRoutes({
           return { status: 201, message: tokenChatPublicMessage(message) };
         });
         if (callout && !outcome.error) await store.updateCallouts(list => { list.push({ id: messageId, mint, author, text, createdAt, marketCapSol: callout.marketCapSol, peakMarketCapSol: callout.marketCapSol, holdingPercent: callout.holdingPercent }); });
-        return json(res, outcome.status, outcome.error ? { error: outcome.error } : { message: outcome.message });
+        return json(res, outcome.status, outcome.error ? { error: outcome.error } : { message: outcome.message, calloutStatus });
       }
       const messageId = String(input.messageId || '').trim();
       if (!/^chat_[a-f0-9]{24}$/.test(messageId)) return json(res, 400, { error: 'A valid discussion message is required.' });

@@ -217,7 +217,7 @@ export function createCoinCommunityController(appState) {
     appState.setCoinField('#coin-volume-source', 'RPC trade history unavailable'); appState.setCoinField('#coin-trade-breakdown', 'RPC trade history unavailable'); appState.setCoinField('#coin-accounts-source', 'Largest-account sample unavailable'); appState.setCoinCurveProgress(null);
     appState.setCoinField('#coin-chart-heading', 'Chart unavailable');
     appState.setCoinField('#coin-market-cap-label', 'Estimated market cap'); appState.setCoinField('#coin-market-cap-source', 'Confirmed Solana RPC snapshot');
-    appState.setCoinField('#coin-liquidity-label', 'Reserve');
+    appState.setCoinField('#coin-liquidity-label', 'Price');
     const footer = document.querySelector('.chart-footer'); if (footer) footer.innerHTML = '<span>Price history is unavailable</span>';
     const policyEyebrow = document.querySelector('.coin-policy-card .eyebrow'); if (policyEyebrow) policyEyebrow.textContent = 'On-chain account';
     const policyBadge = document.querySelector('.coin-policy-card .data-badge'); if (policyBadge) policyBadge.textContent = 'RPC only';

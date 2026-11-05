@@ -65,14 +65,14 @@ export function mountHolderRewardsCard(app, document = globalThis.document, wind
   const panel = () => {
     let node = document.querySelector('#holder-rewards-card');
     if (node) return node;
-    const anchor = document.querySelector('#coin-page .coin-stat-strip');
+    const anchor = document.querySelector('#coin-page');
     if (!anchor) return null;
     node = document.createElement('section');
     node.id = 'holder-rewards-card';
     node.className = 'holder-rewards-card panel';
     node.setAttribute('aria-labelledby', 'holder-rewards-title');
     node.hidden = true;
-    anchor.after(node);
+    anchor.append(node);
     return node;
   };
   window.addEventListener('funded:coin-facts-loading', () => { serial++; const node = panel(); if (node) { node.hidden = true; node.replaceChildren(); } });

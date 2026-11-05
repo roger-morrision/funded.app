@@ -54,7 +54,7 @@ export function createCoinStateController(appState) {
     appState.compactCoinSocials();
     appState.setCoinField('#coin-description', 'Checking coin details on Solana…');
     appState.setCoinField('#coin-market-cap-label', 'Estimated market cap'); appState.setCoinField('#coin-market-cap-source', 'Loading live market data');
-    appState.setCoinField('#coin-liquidity-label', 'Reserve');
+    appState.setCoinField('#coin-liquidity-label', 'Price');
     const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = appState.exploreExplorer(`address/${encodeURIComponent(mintAddress)}`); explorerLink.hidden = !mintAddress; }
     document.querySelectorAll('.coin-chart-panel .chart-tools button').forEach(button => { button.disabled = true; button.title = 'Historical candles are not indexed for this token.'; });
     ['#coin-market-cap','#coin-price','#coin-change','#coin-strip-market-cap','#coin-volume','#coin-liquidity','#coin-holders','#coin-trade-count','#coin-holder-count','#coin-vault-share','#coin-largest-account-share','#coin-top-ten-share','#coin-supply'].forEach(selector => appState.setCoinField(selector, 'Loading…'));
@@ -120,7 +120,7 @@ export function createCoinStateController(appState) {
       appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
       appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
       appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
-      appState.setCoinField('#coin-liquidity', appState.formatCoinUsd(appState.coinSolUsdValues.reserve));
+      appState.setCoinField('#coin-liquidity', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
     }
     appState.coinMarketActivity = { status: hasTradeRows ? 'ready' : 'summary-only', trades: hasTradeRows ? market.recentTrades : [], activityWindows: market.activityWindows, coverage: market.coverage, decimals, graduated: Boolean(graduated), poolTradeCount24h: Number(market.poolTradeCount24h) || 0, tradeCount: Number(market.tradeCount24h) || 0, volume24hSol: Number(market.volume24hSol), buyVolume24hSol: Number(market.buyVolume24hSol), sellVolume24hSol: Number(market.sellVolume24hSol) };
     appState.renderCoinSummary();

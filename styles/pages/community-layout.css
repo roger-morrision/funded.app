@@ -1,4 +1,38 @@
 /* Compact discovery and community surfaces; reuse the shared page palette. */
+html body #main-content #launch-dialog .launch-tier-balance { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0 8px;border-top:1px solid var(--cp-line); }
+html body #main-content #launch-dialog .launch-tier-balance > span { display:grid;gap:6px;font-size:13px;color:var(--cp-muted); }
+html body #main-content #launch-dialog #launch-tier-wallet-balance { display:block;font-size:16px;color:var(--cp-text); }
+html body #main-content #launch-dialog .launch-tier-balance-actions :is(a,button) { min-height:44px;border-radius:6px; }
+html body.page-route-overview #main-content .home-market-ticker { display:grid;grid-template-columns:minmax(0,1fr) auto;padding:0;border:0;background:none;gap:12px; }
+html body.page-route-overview #main-content .home-market-ticker-heading { display:flex;align-items:center;flex-wrap:wrap;gap:12px;grid-column:1; }
+html body.page-route-overview #main-content .home-market-ticker-label { font:12px var(--mono-font,monospace);letter-spacing:.08em;color:var(--cp-muted);text-transform:uppercase; }
+html body.page-route-overview #main-content .home-market-ticker-items { grid-column:1 / -1;grid-row:2;padding:0 0 6px; }
+html body.page-route-overview #main-content .home-market-ticker-items > a { border:1px solid var(--cp-line);border-radius:6px;background:var(--cp-surface);padding:8px 12px;gap:8px; }
+html body.page-route-overview #main-content .home-market-ticker-arrows { display:flex;grid-column:2;grid-row:1;gap:4px; }
+html body.page-route-overview #main-content :is(.home-market-window,.home-market-ticker-arrows) button { min-height:36px;min-width:36px;border:1px solid var(--cp-line);border-radius:6px;color:var(--cp-muted);background:var(--cp-surface); }
+html body.page-route-overview #main-content .home-market-window button[aria-pressed="true"] { border-color:var(--cp-accent);color:var(--cp-accent); }
+html body.page-route-overview #main-content #home-launch-grid { grid-template-columns:repeat(6,minmax(0,1fr));gap:12px; }
+html body #main-content .home-new-token-card { position:relative;min-width:0;overflow:hidden;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-surface); }
+html body #main-content .home-new-token-card:hover { border-color:var(--cp-accent); }
+html body #main-content .home-new-token-link { position:absolute;inset:0;z-index:1; }
+html body #main-content .home-new-token-link:focus-visible { outline:2px solid var(--cp-accent);outline-offset:-3px; }
+html body #main-content .home-new-token-art { aspect-ratio:1;overflow:hidden;border-bottom:3px solid var(--cp-accent); }
+html body #main-content .home-new-token-art .home-token-avatar { display:grid;place-items:center;width:100%;height:100%;border:0;border-radius:0;background:var(--cp-surface-2);font-size:42px;background-size:cover;background-position:center; }
+html body #main-content .home-new-token-art img { width:100%;height:100%;object-fit:cover; }
+html body #main-content .home-new-token-body { padding:10px;display:grid;gap:8px; }
+html body #main-content .home-new-token-heading { display:flex;gap:6px;align-items:baseline;min-width:0; }
+html body #main-content .home-new-token-heading strong { min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }
+html body #main-content .home-new-token-heading small { max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cp-muted);font-size:11px; }
+html body #main-content .home-new-token-market,html body #main-content .home-new-token-meta { display:flex;justify-content:space-between;align-items:baseline;gap:8px; }
+html body #main-content .home-new-token-market strong { font-size:15px;overflow-wrap:anywhere; }
+html body #main-content .home-new-token-market span,html body #main-content .home-new-token-meta { font:11px var(--mono-font,monospace);color:var(--cp-muted); }
+html body #main-content .home-new-token-market .is-positive { color:var(--success,#8de3af); }
+html body #main-content .home-new-token-market .is-negative { color:var(--danger,#ff7f8e); }
+html body #main-content .home-new-token-card .home-launch-media-package { position:relative;z-index:2;min-height:20px; }
+html body #main-content #holder-rewards-card { order:99;grid-column:1 / -1;margin-top:24px; }
+@media(max-width:1500px){html body.page-route-overview #main-content #home-launch-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }}
+@media(max-width:1100px){html body.page-route-overview #main-content #home-launch-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }}
+@media(max-width:700px){html body.page-route-overview #main-content #home-launch-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:8px; }html body.page-route-overview #main-content :is(.home-market-window,.home-market-ticker-arrows) button { min-height:44px; }html body #main-content .home-new-token-body { padding:8px; }}
 html body #main-content .home-proof-summary { margin: 0 0 32px; }
 html body #main-content .home-proof-summary > header { display:flex;align-items:center;justify-content:space-between;gap:12px; }
 html body #main-content .home-proof-summary h2 { font-size:18px;margin:0; }
@@ -121,3 +155,16 @@ html body #main-content #explore .explore-control-bar { grid-template-columns:au
  html body #main-content #coin-page .coin-rewards-table td:nth-child(3) { grid-column:2;grid-row:1;font-weight:700; }
  html body #main-content #coin-page .coin-rewards-table td:nth-child(4) { grid-column:2;grid-row:2;text-align:right; }
 }
+html body #main-content .portfolio-wallet-card { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:18px;border:1px solid var(--cp-line);border-radius:12px;background:var(--cp-surface-2);min-width:0; }
+html body #main-content .portfolio-wallet-avatar { display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--cp-line);color:var(--cp-accent);font-weight:700; }
+html body #main-content .portfolio-wallet-identity { display:grid;gap:6px;min-width:0; }
+html body #main-content .portfolio-wallet-identity a { color:var(--cp-text);font-weight:700;text-decoration:none; }
+html body #main-content .portfolio-wallet-identity small { color:var(--cp-muted);overflow-wrap:anywhere;font-size:12px; }
+html body #main-content .portfolio-wallet-actions { grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--cp-line);padding-top:12px; }
+html body #main-content .portfolio-wallet-actions a { display:flex;align-items:center;min-height:44px;color:var(--cp-accent);text-decoration:none; }
+html body #main-content #portfolio-tracking-panel .portfolio-saved-list { grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); }
+html body #main-content .portfolio-action-cards { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:20px 0; }
+html body #main-content .portfolio-action-card { display:grid;gap:12px;padding:20px;border:1px solid var(--cp-line);border-radius:12px;color:var(--cp-text);background:var(--cp-surface-2);text-decoration:none; }
+html body #main-content .portfolio-action-card span { color:var(--cp-muted);line-height:1.6; }
+html body #main-content .portfolio-action-card b { color:var(--cp-accent);font-size:13px;align-self:end; }
+html body #main-content .portfolio-action-card:hover { border-color:var(--cp-accent); }

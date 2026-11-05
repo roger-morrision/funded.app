@@ -22,8 +22,12 @@ export function createConnectionsController(appState) {
   // app-source-end
 
   // app-source: 137
-  async function getExploreConnection(){
+  async function getExploreConnection({purpose} = {}){
     const { Connection } = await appState.getSolana();
+    if(purpose==='portfolio' && appState.EXPLORE_RPC_URL){
+      const url=new URL(appState.EXPLORE_RPC_URL,globalThis.location?.origin);url.searchParams.set('purpose','portfolio');
+      return new Connection(url.href,appState.connectionConfig(appState.solanaModules,appState.EXPLORE_CLUSTER));
+    }
     if (!appState.exploreConnection) appState.exploreConnection = new Connection(appState.EXPLORE_RPC_URL || (appState.solanaModules.clusterApiUrl ? appState.solanaModules.clusterApiUrl(appState.EXPLORE_CLUSTER) : `https://api.${appState.EXPLORE_CLUSTER}.solana.com`), appState.connectionConfig(appState.solanaModules, appState.EXPLORE_CLUSTER));
     return appState.exploreConnection;
   }

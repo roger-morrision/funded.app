@@ -32,9 +32,9 @@ export function renderLaunchBurnSelection(
   if (bannerUpload) bannerUpload.hidden = !policy.requiresBurn;
   renderPromotionRequirements(policy,{document});
   const balancePanel=document.querySelector('.launch-tier-balance');
-  if(balancePanel)balancePanel.hidden=!policy.requiresBurn;
+  if(balancePanel)balancePanel.hidden=false;
   const priceStatus=document.querySelector('#launch-tier-quote-status');
-  if(priceStatus)priceStatus.hidden=!policy.requiresBurn;
+  if(priceStatus)priceStatus.hidden=false;
   const amounts = currentLaunchTierAmounts();
   const walletReady = Boolean(connectedWalletAddress && fundedBurnState.wallet === connectedWalletAddress && fundedBurnState.status === 'ready');
   const walletBalance = walletReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null;

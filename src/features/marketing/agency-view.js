@@ -60,7 +60,8 @@ export function initMarketingAgency(document = globalThis.document) {
       for (const card of promotion.querySelectorAll('[data-burn-tier]')) {
         let note = card.querySelector('[data-post-availability]');
         if (!note) { note = document.createElement('small'); note.dataset.postAvailability = ''; card.append(note); }
-        note.textContent = publishingPaused === true ? 'X posts paused' : publishingPaused === false ? 'X delivery checked separately after launch' : 'X delivery availability unverified';
+        note.textContent = 'Auto post X';
+        note.title = postStatus;
         note.hidden = !note.textContent;
       }
       const rates = verifiedRates;

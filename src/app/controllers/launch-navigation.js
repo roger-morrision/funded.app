@@ -35,7 +35,7 @@ export function createLaunchNavigationController(appState) {
     if (appState.APP_CLUSTER !== 'devnet') { appState.setLaunchStatus('Test SOL is available only on Devnet. No faucet request was sent.', true); return; }
     if (appState.airdropRequestInFlight) return;
     appState.airdropRequestInFlight = true;
-    const button = document.querySelector('#airdrop-button'); button.disabled = true;
+    const button = document.querySelector('#airdrop-button'); if(button)button.disabled = true;
     let session = null, signature = '', requestStarted = false;
     const transactionLinks = () => [{ label: 'View airdrop transaction on Explorer', href: appState.explorer(`tx/${encodeURIComponent(signature)}`) }];
     const walletLinks = () => [{ label: 'View Devnet wallet on Explorer', href: appState.explorer(`address/${encodeURIComponent(session.address)}`) }];
@@ -86,7 +86,7 @@ export function createLaunchNavigationController(appState) {
           appState.setLaunchLinks('The faucet request outcome is unknown; no transaction signature was returned. Check this Devnet wallet on Explorer before requesting more test SOL.', walletLinks(), true);
         }
       }
-    } finally { appState.airdropRequestInFlight = false; button.disabled = false; }
+    } finally { appState.airdropRequestInFlight = false; if(button)button.disabled = false; }
   }
   // app-source-end
 

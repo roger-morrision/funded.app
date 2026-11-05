@@ -1,4 +1,5 @@
 import { openCoinRecord } from '../../features/coin/records-navigation.js';
+import { showChatPostResult } from '../../features/coin/chat-post-result.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeCoinChat(appState) {
@@ -19,7 +20,7 @@ export function initializeCoinChat(appState) {
       appState.coinChatMessages = [...appState.coinChatMessages, response.data.message].slice(-50);
       input.value = '';
       appState.renderCoinActivityTab();
-      appState.showToast(response.data.message.callout ? 'Call recorded. Follow it on the Callouts board.' : 'Chat message posted');
+      showChatPostResult(response.data);
     } catch (error) { appState.showToast(error.message || 'Chat message could not be sent'); }
     finally { if (button) button.disabled = false; }
   });

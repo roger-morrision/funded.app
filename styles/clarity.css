@@ -38,13 +38,11 @@ html body.page-route-overview #main-content .home-hero-kicker { display: block; 
 html body.page-route-overview #main-content .home-launch-highlights,
 html body.page-route-overview #main-content .home-kpi-dashboard { order: 2; }
 
-/* A ticker with no verified activity reads as a dead product; hide it until it has items. */
-html body.page-route-overview #main-content .home-launch-highlights:has(.home-ticker-empty) { display: none; }
 
 /* Platform figures: allocations and burn detail live on Analytics and $FUNDED. */
 html body.page-route-overview #main-content #home-kpi-burn-card,
 html body.page-route-overview #main-content #home-kpi-airdrop-card { display: none; }
-html body.page-route-overview #main-content .home-kpi-card:not([data-state='available'], [data-state='partial']) { display: none; }
+html body.page-route-overview #main-content .home-kpi-dashboard .home-kpi-card:not([data-state='available'], [data-state='partial']) { display: none; }
 html body.page-route-overview #main-content .home-kpi-dashboard:not(:has(.home-kpi-card[data-state='available'], .home-kpi-card[data-state='partial'])) { display: none; }
 html body.page-route-overview #main-content .home-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 /* Long unit badges ("USD · OBSERVED") drop under the figure instead of cutting it to "≥…". */

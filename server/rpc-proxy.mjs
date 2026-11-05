@@ -49,14 +49,16 @@ export function createSolanaRpcProxy({
     // background discovery cannot starve its on-chain account checks.
     const previewRead = new URL(req.url, 'http://localhost').searchParams.get('purpose') === 'trade-preview'
       && ['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getMinimumBalanceForRentExemption'].includes(request.method);
-    const rateKey = previewRead ? `rpc-preview:${client}` : `rpc:${client}`;
-    const rateLimit = previewRead ? 40 : 120;
+    const portfolioRead = new URL(req.url, 'http://localhost').searchParams.get('purpose') === 'portfolio'
+      && ['getTokenAccountsByOwner','getBalance'].includes(request.method);
+    const rateKey = previewRead ? `rpc-preview:${client}` : portfolioRead ? `rpc-portfolio:${client}` : `rpc:${client}`;
+    const rateLimit = previewRead || portfolioRead ? 40 : 120;
     if (!await store.chargeRpcRate(rateKey, cost, rateLimit, windowStart)
       || (['sendTransaction', 'requestAirdrop'].includes(request.method) && !await store.chargeRpcRate(`rpc-write:${client}`, 1, 10, windowStart))) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC limit reached; retry shortly.' } });
     if (cached?.expiresAt > now) return json(res, 200, { ...cached.data, id: request.id });
     // Reserve three of the existing twelve slots for explicit previews/writes.
     const interactive=previewRead||['sendTransaction','simulateTransaction'].includes(request.method);
-    if (rpcInflight >= (interactive?12:9)) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is busy; retry shortly.' } });
+    if (rpcInflight >= (interactive?12:portfolioRead?11:9)) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is busy; retry shortly.' } });
     rpcInflight += 1;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);

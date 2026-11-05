@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import {Keypair,Transaction,VersionedTransaction,TransactionMessage,SystemProgram} from '@solana/web3.js';
 import {executeLaunchPlan} from '../launch-executor.js';
-function fixture(versioned,{mutate=false,lostAck=false,beforeBroadcast=()=>{}}={}){
+function fixture(versioned,{mutate=false,lostAck=false,beforeBroadcast=()=>{},returned=tx=>tx}={}){
  const payer=Keypair.generate(),mint=Keypair.generate(),blockhash=Keypair.generate().publicKey.toBase58(),to=Keypair.generate().publicKey;
  const instructions=[SystemProgram.transfer({fromPubkey:mint.publicKey,toPubkey:to,lamports:1000})];
  const transaction=versioned?new VersionedTransaction(new TransactionMessage({payerKey:payer.publicKey,recentBlockhash:blockhash,instructions}).compileToV0Message()):new Transaction().add(...instructions);
@@ -12,7 +12,7 @@ function fixture(versioned,{mutate=false,lostAck=false,beforeBroadcast=()=>{}}={
   if(mutate){if(versioned)tx.message.compiledInstructions[0].data[4]^=1;else tx.instructions[0].data[4]^=1;}
   // The fixture owns every signer, so altered messages still have valid crypto
   // signatures. Intent verification must independently reject the changed bytes.
-  if(versioned)tx.sign([payer,mint]);else tx.partialSign(payer,mint);return tx;
+  if(versioned)tx.sign([payer,mint]);else tx.partialSign(payer,mint);return returned(tx);
  }};
  const connection={getLatestBlockhash:async()=>({blockhash,lastValidBlockHeight:100}),sendRawTransaction:async wire=>{
   state.sends++;state.signature=bs58.encode(versioned?VersionedTransaction.deserialize(wire).signatures[0]:Transaction.from(wire).signature);
@@ -22,6 +22,20 @@ function fixture(versioned,{mutate=false,lostAck=false,beforeBroadcast=()=>{}}={
 }
 for(const versioned of [false,true]){
  const format=versioned?'versioned':'legacy';
+ test(`byte-identical ${format} wallet wrapper is accepted without depending on its JS constructor`,async()=>{
+  const {state,run}=fixture(versioned,{returned:tx=>({serialize:()=>tx.serialize()})});await run();assert.equal(state.sends,1);assert.equal(state.confirmations,1);
+ });
+ test(`legacy-message wrapper and native ${format} preserve all required signatures`,async()=>{
+  const {state,run}=fixture(versioned,{returned:tx=>VersionedTransaction.deserialize(tx.serialize())});await run();assert.equal(state.sends,1);
+ });
+ for(const signer of [0,1])test(`invalid ${format} signer ${signer} is never submitted`,async()=>{
+  const {state,run}=fixture(versioned,{returned:tx=>{const wire=VersionedTransaction.deserialize(tx.serialize());wire.signatures[signer].fill(0);return wire;}});
+  await assert.rejects(run,/invalid wallet or mint signature/);assert.equal(state.sends,0);
+ });
+ test(`changed ${format} blockhash is never submitted`,async()=>{
+  const {state,run}=fixture(versioned,{returned:tx=>{const wire=VersionedTransaction.deserialize(tx.serialize());wire.message.recentBlockhash=Keypair.generate().publicKey.toBase58();return wire;}});
+  await assert.rejects(run,/Wallet changed/);assert.equal(state.sends,0);
+ });
  test(`expired reservation after ${format} wallet approval never broadcasts`,async()=>{
   let checks=0;
   const {state,run}=fixture(versioned,{beforeBroadcast:()=>{if(++checks===2)throw Error('Ticker reservation expired');}});

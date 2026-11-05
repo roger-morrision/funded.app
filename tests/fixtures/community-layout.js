@@ -1,3 +1,8 @@
 export { coinMyRewardsMarkup } from '../../src/features/coin/my-rewards-view.js';
 export { showLaunchSuccess } from '../../src/features/launch/success-dialog.js';
 export { updateCompactTokenLink } from '../../src/features/shared/compact-token.js';
+export { renderHomeLaunchBoard } from '../../src/features/home/launch-board-view.js';
+export { homeLaunchCardMarkup,decorateHomeLaunchCard } from '../../src/features/home/launch-card-view.js';
+export { mountHolderRewardsCard } from '../../src/features/coin/holder-rewards-card.js';
+export { renderLaunchBurnSelection } from '../../src/features/launch/burn-selection-view.js';
+export { showChatPostResult } from '../../src/features/coin/chat-post-result.js';

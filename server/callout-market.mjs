@@ -61,17 +61,20 @@ export function createCalloutMarketReader({ getConnection, ttlMs = 15_000, now =
 
 // The share of supply the caller holds when they post, read on Solana, so the
 // board can show which calls come with the caller's own money behind them.
-export function createHolderShareReader({ getConnection, timeoutMs = 2_500 }) {
+export function createHolderShareReader({ getConnection, timeoutMs = 8_000 }) {
   return async function readHolderShare(owner, mint) {
     const connection = getConnection();
     const read = Promise.all([
       connection.getParsedTokenAccountsByOwner(new PublicKey(owner), { mint: new PublicKey(mint) }, 'confirmed'),
       connection.getTokenSupply(new PublicKey(mint), 'confirmed'),
     ]).then(([accounts, supply]) => {
-      const held = accounts.value.reduce((sum, row) => sum + Number(row.account.data.parsed?.info?.tokenAmount?.uiAmount || 0), 0);
-      const total = Number(supply.value.uiAmount);
-      return total > 0 ? (held / total) * 100 : null;
+      const total=BigInt(supply.value.amount);
+      const held=accounts.value.reduce((sum,row)=>sum+BigInt(row.account.data.parsed.info.tokenAmount.amount),0n);
+      return total > 0n ? Number(held)/Number(total)*100 : null;
     });
-    return Promise.race([read, new Promise(resolve => setTimeout(() => resolve(null), timeoutMs))]).catch(() => null);
+    let timer;
+    try { return await Promise.race([read,new Promise(resolve=>{timer=setTimeout(()=>resolve(null),timeoutMs);})]); }
+    catch { return null; }
+    finally { clearTimeout(timer); }
   };
 }

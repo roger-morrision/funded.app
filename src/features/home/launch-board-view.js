@@ -23,7 +23,7 @@ export function renderHomeLaunchBoard(state, {
   // Home previews discovery. Ignore saved scanner filters without changing them;
   // the complete controls and list are available in Explore.
   const homePreview = Boolean(document.querySelector('.home-start'));
-  if (homePreview) state = {...state,homeLaunchView:'grid',homeLaunchTab:'all',homeLaunchFilters:{},homeLaunchPaused:false,homeLaunchWindow:'24h'};
+  if (homePreview) state = {...state,homeLaunchView:'grid',homeLaunchTab:'all',homeLaunchFilters:{},homeLaunchPaused:false};
   const {
     homeLaunchView,
     exploreFeedAvailable,
@@ -54,7 +54,7 @@ export function renderHomeLaunchBoard(state, {
   if (tableBody?.closest('table')) tableBody.closest('table').hidden = paidListingView;
   if (paidTable) paidTable.hidden = !paidListingView;
   const boardTitle = document.querySelector('#home-launch-board-title');
-  if (boardTitle) boardTitle.textContent = homePreview ? 'Discover coins' : paidListingView ? 'Paid listings' : 'Live launches';
+  if (boardTitle) boardTitle.textContent = homePreview ? 'New coins' : paidListingView ? 'Paid listings' : 'Live launches';
   const footerLink = document.querySelector('.home-board-footer .home-launch-all');
   if (footerLink) {
     footerLink.href = paidListingView ? '/list' : '#explore';
@@ -74,7 +74,7 @@ export function renderHomeLaunchBoard(state, {
       : exploreFeedAvailable ? 'live' : exploreLastVerifiedAt ? 'snapshot' : 'unavailable';
   }
   const tickerLabel = document.querySelector('#home-market-ticker-label');
-  if (tickerLabel) tickerLabel.textContent = 'Latest launches';
+  if (tickerLabel) tickerLabel.textContent = homePreview ? `Trending · ${homeLaunchWindow} volume` : 'Latest launches';
   const volumeFilterLabel = document.querySelector('#home-filter-volume-label');
   if (volumeFilterLabel?.firstChild) volumeFilterLabel.firstChild.textContent = `${homeLaunchWindow} volume `;
   const tradesFilterLabel = document.querySelector('#home-filter-trades-label');
@@ -125,7 +125,7 @@ export function renderHomeLaunchBoard(state, {
     tableTxnsHeading.title = `${homeLaunchWindow} observed transactions`;
   }
   if (ticker) {
-    const ranked = [...verified]
+    const ranked = verified.filter(item => !homePreview || volumeRank(item) > 0)
       .sort((a, b) => volumeRank(b) - volumeRank(a)).slice(0, 6);
     const tickerMarkup = ranked.length ? ranked.map((item, index) => {
       const currentCap = capUsd(item);
@@ -199,7 +199,7 @@ export function renderHomeLaunchBoard(state, {
     const frozenRank = new Map(state.homeFrozenOrder.map((mint, index) => [mint, index]));
     visible.sort((a, b) => (frozenRank.get(a.address) ?? Infinity) - (frozenRank.get(b.address) ?? Infinity));
   }
-  if (homePreview) visible = visible.slice(0,3);
+  if (homePreview) visible = visible.sort((a,b) => Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0)).slice(0,6);
   // The full scanner retains every verified launch.
   const boardCount = document.querySelector('#home-board-count');
   if (boardCount) boardCount.textContent = visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
@@ -243,7 +243,7 @@ export function renderHomeLaunchBoard(state, {
     }).join('');
     loadVerifiedTokenLogos(tableBody);
   }
-  grid.innerHTML = visible.map(item => homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item) })).join('');
-  grid.querySelectorAll('.home-launch-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
+  grid.innerHTML = visible.map(item => homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item), compact:homePreview })).join('');
+  grid.querySelectorAll('.home-launch-card,.home-new-token-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
   loadVerifiedTokenLogos(grid);
 }

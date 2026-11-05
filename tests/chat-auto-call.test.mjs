@@ -30,6 +30,7 @@ for(const scenario of [
   assert.equal(sent.status,scenario.wrongWallet?401:201);
   assert.equal(reads,scenario.wrongWallet?0:1);
   assert.equal(Boolean(sent.body.message?.callout),Boolean(scenario.call));
+  if(!scenario.wrongWallet){const expected=scenario.call?'recorded':scenario.noCap?'market-unavailable':scenario.repeat?'repeat-call':scenario.limited?'rate-limited':scenario.holding===0?'not-holder':'holdings-unavailable';assert.equal(sent.body.calloutStatus,expected);}
   assert.equal(chats.length,scenario.wrongWallet?0:1);
   assert.equal(calls.length,scenario.call||scenario.repeat?1:0);
 });

@@ -14,11 +14,19 @@ for(const width of [320,390,768,1440]){
   test(`task navigation and Home at ${width}px (mocked APIs)`,async({page},info)=>{
     await setup(page,width);const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page,'/#overview');
     await expect(page.locator('#home-hero-title')).toContainText('Reward your community');
-    await expect(page.locator('.home-benefit-value')).toHaveText(['80%','≥3%','Top 3']);
+    await expect(page.locator('.home-benefit-value')).toHaveText(['80%','≥3%','5%','4%','1%','2%']);
     await expect(page.locator('.hero-actions > a')).toHaveText(['Launch a coin','Explore coins','Check rewards']);
-    await expect(page.locator('.home-welcome-guide > a')).toHaveAttribute('href','/welcome');
-    await expect(page.locator('.home-start-grid > a')).toHaveCount(3);
+    await expect(page.locator('.home-welcome-guide')).toHaveCount(0);
+    await expect(page.locator('.home-start-grid > a')).toHaveCount(6);
+    await expect(page.locator('#home-start-title')).toHaveText('Fees go back to the community.');
     await expect(page.locator('.home-start')).toBeVisible();
+    await expect(page.locator('.home-launch-highlights')).toBeVisible();
+    await expect(page.locator('.home-launch-board')).toBeVisible();
+    await expect(page.locator('#home-launch-board-title')).toHaveText('New coins');
+    await page.locator('[data-home-window="5m"]').click();await expect(page.locator('#home-market-ticker-label')).toHaveText('Trending · 5m volume');
+    await page.locator('[data-home-window="24h"]').click();
+    const banner=page.locator('.home-reference-faq-art');await banner.scrollIntoViewIfNeeded();await expect(banner).toBeVisible();
+    await expect.poll(()=>banner.evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
     await expect(page.locator('.home-kpi-dashboard')).not.toBeVisible();
     if(width<=700)await page.locator('#open-menu').click();
     const nav=page.locator('.primary-nav');
@@ -29,21 +37,11 @@ for(const width of [320,390,768,1440]){
     await expect(page).toHaveURL(/#capital-flow$/);
     await page.goBack();await expect(page.locator('.home-start')).toBeVisible();await fits(page);
     await page.screenshot({path:info.outputPath(`home-${width}.png`),fullPage:true,animations:'disabled'});
-    await expect(page.getByRole('search',{name:'Find coins'})).toBeVisible();
-    for(const link of await page.locator('.home-discover-links a').all())expect((await link.boundingBox()).height).toBeGreaterThanOrEqual(44);
-    await page.locator('#home-coin-search').fill('Community & SOL');
-    await page.locator('#home-coin-search').press('Enter');
-    await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
-    await expect(page.locator('#explore-search')).toHaveValue('Community & SOL');
-    await expect(page.locator('button[data-explore-tab="trending"]')).toHaveAttribute('aria-pressed','true');
-    for(const [label,tab] of [['New coins','new'],['Favorites','favorites'],['Trending','trending']]){
-      await ready(page,'/#overview');
-      await page.locator('.home-discover-links').getByRole('link',{name:label,exact:true}).click();
-      await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
-      await expect(page.locator(`button[data-explore-tab="${tab}"]`)).toHaveAttribute('aria-pressed','true');
-      await expect(page.locator('#explore-search')).toHaveValue('');
-      await fits(page);
-    }
+    await expect(page.locator('.home-discover')).toHaveCount(0);
+    const metrics=page.locator('.home-proof-metrics .home-kpi-card');await expect(metrics).toHaveCount(3);
+    for(const card of await metrics.all())await expect(card).toBeVisible();
+    await page.locator('.hero-actions').getByRole('link',{name:'Explore coins',exact:true}).click();
+    await expect(page.locator('#explore-search')).toBeVisible();await fits(page);
     await ready(page,'/#overview');await page.locator('.home-receipts a').click();
     await expect(page.locator('#rewards-history')).toBeVisible();
     expect(errors).toEqual([]);
