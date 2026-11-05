@@ -2,6 +2,8 @@ import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 for(const width of [360,390,1440]) test(`token error recovery and fee records remain usable at ${width}px`,async({page})=>{
+  // Four complete page boots; keep each assertion bounded independently.
+  test.setTimeout(60_000);
   const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
   const variants=[
     ['502 : <!DOCTYPE html><footer>Fixture gateway 192.0.2.1<script>fixture()</script></footer>','We could not load verified token details. Try Refresh in a moment.'],

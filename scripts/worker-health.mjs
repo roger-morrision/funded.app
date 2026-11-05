@@ -15,7 +15,7 @@ const healthPath = role => {
 // Completion is operational health, not authorization to spend. An idle or
 // funding-blocked completed cycle is healthy; a failed or stalled cycle is not.
 export function recordWorkerCycle(role, status, readiness = null) {
-  const path=healthPath(role),temp=path+'.tmp';
+  const path=healthPath(role),temp=path+'.'+process.pid+'.tmp';
   writeFileSync(temp,JSON.stringify({role,status,readiness,pid:process.pid,
     build:process.env.FUNDED_BUILD_ID,cluster:process.env.SOLANA_CLUSTER,completedAt:Date.now()}),{mode:0o600});
   renameSync(temp,path);

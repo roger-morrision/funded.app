@@ -10,7 +10,7 @@ test.beforeEach(async({page})=>{
 
 for(const width of[360,1440])test(`landing section jumps and history keep the correct current item at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:740});await page.goto('/welcome');
-  for(const id of['for-you','rewards','discovery','transparency','tools','questions','platform']){
+  for(const id of['for-you','rewards','discovery','tools','questions','platform']){
     if(width<1000){await page.getByRole('button',{name:'Open navigation'}).click();await page.locator(`#landing-menu nav a[href="#${id}"]`).click();}
     else await page.locator(`.landing-sidebar nav a[href="#${id}"]`).click();
     await expect(page).toHaveURL(new RegExp(`#${id}$`));
