@@ -4,6 +4,32 @@ const offlineFixture=route=>new URL(route.request().url()).pathname==='/api/fee-
   ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
   : route.fulfill({status:503,json:{error:'Offline fixture'}});
 
+for(const width of [390,1440])test(`cold buyback verification updates without waiting a minute at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});
+  await page.route('https://**/*',route=>route.abort());
+  await page.route('**/api/**',offlineFixture);
+  let ready=false,requests=0;const errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.route('**/api/buyback/status',route=>{
+    requests++;
+    return route.fulfill({json:{cluster:'devnet',refreshing:!ready,automationEnabled:true,
+      executionReady:false,receipts:[],pending:[],dashboard:ready
+        ? {status:'verified',collectedLamports:'147100',thresholdLamports:'5000000000',triggerReached:false}
+        : {status:'unavailable',thresholdLamports:'5000000000'}}});
+  });
+  await page.goto('/#buybacks');
+  const note=page.locator('#buyback-route-status');
+  await expect(note).toContainText('Checking finalized vault balances');
+  await expect(page.locator('#buyback-route-balance')).toHaveText('—');
+  const before=requests;ready=true;
+  await expect(note).toContainText('Verified eligible funds',{timeout:12000});
+  expect(requests).toBeGreaterThan(before);
+  await expect(page.locator('#buyback-route-balance')).toHaveText('0.0001471 SOL');
+  await expect(note).not.toContainText('execution ready');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 for(const [name,status,dashboard,expected] of [
   ['transport failure',503,null,'Waiting for the next burn update'],
   ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Waiting for the next burn update'],

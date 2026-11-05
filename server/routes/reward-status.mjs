@@ -318,8 +318,9 @@ export function createRewardStatusRoutes({
         mainnetReady:false, pending,
         budgetSummary:buybackOrderSizeSummary(pending),
         dashboard,
+        refreshing:buybackReads.has(buybackCacheKey(state,thresholdLamports)),
         ...(dashboard.status!=='verified'&&buybackSnapshot?.key===buybackCacheKey(state,thresholdLamports)&&buybackSnapshot?.value?.status==='verified'?{
-          refreshing:true,lastVerified:{...buybackSnapshot.value,fresh:false}}:{}),
+          lastVerified:{...buybackSnapshot.value,fresh:false}}:{}),
         receipts:verifiedV3Burns(state)
           .map(({preparedTransaction,signedTransaction,pumpData,pumpKeys,...row})=>row) });
     }

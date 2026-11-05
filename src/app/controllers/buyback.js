@@ -12,6 +12,7 @@ export function triggerProgressPercent(lamports, threshold) {
 }
 
 export function createBuybackController(appState) {
+  let activeRead;
   // app-source: 341
   function getBuybackPreviewState(){
     return { accruals: [], receipts: [] };
@@ -20,6 +21,31 @@ export function createBuybackController(appState) {
 
   // app-source: 343
   async function loadBuybackNetworkState(signal){
+    activeRead?.abort();
+    const owner = new AbortController();
+    activeRead = owner;
+    const current = AbortSignal.any([owner.signal, AbortSignal.timeout(30_000), ...(signal ? [signal] : [])]);
+    try {
+      // Public reads return before a slow custody scan. Follow that same scan
+      // briefly so the normal minute-long polling interval does not hide it.
+      for (let attempt = 0; attempt < 6; attempt++) {
+        await readBuybackNetworkState(current);
+        if (!appState.buybackNetworkState.refreshing || attempt === 5) break;
+        await new Promise((resolve, reject) => {
+          const abort = () => { clearTimeout(timer); reject(current.reason); };
+          const timer = setTimeout(() => { current.removeEventListener('abort', abort); resolve(); }, 2_000);
+          current.addEventListener('abort', abort, {once:true});
+          if (current.aborted) abort();
+        });
+      }
+    } catch (error) {
+      if (!current.aborted) throw error;
+    } finally {
+      if (activeRead === owner) activeRead = null;
+    }
+  }
+
+  async function readBuybackNetworkState(signal){
     mountBuybackProgressPanels(document);
     try {
       const deadline = AbortSignal.timeout(30_000);
@@ -66,7 +92,8 @@ export function createBuybackController(appState) {
         ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified vault allocations, the app reviews protected $FUNDED purchases and burns. Each order must meet its own minimum and pass market quote and liquidity checks.`
         : `The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the ${trigger} aggregate trigger. The worker then reviews individual orders for protected $FUNDED purchases and burns; orders below their minimum and failed market checks leave funds in custody.`;
       if (prefix === 'buyback-route' && trigger) document.querySelector('#buyback-route-title').textContent = `${trigger} trigger, verified eligible fees.`;
-      note.textContent = !eligible || !trigger ? 'Eligible vault or trigger verification unavailable or incomplete'
+      note.textContent = !eligible && appState.buybackNetworkState.refreshing ? 'Checking finalized vault balances…'
+        : !eligible || !trigger ? 'Eligible vault or trigger verification unavailable or incomplete'
         : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'
           : dashboard.triggerReached && !appState.buybackNetworkState.executionReady && belowMinimum && minimumOrder
             ? `${trigger} aggregate trigger reached · individual allocations below ${formatSol(minimumOrder)} order minimum`
@@ -78,7 +105,7 @@ export function createBuybackController(appState) {
       if(eligible&&sizes&&/^\d+$/.test(sizes.orderSizeEligibleLamports)&&/^\d+$/.test(sizes.belowMinimumLamports))
         note.textContent+=` · Meets order minimum: ${formatSol(BigInt(sizes.orderSizeEligibleLamports))} · Retained below minimum: ${formatSol(BigInt(sizes.belowMinimumLamports))}`;
       if(!eligible&&appState.buybackNetworkState.lastVerified?.checkedAt)
-        note.textContent+=` · Last verified ${appState.formatOnchainAge(Date.parse(appState.buybackNetworkState.lastVerified.checkedAt))}; current verification pending`;
+        note.textContent+=` · Last verified ${appState.formatOnchainAge(Date.parse(appState.buybackNetworkState.lastVerified.checkedAt))}; ${appState.buybackNetworkState.refreshing ? 'current verification pending' : 'current verification unavailable'}`;
       const progress = eligible && threshold ? Number(lamports > threshold ? threshold : lamports) / Number(threshold) * 100 : 0;
       track.setAttribute('aria-label', trigger ? `Eligible buyback progress toward ${trigger}` : 'Eligible buyback progress unavailable');
       if (threshold) {

@@ -7,6 +7,31 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const programId='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 
+test('public status marks cold scans as refreshing and stops that marker after failed verification',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  let finish,fail,clock=Date.now(),reads=0;const replies=[];
+  const route=createRewardStatusRoutes({store:{read:async()=>({})},solanaCluster:'devnet',
+    solanaRpcUrl:'https://unused.invalid',env:{FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId},
+    now:()=>clock,connectionFactory:()=>({}),
+    readBuybackDashboard:()=>{reads++;return new Promise((resolve,reject)=>{finish=resolve;fail=reject;});},
+    respond:(_res,_status,data)=>replies.push(data)});
+  const request=()=>route({method:'GET'},{},new URL('https://funded.vip/api/buyback/status'));
+  let work=request();await new Promise(resolve=>setImmediate(resolve));
+  t.mock.timers.tick(1001);await work;
+  assert.equal(replies.at(-1).refreshing,true);
+  assert.equal(replies.at(-1).lastVerified,undefined);
+  assert.equal(replies.at(-1).executionReady,false);
+  finish({status:'verified',collectedLamports:'147100',unindexedStatus:'verified',unindexedVaults:[]});
+  await new Promise(resolve=>setImmediate(resolve));await request();
+  assert.equal(replies.at(-1).refreshing,false);assert.equal(reads,1);
+  clock+=20_001;work=request();await new Promise(resolve=>setImmediate(resolve));
+  fail(new Error('RPC unavailable'));await work;
+  assert.equal(replies.at(-1).refreshing,false);
+  assert.equal(replies.at(-1).lastVerified.fresh,false);
+  assert.equal(replies.at(-1).dashboard.status,'unavailable');
+  assert.equal(replies.at(-1).executionReady,false);
+});
+
 test('automatic status returns unavailable current custody before the UI deadline while its scan is delayed',async t=>{
   t.mock.timers.enable({apis:['setTimeout']});
   let result;
