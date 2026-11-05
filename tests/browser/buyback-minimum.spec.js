@@ -4,6 +4,31 @@ const offlineFixture=route=>new URL(route.request().url()).pathname==='/api/fee-
   ? route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}})
   : route.fulfill({status:503,json:{error:'Offline fixture'}});
 
+for(const width of [390,1440])for(const executionReady of [false,true])
+test(`aged buyback funding shows its actual execution state (${executionReady}) at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});
+  await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offlineFixture);
+  await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',automationEnabled:true,
+    executionReady,executionPolicy:{maxWaitSeconds:86400,ageMinimumLamports:'10000000'},
+    receipts:[],pending:[{mint:'52TdgMLp41CtiLrAqqZ1N889RPfWMMzxwpF8MoaZFvN1',amountLamports:'20000000',
+      ageEligible:true,status:'awaiting-v3-buyback-executor'}],
+    dashboard:{status:'verified',unindexedStatus:'verified',collectedLamports:'20000000',
+      thresholdLamports:'5000000000',triggerReached:false}}}));
+  await page.goto('/#buybacks');
+  await expect(page.locator('#buyback-route-title')).toHaveText('5 SOL trigger or eligible older fees.');
+  await expect(page.locator('#buyback-route-status')).toHaveText(executionReady
+    ? 'Older funding qualifies · protected execution ready' : 'Older funding qualifies · execution checks pending');
+  await expect(page.locator('#buyback-route-track')).toHaveAttribute('aria-valuenow','0.02');
+  await page.locator('#buyback-route-panel details summary').click();
+  await expect(page.locator('#buyback-route-policy')).toBeVisible();
+  for(const prefix of ['home-buyback','buyback-route']){
+    await expect(page.locator(`#${prefix}-policy`)).toContainText('at least 0.01 SOL');
+    await expect(page.locator(`#${prefix}-policy`)).toContainText('at least 24 hours');
+    await expect(page.locator(`#${prefix}-policy`)).toContainText('fresh custody, market quote and liquidity checks');
+  }
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
 for(const width of [390,1440])test(`cold buyback verification updates without waiting a minute at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});
   await page.route('https://**/*',route=>route.abort());

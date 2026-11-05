@@ -9,7 +9,7 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
 function fixture(t, read) {
   t.mock.timers.enable({apis:['setTimeout']});
   const prior = globalThis.document, elements = new Map();
-  for (const suffix of ['balance','status','track','fill','last-time','proof','title'])
+  for (const suffix of ['balance','status','track','fill','last-time','proof','title','policy'])
     elements.set('#buyback-route-'+suffix,{style:{},setAttribute(){},removeAttribute(){}});
   globalThis.document = {querySelector:key => elements.get(key) || null};
   t.after(() => {globalThis.document = prior;});
@@ -18,6 +18,41 @@ function fixture(t, read) {
     renderBuybackDashboard(){},formatOnchainAge:()=>'1m ago'};
   return {state,elements,calls:()=>calls,controller:createBuybackController(state)};
 }
+
+test('aged funding readiness follows the server decision and still requires current custody',async t=>{
+  const data={...verified,executionPolicy:{maxWaitSeconds:86400,ageMinimumLamports:'10000000'},
+    pending:[{ageEligible:true}],executionReady:false};
+  const f=fixture(t,()=>data);
+  await f.controller.loadBuybackNetworkState();
+  assert.match(f.elements.get('#buyback-route-policy').textContent,/at least 0\.01 SOL.*at least 24 hours/);
+  assert.equal(f.elements.get('#buyback-route-status').textContent,'Older funding qualifies · execution checks pending');
+  data.executionReady=true;await f.controller.loadBuybackNetworkState();
+  assert.equal(f.elements.get('#buyback-route-status').textContent,'Older funding qualifies · protected execution ready');
+  data.dashboard={...data.dashboard,status:'unavailable'};await f.controller.loadBuybackNetworkState();
+  assert.doesNotMatch(f.elements.get('#buyback-route-status').textContent,/execution ready/);
+});
+
+test('disabled or malformed age rules do not advertise aged execution even with stale eligibility',async t=>{
+  const data={...verified,pending:[{ageEligible:true}],executionReady:true};
+  const f=fixture(t,()=>data);
+  for(const policy of [undefined,{maxWaitSeconds:0,ageMinimumLamports:'10000000'},
+    {maxWaitSeconds:86400,ageMinimumLamports:'0'},{maxWaitSeconds:86400,ageMinimumLamports:'invalid'}]){
+    data.executionPolicy=policy;await f.controller.loadBuybackNetworkState();
+    assert.doesNotMatch(f.elements.get('#buyback-route-policy').textContent,/Older fee allocations/);
+    assert.doesNotMatch(f.elements.get('#buyback-route-status').textContent,/execution ready/);
+    assert.doesNotMatch(f.elements.get('#buyback-route-title').textContent,/older fees/);
+  }
+});
+
+test('an API failure clears previously displayed age rules',async t=>{
+  const f=fixture(t,()=>({...verified,executionPolicy:{maxWaitSeconds:300,ageMinimumLamports:'10000'}}));
+  await f.controller.loadBuybackNetworkState();
+  assert.match(f.elements.get('#buyback-route-policy').textContent,/5 minutes/);
+  f.state.apiRequest=async()=>{throw new Error('Network unavailable');};
+  await f.controller.loadBuybackNetworkState();
+  assert.equal(f.elements.get('#buyback-route-policy').textContent,'Current buyback rules are unavailable.');
+  assert.equal(f.elements.get('#buyback-route-title').textContent,'Buybacks from verified fees.');
+});
 
 test('a cold buyback panel follows the pending scan and displays only the fresh balance',async t=>{
   let ready=false;
