@@ -5,6 +5,7 @@ import { readVerifiedListingMint } from '../token-metadata.mjs';
 import { projectBurnBoard, walletBurnBoard } from '../leaderboard-burn-board.mjs';
 import { LISTING_PRICE_USD, listingBurnTokens } from '../../listing-policy.js';
 import { readServiceFees } from '../service-fees.mjs';
+import { createPortfolioMetadataReader } from '../portfolio-token-metadata.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -14,7 +15,20 @@ export function createDirectoryRoutes({
 }) {
 
   const json = (...args) => { respond(...args); return true; };
+  let metadataReader;
+  const readTokenMetadata=mint=>{
+    metadataReader ||= createPortfolioMetadataReader({cluster:solanaCluster,connection:new Connection(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
+      fetch:(url,init)=>fetch(url,{...init,signal:AbortSignal.timeout(8000)})})});
+    return metadataReader(mint);
+  };
   return async function handleDirectoryRoutes(req, res, url, requestId) {
+    if(req.method==='GET' && url.pathname==='/api/tokens/metadata'){
+      let mints;
+      try{mints=[...new Set(String(url.searchParams.get('mints')||'').split(',').map(mint=>new PublicKey(mint).toBase58()))];if(!mints.length||mints.length>8)throw Error();}
+      catch{return json(res,400,{error:'Provide between 1 and 8 valid token mints.'});}
+      const items=(await Promise.all(mints.map(readTokenMetadata))).filter(Boolean);
+      return json(res,200,{cluster:solanaCluster,items});
+    }
     if (req.method === 'GET' && url.pathname === '/api/terminal/signals') {
       const launches = (await store.readLaunches()).filter(item => item.onchainVerified
         && item.cluster === solanaCluster && item.pumpFeeRoute?.scope === 'per-mint-v3')

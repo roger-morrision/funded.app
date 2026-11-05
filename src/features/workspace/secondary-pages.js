@@ -58,7 +58,7 @@ export function secondaryPages() {
     publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="all">All <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="claiming">Claims open <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="curve">On curve <span>—</span></button></div><p class="airdrop-stage-help">Claims open once the holder snapshot is taken and the airdrop is funded. Test coins are labeled.</p>';
     for(const selector of ['.airdrop-directory-head','.airdrop-directory','#airdrop-directory-pagination','#airdrop-selected-program']){const item=$(selector,airdrops);if(item)publicPrograms.append(item);}
     heroLayout.after(publicPrograms);
-    text('.airdrop-directory-head h2','Airdrop for $FUNDED holders');
+    text('.airdrop-directory-head h2','$FUNDED holder airdrops');
     const directoryHead=$('.airdrop-directory-head',publicPrograms);
     directoryHead?.classList.add('airdrop-directory-heading');
     const toolbar=node('div','airdrop-discovery-toolbar');
@@ -125,7 +125,7 @@ export function protocolPage() {
   const policySummary = node('summary', '', 'Read the full fee route policy');
   policy.append(policySummary, ...policyContent);
   const footer = node('footer', 'funded-token-footer');
-  footer.innerHTML = '<div><a class="funded-token-footer-brand" href="#overview"><span aria-hidden="true">ƒ</span> funded.vip</a><p>Launch on Solana with copycat-ticker protection and a 12-hour on-chain lock on the developer’s tokens. Fees reward creators, holders and referrers, and every payout has a Solana receipt.</p></div><nav aria-label="Funded protocol"><strong>PROTOCOL</strong><a href="#launch">Launch</a><a href="/funded" aria-current="page">$FUNDED</a><a href="#buybacks">Burn $FUNDED</a><a href="#explore">Explore</a><a href="#airdrops">Airdrops</a><a href="#docs">Docs</a></nav><nav aria-label="Legal"><strong>LEGAL</strong><a href="#privacy">Privacy</a><a href="#terms" data-info="terms">Terms</a><a href="#disclosures" data-info="disclosures">Disclosures</a><a href="#opt-out" data-info="opt-out">Opt out</a></nav><small>© 2026 FUNDED.VIP · POWERED BY $FUNDED</small>';
+  footer.innerHTML = '<div><a class="funded-token-footer-brand" href="#overview"><span aria-hidden="true">ƒ</span> funded.vip</a><p>Launch on Solana with copycat-ticker protection and a 12-hour on-chain lock on the developer’s tokens. Fees reward creators, holders and referrers, and every payout has a Solana receipt.</p></div><nav aria-label="Funded protocol"><strong>PROTOCOL</strong><a href="#launch">Launch</a><a href="/funded" aria-current="page">$FUNDED</a><a href="#buybacks">Burn $FUNDED</a><a href="#explore">Explore</a><a href="#airdrops">Airdrops</a><a href="#docs">Docs</a></nav><nav aria-label="Legal"><strong>LEGAL</strong><a href="#privacy">Privacy</a><a href="#terms" data-info="terms">Terms</a></nav><small>© 2026 FUNDED.VIP · POWERED BY $FUNDED</small>';
   const distribution=node('section');distribution.dataset.feeDistribution='protocol';distribution.innerHTML=feeDistributionMarkup({compact:true});
   root.append(hero, facts, distribution, story, contract, policy, footer);
   const tape = node('aside', 'funded-token-tape');

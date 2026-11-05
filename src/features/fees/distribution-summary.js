@@ -34,7 +34,7 @@ export function feeDistributionMarkup({fee,scope=FEE_POLICY_SCOPE,titleLevel=2,c
   const model=feeDistributionPresentation(fee),heading=titleLevel===3?'h3':'h2';
   void scope; // Scope and basis fine print were removed from this panel by request.
   const disclosure=`<details class="fee-distribution-details"><summary>Benefits &amp; policy details</summary>${feeBenefitDetailsMarkup(model.rows)}</details>`;
-  const detail=compact?`<p class="fee-distribution-caption">Shares of collected creator fees. Payouts and burns require funding and finalized receipts.</p>${disclosure}`:disclosure;
+  const detail=disclosure;
   return `<div class="fee-distribution-summary${compact?' fee-distribution-summary--compact':''}"><header><p class="eyebrow">Collected creator-fee distribution</p><${heading}>${escapeHtml(model.headline)}</${heading}></header><div class="fee-distribution-categories">${model.rows.map(row=>`<article data-fee-category="${row.key}"><strong>${row.percent}%</strong><span>${escapeHtml(row.label)}</span>${compact?'':`<small>${escapeHtml(row.benefit)}</small>`}</article>`).join('')}</div>${detail}</div>`;
 }
 

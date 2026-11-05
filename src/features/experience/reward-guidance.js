@@ -16,11 +16,11 @@ export function mountRewardGuidance(app) {
     const heading = el('h2', 'Which reward can I receive?');heading.id='reward-program-guide-title';
     box.setAttribute('aria-labelledby',heading.id);box.append(heading);
     for (const [name, who, asset, action, href] of rewardPrograms) {
-      const row = el('article'); row.append(link(name, href), el('p', `${who}. Receive ${asset}. ${action}.`)); box.append(row);
+      const row = el('article'); row.append(link(name, href), el('span', asset, 'reward-program-asset'), el('p', `${who}.`), el('p', `${action}.`, 'reward-program-delivery')); box.append(row);
     }
     root.append(box);
     const states=el('section',null,'reward-status-guide');states.setAttribute('aria-label','Find your reward status');
-    states.innerHTML='<h2>Check your reward status</h2><p>These are separate stages, not balances or promised payments.</p><div><a href="#payments/history"><strong>Paid</strong><span>Confirmed SOL transfers and receipts. Check the recipient wallet.</span></a><a href="#payments/holders"><strong>Awaiting funding or eligibility</strong><span>An allocation can exist before a payout is ready. Check the pool and cutoff.</span></a><a href="#airdrops"><strong>Check token claims</strong><span>Launched coin tokens. Verify your snapshot, available proof and deadline.</span></a><a href="#payments/x"><strong>Check X claims</strong><span>SOL. Sign in with the named X account and check available funds.</span></a></div>';
+    states.innerHTML='<h2>Find your rewards</h2><p>Check available claims or review confirmed payments.</p><div><a href="#payments/history"><strong>Payout history</strong><span>Confirmed SOL transfers and receipts.</span></a><a href="#payments/holders"><strong>Coin holder rewards</strong><span>Check funding, eligibility and payout timing.</span></a><a href="#airdrops"><strong>Token airdrops</strong><span>Check your snapshot allocation and claim deadline.</span></a><a href="#payments/x"><strong>X rewards</strong><span>Sign in with X to check available SOL.</span></a></div>';
     root.prepend(states);
   }
   const mint = new URL(location.href).searchParams.get('airdropMint');

@@ -10,6 +10,8 @@ for(const width of[360,390,1440])test(`native Portfolio holdings partial coverag
  await page.route('https://**/*',r=>r.abort());
  await page.route('**/api/**',r=>{if(r.request().method()!=='GET')writes.push({method:r.request().method(),path:new URL(r.request().url()).pathname});return r.fulfill({status:503,json:{error:'Controlled offline API'}})});
  await page.route('**/api/fee-policy',r=>r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
+ await page.route('**/api/tokens/metadata?*',r=>r.fulfill({json:{cluster:'devnet',items:[{mint,cluster:'devnet',source:'onchain-token-metadata',symbol:'OUTSIDE',name:'Outside launch',image:'https://metadata.example/logo.svg'}]}}));
+ await page.route('https://metadata.example/logo.svg',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#fc0"/></svg>'}));
  await page.route(`**/api/wallets/${wallet}/trades`,r=>r.fulfill({json:{wallet,cluster:'devnet',source:'finalized-wallet-pump-trades',coverage:'complete',signatureLimit:50,rowLimit:100,scannedSignatures:0,trades:[]}}));
  await page.route('**/api/solana/rpc*',r=>{
   const q=r.request().postDataJSON(),ok=result=>r.fulfill({json:{jsonrpc:'2.0',id:q.id,result}}),fail=()=>r.fulfill({json:{jsonrpc:'2.0',id:q.id,error:{code:-32602,message:'Controlled unavailable token program'}}});
@@ -40,7 +42,10 @@ for(const width of[360,390,1440])test(`native Portfolio holdings partial coverag
  await recover('token2022-fails','—');await expect(rows).toContainText('Some token balances could not be checked');await expect(status).toContainText('0 observed tokens');
  await page.screenshot({path:info.outputPath(`partial-empty-${width}.png`)});
  await recover('partial-nonempty','—');await expect(rows.locator('.portfolio-holding-row')).toHaveCount(1);await expect(status).toContainText('1 observed token ·');await expect(rows).toContainText('2');
- await recover('both-fail','—');await expect(rows).toContainText('unavailable from Solana network. Select Refresh to retry.');
+ await expect(rows.locator('.portfolio-holding-identity')).toContainText('OUTSIDE');await expect(rows).toContainText('Outside launch');
+ await expect.poll(()=>rows.locator('.portfolio-holding-logo img').evaluate(image=>image.complete&&image.naturalWidth>0)).toBe(true);
+ await page.screenshot({path:info.outputPath(`external-token-metadata-${width}.png`)});
+ await recover('both-fail','—');await expect(rows).toContainText('unavailable from Solana network.');await expect(rows).toContainText('Select Refresh to retry.');
  await recover('complete','$0.00');await expect(rows).toContainText('No SPL token holdings');
  for(const tab of['trades','holdings']){await page.locator(`[data-portfolio-tab="${tab}"]`).click();await expect(page.locator(`[data-portfolio-tab="${tab}"]`)).toHaveAttribute('aria-selected','true')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

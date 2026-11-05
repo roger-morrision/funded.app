@@ -21,7 +21,7 @@ export function mountHolderAirdropDirectory(after) {
   if (!after || document.querySelector('#holder-airdrop-programs')) return;
   const section = element('section', 'airdrop-public-programs holder-airdrop-programs');
   section.id = 'holder-airdrop-programs';
-  section.innerHTML = `<header class="airdrop-directory-heading"><div><p class="eyebrow">Coin holder rewards</p><h2>Airdrop for launched coin holders</h2><p>SOL from creator fees, delivered automatically to eligible holders.</p></div><span class="airdrop-asset-label">SOL REWARDS</span></header>
+  section.innerHTML = `<header class="airdrop-directory-heading"><div><p class="eyebrow">Automatic payments</p><h2>Coin holder SOL rewards</h2><p>SOL from creator fees, delivered automatically to eligible holders.</p></div><span class="airdrop-asset-label">SOL REWARDS</span></header>
     <div class="airdrop-discovery-toolbar"><div class="airdrop-reference-tabs" role="tablist" aria-label="Coin holder reward status">
     <button type="button" id="holder-upcoming-tab" role="tab" aria-selected="true" aria-controls="holder-airdrop-list" data-holder-airdrop-tab="upcoming">Awaiting first payout <span>—</span></button>
     <button type="button" id="holder-distributed-tab" role="tab" aria-selected="false" tabindex="-1" aria-controls="holder-airdrop-list" data-holder-airdrop-tab="distributed">Payment history <span>—</span></button></div>

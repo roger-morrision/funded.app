@@ -3,6 +3,7 @@ import { portfolioTokenIdentity } from '../../../token-identity.js';
 import { shortAddress, escapeHtml, formatOnChainNumber, formatDashboardUsd } from '../shared/display.js';
 import { matchedTradePnl } from '../../../portfolio-model.js';
 import { revealPortfolioFocus } from './focus-visibility.js';
+import { holdingImageUrl } from './holdings-metadata.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderPortfolio(
@@ -50,8 +51,10 @@ export function renderPortfolio(
     const unitUsd = portfolioUnitPriceUsd(asset);
     const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
     if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
-    const identity = portfolioTokenIdentity(holding.mint, {asset, launch:verifiedLaunchPolicyForMint(holding.mint), fundedMint:PROTOCOL_FUNDED_MINT});
-    return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="portfolio-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
+    const launch=verifiedLaunchPolicyForMint(holding.mint);
+    const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, fundedMint:PROTOCOL_FUNDED_MINT});
+    const image=holding.mint===PROTOCOL_FUNDED_MINT?'/wolf-mark.svg':holdingImageUrl(launch?.imageUri)||holdingImageUrl(holding.metadata?.image)||holdingImageUrl(asset?.imageUri);
+    return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span class="portfolio-holding-token"><span class="portfolio-holding-logo" aria-hidden="true">${escapeHtml(identity.label==='Unnamed token'?'?':identity.label.replace(/^\$/,'').slice(0,2))}${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`:''}</span><span class="portfolio-holding-identity"><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="portfolio-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
   }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? `Token balances are unavailable from Solana RPC. ${escapeHtml(portfolioHoldings.reason || 'Select Refresh to retry.')}` : partial ? 'Some token balances could not be checked. Select Refresh to retry.' : 'No SPL token holdings in this wallet.'}</div>`;
   status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} ${partial ? holdings.length === 1 ? 'observed token' : 'observed tokens' : 'tokens'} · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}${partial ? ' · Select Refresh to retry.' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
   value.textContent = pricedCount ? `${partial || pricedCount < holdings.length ? '≥' : ''}${formatDashboardUsd(total)}` : holdings.length ? '—' : current && !partial ? '$0.00' : '—';
@@ -83,6 +86,7 @@ export function renderPortfolio(
       : history?.status==='loading' ? 'Checking this wallet’s finalized transactions independently of Explore.'
         : 'Wallet trades are not loaded. This does not mean the wallet has no trades.';
   paginateHistory(rows, {document, label:'Holdings', selector:'.portfolio-holding-row', key:address});
+  rows.querySelectorAll('.portfolio-holding-logo img').forEach(image=>{image.addEventListener('error',()=>image.remove(),{once:true});if(image.complete&&!image.naturalWidth)image.remove();});
   paginateHistory(txRows, {document, label:'Trade history', selector:'.portfolio-trade-row', key:address, anchor:txRows.closest('table')?.parentElement || txRows});
   // Read-only refreshes can change the page height while the keyboard owns Refresh.
   const active=document.activeElement;

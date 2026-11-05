@@ -86,7 +86,7 @@ for(const [width,height] of [[390,844],[1440,900]]){
     await expect(first).toBeFocused();
     release();
     const second=page.locator(`#airdrop-directory [data-directory-mint="${mints[1]}"]`);
-    await expect(page.locator(`.airdrop-directory-card[data-logo-mint="${mints[1]}"] .directory-funding-line`)).toHaveText('Funding: Confirmed');
+    await expect(page.locator(`.airdrop-directory-card[data-logo-mint="${mints[1]}"] .directory-funding-line strong`)).toHaveText('Confirmed');
     await expect(panel).toBeHidden();
     await expect(first).toBeFocused();
     await second.click();

@@ -15,7 +15,7 @@ export function initializeFinancialCenter(app) {
   root.querySelector('.financial-heading p:not(.eyebrow)').textContent = 'Your recorded payments and creator approvals. Public protocol records are separate.';
   const scope = document.createElement('label'); scope.className = 'financial-scope-control';
   scope.innerHTML = 'Show <select data-flow-scope-filter aria-label="Activity scope"><option value="personal">My wallet activity</option><option value="protocol">Protocol activity · public</option></select>';
-  root.querySelector('.financial-heading').after(scope);
+  root.querySelector('.financial-toolbar').prepend(scope);
   const scopeControl = scope.querySelector('select');
   const renderReady = initializeReadyQueue(root,app);
   const ready = (rows,options) => {
