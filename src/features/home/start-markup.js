@@ -1,7 +1,7 @@
 // A compact version of the platform overview, mounted before workspace routing.
 export function mountHomeStart(document=globalThis.document) {
   const section=document.querySelector('.home-start');
-  if(section) section.innerHTML=`<header><p class="eyebrow">Why funded.vip</p><h2 id="home-start-title">Fees go back to the community.</h2><p class="home-start-note">Collected creator fees follow the allocation saved on Solana at launch. Payments and burns require funding and verified receipts.</p></header>
+  if(section) section.innerHTML=`<header><p class="eyebrow">Why funded.vip</p><h2 id="home-start-title">Fees go back to the community.</h2><p class="home-start-note">Collected creator fees follow the allocation saved on Solana at launch.</p></header>
           <div class="home-start-grid">
             <a href="#launch"><span class="home-benefit-value">80%</span><h3>Of creator fees go where the creator decides</h3><p>Keep them, or share them with your holders and an X partner.</p></a>
             <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Of each launch reserved for eligible $FUNDED holders</h3><p>Launched coin tokens. Eligibility uses a verified snapshot; claim during the published window.</p></a>
