@@ -23,10 +23,11 @@ for(const width of [320,390,768,1440]){
   await page.locator('#portfolio-favorites-link').click();await expect(page).toHaveURL(/f.tab=favorites/);await expect(page.locator('button[data-explore-tab="favorites"]')).toHaveAttribute('aria-pressed','true');
   await ready(page,'/#community');await expect(page.locator('#community')).toBeVisible();await expect(page.locator('#my-launches > .purpose-page-nav')).toBeVisible();await fits(page);
  });
- test(`Coin promotion disclosure keeps trading controls accessible at ${width}px (mocked)`,async({page},info)=>{
+ test(`Coin promotion panel keeps trading controls accessible at ${width}px (mocked)`,async({page},info)=>{
   await setup(page,width);await ready(page,`/token/${mint}`);
-  const details=page.locator('.coin-promotion-details');await expect(details).not.toHaveAttribute('open','');await expect(page.locator('#coin-watch')).toBeVisible();await expect(page.locator('#coin-boost')).toBeHidden();
-  await details.locator('summary').focus();await page.keyboard.press('Enter');await expect(page.locator('#coin-boost')).toBeVisible();await expect(details).toContainText('Paid promotion does not verify');await fits(page);await page.keyboard.press('Space');await expect(details).not.toHaveAttribute('open','');
+  const details=page.locator('.coin-promotion-details');await expect(details.locator('summary')).toHaveCount(0);await expect(page.locator('#coin-watch')).toBeVisible();await expect(page.locator('#coin-boost')).toBeVisible();
+  await expect(details).toContainText('Paid promotion does not verify');await fits(page);
+  if(width>1100){const panel=await details.boundingBox(),identity=await page.locator('.coin-identity-main').boundingBox();expect(panel.x).toBeGreaterThanOrEqual(identity.x+identity.width);}
   await page.evaluate(()=>document.querySelector('#coin-page-title').textContent='A community coin with a longer name');await fits(page);
   const name=await page.locator('#coin-page-title').boundingBox();expect(name.width).toBeGreaterThan(width<700?160:300);
   if(width<=700){await page.locator('.mobile-dock-buy').click();await expect(page.locator('#trade-panel')).toBeVisible();await expect(page.locator('#trade-amount')).toBeVisible();await page.locator('.mobile-trade-close').click();await expect(page.locator('.mobile-dock-buy')).toBeFocused();}

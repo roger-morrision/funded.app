@@ -28,8 +28,8 @@ export function renderCoinPromotionBadge(
     rail = document.createElement('aside');
     rail.className = 'coin-package-rail';
     rail.setAttribute('aria-label', 'Favorite, boost and launch package');
-    const details=document.createElement('details');details.className='coin-promotion-details';
-    const summary=document.createElement('summary');summary.textContent='Promotion & receipts';
+    const details=document.createElement('section');details.className='coin-promotion-details';details.setAttribute('aria-label','Promotion and receipts');
+    const summary=document.createElement('h2');summary.textContent='Promotion & receipts';
     const note=document.createElement('p');note.className='coin-promotion-note';note.textContent='Paid promotion does not verify a coin’s safety, liquidity, or future returns.';
     details.append(summary,note);
     const watch = document.querySelector('#coin-watch');

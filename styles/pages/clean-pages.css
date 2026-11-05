@@ -77,6 +77,40 @@ html body #main-content #explore-public-records .explore-benefit-leaders { margi
 html body #main-content #explore-trade-preferences { flex: 0 1 auto; margin: 0; min-width: 0; }
 html body #main-content #explore-trade-preferences .review-buy-setting { display: grid; grid-template-columns: minmax(0,1fr) 100px; gap: 12px; margin: 0; padding: 0 16px 16px; max-width: 440px; text-align: left; }
 html body #main-content #explore-trade-preferences small { grid-column: 1 / -1; white-space: normal; font-size: 13px; line-height: 1.5; color: var(--cp-muted); }
+/* One full-width search row, followed by a deliberately aligned control row. */
+html body #main-content #explore .explore-hero { align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+html body #main-content #explore-community-links { margin: 0; gap: 16px; }
+html body #main-content #explore .explore-heading { margin: 0 0 16px; }
+html body #main-content #explore .explore-tabs { padding: 0; gap: 4px; justify-content: flex-start; }
+html body #main-content #explore .explore-tools { grid-template-columns: minmax(0,1fr); gap: 12px; align-items: start; }
+html body #main-content #explore .explore-search-row { width: 100%; max-width: none; margin: 0; }
+html body #main-content #explore .explore-search-label { width: 100%; max-width: none; }
+html body #main-content #explore .explore-control-bar { display: grid; grid-template-columns: auto minmax(180px,240px) auto minmax(160px,1fr); gap: 12px; align-items: start; justify-content: start; margin: 0; padding: 0; }
+html body #main-content #explore .explore-control-left { grid-column: 1; grid-row: 1; gap: 8px; align-items: center; }
+html body #main-content #explore .product-sort { grid-column: 2; grid-row: 1; min-width: 0; width: 100%; margin: 0; gap: 8px; }
+html body #main-content #explore .product-sort-label { display: inline; }
+html body #main-content #explore .explore-view-switch { grid-column: 3; grid-row: 1; margin: 0; }
+html body #main-content #explore #explore-trade-preferences { grid-column: 4; grid-row: 1; justify-self: end; width: 180px; max-width: 100%; }
+html body #main-content #explore #explore-trade-preferences[open] { width: 100%; }
+html body #main-content #explore #explore-trade-preferences > summary { box-sizing: border-box; min-height: 44px; padding: 12px; line-height: 18px; }
+html body #main-content #explore #explore-trade-preferences .review-buy-setting { grid-template-columns: minmax(0,1fr); gap: 8px; padding: 0 12px 12px; }
+html body #main-content #explore #explore-trade-preferences input { width: 100%; min-width: 0; }
+html body #main-content #explore :is(.explore-search-label,.explore-timeframe,.explore-view-switch,#explore-filter-toggle,#explore-sort) { box-sizing: border-box; height: 46px; min-height: 46px; }
+html body #main-content #explore :is(.explore-timeframe,.explore-view-switch) > button { box-sizing: border-box; height: 44px; min-height: 44px; }
+@media(max-width:1100px){
+  html body #main-content #explore .explore-control-bar { grid-template-columns: minmax(0,1fr) minmax(160px,1fr); }
+  html body #main-content #explore .product-sort { grid-column: 1; grid-row: 2; }
+  html body #main-content #explore .explore-view-switch { grid-column: 2; grid-row: 1; justify-self: end; }
+  html body #main-content #explore #explore-trade-preferences { grid-column: 2; grid-row: 2; }
+}
+@media(max-width:600px){
+  html body #main-content #explore .explore-hero { gap: 8px; margin-bottom: 16px; }
+  html body #main-content #explore .explore-control-bar { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  html body #main-content #explore .explore-control-left { grid-column: 1 / -1; justify-content: space-between; width: 100%; }
+  html body #main-content #explore .product-sort { grid-column: 1 / -1; grid-row: 2; }
+  html body #main-content #explore .explore-view-switch { grid-column: 1; grid-row: 3; justify-self: start; }
+  html body #main-content #explore #explore-trade-preferences { grid-column: 2; grid-row: 3; width: 100%; }
+}
 html body.page-route-my-launches:not(.page-route-community) #my-launches > .purpose-page-nav { display: none; }
 html body #main-content #portfolio-favorites-link { display: inline-flex; align-items: center; min-height: 44px; margin-left: auto; padding: 0 12px; }
 html body #main-content #my-launches .portfolio-view-tabs { margin: 16px 0; }
@@ -92,8 +126,8 @@ html body #main-content #coin-page .coin-hero-about { height: auto; max-height: 
 html body #main-content #coin-page .coin-package-rail { display: flex; flex-direction: row; flex: 0 1 260px; align-items: flex-start; flex-wrap: wrap; gap: 8px; width: auto; max-width: 100%; }
 html body #main-content #coin-page .coin-package-rail .coin-watch { align-self: flex-start; min-width: 44px; min-height: 44px; margin: 0; }
 html body #main-content #coin-page .coin-promotion-details { min-width: 0; max-width: 320px; border: 1px solid var(--cp-line); border-radius: var(--cp-radius); }
-html body #main-content #coin-page .coin-promotion-details > summary { min-height: 44px; padding: 12px; cursor: pointer; font-size: 13px; color: var(--cp-muted); }
-html body #main-content #coin-page .coin-promotion-details > :not(summary) { margin: 12px; }
+html body #main-content #coin-page .coin-promotion-details > h2 { margin: 0; padding: 12px 12px 0; font-size: 14px; color: var(--cp-text); }
+html body #main-content #coin-page .coin-promotion-details > :not(h2) { margin: 12px; }
 html body #main-content #coin-page .coin-promotion-details > #coin-boost { width: calc(100% - 24px); }
 html body #main-content #coin-page .coin-promotion-details > #coin-boost-packages:empty { display: none; }
 html body #main-content #coin-page .coin-promotion-note { max-width: 32ch; font-size: 13px; line-height: 1.5; color: var(--cp-muted); }
@@ -105,6 +139,12 @@ html body #main-content #coin-page .coin-promotion-details #coin-promotion-badge
   html body #main-content #coin-page .coin-identity > [data-watchlist-status] { grid-column: 1 / -1; grid-row: 3; margin: 0; }
   html body #main-content #coin-page .coin-identity .coin-avatar { flex: 0 0 64px; width: 64px; height: 64px; }
   html body #main-content #coin-page .coin-identity #coin-page-title { max-width: none; overflow-wrap: anywhere; }
+}
+@media(min-width:1101px){
+  html body #main-content #coin-page .coin-identity { grid-template-columns: 64px minmax(0,1fr) 280px; }
+  html body #main-content #coin-page .coin-identity > .coin-package-rail { grid-column: 3; grid-row: 1 / 3; display: grid; grid-template-columns: minmax(0,1fr); justify-items: end; }
+  html body #main-content #coin-page .coin-promotion-details { width: 100%; }
+  html body #main-content #coin-page .coin-identity > [data-watchlist-status] { grid-column: 1 / 3; grid-row: 2; }
 }
 @media(max-width:700px){
   html body #main-content #my-launches > .section-heading { align-items: flex-start; gap: 12px; }

@@ -8,8 +8,7 @@ for(const width of [390,768,1440])test(`Paid promotion retains its exact receipt
  await page.route('**/api/launches',r=>r.fulfill({json:[{mint,signature,cluster:'devnet',onchainVerified:true,creatorWallet:mint,name:'A community project with a longer name',symbol:'COMMUNITY',creatorLaunchBurn:{tier:'pro',status:'verified',amountTokens:1000,receipt:{signature,verified:true,atomicWithPumpLaunch:true}}}]}));
  await page.goto(`/token/${mint}`);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
  await expect(page.locator('.coin-hero-card')).toHaveAttribute('data-launch-tier','pro');
- const disclosure=page.locator('.coin-promotion-details');await expect(disclosure).not.toHaveAttribute('open','');
- await disclosure.locator('summary').click();
+ const disclosure=page.locator('.coin-promotion-details');await expect(disclosure.locator('summary')).toHaveCount(0);await expect(disclosure).toBeVisible();
  const receipt=disclosure.getByRole('link',{name:'pro launch promotion · view verified burn receipt',exact:true});
  await expect(receipt).toHaveAttribute('href',`https://explorer.solana.com/tx/${signature}?cluster=devnet`);
  await expect(receipt).toHaveAttribute('rel','noopener noreferrer');await expect(receipt).toBeVisible();
@@ -18,6 +17,6 @@ for(const width of [390,768,1440])test(`Paid promotion retains its exact receipt
  const identity=await page.locator('.coin-identity').boundingBox(),art=await page.locator('.coin-artwork').boundingBox();
   if(await page.locator('.coin-artwork').isVisible())expect(identity.y+identity.height<=art.y+1||art.y+art.height<=identity.y+1).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
- await disclosure.locator('summary').focus();await page.getByRole('button',{name:'Refresh token data'}).click();await expect(disclosure).toHaveAttribute('open','');await expect(receipt).toBeVisible();
+ await page.getByRole('button',{name:'Refresh token data'}).click();await expect(disclosure).toBeVisible();await expect(receipt).toBeVisible();
  await page.screenshot({path:info.outputPath(`promotion-${width}.png`),fullPage:true});
 });

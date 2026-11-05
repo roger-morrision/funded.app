@@ -69,7 +69,7 @@ function explore() {
     label.classList.add('product-sort');
     // Own span so phones can drop the visible word; the select keeps its aria-label.
     label.firstChild.replaceWith(Object.assign(document.createElement('span'), { className:'product-sort-label', textContent:'Sort' }));
-    bar.append(label);
+    bar.insertBefore(label, bar.querySelector('.explore-view-switch'));
   }
   const labels = { boosted:'Active boosts', 'tier-burn':'Promotion spend', airdrop:'Airdrop allocation', 'holder-fee':'Holder reward share', 'x-fee':'X reward share', turnover:'Volume / market cap', 'recent-trade':'Recent activity', holders:'Holder count', change:'24h change', newest:'Newest' };
   for (const option of sort?.options || []) if (labels[option.value]) option.textContent = labels[option.value];

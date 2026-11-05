@@ -16,7 +16,7 @@ export function initializeDiscoveryIntent(app) {
     }
     if(parent.closest('#explore')){
       const preferences=document.createElement('details');preferences.id='explore-trade-preferences';preferences.className='task-page-disclosure';
-      const summary=document.createElement('summary');summary.textContent='Buy amount preference';
+      const summary=document.createElement('summary');summary.textContent='Buy amount';
       label.before(preferences);preferences.append(summary,label);
       label.querySelector('small')?.classList.remove('visually-hidden');
     }
