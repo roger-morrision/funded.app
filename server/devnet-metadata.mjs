@@ -1,3 +1,4 @@
+import { requireSolanaCluster } from '../solana-network.js';
 import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
@@ -20,9 +21,11 @@ function imageMime(bytes, declared) {
   throw new Error('Image bytes do not match a supported PNG, JPG, or WEBP file.');
 }
 
-export function parseSignedMetadata(input) {
+export function parseSignedMetadata(input,{cluster='devnet'}={}) {
+  requireSolanaCluster(cluster);
+  if((input.cluster || 'devnet')!==cluster)throw new Error('Metadata network does not match this deployment.');
   const mint = new PublicKey(String(input.mint || '')).toBase58();
-  if(isDeletedDevnetMint(mint))throw new Error('This old Devnet launch was permanently removed from the app.');
+  if(cluster==='devnet'&&isDeletedDevnetMint(mint))throw new Error('This old Devnet launch was permanently removed from the app.');
   const creatorWallet = new PublicKey(String(input.creatorWallet || '')).toBase58();
   const name = text(input.name, 32, 'Token name');
   const symbol = text(input.symbol, 10, 'Ticker');
@@ -43,6 +46,7 @@ export function parseSignedMetadata(input) {
   if (String(input.bannerSha256 || '') !== bannerSha256) throw new Error('Banner checksum does not match the signed metadata.');
   const record = {
     mint, creatorWallet, name, symbol,
+    ...(cluster!=='devnet'?{cluster}:{}),
     description: text(input.description || '', 280, 'Description'),
     tagline: text(input.tagline || '', 90, 'Tagline'),
     roadmap: text(input.roadmap || '', 420, 'Roadmap'),
@@ -70,7 +74,7 @@ export function publicMetadata(record, origin = metadataRecordOrigin(record)) {
   return {
     name: record.name,
     symbol: record.symbol,
-    description: record.description || 'Devnet test token launched on funded.vip. Devnet assets have no intended monetary value.',
+    description: record.description || (record.cluster==='mainnet-beta' ? 'Token launched on funded.vip.' : 'Devnet test token launched on funded.vip. Devnet assets have no intended monetary value.'),
     image: record.pinnedMetadata?.image || (record.imageSha256 ? devnetImageUri(record.mint, origin) : `${origin}/default.svg`),
     ...(record.bannerSha256 ? { banner: record.pinnedMetadata?.banner || devnetBannerUri(record.mint, origin) } : {}),
     ...(record.website ? { external_url: record.website, website: record.website } : {}),

@@ -23,7 +23,7 @@ export function createLaunchReviewController(appState) {
     const bannerSha256 = bannerBytes ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bannerBytes)), byte => byte.toString(16).padStart(2, '0')).join('') : '';
     const bannerBase64 = bannerBytes ? appState.Buffer.from(bannerBytes).toString('base64') : '';
     const record = {
-      mint, creatorWallet: session.address, name, symbol,
+      mint, creatorWallet: session.address, name, symbol, cluster:appState.APP_CLUSTER || 'devnet',
       description: preview.description, tagline: preview.tagline, roadmap: preview.roadmap,
       website: appState.canonicalLaunchSocialUrl(preview.website, 'website'), x: appState.canonicalLaunchSocialUrl(preview.x, 'x'),
       telegram: appState.canonicalLaunchSocialUrl(preview.telegram, 'telegram'), discord: appState.canonicalLaunchSocialUrl(preview.discord, 'discord'), imageSha256,

@@ -3,7 +3,7 @@ import {focusFilterRecovery} from '../../features/shared/filter-recovery.js';
 
 function bindTokenControlFocus(appState) {
   const page = document.querySelector('#coin-page');
-  const controls = '[data-coin-chart-period],[data-coin-chart-metric],[data-coin-chart-unit],[data-coin-pulse-period]';
+  const controls = '.coin-transactions-scroll[tabindex="0"]:has(.coin-fee-collections-table),[data-coin-chart-period],[data-coin-chart-metric],[data-coin-chart-unit],[data-coin-pulse-period]';
   let frame = 0, episode = 0, release = () => {};
   const cancel = () => { ++episode; cancelAnimationFrame(frame); frame = 0; release(); release = () => {}; };
   const current = (target, route) => document.activeElement === target && target.isConnected

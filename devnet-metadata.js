@@ -1,3 +1,4 @@
+import { requireSolanaCluster, SOLANA_GENESIS } from './solana-network.js';
 import {isPinnedMetadataUri} from './metadata-publication.js';
 export const LEGACY_DEVNET_METADATA_ORIGIN = 'https://metadata.funded.vip';
 
@@ -41,7 +42,11 @@ export function isDevnetImageUri(uri, mint) {
 }
 
 export function metadataStatement(record) {
+  const cluster=requireSolanaCluster(record.cluster || 'devnet');
   const fields = ['mint', 'creatorWallet', 'name', 'symbol', 'description', 'tagline', 'roadmap', 'website', 'x', 'telegram', 'discord', 'imageSha256'];
   if (record.bannerSha256) fields.push('bannerSha256');
-  return `funded.vip Devnet metadata v${record.bannerSha256 ? '2' : '1'}\n${JSON.stringify(Object.fromEntries(fields.map(key => [key, record[key] || ''])))}`;
+  const payload=JSON.stringify(Object.fromEntries(fields.map(key => [key, record[key] || ''])));
+  // Preserve legacy Devnet signatures; Mainnet signatures bind the full genesis.
+  return cluster==='devnet' ? `funded.vip Devnet metadata v${record.bannerSha256 ? '2' : '1'}\n${payload}`
+    : `funded.vip token metadata v3\n${cluster}\n${SOLANA_GENESIS[cluster]}\n${payload}`;
 }

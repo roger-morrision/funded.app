@@ -84,3 +84,11 @@ test('signed upload retries reuse immutable pins and public failures do not retu
  await run();assert.equal(pins,1);
  fail=true;await run();assert.equal(response.status,503);assert(!response.data.uri);assert(!JSON.stringify(response).includes('private endpoint'));
 });
+
+test('Mainnet publication requires content-addressed metadata, image and selected banner before any fetch',async()=>{
+ const uri=pinnedMetadataUri('bafy'+'a'.repeat(55));
+ for(const pinnedMetadata of [undefined,{}, {uri,image:'https://funded.vip/default.svg'},{uri:'https://funded.vip/m/test',image:uri}, {uri,image:uri}])
+  await assert.rejects(verifyPublishedMetadata({...record,cluster:'mainnet-beta',bannerSha256:'a'.repeat(64),pinnedMetadata},{fetchImpl:()=>assert.fail('Unpinned Mainnet resource fetched')}),/durable/);
+ const f=fixture(),pinned=await f.publish({record:{...record,cluster:'mainnet-beta'},image,imageType:'image/png'});
+ assert.equal((await verifyPublishedMetadata(pinned,{fetchImpl:f.fetchImpl})).verified,true);
+});

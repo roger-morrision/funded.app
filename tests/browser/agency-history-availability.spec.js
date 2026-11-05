@@ -55,6 +55,7 @@ for(const width of [360,390,1440])test(`earlier receipts survive unavailable rea
     &&x.rpcMethods.length&&x.rpcMethods.every(method=>existingReadMethods.has(method))))).toEqual([]);
 });
 test('duplicate route notifications share one agency read while explicit refresh and return still reload',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
   const requests=await fixture(page,blocked),reads=()=>requests.filter(row=>row.path==='/api/marketing-agency').length;
   await page.goto('/#marketing-agency');await assertRows(page);await page.locator('body.product-flows-ready').waitFor();
   const before=reads();
@@ -63,6 +64,7 @@ test('duplicate route notifications share one agency read while explicit refresh
   await expect.poll(reads).toBe(before+1);await assertRows(page);
   await page.evaluate(()=>{location.hash='#overview';});await expect(page.locator('#marketing-agency')).toBeHidden();
   await page.evaluate(()=>{location.hash='#marketing-agency';});await assertRows(page);await expect.poll(reads).toBe(before+2);
+  expect(errors).toEqual([]);
 });
 
 test('unavailable and malformed historical context never invents empty or current verified history',async({page})=>{

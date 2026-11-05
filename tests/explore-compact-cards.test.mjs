@@ -4,12 +4,12 @@ const cases=[{"item":{"address":"4r3yqXhj7v4fVSFNTvEKUmn1WovnL8aHdk8hUGLbpXGq","
 const state={verifiedBoosts:{},EXPLORE_CLUSTER:'devnet'};
 const deps={exploreStageLabel:item=>item.complete===false?'On curve':'Market stage unavailable',formatOnchainAge:()=> '6h ago',formatCoinUsd:value=>value==null?'$—':value+' SOL',verifiedLaunchPolicyForMint:mint=>policies.find(p=>p.mint===mint),homeLaunchFeeRouteMarkup:policy=>homeLaunchFeeRouteMarkup(policy,{}, {verifiedPolicyPercent:Number,formatVerifiedPercent:n=>n+'%'}),exploreSocialLinksMarkup:item=>item.website?'<a class="explore-social-link" href="'+escapeHtml(item.website)+'">Website</a>':'',tokenCardWatchMarkup:mint=>'<button class="token-card-action-watch" data-mint="'+escapeHtml(mint)+'" aria-label="Favorite">Favorite</button>',exploreBoostAmountMarkup:()=>'',tokenCardShareMarkup:mint=>'<button class="token-card-action-share" data-share-mint="'+escapeHtml(mint)+'">Share</button>'};
 const options=row=>({volumeLabel:'24h',volumeValue:row.volume,extraClass:'',extraActions:'',footerNote:''});
-test('omitted and legacy compact options share canonical Home hierarchy and honest progress',()=>{
- for(const row of cases)for(const flag of[undefined,false,true]){
+test('full cards preserve hierarchy and honest progress',()=>{
+ for(const row of cases)for(const flag of[undefined,false]){
   const opt=options(row);if(flag!==undefined)opt.compact=flag;const html=homeLaunchCardMarkup(row.item,opt,state,deps);
   assert.match(html,/home-launch-card-media/);assert.doesNotMatch(html,/explore-compact-(?:card|heading|details)/);
   assert.equal((html.match(/class="home-launch-progress-row"/g)||[]).length,1);
-  const order=['home-launch-card-stats','home-launch-progress-row','home-launch-protocol','home-launch-card-actions'].map(k=>html.indexOf('class="'+k+'"'));
+  const order=['home-launch-card-stats','home-launch-progress-row','home-launch-protocol','home-launch-card-actions'].map(k=>html.indexOf('class="'+k));
   assert(order.every(n=>n>=0));assert.deepEqual([...order].sort((a,b)=>a-b),order);
   assert.match(html,row.item.complete===false?/On curve</:/Progress unavailable/);assert.doesNotMatch(html,/aria-valuenow|% filled|Market stage unavailable/);
   assert.match(html,new RegExp('data-copy-address="'+row.item.address+'"'));assert.match(html,/Creator 80%/);
@@ -17,14 +17,14 @@ test('omitted and legacy compact options share canonical Home hierarchy and hone
 });
 test('shared presentation preserves all text and action/proof/address attributes across route classes',()=>{
  // project-token-card is the incidental My launches shared-renderer contract; model only, no connected-wallet/browser claim.
- for(const row of cases)for(const extraClass of[' explore-launch-card',' project-token-card']){const base=homeLaunchCardMarkup(row.item,options(row),state,deps),shared=homeLaunchCardMarkup(row.item,{...options(row),compact:true,extraClass},state,deps);
+ for(const row of cases)for(const extraClass of[' explore-launch-card',' project-token-card']){const base=homeLaunchCardMarkup(row.item,options(row),state,deps),shared=homeLaunchCardMarkup(row.item,{...options(row),compact:false,extraClass},state,deps);
   const words=s=>s.replace(/<[^>]*>/g,' ').split(/\s+/).filter(Boolean).sort(),attrs=s=>[...s.matchAll(/(?:href|data-[\w-]+|aria-[\w-]+|title)="[^"]*"/g)].map(m=>m[0]).sort();
   assert.deepEqual(words(shared),words(base));assert.deepEqual(attrs(shared),attrs(base));assert.doesNotMatch(shared,/explore-compact-/);
   for(const control of['data-copy-address','data-share-mint','data-boost-mint','home-launch-media-package','token-card-action-watch'])assert(shared.includes(control));
  }
 });
-test('compact unknown and zero-trade states retain exact metric meanings and never evaluate escaped names',()=>{
- const unknown=homeLaunchCardMarkup(cases[0].item,{...options(cases[0]),compact:true},state,deps),zero=homeLaunchCardMarkup(cases[3].item,{...options(cases[3]),compact:true},state,deps),escaped=homeLaunchCardMarkup(cases[4].item,{...options(cases[4]),compact:true},state,deps);
+test('full card unknown and zero-trade states retain exact metric meanings and never evaluate escaped names',()=>{
+ const unknown=homeLaunchCardMarkup(cases[0].item,{...options(cases[0]),compact:false},state,deps),zero=homeLaunchCardMarkup(cases[3].item,{...options(cases[3]),compact:false},state,deps),escaped=homeLaunchCardMarkup(cases[4].item,{...options(cases[4]),compact:false},state,deps);
  assert.match(unknown,/<small>Curve cap<\/small><strong class="is-unknown"[^>]*>—<\/strong>/);assert.doesNotMatch(unknown,/\$—/);assert.match(zero,/No trades/);assert.match(escaped,/&lt;img src=x onerror=bad\(\)&gt;/);assert.doesNotMatch(escaped,/<img src=x/);
  assert.match(unknown,/Progress unavailable/);assert.doesNotMatch(unknown,/aria-valuenow/);
 });
@@ -109,4 +109,12 @@ test('retained progress coalesces route reentry and cleans pending work on disco
  f.rows.forEach(x=>x.row.isConnected=true);f.owner.isConnected=true;f.document.activeElement=f.foreign;f.emit(f.we,'funded:route-change');assert(f.rows.every(x=>x.value.textContent.startsWith('Last verified')));
  f.document.activeElement=f.owner;syncLaunchCardProgressFreshness(f.document,staleStatus);f.emit(f.de,'focusout');const old=[...f.q.values()][0];f.emit(f.we,'pagehide');old();pendingClean(f);
  for(let i=0;i<10;i++)syncLaunchCardProgressFreshness(f.document,'RPC verified');assert.equal(f.we.get('funded:route-change').size,1);pendingClean(f);
+});
+
+test('compact Home cards expose token detail and an explicit review action with escaped identity',()=>{
+ for(const row of cases){const html=homeLaunchCardMarkup(row.item,{...options(row),compact:true},state,deps);
+  assert.match(html,/home-new-token-card/);assert(html.includes(`data-review-buy="${row.item.address}"`));
+  assert.match(html,/Review a 0.2 SOL buy/);assert.match(html,/data-review-amount="0.2"/);
+  assert(html.includes(escapeHtml(row.item.name)));assert.doesNotMatch(html,/<img src=x|aria-valuenow|\$—/);
+ }
 });

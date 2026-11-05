@@ -1,3 +1,4 @@
+import { assertRpcNetwork } from './solana-network.js';
 import { buildLaunchTransaction, normalizeLaunchInput } from './launch-core.js';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint, unpackMint } from '@solana/spl-token';
@@ -185,6 +186,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const launchInput = normalizeLaunchInput(input);
   if (!reserveConfig?.authority || !reserveConfig?.lookupTable || !Number.isSafeInteger(input.reserveTokens) || input.reserveTokens <= 0)
     throw new Error('An active, configured community reward vault is required before coin creation.');
+  await assertRpcNetwork(connection,cluster);
+  assertWalletCurrent();
   const global = await verifyFeeRouterAccount({ connection, programId:v3FeeRouter.programId,
     commitment:'finalized' });
   if (!global.verified || !global.authority.equals(new PublicKey(v3FeeRouter.initialAuthority))) {
@@ -198,7 +201,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   initialBuy.developerAmountTokens = developerBuy.amountTokens;
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
-  const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote,escrowReceiptMarker:developerBuy.amountBaseUnits>0n });
+  const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote, cluster,escrowReceiptMarker:developerBuy.amountBaseUnits>0n });
   onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
   const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter,
     feeShares:input.feeShares });

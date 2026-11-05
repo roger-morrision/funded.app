@@ -126,9 +126,22 @@ export function createAirdropDirectoryController(appState) {
   // app-source-end
 
   // app-source: 331
+  let directoryRefreshDeferred=false;
   function renderAirdropDirectory(programs = appState.getAirdropPrograms()){
     const list = document.querySelector('#airdrop-directory');
     if (!list) return;
+    const detail=document.querySelector('#airdrop-selected-program');
+    // A passive directory reflow above the open detail must not move its
+    // keyboard reader. Refresh the cards after focus leaves that detail.
+    if(detail&&!detail.hidden&&detail.contains(document.activeElement)){
+      if(!directoryRefreshDeferred){
+        directoryRefreshDeferred=true;
+        detail.addEventListener('focusout',()=>requestAnimationFrame(()=>{
+          directoryRefreshDeferred=false;appState.renderAirdropDirectory();
+        }),{once:true});
+      }
+      return;
+    }
     const query = document.querySelector('#airdrop-search')?.value.trim().toLowerCase() || '';
     list.dataset.indexStatus = appState.verifiedLaunchPoliciesStatus;
     list.dataset.claimsStatus = appState.communityReserveStatus === 'ready' && programs.every(item => item.claimVerification === 'verified') ? 'ready' : 'unavailable';

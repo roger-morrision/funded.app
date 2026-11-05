@@ -1,7 +1,5 @@
-export const GENESIS_HASHES = {
-  devnet: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',
-  'mainnet-beta': '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-};
+import { SOLANA_GENESIS } from '../solana-network.js';
+export const GENESIS_HASHES = SOLANA_GENESIS;
 
 async function probe(check, timeoutMs) {
   let timer;

@@ -1,42 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { createCoinCommunityController } from '../src/app/controllers/coin-community.js';
+import {renderMarketStatus} from '../src/features/coin/market-status.js';
+import {createCoinStateController} from '../src/app/controllers/coin-state.js';
 
-function fakeDocument() {
-  const nodes = new Map();
-  const description = { id: 'coin-description', after(node) { node.previousElementSibling = description; nodes.set('#' + node.id, node); } };
-  nodes.set('#coin-description', description);
-  return {
-    nodes,
-    querySelector: selector => nodes.get(selector) || null,
-    createElement: () => ({ hidden: true, attributes: {}, setAttribute(name, value) { this.attributes[name] = value; } }),
-  };
+function fixture(){
+ const nodes=new Map(),button={hidden:false,disabled:false},message={textContent:''};
+ const node={dataset:{},isConnected:false,querySelector:s=>s==='p'?message:button,
+  remove(){this.isConnected=false;nodes.delete('#coin-market-status');}};
+ const header={after(n){n.isConnected=true;nodes.set('#coin-market-status',n);}};
+ const page={querySelector:s=>s==='.coin-header'?header:nodes.get(s),prepend(n){header.after(n);}};
+ const document={querySelector:s=>s==='#coin-page'?page:nodes.get(s)||null,querySelectorAll:()=>[],createElement:()=>node};
+ return {document,node,button,message,nodes};
 }
-
-test('coin failure shows one Refresh button right under the failure message', () => {
-  const priorDocument = globalThis.document;
-  const document = fakeDocument();
-  globalThis.document = document;
-  try {
-    const state = new Proxy({}, { get: (object, key) => key in object ? object[key] : (() => {}) });
-    const { renderOnChainUnavailable } = createCoinCommunityController(state);
-    renderOnChainUnavailable('429 Too Many Requests');
-    const retry = document.nodes.get('#coin-retry');
-    assert.ok(retry, 'retry button created');
-    assert.equal(retry.hidden, false);
-    assert.equal(retry.type, 'button');
-    assert.equal(retry.textContent, 'Refresh');
-    assert.equal(retry.attributes['aria-label'], undefined, 'distinct name from the header "Refresh token data" icon');
-    assert.equal(retry.previousElementSibling, document.nodes.get('#coin-description'));
-    renderOnChainUnavailable('timeout');
-    assert.equal(document.nodes.get('#coin-retry'), retry, 'reused, not duplicated');
-  } finally { globalThis.document = priorDocument; }
+test('unavailable and partial history have one retry that disables while its request runs',async()=>{
+ const f=fixture();let resolve,calls=0;
+ const retry=()=>{calls++;return new Promise(done=>{resolve=done;});};
+ renderMarketStatus({mint:'mint-a',available:false,retry},f.document);
+ assert.match(f.message.textContent,/does not mean zero/);assert.equal(f.button.hidden,false);
+ const pending=f.button.onclick();assert.equal(f.button.disabled,true);assert.equal(calls,1);
+ resolve();await pending;assert.equal(f.button.disabled,false);
+ renderMarketStatus({mint:'mint-a',available:true,coverage:'partial',retry},f.document);
+ assert.equal(f.nodes.size,1);assert.equal(f.button.hidden,false);assert.match(f.message.textContent,/Some history is missing/);
+ renderMarketStatus({mint:'mint-a',available:true,coverage:'complete',retry},f.document);
+ assert.equal(f.button.hidden,true);
 });
-
-test('retry hides on reload and runs the same refresh path as the header button', () => {
-  const reset = readFileSync(new URL('../src/app/controllers/coin-state.js', import.meta.url), 'utf8');
-  assert.match(reset, /function resetCoinSurface\(mintAddress\)\{\s*const retry = document\.querySelector\('#coin-retry'\); if \(retry\) retry\.hidden = true;/);
-  const nav = readFileSync(new URL('../src/app/startup/coin-navigation.js', import.meta.url), 'utf8');
-  assert.match(nav, /closest\('#coin-refresh, #coin-retry'\)/);
+test('changing token clears the old market status before resetting data',()=>{
+ const f=fixture(),priorDocument=globalThis.document,priorWindow=globalThis.window;
+ globalThis.document=f.document;globalThis.window={};
+ renderMarketStatus({mint:'old',available:false,retry:async()=>{}},f.document);
+ const state=new Proxy({EXPLORE_CLUSTER:'devnet'},{get:(o,k)=>k in o?o[k]:(()=>{})});
+ try {createCoinStateController(state).resetCoinSurface('new');assert.equal(f.node.isConnected,false);assert.equal(f.nodes.size,0);}
+ finally {globalThis.document=priorDocument;globalThis.window=priorWindow;}
 });

@@ -12,7 +12,7 @@ for(const width of[320,390,1440])test(`workspace cleanup preserves navigation an
  await expect(page.getByRole('navigation',{name:'More reward programs'}).getByRole('link')).toHaveCount(2);
  await page.locator('[data-reward-open="history"]').click();await expect(page.locator('#rewards-history')).toBeVisible();
  await page.keyboard.press('Home');await expect(tabs.getByRole('tab',{name:'My rewards',exact:true})).toBeFocused();await expect(page.locator('#rewards-overview')).toBeVisible();
- await page.keyboard.press('ArrowRight');await expect(tabs.getByRole('tab',{name:'Coin holders',exact:true})).toBeFocused();await expect(page.locator('#rewards-holder')).toBeVisible();
+ await page.keyboard.press('ArrowRight');await expect(tabs.getByRole('tab',{name:'Coin Holder',exact:true})).toBeFocused();await expect(page.locator('#rewards-holder')).toBeVisible();
  await tabs.getByRole('tab',{name:'My rewards',exact:true}).click();await page.screenshot({path:info.outputPath(`rewards-${width}.png`)});
  await page.evaluate(()=>location.hash='docs');await expect(page.locator('#docs')).toBeVisible();const browse=page.getByRole('button',{name:'Browse guides',exact:true});if(await browse.isVisible())await browse.click();
  const input=page.getByRole('searchbox',{name:'Search guides',exact:true}),clear=page.getByRole('button',{name:'Clear search',exact:true});await expect(input).toBeVisible();await expect(clear).toBeDisabled();

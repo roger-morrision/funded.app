@@ -102,7 +102,7 @@ globalThis.fetch=async(target,options={})=>{
         timeout:16_000,env:{...process.env,NODE_OPTIONS:'',SOLANA_CLUSTER:'devnet',
           FUNDED_API_TOKEN:'fixture-not-a-credential',FUNDED_API_TOKEN_FILE:token,
           FUNDED_FEE_COLLECTION_API:'http://127.0.0.1:18987',FUNDED_INTERNAL_APP_URL:'http://127.0.0.1:18987',
-          FUNDED_FEE_COLLECTION_PAUSED_MINTS:'',FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_STOP_TEST_CASE:job},
+          FUNDED_FEE_COLLECTION_PAUSED_MINTS:'',FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_STOP_TEST_CASE:job,TMPDIR:temporary,TEMP:temporary,TMP:temporary},
       });
       const lines=stdout.trim().split('\n').map(line=>JSON.parse(line)), trace=lines.filter(row=>row.fixture).map(row=>row.fixture);
       assert(trace.includes('admitted-settled'),job);

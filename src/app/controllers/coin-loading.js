@@ -1,3 +1,4 @@
+import { renderMarketStatus } from '../../features/coin/market-status.js';
 import { recoverMarketSnapshots } from '../../features/coin/market-recovery.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
@@ -205,6 +206,7 @@ export function createCoinLoadingController(appState) {
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, error:true}}));
       console.error('On-chain token detail failed', detail);
       appState.renderOnChainUnavailable(detail);
+      renderMarketStatus({mint:mintAddress,available:false,retry:async()=>{if(loadId!==appState.coinLoadId)return;appState.resetCoinSurface(mintAddress);await appState.loadCoinOnChain(mintAddress);}});
       appState.renderCoinRegistryIdentity(mintAddress);
       const feeLedger=verifiedV3FeeLedger(await feeLedgerPromise,mintAddress,appState.EXPLORE_CLUSTER);
       if (loadId !== appState.coinLoadId || !feeLedger) return;

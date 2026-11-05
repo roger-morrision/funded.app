@@ -1,5 +1,6 @@
 /** Live Devnet-only checks. Saved test keys are read only with an explicit --wallet path. */
 import assert from 'node:assert/strict';
+import {createAcceptanceRpcFetch} from './devnet-acceptance-rpc.mjs';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -62,9 +63,13 @@ export function assertFinalized(status) {
 const delay = milliseconds => new Promise(resolveDelay => setTimeout(resolveDelay, milliseconds));
 
 /** Resolve only an explicitly selected test key, after validating the live network. */
-export async function prepareAcceptancePayer({ connection, walletFile = null, readWalletFile = readFile }) {
+export async function prepareAcceptancePayer({ connection, walletFile = null, ephemeralPayer = null, readWalletFile = readFile }) {
   assertDevnet(await connection.getGenesisHash());
-  if (!walletFile) return { payer: Keypair.generate(), prefunded: false, source: 'ephemeral-faucet', balanceLamports: 0 };
+  if (!walletFile) {
+    const payer=ephemeralPayer || Keypair.generate();
+    const balanceLamports=ephemeralPayer?await connection.getBalance(payer.publicKey,'finalized'):0;
+    return {payer,prefunded:balanceLamports>=100_000_000,source:'ephemeral-memory',balanceLamports};
+  }
   assert(typeof walletFile === 'string' && walletFile.trim(), 'An explicit test-wallet keyfile path is required.');
   let payer;
   try {
@@ -81,7 +86,8 @@ export async function prepareAcceptancePayer({ connection, walletFile = null, re
 }
 
 
-export async function runAcceptance({ execute = false, output, rpcUrl = 'https://api.devnet.solana.com', appOrigin = 'https://funded.vip', programId = DEFAULT_PROGRAM, walletFile = null, feeRecipientAddress = null, manualFundingWaitSeconds = 0 } = {}) {
+export async function runAcceptance({ execute = false, output, rpcUrl = 'https://api.devnet.solana.com', appOrigin = 'https://funded.vip', programId = DEFAULT_PROGRAM, walletFile = null, feeRecipientAddress = null, ephemeralPayer = null, manualFundingWaitSeconds = 0 } = {}) {
+  assert(!ephemeralPayer || execute && !walletFile,'In-memory payer requires execution without a keyfile.');
   assert(!walletFile || execute, '--wallet is permitted only with --execute.');
   assert(Number.isSafeInteger(manualFundingWaitSeconds) && manualFundingWaitSeconds >= 0 && manualFundingWaitSeconds <= 900, 'Manual funding wait must be between 0 and 900 seconds.');
   assert(!manualFundingWaitSeconds || execute && !walletFile, 'Manual funding wait requires --execute with an ephemeral payer.');
@@ -92,7 +98,7 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
     console.log(JSON.stringify(check));
   };
   const safeError = error => String(error?.message || error).replaceAll(rpcUrl, new URL(rpcUrl).origin).slice(0, 700);
-  const connection = new Connection(rpcUrl, { commitment: 'finalized', fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(25_000) }), disableRetryOnRateLimit: true });
+  const connection = new Connection(rpcUrl, { commitment: 'finalized', fetch:createAcceptanceRpcFetch(), disableRetryOnRateLimit: true });
   let stage = 'network';
   async function finalized(signature) {
     // HTTP polling works in managed environments without a WebSocket route.
@@ -174,8 +180,8 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
       record('live-transactions', 'not-run', { reason: 'Pass --execute to create ephemeral wallets and request faucet SOL.' });
       return evidence;
     }
-    stage = walletFile ? 'prefunded-test-payer' : manualFundingWaitSeconds ? 'manual-funding' : 'ephemeral-faucet';
-    const preparedPayer = await prepareAcceptancePayer({ connection, walletFile });
+    stage = walletFile ? 'prefunded-test-payer' : ephemeralPayer ? 'ephemeral-memory-payer' : manualFundingWaitSeconds ? 'manual-funding' : 'ephemeral-faucet';
+    const preparedPayer = await prepareAcceptancePayer({ connection, walletFile, ephemeralPayer });
     const { payer } = preparedPayer;
     const feeRecipient = feeRecipientAddress ? new PublicKey(feeRecipientAddress) : Keypair.generate().publicKey;
     assert(!feeRecipient.equals(payer.publicKey), 'Fee recipient must differ from payer for exact fee delta verification.');
@@ -240,12 +246,18 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
         feeShares: { creatorWalletPercent: 80, holderAirdropPercent: 0, solClaimPercent: 0, xRecipient: '' } },
       feeRouterProgramId: v3.reserveConfig.programId, useMintRouter: true, v3FeeRouter: v3.v3FeeRouter,
       launchBurn: null, launchServiceQuote: v3.launchServiceQuote, reserveConfig: v3.reserveConfig,
-      assertWalletCurrent: () => {}, onJournal: () => {}, onStatus: () => {} });
+      assertWalletCurrent: () => {}, onJournal: journal => { evidence.launchJournal=journal; }, onStatus: () => {} });
     const mint = launched.mint;
     const routerAddress = launched.feeRouter;
     evidence.wallets.mint = mint.publicKey.toBase58();
-    evidence.transactions.push({ name: stage, signature: launched.signature, explorer: `https://explorer.solana.com/tx/${launched.signature}?cluster=devnet`, finalized: true });
-    if (launched.mintRouterSignature) evidence.transactions.push({ name: 'v3-mint-router', signature: launched.mintRouterSignature, finalized: true });
+    evidence.transactions.push({ name: stage, signature: launched.signature, explorer: `https://explorer.solana.com/tx/${launched.signature}?cluster=devnet`, finalized: false });
+    await persist();
+    const launchStatus=await finalized(launched.signature);
+    Object.assign(evidence.transactions.at(-1),{finalized:true,slot:launchStatus.slot});
+    if (launched.mintRouterSignature) {
+      const routerStatus=await finalized(launched.mintRouterSignature);
+      evidence.transactions.push({ name:'v3-mint-router',signature:launched.mintRouterSignature,finalized:true,slot:routerStatus.slot });
+    }
     record(stage, 'passed', { signature: launched.signature, mint: mint.publicKey.toBase58(), feeRouter: routerAddress.toBase58(),
       reserveVault: launched.reserveReceipt?.vault ?? null, separateRouterTransaction: Boolean(launched.mintRouterSignature) });
     await persist();
@@ -263,9 +275,11 @@ export async function runAcceptance({ execute = false, output, rpcUrl = 'https:/
         amount = Number(balance.amount) / (10 ** balance.decimals);
       }
       const trade = await buildTradeTransaction({ connection, side, mint: mint.publicKey, user: payer.publicKey, amount, slippagePercent: 3, feeOwner: feeRecipient });
+      assert.equal(trade.feePolicy.feeBps,100,'Platform trade fee must remain 1%.');
+      assert.equal(BigInt(trade.feeLamports),(BigInt(trade.quoteAmount.toString())+99n)/100n,'Platform fee must be the rounded-up 1% of the SOL quote.');
       await send(stage, trade.instructions, [payer]);
       assert.equal(await connection.getBalance(feeRecipient, 'finalized') - prior, trade.feeLamports, 'App trade fee recipient delta differs from quote.');
-      record(`${side}-fee-delta`, 'passed', { lamports: trade.feeLamports });
+      record(`${side}-fee-delta`, 'passed', { lamports:trade.feeLamports,feeBps:trade.feePolicy.feeBps,quoteLamports:trade.quoteAmount.toString() });
     }
     const tokens = await connection.getParsedTokenAccountsByOwner(payer.publicKey, { mint: mint.publicKey }, 'finalized');
     assert(tokens.value.every(row => row.account.data.parsed.info.tokenAmount.amount === '0'), 'Sell left token inventory.');

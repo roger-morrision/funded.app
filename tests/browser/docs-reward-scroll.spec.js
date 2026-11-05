@@ -234,9 +234,7 @@ async function openGuideNatively(page, topic) {
     await expect(opener).toHaveAttribute('aria-expanded', 'true');
     const sidebar = page.locator('#sidebar');
     await expect(sidebar).toBeVisible(); await expect(sidebar).toHaveJSProperty('inert', false);
-    const more = sidebar.locator('.nav-more-menu');
-    await expect(more).toBeVisible();
-    await more.getByRole('link', { name: 'Docs and help', exact: true }).click();
+    await sidebar.getByRole('link', { name: 'Docs and help', exact: true }).click();
     await expect(opener).toHaveAttribute('aria-expanded', 'false');
   } else {
     await page.getByRole('button', { name: 'Open help topics', exact: true }).click();

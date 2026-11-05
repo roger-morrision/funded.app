@@ -139,3 +139,12 @@ test('keypair provider signs legacy launch steps without replacing existing sign
   const signed = await keypairProvider(payer).signTransaction(transaction);
   assert(signed.verifySignatures());
 });
+
+test('caller-owned ephemeral payer remains in memory across read failures and skips faucet when funded',async()=>{
+ const payer=Keypair.generate();let calls=0;
+ const connection={getGenesisHash:async()=>DEVNET_GENESIS,getBalance:async()=>{if(++calls===1)throw Error('temporarily unavailable');return 100_000_000;}};
+ await assert.rejects(prepareAcceptancePayer({connection,ephemeralPayer:payer}),/temporarily/);
+ const result=await prepareAcceptancePayer({connection,ephemeralPayer:payer});
+ assert.equal(result.payer,payer);assert.equal(result.prefunded,true);assert.equal(result.source,'ephemeral-memory');
+ await assert.rejects(runAcceptance({ephemeralPayer:payer}),/In-memory payer requires/);
+});

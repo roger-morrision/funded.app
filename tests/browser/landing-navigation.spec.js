@@ -44,7 +44,7 @@ for(const width of[390,1440])for(const[kind,name]of[['creator','Creator rewards'
   const tab=page.locator(`#rewards-${kind}-tab`),panel=page.locator(`#rewards-${kind}`);
   await expect(tab).toHaveAttribute('aria-selected','true');await expect(panel).toBeVisible();
   await expect(page.locator('#route-guide')).toBeHidden();
-  const history=page.getByRole('tab',{name:'History',exact:true});await history.click();
+  const history=page.getByRole('tab',{name:'All Payout History',exact:true});await history.click();
   await page.evaluate(()=>dispatchEvent(new CustomEvent('funded:route-change',{detail:{route:'payments'}})));
   await expect(history).toHaveAttribute('aria-selected','true');await expect(history).toBeFocused();
   await page.locator(width<1000?'.mobile-workspace-nav a[href="#payments"]':'.primary-nav a[href="#payments"]').click();

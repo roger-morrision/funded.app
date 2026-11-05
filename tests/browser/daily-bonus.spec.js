@@ -130,7 +130,7 @@ test('Daily bonus receipts are named, filterable, and explain receiver-paid rent
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.waitForFunction(()=>document.body.dataset.bootstrapState === 'ready'
     && document.body.classList.contains('product-experience-ready'));
-  await page.getByRole('tab',{name:'History',exact:true}).click();
+  await page.getByRole('tab',{name:'All Payout History',exact:true}).click();
   const row=page.locator('#payment-list .payment-history-row');
   await expect(row).toBeVisible();
   await expect(row).toContainText('Daily bonus');

@@ -342,7 +342,7 @@ async function bonus077Criteria(page,query) {
 }
 async function bonus077Back(page,original,criteria,hash) {
   await page.goBack();await expect(page).toHaveURL(new RegExp('/'+hash.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'));
-  await expect(page.locator('#rewards-history')).toBeVisible();await expect(page.getByRole('tab',{name:'History',exact:true})).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#rewards-history')).toBeVisible();await expect(page.getByRole('tab',{name:'All Payout History',exact:true})).toHaveAttribute('aria-selected','true');
   await expect(page.locator('#payment-history-search')).toHaveValue(criteria.query);await expect(page.locator('#payment-history-type')).toHaveValue(criteria.type);
   await expect(page.locator('#payment-history-from')).toHaveValue(criteria.from);await expect(page.locator('#payment-history-to')).toHaveValue(criteria.to);
   await bonus077Copy(page,original);

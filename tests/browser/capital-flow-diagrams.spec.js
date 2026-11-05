@@ -9,7 +9,7 @@ test.beforeEach(async({page,baseURL})=>{
     return q.method()==='GET'?r.continue():r.abort();
   });
 });
-const routes=[['/welcome','about-capital-flow'],['/#capital-flow','capital-flow-landscape']];
+const routes=[['/#capital-flow','capital-flow-landscape']];
 async function open(page,path){await page.goto(path);if(path!=='/welcome'){await page.locator('body.product-flows-ready').waitFor();await page.locator('#capital-flow-guide > summary').click();}const figure=page.locator('[data-flow-diagram]');await expect(figure).toBeVisible();await expect(figure).toHaveAttribute('data-diagram-state','paused');return figure;}
 
 for(const width of[320,390,1440])test(`capital flow keeps the calculator before the optional diagram at ${width}px`,async({page},info)=>{
@@ -84,13 +84,13 @@ for(const[path,asset]of routes)test(`diagram pauses when leaving its view at ${p
   await expect(figure).toHaveAttribute('data-diagram-state','paused');await expect(figure.locator('img')).toHaveAttribute('src',`/${asset}-static.svg`);
 });
 
-test('the landing diagram remains static, scrollable and opens at full size without JavaScript',async({browser,baseURL})=>{
+test('the landing page links to the detailed fee page without JavaScript',async({browser,baseURL})=>{
   const context=await browser.newContext({baseURL,javaScriptEnabled:false,viewport:{width:390,height:844}}),page=await context.newPage();
-  try{await context.route('**/*',r=>new URL(r.request().url()).origin===new URL(baseURL).origin&&r.request().method()==='GET'&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());await page.goto('/welcome');
-    const figure=page.locator('[data-flow-diagram]'),region=figure.getByRole('region');await expect(figure.locator('[data-diagram-motion]')).toBeHidden();await expect(figure.locator('img')).toHaveAttribute('src','/about-capital-flow-static.svg');
-    await region.focus();await page.keyboard.press('ArrowRight');await expect.poll(()=>region.evaluate(e=>e.scrollLeft)).toBeGreaterThan(0);
-    const guide=page.locator('.flow-text-guide'),summary=guide.locator('summary');await summary.focus();await page.keyboard.press('Enter');await expect(guide).toHaveAttribute('open','');await expect(guide.locator('li')).toHaveCount(4);await expect(guide).toContainText('Daily bonus winners are paid after the day closes');await page.keyboard.press('Space');await expect(guide).not.toHaveAttribute('open','');
-    const popupPromise=context.waitForEvent('page');await figure.getByRole('link',{name:/View full diagram/}).click();const popup=await popupPromise;await popup.waitForLoadState();await expect(popup).toHaveURL(/\/about-capital-flow-static\.svg$/);await expect(popup.locator('svg')).toBeVisible();
+  try{
+    await context.route('**/*',r=>new URL(r.request().url()).origin===new URL(baseURL).origin&&r.request().method()==='GET'&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());
+    await page.goto('/welcome');await expect(page.locator('[data-flow-diagram]')).toHaveCount(0);
+    const fees=page.locator('a[href="/#capital-flow"]').last();await fees.scrollIntoViewIfNeeded();await expect(fees).toBeVisible();
+    await fees.click();await expect(page).toHaveURL(/\/#capital-flow$/);
   }finally{await context.close();}
 });
 

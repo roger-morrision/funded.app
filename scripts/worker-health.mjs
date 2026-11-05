@@ -1,6 +1,7 @@
 import {readFileSync,writeFileSync,renameSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
-import {resolve} from 'node:path';
+import {resolve,join} from 'node:path';
+import {tmpdir} from 'node:os';
 
 export const monitoredWorkers = ['buyback-worker','agency-buyback-worker'];
 export function workerHealthcheck(role) {
@@ -9,7 +10,7 @@ export function workerHealthcheck(role) {
 }
 const healthPath = role => {
   if (!monitoredWorkers.includes(role)) throw Error('Unknown worker role.');
-  return `/tmp/funded-${role}-health.json`;
+  return join(tmpdir(),`funded-${role}-health.json`);
 };
 // Completion is operational health, not authorization to spend. An idle or
 // funding-blocked completed cycle is healthy; a failed or stalled cycle is not.
