@@ -10,6 +10,13 @@ test('a healthy app cannot hide an old worker release',()=>{
   const rows=fixtures();rows[3].Config.Env[0]='FUNDED_BUILD_ID='+'c'.repeat(40);rows[3].State.Health={Status:'healthy'};
   assert.deepEqual(assessReleaseServices(rows,options).errors,['agency-buyback-worker: release mismatch']);
 });
+
+test('releases declaring cycle health cannot silently omit their Docker probe',()=>{
+  const rows=fixtures();rows[2].Config.Labels['vip.funded.worker-health']='cycle-v1';
+  assert.equal(assessReleaseServices(rows,options).ready,false);
+  rows[2].State.Health={Status:'healthy'};assert.equal(assessReleaseServices(rows,options).ready,true);
+  rows[2].State.Health.Status='unhealthy';assert.equal(assessReleaseServices(rows,options).ready,false);
+});
 test('missing, duplicated, stopped, wrong-network and different-image workers fail closed',()=>{
   for(const mutate of [r=>r.pop(),r=>r.push(r[1]),r=>{r[1].State.Status='exited';},r=>{r[1].Config.Env[1]='SOLANA_CLUSTER=mainnet-beta';},r=>{r[1].Image='sha256:'+'c'.repeat(64);}]){
     const rows=fixtures();mutate(rows);assert.equal(assessReleaseServices(rows,options).ready,false);

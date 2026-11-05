@@ -30,6 +30,7 @@ async function main(args){
   for(const name of ['DATABASE_URL','SOLANA_RPC_URL','FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY'])
     if(!env[name]&&env[name+'_FILE'])env[name]=(await readFile(env[name+'_FILE'],'utf8')).trim();
   const config=agencyBuybackConfig(env,args),authority=Keypair.fromSecretKey(bs58.decode(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY||''));
+  recordWorkerCycle('agency-buyback-worker','starting');
   const store=createPostgresStore(env.DATABASE_URL),connection=new Connection(env.SOLANA_RPC_URL,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(url,options)=>fetch(url,{...options,signal:options?.signal?AbortSignal.any([options.signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})});
   let stopped=false,wake;const stop=()=>{stopped=true;wake?.();};process.once('SIGTERM',stop);process.once('SIGINT',stop);

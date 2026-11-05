@@ -18,6 +18,8 @@ export function assessReleaseServices(containers,{project,revision}) {
     if(row.build!==revision||row.revision!==revision)errors.push(`${service}: release mismatch`);
     if(row.cluster!=='devnet')errors.push(`${service}: Devnet required`);
     if(row.state!=='running'||!['healthy','not-configured'].includes(row.health))errors.push(`${service}: not healthy/running`);
+    if(c.Config.Labels['vip.funded.worker-health']==='cycle-v1'&&row.health==='not-configured')
+      errors.push(`${service}: required cycle health check is missing`);
   }
   if(new Set(services.map(row=>row.image)).size!==1||services.some(row=>!/^sha256:[a-f0-9]{64}$/.test(row.image||'')))errors.push('services: immutable images differ or are unavailable');
   return{ready:errors.length===0,services,errors};

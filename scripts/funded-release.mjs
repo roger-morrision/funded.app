@@ -85,7 +85,10 @@ export function prepareRelease({config,image,revision,origin,stateDir}){
         s.image=image;s.environment.FUNDED_BUILD_ID=revision;
         s.labels={...s.labels,'org.opencontainers.image.revision':revision};
         if(name==='app')s.labels['vip.funded.frontend.revision']=revision;
-        if(monitoredWorkers.includes(name))s.healthcheck=workerHealthcheck(name);
+        if(monitoredWorkers.includes(name)){
+          s.healthcheck=workerHealthcheck(name);
+          s.labels['vip.funded.worker-health']='cycle-v1';
+        }
       }
     }
     // Existing named data volumes and networks must never be silently recreated.

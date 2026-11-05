@@ -12,6 +12,7 @@ const token = String(process.env.FUNDED_API_TOKEN || (process.env.FUNDED_API_TOK
 if (!token) throw new Error('Automatic V3 buyback worker requires internal API authorization.');
 const retryAt = new Map();
 const lifecycle = createWorkerLifecycle({ name:'v3-buyback-worker' });
+recordWorkerCycle('buyback-worker','starting');
 const shouldRun = createTradeWakePoll({intervalMs:60_000});
 
 async function request(path, method = 'GET') {
