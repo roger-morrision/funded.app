@@ -20,10 +20,10 @@ export function yourHomeMarkup(summary) {
   const stat = (label, value, note, href) => `<a class="your-home-stat" href="${href}"><span>${label}</span><strong>${escape(value)}</strong><small>${escape(note)}</small></a>`;
   return `<div class="your-home-head"><div><p class="eyebrow">Your funded.vip</p><h2 id="your-home-title">Welcome back, ${escape(shortWallet(summary.wallet))}</h2></div><a class="text-button" href="#my-launches">Open portfolio →</a></div>
 <div class="your-home-grid">
-${stat('Coins you launched', summary.launched, summary.launched ? 'Creator fees build with every trade' : 'Launch one and earn up to 80% of fees', summary.launched ? '#my-launches' : '#launch')}
-${stat('Coins you hold', summary.held == null ? '—' : summary.held, 'Hold to qualify for airdrops', '#my-launches')}
-${stat('Your trader rank', summary.rank ? `#${summary.rank}` : 'Not ranked', summary.rank ? `of ${summary.rankedCount} traders today` : 'Trade any coin to join today’s ranking', '#leaderboard')}
-${stat('Invite friends', 'Earn SOL', 'Share your link for referral rewards', '#referrals')}
+${stat('Your projects', summary.launched, 'Manage your coins and review their activity', '#my-launches')}
+${stat('Your holdings', summary.held == null ? 'Unavailable' : summary.held, 'Balances and available prices', '#my-launches')}
+${stat('Your rewards', 'Check status', 'Eligibility, claims and confirmed payments', '#payments')}
+${stat('Your shortlist', 'Explore', 'Revisit favorites and followed wallets', '#explore')}
 </div>`;
 }
 

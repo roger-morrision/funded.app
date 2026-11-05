@@ -4,13 +4,15 @@ import { readLaunchAgencySelection } from '../../features/marketing/agency-selec
 export function createLaunchFormController(appState) {
   // app-source: 641
   function setLaunchStep(step){
-    const target = Math.min(2, Math.max(1, Number(step) || 1));
+    const target = Math.min(3, Math.max(1, Number(step) || 1));
     if (target > appState.launchStep) {
       for (let previous = 1; previous < target; previous++) {
         const state = appState.getLaunchStepState(previous);
         if (!state.valid) {
-          document.querySelector('#wizard-hint').textContent = state.message;
           const invalid = state.field && document.querySelector(state.field);
+          const recoveryStep = Number(invalid?.closest('[data-launch-step]')?.dataset.launchStep || previous);
+          if (recoveryStep !== appState.launchStep) setLaunchStep(recoveryStep);
+          document.querySelector('#wizard-hint').textContent = state.message;
           for (let details = invalid?.closest('details'); details; details = details.parentElement?.closest('details')) details.open = true;
           if (invalid && invalid.getClientRects().length) {
             if (invalid.matches('#token-name, #token-symbol')) {
@@ -57,7 +59,7 @@ export function createLaunchFormController(appState) {
     const custom = appState.launchMode === 'custom';
     appState.setLaunchProfile(custom ? 'community' : 'fast');
     const policy=document.querySelector('#custom-policy');
-    policy.hidden = !custom && !policy.closest('[data-launch-step="1"]');
+    policy.hidden = !custom && !policy.classList.contains('launch-fee-editor');
     if (!custom) {
       document.querySelector('#creator-wallet-share').value = '80';
       document.querySelector('#holder-airdrop-share').value = '0';
@@ -98,7 +100,7 @@ export function createLaunchFormController(appState) {
     }
     const hint = document.querySelector('#wizard-hint');
     if (hint && appState.launchStep === 1 && !document.querySelector('#token-name')?.value.trim()) {
-      hint.textContent = appState.launchProfile === 'fast' ? 'Quick setup: your 80% creator share goes to your wallet. Add a name and ticker.' : 'Community setup: choose holder and X rewards in the fee split form in step 1.';
+      hint.textContent = 'Add a name and ticker. Choose rewards and funding in the next step.';
     }
   }
   // app-source-end

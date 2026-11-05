@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 // The phone identity grid places the avatar in a narrow first column. The price row
 // must span the card so long sub-cent prices and the 24h change chip stay on one line.
@@ -6,6 +7,7 @@ for(const width of [360,390]) test(`coin price row spans the identity card at ${
   const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z';
   await page.setViewportSize({width,height:900});
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('https://**/*',route=>route.abort());
   await page.goto(`/token/${mint}`);
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);

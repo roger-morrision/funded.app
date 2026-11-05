@@ -69,7 +69,7 @@ body.page-route-overview .home-reference-faq details { border-bottom: 1px solid 
 body.page-route-overview .home-reference-faq summary { position: relative; padding: 18px 30px 18px 0; color: #dce2e6; font-size: 15px; font-weight: 650; cursor: pointer; list-style: none; }
 body.page-route-overview .home-reference-faq summary::-webkit-details-marker { display: none; }
 body.page-route-overview .home-reference-faq summary::after { content: '+'; position: absolute; right: 0; color: var(--home-green); font: 18px 'DM Mono', monospace; }
-body.page-route-overview .home-reference-faq details[open] summary::after { content: '−'; }
+body.page-route-overview .home-reference-faq details[open] > summary::after { content: '−'; }
 body.page-route-overview .home-reference-faq details p,
 body.page-route-overview .home-reference-faq-steps { max-width: 680px; margin: -1px 0 18px; color: #b0bbc3; font-size: 14px; line-height: 1.65; }
 body.page-route-overview .home-reference-faq details p strong,

@@ -218,7 +218,7 @@ export function navigation() {
   const tradeActions = node('div', 'mobile-trade-actions');
   tradeActions.setAttribute('role', 'group'); tradeActions.setAttribute('aria-label', 'Token trade actions');
   const mobileLinks = node('div', 'mobile-navigation-links');
-  for (const [href, label, glyph] of [['overview','Home','home'],['explore','Explore','explore'],['launch','Launch','launch'],['my-launches','Portfolio','portfolio'],['payments','Rewards','rewards']]) {
+  for (const [href, label, glyph] of [['overview','Home','home'],['explore','Explore','explore'],['launch','Create','launch'],['my-launches','Portfolio','portfolio'],['payments','Rewards','rewards']]) {
     const link = node('a', '', ''); link.href = `#${href}`;
     link.innerHTML = icon(glyph); link.append(node('span', '', label)); mobileLinks.append(link);
   }

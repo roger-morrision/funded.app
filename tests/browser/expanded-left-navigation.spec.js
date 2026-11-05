@@ -9,7 +9,7 @@ for(const width of [320,390,901,1440])test(`all left-menu destinations remain di
   const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/#launch');await page.locator('body.product-flows-ready').waitFor();
   const sidebar=page.locator('#sidebar'),nav=sidebar.getByRole('navigation',{name:'Primary navigation'}),links=nav.locator('.nav-more-menu a.nav-item:not([href="#marketing-agency"])');
   if(width<=700)await page.locator('#open-menu').click();
-  await expect(nav.locator('details,summary')).toHaveCount(0);await expect(links).toHaveCount(11);
+  await expect(nav.locator('#secondary-navigation')).not.toHaveAttribute('open','');await nav.locator('#secondary-navigation > summary').click();await expect(links).toHaveCount(10);
   for(const link of await links.all()){
     await expect(link).toBeVisible();await expect(link.locator('.nav-icon svg')).toHaveCount(1);await link.focus();await expect(link).toBeFocused();
     await expect.poll(()=>link.evaluate(e=>{const r=e.getBoundingClientRect(),n=e.closest('.primary-nav').getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return r.top>=n.top-1&&r.bottom<=n.bottom+1&&e.contains(hit);})).toBe(true);
@@ -20,7 +20,7 @@ for(const width of [320,390,901,1440])test(`all left-menu destinations remain di
   if(width<=700)await page.locator('#open-menu').click();await expect(nav.locator('a[href="#bonuses"]')).toHaveAttribute('aria-current','page');
   await nav.locator('a[href="#docs"]').click();await expect(page.locator('body')).toHaveClass(/page-route-docs/);
   if(width<=700){await expect(sidebar).toHaveAttribute('inert','');await page.locator('#open-menu').click();}
-  await expect(nav.locator('a[href="#docs"]')).toHaveAttribute('aria-current','page');await expect(links).toHaveCount(11);
+  await expect(nav.locator('a[href="#docs"]')).toHaveAttribute('aria-current','page');await expect(links).toHaveCount(10);
   if(width>700){
     await page.locator('#desktop-sidebar-toggle').click();await expect(sidebar).toHaveCSS('width','76px');
     for(const link of await links.all()){await expect(link.locator('.nav-icon')).toBeVisible();await link.focus();await expect(link).toBeFocused();}

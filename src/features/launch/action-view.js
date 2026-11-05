@@ -110,13 +110,13 @@ export function updateLaunchNavigation(
   const hint = document.querySelector('#wizard-hint');
   if (!next || !back || !hint) return;
   const stepState = getLaunchStepState(launchStep);
-  const state = launchStep === 2 && stepState.valid ? getLaunchSubmissionState() : stepState;
+  const state = launchStep === 3 && stepState.valid ? getLaunchSubmissionState() : stepState;
   back.hidden = launchStep === 1;
-  next.hidden = launchStep === 2;
+  next.hidden = launchStep === 3;
   next.disabled = false;
-  next.textContent = 'Continue';
+  next.textContent = launchStep === 2 ? 'Review coin' : 'Continue';
   if (retry) {
-    retry.hidden = launchStep !== 2 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
+    retry.hidden = launchStep !== 3 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
     retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Edit developer buy' : 'Retry checks';
   }

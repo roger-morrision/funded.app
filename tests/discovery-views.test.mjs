@@ -39,6 +39,21 @@ test('Home includes old zero-volume launches but excludes unverified tokens', ()
   assert(f.fields.get('#home-launch-table-wrap').hidden);
 });
 
+test('task Home previews three verified coins without inheriting or erasing saved filters', () => {
+  const f=homeFixture();f.add('.home-start');const title=f.add('#home-launch-board-title');
+  f.state.assets=['a','b','c','d','unverified'].map((address,i)=>coin(address,{createdTimestamp:i}));
+  f.state.homeLaunchView='table';f.state.homeLaunchTab='watchlist';f.state.homeLaunchPaused=true;
+  f.state.homeLaunchFilters.query='no match';const filters=f.state.homeLaunchFilters;
+  f.render();
+  assert.deepEqual(f.order,['d','c','b']);assert.equal(title.textContent,'Discover coins');
+  assert.equal(f.fields.get('#home-board-count').textContent,'Showing 3 verified coins');
+  assert.equal(f.fields.get('#home-launch-grid').hidden,false);assert.equal(f.fields.get('#home-launch-table-wrap').hidden,true);
+  assert.equal(f.state.homeLaunchView,'table');assert.equal(f.state.homeLaunchTab,'watchlist');
+  assert.equal(f.state.homeLaunchFilters,filters);assert.equal(filters.query,'no match');
+  f.state.assets=[];f.render();assert.match(f.fields.get('#home-launch-grid').innerHTML,/Open Explore/);
+  assert.doesNotMatch(f.fields.get('#home-launch-grid').innerHTML,/adjust the filters/);
+});
+
 test('Home pause persists ordering across refreshes and resumes current ranking', () => {
   const f = homeFixture();
   f.state.assets = [coin('a', { volume24hUsd: 2 }), coin('b', { volume24hUsd: 1 })];

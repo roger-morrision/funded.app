@@ -36,7 +36,7 @@ export function updateLaunchAvailabilityView(appState, document = globalThis.doc
     row.dataset.state = presentation[0];
     if (label.textContent !== presentation[1]) label.textContent = presentation[1];
     if (guidance.textContent !== presentation[2]) guidance.textContent = presentation[2];
-    const panel = document.querySelector('#launch-dialog [data-launch-step="' + (appState.launchStep === 2 ? 2 : 1) + '"]');
+    const panel = document.querySelector('#launch-dialog [data-launch-step="' + (appState.launchStep || 1) + '"]');
     const heading = panel?.querySelector(':scope > .step-heading');
     if (heading && heading.nextElementSibling !== row) {
       // Move the same disclosure and children, preserving their state. Modern state-

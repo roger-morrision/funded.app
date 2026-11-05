@@ -20,8 +20,13 @@ export function initializeRecoveryInbox(app) {
   parent.querySelector('[data-recovery-shortcut]')?.replaceWith(shortcut);
   shortcut.dataset.recoveryShortcut='';shortcut.hidden=true;parent.querySelector(':scope > .section-heading')?.append(shortcut);
   function render() {
-    const wallet = app.connectedWalletAddress || ''; list.replaceChildren();
-    const items = recoveryItems(wallet, readLaunchJournal(), readTradeRecovery());
+    const wallet = app.connectedWalletAddress || '';
+    const owned=root.contains(document.activeElement); list.replaceChildren();
+    const launches=readLaunchJournal(),trades=readTradeRecovery();
+    const items = recoveryItems(wallet, launches, trades);
+    const savedPending=launches.some(row=>row.cluster==='devnet'&&row.state!=='completed')||trades.some(row=>row.state==='pending');
+    root.hidden=wallet?items.length===0:!savedPending;
+    if(owned&&root.hidden){const heading=parent.querySelector(':scope > .section-heading :is(h1,h2)');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}}
     root.classList.toggle('is-empty',items.length===0);shortcut.hidden=items.length===0;shortcut.textContent=`Review ${items.length} saved transaction${items.length===1?'':'s'}`;
     status.textContent = wallet ? `${items.length} unresolved recorded actions for ${wallet}.` : 'Connect the wallet used for these transactions.';
     for (const item of items) {

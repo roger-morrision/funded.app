@@ -21,7 +21,7 @@ for(const width of [320,390,768,1440])test(`launch review keeps amounts readable
   await page.route('**/api/fee-policy',route=>route.fulfill({json:feePolicy}));
   await page.goto('/#launch');await page.locator('body.product-flows-ready').waitFor();
   await page.locator('#token-name').fill('A long community token name');await page.locator('#token-symbol').fill('COMMUNITY');
-  await page.locator('#creator-wallet-share').fill('60');await page.locator('#holder-airdrop-share').fill('20');
+  await page.locator('#launch-next').click();await page.locator('#creator-wallet-share').fill('60');await page.locator('#holder-airdrop-share').fill('20');
   const panel=page.locator('.launch-preview-panel'),summary=page.locator('.launch-preview-sticky');
   await expect(panel.locator('#launch-summary-name')).toHaveText('A long community token name');
   await expect(panel.locator('#launch-summary-creator')).toHaveText('60%');await expect(panel.locator('#launch-summary-holders')).toHaveText('20%');await expect(panel.locator('#launch-summary-x')).toHaveText('0%');
@@ -33,13 +33,14 @@ for(const width of [320,390,768,1440])test(`launch review keeps amounts readable
     });
   });for(const item of bounds)expect(item,item.text).toMatchObject({readable:true,fits:true});
   expect(await summary.evaluate(e=>Math.abs(e.getBoundingClientRect().width-e.parentElement.getBoundingClientRect().width)<2)).toBe(true);
-  await page.locator('#launch-next').click();await page.locator('#launch-story-options > summary').click();
+  await page.locator('#launch-story-options > summary').click();
   await page.locator('#token-tagline').fill('A clear community project');await page.locator('#token-roadmap').fill('Launch the community\nShip the first release');
   const preview=page.locator('#launch-presentation-preview');await expect(preview).not.toHaveAttribute('open','');
   await expect(page.locator('.launch-enhanced-preview,.preview-quality')).toHaveCount(0);
   await preview.locator(':scope > summary').focus();await page.keyboard.press('Enter');await expect(preview.locator('.launch-package-preview')).toBeVisible();
   await expect(preview.locator('#preview-tagline')).toHaveText('A clear community project');await expect(page.locator('#token-roadmap')).toHaveValue('Launch the community\nShip the first release');
   await preview.locator(':scope > summary').focus();await page.keyboard.press('Space');await expect(preview).not.toHaveAttribute('open','');
+  await page.locator('#launch-next').click();await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','3');
   await page.locator('#fee-route-agree').focus();await expect(page.locator('#fee-route-agree')).toBeFocused();await page.keyboard.press('Tab');await expect(page.locator('#terms-agree')).toBeFocused();
   await expect(page.locator('#fee-route-agree')).not.toBeChecked();await expect(page.locator('#terms-agree')).not.toBeChecked();await expect(page.locator('#launch-button')).toBeDisabled();
   await panel.screenshot({path:info.outputPath(`launch-summary-${width}.png`)});

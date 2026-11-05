@@ -10,7 +10,7 @@ for(const width of [390,1440]){
     await page.route('**/api/rewards/experience**',route=>route.fulfill({json:{cluster:'devnet',evidence:{status:'recorded-finalized-v3'},tokens:[],events:[]}}));
     await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',pending:[{mint,amountLamports:'101',status:'below-minimum-order'}],receipts:Array.from({length:13},(_,i)=>({mint,signature:letters[i].repeat(64),status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:i===1?'9007199254740993123456789':'1806189',finalizedAt:'2026-10-13T11:06:01.383Z'}))}}));
     await page.goto('/#payments/activity');const center=page.locator('#financial-center'),rows=center.locator('.financial-record');
-    await expect(rows).toHaveCount(10);await expect(center.locator('[data-flow-count]')).toHaveText('10 of 14 loaded records');
+    await center.getByLabel('Activity scope').selectOption('protocol');await expect(rows).toHaveCount(10);await expect(center.locator('[data-flow-count]')).toHaveText('10 of 14 loaded records');
     await expect(center.locator('[data-flow-refresh]')).toBeEnabled();
     await expect(rows.nth(1).locator('strong')).toContainText('1,806,189 $FUNDED base units');
     await expect(rows.nth(2).locator('strong')).toContainText('9,007,199,254,740,993,123,456,789 $FUNDED base units');
@@ -38,6 +38,7 @@ test('the #rewards shared-link alias loads recorded activity',async({page,baseUR
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',pending:[],receipts:[{mint,signature:letters[0].repeat(64),status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'1806189',finalizedAt:'2026-10-13T11:06:01.383Z'}]}}));
   await page.goto('/#rewards');const center=page.locator('#financial-center');
+  await center.getByLabel('Activity scope').selectOption('protocol');
   await expect(center.locator('.financial-record')).toHaveCount(1);
   await expect(center.locator('[data-flow-status]')).not.toContainText('Open Rewards');
 });

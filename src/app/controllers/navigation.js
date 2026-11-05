@@ -174,16 +174,20 @@ export function createNavigationController(appState) {
       const hrefRoute = item.getAttribute('href') === '/funded' ? 'paid' : item.getAttribute('href')?.replace(/^#/, '');
       item.classList.toggle('active', hrefRoute === navRoute);
       if (hrefRoute === navRoute) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
+      if (hrefRoute === navRoute) {
+        const group = item.closest('details.nav-secondary');
+        if (group) group.open = true;
+      }
     });
     let copy = {
-      overview: ['Overview', 'Verified activity and next steps'],
+      overview: ['Home', 'Your next step on Solana'],
       explore: ['Explore', 'Verified launches and market signals'],
       callouts: ['Callouts', 'Live calls from verified wallets'],
       list: ['Get listed', 'Listing status and token mint check'],
-      payments: ['Rewards', 'Claims and payout receipts'],
+      payments: ['Rewards', 'Eligibility, payments and claims'],
       'analytics-detail': ['Analytics', 'Indexed platform activity'],
       launch: ['Create a coin', 'Create and review a Devnet coin'],
-      'my-launches': ['Portfolio', 'Launches, favorites and followed wallets'],
+      'my-launches': ['Portfolio', 'Holdings, activity and projects'],
       referrals: ['Referrals', 'Track qualified growth'],
       community: ['Favorites', 'Favorites and verified signals'],
       leaderboard: ['Leaderboard', 'Ranked community contribution'],

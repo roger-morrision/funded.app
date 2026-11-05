@@ -64,8 +64,6 @@ export function getLaunchStepState(
     if (!/^[A-Z0-9]{1,10}$/.test(symbol)) return { valid: false, field: '#token-symbol', message: 'Use 1–10 letters or numbers for the ticker.' };
     const invalidSocial = invalidLaunchSocial();
     if (invalidSocial) return { valid: false, field: `#${invalidSocial.id}`, message: invalidSocial.validationMessage };
-    const splitError=feeSplitError(validateFeeDistribution(getFeeDistributionInputs()));
-    if(splitError)return splitError;
     return { valid: true, message: 'Coin identity is ready.' };
   }
   const distribution = validateFeeDistribution(getFeeDistributionInputs());

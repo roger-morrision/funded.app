@@ -1,6 +1,6 @@
 import{test,expect}from'@playwright/test';
 const split={operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10};
-for(const width of[320,390,1440])test(`step one fee split stays visible, validates and preserves its review at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
+for(const width of[320,390,1440])test(`step two fee split validates and preserves its review at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
   test.setTimeout(60000);await page.setViewportSize({width,height:900});await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
   const errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/*',r=>{const q=r.request(),u=new URL(q.url());return u.origin===new URL(baseURL).origin&&(q.method()==='GET'||u.pathname.startsWith('/api/'))?r.fallback():r.abort();});
@@ -8,23 +8,25 @@ for(const width of[320,390,1440])test(`step one fee split stays visible, validat
   await page.route('**/api/fee-policy',r=>r.fulfill({json:{revision:6,split}}));
   await page.goto('/#launch');await page.locator('body.workspace-ready.product-experience-ready.product-flows-ready').waitFor();
   const first=page.locator('[data-launch-step="1"]'),second=page.locator('[data-launch-step="2"]'),fees=page.locator('#custom-policy'),creator=page.locator('#creator-wallet-share'),holders=page.locator('#holder-airdrop-share'),x=page.locator('#x-share'),recipient=page.locator('#x-recipient'),next=page.locator('#launch-next');
+  await page.locator('#token-name').fill('Community Coin');await page.locator('#token-symbol').fill('COMM');await next.click();
+  const review=page.locator('[data-launch-step="3"]');
   const overview=page.locator('#launch-fee-overview'),summary=overview.locator(':scope > summary');
   await expect(overview).not.toHaveAttribute('open','');await expect(summary).toHaveText('Fee breakdown');await expect(overview.locator('.launch-fixed-distribution')).toBeHidden();
   await page.screenshot({path:info.outputPath(`launch-first-screen-${width}.png`)});
   await summary.focus();await page.keyboard.press('Enter');await expect(overview).toHaveAttribute('open','');await expect(overview.locator('[data-fee-category] > strong')).toHaveText(['80%','8%','1%','4%','5%','2%']);await page.keyboard.press('Space');await expect(overview).not.toHaveAttribute('open','');await expect(summary).toBeFocused();
-  await expect(page.locator('[data-launch-step-target="2"]')).toHaveAccessibleName('Step 2: Launch settings');
-  await expect(next).toHaveText('Continue');
-  for(const id of['creator-wallet-share','holder-airdrop-share','x-share','x-recipient']){await expect(page.locator(`#${id}`)).toHaveCount(1);expect(await page.locator(`#${id}`).evaluate(e=>e.closest('[data-launch-step]')?.dataset.launchStep)).toBe('1');}
+  await expect(page.locator('[data-launch-step-target="2"]')).toHaveAccessibleName('Step 2: Rewards and funding');
+  await expect(next).toHaveText('Review coin');
+  for(const id of['creator-wallet-share','holder-airdrop-share','x-share','x-recipient']){await expect(page.locator(`#${id}`)).toHaveCount(1);expect(await page.locator(`#${id}`).evaluate(e=>e.closest('[data-launch-step]')?.dataset.launchStep)).toBe('2');}
   await expect(page.locator('.launch-profile-heading,.launch-profile-grid,#launch-preset-summary,.launch-mode-grid,#launch-mode-quick,#launch-mode-custom')).toHaveCount(0);await expect(page.locator('#custom-policy')).toBeVisible();await expect(creator).toHaveValue('80');await expect(recipient).toBeDisabled();const original=await creator.elementHandle();
-  await page.locator('#token-name').fill('Step One Coin');await page.locator('#token-symbol').fill('ONE');await creator.fill('60');await holders.fill('20');await expect(page.locator('#launch-summary-creator')).toHaveText('60%');await expect(page.locator('#launch-summary-holders')).toHaveText('20%');
-  await holders.fill('30');await next.click();await expect(first).toBeVisible();await expect(creator).toBeFocused();await expect(page.locator('#wizard-hint')).toContainText('total exactly 80%');
-  await holders.fill('20');await next.click();await expect(second).toBeVisible();await expect(fees).toBeHidden();await expect(second.locator('.creator-burn-section')).toBeVisible();await expect(page.locator('#launch-summary-creator')).toHaveText('60%');await expect(page.locator('#launch-button')).toBeDisabled();
-  await page.locator('#launch-back').click();await expect(first).toBeVisible();await expect(creator).toHaveValue('60');await expect(holders).toHaveValue('20');expect(await original.evaluate(e=>e.isConnected&&e===document.getElementById('creator-wallet-share'))).toBe(true);
+  await creator.fill('60');await holders.fill('20');await expect(page.locator('#launch-summary-creator')).toHaveText('60%');await expect(page.locator('#launch-summary-holders')).toHaveText('20%');
+  await holders.fill('30');await next.click();await expect(second).toBeVisible();await expect(creator).toBeFocused();await expect(page.locator('#wizard-hint')).toContainText('total exactly 80%');
+  await holders.fill('20');await next.click();await expect(review).toBeVisible();await expect(fees).toBeHidden();await expect(page.locator('#launch-summary-creator')).toHaveText('60%');await expect(page.locator('#launch-button')).toBeDisabled();
+  await page.locator('#launch-back').click();await expect(second).toBeVisible();await expect(creator).toHaveValue('60');await expect(holders).toHaveValue('20');expect(await original.evaluate(e=>e.isConnected&&e===document.getElementById('creator-wallet-share'))).toBe(true);
   await creator.fill('80');await holders.fill('0');await expect(page.locator('#custom-policy')).toBeVisible();await expect(creator).toHaveValue('80');await expect(holders).toHaveValue('0');
-  await creator.fill('60');await holders.fill('10');await x.fill('10');await expect(recipient).toBeEnabled();await next.click();await expect(first).toBeVisible();await expect(recipient).toBeFocused();await expect(page.locator('#wizard-hint')).toContainText('valid X account');
-  await recipient.fill('@rewarded');await fees.scrollIntoViewIfNeeded();await fees.screenshot({path:info.outputPath(`step-one-fees-${width}.png`)});await next.click();await expect(second).toBeVisible();await expect(page.locator('#launch-summary-x')).toHaveText('10%');await expect(page.locator('#launch-button')).toBeDisabled();
+  await creator.fill('60');await holders.fill('10');await x.fill('10');await expect(recipient).toBeEnabled();await next.click();await expect(second).toBeVisible();await expect(recipient).toBeFocused();await expect(page.locator('#wizard-hint')).toContainText('valid X account');
+  await recipient.fill('@rewarded');await fees.scrollIntoViewIfNeeded();await fees.screenshot({path:info.outputPath(`step-one-fees-${width}.png`)});await next.click();await expect(review).toBeVisible();await expect(page.locator('#launch-summary-x')).toHaveText('10%');await expect(page.locator('#launch-button')).toBeDisabled();
   await page.locator('#launch-back').click();await expect(recipient).toHaveValue('@rewarded');await recipient.fill('');await x.fill('0');await creator.fill('40');await holders.fill('40');await expect(creator).toHaveValue('40');await expect(holders).toHaveValue('40');await expect(x).toHaveValue('0');await expect(recipient).toHaveValue('');await expect(recipient).toBeDisabled();
-  expect((await creator.boundingBox()).height).toBeGreaterThanOrEqual(44);await expect(overview).toHaveCount(1);await expect(overview).not.toHaveAttribute('open','');await next.click();await expect(page.locator('#benefits-step-title')).toHaveText('Launch settings');
+  expect((await creator.boundingBox()).height).toBeGreaterThanOrEqual(44);await expect(overview).toHaveCount(1);await expect(overview).not.toHaveAttribute('open','');await next.click();await expect(review).toBeVisible();
   await expect(page.locator('#launch-final-terms')).toHaveCount(0);await expect(page.locator('#fee-route-agree')).not.toBeChecked();await expect(page.locator('#terms-agree')).not.toBeChecked();await expect(page.locator('#launch-button')).toBeDisabled();await page.locator('.launch-preview-sticky').screenshot({path:info.outputPath(`launch-summary-${width}.png`)});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(errors).toEqual([]);expect(writes).toEqual([]);
 });

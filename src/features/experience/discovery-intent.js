@@ -14,6 +14,12 @@ export function initializeDiscoveryIntent(app) {
       label.innerHTML = `<span>Buy amount · SOL</span><input inputmode="decimal" aria-label="Buy amount in SOL for the card Buy button" aria-describedby="${helpId}" maxlength="13"><small id="${helpId}" class="visually-hidden">Prefills the Buy button on each card. Review a fresh quote before signing; changing this amount does not place a trade.</small>`;
       parent.append(label);
     }
+    if(parent.closest('#explore')){
+      const preferences=document.createElement('details');preferences.id='explore-trade-preferences';preferences.className='task-page-disclosure';
+      const summary=document.createElement('summary');summary.textContent='Buy amount preference';
+      label.before(preferences);preferences.append(summary,label);
+      label.querySelector('small')?.classList.remove('visually-hidden');
+    }
     const input = label.querySelector('input'); input.value = amount; input.disabled = false; inputs.push(input);
     input.addEventListener('change', () => {
       const valid = validReviewAmount(input.value); input.setAttribute('aria-invalid', String(!valid));

@@ -28,14 +28,19 @@ export function renderCoinPromotionBadge(
     rail = document.createElement('aside');
     rail.className = 'coin-package-rail';
     rail.setAttribute('aria-label', 'Favorite, boost and launch package');
+    const details=document.createElement('details');details.className='coin-promotion-details';
+    const summary=document.createElement('summary');summary.textContent='Promotion & receipts';
+    const note=document.createElement('p');note.className='coin-promotion-note';note.textContent='Paid promotion does not verify a coin’s safety, liquidity, or future returns.';
+    details.append(summary,note);
     const watch = document.querySelector('#coin-watch');
     const boost = document.querySelector('#coin-boost');
     if (watch) rail.append(watch);
     if (boost) {
       boost.className = 'coin-package-chip coin-package-chip--boost';
       boost.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>⚡</span></span><span class="coin-package-copy"><small>Paid boost</small><strong id="coin-boost-total">—</strong></span>`;
-      rail.append(boost);
+      details.append(boost);
     }
+    rail.append(details);
     identity.append(rail);
   }
   const mint = getCoinMintAddress();
@@ -45,10 +50,10 @@ export function renderCoinPromotionBadge(
   if (!packageBadges) {
     packageBadges = document.createElement('span');
     packageBadges.id = 'coin-boost-packages';
-    identity.querySelector('#coin-symbol')?.after(packageBadges);
+    rail.querySelector('.coin-promotion-details').append(packageBadges);
   }
   packageBadges.innerHTML = exploreBoostAmountMarkup(mint);
-  document.querySelector('#coin-page-title')?.classList.toggle('golden-ticker', verifiedBoostsAvailable && activeMultiplier >= 500);
+  document.querySelector('#coin-page-title')?.classList.remove('golden-ticker');
   const boostTotal = rail.querySelector('#coin-boost-total');
   if (boostTotal) boostTotal.textContent = verifiedBoostsAvailable
     // With no boost running, the chip invites the action instead of reporting an absence.
@@ -66,7 +71,7 @@ export function renderCoinPromotionBadge(
   if (!holder) {
     holder = document.createElement('span');
     holder.id = 'coin-promotion-badge';
-    rail.append(holder);
+    rail.querySelector('.coin-promotion-details').append(holder);
   }
   holder.replaceChildren();
   const presentation = coinDetailPackage(verifiedLaunchPolicyForMint(mint));

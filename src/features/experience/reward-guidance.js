@@ -13,7 +13,7 @@ export function mountRewardGuidance(app) {
   const root = document.querySelector('#rewards-overview');
   if (root) {
     const box = el('details', null, 'flow-panel reward-program-guide');
-    box.dataset.inlineStatus = ''; box.open = true;
+    box.dataset.inlineStatus = ''; box.open = false;
     box.append(el('summary', 'Which reward can I receive?'));
     for (const [name, who, asset, action, href] of rewardPrograms) {
       const row = el('article'); row.append(link(name, href), el('p', `${who}. Receive ${asset}. ${action}.`)); box.append(row);

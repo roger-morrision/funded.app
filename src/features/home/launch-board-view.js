@@ -20,6 +20,10 @@ export function renderHomeLaunchBoard(state, {
   decorateHomeLaunchCard,
   document = globalThis.document,
 }) {
+  // Home previews discovery. Ignore saved scanner filters without changing them;
+  // the complete controls and list are available in Explore.
+  const homePreview = Boolean(document.querySelector('.home-start'));
+  if (homePreview) state = {...state,homeLaunchView:'grid',homeLaunchTab:'all',homeLaunchFilters:{},homeLaunchPaused:false,homeLaunchWindow:'24h'};
   const {
     homeLaunchView,
     exploreFeedAvailable,
@@ -50,7 +54,7 @@ export function renderHomeLaunchBoard(state, {
   if (tableBody?.closest('table')) tableBody.closest('table').hidden = paidListingView;
   if (paidTable) paidTable.hidden = !paidListingView;
   const boardTitle = document.querySelector('#home-launch-board-title');
-  if (boardTitle) boardTitle.textContent = paidListingView ? 'Paid listings' : 'Live launches';
+  if (boardTitle) boardTitle.textContent = homePreview ? 'Discover coins' : paidListingView ? 'Paid listings' : 'Live launches';
   const footerLink = document.querySelector('.home-board-footer .home-launch-all');
   if (footerLink) {
     footerLink.href = paidListingView ? '/list' : '#explore';
@@ -195,7 +199,8 @@ export function renderHomeLaunchBoard(state, {
     const frozenRank = new Map(state.homeFrozenOrder.map((mint, index) => [mint, index]));
     visible.sort((a, b) => (frozenRank.get(a.address) ?? Infinity) - (frozenRank.get(b.address) ?? Infinity));
   }
-  // Show every verified launch; the volume window only changes metrics and ordering.
+  if (homePreview) visible = visible.slice(0,3);
+  // The full scanner retains every verified launch.
   const boardCount = document.querySelector('#home-board-count');
   if (boardCount) boardCount.textContent = visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
   if (!visible.length) {
@@ -211,9 +216,9 @@ export function renderHomeLaunchBoard(state, {
     const title = initialCheck ? stage ? 'Checking launch stages…' : 'Checking verified launches…'
       : stageUnavailable ? `${stage} verification is unavailable.`
       : feedUnavailable ? 'Tokens are temporarily unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : filtersActive ? 'No launches match these filters.' : 'No verified launches in this view.';
-    const detail = initialCheck ? 'Current launch checks are in progress. You can select All to view verified registry tokens.'
+    const detail = initialCheck ? homePreview ? 'Checking verified launches and current market activity.' : 'Current launch checks are in progress. You can select All to view verified registry tokens.'
       : stageUnavailable ? `${stage} status is unverified. Select All to view verified registry tokens, or try again.`
-      : feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
+      : feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homePreview ? 'Verified coins will appear here. Open Explore to browse the full directory.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
     const retry = !initialCheck && (stageUnavailable || feedUnavailable) ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : '';
     grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${retry}</div>`;
     if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;

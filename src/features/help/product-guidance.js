@@ -78,7 +78,10 @@ export function referralFaqs() {
 
 const faqBodies=new WeakMap();
 export function renderProductFaqs(document=globalThis.document) {
-  for(const [selector,items] of [['.home-reference-faq-list',productFaqs()],['#referral-faq .faq-grid',referralFaqs()]]) {
+  const home=document?.querySelector('.home-reference-faq-list');
+  if(home&&!home.querySelector('.home-faq-primary')) home.innerHTML='<div class="home-faq-primary"></div><details class="home-faq-more"><summary>More questions about rewards and fees</summary><div class="home-faq-secondary"></div></details>';
+  const faqs=productFaqs(),primary=new Set(['service-prices','assets','recipient-actions','proof']);
+  for(const [selector,items] of [['.home-faq-primary',faqs.filter(([id])=>primary.has(id))],['.home-faq-secondary',faqs.filter(([id])=>!primary.has(id))],['#referral-faq .faq-grid',referralFaqs()]]) {
     const root=document?.querySelector(selector); if(!root) continue;
     const existing=new Map([...root.querySelectorAll(':scope > details[data-faq]')].map(row=>[row.dataset.faq,row]));
     const active=document.activeElement,owned=root.contains(active)&&active.getClientRects().length;

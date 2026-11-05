@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-for (const width of [320, 390, 1440]) test(`Home discovery and header stay in place while the workspace initializes at ${width}px`, async ({ page }) => {
+for (const width of [320, 390, 1440]) test(`Home getting-started tasks and header stay in place while the workspace initializes at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height:844 });
   await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
     ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
@@ -11,7 +11,7 @@ for (const width of [320, 390, 1440]) test(`Home discovery and header stay in pl
   await page.route('**/workspace-ui*.js*', route => { held = route; });
   await page.goto('/#overview', { waitUntil:'domcontentloaded' });
   await expect.poll(() => Boolean(held)).toBe(true);
-  const selectors = ['.hero-section', '#home-launch-grid', '#connect-button', '#header-search-trigger'];
+  const selectors = ['.hero-section', '.home-start', '#connect-button', '#header-search-trigger'];
   const geometry = () => page.evaluate(selectors => selectors.map(selector => {
     const { x,y,width,height } = document.querySelector(selector).getBoundingClientRect();
     return { x,y,width,height };
@@ -23,7 +23,7 @@ for (const width of [320, 390, 1440]) test(`Home discovery and header stay in pl
   const after = await geometry();
   for (let i=0;i<selectors.length;i++) for (const key of ['x','y','width','height'])
     expect(Math.abs(after[i][key]-before[i][key]), `${selectors[i]} ${key} moved`).toBeLessThanOrEqual(1);
-  expect(after[1].y, 'Token grid begins inside the usable first viewport').toBeLessThan(650);
+  expect(after[1].y, 'Getting-started tasks begin within the first screen').toBeLessThan(844);
   expect(await page.evaluate(() => {
     const board=document.querySelector('.home-launch-board'), directory=document.querySelector('#public-discovery');
     return Boolean(board && !directory && board.getBoundingClientRect().width>0)
@@ -32,24 +32,21 @@ for (const width of [320, 390, 1440]) test(`Home discovery and header stay in pl
   })).toBe(true);
 });
 
-for (const width of [1024, 1280, 1440]) test(`Home platform figures show in full beside long unit badges at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height:900 });
-  await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/fee-policy'
-    ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
-    : route.fulfill({ status:503, json:{ error:'Offline layout fixture' } }));
-  await page.route('https://**/*', route => route.abort());
-  await page.goto('/#overview', { waitUntil:'domcontentloaded' });
-  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  const clipped = await page.evaluate(() => {
-    const figures = { 'home-pulse-launches':'9', 'home-pulse-volume':'≥$107.85', 'home-kpi-fees':'$1.44', 'home-kpi-referrals':'<$0.01', 'home-kpi-holder-paid':'$0.14' };
-    for (const [id, text] of Object.entries(figures)) {
-      const figure = document.getElementById(id);
-      figure.textContent = text;
-      figure.closest('.home-kpi-card').dataset.state = 'available';
-    }
-    return Object.keys(figures).map(id => document.getElementById(id))
-      .filter(figure => figure.clientWidth > 0 && figure.scrollWidth > figure.clientWidth + 1)
-      .map(figure => `${figure.id}: ${figure.clientWidth}/${figure.scrollWidth}px`);
-  });
-  expect(clipped, 'Figures cut off by their unit badge').toEqual([]);
+for (const width of [320, 768, 1440]) test(`Home task cards are readable and extended FAQs remain reachable at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({width,height:900});
+  await page.route('https://**/*',route=>route.abort());
+  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline layout fixture'}}));
+  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
+  await page.goto('/#overview');await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
+  const cards=page.locator('.home-start-grid > a');await expect(cards).toHaveCount(3);
+  for(const card of await cards.all()){
+    await expect(card).toBeVisible();await card.focus();await expect(card).toBeFocused();
+    expect(await card.evaluate(e=>[...e.querySelectorAll('h3,p,strong')].every(n=>n.scrollWidth<=n.clientWidth+1))).toBe(true);
+  }
+  await expect(page.locator('.home-faq-primary > details')).toHaveCount(4);
+  const more=page.locator('.home-faq-more');await expect(more).not.toHaveAttribute('open','');
+  await more.locator(':scope > summary').focus();await page.keyboard.press('Enter');
+  await expect(more).toHaveAttribute('open','');await expect(more.locator('[data-faq="fees"] > summary')).toBeVisible();
+  await expect(page.locator('#home-launch-board-title')).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

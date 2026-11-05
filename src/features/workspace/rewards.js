@@ -5,7 +5,7 @@ export function rewards() {
   const x = node('div'); x.id = 'rewards-x';
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
-  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your rewards</h1><p>Most SOL rewards arrive automatically. X rewards need a claim.</p></div>
+  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your rewards</h1><p>See what needs action, what arrives automatically, and what has been paid.</p></div>
     <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">When to join, when to wait</h2><p>Recorded cutoffs and targets appear per reward. A target is not a confirmed payment.</p></header><div class="reward-upcoming-grid">
       <article><span>SOL · COIN HOLDERS</span><h3>Hold through an hourly cutoff</h3><p>Choose a coin with a holder fee share. An hourly payout needs finalized holdings, a fresh price, eligible wallets, and enough funded SOL. Small pools roll forward. Selected Devnet QA coins use five-minute cycles and reduced minimums; check the coin’s conditions.</p><button type="button" data-reward-open="holder">See cutoff and payout target →</button></article>
       <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Check each coin’s snapshot and deadline</h3><p>Check each coin’s verified snapshot and published claim deadline on Airdrops. Devnet QA cutoffs are separate; review the coin’s published terms.</p><a href="#airdrops">See snapshots and claim deadlines →</a></article>
@@ -42,7 +42,7 @@ export function rewards() {
   const history = node('div'); history.id = 'rewards-history';
   const historyPanel = $('.x-claim-activity', x); if (historyPanel) history.append(historyPanel);
   root.append(overview,creator,holder,funded,x,history);
-  const select = tabs(root,[{key:'overview',label:'My rewards',panel:overview},{key:'holder',label:'Coin holders',panel:holder},{key:'funded',label:'$FUNDED holders',panel:funded},{key:'creator',label:'Creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'History',panel:history}],'Reward type');
+  const select = tabs(root,[{key:'overview',label:'Overview',panel:overview},{key:'holder',label:'Holder SOL',panel:holder},{key:'funded',label:'Token airdrops',panel:funded},{key:'creator',label:'Creator SOL',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'Public history',panel:history}],'Reward type');
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   for(const tab of root.querySelectorAll(':scope > .ui-tabs > [role="tab"]'))tab.dataset.rewardOpen=tab.getAttribute('aria-controls').replace('rewards-','');

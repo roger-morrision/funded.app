@@ -23,11 +23,16 @@ function home() {
   const launch = actions?.querySelector('[href="#launch"]');
   if (explore && launch) {
     explore.className = 'primary-button'; explore.textContent = 'Explore coins';
-    launch.className = 'hero-secondary-action'; launch.textContent = 'Launch a coin';
+    launch.className = 'hero-secondary-action'; launch.textContent = 'Create a coin';
     actions.prepend(explore);
   }
   const rewardGroups = $('.home-rewards-stack');
   const board = $('.home-launch-board');
+  if (board && !board.querySelector('.home-explore-link')) {
+    const link = document.createElement('a');
+    link.className = 'home-explore-link secondary-button'; link.href = '#explore';
+    link.textContent = 'View all coins →'; board.append(link);
+  }
   // The Community rewards panels are not shown on Home; Rewards, Airdrops and
   // token pages carry the same information. The element stays detached so its
   // renderer keeps working.
@@ -49,6 +54,14 @@ function explore() {
   setText('button[data-explore-tab="trending"]', 'Trending');
   setText('.workspace-watch-link', 'Following');
   $('#explore-search')?.setAttribute('placeholder', 'Search coins or paste an address');
+  const hero=$('#explore .explore-hero');
+  if(hero&&!$('#explore-community-links')){
+    const links=document.createElement('nav');links.id='explore-community-links';links.className='task-page-links';links.setAttribute('aria-label','Explore community');
+    links.innerHTML='<a href="#callouts">Coin calls</a><a href="#creators">Creators</a><a href="#leaderboard">Rankings</a>';
+    hero.append(links);
+  }
+  const rankings=disclosure($('#explore .explore-benefit-leaders'),'Rankings and public payouts');
+  if(rankings){rankings.id='explore-public-records';rankings.classList.add('task-page-disclosure');}
   const bar = $('.explore-control-bar');
   const sort = $('#explore-sort');
   const label = sort?.closest('label');
@@ -111,7 +124,7 @@ function launch() {
   }
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
-  setText('#launch-route-title', 'Launch a coin');
+  setText('#launch-route-title', 'Create a coin');
   setText('#launch-route-shell .page-lede', `Control your 80% creator share. ${currentFeePolicyCopy().headline}. Review the full fee distribution and launch cost before signing.`);
   setText('#benefits-step-title', 'Choose your fee route');
   setText('[data-launch-step="2"] > .step-heading p', 'The recommended setup directs 80% of collected creator fees to your wallet. Airdrop size, developer buy, and promotion are separate choices.');
@@ -123,9 +136,18 @@ function launch() {
     funding.querySelector('.section-label-row')?.after(note);
   }
   setText('.launch-preview-heading span', 'Preview');
-  setText('#custom-policy-title', 'Split your 80%');
+  setText('#custom-policy-title', 'Share your creator-fee allocation');
   setText('#custom-policy .section-label-row > span', 'Must total 80%');
   mountStepOneFeeSplit();
+  // Preserve the original controls and listeners; optional promotion is secondary.
+  if (packages) {
+    const promotion = disclosure(packages, 'Promotion package · optional');
+    if (promotion) { promotion.id = 'launch-promotion-options'; options.append(promotion); }
+  }
+  const story = $('#launch-story-options');
+  if (story) options.append(story);
+  const preview = $('#launch-presentation-preview');
+  if (preview) options.append(preview);
   setText('.launch-total-cost-note', 'Review network fees, optional purchases, and any $FUNDED burn before signing.');
 }
 
@@ -142,9 +164,15 @@ function portfolio() {
     const button = document.createElement('button');
     button.id = 'portfolio-created-tab'; button.type = 'button'; button.dataset.portfolioTab = 'created';
     button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', 'false'); button.setAttribute('aria-controls', panel.id);
-    button.tabIndex = -1; button.textContent = 'Created coins'; bar.append(button);
+    button.tabIndex = -1; button.textContent = 'My projects'; bar.append(button);
   }
   setText('#portfolio-trades-tab', 'Activity');
+  setText('#my-launches > .section-heading p:not(.eyebrow)', 'Your holdings, activity, and projects.');
+  const create=$('#my-launches .projects-launch-button');if(create)create.innerHTML='Create a coin <span aria-hidden="true">↗</span>';
+  const headingActions=$('#my-launches > .section-heading');
+  if(headingActions&&!$('#portfolio-favorites-link')){
+    const favorites=document.createElement('a');favorites.id='portfolio-favorites-link';favorites.className='text-button';favorites.href='/explore?filters=1&f.tab=favorites';favorites.textContent='View favorite coins';headingActions.append(favorites);
+  }
   setText('#watchlist-heading', 'Following');
   disclosure($('#community-preferences'), 'Following preferences');
 }

@@ -1,16 +1,16 @@
 /* Home geometry is present before optional workspace modules initialize. */
 html body.page-route-overview.product-experience-style .hero-section {
-  width: 100% !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 24px 0 20px !important;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 24px 0 20px;
 }
 html body.page-route-overview .hero-copy-column { width: 100%; max-width: 680px; }
 html body.page-route-overview.product-experience-style .hero-section h1 {
   max-width: 680px;
   margin: 0 0 10px;
-  font-size: clamp(34px, 3.5vw, 48px) !important;
-  line-height: 1.08 !important;
+  font-size: clamp(34px, 3.5vw, 48px);
+  line-height: 1.08;
 }
 html body.page-route-overview.product-experience-style .hero-copy {
   max-width: 580px;
@@ -20,12 +20,12 @@ html body.page-route-overview.product-experience-style .hero-copy {
 }
 html body.page-route-overview .hero-actions { margin: 0; }
 html body.page-route-overview .main-content > .home-launch-highlights { order: 0; min-width: 0; margin-top: 12px; }
-body:not(.page-route-overview) .home-launch-highlights { display: none !important; }
+body:not(.page-route-overview) .home-launch-highlights { display: none; }
 html body.page-route-overview .main-content > .home-kpi-dashboard { order: 1; margin-block: 12px 16px; }
 html body.page-route-overview .main-content > .hero-section { order: 2; }
 html body.page-route-overview .main-content > .home-launch-board { order: 3; }
 html body.page-route-overview .main-content > .home-fee-route-panel { order: 5; width: 100%; margin-bottom: 24px; }
-body:not(.page-route-overview) .home-fee-route-panel { display: none !important; }
+body:not(.page-route-overview) .home-fee-route-panel { display: none; }
 html body.page-route-overview .main-content > .public-discovery { order: 4; }
 html body.page-route-overview .home-launch-grid { min-height: 320px; }
 /* Icon replacement must not resize the controls during startup. */
@@ -34,22 +34,22 @@ html body.page-route-overview .topbar :is(#open-menu, #header-search-trigger) { 
 @media (min-width: 901px) and (max-width: 1050px) {
   html body.page-route-overview .sidebar .primary-nav > .nav-item,
   html body.page-route-overview .sidebar .nav-more > summary {
-    padding-inline: 4px !important;
+    padding-inline: 4px;
     letter-spacing: 0;
   }
 }
 
 @media (max-width: 700px) {
   html body.page-route-overview.product-experience-style .hero-section {
-    padding: 18px 0 16px !important;
+    padding: 18px 0 16px;
     background-size: cover;
     background-position: center, center, right center;
   }
   html body.page-route-overview .home-hero-kicker { margin: 0 0 8px; font-size: 11px; }
   html body.page-route-overview.product-experience-style .hero-section h1 {
     max-width: 20ch;
-    font-size: clamp(25px, 7.2vw, 32px) !important;
-    line-height: 1.12 !important;
+    font-size: clamp(25px, 7.2vw, 32px);
+    line-height: 1.12;
     letter-spacing: -.035em;
   }
   html body.page-route-overview.product-experience-style .hero-copy { max-width: 48ch; font-size: 13px; }

@@ -76,6 +76,7 @@ for(const [width,override] of [[390,false],[1440,true]]) test(`reward actions, F
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.goto('/#overview');
   const faq=page.locator('.home-reference-faq-list');
+  await faq.locator('.home-faq-more > summary').click();
   await faq.getByText('How are Daily bonuses paid?',{exact:true}).click();
   await expect(faq.locator('details[data-faq="bonus"]')).toContainText(`${bonus}% Daily bonus pool`);
   await expect(faq.locator('details[data-faq="bonus"]')).toContainText('No manual claim');

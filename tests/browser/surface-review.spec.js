@@ -17,8 +17,8 @@ for(const width of[320,390,768,1440])test(`shared discovery controls and route h
  const actionStyle=e=>{const s=getComputedStyle(e);return[s.backgroundColor,s.borderColor,s.color]};
  await page.mouse.move(0,0);const homeAction=await homeCard.locator('.token-card-action-share').evaluate(actionStyle);
  await homeCard.locator('.token-card-action-share').click();await expect(page.locator('#share-dialog')).toHaveJSProperty('open',true);await page.keyboard.press('Escape');await expect(page.locator('#share-dialog')).toHaveJSProperty('open',false);
- const home=page.locator('.home-launch-toolbar .review-buy-setting input');await home.fill('0.25');await home.press('Tab');
- await route('explore');const review=page.locator('#explore .review-buy-setting input');await expect(review).toHaveValue('0.25');await review.fill('101');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','true');
+ const home=page.locator('.home-launch-toolbar .review-buy-setting input');await expect(home).toBeHidden();
+ await route('explore');await page.locator('#explore-trade-preferences > summary').click();const review=page.locator('#explore .review-buy-setting input');await review.fill('0.25');await review.press('Tab');await expect(home).toHaveValue('0.25');await review.fill('101');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','true');
  await review.fill('0.5');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','false');
  const search=page.locator('#explore-search');await search.fill('SURF');await expect(page.locator('#global-search')).toHaveValue('SURF');await expect(search).toHaveValue('SURF');
  const exploreCard=page.locator('#asset-grid .home-launch-card').first();await expect(exploreCard).toBeVisible();await page.mouse.move(0,0);await expect.poll(()=>exploreCard.locator('.token-card-action-share').evaluate(actionStyle)).toEqual(homeAction);
@@ -31,6 +31,6 @@ for(const width of[320,390,768,1440])test(`shared discovery controls and route h
  const policy=page.locator('.agency-policy'),summary=policy.locator('summary');await summary.focus();await page.keyboard.press('Enter');await expect(policy).toHaveAttribute('open','');await expect(policy).toContainText('Actions require verified funding');await page.keyboard.press('Space');await expect(policy).not.toHaveAttribute('open','');
  await page.screenshot({path:info.outputPath(`agency-${width}.png`)});
  const nav=page.locator('.mobile-workspace-nav');
- for(const [hash,label]of[['marketing-agency','Launch'],['bonuses','Rewards'],['capital-flow','Rewards'],['analytics-detail','Explore']]){await route(hash);if(width<=700){await expect(nav.getByRole('link',{name:label,exact:true})).toHaveAttribute('aria-current','page');await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);}else await expect(nav).toBeHidden();}
+ for(const [hash,label]of[['marketing-agency','Create'],['bonuses','Rewards'],['capital-flow','Rewards'],['analytics-detail','Explore']]){await route(hash);if(width<=700){await expect(nav.getByRole('link',{name:label,exact:true})).toHaveAttribute('aria-current','page');await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);}else await expect(nav).toBeHidden();}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(errors).toEqual([]);expect(writes).toEqual([]);
 });

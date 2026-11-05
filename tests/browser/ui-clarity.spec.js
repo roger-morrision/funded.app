@@ -13,9 +13,9 @@ for(const width of [390,1440]){
     await setup(page,width,baseURL);
     await page.goto('/#overview');await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
     await expect(page.locator('.home-launch-board')).toBeVisible();
-    await page.goto('/#my-launches');await expect(page.locator('#launch-control-room')).toHaveCount(0);await expect(page.locator('#recovery-inbox')).toBeVisible();
-    const layout=await page.evaluate(()=>{const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width};};return {heading:rect('#my-launches h1'),tools:rect('.portfolio-tools'),recovery:rect('#recovery-inbox'),overflow:document.documentElement.scrollWidth>innerWidth+1};});
-    expect(layout.heading.y).toBeLessThan(layout.recovery.y);expect(layout.overflow).toBe(false);expect(Math.abs(layout.tools.width-layout.recovery.width)).toBeLessThan(2);
+    await page.goto('/#my-launches');await expect(page.locator('#launch-control-room')).toHaveCount(0);await expect(page.locator('#recovery-inbox')).toBeHidden();
+    await expect(page.locator('[data-portfolio-tab="holdings"]')).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   });
   test(`rewards distinguishes loading, anonymous actions and unavailable records at ${width}px (mocked)`,async({page,baseURL})=>{
     await setup(page,width,baseURL);let release;const held=new Promise(resolve=>{release=resolve;});
