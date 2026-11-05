@@ -144,10 +144,7 @@ export function createLaunchPreviewController(appState) {
       const confirm = document.querySelector('#trade-review-confirm');
       if (confirm) confirm.textContent = 'Refresh quote';
     }
-    if (appState.fundedBuyPreview && !appState.fundedBuyBusy && Date.now() - appState.fundedBuyPreview.preparedAt >= 15_000) {
-      const button = document.querySelector('#funded-buy-submit');
-      if (button) button.textContent = 'Refresh quote';
-    }
+    if (!appState.fundedBuyBusy) void appState.refreshFundedBuyQuote?.();
   }
   // app-source-end
 

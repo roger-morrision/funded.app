@@ -11,14 +11,13 @@ export function initializeDiscoveryIntent(app) {
     if (!label) {
       label = document.createElement('label'); label.className = 'review-buy-setting';
       const helpId = `review-buy-help-${inputs.length}`;
-      label.innerHTML = `<span>Buy amount · SOL</span><input inputmode="decimal" aria-label="Buy amount in SOL for the card Buy button" aria-describedby="${helpId}" maxlength="13"><small id="${helpId}" class="visually-hidden">Prefills the Buy button on each card. Review a fresh quote before signing; changing this amount does not place a trade.</small>`;
+      label.innerHTML = `<span>Quick buy amount</span><input inputmode="decimal" aria-label="Quick buy amount in SOL" aria-describedby="${helpId}" maxlength="13"><small id="${helpId}" class="visually-hidden">Default SOL amount on token pages. Preset buttons use their shown amount. Review before signing; changing this amount does not place a trade.</small>`;
       parent.append(label);
     }
     if(parent.closest('#explore')){
-      const preferences=document.createElement('details');preferences.id='explore-trade-preferences';preferences.className='task-page-disclosure';
-      const summary=document.createElement('summary');summary.textContent='Buy amount';
-      label.before(preferences);preferences.append(summary,label);
-      label.querySelector('small')?.classList.remove('visually-hidden');
+      const preferences=document.createElement('div');preferences.id='explore-trade-preferences';
+      label.before(preferences);preferences.append(label);
+      const unit=document.createElement('span');unit.className='review-buy-unit';unit.textContent='SOL';unit.setAttribute('aria-hidden','true');label.append(unit);
     }
     const input = label.querySelector('input'); input.value = amount; input.disabled = false; inputs.push(input);
     input.addEventListener('change', () => {
@@ -32,17 +31,19 @@ export function initializeDiscoveryIntent(app) {
     const link = event.target.closest('[data-review-buy]');
     if (!link) return;
     // Keep ordinary anchor navigation, including open-in-new-tab. No transaction is signed here.
-    link.href = `/token/${encodeURIComponent(link.dataset.reviewBuy)}?reviewBuy=${encodeURIComponent(amount)}`;
+    const selected = validReviewAmount(link.dataset.reviewAmount) ? link.dataset.reviewAmount : amount;
+    link.href = `/token/${encodeURIComponent(link.dataset.reviewBuy)}?reviewBuy=${encodeURIComponent(selected)}`;
   };
   for (const name of ['click', 'pointerdown', 'focusin']) document.addEventListener(name, updateIntent, true);
-  const requested = new URL(location.href).searchParams.get('reviewBuy');
+  const explicit = new URL(location.href).searchParams.get('reviewBuy');
+  const requested = explicit ?? amount;
   if (validReviewAmount(requested) && app.getCoinMintAddress()) {
     document.querySelector('[data-coin-trade-side="buy"]')?.click();
     const input = document.querySelector('#trade-amount'); input.value = requested;
     input.dispatchEvent(new Event('input', { bubbles:true }));
-    app.setTradeStatus('Saved buy amount selected. Review a fresh quote before approving in your wallet.');
-    if (matchMedia('(max-width:700px)').matches) document.querySelector('.mobile-trade-open')?.click();
-    else document.querySelector('#trade-panel')?.scrollIntoView({ block:'center' });
+    app.setTradeStatus('Buy amount selected. Review a fresh quote before approving in your wallet.');
+    if (explicit && matchMedia('(max-width:700px)').matches) document.querySelector('.mobile-trade-open')?.click();
+    else if (explicit) document.querySelector('#trade-panel')?.scrollIntoView({ block:'center' });
   }
   const buy = document.querySelector('.mobile-trade-open');
   const nav = document.querySelector('.mobile-workspace-nav');

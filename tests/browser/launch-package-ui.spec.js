@@ -47,15 +47,15 @@ for (const width of [1440, 390, 320]) test(`launch package and X previews update
   await page.locator('#launch-next').click();
   await expect(page.locator('.launch-fee-options')).toHaveCount(0);
   const disclosure=page.locator('#launch-presentation-preview'), summary=disclosure.locator(':scope > summary');
-  await expect(disclosure).not.toHaveAttribute('open','');await expect(page.locator('#launch-package-example')).toBeHidden();
-  await expect(summary).toHaveText('Preview token page & X posts · Standard');
+  await expect(summary).toHaveCount(0);await expect(page.locator('#launch-package-example')).toBeVisible();
+
   if(width<700){
     await expect(page.locator('#wizard-hint')).toBeVisible();
     const layout=await page.locator('#wizard-hint').evaluate(e=>{const hint=e.getBoundingClientRect(),row=e.parentElement.getBoundingClientRect(),back=document.getElementById('launch-back').getBoundingClientRect();return{width:hint.width,rowWidth:row.width,bottom:hint.bottom,backTop:back.top};});
     expect(layout.width).toBeGreaterThanOrEqual(layout.rowWidth-2);expect(layout.bottom).toBeLessThanOrEqual(layout.backTop);
   }
   await page.screenshot({path:info.outputPath(`launch-options-${width}.png`),fullPage:true});
-  await summary.focus();await page.keyboard.press('Enter');await expect(disclosure).toHaveAttribute('open','');
+
   await expect(page.locator('#launch-package-example')).toBeVisible();
   await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
   await expect(page.locator('.launch-package-preview')).toBeVisible();
@@ -65,11 +65,11 @@ for (const width of [1440, 390, 320]) test(`launch package and X previews update
   await expect(page.locator('#launch-package-example')).toHaveAttribute('data-tier', 'premier');
   await expect(page.locator('#launch-x-post-count')).toHaveText('2 posts');
   await expect(page.locator('#launch-x-followup')).toBeVisible();
-  await expect(disclosure).toHaveAttribute('open','');await expect(summary).toHaveText('Preview token page & X posts · Premier');
-  await summary.focus();await page.keyboard.press('Space');await expect(disclosure).not.toHaveAttribute('open','');await expect(summary).toBeFocused();
-  await page.locator('.creator-burn-card[data-burn-tier="standard"]').click();await expect(disclosure).not.toHaveAttribute('open','');
-  await expect(summary).toHaveText('Preview token page & X posts · Standard');
-  await summary.focus();await page.keyboard.press('Enter');await expect(page.locator('#preview-name')).toHaveText('Sample Coin');await expect(page.locator('#launch-x-post-count')).toHaveText('1 post');
+
+
+  await page.locator('.creator-burn-card[data-burn-tier="standard"]').click();
+
+  await expect(page.locator('#preview-name')).toHaveText('Sample Coin');await expect(page.locator('#launch-x-post-count')).toHaveText('1 post');
   await expect(page.locator('#launch-button')).toBeDisabled();await expect(page.locator('#launch-agency-options .agency-included-list li')).toHaveCount(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -82,7 +82,7 @@ for (const width of [1440, 390]) test(`launch preview stays readable when option
   await page.locator('#token-name').fill('Sample Coin');
   await page.locator('#token-symbol').fill('SAMPLE');
   await page.locator('#launch-next').click();
-  await page.locator('#launch-presentation-preview > summary').click();
+  await expect(page.locator('#launch-presentation-preview > summary')).toHaveCount(0);
   await expect(page.locator('#launch-package-example')).toBeVisible();
   const preview = page.locator('.launch-package-preview');
   await expect(preview).toBeVisible();

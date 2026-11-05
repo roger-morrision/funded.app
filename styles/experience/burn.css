@@ -107,3 +107,10 @@
   .burn-amount-field, .burn-project-field { margin-right: 16px; margin-left: 16px; }
   .burn-primary { width: calc(100% - 32px); margin-right: 16px; margin-left: 16px; }
 }
+.funded-buy-estimate { margin: 0 0 16px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.funded-buy-estimate[hidden] { display: none; }
+.funded-buy-estimate > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 8px 0; font-size: 13px; }
+.funded-buy-estimate dt { color: var(--muted); }
+.funded-buy-estimate dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.funded-buy-estimate .funded-buy-receive { display: grid; gap: 6px; margin: 0 0 16px; }
+.funded-buy-estimate .funded-buy-receive dd { text-align: left; font-size: 24px; font-weight: 700; }

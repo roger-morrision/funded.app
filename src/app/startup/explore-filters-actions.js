@@ -207,7 +207,7 @@ export function initializeExploreFiltersActions(appState) {
   // app-source-end
 
   // app-source: 828
-  document.querySelector('#funded-buy-amount')?.addEventListener('input', () => { appState.fundedBuyPreview = null; appState.renderFundedBuyControl('Preview the current Solana pool quote before signing.'); });
+  document.querySelector('#funded-buy-amount')?.addEventListener('input', appState.invalidateFundedBuyQuote);
   // app-source-end
 
   // app-source: 829

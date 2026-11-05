@@ -26,7 +26,7 @@ for (const width of [320, 390, 1440]) test(`Home getting-started tasks and heade
   expect(after[1].y, 'Getting-started tasks begin within the first screen').toBeLessThan(844);
   expect(await page.evaluate(() => {
     const board=document.querySelector('.home-launch-board'), directory=document.querySelector('#public-discovery');
-    return Boolean(board && !directory && board.getBoundingClientRect().width>0)
+    return Boolean(board && !directory && board.getBoundingClientRect().width===0)
       && !document.querySelector('.public-discovery-list,.public-discovery-empty')
       && document.documentElement.scrollWidth<=innerWidth;
   })).toBe(true);
@@ -47,6 +47,7 @@ for (const width of [320, 768, 1440]) test(`Home task cards are readable and ext
   const more=page.locator('.home-faq-more');await expect(more).not.toHaveAttribute('open','');
   await more.locator(':scope > summary').focus();await page.keyboard.press('Enter');
   await expect(more).toHaveAttribute('open','');await expect(more.locator('[data-faq="fees"] > summary')).toBeVisible();
-  await expect(page.locator('#home-launch-board-title')).toBeVisible();
+  await expect(page.locator('#home-launch-board-title')).toBeHidden();
+  await expect(page.locator('.home-welcome-guide')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

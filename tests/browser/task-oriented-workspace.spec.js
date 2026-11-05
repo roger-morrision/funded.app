@@ -13,7 +13,7 @@ const fits=async page=>expect(await page.evaluate(()=>document.documentElement.s
 for(const width of [320,390,768,1440]){
   test(`task navigation and Home at ${width}px (mocked APIs)`,async({page},info)=>{
     await setup(page,width);const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page,'/#overview');
-    await expect(page.locator('#home-hero-title')).toContainText('Share trading fees');
+    await expect(page.locator('#home-hero-title')).toContainText('Your community');
     await expect(page.locator('.home-start-grid > a')).toHaveCount(3);
     await expect(page.locator('.home-start')).toBeVisible();
     await expect(page.locator('.home-kpi-dashboard')).not.toBeVisible();
@@ -28,7 +28,7 @@ for(const width of [320,390,768,1440]){
     await page.screenshot({path:info.outputPath(`home-${width}.png`),fullPage:true,animations:'disabled'});
     expect(errors).toEqual([]);
   });
-  test(`three-stage creation preserves validation and consent at ${width}px (mocked APIs)`,async({page},info)=>{
+  test(`two-stage creation preserves validation and consent at ${width}px (mocked APIs)`,async({page},info)=>{
     await setup(page,width);const writes=[];page.on('request',r=>{
       if(r.method()!=='POST')return;
       if(new URL(r.url()).pathname==='/api/solana/rpc'){
@@ -38,8 +38,8 @@ for(const width of [320,390,768,1440]){
       writes.push(r.url());
     });
     await ready(page,'/#launch');
-    await expect(page.locator('[data-launch-step-target]')).toHaveCount(3);
-    await page.locator('[data-launch-step-target="3"]').click();
+    await expect(page.locator('[data-launch-step-target]')).toHaveCount(2);
+    await page.locator('[data-launch-step-target="2"]').click();
     await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','1');
     await expect(page.locator('#token-name')).toBeFocused();
     await page.locator('#token-name').fill('Community Review');await page.locator('#token-symbol').fill('REVIEW');
@@ -53,26 +53,28 @@ for(const width of [320,390,768,1440]){
       const airdrop=await page.locator('#community-airdrop-tokens').boundingBox(),buy=await page.locator('#creator-buy-sol').boundingBox();
       expect(Math.abs(airdrop.y-buy.y)).toBeLessThan(2);
     }
-    await expect(page.locator('#launch-promotion-options')).not.toHaveAttribute('open','');
+    await expect(page.locator('#launch-promotion-options')).toBeVisible();await expect(page.locator('#launch-promotion-options > summary')).toHaveCount(0);await expect(page.locator('button[data-burn-tier="pro"]')).toBeVisible();
     await page.screenshot({path:info.outputPath(`funding-${width}.png`),fullPage:true,animations:'disabled'});
     await page.locator('#holder-airdrop-share').fill('20');
     await page.locator('#launch-back').click();
-    await page.locator('[data-launch-step-target="3"]').click();
+    await page.locator('[data-launch-step-target="2"]').click();
     await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');
-    await expect(page.locator('#creator-wallet-share')).toBeFocused();
+    await expect(page.locator('#launch-button')).toBeDisabled();
     await page.locator('#creator-wallet-share').fill('60');
-    await page.locator('#launch-next').click();
-    await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','3');
+    await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');
     await expect(page.locator('#launch-summary-creator')).toHaveText('60%');
     await expect(page.locator('#launch-summary-holders')).toHaveText('20%');
     await expect(page.locator('#fee-route-agree')).not.toBeChecked();
     await expect(page.locator('#terms-agree')).not.toBeChecked();
     await expect(page.locator('#launch-button')).toBeDisabled();
+    await expect(page.locator('#launch-button')).toBeVisible();
+    await expect(page.locator('#fee-route-agree')).toBeVisible();
+    await expect(page.locator('#terms-agree')).toBeVisible();
     await expect(page.locator('#launch-review-dialog')).not.toBeVisible();
     await fits(page);await page.screenshot({path:info.outputPath(`review-${width}.png`),fullPage:true,animations:'disabled'});
     await page.locator('#launch-back').click();
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('20');
-    await page.locator('#launch-back').click();await expect(page.locator('#token-name')).toHaveValue('Community Review');
+    await expect(page.locator('#token-name')).toHaveValue('Community Review');
     expect(writes).toEqual([]);
   });
   test(`personal rewards exclude protocol amounts at ${width}px (mocked receipts)`,async({page},info)=>{

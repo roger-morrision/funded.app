@@ -8,7 +8,7 @@ for(const width of [320,390,768,1440])test(`Buy more opens shared popup and pres
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/#launch');await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
  await page.locator('#token-name').fill('My community');await page.locator('#token-symbol').fill('COM');await page.locator('#launch-next').click();
- await page.locator('#launch-promotion-options > summary').click();
+ await expect(page.locator('#launch-promotion-options > summary')).toHaveCount(0);
  await page.locator('.creator-burn-card[data-burn-tier="pro"]').click();
  const trigger=page.locator('.launch-tier-buy-link');await trigger.click();
  const dialog=page.getByRole('dialog',{name:'Buy $FUNDED',exact:true});await expect(dialog).toBeVisible();

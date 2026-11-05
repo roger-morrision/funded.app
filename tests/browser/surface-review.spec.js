@@ -11,14 +11,14 @@ for(const width of[320,390,768,1440])test(`shared discovery controls and route h
   if(path==='/api/pump/explore')return r.fulfill({json:{items:[],fetchedAt:new Date().toISOString()}});
   return r.fulfill({status:503,json:{error:'Unavailable surface-review fixture'}});
  });
- await page.goto('/#overview');await page.locator('body.product-flows-ready').waitFor();
+ await page.goto('/#explore');await page.locator('body.product-flows-ready').waitFor();
  const route=async hash=>{await page.evaluate(hash=>location.hash=hash,hash);await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${hash}(?: |$)`));};
- const homeCard=page.locator('#home-launch-grid .home-launch-card').first();await expect(homeCard).toBeVisible();
+ const homeCard=page.locator('#asset-grid .home-launch-card').first();await expect(homeCard).toBeVisible();
  const actionStyle=e=>{const s=getComputedStyle(e);return[s.backgroundColor,s.borderColor,s.color]};
  await page.mouse.move(0,0);const homeAction=await homeCard.locator('.token-card-action-share').evaluate(actionStyle);
  await homeCard.locator('.token-card-action-share').click();await expect(page.locator('#share-dialog')).toHaveJSProperty('open',true);await page.keyboard.press('Escape');await expect(page.locator('#share-dialog')).toHaveJSProperty('open',false);
  const home=page.locator('.home-launch-toolbar .review-buy-setting input');await expect(home).toBeHidden();
- await route('explore');await page.locator('#explore-trade-preferences > summary').click();const review=page.locator('#explore .review-buy-setting input');await review.fill('0.25');await review.press('Tab');await expect(home).toHaveValue('0.25');await review.fill('101');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','true');
+ await route('explore');const review=page.locator('#explore .review-buy-setting input');await review.fill('0.25');await review.press('Tab');await expect(home).toHaveValue('0.25');await review.fill('101');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','true');
  await review.fill('0.5');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','false');
  const search=page.locator('#explore-search');await search.fill('SURF');await expect(page.locator('#global-search')).toHaveValue('SURF');await expect(search).toHaveValue('SURF');
  const exploreCard=page.locator('#asset-grid .home-launch-card').first();await expect(exploreCard).toBeVisible();await page.mouse.move(0,0);await expect.poll(()=>exploreCard.locator('.token-card-action-share').evaluate(actionStyle)).toEqual(homeAction);

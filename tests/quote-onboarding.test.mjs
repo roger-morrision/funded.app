@@ -52,18 +52,18 @@ test('expired checkout actions refresh prices, while a submitted boost stays in 
   const app=await readAppSource();
   const start=app.indexOf('function refreshQuoteClocks(){');
   const end=app.indexOf('setInterval(()=>{',start);
-  const tradeButton={},buyButton={};let renders=0;
+  const tradeButton={},buyButton={};let renders=0,quoteRefreshes=0;
   const nodes={'#explore-boost-dialog':{open:true},'.explore-boost-quote':{},'#trade-review-dialog':{open:true},'#trade-review-confirm':tradeButton,'#funded-buy-submit':buyButton};
   const context={document:{hidden:false,querySelector:s=>nodes[s]},updateQuoteCountdowns(){},
     boostCheckout:{busy:false,pendingSignature:null,quote:{expiresAt:'2000-01-01T00:00:00Z'}},
-    currentTradePreview:()=>null,fundedBuyPreview:{preparedAt:0},fundedBuyBusy:false,
+    refreshFundedBuyQuote:()=>{quoteRefreshes++;},currentTradePreview:()=>null,fundedBuyPreview:{preparedAt:0},fundedBuyBusy:false,
     renderExploreBoostDialog:()=>{renders++;}};
   vm.runInNewContext(app.slice(start,end),context);
   context.refreshQuoteClocks();
   assert.equal(renders,1);
   assert.match(context.boostCheckout.message,/expired.*Refresh/);
   assert.equal(tradeButton.textContent,'Refresh quote');
-  assert.equal(buyButton.textContent,'Refresh quote');
+  assert.equal(quoteRefreshes,1);assert.equal(buyButton.textContent,undefined);
   context.boostCheckout.pendingSignature='submitted-receipt';
   context.refreshQuoteClocks();
   assert.equal(renders,1);

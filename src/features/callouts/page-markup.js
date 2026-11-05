@@ -1,9 +1,8 @@
 export function mountCalloutsPage(document = globalThis.document) {
   if (document.getElementById("callouts")) return;
   document.getElementById("leaderboard")?.insertAdjacentHTML("beforebegin", `<div class="callouts-page" id="callouts" role="region" aria-labelledby="callouts-title" data-column="latest">
-  <header class="callouts-head"><div><p class="eyebrow"><i class="live-dot" aria-hidden="true"></i>Live calls</p><h1 id="callouts-title">Callouts</h1><p>Wallet-signed observations with call-time, current and observed peak market caps. Rankings describe market observations.</p></div><a class="primary-button" href="#explore">Make a call</a></header>
+  <header class="callouts-head"><div><p class="eyebrow"><i class="live-dot" aria-hidden="true"></i>Live calls</p><h1 id="callouts-title">Callouts</h1></div><a class="primary-button" href="#explore">Make a call</a></header>
   <div class="callouts-toolbar"><div class="callouts-filters" role="group" aria-label="Filter calls"><button type="button" data-callouts-filter="all" aria-pressed="true">All</button><button type="button" data-callouts-filter="hot" aria-pressed="false">Hot · 2x+</button><button type="button" data-callouts-filter="mine" aria-pressed="false">Mine</button></div><button type="button" class="callouts-author-filter" id="callouts-author-filter" hidden>Wallet <span></span> ✕</button><small id="callouts-status" role="status">Loading calls…</small></div>
-  <p class="callouts-method" data-inline-status>Ranked by average peak market-cap gain over 7 days. Not realized returns. <span data-callouts-network></span></p>
   <div class="callouts-leaders" aria-labelledby="callouts-top-title"><p class="callouts-leaders-title" id="callouts-top-title">Top callers · 7 days</p><ol class="callouts-top" id="callouts-top"></ol></div>
   <div class="callouts-tabs" role="group" aria-label="Choose a column"><button type="button" data-callouts-tab="latest" aria-pressed="true">Latest</button><button type="button" data-callouts-tab="top" aria-pressed="false">Top callers</button><button type="button" data-callouts-tab="conviction" aria-pressed="false">Conviction</button></div>
   <div class="callouts-columns">

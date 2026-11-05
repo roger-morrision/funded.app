@@ -36,7 +36,7 @@ for(const width of[320,390,700,1440])test(`published fee distribution and config
 });
 for(const width of[320,390,1440])test(`landing explains all stakeholder allocations without an API or wallet at ${width}px`,async({page,baseURL},info)=>{
  await page.setViewportSize({width,height:900});await offline(page,baseURL);const api=[],errors=[];page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))api.push(r.url());});page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/welcome#transparency');await summary(page.locator('[data-landing-fee-distribution]'));await expect(page.locator('.reward-grid')).toContainText('4% Daily bonus pool');
- await page.locator('[data-landing-fee-distribution]').scrollIntoViewIfNeeded();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(api.map(url=>new URL(url).pathname).filter(path=>!['/api/analytics/summary','/api/market/sol-usd'].includes(path))).toEqual([]);expect(errors).toEqual([]);
- await page.locator('[data-landing-fee-distribution]').screenshot({path:info.outputPath(`landing-fees-${width}.png`)});
+ await page.goto('/welcome#transparency');await expect(page.locator('[data-landing-fee-distribution]')).toHaveCount(0);await expect(page.locator('.reward-grid')).toContainText('4% Daily bonus pool');
+ await page.locator('#transparency').scrollIntoViewIfNeeded();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(api.map(url=>new URL(url).pathname).filter(path=>!['/api/analytics/summary','/api/market/sol-usd'].includes(path))).toEqual([]);expect(errors).toEqual([]);
+ await page.locator('#transparency').screenshot({path:info.outputPath(`landing-fees-${width}.png`)});
 });

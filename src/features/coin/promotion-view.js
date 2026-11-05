@@ -28,16 +28,13 @@ export function renderCoinPromotionBadge(
     rail = document.createElement('aside');
     rail.className = 'coin-package-rail';
     rail.setAttribute('aria-label', 'Favorite, boost and launch package');
-    const details=document.createElement('section');details.className='coin-promotion-details';details.setAttribute('aria-label','Promotion and receipts');
-    const summary=document.createElement('h2');summary.textContent='Promotion & receipts';
-    const note=document.createElement('p');note.className='coin-promotion-note';note.textContent='Paid promotion does not verify a coin’s safety, liquidity, or future returns.';
-    details.append(summary,note);
+    const details=document.createElement('div');details.className='coin-promotion-details';details.setAttribute('aria-label','Boost and launch package');
     const watch = document.querySelector('#coin-watch');
     const boost = document.querySelector('#coin-boost');
     if (watch) rail.append(watch);
     if (boost) {
       boost.className = 'coin-package-chip coin-package-chip--boost';
-      boost.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>⚡</span></span><span class="coin-package-copy"><small>Paid boost</small><strong id="coin-boost-total">—</strong></span>`;
+      boost.textContent = '⚡ Boost';
       details.append(boost);
     }
     rail.append(details);
@@ -50,15 +47,10 @@ export function renderCoinPromotionBadge(
   if (!packageBadges) {
     packageBadges = document.createElement('span');
     packageBadges.id = 'coin-boost-packages';
-    rail.querySelector('.coin-promotion-details').append(packageBadges);
+    document.querySelector('#coin-symbol')?.after(packageBadges);
   }
-  packageBadges.innerHTML = exploreBoostAmountMarkup(mint);
+  packageBadges.innerHTML = verifiedBoostsAvailable ? exploreBoostAmountMarkup(mint) : '';
   document.querySelector('#coin-page-title')?.classList.remove('golden-ticker');
-  const boostTotal = rail.querySelector('#coin-boost-total');
-  if (boostTotal) boostTotal.textContent = verifiedBoostsAvailable
-    // With no boost running, the chip invites the action instead of reporting an absence.
-    ? (activeMultiplier ? `${activeMultiplier.toLocaleString()}x total` : 'Boost this coin')
-    : 'Status unavailable';
   const boostButton = rail.querySelector('#coin-boost');
   if (boostButton) {
     boostButton.classList.toggle('is-active', verifiedBoostsAvailable && Boolean(activeMultiplier));
@@ -87,7 +79,8 @@ export function renderCoinPromotionBadge(
     artworkLabel.textContent = badge ? `${presentation.label} launch · ${Number(badge.amountTokens).toLocaleString()} $FUNDED burned` : '';
   }
   const packageElement = document.createElement(badge ? 'a' : 'span');
-  packageElement.className = `coin-package-chip coin-package-chip--promotion is-${presentation.tier}`;
+  packageElement.className = 'explore-tier-badge';
+  packageElement.dataset.tier = presentation.tier;
   if (badge) {
     packageElement.href = exploreExplorer(`tx/${encodeURIComponent(badge.signature)}`);
     packageElement.target = '_blank';
@@ -97,8 +90,7 @@ export function renderCoinPromotionBadge(
   } else {
     packageElement.title = presentation.tier === 'standard' ? 'Verified standard launch; no paid promotion burn' : 'Launch package cannot be verified yet';
   }
-  const symbol = badge?.tier === 'premier' ? '★' : badge?.tier === 'pro' ? '◆' : '✦';
-  packageElement.innerHTML = `<span class="coin-package-bag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16l-1.3 11H5.3L4 9Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>${symbol}</span></span><span class="coin-package-copy"><small>Launch package</small><strong>${presentation.label}</strong></span>`;
+  packageElement.textContent = presentation.label;
   holder.append(packageElement);
   renderCoinRegistryIdentity(mint);
   renderCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint);

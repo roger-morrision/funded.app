@@ -153,7 +153,7 @@ export function createLaunchReviewController(appState) {
   async function openLaunchReview(){
     const reviewedCost = appState.launchCostReview;
     const session = appState.captureWalletSession();
-    if (appState.launchStep !== 3 || !appState.getLaunchStepState(1).valid || !appState.getLaunchStepState(2).valid || !session || !appState.freshLaunchReview(reviewedCost) || document.querySelector('#launch-button')?.disabled) {
+    if (appState.launchStep !== 2 || !appState.getLaunchStepState(1).valid || !appState.getLaunchStepState(2).valid || !session || !appState.freshLaunchReview(reviewedCost) || document.querySelector('#launch-button')?.disabled) {
       appState.setLaunchStatus('Refresh the launch estimate and complete all checks before reviewing.', true);
       return;
     }

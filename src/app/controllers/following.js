@@ -195,7 +195,9 @@ export function createFollowingController(appState) {
   function watchlistNodeKey(node) {
     if (node.nodeType !== 1) return '';
     if (node.matches('.saved-token-identity > a,.home-launch-card-link')) return 'link:identity';
+    if (node.matches('.card-review-buy[data-review-amount]')) return `link:buy:${node.dataset.reviewAmount}`;
     if (node.matches('.saved-token-view,.card-review-buy')) return 'link:view';
+    if (node.matches('.explore-social-link')) return node.classList.contains('is-search') ? 'link:social-search' : `link:social:${node.getAttribute('title')}`;
     if (node.matches('.home-token-avatar')) return 'slot:portfolio-token-avatar';
     for (const attribute of ['data-mint', 'data-share-mint', 'data-boost-mint', 'data-trade-mint', 'data-watch-retry', 'data-copy-address', 'data-remove-watch']) {
       if (node.matches('button') && node.hasAttribute(attribute))

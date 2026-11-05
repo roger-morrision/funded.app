@@ -4,7 +4,7 @@ import { readLaunchAgencySelection } from '../../features/marketing/agency-selec
 export function createLaunchFormController(appState) {
   // app-source: 641
   function setLaunchStep(step){
-    const target = Math.min(3, Math.max(1, Number(step) || 1));
+    const target = Math.min(2, Math.max(1, Number(step) || 1));
     if (target > appState.launchStep) {
       for (let previous = 1; previous < target; previous++) {
         const state = appState.getLaunchStepState(previous);

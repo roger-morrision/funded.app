@@ -13,6 +13,10 @@
   --cp-accent: #ffc46b;
   --cp-radius: 8px;  /* the app-wide panel radius */
 }
+html body #main-content :is(.watch-button,#coin-watch)[aria-pressed="true"],
+html body #main-content :is(.watch-button,#coin-watch).active { color: var(--cp-accent); }
+html body #main-content :is(.watch-button,#coin-watch)[aria-pressed="true"] svg,
+html body #main-content :is(.watch-button,#coin-watch).active svg { fill: currentColor; stroke: currentColor; }
 
 /* Task-oriented Home, Rewards and creation use the existing shared components. */
 html body.page-route-overview.product-experience-style #main-content .hero-section {
@@ -38,7 +42,13 @@ body:not(.page-route-overview) .home-start { display: none !important; }
 /* Full discovery and protocol figures have dedicated destinations. Keep IDs for their readers. */
 html body.page-route-overview #main-content :is(.home-launch-highlights,.home-kpi-dashboard,#home-daily-bonuses,#home-buyback-panel,#home-protocol-route,.home-fee-route-panel,.home-referral-guide,.home-signal-strip,.home-proof-grid,.home-holder-rewards,.home-payout-feed) { display: none !important; }
 html body.page-route-overview #main-content .home-launch-board :is(.home-launch-toolbar,.home-quick-buy,.product-follow-note) { display: none !important; }
-html body.page-route-overview #main-content .home-launch-board { margin: 32px 0; }
+html body.page-route-overview #main-content .home-launch-board { display: none !important; }
+html body #main-content .home-welcome-guide { margin-top: 32px; padding: 24px; border: 1px solid var(--cp-line); border-radius: 12px; }
+html body #main-content .home-welcome-facts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; margin-bottom: 16px; }
+html body #main-content .home-welcome-facts h3 { margin: 0 0 8px; font-size: 16px; }
+html body #main-content .home-welcome-facts p { margin: 0; color: var(--cp-muted); font-size: 14px; line-height: 1.6; }
+html body #main-content .home-welcome-guide > a { display: inline-flex; align-items: center; min-height: 44px; color: var(--cp-accent); }
+@media(max-width:700px) { html body #main-content .home-welcome-facts { grid-template-columns: 1fr; } }
 html body.page-route-overview #main-content .home-launch-board-title { position: static; width: auto; height: auto; clip-path: none; overflow: visible; margin-bottom: 16px; }
 html body.page-route-overview #main-content .home-explore-link { display: inline-flex; margin-top: 20px; }
 html body.page-route-overview #main-content .home-reference-faq { margin-top: 32px; }
@@ -47,13 +57,12 @@ html body.page-route-overview #main-content .home-faq-more > summary { color: va
 html body #main-content .financial-scope-control { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; flex-wrap: wrap; text-align: left; gap: 12px; margin: 16px 0; color: var(--cp-muted); }
 html body #main-content .financial-scope-control select { min-height: 44px; max-width: 100%; padding: 10px 12px; color: var(--cp-text); background: var(--cp-surface-2); border: 1px solid var(--cp-line-strong); border-radius: 8px; font: inherit; }
 html body #main-content .financial-status { overflow-wrap: anywhere; }
-html body.page-route-launch #launch-dialog .launch-steps { display: grid; grid-template-columns: 1fr 1.4fr 1fr; }
+html body.page-route-launch #launch-dialog .launch-steps { display: grid; grid-template-columns: 1fr 1fr; }
 html body.page-route-launch #launch-dialog .launch-steps button { width: auto; min-width: 0; gap: 8px; white-space: normal; }
-html body.page-route-launch #launch-dialog:not([data-step="3"]) :is(.launch-pay-approval,.launch-preview-submit) { display: none !important; }
-html body.page-route-launch #launch-dialog[data-step="3"] .launch-layout { grid-template-columns: minmax(0,1fr); max-width: 820px; margin-inline: auto; }
-html body.page-route-launch #launch-dialog[data-step="3"] .launch-preview { width: 100%; }
-html body.page-route-launch #launch-dialog[data-step="3"] .launch-preview-sticky { position: static; }
-html body.page-route-launch #launch-dialog .launch-review-reminder { padding: 16px; border: 1px solid var(--cp-line); border-radius: 8px; font-size: 14px; color: var(--cp-muted); line-height: 1.6; }
+html body.page-route-launch #launch-dialog:not([data-step="2"]) :is(.launch-pay-approval,.launch-preview-submit) { display: none !important; }
+html body.page-route-launch #launch-dialog[data-step="2"] .launch-preview { display: block; order: 0; }
+html body.page-route-launch #launch-dialog[data-step="2"] .launch-preview { width: 100%; }
+html body.page-route-launch #launch-dialog[data-step="2"] .launch-preview-sticky { position: static; }
 html body.page-route-launch #launch-dialog #launch-promotion-options { margin-top: 24px; border: 1px solid var(--cp-line); border-radius: 8px; }
 html body.page-route-launch #launch-dialog #launch-promotion-options > summary { min-height: 44px; padding: 16px; cursor: pointer; font-weight: 600; }
 html body.page-route-launch #launch-dialog #launch-promotion-options > section { padding: 16px; margin: 0; border: 0; }
@@ -73,10 +82,10 @@ html body #main-content .task-page-links a:hover { color: var(--cp-accent); }
 html body #main-content .task-page-disclosure { border: 1px solid var(--cp-line); border-radius: var(--cp-radius); background: var(--cp-surface); }
 html body #main-content .task-page-disclosure > summary { min-height: 44px; padding: 14px 16px; cursor: pointer; color: var(--cp-text); font-size: 14px; }
 html body #main-content #explore-public-records { margin: 24px 0; }
+html body #main-content #explore-public-records > h2 { margin: 0; padding: 16px; color: var(--cp-text); font-size: 16px; }
 html body #main-content #explore-public-records .explore-benefit-leaders { margin: 0; border: 0; }
 html body #main-content #explore-trade-preferences { flex: 0 1 auto; margin: 0; min-width: 0; }
-html body #main-content #explore-trade-preferences .review-buy-setting { display: grid; grid-template-columns: minmax(0,1fr) 100px; gap: 12px; margin: 0; padding: 0 16px 16px; max-width: 440px; text-align: left; }
-html body #main-content #explore-trade-preferences small { grid-column: 1 / -1; white-space: normal; font-size: 13px; line-height: 1.5; color: var(--cp-muted); }
+html body #main-content #explore-trade-preferences .review-buy-setting { display: grid; grid-template-columns: minmax(0,1fr) 76px auto; gap: 8px; margin: 0; padding: 0; text-align: left; font-size: 13px; }
 /* One full-width search row, followed by a deliberately aligned control row. */
 html body #main-content #explore .explore-hero { align-items: flex-start; gap: 16px; margin-bottom: 24px; }
 html body #main-content #explore-community-links { margin: 0; gap: 16px; }
@@ -85,16 +94,13 @@ html body #main-content #explore .explore-tabs { padding: 0; gap: 4px; justify-c
 html body #main-content #explore .explore-tools { grid-template-columns: minmax(0,1fr); gap: 12px; align-items: start; }
 html body #main-content #explore .explore-search-row { width: 100%; max-width: none; margin: 0; }
 html body #main-content #explore .explore-search-label { width: 100%; max-width: none; }
-html body #main-content #explore .explore-control-bar { display: grid; grid-template-columns: auto minmax(180px,240px) auto minmax(160px,1fr); gap: 12px; align-items: start; justify-content: start; margin: 0; padding: 0; }
+html body #main-content #explore .explore-control-bar { display: grid; grid-template-columns: auto minmax(180px,240px) auto minmax(220px,1fr); gap: 12px; align-items: start; justify-content: start; margin: 0; padding: 0; }
 html body #main-content #explore .explore-control-left { grid-column: 1; grid-row: 1; gap: 8px; align-items: center; }
 html body #main-content #explore .product-sort { grid-column: 2; grid-row: 1; min-width: 0; width: 100%; margin: 0; gap: 8px; }
 html body #main-content #explore .product-sort-label { display: inline; }
 html body #main-content #explore .explore-view-switch { grid-column: 3; grid-row: 1; margin: 0; }
-html body #main-content #explore #explore-trade-preferences { grid-column: 4; grid-row: 1; justify-self: end; width: 180px; max-width: 100%; }
-html body #main-content #explore #explore-trade-preferences[open] { width: 100%; }
-html body #main-content #explore #explore-trade-preferences > summary { box-sizing: border-box; min-height: 44px; padding: 12px; line-height: 18px; }
-html body #main-content #explore #explore-trade-preferences .review-buy-setting { grid-template-columns: minmax(0,1fr); gap: 8px; padding: 0 12px 12px; }
-html body #main-content #explore #explore-trade-preferences input { width: 100%; min-width: 0; }
+html body #main-content #explore #explore-trade-preferences { grid-column: 4; grid-row: 1; justify-self: end; width: 260px; max-width: 100%; }
+html body #main-content #explore #explore-trade-preferences input { box-sizing: border-box; width: 100%; min-width: 0; height: 46px; font-size: 16px; }
 html body #main-content #explore :is(.explore-search-label,.explore-timeframe,.explore-view-switch,#explore-filter-toggle,#explore-sort) { box-sizing: border-box; height: 46px; min-height: 46px; }
 html body #main-content #explore :is(.explore-timeframe,.explore-view-switch) > button { box-sizing: border-box; height: 44px; min-height: 44px; }
 @media(max-width:1100px){
@@ -109,8 +115,12 @@ html body #main-content #explore :is(.explore-timeframe,.explore-view-switch) > 
   html body #main-content #explore .explore-control-left { grid-column: 1 / -1; justify-content: space-between; width: 100%; }
   html body #main-content #explore .product-sort { grid-column: 1 / -1; grid-row: 2; }
   html body #main-content #explore .explore-view-switch { grid-column: 1; grid-row: 3; justify-self: start; }
-  html body #main-content #explore #explore-trade-preferences { grid-column: 2; grid-row: 3; width: 100%; }
+  html body #main-content #explore #explore-trade-preferences { grid-column: 1 / -1; grid-row: 4; width: 100%; }
 }
+/* Preset amounts share one row; secondary card actions keep their own tap targets. */
+html body #main-content .home-launch-card .home-launch-card-actions.has-buy-presets { grid-template-columns: repeat(6,minmax(0,1fr)); gap: 6px; }
+html body #main-content .home-launch-card .has-buy-presets > .card-review-buy { grid-column: span 2; padding: 0 4px; font-size: 12px; white-space: nowrap; }
+html body #main-content .home-launch-card .has-buy-presets > .token-card-action-share { grid-column: 5; }
 html body.page-route-my-launches:not(.page-route-community) #my-launches > .purpose-page-nav { display: none; }
 html body #main-content #portfolio-favorites-link { display: inline-flex; align-items: center; min-height: 44px; margin-left: auto; padding: 0 12px; }
 html body #main-content #my-launches .portfolio-view-tabs { margin: 16px 0; }
@@ -125,11 +135,9 @@ html body #main-content #coin-page .coin-hero-card[data-launch-tier]:not([data-l
 html body #main-content #coin-page .coin-hero-about { height: auto; max-height: 340px; }
 html body #main-content #coin-page .coin-package-rail { display: flex; flex-direction: row; flex: 0 1 260px; align-items: flex-start; flex-wrap: wrap; gap: 8px; width: auto; max-width: 100%; }
 html body #main-content #coin-page .coin-package-rail .coin-watch { align-self: flex-start; min-width: 44px; min-height: 44px; margin: 0; }
-html body #main-content #coin-page .coin-promotion-details { min-width: 0; max-width: 320px; border: 1px solid var(--cp-line); border-radius: var(--cp-radius); }
-html body #main-content #coin-page .coin-promotion-details > h2 { margin: 0; padding: 12px 12px 0; font-size: 14px; color: var(--cp-text); }
-html body #main-content #coin-page .coin-promotion-details > :not(h2) { margin: 12px; }
-html body #main-content #coin-page .coin-promotion-details > #coin-boost { width: calc(100% - 24px); }
-html body #main-content #coin-page .coin-promotion-details > #coin-boost-packages:empty { display: none; }
+html body #main-content #coin-page .coin-promotion-details { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 320px; }
+html body #main-content #coin-page .coin-promotion-details > #coin-boost { width: auto; min-height: 44px; padding: 10px 16px; }
+html body #main-content #coin-page #coin-boost-packages:empty { display: none; }
 html body #main-content #coin-page .coin-promotion-note { max-width: 32ch; font-size: 13px; line-height: 1.5; color: var(--cp-muted); }
 html body #main-content #coin-page .coin-promotion-details #coin-promotion-badge { display: block; width: auto; }
 @media(min-width:701px){

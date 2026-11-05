@@ -194,9 +194,9 @@
         </section>
         <section class="hero-section" aria-labelledby="home-hero-title">
           <div class="hero-copy-column">
-            <p class="home-hero-kicker">Every trade feeds the community</p>
-            <h1 id="home-hero-title">Launch a coin.<br />Share trading fees with your community.</h1>
-            <p class="hero-copy">Discover Solana coins, create your own, and track community rewards in one place.</p>
+            <p class="home-hero-kicker">Welcome to funded.vip</p>
+            <h1 id="home-hero-title">Your community.<br />Your next beginning.</h1>
+            <p class="hero-copy">A place to discover and create Solana coins, share trading fees with your community, and follow your rewards.</p>
             <div class="hero-actions"><a class="primary-button" href="#explore">Explore coins</a><a class="hero-secondary-action" href="#launch">Create a coin</a></div>
             <p class="home-browse-note">Browse without a wallet. Connect when you’re ready to act.</p>
           </div>
@@ -603,7 +603,7 @@
   <section class="home-buyback-progress buyback-route-progress" id="buyback-route-panel" aria-labelledby="buyback-route-title"></section>
   <div class="burn-center-layout">
     <div class="burn-center-main">
-      <article class="panel burn-action-card burn-buy-card"><div class="burn-card-head"><div><p class="eyebrow">Acquire tokens</p><h2>Buy $FUNDED</h2></div><span class="burn-status unavailable" id="funded-buy-route-state">Checking</span></div><p>Buy through the verified $FUNDED / SOL pool. Preview the quote and maximum spend before approving a wallet transaction.</p><label class="burn-amount-field"><span>Amount</span><div><input id="funded-buy-amount" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0.001" disabled /><b>SOL</b></div></label><button type="button" class="burn-primary" id="funded-buy-submit" disabled>Preview buy</button><p id="funded-buy-countdown"></p><p class="funded-burn-status" id="funded-buy-status" role="status" aria-live="polite">Checking the verified Solana pool…</p></article>
+      <article class="panel burn-action-card burn-buy-card"><div class="burn-card-head"><div><p class="eyebrow">Acquire tokens</p><h2>Buy $FUNDED</h2></div><span class="burn-status unavailable" id="funded-buy-route-state">Checking</span></div><p>Buy through the verified $FUNDED / SOL pool. Preview the quote and maximum spend before approving a wallet transaction.</p><label class="burn-amount-field"><span>Amount</span><div><input id="funded-buy-amount" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0.001" disabled /><b>SOL</b></div></label><dl id="funded-buy-estimate" class="funded-buy-estimate" aria-live="polite" aria-atomic="true" hidden><div class="funded-buy-receive"><dt>Estimated received</dt><dd data-buy-receive>—</dd></div><div><dt>Minimum received</dt><dd data-buy-minimum>—</dd></div><div><dt>Maximum pool spend</dt><dd data-buy-spend>—</dd></div><div><dt>App fee</dt><dd data-buy-fee>—</dd></div><div><dt>Network fee &amp; account rent</dt><dd>Additional</dd></div></dl><button type="button" class="burn-primary" id="funded-buy-submit" disabled>Buy $FUNDED</button><p id="funded-buy-countdown"></p><p class="funded-burn-status" id="funded-buy-status" role="status" aria-live="polite">Checking the verified Solana pool…</p></article>
       <article class="panel burn-action-card burn-token-card"><div class="burn-card-head"><div><p class="eyebrow">Permanent supply reduction</p><h2>Burn $FUNDED</h2></div><span class="burn-status unavailable">Unavailable</span></div><p>Choose a project if you want to link this burn to it, then approve in your wallet.</p><label class="burn-project-field"><span>Burn for a project · optional</span><select id="funded-burn-project"><option value="">No project selected</option></select></label><label class="burn-amount-field"><span>Amount</span><div><input id="funded-burn-amount" type="number" min="0" step="any" inputmode="decimal" placeholder="0" disabled /><b>$FUNDED</b></div></label><button type="button" class="burn-primary burn-danger" id="funded-burn-submit" disabled title="Connect a wallet with $FUNDED to review this permanent burn.">Burn $FUNDED</button><small class="burn-permanent-note">Permanent and irreversible after on-chain confirmation.</small><p class="funded-burn-status" id="funded-burn-status" role="status" aria-live="polite">Connect a wallet to load its Solana balance.</p></article>
     </div>
     <aside class="burn-center-aside">
@@ -668,7 +668,6 @@
         <div class="launch-steps" aria-label="Launch progress">
           <button type="button" class="active" data-launch-step-target="1" aria-label="Step 1: Details"><b>1</b><span>Details</span></button>
           <button type="button" data-launch-step-target="2" aria-label="Step 2: Rewards and funding"><b>2</b><span>Rewards &amp; funding</span></button>
-          <button type="button" data-launch-step-target="3" aria-label="Step 3: Review"><b>3</b><span>Review</span></button>
         </div>
         <section class="launch-fixed-distribution" data-fee-distribution="launch"></section><div class="launch-mobile-budget" aria-live="polite" aria-atomic="true"><span id="launch-mobile-budget-label">Estimated total budget</span><strong id="launch-mobile-budget-value">Calculating…</strong><small id="launch-mobile-budget-note">Includes a network fee and account rent planning allowance. No wallet is needed to see the estimate.</small></div>
         <button type="button" class="secondary-button launch-cost-jump launch-cost-jump-first" data-launch-cost-step="1" hidden>View cost breakdown</button>
@@ -736,10 +735,6 @@
                   </div>
                   <p class="field-help" id="fee-distribution-status" role="status" aria-atomic="true"></p>
                 </section>
-              </section>
-              <section class="launch-step-panel" data-launch-step="3" aria-labelledby="review-step-title" hidden>
-                <div class="step-heading"><span>Before you sign</span><h3 id="review-step-title">Review your coin</h3><p>Check the details, fee recipients and full budget below. Connecting a wallet does not launch your coin.</p></div>
-                <p class="launch-review-reminder">Your coin details and fee policy are saved at launch. The developer’s initial token purchase is locked for 12 hours. A final transaction review is required before wallet approval.</p>
               </section>
               <div class="wizard-actions"><button type="button" class="secondary-button" id="launch-back" hidden>Back</button><span id="wizard-hint" role="status" aria-live="polite" aria-atomic="true">Enter the coin name and ticker to continue.</span><button type="button" class="secondary-button" id="launch-review-retry" hidden>Retry checks</button><button type="button" class="primary-button" id="launch-next" aria-describedby="wizard-hint">Continue</button></div>
             </div>

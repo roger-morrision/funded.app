@@ -107,8 +107,6 @@ export function mountCallouts(app, document = globalThis.document) {
   const page = document?.querySelector('#callouts');
   if (!page || page.dataset.mounted) return;
   page.dataset.mounted = 'true';
-  const network = page.querySelector('[data-callouts-network]');
-  if (network && app.EXPLORE_CLUSTER === 'devnet') network.textContent = 'Devnet test activity includes QA wallets and test trades.';
   const columns = Object.fromEntries(['latest', 'top', 'conviction'].map(name => [name, page.querySelector(`[data-callouts-list="${name}"]`)]));
   const leaders = page.querySelector('#callouts-top');
   const status = page.querySelector('#callouts-status');

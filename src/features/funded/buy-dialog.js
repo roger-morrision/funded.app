@@ -35,7 +35,7 @@ export function initializeFundedBuyDialog(appState) {
     dialog.showModal();
     if (!appState.fundedBuyBusy) {
       appState.fundedBuyPreview = null;
-      appState.renderFundedBuyControl('Checking the pool. Preview a new quote before approving.');
+      appState.renderFundedBuyControl('Checking the pool. Your quote will update automatically.');
       void refresh();
     }
   });

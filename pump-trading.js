@@ -115,6 +115,29 @@ export async function fetchVerifiedPoolSnapshot({ connection, mint, poolAddress 
   return formatGraduatedPoolSnapshot({ mint:mintKey, poolKey, state, tokenDecimals, slot });
 }
 
+// Public quote only: no wallet, instructions, signing or submission.
+export async function fetchVerifiedPoolBuyQuote({ connection, mint, poolAddress, amount, slippagePercent = 1, feeOwner, feeBps }) {
+  const mintKey = requireMint(mint), poolKey = requireMint(poolAddress);
+  const feePolicy = buildTradeFeePolicy({ feeOwner, feeBps });
+  if (!feePolicy.enabled) throw new Error('Trading is disabled until app fees are verified.');
+  const slippage = Number(slippagePercent);
+  if (!Number.isFinite(slippage) || slippage < 0.1 || slippage > 5) throw new Error('Invalid pool slippage.');
+  const [pool, mintAccount] = await Promise.all([
+    new OnlinePumpAmmSdk(connection).swapSolanaState(poolKey, SystemProgram.programId),
+    connection.getParsedAccountInfo(mintKey, 'confirmed'),
+  ]);
+  assertVerifiedSolPool(pool, poolKey, mintKey);
+  const tokenDecimals = Number(mintAccount.value?.data?.parsed?.info?.decimals);
+  if (!mintAccount.value || ![TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID].some(id => mintAccount.value.owner.equals(id))
+    || !Number.isInteger(tokenDecimals) || tokenDecimals < 0 || tokenDecimals > 18) throw new Error('The configured token mint is not verified.');
+  const solAmount = tradeUnits(amount, 9);
+  const quoted = buyQuoteInput({ ...poolQuoteArgs(pool), quote:solAmount, slippage });
+  assertPositiveQuoteAmount(quoted.base, 'token');
+  return { route:'verified-pool', side:'buy', mint:mintKey, inputAmount:Number(amount), slippagePercent:slippage,
+    quoteAmount:solAmount, maximumInputAmount:quoted.maxQuote, outputAmount:quoted.base, minimumOutputAmount:quoted.base,
+    tokenDecimals, feeLamports:calculateTradeFee(solAmount, feePolicy), feePolicy, pool:poolKey.toBase58() };
+}
+
 async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, snapshot, poolAddress = null }) {
   const poolKey = poolAddress ? requireMint(poolAddress) : canonicalPumpPoolPda(mintKey, NATIVE_MINT);
   const pool = await new OnlinePumpAmmSdk(connection).swapSolanaState(poolKey, userKey);

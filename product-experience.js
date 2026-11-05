@@ -17,7 +17,7 @@ function disclosure(target, label) {
 }
 
 function home() {
-  setText('.home-hero-kicker', 'Every trade feeds the community');
+  setText('.home-hero-kicker', 'Welcome to funded.vip');
   const actions = $('.hero-actions');
   const explore = actions?.querySelector('[href="#explore"]');
   const launch = actions?.querySelector('[href="#launch"]');
@@ -60,8 +60,12 @@ function explore() {
     links.innerHTML='<a href="#callouts">Coin calls</a><a href="#creators">Creators</a><a href="#leaderboard">Rankings</a>';
     hero.append(links);
   }
-  const rankings=disclosure($('#explore .explore-benefit-leaders'),'Rankings and public payouts');
-  if(rankings){rankings.id='explore-public-records';rankings.classList.add('task-page-disclosure');}
+  const leaders=$('#explore .explore-benefit-leaders');
+  if(leaders&&!$('#explore-public-records')){
+    const rankings=document.createElement('section');rankings.id='explore-public-records';rankings.className='task-page-disclosure';rankings.setAttribute('aria-labelledby','explore-public-records-title');
+    const heading=document.createElement('h2');heading.id='explore-public-records-title';heading.textContent='Rankings and public payouts';
+    leaders.before(rankings);rankings.append(heading,leaders);
+  }
   const bar = $('.explore-control-bar');
   const sort = $('#explore-sort');
   const label = sort?.closest('label');
@@ -118,7 +122,8 @@ function launch() {
   }
   const packagePreview = $('.launch-package-preview');
   if (options && packagePreview) {
-    const preview = packagePreview.closest('#launch-presentation-preview') || disclosure(packagePreview, 'Preview token page & X posts');
+    let preview = packagePreview.closest('#launch-presentation-preview');
+    if (!preview) { preview=document.createElement('section');packagePreview.before(preview);preview.append(packagePreview); }
     preview.id = 'launch-presentation-preview';
     options.append(preview);
   }
@@ -139,10 +144,11 @@ function launch() {
   setText('#custom-policy-title', 'Share your creator-fee allocation');
   setText('#custom-policy .section-label-row > span', 'Must total 80%');
   mountStepOneFeeSplit();
-  // Preserve the original controls and listeners; optional promotion is secondary.
+  // Keep package costs visible and preserve the original controls and listeners.
   if (packages) {
-    const promotion = disclosure(packages, 'Promotion package · optional');
-    if (promotion) { promotion.id = 'launch-promotion-options'; options.append(promotion); }
+    const promotion = document.createElement('section');
+    promotion.id = 'launch-promotion-options';promotion.setAttribute('aria-label','Promotion package');
+    promotion.append(packages);options.append(promotion);
   }
   const story = $('#launch-story-options');
   if (story) options.append(story);

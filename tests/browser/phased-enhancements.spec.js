@@ -27,7 +27,8 @@ for(const width of [390,1280]){
     await expect(page.locator('#callouts-top')).toContainText('18.5x mean peak');
     const sample=await page.locator('#callouts-top li small').boundingBox();
     expect(sample.x).toBeGreaterThanOrEqual(0);expect(sample.x+sample.width).toBeLessThanOrEqual(width);
-    await expect(page.locator('.callouts-method')).toContainText('Devnet test activity');
+    await expect(page.locator('.callouts-method')).toHaveCount(0);
+    await expect(page.locator('.callouts-head')).not.toContainText('Wallet-signed observations');
     await page.evaluate(mint=>{window.fundedVerifiedSearchCandidates=()=>[{mint,name:'Flow QA',symbol:'FLOWQA',stage:'Migrated'}];},mint);
     await page.getByRole('link',{name:'Make a call',exact:true}).click();
     await expect(page.getByRole('dialog',{name:'Choose a coin to call'})).toBeVisible();

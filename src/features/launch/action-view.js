@@ -82,7 +82,7 @@ export function updateLaunchButton(
   const connectReady = !wallet && !APP_MAINNET_READ_ONLY && feeRouterState.verified && identityValid && getLaunchStepState(2).valid && feeDistribution.valid && burnConfigured && promotionReady && buyValid && communityValid;
   button.disabled = !(ready || estimateRefreshReady || connectReady);
   button.dataset.launchAction = connectReady ? 'connect-wallet' : estimateRefreshReady ? 'refresh-estimate' : 'launch';
-  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !feeRouterState.verified ? 'Launch paused — check status' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Review launch · ${launchBurn.label}` : 'Review launch') : 'Add name and ticker';
+  button.textContent = !communityValid ? 'Airdrop must be 30M–500M' : !identityValid ? 'Fix coin details' : !feeDistribution.valid ? 'Fix fee distribution' : !feeRouterState.verified ? 'Launch paused — check status' : overBuyLimit ? 'Reduce developer buy' : !buyValid ? 'Enter a valid developer buy' : !burnConfigured ? (PROTOCOL_FUNDED_MINT ? '$FUNDED price unavailable' : '$FUNDED mint required') : launchBurn.requiresBurn && !burnReady ? 'Verify $FUNDED balance' : !wallet ? 'Connect wallet to launch' : !canSignTransactions(wallet) ? 'Open in wallet to sign' : walletMetricsLoading ? 'Calculating launch cost' : walletBalanceLamports == null ? 'Refresh wallet balance' : insufficientDeveloperBuy ? 'Insufficient SOL for developer buy' : estimatedLaunchFeeLamports == null ? 'Refresh launch estimate' : insufficient ? 'Insufficient SOL for launch' : !document.querySelector('#fee-route-agree')?.checked ? 'Confirm the fee route' : !document.querySelector('#terms-agree')?.checked ? 'Agree to terms to launch' : !policyValid ? 'Complete launch policy' : ready ? (launchBurn.requiresBurn ? `Create coin · ${launchBurn.label}` : 'Create coin') : 'Add name and ticker';
   if (connectReady) button.textContent = 'Connect wallet to create coin';
   if(!promotionReady)button.textContent='Complete promotion content';
   updateLaunchNavigation();
@@ -110,13 +110,13 @@ export function updateLaunchNavigation(
   const hint = document.querySelector('#wizard-hint');
   if (!next || !back || !hint) return;
   const stepState = getLaunchStepState(launchStep);
-  const state = launchStep === 3 && stepState.valid ? getLaunchSubmissionState() : stepState;
+  const state = launchStep === 2 && stepState.valid ? getLaunchSubmissionState() : stepState;
   back.hidden = launchStep === 1;
-  next.hidden = launchStep === 3;
+  next.hidden = launchStep === 2;
   next.disabled = false;
-  next.textContent = launchStep === 2 ? 'Review coin' : 'Continue';
+  next.textContent = 'Continue';
   if (retry) {
-    retry.hidden = launchStep !== 3 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
+    retry.hidden = launchStep !== 2 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
     retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Edit developer buy' : 'Retry checks';
   }

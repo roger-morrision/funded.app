@@ -1,9 +1,10 @@
 import { createBurnRecovery, readPendingBurn, savePendingBurn } from '../../features/funded/burn-recovery.js';
-import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 import { fundedBuyFailureMessage, fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
+import {createFundedBuyQuotes,currentFundedBuyQuote,FUNDED_BUY_QUOTE_TTL} from '../../features/funded/buy-quotes.js';
 // Dependencies and mutable application state are read live through appState.
 export function createFundedTradingController(appState) {
   const burnRecovery = createBurnRecovery(appState);
+  const buyQuotes = createFundedBuyQuotes(appState);
   // app-source: 351
   function renderFundedBuyControl(message = null){
     const input = document.querySelector('#funded-buy-amount');
@@ -15,13 +16,25 @@ export function createFundedTradingController(appState) {
     if (dialogClose) dialogClose.disabled = appState.fundedBuyBusy;
     const ready = appState.fundedBuyRoute.status === 'ready';
     const amount = Number(input.value);
+    const preview = currentFundedBuyQuote(appState,amount);
     input.disabled = !ready || appState.fundedBuyBusy;
-    button.disabled = !ready || appState.fundedBuyBusy || !Number.isFinite(amount) || amount <= 0;
-    button.textContent = appState.fundedBuyBusy ? 'Waiting for Solana…' : appState.fundedBuyPreview ? 'Confirm buy' : appState.wallet ? 'Preview buy' : 'Connect wallet to preview';
+    button.disabled = !ready || appState.fundedBuyBusy || !Number.isFinite(amount) || amount <= 0 || !preview;
+    button.textContent = appState.fundedBuyBusy ? 'Waiting for Solana…' : appState.wallet ? 'Buy $FUNDED' : 'Connect wallet to buy';
     badge.textContent = ready ? 'Solana pool live' : appState.fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
     badge.classList.toggle('unavailable', !ready);
     const clock = document.querySelector('#funded-buy-countdown');
-    if (clock) clock.innerHTML = appState.fundedBuyPreview && !appState.fundedBuyBusy ? appState.quoteCountdownMarkup(appState.fundedBuyPreview.preparedAt + 15_000) : '';
+    if (clock) clock.textContent = preview && !appState.fundedBuyBusy ? 'Auto-refreshing quote · 1% slippage' : '';
+    const estimate = document.querySelector('#funded-buy-estimate');
+    if (estimate) {
+      estimate.hidden = !preview?.quote;
+      if (preview?.quote) {
+        const q=preview.quote, tokens=value=>value.toLocaleString(undefined,{maximumFractionDigits:6});
+        estimate.querySelector('[data-buy-receive]').textContent=`${tokens(q.expected)} $FUNDED`;
+        estimate.querySelector('[data-buy-minimum]').textContent=`${tokens(q.minimum)} $FUNDED`;
+        estimate.querySelector('[data-buy-spend]').textContent=`${q.maximumSpendSol.toFixed(6)} SOL`;
+        estimate.querySelector('[data-buy-fee]').textContent=`${q.appFeeSol.toFixed(6)} SOL`;
+      }
+    }
     if (message != null) status.textContent = message;
     else if (!ready) status.textContent = appState.fundedBuyRoute.reason;
   }
@@ -42,6 +55,7 @@ export function createFundedTradingController(appState) {
       appState.fundedBuyRoute = { status:'ready', snapshot, reason:null };
       appState.renderFundedBuyControl(`Verified Solana pool ${snapshot.pool.slice(0, 6)}…${snapshot.pool.slice(-4)} · ${snapshot.quoteReservesSol.toFixed(3)} SOL liquidity.`);
       appState.renderFundedTokenLanding();
+      if (globalThis.document?.querySelector('#funded-buy-amount')) buyQuotes.invalidate();
     } catch (error) {
       signal?.throwIfAborted();
       if (appState.fundedBuyBusy) return;
@@ -58,31 +72,19 @@ export function createFundedTradingController(appState) {
   async function handleFundedBuy(){
     if (appState.fundedBuyBusy || appState.fundedBuyRoute.status !== 'ready') return;
     const amount = Number(document.querySelector('#funded-buy-amount')?.value);
-    if (!Number.isFinite(amount) || amount <= 0) return appState.renderFundedBuyControl('Enter a positive SOL amount to preview.');
-    if (!appState.wallet) { await appState.connectWallet(); if (!appState.wallet) return; }
+    if (!Number.isFinite(amount) || amount <= 0) return appState.renderFundedBuyControl('Enter a positive SOL amount.');
+    if (!appState.wallet) { await appState.connectWallet(); buyQuotes.invalidate(); return; }
     const session = appState.captureWalletSession();
     if (!session || !appState.canSignTransactions(session.provider)) return appState.renderFundedBuyControl('Open the app in a wallet that can sign Solana transactions.');
-    const samePreview = appState.fundedBuyPreview && appState.fundedBuyPreview.amount === amount && appState.fundedBuyPreview.wallet === session.address;
-    if (appState.fundedBuyPreview && (!samePreview || Date.now() - appState.fundedBuyPreview.preparedAt > 15_000)) {
-      appState.fundedBuyPreview = null;
-      return appState.renderFundedBuyControl('The quote changed or expired. Preview again before signing.');
-    }
+    const preview = currentFundedBuyQuote(appState,amount);
+    if (!preview?.trade?.instructions) { buyQuotes.invalidate(); return; }
     appState.fundedBuyBusy = true;
+    buyQuotes.pause();
     appState.renderFundedBuyControl();
     let submittedSignature = null;
-    const phase = appState.fundedBuyPreview ? 'buy' : 'preview';
     try {
       const rpc = await appState.getTradePreviewConnection();
       appState.assertWalletSessionCurrent(session);
-      if (!appState.fundedBuyPreview) {
-        await refreshServiceFees(appState); appState.assertWalletSessionCurrent(session);
-        const trade = await appState.buildVerifiedPoolTradeTransaction({ connection:rpc, side:'buy', mint:appState.PROTOCOL_FUNDED_MINT, poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:appTradeRecipient(appState), feeBps:appTradeBps(appState) });
-        appState.assertWalletSessionCurrent(session);
-        const quote = appState.describeTradeQuote(trade, 1);
-        appState.fundedBuyPreview = { trade, amount, wallet:session.address, preparedAt:Date.now() };
-        appState.renderFundedBuyControl(`Estimated ${quote.expected.toLocaleString(undefined, { maximumFractionDigits:6 })} $FUNDED. Maximum pool spend ${quote.maximumSpendSol.toFixed(6)} SOL; app fee ${quote.appFeeSol.toFixed(6)} SOL, plus network costs.`);
-        return;
-      }
       const { PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } = await appState.getSolana();
       const mint = new PublicKey(appState.PROTOCOL_FUNDED_MINT);
       const mintInfo = await rpc.getAccountInfo(mint, 'finalized');
@@ -90,9 +92,13 @@ export function createFundedTradingController(appState) {
       const tokenAccount = getAssociatedTokenAddressSync(mint, session.provider.publicKey, false, mintInfo.owner);
       const beforeAccount = await rpc.getAccountInfo(tokenAccount, 'finalized');
       const before = beforeAccount ? BigInt((await rpc.getTokenAccountBalance(tokenAccount, 'finalized')).value.amount) : 0n;
-      const preparedTrade = appState.fundedBuyPreview.trade;
+      appState.assertWalletSessionCurrent(session);
+      if (Date.now()-preview.preparedAt >= FUNDED_BUY_QUOTE_TTL) {
+        appState.fundedBuyBusy=false;buyQuotes.invalidate();return;
+      }
+      const preparedTrade = preview.trade;
       appState.fundedBuyPreview = null;
-      const result = await appState.submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:appTradeRecipient(appState), feeBps:appTradeBps(appState), preparedTrade, tokenName:'Funded', tokenSymbol:'FUNDED', assertWalletCurrent:()=>appState.assertWalletSessionCurrent(session), onStatus:appState.renderFundedBuyControl });
+      const result = await appState.submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:preparedTrade.feePolicy.feeOwner, feeBps:preparedTrade.feePolicy.feeBps, preparedTrade, tokenName:'Funded', tokenSymbol:'FUNDED', assertWalletCurrent:()=>appState.assertWalletSessionCurrent(session), onStatus:appState.renderFundedBuyControl });
       submittedSignature = result.signature;
       await appState.waitForSignatureConfirmation(rpc, { signature:result.signature, commitment:'finalized' });
       appState.assertWalletSessionCurrent(session);
@@ -107,7 +113,7 @@ export function createFundedTradingController(appState) {
       appState.fundedBuyPreview = null;
       appState.renderFundedBuyControl(error.signature || submittedSignature
         ? `Confirmation is uncertain for ${error.signature || submittedSignature}. Check that signature on Solana before trying again.`
-        : fundedBuyFailureMessage(error, phase));
+        : fundedBuyFailureMessage(error, 'buy'));
     } finally {
       appState.fundedBuyBusy = false;
       appState.renderFundedBuyControl();
@@ -184,5 +190,5 @@ export function createFundedTradingController(appState) {
   }
   // app-source-end
 
-  return { renderFundedBuyControl, refreshFundedBuyRoute, handleFundedBuy, renderBuybackDashboard, submitFundedBurn };
+  return { renderFundedBuyControl, refreshFundedBuyRoute, handleFundedBuy, refreshFundedBuyQuote:buyQuotes.refresh, invalidateFundedBuyQuote:buyQuotes.invalidate, renderBuybackDashboard, submitFundedBurn };
 }

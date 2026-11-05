@@ -12,14 +12,14 @@ for(const width of [320,390,1440])test(`paid launch shows all promotion fields a
   const first=page.locator('[data-launch-step="1"]'),second=page.locator('[data-launch-step="2"]'),next=page.locator('#launch-next'),description=page.locator('#token-description'),roadmap=page.locator('#token-roadmap'),banner=page.locator('#token-banner'),panel=page.locator('#launch-promotion-requirements');
   await expect(first.locator('#token-description')).toHaveCount(1);await expect(second.locator('#token-roadmap')).toHaveCount(1);
   await page.locator('#token-name').fill('Promotion Test');await page.locator('#token-symbol').fill('PROMO');await next.click();await expect(second).toBeVisible();
-  await page.locator('#launch-promotion-options > summary').click();
-  const fieldsVisible=async()=>{for(const field of [description,roadmap,banner]){await expect(field).toBeVisible();await expect(field).toHaveAttribute('aria-required','true');expect(await field.evaluate(e=>e.closest('[data-launch-step]')?.dataset.launchStep)).toBe('2');expect(await field.evaluate(e=>e.closest('details')?.id)).toBe('launch-promotion-options');}await expect(panel.locator('[data-promotion-field]')).toHaveCount(0);};
+  await expect(page.locator('#launch-promotion-options > summary')).toHaveCount(0);
+  const fieldsVisible=async()=>{for(const field of [description,roadmap,banner]){await expect(field).toBeVisible();await expect(field).toHaveAttribute('aria-required','true');expect(await field.evaluate(e=>e.closest('[data-launch-step]')?.dataset.launchStep)).toBe('2');expect(await field.evaluate(e=>e.closest('#launch-promotion-options')?.id)).toBe('launch-promotion-options');}await expect(panel.locator('[data-promotion-field]')).toHaveCount(0);};
   await page.locator('button[data-burn-tier="pro"]').click();await expect(panel).toBeVisible();await fieldsVisible();
   await expect(page.locator('#launch-story-options')).toBeHidden();await expect(panel).toHaveAttribute('data-complete','false');
   await expect(page.locator('#launch-button')).toHaveText('Complete promotion content');await expect(page.locator('#launch-button')).toBeDisabled();
   await description.fill('   ');await expect(panel).toContainText('Add a token description');
-  await page.locator('#launch-promotion-options > summary').click();await next.click();
-  await expect(second).toBeVisible();await expect(description).toBeFocused();await expect(page.locator('#launch-promotion-options')).toHaveAttribute('open','');
+  await expect(page.locator('#launch-button')).toBeDisabled();
+  await expect(second).toBeVisible();await expect(page.locator('#launch-promotion-options')).toBeVisible();
   await description.fill('A clear description of the project.');await expect(panel).toContainText('Add a token roadmap');
   await roadmap.fill('Launch the community, ship the product, expand.');await page.locator('#token-tagline').fill('Build together.');await expect(page.locator('#token-tagline')).toBeFocused();await expect(panel).toContainText('Upload a token banner');
   await banner.setInputFiles({name:'invalid.png',mimeType:'image/png',buffer:Buffer.from('not an image')});await expect(page.locator('#token-banner-status')).toContainText(/could not be decoded/i);await expect(panel).toHaveAttribute('data-complete','false');

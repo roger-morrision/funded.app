@@ -153,9 +153,9 @@ test('denied optional handoff storage still opens the saved token through its na
   await page.route('**/api/solana/rpc*',mockRpc);
   await page.route('https://api.devnet.solana.com/**',mockRpc);
   await page.goto('/#community');await ready(page);
-  const trade=page.locator('#watchlist-items').getByRole('link',{name:'Buy',exact:true});await expect(trade).toBeVisible();
-  await expect(trade).toHaveAttribute('href',`/token/${TOKEN_MINT}?reviewBuy=0.1`);
-  await trade.click();await expect(page).toHaveURL(new RegExp(`/token/${TOKEN_MINT}\\?reviewBuy=0\\.1$`));await ready(page);
+  const trade=page.locator('#watchlist-items').getByRole('link',{name:'Buy 0.2 SOL',exact:true});await expect(trade).toBeVisible();
+  await expect(trade).toHaveAttribute('href',`/token/${TOKEN_MINT}?reviewBuy=0.2`);
+  await trade.click();await expect(page).toHaveURL(new RegExp(`/token/${TOKEN_MINT}\\?reviewBuy=0\\.2$`));await ready(page);
   await expect(page.locator('#trade-mint')).toHaveValue(TOKEN_MINT);expect(await page.evaluate(key=>sessionStorage.getItem(key),HANDOFF_KEY)).toBeNull();
   expect(rpcMethods).toContain('getMultipleAccounts');expect(rpcMethods.some(method=>/sendTransaction|requestAirdrop/i.test(method))).toBe(false);
 });

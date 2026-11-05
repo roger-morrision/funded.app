@@ -14,9 +14,9 @@ for(const width of [320,390,768,1440]){
  test(`Explore and Portfolio task hierarchy at ${width}px (mocked)`,async({page},info)=>{
   await setup(page,width);await ready(page,'/#explore');
   await expect(page.getByRole('navigation',{name:'Explore community'})).toBeVisible();
-  const records=page.locator('#explore-public-records');await expect(records).not.toHaveAttribute('open','');
-  await records.locator('summary').focus();await page.keyboard.press('Enter');await expect(records.locator('.explore-benefit-leaders')).toBeVisible();await page.keyboard.press('Space');await expect(records).not.toHaveAttribute('open','');
-  const pref=page.locator('#explore-trade-preferences');await expect(pref).not.toHaveAttribute('open','');await pref.locator('summary').click();await expect(pref).toContainText('changing this amount does not place a trade');await fits(page);
+  const records=page.locator('#explore-public-records');await expect(records.locator('summary')).toHaveCount(0);
+  await expect(records.locator('.explore-benefit-leaders')).toBeVisible();await expect(records.getByRole('heading',{name:'Rankings and public payouts',exact:true})).toBeVisible();
+  const pref=page.locator('#explore-trade-preferences');await expect(pref.locator('input')).toBeVisible();await expect(pref.locator('summary')).toHaveCount(0);await expect(pref).toContainText('changing this amount does not place a trade');await fits(page);
   await page.screenshot({path:info.outputPath(`explore-${width}.png`),fullPage:true});
   await ready(page,'/#my-launches');await expect(page.locator('#my-launches > .purpose-page-nav')).toBeHidden();await expect(page.locator('[data-portfolio-tab="created"]')).toHaveText('My projects');await expect(page.locator('#recovery-inbox')).toBeHidden();await fits(page);
   await page.screenshot({path:info.outputPath(`portfolio-${width}.png`),fullPage:true});
@@ -26,7 +26,7 @@ for(const width of [320,390,768,1440]){
  test(`Coin promotion panel keeps trading controls accessible at ${width}px (mocked)`,async({page},info)=>{
   await setup(page,width);await ready(page,`/token/${mint}`);
   const details=page.locator('.coin-promotion-details');await expect(details.locator('summary')).toHaveCount(0);await expect(page.locator('#coin-watch')).toBeVisible();await expect(page.locator('#coin-boost')).toBeVisible();
-  await expect(details).toContainText('Paid promotion does not verify');await fits(page);
+  await expect(details.locator('h2,p')).toHaveCount(0);await fits(page);
   if(width>1100){const panel=await details.boundingBox(),identity=await page.locator('.coin-identity-main').boundingBox();expect(panel.x).toBeGreaterThanOrEqual(identity.x+identity.width);}
   await page.evaluate(()=>document.querySelector('#coin-page-title').textContent='A community coin with a longer name');await fits(page);
   const name=await page.locator('#coin-page-title').boundingBox();expect(name.width).toBeGreaterThan(width<700?160:300);
