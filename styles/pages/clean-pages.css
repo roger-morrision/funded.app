@@ -26,6 +26,8 @@ html body.page-route-overview.product-experience-style #main-content .hero-secti
 html body.page-route-overview.product-experience-style #main-content .hero-copy-column { display: block; min-width: 0; max-width: 840px; }
 html body.page-route-overview.product-experience-style #main-content .hero-section h1 { max-width: 22ch; font-size: clamp(30px,3.5vw,48px) !important; line-height: 1.12 !important; letter-spacing: -.035em; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy { max-width: 56ch; margin: 20px 0; font-size: 16px; line-height: 1.6; }
+html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy > p { margin:0; }
+html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy > p + p { margin-top:10px; }
 html body.page-route-overview.product-experience-style #main-content .hero-actions { display: flex; justify-content: flex-start; flex-wrap: wrap; margin: 24px 0 12px; }
 @media(min-width:901px) {
  html body.page-route-overview.product-experience-style #main-content .hero-copy-column { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:clamp(32px,5vw,80px);max-width:none; }

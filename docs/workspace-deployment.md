@@ -1,5 +1,7 @@
 # Docker and GitHub Codespaces
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 The workspace deployment runs the production Node 24 application with PostgreSQL 17. It uses the Devnet-only profile, persistent Docker volumes and generated local credentials. Server signing keys, test-wallet signing, mainnet and financial background workers remain disabled. Web health does not certify a complete financial workflow.
 
 ## Local browser checks without Docker

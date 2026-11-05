@@ -1,5 +1,7 @@
 # Devnet wallet roles
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 The Devnet QA set has 15 distinct keypairs. Ten app and recipient roles are in the ignored
 `.env.devnet-app-roles.local`; their public addresses are in the ignored
 `.secrets/devnet-app-roles-20260930/public.json`. The five existing participant wallets

@@ -1,5 +1,7 @@
 # Security overview
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Core security principles
 - Treat wallet state as sensitive and always validate it before any transaction.
 - Fail closed when network, RPC, or feature configuration is invalid.

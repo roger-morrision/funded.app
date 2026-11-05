@@ -1,5 +1,7 @@
 # Launch protections
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 New funded.vip launches record a versioned protection policy using the verified
 Pump creation transaction. Creator SOL earnings have no 12-hour hold, including
 launches saved under the earlier version-1 fee-hold policy. Normal settlement,

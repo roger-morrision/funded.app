@@ -1,5 +1,7 @@
 # Product measurement
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Visitor choice
 
 Open **Following → Following preferences → Privacy controls**. “Share anonymous app usage” is a separate, default-off setting. Existing device-only consent never enables uploads. There is no replay of earlier device counters.

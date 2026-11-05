@@ -1,5 +1,7 @@
 # Release, incident and recovery runbook
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Release identity and deployment
 
 Build from a clean canonical GitHub checkout with Node 24 and `npm ci`. Run the checks in README and generate `dist/release.json`. CI records the actual checked-out revision (including pull-request merge revisions); local reconstructed snapshots and `--allow-dirty` reports are not release candidates. The manifest contains source hashes but does not attest an on-chain program binary.

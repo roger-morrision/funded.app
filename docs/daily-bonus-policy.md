@@ -1,8 +1,10 @@
 # Daily bonus and creator-fee allocation policy
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Recipient delivery and timing
 
-Daily bonuses are **automatic SOL transfers**: winners do not claim or sign a recipient transaction. The worker checks every five minutes for completed UTC days and pending payouts. A day closes at **00:00 UTC** (07:00 Bangkok); the countdown starts verification, not an immediate payment guarantee. Exact source funding is still required after creator settlement/funding approval. Incomplete history, missing funding, reconciliation or an unavailable worker can delay payment.
+Daily bonuses are **automatic SOL transfers**: winners do not claim or sign a recipient transaction. The worker checks every five minutes for completed UTC days and pending payouts. A day closes at **00:00 UTC** (07:00 Bangkok); the countdown starts verification, not an immediate payment guarantee. Exact source funding is still required after verified settlement, through the active automatic route or any approval required by a manual route. Incomplete history, missing funding, reconciliation or an unavailable worker can delay payment.
 
 Ordinary referral-network transfers are separate: active automatic routes deliver after verified settlement and funding; manual routes may require creator approval. Recipients do not claim or sign a referral payment. X SOL and community token airdrops require recipient claim actions.
 
@@ -22,7 +24,7 @@ A combined payment can cover multiple categories. Its verified net receipt is at
 
 ## Allocation, eligibility and execution
 
-The published new-launch configuration allocates collected creator fees as 80% creator-directed, **8% Operations & marketing for the app**, 1% referral network, 4% Daily bonus, 5% $FUNDED buyback and 2% AI marketing and own-coin buybacks. The app does not retain the referral, bonus or burn budgets. Internal allocation weights normalize the shared pool; the historical `config/protocol-fee-split.js` fallback has older referral rates and must not be presented as the current published policy. Existing mint policies and their historical obligations retain their recorded rates. A saved admin policy takes precedence over configuration; publishing the 40/20 operations/community values through the authenticated admin editor is necessary if an earlier override exists.
+The published new-launch configuration allocates collected creator fees as 80% creator-directed, **8% Operations & marketing for the app**, 1% referral network, 4% Daily bonus, 5% $FUNDED buyback and 2% AI marketing and own-coin buybacks. The app does not retain the referral, bonus or burn budgets. Internal allocation weights normalize the shared pool; the historical `config/protocol-fee-split.js` fallback has older referral rates and must not be presented as the current published policy. Existing mint policies and their historical obligations retain their recorded rates. Verified authority-signed publication takes precedence over file defaults for new launches. The legacy off-chain editor is disabled after agency activation; see [configurable financial rules](configurable-financial-rules.md).
 
 The [published agency allocation](marketing-agency-policy.md#approved-rules) includes 1% referral funding and 2% agency funding for new launches. Publishing an allocation does not establish executor readiness or a completed payment. **Daily bonus remains 4% of gross collected creator fees under both policies.** Each of the three categories receives one third of that pool; each category's 1st/2nd/3rd receives 50%/30%/20% of its category budget. The actual source budget follows the coin's saved policy and exact lamport rounding.
 

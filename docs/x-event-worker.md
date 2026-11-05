@@ -1,5 +1,7 @@
 # X event worker setup
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 The funded.vip payout profile targets **@fundedvip** (`X_POST_EXPECTED_HANDLE=fundedvip`) with a separately verified, pinned account ID. The current policy replaces individual payout congratulations with reviewed daily summaries. The generic worker remains draft-only unless its explicit execution gates are enabled. This worker is separate from the hourly engineering automation.
 
 ## Reviewed daily payout summaries (2026-10-20)

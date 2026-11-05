@@ -1,5 +1,7 @@
 # Runbook
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Local development
 1. Install dependencies with `npm ci`.
 2. Copy the env template and set required values.

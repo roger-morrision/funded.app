@@ -1,5 +1,7 @@
 # Production readiness checklist
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Security
 - [ ] Wallet/network checks are enforced before all tx actions.
 - [ ] All environment variables are validated at startup.

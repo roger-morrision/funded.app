@@ -1,4 +1,35 @@
 /* Match the compact Rewards workspace across the other public pages. */
+html body #main-content .holder-transfers { min-width:0;padding-top:16px;border-top:1px solid var(--cp-line); }
+html body #main-content .holder-transfers > header { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;margin-bottom:12px; }
+html body #main-content .holder-transfers h3 { margin:0;font-size:15px;line-height:1.4; }
+html body #main-content .holder-transfers > header p { margin:0;font-size:11px;color:var(--cp-muted); }
+html body #main-content .holder-transfer-table { width:100%;border-collapse:collapse;text-align:left;font-size:12px; }
+html body #main-content .holder-transfer-table :is(th,td) { padding:12px 10px;border-bottom:1px solid var(--cp-line);vertical-align:top; }
+html body #main-content .holder-transfer-table th { color:var(--cp-muted);font-weight:500;font-size:11px;background:var(--cp-surface-2); }
+html body #main-content .holder-transfer-table td:first-child { color:var(--cp-muted); }
+html body #main-content .holder-transfer-table .holder-transfer-amount { text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap; }
+html body #main-content .holder-transfer-table td.holder-transfer-amount { font-weight:700;color:var(--cp-text); }
+html body #main-content .holder-transfer-table a { color:var(--cp-accent);text-decoration:none; }
+html body #main-content .holder-transfer-table a:hover { text-decoration:underline; }
+html body #main-content .holder-transfer-wallet { font-family:var(--fv-font-data);white-space:nowrap; }
+html body #main-content .holder-transfer-links { display:grid;gap:8px; }
+html body #main-content .holder-transfer-sources { margin:0;padding:0;border:0;background:none; }
+html body #main-content .holder-transfer-sources > summary { min-height:24px;padding:0;color:var(--cp-accent);cursor:pointer;font-size:12px; }
+html body #main-content .holder-transfer-sources > ul { display:grid;gap:8px;margin:8px 0 0;padding:0;list-style:none; }
+html body #main-content .holder-transfers-empty { margin:0;padding:16px;border:1px dashed var(--cp-line);border-radius:8px;color:var(--cp-muted);font-size:13px; }
+@media(max-width:760px) {
+  html body #main-content .holder-transfer-table { display:block; }
+  html body #main-content .holder-transfer-table thead { position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%); }
+  html body #main-content .holder-transfer-table tbody { display:grid;gap:12px; }
+  html body #main-content .holder-transfer-table tbody tr { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:12px;border:1px solid var(--cp-line);border-radius:8px; }
+  html body #main-content .holder-transfer-table td { display:block;min-width:0;padding:0;border:0;overflow-wrap:anywhere; }
+  html body #main-content .holder-transfer-table td:first-child { grid-column:1 / -1; }
+  html body #main-content .holder-transfer-table td::before { content:attr(data-label);display:block;margin-bottom:5px;font-size:10px;font-weight:500;color:var(--cp-muted); }
+  html body #main-content .holder-transfer-table :is(a,summary) { display:inline-flex;align-items:center;min-height:36px; }
+  html body #main-content .holder-transfer-table td.holder-transfer-amount { padding-bottom:10px;align-self:center;font-size:13px; }
+  html body #main-content .holder-transfer-links { gap:0; }
+}
+
 html body #main-content :is(#my-launches,#referrals,#leaderboard,#callouts,#creators,#bonuses) h1 {
   font-size:30px;line-height:1.2;letter-spacing:-.035em;
 }

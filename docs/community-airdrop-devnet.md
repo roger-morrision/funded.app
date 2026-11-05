@@ -1,12 +1,14 @@
 # V3 community token airdrops
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Current claim model
 
 This airdrop pays **tokens of the launched coin** from its reserve (at least 3% of supply). It is separate from Daily bonus SOL, holder SOL rewards and missing-referral reserves.
 
 Standard eligibility uses the launch's verified $FUNDED-holder snapshot associated with migration. Funding alone does not activate claims: exact eligibility evidence, reviewed manifest/program approval, token custody and the wallet's claim proof must also verify. Later purchases do not create retrospective eligibility.
 
-Eligible wallets connect in Airdrops and claim once within the displayed window, normally 90 days. Check the asset mint, deadline and finalized token-account delta. A labeled Devnet QA cutoff or QA claim does not establish a real migration snapshot.
+Eligible wallets connect in Airdrops and claim once within the displayed window, normally 90 days. New authority-signed rules can change future windows; existing drops retain their saved deadline. Check the asset mint, deadline and finalized token-account delta. A labeled Devnet QA cutoff or QA claim does not establish a real migration snapshot.
 
 The page separates reserved allocation, funding, eligible wallets and finalized claimed tokens. Missing evidence is not a zero balance or a claimable amount. See [reward modes](automatic-rewards.md) and [Daily bonus](daily-bonus-policy.md). Current source: [service](../server/community-claim-service.mjs), [instructions](../server/community-claim-chain.mjs), [index](../server/community-claim-index.mjs).
 

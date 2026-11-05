@@ -1,8 +1,10 @@
 # V3 fee-funded $FUNDED buyback and burn
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Current execution rule
 
-The coin's saved buyback share of collected creator fees accrues in dedicated V3 program vaults. The current new-launch default is 5% of gross creator fees. Existing coins retain their recorded rates. It is not 5% of trade volume and does not buy back each launched coin.
+The coin's saved buyback share of collected creator fees accrues in dedicated V3 program vaults. The current new-launch default is 5% of gross creator fees. Existing coins retain their recorded rates. It is not 5% of trade volume. This budget buys $FUNDED; the separate [agency budget](marketing-agency-policy.md) buys and burns the launched coin at its saved milestones.
 
 The normal aggregate trigger is **5 SOL** of verified eligible allocations. A bounded Devnet QA profile can lower it; the API/dashboard displays the active value. Rent, holder/X obligations, unrelated funds and spent allocations are not eligible balances.
 
@@ -16,7 +18,7 @@ Sources: [worker policy](../server/v3-buyback-worker-policy.mjs), [quote](../ser
 
 ### Trade wake-ups, aggregation and execution limits
 
-Verified in-app trades wake the worker in addition to its one-minute recovery scan. A wake-up does not bypass collection, creator settlement, market or custody checks. Buyback remains a separate protected purchase-and-burn transaction.
+Verified in-app trades wake the worker in addition to its one-minute recovery scan. A wake-up does not bypass collection, saved-policy settlement, market or custody checks. Buyback remains a separate protected purchase-and-burn transaction.
 
 `FUNDED_V3_BUYBACK_AGGREGATION_ENABLED=true` permits a same-mint aggregate of two to 32 remaining collection budgets. Every source settlement/allocation is independently reconstructed; the receipt ID binds the source list and round. One atomic vault debit is attributed in deterministic source order against frozen budgets. Individual and aggregate submissions exclude each other while a signed result is pending. Partial purchases preserve the exact unspent source balances. Different mints and beneficiary categories are never combined. This application path does not require a new program instruction; enabling it still requires exact-source Devnet receipt verification.
 

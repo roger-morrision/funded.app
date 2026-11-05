@@ -1,14 +1,57 @@
 # Architecture and safety baseline
 
-## Current state
-This repository is already a substantial application with a Vite frontend, a Node API, PostgreSQL, Docker deployment, and multiple blockchain-oriented workflows. The major opportunity is not new features; it is reducing complexity while increasing security, observability, and production rigor.
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
+## Current implementation
+The app uses a Vite browser client, a Node API, PostgreSQL and separately gated
+financial workers. Browser startup and controllers live in `src/app`; feature
+views live in `src/features`; API dispatch, proof and worker modules live in
+`server`. Root modules still provide shared policies, wallet and transaction
+builders. `config` contains validated defaults; a verified published policy or
+saved mint policy can take precedence.
+
+Product guidance lives in `src/features/help`: `product-guidance.js` supplies
+Questions/FAQ, reward actions and Help; `page-guidance.js` supplies shared page
+explanations and context selection; `docs-topics.js` builds the full Docs catalog.
+Fee explanations read the shared live policy bindings rather than duplicating
+current rates across pages. `docs-reference.js` handles guide search and deep links.
+
+Collection, settlement, funding, eligibility and payment are separate operations.
+Automatic and manual routes share saved-policy and finalized-proof requirements.
+Read-only views never establish execution by themselves. See the product guide
+for page ownership and the automation guide for financial gates.
 
 See [Code structure and file-size limits](code-structure.md) for implemented
 feature boundaries, ordered stylesheet modules, verification, and the remaining
 legacy files. The size check runs in `npm run check`.
 
-## Target structure
-A safer modern layout should look like this:
+## Deployment services
+
+Docker Compose groups distinct services under `fundedapp`; the group itself is
+not another container. The enabled overlays and profiles determine the inventory.
+
+| Service | Responsibility |
+| --- | --- |
+| `app` | Browser assets, API and authenticated user workflows |
+| `db` | PostgreSQL records and durable financial/application state |
+| `rpc-gateway` | Shared Solana request pacing, deduplication and provider access |
+| `rpc-cache` | Private Redis cache for reusable RPC reads |
+| `tunnel` | Cloudflare connection for public access to the local deployment |
+| `fee-collector` | Eligible fee collection and gated automatic processing |
+| `buyback-worker` | Protected $FUNDED purchases and burns |
+| `agency-buyback-worker` | Protected own-coin purchases and burns for saved agents |
+
+Separate workers allow independent recovery and keep long-running financial
+processing apart from web requests. Cache and tunnel are deployment choices;
+stopping a configured dependency can interrupt access or processing. Running
+container count is not a memory measurement. Inspect actual usage separately
+from Docker's available memory limit. Health checks establish service readiness,
+not a finalized payment or burn. See `compose.preview.yml`,
+`compose.rpc-gateway.yml`, `compose.fee-collector.yml` and
+`compose.agency-buyback.yml` for wiring and activation gates.
+
+## Possible future structure
+The following is a refactoring proposal, not the current directory inventory:
 
 - src/
   - app/

@@ -1,5 +1,7 @@
 # Free Devnet hosting: Render + Neon
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 This repository now includes `render.yaml` for a free Render Node 24 web service and an external Neon PostgreSQL database. The profile serves the app, API and new token metadata from one HTTPS origin. It disables mainnet, server-held test wallets, payouts and financial executors. It does not launch background workers. It is a public testing profile, not complete financial-service acceptance.
 
 ## Grant GitHub access to this workspace

@@ -8,6 +8,8 @@
     scrollbar-width: thin;
   }
 }
+.help-topics-choices { max-height: min(240px, 30dvh); overflow-y: auto; scrollbar-width: thin; }
+.help-menu-trigger { width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .docs-guide-body .daily-bonus-table td { min-width: 140px; vertical-align: top; }
 .docs-guide-body .daily-bonus-table td:nth-child(3),
 .docs-guide-body .daily-bonus-table td:nth-child(4) { min-width: 210px; }

@@ -1,5 +1,7 @@
 # Financial enforcement and configurable launch rules
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 The program keeps custody, the 80% creator-directed / 20% shared-allocation boundary,
 per-category spending limits, recipient authorization, duplicate-payment
 protection, reward proofs, and atomic purchase/burn verification on-chain.

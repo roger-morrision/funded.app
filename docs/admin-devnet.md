@@ -1,5 +1,7 @@
 # Devnet admin workspace
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 Open `/admin` on the deployed funded.vip Devnet preview. The page is inert until a
 configured administrator signs the one-use sign-in message. The admin key is a
 separate Devnet QA wallet; the browser never receives an API token or a server
@@ -24,7 +26,7 @@ proofs therefore read the saved mint split, not the current admin default.
 The wallet table shows configured ordinary wallet roles with finalized Devnet
 SOL balances. Revenue cards show recorded verified V3 gross collections and
 operations allocations, not cash profit. Vault pages enumerate every recorded
-V3 mint's seven category vaults and holder/X reward vault in pages of ten
+V3 mint's saved category vaults (including agency where present) and holder/X reward vault in pages of ten
 mints. The balances include rent and obligations; a vault has no ordinary
 private key and can only pay through its program's allowed instructions.
 

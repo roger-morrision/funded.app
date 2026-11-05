@@ -1,13 +1,17 @@
 # App service fees
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 | Service | Default | Payment |
 | --- | --- | --- |
-| Trading through funded.vip | 0.5% on buys and sells | SOL transfer included in the trade |
+| Trading through funded.vip | 1% on buys and sells | SOL transfer included in the trade |
 | Every coin launch, including Standard | 0.02 SOL | Atomic SOL transfer to the app service treasury |
 | Optional Pro promotion | $150 | $FUNDED BurnChecked in the creation transaction, plus launch SOL fee |
 | Optional Premier promotion | $300 | $FUNDED BurnChecked in the creation transaction, plus launch SOL fee |
 | External coin listing | $300 | Quoted $FUNDED BurnChecked bound to the listing mint |
 | Listing for a verified funded.vip launch | Included | No additional listing burn |
+
+Defaults above come from `service-fees.js`. The verified `/api/service-fees` policy and the reviewed quote take precedence; admin changes apply to future quotes. Boost, when offered, uses its displayed configured token-burn amount rather than the Pro/Premier USD price fields.
 
 ## Quote and payment rules
 
@@ -25,4 +29,4 @@ External listings require verified mint metadata, a saved USD/token quote, and a
 
 App trading and launch fees are service charges. $FUNDED promotion/listing payments are token burns. These are separate from Pump/pool trading fees and from the 80/20 split of creator fees actually collected by each mint router. Network costs, account rent, reserve purchases, price impact, and slippage are shown separately where relevant. Admin prices do not change Pump contracts or the fee policy of an existing mint.
 
-The proposed AI agency 2% allocation remains an unactivated candidate. Raising service prices does not activate that contract budget or its executors.
+The default AI agency allocation is 2% of collected creator fees under the agency policy. Policy publication, source funding and executor readiness are separate. Raising service prices neither changes a saved mint policy nor activates an executor.

@@ -60,6 +60,19 @@ export function holderRewardsMarkup(summary, { solUsd = null, now = Date.now() }
 <p class="holder-rewards-rule">${escape(rule + threshold + " " + gapText)}</p>`;
 }
 
+export function holderTransfersMarkup(history, mint, checkedAt) {
+  const paid = (Array.isArray(history) ? history : []).filter(row => row.mint === mint && row.kind === 'holder-paid' && row.feeSourceVerified === true
+    && signature(row.signature) && address(row.wallet) && /^[1-9]\d*$/.test(row.amountLamports));
+  const tx = (sig, label) => `<a href="https://explorer.solana.com/tx/${sig}?cluster=devnet" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
+  const rows = paid.slice(0, 10).map(row => {
+    const sources = [...new Set(Array.isArray(row.sourceSignatures) ? row.sourceSignatures : [])].filter(signature);
+    const collections = sources.length ? `<details class="holder-transfer-sources"><summary>${sources.length} collection${sources.length === 1 ? '' : 's'}</summary><ul>${sources.map((sig,index) => `<li>${tx(sig,`Collection ${index + 1}`)}</li>`).join('')}</ul></details>` : '<span class="muted-note">Unavailable</span>';
+    const wallet = `${row.wallet.slice(0,6)}…${row.wallet.slice(-6)}`;
+    return `<tr><td data-label="Round cutoff (UTC)">${escape(utc(row.cutoffAt))}</td><td data-label="Recipient"><a class="holder-transfer-wallet" href="/wallet/${encodeURIComponent(row.wallet)}" title="${escape(row.wallet)}" aria-label="View wallet ${escape(row.wallet)}">${escape(wallet)}</a></td><td data-label="Amount" class="holder-transfer-amount">${escape(formatReviewSol(row.amountLamports))}</td><td data-label="Fee collections">${collections}</td><td data-label="Receipt"><div class="holder-transfer-links">${tx(row.signature,'Transaction')}<a href="${escape(receiptUrl(row.signature,mint,row.wallet))}">Payment details →</a></div></td></tr>`;
+  });
+  return `<section class="holder-transfers" aria-labelledby="holder-transfers-title"><header><h3 id="holder-transfers-title">Recent recipient transfers</h3><p>Records checked ${escape(utc(checkedAt))}</p></header>${rows.length ? `<table class="holder-transfer-table"><caption class="sr-only">Latest confirmed recipient transfers for this coin</caption><thead><tr><th scope="col">Round cutoff (UTC)</th><th scope="col">Recipient</th><th scope="col" class="holder-transfer-amount">Amount</th><th scope="col">Fee collections</th><th scope="col">Receipt</th></tr></thead><tbody>${rows.join('')}</tbody></table>` : '<p class="holder-transfers-empty">No recipient transfers in the available history.</p>'}</section>`;
+}
+
 export function mountHolderRewardsCard(app, document = globalThis.document, window = globalThis.window) {
   let serial = 0;
   const panel = () => {
@@ -86,15 +99,7 @@ export function mountHolderRewardsCard(app, document = globalThis.document, wind
     const summary = holderRewardsSummary(token);
     node.innerHTML = holderRewardsMarkup(summary, { solUsd: app.coinSolUsdPrice });
     if (summary && result.data.cluster === 'devnet') {
-      const history = Array.isArray(result.data.events) ? result.data.events : [];
-      const paid = history.filter(row => row.mint === mint && row.kind === 'holder-paid' && row.feeSourceVerified === true
-        && signature(row.signature) && address(row.wallet) && /^[1-9]\d*$/.test(row.amountLamports));
-      const rows = paid.slice(0, 10).map(row => {
-        const tx = (sig, label) => `<a href="https://explorer.solana.com/tx/${sig}?cluster=devnet" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
-        const sources = [...new Set(row.sourceSignatures || [])].filter(signature).map(sig => tx(sig, 'Fee collection'));
-        return `<li>Round cutoff: ${escape(utc(row.cutoffAt))} · ${escape(formatReviewSol(row.amountLamports))} to <code>${escape(row.wallet)}</code> · ${sources.join(' · ')} · ${tx(row.signature,'Recipient transfer')} · <a href="${escape(receiptUrl(row.signature,mint,row.wallet))}">Inspect payment record</a></li>`;
-      });
-      node.insertAdjacentHTML('beforeend', `<details><summary>Recent recipient transfers for this mint</summary><p>Records checked ${escape(utc(result.data.generatedAt))}</p>${rows.length ? '<ul>' + rows.join('') + '</ul>' : 'No recipient transfers in the available history.'}</details>`);
+      node.insertAdjacentHTML('beforeend', holderTransfersMarkup(result.data.events, mint, result.data.generatedAt));
       if (result.data.evidence?.status === 'partial') {
         node.querySelector('.holder-rewards-main').textContent = 'Holder payment history unavailable.';
         node.querySelector('.holder-rewards-grid').lastElementChild.textContent = 'Last payout unavailable.';

@@ -3,6 +3,7 @@ import { icon } from '../../../ui-icons.js';
 import { EXPLORE_CLUSTER, APP_MAINNET_READ_ONLY } from '../../../app-config.js';
 import { isDevnetImageUri } from '../../../devnet-metadata.js';
 import { productHelpTopics } from '../help/product-guidance.js';
+import { helpTopicForLocation } from '../help/page-guidance.js';
 import { candidateHref,creatorSearchCandidates } from '../experience/search-model.js';
 import { apiRequest } from '../../../client.js';
 
@@ -192,10 +193,32 @@ export function navigation() {
   const setHelpOpen = open => {
     helpPanel.hidden = !open;
     helpTrigger.setAttribute('aria-expanded', String(open));
-    if (open) helpPanel.querySelector('header button').focus();
-    else helpTrigger.focus();
+    $('#help-menu-trigger')?.setAttribute('aria-expanded', String(open));
+    if (open) {
+      helpPanel.querySelector(`[data-help-topic="${helpTopicForLocation(location)}"]`)?.click();
+      helpPanel.scrollTop = 0;
+      helpPanel.querySelector('header button').focus();
+    }
+    else {
+      const menu = $('#help-menu-trigger');
+      (helpTrigger.getClientRects().length ? helpTrigger
+        : menu?.getClientRects().length && !menu.closest('[inert]') ? menu : $('#open-menu'))?.focus();
+    }
   };
   helpTrigger.addEventListener('click', () => setHelpOpen(helpPanel.hidden));
+  helpPanel.querySelector('.help-topics-intro').textContent = 'Help center · Guidance for this page and every app workflow. Issue reports are available in Profile; live chat is unavailable.';
+  helpPanel.querySelector('.help-topics-choices').before(helpPanel.querySelector('.help-topics-answer'));
+  const menuHelp = node('button', 'nav-item help-menu-trigger', 'Help for this page');
+  menuHelp.id = 'help-menu-trigger';
+  menuHelp.type = 'button';
+  menuHelp.setAttribute('aria-controls', 'help-topics-panel');
+  menuHelp.setAttribute('aria-haspopup', 'dialog');
+  menuHelp.setAttribute('aria-expanded', 'false');
+  menuHelp.addEventListener('click', () => {
+    if (document.body.classList.contains('menu-open')) $('#close-menu')?.click();
+    setHelpOpen(true);
+  });
+  $('#sidebar a[href="#docs"]')?.after(menuHelp);
   helpPanel.querySelector('header button').addEventListener('click', () => setHelpOpen(false));
   helpPanel.addEventListener('click', event => {
     const choice = event.target.closest('[data-help-topic]');

@@ -1,5 +1,7 @@
 # Persistent left navigation
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 All app routes use the shared `left-navigation.css` layout, including Home, token and wallet detail pages, and the separate Admin page. The old route-specific horizontal desktop menus and sidebar width exceptions have been removed.
 
 - Desktop and tablet: a fixed 220 px sidebar, with the existing 76 px collapse option and saved preference.

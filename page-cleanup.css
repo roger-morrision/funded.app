@@ -99,8 +99,7 @@ body.page-route-coin .page-cleanup-about-toggle { display: none; }
 /* Reserve floating space for useful controls only. */
 body.page-route-paid .funded-token-tape { display: none !important; }
 body.page-route .preview-status-drawer { position: static !important; width: min(100% - 32px, 720px); margin: 26px auto 18px; }
-body.page-route-docs .help-topics-trigger,
-body.page-route-docs .help-topics-panel { display: none !important; }
+body.page-route-docs .help-topics-trigger { display: none !important; }
 body.page-route .help-topics-trigger { right: 12px; bottom: 12px; min-width: 42px; height: 36px; padding: 0 9px; font-size: 10px; }
 body.page-route-referrals #referral-command-center .section-heading .section-state { display: none; }
 
@@ -121,8 +120,7 @@ body.page-route-referrals #referral-command-center .section-heading .section-sta
   body.page-route-coin .coin-page .coin-artwork { display: none !important; }
   body.page-route-coin .coin-page .coin-hero-aside { display: flex; }
   body.page-route-coin .coin-page .coin-hero-about { max-height: none; }
-  body.page-route .help-topics-trigger,
-  body.page-route .help-topics-panel { display: none !important; }
+  body.page-route .help-topics-trigger { display: none !important; }
 }
 
 /* A verified launch burn selects the token detail presentation. */

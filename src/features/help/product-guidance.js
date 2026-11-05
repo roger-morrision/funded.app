@@ -1,6 +1,7 @@
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
 import {referralRatePresentation} from '../fees/referral-rate-copy.js';
 import { serviceFeeGuide } from '../fees/service-fees-client.js';
+import { pageHelpTopics, pageFaqs } from './page-guidance.js';
 
 export const rewardActions = () => [
   ['Creator wallet', 'SOL', 'Automatic payout on an active automatic route; manual routes require the creator’s signature.', 'The coin’s saved creator-wallet share and finalized collected fees.', '#payments'],
@@ -22,6 +23,10 @@ export function referralGuide() {
 export function productHelpTopics() {
   const copy = currentFeePolicyCopy();
   return {
+    ...pageHelpTopics(),
+    wallet:{ title:'Wallet connection', answer:'Connect the intended Solana wallet and check the network. A one-use sign-in message authenticates private dashboard access; it is not a payment. Review each financial transaction separately and never provide a seed phrase or private key.', href:'#docs/wallet', link:'Read wallet guidance →' },
+    funded:{ title:'The $FUNDED token', answer:'$FUNDED is used for optional promotion and listing burns, community-airdrop snapshot eligibility, and the platform buyback-and-burn program. Holding it does not make every SOL reward claimable. Check the mint, network and program-specific evidence.', href:'#docs/funded', link:'Read about $FUNDED →' },
+    leaderboard:{ title:'Leaderboards', answer:'Leaderboards rank the confirmed activity available in the selected view. Callout market-cap samples, Daily bonus rankings, all-time recipients and burn contribution are different measures. A rank or score is not a payout or realized investment return.', href:'#docs/leaderboard', link:'Read ranking guidance →' },
     pricing:{ title:'App fees and launch costs', answer:serviceFeeGuide(), href:'#docs/fees', link:'Review current fees →' },
     coin:{ title:'Coin details', answer:'Check the mint, saved V3 fee policy, creator, trading stage and transaction links. Missing or partial observations are not zero activity.', href:'#docs/coin-pages', link:'Read about coin pages →' },
     trade:{ title:'Trading issues', answer:'Review quote, slippage and maximum spend before signing. If a submission is uncertain, inspect its transaction and balances before retrying. A wallet signature alone is not a successful trade.', href:'#docs/trading', link:'Read trading guidance →' },
@@ -43,6 +48,7 @@ export function productHelpTopics() {
 export function productFaqs() {
   const copy=currentFeePolicyCopy();
   return [
+    ...pageFaqs(),
     ['service-prices','What does it cost to trade, launch or list?', `<p>${serviceFeeGuide()}</p><a href="#docs/fees">Review service charges and creator fees →</a>`],
     ['assets','Which rewards are SOL, and which are coin tokens?', '<p>Creator-wallet rewards, holder rewards, X rewards, referral payouts and Daily bonuses use <strong>SOL</strong>. Community airdrops use <strong>tokens of the launched coin</strong>. Check the asset and program on each record.</p>'],
     ['fees','How are collected creator fees allocated?', `<p id="fee-policy-faq">${copy.allocation} ${copy.scope}</p><a href="#capital-flow">See the fee split →</a>`],
@@ -60,7 +66,7 @@ export function productFaqs() {
     ['verified','Are launches and market figures verified?', '<p>Listings use verified records. Market figures use available observations and can be partial or unavailable. Promotions require their matching package-burn or SOL-payment receipt and do not promise liquidity, activity or returns.</p><a href="#docs/promotions">Compare promotion types →</a>'],
     ['wallet','Does funded.vip control my wallet?', '<p>Your connected wallet reviews and signs its own actions. Automatic reward payouts are sent by the program’s payout worker and do not ask recipients to sign. Never provide a seed phrase or private key.</p>'],
     ['migration','What changes when a coin migrates?', '<p>Trading moves from the Pump curve to a pool, and the community token airdrop needs a verified migration eligibility snapshot. Do not infer post-migration fee-collection coverage or claim readiness from a migrated label alone.</p><a href="#docs/airdrop-policy">Review migration evidence →</a>'],
-    ['support','Something looks wrong. Where can I ask?', '<p>Open Help for the relevant guide. Record the mint, network, connected wallet, transaction signature and error message. Check the existing transaction before retrying an uncertain submission. The Help panel is guidance, not live messaging.</p><a href="#docs/troubleshooting">Troubleshoot a pending action →</a>'],
+    ['support','Something looks wrong. Where can I ask?', '<p>Open Help for the relevant guide, or use the reviewed issue-report form in Profile without wallet or X sign-in. Include public context only if you choose, review the exact report, then send. Keep its private status token. Check an existing transaction before retrying an uncertain submission. Help is guidance, not live messaging.</p><a href="#docs/troubleshooting">Troubleshoot a pending action →</a>'],
   ];
 }
 
@@ -79,7 +85,7 @@ export function referralFaqs() {
 const faqBodies=new WeakMap();
 export function renderProductFaqs(document=globalThis.document) {
   const home=document?.querySelector('.home-reference-faq-list');
-  if(home&&!home.querySelector('.home-faq-primary')) home.innerHTML='<div class="home-faq-primary"></div><details class="home-faq-more"><summary>More questions about rewards and fees</summary><div class="home-faq-secondary"></div></details>';
+  if(home&&!home.querySelector('.home-faq-primary')) home.innerHTML='<div class="home-faq-primary"></div><details class="home-faq-more"><summary>More questions about app pages and flows</summary><div class="home-faq-secondary"></div></details>';
   const faqs=productFaqs(),primary=new Set(['service-prices','assets','recipient-actions','proof']);
   for(const [selector,items] of [['.home-faq-primary',faqs.filter(([id])=>primary.has(id))],['.home-faq-secondary',faqs.filter(([id])=>!primary.has(id))],['#referral-faq .faq-grid',referralFaqs()]]) {
     const root=document?.querySelector(selector); if(!root) continue;

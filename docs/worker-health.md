@@ -1,5 +1,7 @@
 # Buyback worker health
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 Release preparation installs Docker health checks for the standard and agency
 buyback workers. Each worker writes a private record in its container's `/tmp`
 after a completed cycle. Checks require the exact Devnet build, a live worker

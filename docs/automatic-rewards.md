@@ -1,19 +1,23 @@
 # V3 rewards: automatic delivery, claims and approvals
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Current product rules
 
-The current preview uses Devnet and V3 per-mint fee policies. Default gross creator-fee allocations are 80% creator-directed, 8% Operations & marketing, 3% referral network, 4% Daily bonus and 5% $FUNDED buyback. A saved admin policy overrides protocol defaults for future launches; existing coins keep their saved policy. Percentages apply to collected creator fees, not trade volume.
+The current preview uses Devnet and V3 per-mint fee policies. New agency-policy defaults are 80% creator-directed, 8% Operations & marketing, 1% referral network, 2% AI marketing and own-coin buybacks, 4% Daily bonus and 5% $FUNDED buyback. The verified published configuration governs future launches; existing coins keep their saved policy. Percentages apply to collected creator fees, not trade volume.
 
-This is the published policy before agency activation. The [approved agency update](marketing-agency-policy.md#approved-rules) moves referrals to 1% and adds 2% agency funding; Daily bonus stays 4%. That update is pending activation. Existing coins retain their saved rates.
+The [agency policy](marketing-agency-policy.md#approved-rules) separates policy publication from executor activation. The older fallback retains 3% referral funding; it must not overwrite an existing agency policy or be mistaken for the current published configuration. Check each coin’s saved rates and active route.
 
 | Program | Asset | Recipient action | Required evidence |
 | --- | --- | --- | --- |
-| Creator wallet | SOL | Creator reviews/signs available settlement, funding and payout actions | Saved wallet share; finalized collection, settlement and transfer |
+| Creator wallet | SOL | Automatic on an active funded automatic route; creator reviews/signs manual actions | Saved wallet share; finalized collection, settlement and transfer |
 | Coin holders | SOL | Automatic; no claim or recipient signature | Funded pool, complete finalized holdings, prices and applicable minima |
 | X account | SOL | Named X account signs in, links receiving wallet and claims | Identity, ownership, funding and finalized receipt |
-| Referral network | SOL | No recipient claim; creator approves V3 transfers | Frozen first-touch upline, collected fees and finalized transfer |
+| Referral network | SOL | No recipient claim; automatic delivery or creator approval on manual routes | Frozen first-touch upline, collected fees and finalized transfer |
 | Daily bonus | SOL | Automatic; no claim or recipient signature | Completed UTC day, verified rankings and exact source funding |
 | Community airdrop | Launched coin tokens | Eligible wallet claims within displayed window | Token custody, verified eligibility snapshot and claim proof |
+
+Creator SOL earnings have no 12-hour hold. The separate [developer token lock](launch-protections.md) applies to the declared initial token purchase. Read [on-chain automation](onchain-automation.md) for route gates and [all-page guidance](product-guide.md) for recipient workflows.
 
 ### Holder cadence and conditions
 

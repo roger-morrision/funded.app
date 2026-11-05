@@ -1,5 +1,7 @@
 # AI marketing agency policy
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 Historical integration and activation checkpoint reports have been retired. The
 rules and activation requirements below remain the maintained reference.
 Configuration alone does not prove posting, billing or buybacks.
@@ -27,16 +29,36 @@ Each milestone can spend only its own accumulated agency budget. Later allocatio
 
 Agent 1 additionally shares the account's conservative limit of four X posts per UTC day, at least six hours apart, with reviewed daily payout summaries and all other posts. The per-coin 24-hour cadence is eligibility, not a promise of daily publication. Queued promotions are not billed. Every promotion requires an admin review of the exact immutable content, expiring after 24 hours. Both publishers remain stopped during the account suspension; approval cannot resume them. Exact and substantially similar posted/uncertain text within seven days is held, including another daily promotion whose text has not changed; it needs reviewed, genuinely new content before a later delivery. Account-access failures retain the intent and wait six hours. See [X worker policy](x-event-worker.md) for the operational limits; they cannot guarantee that X will not restrict an account.
 
-## Implemented locally
+## Current source behavior
 
 - Dedicated `#marketing-agency` navigation and responsive page.
 - Launch promotion team selection preview with equal-share explanation.
 - Candidate configuration, exact cumulative allocation projection, deterministic one-time intent IDs, and trigger decision evaluator.
 - Read-only `/api/marketing-agency` exposes unavailable financials and explicit activation blockers.
-- Client refuses selected agency submissions before connecting/signing; server rejects agency launch registration before storage or chain side effects.
+- Launch preparation and registration require the reviewed program, published configuration and current readiness gates. An unavailable route stops before signing or registration; selected agents alone do not establish readiness.
 - Unit tests cover conservation, all selection subsets, u64 amounts, threshold boundaries, stale/wrong network/wrong mint observations, and repeated/uncertain intents. Browser fixtures cover desktop/mobile routing, team selection, unavailable financials, and retry.
 
-## Incomplete — do not describe as active
+## Publication, readiness and execution
+
+The source includes the eight-category policy, saved per-mint agent budgets,
+durable buyback workers, transaction journaling, proof verification and separate
+X promotion/billing. See [automation](onchain-automation.md) and
+[configurable rules](configurable-financial-rules.md). These are implemented
+paths, not evidence that every route is enabled in a particular deployment.
+
+The AI Marketing page and coin detail report saved selection, protected funding,
+saved thresholds, worker readiness and recorded finalized history separately.
+An old receipt can remain visible while current execution is unavailable.
+Default own-coin thresholds are $100,000 / $300,000 and default promotion cadence
+is 24 hours; authority-signed future-launch rules can change them. Existing
+coins keep their own saved terms. Publication does not prove a live market-cap
+crossing, a funded budget, an X post or a burn.
+
+## Historical October 19–20 activation checklist
+
+The following checklist records the initial implementation boundary. It is not
+a current inventory of missing code or a current deployment status. Recheck the
+actual runtime and receipts for acceptance of any later release.
 
 Historical V3 launches keep their six protocol rates, seven vaults and saved 80/8/3/4/5 split. The reviewed eight-category configuration and 1% future-launch referral policy are published on Devnet. Normal agency launches and real executor acceptance remain gated. `config/protocol-fee-split.js` remains the historical fallback; it does not reprice existing launches.
 
@@ -77,8 +99,8 @@ page reports this pause separately from buyback-agent availability and from
 publication of the 1% referral / 2% agency policy. Reinstatement alone does not
 start either publisher; a separate reviewed activation is required.
 
-Agents 2 and 3 retain their real $100,000 / $300,000 verified USD market-cap
-thresholds, one execution per agent per mint, protected payer reserve and
+Agents 2 and 3 use the mint's saved verified USD market-cap thresholds
+(defaults $100,000 / $300,000), one execution per agent per mint, protected payer reserve and
 finalized debit/burn receipt checks. Availability is not an executed burn.
 
 ### Worker diagnostics

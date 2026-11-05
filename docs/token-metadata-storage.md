@@ -1,5 +1,7 @@
 # Durable token metadata
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 New uploads can pin token images, optional promotion banners, and the metadata JSON to public IPFS through Pinata. The on-chain URI is the pinned JSON gateway URL. The database retains the signed content and image bytes as an independent copy. Existing mint records and URLs remain immutable.
 
 Configure the server with `METADATA_STORAGE=pinata` and `PINATA_JWT_FILE` pointing to a mounted secret. `compose.metadata-pinata.yml` provides the overlay; set `FUNDED_PINATA_JWT_FILE` to the secret file path and include this overlay when preparing a release. Keep the key out of `VITE_*`, Git, build arguments, browser storage, and logs. A Pinata key needs Files write permission. See [Pinata upload documentation](https://docs.pinata.cloud/api-reference/endpoint/upload-a-file).

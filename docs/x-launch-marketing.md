@@ -1,5 +1,7 @@
 # Launch tier X marketing
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 Every new registered project uses the platform X outbox after its Pump creation is verified on Solana Devnet at finalized commitment. Paid tiers also require a matching atomic $FUNDED burn.
 
 | Tier | funded.vip X package |

@@ -1,5 +1,7 @@
 # Devnet QA buyback minimum
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 The standard automatic V3 buyback trigger is **5 SOL** in verified, indexed
 fee allocations. For disposable Devnet QA, the app can use a lower execution
 gate while retaining the same on-chain 5% fee route and source proofs.

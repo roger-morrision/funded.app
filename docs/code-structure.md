@@ -1,5 +1,7 @@
 # Code structure and file-size limits
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Current audit — October 9, 2026
 
 - All 941 maintained code and configuration files are at or below 1,000 lines. The largest is

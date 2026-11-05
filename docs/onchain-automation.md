@@ -1,5 +1,7 @@
 # Devnet on-chain automation
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 The keeper collects Pump creator fees, settles verified collections into saved-policy vaults, and releases eligible allocations without repeated creator signatures. `FUNDED_V3_AUTO_SETTLEMENT_ENABLED` and `FUNDED_V3_AUTO_DISBURSEMENT_ENABLED` activate these paths only after deployment of the tested program and verification of its finalized ProgramData hash.
 
 The current router authority initializes one immutable `mint-automation-v3` PDA per mint. It binds the mint, creator, exact protected or agency policy, operations wallet, and three referral wallets frozen at the first qualified settlement. Missing referral wallets cannot receive automatic payments. Existing on-chain creator/holder/X share caps, reward-vault destination checks, category budgets, approval receipts, and withdrawal replay protection apply to every automatic release. The authority remains a trusted attestor of eligibility; this is not a permissionless entitlement oracle. Unprotected historical policies cannot enroll.

@@ -42,7 +42,7 @@ test('all Docs topics navigate, have deep links, and link only to existing docum
   const nav=page.locator('.docs-guide-nav'), article=page.locator('#docs-guide-article');
   await expect(article).toBeVisible();
   const titles=await nav.locator('button[data-docs-topic]').allTextContents(), hashes=new Set(), linked=new Set();
-  expect(titles).toHaveLength(29); expect(new Set(titles).size).toBe(29);
+  expect(titles).toHaveLength(45); expect(new Set(titles).size).toBe(45);
   for(const title of titles) {
     await nav.getByRole('button',{name:title,exact:true}).click();
     await expect(article.locator('h1')).toHaveText(title);
@@ -112,4 +112,28 @@ test('Help covers all current topics and opens the matching Daily bonus guide',a
   await expect(panel).toBeHidden();await expect(page.locator('#docs-guide-article h1')).toHaveText('Daily bonuses');
   await page.goto('/#overview');
   await trigger.click();await page.keyboard.press('Escape');await expect(panel).toBeHidden();await expect(trigger).toBeFocused();
+});
+
+for(const width of [390,1440])test(`Help opens the current page guide and its link at ${width}px`,async({page})=>{
+  test.setTimeout(90000);await fixtures(page);await page.setViewportSize({width,height:900});
+  const cases=[['overview','Home and getting around'],['explore','Search and discovery'],['my-launches','Portfolio and recovery'],
+    ['list','Get listed and listing recovery'],['callouts','Callouts and token chat'],['marketing-agency','AI Marketing and coin buybacks'],
+    ['profile','Account settings and preference backup'],['capital-flow','Capital flow calculator'],['analytics-detail','Analytics and financial activity'],
+    ['docs/launch-protections','Launch protections and developer tokens']];
+  for(const [route,title]of cases){
+    await page.goto(`/#${route}`);await expect(page.locator('body')).toHaveClass(/workspace-ready/);
+    const openHelp=async()=>{if(await page.locator('#help-topics-trigger').isVisible())await page.locator('#help-topics-trigger').click();
+      else {if(width<700)await page.locator('#open-menu').click();await page.locator('#help-menu-trigger').click();}};
+    await openHelp();
+    const panel=page.locator('#help-topics-panel'),answer=panel.locator('.help-topics-answer');
+    await expect(answer.locator('strong')).toHaveText(title);await expect(answer).toBeInViewport();
+    if(route==='profile'){
+      await page.screenshot({path:test.info().outputPath(`help-${width}.png`)});
+      await page.keyboard.press('Escape');await expect(panel).toBeHidden();
+      await expect(page.locator(width<700?'#open-menu':'#help-topics-trigger')).toBeFocused();await openHelp();
+    }
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    await answer.locator('a').click();await expect(panel).toBeHidden();
+    await expect(page.locator('#docs-guide-article h1')).toHaveText(title);
+  }
 });

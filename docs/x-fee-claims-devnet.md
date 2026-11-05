@@ -1,5 +1,7 @@
 # X-linked creator fee claims (Devnet)
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 This route is **off by default**. Historical launches using the shared `funded-fee-router-v1` PDA cannot produce an X obligation: Pump creator-fee collections from that address are not attributable to one mint.
 
 As of 2026-09-29, the existing Devnet program already executes `InitializeMint` and `SettleMint`; a binary upgrade was unnecessary. A finalized transaction (`3UejTrCdTGDUAvau2rMzXjR64zv5PqUT3pajpajVSwRU6aTh9Aoj7qJ15kYNC7wf8U4UTxhwMyxX96v1pjY9ERfY`) created a mint router and claim PDA and paid an in-memory test recipient exactly 1,000,000 lamports. The legacy router header, program-data hash, claim record, and recipient delta were verified. The funded.vip Devnet deployment enables the mint-router gate; historical shared-router launches remain ineligible for X claims. That September test did not verify a real X OAuth sign-in, wallet binding, Pump fee collection, and user claim end to end; the later paid recipient evidence is recorded below.

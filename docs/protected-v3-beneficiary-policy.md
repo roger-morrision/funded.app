@@ -1,5 +1,7 @@
 # Protected V3 beneficiary policy
 
+Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
+
 ## Why this is a separate launch path
 
 The deployed V3 `MintFeePolicyV3` account is 249 bytes. It fixes the 80/20 split and six protocol category rates, but it has no creator/holder/X subshare counters or approved recipient records. Existing mints keep that account and their saved obligations. New protected mints use the same router and seven category vault addresses with a 293-byte policy account. The 44-byte extension contains a version magic, three immutable gross-fee share units, and three cumulative released amounts.
