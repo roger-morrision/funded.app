@@ -168,3 +168,15 @@ html body #main-content .portfolio-action-card { display:grid;gap:12px;padding:2
 html body #main-content .portfolio-action-card span { color:var(--cp-muted);line-height:1.6; }
 html body #main-content .portfolio-action-card b { color:var(--cp-accent);font-size:13px;align-self:end; }
 html body #main-content .portfolio-action-card:hover { border-color:var(--cp-accent); }
+html body #main-content .home-new-token-card { transition:border-color .18s ease,box-shadow .18s ease; }
+html body #main-content .home-new-token-art { position:relative; }
+html body #main-content .home-trade-pulse-label { position:absolute;top:10px;left:10px;padding:6px 9px;border-radius:6px;background:var(--cp-accent);color:var(--cp-surface-2);font-size:11px;font-weight:700; }
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+ html body #main-content .home-new-token-card:hover { animation:home-card-vibrate .32s ease-in-out;box-shadow:0 5px 18px #0004; }
+}
+@media(prefers-reduced-motion:no-preference) {
+ html body #main-content .home-new-token-card.has-new-trade { animation:home-card-trade 1.2s ease-out; }
+}
+html body #main-content .home-new-token-card.has-new-trade { border-color:var(--cp-accent); }
+@keyframes home-card-vibrate { 0%,100% { transform:translateX(0) rotate(0); } 20%,60% { transform:translateX(-1px) rotate(-.35deg); } 40%,80% { transform:translateX(1px) rotate(.35deg); } }
+@keyframes home-card-trade { 0% { transform:translateY(5px);box-shadow:0 0 0 2px var(--cp-accent); } 40% { transform:translateY(0);box-shadow:0 0 18px #ffc46b55; } 100% { box-shadow:0 0 0 0 transparent; } }

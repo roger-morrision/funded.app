@@ -4,6 +4,7 @@ import { activeBoostPackages, activeBoostMultiplier } from '../../../boost-offer
 import { matchesHomeLaunchFilters, homeLaunchFilterCount } from '../../../home-launch-filters.js';
 import { paidListingCardMarkup, paidListingTableMarkup } from './paid-listing-view.js';
 import { renderActivityCoverage } from '../explore/activity-sampling.js';
+import { homeLiveCards } from './live-cards.js';
 
 // Render current data; the application owns pagination and paused-order state.
 export function renderHomeLaunchBoard(state, {
@@ -199,10 +200,10 @@ export function renderHomeLaunchBoard(state, {
     const frozenRank = new Map(state.homeFrozenOrder.map((mint, index) => [mint, index]));
     visible.sort((a, b) => (frozenRank.get(a.address) ?? Infinity) - (frozenRank.get(b.address) ?? Infinity));
   }
-  if (homePreview) visible = visible.sort((a,b) => Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0)).slice(0,6);
+  if (homePreview) visible.sort((a,b) => Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0));
   // The full scanner retains every verified launch.
   const boardCount = document.querySelector('#home-board-count');
-  if (boardCount) boardCount.textContent = visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
+  if (boardCount) boardCount.textContent = homePreview?'New launches · coins with new trades move to the front':visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
   if (!visible.length) {
     const feedUnavailable = (!exploreFeedAvailable && !exploreLastVerifiedAt)
       || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus);
@@ -243,7 +244,8 @@ export function renderHomeLaunchBoard(state, {
     }).join('');
     loadVerifiedTokenLogos(tableBody);
   }
-  grid.innerHTML = visible.map(item => homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item), compact:homePreview })).join('');
+  if(homePreview){homeLiveCards(grid,visible,{markup:item=>homeLaunchCardMarkup(item,{volumeLabel:homeLaunchWindow,volumeValue:volumeUsd(item),compact:true}),decorate:decorateHomeLaunchCard,loadLogos:loadVerifiedTokenLogos});return;}
+  grid.innerHTML = visible.map(item => homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item), compact:false })).join('');
   grid.querySelectorAll('.home-launch-card,.home-new-token-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
   loadVerifiedTokenLogos(grid);
 }

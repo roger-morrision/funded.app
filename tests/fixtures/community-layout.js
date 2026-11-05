@@ -6,3 +6,4 @@ export { homeLaunchCardMarkup,decorateHomeLaunchCard } from '../../src/features/
 export { mountHolderRewardsCard } from '../../src/features/coin/holder-rewards-card.js';
 export { renderLaunchBurnSelection } from '../../src/features/launch/burn-selection-view.js';
 export { showChatPostResult } from '../../src/features/coin/chat-post-result.js';
+export {homeLiveCards} from '../../src/features/home/live-cards.js';

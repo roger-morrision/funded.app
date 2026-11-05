@@ -104,3 +104,17 @@ test('tracked wallet displays a compact identity card and can be unfollowed (loc
  const card=page.locator('.portfolio-wallet-card');await expect(card).toHaveCount(1);await expect(card.locator('.portfolio-wallet-avatar')).toBeVisible();await expect(card.getByRole('link',{name:'View wallet'})).toHaveAttribute('href','/wallet/'+mint);
  await page.screenshot({path:info.outputPath('tracked-wallet.png'),animations:'disabled'});await card.getByRole('button',{name:/Unfollow/}).click();await expect(card).toHaveCount(0);
 });
+
+for(const reduced of [false,true])test(`Home trade animation pauses under pointer and keyboard focus; reduced motion ${reduced} (mocked trades)`,async({page})=>{
+ await setup(page,1440,'/#overview');await page.emulateMedia({reducedMotion:reduced?'reduce':'no-preference'});await page.mouse.move(0,0);
+ await page.evaluate(()=>{
+  window.liveFixtureClock=1000000;window.liveFixtureRows=[{address:'old',createdTimestamp:1},{address:'new',createdTimestamp:2}];document.querySelector('#home-launch-grid').replaceChildren();
+  window.renderLiveFixture=()=>CommunityFixture.homeLiveCards(document.querySelector('#home-launch-grid'),window.liveFixtureRows,{now:()=>window.liveFixtureClock,markup:item=>`<article class="home-new-token-card" data-mint="${item.address}"><a class="home-new-token-link" href="#${item.address}" aria-label="${item.address}"></a><div class="home-new-token-art">${item.address}</div></article>`,decorate:()=>{},loadLogos:()=>{}});window.renderLiveFixture();
+ });
+ const cards=page.locator('#home-launch-grid .home-new-token-card');await expect(cards.first()).toHaveAttribute('data-mint','new');await cards.first().hover();
+ const hoverAnimation=await cards.first().evaluate(n=>getComputedStyle(n).animationName);expect(hoverAnimation).toBe(reduced?'none':'home-card-vibrate');
+ await page.evaluate(()=>{window.liveFixtureClock+=1000;window.liveFixtureRows[0].recentTrades=[{signature:'3'.repeat(88),side:'buy',blockTime:1001}];window.renderLiveFixture();});await expect(cards.first()).toHaveAttribute('data-mint','new');
+ await page.mouse.move(0,0);await expect(cards.first()).toHaveAttribute('data-mint','old');await expect(cards.first()).toHaveClass(/has-new-trade/);expect(await cards.first().evaluate(n=>getComputedStyle(n).animationName)).toBe(reduced?'none':'home-card-trade');
+ await cards.first().locator('a').focus();await page.evaluate(()=>{window.liveFixtureClock+=1000;window.liveFixtureRows[1].recentTrades=[{signature:'4'.repeat(88),side:'sell',blockTime:1002}];window.renderLiveFixture();});await expect(cards.first()).toHaveAttribute('data-mint','old');await expect(cards.first().locator('a')).toBeFocused();
+ await page.evaluate(()=>document.activeElement.blur());await expect(cards.first()).toHaveAttribute('data-mint','new');
+});
