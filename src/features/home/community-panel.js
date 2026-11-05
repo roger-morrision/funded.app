@@ -29,7 +29,7 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     <div class="home-community-feed" tabindex="0" aria-label="Recent community messages"><p class="home-community-empty">Loading conversations…</p></div>
     <form class="home-community-form"><label for="home-community-token">Post about a coin</label><select id="home-community-token" required><option value="">Choose a coin</option></select>
     <label class="visually-hidden" for="home-community-text">Message</label><textarea id="home-community-text" maxlength="280" rows="2" placeholder="Share a message…" required></textarea>
-    <button type="submit">Connect wallet to chat</button><small>Holding this coin? Your post becomes a call when verified.</small></form>
+    <button type="submit">Connect wallet to chat</button><small>Holding this coin &amp; post your message to call this coin.</small></form>
     <p class="home-community-status" role="status"></p>`;
   board.append(panel);
   const feed=panel.querySelector('.home-community-feed'),form=panel.querySelector('form'),select=form.querySelector('select'),input=form.querySelector('textarea'),button=form.querySelector('button'),status=panel.querySelector('[role="status"]');
