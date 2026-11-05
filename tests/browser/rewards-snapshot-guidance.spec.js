@@ -92,7 +92,7 @@ for(const width of [360,390,1440])for(const partition of [0,1])test(`holder cuto
       else await expect(dates).toBeVisible();
       await expect(dates.locator('span').first()).toHaveText(`Holdings cutoff Oct 22, ${current.cutoff.slice(11,16)} UTC`);
       await expect(dates.locator('span').last()).toHaveText(`Target payout Oct 22, ${current.payout.slice(11,16)} UTC`);
-      await expect(coin).toHaveText('CUTQA · view coin →');await expect(coin).toHaveAttribute('href',`/token/${mint}`);
+      await expect(coin).toContainText('CUTQA');await expect(coin).toContainText('Current MC');await expect(coin).toHaveAttribute('href',`/token/${mint}`);
       if(current.countdown){await expect(clock).toBeVisible();await expect(clock).toHaveText(current.countdown);}else await expect(clock).toBeHidden();
       expect(await dates.locator('a,button,input,select,[tabindex],[aria-live],[role="status"]').count()).toBe(0);
       if(state.name==='future'){

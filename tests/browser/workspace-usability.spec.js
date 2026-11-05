@@ -1,3 +1,4 @@
+import {adminFixture} from './admin-review-fixture.js';
 import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -22,8 +23,8 @@ async function mountHistory(page,id){
 }
 
 test('service status explains each check without equating availability with payment success', async ({ page }) => {
-  await page.route('**/api/status', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ cluster: 'devnet', status: 'degraded', observedAt: '2026-10-04T05:00:00Z', checks: [{ id: 'storage', status: 'operational' }, { id: 'network', status: 'wrong-network' }] }) }));
-  await page.goto('/#docs');
+  await adminFixture(page, async ({path,send}) => { if(path!=='/api/status')return false;await send(200,{ cluster: 'devnet', status: 'degraded', observedAt: '2026-10-04T05:00:00Z', checks: [{ id: 'storage', status: 'operational' }, { id: 'network', status: 'wrong-network' }] });return true;});
+  await page.goto('/admin.html');
   await page.getByRole('button', { name: 'Check service status' }).click();
   const panel = page.locator('#service-status');
   await expect(panel.locator('[role=status]')).toContainText('some services need attention');

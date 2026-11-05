@@ -18,13 +18,12 @@ for(const width of[320,390,768,1440])test(`shared discovery controls and route h
  await page.mouse.move(0,0);const homeAction=await homeCard.locator('.token-card-action-share').evaluate(actionStyle);
  await homeCard.locator('.token-card-action-share').click();await expect(page.locator('#share-dialog')).toHaveJSProperty('open',true);await page.keyboard.press('Escape');await expect(page.locator('#share-dialog')).toHaveJSProperty('open',false);
  const home=page.locator('.home-launch-toolbar .review-buy-setting input');await expect(home).toBeHidden();
- await route('explore');const review=page.locator('#explore .review-buy-setting input');await review.fill('0.25');await review.press('Tab');await expect(home).toHaveValue('0.25');await review.fill('101');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','true');
- await review.fill('0.5');await review.press('Tab');await expect(review).toHaveAttribute('aria-invalid','false');
+ await route('explore');await expect(page.locator('#explore .review-buy-setting input')).toHaveCount(0);
  const search=page.locator('#explore-search');await search.fill('SURF');await expect(page.locator('#global-search')).toHaveValue('SURF');await expect(search).toHaveValue('SURF');
  const exploreCard=page.locator('#asset-grid .home-launch-card').first();await expect(exploreCard).toBeVisible();await page.mouse.move(0,0);await expect.poll(()=>exploreCard.locator('.token-card-action-share').evaluate(actionStyle)).toEqual(homeAction);
  await search.focus();const ring=await search.evaluate(e=>{const s=getComputedStyle(e.closest('label'));return{style:s.outlineStyle,width:parseFloat(s.outlineWidth)}});expect(ring.style).toBe('solid');expect(ring.width).toBeGreaterThanOrEqual(2);
- for(const control of[search,review]){expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);if(width<=700)expect(await control.evaluate(e=>parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);}
- await page.screenshot({path:info.outputPath(`explore-${width}.png`)});await route('overview');await expect(home).toHaveValue('0.5');
+ for(const control of[search]){expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);if(width<=700)expect(await control.evaluate(e=>parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);}
+ await page.screenshot({path:info.outputPath(`explore-${width}.png`)});await route('overview');await expect(home).toBeHidden();
  await route('marketing-agency');await expect(page.locator('.agency-agent')).toHaveCount(3);await expect(page.locator('.agency-agent').nth(1)).toContainText('verified $100,000 market cap');await expect(page.locator('.agency-agent').nth(2)).toContainText('verified $300,000 market cap');
  await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');await expect(page.locator('[data-agency-spent]')).toHaveText('Unavailable');
  const refreshed=page.waitForResponse(r=>r.url().endsWith('/api/marketing-agency'));await page.locator('[data-agency-refresh]').click();await refreshed;await expect(page.locator('[data-agency-status]')).toContainText('unavailable');

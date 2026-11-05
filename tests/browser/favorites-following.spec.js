@@ -144,7 +144,8 @@ async function favoriteFixture(page, width, { account = false, market = false, o
   f.releaseInitial=()=>{f.initialReleased=true;f.reserveGates.forEach(gate=>gate.release());};
   f.hold=key=>{expect(f[key]).toBeUndefined();const gate=favoriteGate();f[key]=gate;f.allGates.push(gate);return gate;};
   f.home=async()=>{if(width<700)await page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name:'Home',exact:true}).click();else await page.locator('#sidebar a[href="#overview"]').first().click();await expect(page).toHaveURL(/#overview$/);};
-  f.favorites=async()=>{if(width<700)await page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name:'Portfolio',exact:true}).click();else await page.locator('#sidebar a[href="#my-launches"]').first().click();await expect(page).toHaveURL(/#my-launches$/);await page.getByRole('navigation',{name:'Portfolio sections'}).getByRole('link',{name:'Favorites',exact:true}).click();await expect(page).toHaveURL(/#community$/);};
+  f.favorites=async()=>{if(width<700)await page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('link',{name:'Portfolio',exact:true}).click();else await page.locator('#sidebar a[href="#my-launches"]').first().click();await expect(page).toHaveURL(/#my-launches$/);// The detailed legacy Favorites view remains directly routable; the new Portfolio tab is covered separately.
+  await page.goto('/#community');await expect(page).toHaveURL(/#community$/);};
   f.registryRefresh=async()=>{const gate=f.hold('registryGate');await f.home();await gate.started;await f.favorites();return gate;};
   f.finish=async info=>{f.initialReleased=true;f.oldLogoReleased=true;f.allGates.forEach(gate=>gate.release());await info.attach('requests-and-guards',{body:JSON.stringify({reads:f.reads,forbidden:f.forbidden,errors:f.errors},null,2),contentType:'application/json'});expect(f.forbidden).toEqual([]);expect(f.errors).toEqual([]);};
   return f;
@@ -246,7 +247,8 @@ async function favoriteProof(page,info,label,{native=false,retained=true}={}){
 }
 async function nativeFavorite(page,selector,info,label){
   const original=await page.locator(selector).elementHandle();expect(original).not.toBeNull();await page.locator('#favorites-title').click();let next=false;
-  for(let i=0;i<100;i++){
+  const maxSteps=await page.locator('a[href],button,input,select,textarea,summary,[tabindex]').count()+1;
+  for(let i=0;i<maxSteps;i++){
     next=await original.evaluate(element=>{const nodes=[...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')].filter(node=>node.tabIndex>=0&&!node.disabled&&!node.closest('[hidden],[inert]')&&node.getClientRects().length&&getComputedStyle(node).visibility==='visible'),at=nodes.indexOf(document.activeElement);return at>=0&&nodes[at+1]===element;});
     if(next)break;await page.keyboard.press('Tab');
   }

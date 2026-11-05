@@ -17,7 +17,7 @@ for(const width of [320,390,768,1440]) test(`Buy presets preserve amounts and re
   });
   for(const amount of ['0.2','0.5']){
     await page.goto('/#explore');await page.locator('body.product-flows-ready').waitFor();
-    await expect(page.getByRole('textbox',{name:'Quick buy amount in SOL',exact:true})).toHaveValue('0.35');
+    await expect(page.getByRole('textbox',{name:'Quick buy amount in SOL',exact:true})).toHaveCount(0);
     const card=page.locator('#asset-grid .home-launch-card').first();
     await expect(card.locator('[data-review-amount]')).toHaveText(['Buy 0.2 SOL','Buy 0.5 SOL']);
     const actions=await card.locator('.home-launch-card-actions > :is(.card-review-buy,.token-card-action-share,.token-card-action-boost)').evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return {top:r.top,height:r.height,width:r.width};}));

@@ -1,0 +1,363 @@
+[
+  {
+    "event": "metadata-publication-verified",
+    "at": "2026-11-05T13:22:18.816Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "uri": "https://gateway.pinata.cloud/ipfs/bafkreig2m2tl5ztee73uwo6emtzr2msjrdefwmg4e2gxcus6nl2bx6qleu",
+    "symbolReservationExpiresAt": "2026-11-05T13:51:37.845Z"
+  },
+  {
+    "event": "launch-finalized",
+    "at": "2026-11-05T13:22:26.580Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+    "slot": 518951702,
+    "router": "7wxBjFoMXBqgFXaNjhjx9veGUeYtBdYATaA1DvXBSrCe",
+    "reserveReceipt": {
+      "signature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "vault": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+      "tokenAccount": "CE43S3Y1wJZpD5H5Lsz25sJXfV9M7m3Gwkvc18inGuBc",
+      "fundedTokens": 30000000,
+      "atomic": true
+    }
+  },
+  {
+    "event": "registration-verified",
+    "at": "2026-11-05T13:23:03.420Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "automaticRewards": {
+      "status": "v3-collection-routing-pending"
+    },
+    "communityReserve": {
+      "vault": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+      "tokenAccount": "CE43S3Y1wJZpD5H5Lsz25sJXfV9M7m3Gwkvc18inGuBc",
+      "fundingSignature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "fundedTokens": "30000000",
+      "verified": true,
+      "atomicWithPumpLaunch": true
+    },
+    "developerTokenLock": {
+      "lock": "ChV8UFh7aGH8ibazWsixVix2X3wCUCwTXgXRijkQoZ46",
+      "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+      "creator": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+      "amount": "200000000000000",
+      "lockedAt": 1793884944,
+      "unlockAt": 1793928144,
+      "releasedAt": 0,
+      "version": 1,
+      "status": "funded",
+      "verified": true,
+      "programId": "EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT",
+      "programDataSha256": "2bad7d28c7217282244ded3534d0fcec6a700d5afb6667e441364e43dcc34ca7",
+      "vault": "BnjVb6DnAwEtNnF9vYMidFj2ToLUC1AdMAYUcui4YY5w",
+      "fundingSignature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "atomicWithLaunch": true,
+      "lockSeconds": 43200
+    },
+    "launchServiceFee": {
+      "quoteId": "launch_service_1793884895258_e045c7c5e5d99ef0",
+      "amountLamports": "20000000",
+      "recipient": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+      "policyHash": "70f2c55fceca2c1426d50e94dafdacceac0bb346b68397e64cd262aa66095c0a",
+      "signature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "slot": 518951702,
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "category": "launch-service-fee"
+    }
+  },
+  {
+    "event": "escrow-custody-and-early-release-verified",
+    "at": "2026-11-05T13:23:06.133Z",
+    "lock": "ChV8UFh7aGH8ibazWsixVix2X3wCUCwTXgXRijkQoZ46",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "creator": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+    "amount": "200000000000000",
+    "lockedAt": 1793884944,
+    "unlockAt": 1793928144,
+    "releasedAt": 0,
+    "vault": "BnjVb6DnAwEtNnF9vYMidFj2ToLUC1AdMAYUcui4YY5w",
+    "walletTokens": "0",
+    "simulationError": {
+      "InstructionError": [
+        0,
+        {
+          "Custom": 6000
+        }
+      ]
+    },
+    "unlockAtIso": "2026-11-06T01:22:24.000Z"
+  },
+  {
+    "event": "trade-buy-finalized",
+    "at": "2026-11-05T13:24:14.806Z",
+    "signature": "4HQTrxAURCPoZC6ySNWSFxZvhsHCNokQYsVBEDwkrjfiacGqx79VmRfwuCb9QBJda6eBER7LUCnpAVniV59KorbS",
+    "slot": 518952160,
+    "feeBps": 100,
+    "quoteLamports": "3000000",
+    "feeLamports": 30000,
+    "recipientDeltaLamports": 30000,
+    "beforeTokens": "0",
+    "afterTokens": "6506819103321"
+  },
+  {
+    "event": "trade-sell-finalized",
+    "at": "2026-11-05T13:25:10.256Z",
+    "signature": "Y6U6FjHnaCbfE7gv6d2b85FvHCFfqZyiJGZUaU67P5vyxcZNKXJsv5anNeyYgBGNVNFmCZ89x6kBRHsDbyB6oRq",
+    "slot": 518952392,
+    "feeBps": 100,
+    "quoteLamports": "2940591",
+    "feeLamports": 29406,
+    "recipientDeltaLamports": 29406,
+    "beforeTokens": "6506819103321",
+    "afterTokens": "0"
+  },
+  {
+    "event": "boost-payment-and-idempotent-confirmation-verified",
+    "at": "2026-11-05T13:29:08.537Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "quoteId": "boost_1793885344206_2d80483173b5d3bb",
+    "signature": "Ayvr2EkBFBs16EKF7E9iX8PUmTWrpNMcqr2zzmXuvMjAdo1U6tzyDPDXGnbtzLM2u7GGNKe8zU2sc2n5kPmvAhq",
+    "slot": 518953386,
+    "recipientDeltaLamports": 519140011,
+    "activeMultiplier": 10
+  },
+  {
+    "event": "automatic-collection-settlement-and-creator-payout-verified",
+    "at": "2026-11-05T14:00:57.041Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "receipts": [
+      {
+        "name": "collection",
+        "signature": "3CFzWzPPjRmEYFxTRegynL9ZrrxgeRxrBaHUHScY2QJmV3j1Ni9hpQfLutPAPr9pAvtfWLiUVSh2S589ZFhMGETu",
+        "slot": 518957483,
+        "recipient": "7wxBjFoMXBqgFXaNjhjx9veGUeYtBdYATaA1DvXBSrCe",
+        "recipientDeltaLamports": 10956454
+      },
+      {
+        "name": "settlement",
+        "signature": "Rhv8v5HVtGjpf7Uz5Sc1vTQgUhfRJTrnEU15gmUNngc4Gt9iuFRU5cM4dKjqConhfWUzEm4omP2ZPgYdQsqJERU",
+        "slot": 518957548,
+        "recipient": null,
+        "recipientDeltaLamports": null
+      },
+      {
+        "name": "creator-payout",
+        "signature": "5txpXhib2zPvhgQm6KM4d3eJzqRmfptxvsWzjQSRGVUswiDq55BWdwy1grkkNG2ABG1wrWieWzNZmgm7aAVzgjn3",
+        "slot": 518957824,
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "recipientDeltaLamports": 7669517
+      }
+    ],
+    "allocation": {
+      "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+      "agency": {
+        "status": "allocated-not-executed",
+        "amountLamports": "219130"
+      },
+      "status": "allocated-not-funded",
+      "protocol": {
+        "buybackLamports": "547822",
+        "referralLamports": [
+          "65739",
+          "27391",
+          "16435"
+        ],
+        "communityLamports": "438258",
+        "operationsLamports": "876516"
+      },
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "grossLamports": "10956454",
+      "creatorDirected": {
+        "xHandle": null,
+        "xUserId": null,
+        "xLamports": "0",
+        "holderLamports": "1095646",
+        "walletLamports": "7669517"
+      },
+      "allocationVersion": 2,
+      "creatorPoolLamports": "8765163",
+      "settlementSignature": "Rhv8v5HVtGjpf7Uz5Sc1vTQgUhfRJTrnEU15gmUNngc4Gt9iuFRU5cM4dKjqConhfWUzEm4omP2ZPgYdQsqJERU",
+      "creatorPoolAfterLamports": "8765163",
+      "creatorPoolBeforeLamports": "0",
+      "sourceCollectionSignature": "3CFzWzPPjRmEYFxTRegynL9ZrrxgeRxrBaHUHScY2QJmV3j1Ni9hpQfLutPAPr9pAvtfWLiUVSh2S589ZFhMGETu"
+    },
+    "creatorWalletPayout": "finalized",
+    "operationsPayout": "finalized",
+    "holderPolicy": {
+      "cadence": "hourly",
+      "periodSeconds": 3600,
+      "minimumHolderUsd": 20,
+      "minimumPoolUsd": 20,
+      "qaMinimums": false,
+      "maxEligibleHolders": 1000,
+      "referenceOnly": true
+    },
+    "holderAvailableLamports": "1095646",
+    "community": {
+      "allocatedLamports": "438258",
+      "baseAllocatedLamports": "0",
+      "referralRolloverLamports": "0",
+      "fundedLamports": "438258",
+      "vaultAddress": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+      "paidLamports": null,
+      "status": "vault-funded-no-program-payout"
+    }
+  },
+  {
+    "event": "bonding-curve-completion-finalized",
+    "at": "2026-11-05T14:10:14.702Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "UuVxxLSmvwx19BYmEuHGADyAVFg7d5ZaG3kYboxByxgPYY5MMRoQfiwLWGvqsuQVvhRLyjptpGUqitUsLaAWrCg",
+    "slot": 518963696,
+    "tokensReceived": "563100000000000",
+    "feeLamports": 7758853,
+    "complete": true,
+    "remainingTokens": "0"
+  },
+  {
+    "event": "pumpswap-migration-finalized",
+    "at": "2026-11-05T14:11:17.196Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "5sHF83w4SXy9g529NVc2qo8FumgPkTtQG7Vk5ZVk8s6zWAt3bV7vYBP7hmzX93p1Z1XiddM3fA619TxaiXqiAaG2",
+    "slot": 518963961,
+    "pool": {
+      "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+      "pool": "KLCrcnYB2WxQNWzghyNLE49nEWuvpnE9AnJUQbig8Tn",
+      "poolBaseTokenAccount": "5FYxCNjirpcAkmJ2hzCTY5PnXF4fYic9LuTv3iwJdkcD",
+      "poolQuoteTokenAccount": "GkFrWA3cUUzxLRjQkz33HHJqNczN43evfsEEawuu2t4U",
+      "baseTokenReserves": 200273163.92369,
+      "quoteReservesSol": 0.689912103,
+      "virtualQuoteReservesSol": 0.172772592,
+      "effectiveQuoteReservesSol": 0.862684695,
+      "spotPriceSol": 4.307540152152929e-09,
+      "creator": "6owhaTuiSwWtcp1ZDWFSXhgdUB5wddkziQJVyATxEP5m",
+      "coinCreator": "7wxBjFoMXBqgFXaNjhjx9veGUeYtBdYATaA1DvXBSrCe",
+      "slot": 518963971,
+      "observedAt": "2026-11-05T14:11:17.196Z"
+    }
+  },
+  {
+    "event": "pool-buy-finalized",
+    "at": "2026-11-05T14:14:47.288Z",
+    "signature": "5JAVMzvC6BjwqGHL7JzMRT8zEeEsRqBwkt2yfbNJp5kusPqEgN1pNqKgvCR4YnnMMrvPjWTNDhvfBqdsunhVxV7d",
+    "slot": 518964846,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "3000000",
+    "feeLamports": 30000,
+    "recipientDeltaLamports": 30000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "563653755179359"
+  },
+  {
+    "event": "pool-sell-finalized",
+    "at": "2026-11-05T14:15:32.290Z",
+    "signature": "5KJJvmyPJzbgrcUxEfs68kZRaN8ntnopLWUT75oa21Pg2UZDmDNfYKPhkeibnWz6HJjM4Mh8Q4JoLxN2fZKfMyQp",
+    "slot": 518965030,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "3057397",
+    "feeLamports": 30574,
+    "recipientDeltaLamports": 30574,
+    "beforeTokens": "563653755179359",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "included-listing-duplicate-charge-rejected",
+    "at": "2026-11-05T14:19:54.944Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "status": 409,
+    "included": true,
+    "config": {
+      "cluster": "devnet",
+      "enabled": true,
+      "fundedMint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+      "usd": 300,
+      "burnTokens": 261,
+      "serviceFees": {
+        "policy": {
+          "tradeBps": 100,
+          "launchLamports": "20000000",
+          "proUsd": 150,
+          "premierUsd": 300,
+          "listingUsd": 300
+        },
+        "revision": 3,
+        "hash": "70f2c55fceca2c1426d50e94dafdacceac0bb346b68397e64cd262aa66095c0a",
+        "updatedAt": "2026-11-04T05:16:22.297Z",
+        "appliesTo": "new quotes; issued quotes retain their approved amount until expiry"
+      },
+      "tokenPriceUsd": 1.1533616233961979,
+      "observedAt": "2026-11-05T14:19:52.735Z",
+      "paymentMethod": "BurnChecked",
+      "status": "ready"
+    }
+  },
+  {
+    "event": "all-settlement-vault-deltas-verified",
+    "at": "2026-11-05T14:31:56.998Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "Rhv8v5HVtGjpf7Uz5Sc1vTQgUhfRJTrnEU15gmUNngc4Gt9iuFRU5cM4dKjqConhfWUzEm4omP2ZPgYdQsqJERU",
+    "slot": 518957548,
+    "grossLamports": "10956454",
+    "changes": [
+      {
+        "category": 0,
+        "vault": "CP8BY3VMBM9bQc7sTifTnXXqCH37Pz91ndhyAmpd2e7B",
+        "balanceDeltaLamports": "9415403",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "8765163"
+      },
+      {
+        "category": 1,
+        "vault": "8eSFEWWj8P8jP3yaojZwyLPbSqXVFfUH7zpeCjuU2xF3",
+        "balanceDeltaLamports": "1526756",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "876516"
+      },
+      {
+        "category": 2,
+        "vault": "4TkJK4hwQ33ZUGr5fLMKGXBbpcFdZsvXxzfqcukpqJHg",
+        "balanceDeltaLamports": "715979",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "65739"
+      },
+      {
+        "category": 3,
+        "vault": "CDMQgv5jZxsNSWhbK8wfrkFkxT2AWc75ZUZ4eDfR3NCB",
+        "balanceDeltaLamports": "677631",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "27391"
+      },
+      {
+        "category": 4,
+        "vault": "CkYKzh66ZHP3daZbGFRYEqAZ3oc57pFhGRgKmJuhXH4b",
+        "balanceDeltaLamports": "666675",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "16435"
+      },
+      {
+        "category": 5,
+        "vault": "FmYfWDAsHkYWPWGanc6yA6D2uZPDf57EBRsE5GjH8GpN",
+        "balanceDeltaLamports": "1088498",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "438258"
+      },
+      {
+        "category": 6,
+        "vault": "oQN6NFGTPoGwLuvX5ezebJx5vhX3JpdQZGLUdfuBHFU",
+        "balanceDeltaLamports": "1198062",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "547822"
+      },
+      {
+        "category": 7,
+        "vault": "GjFPu2Shw8dXbKBFTCEUyaqAkqDTdFoMZxf4Jc1hg8MT",
+        "balanceDeltaLamports": "869370",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "219130"
+      }
+    ]
+  }
+]

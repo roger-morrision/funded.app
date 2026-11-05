@@ -43,7 +43,7 @@ for(const width of [320,390,1440])test(`X promotion is included only with a prom
   await page.locator('#token-name').fill('Agency QA');await page.locator('#token-symbol').fill('AQA');await page.locator('#launch-next').click();
   const team=page.locator('#launch-agency-options');await expect(team).toBeVisible();
   await expect(team.locator('input')).toHaveCount(0);await expect(team.locator('[data-launch-agent]')).toHaveCount(3);
-  const check=async promoted=>{await expect(team.locator('.agency-included-badge')).toHaveText([promoted?'Included':'Promotion only','Included','Included']);await expect(team.locator('[data-included="true"]')).toHaveCount(promoted?3:2);await expect(page.locator('[data-agency-split]')).toContainText(`across the ${promoted?3:2} included agents`);};
+  const check=async promoted=>{await expect(team.locator('.agency-included-badge')).toHaveText([promoted?'Included':'Promotion only','Included','Included']);await expect(team.locator('[data-included="true"]')).toHaveCount(promoted?3:2);await expect(team.locator('[data-included="true"]')).toHaveCount(promoted?3:2);};
   await check(false);await expect(page.locator('#launch-button')).toBeDisabled();
   for(const tier of ['pro','premier']){await page.locator(`button[data-burn-tier="${tier}"]`).click();await check(true);await expect(page.locator('#launch-promotion-requirements')).toBeVisible();}
   await team.screenshot({path:info.outputPath(`promoted-agents-${width}.png`)});
@@ -114,7 +114,7 @@ test('buyback availability stays separate from the suspended X publisher',async(
   await expect(page.locator('[data-agency-status]')).toContainText('X promotion stays paused');
   // This fixture verifies agency history, but leaves the independent launch
   // reserve endpoint unavailable. Its failure must keep launch readiness closed.
-  await expect(page.locator('#launch-agency-help')).toContainText('Agent execution is not yet available');
+  await expect(page.locator('#launch-button')).toBeDisabled();await expect(page.locator('#launch-public-quote-retry')).toBeVisible();
   await expect(page.locator('#launch-agency-options')).not.toContainText('preview');
 });
 

@@ -102,7 +102,7 @@ test('recovery inbox labels its in-tab fallback when device storage is full (moc
     document.querySelector('#recovery-inbox').remove();initializeRecoveryInbox({connectedWalletAddress:wallet,pendingTradeVerifications:new Map(),verifyPendingTrade:async()=>{}});
   },{mint,wallet,sig});
   const inbox=page.locator('#recovery-inbox');await expect(inbox).toContainText('1 unresolved');await expect(inbox).toContainText('This record remains in this tab only');await expect(inbox.getByRole('link',{name:'Inspect transaction'})).toHaveAttribute('href',new RegExp(sig));
-  await page.getByRole('button',{name:'Review 1 saved transaction',exact:true}).click();await expect(inbox).toBeFocused();await expect(inbox).toBeInViewport();
+  await expect(page.getByRole('button',{name:'Review 1 saved transaction',exact:true})).toHaveCount(0);await expect(inbox.getByRole('button',{name:'Check recorded trade',exact:true})).toBeVisible();
 });
 
 for(const width of [390,1440])test(`trade recovery distinguishes signing, confirmation and indexing at ${width}px (mocked receipts)`,async({page})=>{
@@ -134,5 +134,5 @@ for(const width of [390,1440])test(`trade recovery distinguishes signing, confir
 });
 test('on-chain-policy burns keep a working Explorer proof link (mocked recorded receipt)',async({page})=>{
   await setup(page,390);await page.route('**/api/buyback/status',route=>route.fulfill({json:{cluster:'devnet',pending:[],receipts:[{mint,signature:sig,sourceKind:'onchain-policy',status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'123'}]}}));
-  await ready(page,'/#payments/activity');const proof=page.locator('[data-flow-rows]').getByRole('link',{name:'Inspect on-chain policy burn'});await expect(proof).toHaveAttribute('href',`https://explorer.solana.com/tx/${sig}?cluster=devnet`);await expect(proof).toHaveAttribute('target','_blank');
+  await ready(page,'/#payments/activity');await page.locator('[data-flow-scope-filter]').selectOption('protocol');const proof=page.locator('[data-flow-rows]').getByRole('link',{name:'Inspect on-chain policy burn'});await expect(proof).toHaveAttribute('href',`https://explorer.solana.com/tx/${sig}?cluster=devnet`);await expect(proof).toHaveAttribute('target','_blank');
 });

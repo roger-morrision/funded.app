@@ -18,7 +18,7 @@ for(const width of[320,360,390,700,1024,1440])test(`public benefits and native F
   await expect(page.locator('.reward-grid article')).toHaveCount(6);
   await expect(page.locator('.landing-topbar .network-pill')).toHaveText('Devnet · test SOL');await expect(page.locator('main')).not.toContainText('Devnet');
   await expect(page.locator('[data-proof-card]')).toHaveAttribute('data-state','unavailable');await expect(page.locator('[data-proof-card]')).toContainText('Every receipt is still listed');
-  const sections=page.locator('.section-anchor');expect(await sections.count()).toBe(10);
+  const sections=page.locator('.section-anchor');expect(await sections.count()).toBe(9);
   for(const section of await sections.all()){
     await section.scrollIntoViewIfNeeded();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
@@ -69,7 +69,8 @@ test('landing benefits, FAQ and app links remain useful without JavaScript',asyn
 for(const width of[390,1440])test(`app navigation opens the platform introduction at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/#overview');await page.locator('body.product-flows-ready').waitFor();
   if(width<1000)await page.getByRole('button',{name:'Open menu',exact:true}).click();
-  await expect(page.locator('.primary-nav details')).toHaveCount(0);
+  await expect(page.locator('.primary-nav details')).toHaveCount(1);
+  await page.locator('#secondary-navigation > summary').click();
   await page.getByRole('link',{name:'About funded.vip',exact:true}).click();await expect(page).toHaveURL(/\/welcome$/);
   await expect(page.locator('h1')).toContainText('Launch coins');await expect(page.locator('body')).toHaveClass('landing-page');
 });

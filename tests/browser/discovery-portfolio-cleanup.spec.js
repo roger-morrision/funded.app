@@ -16,11 +16,12 @@ for(const width of [320,390,768,1440]){
   await expect(page.getByRole('navigation',{name:'Explore community'})).toBeVisible();
   const records=page.locator('#explore-public-records');await expect(records.locator('summary')).toHaveCount(0);
   await expect(records.locator('.explore-benefit-leaders')).toBeVisible();await expect(records.getByRole('heading',{name:'Rankings and public payouts',exact:true})).toBeVisible();
-  const pref=page.locator('#explore-trade-preferences');await expect(pref.locator('input')).toBeVisible();await expect(pref.locator('summary')).toHaveCount(0);await expect(pref).toContainText('changing this amount does not place a trade');await fits(page);
+  // Quick-buy preferences were retired; trades are reviewed on the coin page.
+  await expect(page.locator('#explore-trade-preferences')).toHaveCount(0);await fits(page);
   await page.screenshot({path:info.outputPath(`explore-${width}.png`),fullPage:true});
   await ready(page,'/#my-launches');await expect(page.locator('#my-launches > .purpose-page-nav')).toBeHidden();await expect(page.locator('[data-portfolio-tab="created"]')).toHaveText('My projects');await expect(page.locator('#recovery-inbox')).toBeHidden();await fits(page);
   await page.screenshot({path:info.outputPath(`portfolio-${width}.png`),fullPage:true});
-  await page.locator('#portfolio-favorites-link').click();await expect(page).toHaveURL(/f.tab=favorites/);await expect(page.locator('button[data-explore-tab="favorites"]')).toHaveAttribute('aria-pressed','true');
+  await page.locator('#portfolio-favorites-tab').click();await expect(page.locator('#portfolio-favorites-tab')).toHaveAttribute('aria-selected','true');await expect(page.locator('#portfolio-favorites-panel')).toBeVisible();
   await ready(page,'/#community');await expect(page.locator('#community')).toBeVisible();await expect(page.locator('#my-launches > .purpose-page-nav')).toBeVisible();await fits(page);
  });
  test(`Coin promotion panel keeps trading controls accessible at ${width}px (mocked)`,async({page},info)=>{
@@ -29,7 +30,7 @@ for(const width of [320,390,768,1440]){
   await expect(details.locator('h2,p')).toHaveCount(0);await fits(page);
   if(width>1100){const panel=await details.boundingBox(),identity=await page.locator('.coin-identity-main').boundingBox();expect(panel.x).toBeGreaterThanOrEqual(identity.x+identity.width);}
   await page.evaluate(()=>document.querySelector('#coin-page-title').textContent='A community coin with a longer name');await fits(page);
-  const name=await page.locator('#coin-page-title').boundingBox();expect(name.width).toBeGreaterThan(width<700?160:300);
+  const name=await page.locator('#coin-page-title').boundingBox();expect(name.width).toBeGreaterThan(width===320?130:width<700?160:300);
   if(width<=700){await page.locator('.mobile-dock-buy').click();await expect(page.locator('#trade-panel')).toBeVisible();await expect(page.locator('#trade-amount')).toBeVisible();await page.locator('.mobile-trade-close').click();await expect(page.locator('.mobile-dock-buy')).toBeFocused();}
   else await expect(page.locator('#trade-amount')).toBeVisible();
   await page.screenshot({path:info.outputPath(`coin-${width}.png`),fullPage:true});

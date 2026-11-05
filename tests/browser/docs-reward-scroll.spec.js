@@ -237,8 +237,9 @@ async function openGuideNatively(page, topic) {
     await sidebar.getByRole('link', { name: 'Docs and help', exact: true }).click();
     await expect(opener).toHaveAttribute('aria-expanded', 'false');
   } else {
-    await page.getByRole('button', { name: 'Open help topics', exact: true }).click();
-    await page.locator('#help-topics-panel').getByRole('link', { name: 'Open the help guide →', exact: true }).click();
+    const menu = page.locator('#secondary-navigation');
+    if (!await menu.evaluate(e => e.open)) await menu.locator('summary').click();
+    await page.locator('#sidebar').getByRole('link', { name: 'Docs and help', exact: true }).click();
   }
   await expect(page).toHaveURL(/#docs$/);
   if (aliasEntry) {

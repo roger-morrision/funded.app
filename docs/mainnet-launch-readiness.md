@@ -4,6 +4,8 @@ Product workflows: [all-page guide](product-guide.md). Documentation scope and d
 
 The supported launch flow remains **Devnet only**; this does not establish that the public host is currently available. The separate Mainnet preview is read only. A Mainnet build must not enable coin creation by changing `VITE_ALLOW_MAINNET` alone: the launch client, metadata service, registration API, and fee distribution still contain Devnet-specific paths. The client launch function and registration API reject Mainnet until these dependencies are implemented and verified.
 
+The subsequent deployment and fresh registered launch, escrow, creator payout and PumpSwap migration evidence are in [the November 5 release verification](devnet-release-verification-2026-11-05.md). Earlier incomplete-run statements below are historical and do not describe that later execution.
+
 ## Protected beneficiary routing and current evidence
 
 The protected V3 implementation now commits beneficiary policy and rejects the older unprotected launch instruction. The earlier statement that all new Devnet launches are blocked is obsolete. See [protected V3 policy evidence](protected-v3-beneficiary-policy.md). This is Devnet engineering evidence, not an independent audit or Mainnet approval.

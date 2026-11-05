@@ -36,7 +36,7 @@ for(const width of[320,390,700,1440])test(`task fee summaries retain all rates a
     await page.keyboard.press('Space');await expect(details).not.toHaveAttribute('open','');await expect(summary).toBeFocused();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   };
   for(const[route,selector]of[['paid','#paid > [data-fee-distribution]'],['capital-flow','#capital-flow [data-fee-distribution]'],['launch','.launch-fixed-distribution']]){
-    await page.evaluate(hash=>location.hash=hash,route);if(route==='launch')await page.locator('#launch-fee-overview > summary').click();const root=page.locator(selector);await verify(root);await root.screenshot({path:info.outputPath(`compact-fees-${route}-${width}.png`)});
+    await page.evaluate(hash=>location.hash=hash,route);const root=page.locator(selector);await verify(root);await root.screenshot({path:info.outputPath(`compact-fees-${route}-${width}.png`)});
   }
   await page.locator('.launch-fixed-distribution .fee-distribution-details > summary').click();await page.evaluate(()=>location.hash='paid');await expect(fees.locator('.fee-distribution-details')).not.toHaveAttribute('open','');await page.evaluate(()=>location.hash='launch');await expect(page.locator('.launch-fixed-distribution .fee-distribution-details')).toHaveAttribute('open','');await expect(page.locator('#launch-button')).toBeDisabled();
   const bonusLink=page.locator('.launch-fixed-distribution [data-fee-benefit="community"] a');await bonusLink.focus();await page.keyboard.press('Enter');await expect(page).toHaveURL(/#bonuses$/);await expect(page.locator('#bonuses')).toBeVisible();

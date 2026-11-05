@@ -15,12 +15,9 @@ for(const width of [320,375,1440])test(`Traders rows fit a ${width}px screen`,as
   const geometry=await page.locator('#leaderboard-table').evaluate(table=>({scroll:table.scrollWidth,client:table.clientWidth,page:document.documentElement.scrollWidth,cells:[...table.querySelector('.leaderboard-row').children].map(cell=>{const r=cell.getBoundingClientRect();return{top:r.top,bottom:r.bottom,right:r.right};}),head:getComputedStyle(table.querySelector('.leaderboard-table-head')).display}));
   expect(geometry.page).toBeLessThanOrEqual(width+1);
   expect(geometry.scroll).toBeLessThanOrEqual(geometry.client+1);
-  if(width<700){
-    expect(geometry.head).toBe('none');
-    // Wallet and volume share the first line; trades and proof the second.
-    const [,who,trades,value,proof]=geometry.cells;
-    expect(value.top).toBeLessThan(who.bottom);expect(proof.top).toBeLessThan(trades.bottom);
-    expect(trades.top).toBeGreaterThanOrEqual(Math.min(who.bottom,value.bottom)-1);
-  }else expect(geometry.head).not.toBe('none');
+  // The compact table now retains its column headings at every width.
+  expect(geometry.head).not.toBe('none');
+  const identity=page.locator('#leaderboard-table .leaderboard-profile').first();
+  await expect(identity).toBeVisible();await expect(page.locator('#leaderboard-table .leader-value').first()).toBeVisible();
   await page.locator('#leaderboard-table').screenshot({path:test.info().outputPath(`traders-${width}.png`)});
 });

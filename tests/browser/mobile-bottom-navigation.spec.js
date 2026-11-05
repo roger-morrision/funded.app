@@ -14,7 +14,7 @@ for (const width of [360, 390, 700]) test(`mobile bottom links, drawer and conte
   await page.goto('/#overview'); await page.locator('body.product-flows-ready').waitFor();
   const nav = page.locator('.mobile-workspace-nav');
   await expect(nav).toBeVisible(); await expect(nav.getByRole('link')).toHaveCount(5);
-  for (const [label, route] of [['Explore', 'explore'], ['Launch', 'launch'], ['Portfolio', 'my-launches'], ['Rewards', 'payments'], ['Home', 'overview']]) {
+  for (const [label, route] of [['Explore', 'explore'], ['Create', 'launch'], ['Portfolio', 'my-launches'], ['Rewards', 'payments'], ['Home', 'overview']]) {
     await nav.getByRole('link', { name: label, exact: true }).click();
     await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${route}(?: |$)`));
     await expect(nav.getByRole('link', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');

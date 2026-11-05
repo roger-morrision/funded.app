@@ -5,7 +5,7 @@ for(const width of[360,390,1440])test(`FQA-034 real leaderboard renderer preserv
  test.setTimeout(90000);await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/api/**',r=>r.fulfill(new URL(r.request().url()).pathname==='/api/fee-policy'?{json:policy}:{status:503,json:{error:'Unavailable fixture'}}));await page.route('https://**/*',r=>r.abort());
  await page.goto('/#leaderboard');await page.locator('body.workspace-ready.product-experience-ready').waitFor();const table=page.locator('#leaderboard-table');
- const files={'board-view.js':new URL('../../src/features/leaderboard/board-view.js',import.meta.url),'display.js':new URL('../../src/features/shared/display.js',import.meta.url),'market-intelligence.js':new URL('../../market-intelligence.js',import.meta.url)};
+ const files={'board-view.js':new URL('../../src/features/leaderboard/board-view.js',import.meta.url),'display.js':new URL('../../src/features/shared/display.js',import.meta.url),'market-intelligence.js':new URL('../../market-intelligence.js',import.meta.url),'market-trending.js':new URL('../../market-trending.js',import.meta.url)};
  await page.route('**/__qa-refresh/**',r=>{const n=new URL(r.request().url()).pathname.split('/').pop();return files[n]?r.fulfill({contentType:'text/javascript',body:readFileSync(process.env.FUNDED_LEADERBOARD_MODULE_DIR?resolve(process.env.FUNDED_LEADERBOARD_MODULE_DIR,n):files[n],'utf8').replace('../shared/display.js','/__qa-refresh/display.js')}):r.abort()});
  await page.evaluate(async({wallet,other,mint,signature})=>{
   const board=await import('/__qa-refresh/board-view.js'),model=await import('/__qa-refresh/market-intelligence.js');

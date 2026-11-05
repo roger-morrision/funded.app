@@ -334,7 +334,8 @@ for(const width of[360,390,1440])test.describe(`activity viewport${width}`,()=>{
       await expect(page.locator(root+' .empty-state span').first()).toContainText('Some 1h activity data is unavailable or incomplete. Search and active filters apply together.');
       // Native reading from an actual button owner; Arrow keys are not sent into the Search text editor.
       const emptyClear=root+' [data-explore-empty-action="clear"]';await activityTabTo(page,emptyClear);
-      for(const [selector,label] of [[root+' .empty-state strong','headline'],[root+' .empty-state span','detail'],[root+' .explore-empty-criteria','criteria'],['#explore-activity-coverage','coverage']])reading.push(await activityRead(page,page.locator(selector).first(),label));
+      for(const [selector,label] of [[root+' .empty-state strong','headline'],[root+' .empty-state span','detail'],[root+' .explore-empty-criteria','criteria']])reading.push(await activityRead(page,page.locator(selector).first(),label));
+      await expect(page.locator('#explore-activity-coverage')).toBeHidden(); // Available data is expressed by results and inline missing-data details.
       await page.screenshot({path:info.outputPath(`activity-${view}-${recovery}-${width}.png`)});
       const clear=recovery==='pointer'?'#workspace-filter-summary button':emptyClear;
       await activityTabTo(page,clear);await page.keyboard.press('Shift+Tab');

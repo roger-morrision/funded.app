@@ -218,7 +218,7 @@ async function tokenVm(){
  const [{default:vm},fs,{createHash}]=await Promise.all([import('node:vm'),import('node:fs'),import('node:crypto')]);
  const text=fs.readFileSync(new URL('../../src/app/startup/coin-navigation.js',import.meta.url),'utf8'),begin='function bindTokenControlFocus(',end='// Startup runs in the order declared in start.js.';
  expect(text.split(begin)).toHaveLength(2);expect(text.split(end)).toHaveLength(2);const binding=text.slice(text.indexOf(begin),text.indexOf(end));
- expect(createHash('sha256').update(binding.replaceAll('\r\n','\n')).digest('hex')).toBe('de0e889f3eba0ab0a6ee7a06028bb94b87510c8f92ac52f3257268704f937649');
+ expect(createHash('sha256').update(binding.replaceAll('\r\n','\n')).digest('hex')).toBe('49d0519f0767c145f122702d118a9e07e616bb4f6081aa4f00fbba64d2e9c926');
  const ev=new Map(),pe={},q=new Map(),scroll=[],show=[];let id=0;
  const emit=name=>[...(ev.get(name)||[])].forEach(fn=>fn());
  const node=(owned=true)=>({isConnected:true,hidden:false,inert:false,parentElement:null,matches:()=>owned,getClientRects:()=>[{}],closest(){return this.hidden||this.inert?this:null;},getBoundingClientRect(){return{left:10,right:70,top:this.clip?-50:20,bottom:this.clip?-20:50};},scrollIntoView(o){show.push({node:this,o});emit('scroll');}});
@@ -231,6 +231,12 @@ async function tokenVm(){
 }
 const pending=f=>[...f.q.values()][0],late=f=>[...(f.ev.get('scroll')||[])][0];
 function idle(f,c=[0,0]){expect([f.scroll.length,f.show.length]).toEqual(c);expect(f.q.size).toBe(0);for(const n of['keydown','pointerdown','wheel','touchstart','scroll'])expect(f.ev.get(n)?.size||0).toBe(0);}
+test('verification notice reveals covered token controls without moving clear controls',async()=>{
+ for(const covered of [true,false]){
+  const f=await tokenVm();f.doc.querySelectorAll=()=>[{getClientRects:()=>[{}],matches:()=>false,getBoundingClientRect:()=>({left:covered?5:100,right:covered?80:200,top:15,bottom:60})}];
+  f.focus(f.a);f.run();expect(f.show).toHaveLength(covered?1:0);expect(f.doc.activeElement).toBe(f.a);
+ }
+});
 test('FQA-067 isolated current owner cancels at current position and reveals only clipping',async()=>{
  for(const clip of[false,true]){const f=await tokenVm();f.a.clip=clip;f.focus(f.a);expect(f.q.size).toBe(1);f.ctx.scrollY=321;f.run();expect(f.scroll).toEqual([{top:321,left:0,behavior:'instant'}]);expect(f.show.length).toBe(clip?1:0);expect(f.doc.activeElement).toBe(f.a);expect(f.q.size).toBe(0);}
 });

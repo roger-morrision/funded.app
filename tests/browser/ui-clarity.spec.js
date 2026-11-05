@@ -26,7 +26,7 @@ for(const width of [390,1440]){
       await expect(center).not.toContainText('No matching recorded activity');
       await expect(center.locator('.ready-queue')).toBeHidden();await expect(page.locator('#reward-portfolio').getByRole('button',{name:'Connect wallet',exact:true})).toBeVisible();
       release();await expect(center.locator('[data-flow-rows]')).toHaveAttribute('aria-busy','false');
-      await expect(center).toContainText('Unavailable: rewards, buybacks');
+      await expect(center).toContainText('Connect a wallet to see your activity.');await center.locator('[data-flow-scope-filter]').selectOption('protocol');await expect(center).toContainText('Unavailable: buybacks');
       await expect(center).toContainText('Unavailable data is not a zero balance');await expect(center.locator('[data-flow-count]')).toHaveText('Records unavailable');await expect(center.locator('.financial-list-footer')).toBeHidden();
       const connect=page.locator('#reward-portfolio .reward-portfolio-connect');await connect.focus();const original=await connect.elementHandle();await page.evaluate(()=>window.dispatchEvent(new Event('funded:reward-identity-change')));await expect(center.locator('[data-flow-rows]')).toHaveAttribute('aria-busy','false');expect(await original.evaluate(e=>e.isConnected&&e===document.activeElement)).toBe(true);
     }finally{release();}

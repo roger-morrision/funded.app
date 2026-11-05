@@ -22,7 +22,9 @@ for (const width of [1440, 390]) {
     };
     const agency = async (target = 'marketing-agency') => {
       if (width === 390) await page.locator('#open-menu').click();
-      await page.locator(`.primary-nav a[href="#${target}"]`).click();
+      const destination=page.locator(`.primary-nav a[href="#${target}"]`);
+      const group=destination.locator('xpath=ancestor::details[1]');if(await group.count()&&await group.getAttribute('open')===null)await group.locator(':scope > summary').click();
+      await destination.click();
       await route(target, target === 'overview' ? '.hero-section' : `#${target}`, target);
     };
     await page.goto('/#marketing-agency');
@@ -69,7 +71,9 @@ for (const width of [1440, 390]) {
     };
     const agency = async (target = 'marketing-agency') => {
       if (width === 390) await page.locator('#open-menu').click();
-      await page.locator(`.primary-nav a[href="#${target}"]`).click();
+      const destination=page.locator(`.primary-nav a[href="#${target}"]`);
+      const group=destination.locator('xpath=ancestor::details[1]');if(await group.count()&&await group.getAttribute('open')===null)await group.locator(':scope > summary').click();
+      await destination.click();
       await route(target, target === 'overview' ? '.hero-section' : `#${target}`, target);
     };
     await page.goto('/#explore');

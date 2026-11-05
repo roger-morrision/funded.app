@@ -59,7 +59,7 @@ for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link foc
 
   // Canonical renderer in the already initialized app: deterministic populated
   // four-view fixtures, including Traders unavailable naturally on live Devnet.
-  const files={'board-view.js':new URL('../../src/features/leaderboard/board-view.js',import.meta.url),'display.js':new URL('../../src/features/shared/display.js',import.meta.url),'market-intelligence.js':new URL('../../market-intelligence.js',import.meta.url)};
+  const files={'board-view.js':new URL('../../src/features/leaderboard/board-view.js',import.meta.url),'display.js':new URL('../../src/features/shared/display.js',import.meta.url),'market-intelligence.js':new URL('../../market-intelligence.js',import.meta.url),'market-trending.js':new URL('../../market-trending.js',import.meta.url)};
   await page.route('**/__qa-focus/**',r=>{const name=new URL(r.request().url()).pathname.split('/').pop();return files[name]?r.fulfill({contentType:'text/javascript',body:readFileSync(process.env.FUNDED_LEADERBOARD_MODULE_DIR?resolve(process.env.FUNDED_LEADERBOARD_MODULE_DIR,name):files[name],'utf8').replace('../shared/display.js','/__qa-focus/display.js')}):r.abort();});
   for(const view of ['burners','burn-board','creators','traders']){
     await page.evaluate(async({view,wallet,other,mint,signature,wallets})=>{

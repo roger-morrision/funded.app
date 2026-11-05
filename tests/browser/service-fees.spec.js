@@ -33,7 +33,7 @@ async function mock(page,policy=DEFAULT_SERVICE_FEES) {
 for(const width of [1440,390])test(`new fee schedule is consistent in launch, listings and docs at ${width}px`,async({page})=>{
   await mock(page); await page.setViewportSize({width,height:1000});
   await page.goto('/#launch'); await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await expect(page.locator('#cost-tier-label')).toContainText('0.02 SOL');
+  await expect(page.locator('#cost-service-fee')).toHaveText('0.020000 SOL');
   await expect(page.locator('.creator-burn-section [data-burn-tier="pro"] > span')).toContainText('$150');
   await expect(page.locator('.creator-burn-section [data-burn-tier="premier"] > span')).toContainText('$300');
   await page.goto('/#capital-flow'); await expect(page.locator('#service-fee-guide')).toContainText('1% on buys and sells');
@@ -47,7 +47,7 @@ test('published admin prices replace build defaults across all price displays',a
   await mock(page,{...DEFAULT_SERVICE_FEES,tradeBps:80,launchLamports:'30000000',proUsd:175,premierUsd:350,listingUsd:400});
   await page.goto('/#launch'); await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('.creator-burn-section [data-burn-tier="pro"] > span')).toContainText('$175');
-  await expect(page.locator('#cost-tier-label')).toContainText('0.03 SOL');
+  await expect(page.locator('#cost-service-fee')).toHaveText('0.030000 SOL');
   await page.goto('/#capital-flow'); await expect(page.locator('#service-fee-guide')).toContainText('0.8% on buys and sells');
   await page.goto('/#list'); await expect(page.locator('#list-burn-disclosure')).toContainText('$400');
   // The creator/community picker re-renders cards; it must not restore old prices.

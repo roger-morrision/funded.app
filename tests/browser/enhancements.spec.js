@@ -1,3 +1,4 @@
+import {adminFixture} from './admin-review-fixture.js';
 import {requiredFeePolicyForCompiled} from '../fixtures/compiled-artifact-fixture.js';
 import { test, expect } from '@playwright/test';
 
@@ -44,7 +45,8 @@ test('mobile controls fit and service status explains outages', async ({ page })
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('#explore-search')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.goto('/#docs');
+  await adminFixture(page);
+  await page.goto('/admin.html');
   await page.getByRole('button', { name: 'Check service status' }).click();
   await expect(page.locator('#service-status [role=status]')).toContainText('unavailable');
   await expect(page.getByRole('button', { name: 'Check service status' })).toBeEnabled();

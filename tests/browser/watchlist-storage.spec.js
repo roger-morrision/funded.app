@@ -153,7 +153,7 @@ for (const [tab, route] of [['favorites', 'explore']]) for (const [width, view] 
   await expect(following).toHaveAttribute('aria-pressed', 'true');
   await expect(watch).toHaveCount(1);
   await expect(page).toHaveURL(url);
-  await expect(page.locator('#explore-sort')).toHaveValue('recent-trade');
+  await expect(page.locator('#explore-sort')).toHaveValue('trending');
   if (tab === 'favorites') {
     await page.reload(); await ready(page);
     await expect(following).toHaveAttribute('aria-pressed', 'true');

@@ -13,10 +13,13 @@ function bindTokenControlFocus(appState) {
     const rect = target.getBoundingClientRect(), style = getComputedStyle(target);
     const edge = (parseFloat(style.outlineWidth) || 0) + (parseFloat(style.outlineOffset) || 0);
     const bounds = {left:0, right:innerWidth, top:0, bottom:innerHeight};
-    for (const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav')) {
+    for (const chrome of document.querySelectorAll('.topbar,.mobile-workspace-nav,.technical-notice-stack')) {
       if (!chrome.getClientRects().length) continue;
-      if (chrome.matches('.topbar')) bounds.top = Math.max(bounds.top, chrome.getBoundingClientRect().bottom);
-      else bounds.bottom = Math.min(bounds.bottom, chrome.getBoundingClientRect().top);
+      const box = chrome.getBoundingClientRect();
+      if (chrome.matches('.topbar')) bounds.top = Math.max(bounds.top, box.bottom);
+      else if (chrome.matches('.mobile-workspace-nav')) bounds.bottom = Math.min(bounds.bottom, box.top);
+      else if (rect.right + edge > box.left && rect.left - edge < box.right
+        && rect.bottom + edge > box.top && rect.top - edge < box.bottom) return true;
     }
     const rootStyle = getComputedStyle(document.documentElement);
     for (let parent = target.parentElement; parent; parent = parent.parentElement) {

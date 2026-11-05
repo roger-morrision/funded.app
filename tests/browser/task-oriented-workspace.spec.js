@@ -23,7 +23,7 @@ for(const width of [320,390,768,1440]){
     await expect(page.locator('.home-launch-highlights')).toBeVisible();
     await expect(page.locator('.home-launch-board')).toBeVisible();
     await expect(page.locator('#home-launch-board-title')).toHaveText('New coins');
-    await page.locator('[data-home-window="5m"]').click();await expect(page.locator('#home-market-ticker-label')).toHaveText('Trending · 5m volume');
+    await page.locator('[data-home-window="5m"]').click();await expect(page.locator('#home-market-ticker-label')).toHaveText('Trending · 5m participation');
     await page.locator('[data-home-window="24h"]').click();
     const banner=page.locator('.home-reference-faq-art');await banner.scrollIntoViewIfNeeded();await expect(banner).toBeVisible();
     await expect.poll(()=>banner.evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
@@ -42,7 +42,7 @@ for(const width of [320,390,768,1440]){
     for(const card of await metrics.all())await expect(card).toBeVisible();
     await page.locator('.hero-actions').getByRole('link',{name:'Explore coins',exact:true}).click();
     await expect(page.locator('#explore-search')).toBeVisible();await fits(page);
-    await ready(page,'/#overview');await page.locator('.home-receipts a').click();
+    await ready(page,'/#overview');await page.locator('.home-receipts a[href="#payments/history"]').click();
     await expect(page.locator('#rewards-history')).toBeVisible();
     expect(errors).toEqual([]);
   });

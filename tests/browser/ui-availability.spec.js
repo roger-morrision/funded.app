@@ -74,8 +74,8 @@ for(const mode of ['outage','partial','pending','active'])test(`airdrop ${mode} 
   await expect(list.locator('.airdrop-directory-card')).toHaveCount(mode==='partial'?2:1);
   if(mode==='outage'){
     await expect(claimTab.locator('span')).toHaveText('—');
-    await expect(list).toContainText('Snapshot verification unavailable');
-    await expect(list).not.toContainText('Snapshot pending');
+    await expect(list).toContainText(/Snapshot\s*Unavailable/);
+    await expect(list).not.toContainText(/Snapshot\s*Pending/i);
     await list.getByRole('button',{name:'View claim status',exact:true}).click();
     await expect(page.locator('#airdrop-selected-eyebrow')).toHaveText('Airdrop verification unavailable');
     await expect(page.locator('#airdrop-selected-status')).toContainText('Claim availability could not be verified');
@@ -87,13 +87,13 @@ for(const mode of ['outage','partial','pending','active'])test(`airdrop ${mode} 
     await expect(list).not.toContainText('No claims are open yet');
   }else if(mode==='partial'){
     await expect(claimTab.locator('span')).toHaveText('≥1');
-    await expect(list).toContainText('Snapshot verification unavailable');
+    await expect(list).toContainText(/Snapshot\s*Unavailable/);
     await expect(list).toContainText('Claims open');
     await expect(page.locator('#claim-program-count')).toContainText('claims unverified');
   }else{
     await expect(claimTab.locator('span')).toHaveText(mode==='active'?'1':'0');
-    await expect(list).toContainText(mode==='active'?'Claims open':'Snapshot pending');
-    await expect(list).not.toContainText('Snapshot verification unavailable');
+    await expect(list).toContainText(mode==='active'?'Claims open':/Snapshot\s*Pending/i);
+    await expect(list).not.toContainText(/Snapshot\s*Unavailable/);
   }
   await expect(page.locator('[data-public-airdrop-tab="curve"] span')).toHaveText('—');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
