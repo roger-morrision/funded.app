@@ -142,6 +142,7 @@ data/automatic-rewards.json
 data/automatic-rewards.json.lock
 
 # Local deployment staging, credentials, audit data, and build output
+/.worktrees/
 /.codex-card-release/
 /.codex-remote-overlay/
 /.docker-config/
