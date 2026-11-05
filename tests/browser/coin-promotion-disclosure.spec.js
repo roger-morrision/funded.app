@@ -20,7 +20,9 @@ for(const width of [390,768,1440])test(`Paid promotion retains its exact receipt
  expect(await star.evaluate(e=>getComputedStyle(e).color)).not.toBe(before);
  expect(await star.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(255, 196, 107)');
   const bounds=await disclosure.boundingBox(),boost=await page.locator('#coin-boost').boundingBox();expect(boost.x+boost.width).toBeLessThanOrEqual(bounds.x+bounds.width);
- await expect(disclosure.locator('h2,p')).toHaveCount(0);await expect(disclosure.locator('.explore-tier-badge')).toHaveText('Pro');await expect(page.locator('#coin-page-title')).not.toHaveClass(/golden-ticker/);
+ await expect(disclosure.locator('h2,p')).toHaveCount(0);await expect(disclosure.locator('.explore-tier-badge')).toHaveText('◆ Pro');await expect(page.locator('#coin-page-title')).not.toHaveClass(/golden-ticker/);
+ const badgeBounds=await receipt.boundingBox();expect(badgeBounds.y+badgeBounds.height).toBeLessThanOrEqual(boost.y);
+ await expect(receipt).toHaveClass(/promotion-badge--pro/);await expect(page.locator('#coin-launch-protection')).toHaveCount(0);
  const identity=await page.locator('.coin-identity').boundingBox(),art=await page.locator('.coin-artwork').boundingBox();
   if(await page.locator('.coin-artwork').isVisible())expect(identity.y+identity.height<=art.y+1||art.y+art.height<=identity.y+1).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

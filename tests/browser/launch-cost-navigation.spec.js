@@ -25,7 +25,7 @@ async function setup(page,{width,height,motion}){
  await page.goto('/#launch');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expect(page.locator('#cost-total-enabled')).toHaveText('Quote unavailable',{timeout:18000});
  await page.locator('#token-name').fill('Cost planning QA');await page.locator('#token-symbol').fill('CQA');
  await page.locator('details').filter({has:page.locator('#token-description')}).locator('summary').click();await page.locator('#token-description').fill('A local planning draft; no launch or wallet action.');
- await page.locator('#launch-project-links summary').click();await page.locator('#token-website').fill('https://example.invalid/project');
+ await page.locator('#token-website').fill('https://example.invalid/project');
  await page.locator('#launch-next').click();await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');await expect(page.locator('#launch-public-quote-retry')).toBeVisible({timeout:18000});await page.locator('#launch-back').click();await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','1');
  await page.addScriptTag({content:renderer});await page.evaluate(()=>{
    window.renderCostNavigationFixture=({quote,fee='20000000',connected=false,review=null,matchRetry=false})=>{

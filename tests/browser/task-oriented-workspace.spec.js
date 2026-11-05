@@ -46,11 +46,18 @@ for(const width of [320,390,768,1440]){
     await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','1');
     await expect(page.locator('#token-name')).toBeFocused();
     await page.locator('#token-name').fill('Community Review');await page.locator('#token-symbol').fill('REVIEW');
+    await expect(page.locator('#launch-project-links > summary')).toHaveCount(0);
+    const socialInputs=page.locator('#launch-project-links input');await expect(socialInputs).toHaveCount(4);
+    for(const input of await socialInputs.all()){await expect(input).toBeVisible();expect((await input.boundingBox()).height).toBeGreaterThanOrEqual(44);}
+    if(width>600){const boxes=await socialInputs.evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().y));expect(Math.abs(boxes[0]-boxes[1])).toBeLessThan(1);expect(Math.abs(boxes[2]-boxes[3])).toBeLessThan(1);}
     await expect(page.locator('#custom-policy')).not.toBeVisible();
     await page.screenshot({path:info.outputPath(`details-${width}.png`),fullPage:true,animations:'disabled'});
     await page.locator('#launch-next').click();
     await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');
     await expect(page.locator('#custom-policy')).toBeVisible();
+    await expect(page.locator('#launch-fee-overview > summary')).toHaveCount(0);
+    await expect(page.locator('#launch-fee-overview [data-fee-category] > strong')).toHaveText(['80%','8%','3%','4%','5%']);
+    for(const rate of await page.locator('#launch-fee-overview [data-fee-category]').all())await expect(rate).toBeVisible();
     await expect(page.locator('#creator-buy-sol')).toHaveValue('0');
     if(width===1440){
       const airdrop=await page.locator('#community-airdrop-tokens').boundingBox(),buy=await page.locator('#creator-buy-sol').boundingBox();

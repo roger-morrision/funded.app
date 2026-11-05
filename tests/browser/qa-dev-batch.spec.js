@@ -16,23 +16,20 @@ for (const width of [390,1440]) {
     await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','ready');
     await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
     const details=page.locator('#launch-project-links'),summary=details.locator('summary');
-    expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
-    await expect(details).not.toHaveAttribute('open','');
+    await expect(summary).toHaveCount(0);await expect(details).toBeVisible();
     const boxes=await page.evaluate(()=>Object.fromEntries(['token-symbol','token-image-picker','launch-project-links']
       .map(id=>[id,document.getElementById(id).getBoundingClientRect().top])));
     expect(boxes['token-image-picker']).toBeGreaterThan(boxes['token-symbol']);
     expect(boxes['launch-project-links']).toBeGreaterThan(boxes['token-image-picker']);
-    await summary.focus();await page.keyboard.press('Enter');await expect(details).toHaveAttribute('open','');
     const values={'token-website':'https://example.org','token-x':'https://x.com/fixture',
       'token-telegram':'https://t.me/fixture','token-discord':'https://discord.gg/fixture'};
     for(const [id,value] of Object.entries(values)) await page.locator(`#${id}`).fill(value);
-    await summary.click();await expect(details).not.toHaveAttribute('open','');
     await page.evaluate(()=>window.dispatchEvent(new Event('pageshow')));
-    await expect(details).toHaveAttribute('open','');
+    await expect(details).toBeVisible();
     await page.locator('#token-name').fill('UI Fixture');await page.locator('#token-symbol').fill('UIF');
-    await page.locator('#token-website').fill('javascript:alert(1)');await summary.click();
+    await page.locator('#token-website').fill('javascript:alert(1)');
     await page.locator('#launch-next').click();
-    await expect(details).toHaveAttribute('open','');
+    await expect(details).toBeVisible();
     await expect(page.locator('#token-website')).toBeFocused();
     await expect(page.locator('#token-website-error')).toBeVisible();
     await expect(page.locator('#token-website')).toHaveAttribute('aria-invalid','true');

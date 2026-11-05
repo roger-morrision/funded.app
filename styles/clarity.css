@@ -244,16 +244,16 @@ html body #main-content .home-payout-track a b { color: var(--fv-accent); font-f
 @media (max-width: 700px) { html body #main-content .home-payout-feed { flex-direction: column; align-items: stretch; } }
 /* Launch package badges: one color per package; boost and listing badges beside them. */
 html body #main-content .home-launch-card .home-launch-package-standard { color: var(--fv-text-muted); }
-html body #main-content .home-launch-card .promotion-badge--boost { color: var(--fv-warning); border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); }
-html body #main-content .home-launch-card .promotion-badge--pro { color: #aaa0ff; border-color: color-mix(in srgb, #aaa0ff 55%, transparent); background: color-mix(in srgb, #aaa0ff 10%, transparent); }
-html body #main-content .home-launch-card .promotion-badge--premier { color: var(--fv-bg); border-color: var(--fv-accent); background: var(--fv-accent); }
+html body #main-content :is(.home-launch-card,#coin-page) .promotion-badge--boost { color: var(--fv-warning); border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); }
+html body #main-content :is(.home-launch-card,#coin-page) .promotion-badge--pro { color: #aaa0ff; border-color: color-mix(in srgb, #aaa0ff 55%, transparent); background: color-mix(in srgb, #aaa0ff 10%, transparent); }
+html body #main-content :is(.home-launch-card,#coin-page) .promotion-badge--premier { color: var(--fv-bg); border-color: var(--fv-accent); background: var(--fv-accent); }
 html body #main-content .home-launch-card .home-launch-chip.is-listed { border-color: var(--fv-text-muted); font-weight: 700; }
 /* Package badge links to its burn receipt: 44px tap area, small visible pill. */
-html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge { position: relative; z-index: 0; min-height: 44px; border-color: transparent; background: transparent; }
-html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge::before { content: ""; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--fv-border); border-radius: 999px; }
-html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge--boost::before { border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); }
-html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge--pro::before { border-color: color-mix(in srgb, #aaa0ff 55%, transparent); background: color-mix(in srgb, #aaa0ff 10%, transparent); }
-html body #main-content .home-launch-card .home-launch-media-package > a.promotion-badge--premier::before { border-color: var(--fv-accent); background: var(--fv-accent); }
+html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-promotion-badge) > a.promotion-badge { position: relative; z-index: 0; min-height: 44px; border-color: transparent; background: transparent; }
+html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-promotion-badge) > a.promotion-badge::before { content: ""; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--fv-border); border-radius: 999px; }
+html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-promotion-badge) > a.promotion-badge--boost::before { border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); }
+html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-promotion-badge) > a.promotion-badge--pro::before { border-color: color-mix(in srgb, #aaa0ff 55%, transparent); background: color-mix(in srgb, #aaa0ff 10%, transparent); }
+html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-promotion-badge) > a.promotion-badge--premier::before { border-color: var(--fv-accent); background: var(--fv-accent); }
 /* Home: the brand and legal footer is always the last block. */
 html body.page-route-overview #main-content > .home-reference-footer { order: 99; }
 

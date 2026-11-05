@@ -16,8 +16,8 @@ export function mountStepOneFeeSplit(document=globalThis.document){
   options.querySelector(':scope > .step-heading p').textContent='Choose who receives your creator-fee allocation, then check the launch funding. Promotion is optional.';
   const overview=document.querySelector('.launch-fixed-distribution');
   if(overview&&!document.querySelector('#launch-fee-overview')){
-    const details=document.createElement('details');details.id='launch-fee-overview';details.className='ui-disclosure launch-fee-overview';
-    const summary=document.createElement('summary');summary.textContent='Fee breakdown';
-    overview.before(details);details.append(summary,overview);
+    const section=document.createElement('section');section.id='launch-fee-overview';section.className='launch-fee-overview';
+    section.setAttribute('aria-label','Fee breakdown');
+    overview.before(section);section.append(overview);
   }
 }

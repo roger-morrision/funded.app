@@ -67,6 +67,24 @@ html body.page-route-launch #launch-dialog[data-step="2"] .launch-preview-sticky
 html body.page-route-launch #launch-dialog #launch-promotion-options { margin-top: 24px; border: 1px solid var(--cp-line); border-radius: 8px; }
 html body.page-route-launch #launch-dialog #launch-promotion-options > summary { min-height: 44px; padding: 16px; cursor: pointer; font-weight: 600; }
 html body.page-route-launch #launch-dialog #launch-promotion-options > section { padding: 16px; margin: 0; border: 0; }
+html body.page-route-launch #launch-dialog #launch-project-links { padding: 16px; margin: 16px 0; border: 1px solid var(--cp-line); border-radius: 8px; }
+html body.page-route-launch #launch-dialog #launch-project-links h3 { margin: 0; font-size: 15px; line-height: 1.4; }
+html body.page-route-launch #launch-dialog #launch-project-links h3 span { font-weight: 400; color: var(--cp-muted); font-size: 13px; }
+html body.page-route-launch #launch-dialog #launch-project-links > .field-help { margin: 8px 0 16px; padding: 0; }
+html body.page-route-launch #launch-dialog #launch-project-links .social-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin: 0; }
+html body.page-route-launch #launch-dialog #launch-project-links label { display: grid; gap: 8px; margin: 0; font-size: 13px; }
+html body.page-route-launch #launch-dialog #launch-project-links input { width: 100%; min-width: 0; min-height: 44px; margin: 0; }
+html body.page-route-launch #launch-dialog #launch-fee-overview { padding: 12px; border: 1px solid var(--cp-line); border-radius: 8px; }
+html body.page-route-launch #launch-dialog #launch-fee-overview .launch-fixed-distribution { margin: 0; padding: 0; }
+html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-summary { padding: 0; margin: 0; }
+html body.page-route-launch #launch-dialog #launch-fee-overview header { margin-bottom: 8px; }
+html body.page-route-launch #launch-dialog #launch-fee-overview header .eyebrow { display: none; }
+html body.page-route-launch #launch-dialog #launch-fee-overview header h3 { font-size: 15px; margin: 0; }
+html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories { gap: 6px; }
+html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories > article { padding: 8px; gap: 6px; }
+html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories strong { font-size: 18px; }
+html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-caption { margin-top: 8px; }
+@media(max-width:600px) { html body.page-route-launch #launch-dialog #launch-project-links .social-grid { grid-template-columns: minmax(0,1fr); gap: 12px; } }
 @media(max-width:700px) {
   html body.page-route-overview.product-experience-style #main-content .hero-section { padding: 28px 0 24px !important; }
   html body #main-content .home-start-grid { grid-template-columns: minmax(0,1fr); gap: 12px; }
@@ -135,7 +153,7 @@ html body #main-content #coin-page .coin-hero-card[data-launch-tier]:not([data-l
 html body #main-content #coin-page .coin-hero-about { height: auto; max-height: 340px; }
 html body #main-content #coin-page .coin-package-rail { display: flex; flex-direction: row; flex: 0 1 260px; align-items: flex-start; flex-wrap: wrap; gap: 8px; width: auto; max-width: 100%; }
 html body #main-content #coin-page .coin-package-rail .coin-watch { align-self: flex-start; min-width: 44px; min-height: 44px; margin: 0; }
-html body #main-content #coin-page .coin-promotion-details { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 320px; }
+html body #main-content #coin-page .coin-promotion-details { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 0; max-width: 320px; }
 html body #main-content #coin-page .coin-promotion-details > #coin-boost { width: auto; min-height: 44px; padding: 10px 16px; }
 html body #main-content #coin-page #coin-boost-packages:empty { display: none; }
 html body #main-content #coin-page .coin-promotion-note { max-width: 32ch; font-size: 13px; line-height: 1.5; color: var(--cp-muted); }

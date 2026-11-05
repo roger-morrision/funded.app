@@ -63,7 +63,7 @@ export function renderCoinPromotionBadge(
   if (!holder) {
     holder = document.createElement('span');
     holder.id = 'coin-promotion-badge';
-    rail.querySelector('.coin-promotion-details').append(holder);
+    rail.querySelector('.coin-promotion-details').prepend(holder);
   }
   holder.replaceChildren();
   const presentation = coinDetailPackage(verifiedLaunchPolicyForMint(mint));
@@ -79,7 +79,7 @@ export function renderCoinPromotionBadge(
     artworkLabel.textContent = badge ? `${presentation.label} launch · ${Number(badge.amountTokens).toLocaleString()} $FUNDED burned` : '';
   }
   const packageElement = document.createElement(badge ? 'a' : 'span');
-  packageElement.className = 'explore-tier-badge';
+  packageElement.className = `explore-tier-badge promotion-badge promotion-badge--${presentation.tier}`;
   packageElement.dataset.tier = presentation.tier;
   if (badge) {
     packageElement.href = exploreExplorer(`tx/${encodeURIComponent(badge.signature)}`);
@@ -90,7 +90,7 @@ export function renderCoinPromotionBadge(
   } else {
     packageElement.title = presentation.tier === 'standard' ? 'Verified standard launch; no paid promotion burn' : 'Launch package cannot be verified yet';
   }
-  packageElement.textContent = presentation.label;
+  packageElement.textContent = badge?.label || presentation.label;
   holder.append(packageElement);
   renderCoinRegistryIdentity(mint);
   renderCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint);
