@@ -107,11 +107,18 @@ export function initBonusDashboard(document = globalThis.document) {
     const owned = eligible && currentHistoryOwner(owner) && sameHistoryOwner(historyState?.owner, owner)
       && document.hasFocus() && original?.isConnected && rows.contains(original)
       && historyState.records.some(record => record.recipient === original);
+    const before = owned ? original.getBoundingClientRect() : null;
+    const wasVisible = before && before.top >= 0 && before.bottom <= view.innerHeight;
     let intervened = false;
     const focusChanged = event => { if (event.target !== original && event.target !== document.body) intervened = true; };
     if (owned) document.addEventListener('focusin', focusChanged, true);
     try {
       mutate();
+      // Taller mobile records can push a retained keyboard target below the viewport.
+      // Follow only the already-visible recipient that still owns focus in this history.
+      if (wasVisible && original.isConnected && !intervened && document.activeElement === original
+        && currentHistoryOwner(owner) && document.hasFocus() && !document.hidden)
+        original.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'instant' });
       if (owned && !original.isConnected && !intervened && document.activeElement === document.body
         && currentHistoryOwner(owner) && document.hasFocus() && !document.hidden
         && select.isConnected && !select.disabled && select.getClientRects().length
