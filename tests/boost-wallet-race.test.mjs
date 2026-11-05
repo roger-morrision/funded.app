@@ -8,7 +8,7 @@ import { validateBoostQuote, archiveBoostPayment } from '../boost-checkout-recov
 const source = await readAppSource();
 const handler = source.slice(source.indexOf('async function handleExploreBoostPay(){'), source.indexOf('async function verifyExploreBoostPayment('));
 test('wallet change during boost broadcast preserves the signed quote for payment verification', async () => {
-  const quote = { id: 'boost_123_0123456789abcdef', cluster: 'devnet', mint: 'mint', packageId: '10x', payer: 'payer', expiresAt: new Date(Date.now() + 60_000).toISOString(), recipient: '1'.repeat(32), lamports: 10, usd: 99, solUsd: 100, memo: 'funded.vip:boost:devnet:boost_123_0123456789abcdef' };
+  const quote = { id: 'boost_123_0123456789abcdef', cluster: 'devnet', mint: 'mint', packageId: '10x', payer: 'payer', expiresAt: new Date(Date.now() + 60_000).toISOString(), recipient: '1'.repeat(32), lamports: 10, usd: 49.5, solUsd: 100, memo: 'funded.vip:boost:devnet:boost_123_0123456789abcdef' };
   const checkout = { mint: 'mint', packageId: '10x', quote, busy: false, pendingSignature: null };
   class Transaction { add() { return this; } compileMessage() { return {}; } }
   const saved = [];

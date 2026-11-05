@@ -66,9 +66,11 @@ test('loading verified history unlocks the package picker after server-side reco
   assert.equal(readPendingBoost(mint, storage), null);
 });
 test('quotes require matching identity, network, price, safe units, future expiry and exact memo', () => {
-  assert.equal(validateBoostQuote(quote, quote), quote);
+  const current={...quote,usd:49.5,lamports:495000000};
+  assert.equal(validateBoostQuote(current, current), current);
+  assert.throws(()=>validateBoostQuote(quote,quote),'An unsigned old-price quote requires refresh; signed old-price payments remain recoverable above.');
   for (const field of [{ cluster: 'mainnet-beta' }, { lamports: Number.MAX_SAFE_INTEGER + 1 }, { expiresAt: 'not-a-date' }, { expiresAt: '2020-01-01' }, { usd: 100 }, { memo: 'different' }, { mint: 'different' }]) {
-    assert.throws(() => validateBoostQuote({ ...quote, ...field }, quote));
+    assert.throws(() => validateBoostQuote({ ...current, ...field }, current));
   }
 });
 

@@ -120,14 +120,25 @@ for(const width of [320,390,768,1440,1800])test(`Home compact cards are newest f
   document.querySelector('.home-launch-board').dataset.discovery='new';
   const assets=Array.from({length:8},(_,i)=>({address:String(i+1).repeat(32),name:'A long community token '+i,symbol:'COIN'+i,createdTimestamp:100+i,volume24hSol:i===0?1000:i===7?null:i,curveCapSol:100+i,verifiedAt:new Date().toISOString(),complete:false,activityWindows:{'24h':{coverage:'partial',trending:{basis:'observed-wallet-participation-v1',score:i===7?0:10-i,walletCount:3}}}}));
   const state={assets,homeLaunchWindow:'24h',homeFeeAmounts:new Map(),EXPLORE_CLUSTER:'devnet',coinSolUsdPrice:100,homeLaunchSort:'volume',verifiedBoosts:{},exploreFeedAvailable:true};
+  assets[7].migrated=true;assets[7].holders=12;
+  assets[6].curveProgressBasis='pump-global';assets[6].curveProgressPercent=42;assets[6].holderWalletCount=23;assets[6].holderWalletCoverage='lower-bound';
   const policy=()=>({onchainVerified:true});
   CommunityFixture.renderHomeLaunchBoard(state,{verifiedLaunchPolicyForMint:policy,withVerifiedExploreBenefits:x=>x,launchCardVolumeUsd:()=>'$1',exploreBoostAmountMarkup:()=>'',getWatchlist:()=>[],promotionForMint:()=>null,formatCoinUsd:n=>n==null?'—':`$${n}`,loadVerifiedTokenLogos:()=>{},
    setupHomeTicker:(el,html)=>el.innerHTML=html,
-   homeLaunchCardMarkup:(item,options)=>CommunityFixture.homeLaunchCardMarkup(item,options,{verifiedBoosts:{},EXPLORE_CLUSTER:'devnet'},{formatOnchainAge:()=> '1h',formatCoinUsd:n=>n==null?'—':`$${n}`}),
+   homeLaunchCardMarkup:(item,options)=>CommunityFixture.homeLaunchCardMarkup(item,options,{verifiedBoosts:{[assets[7].address]:{multiplier:10,expiresAt:new Date(Date.now()+3600000).toISOString()}},EXPLORE_CLUSTER:'devnet'},{formatOnchainAge:()=> '1h',formatCoinUsd:n=>n==null?'—':`$${n}`}),
    decorateHomeLaunchCard:card=>CommunityFixture.decorateHomeLaunchCard(card,card.dataset.mint,{}, {promotionElement:()=>null,verifiedLaunchPolicyForMint:policy})});
  });
  const cards=page.locator('#home-launch-grid .home-new-token-card');await expect(cards).toHaveCount(6);
  expect(await cards.evaluateAll(nodes=>nodes.map(n=>n.dataset.mint[0]))).toEqual(['8','7','6','5','4','3']);
+ await expect(cards.first().locator('.home-new-token-holders')).toHaveText('Holders12');
+ await expect(cards.first().getByRole('progressbar')).toHaveAttribute('aria-valuenow','100');
+ await expect(cards.nth(1).locator('.home-new-token-holders')).toHaveText('Holders≥23');
+ await expect(cards.nth(1).getByRole('progressbar')).toHaveAttribute('aria-valuenow','42');
+ await expect(cards.nth(2).locator('.home-new-token-holders')).toHaveText('HoldersUnavailable');
+ await expect(cards.nth(2).locator('.home-new-token-track')).not.toHaveAttribute('aria-valuenow');
+ await expect(cards.first().locator('.home-new-token-heading .boost-package-badge')).toHaveText('⚡10x');
+ await expect(page.locator('#home-launch-grid .participation-note')).toHaveCount(0);
+ const holders=await cards.first().locator('.home-new-token-holders').boundingBox(),progress=await cards.first().locator('.home-new-token-progress').boundingBox();expect(holders.y+holders.height).toBeLessThanOrEqual(progress.y);
  await expect(page.locator('#home-market-ticker-items > a').first()).toHaveAttribute('href','/token/'+'1'.repeat(32));
  await expect(page.locator('#home-market-ticker-items > a[href="/token/'+'8'.repeat(32)+'"]')).toHaveCount(0);
  for(const card of await cards.all()){await expect(card).toBeVisible();await expect(card.locator('.home-launch-media-package')).toContainText('Standard');const box=await card.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);}

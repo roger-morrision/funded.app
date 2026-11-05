@@ -59,7 +59,8 @@ test('any wallet can quote a verified directory token and no payment activates w
     const quote = await quoted.json();
     assert.equal(quote.payer, payer);
     assert.notEqual(quote.payer, recipient);
-    assert.equal(quote.lamports, 990_000_000);
+    assert.equal(quote.usd, 49.5);
+    assert.equal(quote.lamports, 495_000_000);
     assert.equal(quote.memo, `funded.vip:boost:devnet:${quote.id}`);
     const persisted = JSON.parse(await readFile(storePath, 'utf8'));
     assert.equal(persisted.boostQuotes[quote.id].payer, payer);
@@ -80,7 +81,7 @@ test('any wallet can quote a verified directory token and no payment activates w
     assert.equal(pending.status, 202, 'Missing proof must remain uncertain.');
     assert.equal((await pending.json()).status, 'pending');
     paymentProof = { blockTime:Math.floor(Date.now() / 1000), slot:123, version:'legacy',
-      meta:{ err:null, fee:5000, preBalances:[1_000_000_000,0], postBalances:[9_995_000,990_000_000],
+      meta:{ err:null, fee:5000, preBalances:[1_000_000_000,0], postBalances:[1_000_000_000-quote.lamports-5000,quote.lamports],
         innerInstructions:[], logMessages:[], preTokenBalances:[], postTokenBalances:[], rewards:[], status:{ Ok:null } },
       transaction:{ signatures:[signature], message:{ recentBlockhash:recipient,
         accountKeys:[{ pubkey:payer, signer:true, writable:true, source:'transaction' },

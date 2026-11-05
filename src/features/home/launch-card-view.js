@@ -189,15 +189,6 @@ export function homeLaunchCardMarkup(
     const capLabel = displayMarket.migrated === true ? 'Market cap' : 'Curve cap';
     const shownVolume = volumeValue;
     const value = EXPLORE_CLUSTER === 'devnet' ? formatCoinUsd(capSol) : item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : '—';
-    if (compact) {
-      const priceSol = displayMarket.migrated === true ? displayMarket.poolPriceSol : displayMarket.complete === false ? displayMarket.curvePriceSol : null;
-      const usd = EXPLORE_CLUSTER === 'devnet' ? (Number.isFinite(priceSol) && Number.isFinite(coinSolUsdPrice) ? priceSol*coinSolUsdPrice : null) : item.priceUsd;
-      const price = Number.isFinite(usd) && usd > 0 ? `$${usd.toLocaleString(undefined,{maximumSignificantDigits:4})}` : Number.isFinite(priceSol) && priceSol > 0 ? `${priceSol.toLocaleString(undefined,{maximumSignificantDigits:4})} SOL` : '—';
-      const policy = verifiedLaunchPolicyForMint?.(item.address);
-      const creator = policy?.onchainVerified ? policy.creatorWallet : item.creator;
-      return compactLaunchCard(item,{value,ageLabel,price,creator:typeof creator==='string'&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(creator)?creator:null,
-        stage:displayMarket.migrated===true?'Migrated · PumpSwap':displayMarket.complete===false?'On Pump curve':displayMarket.complete===true?'Curve complete':'Stage unavailable',freshness:marketFreshness(item,EXPLORE_CLUSTER)});
-    }
     const providerHolders = item.holders == null || item.holders === '' ? NaN : Number(item.holders);
     const accountHolders = item.holderWalletCount == null || item.holderWalletCount === '' ? NaN : Number(item.holderWalletCount);
     const holderCount = Number.isFinite(providerHolders) && providerHolders >= 0
@@ -206,6 +197,15 @@ export function homeLaunchCardMarkup(
     const holderTitle = Number.isFinite(providerHolders)
       ? 'Holder count from the indexed market provider'
       : Number.isFinite(accountHolders) ? `${item.holderWalletCoverage === 'lower-bound' ? 'At least ' : ''}${accountHolders} distinct wallet owner${accountHolders === 1 ? '' : 's'} in confirmed non-vault token accounts${item.holderWalletCoverage === 'lower-bound' ? ' · largest-account sample only' : ''}` : 'Verified holder count unavailable';
+    if (compact) {
+      const priceSol = displayMarket.migrated === true ? displayMarket.poolPriceSol : displayMarket.complete === false ? displayMarket.curvePriceSol : null;
+      const usd = EXPLORE_CLUSTER === 'devnet' ? (Number.isFinite(priceSol) && Number.isFinite(coinSolUsdPrice) ? priceSol*coinSolUsdPrice : null) : item.priceUsd;
+      const price = Number.isFinite(usd) && usd > 0 ? `$${usd.toLocaleString(undefined,{maximumSignificantDigits:4})}` : Number.isFinite(priceSol) && priceSol > 0 ? `${priceSol.toLocaleString(undefined,{maximumSignificantDigits:4})} SOL` : '—';
+      const policy = verifiedLaunchPolicyForMint?.(item.address);
+      const creator = policy?.onchainVerified ? policy.creatorWallet : item.creator;
+      return compactLaunchCard(item,{value,ageLabel,price,creator:typeof creator==='string'&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(creator)?creator:null,
+        progress,holderCount,holderTitle,boostMarkup:boostPackageBadgesMarkup(verifiedBoosts?.[item.address]),freshness:marketFreshness(item,EXPLORE_CLUSTER)});
+    }
     const launchPolicy = verifiedLaunchPolicyForMint(item.address);
     const mintLabel = item.address ? `${item.address.slice(0, 5)}…${item.address.slice(-4)}` : 'Unavailable';
     const feeRoute = homeLaunchFeeRouteMarkup(launchPolicy);

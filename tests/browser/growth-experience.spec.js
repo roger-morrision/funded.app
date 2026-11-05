@@ -14,11 +14,14 @@ async function setup(page,path='/#overview'){
 for(const width of [320,390,1440])test(`discovery controls and honest offline states at ${width}px (mocked)`,async({page},info)=>{
  await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));await setup(page);
  const nav=page.locator('#home-discovery-controls');await expect(nav).toBeVisible();
+ await expect(nav.locator('button').first()).toHaveText('New');await expect(nav.locator('[data-home-discovery="new"]')).toHaveAttribute('aria-pressed','true');
  expect((await nav.boundingBox()).y).toBeLessThan(500);
  for(const [value,title] of [['new','New coins'],['near','Near graduation'],['saved','Your favorite coins'],['trending','Trending coins']]){
   await page.locator(`[data-home-discovery="${value}"]`).click();await expect(page.locator('#home-launch-board-title')).toHaveText(title);
  }
  await expect(page.locator('#home-ranking-note')).toContainText('Paid boosts do not affect');
+ await page.evaluate(()=>location.hash='explore');await expect(page.locator('body')).toHaveClass(/page-route-explore/);
+ await page.evaluate(()=>location.hash='overview');await expect(nav.locator('[data-home-discovery="new"]')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#home-ranking-note')).toBeHidden();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.screenshot({path:info.outputPath('discovery.png'),animations:'disabled'});expect(errors).toEqual([]);
 });

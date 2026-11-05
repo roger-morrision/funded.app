@@ -25,7 +25,7 @@ export function renderHomeLaunchBoard(state, {
   // Home previews discovery. Ignore saved scanner filters without changing them;
   // the complete controls and list are available in Explore.
   const homePreview = Boolean(document.querySelector('.home-start'));
-  const discovery = document.querySelector('.home-launch-board')?.dataset.discovery || 'trending';
+  const discovery = document.querySelector('.home-launch-board')?.dataset.discovery || 'new';
   if (homePreview) state = {...state,homeLaunchView:'grid',homeLaunchTab:'all',homeLaunchFilters:{},homeLaunchPaused:false};
   const {
     homeLaunchView,
@@ -255,7 +255,7 @@ export function renderHomeLaunchBoard(state, {
     }).join('');
     loadVerifiedTokenLogos(tableBody);
   }
-  if(homePreview){homeLiveCards(grid,visible,{preserveOrder:discovery!=='new',markup:item=>homeLaunchCardMarkup(item,{volumeLabel:homeLaunchWindow,volumeValue:volumeUsd(item),compact:true}),decorate:(card,mint)=>{decorateHomeLaunchCard(card,mint);const item=visible.find(row=>row.address===mint),metric=item&&trendingMetric(item,homeLaunchWindow);card.querySelector('.participation-note')?.remove();if(metric){const note=document.createElement('small');note.className='participation-note';note.textContent=`${metric.walletCount} observed wallets${metric.concentrated?' · Concentrated volume':''}`;note.title='Wallets are not unique people; concentrated volume is not proof of manipulation.';card.querySelector('.home-new-token-body')?.append(note);}},loadLogos:loadVerifiedTokenLogos});return;}
+  if(homePreview){homeLiveCards(grid,visible,{preserveOrder:discovery!=='new',markup:item=>homeLaunchCardMarkup(item,{volumeLabel:homeLaunchWindow,volumeValue:volumeUsd(item),compact:true}),decorate:decorateHomeLaunchCard,loadLogos:loadVerifiedTokenLogos});return;}
   grid.innerHTML = visible.map(item => homeLaunchCardMarkup(item, { volumeLabel: homeLaunchWindow, volumeValue: volumeUsd(item), compact:false })).join('');
   grid.querySelectorAll('.home-launch-card,.home-new-token-card').forEach((card, index) => decorateHomeLaunchCard(card, visible[index]?.address));
   loadVerifiedTokenLogos(grid);

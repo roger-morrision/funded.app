@@ -196,7 +196,16 @@ html body #main-content .home-new-token-body { padding:0;gap:6px;min-width:0;gri
 html body #main-content .home-new-token-heading { padding-right:0; }
 html body #main-content .home-new-token-heading strong { font-size:14px; }
 html body #main-content .home-new-token-card .home-launch-media-package { min-height:0;grid-row:1;grid-column:2;justify-self:end;align-self:start; }
-html body #main-content .home-new-token-body > :is(.home-new-token-market,.home-new-token-meta,.home-new-token-footer) { grid-column:1 / -1; }
+html body #main-content .home-new-token-body > :is(.home-new-token-market,.home-new-token-meta,.home-new-token-holders,.home-new-token-footer) { grid-column:1 / -1; }
+html body #main-content .home-new-token-holders { display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cp-muted); }
+html body #main-content .home-new-token-holders strong { color:var(--cp-text);font-weight:600; }
+html body #main-content .home-new-token-progress { flex:1;min-width:0; }
+html body #main-content .home-new-token-progress > div:first-child { display:flex;justify-content:space-between;gap:8px;font-size:10px;line-height:1.4;margin-bottom:5px; }
+html body #main-content .home-new-token-progress strong { font-weight:500;text-align:right;color:var(--cp-text); }
+html body #main-content .home-new-token-track { height:5px;border-radius:4px;background:var(--cp-line);overflow:hidden; }
+html body #main-content .home-new-token-track i { display:block;height:100%;background:var(--cp-accent);border-radius:inherit; }
+html body #main-content .home-new-token-heading .boost-package-badges { flex:none;white-space:nowrap; }
+html body #main-content .home-new-token-heading .boost-package-badge { font-size:10px;color:var(--cp-accent); }
 html body #main-content .home-new-token-market { justify-content:flex-start;flex-wrap:wrap;gap:6px; }
 html body #main-content .home-new-token-market strong { font-size:13px;color:var(--success,#8de3af); }
 html body #main-content .home-new-token-meta { justify-content:flex-start;flex-wrap:wrap;gap:6px;font-family:inherit; }

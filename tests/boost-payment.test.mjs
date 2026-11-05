@@ -17,9 +17,9 @@ function receipt(overrides = {}) {
 }
 
 test('package pricing uses safe integer lamports and refuses stale or invalid rates', () => {
-  assert.deepEqual(BOOST_PACKAGES.map(item => [item.id,item.hours,item.usd]), [['10x',12,99],['30x',12,249],['50x',12,399],['100x',24,899],['500x',24,3999]]);
-  assert.equal(boostLamports(99, 100), 990_000_000);
-  assert.throws(() => boostLamports(99, 0));
+  assert.deepEqual(BOOST_PACKAGES.map(item => [item.id,item.hours,item.usd]), [['10x',12,49.5],['30x',12,124.5],['50x',12,199.5],['100x',24,449.5],['500x',24,1999.5]]);
+  assert.equal(boostLamports(49.5, 100), 495_000_000);
+  assert.throws(() => boostLamports(49.5, 0));
 });
 
 test('receipt requires exact payer, recipient, amount, memo, and finalized proof', () => {
