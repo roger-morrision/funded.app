@@ -14,6 +14,9 @@ for(const width of [320,390,768,1440])test(`Home unified conversation rail at ${
   ...Array.from({length:8},(_,i)=>({...base,id:`chat_${i}`,text:'Another message'}))]);
  const panel=page.locator('#home-community');await expect(panel).toBeVisible();
  await expect(panel.locator('.home-community-message')).toHaveCount(10);
+ await expect(panel.locator('.home-community-token .home-token-avatar')).toHaveCount(10);
+ await expect(panel.locator('.home-community-token strong').first()).toHaveText('$COMM');
+ await expect(panel.locator('[data-report-message]')).toHaveCount(0);
  await expect(panel.locator('[data-message-id="chat_plain"] .home-community-metrics')).toHaveCount(0);
  await expect(panel.locator('[data-message-id="chat_call"]')).toContainText('PurchasedUnavailableP&LUnavailable');
  await expect(panel.locator('[data-message-id="chat_call"]')).toContainText('MC since call: +12.5%');
@@ -34,7 +37,7 @@ async function setup(page,width,path,feed){
   if(feed)await page.route('**/api/token-chat/feed',r=>r.fulfill({json:{messages:feed}}));
   await page.goto(path);await page.locator('body.product-flows-ready').waitFor();await page.addScriptTag({content:fixture});
 }
-test('Home composer connects without posting, then posts to selected token and reports explicitly (mocked wallet)',async({page})=>{
+test('Home composer connects without posting, then posts to selected token (mocked wallet)',async({page})=>{
  await setup(page,390,'/#overview',[]);
  await page.evaluate(mint=>{
   document.querySelector('#home-community').remove();window.homeTestCalls=[];
@@ -48,10 +51,6 @@ test('Home composer connects without posting, then posts to selected token and r
  await panel.locator('select').selectOption(mint);await panel.locator('textarea').fill('My selected token');await panel.getByRole('button',{name:'Post',exact:true}).click();
  await expect(panel.locator('[role="status"]')).toHaveText('Call posted.');await expect(panel.locator('textarea')).toHaveValue('');
  expect(await page.evaluate(()=>homeTestCalls)).toEqual([{action:'post',payload:{text:'My selected token'},target:mint}]);
- await panel.locator('.home-community-feed').evaluate((node,mint)=>{node.innerHTML=`<button data-report-message="chat_fixture" data-report-mint="${mint}">Report</button>`;},mint);
- page.once('dialog',dialog=>dialog.accept('impersonation'));await panel.getByRole('button',{name:'Report',exact:true}).click();
- await expect(panel.locator('[role="status"]')).toHaveText('Report submitted.');
- expect(await page.evaluate(()=>homeTestCalls[1])).toEqual({action:'report',payload:{messageId:'chat_fixture',reason:'impersonation'},target:mint});
 });
 for(const width of [320,390,768,1440]) {
   test(`token header, single Post and rewards dashboard at ${width}px (mocked data)`,async({page},info)=>{
