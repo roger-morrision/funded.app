@@ -227,7 +227,9 @@ export function navigation() {
       for (const button of helpPanel.querySelectorAll('[data-help-topic]')) button.setAttribute('aria-pressed', String(button === choice));
       const answer = helpPanel.querySelector('.help-topics-answer');
       answer.querySelector('strong').textContent = topic.title;
-      answer.querySelector('p').textContent = topic.answer;
+      let points=answer.querySelector('ul');
+      if(!points){points=document.createElement('ul');points.className='guidance-outline';answer.querySelector('p').replaceWith(points);}
+      points.replaceChildren(...(topic.points||[topic.answer]).map(text=>{const item=document.createElement('li');item.textContent=text;return item;}));
       const link = answer.querySelector('a');
       link.href = topic.href;
       link.textContent = topic.link;

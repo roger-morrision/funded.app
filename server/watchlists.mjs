@@ -3,6 +3,7 @@ import { allowedAuthOrigin } from './x-auth.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { createHash } from 'node:crypto';
 import { cookieValue } from './x-auth.mjs';
+import {createAccountPreferencesHandler} from './account-preferences.mjs';
 
 const invalid = message => Object.assign(new Error(message), { statusCode: 400 });
 export function updateWatchlist(prior, input) {
@@ -25,7 +26,9 @@ export function updateWatchlist(prior, input) {
 }
 
 export function createWatchlistHandler({ store, cluster, getSession, getWalletSession = async () => null, origin = process.env.CORS_ORIGIN }) {
+  const preferences=createAccountPreferencesHandler({store,cluster,getWalletSession,origin});
   return async (req, res, url) => {
+    if(await preferences(req,res,url))return true;
     if (url.pathname !== '/api/watchlist') return false;
     const reply = (status, data) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'private, no-store' }); res.end(JSON.stringify(data)); return true; };
     const requested = url.searchParams.get('accountId');

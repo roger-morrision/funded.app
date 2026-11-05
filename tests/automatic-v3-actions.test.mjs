@@ -7,7 +7,7 @@ test('automation selects exact funded allocations and leaves ambiguous transfers
       protocol:{communityLamports:'4',operationsLamports:'8',referralLamports:['1','0','0']}}}},
     v3CreatorWalletPayout:{source:{status:'verification-pending',signature:'uncertain'}}};
   const rows=automaticV3Actions(state);
-  assert.deepEqual(rows.map(row=>row.action),['creator-reward-funding','community-funding','operations-payout','referral-payout']);
-  assert.equal(rows.at(-1).level,1);
+  assert.deepEqual(rows.map(row=>row.action),['creator-reward-funding','community-funding','operations-payout']);
+  assert(!rows.some(row=>['referral-payout','creator-wallet-payout'].includes(row.action)));
   state.launches.mint.archivedAt=new Date().toISOString();assert.deepEqual(automaticV3Actions(state),[]);
 });

@@ -103,7 +103,6 @@ const fundedSwapPool = String(process.env.FUNDED_SWAP_POOL || process.env.VITE_F
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getGenesisHash', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/referrals/session/prepare', '/api/referrals/session/verify', '/api/referrals/session/logout', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata']);
 publicPostPaths.add('/api/airdrops/reserves/receipt');
-publicPostPaths.add('/api/airdrops/claims/claim-instruction');
 publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-origin check.
 publicPostPaths.add('/api/shares/visit');
 publicPostPaths.add('/api/boosts/quote');

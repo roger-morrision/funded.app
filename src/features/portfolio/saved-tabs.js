@@ -1,4 +1,5 @@
 import { updateCompactTokenLink } from '../shared/compact-token.js';
+import {formatTokenBaseAmount} from '../../../trade-panel-balance.js';
 
 export function mountSavedPortfolioTabs(app, document = globalThis.document) {
   const tabs=document.querySelector('.portfolio-view-tabs');if(!tabs)return;
@@ -11,9 +12,19 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
     tabs.append(button);tabs.parentElement.append(panel);panels.set(key,panel);
   }
   const link=(label,href)=>Object.assign(document.createElement('a'),{textContent:label,href});
+  let totals=null,totalWallet=null,lastRead=0,loadId=0,loading=false;
+  const sol=value=>/^-?(0|[1-9]\d*)$/.test(String(value))?`${BigInt(value)<0n?'-':''}${formatTokenBaseAmount(String(BigInt(value)<0n?-BigInt(value):BigInt(value)),9,9)} SOL`:'-';
+  async function loadTotals(){
+    const wallet=app.connectedWalletAddress;if(!wallet||loading||Date.now()-lastRead<30000)return;
+    loading=true;lastRead=Date.now();const id=++loadId;
+    try{const result=await app.apiRequest(`/api/rewards/totals?wallet=${encodeURIComponent(wallet)}`,{signal:AbortSignal.timeout(20000)});
+      if(id===loadId&&wallet===app.connectedWalletAddress)totals=result.available&&result.data?.wallet===wallet?result.data:null;
+    }catch{if(id===loadId)totals=null;}finally{if(id===loadId){loading=false;render();}}
+  }
   function render() {
+    if(totalWallet!==app.connectedWalletAddress){totalWallet=app.connectedWalletAddress;totals=null;lastRead=0;loading=false;loadId++;}
     const tracking=panels.get('tracking'),favorites=panels.get('favorites');
-    tracking.innerHTML='<h3>Tracking wallets</h3><p>Public wallets you follow on this device. Tracking never authorizes transactions.</p><div class="portfolio-saved-list"></div>';
+    tracking.innerHTML='<h3>Tracking wallets</h3><div class="portfolio-saved-list"></div>';
     favorites.innerHTML='<h3>Favorited coins</h3><p>Your saved coins, with available market data.</p><div class="portfolio-saved-list"></div>';
     const wallets=app.getFollowedWallets(),coins=app.getWatchlist();
     for(const {address} of wallets) {
@@ -24,24 +35,24 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
       const full=document.createElement('small');full.textContent=address;identity.append(full);row.append(avatar,identity);
       const actions=document.createElement('div');actions.className='portfolio-wallet-actions';actions.append(link('View wallet →',`/wallet/${encodeURIComponent(address)}`));
       const remove=document.createElement('button');remove.type='button';remove.className='secondary-button';remove.textContent='Unfollow';remove.setAttribute('aria-label',`Unfollow ${address}`);
-      remove.addEventListener('click',()=>{if(app.saveFollowedWallet(address,{remove:true}))render();});actions.append(remove);row.append(actions);tracking.lastElementChild.append(row);
+      remove.addEventListener('click',async()=>{if(await app.saveFollowedWallet(address,{remove:true}))render();});actions.append(remove);row.append(actions);tracking.lastElementChild.append(row);
     }
     for(const mint of coins) {
       const row=document.createElement('article');row.className='portfolio-tracked-row';
       const coin=document.createElement('a');updateCompactTokenLink(coin,{mint,launch:app.verifiedLaunchPolicyForMint(mint)},document);row.append(coin);favorites.lastElementChild.append(row);
     }
     if(!wallets.length)tracking.lastElementChild.textContent='No tracked wallets yet. Open a wallet profile and choose Follow wallet.';
-    if(!coins.length)favorites.lastElementChild.textContent=app.watchlistUnavailable?'Favorites are unavailable. Check browser storage and try again.':'No favorites yet. Use the star on a coin to save it here.';
+    if(!coins.length)favorites.lastElementChild.textContent=app.watchlistUnavailable?'-':'No favorites yet. Use the star on a coin to save it here.';
     tracking.append(link('Find wallets →','#leaderboard'));favorites.append(link('Explore coins →','#explore'));
     for(const key of ['rewards','referral']) {
       const panel=panels.get(key);panel.replaceChildren();
-      const heading=document.createElement('h3');heading.textContent=key==='rewards'?'Check my rewards':'My referral';
+      const heading=document.createElement('h3');heading.textContent=key==='rewards'?'Total rewards received':'My referral';
       const identity=document.createElement('p');identity.textContent=app.connectedWalletAddress?`Connected wallet · ${app.shortAddress(app.connectedWalletAddress)}`:'Connect your wallet to check your personal results.';panel.append(heading,identity);
       const cards=document.createElement('div');cards.className='portfolio-action-cards';
       const items=key==='rewards'?[
-        ['Daily bonus','Check your ranking, completed reward periods, and payments.','#bonuses','Check my bonus →'],
-        ['$FUNDED Holder airdrops','Check eligible token allocations and claim deadlines.','#airdrops','Check my airdrops →'],
-        ['Coin Holder & creator rewards','Review confirmed SOL payouts and available claims.','#payments','Check my rewards →'],
+        ['Daily bonus',sol(totals?.bonusLamports),'#bonuses','View bonus history →'],
+        ['$FUNDED Holder airdrops',Array.isArray(totals?.airdrops)?totals.airdrops.length?totals.airdrops.map(row=>`${formatTokenBaseAmount(row.amountBaseUnits,row.decimals,row.decimals)} ${row.symbol}`).join(' · '):'0 tokens':'-','#airdrops','View airdrops →'],
+        ['Coin Holder & creator rewards',sol(totals?.rewardsLamports),'#payments','View rewards →'],
       ]:[
         ['Invite creators','Get your wallet-linked invite link and track your network.','#referrals','Open my referral dashboard →'],
         ['Referral payments','Review qualifying activity and verified payment receipts.','#referrals','Check my referral rewards →'],
@@ -49,6 +60,7 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
       for(const [title,description,href,action] of items){const card=link('',href);card.className='portfolio-action-card';const strong=document.createElement('strong'),note=document.createElement('span'),cta=document.createElement('b');strong.textContent=title;note.textContent=description;cta.textContent=action;card.append(strong,note,cta);cards.append(card);}panel.append(cards);
       if(!app.connectedWalletAddress){const connect=document.createElement('button');connect.type='button';connect.className='primary-button';connect.textContent='Connect wallet';connect.addEventListener('click',()=>document.querySelector('#connect-button')?.click());panel.append(connect);}
     }
+    void loadTotals();
   }
   tabs.addEventListener('click',render);tabs.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))render();});
   for(const event of ['funded:following-changed','funded:watchlist-changed','funded:route-change','funded:reward-identity-change'])document.defaultView.addEventListener(event,render);

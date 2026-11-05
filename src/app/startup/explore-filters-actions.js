@@ -83,23 +83,7 @@ export function initializeExploreFiltersActions(appState) {
   }, true);
   // app-source-end
 
-  // app-source: 812
-  document.querySelector('#airdrop-claim-list')?.addEventListener('click', event => {
-    const live = event.target.closest('[data-check-community-mint]');
-    if (live) {
-      const program = appState.getAirdropPrograms().find(row => row.id === live.dataset.checkCommunityMint);
-      if (program) { openAirdropDetail(program); void appState.checkCommunityClaim(program.id).catch(error => appState.showToast(String(error.message || error))); }
-      return;
-    }
-    const button = event.target.closest('[data-preview-claim]');
-    if (!button) return;
-    const claims = appState.getPreviewClaims();
-    claims[button.dataset.previewClaim] = { claimedAt: new Date().toISOString(), mode: 'local-preview' };
-    localStorage.setItem(appState.AIRDROP_PREVIEW_CLAIM_KEY, JSON.stringify(claims));
-    appState.renderAirdropClaims();
-    appState.showToast('Claim preview completed — no tokens were transferred');
-  });
-  // app-source-end
+  // Airdrop delivery is automatic; no recipient claim actions.
 
   // app-source: 813
   document.querySelectorAll('[data-airdrop-filter]').forEach(button => button.addEventListener('click', () => appState.renderAirdropClaims(button.dataset.airdropFilter)));
@@ -115,7 +99,7 @@ export function initializeExploreFiltersActions(appState) {
 
   // app-source: 815
   document.addEventListener('funded:airdrop-directory-status', event => {
-    if (!['all','curve','claiming'].includes(event.detail?.status)) return;
+    if (!['all','curve','distributed'].includes(event.detail?.status)) return;
     appState.airdropDirectoryStatus = event.detail.status;
     appState.airdropDirectoryPage = 1;
     hideAirdropDetail();
@@ -141,16 +125,7 @@ export function initializeExploreFiltersActions(appState) {
     const program = appState.getAirdropPrograms().find(item => item.id === button.dataset.directoryMint);
     if (!program) return;
     openAirdropDetail(program);
-    const wallet = appState.connectedWalletAddress;
-    // The scoped refresh temporarily marks this program as checking. Wait for
-    // it before reading claimActive, without reviving a closed or replaced detail.
-    void appState.loadCommunityReserveStatuses({ mint:program.id }).then(() => {
-      if (wallet && appState.connectedWalletAddress === wallet
-        && !selectedAirdrop.hidden && selectedAirdrop.dataset.mint === program.id
-        && document.body.classList.contains('page-route-airdrops')
-        && appState.getAirdropPrograms().find(item => item.id === program.id)?.claimActive)
-        return appState.checkCommunityClaim(program.id);
-    }).catch(error => appState.showToast(String(error.message || error)));
+    void appState.loadCommunityReserveStatuses({mint:program.id}).catch(error=>appState.showToast(String(error.message||error)));
   });
   // app-source-end
 
@@ -167,10 +142,7 @@ export function initializeExploreFiltersActions(appState) {
     }
     const button = event.target.closest('[data-fund-community-mint]');
     if (button) void appState.fundCommunityReserve(button.dataset.fundCommunityMint);
-    const check = event.target.closest('[data-check-community-mint]');
-    if (check) void appState.checkCommunityClaim(check.dataset.checkCommunityMint).catch(error => appState.showToast(String(error.message || error)));
-    const claim = event.target.closest('[data-claim-community-mint]');
-    if (claim) void appState.submitCommunityClaim(claim.dataset.claimCommunityMint);
+
   });
   // app-source-end
 

@@ -11,7 +11,7 @@ test('connected wallet receives its verified claim amount once per snapshot with
     const mint = 'So11111111111111111111111111111111111111112';
     const wallet = '11111111111111111111111111111111';
     const session = { address: wallet };
-    const programs = [{ id: mint, symbol: 'TEST', claimActive: true, snapshotHash: 'snapshot-a', status:'claiming' }];
+    const programs = [{ id: mint, symbol: 'TEST', claimActive: true, claimPublished:true, snapshotHash: 'snapshot-a', status:'claiming' }];
     const allocations = new Map();
     let proofRequests = 0;
     const mintData = new Uint8Array(45); mintData[44] = 6;
@@ -22,7 +22,7 @@ test('connected wallet receives its verified claim amount once per snapshot with
       getAirdropPrograms: () => programs,
       updateDirectoryWalletAmount(current, program, status, amount) {
         if (current !== session) return false;
-        allocations.set(program.id, { wallet, snapshotHash:program.snapshotHash, status, amount });
+        allocations.set(program.id, { wallet, snapshotHash:program.snapshotHash, status, amount, checkedAt:Date.now() });
         return true;
       },
       async apiRequest() { proofRequests++; return { available:true, data:{ status:'claimable', recipient:wallet,
@@ -33,13 +33,13 @@ test('connected wallet receives its verified claim amount once per snapshot with
     };
     Object.assign(state, createCommunityClaimsController(state));
     const directory = createAirdropDirectoryController(state);
-    await state.checkCommunityClaim(mint, { silent:true });
+    await state.loadCommunityAllocation(mint, { silent:true });
     assert.equal(directory.directoryWalletAmount(programs[0]), '123.4567 TEST');
-    await state.checkCommunityClaim(mint, { silent:true });
+    await state.loadCommunityAllocation(mint, { silent:true });
     assert.equal(proofRequests, 1);
     assert.equal(state.communityClaimReview, undefined);
     programs[0].snapshotHash = 'snapshot-b';
-    await state.checkCommunityClaim(mint, { silent:true });
+    await state.loadCommunityAllocation(mint, { silent:true });
     assert.equal(proofRequests, 2);
   } finally { globalThis.document = previousDocument; }
 });

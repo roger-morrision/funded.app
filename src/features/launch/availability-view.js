@@ -12,7 +12,7 @@ export function ensureLaunchAvailability(document = globalThis.document) {
                     <strong id="launch-availability-label">Checking launch service</strong>
                     <p id="launch-availability-guidance">You can prepare token details while this check runs.</p>
                   </div>
-                  <details id="launch-availability-details"><summary>Technical details</summary><p class="field-help" id="fee-router-status">Checking V3 launch readiness…</p></details>
+                  <details id="launch-availability-details"><summary>Launch checks</summary><p class="field-help" id="fee-router-status">Checking launch availability…</p></details>
                 </section>`;
   const row = template.content.firstElementChild;
   heading.after(row);

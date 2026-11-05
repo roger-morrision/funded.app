@@ -7,7 +7,7 @@ const directory = readFileSync(new URL('../src/app/controllers/airdrop-directory
 
 test('airdrop advanced details use plain placeholders before the snapshot', () => {
   assert.match(view, /'Shown after the holder snapshot'/);
-  assert.match(view, /'Shown once claims open'/);
+  assert.match(view, /'Shown once delivery opens'/);
   assert.match(directory, /: 'Not taken yet',/);
   for (const old of ['Pending verified snapshot', 'Pending published proof']) assert.ok(!view.includes(old), old);
   assert.ok(!directory.includes('Snapshot · unverified'));

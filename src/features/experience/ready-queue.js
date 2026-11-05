@@ -16,7 +16,7 @@ export function initializeReadyQueue(root, app) {
       ? 'Connect your launch or recipient wallet to check personal actions.'
       : `${ready.length} available creator approvals · ${uncertain.length} outcomes need checking${missing.length ? ' · Some records are unavailable' : ''}. Amounts are checked allocations, not a wallet balance.`;
     for (const row of [...ready,...uncertain].slice(0,4)) actions.append(link(`${row.action}: ${row.amount}`,row.href));
-    if (!checking && app.connectedWalletAddress && !ready.length) actions.append(link('Check claims and eligibility','#airdrops'));
+    if (!checking && app.connectedWalletAddress && !ready.length) actions.append(link('Check automatic airdrop eligibility','#airdrops'));
     if (cutoff) actions.append(el('p',`Next ranked bonus cutoff: ${utc(cutoff)}. Processing follows eligibility, funding and verification; this is not a payment promise.`));
   };
 }

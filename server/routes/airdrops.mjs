@@ -208,25 +208,21 @@ export function createAirdropsRoutes({
       }
       catch { return json(res, 422, { error:'Community opening receipt could not be verified.' }); }
     }
-    if (req.method === 'GET' && url.pathname === '/api/airdrops/claims/proof') {
+    if (req.method === 'GET' && url.pathname === '/api/airdrops/allocation') {
       const mint = url.searchParams.get('mint'), wallet = url.searchParams.get('wallet');
       if (!mint || !wallet) return json(res, 400, { error:'Mint and wallet are required.' });
       if (!await store.chargeRpcRate(`community-proof:${clientKey(req)}`, 1, 12, Math.floor(Date.now()/60000)*60000))
         return json(res, 429, { error:'Wait before requesting another community proof.' });
-      try { return json(res, 200, await (await communityClaimService(mint)).recipientProof({ mint, wallet })); }
-      catch { return json(res, 503, { error:'Community proof is temporarily unavailable.' }); }
-    }
-    if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/claim-instruction') {
-      if (!await store.chargeRpcRate(`community-claim:${clientKey(req)}`, 1, 6, Math.floor(Date.now()/60000)*60000))
-        return json(res, 429, { error:'Wait before requesting another community claim.' });
-      const input = await body(req);
       try {
-        const result = await (await communityClaimService(input.mint)).claimInstruction({ mint:input.mint, wallet:input.wallet });
-        return json(res, 200, { programId:result.instruction.programId.toBase58(),
-          accounts:result.instruction.keys.map(row => ({ pubkey:row.pubkey.toBase58(), isSigner:row.isSigner, isWritable:row.isWritable })),
-          data:result.instruction.data.toString('base64'), amount:result.amount,
-          payment:result.payment, recipientToken:result.recipientToken, vaultToken:result.vaultToken });
-      } catch { return json(res, 422, { error:'Community claim instruction is unavailable.' }); }
+        const proof=await (await communityClaimService(mint)).recipientProof({mint,wallet});
+        const ledger=await automaticRewardStore.read();
+        const automatic=ledger.communityDrops?.[mint]?.snapshotBasis==='pump-migration';
+        return json(res,200,{...proof,delivery:automatic?{mode:'automatic',
+          enabled:process.env.FUNDED_COMMUNITY_AUTO_DELIVERY_ENABLED==='true',
+          worker:ledger.communityDeliveryStatus?{status:ledger.communityDeliveryStatus.status,
+            checkedAt:ledger.communityDeliveryStatus.checkedAt}:null}:{mode:'manual-qa'}});
+      }
+      catch { return json(res, 503, { error:'Community proof is temporarily unavailable.' }); }
     }
     return false;
   }

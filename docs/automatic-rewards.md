@@ -10,12 +10,12 @@ The [agency policy](marketing-agency-policy.md#approved-rules) separates policy 
 
 | Program | Asset | Recipient action | Required evidence |
 | --- | --- | --- | --- |
-| Creator wallet | SOL | Automatic on an active funded automatic route; creator reviews/signs manual actions | Saved wallet share; finalized collection, settlement and transfer |
+| Creator wallet | SOL | Manual: Rewards → Coin Creator → select coin → Claim creator fees; sign with creator wallet | Saved wallet share; finalized collection, settlement and transfer |
 | Coin holders | SOL | Automatic; no claim or recipient signature | Funded pool, complete finalized holdings, prices and applicable minima |
 | X account | SOL | Named X account signs in, links receiving wallet and claims | Identity, ownership, funding and finalized receipt |
-| Referral network | SOL | No recipient claim; automatic delivery or creator approval on manual routes | Frozen first-touch upline, collected fees and finalized transfer |
+| Referral network | SOL | Manual: Referrals → Claim reward; sign the allocation message with the earning wallet | Frozen first-touch upline, collected fees and finalized transfer |
 | Daily bonus | SOL | Automatic; no claim or recipient signature | Completed UTC day, verified rankings and exact source funding |
-| Community airdrop | Launched coin tokens | Eligible wallet claims within displayed window | Token custody, verified eligibility snapshot and claim proof |
+| Community airdrop | Launched coin tokens | Automatic at migration after verification; no recipient claim or signature | Funded reserve; exact migration-time $FUNDED holdings; proportional allocation and finalized token transfer |
 
 Creator SOL earnings have no 12-hour hold. The separate [developer token lock](launch-protections.md) applies to the declared initial token purchase. Read [on-chain automation](onchain-automation.md) for route gates and [all-page guidance](product-guide.md) for recipient workflows.
 

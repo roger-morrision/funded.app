@@ -1,5 +1,4 @@
 const CHANNELS = new Set(['x', 'telegram', 'whatsapp', 'facebook', 'linkedin', 'reddit']);
-const METRIC_KEY = 'funded.vip.share-actions.v1';
 let activeShare = null;
 
 export function channelShareUrl(channel, url, text) {
@@ -21,23 +20,6 @@ export function taggedShareUrl(input, channel) {
   if (!['http:', 'https:'].includes(url.protocol)) throw new Error('A web link is required');
   if (channel && CHANNELS.has(channel)) url.searchParams.set('src', channel);
   return url.toString();
-}
-
-function recordAction(kind, channel) {
-  try {
-    const current = JSON.parse(localStorage.getItem(METRIC_KEY) || '{}');
-    const key = `${kind}:${channel}`;
-    current[key] = Math.min(1000000, Math.max(0, Number(current[key]) || 0) + 1);
-    localStorage.setItem(METRIC_KEY, JSON.stringify(current));
-    document.dispatchEvent(new Event('funded:share-action'));
-  } catch {}
-}
-
-export function localShareActions() {
-  try {
-    const current = JSON.parse(localStorage.getItem(METRIC_KEY) || '{}');
-    return Object.values(current).reduce((sum, value) => sum + (Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0), 0);
-  } catch { return 0; }
 }
 
 function cleanText(value, max = 280) { return String(value || '').trim().slice(0, max); }
@@ -192,16 +174,16 @@ export function initShareComposer() {
   dialog.querySelectorAll('#share-hide-amount, #share-hide-wallet').forEach(node => node.addEventListener('change', updateResultPreview));
   dialog.querySelector('#share-copy-link')?.addEventListener('click', async () => {
     if (!activeShare || !dialog.open) return;
-    if (await copyText(shareUrl(''), 'Link copied')) recordAction(activeShare.kind, 'copy-link');
+    await copyText(shareUrl(''), 'Link copied');
   });
   dialog.querySelector('#share-copy-message')?.addEventListener('click', async () => {
     if (!activeShare) return;
-    if (await copyText(`${shareText()} ${shareUrl('')}`.trim(), 'Message copied')) recordAction(activeShare.kind, 'copy-message');
+    await copyText(`${shareText()} ${shareUrl('')}`.trim(), 'Message copied');
   });
   dialog.querySelector('#share-native')?.addEventListener('click', async () => {
     if (!activeShare) return;
     if (!navigator.share) { status('Native sharing is unavailable here. Choose a channel or copy the link.'); return; }
-    try { await navigator.share({ title: activeShare.title, text: shareText(), url: shareUrl('') }); recordAction(activeShare.kind, 'native-sheet'); status('Share sheet completed. Posting status is not visible to funded.vip.'); }
+    try { await navigator.share({ title: activeShare.title, text: shareText(), url: shareUrl('') });  status('Share sheet completed. Posting status is not visible to funded.vip.'); }
     catch (error) { if (error?.name !== 'AbortError') status('Share sheet unavailable. Choose a channel or copy the link.'); }
   });
   dialog.querySelectorAll('[data-share-channel]').forEach(button => button.addEventListener('click', () => {
@@ -209,13 +191,13 @@ export function initShareComposer() {
     const channel = button.dataset.shareChannel;
     const destination = channelShareUrl(channel, shareUrl(channel), shareText());
     window.open(destination, '_blank', 'noopener,noreferrer');
-    recordAction(activeShare.kind, channel);
+
     status(`${button.textContent.trim()} composer requested. If it did not open, copy the message. Posting status is not visible to funded.vip.`);
   }));
   dialog.querySelector('#share-download-card')?.addEventListener('click', () => {
     if (!activeShare?.result) return;
     const canvas = document.querySelector('#share-result-canvas');
-    try { if (!updateResultPreview()) return; const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = activeShare.kind === 'launch' ? 'funded-launch.png' : activeShare.kind === 'trade' ? 'funded-verified-trade.png' : activeShare.kind === 'roundtrip' ? 'funded-closed-trade.png' : 'funded-paid-earnings.png'; link.click(); recordAction(activeShare.kind, 'download-card'); status('Card downloaded. Share it from your preferred app.'); }
+    try { if (!updateResultPreview()) return; const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = activeShare.kind === 'launch' ? 'funded-launch.png' : activeShare.kind === 'trade' ? 'funded-verified-trade.png' : activeShare.kind === 'roundtrip' ? 'funded-closed-trade.png' : 'funded-paid-earnings.png'; link.click();  status('Card downloaded. Share it from your preferred app.'); }
     catch (error) { status(error.message || 'Card download unavailable'); }
   });
 }

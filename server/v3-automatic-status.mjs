@@ -13,9 +13,8 @@ export function v3AutomaticRewardStatus(state = {}, rewards = {}, now = new Date
     .filter(([, row]) => allowedMints.has(row?.mint) && row.kind === 'holder'
       && row.asset === 'SOL'));
   const status = automaticRewardStatus(now, { ...rewards, schedules });
-  // V3 recipients do not claim. Delivery still requires verified settlement
-  // and funding; the recorded/pending mode below is separate from this policy.
-  status.policy = { ...status.policy, referralDelivery:'automatic' };
+  status.policy = { ...status.policy, creatorDelivery:'manual-claim',referralDelivery:'manual-claim',
+    communityDelivery:'automatic-at-migration',communityAllocation:'proportional-funded-holdings' };
   const paidHolder = Object.values(schedules).some(row => row.status === 'paid'
     && (row.poolIds || []).some(id => id.startsWith('v3:')
       && state.v3CreatorRewardFunding?.[id.slice(3)]?.status === 'finalized'));

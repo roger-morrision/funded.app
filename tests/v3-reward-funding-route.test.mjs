@@ -1,3 +1,4 @@
+import nacl from 'tweetnacl';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
@@ -102,8 +103,8 @@ function fixture({ enabled = true, submit = null, kind = 'community', qaShort = 
       ensureVault:async () => vault }),
     loadSettlement:async () => settlementProof,
     reviewResiduals:async()=>({sources:[auditSource]}),
-    loadFunding:async ({ signature, amount, recipient }) => finalized ? { signature,
-      mint:launch.mint, amount:String(amount), recipient:recipient.toBase58(),
+    loadFunding:async ({ signature, amount, recipient,category }) => finalized ? { signature,
+      mint:launch.mint, category, amount:String(amount), recipient:recipient.toBase58(),
       balanceDeltaVerified:true } : null,
     submitTransaction:async ({ transaction }) => {
       submitted++;
@@ -132,10 +133,9 @@ test('old creator fee hold no longer blocks preparation, signed submission or re
   }
 });
 
-test('future old creator lock permits normal automatic payout and finalized balance proof',async()=>{
-  const f=fixture({kind:'creator-wallet',protectedPolicy:true});
-  f.state.launches[mint.publicKey.toBase58()].launchProtection={version:1,creatorFeeUnlockAt:new Date(Date.now()+43_200_000).toISOString()};
-  await f.requestAuto();assert.equal(f.responses.at(-1).status,200,JSON.stringify(f.responses.at(-1).data));assert.equal(f.submitted,1);assert.equal(f.state.v3CreatorWalletPayout[collectionSignature].balanceDeltaVerified,true);
+test('keeper cannot pay creator fees without a manual claim',async()=>{
+  const f=fixture({kind:'creator-wallet',protectedPolicy:true});await f.requestAuto();
+  assert.equal(f.responses.at(-1).status,409);assert.equal(f.submitted,0);
 });
 
 test('automatic community funding uses only the authority and records finalized proof',async()=>{
@@ -199,32 +199,22 @@ test('V3 community funding stays disabled by default', async () => {
   assert.deepEqual(f.state.v3CommunityFunding, {});
 });
 
-test('V3 referral payout binds the frozen inviter and records only finalized proof', async () => {
-  const f = fixture({ kind:'referral' });
-  const inviter = key(39).publicKey.toBase58();
-  f.state.v3Settlements[collectionSignature].referralUpline = [inviter];
-  await f.request({});
-  assert.equal(f.responses.at(-1).status, 202);
-  assert.equal(f.responses.at(-1).data.amountLamports, '2');
-  assert.equal(f.responses.at(-1).data.recipient, inviter);
-  await f.request({ creatorSignedTransaction:signPrepared(f.responses.at(-1).data.transaction) });
-  assert.equal(f.responses.at(-1).status, 200);
-  assert.equal(f.state.v3ReferralPayouts[`${collectionSignature}:1`].status, 'finalized');
-  assert.equal(f.submitted, 1);
-  await f.request({});
-  assert.equal(f.submitted, 1);
+test('recipient-signed referral claim pays only the frozen inviter once',async()=>{
+  const f=fixture({kind:'referral',protectedPolicy:true}),inviter=key(39);
+  f.state.v3Settlements[collectionSignature].referralUpline=[inviter.publicKey.toBase58()];
+  await f.requestAuto();assert.equal(f.responses.at(-1).status,409);assert.equal(f.submitted,0);
+  await f.request({});const review=f.responses.at(-1).data;
+  assert.equal(review.status,'awaiting-recipient-signature');assert.equal(review.amount,'2');
+  const input={claimNonce:review.nonce,recipientSignature:Buffer.from(nacl.sign.detached(new TextEncoder().encode(review.statement),inviter.secretKey)).toString('base64')};
+  await f.request(input);assert.equal(f.responses.at(-1).status,200,JSON.stringify(f.responses.at(-1).data));assert.equal(f.submitted,1);
+  await f.request(input);assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
 });
 
-test('protected referral payout prepares approval and release in one creator-signed transaction', async () => {
-  const f = fixture({ kind:'referral', protectedPolicy:true });
-  f.state.v3Settlements[collectionSignature].referralUpline = [key(39).publicKey.toBase58()];
-  await f.request({});
-  assert.equal(f.responses.at(-1).status, 202);
-  const prepared = Transaction.from(Buffer.from(f.responses.at(-1).data.transaction, 'base64'));
-  assert.equal(prepared.instructions.length, 2);
-  await f.request({ creatorSignedTransaction:signPrepared(f.responses.at(-1).data.transaction) });
-  assert.equal(f.responses.at(-1).status, 200);
-  assert.equal(f.submitted, 1);
+test('creator or unrelated signatures cannot claim another wallet referral reward',async()=>{
+  const f=fixture({kind:'referral',protectedPolicy:true});f.state.v3Settlements[collectionSignature].referralUpline=[key(39).publicKey.toBase58()];
+  await f.request({});const review=f.responses.at(-1).data;
+  await f.request({claimNonce:review.nonce,recipientSignature:Buffer.from(nacl.sign.detached(new TextEncoder().encode(review.statement),creator.secretKey)).toString('base64')});
+  assert.equal(f.responses.at(-1).status,401);assert.equal(f.submitted,0);
 });
 
 test('protected holder funding includes separate holder and X amounts', async () => {
@@ -257,14 +247,12 @@ test('V3 referral payout rejects an unsettled referral upline before preparing a
   assert.deepEqual(f.state.v3ReferralPayouts, undefined);
 });
 
-test('V3 referral payout reports the rent top-up needed for a new recipient', async () => {
-  const f = fixture({ kind:'referral', recipientBalance:0 });
-  const inviter = key(39).publicKey.toBase58();
-  f.state.v3Settlements[collectionSignature].referralUpline = [inviter];
-  await f.request({});
-  assert.equal(f.responses.at(-1).status, 409);
-  assert.equal(f.responses.at(-1).data.minimumTopUpLamports, '890880');
-  assert.equal(f.submitted, 0);
+test('manual referral claim retains the recipient rent gate',async()=>{
+  const f=fixture({kind:'referral',protectedPolicy:true,recipientBalance:0}),inviter=key(39);
+  f.state.v3Settlements[collectionSignature].referralUpline=[inviter.publicKey.toBase58()];
+  await f.request({});const review=f.responses.at(-1).data;
+  await f.request({claimNonce:review.nonce,recipientSignature:Buffer.from(nacl.sign.detached(new TextEncoder().encode(review.statement),inviter.secretKey)).toString('base64')});
+  assert.equal(f.responses.at(-1).status,409);assert.equal(f.responses.at(-1).data.minimumTopUpLamports,'890880');assert.equal(f.submitted,0);
 });
 
 test('V3 community funding requires creator approval and finalized category transfer proof', async () => {

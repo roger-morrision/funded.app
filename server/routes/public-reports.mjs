@@ -3,6 +3,7 @@ import { homeFeeAllocationSummary } from '../home-dashboard-metrics.mjs';
 import { creatorReputation } from '../../stonk-features.js';
 import { v3PublicMetrics, v3ReceiptEvidence } from '../v3-public-metrics.mjs';
 import { createAnalyticsSummaryReader } from '../analytics-summary-reader.mjs';
+import {walletRewardTotals} from '../wallet-reward-totals.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -18,6 +19,12 @@ export function createPublicReportsRoutes({
 
   const json = (...args) => { respond(...args); return true; };
   return async function handlePublicReportsRoutes(req, res, url, requestId) {
+    if(req.method==='GET'&&url.pathname==='/api/rewards/totals'){
+      const wallet=url.searchParams.get('wallet');
+      if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet||''))return json(res,400,{error:'A valid wallet is required.'});
+      const [history,ledger,state]=await Promise.all([readPaymentHistory().catch(()=>null),automaticRewardStore.read().catch(()=>null),store.read()]);
+      return json(res,200,walletRewardTotals({wallet,history,ledger,launches:state.launches}));
+    }
     if (req.method === 'GET' && url.pathname === '/api/state') return json(res, 200, publicState(await store.readPublicBuckets()));
     if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') {
       const [state, evidence] = await Promise.all([store.read(), readFinalizedEvidence()]);

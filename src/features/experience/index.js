@@ -10,7 +10,7 @@ import { initializeIssuesView } from './issues-view.js';
 import { initializeActivityUpdates } from './activity-updates.js';
 import { initializeNotificationPreferences } from './notification-preferences.js';
 import { initializeTradePreferences } from './trade-preferences.js';
-import { initializePreferenceTransfer } from './preference-transfer.js';
+import {initializeAccountPreferences} from '../account/preferences.js';
 import { initializeCreatorWalletFacts } from './creator-wallet-facts.js';
 import { initializePortfolioFocus } from '../portfolio/focus-visibility.js';
 import { mountSettingsDisclosures } from './settings-disclosures.js';
@@ -34,6 +34,7 @@ export function initializeProductFlows(app) {
     if (!document.body.classList.contains('workspace-ready') || !document.body.classList.contains('product-experience-ready')) return false;
     initializeDiscoveryIntent(app);
     initializeFinancialCenter(app);
+    initializeAccountPreferences(app);
     initializeCreatorActivity(app);
     initializeRetentionEvents();
     initializeRecoveryInbox(app);
@@ -43,7 +44,6 @@ export function initializeProductFlows(app) {
     initializeActivityUpdates(app);
     initializeNotificationPreferences();
     initializeTradePreferences(app);
-    initializePreferenceTransfer(app);
     initializeCreatorWalletFacts(app);
     initializePortfolioFocus();
     mountSettingsDisclosures();

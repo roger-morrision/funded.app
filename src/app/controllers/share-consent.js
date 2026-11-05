@@ -17,13 +17,13 @@ export function createShareConsentController(appState) {
       const caption = document.createElement('small'); caption.textContent = label;
       item.append(count, caption); metrics.append(item);
     };
-    metric(appState.localShareActions(), 'Shares on this device');
-    metric(dashboard?.available ? Number(dashboard.data.qualifiedCreators || 0) : '—', 'Qualified creators');
-    metric(visits ? visits.consentedBrowsers : '—', 'Opted-in browsers');
+
+    metric(dashboard?.available ? Number(dashboard.data.qualifiedCreators || 0) : '-', 'Qualified creators');
+    metric(visits ? visits.consentedBrowsers : '-', 'Opted-in browsers');
     const note = document.createElement('small'); note.className = 'referral-share-note';
     note.textContent = visits
       ? `${visits.consentedVisitDays} visit days in the last ${visits.windowDays} days · ${visits.returningBrowsers} returning browsers. Visits count consenting browsers, not people.`
-      : 'Visitor and creator counts need wallet access and an available referral service. Share actions are stored on this device.';
+      : '-';
     insight.append(heading, metrics, note);
     if (visits && Object.keys(visits.byChannel || {}).length) {
       const channels = document.createElement('small'); channels.className = 'referral-share-source';

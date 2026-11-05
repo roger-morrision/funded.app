@@ -220,7 +220,7 @@ export function renderLeaderboard(
   const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
   if (kicker) kicker.textContent = 'Verified launches · Solana';
   if (heading) heading.textContent = 'Creator launches';
-  if (sourceNote) sourceNote.textContent = 'Only confirmed Solana launches are shown. Market cap uses the verified curve or pool value and an available SOL/USD rate.';
+  if (sourceNote) sourceNote.textContent = '';
   if (heroDescription) heroDescription.textContent = 'Creators behind confirmed launches, ranked by available market cap.';
   if (builders) builders.hidden = true;
   table.dataset.view = 'creators';

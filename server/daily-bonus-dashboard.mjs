@@ -5,6 +5,7 @@ import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, bonusWindowKey } from './daily-bonus-schedule.mjs';
+import {rankLiveBonus} from './daily-bonus-live.mjs';
 
 const integer = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : null;
 const categories = POLICY.categories;
@@ -113,7 +114,7 @@ export async function readBonusPool({ state, connection, programId, now, signal,
       && settled?.status === 'finalized';
   });
   if (candidates.length > 2000) throw new Error('Bonus pool coverage requires a larger reviewed indexer.');
-  const seen = new Set(), values = categories.map(() => 0n); let collections = 0;
+  const seen = new Set(), values = categories.map(() => 0n),creators=[],referrals=[]; let collections = 0;
   // Sequential bounded reads avoid overwhelming the shared RPC.
   for (const row of candidates) {
     signal?.throwIfAborted();
@@ -132,9 +133,12 @@ export async function readBonusPool({ state, connection, programId, now, signal,
     const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
       mint:row.mint, expectedLamports:row.collectedLamports });
     if (!collected||Buffer.from(collected.claimId).toString('hex')!==row.claimId) throw new Error('Bonus collection proof is unavailable.');
+    creators.push([launch.creatorWallet,String(collected.expectedLamports)]);
+    if(settled.referralUpline?.[0])referrals.push([settled.referralUpline[0],String(collected.expectedLamports)]);
     const shares = splitBonusLamports(BigInt(proof.categoryLamports[5]), POLICY.categoryWeights);
     shares.forEach((value, index) => { values[index] += value; }); collections++;
   }
   return { status:'verified-indexed-settlements', day:bonusWindowKey(start,schedule),
-    collections, categoryLamports:Object.fromEntries(categories.map((key, index) => [key, String(values[index])])) };
+    collections,liveRankings:{creators:rankLiveBonus(creators),referrals:rankLiveBonus(referrals)},
+    categoryLamports:Object.fromEntries(categories.map((key, index) => [key, String(values[index])])) };
 }

@@ -1,6 +1,7 @@
 // Shared page explanations for Docs, Questions and the Help center.
+import {guideOutline,outlineHtml} from './guide-outlines.js';
 // Describe implemented behavior; runtime availability and saved terms still govern.
-const guide=(id,title,question,answer,steps,href,link)=>({id,title,question,answer,steps,href,link});
+const guide=(id,title,question,answer,steps,href,link)=>({id,title:id==='settings'?'Account settings':title,question:id==='settings'?'Where are my favorites, follows and reminders saved?':question,answer:guideOutline(id)?.join(' ')||answer,steps,href,link});
 export const pageGuides=[
   guide('home','Home and getting around','Where should I start?',
     'Home shows launches, observed activity, reward allocations and next steps. Explore finds coins; Portfolio shows your holdings and projects; Rewards separates automatic payments from claims. Use the left menu on desktop or open the menu drawer on a phone.',
@@ -88,13 +89,13 @@ export const pageGuides=[
 ];
 
 export const pageDocumentationTopics=()=>pageGuides.map(({id,title,answer,steps,href,link})=>({
-  id,title,body:`<p>${answer}</p><ol>${steps.map(step=>`<li>${step}</li>`).join('')}</ol>`,href,link,
+  id,title,body:guideOutline(id)?outlineHtml(guideOutline(id)):`<p>${answer}</p><ol>${steps.map(step=>`<li>${step}</li>`).join('')}</ol>`,href,link,
 }));
 export const pageHelpTopics=()=>Object.fromEntries(pageGuides.map(({id,title,answer})=>[
   id,{title,answer,href:`#docs/${id}`,link:'Read the full guide →'},
 ]));
 export const pageFaqs=()=>pageGuides.map(({id,question,answer})=>[
-  `page-${id}`,question,`<p>${answer}</p><a href="#docs/${id}">Read the full guide →</a>`,
+  `page-${id}`,question,`${guideOutline(id)?outlineHtml(guideOutline(id)):`<p>${answer}</p>`}<a href="#docs/${id}">Read the guide →</a>`,
 ]);
 
 export function helpTopicForLocation({pathname='/',hash=''}={}) {

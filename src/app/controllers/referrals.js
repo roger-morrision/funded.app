@@ -1,4 +1,5 @@
 import { paginateHistory } from '../../../history-pagination.js';
+import {updateReferralList} from '../../features/referrals/referral-list.js';
 import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled } from '../../../referral-status.js';
 import { formatReferralLamports, readReferralHistory } from '../../../referral-amount.js';
 // Dependencies and mutable application state are read live through appState.
@@ -16,13 +17,7 @@ export function createReferralsController(appState) {
   // app-source-end
 
   // app-source: 233
-  function trackReferralEvent(event, detail = {}){
-    try {
-      const events = JSON.parse(localStorage.getItem(appState.REFERRAL_ANALYTICS_KEY) || '[]');
-      events.push({ event, at: new Date().toISOString(), ...detail });
-      localStorage.setItem(appState.REFERRAL_ANALYTICS_KEY, JSON.stringify(events.slice(-100)));
-    } catch {}
-  }
+  function trackReferralEvent(){ /* Referral activity is stored by the service. */ }
   // app-source-end
 
   // app-source: 234
@@ -118,6 +113,7 @@ function updateReferralStatus(state){
 }
 
   function clearReferralMetrics({ payouts = true, network = true } = {}){
+    if(network)updateReferralList(null);
     if (network) appState.renderShareInsights({ available:false });
     const values = { ...(payouts ? { 'referral-paid-total':'— SOL' } : {}),
       ...(network ? { 'referral-active-creators':'—', 'referral-conversion-rate':'—' } : {}) };
@@ -206,6 +202,7 @@ function updateReferralStatus(state){
     ]);
     if (!appState.isWalletSessionCurrent(session)) return;
     appState.renderShareInsights(dashboardResult);
+    updateReferralList(dashboardResult.available&&dashboardResult.data?.wallet===walletAddress?dashboardResult.data:null);
     if (dashboardResult.available) {
       const creators = Number(dashboardResult.data.networkCreators || 0);
       appState.renderReferralActivityEmpty(creators > 0 ? 'Network summary available' : 'No qualified activity yet', creators > 0
@@ -225,13 +222,41 @@ function updateReferralStatus(state){
     if (!panel) { panel = document.createElement('div'); panel.id = 'referral-claim-center'; panel.className = 'referral-dashboard'; panel.setAttribute('aria-live', 'polite'); dashboard.querySelector('.referral-kpi-grid')?.after(panel); }
     panel.replaceChildren(); panel.hidden = true;
     const note = document.querySelector('#referral-history-note');
-    if (note) note.textContent = claims.some(claim => claim.status !== 'paid') ? 'Pending and sent payouts. Only paid receipts count toward your paid total.' : 'Payouts are sent to your wallet automatically, each with a Solana receipt. No claim needed.';
+    if (note) note.textContent = 'Claim available rewards with the earning wallet. Only paid receipts count toward received totals. Daily referrer bonuses are automatic.';
     for (const claim of claims.slice().reverse()) {
       const row = document.createElement('div'); row.className = 'referral-ledger-row';
       const label = document.createElement('div'), level = document.createElement('strong'), status = document.createElement('small');
       level.textContent = `Level ${claim.level}`; status.textContent = referralClaimStatusLabel(claim.status); label.append(level, status);
       const amount = document.createElement('b'); amount.textContent = `${formatReferralLamports(claim.amountLamports || '0')} ${claim.asset}`;
       const actions = document.createElement('div'); actions.className = 'referral-receipt-actions'; row.append(label, amount, actions);
+      if(['claimable','verification-pending'].includes(claim.status)){
+        const button=document.createElement('button');button.type='button';button.className='primary-button';
+        button.textContent=claim.status==='claimable'?'Claim reward':'Check pending claim';
+        button.addEventListener('click',async()=>{
+          button.disabled=true;
+          try{
+            appState.assertWalletSessionCurrent(session);
+            if(typeof session.provider.signMessage!=='function')throw new Error('Use a wallet that can sign a claim message.');
+            const path=`/api/tokens/${encodeURIComponent(claim.mint)}/v3-referral-payout/${encodeURIComponent(claim.collectionSignature)}/${claim.level}`;
+            const prepared=await appState.apiRequest(path,{method:'POST',body:{}});
+            appState.assertWalletSessionCurrent(session);
+            const review=prepared.data;
+            if(review?.status!=='awaiting-recipient-signature'||review.recipient!==session.address
+              ||review.mint!==claim.mint||review.collectionSignature!==claim.collectionSignature
+              ||review.level!==claim.level||review.amount!==String(claim.amountLamports)||typeof review.statement!=='string')
+              throw new Error(review?.error||'Referral claim review is unavailable.');
+            button.textContent='Sign claim in wallet…';
+            const signed=await session.provider.signMessage(new TextEncoder().encode(review.statement),'utf8');
+            appState.assertWalletSessionCurrent(session);button.textContent='Verifying payment…';
+            const result=await appState.apiRequest(path,{method:'POST',body:{claimNonce:review.nonce,
+              recipientSignature:appState.bytesToBase64(signed.signature||signed)}});
+            appState.assertWalletSessionCurrent(session);
+            if(result.data?.status!=='finalized')throw new Error(result.data?.error||'Payment needs verification. Check the existing claim before retrying.');
+            appState.showToast('Referral reward paid.');await refreshReferralClaims();
+          }catch(error){appState.showToast(error.message||'Referral claim unavailable.');}
+          finally{if(button.isConnected){button.disabled=false;button.textContent=claim.status==='claimable'?'Claim reward':'Check pending claim';}}
+        });actions.append(button);
+      }
       if (claim.status === 'paid' && claim.payoutSignature) {
         const proof = document.createElement('a'); proof.textContent = 'Transaction ↗'; proof.title = claim.payoutSignature;
         proof.href = appState.exploreExplorer(`tx/${encodeURIComponent(claim.payoutSignature)}`);

@@ -99,9 +99,8 @@ test('airdrop details distinguish pending funding, open claims, and closed claim
       document: view.document, formatTokenAmount: String, formatVerifiedAirdropAmount: value => value ?? '—',
     });
     const status = view.fields.get('#airdrop-selected-status');
-    assert.match(status.textContent, state === 'pending' ? /Funding and wallet eligibility must be confirmed/ : state === 'open' ? /claim by December 1/ : /claim window ended December 1/);
-    assert.equal(status.children.some(child => child.dataset?.checkCommunityMint === 'mint'), state === 'open');
-    assert.equal(view.fields.get('#airdrop-claim-unavailable').hidden, state === 'open');
+    assert.match(status.textContent, state === 'pending' ? /Hold \$FUNDED until migration/ : state === 'open' ? /automatic delivery/ : /distribution window ended December 1/);
+    assert.equal(status.children.some(child => child.dataset?.checkCommunityMint === 'mint'), false);
   }
 });
 
@@ -125,7 +124,7 @@ test('Devnet QA airdrop details identify the cutoff without claiming migration e
     document:view.document, formatTokenAmount:value => Number(value).toLocaleString(),
     formatVerifiedAirdropAmount:value => String(value ?? '—'),
   });
-  assert.match(view.fields.get('#airdrop-selected-stats').innerHTML, /Devnet QA claims/);
+  assert.match(view.fields.get('#airdrop-selected-stats').innerHTML, /Historical test distribution/);
   assert.match(view.fields.get('#airdrop-selected-status').textContent, /disposable Devnet QA airdrop/);
   assert.doesNotMatch(view.fields.get('#airdrop-selected-status').textContent, /moved to its trading pool/);
 });

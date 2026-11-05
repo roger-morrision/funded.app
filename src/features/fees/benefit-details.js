@@ -10,8 +10,8 @@ export function feeBenefitExplanation(key){
   const explanations={
     creator:{
       who:'The creator wallet, eligible holders of this coin and the named X account, only where the coin’s saved launch split gives them a share.',
-      when:'Creator-wallet SOL is received after the active automatic or approved manual payout finalizes. Holder SOL uses standard hourly cutoffs after the reward program is active and funded. X rewards become receivable when the named account has an eligible funded claim.',
-      receive:'An active automatic route pays the creator without a signature; manual routes can require creator approval. Eligible coin holders receive SOL automatically without claiming or signing. The named X recipient must sign in with the matching X account, link a wallet and claim.',
+      when:'Creator-wallet SOL is available to claim manually after collection and settlement. Holder SOL uses standard hourly cutoffs after the reward program is active and funded. X rewards become receivable when the named account has an eligible funded claim.',
+      receive:'Creators open Rewards → Coin Creator, select their coin and choose Claim creator fees, then sign with the launch creator wallet. Eligible coin holders receive SOL automatically without claiming or signing. The named X recipient must sign in with the matching X account, link a wallet and claim.',
       conditions:`For current standard holder programs, the closing balance must meet a $${AUTOMATIC_REWARDS.minimumHolderUsd}-equivalent minimum in this coin. Rewards are weighted by balance and holding time. The pool must meet its $${AUTOMATIC_REWARDS.minimumPoolUsd}-equivalent minimum plus distribution costs. Selected, labeled Devnet QA coins use five-minute periods and reduced minimums. Each coin’s saved rules and verified price apply.`,
       links:[['Holder eligibility & schedule','#payments/holders'],['X claims','#payments/x']],
     },
@@ -23,8 +23,8 @@ export function feeBenefitExplanation(key){
     },
     referrals:{
       who:'Qualified inviter wallets in the creator’s saved first-, second- and third-level referral network. Attribution must exist before the first qualifying settlement; the upline then stays frozen. Self-referrals and referral cycles are rejected.',
-      when:'Rewards accrue from eligible collected and settled creator fees, not from a signup, a link click or trading volume alone. A recipient receives SOL after the saved-policy automatic transfer, or approved manual transfer, finalizes; there is no fixed daily payment time.',
-      receive:'Share your invite link before the creator qualifies. Referral recipients do not submit a separate claim. Connect the receiving wallet in Referrals to inspect its recorded entitlement and finalized payouts.',
+      when:'Rewards accrue from eligible collected and settled creator fees, not from a signup, a link click or trading volume alone. A recipient claims available three-level referral SOL manually after settlement; there is no fixed daily payment time.',
+      receive:'Share your invite link before the creator qualifies. Open Referrals with the earning wallet, choose Claim reward and sign its claim message. Daily referrer bonuses remain automatic.',
       conditions:'Missing referral levels remain in the community reserve. Their shares are not reassigned to another inviter or added to the Daily bonus pool.',
       links:[['Invite link & referral payouts','#referrals']],
     },
@@ -50,18 +50,18 @@ export function feeBenefitExplanation(key){
   };
   const simple={
     creator:{who:'The creator, eligible coin holders and the X account chosen in the coin’s saved split.',
-      when:'Creator: after an automatic or approved manual payout is verified. Holders: hourly when eligible and funded. X account: when a funded claim is ready.',
-      receive:'Creators receive automatic payouts on an active automatic route; manual routes can require approval. Holders receive SOL automatically. The named X account must sign in, link a wallet and claim.'},
+      when:'Creator: claim after collection and settlement. Holders: hourly when eligible and funded. X account: when a funded claim is ready.',
+      receive:'Creators claim manually in Rewards → Coin Creator → select coin → Claim creator fees. Holders receive SOL automatically. The named X account must sign in, link a wallet and claim.'},
     operations:{who:'funded.vip’s operations and marketing.',when:'When collected creator fees are split.',
       receive:'No user payout or claim. This share pays for running and promoting the platform.'},
     referrals:{who:'Wallets in the creator’s three-level referral network.',
-      when:'After the automatic or approved manual payment is funded and verified. Signups and clicks alone do not earn rewards.',
-      receive:'Invite creators before they qualify. Receive SOL in your wallet; no claim needed.'},
+      when:'Claim after qualifying fees are collected and settled. Signups and clicks alone do not earn rewards.',
+      receive:'Invite creators before they qualify. Open Referrals → Claim reward and sign with the earning wallet. Daily referrer bonuses stay automatic.'},
     community:{who:'Top 3 wallets in each group: creators, referrers and traders.',
       when:'After each UTC day closes at 00:00 UTC and rankings and funds are checked.',
       receive:'Winners receive SOL automatically when payouts are enabled. No claim or signature needed.'},
     buyback:{who:'No direct wallet payment. This share reduces the $FUNDED supply.',
-      when:'When fee targets are met, buybacks are enabled and trade checks pass. No fixed schedule.',
+      when:'Normally when the pool reaches 5 SOL, or its configured wait ends. Funding and trade checks must pass.',
       receive:'The app buys $FUNDED and burns it. Check the finalized receipts; no claim is needed.'},
     agency:{who:'Every new coin includes two coin buyback-and-burn agents. X promotion is included with a promotion package.',
       when:`Buybacks run once at the saved milestones (normally ${milestones} market cap), when funded and ready. X posts are normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours apart.`,
@@ -74,10 +74,7 @@ export function feeBenefitExplanation(key){
 export function feeBenefitDetailsMarkup(rows){
   return `<dl>${rows.map(row=>{
     const detail=feeBenefitExplanation(row.key);if(!detail)return '';
-    // Simplified view: one line on who receives it; timing and how-to live under Full rules.
-    const rules=detail.rules,fullFields=[['Who receives it',rules.who],['When it is received',rules.when],['How to receive it',rules.receive],...(rules.conditions?[['Eligibility & amounts',rules.conditions]]:[])];
-    const facts=rows=>rows.map(([label,value])=>`<li><strong>${label}</strong><span>${escapeHtml(value)}</span></li>`).join('');
-    const fullRules=`<details class="fee-benefit-rules"><summary>Full rules</summary><div class="fee-benefit-rule-body"><p class="fee-benefit-purpose">${escapeHtml(row.benefit)}</p><ul class="fee-benefit-facts">${facts(fullFields)}</ul></div></details>`;
-    return `<div class="fee-benefit-detail" data-fee-benefit="${escapeHtml(row.key)}"><dt>${row.percent}% · ${escapeHtml(row.label)}</dt><dd><p class="fee-benefit-summary">${escapeHtml(detail.who)}</p>${fullRules}<nav class="fee-benefit-links" aria-label="${escapeHtml(row.label)} details">${detail.links.map(([label,href])=>`<a href="${href}">${escapeHtml(label)} →</a>`).join('')}</nav></dd></div>`;
+    const facts=[['What',detail.who],['When',detail.when],['Receive',detail.receive]];
+    return `<div class="fee-benefit-detail" data-fee-benefit="${escapeHtml(row.key)}"><dt>${row.percent}% · ${escapeHtml(row.label)}</dt><dd><ul class="fee-benefit-facts">${facts.map(([label,value])=>`<li><strong>${label}</strong><span>${escapeHtml(value)}</span></li>`).join('')}</ul></dd></div>`;
   }).join('')}</dl>`;
 }

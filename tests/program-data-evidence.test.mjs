@@ -35,10 +35,21 @@ for(const wrong of ['primary','alternate','both'])test(`alternate provider rejec
 });
 test('a timed-out alternate read aborts and a fresh invocation can recover',async()=>{
   const f=fixture();let signal;
-  await assert.rejects(readProgramDataEvidence(f.connection,f.program,{rpcUrl:'https://api.devnet.solana.com',timeoutMs:20,
+  await assert.rejects(readProgramDataEvidence(f.connection,f.program,{rpcUrl:'https://api.devnet.solana.com',timeoutMs:20,fallbackTimeoutMs:0,
     connectionFactory:(_url,s)=>{signal=s;return {...f.connection,getAccountInfo:()=>new Promise(()=>{})};},
   }),/timed out/);assert.equal(signal.aborted,true);
   assert((await readProgramDataEvidence(f.connection,f.program,{rpcUrl:'https://api.devnet.solana.com',connectionFactory:()=>f.connection})).sha256);
+});
+
+test('a timed-out optional provider falls back to fresh complete finalized bytes on Devnet',async()=>{
+  const f=fixture();
+  const result=await readProgramDataEvidence(f.connection,f.program,{rpcUrl:'https://api.devnet.solana.com',timeoutMs:10,
+    connectionFactory:()=>({...f.connection,getAccountInfo:()=>new Promise(()=>{})})});
+  assert.equal(result.sha256,createHash('sha256').update(f.programData.data).digest('hex'));
+  assert.equal(f.reads(),2);
+  f.connection.getGenesisHash=async()=>GENESIS_HASHES['mainnet-beta'];
+  await assert.rejects(readProgramDataEvidence(f.connection,f.program,{rpcUrl:'https://api.devnet.solana.com',timeoutMs:10,
+    connectionFactory:()=>({getGenesisHash:()=>new Promise(()=>{})})}),/fallback requires Devnet/);
 });
 for(const malformed of ['owner','executable','header','length'])test(`upgradeable ProgramData rejects invalid ${malformed}`,async()=>{
   const f=fixture();if(malformed==='owner')f.programData.owner=Keypair.generate().publicKey;

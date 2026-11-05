@@ -1,3 +1,4 @@
+import {accountFavorites} from './src/features/account/preferences.js';
 import { renderHolderAirdropDirectory } from './src/features/rewards/holder-airdrop-directory.js';
 import './reward-experience.css';
 import { paginateHistory } from './history-pagination.js';
@@ -17,7 +18,8 @@ const explorer = signature => `https://explorer.solana.com/tx/${encodeURICompone
 const tokenUrl = mint => `/token/${encodeURIComponent(mint)}`;
 const short = value => `${String(value).slice(0, 5)}…${String(value).slice(-5)}`;
 function sol(value) {
-  const n = /^(?:0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : 0n;
+  if (!/^(?:0|[1-9]\d*)$/.test(String(value))) return '-';
+  const n = BigInt(value);
   const fraction = String(n % LAMPORTS).padStart(9, '0').replace(/0+$/, '');
   return `${n / LAMPORTS}${fraction ? '.' + fraction : ''} SOL`;
 }
@@ -45,16 +47,13 @@ function saveAlertPrefs(prefs) {
   lastAlertPrefs = prefs;
   try { localStorage.setItem(ALERT_KEY, JSON.stringify(prefs)); } catch { alertStorageUnavailable = true; }
 }
-function watchedMints() {
-  try { return new Set(JSON.parse(localStorage.getItem(WATCH_KEY) || '[]').filter(validMint)); }
-  catch { return new Set(); }
-}
+function watchedMints() { return new Set(accountFavorites()); }
 function createPanels() {
   const payments = byId('payments');
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>SOL rewards</h2><p>Recorded payments and creator rewards for your connected wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>Check snapshot and claim status</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>SOL rewards</h2><p>Recorded payments and creator rewards for your connected wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>View automatic delivery</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
     const publicHistory = payments.querySelector('.x-claim-activity');
     if (publicHistory && rewardsOverview === payments) payments.insertBefore(section, publicHistory);
     else rewardsOverview.prepend(section);
@@ -102,7 +101,7 @@ function renderPortfolio(data, referralData, xData) {
     if(focused)button.focus({preventScroll:true});
     return;
   }
-  if (data.evidence.status === 'unavailable') { body.textContent = 'We cannot check reward payments right now. Try again shortly to see your totals.'; return; }
+  if (data.evidence.status === 'unavailable') { body.textContent = '-'; return; }
   const rows = wallet.rows || [];
   const paid = rows.flatMap(row => row.payouts || []);
   const referralPaid = paidReferralLamports(referralData?.claims);
@@ -117,8 +116,8 @@ function renderPortfolio(data, referralData, xData) {
   const summaryRows = [
     ['Waiting · creator SOL', sol(creatorUnpaid), 'Set aside for you; payment is not confirmed yet', 'creator'],
     ['Received · SOL', sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)), 'Confirmed payments found in your reward history', 'history'],
-    ['Referral SOL received', referralPaid === null ? 'Unable to check' : sol(referralPaid), 'Finalized payouts for this wallet; open Referrals for receipts', '#referrals'],
-    ['Ready to claim · X SOL', xClaims ? formatXClaimSol(xClaims.unclaimed) : document.querySelector('#x-sign-in')?.dataset.connected === 'true' ? 'Unable to check' : 'Sign in with X', 'Only rewards linked to the signed-in X account', 'x'],
+    ['Referral SOL received', referralPaid === null ? '-' : sol(referralPaid), 'View payments in Referrals', '#referrals'],
+    ['Ready to claim · X SOL', xClaims ? formatXClaimSol(xClaims.unclaimed) : '-', 'Sign in with your X account to claim', 'x'],
   ];
   for (const [label, value, hint, destination] of summaryRows) {
     const card = node('div'); card.append(node('small','',label), node('strong','',value), node('small','reward-summary-hint',hint));
@@ -128,9 +127,9 @@ function renderPortfolio(data, referralData, xData) {
   }
   body.append(summary);
   const tokenNote = node('p', 'reward-token-claim-note');
-  tokenNote.append(node('strong', '', 'Token airdrops: '), document.createTextNode('check whether you qualify, how much you can claim, and past claims in '), link('Airdrops →', '#airdrops'));
+  tokenNote.append(node('strong', '', 'Token airdrops: '), document.createTextNode('automatic at migration, based on eligible $FUNDED holdings. '), link('View airdrops →', '#airdrops'));
   body.append(tokenNote);
-  if (!rows.length) { body.append(node('p','reward-empty','No confirmed creator or holder payments were found for this wallet. Each reward program has its own eligibility requirements.')); return; }
+  if (!rows.length) return;
   const historyHeading = node('div', 'reward-history-heading');
   historyHeading.append(node('h3', '', 'Payment history'), node('span', '', `${paid.length} confirmed payment${paid.length === 1 ? '' : 's'}`));
   body.append(historyHeading);
@@ -335,7 +334,7 @@ async function refresh({ force = false } = {}) {
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
   if (!scoped) window.dispatchEvent(new CustomEvent('funded:financial-experience', {detail:latest}));
-  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = latest?.evidence?.status === 'recorded-finalized-v3' ? 'Recorded finalized V3 evidence' : latest?.evidence?.status === 'onchain-indexed' ? 'Payments checked' : latest?.evidence?.status === 'partial' ? 'Some payment history is missing' : latest?.evidence?.status === 'no-records' ? 'No confirmed payments yet' : 'Unable to check payments'; });
+  document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = ''; element.hidden = true; });
   renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
   renderDiscovery(scoped ? null : latest);
   renderBuybacks(buybacks.status === 'fulfilled' ? buybacks.value : null);

@@ -2,6 +2,7 @@ import { normalizeReferralCode, resolveReferralNetwork } from '../../referral-pr
 import { cleanShareSource, recordShareVisit, summarizeShareVisits } from '../share-visits.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { validateInput } from '../http-policy.mjs';
+import {v3ReferralEntitlement} from '../v3-referral-entitlement.mjs';
 
 function referralNetworkForWallet(state, wallet) {
   return resolveReferralNetwork(wallet, state.referrals.attributions, 3);
@@ -43,6 +44,18 @@ export function createReferralActivityRoutes({ store, body, clientKey, walletKey
           level:row.level, amount:Number(BigInt(row.amount)) / 1_000_000_000,
           amountLamports:row.amount, asset:'SOL', status:'paid', payoutSignature:row.signature,
           mint:row.mint, collectionSignature:row.collectionSignature }));
+      for(const [source,settlement] of Object.entries(state.v3Settlements||{})){
+        const launch=state.launches?.[settlement.mint];
+        if(settlement.status!=='finalized'||!launch?.onchainVerified||launch.cluster!=='devnet'
+          ||launch.pumpFeeRoute?.scope!=='per-mint-v3'||settlement.allocationPlan?.status!=='allocated-not-funded')continue;
+        for(let level=1;level<=3;level++){
+          let entitlement;try{entitlement=v3ReferralEntitlement({settlement,plan:settlement.allocationPlan,level});}catch{continue;}
+          if(entitlement?.recipient!==wallet||claims.some(row=>row.id===`${source}:${level}`))continue;
+          const saved=state.v3ReferralPayouts?.[`${source}:${level}`];
+          claims.push({id:`${source}:${level}`,level,amountLamports:entitlement.amount,asset:'SOL',
+            status:saved?.signature?'verification-pending':'claimable',mint:settlement.mint,collectionSignature:source});
+        }
+      }
       return json(res, 200, { wallet, claims,
         status:claims.length ? 'v3-referral-payout-recorded' : 'v3-referral-payout-pending' });
     }
@@ -60,7 +73,13 @@ export function createReferralActivityRoutes({ store, body, clientKey, walletKey
       const direct = Object.values(state.referrals.attributions).filter(item => item.inviterWallet === wallet);
       const directCreatorsBySource = {};
       for (const item of direct) directCreatorsBySource[cleanShareSource(item.source)] = (directCreatorsBySource[cleanShareSource(item.source)] || 0) + 1;
-      return json(res, 200, { wallet, directCreators: direct.length, directCreatorsBySource, networkCreators: network.length, qualifiedCreators: qualified.size, conversionRate: network.length ? Number((qualified.size / network.length * 100).toFixed(1)) : null, shareVisits:code ? summarizeShareVisits(state.shareVisits, code) : null });
+      const parents=new Map(Object.values(state.referrals.attributions).map(row=>[row.wallet,row.inviterWallet]));
+      const referrals=[...new Set(network)].filter(address=>address!==wallet).map(address=>{
+        let parent=parents.get(address),level=1;
+        while(parent!==wallet&&level<3){parent=parents.get(parent);level++;}
+        return {wallet:address,level,qualified:qualified.has(address)};
+      }).sort((a,b)=>a.level-b.level||a.wallet.localeCompare(b.wallet));
+      return json(res, 200, { wallet, referrals, directCreators: direct.length, directCreatorsBySource, networkCreators: network.length, qualifiedCreators: qualified.size, conversionRate: network.length ? Number((qualified.size / network.length * 100).toFixed(1)) : null, shareVisits:code ? summarizeShareVisits(state.shareVisits, code) : null });
     }
     return false;
   }

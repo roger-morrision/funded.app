@@ -15,8 +15,8 @@ export function mountReserveFacts(root,app){
       const row=response.available?reserveFacts(response.data,mint):null;
       const reserved=row?.reservedTokens!=null?Number(row.reservedTokens).toLocaleString('en-US'):null;
       box.replaceChildren(el('h3','Airdrop rule'),
-        el('p',`${reserved?reserved+' tokens of this coin are':'Part of this coin’s supply is'} reserved for $FUNDED holders. Hold $FUNDED at the migration snapshot to qualify; claims open after migration.`));
-      if(row)box.append(el('p','Claim window: '+airdropClaimState(row).label));
+        el('p',`${reserved?reserved+' tokens of this coin are':'Part of this coin’s supply is'} reserved for $FUNDED holders. Hold $FUNDED until migration to receive tokens automatically, proportional to your share of eligible holdings. No claim is needed.`));
+      if(row)box.append(el('p','Delivery status: '+airdropClaimState(row).label));
       box.append(link('Check your allocation', `/?airdropMint=${encodeURIComponent(mint)}#airdrops`));
       if(!row)last='';
     }catch{if(id===serial){box.replaceChildren(el('p','Reserve verification unavailable. Close and reopen these facts to retry.'));last='';}}

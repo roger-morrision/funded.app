@@ -10,12 +10,12 @@ Docs, Questions/FAQ and Help share explanations in `src/features/help/product-gu
 | --- | --- | --- |
 | Create a coin | Review identity, costs, reserve, developer lock, package and saved split; sign; verify mint and receipt | [Launch protections](launch-protections.md), [service fees](app-service-fees.md) |
 | Coin detail / trading | Check quote, slippage, fee cap, wallet and network; verify finalized trade; reconcile uncertain sends | In-app `#docs/coin-pages`, `#docs/trading` |
-| Rewards: creator | Automatic on an active funded route; review/sign manual actions when offered | [Automation](onchain-automation.md), [collection](creator-fee-collector.md) |
+| Rewards: creator | Open Rewards, select your coin and claim available creator fees manually | [Automation](onchain-automation.md), [collection](creator-fee-collector.md) |
 | Rewards: holders | Check funded pool, finalized eligibility, price coverage and minima; no recipient claim | [Automatic rewards](automatic-rewards.md) |
 | Rewards: X | Sign in as the named account, link and verify the recipient wallet, claim and check the receipt | [X claims](x-fee-claims-devnet.md) |
-| Referrals / Questions | Frozen first-touch upline; automatic or creator-approved delivery; no recipient claim | [Fee policy](protocol-fee-split-config.md) |
+| Referrals / Questions | Frozen first-touch upline; claim available three-level rewards in Referrals with the earning wallet | [Fee policy](protocol-fee-split-config.md) |
 | Daily bonuses | Completed UTC window, verified rankings and source funding; automatic recipient payment | [Bonus rules](daily-bonus-policy.md) |
-| Airdrops | Check exact mint, migration snapshot, proof and saved deadline; claim launched tokens | [Community airdrops](community-airdrop-devnet.md) |
+| Airdrops | Hold $FUNDED until migration; receive launched tokens automatically in proportion to eligible holdings | [Community airdrops](community-airdrop-devnet.md) |
 | Buy & burn / $FUNDED | Distinguish manual/package burns from fee-funded $FUNDED purchases and burns | [Buybacks](buyback-devnet-executor.md) |
 | AI Marketing | Check saved agents, own-coin milestones, budget and executor status | [Agency rules](marketing-agency-policy.md) |
 | Rewards History / Analytics | Inspect finalized gross/net receipts, fees, rent and source coverage | [Measurement](product-measurement.md) |
@@ -26,7 +26,7 @@ The agency defaults are 80% creator-directed, 8% Operations & marketing, 1% refe
 
 App service-price defaults are 1% trading, 0.02 SOL launch, $150 Pro, $300 Premier and $300 external listing in quoted $FUNDED burns. Listing is included for verified launches. Review current quotes; network, rent, Pump/pool costs and purchases are separate.
 
-Collection → settlement → funding → eligibility/claim → finalized payment are separate stages. Holder and Daily bonus recipients do not claim. X and community-token recipients do. Creator/referral automatic delivery depends on the active saved route; manual routes can require creator approval. The developer token lock does not hold creator SOL income.
+Collection → settlement → funding → eligibility/claim → finalized payment are separate stages. Creator fees, X rewards and three-level referral rewards require manual claims. Coin-holder SOL, Daily bonuses and migration token airdrops pay automatically after their eligibility and funding checks. The developer token lock does not hold creator SOL income.
 
 ## Home and getting around
 
@@ -124,20 +124,20 @@ Creator profiles can show public project details, versioned briefs, updates and 
 
 Route: `#profile`. In-app guide: `#docs/notifications`.
 
-Activity notices and return reminders are device-local while the app is open. Choose activity types, a minimum SOL receipt amount, digest grouping and local quiet hours. These preferences affect notices, not eligibility, payments or transaction authorization.
+Reminders save to your verified wallet account and sync when you sign in. Notices appear while the app is open.
 
 1. Ready approvals and published cutoff notices link to the relevant action. A reminder does not reserve a launch, submit an order or claim a reward.
 2. Quiet hours use device-local time; Daily bonus windows use UTC. A cutoff is not a guaranteed payout time.
 3. Following a wallet or saving a trade intent never enables automated or delegated trading. Reopen the action and review current terms before signing.
 
-## Account settings and preference backup
+## Account settings
 
 Route: `#profile`. In-app guide: `#docs/settings`.
 
-Profile separates local preferences, public activity and optional X account sync. Export follows and reminders, or review an imported merge before applying it. Loading saved account preferences never imports them automatically.
+Favorites, followed wallets, followed creators and reminders save to your signed-in account. Browser-only backups and share counters are removed.
 
-1. Optional save/load requires a verified X session and a supporting API. Check the account name before saving. Wallet identity and X identity remain separate.
-2. Preference transfer covers supported public wallet follows, creator follows and reminders. It does not back up keys, every setting, artwork or financial recovery records.
+1. Sign in with the same account on another device to load your saved items.
+2. Wallet and X identities remain separate. Followed wallets, creators and reminders require your verified wallet account.
 3. Saved slippage and estimated transaction-fee caps are checked at trade review and before submission. Unreadable limits or unknown required fees can block signing; rent and trade spending are separate.
 
 ## Help center and issue reports

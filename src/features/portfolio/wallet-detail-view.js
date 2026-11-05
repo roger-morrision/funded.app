@@ -122,7 +122,7 @@ export function renderWalletDetail(
     follow.hidden = !valid;
     follow.textContent = active ? 'Following ✓' : 'Follow wallet';
     follow.setAttribute('aria-pressed', String(active));
-    follow.setAttribute('aria-label', `${active ? 'Unfollow' : 'Follow'} ${escapeHtml(address || 'wallet')} on this device`);
+    follow.setAttribute('aria-label', `${active ? 'Unfollow' : 'Follow'} ${escapeHtml(address || 'wallet')}`);
   }
   const statSol = document.querySelector('#wallet-stat-sol');
   const statSolNote = document.querySelector('#wallet-stat-sol-note');
