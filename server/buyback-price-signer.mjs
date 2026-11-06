@@ -16,16 +16,19 @@ export function buybackPriceService(env=process.env) {
   return {signer,endpoint};
 }
 
-// The independent service reviews the complete unsigned transaction, obtains
-// its own market data, and returns only its detached signature over the message.
+export async function priceSignerActivated(connection,program,signer) {
+  const [genesis,account]=await Promise.all([connection.getGenesisHash(),
+    connection.getAccountInfo(priceConfigAddress(program),'finalized')]);
+  return genesis===DEVNET_GENESIS_HASH&&account?.owner.equals(new PublicKey(program))===true&&account.data.length===40
+    &&account.data.subarray(0,8).equals(discriminator)&&account.data.subarray(8).equals(signer.toBuffer());
+}
+
+// The custodian reviews the unsigned transaction using its own market data.
 export async function cosignBuyback({connection,transaction,program,service,request=fetch}) {
   const {message}=transaction, signer=service.signer;
   if(message.header.numRequiredSignatures!==2||!message.staticAccountKeys[1].equals(signer)
     ||message.staticAccountKeys[0].equals(signer))throw Error('Unexpected buyback signers.');
-  const [genesis,account]=await Promise.all([connection.getGenesisHash(),
-    connection.getAccountInfo(priceConfigAddress(program),'finalized')]);
-  if(genesis!==DEVNET_GENESIS_HASH||!account?.owner.equals(new PublicKey(program))||account.data.length!==40
-    ||!account.data.subarray(0,8).equals(discriminator)||!account.data.subarray(8).equals(signer.toBuffer()))
+  if(!await priceSignerActivated(connection,program,signer))
     throw Error('Independent price signer is not activated on Devnet.');
   const response=await request(service.endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(8000),
     headers:{'content-type':'application/json'},body:JSON.stringify({cluster:'devnet',programId:String(program),

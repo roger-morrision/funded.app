@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRewardStatusRoutes } from '../server/routes/reward-status.mjs';
+import {priceSignerFixture} from './fixtures/buyback-price-signer.mjs';
 import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -222,6 +223,7 @@ test('only a finalized burn for the enabled current Devnet program opens buyback
 test('buyback readiness follows fresh worker, program, RPC and funding gates while receipts remain historical', async () => {
   let clock=Date.parse('2026-10-19T04:00:00Z'), programReady=true, custodyReady=true;
   const rewards={buybackWorkerHeartbeat:{status:'ready',cluster:'devnet',at:new Date(clock).toISOString()}};
+  const priceConnection={},price=priceSignerFixture(priceConnection,programId);
   const state={v3BuybackOrders:{past:{status:'finalized',finalized:true,vaultDebitVerified:true,burnInstructionVerified:true,
       programId,approvedHash:'a'.repeat(64)}}};
   const env={FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
@@ -229,13 +231,17 @@ test('buyback readiness follows fresh worker, program, RPC and funding gates whi
   const replies=[];
   const route=createRewardStatusRoutes({store:{read:async()=>state},automaticRewardStore:{read:async()=>rewards},
     solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',env,now:()=>clock,
-    connectionFactory:()=>({}),
+    connectionFactory:()=>priceConnection,
     readProgramReadiness:async()=>({ready:programReady,programId,reasons:programReady?[]:['RPC unavailable.']}),
     readBuybackDashboard:async()=>({status:custodyReady?'verified':'unavailable',
       unindexedStatus:custodyReady?'verified':'unavailable',triggerReached:custodyReady,
       unindexedVaults:custodyReady?[{mint:programId,status:'verified',pendingLamports:'5000000'}]:[]}),
     respond:(_res,_status,data)=>replies.push(data)});
   const read=async path=>{await route({method:'GET'},{},new URL(`https://funded.vip${path}`));return replies.at(-1);};
+  const paused=await read('/api/buyback/status');
+  assert.equal(paused.executionReady,false);
+  assert.match(paused.executionReasons.join(' '),/independent price signer/);
+  Object.assign(env,price.env);clock+=15_001;
   assert.equal((await read('/api/buyback/status')).executionReady,true);
   assert.equal((await read('/api/rewards/automatic')).routeReadiness.buyback.ready,true);
   programReady=false;clock+=15_001;

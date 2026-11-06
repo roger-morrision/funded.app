@@ -10,6 +10,7 @@ import { onchainBuybackSource } from '../v3-buyback-cycle.mjs';
 import { v3BuybackPendingStatus, shouldAttemptV3Buyback,buybackOrderSizeSummary,
   MIN_V3_BUYBACK_ORDER_LAMPORTS } from '../v3-buyback-worker-policy.mjs';
 import { workerHeartbeatHealth } from '../worker-readiness.mjs';
+import {buybackPriceService,priceSignerActivated} from '../buyback-price-signer.mjs';
 import {aggregatePendingBuybacks} from '../v3-buyback-aggregate.mjs';
 import {buybackExecutionPolicy,buybackAgeEligible} from '../v3-buyback-execution-policy.mjs';
 import {allocationAuditHash} from '../allocation-audit-hash.mjs';
@@ -160,7 +161,16 @@ export function createRewardStatusRoutes({
       catch { /* Current program or RPC verification failed closed. */ }
       const matched = value?.ready === true
         && value.programId === env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
-      const result = { ready:matched,
+      let priceSignerReady=false;
+      if(matched&&solanaCluster==='devnet'){
+        try{
+          const service=buybackPriceService(env);
+          if(service)priceSignerReady=await priceSignerActivated(connectionFactory(solanaRpcUrl,{
+            commitment:'finalized',disableRetryOnRateLimit:true,
+            fetch:(url,opts)=>fetch(url,{...opts,signal:AbortSignal.timeout(5000)})}),value.programId,service.signer);
+        }catch{/* Preserve unrelated program readiness when the price signer is unavailable. */}
+      }
+      const result = { ready:matched,priceSignerReady,
         programId:value?.programId || null, checkedAt:new Date(now()).toISOString(),
         reasons:matched ? [] : value?.reasons?.length ? value.reasons
           : value?.ready === true ? ['Current V3 program does not match this deployment.']
@@ -213,6 +223,7 @@ export function createRewardStatusRoutes({
     const reasons = [];
     if (solanaCluster !== 'devnet') reasons.push('Buyback execution requires Devnet.');
     if (env.FUNDED_V3_BUYBACK_ENABLED !== 'true') reasons.push('V3 buyback execution is disabled.');
+    if (!program.priceSignerReady) reasons.push('Buybacks are paused until the independent price signer is verified.');
     const worker = workerHeartbeatHealth(rewards.buybackWorkerHeartbeat,
       {now:now(),maxAgeMs:180_000,expectedCluster:'devnet'});
     if (!worker.healthy) reasons.push(...worker.reasons.map(reason=>`Buyback worker: ${reason}.`));
@@ -315,7 +326,7 @@ export function createRewardStatusRoutes({
         minimumOrderLamports:String(MIN_V3_BUYBACK_ORDER_LAMPORTS),
         executionPolicy:{...executionPolicy,ageMinimumLamports:String(executionPolicy.ageMinimumLamports),
           maxOrderLamports:String(executionPolicy.maxOrderLamports),dailyCapLamports:String(executionPolicy.dailyCapLamports)},
-        executionReady:current.ready, executionCheckedAt:current.checkedAt,
+        executionReady:current.ready, priceSignerReady:program.priceSignerReady===true, executionCheckedAt:current.checkedAt,
         executionReasons:current.reasons, workerCheckedAt:current.workerCheckedAt,
         historicalExecutionVerified:verifiedV3Burns(state).length > 0,
         automationEnabled:solanaCluster==='devnet'&&env.FUNDED_V3_BUYBACK_ENABLED==='true',

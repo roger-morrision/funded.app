@@ -33,21 +33,26 @@ async function tick() {
   let attemptFailed = false;
   for (const row of pending) {
     lifecycle.assertRunning();
+    if(result.priceSignerReady===false && row.status!=='verification-pending')continue;
     const sourceKey=`${row.mint}:${row.sourceCollectionSignature}`;
     if (!shouldAttemptV3Buyback(row, { triggerReached:result.dashboard?.triggerReached,
       retryAt:retryAt.get(sourceKey) || 0 })) continue;
     const path = `/api/tokens/${row.mint}/v3-buyback/${row.sourceCollectionSignature}`;
     const executed = await request(path, 'POST');
-    if (executed.status === 200) retryAt.delete(sourceKey);
+    const proof=executed.result;
+    const finalized=executed.status===200&&proof?.status==='finalized'&&proof.finalized===true
+      &&proof.balanceDeltaVerified===true&&proof.burnInstructionVerified===true&&Boolean(proof.signature);
+    const paused=executed.status===200&&proof?.status==='paused';
+    if (finalized) retryAt.delete(sourceKey);
     else {
       attemptFailed = true;
       if (executed.status !== 503) retryAt.set(sourceKey,Date.now()+10*60_000);
     }
     console.log(JSON.stringify({ event:'v3_buyback_attempt', mint:row.mint,
       source:row.sourceCollectionSignature,status:executed.status,
-      signature:executed.status === 200 ? executed.result.signature : null,
-      reason:executed.status === 200 ? null : String(executed.result?.error || 'Execution unavailable').slice(0,160),
-      outcome:executed.status === 200 ? 'finalized' : 'pending-or-blocked' }));
+      signature:finalized ? proof.signature : null,
+      reason:finalized ? null : String(proof?.reason || proof?.error || 'Execution unavailable').slice(0,160),
+      outcome:finalized ? 'finalized' : paused ? 'paused' : 'pending-or-blocked' }));
   }
   return !attemptFailed && result.dashboard?.status === 'verified'
     && result.dashboard?.unindexedStatus === 'verified';
