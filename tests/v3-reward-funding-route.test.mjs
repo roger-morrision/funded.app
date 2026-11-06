@@ -208,6 +208,10 @@ test('recipient-signed referral claim pays only the frozen inviter once',async()
   const input={claimNonce:review.nonce,recipientSignature:Buffer.from(nacl.sign.detached(new TextEncoder().encode(review.statement),inviter.secretKey)).toString('base64')};
   await f.request(input);assert.equal(f.responses.at(-1).status,200,JSON.stringify(f.responses.at(-1).data));assert.equal(f.submitted,1);
   await f.request(input);assert.equal(f.responses.at(-1).status,200);assert.equal(f.submitted,1);
+  const receipt=f.responses.at(-1).data.signature;
+  assert.ok(receipt);
+  await f.request({});assert.equal(f.responses.at(-1).status,200);
+  assert.equal(f.responses.at(-1).data.signature,receipt);assert.equal(f.submitted,1);
 });
 
 test('creator or unrelated signatures cannot claim another wallet referral reward',async()=>{

@@ -31,7 +31,7 @@ export function keypairProvider(payer) {
 }
 
 /** Read the live app's published V3 launch inputs, exactly as the launch page does. */
-export async function loadV3LaunchInputs({ appOrigin, payer, fetchImpl = fetch }) {
+export async function loadV3LaunchInputs({ appOrigin, payer, promotion = false, fetchImpl = fetch }) {
   const read = async (path, init) => {
     const response = await fetchImpl(`${appOrigin}${path}`, { ...init, signal: AbortSignal.timeout(20_000) });
     const body = await response.json().catch(() => null);
@@ -50,7 +50,7 @@ export async function loadV3LaunchInputs({ appOrigin, payer, fetchImpl = fetch }
     body: JSON.stringify({ payer: payer.toBase58(), expectedHash: fees.hash }) });
   assert(launchServiceQuote.payer === payer.toBase58() && launchServiceQuote.policyHash === fees.hash, 'Launch service quote does not match the payer and policy.');
   const v3FeeRouter = { programId: config.programId, initialAuthority: config.initialAuthority, split: config.protocolSplit,
-    ...(config.agency ? { agency: { ...config.agency, selectedAgents: newLaunchAgencySelection({ promotion: false }) } } : {}) };
+    ...(config.agency ? { agency: { ...config.agency, selectedAgents: newLaunchAgencySelection({ promotion }) } } : {}) };
   return { v3FeeRouter, reserveConfig, launchServiceQuote };
 }
 

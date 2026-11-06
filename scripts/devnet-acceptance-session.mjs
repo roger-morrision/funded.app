@@ -12,12 +12,14 @@ const emit=row=>console.log(JSON.stringify(row));
 for await(const line of input){
  try{
   const command=JSON.parse(line);
-  if(command.action==='initialize'){
-   if(payer)throw Error('Already initialized');
-   rpcUrl=command.rpcUrl;
-   connection=new Connection(rpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,fetch:createAcceptanceRpcFetch()});
-   assertDevnet(await connection.getGenesisHash());payer=Keypair.generate();
-   emit({event:'session-ready',cluster:'devnet',payer:payer.publicKey.toBase58(),privateKeyPersistence:'none'});
+  if(command.action==='initialize'||command.action==='change-rpc'){
+   const initialize=command.action==='initialize';
+   if(busy || (initialize ? Boolean(payer) : !payer))throw Error('Session not ready for this action');
+   const candidate=new Connection(command.rpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,fetch:createAcceptanceRpcFetch()});
+   assertDevnet(await candidate.getGenesisHash());
+   connection=candidate;rpcUrl=command.rpcUrl;
+   if(initialize)payer=Keypair.generate();
+   emit({event:initialize?'session-ready':'rpc-changed',cluster:'devnet',payer:payer.publicKey.toBase58(),privateKeyPersistence:'none'});
   }else if(command.action==='balance'){
    if(!payer)throw Error('Initialize first');
    assertDevnet(await connection.getGenesisHash());

@@ -3,7 +3,9 @@ import viteConfig, { browserBuildSettings } from '../vite.config.js';
 
 const defaults = browserBuildSettings({}, {});
 assert.deepEqual(defaults, { schemaVersion: 1, cluster: 'devnet', exploreCluster: 'devnet', mainnetEnabled: false, mainnetReadOnly: false, devWalletEnabled: false });
-const fromFile = browserBuildSettings({ VITE_SOLANA_CLUSTER: 'mainnet-beta', VITE_ALLOW_MAINNET: 'TRUE', VITE_MAINNET_READ_ONLY: 'TRUE', VITE_DEV_MODE: 'true' }, {});
+const fromFile = browserBuildSettings({ VITE_SOLANA_CLUSTER: 'mainnet-beta', VITE_ALLOW_MAINNET: 'false', VITE_MAINNET_READ_ONLY: 'TRUE', VITE_DEV_MODE: 'true' }, {});
+assert.equal(fromFile.mainnetEnabled, false);
+assert.throws(() => browserBuildSettings({ VITE_SOLANA_CLUSTER:'mainnet-beta', VITE_ALLOW_MAINNET:'true', VITE_MAINNET_READ_ONLY:'true' }, {}), /cannot enable Mainnet writes/);
 assert.equal(fromFile.mainnetReadOnly, true);
 assert.equal(fromFile.devWalletEnabled, false);
 assert.equal(browserBuildSettings({ VITE_SOLANA_CLUSTER: 'mainnet-beta' }, { VITE_SOLANA_CLUSTER: 'devnet' }).cluster, 'devnet');

@@ -197,22 +197,9 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const protectedPolicy = readiness.protectedPolicy === true;
     const recipientClaim=kind==='referral'&&!automatic;
     const claimIntent={mint,collectionSignature,level,recipient:recipient.toBase58(),amount:String(amount)};
-    if(recipientClaim){
-      if(!protectedPolicy)return json(res,409,{error:'Manual referral delivery requires a verified protected policy.'});
-      if(!input.recipientSignature){
-        const claim=await prepareManualReferralPayout(store,claimIntent);
-        return json(res,202,{status:'awaiting-recipient-signature',...claim});
-      }
-      try{verifyManualReferralPayout(await store.read(),claimIntent,input);}
-      catch(error){return json(res,401,{error:error.message});}
-    }
     const operatorSigned=automatic||recipientClaim;
-    if(operatorSigned){
-      if(!protectedPolicy)return json(res,409,{error:'Automatic payouts require protected on-chain shares.'});
-      await ensureAutomation({connection,authority,programId,mint,creator:launch.creatorWallet,
-        policy:(launch.pumpFeeRoute.protocolSplit?.agencyPercent!==undefined?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address,
-        recipients:[env.FUNDED_V3_OPERATIONS_RECIPIENT,...[0,1,2].map(index=>settled.referralUpline?.[index]||PublicKey.default)]});
-    }
+    if(recipientClaim&&!protectedPolicy)return json(res,409,{error:'Manual referral delivery requires a verified protected policy.'});
+    if(operatorSigned&&!protectedPolicy)return json(res,409,{error:'Automatic payouts require protected on-chain shares.'});
     const beneficiary = kind === 'creator-wallet' ? 0 : kind === 'creator-reward' ? 1
       : category + 2;
     const holderAmount = kind === 'creator-reward'
@@ -304,6 +291,19 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       const retry = await retryState({ connection, signatures:[existing.signature],
         blockhash:existing.blockhash });
       if (!retry.retry) return json(res, 409, { error:retry.reason });
+    }
+    if(recipientClaim){
+      if(!input.recipientSignature){
+        const claim=await prepareManualReferralPayout(store,claimIntent);
+        return json(res,202,{status:'awaiting-recipient-signature',...claim});
+      }
+      try{verifyManualReferralPayout(await store.read(),claimIntent,input);}
+      catch(error){return json(res,401,{error:error.message});}
+    }
+    if(operatorSigned){
+      await ensureAutomation({connection,authority,programId,mint,creator:launch.creatorWallet,
+        policy:(launch.pumpFeeRoute.protocolSplit?.agencyPercent!==undefined?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address,
+        recipients:[env.FUNDED_V3_OPERATIONS_RECIPIENT,...[0,1,2].map(index=>settled.referralUpline?.[index]||PublicKey.default)]});
     }
     const financialBaseline=residual?structuredClone({wallet:state.v3CreatorWalletPayout||{},reward:state.v3CreatorRewardFunding||{}}):null;
     if(residual){

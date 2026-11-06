@@ -18,7 +18,7 @@ import { initialCurvePremiumBps } from './launch-review.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy, launchBuyCapacity } from './launch-community-reserve.js';
 import { launchServiceFeeInstructions } from './launch-service-fee.js';
 import {buildAgencyMintV3InitializeInstruction,agencySelectionMask} from './agency-mint-router-v3.js';
-import {MARKETING_AGENCY_POLICY,canonicalAgencySelection} from './config/marketing-agency.js';
+import {MARKETING_AGENCY_POLICY,canonicalAgencySelection,newLaunchAgencySelection} from './config/marketing-agency.js';
 
 export async function submitLaunch({ connection, provider, payer, input, onStatus = () => {} }) {
   const launchInput = normalizeLaunchInput(input);
@@ -183,6 +183,13 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (cluster !== 'devnet') throw new Error('Mainnet coin launching is not enabled. No transaction was prepared or sent.');
   if (!v3FeeRouter?.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split || !useMintRouter)
     throw new Error('Only verified V3 mint-router launches are supported. No transaction was prepared or sent.');
+  if (v3FeeRouter.agency) {
+    const selected = canonicalAgencySelection(v3FeeRouter.agency.selectedAgents);
+    const required = newLaunchAgencySelection({ promotion: Boolean(launchBurn && launchBurn.tier !== 'standard') });
+    if (selected.length !== required.length || selected.some((agent, index) => agent !== required[index])) {
+      throw new Error('The selected agents must match the launch package before signing. Refresh the launch review.');
+    }
+  }
   const launchInput = normalizeLaunchInput(input);
   if (!reserveConfig?.authority || !reserveConfig?.lookupTable || !Number.isSafeInteger(input.reserveTokens) || input.reserveTokens <= 0)
     throw new Error('An active, configured community reward vault is required before coin creation.');

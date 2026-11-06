@@ -6,6 +6,16 @@ The supported launch flow remains **Devnet only**; this does not establish that 
 
 The subsequent deployment and fresh registered launch, escrow, creator payout and PumpSwap migration evidence are in [the November 5 release verification](devnet-release-verification-2026-11-05.md). Earlier incomplete-run statements below are historical and do not describe that later execution.
 
+## Running read-only staging locally
+
+From the release worktree, run `npm run build:mainnet-preview` and then `npm run start:mainnet-preview`. Open `http://127.0.0.1:4186`. The build uses a separate output directory and fixes the browser to read-only Mainnet with developer wallets disabled. The server binds to loopback and rejects submissions. It serves the bundled protocol split for display.
+
+`GET /api/status` checks the exact Mainnet genesis and finalized slot through the official public RPC. For a dedicated provider, set `MAINNET_PREVIEW_RPC_URL_FILE` to the path of a server-side secret containing the rotated HTTPS URL before starting the preview. An unavailable or mismatched chain returns HTTP 503. Financial dashboards requiring an indexed database or payment API remain unavailable in this preview.
+
+On November 6 the loopback preview passed desktop and mobile bootstrap and disabled-launch checks. The Devnet recheck verified prior finalized receipts for 33 SOL payments, four buyback burns, both paid launch tiers and one X payout using a test identity. The holder and buyback fixtures used the scoped QA conditions recorded in the [financial evidence](devnet-redis-financial-e2e-2026-11-01.json). These checks do not establish a fresh payment at ordinary thresholds or a live X OAuth sign-in.
+
+Fresh November 6 Devnet tests also verified an external listing burn of 276.238524 $FUNDED, a 139-token Pro burn and a 277-token Premier burn. Both paid launches registered and locked the full 20% creator buy. The first Pro fixture selected the Standard agents and burned 139 tokens before registration rejected it. The launch builder now rejects this mismatch before wallet or RPC access. The original failed fixture remains unregistered. [Listing receipt](https://explorer.solana.com/tx/5CarxKDArowtHk1wpPAYz5Vsrfthf7Ku2X8GzQ3A9YHtpjrvg8JgW3uo841kJHHS8WD6FDTZfyFQXWLnuYDZYWXQ?cluster=devnet), [corrected Pro receipt](https://explorer.solana.com/tx/44Rjnd8gTeuRZNb8SDtS2EXKrxA2ir7QSfUVqjurUeVv7PRacqxNtfmWZ6cWvSbL3k5v64Jn2BMCqi8bPFV3RzvY?cluster=devnet), [Premier receipt](https://explorer.solana.com/tx/5pfLih9yAWRuRh2Wi2cR4mhhapUhngMEmw9ipupCkdkMfPK2HFXBjkRMZhjgj95JsEdjDDnw7pWEZVbU92tyztL1?cluster=devnet).
+
 ## Protected beneficiary routing and current evidence
 
 The protected V3 implementation now commits beneficiary policy and rejects the older unprotected launch instruction. The earlier statement that all new Devnet launches are blocked is obsolete. See [protected V3 policy evidence](protected-v3-beneficiary-policy.md). This is Devnet engineering evidence, not an independent audit or Mainnet approval.
