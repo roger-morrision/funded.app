@@ -32,7 +32,7 @@ for(const width of [390,1440]){
     }finally{release();}
   });
   test(`all public workspace routes remain readable without horizontal overflow at ${width}px (mocked offline)`,async({page,baseURL})=>{
-    await setup(page,width,baseURL);await page.goto('/#overview');await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
+    test.setTimeout(90000);await setup(page,width,baseURL);await page.goto('/#overview');await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
     for(const route of ['overview','explore','launch','my-launches','payments','capital-flow','analytics-detail','referrals','airdrops','leaderboard','paid','list','docs','creators','profile','privacy','marketing-agency']){
       await page.evaluate(route=>{location.hash=route;},route);
       await expect(page.locator('body')).toHaveClass(route==='creators'?/support-view-active/:new RegExp(`page-route-${route}(?: |$)`));

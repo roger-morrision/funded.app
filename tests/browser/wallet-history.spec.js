@@ -29,7 +29,7 @@ for (const [referralStatus, hasDailyReceipt] of [[200, true], [401, true], [503,
     cluster:'devnet', reserves:[{ mint, verified:true, status:'drop-closed',
       reservedTokens:'100', totalBaseUnits:'100000000' }],
   } }));
-  await page.route('**/api/airdrops/claims/proof**', route => route.fulfill({ json:{
+  await page.route('**/api/airdrops/allocation**', route => route.fulfill({ json:{
     status:'claimed', recipient:wallet, amount:'12500000', payment,
   } }));
   await page.route('**/api/referral-claims?wallet=*', route => referralStatus === 200 ? route.fulfill({ json:{
@@ -79,7 +79,7 @@ for (const [referralStatus, hasDailyReceipt] of [[200, true], [401, true], [503,
   await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount((referralStatus === 200 ? 6 : 5) - (hasDailyReceipt ? 0 : 1));
   for (const [filter, label] of [
     ['claim','X reward claimed'], ['reward','Holder reward received'],
-    ['airdrop','Community airdrop claimed'], ['bonus',hasDailyReceipt ? 'Daily bonus received' : 'Bonus history incomplete'],
+    ['airdrop','Community airdrop received'], ['bonus',hasDailyReceipt ? 'Daily bonus received' : 'Bonus history incomplete'],
   ]) {
     await page.locator(`[data-wallet-filter="${filter}"]`).click();
     await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount(filter === 'bonus' ? (hasDailyReceipt ? 1 : 0) + (referralStatus === 200 ? 1 : 0) : 1);
@@ -709,7 +709,7 @@ test.describe('FQA-073 independent wallet balance survives unavailable launch fe
       // before testing the separate estimate-failure path on the wallet page.
       await page.locator('a[href="#launch"]:visible').first().click({ timeout:5000 });
       await expect(page.locator('body')).toHaveClass(/page-route-launch/);
-      await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+      await expect(page.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
       await page.goBack();await expect(page.locator('#wallet-page')).toBeVisible();armed = true;
       const balanceResponsePromise = page.waitForResponse(response => response.request() === f.balances[0]?.request, { timeout:15000 });
       await connectBalanceScopeMock(page); await expect.poll(() => held.length).toBe(1);

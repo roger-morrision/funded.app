@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
-for(const width of [360,390,1440])test(`per-coin snapshot guidance and native Airdrops navigation at ${width}px`,async({page},testInfo)=>{
+for(const width of [360,390,1440])test(`migration snapshot guidance and native Airdrops navigation at ${width}px`,async({page},testInfo)=>{
   await page.setViewportSize({width,height:width<700?844:900});
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline rewards guidance fixture'}}));
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
@@ -13,15 +13,15 @@ for(const width of [360,390,1440])test(`per-coin snapshot guidance and native Ai
   await expect(details).not.toHaveAttribute('open','');
   await summary.focus();await page.keyboard.press('Enter');
   await expect(details).toHaveAttribute('open','');await expect(summary).toBeFocused();
-  const link=page.getByRole('link',{name:'See snapshots and claim deadlines →',exact:true});
+  const link=page.getByRole('link',{name:'View airdrops →',exact:true});
   const article=link.locator('..');
-  await expect(article.getByRole('heading')).toHaveText('Check each coin’s snapshot and deadline');
-  await expect(article).toContainText('verified snapshot and published claim deadline');
-  await expect(article).toContainText('QA cutoffs are separate');
-  await expect(article).not.toContainText(/90 days|at migration/);
+  await expect(article.getByRole('heading')).toHaveText('Airdrops at migration');
+  await expect(article).toContainText('Tokens arrive automatically after checks. No claim needed.');
+  await expect(article).toContainText('Your share depends on your $FUNDED holdings.');
+  await expect(article).not.toContainText(/claim deadline|90 days/);
   await expect(link).toHaveAttribute('href','#airdrops');
-  await expect(page.locator('.reward-upcoming-grid article').first()).toContainText('An hourly payout needs confirmed holdings');
-  await expect(page.locator('.reward-upcoming-note')).toHaveText('Creator, X, and referral SOL depend on collected fees. X rewards require a claim. Active automatic routes pay referrals after funding; manual routes can require creator approval. Check confirmed receipts.');
+  await expect(page.locator('.reward-upcoming-grid article').first()).toContainText('Hold through its displayed hourly cutoff.');
+  await expect(page.locator('.reward-upcoming-note')).toHaveText('Claim manually: creator fees, X rewards and three-level referrals.Automatic: holder SOL, Daily bonuses and migration airdrops.');
   await link.focus();await expect(link).toBeFocused();
   await expect.poll(()=>link.evaluate(element=>{
     const r=element.getBoundingClientRect(),style=getComputedStyle(element),m=(parseFloat(style.outlineWidth)||0)+Math.max(0,parseFloat(style.outlineOffset)||0);
@@ -83,7 +83,7 @@ for(const width of [360,390,1440])for(const partition of [0,1])test(`holder cuto
     await expect(panel.locator('.auto-rewards-fineprint')).toHaveText('Target time is not payment. Each cycle checks funding and eligibility.');
     await expect(panel.locator('[data-auto-status]')).toHaveText('Controlled schedule source note');
     await expect(panel.locator('[data-auto-status]')).toHaveJSProperty('hidden',(current.service||'active')==='active');
-    await expect(panel.locator('.preview-chip')).toHaveText(current.service==='unavailable'?'Schedule unavailable':current.service==='degraded'?'Schedule needs attention':'Schedule active');
+    await expect(panel.locator('.preview-chip')).toHaveText(current.service==='unavailable'?'-':current.service==='degraded'?'Schedule needs attention':'Schedule active');
     if(current.service==='unavailable'){
       await expect(dates).toBeHidden();await expect(clock).toBeHidden();await expect(coin).toBeHidden();
     }else{
@@ -99,7 +99,6 @@ for(const width of [360,390,1440])for(const partition of [0,1])test(`holder cuto
         // Observe before the native tabpanel→existing guide→coin traversal.
         const watching=page.evaluate(observe,'#rewards-holder [data-clock-coin]');
         await page.keyboard.press('Tab');await expect(page.locator('#rewards-holder')).toBeFocused();
-        await page.keyboard.press('Tab');await expect(page.locator('#rewards-holder summary')).toBeFocused();
         await page.keyboard.press('Tab');await expect(coin).toBeFocused();
         const f=await watching;focus.push(f);expect(f.pass,JSON.stringify(f.samples.at(-1))).toBe(true);expect(f.elapsedMs).toBeLessThanOrEqual(1000);expect(f.stableMs).toBeGreaterThanOrEqual(100);
         await page.screenshot({path:testInfo.outputPath(`cutoff-future-${width}-mocked.png`)});
@@ -116,7 +115,7 @@ for(const width of [360,390,1440])for(const partition of [0,1])test(`holder cuto
   await summary.click();await expect(summary.locator('..')).toHaveAttribute('open','');
   await page.keyboard.press('Space');await expect(summary.locator('..')).not.toHaveAttribute('open','');
   await page.keyboard.press('Enter');await expect(summary.locator('..')).toHaveAttribute('open','');
-  const guide=page.getByRole('link',{name:'See snapshots and claim deadlines →',exact:true});
+  const guide=page.getByRole('link',{name:'View airdrops →',exact:true});
   await expect(guide).toBeVisible();
   guideIdentity=await guide.evaluate(e=>({sameTarget:e===document.querySelector('.reward-upcoming-grid a[href="#airdrops"]'),matchingTargets:document.querySelectorAll('.reward-upcoming-grid a[href="#airdrops"]').length,tag:e.tagName,text:e.textContent,href:e.getAttribute('href')}));
   expect(guideIdentity.sameTarget).toBe(true);expect(guideIdentity.matchingTargets).toBe(1);

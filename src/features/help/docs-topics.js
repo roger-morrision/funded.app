@@ -4,9 +4,9 @@ import { productFaqs, referralGuide, rewardActionsTable } from './product-guidan
 import {feeDistributionMarkup} from '../fees/distribution-summary.js';
 import { pageDocumentationTopics } from './page-guidance.js';
 import {communityAirdropGuide} from '../rewards/community-airdrop-copy.js';
-import {guideOutline,outlineHtml} from './guide-outlines.js';
+import {guideOutline,outlineHtml,conciseFeePoints} from './guide-outlines.js';
 
-const topic=(id,title,body,href,link)=>({id,title,body:guideOutline(id)?()=>outlineHtml(guideOutline(id))+(id==='reward-actions'?rewardActionsTable():id==='fees'?feeDistributionMarkup({compact:true}):''):body,href,link});
+const topic=(id,title,body,href,link)=>({id,title,body:guideOutline(id)?()=>outlineHtml(guideOutline(id))+(['reward-actions','claims'].includes(id)?rewardActionsTable():id==='promotions'?'<p><a class="secondary-button" href="#list">List an existing token &rarr;</a></p>':id==='fees'?'<p>'+serviceFeeGuide().split(' Optional Pro:')[0]+'</p>'+feeDistributionMarkup({compact:true}):id==='referrals'?outlineHtml(conciseFeePoints('rates')):''):body,href,link});
 const paragraphs=(...rows)=>rows.map(text=>`<p>${text}</p>`).join('');
 const feeDetails=(key,title,body)=>`<details class="docs-topic-details ui-disclosure" data-fee-guide-section="${key}"><summary>${title}</summary><div>${body}</div></details>`;
 const feeGuide=()=>{

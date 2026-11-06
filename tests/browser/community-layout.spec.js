@@ -1,3 +1,4 @@
+import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import {test,expect} from '@playwright/test';
 import {build} from 'vite';
 import {fileURLToPath} from 'node:url';
@@ -18,7 +19,7 @@ for(const width of [320,390,768,1440])test(`Home unified conversation rail at ${
  await expect(panel.locator('.home-community-token strong').first()).toHaveText('$COMM');
  await expect(panel.locator('[data-report-message]')).toHaveCount(0);
  await expect(panel.locator('[data-message-id="chat_plain"] .home-community-metrics')).toHaveCount(0);
- await expect(panel.locator('[data-message-id="chat_call"]')).toContainText('PurchasedUnavailableP&LUnavailable');
+ await expect(panel.locator('[data-message-id="chat_call"]')).toContainText('Purchased-P&L-');
  await expect(panel.locator('[data-message-id="chat_call"]')).toContainText('MC since call: +12.5%');
  await expect(panel.locator('script')).toHaveCount(0);await expect(panel.locator('form button')).toHaveText('Connect wallet to chat');
  await expect(panel.locator('textarea')).toHaveAttribute('maxlength','280');
@@ -30,7 +31,7 @@ for(const width of [320,390,768,1440])test(`Home unified conversation rail at ${
 });
 async function setup(page,width,path,feed){
   await page.setViewportSize({width,height:900});await page.route('https://**/*',r=>r.abort());
-  await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Mocked unavailable'}}));
+  await page.route('**/api/**',r=>/\/api\/(?:referrals\/session|account-preferences|watchlist|x\/me)/.test(new URL(r.request().url()).pathname)?r.fallback():r.fulfill({status:503,json:{error:'Mocked unavailable'}}));
   await page.route('**/api/fee-policy',r=>r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
   await page.route('**/api/launches',r=>r.fulfill({json:[{mint,signature,cluster:'devnet',onchainVerified:true,creatorWallet:mint,name:'Community fixture',symbol:'COMM',creatorLaunchBurn:{tier:'pro',status:'verified',amountTokens:1000,receipt:{signature,verified:true,atomicWithPumpLaunch:true}}}]}));
   await page.route(`**/api/tokens/${mint}/chat`,r=>r.fulfill({json:{messages:[],enabled:true}}));
@@ -89,7 +90,7 @@ for(const width of [320,390,768,1440]) {
     for(const [key,name] of [['tracking','Tracking wallets'],['favorites','Favorited coins'],['rewards','My rewards'],['referral','My referral']]){const tab=page.getByRole('tab',{name,exact:true});await tab.click();await expect(tab).toHaveAttribute('aria-selected','true');await expect(page.locator('#portfolio-'+key+'-panel')).toBeVisible();}
     await expect(page.locator('#portfolio-referral-panel a').first()).toHaveAttribute('href','#referrals');
     await page.getByRole('tab',{name:'My rewards',exact:true}).click();
-    for(const [label,href] of [['Check my bonus','#bonuses'],['Check my airdrops','#airdrops'],['Check my rewards','#payments']])await expect(page.locator('#portfolio-rewards-panel').getByRole('link',{name:new RegExp(label)})).toHaveAttribute('href',href);
+    for(const [label,href] of [['View bonus history','#bonuses'],['View airdrops','#airdrops'],['View rewards','#payments']])await expect(page.locator('#portfolio-rewards-panel').getByRole('link',{name:new RegExp(label)})).toHaveAttribute('href',href);
     await expect(page.locator('#portfolio-favorites-link,[data-recovery-shortcut]')).toHaveCount(0);
     await page.evaluate(({mint,signature})=>CommunityFixture.showLaunchSuccess({mint,name:'Community fixture',symbol:'COMM',signature,registered:false}),{mint,signature});
     const dialog=page.getByRole('dialog',{name:'Token created successfully'});await expect(dialog).toBeVisible();await expect(dialog).toContainText('registration is still pending');
@@ -133,7 +134,7 @@ for(const width of [320,390,768,1440,1800])test(`Home compact cards are newest f
  await expect(cards.first().getByRole('progressbar')).toHaveAttribute('aria-valuenow','100');
  await expect(cards.nth(1).locator('.home-new-token-holders')).toHaveText('Holders≥23');
  await expect(cards.nth(1).getByRole('progressbar')).toHaveAttribute('aria-valuenow','42');
- await expect(cards.nth(2).locator('.home-new-token-holders')).toHaveText('HoldersUnavailable');
+ await expect(cards.nth(2).locator('.home-new-token-holders')).toHaveText('Holders-');
  await expect(cards.nth(2).locator('.home-new-token-track')).not.toHaveAttribute('aria-valuenow');
  await expect(cards.first().locator('.home-new-token-heading .boost-package-badge')).toHaveText('⚡10x');
  await expect(page.locator('#home-launch-grid .participation-note')).toHaveCount(0);
@@ -157,9 +158,9 @@ test('connected balance is wallet-scoped and post result explains missing calls 
  await page.evaluate(()=>CommunityFixture.showChatPostResult({calloutStatus:'recorded',message:{callout:{}}}));await expect(page.locator('#coin-chat-post-result a')).toHaveAttribute('href','#callouts');
 });
 
-test('tracked wallet displays a compact identity card and can be unfollowed (local storage fixture)',async({page},info)=>{
- await page.addInitScript(mint=>localStorage.setItem('funded.app.followed.wallets.v1',JSON.stringify([{address:mint,roles:['creator']}])) ,mint);
- await setup(page,390,'/#my-launches');await page.getByRole('tab',{name:'Tracking wallets',exact:true}).click();
+test('tracked wallet displays a compact identity card and can be unfollowed (authenticated account fixture)',async({page},info)=>{
+ const account=await installAccountFixture(page);account.preferences.wallets=[{address:mint,roles:['creator']}];
+ await setup(page,390,'/#my-launches');await account.connect();await page.getByRole('tab',{name:'Tracking wallets',exact:true}).click();
  const card=page.locator('.portfolio-wallet-card');await expect(card).toHaveCount(1);await expect(card.locator('.portfolio-wallet-avatar')).toBeVisible();await expect(card.getByRole('link',{name:'View wallet'})).toHaveAttribute('href','/wallet/'+mint);
  await page.screenshot({path:info.outputPath('tracked-wallet.png'),animations:'disabled'});await card.getByRole('button',{name:/Unfollow/}).click();await expect(card).toHaveCount(0);
 });

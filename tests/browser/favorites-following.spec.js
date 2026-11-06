@@ -1,3 +1,4 @@
+import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
@@ -12,7 +13,9 @@ test('favorite tokens and followed creator wallets persist and can be removed', 
   await page.route('**/api/launches', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([launch]) }));
   await page.route('**/api/x/me', route => route.fulfill({ json: { authenticated: false, configured: true } }));
 
+  const account=await installAccountFixture(page);
   await page.goto(`/wallet/${creator}`);
+  await account.connect();
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const follow = page.locator('#wallet-follow');
   await expect(follow).toBeVisible();
@@ -20,15 +23,18 @@ test('favorite tokens and followed creator wallets persist and can be removed', 
   await expect(follow).toHaveAttribute('aria-pressed', 'true');
 
   await page.goto(`/token/${mint}`);
+  await account.connect();
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await page.locator('#coin-watch').click();
   await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed', 'true');
 
   await page.goto('/#community');
+  await account.connect();
   await expect(page.locator('#followed-wallet-rows .followed-wallet-row')).toHaveCount(1);
   await expect(page.locator('#followed-wallet-rows')).toContainText('Creator');
   await expect(page.locator('#watchlist-items :is(.saved-token-row,.home-launch-card)')).toHaveCount(1);
   await page.reload();
+  await account.connect();
   await expect(page.locator('#followed-wallet-rows .followed-wallet-row')).toHaveCount(1);
   await expect(page.locator('#watchlist-items :is(.saved-token-row,.home-launch-card)')).toHaveCount(1);
 
@@ -49,7 +55,7 @@ function favoriteGate() {
   return { started:new Promise(resolve => { start = resolve; }), promise:new Promise(resolve => { release = resolve; }),
     completed:new Promise(resolve => { done = resolve; }), start, release, done };
 }
-async function favoriteFixture(page, width, { account = false, market = false, oldLogo = false, registry = favoriteMints.slice(0,2) } = {}) {
+async function favoriteFixture(page, width, { account = true, market = false, oldLogo = false, registry = favoriteMints.slice(0,2) } = {}) {
   const f = { identity:account ? '123' : 'guest', lists:{ '123':favoriteMints.slice(0,2), '456':favoriteMints.slice(0,2) },
     registry:registry.map((mint,index) => ({ mint, cluster:'devnet', onchainVerified:true, creatorWallet:creator,
       name:'Controlled favorite ' + index, symbol:'F' + index, imageUri:oldLogo ? 'https://metadata.funded.vip/devnet-images/' + mint : null })),
@@ -110,6 +116,7 @@ async function favoriteFixture(page, width, { account = false, market = false, o
         return {jsonrpc:'2.0',id:call.id,result};});
       return route.fulfill({json:Array.isArray(body)?responses:responses[0]});
     }
+    if(url.pathname==='/api/watchlist'&&method==='POST'){const input=request.postDataJSON();expect(input.accountId).toBe(f.identity);expect(input.action).toBe('remove');f.lists[f.identity]=f.lists[f.identity].filter(mint=>mint!==input.mint);return route.fulfill({json:{accountId:f.identity,mints:f.lists[f.identity],csrf:'fixture'}});}
     if(!['GET','HEAD','OPTIONS'].includes(method)) {f.forbidden.push({method,path:url.pathname,reason:'no-api-writes-admitted'});return route.fulfill({status:403,json:{error:'No API write allowed'}});}
     if(!url.pathname.startsWith('/api/'))return route.continue();
     f.reads.push({path:url.pathname,method,at:Date.now(),account:url.searchParams.get('accountId')});
@@ -328,7 +335,7 @@ test.describe('FQA-054 preserved Favorites controls',()=>{
         await expect(page.locator(favoriteCard()+' .card-review-buy[data-review-amount="0.2"]')).toHaveAttribute('href','/token/'+favoriteMints[0]+'?reviewBuy=0.2');await favoriteImage(page,info,'market-data-current-'+width);
       }finally{page.off('request',observed);page.off('response',responded);page.off('requestfailed',aborted);await info.attach('explicit-market-retry-lineage',{body:JSON.stringify({trigger:'Existing native Retry check; explicit user read, not scheduled polling',growth,requests:feedStarts.map(({request,...record})=>record),heldId:held?.id,trustedEnter,eligibility,payload},null,2),contentType:'application/json'});await f.finish(info);}
     });
-    test(`native guest remove and verified-unavailable-recovery do not freeze old controls at${width}`,async({page},info)=>{
+    test(`native account remove and verified-unavailable-recovery do not freeze old controls at${width}`,async({page},info)=>{
       const f=await favoriteFixture(page,width);try{await f.open();f.releaseInitial();let gate=await f.registryRefresh();const original=await nativeFavorite(page,favoriteCard()+' :is(.saved-token-identity>a,.home-launch-card-link)',info,'before-kind-loss');
         f.registry=[];const fallback=await page.locator(favoriteRefresh).elementHandle();await armFavorite(fallback);gate.release();await favoriteProof(page,info,'verified-kind-loss-fallback',{retained:false});expect(await original.evaluate(element=>element.isConnected)).toBe(false);
         await expect(page.locator('#watchlist-items .watchlist-unavailable')).toHaveCount(2);await expect(page.locator('#watchlist-items')).not.toContainText('Controlled favorite');
@@ -336,7 +343,7 @@ test.describe('FQA-054 preserved Favorites controls',()=>{
         const check=f.hold('registryGate');await page.keyboard.press('Enter');await check.started;await expect(page.locator(retrySelector)).toBeDisabled();f.registry=[];check.release();await expect(page.locator(retrySelector)).toBeEnabled();expect(await retry.evaluate(element=>element.isConnected)).toBe(true);
         gate=f.hold('registryGate');await page.locator(retrySelector).click();await gate.started;f.registry=favoriteMints.slice(0,2).map((mint,index)=>({mint,cluster:'devnet',onchainVerified:true,creatorWallet:creator,name:'Recovered '+index,symbol:'R'+index}));gate.release();
         await expect(page.locator(favoriteIdentity)).toHaveCount(2);const remove=await nativeFavorite(page,favoriteCard()+' .watch-button',info,'native-guest-remove');await armFavorite(fallback,{count:1});await page.keyboard.press('Enter');await favoriteProof(page,info,'guest-remove-recovery-control',{retained:false});expect(await remove.evaluate(element=>element.isConnected)).toBe(false);
-        expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('funded.app.watchlist.guest.v1')).mints)).toEqual([favoriteMints[1]]);
+        expect(f.lists[f.identity]).toEqual([favoriteMints[1]]);
         await nativeFavorite(page,favoriteCard(favoriteMints[1])+' :is(.saved-token-view,.card-review-buy[data-review-amount="0.2"])',info,'remaining-mint-native-entry');await page.keyboard.press('Enter');await expect(page).toHaveURL(new RegExp('/token/'+favoriteMints[1]+'\\?reviewBuy=0\\.2$'));await page.goBack();await expect(page).toHaveURL(/#community$/);
       }finally{await f.finish(info);}
     });
@@ -628,7 +635,7 @@ async function following082Anchor(page,original) {
   if(original)expect(await original.evaluate(e=>e.isConnected&&e===document.querySelector('[data-followed-wallet-browse]'))).toBe(true);
   return link;
 }
-for(const width of[360,390,1440])test(`FQA-082 stable discovery survives following states at ${width}px`,async({browser},info)=>{
+for(const width of[360,390,1440])test(`FQA-082 stable discovery ignores legacy device follows at ${width}px`,async({browser},info)=>{
   test.setTimeout(60_000);
   const context=await browser.newContext({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'});
   let watch,primary,hasPrimary=false;const evidence={width,proofs:[],states:[],qualification:'Controlled native cross-page storage events and storage-read-error setup; no live producer, account connection or Follow action.'};
@@ -647,15 +654,15 @@ for(const width of[360,390,1440])test(`FQA-082 stable discovery survives followi
     const driver=await context.newPage();await driver.goto('/__fqa082_storage_driver');
     const change=rows=>driver.evaluate(({key,rows})=>localStorage.setItem(key,JSON.stringify(rows)),{key:following082Key,rows});
     await change([{address:creator,roles:['creator']}]);
-    await expect(page.locator('#followed-wallet-count')).toHaveText('1 followed');await expect(page.locator('#followed-wallet-rows [data-unfollow-wallet]')).toHaveCount(1);
-    await following082Anchor(page,original);await expect(link).toBeFocused();evidence.states.push('populated actual storage callback');
+    await expect(page.locator('#followed-wallet-count')).toHaveText('0 followed');await expect(page.locator('#followed-wallet-rows [data-unfollow-wallet]')).toHaveCount(0);
+    await following082Anchor(page,original);await expect(link).toBeFocused();evidence.states.push('legacy populated storage is ignored');
     await change([]);await expect(page.locator('#followed-wallet-count')).toHaveText('0 followed');
     await expect(page.locator('.followed-wallet-empty')).toHaveText(following082Empty);await following082Anchor(page,original);await expect(link).toBeFocused();evidence.states.push('empty actual storage callback');
-    await change([{address:creator,roles:['trader']}]);await expect(page.locator('#followed-wallet-count')).toHaveText('1 followed');
+    await change([{address:creator,roles:['trader']}]);await expect(page.locator('#followed-wallet-count')).toHaveText('0 followed');
     await page.evaluate(()=>{window.__following082.denied=true;});
-    await change([{address:creator,roles:['creator']}]);await expect(page.locator('#followed-wallet-status')).toHaveText('Saved wallets could not be read. Check browser storage before changing this list.');
-    await expect(page.locator('#followed-wallet-count')).toHaveText('1 followed');await expect(page.locator('#followed-wallet-rows [data-unfollow-wallet]')).toHaveCount(1);
-    await following082Anchor(page,original);await expect(link).toBeFocused();evidence.states.push('read error retains last-known populated list');
+    await change([{address:creator,roles:['creator']}]);await expect(page.locator('#followed-wallet-status')).toHaveText('');
+    await expect(page.locator('#followed-wallet-count')).toHaveText('0 followed');await expect(page.locator('#followed-wallet-rows [data-unfollow-wallet]')).toHaveCount(0);
+    await following082Anchor(page,original);await expect(link).toBeFocused();evidence.states.push('legacy storage errors cannot expose private cloud follows');
     await page.evaluate(()=>{window.__following082.denied=false;});await change([]);
     await expect(page.locator('#followed-wallet-status')).toHaveText('');await expect(page.locator('#followed-wallet-count')).toHaveText('0 followed');
     await following082Anchor(page,original);await expect(link).toBeFocused();

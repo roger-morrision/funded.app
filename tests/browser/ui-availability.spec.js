@@ -70,31 +70,27 @@ for(const mode of ['outage','partial','pending','active'])test(`airdrop ${mode} 
     :route.fulfill({json:{cluster:'devnet',reserves:mode==='partial'?[active(mint),{mint:secondMint,verified:false,status:'unavailable'}]
       :mode==='active'?[active(mint)]:[{mint,verified:true,status:'funded',reservedTokens:30_000_000}]}}));
   await page.goto('/#airdrops');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  const list=page.locator('#airdrop-directory'),claimTab=page.locator('[data-public-airdrop-tab="claiming"]');
+  const list=page.locator('#airdrop-directory'),distributed=page.locator('[data-public-airdrop-tab="distributed"]');
   await expect(list.locator('.airdrop-directory-card')).toHaveCount(mode==='partial'?2:1);
+  // An open distribution with no delivered tokens is not a completed airdrop.
+  await expect(distributed.locator('span')).toHaveText(['outage','partial'].includes(mode)?'—':'0');
+  await list.getByRole('button',{name:'View airdrop',exact:true}).first().click();
+  const panel=page.locator('#airdrop-selected-program');
+  await panel.locator('.airdrop-verification-details summary').click();
   if(mode==='outage'){
-    await expect(claimTab.locator('span')).toHaveText('—');
-    await expect(list).toContainText(/Snapshot\s*Unavailable/);
-    await expect(list).not.toContainText(/Snapshot\s*Pending/i);
-    await list.getByRole('button',{name:'View claim status',exact:true}).click();
-    await expect(page.locator('#airdrop-selected-eyebrow')).toHaveText('Airdrop verification unavailable');
-    await expect(page.locator('#airdrop-selected-status')).toContainText('Claim availability could not be verified');
-    await page.locator('#airdrop-selected-program .airdrop-verification-details summary').click();
-    await expect(page.locator('#airdrop-selected-program .airdrop-proof-value')).toHaveText(['Verification unavailable','Verification unavailable']);
-    await expect(page.locator('#airdrop-selected-program')).not.toContainText('Shown after the holder snapshot');
-    await claimTab.click();
-    await expect(list).toContainText('Claim availability could not be verified');
-    await expect(list).not.toContainText('No claims are open yet');
-  }else if(mode==='partial'){
-    await expect(claimTab.locator('span')).toHaveText('≥1');
-    await expect(list).toContainText(/Snapshot\s*Unavailable/);
-    await expect(list).toContainText('Claims open');
-    await expect(page.locator('#claim-program-count')).toContainText('claims unverified');
+    await expect(panel.locator('.airdrop-proof-value')).toHaveText(['-','-']);
+    await expect(panel).not.toContainText('Not taken yet');
+    await expect(panel.locator('[data-retry-community-mint]')).toBeVisible();
+  }else if(mode==='pending'){
+    await expect(panel).toContainText('Not taken yet');
+    await expect(panel).toContainText('Automatic delivery follows migration');
   }else{
-    await expect(claimTab.locator('span')).toHaveText(mode==='active'?'1':'0');
-    await expect(list).toContainText(mode==='active'?'Claims open':/Snapshot\s*Pending/i);
-    await expect(list).not.toContainText(/Snapshot\s*Unavailable/);
+    await expect(panel).toContainText('slot 123');
+    await expect(panel.locator('.airdrop-proof-value').first()).toHaveText('fixture-snapshot');
+    await expect(panel).not.toContainText('Claim tokens');
   }
+  await distributed.click();await expect(distributed).toHaveAttribute('aria-selected','true');
+  await expect(list.locator('.airdrop-directory-card')).toHaveCount(0);
   await expect(page.locator('[data-public-airdrop-tab="curve"] span')).toHaveText('—');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
@@ -106,7 +102,7 @@ test('recorded buyback history does not imply current execution readiness',async
       vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'1000',spentLamports:'10000'}]}}));
   await page.goto('/#buybacks');await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   await expect(page.locator('.reward-buyback-stats')).toContainText('Recorded buybacks1');
-  await expect(page.locator('.reward-source-note')).toContainText('automatic execution readiness could not be verified');
+  await expect(page.locator('.reward-source-note')).toHaveText('-');
   await expect(page.locator('#buyback-route-last-time')).toHaveText('Waiting for the next burn update');
   await expect(page.locator('#buyback-ledger')).toContainText('0.001 $FUNDED bought and burned');
 });

@@ -1,3 +1,4 @@
+import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
@@ -8,14 +9,14 @@ for(const width of [390,768,1440])test(`Paid promotion retains its exact receipt
  await page.route('**/api/x/me',r=>r.fulfill({json:{authenticated:false,configured:true}}));
  await page.route('**/api/boosts',r=>r.fulfill({json:{cluster:'devnet',enabled:true,active:{[mint]:{multiplier:10,expiresAt:new Date(Date.now()+3_600_000).toISOString()}}}}));
  await page.route('**/api/launches',r=>r.fulfill({json:[{mint,signature,cluster:'devnet',onchainVerified:true,creatorWallet:mint,name:'A community project with a longer name',symbol:'COMMUNITY',creatorLaunchBurn:{tier:'pro',status:'verified',amountTokens:1000,receipt:{signature,verified:true,atomicWithPumpLaunch:true}}}]}));
- await page.goto(`/token/${mint}`);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
+ const account=await installAccountFixture(page);await page.goto(`/token/${mint}`);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
  await expect(page.locator('.coin-hero-card')).toHaveAttribute('data-launch-tier','pro');
  const disclosure=page.locator('.coin-promotion-details');await expect(disclosure.locator('summary')).toHaveCount(0);await expect(disclosure).toBeVisible();
  const receipt=disclosure.getByRole('link',{name:'pro launch promotion · view verified burn receipt',exact:true});
  await expect(receipt).toHaveAttribute('href',`https://explorer.solana.com/tx/${signature}?cluster=devnet`);
  await expect(receipt).toHaveAttribute('rel','noopener noreferrer');await expect(receipt).toBeVisible();
  await expect(page.locator('#coin-symbol + #coin-boost-packages')).toContainText('10x');
- const star=page.locator('#coin-watch');await expect(star).toHaveAttribute('aria-pressed','false');
+ await account.connect();const star=page.locator('#coin-watch');await expect(star).toHaveAttribute('aria-pressed','false');
  const before=await star.evaluate(e=>getComputedStyle(e).color);await star.click();await expect(star).toHaveAttribute('aria-pressed','true');
  expect(await star.evaluate(e=>getComputedStyle(e).color)).not.toBe(before);
  expect(await star.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(255, 196, 107)');

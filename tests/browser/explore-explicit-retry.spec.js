@@ -1,3 +1,4 @@
+import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import { test, expect } from '@playwright/test';
 import { PublicKey } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
@@ -29,7 +30,7 @@ async function prepare(page, width, fixture) {
     if (fixture.hold) await fixture.hold;
     return route.fulfill({ json: { items: [], fetchedAt: new Date().toISOString() } });
   });
-  await page.goto('/#explore');
+  const account=await installAccountFixture(page,{mints:[savedMint]});await page.goto('/#explore');await account.connect();
   await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
   await expect(page.locator('#asset-grid [data-explore-empty-action="retry"]')).toBeVisible();
   await page.waitForTimeout(400);

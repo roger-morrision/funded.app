@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import bs58 from 'bs58';
 import {Keypair,PublicKey,TransactionMessage} from '@solana/web3.js';
-import {TOKEN_PROGRAM_ID} from '@solana/spl-token';
+import {TOKEN_PROGRAM_ID,getAssociatedTokenAddressSync} from '@solana/spl-token';
 import {buildCommunityManifest} from '../community-merkle.js';
 import {communityAddresses,buildCommunityClaimInstruction} from '../server/community-claim-chain.mjs';
 import {verifyCommunityDelivery} from '../server/community-delivery-proof.mjs';
@@ -52,4 +52,20 @@ test('receipt proof requires exact recipient token delta, vault debit and immuta
   }
   const missing=proofFixture();missing.input.connection.getTransaction=async()=>null;
   assert.equal(await verifyCommunityDelivery(missing.input),null);
+});
+
+
+test('automatic payout to a program owner uses its canonical ATA and only the platform signature',async()=>{
+ const [owner]=PublicKey.findProgramAddressSync([Buffer.from('funded-holder')],new PublicKey(programId));
+ const snapshotWithPda={...snapshot,accounts:[{wallet:owner.toBase58(),balance:'100'}]};
+ const pdaManifest=buildCommunityManifest({drop,launchMint:mint,eligibilityMint,migrationSignature:manifest.migrationSignature,
+   migrationSlot:123,migrationBlockTime:1800000000,snapshot:snapshotWithPda,amountBaseUnits:'1000'});
+ const fresh={...record,manifest:pdaManifest,automaticDeliveryVersion:2};let prepared=0;
+ const connection={getLatestBlockhash:async()=>({blockhash:mint,lastValidBlockHeight:123}),getMinimumBalanceForRentExemption:async()=>1000};
+ const delivery=createCommunityAutoDelivery({connection,store:{},service:{recipientProof:async opts=>{assert.equal(opts.forAutomaticDelivery,true);return{status:'claimable'};}},authority,programId,approvedHash:'a'.repeat(64),
+   execute:async opts=>{const {transaction}=await opts.prepare();const msg=transaction.message;assert.equal(msg.header.numRequiredSignatures,1);assert(msg.staticAccountKeys[0].equals(authority.publicKey));
+     const ix=msg.compiledInstructions[1],keys=ix.accountKeyIndexes.map(i=>msg.staticAccountKeys[i]);assert(keys[2].equals(owner));
+     assert(keys[5].equals(getAssociatedTokenAddressSync(new PublicKey(mint),owner,true,TOKEN_PROGRAM_ID)));prepared++;return{status:'verification-pending'};}});
+ assert.equal((await delivery.pay(fresh,pdaManifest.leaves[0])).status,'verification-pending');assert.equal(prepared,1);
+ await assert.rejects(delivery.pay({...fresh,automaticDeliveryVersion:undefined},pdaManifest.leaves[0]));assert.equal(prepared,1);
 });

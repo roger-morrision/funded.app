@@ -27,7 +27,7 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   await expect(page.locator('.agency-agent').nth(1)).toContainText('$100,000');
   await expect(page.locator('.agency-agent').nth(2)).toContainText('$300,000');
   await expect(page.locator('[data-agency-status]')).toContainText('Current agency readiness is unavailable');
-  await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
+  await expect(page.locator('[data-agency-funded]')).toHaveText('-');
   await expect(page.locator('[data-agency-history]')).toContainText('Earlier receipt history is unavailable');
   await expect(page.locator('.agency-policy')).toContainText('1% referrals · 2% AI marketing & coin buybacks');
   await expect(page.locator('.agency-policy')).toContainText('L1 0.6% · L2 0.25% · L3 0.15%');
@@ -56,8 +56,8 @@ for(const width of [320,390,1440])test(`X promotion is included only with a prom
 test('failed capability load is unavailable with working retry, never zero funds or ready', async ({ page }) => {
   await page.route('**/api/marketing-agency', route => route.fulfill({ status: 503, json: {} }));
   await page.goto('/#marketing-agency');
-  await expect(page.locator('[data-agency-status]')).toContainText('Agency status unavailable');
-  await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
+  await expect(page.locator('[data-agency-status]')).toHaveText('-');
+  await expect(page.locator('[data-agency-funded]')).toHaveText('-');
   await page.unroute('**/api/marketing-agency');
   await page.locator('[data-agency-refresh]').click();
   await expect(page.locator('[data-agency-status]')).toContainText('Current agency readiness is unavailable');
@@ -68,8 +68,8 @@ test('unverified active API claims cannot advertise working agency agents', asyn
     ...marketingAgencyCapabilities(), active: true, executionEnabled: true,
     funding: { status: 'verified', collectedLamports: '100000000000' } } }));
   await page.goto('/#marketing-agency');
-  await expect(page.locator('[data-agency-status]')).toContainText('Agency status unavailable');
-  await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
+  await expect(page.locator('[data-agency-status]')).toHaveText('-');
+  await expect(page.locator('[data-agency-funded]')).toHaveText('-');
 });
 
 test('published fee policy does not imply agency execution or get described as unpublished',async({page})=>{
@@ -79,7 +79,7 @@ test('published fee policy does not imply agency execution or get described as u
   await expect(page.locator('[data-agency-status]')).toContainText('New agency launches remain disabled');
   await expect(page.locator('[data-agency-status]')).not.toContainText('split is not active yet');
   await expect(page.locator('#agency-policy-title')).toHaveText('New-launch agency allocation');
-  await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
+  await expect(page.locator('[data-agency-funded]')).toHaveText('-');
   await page.goto('/#referrals');
   await expect(page.locator('.referral-tier-strip')).toContainText('0.6%');
   await expect(page.locator('.referral-tier-strip')).toContainText('0.25%');
@@ -95,7 +95,7 @@ test('verified deployment shows timestamped worker budget scope and finalized re
     history:[{agent:0,signature:'3'.repeat(88),status:'worker-recorded-finalized',amountLamports:'1000000',finalizedAt:'2026-10-19T12:00:00Z'}]}}));
   await page.goto('/#marketing-agency');await expect(page.locator('[data-agency-status]')).toContainText('execution enabled');
   await expect(page.locator('[data-agency-funded]')).toHaveText('0.02 SOL');await expect(page.locator('[data-agency-spent]')).toHaveText('0.001 SOL');
-  await expect(page.locator('[data-agency-history]')).toContainText('timestamped confirmed automation snapshots');
+  await expect(page.locator('[data-agency-history]')).toContainText('timestamped finalized worker snapshots');
   await expect(page.locator('[data-agency-history] a')).toHaveAttribute('href',`https://explorer.solana.com/tx/${'3'.repeat(88)}?cluster=devnet`);
 });
 

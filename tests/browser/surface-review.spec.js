@@ -25,7 +25,7 @@ for(const width of[320,390,768,1440])test(`shared discovery controls and route h
  for(const control of[search]){expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);if(width<=700)expect(await control.evaluate(e=>parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);}
  await page.screenshot({path:info.outputPath(`explore-${width}.png`)});await route('overview');await expect(home).toBeHidden();
  await route('marketing-agency');await expect(page.locator('.agency-agent')).toHaveCount(3);await expect(page.locator('.agency-agent').nth(1)).toContainText('verified $100,000 market cap');await expect(page.locator('.agency-agent').nth(2)).toContainText('verified $300,000 market cap');
- await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');await expect(page.locator('[data-agency-spent]')).toHaveText('Unavailable');
+ await expect(page.locator('[data-agency-funded]')).toHaveText('-');await expect(page.locator('[data-agency-spent]')).toHaveText('-');
  const refreshed=page.waitForResponse(r=>r.url().endsWith('/api/marketing-agency'));await page.locator('[data-agency-refresh]').click();await refreshed;await expect(page.locator('[data-agency-status]')).toContainText('unavailable');
  const policy=page.locator('.agency-policy'),summary=policy.locator('summary');await summary.focus();await page.keyboard.press('Enter');await expect(policy).toHaveAttribute('open','');await expect(policy).toContainText('Actions require verified funding');await page.keyboard.press('Space');await expect(policy).not.toHaveAttribute('open','');
  await page.screenshot({path:info.outputPath(`agency-${width}.png`)});

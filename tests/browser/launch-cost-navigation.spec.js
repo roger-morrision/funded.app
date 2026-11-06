@@ -387,7 +387,7 @@ for (const { width, variant } of [
     await availabilityFocusProof(page, 'real-rejected-read-keeps-draft-focus');
     await expect(page.locator('#launch-availability-label')).toHaveText('Submission unavailable');
     await expect(page.locator('#launch-availability')).toBeHidden();
-    await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+    await expect(page.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
     await availabilityNativePlanning(page, 'unavailable', true); await availabilityStructure(page);
     expect(f.api.filter(x => x.path === '/api/v3-launch-config')).toHaveLength(1);
     expect(f.accountReads).toHaveLength(variant.startsWith('service') ? 0 : 1);
@@ -413,7 +413,7 @@ test('Launch availability presentation preserves ordinary entry and step request
       await expect.poll(()=>target.evaluate(()=>document.visibilityState)).toBe('visible');
       await target.goto(url + '/#launch'); await target.locator('body.workspace-ready.product-experience-ready').waitFor();
       fixture.releaseAccount(); fixture.releaseConfig();
-      await expect(target.locator('#fee-router-status')).toContainText('Launch blocked:');
+      await expect(target.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
       await expect(target.locator('#cost-total-enabled')).toHaveText('Quote unavailable', { timeout: 18000 });
       await target.locator('#token-name').fill('Count comparison'); await target.locator('#token-symbol').fill('COUNT');
       await target.locator('#launch-next').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '2');

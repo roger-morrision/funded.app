@@ -20,7 +20,7 @@ for(const width of[320,390,700,1440])test(`published fee distribution and config
  await page.locator('#fee-flow-input').fill('250');for(const[id,value]of ids.map(id=>[id,expected[id]*2.5]))await expect(page.locator(`#fee-output-${id}`)).toHaveText(`${value} SOL`);
  for(const route of['overview','analytics-detail','paid','docs/fees','launch']){
   await page.evaluate(hash=>{location.hash=hash;},route);
-  if(route==='overview'){await expect(page.locator('.home-receipt-card h2')).toHaveText('Fee distribution');await expect(page.locator('#fee-policy-faq')).toContainText('1% Referral network');}
+  if(route==='overview'){await expect(page.locator('.home-receipt-card h2')).toHaveText('Fee distribution');await expect(page.locator('.home-receipt-card .receipt-rows')).toContainText('1 SOL Referral network');}
   if(route==='analytics-detail'){await expect(page.locator('.allocation-chips')).toContainText('2%AI marketing & coin buybacks');await expect(page.locator('.split-legend b')).toHaveText(['80%','8%','12%']);}
   if(route==='paid'){await expect(page.locator('#paid .revenue-flow b')).toHaveText(['80%','8%','12%']);await summary(page.locator('#paid > [data-fee-distribution]'));await expect(page.locator('.app-revenue-grid > span > b')).toHaveText(['8%','1%','4%','5%','2%']);}
   if(route==='docs/fees')await summary(page.locator('#docs-guide-article .fee-distribution-summary'));

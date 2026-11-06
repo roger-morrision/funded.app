@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -97,12 +97,14 @@ globalThis.fetch=async(target,options={})=>{
       'buyback-read','buyback-write','buyback-uncertain','buyback-json','buyback-heartbeat','buyback-heartbeat-error'];
     const results=await Promise.allSettled(cases.map(async job=>{
       const fee=job.startsWith('fee');
+      // Each synthetic worker owns its health path, just like separate production containers.
+      const jobDirectory=join(temporary,job);await mkdir(jobDirectory);
       const {stdout,stderr}=await promisify(execFile)(process.execPath,['--import',pathToFileURL(preload).href,
         resolve(fee?'scripts/run-fee-collector.mjs':'scripts/run-v3-buyback-worker.mjs')],{
         timeout:16_000,env:{...process.env,NODE_OPTIONS:'',SOLANA_CLUSTER:'devnet',
           FUNDED_API_TOKEN:'fixture-not-a-credential',FUNDED_API_TOKEN_FILE:token,
           FUNDED_FEE_COLLECTION_API:'http://127.0.0.1:18987',FUNDED_INTERNAL_APP_URL:'http://127.0.0.1:18987',
-          FUNDED_FEE_COLLECTION_PAUSED_MINTS:'',FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_STOP_TEST_CASE:job,TMPDIR:temporary,TEMP:temporary,TMP:temporary},
+          FUNDED_FEE_COLLECTION_PAUSED_MINTS:'',FUNDED_V3_BUYBACK_ENABLED:'true',FUNDED_STOP_TEST_CASE:job,TMPDIR:jobDirectory,TEMP:jobDirectory,TMP:jobDirectory},
       });
       const lines=stdout.trim().split('\n').map(line=>JSON.parse(line)), trace=lines.filter(row=>row.fixture).map(row=>row.fixture);
       assert(trace.includes('admitted-settled'),job);

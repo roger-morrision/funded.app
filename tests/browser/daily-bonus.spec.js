@@ -52,14 +52,14 @@ test('fee calculator shows 8/4 and daily rankings distinguish allocations from f
   await expect(page.locator('#daily-bonus-dashboard tbody tr')).toHaveCount(9);
   await expect(page.locator('#daily-bonus-dashboard [data-bonus-status]')).toContainText('not activated');
   await expect(page.locator('#daily-bonus-dashboard')).toContainText('Historical snapshot: fee eligibility uses its original collection-time rules.');
-  await expect(page.locator('#daily-bonus-dashboard [data-bonus-status]')).toContainText('1 source(s) await confirmed settlement');
+  await expect(page.locator('#daily-bonus-dashboard [data-bonus-status]')).toContainText('1 source(s) await finalized settlement');
   await page.getByText('Snapshot and payment evidence', { exact:true }).click();
   const paymentEvidence=page.locator('#daily-bonus-dashboard details').filter({has:page.getByText('Snapshot and payment evidence',{exact:true})});
   await expect(paymentEvidence).toContainText('awaiting verified community funding');
   await expect(paymentEvidence.locator('a')).toHaveCount(0);
-  await expect(page.locator('#daily-bonus-dashboard tbody tr').first()).toContainText('No confirmed receipt');
+  await expect(page.locator('#daily-bonus-dashboard tbody tr').first()).toContainText('No finalized receipt');
   paid = true; await page.locator('[data-bonus-refresh]').click();
-  await expect(page.locator('#daily-bonus-dashboard')).toContainText('Fee eligibility uses confirmed settlement time.');
+  await expect(page.locator('#daily-bonus-dashboard')).toContainText('Fee eligibility uses finalized settlement time.');
   await expect(page.locator('#daily-bonus-dashboard')).toContainText('original frozen ranks and scores');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path:test.info().outputPath('daily-bonus-desktop.png'), fullPage:true });

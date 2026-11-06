@@ -5,7 +5,7 @@ import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { buildCommunityManifest, verifyCommunityProof } from '../community-merkle.js';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence, rewardAddresses } from './automatic-reward-chain.mjs';
-import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, buildCommunitySnapshotApprovalInstruction, communityAddresses } from './community-claim-chain.mjs';
+import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, buildCommunitySnapshotApprovalInstruction, communityAddresses, supportsProgramRecipients } from './community-claim-chain.mjs';
 import { readCommunityReserveStatus } from './community-reserve-status.mjs';
 import { captureExactCommunitySnapshot, captureQaCommunitySnapshot } from './community-snapshot.mjs';
 
@@ -111,7 +111,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
       migrationBlockTime:snapshot.blockTime, snapshot, amountBaseUnits:String(amount),
       excludedWallets:[issuer.toBase58(), vault.toBase58(), drop.toBase58()] });
     manifest.claimWindowSeconds=claimWindowSeconds;manifest.expiresAt=snapshot.blockTime+claimWindowSeconds;
-    const record = { ...base, snapshotBasis, eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
+    const record = { ...base, snapshotBasis, ...(snapshotBasis==='pump-migration'?{automaticDeliveryVersion:2}:{}), eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
       tokenProgram:mintInfo.owner.toBase58(), reservedBaseUnits:String(amount), snapshot,
       manifest, openingSignature:null, preparedAt:new Date().toISOString() };
     return store.transaction(state => {
@@ -219,7 +219,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
     });
   }
 
-  async function recipientProof({ mint, wallet, allowRecentProgramProof = true }) {
+  async function recipientProof({ mint, wallet, allowRecentProgramProof = true, forAutomaticDelivery = false }) {
     await assertReviewedProgram(allowRecentProgramProof);
     const record = await prepared(mint);
     if (!record?.openingSignature) return { status:'unavailable', reason:'No verified CommunityDrop opening receipt.' };
@@ -246,10 +246,9 @@ export function createCommunityClaimService({ connection, store, programId, auth
     }
     if (verified.status === 'drop-closed' || verified.expiresAt && Math.floor(Date.now() / 1000) >= verified.expiresAt)
       return { status:'expired', drop:record.manifest.drop, recipient };
-    // This endpoint builds a transaction paid and signed by the recipient.
-    // An old immutable snapshot can contain a pool PDA, which cannot sign.
-    // Preserve that allocation and any prior receipt without offering a claim.
-    if (!PublicKey.isOnCurve(new PublicKey(recipient).toBytes()))
+    // Historical distributions and manual claims retain their signing rules.
+    // In new migration distributions the platform signs for delivery to the owner's ATA.
+    if (!PublicKey.isOnCurve(new PublicKey(recipient).toBytes()) && !(forAutomaticDelivery && supportsProgramRecipients(record)))
       return { status:'unavailable', drop:record.manifest.drop, recipient, amount:leaf.amount,
         reasonCode:'program-address-allocation',
         reason:'This allocation belongs to a program address and cannot be claimed by a connected wallet.' };

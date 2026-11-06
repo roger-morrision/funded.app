@@ -214,7 +214,7 @@ export function createAirdropsRoutes({
       if (!await store.chargeRpcRate(`community-proof:${clientKey(req)}`, 1, 12, Math.floor(Date.now()/60000)*60000))
         return json(res, 429, { error:'Wait before requesting another community proof.' });
       try {
-        const proof=await (await communityClaimService(mint)).recipientProof({mint,wallet});
+        const proof=await (await communityClaimService(mint)).recipientProof({mint,wallet,forAutomaticDelivery:true});
         const ledger=await automaticRewardStore.read();
         const automatic=ledger.communityDrops?.[mint]?.snapshotBasis==='pump-migration';
         return json(res,200,{...proof,delivery:automatic?{mode:'automatic',

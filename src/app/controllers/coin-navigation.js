@@ -41,7 +41,7 @@ export function createCoinNavigationController(appState) {
       if (callout) {
         callout.replaceChildren();
         const title = document.createElement('strong'); title.textContent = 'Opened a shared coin link';
-        const detail = document.createElement('small'); detail.textContent = 'Add this coin to favorites on this device so you can find it again. Check the live data before acting.';
+        const detail = document.createElement('small'); detail.textContent = 'Sign in to save this coin to your favorites across devices. Check the live data before acting.';
         const save = document.createElement('button'); save.type = 'button'; save.className = 'secondary-button'; save.textContent = appState.getWatchlist().includes(mintAddress) ? 'In favorites' : 'Add to favorites';
         save.setAttribute('aria-pressed', String(appState.lastKnownWatchlist.includes(mintAddress)));
         save.addEventListener('click', async () => {

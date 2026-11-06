@@ -1,3 +1,4 @@
+import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='9Dp8MYwvFTAwoMtxaXvAZjZyjsWUbuXGp15z8EkZzu1B',wallet='So11111111111111111111111111111111111111112',sig='4'.repeat(64);
@@ -11,15 +12,13 @@ async function setup(page,width){
 }
 async function ready(page,path){await page.goto(path);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);}
 for(const width of [390,1440]){
-  test(`saved preferences, explicit guest import, and unavailable reporting at ${width}px`,async({page})=>{
+  test(`saved preferences, absent device transfer, and unavailable reporting at ${width}px`,async({page})=>{
     await setup(page,width);const errors=[];page.on('pageerror',error=>errors.push(error.message));await ready(page,'/#profile');
     await expect(page.locator('#personal-activity-feed')).not.toBeVisible();
     await page.locator('#notification-preferences-details > summary').click();const preferences=page.locator('#notification-preferences');await preferences.getByLabel('Enable creator activity notices').check();await preferences.getByLabel('Minimum receipt amount (SOL)').fill('0.1');await preferences.getByRole('button',{name:'Save notification preferences'}).click();await expect(preferences).toContainText('Preferences saved');
     await page.locator('#trade-preferences-details > summary').click();const limits=page.locator('#trade-preferences');await limits.getByLabel('Maximum slippage (%)').fill('1');await limits.getByLabel('Estimated network fee cap (SOL)').fill('0.000005');await limits.getByRole('button',{name:'Save trade limits'}).click();
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('funded.trade-preferences.v1')).slippageCap)).toBe(1);
-    await page.locator('#preference-transfer-details > summary').click();const transfer=page.locator('#preference-transfer');await transfer.getByLabel('Preference import or export JSON').fill(JSON.stringify({version:1,wallets:[{address:wallet,roles:['creator']}],creators:['123'],reminders:[]}));await transfer.getByRole('button',{name:'Review import',exact:true}).click();
-    expect(await page.evaluate(()=>localStorage.getItem('funded.app.followed.wallets.v1'))).toBeNull();await transfer.getByRole('button',{name:'Apply reviewed merge'}).click();await expect(transfer).toContainText('Reviewed preferences merged');
-    expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('funded.app.followed.wallets.v1'))[0].address)).toBe(wallet);
+    await expect(page.locator('#preference-transfer-details')).toHaveCount(0);
     await page.locator('#issue-reports-details > summary').click();const report=page.locator('#issue-reports');await report.getByLabel('Describe what happened').fill('The form was unavailable during testing');await report.getByRole('button',{name:'Review report',exact:true}).click();await expect(report.locator('pre')).toContainText('The form was unavailable');await expect(report.getByRole('button',{name:'Send reviewed report'})).toBeDisabled();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);expect(errors).toEqual([]);
   });
@@ -45,7 +44,7 @@ for(const width of [390,1440]){
     await dialog.getByRole('button',{name:'Close receipt'}).click();await expect(dialog).not.toBeVisible();await expect(page).not.toHaveURL(/receipt=/);
   });
   test(`followed creator notifications still receive receipts without the Home feed at ${width}px`,async({page})=>{
-    await setup(page,width);await page.addInitScript(address=>localStorage.setItem('funded.app.followed.wallets.v1',JSON.stringify([{address,roles:['creator']} ])),wallet);await ready(page,'/');
+    await setup(page,width);const account=await installAccountFixture(page);account.preferences.wallets=[{address:wallet,roles:['creator']}];await ready(page,'/');await account.connect();
     await page.evaluate(()=>{location.hash='profile';});await page.locator('#profile [data-open-activity]').click();await page.locator('.creator-activity [data-creator-alerts]').check();const notices=page.locator('[data-creator-notices]');await expect(notices).toContainText('REC launched');
     await page.evaluate(({mint,sig})=>window.dispatchEvent(new CustomEvent('funded:financial-experience',{detail:{cluster:'devnet',evidence:{status:'recorded-finalized-v3'},events:[{mint,signature:sig,kind:'holder-paid',label:'New verified receipt',feeSourceVerified:true,amountLamports:'10',at:new Date().toISOString()}]}})),{mint,sig});
     await expect(notices).toContainText('New verified receipt');await expect(notices).toContainText('REC launched');
@@ -53,11 +52,11 @@ for(const width of [390,1440]){
   });
   test(`recorded engine health and creator wallet facts at ${width}px (mocked ledger)`,async({page},info)=>{
     await setup(page,width);await page.route('**/api/financial/operations',route=>route.fulfill({json:{cluster:'devnet',evidence:'recorded-finalized-v3',completedRecordedOperations:2,pendingBuybackOperations:1,failedRecordedOperations:0,retryAttempts:null,oldestPendingSeconds:60,lastVerifiedDeliveryAt:null,timing:{fundedToVerifiedHolderPayment:{samples:1,medianSeconds:10,p95Seconds:10}},creators:[{wallet,launches:2,verifiedPaymentReceipts:3,returningRecipients:1,badges:['Verified reward delivery']}],retentionCoverage:'Recorded paid wallets, not unique people',coverage:'Latest recorded events',generatedAt:new Date().toISOString()}}));
-    await ready(page,'/#payments/activity');await page.getByText('Payout speed & system status',{exact:true}).click();const health=page.locator('#financial-engine');await expect(health).toContainText('10s');await expect(health).toContainText('Vault reconciliation: unavailable');await expect(health).toContainText('Retry-attempt countUnavailable');
+    await ready(page,'/#payments/activity');await page.getByText('Payout speed & system status',{exact:true}).click();const health=page.locator('#financial-engine');await expect(health).toContainText('10s');await expect(health).toContainText('Vault reconciliation: unavailable');await expect(health).toContainText('Retry-attempt count-');
     await expect(health.locator('.operations-stats dd')).toHaveText(['2','1','0']);
     await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr')).toHaveCount(4);
     await expect(health.getByRole('table',{name:'Creator delivery'}).getByRole('link')).toHaveAttribute('href',`/wallet/${wallet}`);
-    await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr').first()).toContainText('Unavailable');
+    await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr').first()).toContainText('-');
     const refresh=health.getByRole('button',{name:'Refresh data'});await refresh.click();await expect(refresh).not.toHaveAttribute('aria-disabled','true');await expect(refresh).toBeFocused();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
     await health.screenshot({path:info.outputPath(`payout-dashboard-${width}.png`)});
