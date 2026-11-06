@@ -52,6 +52,10 @@ pub struct BuybackMintV3<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub pump_swap_program: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
+    #[account(seeds = [super::buyback_price::PRICE_SIGNER_SEED], bump, has_one = price_signer)]
+    pub price_config: Account<'info, crate::instructions::buyback_price::BuybackPriceConfig>,
+    #[account(constraint = price_signer.key() != authority.key() @ ErrorCode::InvalidRotationAuthority)]
+    pub price_signer: Signer<'info>,
 }
 
 fn amount_at(account: &AccountInfo, offset: usize) -> Result<u64> {

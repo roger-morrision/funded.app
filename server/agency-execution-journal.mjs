@@ -64,8 +64,9 @@ export async function executeAgencyJournal({store,connection,key,intent,authorit
       ||built.lastValidBlockHeight<1||!/^(0|[1-9]\d*)$/.test(String(built.estimatedRentLamports)))
       throw new Error('An exact bounded agency transaction and rent estimate are required.');
     const tx=built.transaction,signer=new PublicKey(authority.publicKey);
-    if(tx.message.header.numRequiredSignatures!==1||!tx.message.staticAccountKeys[0].equals(signer)
-      ||tx.serialize().length>1232)throw new Error('The agency authority must be the only fee payer and signer.');
+    if(tx.message.header.numRequiredSignatures!==(built.priceSigner?2:1)||!tx.message.staticAccountKeys[0].equals(signer)
+      ||(built.priceSigner&&!tx.message.staticAccountKeys[1].equals(built.priceSigner))
+      ||tx.serialize().length>1232)throw new Error('The agency authority and approved transaction signers are required.');
     const[fee,balance,valid]=await Promise.all([connection.getFeeForMessage(tx.message,'confirmed'),
       connection.getBalance(signer,'finalized'),connection.isBlockhashValid(tx.message.recentBlockhash,'finalized')]);
     if(!valid.value||!Number.isSafeInteger(fee.value)||fee.value<0||!Number.isSafeInteger(balance)

@@ -170,10 +170,31 @@ export async function verifyRelease(release,io,{attempts=1}={}){
   return report;
 }
 
-export async function applyRelease({stateDir,id,rollback=false},io){
+async function withReleaseLock(stateDir,operation){
   privateDirectory(stateDir);const lock=join(stateDir,'release.lock');
   const lockFd=fs.openSync(lock,'wx',0o600);
-  try{
+  try{return await operation();}finally{fs.closeSync(lockFd);fs.unlinkSync(lock);}
+}
+export function applyRelease(options,io){
+  return withReleaseLock(options.stateDir,()=>applyLockedRelease(options,io));
+}
+
+// A loader upgrade changes the finalized ProgramData hash because the loader
+// records its slot. Verify the previous release while its old pins are valid,
+// then hold the same release lock through the chain change and candidate switch.
+export function applyDevnetProgramCutover({stateDir,revision},io,prepareAfterUpgrade){
+  return withReleaseLock(stateDir,async()=>{
+    requireValue(revisionPattern.test(revision),'Expected a committed candidate revision.');
+    requireValue(!fs.existsSync(join(stateDir,'pending.json')),'Resolve the pending release first.');
+    const state=readJSON(join(stateDir,'state.json')),prior=loadRelease(stateDir,state.current.id);
+    requireValue(prior.manifestHash===state.current.manifestHash,'Accepted release changed.');
+    requireValue((await verifyRelease(prior,io)).ready,'Current release is not verified before the chain upgrade.');
+    const id=await prepareAfterUpgrade(prior);
+    requireValue(loadRelease(stateDir,id).revision===revision,'Candidate revision differs from the reviewed cutover.');
+    return applyLockedRelease({stateDir,id},io,prior.manifestHash);
+  });
+}
+async function applyLockedRelease({stateDir,id,rollback=false},io,verifiedPriorHash){
     const stateFile=join(stateDir,'state.json'),state=fs.existsSync(stateFile)?readJSON(stateFile):{};
     const pendingFile=join(stateDir,'pending.json'),pending=fs.existsSync(pendingFile)?readJSON(pendingFile):null;
     const target=rollback?(pending?.previous||state.previous):{id};
@@ -185,7 +206,8 @@ export async function applyRelease({stateDir,id,rollback=false},io){
     if(state.current){
       const prior=loadRelease(stateDir,state.current.id);requireValue(prior.manifestHash===state.current.manifestHash,'Accepted release changed.');
       requireValue(prior.project===release.project&&prior.origin===release.origin,'Cannot switch project or origin during a release.');
-      if(!pending&&!rollback){const before=await verifyRelease(prior,io);requireValue(before.ready,'Current release is not verified; diagnose drift before deploying.');}
+      if(verifiedPriorHash)requireValue(prior.manifestHash===verifiedPriorHash,'Prior release changed during program cutover.');
+      else if(!pending&&!rollback){const before=await verifyRelease(prior,io);requireValue(before.ready,'Current release is not verified; diagnose drift before deploying.');}
     }
     assertReleaseImage(await io.image(release.image),release);
     await io.preflight(release);
@@ -202,10 +224,9 @@ export async function applyRelease({stateDir,id,rollback=false},io){
     writeJSON(stateFile,{current,previous:previous||null,acceptedAt:new Date().toISOString()});
     fs.unlinkSync(pendingFile);
     return{release:release.id,revision:release.revision,ready:true,rollbackAvailable:Boolean(previous)};
-  }finally{fs.closeSync(lockFd);fs.unlinkSync(lock);}
 }
 
-function dockerIO(){
+export function dockerIO(){
   const env={...process.env};for(const k of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH','COMPOSE_FILE','COMPOSE_PROFILES','COMPOSE_PROJECT_NAME','COMPOSE_ENV_FILES'])delete env[k];
   const docker=args=>execFileSync('docker',[`--host=${localDockerHost()}`,...args],{env,encoding:'utf8',windowsHide:true,timeout:240000,maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
   const containers=async project=>{

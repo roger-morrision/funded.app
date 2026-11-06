@@ -36,8 +36,9 @@ impl Fixture {
  fn release(&self,creator:Pubkey)->Instruction{Instruction{program_id:developer_token_lock::id(),
   accounts:developer_token_lock::accounts::Release{payer:self.creator.pubkey(),creator,mint:self.mint,lock:self.lock,vault:self.vault,destination:self.source,
     token_program:TOKEN_ID,associated_token_program:ATA_ID,system_program:system_program::ID}.to_account_metas(None),data:developer_token_lock::instruction::Release{}.data()}}
- fn send(&mut self,ix:Instruction)->bool{self.svm.expire_blockhash();let message=Message::new_with_blockhash(&[ix],Some(&self.creator.pubkey()),&self.svm.latest_blockhash());
-  let tx=VersionedTransaction::try_new(VersionedMessage::Legacy(message),&[&self.creator]).unwrap();self.svm.send_transaction(tx).is_ok()}
+ fn send(&mut self,ix:Instruction)->Result<(),String>{self.svm.expire_blockhash();let message=Message::new_with_blockhash(&[ix],Some(&self.creator.pubkey()),&self.svm.latest_blockhash());
+  let tx=VersionedTransaction::try_new(VersionedMessage::Legacy(message),&[&self.creator]).unwrap();
+  self.svm.send_transaction(tx).map(|_| ()).map_err(|error| format!("{:?}\n{}",error.err,error.meta.logs.join("\n")))}
  fn clock(&mut self,time:i64){let mut clock=self.svm.get_sysvar::<Clock>();clock.unix_timestamp=time;self.svm.set_sysvar(&clock);}
  fn amount(&self,address:Pubkey)->u64{let a=self.svm.get_account(&address).unwrap();TokenAccount::unpack(&a.data[..TokenAccount::LEN]).unwrap().amount}
 }
@@ -45,27 +46,30 @@ impl Fixture {
 #[test]
 fn exact_twelve_hour_custody_and_permissionless_fixed_beneficiary_release(){
  let mut f=Fixture::new(false,false);let before=f.amount(f.source);
- assert!(f.send(f.deposit(AMOUNT)));assert_eq!(f.amount(f.source),before-AMOUNT);assert_eq!(f.amount(f.vault),AMOUNT);
+ f.send(f.deposit(AMOUNT)).unwrap();assert_eq!(f.amount(f.source),before-AMOUNT);assert_eq!(f.amount(f.vault),AMOUNT);
  let state=f.svm.get_account(&f.lock).unwrap().data;
  assert_eq!(i64::from_le_bytes(state[80..88].try_into().unwrap()),START);
  assert_eq!(i64::from_le_bytes(state[88..96].try_into().unwrap()),START+43_200);
- assert!(!f.send(f.release(f.creator.pubkey())));assert_eq!(f.amount(f.vault),AMOUNT);
- f.clock(START+43_199);assert!(!f.send(f.release(f.creator.pubkey())));
- assert!(!f.send(f.deposit(AMOUNT))); // Cannot reinitialize or change the original deadline.
- f.clock(START+43_200);assert!(!f.send(f.release(Pubkey::new_unique())));
+ assert!(f.send(f.release(f.creator.pubkey())).unwrap_err().contains("Error Code: StillLocked"));assert_eq!(f.amount(f.vault),AMOUNT);
+ f.clock(START+43_199);assert!(f.send(f.release(f.creator.pubkey())).unwrap_err().contains("Error Code: StillLocked"));
+ assert!(f.send(f.deposit(AMOUNT)).is_err()); // Cannot reinitialize or change the original deadline.
+ f.clock(START+43_200);assert!(f.send(f.release(Pubkey::new_unique())).unwrap_err().contains("Error Code: ConstraintTokenOwner"));
  // A different fee payer may trigger release, but cannot redirect the tokens.
  let caller=Keypair::new();f.svm.airdrop(&caller.pubkey(),30_000_000).unwrap();
  let mut release=f.release(f.creator.pubkey());release.accounts[0].pubkey=caller.pubkey();f.svm.expire_blockhash();
  let message=Message::new_with_blockhash(&[release],Some(&caller.pubkey()),&f.svm.latest_blockhash());
  let tx=VersionedTransaction::try_new(VersionedMessage::Legacy(message),&[&caller]).unwrap();
  assert!(f.svm.send_transaction(tx).is_ok());assert_eq!(f.amount(f.vault),0);assert_eq!(f.amount(f.source),before);
- assert!(!f.send(f.release(f.creator.pubkey())));assert_eq!(f.amount(f.source),before);
+ assert!(f.send(f.release(f.creator.pubkey())).unwrap_err().contains("Error Code: AlreadyReleased"));assert_eq!(f.amount(f.source),before);
 }
 
 #[test]
 fn zero_oversized_freezable_and_permanent_delegate_mints_fail_without_deposit(){
  for (unsafe_mint,delegate,amount) in [(false,false,0),(false,false,200_000_000_000_001),(true,false,AMOUNT),(false,true,AMOUNT)] {
   let mut f=Fixture::new(unsafe_mint,delegate);let before=f.amount(f.source);
-  assert!(!f.send(f.deposit(amount)));assert_eq!(f.amount(f.source),before);assert!(f.svm.get_account(&f.lock).is_none());
+  let expected = if unsafe_mint || delegate { "Error Code: UnsafeMint" } else { "Error Code: InvalidAmount" };
+  let error = f.send(f.deposit(amount)).unwrap_err();
+  assert!(error.contains(expected), "Unexpected rejection: {error}");
+  assert_eq!(f.amount(f.source),before);assert!(f.svm.get_account(&f.lock).is_none());
  }
 }

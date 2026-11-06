@@ -1,4 +1,4 @@
-#![cfg(feature = "devnet-v3-program")]
+#![cfg(feature = "historical-qa-recovery")]
 use anchor_lang::{prelude::Pubkey, AccountDeserialize, AccountSerialize, InstructionData, ToAccountMetas};
 use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
 use funded_fee_router::{MintFeePolicyV3, MintClaimRecordV3, constants::*,

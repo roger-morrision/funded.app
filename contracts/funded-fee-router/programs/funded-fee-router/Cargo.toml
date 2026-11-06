@@ -19,10 +19,11 @@ anchor-debug = []
 custom-heap = []
 custom-panic = []
 devnet-v3-program = []
+historical-qa-recovery = ["devnet-v3-program"]
 
 
 [dependencies]
-anchor-lang = "=1.2.0"
+anchor-lang = { version = "=1.2.0", features = ["init-if-needed"] }
 anchor-spl = "=1.2.0"
 solana-sha256-hasher = "3.1.0"
 

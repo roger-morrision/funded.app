@@ -22,8 +22,10 @@ pub mod agency_disburse_v3;
 pub mod agency_buyback_v3;
 #[cfg(feature = "devnet-v3-program")]
 pub mod buyback_v3;
-#[cfg(feature = "devnet-v3-program")]
+#[cfg(feature = "historical-qa-recovery")]
 pub mod recover_qa_v3;
+#[cfg(feature = "devnet-v3-program")]
+pub mod buyback_price;
 
 pub use initialize::*;
 #[cfg(not(feature = "devnet-v3-program"))]
@@ -45,8 +47,10 @@ pub use agency_disburse_v3::*;
 pub use agency_buyback_v3::*;
 #[cfg(feature = "devnet-v3-program")]
 pub use buyback_v3::*;
-#[cfg(feature = "devnet-v3-program")]
+#[cfg(feature = "historical-qa-recovery")]
 pub use recover_qa_v3::*;
+#[cfg(feature = "devnet-v3-program")]
+pub use buyback_price::*;
 
 #[cfg(feature = "devnet-v3-program")]
 pub mod agency_rules_v3;

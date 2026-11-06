@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {resolve,join,relative} from 'node:path';
 import {prepareRelease,loadRelease,literalCompose,composeReleaseArgs,assertImageFrontend,
-  assessPublicRelease,applyRelease,verifyRelease} from '../scripts/funded-release.mjs';
+  assessPublicRelease,applyRelease,applyDevnetProgramCutover,verifyRelease} from '../scripts/funded-release.mjs';
 import {releaseServices} from '../scripts/verify-deployment-readiness.mjs';
 
 const revisions=['a'.repeat(40),'b'.repeat(40)],images=['sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64)];
@@ -80,6 +80,24 @@ test('deploy and rollback each update all four services and accept only verified
   assert.equal((await applyRelease({stateDir:f.stateDir,rollback:true},io)).revision,revisions[0]);
   for(const args of io.ups){assert.deepEqual(args.slice(-4),releaseServices);assert(args.includes('--no-deps'));assert(args.includes('--no-build'));assert.equal(args[args.indexOf('--pull')+1],'never');assert(!args.includes('--volumes'));}
   assert.equal(JSON.parse(fs.readFileSync(join(f.stateDir,'state.json'))).current.id,a.id);
+});
+
+test('Devnet program cutover holds release lock across the upgrade and verifies the new public deployment',async t=>{
+  const f=fixture(t),a=f.prepare(),b=f.prepare(1),io=fakeIO();
+  await applyRelease({stateDir:f.stateDir,id:a.id},io);
+  const options={stateDir:f.stateDir,revision:b.revision};
+  const publicChecks=io.publicChecks;
+  io.publicChecks=async()=>({});
+  await assert.rejects(applyDevnetProgramCutover(options,io,()=>assert.fail('Unhealthy prior')),/not verified/);
+  io.publicChecks=publicChecks;
+  const result=await applyDevnetProgramCutover(options,io,async()=>{
+    assert(fs.existsSync(join(f.stateDir,'release.lock')));
+    await assert.rejects(applyRelease({stateDir:f.stateDir,id:b.id},io),{code:'EEXIST'});
+    io.publicChecks=()=>io.active.id===a.id?{}:publicChecks();
+    return b.id;
+  });
+  assert.equal(result.ready,true);
+  assert.equal(io.active.id,b.id);
 });
 
 test('failed acceptance retains prior release and allows rollback even when the candidate is unhealthy',async t=>{

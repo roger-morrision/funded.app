@@ -1,4 +1,5 @@
 import {DEFAULT_AGENCY_RULES,validateAgencyRules} from '../config/agency-rules.js';
+import {priceConfigAddress} from './buyback-price-signer.mjs';
 import { createHash } from 'node:crypto';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync,
@@ -41,7 +42,7 @@ export function v3BuybackOnchainId(mint, round = 1) {
 
 // The Pump instruction supplies current pool fee accounts only. The router
 // constructs its own exact-quote CPI and verifies every custody address.
-export function buildV3BuybackInstruction({ programId, sourceMint, authority,
+export function buildV3BuybackInstruction({ programId, sourceMint, authority, priceSigner,
   creator, baseTokenProgram, buybackId, spendableQuoteIn,
   minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy=false,agencyExecution=null }) {
   const program = new PublicKey(programId);
@@ -112,6 +113,10 @@ export function buildV3BuybackInstruction({ programId, sourceMint, authority,
     { pubkey:ASSOCIATED_TOKEN_PROGRAM_ID, isSigner:false, isWritable:false },
     { pubkey:PUMP_AMM_PROGRAM_ID, isSigner:false, isWritable:false },
     { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
+    ...(priceSigner ? [
+      {pubkey:priceConfigAddress(program),isSigner:false,isWritable:false},
+      {pubkey:new PublicKey(priceSigner),isSigner:true,isWritable:false},
+    ] : []), // Older finalized receipts used the original account list.
     ...buy.keys.map((entry, index) => ({ ...entry,
       isSigner:index === 1 ? false : entry.isSigner })),
   ];

@@ -98,6 +98,11 @@ pub mod funded_fee_router {
     }
 
     #[cfg(feature = "devnet-v3-program")]
+    pub fn configure_buyback_price_signer(ctx: Context<ConfigureBuybackPriceSigner>) -> Result<()> {
+        buyback_price::configure(ctx)
+    }
+
+    #[cfg(feature = "historical-qa-recovery")]
     pub fn recover_qa_settlement_v3<'info>(ctx: Context<'info, RecoverQaSettlementV3<'info>>,
         claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
         recover_qa_v3::handler(ctx, claim_id, expected_lamports)

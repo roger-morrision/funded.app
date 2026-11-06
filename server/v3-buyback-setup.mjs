@@ -28,10 +28,11 @@ export function v3BuybackFeeSetup({pumpBuyInstruction:buy,authority}){
   });
 }
 
-export async function verifyV3BuybackAuthorityReserve({connection,transaction,authority,setupCount}){
+export async function verifyV3BuybackAuthorityReserve({connection,transaction,authority,priceSigner,setupCount}){
   const signer=new PublicKey(authority);
   if(!Number.isInteger(setupCount)||setupCount<0||setupCount>3
-    ||transaction.message.header.numRequiredSignatures!==1||!transaction.message.staticAccountKeys[0].equals(signer))
+    ||transaction.message.header.numRequiredSignatures!==(priceSigner?2:1)||!transaction.message.staticAccountKeys[0].equals(signer)
+    ||(priceSigner&&!transaction.message.staticAccountKeys[1].equals(priceSigner)))
     throw new Error('A bounded authority-only buyback is required.');
   const [fee,balance,...rents]=await Promise.all([
     connection.getFeeForMessage(transaction.message,'finalized'),connection.getBalance(signer,'finalized'),

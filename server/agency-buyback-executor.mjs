@@ -10,12 +10,13 @@ import {buildV3BuybackInstruction} from './v3-buyback-instruction.mjs';
 import {prepareV3BuybackTransaction} from './v3-buyback-transaction.mjs';
 import {loadFinalizedV3Buyback} from './v3-buyback-proof.mjs';
 import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
+import {buybackPriceService,cosignBuyback} from './buyback-price-signer.mjs';
 
 // Fixed action key plus contract completion bitmap enforce one purchase per
 // milestone, including when future fees replenish this agent's sub-budget.
 export async function runAgencyMilestone({store,connection,mint,agent,programId,approvedHash,authority,lookupAddress,
   readContext=readAgencyMintContext,readObservation=readAgencyMarketObservation,quote=quoteAgencyBuyback,
-  journal=executeAgencyJournal,loadProof=loadFinalizedV3Buyback,now=()=>Date.now(),diagnostics}){
+  journal=executeAgencyJournal,loadProof=loadFinalizedV3Buyback,now=()=>Date.now(),diagnostics,priceService=buybackPriceService()}){
   const step=(phase,action)=>diagnostics?diagnostics.step(phase,{mint,agent},action):action();
   if(![1,2].includes(agent))throw new Error('An own-coin milestone agent is required.');
   const state=await step('state-read',()=>store.read()),context=await step('custody',()=>readContext({connection,state,mint,programId,approvedHash,authority:authority.publicKey}));
@@ -31,6 +32,7 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
   // qualify; an already signed intent is always reconciled without requoting.
   let observation=null;
   if(!saved?.signature){
+    if(!priceService)return{status:'paused',reason:'Independent Devnet buyback price signer is not configured.',mint,agent};
     observation=await step('market-observation',()=>readObservation({connection,mint}));
     if(BigInt(observation.marketCapUsdMicros)<BigInt((context.policy.rules||DEFAULT_AGENCY_RULES).marketCapUsd[agent-1])*1000000n)return{status:'below-threshold',mint,agent,
       observation:{slot:observation.slot,observedAt:observation.observedAt,marketCapUsdMicros:String(observation.marketCapUsdMicros)}};
@@ -48,7 +50,7 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
     const agencyExecution={agent,pool:observation.pool,observationSlot:String(observation.slot),observedAt:observation.observedAt,
       marketCapUsdMicros:observation.marketCapUsdMicros,rules:fresh.policy.rules||DEFAULT_AGENCY_RULES,observationHash:Buffer.from(observation.observationHash,'hex')};
     const built=buildV3BuybackInstruction({programId,sourceMint:mint,creator:intent.creator,authority:authority.publicKey,
-      buybackId,agencyPolicy:true,agencyExecution,...quoted});
+      buybackId,agencyPolicy:true,agencyExecution,...quoted,priceSigner:priceService.signer});
     const lookup=await connection.getAddressLookupTable(new PublicKey(lookupAddress),{commitment:'finalized'});
     if(!lookup.value?.key.equals(new PublicKey(lookupAddress))||lookup.value.state.deactivationSlot!==0xffffffffffffffffn)
       throw new Error('An active agency buyback lookup table is required.');
@@ -62,9 +64,10 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
     // temporary refundable rent. Preserve reserve before, during and after CPI.
     const rents=await Promise.all([connection.getMinimumBalanceForRentExemption(10240,'finalized'),
       connection.getMinimumBalanceForRentExemption(209,'finalized'),connection.getMinimumBalanceForRentExemption(256,'finalized'),connection.getMinimumBalanceForRentExemption(165,'finalized')]);
-    return{transaction,lastValidBlockHeight:latest.lastValidBlockHeight,
+    await cosignBuyback({connection,transaction,program:programId,service:priceService});
+    return{transaction,priceSigner:priceService.signer,lastValidBlockHeight:latest.lastValidBlockHeight,
       estimatedRentLamports:String(BigInt(rents[0])*2n+BigInt(rents[1])+BigInt(rents[2])+BigInt(rents[3])*BigInt(setupInstructions.length)),evidence:{
-        agencyExecution:{...agencyExecution,observationHash:agencyExecution.observationHash.toString('hex')},
+        priceSigner:priceService.signer.toBase58(),agencyExecution:{...agencyExecution,observationHash:agencyExecution.observationHash.toString('hex')},
         observation:{mint,slot:observation.slot,marketCapUsdMicros:observation.marketCapUsdMicros,observedAt:observation.observedAt,
           source:observation.source,accountHashes:observation.accountHashes,solUsd:observation.solUsd,solUsdFetchedAt:observation.solUsdFetchedAt},
         baseTokenProgram:quoted.baseTokenProgram.toBase58(),spendableQuoteIn:quoted.spendableQuoteIn,minBaseAmountOut:quoted.minBaseAmountOut,maxTotalDebit:quoted.maxTotalDebit,
@@ -74,7 +77,7 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
     const saved=row.evidence;if(!saved?.agencyExecution||!saved.pump)return null;
     const execution={...saved.agencyExecution,observationHash:Buffer.from(saved.agencyExecution.observationHash,'hex')};
     return step('execution-proof',()=>loadProof({connection,signature:row.signature,programId,sourceMint:mint,creator:intent.creator,initialAuthority:intent.initialAuthority,
-      authority:authority.publicKey,buybackId,agencyPolicy:true,agencyExecution:execution,split:context.launch.pumpFeeRoute.protocolSplit,
+      authority:authority.publicKey,priceSigner:saved.priceSigner,buybackId,agencyPolicy:true,agencyExecution:execution,split:context.launch.pumpFeeRoute.protocolSplit,
       baseTokenProgram:saved.baseTokenProgram,spendableQuoteIn:saved.spendableQuoteIn,minBaseAmountOut:saved.minBaseAmountOut,maxTotalDebit:saved.maxTotalDebit,
       pumpBuyInstruction:new TransactionInstruction({programId:new PublicKey(saved.pump.programId),data:Buffer.from(saved.pump.data,'base64'),
         keys:saved.pump.keys.map(value=>({...value,pubkey:new PublicKey(value.pubkey)}))})}));

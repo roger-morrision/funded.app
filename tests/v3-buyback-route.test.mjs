@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {priceSignerFixture} from './fixtures/buyback-price-signer.mjs';
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import { Keypair, SystemProgram, TransactionInstruction } from '@solana/web3.js';
@@ -58,11 +59,12 @@ function fixture(enabled=true, triggerReached=true, aggregation=false) {
     getLatestBlockhash:async()=>({blockhash:key(121).publicKey.toBase58()}),
     getSignatureStatuses:async()=>({value:[signatureOutcome]}),getBalance:async()=>balance,
     getFeeForMessage:async()=>({value:fee}),getMinimumBalanceForRentExemption:async()=>1000000};
-  const route=createV3BuybackRoutes({body:async req=>req.input,
+  const price=priceSignerFixture(connection,programId);
+  const route=createV3BuybackRoutes({body:async req=>req.input,requestPriceSignature:price.request,
     store:{read:async()=>state,update:async callback=>callback(state)},
     solanaCluster:'devnet',solanaRpcUrl:'https://unused.invalid',
     v3AuthorityKeypair:()=>authority,respond:(_res,status,data)=>responses.push({status,data}),
-    env:{FUNDED_V3_BUYBACK_ENABLED:enabled?'true':'false',
+    env:{...price.env,FUNDED_V3_BUYBACK_ENABLED:enabled?'true':'false',
       FUNDED_V3_BUYBACK_AGGREGATION_ENABLED:aggregation?'true':'false',
       FUNDED_V3_FEE_ROUTER_PROGRAM_ID:programId,
       FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64),

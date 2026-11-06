@@ -66,8 +66,8 @@ fn disburse_v3_ix(program: Pubkey, authority: Pubkey, creator: Pubkey, mint: Pub
 }
 
 #[test]
-#[cfg(not(feature = "devnet-v3-program"))]
-fn default_program_does_not_expose_the_devnet_qa_recovery_instruction() {
+#[cfg(not(feature = "historical-qa-recovery"))]
+fn release_program_does_not_expose_the_devnet_qa_recovery_instruction() {
     let program = funded_fee_router::id();
     let mut svm = LiteSVM::new();
     svm.add_program(program, &support::program_bytes()).unwrap();
@@ -300,6 +300,14 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
         // The automatic authority cannot substitute another market for
         // the approved $FUNDED pool and extract category-6 SOL.
         let funded_mint = Pubkey::from_str("C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64").unwrap();
+        let price_key = Keypair::new();
+        let price_config = Pubkey::find_program_address(&[b"buyback-price-signer-v1"], &program).0;
+        let configure = |owner, signer| Instruction::new_with_bytes(program,
+            &funded_fee_router::instruction::ConfigureBuybackPriceSigner {}.data(),
+            funded_fee_router::accounts::ConfigureBuybackPriceSigner {
+                upgrade_owner:owner, new_price_signer:signer, program, program_data, price_config,
+                system_program:anchor_lang::system_program::ID
+            }.to_account_metas(None));
         let pump_swap = Pubkey::from_str("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA").unwrap();
         let wrong_pool = Keypair::new().pubkey();
         svm.set_account(wrong_pool, Account { lamports:1_000_000,
@@ -323,6 +331,7 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
                 max_total_debit:2_000_000 }.data(),
             funded_fee_router::accounts::BuybackMintV3 {
                 authority:next_authority.pubkey(), creator:creator.pubkey(),
+                price_config, price_signer:price_key.pubkey(),
                 mint:mint.pubkey(), legacy_router, policy, vault:original[6],
                 funded_mint, funded_token_account:funded_ata,
                 quote_token_account:quote_ata, pool:wrong_pool, receipt,
@@ -333,8 +342,23 @@ fn v3_settlement_enforces_configured_vaults_exact_rates_and_replay_protection() 
                 system_program:anchor_lang::system_program::ID,
             }.to_account_metas(None));
         svm.expire_blockhash();
-        assert!(!send(&mut svm, &next_authority,
-            &[&next_authority], ix));
+        assert!(!send(&mut svm, &next_authority, &[&next_authority,&price_key], ix.clone()));
+        svm.airdrop(&app_owner.pubkey(), 100_000_000).unwrap();
+        assert!(!send(&mut svm, &next_authority, &[&next_authority,&price_key],
+            configure(next_authority.pubkey(),price_key.pubkey())));
+        assert!(!send(&mut svm, &app_owner, &[&app_owner], configure(app_owner.pubkey(),app_owner.pubkey())));
+        assert!(svm.get_account(&price_config).is_none());
+        assert!(send(&mut svm, &app_owner, &[&app_owner,&price_key], configure(app_owner.pubkey(),price_key.pubkey())));
+        let unauthorized = Keypair::new();
+        assert!(!send(&mut svm, &next_authority, &[&next_authority,&unauthorized],
+            configure(next_authority.pubkey(),unauthorized.pubkey())));
+        assert_eq!(&svm.get_account(&price_config).unwrap().data[8..],price_key.pubkey().as_ref());
+        let mut unsigned = ix.clone();
+        unsigned.accounts.iter_mut().find(|m|m.pubkey==price_key.pubkey()).unwrap().is_signer=false;
+        svm.expire_blockhash();
+        assert!(!send(&mut svm, &next_authority, &[&next_authority], unsigned));
+        svm.expire_blockhash();
+        assert!(!send(&mut svm, &next_authority, &[&next_authority,&price_key], ix));
         assert!(svm.get_account(&receipt).is_none());
         assert_eq!(svm.get_account(&original[6]).unwrap().lamports,
             buyback_vault_before);

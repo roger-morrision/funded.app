@@ -28,7 +28,7 @@ function fixture(){
   const context={policy:{selectedMask:6,completedMask:0},agentRemaining:['0','2000000','2000000'],launch:{creatorWallet:key(208).toBase58(),
     pumpFeeRoute:{initialAuthority:authority.publicKey.toBase58(),protocolSplit:{agencyPercent:10}}}};
   const observation={marketCapUsdMicros:'99999999999'};
-  const input={store:{read:async()=>state},connection:{},mint,agent:1,programId,approvedHash:'a'.repeat(64),authority,
+  const input={store:{read:async()=>state},connection:{},priceService:{signer:key(210)},mint,agent:1,programId,approvedHash:'a'.repeat(64),authority,
     readContext:async()=>context,readObservation:async()=>{observations++;return observation;},
     journal:async args=>{journals++;captured=args;return{status:'verification-pending'};}};
   return{input,context,observation,get observations(){return observations;},get journals(){return journals;},get captured(){return captured;},

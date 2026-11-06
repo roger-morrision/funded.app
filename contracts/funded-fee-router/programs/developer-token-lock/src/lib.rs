@@ -48,10 +48,17 @@ pub mod developer_token_lock {
         let mint = ctx.accounts.lock.mint; let creator = ctx.accounts.lock.creator;
         let bump = [ctx.accounts.lock.bump]; let seeds = [SEED, mint.as_ref(), creator.as_ref(), &bump];
         let signers = [&seeds[..]];
+        let vault_before = ctx.accounts.vault.amount;
+        let recipient_before = ctx.accounts.destination.amount;
         token_interface::transfer_checked(CpiContext::new_with_signer(ctx.accounts.token_program.key(), TransferChecked {
             from:ctx.accounts.vault.to_account_info(), mint:ctx.accounts.mint.to_account_info(),
             to:ctx.accounts.destination.to_account_info(), authority:ctx.accounts.lock.to_account_info(),
         }, &signers), ctx.accounts.lock.amount, ctx.accounts.mint.decimals)?;
+        ctx.accounts.vault.reload()?;
+        ctx.accounts.destination.reload()?;
+        require!(vault_before.checked_sub(ctx.accounts.vault.amount) == Some(ctx.accounts.lock.amount)
+            && ctx.accounts.destination.amount.checked_sub(recipient_before) == Some(ctx.accounts.lock.amount),
+            LockError::InvalidAmount);
         ctx.accounts.lock.released_at = now;
         emit!(DeveloperTokensReleased { mint, creator, amount:ctx.accounts.lock.amount });
         Ok(())

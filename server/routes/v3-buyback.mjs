@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import {buybackPriceService,cosignBuyback} from '../buyback-price-signer.mjs';
 import {isDeletedDevnetMint} from '../deleted-devnet-mints.mjs';
 import bs58 from 'bs58';
 import { Connection, PublicKey, TransactionInstruction, VersionedTransaction } from '@solana/web3.js';
@@ -35,7 +36,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
   connectionFactory=url=>new Connection(url,'finalized'),
   verifyReadiness=verifyV3LaunchRouterReadiness,
   loadSettlement=loadFinalizedV3Settlement,
-  quote=quoteV3Buyback, loadProof=loadFinalizedV3Buyback,
+  quote=quoteV3Buyback, loadProof=loadFinalizedV3Buyback, requestPriceSignature=fetch,
   submit=submitV3BuybackTransaction, originAllowed=allowedAuthOrigin,
   readDashboard=readV3BuybackDashboard }) {
   const json=(...args)=>{respond(...args);return true;};
@@ -182,7 +183,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     const proofFor=async row=>loadProof({connection,signature:row.signature,
       programId,sourceMint:mint,creator,
       initialAuthority,
-      authority:authority.publicKey,baseTokenProgram:row.baseTokenProgram,
+      authority:authority.publicKey,baseTokenProgram:row.baseTokenProgram,priceSigner:row.priceSigner,
       buybackId:Buffer.from(row.buybackId,'hex'),spendableQuoteIn:row.spendableQuoteIn,
       minBaseAmountOut:row.minBaseAmountOut,maxTotalDebit:row.maxTotalDebit,
       pumpBuyInstruction:storedPumpInstruction(row),split});
@@ -243,6 +244,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       });
       if(!saved)return json(res,409,{error:'The expired V3 quote changed during recovery.'});
     }
+    const priceService=buybackPriceService(env);
+    if(!priceService)return json(res,200,{status:'paused',reason:'Independent Devnet buyback price signer is not configured.'});
     if(saved?.status!=='queued') {
       // A finished round's residue waits for a new threshold cycle. An
       // already queued row may finish after the dashboard drops below it.
@@ -279,7 +282,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     const built=buildV3BuybackInstruction({programId,sourceMint:mint,
       authority:authority.publicKey,creator,buybackId:id,
       agencyPolicy:split?.agencyPercent!==undefined,
-      ...quoted});
+        ...quoted,priceSigner:priceService.signer});
     const lookup=await connection.getAddressLookupTable(new PublicKey(lookupAddress),{
       commitment:'finalized'});
     if(!lookup.value||!lookup.value.key.equals(new PublicKey(lookupAddress)))
@@ -300,9 +303,10 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     const expiresAt=new Date(Date.now()+60_000).toISOString();
     const signed=VersionedTransaction.deserialize(Buffer.from(preparedTransaction,'base64'));
     let reserveCheck;
-    try{reserveCheck=await verifyV3BuybackAuthorityReserve({connection,transaction:signed,authority:authority.publicKey,setupCount:setupInstructions.length});}
+    try{reserveCheck=await verifyV3BuybackAuthorityReserve({connection,transaction:signed,authority:authority.publicKey,priceSigner:priceService.signer,setupCount:setupInstructions.length});}
     catch{return json(res,503,{error:'Verified buyback fees, setup rent and authority balance are unavailable.'});}
     if(!reserveCheck.ready)return json(res,409,{error:'Buyback setup and transaction fees would breach the protected 3 SOL authority reserve.'});
+    await cosignBuyback({connection,transaction:signed,program:programId,service:priceService,request:requestPriceSignature});
     signed.sign([authority]);
     const signature=bs58.encode(signed.signatures[0]);
     const row={status:'verification-pending',mint,collectionSignature,
@@ -315,7 +319,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       ...(aggregate?{sourceBudgets}:{}),
       ...(unindexed?{creator,initialAuthority}:{}),
       buybackId:id.toString('hex'),
-      baseTokenProgram:quoted.baseTokenProgram.toBase58(),
+      baseTokenProgram:quoted.baseTokenProgram.toBase58(),priceSigner:priceService.signer.toBase58(),
       spendableQuoteIn:quoted.spendableQuoteIn,
       minBaseAmountOut:quoted.minBaseAmountOut,
       maxTotalDebit:quoted.maxTotalDebit,

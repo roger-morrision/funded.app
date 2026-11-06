@@ -17,13 +17,13 @@ const bytes = value => typeof value === 'string' ? Buffer.from(bs58.decode(value
 // The finality proof binds the category-vault debit, PumpSwap exact-quote CPI,
 // token burn CPI, immutable router receipt, and current policy budget.
 export async function loadFinalizedV3Buyback({ connection, signature, programId,
-  sourceMint, creator, initialAuthority, authority, baseTokenProgram,
+  sourceMint, creator, initialAuthority, authority, baseTokenProgram, priceSigner,
   buybackId, spendableQuoteIn, minBaseAmountOut, maxTotalDebit,
   pumpBuyInstruction, split,agencyPolicy=split?.agencyPercent!==undefined,agencyExecution=null,
   verifyPolicy = verifyMintPolicyV3Account }) {
   try {
     const expected = buildV3BuybackInstruction({ programId, sourceMint,
-      creator, authority, baseTokenProgram, buybackId, spendableQuoteIn,
+      creator, authority, baseTokenProgram, priceSigner, buybackId, spendableQuoteIn,
       minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy,agencyExecution });
     const boughtMint=expected.boughtMint||V3_DEVNET_FUNDED_MINT,pool=expected.pool||V3_DEVNET_FUNDED_POOL;
     const category=expected.category??6;
@@ -37,6 +37,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
       ...(tx.meta.loadedAddresses?.readonly || []).map(address)];
     const signers = staticKeys.slice(0, message.header?.numRequiredSignatures || 0);
     if (!signers.includes(new PublicKey(authority).toBase58())) return null;
+    if(priceSigner && (String(priceSigner)===String(authority)||!signers.includes(String(priceSigner))))return null;
     const instructions = message.instructions || message.compiledInstructions || [];
     let routerIndex = -1,setupIndex=0;
     const setup=()=>v3BuybackFeeSetup({pumpBuyInstruction,authority});
