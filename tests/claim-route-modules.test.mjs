@@ -52,7 +52,8 @@ test('X launch readiness follows the verified V3 gate and OAuth prerequisites', 
   await f.request('/api/x-fee/status', {}, 'GET');
   assert.equal(f.responses.at(-1).data.ready, true);
   assert.equal(f.responses.at(-1).data.scope, 'per-mint-v3');
-  assert.equal(checks, 2);
+  // Public status shares one on-chain readiness proof for 15 seconds.
+  assert.equal(checks, 1);
   f.responses.length = 0;
   f.res.ended = false;
   const closed = fixture(createXIdentityRoutes, {

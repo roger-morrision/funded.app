@@ -12,9 +12,16 @@ export function createLaunchTierPricing({
   fetchVerifiedPoolSnapshot = readVerifiedPoolSnapshot,
 }) {
   let launchTierPriceCache = null;
+  let launchTierPriceRead = null;
 
-  async function currentLaunchTierPricing() {
-    if (launchTierPriceCache && launchTierPriceCache.expires > Date.now()) return launchTierPriceCache.value;
+  // Concurrent requests after the 30-second cache expires share one RPC read.
+  function currentLaunchTierPricing() {
+    if (launchTierPriceCache && launchTierPriceCache.expires > Date.now()) return Promise.resolve(launchTierPriceCache.value);
+    launchTierPriceRead ??= readLaunchTierPricing().finally(() => { launchTierPriceRead = null; });
+    return launchTierPriceRead;
+  }
+
+  async function readLaunchTierPricing() {
     if (solanaCluster !== 'devnet' || !fundedTokenMint || !fundedSwapPool)
       throw new Error('The Devnet $FUNDED mint and verified SOL pool must be configured.');
     const [sol, pool] = await Promise.all([

@@ -1,6 +1,7 @@
 import { authCookie, OAUTH_SECONDS, cookieValue, SESSION_SECONDS, allowedAuthOrigin } from '../x-auth.mjs';
 import { xLookupHttpError } from '../x-user-lookup.mjs';
 import {v3SourceAllocation} from '../v3-residual-source.mjs';
+import { createReadCache } from '../read-cache.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -21,6 +22,10 @@ export function createXIdentityRoutes({
 }) {
   const json = (...args) => { respond(...args); return true; };
   const html = (...args) => { respondHtml(...args); return true; };
+  // The public status page polls V3 readiness on every load; the full on-chain proof
+  // takes about a second. Share one result for 15 seconds here only. Launch and claim
+  // writes still call v3LaunchConfig() directly, so enforcement is unchanged.
+  const publicReadinessCache = createReadCache({ ttlMs:15000, maxEntries:1 });
   return async function handleXIdentityRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/x/oauth/start') {
       const config = xConfig();
@@ -97,7 +102,7 @@ export function createXIdentityRoutes({
       if (!v3LaunchConfig) reasons.push('V3 launch readiness is unavailable.');
       else {
         try {
-          const launch = await v3LaunchConfig();
+          const launch = await publicReadinessCache('v3-launch', v3LaunchConfig);
           if (!launch.ready) reasons.push(...(launch.reasons || ['V3 launch readiness is unavailable.']));
         } catch { reasons.push('V3 launch readiness is unavailable.'); }
       }
