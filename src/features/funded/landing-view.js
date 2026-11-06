@@ -36,7 +36,7 @@ export function renderFundedTokenLanding(
   const explorer = document.getElementById('funded-token-chart');
   if (explorer) {
     explorer.hidden = !mintReady;
-    if (mintReady) { explorer.href = 'https://explorer.solana.com/address/' + encodeURIComponent(PROTOCOL_FUNDED_MINT) + APP_EXPLORER_QUERY; explorer.target = '_blank'; explorer.rel = 'noopener noreferrer'; explorer.textContent = 'VIEW ON SOLANA ↗'; }
+    if (mintReady) { explorer.href = 'https://explorer.solana.com/address/' + encodeURIComponent(PROTOCOL_FUNDED_MINT) + APP_EXPLORER_QUERY; explorer.target = '_blank'; explorer.rel = 'noopener noreferrer'; explorer.textContent = 'View on Solana ↗'; }
   }
   const tierAmounts = currentLaunchTierAmounts();
   for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))

@@ -24,7 +24,7 @@ body.page-route-paid .funded-token-contract code { min-width: 0; max-width: 100%
 body.page-route-paid .funded-token-contract button { min-height: 34px; padding: 8px 10px; border: 0; background: transparent; color: #e6ece6; font: 700 11px 'DM Mono',monospace; }
 body.page-route-paid .funded-policy-details > h2 { margin: 8px 0 12px; font-size: clamp(26px,3vw,38px); letter-spacing: -.05em; }
 body.page-route-paid .funded-token-footer { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 50px; padding: 42px 0 10px; border-top: 1px solid var(--line); }
-body.page-route-paid .main-content > footer { display: none; }
+body.page-route-paid .main-content > footer:not(.site-footer) { display: none; }
 body.page-route-paid .funded-token-footer-brand { display: inline-flex; align-items: center; gap: 8px; color: #e9ede9; font-size: 20px; font-weight: 800; text-decoration: none; }
 body.page-route-paid .funded-token-footer-brand span { color: #ffd28a; font: italic 900 30px Georgia,serif; }
 body.page-route-paid .funded-token-footer p { max-width: 330px; color: #8c98a1; font-size: 14px; line-height: 1.6; }

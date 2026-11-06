@@ -125,14 +125,12 @@ export function protocolPage() {
   const story = node('div', 'funded-token-story');
   story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. Standard has no promotion burn; every launch pays the configured SOL service fee.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>Operations &amp; marketing is the app allocation. Referrals, Daily bonus, $FUNDED buyback and burn, and AI coin buybacks use separate budgets. <a href="#capital-flow">Follow the fee route →</a></p></article>';
   const contract = node('div', 'funded-token-contract');
-  contract.innerHTML = '<span>CONTRACT</span><code id="funded-token-mint">Mint not configured</code><button type="button" id="funded-token-copy" class="secondary-button" disabled>COPY</button>';
+  contract.innerHTML = '<span>CONTRACT</span><code id="funded-token-mint">Mint not configured</code><button type="button" id="funded-token-copy" class="secondary-button" disabled>Copy</button>';
   const policy = node('details', 'funded-policy-details advanced-details');
   const policySummary = node('summary', '', 'Read the full fee route policy');
   policy.append(policySummary, ...policyContent);
-  const footer = node('footer', 'funded-token-footer');
-  footer.innerHTML = '<div><a class="funded-token-footer-brand" href="#overview"><span aria-hidden="true">ƒ</span> funded.vip</a><p>Launch on Solana with copycat-ticker protection and a 12-hour on-chain lock on the developer’s tokens. Fees reward creators, holders and referrers, and every payout has a Solana receipt.</p></div><nav aria-label="Funded protocol"><strong>PROTOCOL</strong><a href="#launch">Launch</a><a href="/funded" aria-current="page">$FUNDED</a><a href="#buybacks">Burn $FUNDED</a><a href="#explore">Explore</a><a href="#airdrops">Airdrops</a><a href="#docs">Docs</a></nav><nav aria-label="Legal"><strong>LEGAL</strong><a href="#privacy">Privacy</a><a href="#terms" data-info="terms">Terms</a></nav><small>© 2026 FUNDED.VIP · POWERED BY $FUNDED</small>';
   const distribution=node('section');distribution.dataset.feeDistribution='protocol';distribution.innerHTML=feeDistributionMarkup({compact:true});
-  root.append(hero, facts, distribution, story, contract, policy, footer);
+  root.append(hero, facts, distribution, story, contract, policy);
   const tape = node('aside', 'funded-token-tape');
   tape.setAttribute('aria-label', 'Verified Solana token figures');
   tape.innerHTML = '<div id="funded-token-tape-items"><span>Checking verified Solana figures…</span></div>';
@@ -140,8 +138,8 @@ export function protocolPage() {
   $('#funded-token-copy')?.addEventListener('click', async () => {
     const mint = $('#funded-token-copy')?.dataset.mint;
     if (!mint) return;
-    try { await navigator.clipboard.writeText(mint); $('#funded-token-copy').textContent = 'COPIED'; }
-    catch { $('#funded-token-copy').textContent = 'COPY FAILED'; }
+    try { await navigator.clipboard.writeText(mint); $('#funded-token-copy').textContent = 'Copied'; }
+    catch { $('#funded-token-copy').textContent = 'Copy failed'; }
   });
   const detailKicker = $(':scope > .eyebrow', policy);
   if (detailKicker) detailKicker.textContent = 'Fee route details · published policy';

@@ -39,12 +39,12 @@ try {
   await check('Home keeps one metrics section and one legal footer',async()=>{
     assert.equal(await page.locator('.home-hero-facts').count(),0);
     assert(await page.locator('.home-kpi-dashboard').isVisible());
-    assert.equal(await page.locator('.home-footer-legal a').count(),4);
-    assert(!await page.locator('.main-content > footer').isVisible());
+    assert.equal(await page.locator('.main-content > footer').count(),1);
+    assert(await page.locator('.main-content > footer.site-footer').isVisible());
   });
   await check('Home navigation exposes the reference destination pages',async()=>{
     for (const href of ['#leaderboard','#airdrops','#list']) assert(await page.locator(`.sidebar .primary-nav .nav-item[href="${href}"]`).count()>0,href);
-    assert.equal(await page.locator('.home-reference-footer a[href="#explore"]').innerText(),'Launch Directory');
+    assert.equal(await page.locator('.site-footer a[href="#explore"]').innerText(),'Explore');
   });
   await check('Migrated home cards do not suppress indexed trade metrics',async()=>{
     await page.locator('#home-launch-grid .home-launch-card').first().waitFor({timeout:15000});

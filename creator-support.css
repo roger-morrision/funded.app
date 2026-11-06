@@ -1,4 +1,4 @@
-.support-view-active .main-content > *:not(.topbar):not(#creator-support-page){display:none!important}
+.support-view-active .main-content > *:not(.topbar):not(#creator-support-page):not(.site-footer){display:none!important}
 .support-view-active .main-content > #creator-support-page{display:block!important}
 #creator-support-page[hidden]{display:none!important}
 .creator-support-page{max-width:1120px;margin:30px auto;padding:24px;color:#e9edf8;line-height:1.6}

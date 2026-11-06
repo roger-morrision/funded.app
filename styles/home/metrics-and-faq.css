@@ -87,4 +87,4 @@ body.page-route-overview .home-reference-footer nav { display: flex; flex-direct
 body.page-route-overview .home-reference-footer nav strong { margin-bottom: 5px; color: #6d7b87; font: 700 9px 'DM Mono', monospace; letter-spacing: .13em; text-transform: uppercase; }
 body.page-route-overview .home-reference-footer nav a { color: #98a6af; font-size: 11px; text-decoration: none; }
 body.page-route-overview .home-reference-footer nav a:hover { color: var(--home-green); }
-body.page-route-overview .main-content > footer { display: none; }
+body.page-route-overview .main-content > footer:not(.site-footer) { display: none; }
