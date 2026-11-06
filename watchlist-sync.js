@@ -29,7 +29,7 @@ export function createWatchlistSync({ request, onChange = () => {}, onStatus = (
       onStatus('synced', 'Favorites synced to your account.');
       return true;
     } catch (error) {
-      if (generation === epoch) { ready = false; onStatus('error', error.message); }
+      if (generation === epoch) { ready = false; onStatus('error', 'Favorites sync is unavailable. Try again.'); }
       return false;
     }
   }

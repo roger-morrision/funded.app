@@ -261,7 +261,7 @@ async function bonus077Read(page,action,available) {
   const status=page.locator('#bonuses [data-bonus-history-status]'),rows=page.locator('#bonuses [data-bonus-history-rows]');
   if(available){
     expect(response.status()).toBe(200);expect(body).toEqual(bonus077Payload());
-    await expect(status).toContainText('1 confirmed receipt(s).');await expect(status).toContainText('Bonus snapshots are not enabled.');
+    await expect(status).toContainText('1 finalized receipt(s).');await expect(status).toContainText('Bonus snapshots are not enabled.');
     await expect(rows.locator('tbody tr')).toHaveCount(1);await expect(rows).toContainText('2026-10-20');await expect(rows).toContainText('0.00000045 SOL');
     await expect(page.locator('#bonuses [data-bonus-page]')).toHaveText('Page 1 of 1 · 1 payments');
   }else{
@@ -330,7 +330,7 @@ async function bonus077Copy(page,original) {
   await expect(link.locator('..').getByRole('heading')).toHaveText('Payment history');
   await expect(link).toHaveAttribute('href','#bonuses');
   await expect(page.locator('#rewards-history h2')).toHaveText('Payment history');
-  await expect(page.locator('#rewards-history .panel-heading > div > p').nth(1)).toHaveText('Confirmed SOL payments across funded.vip.');
+  await expect(page.locator('#rewards-history .payment-history-bonus-link')).toHaveAccessibleName('Daily bonuses →');
   await bonus077Identity(original);
 }
 async function bonus077Criteria(page,query) {

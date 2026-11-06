@@ -36,7 +36,7 @@ test('an RPC outage stops further recipients and pauses both loops before a fres
   for(const message of ['503 Service Unavailable','fetch failed','429 max usage reached']){
     const f=fixture();let time=100000,calls=0,fail=true;
     f.options.now=()=>time;
-    f.ledger.communityDrops={[mint]:{...f.record,manifest:{leaves:[...f.record.manifest.leaves,...f.record.manifest.leaves]}}};
+    f.ledger.communityDrops={[mint]:{...f.record,manifest:{leaves:[...f.record.manifest.leaves,{...f.record.manifest.leaves[0],index:1,recipient:String(pair(128).publicKey)}]}}};
     f.options.deliveryFactory=()=>({pay:async()=>{calls++;if(fail)throw new Error(message);return {status:'finalized'};}});
     const runtime=createCommunityDeliveryRuntime(f.options);
     await runtime.tick();assert.equal(calls,1);assert.equal(f.ledger.communityDeliveryStatus.status,'degraded');
@@ -57,4 +57,12 @@ test('batch pool scan notices a later migration and skips pools already older th
  assert.deepEqual([...await scan(connection,[mint,second])],[[mint,1000]]);
  slot+=257;created=true;assert.deepEqual([...await scan(connection,[mint,second])],[[second,1257]]);
  assert.equal(calls,2);
+});
+
+test('later passes retry pending recipients but do not re-read a finalized payment for the same immutable drop',async()=>{
+ const f=fixture();f.ledger.communityDrops={[mint]:f.record};let calls=0;
+ f.options.deliveryFactory=()=>({pay:async()=>({status:++calls===1?'verification-pending':'already-paid'})});
+ const r=createCommunityDeliveryRuntime(f.options);await r.tick();await r.tick();await r.tick();assert.equal(calls,2);
+ assert.equal(f.ledger.communityDeliveryStatus.examined,0);
+ const restarted=createCommunityDeliveryRuntime(f.options);await restarted.tick();assert.equal(calls,3);
 });

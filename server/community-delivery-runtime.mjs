@@ -18,6 +18,10 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
   const enabled=solanaCluster==='devnet'&&env.FUNDED_COMMUNITY_AUTO_DELIVERY_ENABLED==='true';
   const running={prepare:false,deliver:false},timers={},retryAfter={prepare:20_000,deliver:20_000};
   let stopped=false,rpcRetryAt=0;
+  // Only remember immutable, finalized payment proofs within this process.
+  // Restarting or eviction simply causes a fresh on-chain verification.
+  const completed=new Set();
+  const remember=key=>{if(completed.size>=8192)completed.delete(completed.values().next().value);completed.add(key);};
   async function tick({preparationOnly=false}={}){
     const mode=preparationOnly?'prepare':'deliver';
     if(!enabled||running[mode]||stopped||now()<rpcRetryAt)return;
@@ -29,6 +33,9 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
       const configured=JSON.parse(env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON||'{}');
       const launches=Object.values(app.launches||{}).filter(launch=>launch.onchainVerified&&launch.cluster==='devnet'
         &&launch.pumpFeeRoute?.scope==='per-mint-v3'&&Number(launch.communityAirdrop?.reservedTokens)>0);
+      // Open newly prepared distributions before revisiting older paid pages.
+      if(!preparationOnly)launches.sort((a,b)=>Number(Boolean(ledger.communityDrops?.[a.mint]?.openingSignature))
+        -Number(Boolean(ledger.communityDrops?.[b.mint]?.openingSignature)));
       const pending=preparationOnly?launches.filter(l=>!ledger.communityDrops?.[l.mint]
         &&(app.communityReserveReceipts?.[l.mint]?.signature||configured[l.mint])).map(l=>l.mint):[];
       const candidates=preparationOnly?await scanPools(connection,pending):null;
@@ -67,10 +74,13 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
           let checked=0;
           for(;checked<Math.min(count,8);checked++){
             if(stopped)break;
-            const leaf=record.manifest.leaves[(cursor+checked)%count];examined++;
+            const leaf=record.manifest.leaves[(cursor+checked)%count];
+            const proofKey=[record.mint,record.manifest.root,record.openingSignature,leaf.index,leaf.recipient,leaf.amount].join(':');
+            if(completed.has(proofKey))continue;
+            examined++;
             try{
               const result=await delivery.pay(record,leaf);
-              if(result.status==='finalized'||result.status==='already-paid')paid++;
+              if(result.status==='finalized'||result.status==='already-paid'){paid++;remember(proofKey);}
               else if(result.status==='verification-pending')submitted++;
               else if(['expired','ineligible','unavailable'].includes(result.status))waiting++;
               else failures.push({mint:launch.mint,recipient:leaf.recipient,reason:result.status});

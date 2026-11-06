@@ -1388,5 +1388,751 @@
     "noOpCreatePoolCpi": false,
     "noOpPoolLamportsBefore": 2108200,
     "noOpPoolLamportsAfter": 2108200
+  },
+  {
+    "event": "ordinary-daily-bonus-payments-verified",
+    "day": "2026-11-05",
+    "snapshotHash": "c29516ba88125f18633f928a333e0b64fd351476ca10100528009381db848302",
+    "sources": 9,
+    "paymentCount": 72,
+    "grossLamports": 14363736,
+    "netReceivedLamports": 14363736,
+    "receipts": [
+      {
+        "day": "2026-11-05",
+        "signature": "32xD6FRf1jVbFrNCBG5uimzSgTCqJg1bejvdRzA11y1VfZTaX1KFQDguMHHt5MVPZDmyDteRmbcVvjTRhGhVGcZ9",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 410891,
+        "actualReceived": 410891,
+        "slot": 519144147,
+        "paymentAccount": "3JWcsh1t1fK7UhTjHxgFSk3RQUrt5PFxmr8fUseqvbaN",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "56Jg5hnS8ittV4FT4yRzQsca4t8ejR8cCwKA9dcszF4qsr5LgYPCukiLTa7rC2yAzb5wpCg5hRpb8r8b8U7DGPNN",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 1027229,
+        "actualReceived": 1027229,
+        "slot": 519144202,
+        "paymentAccount": "JBVzwwncTpPAg9vcCLxYMvRGynfzcjKWwd5QPsqoC6nv",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2KXvi7DMS43wJHeWQ5piQjCUP9bwiGbHf4WMnB1Ydb4KYbRaDBJLeAtXYNoefdRReo5vahPEzjmHBTp1qo5C44v",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 410892,
+        "actualReceived": 410892,
+        "slot": 519144264,
+        "paymentAccount": "6QcXfguGXd1BDaDxMTmQRTNXnPpecw8VWok59Dsk2UMN",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "mbfjD6hSmAkjG6opBcLs9Xc67mLieCzGK7ztRXKyv5tBPU5wSe4hEPkB8HTP4avmTWfPHD5a1ycRaeBPo2Q9M75",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 410892,
+        "actualReceived": 410892,
+        "slot": 519144299,
+        "paymentAccount": "Fykb4oAKNZtVDbV3htL6UVKs1wK4ZGn2eRJbaEntsJ5W",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "STm15qaXPHSRzjt8UrUd8xFN9DQ6ceYkeb1ATEwDoMFn9MJoQNh81KHTQTnKLMDpQxjPGQSewDp7HMTJvHtTpia",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 616337,
+        "actualReceived": 616337,
+        "slot": 519144332,
+        "paymentAccount": "BvFz1abQkA6mWbHWkyjGp17nguS7e6rJtMhhhntkmKCu",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3KAQf2LcW7YjnLL2vp3E3UVeB1gVDh82zDsNaaMY6sKzFhcgfe24jTD3fu3WpLurWgXzNRMzJuJMctxh69z5TAiG",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 1232674,
+        "actualReceived": 1232674,
+        "slot": 519144381,
+        "paymentAccount": "i7ugyD57DPAQzwHGBvLU55FNAnrqrYnL5j31RfSEsoR",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3mw4uNYxj8ER1rovN7VWXL1HhvE7n4o1tksx1QAtPbr4QF3TCUd315AxN3js8wVRp8u37yUwGaEUxChpua4fd19N",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 1027229,
+        "actualReceived": 1027229,
+        "slot": 519144423,
+        "paymentAccount": "Fs68mHM6uMARN8QptKCg7kCPWe5G9PRZBHX6nciC4svn",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "ccFgvU7kXHL8CHzgaTBq524opn4XwYP5e1BuoHJGZRVfxvcJGKotu6Sk6jbyCnPkRgnmjym4NCc3VPUELrfX3uC",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 1027229,
+        "actualReceived": 1027229,
+        "slot": 519144458,
+        "paymentAccount": "3ZhHfdqLKyq7vcvdmd63nSUQwaBE4gaYcTT7Gy6hZvVr",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4Q86oi5PxvzBuQgs82JEJ8NhSre41NEHfHc7z1oGF471yoSS1PAwdJ4Tki7oDQfLCC7ZGrNBRP6cSeWo7wn4AFB",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 29217,
+        "actualReceived": 29217,
+        "slot": 519144788,
+        "paymentAccount": "2d4EwJAL583yqYEipQJ4SvRFiaStJsJ7VVky2VTmRLvE",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3pJyxDJSJLQhUtPL83L21z7gJyoQMGUcJFZPvESYKhDy5rYDbZ4DXik5xy7aupnFWm1CkqFu1FD6iRh8NUZ3omnR",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 73043,
+        "actualReceived": 73043,
+        "slot": 519144846,
+        "paymentAccount": "F97AMaexHpKRtiUdiKFSA3kQmdZwxiKP3XRVgSLGcYaT",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4uJh32aMr2bW35UHc7wLprYfhc276xzCN5sECUY5TNQKRe7TuBqJd7FADGQhoQ8zkH7KE5rpKGVVT3zQxaRfAsR7",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 29217,
+        "actualReceived": 29217,
+        "slot": 519144913,
+        "paymentAccount": "9p15hyVFRXkm6b9fGto6CVxyjNnp69NorZHZEBsDQo7A",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4gmvd55LwxEw1DRvKX3rmfgvMbJGF9kgYws11FFNpdPsGR5aw6s6paunS3eEtMS2ZBMXRRLra7Pdsf45Qvkg1C7M",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 29217,
+        "actualReceived": 29217,
+        "slot": 519144981,
+        "paymentAccount": "EBJNCg688eoUtyhTtZaeM9XH4K1L6se4Fi3YENEyubUt",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3zgJm1Rv2rG75x947jj8MMF9xGhK8LuysULcWRUmYFrWTDvLQHAdyWkedkLzyPdJv6SP173UTHfFwVQwSCFXBee9",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 43826,
+        "actualReceived": 43826,
+        "slot": 519145025,
+        "paymentAccount": "45gCPBW52xqAfJpYKYa8zRJRHKoGpxBaZ8wvsU2oPHqQ",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "49F4FNnz6YyHPGwKxnxGK4RjSEfQ4pgk5HF1hWJ1RHyQ5HZDepX6gjZbWq3M93zUKiS5P2zRr3RXLQJtakwHRw8L",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 87652,
+        "actualReceived": 87652,
+        "slot": 519145076,
+        "paymentAccount": "F8QBhEEg1RK27bFwE8XNSZpxsChGqgKnxVE8pgKqiY8j",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3XHYtEKfKjeeJkwN3M9pCUn1V4gZx7Kbv2ehxxTPafwZk4PSFoHc4pGsV4sa8W2EukDdyZ4TXYa3S4Y1SRuZcZze",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 73043,
+        "actualReceived": 73043,
+        "slot": 519145111,
+        "paymentAccount": "8xZBFu41UbN4iEwHnEMhaa2dNojaJZdQGpCA3Pzj1w2f",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "zgiMXsPANeaFWsNQZk5SnhyUofPhqcFsUx47L2jYY3V65dNV3jVSyh6GArH65GYi4zkLLGdDsi7eKcTA7Erpko2",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 73043,
+        "actualReceived": 73043,
+        "slot": 519145239,
+        "paymentAccount": "2AnCfCoCMBtE8tZKG79hLFuXnEMAmYmEnMRJFTy8x9VW",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2CUvEdowe6ARJEiB5j5Q5A2MysjoxomsQEasc4zAaZBtrwwu7QFGCsDvAtAgKJPeWEsv5xwkFw96pP6dKKqJADwa",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 31607,
+        "actualReceived": 31607,
+        "slot": 519145535,
+        "paymentAccount": "8sMcrEZVfQxpEcv9ur2gofXS7BUCZvs78n6xeGAp5QsK",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3GdeYLgRvjdBR9UaxjkqE6eUTCqsFrnf7gc2FPyTJZFT6xPxPxucrS7gCGKY83nmQ8TeS5rGso7bULjbtbEJbS1A",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 79018,
+        "actualReceived": 79018,
+        "slot": 519145574,
+        "paymentAccount": "7zkpntBNWYRqQJx37vtQgLuN6giEaquT6xNrnMXkBAnN",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "49RedGLcEQS27nh3NR6xtrh4kKMXvUp2Wp7tx9q4GPdLFZt5Cr7bnAh4rftBa9zZVSFDptBmMkcVb51ZTDHcSzq6",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 31607,
+        "actualReceived": 31607,
+        "slot": 519145611,
+        "paymentAccount": "2tvB1b4Rz82oo2mUtqSfquyxVNgVanxW8urVN5YKPj3r",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "WMy87PrBR5LSPQ4oBD9SgD4DdwGvjv4X7qrN1cbuGQox9QXS1x5beK3RZgPGTWbeKrq7ZBCXwKBxTwVTPFzbxEt",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 31607,
+        "actualReceived": 31607,
+        "slot": 519145673,
+        "paymentAccount": "CaGiQqMmg7havQbS5awDGd3zewst8CqtawYgZZo2h8AK",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3hgxryCkGCNjL5BNZmsGmAcxWDv56chbqqBRQgFkbpP6StkM2Ztw7sMNV6jzbEpYseskK1tPeG8N3Wn1uojdg85G",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 47410,
+        "actualReceived": 47410,
+        "slot": 519145740,
+        "paymentAccount": "4witRxAmmwTKSXmC22NcQCBfYgwWxCiVSsHb9UKECg3x",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2WoXe5ZH7UVtERfRUfNpqUe1VP5oMfU4XRDaYERSttz2g2EpxmP7NeLuRLuqKtZSCgQqwgsDmgxvJPNfwKR3m6Sj",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 94820,
+        "actualReceived": 94820,
+        "slot": 519145774,
+        "paymentAccount": "4HjTTvcZ2ejm6tpaGUvhbQdzTYaAMEuPTWiH4VT4pBWU",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4zjfTAY1efmX8YZqu11Rm1dqxAvNve96JQTsHsupzVJtuHWoDz327r4srWNPNcoSfytHULEcgcCuPMQBYbAbLD8F",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 79018,
+        "actualReceived": 79018,
+        "slot": 519145815,
+        "paymentAccount": "ZPMGZbYmsNt7DixfEQgxAYGtZdxb3CK8pQba3pcqfgc",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4on4rhCNBtX1NjctcymQ9APFbyn1AgMEktRj1zbPDFmumvZ8oupYyNiq8rVDLE7tkctPpCYFCgrhffkmhvwSHj5d",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 79018,
+        "actualReceived": 79018,
+        "slot": 519145871,
+        "paymentAccount": "HXrTZAycq95vtBLKrEHjVa4dUvGS2Y2A4TWpswhMsbK6",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2yqBnxE2zZkAaCEFeUF1gDJFdypz1ZM3xeuYFo3YeJoFSTQvbHCccrDs9ebtt7AqegdWB23GCaj9u97JxTv9CyDH",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146020,
+        "paymentAccount": "Ci3d1rDWfdNtFnDZiYme8hNt7RcDV86SZe7JsppErHZL",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4j58TU7beSLPXC5ivE2jqHQzBPSCMuZrWyJ2QWgFLw2k3UNLnTFeE6aQiC6u4oD7uxaSAMKpCCnHNAmkkRHJ6nZM",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519146071,
+        "paymentAccount": "9vBdHCcSmNskCTSnqe8FYUJFnKinjAixq9ZPxSMdwzHS",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3mwKLBerZ31yii1cFynJF3BPFYiuimQbvc5S85DSZhMEj3q5p9gjUxYApJMfZGSzPdpSDEhBArZKKrd21z9z8yQ9",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146125,
+        "paymentAccount": "F99paccKzsBdibxGqxogZa8XiE2F2k1Djf79GAZN1C6w",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2d3q5gccigN4dtx2iFpgRrrVv8sDjoeTMKUfCK5xHt7hkqgwEq4N2ptWTdabSLMT54QRrSXLVsqphAy9A4PHPMtw",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146176,
+        "paymentAccount": "Gah7GMHPCXsPadAKiU6WUQBRMHQHmUHJt9YkHKCMSX74",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4fiXmdiXV1ySihH55yL2xiFEb1vhSBoJeveUcNXaE3TtonorAkQ3ggAp6Ef3AXAAaMZeNjWBCy1chXBNtaiZzgFT",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 285,
+        "actualReceived": 285,
+        "slot": 519146241,
+        "paymentAccount": "4m8Pow6NMbyaATfRCfJPwPcTcV9JX1es67JuUmKh92nu",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3TmGNqbaPXYUxhvBHbQeGmqP4mPgHA9m6VeqT3X1Xn2kD5K3pz8zwGpABLRwTNPvdUskhbgbYSpV6jpUosruUVC1",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 570,
+        "actualReceived": 570,
+        "slot": 519146280,
+        "paymentAccount": "EVghLkreh2gg4Smzpgwg8GwYrmRGZzmaBHYwiiJmgVns",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4BY9xGALVA7jppcZ7kQyqL4rAjHGjpR8i5EfaxaSWYoMHtuZSWYNyNdhmQVsukx2nqk3tFo2LpGKxUL1KQyCs3xE",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519146324,
+        "paymentAccount": "EPqUMiZWzbCLiyHNtp2iayBKAoiYSu6SiYSU55iqG5Fy",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "35BLDYGuuPpvGamwZrf4JiWDzH5yYfsnvVApLVPWVESgzRHBC6iWoRG384xtv5mDbjB4Ss339A5hQkcSCLWgMrYp",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 475,
+        "actualReceived": 475,
+        "slot": 519146366,
+        "paymentAccount": "AYzBKeZ8Ghu924V7GuSrkBLVg318jiGsgstpD11oqw5F",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "KpBcvvgDK8A2gef6VC1atDVCPeggivKSsyEmnro3A5ayJoHgpDPtrW9ggg4zCayCggBijWi1VDH3t9dC44Q6CKQ",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 34640,
+        "actualReceived": 34640,
+        "slot": 519146444,
+        "paymentAccount": "EudKv6NSHBWRr3t7DVHkJHXCgL6LPNCg5ane9jBwbvK7",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5eJSB4DeExrU7H7cYxBSZEodMNYgRjCrFqCwTvCq4Pj2RvfqhycuAKe5vjYBaCmdz4kdgaVuHMUvFbD83qg1SbqM",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 86599,
+        "actualReceived": 86599,
+        "slot": 519146500,
+        "paymentAccount": "CveYUDDTBtZd4KPwrcxRH7K9aGwzonU8qnc7htjBcwc1",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2wCsohg4Req7YTnebtKMX3MFNiA41Qq5U7s3PrLR1RGRcxxg8KL8JBtb3ELB7GphN6FmJ9bv3ZGF18ruCMAA9yF6",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 34640,
+        "actualReceived": 34640,
+        "slot": 519146551,
+        "paymentAccount": "AifNZXDdn3h8ifDrTyfXW21rLToZ7eEc7fkcgDtPJ2ja",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "wcEXe9SZknTSHi3EanwkeHG78fqcv9zmJ22MhRJBo8JxRX2NtyjiuganwLXVneXTGsCiomdSVutQQxJjCXoou1d",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 34640,
+        "actualReceived": 34640,
+        "slot": 519146601,
+        "paymentAccount": "XWrG7h5EbcwJfo5zNT4KzjfpjpAesNU5rETenMeSous",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2q9Qvd6rbFP2rpLF6veSJYcRqxBW8G1LAish6FLyB5aKpcfbV1nNyx7493icmRxsqsGUoksdJEfcfQZ1Vsg28nxu",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 51959,
+        "actualReceived": 51959,
+        "slot": 519146643,
+        "paymentAccount": "8ZrASApSzE2LRz6fTKqpELDTMK4WENGzEFwZvH96n9ur",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5VE7ewFNHUGDXEP9qSoYVKvMBjHh9vCmAaq4ENuvTkEir4zjYAMfu2hxEiJvTp9xRrwTJTWTzrbrQH8ETFoiLPmj",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 103918,
+        "actualReceived": 103918,
+        "slot": 519146676,
+        "paymentAccount": "7ycqBiJLBetbkHwM8HUg3phMsyMwhHToTHTKTRhDJouJ",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5ktGou7dsT3tfFmK9BfzXX7VX9skZwCqYGvtQWrAzyGdsySG5yseNP5DBHeyGrQN1bAkz1Z8WJ78Vox2GbptGdEZ",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 86599,
+        "actualReceived": 86599,
+        "slot": 519146730,
+        "paymentAccount": "73DFJQ6BBw3oKNce3q8x7QLRfkjio27CzbL7ynrfumiY",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2UmZCoHZ3tk7zeCvxWbfhC9XKGxXPNpBtVVH8an9QpjZZgEat22onH7UJsHKmoGhJChZMFfwJsDCSh58YCAt53mX",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 86599,
+        "actualReceived": 86599,
+        "slot": 519146792,
+        "paymentAccount": "GrfhPFmA714bjhLBFTXrjNxoLbr5bGkwom2z3w2U3R1f",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4TZxfogqpHjKiEwEkYBt9eyqHeFCmAgwtZTfsp6SoXjxmG9ksyJLR62UcsQqxHyF3J4fS8aMAK47rej6KharBTYQ",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146868,
+        "paymentAccount": "J5YwJJikCi9Ca4tt2EtQrzXbyfBDf4vsPXCcNhZeRwRV",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "92iySoswZFCXSXXuu364QixDZTgSkTDLTB4sUrhQAYczyQmkAtvttGbnxCBN325P6bzXZhdMqVQFPwEiKb9gLj8",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519146905,
+        "paymentAccount": "2G3bsmL5KFCsqm4BTzF7viS7o5P3D6E5eMBW81DQR8ii",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "ZdB1prYEFUaTWDuKa3XYC5ZG9RaW8aJyYGKHZboSdLabbxFRKoF3eGsVH8bxrfyxF1xoEdmj9Bh7gETF1JSRMrk",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146944,
+        "paymentAccount": "5Z1kVSQB5RnjKVDEYKraEEfweZtE2cSf2eu86C7LaGzu",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2hbXfpuNQ4Eu6PqME3kzCxrocQLShdqxhXLAqP9X2aXfgMJsaWHXYpuWx4bwi4oEkg7sKZncSHQmjECLwtntUoi3",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519147009,
+        "paymentAccount": "7rBQbK26M6jEaKgpVUVNGtYDjc6t3EwSLWHKjnmwz1qi",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5P7HuHQiusQiG88Sxx4gWAhRDdrYRWinBLufxXV3KtojJpUPJ5AExC2yVinM4Hvb9wRCmSRtTegVjToS5MPp13Tq",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 285,
+        "actualReceived": 285,
+        "slot": 519147039,
+        "paymentAccount": "6HArrccVxTiLXjGydnY1wxNpKP8xS5h9CBAvxLMWVrab",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2GaAJvmznFdxknsMdT42iUcNdHNkSG28HEE9dfx1QYmnWdQKc2d12e4hiSbHrpCDqCH8oRHP8GCLzZ8PiiogC9Aw",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 570,
+        "actualReceived": 570,
+        "slot": 519147070,
+        "paymentAccount": "BcPtj7YnVaRavxHDYD2jHEUkegtVyU7PJXAW2FLx81Ar",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "48e6cCvYRgXCsQS7kzfuZw7JRQrDqLwE85rKsujJYF3VoJXUKGFrB2wZJDEniawapw2qG1qGs6HNu9mp3gWq8Yp9",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519147120,
+        "paymentAccount": "HVw6Go9jfWtB4xXgaHDKgxM2iTXRSAybZQqdcqNuQgpt",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3KZ1NeMbmUR4GggwtM9NXbsYyogsiGHy96SDuWp6pYWW54a4aXvRxSrNS5DRP8jhBqmd4QFEq9AMY8JXwVSmbFsL",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 475,
+        "actualReceived": 475,
+        "slot": 519147170,
+        "paymentAccount": "HiJPjKgbwiR7m8wXqCUpamExaRmMn5vTzCe1vN3uCwUG",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "63R8pXZ1CwRDG2Jr8KwcgzYoxmsyR5LUAbk5Ba1hcYDnt6F3QByrMvcZQkfK2xHYUDtyhtndu59TXtmQCjo6hrfs",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 197800,
+        "actualReceived": 197800,
+        "slot": 519147305,
+        "paymentAccount": "AQetj9cepnpjtwcnE1KeBECyxg4UgAaQAfkaxYSj8X4R",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3L7n4sfeFxAAbRBiTjAytsJjia8NFCeGdyX1kp34eNCD5vkXEC2N5Ha7g3PzNQisHQ6SRVPwJeKGX9hxTvj565kp",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 494501,
+        "actualReceived": 494501,
+        "slot": 519147360,
+        "paymentAccount": "GZfjh1gPdaZD1G7HBSPx97z5uF7k8EmcV3fu1mGpCc9i",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5ArdBWsBzNhwXYUGg2gG45xNjUp8d2k1qoCey5QU8o3B8sAxMorE38bELAf2f5vqfBfPDXFSpvF2FTVqTWhFeBSL",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 197800,
+        "actualReceived": 197800,
+        "slot": 519147415,
+        "paymentAccount": "Xr4PAkKPTuHo6T9JwCRS57DaqCr2EbGjmyWhpD25cyV",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "373wQ7r8VUaP9NiShurpZTaYXvstAmguFSRDLJurgxi9U9qcdDzZXC5LcvoAfTU1mbnxVeLGiHQHphx1YyBb3gdw",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 197800,
+        "actualReceived": 197800,
+        "slot": 519147449,
+        "paymentAccount": "GeTaNzjXjTRqfWtawupwwZ9FgAt9frH2YmrR54VJjBj",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "vqMtXKXgZeP3y9Ph6GzkBTjCDYfeWXmZ5wJt9XooPZa76jYjqa44ZpEv5JLEbn4x7uJqEyMxDAFVkpf4Fsg2Tei",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 296701,
+        "actualReceived": 296701,
+        "slot": 519147483,
+        "paymentAccount": "2BMckb5aaobKeMHKRHKN9voRYspGrTdk84v4NNZpZQb2",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2K7Gv82jQkD8VzMKx1RtC5wBQYeeJ4QVFxyrZgUQBn3xpALg3bogybRNxN1DkT8jRkCiKj4d8vkny5Git5vTaw13",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 593401,
+        "actualReceived": 593401,
+        "slot": 519147539,
+        "paymentAccount": "CMeqRDnicsaPc93VeZtaYJnZvPS27LeqmRagbJFCeqNH",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3PJUB8ZQ7ShZXd9p5FcSirLXu4G4BxkEEjmdsjFFQL2fEWLdAAA8yawVf2AE5YF2et6vP1CYeqxsKt3HatgncYk3",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 494501,
+        "actualReceived": 494501,
+        "slot": 519147596,
+        "paymentAccount": "8QhDKEMsW8HJ7Qkvo2zdXxK4sqWF9ptPHv3srsbD4sRn",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2TGJGY5rSDSitxhDJhY45Lu1BhzYwSvy2Jx6QJvKQXpkSndueu6FDLEJuaPorkv6gmXkV5S1tRcHbUziK8r8JGVc",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 494501,
+        "actualReceived": 494501,
+        "slot": 519147646,
+        "paymentAccount": "Dfb2i9132Ph2a8WkcDqpHYoxhJ9FLXbmv79tNoRjoCrQ",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3ute6Srn8nEKQd2JxCVbPqWJF2KdKrcwmA5RVRRrs5d69b9ioxVoGryycUauZrTtDjTWV48KrM9HgZkHBu7xgMJL",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519147750,
+        "paymentAccount": "28t2HztHM9dMFtmzSSxF9TcePTnVs5GQ4ejZdG3GQd6R",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3YRVB1vzqve2m9Kv5aCWKCogpKY2MznTb6t1ssuzQDpYjZemkqeYu97ArrfEZ92g5y3Ca6i4EHJArTmzBW1GNJU7",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519147812,
+        "paymentAccount": "29ttKhRXTm4cNrpDJRLrQ2MHes5ymdixNdVrEJx92HVj",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "54zj5suDtyVCY1fcW9mTAHoBkjrxSyBgAct1me9g8saY1AzMJ5tJKbmgerKeYUYzeKhcJb82tFSx9dP49fAmUFcD",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519147868,
+        "paymentAccount": "9VtB8hnKd6QtjNWsa16HqxWVGBctFotJHCKpwwuCxgPX",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "24gREu48hU45VPKJYM9fm2yZhZmy46PsgCA9UeGN6p5gnrc5kKhr11cr1YR1X47XByzwksQm86GSEwd2ZRM9U5FP",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519148101,
+        "paymentAccount": "BHJJ2S3mPBLmpx982ALJy7yCesVaxTJAoDGtcrzxTL5B",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "NP6fduF4zzvNdxHsM1jQfs4qx3WSU6NFFsi6ENTCB4FYwF6rwkPfFb7rcnpcF2UKm8ZWc4SHwJM4SxARZDdnhGt",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 285,
+        "actualReceived": 285,
+        "slot": 519148368,
+        "paymentAccount": "F9PSbF9WL5FrhDPv645NUvHZYyHMMcgmKTMpkv4iLYeg",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4urw9uS4cwVGCU5k1HGud9bthwXk58LRw5FdXDZSgAfozEg1LwRi3p2uraDtUzy1ktPUtPLkp297XQpgc31UXL9h",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 570,
+        "actualReceived": 570,
+        "slot": 519148547,
+        "paymentAccount": "2soJMZVmMpTzKGqqLepndE1qmz2MTZvYsfZNMp6yBoac",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3ovnLvhVBMFyxNt8qvEpLLwQ1ekY6uVGbAMSEW76GWGZBJSjzeTPLSFdP3mGRTy5UEj5GrecP58ZPsESHHAR6x73",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519148644,
+        "paymentAccount": "ihP3svjWnX6LsvXFtiT94ASu8gvk7tYoJ7wzf8VrywC",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "51eEvevb8MMJpP9CQSCuywQeYRy1a7nQDidT6fMPiwoQnAjjx9WjBPWCiRCkkwykzEt2GkMZUBakhaJrKwrQ3PA1",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 475,
+        "actualReceived": 475,
+        "slot": 519148690,
+        "paymentAccount": "HiVHzVKNfQKiBkUfkZx2FQLfusFXUGA4Ej1twVu4Xwd5",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "qdnZoViBzhbKqyctew2n1fGevkNbYmUD43DbSqcutgRnAmJ1cgjj2ywEGXmHjqA8rPeC26X3SQBNF1RU2GLv6y7",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 252856,
+        "actualReceived": 252856,
+        "slot": 519148796,
+        "paymentAccount": "C54G5Erb2EdukQKmyeQKFAi5Q9ey4biccNRjDk6vdvsm",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5wPLwsE4xjbGU5ZKMUH3bkPKn7i9VWh5dGbpyidxJ21n2itCTJ6i1Uk6qPYn34BJPaPqEPdQdfzzdgovYscKB87Z",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 632141,
+        "actualReceived": 632141,
+        "slot": 519148842,
+        "paymentAccount": "HfdPoacsV23NYie1pAoC5LR6bwqqyyAqQkd1fRC5wLZo",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "pVVVTsd2Bf11QdDesb6UQWU9jV6ytQkPUfgMLA1NQcevNDBTMQs5wYSQ4kjb9Fq3C2E87Vtb3FGCKWKKaMaKRXv",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 252856,
+        "actualReceived": 252856,
+        "slot": 519148890,
+        "paymentAccount": "HAacNJtzC5Cr3hX5ERsgmGsSGXe23s1DEpWhb7Tya7xk",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "41uSGfit4CJoTAdyWQTYavsLkrYwcE4V8ySob4Gpq5aGBFHmJkUiyA5gzYYM6uj2Ht2squ63YTVtSAeTUtCMimTk",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 252856,
+        "actualReceived": 252856,
+        "slot": 519148989,
+        "paymentAccount": "8zGxuTDkr2xG3NB9vUxAxtdo6THMirFrj4jmWG5gqPC4",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3dH2JEBbbRk1YGNYWxPagXTRwmQ3i3fbU2dqgLTbzkHgcD3xDSesLsxUfwCqWGHcztVnU7gh4HU1kzwz8BjcEZh6",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 379285,
+        "actualReceived": 379285,
+        "slot": 519149093,
+        "paymentAccount": "3odEsebeS8bogdFH8tX4GjHYDiePGDB3r3UisRW6Jcem",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2fQurRjjRwRVrXEFPGxS82o4A1dz3sfcqmNkPBvb2ib3XQepmFN271jDhidw6ZvoDVSxZzu9LMGXVBq3csMSwpNe",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 758569,
+        "actualReceived": 758569,
+        "slot": 519149202,
+        "paymentAccount": "H8oRdDzCLehC3ptDNaghoJVFDdQdqsZrLQXr5Y2awuPY",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "365bZf9Z2PDKcGrXqcrconjLgRkxULt1iGaVCGNVuM7xSNHevsWybeBsVX5fWX5MgKfYdXcA3gjVcdgJvDxhpKHc",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 632141,
+        "actualReceived": 632141,
+        "slot": 519149251,
+        "paymentAccount": "4EEi8GnGG9wqc14fP3syR9UtUjSuWgy1C2XCmwvv3oWr",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4G6Ba8txdRvJaAkoVgsvC5kqC4nBsuwckjzMDpQ1jRrB37G6oxE6PXnBEgZdFYZsUPDhmhjv3px8Zfr8KLPeAM5M",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 632141,
+        "actualReceived": 632141,
+        "slot": 519149289,
+        "paymentAccount": "3jhko6ga9ZsBztaUTAGJQBsYc2ZrrizhAoPXynHav5bT",
+        "finalized": true
+      }
+    ]
+  },
+  {
+    "event": "program-recipient-snapshot-verified",
+    "mint": "Hvw28V5n7uodDXzZDgNXKdfrdD3EjkDsb88dGoBM47cP",
+    "version": 2,
+    "basis": "pump-migration",
+    "migrationSignature": "2Zx7pyK8Ex9qnQ8VaDFgtKmj7Z4BmP77sH9EaqYcfUtA6x2T9yEfUtMKt54UTnLG8Ri8oMyEcHhYLvvmb7qTaTvM",
+    "migrationSlot": 519152646,
+    "workerBaseSlot": 519152701,
+    "independentBaseSlot": 519152785,
+    "fixedSupply": "998107417240690",
+    "wallets": 28,
+    "recipient": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+    "amount": "27403797",
+    "index": 22
   }
 ]
