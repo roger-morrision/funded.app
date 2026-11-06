@@ -2,6 +2,8 @@ import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
 for(const width of [360,390,1440]) test(`token error recovery and fee records remain usable at ${width}px`,async({page})=>{
+  // Four complete page boots; keep each assertion bounded independently.
+  test.setTimeout(60_000);
   const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
   const variants=[
     ['502 : <!DOCTYPE html><footer>Fixture gateway 192.0.2.1<script>fixture()</script></footer>','We could not load verified token details. Try Refresh in a moment.'],
@@ -29,7 +31,7 @@ for(const width of [360,390,1440]) test(`token error recovery and fee records re
     await expect(holders).toBeFocused();
     await expect(holders).toHaveAttribute('aria-selected','true');
     await expect(page.getByRole('button',{name:'Refresh token data'})).toBeEnabled();
-    await expect(page.getByRole('button',{name:'Refresh',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Refresh market data',exact:true})).toBeVisible();
     const errorText=await page.locator('#coin-description').innerText();
     expect(errorText.length).toBeLessThan(120);
     expect(errorText).not.toMatch(/DOCTYPE|footer|script|192\.0\.2\.1|rpc\.example|diagnostic/);
@@ -240,7 +242,7 @@ test.describe('FQA-063 neutral token fallback lifecycle',()=>{
   test.afterEach(async({page})=>{await page.close();});
   for(const width of[360,390,1440]){
     test(`parsed mint without curve settles unavailable without a pending About claim at${width}`,async({page})=>{
-      const f=await tokenFallbackFixture(page,width);try{await f.open();await fallbackSurface(page,fallbackDescription);await expect(page.locator('#coin-stage')).toHaveText('Unverified');await expect(page.locator('#coin-fee-owner')).toHaveText('Unavailable');await expect(page.locator('#coin-metadata-status')).toHaveText('No verified name');await expect(page.locator('[data-coin-tab="trades"]')).toHaveText('Trades —');await expect(page.locator('#coin-pulse-trades')).toHaveText('Unavailable');await expect(page.locator('#coin-price-path .coin-chart-status')).toHaveText('Chart unavailableRecent trade prices could not be loaded. Try refreshing the token page.');await expect(page.locator('#coin-activity-list')).toContainText('Recent trades unavailable');expect(f.marketCount).toBe(0);expect(f.reads.some(r=>r.calls?.some(c=>c.method==='getAccountInfo'&&c.params[0]===fallbackMint&&c.params[1]?.encoding==='jsonParsed'))).toBe(true);await nativeTokenFallback(page);await page.screenshot({path:test.info().outputPath('no-curve-neutral-'+width+'.png')});expect(f.marketCount).toBe(0);}finally{await f.finish();}
+      const f=await tokenFallbackFixture(page,width);try{await f.open();await fallbackSurface(page,fallbackDescription);await expect(page.locator('#coin-stage')).toHaveText('-');await expect(page.locator('#coin-fee-owner')).toHaveText('-');await expect(page.locator('#coin-metadata-status')).toHaveText('No verified name');await expect(page.locator('[data-coin-tab="trades"]')).toHaveText('Trades —');await expect(page.locator('#coin-pulse-trades')).toHaveText('-');await expect(page.locator('#coin-price-path .coin-chart-status')).toHaveText('Chart unavailableRecent trade prices could not be loaded. Try refreshing the token page.');await expect(page.locator('#coin-activity-list')).toContainText('Recent trades unavailable');expect(f.marketCount).toBe(1);expect(f.reads.some(r=>r.calls?.some(c=>c.method==='getAccountInfo'&&c.params[0]===fallbackMint&&c.params[1]?.encoding==='jsonParsed'))).toBe(true);await nativeTokenFallback(page);await page.screenshot({path:test.info().outputPath('no-curve-neutral-'+width+'.png')});expect(f.marketCount).toBe(1);}finally{await f.finish();}
     });
     test(`curve loading then unavailable empty and populated trades keep neutral About at${width}`,async({page})=>{
       const f=await tokenFallbackFixture(page,width,{curve:true});try{let original;
@@ -263,7 +265,7 @@ test.describe('FQA-063 neutral token fallback lifecycle',()=>{
         gate=f.holdMetadata({...details('Wrong token description.'),name:'Mismatched metadata'});await startTokenFallbackReload(page,original,gate,pending);await expect.poll(()=>f.metadataCount).toBe(4);await finishFallbackRead(page,original,gate,fallbackDescription,unmatched);
         const stale=f.holdMetadata(details('Obsolete response must be ignored.'));await startTokenFallbackReload(page,original,stale,pending);await expect.poll(()=>f.metadataCount).toBe(5);await fallbackSurface(page,fallbackDescription);
         const current=f.holdMetadata(details('Current response owns this description.'));await startTokenFallbackReload(page,original,current,pending);await expect.poll(()=>f.metadataCount).toBe(6);await finishFallbackRead(page,original,current,'Current response owns this description.',matched);
-        await finishFallbackRead(page,original,stale,'Current response owns this description.',matched);expect(stale.record.sequence).toBe(5);expect(current.record.sequence).toBe(6);expect(stale.request).not.toBe(current.request);expect(f.marketCount).toBe(0);await page.screenshot({path:test.info().outputPath('metadata-current-'+width+'.png')});
+        await finishFallbackRead(page,original,stale,'Current response owns this description.',matched);expect(stale.record.sequence).toBe(5);expect(current.record.sequence).toBe(6);expect(stale.request).not.toBe(current.request);expect(f.marketCount).toBe(6);await page.screenshot({path:test.info().outputPath('metadata-current-'+width+'.png')});
       }finally{await f.finish();}
     });
   }

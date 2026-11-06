@@ -59,7 +59,7 @@ for(const [name,status,dashboard,expected] of [
   ['transport failure',503,null,'Waiting for the next burn update'],
   ['unavailable verification',200,{status:'unavailable',lastBurn:null},'Waiting for the next burn update'],
   ['verified empty history',200,{status:'verified',collectedLamports:'0',lastBurn:null},'No burns yet'],
-  ['optional history timeout',200,{status:'verified',collectedLamports:'147100',historyStatus:'unavailable',lastBurn:null},'Burn history temporarily unavailable'],
+  ['optional history timeout',200,{status:'verified',collectedLamports:'147100',historyStatus:'unavailable',lastBurn:null},'-'],
   ['known burn during a vault verification gap',200,{status:'partial',lastBurn:{signature:'3'.repeat(64),burnedAt:'2026-10-18T12:00:00Z'}},/2026/],
 ]) test(`buyback last-burn panels distinguish ${name}`,async({page})=>{
   await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offlineFixture);
@@ -151,7 +151,7 @@ test('buyback disclosures preserve open and closed choices across polling and te
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1104 $FUNDED base units burned');
   await expect(page.locator('#buyback-ledger')).toContainText('0.001104 $FUNDED bought and burned');
   unavailable=true;await page.clock.fastForward(60_001);
-  await expect(page.locator('[data-buyback-flow]')).toHaveText('Buyback status is unavailable.');
+  await expect(page.locator('[data-buyback-flow]')).toHaveText('-');
   await expect(page.locator('#buyback-ledger')).toContainText('temporarily unavailable');
   unavailable=false;revision=200;await page.clock.fastForward(120_001);
   await expect(page.locator('.reward-buyback-list p').first()).toContainText('1204 $FUNDED base units burned');

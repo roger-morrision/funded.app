@@ -58,7 +58,7 @@ for (const width of [390,1440]) {
       await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state','ready');
       await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
       const stats=page.locator('#explore-payout-stats');
-      await expect(stats).toContainText(value==='partial'?'1 of 2 payouts verified':'Receipt coverage unavailable');
+      await expect(stats).toContainText(value==='partial'?'1 of 2 payouts verified':'-');
       await expect(stats).toContainText('1 SOL');
       await expect(stats).not.toContainText('3/2');
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

@@ -1,10 +1,14 @@
+import { createRpcReadScheduler } from '../../features/shared/rpc-read-scheduler.js';
 // Dependencies and mutable application state are read live through appState.
 export function createConnectionsController(appState) {
+  const rpcFetch=createRpcReadScheduler();
+  let solanaLoading;
   // app-source: 135
   function connectionConfig(web3, cluster = appState.APP_CLUSTER){
     return {
       commitment: 'confirmed',
       disableRetryOnRateLimit: true,
+      fetch:rpcFetch,
       ...(appState.APP_RPC_URL ? { wsEndpoint: appState.APP_RPC_URL.replace(/^http/, 'ws').replace(/\/api\/solana\/rpc(?:\?.*)?$/, '/api/solana/ws') } : {}),
     };
   }
@@ -13,9 +17,11 @@ export function createConnectionsController(appState) {
   // app-source: 136
   async function getSolana(){
     if (!appState.solanaModules) {
-      const [web3, spl] = await Promise.all([import('@solana/web3.js'), import('@solana/spl-token')]);
-      appState.connection = new web3.Connection(appState.APP_RPC_URL || web3.clusterApiUrl(appState.APP_CLUSTER), appState.connectionConfig(web3));
-      appState.solanaModules = { ...web3, ...spl };
+      solanaLoading ||= Promise.all([import('@solana/web3.js'), import('@solana/spl-token')]).then(([web3,spl])=>{
+        appState.connection = new web3.Connection(appState.APP_RPC_URL || web3.clusterApiUrl(appState.APP_CLUSTER), appState.connectionConfig(web3));
+        return appState.solanaModules = { ...web3, ...spl };
+      }).catch(error=>{solanaLoading=null;throw error;});
+      await solanaLoading;
     }
     return appState.solanaModules;
   }

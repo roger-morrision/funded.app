@@ -8,6 +8,7 @@ export function browserBuildSettings(fileEnv = {}, runtimeEnv = process.env) {
   const cluster = String(env.VITE_SOLANA_CLUSTER || 'devnet').trim();
   const exploreCluster = String(env.VITE_EXPLORE_CLUSTER || cluster).trim();
   if (!['devnet', 'mainnet-beta'].includes(cluster) || exploreCluster !== cluster) throw new Error('Build requires matching supported application and Explore networks.');
+  if (cluster === 'mainnet-beta' && enabled('VITE_MAINNET_READ_ONLY') && enabled('VITE_ALLOW_MAINNET')) throw new Error('Read-only staging cannot enable Mainnet writes.');
   return { schemaVersion: 1, cluster, exploreCluster, mainnetEnabled: enabled('VITE_ALLOW_MAINNET'),
     mainnetReadOnly: cluster === 'mainnet-beta' && enabled('VITE_MAINNET_READ_ONLY'),
     devWalletEnabled: cluster === 'devnet' && enabled('VITE_DEV_MODE') };
@@ -28,6 +29,11 @@ export default defineConfig(({ mode }) => {
   return {
     cacheDir: process.env.VITE_CACHE_DIR || undefined,
     plugins: [{ name: 'funded-build-settings',
+      transformIndexHtml(html) {
+        if (!mainnetReadOnly) return html;
+        return html.replaceAll('Solana Devnet uses test SOL with no monetary value.', 'Solana Mainnet preview: transactions are disabled.')
+          .replaceAll('Devnet · test SOL</span>', 'Mainnet · read only</span>');
+      },
       configResolved(config) { resolvedOutput = { root: config.root, outDir: config.build.outDir }; },
       async buildStart() { sourceDigest = await browserSourceDigest(resolvedOutput.root); },
       async generateBundle() {

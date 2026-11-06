@@ -31,8 +31,8 @@ export const DEV_MODE = String(import.meta.env.VITE_DEV_MODE || '').toLowerCase(
 export const DEV_WALLET_ROLE = String(import.meta.env.VITE_DEV_WALLET_ROLE || 'creator').trim().toLowerCase();
 export const DEV_WALLET_AUTOCONNECT = DEV_MODE && String(import.meta.env.VITE_DEV_AUTOCONNECT || '').toLowerCase() === 'true';
 
-if (APP_IS_MAINNET && !APP_ALLOW_MAINNET) {
-  throw new Error('Mainnet is disabled. Set VITE_ALLOW_MAINNET=true only after production review.');
+if (APP_IS_MAINNET && APP_MAINNET_READ_ONLY === APP_ALLOW_MAINNET) {
+  throw new Error('Select exactly one Mainnet mode. For staging, enable read-only mode and disable Mainnet writes.');
 }
 
 export const TRADE_FEE_OWNER = String(import.meta.env.VITE_FUNDED_TRADE_FEE_OWNER || '').trim();

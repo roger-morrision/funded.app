@@ -24,7 +24,7 @@ async function setup(page,{width,height,motion}){
    return path==='/api/fee-policy'?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline launch navigation fixture'}})});
  await page.goto('/#launch');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expect(page.locator('#cost-total-enabled')).toHaveText('Quote unavailable',{timeout:18000});
  await page.locator('#token-name').fill('Cost planning QA');await page.locator('#token-symbol').fill('CQA');
- await page.locator('details').filter({has:page.locator('#token-description')}).locator('summary').click();await page.locator('#token-description').fill('A local planning draft; no launch or wallet action.');
+ await page.locator('#token-description').fill('A local planning draft; no launch or wallet action.');
  await page.locator('#token-website').fill('https://example.invalid/project');
  await page.locator('#launch-next').click();await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','2');await expect(page.locator('#launch-public-quote-retry')).toBeVisible({timeout:18000});await page.locator('#launch-back').click();await expect(page.locator('#launch-dialog')).toHaveAttribute('data-step','1');
  await page.addScriptTag({content:renderer});await page.evaluate(()=>{
@@ -326,9 +326,7 @@ async function availabilityNativePlanning(page, state, validate = false) {
     expect((await page.locator('#token-symbol').getAttribute('aria-describedby')).split(' ')).toContain('token-symbol-warning');
   } else await page.locator('#token-name').fill('Launch availability QA');
   await page.locator('#token-symbol').fill('AVQA');
-  const description = page.locator('details').filter({ has: page.locator('#token-description') });
-  if (await description.getAttribute('open') === null) await description.locator(':scope > summary').click();
-  await expect(description).toHaveAttribute('open', '');
+  // Description is now directly available in the identity step.
   await expect(page.locator('#token-description')).toBeVisible();
   await page.locator('#token-description').fill('A draft only. No account, consent or financial action.');
   await availabilityTab(page, '#launch-next', { state });
@@ -339,7 +337,7 @@ async function availabilityNativePlanning(page, state, validate = false) {
   await expect(page.locator('#token-name')).toHaveValue('Launch availability QA');
   await expect(page.locator('#token-symbol')).toHaveValue('AVQA');
   await expect(page.locator('#token-description')).toHaveValue('A draft only. No account, consent or financial action.');
-  await expect(description).toHaveAttribute('open', '');
+  await expect(page.locator('#token-description')).toBeVisible();
 }
 
 for (const width of [360, 390, 1440]) test(`Launch availability actual loader checking to verified and native planning ${width}`, async ({ page }, info) => {
@@ -389,7 +387,7 @@ for (const { width, variant } of [
     await availabilityFocusProof(page, 'real-rejected-read-keeps-draft-focus');
     await expect(page.locator('#launch-availability-label')).toHaveText('Submission unavailable');
     await expect(page.locator('#launch-availability')).toBeHidden();
-    await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+    await expect(page.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
     await availabilityNativePlanning(page, 'unavailable', true); await availabilityStructure(page);
     expect(f.api.filter(x => x.path === '/api/v3-launch-config')).toHaveLength(1);
     expect(f.accountReads).toHaveLength(variant.startsWith('service') ? 0 : 1);
@@ -415,7 +413,7 @@ test('Launch availability presentation preserves ordinary entry and step request
       await expect.poll(()=>target.evaluate(()=>document.visibilityState)).toBe('visible');
       await target.goto(url + '/#launch'); await target.locator('body.workspace-ready.product-experience-ready').waitFor();
       fixture.releaseAccount(); fixture.releaseConfig();
-      await expect(target.locator('#fee-router-status')).toContainText('Launch blocked:');
+      await expect(target.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
       await expect(target.locator('#cost-total-enabled')).toHaveText('Quote unavailable', { timeout: 18000 });
       await target.locator('#token-name').fill('Count comparison'); await target.locator('#token-symbol').fill('COUNT');
       await target.locator('#launch-next').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '2');

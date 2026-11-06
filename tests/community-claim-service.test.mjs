@@ -168,3 +168,19 @@ test('opens a full reserve when integer pro-rata shares leave token dust for the
   assert.equal(record.manifest.remainderAmount, '1');
   assert.equal((await service.openingInstruction(mint)).instruction.keys.length, 16);
 });
+
+
+test('new migration records support automatic program-owner delivery without enabling manual or historical claims',async()=>{
+  const [owner]=PublicKey.findProgramAddressSync([Buffer.from('auto-recipient')],new PublicKey(programId));
+  const wallet=owner.toBase58(),snapshot={...fixedSnapshot,accounts:[{wallet,balance:'100'}]};
+  const {service,store}=fixture({snapshot});const fresh=await service.prepare(input);
+  assert.equal(fresh.automaticDeliveryVersion,2);await service.recordOpening({mint,signature:'opening-finalized'});
+  const automatic=await service.recipientProof({mint,wallet,forAutomaticDelivery:true});
+  assert.equal(automatic.status,'claimable');assert.equal(automatic.amount,'1000');assert.equal(automatic.recipient,wallet);
+  assert.equal((await service.recipientProof({mint,wallet})).reasonCode,'program-address-allocation');
+  await assert.rejects(service.claimInstruction({mint,wallet}),/program address/);
+  await store.transaction(state=>{delete state.communityDrops[mint].automaticDeliveryVersion;});
+  assert.equal((await service.prepare(input)).automaticDeliveryVersion,undefined);
+  assert.equal((await service.recipientProof({mint,wallet,forAutomaticDelivery:true})).reasonCode,'program-address-allocation');
+  assert.deepEqual((await service.prepared(mint)).manifest,fresh.manifest);
+});

@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:mainnet-preview": "node scripts/mainnet-preview.mjs build",
+    "start:mainnet-preview": "node scripts/mainnet-preview.mjs serve",
     "release:devnet": "node scripts/funded-release.mjs",
     "verify:css-budget": "node scripts/verify-css-budget.mjs",
     "verify:legal-dialogs": "node scripts/verify-legal-dialogs.mjs",

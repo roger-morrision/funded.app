@@ -29,7 +29,7 @@ for (const [referralStatus, hasDailyReceipt] of [[200, true], [401, true], [503,
     cluster:'devnet', reserves:[{ mint, verified:true, status:'drop-closed',
       reservedTokens:'100', totalBaseUnits:'100000000' }],
   } }));
-  await page.route('**/api/airdrops/claims/proof**', route => route.fulfill({ json:{
+  await page.route('**/api/airdrops/allocation**', route => route.fulfill({ json:{
     status:'claimed', recipient:wallet, amount:'12500000', payment,
   } }));
   await page.route('**/api/referral-claims?wallet=*', route => referralStatus === 200 ? route.fulfill({ json:{
@@ -79,7 +79,7 @@ for (const [referralStatus, hasDailyReceipt] of [[200, true], [401, true], [503,
   await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount((referralStatus === 200 ? 6 : 5) - (hasDailyReceipt ? 0 : 1));
   for (const [filter, label] of [
     ['claim','X reward claimed'], ['reward','Holder reward received'],
-    ['airdrop','Community airdrop claimed'], ['bonus',hasDailyReceipt ? 'Daily bonus received' : 'Bonus history incomplete'],
+    ['airdrop','Community airdrop received'], ['bonus',hasDailyReceipt ? 'Daily bonus received' : 'Bonus history incomplete'],
   ]) {
     await page.locator(`[data-wallet-filter="${filter}"]`).click();
     await expect(page.locator('#wallet-detail-content .wallet-activity-row')).toHaveCount(filter === 'bonus' ? (hasDailyReceipt ? 1 : 0) + (referralStatus === 200 ? 1 : 0) : 1);
@@ -349,7 +349,7 @@ for (const viewport of [{ width:360, height:740 }, { width:390, height:844 }, { 
       await expect(page.locator('.wallet-balance-grid')).toBeVisible();
       await reads.quote();
       await expect(page.locator('[data-wallet-tab="balances"]')).toBeFocused();
-      await expect(page.locator('.wallet-balance-grid')).toContainText('Unavailable');
+      await expect(page.locator('.wallet-balance-grid article strong').first()).toHaveText('-');
       await page.keyboard.press('ArrowRight'); await expect(page.locator('[data-wallet-tab="created"]')).toBeFocused();
       await expect(page.locator('#wallet-detail-content a')).toHaveCount(2);
       await expect(page.locator('#wallet-detail-content')).not.toContainText('Created fixture 1');
@@ -655,7 +655,7 @@ async function balanceScopeCaptionProof(page,value,caption,label){
 }
 async function balanceScopeTabs(page,value,caption,label){
   const readiness={caption,balance:value};await nativeBalanceScopeEntry(page,'[data-wallet-tab="activity"]',{...readiness,tab:'activity'});
-  for(const[tab,key,content]of[['balances','ArrowRight','Native SOL'],['created','ArrowRight','No created coins found'],['activity','Home',null]]){const original=await page.locator('[data-wallet-tab="'+tab+'"]').elementHandle();await armBalanceScope(original,{...readiness,tab,content});await page.keyboard.press(key);await balanceScopeProof(page,label+'-native-'+tab,key);await expect(page.locator('[data-wallet-tab="'+tab+'"]').first()).toHaveAttribute('aria-selected','true');await expect(page.locator('#wallet-stat-sol')).toHaveText(value);await expect(page.locator('#wallet-stat-sol-note')).toHaveText(caption);if(tab==='balances'){const article=page.locator('#wallet-detail-content .wallet-balance-grid article').first();await expect(article).toContainText('Native SOL');await expect(article.locator('strong')).toHaveText(value==='—'?'Unavailable':value);}}
+  for(const[tab,key,content]of[['balances','ArrowRight','Native SOL'],['created','ArrowRight','No created coins found'],['activity','Home',null]]){const original=await page.locator('[data-wallet-tab="'+tab+'"]').elementHandle();await armBalanceScope(original,{...readiness,tab,content});await page.keyboard.press(key);await balanceScopeProof(page,label+'-native-'+tab,key);await expect(page.locator('[data-wallet-tab="'+tab+'"]').first()).toHaveAttribute('aria-selected','true');await expect(page.locator('#wallet-stat-sol')).toHaveText(value);await expect(page.locator('#wallet-stat-sol-note')).toHaveText(caption);if(tab==='balances'){const article=page.locator('#wallet-detail-content .wallet-balance-grid article').first();await expect(article).toContainText('Native SOL');await expect(article.locator('strong')).toHaveText(value==='—'?'-':value);}}
 }
 async function connectBalanceScopeMock(page){await page.locator('#connect-button').click();await page.locator('[data-wallet-choice="phantom"]').click();await expect(page.locator('html')).toHaveAttribute('data-connected-wallet',balanceScopeSelf);expect(await page.evaluate(()=>window.__walletBalanceFixtureAudit.signs)).toEqual([]);}
 
@@ -709,7 +709,7 @@ test.describe('FQA-073 independent wallet balance survives unavailable launch fe
       // before testing the separate estimate-failure path on the wallet page.
       await page.locator('a[href="#launch"]:visible').first().click({ timeout:5000 });
       await expect(page.locator('body')).toHaveClass(/page-route-launch/);
-      await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+      await expect(page.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
       await page.goBack();await expect(page.locator('#wallet-page')).toBeVisible();armed = true;
       const balanceResponsePromise = page.waitForResponse(response => response.request() === f.balances[0]?.request, { timeout:15000 });
       await connectBalanceScopeMock(page); await expect.poll(() => held.length).toBe(1);

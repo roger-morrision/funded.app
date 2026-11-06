@@ -1,3 +1,4 @@
+import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import { test, expect } from '@playwright/test';
 import { PublicKey } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
@@ -21,7 +22,7 @@ async function prepare(page, width) {
   await page.route('**/api/fee-policy', route => route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } }));
   await page.route('**/api/launches', route => route.fulfill({ json: launches }));
   await page.route('**/api/pump/explore?*', route => route.fulfill({ json: { items: [], fetchedAt: new Date().toISOString() } }));
-  await page.goto('/#explore');
+  const account=await installAccountFixture(page,{mints:[savedMint]});await page.goto('/#explore');await account.connect();
   await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
   await page.locator('button[data-explore-view="table"]').click();
   await expect(page.locator('#launch-list [data-tier-info-mint]')).toHaveCount(2);
@@ -690,7 +691,7 @@ for (const width of [360,390,1440]) {
       await page.waitForLoadState('networkidle');await tableSettled(f);f.destination=true;
       await page.keyboard.press('Enter');await tableExpect(page).toHaveURL(new RegExp('/token/'+tableMints[0]+'$'),{timeout:15000});
       await tableExpect(page.locator('#coin-page-title')).toHaveText('FQA078 Alpha updated',{timeout:15000});
-      await tableExpect(page.locator('#coin-pulse-trades')).toHaveText('Unavailable',{timeout:15000});
+      await tableExpect(page.locator('#coin-pulse-trades')).toHaveText('0',{timeout:15000});
       await page.waitForLoadState('networkidle');await tableSettled(f);await page.goBack();await page.locator('body.page-route-explore.workspace-ready').waitFor();
       await tableExpect(page.locator('#explore-search')).toHaveValue(tableQuery,{timeout:15000});
       await tableExpect(page.locator('button[data-explore-view="table"]')).toHaveAttribute('aria-pressed','true',{timeout:15000});

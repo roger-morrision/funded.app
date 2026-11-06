@@ -266,7 +266,11 @@ export function mountDocsReference(root) {
       document.removeEventListener('focusin', trackRenderFocus, true);
     }
     if (interveningRenderFocus) return;
-    const previous = new URL(event.oldURL), destination = new URL(event.newURL);
+    // App route notifications can be synthetic Events without browser URL fields.
+    // They may refresh content, but cannot prove a browser-Back focus transition.
+    let previous, destination;
+    try { previous = new URL(event.oldURL); destination = new URL(event.newURL); }
+    catch { return; }
     const fromDocs = previous.hash === '#docs' || previous.hash.startsWith('#docs/');
     if (fromDocs || index < 0 || destination.href !== location.href
       || previous.origin !== destination.origin || previous.pathname !== destination.pathname

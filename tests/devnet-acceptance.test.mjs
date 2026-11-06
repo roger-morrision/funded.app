@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { Keypair } from '@solana/web3.js';
 import { assertDevnet, assertFinalized, DEVNET_GENESIS, keypairProvider, loadV3LaunchInputs, prepareAcceptancePayer, runAcceptance } from '../scripts/devnet-acceptance.mjs';
 import { Transaction, SystemProgram } from '@solana/web3.js';
+import { submitPumpDevnetLaunch } from '../launch-flow.js';
 
 test('Devnet acceptance guard rejects mainnet, testnet and missing genesis', () => {
   assert.doesNotThrow(() => assertDevnet(DEVNET_GENESIS));
@@ -131,6 +132,15 @@ test('V3 launch inputs stop when launches are not ready or the reserve program d
     fetchImpl:v3Fetch({ '/api/launch-reserve-config':{ cluster:'devnet', programId:Keypair.generate().publicKey.toBase58(), lookupTable:'x' } }).fetchImpl }), /Reserve program differs/);
 });
 
+test('paid QA packages select promotion and reject mismatches before any RPC or wallet use', async () => {
+  const { v3FeeRouter } = await loadV3LaunchInputs({ appOrigin:'https://funded.vip',
+    payer:Keypair.generate().publicKey, promotion:true, fetchImpl:v3Fetch().fetchImpl });
+  assert.deepEqual(v3FeeRouter.agency.selectedAgents,['x-promotion','buyback-100k','buyback-300k']);
+  await assert.rejects(submitPumpDevnetLaunch({ useMintRouter:true, v3FeeRouter, launchBurn:null }), /match the launch package before signing/);
+  v3FeeRouter.agency.selectedAgents = ['buyback-100k','buyback-300k'];
+  await assert.rejects(submitPumpDevnetLaunch({ useMintRouter:true, v3FeeRouter, launchBurn:{tier:'pro',amountTokens:1} }), /match the launch package before signing/);
+});
+
 test('keypair provider signs legacy launch steps without replacing existing signatures', async () => {
   const payer = Keypair.generate(), mint = Keypair.generate();
   const transaction = new Transaction({ feePayer:payer.publicKey, recentBlockhash:'11111111111111111111111111111111' })
@@ -138,4 +148,13 @@ test('keypair provider signs legacy launch steps without replacing existing sign
   transaction.partialSign(mint);
   const signed = await keypairProvider(payer).signTransaction(transaction);
   assert(signed.verifySignatures());
+});
+
+test('caller-owned ephemeral payer remains in memory across read failures and skips faucet when funded',async()=>{
+ const payer=Keypair.generate();let calls=0;
+ const connection={getGenesisHash:async()=>DEVNET_GENESIS,getBalance:async()=>{if(++calls===1)throw Error('temporarily unavailable');return 100_000_000;}};
+ await assert.rejects(prepareAcceptancePayer({connection,ephemeralPayer:payer}),/temporarily/);
+ const result=await prepareAcceptancePayer({connection,ephemeralPayer:payer});
+ assert.equal(result.payer,payer);assert.equal(result.prefunded,true);assert.equal(result.source,'ephemeral-memory');
+ await assert.rejects(runAcceptance({ephemeralPayer:payer}),/In-memory payer requires/);
 });

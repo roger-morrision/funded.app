@@ -17,9 +17,9 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
     let mint;
     try { mint = new PublicKey(decodeURIComponent(tokenActivityMint)).toBase58(); }
     catch { return json(res, 400, { error:'A valid Solana mint is required.' }); }
-    const state = await store.read();
-    const launch = state.launches?.[mint];
-    const feeLock = creatorFeeLock(launch);
+    const balanceOnly = url.searchParams?.get('view') === 'balance';
+    const state = balanceOnly ? null : await store.read();
+    const launch = balanceOnly ? await store.readLaunch(mint) : state.launches?.[mint];
     if (!launch) return json(res, 404, { error:'Launch not found.' });
     if (!launch.onchainVerified || launch.cluster !== 'devnet' || launch.cluster !== solanaCluster
       || launch.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.pumpFeeRoute.router !== launch.creator
@@ -35,6 +35,11 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
       ]);
       pumpAccruedLamports = amount.toString();
     } catch { pumpError = 'Pump vault balance verification is temporarily unavailable.'; }
+    const pump = { vault:pumpVault, accruedLamports:pumpAccruedLamports,
+      status:pumpError || pumpAccruedLamports == null ? 'unavailable' : 'confirmed', error:pumpError };
+    if (balanceOnly) return json(res, pumpError ? 503 : 200, { mint, cluster:solanaCluster,
+      overview:{ available:!pumpError, scope:'per-mint-v3', pump } });
+    const feeLock = creatorFeeLock(launch);
     const collections = Object.values(state.collections || {}).filter(row => row.mint === mint
       && row.scope === 'per-mint-v3' && row.status === 'collected' && row.onchainVerified === true
       && row.programId === launch.pumpFeeRoute.programId && row.router === launch.pumpFeeRoute.router)
@@ -77,9 +82,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
         creatorFeeLock:feeLock,
         automaticSettlementEnabled:process.env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true',
         automaticDisbursementEnabled:process.env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED === 'true',
-        pump:{ vault:pumpVault, accruedLamports:pumpAccruedLamports,
-          status:pumpError || pumpAccruedLamports == null ? 'unavailable' : 'confirmed',
-          error:pumpError },
+        pump,
         collections, gates:{ settlement:process.env.FUNDED_V3_SETTLEMENT_ENABLED === 'true',
           communityFunding:process.env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED === 'true',
           creatorRewardFunding:process.env.FUNDED_V3_CREATOR_REWARD_FUNDING_ENABLED === 'true',

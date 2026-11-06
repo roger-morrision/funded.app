@@ -12,7 +12,7 @@ export function createWatchlistSync({ request, onChange = () => {}, onStatus = (
     return operation;
   }
   async function api(options, expected) {
-    const response = await request(`/api/watchlist?accountId=${encodeURIComponent(expected)}`, { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(18000), ...options });
+    let response;try{response = await request(`/api/watchlist?accountId=${encodeURIComponent(expected)}`, { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(18000), ...options });}catch(error){if(error instanceof TypeError||error?.name==='TimeoutError')throw new Error('Favorites sync is unavailable. Check your connection and retry.');throw error;}
     if (!response.available || !validList(response.data?.mints)) throw new Error('Favorites sync is unavailable. Try again.');
     if (response.data.accountId !== expected) throw new Error('Your account changed. Sign in again to load its favorites.');
     return response.data;
@@ -29,7 +29,7 @@ export function createWatchlistSync({ request, onChange = () => {}, onStatus = (
       onStatus('synced', 'Favorites synced to your account.');
       return true;
     } catch (error) {
-      if (generation === epoch) { ready = false; onStatus('error', error.message); }
+      if (generation === epoch) { ready = false; onStatus('error', 'Favorites sync is unavailable. Try again.'); }
       return false;
     }
   }

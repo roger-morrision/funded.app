@@ -1,0 +1,2459 @@
+[
+  {
+    "event": "metadata-publication-verified",
+    "at": "2026-11-05T13:22:18.816Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "uri": "https://gateway.pinata.cloud/ipfs/bafkreig2m2tl5ztee73uwo6emtzr2msjrdefwmg4e2gxcus6nl2bx6qleu",
+    "symbolReservationExpiresAt": "2026-11-05T13:51:37.845Z"
+  },
+  {
+    "event": "launch-finalized",
+    "at": "2026-11-05T13:22:26.580Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+    "slot": 518951702,
+    "router": "7wxBjFoMXBqgFXaNjhjx9veGUeYtBdYATaA1DvXBSrCe",
+    "reserveReceipt": {
+      "signature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "vault": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+      "tokenAccount": "CE43S3Y1wJZpD5H5Lsz25sJXfV9M7m3Gwkvc18inGuBc",
+      "fundedTokens": 30000000,
+      "atomic": true
+    }
+  },
+  {
+    "event": "registration-verified",
+    "at": "2026-11-05T13:23:03.420Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "automaticRewards": {
+      "status": "v3-collection-routing-pending"
+    },
+    "communityReserve": {
+      "vault": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+      "tokenAccount": "CE43S3Y1wJZpD5H5Lsz25sJXfV9M7m3Gwkvc18inGuBc",
+      "fundingSignature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "fundedTokens": "30000000",
+      "verified": true,
+      "atomicWithPumpLaunch": true
+    },
+    "developerTokenLock": {
+      "lock": "ChV8UFh7aGH8ibazWsixVix2X3wCUCwTXgXRijkQoZ46",
+      "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+      "creator": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+      "amount": "200000000000000",
+      "lockedAt": 1793884944,
+      "unlockAt": 1793928144,
+      "releasedAt": 0,
+      "version": 1,
+      "status": "funded",
+      "verified": true,
+      "programId": "EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT",
+      "programDataSha256": "2bad7d28c7217282244ded3534d0fcec6a700d5afb6667e441364e43dcc34ca7",
+      "vault": "BnjVb6DnAwEtNnF9vYMidFj2ToLUC1AdMAYUcui4YY5w",
+      "fundingSignature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "atomicWithLaunch": true,
+      "lockSeconds": 43200
+    },
+    "launchServiceFee": {
+      "quoteId": "launch_service_1793884895258_e045c7c5e5d99ef0",
+      "amountLamports": "20000000",
+      "recipient": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+      "policyHash": "70f2c55fceca2c1426d50e94dafdacceac0bb346b68397e64cd262aa66095c0a",
+      "signature": "3WStLR3NNpcYr4kvicSA8moxXn4wqMPjNoghNt5hsTLQRLCbG8546dhhhdSBAjM2C5tfjJHy7caqSKAyBFFRraqb",
+      "slot": 518951702,
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "category": "launch-service-fee"
+    }
+  },
+  {
+    "event": "escrow-custody-and-early-release-verified",
+    "at": "2026-11-05T13:23:06.133Z",
+    "lock": "ChV8UFh7aGH8ibazWsixVix2X3wCUCwTXgXRijkQoZ46",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "creator": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+    "amount": "200000000000000",
+    "lockedAt": 1793884944,
+    "unlockAt": 1793928144,
+    "releasedAt": 0,
+    "vault": "BnjVb6DnAwEtNnF9vYMidFj2ToLUC1AdMAYUcui4YY5w",
+    "walletTokens": "0",
+    "simulationError": {
+      "InstructionError": [
+        0,
+        {
+          "Custom": 6000
+        }
+      ]
+    },
+    "unlockAtIso": "2026-11-06T01:22:24.000Z"
+  },
+  {
+    "event": "trade-buy-finalized",
+    "at": "2026-11-05T13:24:14.806Z",
+    "signature": "4HQTrxAURCPoZC6ySNWSFxZvhsHCNokQYsVBEDwkrjfiacGqx79VmRfwuCb9QBJda6eBER7LUCnpAVniV59KorbS",
+    "slot": 518952160,
+    "feeBps": 100,
+    "quoteLamports": "3000000",
+    "feeLamports": 30000,
+    "recipientDeltaLamports": 30000,
+    "beforeTokens": "0",
+    "afterTokens": "6506819103321"
+  },
+  {
+    "event": "trade-sell-finalized",
+    "at": "2026-11-05T13:25:10.256Z",
+    "signature": "Y6U6FjHnaCbfE7gv6d2b85FvHCFfqZyiJGZUaU67P5vyxcZNKXJsv5anNeyYgBGNVNFmCZ89x6kBRHsDbyB6oRq",
+    "slot": 518952392,
+    "feeBps": 100,
+    "quoteLamports": "2940591",
+    "feeLamports": 29406,
+    "recipientDeltaLamports": 29406,
+    "beforeTokens": "6506819103321",
+    "afterTokens": "0"
+  },
+  {
+    "event": "boost-payment-and-idempotent-confirmation-verified",
+    "at": "2026-11-05T13:29:08.537Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "quoteId": "boost_1793885344206_2d80483173b5d3bb",
+    "signature": "Ayvr2EkBFBs16EKF7E9iX8PUmTWrpNMcqr2zzmXuvMjAdo1U6tzyDPDXGnbtzLM2u7GGNKe8zU2sc2n5kPmvAhq",
+    "slot": 518953386,
+    "recipientDeltaLamports": 519140011,
+    "activeMultiplier": 10
+  },
+  {
+    "event": "automatic-collection-settlement-and-creator-payout-verified",
+    "at": "2026-11-05T14:00:57.041Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "receipts": [
+      {
+        "name": "collection",
+        "signature": "3CFzWzPPjRmEYFxTRegynL9ZrrxgeRxrBaHUHScY2QJmV3j1Ni9hpQfLutPAPr9pAvtfWLiUVSh2S589ZFhMGETu",
+        "slot": 518957483,
+        "recipient": "7wxBjFoMXBqgFXaNjhjx9veGUeYtBdYATaA1DvXBSrCe",
+        "recipientDeltaLamports": 10956454
+      },
+      {
+        "name": "settlement",
+        "signature": "Rhv8v5HVtGjpf7Uz5Sc1vTQgUhfRJTrnEU15gmUNngc4Gt9iuFRU5cM4dKjqConhfWUzEm4omP2ZPgYdQsqJERU",
+        "slot": 518957548,
+        "recipient": null,
+        "recipientDeltaLamports": null
+      },
+      {
+        "name": "creator-payout",
+        "signature": "5txpXhib2zPvhgQm6KM4d3eJzqRmfptxvsWzjQSRGVUswiDq55BWdwy1grkkNG2ABG1wrWieWzNZmgm7aAVzgjn3",
+        "slot": 518957824,
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "recipientDeltaLamports": 7669517
+      }
+    ],
+    "allocation": {
+      "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+      "agency": {
+        "status": "allocated-not-executed",
+        "amountLamports": "219130"
+      },
+      "status": "allocated-not-funded",
+      "protocol": {
+        "buybackLamports": "547822",
+        "referralLamports": [
+          "65739",
+          "27391",
+          "16435"
+        ],
+        "communityLamports": "438258",
+        "operationsLamports": "876516"
+      },
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "grossLamports": "10956454",
+      "creatorDirected": {
+        "xHandle": null,
+        "xUserId": null,
+        "xLamports": "0",
+        "holderLamports": "1095646",
+        "walletLamports": "7669517"
+      },
+      "allocationVersion": 2,
+      "creatorPoolLamports": "8765163",
+      "settlementSignature": "Rhv8v5HVtGjpf7Uz5Sc1vTQgUhfRJTrnEU15gmUNngc4Gt9iuFRU5cM4dKjqConhfWUzEm4omP2ZPgYdQsqJERU",
+      "creatorPoolAfterLamports": "8765163",
+      "creatorPoolBeforeLamports": "0",
+      "sourceCollectionSignature": "3CFzWzPPjRmEYFxTRegynL9ZrrxgeRxrBaHUHScY2QJmV3j1Ni9hpQfLutPAPr9pAvtfWLiUVSh2S589ZFhMGETu"
+    },
+    "creatorWalletPayout": "finalized",
+    "operationsPayout": "finalized",
+    "holderPolicy": {
+      "cadence": "hourly",
+      "periodSeconds": 3600,
+      "minimumHolderUsd": 20,
+      "minimumPoolUsd": 20,
+      "qaMinimums": false,
+      "maxEligibleHolders": 1000,
+      "referenceOnly": true
+    },
+    "holderAvailableLamports": "1095646",
+    "community": {
+      "allocatedLamports": "438258",
+      "baseAllocatedLamports": "0",
+      "referralRolloverLamports": "0",
+      "fundedLamports": "438258",
+      "vaultAddress": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+      "paidLamports": null,
+      "status": "vault-funded-no-program-payout"
+    }
+  },
+  {
+    "event": "bonding-curve-completion-finalized",
+    "at": "2026-11-05T14:10:14.702Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "UuVxxLSmvwx19BYmEuHGADyAVFg7d5ZaG3kYboxByxgPYY5MMRoQfiwLWGvqsuQVvhRLyjptpGUqitUsLaAWrCg",
+    "slot": 518963696,
+    "tokensReceived": "563100000000000",
+    "feeLamports": 7758853,
+    "complete": true,
+    "remainingTokens": "0"
+  },
+  {
+    "event": "pumpswap-migration-finalized",
+    "at": "2026-11-05T14:11:17.196Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "5sHF83w4SXy9g529NVc2qo8FumgPkTtQG7Vk5ZVk8s6zWAt3bV7vYBP7hmzX93p1Z1XiddM3fA619TxaiXqiAaG2",
+    "slot": 518963961,
+    "pool": {
+      "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+      "pool": "KLCrcnYB2WxQNWzghyNLE49nEWuvpnE9AnJUQbig8Tn",
+      "poolBaseTokenAccount": "5FYxCNjirpcAkmJ2hzCTY5PnXF4fYic9LuTv3iwJdkcD",
+      "poolQuoteTokenAccount": "GkFrWA3cUUzxLRjQkz33HHJqNczN43evfsEEawuu2t4U",
+      "baseTokenReserves": 200273163.92369,
+      "quoteReservesSol": 0.689912103,
+      "virtualQuoteReservesSol": 0.172772592,
+      "effectiveQuoteReservesSol": 0.862684695,
+      "spotPriceSol": 4.307540152152929e-09,
+      "creator": "6owhaTuiSwWtcp1ZDWFSXhgdUB5wddkziQJVyATxEP5m",
+      "coinCreator": "7wxBjFoMXBqgFXaNjhjx9veGUeYtBdYATaA1DvXBSrCe",
+      "slot": 518963971,
+      "observedAt": "2026-11-05T14:11:17.196Z"
+    }
+  },
+  {
+    "event": "pool-buy-finalized",
+    "at": "2026-11-05T14:14:47.288Z",
+    "signature": "5JAVMzvC6BjwqGHL7JzMRT8zEeEsRqBwkt2yfbNJp5kusPqEgN1pNqKgvCR4YnnMMrvPjWTNDhvfBqdsunhVxV7d",
+    "slot": 518964846,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "3000000",
+    "feeLamports": 30000,
+    "recipientDeltaLamports": 30000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "563653755179359"
+  },
+  {
+    "event": "pool-sell-finalized",
+    "at": "2026-11-05T14:15:32.290Z",
+    "signature": "5KJJvmyPJzbgrcUxEfs68kZRaN8ntnopLWUT75oa21Pg2UZDmDNfYKPhkeibnWz6HJjM4Mh8Q4JoLxN2fZKfMyQp",
+    "slot": 518965030,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "3057397",
+    "feeLamports": 30574,
+    "recipientDeltaLamports": 30574,
+    "beforeTokens": "563653755179359",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "included-listing-duplicate-charge-rejected",
+    "at": "2026-11-05T14:19:54.944Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "status": 409,
+    "included": true,
+    "config": {
+      "cluster": "devnet",
+      "enabled": true,
+      "fundedMint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+      "usd": 300,
+      "burnTokens": 261,
+      "serviceFees": {
+        "policy": {
+          "tradeBps": 100,
+          "launchLamports": "20000000",
+          "proUsd": 150,
+          "premierUsd": 300,
+          "listingUsd": 300
+        },
+        "revision": 3,
+        "hash": "70f2c55fceca2c1426d50e94dafdacceac0bb346b68397e64cd262aa66095c0a",
+        "updatedAt": "2026-11-04T05:16:22.297Z",
+        "appliesTo": "new quotes; issued quotes retain their approved amount until expiry"
+      },
+      "tokenPriceUsd": 1.1533616233961979,
+      "observedAt": "2026-11-05T14:19:52.735Z",
+      "paymentMethod": "BurnChecked",
+      "status": "ready"
+    }
+  },
+  {
+    "event": "all-settlement-vault-deltas-verified",
+    "at": "2026-11-05T14:31:56.998Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "Rhv8v5HVtGjpf7Uz5Sc1vTQgUhfRJTrnEU15gmUNngc4Gt9iuFRU5cM4dKjqConhfWUzEm4omP2ZPgYdQsqJERU",
+    "slot": 518957548,
+    "grossLamports": "10956454",
+    "changes": [
+      {
+        "category": 0,
+        "vault": "CP8BY3VMBM9bQc7sTifTnXXqCH37Pz91ndhyAmpd2e7B",
+        "balanceDeltaLamports": "9415403",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "8765163"
+      },
+      {
+        "category": 1,
+        "vault": "8eSFEWWj8P8jP3yaojZwyLPbSqXVFfUH7zpeCjuU2xF3",
+        "balanceDeltaLamports": "1526756",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "876516"
+      },
+      {
+        "category": 2,
+        "vault": "4TkJK4hwQ33ZUGr5fLMKGXBbpcFdZsvXxzfqcukpqJHg",
+        "balanceDeltaLamports": "715979",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "65739"
+      },
+      {
+        "category": 3,
+        "vault": "CDMQgv5jZxsNSWhbK8wfrkFkxT2AWc75ZUZ4eDfR3NCB",
+        "balanceDeltaLamports": "677631",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "27391"
+      },
+      {
+        "category": 4,
+        "vault": "CkYKzh66ZHP3daZbGFRYEqAZ3oc57pFhGRgKmJuhXH4b",
+        "balanceDeltaLamports": "666675",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "16435"
+      },
+      {
+        "category": 5,
+        "vault": "FmYfWDAsHkYWPWGanc6yA6D2uZPDf57EBRsE5GjH8GpN",
+        "balanceDeltaLamports": "1088498",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "438258"
+      },
+      {
+        "category": 6,
+        "vault": "oQN6NFGTPoGwLuvX5ezebJx5vhX3JpdQZGLUdfuBHFU",
+        "balanceDeltaLamports": "1198062",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "547822"
+      },
+      {
+        "category": 7,
+        "vault": "GjFPu2Shw8dXbKBFTCEUyaqAkqDTdFoMZxf4Jc1hg8MT",
+        "balanceDeltaLamports": "869370",
+        "initializationRentLamports": "650240",
+        "deltaLamports": "219130"
+      }
+    ]
+  },
+  {
+    "event": "manual-pool-1-buy-finalized",
+    "at": "2026-11-05T15:09:54.683Z",
+    "signature": "24ZaztKcFC9CBjVbxqM8jBm5TKqwVWWmqgkmiDrAD53hEWMbrBvSMS8auZeQbqhr25RVBArFftLgH1gk1XzWSjUe",
+    "slot": 518978701,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "300000000",
+    "feeLamports": 3000000,
+    "recipientDeltaLamports": 3000000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "602054666626045"
+  },
+  {
+    "event": "manual-pool-1-sell-finalized",
+    "at": "2026-11-05T15:10:00.166Z",
+    "signature": "4dPBk78dCpLB7s1m17Cqocu8792y5gS4kb3K8h6UMAmc4aDDpxa9z8C927TDe5xtm757LZM15CSyZta7rNQf42Xg",
+    "slot": 518978724,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "292605885",
+    "feeLamports": 2926059,
+    "recipientDeltaLamports": 2926059,
+    "beforeTokens": "602054666626045",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "manual-pool-2-buy-finalized",
+    "at": "2026-11-05T15:10:45.300Z",
+    "signature": "9QZiCmACXHeLEwPnPjqxWkqBWTg1Rox6AQAwTqgSXd6NrAXYkwQLVRxKpKb777saPKx7XkFQu7fZVwKHbUu2mEd",
+    "slot": 518978913,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "300000000",
+    "feeLamports": 3000000,
+    "recipientDeltaLamports": 3000000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "602051528558921"
+  },
+  {
+    "event": "manual-pool-2-sell-finalized",
+    "at": "2026-11-05T15:10:50.528Z",
+    "signature": "3NnMjoNyoA8KDLPAyCVzmgKcoqXjfivgu1oNmVKtDE5YxVhp7zm5We5Z8poctF3vcMGY8bPoifaieFbBVnn8pDhY",
+    "slot": 518978935,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "292605884",
+    "feeLamports": 2926059,
+    "recipientDeltaLamports": 2926059,
+    "beforeTokens": "602051528558921",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "manual-pool-3-buy-finalized",
+    "at": "2026-11-05T15:10:56.450Z",
+    "signature": "3wp28z2A1mfh8xAJX388e66Y1a9PEMD2Cg9qWbrNk7GnNCeRmGjucg8bucpgXweSJbx1TnAFCgmTkBKNTC3w6ep7",
+    "slot": 518978960,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "300000000",
+    "feeLamports": 3000000,
+    "recipientDeltaLamports": 3000000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "602048390967480"
+  },
+  {
+    "event": "manual-pool-3-sell-finalized",
+    "at": "2026-11-05T15:11:01.875Z",
+    "signature": "51d3jgiir5dDcroffsHnjNLAtrdxq4TNjomgvmvCjjZ8azvLzmofFPbRGaJxfAzibWimP62qErVjeqUF2yTew5gc",
+    "slot": 518978981,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "292605883",
+    "feeLamports": 2926059,
+    "recipientDeltaLamports": 2926059,
+    "beforeTokens": "602048390967480",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "manual-pool-4-buy-finalized",
+    "at": "2026-11-05T15:11:07.839Z",
+    "signature": "2dtjHGoErsGWCGaFAqAjk8Ciah6RHGTnd5RyubCRWGEJUFC7yGTNvVXXPthtR2WgvbewVyMXWBHZE36Cic4b2kjF",
+    "slot": 518979006,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "300000000",
+    "feeLamports": 3000000,
+    "recipientDeltaLamports": 3000000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "602045253851613"
+  },
+  {
+    "event": "manual-pool-4-sell-finalized",
+    "at": "2026-11-05T15:11:13.094Z",
+    "signature": "5K8bcFB2e8ojwQtbcmbt187hQfo9omK7wtJGmxGwXL6oREkUFRSZ6CTr87WJMnLLNWgjgjrmp1EKoxmqYFg8oP9U",
+    "slot": 518979029,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "292605882",
+    "feeLamports": 2926059,
+    "recipientDeltaLamports": 2926059,
+    "beforeTokens": "602045253851613",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "manual-pool-5-buy-finalized",
+    "at": "2026-11-05T15:11:19.046Z",
+    "signature": "5rGCfEJFM51t7No3qUHdXEmuT6AWeBNUUq2V9vAV1v8QA5atfketJ2sxwfSuafVVgRgNPFuVEVKaVw1XNwJNz9qi",
+    "slot": 518979052,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "300000000",
+    "feeLamports": 3000000,
+    "recipientDeltaLamports": 3000000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "602042117211213"
+  },
+  {
+    "event": "manual-pool-5-sell-finalized",
+    "at": "2026-11-05T15:11:24.280Z",
+    "signature": "2yU5oRAkwDEwUKXWDNtJQkKVwhnweSSB6ghA2RtPupRN7h1GNt52ht37cTer4ane2YqC1PBtaPUdBex45NsDAnYD",
+    "slot": 518979074,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "292605881",
+    "feeLamports": 2926059,
+    "recipientDeltaLamports": 2926059,
+    "beforeTokens": "602042117211213",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "manual-pool-6-buy-finalized",
+    "at": "2026-11-05T15:11:30.224Z",
+    "signature": "3oCnD7jUQTvRHYFZLxJNBszJBqbFFZGnaT2srbZr6277PSzuWYCDCfe7K7ExZoSJtdaPxCugdj83vU2JkBEFX5k5",
+    "slot": 518979099,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "300000000",
+    "feeLamports": 3000000,
+    "recipientDeltaLamports": 3000000,
+    "beforeTokens": "563100000000000",
+    "afterTokens": "602038981046173"
+  },
+  {
+    "event": "manual-pool-6-sell-finalized",
+    "at": "2026-11-05T15:11:35.437Z",
+    "signature": "3oya9Qj6s774Xv9YtSMb86A7L9tRv5hRXFcWHHbkHwFgH3imXXw4YKE5ESo5mNhuKPTeGwVifNbj4tafrCTpgiWi",
+    "slot": 518979121,
+    "route": "graduated-pool",
+    "feeBps": 100,
+    "quoteLamports": "292605880",
+    "feeLamports": 2926059,
+    "recipientDeltaLamports": 2926059,
+    "beforeTokens": "602038981046173",
+    "afterTokens": "563100000000000"
+  },
+  {
+    "event": "manual-creator-claim-finalized",
+    "at": "2026-11-05T15:24:17.956Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "collectionSignature": "4QePPkKMRRWA8mvH2kJK8aPWpASiJZvPMJUf9jZjNCg2uq1JS1RerLzFeAiyUJrCGkkp7tuQeCy2CW2GHLxkWbgR",
+    "signature": "3WnPXQsBhCFVQFqyq1v12RSkrXPPJcvrBN5Ykbd2zE395QZAgLevkETxvTFsggq88mzcCpxezwPdV7UoBWue1ntF",
+    "slot": 518982206,
+    "amountLamports": "9092899",
+    "recipientDeltaLamports": 9092899,
+    "replaySameReceipt": true
+  },
+  {
+    "event": "metadata-publication-verified",
+    "at": "2026-11-05T15:53:56.414Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "uri": "https://gateway.pinata.cloud/ipfs/bafkreihhopdihb2dign7q2eekkosdxbojgkjvvkkg6u3rsf24jjghqo3wi",
+    "symbolReservationExpiresAt": "2026-11-05T16:23:17.383Z",
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "launch-finalized",
+    "at": "2026-11-05T15:54:04.583Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "signature": "2MrmTQvgaFRcJqLNoLzvqo9CXCd6KHsEanWmmyUzTE7iszbZTPYnYKTQ6gh5sgcnEsLnVdwE5KsERr8nknzEUDc6",
+    "slot": 518989781,
+    "router": "GpF7DrAyHjeXTfAxbpDTfVJQwVSsQxvZF3LrJaZzYwPF",
+    "reserveReceipt": {
+      "signature": "2MrmTQvgaFRcJqLNoLzvqo9CXCd6KHsEanWmmyUzTE7iszbZTPYnYKTQ6gh5sgcnEsLnVdwE5KsERr8nknzEUDc6",
+      "vault": "GUfNcWkDjmjYsWbFE5W9cFrNznpeCUdoUBxgrqXKg4C1",
+      "tokenAccount": "2hoiskxrxC3XHWetwNwBZuAMMMscHtYE15SmHxFaJovY",
+      "fundedTokens": 30000000,
+      "atomic": true
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "registration-verified",
+    "at": "2026-11-05T15:54:19.882Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "automaticRewards": {
+      "status": "v3-collection-routing-pending"
+    },
+    "communityReserve": {
+      "vault": "GUfNcWkDjmjYsWbFE5W9cFrNznpeCUdoUBxgrqXKg4C1",
+      "tokenAccount": "2hoiskxrxC3XHWetwNwBZuAMMMscHtYE15SmHxFaJovY",
+      "fundingSignature": "2MrmTQvgaFRcJqLNoLzvqo9CXCd6KHsEanWmmyUzTE7iszbZTPYnYKTQ6gh5sgcnEsLnVdwE5KsERr8nknzEUDc6",
+      "fundedTokens": "30000000",
+      "verified": true,
+      "atomicWithPumpLaunch": true
+    },
+    "developerTokenLock": {
+      "lock": "885ZREVkn9AK6VDpWyuzyXWChpXvx9DaSEfVhF89cCSP",
+      "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+      "creator": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+      "amount": "200000000000000",
+      "lockedAt": 1793894042,
+      "unlockAt": 1793937242,
+      "releasedAt": 0,
+      "version": 1,
+      "status": "funded",
+      "verified": true,
+      "programId": "EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT",
+      "programDataSha256": "2bad7d28c7217282244ded3534d0fcec6a700d5afb6667e441364e43dcc34ca7",
+      "vault": "3wy6JCEDaSLYbS38YJQtS2DpHsLGKXibVBQac3jhPgGE",
+      "fundingSignature": "2MrmTQvgaFRcJqLNoLzvqo9CXCd6KHsEanWmmyUzTE7iszbZTPYnYKTQ6gh5sgcnEsLnVdwE5KsERr8nknzEUDc6",
+      "atomicWithLaunch": true,
+      "lockSeconds": 43200
+    },
+    "launchServiceFee": {
+      "quoteId": "launch_service_1793893995772_c4d329c53dd7b4e6",
+      "amountLamports": "20000000",
+      "recipient": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+      "policyHash": "70f2c55fceca2c1426d50e94dafdacceac0bb346b68397e64cd262aa66095c0a",
+      "signature": "2MrmTQvgaFRcJqLNoLzvqo9CXCd6KHsEanWmmyUzTE7iszbZTPYnYKTQ6gh5sgcnEsLnVdwE5KsERr8nknzEUDc6",
+      "slot": 518989781,
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "category": "launch-service-fee"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "escrow-custody-and-early-release-verified",
+    "at": "2026-11-05T15:54:22.506Z",
+    "lock": "885ZREVkn9AK6VDpWyuzyXWChpXvx9DaSEfVhF89cCSP",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "creator": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+    "amount": "200000000000000",
+    "lockedAt": 1793894042,
+    "unlockAt": 1793937242,
+    "releasedAt": 0,
+    "vault": "3wy6JCEDaSLYbS38YJQtS2DpHsLGKXibVBQac3jhPgGE",
+    "walletTokens": "0",
+    "simulationError": {
+      "InstructionError": [
+        0,
+        {
+          "Custom": 6000
+        }
+      ]
+    },
+    "unlockAtIso": "2026-11-06T03:54:02.000Z",
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "graduation-prepared",
+    "at": "2026-11-05T15:54:31.100Z",
+    "signature": "jYinzSWtpv27kouQMLCNFPBjkGK9yGb9uWXJk4FRrQgw1UmoZaHdAPjELVPBrHwwKG72CVmovESwcQatRTSnX36",
+    "quoteLamports": "775885190",
+    "feeLamports": 7758852,
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "bonding-curve-completion-finalized",
+    "at": "2026-11-05T15:54:34.102Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "signature": "jYinzSWtpv27kouQMLCNFPBjkGK9yGb9uWXJk4FRrQgw1UmoZaHdAPjELVPBrHwwKG72CVmovESwcQatRTSnX36",
+    "slot": 518989905,
+    "tokensReceived": "563100000000000",
+    "feeLamports": 7758852,
+    "complete": true,
+    "remainingTokens": "0",
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "migration-prepared",
+    "at": "2026-11-05T15:55:14.178Z",
+    "signature": "r5UAoW1W6NED97x9yLw8Y1NCkexMzpNHdP1KHLs4uAdSbasm42iqZXhbsdjitpmA5bsbzsV5mBC5hgvdEXH5RTX",
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "pumpswap-migration-finalized",
+    "at": "2026-11-05T15:55:17.668Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "signature": "r5UAoW1W6NED97x9yLw8Y1NCkexMzpNHdP1KHLs4uAdSbasm42iqZXhbsdjitpmA5bsbzsV5mBC5hgvdEXH5RTX",
+    "slot": 518990088,
+    "pool": {
+      "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+      "pool": "7NCEus9mvKanzgmtnt6464vuReUA9dfCzQ5fmZJibyeB",
+      "poolBaseTokenAccount": "518wjNFSgWukc7ZBgzAAfMpCyi1p6GYmxHhQ7Ur7SeTY",
+      "poolQuoteTokenAccount": "HvJAwGsa4F8s6R6zmevKteBYPFqkeangQhH3xkZkK1Vq",
+      "baseTokenReserves": 203253309.815051,
+      "quoteReservesSol": 0.677263207,
+      "virtualQuoteReservesSol": 0.172772587,
+      "effectiveQuoteReservesSol": 0.850035794,
+      "spotPriceSol": 4.182149824637466e-09,
+      "creator": "6T218ddNwUBNfST3rK4ZEiZrpzYaxdpVpKFSXGqbYpog",
+      "coinCreator": "GpF7DrAyHjeXTfAxbpDTfVJQwVSsQxvZF3LrJaZzYwPF",
+      "slot": 518990095,
+      "observedAt": "2026-11-05T15:55:17.668Z"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:00.575Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "2g3UKQwFvdKeHcPTzZLWc8tVXKD1ejh4PLs9Kghgpzjj",
+    "signature": "2W9MDbGQbrtNQef7yFaySiLmRxaGjPBzxTcCUakVUo9mkxnBiw7uZJguy61hks1z1oFUFESzhbJDHE49g55xxyU4",
+    "slot": 518993564,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "38047",
+    "receivedBaseUnits": "38047",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "2W9MDbGQbrtNQef7yFaySiLmRxaGjPBzxTcCUakVUo9mkxnBiw7uZJguy61hks1z1oFUFESzhbJDHE49g55xxyU4",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "2g3UKQwFvdKeHcPTzZLWc8tVXKD1ejh4PLs9Kghgpzjj",
+      "amount": "38047",
+      "payment": "8S9KsmYp6aA7FmLHcAJtKqKxHFfaQLucnP4qjaJ27SUh"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:36.246Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "Axdu37aZGr5pvXkHFdVpxg92oeJovcLJy7QR2TuGCbgQ",
+    "signature": "2Roh5sL4gMVPou7ZJJeQ96VQU8UQeKim9fRRngZU7ZxhVQoaGEBy1nHXrhpnGmkffukctf7WHLMoRkvSbm45vYKn",
+    "slot": 518995516,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "76352",
+    "receivedBaseUnits": "76352",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "2Roh5sL4gMVPou7ZJJeQ96VQU8UQeKim9fRRngZU7ZxhVQoaGEBy1nHXrhpnGmkffukctf7WHLMoRkvSbm45vYKn",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "Axdu37aZGr5pvXkHFdVpxg92oeJovcLJy7QR2TuGCbgQ",
+      "amount": "76352",
+      "payment": "GBZ8QuFWwDhtdeHppm2F38zKG7TcPE4C21yxgNTrrTb1"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:37.979Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJBR3R1nDbwk3n",
+    "signature": "gzBXPBgJQJYkp6LsY2dyLXFuMDH7fxiDJghsTfuWm7vQkxAxHrZxAnzXbbxnxGfRXJVsKGD3LL8agV2r3edUgqQ",
+    "slot": 518996545,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "29998819451985",
+    "receivedBaseUnits": "29998819451985",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "gzBXPBgJQJYkp6LsY2dyLXFuMDH7fxiDJghsTfuWm7vQkxAxHrZxAnzXbbxnxGfRXJVsKGD3LL8agV2r3edUgqQ",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJBR3R1nDbwk3n",
+      "amount": "29998819451985",
+      "payment": "6Ruo9zLyFPEDn44STN1gHxYxpTY1fhjnV74DpDLfMBjb"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:39.745Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "Bh6u9QVrpTMUBi5MuWY1JGuQ23wQGb7eGZp6tyANJr8j",
+    "signature": "4QuUmRWKrjgjhkLPnNq1ANoq2dtTKePYzsBbJGoubwS4a5YTGzPzAq5rTiMj4dE5yviiXRcKGg9wsFd1Kamdp9aP",
+    "slot": 518996573,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "30056",
+    "receivedBaseUnits": "30056",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "4QuUmRWKrjgjhkLPnNq1ANoq2dtTKePYzsBbJGoubwS4a5YTGzPzAq5rTiMj4dE5yviiXRcKGg9wsFd1Kamdp9aP",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "Bh6u9QVrpTMUBi5MuWY1JGuQ23wQGb7eGZp6tyANJr8j",
+      "amount": "30056",
+      "payment": "xVd8T2TNXT3bEABFa5eS6qMddCW1jPiqvkFPiWHkxUu"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:41.490Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "BTrfbZtvjpaYj26JHkxE1hiDta5ubDT42tfiSW4Peh4T",
+    "signature": "4Jy6e1Ac2sSGMFUd8gmTMhZ9r7Mx9jaXgeSi9ABWd2rdAp6jmkCREFy3KKiscevNSp8BHqGARBWjTXsWxMvCPy2i",
+    "slot": 518996597,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "38392",
+    "receivedBaseUnits": "38392",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "4Jy6e1Ac2sSGMFUd8gmTMhZ9r7Mx9jaXgeSi9ABWd2rdAp6jmkCREFy3KKiscevNSp8BHqGARBWjTXsWxMvCPy2i",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "BTrfbZtvjpaYj26JHkxE1hiDta5ubDT42tfiSW4Peh4T",
+      "amount": "38392",
+      "payment": "8UnTGk2SeprRLNevj1DiPin24FnTx42wk6LHSagPnrge"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:43.227Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "D4HDwm1CMeGnyrXLqPTA2nbs6DxvfiHYZ3KYt1R15oYo",
+    "signature": "3tQ11M5FyeDi5GqjmekYtpnBbKEUMtovi7ShjWa6xP9GhVLtQqUhPebn8b6cEYJiDCdhd9tH2a8KntPFYKdkUDkj",
+    "slot": 518996637,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "803111",
+    "receivedBaseUnits": "803111",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "3tQ11M5FyeDi5GqjmekYtpnBbKEUMtovi7ShjWa6xP9GhVLtQqUhPebn8b6cEYJiDCdhd9tH2a8KntPFYKdkUDkj",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "D4HDwm1CMeGnyrXLqPTA2nbs6DxvfiHYZ3KYt1R15oYo",
+      "amount": "803111",
+      "payment": "4QZawcUV3pAwhFU4pTSaeyw3TKQV1mHaM2V5UoeYjrsn"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:44.957Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "DCE4RASQZrngfJ6Pxj88BjKE16gaSstCxqGbbV6uA1Vi",
+    "signature": "oa3g4cZMmqgPMvcpCyVd6QRwo81cPkXdm2dqHEiMAFPn9Hxu75cB2GdqkbABggfCUHHhsJUhVGYtKZChndMPo1X",
+    "slot": 518996672,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "3770",
+    "receivedBaseUnits": "3770",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "oa3g4cZMmqgPMvcpCyVd6QRwo81cPkXdm2dqHEiMAFPn9Hxu75cB2GdqkbABggfCUHHhsJUhVGYtKZChndMPo1X",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "DCE4RASQZrngfJ6Pxj88BjKE16gaSstCxqGbbV6uA1Vi",
+      "amount": "3770",
+      "payment": "E7bMVWcj9QWJxHnAzTPwyetSVfBzJqmH6dqPS77wzr3g"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:46.705Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "DJsypjeMYdtD5rqxNoa9frNAE1j62ddHMFJAcNdDPrP1",
+    "signature": "5TmVf1H41yAk1Rjwdi8SSk9DHKkqEgjXE9id7wjSQYxpb3KjD6hX7HTMyKtnr87fqWPbzXVRf1b6ByF1yiyeMznb",
+    "slot": 518996695,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "30056",
+    "receivedBaseUnits": "30056",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "5TmVf1H41yAk1Rjwdi8SSk9DHKkqEgjXE9id7wjSQYxpb3KjD6hX7HTMyKtnr87fqWPbzXVRf1b6ByF1yiyeMznb",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "DJsypjeMYdtD5rqxNoa9frNAE1j62ddHMFJAcNdDPrP1",
+      "amount": "30056",
+      "payment": "EpnCdSFuVPUBw9V4bJCyrPRw9wJYAGDBXKGdpd6gi23C"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:48.451Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "signature": "2g1oxFxZdTwvZMxdCgRGswRgu5NYd1ocM84abcX8k9j2VLXfffwDLtFK8Cpz363wzc3HgYEWttvHEvGkgbQ17Bde",
+    "slot": 518996723,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "6412907",
+    "receivedBaseUnits": "6412907",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "2g1oxFxZdTwvZMxdCgRGswRgu5NYd1ocM84abcX8k9j2VLXfffwDLtFK8Cpz363wzc3HgYEWttvHEvGkgbQ17Bde",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+      "amount": "6412907",
+      "payment": "2d2qESuiPUQwJZGU1Ty84EhN2jL19pNJ8uawRAUai75J"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:50.179Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "FS66AvRDAfSo3cpyQZgw37XhJx5bn6L5u6MhE4dvU9Sv",
+    "signature": "3gqzT4oTH9JvegUCPLHLA79uKUG4QAoUrmoRXYGHm4mVwt28CgcJzGLUHjZmiCYe1cUgwafrT1tzRfpMCSTiLKNv",
+    "slot": 518997736,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "38478",
+    "receivedBaseUnits": "38478",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "3gqzT4oTH9JvegUCPLHLA79uKUG4QAoUrmoRXYGHm4mVwt28CgcJzGLUHjZmiCYe1cUgwafrT1tzRfpMCSTiLKNv",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "FS66AvRDAfSo3cpyQZgw37XhJx5bn6L5u6MhE4dvU9Sv",
+      "amount": "38478",
+      "payment": "Ek7StL1KvcgcAzmQfgtwYjawsQgMFWzPypiuu8YFJ6xP"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:51.900Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+    "signature": "4YzhE6wU69q6KrvKkPV6gTZce8XNL72HkUReeHxQ5gtTwzgUTyEGDWZXCxMwahKG67tNAkof82H2F6iZejMEri6o",
+    "slot": 518997755,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "312230922",
+    "receivedBaseUnits": "312230922",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "4YzhE6wU69q6KrvKkPV6gTZce8XNL72HkUReeHxQ5gtTwzgUTyEGDWZXCxMwahKG67tNAkof82H2F6iZejMEri6o",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+      "amount": "312230922",
+      "payment": "CZhaUw5JNcmwkcmaBFmu9nxm95oHTj8PwqQCDLkFisKy"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:53.625Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "GVUGmoGHJzZBXHBaA5ffTTzBm37aBzWUuqx6Ey2drtm5",
+    "signature": "APVHSGYYqiwScYLg5QRqFd7qaRK6WKKfqJ12SDD1XDhK75rNnDwdeQsmGpoqbuNMopvBGSyVrx56ZU3YqCmt4eh",
+    "slot": 518997776,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "30056",
+    "receivedBaseUnits": "30056",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "APVHSGYYqiwScYLg5QRqFd7qaRK6WKKfqJ12SDD1XDhK75rNnDwdeQsmGpoqbuNMopvBGSyVrx56ZU3YqCmt4eh",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "GVUGmoGHJzZBXHBaA5ffTTzBm37aBzWUuqx6Ey2drtm5",
+      "amount": "30056",
+      "payment": "HoUAN24bHG85puCXj8K5jSQiELHYSSSBGsViFrZuQWK6"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:55.361Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "4yRRW1ikd1JaSzZFCngnx2ChuUHu1FRdRCTS6m5NN42v",
+    "signature": "bGceuRKyH9TjeuAqczsznccc144ZYZeg6S6ZzmoSRy7dVQUv1zTSoe6i9rkkQw3jCzVXz1tEqauw2ikowXDPjHB",
+    "slot": 518993731,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "30056885",
+    "receivedBaseUnits": "30056885",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "bGceuRKyH9TjeuAqczsznccc144ZYZeg6S6ZzmoSRy7dVQUv1zTSoe6i9rkkQw3jCzVXz1tEqauw2ikowXDPjHB",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "4yRRW1ikd1JaSzZFCngnx2ChuUHu1FRdRCTS6m5NN42v",
+      "amount": "30056885",
+      "payment": "J36UL1t4tkaqdwPLJHo3npkEk7LfwMyiGJyW9K3oZGNk"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:57.082Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "5HoH69mdBeqXQGdVLvh5Sxi63obSmsQzp5vTYBeDUCHk",
+    "signature": "3WgTBSPb7q3SC68JwH5YHgWCHp9tsaa4d4PKH8EbRAMNUzq9nas9mpRV4xZY3WX1USmj9Kt7NCcA53PisDXTVyZj",
+    "slot": 518993763,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "37749",
+    "receivedBaseUnits": "37749",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "3WgTBSPb7q3SC68JwH5YHgWCHp9tsaa4d4PKH8EbRAMNUzq9nas9mpRV4xZY3WX1USmj9Kt7NCcA53PisDXTVyZj",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "5HoH69mdBeqXQGdVLvh5Sxi63obSmsQzp5vTYBeDUCHk",
+      "amount": "37749",
+      "payment": "6zgLJcKWGE1jCobLNf8KnsaTKs6DujnFormzHTowxdmG"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:26:58.841Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "79oKAox6tMdDDVanxpg4fbjVbGgkVwkfJqBqskfuPNii",
+    "signature": "3gVuaKQMMoPG7EzKa7PdSeVP6oasd4HjuwcnfHc7ZSyTgtpqorN9pSmjeaCcKwHSRNszzaURHM5t7dnX6ecJLerF",
+    "slot": 518993784,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "38570",
+    "receivedBaseUnits": "38570",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "3gVuaKQMMoPG7EzKa7PdSeVP6oasd4HjuwcnfHc7ZSyTgtpqorN9pSmjeaCcKwHSRNszzaURHM5t7dnX6ecJLerF",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "79oKAox6tMdDDVanxpg4fbjVbGgkVwkfJqBqskfuPNii",
+      "amount": "38570",
+      "payment": "53G9k3SEWpM8GwXVs11LGkGfoPK5t4UNsnSBHLc9oBb7"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:02.312Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+    "signature": "4etbi2RJZNFpx8NZBpZEhaGnxXMrTrZYShg29qXUCYy3itP8q82xTzAvj84ihjTXqp2iug6mER1gKDoLHuCe4BTQ",
+    "slot": 518993587,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "37918",
+    "receivedBaseUnits": "37918",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "4etbi2RJZNFpx8NZBpZEhaGnxXMrTrZYShg29qXUCYy3itP8q82xTzAvj84ihjTXqp2iug6mER1gKDoLHuCe4BTQ",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+      "amount": "37918",
+      "payment": "FHhxaA5ht7hqBYbF6BULATaockS4bwh37g3kjWuuHrvd"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:04.069Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "3xp4upujxb9EYJKJh27xs27Nzp1p58788pA2QUEbH5mi",
+    "signature": "Bsot2ZyLY1mrr3uo6XYk2Ty18hm9KgHd4qTesRbRNLu62riFzCNSpxwx9ZFu3aBVumYmznCffxa5WYbGb1QxW9U",
+    "slot": 518993612,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "800497",
+    "receivedBaseUnits": "800497",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "Bsot2ZyLY1mrr3uo6XYk2Ty18hm9KgHd4qTesRbRNLu62riFzCNSpxwx9ZFu3aBVumYmznCffxa5WYbGb1QxW9U",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "3xp4upujxb9EYJKJh27xs27Nzp1p58788pA2QUEbH5mi",
+      "amount": "800497",
+      "payment": "2vKa3GWpB8JSxmF12c8pagPJuDj8HJgFok2RKNnGd92M"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:05.812Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "4E3f4TENEH5mvFpT6vAhXHiTEkJGgU9k7b7fZYhthx7C",
+    "signature": "4JeDaDW8mNjkuarbs5cqYftmnS3nun1RYM9Y43oVuTv8AioxESgsMc6zka3nXMJEiBfuiQSGJ8BsmzMGrtGzZ8Dk",
+    "slot": 518993636,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "3769",
+    "receivedBaseUnits": "3769",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "4JeDaDW8mNjkuarbs5cqYftmnS3nun1RYM9Y43oVuTv8AioxESgsMc6zka3nXMJEiBfuiQSGJ8BsmzMGrtGzZ8Dk",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "4E3f4TENEH5mvFpT6vAhXHiTEkJGgU9k7b7fZYhthx7C",
+      "amount": "3769",
+      "payment": "Cgwfek9ryoqu6Atifc5HtQHpRWafqU2GYRmwtDfuK4hd"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:07.556Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "4LjUyGdY5UfeuqxKN2ELgxiY5AsxfFVpMh4QdF4xNRfM",
+    "signature": "F5CS9pzNmrJZ59M7c5bBDJZMRW8oWmwvCxDWdHMCGmwwtQm9ENAYdXWu78CqrZkLSAxNLYD2c3zXR1xm156Lj6t",
+    "slot": 518993692,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "30056",
+    "receivedBaseUnits": "30056",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "F5CS9pzNmrJZ59M7c5bBDJZMRW8oWmwvCxDWdHMCGmwwtQm9ENAYdXWu78CqrZkLSAxNLYD2c3zXR1xm156Lj6t",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "4LjUyGdY5UfeuqxKN2ELgxiY5AsxfFVpMh4QdF4xNRfM",
+      "amount": "30056",
+      "payment": "9rGbz9ceFTznXSx6fVZTM8Ub61QNu2Ppqe7rt1FDMc8u"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:09.298Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk",
+    "signature": "62PpWE3rXMnb1tZCxPmn6x37zy2jpNeMNc5RhJVqSfL9qhxqDLv4kQPv52X66QUd3YcckyFYzKezLP5BjQDG9bSf",
+    "slot": 518995177,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "313644825",
+    "receivedBaseUnits": "313644825",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "62PpWE3rXMnb1tZCxPmn6x37zy2jpNeMNc5RhJVqSfL9qhxqDLv4kQPv52X66QUd3YcckyFYzKezLP5BjQDG9bSf",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk",
+      "amount": "313644825",
+      "payment": "MEJRPWKHCiR8TEkyVbFWv1VCJxjvjzkE9pnoxWr7i8H"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:11.035Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "9wFEV3bLscLqvXVYwXMyF5CaniccndLi4fGivSCuYs3R",
+    "signature": "4ZniDxtbXuC46f3pQPrbdz6tBdHpPBeQZGcmwTHUmC3LwYJCnWveHE3jS7Ju3LqgbLxcYkqWWw2vd8vRTJyf6Bvu",
+    "slot": 518995455,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "4714722",
+    "receivedBaseUnits": "4714722",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "4ZniDxtbXuC46f3pQPrbdz6tBdHpPBeQZGcmwTHUmC3LwYJCnWveHE3jS7Ju3LqgbLxcYkqWWw2vd8vRTJyf6Bvu",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "9wFEV3bLscLqvXVYwXMyF5CaniccndLi4fGivSCuYs3R",
+      "amount": "4714722",
+      "payment": "3EeKxowmAfJjnLjAXjWnGrfWxdeXHhat5G728ADY9HfE"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:12.790Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "819BNbh8j8RCWvTHY7712PnvFzyCz5N1pJ9SN4EjfkEh",
+    "signature": "3kyMUdxBp79LSbSdKLVxojN2SC6SdmrWfkLgwoFSatvwsLfh3TRV7NReLQBA32NRJT76fKc5gv9vRBb5yx9Npytm",
+    "slot": 518995290,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "37833",
+    "receivedBaseUnits": "37833",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "3kyMUdxBp79LSbSdKLVxojN2SC6SdmrWfkLgwoFSatvwsLfh3TRV7NReLQBA32NRJT76fKc5gv9vRBb5yx9Npytm",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "819BNbh8j8RCWvTHY7712PnvFzyCz5N1pJ9SN4EjfkEh",
+      "amount": "37833",
+      "payment": "HFVAgTcNEpuYdR19Vixgy1H29Kpf6XQo89oi5mPXYLDw"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:14.516Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "8cZRytZMFaeuBqEyNtcFA1mhtb3j16QcoGRJ7QVuYaHx",
+    "signature": "48Egretm4Qv2EEozyRpv4N7rBCoZ46mWg2L5Avezz1BjiT31WwALzqXZ59E5kMtvWA81f7SSD38rZ6apnioZ9DaY",
+    "slot": 518995341,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "38305",
+    "receivedBaseUnits": "38305",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "48Egretm4Qv2EEozyRpv4N7rBCoZ46mWg2L5Avezz1BjiT31WwALzqXZ59E5kMtvWA81f7SSD38rZ6apnioZ9DaY",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "8cZRytZMFaeuBqEyNtcFA1mhtb3j16QcoGRJ7QVuYaHx",
+      "amount": "38305",
+      "payment": "CSNYgSXFpGpYyNgDjfJ7hEXG7PX57qvJnEEtPBBhtqyR"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:16.242Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+    "signature": "2kGLKfe1KUK6vru6zLbDyCFgonMDJ3pgaTp5ePLJUxEjJYM6sjJFJNYULSnLZRD2Cm6mGvew6ViJUudcAZ22VAF6",
+    "slot": 518995367,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "454239712",
+    "receivedBaseUnits": "454239712",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "2kGLKfe1KUK6vru6zLbDyCFgonMDJ3pgaTp5ePLJUxEjJYM6sjJFJNYULSnLZRD2Cm6mGvew6ViJUudcAZ22VAF6",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+      "amount": "454239712",
+      "payment": "MP2K5EHVmPSNVeDcocssHzjpp8JkFgW5Upi3gtwiXH3"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:17.996Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "9P54pE9M5GuoaGc1o2A4WcoANsXKadtr2DVYCv6XJ7gM",
+    "signature": "3T25FYQaPxrsxfuAwCAQZud5SNPX9fqtxGib63cZHiHqfp76vxdjXz9vcnYC5qkvvaVSoPFiKDahNv6BrhjRejK1",
+    "slot": 518995387,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "29671101",
+    "receivedBaseUnits": "29671101",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "3T25FYQaPxrsxfuAwCAQZud5SNPX9fqtxGib63cZHiHqfp76vxdjXz9vcnYC5qkvvaVSoPFiKDahNv6BrhjRejK1",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "9P54pE9M5GuoaGc1o2A4WcoANsXKadtr2DVYCv6XJ7gM",
+      "amount": "29671101",
+      "payment": "4PH6GTcgokY3Kd2FnXmngFVLqNzfMUjyVUP2B6PJ9WfF"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:27:19.716Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "9Vei31sPasy9nDrEZWCAhXtKXD1Y9cv6vASL5VKQbMW1",
+    "signature": "2e8eXupPY4zr3gi2YSQVbEHYaWHPauHKqCEK6RnoZp8yWtTktVbBCLxvNSiwivxkNreenLV8bQnHFPXQjqQ1wDRX",
+    "slot": 518995414,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "30056",
+    "receivedBaseUnits": "30056",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "2e8eXupPY4zr3gi2YSQVbEHYaWHPauHKqCEK6RnoZp8yWtTktVbBCLxvNSiwivxkNreenLV8bQnHFPXQjqQ1wDRX",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "9Vei31sPasy9nDrEZWCAhXtKXD1Y9cv6vASL5VKQbMW1",
+      "amount": "30056",
+      "payment": "57nDK4afzmPbJR4okde6Vgs1Te2nXdnBRTpSXNZXzB7J"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "automatic-airdrop-finalized",
+    "at": "2026-11-05T16:29:52.032Z",
+    "mint": "DLubVCzYBXmdrrWV9oF974Cer8SWiGhYT1vk5Yi3kW9W",
+    "recipient": "JBi5DiqdRD9s7BBybbK7rY7cnFdPbtYJXVnzKPdQZDpe",
+    "signature": "4RoiBZ8gvqR3eNqhXntSY1dBV9drTNAng6gjjDK8sbuLQHpHnMVUsMBCpJzyPLjmqQRd6NNVHACKYvTn1q6jFmuf",
+    "slot": 518997833,
+    "beforeBaseUnits": "0",
+    "afterBaseUnits": "30056",
+    "receivedBaseUnits": "30056",
+    "vaultDebitAndPaymentPdaVerified": true,
+    "proof": {
+      "signature": "4RoiBZ8gvqR3eNqhXntSY1dBV9drTNAng6gjjDK8sbuLQHpHnMVUsMBCpJzyPLjmqQRd6NNVHACKYvTn1q6jFmuf",
+      "finalized": true,
+      "balanceDeltaVerified": true,
+      "recipient": "JBi5DiqdRD9s7BBybbK7rY7cnFdPbtYJXVnzKPdQZDpe",
+      "amount": "30056",
+      "payment": "9s8ENNRV8udziniHqKLsxNVpGkWBFMo6AZz2zNhwoyaB"
+    },
+    "cycle": "fresh-auto"
+  },
+  {
+    "event": "protocol-payout-deltas-finalized",
+    "at": "2026-11-05T16:43:23.052Z",
+    "bucket": "v3OperationsPayout",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "2vSvUAK4Bm4pKv4n19P986R4D19dM4rjsDcwjqa3SJrqHiRJA1t1H4L5ivypYSuucuyDNW1PyUf8yYUgfkgmF1kt",
+    "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+    "amount": "1039188",
+    "vault": "8eSFEWWj8P8jP3yaojZwyLPbSqXVFfUH7zpeCjuU2xF3",
+    "withdrawal": "Fn3DbiUhJBrRLepyDVYUgYu1ZGxTeV59nwwPzPvtrakb",
+    "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "source": "4QePPkKMRRWA8mvH2kJK8aPWpASiJZvPMJUf9jZjNCg2uq1JS1RerLzFeAiyUJrCGkkp7tuQeCy2CW2GHLxkWbgR",
+    "slot": 518980089,
+    "recipientDeltaLamports": "1039188",
+    "vaultDeltaLamports": "-1039188",
+    "withdrawalAccountVerified": true
+  },
+  {
+    "event": "protocol-payout-deltas-finalized",
+    "at": "2026-11-05T16:43:23.571Z",
+    "bucket": "v3OperationsPayout",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "2ZcAnKggee4V1KaDbAWrVN7zDqATBZXvYKgSbdBYJxAVsKcnhasY3bqwjWGPaq4iQtQfmTvnEum8zuTRAKkMVwJL",
+    "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+    "amount": "876516",
+    "vault": "8eSFEWWj8P8jP3yaojZwyLPbSqXVFfUH7zpeCjuU2xF3",
+    "withdrawal": "3cA5h1VwSTRYrRoAHmg8LTrMj8hMAo5nniYWScAnND95",
+    "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "source": "3CFzWzPPjRmEYFxTRegynL9ZrrxgeRxrBaHUHScY2QJmV3j1Ni9hpQfLutPAPr9pAvtfWLiUVSh2S589ZFhMGETu",
+    "slot": 518958123,
+    "recipientDeltaLamports": "876516",
+    "vaultDeltaLamports": "-876516",
+    "withdrawalAccountVerified": true
+  },
+  {
+    "event": "protocol-payout-deltas-finalized",
+    "at": "2026-11-05T16:43:24.146Z",
+    "bucket": "v3CommunityFunding",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "5pfrz63x4iMR4xjZSiuroB48VbAw7qYBNfnLM1fqgAP3y4qizrfbE5iQd7CuTm8TWA9uLj3NzqvEXhZEfDnv4PJf",
+    "recipient": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+    "amount": "519594",
+    "vault": "FmYfWDAsHkYWPWGanc6yA6D2uZPDf57EBRsE5GjH8GpN",
+    "withdrawal": "2EXgNVG9Mnk3kyPK9vtu3jyD2cjczhTN3rtqR9bha32Z",
+    "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "source": "4QePPkKMRRWA8mvH2kJK8aPWpASiJZvPMJUf9jZjNCg2uq1JS1RerLzFeAiyUJrCGkkp7tuQeCy2CW2GHLxkWbgR",
+    "slot": 518980033,
+    "recipientDeltaLamports": "519594",
+    "vaultDeltaLamports": "-519594",
+    "withdrawalAccountVerified": true
+  },
+  {
+    "event": "protocol-payout-deltas-finalized",
+    "at": "2026-11-05T16:43:24.739Z",
+    "bucket": "v3CommunityFunding",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "3zmLttDdqduy7SGSwXJwWP4XdTzNPyXB7XLArBjmZAkmM1nAw1wZmDYbfgvtxEDMm4dhiZDvCdd4AZRGofz3nvFU",
+    "recipient": "FhgB4no8Nvo58HJrZz8s4eM4KqEPDf96d1JVq3V2xv4q",
+    "amount": "438258",
+    "vault": "FmYfWDAsHkYWPWGanc6yA6D2uZPDf57EBRsE5GjH8GpN",
+    "withdrawal": "9hEdLejMtrTqYyYecb1hvfsLFB4MmXwfkrrQcUogod4s",
+    "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "source": "3CFzWzPPjRmEYFxTRegynL9ZrrxgeRxrBaHUHScY2QJmV3j1Ni9hpQfLutPAPr9pAvtfWLiUVSh2S589ZFhMGETu",
+    "slot": 518957987,
+    "recipientDeltaLamports": "438258",
+    "vaultDeltaLamports": "-438258",
+    "withdrawalAccountVerified": true
+  },
+  {
+    "event": "mature-escrow-release-finalized",
+    "at": "2026-11-06T02:05:04.807Z",
+    "mint": "CSdurwUSZKtipTsodqsibHtFdJTQTYfEmj6ckAejj1M",
+    "signature": "5whUe51rcpwcm6TB3mJi2Q15FHN4WGiWM5nFbM2gz316V63Auxw8NbWZuQR3LruLGDcb3nTvtCMhc2HGQ7LB8RvD",
+    "slot": 519142976,
+    "unlockAt": 1793928144,
+    "releasedAt": 1793930703,
+    "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+    "walletBefore": "563100000000000",
+    "walletAfter": "763100000000000",
+    "receivedBaseUnits": "200000000000000",
+    "vaultAfter": "0",
+    "duplicateSimulation": {
+      "InstructionError": [
+        0,
+        {
+          "Custom": 6001
+        }
+      ]
+    }
+  },
+  {
+    "event": "launch-finalized",
+    "at": "2026-11-06T02:20:25.758Z",
+    "mint": "D6Dm5LRrchcCa3fmeAQtm42S2axYgajSTJyAjnFQCkdc",
+    "signature": "3EXDxHiJYihwKFxd9wmiRBkHkoZ1Fbh2evVX3DVJjiaXzHR1UzMaKFYcQFrGVRYRUaWKPmdd5WhwTpBBKbbzZFbD",
+    "slot": 519146822,
+    "router": "FXwdGrjmLmhN6TiKYWUP2Wxxua9eFP96TH7bqY8FrbsT",
+    "reserveReceipt": {
+      "signature": "3EXDxHiJYihwKFxd9wmiRBkHkoZ1Fbh2evVX3DVJjiaXzHR1UzMaKFYcQFrGVRYRUaWKPmdd5WhwTpBBKbbzZFbD",
+      "vault": "DCuCEE7c8jhihLsGsy31x2Fw3BiECesDmp6CcEUmdsGR",
+      "tokenAccount": "Ag4qSJbS235DLJKmFh3hHLmwu74NegSykXwPx6sDeqhy",
+      "fundedTokens": 30000000,
+      "atomic": true
+    }
+  },
+  {
+    "event": "escrow-custody-and-early-release-verified",
+    "at": "2026-11-06T02:25:14.448Z",
+    "lock": "DzRJL1ojWGxarv8TtFUsKPnHF8G36to3pfPnLhSEC7Au",
+    "mint": "D6Dm5LRrchcCa3fmeAQtm42S2axYgajSTJyAjnFQCkdc",
+    "creator": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+    "amount": "200000000000000",
+    "lockedAt": 1793931623,
+    "unlockAt": 1793974823,
+    "releasedAt": 0,
+    "vault": "ASMiMzuq1ADD28BBZqxWP5B97UR2Fn9sxRe2yPJjKDtL",
+    "walletTokens": "0",
+    "simulationError": {
+      "InstructionError": [
+        0,
+        {
+          "Custom": 6000
+        }
+      ]
+    },
+    "unlockAtIso": "2026-11-06T14:20:23.000Z"
+  },
+  {
+    "event": "bonding-curve-completion-finalized",
+    "at": "2026-11-06T02:26:07.121Z",
+    "mint": "D6Dm5LRrchcCa3fmeAQtm42S2axYgajSTJyAjnFQCkdc",
+    "signature": "4TvxHrYAyEyHgJVKAdVsbtdUGyb1EurVvbrTYNJRoEN699ifNREjfEWJoZnrEsTATJ23vCZZMUqwCrUjKdhNzi5j",
+    "slot": 519148256,
+    "tokensReceived": "563100000000000",
+    "feeLamports": 7758852,
+    "complete": true,
+    "remainingTokens": "0"
+  },
+  {
+    "event": "canonical-pool-creation-compared-with-idempotent-migration",
+    "mint": "D6Dm5LRrchcCa3fmeAQtm42S2axYgajSTJyAjnFQCkdc",
+    "pool": "BBARcY2xBCXrBeD96C3gbMDmfpchCEuAJmMsbMt5Q6of",
+    "signature": "5AyY6zKy5pfU25hwCjQHrqNDVhd8ZMcuTCj11zMp4TXCYCr5EhYaqXYP5jYr25NuJdCtx4e9gQisCTAPHdDGwsYV",
+    "slot": 519148267,
+    "poolLamportsBefore": 0,
+    "poolLamportsAfter": 2108200,
+    "createPoolCpi": true,
+    "noOpSlot": 519148320,
+    "noOpSignature": "ySNM52s394WDLXVVTXoYCTmP1PwfKgSoPyTAaA7ox5A6iARpEYbAYSX7dA9CeN4ifrNRpXaVSzNjA5agjEeYTTn",
+    "noOpCreatePoolCpi": false,
+    "noOpPoolLamportsBefore": 2108200,
+    "noOpPoolLamportsAfter": 2108200
+  },
+  {
+    "event": "ordinary-daily-bonus-payments-verified",
+    "day": "2026-11-05",
+    "snapshotHash": "c29516ba88125f18633f928a333e0b64fd351476ca10100528009381db848302",
+    "sources": 9,
+    "paymentCount": 72,
+    "grossLamports": 14363736,
+    "netReceivedLamports": 14363736,
+    "receipts": [
+      {
+        "day": "2026-11-05",
+        "signature": "32xD6FRf1jVbFrNCBG5uimzSgTCqJg1bejvdRzA11y1VfZTaX1KFQDguMHHt5MVPZDmyDteRmbcVvjTRhGhVGcZ9",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 410891,
+        "actualReceived": 410891,
+        "slot": 519144147,
+        "paymentAccount": "3JWcsh1t1fK7UhTjHxgFSk3RQUrt5PFxmr8fUseqvbaN",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "56Jg5hnS8ittV4FT4yRzQsca4t8ejR8cCwKA9dcszF4qsr5LgYPCukiLTa7rC2yAzb5wpCg5hRpb8r8b8U7DGPNN",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 1027229,
+        "actualReceived": 1027229,
+        "slot": 519144202,
+        "paymentAccount": "JBVzwwncTpPAg9vcCLxYMvRGynfzcjKWwd5QPsqoC6nv",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2KXvi7DMS43wJHeWQ5piQjCUP9bwiGbHf4WMnB1Ydb4KYbRaDBJLeAtXYNoefdRReo5vahPEzjmHBTp1qo5C44v",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 410892,
+        "actualReceived": 410892,
+        "slot": 519144264,
+        "paymentAccount": "6QcXfguGXd1BDaDxMTmQRTNXnPpecw8VWok59Dsk2UMN",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "mbfjD6hSmAkjG6opBcLs9Xc67mLieCzGK7ztRXKyv5tBPU5wSe4hEPkB8HTP4avmTWfPHD5a1ycRaeBPo2Q9M75",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 410892,
+        "actualReceived": 410892,
+        "slot": 519144299,
+        "paymentAccount": "Fykb4oAKNZtVDbV3htL6UVKs1wK4ZGn2eRJbaEntsJ5W",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "STm15qaXPHSRzjt8UrUd8xFN9DQ6ceYkeb1ATEwDoMFn9MJoQNh81KHTQTnKLMDpQxjPGQSewDp7HMTJvHtTpia",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 616337,
+        "actualReceived": 616337,
+        "slot": 519144332,
+        "paymentAccount": "BvFz1abQkA6mWbHWkyjGp17nguS7e6rJtMhhhntkmKCu",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3KAQf2LcW7YjnLL2vp3E3UVeB1gVDh82zDsNaaMY6sKzFhcgfe24jTD3fu3WpLurWgXzNRMzJuJMctxh69z5TAiG",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 1232674,
+        "actualReceived": 1232674,
+        "slot": 519144381,
+        "paymentAccount": "i7ugyD57DPAQzwHGBvLU55FNAnrqrYnL5j31RfSEsoR",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3mw4uNYxj8ER1rovN7VWXL1HhvE7n4o1tksx1QAtPbr4QF3TCUd315AxN3js8wVRp8u37yUwGaEUxChpua4fd19N",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 1027229,
+        "actualReceived": 1027229,
+        "slot": 519144423,
+        "paymentAccount": "Fs68mHM6uMARN8QptKCg7kCPWe5G9PRZBHX6nciC4svn",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "ccFgvU7kXHL8CHzgaTBq524opn4XwYP5e1BuoHJGZRVfxvcJGKotu6Sk6jbyCnPkRgnmjym4NCc3VPUELrfX3uC",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 1027229,
+        "actualReceived": 1027229,
+        "slot": 519144458,
+        "paymentAccount": "3ZhHfdqLKyq7vcvdmd63nSUQwaBE4gaYcTT7Gy6hZvVr",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4Q86oi5PxvzBuQgs82JEJ8NhSre41NEHfHc7z1oGF471yoSS1PAwdJ4Tki7oDQfLCC7ZGrNBRP6cSeWo7wn4AFB",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 29217,
+        "actualReceived": 29217,
+        "slot": 519144788,
+        "paymentAccount": "2d4EwJAL583yqYEipQJ4SvRFiaStJsJ7VVky2VTmRLvE",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3pJyxDJSJLQhUtPL83L21z7gJyoQMGUcJFZPvESYKhDy5rYDbZ4DXik5xy7aupnFWm1CkqFu1FD6iRh8NUZ3omnR",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 73043,
+        "actualReceived": 73043,
+        "slot": 519144846,
+        "paymentAccount": "F97AMaexHpKRtiUdiKFSA3kQmdZwxiKP3XRVgSLGcYaT",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4uJh32aMr2bW35UHc7wLprYfhc276xzCN5sECUY5TNQKRe7TuBqJd7FADGQhoQ8zkH7KE5rpKGVVT3zQxaRfAsR7",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 29217,
+        "actualReceived": 29217,
+        "slot": 519144913,
+        "paymentAccount": "9p15hyVFRXkm6b9fGto6CVxyjNnp69NorZHZEBsDQo7A",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4gmvd55LwxEw1DRvKX3rmfgvMbJGF9kgYws11FFNpdPsGR5aw6s6paunS3eEtMS2ZBMXRRLra7Pdsf45Qvkg1C7M",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 29217,
+        "actualReceived": 29217,
+        "slot": 519144981,
+        "paymentAccount": "EBJNCg688eoUtyhTtZaeM9XH4K1L6se4Fi3YENEyubUt",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3zgJm1Rv2rG75x947jj8MMF9xGhK8LuysULcWRUmYFrWTDvLQHAdyWkedkLzyPdJv6SP173UTHfFwVQwSCFXBee9",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 43826,
+        "actualReceived": 43826,
+        "slot": 519145025,
+        "paymentAccount": "45gCPBW52xqAfJpYKYa8zRJRHKoGpxBaZ8wvsU2oPHqQ",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "49F4FNnz6YyHPGwKxnxGK4RjSEfQ4pgk5HF1hWJ1RHyQ5HZDepX6gjZbWq3M93zUKiS5P2zRr3RXLQJtakwHRw8L",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 87652,
+        "actualReceived": 87652,
+        "slot": 519145076,
+        "paymentAccount": "F8QBhEEg1RK27bFwE8XNSZpxsChGqgKnxVE8pgKqiY8j",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3XHYtEKfKjeeJkwN3M9pCUn1V4gZx7Kbv2ehxxTPafwZk4PSFoHc4pGsV4sa8W2EukDdyZ4TXYa3S4Y1SRuZcZze",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 73043,
+        "actualReceived": 73043,
+        "slot": 519145111,
+        "paymentAccount": "8xZBFu41UbN4iEwHnEMhaa2dNojaJZdQGpCA3Pzj1w2f",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "zgiMXsPANeaFWsNQZk5SnhyUofPhqcFsUx47L2jYY3V65dNV3jVSyh6GArH65GYi4zkLLGdDsi7eKcTA7Erpko2",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 73043,
+        "actualReceived": 73043,
+        "slot": 519145239,
+        "paymentAccount": "2AnCfCoCMBtE8tZKG79hLFuXnEMAmYmEnMRJFTy8x9VW",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2CUvEdowe6ARJEiB5j5Q5A2MysjoxomsQEasc4zAaZBtrwwu7QFGCsDvAtAgKJPeWEsv5xwkFw96pP6dKKqJADwa",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 31607,
+        "actualReceived": 31607,
+        "slot": 519145535,
+        "paymentAccount": "8sMcrEZVfQxpEcv9ur2gofXS7BUCZvs78n6xeGAp5QsK",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3GdeYLgRvjdBR9UaxjkqE6eUTCqsFrnf7gc2FPyTJZFT6xPxPxucrS7gCGKY83nmQ8TeS5rGso7bULjbtbEJbS1A",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 79018,
+        "actualReceived": 79018,
+        "slot": 519145574,
+        "paymentAccount": "7zkpntBNWYRqQJx37vtQgLuN6giEaquT6xNrnMXkBAnN",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "49RedGLcEQS27nh3NR6xtrh4kKMXvUp2Wp7tx9q4GPdLFZt5Cr7bnAh4rftBa9zZVSFDptBmMkcVb51ZTDHcSzq6",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 31607,
+        "actualReceived": 31607,
+        "slot": 519145611,
+        "paymentAccount": "2tvB1b4Rz82oo2mUtqSfquyxVNgVanxW8urVN5YKPj3r",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "WMy87PrBR5LSPQ4oBD9SgD4DdwGvjv4X7qrN1cbuGQox9QXS1x5beK3RZgPGTWbeKrq7ZBCXwKBxTwVTPFzbxEt",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 31607,
+        "actualReceived": 31607,
+        "slot": 519145673,
+        "paymentAccount": "CaGiQqMmg7havQbS5awDGd3zewst8CqtawYgZZo2h8AK",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3hgxryCkGCNjL5BNZmsGmAcxWDv56chbqqBRQgFkbpP6StkM2Ztw7sMNV6jzbEpYseskK1tPeG8N3Wn1uojdg85G",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 47410,
+        "actualReceived": 47410,
+        "slot": 519145740,
+        "paymentAccount": "4witRxAmmwTKSXmC22NcQCBfYgwWxCiVSsHb9UKECg3x",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2WoXe5ZH7UVtERfRUfNpqUe1VP5oMfU4XRDaYERSttz2g2EpxmP7NeLuRLuqKtZSCgQqwgsDmgxvJPNfwKR3m6Sj",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 94820,
+        "actualReceived": 94820,
+        "slot": 519145774,
+        "paymentAccount": "4HjTTvcZ2ejm6tpaGUvhbQdzTYaAMEuPTWiH4VT4pBWU",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4zjfTAY1efmX8YZqu11Rm1dqxAvNve96JQTsHsupzVJtuHWoDz327r4srWNPNcoSfytHULEcgcCuPMQBYbAbLD8F",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 79018,
+        "actualReceived": 79018,
+        "slot": 519145815,
+        "paymentAccount": "ZPMGZbYmsNt7DixfEQgxAYGtZdxb3CK8pQba3pcqfgc",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4on4rhCNBtX1NjctcymQ9APFbyn1AgMEktRj1zbPDFmumvZ8oupYyNiq8rVDLE7tkctPpCYFCgrhffkmhvwSHj5d",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 79018,
+        "actualReceived": 79018,
+        "slot": 519145871,
+        "paymentAccount": "HXrTZAycq95vtBLKrEHjVa4dUvGS2Y2A4TWpswhMsbK6",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2yqBnxE2zZkAaCEFeUF1gDJFdypz1ZM3xeuYFo3YeJoFSTQvbHCccrDs9ebtt7AqegdWB23GCaj9u97JxTv9CyDH",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146020,
+        "paymentAccount": "Ci3d1rDWfdNtFnDZiYme8hNt7RcDV86SZe7JsppErHZL",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4j58TU7beSLPXC5ivE2jqHQzBPSCMuZrWyJ2QWgFLw2k3UNLnTFeE6aQiC6u4oD7uxaSAMKpCCnHNAmkkRHJ6nZM",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519146071,
+        "paymentAccount": "9vBdHCcSmNskCTSnqe8FYUJFnKinjAixq9ZPxSMdwzHS",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3mwKLBerZ31yii1cFynJF3BPFYiuimQbvc5S85DSZhMEj3q5p9gjUxYApJMfZGSzPdpSDEhBArZKKrd21z9z8yQ9",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146125,
+        "paymentAccount": "F99paccKzsBdibxGqxogZa8XiE2F2k1Djf79GAZN1C6w",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2d3q5gccigN4dtx2iFpgRrrVv8sDjoeTMKUfCK5xHt7hkqgwEq4N2ptWTdabSLMT54QRrSXLVsqphAy9A4PHPMtw",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146176,
+        "paymentAccount": "Gah7GMHPCXsPadAKiU6WUQBRMHQHmUHJt9YkHKCMSX74",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4fiXmdiXV1ySihH55yL2xiFEb1vhSBoJeveUcNXaE3TtonorAkQ3ggAp6Ef3AXAAaMZeNjWBCy1chXBNtaiZzgFT",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 285,
+        "actualReceived": 285,
+        "slot": 519146241,
+        "paymentAccount": "4m8Pow6NMbyaATfRCfJPwPcTcV9JX1es67JuUmKh92nu",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3TmGNqbaPXYUxhvBHbQeGmqP4mPgHA9m6VeqT3X1Xn2kD5K3pz8zwGpABLRwTNPvdUskhbgbYSpV6jpUosruUVC1",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 570,
+        "actualReceived": 570,
+        "slot": 519146280,
+        "paymentAccount": "EVghLkreh2gg4Smzpgwg8GwYrmRGZzmaBHYwiiJmgVns",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4BY9xGALVA7jppcZ7kQyqL4rAjHGjpR8i5EfaxaSWYoMHtuZSWYNyNdhmQVsukx2nqk3tFo2LpGKxUL1KQyCs3xE",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519146324,
+        "paymentAccount": "EPqUMiZWzbCLiyHNtp2iayBKAoiYSu6SiYSU55iqG5Fy",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "35BLDYGuuPpvGamwZrf4JiWDzH5yYfsnvVApLVPWVESgzRHBC6iWoRG384xtv5mDbjB4Ss339A5hQkcSCLWgMrYp",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 475,
+        "actualReceived": 475,
+        "slot": 519146366,
+        "paymentAccount": "AYzBKeZ8Ghu924V7GuSrkBLVg318jiGsgstpD11oqw5F",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "KpBcvvgDK8A2gef6VC1atDVCPeggivKSsyEmnro3A5ayJoHgpDPtrW9ggg4zCayCggBijWi1VDH3t9dC44Q6CKQ",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 34640,
+        "actualReceived": 34640,
+        "slot": 519146444,
+        "paymentAccount": "EudKv6NSHBWRr3t7DVHkJHXCgL6LPNCg5ane9jBwbvK7",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5eJSB4DeExrU7H7cYxBSZEodMNYgRjCrFqCwTvCq4Pj2RvfqhycuAKe5vjYBaCmdz4kdgaVuHMUvFbD83qg1SbqM",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 86599,
+        "actualReceived": 86599,
+        "slot": 519146500,
+        "paymentAccount": "CveYUDDTBtZd4KPwrcxRH7K9aGwzonU8qnc7htjBcwc1",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2wCsohg4Req7YTnebtKMX3MFNiA41Qq5U7s3PrLR1RGRcxxg8KL8JBtb3ELB7GphN6FmJ9bv3ZGF18ruCMAA9yF6",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 34640,
+        "actualReceived": 34640,
+        "slot": 519146551,
+        "paymentAccount": "AifNZXDdn3h8ifDrTyfXW21rLToZ7eEc7fkcgDtPJ2ja",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "wcEXe9SZknTSHi3EanwkeHG78fqcv9zmJ22MhRJBo8JxRX2NtyjiuganwLXVneXTGsCiomdSVutQQxJjCXoou1d",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 34640,
+        "actualReceived": 34640,
+        "slot": 519146601,
+        "paymentAccount": "XWrG7h5EbcwJfo5zNT4KzjfpjpAesNU5rETenMeSous",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2q9Qvd6rbFP2rpLF6veSJYcRqxBW8G1LAish6FLyB5aKpcfbV1nNyx7493icmRxsqsGUoksdJEfcfQZ1Vsg28nxu",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 51959,
+        "actualReceived": 51959,
+        "slot": 519146643,
+        "paymentAccount": "8ZrASApSzE2LRz6fTKqpELDTMK4WENGzEFwZvH96n9ur",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5VE7ewFNHUGDXEP9qSoYVKvMBjHh9vCmAaq4ENuvTkEir4zjYAMfu2hxEiJvTp9xRrwTJTWTzrbrQH8ETFoiLPmj",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 103918,
+        "actualReceived": 103918,
+        "slot": 519146676,
+        "paymentAccount": "7ycqBiJLBetbkHwM8HUg3phMsyMwhHToTHTKTRhDJouJ",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5ktGou7dsT3tfFmK9BfzXX7VX9skZwCqYGvtQWrAzyGdsySG5yseNP5DBHeyGrQN1bAkz1Z8WJ78Vox2GbptGdEZ",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 86599,
+        "actualReceived": 86599,
+        "slot": 519146730,
+        "paymentAccount": "73DFJQ6BBw3oKNce3q8x7QLRfkjio27CzbL7ynrfumiY",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2UmZCoHZ3tk7zeCvxWbfhC9XKGxXPNpBtVVH8an9QpjZZgEat22onH7UJsHKmoGhJChZMFfwJsDCSh58YCAt53mX",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 86599,
+        "actualReceived": 86599,
+        "slot": 519146792,
+        "paymentAccount": "GrfhPFmA714bjhLBFTXrjNxoLbr5bGkwom2z3w2U3R1f",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4TZxfogqpHjKiEwEkYBt9eyqHeFCmAgwtZTfsp6SoXjxmG9ksyJLR62UcsQqxHyF3J4fS8aMAK47rej6KharBTYQ",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146868,
+        "paymentAccount": "J5YwJJikCi9Ca4tt2EtQrzXbyfBDf4vsPXCcNhZeRwRV",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "92iySoswZFCXSXXuu364QixDZTgSkTDLTB4sUrhQAYczyQmkAtvttGbnxCBN325P6bzXZhdMqVQFPwEiKb9gLj8",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519146905,
+        "paymentAccount": "2G3bsmL5KFCsqm4BTzF7viS7o5P3D6E5eMBW81DQR8ii",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "ZdB1prYEFUaTWDuKa3XYC5ZG9RaW8aJyYGKHZboSdLabbxFRKoF3eGsVH8bxrfyxF1xoEdmj9Bh7gETF1JSRMrk",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519146944,
+        "paymentAccount": "5Z1kVSQB5RnjKVDEYKraEEfweZtE2cSf2eu86C7LaGzu",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2hbXfpuNQ4Eu6PqME3kzCxrocQLShdqxhXLAqP9X2aXfgMJsaWHXYpuWx4bwi4oEkg7sKZncSHQmjECLwtntUoi3",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519147009,
+        "paymentAccount": "7rBQbK26M6jEaKgpVUVNGtYDjc6t3EwSLWHKjnmwz1qi",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5P7HuHQiusQiG88Sxx4gWAhRDdrYRWinBLufxXV3KtojJpUPJ5AExC2yVinM4Hvb9wRCmSRtTegVjToS5MPp13Tq",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 285,
+        "actualReceived": 285,
+        "slot": 519147039,
+        "paymentAccount": "6HArrccVxTiLXjGydnY1wxNpKP8xS5h9CBAvxLMWVrab",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2GaAJvmznFdxknsMdT42iUcNdHNkSG28HEE9dfx1QYmnWdQKc2d12e4hiSbHrpCDqCH8oRHP8GCLzZ8PiiogC9Aw",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 570,
+        "actualReceived": 570,
+        "slot": 519147070,
+        "paymentAccount": "BcPtj7YnVaRavxHDYD2jHEUkegtVyU7PJXAW2FLx81Ar",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "48e6cCvYRgXCsQS7kzfuZw7JRQrDqLwE85rKsujJYF3VoJXUKGFrB2wZJDEniawapw2qG1qGs6HNu9mp3gWq8Yp9",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519147120,
+        "paymentAccount": "HVw6Go9jfWtB4xXgaHDKgxM2iTXRSAybZQqdcqNuQgpt",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3KZ1NeMbmUR4GggwtM9NXbsYyogsiGHy96SDuWp6pYWW54a4aXvRxSrNS5DRP8jhBqmd4QFEq9AMY8JXwVSmbFsL",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 475,
+        "actualReceived": 475,
+        "slot": 519147170,
+        "paymentAccount": "HiJPjKgbwiR7m8wXqCUpamExaRmMn5vTzCe1vN3uCwUG",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "63R8pXZ1CwRDG2Jr8KwcgzYoxmsyR5LUAbk5Ba1hcYDnt6F3QByrMvcZQkfK2xHYUDtyhtndu59TXtmQCjo6hrfs",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 197800,
+        "actualReceived": 197800,
+        "slot": 519147305,
+        "paymentAccount": "AQetj9cepnpjtwcnE1KeBECyxg4UgAaQAfkaxYSj8X4R",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3L7n4sfeFxAAbRBiTjAytsJjia8NFCeGdyX1kp34eNCD5vkXEC2N5Ha7g3PzNQisHQ6SRVPwJeKGX9hxTvj565kp",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 494501,
+        "actualReceived": 494501,
+        "slot": 519147360,
+        "paymentAccount": "GZfjh1gPdaZD1G7HBSPx97z5uF7k8EmcV3fu1mGpCc9i",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5ArdBWsBzNhwXYUGg2gG45xNjUp8d2k1qoCey5QU8o3B8sAxMorE38bELAf2f5vqfBfPDXFSpvF2FTVqTWhFeBSL",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 197800,
+        "actualReceived": 197800,
+        "slot": 519147415,
+        "paymentAccount": "Xr4PAkKPTuHo6T9JwCRS57DaqCr2EbGjmyWhpD25cyV",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "373wQ7r8VUaP9NiShurpZTaYXvstAmguFSRDLJurgxi9U9qcdDzZXC5LcvoAfTU1mbnxVeLGiHQHphx1YyBb3gdw",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 197800,
+        "actualReceived": 197800,
+        "slot": 519147449,
+        "paymentAccount": "GeTaNzjXjTRqfWtawupwwZ9FgAt9frH2YmrR54VJjBj",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "vqMtXKXgZeP3y9Ph6GzkBTjCDYfeWXmZ5wJt9XooPZa76jYjqa44ZpEv5JLEbn4x7uJqEyMxDAFVkpf4Fsg2Tei",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 296701,
+        "actualReceived": 296701,
+        "slot": 519147483,
+        "paymentAccount": "2BMckb5aaobKeMHKRHKN9voRYspGrTdk84v4NNZpZQb2",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2K7Gv82jQkD8VzMKx1RtC5wBQYeeJ4QVFxyrZgUQBn3xpALg3bogybRNxN1DkT8jRkCiKj4d8vkny5Git5vTaw13",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 593401,
+        "actualReceived": 593401,
+        "slot": 519147539,
+        "paymentAccount": "CMeqRDnicsaPc93VeZtaYJnZvPS27LeqmRagbJFCeqNH",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3PJUB8ZQ7ShZXd9p5FcSirLXu4G4BxkEEjmdsjFFQL2fEWLdAAA8yawVf2AE5YF2et6vP1CYeqxsKt3HatgncYk3",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 494501,
+        "actualReceived": 494501,
+        "slot": 519147596,
+        "paymentAccount": "8QhDKEMsW8HJ7Qkvo2zdXxK4sqWF9ptPHv3srsbD4sRn",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2TGJGY5rSDSitxhDJhY45Lu1BhzYwSvy2Jx6QJvKQXpkSndueu6FDLEJuaPorkv6gmXkV5S1tRcHbUziK8r8JGVc",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 494501,
+        "actualReceived": 494501,
+        "slot": 519147646,
+        "paymentAccount": "Dfb2i9132Ph2a8WkcDqpHYoxhJ9FLXbmv79tNoRjoCrQ",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3ute6Srn8nEKQd2JxCVbPqWJF2KdKrcwmA5RVRRrs5d69b9ioxVoGryycUauZrTtDjTWV48KrM9HgZkHBu7xgMJL",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519147750,
+        "paymentAccount": "28t2HztHM9dMFtmzSSxF9TcePTnVs5GQ4ejZdG3GQd6R",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3YRVB1vzqve2m9Kv5aCWKCogpKY2MznTb6t1ssuzQDpYjZemkqeYu97ArrfEZ92g5y3Ca6i4EHJArTmzBW1GNJU7",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519147812,
+        "paymentAccount": "29ttKhRXTm4cNrpDJRLrQ2MHes5ymdixNdVrEJx92HVj",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "54zj5suDtyVCY1fcW9mTAHoBkjrxSyBgAct1me9g8saY1AzMJ5tJKbmgerKeYUYzeKhcJb82tFSx9dP49fAmUFcD",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519147868,
+        "paymentAccount": "9VtB8hnKd6QtjNWsa16HqxWVGBctFotJHCKpwwuCxgPX",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "24gREu48hU45VPKJYM9fm2yZhZmy46PsgCA9UeGN6p5gnrc5kKhr11cr1YR1X47XByzwksQm86GSEwd2ZRM9U5FP",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 190,
+        "actualReceived": 190,
+        "slot": 519148101,
+        "paymentAccount": "BHJJ2S3mPBLmpx982ALJy7yCesVaxTJAoDGtcrzxTL5B",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "NP6fduF4zzvNdxHsM1jQfs4qx3WSU6NFFsi6ENTCB4FYwF6rwkPfFb7rcnpcF2UKm8ZWc4SHwJM4SxARZDdnhGt",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 285,
+        "actualReceived": 285,
+        "slot": 519148368,
+        "paymentAccount": "F9PSbF9WL5FrhDPv645NUvHZYyHMMcgmKTMpkv4iLYeg",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4urw9uS4cwVGCU5k1HGud9bthwXk58LRw5FdXDZSgAfozEg1LwRi3p2uraDtUzy1ktPUtPLkp297XQpgc31UXL9h",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 570,
+        "actualReceived": 570,
+        "slot": 519148547,
+        "paymentAccount": "2soJMZVmMpTzKGqqLepndE1qmz2MTZvYsfZNMp6yBoac",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3ovnLvhVBMFyxNt8qvEpLLwQ1ekY6uVGbAMSEW76GWGZBJSjzeTPLSFdP3mGRTy5UEj5GrecP58ZPsESHHAR6x73",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 476,
+        "actualReceived": 476,
+        "slot": 519148644,
+        "paymentAccount": "ihP3svjWnX6LsvXFtiT94ASu8gvk7tYoJ7wzf8VrywC",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "51eEvevb8MMJpP9CQSCuywQeYRy1a7nQDidT6fMPiwoQnAjjx9WjBPWCiRCkkwykzEt2GkMZUBakhaJrKwrQ3PA1",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 475,
+        "actualReceived": 475,
+        "slot": 519148690,
+        "paymentAccount": "HiVHzVKNfQKiBkUfkZx2FQLfusFXUGA4Ej1twVu4Xwd5",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "qdnZoViBzhbKqyctew2n1fGevkNbYmUD43DbSqcutgRnAmJ1cgjj2ywEGXmHjqA8rPeC26X3SQBNF1RU2GLv6y7",
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": 252856,
+        "actualReceived": 252856,
+        "slot": 519148796,
+        "paymentAccount": "C54G5Erb2EdukQKmyeQKFAi5Q9ey4biccNRjDk6vdvsm",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "5wPLwsE4xjbGU5ZKMUH3bkPKn7i9VWh5dGbpyidxJ21n2itCTJ6i1Uk6qPYn34BJPaPqEPdQdfzzdgovYscKB87Z",
+        "recipient": "2M5LVdRmhn6FDpKXGGkUStvHp7edLT1xaFAjijToCjEe",
+        "amount": 632141,
+        "actualReceived": 632141,
+        "slot": 519148842,
+        "paymentAccount": "HfdPoacsV23NYie1pAoC5LR6bwqqyyAqQkd1fRC5wLZo",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "pVVVTsd2Bf11QdDesb6UQWU9jV6ytQkPUfgMLA1NQcevNDBTMQs5wYSQ4kjb9Fq3C2E87Vtb3FGCKWKKaMaKRXv",
+        "recipient": "2gSaHztcQcgAGHjZzCw3Rv1hugHXmgAAvJ9frrGscR9T",
+        "amount": 252856,
+        "actualReceived": 252856,
+        "slot": 519148890,
+        "paymentAccount": "HAacNJtzC5Cr3hX5ERsgmGsSGXe23s1DEpWhb7Tya7xk",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "41uSGfit4CJoTAdyWQTYavsLkrYwcE4V8ySob4Gpq5aGBFHmJkUiyA5gzYYM6uj2Ht2squ63YTVtSAeTUtCMimTk",
+        "recipient": "66poUqqqMjei2UvjeJyZbRkxoGsYnyVhpUj8f4p5te9b",
+        "amount": 252856,
+        "actualReceived": 252856,
+        "slot": 519148989,
+        "paymentAccount": "8zGxuTDkr2xG3NB9vUxAxtdo6THMirFrj4jmWG5gqPC4",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "3dH2JEBbbRk1YGNYWxPagXTRwmQ3i3fbU2dqgLTbzkHgcD3xDSesLsxUfwCqWGHcztVnU7gh4HU1kzwz8BjcEZh6",
+        "recipient": "7FcknKUTjWAvQ22bf1ySrkciRLc3GqL9SzYe1nayL4RF",
+        "amount": 379285,
+        "actualReceived": 379285,
+        "slot": 519149093,
+        "paymentAccount": "3odEsebeS8bogdFH8tX4GjHYDiePGDB3r3UisRW6Jcem",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "2fQurRjjRwRVrXEFPGxS82o4A1dz3sfcqmNkPBvb2ib3XQepmFN271jDhidw6ZvoDVSxZzu9LMGXVBq3csMSwpNe",
+        "recipient": "7eiBDd1zUyjNk8kNW3vRCqSoxg2tCHu4XM7CKDFq4m4o",
+        "amount": 758569,
+        "actualReceived": 758569,
+        "slot": 519149202,
+        "paymentAccount": "H8oRdDzCLehC3ptDNaghoJVFDdQdqsZrLQXr5Y2awuPY",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "365bZf9Z2PDKcGrXqcrconjLgRkxULt1iGaVCGNVuM7xSNHevsWybeBsVX5fWX5MgKfYdXcA3gjVcdgJvDxhpKHc",
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": 632141,
+        "actualReceived": 632141,
+        "slot": 519149251,
+        "paymentAccount": "4EEi8GnGG9wqc14fP3syR9UtUjSuWgy1C2XCmwvv3oWr",
+        "finalized": true
+      },
+      {
+        "day": "2026-11-05",
+        "signature": "4G6Ba8txdRvJaAkoVgsvC5kqC4nBsuwckjzMDpQ1jRrB37G6oxE6PXnBEgZdFYZsUPDhmhjv3px8Zfr8KLPeAM5M",
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": 632141,
+        "actualReceived": 632141,
+        "slot": 519149289,
+        "paymentAccount": "3jhko6ga9ZsBztaUTAGJQBsYc2ZrrizhAoPXynHav5bT",
+        "finalized": true
+      }
+    ]
+  },
+  {
+    "event": "program-recipient-snapshot-verified",
+    "mint": "Hvw28V5n7uodDXzZDgNXKdfrdD3EjkDsb88dGoBM47cP",
+    "version": 2,
+    "basis": "pump-migration",
+    "migrationSignature": "2Zx7pyK8Ex9qnQ8VaDFgtKmj7Z4BmP77sH9EaqYcfUtA6x2T9yEfUtMKt54UTnLG8Ri8oMyEcHhYLvvmb7qTaTvM",
+    "migrationSlot": 519152646,
+    "workerBaseSlot": 519152701,
+    "independentBaseSlot": 519152785,
+    "fixedSupply": "998107417240690",
+    "wallets": 28,
+    "recipient": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+    "amount": "27403797",
+    "index": 22
+  },
+  {
+    "event": "automatic-program-owner-payment-finalized",
+    "mint": "Hvw28V5n7uodDXzZDgNXKdfrdD3EjkDsb88dGoBM47cP",
+    "migrationSlot": 519152646,
+    "recipientTokenAccount": "EMRaT6BRbmrHjzQmWhgX2VA3mNFutFGVDV3mq9Wdcuqg",
+    "soleSigner": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "slot": 519157639,
+    "err": null,
+    "offCurve": true,
+    "pre": [
+      [
+        "59TRan35bDVwTANDmae2PszipfT2dJ8dGwXGLFLJvnbx",
+        "346146233"
+      ]
+    ],
+    "post": [
+      [
+        "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+        "27403797"
+      ],
+      [
+        "59TRan35bDVwTANDmae2PszipfT2dJ8dGwXGLFLJvnbx",
+        "318742436"
+      ]
+    ],
+    "signature": "45v7aEBy8KRWnoPgTedHSvcsGnWmetVcVQXWxrrKaNZqHgL3YouigCuzZCj5vZ6sgRPmf6hqq7uBc1WhmL8QfMfY",
+    "finalized": true,
+    "balanceDeltaVerified": true,
+    "recipient": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+    "amount": "27403797",
+    "payment": "fTHQuKBiDJBTn4ES6B3p3v88LtmLPg4brGLcdbWsdMs",
+    "duplicateSimulation": {
+      "kind": "read-only duplicate simulation",
+      "mint": "Hvw28V5n7uodDXzZDgNXKdfrdD3EjkDsb88dGoBM47cP",
+      "owner": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+      "payment": "fTHQuKBiDJBTn4ES6B3p3v88LtmLPg4brGLcdbWsdMs",
+      "signatureVerification": false,
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 0
+          }
+        ]
+      },
+      "log": "Allocate: account Address { address: fTHQuKBiDJBTn4ES6B3p3v88LtmLPg4brGLcdbWsdMs, base: None } already in use"
+    },
+    "independentVerification": {
+      "controllingProgram": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "eligibleHolding": "911731130",
+      "totalEligibleHoldings": "998107417124323",
+      "poolBaseUnits": "30000000000000",
+      "expectedBaseUnits": "27403797",
+      "snapshotBalancesHash": "ef8302e89a8f47e169c6689bf316e7a761c4ac9f9eccaca0fe0b0b26ff3c07a7",
+      "secondsAfterMigration": 1194,
+      "migrationSlot": 519152646,
+      "deliverySlot": 519157639,
+      "soleSigner": true
+    }
+  },
+  {
+    "event": "future-migration-all-recipients-paid",
+    "mint": "Hvw28V5n7uodDXzZDgNXKdfrdD3EjkDsb88dGoBM47cP",
+    "count": 28,
+    "totalBaseUnits": "29999999999983",
+    "roundingDustBaseUnits": "17",
+    "receipts": [
+      {
+        "index": 0,
+        "signature": "2XUAfbUdFzAFU5c2yP4d5oAKktK4JprQgYdajJvQ5ZpgCGEyc79c1LaVgLGyCgjgwtoEHk6B2yyoy6RfYgRSFK39",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "2g3UKQwFvdKeHcPTzZLWc8tVXKD1ejh4PLs9Kghgpzjj",
+        "amount": "38047",
+        "payment": "BLryaGkkscVDQrUjkWb4EXs4RZtnHarVnx9gJxfkHBUp"
+      },
+      {
+        "index": 1,
+        "signature": "5Eo2bxMGm1U7S19tRtRmGZDznmDHKUheURLnbCZRMmkMVcwqonG3PP4BowiJva8LT54ricPueWqzDYb69D8aFzZh",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+        "amount": "37918",
+        "payment": "EUMhneM3ZdApYaCzeTiMnyz3rCYZn3V1wqsf7k68Cva8"
+      },
+      {
+        "index": 2,
+        "signature": "2tQpfGSpap69oo6T9QaZBMkWJVr3tw1mbW19SXQPATrHSucKmzd2gmgygDhXnukQBQCW4JhNWewGfajBR7GBgGUr",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "3xp4upujxb9EYJKJh27xs27Nzp1p58788pA2QUEbH5mi",
+        "amount": "800497",
+        "payment": "6noqNnSLoWSiNim5dVRpb8nok8hdjUYJTima4Jasvva1"
+      },
+      {
+        "index": 3,
+        "signature": "LgGRDyCBfBTwdXJJPgYvTBE4w58xdjxPszKvhUQywh1fA4Sy8xVLchdovHysZtVcGScKrwg1NBoCHwgGTX4cySK",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "4E3f4TENEH5mvFpT6vAhXHiTEkJGgU9k7b7fZYhthx7C",
+        "amount": "3769",
+        "payment": "DqLMAj8cG8ozQaMGtpJg7BUDnC3WxfNScibxB3DEprF6"
+      },
+      {
+        "index": 4,
+        "signature": "33H9GnugeRPFKyKHpNttkxBimQuku2K2LDqq9GRvgEHCaFUKZ6pvUwUeAtnrmV2Sb6o3wtuZ2inXVMRFwzNfvg3L",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "4LjUyGdY5UfeuqxKN2ELgxiY5AsxfFVpMh4QdF4xNRfM",
+        "amount": "30056",
+        "payment": "6e9z8a17GpojLP7QcAiPjonbqD3GgH8Vufa4heu11DC9"
+      },
+      {
+        "index": 5,
+        "signature": "cRcvTuqd7a2sBboHSzScrcZi3d8wdQBxamMPpk72zgSbMM73nduCDVY5FFnJbfmHPUm4oPv4soNEeruwWg8iQ2S",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "4yRRW1ikd1JaSzZFCngnx2ChuUHu1FRdRCTS6m5NN42v",
+        "amount": "30056885",
+        "payment": "5AhC6pkEcfAoNyQcJjNXYqx5nbxsWkncPkQ1jDaX3td6"
+      },
+      {
+        "index": 6,
+        "signature": "3p1hjQdgyk6XD7uMFhpsebiC8kgxPLTJJrLjepToP7Jh36sFgDPw5NjvovhKMymXs6zvF3imCongQUHXd7qsmBYM",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "5HoH69mdBeqXQGdVLvh5Sxi63obSmsQzp5vTYBeDUCHk",
+        "amount": "37749",
+        "payment": "G9hQYwbUfVJPqtAMqxmNjqo9xFWQRijkVHXqpKFfv8zN"
+      },
+      {
+        "index": 7,
+        "signature": "ZRSuNvUM6qfuegDtdNbGpNisQ8LAWRdTDPSkmwecJZCECTfjbxvF4if3msrNKRMjc7YXqEDHT3ucbyNcrd2bHUB",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "79oKAox6tMdDDVanxpg4fbjVbGgkVwkfJqBqskfuPNii",
+        "amount": "38570",
+        "payment": "9w2q6Pa1uSo5HMNLECZDSU9en57E6BaW5p2dgW2m7pad"
+      },
+      {
+        "index": 8,
+        "signature": "5u7K1HA5rp4C6PD42eSrHsEiEFGxWQnzXxAPdv3UUe2YQ8xpaCyUqs4VNnVdcst7Vhz3CSge19haQ3TBeeZSWBHg",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk",
+        "amount": "313644825",
+        "payment": "8zG9PfDtAoqzeUvaZt6sShncM2GqHropVMoKUXA3CcNA"
+      },
+      {
+        "index": 9,
+        "signature": "5KLXGPxgAYBc4Quroow5VWQGzrZiZwvfqk6txQdijU2ijKNh7dkB6uvPUxYazqSm9qNrtkZQQd3UW4JAiq7xz12r",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "819BNbh8j8RCWvTHY7712PnvFzyCz5N1pJ9SN4EjfkEh",
+        "amount": "37833",
+        "payment": "GaqMwtTwnk18kU9nJ1aUWhP2nJt2ajEwQPJvNde3HbHL"
+      },
+      {
+        "index": 10,
+        "signature": "9xzqyoc4B1pbSCy5sYJfdprZ4vAGB51JfvFA4XP17KK618fEfU8cEEUSPMEivTdiuV11kVeL9ihJCnpYKe6ZVH8",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "8cZRytZMFaeuBqEyNtcFA1mhtb3j16QcoGRJ7QVuYaHx",
+        "amount": "38305",
+        "payment": "9HveBdUkudGYCcbjsxgYGEoFKS25Zfo4W13ZFWC9RhWv"
+      },
+      {
+        "index": 11,
+        "signature": "2wSj1ghbMoXmnkehrGFaPwdtztcvEJ1ris25fUEAmYJe51k6uJyqj2Tvc4qCWn69uCBLbmXNGeUvvTNb1czonNyb",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+        "amount": "454239712",
+        "payment": "AHkoqHNr6sUNWV6uwU5cUV58Cf4HVx3NXRzAoyyjA25a"
+      },
+      {
+        "index": 12,
+        "signature": "81gZfDz7P7xfjBuymZic4692PPxbmBoMZ1qNBzgP7rscg1RD2m5W5Bp87HuxTRKYyLHfxji3y9zCmdvRMGiVVyX",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "9P54pE9M5GuoaGc1o2A4WcoANsXKadtr2DVYCv6XJ7gM",
+        "amount": "29671101",
+        "payment": "BHzN2XwfneyTwGKPgfu4mvRventGM4mTuGQiMQyiSo8B"
+      },
+      {
+        "index": 13,
+        "signature": "3JZTe6Pw8heTPY4GH8n8nZw56YAFWDRzVTa5nFf9k3gNT8H7or5w2L6GmjghfJeeQZCeGpWq2gkqdhCD3nYzdBNG",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "9Vei31sPasy9nDrEZWCAhXtKXD1Y9cv6vASL5VKQbMW1",
+        "amount": "30056",
+        "payment": "EXwrs4xohk63Zp6sqinQa4TfnzdKzq9hPb5k5aHBBDbC"
+      },
+      {
+        "index": 14,
+        "signature": "2fgWNS3QNqwkD9BjyXU4UuyEoFewGR4r1VyqFrzV4NfJHPQHfWMtHTSP5TXPPX4Ch5Gr55yUKzMWbxGYBBiWsdra",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "9wFEV3bLscLqvXVYwXMyF5CaniccndLi4fGivSCuYs3R",
+        "amount": "4714722",
+        "payment": "7nv1qNk7FAw4beY12x7jqY8WUPsbkBTCsPBJYfpRd4BS"
+      },
+      {
+        "index": 15,
+        "signature": "4viJ8w16rTtWZb3ReTwo5RZQshoCFE4R9wMHEYgNr15ic4dge6xhhJiDnGYAj15KUso3y3WFteU4T5z1GeRkTq4K",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "Axdu37aZGr5pvXkHFdVpxg92oeJovcLJy7QR2TuGCbgQ",
+        "amount": "76352",
+        "payment": "D426QfzfGEpDuhuAmnGEtgQZcFapKd9ErkEUsgao9idV"
+      },
+      {
+        "index": 16,
+        "signature": "65GDgzmhyQU9DPYNtauNJxxoX7Bi1BnZ2n45CGkUPgFycxiHCfHnt8TwqLg939AFkzSWTPgHPJgBLfJuSyzUponp",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJBR3R1nDbwk3n",
+        "amount": "29998819451985",
+        "payment": "aheLEUeVgqVHrJdkotQWGaQFi8rikmnGo9hGkBczkFd"
+      },
+      {
+        "index": 17,
+        "signature": "Hjt7ZCP1ri1ABMM5jubriYG7NTCU8UkvjotHhdzzc7S5wg378hUKCUXSeZEDx6HiitDVRVuZzVTQXiLTbbZuFdA",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "Bh6u9QVrpTMUBi5MuWY1JGuQ23wQGb7eGZp6tyANJr8j",
+        "amount": "30056",
+        "payment": "4L1t7H2NdAD7uXBvW75uwA7N1JuuxGDzYsgUVSJbXL1D"
+      },
+      {
+        "index": 18,
+        "signature": "3WvYrBKFeB45FR4xypwmvoDqFPANxiqhknbSNufL8QRPHdPZonzCpRte3xAYD83qVayj1F4KaNerYKofzFuHdAS2",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "BTrfbZtvjpaYj26JHkxE1hiDta5ubDT42tfiSW4Peh4T",
+        "amount": "38392",
+        "payment": "3n37jCPRfzLgJi2ZxBXjiy91TqXTJfDLjtvH9uEFNUbM"
+      },
+      {
+        "index": 19,
+        "signature": "4AhqNXXCymC6KF3aJ8ep5yPxw7A7Mae5NRBupfkwmAYRAXmnPFu9NFGV68xLCtH83AAwS1XXUh6gqz15Dy1oix5T",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "D4HDwm1CMeGnyrXLqPTA2nbs6DxvfiHYZ3KYt1R15oYo",
+        "amount": "803111",
+        "payment": "7yfdBCStzm8EJPQEgDzZpa1huyasrUjsMHhYzGhSVoN1"
+      },
+      {
+        "index": 20,
+        "signature": "2xUuU4FJrjZxBT7gV7XF8jR1VUyFgNGTPJsSXheA6hGtbkovLLP9JpmhiZ5bA2sXp4KgVtjgr6THmNUHPUVNjm48",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "DCE4RASQZrngfJ6Pxj88BjKE16gaSstCxqGbbV6uA1Vi",
+        "amount": "3770",
+        "payment": "2xtQTKTsRkZiDjt7bTdq76AEaeX1xgZ4D4a8LrXv3fxB"
+      },
+      {
+        "index": 21,
+        "signature": "52UQirYodyDbiBugNoC2QMbrfNwE2waXdqJ2yaEDLukV7zhGV3bDYMr7PxTADfsux5HmCgXZWZVmhg1nNvM5etCW",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "DJsypjeMYdtD5rqxNoa9frNAE1j62ddHMFJAcNdDPrP1",
+        "amount": "30056",
+        "payment": "5cEAQHURqnDM5RM2sXLP5tNhxDkT8GevMB8EsqgV2Kwf"
+      },
+      {
+        "index": 22,
+        "signature": "45v7aEBy8KRWnoPgTedHSvcsGnWmetVcVQXWxrrKaNZqHgL3YouigCuzZCj5vZ6sgRPmf6hqq7uBc1WhmL8QfMfY",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+        "amount": "27403797",
+        "payment": "fTHQuKBiDJBTn4ES6B3p3v88LtmLPg4brGLcdbWsdMs"
+      },
+      {
+        "index": 23,
+        "signature": "3asKgQ2FkCWc4GWDsq8eWw9GmX3nG5PH6dne3AzNMrR7uMRGgkUsVZgUCKYYS4PpHqmcLT3dV9GWSQcr5j2oYQE7",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "amount": "6412907",
+        "payment": "2w3xryTkHBAMKTKAUJwgqFyarRVNRsXUdS4UiGwoYUcQ"
+      },
+      {
+        "index": 24,
+        "signature": "3FVyMnJueJRTAvnUmKcskXdenuGpy3KPqdeMFF9cRBEykAtkGgJS2mnQFcTn5ooJqB8YcFmpt5GaauNspk6q6pQH",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "FS66AvRDAfSo3cpyQZgw37XhJx5bn6L5u6MhE4dvU9Sv",
+        "amount": "38478",
+        "payment": "GDVNEmYCG1ShGMpc5St2DyBjjn1bR4WvnU1taFxMB4qv"
+      },
+      {
+        "index": 25,
+        "signature": "jeDTx1sXy8Wxqf85by2QJQ7FviWwpvTsc4XC6E13x1R15BGPyhYB8CQtuPvPuzSVdkrrdrUknaTeWuajVfbUwBJ",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "Gv3uSJu2Ki7eqC6V4H1Fc31MMXLih6TJR19a5sydPfr7",
+        "amount": "312230922",
+        "payment": "2aCUP6LTpyYjqPi2sEhiV1tQcdh7kHKunAetzZGtgWKD"
+      },
+      {
+        "index": 26,
+        "signature": "2DnhPdAdRXamhc7TFDitP2AuY9oBZugiTs9n624SuSYSofbv574spXTfUAeJvoUMq8EPEAhGK5TRyt3DHebgpR72",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "GVUGmoGHJzZBXHBaA5ffTTzBm37aBzWUuqx6Ey2drtm5",
+        "amount": "30056",
+        "payment": "8h6EZcfAHNxe9uPpX4kHKqyUjkXbZuaeAiQR1kmoqKQQ"
+      },
+      {
+        "index": 27,
+        "signature": "3HP6FvEbSA7ZJ5cATofMBLS3Vh8hMU3L56Eq8jbKuUZ7mE3QrAwhVKSZ1hotkTVicRzX8QGP2aWft3M49vN27o1n",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "recipient": "JBi5DiqdRD9s7BBybbK7rY7cnFdPbtYJXVnzKPdQZDpe",
+        "amount": "30056",
+        "payment": "5yw3VHHMYfyTXqrwC7ZqYeWNpEsU38ceWAFXQWmCPURa"
+      }
+    ]
+  }
+]

@@ -10,7 +10,7 @@ test.beforeEach(async({page})=>{
 
 for(const width of[360,1440])test(`landing section jumps and history keep the correct current item at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:740});await page.goto('/welcome');
-  for(const id of['for-you','rewards','discovery','transparency','tools','questions','platform']){
+  for(const id of['for-you','rewards','discovery','tools','questions','platform']){
     if(width<1000){await page.getByRole('button',{name:'Open navigation'}).click();await page.locator(`#landing-menu nav a[href="#${id}"]`).click();}
     else await page.locator(`.landing-sidebar nav a[href="#${id}"]`).click();
     await expect(page).toHaveURL(new RegExp(`#${id}$`));
@@ -44,7 +44,7 @@ for(const width of[390,1440])for(const[kind,name]of[['creator','Creator rewards'
   const tab=page.locator(`#rewards-${kind}-tab`),panel=page.locator(`#rewards-${kind}`);
   await expect(tab).toHaveAttribute('aria-selected','true');await expect(panel).toBeVisible();
   await expect(page.locator('#route-guide')).toBeHidden();
-  const history=page.getByRole('tab',{name:'History',exact:true});await history.click();
+  const history=page.getByRole('tab',{name:'All Payout History',exact:true});await history.click();
   await page.evaluate(()=>dispatchEvent(new CustomEvent('funded:route-change',{detail:{route:'payments'}})));
   await expect(history).toHaveAttribute('aria-selected','true');await expect(history).toBeFocused();
   await page.locator(width<1000?'.mobile-workspace-nav a[href="#payments"]':'.primary-nav a[href="#payments"]').click();

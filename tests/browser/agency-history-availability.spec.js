@@ -36,16 +36,16 @@ for(const width of [360,390,1440])test(`earlier receipts survive unavailable rea
   await page.setViewportSize({width,height:width===1440?900:844});let data=blocked();const requests=await fixture(page,()=>data);
   await page.goto('/#marketing-agency');await expect(page.locator('[data-agency-status]')).toContainText('Current agency readiness is unavailable');
   await assertRows(page);await expect(page.locator('[data-agency-history]')).toContainText('do not establish current execution readiness');
-  for(const key of ['funded','spent'])await expect(page.locator(`[data-agency-${key}]`)).toHaveText('Unavailable');
+  for(const key of ['funded','spent'])await expect(page.locator(`[data-agency-${key}]`)).toHaveText('-');
   await expect(page.locator('.agency-agent').nth(0)).toContainText('Paused');
-  for(const i of [1,2])await expect(page.locator('.agency-agent').nth(i)).toContainText('Readiness unavailable');
+  for(const i of [1,2])await expect(page.locator('.agency-agent').nth(i)).toContainText('-');
   await expect(page.locator('.agency-agent').nth(1)).toContainText('$100,000');await expect(page.locator('.agency-agent').nth(2)).toContainText('$300,000');
   await page.screenshot({path:`tmp/agency-history-unready-${width}.png`,fullPage:true});
   const refresh=page.locator('#marketing-agency').getByRole('button',{name:'Refresh',exact:true});data=ready();await refresh.click();
   await expect(page.locator('[data-agency-funded]')).toHaveText('0.00001 SOL');await assertRows(page);await expect(refresh).toBeFocused();
-  data=blocked();await refresh.click();await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');await assertRows(page);await expect(refresh).toBeFocused();
-  data=null;await refresh.click();await expect(page.locator('[data-agency-status]')).toContainText('Agency status unavailable');
-  await expect(page.locator('[data-agency-history]')).toHaveText('Earlier receipt history is unavailable.');await expect(page.locator('[data-agency-history] a')).toHaveCount(0);
+  data=blocked();await refresh.click();await expect(page.locator('[data-agency-funded]')).toHaveText('-');await assertRows(page);await expect(refresh).toBeFocused();
+  data=null;await refresh.click();await expect(page.locator('[data-agency-status]')).toContainText(/agency (?:status|readiness) (?:is )?unavailable/i);
+  await expect(page.locator('[data-agency-history]')).toContainText(/earlier receipt history is unavailable/i);await expect(page.locator('[data-agency-history] a')).toHaveCount(0);
   data=blocked();await refresh.click();await assertRows(page);await expect(refresh).toBeFocused();
   data={...blocked(),history:[]};await refresh.click();await expect(page.locator('[data-agency-history]')).toContainText('No earlier verified agency receipt has been recorded');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -55,6 +55,7 @@ for(const width of [360,390,1440])test(`earlier receipts survive unavailable rea
     &&x.rpcMethods.length&&x.rpcMethods.every(method=>existingReadMethods.has(method))))).toEqual([]);
 });
 test('duplicate route notifications share one agency read while explicit refresh and return still reload',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
   const requests=await fixture(page,blocked),reads=()=>requests.filter(row=>row.path==='/api/marketing-agency').length;
   await page.goto('/#marketing-agency');await assertRows(page);await page.locator('body.product-flows-ready').waitFor();
   const before=reads();
@@ -63,6 +64,7 @@ test('duplicate route notifications share one agency read while explicit refresh
   await expect.poll(reads).toBe(before+1);await assertRows(page);
   await page.evaluate(()=>{location.hash='#overview';});await expect(page.locator('#marketing-agency')).toBeHidden();
   await page.evaluate(()=>{location.hash='#marketing-agency';});await assertRows(page);await expect.poll(reads).toBe(before+2);
+  expect(errors).toEqual([]);
 });
 
 test('unavailable and malformed historical context never invents empty or current verified history',async({page})=>{
@@ -70,8 +72,8 @@ test('unavailable and malformed historical context never invents empty or curren
   const refresh=page.locator('#marketing-agency').getByRole('button',{name:'Refresh',exact:true});
   for(const mutate of [d=>delete d.historyVerification,d=>d.historyVerification.programId='So11111111111111111111111111111111111111112',
     d=>d.historyVerification.approvedHash='wrong',d=>d.historyStatus='unavailable',d=>d.history=null]){
-    data=blocked();mutate(data);await refresh.click();await expect(page.locator('[data-agency-history]')).toHaveText('Earlier receipt history is unavailable.');
-    await expect(page.locator('[data-agency-funded]')).toHaveText('Unavailable');
+    data=blocked();mutate(data);await refresh.click();await expect(page.locator('[data-agency-history]')).toContainText(/earlier receipt history is unavailable/i);
+    await expect(page.locator('[data-agency-funded]')).toHaveText('-');
   }
   data=blocked();data.history=[null,{...history[0],signature:'bad'},{...history[0],agent:99},{...history[0],agent:'1'},
     {...history[0],status:'submitted'},{...history[0],savedMarketCapUsd:'<b>1</b>'},{...history[1],savedMarketCapUsd:1000000001}];

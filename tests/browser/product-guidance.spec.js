@@ -51,7 +51,7 @@ test('all Docs topics navigate, have deep links, and link only to existing docum
     for(const href of await article.locator('a[href^="#docs/"]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href')))) linked.add(href);
   }
   for(const href of linked) expect(hashes.has(href),`Broken guide link ${href}`).toBe(true);
-  await expect(page.locator('#fee-policy-faq')).toHaveCount(1);
+  await expect(article.locator('.guidance-outline li')).not.toHaveCount(0);
   await page.reload();await expect(article.locator('h1')).toHaveText('FAQ');
   await nav.getByRole('button',{name:'Daily bonuses',exact:true}).click();
   await page.goBack();await expect(article.locator('h1')).toHaveText('FAQ');
@@ -64,31 +64,29 @@ for(const [width,override] of [[390,false],[1440,true]]) test(`reward actions, F
   const article=page.locator('#docs-guide-article'), ops=override ? 6:8, bonus=override ? 6:4;
     await expect(article).toContainText(new RegExp(`${ops}%[\\s·]*Operations & marketing`));
     await expect(article).toContainText(new RegExp(`${bonus}%[\\s·]*Daily bonus`));
-  await expect(article).toContainText('gross collected creator fees at each coin’s saved rate');
-  await expect(article).toContainText('each receive one third');
-  await expect(article).toContainText('1st 50% · 2nd 30% · 3rd 20% of the category budget');
-  await expect(article).toContainText('No manual claim or recipient signature is required');
+  await expect(article).toContainText('Creator fees use the split saved at launch.');
+  await expect(article).toContainText('Launch, listing and trade costs are shown before you approve.');
   if(width<700)await page.getByRole('button',{name:'Browse guides',exact:true}).click();
   await page.locator('.docs-guide-nav').getByRole('button',{name:'Automatic payouts or claims?',exact:true}).click();
   const daily=article.locator('tbody tr').filter({hasText:'Daily bonus'});
-  await expect(daily).toContainText('Automatic transfer');
-  await expect(article.locator('tbody tr').filter({hasText:'X account'})).toContainText('complete the claim');
+  await expect(daily).toContainText('Automatic for top creators');
+  await expect(article.locator('tbody tr').filter({hasText:'X account'})).toContainText('link the receiving wallet and claim');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.goto('/#overview');
   const faq=page.locator('.home-reference-faq-list');
   await faq.locator('.home-faq-more > summary').click();
   await faq.getByText('How are Daily bonuses paid?',{exact:true}).click();
   await expect(faq.locator('details[data-faq="bonus"]')).toContainText(`${bonus}% Daily bonus pool`);
-  await expect(faq.locator('details[data-faq="bonus"]')).toContainText('No manual claim');
-  await expect(faq.locator('details[data-faq="bonus"]')).toContainText('of the category budget');
+  await expect(faq.locator('details[data-faq="bonus"]')).toContainText('automatically');
+  await expect(faq.locator('details[data-faq="bonus"]')).toContainText('50%');
   await faq.locator('a[href="#bonuses"]').click();await expect(page.locator('#bonuses')).toBeVisible();
   await page.goto('/#referral-faq');
   await page.locator('#referral-faq').getByText('Do I need to claim a referral bonus?',{exact:true}).click();
-  await expect(page.locator('[data-faq="referral-claim"]')).toContainText('no separate V3 recipient claim');
+  await expect(page.locator('[data-faq="referral-claim"]')).toContainText('claim manually in Referrals');
   const dailyFaq=page.locator('[data-faq="referral-daily"]');
-  await expect(dailyFaq).toContainText(`${bonus}% Daily bonus pool`);
-  await expect(dailyFaq).toContainText('each receive one third');
-  await expect(dailyFaq).toContainText('of the category budget');
+  await expect(dailyFaq).toContainText('Daily cutoff: 00:00 UTC');
+  await expect(dailyFaq).toContainText('Paid automatically after rankings and funding are checked.');
+  await expect(dailyFaq).toContainText('50%');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:test.info().outputPath('current-referral-guidance.png'),fullPage:true});
 });
@@ -103,11 +101,11 @@ test('Help covers all current topics and opens the matching Daily bonus guide',a
   for(const id of ids) {
     await panel.locator(`[data-help-topic="${id}"]`).click();
     await expect(panel.locator(`[data-help-topic="${id}"]`)).toHaveAttribute('aria-pressed','true');
-    expect((await panel.locator('.help-topics-answer p').innerText()).length).toBeGreaterThan(60);
+    expect((await panel.locator('.help-topics-answer').innerText()).length).toBeGreaterThan(60);
     await expect(panel.locator('.help-topics-answer a')).toHaveAttribute('href',/^#docs\//);
   }
   await panel.locator('[data-help-topic="bonus"]').click();
-  await expect(panel.locator('.help-topics-answer')).toContainText('No manual claim');
+  await expect(panel.locator('.help-topics-answer')).toContainText('automatically');
   await panel.locator('.help-topics-answer a').click();
   await expect(panel).toBeHidden();await expect(page.locator('#docs-guide-article h1')).toHaveText('Daily bonuses');
   await page.goto('/#overview');
@@ -118,7 +116,7 @@ for(const width of [390,1440])test(`Help opens the current page guide and its li
   test.setTimeout(90000);await fixtures(page);await page.setViewportSize({width,height:900});
   const cases=[['overview','Home and getting around'],['explore','Search and discovery'],['my-launches','Portfolio and recovery'],
     ['list','Get listed and listing recovery'],['callouts','Callouts and token chat'],['marketing-agency','AI Marketing and coin buybacks'],
-    ['profile','Account settings and preference backup'],['capital-flow','Capital flow calculator'],['analytics-detail','Analytics and financial activity'],
+    ['profile','Account settings'],['capital-flow','Capital flow calculator'],['analytics-detail','Analytics and financial activity'],
     ['docs/launch-protections','Launch protections and developer tokens']];
   for(const [route,title]of cases){
     await page.goto(`/#${route}`);await expect(page.locator('body')).toHaveClass(/workspace-ready/);

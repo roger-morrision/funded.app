@@ -11,9 +11,9 @@ for(const width of[320,390,1440])test(`workspace cleanup preserves navigation an
  const tabs=page.locator('#payments > .ui-tabs');await expect(tabs.getByRole('tab')).toHaveCount(6);await expect(page.locator('.reward-action-grid')).toHaveCount(0);
  await expect(page.getByRole('navigation',{name:'More reward programs'}).getByRole('link')).toHaveCount(2);
  await page.locator('[data-reward-open="history"]').click();await expect(page.locator('#rewards-history')).toBeVisible();
- await page.keyboard.press('Home');await expect(tabs.getByRole('tab',{name:'My rewards',exact:true})).toBeFocused();await expect(page.locator('#rewards-overview')).toBeVisible();
- await page.keyboard.press('ArrowRight');await expect(tabs.getByRole('tab',{name:'Coin holders',exact:true})).toBeFocused();await expect(page.locator('#rewards-holder')).toBeVisible();
- await tabs.getByRole('tab',{name:'My rewards',exact:true}).click();await page.screenshot({path:info.outputPath(`rewards-${width}.png`)});
+ await page.keyboard.press('Home');await expect(tabs.getByRole('tab',{name:'Overview',exact:true})).toBeFocused();await expect(page.locator('#rewards-overview')).toBeVisible();
+ await page.keyboard.press('ArrowRight');await expect(tabs.getByRole('tab',{name:'Coin Holder',exact:true})).toBeFocused();await expect(page.locator('#rewards-holder')).toBeVisible();
+ await tabs.getByRole('tab',{name:'Overview',exact:true}).click();await page.screenshot({path:info.outputPath(`rewards-${width}.png`)});
  await page.evaluate(()=>location.hash='docs');await expect(page.locator('#docs')).toBeVisible();const browse=page.getByRole('button',{name:'Browse guides',exact:true});if(await browse.isVisible())await browse.click();
  const input=page.getByRole('searchbox',{name:'Search guides',exact:true}),clear=page.getByRole('button',{name:'Clear search',exact:true});await expect(input).toBeVisible();await expect(clear).toBeDisabled();
  const article=await page.locator('#docs-guide-article').innerHTML(),hash=await page.evaluate(()=>location.hash);await input.fill('wallet');await expect(clear).toBeEnabled();
@@ -28,6 +28,6 @@ for(const width of[320,390,1440])test(`workspace cleanup preserves navigation an
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.goto('/token/H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z');await page.locator('body.product-flows-ready').waitFor();
  const metrics=await page.evaluate(()=>{const fee=document.querySelector('#coin-fee-route');fee.hidden=false;document.querySelector('#coin-fee-route-value').textContent='Creator 80%';return[...document.querySelectorAll('.coin-stat-strip > div')].map(e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};});});
- expect(metrics).toHaveLength(4);if(width>700)expect(Math.max(...metrics.map(r=>r.y))-Math.min(...metrics.map(r=>r.y))).toBeLessThan(2);else{expect(Math.abs(metrics[0].y-metrics[1].y)).toBeLessThan(2);expect(metrics[2].y).toBeGreaterThan(metrics[0].y);expect(Math.abs(metrics[0].x-metrics[2].x)).toBeLessThan(2);}
+ expect(metrics).toHaveLength(6);const columns=width>700?3:2;for(let i=0;i<metrics.length;i++){const row=Math.floor(i/columns)*columns;expect(Math.abs(metrics[i].y-metrics[row].y)).toBeLessThan(2);if(i>=columns){expect(metrics[i].y).toBeGreaterThan(metrics[i-columns].y);expect(Math.abs(metrics[i].x-metrics[i-columns].x)).toBeLessThan(2);}}
  expect(errors).toEqual([]);expect(writes).toEqual([]);
 });

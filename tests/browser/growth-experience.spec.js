@@ -15,7 +15,7 @@ for(const width of [320,390,1440])test(`discovery controls and honest offline st
  await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));await setup(page);
  const nav=page.locator('#home-discovery-controls');await expect(nav).toBeVisible();
  await expect(nav.locator('button').first()).toHaveText('New');await expect(nav.locator('[data-home-discovery="new"]')).toHaveAttribute('aria-pressed','true');
- expect((await nav.boundingBox()).y).toBeLessThan(500);
+ const controls=await nav.boundingBox();const dock=await page.locator('.mobile-workspace-nav').isVisible()?await page.locator('.mobile-workspace-nav').boundingBox():null;expect(controls.y).toBeGreaterThanOrEqual(0);expect(controls.y+controls.height).toBeLessThanOrEqual(dock?.y??900);
  for(const [value,title] of [['new','New coins'],['near','Near graduation'],['saved','Your favorite coins'],['trending','Trending coins']]){
   await page.locator(`[data-home-discovery="${value}"]`).click();await expect(page.locator('#home-launch-board-title')).toHaveText(title);
  }
@@ -27,8 +27,8 @@ for(const width of [320,390,1440])test(`discovery controls and honest offline st
 });
 test('reward states link to the correct asset and claim flows (mocked)',async({page})=>{
  await setup(page,'/#payments');const states=page.locator('.reward-status-guide');await expect(states).toBeVisible();
- await expect(states.getByRole('link',{name:/Check token claims/})).toHaveAttribute('href','#airdrops');
- await expect(states.getByRole('link',{name:/Check X claims/})).toHaveAttribute('href','#payments/x');
+ await expect(states.getByRole('link',{name:/Token airdrops/})).toHaveAttribute('href','#airdrops');
+ await expect(states.getByRole('link',{name:/X rewards/})).toHaveAttribute('href','#payments/x');
  await expect(page.locator('.reward-program-guide h2')).toBeVisible();
  await expect(page.locator('.reward-program-guide article').first()).toBeVisible();
  await expect(page.locator('.reward-program-guide')).toContainText('Automatic after funding');

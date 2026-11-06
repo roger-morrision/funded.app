@@ -47,6 +47,8 @@ export function renderExploreAssets(
   // Preserve the focused action through background market refreshes.
   if (!force && grid?.contains(document.activeElement)) {
     grid.dataset.refreshPending = 'true';
+    // Keep the live status truthful without replacing a focused card.
+    renderExplorePulse?.(assets || []);
     return;
   }
   if (grid) delete grid.dataset.refreshPending;

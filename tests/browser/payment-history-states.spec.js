@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-const loading = 'Checking confirmed payout receipts.';
+const loading = 'Checking finalized payout receipts.';
 const unavailable = 'Payment history is temporarily unavailable.';
 const incomplete = 'Verification coverage is incomplete. Confirmed payments are not available in this response.';
 const empty = 'No confirmed payments are available to show yet.';
@@ -183,7 +183,7 @@ for(const width of [360,390,1440])test(`Rewards History native local identifier 
     await search.click();await page.keyboard.insertText('Pending');await state(page,loading,'Waiting for the current payment history check to finish.');await expect(search).toBeFocused();expect(f.requests()).toBe(1);expect(f.completed()).toBe(0);
     await f.release(data('onchain-indexed',searchReceipts));await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');await clear.click();
     await expect(list(page).locator('.payment-history-row')).toHaveCount(32);const baseline=await rows(page),payout=await page.locator('[data-analytics-metric="payouts"] strong').innerText();
-    await expect(search).toHaveAccessibleName('Search wallet or transaction');await expect(search).toHaveAccessibleDescription('Filters available confirmed records. Wallet addresses and transaction signatures are case-sensitive.');const searchAX=await search.ariaSnapshot();
+    await expect(search).toHaveAccessibleName('Search wallet or transaction');await expect(search).toHaveAccessibleDescription('Filters available finalized records. Wallet addresses and transaction signatures are case-sensitive.');const searchAX=await search.ariaSnapshot();
     expect(await search.getAttribute('aria-describedby')).toBe('payment-history-search-help');await expect(page.locator('#payment-history-search-help')).toContainText('case-sensitive');
     await nav.getByRole('button',{name:'Next payment history page'}).click();await expect(nav).toContainText('Page 2 of 4');
     const localCalls=calls.length,before=f.requests(),url=page.url();
@@ -261,7 +261,7 @@ async function bonus077Read(page,action,available) {
   const status=page.locator('#bonuses [data-bonus-history-status]'),rows=page.locator('#bonuses [data-bonus-history-rows]');
   if(available){
     expect(response.status()).toBe(200);expect(body).toEqual(bonus077Payload());
-    await expect(status).toContainText('1 confirmed receipt(s).');await expect(status).toContainText('Bonus snapshots are not enabled.');
+    await expect(status).toContainText('1 finalized receipt(s).');await expect(status).toContainText('Bonus snapshots are not enabled.');
     await expect(rows.locator('tbody tr')).toHaveCount(1);await expect(rows).toContainText('2026-10-20');await expect(rows).toContainText('0.00000045 SOL');
     await expect(page.locator('#bonuses [data-bonus-page]')).toHaveText('Page 1 of 1 · 1 payments');
   }else{
@@ -326,11 +326,11 @@ async function bonus077Geometry(original) {
 }
 async function bonus077Copy(page,original) {
   const link=page.locator(bonus077Selector);await expect(link).toHaveCount(1);await expect(link).toBeVisible();
-  await expect(link).toHaveAttribute('href','#bonuses');await expect(link).toHaveAccessibleName('Browse Daily bonus payout history →');
-  await expect(link.locator('..').locator(':scope > p').nth(0)).toHaveText('Looking for a Daily bonus receipt?');
-  await expect(link.locator('..').locator(':scope > p').nth(1)).toHaveText('Daily bonus history has its own filters.');
+  await expect(link).toHaveAttribute('href','#bonuses');await expect(link).toHaveAccessibleName('Daily bonuses →');
+  await expect(link.locator('..').getByRole('heading')).toHaveText('Payment history');
+  await expect(link).toHaveAttribute('href','#bonuses');
   await expect(page.locator('#rewards-history h2')).toHaveText('Payment history');
-  await expect(page.locator('#rewards-history .panel-heading > div > p').nth(1)).toHaveText('Confirmed SOL payments across funded.vip.');
+  await expect(page.locator('#rewards-history .payment-history-bonus-link')).toHaveAccessibleName('Daily bonuses →');
   await bonus077Identity(original);
 }
 async function bonus077Criteria(page,query) {
@@ -342,7 +342,7 @@ async function bonus077Criteria(page,query) {
 }
 async function bonus077Back(page,original,criteria,hash) {
   await page.goBack();await expect(page).toHaveURL(new RegExp('/'+hash.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'));
-  await expect(page.locator('#rewards-history')).toBeVisible();await expect(page.getByRole('tab',{name:'History',exact:true})).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#rewards-history')).toBeVisible();await expect(page.getByRole('tab',{name:'All Payout History',exact:true})).toHaveAttribute('aria-selected','true');
   await expect(page.locator('#payment-history-search')).toHaveValue(criteria.query);await expect(page.locator('#payment-history-type')).toHaveValue(criteria.type);
   await expect(page.locator('#payment-history-from')).toHaveValue(criteria.from);await expect(page.locator('#payment-history-to')).toHaveValue(criteria.to);
   await bonus077Copy(page,original);

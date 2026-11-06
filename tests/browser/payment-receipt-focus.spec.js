@@ -68,13 +68,13 @@ for(const width of[390,1440])test(`FQA-021 / UX-020 receipt controls survive rea
     const state=await focused();
     expect(state,JSON.stringify(state)).toMatchObject({key:receiptKey,focusVisible:true,visible:true});return state;
   };
-  await page.locator('#payment-history-clear').click();for(let i=0;i<4;i++)await page.keyboard.press('Tab');
+  await page.locator('#payment-history-clear').click();for(let i=0;i<3;i++)await page.keyboard.press('Tab');
   const first=key(receipts[0]),second=key(receipts[1]);await check(first,'summary');await page.keyboard.press('Enter');await expect(rowFor(first).locator('details')).toHaveAttribute('open','');
-  await rowFor(second).locator('summary').click();await rowFor(first).locator('.payment-history-wallet').focus();for(let i=0;i<3;i++)await page.keyboard.press('Tab');
+  await rowFor(second).locator('summary').click();await rowFor(first).locator('.payment-history-wallet').focus();for(let i=0;i<2;i++)await page.keyboard.press('Tab');
   const stable=await check(first,'summary');await refresh();expect((await check(first,'summary')).scrollY).toBe(stable.scrollY);await expect(rowFor(second).locator('details')).toHaveAttribute('open','');
   await page.keyboard.press('Space');await expect(rowFor(first).locator('details')).not.toHaveAttribute('open','');await page.keyboard.press('Enter');
-  await page.keyboard.press('Shift+Tab');await check(first,'.payment-receipt-link');await refresh();await check(first,'.payment-receipt-link');
-  await page.keyboard.press('Shift+Tab');await check(first,'.payment-copy-receiver');rows[0]={...rows[0],amountLamports:200000,actualReceivedLamports:195000};await refresh();await check(first,'.payment-copy-receiver');await expect(rowFor(first).locator('.payment-history-gross')).toContainText('0.0002 SOL');await expect(rowFor(first).locator('.payment-receipt-link')).toHaveAttribute('href',new RegExp(receipts[0].signature));
+  await page.keyboard.press('Tab');await check(first,'.payment-receipt-link');await refresh();await check(first,'.payment-receipt-link');
+  await page.keyboard.press('Shift+Tab');await page.keyboard.press('Shift+Tab');await check(first,'.payment-copy-receiver');rows[0]={...rows[0],amountLamports:200000,actualReceivedLamports:195000};await refresh();await check(first,'.payment-copy-receiver');await expect(rowFor(first).locator('.payment-history-gross')).toContainText('0.0002 SOL');await expect(rowFor(first).locator('.payment-receipt-link')).toHaveAttribute('href',new RegExp(receipts[0].signature));
   await page.keyboard.press('Shift+Tab');await check(first,'.payment-history-wallet');[rows[0],rows[1]]=[rows[1],rows[0]];await refresh();await check(first,'.payment-history-wallet');await expect(rowFor(first).locator('details')).toHaveAttribute('open','');
   await page.locator('#payment-history-type').selectOption('creator');const pages=page.locator('nav[aria-label="Payment history pages"]');const next=pages.getByRole('button',{name:'Next payment history page'});await next.click();await expect(pages).toContainText('Page 2 of 3');
   // Existing pagination nodes must remain connected without a redundant DOM
@@ -82,7 +82,7 @@ for(const width of[390,1440])test(`FQA-021 / UX-020 receipt controls survive rea
   for(const button of[next,pages.getByRole('button',{name:'Previous payment history page'})]){
     await button.focus();await page.waitForTimeout(750);const oldButton=await button.elementHandle(),before=await focused();await refresh();await expect(button).toBeFocused();expect(await oldButton.evaluate(e=>e===document.activeElement)).toBe(true);expect((await focused()).scrollY).toBe(before.scrollY);await expect(pages).toContainText('Page 2 of 3');
   }
-  const pageKey=key(receipts[10]);await rowFor(pageKey).locator('.payment-history-wallet').focus();for(let i=0;i<3;i++)await page.keyboard.press('Tab');await page.keyboard.press('Enter');const paged=await check(pageKey,'summary');await refresh();expect((await check(pageKey,'summary')).scrollY).toBe(paged.scrollY);await expect(pages).toContainText('Page 2 of 3');await expect(page.locator('#payment-history-type')).toHaveValue('creator');
+  const pageKey=key(receipts[10]);await rowFor(pageKey).locator('.payment-history-wallet').focus();for(let i=0;i<2;i++)await page.keyboard.press('Tab');await page.keyboard.press('Enter');const paged=await check(pageKey,'summary');await refresh();expect((await check(pageKey,'summary')).scrollY).toBe(paged.scrollY);await expect(pages).toContainText('Page 2 of 3');await expect(page.locator('#payment-history-type')).toHaveValue('creator');
   await page.screenshot({path:testInfo.outputPath('receipt-focus-retained.png')});
   // A genuine removal must use the stable visible filter control, never BODY
   // or a hidden receipt on another page. No receipt action is activated.

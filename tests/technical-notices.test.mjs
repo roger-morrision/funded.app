@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyTechnicalText, plainWording } from '../src/features/experience/technical-notices.js';
+import { classifyTechnicalText, plainWording, isQuietDataGap } from '../src/features/experience/technical-notices.js';
 
 test('technical status lines are grouped for the notice and explanatory copy stays on the page', () => {
   assert.equal(classifyTechnicalText('Solana RPC rate limited · retry shortly'), 'network');
@@ -35,4 +35,16 @@ test('devnet wording is removed from page copy', () => {
   assert.equal(plainWording('Top 3. Every 5 minutes · Devnet QA.'), 'Top 3. Every 5 minutes.');
   assert.equal(plainWording('Pump · Solana Devnet'), 'Pump · Solana');
   assert.equal(plainWording('Devnet preview'), 'preview');
+});
+
+test('quiet missing values never erase financial recovery or save outcomes', () => {
+  for(const message of ['Unavailable','Price unavailable','Unverified'])assert.equal(isQuietDataGap(message),true,message);
+  for(const message of [
+    'Further payouts are blocked: verification incomplete. Reconcile the existing receipt.',
+    'A recorded transaction is preserved while verification is unavailable.',
+    'Your change could not be saved. Please try again.',
+    'Payment history is unavailable. Check the existing receipt before retrying.',
+    'Claim verification pending. Do not submit another claim.',
+    'Your message was posted, but no call was recorded because holdings are unavailable.',
+  ])assert.equal(isQuietDataGap(message),false,message);
 });

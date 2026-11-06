@@ -54,7 +54,7 @@ for(const width of[320,390,1440])test(`reward program navigation and settings re
   const programs=page.locator('#payments > .ui-tabs');await expect(programs.getByRole('tab')).toHaveCount(6);
   await expect(page.locator('.reward-action-grid')).toHaveCount(0);
   for(const item of await programs.getByRole('tab').all())expect((await item.boundingBox()).height).toBeGreaterThanOrEqual(44);
-  await programs.getByRole('tab',{name:'Coin holders',exact:true}).click();await expect(page.locator('#rewards-holder')).toBeVisible();
+  await programs.getByRole('tab',{name:'Coin Holder',exact:true}).click();await expect(page.locator('#rewards-holder')).toBeVisible();
   await page.evaluate(()=>location.hash='profile');await expect(page.locator('#profile')).toBeVisible();
   const notifications=await page.locator('#notification-preferences-details').boundingBox(),trades=await page.locator('#trade-preferences-details').boundingBox();
   if(width>700){expect(notifications.y).toBeCloseTo(trades.y,1);expect(trades.x).toBeGreaterThan(notifications.x+notifications.width-1);}else expect(trades.y).toBeGreaterThan(notifications.y);

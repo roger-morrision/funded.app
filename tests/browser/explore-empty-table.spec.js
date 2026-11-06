@@ -1,3 +1,4 @@
+import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import { test, expect } from '@playwright/test';
 import { PublicKey } from '@solana/web3.js';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
@@ -26,7 +27,7 @@ for (const [width, height] of [[390, 844], [1440, 900]]) {
       await page.route('**/api/fee-policy', route => route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } }));
       await page.route('**/api/launches', route => route.fulfill({ json: launches }));
       await page.route('**/api/pump/explore?*', route => route.fulfill({ json: { items: [], fetchedAt: new Date().toISOString() } }));
-      await page.goto('/#explore');
+      const account=await installAccountFixture(page,{mints:cohort==='absent favorite'?[absentMint]:[]});await page.goto('/#explore');await account.connect();
       await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
       await expect(page.locator('#asset-grid .explore-launch-card')).toHaveCount(1);
       const storageKeys = [favoriteKey, guestFavoriteKey, followedKey];

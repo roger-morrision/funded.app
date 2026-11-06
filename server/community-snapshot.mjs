@@ -9,6 +9,7 @@ import {readIndexedCommunityBase} from './community-indexed-base.mjs';
 const TOKEN_ACCOUNT_MIN_SIZE = 165;
 const MAX_REPLAY_SLOTS = 256;
 const MIGRATE_V2_DISCRIMINATOR = createHash('sha256').update('global:migrate_v2').digest().subarray(0, 8);
+const CREATE_POOL_DISCRIMINATOR=createHash('sha256').update('global:create_pool').digest().subarray(0,8);
 const QA_MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
 function amount(value) {
@@ -63,6 +64,16 @@ export function verifyPumpMigrationTransaction({ transaction, launchMint }) {
     || !accounts.some(index => keys[index]?.equals(pool))) {
     throw new Error('Receipt does not contain Pump migrate_v2 for this launch mint and canonical pool.');
   }
+  // Pump accepts a repeated migrate_v2 as a successful no-op. Only the
+  // migrate call that initializes the canonical pool establishes the cutoff.
+  const group=transaction.meta.innerInstructions?.find(row=>row.index===instructions.indexOf(migration));
+  const initialized=group?.instructions?.some(ix=>{
+    if(!keys[ix.programIdIndex]?.equals(PUMP_AMM_PROGRAM_ID))return false;
+    const a=ix.accounts||ix.accountKeyIndexes;
+    try{return keys[a[0]]?.equals(pool)&&keys[a[3]]?.equals(launch)&&keys[a[4]]?.equals(NATIVE_MINT)
+      &&instructionBytes(ix).subarray(0,8).equals(CREATE_POOL_DISCRIMINATOR);}catch{return false;}
+  });
+  if(!initialized)throw new Error('Migration did not initialize the canonical PumpSwap pool.');
   return { pool, slot:transaction.slot, blockTime:transaction.blockTime };
 }
 

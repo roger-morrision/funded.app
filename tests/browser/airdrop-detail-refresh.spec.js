@@ -15,7 +15,7 @@ for(const width of [1440,390])test(`open airdrop details refresh when delayed re
   await page.goto('/#airdrops');const card=page.locator(`.airdrop-directory-card[data-logo-mint="${mint}"]`);await expect(card).toBeVisible();
   await card.locator('.directory-claim').click();const panel=page.locator('#airdrop-selected-program');await expect(panel).toBeVisible();
   await expect(page.locator('#airdrop-selected-stats')).toContainText('Checking');release();
-  const claimed=page.locator('#airdrop-selected-stats > span').filter({has:page.locator('small').filter({hasText:/^Claimed$/})}).locator('strong');
-  await expect(claimed).toHaveText('870.114755');await expect(panel).toContainText('Connect wallet to check allocation');
+  const claimed=page.locator('#airdrop-selected-stats > span').filter({has:page.locator('small').filter({hasText:/^Delivered$/})}).locator('strong');
+  await expect(claimed).toHaveText('870.114755');await expect(panel).toContainText('automatically');
   await expect(page.locator('#airdrop-selected-eyebrow')).toHaveText('Airdrop funding confirmed');
 });

@@ -1,4 +1,4 @@
-import { readAppSource } from './read-app-source.mjs';
+import { createLaunchSubmitController } from '../src/app/controllers/launch-submit.js';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { submitPumpDevnetLaunch } from '../launch-flow.js';
@@ -18,15 +18,18 @@ await assert.rejects(
 );
 assert.equal(called, false, 'Mainnet launch touched a wallet or RPC before rejection.');
 
-const app = await readAppSource();
+
 const server = await readFile(new URL('../server/index.mjs', import.meta.url), 'utf8');
 const keeperRoutes = await readFile(new URL('../server/routes/keeper-collection.mjs', import.meta.url), 'utf8');
 const launchRoutes = await readFile(new URL('../server/routes/launch-registration.mjs', import.meta.url), 'utf8');
 const marketRoutes = await readFile(new URL('../server/routes/token-market.mjs', import.meta.url), 'utf8');
 const metadataRoutes = await readFile(new URL('../server/routes/devnet-metadata.mjs', import.meta.url), 'utf8');
-const launchHandler = app.slice(app.indexOf('async function launchToken(){'), app.indexOf('async function launchToken(){') + 500);
-assert.match(launchHandler, /if\s*\(APP_CLUSTER\s*!==\s*'devnet'\)\s*\{[\s\S]*?return;/,
-  'The browser launch handler must reject Mainnet before wallet use.');
+let launchMessage='';
+await createLaunchSubmitController({APP_CLUSTER:'mainnet-beta',launchSubmitting:false,
+  getLaunchBurnPolicy:()=>({tier:'standard',requiresBurn:false}),feeRouterState:{v3FeeRouter:{agency:{}}},
+  setLaunchStatus:message=>{launchMessage=message;},get wallet(){throw Error('Mainnet accessed wallet');},
+}).launchToken();
+assert.match(launchMessage,/launching is unavailable/,'Mainnet must reject before wallet access.');
 
 function routeGuard(route, guard, source = server) {
   const at = source.indexOf(route);
@@ -56,6 +59,14 @@ const mainnetFixture = {
   FUNDED_REWARD_PROGRAM_DATA_SHA256:'a'.repeat(64),
   MAINNET_APPROVED_UPGRADE_AUTHORITY:'11111111111111111111111111111111',
   DATABASE_URL:'postgres://user:do-not-log@database.example.org/funded_mainnet',
+  DEVNET_DATABASE_URL:'postgres://user:do-not-log@database.example.org/funded_devnet',
+  DEVNET_SOLANA_RPC_URL:'https://devnet-rpc.example.org',
+  MAINNET_APP_ORIGIN:'https://mainnet-preview.example.org',VITE_MAINNET_READ_ONLY:'true',METADATA_STORAGE:'pinata',PINATA_JWT_FILE:'/run/secrets/pinata',
+  FUNDED_TRADE_FEE_OWNER:'2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik',
+  VITE_FUNDED_TRADE_FEE_OWNER:'2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik',
+  FUNDED_V3_FEE_ROUTER_PROGRAM_ID:'2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik',FUNDED_V3_PROGRAM_DATA_SHA256:'b'.repeat(64),
+  FUNDED_DEVELOPER_LOCK_PROGRAM_ID:'2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik',FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256:'c'.repeat(64),
+  FUNDED_TOKEN_MINT:'2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik',VITE_FUNDED_TOKEN_MINT:'2tRrwGFzRCDmrVY7U6dny4Ea1RqVm7cSrCYFULmK7tik',
 };
 assert.equal(assessMainnetConfig(mainnetFixture).configurationComplete, true);
 assert.equal(assessMainnetConfig({ ...mainnetFixture, MAINNET_APPROVED_UPGRADE_AUTHORITY:'', MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true' }).configurationComplete, true);
@@ -66,7 +77,10 @@ for (const changes of [
   { VITE_FUNDED_FEE_ROUTER_PROGRAM_ID:'11111111111111111111111111111111' },
   { FUNDED_REWARD_PROGRAM_DATA_SHA256:'bad' }, { MAINNET_APPROVED_UPGRADE_AUTHORITY:'bad' },
   { MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true' },
-  { FUNDED_STORE_PATH:'local.json' },
+  { FUNDED_STORE_PATH:'local.json' },{VITE_MAINNET_READ_ONLY:'false'},{VITE_DEV_MODE:'true'},
+  {VITE_DEV_AUTOCONNECT:'true'},{VITE_DEV_MODE:'TRUE'},{DEVNET_DATABASE_URL:'not-configured'},{DEVNET_SOLANA_RPC_URL:'not-configured'},{VITE_FUNDED_TRADE_FEE_BPS:'300'},
+  {DEVNET_DATABASE_URL:mainnetFixture.DATABASE_URL},{DEVNET_DATABASE_URL:mainnetFixture.DATABASE_URL.replace('do-not-log','different-password')},{DEVNET_SOLANA_RPC_URL:mainnetFixture.SOLANA_RPC_URL},
+  {MAINNET_APP_ORIGIN:''},{METADATA_STORAGE:'hosted-devnet'},{FUNDED_V3_PROGRAM_DATA_SHA256:''},{VITE_EXPLORE_CLUSTER:'devnet'},
 ]) assert.equal(assessMainnetConfig({ ...mainnetFixture, ...changes }).configurationComplete, false);
 const offline = await mainnetReadinessPreflight(mainnetFixture);
 assert.equal(offline.ready, false);

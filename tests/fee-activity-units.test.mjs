@@ -6,6 +6,30 @@ import { renderCoinActivityTab } from '../src/features/coin/activity-view.js';
 const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z';
 const router='So11111111111111111111111111111111111111112';
 const signature='3'.repeat(64);
+test('collector balance view reads only the requested verified launch and surfaces a vault read failure', async () => {
+  const launch={cluster:'devnet',onchainVerified:true,creator:router,
+    pumpFeeRoute:{scope:'per-mint-v3',router,programId:router}};
+  const previous=process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+  process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID=router;
+  try {
+    let response;
+    const handle=createCreatorFeesRoutes({store:{read:()=>assert.fail('full ledger read'),
+      readLaunch:async key=>{assert.equal(key,mint);return launch;}},
+      solanaCluster:'devnet',solanaRpcUrl:'offline',route:(path,_method,pattern)=>path.match(pattern)?.[1],
+      respond:(_res,status,data)=>{response={status,data};}});
+    const url=new URL(`https://funded.vip/api/tokens/${mint}/fee-activity?view=balance`);
+    await handle({method:'GET'},{},url);
+    assert.equal(response.status,503);
+    assert.equal(response.data.overview.pump.status,'unavailable');
+    assert.equal(response.data.overview.pump.accruedLamports,null);
+    launch.onchainVerified=false;
+    await handle({method:'GET'},{},url);
+    assert.equal(response.status,410);
+  } finally {
+    if(previous===undefined)delete process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
+    else process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID=previous;
+  }
+});
 function renderAmounts(claims, collections=[]) {
   const target={innerHTML:''}; let tab='claims';
   const document={querySelector:selector=>selector==='#coin-activity-list'?target:selector==='[data-coin-tab].active'?{dataset:{coinTab:tab}}:null};

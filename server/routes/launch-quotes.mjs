@@ -1,3 +1,4 @@
+import { SOLANA_GENESIS } from '../../solana-network.js';
 import { PublicKey } from '@solana/web3.js';
 import { LAUNCH_TIER_USD } from '../../launch-tier-quote.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
@@ -26,7 +27,7 @@ export function createLaunchQuoteRoutes({
       try { payer = new PublicKey(input.payer).toBase58(); } catch { return json(res,400,{error:'A valid payer is required.'}); }
       const fees = await readServiceFees(store), now = Date.now(), recipient = serviceFeeRecipient(env);
       if (payer === recipient || input.expectedHash !== fees.hash) return json(res,409,{error:'Launch fees changed or payer equals treasury. Refresh and review before signing.'});
-      const quote = { id:id('launch_service'), payer, recipient, amountLamports:fees.policy.launchLamports,
+      const quote = { id:id('launch_service'), cluster:solanaCluster, genesisHash:SOLANA_GENESIS[solanaCluster], payer, recipient, amountLamports:fees.policy.launchLamports,
         policyHash:fees.hash, revision:fees.revision, createdAt:new Date(now).toISOString(), expiresAt:new Date(now+10*60_000).toISOString() };
       await store.update(state => { state.launchServiceQuotes ||= {}; state.launchServiceQuotes[quote.id] = quote; });
       const persisted=(await store.read()).launchServiceQuotes?.[quote.id];

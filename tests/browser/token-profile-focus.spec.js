@@ -55,7 +55,9 @@ for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [36
         creator.textContent = 'Launched by 8ZCtLW…Gvn1Wk'; owner.parentElement.append(creator);
         return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       });
-      expect(await about.evaluate(e => ({ y: e.getBoundingClientRect().top, scrollY }))).toEqual(before);
+      // Empty creator metadata no longer reserves a blank header row. Admission
+      // may reflow the card; it must retain focus, scroll position and clearance.
+      expect(await page.evaluate(() => scrollY)).toBe(before.scrollY);
       await expect(about).toBeFocused();await clear(about);
       if (top === 0) await page.screenshot({ path: testInfo.outputPath('about-focused.png') });
       await page.keyboard.press('ArrowRight');

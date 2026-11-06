@@ -11,6 +11,13 @@ export function rewards() {
       <article><span>LAUNCHED COIN TOKENS · $FUNDED HOLDERS</span><h3>Airdrops at migration</h3><ul><li>Hold $FUNDED until the coin migrates.</li><li>At least 3% of supply is reserved for eligible holders.</li><li>Your share depends on your $FUNDED holdings.</li><li>Tokens arrive automatically after checks. No claim needed.</li></ul><a href="#airdrops">View airdrops →</a></article>
     </div><ul class="reward-upcoming-note"><li>Claim manually: creator fees, X rewards and three-level referrals.</li><li>Automatic: holder SOL, Daily bonuses and migration airdrops.</li></ul></section>
     <nav class="reward-program-links" aria-label="More reward programs"><a href="#bonuses">Daily bonuses →</a><a href="#referrals">Referral rewards →</a></nav>`;
+  overview.addEventListener('focusin',event=>{
+    const link=event.target.closest('.reward-upcoming-grid a');
+    if(!link||!link.matches(':focus-visible'))return;
+    const rect=link.getBoundingClientRect(),nav=document.querySelector('.mobile-workspace-nav');
+    const bottom=nav?.getClientRects().length?Math.min(innerHeight,nav.getBoundingClientRect().top):innerHeight;
+    if(rect.bottom+8>bottom)window.scrollBy({top:Math.ceil(rect.bottom+12-bottom),behavior:'instant'});
+  });
   const creator = node('div'); creator.id = 'rewards-creator';
   creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator rewards</h2><p>Track SOL payments from your launches.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
   const personal = $('[data-personal-rewards]'); if(personal)creator.append(personal);

@@ -7,11 +7,13 @@ import { emptyHomeLaunchFilters } from '../home-launch-filters.js';
 function dom() {
   const fields = new Map();
   const element = () => ({ hidden: false, dataset: {}, attributes: {}, textContent: '', innerHTML: '',
+    children: [], addEventListener() {}, append(node) { this.children.push(node); }, matches:()=>false, contains:()=>false,
     setAttribute(key, value) { this.attributes[key] = value; }, closest: () => null,
     querySelector: selector => fields.get(selector) || null, querySelectorAll: () => [],
   });
-  return { fields, document: { querySelector: selector => fields.get(selector) || null, querySelectorAll: () => [] },
-    add(selector) { const node = element(); fields.set(selector, node); return node; } };
+  const document = { createElement:()=>({content:{firstElementChild:{dataset:{},querySelector:()=>null}}}), querySelector: selector => fields.get(selector) || null, querySelectorAll: () => [] };
+  return { fields, document,
+    add(selector) { const node = element(); node.ownerDocument=document; fields.set(selector, node); return node; } };
 }
 function homeFixture() {
   const ui = dom(), order = [];
@@ -39,14 +41,14 @@ test('Home includes old zero-volume launches but excludes unverified tokens', ()
   assert(f.fields.get('#home-launch-table-wrap').hidden);
 });
 
-test('task Home previews three verified coins without inheriting or erasing saved filters', () => {
-  const f=homeFixture();f.add('.home-start');const title=f.add('#home-launch-board-title');
+test('task Home previews new verified coins without inheriting or erasing saved filters', () => {
+  const f=homeFixture();f.add('.home-start');f.add('.home-launch-board').dataset.discovery='new';const title=f.add('#home-launch-board-title');
   f.state.assets=['a','b','c','d','unverified'].map((address,i)=>coin(address,{createdTimestamp:i}));
   f.state.homeLaunchView='table';f.state.homeLaunchTab='watchlist';f.state.homeLaunchPaused=true;
   f.state.homeLaunchFilters.query='no match';const filters=f.state.homeLaunchFilters;
   f.render();
-  assert.deepEqual(f.order,['d','c','b']);assert.equal(title.textContent,'Discover coins');
-  assert.equal(f.fields.get('#home-board-count').textContent,'Showing 3 verified coins');
+  assert.deepEqual(f.order,['d','c','b','a']);assert.equal(title.textContent,'New coins');
+  assert.equal(f.fields.get('#home-board-count').textContent,'4 coins · verified launch records');
   assert.equal(f.fields.get('#home-launch-grid').hidden,false);assert.equal(f.fields.get('#home-launch-table-wrap').hidden,true);
   assert.equal(f.state.homeLaunchView,'table');assert.equal(f.state.homeLaunchTab,'watchlist');
   assert.equal(f.state.homeLaunchFilters,filters);assert.equal(filters.query,'no match');
@@ -90,7 +92,7 @@ test('Home launch ticker shows a muted dash for unknown cap and drops an unknown
   const ticker = f.add('#home-market-ticker-items');
   let markup = '';
   f.callbacks.setupHomeTicker = (_node, html) => { markup = html; };
-  f.state.assets = [coin('known', { volume24hUsd: 5, priceChange24hPercent: 1.5 }), coin('blank', { marketCapUsd: null })];
+  f.state.assets = [coin('known', { volume24hUsd: 5, priceChange24hPercent: 1.5 }), coin('blank', { marketCapUsd: null })].map(item=>({...item,activityWindows:{'24h':{coverage:'complete',trending:{score:1,walletCount:2,basis:'observed-wallet-participation-v1'}}}}));
   f.render();
   assert(ticker);
   assert.doesNotMatch(markup, /\$—/);

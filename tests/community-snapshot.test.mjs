@@ -5,7 +5,7 @@ import bs58 from 'bs58';
 import { Keypair, PublicKey, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
-import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
+import { canonicalPumpPoolPda,PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-swap-sdk';
 import { reverseReplayCommunitySnapshot, verifyPumpMigrationTransaction,
   qaCommunityCutoffMemo, verifyQaCommunityCutoffTransaction } from '../server/community-snapshot.mjs';
 
@@ -48,11 +48,13 @@ test('requires Pump migrate_v2 on the launch mint and canonical pool, including 
   const migrationData = bs58.encode(createHash('sha256').update('global:migrate_v2').digest().subarray(0, 8));
   const tradeData = bs58.encode(createHash('sha256').update('global:buy').digest().subarray(0, 8));
   const receipt = { slot:100, blockTime:1_800_000_000, meta:{ err:null,
-    loadedAddresses:{ writable:[pool], readonly:[] } },
+    innerInstructions:[{index:0,instructions:[{programIdIndex:3,accounts:[2,0,0,1,4],data:Buffer.from('e992d18ecf6840bc','hex')}]}],
+    loadedAddresses:{ writable:[pool], readonly:[PUMP_AMM_PROGRAM_ID,NATIVE_MINT] } },
   transaction:{ message:{ staticAccountKeys:[PUMP_PROGRAM_ID, launchMint], compiledInstructions:[
     { programIdIndex:0, accounts:[1, 2], data:migrationData },
   ] } } };
   assert.equal(verifyPumpMigrationTransaction({ transaction:receipt, launchMint }).pool.toBase58(), pool.toBase58());
+  assert.throws(()=>verifyPumpMigrationTransaction({transaction:{...receipt,meta:{...receipt.meta,innerInstructions:[]}},launchMint}),/did not initialize/);
   const altered = patch => ({ ...receipt, meta:{ ...receipt.meta, loadedAddresses:{ ...receipt.meta.loadedAddresses } },
     transaction:{ message:{ ...receipt.transaction.message, compiledInstructions:[{
       ...receipt.transaction.message.compiledInstructions[0], ...patch,
@@ -92,8 +94,10 @@ test('accepts SDK v0 compiled bytes for exact cutoff and migration while rejecti
   assert.throws(()=>verifyQaCommunityCutoffTransaction({...input,eligibilityMint:key()}),/exact launch/);
   const pool=canonicalPumpPoolPda(launchMint,NATIVE_MINT);
   const migration=new TransactionInstruction({programId:PUMP_PROGRAM_ID,keys:[{pubkey:launchMint,isSigner:false,isWritable:true},
-    {pubkey:pool,isSigner:false,isWritable:true}],data:createHash('sha256').update('global:migrate_v2').digest().subarray(0,8)});
+    {pubkey:pool,isSigner:false,isWritable:true},{pubkey:PUMP_AMM_PROGRAM_ID,isSigner:false,isWritable:false},{pubkey:NATIVE_MINT,isSigner:false,isWritable:false}],data:createHash('sha256').update('global:migrate_v2').digest().subarray(0,8)});
   receipt.transaction.message=compile([migration]);
+  const idx=k=>receipt.transaction.message.staticAccountKeys.findIndex(a=>a.equals(k));
+  receipt.meta.innerInstructions=[{index:0,instructions:[{programIdIndex:idx(PUMP_AMM_PROGRAM_ID),accounts:[idx(pool),0,0,idx(launchMint),idx(NATIVE_MINT)],data:Buffer.from('e992d18ecf6840bc','hex')}]}];
   assert.equal(verifyPumpMigrationTransaction({transaction:receipt,launchMint}).pool.toBase58(),pool.toBase58());
   assert.throws(()=>verifyPumpMigrationTransaction({transaction:receipt,launchMint:key()}),/canonical pool/);
 });

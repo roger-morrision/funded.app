@@ -40,3 +40,9 @@ test('synchronous failures and stalled dependencies complete with degraded statu
   assert.ok(result.checks.every(check => check.status === 'unavailable'));
   assert.equal(JSON.stringify(result).includes('private-url'), false);
 });
+
+test('Mainnet status checks the complete genesis hash, not the shortened chain identifier',async()=>{
+ const read=genesis=>serviceStatus({cluster:'mainnet-beta',database:async()=>true,rpc:async()=>genesis});
+ assert.equal((await read('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d')).status,'operational');
+ assert.equal((await read('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')).checks[1].status,'wrong-network');
+});

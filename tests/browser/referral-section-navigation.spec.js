@@ -77,7 +77,7 @@ for (const width of [390, 1440]) for (const reducedMotion of ['no-preference', '
       await expect(page).toHaveURL(/#launch$/);
       await page.waitForTimeout(600);
       expect(await page.evaluate(() => scrollY)).toBe(0);
-      await expect(page.getByRole('heading', { name: 'Launch a coin', exact: true })).toBeInViewport();
+      await expect(page.getByRole('heading', { name: 'Create a coin', exact: true })).toBeInViewport();
       await page.goBack();
       await visibleGuide(page);
       await page.goForward();

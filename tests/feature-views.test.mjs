@@ -78,7 +78,12 @@ test('background Explore refresh preserves a focused action', () => {
   grid.innerHTML = 'Existing focused card';
   view.document.activeElement = {};
   grid.contains = element => element === view.document.activeElement;
-  renderExploreAssets({ force: false }, {}, { document: view.document });
+  const assets = [{ complete: true }];
+  let statusRecords;
+  renderExploreAssets({ force: false }, { assets, exploreProviderStatus: 'RPC unavailable stale' }, {
+    document: view.document, renderExplorePulse(records) { statusRecords = records; },
+  });
+  assert.equal(statusRecords, assets, 'Status updates while the focused card stays mounted');
   assert.equal(grid.dataset.refreshPending, 'true');
   assert.equal(grid.innerHTML, 'Existing focused card');
 });

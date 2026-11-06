@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import { createWorkerLifecycle, WorkerStoppingError } from './worker-lifecycle.mjs';
 import { createTradeWakePoll } from './trade-wake-poll.mjs';
-import {runFeeCollectorLoop} from './fee-collector-loop.mjs';
+import {runFeeCollectorLoop,collectFeeCandidates} from './fee-collector-loop.mjs';
 
 const heartbeat = join(tmpdir(),'funded-fee-collector-status.json');
 const intervalMs = Math.max(60_000, Number(process.env.FUNDED_FEE_COLLECTION_TICK_MS || 300_000));
@@ -24,7 +24,9 @@ if (process.argv.includes('--check')) {
   if (!token) throw new Error('Keeper API token is required.');
   async function request(path, body) {
     lifecycle.assertRunning();
-    const response = await fetch(`${api}${path}`, { method:body ? 'POST' : 'GET', headers:{ authorization:`Bearer ${token}`, ...(body ? { 'content-type':'application/json' } : {}) }, body:body ? JSON.stringify(body) : undefined, signal:AbortSignal.timeout(['/api/keeper/collect','/api/keeper/settle-v3','/api/keeper/disburse-v3','/api/keeper/reconcile-v3-collection'].includes(path) ? 120_000 : 15_000) });
+    // Leave time for the server's 15-second vault read to return its status.
+    const readTimeoutMs = path.endsWith('/fee-activity?view=balance') ? 30_000 : 15_000;
+    const response = await fetch(`${api}${path}`, { method:body ? 'POST' : 'GET', headers:{ authorization:`Bearer ${token}`, ...(body ? { 'content-type':'application/json' } : {}) }, body:body ? JSON.stringify(body) : undefined, signal:AbortSignal.timeout(['/api/keeper/collect','/api/keeper/settle-v3','/api/keeper/disburse-v3','/api/keeper/reconcile-v3-collection'].includes(path) ? 120_000 : readTimeoutMs) });
     const data = await response.json();
     if (!response.ok) throw new Error(`${path}: ${response.status} ${String(data.error || 'request failed').slice(0, 160)}`);
     return data;
@@ -61,20 +63,11 @@ if (process.argv.includes('--check')) {
         if(result.status==='finalized')disbursed++;
       }catch(error){settlementErrors++;console.error(`V3 disbursement ${action.mint}: ${String(error.message||error)}`);}
     }
-    for (const candidate of candidates.mints || []) {
-      lifecycle.assertRunning();
-      if(pausedMints.has(candidate.mint))continue;
-      if (candidate.collectionStatus && !['complete','nothing-to-collect','no-fees','retryable-before-submission'].includes(candidate.collectionStatus)) continue;
-      const activity = await request(`/api/tokens/${encodeURIComponent(candidate.mint)}/fee-activity`);
-      const pump = activity.overview?.pump;
-      if (activity.overview?.available !== true || pump?.status !== 'confirmed' || !/^\d+$/.test(String(pump.accruedLamports))) continue;
-      if (BigInt(pump.accruedLamports) < feeCollectionMinimumLamports(candidate.mint,
-        process.env.SOLANA_CLUSTER, process.env)) continue;
-      // A failed or timed-out collect is uncertain. The server locks that mint for review.
-      const result = await request('/api/keeper/collect', { mint:candidate.mint });
-      if (result.scope === 'per-mint-v3' && result.status === 'collected'
-        && result.onchainVerified === true && result.signature) collected += 1;
-    }
+    const scan=await collectFeeCandidates({candidates:candidates.mints||[],pausedMints,lifecycle,request,
+      minimumLamports:mint=>feeCollectionMinimumLamports(mint,process.env.SOLANA_CLUSTER,process.env),
+      onError:({mint,stage,error})=>console.error(`V3 ${stage} ${mint}: ${String(error.message||error)}`)});
+    collected+=scan.collected;settlementErrors+=scan.errors;
+    if(scan.errors&&process.argv.includes('--once'))process.exitCode=1;
     if (lifecycle.stopped) return;
     const status = { status:settlementErrors ? 'degraded' : 'ready', at:new Date().toISOString(), checked:(candidates.mints || []).length,
       collected, settled, disbursed, settlementErrors, pausedMints:[...pausedMints], pendingSettlement:(candidates.pendingV3Settlements || []).length };

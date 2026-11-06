@@ -38,18 +38,13 @@ for (const width of [360,390,1440]) test(`bonus rules disclosure keeps QA schedu
   await summary.focus();await page.keyboard.press('Space');await expect(rules).toBeHidden();await expect(summary).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
-test('Home keeps bonus panel hidden; Bonuses route exposes category totals and paginated history', async ({ page }) => {
+test('simplified Home keeps legacy bonus widgets hidden and the More menu opens full bonus history', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await setup(page); await page.goto('/#overview');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
   const home = page.locator('#home-daily-bonuses'); await expect(home).toBeHidden();
-  await expect(home).toContainText('each receive one third');
-  await expect(home.locator('.bonus-pool-grid article small')).toHaveText(Array(3).fill('1st 50% · 2nd 30% · 3rd 20% of the category budget'));
-  await expect(home.locator('[data-bonus-pool="creators"]')).toHaveText('1 SOL');
-  await expect(home.locator('[data-bonus-pool="referrals"]')).toHaveText('0.999999999 SOL');
-  const clock = home.locator('[data-bonus-countdown]'); const initial = await clock.textContent();
-  await expect.poll(() => clock.textContent()).not.toBe(initial);
-  await page.evaluate(() => { location.hash = '#bonuses'; });
+  await page.locator('#secondary-navigation > summary').click();
+  await page.locator('.nav-more-menu a[href="#bonuses"]').click();
   await page.locator('[data-bonus-history-category]').selectOption('traders');
   await expect(page.locator('#bonuses')).toBeVisible(); await expect(home).toBeHidden();
   await expect(page.locator('[data-bonus-delivery]')).toContainText('of the category budget');
@@ -90,8 +85,8 @@ test('empty history shows no synthetic recipients and Home does not invent rewar
   empty.totalPayments = 0; empty.unavailableReceipts = 0; empty.history = { page:1, pages:1, rows:[], total:0, category:'all' };
   empty.pool = { status:'unavailable', categoryLamports:null };
   await setup(page, () => empty); await page.goto('/#bonuses');
-  await expect(page.locator('[data-bonus-leaders]')).toContainText('No confirmed bonus payout yet');
-  await expect(page.locator('[data-bonus-history-rows]')).toContainText('No confirmed bonus payouts');
+  await expect(page.locator('[data-bonus-leaders]')).toContainText('No finalized bonus payout yet');
+  await expect(page.locator('[data-bonus-history-rows]')).toContainText('No finalized bonus payouts');
   await page.goto('/#overview');
   await expect(page.locator('[data-bonus-pool="creators"]')).toHaveText('— SOL');
   await expect(page.locator('[data-bonus-pool="creators"]')).toHaveClass(/is-unknown/);
@@ -109,7 +104,7 @@ test('Devnet QA schedule shows five-minute cutoffs consistently on Home, history
   await expect(page.locator('#home-daily-bonuses')).not.toContainText('After the daily snapshot');
   await expect(page.locator('[data-bonus-countdown]')).toContainText('00:04:');
   await page.goto('/#bonuses');await expect(page.locator('[data-bonus-delivery]')).toContainText('QA snapshots close every 5 minutes');
-  await page.goto('/#capital-flow');await expect(page.locator('#daily-bonus-title')).toHaveText('Top 3. Every 5 minutes.');
+  await page.goto('/#capital-flow');await expect(page.locator('#daily-bonus-title')).toHaveText('Top 3. Every 5 minutes \u00b7 Devnet QA.');
   await expect(page.locator('[data-bonus-status]')).not.toContainText('Processing');
 });
 
@@ -127,8 +122,8 @@ test('Capital flow refreshes on entry and ignores an older overlapping snapshot 
     await page.goto('/#overview');
     await expect(page.locator('body')).toHaveClass(/workspace-ready/);
     await expect.poll(()=>requests).toBe(1);
-    // Exercise route entry directly; the secondary navigation is collapsed on Home.
-    await page.evaluate(() => { location.hash = '#capital-flow'; });
+    await page.locator('#secondary-navigation > summary').click();
+    await page.locator('.primary-nav a[href="#capital-flow"]').click();
     await expect.poll(()=>requests).toBe(2);
     const status=page.locator('#daily-bonus-dashboard [data-bonus-status]');
     await expect(status).toContainText('10:10:00 UTC');
@@ -469,7 +464,7 @@ test.describe('FQA-071 original bonus history ownership', () => {
         expect(fallback.events.filter(event => event.original)).toHaveLength(1);
         expect(await original.evaluate(element => element.isConnected)).toBe(false);
         if (state === 'unavailable') { await expect(page.locator(bonusHistoryRows)).toBeEmpty(); await expect(page.locator('[data-bonus-history-status]')).toContainText('unavailable'); }
-        else if (state === 'empty') await expect(page.locator(bonusHistoryRows)).toHaveText('No confirmed bonus payouts in this category.');
+        else if (state === 'empty') await expect(page.locator(bonusHistoryRows)).toHaveText('No finalized bonus payouts in this category.');
         else await expect(page.locator(bonusRecipient)).toHaveAttribute('href','/wallet/' + '9'.repeat(44));
         const recovery = await f.trigger(); f.rows = [bonusReceipt({ amount:'161' })]; recovery.release();
         await expect(page.locator(`${bonusHistoryRows} tbody td:nth-child(3)`)).toHaveText('0.000000161 SOL');
@@ -483,7 +478,7 @@ test.describe('FQA-071 original bonus history ownership', () => {
       try {
         await f.open();
         let gate = await f.trigger(); const refreshOwner = await page.locator(bonusRefresh).elementHandle();
-        f.rows = []; gate.release(); await expect(page.locator(bonusHistoryRows)).toContainText('No confirmed');
+        f.rows = []; gate.release(); await expect(page.locator(bonusHistoryRows)).toContainText('No finalized');
         expect(await refreshOwner.evaluate(element => element.isConnected && document.activeElement === element)).toBe(true);
         gate = await f.trigger(); gate.status = 503; gate.release(); await expect(page.locator(bonusHistoryRows)).toBeEmpty();
         expect(await refreshOwner.evaluate(element => document.activeElement === element)).toBe(true);
@@ -526,8 +521,10 @@ test.describe('FQA-071 original bonus history ownership', () => {
         const outside = await page.evaluateHandle(() => document.activeElement);
         gate.release(); await expect.poll(() => leaving.evaluate(element => element.isConnected)).toBe(false);
         expect(await outside.evaluate(element => element.isConnected && document.activeElement === element)).toBe(true);
-        // Home no longer exposes the embedded bonus panel; revisit the public route.
-        await page.evaluate(() => { location.hash = '#bonuses'; }); await expect(page).toHaveURL(/#bonuses$/);
+        if(width<700)await page.locator('#open-menu').click();
+        const secondary=page.locator('#secondary-navigation');
+        if(!await secondary.evaluate(element=>element.open))await secondary.locator('summary').click();
+        await page.locator('.nav-more-menu a[href="#bonuses"]').click(); await expect(page).toHaveURL(/#bonuses$/);
         await nativeBonusRecipient(page, info, 0, 'after-native-route-return');
         await bonusSnapshot(page, info, 'owner-leave-return-' + width);
       } finally { await f.finish(info); }

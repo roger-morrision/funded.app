@@ -1,7 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {runFeeCollectorLoop} from '../scripts/fee-collector-loop.mjs';
+import {runFeeCollectorLoop,collectFeeCandidates} from '../scripts/fee-collector-loop.mjs';
 const ready=counts=>({status:'ready',collected:0,settled:0,disbursed:0,settlementErrors:0,...counts});
+test('one unavailable mint does not starve later collection and uncertain submissions are not retried',async()=>{
+ const calls=[],errors=[],candidates=['unavailable','uncertain','eligible','paused','review'].map(mint=>({mint,...(mint==='review'?{collectionStatus:'verification-pending'}:{})}));
+ const result=await collectFeeCandidates({candidates,pausedMints:new Set(['paused']),lifecycle:{assertRunning(){}},minimumLamports:()=>100n,
+  request:async(path,body)=>{calls.push(body?.mint||path);if(path.includes('/unavailable/'))throw Error('read timed out');
+   if(!body)return {overview:{available:true,pump:{status:'confirmed',accruedLamports:'100'}}};
+   if(body.mint==='uncertain')throw Error('submission outcome unknown');return{scope:'per-mint-v3',status:'collected',onchainVerified:true,signature:'verified-receipt'};},onError:error=>errors.push(error)});
+ assert.deepEqual(result,{collected:1,errors:2});assert.deepEqual(errors.map(e=>[e.mint,e.stage]),[['unavailable','fee-read'],['uncertain','collection']]);
+ assert.equal(calls.filter(x=>x==='uncertain').length,1);assert(calls.includes('eligible'));assert(!calls.some(x=>/paused|review/.test(x)));
+});
+test('collector stopping during a read does not prepare another transaction',async()=>{
+ let stopped=false;const errors=[],lifecycle={assertRunning(){if(stopped)throw Error('stopped');}};
+ await assert.rejects(()=>collectFeeCandidates({candidates:[{mint:'first'},{mint:'next'}],pausedMints:new Set(),lifecycle,minimumLamports:()=>0n,
+  request:async()=>{stopped=true;throw Error('aborted read');},onError:row=>errors.push(row.error.message)}),/stopped/);
+ assert.deepEqual(errors,['aborted read']);
+});
 test('one trade wake advances collection, settlement and payouts, then resumes idle polling',async()=>{
  const events=[],lifecycle={stopped:false,wait:async ms=>{assert.equal(ms,5000);events.push('wait');if(events.at(-2)==='idle')lifecycle.stopped=true;}};
  const stages=[['collect',ready({collected:1})],['settle',ready({settled:1})],['pay',ready({disbursed:7})],['idle',ready({})]];

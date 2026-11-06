@@ -3,14 +3,22 @@ import {readFile} from 'node:fs/promises';
 import {isDeepStrictEqual} from 'node:util';
 import {publicMetadata} from './devnet-metadata.mjs';
 import {devnetLaunchMetadataUri} from '../devnet-metadata.js';
-import {pinnedMetadataUri} from '../metadata-publication.js';
+import {pinnedMetadataUri,isPinnedMetadataUri} from '../metadata-publication.js';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const fallbackImage = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="48" fill="#111827"/><text x="128" y="160" text-anchor="middle" font-family="sans-serif" font-size="100" fill="#d7b65d">F</text></svg>');
 
 // Bounded reads, no redirects, no cookies, and no upstream error bodies in UI.
 async function publicBytes(fetchImpl, uri, mime, maxBytes) {
-  const response = await fetchImpl(uri, {redirect:'error', credentials:'omit', cache:'no-store', signal:AbortSignal.timeout(12_000)});
+  const options={redirect:'error', credentials:'omit', cache:'no-store', signal:AbortSignal.timeout(12_000)};
+  let response=await fetchImpl(uri, options);
+  // A new CID may not have reached the public gateway yet. Retry only its GET;
+  // never repeat an upload or accept a response with different content.
+  if (isPinnedMetadataUri(uri) && [404,502,503,504].includes(response.status)) {
+    await response.body?.cancel();
+    await new Promise(resolve=>setTimeout(resolve,600));
+    response=await fetchImpl(uri,options);
+  }
   if (!response.ok || !response.headers.get('content-type')?.toLowerCase().startsWith(mime))
     throw new Error('Public metadata or image is not available in the expected format.');
   if (Number(response.headers.get('content-length')) > maxBytes) throw new Error('Public metadata or image exceeds its size limit.');
@@ -28,6 +36,8 @@ async function publicBytes(fetchImpl, uri, mime, maxBytes) {
 }
 
 export async function verifyPublishedMetadata(record, {fetchImpl = fetch} = {}) {
+  if(record.cluster==='mainnet-beta'&&(!isPinnedMetadataUri(record.pinnedMetadata?.uri)||!isPinnedMetadataUri(record.pinnedMetadata?.image)
+    ||record.bannerSha256&&!isPinnedMetadataUri(record.pinnedMetadata?.banner)))throw new Error('Mainnet requires durable content-addressed metadata.');
   const expected = publicMetadata(record);
   const uri = record.pinnedMetadata?.uri || devnetLaunchMetadataUri(record.mint);
   try {
@@ -50,7 +60,10 @@ export function createMetadataPublisher({env = process.env, fetchImpl = fetch} =
   const storage = env.METADATA_STORAGE || 'hosted-devnet';
   if (!['hosted-devnet','pinata'].includes(storage)) throw new Error('METADATA_STORAGE must be hosted-devnet or pinata.');
   return async ({record, image, imageType, banner, bannerType}) => {
-    if (storage === 'hosted-devnet') return record;
+    if (storage === 'hosted-devnet') {
+      if(record.cluster==='mainnet-beta')throw new Error('Mainnet requires durable content-addressed metadata.');
+      return record;
+    }
     const jwt = String(env.PINATA_JWT || (env.PINATA_JWT_FILE ? await readFile(env.PINATA_JWT_FILE, 'utf8') : '')).trim();
     if (!jwt) throw new Error('Durable metadata storage is not configured. No launch transaction was prepared.');
     const pin = async (bytes, mime, name) => {

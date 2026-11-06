@@ -13,12 +13,12 @@ for (const width of [390,1440]) {
   test(`manual fee split and advisory identity at ${width}px (mocked Devnet)`, async ({page}) => {
     await setup(page,width); await page.goto('/#launch');
     await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
+    await page.locator('#token-name').fill('Flow fixture');await page.locator('#token-symbol').fill('FLOW');await expect(page.locator('.flow-note').filter({hasText:'Similar name or ticker'})).toBeVisible();await page.locator('#launch-next').click();
     await page.locator('#creator-wallet-share').fill('40');await page.locator('#holder-airdrop-share').fill('40');
     await expect(page.locator('#creator-wallet-share')).toHaveValue('40');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('40');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('40');
-    await page.locator('#token-name').fill('Flow fixture');
-    await expect(page.locator('.flow-note').filter({hasText:'Similar name or ticker'})).toBeVisible();
+
     await page.locator('#creator-wallet-share').fill('80');await page.locator('#holder-airdrop-share').fill('0');
     await expect(page.locator('#creator-wallet-share')).toHaveValue('80');
     await expect(page.locator('#holder-airdrop-share')).toHaveValue('0');
@@ -39,6 +39,7 @@ for (const width of [390,1440]) {
     await page.route('**/api/buyback/status', route => route.fulfill({json:{cluster:'devnet',pending:[{mint,amountLamports:'101',status:'below-minimum-order'}],receipts:[{mint,signature:'3'.repeat(64),status:'finalized',vaultDebitVerified:true,burnInstructionVerified:true,burnedBaseUnits:'123'}]}}));
     await page.goto('/#payments/activity');
     await expect(page.locator('#financial-center')).toBeVisible();
+    await page.locator('[data-flow-scope-filter]').selectOption('protocol');
     await expect(page.locator('[data-flow-rows]')).toContainText('123 $FUNDED base units');
     await page.locator('[data-flow-filter]').selectOption('Accrued');
     await expect(page.locator('[data-flow-rows]')).toContainText('Below the execution minimum');

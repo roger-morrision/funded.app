@@ -176,7 +176,8 @@ export function initializeBuybackPreview(appState) {
       appState.lastKnownWatchlist = mints;
       appState.renderWatchlist();
       if (appState.homeLaunchTab === 'watchlist') appState.renderHomeLaunchBoard();
-      if (appState.exploreRisk === 'watchlist') appState.updateExploreViews();
+      if (appState.exploreTab === 'favorites') appState.updateExploreViews(true);
+      else if (appState.exploreRisk === 'watchlist') appState.updateExploreViews();
       window.dispatchEvent(new Event('funded:watchlist-changed'));
     },
     onStatus(state, message) {

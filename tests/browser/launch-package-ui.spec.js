@@ -17,20 +17,20 @@ test('launch stays blocked when V3 readiness is unavailable', async ({ page }) =
   });
   await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await expect(page.locator('#fee-router-status')).toContainText('Launch blocked:');
+  await expect(page.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
   await expect(page.locator('#launch-button')).toBeDisabled();
   expect(requests).toContain('/api/v3-launch-config');
   expect(requests).not.toContain('/api/mint-router/status');
 });
 
-test('protocol allocation copy agrees across FAQ, buyback, and fee flow', async ({ page }) => {
+test('protocol allocation copy agrees across summary, buyback, and fee flow', async ({ page }) => {
   const buyback = FEE_DISTRIBUTION.buybackEffectivePercent;
   await page.goto('/#capital-flow');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await expect(page.locator('#fee-policy-faq')).toContainText(`${buyback}% $FUNDED buyback & burn`);
+  await expect(page.locator('#capital-flow [data-fee-category="buyback"] > strong')).toHaveText(`${buyback}%`);
 
 
-  await expect(page.locator('.home-receipt-card .receipt-rows span').last()).toHaveText(`${buyback} SOL Buyback allocation`);
+  await expect(page.locator('.home-receipt-card .receipt-rows span').filter({hasText:'Buyback allocation'})).toHaveText(`${buyback} SOL Buyback allocation`);
   await expect(page.locator('.fee-route-bar i.burn')).toHaveAttribute('style', new RegExp(`width:\\s*${buyback}%`));
 });
 
@@ -142,12 +142,8 @@ test('Home opens the live launch form and old pilot links resolve there', async 
   await expect(page.locator('#launch-route-shell')).toBeVisible();
 });
 
-test('Home phone hero gives the X creator CTA its own full row', async ({ page }) => {
-  await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto('/#overview');
-  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  const actions = await page.locator('.hero-actions').boundingBox();
-  const xLaunch = await page.locator('.hero-actions [data-launch-for-x]').boundingBox();
-  expect(Math.abs(xLaunch.width - actions.width)).toBeLessThanOrEqual(1);
-  expect(xLaunch.height).toBeLessThanOrEqual(48);
+test('Home phone hero exposes the current launch and explore actions',async({page})=>{
+ await page.setViewportSize({width:375,height:812});await page.goto('/#overview');await page.locator('body.product-flows-ready').waitFor();
+ const actions=page.locator('.hero-actions');await expect(actions.getByRole('link',{name:'Launch a coin',exact:true})).toBeVisible();await expect(actions.getByRole('link',{name:'Explore coins',exact:true})).toBeVisible();await expect(actions.locator('[data-launch-for-x]')).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

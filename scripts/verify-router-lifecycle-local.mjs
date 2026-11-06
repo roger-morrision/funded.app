@@ -1,3 +1,4 @@
+import { SOLANA_GENESIS } from '../solana-network.js';
 /** Isolated local-validator acceptance. Never accepts a public RPC endpoint. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -14,7 +15,7 @@ const rpc = new URL(process.env.LOCAL_SOLANA_RPC_URL || 'http://127.0.0.1:18899'
 assert(['127.0.0.1', 'localhost'].includes(rpc.hostname), 'Only a loopback validator is permitted.');
 const connection = new Connection(rpc.toString(), 'confirmed');
 const genesis = await connection.getGenesisHash();
-assert(!['EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'].includes(genesis), 'A fresh local ledger is required.');
+assert(!Object.values(SOLANA_GENESIS).includes(genesis), 'A fresh local ledger is required.');
 const programId = new PublicKey('61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa');
 const binary = await readFile(new URL('../contracts/funded-fee-router/target/deploy/funded_fee_router.so', import.meta.url));
 const executable = await connection.getAccountInfo(programId);

@@ -19,7 +19,7 @@ test('connected wallet can check its airdrop card without a misleading connect p
       snapshotHash: 'fixture-snapshot', migrationSlot: 123, leafCount: 13,
       claimedBaseUnits: '0', totalBaseUnits: '30000000000000000' },
   ] }) }));
-  await page.route('**/api/airdrops/claims/proof**', route => {
+  await page.route('**/api/airdrops/allocation**', route => {
     proofRequests++;
     expect(new URL(route.request().url()).searchParams.get('wallet')).toBe(walletAddress);
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ineligible', recipient: walletAddress }) });
@@ -52,7 +52,7 @@ test('connected wallet can check its airdrop card without a misleading connect p
   await expect(page.locator('body')).toHaveAttribute('data-bootstrap-state', 'ready');
   const fundedBalance = page.locator('#airdrop-funded-balance');
   await expect(fundedBalance).toBeHidden();
-  await page.locator('[data-public-airdrop-tab="claiming"]').click();
+  await page.locator('[data-public-airdrop-tab="all"]').click();
   const card = page.locator('.airdrop-directory-card');
   await expect(card).toContainText('Connect to check');
   await page.locator('#connect-button').click();
@@ -60,13 +60,14 @@ test('connected wallet can check its airdrop card without a misleading connect p
   await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);
   await expect(fundedBalance).toBeVisible();
   await expect(fundedBalance).toContainText('Current $FUNDED balance');
-  await expect(fundedBalance).toContainText('Balance unavailable');
+  await expect(fundedBalance).toContainText('-');
   await expect(card).toContainText('No allocation');
   expect(proofRequests).toBe(1);
   await card.locator('.directory-claim').click();
   await expect(card).toContainText('No allocation');
-  await expect.poll(()=>proofRequests).toBe(2);
-  // Closing the detail while its scoped reserve read is pending must not start
+  await expect.poll(()=>proofRequests).toBe(1);
+  // A cached allocation is reused within 30 seconds. Closing the detail while
+  // its scoped reserve read is pending must not start
   // another wallet proof request when that obsolete read completes.
   let releaseReserve, reserveStarted;
   const heldReserve = new Promise(resolve => { releaseReserve = resolve; });
@@ -79,7 +80,7 @@ test('connected wallet can check its airdrop card without a misleading connect p
   const completedReserve=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/airdrops/reserves'&&new URL(response.url()).searchParams.has('mint'));
   releaseReserve();await (await completedReserve).finished();
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  await expect(page.locator('#airdrop-selected-program')).toBeHidden();expect(proofRequests).toBe(2);
+  await expect(page.locator('#airdrop-selected-program')).toBeHidden();expect(proofRequests).toBe(1);
   await page.locator('#connect-button').click();
   await page.locator('#wallet-popover-disconnect').click();
   await expect(fundedBalance).toBeHidden();

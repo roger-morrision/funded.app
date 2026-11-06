@@ -14,8 +14,8 @@ function fixture() {
   const mintBytes=Buffer.alloc(82);mintBytes.writeBigUInt64LE(100n,36);
   const tokenBytes=Buffer.alloc(165);mint.toBuffer().copy(tokenBytes);wallet.toBuffer().copy(tokenBytes,32);
   tokenBytes.writeBigUInt64LE(100n,64);tokenBytes[108]=1;
-  const transaction={slot:100,blockTime:1_800_000_000,meta:{err:null},transaction:{message:{
-    accountKeys:[PUMP_PROGRAM_ID,launchMint,pool],instructions:[{programIdIndex:0,accounts:[1,2],
+  const transaction={slot:100,blockTime:1_800_000_000,meta:{err:null,innerInstructions:[{index:0,instructions:[{programIdIndex:3,accounts:[2,0,0,1,4],data:bs58.encode(Buffer.from('e992d18ecf6840bc','hex'))}]}]},transaction:{message:{
+    accountKeys:[PUMP_PROGRAM_ID,launchMint,pool,PUMP_AMM_PROGRAM_ID,NATIVE_MINT],instructions:[{programIdIndex:0,accounts:[1,2],
       data:bs58.encode(createHash('sha256').update('global:migrate_v2').digest().subarray(0,8))}]}}};
   const connection={getTransaction:async()=>transaction,getAccountInfo:async()=>({owner:PUMP_AMM_PROGRAM_ID}),
     getSlot:async()=>101,getTokenLargestAccounts:async()=>({context:{slot:101},value:[{address:account}]}),

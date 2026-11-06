@@ -3,7 +3,7 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const KEY = 'funded.app.watchlist.guest.v1';
 const MINT = 'So11111111111111111111111111111111111111112';
-const intro = 'Star coins in Explore. Favorites stay on this device; verify a wallet or sign in with X to sync.';
+const intro = 'Sign in to save favorites across devices.';
 const ids = ['watchlist-wallet-sync', 'watchlist-sign-in', 'watchlist-sync-retry'];
 async function fixture(page, { mints = [], malformed = false, identity = 'guest', holdSync = false } = {}) {
   const writes = [], errors = []; let releaseSync, syncFails = false;
@@ -90,9 +90,9 @@ test('Favorites keeps actual guest, checking, sync and storage states authoritat
       await ready(page); const badge = page.locator('#community .section-state'), empty = page.locator('#watchlist-empty');
       await expect(page.getByRole('group', { name: 'Sync across devices', exact: true })).toBeVisible();
       await expect(page.locator('#community .section-heading .panel-explainer')).toHaveText(intro);
-      if (state === 'guest-populated') { await expect(badge).toHaveText('Sign in to sync'); await expect(empty).toBeHidden(); await expect(page.locator('#watchlist-items')).toContainText('This token remains in your favorites.'); }
+      if (state === 'guest-populated') { await expect(badge).toHaveText('Sign in to sync'); await expect(empty).toBeVisible(); await expect(page.locator('#watchlist-items .watchlist-unavailable')).toHaveCount(0); }
       if (state === 'checking') { await expect(badge).toHaveText('Checking sign-in'); await expect(page.locator('#community [data-watchlist-status]')).toContainText('Checking sign-in before loading favorites.'); }
-      if (state === 'storage-error') { await expect(badge).toHaveText('Sync unavailable'); await expect(empty).toBeHidden(); expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBe('{'); }
+      if (state === 'storage-error') { await expect(badge).toHaveText('Sign in to sync'); await expect(empty).toBeVisible(); expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBe('{'); }
       if (state === 'account-sync') {
         await expect(badge).toHaveText('Syncing'); await expect(page.locator('#watchlist-sign-in')).toBeHidden();
         await f.release(); await expect(badge).toHaveText('Synced to account'); await expect(empty).toBeHidden();
@@ -100,7 +100,7 @@ test('Favorites keeps actual guest, checking, sync and storage states authoritat
         f.failSync(); await page.locator('#watchlist-sync-retry').focus(); await page.keyboard.press('Enter');
         await expect(badge).toHaveText('Sync unavailable'); await expect(empty).toBeHidden();
         await expect(page.locator('#watchlist-items')).toContainText('This token remains in your favorites.');
-        await expect(page.locator('#community [data-watchlist-status]')).toHaveText('Fixture sync failure');
+        await expect(page.locator('#community [data-watchlist-status]')).toHaveText('Favorites sync is unavailable. Try again.');
       }
       await page.screenshot({ path: info.outputPath(`favorites-${state}.png`), fullPage: true });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true); expect(f.errors).toEqual([]); expect(f.writes).toEqual([]);

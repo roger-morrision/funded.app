@@ -1,6 +1,6 @@
 import {PublicKey,TransactionMessage,VersionedTransaction} from '@solana/web3.js';
 import {createAssociatedTokenAccountIdempotentInstruction} from '@solana/spl-token';
-import {buildCommunityClaimInstruction,communityAddresses} from './community-claim-chain.mjs';
+import {buildCommunityClaimInstruction,communityAddresses,supportsProgramRecipients} from './community-claim-chain.mjs';
 import {executeCommunityJournal} from './community-execution-journal.mjs';
 import {verifyCommunityDelivery} from './community-delivery-proof.mjs';
 
@@ -45,11 +45,11 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
     });
   }
   async function pay(record,leaf){
-    const proof=await service.recipientProof({mint:record.mint,wallet:leaf.recipient,allowRecentProgramProof:false});
+    const proof=await service.recipientProof({mint:record.mint,wallet:leaf.recipient,allowRecentProgramProof:false,forAutomaticDelivery:true});
     if(proof.status==='claimed')return {status:'already-paid',payment:proof.payment};
     if(proof.status!=='claimable')return {status:proof.status,reason:proof.reason};
     const built=buildCommunityClaimInstruction({programId,authority:payer,mint:record.mint,tokenProgram:record.tokenProgram,
-      manifest:record.manifest,recipient:leaf.recipient,payer});
+      manifest:record.manifest,recipient:leaf.recipient,payer,allowProgramRecipient:supportsProgramRecipients(record)});
     return run(record,leaf.recipient,async()=>{
       const ata=createAssociatedTokenAccountIdempotentInstruction(payer,new PublicKey(built.recipientToken),
         new PublicKey(leaf.recipient),new PublicKey(record.mint),new PublicKey(record.tokenProgram));

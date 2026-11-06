@@ -35,7 +35,7 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
       }
     };
     await page.goto('/#marketing-agency');await check();
-    await expect(page.locator('[data-agency-status]')).toContainText('unavailable');
+    await expect(page.locator('[data-agency-status]')).toContainText('Refresh to try again');
     for(const route of ['overview','explore','launch','my-launches','payments','marketing-agency']){
       if(width<=700)await page.locator('#open-menu').click();
       await page.locator(`.primary-nav a[href="#${route}"]`).click();await expect(page.locator('body')).toHaveClass(new RegExp(`page-route-${route}(?: |$)`));await check();
@@ -55,8 +55,11 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
       await page.locator('#desktop-sidebar-toggle').click();await check();
     }
     if(width<=700)await page.locator('#open-menu').click();
-    await expect(page.locator('.primary-nav details')).toHaveCount(0);await expect(page.locator('.nav-more-menu')).toBeVisible();
-    await page.locator('.nav-more-menu a[href="#docs"]').click();await expect(page.locator('body')).toHaveClass(/page-route-docs/);await check();
+    const secondary=page.locator('.primary-nav details#secondary-navigation');
+    await expect(secondary).toHaveCount(1);
+    if(!await secondary.evaluate(element=>element.open))await secondary.locator('summary').click();
+    await expect(page.locator('.nav-more-menu')).toBeVisible();
+    await page.locator('.primary-nav a[href="#docs"]').click();await expect(page.locator('body')).toHaveClass(/page-route-docs/);await check();
     await page.evaluate(()=>scrollTo(0,document.body.scrollHeight));
     expect(await page.locator('#sidebar').evaluate(element=>element.getBoundingClientRect().top)).toBe(0);
   });

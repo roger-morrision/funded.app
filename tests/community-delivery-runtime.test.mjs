@@ -11,7 +11,7 @@ function fixture(){
   const options={store:{read:async()=>app},automaticRewardStore:{read:async()=>structuredClone(ledger),transaction:async fn=>fn(ledger)},
     solanaCluster:'devnet',solanaRpcUrl:'https://fixture.invalid',fundedTokenMint:String(pair(126).publicKey),v3AuthorityKeypair:()=>authority,connection:{},logger:{error:()=>{}},
     env:{FUNDED_COMMUNITY_AUTO_DELIVERY_ENABLED:'true',FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program,FUNDED_V3_PROGRAM_DATA_SHA256:'a'.repeat(64)},
-    findMigration:async()=>{if(gate)await gate;return 'migration';},serviceFactory:()=>({prepare:async input=>{assert.equal(input.migrationSignature,'migration');preparations++;ledger.communityDrops={[mint]:record};return record;}}),
+    scanPools:async(_c,ids)=>new Map(ids.map(id=>[id,123])),findMigration:async()=>{if(gate)await gate;return 'migration';},serviceFactory:()=>({prepare:async input=>{assert.equal(input.migrationSignature,'migration');preparations++;ledger.communityDrops={[mint]:record};return record;}}),
     deliveryFactory:()=>({pay:async()=>{payments++;return {status:'finalized'};}})};
   return {options,ledger,app,record,get preparations(){return preparations;},get payments(){return payments;},hold:promise=>gate=promise};
 }
@@ -36,7 +36,7 @@ test('an RPC outage stops further recipients and pauses both loops before a fres
   for(const message of ['503 Service Unavailable','fetch failed','429 max usage reached']){
     const f=fixture();let time=100000,calls=0,fail=true;
     f.options.now=()=>time;
-    f.ledger.communityDrops={[mint]:{...f.record,manifest:{leaves:[...f.record.manifest.leaves,...f.record.manifest.leaves]}}};
+    f.ledger.communityDrops={[mint]:{...f.record,manifest:{leaves:[...f.record.manifest.leaves,{...f.record.manifest.leaves[0],index:1,recipient:String(pair(128).publicKey)}]}}};
     f.options.deliveryFactory=()=>({pay:async()=>{calls++;if(fail)throw new Error(message);return {status:'finalized'};}});
     const runtime=createCommunityDeliveryRuntime(f.options);
     await runtime.tick();assert.equal(calls,1);assert.equal(f.ledger.communityDeliveryStatus.status,'degraded');
@@ -46,4 +46,23 @@ test('an RPC outage stops further recipients and pauses both loops before a fres
     time+=message.startsWith('429')?900000:60000;fail=false;
     await runtime.tick();assert.equal(calls,3);assert.equal(f.ledger.communityDeliveryStatus.status,'ready');
   }
+});
+
+test('batch pool scan notices a later migration and skips pools already older than the replay window',async()=>{
+ const {createMigrationCandidateReader}=await import('../server/community-migration-discovery.mjs');
+ const {PUMP_AMM_PROGRAM_ID}=await import('@pump-fun/pump-swap-sdk');
+ const second=String(pair(127).publicKey),scan=createMigrationCandidateReader();let slot=1000,created=false,calls=0;
+ const connection={getMultipleAccountsInfoAndContext:async(keys,options)=>{calls++;assert.equal(keys.length,2);
+   assert.equal(options.commitment,'finalized');return {context:{slot},value:[{owner:PUMP_AMM_PROGRAM_ID},created?{owner:PUMP_AMM_PROGRAM_ID}:null]};}};
+ assert.deepEqual([...await scan(connection,[mint,second])],[[mint,1000]]);
+ slot+=257;created=true;assert.deepEqual([...await scan(connection,[mint,second])],[[second,1257]]);
+ assert.equal(calls,2);
+});
+
+test('later passes retry pending recipients but do not re-read a finalized payment for the same immutable drop',async()=>{
+ const f=fixture();f.ledger.communityDrops={[mint]:f.record};let calls=0;
+ f.options.deliveryFactory=()=>({pay:async()=>({status:++calls===1?'verification-pending':'already-paid'})});
+ const r=createCommunityDeliveryRuntime(f.options);await r.tick();await r.tick();await r.tick();assert.equal(calls,2);
+ assert.equal(f.ledger.communityDeliveryStatus.examined,0);
+ const restarted=createCommunityDeliveryRuntime(f.options);await restarted.tick();assert.equal(calls,3);
 });

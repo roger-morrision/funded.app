@@ -310,7 +310,7 @@ html body #main-content #airdrop-directory .directory-wallet-allocation {
 }
 html body #main-content #airdrop-directory .directory-wallet-allocation b { color: var(--cp-text); font-weight: 600; }
 html body #main-content #airdrop-directory .directory-footer .token-card-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
-html body #main-content #airdrop-directory .directory-footer .directory-claim { width: auto; min-height: 40px; padding: 8px 16px; white-space: nowrap; }
+html body #main-content #airdrop-directory .directory-footer .directory-claim { width: auto; min-height: 44px; padding: 8px 16px; white-space: nowrap; }
 html body #main-content #airdrop-directory .airdrop-status {
   padding: 4px 10px; border: 1px solid var(--cp-line-strong); border-radius: 999px; font-size: 12px; white-space: nowrap;
 }

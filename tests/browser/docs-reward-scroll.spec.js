@@ -1,8 +1,8 @@
 import {expandDocsBrowser} from './docs-menu-helpers.js';
 import{test,expect}from'@playwright/test';import{createHash}from'node:crypto';import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
-const titles={'reward-actions':'Automatic payouts or claims?',claims:'Claiming rewards'};
-// Reviewed six-row text for automatic/manual saved-policy execution (2026-11-01).
-const baselineRows='876a63b1068202c32c2471485f8da53fc95be69a4d7b986219d6f30cc6abfb3b';
+const titles={'reward-actions':'Automatic payouts or claims?',claims:'Automatic payouts and claims'};
+// Reviewed six-row text: manual creator/referral claims and automatic community delivery (2026-11-05).
+const baselineRows='4bfe388ca22dda5da6c3177dd64b912405dabad050c13341c3964cb7685e1409';
 for(const width of[360,390,1440])test(`FQA-028 Docs comparison native keyboard and touch at ${width}px (offline API)`,async({page},info)=>{
  test.setTimeout(90000);await page.setViewportSize({width,height:width===1440?900:844});const errors=[],writes=[],observations=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('https://**/*',r=>r.abort());await page.route('**/api/**',r=>{const q=r.request();if(!['GET','HEAD','OPTIONS'].includes(q.method())){if(!(new URL(q.url()).pathname==='/api/solana/rpc'&&['getSlot','getAccountInfo','getMultipleAccounts'].includes(q.postDataJSON()?.method)))writes.push(q.url());return r.abort()}return new URL(q.url()).pathname==='/api/fee-policy'?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline Docs fixture'}})});
@@ -10,7 +10,7 @@ for(const width of[360,390,1440])test(`FQA-028 Docs comparison native keyboard a
  const geometry=()=>wrap.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),o=parseFloat(s.outlineWidth)+Math.max(0,parseFloat(s.outlineOffset)),h=document.querySelector('.topbar').getBoundingClientRect(),n=document.querySelector('.mobile-workspace-nav');return{client:e.clientWidth,scroll:e.scrollWidth,left:e.scrollLeft,top:e.scrollTop,height:r.height,article:e.closest('article').getBoundingClientRect().width,layout:document.querySelector('.docs-guide-layout').getBoundingClientRect().width,fullFocus:r.top-o>=Math.max(0,h.bottom)&&r.bottom+o<=(n?.getClientRects().length?n.getBoundingClientRect().top:innerHeight)&&r.left-o>=0&&r.right+o<=innerWidth,outline:s.outlineStyle,focusVisible:e.matches(':focus-visible'),overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth}});
  for(const topic of['reward-actions','claims']){
   await page.goto('/#docs/'+topic);await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);await expect(article.locator('h1')).toHaveText(titles[topic]);await expect(wrap).toHaveRole('region');await expect(wrap).toHaveAccessibleName('Reward actions comparison');await expect(wrap.getByRole('columnheader')).toHaveText(['Program','Asset','What you do','What must be ready']);await expect(wrap.locator('tbody tr')).toHaveCount(6);
-  const rows=await wrap.locator('tbody tr').allTextContents();expect(createHash('sha256').update(JSON.stringify(rows)).digest('hex')).toBe(baselineRows);expect(await wrap.locator('tbody a').evaluateAll(a=>a.map(x=>({name:x.textContent,href:x.getAttribute('href')})))).toEqual([{name:'Creator wallet',href:'#payments'},{name:'Coin holders',href:'#payments/holders'},{name:'X account',href:'#payments'},{name:'Referral network',href:'#referrals'},{name:'Daily bonus',href:'#bonuses'},{name:'Community airdrop',href:'#airdrops'}]);
+  const rows=await wrap.locator('tbody tr').allTextContents();expect(createHash('sha256').update(JSON.stringify(rows)).digest('hex')).toBe(baselineRows);expect(await wrap.locator('tbody a').evaluateAll(a=>a.map(x=>({name:x.textContent,href:x.getAttribute('href')})))).toEqual([{name:'Creator wallet',href:'#payments/creator'},{name:'Coin holders',href:'#payments/holders'},{name:'X account',href:'#payments/x'},{name:'Referral network',href:'#referrals'},{name:'Daily bonus',href:'#bonuses'},{name:'Community airdrop',href:'#airdrops'}]);
   let before=await geometry();expect(before.article).toBeLessThanOrEqual(before.layout+1);expect(before.overflow).toBe(false);
   if(width<700){
    await expect(wrap).toHaveAttribute('tabindex','0');await expect(help).toBeVisible();await expect(wrap).toHaveAccessibleDescription(/Left\/Right and Up\/Down arrow keys/);
@@ -234,13 +234,12 @@ async function openGuideNatively(page, topic) {
     await expect(opener).toHaveAttribute('aria-expanded', 'true');
     const sidebar = page.locator('#sidebar');
     await expect(sidebar).toBeVisible(); await expect(sidebar).toHaveJSProperty('inert', false);
-    const more = sidebar.locator('.nav-more-menu');
-    await expect(more).toBeVisible();
-    await more.getByRole('link', { name: 'Docs and help', exact: true }).click();
+    await sidebar.getByRole('link', { name: 'Docs and help', exact: true }).click();
     await expect(opener).toHaveAttribute('aria-expanded', 'false');
   } else {
-    await page.getByRole('button', { name: 'Open help topics', exact: true }).click();
-    await page.locator('#help-topics-panel').getByRole('link', { name: 'Open the help guide →', exact: true }).click();
+    const menu = page.locator('#secondary-navigation');
+    if (!await menu.evaluate(e => e.open)) await menu.locator('summary').click();
+    await page.locator('#sidebar').getByRole('link', { name: 'Docs and help', exact: true }).click();
   }
   await expect(page).toHaveURL(/#docs$/);
   if (aliasEntry) {
@@ -347,13 +346,13 @@ for (const width of [360, 390, 1440]) test(`Holder direct reload program states 
     await expect.poll(() => f.schedules.some(x => x.state === 'unavailable')).toBe(true);
     await expect(page.locator('#rewards-holder [data-auto-status]')).toBeVisible();
     await expect(page.locator('#rewards-holder [data-auto-status]')).toHaveText('Controlled unavailable/deferred guide fixture');
-    await expect(page.locator('#rewards-holder .preview-chip')).toHaveText('Schedule unavailable');
+    await expect(page.locator('#rewards-holder .preview-chip')).toHaveText('-');
     await expect(page.locator('#rewards-holder [data-clock-label]')).toHaveText('Not scheduled');
     for (const state of ['unavailable', 'empty', 'populated-deferred']) {
       fixture.set(state); const length = await page.evaluate(() => history.length); await page.reload(); await page.locator('body.workspace-ready.product-experience-ready').waitFor();
       await assertPublicHolder(page); expect(await page.evaluate(() => history.length)).toBe(length);
       await expect(page.locator('#rewards-holder [data-clock-label]')).toHaveText(state === 'populated-deferred' ? 'Reward funding carries forward' : 'Not scheduled');
-      await expect(page.locator('#rewards-holder .preview-chip')).toHaveText(state === 'unavailable' ? 'Schedule unavailable' : 'Schedule needs attention');
+      await expect(page.locator('#rewards-holder .preview-chip')).toHaveText(state === 'unavailable' ? '-' : 'Schedule needs attention');
       await expect(page.locator('#rewards-holder [data-clock]')).toBeHidden();
       await expect(page.locator('#rewards-holder')).not.toContainText('Schedule active');
       if (state === 'populated-deferred') await expect(page.locator('#rewards-holder [data-clock-coin]')).toContainText('GUIDEQA');

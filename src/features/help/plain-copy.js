@@ -6,7 +6,7 @@ export function plainPublicText(value){
 export function initializePlainCopy(document=globalThis.document){
   if(!document?.body||document.body.dataset.plainCopyReady)return;
   document.body.dataset.plainCopyReady='true';
-  const untouched='script,style,code,pre,textarea,input,[contenteditable],[data-user-content],.callout-text,.coin-chat-messages,.compact-token-link,.directory-token-identity,.home-new-token-heading';
+  const untouched='script,style,code,pre,textarea,input,[contenteditable],[data-user-content],.callout-text,.coin-chat-messages,.compact-token-link,.directory-token-identity,.home-new-token-heading, .creator-reward-name, .creator-claim-heading a';
   const clean=root=>{
     if(root.nodeType===3){
       if(root.parentElement?.closest(untouched))return;

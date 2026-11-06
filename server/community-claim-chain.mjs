@@ -106,7 +106,10 @@ export function buildCommunityInitializeInstruction({ programId, authority, crea
     sourceToken:sourceToken.toBase58(), dropToken:dropToken.toBase58() };
 }
 
-export function buildCommunityClaimInstruction({ programId, authority, mint, tokenProgram, manifest, recipient, payer }) {
+// Only newly prepared migration records opt into authority-paid program-owner delivery.
+export const supportsProgramRecipients = record => record?.snapshotBasis === 'pump-migration' && record.automaticDeliveryVersion === 2;
+
+export function buildCommunityClaimInstruction({ programId, authority, mint, tokenProgram, manifest, recipient, payer, allowProgramRecipient = false }) {
   const program = new PublicKey(programId), asset = new PublicKey(mint), token = new PublicKey(tokenProgram);
   const wallet = address(recipient);
   const leaf = manifest.leaves?.find(row => row.recipient === wallet);
@@ -115,7 +118,8 @@ export function buildCommunityClaimInstruction({ programId, authority, mint, tok
   const { drop, payment } = communityAddresses({ programId:program, authority, mint:asset, recipient:wallet });
   if (drop.toBase58() !== manifest.drop) throw new Error('Manifest does not belong to the current drop PDA.');
   const vaultToken = getAssociatedTokenAddressSync(asset, drop, true, token);
-  const recipientToken = getAssociatedTokenAddressSync(asset, new PublicKey(wallet), false, token);
+  if (allowProgramRecipient && !new PublicKey(payer).equals(new PublicKey(authority))) throw new Error('Program-owner delivery requires the platform payer.');
+  const recipientToken = getAssociatedTokenAddressSync(asset, new PublicKey(wallet), allowProgramRecipient, token);
   const proof = Buffer.concat(leaf.proof.map(node => hex32(node, 'Proof node')));
   const data = Buffer.concat([digest('global:claim_community_drop'), u64(leaf.amount), u32(leaf.index), u32(leaf.proof.length), proof]);
   const keys = [
