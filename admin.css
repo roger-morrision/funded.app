@@ -24,3 +24,16 @@
 .service-status-checks [data-status="available"] span { color:#8de3af; }
 .service-status-panel button { min-height:44px; }
 @media(max-width:600px){.service-status-checks { grid-template-columns:1fr; }}
+
+/* Same brand, navigation and accent language as the main app (no purple accents). */
+.page-route-admin .brand { color: #f6f2e9; font-family: Manrope, system-ui, sans-serif; font-size: 18px; font-weight: 800; }
+.page-route-admin .brand span { color: inherit; }
+.page-route-admin .brand .brand-dot { color: #f4a340; }
+.page-route-admin .sidebar .nav-item.active { color: #ffd28a; background: #202b42; border-color: #785b38; box-shadow: inset 3px 0 0 #f4a340; }
+.page-route-admin .eyebrow { color: #9aa8bf; }
+.page-route-admin :is(.page-title > span, .section-head > span) { color: #9aa8bf; }
+.page-route-admin .links a { color: #f4a340; }
+.page-route-admin :is(td code, #audit code) { color: #c3cee0; }
+.page-route-admin button { background: transparent; border-color: #34465f; color: #f6f2e9; }
+.page-route-admin button:hover:not(:disabled) { background: transparent; border-color: #f4a340; color: #ffd28a; }
+.page-route-admin :is(#connect,#sign-in):not(:disabled):hover { background: #ffc46b; border-color: #ffc46b; color: #101520; }
