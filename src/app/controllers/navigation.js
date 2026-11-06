@@ -168,7 +168,7 @@ export function createNavigationController(appState) {
     else document.body.classList.remove('explore-route');
     const creatorSupportRoute = requestedHash === 'creators' || /^creator\/\d{1,24}$/.test(requestedHash)
       || (!requestedHash && /^\/creator\/x\/\d{1,24}\/?$/.test(location.pathname));
-    const navRoute = appState.coinRouteRequested() || creatorSupportRoute ? 'explore'
+    const navRoute = creatorSupportRoute ? 'creators' : appState.coinRouteRequested() ? 'explore'
       : appState.walletRouteRequested() || requestedHash === 'creator-settings' ? 'my-launches' : route;
     document.querySelectorAll('.nav-item').forEach(item => {
       const hrefRoute = item.getAttribute('href') === '/funded' ? 'paid' : item.getAttribute('href')?.replace(/^#/, '');

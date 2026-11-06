@@ -330,3 +330,50 @@ html body #main-content .bonus-countdown-prizes small { color: var(--fv-text-sub
 html body #launch-dialog .launch-summary-plain { margin: var(--fv-space-2) 0; padding: var(--fv-space-2) var(--fv-space-3); border-left: 3px solid var(--fv-accent); border-radius: var(--fv-radius-sm); background: var(--fv-accent-soft); color: var(--fv-text); font: 600 12px/1.5 var(--fv-font-ui); }
 
 /* Callouts: live board of coin calls in three columns, and the call toggle and badge in coin chat. */
+
+/* ── Cross-page consistency (2026-11-06 UI review) ───────────────────────── */
+
+/* Topbar: Creators is a support view on the Home route, so it inherits Home's hidden
+   page title. Show it, and keep the search button on the right next to the network
+   badge on Home, where the title stays hidden. */
+html body.support-view-active .topbar .topbar-context { display: block; }
+html body.page-route-overview:not(.support-view-active) .topbar .header-search-trigger { margin-left: auto; }
+
+/* Page-level tabs: Explore and Leaderboard use the same tab style as Rewards. */
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) { gap: 6px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) > button { min-height: 40px; padding: 8px 14px; border: 1px solid transparent; border-radius: var(--cp-radius); background: transparent; box-shadow: none; color: var(--cp-muted); font: 700 13px var(--fv-font-ui); text-transform: none; letter-spacing: 0; }
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) > button:hover { color: var(--cp-text); }
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) > button.active,
+html body.page-route-explore #main-content .explore-heading .segmented > button.active { border-color: var(--cp-line-strong); background: var(--cp-surface); box-shadow: none; color: var(--cp-accent); }
+html body #main-content .segmented.leaderboard-tabs > button::after { display: none; }
+
+/* In-page text links share the accent color instead of mixing blue and orange. */
+html body #main-content .text-button { color: var(--fv-accent); }
+html body #main-content .text-button:hover { color: var(--cp-accent); }
+html body #main-content #bonuses a:not([class]) { color: var(--fv-accent); text-underline-offset: 2px; }
+
+/* Daily bonuses: same open page layout as Leaderboard and Rewards, not a card glued to the topbar. */
+html body #main-content > #bonuses.bonus-history-page { padding: var(--fv-space-5) 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+
+/* Creators: header shortcuts use the standard secondary button. */
+html body.page-route .creator-support-page .support-shortcuts a { border: 1px solid var(--cp-line-strong); border-radius: var(--cp-radius); background: transparent; color: var(--fv-text); }
+html body.page-route .creator-support-page .support-shortcuts a:hover { border-color: var(--fv-accent); color: var(--fv-accent); }
+
+/* Get listed cards: the whole-card link is an invisible overlay, the name gets the full
+   row, and the burn proof reads as a labeled button instead of an empty square. */
+html body #main-content .paid-listing-card { position: relative; }
+html body #main-content .paid-listing-card > .home-launch-card-link { position: absolute; inset: 0; z-index: 0; min-height: 0; padding: 0; border: 0; background: transparent; }
+html body #main-content .paid-listing-card :is(.home-card-overview, .home-launch-protocol, .home-launch-card-actions) { position: relative; z-index: 1; pointer-events: none; }
+html body #main-content .paid-listing-card :is(a, button) { pointer-events: auto; }
+html body #main-content .paid-listing-card .home-launch-card-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--fv-space-1) var(--fv-space-2); }
+html body #main-content .paid-listing-card .home-token-identity { display: grid; gap: 2px; min-width: 0; }
+html body #main-content .paid-listing-card .home-token-identity :is(strong, small) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body #main-content .paid-listing-card .home-launch-media-stage { grid-column: 2; grid-row: 1; align-self: start; }
+html body #main-content .paid-listing-card .home-launch-card-addresses { grid-column: 1 / -1; display: flex; }
+html body #main-content .paid-listing-card .home-launch-card-addresses span { display: inline-flex; align-items: center; gap: var(--fv-space-1); }
+html body #main-content .paid-listing-card .home-launch-card-actions { grid-template-columns: minmax(0, 1fr) auto; }
+html body #main-content .paid-listing-card .home-launch-card-actions > .paid-listing-proof { width: auto; height: auto; min-width: 0; min-height: 44px; display: inline-flex; align-items: center; border: 1px solid var(--cp-line-strong); border-radius: var(--cp-radius); padding: 0 var(--fv-space-3); color: var(--fv-text-muted); font: 600 13px var(--fv-font-ui); white-space: nowrap; }
+html body #main-content .paid-listing-card .home-launch-card-actions > .paid-listing-proof:hover { border-color: var(--fv-accent); color: var(--fv-accent); }
+
+/* Home FAQ artwork loads on scroll; hide the alt text box until it arrives. */
+html body #main-content img[data-deferred-art] { color: transparent; background: var(--fv-surface); }
