@@ -497,13 +497,14 @@ function observeFollowing082Control(original, readiness = {}) {
   });
 }
 function following082Observe(page) {
-  const requests=[],pending=new Set();let closing,contextClosed=false;
+  const requests=[],pending=new Set();let closing,contextClosed=false,lastRequestAt=0;
   const failed=(row,reason,error)=>{
     row.state=closing?'cancelled':'failed';row.failureReason=reason;row.error=String(error);
     if(closing){row.phase=closing.phase;row.closeReason=closing.reason;}
   };
   page.on('request',request=>{
     const u=new URL(request.url());if(!u.pathname.startsWith('/api/'))return;
+    lastRequestAt=Date.now();
     const row={request,path:u.pathname,method:request.method(),state:'pending',priorRequestEvents:requests.filter(row=>row.request===request).length,
       phase:closing?'owned-context-close':'journey',startedDuringOwnedClose:Boolean(closing)};
     requests.push(row);
@@ -517,9 +518,11 @@ function following082Observe(page) {
     const row=requests.find(r=>r.request===response.request());if(!row)return;
     row.status=response.status();row.responseEvents=(row.responseEvents||0)+1;
     const work=(async()=>{try{
-      row.finishedError=await response.finished();
-      if(row.finishedError!==null){failed(row,'response-finished-error',row.finishedError);return;}
-      row.body=await response.json();row.jsonComplete=true;row.state='complete';
+      // Collect the body before document navigation can evict it from CDP.
+      const [finished,body]=await Promise.all([response.finished(),response.json()]);
+      row.finishedError=finished;
+      if(finished!==null){failed(row,'response-finished-error',finished);return;}
+      row.body=body;row.jsonComplete=true;row.state='complete';
     }catch(error){failed(row,'response-body-error',error);}})();
     pending.add(work);void work.finally(()=>pending.delete(work));
   });
@@ -529,8 +532,8 @@ function following082Observe(page) {
       for(const row of requests)if(row.state==='pending'&&row.startedDuringOwnedClose)
         failed(row,'owned-context-closed-without-response-event','Actual owned context close completed; no response-body completion claimed');
     },settle:async({allowCloseCancellation=false}={})=>{
-    try{await expect.poll(()=>pending.size).toBe(0);
-    await expect.poll(()=>requests.filter(r=>r.state==='pending').length).toBe(0);}
+    try{await expect.poll(()=>pending.size===0&&requests.every(r=>r.state!=='pending')
+      &&(allowCloseCancellation||Date.now()-lastRequestAt>=150)).toBe(true);}
     catch(error){error.message+='\nAPI observation state: '+JSON.stringify(requests.filter(row=>row.state!=='complete').map(({request,...row})=>row));throw error;}
     const unacceptable=requests.filter(row=>!(row.state==='complete'&&row.jsonComplete===true&&row.finishedError===null)
       && !(allowCloseCancellation&&row.state==='cancelled'&&row.phase==='owned-context-close'&&row.closeReason)

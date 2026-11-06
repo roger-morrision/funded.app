@@ -63,7 +63,7 @@ for (const value of ['{', '{"mints":true}', '{"mints":["invalid"],"importId":"ba
 test('unknown sign-in state does not overwrite legacy guest favorites',async({page})=>{
   await page.route('**/api/x/me',r=>r.fulfill({status:503,json:{}}));
   await page.addInitScript(({KEY,MINT})=>localStorage.setItem(KEY,JSON.stringify({mints:[MINT]})),{KEY,MINT});
-  await page.goto('/token/'+MINT);await ready(page);await page.locator('#coin-watch').click();
+  await page.goto('/token/'+MINT,{waitUntil:'domcontentloaded'});await ready(page);await page.locator('#coin-watch').click();
   await expect(page.locator('#coin-watch')).toHaveAttribute('aria-pressed','false');
   expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).mints,KEY)).toEqual([MINT]);
 });

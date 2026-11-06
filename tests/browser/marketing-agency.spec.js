@@ -56,7 +56,7 @@ for(const width of [320,390,1440])test(`X promotion is included only with a prom
 test('failed capability load is unavailable with working retry, never zero funds or ready', async ({ page }) => {
   await page.route('**/api/marketing-agency', route => route.fulfill({ status: 503, json: {} }));
   await page.goto('/#marketing-agency');
-  await expect(page.locator('[data-agency-status]')).toHaveText('-');
+  await expect(page.locator('[data-agency-status]')).toContainText(/agency (?:status|readiness) (?:is )?unavailable/i);
   await expect(page.locator('[data-agency-funded]')).toHaveText('-');
   await page.unroute('**/api/marketing-agency');
   await page.locator('[data-agency-refresh]').click();
@@ -68,7 +68,7 @@ test('unverified active API claims cannot advertise working agency agents', asyn
     ...marketingAgencyCapabilities(), active: true, executionEnabled: true,
     funding: { status: 'verified', collectedLamports: '100000000000' } } }));
   await page.goto('/#marketing-agency');
-  await expect(page.locator('[data-agency-status]')).toHaveText('-');
+  await expect(page.locator('[data-agency-status]')).toContainText(/agency (?:status|readiness) (?:is )?unavailable/i);
   await expect(page.locator('[data-agency-funded]')).toHaveText('-');
 });
 

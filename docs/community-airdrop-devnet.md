@@ -6,6 +6,8 @@ Product workflows: [all-page guide](product-guide.md). Historical evidence below
 
 Every launch reserves at least **3% of its launched coin supply**. Hold **$FUNDED until the coin migrates** to qualify. Tokens are sent automatically to the eligible wallet after the exact migration snapshot, funding and on-chain approval are verified. No recipient claim, wallet signature or recipient transaction fee is required. Migration fixes eligibility; network verification and processing can delay delivery.
 
+New migration snapshots include eligible $FUNDED held by program-controlled addresses. The platform pays to the canonical token account owned by that exact address and covers its creation if necessary. No signature from the recipient is required. The program controls what happens to those tokens afterward. This does not change already published allocations or the directly signable wallet requirement for trader bonuses.
+
 **Wallet allocation = airdrop pool × wallet eligible $FUNDED balance ÷ total eligible $FUNDED holdings at migration.** Amounts round down to token base units. Excluded wallets do not enter the denominator. A wallet holding 1% of eligible $FUNDED receives 1% of the pool: 300,000 tokens from a 30,000,000-token pool. Later purchases do not qualify retrospectively. These are launched coin tokens, separate from SOL rewards.
 
 Open **Airdrops** or **Rewards → Token airdrops** to inspect your allocation and delivery. Missing exact-slot evidence never becomes a substitute snapshot. Existing on-chain expiry and remainder terms remain intact. Historical QA cutoffs remain explicitly labeled and are not automatically distributed by the real-migration worker.
