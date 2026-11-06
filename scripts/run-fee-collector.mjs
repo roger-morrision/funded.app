@@ -24,7 +24,9 @@ if (process.argv.includes('--check')) {
   if (!token) throw new Error('Keeper API token is required.');
   async function request(path, body) {
     lifecycle.assertRunning();
-    const response = await fetch(`${api}${path}`, { method:body ? 'POST' : 'GET', headers:{ authorization:`Bearer ${token}`, ...(body ? { 'content-type':'application/json' } : {}) }, body:body ? JSON.stringify(body) : undefined, signal:AbortSignal.timeout(['/api/keeper/collect','/api/keeper/settle-v3','/api/keeper/disburse-v3','/api/keeper/reconcile-v3-collection'].includes(path) ? 120_000 : 15_000) });
+    // Leave time for the server's 15-second vault read to return its status.
+    const readTimeoutMs = path.endsWith('/fee-activity?view=balance') ? 30_000 : 15_000;
+    const response = await fetch(`${api}${path}`, { method:body ? 'POST' : 'GET', headers:{ authorization:`Bearer ${token}`, ...(body ? { 'content-type':'application/json' } : {}) }, body:body ? JSON.stringify(body) : undefined, signal:AbortSignal.timeout(['/api/keeper/collect','/api/keeper/settle-v3','/api/keeper/disburse-v3','/api/keeper/reconcile-v3-collection'].includes(path) ? 120_000 : readTimeoutMs) });
     const data = await response.json();
     if (!response.ok) throw new Error(`${path}: ${response.status} ${String(data.error || 'request failed').slice(0, 160)}`);
     return data;

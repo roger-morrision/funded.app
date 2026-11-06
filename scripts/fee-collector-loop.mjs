@@ -11,7 +11,7 @@ export async function collectFeeCandidates({candidates,pausedMints,lifecycle,req
       &&!['complete','nothing-to-collect','no-fees','retryable-before-submission'].includes(candidate.collectionStatus))continue;
     let stage='fee-read';
     try{
-      const activity=await request(`/api/tokens/${encodeURIComponent(candidate.mint)}/fee-activity`);
+      const activity=await request(`/api/tokens/${encodeURIComponent(candidate.mint)}/fee-activity?view=balance`);
       const pump=activity.overview?.pump;
       if(activity.overview?.available!==true||pump?.status!=='confirmed'||!/^\d+$/.test(String(pump.accruedLamports)))continue;
       if(BigInt(pump.accruedLamports)<minimumLamports(candidate.mint))continue;
