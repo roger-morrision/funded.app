@@ -153,6 +153,15 @@ export async function projectCreatorDirectory(client, state, changedIds = null) 
 // Legacy ledger writes keep their exclusive lock and projection updates together.
 export function createLedgerRepository({ pool, ensureReady }) {
   return {
+    async readHomeFeeInputs() {
+      await ensureReady();
+      const { rows } = await pool.query(
+        "SELECT bucket, entity_key, payload FROM state_entities WHERE bucket IN ('launches', 'collections')"
+      );
+      const inputs = { launches:Object.create(null), collections:Object.create(null) };
+      for (const { bucket, entity_key, payload } of rows) inputs[bucket][entity_key] = payload;
+      return inputs;
+    },
     async read() {
       await ensureReady();
       const client = await pool.connect();

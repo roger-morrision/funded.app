@@ -10,7 +10,7 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
   const json = (...args) => { respond(...args); return true; };
   return async function handleCreatorFeesRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/home/launch-filter-fees')
-      return json(res, 200, homeLaunchFeeIndex(await store.read(), solanaCluster));
+      return json(res, 200, homeLaunchFeeIndex(await store.readHomeFeeInputs(), solanaCluster));
     const tokenActivityMint = req.method === 'GET'
       ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/fee-activity$/) : null;
     if (!tokenActivityMint) return false;
@@ -26,15 +26,17 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
       || launch.pumpFeeRoute.programId !== process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)
       return json(res, 410, { error:'Only verified V3 launch fee activity is available.' });
     let pumpVault = null, pumpAccruedLamports = null, pumpError = null;
+    let timeout;
     try {
       const owner = new PublicKey(launch.creator);
       pumpVault = creatorVaultPda(owner).toBase58();
       const amount = await Promise.race([
         readPumpCreatorFeeBalance({connection:new Connection(solanaRpcUrl, 'confirmed'),creator:owner}),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Pump vault read timed out')), 15000)),
+        new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Pump vault read timed out')), 15000); }),
       ]);
       pumpAccruedLamports = amount.toString();
     } catch { pumpError = 'Pump vault balance verification is temporarily unavailable.'; }
+    finally { clearTimeout(timeout); }
     const pump = { vault:pumpVault, accruedLamports:pumpAccruedLamports,
       status:pumpError || pumpAccruedLamports == null ? 'unavailable' : 'confirmed', error:pumpError };
     if (balanceOnly) return json(res, pumpError ? 503 : 200, { mint, cluster:solanaCluster,

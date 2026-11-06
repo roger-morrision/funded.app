@@ -186,6 +186,10 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
       try { const entry = JSON.parse(await readFile(`${filePath}.metadata.${mint}.json`, 'utf8')); return entry.banner ? { bytes: Buffer.from(entry.banner, 'base64'), mime: entry.bannerType } : null; }
       catch (error) { if (error.code === 'ENOENT') return null; throw error; }
     },
+    async readHomeFeeInputs() {
+      const { launches, collections } = await load();
+      return { launches, collections };
+    },
     async readPublicBuckets() { return structuredClone(await load()); },
     async readReferralClaimsForWallet(wallet) { return Object.values((await load()).referralClaims || {}).filter(item => item.recipientWallet === wallet); },
     async readCoinFeeActivity(mint, cluster) { const current = await load(); return coinFeeActivity(current.collections, current.settlements, mint, cluster); },
