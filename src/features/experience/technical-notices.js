@@ -2,7 +2,7 @@
 const WARNING = /\b(unavailable|could not|couldn't|failed|failure|not verified|unverified|verification (?:pending|unavailable|incomplete)|incomplete|stale|rate.?limit(?:ed)?|RPC|provider|retry shortly|try again shortly|partial coverage|awaiting (?:receipt|verified|verification)|current verification pending|no amount is confirmed|busy)\b/i;
 const NETWORK = /\b(RPC|rate.?limit(?:ed)?|provider|retry|busy|network|connection)\b/i;
 // Missing values may be quiet; financial status and recovery guidance must remain visible.
-const ACTION_STATUS = /\b(transactions?|payouts?|payments?|claims?|reconciliation|saved|saving|call was)\b/i;
+const ACTION_STATUS = /\b(transactions?|payouts?|payments?|claims?|reconciliation|saved|saving|awaiting verified community funding|call was)\b/i;
 export function isQuietDataGap(text) {
   const kind=classifyTechnicalText(text,{valueCell:true});
   return Boolean(kind && kind!=='error' && !ACTION_STATUS.test(String(text)));
@@ -48,7 +48,7 @@ export function classifyTechnicalText(text, { valueCell = false } = {}) {
 export function mountTechnicalNotices({document=globalThis.document,root=document?.querySelector('#main-content')}={}){
   if(!document||!root)return null;
   const view=document.defaultView;
-  const excluded=SKIP+', #recovery-inbox, [data-flow-status], [data-flow-rows], [data-flow-empty], [data-flow-count], [data-flow-scope], [data-coin-trade-results], #coin-chat-post-result, [data-bonus-status], [data-bonus-history-status], #payment-history-footnote, [data-auto-status], #coin-description, .creator-reward-name, .creator-claim-heading a, .coin-chart-status, #coin-activity-list, [data-watchlist-status], #portfolio-holdings-status, #portfolio-trade-rows, #funded-buy-status, #funded-burn-status, form, [data-user-content], .callout-text, .coin-chat-messages, .guidance-outline, .guidance-points, .help-topics-answer';
+  const excluded=SKIP+', #recovery-inbox, #community .section-state, #wallet-detail-content .wallet-detail-empty, [data-wallet-bonus-coverage], [data-agency-history], [data-agency-status], #wallet-detail-content .wallet-section-state, [data-flow-status], [data-flow-rows], [data-flow-empty], [data-flow-count], [data-flow-scope], [data-coin-trade-results], #coin-chat-post-result, [data-bonus-status], [data-bonus-history-status], #payment-history-footnote, [data-auto-status], #coin-description, .creator-reward-name, .creator-claim-heading a, .coin-chart-status, #coin-activity-list, [data-watchlist-status], #portfolio-holdings-status, #portfolio-trade-rows, #funded-buy-status, #funded-burn-status, form, [data-user-content], .callout-text, .coin-chat-messages, .guidance-outline, .guidance-points, .help-topics-answer';
   const clean=element=>{
     if(!element?.matches?.(CANDIDATES)||!plainLine(element)||element.closest(excluded))return;
     if(isQuietDataGap(element.textContent)&&element.textContent!=='-')element.textContent='-';

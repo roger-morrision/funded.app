@@ -92,3 +92,11 @@ test('Mainnet publication requires content-addressed metadata, image and selecte
  const f=fixture(),pinned=await f.publish({record:{...record,cluster:'mainnet-beta'},image,imageType:'image/png'});
  assert.equal((await verifyPublishedMetadata(pinned,{fetchImpl:f.fetchImpl})).verified,true);
 });
+
+test('a newly pinned CID can propagate after upload without a second upload',async()=>{
+ const f=fixture(), pinned=await f.publish({record,image,imageType:'image/png'});let reads=0;
+ const fetchImpl=(url,opts)=>url===pinned.pinnedMetadata.uri&&++reads===1
+   ?new Response('not available yet',{status:404}):f.fetchImpl(url,opts);
+ assert.equal((await verifyPublishedMetadata(pinned,{fetchImpl})).verified,true);
+ assert.equal(reads,2);assert.equal(f.uploads.length,2);
+});

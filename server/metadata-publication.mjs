@@ -10,7 +10,15 @@ const fallbackImage = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewB
 
 // Bounded reads, no redirects, no cookies, and no upstream error bodies in UI.
 async function publicBytes(fetchImpl, uri, mime, maxBytes) {
-  const response = await fetchImpl(uri, {redirect:'error', credentials:'omit', cache:'no-store', signal:AbortSignal.timeout(12_000)});
+  const options={redirect:'error', credentials:'omit', cache:'no-store', signal:AbortSignal.timeout(12_000)};
+  let response=await fetchImpl(uri, options);
+  // A new CID may not have reached the public gateway yet. Retry only its GET;
+  // never repeat an upload or accept a response with different content.
+  if (isPinnedMetadataUri(uri) && [404,502,503,504].includes(response.status)) {
+    await response.body?.cancel();
+    await new Promise(resolve=>setTimeout(resolve,600));
+    response=await fetchImpl(uri,options);
+  }
   if (!response.ok || !response.headers.get('content-type')?.toLowerCase().startsWith(mime))
     throw new Error('Public metadata or image is not available in the expected format.');
   if (Number(response.headers.get('content-length')) > maxBytes) throw new Error('Public metadata or image exceeds its size limit.');

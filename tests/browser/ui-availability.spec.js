@@ -66,7 +66,7 @@ for(const mode of ['outage','partial','pending','active'])test(`airdrop ${mode} 
   await page.setViewportSize({width:390,height:900});
   await page.route('https://**/*',route=>route.abort());await page.route('**/api/**',offline);
   await page.route('**/api/launches',route=>route.fulfill({json:mode==='partial'?[launch(mint),launch(secondMint)]:[launch(mint)]}));
-  await page.route('**/api/airdrops/reserves',route=>mode==='outage'?route.fulfill({status:503,json:{error:'RPC unavailable'}})
+  await page.route('**/api/airdrops/reserves*',route=>mode==='outage'?route.fulfill({status:503,json:{error:'RPC unavailable'}})
     :route.fulfill({json:{cluster:'devnet',reserves:mode==='partial'?[active(mint),{mint:secondMint,verified:false,status:'unavailable'}]
       :mode==='active'?[active(mint)]:[{mint,verified:true,status:'funded',reservedTokens:30_000_000}]}}));
   await page.goto('/#airdrops');await expect(page.locator('body')).toHaveClass(/workspace-ready/);

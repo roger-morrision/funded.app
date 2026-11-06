@@ -33,6 +33,6 @@ export async function installAccountFixture(page,{wallet='1111111111111111111111
     }
     return r.fulfill({json:{accountId,csrf:'fixture-watchlist',mints:state.mints}});
   });
-  state.connect=async()=>{await page.locator('#connect-button').click();await page.locator('[data-wallet-choice="phantom"]').click();await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);};
+  state.connect=async()=>{await page.locator('body.product-flows-ready').waitFor();const preferences=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/account-preferences'&&r.request().method()==='GET'&&r.ok());await page.locator('#connect-button').click();await page.locator('[data-wallet-choice="phantom"]').click();await expect(page.locator('#connect-button')).toHaveClass(/wallet-pill-connected/);await preferences;};
   return state;
 }

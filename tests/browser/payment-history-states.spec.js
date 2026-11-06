@@ -3,8 +3,8 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
 const loading = 'Checking finalized payout receipts.';
 const unavailable = 'Payment history is temporarily unavailable.';
-const incomplete = 'Verification coverage is incomplete. Finalized payments are not available in this response.';
-const empty = 'No finalized payments are available to show yet.';
+const incomplete = 'Verification coverage is incomplete. Confirmed payments are not available in this response.';
+const empty = 'No confirmed payments are available to show yet.';
 const data = (status, rows = [], coverage = status === 'partial' ? 'partial' : 'verified') => ({ cluster: 'devnet', status, generatedAt: '2026-10-21T00:00:00Z', checkedAutomatic: rows.length, verifiedPayouts: rows, payoutCoverage: { status: coverage, recorded: status === 'partial' ? 110 : rows.length, verified: rows.length } });
 const receipts = [
   { source: 'v3-creator-wallet', to: '8'.repeat(44), signature: '3'.repeat(88), amountLamports: 1000000001, actualReceivedLamports: 999993001, feeLamports: 5000, recipientRentLamports: 2000, feePayer: '8'.repeat(44), blockTime: 1792454400, slot: 512479000 },
@@ -58,7 +58,7 @@ for (const width of [360, 390, 1440]) {
     await state(page, loading, 'Waiting for the current payment history check to finish.'); expect(f.requests()).toBe(1); expect(f.completed()).toBe(0);
     expect(await page.evaluate(() => window.historyCaptionChanges)).toBe(0);
     await page.screenshot({ path: info.outputPath(`pending-${width}.png`) });
-    await f.release(data('onchain-indexed')); await state(page, empty, 'No finalized payments are available.'); await expect(clear).toBeFocused();
+    await f.release(data('onchain-indexed')); await state(page, empty, 'No confirmed payments are available.'); await expect(clear).toBeFocused();
     expect(f.requests()).toBe(1); expect(f.completed()).toBe(1); await expect(note(page)).not.toContainText(/Checking|could not/i);
     expect(await page.evaluate(() => window.historyCaptionChanges)).toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true); expect(f.errors).toEqual([]); expect(f.writes).toEqual([]);
@@ -67,9 +67,9 @@ for (const width of [360, 390, 1440]) {
     const f = await fixture(page); await ready(page, width);
     await state(page, unavailable, 'Payment history could not be fully checked. Try again shortly.');
     const clear = page.locator('#payment-history-clear'); await clear.focus();
-    await refresh(page, f, data('onchain-indexed')); await state(page, empty, 'No finalized payments are available.'); await expect(clear).toBeFocused();
-    await refresh(page, f, data('partial')); await state(page, incomplete, 'Available history is incomplete. No finalized payments are available in this response.');
-    await refresh(page, f, data('onchain-indexed', [], 'partial')); await state(page, incomplete, 'Available history is incomplete. No finalized payments are available in this response.');
+    await refresh(page, f, data('onchain-indexed')); await state(page, empty, 'No confirmed payments are available.'); await expect(clear).toBeFocused();
+    await refresh(page, f, data('partial')); await state(page, incomplete, 'Available history is incomplete. No confirmed payments are available in this response.');
+    await refresh(page, f, data('onchain-indexed', [], 'partial')); await state(page, incomplete, 'Available history is incomplete. No confirmed payments are available in this response.');
     for (const malformed of [data('unavailable'), data('unknown'), { ...data('onchain-indexed'), payoutCoverage: null }]) { await refresh(page, f, malformed); await state(page, unavailable, 'Payment history could not be fully checked. Try again shortly.'); }
     await refresh(page, f, data('onchain-indexed', receipts)); await expect(list(page).locator('.payment-history-row')).toHaveCount(2); await expect(note(page)).toHaveText('2 of 2 confirmed payments · fees in details');
     const complete = await rows(page); expect(complete.map(x => x.wallet)).toEqual(receipts.map(r => `https://explorer.solana.com/address/${r.to}?cluster=devnet`)); expect(complete.map(x => x.transaction)).toEqual(receipts.map(r => `https://explorer.solana.com/tx/${r.signature}?cluster=devnet`));
@@ -216,7 +216,7 @@ for(const width of [360,390,1440])test(`Rewards History native local identifier 
     const replacement=searchReceipts.map((r,i)=>i===18?{...r,blockTime:1792454520}:r),observing=summary.evaluate(observeSearchFocus,{selector:'summary',replacementKey:firstKey});await refresh(page,f,data('partial',replacement));focus.push(await observing);await expect(summary).toBeFocused();await expect(summary.locator('..')).toHaveAttribute('open','');
     const removal=summary.evaluate(observeSearchFocus,{selector:'#payment-history-clear',waitForRemoval:true});await refresh(page,f,data('partial',searchReceipts.filter((_,i)=>i!==18&&i!==26)));focus.push(await removal);await expect(clear).toBeFocused();await expect(search).toHaveValue('SharedAbC');await expect(list(page).locator('.empty-state')).toHaveText('No confirmed payments match this search and these filters.');
     await search.click();
-    for(const [history,message,caption] of [[null,unavailable,'Payment history could not be fully checked. Try again shortly.'],[data('partial'),incomplete,'Available history is incomplete. No finalized payments are available in this response.'],[data('onchain-indexed'),empty,'No finalized payments are available.']]){await refresh(page,f,history);await state(page,message,caption);await expect(search).toHaveValue('SharedAbC');await expect(search).toBeFocused();}
+    for(const [history,message,caption] of [[null,unavailable,'Payment history could not be fully checked. Try again shortly.'],[data('partial'),incomplete,'Available history is incomplete. No confirmed payments are available in this response.'],[data('onchain-indexed'),empty,'No confirmed payments are available.']]){await refresh(page,f,history);await state(page,message,caption);await expect(search).toHaveValue('SharedAbC');await expect(search).toBeFocused();}
     await refresh(page,f,data('onchain-indexed',searchReceipts));await clear.click();expect(await rows(page)).toEqual(baseline);await expect(page.locator('[data-analytics-metric="payouts"] strong')).toHaveText(payout);
     await expect(list(page).locator('summary').first()).toHaveText('Amount and fees');expect(wallet).toEqual([]);expect(f.errors).toEqual([]);expect(f.writes).toEqual([]);for(const result of focus){expect(result.pass,JSON.stringify(result)).toBe(true);expect(result.elapsedMs).toBeLessThanOrEqual(1000);expect(result.stableMs).toBeGreaterThanOrEqual(100);}
     await info.attach('search-native-evidence',{body:JSON.stringify({width,fonts,searchAX,inputGeometry,clearGeometry,clearTabPath,focus,original:baseline,localApiCalls:calls.slice(0,localCalls),explicitRefreshes:f.requests()-before,noLocalInputRequests:true},null,2),contentType:'application/json'});await page.screenshot({path:info.outputPath('history-search-'+width+'.png')});
@@ -326,9 +326,9 @@ async function bonus077Geometry(original) {
 }
 async function bonus077Copy(page,original) {
   const link=page.locator(bonus077Selector);await expect(link).toHaveCount(1);await expect(link).toBeVisible();
-  await expect(link).toHaveAttribute('href','#bonuses');await expect(link).toHaveAccessibleName('Browse Daily bonus payout history →');
-  await expect(link.locator('..').locator(':scope > p').nth(0)).toHaveText('Looking for a Daily bonus receipt?');
-  await expect(link.locator('..').locator(':scope > p').nth(1)).toHaveText('Daily bonus history has its own filters.');
+  await expect(link).toHaveAttribute('href','#bonuses');await expect(link).toHaveAccessibleName('Daily bonuses →');
+  await expect(link.locator('..').getByRole('heading')).toHaveText('Payment history');
+  await expect(link).toHaveAttribute('href','#bonuses');
   await expect(page.locator('#rewards-history h2')).toHaveText('Payment history');
   await expect(page.locator('#rewards-history .panel-heading > div > p').nth(1)).toHaveText('Confirmed SOL payments across funded.vip.');
   await bonus077Identity(original);
@@ -362,10 +362,10 @@ for(const width of [360,390,1440])test.describe('FQA-077 separate bonus source '
       // This original pending loader response completes while the new link has
       // native keyboard focus. No renderer call or synthetic event causes it.
       await x.f.release(available?data('partial'):null);
-      await state(page,available?incomplete:unavailable,available?'Available history is incomplete. No finalized payments are available in this response.':'Payment history could not be fully checked. Try again shortly.');
+      await state(page,available?incomplete:unavailable,available?'Available history is incomplete. No confirmed payments are available in this response.':'Payment history could not be fully checked. Try again shortly.');
       await bonus077Identity(original,true);states.push({state:available?'partial-zero':'unavailable-zero',provenance:'Original held transport response completed while original native link focused'});
       await expect.poll(()=>x.reads.filter(r=>r.path==='/api/evidence/payment-history'&&r.state==='complete').length).toBe(1);
-      for(const [value,message,caption] of [[data('onchain-indexed'),empty,'No finalized payments are available.'],[data('onchain-indexed',receipts),null,'2 of 2 confirmed payments · fees in details']]){
+      for(const [value,message,caption] of [[data('onchain-indexed'),empty,'No confirmed payments are available.'],[data('onchain-indexed',receipts),null,'2 of 2 confirmed payments · fees in details']]){
         // Reuse the original suite's explicitly modeled route-read trigger.
         // These updates are not described as native background events.
         await refresh(page,x.f,value);
@@ -378,7 +378,7 @@ for(const width of [360,390,1440])test.describe('FQA-077 separate bonus source '
       await page.locator('#payment-history-clear').click();expect(await rows(page)).toEqual(rawRows);expect(x.f.requests()).toBe(beforeFilters);
       criteria=await bonus077Criteria(page,available?receipts[0].to:receipts[0].signature);
       await expect(list(page).locator('.payment-history-row')).toHaveCount(1);expect(x.f.requests()).toBe(beforeFilters);
-      if(available){await refresh(page,x.f,data('partial'));await state(page,incomplete,'Available history is incomplete. No finalized payments are available in this response.');}
+      if(available){await refresh(page,x.f,data('partial'));await state(page,incomplete,'Available history is incomplete. No confirmed payments are available in this response.');}
       else{await refresh(page,x.f,data('partial',receipts));await expect(note(page)).toHaveText('1 of 2 confirmed payments · dates in UTC · fees in details · some history is missing');states.push({state:'partial-populated',provenance:'Existing modeled route-read trigger; native filters retained'});}
       await bonus077Focus(page,original,hash,proofs);await bonus077Copy(page,original);
       const beforeEntry=x.requests.filter(r=>r.path===bonus077Path).length;expect(beforeEntry).toBe(0);

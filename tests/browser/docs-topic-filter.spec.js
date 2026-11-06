@@ -355,7 +355,7 @@ async function listingGuideDestination(page,info,width,phase,originalMint,readin
   await expect(page.locator('#list-title')).toHaveText('Get your token listed');await expect(page.locator('#list-mint')).toHaveValue('');
   expect(await originalMint.evaluate(e=>e.isConnected&&e===document.getElementById('list-mint'))).toBe(true);
   await expect(page.locator('#list-mint-help')).toHaveText('Paste the token mint address to see if it can be listed.');
-  await expect(page.locator('#list-availability')).toHaveText('$FUNDED price unavailable');await expect(page.locator('#list-live-items')).toHaveText('The verified listing index is unavailable.');
+  await expect(page.locator('#list-availability')).toHaveText('-');await expect(page.locator('#list-live-items')).toHaveText('-');
   await expect(page.locator('#list-pay')).toBeHidden();await expect(page.locator('#list-pay')).toBeDisabled();await expect(page.locator('#list-review')).toBeHidden();await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect.poll(()=>f.api.filter(x=>x.path==='/api/listings'&&x.phase===phase).length).toBeGreaterThan(0);
   for(const [selector,label] of [['#list-title','listing-title'],['#list-availability','listing-availability'],['#list-mint-help','empty-mint-help'],['#list-live-items','listing-index-unavailable']])reading.push(await chartGuideRead(page,page.locator(selector),phase+'-'+label));

@@ -14,7 +14,7 @@ for(const width of [390,1440])test(`approved referral overview, FAQ and Docs agr
   const faq=page.locator('[data-faq="referral-rates"]');if(await faq.getAttribute('open')===null)await faq.locator('summary').click();
   await expect(faq.locator('ul')).toBeVisible();
   await expect(faq).toContainText('L1: 0.6%');await expect(faq).toContainText('L2: 0.25%');await expect(faq).toContainText('L3: 0.15%');
-  await expect(faq).toContainText('Each payout follows its coin’s saved on-chain policy');
+  await expect(faq).toContainText('Existing coins keep their saved rates');
   await expect(page.locator('#referral-faq .data-badge')).toContainText('activation pending');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await strip.evaluate(node=>node.scrollIntoView({block:'center',behavior:'instant'}));

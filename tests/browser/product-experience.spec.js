@@ -56,7 +56,7 @@ for(const width of [390,1440]){
     await expect(health.locator('.operations-stats dd')).toHaveText(['2','1','0']);
     await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr')).toHaveCount(4);
     await expect(health.getByRole('table',{name:'Creator delivery'}).getByRole('link')).toHaveAttribute('href',`/wallet/${wallet}`);
-    await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr').first()).toContainText('-');
+    await expect(health.getByRole('table',{name:'Payout timing'}).locator('tbody tr').first()).toContainText('Unavailable');
     const refresh=health.getByRole('button',{name:'Refresh data'});await refresh.click();await expect(refresh).not.toHaveAttribute('aria-disabled','true');await expect(refresh).toBeFocused();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
     await health.screenshot({path:info.outputPath(`payout-dashboard-${width}.png`)});

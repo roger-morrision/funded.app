@@ -45,7 +45,7 @@ for(const width of[360,390,1440])test(`native Portfolio holdings partial coverag
  await expect(rows.locator('.portfolio-holding-identity')).toContainText('OUTSIDE');await expect(rows).toContainText('Outside launch');
  await expect.poll(()=>rows.locator('.portfolio-holding-logo img').evaluate(image=>image.complete&&image.naturalWidth>0)).toBe(true);
  await page.screenshot({path:info.outputPath(`external-token-metadata-${width}.png`)});
- await recover('both-fail','—');await expect(rows).toContainText('unavailable from Solana network.');await expect(rows).toContainText('Select Refresh to retry.');
+ await recover('both-fail','—');await expect(rows).toContainText('unavailable from Solana RPC.');await expect(rows).toContainText('Select Refresh to retry.');
  await recover('complete','$0.00');await expect(rows).toContainText('No SPL token holdings');
  for(const tab of['trades','holdings']){await page.locator(`[data-portfolio-tab="${tab}"]`).click();await expect(page.locator(`[data-portfolio-tab="${tab}"]`)).toHaveAttribute('aria-selected','true')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

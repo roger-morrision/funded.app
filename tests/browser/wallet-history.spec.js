@@ -349,7 +349,7 @@ for (const viewport of [{ width:360, height:740 }, { width:390, height:844 }, { 
       await expect(page.locator('.wallet-balance-grid')).toBeVisible();
       await reads.quote();
       await expect(page.locator('[data-wallet-tab="balances"]')).toBeFocused();
-      await expect(page.locator('.wallet-balance-grid')).toContainText('Unavailable');
+      await expect(page.locator('.wallet-balance-grid article strong').first()).toHaveText('-');
       await page.keyboard.press('ArrowRight'); await expect(page.locator('[data-wallet-tab="created"]')).toBeFocused();
       await expect(page.locator('#wallet-detail-content a')).toHaveCount(2);
       await expect(page.locator('#wallet-detail-content')).not.toContainText('Created fixture 1');
@@ -655,7 +655,7 @@ async function balanceScopeCaptionProof(page,value,caption,label){
 }
 async function balanceScopeTabs(page,value,caption,label){
   const readiness={caption,balance:value};await nativeBalanceScopeEntry(page,'[data-wallet-tab="activity"]',{...readiness,tab:'activity'});
-  for(const[tab,key,content]of[['balances','ArrowRight','Native SOL'],['created','ArrowRight','No created coins found'],['activity','Home',null]]){const original=await page.locator('[data-wallet-tab="'+tab+'"]').elementHandle();await armBalanceScope(original,{...readiness,tab,content});await page.keyboard.press(key);await balanceScopeProof(page,label+'-native-'+tab,key);await expect(page.locator('[data-wallet-tab="'+tab+'"]').first()).toHaveAttribute('aria-selected','true');await expect(page.locator('#wallet-stat-sol')).toHaveText(value);await expect(page.locator('#wallet-stat-sol-note')).toHaveText(caption);if(tab==='balances'){const article=page.locator('#wallet-detail-content .wallet-balance-grid article').first();await expect(article).toContainText('Native SOL');await expect(article.locator('strong')).toHaveText(value==='—'?'Unavailable':value);}}
+  for(const[tab,key,content]of[['balances','ArrowRight','Native SOL'],['created','ArrowRight','No created coins found'],['activity','Home',null]]){const original=await page.locator('[data-wallet-tab="'+tab+'"]').elementHandle();await armBalanceScope(original,{...readiness,tab,content});await page.keyboard.press(key);await balanceScopeProof(page,label+'-native-'+tab,key);await expect(page.locator('[data-wallet-tab="'+tab+'"]').first()).toHaveAttribute('aria-selected','true');await expect(page.locator('#wallet-stat-sol')).toHaveText(value);await expect(page.locator('#wallet-stat-sol-note')).toHaveText(caption);if(tab==='balances'){const article=page.locator('#wallet-detail-content .wallet-balance-grid article').first();await expect(article).toContainText('Native SOL');await expect(article.locator('strong')).toHaveText(value==='—'?'-':value);}}
 }
 async function connectBalanceScopeMock(page){await page.locator('#connect-button').click();await page.locator('[data-wallet-choice="phantom"]').click();await expect(page.locator('html')).toHaveAttribute('data-connected-wallet',balanceScopeSelf);expect(await page.evaluate(()=>window.__walletBalanceFixtureAudit.signs)).toEqual([]);}
 

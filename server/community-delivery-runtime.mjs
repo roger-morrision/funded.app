@@ -2,7 +2,7 @@ import {SharedRpcConnection} from './rpc-connection.mjs';
 import {communityProgramForLaunch} from './community-program-config.mjs';
 import {createCommunityClaimService} from './community-claim-service.mjs';
 import {createCommunityAutoDelivery} from './community-auto-delivery.mjs';
-import {findRecentCommunityMigration} from './community-migration-discovery.mjs';
+import {findRecentCommunityMigration,createMigrationCandidateReader} from './community-migration-discovery.mjs';
 import {rpcQuotaExhausted,retryableRpcError,rpcWorkerWaitMs} from '../rpc-retry.js';
 
 const unavailableRpc=error=>rpcQuotaExhausted(error)||retryableRpcError(error)
@@ -13,7 +13,7 @@ const unavailableRpc=error=>rpcQuotaExhausted(error)||retryableRpcError(error)
 export function createCommunityDeliveryRuntime({store,automaticRewardStore,solanaCluster,solanaRpcUrl,
   fundedTokenMint,v3AuthorityKeypair,env=process.env,logger=console,
   connection=new SharedRpcConnection(solanaRpcUrl,'finalized'),serviceFactory=createCommunityClaimService,
-  deliveryFactory=createCommunityAutoDelivery,findMigration=findRecentCommunityMigration,
+  deliveryFactory=createCommunityAutoDelivery,findMigration=findRecentCommunityMigration, scanPools=createMigrationCandidateReader(),
   scheduleTimeout=setTimeout,now=Date.now}) {
   const enabled=solanaCluster==='devnet'&&env.FUNDED_COMMUNITY_AUTO_DELIVERY_ENABLED==='true';
   const running={prepare:false,deliver:false},timers={},retryAfter={prepare:20_000,deliver:20_000};
@@ -29,6 +29,9 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
       const configured=JSON.parse(env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON||'{}');
       const launches=Object.values(app.launches||{}).filter(launch=>launch.onchainVerified&&launch.cluster==='devnet'
         &&launch.pumpFeeRoute?.scope==='per-mint-v3'&&Number(launch.communityAirdrop?.reservedTokens)>0);
+      const pending=preparationOnly?launches.filter(l=>!ledger.communityDrops?.[l.mint]
+        &&(app.communityReserveReceipts?.[l.mint]?.signature||configured[l.mint])).map(l=>l.mint):[];
+      const candidates=preparationOnly?await scanPools(connection,pending):null;
       for(const launch of launches){
         if(stopped)break;
         try{
@@ -43,7 +46,8 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
             if(!preparationOnly){waiting++;continue;}
             const fundingSignature=app.communityReserveReceipts?.[launch.mint]?.signature||configured[launch.mint];
             if(!fundingSignature){waiting++;continue;}
-            const migrationSignature=await findMigration(connection,launch.mint);
+            if(!candidates.has(launch.mint)){waiting++;continue;}
+            const migrationSignature=await findMigration(connection,launch.mint,candidates.get(launch.mint));
             if(!migrationSignature){waiting++;continue;}
             record=await service.prepare({mint:launch.mint,creator:launch.creatorWallet,
               reservedTokens:Number(launch.communityAirdrop.reservedTokens),fundingSignature,migrationSignature});

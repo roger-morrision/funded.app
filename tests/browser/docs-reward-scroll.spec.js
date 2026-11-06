@@ -346,13 +346,13 @@ for (const width of [360, 390, 1440]) test(`Holder direct reload program states 
     await expect.poll(() => f.schedules.some(x => x.state === 'unavailable')).toBe(true);
     await expect(page.locator('#rewards-holder [data-auto-status]')).toBeVisible();
     await expect(page.locator('#rewards-holder [data-auto-status]')).toHaveText('Controlled unavailable/deferred guide fixture');
-    await expect(page.locator('#rewards-holder .preview-chip')).toHaveText('Schedule unavailable');
+    await expect(page.locator('#rewards-holder .preview-chip')).toHaveText('-');
     await expect(page.locator('#rewards-holder [data-clock-label]')).toHaveText('Not scheduled');
     for (const state of ['unavailable', 'empty', 'populated-deferred']) {
       fixture.set(state); const length = await page.evaluate(() => history.length); await page.reload(); await page.locator('body.workspace-ready.product-experience-ready').waitFor();
       await assertPublicHolder(page); expect(await page.evaluate(() => history.length)).toBe(length);
       await expect(page.locator('#rewards-holder [data-clock-label]')).toHaveText(state === 'populated-deferred' ? 'Reward funding carries forward' : 'Not scheduled');
-      await expect(page.locator('#rewards-holder .preview-chip')).toHaveText(state === 'unavailable' ? 'Schedule unavailable' : 'Schedule needs attention');
+      await expect(page.locator('#rewards-holder .preview-chip')).toHaveText(state === 'unavailable' ? '-' : 'Schedule needs attention');
       await expect(page.locator('#rewards-holder [data-clock]')).toBeHidden();
       await expect(page.locator('#rewards-holder')).not.toContainText('Schedule active');
       if (state === 'populated-deferred') await expect(page.locator('#rewards-holder [data-clock-coin]')).toContainText('GUIDEQA');

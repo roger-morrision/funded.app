@@ -41,7 +41,7 @@ for (const [label, operations, community] of [['current 8/4', 40, 20], ['saved o
     await expect(page.locator('#paid .app-revenue-grid')).toContainText(`${bonus}% of gross fees`);
     await expect(page.locator('#paid .revenue-model > .field-help')).toContainText('not reassigned to another inviter or added to the Daily bonus pool');
     await page.evaluate(() => { location.hash = 'referrals'; });
-    await expect(page.locator('#referral-faq')).toContainText('not reassigned to another inviter or added to the Daily bonus pool');
+    await expect(page.locator('#referral-faq')).toContainText('not reassigned or added to Daily bonuses');
     await page.evaluate(() => { location.hash = 'docs/fees'; });
     const guide = page.locator('#docs-guide-article');
     await expect(guide).toBeVisible();

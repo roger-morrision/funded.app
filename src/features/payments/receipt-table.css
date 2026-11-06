@@ -34,6 +34,7 @@
  #payment-list .payment-history-identity{grid-column:1;grid-row:1}
  #payment-list .payment-history-actions{grid-column:2;grid-row:1;align-self:start;gap:8px}
  #payment-list .payment-history-metadata{grid-column:1/-1;grid-row:2}
- #payment-list .payment-history-details summary{min-height:44px;padding-block:12px}
+ #payment-list .payment-history-details summary{min-height:44px;padding-block:12px;font-size:14px!important;line-height:1.5}
+ #payment-list .payment-history-details>small{font-size:14px!important;line-height:1.5}
  #rewards-history .payment-history-filters :is(input,select){font-size:16px!important}
 }
