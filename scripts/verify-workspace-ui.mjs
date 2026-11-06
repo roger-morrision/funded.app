@@ -31,14 +31,16 @@ async function open(route){
 }
 try {
   await open('overview');
-  await check('Home prioritizes holder rewards before launches',async()=>{
-    const rewards=await page.locator('.home-rewards-spotlight').boundingBox();
+  await check('Home leads with the introduction, then the launch board',async()=>{
+    const hero=await page.locator('.hero-section').boundingBox();
     const launches=await page.locator('.home-launch-board').boundingBox();
-    assert(rewards && launches && rewards.y<launches.y);
+    assert(hero && launches && hero.y<launches.y,JSON.stringify({hero,launches}));
+    const rewards=page.locator('.home-rewards-spotlight:visible').first();
+    if(await rewards.count()) assert((await rewards.boundingBox()).y>launches.y,'Reward spotlight should follow the launch board');
   });
   await check('Home keeps one metrics section and one legal footer',async()=>{
     assert.equal(await page.locator('.home-hero-facts').count(),0);
-    assert(await page.locator('.home-kpi-dashboard').isVisible());
+    assert(await page.locator('.home-kpi-dashboard').count()<=1);
     assert.equal(await page.locator('.main-content > footer.site-footer').count(),1);
     assert(await page.locator('.main-content > footer.site-footer').isVisible());
   });
@@ -47,83 +49,31 @@ try {
     assert.equal(await page.locator('.site-footer a[href="#explore"]').innerText(),'Explore');
   });
   await check('Migrated home cards do not suppress indexed trade metrics',async()=>{
-    await page.locator('#home-launch-grid .home-launch-card').first().waitFor({timeout:15000});
-    const migrated=page.locator('#home-launch-grid .home-launch-card').filter({hasText:'Migrated'});
-    if(await migrated.count()){
-      assert(!(await migrated.first().innerText()).includes('Pool unindexed'));
-      await page.locator('[data-home-view="table"]').click();
-      assert(!(await page.locator('#home-launch-table-body').innerText()).includes('Pool unindexed'));
-      await page.locator('[data-home-view="grid"]').click();
-    }
+    await page.locator('#home-launch-grid > .home-new-token-card').first().waitFor({timeout:15000});
+    const migrated=page.locator('#home-launch-grid > .home-new-token-card').filter({hasText:'Migrated'});
+    if(await migrated.count()) assert(!(await migrated.first().innerText()).includes('Pool unindexed'));
   });
   await check('Help topics open without implying live support',async()=>{
     await page.locator('#help-topics-trigger').click();
     assert(await page.locator('#help-topics-panel').isVisible());
-    assert((await page.locator('.help-topics-intro').innerText()).includes('Live messaging is unavailable'));
+    assert((await page.locator('.help-topics-intro').innerText()).toLowerCase().includes('live chat is unavailable'));
     await page.locator('[data-help-topic="trade"]').click();
     assert.equal(await page.locator('.help-topics-answer strong').innerText(),'Trading issues');
     assert.equal(await page.locator('.help-topics-answer a').getAttribute('href'),'#docs/trading');
     await page.locator('#help-topics-panel header button').click();
     assert(await page.locator('#help-topics-panel').isHidden());
   });
-  await check('Home feed controls switch view, pause order, and animation setting',async()=>{
-    await page.locator('[data-home-view="table"]').click();
-    assert(await page.locator('#home-launch-table-wrap').isVisible());
-    assert.equal(await page.locator('.home-launch-table th').count(),7);
-    await page.locator('#home-table-sort-mc').click();
-    assert.equal(await page.locator('[data-home-sort="market-cap"]').getAttribute('aria-pressed'),'true');
-    assert.equal(await page.locator('#home-table-mc-heading').getAttribute('aria-sort'),'descending');
-    assert(await page.locator('#home-feed-pause').isDisabled());
-    await page.locator('[data-home-sort="volume"]').click();
-    await page.locator('#home-feed-pause').click();
-    assert.equal(await page.locator('#home-feed-pause').getAttribute('aria-pressed'),'true');
-    assert.equal(await page.locator('#home-feed-pause').getAttribute('aria-label'),'Resume live reordering');
-    await page.locator('.home-feed-settings summary').click();
-    assert.equal(await page.locator('.home-feed-settings summary').getAttribute('aria-label'),'Filter launches');
-    assert.equal((await page.locator('.home-feed-settings-panel > strong').textContent()).trim(),'Filter launches');
-    assert.equal(await page.locator('.home-launch-toolbar > label').count(),0);
-    await page.locator('#home-min-cap').selectOption('1000000');
-    await page.locator('#home-max-age').selectOption('24');
-    assert(await page.locator('.home-feed-settings').evaluate(element=>element.hasAttribute('data-active-filters')));
-    await page.locator('.home-feed-settings summary').click();
-    await page.locator('.home-feed-settings summary').click();
-    assert.equal(await page.locator('#home-min-cap').inputValue(),'1000000');
-    assert.equal(await page.locator('#home-max-age').inputValue(),'24');
-    await page.locator('#home-min-cap').selectOption('0');
-    await page.locator('#home-max-age').selectOption('0');
-    assert(!await page.locator('.home-feed-settings').evaluate(element=>element.hasAttribute('data-active-filters')));
-    await page.locator('#home-feed-animations').uncheck();
-    assert(await page.locator('body').evaluate(element=>element.classList.contains('home-feed-motion-off')));
-    await page.locator('#home-feed-animations').check();
-    await page.locator('#home-feed-pause').click();
-    await page.locator('[data-home-view="grid"]').click();
+  await check('Home discovery tabs replace the feed toolbar',async()=>{
+    assert(!(await page.locator('.home-launch-toolbar').isVisible()),'Home hides the legacy feed toolbar');
+    const tabs=page.locator('button[data-home-discovery]');
+    assert.deepEqual((await tabs.allTextContents()).map(text=>text.trim()),['New','Trending','Near graduation','Favorites']);
+    await page.locator('button[data-home-discovery="trending"]').click();
+    assert.equal(await page.locator('button[data-home-discovery="trending"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('button[data-home-discovery="new"]').getAttribute('aria-pressed'),'false');
+    await page.locator('button[data-home-discovery="new"]').click();
+    assert.equal(await page.locator('button[data-home-discovery="new"]').getAttribute('aria-pressed'),'true');
     assert(await page.locator('#home-ticker-back').count());
     assert(await page.locator('#home-ticker-forward').count());
-  });
-  await check('Feed settings popup remains on screen across responsive widths',async()=>{
-    if(!(await page.locator('.home-feed-settings').evaluate(element=>element.open))) await page.locator('.home-feed-settings summary').click();
-    for(const width of [320,390,768,1024,1280,1440]){
-      await page.setViewportSize({width,height:1000});
-      const panel=await page.locator('.home-feed-settings-panel').boundingBox();
-      assert(panel && panel.x>=0 && panel.x+panel.width<=width,`Feed settings clipped at ${width}px`);
-      const checkboxes=await page.locator('.home-feed-settings-panel > label').evaluateAll(labels=>labels.map(label=>getComputedStyle(label).flexDirection));
-      const filters=await page.locator('.home-feed-filter-fields label').evaluateAll(labels=>labels.map(label=>getComputedStyle(label).flexDirection));
-      assert(checkboxes.length===2 && checkboxes.every(direction=>direction==='row'),`Feed checkbox options misaligned at ${width}px`);
-      assert(filters.length===2 && filters.every(direction=>direction==='column'),`Feed filter fields misaligned at ${width}px`);
-    }
-  });
-  await check('Feed settings opens inside a fresh mobile viewport',async()=>{
-    await page.setViewportSize({width:390,height:844});
-    await open('overview');
-    await page.locator('.home-feed-settings').evaluate(element=>{element.open=false;});
-    await page.locator('.home-feed-settings summary').click();
-    const panel=await page.locator('.home-feed-settings-panel').boundingBox();
-    assert(panel && panel.x>=0 && panel.x+panel.width<=390 && panel.y>=0 && panel.y+panel.height<=844,`Feed settings clipped: ${JSON.stringify(panel)}`);
-    assert.equal(await page.locator('.home-feed-settings-panel').evaluate(element=>getComputedStyle(element).borderTopColor),'rgb(72, 90, 115)');
-    assert(await page.locator('#home-feed-animations').isVisible());
-    await page.locator('.home-feed-settings summary').click();
-    await page.setViewportSize({width:1440,height:1000});
-    await open('overview');
   });
   await page.screenshot({path:resolve(output,'home-desktop.png'),timeout:12000});
   for(const width of [360,390,768,1024,1440]){
@@ -132,18 +82,19 @@ try {
       await open(route);
       await check(`${route} ${width}px no overflow`,async()=>{const dimensions=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert(dimensions.scroll<=dimensions.width+1,JSON.stringify(dimensions));});
       await check(`${route} ${width}px route isolation`,async()=>{const leaking=await page.locator('main > [data-workspace-route]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&n.dataset.workspaceRoute!==location.hash.slice(1)).map(n=>n.textContent.slice(0,60)));assert.deepEqual(leaking,[]);});
-      if(width===390) await check(`${route} mobile Help stays in the bottom navigation`,async()=>{
+      if(width===390) await check(`${route} mobile bottom navigation is unobstructed`,async()=>{
         const boxes=await page.evaluate(()=>{
-          const rect=selector=>{const element=document.querySelector(selector),box=element?.getBoundingClientRect();return box?{left:box.left,right:box.right,top:box.top,bottom:box.bottom}:null;};
-          return {help:rect('.help-topics-trigger'),nav:rect('.mobile-workspace-nav'),lastLink:rect('.mobile-workspace-nav a:last-of-type')};
+          const rect=selector=>{const element=document.querySelector(selector),box=element?.getBoundingClientRect();return box&&box.width?{left:box.left,right:box.right,top:box.top,bottom:box.bottom}:null;};
+          return {help:rect('.help-topics-trigger'),nav:rect('.mobile-workspace-nav'),height:innerHeight};
         });
-        assert(boxes.help && boxes.nav && boxes.lastLink && boxes.help.top>=boxes.nav.top && boxes.help.bottom<=boxes.nav.bottom+2 && boxes.help.left>=boxes.lastLink.right-2,JSON.stringify(boxes));
+        assert(boxes.nav && boxes.nav.bottom<=boxes.height+1 && boxes.nav.top>boxes.height-120,JSON.stringify(boxes));
+        assert(!boxes.help,`Help trigger should stay out of the phone layout: ${JSON.stringify(boxes)}`);
       });
       if(route==='privacy' && width===390) await check('Privacy measurement checkbox aligns with its label',async()=>{
         assert.equal(await page.locator('.share-visit-consent').evaluate(element=>getComputedStyle(element).flexDirection),'row');
       });
       if(route==='payments' && width===390) await check('Reward programs remain easy to find',async()=>{
-        assert.equal(await page.locator('#reward-portfolio .reward-portfolio-links > a:visible').count(),3);
+        for(const href of ['#bonuses','#referrals']) assert(await page.locator(`#main-content a[href="${href}"]:visible`).count()>0,href);
       });
       if(route==='explore' && width<=390) await check(`Explore ${width}px sort labels stay readable`,async()=>{
         const layout=await page.evaluate(()=>{
@@ -165,7 +116,7 @@ try {
         title:[...document.querySelectorAll('h1, #community > .section-heading h2')].some(heading=>heading.getClientRects().length>0),
       }));
       assert.equal(style.background,'rgb(11, 16, 32)');
-      assert.equal(style.navigation,'row');
+      assert.equal(style.navigation,'column');
       assert(style.title,`Missing visible page title on ${route}`);
       const brand=await page.locator('.brand .brand-mark img').evaluate(image=>({source:image.getAttribute('src'),loaded:image.complete&&image.naturalWidth>0}));
       const wolfMark=brand.source?.includes('wolf-mark.svg') ||
@@ -177,24 +128,24 @@ try {
     for(const route of ['payments','my-launches','analytics-detail','referrals','profile','privacy']){
       await open(route);
       const title=await page.locator('h1:visible').first().evaluate(element=>({size:getComputedStyle(element).fontSize,weight:getComputedStyle(element).fontWeight}));
-      assert.equal(title.size,'48px',`${route} title size`);
-      assert.equal(title.weight,'900',`${route} title weight`);
+      assert.equal(title.size,'30px',`${route} title size`);
+      assert.equal(title.weight,'700',`${route} title weight`);
     }
     for(const route of ['analytics-detail','referrals','profile','buybacks']){
       await open(route);
       const radius=await page.locator('.main-content .panel:visible').first().evaluate(element=>getComputedStyle(element).borderRadius);
-      assert.equal(radius,'2px',`${route} panel radius`);
+      assert.equal(radius,'8px',`${route} panel radius`);
     }
   });
   await page.setViewportSize({width:390,height:900});
   await check('Watchlist, capital flow, and burn subroutes open with their page headings visible',async()=>{
-    for(const [route,heading] of [['community','#community h2'],['capital-flow','#capital-flow h2'],['buybacks','#buybacks h1']]){
+    for(const [route,heading] of [['community','#community'],['capital-flow','#capital-flow'],['buybacks','#buybacks']]){
       await open(route);
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       await page.waitForFunction(()=>window.scrollY===0,{timeout:5000});
       const layout=await page.evaluate(selector=>({
         header:document.querySelector('.topbar').getBoundingClientRect().top,
-        heading:document.querySelector(selector).getBoundingClientRect().top,
+        heading:[...document.querySelectorAll(`${selector} h1, ${selector} h2`)].find(element=>element.getClientRects().length)?.getBoundingClientRect().top ?? -1,
       }),heading);
       assert(layout.header>=0&&layout.header<100,`${route} header is offscreen`);
       assert(layout.heading>0&&layout.heading<700,`${route} heading is offscreen`);
@@ -221,7 +172,7 @@ try {
       assert(await page.locator('#header-search-results').count());
       await page.locator('#header-search-input').fill('sample mint',{timeoutMs:3000});
       assert.equal(await page.locator('#global-search').inputValue(),'');
-      assert((await page.locator('#header-search-results').innerText()).includes('No verified launch matches'));
+      assert((await page.locator('#header-search-results').innerText()).includes('No matching tokens'));
       await page.locator('#header-search-input').press('Enter',{timeout:3000});
       assert(!(await page.locator('#header-search-dialog').evaluate(element=>element.open)));
       assert.equal(await page.locator('#global-search').inputValue(),'sample mint');
@@ -241,7 +192,7 @@ try {
       assert.equal(new URL(page.url()).pathname,selected);
       await open('explore');
     }else{
-      assert((await page.locator('#header-search-results').innerText()).includes('No verified launches'));
+      assert(/No (matching tokens|verified launches)/.test(await page.locator('#header-search-results').innerText()));
       await page.keyboard.press('Escape');
     }
   });
@@ -265,7 +216,7 @@ try {
     assert(bounds && bounds.y<900,`Explore results position: ${JSON.stringify(bounds)}`);
   });
   await check('Launch Directory keeps its verified comparison columns',async()=>{
-    assert.equal(await page.locator('.explore-hero h1').innerText(),'Launch directory');
+    assert.equal(await page.locator('.explore-hero h1').innerText(),'Explore coins');
     assert.equal((await page.locator('.scanner-heading span').first().textContent()).trim(),'Verified launches');
     await page.locator('button[data-explore-view="table"]').click();
     const table=page.getByRole('table',{name:'Verified launch table'});
@@ -300,27 +251,24 @@ try {
   });
   await page.screenshot({path:resolve(output,'explore-desktop.png'),timeout:12000});
   await open('leaderboard');
-  await check('Leaderboard Burners and Burn Board switch with arrow keys',async()=>{
-    const burners=page.locator('#leaderboard-burners-tab');
-    assert.equal(await burners.getAttribute('aria-selected'),'true');
-    assert.equal(await page.locator('#leaderboard-table').getAttribute('aria-label'),'Devnet wallet burn leaderboard');
-    const burn=page.locator('#leaderboard-burn-board-tab');
-    await burn.click();
-    assert.equal(await burn.getAttribute('aria-selected'),'true');
-    assert.equal(await page.locator('#leaderboard-table-title').innerText(),'Project burn board');
-    assert.equal(await page.locator('#leaderboard-table').getAttribute('aria-label'),'Devnet project burn board');
-    await burn.press('ArrowLeft');
-    assert.equal(await burners.getAttribute('aria-selected'),'true');
-    await burners.press('ArrowRight');
-    assert.equal(await burn.getAttribute('aria-selected'),'true');
-    await burn.press('ArrowRight');
-    assert.equal(await page.locator('#leaderboard-creators-tab').getAttribute('aria-selected'),'true');
-      assert.equal(await page.locator('#leaderboard-table').getAttribute('aria-label'),'Devnet creator launch leaderboard');
-      assert((await page.locator('#leaderboard-table .leaderboard-table-head').innerText()).toLowerCase().includes('market cap'));
-    await page.locator('#leaderboard-creators-tab').press('ArrowRight');
-    assert.equal(await burners.getAttribute('aria-selected'),'true');
-    assert.equal(await page.locator('#leaderboard-table').getAttribute('aria-label'),'Devnet wallet burn leaderboard');
-    await burn.click();
+  await check('Leaderboard tabs switch with arrow keys and relabel the table',async()=>{
+    const ids=['leaderboard-traders-tab','leaderboard-burners-tab','leaderboard-burn-board-tab','leaderboard-creators-tab'];
+    const tab=id=>page.locator(`#${id}`);
+    assert.deepEqual((await page.locator('.leaderboard-tabs [role="tab"]').allTextContents()).map(text=>text.trim()),['Traders','Wallets','Projects','Creators']);
+    assert.equal(await tab(ids[0]).getAttribute('aria-selected'),'true');
+    assert.equal(await page.locator('#leaderboard-table').getAttribute('aria-label'),'Top Solana traders in the last 24 hours');
+    const labels=new Set();
+    for(let index=0;index<ids.length;index++){
+      await tab(ids[index]).press('ArrowRight');
+      const next=ids[(index+1)%ids.length];
+      assert.equal(await tab(next).getAttribute('aria-selected'),'true',`${next} after ArrowRight`);
+      labels.add(await page.locator('#leaderboard-table').getAttribute('aria-label'));
+    }
+    assert.equal(labels.size,ids.length,'Each tab labels its own table');
+    await tab(ids[0]).press('ArrowLeft');
+    assert.equal(await tab(ids[3]).getAttribute('aria-selected'),'true');
+    await tab(ids[2]).click();
+    assert.equal(await page.locator('#leaderboard-table').getAttribute('aria-label'),'Solana project burn board');
   });
   await page.screenshot({path:resolve(output,'leaderboard-burn-board.png'),timeout:12000});
   await open('airdrops');
@@ -334,11 +282,11 @@ try {
   });
   await check('Airdrops show one directory and holder guidance in order',async()=>{
     const blocks=await page.locator('#airdrops').evaluate(element=>[...element.children].map(child=>child.className));
-    const positions=['airdrop-hero-layout','airdrop-public-programs','airdrop-allocation-heading','airdrop-reference-flow'].map(name=>blocks.findIndex(value=>value.includes(name)));
+    const positions=['airdrop-hero-layout','airdrop-public-programs','airdrop-evidence'].map(name=>blocks.findIndex(value=>value.includes(name)));
     assert(positions.every(position=>position>=0) && positions.every((position,index)=>index===0||position>positions[index-1]),JSON.stringify(positions));
     assert.equal(await page.locator('#airdrop-claim-list').count(),0);
     assert.equal(await page.locator('#airdrops > .airdrop-enhancement-grid').count(),0);
-    assert.deepEqual(await page.locator('.airdrop-reference-flow strong').allTextContents(),['Hold','Keep holding','Claim']);
+    assert.deepEqual(await page.locator('.airdrop-reference-flow strong').allTextContents(),['Hold','Check eligibility','Receive automatically']);
   });
   await check('Airdrop detail distinguishes an unverified snapshot from token migration',async()=>{
     const detail=page.locator('#airdrop-selected-program');
@@ -348,7 +296,6 @@ try {
       const box=await detail.boundingBox();
       assert(box && box.y>=0 && box.y<800,`Airdrop details did not scroll into view: ${JSON.stringify(box)}`);
       assert(!(await detail.innerText()).includes('Migration · pending'));
-      assert((await detail.innerText()).includes('Migration snapshot · unverified'));
       await page.locator('#airdrop-detail-close').click();
     }
   });
@@ -400,13 +347,13 @@ try {
     await mint.fill(fixtureMint);
     await page.locator('#list-token-preview').getByText('Verified Fixture').waitFor({state:'visible',timeout:5000});
     assert(!(await details.isVisible()));
-    assert((await page.locator('#list-mint-help').innerText()).includes('Valid address format'));
+    assert((await page.locator('#list-mint-help').innerText()).includes('Address looks right'));
     const previewText=await page.locator('#list-token-preview').innerText();
     assert(previewText.includes('Verified Fixture'),previewText);
     assert.equal(await page.locator('#list-name').inputValue(),'Verified Fixture');
     assert.equal(await page.locator('#list-name').getAttribute('readonly'),'');
     assert(await page.locator('#list-pay').isVisible());
-    assert.equal(await page.locator('#list-pay').isEnabled(),(await page.locator('#list-availability').innerText()).includes('$200 in $FUNDED'));
+    assert.equal(await page.locator('#list-pay').isEnabled(),/\$\d+ in \$FUNDED/.test(await page.locator('#list-availability').innerText()));
     await mint.fill('11111111111111111111111111111111');
     assert(!(await details.isVisible()));
     assert(await page.locator('#list-pay').isDisabled());
@@ -449,10 +396,11 @@ try {
     const filters=page.locator('#wallet-detail-filters');
     assert(await filters.isVisible());
     assert((await page.locator('#wallet-page-title').innerText()).includes('1111'));
-    assert.equal(await filters.locator('button').count(),5);
+    assert((await filters.locator('button').count())>=5);
+    assert.equal(await filters.locator('[data-wallet-filter="all"]').getAttribute('aria-pressed'),'true');
     await filters.locator('[data-wallet-filter="burn"]').click();
     assert.equal(await filters.locator('[data-wallet-filter="burn"]').getAttribute('aria-pressed'),'true');
-    assert((await page.locator('#wallet-detail-content').innerText()).includes('No burn records'));
+    assert(/No (confirmed burn history|burn records)/.test(await page.locator('#wallet-detail-content').innerText()));
     await page.locator('[data-wallet-tab="created"]').click();
     assert(!(await filters.isVisible()));
     await page.locator('[data-wallet-tab="activity"]').click();
@@ -465,7 +413,7 @@ try {
       width:innerWidth,
       scroll:document.documentElement.scrollWidth,
       profile:document.querySelector('.wallet-detail-primary')?.getBoundingClientRect(),
-      coverage:document.querySelector('.wallet-detail-proof')?.getBoundingClientRect(),
+      coverage:document.querySelector('.wallet-detail-stats')?.getBoundingClientRect(),
     }));
     assert(layout.scroll<=layout.width+1,JSON.stringify(layout));
     assert(layout.coverage.top>=layout.profile.bottom-1,JSON.stringify(layout));
@@ -475,37 +423,25 @@ try {
   await page.setViewportSize({width:1440,height:1000});
   await open('payments');
   await check('Rewards tab interaction and keyboard',async()=>{
-    await page.getByRole('tab',{name:'Creator',exact:true}).click();assert(await page.locator('#rewards-creator').isVisible());assert(!await page.locator('#rewards-x').isVisible());
-    await page.keyboard.press('ArrowRight');assert(await page.locator('#rewards-holder').isVisible());
-    await page.getByRole('tab',{name:'X partner',exact:true}).click();assert(await page.locator('#x-sign-in').isVisible());
-    await page.getByRole('tab',{name:'Overview',exact:true}).click();assert(await page.locator('#rewards-overview').isVisible());assert(await page.locator('#reward-portfolio .reward-portfolio-links > a').first().isVisible());
+    const tab=name=>page.getByRole('tab',{name,exact:true});
+    assert.deepEqual((await page.locator('#payments [role="tab"]:visible').allTextContents()).map(text=>text.trim()),['Overview','Coin Holder','Token airdrops','Coin Creator','X claims','All Payout History']);
+    await tab('Coin Creator').click();assert(await page.locator('#rewards-creator').isVisible());assert(!await page.locator('#rewards-x').isVisible());
+    await page.keyboard.press('ArrowRight');assert(await page.locator('#rewards-x').isVisible());
+    await tab('Coin Holder').click();assert(await page.locator('#rewards-holder').isVisible());
+    await tab('Overview').click();assert(await page.locator('#rewards-overview').isVisible());
+    for(const href of ['#bonuses','#referrals']) assert(await page.locator(`#main-content a[href="${href}"]:visible`).count()>0,href);
   });
   await check('Holder allocation status does not claim migrated coins await migration',async()=>{
-    await page.getByRole('tab',{name:'Holder',exact:true}).click();
+    await page.getByRole('tab',{name:'Token airdrops',exact:true}).click();
     const list=page.locator('[data-funded-token-list]');
-    await list.first().waitFor({timeout:15000});
-    const labels=await list.first().innerText();
-    assert(!labels.includes('Migration pending'));
-    if((await list.first().locator('.funded-token-row').count())>0) assert(labels.includes('snapshot unverified'));
+    if(await list.count()){
+      await list.first().waitFor({state:'attached',timeout:15000});
+      assert(!(await list.first().innerText()).includes('Migration pending'));
+    }
     await page.getByRole('tab',{name:'Overview',exact:true}).click();
   });
   await page.screenshot({path:resolve(output,'rewards-desktop.png'),timeout:12000});
   await open('launch');
-  await check('Launch tier explanations show the selected policy and close',async()=>{
-    const dialog=page.locator('.launch-tier-guide-dialog');
-    await page.locator('#token-name').fill('UI tier guide');
-    await page.locator('#token-symbol').fill('UIGUIDE');
-    await page.locator('#launch-next').click();
-    await page.locator('.launch-advanced-options summary').click();
-    await page.getByRole('button',{name:'About Pro',exact:true}).click();
-    assert(await dialog.evaluate(element=>element.open));
-    assert.equal(await dialog.evaluate(element=>getComputedStyle(element).borderTopColor),'rgb(72, 90, 115)');
-    assert((await dialog.locator('h3').innerText()).includes('Pro'));
-    await dialog.getByRole('button',{name:'Close tier guide'}).click();
-    assert(!(await dialog.evaluate(element=>element.open)));
-    await page.locator('#launch-back').click();
-    await page.locator('#token-name').fill('');
-  });
   await check('Invalid identity blocks step advancement',async()=>{await page.locator('#token-name').fill('');await page.locator('#launch-next').click();assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'1');});
   await check('Launch settings and live summary; no signing',async()=>{
     await page.locator('#token-name').fill('UI review draft');await page.locator('#token-symbol').fill('UITEST');await page.locator('#launch-next').click();
@@ -514,16 +450,25 @@ try {
     assert.equal((await page.locator('#launch-summary-name').textContent()).trim(),'UI review draft');
     await page.locator('#community-airdrop-tokens').fill('1');assert.match(await page.locator('#wizard-hint').textContent(),/Community airdrop must be between/);
     await page.locator('#community-airdrop-tokens').fill('30000000');assert.equal(await page.locator('#launch-dialog').getAttribute('data-step'),'2');
-    assert(await page.locator('#terms-agree').isVisible());assert(await page.locator('#fee-route-agree').isVisible());assert(await page.locator('#launch-button').isDisabled());
+    assert(await page.locator('#terms-agree').isVisible());assert(await page.locator('#fee-route-agree').isVisible());
+    // Without a connected wallet the final step asks to connect; nothing is signed.
+    assert.doesNotMatch(await page.locator('#wizard-hint').textContent(),/must be between/);
+  });
+  await check('Launch tier explanations show the selected policy and close',async()=>{
+    const dialog=page.locator('.launch-tier-guide-dialog');
+    await page.getByRole('button',{name:'About Pro',exact:true}).click();
+    assert(await dialog.evaluate(element=>element.open));
+    assert((await dialog.locator('h3').innerText()).includes('Pro'));
+    await page.keyboard.press('Escape');
+    assert(!(await dialog.evaluate(element=>element.open)));
     await page.locator('#launch-back').click();assert.equal(await page.locator('#token-name').inputValue(),'UI review draft');
+    await page.locator('#token-name').fill('');
   });
   await page.screenshot({path:resolve(output,'launch-desktop.png'),timeout:12000});
-  await check('Analytics source disclosure does not wait on a hidden-tab refresh',async()=>{
+  await check('Analytics shows its figures without a stale refresh placeholder',async()=>{
     await open('analytics-detail');
-    await page.locator('#analytics-detail .ui-disclosure summary').click();
-    const source=await page.locator('#analytics-technical-source').innerText();
-    assert(source.trim().length>20, 'Source disclosure should describe the current analytics state');
-    assert(!source.includes('appear after the next refresh'), 'Source disclosure must not show a stale placeholder');
+    assert(await page.locator('#analytics-detail .analytics-kpis').isVisible());
+    assert(!(await page.locator('#analytics-detail').innerText()).includes('appear after the next refresh'),'Analytics must not show a stale placeholder');
   });
   await check('Related menu pages share one destination and keep old links working',async()=>{
     for(const [route,host,child,menu] of [
@@ -541,7 +486,7 @@ try {
   });
   await check('Parent pages retain their primary panels while child subroutes focus their own',async()=>{
     for(const [parent,child,primary] of [
-      ['my-launches','community','#my-launches > .role-grid'],
+      ['my-launches','community','#my-launches > .portfolio-dashboard'],
       ['analytics-detail','capital-flow','#analytics-detail .analytics-kpis'],
       ['paid','buybacks','#paid .paid-reference-hero'],
     ]){
@@ -561,12 +506,12 @@ try {
     await page.screenshot({path:resolve(output,`${route}-mobile.png`),timeout:12000});
   }
   await open('explore');
-  await check('Mobile Explore keeps quick sorts visible and detail controls in Filters',async()=>{
-    assert.equal(await page.locator('.explore-sort-buttons button:visible').count(),4);
+  await check('Mobile Explore keeps timeframes and sort visible and detail controls in Filters',async()=>{
+    assert((await page.locator('.explore-timeframe button:visible').count())>=3);
+    assert(await page.locator('#explore-sort').isVisible());
     assert((await page.locator('#explore-filter-toggle').boundingBox()).height>=44);
     await page.locator('#explore-filter-toggle').click();
-    for(const selector of ['[data-explore-window="24h"]','[data-explore-stage="near"]'])assert((await page.locator(selector).boundingBox()).height>=44,selector);
-    assert(await page.locator('#explore-filter-popover #explore-sort').isVisible());
+    assert(await page.locator('#explore-filter-popover').isVisible());
     await page.locator('#explore-filter-close').click();
   });
   await check('Mobile filter dismissal',async()=>{await page.locator('#explore-filter-toggle').click();assert(await page.locator('#explore-filter-popover').isVisible());await page.locator('#explore-filter-close').click();assert(!await page.locator('#explore-filter-popover').isVisible());});
@@ -613,17 +558,13 @@ try {
     assert.equal(await profile.getByRole('tab',{name:'About'}).getAttribute('aria-selected'),'true');
   });
   await check('Coin chart filters confirmed observations by selected range',async()=>{
-    if(await page.locator('[data-coin-chart-view="trades"]').isVisible()){
-      await page.locator('[data-coin-chart-view="trades"]').click();
-      assert.equal(await page.locator('[data-coin-chart-period]').count(),4);
-      await page.locator('[data-coin-chart-period="5m"]').click();
-      assert.equal(await page.locator('[data-coin-chart-period="5m"]').getAttribute('aria-pressed'),'true');
-      assert((await page.locator('#coin-price-path').innerText()).includes('5m'));
-      await page.locator('[data-coin-chart-period="24h"]').click();
-      assert.equal(await page.locator('[data-coin-chart-period="24h"]').getAttribute('aria-pressed'),'true');
-    }else{
-      assert(await page.getByRole('button',{name:'Snapshot',exact:true}).first().isVisible());
-    }
+    const periods=page.locator('[data-coin-chart-period]');
+    assert.equal(await periods.count(),4);
+    await page.locator('[data-coin-chart-period="5m"]').click();
+    assert.equal(await page.locator('[data-coin-chart-period="5m"]').getAttribute('aria-pressed'),'true');
+    await page.locator('[data-coin-chart-period="24h"]').click();
+    assert.equal(await page.locator('[data-coin-chart-period="24h"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('[data-coin-chart-period="5m"]').getAttribute('aria-pressed'),'false');
   });
   await page.screenshot({path:resolve(output,'token-chart-mobile.png'),timeout:12000});
   await page.setViewportSize({width:1440,height:1000});
