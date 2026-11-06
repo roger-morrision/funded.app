@@ -372,10 +372,20 @@ html body.page-route #main-content #my-launches > #community { max-width: none; 
 /* Create keeps its narrower form column, but starts on the same left edge as other pages. */
 html body.page-route-launch #main-content > #launch-route-shell.launch-route-shell { margin-inline: 0 auto; }
 
+/* Wallet profile: same column, breadcrumb case and tab style as the rest of the app. */
+html body.page-route-wallet #main-content > #wallet-page.wallet-page { max-width: none; margin-inline: 0; }
+html body.page-route-wallet #wallet-page .coin-breadcrumb { text-transform: none; letter-spacing: 0; }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs { gap: 6px; padding-bottom: var(--fv-space-2); }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button { min-width: 0; min-height: 40px; padding: 8px 14px; border: 1px solid transparent; border-radius: var(--cp-radius); background: transparent; color: var(--cp-muted); font: 700 13px var(--fv-font-ui); }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button::after { display: none; }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button:hover { color: var(--cp-text); }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button.active { border-color: var(--cp-line-strong); background: var(--cp-surface); color: var(--cp-accent); }
+
 /* In-page text links share the accent color instead of mixing blue and orange. */
 html body #main-content .text-button { color: var(--fv-accent); }
 html body #main-content .text-button:hover { color: var(--cp-accent); }
 html body #main-content #bonuses a:not([class]) { color: var(--fv-accent); text-underline-offset: 2px; }
+html body.page-route #main-content .recipients-panel .recipients-history-link { color: var(--fv-accent); }
 
 /* Daily bonuses: same open page layout as Leaderboard and Rewards, not a card glued to the topbar. */
 html body #main-content > #bonuses.bonus-history-page { padding: var(--fv-space-5) 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }

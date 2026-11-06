@@ -196,7 +196,7 @@ body.page-route .topbar .top-actions .connect-button { border-color: #485a73 !im
 body.page-route .topbar .top-actions .connect-button:hover { color: #ffd28a !important; }
 body.page-route:is(.page-route-analytics-detail,.page-route-referrals,.page-route-privacy) #route-guide .route-guide-secondary,
 body.page-route-explore .scanner-actions :is(.scanner-watch,.copy-row),
-body.page-route-analytics-detail .recipients-panel .payment-row a { color: #8fb2f0 !important; }
+body.page-route-analytics-detail .recipients-panel .payment-row a { color: var(--fv-accent, #f4a340) !important; }
 body.page-route-explore .scanner-actions :is(.scanner-watch,.copy-row):hover,
 body.page-route-analytics-detail .recipients-panel .payment-row a:hover { color: #ffd28a !important; }
 body.page-route .coin-page .coin-avatar:not([style]):not(:has(img)),

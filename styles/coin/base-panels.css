@@ -1,5 +1,5 @@
 /* Evidence-first token detail, adapted to funded.vip's Solana data model. */
-main.wallet-view>section:not(#wallet-page),main.wallet-view>footer{display:none!important}
+main.wallet-view>section:not(#wallet-page),main.wallet-view>footer:not(.site-footer){display:none!important}
 main.wallet-view>#wallet-page{display:block!important}
 .wallet-page{width:100%;max-width:1180px;margin:0 auto;padding:24px 0 64px}
 .wallet-detail-hero{display:flex;align-items:center;gap:20px;margin-top:18px;padding:24px 26px;border:1px solid #293547;border-radius:12px;background:linear-gradient(135deg,#121925,#10151e 70%)}

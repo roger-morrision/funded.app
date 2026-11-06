@@ -166,9 +166,11 @@ export function renderWalletDetail(
     loadWalletRowLogos(content, launches);
     return;
   }
+  // An unavailable scan would turn the whole guidance line into a quiet "-" (technical-notices.js).
+  const shownScanNote = /unavailable/i.test(scanNote) ? '' : ` ${scanNote}.`;
   description.textContent = isSelf
-    ? `Confirmed wallet payments and airdrop claims, plus launches, burns, and recent trades. ${scanNote}.`
-    : `Confirmed launches and burns, plus recent trades from the last 24 hours. ${scanNote}.`;
+    ? `Confirmed wallet payments and airdrop claims, plus launches, burns, and recent trades.${shownScanNote}`
+    : `Confirmed launches and burns, plus recent trades from the last 24 hours.${shownScanNote}`;
   const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${escapeHtml(trade.symbol || 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
   const seenBurns = new Set();
   const burnRows = launches.flatMap(launch => {
