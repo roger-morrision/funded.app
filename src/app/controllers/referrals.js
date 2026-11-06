@@ -236,15 +236,18 @@ function updateReferralStatus(state){
           button.disabled=true;
           try{
             appState.assertWalletSessionCurrent(session);
-            if(typeof session.provider.signMessage!=='function')throw new Error('Use a wallet that can sign a claim message.');
             const path=`/api/tokens/${encodeURIComponent(claim.mint)}/v3-referral-payout/${encodeURIComponent(claim.collectionSignature)}/${claim.level}`;
             const prepared=await appState.apiRequest(path,{method:'POST',body:{}});
             appState.assertWalletSessionCurrent(session);
             const review=prepared.data;
-            if(review?.status!=='awaiting-recipient-signature'||review.recipient!==session.address
-              ||review.mint!==claim.mint||review.collectionSignature!==claim.collectionSignature
-              ||review.level!==claim.level||review.amount!==String(claim.amountLamports)||typeof review.statement!=='string')
+            if(!review||review.recipient!==session.address||review.mint!==claim.mint
+              ||review.collectionSignature!==claim.collectionSignature||review.level!==claim.level||review.amount!==String(claim.amountLamports))
               throw new Error(review?.error||'Referral claim review is unavailable.');
+            if(review.status==='finalized'&&review.signature&&review.balanceDeltaVerified===true){
+              appState.showToast('Referral reward paid.');await refreshReferralClaims();return;
+            }
+            if(review.status!=='awaiting-recipient-signature'||typeof review.statement!=='string')throw new Error('Referral claim review is unavailable.');
+            if(typeof session.provider.signMessage!=='function')throw new Error('Use a wallet that can sign a claim message.');
             button.textContent='Sign claim in wallet…';
             const signed=await session.provider.signMessage(new TextEncoder().encode(review.statement),'utf8');
             appState.assertWalletSessionCurrent(session);button.textContent='Verifying payment…';
