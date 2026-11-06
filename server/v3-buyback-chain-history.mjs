@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-swap-sdk';
 import { deriveMintPolicyV3 } from '../mint-router-v3.js';
 import { loadFinalizedV3Buyback } from './v3-buyback-proof.mjs';
+import {isDeletedDevnetMint} from './deleted-devnet-mints.mjs';
 
 const receiptDiscriminator = createHash('sha256').update('account:MintBuybackV3').digest().subarray(0, 8);
 const policyDiscriminator = Buffer.from('25d0c7eca736c38f', 'hex');
@@ -27,6 +28,7 @@ export async function latestUnindexedV3Burn({ connection, programId,
     if (!account.owner?.equals(program) || data.length !== 160
       || !data.subarray(0, 8).equals(receiptDiscriminator)) return [];
     const mint = new PublicKey(data.subarray(40, 72));
+    if (isDeletedDevnetMint(mint.toBase58())) return [];
     const id = data.subarray(8, 40);
     const expected = PublicKey.findProgramAddressSync([
       Buffer.from('mint-buyback-v3'), mint.toBuffer(), id,

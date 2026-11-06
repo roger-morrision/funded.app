@@ -47,6 +47,17 @@ const connection = {
   } } }),
 };
 
+test('retired Devnet receipts cannot repopulate a fresh history',async()=>{
+  const retired=new PublicKey('26ds5kv2n8JuWZ2uRu1goxEw7xy7YirpdsqdiLycy1Zg');
+  const data=Buffer.from(receiptData);
+  retired.toBuffer().copy(data,40);
+  const [pubkey]=PublicKey.findProgramAddressSync([Buffer.from('mint-buyback-v3'),retired.toBuffer(),id],program);
+  const history=await latestUnindexedV3Burn({programId:program,connection:{...connection,
+    getProgramAccounts:async()=>[{pubkey,account:{owner:program,data}}],
+    getAccountInfo:async()=>assert.fail('Retired receipts must be excluded before proof lookup')}});
+  assert.equal(history,null);
+});
+
 test('already proved receipt addresses need no repeated policy, signature or transaction reads',async()=>{
   const unexpected=async()=>assert.fail('An indexed receipt must not trigger history RPC reads');
   const proof=await latestUnindexedV3Burn({programId:program,indexedReceipts:new Set([receipt.toBase58()]),
