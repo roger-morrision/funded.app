@@ -39,7 +39,7 @@ try {
   await check('Home keeps one metrics section and one legal footer',async()=>{
     assert.equal(await page.locator('.home-hero-facts').count(),0);
     assert(await page.locator('.home-kpi-dashboard').isVisible());
-    assert.equal(await page.locator('.main-content > footer').count(),1);
+    assert.equal(await page.locator('.main-content > footer.site-footer').count(),1);
     assert(await page.locator('.main-content > footer.site-footer').isVisible());
   });
   await check('Home navigation exposes the reference destination pages',async()=>{
