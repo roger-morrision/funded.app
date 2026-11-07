@@ -1,3 +1,4 @@
+import { publicReadFetch as fetch } from './src/lib/public-read-fetch.js';
 import {accountPreferences,saveAccountPreference} from './src/features/account/preferences.js';
 import { apiRequest } from './client.js';
 import {isDevnetImageUri} from './devnet-metadata.js';

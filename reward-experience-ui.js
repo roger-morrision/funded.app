@@ -1,3 +1,4 @@
+import { publicReadFetch as fetch } from './src/lib/public-read-fetch.js';
 import {accountFavorites} from './src/features/account/preferences.js';
 import { renderHolderAirdropDirectory } from './src/features/rewards/holder-airdrop-directory.js';
 import './reward-experience.css';

@@ -1,3 +1,4 @@
+import { tokenArtworkUrl } from '../shared/token-artwork.js';
 // Callouts: chat posts that call a coin. The server records the market cap at
 // the moment of the call, and whether the caller held the coin. This page shows
 // every call live in three columns (latest, top callers, conviction) with how
@@ -74,7 +75,7 @@ function formatHolding(percent) { return percent >= 1 ? `${percent.toFixed(1)}%`
 export function calloutRowMarkup(row, { solUsd, wallet, nowMs = Date.now(), fresh = false, callers = new Map() } = {}) {
   const symbol = row.token?.symbol || shortWallet(row.mint);
   const image = row.token?.image && /^https:\/\//.test(row.token.image)
-    ? `<img src="${escape(row.token.image)}" alt="" width="20" height="20" loading="lazy" />`
+    ? `<img src="${escape(tokenArtworkUrl(row.mint,row.token.image))}" alt="" width="20" height="20" loading="lazy" decoding="async" />`
     : `<span class="callout-token-initial" aria-hidden="true">${escape(symbol.slice(0, 1).toUpperCase())}</span>`;
   const you = wallet && row.author === wallet ? ' <em>you</em>' : '';
   const caller = callers.get(row.author);

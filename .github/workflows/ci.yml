@@ -25,7 +25,7 @@ jobs:
           node --input-type=module -e "import('./src/lib/env.js').then(({ validateRuntimeEnv }) => validateRuntimeEnv({ VITE_SOLANA_CLUSTER: 'devnet', VITE_API_BASE_URL: '/', VITE_ALLOW_MAINNET: 'false' })).then(() => console.log('env ok'))"
       - run: npm run check
       - name: Verify app-owned token account setup
-        run: node --test tests/app-account-setup.test.mjs tests/program-deploy-cost.test.mjs tests/merged-escrow.test.mjs tests/mainnet-preparation.test.mjs tests/devnet-metadata.test.mjs tests/rpc-failover.test.mjs tests/metric-motion.test.mjs
+        run: node --test tests/app-account-setup.test.mjs tests/program-deploy-cost.test.mjs tests/merged-escrow.test.mjs tests/mainnet-preparation.test.mjs tests/devnet-metadata.test.mjs tests/rpc-failover.test.mjs tests/metric-motion.test.mjs tests/loading-performance.test.mjs
       - run: npm run build
         env:
           VITE_API_BASE_URL: /

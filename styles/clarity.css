@@ -344,26 +344,3 @@ html body #main-content > .site-footer .site-footer-bottom { grid-column: 1 / -1
 }
 /* Home service status: aligned to the content column like every other section, not a centered 720px box. */
 html body.page-route #main-content > .preview-status-drawer { width: 100%; max-width: none; margin: var(--fv-space-6) 0 0; }
-
-/* Ranking values carry distinct accents; missing data stays neutral. */
-html body #main-content .saved-fee-chart { min-width:0; }
-html body #main-content .saved-fee-bar { display:flex; width:100%; height:24px; overflow:hidden; border-radius:6px; background:var(--fv-border); }
-html body #main-content .saved-fee-bar > span { display:flex; flex:none; align-items:center; justify-content:center; min-width:0; overflow:hidden; background:var(--fee-share-color); color:var(--fv-bg); font:700 12px var(--fv-font-data); }
-html body #main-content .saved-fee-legend { display:flex; flex-wrap:wrap; gap:6px 16px; list-style:none; margin:10px 0 0; padding:0; }
-html body #main-content .saved-fee-legend li { display:flex; align-items:center; gap:6px; margin:0; padding:0; color:var(--fv-text-muted); font:12px/1.5 var(--fv-font-ui); }
-html body #main-content .saved-fee-legend i { flex:none; width:8px; height:8px; border-radius:2px; background:var(--fee-share-color); }
-html body #main-content .saved-fee-legend strong { color:var(--fv-text); font-weight:700; white-space:nowrap; }
-html body #main-content .saved-fee-legend .is-zero { --fee-share-color:var(--fv-text-subtle); }
-.fee-share-creator { --fee-share-color:var(--fv-accent); }
-.fee-share-holders { --fee-share-color:var(--fv-success); }
-.fee-share-x { --fee-share-color:var(--fv-info); }
-.fee-share-operations { --fee-share-color:var(--fv-violet); }
-.fee-share-referrals { --fee-share-color:var(--fv-warning); }
-.fee-share-bonus { --fee-share-color:var(--fv-danger); }
-.fee-share-buyback { --fee-share-color:color-mix(in srgb,var(--fv-success) 50%,var(--fv-info)); }
-.fee-share-agency { --fee-share-color:color-mix(in srgb,var(--fv-accent) 45%,var(--fv-danger)); }
-html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="volume"] strong { color:var(--fv-success); }
-html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="airdrop"] strong { color:var(--fv-accent); }
-html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="holder-fee"] strong { color:var(--fv-info); }
-html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="x-fee"] strong { color:color-mix(in srgb,var(--fv-info) 70%,var(--fv-danger)); }
-html body #main-content #explore-benefit-leaders :is([data-state="empty"],[data-state="unavailable"]) strong { color:var(--fv-text-muted); }

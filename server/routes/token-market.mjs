@@ -10,9 +10,11 @@ export function createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster,
   respond, readMarketActivity = readPumpMarketActivity,
   readWalletTrades = readWalletTradeHistory,
+  makeTokenConnection = endpoint => new Connection(endpoint, 'confirmed'),
 }) {
   const coinMarketCache = new Map();
   const tokenAccountsCache = new Map();
+  const tokenAccountsInflight = new Map();
   const coinMarketInflight = new Map();
   let coinMarketActive = 0;
   const coinMarketWaiting = [];
@@ -83,8 +85,9 @@ export function createTokenMarketRoutes({
       if (cached && Date.now() - cached.at < 60_000) return json(res, 200, cached.data);
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`token-accounts:${clientKey(req)}`, 2, 30, windowStart)) return json(res, 429, { error: 'Token-account refresh limit reached; retry shortly.' });
-      try {
-        const connection = new Connection(solanaRpcUrl, 'confirmed');
+      if (!tokenAccountsInflight.has(address)) {
+        const pending = (async () => {
+        const connection = makeTokenConnection(solanaRpcUrl);
         const sample = normalizeLargestTokenAccounts(await connection.getTokenLargestAccounts(mint, 'confirmed'));
         const infos = sample.accounts.length
           ? await connection.getMultipleAccountsInfo(sample.accounts.map(account => new PublicKey(account.address)), 'confirmed').catch(() => [])
@@ -104,8 +107,12 @@ export function createTokenMarketRoutes({
         const data = { mint: address, cluster: solanaCluster, observedAt: new Date().toISOString(), ...verifiedSample };
         if (tokenAccountsCache.size >= 500) tokenAccountsCache.delete(tokenAccountsCache.keys().next().value);
         tokenAccountsCache.set(address, { at: Date.now(), data });
-        return json(res, 200, data);
-      } catch { return json(res, 502, { error: 'Token-account provider is unavailable.' }); }
+        return data;
+        })().finally(() => { if(tokenAccountsInflight.get(address) === pending) tokenAccountsInflight.delete(address); });
+        tokenAccountsInflight.set(address, pending);
+      }
+      try { return json(res, 200, await tokenAccountsInflight.get(address)); }
+      catch { return json(res, 502, { error: 'Token-account provider is unavailable.' }); }
     }
     const tokenMarketMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/market-activity$/) : null;
     if (tokenMarketMint) {

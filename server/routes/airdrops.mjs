@@ -11,11 +11,12 @@ export function createAirdropsRoutes({
   solanaCluster, solanaRpcUrl, store, automaticRewardStore, fundedTokenMint, clientKey, body, requireAuthorized,
   communityClaimService, v3AuthorityKeypair,
   respond,
+  makeReserveConnection = endpoint => new Connection(endpoint, 'finalized'),
 }) {
-  const preparing = new Map(), reserveReads = new Map();
+  const preparing = new Map(), reserveReads = new Map(), mintSnapshots = new Map();
   let reserveEpoch = 0;
   let communityReserveSnapshot = null;
-  const invalidateReserveCache = () => { communityReserveSnapshot = null; reserveEpoch++; reserveReads.clear(); };
+  const invalidateReserveCache = () => { communityReserveSnapshot = null; mintSnapshots.clear(); reserveEpoch++; reserveReads.clear(); };
   const json = (...args) => { respond(...args); return true; };
   async function handle(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/airdrops/reserves') {
@@ -29,13 +30,23 @@ export function createAirdropsRoutes({
         if (cached) return json(res, 200, { cluster:solanaCluster, checkedAt:snapshot.checkedAt, reserves:[cached] });
       }
       const scope = mint || '*', epoch = reserveEpoch;
+      if (mint && mintSnapshots.get(mint)?.expiresAt > Date.now()) return json(res, 200, mintSnapshots.get(mint).value);
+      if (mint && reserveReads.has('*')) {
+        try {
+          const snapshot = await reserveReads.get('*');
+          const row = snapshot.reserves.find(item => item.mint === mint);
+          if (row && epoch === reserveEpoch) return json(res, 200, {cluster:solanaCluster, checkedAt:snapshot.checkedAt, reserves:[row]});
+        } catch { /* A failed directory read may still permit a selected-mint retry. */ }
+      }
       if (!reserveReads.has(scope)) {
         const work = (async () => {
-        const connection = new Connection(solanaRpcUrl, 'finalized');
-        if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Reward RPC is not Devnet.');
-        const state = await store.read();
-        const claimLedger = typeof automaticRewardStore.readAutomationSnapshot === 'function'
-          ? await automaticRewardStore.readAutomationSnapshot() : await automaticRewardStore.read();
+        const connection = makeReserveConnection(solanaRpcUrl);
+        const [genesis, state, claimLedger] = await Promise.all([
+          connection.getGenesisHash(), store.read(),
+          typeof automaticRewardStore.readAutomationSnapshot === 'function'
+            ? automaticRewardStore.readAutomationSnapshot() : automaticRewardStore.read(),
+        ]);
+        if (genesis !== DEVNET_GENESIS_HASH) throw new Error('Reward RPC is not Devnet.');
         const configuredReceipts = JSON.parse(process.env.FUNDED_COMMUNITY_RESERVE_RECEIPTS_JSON || '{}');
         const launches = Object.values(state.launches || {}).filter(row => (!mint || row.mint === mint) && row.onchainVerified && row.cluster === 'devnet'
           && row.pumpFeeRoute?.scope === 'per-mint-v3'
@@ -75,7 +86,14 @@ export function createAirdropsRoutes({
               reason:'Community reserve could not be verified for this mint.' };
           }
         });
-        if (mint) return { cluster:solanaCluster, checkedAt:new Date().toISOString(), reserves };
+        if (mint) {
+          const value = { cluster:solanaCluster, checkedAt:new Date().toISOString(), reserves };
+          if (epoch === reserveEpoch) {
+            if (mintSnapshots.size >= 100) mintSnapshots.delete(mintSnapshots.keys().next().value);
+            mintSnapshots.set(mint, {value, expiresAt:Date.now() + 30_000});
+          }
+          return value;
+        }
         const authorities = new Set(reserves.filter(row => row.verified).map(row => row.authority));
         const result = { cluster:'devnet', checkedAt:new Date().toISOString(), claimPolicy:{ windowDays:90,
           unclaimedRecipient:authorities.size === 1 ? [...authorities][0] : null,

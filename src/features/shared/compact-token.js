@@ -1,4 +1,5 @@
 import { isDevnetImageUri } from '../../../devnet-metadata.js';
+import { loadTokenArtwork } from './token-artwork.js';
 
 export function updateCompactTokenLink(link, { mint, launch = null, showMarketCap = true }, document = globalThis.document) {
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint || '')) return;
@@ -16,9 +17,7 @@ export function updateCompactTokenLink(link, { mint, launch = null, showMarketCa
     const detail = document.createElement('small');detail.textContent = showMarketCap ? 'Current MC · —' : 'Paying coin';
     identity.append(name,detail);link.append(avatar,identity);
     if (isDevnetImageUri(imageUri,mint)) {
-      const image = document.createElement('img');image.alt = '';image.loading = 'eager';image.decoding = 'async';
-      image.addEventListener('load',()=>{if(link.dataset.tokenKey===key)avatar.replaceChildren(image);});
-      image.src = imageUri;
+      loadTokenArtwork(avatar, mint, imageUri);
     }
   }
   if(showMarketCap)link.querySelector('small').textContent = `Current MC · ${item?.marketCap || '—'}`;

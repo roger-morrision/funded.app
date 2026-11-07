@@ -367,8 +367,9 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   byId('list-review-confirm').addEventListener('click', submitPayment);
   byId('list-retry').addEventListener('click', () => void claimPending());
   window.addEventListener('funded:reward-identity-change', draw);
-  window.addEventListener('funded:route-change', event => { if (event.detail?.route === 'list') void refreshListings(); });
+  window.addEventListener('funded:route-change', event => { if (event.detail?.route === 'list') { void refreshConfig(); void refreshListings(); } });
   const pending = readPending();
   if (pending) { mintInput.value = pending.mint; nameInput.value = pending.name; symbolInput.value = pending.symbol; }
-  queueLookup(); void refreshConfig(); void refreshListings();
+  queueLookup();
+  if (location.hash === '#list' || location.pathname === '/list') { void refreshConfig(); void refreshListings(); }
 }

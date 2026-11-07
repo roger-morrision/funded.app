@@ -1,4 +1,6 @@
 import { updateCompactTokenLink } from './src/features/shared/compact-token.js';
+import { publicReadFetch as fetch } from './src/lib/public-read-fetch.js';
+import { loadTokenArtwork } from './src/features/shared/token-artwork.js';
 import { renderHomeRewardCards as renderHomeRewardCardsView } from './src/features/rewards/airdrop-cards-view.js';
 import { renderSimpleRewardCards as renderSimpleRewardCardsView } from './src/features/rewards/sol-cards-view.js';
 import { formatTokens, utcMoment } from './src/features/rewards/card-format.js';
@@ -39,18 +41,7 @@ function loadFundedTokenLogo(avatar, launch) {
   const mint = String(launch?.mint || '');
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)
     || !isDevnetImageUri(launch.imageUri, mint)) return;
-  const sources = [`/devnet-images/${encodeURIComponent(mint)}`, launch.imageUri];
-  let next = 0;
-  const trySource = () => {
-    if (!avatar.isConnected || next >= sources.length) return;
-    const image = new Image();
-    image.alt = '';
-    image.decoding = 'async';
-    image.onload = () => { if (avatar.isConnected) avatar.replaceChildren(image); };
-    image.onerror = trySource;
-    image.src = sources[next++];
-  };
-  trySource();
+  loadTokenArtwork(avatar, mint, launch.imageUri);
 }
 for (const panel of panels) {
   panel.innerHTML = `<div class="auto-rewards-heading"><div><p class="eyebrow">REWARD TIMING</p><h2>When rewards arrive</h2><p class="auto-rewards-intro">See the next recorded holder cycle and how $FUNDED token airdrops work.</p></div><span class="preview-chip">Checking service…</span></div>
@@ -155,7 +146,7 @@ async function refreshFundedHolderTokens() {
 async function refreshCurrentFundedReceivers(revision) {
   let result = { status:'unavailable' };
   try {
-    const configResponse = await fetch('/api/listings/config', { signal:AbortSignal.timeout(8000) });
+    const configResponse = await fetch('/api/token-config', { signal:AbortSignal.timeout(8000) });
     if (!configResponse.ok) throw new Error('Mint config unavailable');
     const config = await configResponse.json();
     if (config.cluster !== EXPLORE_CLUSTER || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(config.fundedMint || '')) throw new Error('Mint unavailable');
@@ -311,10 +302,17 @@ async function refreshHomePaidSummary() {
 if (panels.length) {
   // Publish the loading panels immediately; provider responses update them independently.
   // Slow reward services must not block workspace navigation during module import.
-  void Promise.allSettled([refreshSchedules(), refreshFundedHolderTokens(), refreshXRoute(), refreshHomePaidSummary()]);
-  setInterval(() => { if (!document.hidden) void refreshSchedules(); }, 30000);
-  setInterval(() => { if (!document.hidden) void refreshFundedHolderTokens(); }, 60000);
-  setInterval(() => { if (!document.hidden) void refreshXRoute(); }, 60000);
-  setInterval(() => { if (!document.hidden) void refreshHomePaidSummary(); }, 60000);
-  setInterval(() => { if (!document.hidden) renderClocks(); }, 1000);
+  const visible = () => !document.hidden && [homeSpotlight, ...panels].some(panel => panel?.checkVisibility());
+  let refreshedAt = 0;
+  const refreshVisible = () => {
+    if (!visible() || Date.now() - refreshedAt < 30_000) return;
+    refreshedAt = Date.now();
+    void Promise.allSettled([refreshSchedules(), refreshFundedHolderTokens(), refreshXRoute(), refreshHomePaidSummary()]);
+  };
+  refreshVisible();
+  window.addEventListener('funded:route-change', refreshVisible);
+  window.addEventListener('funded:layout-change', refreshVisible);
+  document.addEventListener('visibilitychange', refreshVisible);
+  setInterval(refreshVisible, 30000);
+  setInterval(() => { if (visible()) renderClocks(); }, 1000);
 }

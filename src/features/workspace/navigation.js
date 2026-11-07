@@ -2,6 +2,7 @@ import { $$, $, node } from './dom.js';
 import { icon } from '../../../ui-icons.js';
 import { EXPLORE_CLUSTER, APP_MAINNET_READ_ONLY } from '../../../app-config.js';
 import { isDevnetImageUri } from '../../../devnet-metadata.js';
+import { loadTokenArtwork } from '../shared/token-artwork.js';
 import { productHelpTopics } from '../help/product-guidance.js';
 import { helpTopicForLocation } from '../help/page-guidance.js';
 import { candidateHref,creatorSearchCandidates } from '../experience/search-model.js';
@@ -101,15 +102,8 @@ export function navigation() {
       link.addEventListener('click', () => searchDialog.close());
       searchResults.append(link);
       if (candidate.verifiedLaunch && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(candidate.mint)) {
-        const image = new Image();
-        image.alt = '';
-        image.decoding = 'async';
-        image.onload = () => { if (avatar.isConnected) avatar.replaceChildren(image); };
         const local = `/devnet-images/${encodeURIComponent(candidate.mint)}`;
-        const sources = isDevnetImageUri(candidate.imageUri, candidate.mint) ? [candidate.imageUri, local] : [local];
-        let next = 0;
-        image.onerror = () => { if (next < sources.length) image.src = sources[next++]; };
-        image.src = sources[next++];
+        loadTokenArtwork(avatar, candidate.mint, isDevnetImageUri(candidate.imageUri,candidate.mint) ? candidate.imageUri : local);
       }
     });
     if (activeCandidate >= 0) {

@@ -1,5 +1,6 @@
 import { directoryPage, holderRewardGroups } from './airdrop-discovery-model.js';
 import { isDevnetImageUri } from '../../../devnet-metadata.js';
+import { loadTokenArtwork } from '../shared/token-artwork.js';
 
 let latest;
 let active = 'upcoming';
@@ -76,13 +77,7 @@ export function renderHolderAirdropDirectory(data) {
     const avatar = element('span', 'claim-token-mark', String(row.symbol || '?').slice(0,2));
     avatar.setAttribute('aria-hidden', 'true');
     if (!isDevnetImageUri(row.imageUri, row.mint)) avatar.title = 'Generated token avatar; project artwork was not uploaded';
-    const image = element('img', ''); image.alt = ''; image.loading = 'lazy';
-    const localImage = `/devnet-images/${encodeURIComponent(row.mint)}`;
-    const sources = isDevnetImageUri(row.imageUri, row.mint) ? [row.imageUri, localImage] : [localImage];
-    let next = 0;
-    image.addEventListener('error', () => { if (next < sources.length) image.src = sources[next++]; else image.remove(); });
-    image.src = sources[next++];
-    avatar.append(image);
+    loadTokenArtwork(avatar, row.mint, isDevnetImageUri(row.imageUri,row.mint) ? row.imageUri : `/devnet-images/${encodeURIComponent(row.mint)}`);
     const info = element('div', 'holder-airdrop-info');
     const link = element('a', '');
     link.append(element('strong', '', row.symbol || 'TOKEN'), element('small', '', row.name || 'Unnamed token'));

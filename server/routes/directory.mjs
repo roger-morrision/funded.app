@@ -22,6 +22,9 @@ export function createDirectoryRoutes({
     return metadataReader(mint);
   };
   return async function handleDirectoryRoutes(req, res, url, requestId) {
+    if (req.method === 'GET' && url.pathname === '/api/token-config') {
+      return json(res, 200, {cluster:solanaCluster, fundedMint:fundedTokenMint || null});
+    }
     if(req.method==='GET' && url.pathname==='/api/tokens/metadata'){
       let mints;
       try{mints=[...new Set(String(url.searchParams.get('mints')||'').split(',').map(mint=>new PublicKey(mint).toBase58()))];if(!mints.length||mints.length>8)throw Error();}

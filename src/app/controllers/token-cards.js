@@ -1,4 +1,5 @@
 // Dependencies and mutable application state are read live through appState.
+import { loadTokenArtwork, tokenArtworkUrl } from '../../features/shared/token-artwork.js';
 export function createTokenCardsController(appState) {
   // app-source: 296
   function verifiedLaunchPolicyForMint(mint){
@@ -75,7 +76,7 @@ export function createTokenCardsController(appState) {
       const avatar = document.querySelector('#coin-avatar');
       if (avatar) {
         avatar.textContent = '';
-        avatar.style.backgroundImage = `url("${appState.isDevnetImageUri(launch.imageUri, mint) ? launch.imageUri : `/devnet-images/${encodeURIComponent(mint)}`}")`;
+        avatar.style.backgroundImage = `url("${appState.isDevnetImageUri(launch.imageUri, mint) ? tokenArtworkUrl(mint, launch.imageUri) : `/devnet-images/${encodeURIComponent(mint)}`}")`;
         avatar.style.backgroundSize = 'cover';
         avatar.style.backgroundPosition = 'center';
         avatar.title = appState.isDevnetImageUri(launch.imageUri, mint) ? '' : 'Generated token avatar; project artwork was not uploaded';
@@ -108,19 +109,9 @@ export function createTokenCardsController(appState) {
   function loadTokenLogo(avatar, launch){
     const mint = String(launch?.mint || '');
     if (!avatar || appState.EXPLORE_CLUSTER !== 'devnet' || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || launch?.onchainVerified !== true) return;
-    const local = `/devnet-images/${encodeURIComponent(mint)}`;
-    const sources = appState.isDevnetImageUri(launch.imageUri, mint) ? [launch.imageUri, local] : [local];
-    let next = 0;
-    const trySource = () => {
-      if (!avatar.isConnected || next >= sources.length) return;
-      const image = new Image();
-      image.alt = '';
-      image.decoding = 'async';
-      image.onload = () => { if (avatar.isConnected) { avatar.replaceChildren(image); if (sources.length === 1 || next > 1) avatar.title = 'Generated token avatar; project artwork was not uploaded'; else avatar.removeAttribute('title'); } };
-      image.onerror = trySource;
-      image.src = sources[next++];
-    };
-    trySource();
+    const trusted = appState.isDevnetImageUri(launch.imageUri, mint);
+    avatar.title = trusted ? '' : 'Generated token avatar; project artwork was not uploaded';
+    loadTokenArtwork(avatar, mint, trusted ? launch.imageUri : `/devnet-images/${encodeURIComponent(mint)}`);
   }
   // app-source-end
 

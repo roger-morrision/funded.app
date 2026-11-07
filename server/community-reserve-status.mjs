@@ -153,13 +153,17 @@ async function verifiedDrop({ connection, program, issuer, funder, mintKey, toke
 export async function readCommunityReserveStatus({ connection, programId, authority, fundingAuthority = authority, mint, reservedTokens,
   fundingSignature = null, expectedEligibilityMint = null, dropOpeningSignature = null }) {
   const mintKey = new PublicKey(mint), issuer = new PublicKey(authority), funder = new PublicKey(fundingAuthority), program = new PublicKey(programId);
-  const mintInfo = await connection.getAccountInfo(mintKey, 'finalized');
+  const { vault } = rewardAddresses({ programId:program, authority:issuer, mint:mintKey });
+  // Both addresses are deterministic. Submit together so the RPC gateway can
+  // batch them without changing any mint, vault or funding verification below.
+  const [mintInfo, vaultInfo] = await Promise.all([
+    connection.getAccountInfo(mintKey, 'finalized'),
+    connection.getAccountInfo(vault, 'finalized'),
+  ]);
   if (!mintInfo || (!mintInfo.owner.equals(TOKEN_PROGRAM_ID) && !mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID)) || mintInfo.data.length < 45) throw new Error('Verified launch mint account is unavailable.');
   const decimals = mintInfo.data[44];
   if (decimals > 9 || !Number.isSafeInteger(reservedTokens) || reservedTokens <= 0) throw new Error('Invalid community reserve parameters.');
   const required = BigInt(reservedTokens) * 10n ** BigInt(decimals);
-  const { vault } = rewardAddresses({ programId:program, authority:issuer, mint:mintKey });
-  const vaultInfo = await connection.getAccountInfo(vault, 'finalized');
   if (!vaultInfo) return { mint:mintKey.toBase58(), status:'unfunded', verified:false, vaultInitialized:false, reservedTokens, fundedTokens:'0', vault:vault.toBase58() };
   const data = Buffer.from(vaultInfo.data);
   if (!vaultInfo.owner.equals(program) || data.length < 73 || !data.subarray(0, 8).equals(vaultDiscriminator)
