@@ -23,9 +23,10 @@ export function createXIdentityRoutes({
   const json = (...args) => { respond(...args); return true; };
   const html = (...args) => { respondHtml(...args); return true; };
   // The public status page polls V3 readiness on every load; the full on-chain proof
-  // takes about a second. Share one result for 15 seconds here only. Launch and claim
+  // takes about a second. Share one result for 15 seconds (then serve it up to 2 more
+  // minutes while one refresh runs) here only. Launch and claim
   // writes still call v3LaunchConfig() directly, so enforcement is unchanged.
-  const publicReadinessCache = createReadCache({ ttlMs:15000, maxEntries:1 });
+  const publicReadinessCache = createReadCache({ ttlMs:15000, staleMs:120000, maxEntries:1 });
   return async function handleXIdentityRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/x/oauth/start') {
       const config = xConfig();

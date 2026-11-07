@@ -92,7 +92,7 @@ export function updateCreatorProfile(state, user, input, now = new Date().toISOS
 export function createCreatorSupportHandler({ store, cluster, getSession, readEvidence, readFinalizedEvidence, capabilities, requireAuthorized }) {
   const issues = createProductIssueRoutes({store,cluster,requireAuthorized});
   const cards=new Map();
-  const capabilityCache=createReadCache({ttlMs:15000,maxEntries:1});
+  const capabilityCache=createReadCache({ttlMs:15000,staleMs:120000,maxEntries:1});
   const respond = (res, status, data) => { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(data)); return true; };
   return async (req, res, url) => {
     if (await issues(req,res,url)) return true;
