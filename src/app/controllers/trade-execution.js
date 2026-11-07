@@ -274,7 +274,7 @@ export function createTradeExecutionController(appState) {
           : 'Trade finalized and token balance change verified. History indexing is pending; no need to submit this trade again.';
         appState.pendingTradeVerifications.delete(pending.signature);
         appState.pendingTradeVerifications.set(pending.signature, pending);
-        appState.setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'}: ${reason} ${appState.pendingTradeVerifications.size} receipt${appState.pendingTradeVerifications.size === 1 ? '' : 's'} pending.`, pending.signature);
+        appState.setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'}: ${reason}`, pending.signature);
         return;
       }
       appState.pendingTradeVerifications.delete(pending.signature);
