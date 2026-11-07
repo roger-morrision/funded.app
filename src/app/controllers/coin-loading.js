@@ -30,17 +30,33 @@ export function createCoinLoadingController(appState) {
     if (!mintAddress){ appState.renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
     const feeLedgerPromise=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`,
       { signal:AbortSignal.timeout(20000) }).catch(() => ({ available:false, data:null }));
+    let loadedFeeLedger = null;
     void feeLedgerPromise.then(response => {
       if (loadId !== appState.coinLoadId) return;
       const ledger=verifiedV3FeeLedger(response,mintAddress,appState.EXPLORE_CLUSTER);
       if (!ledger) return;
+      loadedFeeLedger = ledger;
       appState.coinSummaryLedgerMint=mintAddress;
       appState.renderCoinFeeDashboard(ledger.overview);
+      if (appState.coinTradeEstimate?.mint === mintAddress && appState.coinActivity?.status === 'ready') {
+        const shared = linkedSharedRouterFeeCollections(ledger, appState.coinTradeEstimate.curve?.creator);
+        appState.coinActivity = {...appState.coinActivity, ledgerAvailable:true,
+          ledgerSource:ledger.source === 'funded.app-postgresql' ? 'app database' : 'file ledger',
+          collections:Array.isArray(ledger.collections) ? ledger.collections : [],
+          claims:Array.isArray(ledger.claims) ? ledger.claims : [], sharedRouterCollections:shared.collections};
+        appState.setCoinTabLabels(); appState.renderCoinActivityTab();
+      }
     });
     void appState.loadCoinChat(mintAddress, loadId);
     const known = serverCoinIdentity(mintAddress);
     appState.setCoinField('#coin-page-title', known?.name || 'Loading token…'); appState.setCoinField('#coin-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinField('#coin-description', 'Checking coin details on Solana…');
+    // Registry-verified server identity can show its stored artwork immediately;
+    // market and trading fields still wait for their independent chain checks.
+    if (known && appState.EXPLORE_CLUSTER === 'devnet') {
+      const avatar = document.querySelector('#coin-avatar');
+      if (avatar) { avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; }
+    }
     try {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
       const detailConnection = await appState.getExploreConnection();
@@ -209,7 +225,7 @@ export function createCoinLoadingController(appState) {
       appState.renderOnChainUnavailable(detail);
       renderMarketStatus({mint:mintAddress,available:false,retry:async()=>{if(loadId!==appState.coinLoadId)return;appState.resetCoinSurface(mintAddress);await appState.loadCoinOnChain(mintAddress);}});
       appState.renderCoinRegistryIdentity(mintAddress);
-      const feeLedger=verifiedV3FeeLedger(await feeLedgerPromise,mintAddress,appState.EXPLORE_CLUSTER);
+      const feeLedger=loadedFeeLedger;
       if (loadId !== appState.coinLoadId || !feeLedger) return;
       appState.coinSummaryLedgerMint=mintAddress;
       appState.coinActivity={ ...appState.coinActivity, ledgerAvailable:true,

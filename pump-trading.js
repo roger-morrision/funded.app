@@ -7,6 +7,7 @@ import bs58 from 'bs58';
 import {inspectPhantomTradeTransaction} from './phantom-mobile-crypto.js';
 import {waitForSignatureConfirmation} from './funded-burn.js';
 import { describeTradeQuote } from './trade-quote-display.js';
+import { readPoolDisplayState } from './pool-display-state.js';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
@@ -217,12 +218,8 @@ export function formatGraduatedPoolSnapshot({ mint, poolKey, state, tokenDecimal
 export async function fetchGraduatedPoolSnapshot({ connection, mint, tokenDecimals = 6 }) {
   const mintKey = requireMint(mint);
   const poolKey = canonicalPumpPoolPda(mintKey, NATIVE_MINT);
-  const sdk = new OnlinePumpAmmSdk(connection);
-  const [state, slot] = await Promise.all([
-    sdk.swapSolanaState(poolKey, SystemProgram.programId),
-    connection.getSlot('confirmed'),
-  ]);
-  if (!state.poolAccountInfo || !state.baseMint?.equals?.(mintKey) || !state.pool.quoteMint?.equals?.(NATIVE_MINT)) throw new Error('A verified SOL-quoted PumpSwap pool is unavailable.');
+  const {state,slot,tokenDecimals:verifiedDecimals} = await readPoolDisplayState({connection,mintKey,poolKey});
+  if (tokenDecimals !== verifiedDecimals) throw new Error('Pool token decimals changed during verification.');
   return formatGraduatedPoolSnapshot({ mint: mintKey, poolKey, state, tokenDecimals, slot });
 }
 

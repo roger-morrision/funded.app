@@ -1,6 +1,7 @@
 import { updateCompactTokenLink } from './src/features/shared/compact-token.js';
 import { publicReadFetch as fetch } from './src/lib/public-read-fetch.js';
 import { loadTokenArtwork } from './src/features/shared/token-artwork.js';
+import { automaticRewardsRouteVisible } from './src/features/rewards/route-visibility.js';
 import { renderHomeRewardCards as renderHomeRewardCardsView } from './src/features/rewards/airdrop-cards-view.js';
 import { renderSimpleRewardCards as renderSimpleRewardCardsView } from './src/features/rewards/sol-cards-view.js';
 import { formatTokens, utcMoment } from './src/features/rewards/card-format.js';
@@ -302,7 +303,8 @@ async function refreshHomePaidSummary() {
 if (panels.length) {
   // Publish the loading panels immediately; provider responses update them independently.
   // Slow reward services must not block workspace navigation during module import.
-  const visible = () => !document.hidden && [homeSpotlight, ...panels].some(panel => panel?.checkVisibility());
+  const visible = () => !document.hidden && automaticRewardsRouteVisible(location)
+    && [homeSpotlight, ...panels].some(panel => panel?.checkVisibility());
   let refreshedAt = 0;
   const refreshVisible = () => {
     if (!visible() || Date.now() - refreshedAt < 30_000) return;

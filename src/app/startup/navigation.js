@@ -217,7 +217,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 881
-  void appState.loadBuybackNetworkState();
+  if (['overview', 'buybacks', 'paid', 'payments'].includes(appState.requestedPageRoute())) void appState.loadBuybackNetworkState();
   // app-source-end
 
   // app-source: 882
@@ -225,7 +225,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 883
-  void appState.refreshFundedBuyRoute();
+  if (['buybacks', 'paid'].includes(appState.requestedPageRoute())) void appState.refreshFundedBuyRoute();
   // app-source-end
 
   // app-source: 884
