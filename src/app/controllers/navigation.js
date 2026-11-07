@@ -174,10 +174,6 @@ export function createNavigationController(appState) {
       const hrefRoute = item.getAttribute('href') === '/funded' ? 'paid' : item.getAttribute('href')?.replace(/^#/, '');
       item.classList.toggle('active', hrefRoute === navRoute);
       if (hrefRoute === navRoute) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
-      if (hrefRoute === navRoute) {
-        const group = item.closest('details.nav-secondary');
-        if (group) group.open = true;
-      }
     });
     let copy = {
       overview: ['Home', 'Your next step on Solana'],

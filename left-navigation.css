@@ -16,11 +16,6 @@ html body.page-route #sidebar .primary-nav {
 html body.page-route #sidebar .nav-more-menu { position: static; width: auto; min-width: 0; max-height: none; padding: 0; overflow: visible; border: 0; box-shadow: none; }
 html body.page-route #sidebar .nav-item:focus-visible { outline-offset: -2px; }
 html body.page-route #sidebar .nav-secondary { margin: 14px 0; border-block: 1px solid var(--line); padding-block: 8px; }
-html body.page-route #sidebar .nav-secondary > summary { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; color: #c4cbda; cursor: pointer; list-style: none; }
-html body.page-route #sidebar .nav-secondary > summary::after { content: '+'; margin-left: auto; }
-html body.page-route #sidebar .nav-secondary[open] > summary::after { content: '−'; }
-html body.page-route #sidebar .nav-secondary > summary:focus-visible { outline: 2px solid #ffd28a; outline-offset: -2px; }
-html.sidebar-collapsed body.page-route #sidebar .nav-secondary > summary { padding-inline: 4px; flex-direction: column; gap: 4px; font-size: 10px; }
 html body.page-route #sidebar .sidebar-footer { display: block; flex: none; margin-top: auto; padding-top: 12px; }
 html body.page-route #main-content {
   width: calc(100% - var(--navigation-width)); max-width: 1680px;
