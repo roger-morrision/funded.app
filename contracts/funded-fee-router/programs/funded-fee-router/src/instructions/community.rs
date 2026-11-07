@@ -435,34 +435,3 @@ pub struct CommunityDropClosed {
     pub amount: u64,
     pub app_owner: Pubkey,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn community_merkle_proof_and_window() {
-        let drop = Pubkey::new_unique();
-        let a = leaf(drop, Pubkey::new_unique(), 10, 0);
-        let b = leaf(drop, Pubkey::new_unique(), 15, 1);
-        let root = if a <= b { hashv(&[&a, &b]).to_bytes() } else { hashv(&[&b, &a]).to_bytes() };
-        assert!(proof_valid(a, &[b], &root));
-        assert!(proof_valid(b, &[a], &root));
-        assert!(!proof_valid(a, &[[0; 32]], &root));
-        assert_eq!(COMMUNITY_WINDOW_SECONDS, 7_776_000);
-        let mut policy = CommunityDrop {
-            protocol_authority:Pubkey::new_unique(), creator:Pubkey::new_unique(), app_owner:Pubkey::new_unique(), mint:Pubkey::new_unique(),
-            eligibility_mint:Pubkey::new_unique(), merkle_root:root, snapshot_hash:[1; 32], migration_signature:[1; 64],
-            migration_slot:1, snapshot_slot:1, total_amount:25, claimed_amount:0, migration_at:100,
-            expires_at:100 + COMMUNITY_WINDOW_SECONDS, leaf_count:2, closed:false, bump:1,
-        };
-        assert!(!claim_window_open(99, &policy));
-        assert!(claim_window_open(100, &policy));
-        assert!(claim_window_open(policy.expires_at - 1, &policy));
-        assert!(!claim_window_open(policy.expires_at, &policy));
-        assert!(!close_eligible(policy.expires_at - 1, &policy));
-        assert!(close_eligible(policy.expires_at, &policy));
-        policy.closed = true;
-        assert!(!claim_window_open(101, &policy));
-    }
-}

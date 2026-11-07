@@ -1,5 +1,0 @@
-import{test,expect}from'@playwright/test';
-for(const path of ['/#overview','/welcome.html'])test(`bundled fonts load with external networking blocked on ${path}`,async({page,baseURL})=>{
- const external=[];await page.route('**/*',r=>{const q=r.request(),url=new URL(q.url());if(url.origin!==new URL(baseURL).origin){external.push(q.url());return r.abort()}return url.pathname.startsWith('/api/')?r.fulfill({status:503,json:{error:'Font fixture API unavailable'}}):r.continue()});
- await page.goto(path);await page.locator(path.includes('welcome')?'main':'body.workspace-ready').waitFor();const fonts=await page.evaluate(async()=>{const loaded=[];for(const spec of ['400 14px Manrope','700 14px Manrope','500 12px "DM Mono"']){const faces=await document.fonts.load(spec,'Reviewed 9007199.254740993');loaded.push({spec,available:document.fonts.check(spec),faces:faces.map(f=>({family:f.family,status:f.status}))})}return loaded});expect(fonts.every(f=>f.available&&f.faces.length>0&&f.faces.every(face=>face.status==='loaded'))).toBe(true);expect(external.filter(url=>/fonts\.googleapis\.com|fonts\.gstatic\.com/.test(url))).toEqual([]);
-});

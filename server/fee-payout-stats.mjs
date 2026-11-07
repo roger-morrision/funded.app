@@ -21,7 +21,7 @@ function empty(status) {
     top:null, status };
 }
 
-export function communityHolderClaims(index, cluster, now = Date.now()) {
+export function communityHolderClaims(index, cluster, now = Date.now(), launches = {}) {
   const unavailable = { status:'unavailable', asset:'launched tokens', claimCount:null, top:null,
     reason:'Finalized community claims have not been indexed by recipient.' };
   if (index?.cluster !== cluster || index.commitment !== 'finalized' || index.status !== 'verified'
@@ -44,14 +44,16 @@ export function communityHolderClaims(index, cluster, now = Date.now()) {
   const leader = [...groups.values()].sort((a, b) => b.claimCount - a.claimCount || a.recipient.localeCompare(b.recipient))[0];
   return { status:'verified', asset:'launched tokens', claimCount:index.payments.length,
     dropCount:index.drops.length, indexedAt:index.indexedAt, reason:null,
-    top:leader ? { recipient:leader.recipient, claimCount:leader.claimCount, launchCount:leader.mints.size } : null };
+    top:leader ? { recipient:leader.recipient, claimCount:leader.claimCount, launchCount:leader.mints.size,
+      tokens:[...leader.mints].map(mint => ({ mint,
+        symbol:launches[mint]?.cluster === cluster ? launches[mint].symbol || null : null })) } : null };
 }
 
 // Fee totals require a finalized collection, a funded reward request, and a
 // finalized recipient payment. A paid flag or policy allocation alone is not a payout.
 export function feePayoutStats(state = {}, rewards = null, evidence = {}, cluster = 'devnet') {
   const unavailable = { cluster, commitment:'finalized', x:empty('unavailable'), creator:empty('unavailable'),
-    holder:empty('unavailable'), fundedHolder:communityHolderClaims(rewards?.communityClaimIndex, cluster) };
+    holder:empty('unavailable'), fundedHolder:communityHolderClaims(rewards?.communityClaimIndex, cluster, Date.now(), state.launches) };
   if (!rewards?.schedules || evidence.cluster !== cluster || evidence.commitment !== 'finalized'
     || !['onchain-indexed', 'partial', 'no-records'].includes(evidence.status)) return unavailable;
 

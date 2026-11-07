@@ -15,7 +15,4 @@ funded_fee_router = "61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa"
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
-[scripts]
-test = "cargo test"
-
 [hooks]

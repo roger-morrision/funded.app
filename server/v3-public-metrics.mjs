@@ -59,7 +59,7 @@ export function v3PublicMetrics(state, evidence, history, rewards, cluster) {
     ? payoutGroup(payments,'v3-creator-wallet',partialPayouts)
     : { paidLamports:null, payoutCount:null, top:null, status:'unavailable',
       reason:'Finalized creator payout history is unavailable.' };
-  const community = communityHolderClaims(rewards?.communityClaimIndex, cluster);
+  const community = communityHolderClaims(rewards?.communityClaimIndex, cluster, Date.now(), state.launches);
   const collected = verified.reduce((sum,row) => sum + BigInt(safe(row.collectedLamports) || 0n),0n);
   const recordedTotal = recorded.reduce((sum,row) => sum + BigInt(safe(row.collectedLamports) || 0n),0n);
   const referral = history?.cluster === cluster && history.commitment === 'finalized'

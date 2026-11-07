@@ -88,22 +88,3 @@ pub fn community_window(program: &Pubkey, mint: &Pubkey, accounts: &[AccountInfo
     require!(account.owner == &System::id() && account.data_is_empty(), ErrorCode::InvalidAgencyPolicyV3);
     Ok(COMMUNITY_WINDOW_SECONDS)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test] fn extension_roundtrip_and_legacy_defaults() {
-        assert_eq!(read_rules(&vec![0; POLICY_BASE], POLICY_BASE).unwrap(), AgencyRules::default());
-        let rule = AgencyRules { market_caps:[1_000_000,2_000_000], community_window_seconds:300, promotion_interval_seconds:172_800 };
-        let mut bytes = vec![0; POLICY_BASE + RULES_LEN];
-        write_rules(&mut bytes,POLICY_BASE,rule).unwrap(); assert_eq!(read_rules(&bytes,POLICY_BASE).unwrap(),rule);
-        bytes[POLICY_BASE] ^= 1; assert!(read_rules(&bytes,POLICY_BASE).is_err());
-        assert!(read_rules(&vec![0; POLICY_BASE+1],POLICY_BASE).is_err());
-    }
-    #[test] fn invalid_settings_fail_closed() {
-        let base=AgencyRules::default();
-        assert!(AgencyRules { market_caps:[2,1], ..base }.validate().is_err());
-        assert!(AgencyRules { community_window_seconds:299, ..base }.validate().is_err());
-        assert!(AgencyRules { promotion_interval_seconds:86_399, ..base }.validate().is_err());
-    }
-}

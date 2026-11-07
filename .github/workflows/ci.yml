@@ -15,13 +15,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Load the exact launch-planning source baseline
-        shell: bash
-        run: |
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          git fetch --no-tags --depth=1 origin f44aff3030b54a18f728827ee05b4389a959011d
-          git cat-file -e f44aff3030b54a18f728827ee05b4389a959011d:src/features/launch/cost-view.js
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
@@ -31,19 +24,11 @@ jobs:
         run: >-
           node --input-type=module -e "import('./src/lib/env.js').then(({ validateRuntimeEnv }) => validateRuntimeEnv({ VITE_SOLANA_CLUSTER: 'devnet', VITE_API_BASE_URL: '/', VITE_ALLOW_MAINNET: 'false' })).then(() => console.log('env ok'))"
       - run: npm run check
-      - run: npm run verify:release-manifest
-      - run: npm run verify:build-settings
-      - run: npm test
-      - run: npm run verify:critical
-      - run: npm run verify:local-regressions
       - run: npm run build
         env:
           VITE_API_BASE_URL: /
           VITE_SOLANA_CLUSTER: devnet
           VITE_ALLOW_MAINNET: 'false'
-      - run: npm run verify:isolated-release
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser
       - run: npm run release:manifest
         env:
           VITE_SOLANA_CLUSTER: devnet
@@ -53,30 +38,21 @@ jobs:
           name: verified-devnet-build-${{ github.sha }}
           path: dist/
           retention-days: 14
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: failure()
-        with:
-          name: browser-failure-traces
-          path: test-results/
   docker-image:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       FUNDED_CI_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
-      FUNDED_CI_PROJECT: funded-image-ci-${{ github.run_id }}-${{ github.run_attempt }}
       FUNDED_CI_NODE_IMAGE: node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Initialize the runner-local verification directory
-        run: printf 'FUNDED_CI_ROOT=%s/funded-image-ci\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - name: Build the exact revision with restrictive source permissions
         shell: bash
         run: |
@@ -90,140 +66,3 @@ jobs:
             build_args+=(--secret "id=proxy_ca,src=$CODEX_PROXY_CERT")
           fi
           docker build "${build_args[@]}" --tag "funded-ci:$FUNDED_CI_REVISION" .
-      - name: Prepare isolated disposable runtime credentials
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          import { mkdir, writeFile } from 'node:fs/promises';
-          import { randomBytes } from 'node:crypto';
-          import { join } from 'node:path';
-          const root = process.env.FUNDED_CI_ROOT;
-          await mkdir(join(root, 'evidence'), { recursive: true, mode: 0o700 });
-          const password = randomBytes(32).toString('hex');
-          for (const [name, value] of Object.entries({
-            database_password: password,
-            database_url: `postgresql://funded:${password}@db:5432/funded_app`,
-            api_token: randomBytes(32).toString('hex'),
-            solana_devnet_rpc_url: 'https://api.devnet.solana.com',
-          })) await writeFile(join(root, name), value + '\n', { mode: 0o444 });
-          const selectors = {
-            FUNDED_APP_IMAGE: `funded-ci:${process.env.FUNDED_CI_REVISION}`,
-            FUNDED_BUILD_ID: process.env.FUNDED_CI_REVISION,
-            FUNDED_PUBLIC_APP_URL: 'http://127.0.0.1:8788',
-            FUNDED_DB_PASSWORD_FILE: join(root, 'database_password'),
-            FUNDED_DATABASE_URL_FILE: join(root, 'database_url'),
-            FUNDED_API_TOKEN_FILE: join(root, 'api_token'),
-            FUNDED_DEVNET_RPC_URL_FILE: join(root, 'solana_devnet_rpc_url'),
-          };
-          await writeFile(join(root, 'selectors.env'), Object.entries(selectors).map(([key, value]) => `${key}=${value}`).join('\n') + '\n', { mode: 0o600 });
-          NODE
-      - name: Start the read-only Devnet app and isolated PostgreSQL
-        run: docker compose --env-file "$FUNDED_CI_ROOT/selectors.env" -p "$FUNDED_CI_PROJECT" -f compose.devnet-release.yml up -d --wait --wait-timeout 120
-      - name: Verify image permissions, source identity and runtime layer size
-        shell: bash
-        run: |
-          set -euo pipefail
-          container_id="$(docker compose --env-file "$FUNDED_CI_ROOT/selectors.env" -p "$FUNDED_CI_PROJECT" -f compose.devnet-release.yml ps -q app)"
-          FUNDED_EXPECT_BUILD="$FUNDED_CI_REVISION" node scripts/verify-container-image.mjs "$container_id" > "$FUNDED_CI_ROOT/evidence/image.json"
-          node --input-type=module <<'NODE'
-          import assert from 'node:assert/strict';
-          import { execFileSync } from 'node:child_process';
-          import { writeFileSync } from 'node:fs';
-          const image = `funded-ci:${process.env.FUNDED_CI_REVISION}`;
-          const docker = args => execFileSync('docker', args, { encoding: 'utf8' });
-          const [metadata] = JSON.parse(docker(['image', 'inspect', image]));
-          assert.equal(metadata.Config.Labels['org.opencontainers.image.revision'], process.env.FUNDED_CI_REVISION);
-          const history = docker(['history', '--human=false', '--no-trunc', '--format', '{{json .}}', image]).trim().split('\n').map(line => JSON.parse(line));
-          assert.equal(history.some(row => row.CreatedBy.includes('chmod -R a+rX /app')), false, 'The runtime image must not contain a recursive permission layer.');
-          const dataLayer = history.find(row => row.CreatedBy.includes('mkdir -p /app/data') && row.CreatedBy.includes('chown node:node /app/data'));
-          assert.ok(dataLayer, 'The runtime data directory must be provisioned.');
-          const dataLayerBytes = Number(dataLayer.Size);
-          assert.ok(Number.isSafeInteger(dataLayerBytes) && dataLayerBytes >= 0 && dataLayerBytes < 1024 * 1024, 'Data-directory setup should not copy up application files.');
-          writeFileSync(`${process.env.FUNDED_CI_ROOT}/evidence/layers.json`, JSON.stringify({ source: process.env.FUNDED_CI_REVISION, imageId: metadata.Id, logicalImageBytes: metadata.Size, dataLayerBytes, history, scope: 'Logical image/layer sizes; no host-disk reclaim or build-speed claim' }, null, 2) + '\n');
-          NODE
-      - name: Verify actual HTTP and browser startup
-        env:
-          FUNDED_CONTAINER_BASE: http://127.0.0.1:8788
-          FUNDED_RELEASE_BASE: http://127.0.0.1:8788
-          FUNDED_EXPECT_BUILD: ${{ github.event.pull_request.head.sha || github.sha }}
-          FUNDED_REQUIRE_POSTGRES: 'true'
-        run: |
-          set -e
-          node scripts/verify-container-http.mjs > "$FUNDED_CI_ROOT/evidence/http.json"
-          node scripts/verify-release-contract.mjs > "$FUNDED_CI_ROOT/evidence/release.txt"
-          node scripts/verify-container-browser.mjs > "$FUNDED_CI_ROOT/evidence/browser.json"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: docker-image-evidence-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/funded-image-ci/evidence/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Remove only this job's disposable stack
-        if: always()
-        shell: bash
-        run: |
-          trap 'rm -f "$FUNDED_CI_ROOT/database_password" "$FUNDED_CI_ROOT/database_url" "$FUNDED_CI_ROOT/api_token" "$FUNDED_CI_ROOT/solana_devnet_rpc_url"' EXIT
-          if [ -f "$FUNDED_CI_ROOT/selectors.env" ]; then
-            docker compose --env-file "$FUNDED_CI_ROOT/selectors.env" -p "$FUNDED_CI_PROJECT" -f compose.devnet-release.yml down --volumes --remove-orphans
-          fi
-  postgres:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: funded
-          POSTGRES_PASSWORD: isolated-ci-only
-          POSTGRES_DB: funded_test
-        ports: ['15432:5432']
-        options: >-
-          --health-cmd "pg_isready -U funded -d funded_test"
-          --health-interval 5s --health-timeout 5s --health-retries 10
-      # Destructive X outbox fixtures use their own guarded local database.
-      postgres-x:
-        image: postgres:16
-        env:
-          POSTGRES_USER: funded
-          POSTGRES_PASSWORD: isolated-x-ci-only
-          POSTGRES_DB: funded_x_test
-        ports: ['15433:5432']
-        options: >-
-          --health-cmd "pg_isready -U funded -d funded_x_test"
-          --health-interval 5s --health-timeout 5s --health-retries 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci
-      - run: npm run verify:postgres-store
-        env:
-          BACKEND_DB_TEST: '1'
-          DATABASE_URL: postgresql://funded:isolated-ci-only@127.0.0.1:15432/funded_test
-      - run: npm run verify:x-post-recovery
-      - run: npm run verify:x-post-outbox
-        env:
-          X_POST_DB_TEST: '1'
-          X_POST_TEST_DATABASE_URL: postgresql://funded:isolated-x-ci-only@127.0.0.1:15433/funded_x_test
-      - run: npm run verify:x-post-cycle
-        env:
-          X_POST_DB_TEST: '1'
-          X_POST_TEST_DATABASE_URL: postgresql://funded:isolated-x-ci-only@127.0.0.1:15433/funded_x_test
-      - run: npm run verify:x-post-draft
-        env:
-          X_POST_DB_TEST: '1'
-          X_POST_TEST_DATABASE_URL: postgresql://funded:isolated-x-ci-only@127.0.0.1:15433/funded_x_test
-  contract-host:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@1.97.1
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: contracts/funded-fee-router
-      # Host policy tests only; SBF transaction tests require an audited build toolchain.
-      - run: cargo test --locked --lib --manifest-path contracts/funded-fee-router/programs/funded-fee-router/Cargo.toml

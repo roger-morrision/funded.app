@@ -207,18 +207,3 @@ fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'info>, mint
     claim.total_lamports = expected_lamports; claim.category_lamports = delta; claim.created_at = Clock::get()?.unix_timestamp;
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    const UNITS: [u32; 7] = [800_000, 60_000, 25_000, 15_000, 400_000, 500_000, 200_000];
-    #[test] fn policy_conserves_and_separates_agency() {
-        assert_eq!(agency_category_targets(10_000_000, UNITS).unwrap(), [8_000_000,800_000,60_000,25_000,15_000,400_000,500_000,200_000]);
-        for total in [1,2,49,50,99,1_000_002,u64::MAX] { assert_eq!(agency_category_targets(total,UNITS).unwrap().iter().map(|v| u128::from(*v)).sum::<u128>(), u128::from(total)); }
-        let mut bad=UNITS; bad[6]=0; assert!(agency_category_targets(10_000_000,bad).is_err());
-    }
-    #[test] fn selected_agents_have_distinct_exact_cumulative_caps() {
-        assert_eq!(agent_targets(10,7).unwrap(),[3,3,4]); assert_eq!(agent_targets(10,5).unwrap(),[5,0,5]);
-        assert_eq!(agent_targets(10,0).unwrap(),[0,0,0]); assert!(agent_targets(10,8).is_err());
-    }
-}

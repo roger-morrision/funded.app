@@ -153,9 +153,10 @@ export function renderExplorePayoutStats(
     const leader = available && card.top ? group.top : null;
     if (card.kind === 'fundedHolder') {
       const value = available && leader ? `${leader.claimCount} token claim${leader.claimCount === 1 ? '' : 's'}` : '—';
+      const symbols = leader?.tokens?.map(token => String(token.symbol || '').trim() || 'Symbol unavailable').join(', ') || 'Symbol unavailable';
       const detail = group?.status === 'unavailable' ? group.reason || 'Finalized community claims unavailable'
         : !available ? 'Checking finalized community claims'
-          : leader ? `${shortAddress(leader.recipient)} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
+          : leader ? `${symbols} · ${leader.launchCount} launch${leader.launchCount === 1 ? '' : 'es'}`
             : 'No finalized community claims yet';
       // The section note already shows when payouts were checked; keep this card's own time as a tooltip.
       const checkedAt = Date.parse(group?.indexedAt || '');

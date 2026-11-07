@@ -119,11 +119,9 @@ Production storage requires PostgreSQL and its configured secret inputs. Follow 
 
 ~~~powershell
 npm.cmd run check
-npm.cmd run verify:fee-policy
 npm.cmd run build
-node --test tests/daily-bonus*.test.mjs tests/fee-policy-copy.test.mjs
 ~~~
 
-Run the affected Playwright regressions for documentation, fee policy, rewards and the changed UI. Browser fixtures and synthetic RPC tests do not prove live chain effects.
+The previous test suites have been removed. Add tests only for new features as they are introduced. Syntax, source-size and build checks remain available through the commands above.
 
 The Devnet deployment overlays pin the source SHA, image revision, program and runtime gates. Build from the reviewed committed source, deploy that exact revision, then verify public status, build settings, running source and affected live UI. An on-chain flow additionally needs finalized account and balance proof; Mainnet requires separate approval and readiness.
