@@ -18,10 +18,9 @@ export function mountRewardGuidance(app) {
     for (const [name, who, asset, action, href] of rewardPrograms) {
       const row = el('article'), points=el('ul'); points.append(el('li',who),el('li',action)); row.append(link(name, href), el('span', asset, 'reward-program-asset'), points); box.append(row);
     }
-    root.append(box);
-    const states=el('section',null,'reward-status-guide');states.setAttribute('aria-label','Find your reward status');
-    states.innerHTML='<h2>Find your rewards</h2><p>Check available claims or review confirmed payments.</p><div><a href="#payments/history"><strong>Payout history</strong><span>Confirmed SOL transfers and receipts.</span></a><a href="#payments/holders"><strong>Coin holder rewards</strong><span>Check funding, eligibility and payout timing.</span></a><a href="#airdrops"><strong>Token airdrops</strong><span>Check your migration allocation and automatic delivery.</span></a><a href="#payments/x"><strong>X rewards</strong><span>Sign in with X to check available SOL.</span></a></div>';
-    root.prepend(states);
+    const disclosure=el('details',null,'reward-program-disclosure');
+    disclosure.append(el('summary','How each reward program works'),box);root.append(disclosure);
+    const dashboard=root.querySelector('#financial-center');if(dashboard)root.prepend(dashboard);
   }
   const mint = new URL(location.href).searchParams.get('airdropMint');
   if (!address(mint) || location.hash !== '#airdrops') return;

@@ -2,11 +2,9 @@ import {accountFavorites} from './src/features/account/preferences.js';
 import { renderHolderAirdropDirectory } from './src/features/rewards/holder-airdrop-directory.js';
 import './reward-experience.css';
 import { paginateHistory } from './history-pagination.js';
-import { summarizeXClaims, formatXClaimSol } from './x-claim-summary.js';
 import { createTokenCardActions } from './token-card-controls.js';
 import { tokenListMarket, tokenAge } from './token-list-market-state.js';
 import { devnetImageUri } from './devnet-metadata.js';
-import { paidReferralLamports } from './referral-amount.js';
 import { newestBuybackReceipts } from './src/features/funded/buyback-receipts.js';
 
 const LAMPORTS = 1_000_000_000n;
@@ -53,7 +51,7 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>SOL rewards</h2><p>Recorded payments and creator rewards for your connected wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>View automatic delivery</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>Recent SOL receipts</h2><p>Recorded payments and creator rewards for your connected wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>View automatic delivery</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
     const publicHistory = payments.querySelector('.x-claim-activity');
     if (publicHistory && rewardsOverview === payments) payments.insertBefore(section, publicHistory);
     else rewardsOverview.prepend(section);
@@ -79,11 +77,12 @@ function createPanels() {
 }
 
 let latest = null;
-function renderPortfolio(data, referralData, xData) {
+function renderPortfolio(data) {
   const body = document.querySelector('[data-reward-portfolio]'); if (!body) return;
   const wallet = data?.wallet;
   const focused=body.contains(document.activeElement)||document.activeElement===byId('reward-portfolio')?.querySelector('[data-reward-connect]');
   byId('reward-portfolio')?.classList.toggle('reward-no-wallet', !wallet);
+  if(byId('reward-portfolio'))byId('reward-portfolio').hidden=!wallet;
   const connectButton = byId('reward-portfolio')?.querySelector('[data-reward-connect]');
   if (connectButton) connectButton.hidden = Boolean(wallet);
   if(!wallet&&body.querySelector('.reward-portfolio-empty'))return;
@@ -104,28 +103,6 @@ function renderPortfolio(data, referralData, xData) {
   if (data.evidence.status === 'unavailable') { body.textContent = '-'; return; }
   const rows = wallet.rows || [];
   const paid = rows.flatMap(row => row.payouts || []);
-  const referralPaid = paidReferralLamports(referralData?.claims);
-  const xClaims = summarizeXClaims(xData?.claims);
-  const legend = node('div', 'reward-status-legend');
-  for (const [name, description] of [['Ready to claim', 'Review and claim your reward'], ['Waiting', 'Set aside; payment not confirmed'], ['Received', 'Payment confirmed in your wallet']]) {
-    const item = node('span'); item.append(node('strong', '', name), node('small', '', description)); legend.append(item);
-  }
-  body.append(legend);
-  const summary = node('div', 'reward-portfolio-summary');
-  const creatorUnpaid = rows.reduce((sum, row) => sum + BigInt(row.creatorWithoutPayoutProofLamports || '0'), 0n);
-  const summaryRows = [
-    ['Waiting · creator SOL', sol(creatorUnpaid), 'Set aside for you; payment is not confirmed yet', 'creator'],
-    ['Received · SOL', sol(paid.reduce((sum, row) => sum + BigInt(row.amountLamports), 0n)), 'Confirmed payments found in your reward history', 'history'],
-    ['Referral SOL received', referralPaid === null ? '-' : sol(referralPaid), 'View payments in Referrals', '#referrals'],
-    ['Ready to claim · X SOL', xClaims ? formatXClaimSol(xClaims.unclaimed) : '-', 'Sign in with your X account to claim', 'x'],
-  ];
-  for (const [label, value, hint, destination] of summaryRows) {
-    const card = node('div'); card.append(node('small','',label), node('strong','',value), node('small','reward-summary-hint',hint));
-    const action = destination.startsWith('#') ? link('Review →', destination) : node('button', 'reward-summary-action', 'Review →');
-    if (destination !== '#referrals') { action.type = 'button'; action.addEventListener('click', () => byId(`rewards-${destination}-tab`)?.click()); }
-    card.append(action); summary.append(card);
-  }
-  body.append(summary);
   const tokenNote = node('p', 'reward-token-claim-note');
   tokenNote.append(node('strong', '', 'Token airdrops: '), document.createTextNode('automatic at migration, based on eligible $FUNDED holdings. '), link('View airdrops →', '#airdrops'));
   body.append(tokenNote);
@@ -324,18 +301,16 @@ async function refresh({ force = false } = {}) {
   if (validMint(wallet)) params.set('wallet', wallet);
   if (validMint(mint)) params.set('mint', mint);
   const scoped = validMint(mint);
-  const [experience, buybacks, referrals, xClaims, alertEvents] = await Promise.allSettled([
+  const [experience, buybacks, alertEvents] = await Promise.allSettled([
     fetchJson(`/api/rewards/experience${params.size ? '?' + params : ''}`),
     fetchJson('/api/buyback/status', 30_000),
-    validMint(wallet) ? fetchJson(`/api/referral-claims?wallet=${encodeURIComponent(wallet)}`) : Promise.resolve(null),
-    xConnected ? fetchJson('/api/x-fee/claims') : Promise.resolve(null),
     scoped && alertsEnabled() ? fetchJson('/api/rewards/experience') : Promise.resolve(null),
   ]);
   if (current !== refreshToken) return;
   latest = experience.status === 'fulfilled' ? experience.value : null;
   if (!scoped) window.dispatchEvent(new CustomEvent('funded:financial-experience', {detail:latest}));
   document.querySelectorAll('[data-reward-evidence]').forEach(element => { element.textContent = ''; element.hidden = true; });
-  renderPortfolio(latest, referrals.status === 'fulfilled' ? referrals.value : null, xClaims.status === 'fulfilled' ? xClaims.value : null);
+  renderPortfolio(latest);
   renderDiscovery(scoped ? null : latest);
   renderBuybacks(buybacks.status === 'fulfilled' ? buybacks.value : null);
   captureAlerts(scoped ? (alertEvents.status === 'fulfilled' ? alertEvents.value : null) : latest);

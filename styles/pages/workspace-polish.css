@@ -25,16 +25,16 @@ html body #main-content .holder-transfers-empty { margin:0;padding:16px;border:1
   html body #main-content .holder-transfer-table td { display:block;min-width:0;padding:0;border:0;overflow-wrap:anywhere; }
   html body #main-content .holder-transfer-table td:first-child { grid-column:1 / -1; }
   html body #main-content .holder-transfer-table td::before { content:attr(data-label);display:block;margin-bottom:5px;font-size:10px;font-weight:500;color:var(--cp-muted); }
-  html body #main-content .holder-transfer-table :is(a,summary) { display:inline-flex;align-items:center;min-height:36px; }
+  html body #main-content .holder-transfer-table :is(a,summary) { display:inline-flex;align-items:center;min-height:44px; }
   html body #main-content .holder-transfer-table td.holder-transfer-amount { padding-bottom:10px;align-self:center;font-size:13px; }
   html body #main-content .holder-transfer-links { gap:0; }
 }
 
 html body #main-content :is(#my-launches,#referrals,#leaderboard,#callouts,#creators,#bonuses) h1 {
-  font-size:30px;line-height:1.2;letter-spacing:-.035em;
+  font-size:clamp(24px,2.4vw,30px);line-height:1.2;letter-spacing:-.035em;
 }
 html body #main-content :is(#my-launches,#referrals,#leaderboard,#callouts,#creators,#bonuses) > .section-heading {
-  margin:0 0 20px;padding-bottom:16px;gap:12px;align-items:center;
+  margin:0 0 20px;padding-bottom:16px;gap:12px 24px;align-items:flex-start;flex-wrap:wrap;
 }
 html body #main-content :is(#my-launches,#referrals,#leaderboard,#callouts,#creators,#bonuses) > .section-heading h1 { margin:0 0 8px; }
 html body #main-content :is(#my-launches,#referrals,#leaderboard,#callouts,#creators,#bonuses) > .section-heading p:not(.eyebrow) { margin:0;color:var(--cp-muted);font-size:14px;line-height:1.5; }
@@ -50,10 +50,10 @@ html body #main-content #my-launches .portfolio-tab-panel > p { margin:0 0 16px;
 html body #main-content #callouts :is(.callout-card,.callouts-top-strip) { border-radius:8px; }
 /* Directories fill the workspace instead of shrinking to their empty state. */
 html body.product-experience-style #main-content #creator-support-page {
-  box-sizing:border-box;width:100%;max-width:1120px;margin:16px auto 32px;padding:0;
+  box-sizing:border-box;width:100%;max-width:none;margin:16px 0 32px;padding:0;
 }
 html body #main-content .creator-directory-header { padding-bottom:16px;border-bottom:1px solid var(--cp-line); }
-html body #main-content .creator-directory-header h1 { margin:0 0 8px;font-size:30px;line-height:1.2;letter-spacing:-.035em; }
+html body #main-content .creator-directory-header h1 { margin:0 0 8px;font-size:clamp(24px,2.4vw,30px);line-height:1.2;letter-spacing:-.035em; }
 html body #main-content .creator-directory-header .support-shortcuts { width:auto;flex-shrink:0; }
 html body #main-content .creator-directory-grid { grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr)); }
 html body #main-content #creator-support-page > h2,
@@ -137,4 +137,23 @@ html body #main-content #profile > .section-heading h1 { margin:4px 0 8px;font-s
   html body #main-content #bonuses [data-bonus-history-rows] td::before { content:attr(data-label);display:block;margin-bottom:4px;color:var(--cp-muted);font-size:11px; }
   html body #main-content #bonuses [data-bonus-history-rows] td:nth-child(3) { color:var(--cp-accent);font-weight:700; }
   html body #main-content #bonuses [data-bonus-history-rows] a { display:inline-flex;align-items:center;min-height:44px; }
+}
+/* Shared page rhythm: actions can wrap without squeezing the title column. */
+html body #main-content :is(.workspace-page-header,.creator-directory-header,.panel-heading,.role-panel-head) {
+  gap:var(--fv-space-3) var(--fv-space-5);align-items:flex-start;flex-wrap:wrap;
+}
+html body #main-content :is(.section-heading,.workspace-page-header,.creator-directory-header,.panel-heading,.role-panel-head) > div { min-width:0; }
+html body #main-content :is(.section-heading,.workspace-page-header,.creator-directory-header) :is(h1,h2,p) { overflow-wrap:anywhere; }
+html body #main-content :is(.workspace-page-header,.creator-directory-header) > :is(h1,h2) { margin-block:0 var(--fv-space-2); }
+html body #main-content :is(.portfolio-dashboard,.profile-wallet-card,.callout-card,.support-metrics article) { border-radius:var(--fv-radius-md); }
+html body #main-content :is(th,td).numeric { text-align:right;font-variant-numeric:tabular-nums; }
+html body #main-content .unclaimed-wallet-table :is(th,td):nth-child(n+3):nth-child(-n+5),
+html body #main-content .coin-rewards-table :is(th,td):nth-child(3) { text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap; }
+html body #main-content :is(.home-launch-table-wrap,.unclaimed-wallet-table-wrap,.portfolio-trade-table-wrap,.coin-rewards-table-wrap) {
+  min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;
+}
+@media(max-width:700px) {
+  html body #main-content :is(.workspace-page-header,.creator-directory-header,.section-heading) { row-gap:var(--fv-space-3); }
+  html body #main-content :is(.workspace-page-header,.creator-directory-header) h1 { font-size:24px;line-height:1.25; }
+  html body #main-content :is(.home-launch-table-wrap,.unclaimed-wallet-table-wrap,.portfolio-trade-table-wrap,.coin-rewards-table-wrap) :is(a,button) { min-height:44px;display:inline-flex;align-items:center; }
 }

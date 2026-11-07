@@ -1,5 +1,6 @@
 import { financialRows, newestFirst } from './financial-model.js';
 import { initializeReadyQueue } from './ready-queue.js';
+import { rewardDashboardGroup } from './reward-dashboard-model.js';
 import { renderFinancialRecords } from './financial-activity-view.js';
 import {focusFilterRecovery} from '../shared/filter-recovery.js';
 import {missingFinancialSources,financialEmptyMessage} from './financial-empty-state.js';
@@ -17,26 +18,33 @@ export function initializeFinancialCenter(app) {
   scope.innerHTML = 'Show <select data-flow-scope-filter aria-label="Activity scope"><option value="personal">My wallet activity</option><option value="protocol">Protocol activity · public</option></select>';
   root.querySelector('.financial-toolbar').prepend(scope);
   const scopeControl = scope.querySelector('select');
-  const renderReady = initializeReadyQueue(root,app);
+  const renderReady = initializeReadyQueue(root,app,group=>{
+    scopeControl.value='personal';filterControl.value=`dashboard-${group}`;limit=10;render();
+  });
   const ready = (rows,options) => {
-    renderReady(rows,options);
-    if(scopeControl.value==='protocol')root.querySelector('.ready-queue').hidden=true;
+    renderReady(rows,{cutoff:nextCutoff,...options,selected:filterControl.value});
+    root.querySelector('.ready-queue').hidden=scopeControl.value==='protocol';
   };
-  let request = 0, lastKey = '', lastAt = 0, rows = [], loading = false, limit = 10, hasLoaded = false, missingSources=[];
+  let request = 0, lastKey = '', lastAt = 0, rows = [], loading = false, limit = 10, hasLoaded = false, missingSources=[], nextCutoff=null;
   const expanded=new Set();
   const status = root.querySelector('[data-flow-status]'), list = root.querySelector('[data-flow-rows]');
   const refreshButton=root.querySelector('[data-flow-refresh]'),more=root.querySelector('[data-flow-more]');
   const empty=root.querySelector('[data-flow-empty]'),reset=root.querySelector('[data-flow-reset]'),filterControl=root.querySelector('[data-flow-filter]');
+  for(const [key,label] of [['action','Needs action'],['automatic','Processing automatically'],['received','Received'],['waiting','Waiting for funding or checks']]){
+    const option=document.createElement('option');option.value=`dashboard-${key}`;option.textContent=label;filterControl.append(option);
+  }
   function render({preserveRows=false}={}) {
     list.setAttribute('aria-busy',String(loading));
     refreshButton.disabled=loading;refreshButton.textContent=loading?'Refreshing…':'Refresh activity';
     more.disabled=loading;
+    ready(rows,{checking:loading||!hasLoaded,missing:missingSources});
     if(preserveRows)return;
     const filter = filterControl.value;
     const personal = scopeControl.value === 'personal';
+    for(const option of filterControl.options)if(option.value.startsWith('dashboard-'))option.disabled=!personal;
     const scoped = rows.filter(row => personal ? Boolean(app.connectedWalletAddress) && row.wallet === app.connectedWalletAddress : !row.wallet);
     const missing = missingSources.filter(source => personal ? source !== 'buybacks' : source === 'buybacks');
-    const selected = newestFirst(scoped.filter(row => filter === 'all' || row.stage === filter));
+    const selected = newestFirst(scoped.filter(row => filter === 'all' || (filter.startsWith('dashboard-') ? rewardDashboardGroup(row,app.connectedWalletAddress) === filter.slice(10) : row.stage === filter)));
     renderFinancialRecords(list,selected.slice(0,limit),expanded,root.querySelector('#financial-center-title'));
     // "0 of 0" would repeat the empty-state message, so the count stays blank.
     root.querySelector('[data-flow-count]').textContent=loading?'':selected.length?`${Math.min(limit,selected.length)} of ${selected.length} loaded records`:missing.length&&(!personal||app.connectedWalletAddress)?'Records unavailable':'';
@@ -45,13 +53,14 @@ export function initializeFinancialCenter(app) {
     filterControl.closest('label').hidden=hasLoaded&&!loading&&!scoped.length&&filterControl.value==='all';
     more.hidden=loading||selected.length<=limit||limit>=60;
     const active=document.activeElement,owned=empty.contains(active);
-    empty.hidden=selected.length>0||loading||!hasLoaded;reset.hidden=filter==='all';
+    empty.hidden=selected.length>0||loading||!hasLoaded||(personal&&!app.connectedWalletAddress);reset.hidden=filter==='all';
     const message=personal&&!app.connectedWalletAddress
       ? {kind:'disconnected',title:'Connect a wallet to see your activity.',note:'Your SOL payments and creator approvals appear here. Token claims are listed under Token airdrops.'}
       : financialEmptyMessage(scoped.length>0,missing);
     root.dataset.state=loading?'loading':!hasLoaded?'idle':selected.length?'ready':message.kind;
     root.querySelector('[data-flow-empty-title]').textContent=message.title;
     root.querySelector('[data-flow-empty-note]').textContent=message.note;
+    status.hidden=personal&&!app.connectedWalletAddress;
     status.textContent = personal
       ? app.connectedWalletAddress ? `Recorded activity for ${app.connectedWalletAddress}. Not a live balance.${missing.length ? ' Unavailable: '+missing.join(', ')+'.' : ''}` : 'Personal activity · no wallet connected.'
       : `Public protocol allocations and burns. These amounts are not your rewards.${missing.length ? ' Unavailable: buybacks.' : ''}`;
@@ -70,10 +79,14 @@ export function initializeFinancialCenter(app) {
     const read = path => app.apiRequest(path, { signal:AbortSignal.timeout(18000) }).catch(() => null);
     const [experience, burns, bonus] = await Promise.all([read(`/api/rewards/experience${wallet ? '?wallet=' + encodeURIComponent(wallet) : ''}`), read('/api/buyback/status'),read('/api/daily-bonus')]);
     if (id !== request || wallet !== (app.connectedWalletAddress || '')) return;
-    const owned = experience?.data?.wallet?.address === wallet ? (experience.data.wallet.rows || []).filter(row => row.creator).slice(0, 8) : [];
+    const ownedAll = experience?.data?.wallet?.address === wallet ? (experience.data.wallet.rows || []).filter(row => row.creator) : [];
+    const owned=ownedAll.slice(0,8);
     const overviews = await Promise.all(owned.map(row => read(`/api/tokens/${encodeURIComponent(row.mint)}/fee-activity`)));
     if (id !== request || wallet !== (app.connectedWalletAddress || '')) return;
-    const missing=missingFinancialSources(experience,burns,overviews,wallet);missingSources=missing;
+    const missing=missingFinancialSources(experience,burns,overviews,wallet);
+    if(experience?.data?.evidence?.status==='partial')missing.push('partial reward history');
+    if(ownedAll.length>8)missing.push('additional creator launches');
+    missingSources=missing;nextCutoff=bonus?.data?.cluster==='devnet'?bonus.data.nextCutoffAt:null;
     rows = financialRows({ experience:experience?.available ? experience.data : null, buybacks:burns?.available ? burns.data : null,
       overviews:overviews.filter(row => row?.available && row.data?.cluster === 'devnet').map(row => ({ ...row.data?.overview, mint:row.data?.mint })), wallet }); loading = false; hasLoaded = true; render();
     ready(rows,{missing,cutoff:bonus?.data?.cluster === 'devnet' ? bonus.data.nextCutoffAt : null});
@@ -92,7 +105,7 @@ export function initializeFinancialCenter(app) {
   // Wallet-state updates (and X claim summaries) fire this event even when the
   // wallet is unchanged; only a different wallet should reset these records.
   let identity = app.connectedWalletAddress || '';
-  window.addEventListener('funded:reward-identity-change', () => { const wallet = app.connectedWalletAddress || ''; if (wallet === identity) return; identity = wallet; ++request; loading = false; rows = []; limit=10; hasLoaded=false; missingSources=[]; expanded.clear(); render(); ready(rows,{checking:!!app.connectedWalletAddress}); root.querySelector('[data-flow-scope]').textContent=wallet?'Checking rewards for this wallet…':'';root.querySelector('[data-flow-checked]').textContent='';status.textContent = wallet ? 'Wallet changed. Loading activity for this wallet…' : 'Wallet disconnected. Loading public activity…'; void refresh(true); });
+  window.addEventListener('funded:reward-identity-change', () => { const wallet = app.connectedWalletAddress || ''; if (wallet === identity) return; identity = wallet; ++request; loading = false; rows = []; limit=10; hasLoaded=false; missingSources=[]; nextCutoff=null; expanded.clear(); render(); ready(rows,{checking:!!app.connectedWalletAddress}); root.querySelector('[data-flow-scope]').textContent=wallet?'Checking rewards for this wallet…':'';root.querySelector('[data-flow-checked]').textContent='';status.textContent = wallet ? 'Wallet changed. Loading activity for this wallet…' : 'Wallet disconnected. Loading public activity…'; void refresh(true); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) void refresh(); });
   setInterval(() => void refresh(), 60000); void refresh();
 }

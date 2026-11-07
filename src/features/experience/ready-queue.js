@@ -1,22 +1,58 @@
 import { el, link, utc } from './view-utils.js';
-export function initializeReadyQueue(root, app) {
-  const summary = el('section',null,'ready-queue'); summary.setAttribute('aria-label','Ready actions');
-  summary.hidden=!app.connectedWalletAddress;
-  summary.append(el('h3','Wallet actions')); const status = el('p'); status.setAttribute('role','status'); const actions = el('div'); summary.append(status,actions); root.querySelector('header')?.after(summary);
-  const existingGuide=root.querySelector('.financial-help'),guide=existingGuide || el('details',null,'flow-guide');
-  if(!existingGuide)guide.append(el('summary','How fees become verified payments'));
-  for (const node of root.querySelectorAll(':scope > .flow-stages, :scope > .flow-note')) guide.append(node);
-  if(!existingGuide)summary.after(guide);
-  return (rows,{checking=false,missing=[],cutoff=null}={}) => {
-    const focused=summary.contains(document.activeElement);summary.hidden=!app.connectedWalletAddress;
-    if(summary.hidden&&focused)document.querySelector('#connect-button')?.focus({preventScroll:true});
-    actions.replaceChildren(); const mine = rows.filter(row => row.wallet === app.connectedWalletAddress);
-    const ready = mine.filter(row => row.stage === 'Awaiting approval' && row.ready === true), uncertain = mine.filter(row => row.stage === 'Processing');
-    status.textContent = checking ? 'Checking this wallet’s available actions…' : !app.connectedWalletAddress
-      ? 'Connect your launch or recipient wallet to check personal actions.'
-      : `${ready.length} available creator approvals · ${uncertain.length} outcomes need checking${missing.length ? ' · Some records are unavailable' : ''}. Amounts are checked allocations, not a wallet balance.`;
-    for (const row of [...ready,...uncertain].slice(0,4)) actions.append(link(`${row.action}: ${row.amount}`,row.href));
-    if (!checking && app.connectedWalletAddress && !ready.length) actions.append(link('Check automatic airdrop eligibility','#airdrops'));
-    if (cutoff) actions.append(el('p',`Next ranked bonus cutoff: ${utc(cutoff)}. Processing follows eligibility, funding and verification; this is not a payment promise.`));
+import { rewardDashboardSummary } from './reward-dashboard-model.js';
+
+export function initializeReadyQueue(root, app, onSelect = () => {}) {
+  const summary = el('section', null, 'ready-queue reward-dashboard');
+  summary.setAttribute('aria-label', 'Your reward status');
+  const status = el('p', '', 'reward-dashboard-status'); status.setAttribute('role', 'status');
+  const scope = el('p', '', 'reward-dashboard-scope');
+  const cards = el('div', null, 'reward-dashboard-cards');
+  const specs = [
+    ['action', 'Needs action', 'Approvals or uncertain outcomes to review.'],
+    ['automatic', 'Processing automatically', 'Tasks with automation enabled. Payment is not yet verified.'],
+    ['received', 'Received', 'Verified SOL payment records for this wallet.'],
+  ];
+  const controls = new Map();
+  for (const [key, title, note] of specs) {
+    const button = el('button', null, 'reward-dashboard-card'); button.type = 'button';
+    button.dataset.rewardGroup = key; button.setAttribute('aria-pressed', 'false');
+    const value = el('strong', 'Checking…', 'reward-dashboard-value');
+    button.append(el('span', title, 'reward-dashboard-label'), value, el('small', note));
+    button.addEventListener('click', () => onSelect(key));
+    cards.append(button); controls.set(key, { button, value, title });
+  }
+  const waiting = el('button', '', 'text-button reward-dashboard-waiting'); waiting.type = 'button';
+  waiting.addEventListener('click', () => onSelect('waiting'));
+  const connect = el('button', 'Connect wallet', 'primary-button'); connect.type = 'button';
+  connect.addEventListener('click', () => document.querySelector('#connect-button')?.click());
+  const cutoffNote = el('p', '', 'reward-dashboard-cutoff'); cutoffNote.hidden = true;
+  const programs = el('nav', null, 'reward-dashboard-programs'); programs.setAttribute('aria-label', 'Separate reward programs');
+  programs.append(link('X claims', '#payments/x'), link('Referrals', '#referrals'), link('Token airdrops', '#airdrops'));
+  summary.append(scope, status, cards, waiting, connect,
+    el('p', 'Counts are loaded records, not balances. Creator approvals can fund other recipients. Token amounts remain in Airdrops.', 'reward-dashboard-note'), programs, cutoffNote);
+  root.querySelector('header')?.after(summary);
+  const guide = root.querySelector('.financial-help');
+  for (const node of root.querySelectorAll(':scope > .flow-stages, :scope > .flow-note')) guide?.append(node);
+  return (rows, { checking = false, missing = [], cutoff = null, selected = 'all' } = {}) => {
+    const wallet = app.connectedWalletAddress || '';
+    const result = rewardDashboardSummary(rows, wallet, { checking, missing });
+    summary.dataset.state = result.state;
+    scope.textContent = wallet ? `Your wallet · ${wallet.slice(0, 5)}…${wallet.slice(-5)} · Solana Devnet` : 'Your wallet · Solana Devnet';
+    scope.title = wallet;
+    status.textContent = result.state === 'disconnected' ? 'Connect your wallet to check its reward records.'
+      : result.state === 'checking' ? 'Checking this wallet’s records…'
+      : result.state === 'partial' ? 'Some sources are unavailable. Counts with + are incomplete; unavailable does not mean zero.'
+      : 'Select a status to filter the records below. X claims and referrals are checked in their own pages.';
+    connect.hidden = Boolean(wallet);
+    for (const [key, { button, value, title }] of controls) {
+      value.textContent = result.count(key); button.disabled = !wallet || checking;
+      button.setAttribute('aria-pressed', String(selected === `dashboard-${key}`));
+      button.setAttribute('aria-label', `${title}: ${value.textContent}. Filter loaded activity`);
+    }
+    waiting.hidden = !wallet || checking;
+    waiting.textContent = `Waiting for funding or checks: ${result.count('waiting')} · View`;
+    waiting.setAttribute('aria-pressed', String(selected === 'dashboard-waiting'));
+    cutoffNote.hidden = !cutoff || !wallet;
+    cutoffNote.textContent = cutoff && wallet ? `Next bonus cutoff: ${utc(cutoff)}. Payment follows eligibility and verified funding.` : '';
   };
 }

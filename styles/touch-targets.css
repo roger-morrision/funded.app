@@ -125,3 +125,19 @@ html body #main-content .home-launch-card .home-launch-card-actions > :not(.card
 
 /* Active boost multiplier beside the ticker on token cards. */
 .home-launch-card .home-token-identity strong .boost-package-badges { margin-left: 4px; font-size: 11px; vertical-align: middle; }
+/* Keyboard users can reach and scroll wide tables without losing the focus ring. */
+html body.page-route :is([role="region"][tabindex="0"],.table-wrap[tabindex="0"]):focus-visible {
+  outline:2px solid var(--fv-accent);outline-offset:-2px;
+}
+html body.page-route :is(button,a,input,select,textarea,summary,[tabindex="0"]) {
+  scroll-margin-block:100px calc(100px + env(safe-area-inset-bottom));
+}
+@media(max-width:700px) {
+  html body.page-route #main-content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),select,textarea) { font-size:16px; }
+  html body.page-route #main-content :is(.purpose-page-nav > a,.wallet-detail-tabs > button,.site-footer nav a,.site-footer-bottom a,.holder-transfer-sources > summary) {
+    display:inline-flex;align-items:center;min-height:44px;
+  }
+  html body.page-route #main-content .site-footer nav { gap:4px 16px; }
+  html body.page-route #main-content :is(.purpose-page-nav,.wallet-detail-tabs) { max-width:100%;overflow-x:auto;scrollbar-width:thin;gap:8px;padding-block:4px 8px; }
+  html body.page-route #main-content :is(.purpose-page-nav > a,.wallet-detail-tabs > button) { flex-shrink:0; }
+}

@@ -34,7 +34,7 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
       const href = `/token/${overview.mint}`;
       if (collection.settlement !== 'finalized') {
         const automatic=overview.automaticSettlementEnabled===true;
-        rows.push({ id:`settle:${collection.signature}`, mint:overview.mint, title:'Settle collected creator fees', stage:automatic?'Processing':'Awaiting approval',ready:!automatic&&overview.gates?.settlement === true,
+        rows.push({ id:`settle:${collection.signature}`, mint:overview.mint, title:'Settle collected creator fees', stage:automatic?'Processing':'Awaiting approval',automatic,ready:!automatic&&overview.gates?.settlement === true,
           amount:solText(collection.amountLamports), wallet, href, action:automatic?'Check automation':'Review settlement',
           detail:automatic?'Automatic saved-policy settlement is pending. Inspect service readiness and receipts; no creator signature is required.'
             :overview.gates?.settlement === true ? 'Launch creator must review and sign settlement.' : 'Settlement is unavailable under the current service configuration.' });
@@ -58,7 +58,7 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
         const automatic=overview.automaticDisbursementEnabled===true;
         const processing = automatic&&!funded || collection[action.gate] === 'verification-pending' || action.finalized && !funded;
         rows.push({ id:`${collection.signature}:${action.action}`, mint:overview.mint, title:action.label,
-          stage:funded ? 'Funded' : processing ? 'Processing' : 'Awaiting approval',ready:!funded && !processing && overview.gates?.[action.gate] === true,
+          stage:funded ? 'Funded' : processing ? 'Processing' : 'Awaiting approval',automatic,ready:!funded && !processing && overview.gates?.[action.gate] === true,
           amount:solText(action.amount), wallet, href, action:action.finalized ? 'Inspect funding' : processing ? 'Check outcome' : 'Review approval',
           detail:funded ? 'Recorded vault funding and balance delta verified. Eligibility and the payout window still apply; this is not recipient delivery.'
             : processing ? automatic?'Automatic funding or payout is pending. Check service readiness and the existing receipt; no creator signature is required.':'Outcome needs reconciliation before another approval.'

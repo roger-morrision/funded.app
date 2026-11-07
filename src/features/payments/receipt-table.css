@@ -3,7 +3,7 @@
 #rewards-history .payment-history-heading .payment-history-bonus-link{font-size:14px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--accent,#ffc629)}
 #rewards-history .payment-history-filters{display:grid;grid-template-columns:minmax(180px,2fr) minmax(240px,1.25fr) minmax(155px,.8fr) minmax(155px,.8fr) auto;align-items:end;gap:12px;padding:18px 0;margin:0}
 #rewards-history .payment-history-filters label{min-width:0;margin:0;gap:7px}
-#rewards-history .payment-history-filters :is(input,select,button){width:100%;min-width:0;height:46px;margin:0;box-sizing:border-box;font-size:14px!important}
+#rewards-history .payment-history-filters :is(input,select,button){width:100%;min-width:0;height:46px;margin:0;box-sizing:border-box;font-size:var(--receipt-control-size,14px)!important}
 #rewards-history .payment-history-range-error{grid-column:1/-1}
 #payment-list .payment-table-head,#payment-list .payment-history-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(180px,.8fr);gap:24px;align-items:center;padding:18px 12px}
 #payment-list .payment-table-head{padding-block:12px;border-block:1px solid var(--border,#343450);color:#a8b5d5;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
@@ -36,5 +36,6 @@
  #payment-list .payment-history-metadata{grid-column:1/-1;grid-row:2}
  #payment-list .payment-history-details summary{min-height:44px;padding-block:12px;font-size:14px!important;line-height:1.5}
  #payment-list .payment-history-details>small{font-size:14px!important;line-height:1.5}
- #rewards-history .payment-history-filters :is(input,select){font-size:16px!important}
+ #rewards-history .payment-history-filters{--receipt-control-size:16px}
 }
+@media(max-width:420px){#rewards-history .payment-history-filters{grid-template-columns:minmax(0,1fr)}}
