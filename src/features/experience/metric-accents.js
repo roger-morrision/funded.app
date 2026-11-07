@@ -1,32 +1,4 @@
-// Restrict accents to metric values, never token names, addresses or headings.
-const metricSelector = [
-  '.home-kpi-value > strong', '.your-home-stat strong', '.home-signal-stat b',
-  '.home-proof-metrics strong', '.home-community-metrics dd',
-  '.home-new-token-market strong', '.home-new-token-market > span:last-child',
-  '.home-new-token-holders strong', '.home-new-token-progress strong',
-  '.home-launch-card-stats strong', '.home-launch-progress-heading strong',
-  '#explore-benefit-leaders strong', '.explore-market-kpis strong',
-  '.explore-payout-grid article > strong', '.scanner-metric strong',
-  '.coin-stat-strip strong', '.coin-summary-value strong', '.coin-burn-metrics strong', '#coin-price',
-  '.coin-my-rewards-stats strong', '.holder-rewards-grid strong',
-  '.analytics-kpis strong', '.proof-total strong', '.verified-metrics strong',
-  '.fee-distribution-categories > article > strong', '.support-metrics article strong',
-  '.reward-dashboard-value', '.reward-portfolio-summary strong', '.reward-buyback-stats strong',
-  '.reward-history-amount strong', '.personal-reward-values strong', '.x-claim-dashboard article > strong',
-  '.payment-amount strong', '.funded-token-amount strong', '.airdrop-funded-balance strong',
-  '.airdrop-program-detail-stats strong', '.portfolio-summary strong', '.saved-token-metrics strong',
-  '.wallet-detail-stats strong', '.referral-kpi-grid strong', '.bonus-countdown-pool strong',
-  '.bonus-countdown-prizes b', '.role-stats strong', '.strip-stat strong', '.workspace-metrics b',
-  '.launch-summary-specs strong', '.launch-pay-summary .cost-row > b', '[data-metric-value]',
-  '.wallet-popover-balance strong', '.scanner-airdrop strong', '.home-holder-reward-share strong',
-  '.receipt-total strong', '.receipt-rows b', '[id^="fee-output-"]',
-  '#home-buyback-balance', '#cost-community-tokens', '.community-airdrop-highlight strong',
-  '.airdrop-kpis strong', '.holder-airdrop-amount strong', '.directory-facts strong',
-  '.paid-reference-metrics strong', '.burn-position-list strong', '.home-buyback-live-head strong',
-  '.buyback-ledger-row strong', '.burn-tier-row b', '.allocation-chips b', '.role-stats b',
-  '.referral-level-results strong', '.referral-tier-strip b', '.signal-list b',
-  '.leaderboard-row > span > b', '.money-flow-stat b', '.revenue-flow b', '.app-revenue-grid b',
-].join(',');
+import { metricSelector } from './metric-selectors.js';
 
 const tones = ['info', 'success', 'accent', 'violet'];
 const colors = { info:'var(--fv-info)', success:'var(--fv-success)', accent:'var(--fv-accent)',

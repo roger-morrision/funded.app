@@ -1,3 +1,4 @@
+import { mountMetricMotion } from './metric-motion.js';
 import { mountGetStarted } from './get-started.js';
 import { mountMetricAccents } from './metric-accents.js';
 import { initializeDiscoveryIntent } from './discovery-intent.js';
@@ -62,6 +63,7 @@ export function initializeProductFlows(app) {
     mountExploreReturn();
     mountGetStarted(app);
     mountMetricAccents();
+    mountMetricMotion();
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;

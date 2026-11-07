@@ -1,0 +1,23 @@
+/* Keep the real value in the DOM for copy, accessibility and business logic.
+   The generated text has an empty accessibility alternative and is visual only. */
+[data-metric-frame] {
+  position: relative;
+  color: transparent !important;
+  text-shadow: none !important;
+}
+[data-metric-frame]::after {
+  content: attr(data-metric-frame) / "";
+  position: absolute;
+  inset: 0;
+  color: var(--metric-motion-color);
+  white-space: nowrap;
+  pointer-events: none;
+  font: inherit;
+  text-align: inherit;
+}
+[data-metric-frame] > sub { color: transparent !important; }
+@media (prefers-reduced-motion: reduce) {
+  [data-metric-frame] { color: var(--metric-motion-color) !important; }
+  [data-metric-frame]::after { content: none; }
+  [data-metric-frame] > sub { color: inherit !important; }
+}
