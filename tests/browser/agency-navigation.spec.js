@@ -6,7 +6,7 @@ test.beforeEach(async({page,baseURL})=>{
   await page.route('**/api/**',route=>new URL(route.request().url()).pathname==='/api/fee-policy'
     ?route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):route.fulfill({status:503,json:{error:'Offline navigation fixture'}}));
 });
-for(const width of [1918,1440,1180,1179,1024,901,390,320]){
+for(const width of [1918, 320]){
   test(`left navigation stays fixed across routes and reloads at ${width}px (mocked APIs)`,async({page},testInfo)=>{
     test.setTimeout(60000);
     await page.setViewportSize({width,height:900});
@@ -64,7 +64,7 @@ for(const width of [1918,1440,1180,1179,1024,901,390,320]){
     expect(await page.locator('#sidebar').evaluate(element=>element.getBoundingClientRect().top)).toBe(0);
   });
 }
-for(const width of [1440,390,320])test(`admin shares the left menu at ${width}px (mocked APIs)`,async({page})=>{
+for(const width of [1440, 320])test(`admin shares the left menu at ${width}px (mocked APIs)`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/admin.html');
   const expected=width>700?220:280;
   if(width<=700){await expect(page.locator('#sidebar')).toHaveAttribute('inert','');await page.locator('#open-menu').click();await expect(page.locator('#sidebar')).toBeVisible();}

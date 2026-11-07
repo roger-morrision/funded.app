@@ -41,5 +41,6 @@ export function mountCommunityPilotPage(options) {
   const main=document.querySelector('#main-content');if(!main||document.querySelector('#community-pilot-page'))return;
   const page=document.createElement('section');page.id='community-pilot-page';page.dataset.workspaceRoute='community-pilot';page.hidden=true;
   page.innerHTML='<header><p class="eyebrow">Devnet community experiment</p><h1>Plan your community pilot</h1><p>Prepare a discussion, a creator update, and a recap around one coin.</p></header>';
-  main.append(page);mountCommunityPilot(page,options);
+  main.insertBefore(page, main.querySelector(':scope > .site-footer'));
+  mountCommunityPilot(page,options);
 }

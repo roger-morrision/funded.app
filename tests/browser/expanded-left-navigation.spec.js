@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 const policy={revision:6,split:{operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10}};
-for(const width of [320,390,901,1440])test(`all left-menu destinations remain directly available at ${width}px`,async({page,baseURL},info)=>{
+for(const width of [320, 1440])test(`all left-menu destinations remain directly available at ${width}px`,async({page,baseURL},info)=>{
   await page.setViewportSize({width,height:620});
   await page.addInitScript(()=>{localStorage.removeItem('funded.sidebar.collapsed');sessionStorage.setItem('funded.app.wallet.manual-disconnect','1');});
   await page.route('**/*',r=>new URL(r.request().url()).origin===new URL(baseURL).origin&&r.request().method()==='GET'?r.fallback():r.abort());

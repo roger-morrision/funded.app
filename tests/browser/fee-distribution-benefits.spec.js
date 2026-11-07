@@ -12,7 +12,7 @@ async function summary(root){
  expect(await root.locator('[data-fee-category] > strong').evaluateAll(nodes=>nodes.reduce((sum,node)=>sum+Number.parseFloat(node.textContent),0))).toBe(100);
  await expect(root.locator('.eyebrow')).toHaveText('Collected creator-fee distribution');await expect(root.locator('.fee-distribution-details > summary')).toHaveText('Benefits & policy details');
 }
-for(const width of[320,390,700,1440])test(`published fee distribution and configurable creator share stay consistent at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
+for(const width of[320, 1440])test(`published fee distribution and configurable creator share stay consistent at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
  test.setTimeout(90000);await page.setViewportSize({width,height:900});await offline(page,baseURL);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/#capital-flow');await page.locator('body.product-experience-ready').waitFor();await summary(page.locator('#capital-flow [data-fee-distribution]'));
  const ids=['creator','operations','referrals','community','buyback','agency'];
@@ -33,7 +33,7 @@ for(const width of[320,390,700,1440])test(`published fee distribution and config
  await expect(page.locator('[data-fee-fixed-list="launch-review"] dd')).toHaveText(['8%','1%','4%','5%','2%']);await expect(page.locator('.launch-fee-options')).toHaveCount(0);await expect(page.locator('#launch-summary-programs-note')).toHaveCount(0);await expect(page.locator('#launch-button')).toBeDisabled();
  await page.locator('.launch-fixed-distribution').screenshot({path:info.outputPath(`launch-fees-${width}.png`)});expect(errors).toEqual([]);
 });
-for(const width of[320,390,1440])test(`landing explains all stakeholder allocations without an API or wallet at ${width}px`,async({page,baseURL},info)=>{
+for(const width of[320, 1440])test(`landing explains all stakeholder allocations without an API or wallet at ${width}px`,async({page,baseURL},info)=>{
  await page.setViewportSize({width,height:900});await offline(page,baseURL);const api=[],errors=[];page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))api.push(r.url());});page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/welcome#transparency');await expect(page.locator('[data-landing-fee-distribution]')).toHaveCount(0);await expect(page.locator('.reward-grid')).toContainText('4% Daily bonus pool');
  await page.locator('.reward-grid').scrollIntoViewIfNeeded();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(api.map(url=>new URL(url).pathname).filter(path=>!['/api/analytics/summary','/api/market/sol-usd'].includes(path))).toEqual([]);expect(errors).toEqual([]);

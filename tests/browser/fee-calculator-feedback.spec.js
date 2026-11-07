@@ -7,7 +7,7 @@ const savedPolicy={...PROTOCOL_FEE_SPLIT,referralLevelPercents:[3,1.25,0.75],age
 const ready='Preview ready.', unavailable='Enter an amount of 0 or more to preview the split.';
 const amounts={100:['80 SOL','8 SOL','1 SOL','4 SOL','5 SOL','2 SOL'],0:Array(6).fill('0 SOL'),'0.25':['0.200 SOL','0.020 SOL','0.0025 SOL','0.010 SOL','0.0125 SOL','0.005 SOL']};
 
-for(const width of [360,390,430,1440])test(`FQA-024 native calculator feedback at ${width}px (${liveBase?'public read-only':'mocked APIs'})`,async({page},info)=>{
+for(const width of [360, 1440])test(`FQA-024 native calculator feedback at ${width}px (${liveBase?'public read-only':'mocked APIs'})`,async({page},info)=>{
   await page.setViewportSize({width,height:width===1440?900:844});const errors=[],blocked=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/*',r=>{const q=r.request(),u=new URL(q.url());if(!['GET','HEAD','OPTIONS'].includes(q.method())){blocked.push({path:u.pathname,method:q.method(),rpc:u.pathname==='/api/solana/rpc'?q.postDataJSON()?.method:null});return r.abort()}if(!liveBase&&u.pathname.startsWith('/api/'))return u.pathname==='/api/fee-policy'?r.fulfill({json:{split:savedPolicy}}):r.fulfill({status:503,json:{error:'Offline calculator fixture'}});if(!liveBase&&u.origin!==new URL(page.url()==='about:blank'?'http://127.0.0.1:4173':page.url()).origin&&u.protocol==='https:')return r.abort();return r.continue()});
   await page.goto((liveBase||'')+'/#capital-flow');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);

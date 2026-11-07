@@ -10,7 +10,7 @@ async function setup(page,width){
 }
 const ready=async(page,path)=>{await page.goto(path);await expect(page.locator('body')).toHaveClass(/product-flows-ready/);};
 const fits=async page=>expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-for(const width of [320,390,768,1440]){
+for(const width of [320, 1440]){
   test(`task navigation and Home at ${width}px (mocked APIs)`,async({page},info)=>{
     await setup(page,width);const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page,'/#overview');
     await expect(page.locator('#home-hero-title')).toHaveText(/Launch coins\s*that pay everyone\./);

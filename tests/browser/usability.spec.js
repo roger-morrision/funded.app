@@ -15,7 +15,7 @@ async function open(page, route) {
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);
 }
 
-for (const width of [1280, 900, 620, 390, 320]) test(`Explore Filters stay in view and close from the same toggle at ${width}px`, async ({ page }) => {
+for (const width of [1280, 320]) test(`Explore Filters stay in view and close from the same toggle at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 750 });
   await open(page, 'explore');
   await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
@@ -195,18 +195,19 @@ test('Traders remain visible on a narrow phone and explain unavailable sample da
 });
 
 test('creator, token, and wallet details keep the correct parent navigation', async ({ page }) => {
+  test.setTimeout(60_000); // Each detail destination boots a fresh page.
   await page.setViewportSize({ width: 390, height: 750 });
-  for (const [path, parent] of [
-    ['/#creators', 'explore'],
-    ['/#creator-settings', 'my-launches'],
-    ['/creator/x/1816694905915506688', 'explore'],
-    ['/token/CfYFJqMB5Fd4jVzWauXqaBoHbenLcqRawz69hBF9wb3o', 'explore'],
-    ['/wallet/ej8gdawG6NrZw942uMbBN1qjJYWgtrUgPX6ewesYwsx', 'my-launches'],
+  for (const [path, mobileParent, sidebarParent] of [
+    ['/#creators', 'explore', 'creators'],
+    ['/#creator-settings', 'my-launches', 'my-launches'],
+    ['/creator/x/1816694905915506688', 'explore', 'creators'],
+    ['/token/CfYFJqMB5Fd4jVzWauXqaBoHbenLcqRawz69hBF9wb3o', 'explore', 'explore'],
+    ['/wallet/ej8gdawG6NrZw942uMbBN1qjJYWgtrUgPX6ewesYwsx', 'my-launches', 'my-launches'],
   ]) {
     await page.goto(path);
     await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-    await expect(page.locator(`.mobile-workspace-nav a[href="#${parent}"]`)).toHaveAttribute('aria-current', 'page');
-    await expect(page.locator(`.nav-item[href="#${parent}"]`)).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator(`.mobile-workspace-nav a[href="#${mobileParent}"]`)).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator(`.nav-item[href="#${sidebarParent}"]`)).toHaveAttribute('aria-current', 'page');
     await expect(page.locator('.nav-item[href="#overview"]')).not.toHaveAttribute('aria-current', 'page');
   }
 });

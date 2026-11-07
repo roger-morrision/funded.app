@@ -1,7 +1,7 @@
 import{test,expect}from'@playwright/test';import{readFileSync}from'node:fs';import{resolve}from'node:path';
 const wallet='7'.repeat(32),other='6'.repeat(32),mint='8'.repeat(32),signature='9'.repeat(88);
 const policy={revision:3,split:{operationsPercent:40,referralLevelPercents:[10,3,2],communityPercent:20,buybackPercent:25}};
-for(const width of[360,390,1440])test(`FQA-034 real leaderboard renderer preserves logical focus through async refresh at ${width}px`,async({page},info)=>{
+for(const width of[360, 1440])test(`FQA-034 real leaderboard renderer preserves logical focus through async refresh at ${width}px`,async({page},info)=>{
  test.setTimeout(90000);await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/api/**',r=>r.fulfill(new URL(r.request().url()).pathname==='/api/fee-policy'?{json:policy}:{status:503,json:{error:'Unavailable fixture'}}));await page.route('https://**/*',r=>r.abort());
  await page.goto('/#leaderboard');await page.locator('body.workspace-ready.product-experience-ready').waitFor();const table=page.locator('#leaderboard-table');

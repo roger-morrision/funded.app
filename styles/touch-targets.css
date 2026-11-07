@@ -1,3 +1,82 @@
+/* Shared navigation, card links and touch targets. */
+
+/* Topbar: Creators is a support view on the Home route, so it inherits Home's hidden
+   page title. Show it, and keep the search button on the right next to the network
+   badge on Home, where the title stays hidden. */
+html body.support-view-active .topbar .topbar-context { display: block; }
+html body.page-route-overview:not(.support-view-active) .topbar .header-search-trigger { margin-left: auto; }
+
+/* Page-level tabs: Explore and Leaderboard use the same tab style as Rewards. */
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) { gap: 6px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) > button { min-height: 44px; padding: 8px 14px; border: 1px solid transparent; border-radius: var(--cp-radius); background: transparent; box-shadow: none; color: var(--cp-muted); font: 700 13px var(--fv-font-ui); text-transform: none; letter-spacing: 0; }
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) > button:hover { color: var(--cp-text); }
+html body #main-content .segmented:is(.explore-tabs, .leaderboard-tabs) > button.active,
+html body.page-route-explore #main-content .explore-heading .segmented > button.active { border-color: var(--cp-line-strong); background: var(--cp-surface); box-shadow: none; color: var(--cp-accent); }
+html body #main-content .segmented.leaderboard-tabs > button::after { display: none; }
+/* Home launch filters and Airdrops directory tabs follow the same idle/selected states. */
+html body #main-content button[data-home-discovery],
+html body.page-route-airdrops #airdrops .airdrop-reference-tabs > button { border: 1px solid transparent; border-radius: var(--cp-radius); background: transparent; box-shadow: none; color: var(--cp-muted); }
+html body #main-content button[data-home-discovery]:hover,
+html body.page-route-airdrops #airdrops .airdrop-reference-tabs > button:hover { color: var(--cp-text); }
+html body #main-content button[data-home-discovery][aria-pressed="true"],
+html body.page-route-airdrops #airdrops .airdrop-reference-tabs > button[aria-selected="true"] { border-color: var(--cp-line-strong); background: var(--cp-surface); color: var(--cp-accent); }
+
+@media (max-width: 700px) {
+  /* Long labels ("Migrated & Airdropped") overlapped their neighbours; scroll the row instead. */
+  html body.page-route-airdrops #airdrops .airdrop-reference-tabs { display: flex; flex-wrap: nowrap; gap: var(--fv-space-1); overflow-x: auto; scrollbar-width: none; }
+  html body.page-route-airdrops #airdrops .airdrop-reference-tabs > button { flex: 0 0 auto; width: auto; min-width: 0; white-space: nowrap; }
+}
+/* Sub-page navigation ($FUNDED / Buy & burn, Analytics, Portfolio) uses the same tabs. */
+html body #main-content .purpose-page-nav { gap: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+html body #main-content .purpose-page-nav > a { min-height: 40px; padding: 8px 14px; border: 1px solid transparent; border-radius: var(--cp-radius); background: transparent; box-shadow: none; color: var(--cp-muted); font: 700 13px var(--fv-font-ui); text-transform: none; letter-spacing: 0; }
+html body #main-content .purpose-page-nav > a:hover { color: var(--cp-text); background: transparent; }
+html body #main-content .purpose-page-nav > a[aria-current="location"] { border-color: var(--cp-line-strong); background: var(--cp-surface); color: var(--cp-accent); }
+/* Buy & burn sits inside the $FUNDED section; align it with the page column instead of indenting it. */
+html body #main-content #paid > #buybacks { width: auto; max-width: none; margin-inline: 0; }
+/* Portfolio and Creators used a centered 1120px column; every other page uses the full content column. */
+html body.page-route #main-content > :is(#my-launches.section-block, #creator-support-page.creator-support-page, #route-guide.route-guide, #profile.profile-section),
+html body.page-route #main-content #my-launches > #community { max-width: none; margin-inline: 0; }
+/* Create keeps its narrower form column, but starts on the same left edge as other pages. */
+html body.page-route-launch #main-content > #launch-route-shell.launch-route-shell { margin-inline: 0 auto; }
+
+/* Wallet profile: same column, breadcrumb case and tab style as the rest of the app. */
+html body.page-route-wallet #main-content > #wallet-page.wallet-page { max-width: none; margin-inline: 0; }
+html body.page-route-wallet #wallet-page .coin-breadcrumb { text-transform: none; letter-spacing: 0; }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs { gap: 6px; padding-bottom: var(--fv-space-2); }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button { min-width: 0; min-height: 40px; padding: 8px 14px; border: 1px solid transparent; border-radius: var(--cp-radius); background: transparent; color: var(--cp-muted); font: 700 13px var(--fv-font-ui); }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button::after { display: none; }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button:hover { color: var(--cp-text); }
+html body.page-route-wallet #wallet-page .wallet-detail-tabs > button.active { border-color: var(--cp-line-strong); background: var(--cp-surface); color: var(--cp-accent); }
+
+/* In-page text links share the accent color instead of mixing blue and orange. */
+html body #main-content .text-button { color: var(--fv-accent); }
+html body #main-content .text-button:hover { color: var(--cp-accent); }
+html body #main-content #bonuses a:not([class]) { color: var(--fv-accent); text-underline-offset: 2px; }
+html body.page-route #main-content .recipients-panel .recipients-history-link { color: var(--fv-accent); }
+
+/* Daily bonuses: same open page layout as Leaderboard and Rewards, not a card glued to the topbar. */
+html body #main-content > #bonuses.bonus-history-page { padding: var(--fv-space-5) 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+
+/* Creators: header shortcuts use the standard secondary button. */
+html body.page-route .creator-support-page .support-shortcuts a { border: 1px solid var(--cp-line-strong); border-radius: var(--cp-radius); background: transparent; color: var(--fv-text); }
+html body.page-route .creator-support-page .support-shortcuts a:hover { border-color: var(--fv-accent); color: var(--fv-accent); }
+
+/* Get listed cards: the whole-card link is an invisible overlay, the name gets the full
+   row, and the burn proof reads as a labeled button instead of an empty square. */
+html body #main-content .paid-listing-card { position: relative; }
+html body #main-content .paid-listing-card > .home-launch-card-link { position: absolute; inset: 0; z-index: 0; min-height: 0; padding: 0; border: 0; background: transparent; }
+html body #main-content .paid-listing-card :is(.home-card-overview, .home-launch-protocol, .home-launch-card-actions) { position: relative; z-index: 1; pointer-events: none; }
+html body #main-content .paid-listing-card :is(a, button) { pointer-events: auto; }
+html body #main-content .paid-listing-card .home-launch-card-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--fv-space-1) var(--fv-space-2); }
+html body #main-content .paid-listing-card .home-token-identity { display: grid; gap: 2px; min-width: 0; }
+html body #main-content .paid-listing-card .home-token-identity :is(strong, small) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body #main-content .paid-listing-card .home-launch-media-stage { grid-column: 2; grid-row: 1; align-self: start; }
+html body #main-content .paid-listing-card .home-launch-card-addresses { grid-column: 1 / -1; display: flex; }
+html body #main-content .paid-listing-card .home-launch-card-addresses span { display: inline-flex; align-items: center; gap: var(--fv-space-1); }
+html body #main-content .paid-listing-card .home-launch-card-actions { grid-template-columns: minmax(0, 1fr) auto; }
+html body #main-content .paid-listing-card .home-launch-card-actions > .paid-listing-proof { width: auto; height: auto; min-width: 0; min-height: 44px; display: inline-flex; align-items: center; border: 1px solid var(--cp-line-strong); border-radius: var(--cp-radius); padding: 0 var(--fv-space-3); color: var(--fv-text-muted); font: 600 13px var(--fv-font-ui); white-space: nowrap; }
+html body #main-content .paid-listing-card .home-launch-card-actions > .paid-listing-proof:hover { border-color: var(--fv-accent); color: var(--fv-accent); }
+
 /* Phone tap areas. Small icon and filter buttons keep their look, but an
    invisible ::after extends the hit area toward 44px, without moving layout. */
 @media (max-width: 767px) {

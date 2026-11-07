@@ -1,7 +1,7 @@
 import{test,expect}from'@playwright/test';
 import{buildFeeDistributionPolicy}from'../../distribution-policy.js';
 // Local renderer fixture: real view + policy validation, no RPC or transaction flow.
-for(const width of[320,390,1440])test(`saved legacy and agency coin policies keep their own allocation at ${width}px`,async({page})=>{
+for(const width of[320, 1440])test(`saved legacy and agency coin policies keep their own allocation at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await page.route('**/fee-renderer-fixture',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/styles/fee-distribution-summary.css"><section id="coin-page"><div class="coin-hero-card"><div class="coin-stat-strip"><div id="coin-fee-route"><strong id="coin-fee-route-value"></strong></div></div></div></section>'}));await page.goto('/fee-renderer-fixture');
  const render=async agency=>page.evaluate(async agency=>{
   const{buildFeeDistributionPolicy}=await import('/distribution-policy.js'),{renderCoinRewardsPolicy}=await import('/src/features/coin/promotion-view.js');

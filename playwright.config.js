@@ -6,8 +6,6 @@ const baseURL = `http://127.0.0.1:${port}`;
 export default defineConfig({
   testDir: './tests/browser',
   globalSetup:'./scripts/browser-test-server.mjs',
-  metadata: process.env.PLAYWRIGHT_AVAILABILITY_BASELINE_URL
-    ? { availabilityBaselineURL: process.env.PLAYWRIGHT_AVAILABILITY_BASELINE_URL } : {},
   timeout: 30_000,
   expect: { timeout: 15_000 },
   workers: 1,

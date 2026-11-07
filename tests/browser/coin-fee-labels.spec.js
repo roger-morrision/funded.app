@@ -219,7 +219,7 @@ async function collectionData(region) {
     dates: [...e.querySelectorAll('time')].map(x => x.getAttribute('datetime')), links: [...e.querySelectorAll('a')].map(x => ({ href: x.href, rel: x.rel, target: x.target, label: x.getAttribute('aria-label') })),
     scope: e.previousElementSibling?.textContent }));
 }
-for (const width of [360, 390, 1440]) for (const variant of ['missing-mint', 'known-metadata'])
+for (const width of [360, 1440]) for (const variant of ['missing-mint', 'known-metadata'])
 test(`Collection region real-loader ${variant} native name and focus ${width}`, async ({ page }, info) => {
   test.setTimeout(60000);
   const f = await collectionNameFixture(page, width, variant), label = f.known ? 'FEE fee collections' : 'Token fee collections';

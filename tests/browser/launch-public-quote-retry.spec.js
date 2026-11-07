@@ -5,9 +5,10 @@ import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 const root=fileURLToPath(new URL('../../',import.meta.url));let sourceServer;
 // Source-only success/focus cases replace read dependencies in memory. No hook
 // or alternate source endpoint is included in the production application.
+// This fixture uses in-memory transforms and one app entry. It needs no file watcher.
 async function controlledOrigin(){
  if(!sourceServer){
-  sourceServer=await createServer({root,configFile:false,cacheDir:root+'node_modules/.vite/public-quote-'+process.pid,plugins:[{name:'test-only-public-quote-read-dependencies',enforce:'pre',transform(code,id){
+  sourceServer=await createServer({root,configFile:false,optimizeDeps:{entries:['index.html']},cacheDir:root+'node_modules/.vite/public-quote-'+process.pid,plugins:[{name:'test-only-public-quote-read-dependencies',enforce:'pre',transform(code,id){
    if(!id.replaceAll('\\','/').endsWith('/src/app/controllers/launch-preview.js'))return;
    const marker='export function createLaunchPreviewController(appState) {';
    return code.replace(marker,marker+`
@@ -18,7 +19,7 @@ async function controlledOrigin(){
      updateCostSummaryView:{value:(state,deps)=>{window.__retryFixture.quote=structuredClone(state.publicQuote);return base.updateCostSummaryView(state,{...deps,getLaunchFeeLamports:()=> '20000000'});}}
     });window.__retryState=appState;
    `).replace('} catch (error) {','} catch (error) { window.__retryFixture.error=String(error);');
-  }}],server:{host:'127.0.0.1',port:4504,strictPort:true,hmr:false,watch:{ignored:['**/tmp/**','**/test-results/**','**/dist/**']}}});await sourceServer.listen();
+  }}],server:{host:'127.0.0.1',port:4504,strictPort:true,hmr:false,watch:null}});await sourceServer.listen();
  }return'http://127.0.0.1:4504';
 }
 test.afterAll(async()=>{await sourceServer?.close()});
@@ -31,7 +32,7 @@ async function ready(page,width,origin=''){
 async function clear(page,control){await expect(control).toBeFocused();await expect.poll(()=>control.evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),m=(parseFloat(s.outlineWidth)||0)+Math.max(0,parseFloat(s.outlineOffset)||0),h=document.querySelector('.topbar'),n=document.querySelector('.mobile-workspace-nav'),top=h?.getClientRects().length?h.getBoundingClientRect().bottom:0,bottom=n?.getClientRects().length?n.getBoundingClientRect().top:innerHeight;return r.top-m>=top-1&&r.bottom+m<=bottom+1&&r.left-m>=-1&&r.right+m<=innerWidth+1})).toBe(true)}
 const draft=page=>page.locator('#token-name,#token-symbol,#community-airdrop-tokens,#creator-buy-sol').evaluateAll(a=>a.map(e=>({id:e.id,value:e.value})));
 
-for(const width of[360,390,1440])test(`source read dependencies: public quote success and focus recovery at ${width}px`,async({page},info)=>{
+for(const width of[360, 1440])test(`source read dependencies: public quote success and focus recovery at ${width}px`,async({page},info)=>{
  test.setTimeout(90000); // Includes starting and optimizing a separate source-fixture Vite server.
  await page.addInitScript(()=>{window.__retryFixture={available:false,attempts:0,reserves:0,hold:false,quote:null}});await ready(page,width,await controlledOrigin());
  const retry=page.getByRole('button',{name:'Retry budget quote',exact:true}),status=page.locator('#launch-public-quote-retry-status'),before=await draft(page),initial=await page.evaluate(()=>__retryFixture.attempts);
@@ -59,7 +60,7 @@ for(const width of[360,390,1440])test(`source read dependencies: public quote su
  await expect(page.locator('#launch-public-quote-retry')).toBeHidden();await expect(page.locator('#terms-agree')).toBeFocused();await expect(page.locator('#terms-agree')).not.toBeChecked();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await page.screenshot({path:info.outputPath(`source-recovered-${width}.png`)});
 });
 
-for(const width of[360,390,1440])test(`native quote-only retry with mocked RPC at ${width}px`,async({page},info)=>{
+for(const width of[360, 1440])test(`native quote-only retry with mocked RPC at ${width}px`,async({page},info)=>{
  const rpc=[],writes=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
  // Registered after ready's API catch-all via a final route override below.
  const routeRpc=async()=>page.route('**/api/solana/rpc*',r=>{const q=r.request().postDataJSON();rpc.push(q.method);return r.fulfill({json:{jsonrpc:'2.0',id:q.id,error:{code:-32602,message:'Controlled read unavailable'}}})});

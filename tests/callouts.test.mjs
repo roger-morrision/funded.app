@@ -104,7 +104,7 @@ test('feed filters and row markup escape user text', () => {
   assert.equal(chatCalloutBadge({}, 1, 1), '');
   assert.match(chatCalloutBadge({ marketCapSol: 2, holdingPercent: 1.5 }, 4, NaN), /holds 1\.5%/);
   assert.match(calloutRowMarkup({ id: 'y', mint: 'm', author: 'w', text: '', createdAt: '2026-11-03T00:00:00Z', holdingPercent: 0.5 }), /is-conviction[\s\S]*Holds 0\.50%/);
-  const columns = splitCalloutColumns([{ id: 'a', author: 'top', holdingPercent: null }, { id: 'b', author: 'new', holdingPercent: 2 }], [{ author: 'top' }]);
+  const columns = splitCalloutColumns([{ id: 'a', author: 'top', holdingPercent: null }, { id: 'b', author: 'new', holdingPercent: 2 }], [{ author: 'top' }, { author: 'new', ranked: false }]);
   assert.deepEqual(Object.fromEntries(Object.entries(columns).map(([name, list]) => [name, list.map(row => row.id)])), { latest: ['a', 'b'], top: ['a'], conviction: ['b'] });
 });
 

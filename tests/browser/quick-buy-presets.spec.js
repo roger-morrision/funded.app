@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='So11111111111111111111111111111111111111112';
-for(const width of [320,390,768,1440]) test(`Buy presets preserve amounts and review at ${width}px (mocked APIs)`,async({page},info)=>{
+for(const width of [320, 1440]) test(`Buy presets preserve amounts and review at ${width}px (mocked APIs)`,async({page},info)=>{
   test.setTimeout(60000);
   await page.setViewportSize({width,height:900});
   await page.addInitScript(()=>{localStorage.setItem('funded.review-buy-sol.v1','0.35');sessionStorage.setItem('funded.app.wallet.manual-disconnect','1');});

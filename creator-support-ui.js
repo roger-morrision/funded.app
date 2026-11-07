@@ -16,7 +16,7 @@ const main = $('.main-content');
 let capabilities = null, routeGeneration = 0, directoryGeneration = 0;
 const page = document.createElement('section');
 page.id = 'creator-support-page'; page.hidden = true; page.className = 'creator-support-page';
-main.append(page);
+main.insertBefore(page, main.querySelector(':scope > .site-footer'));
 
 function setStatus(node, message) { node.textContent = message; }
 async function copy(text, status) {
@@ -90,7 +90,9 @@ async function renderDirectory() {
   const generation=routeGeneration;
   const search=async(append=false)=>{
     if(generation!==routeGeneration)return;
-    if(!append){cursor=null;$('#creator-directory').replaceChildren();}more.disabled=true;
+    if(!append){cursor=null;$('#creator-directory').replaceChildren();}
+    $('#creator-directory-status').textContent=append?'Loading more creators…':'Loading creators…';
+    more.disabled=true;
     const request=++directoryGeneration;
     try {
       const following=safeFollowing();const params=new URLSearchParams({q:$('#creator-search').value});if(cursor)params.set('after',cursor);if($('#creators-followed').checked&&following.length)params.set('ids',following.join(','));
@@ -98,12 +100,17 @@ async function renderDirectory() {
       if(generation!==routeGeneration||request!==directoryGeneration)return;
       if(!result.available || !Array.isArray(result.data?.creators))throw new Error('Creator directory is unavailable. Try again after the API is updated.');
       const rows=result.data.creators.filter(c=>!$('#creators-followed').checked||following.includes(c.id));
-      cursor=result.data.nextCursor;more.hidden=!cursor||($('#creators-followed').checked&&!following.length);
+      cursor=result.data.nextCursor;more.textContent='Load more creators';more.hidden=!cursor||($('#creators-followed').checked&&!following.length);
       $('#creator-directory').insertAdjacentHTML('beforeend',rows.map(c=>`<a class="creator-card" href="/creator/x/${esc(c.id)}"><span class="creator-avatar" aria-hidden="true">${esc(c.handle.slice(1,3).toUpperCase())}</span><h2>${esc(c.name)}</h2><p>${esc(c.handle)}</p><span class="support-badge">${c.identityVerified?'X account ownership verified':'Named recipient · unverified ownership'}</span><p>${c.coinCount} verified support ${Number(c.coinCount)===1?'policy':'policies'}</p></a>`).join(''));
       const count=$('#creator-directory').children.length;$('#creator-directory-status').textContent=count?`${count} ${count===1?'creator':'creators'} shown${cursor?' · more available':''}`:'No matching creators yet. No earnings or endorsements are implied.';
-    } catch(error){if(generation===routeGeneration && request===directoryGeneration){$('#creator-directory-status').textContent=error.message;more.hidden=true;}}finally{if(request===directoryGeneration)more.disabled=false;}
+    } catch {
+      if(generation!==routeGeneration || request!==directoryGeneration)return;
+      $('#creator-directory-status').textContent=append?'More creators could not be loaded.':'Creator search is unavailable.';
+      more.textContent='Try again';
+      more.hidden=false;
+    } finally { if(request===directoryGeneration)more.disabled=false; }
   };
-  let debounce;more.onclick=()=>search(true);$('#creator-search').addEventListener('input',()=>{clearTimeout(debounce);directoryGeneration++;debounce=setTimeout(()=>search(false),300);});$('#creators-followed').addEventListener('change',()=>search(false));await search();
+  let debounce;more.onclick=()=>search(Boolean(cursor));$('#creator-search').addEventListener('input',()=>{clearTimeout(debounce);directoryGeneration++;more.disabled=true;debounce=setTimeout(()=>search(false),300);});$('#creators-followed').addEventListener('change',()=>search(false));await search();
 }
 
 async function renderCreator(id,generation) {

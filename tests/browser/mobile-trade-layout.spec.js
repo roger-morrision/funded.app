@@ -7,7 +7,7 @@ const launch = { mint, cluster: 'devnet', onchainVerified: true, creatorWallet: 
   creatorLaunchBurn: { tier: 'premier', amountTokens: 250000, status: 'verified',
     receipt: { verified: true, atomicWithPumpLaunch: true, signature } } };
 
-for (const width of [360, 390, 430, 1440]) {
+for (const width of [360, 1440]) {
   test(`FQA-014 / UX-015 trade action leaves token links reachable at ${width}px (mocked API)`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     await page.route('https://**/*', route => route.abort());

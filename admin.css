@@ -33,6 +33,10 @@
 .page-route-admin .eyebrow { color: #9aa8bf; }
 .page-route-admin :is(.page-title > span, .section-head > span) { color: #9aa8bf; }
 .page-route-admin .links a { color: #f4a340; }
+.fee-fields label { justify-content:space-between; }
+.admin-wallet-table :is(th,td):nth-child(4) { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.summary strong { font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#message:empty { min-height:0; margin:0; }
 .page-route-admin :is(td code, #audit code) { color: #c3cee0; }
 .page-route-admin button { background: transparent; border-color: #34465f; color: #f6f2e9; }
 .page-route-admin button:hover:not(:disabled) { background: transparent; border-color: #f4a340; color: #ffd28a; }

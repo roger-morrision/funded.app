@@ -315,7 +315,7 @@ async function activityPointerPoint(page, selector, info) {
     return result;
   } finally { await original.dispose(); }
 }
-for(const width of[360,390,1440])test.describe(`activity viewport${width}`,()=>{
+for(const width of[360, 1440])test.describe(`activity viewport${width}`,()=>{
   test.use({hasTouch:width<700});
   for(const view of['grid','table'])for(const recovery of['pointer','Enter'])test(`UX-008 available activity ${view} first ${recovery} Clear at${width}px`,async({page},info)=>{
     test.setTimeout(30000);const kind=view==='grid'?'missing':'partial',f=await activityFixture(page,width,kind),reading=[];

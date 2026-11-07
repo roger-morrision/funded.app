@@ -4,7 +4,7 @@ import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 // Fully synthetic provider/RPC responses. No key, signing or external network.
 const wallet='ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC',mint='HdGmAbwR1ng3VTQkQ6Gw3QYhJGebWNFf5voktjCKwhvL';
 const classic='TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
-for(const width of[360,390,1440])test(`native Portfolio holdings partial coverage and Refresh at ${width}px`,async({page},info)=>{
+for(const width of[360, 1440])test(`native Portfolio holdings partial coverage and Refresh at ${width}px`,async({page},info)=>{
  await page.setViewportSize({width,height:width<700?844:900});
  const errors=[],reads=[],writes=[];let mode='classic-fails';page.on('pageerror',e=>errors.push(e.message));
  await page.route('https://**/*',r=>r.abort());

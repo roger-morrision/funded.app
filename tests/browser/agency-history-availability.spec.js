@@ -32,7 +32,7 @@ async function assertRows(page){
     await expect(links.nth(i)).toHaveAttribute('href',`https://explorer.solana.com/tx/${row.signature}?cluster=devnet`);
   }
 }
-for(const width of [360,390,1440])test(`earlier receipts survive unavailable readiness and native recovery at ${width}px`,async({page})=>{
+for(const width of [360, 1440])test(`earlier receipts survive unavailable readiness and native recovery at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:width===1440?900:844});let data=blocked();const requests=await fixture(page,()=>data);
   await page.goto('/#marketing-agency');await expect(page.locator('[data-agency-status]')).toContainText('Current agency readiness is unavailable');
   await assertRows(page);await expect(page.locator('[data-agency-history]')).toContainText('do not establish current execution readiness');

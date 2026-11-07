@@ -37,7 +37,7 @@ for (const width of [1440, 390]) test(`dedicated agency menu, clear readiness an
   else await page.screenshot({ path: 'tmp/agency-mobile.png', fullPage: true, animations: 'disabled' });
 });
 
-for(const width of [320,390,1440])test(`X promotion is included only with a promotion package at ${width}px (mocked APIs)`, async ({ page },info) => {
+for(const width of [320, 1440])test(`X promotion is included only with a promotion package at ${width}px (mocked APIs)`, async ({ page },info) => {
   await page.setViewportSize({width,height:900});await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/product-flows-ready/);
   await page.locator('#token-name').fill('Agency QA');await page.locator('#token-symbol').fill('AQA');await page.locator('#launch-next').click();

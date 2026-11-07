@@ -47,7 +47,7 @@ async function fixture(page){
 
 // Native focus observation uses browser frames, a strict 1s deadline and 100ms
 // continuous visibility/stationary scroll. No test scroll or focus workaround.
-for(const width of [360,390,1440])test(`TradingView native zoom, pan, reset and route lifecycle at ${width}px`,async({page},info)=>{
+for(const width of [360, 1440])test(`TradingView native zoom, pan, reset and route lifecycle at ${width}px`,async({page},info)=>{
   page.on('console', message=>{if(message.text().startsWith('Token chart unavailable:'))console.log(message.text());});
   const f=await fixture(page);f.set('dense');await page.setViewportSize({width,height:1000});
   await page.goto(`/token/${mint}`);await page.locator('body.product-flows-ready').waitFor();

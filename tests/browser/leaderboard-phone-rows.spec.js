@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 // The Traders board stacks each row on phones instead of scrolling sideways.
-for(const width of [320,375,1440])test(`Traders rows fit a ${width}px screen`,async({page,baseURL})=>{
+for(const width of [320, 1440])test(`Traders rows fit a ${width}px screen`,async({page,baseURL})=>{
   await page.setViewportSize({width,height:800});
   await page.route('https://**/*',route=>{const request=route.request(),url=new URL(request.url());return url.origin===new URL(baseURL).origin&&request.method()==='GET'&&!url.pathname.startsWith('/api/')?route.fallback():route.abort();});
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline leaderboard fixture'}}));

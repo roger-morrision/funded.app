@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
     ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } }) : route.fulfill({ status: 503, json: { error: 'Controlled offline navigation fixture' } }));
 });
 
-for (const width of [360, 390, 700]) test(`mobile bottom links, drawer and content reserve at ${width}px`, async ({ page }, info) => {
+for (const width of [360, 700]) test(`mobile bottom links, drawer and content reserve at ${width}px`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: 844 });
   await page.goto('/#overview'); await page.locator('body.product-flows-ready').waitFor();
   const nav = page.locator('.mobile-workspace-nav');

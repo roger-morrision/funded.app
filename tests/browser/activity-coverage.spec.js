@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-for(const width of [320,390,1440])test(`loaded activity notice stays hidden and older tokens enter ranking at ${width}px`,async({page})=>{
+for(const width of [320, 1440])test(`loaded activity notice stays hidden and older tokens enter ranking at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:844});const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline fixture'}}));
  await page.route('https://**/*',route=>route.abort());

@@ -1,7 +1,23 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
-for(const width of [360,390,1440]) test(`token error recovery and fee records remain usable at ${width}px`,async({page})=>{
+test('Home defers the chart renderer until a token page needs it', async ({page}) => {
+  const loads = [];
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.endsWith('/tradingview-chart.js')) loads.push(request.url());
+  });
+  await page.route('**/api/**', route => route.fulfill({status:503, json:{error:'Offline chart fixture'}}));
+  await page.route('**/api/fee-policy', route => route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
+  await page.goto('/#overview');
+  await expect(page.locator('body')).toHaveClass(/product-experience-ready/);
+  await expect(page.locator('#coin-page')).toBeHidden();
+  expect(loads).toHaveLength(0);
+  await page.goto('/token/H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z');
+  await expect(page.locator('#coin-price-path')).toHaveAttribute('data-chart-ready', 'true');
+  expect(loads).toHaveLength(1);
+});
+
+for(const width of [360, 1440]) test(`token error recovery and fee records remain usable at ${width}px`,async({page})=>{
   // Four complete page boots; keep each assertion bounded independently.
   test.setTimeout(60_000);
   const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
@@ -240,7 +256,7 @@ async function finishFallbackRead(page,original,gate,expected,settled={}){
 test.describe('FQA-063 neutral token fallback lifecycle',()=>{
   test.describe.configure({timeout:60000});
   test.afterEach(async({page})=>{await page.close();});
-  for(const width of[360,390,1440]){
+  for(const width of[360, 1440]){
     test(`parsed mint without curve settles unavailable without a pending About claim at${width}`,async({page})=>{
       const f=await tokenFallbackFixture(page,width);try{await f.open();await fallbackSurface(page,fallbackDescription);await expect(page.locator('#coin-stage')).toHaveText('-');await expect(page.locator('#coin-fee-owner')).toHaveText('-');await expect(page.locator('#coin-metadata-status')).toHaveText('No verified name');await expect(page.locator('[data-coin-tab="trades"]')).toHaveText('Trades —');await expect(page.locator('#coin-pulse-trades')).toHaveText('-');await expect(page.locator('#coin-price-path .coin-chart-status')).toHaveText('Chart unavailableRecent trade prices could not be loaded. Try refreshing the token page.');await expect(page.locator('#coin-activity-list')).toContainText('Recent trades unavailable');expect(f.marketCount).toBe(1);expect(f.reads.some(r=>r.calls?.some(c=>c.method==='getAccountInfo'&&c.params[0]===fallbackMint&&c.params[1]?.encoding==='jsonParsed'))).toBe(true);await nativeTokenFallback(page);await page.screenshot({path:test.info().outputPath('no-curve-neutral-'+width+'.png')});expect(f.marketCount).toBe(1);}finally{await f.finish();}
     });

@@ -20,7 +20,7 @@ if(main && !document.querySelector('#creator-pilot')) {
     <section class="creator-pilot-fees" aria-labelledby="creator-pilot-fees-title"><h2 id="creator-pilot-fees-title">Follow collected fees, not promised returns</h2><p>The token policy identifies fee destinations. Collection and payment receipts show what actually happened. No trading activity means no trading fees to allocate; payout availability also depends on verified funding and operating distribution services.</p><a href="#capital-flow">Review fee activity</a><a href="#docs">Read the Devnet guide</a></section>
     <div id="creator-pilot-metrics" aria-label="Optional local pilot recording"></div>
     <footer class="creator-pilot-footer"><p>Invite someone to review the same test path. This copies a link; it does not publish a post or record participation.</p><button type="button" class="secondary-button" data-pilot-copy>Copy pilot invitation</button><p role="status" data-pilot-copy-status></p><a href="#overview">Back to Home</a></footer>`;
-  main.append(page);
+  main.insertBefore(page, main.querySelector(':scope > .site-footer'));
   let reviewOpened=false;
   const refresh=()=>{
     const state=creatorPilotProgress({journal:readLaunchJournal(),reviewOpened,cluster:APP_CLUSTER});

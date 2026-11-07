@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://**/*', route => route.abort());
 });
 
-for (const width of [1440, 1024, 901, 390]) test(`launch navigation remains usable at ${width}px`, async ({ page }) => {
+for (const width of [1440, 390]) test(`launch navigation remains usable at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);

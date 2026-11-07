@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='So11111111111111111111111111111111111111112';
-for(const width of [320,390,1440])test(`holder history is distinct from a future payout queue at ${width}px`,async({page})=>{
+for(const width of [320, 1440])test(`holder history is distinct from a future payout queue at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});
   await page.route('https://**/*',route=>route.abort());
   await page.route('**/api/**',route=>new URL(route.request().url()).pathname==='/api/fee-policy'

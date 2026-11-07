@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const base = process.env.UI_BASE_URL || 'http://127.0.0.1:5173';
@@ -32,6 +33,10 @@ try {
     await context.route('**/api/**', route => route.request().method() === 'GET'
       ? route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
       : route.fulfill({ status: 403, body: 'Read-only responsive verification' }));
+    // The production bootstrap requires a valid policy before any route becomes interactive.
+    await context.route('**/api/fee-policy', route => route.request().method() === 'GET'
+      ? route.fulfill({ json: { split: PROTOCOL_FEE_SPLIT } })
+      : route.fallback());
     await context.route('https://**/*', route => new URL(route.request().url()).origin === new URL(base).origin ? route.fallback() : route.abort());
     for (const route of routes) {
       const page = await context.newPage();
@@ -65,8 +70,11 @@ try {
         }
         if (route === '/#payments') {
           assert.equal(await page.locator('#rewards-overview .reward-entry-grid').isVisible(), false);
-          assert(await page.getByRole('button', { name: /Coin holder rewards/ }).isVisible());
-          assert(await page.getByRole('button', { name: /Payment history/ }).isVisible());
+          const tabs = page.locator('#payments > .ui-tabs');
+          await tabs.getByRole('tab', { name: 'Coin Holder', exact: true }).click();
+          assert(await page.locator('#rewards-holder').isVisible());
+          await tabs.getByRole('tab', { name: 'All Payout History', exact: true }).click();
+          assert(await page.locator('#rewards-history').isVisible());
         }
         if (route === '/#community') {
           assert(await page.locator('#favorites-title').isVisible());

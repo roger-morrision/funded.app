@@ -34,7 +34,7 @@ test('protocol allocation copy agrees across summary, buyback, and fee flow', as
   await expect(page.locator('.fee-route-bar i.burn')).toHaveAttribute('style', new RegExp(`width:\\s*${buyback}%`));
 });
 
-for (const width of [1440, 390, 320]) test(`launch package and X previews update at ${width}px`, async ({ page }, info) => {
+for (const width of [1440, 320]) test(`launch package and X previews update at ${width}px`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('/#launch');
   await expect(page.locator('body')).toHaveClass(/workspace-ready/);

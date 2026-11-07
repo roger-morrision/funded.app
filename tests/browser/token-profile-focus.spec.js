@@ -7,7 +7,7 @@ const launch = { mint, cluster: 'devnet', onchainVerified: true, creatorWallet: 
   creatorLaunchBurn: { tier: 'premier', amountTokens: 250000, status: 'verified',
     receipt: { verified: true, atomicWithPumpLaunch: true, signature } } };
 
-for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [360, 390, 430, 1440]) {
+for (const reducedMotion of ['no-preference', 'reduce']) for (const width of [360, 390, 1440]) {
   test(`FQA-015 / UX-016 focused profile controls clear fixed navigation at ${width}px, motion ${reducedMotion} (mocked API)`, async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion });
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });

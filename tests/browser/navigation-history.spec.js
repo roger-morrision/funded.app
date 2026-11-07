@@ -4,6 +4,7 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 const mint = 'BHFsQA2xqgGXVuHeTngQY8t6mNaaHwVZdXcYuzigNAHK';
 for (const width of [1440, 390]) {
   test(`FQA-017 pathname and hash history restores the visible route at ${width}px (mocked APIs)`, async ({ page }) => {
+    test.setTimeout(60_000); // Three destinations each include fresh boots and Back navigation.
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: async value => { window.qaCopiedMint = value; } },

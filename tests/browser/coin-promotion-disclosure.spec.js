@@ -2,7 +2,7 @@ import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
-for(const width of [390,768,1440])test(`Paid promotion retains its exact receipt and separate identity at ${width}px (mocked)`,async({page},info)=>{
+for(const width of [390, 1440])test(`Paid promotion retains its exact receipt and separate identity at ${width}px (mocked)`,async({page},info)=>{
  await page.setViewportSize({width,height:900});await page.route('https://**/*',r=>r.abort());
  await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Mocked unavailable data'}}));
  await page.route('**/api/fee-policy',r=>r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));

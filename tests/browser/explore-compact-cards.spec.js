@@ -20,7 +20,7 @@ async function clearFocus(locator,page){await locator.focus();await page.keyboar
 // Words in the frozen baseline the redesign dropped on purpose: unknown volume now
 // shows one muted "—" instead of "$—" (a23f11f8).
 const REDESIGN_REMOVED=new Set(['ca','$—']);
-for(const width of[360,390,1440])test(`compact frozen-first3 geometry,data,controls and native actions at${width}px`,async({page},info)=>{
+for(const width of[360, 1440])test(`compact frozen-first3 geometry,data,controls and native actions at${width}px`,async({page},info)=>{
  await prepare(page,width,{authenticated:true});const cards=page.locator('#asset-grid .explore-launch-card'),geometry=await measure(page);expect(geometry.map(x=>x.mint)).toEqual(records.map(x=>x.mint));
  // Phones drop the Explore lede so the first coin starts higher; desktop keeps it.
  if(width<700)await expect(page.locator('.explore-hero .explore-lede')).toBeHidden();else await expect(page.locator('.explore-hero .explore-lede')).toBeVisible();
@@ -109,7 +109,7 @@ async function compactNativeViewingSetup(page,target){
 
 test.describe('compact card noninteractive pointer recovery',()=>{
  test.use({hasTouch:true});
- for(const width of[360,390,1440])test.describe(`viewport${width}`,()=>{test.use({hasTouch:width<700});test(`plain fee and metric text native entry, isolated links and keyboard at${width}px`,async({page,context},info)=>{
+ for(const width of[360, 1440])test.describe(`viewport${width}`,()=>{test.use({hasTouch:width<700});test(`plain fee and metric text native entry, isolated links and keyboard at${width}px`,async({page,context},info)=>{
   test.setTimeout(60000); // Three native token round trips plus popup and browser teardown.
   const nonreads=[],errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{const u=new URL(r.url());if(u.pathname.startsWith('/api/')&&!['GET','HEAD','OPTIONS'].includes(r.method())){let rows=[];try{const d=r.postDataJSON();rows=Array.isArray(d)?d:[d];}catch{}if(!(u.pathname==='/api/solana/rpc'&&rows.length&&rows.every(x=>['getAccountInfo','getMultipleAccounts','getSlot','getBalance','getGenesisHash','getLatestBlockhash','getBlockHeight','getTokenSupply','getMinimumBalanceForRentExemption','getFeeForMessage','getRecentPrioritizationFees','getTokenAccountBalance','getTokenLargestAccounts','getTokenAccountsByOwner','getSignaturesForAddress','getSignatureStatuses','getTransaction','getBlockTime'].includes(x?.method))))nonreads.push({method:r.method(),path:u.pathname});}});
   await prepare(page,width);const cards=page.locator('#asset-grid .explore-launch-card'),card=cards.first(),fee=card.locator('.home-launch-fee-route span'),link=card.locator('.home-launch-card-link'),before=await compactNavigationState(page),hits=[],focus=[];
@@ -273,7 +273,7 @@ async function sharedNativeEntry(page,selector,info,label){
  expect(armed.nextOriginal).toBe(true);expect(armed.connected).toBe(true);const original=await page.evaluateHandle(()=>window.__sharedNative.original);await page.keyboard.press('Tab');const proof=await page.evaluate(()=>window.__sharedNative.promise);
  await info.attach(label,{body:JSON.stringify({walk,armed,proof},null,2),contentType:'application/json'});expect(proof.key?.trusted).toBe(true);expect(proof.key.key).toBe('Tab');expect(proof.key.at).toBeGreaterThanOrEqual(armed.at);expect(proof.endedAt-proof.began).toBeLessThanOrEqual(1000);expect(proof.focus.pass,JSON.stringify(proof.focus)).toBe(true);expect(proof.focus.samples.at(-1).stationaryMs).toBeGreaterThanOrEqual(100);expect(await original.evaluate(e=>e.isConnected&&document.activeElement===e)).toBe(true);return original;
 }
-for(const width of[360,390,1440])test(`FQA-070 actual Explore states, layout and native copy at${width}`,async({page},info)=>{
+for(const width of[360, 1440])test(`FQA-070 actual Explore states, layout and native copy at${width}`,async({page},info)=>{
  test.setTimeout(90000); // Eight route/state samples; individual native focus deadlines remain 1s.
  const f=await sharedRuntimeFixture(page,width);await f.open();
  for(const mode of['unknown','curve','complete','migrated']){

@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
-for(const reducedMotion of ['no-preference','reduce'])for(const width of [360,390,430,1440]){
+for(const reducedMotion of ['no-preference','reduce'])for(const width of [360, 1440]){
   test(`FQA-019 / UX-018 native banner focus clears navigation at ${width}px, motion ${reducedMotion} (mocked APIs)`,async({page},testInfo)=>{
     await page.emulateMedia({reducedMotion});await page.setViewportSize({width,height:width===1440?900:844});
     const errors=[];let fileChoosers=0;

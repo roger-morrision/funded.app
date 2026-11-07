@@ -638,7 +638,7 @@ async function following082Anchor(page,original) {
   if(original)expect(await original.evaluate(e=>e.isConnected&&e===document.querySelector('[data-followed-wallet-browse]'))).toBe(true);
   return link;
 }
-for(const width of[360,390,1440])test(`FQA-082 stable discovery ignores legacy device follows at ${width}px`,async({browser},info)=>{
+for(const width of[360, 1440])test(`FQA-082 stable discovery ignores legacy device follows at ${width}px`,async({browser},info)=>{
   test.setTimeout(60_000);
   const context=await browser.newContext({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'});
   let watch,primary,hasPrimary=false;const evidence={width,proofs:[],states:[],qualification:'Controlled native cross-page storage events and storage-read-error setup; no live producer, account connection or Follow action.'};

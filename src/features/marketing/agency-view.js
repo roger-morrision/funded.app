@@ -31,7 +31,7 @@ export function initMarketingAgency(document = globalThis.document) {
     const state = document.createElement('span'); state.className = 'data-badge'; state.textContent = 'Not activated';
     card.append(title, description, state); page.querySelector('[data-agency-cards]').append(card);
   }
-  main.append(page);
+  main.insertBefore(page, main.querySelector(':scope > .site-footer'));
   const oldHistory=page.querySelector('[data-agency-history]'),historyContainer=document.createElement('div');
   historyContainer.dataset.agencyHistory='';historyContainer.textContent=oldHistory.textContent;oldHistory.replaceWith(historyContainer);
   const nav = document.querySelector('.primary-nav'), anchor = nav?.querySelector('a[href="#capital-flow"]');

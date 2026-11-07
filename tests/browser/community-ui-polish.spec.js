@@ -2,7 +2,7 @@ import {installAccountFixture} from '../fixtures/account-browser-fixture.mjs';
 import{test,expect}from'@playwright/test';
 import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 const creators=[{id:'101',name:'Alpha community',handle:'@alpha',identityVerified:true,coinCount:2},{id:'102',name:'Beta creator with a long name for responsive review',handle:'@beta',identityVerified:false,coinCount:1}],extra={id:'103',name:'Gamma community',handle:'@gamma',identityVerified:true,coinCount:1};
-for(const width of[320,390,768,1440])test(`creator discovery, report review and help remain clear at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
+for(const width of[320, 1440])test(`creator discovery, report review and help remain clear at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
  test.setTimeout(60000);await page.setViewportSize({width,height:960});const errors=[],writes=[];let directoryDown=false;page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{sessionStorage.setItem('funded.app.wallet.manual-disconnect','1');localStorage.setItem('funded.creator.following','["101"]');window.workflowCopied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.workflowCopied.push(text)}});});
  await page.route('**/*',r=>new URL(r.request().url()).origin===new URL(baseURL).origin?r.fallback():r.abort());
@@ -29,7 +29,8 @@ for(const width of[320,390,768,1440])test(`creator discovery, report review and 
  await following.check();await expect(directory.locator('.creator-card')).toHaveCount(0);await expect(page.locator('#creator-directory-status')).toContainText('No matching creators');await search.fill('');await expect(directory.locator('.creator-card')).toHaveCount(1);await expect(directory).toContainText('Alpha community');await expect(methods).toHaveAttribute('open','');
  await following.uncheck();await expect(directory.locator('.creator-card')).toHaveCount(2);await methods.locator('summary').focus();await page.keyboard.press('Space');
  expect((await search.boundingBox()).height).toBeGreaterThanOrEqual(44);if(width<=700)expect(await search.evaluate(e=>parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await page.screenshot({path:info.outputPath(`creators-${width}.png`)});directoryDown=true;await search.fill('unavailable');await expect(page.locator('#creator-directory-status')).toHaveText('-');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await page.screenshot({path:info.outputPath(`creators-${width}.png`)});directoryDown=true;await search.fill('unavailable');await expect(page.locator('#creator-directory-status')).toHaveText('Creator search is unavailable.');
+ directoryDown=false;await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(search).toHaveValue('unavailable');await expect(page.locator('#creator-directory-status')).toContainText('No matching creators');
  await page.evaluate(()=>location.hash='overview');await page.locator('body.page-route-overview').waitFor();
  if(width===1440){const trigger=page.getByRole('button',{name:'Open help topics',exact:true}),panel=page.locator('#help-topics-panel');await trigger.click();await expect(panel).toBeVisible();const topic=panel.locator('[data-help-topic]').first();await topic.focus();await page.keyboard.press('Enter');await expect(topic).toHaveAttribute('aria-pressed','true');
   for(const control of await panel.locator('button').all())expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);

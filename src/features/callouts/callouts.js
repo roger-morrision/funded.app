@@ -60,7 +60,7 @@ export function filterCallouts(callouts, { filter = 'all', wallet = null, author
 // The three live columns: every call; calls from this week's top callers;
 // and conviction calls, where the caller held the coin when they called it.
 export function splitCalloutColumns(rows, topCallers = []) {
-  const leaders = new Set(topCallers.map(row => row.author));
+  const leaders = new Set(topCallers.filter(row => row.ranked !== false).map(row => row.author));
   return {
     latest: rows,
     top: rows.filter(row => leaders.has(row.author)),
@@ -111,10 +111,21 @@ export function mountCallouts(app, document = globalThis.document) {
   const leaders = page.querySelector('#callouts-top');
   const status = page.querySelector('#callouts-status');
   const navBadge = document.querySelector('[data-callouts-unseen]');
-  const state = { filter: 'all', author: null, feed: null, known: new Set(), timer: null, loading: false };
+  const state = { filter: 'all', author: null, feed: null, known: new Set(), timer: null, loading: false, unavailable: false };
   const active = () => document.body.classList.contains('page-route-callouts') && !document.hidden;
 
+  function updateFeedStatus() {
+    page.classList.toggle('callouts-unavailable', state.unavailable && !state.feed);
+    if (state.unavailable) {
+      status.textContent = state.feed ? 'Refresh unavailable. Showing the last loaded calls.' : 'Calls are unavailable. Retrying automatically.';
+    } else if (state.feed) {
+      const checked = Date.parse(state.feed.serverTime);
+      status.textContent = Number.isFinite(checked) ? `Updated ${new Date(checked).toLocaleTimeString()}` : 'Calls loaded';
+    }
+  }
+
   function render() {
+    updateFeedStatus();
     if (!state.feed) return;
     const wallet = app.connectedWalletAddress || null;
     const assets = Array.isArray(app.assets) ? app.assets : [];
@@ -139,7 +150,6 @@ export function mountCallouts(app, document = globalThis.document) {
     const authorChip = page.querySelector('#callouts-author-filter');
     authorChip.hidden = !state.author;
     authorChip.querySelector('span').textContent = state.author ? shortWallet(state.author) : '';
-    status.textContent = `Live · updated ${new Date(nowMs).toLocaleTimeString()}`;
   }
 
   function updateUnseen() {
@@ -156,9 +166,16 @@ export function mountCallouts(app, document = globalThis.document) {
     state.loading = true;
     try {
       const response = await app.apiRequest('/api/callouts');
-      if (response?.available && Array.isArray(response.data?.callouts)) { state.feed = response.data; if (active()) render(); }
-      else if (active() && !state.feed) status.textContent = 'Callouts are unavailable right now.';
-    } catch { if (active() && !state.feed) status.textContent = 'Callouts are unavailable right now.'; }
+      if (!response?.available || !Array.isArray(response.data?.callouts) || !Array.isArray(response.data.topCallers)) {
+        throw new Error('Incomplete call feed');
+      }
+      state.feed = response.data;
+      state.unavailable = false;
+      if (active()) render();
+    } catch {
+      state.unavailable = true;
+      if (active()) updateFeedStatus();
+    }
     finally { state.loading = false; updateUnseen(); }
   }
 

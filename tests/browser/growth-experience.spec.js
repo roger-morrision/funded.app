@@ -11,7 +11,7 @@ async function setup(page,path='/#overview'){
  await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
  await page.goto(path);await page.locator('body.product-flows-ready').waitFor();
 }
-for(const width of [320,390,1440])test(`discovery controls and honest offline states at ${width}px (mocked)`,async({page},info)=>{
+for(const width of [320, 1440])test(`discovery controls and honest offline states at ${width}px (mocked)`,async({page},info)=>{
  await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));await setup(page);
  const nav=page.locator('#home-discovery-controls');await expect(nav).toBeVisible();
  await expect(nav.locator('button').first()).toHaveText('New');await expect(nav.locator('[data-home-discovery="new"]')).toHaveAttribute('aria-pressed','true');

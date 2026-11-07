@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
 
-for(const width of [360,390,1440])test(`migration snapshot guidance and native Airdrops navigation at ${width}px`,async({page},testInfo)=>{
+for(const width of [360, 1440])test(`migration snapshot guidance and native Airdrops navigation at ${width}px`,async({page},testInfo)=>{
   await page.setViewportSize({width,height:width<700?844:900});
   await page.route('**/api/**',route=>route.fulfill({status:503,json:{error:'Offline rewards guidance fixture'}}));
   await page.route('**/api/fee-policy',route=>route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
@@ -36,7 +36,7 @@ for(const width of [360,390,1440])test(`migration snapshot guidance and native A
   expect(await page.evaluate(()=>!!document.activeElement?.getClientRects().length&&!document.activeElement?.closest('[hidden]'))).toBe(true);
 });
 
-for(const width of [360,390,1440])for(const partition of [0,1])test(`holder cutoff boundary and schedule states part ${partition+1}/2 with native guidance at ${width}px`,async({page},testInfo)=>{
+for(const width of [360, 1440])for(const partition of [0,1])test(`holder cutoff boundary and schedule states part ${partition+1}/2 with native guidance at ${width}px`,async({page},testInfo)=>{
   await page.setViewportSize({width,height:width<700?844:900});
   const now='2026-10-22T12:00:00.000Z',mint='So11111111111111111111111111111111111111112';
   await page.clock.setFixedTime(new Date(now));

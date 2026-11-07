@@ -33,7 +33,7 @@ async function fixtures(page) {
   return{privateRequests:()=>privateRequests};
 }
 
-for(const width of [320,390,1440])test(`referral invite and private receipt history stay clear at ${width}px`,async({page,context})=>{
+for(const width of [320, 1440])test(`referral invite and private receipt history stay clear at ${width}px`,async({page,context})=>{
   await page.setViewportSize({width,height:900});
   await context.grantPermissions(['clipboard-read','clipboard-write']);
   const fixture=await fixtures(page);

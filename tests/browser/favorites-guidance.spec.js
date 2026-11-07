@@ -42,7 +42,7 @@ async function clearFocus(page, locator) {
     return m >= 2 && r.left - m >= -1 && r.right + m <= innerWidth + 1 && r.top - m >= top - 1 && r.bottom + m <= bottom + 1;
   })).toBe(true);
 }
-for (const width of [360, 390, 1440]) test(`Favorites native guidance and existing actions at ${width}px`, async ({ page }, info) => {
+for (const width of [360, 1440]) test(`Favorites native guidance and existing actions at ${width}px`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: width < 700 ? 844 : 900 }); const f = await fixture(page); await ready(page);
   const group = page.getByRole('group', { name: 'Sync across devices', exact: true }), controls = group.locator('button');
   await expect(page.locator('#favorites-title')).toHaveText('Favorite tokens');

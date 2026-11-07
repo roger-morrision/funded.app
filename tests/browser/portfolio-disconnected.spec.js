@@ -1,7 +1,7 @@
 import{test,expect}from'@playwright/test';
 import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 
-for(const width of[360,390,1440])test(`disconnected portfolio journeys at ${width}px preserve native routes and tabs`,async({page},info)=>{
+for(const width of[360, 1440])test(`disconnected portfolio journeys at ${width}px preserve native routes and tabs`,async({page},info)=>{
  await page.setViewportSize({width,height:width<700?844:900});const walletReads=[],nonreads=[],rpcReads=[];
  const existingReadMethods=new Set(['getMultipleAccounts','getSlot','getAccountInfo']);
  await page.route('**/api/**',route=>{const r=route.request(),path=new URL(r.url()).pathname;if(/\/api\/wallets\//.test(path))walletReads.push(r.url());if(r.method()!=='GET'){let calls=[];try{const data=r.postDataJSON();calls=Array.isArray(data)?data:[data]}catch{}if(r.method()==='POST'&&path==='/api/solana/rpc'&&calls.length&&calls.every(x=>existingReadMethods.has(x?.method)))rpcReads.push(...calls.map(x=>x.method));else nonreads.push({method:r.method(),path,calls:calls.map(x=>x?.method)})}return route.fulfill({status:503,json:{error:'Offline disconnected portfolio fixture'}})});

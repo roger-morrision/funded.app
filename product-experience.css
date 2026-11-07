@@ -185,12 +185,13 @@ html body #wallet-onboarding-dialog > .text-button { min-height:44px; width:100%
 .portfolio-token-address { font-family:monospace; opacity:.8; }
 @media(max-width:420px) { .history-pagination { gap:8px; } .history-pagination [role=status] { order:-1; flex-basis:100%; text-align:center; } }
 html body #main-content #callouts { display: none; }
-html body.page-route-callouts #main-content #callouts { display: grid; gap: var(--fv-space-3); min-height: calc(100vh - 76px); }
+html body.page-route-callouts #main-content #callouts { display: grid; align-content:start; gap: var(--fv-space-3); }
 html body #main-content .callouts-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--fv-space-4); }
 html body #main-content .callouts-head h1 { margin: var(--fv-space-1) 0; color: var(--fv-text); font-size: 30px; letter-spacing: -.03em; }
 html body #main-content .callouts-head p:not(.eyebrow) { max-width: 680px; margin: 0; color: var(--fv-text-muted); font-size: 13px; line-height: 1.5; }
-html body #main-content .callouts-head .eyebrow { display: inline-flex; align-items: center; gap: var(--fv-space-2); }
-html body #main-content #callouts .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fv-success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--fv-success) 22%, transparent); }
+html body #main-content #callouts.callouts-unavailable :is(.callouts-filters,.callouts-leaders,.callouts-tabs,.callouts-columns) { display:none; }
+html body #main-content #callouts.callouts-unavailable .callouts-toolbar { padding:var(--fv-space-3); border:1px solid var(--fv-border); border-radius:var(--fv-radius-lg); background:var(--fv-surface); }
+html body #main-content #callouts.callouts-unavailable #callouts-status { margin:0; color:var(--fv-text); }
 html body #main-content .callouts-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fv-space-2); }
 html body #main-content .callouts-toolbar small { margin-left: auto; color: var(--fv-text-subtle); font: 12px var(--fv-font-data); }
 html body #main-content :is(.callouts-filters, .callouts-tabs) { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--fv-border); border-radius: 999px; }

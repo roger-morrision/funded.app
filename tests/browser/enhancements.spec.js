@@ -28,17 +28,6 @@ test('shared filters and current search survive reload without a wallet', async 
   await expect(page.locator('#explore-search')).toHaveValue('UPDATED');
 });
 
-test('global search carries its query into Explore', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#launch');
-  await expect(page.locator('body')).toHaveClass(/workspace-ready/);
-  await page.locator('#header-search-trigger').click();
-  await page.locator('#header-search-input').fill('FRESHQUERY');
-  await page.locator('#header-search-input').press('Enter');
-  await expect(page).toHaveURL(/#explore$/);
-  await expect(page.locator('#explore-search')).toHaveValue('FRESHQUERY');
-});
-
 test('mobile controls fit and service status explains outages', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#explore');

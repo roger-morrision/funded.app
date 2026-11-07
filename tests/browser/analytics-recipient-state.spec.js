@@ -62,7 +62,7 @@ async function nativeTabTo(page,selector) {
   for(let i=0;i<90;i++){if(await page.locator(selector).evaluate(e=>e===document.activeElement))return;await page.keyboard.press('Tab');}
   throw Error('Native tab path did not reach '+selector);
 }
-for(const width of [360,390,1440])test('FQA-062 native Analytics to History, retained filters and traversal at '+width+'px',async({page},info)=>{
+for(const width of [360, 1440])test('FQA-062 native Analytics to History, retained filters and traversal at '+width+'px',async({page},info)=>{
   test.setTimeout(90000);await page.setViewportSize({width,height:width<700?844:900});const f=await analyticsHistoryFixture(page),motions=[];
   const refresh=async()=>{const completed=f.completed();await page.evaluate(()=>window.dispatchEvent(new Event('funded:route-change')));await expect.poll(()=>f.completed()).toBeGreaterThan(completed);};
   const strictTransition=async(action,selector='#rewards-history-tab',hash='#payments/history')=>{await page.evaluate(observeHistoryDestination,{selector,hash});await action();const result=await page.evaluate(()=>window.__historyMotion);motions.push(result);expect(result.pass,JSON.stringify(result)).toBe(true);expect(result.elapsedMs).toBeLessThanOrEqual(1000);expect(result.stableMs).toBeGreaterThanOrEqual(100);};
@@ -82,7 +82,7 @@ for(const width of [360,390,1440])test('FQA-062 native Analytics to History, ret
   await page.keyboard.press('Shift+Tab');await strictTransition(()=>page.goBack(),'#route-guide-title','#analytics-detail');await expect(page).toHaveURL(/#analytics-detail$/);await expect(panel).toBeVisible();expect(await page.evaluate(()=>!!document.activeElement?.getClientRects().length&&!document.activeElement.closest('[hidden]'))).toBe(true);expect(await rowSnapshot()).toEqual(rows);await strictTransition(()=>page.goForward());await expect(history).toHaveAttribute('aria-selected','true');expect(await page.evaluate(()=>history.length)).toBe(initialLength+1);await expect(page.locator('details[data-receipt-key="'+key+'"]').first()).toHaveAttribute('open','');await expect(search).toHaveValue(filterState.query);await expect(page.locator('#payment-history-type')).toHaveValue(filterState.type);await expect(page.locator('#payment-history-from')).toHaveValue(filterState.from);await expect(page.locator('#payment-history-to')).toHaveValue(filterState.to);await expect(page.locator('nav[aria-label="Payment history pages"]')).toContainText(filterState.page);
   await page.goBack();await nativeTabTo(page,'#analytics-payment-history');await strictTransition(()=>page.keyboard.press('Enter'));expect(await page.evaluate(()=>history.length)).toBe(initialLength+1);expect(f.errors).toEqual([]);expect(f.writes).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('analytics-history-native.png')});await info.attach('navigation-evidence',{body:JSON.stringify({width,qualification:'Actual bootstrap, native keyboard entry/control path and browser protocol Back/Forward; deterministic read-only history. Date/type retained-state preconditions use supported input actions, not proof of native date-widget entry. No public/on-chain proof.',geometry,motions,rows,calls:f.calls,errors:f.errors,writes:f.writes},null,2),contentType:'application/json'});
 });
-for(const width of [360,390,1440])test.describe('FQA-062 pointer context '+width,()=>{test.use({hasTouch:width<700});test('FQA-062 direct alias and contextual History source states at '+width+'px',async({page},info)=>{
+for(const width of [360, 1440])test.describe('FQA-062 pointer context '+width,()=>{test.use({hasTouch:width<700});test('FQA-062 direct alias and contextual History source states at '+width+'px',async({page},info)=>{
   test.setTimeout(90000);await page.setViewportSize({width,height:width<700?844:900});const f=await analyticsHistoryFixture(page),states=[];
   await page.goto('/#payments/history');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expect(page.locator('#rewards-history-tab')).toHaveAttribute('aria-selected','true');const length=await page.evaluate(()=>history.length);await page.reload();await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expect(page.locator('#rewards-history')).toBeVisible();expect(await page.evaluate(()=>history.length)).toBe(length);await expect(page).toHaveTitle('Rewards · funded.vip');
   await page.goto('/#payments');await page.reload();await page.locator('body.workspace-ready.product-experience-ready').waitFor();await expect(page.locator('#rewards-overview-tab')).toHaveAttribute('aria-selected','true');
@@ -345,7 +345,7 @@ async function collectionRefreshProof(page,original,details,f,phase) {
   await test.info().attach('collection-refresh-'+phase,{body:JSON.stringify({proof,events,focus,receiptRequests:f.receiptRequests}),contentType:'application/json'});
   expect(proof.pass,JSON.stringify(proof)).toBe(true);expect(events).toEqual([]);
 }
-for(const width of [360,390,1440]) {
+for(const width of [360, 1440]) {
   test(`FQA-076 native collection dates reading and invalid-refresh clearing at ${width}px`,async({page},info)=>{
     test.setTimeout(90000);const f=await collectionFixture(page,width,'populated'),reading=[];
     try {

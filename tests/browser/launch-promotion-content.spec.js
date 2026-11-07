@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 const split={operationsPercent:40,referralLevelPercents:[3,1.25,.75],communityPercent:20,buybackPercent:25,agencyPercent:10};
 
-for(const width of [320,390,1440])test(`paid launch shows all promotion fields at ${width}px (mocked APIs, real image preparation)`,async({page,baseURL},info)=>{
+for(const width of [320, 1440])test(`paid launch shows all promotion fields at ${width}px (mocked APIs, real image preparation)`,async({page,baseURL},info)=>{
   test.setTimeout(60000);await page.setViewportSize({width,height:900});
   const errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));

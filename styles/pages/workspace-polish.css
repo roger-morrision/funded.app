@@ -90,7 +90,7 @@ html body #main-content #profile > .section-heading h1 { margin:4px 0 8px;font-s
   html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories span { font-size:11px;line-height:1.4; }
 }
 @media(max-width:700px) {
-  html body #main-content #explore .product-sort { grid-column:1 / -1; }
+  html body #main-content #explore .product-sort { grid-column:1 / -1; grid-template-columns:minmax(0,1fr); }
   html body #main-content #payments .payment-history-filters > button { margin-top:0; }
   html body #main-content .creator-directory-header .support-shortcuts { width:100%; }
   html body #main-content #coin-page .coin-hero-card { padding:12px; }
@@ -118,6 +118,12 @@ html body #main-content #profile > .section-heading h1 { margin:4px 0 8px;font-s
   html body #main-content #buybacks .burn-primary { width:calc(100% - 32px);margin:12px 16px;min-height:44px; }
   html body #main-content #buybacks .burn-action-card > p { padding:12px 16px 0; }
   html body #main-content #buybacks :is(.funded-burn-status,.burn-permanent-note) { margin:12px 16px 16px; }
+}
+@media(max-width:360px) {
+  html body #main-content #connect-button { padding-inline:6px; }
+  html body #main-content #connect-button > svg { display:none; }
+  html body #main-content :is(#explore,#leaderboard) .segmented:is(.explore-tabs,.leaderboard-tabs) > button { padding-inline:3px; }
+  html body #launch-dialog .launch-steps button > span { flex:1 1 0; min-width:0; white-space:normal; }
 }
 /* A payout remains one record on phones, with every category and receipt visible. */
 @media(max-width:700px) {

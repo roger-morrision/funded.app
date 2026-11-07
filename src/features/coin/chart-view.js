@@ -35,6 +35,9 @@ export function renderCoinPricePath({ coinChartPeriod, coinChartMetric, coinChar
     panel.querySelector('.coin-tradingview-canvas').setAttribute('aria-label', summary);
   }
   if (!panel.isConnected) return;
+  // The shared page shell contains a hidden token panel on Home. Only load the
+  // renderer for a visible chart, or to clean up one previously requested.
+  if (panel.closest('#coin-page')?.hidden && !pending.has(panel)) return;
   const version = {}; pending.set(panel, version);
   import('./tradingview-chart.js').then(({ renderTradingViewChart, disposeTradingViewChart }) => {
     if (pending.get(panel) !== version || !panel.isConnected) return;

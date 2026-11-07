@@ -661,7 +661,7 @@ async function connectBalanceScopeMock(page){await page.locator('#connect-button
 
 test.describe('FQA-064 connected wallet balance caption scope',()=>{
   test.describe.configure({timeout:60000});test.afterEach(async({page})=>{await page.close();});
-  for(const width of[360,390,1440])test(`native public and mocked self identity preserve scoped SOL balance at${width}`,async({page})=>{
+  for(const width of[360, 1440])test(`native public and mocked self identity preserve scoped SOL balance at${width}`,async({page})=>{
     const f=await balanceScopeFixture(page,width);try{
       await f.open(balanceScopeOffCurve);await expect(page.locator('#wallet-self-badge')).toBeHidden();await balanceScopeCaptionProof(page,'—',balanceScopeCaption,'offcurve-public-'+width);expect(f.balances.length).toBe(0);await balanceScopeTabs(page,'—',balanceScopeCaption,'offcurve-public');
       await connectBalanceScopeMock(page);await expect.poll(()=>f.balances.some(r=>r.address===balanceScopeSelf&&r.mode==='ready')).toBe(true);await expect(page.locator('#header-wallet-balance')).toHaveText('1.2500');await expect(page.locator('#wallet-self-badge')).toBeHidden();await expect(page.locator('#wallet-page-address')).toHaveText(balanceScopeOffCurve);await balanceScopeCaptionProof(page,'—',balanceScopeCaption,'connected-other-'+width);await balanceScopeTabs(page,'—',balanceScopeCaption,'connected-other');

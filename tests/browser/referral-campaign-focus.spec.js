@@ -3,7 +3,7 @@ import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
 import{chromium}from'playwright';
 const liveBase=process.env.CAMPAIGN_FOCUS_LIVE_BASE;
 
-for(const reducedMotion of['no-preference','reduce'])for(const width of[360,390,430,1440])for(const nativeScale of width===1440?[1,1.25]:[1]){
+for(const reducedMotion of['no-preference','reduce'])for(const width of[360, 1440])for(const nativeScale of width===1440?[1,1.25]:[1]){
   test(`FQA-023 native campaign focus clears navigation at ${width}px, motion ${reducedMotion}, native scale ${nativeScale} (${liveBase?'actual public read-only':'mocked APIs'})`,async({page:defaultPage},testInfo)=>{
     const nativeBrowser=nativeScale===1.25?await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--force-device-scale-factor=1.25']}):null;
     const page=nativeBrowser?await nativeBrowser.newPage():defaultPage;

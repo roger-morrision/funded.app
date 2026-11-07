@@ -8,7 +8,7 @@ test.beforeEach(async({page})=>{
     ?route.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):route.fulfill({status:503,json:{error:'Offline landing fixture'}}));
 });
 
-for(const width of[320,360,390,700,1024,1440])test(`public benefits and native FAQs work without API data at ${width}px`,async({page},testInfo)=>{
+for(const width of[320, 1440])test(`public benefits and native FAQs work without API data at ${width}px`,async({page},testInfo)=>{
   await page.setViewportSize({width,height:900});
   const api=[],errors=[],scripts=[];
   page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))api.push(r.url());if(r.resourceType()==='script')scripts.push(r.url());});

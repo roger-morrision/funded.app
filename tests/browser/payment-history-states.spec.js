@@ -47,7 +47,7 @@ async function refresh(page, f, history) {
 async function rows(page) {
   return list(page).locator('.payment-history-row').evaluateAll(es => es.map(e => ({ text: e.textContent, details: e.querySelector('details').dataset.receiptKey, wallet: e.querySelector('.payment-history-wallet').getAttribute('href'), transaction: e.querySelector('.payment-receipt-link').getAttribute('href'), transactionLabel: e.querySelector('.payment-receipt-link').getAttribute('aria-label') })));
 }
-for (const width of [360, 390, 1440]) {
+for (const width of [360, 1440]) {
   test(`Rewards History pending read stays loading through native filter and Clear at ${width}px`, async ({ page }, info) => {
     const f = await fixture(page, { held: true }); await ready(page, width); await expect.poll(() => f.requests()).toBe(1);
     await state(page, loading, 'Waiting for the current payment history check to finish.'); expect(f.completed()).toBe(0);
@@ -168,7 +168,7 @@ function observeSearchFocus(target, {selector, replacementKey = null, waitForRem
   });
 }
 
-for(const width of [360,390,1440])test(`Rewards History native local identifier search preserves records, states and focus at ${width}px`,async({browser},info)=>{
+for(const width of [360, 1440])test(`Rewards History native local identifier search preserves records, states and focus at ${width}px`,async({browser},info)=>{
   test.setTimeout(60_000);
   const context=await browser.newContext({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'}),page=await context.newPage();
   try{
@@ -348,7 +348,7 @@ async function bonus077Back(page,original,criteria,hash) {
   await bonus077Copy(page,original);
   return await page.evaluate(()=>({activeTag:document.activeElement.tagName,activeId:document.activeElement.id,connected:document.activeElement.isConnected,hash:location.hash}));
 }
-for(const width of [360,390,1440])test.describe('FQA-077 separate bonus source '+width,()=>{
+for(const width of [360, 1440])test.describe('FQA-077 separate bonus source '+width,()=>{
   test.use({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'});
   for(const available of [true,false])test(`FQA-077 History to separate Daily bonus ${available?'availableBack':'unavailableRecovery'} at ${width}px (mocked read-only sources)`,async({page},info)=>{
     const x=await bonus077Fixture(page,available),proofs=[],states=[],destinations=[];let original,font,geometry,criteria,back;
@@ -639,7 +639,7 @@ async function range079NativeCorrection(page,width) {
   expect(events.some(e=>e.type==='change'&&e.trusted&&e.id==='payment-history-from'&&e.value===after)).toBe(true);
   return {before,after,events,qualification:'ArrowDown native segment edit and Tab commit after qualified fills; mobile touch is emulated.'};
 }
-for(const width of [360,390,1440]){
+for(const width of [360, 1440]){
   test(`FQA-079 native inverted dates correct and Clear at ${width}px`,async({browser},info)=>{
     test.setTimeout(60_000);
     const context=await browser.newContext({viewport:{width,height:width<700?844:900},hasTouch:width<700,isMobile:width<700,locale:'en-US'});

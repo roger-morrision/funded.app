@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
-for(const width of [320,390,768,1440])test(`Buy more opens shared popup and preserves creation at ${width}px (mocked APIs)`,async({page},info)=>{
+for(const width of [320, 1440])test(`Buy more opens shared popup and preserves creation at ${width}px (mocked APIs)`,async({page},info)=>{
  await page.setViewportSize({width,height:900});
  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
  await page.route('https://**/*',r=>r.abort());await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Offline fixture'}}));

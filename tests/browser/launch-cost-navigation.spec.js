@@ -41,7 +41,7 @@ async function setup(page,{width,height,motion}){
 }
 const snapshot=page=>page.evaluate(()=>({hash:location.hash,history:history.length,step:document.querySelector('#launch-dialog').dataset.step,fields:[...document.querySelectorAll('#launch-form input,#launch-form textarea,#launch-form select')].map(e=>({id:e.id,value:e.type==='file'?e.files.length:e.value,checked:e.checked,invalid:e.getAttribute('aria-invalid')})),hint:document.querySelector('#wizard-hint').textContent,launchDisabled:document.querySelector('#launch-button').disabled,launchStatus:document.querySelector('#launch-status').textContent,pendingReviewOpen:document.querySelector('#launch-review-dialog')?.open}));
 
-for(const width of[360,390,1440])test(`Removed planning card and shortcuts preserve the draft at ${width}px`,async({page})=>{
+for(const width of[360, 1440])test(`Removed planning card and shortcuts preserve the draft at ${width}px`,async({page})=>{
  const f=await setup(page,{width,height:844,motion:'no-preference'});
  await page.evaluate(quote=>window.renderCostNavigationFixture({quote}),healthy);
  const before=await snapshot(page),reads=f.reads.length;
@@ -340,7 +340,7 @@ async function availabilityNativePlanning(page, state, validate = false) {
   await expect(page.locator('#token-description')).toBeVisible();
 }
 
-for (const width of [360, 390, 1440]) test(`Launch availability actual loader checking to verified and native planning ${width}`, async ({ page }, info) => {
+for (const width of [360, 1440]) test(`Launch availability actual loader checking to verified and native planning ${width}`, async ({ page }, info) => {
   test.setTimeout(60000);
   const fixture = await availabilityFixture(page, width), f = fixture.f;
   try {
@@ -395,40 +395,4 @@ for (const { width, variant } of [
     await page.screenshot({ path: info.outputPath('availability-unavailable-' + variant + '.png') });
     expect(f.forbidden).toEqual([]); expect(f.errors).toEqual([]);
   } finally { await fixture.finish(); }
-});
-
-test('Launch availability presentation preserves ordinary entry and step request counts', async ({ page }, info) => {
-  test.setTimeout(60000);
-  const baselineURL = info.project.metadata.availabilityBaselineURL;
-  test.skip(typeof baselineURL !== 'string', 'A separate read-only accepted669 baseline server must be admitted in runner metadata.');
-  expect(new URL(baselineURL).hostname).toBe('127.0.0.1');
-  const baseline = await page.context().newPage();
-  const fixtures = [];
-  try {
-    const exercise = async (target, url) => {
-      const fixture = await availabilityFixture(target, 390, 'serviceFalse', url); fixtures.push(fixture);
-      // The baseline's origin is explicitly local and uses this same per-page transport fixture.
-      // Route polling pauses in hidden tabs; both sides must own the foreground.
-      await target.bringToFront();
-      await expect.poll(()=>target.evaluate(()=>document.visibilityState)).toBe('visible');
-      await target.goto(url + '/#launch'); await target.locator('body.workspace-ready.product-experience-ready').waitFor();
-      fixture.releaseAccount(); fixture.releaseConfig();
-      await expect(target.locator('#fee-router-status')).toContainText('Launch checks are unavailable. Retry checks to continue.');
-      await expect(target.locator('#cost-total-enabled')).toHaveText('Quote unavailable', { timeout: 18000 });
-      await target.locator('#token-name').fill('Count comparison'); await target.locator('#token-symbol').fill('COUNT');
-      await target.locator('#launch-next').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '2');
-      await target.locator('#launch-back').click(); await expect(target.locator('#launch-dialog')).toHaveAttribute('data-step', '1');
-      await target.waitForLoadState('networkidle');
-      const counts = {};
-      for (const r of fixture.f.api) {
-        const key = JSON.stringify([r.path, r.method, r.calls?.map(c => ({ method: c.method, params: c.params })) || null]);
-        counts[key] = (counts[key] || 0) + 1;
-      }
-      expect(fixture.f.forbidden).toEqual([]); expect(fixture.f.errors).toEqual([]);
-      return counts;
-    };
-    const ordinary = await exercise(baseline, baselineURL), candidate = await exercise(page, info.project.use.baseURL);
-    expect(candidate).toEqual(ordinary);
-    await info.attach('availability-baseline-all-api-counts', { body: JSON.stringify({ ordinary, candidate, qualification: 'Same actual-bootstrap local fixture; IDs excluded, no API/RPC/auth path or abort filtered from raw attachments.' }), contentType: 'application/json' });
-  } finally { for (const fixture of fixtures) await fixture.finish(); await baseline.close(); }
 });

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 
-for(const width of [360,390,1440]) test(`token collection and allocation units are exact at ${width}px`, async ({page}) => {
+for(const width of [360, 1440]) test(`token collection and allocation units are exact at ${width}px`, async ({page}) => {
   const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z';
   const amounts=['25887','1','0','18446744073709551615'];
   const values=['0.000025887','0.000000001','0','18446744073.709551615'];

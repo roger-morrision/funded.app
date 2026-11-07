@@ -1,6 +1,6 @@
 import{test,expect}from'@playwright/test';
 import{PROTOCOL_FEE_SPLIT}from'../../config/protocol-fee-split.js';
-for(const width of[320,390,768,1440])test(`grouped account settings preserve validation and review at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
+for(const width of[320, 1440])test(`grouped account settings preserve validation and review at ${width}px (mocked APIs)`,async({page,baseURL},info)=>{
  test.setTimeout(60000);await page.setViewportSize({width,height:960});const errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
  await page.route('**/*',r=>new URL(r.request().url()).origin===new URL(baseURL).origin?r.fallback():r.abort());

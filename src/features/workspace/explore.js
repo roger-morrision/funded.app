@@ -115,6 +115,7 @@ export function explore() {
     ...Object.fromEntries(keys.map(id => [id, $('#'+id)?.value || ''])),
     stage: $('.explore-stage-filter [aria-pressed="true"]', root)?.dataset.exploreStage || 'all',
     tab: $('.explore-tabs [aria-pressed="true"]', root)?.dataset.exploreTab || 'trending',
+    lane: $('#explore-pulse [aria-pressed="true"]', root)?.dataset.exploreLane || '',
     window: $('.explore-timeframe [aria-pressed="true"]', root)?.dataset.exploreWindow || '24h',
     view: $('.explore-view-switch [aria-pressed="true"]', root)?.dataset.exploreView || 'grid',
   });
@@ -133,7 +134,9 @@ export function explore() {
   count.append(summaryText, clear);
   const summarize = () => {
     const active = keys.slice(2).filter(id => { const value = $('#'+id)?.value; return value && value !== 'all'; });
-    if ($('.explore-stage-filter [aria-pressed="true"]', root)?.dataset.exploreStage !== 'all') active.push('stage');
+    const lane = $('#explore-pulse [aria-pressed="true"]', root)?.dataset.exploreLane;
+    const stage = lane || $('.explore-stage-filter [aria-pressed="true"]', root)?.dataset.exploreStage;
+    if (stage && stage !== 'all') active.push('stage');
     count.hidden = !active.length && !$('#explore-search')?.value;
     summaryText.textContent = `${active.length} filter${active.length === 1 ? '' : 's'}${$('#explore-search')?.value ? ' · search active' : ''}`;
   };
@@ -153,10 +156,12 @@ export function explore() {
       }
       for (const [key, selector, attribute] of [
         ['tab', '.explore-tabs', 'exploreTab'],
+        ['lane', '#explore-pulse', 'exploreLane'],
         ['window', '.explore-timeframe', 'exploreWindow'],
         ['stage', '.explore-stage-filter', 'exploreStage'],
         ['view', '.explore-view-switch', 'exploreView'],
       ]) {
+        if (key === 'lane' && saved.tab !== 'new') continue;
         const value = saved[key];
         const button = $$(selector + ' button', root).find(item => item.dataset[attribute] === value);
         button?.click();

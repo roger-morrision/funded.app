@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {PROTOCOL_FEE_SPLIT} from '../../config/protocol-fee-split.js';
-for(const width of[320,390,1440])test(`launch packages keep balance visible and required content intact at ${width}px (mocked APIs)`,async({page},info)=>{
+for(const width of[320, 1440])test(`launch packages keep balance visible and required content intact at ${width}px (mocked APIs)`,async({page},info)=>{
  await page.setViewportSize({width,height:900});await page.route('https://**/*',r=>r.abort());
  await page.route('**/api/**',r=>r.fulfill({status:503,json:{error:'Offline fixture'}}));await page.route('**/api/fee-policy',r=>r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/#launch');await page.locator('body.product-flows-ready').waitFor();

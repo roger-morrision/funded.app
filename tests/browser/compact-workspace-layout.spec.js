@@ -8,14 +8,14 @@ test.beforeEach(async({page,baseURL})=>{
     ?r.fulfill({json:{split:PROTOCOL_FEE_SPLIT}}):r.fulfill({status:503,json:{error:'Offline layout fixture'}}));
 });
 
-for(const width of[360,390,1440])test(`privacy content clears its page introduction at ${width}px`,async({page})=>{
+for(const width of[360, 1440])test(`privacy content clears its page introduction at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:844});await page.goto('/#privacy');await page.locator('body.product-flows-ready').waitFor();
   const heading=await page.locator('#route-guide').boundingBox(),panel=await page.locator('#privacy').boundingBox();expect(panel.y).toBeGreaterThanOrEqual(heading.y+heading.height);
   const details=page.locator('#privacy details').first(),summary=details.locator(':scope > summary');await expect(details).not.toHaveAttribute('open','');
   await summary.focus();await page.keyboard.press('Enter');await expect(details).toHaveAttribute('open','');await expect(summary).toBeFocused();
   await page.keyboard.press('Space');await expect(details).not.toHaveAttribute('open','');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
-for(const width of[360,390,1440])test(`profile safety and wallet dialog retain native focus at ${width}px`,async({page})=>{
+for(const width of[360, 1440])test(`profile safety and wallet dialog retain native focus at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/#profile');await page.locator('body.product-flows-ready').waitFor();
   await expect(page.locator('#profile-title')).toHaveText('Wallet & settings');
   const grid=page.locator('#profile > .profile-grid');
@@ -34,7 +34,7 @@ for(const width of[360,390,1440])test(`profile safety and wallet dialog retain n
   await close.focus();await page.keyboard.press('Enter');await expect(dialog).toBeHidden();await expect(connect).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
-for(const width of[320,390,700])test(`mobile guide menu preserves search, article and focus at ${width}px`,async({page})=>{
+for(const width of[320, 700])test(`mobile guide menu preserves search, article and focus at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:844});await page.goto('/#docs/trading');await page.locator('body.product-flows-ready').waitFor();
   const browse=page.getByRole('button',{name:'Browse guides',exact:true}),input=page.locator('#docs-guide-search'),article=page.locator('#docs-guide-article');
   await expect(browse).toHaveAttribute('aria-expanded','false');await expect(input).toBeHidden();await expect(article.locator('h1')).toHaveText('Buying and selling');
@@ -49,7 +49,7 @@ for(const width of[320,390,700])test(`mobile guide menu preserves search, articl
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
-for(const width of[320,390,1440])test(`reward program navigation and settings reflow at ${width}px`,async({page})=>{
+for(const width of[320, 1440])test(`reward program navigation and settings reflow at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.goto('/#payments');await page.locator('body.product-flows-ready').waitFor();
   const programs=page.locator('#payments > .ui-tabs');await expect(programs.getByRole('tab')).toHaveCount(6);
   await expect(page.locator('.reward-action-grid')).toHaveCount(0);

@@ -1,6 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { homeLaunchFeeIndex } from '../server/home-launch-fee-index.mjs';
+import { createLedgerRepository } from '../server/postgres/ledger.mjs';
+import { createCreatorFeesRoutes } from '../server/routes/creator-fees.mjs';
+
+test('home fee route reads launches and collections together without loading other ledger records', async () => {
+  const launch = { cluster:'devnet', onchainVerified:true, creator:'router',
+    pumpFeeRoute:{ verified:true, scope:'per-mint-v3', programId:'program', router:'router' } };
+  let queries = 0;
+  const pool = { query:async sql => {
+    queries++;
+    assert.match(sql, /WHERE bucket IN \('launches', 'collections'\)/);
+    return { rows:[{ bucket:'launches', entity_key:'mint', payload:launch }] };
+  } };
+  const store = createLedgerRepository({ pool, ensureReady:async () => {} });
+  let response;
+  const handler = createCreatorFeesRoutes({ store, solanaCluster:'devnet',
+    respond:(_res, status, body) => { response = { status, body }; } });
+  await handler({ method:'GET' }, {}, new URL('https://funded.vip/api/home/launch-filter-fees'));
+  assert.equal(queries, 1);
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, homeLaunchFeeIndex({ launches:{ mint:launch } }, 'devnet'));
+});
 
 test('fee index sums only unique verified V3 collections for matching V3 launches', () => {
   const launch = { cluster: 'devnet', onchainVerified: true, creator: 'router',

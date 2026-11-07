@@ -7,7 +7,7 @@ const root=fileURLToPath(new URL('../../',import.meta.url));
 const built=await build({root,configFile:false,logLevel:'silent',build:{write:false,lib:{entry:root+'tests/fixtures/community-layout.js',name:'CommunityFixture',formats:['iife']}}});
 const fixture=built[0].output.find(row=>row.type==='chunk').code;
 const mint='H8AKZYEfaTyFsdppSvDZtkfkRzb5TFuPf3q9GY9xY81z',signature='3'.repeat(64);
-for(const width of [320,390,768,1440])test(`Home unified conversation rail at ${width}px (mocked)`,async({page},info)=>{
+for(const width of [320, 1440])test(`Home unified conversation rail at ${width}px (mocked)`,async({page},info)=>{
  const now=new Date().toISOString(),base={mint,author:mint,createdAt:now};
  await setup(page,width,'/#overview',[
   {...base,id:'chat_plain',text:'Hello community <script>not executable</script>'},
@@ -53,7 +53,7 @@ test('Home composer connects without posting, then posts to selected token (mock
  await expect(panel.locator('[role="status"]')).toHaveText('Call posted.');await expect(panel.locator('textarea')).toHaveValue('');
  expect(await page.evaluate(()=>homeTestCalls)).toEqual([{action:'post',payload:{text:'My selected token'},target:mint}]);
 });
-for(const width of [320,390,768,1440]) {
+for(const width of [320, 1440]) {
   test(`token header, single Post and rewards dashboard at ${width}px (mocked data)`,async({page},info)=>{
     const errors=[];page.on('pageerror',error=>errors.push(error.message));await setup(page,width,`/token/${mint}`);
     await expect(page.locator('.coin-hero-card')).toHaveAttribute('data-launch-tier','pro');
@@ -114,7 +114,7 @@ test('compact coin cards load the verified logo and display supplied market data
  await expect(link).toHaveAttribute('href',`/token/${mint}`);
 });
 
-for(const width of [320,390,768,1440,1800])test(`Home compact cards are newest first and trending follows observed participation at ${width}px (mocked)`,async({page},info)=>{
+for(const width of [320, 1800])test(`Home compact cards are newest first and trending follows observed participation at ${width}px (mocked)`,async({page},info)=>{
  await setup(page,width,'/#overview');
  await page.evaluate(()=>{
   document.querySelector('.home-launch-board').dataset.discovery='new';

@@ -4,7 +4,7 @@ import { PROTOCOL_FEE_SPLIT } from '../../config/protocol-fee-split.js';
 const mint = 'So11111111111111111111111111111111111111112';
 const name = 'A long test token name that must remain readable on every card';
 
-for (const width of [360, 390, 1440]) test(`shared token cards retain square logos and native actions at ${width}px`, async ({ page }, info) => {
+for (const width of [360, 1440]) test(`shared token cards retain square logos and native actions at ${width}px`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: 1000 });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));

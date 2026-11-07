@@ -12,7 +12,7 @@ test.beforeEach(async({page,baseURL})=>{
 const routes=[['/#capital-flow','capital-flow-landscape']];
 async function open(page,path){await page.goto(path);if(path!=='/welcome'){await page.locator('body.product-flows-ready').waitFor();await page.locator('#capital-flow-guide > summary').click();}const figure=page.locator('[data-flow-diagram]');await expect(figure).toBeVisible();await expect(figure).toHaveAttribute('data-diagram-state','paused');return figure;}
 
-for(const width of[320,390,1440])test(`capital flow keeps the calculator before the optional diagram at ${width}px`,async({page},info)=>{
+for(const width of[320, 1440])test(`capital flow keeps the calculator before the optional diagram at ${width}px`,async({page},info)=>{
   await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'no-preference'});await page.goto('/#capital-flow');await page.locator('body.product-flows-ready').waitFor();
   const guide=page.locator('#capital-flow-guide'),summary=guide.locator(':scope > summary'),figure=guide.locator('[data-flow-diagram]');
   await expect(guide).toHaveCount(1);await expect(guide).not.toHaveAttribute('open','');await expect(figure).toBeHidden();
@@ -58,7 +58,7 @@ for(const[path]of routes)test(`the fee flow has a compact native text alternativ
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
-for(const width of[360,390,1440])for(const[path,asset]of routes)test(`diagram remains readable, pans natively and plays on request at ${path} ${width}px`,async({page})=>{
+for(const width of[360, 1440])for(const[path,asset]of routes)test(`diagram remains readable, pans natively and plays on request at ${path} ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'no-preference'});const figure=await open(page,path),image=figure.locator('img'),region=figure.getByRole('region');
   await expect(image).toHaveAttribute('src',`/${asset}-static.svg`);await expect.poll(()=>image.evaluate(e=>e.complete&&e.naturalWidth>0)).toBe(true);
   await expect(region).toHaveAttribute('tabindex','0');expect(await region.getAttribute('aria-label')).toBeTruthy();

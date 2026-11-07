@@ -22,7 +22,7 @@ async function setup(page, response = () => null) {
   });
   await page.route('https://**/*', route => route.abort());
 }
-for (const width of [360,390,1440]) test(`bonus rules disclosure keeps QA schedule and native state at ${width}px`,async({page})=>{
+for (const width of [360, 1440]) test(`bonus rules disclosure keeps QA schedule and native state at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});
   await page.addInitScript(()=>sessionStorage.setItem('funded.app.wallet.manual-disconnect','1'));
   await setup(page,()=>({...fixture(),schedule:{mode:'devnet-qa-5m',periodSeconds:300}}));

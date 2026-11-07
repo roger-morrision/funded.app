@@ -24,3 +24,6 @@ mobile.addEventListener('change',()=>setMenu(false));setMenu(false);
 await import('./admin-page.js');
 
 await import('./service-status-ui.js');
+
+// Keep the balance summary above panels added by optional admin features.
+document.querySelector('#workspace')?.prepend(document.querySelector('#summary'));

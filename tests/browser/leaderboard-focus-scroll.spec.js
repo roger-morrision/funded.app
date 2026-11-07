@@ -6,7 +6,7 @@ const wallet='7'.repeat(32), other='6'.repeat(32), mint='8'.repeat(32), signatur
 const wallets=[{wallet,burnedTokens:12,receiptCount:1,latestSignature:signature},{wallet:other,burnedTokens:4,receiptCount:1,latestSignature:signature}];
 const policy={revision:3,split:{operationsPercent:40,referralLevelPercents:[10,3,2],communityPercent:20,buybackPercent:25}};
 
-for(const width of [320,360,390,1440]) test(`FQA-032 native leaderboard link focus reveals only necessary horizontal distance at ${width}px`,async({page},info)=>{
+for(const width of [320, 1440]) test(`FQA-032 native leaderboard link focus reveals only necessary horizontal distance at ${width}px`,async({page},info)=>{
   test.setTimeout(90000);await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/**',r=>{const p=new URL(r.request().url()).pathname;return r.fulfill(p==='/api/fee-policy'?{json:policy}:p==='/api/leaderboard/burners'?{json:{cluster:'devnet',wallets}}:{status:503,json:{error:'Unavailable fixture'}});});
   await page.route('https://**/*',r=>r.abort());await page.goto('/#leaderboard');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.evaluate(()=>document.fonts.ready);

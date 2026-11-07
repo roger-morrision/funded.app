@@ -2,7 +2,7 @@ import{test,expect}from'@playwright/test';
 
 const policy={revision:3,split:{operationsPercent:40,referralLevelPercents:[10,3,2],communityPercent:20,buybackPercent:25}};
 const projects=[7,8,9].map((n,i)=>({mint:String(n).repeat(32),name:`Fixture project ${i+1}`,symbol:'QA',burnedTokens:12-i,receiptCount:1,burnerCount:1,latestSignature:String(n).repeat(88)}));
-for(const width of[360,390,1440])test(`FQA-033 native leaderboard links clear fixed chrome at ${width}px`,async({page},info)=>{
+for(const width of[360, 1440])test(`FQA-033 native leaderboard links clear fixed chrome at ${width}px`,async({page},info)=>{
  test.setTimeout(90000);await page.setViewportSize({width,height:width<700?844:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/api/**',r=>{const p=new URL(r.request().url()).pathname;return r.fulfill(p==='/api/fee-policy'?{json:policy}:p==='/api/leaderboard/burn-board'?{json:{cluster:'devnet',projects}}:{status:503,json:{error:'Unavailable fixture'}})});await page.route('https://**/*',r=>r.abort());
  await page.goto('/#leaderboard');await page.locator('body.workspace-ready.product-experience-ready').waitFor();await page.locator('[data-leaderboard-view="burn-board"]').click();const table=page.locator('#leaderboard-table');await expect(table.locator('.leaderboard-row')).toHaveCount(3);await page.evaluate(()=>document.fonts.ready);

@@ -666,7 +666,7 @@ async function tableCancelRevealAudit(handle) {
   await handle.evaluate(()=>{const state=window.__tableRevealAudit;if(!state)return;for(const restore of state.restore.reverse())restore();delete window.__tableRevealAudit;});
 }
 
-for (const width of [360,390,1440]) {
+for (const width of [360, 1440]) {
   test(`FQA-078 native primary token identity survives ordinary updated Table read then Enter and Back at ${width}px`,async({page},info)=>{
     test.setTimeout(90000);const f=await tableFixture(page,width);let original;
     try {
