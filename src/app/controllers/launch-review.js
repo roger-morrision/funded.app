@@ -1,3 +1,5 @@
+import { renderTransactionReview } from '../../features/shared/transaction-review.js';
+import { formatReviewSol } from '../../../launch-review.js';
 import {sharedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
 import {promotionContentState} from '../../features/launch/promotion-requirements.js';
 import {devnetLaunchMetadataUri} from '../../../devnet-metadata.js';
@@ -207,6 +209,7 @@ export function createLaunchReviewController(appState) {
       ? 'Derived from the new mint and verified after launch' : appState.feeRouterState.address;
     document.querySelector('#launch-review-route-split').textContent = `${shares.creatorWalletPercent}% wallet · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · ${sharedFeeAllocationCopy()}`;
     document.querySelector('#launch-review-details').innerHTML = appState.launchReviewMarkup(reviewedCost);
+    renderTransactionReview(document.querySelector('#launch-review-details'),{network:appState.APP_CLUSTER,amount:formatReviewSol(reviewedCost.budget)+' maximum estimated budget',recipient:'Developer tokens: '+session.address+'; community tokens: the mint-specific reward vault',fees:formatReviewSol(reviewedCost.serviceFeeLamports||'0')+' app fee; '+formatReviewSol(reviewedCost.networkFee)+' network estimate (included in budget)',result:'Create '+symbol+'; verify mint, reserve allocation and fee route after confirmation'});
     document.querySelector('#launch-review-dialog').showModal();
     appState.renderPendingLaunchReview();
     appState.emitPilotSignal('launch-review-opened');

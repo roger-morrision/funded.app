@@ -211,3 +211,37 @@ input[type='search']:focus-visible {
 }
 .platform-x-topbar:hover,
 .platform-x-topbar:focus-visible { border-color: #79a8ee; color: #fff; }
+
+/* Shared reviews and optional guidance use the same aligned, wrapping rows. */
+html body .transaction-review-summary { margin:16px 0; padding:0; color:var(--cp-text); }
+html body .trade-review-flow[hidden] { display:none; }
+html body .transaction-review-summary > div { display:grid; grid-template-columns:110px minmax(0,1fr); gap:12px; padding:10px 0; border-bottom:1px solid var(--cp-line); }
+html body .transaction-review-summary dt { color:var(--cp-muted); font-size:12px; }
+html body .transaction-review-summary dd { margin:0; overflow-wrap:anywhere; font-size:13px; line-height:1.5; }
+html body #get-started { margin:16px 0; padding:16px; border:1px solid var(--cp-line); border-radius:var(--fv-radius-md); background:var(--cp-surface); color:var(--cp-text); }
+html body:not(.page-route-overview) #get-started { display:none; }
+html body #get-started summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-weight:600; }
+html body #get-started label { display:grid; gap:8px; max-width:320px; margin:12px 0; }
+html body #get-started :is(select,button,a) { min-height:44px; }
+html body #get-started select { padding:10px; background:var(--cp-surface); color:var(--cp-text); border:1px solid var(--cp-line-strong); border-radius:var(--fv-radius-md); font:inherit; }
+html body #get-started ol { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; padding-left:24px; }
+html body #get-started li { padding:0 12px 0 2px; }
+html body #get-started a { display:inline-flex; align-items:center; color:var(--cp-accent); }
+html body #get-started :is(p,small) { font-size:13px; line-height:1.6; color:var(--cp-muted); }
+html body #get-started .get-started-wallet { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+html body .mobile-filter-toggle[hidden], html body dialog.mobile-filter-drawer:not([open]) { display:none; }
+html body dialog.mobile-filter-drawer { box-sizing:border-box; width:min(100%,480px); max-width:100%; max-height:85dvh; margin:auto auto 0; padding:20px; overflow-y:auto; border:1px solid var(--cp-line-strong); border-radius:var(--fv-radius-md) var(--fv-radius-md) 0 0; background:var(--cp-surface); color:var(--cp-text); }
+html body dialog.mobile-filter-drawer::backdrop { background:var(--fv-overlay, rgb(0 0 0 / 65%)); }
+html body dialog.mobile-filter-drawer h2 { font-size:18px; margin:0 0 16px; }
+html body dialog.mobile-filter-drawer .mobile-filter-fields { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
+html body dialog.mobile-filter-drawer label { display:grid; gap:8px; font-size:14px; color:var(--cp-text); }
+html body dialog.mobile-filter-drawer :is(input,select,button) { box-sizing:border-box; width:100%; min-width:0; min-height:44px; padding:10px; border:1px solid var(--cp-line-strong); border-radius:var(--fv-radius-md); background:var(--cp-surface); color:var(--cp-text); font-size:16px; }
+html body dialog.mobile-filter-drawer > button { margin-top:20px; }
+html body :is(#get-started,.mobile-filter-drawer,.mobile-filter-toggle) :focus-visible, html body .mobile-filter-toggle:focus-visible { outline:2px solid var(--cp-accent); outline-offset:3px; }
+@media(max-width:700px) {
+  html body #get-started ol { grid-template-columns:minmax(0,1fr); gap:8px; }
+  html body #get-started select { font-size:16px; }
+  html body #main-content .history-refine { grid-template-columns:minmax(0,1fr) auto; }
+  html body #main-content .history-refine .mobile-filter-toggle { width:auto; }
+  html body .transaction-review-summary > div { grid-template-columns:90px minmax(0,1fr); gap:8px; }
+}

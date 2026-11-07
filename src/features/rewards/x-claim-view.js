@@ -1,3 +1,5 @@
+import { renderTransactionReview } from '../shared/transaction-review.js';
+import { APP_CLUSTER } from '../../../app-config.js';
 import { summarizeXClaims, formatXClaimSol } from '../../../x-claim-summary.js';
 
 // The application owns wallet state and event wiring. Dependencies are supplied per call.
@@ -24,6 +26,7 @@ export function syncXClaimFlow({
     const row=selected;
     const summary=document.querySelector('#selected-claim-summary');
     if(summary)summary.textContent=row?.dataset.claimSummary||`Claim ${claimId}`;
+    if(v3Selected)renderTransactionReview(review,{network:APP_CLUSTER,amount:row?.dataset.claimSummary||'See the selected reward',recipient:address,fees:'Wallet verification message: no network fee. Payout costs are determined by the claim service.',result:'Verify wallet ownership and request payment; received only after on-chain confirmation'});
   }
   if(walletReview)walletReview.hidden=!v3Selected;
   if(button){

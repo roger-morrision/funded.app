@@ -1,6 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
 import { createAssociatedTokenAccountIdempotentInstruction, createTransferCheckedInstruction, getAssociatedTokenAddressSync, NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
-import { getBuySolAmountFromTokenAmount, OnlinePumpSdk } from '@pump-fun/pump-sdk';
 import BN from 'bn.js';
 
 const VAULT_SEED = new TextEncoder().encode('reward-vault-v1');
@@ -47,6 +46,7 @@ export async function quoteAtomicReserveBuy({ connection, supply, decimals, rese
   const developer = BigInt(developerBaseUnits);
   const amountBaseUnits = reserveBaseUnits + developer;
   if (developer < 0n || amountBaseUnits >= BigInt(supply) * 10n ** BigInt(decimals)) throw new Error('Reserve and developer buy exceed launch supply.');
+  const { getBuySolAmountFromTokenAmount, OnlinePumpSdk } = await import('@pump-fun/pump-sdk');
   const global = await new OnlinePumpSdk(connection).fetchGlobal();
   const capacity = launchBuyCapacity({ global, decimals, reserveTokens });
   if (developer > capacity.creatorCapBaseUnits)

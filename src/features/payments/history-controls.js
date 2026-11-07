@@ -1,3 +1,4 @@
+import { mountMobileFilterDrawer } from '../shared/mobile-filter-drawer.js';
 import { mountFilterChips } from '../shared/filter-toolbar.js';
 // Bind once at the existing History startup position; rendering owns no requests.
 export function initializePaymentHistoryControls({ document, renderHistory }) {
@@ -8,8 +9,10 @@ export function initializePaymentHistoryControls({ document, renderHistory }) {
     for(const [value,text] of [['newest','Newest first'],['oldest','Oldest first']]){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
     label.append(select);toolbar.querySelector('#payment-history-clear')?.before(label);
   }
-  const sync=mountFilterChips(toolbar,[['search','Search',''],['type','Type','all'],['from','From',''],['to','To',''],['sort','Sort','newest']]
+  const syncChips=mountFilterChips(toolbar,[['search','Search',''],['type','Type','all'],['from','From',''],['to','To',''],['sort','Sort','newest']]
     .map(([id,label,empty])=>({control:document.querySelector(`#payment-history-${id}`),label,empty})),{reset:()=>document.querySelector('#payment-history-clear')?.click()});
+  const drawer=mountMobileFilterDrawer(toolbar,{title:'Payment history filters',items:['type','from','to','sort'].map(id=>document.querySelector('#payment-history-'+id)?.closest('label')).concat(document.querySelector('#payment-history-clear')),fields:['type','from','to','sort'].map(id=>({control:document.querySelector('#payment-history-'+id),empty:id==='type'?'all':id==='sort'?'newest':''}))});
+  const sync=()=>{syncChips();drawer.sync();};
   document.querySelector('#payment-history-filters')?.addEventListener('change', event => {
     // Input already commits search edits. A blur change must not replace the
     // receipt row while a visitor is clicking its native disclosure or links.

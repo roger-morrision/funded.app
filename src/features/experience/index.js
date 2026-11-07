@@ -1,3 +1,4 @@
+import { mountGetStarted } from './get-started.js';
 import { initializeDiscoveryIntent } from './discovery-intent.js';
 import { initializeFinancialCenter } from './financial-center.js';
 import { initializeCreatorActivity } from './creator-activity.js';
@@ -58,6 +59,7 @@ export function initializeProductFlows(app) {
     mountFlowDiagnostics();
     mountJourneySupport();
     mountExploreReturn();
+    mountGetStarted(app);
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;

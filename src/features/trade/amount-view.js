@@ -1,7 +1,7 @@
 import { formatTradeAmountInput, parseTradeAmountInput } from '../../../trade-amount-input.js';
 import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
 import { hasBuyBalance } from '../../../trade-spend-guard.js';
-import { estimateBuyTokenAmountFromSnapshot } from '../../../pump-trading.js';
+import { estimateBuyTokenAmountFromSnapshot } from '../../../trade-quote-display.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderRoundTripAction(

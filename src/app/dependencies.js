@@ -90,9 +90,8 @@ import { LAUNCH_TIER_USD, launchTierQuoteCurrent } from '../../launch-tier-quote
 import { burnedSupplyBaseUnits, formatTokenBaseUnits, parseTokenAmount, planTokenAccountBurns, projectBurnMemo, waitForSignatureConfirmation } from '../../funded-burn.js';
 import { bindReferralAttribution, captureFirstTouch, createReferralCode, normalizeReferralCode } from '../../referral-program.js';
 import { buildSolClaimPolicy, normalizeXHandle } from '../../sol-claim-policy.js';
-import { buildTradeTransaction, buildVerifiedPoolTradeTransaction, fetchVerifiedPoolBuyQuote, describeTradeQuote, fetchBondingCurveSnapshot, fetchGraduatedPoolSnapshot, fetchVerifiedPoolSnapshot, submitTrade } from '../../pump-trading.js';
-import { PUMP_PROGRAM_ID, PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
-import { PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
+import { buildTradeTransaction, buildVerifiedPoolTradeTransaction, fetchVerifiedPoolBuyQuote, fetchBondingCurveSnapshot, fetchGraduatedPoolSnapshot, fetchVerifiedPoolSnapshot, submitTrade } from '../features/trade/lazy-trading.js';
+import { describeTradeQuote } from '../../trade-quote-display.js';
 import { APP_CLUSTER, APP_EXPLORER_QUERY, APP_MAINNET_READ_ONLY, APP_RPC_URL, DEV_MODE, DEV_WALLET_AUTOCONNECT, DEV_WALLET_ROLE, EXPLORE_CLUSTER, EXPLORE_RPC_URL, TRADE_FEE_BPS, TRADE_FEE_OWNER } from '../../app-config.js';
 import { apiRequest, persistLaunchPolicy } from '../../client.js';
 import { recordLaunchEvent, readLaunchJournal, policyMatchesJournal } from '../../launch-journal.js';
@@ -277,12 +276,6 @@ export const appDependencies = {
   fetchGraduatedPoolSnapshot,
   fetchVerifiedPoolSnapshot,
   submitTrade,
-  PUMP_PROGRAM_ID,
-  PUMP_SDK,
-  bondingCurvePda,
-  PUMP_AMM_PROGRAM_ID,
-  PUMP_AMM_SDK,
-  canonicalPumpPoolPda,
   APP_CLUSTER,
   APP_EXPLORER_QUERY,
   APP_MAINNET_READ_ONLY,

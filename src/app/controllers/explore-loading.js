@@ -1,6 +1,5 @@
 // Dependencies and mutable application state are read live through appState.
 import { exploreStatusText } from '../../features/explore/status-copy.js';
-import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
 import { curveMigrationProgress } from '../../../explore-onchain-metrics.js';
 import { createExploreActivitySampler, applyActivitySnapshot, ACTIVITY_MAX_AGE_MS } from '../../features/explore/activity-sampling.js';
 export { scanExploreMarketsBounded } from '../../features/explore/activity-sampling.js';
@@ -69,6 +68,7 @@ export function createExploreLoadingController(appState) {
       if (records.length) {
         try {
           const { PublicKey, getAssociatedTokenAddressSync, unpackAccount, unpackMint, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
+          const { OnlinePumpSdk, PUMP_PROGRAM_ID, PUMP_SDK, bondingCurvePda } = await import('@pump-fun/pump-sdk');
           const exploreRpc = await appState.getExploreConnection();
           // One Pump global read per page session gives the curve-progress basis.
           pumpInitialRealTokens ??= await new OnlinePumpSdk(exploreRpc).fetchGlobal().then(global => global.initialRealTokenReserves.toString()).catch(() => null);
@@ -78,7 +78,7 @@ export function createExploreLoadingController(appState) {
           const snapshot = pumpFeed.data?.accountSnapshot?.accounts;
           const fromSnapshot = account => account ? { owner: new PublicKey(account.owner), lamports: account.lamports, executable: account.executable, data: appState.Buffer.from(account.data, 'base64') } : null;
           const snapshotBatch = snapshot && candidates.every(item => snapshot[item.record.address]) ? [...candidates.map(item => fromSnapshot(snapshot[item.record.address].mint)), ...candidates.map(item => fromSnapshot(snapshot[item.record.address].curve))] : null;
-          const accountBatch = snapshotBatch || (candidates.length ? await exploreRpc.getMultipleAccountsInfo([...candidates.map(item => item.mint), ...candidates.map(item => appState.bondingCurvePda(item.mint))], 'confirmed') : []);
+          const accountBatch = snapshotBatch || (candidates.length ? await exploreRpc.getMultipleAccountsInfo([...candidates.map(item => item.mint), ...candidates.map(item => bondingCurvePda(item.mint))], 'confirmed') : []);
           const accounts = accountBatch.slice(0, candidates.length);
           const curveAccounts = accountBatch.slice(candidates.length);
           for (let index = 0; index < candidates.length; index += 1) {
@@ -88,15 +88,15 @@ export function createExploreLoadingController(appState) {
               if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID))) continue;
               const mintState = unpackMint(mint, mintAccount, mintAccount.owner);
               const curveAccount = curveAccounts[index];
-              const curve = curveAccount?.owner?.equals(appState.PUMP_PROGRAM_ID) ? appState.PUMP_SDK.decodeBondingCurveNullable(curveAccount) : null;
+              const curve = curveAccount?.owner?.equals(PUMP_PROGRAM_ID) ? PUMP_SDK.decodeBondingCurveNullable(curveAccount) : null;
               const curveMetrics = appState.readCurveMetrics(curve, mintState);
               const migrationProgress = curve && !curve.complete ? curveMigrationProgress(curve, pumpInitialRealTokens) : null;
               const numeric = value => value == null || value === '' ? NaN : Number(value);
               const price = numeric(record.priceUsd);
               const change = numeric(record.priceChange24hPercent);
               const marketCap = numeric(record.marketCapUsd);
-              const curveTokenVault = curve ? getAssociatedTokenAddressSync(mint, appState.bondingCurvePda(mint), true, mintAccount.owner).toBase58() : null;
-              verified.push({ mint: record.address, symbol: record.symbol || 'TOKEN', name: record.name || 'Unnamed token', value: appState.EXPLORE_CLUSTER === 'devnet' && curveMetrics.curvePriceSol != null ? `MC · ${appState.formatCoinUsd(curveMetrics.curveCapSol)}` : Number.isFinite(marketCap) ? `MC · ${appState.formatUsd(marketCap)}` : 'MC unavailable', change: Number.isFinite(change) ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—', meta: Number.isFinite(marketCap) ? `MC ${appState.formatCompactUsd(marketCap)} · ${record.source || 'Pump.fun'}` : (record.source || 'Pump.fun'), icon: String(record.symbol || 'T').slice(0, 1), source: record.source || 'Pump.fun', listingPayment: record.listingPayment || null, creator: record.creator || null, website: record.website || null, twitter: record.twitter || record.x || null, telegram: record.telegram || null, discord: record.discord || null, complete: curve ? Boolean(curve.complete) : null, migrated: null, pumpSwapPool: null, quoteMint: curve?.quoteMint?.toBase58?.() || null, bondingCurve: curve ? appState.bondingCurvePda(mint).toBase58() : null, curveTokenVault, raydiumPool: record.raydiumPool || null, fetchedAt: record.fetchedAt || null, verifiedAt: new Date().toISOString(), address: record.address, mintSupplyRaw: mintState.supply.toString(), mintDecimals: mintState.decimals, mintAuthorityRevoked: mintState.mintAuthority == null, freezeAuthorityRevoked: mintState.freezeAuthority == null, volume24hUsd: record.volume24hUsd ?? null, liquidityUsd: record.liquidityUsd ?? null, holders: record.holders ?? null, marketCapUsd: Number.isFinite(marketCap) ? marketCap : null, priceChange24hPercent: Number.isFinite(change) ? change : null, createdTimestamp: record.createdTimestamp || null, lastTradeUnixTime: record.lastTradeUnixTime || null, ...curveMetrics,
+              const curveTokenVault = curve ? getAssociatedTokenAddressSync(mint, bondingCurvePda(mint), true, mintAccount.owner).toBase58() : null;
+              verified.push({ mint: record.address, symbol: record.symbol || 'TOKEN', name: record.name || 'Unnamed token', value: appState.EXPLORE_CLUSTER === 'devnet' && curveMetrics.curvePriceSol != null ? `MC · ${appState.formatCoinUsd(curveMetrics.curveCapSol)}` : Number.isFinite(marketCap) ? `MC · ${appState.formatUsd(marketCap)}` : 'MC unavailable', change: Number.isFinite(change) ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—', meta: Number.isFinite(marketCap) ? `MC ${appState.formatCompactUsd(marketCap)} · ${record.source || 'Pump.fun'}` : (record.source || 'Pump.fun'), icon: String(record.symbol || 'T').slice(0, 1), source: record.source || 'Pump.fun', listingPayment: record.listingPayment || null, creator: record.creator || null, website: record.website || null, twitter: record.twitter || record.x || null, telegram: record.telegram || null, discord: record.discord || null, complete: curve ? Boolean(curve.complete) : null, migrated: null, pumpSwapPool: null, quoteMint: curve?.quoteMint?.toBase58?.() || null, bondingCurve: curve ? bondingCurvePda(mint).toBase58() : null, curveTokenVault, raydiumPool: record.raydiumPool || null, fetchedAt: record.fetchedAt || null, verifiedAt: new Date().toISOString(), address: record.address, mintSupplyRaw: mintState.supply.toString(), mintDecimals: mintState.decimals, mintAuthorityRevoked: mintState.mintAuthority == null, freezeAuthorityRevoked: mintState.freezeAuthority == null, volume24hUsd: record.volume24hUsd ?? null, liquidityUsd: record.liquidityUsd ?? null, holders: record.holders ?? null, marketCapUsd: Number.isFinite(marketCap) ? marketCap : null, priceChange24hPercent: Number.isFinite(change) ? change : null, createdTimestamp: record.createdTimestamp || null, lastTradeUnixTime: record.lastTradeUnixTime || null, ...curveMetrics,
                 // After curveMetrics: its ratio is not a migration percentage.
                 ...(migrationProgress == null ? {} : { curveProgressPercent: migrationProgress, curveProgressBasis: 'pump-global' }) });
            } catch {}
@@ -104,15 +104,16 @@ export function createExploreLoadingController(appState) {
            const completed = verified.filter(item => item.complete === true);
            if (completed.length) {
              try {
-               const poolKeys = completed.map(item => appState.canonicalPumpPoolPda(new PublicKey(item.address), item.quoteMint ? new PublicKey(item.quoteMint) : undefined));
+               const { PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, canonicalPumpPoolPda } = await import('@pump-fun/pump-swap-sdk');
+               const poolKeys = completed.map(item => canonicalPumpPoolPda(new PublicKey(item.address), item.quoteMint ? new PublicKey(item.quoteMint) : undefined));
                const poolAccounts = await exploreRpc.getMultipleAccountsInfo(poolKeys, 'confirmed');
                 const decodedPools = completed.map(() => null);
                 completed.forEach((item, index) => {
                   const account = poolAccounts[index];
                   item.migrated = false;
-                  if (!account?.owner?.equals(appState.PUMP_AMM_PROGRAM_ID)) return;
+                  if (!account?.owner?.equals(PUMP_AMM_PROGRAM_ID)) return;
                   try {
-                    const pool = appState.PUMP_AMM_SDK.decodePool(account);
+                    const pool = PUMP_AMM_SDK.decodePool(account);
                     if (!pool.baseMint?.equals(new PublicKey(item.address))) return;
                     item.migrated = true;
                     item.pumpSwapPool = poolKeys[index].toBase58();

@@ -98,8 +98,9 @@ export function createCoinLoadingController(appState) {
       const rawSupply = Number(parsedMint.supply);
       const tokenProgram = mintInfo.value.owner;
       const verifiedTokenProgram = tokenProgram?.equals?.(TOKEN_PROGRAM_ID) || tokenProgram?.equals?.(TOKEN_2022_PROGRAM_ID);
+      const { bondingCurvePda } = await import('@pump-fun/pump-sdk');
       const curveVaultAddress = graduatedPool?.poolBaseTokenAccount || (curve && verifiedTokenProgram
-        ? getAssociatedTokenAddressSync(mint, appState.bondingCurvePda(mint), true, tokenProgram).toBase58() : null);
+        ? getAssociatedTokenAddressSync(mint, bondingCurvePda(mint), true, tokenProgram).toBase58() : null);
       const accounts = largestAccounts.filter(item => Number(item.amount) > 0).map(item => {
         const balance = Number(item.uiAmountString == null || item.uiAmountString === '' ? Number(item.amount) / (10 ** decimals) : item.uiAmountString);
         return { address: String(item.address), wallet: item.wallet || null, balance, amount: appState.formatOnChainNumber(balance, 4), share: rawSupply > 0 ? Number(item.amount) / rawSupply * 100 : null };

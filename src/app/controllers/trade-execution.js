@@ -1,3 +1,4 @@
+import { renderTransactionReview } from '../../features/shared/transaction-review.js';
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 import { recordFlowTiming } from '../../features/experience/flow-timing.js';
 import { estimateTradeNetworkFee, renderTradeCostDisclosure } from '../../features/experience/trade-costs.js';
@@ -146,6 +147,8 @@ export function createTradeExecutionController(appState) {
       const review = appState.buildTradeReview({ trade:prepared.trade, side, amount, slippagePercent, mint, wallet:session.address,
         tokenName:shownCoin ? document.querySelector('#coin-page-title')?.textContent?.trim() : '',
         tokenSymbol:shownCoin ? document.querySelector('#coin-symbol')?.textContent?.trim() : '' });
+      const summaryHost=document.querySelector('#trade-review-summary');
+      renderTransactionReview(summaryHost,{network:appState.APP_CLUSTER,amount:review.payAmount,recipient:session.address,fees:review.fee+' app fee; '+(networkFee==null?'network estimate unavailable':appState.formatOnChainNumber(Number(networkFee)/1e9,9)+' SOL estimated network fee')+'; account costs may apply',result:review.receiveAmount+' estimated; verify the confirmed receipt'});
       renderTradeCostDisclosure(document.querySelector('#trade-review-dialog'), prepared.trade, networkFee);
       const fields = {
         '#trade-review-title':review.title, '#trade-review-token-name':review.tokenName,

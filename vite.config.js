@@ -78,10 +78,12 @@ export default defineConfig(({ mode }) => {
     },
     preview: { proxy: apiProxy },
     build: {
-      rollupOptions: {
+      rolldownOptions: {
+        preserveEntrySignatures: 'allow-extension',
         input: { main:'index.html', admin:'admin.html', welcome:'welcome.html' },
         output: {
-          manualChunks(id) {
+          strictExecutionOrder: true,
+          codeSplitting: { includeDependenciesRecursively: false, groups: [{ name(id) {
             if (!id.includes('node_modules')) return undefined;
             // The browser entry installs Buffer before importing the Solana SDK.
             // Keep its implementation outside the SDK chunk so importing Buffer
@@ -92,7 +94,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('@solana/spl-token')) return 'solana-spl-token';
             if (id.includes('@solana/web3.js')) return 'solana-web3';
             return undefined;
-          },
+          } }] },
         },
       },
     },
