@@ -1,0 +1,534 @@
+{
+  "date": "2026-11-07",
+  "cluster": "devnet",
+  "baseRevision": "b09ee470d11065edceb9fd7464523d9e06c0dc3c",
+  "scope": "Browser UI at localhost using an in-memory Devnet signing adapter, real deployed API authentication and real finalized Devnet transactions. No mocked API or chain results.",
+  "wallets": {
+    "inviter": "55rjxcVQpo9tPrVYCY1nsXU7Npq3b4FdsHZPJKCe7iuN",
+    "trader-a": "61hggEAjD2H1uunq54akTmuK6YvSsgqvFzSPdXm94UAU",
+    "trader-b": "7mwWLTM2UyR7nqNCjez44SwNFbgazAZE2mAUpja49gmg"
+  },
+  "transactions": [
+    {
+      "role": "trader-a",
+      "wallet": "61hggEAjD2H1uunq54akTmuK6YvSsgqvFzSPdXm94UAU",
+      "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+      "signature": "RDGjreyfwqm646y7YGierVDnvfMvQSUVvUCZNLyYBRbzdPNK3sFi8JUDUyfEwrKzfkWnRLbi2fvs1WyKeMiLv2R",
+      "finalized": true,
+      "slot": 519631732,
+      "blockTime": 1794047754,
+      "solLamportDelta": -12989792,
+      "tokenRawDelta": "14726779252476",
+      "networkFee": 5000
+    },
+    {
+      "role": "trader-a",
+      "wallet": "61hggEAjD2H1uunq54akTmuK6YvSsgqvFzSPdXm94UAU",
+      "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+      "signature": "4Jy8ABah58BLDc7HXg5gfsbVrmkvBNt2EaGTh19MNBHUxoxVuTj2Ud6XLyoM2CBNN6KqBdFLo9f6wMBPsizB7C1C",
+      "finalized": true,
+      "slot": 519631969,
+      "blockTime": 1794047810,
+      "solLamportDelta": 4886099,
+      "tokenRawDelta": "-7363389626238",
+      "networkFee": 5000
+    },
+    {
+      "role": "trader-b",
+      "wallet": "7mwWLTM2UyR7nqNCjez44SwNFbgazAZE2mAUpja49gmg",
+      "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+      "signature": "kWxna3JeW4CSCzbxHS9SBSqREwoC9N2oeNqWTu8JQn3agHMpQgiX5zaMVFmUH3rv2FM1A6mj7qaFwJrjSoT4K2q",
+      "finalized": true,
+      "slot": 519632276,
+      "blockTime": 1794047884,
+      "solLamportDelta": -7927416,
+      "tokenRawDelta": "7286677190437",
+      "networkFee": 5000
+    },
+    {
+      "role": "trader-b",
+      "wallet": "7mwWLTM2UyR7nqNCjez44SwNFbgazAZE2mAUpja49gmg",
+      "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+      "signature": "4GnPVYfrtbE5JsqwFWQuEdtms8jJTJtRFFyRCPUVf8dCCHiEDJbNCkDhSGXtvQhrBQvgEdFc6p1p1NzRBaAZ6yLm",
+      "finalized": true,
+      "slot": 519633778,
+      "blockTime": 1794048246,
+      "solLamportDelta": 4834601,
+      "tokenRawDelta": "-7286677190437",
+      "networkFee": 5000
+    },
+    {
+      "role": "trader-a",
+      "wallet": "61hggEAjD2H1uunq54akTmuK6YvSsgqvFzSPdXm94UAU",
+      "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+      "signature": "y5yPg3USCCJcFvwiHwwVKhDLCnuy3Lj3f5qKZQiFusfyxR7TmbkFYJVY5mxczpQWmxsBuq1MbioKmQ4zk7PJYRy",
+      "finalized": true,
+      "slot": 519634051,
+      "blockTime": 1794048312,
+      "solLamportDelta": 4783103,
+      "tokenRawDelta": "-7363389626238",
+      "networkFee": 5000
+    }
+  ],
+  "checks": [
+    "Two buys, one 50% sell and two complete exits; final exit submitted through the 390px mobile UI. Each transaction independently checked for finalized status and exact token/SOL deltas.",
+    "Quote symbol, app fee, slippage floor, insufficient funds guard, exact percentage amounts and disabled sell after zero balance.",
+    "Token favorites saved, removed, restored after reload and restored after switching back to a signed-in wallet. Other wallet favorites remained separate.",
+    "Follow, unfollow, refollow, Following coin feed and Portfolio tracking persisted across reloads and wallet switches without account leakage.",
+    "Referral link activation and two-level network: trader-a referred by inviter, trader-b referred by trader-a. Visiting another invite did not overwrite first-touch attribution.",
+    "Referral list showed one direct and one second-level wallet. Qualified creators and payouts remained zero because trading alone did not qualify for creator referrals.",
+    "Referral calculator: 100 SOL creator fees produced 0.6, 0.25 and 0.15 SOL examples for levels 1, 2 and 3.",
+    "Portfolio holdings matched on-chain token amounts; activity displayed real receipts. Realized P&L displayed its before-fees/open-position exclusions.",
+    "Manual Check trade history reconciled pending indexed receipts without submitting another trade.",
+    "Token page final totals: 7 trades including 2 pre-existing trades, 4 buys, 3 sells and 3 traders. Buy/sell filters, wallet search, date sort and empty-search recovery passed.",
+    "16 routes at 390px and 1440px: visible headings, no page horizontal overflow and no unnamed visible buttons or links. These were layout/navigation checks, not full transaction coverage of each route."
+  ],
+  "fixes": [
+    "Header SOL balance now updates from the same guarded RPC result as the trade form after trading.",
+    "Referral activation refreshes claims and signed-in metrics immediately.",
+    "Wallet authentication refreshes favorites and followed wallets, once per wallet session, with stale-session protection.",
+    "Early SOL/USD fetch is retained but rendering waits until startup state initialization, preventing a cold-load ReferenceError."
+  ],
+  "validation": {
+    "focusedTestsPassed": 43,
+    "focusedTestsFailed": 0,
+    "build": "passed",
+    "structure": "passed",
+    "cssBudget": "passed",
+    "diffWhitespace": "passed",
+    "browserErrorsAfterFixes": 0,
+    "layout": [
+      {
+        "viewport": 390,
+        "href": "#overview",
+        "name": "Home",
+        "headings": [
+          "Launch coinsthat pay everyone.",
+          "On-chain activity",
+          "Fees go back to the community.",
+          "New coins",
+          "Chat & calls",
+          "Before you launch"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#explore",
+        "name": "Explore",
+        "headings": [
+          "Explore coins",
+          "Rankings and public payouts"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#launch",
+        "name": "Create",
+        "headings": [
+          "Create a coin"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#my-launches",
+        "name": "Portfolio",
+        "headings": [
+          "Portfolio"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#payments",
+        "name": "Rewards",
+        "headings": [
+          "Your rewards",
+          "Reward activity",
+          "Recent SOL receipts"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#callouts",
+        "name": "Coin calls0",
+        "headings": [
+          "Callouts",
+          "Latest 1"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#creators",
+        "name": "Creators",
+        "headings": [
+          "Creators"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#referrals",
+        "name": "Referrals",
+        "headings": [
+          "Referrals",
+          "Your dashboard",
+          "Know how rewards work"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#bonuses",
+        "name": "Daily bonuses",
+        "headings": [
+          "Daily bonuses",
+          "Today’s top 5",
+          "All-time top recipients",
+          "Payout history"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#airdrops",
+        "name": "Airdrops",
+        "headings": [
+          "Airdrops",
+          "$FUNDED holder airdrops",
+          "Coin holder SOL rewards",
+          "Airdrop details"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#leaderboard",
+        "name": "Leaderboard",
+        "headings": [
+          "Leaderboard",
+          "Top traders"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#capital-flow",
+        "name": "Fee distribution",
+        "headings": [
+          "How creator fees are split",
+          "Fee distribution",
+          "Preview a fee split",
+          "From trading fees to payments",
+          "Top 3. Every 24 hours."
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#marketing-agency",
+        "name": "✦AI Marketing",
+        "headings": [
+          "Marketing agents",
+          "Agent 1 · X promotion",
+          "Agent 2 · $100,000 buyback",
+          "Agent 3 · $300,000 buyback",
+          "Tokens & agent budgets",
+          "Agency funds & activity"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#analytics-detail",
+        "name": "Analytics",
+        "headings": [
+          "Analytics",
+          "Funded at a glance",
+          "Recent recipients"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#list",
+        "name": "Get listed",
+        "headings": [
+          "Get your token listed",
+          "Paid listings"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 390,
+        "href": "#docs",
+        "name": "Docs & help",
+        "headings": [
+          "What is funded.vip?"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#overview",
+        "name": "Home",
+        "headings": [
+          "Launch coinsthat pay everyone.",
+          "On-chain activity",
+          "Fees go back to the community.",
+          "New coins",
+          "Chat & calls",
+          "Before you launch"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#explore",
+        "name": "Explore",
+        "headings": [
+          "Explore coins",
+          "Rankings and public payouts"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#launch",
+        "name": "Create",
+        "headings": [
+          "Create a coin"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#my-launches",
+        "name": "Portfolio",
+        "headings": [
+          "Portfolio"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#payments",
+        "name": "Rewards",
+        "headings": [
+          "Your rewards",
+          "Reward activity",
+          "Recent SOL receipts"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#callouts",
+        "name": "Coin calls0",
+        "headings": [
+          "Callouts",
+          "Latest 1",
+          "Top callers 0",
+          "Conviction 1"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#creators",
+        "name": "Creators",
+        "headings": [
+          "Creators"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#referrals",
+        "name": "Referrals",
+        "headings": [
+          "Referrals",
+          "Your dashboard",
+          "Know how rewards work"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#bonuses",
+        "name": "Daily bonuses",
+        "headings": [
+          "Daily bonuses",
+          "Today’s top 5",
+          "All-time top recipients",
+          "Payout history"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#airdrops",
+        "name": "Airdrops",
+        "headings": [
+          "Airdrops",
+          "$FUNDED holder airdrops",
+          "Coin holder SOL rewards",
+          "Airdrop details"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#leaderboard",
+        "name": "Leaderboard",
+        "headings": [
+          "Leaderboard",
+          "Top traders"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#capital-flow",
+        "name": "Fee distribution",
+        "headings": [
+          "How creator fees are split",
+          "Fee distribution",
+          "Preview a fee split",
+          "From trading fees to payments",
+          "Top 3. Every 24 hours."
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#marketing-agency",
+        "name": "✦AI Marketing",
+        "headings": [
+          "Marketing agents",
+          "Agent 1 · X promotion",
+          "Agent 2 · $100,000 buyback",
+          "Agent 3 · $300,000 buyback",
+          "Tokens & agent budgets",
+          "Agency funds & activity"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#analytics-detail",
+        "name": "Analytics",
+        "headings": [
+          "Analytics",
+          "Funded at a glance",
+          "Recent recipients"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#list",
+        "name": "Get listed",
+        "headings": [
+          "Get your token listed",
+          "Paid listings"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      },
+      {
+        "viewport": 1440,
+        "href": "#docs",
+        "name": "Docs & help",
+        "headings": [
+          "What is funded.vip?"
+        ],
+        "overflow": false,
+        "unnamed": 0
+      }
+    ]
+  },
+  "cleanup": {
+    "returnedTestSol": [
+      {
+        "at": "2026-11-07T10:46:55.490Z",
+        "type": "returned-test-sol",
+        "role": "inviter",
+        "signature": "24dh6yFaHHbGLXMAwKfCM5PTLHmt5p2ZGb4jCKjgzMmtcr3VF4NSq2Ybk6ijivbSYq53A8UTz6v6tDPeeoQkseNt",
+        "lamports": 49995000
+      },
+      {
+        "at": "2026-11-07T10:46:58.878Z",
+        "type": "returned-test-sol",
+        "role": "trader-a",
+        "signature": "4bQp4g8j7Pr6jaQRXnqRetCMHWmDKbJLrPqUJAjB6f1ronv3Ca4RCJoFqqwHz2wL9eaS9WW3UejrWAJEs6oYpgrn",
+        "lamports": 46674410
+      },
+      {
+        "at": "2026-11-07T10:47:01.695Z",
+        "type": "returned-test-sol",
+        "role": "trader-b",
+        "signature": "33PMUc7AbRA41EPo3WL4XebS3pjH4qSHC16SXiGs1peouBaqA2NRXBfZCNQrso2cB4cwdtykjXqjKMn1g3nWiJnR",
+        "lamports": 46902185
+      }
+    ],
+    "finalBalances": {
+      "inviter": {
+        "solLamports": 0,
+        "tokenRaw": "0"
+      },
+      "trader-a": {
+        "solLamports": 0,
+        "tokenRaw": "0"
+      },
+      "trader-b": {
+        "solLamports": 0,
+        "tokenRaw": "0"
+      }
+    },
+    "signingHelpersStopped": true,
+    "participantKeysPersisted": false,
+    "notes": "All FCAT positions closed and unused SOL returned. Empty token accounts may retain rent deposits. Test activity records remain in Devnet."
+  },
+  "limitations": [
+    "Phantom extension approval UI was not exercised; browser trades used the local Devnet signing adapter.",
+    "No mainnet transactions or real funds.",
+    "New coin creation, paid promotion, burns, external listing payment, claims, migration/airdrop payouts, bonus payouts and agency buybacks were not executed in this run.",
+    "No chat posts, coin calls, X OAuth or X publishing. Like was tested as token Favorites.",
+    "Zero, unavailable and pending reward states were checked without inventing payout data."
+  ]
+}

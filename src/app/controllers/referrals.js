@@ -4,6 +4,7 @@ import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelle
 import { formatReferralLamports, readReferralHistory } from '../../../referral-amount.js';
 // Dependencies and mutable application state are read live through appState.
 export function createReferralsController(appState) {
+  let authenticatedIdentity = null;
   // app-source: 232
   function getAppReferralAttribution(){
     try {
@@ -88,6 +89,9 @@ export function createReferralsController(appState) {
       const code = appState.normalizeReferralCode(registered?.code);
       if (!code) throw new Error('Invite link activation needs one wallet approval. Try again.');
       appState.updateReferralLink();
+      // Activating a link also establishes sign-in. Replace the old sign-in
+      // prompt and refresh this wallet's metrics without another approval.
+      void appState.refreshReferralClaims().catch(() => {});
       return code;
     } catch (error) { appState.showToast(error.message || 'Invite link is unavailable.'); return ''; }
   }
@@ -98,6 +102,12 @@ export function createReferralsController(appState) {
     if (!session?.address) throw new Error('Connect a wallet to view your referral dashboard.');
     const ready = await appState.walletSignIn.ensure(session, { interactive });
     appState.assertWalletSessionCurrent(session);
+    const identity = `${session.address}:${session.version}`;
+    if (ready && authenticatedIdentity !== identity) {
+      authenticatedIdentity = identity;
+      void appState.restoreWalletFavorites();
+      window.dispatchEvent(new Event('funded:wallet-authenticated'));
+    } else if (!ready) authenticatedIdentity = null;
     appState.updateTokenChatComposerState();
     return ready;
   }

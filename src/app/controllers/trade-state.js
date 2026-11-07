@@ -103,6 +103,13 @@ export function createTradeStateController(appState) {
         rpc.getParsedTokenAccountsByOwner(session.provider.publicKey, { mint:new PublicKey(mint) }, 'confirmed'),
       ]);
       if (request !== appState.tradeBalanceRequest || !appState.isWalletSessionCurrent(session) || key !== appState.tradeBalanceKey()) return;
+      // Reuse this wallet-scoped read so the header and trade form agree after
+      // a finalized trade, without issuing a second balance request.
+      if (sol.status === 'fulfilled') {
+        appState.walletBalanceLamports = sol.value;
+        appState.walletBalanceFetchedAt = Date.now();
+        appState.renderWalletBalance();
+      }
       const accounts = tokens.status === 'fulfilled' ? tokens.value.value : [];
       const parsed = accounts.map(account => account.account.data.parsed?.info?.tokenAmount).filter(Boolean);
       appState.tradeBalanceState = {

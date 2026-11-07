@@ -75,7 +75,7 @@ export async function startApp(appState) {
   initializeExploreFiltersActions(appState);
   // Start the SOL/USD quote before the first route waits on market data, so
   // card values can be shown in USD as soon as they are known.
-  initializeCoinMarket(appState);
+  const solUsdQuote = appState.apiRequest('/api/market/sol-usd').catch(() => ({ available:false, data:null }));
   await initializeNavigation(appState);
   initializeDeferredArtwork();
   initializeCreatorFees(appState);
@@ -87,4 +87,7 @@ export async function startApp(appState) {
   initializeCoinChat(appState);
   initializeRewardIdentity(appState);
   initializeProductFlows(appState);
+  // Wallet restoration can yield while the quote finishes. Render only after
+  // token state and all its views are initialized, reusing the early request.
+  initializeCoinMarket(appState, solUsdQuote);
 }

@@ -49,6 +49,7 @@ export function saveAccountPreference(kind,item,{remove=false}={}){
 export function initializeAccountPreferences(application){
   if(app)return;app=application;
   window.addEventListener('funded:reward-identity-change',()=>{clear(app.connectedWalletAddress||null);void refreshAccountPreferences();});
+  window.addEventListener('funded:wallet-authenticated',()=>{void refreshAccountPreferences();});
   window.addEventListener('focus',()=>{if(!document.hidden)void refreshAccountPreferences();});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshAccountPreferences();});
   void refreshAccountPreferences();

@@ -31,8 +31,8 @@ export function createCoinMarketController(appState) {
   // app-source-end
 
   // app-source: 951
-  async function loadSolUsdQuote(){
-    const response = await appState.apiRequest('/api/market/sol-usd').catch(() => ({ available: false, data: null }));
+  async function loadSolUsdQuote(quoteResponse = null){
+    const response = await (quoteResponse || appState.apiRequest('/api/market/sol-usd')).catch(() => ({ available: false, data: null }));
     const quote = Number(response.data?.priceUsd);
     if (!response.available || !Number.isFinite(quote) || quote <= 0) return;
     appState.coinSolUsdPrice = quote;
