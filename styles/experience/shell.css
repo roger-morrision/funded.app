@@ -214,7 +214,6 @@ input[type='search']:focus-visible {
 
 /* Shared reviews and optional guidance use the same aligned, wrapping rows. */
 html body .transaction-review-summary { margin:16px 0; padding:0; color:var(--cp-text); }
-html body .trade-review-flow[hidden] { display:none; }
 html body .transaction-review-summary > div { display:grid; grid-template-columns:110px minmax(0,1fr); gap:12px; padding:10px 0; border-bottom:1px solid var(--cp-line); }
 html body .transaction-review-summary dt { color:var(--cp-muted); font-size:12px; }
 html body .transaction-review-summary dd { margin:0; overflow-wrap:anywhere; font-size:13px; line-height:1.5; }

@@ -20,13 +20,6 @@ html body.page-route-overview #home-activity-coverage { min-block-size:0;margin:
 .reward-status-guide a { display:grid;gap:8px;padding:16px;border:1px solid var(--cp-line,#394252);border-radius:8px;text-decoration:none; }
 .reward-status-guide span { color:var(--cp-muted,#a7b4ca);font-size:13px;line-height:1.6; }
 
-#community-pilot-plan form { display:flex;gap:12px;flex-wrap:wrap;align-items:end; }
-#community-pilot-plan label { display:grid;gap:8px;flex:1;min-width:180px; }
-#community-pilot-plan input { width:100%;min-width:0;box-sizing:border-box; }
-#community-pilot-plan li { padding:12px 0; }
-#community-pilot-plan nav { align-items:center; }
 #coin-market-status { padding:12px;margin:12px 0;border:1px solid var(--cp-line,#394252);border-radius:8px; }
 #coin-market-status button { min-height:44px; }
 @media(max-width:600px){ .reward-status-guide > div { grid-template-columns:1fr; } #home-discovery-controls button { font-size:12px;padding:8px 10px; } }
-
-body.page-route-community-pilot #community-pilot-page:not([hidden]){display:block!important;padding:24px;max-width:960px;margin:auto}#community-pilot-page[hidden]{display:none!important}

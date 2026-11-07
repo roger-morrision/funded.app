@@ -42,7 +42,6 @@ const guides={
   'capital-flow':['Enter collected creator fees to preview their split.','Each coin keeps the split saved at launch.','The calculator is an example, not a withdrawable balance.','Open Rewards for your available claims.'],
   analytics:['View platform activity and completed payments.','Use filters to compare the same period.','Collected fees, allocated rewards and received payments are different totals.','Unavailable values appear as “-”.'],
   callouts:['Hold the coin and post your message to call it.','Your holding is checked before the call is published.','Use the coin page to join the discussion.'],
-  'community-pilot':['Plan a launch discussion, Day 1 update and Day 7 recap.','Share the exact coin page.','Review and publish each update yourself.','The planner does not move funds or promise rewards.'],
   privacy:['Wallet addresses and on-chain transactions are public.','Review links and details before sharing.','Keep sign-in information and report access tokens private.','Never share a seed phrase or private key.'],
 };
 const aliases={fees:'fees',bonus:'daily-bonus',airdrop:'airdrop-policy',referral:'referrals',rewards:'reward-actions',claims:'reward-actions',x:'x-rewards',coin:'coin-pages',trade:'trading',promotion:'promotions',pricing:'fees','enhanced-page':'enhanced-page'};

@@ -7,7 +7,7 @@ export function showLaunchSuccess({ mint, name, symbol, signature, registered },
   const dialog = document.createElement('dialog'); dialog.id = 'launch-success-dialog'; dialog.className = 'launch-success-dialog';
   dialog.setAttribute('aria-labelledby', 'launch-success-title');
   dialog.setAttribute('aria-describedby', 'launch-success-description');
-  dialog.innerHTML = '<span class="launch-success-icon" aria-hidden="true">✓</span><h2 id="launch-success-title">Token created successfully</h2><p id="launch-success-description"></p><p class="launch-success-registration"></p><div class="launch-success-actions"><a class="primary-button" data-open-token>Open token page →</a><a data-launch-receipt target="_blank" rel="noopener noreferrer">View Solana receipt ↗</a><button type="button" class="secondary-button" data-share-launch>Share launch</button><a href="/#community-pilot" data-launch-pilot>Plan a community pilot →</a><button type="button" class="secondary-button" data-close-launch>Close</button></div>';
+  dialog.innerHTML = '<span class="launch-success-icon" aria-hidden="true">✓</span><h2 id="launch-success-title">Token created successfully</h2><p id="launch-success-description"></p><p class="launch-success-registration"></p><div class="launch-success-actions"><a class="primary-button" data-open-token>Open token page →</a><a data-launch-receipt target="_blank" rel="noopener noreferrer">View Solana receipt ↗</a><button type="button" class="secondary-button" data-share-launch>Share launch</button><button type="button" class="secondary-button" data-close-launch>Close</button></div>';
   dialog.querySelector('#launch-success-description').textContent = `${name} (${symbol}) is confirmed on Solana.`;
   const pending = dialog.querySelector('.launch-success-registration');
   pending.hidden = registered === true;
@@ -19,7 +19,6 @@ export function showLaunchSuccess({ mint, name, symbol, signature, registered },
   const share=dialog.querySelector('[data-share-launch]');
   share.disabled=registered!==true;
   share.title=registered===true?'Review your launch card and message':'Sharing becomes available after directory registration';
-  dialog.querySelector('[data-launch-pilot]').href=`/?pilotMint=${encodeURIComponent(mint)}#community-pilot`;
   share.addEventListener('click',()=>{
     dialog.close();
     openShareComposer({kind:'launch',title:`${name} (${symbol})`,network:'Solana Devnet · test funds',

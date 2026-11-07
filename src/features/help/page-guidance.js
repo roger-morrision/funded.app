@@ -76,11 +76,6 @@ export const pageGuides=[
     ['Inspect exact receipts, source collections, token units, fee/rent details and recipient balance changes. Missing net amounts or proof remain unavailable.',
       'Market volume covers observed activity in the stated window; some registered tokens trade through other apps. It is not necessarily funded.vip-originated volume.',
       'Worker heartbeats describe current readiness. Historical receipts describe past execution. Neither alone proves that every balance or pending obligation has been reconciled.'], '#analytics-detail','Open Analytics'),
-  guide('community-pilot','Community pilot planner','What does the community pilot schedule do?',
-    'The Devnet community pilot builds a local plan around a coin mint and start time: launch discussion, a Day 1 update and a Day 7 recap. It helps organize communication and review recorded participation.',
-    ['Check the exact mint and share its coin page and saved policy. Separate disposable test activity from organic activity in a recap.',
-      'Planning does not send a post, transfer funds or activate an incentive budget. Review and perform each intended action separately.',
-      'No fee refund, bonus rank, buyback or yield is guaranteed by participating.'], '#community-pilot','Open Community pilot'),
   guide('privacy','Privacy and public sharing','What should I check before sharing a page or receipt?',
     'Wallet addresses and finalized Solana transactions are public. Sharing a coin, profile or receipt can expose those public identifiers. Review the exact content and destination before sharing; a connected wallet does not authorize a public post.',
     ['Device preferences, private dashboards, issue access tokens and verified-X account settings have separate access boundaries. Do not paste them into public chat or reports.',
@@ -118,7 +113,7 @@ export function helpTopicForLocation({pathname='/',hash=''}={}) {
     launch:'launch',list:'listing','my-launches':'portfolio',payments:'rewards',referrals:'referral',
     'referral-faq':'referral',airdrops:'airdrop',bonuses:'bonus',buybacks:'buyback',
     'capital-flow':'capital-flow','analytics-detail':'analytics',leaderboard:'leaderboard',
-    'marketing-agency':'marketing-agency',callouts:'callouts','community-pilot':'community-pilot',
+    'marketing-agency':'marketing-agency',callouts:'callouts',
     profile:'settings','creator-settings':'creator-updates',privacy:'privacy',terms:'privacy',
     disclosures:'rewards',paid:'funded',docs:'home'};
   if(routes[route])return routes[route];

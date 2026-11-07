@@ -129,7 +129,7 @@ export function initializeTradeControls(appState) {
 
   // app-source: 755
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !appState.tradeActionBusy && !document.querySelector('#trade-review-dialog')?.open && (!appState.tradePreview || Date.now() - appState.tradePreview.preparedAt >= 12_000)) { appState.invalidateTradePreview(); appState.queueTradeQuote(0); }
+    if (document.visibilityState === 'visible' && !appState.tradeActionBusy && (!appState.tradePreview || Date.now() - appState.tradePreview.preparedAt >= 12_000)) { appState.invalidateTradePreview(); appState.queueTradeQuote(0); }
   });
   // app-source-end
 

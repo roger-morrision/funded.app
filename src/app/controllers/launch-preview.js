@@ -140,10 +140,6 @@ export function createLaunchPreviewController(appState) {
       appState.boostCheckout.message = 'This price expired. Refresh it and review the new amount before paying.';
       appState.renderExploreBoostDialog();
     }
-    if (document.querySelector('#trade-review-dialog')?.open && !appState.currentTradePreview()) {
-      const confirm = document.querySelector('#trade-review-confirm');
-      if (confirm) confirm.textContent = 'Refresh quote';
-    }
     if (!appState.fundedBuyBusy) void appState.refreshFundedBuyQuote?.();
   }
   // app-source-end

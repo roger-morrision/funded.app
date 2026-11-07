@@ -397,22 +397,7 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 721
-  document.querySelector('#trade-submit')?.addEventListener('click', appState.openTradeReview);
-  // app-source-end
-
-  // app-source: 722
-  document.querySelector('#trade-review-close')?.addEventListener('click', () => document.querySelector('#trade-review-dialog')?.close());
-  // app-source-end
-
-  // app-source: 723
-  document.querySelector('#trade-review-cancel')?.addEventListener('click', () => document.querySelector('#trade-review-dialog')?.close());
-  // app-source-end
-
-  // app-source: 724
-  document.querySelector('#trade-review-confirm')?.addEventListener('click', () => {
-    document.querySelector('#trade-review-dialog')?.close();
-    void appState.executeTrade();
-  });
+  document.querySelector('#trade-submit')?.addEventListener('click', appState.requestTradeSignature);
   // app-source-end
 
   // app-source: 727

@@ -181,8 +181,6 @@ export function createTradeStateController(appState) {
     appState.tradePreview = null;
     const retry=document.querySelector('#trade-quote-retry');if(retry)retry.hidden=true;
     document.querySelector('#trade-live-countdown')?.replaceChildren();
-    const reviewDialog = document.querySelector('#trade-review-dialog');
-    if (reviewDialog?.open) reviewDialog.close();
     const quote = document.querySelector('#trade-quote');
     if (quote) quote.textContent = !appState.tradeInputs().valid ? 'Enter a positive amount to calculate the quote.' : !appState.wallet ? 'Connect a signing wallet to calculate an exact trade quote.' : 'Calculating the current route, amount, slippage, and fees.';
     appState.updateTradeActionState();

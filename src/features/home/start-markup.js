@@ -10,7 +10,7 @@ export function mountHomeStart(document=globalThis.document) {
             <a href="#referrals"><span class="home-benefit-value">1%</span><h3>Referral rewards</h3><p>Of collected creator fees funds the three-level referral network. Receive SOL from qualifying invited launches after settlement and funding.</p></a>
             <a href="#marketing-agency"><span class="home-benefit-value">2%</span><h3>AI agents &amp; coin buybacks</h3><p>Funds AI marketing and milestone-based buybacks and burns of the launched coin, after verified funding and readiness checks.</p></a>
           </div>
-          <div class="home-receipts"><div><h3>See where the fees go.</h3><p>Review confirmed payments and their Solana receipts.</p></div><a href="#community-pilot">Plan a community pilot →</a><a href="#payments/history">All payout history <span aria-hidden="true">→</span></a></div>`;
+          <div class="home-receipts"><div><h3>See where the fees go.</h3><p>Review confirmed payments and their Solana receipts.</p></div><a href="#payments/history">All payout history <span aria-hidden="true">→</span></a></div>`;
   // Reuse the original metric nodes and verification logic; no duplicate IDs or counters.
   if(section && !section.querySelector('.home-proof-summary')) {
     const proof=document.createElement('section');proof.className='home-proof-summary';

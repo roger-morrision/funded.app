@@ -1,5 +1,3 @@
-import { mountCommunityPilotPage } from './src/features/experience/community-pilot.js';
-import { APP_CLUSTER, APP_MAINNET_READ_ONLY } from './app-config.js';
 import { mountHomeStart } from './src/features/home/start-markup.js';
 import { mountHomeDiscovery } from './src/features/home/discovery-controls.js';
 import { Buffer } from 'buffer';
@@ -14,7 +12,6 @@ globalThis.Buffer ??= Buffer;
 globalThis.global ??= globalThis;
 mountHomeStart();
 mountHomeDiscovery();
-mountCommunityPilotPage({cluster:APP_CLUSTER,readOnly:APP_MAINNET_READ_ONLY});
 mountLaunchReviewDialog();
 mountCalloutsPage();
 mountFeeFlowCalculator();

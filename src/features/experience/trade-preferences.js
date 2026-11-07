@@ -28,6 +28,6 @@ export function initializeTradePreferences(app){
     if(!form.reportValidity())return;
     const input={slippageCap:Number(slippage.value),maximumNetworkSol:network.value.trim()},next=normalizeTradePreferences(input);
     if(next.maximumNetworkSol!==input.maximumNetworkSol){status.textContent='Enter a positive SOL fee limit below 100 with up to nine decimals, or leave blank.';return;}
-    try{saveDevicePreferences([[KEY,JSON.stringify(next)]]);app.invalidateTradePreview();document.querySelector('#trade-review-dialog')?.close();status.textContent='Limits saved. Any open quote must be reviewed again.';}catch{status.textContent='Limits could not be saved. Check browser storage.';}
+    try{saveDevicePreferences([[KEY,JSON.stringify(next)]]);app.invalidateTradePreview();status.textContent='Limits saved. A fresh quote is required before signing.';}catch{status.textContent='Limits could not be saved. Check browser storage.';}
   }),help,status);form.addEventListener('submit',event=>event.preventDefault());root.append(form);parent.append(root);
 }

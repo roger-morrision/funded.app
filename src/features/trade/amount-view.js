@@ -144,7 +144,7 @@ export function updateTradeAmountLabel(
     button.setAttribute('aria-pressed', String(active));
   });
   const submit = document.querySelector('#trade-submit');
-  if (submit) submit.textContent = side === 'sell' ? 'Approve Sell' : 'Approve Buy';
+  if (submit) submit.textContent = side === 'sell' ? 'Sell in wallet' : 'Buy in wallet';
   renderTradeBalances();
   renderTradeAmountEstimate();
 }

@@ -48,7 +48,6 @@ export async function initializeNavigation(appState) {
 
   // app-source: 855
   const pageRouteTargets = {
-    'community-pilot': '#community-pilot-page',
     launch: '#launch-route-shell',
     list: '#list',
     explore: '#explore',
