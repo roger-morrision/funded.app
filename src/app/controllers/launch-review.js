@@ -36,7 +36,7 @@ export function createLaunchReviewController(appState) {
     const response = await appState.apiRequest('/api/devnet-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', bannerBase64, bannerType: banner?.type || '', signature: appState.bs58.encode(signed.signature || signed) } });
     appState.assertWalletSessionCurrent(session);
     if (!response.available || (response.data?.uri !== devnetLaunchMetadataUri(mint) && !isPinnedMetadataUri(response.data?.uri))) throw new Error(response.data?.error || 'Solana metadata could not be published. No token transaction was sent.');
-    assertMetadataPublication(response.data, response.data.uri);
+    assertMetadataPublication(response.data, response.data.uri,Date.now(),record.cluster);
     if (!Number.isFinite(Date.parse(response.data.symbolReservationExpiresAt))) throw new Error('Ticker reservation could not be verified. No token transaction was sent.');
     return { uri:response.data.uri, symbolReservationExpiresAt:response.data.symbolReservationExpiresAt };
   }
