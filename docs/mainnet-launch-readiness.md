@@ -68,6 +68,32 @@ Historical availability checks and Devnet receipts do not establish current publ
 
 The remaining Mainnet gates are concrete: an independently reviewed and deployed fee router; dedicated audited buyback custody rather than the Devnet executor; a verified community migration snapshot and payable cycle; and Mainnet proof for X, creator, holder, referral, and fee routing with separate credentials and infrastructure. Canonical committed Devnet source and a transferable deployment bundle are now available; the earlier mixed-checkout reconciliation is no longer an outstanding source-delivery gate. That delivery is not an independently reviewed Mainnet release. A Mainnet artifact still requires the exact source revision, immutable application and contract digests, separate Mainnet configuration, and evidence that every gate below has passed.
 
+## Program deployment cost
+
+Program rent scales with the bytes deployed. On 2026-11-07 Devnet and Mainnet both charged 5,080 lamports per byte (`getMinimumBalanceForRentExemption(0)` = 650,240). Estimate any build offline, without keys or cluster access:
+
+```sh
+node scripts/estimate-program-deploy-cost.mjs target/deploy/funded_fee_router.so target/deploy/developer_token_lock.so
+```
+
+Sizes from the pinned toolchain (Rust 1.97.1, Agave 4.1.2, platform-tools v1.54/v1.53) at commit `ef0fca51`:
+
+| Build | Fee router | Token lock | Locked rent (both) |
+| --- | --- | --- | --- |
+| Devnet (`--features devnet-v3-program`) | 1,046 KB | 218 KB | 6.4 SOL |
+| Mainnet (default features) | 835 KB | 218 KB | 5.4 SOL |
+| Mainnet, `opt-level = "z"`, `strip = true` | 699 KB | 205 KB | 4.6 SOL |
+
+Mainnet needs only these two programs. The legacy fee router deployed on Devnet (`FUNDED_FEE_ROUTER_PROGRAM_ID`, 607 KB, about 3.2 SOL) is not part of a V3-only Mainnet. A size-optimized build still has to pass the full program test suite and compute-budget checks, and the reviewed binary is the one that must be deployed.
+
+Cheapest safe procedure:
+
+1. Deploy the exact reviewed binary once; every redeploy or upgrade writes another full-size buffer.
+2. Set `--max-len` to the binary size. Rent is charged on the allocation, so a 2× allocation doubles it; grow later with `solana program extend` when an upgrade needs room.
+3. Hold the locked rent plus one buffer (the largest program) while deploying. The buffer is refunded when the deploy completes. After an interrupted deploy, list leftovers with `solana program show --buffers` and reclaim them with `solana program close --buffers`.
+4. Use a dedicated paid RPC for the upload; a 1 MB program is about 1,000 write transactions (about 0.005 SOL in base fees). Add `--with-compute-unit-price` only if writes stall.
+5. Reclaim operating rent where the program allows: deactivate and close unused address lookup tables, and close emptied per-mint token accounts and vaults.
+
 ## Required before enabling Mainnet
 
 1. Deploy and independently review the fee-router program on Mainnet. Verify its program ID, authority, mint-specific PDA, Pump creator-fee route, and recovery path against Mainnet accounts.
