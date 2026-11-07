@@ -1,0 +1,34 @@
+# Append last when starting an existing frozen release to retain local limits.
+services:
+  app:
+    cpus: 0.75
+    mem_limit: 512m
+    memswap_limit: 512m
+  db:
+    cpus: 0.50
+    mem_limit: 384m
+    memswap_limit: 384m
+  rpc-gateway:
+    cpus: 0.50
+    mem_limit: 256m
+    memswap_limit: 256m
+  agency-buyback-worker:
+    cpus: 0.25
+    mem_limit: 256m
+    memswap_limit: 256m
+  fee-collector:
+    cpus: 0.20
+    mem_limit: 192m
+    memswap_limit: 192m
+  buyback-worker:
+    cpus: 0.15
+    mem_limit: 128m
+    memswap_limit: 128m
+  rpc-cache:
+    cpus: 0.15
+    mem_limit: 256m
+    memswap_limit: 256m
+  tunnel:
+    cpus: 0.10
+    mem_limit: 128m
+    memswap_limit: 128m

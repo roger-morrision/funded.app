@@ -10,6 +10,9 @@ x-rpc-client: &rpc-client
   FUNDED_RPC_GATEWAY_WS_URL: ws://rpc-gateway:8900
 services:
   rpc-gateway:
+    cpus: 0.50
+    mem_limit: 256m
+    memswap_limit: 256m
     image: ${FUNDED_RELEASE_IMAGE:?Set the tested gateway image}
     init: true
     restart: unless-stopped
@@ -34,6 +37,9 @@ services:
       timeout: 5s
       retries: 3
   rpc-cache:
+    cpus: 0.15
+    mem_limit: 256m
+    memswap_limit: 256m
     image: redis:8-alpine
     init: true
     restart: unless-stopped
@@ -42,7 +48,6 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     tmpfs: [/tmp]
-    mem_limit: 256m
     # Only the gateway joins this private network; no host Redis port is exposed.
     networks: [rpc-cache]
     command: [redis-server, --bind, 0.0.0.0, --protected-mode, 'no', --dir, /data, --save, '', --appendonly, 'yes', --appendfsync, everysec, --maxmemory, 128mb, --maxmemory-policy, allkeys-lru]

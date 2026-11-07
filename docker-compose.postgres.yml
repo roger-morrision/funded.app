@@ -1,5 +1,8 @@
 services:
   funded-postgres:
+    cpus: 0.50
+    mem_limit: 384m
+    memswap_limit: 384m
     image: postgres:17-alpine
     container_name: funded-postgres
     restart: unless-stopped

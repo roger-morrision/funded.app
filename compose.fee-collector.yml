@@ -3,6 +3,9 @@ services:
     environment:
       FUNDED_FEE_COLLECTION_PAUSED_MINTS: ${FUNDED_FEE_COLLECTION_PAUSED_MINTS:-}
   fee-collector:
+    cpus: 0.20
+    mem_limit: 192m
+    memswap_limit: 192m
     image: ${FUNDED_APP_IMAGE:?Set the deployed funded.app image}
     restart: unless-stopped
     command: ["node", "scripts/run-fee-collector.mjs"]

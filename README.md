@@ -2,6 +2,27 @@
 
 A Solana Devnet application for launching and discovering tokens, inspecting V3 creator-fee routes, and tracking verified rewards. Mainnet activation is a separate reviewed release.
 
+## Local Docker resource limits
+
+The app Compose files cap the eight-service stack at 2.6 CPU cores and 2,112 MiB RAM in total, with container swap disabled. These are ceilings, not reserved resources. Limits leave headroom above the observed idle usage; sustained-load behavior has not been verified at these limits.
+
+| Service | CPU cores | RAM ceiling |
+| --- | ---: | ---: |
+| App | 0.75 | 512 MiB |
+| PostgreSQL | 0.50 | 384 MiB |
+| RPC gateway | 0.50 | 256 MiB |
+| Agency buyback worker | 0.25 | 256 MiB |
+| Fee collector | 0.20 | 192 MiB |
+| Buyback worker | 0.15 | 128 MiB |
+| Redis | 0.15 | 256 MiB |
+| Tunnel | 0.10 | 128 MiB |
+
+Existing containers also have these limits applied with `docker update`. Recreating containers from an older frozen release can restore its original settings: append `-f compose.resources.yml` last to that release's Compose command for the full eight-service stack. Do not edit immutable release artifacts. Check `docker compose ... config --quiet` before recreating services.
+
+For future standalone Rust build containers, include `--cpus 1 --memory 3g --memory-swap 3g -e CARGO_BUILD_JOBS=1` in `docker run`. Builds will take longer and may need a larger memory ceiling if compilation runs out of memory. Runtime service limits do not limit separate image builds.
+
+Stop containers when unused, then run `docker desktop stop` to release Docker Desktop's VM resources. Starting Docker Desktop alone does not deliberately resume manually stopped services; start the desired services explicitly when needed.
+
 ## Approved referral update
 
 The approved new referral policy totals **1% of gross collected creator fees**:

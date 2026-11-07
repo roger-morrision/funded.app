@@ -1,5 +1,8 @@
 services:
   db:
+    cpus: 0.50
+    mem_limit: 384m
+    memswap_limit: 384m
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -17,6 +20,9 @@ services:
       retries: 10
 
   app:
+    cpus: 0.75
+    mem_limit: 512m
+    memswap_limit: 512m
     init: true
     stop_grace_period: 120s
     build:
@@ -126,6 +132,9 @@ services:
         condition: service_healthy
 
   buyback-worker:
+    cpus: 0.15
+    mem_limit: 128m
+    memswap_limit: 128m
     build: .
     restart: unless-stopped
     command: ["node", "scripts/run-v3-buyback-worker.mjs"]
@@ -142,6 +151,9 @@ services:
         condition: service_healthy
 
   tunnel:
+    cpus: 0.10
+    mem_limit: 128m
+    memswap_limit: 128m
     profiles: ["tunnel"]
     image: cloudflare/cloudflared:latest
     restart: unless-stopped

@@ -3,6 +3,9 @@ services:
     environment:
       FUNDED_V3_AGENCY_BUYBACK_ENABLED: ${FUNDED_V3_AGENCY_BUYBACK_ENABLED:-false}
   agency-buyback-worker:
+    cpus: 0.25
+    mem_limit: 256m
+    memswap_limit: 256m
     profiles: [agency-buyback]
     image: ${FUNDED_RELEASE_IMAGE:?Set the exact tested app image}
     restart: unless-stopped
