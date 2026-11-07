@@ -33,8 +33,7 @@ body.page-route .panel,
 body.page-route .support-card,
 body.page-route .ui-disclosure { background: var(--panel); border-color: var(--line); }
 body.page-route .brand-mark,
-body.page-route-overview .sidebar .brand-mark,
-body.page-route-overview .home-footer-brand .brand-mark {
+body.page-route-overview .sidebar .brand-mark {
   width: 32px;
   height: 32px;
   display: grid;
@@ -168,9 +167,6 @@ body.page-route-overview .home-option-icon,
 body.page-route-overview .home-holder-reward-avatar {
   background: #243149; border-color: #a7743e; color: #ffd28a;
 }
-body.page-route-overview .home-flow-line-main::after { border-left-color: #f4a340; }
-body.page-route-overview .home-flow-router .home-flow-icon { color: #ffd28a; border-color: #a7743e; }
-body.page-route-overview .home-fee-bar i:first-child { background: #f4a340; }
 body.page-route-overview .home-launch-tabs button.active { background: #f4a340; color: #18151c; }
 body:is(.page-route-overview,.page-route-explore) .home-launch-card:hover { border-color: #a7743e; }
 body:is(.page-route-overview,.page-route-explore) .home-launch-progress i { background: linear-gradient(90deg, #8fb2f0, #f4a340); }
@@ -210,8 +206,6 @@ body.page-route .wallet-funded-mark { background: #243149; color: #ffd28a; }
 body.page-route .launch-page-flat .launch-preview .funded-burn-row b { color: #ffd28a; }
 body.page-route .projects-panel .role-icon,
 body.page-route .projects-empty-icon { background: #243149; border-color: #a7743e; color: #ffd28a; }
-body.page-route .projects-public-launches a:is(:hover,:focus-visible),
-body.page-route .projects-list .creator-launch-link:hover { border-color: #a7743e; background: #243149; }
 body.page-route-analytics-detail .analytics-kpis-complete article > small b {
   border-color: #a7743e; background: #243149; color: #ffd28a;
 }
@@ -231,7 +225,6 @@ body.page-route :is(.auto-airdrop-note,.personal-reward-values > div,.reward-rev
 body.page-route :is(.auto-airdrop-note strong,.personal-reward-values strong,.funded-token-amount strong) { color: #f6f2e9; }
 body.page-route .funded-holder-token-rewards header > strong { border-color: #a7743e; color: #ffd28a; }
 body.page-route .funded-token-row:is(:hover,:focus-visible) { background: #243149; }
-body.page-route .reward-review-note { border-left-color: #f4a340; }
 body.page-route .creator-support-page :is(a,.support-shortcuts a),
 body.page-route #notification-dialog article a,
 body.page-route #claim-technical-details summary { color: #8fb2f0; }

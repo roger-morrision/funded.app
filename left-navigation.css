@@ -13,7 +13,6 @@ html body.page-route #sidebar .primary-nav {
   display: block; flex: 1; min-height: 0; width: 100%; overflow-y: auto; overflow-x: hidden;
   padding: 0; overscroll-behavior: contain; scrollbar-width: thin;
 }
-html body.page-route #sidebar .nav-horizontal-only { display: none !important; }
 html body.page-route #sidebar .nav-more-menu { position: static; width: auto; min-width: 0; max-height: none; padding: 0; overflow: visible; border: 0; box-shadow: none; }
 html body.page-route #sidebar .nav-item:focus-visible { outline-offset: -2px; }
 html body.page-route #sidebar .nav-secondary { margin: 14px 0; border-block: 1px solid var(--line); padding-block: 8px; }

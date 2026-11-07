@@ -121,10 +121,6 @@
 .airdrop-directory-card .directory-card-top { padding: 15px; border-bottom: 1px solid #273246; }
 .airdrop-directory-card .claim-token-mark { width: 42px; height: 42px; border: 1px solid #40506b; border-radius: 11px; background: linear-gradient(145deg, #5d4db1, #25395d); color: #fff; }
 .airdrop-directory-card .directory-card-top strong { color: #f2f4f8; font-size: 13px; }
-.airdrop-directory-card .directory-stats { gap: 1px; margin: 0; background: #283347; }
-.airdrop-directory-card .directory-stats > span { min-width: 0; padding: 11px 13px; background: #0e1621; }
-.airdrop-directory-card .directory-stats b { overflow: hidden; color: #eef2f7; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.airdrop-directory-card .directory-progress { margin: 13px 15px 0; }
 .airdrop-directory-card .directory-footer { margin-top: 12px; padding: 0 15px 15px; }
 .airdrop-program-detail { margin-top: 16px; padding: 18px; }
 .airdrop-program-detail[hidden] { display: none; }

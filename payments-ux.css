@@ -3,21 +3,6 @@ body.page-route.page-route-payments #payments #rewards-overview{grid-template-co
 #payments .rewards-page-header{padding-bottom:3px}
 #payments .rewards-page-header h1{letter-spacing:-.045em}
 #payments .rewards-page-header p:last-child{max-width:680px;color:#b2c0d2;line-height:1.6}
-.reward-overview-start{margin:10px 0 15px}
-.reward-overview-start .eyebrow{margin-bottom:7px;color:#f3bd72}
-.reward-overview-start h2{margin:0;color:#f9f5ed;font-size:clamp(1.35rem,2.5vw,1.8rem);letter-spacing:-.035em}
-.reward-overview-start p:last-child{margin:7px 0 0;color:#aebcd0;font-size:13px;line-height:1.5}
-.reward-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.reward-action-grid>a,.reward-action-grid>button{display:flex;align-items:flex-start;gap:12px;min-width:0;min-height:92px;padding:17px;border:1px solid #35435a;border-radius:12px;background:#151e2e;color:#eaf0f8;font:inherit;text-align:left;text-decoration:none;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}
-.reward-action-grid>a:hover,.reward-action-grid>button:hover,.reward-action-grid>a:focus-visible,.reward-action-grid>button:focus-visible{border-color:#88a1d5;background:#1b2941;transform:translateY(-1px);outline:none}
-.reward-action-grid>button:first-child{border-color:#9b7543;background:linear-gradient(120deg,#2a2940,#1b2940)}
-.reward-action-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid #53617c;border-radius:9px;color:#f3c273;font-size:20px;line-height:1}
-.reward-action-grid :is(a,button)>span:nth-child(2){display:grid;gap:6px;min-width:0}
-.reward-action-grid strong{color:#f8f5ef;font-size:14px;line-height:1.3}
-.reward-action-grid small{color:#aebbd0;font-size:12px;line-height:1.45}
-.reward-action-grid b{margin-left:auto;color:#f3c273;font-size:16px;font-weight:400}
-body.page-route-payments #payments .reward-action-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-body.page-route-payments #payments .reward-action-grid>a,body.page-route-payments #payments .reward-action-grid>button{min-height:78px;padding:14px 16px}
 body.page-route-payments #payments #reward-portfolio .reward-portfolio-destinations,body.page-route-payments #payments #reward-portfolio .reward-portfolio-note{display:none}
 body.page-route-payments #payments #reward-portfolio.reward-no-wallet{padding:0;border:0;background:transparent}
 body.page-route-payments #payments #reward-portfolio.reward-no-wallet>header{display:none}
@@ -32,8 +17,6 @@ body.page-route-payments #payments #reward-portfolio.reward-no-wallet .reward-po
 #payments #rewards-funded .funded-claim-link{display:inline-flex;align-items:center;width:max-content;max-width:100%;min-height:42px;margin:16px 0 0;text-decoration:none}
 #payments #rewards-funded .funded-holder-token-rewards{margin-top:14px;border-color:#394961;background:#151e2e}
 #payments #rewards-funded .funded-holder-token-rewards>small{display:none}
-@media(max-width:900px){body.page-route-payments #payments .reward-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){body.page-route-payments #payments .reward-action-grid{grid-template-columns:1fr}.reward-action-grid>a,.reward-action-grid>button{min-height:76px;padding:13px 15px}}
 @media(max-width:760px){#payments #rewards-funded .reward-section-intro{padding:17px}}
 #payments .x-claim-panel{padding:28px!important;border-color:#46546e;border-radius:14px;background:linear-gradient(160deg,#171d30,#131a29 35%,#111925)}
 #payments .x-claim-heading{margin-bottom:22px}
@@ -132,7 +115,6 @@ body.page-route-payments #payments.x-claim-page>.ui-tabs button:focus-visible{ou
   body.page-route-payments #payments.x-claim-page>.ui-tabs button{min-width:0;white-space:normal;text-align:center}
 }
 @media(max-width:400px){body.page-route-payments #payments.x-claim-page>.ui-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
-body.page-route-payments #payments .reward-tab-hint{display:none}
 body.page-route-payments #payments #reward-portfolio.reward-no-wallet{margin:0}
 body.page-route-payments #payments .reward-portfolio-empty{padding:24px;border:1px solid #3a4860;border-radius:8px;background:#171e2c;box-shadow:none}
 body.page-route-payments #payments .reward-portfolio-empty-icon{display:none}
@@ -143,15 +125,6 @@ body.page-route-payments #payments .reward-upcoming-grid{gap:0;border-top:1px so
 body.page-route-payments #payments .reward-upcoming-grid article{padding:17px 18px 5px;border:0;border-radius:0;background:transparent}
 body.page-route-payments #payments .reward-upcoming-grid article+article{border-left:1px solid #334158}
 body.page-route-payments #payments .reward-upcoming-grid h3{font-size:16px}
-body.page-route-payments #payments .reward-overview-start{margin:7px 0 0}
-body.page-route-payments #payments .reward-overview-start h2{font-size:20px}
-body.page-route-payments #payments .reward-action-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-body.page-route-payments #payments .reward-action-grid>a,body.page-route-payments #payments .reward-action-grid>button{min-height:66px;padding:11px 12px;border-color:#344158;border-radius:7px;background:#151d2b;box-shadow:none;transform:none}
-body.page-route-payments #payments .reward-action-grid>button:first-child{border-color:#735d3f;background:#1c2231}
-body.page-route-payments #payments .reward-action-grid :is(a,button):hover{border-color:#d0a362;background:#1b2738}
-body.page-route-payments #payments .reward-action-icon{width:30px;height:30px;border-radius:6px;font-size:17px}
-body.page-route-payments #payments .reward-action-grid strong{font-size:12px}
-body.page-route-payments #payments .reward-action-grid small{font-size:11px}
 
 /* Airdrop eligibility is personal; place its wallet state ahead of the public list. */
 body.page-route-airdrops #airdrops{max-width:1160px;margin-inline:auto}
@@ -183,9 +156,8 @@ body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-c
 body.page-route-airdrops #airdrops .airdrop-public-programs .claim-token-mark{width:42px;height:42px;border:1px solid #907247;box-shadow:none;font-size:13px}
 body.page-route-airdrops #airdrops .airdrop-public-programs .directory-card-top{gap:10px}
 body.page-route-airdrops #airdrops .airdrop-public-programs .directory-card-top .airdrop-status{margin-top:4px;border-radius:3px}
-body.page-route-airdrops #airdrops .airdrop-public-programs .directory-stats{gap:9px}
 body.page-route-airdrops #airdrops .airdrop-public-programs .directory-footer{gap:5px}
 body.page-route-airdrops #airdrops .airdrop-public-programs .directory-footer .directory-claim{min-height:32px;padding:6px 9px}
 body.page-route-airdrops #airdrops .airdrop-public-programs .token-card-more{padding-top:5px}
-@media(max-width:900px){body.page-route-payments #payments .reward-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-card{grid-template-columns:1fr}}
-@media(max-width:760px){body.page-route-payments #payments .reward-tab-hint{display:block;margin:-14px 0 17px;color:#8493a8;font-size:10px;text-align:right}body.page-route-payments #payments .reward-upcoming-grid article{padding:15px 0}body.page-route-payments #payments .reward-upcoming-grid article+article{border-top:1px solid #334158;border-left:0}body.page-route-payments #payments .reward-action-grid{grid-template-columns:1fr}body.page-route-airdrops #airdrops .airdrop-wallet-gate-body{grid-template-columns:1fr}body.page-route-airdrops #airdrops .airdrop-wallet-gate button{grid-column:1;grid-row:auto;width:100%;margin-top:10px}body.page-route-airdrops #airdrops .airdrop-stage-help{font-size:10px}}
+@media(max-width:900px){body.page-route-airdrops #airdrops .airdrop-public-programs .airdrop-directory-card{grid-template-columns:1fr}}
+@media(max-width:760px){body.page-route-payments #payments .reward-upcoming-grid article{padding:15px 0}body.page-route-payments #payments .reward-upcoming-grid article+article{border-top:1px solid #334158;border-left:0}body.page-route-airdrops #airdrops .airdrop-wallet-gate-body{grid-template-columns:1fr}body.page-route-airdrops #airdrops .airdrop-wallet-gate button{grid-column:1;grid-row:auto;width:100%;margin-top:10px}body.page-route-airdrops #airdrops .airdrop-stage-help{font-size:10px}}

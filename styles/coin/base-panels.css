@@ -137,11 +137,7 @@ main.wallet-view>#wallet-page{display:block!important}
 .coin-page .coin-price-path-range b{color:#d3ddea;font-weight:600}
 .coin-page .coin-price-path-times{margin-top:8px;color:#71849e}
 .coin-page .coin-price-path p{margin:12px 0 0;line-height:1.5}
-.coin-page .onchain-snapshot{margin-top:0}
 .coin-page .coin-snapshot-three{grid-template-columns:repeat(3,minmax(0,1fr))}
-.coin-page .onchain-snapshot>div:first-child{border-color:#425481;background:linear-gradient(145deg,#1b2a47,#111a29)}
-.coin-page .onchain-snapshot>div:first-child strong{color:#cbd6ff;font-size:clamp(15px,1.6vw,21px)}
-.coin-page .onchain-snapshot small{color:#8294ad;font-size:10px;line-height:1.45;overflow-wrap:anywhere}
 .coin-page .coin-curve-track{display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin-top:15px;padding:15px 2px 2px;border-top:1px solid #29384b}
 .coin-page .coin-curve-track span{color:#8d9bae;font-size:10px}
 .coin-page .coin-curve-track strong{color:#c4ead9;font:11px 'DM Mono',monospace}

@@ -1,5 +1,4 @@
 /* Shared visual language for the index and protocol pages. Data and wallet state stay in app.js. */
-.nav-horizontal-only { display: none; }
 .header-search-trigger { display: none; place-items: center; width: 35px; height: 35px; flex: 0 0 35px; padding: 0; border: 1px solid #303940; border-radius: 2px; background: #0c1014; color: #b9c7d0; font-size: 22px; cursor: pointer; }
 .header-search-trigger:hover, .header-search-trigger:focus-visible { color: #ffc270; border-color: #f4a340; }
 .header-search-dialog { width: min(540px, calc(100vw - 28px)); max-width: none; max-height: calc(100dvh - 28px); margin: min(18vh, 150px) auto auto; padding: 0; border: 1px solid #344139; border-radius: 3px; background: #101519; color: #e6e9ed; box-shadow: 0 24px 80px #000b; }

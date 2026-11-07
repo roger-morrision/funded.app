@@ -38,7 +38,6 @@ body.page-route-leaderboard #leaderboard-table[data-view="creators"] .leaderboar
 body.page-route-leaderboard #leaderboard-table[data-view="creators"] .leaderboard-row > span:nth-child(4) b { color: #e1e9f6; font: 500 10px 'DM Mono',monospace; }
 body.page-route-leaderboard #leaderboard-table[data-view="creators"] .leaderboard-row > span:nth-child(4) small { margin-top: 3px; color: #748297; font-size: 8px; }
 body.page-route-leaderboard .leaderboard-grid { margin-top: 18px; }
-body.page-route-leaderboard .leaderboard-podium-panel { padding: 18px 24px; }
 body.page-route-leaderboard .source-note { color: #8a969f; }
 @media(max-width:430px){
   html body.product-experience-ready.page-route-leaderboard .leaderboard-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible}
@@ -58,5 +57,3 @@ body.page-route-airdrops .airdrop-directory-head { padding: 6px 0 14px; }
 body.page-route-airdrops .airdrop-directory-card,
 body.page-route-airdrops .airdrop-analytics-card,
 body.page-route-airdrops .claim-toolbar { border-radius: 2px; background: #101419; border-color: var(--line); }
-body.page-route-airdrops .directory-progress { background: #253028; }
-body.page-route-airdrops .directory-progress i { background: #f4a340; }

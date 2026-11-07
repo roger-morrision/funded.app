@@ -95,7 +95,6 @@ html body.product-experience-style .explore-stage-filter { flex-wrap: wrap; }
 html body.product-experience-style .explore-stage-filter button { white-space: normal; min-height: 40px; }
 html body.product-experience-style :is(.scanner-head,.scanner-row) { grid-template-columns: 28px minmax(260px,1.7fr) 100px 100px 70px 65px 100px 75px 95px 100px 80px; }
 html body.product-experience-style .scanner-head { color: var(--muted); font-size: 11px; line-height: 1.4; letter-spacing: 0; }
-html body.product-experience-style .quote-assets-panel .panel-explainer { max-width: 65ch; }
 html body.product-experience-style .creator-burn-tiers { grid-template-columns: repeat(3,minmax(0,1fr)); }
 html body.product-experience-style .creator-burn-card { min-width: 0; padding: 14px; }
 html body.product-experience-style .creator-burn-card :is(small,em) { font-size: 12px; line-height: 1.5; }
@@ -279,8 +278,6 @@ html body.product-experience-style .top-actions .platform-x-topbar { display: no
 }
 
 /* Card labels use the same reading weight as the surrounding workspace. */
-html body.product-experience-style #main-content .reward-action-grid strong { font-weight: 600; }
-html body.product-experience-style #main-content .reward-action-grid small { font-weight: 400; color: var(--muted); }
 
 /* Listing and token information reuse the workspace's quiet panel treatment. */
 html body.product-experience-style #main-content :is(.list-form-card,.funded-token-story article) {

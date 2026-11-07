@@ -168,13 +168,6 @@
 }
 .recipients-panel .solana-explorer-link svg { width: 20px; height: 20px; }
 .recipients-panel .solana-explorer-link img { width: 20px; height: 20px; }
-.recipients-panel .payment-row > .recent-recipient-identity {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-}
 .recipients-panel .recent-payout-time {
   display: block;
   flex-basis: 100%;

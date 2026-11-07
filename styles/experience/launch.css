@@ -92,10 +92,6 @@
 .launch-page-flat .step-heading > span { display: block; color: #6fa8b8; font: 700 9px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
 .launch-page-flat .step-heading h3 { margin: 6px 0 5px; font-size: 19px; }
 .launch-page-flat .enhanced-token-page { margin-top: 16px; padding: 18px; border: 1px solid #9a6d36; border-radius: 10px; background: linear-gradient(145deg, #111b2e, #111b2e); }
-.launch-page-flat .enhanced-token-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.launch-page-flat .enhanced-token-page-head span { color: #ffd28a; font: 700 10px 'DM Mono', monospace; letter-spacing: .06em; text-transform: uppercase; }
-.launch-page-flat .enhanced-token-page-head h4 { margin: 5px 0 0; color: #f1f6f3; font-size: 17px; }
-.launch-page-flat .enhanced-token-page-head b { padding: 5px 8px; border: 1px solid #9a6d36; border-radius: 5px; background: #26354d; color: #ffd28a; font: 700 9px 'DM Mono', monospace; }
 .launch-page-flat .enhanced-token-page > p { margin: 10px 0 0; color: #94aa9f; font-size: 12px; line-height: 1.55; }
 .launch-page-flat .enhanced-token-page .launch-page-fields { margin-top: 15px; }
 .launch-funding-section { padding: 0 0 18px; border: 0; border-bottom: 1px solid #263943; border-radius: 0; background: transparent; }
@@ -126,7 +122,6 @@ body.page-route-launch .launch-page-flat .launch-tier-first .creator-burn-card >
 .launch-page-flat .launch-fee-options > h3 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 15px; color: #edf4f4; font-size: 13px; font-weight: 800; }
 .launch-page-flat .launch-fee-options > h3 span { flex: 1; color: #91aab3; font-size: 11px; font-weight: 500; text-align: right; }
 .launch-page-flat .launch-fee-options-body { padding: 0 15px 15px; border-top: 1px solid #2d4650; }
-.launch-page-flat .launch-fee-options .benefit-grid { margin: 14px 0; }
 #custom-policy #fee-distribution-status.funded-mint-invalid {
   margin: 12px 0 0;
   padding: 12px 14px;
@@ -137,7 +132,6 @@ body.page-route-launch .launch-page-flat .launch-tier-first .creator-burn-card >
   font-size: 13px;
   line-height: 1.5;
 }
-.launch-page-flat .benefit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .launch-page-flat .coin-fields { margin-top: 0; }
 .launch-page-flat .image-picker { border-color: #35515c; background: #0b1b20; }
 .launch-page-flat .social-section { border-color: #263943; }
@@ -191,8 +185,6 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
 .launch-token-preview-card .preview-title, .launch-token-preview-card .preview-title strong, .launch-token-preview-card .preview-title span { min-width: 0; overflow-wrap: anywhere; }
 .launch-token-preview-card > p { min-height: 34px; margin: 0; padding: 0 12px 12px; color: #8ba2aa; font-size: 10px; line-height: 1.45; }
 .launch-page-flat .launch-preview .cost-summary { min-width: 0; max-width: 100%; margin: 0; border: 0; border-bottom: 1px solid #263943; border-radius: 0; background: transparent; }
-.launch-page-flat .launch-preview .cost-summary-head span { color: #f0f2f6; font-size: 13px; font-weight: 800; text-transform: uppercase; }
-.launch-page-flat .launch-preview .cost-summary-head strong { padding: 4px 7px; border: 1px solid #26354d; border-radius: 4px; color: #ffd28a; font: 700 9px 'DM Mono', monospace; letter-spacing: .08em; }
 .community-airdrop-highlight { margin: 12px 0 15px; padding: 14px; border: 1px solid #9a6d36; border-radius: 8px; background: linear-gradient(135deg, #111b2e, #162339); box-shadow: inset 3px 0 #ffd28a; }
 .community-airdrop-highlight > span { display: block; margin-bottom: 6px; color: #ffd28a; font: 700 9px 'DM Mono', monospace; letter-spacing: .09em; }
 .community-airdrop-highlight > strong { display: flex; align-items: baseline; gap: 7px; color: #f2f7f4; font-size: 14px; }
@@ -225,7 +217,6 @@ body.page-route-launch .launch-page-flat .launch-preview-panel { display: none; 
 .launch-enhanced-preview > div:first-child span { color: #ffd28a; font: 700 9px 'DM Mono', monospace; text-transform: uppercase; }
 .launch-enhanced-preview > div:first-child b { color: #ffd28a; font: 700 8px 'DM Mono', monospace; }
 .launch-enhanced-preview > strong { display: block; margin: 9px 0 12px; color: #edf3ef; font-size: 12px; line-height: 1.45; }
-.launch-enhanced-preview .preview-quality { margin: 0; padding: 0; border: 0; background: transparent; }
 .launch-page-flat .launch-submit-row { display: flex; justify-content: flex-end; margin-top: 18px; padding-top: 18px; border-top: 1px solid #273246; }
 .launch-page-flat .launch-submit-row .primary-button { min-width: 210px; }
 .launch-review-submit { margin-top: 18px; padding-top: 18px; border-top: 1px solid #263943; }

@@ -33,7 +33,6 @@ html body #main-content #payments .reward-program-guide { gap:10px;padding:16px;
 html body #main-content #payments .reward-program-guide > h2 { padding:0 0 4px; }
 html body #main-content #payments .reward-program-guide > article { padding:14px;border-radius:8px; }
 html body #main-content #payments .reward-program-asset { display:inline-block;margin:0 0 10px;padding:3px 7px;border:1px solid var(--cp-line-strong);border-radius:4px;color:var(--cp-accent);font-size:11px; }
-html body #main-content #payments .reward-program-guide .reward-program-delivery { margin-top:8px;padding-top:8px;border-top:1px solid var(--cp-line);font-size:12px; }
 html body #main-content #payments .payment-history-filters { align-items:end;gap:12px; }
 html body #main-content #payments .payment-history-filters :is(input,select,button) { min-height:44px; }
 html body #main-content #payments .x-claim-dashboard { gap:10px; }

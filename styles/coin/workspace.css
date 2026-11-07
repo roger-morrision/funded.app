@@ -28,8 +28,6 @@
 .coin-page .coin-package-chip{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-height:43px;margin:0;padding:6px 8px;border:1px solid #8b6838;border-radius:7px;background:#192133;color:#f5d69a;text-align:left;text-decoration:none;cursor:pointer}
 .coin-page .coin-package-chip:hover,.coin-page .coin-package-chip:focus-visible{border-color:#f4a340;background:#26354d;color:#fff;outline-offset:2px}
 .coin-page .coin-package-chip--promotion{border-color:#6f5b91;background:#211c35;color:#dfcaff}
-.coin-page .coin-package-chip--promotion.is-boost{border-color:#317c89;background:#103239;color:#a8eff2}
-.coin-page .coin-package-chip--promotion.is-premier{border-color:#ac8236;background:#352919;color:#ffe1a0}
 .coin-page .coin-package-chip--boost.is-active{border-color:#d39a42;background:#342915}
 .coin-page .coin-package-bag{position:relative;display:grid;flex:0 0 27px;place-items:center;width:27px;height:27px}
 .coin-page .coin-package-bag svg{width:27px;height:27px;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}

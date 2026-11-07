@@ -30,12 +30,6 @@ body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-
   padding: 7px 10px;
 }
 body.page-route-my-launches .home-launch-card-actions { flex-wrap: wrap; }
-body.page-route-my-launches .home-launch-evidence {
-  display: block;
-  margin: 5px 10px 8px;
-  color: #87939f;
-  font: 9px 'DM Mono', monospace;
-}
 body.page-route-my-launches .home-launch-card-actions .token-card-action-trade {
   min-height: 36px;
   padding: 7px 10px;

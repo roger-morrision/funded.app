@@ -120,8 +120,6 @@
 .asset-actions a:hover,.asset-actions button:hover { filter:brightness(1.18); }
 .explore-scanner { margin-top:35px!important; }
 .scanner-note { max-width:480px; margin:0; color:#7f8ea3; font-size:10px; line-height:1.5; }
-.registry-order button:disabled { opacity:.42; cursor:not-allowed; }
-.explore-scanner .registry-toolbar { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:12px; }
 .scanner-scroll { position:relative; overflow-x:auto; border:1px solid #293648; border-radius:10px; background:#101720; }
 .scanner-scroll:focus-visible { outline:3px solid #a8d9bc; outline-offset:3px; }
 .scanner-scroll-help { margin:8px 0 12px; color:#b8c8bf; font-size:12px; line-height:1.5; }
@@ -137,7 +135,6 @@
 .scanner-token strong { font:700 11px Manrope,sans-serif; color:#f1f5fb; }
 .scanner-token strong small { display:inline; margin-left:5px; color:#93a3b8; font-weight:400; }
 .scanner-token>span:last-child>small,.scanner-stage small { margin-top:3px; color:#718198; font-size:9px; }
-.scanner-token>span:last-child>.scanner-authorities { color:#b7a882; }
 .scanner-stage strong { color:#b8e4d3; font-size:10px; }
 .scanner-metric { white-space:nowrap; }
 .scanner-metric strong,.scanner-metric small { display:block; font-weight:500; }
@@ -171,7 +168,6 @@
   .explore-pulse { overflow-x:auto; }
   .explore-heading .heading-actions { justify-content:flex-start; }
   .explore-checked { margin-left:0; }
-  .explore-scanner .registry-toolbar { align-items:flex-start; flex-direction:column; }
   .explore-search-row { margin-top:2px; }
   .explore-page .live-label { width:100%; margin-left:0; }
 }

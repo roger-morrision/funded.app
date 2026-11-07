@@ -1,15 +1,11 @@
 /* Put live launch discovery in the first desktop viewport. */
 .public-discovery { margin: 0 0 20px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
-.public-discovery-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
-.public-discovery-heading h2 { margin: 0 0 4px; font-size: 21px; }
-.public-discovery-heading p:not(.eyebrow) { margin: 0; color: var(--muted); font-size: 13px; }
-.public-discovery-heading > a { flex: 0 0 auto; color: var(--text); font-size: 13px; }
 .public-discovery-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
 .public-discovery-list a { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); text-decoration: none; }
 .public-discovery-list span, .public-discovery-list code { color: var(--muted); font-size: 11px; }
 .public-discovery-list a:hover, .public-discovery-list a:focus-visible { border-color: var(--blue); }
 .public-discovery-empty { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
-@media (max-width: 600px) { .public-discovery-heading { align-items: start; flex-direction: column; } .public-discovery-list { flex-wrap: nowrap; overflow-x: auto; } .public-discovery-list li { flex: 0 0 auto; } }
+@media (max-width: 600px) { .public-discovery-list { flex-wrap: nowrap; overflow-x: auto; } .public-discovery-list li { flex: 0 0 auto; } }
 
 @media (min-width: 901px) {
   body.page-route-overview.product-experience-style .hero-section {
@@ -56,7 +52,6 @@ body.page-route-launch .launch-pay-summary :is(.cost-initial-buy-row, .cost-netw
 .home-launch-progress[hidden] { display: none !important; }
 
 @media (max-width: 700px) {
-  html body.page-route-overview .hero-section { min-height: 0 !important; padding-bottom: 12px !important; }
   html body.page-route-overview .home-launch-toolbar { gap: 5px 8px; padding: 6px 0 8px; }
   html body.page-route-overview .home-launch-tabs { display: flex; flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; max-width: calc(100vw - 34px); gap: 5px; margin: 0; padding-bottom: 2px; scrollbar-width: thin; }
   html body.page-route-overview .home-launch-tabs button { flex: 0 0 auto; }

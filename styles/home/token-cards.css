@@ -33,9 +33,6 @@ body.page-route-overview :is(.home-board-sort, #home-feed-pause, .home-feed-sett
 body.page-route-overview .paid-listing-card .home-launch-card-addresses { grid-template-columns: minmax(0, 1fr); }
 body.page-route-overview .paid-listing-card .home-launch-card-addresses span:last-child,
 body.page-route-overview .paid-listing-card .home-launch-card-addresses span:last-child code { text-align: left; }
-body.page-route-overview .paid-listing-verification { display: grid; gap: 5px; margin: 4px 10px 14px; padding-top: 10px; border-top: 1px solid #263039; }
-body.page-route-overview .paid-listing-verification strong { color: #ffd28a; font: 700 11px 'DM Mono', monospace; }
-body.page-route-overview .paid-listing-verification span { color: #98a6a3; font: 10px 'DM Mono', monospace; }
 body.page-route-overview .paid-listing-proof { color: #ffd28a; font: 700 10px 'DM Mono', monospace; text-decoration: none; }
 body.page-route-overview .paid-listing-proof:hover { text-decoration: underline; }
 body.page-route-overview .paid-listing-proof:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
@@ -53,7 +50,6 @@ body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .home-token-avatar { width: 100%; height: 100%; border: 0; border-radius: 0; color: #e9e1cf; background: transparent; font-size: 64px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .home-token-avatar img { width: 100%; height: 100%; border-radius: 0; object-fit: cover; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-stage { position: absolute; top: 8px; right: 8px; max-width: calc(100% - 16px); padding: 4px 6px; overflow: hidden; border: 1px solid #9a6d36; background: #111b2ec9; color: #ffd28a; font: 700 8px 'DM Mono', monospace; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-badges { position: absolute; z-index: 2; right: 8px; bottom: 8px; left: 8px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 4px; pointer-events: none; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-package { display: inline-flex; min-width: 0; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-package .promotion-badge,
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-package-standard { padding: 3px 5px; border: 1px solid #536075; border-radius: 2px; color: #f1f5fa; background: #111b2eea; font: 700 8px 'DM Mono', monospace; text-decoration: none; white-space: nowrap; }
@@ -61,7 +57,6 @@ body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-package .promotion-badge--boost { border-color: #317c89; color: #9de7ef; background: #103239e8; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-package .promotion-badge--pro { border-color: #7952aa; color: #d6b5ff; background: #2c1b46e8; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-package .promotion-badge--premier { border-color: #ac8236; color: #ffe1a0; background: #493018e8; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-media-boost { margin-left: auto; padding: 3px 5px; border: 1px solid #e4a448; border-radius: 2px; color: #ffdd9c; background: #372313e8; font: 700 8px 'DM Mono', monospace; white-space: nowrap; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-top { display: block; margin: 0 10px 7px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-token-identity { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: baseline; gap: 6px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-token-identity strong { color: #e9edef; font-size: 13px; }
@@ -126,7 +121,6 @@ body.page-route-explore .home-launch-card .home-launch-card-addresses code { fon
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-fee-route { white-space: normal; overflow: visible; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card .home-launch-fee-route span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 body.page-route-explore .home-launch-card .home-launch-fee-route { font-size: 11px; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-meta { margin: 6px 10px 0; color: #87939f; font-size: 9px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin: auto 10px 0; padding-top: 8px; border-top: 1px solid #263039; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions button { border-color: #f4a340; border-radius: 0; background: #26354d; color: var(--home-green); }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-actions button[data-boost-mint] { margin-left: auto; }

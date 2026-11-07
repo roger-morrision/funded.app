@@ -1,6 +1,5 @@
 /* Explore: compact discovery controls and continuously moving trends. */
 .page-route-explore .explore-ticker {
-  display: grid !important;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 14px;

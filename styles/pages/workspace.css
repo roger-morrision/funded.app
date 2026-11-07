@@ -29,6 +29,4 @@ body.page-route-my-launches .projects-public-launches a:hover { border-color: #9
 body.page-route-payments .reward-entry-grid small { color: #e9e1cf; }
 body.page-route-my-launches .projects-empty-icon,
 body.page-route-my-launches .projects-panel .role-icon { border-color: #9a6d36; border-radius: 3px; background: #26354d; color: #ffd28a; }
-body.page-route-my-launches .projects-public-launches a,
-body.page-route-my-launches .projects-list .creator-launch-link { border-color: #2b3630; border-radius: 2px; background: #111b2e; }
 body.page-route-analytics-detail .analytics-kpis-complete article > small b { border-color: #9a6d36; border-radius: 2px; background: #26354d; color: #e9e1cf; }

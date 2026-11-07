@@ -60,8 +60,6 @@ body.page-route-airdrops .airdrop-section > .section-heading h1 { font-size: 34p
   body.page-route-airdrops .airdrop-public-programs .airdrop-directory-head { align-items: stretch; flex-direction: column; }
   body.page-route-airdrops .airdrop-public-programs .airdrop-directory-tools input { width: 100%; }
   body.page-route-airdrops .airdrop-public-programs .airdrop-directory-card { grid-template-columns: 1fr; gap: 12px; }
-  body.page-route-airdrops .airdrop-public-programs .directory-stats { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 0; padding-top: 12px; border-top: 1px solid var(--line); }
-  body.page-route-airdrops .airdrop-public-programs .directory-stats b { white-space: normal; overflow-wrap: anywhere; }
   body.page-route-airdrops .airdrop-public-programs .directory-footer { flex-direction: row; align-items: end; justify-content: space-between; gap: 12px; margin: 0; padding-top: 12px; border-top: 1px solid var(--line); text-align: left; }
   body.page-route-airdrops .airdrop-public-programs .directory-footer button { width: auto; min-width: 112px; min-height: 40px; }
   body.page-route-airdrops .airdrop-reference-flow { grid-template-columns: 1fr; }
@@ -75,7 +73,6 @@ body.page-route-airdrops .airdrop-section > .section-heading h1 { font-size: 34p
   body.page-route-wallet .wallet-detail-stats strong { font-size: 16px; }
 }
 @media (max-width: 440px) {
-  body.page-route-airdrops .airdrop-public-programs .directory-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
   body.page-route-airdrops .airdrop-public-programs .directory-footer { align-items: stretch; flex-direction: column; }
   body.page-route-airdrops .airdrop-public-programs .directory-footer button { width: 100%; }
 }

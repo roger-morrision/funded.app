@@ -29,6 +29,4 @@ html body.page-route-overview #home-activity-coverage { min-block-size:0;margin:
 #coin-market-status button { min-height:44px; }
 @media(max-width:600px){ .reward-status-guide > div { grid-template-columns:1fr; } #home-discovery-controls button { font-size:12px;padding:8px 10px; } }
 
-.participation-note { display:block;padding-top:8px;font-size:12px;color:var(--cp-muted,#a7b4ca); }
-
 body.page-route-community-pilot #community-pilot-page:not([hidden]){display:block!important;padding:24px;max-width:960px;margin:auto}#community-pilot-page[hidden]{display:none!important}

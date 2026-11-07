@@ -38,13 +38,10 @@ body.page-route-airdrops .airdrop-public-programs .directory-card-top strong { f
 body.page-route-airdrops .airdrop-public-programs .directory-card-top strong a { color: #e8eee9; text-decoration: none; }
 body.page-route-airdrops .airdrop-public-programs .directory-card-top strong a:hover { color: #ffd28a; }
 body.page-route-airdrops .airdrop-public-programs .directory-card-top .airdrop-status { display: inline-block; margin-top: 7px; padding: 4px 6px; border: 1px solid #645b31; border-radius: 0; background: #302b1a; color: #d2bf79; font: 700 9px 'DM Mono',monospace; }
-body.page-route-airdrops .airdrop-public-programs .directory-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 0; background: transparent; }
-body.page-route-airdrops .airdrop-public-programs .directory-stats > span { padding: 0; background: transparent; }
 body.page-route-airdrops .airdrop-public-programs .directory-stats small,
 body.page-route-airdrops .airdrop-public-programs .directory-footer small { display: block; margin-bottom: 5px; color: #718087; font: 700 9px 'DM Mono',monospace; letter-spacing: .05em; text-transform: uppercase; }
 body.page-route-airdrops .airdrop-public-programs .directory-stats b,
 body.page-route-airdrops .airdrop-public-programs .directory-footer b { color: #cbd5ce; font: 700 10px 'DM Mono',monospace; }
-body.page-route-airdrops .airdrop-public-programs .directory-progress { display: none; }
 body.page-route-airdrops .airdrop-public-programs .directory-footer { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin: 0; padding: 0; text-align: right; }
 body.page-route-airdrops .airdrop-public-programs .directory-footer button { min-height: 30px; white-space: nowrap; }
 body.page-route-airdrops .airdrop-directory-pagination { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 4px; color: #84939b; font: 700 10px 'DM Mono',monospace; letter-spacing: .03em; }

@@ -3,14 +3,15 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-const BUDGET = { files: 126, important: 454, hexColors: 2908 };
+const BUDGET = { files: 125, important: 454, hexColors: 2664 };
 
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '*.css'], { encoding: 'utf8' })
   .split('\n').filter(path => path && !/^(dist|dist-mainnet-readonly|node_modules|public\/vendor)\//.test(path));
 let important = 0;
 const hexColors = new Set();
 for (const path of files) {
-  const source = readFileSync(path, 'utf8');
+  // Count declarations and colors, not comments (a policy note mentioning !important is not a use).
+  const source = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   important += source.match(/!important/g)?.length || 0;
   for (const color of source.match(/#[0-9a-fA-F]{6}\b/g) || []) hexColors.add(color.toLowerCase());
 }

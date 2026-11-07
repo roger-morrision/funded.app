@@ -53,9 +53,6 @@ body.page-route-buybacks .burn-tier-card .burn-tier-row:nth-child(3) i em { back
 body.page-route-buybacks .burn-tier-card .burn-tier-row:nth-child(4) i em { background: #c18bd4; }
 body.page-route-buybacks .burn-tier-card .field-help { margin-top: 17px; line-height: 1.6; }
 body.page-route-docs .workspace-shortcuts { grid-column: 1 / -1; width: 100%; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1px; border: 1px solid var(--line); background: var(--line); }
-body.page-route-docs .docs-reference-heading { grid-column: 1 / -1; padding: 24px 0 8px; border-bottom: 1px solid var(--line); }
-body.page-route-docs .docs-reference-heading h1 { margin: 0; font-size: clamp(38px,5vw,64px); font-weight: 900; letter-spacing: -.06em; }
-body.page-route-docs .docs-reference-heading p:last-child { color: var(--muted); margin: 8px 0 16px; }
 body.page-route-docs #docs { display: block !important; padding-top: 8px; }
 body.page-route-docs .docs-guide-layout { display: grid; grid-template-columns: 230px minmax(0,1fr); gap: 32px; min-height: 560px; }
 body.page-route-docs .docs-guide-nav { display: flex; flex-direction: column; align-items: stretch; padding: 6px 14px 0 0; border-right: 1px solid var(--line); }

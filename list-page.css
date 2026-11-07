@@ -126,17 +126,6 @@ body.page-route-list .list-pay-button:disabled { cursor: not-allowed; opacity: .
 .list-live-items strong, .list-live-items code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-live-items code { color: var(--muted); font-size: 11px; }
 .list-live-items small { color: var(--muted); font-size: 12px; line-height: 1.5; }
-body.page-route-list .list-footer { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 32px; margin-top: 72px; padding: 32px 0 0; border-top: 1px solid #30373b; color: #7f8a8e; }
-.list-footer-brand > a { margin: 0; color: #edf2ef; font-size: 22px; font-weight: 800; letter-spacing: -.06em; text-decoration: none; }
-.list-footer-brand p { max-width: 310px; margin: 14px 0 0; font-size: 12px; line-height: 1.7; }
-.list-footer nav { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 18px; align-content: start; }
-.list-footer nav strong { grid-column: 1 / -1; margin-bottom: 6px; color: #e3e9e4; font: 700 10px 'DM Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
-body.page-route-list .list-footer a { margin-left: 0; color: #98a5a2; font-size: 12px; text-decoration: none; }
-body.page-route-list .list-footer a:hover { color: #ffd28a; }
-body.page-route-list .list-footer .list-footer-brand > a { color: #edf2ef; font-size: 22px; }
-.list-footer-bottom { display: flex; justify-content: space-between; gap: 16px; grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid #252d30; color: #6f7b7f; font: 10px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .04em; }
-body.page-route-list .list-footer .list-footer-bottom a { font: inherit; }
-.list-footer-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .list-review { width: min(520px, calc(100vw - 32px)); padding: 26px; border: 1px solid #39443b; background: #101419; color: #eef2ef; }
 .list-review::backdrop { background: #000b; }
 .list-review h2 { margin: 0 0 12px; font-size: 26px; }
@@ -164,7 +153,4 @@ body.page-route-list .list-footer .list-footer-bottom a { font: inherit; }
   .list-steps li + li { border-left: 0; border-top: 1px solid #293037; padding-left: 0; }
   .list-token-fields { grid-template-columns: 1fr; }
   .list-live-items { grid-template-columns: 1fr; }
-  body.page-route-list .list-footer { grid-template-columns: 1fr; gap: 28px; margin-top: 52px; }
-  .list-footer nav { max-width: 420px; }
-  .list-footer-bottom { flex-wrap: wrap; }
 }

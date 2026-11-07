@@ -171,10 +171,6 @@ body.page-route-paid .paid-hero-mark {
   font-size: 0 !important; text-shadow: none !important;
   background: url('/wolf-mark.svg') center / contain no-repeat !important;
 }
-body.page-route-paid .funded-token-footer-brand > span {
-  display: inline-block; width: 30px; height: 30px; font-size: 0;
-  background: url('/wolf-mark.svg') center / contain no-repeat;
-}
 
 /* Put the transaction controls first; the queue and older proof remain available on demand. */
 body.page-route #buybacks .concise-buyback-queue,

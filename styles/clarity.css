@@ -62,13 +62,7 @@ html body #main-content .home-launch-progress-row[data-progress-state='loading']
 .technical-notice-stack { position: fixed; z-index: 30; right: var(--fv-space-4); bottom: 60px; display: grid; gap: var(--fv-space-2); width: min(360px, calc(100vw - 2 * var(--fv-space-4))); pointer-events: none; }
 .technical-notice { pointer-events: auto; padding: var(--fv-space-3) var(--fv-space-4); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: var(--fv-surface-raised); box-shadow: 0 12px 32px #0008; color: var(--fv-text); font: 13px/1.45 var(--fv-font-ui); }
 .technical-notice[hidden] { display: none; }
-.technical-notice-error { border-color: var(--fv-danger); }
-.technical-notice-head { display: flex; align-items: center; justify-content: space-between; gap: var(--fv-space-3); }
-.technical-notice-head strong { font-size: 14px; }
-.technical-notice-error .technical-notice-head strong { color: var(--fv-danger); }
 .technical-notice p { margin: var(--fv-space-1) 0 0; color: var(--fv-text-muted); }
-.technical-notice-close { min-width: 32px; min-height: 32px; border: 0; border-radius: var(--fv-radius-sm); background: transparent; color: var(--fv-text-muted); font-size: 18px; cursor: pointer; }
-.technical-notice-close:hover { background: var(--fv-accent-soft); color: var(--fv-text); }
 .technical-notice details { margin-top: var(--fv-space-2); color: var(--fv-text-subtle); font-size: 12px; }
 .technical-notice summary { cursor: pointer; color: var(--fv-accent); }
 .technical-notice ul { margin: var(--fv-space-2) 0 0; padding-left: var(--fv-space-4); }
@@ -80,19 +74,13 @@ html:has(.technical-notice-stack .technical-notice.is-compact:not([hidden])) { s
   /* Keep keyboard focus clear of the notice pill as well as the bottom navigation. */
   html:has(body.page-route:not(.page-route-admin)):has(.technical-notice-stack .technical-notice:not([hidden])) { scroll-padding-bottom: calc(var(--mobile-bottom-height, 72px) + 64px); }
   /* The status summary sits in the page flow under the topbar (technical-notices.js). */
-  .technical-notice-inline { display: flex; justify-content: flex-end; padding: var(--fv-space-2) var(--fv-space-4) 0; }
-  .technical-notice-inline:not(:has(> .technical-notice:not([hidden]))) { display: none; }
-  .technical-notice-inline .technical-notice { width: 100%; box-shadow: none; }
-  .technical-notice-inline .technical-notice.is-compact { width: auto; }
   /* Home hero is a two-column grid on phones; give the third CTA the full row instead of a lone half-width wrapped button. */
   html body.page-route-overview #main-content .hero-actions > [data-launch-for-x] { grid-column: 1 / -1; }
   /* Explore on phones: the title says enough; drop the lede so the first coin starts higher. */
   html body.page-route-explore .explore-hero .explore-lede { display: none; }
 }
 [data-technical-value]::after { content: '-'; font-size: var(--fv-cell-size, 1rem); color: var(--fv-text-muted); font-weight: 500; }
-.technical-notice-title { padding: 0; border: 0; background: none; color: inherit; font: 700 14px var(--fv-font-ui); text-align: left; cursor: pointer; }
 .technical-notice.is-compact { justify-self: end; padding: var(--fv-space-1) var(--fv-space-1) var(--fv-space-1) var(--fv-space-3); border-radius: 999px; }
-.technical-notice.is-compact .technical-notice-title { font-size: 12px; font-weight: 600; color: var(--fv-text-muted); }
 .technical-notice.is-compact p, .technical-notice.is-compact details { display: none; }
 
 /* Token card: one layout everywhere (launch-card-view.js). Benchmarked on
@@ -108,8 +96,6 @@ html body #main-content .home-launch-card .home-card-heading { display: flex; al
 html body #main-content .home-launch-card .home-token-identity { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--fv-space-2); min-width: 0; }
 html body #main-content .home-launch-card .home-token-identity strong { color: var(--fv-text); font: 800 16px var(--fv-font-ui); letter-spacing: -.01em; }
 html body #main-content .home-launch-card .home-token-identity small { min-width: 0; color: var(--fv-text-muted); font: 500 13px var(--fv-font-ui); overflow-wrap: anywhere; white-space: normal; }
-html body #main-content .home-launch-card .home-launch-media-badges { display: inline-flex; flex: 0 0 auto; gap: var(--fv-space-1); margin: 0; }
-html body #main-content .home-launch-card .home-launch-media-badges:empty { display: none; }
 html body #main-content .home-launch-card .home-card-meta { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-card-addresses { display: inline-flex; align-items: center; gap: 2px; margin: 0; }
 html body #main-content .home-launch-card .home-launch-card-addresses code { color: var(--fv-text-subtle); font: 12px var(--fv-font-data); }
@@ -227,7 +213,6 @@ html body #main-content #coin-page .coin-quick-amounts button,
 html body #main-content #coin-page .coin-slippage-presets button { min-height: 32px; border-radius: 999px; font: 600 12px var(--fv-font-data); }
 /* Get listed: verified listings use the shared listing card on the card grid. */
 html body #main-content #list-live-items:has(.home-launch-card) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--fv-space-3); }
-html body #main-content .home-launch-card .home-launch-chip.is-trust { color: var(--fv-success); border-color: color-mix(in srgb, var(--fv-success) 35%, transparent); }
 html body #main-content .home-launch-card .home-launch-chip.is-warning { color: var(--fv-warning); border-color: color-mix(in srgb, var(--fv-warning) 45%, transparent); }
 /* Home proof strip: recent confirmed payouts (payout-feed.js). */
 html body #main-content .home-payout-feed { display: flex; align-items: center; gap: var(--fv-space-3); max-width: 760px; margin-top: var(--fv-space-4); padding: var(--fv-space-2) var(--fv-space-3); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: var(--fv-surface); overflow: hidden; }
@@ -253,7 +238,6 @@ html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-p
 html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-promotion-badge) > a.promotion-badge--pro::before { border-color: color-mix(in srgb, #aaa0ff 55%, transparent); background: color-mix(in srgb, #aaa0ff 10%, transparent); }
 html body #main-content :is(.home-launch-card .home-launch-media-package,#coin-promotion-badge) > a.promotion-badge--premier::before { border-color: var(--fv-accent); background: var(--fv-accent); }
 /* Home: the brand and legal footer is always the last block. */
-html body.page-route-overview #main-content > .home-reference-footer { order: 99; }
 
 /* Leaderboard: the connected wallet's own row */
 html body #main-content #leaderboard .leaderboard-row.is-you { box-shadow: inset 3px 0 0 var(--fv-accent); background: color-mix(in srgb, var(--fv-accent) 8%, transparent); }

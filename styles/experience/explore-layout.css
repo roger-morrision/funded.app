@@ -34,15 +34,6 @@
   padding: 0;
   border: 0;
 }
-.page-route-explore .filter-select {
-  width: 168px;
-  min-height: 42px;
-  padding: 5px 10px;
-  border-color: #2d394d;
-  border-radius: 9px;
-  background: #111925;
-}
-.page-route-explore .filter-select select { min-width: 0; width: 100%; }
 .page-route-explore .explore-stage-filter {
   flex: 1;
   min-width: 0;
@@ -130,7 +121,6 @@
   .page-route-explore .explore-view-switch { display: none; }
   .page-route-explore .explore-search-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .page-route-explore .filter-row { display: grid; grid-template-columns: minmax(0, 1fr); }
-  .page-route-explore .filter-select { width: 100%; }
   .page-route-explore .explore-stage-filter {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

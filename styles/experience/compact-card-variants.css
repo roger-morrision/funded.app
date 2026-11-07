@@ -44,10 +44,6 @@ html body.product-experience-style .token-card-shell .token-card-more .token-car
 html body.product-experience-style .token-card-shell .token-card-more .token-card-addresses > span { text-align: left; }
 html body.product-experience-style .token-card-shell .token-card-more .token-card-addresses code { text-align: left; }
 html body.product-experience-style .token-card-shell .token-card-more .explore-social-link { width: 44px; height: 44px; border-radius: 6px; }
-html body.product-experience-style .home-card-extra-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
-html body.product-experience-style .home-card-extra-stats :is(small,strong) { display: block; overflow-wrap: anywhere; }
-html body.product-experience-style .home-card-extra-stats small { color: #95a6bf; font: 400 10px/1.4 var(--ui-font,system-ui); }
-html body.product-experience-style .home-card-extra-stats strong { font: 600 13px/1.4 var(--ui-font-mono,monospace); }
 
 html body.product-experience-style #watchlist-items { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: start; gap: var(--token-card-gap); }
 html body.product-experience-style .saved-token-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }

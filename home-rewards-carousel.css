@@ -131,13 +131,6 @@ body.page-route-overview .home-reward-token-card:has(.home-reward-token-link:hov
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.home-reward-token-type {
-  flex: none;
-  max-width: 92px;
-  color: #95deb4;
-  font: 700 9px/1.25 'DM Mono', monospace;
-  text-align: right;
-}
 .home-reward-token-values { display: grid; gap: 5px; margin: 12px 0 6px; }
 .home-reward-token-values > span { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .home-reward-token-values small {
@@ -166,8 +159,6 @@ body.page-route-overview .home-rewards-grid .home-reward-token-proof {
 body.page-route-overview .home-reward-token-proof[hidden],
 body.page-route-overview .home-reward-snapshot[hidden],
 body.page-route-overview .home-rewards-timing[hidden] { display:none; }
-body.page-route-overview .home-rewards-note a { color:#a3e8c0; font-weight:700; text-decoration:none; }
-body.page-route-overview .home-rewards-note a:hover { text-decoration:underline; }
 body.page-route-overview .home-reward-token-card .home-rewards-timing {
   gap: 8px;
   margin: auto 0 7px;
@@ -192,7 +183,6 @@ body.page-route-overview .home-reward-token-card .home-reward-curve-track i {
   border-radius: inherit;
   background: #9ce5ba;
 }
-body.page-route-overview .home-rewards-note { margin-top: 7px; font-size: 10px; }
 .home-rewards-empty {
   flex: 1;
   margin: 0;

@@ -20,11 +20,10 @@ html body #main-content :is(.watch-button,#coin-watch).active svg { fill: curren
 
 /* Task-oriented Home, Rewards and creation use the existing shared components. */
 html body.page-route-overview.product-experience-style #main-content .hero-section {
-  display: block;
-  padding: 40px 0 32px !important; background: none; border-bottom: 1px solid var(--cp-line);
+  display: block; background: none; border-bottom: 1px solid var(--cp-line);
 }
 html body.page-route-overview.product-experience-style #main-content .hero-copy-column { display: block; min-width: 0; max-width: 840px; }
-html body.page-route-overview.product-experience-style #main-content .hero-section h1 { max-width: 22ch; font-size: clamp(30px,3.5vw,48px) !important; line-height: 1.12 !important; letter-spacing: -.035em; }
+html body.page-route-overview.product-experience-style #main-content .hero-section h1 { max-width: 22ch; line-height: 1.12 !important; letter-spacing: -.035em; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy { max-width: 56ch; margin: 20px 0; font-size: 16px; line-height: 1.6; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy > p { margin:0; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy > p + p { margin-top:10px; }
@@ -44,7 +43,6 @@ html body.page-route-overview #main-content .home-market-ticker { display:flex;a
 html body.page-route-overview #main-content .home-market-window { display:flex;gap:4px; }
 html body.page-route-overview #main-content .home-market-ticker-items { display:flex;flex:1;min-width:0;overflow-x:auto;gap:12px;scrollbar-width:thin; }
 html body.page-route-overview #main-content .home-market-ticker-items > a { flex:0 0 auto;min-height:44px; }
-html body.page-route-overview #main-content .home-launch-more { display:inline-flex;align-items:center;min-height:44px;margin-top:16px;color:var(--cp-accent); }
 @media(max-width:700px) { html body.page-route-overview #main-content .home-market-ticker { flex-wrap:wrap;gap:8px; }html body.page-route-overview #main-content .home-market-ticker-heading { flex:1 0 100%; } }
 html body #main-content .home-start h2 { margin: 8px 0 20px; font-size: 24px; }
 html body #main-content .home-start-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
@@ -54,7 +52,6 @@ html body #main-content .home-start-grid > a:focus-visible { outline: 2px solid 
 html body #main-content .home-start-grid h3 { margin: 0; font-size: 16px; line-height: 1.35; }
 html body #main-content .home-start-grid p { margin: 0; color: var(--cp-muted); font-size: 14px; line-height: 1.6; }
 html body #main-content .home-start-grid strong { display: flex; justify-content: space-between; width: 100%; margin-top: auto; padding-top: 8px; color: var(--cp-accent); font-size: 14px; }
-html body #main-content .home-step-number { color: var(--cp-accent); font: 13px var(--mono-font,monospace); }
 html body #main-content .home-benefit-value { color: var(--cp-accent); font-size: 32px; line-height: 1.2; font-weight: 700; }
 html body #main-content .home-start-note { margin: 16px 0 0; color: var(--cp-muted); font-size: 13px; line-height: 1.6; }
 body:not(.page-route-overview) .home-start { display: none !important; }
@@ -106,7 +103,6 @@ html body.page-route-launch #launch-dialog #launch-fee-overview header h3 { font
 html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories { gap: 6px; }
 html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories > article { padding: 8px; gap: 6px; }
 html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories strong { font-size: 18px; }
-html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-caption { margin-top: 8px; }
 @media(max-width:600px) { html body.page-route-launch #launch-dialog #launch-project-links .social-grid { grid-template-columns: minmax(0,1fr); gap: 12px; } }
 @media(max-width:700px) {
   html body.page-route-overview.product-experience-style #main-content .hero-section { padding: 28px 0 24px !important; }
@@ -372,11 +368,10 @@ html body #main-content #wallet-page .wallet-detail-content {
 /* ---------- Copy rule: sentence case for links and buttons ----------
    Capitals are reserved for small eyebrow labels. These links and buttons
    were forced to capitals on some pages and not others. */
-html body #main-content :is(.airdrop-back, .list-back, .burn-back-link, .docs-back, .home-reference-faq-intro > a, .list-footer-links a, .burn-primary) {
+html body #main-content :is(.airdrop-back, .list-back, .burn-back-link, .docs-back, .home-reference-faq-intro > a, .burn-primary) {
   text-transform: none; letter-spacing: 0;
 }
 /* The brand is always written "funded.vip", never in capitals. */
-html body #main-content .list-footer-bottom span { text-transform: none; letter-spacing: 0; }
 /* Callouts: three short steps instead of one 50-word paragraph. */
 html body #main-content .callouts-footnote { display: grid; gap: 6px; }
 html body #main-content .callouts-footnote ol { margin: 0; padding-left: 18px; display: grid; gap: 2px; }

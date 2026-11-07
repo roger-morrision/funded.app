@@ -31,8 +31,7 @@ body.page-route-overview .main-content > .home-jackpot-spotlight { order: 3; }
 body.page-route-overview .main-content > .home-launch-board { order: 4; }
 body.page-route-overview .main-content > .home-kpi-dashboard { order: 5; }
 body.page-route-overview .main-content > .home-reference-faq { order: 6; }
-body.page-route-overview .main-content > .home-reference-footer { order: 7; }
-body.page-route-overview .main-content > section:not(.hero-section):not(.home-start):not(.public-discovery):not(.home-daily-bonuses):not(.home-buyback-progress):not(.home-rewards-spotlight):not(.home-jackpot-spotlight):not(.home-launch-board):not(.home-kpi-dashboard):not(.home-reference-faq):not(.home-reference-footer) { display: none !important; }
+body.page-route-overview .main-content > section:not(.hero-section):not(.home-start):not(.public-discovery):not(.home-daily-bonuses):not(.home-buyback-progress):not(.home-rewards-spotlight):not(.home-jackpot-spotlight):not(.home-launch-board):not(.home-kpi-dashboard):not(.home-reference-faq) { display: none !important; }
 body.page-route-overview .main-content > .ui-disclosure,
 body.page-route-overview .main-content > .workspace-shortcuts { display: none !important; }
 body.page-route-overview .mobile-growth-cta { display: none !important; }
@@ -84,7 +83,6 @@ body.page-route-overview .hero-section::after { content: none; }
 body.page-route-overview .hero-copy-column { position: relative; z-index: 1; max-width: 690px; }
 body.page-route-overview .home-hero-kicker { margin: 0 0 7px; color: #a7afb8; font-size: 17px; font-weight: 600; }
 body.page-route-overview .hero-section h1 { max-width: 720px; margin: 0 0 14px; color: #f0f2f4; font-size: clamp(52px, 6.5vw, 104px); line-height: .95; letter-spacing: -.075em; text-transform: uppercase; white-space: nowrap; }
-body.page-route-overview .home-hero-period { color: var(--home-green); }
 body.page-route-overview .hero-copy { max-width: 500px; margin: 0; color: #9ca6b0; font-size: 14px; line-height: 1.6; }
 body.page-route-overview .hero-actions { display: flex; gap: 0; margin: 24px 0 0; }
 body.page-route-overview .hero-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 20px; min-width: 190px; min-height: 45px; padding: 0 20px; border-radius: 0; font: 800 10px 'DM Mono', monospace; letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }

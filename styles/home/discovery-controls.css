@@ -38,12 +38,9 @@ body.page-route-overview .home-market-ticker-items .is-positive { color: #55d990
 body.page-route-overview .home-market-ticker-items .is-negative { color: #eb6c7a; }
 body.page-route-overview .home-market-ticker-items small { flex: none; color: #7e8b96; font-size: 9px !important; }
 body.page-route-overview .home-ticker-empty { padding: 7px 0; color: #8c99a2; font-size: 11px; }
-body.page-route-overview .home-launch-board-head { align-items: end; gap: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--home-line); }
 body.page-route-overview .home-launch-board-head .eyebrow,
 body.page-route-overview .home-kpi-heading .eyebrow,
 body.page-route-overview .home-reference-faq .eyebrow { color: #6f7e8b; font: 700 10px 'DM Mono', monospace; letter-spacing: .14em; }
-body.page-route-overview .home-launch-board-head h2 { color: #f1f3f5; font-size: 30px; text-transform: uppercase; }
-body.page-route-overview .home-launch-board-head p:not(.eyebrow) { color: #8995a1; font-size: 12px; }
 body.page-route-overview .home-launch-tabs { display: flex; flex: 1 1 auto; align-items: center; flex-wrap: wrap; gap: 3px; min-width: 0; max-width: none; overflow: visible; border: 0; border-radius: 0; background: transparent; }
 body.page-route-overview .home-launch-tabs button { flex: 0 0 auto; border-radius: 2px; font: 700 9px 'DM Mono', monospace; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
 body.page-route-overview .home-launch-toolbar .home-launch-tabs button.active { border-color: var(--home-green); color: #111b2e; background: var(--home-green); }

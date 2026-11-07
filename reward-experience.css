@@ -12,8 +12,6 @@
 #reward-portfolio>header .eyebrow{margin:0 0 8px;color:#a8b9d2;font-size:.72rem;letter-spacing:.13em}
 #reward-portfolio>header h2{margin:0 0 6px;font-size:clamp(1.55rem,2.5vw,2rem);letter-spacing:-.025em}
 #reward-portfolio>header p:not(.eyebrow){font-size:.95rem}
-#reward-portfolio .reward-evidence-badge{display:inline-flex;align-items:center;gap:8px;flex:none;padding:8px 11px;border:1px solid #6d5735;border-radius:999px;background:#302717;color:#ffd28a;font-size:.76rem;line-height:1.2}
-#reward-portfolio .reward-evidence-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
 .reward-portfolio-empty{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px 24px;border:1px solid #354765;border-radius:10px;background:linear-gradient(110deg,#1e304a,#172238)}
 .reward-portfolio-empty-copy{min-width:0}
 .reward-portfolio-empty-icon{display:inline-grid;place-items:center;width:34px;height:34px;margin-bottom:10px;border-radius:9px;background:#314564;color:#f8c46e;font-size:1.2rem}
@@ -73,19 +71,10 @@ body.page-route #reward-portfolio .reward-portfolio-connect:hover{background:#ff
 .reward-history-card>.reward-token-actions{margin:0;padding:10px 0}
 @media(max-width:560px){.reward-history-payment{grid-template-columns:minmax(0,1fr);gap:9px}.reward-history-actions{justify-content:space-between}.reward-history-amount{text-align:left}.reward-history-heading{align-items:flex-start;flex-direction:column;gap:4px}}
 .reward-empty{color:#9faea3;margin:8px 0}
-.reward-proof-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;list-style:none;padding:0;margin:0 0 16px}
-.reward-proof-steps li{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid #344139;border-radius:2px;background:#111b2e}
-.reward-proof-steps li.complete{border-color:#9a6d36;background:#111b2e}
-.reward-proof-steps strong{font-size:.84rem}
-.reward-proof-steps small{overflow-wrap:anywhere}
 .reward-source-note{color:#a9bbaa;font-size:.84rem}
-.reward-proof-events>div{display:flex;justify-content:space-between;gap:12px;font-size:.85rem}
-.reward-community-total{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.reward-community-total strong{color:#ffd28a;font-size:1.55rem}
-.reward-ideas{color:#a7b7aa}
 .reward-alerts header label{display:flex;gap:7px;align-items:center}
 .reward-alerts input{accent-color:#ffd28a}
 .reward-alerts [data-alert-list] p{margin:8px 0}
 .reward-buyback-list p{font-size:.86rem}
-@media(max-width:760px){.reward-experience-panel{padding:17px}.reward-experience-panel>header{flex-direction:column}.reward-portfolio-summary{grid-template-columns:1fr}.reward-proof-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.reward-proof-events>div{flex-direction:column}.reward-buyback-stats{grid-template-columns:1fr}#reward-portfolio{padding:20px}#reward-portfolio>header{align-items:flex-start}}
+@media(max-width:760px){.reward-experience-panel{padding:17px}.reward-experience-panel>header{flex-direction:column}.reward-portfolio-summary{grid-template-columns:1fr}.reward-buyback-stats{grid-template-columns:1fr}#reward-portfolio{padding:20px}#reward-portfolio>header{align-items:flex-start}}
 @media(max-width:560px){.reward-portfolio-empty{align-items:flex-start;flex-direction:column;padding:19px}.reward-portfolio-links{grid-template-columns:1fr}.reward-portfolio-links a{padding:13px 15px}}

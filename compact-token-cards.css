@@ -17,14 +17,12 @@ html body.product-experience-style .home-card-heading { display: flex; justify-c
 html body.product-experience-style .home-launch-card .home-token-identity { display: flex; flex-direction: column; align-items: start; gap: 3px; min-width: 0; flex: 1; }
 html body.product-experience-style .home-launch-card .home-token-identity strong { font: 700 15px/1.3 var(--ui-font,system-ui); overflow-wrap: anywhere; }
 html body.product-experience-style .home-launch-card .home-token-identity small { margin: 0; flex: none; text-align: left; color: #a6b3c6; font: 400 12px/1.4 var(--ui-font,system-ui) !important; white-space: normal; overflow-wrap: anywhere; }
-html body.product-experience-style .home-launch-card .home-launch-media-badges { display: flex; flex: none; flex-direction: column; align-items: end; gap: 4px; position: static; margin: 0; max-width: 45%; pointer-events: auto; }
 html body.product-experience-style .home-launch-card .home-launch-media-package :is(.promotion-badge,.home-launch-package-standard) { padding: 3px 5px; font-size: 10px; border-radius: 4px; }
 html body.product-experience-style .home-launch-card .home-launch-media-package a { min-width: 44px; justify-content: center; }
 html body.product-experience-style .home-launch-card .home-launch-card-addresses { display: block; margin-top: 0; }
 html body.product-experience-style .home-launch-card .home-launch-card-addresses > span:first-child { display: flex; align-items: center; justify-content: start; gap: 6px; min-height: 36px; }
 html body.product-experience-style .home-launch-card .home-launch-card-addresses small { display: none; }
 html body.product-experience-style .home-launch-card .home-launch-card-addresses code { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 11px/1.4 var(--ui-font-mono,monospace); text-align: left; }
-html body.product-experience-style .home-launch-card .home-launch-card-addresses .home-launch-media-badges { margin-left: auto; }
 html body.product-experience-style .home-launch-card .home-launch-copy-address { flex: none; width: 44px; height: 44px; padding: 11px; border-radius: 6px; }
 html body.product-experience-style .home-launch-card .home-launch-card-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 0; border: 0; }
 html body.product-experience-style .home-launch-card .home-launch-card-stats > span { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 6px; margin: 0; padding: 0; border: 0; text-align: left; }
@@ -33,10 +31,8 @@ html body.product-experience-style .home-launch-card .home-launch-card-stats sma
 html body.product-experience-style .home-launch-card .home-launch-card-stats strong { font: 600 13px/1.4 var(--ui-font-mono,monospace); overflow-wrap: anywhere; }
 html body.product-experience-style .home-launch-card .home-launch-progress-row { margin: 0; font-size: 10px; }
 html body.product-experience-style .home-launch-card .home-launch-progress-row .home-launch-progress { margin: 4px 0 0; border-radius: 4px; }
-html body.product-experience-style .home-card-context { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; }
 html body.product-experience-style .home-card-market-summary { display: grid; gap: 4px; min-width: 0; }
 html body.product-experience-style .home-launch-card .home-launch-media-stage { position: static; max-width: 100%; padding: 2px 5px; border-radius: 4px; font-size: 9px; white-space: normal; }
-html body.product-experience-style .home-launch-card .home-launch-evidence { display: block; margin: 0; color: #95a6bf; font: 400 10px/1.4 var(--ui-font,system-ui) !important; }
 html body.product-experience-style .home-launch-card .home-launch-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; }
 html body.product-experience-style .home-launch-card .card-review-buy { flex: 1 0 72px; justify-content: center; gap: 8px; min-height: 44px; margin: 0; padding: 8px; border-radius: 6px; font-size: 12px; background: #282b2b; border-color: #786442; }
 html body.product-experience-style .home-launch-card .home-launch-card-actions > button { flex: none; min-height: 44px; min-width: 44px; margin: 0; padding: 8px; border-radius: 6px; font-size: 11px; }
@@ -44,18 +40,8 @@ html body.product-experience-style #main-content .home-launch-card .home-launch-
 html body.product-experience-style #main-content .home-launch-card .home-launch-card-actions > button:is(:hover,.active,[aria-pressed="true"]) { border-color: #b68b42; color: #ffd28a; }
 html body.product-experience-style .home-launch-card .home-launch-card-actions > .token-card-action-share { margin-right: 0; }
 html body.product-experience-style .home-launch-card .home-launch-card-actions > .token-card-action-watch { width: 44px; padding: 10px; }
-html body.product-experience-style .home-card-details { position: relative; z-index: 2; min-width: 0; border-top: 1px solid #2b374b; }
-html body.product-experience-style .home-card-details > summary { min-height: 36px; padding: 10px 0 2px; color: #a9bed9; cursor: pointer; font-size: 11px; }
 html body.product-experience-style .home-launch-card .home-launch-fee-route { margin: 0; padding: 0; border: 0; font: 11px/1.4 var(--ui-font,system-ui); white-space: normal; overflow: visible; }
 html body.product-experience-style .home-launch-card .home-launch-fee-route span { flex: 1; }
-html body.product-experience-style .home-card-creator { display: grid; grid-template-columns: minmax(0,1fr) 44px; align-items: center; gap: 2px 8px; margin-bottom: 8px; }
-html body.product-experience-style .home-card-creator > span { grid-column: 1; color: #95a6bf; font-size: 11px; }
-html body.product-experience-style .home-card-creator > code { grid-column: 1; font-size: 11px; color: #c6d3e5; overflow-wrap: anywhere; }
-html body.product-experience-style .home-card-creator > button { grid-column: 2; grid-row: 1 / 3; }
-html body.product-experience-style .home-card-details .home-launch-meta { margin: 0 0 8px; padding: 0; font-size: 11px; }
-html body.product-experience-style .home-card-details .explore-social-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-html body.product-experience-style .home-card-details .explore-social-link { display: inline-grid; place-items: center; width: 44px; min-height: 44px; border-radius: 6px; }
-html body.product-experience-style .paid-listing-card .paid-listing-verification { margin: 0; padding-top: 8px; }
 html body.product-experience-style .paid-listing-card .paid-listing-proof { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 10px; border: 1px solid #3b4b62; border-radius: 6px; }
 @media(min-width:1700px) { html body.product-experience-style :is(#home-launch-grid,#asset-grid,.creator-launch-list) { grid-template-columns: repeat(4,minmax(0,1fr)); } }
 @media(max-width:1199px) { html body.product-experience-style :is(#home-launch-grid,#asset-grid,.creator-launch-list) { grid-template-columns: repeat(2,minmax(0,1fr)); } }
@@ -64,8 +50,6 @@ html body.product-experience-style .paid-listing-card .paid-listing-proof { disp
   html body.product-experience-style .home-card-overview { grid-template-columns: 56px minmax(0,1fr); gap: 10px; }
   html body.product-experience-style .home-launch-card .home-launch-card-media { width: 76px; height: 76px; min-height: 76px; }
   html body.product-experience-style .home-launch-card .home-launch-copy-address { width: 44px; height: 44px; padding: 11px; }
-  html body.product-experience-style .home-card-creator { grid-template-columns: minmax(0,1fr) 44px; }
-  html body.product-experience-style .home-card-details > summary { min-height: 44px; padding-block: 12px; }
 }
 @media(max-width:350px) {
   html body.product-experience-style .home-launch-card .home-launch-card-actions > .card-review-buy { flex-basis: 100%; }
