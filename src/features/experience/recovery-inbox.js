@@ -1,6 +1,7 @@
 import { readLaunchJournal, journalRecovery } from '../../../launch-journal.js';
 import { readTradeRecovery } from './trade-recovery-store.js';
 import { tradeRecoveryCopy } from './trade-progress.js';
+import { progressView } from './transaction-progress-view.js';
 import { recordFlowTiming } from './flow-timing.js';
 import { el, panel, link, button, address, signature, utc, portfolioTools } from './view-utils.js';
 export function recoveryItems(wallet, launches, trades) {
@@ -27,6 +28,7 @@ export function initializeRecoveryInbox(app) {
     status.textContent = wallet ? `${items.length} unresolved recorded actions for ${wallet}.` : 'Connect the wallet used for these transactions.';
     for (const item of items) {
       const row = el('article', null, 'flow-activity-row'); row.append(el('h3', item.label),el('p',item.detail),el('small',`${wallet} · ${utc(item.at)}`));
+      row.prepend(progressView(document,item.kind,item));
       if(item.kind==='trade'&&!item.persisted)row.append(el('p','Browser storage is unavailable. This record remains in this tab only; preserve its transaction signature before closing.'));
       if (signature(item.signature)) row.append(link('Inspect transaction ↗',`https://explorer.solana.com/tx/${item.signature}?cluster=devnet`,true));
       if (item.kind === 'trade') row.append(button(tradeRecoveryCopy(item).action,async event => {

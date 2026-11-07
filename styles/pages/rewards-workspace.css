@@ -101,6 +101,18 @@ html body #main-content #airdrops .airdrop-evidence { border-radius:8px;backgrou
  html body #main-content #airdrops .airdrop-directory-pagination { justify-content:space-between;gap:8px;font-size:11px; }
 }
 /* Reward status is the first overview task; program balances stay separate. */
+html body #main-content .history-refine { display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(140px,1fr)) auto;gap:12px;align-items:end;margin:16px 0; }
+html body #main-content .history-refine label { display:grid;gap:6px;min-width:0;font-size:12px;color:var(--cp-muted); }
+html body #main-content .history-refine[hidden] { display:none; }
+html body #main-content .history-refine > small { grid-column:1 / -1;color:var(--cp-muted);font-size:12px; }
+html body #main-content .history-refine :is(input,select,button) { min-width:0;width:100%;min-height:44px;padding:10px;border:1px solid var(--cp-line);border-radius:var(--fv-radius-md);background:var(--cp-surface);color:var(--cp-text);font:inherit; }
+html body #main-content #financial-center .financial-next-action { margin:8px 0;color:var(--cp-muted);font-size:12px;line-height:1.5;max-width:65ch; }
+html body #main-content #financial-center .reward-received-total { font-size:14px;line-height:1.6;font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+html body #main-content #financial-center .financial-list-footer { display:flex;flex-wrap:wrap;align-items:center;gap:12px; }
+html body #main-content #financial-center .financial-list-footer button { min-height:44px; }
+@media(max-width:1000px) { html body #main-content .history-refine { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:480px) { html body #main-content .history-refine { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:700px) { html body.product-experience-style #main-content #financial-center .history-refine :is(input,select) { font-size:16px; } }
 html body #main-content #rewards-overview #financial-center { order:-2; }
 html body.product-experience-style #main-content #financial-center .reward-dashboard { display:block;margin:0 0 20px;padding:0;border:0;background:none; }
 html body #main-content #financial-center .reward-dashboard-cards { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch;width:100%;max-width:none;margin:12px 0; }

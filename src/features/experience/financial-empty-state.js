@@ -8,7 +8,7 @@ export function missingFinancialSources(experience,buybacks,overviews=[],wallet=
 }
 
 export function financialEmptyMessage(hasRows,missing=[]){
-  if(hasRows)return{kind:'filtered',title:'No records match this status.',note:'Choose another status or show all loaded activity.'};
+  if(hasRows)return{kind:'filtered',title:'No records match these filters.',note:'Adjust the search, dates or status, or clear filters to see all loaded activity.'};
   if(missing.length)return{kind:'unavailable',title:'Activity data is unavailable.',note:'Unavailable data is not a zero balance. Refresh activity to try again.'};
   return{kind:'empty',title:'No recorded activity yet.',note:'The checked sources returned no payment or burn records. Check each program for eligibility and funding.'};
 }

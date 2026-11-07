@@ -1,6 +1,7 @@
 import { $, node, text, $$ } from './dom.js';
 import { readExploreFilterUrl } from '../../../explore-filter-url.js';
 import { sanitizeExploreFilters } from '../../../explore-filter-url.js';
+import { mountFilterChips } from '../shared/filter-toolbar.js';
 
 export function explore() {
   const root = $('#explore');
@@ -185,4 +186,9 @@ export function explore() {
   window.addEventListener('popstate', () => restore());
   restore();
   syncThresholds();
+  const chipFields=[['explore-search','Search',''],['explore-promotion-filter','Tier','all'],['explore-max-age-hours','Age',''],['explore-min-volume-sol','Min volume',''],['explore-min-cap-sol','Min cap',''],['explore-min-trades','Min trades',''],['explore-min-traders','Min wallets',''],['explore-authority-filter','Permissions','all']];
+  const syncChips=mountFilterChips($('.explore-control-bar',root),chipFields.map(([id,label,empty])=>({control:$('#'+id),label,empty})),{reset:()=>clear.click()});
+  root.addEventListener('input',syncChips);root.addEventListener('change',syncChips);
+  root.addEventListener('click',()=>queueMicrotask(syncChips));
+  window.addEventListener('popstate',()=>queueMicrotask(syncChips));
 }

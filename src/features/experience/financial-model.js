@@ -20,7 +20,7 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
       if (!address(token.mint) || payout.wallet !== wallet || payout.feeSourceVerified !== true
         || !signature(payout.signature) || !unsigned(payout.amountLamports)) continue;
       rows.push({ id:`paid:${payout.kind}:${payout.signature}:${token.mint}`, mint:token.mint,
-        title:`${payout.kind} SOL received`, stage:'Verified', amount:solText(payout.amountLamports),
+        title:`${payout.kind} SOL received`, stage:'Verified', amount:solText(payout.amountLamports), amountLamports:String(payout.amountLamports),
         detail:'Finalized recipient transfer and balance delta verified.', wallet,
         signature:payout.signature, at:payout.paidAt, href:`/wallet/${wallet}` });
     }

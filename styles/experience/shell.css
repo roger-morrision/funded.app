@@ -68,8 +68,9 @@ input[type='search']:focus-visible {
   border-radius: 10px;
   background: #101824;
   color: #edf2fb;
-  font: 13px 'Manrope', sans-serif;
+  font: var(--workspace-search-font, 13px) 'Manrope', sans-serif;
 }
+@media(max-width:700px) { .page-route .main-content { --workspace-search-font:16px; } }
 .page-route .main-content input[type='search']:not(#global-search):not(#explore-search):focus,
 .page-route .main-content input[type='search']:not(#global-search):not(#explore-search):focus-visible {
   border-color: #8299df;

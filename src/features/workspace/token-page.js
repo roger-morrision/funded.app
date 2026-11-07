@@ -160,6 +160,13 @@ export function tokenPage() {
     policy.before(holders);
   }
   policy?.remove();
+  // Preserve live nodes and listeners while making secondary evidence optional.
+  disclose(pulse,'Trade volume details');
+  const metricDetails=disclose(metrics,'Fee and reward details');
+  if(metricDetails){
+    const sync=()=>{metricDetails.hidden=metrics.hidden;};sync();
+    new MutationObserver(sync).observe(metrics,{attributes:true,attributeFilter:['hidden']});
+  }
   const slippage=$('#trade-slippage')?.closest('label');disclose(slippage,'Trade settings · slippage');
   const button=node('button','mobile-trade-open','Trade token');button.type='button';
   const tradeHeading = $('#coin-page-title', root);

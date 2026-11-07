@@ -1,4 +1,13 @@
 /* Match the compact Rewards workspace across the other public pages. */
+html body #main-content .filter-chips { display:flex;flex-wrap:wrap;gap:8px;margin:10px 0; }
+html body #main-content .filter-chips[hidden] { display:none; }
+html body #main-content .filter-chips button { min-height:44px;max-width:100%;padding:8px 12px;border:1px solid var(--cp-line);border-radius:var(--fv-radius-md);background:var(--cp-surface);color:var(--cp-text);font:inherit;font-size:12px;white-space:normal;overflow-wrap:anywhere;text-align:left; }
+html body #main-content :is(.async-region-status,.transaction-progress) { display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:12px 0;color:var(--cp-muted);font-size:12px;line-height:1.6; }
+html body #main-content .async-region-status button { min-height:44px; }
+html body #main-content .transaction-progress strong { color:var(--cp-accent); }
+html body #main-content #coin-page .ui-disclosure > summary { min-height:44px;padding:14px 16px;cursor:pointer; }
+html body #main-content #coin-page .ui-disclosure { min-width:0;border:1px solid var(--cp-line);border-radius:var(--fv-radius-md); }
+html body #main-content #coin-page .ui-disclosure > .panel { margin:0;border:0; }
 html body #main-content .holder-transfers { min-width:0;padding-top:16px;border-top:1px solid var(--cp-line); }
 html body #main-content .holder-transfers > header { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;margin-bottom:12px; }
 html body #main-content .holder-transfers h3 { margin:0;font-size:15px;line-height:1.4; }

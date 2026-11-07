@@ -13,7 +13,7 @@ export function payoutType(source) {
     'automatic-community':'community', 'daily-bonus':'community', 'automatic-x':'x' })[source] || 'other';
 }
 
-export function filterPaymentHistory(rows, { type = 'all', from = '', to = '', query = '' } = {}) {
+export function filterPaymentHistory(rows, { type = 'all', from = '', to = '', query = '', sort = 'newest' } = {}) {
   const search = query.trim();
   return rows.filter(row => {
     if (type !== 'all' && payoutType(row.source) !== type) return false;
@@ -22,7 +22,7 @@ export function filterPaymentHistory(rows, { type = 'all', from = '', to = '', q
     if (!Number.isSafeInteger(row.blockTime) || row.blockTime <= 0) return false;
     const day = new Date(row.blockTime * 1000).toISOString().slice(0, 10);
     return (!from || day >= from) && (!to || day <= to);
-  });
+  }).sort((a,b) => (sort === 'oldest' ? 1 : -1) * ((a.blockTime || 0) - (b.blockTime || 0)));
 }
 
 // Presentation validity only: existing UTC row filtering remains unchanged.
@@ -155,6 +155,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   const list = document.querySelector('#payment-list');
   if (!list) return;
   const filters = {
+    sort:document.querySelector('#payment-history-sort')?.value || 'newest',
     query:document.querySelector('#payment-history-search')?.value.trim() || '',
     type:document.querySelector('#payment-history-type')?.value || 'all',
     from:document.querySelector('#payment-history-from')?.value || '',

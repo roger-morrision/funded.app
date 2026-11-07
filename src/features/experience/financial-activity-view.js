@@ -1,6 +1,7 @@
 import { el, link, utc } from './view-utils.js';
 import { receiptUrl } from './receipt-inspector.js';
 import { icon } from '../../../ui-icons.js';
+import { rewardNextAction } from './reward-next-action.js';
 
 export function financialAmountParts(value) {
   const match = /^(\d+)(\.\d+)? (SOL|\$FUNDED base units)$/.exec(String(value));
@@ -21,14 +22,15 @@ export function financialRecord(row, expanded, existing) {
   const meta=el('div',null,'financial-record-meta');
   const time=el('time'),token=link('','');meta.append(time,token);
   const action=link('','');action.className='financial-record-action';
-  copy.append(title,meta,action);
+  const next=el('p','','financial-next-action');
+  copy.append(title,meta,next,action);
   const value=el('div',null,'financial-record-value'),exact=el('strong'),amount=document.createTextNode(''),unit=el('span','','financial-record-unit'),stage=el('span','','flow-stage');
   exact.append(amount,unit);value.append(exact,stage);main.append(mark,copy,value);
   const details=el('details',null,'financial-record-details');details.open=expanded.has(row.id);
   const detail=el('p');details.append(el('summary','Evidence & addresses'),detail);
   const fields=el('dl'),values=['Token mint','Wallet','Recorded time'].map(label=>{const term=el('dt',label),value=el('dd');fields.append(term,value);return{term,value};});
   details.append(fields);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open)expanded.add(row.id);else expanded.delete(row.id);});
-  item.append(main,details);recordViews.set(item,{mark,title,time,token,action,amount,unit,stage,detail,values});updateRecord(item,row);return item;
+  item.append(main,details);recordViews.set(item,{mark,title,time,token,next,action,amount,unit,stage,detail,values});updateRecord(item,row);return item;
 }
 
 function updateRecord(item,row){
@@ -37,8 +39,9 @@ function updateRecord(item,row){
   text(view.title,row.title);view.time.hidden=!row.at;text(view.time,utc(row.at));
   text(view.token,`${row.mint.slice(0,6)}…${row.mint.slice(-4)}`);view.token.href=`/token/${row.mint}`;view.token.title=row.mint;view.token.setAttribute('aria-label',`View token ${row.mint}`);
   const explorer=row.signature&&row.receiptView==='explorer';
+  const next=rewardNextAction(row);text(view.next,`${next.label} · ${next.detail || ''}`);
   view.action.href=explorer?`https://explorer.solana.com/tx/${row.signature}?cluster=devnet`:row.signature?receiptUrl(row.signature,row.mint,row.wallet):row.href;
-  text(view.action,explorer?'Inspect on-chain policy burn ↗':row.signature?'Inspect exact receipt':row.action||'Inspect exact receipt');
+  text(view.action,explorer?'Inspect on-chain policy burn ↗':row.signature?'Inspect exact receipt':next.action);
   if(explorer){view.action.target='_blank';view.action.rel='noopener noreferrer';}else{view.action.removeAttribute('target');view.action.removeAttribute('rel');}
   const amount=financialAmountParts(row.amount);if(view.amount.nodeValue!==amount.value)view.amount.nodeValue=amount.value;text(view.unit,amount.unit?' '+amount.unit:'');text(view.stage,row.stage);text(view.detail,row.detail);
   [row.mint,row.wallet,utc(row.at)].forEach((value,index)=>{const field=view.values[index];field.term.hidden=field.value.hidden=!value;text(field.value,value);});

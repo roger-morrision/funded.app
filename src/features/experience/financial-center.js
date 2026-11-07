@@ -1,6 +1,7 @@
-import { financialRows, newestFirst } from './financial-model.js';
+import { financialRows } from './financial-model.js';
 import { initializeReadyQueue } from './ready-queue.js';
-import { rewardDashboardGroup } from './reward-dashboard-model.js';
+import { rewardHistoryRows, readCreatorHistory } from './reward-history-model.js';
+import { mountRewardHistoryControls } from './reward-history-controls.js';
 import { renderFinancialRecords } from './financial-activity-view.js';
 import {focusFilterRecovery} from '../shared/filter-recovery.js';
 import {missingFinancialSources,financialEmptyMessage} from './financial-empty-state.js';
@@ -22,7 +23,7 @@ export function initializeFinancialCenter(app) {
     scopeControl.value='personal';filterControl.value=`dashboard-${group}`;limit=10;render();
   });
   const ready = (rows,options) => {
-    renderReady(rows,{cutoff:nextCutoff,...options,selected:filterControl.value});
+    renderReady(rows,{cutoff:nextCutoff,...options,selected:filterControl.value,range:history.values()});
     root.querySelector('.ready-queue').hidden=scopeControl.value==='protocol';
   };
   let request = 0, lastKey = '', lastAt = 0, rows = [], loading = false, limit = 10, hasLoaded = false, missingSources=[], nextCutoff=null;
@@ -33,6 +34,10 @@ export function initializeFinancialCenter(app) {
   for(const [key,label] of [['action','Needs action'],['automatic','Processing automatically'],['received','Received'],['waiting','Waiting for funding or checks']]){
     const option=document.createElement('option');option.value=`dashboard-${key}`;option.textContent=label;filterControl.append(option);
   }
+  const history = mountRewardHistoryControls(root, () => { limit=10; render(); });
+  const previous = document.createElement('button'); previous.type='button';previous.textContent='Previous page';
+  more.before(previous);more.textContent='Next page';
+  const pageStatus=document.createElement('span');pageStatus.setAttribute('role','status');more.after(pageStatus);
   function render({preserveRows=false}={}) {
     list.setAttribute('aria-busy',String(loading));
     refreshButton.disabled=loading;refreshButton.textContent=loading?'Refreshing…':'Refresh activity';
@@ -44,16 +49,19 @@ export function initializeFinancialCenter(app) {
     for(const option of filterControl.options)if(option.value.startsWith('dashboard-'))option.disabled=!personal;
     const scoped = rows.filter(row => personal ? Boolean(app.connectedWalletAddress) && row.wallet === app.connectedWalletAddress : !row.wallet);
     const missing = missingSources.filter(source => personal ? source !== 'buybacks' : source === 'buybacks');
-    const selected = newestFirst(scoped.filter(row => filter === 'all' || (filter.startsWith('dashboard-') ? rewardDashboardGroup(row,app.connectedWalletAddress) === filter.slice(10) : row.stage === filter)));
-    renderFinancialRecords(list,selected.slice(0,limit),expanded,root.querySelector('#financial-center-title'));
+    const range=history.values();
+    const selected = rewardHistoryRows(rows,app.connectedWalletAddress,{...range,scope:scopeControl.value,status:filter});
+    limit=Math.min(limit,Math.max(10,Math.ceil(selected.length/10)*10));
+    renderFinancialRecords(list,selected.slice(limit-10,limit),expanded,root.querySelector('#financial-center-title'));
     // "0 of 0" would repeat the empty-state message, so the count stays blank.
-    root.querySelector('[data-flow-count]').textContent=loading?'':selected.length?`${Math.min(limit,selected.length)} of ${selected.length} loaded records`:missing.length&&(!personal||app.connectedWalletAddress)?'Records unavailable':'';
+    root.querySelector('[data-flow-count]').textContent=loading?'':selected.length?`${limit-9}–${Math.min(limit,selected.length)} of ${selected.length} loaded records`:missing.length&&(!personal||app.connectedWalletAddress)?'Records unavailable':'';
     root.querySelector('.financial-list-footer').hidden=!selected.length||loading;
     // A status filter over zero loaded records only adds noise (common with no wallet connected).
     filterControl.closest('label').hidden=hasLoaded&&!loading&&!scoped.length&&filterControl.value==='all';
-    more.hidden=loading||selected.length<=limit||limit>=60;
+    more.hidden=false;more.disabled=loading||selected.length<=limit;previous.disabled=loading||limit<=10;
+    pageStatus.textContent=selected.length?`Page ${limit/10} of ${Math.ceil(selected.length/10)}`:'';
     const active=document.activeElement,owned=empty.contains(active);
-    empty.hidden=selected.length>0||loading||!hasLoaded||(personal&&!app.connectedWalletAddress);reset.hidden=filter==='all';
+    empty.hidden=selected.length>0||loading||!hasLoaded||(personal&&!app.connectedWalletAddress);reset.hidden=filter==='all'&&!range.query&&!range.from&&!range.to;
     const message=personal&&!app.connectedWalletAddress
       ? {kind:'disconnected',title:'Connect a wallet to see your activity.',note:'Your SOL payments and creator approvals appear here. Token claims are listed under Token airdrops.'}
       : financialEmptyMessage(scoped.length>0,missing);
@@ -67,38 +75,39 @@ export function initializeFinancialCenter(app) {
     root.querySelector('[data-flow-scope]').textContent = personal ? 'Only records belonging to the connected wallet are shown. Claims and eligibility remain in their program pages.' : 'Public protocol records. An allocation is not an executed buyback or payment.';
     const queue=root.querySelector('.ready-queue'); if(queue&& !personal)queue.hidden=true;
     if(owned&&empty.hidden&&(document.activeElement===active||document.activeElement===document.body)){const heading=root.querySelector('#financial-center-title');heading.tabIndex=-1;focusFilterRecovery(heading);}
-    if (selected.length > 60 && limit>=60) list.append(Object.assign(document.createElement('p'), { textContent:'Showing 60 records. Open the program pages for more history.' }));
+    history.sync();
+    history.setVisible(!personal||Boolean(app.connectedWalletAddress));
   }
   async function refresh(force = false) {
     // #rewards and #funded-holder-token-rewards are shared-link aliases for the payments route.
     if (document.hidden || !/^#(?:payments|rewards$|funded-holder-token-rewards$)/.test(location.hash)) return;
     const wallet = app.connectedWalletAddress || '', key = wallet;
-    if (!force && lastKey === key && Date.now() - lastAt < 30000) return;
+    if (loading || !force && lastKey === key && Date.now() - lastAt < 30000) return;
     lastKey = key; lastAt = Date.now(); const id = ++request;
-    loading = true; render({preserveRows:hasLoaded}); ready([],{checking:!!wallet}); status.textContent = hasLoaded?'Refreshing activity… Showing previously loaded records.':'Loading recorded activity…';root.querySelector('[data-flow-checked]').textContent='';
+    loading = true; render({preserveRows:hasLoaded}); ready([],{checking:!!wallet}); status.textContent = hasLoaded?'Refreshing activity… Showing previously loaded records.':'Loading recorded activity…';
     const read = path => app.apiRequest(path, { signal:AbortSignal.timeout(18000) }).catch(() => null);
     const [experience, burns, bonus] = await Promise.all([read(`/api/rewards/experience${wallet ? '?wallet=' + encodeURIComponent(wallet) : ''}`), read('/api/buyback/status'),read('/api/daily-bonus')]);
     if (id !== request || wallet !== (app.connectedWalletAddress || '')) return;
     const ownedAll = experience?.data?.wallet?.address === wallet ? (experience.data.wallet.rows || []).filter(row => row.creator) : [];
-    const owned=ownedAll.slice(0,8);
-    const overviews = await Promise.all(owned.map(row => read(`/api/tokens/${encodeURIComponent(row.mint)}/fee-activity`)));
+    const overviews = await readCreatorHistory(ownedAll,read,()=>id===request&&wallet===(app.connectedWalletAddress||''),
+      (done,total)=>{status.textContent=`Checking creator launches: ${done} of ${total}…`;});
+    if (!overviews) return;
     if (id !== request || wallet !== (app.connectedWalletAddress || '')) return;
     const missing=missingFinancialSources(experience,burns,overviews,wallet);
     if(experience?.data?.evidence?.status==='partial')missing.push('partial reward history');
-    if(ownedAll.length>8)missing.push('additional creator launches');
     missingSources=missing;nextCutoff=bonus?.data?.cluster==='devnet'?bonus.data.nextCutoffAt:null;
     rows = financialRows({ experience:experience?.available ? experience.data : null, buybacks:burns?.available ? burns.data : null,
       overviews:overviews.filter(row => row?.available && row.data?.cluster === 'devnet').map(row => ({ ...row.data?.overview, mint:row.data?.mint })), wallet }); loading = false; hasLoaded = true; render();
     ready(rows,{missing,cutoff:bonus?.data?.cluster === 'devnet' ? bonus.data.nextCutoffAt : null});
     window.dispatchEvent(new CustomEvent('funded:financial-center-data',{detail:{wallet,rows,missing,experience:experience?.data,buybacks:burns?.data,cutoff:bonus?.data?.cluster==='devnet'?bonus.data.nextCutoffAt:null}}));
     render();
-    if (wallet && owned.length === 8 && scopeControl.value === 'personal') status.textContent += ' First 8 creator launches checked; inspect Portfolio for others.';
-    root.querySelector('[data-flow-checked]').textContent=`Updated ${new Date().toLocaleTimeString()}`;
+    root.querySelector('[data-flow-checked]').textContent=`${missing.length?'Last attempted':'Updated'} ${new Date().toLocaleTimeString()}`;
   }
   filterControl.addEventListener('change', () => {limit=10;render();});
   scopeControl.addEventListener('change', () => {limit=10;filterControl.value='all';expanded.clear();ready(rows,{missing:missingSources});render();});
-  reset.addEventListener('click',()=>{const owned=reset.contains(document.activeElement);filterControl.value='all';limit=10;render();if(owned)focusFilterRecovery(filterControl);});
-  more.addEventListener('click',()=>{limit=Math.min(60,limit+10);render();});
+  reset.addEventListener('click',()=>{const owned=reset.contains(document.activeElement);filterControl.value='all';limit=10;history.reset();render();if(owned)focusFilterRecovery(filterControl);});
+  const changePage=delta=>{limit+=delta;render();const heading=root.querySelector('#financial-center-title');heading.tabIndex=-1;heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'});};
+  more.addEventListener('click',()=>changePage(10));previous.addEventListener('click',()=>changePage(-10));
   root.querySelector('[data-flow-refresh]').addEventListener('click', () => void refresh(true));
   window.addEventListener('hashchange', () => void refresh());
   window.addEventListener('funded:route-change', () => void refresh());

@@ -1,5 +1,6 @@
 import { el, link, utc } from './view-utils.js';
 import { rewardDashboardSummary } from './reward-dashboard-model.js';
+import { receivedTotal } from './reward-history-model.js';
 
 export function initializeReadyQueue(root, app, onSelect = () => {}) {
   const summary = el('section', null, 'ready-queue reward-dashboard');
@@ -24,18 +25,23 @@ export function initializeReadyQueue(root, app, onSelect = () => {}) {
   const waiting = el('button', '', 'text-button reward-dashboard-waiting'); waiting.type = 'button';
   waiting.addEventListener('click', () => onSelect('waiting'));
   const connect = el('button', 'Connect wallet', 'primary-button'); connect.type = 'button';
+  const total = el('p', '', 'reward-received-total'); total.setAttribute('role','status');
   connect.addEventListener('click', () => document.querySelector('#connect-button')?.click());
   const cutoffNote = el('p', '', 'reward-dashboard-cutoff'); cutoffNote.hidden = true;
   const programs = el('nav', null, 'reward-dashboard-programs'); programs.setAttribute('aria-label', 'Separate reward programs');
   programs.append(link('X claims', '#payments/x'), link('Referrals', '#referrals'), link('Token airdrops', '#airdrops'));
-  summary.append(scope, status, cards, waiting, connect,
+  summary.append(scope, status, cards, total, waiting, connect,
     el('p', 'Counts are loaded records, not balances. Creator approvals can fund other recipients. Token amounts remain in Airdrops.', 'reward-dashboard-note'), programs, cutoffNote);
   root.querySelector('header')?.after(summary);
   const guide = root.querySelector('.financial-help');
   for (const node of root.querySelectorAll(':scope > .flow-stages, :scope > .flow-note')) guide?.append(node);
-  return (rows, { checking = false, missing = [], cutoff = null, selected = 'all' } = {}) => {
+  return (rows, { checking = false, missing = [], cutoff = null, selected = 'all', range = {} } = {}) => {
     const wallet = app.connectedWalletAddress || '';
     const result = rewardDashboardSummary(rows, wallet, { checking, missing });
+    const received = receivedTotal(rows, wallet, {from:range.from,to:range.to});
+    total.hidden = !wallet;
+    total.textContent = checking ? 'Checking verified SOL receipts…' : range.from && range.to && range.from > range.to ? 'Choose a valid date range to calculate received SOL.'
+      : `Verified received: ${result.state === 'partial' && !received.count ? 'Unavailable' : received.amount} · ${range.from || range.to ? 'Selected dates (UTC)' : 'All loaded dates'}${result.state === 'partial' || received.unknown ? ' · Incomplete coverage; total may be higher.' : ''}. Counts above cover all loaded records.`;
     summary.dataset.state = result.state;
     scope.textContent = wallet ? `Your wallet · ${wallet.slice(0, 5)}…${wallet.slice(-5)} · Solana Devnet` : 'Your wallet · Solana Devnet';
     scope.title = wallet;
