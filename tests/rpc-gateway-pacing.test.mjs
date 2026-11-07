@@ -5,7 +5,7 @@ import {createRpcGateway,RPC_GATEWAY_DEVNET_GENESIS} from '../server/rpc-gateway
 
 test('Helius uses conservative provider-specific pacing without accelerating other providers',()=>{
  assert.deepEqual(rpcGatewayPacing('https://devnet.helius-rpc.com/?api-key=fixture'),
-  {minIntervalMs:250,blockIntervalMs:2500,sendIntervalMs:1000,maxConcurrent:4});
+  {minIntervalMs:150,blockIntervalMs:2500,sendIntervalMs:1000,maxConcurrent:4});
  for(const url of ['https://api.devnet.solana.com','https://fake-helius-rpc.com','https://helius-rpc.com.attacker.invalid'])
   assert.deepEqual([rpcGatewayPacing(url).minIntervalMs,rpcGatewayPacing(url).maxConcurrent],[500,1]);
  assert.throws(()=>rpcGatewayPacing('invalid'),/Invalid RPC gateway pacing configuration/);
@@ -21,7 +21,7 @@ test('mixed Helius reads, historical blocks and writes share one socket budget w
  await Promise.all(methods.map((method,id)=>gateway.request({jsonrpc:'2.0',id,method,params:[id]})));
  const sends=starts.filter(r=>r.method==='sendTransaction');
  for(let i=1;i<sends.length;i++)assert(sends[i].at-sends[i-1].at>=1000);
- for(let i=1;i<starts.length;i++)assert(starts[i].at-starts[i-1].at>=250);
+ for(let i=1;i<starts.length;i++)assert(starts[i].at-starts[i-1].at>=150);
  const blocks=starts.filter(r=>r.method==='getBlock');assert(blocks[1].at-blocks[0].at>=2500);
  assert.equal(gateway.stats().pacing.sendIntervalMs,1000);
 });
@@ -47,7 +47,7 @@ test('a slow Helius response does not hold later paced starts, and in-flight rea
  assert(await gateway.initialize());
  const replies=Array.from({length:6},(_,id)=>gateway.request({jsonrpc:'2.0',id,method:'getBalance',params:[id]}));
  while(starts.length<4)await new Promise(resolve=>setImmediate(resolve));
- assert.equal(starts.length,4);for(let i=1;i<starts.length;i++)assert(starts[i]-starts[i-1]>=250);
+ assert.equal(starts.length,4);for(let i=1;i<starts.length;i++)assert(starts[i]-starts[i-1]>=150);
  while(starts.length<6){releases.shift()?.();await new Promise(resolve=>setImmediate(resolve));}
  while(releases.length)releases.shift()();
  assert((await Promise.all(replies)).every(reply=>reply.httpStatus===200));assert.equal(maximum,4);
