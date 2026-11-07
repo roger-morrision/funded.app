@@ -39,6 +39,16 @@ jobs:
         working-directory: contracts/funded-fee-router
         run: |
           CARGO_TARGET_DIR="$RUNNER_TEMP/agency-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --features devnet-v3-program --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy/devnet-v3" -- --locked
+      - name: Build size-optimized Mainnet V3 candidate bytecode
+        working-directory: contracts/funded-fee-router
+        # Same V3 instruction set as the agency build, compiled for size (opt-level z,
+        # stripped) to cut the rent locked by a fresh Mainnet deployment. Build flags only,
+        # so the pinned Devnet agency binary above is unchanged.
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: z
+          CARGO_PROFILE_RELEASE_STRIP: 'true'
+        run: |
+          CARGO_TARGET_DIR="$RUNNER_TEMP/mainnet-candidate-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --features devnet-v3-program --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy/mainnet-candidate" -- --locked
       - name: Verify the app reviewed-binary commitment
         run: node scripts/verify-agency-binary.mjs contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so
       - name: Verify account setup and custody against compiled bytecode
@@ -49,6 +59,8 @@ jobs:
           LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/funded_fee_router.so" cargo test --locked -p funded-fee-router --test developer_escrow
           FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/devnet-v3/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test app_account_setup
           LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/devnet-v3/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test developer_escrow
+          FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-candidate/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test app_account_setup
+          LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-candidate/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test developer_escrow
       - name: Record source and bytecode hashes
         working-directory: contracts/funded-fee-router
         run: |
@@ -56,7 +68,8 @@ jobs:
           sha256sum target/deploy/funded_fee_router.so > target/deploy/bytecode.sha256
           sha256sum target/deploy/developer_token_lock.so >> target/deploy/bytecode.sha256
           sha256sum target/deploy/devnet-v3/funded_fee_router.so >> target/deploy/bytecode.sha256
-          wc -c target/deploy/funded_fee_router.so target/deploy/developer_token_lock.so target/deploy/devnet-v3/funded_fee_router.so > target/deploy/bytecode-sizes.txt
+          sha256sum target/deploy/mainnet-candidate/funded_fee_router.so >> target/deploy/bytecode.sha256
+          wc -c target/deploy/funded_fee_router.so target/deploy/developer_token_lock.so target/deploy/devnet-v3/funded_fee_router.so target/deploy/mainnet-candidate/funded_fee_router.so > target/deploy/bytecode-sizes.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: contract-bytecode-${{ github.sha }}
@@ -64,6 +77,7 @@ jobs:
             contracts/funded-fee-router/target/deploy/funded_fee_router.so
             contracts/funded-fee-router/target/deploy/developer_token_lock.so
             contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so
+            contracts/funded-fee-router/target/deploy/mainnet-candidate/funded_fee_router.so
             contracts/funded-fee-router/target/deploy/source-revision.txt
             contracts/funded-fee-router/target/deploy/bytecode.sha256
             contracts/funded-fee-router/target/deploy/bytecode-sizes.txt

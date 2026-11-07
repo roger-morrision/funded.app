@@ -73,18 +73,20 @@ The remaining Mainnet gates are concrete: an independently reviewed and deployed
 Program rent scales with the bytes deployed. On 2026-11-07 Devnet and Mainnet both charged 5,080 lamports per byte (`getMinimumBalanceForRentExemption(0)` = 650,240). Estimate any build offline, without keys or cluster access:
 
 ```sh
-node scripts/estimate-program-deploy-cost.mjs target/deploy/funded_fee_router.so target/deploy/developer_token_lock.so
+node scripts/estimate-program-deploy-cost.mjs contracts/funded-fee-router/target/deploy/mainnet-candidate/funded_fee_router.so
 ```
 
-Sizes from the pinned toolchain (Rust 1.97.1, Agave 4.1.2, platform-tools v1.54/v1.53) at commit `ef0fca51`:
+Mainnet ships the V3 instruction set, which is the `devnet-v3-program` feature build. The default build is the legacy router (V1 settlement and migration instructions) and is not a Mainnet candidate. Since the developer escrow was merged into the router (`cc1901b6`), a fresh Mainnet needs one program; the separate token-lock program only serves existing Devnet locks.
 
-| Build | Fee router | Token lock | Locked rent (both) |
+Sizes from the pinned toolchain (Rust 1.97.1, Agave 4.1.2, platform-tools v1.54) at commit `cc1901b6`:
+
+| Mainnet plan | Executable | Locked rent | Hold while deploying |
 | --- | --- | --- | --- |
-| Devnet (`--features devnet-v3-program`) | 1,046 KB | 218 KB | 6.4 SOL |
-| Mainnet (default features) | 835 KB | 218 KB | 5.4 SOL |
-| Mainnet, `opt-level = "z"`, `strip = true` | 699 KB | 205 KB | 4.6 SOL |
+| V3 router plus separate token lock (before the escrow merge) | 1,093,784 + 208,280 bytes | 6.62 SOL | 12.18 SOL |
+| V3 router with merged escrow | 1,093,784 bytes | 5.56 SOL | 11.12 SOL |
+| V3 router, `opt-level = "z"` and stripped | 898,328 bytes | 4.57 SOL | 9.13 SOL |
 
-Mainnet needs only these two programs. The legacy fee router deployed on Devnet (`FUNDED_FEE_ROUTER_PROGRAM_ID`, 607 KB, about 3.2 SOL) is not part of a V3-only Mainnet. A size-optimized build still has to pass the full program test suite and compute-budget checks, and the reviewed binary is the one that must be deployed.
+The size-optimized build passed the same compiled-bytecode tests as the standard build (3 account-setup and 5 developer-escrow VM tests). CI builds it as `target/deploy/mainnet-candidate/funded_fee_router.so` with build-time flags only, so the pinned Devnet agency binary does not change. Size optimization can raise compute usage; confirm compute budgets on the reviewed candidate before deployment. The legacy fee router deployed on Devnet (`FUNDED_FEE_ROUTER_PROGRAM_ID`) is not part of a V3-only Mainnet.
 
 Cheapest safe procedure:
 
