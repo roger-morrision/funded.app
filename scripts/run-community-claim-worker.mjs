@@ -1,11 +1,12 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import bs58 from 'bs58';
-import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from '../server/automatic-reward-chain.mjs';
 import { verifyPumpMigrationTransaction } from '../server/community-snapshot.mjs';
 import { rpcQuotaExhausted, rpcWorkerWaitMs } from '../rpc-retry.js';
+import { communityOpeningInstructions } from '../server/community-opening-instructions.mjs';
 
 import { workerHeartbeatHealth, workerFailureReport } from '../server/worker-readiness.mjs';
 
@@ -80,13 +81,9 @@ if (process.argv.includes('--check')) {
   async function open(mint, drop) {
     if (await reconcileOpening(mint, drop)) return 'recovered';
     const prepared = await request('/api/airdrops/claims/opening-instruction', { mint });
-    if (prepared.drop !== drop || prepared.programId !== programId.toBase58()) throw new Error('Opening instruction differs from prepared drop.');
-    const accounts = prepared.accounts.map(row => ({ pubkey:new PublicKey(row.pubkey), isSigner:row.isSigner, isWritable:row.isWritable }));
-    if (accounts.filter(row => row.isSigner).length !== 1 || !accounts[0].pubkey.equals(authority.publicKey) || !accounts[0].isSigner)
-      throw new Error('Opening instruction requested an unexpected signer.');
+    const instructions = communityOpeningInstructions({prepared, programId, authority:authority.publicKey, mint, drop});
     await reviewedProgram();
-    const instruction = new TransactionInstruction({ programId, keys:accounts, data:Buffer.from(prepared.data, 'base64') });
-    const signature = await sendAndConfirmTransaction(connection, new Transaction().add(instruction), [authority], { commitment:'finalized' });
+    const signature = await sendAndConfirmTransaction(connection, new Transaction().add(...instructions), [authority], { commitment:'finalized' });
     await request('/api/airdrops/claims/opening-receipt', { mint, signature });
     return 'opened';
   }

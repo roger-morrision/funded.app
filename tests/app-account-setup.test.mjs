@@ -9,6 +9,7 @@ import { buildCommunityInitializeInstruction, communityAddresses } from '../serv
 import { communityLeaf } from '../community-merkle.js';
 import { createCommunityAutoDelivery } from '../server/community-auto-delivery.mjs';
 import { communityProgramForLaunch } from '../server/community-program-config.mjs';
+import { communityOpeningInstructions } from '../server/community-opening-instructions.mjs';
 
 const creator = Keypair.fromSeed(new Uint8Array(32).fill(1)).publicKey;
 const authority = Keypair.fromSeed(new Uint8Array(32).fill(2)).publicKey;
@@ -97,4 +98,26 @@ test('automatic delivery submits the complete ordered setup and opening transact
   } });
   assert.deepEqual(await worker.open({ snapshotBasis:'pump-migration', authority:authority.toBase58(),
     programId:programId.toBase58(), mint:mint.toBase58(), manifest:communityArgs().manifest }), {status:'prepared'});
+});
+
+test('standalone worker validates canonical setup and preserves old API compatibility', () => {
+  const built = buildCommunityInitializeInstruction(communityArgs());
+  const serialize = ix => ({programId:ix.programId.toBase58(), data:ix.data.toString('base64'),
+    accounts:ix.keys.map(k => ({...k, pubkey:k.pubkey.toBase58()}))});
+  const prepared = {drop:built.drop, ...serialize(built.instruction), instructions:built.instructions.map(serialize)};
+  const args = {prepared, programId, authority, mint, drop:built.drop};
+  assert.equal(communityOpeningInstructions(args).length, 2);
+  const legacy = {...prepared}; delete legacy.instructions;
+  assert.equal(communityOpeningInstructions({...args, prepared:legacy}).length, 1);
+  for (const mutate of [
+    row => { row.instructions[0].accounts[2].pubkey = creator.toBase58(); },
+    row => { row.instructions[0].accounts[0].pubkey = creator.toBase58(); },
+    row => { row.instructions[0].data = 'AA=='; },
+    row => { row.instructions.reverse(); },
+    row => { row.instructions.push(row.instructions[1]); },
+    row => { row.accounts[0].pubkey = creator.toBase58(); },
+  ]) {
+    const tampered = structuredClone(prepared); mutate(tampered);
+    assert.throws(() => communityOpeningInstructions({...args, prepared:tampered}));
+  }
 });

@@ -4,13 +4,13 @@ This change moves associated token account (ATA) creation out of the developer-t
 
 The escrow still checks the canonical vault, mint, token program, creator, unsafe mint extensions, delegates, close authority, exact transfer deltas, 20% supply cap, 12-hour deadline, and single release. Community drops retain snapshot authorization, canonical accounts, reserve accounting, Merkle proofs, claim replay protection, expiry, and remainder destinations. Pre-created community vaults must be empty and have neither a delegate nor a close authority. Program-owned state creation remains on-chain because it requires PDA signing.
 
-Instruction discriminators, account order, serialized state, and events are unchanged. A caller constructing a bare custody instruction must now create its required ATA first. The app's launch/release helpers and community worker submit the complete sequence. `/api/airdrops/claims/opening-instruction` now includes an ordered `instructions` array; clients must submit that entire array atomically. The existing top-level instruction fields remain for legacy consumers.
+Instruction discriminators, account order, serialized state, and events are unchanged. A caller constructing a bare custody instruction must now create its required ATA first. The app's launch/release helpers, automatic delivery service and standalone community worker submit the complete sequence. The standalone worker validates the canonical ATA setup before signing. `/api/airdrops/claims/opening-instruction` now includes an ordered `instructions` array; clients must submit that entire array atomically. The existing top-level instruction fields remain for legacy consumers.
 
 ## Coordinated rollout
 
 1. Ship the app builders and verify the candidate programs on Devnet. Escrow ATA setup is compatible with the existing escrow's idempotent setup.
 2. Keep `FUNDED_V3_COMMUNITY_ACCOUNT_SETUP=program` for the existing router. Its old community opening instructions require a new ATA and reject pre-created ones.
-3. After a reviewed router deployment is confirmed and its bytes verified, update `FUNDED_V3_PROGRAM_DATA_SHA256` and set `FUNDED_V3_COMMUNITY_ACCOUNT_SETUP=app` together. Resume the worker only after that verification. All callers of the opening endpoint must use its ordered instruction array.
+3. After a reviewed router deployment is confirmed and its bytes verified, update `FUNDED_V3_PROGRAM_DATA_SHA256` and set `FUNDED_V3_COMMUNITY_ACCOUNT_SETUP=app` together. Redeploy the standalone community worker if it is in use, with the new image and hash pin. Resume workers only after that verification. All callers of the opening endpoint must use its ordered instruction array.
 4. Select and review the actual production build separately. The current default router and `devnet-v3-program` build expose different instructions; this optimization does not turn the Devnet agency build into a Mainnet release.
 
 ## Reproduce verification
@@ -32,7 +32,7 @@ From the app root, run `node --test tests/app-account-setup.test.mjs tests/progr
 
 Tests exercise missing/pre-existing ATAs, atomic setup rollback, malformed custody, invalid amounts and mint extensions, release at the exact deadline, recreation of a closed recipient ATA, direct and reserve-funded community openings, unauthorized snapshots, invalid claims, replay, expiry, and fixed remainder destinations. App tests cover legacy/new router setup modes, both token programs, instruction ordering and serialization size.
 
-Local verification completed: **9 compiled-bytecode VM tests passed** (4 escrow, 2 default router, 3 agency router), **10 JavaScript tests passed**, 831 JavaScript files passed syntax checks, source-size budgets passed, and the Vite production build passed. The build retains existing Anchor cfg/glob warnings and Vite chunk-size warnings. Hosted CI and on-chain deployment verification have not run for these candidates.
+Local verification completed: **9 compiled-bytecode VM tests passed** (4 escrow, 2 default router, 3 agency router), **11 JavaScript tests passed** including standalone-worker setup validation, JavaScript syntax checks and source-size budgets passed, and the Vite production build passed. The build retains existing Anchor cfg/glob warnings and Vite chunk-size warnings. Hosted CI and on-chain deployment verification have not run for these candidates.
 
 ## Deployment-cost interpretation
 
