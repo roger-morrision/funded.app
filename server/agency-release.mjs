@@ -3,8 +3,8 @@ import {createHash} from 'node:crypto';
 // Source-built with platform-tools v1.54 and the devnet-v3-program feature.
 // The loader header/upgrade slot is excluded from this binary commitment;
 // callers separately pin the complete finalized ProgramData account hash.
-export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1046360,
-  sha256:'75e9a5cda0ec5a0f9dc03518d9b82aa404eafda3c4969f7d2284bd7fbd20c14d'});
+export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1043256,
+  sha256:'5853367c900457e5314d423d1fb5fa70ab98606e1270ebda70dd21551d016905'});
 export const AGENCY_DEVNET_PROGRAM='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 export function matchesAgencyBinary(data,manifest=AGENCY_REVIEWED_BINARY){
   const bytes=Buffer.from(data||[]);

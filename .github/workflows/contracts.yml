@@ -2,10 +2,10 @@ name: Contract bytecode build
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['contracts/**', '.github/workflows/contracts.yml']
+    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', '.github/workflows/contracts.yml']
   push:
     branches: [main]
-    paths: ['contracts/**', '.github/workflows/contracts.yml']
+    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', '.github/workflows/contracts.yml']
 permissions:
   contents: read
 concurrency:
@@ -39,6 +39,8 @@ jobs:
         working-directory: contracts/funded-fee-router
         run: |
           CARGO_TARGET_DIR="$RUNNER_TEMP/agency-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --features devnet-v3-program --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy/devnet-v3" -- --locked
+      - name: Verify the app reviewed-binary commitment
+        run: node scripts/verify-agency-binary.mjs contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so
       - name: Verify account setup and custody against compiled bytecode
         working-directory: contracts/funded-fee-router
         run: |

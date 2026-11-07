@@ -32,7 +32,11 @@ From the app root, run `node --test tests/app-account-setup.test.mjs tests/progr
 
 Tests exercise missing/pre-existing ATAs, atomic setup rollback, malformed custody, invalid amounts and mint extensions, release at the exact deadline, recreation of a closed recipient ATA, direct and reserve-funded community openings, unauthorized snapshots, invalid claims, replay, expiry, and fixed remainder destinations. App tests cover legacy/new router setup modes, both token programs, instruction ordering and serialization size.
 
-Local verification completed: **9 compiled-bytecode VM tests passed** (4 escrow, 2 default router, 3 agency router), **11 JavaScript tests passed** including standalone-worker setup validation, JavaScript syntax checks and source-size budgets passed, and the Vite production build passed. The build retains existing Anchor cfg/glob warnings and Vite chunk-size warnings. Hosted CI and on-chain deployment verification have not run for these candidates.
+Local verification completed: **9 compiled-bytecode VM tests passed** (4 escrow, 2 default router, 3 agency router), **11 JavaScript tests passed** including standalone-worker setup validation, JavaScript syntax checks and source-size budgets passed, and the Vite production build passed. The build retains existing Anchor cfg/glob warnings and Vite chunk-size warnings. [Hosted contract CI](https://github.com/roger-morrision/funded.app/actions/runs/42339071423) passed and produced identical binaries.
+
+The agency router and escrow were atomically upgraded on Devnet in finalized transaction `9bPzaEceV1GPzh9TYDemwTTojdBjPtSwoGNCw6pwVK7uyzAfS1WkMedMJRCriQ2Pi68gnZfmv783g1KvvRMuduL`, slot 519543705. Both executable hashes and zero padding were verified, and temporary buffers returned 6.359479280 Devnet SOL before the 0.000005 SOL upgrade fee. Existing ProgramData allocations remain unchanged. App release acceptance is separate from this chain verification.
+
+The app also pins the reviewed agency executable in `server/agency-release.mjs`; update that commitment when deploying a new agency binary. CI now compares it directly with the compiled artifact via `scripts/verify-agency-binary.mjs`, preventing a stale embedded commitment from rejecting a correctly configured ProgramData hash.
 
 ## Deployment-cost interpretation
 
