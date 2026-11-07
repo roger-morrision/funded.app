@@ -1,6 +1,6 @@
 import {PublicKey,Connection} from '@solana/web3.js';
 import {unpackAccount,TOKEN_2022_PROGRAM_ID} from '@solana/spl-token';
-import {developerLockAddresses,decodeDeveloperTokenLock} from '../../developer-token-lock.js';
+import {DEVELOPER_TOKEN_LOCK_PROGRAM_ID,developerLockAddresses,decodeDeveloperTokenLock} from '../../developer-token-lock.js';
 import {developerLockConfig} from '../developer-token-lock.mjs';
 import {scanBundleWallets} from '../bundle-wallet-detection.mjs';
 
@@ -23,10 +23,11 @@ export function createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,c
     if(launch.developerTokenLock?.status==='not-selected')tokenLock={status:'not-selected',verified:true,amount:'0'};
     else if(launch.developerTokenLock?.verified){
       try{
-        const config=await configReader({connection,env});if(!config.ready)throw Error('Escrow program verification is unavailable.');
-        const addresses=developerLockAddresses({mint,creator:launch.creatorWallet});
+        const programId=launch.developerTokenLock.programId||DEVELOPER_TOKEN_LOCK_PROGRAM_ID;
+        const config=await configReader({connection,env,programId});if(!config.ready||config.programId!==programId)throw Error('Escrow program verification is unavailable.');
+        const addresses=developerLockAddresses({mint,creator:launch.creatorWallet,programId});
         const [account,vault,slot]=await Promise.all([connection.getAccountInfo(addresses.lock,'finalized'),connection.getAccountInfo(addresses.vault,'finalized'),connection.getSlot('finalized')]);
-        const state=decodeDeveloperTokenLock(account,{mint,creator:launch.creatorWallet});
+        const state=decodeDeveloperTokenLock(account,{mint,creator:launch.creatorWallet,programId});
         const tokens=unpackAccount(addresses.vault,vault,TOKEN_2022_PROGRAM_ID);
         if(state.amount!==launch.developerTokenLock.amount||!tokens.owner.equals(addresses.lock)||!tokens.mint.equals(new PublicKey(mint))
           ||tokens.delegate||tokens.closeAuthority||state.releasedAt===0&&tokens.amount<BigInt(state.amount))throw Error('Escrow custody does not match the saved launch.');

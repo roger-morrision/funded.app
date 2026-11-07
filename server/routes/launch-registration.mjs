@@ -1,6 +1,6 @@
 import { validateInput, invalidRequest } from '../http-policy.mjs';
 import { newLaunchProtection, registerLaunchProtection } from '../launch-protections.mjs';
-import { developerLockConfig, verifyLaunchDeveloperLock } from '../developer-token-lock.mjs';
+import { developerLockConfig, developerLockProgramFromTransaction, verifyLaunchDeveloperLock } from '../developer-token-lock.mjs';
 import { canonicalLaunchPolicy, launchPolicyStatement } from '../../launch-policy-auth.js';
 import { createMarketingAgencyRoutes } from './marketing-agency.mjs';
 import { verifyLaunchServiceFee } from '../launch-service-fee-proof.mjs';
@@ -175,9 +175,9 @@ export function createLaunchRegistrationRoutes({
       let developerTokenLock=existingLaunch?.developerTokenLock;
       if(!existingLaunch){
         const lockConnection=connectionFactory(solanaRpcUrl);
-        try{developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,serviceQuote,
-          transaction:await lockConnection.getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
-          config:await developerLockConfig({connection:lockConnection,env})});}
+        try{const transaction=await lockConnection.getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+          developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,serviceQuote,transaction,
+          config:await developerLockConfig({connection:lockConnection,env,programId:developerLockProgramFromTransaction(transaction)})});}
         catch{return json(res,422,{error:'The finalized launch must escrow its exact developer token purchase for 12 hours. Escrow verification failed; recover this launch receipt before creating another coin.'});}
       }
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter },{fundedSplit:currentSplit});

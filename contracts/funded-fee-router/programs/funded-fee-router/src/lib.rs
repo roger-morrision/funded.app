@@ -1,3 +1,5 @@
+pub mod developer_escrow;
+pub use developer_escrow::*;
 pub mod constants;
 pub mod error;
 pub mod instructions;
@@ -17,6 +19,13 @@ declare_id!("9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm");
 #[program]
 pub mod funded_fee_router {
     use super::*;
+
+    pub fn initialize_and_lock(ctx: Context<InitializeAndLock>, amount: u64) -> Result<()> {
+        developer_escrow::initialize_and_lock_handler(ctx, amount)
+    }
+    pub fn release(ctx: Context<Release>) -> Result<()> {
+        developer_escrow::release_handler(ctx)
+    }
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         initialize::handler(ctx)

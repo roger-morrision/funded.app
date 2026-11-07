@@ -46,7 +46,9 @@ jobs:
         run: |
           DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" cargo test --locked -p developer-token-lock --test app_account_setup
           FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/funded_fee_router.so" cargo test --locked -p funded-fee-router --test app_account_setup
+          LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/funded_fee_router.so" cargo test --locked -p funded-fee-router --test developer_escrow
           FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/devnet-v3/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test app_account_setup
+          LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/devnet-v3/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test developer_escrow
       - name: Record source and bytecode hashes
         working-directory: contracts/funded-fee-router
         run: |

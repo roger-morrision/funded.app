@@ -8,14 +8,14 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
   function render(data){
     panel.replaceChildren();panel.hidden=true;
     const lock=data.tokenLock||{};
-    let pending=false;try{pending=Boolean(window.localStorage.getItem(developerReleaseStorageKey(activeMint,data.creatorWallet)));}catch{}
+    let pending=false;try{pending=Boolean(window.localStorage.getItem(developerReleaseStorageKey(activeMint,data.creatorWallet,lock.programId)));}catch{}
     if((lock.status==='claimable'||pending)&&data.creatorWallet===appState.connectedWalletAddress){
       const claim=text('button',pending?'Verify token release':'Claim unlocked developer tokens');claim.type='button';claim.className='secondary-button';claim.disabled=busy||!lock.verified;
       claim.onclick=async()=>{
         if(busy)return;busy=true;claim.disabled=true;const mint=activeMint,session=appState.captureWalletSession();
         try{if(!session||session.address!==data.creatorWallet)throw Error('Connect the original developer wallet.');
           const result=await releaseDeveloperTokens({connection:appState.connection,provider:session.provider,mint,creator:data.creatorWallet,
-            amount:lock.amount,assertCurrent:()=>appState.assertWalletSessionCurrent(session),storage:window.localStorage});
+            amount:lock.amount,programId:lock.programId,assertCurrent:()=>appState.assertWalletSessionCurrent(session),storage:window.localStorage});
           appState.showToast(result.status==='finalized'?'Developer tokens released; token balance changes verified.':result.status==='failed'?'Release failed on-chain. Refresh before retrying.':'Release outcome is pending. Use Verify token release; do not sign again.');
         }catch(error){appState.showToast(error.message);}finally{busy=false;if(activeMint===mint)await refresh(false);}
       };panel.append(claim);panel.hidden=false;

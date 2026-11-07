@@ -3,6 +3,13 @@ import {PublicKey,SystemProgram,TransactionInstruction} from '@solana/web3.js';
 import {TOKEN_2022_PROGRAM_ID,ASSOCIATED_TOKEN_PROGRAM_ID,getAssociatedTokenAddressSync,createAssociatedTokenAccountIdempotentInstruction} from '@solana/spl-token';
 
 export const DEVELOPER_TOKEN_LOCK_PROGRAM_ID='EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT';
+export const DEVELOPER_TOKEN_LOCK_PROGRAMS=Object.freeze([DEVELOPER_TOKEN_LOCK_PROGRAM_ID,
+  '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm','61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa']);
+export function developerLockProgramId(value=DEVELOPER_TOKEN_LOCK_PROGRAM_ID) {
+  const id=new PublicKey(value).toBase58();
+  if(!DEVELOPER_TOKEN_LOCK_PROGRAMS.includes(id))throw Error('Unsupported developer token escrow program.');
+  return id;
+}
 export const DEVELOPER_TOKEN_LOCK_SECONDS=43_200;
 const seed=Buffer.from('developer-lock-v1');
 const accountDiscriminator=Buffer.from('c9e00b0c19713f1d','hex');
@@ -50,9 +57,9 @@ export function decodeDeveloperTokenLock(account,{mint,creator,programId=DEVELOP
 }
 export function developerLockLaunchInstructions({mint,creator,amount,config,quoteId}) {
   if(BigInt(amount)===0n)return [];
-  if(!config?.ready||config.programId!==DEVELOPER_TOKEN_LOCK_PROGRAM_ID||config.lockSeconds!==DEVELOPER_TOKEN_LOCK_SECONDS)
+  if(!config?.ready||!DEVELOPER_TOKEN_LOCK_PROGRAMS.includes(config.programId)||config.lockSeconds!==DEVELOPER_TOKEN_LOCK_SECONDS)
     throw Error('The 12-hour developer token escrow is unavailable. No launch was sent.');
-  const built=developerLockInstruction({mint,creator,amount,quoteId});
+  const built=developerLockInstruction({mint,creator,amount,quoteId,programId:config.programId});
   return [createAssociatedTokenAccountIdempotentInstruction(new PublicKey(creator),built.vault,
     built.lock,new PublicKey(mint),TOKEN_2022_PROGRAM_ID),built.instruction];
 }
