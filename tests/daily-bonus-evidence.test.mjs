@@ -35,6 +35,25 @@ test('trading snapshot scans finalized history and refuses missing transactions 
   await assert.rejects(readDailyBonusTrades({ ...params, pageSize:1, maxPages:1 }), /scan limit/);
 });
 
+test('preserves completed market logs only when the truncated suffix cannot call either market', () => {
+  const transaction = tx(), other = PublicKey.default;
+  const keys = [PUMP_AMM_PROGRAM_ID, other];
+  const instructions = [0, 1].map(programIdIndex => ({ programIdIndex, accountKeyIndexes:[] }));
+  transaction.transaction.message = { compiledInstructions:instructions, getAccountKeys:() => ({ get:index => keys[index] }) };
+  const read = () => dailyBonusTradeRows(transaction, ref, mint, pool, coder.decode.bind(coder));
+  const expected = read();
+  transaction.meta.logMessages = [...item.logs, `Program ${other} invoke [1]`, 'Log truncated'];
+  assert.deepEqual(read(), expected);
+  instructions[1].accountKeyIndexes = [0];
+  assert.throws(read, /logs-incomplete/);
+  instructions[1].accountKeyIndexes = [];
+  instructions.push(instructions[0]);
+  assert.throws(read, /logs-incomplete/);
+  instructions.pop();
+  transaction.meta.logMessages = [...item.logs.slice(0,-1), `Program ${other} invoke [1]`, 'Log truncated'];
+  assert.throws(read, /Unbalanced program invocation/);
+});
+
 test('completed-day coverage stays stable when a Pump pool appears after the cutoff', async () => {
   let poolExists = false;
   const scanned = [];

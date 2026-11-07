@@ -12,6 +12,33 @@ import { v3AllocationPlan } from './v3-allocation-plan.mjs';
 import { dailyBonusWindow } from './daily-bonus.mjs';
 import { completeFinalizedEventReceipt } from './finalized-event-receipt.mjs';
 
+// A launch can finish its Pump buy before escrow setup exhausts the log budget.
+// Keep original event offsets only if the unobserved instructions cannot invoke
+// either market program, including through CPI using their account lists.
+function completeMarketPrefix(transaction) {
+  const logs = transaction.meta.logMessages;
+  const message = transaction.transaction.message;
+  if (logs?.at(-1) !== 'Log truncated' || !message?.getAccountKeys) return null;
+  const keys = message.getAccountKeys({ accountKeysFromLookups:transaction.meta.loadedAddresses });
+  const instructions = message.compiledInstructions;
+  let root = -1, lastStart = -1;
+  for (const [index, log] of logs.entries()) {
+    const match = /^Program ([1-9A-HJ-NP-Za-km-z]+) invoke \[1\]$/.exec(log);
+    if (!match) continue;
+    const ix = instructions[++root];
+    if (!ix || keys.get(ix.programIdIndex)?.toBase58() !== match[1]) return null;
+    lastStart = index;
+  }
+  if (root < 1) return null;
+  for (const ix of instructions.slice(root)) {
+    for (const index of [ix.programIdIndex, ...ix.accountKeyIndexes]) {
+      const key = keys.get(index);
+      if (!key || key.equals(PUMP_PROGRAM_ID) || key.equals(PUMP_AMM_PROGRAM_ID)) return null;
+    }
+  }
+  return successfulEventLogs(logs.slice(0, lastStart));
+}
+
 export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePoolEvent) {
   if (!transaction || transaction.meta?.err !== null || transaction.slot !== reference.slot
     || transaction.transaction?.signatures?.[0] !== reference.signature
@@ -23,7 +50,8 @@ export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePo
     // A full, known migration instruction tree proves zero trading volume even
     // when its logs were truncated. Unknown or incomplete trade proofs still block.
     if (['logs-incomplete','logs-unavailable'].includes(error.reason) && migrationOnlyProof(transaction,mint)) return [];
-    throw error;
+    events = error.reason === 'logs-incomplete' ? completeMarketPrefix(transaction) : null;
+    if (!events) throw error;
   }
   for (const event of events) {
     const curve = event.program === PUMP_PROGRAM_ID.toBase58();
