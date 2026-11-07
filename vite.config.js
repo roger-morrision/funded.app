@@ -2,6 +2,11 @@ import { defineConfig, loadEnv } from 'vite';
 import { prunePosterSources } from './scripts/prune-build-sources.mjs';
 import { browserSourceDigest } from './scripts/browser-source-digest.mjs';
 
+// Modules bootstrap.js loads in sequence on every page (see the funded-startup-preload plugin).
+const STARTUP_MODULES = ['bootstrap.js', 'app.js', 'page-experience.js', 'creator-support-ui.js', 'adoption-ui.js',
+  'automatic-rewards-ui.js', 'personal-rewards-ui.js', 'workspace-ui.js', 'reward-experience-ui.js',
+  'retention-ux.js', 'product-measurement.js', 'product-experience.js'];
+
 export function browserBuildSettings(fileEnv = {}, runtimeEnv = process.env) {
   const env = { ...fileEnv, ...runtimeEnv };
   const enabled = name => String(env[name] || '').toLowerCase() === 'true';
@@ -42,6 +47,25 @@ export default defineConfig(({ mode }) => {
       }
     }, { name: 'funded-artwork-delivery', apply: 'build',
       async closeBundle() { const report = await prunePosterSources(resolvedOutput); console.log(`Omitted ${report.omittedFiles} unused poster source PNGs (${report.omittedBytes} bytes) from release output.`); }
+    }, { name: 'funded-startup-preload', apply: 'build',
+      // bootstrap.js imports its startup modules one after another so they run in order.
+      // Preloading them (and their imports) lets the browser download them in parallel
+      // from the first byte; modulepreload fetches without running, so order is unchanged.
+      transformIndexHtml: { order: 'post', handler(html, ctx) {
+        const slash = value => String(value || '').split(String.fromCharCode(92)).join('/');
+        if (!ctx.bundle || !slash(ctx.filename).endsWith('/index.html')) return html;
+        const chunks = Object.values(ctx.bundle).filter(item => item.type === 'chunk');
+        const byFile = new Map(chunks.map(chunk => [chunk.fileName, chunk]));
+        const root = slash(resolvedOutput.root);
+        const files = new Set();
+        const visit = file => { const chunk = byFile.get(file); if (!chunk || files.has(file)) return; files.add(file); chunk.imports.forEach(visit); };
+        for (const chunk of chunks) {
+          const source = slash(chunk.facadeModuleId);
+          if (source && STARTUP_MODULES.some(name => source === `${root}/${name}`)) visit(chunk.fileName);
+        }
+        const tags = [...files].filter(file => !html.includes(file)).map(file => `    <link rel="modulepreload" crossorigin href="/${file}">`);
+        return tags.length ? html.replace('</head>', `${tags.join('\n')}\n  </head>`) : html;
+      } }
     }],
     optimizeDeps: { entries: ['index.html'] },
     server: {
