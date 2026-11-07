@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "status": "preparation-only",
+  "cluster": "mainnet-beta",
+  "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+  "mainnetActivationAuthorized": false,
+  "sourceRevision": "e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",
+  "ciRun": "https://github.com/roger-morrision/funded.app/actions/runs/42349176721",
+  "ciArtifact": "contract-bytecode-e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",
+  "targetLayout": "merged-v3",
+  "intendedFeatureSet": "Agency features equivalent to the current Devnet app, subject to production implementation and review",
+  "roles": ["v3-router", "developer-escrow"],
+  "separateLegacyRouterRequired": false,
+  "separateEscrowRequired": false,
+  "upgradeAuthority": null,
+  "mainnetProgramId": null,
+  "mainnetAppOrigin": null,
+  "productionRpcSecretPath": null,
+  "deploymentPayerSignerReference": null,
+  "productionDatabaseSecretPath": null,
+  "metadataSecretPath": null,
+  "feeRecipient": null,
+  "fundedMint": null,
+  "referenceArtifacts": [
+    {
+      "variant": "merged-v3-size-optimized",
+      "file": "mainnet-candidate/funded_fee_router.so",
+      "bytes": 898328,
+      "sha256": "d1c94867f03027920363f8cb74497aa6c97dcda661b0494c2af98d243a874475",
+      "deployEligible": false,
+      "limitation": "Locally reproduced CI candidate with V3 features and eight passing compiled-bytecode tests. Production identity, network paths, custody review and full compute-budget validation remain required."
+    },
+    {
+      "variant": "merged-agency-devnet",
+      "file": "devnet-v3/funded_fee_router.so",
+      "bytes": 1093784,
+      "sha256": "4736fa6ceeef6ac6a2dd7d550b4b7d5e68a728f290ba53f4528a69087775f0f2",
+      "deployEligible": false,
+      "limitation": "Devnet build only; production program identity, custody and network-specific routes require implementation and review."
+    }
+  ],
+  "allocationPolicy": "Exact final reviewed binary length; do not reserve twice its size by default",
+  "feeAllowanceLamports": 25000000,
+  "deploymentMarginLamports": 250000000,
+  "excludedCosts": ["Liquidity", "Per-launch state and token accounts", "Initial configuration PDAs and lookup tables", "Canary transactions and operating balances", "RPC, database and metadata hosting", "Independent review"],
+  "sequence": [
+    "Choose public production program ID, upgrade authority, payer signer reference, fee recipient and isolated infrastructure.",
+    "Implement and review production network paths and agency custody; retain Mainnet write guards during preparation.",
+    "Build the exact production artifact with pinned tools, verify program identity and reproduce executable hash in CI.",
+    "Rerun custody, financial-path and transaction-size tests against that artifact, then refresh rent and fee quotes.",
+    "Present the exact binary, program ID, authority, payer and spending cap for explicit Mainnet deployment approval.",
+    "After approval, deploy once through Loader-v3 with explicit Mainnet URL and exact max-len; journal signatures before submission.",
+    "Verify finalized deployed bytes, loader ownership, authority, ProgramData hash and rent deltas before initializing application state.",
+    "Point both V3-router and developer-escrow roles to the same verified production program and full ProgramData hash.",
+    "Run the separately approved capped canary before enabling Mainnet application writes. Preserve the Devnet deployment."
+  ]
+}

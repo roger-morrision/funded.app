@@ -14,8 +14,8 @@ test('upgradeable program rent covers program and ProgramData; the buffer is sep
   assert.equal(row.maxLen, 1_000_000);
   assert.equal(row.lockedLamports, rentExempt(36) + rentExempt(45 + 1_000_000));
   assert.equal(row.bufferLamports, rentExempt(37 + 1_000_000));
-  assert.equal(row.writes, 1_000);
-  assert.equal(row.feeLamports, 1_002 * 5_000);
+  assert.equal(row.writes, 1_112);
+  assert.equal(row.feeLamports, 2_230 * 5_000);
   // About 5.08 SOL locked for a 1 MB program.
   assert.ok(Math.abs(row.lockedLamports / LAMPORTS_PER_SOL - 5.082) < 0.01);
 });
@@ -28,8 +28,16 @@ test('over-allocating max_len raises locked rent proportionally', () => {
   assert.throws(() => estimateProgram({ name: 'p', bytes: 1, maxLenRatio: 0.5 }), /at least 1/);
 });
 
-test('sequential deploys need only the largest buffer at once', () => {
+test('fresh deployments reuse buffer funding; the old peak field is a conservative reserve', () => {
   const plan = estimateDeployment([{ name: 'a', bytes: 900_000 }, { name: 'b', bytes: 200_000 }]);
   assert.equal(plan.largestBufferLamports, plan.rows[0].bufferLamports);
   assert.equal(plan.peakLamports, plan.lockedLamports + plan.feeLamports + plan.rows[0].bufferLamports);
+  assert.equal(plan.freshFundingLamports,plan.lockedLamports+plan.feeLamports);
+  // Track the payer plus funded accounts through upload, refund and deployment.
+  let wallet=plan.freshFundingLamports;
+  for(const row of plan.rows){
+    wallet-=row.bufferLamports+row.feeLamports;assert(wallet>=0);
+    wallet+=row.bufferLamports;wallet-=row.lockedLamports;assert(wallet>=0);
+  }
+  assert.equal(wallet,0);
 });

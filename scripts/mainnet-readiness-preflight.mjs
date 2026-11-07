@@ -30,14 +30,20 @@ function endpointIdentity(value,{database=false}={}) {
 }
 
 export function assessMainnetConfig(env) {
+  const layout=env.MAINNET_PROGRAM_LAYOUT||'legacy-three-role',merged=layout==='merged-v3';
   const cluster = String(env.VITE_SOLANA_CLUSTER || '').trim();
   const serverCluster = String(env.SOLANA_CLUSTER || cluster).trim();
-  const routerId = validPublicKey(env.FUNDED_FEE_ROUTER_PROGRAM_ID);
+  const routerId = validPublicKey(merged?env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID:env.FUNDED_FEE_ROUTER_PROGRAM_ID);
   const clientRouterId = validPublicKey(env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
-  const hash = String(env.FUNDED_REWARD_PROGRAM_DATA_SHA256 || '').trim().toLowerCase();
+  const hash = String((merged?env.FUNDED_V3_PROGRAM_DATA_SHA256:env.FUNDED_REWARD_PROGRAM_DATA_SHA256) || '').trim().toLowerCase();
   const authority = validPublicKey(env.MAINNET_APPROVED_UPGRADE_AUTHORITY);
   const immutable = String(env.MAINNET_APPROVED_IMMUTABLE_PROGRAM || '').toLowerCase() === 'true';
   const checks = {
+    programLayout:['merged-v3','legacy-three-role'].includes(layout),
+    mergedProgramIdentity:!merged||Boolean(routerId&&env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID===routerId
+      &&env.FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256===hash
+      &&(!env.FUNDED_FEE_ROUTER_PROGRAM_ID||env.FUNDED_FEE_ROUTER_PROGRAM_ID===routerId)
+      &&(!env.FUNDED_REWARD_PROGRAM_DATA_SHA256||env.FUNDED_REWARD_PROGRAM_DATA_SHA256===hash)),
     cluster: cluster === 'mainnet-beta' && serverCluster === cluster
       && String(env.VITE_EXPLORE_CLUSTER || cluster)===cluster,
     stagingReadOnly: env.VITE_MAINNET_READ_ONLY==='true',
@@ -58,7 +64,14 @@ export function assessMainnetConfig(env) {
     isolatedDatabase: Boolean(env.DATABASE_URL && env.DEVNET_DATABASE_URL && endpointIdentity(env.DATABASE_URL,{database:true}) && endpointIdentity(env.DEVNET_DATABASE_URL,{database:true}) && endpointIdentity(env.DATABASE_URL,{database:true})!==endpointIdentity(env.DEVNET_DATABASE_URL,{database:true})),
     isolatedRpc: Boolean(env.SOLANA_RPC_URL && env.DEVNET_SOLANA_RPC_URL && endpointIdentity(env.DEVNET_SOLANA_RPC_URL) && endpointIdentity(env.SOLANA_RPC_URL)!==endpointIdentity(env.DEVNET_SOLANA_RPC_URL)),
   };
-  return { checks, configurationComplete: Object.values(checks).every(Boolean), routerId, authority, immutable, hash };
+  return { checks, configurationComplete: Object.values(checks).every(Boolean), routerId, authority, immutable, hash,layout };
+}
+
+export function mainnetProgramRoles(env,config){
+  const roles=[['v3-router',env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,env.FUNDED_V3_PROGRAM_DATA_SHA256],
+    ['developer-escrow',env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID,env.FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256]];
+  if(config.layout!=='merged-v3')roles.unshift(['reward-router',config.routerId,config.hash]);
+  return roles;
 }
 
 async function withTimeout(promise, milliseconds = 12000) {
@@ -81,16 +94,13 @@ export async function readMainnetProgramEvidence(env, config, {connectionFactory
     const [configuredGenesis, officialGenesis] = await withTimeout(Promise.all([configured.getGenesisHash(),official.getGenesisHash()]));
     if(configuredGenesis!==SOLANA_GENESIS['mainnet-beta'] || officialGenesis!==SOLANA_GENESIS['mainnet-beta'])
       return {status:'blocked',reason:'Configured and official RPCs must both match the full Mainnet genesis hash.'};
-    const roles=[
-      ['reward-router',config.routerId,config.hash],
-      ['v3-router',env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,env.FUNDED_V3_PROGRAM_DATA_SHA256],
-      ['developer-escrow',env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID,env.FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256],
-    ];
+    const roles=mainnetProgramRoles(env,config),evidenceByProgram=new Map();
     const programs=[];
     for(const [role,programId,hash] of roles){
       // Explicitly use the verified dedicated Mainnet connection. A globally
       // configured Devnet large-account fallback must never enter this check.
-      const program=await withTimeout(readProgramDataEvidence(configured,programId,{rpcUrl:''}));
+      if(!evidenceByProgram.has(programId))evidenceByProgram.set(programId,await withTimeout(readProgramDataEvidence(configured,programId,{rpcUrl:''})));
+      const program=evidenceByProgram.get(programId);
       const data=program.programData?.data;
       const validHeader=Boolean(data?.length>=45 && data.readUInt32LE(0)===3 && [0,1].includes(data[12]));
       const upgradeAuthority=validHeader && data[12]===1 ? new PublicKey(data.subarray(13,45)).toBase58():null;

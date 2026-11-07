@@ -38,7 +38,7 @@ Public transaction evidence:
 
 The preparation branch fixes the full Mainnet genesis identity, binds new launch service quotes and signed metadata to their selected network, requires durable content-addressed Mainnet metadata, and bounds browser RPC read concurrency. Devnet legacy metadata signatures and short-lived unbound quotes remain compatible. Mainnet launch, registration, indexing and financial workers retain their existing write guards.
 
-The read-only preflight now checks cluster alignment, disabled development wallets and write flags, the 1% configured fee and recipient, dedicated RPC, separate databases, durable storage and the three program roles (reward router, V3 router, developer escrow). Online verification also reads the staging deployment service-fee endpoint and checks its saved 100-bps policy, recipient, network and policy hash. It checks finalized executable accounts, full ProgramData hashes and the reviewed authority for every role. Different credentials for the same database do not count as isolation. A passing configuration or program inventory still returns `ready:false`; it does not approve application or custody behavior.
+The read-only preflight checks cluster alignment, disabled development wallets and write flags, the 1% configured fee and recipient, dedicated RPC, separate databases and durable storage. With `MAINNET_PROGRAM_LAYOUT=merged-v3`, the V3 router and developer escrow must share one program ID, full ProgramData hash and reviewed authority; a separate legacy router is not required. The previous three-role inventory remains supported for existing configurations. Online verification also reads the staging deployment service-fee endpoint and checks its saved 100-bps policy, recipient, network and policy hash. It checks finalized executable accounts, full ProgramData hashes and the reviewed authority for every role, reading a shared program only once. Different credentials for the same database do not count as isolation. A passing configuration or program inventory still returns `ready:false`; it does not approve application or custody behavior.
 
 Use [the staging template](../config/mainnet-staging.example) only as an inventory checklist. Its placeholder IDs and credentials deliberately fail readiness. Mainnet routing still needs implementation against the approved deployment inventory, then full Devnet verification and a separately approved capped canary.
 
@@ -76,24 +76,36 @@ Program rent scales with the bytes deployed. On 2026-11-07 Devnet and Mainnet bo
 node scripts/estimate-program-deploy-cost.mjs contracts/funded-fee-router/target/deploy/mainnet-candidate/funded_fee_router.so
 ```
 
-Mainnet ships the V3 instruction set, which is the `devnet-v3-program` feature build. The default build is the legacy router (V1 settlement and migration instructions) and is not a Mainnet candidate. Since the developer escrow was merged into the router (`cc1901b6`), a fresh Mainnet needs one program; the separate token-lock program only serves existing Devnet locks.
+The intended Mainnet feature set is V3, currently compiled with `devnet-v3-program`. The default build is the legacy router (V1 settlement and migration instructions) and is not a feature-equivalent Mainnet candidate. Since the developer escrow was merged into the router (`cc1901b6`), the intended fresh Mainnet layout needs one program; the separate token-lock program remains available for existing Devnet locks. Production identity, network routes and custody still require review before any candidate is deployable.
 
-Sizes from the pinned toolchain (Rust 1.97.1, Agave 4.1.2, platform-tools v1.54) at commit `cc1901b6`:
+Sizes from the pinned toolchain (Rust 1.97.1, Agave 4.1.2, platform-tools v1.54), with merged candidates reproduced at `e3d08082`. Mainnet rent was read at finalized slot 466422929 on 2026-11-07 at 07:09 UTC (14:09 Bangkok). Figures assume exact binary-length allocation:
 
-| Mainnet plan | Executable | Locked rent | Hold while deploying |
+| Mainnet plan | Executable | Locked rent | Suggested deployment wallet |
 | --- | --- | --- | --- |
-| V3 router plus separate token lock (before the escrow merge) | 1,093,784 + 208,280 bytes | 6.62 SOL | 12.18 SOL |
-| V3 router with merged escrow | 1,093,784 bytes | 5.56 SOL | 11.12 SOL |
-| V3 router, `opt-level = "z"` and stripped | 898,328 bytes | 4.57 SOL | 9.13 SOL |
+| V3 router plus separate token lock (before the escrow merge) | 1,043,256 + 208,280 bytes | 6.361227 SOL | Historical comparison |
+| V3 router with merged escrow | 1,093,784 bytes | 5.558135 SOL | 6 SOL |
+| V3 router, `opt-level = "z"` and stripped | 898,328 bytes | 4.565218 SOL | 5 SOL |
 
-The size-optimized build passed the same compiled-bytecode tests as the standard build (3 account-setup and 5 developer-escrow VM tests). CI builds it as `target/deploy/mainnet-candidate/funded_fee_router.so` with build-time flags only, so the pinned Devnet agency binary does not change. Size optimization can raise compute usage; confirm compute budgets on the reviewed candidate before deployment. The legacy fee router deployed on Devnet (`FUNDED_FEE_ROUTER_PROGRAM_ID`) is not part of a V3-only Mainnet.
+The size-optimized build passed the same compiled-bytecode tests as the standard build (3 account-setup and 5 developer-escrow VM tests) in [successful CI run 42349176721](https://github.com/roger-morrision/funded.app/actions/runs/42349176721). The downloaded artifact and independent local build both hash to `d1c94867f03027920363f8cb74497aa6c97dcda661b0494c2af98d243a874475`. CI builds it as `target/deploy/mainnet-candidate/funded_fee_router.so` with build-time flags only, so the pinned Devnet agency binary does not change. Size optimization can raise compute usage; confirm full financial-path compute budgets on the reviewed candidate before deployment. The legacy fee router deployed on Devnet (`FUNDED_FEE_ROUTER_PROGRAM_ID`) is not part of a V3-only Mainnet.
+
+The optimized merged candidate saves approximately 1.796 SOL (28.2%) in locked rent versus the actual pre-merge pair, including 0.993 SOL from size optimization alone. Earlier 9-12 SOL funding figures included an extra full buffer allowance. A fresh Loader-v3 deployment drains the buffer to the same payer before funding ProgramData, so that buffer is not an additional simultaneous rent requirement. This is confirmed by the [pinned loader implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L260-L280) and [CLI deployment flow](https://github.com/anza-xyz/agave/blob/v4.1.2/cli/src/program.rs#L2433-L2551). Upgrades, different payers and abandoned buffers need separate funding analysis.
+
+The 5 SOL suggestion allows 0.025 SOL for fees and 0.25 SOL margin above rent, rounded up to a whole SOL. Estimated base fees are 0.01002 SOL for roughly 999 writes with two signatures plus setup/finalization; actual messages, priority fees and retries determine the final amount. This is program deployment funding only. It excludes liquidity, configuration/state PDAs, token accounts, lookup tables, canary and operating balances, hosting and independent review.
+
+The [deployment inventory](../config/mainnet-deployment-plan.json) records missing production inputs and the approval/verification sequence. The [dated machine-readable quote](mainnet-deployment-cost-2026-11-07.json) records live rent and both candidate hashes. Reproduce it against the downloaded CI artifact directory:
+
+```sh
+node scripts/prepare-mainnet-deployment.mjs --artifact-dir PATH_TO_CI_ARTIFACT --online --output tmp/mainnet-cost.json
+```
+
+This tool verifies ELF size/hash, Mainnet genesis and finalized rent using read-only RPC. It never loads signers or submits transactions and always reports `ready:false`. Without `--online`, rent is explicitly labelled an offline assumption. Missing production inputs are authority, program ID, app origin, payer signer reference, isolated RPC/database/storage references, fee recipient and funded mint. Do not put private keys or credential values in this inventory.
 
 Cheapest safe procedure:
 
 1. Deploy the exact reviewed binary once; every redeploy or upgrade writes another full-size buffer.
 2. Set `--max-len` to the binary size. Rent is charged on the allocation, so a 2× allocation doubles it; grow later with `solana program extend` when an upgrade needs room.
-3. Hold the locked rent plus one buffer (the largest program) while deploying. The buffer is refunded when the deploy completes. After an interrupted deploy, list leftovers with `solana program show --buffers` and reclaim them with `solana program close --buffers`.
-4. Use a dedicated paid RPC for the upload; a 1 MB program is about 1,000 write transactions (about 0.005 SOL in base fees). Add `--with-compute-unit-price` only if writes stall.
+3. Fund locked rent plus fees and a retry margin for a fresh same-payer deployment. Journal the exact buffer address and signatures; after interruption, reconcile finalized state before resuming or closing that specific owned buffer. Do not close all buffers indiscriminately.
+4. Use the isolated production RPC for the upload. Refresh fees against the final messages and signer count; set any priority fee within the approved spend cap.
 5. Reclaim operating rent where the program allows: deactivate and close unused address lookup tables, and close emptied per-mint token accounts and vaults.
 
 ## Required before enabling Mainnet
