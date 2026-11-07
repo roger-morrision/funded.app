@@ -1,7 +1,7 @@
 import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { rewardAddresses, rewardReserveAddress } from './automatic-reward-chain.mjs';
 import { verifyCommunityProof } from '../community-merkle.js';
@@ -52,7 +52,8 @@ export function buildCommunitySnapshotApprovalInstruction({programId,appOwner,pr
 }
 
 export function buildCommunityInitializeInstruction({ programId, authority, creator, mint, eligibilityMint, tokenProgram,
-  manifest, sourceVaultBalance }) {
+  manifest, sourceVaultBalance, accountSetup = 'app' }) {
+  if (!['app', 'program'].includes(accountSetup)) throw new Error('Unknown community account setup mode.');
   const program = new PublicKey(programId), issuer = new PublicKey(authority), creatorKey = new PublicKey(creator), asset = new PublicKey(mint);
   const eligible = new PublicKey(eligibilityMint), token = new PublicKey(tokenProgram);
   if (!token.equals(TOKEN_PROGRAM_ID) && !token.equals(TOKEN_2022_PROGRAM_ID)) throw new Error('Unsupported claim token program.');
@@ -102,7 +103,9 @@ export function buildCommunityInitializeInstruction({ programId, authority, crea
     { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
     { pubkey:deriveAgencyPolicyV3(program,asset).address, isSigner:false, isWritable:false },
   ];
-  return { instruction:new TransactionInstruction({ programId:program, keys, data }), drop:drop.toBase58(),
+  const instruction = new TransactionInstruction({ programId:program, keys, data });
+  const setup = createAssociatedTokenAccountIdempotentInstruction(issuer, dropToken, drop, asset, token);
+  return { instruction, instructions:accountSetup === 'app' ? [setup, instruction] : [instruction], drop:drop.toBase58(),
     sourceToken:sourceToken.toBase58(), dropToken:dropToken.toBase58() };
 }
 

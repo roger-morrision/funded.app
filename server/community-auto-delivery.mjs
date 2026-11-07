@@ -35,7 +35,7 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
     return run(record,'open',async()=>{
       const instructions=[];
       if(!await connection.getAccountInfo(approval,'finalized'))instructions.push(await service.approvalInstruction({mint:record.mint,appOwner:payer.toBase58()}));
-      instructions.push((await service.openingInstruction(record.mint)).instruction);
+      instructions.push(...(await service.openingInstruction(record.mint)).instructions);
       // Conservative rent bound includes Token-2022 account extensions.
       return transaction(instructions,[512,512,512]);
     },async row=>{

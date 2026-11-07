@@ -97,8 +97,7 @@ pub struct InitializeCommunityDrop<'info> {
         constraint = creator_token_account.mint == mint.key() @ ErrorCode::InvalidRewardTokenAccount)]
     pub creator_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(
-        init,
-        payer = creator,
+        mut,
         associated_token::mint = mint,
         associated_token::authority = drop,
         associated_token::token_program = token_program
@@ -147,8 +146,7 @@ pub struct InitializeCommunityDropFromRewardVault<'info> {
     #[account(seeds = [SNAPSHOT_APPROVAL_SEED, protocol_authority.key().as_ref(), mint.key().as_ref()], bump = snapshot_approval.bump)]
     pub snapshot_approval: Account<'info, CommunitySnapshotApproval>,
     #[account(
-        init,
-        payer = protocol_authority,
+        mut,
         associated_token::mint = mint,
         associated_token::authority = drop,
         associated_token::token_program = token_program
@@ -175,6 +173,7 @@ pub fn initialize_drop_from_reward_vault(
     leaf_count: u32,
 ) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.protocol_authority.key(), ctx.program_id)?;
+    assert_empty_drop_vault(&ctx.accounts.vault_token_account)?;
     require!(ctx.accounts.reward_vault.authority == ctx.accounts.protocol_authority.key(), ErrorCode::InvalidRotationAuthority);
     let reserve_info = ctx.accounts.reward_reserve.to_account_info();
     if reserve_info.owner == ctx.program_id {
@@ -242,6 +241,14 @@ fn fill_drop(drop: &mut Account<CommunityDrop>, protocol_authority: Pubkey, crea
     Ok(())
 }
 
+// The service creates the canonical ATA before opening the drop. It cannot
+// supply a funded or delegated vault in place of the formerly fresh account.
+fn assert_empty_drop_vault(vault: &TokenAccount) -> Result<()> {
+    require!(vault.amount == 0 && vault.delegate.is_none() && vault.close_authority.is_none(),
+        ErrorCode::InvalidRewardTokenAccount);
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn initialize_drop(
     ctx: Context<InitializeCommunityDrop>,
@@ -255,6 +262,7 @@ pub fn initialize_drop(
     leaf_count: u32,
 ) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.protocol_authority.key(), ctx.program_id)?;
+    assert_empty_drop_vault(&ctx.accounts.vault_token_account)?;
     fill_drop(&mut ctx.accounts.drop, ctx.accounts.protocol_authority.key(), ctx.accounts.creator.key(),
         ctx.accounts.app_owner.key(), ctx.accounts.mint.key(), ctx.accounts.eligibility_mint.key(),
         merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at,

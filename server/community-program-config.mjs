@@ -13,5 +13,9 @@ export function communityProgramForLaunch(launch, env, v3AuthorityKeypair) {
     || !authority || route.initialAuthority !== authority || !/^[a-f0-9]{64}$/.test(expectedHash)) {
     throw new Error('Verified V3 community program, authority, and launch policy are required.');
   }
-  return { programId, authority, expectedHash, scope:'per-mint-v3' };
+  // Switch together with the reviewed ProgramData hash after the router upgrade.
+  // Older routers create the ATA internally and reject a pre-created account.
+  const accountSetup = env.FUNDED_V3_COMMUNITY_ACCOUNT_SETUP || 'program';
+  if (!['app', 'program'].includes(accountSetup)) throw new Error('Invalid community account setup mode.');
+  return { programId, authority, expectedHash, accountSetup, scope:'per-mint-v3' };
 }

@@ -183,10 +183,11 @@ export function createAirdropsRoutes({
       const input = await body(req);
       try {
         const prepared = await (await communityClaimService(input.mint)).openingInstruction(input.mint);
-        const instruction = prepared.instruction;
-        return json(res, 200, { drop:prepared.drop, programId:instruction.programId.toBase58(),
+        const serialize = instruction => ({ programId:instruction.programId.toBase58(),
           accounts:instruction.keys.map(row => ({ pubkey:row.pubkey.toBase58(), isSigner:row.isSigner, isWritable:row.isWritable })),
           data:instruction.data.toString('base64') });
+        return json(res, 200, { drop:prepared.drop, ...serialize(prepared.instruction),
+          instructions:prepared.instructions.map(serialize) });
       } catch { return json(res, 422, { error:'Community opening instruction is unavailable.' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/airdrops/claims/approval-instruction') {

@@ -122,7 +122,7 @@ async function communityClaimService(mint) {
   return createCommunityClaimService({ connection:new SharedRpcConnection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
     programId:config.programId, authority:config.authority,
     eligibilityMint:fundedTokenMint, cluster:solanaCluster,
-    expectedCommunityProgramDataSha256:config.expectedHash,
+    expectedCommunityProgramDataSha256:config.expectedHash, accountSetup:config.accountSetup,
     qaCutoffMint:process.env.FUNDED_QA_COMMUNITY_CUTOFF_ENABLED === 'true'
       ? [process.env.FUNDED_QA_COMMUNITY_MINT,
         process.env.FUNDED_QA_COMMUNITY_MINTS].filter(Boolean).join(',') : '',

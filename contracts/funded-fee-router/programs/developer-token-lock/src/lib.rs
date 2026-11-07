@@ -74,7 +74,9 @@ pub struct InitializeAndLock<'info> {
     #[account(init, payer=creator, space=8+DeveloperTokenLock::INIT_SPACE,
         seeds=[SEED, mint.key().as_ref(), creator.key().as_ref()], bump)]
     pub lock: Account<'info, DeveloperTokenLock>,
-    #[account(init_if_needed, payer=creator, associated_token::mint=mint,
+    // The app creates the ATA earlier in the same transaction. Keep custody
+    // and canonical-address checks here; account creation needs no PDA signer.
+    #[account(mut, associated_token::mint=mint,
         associated_token::authority=lock, associated_token::token_program=token_program)]
     pub vault: InterfaceAccount<'info, TokenAccount>,
     pub token_program: Interface<'info, TokenInterface>,
@@ -92,7 +94,7 @@ pub struct Release<'info> {
     pub lock: Account<'info, DeveloperTokenLock>,
     #[account(mut, associated_token::mint=mint, associated_token::authority=lock, associated_token::token_program=token_program)]
     pub vault: InterfaceAccount<'info, TokenAccount>,
-    #[account(init_if_needed, payer=payer, associated_token::mint=mint,
+    #[account(mut, associated_token::mint=mint,
         associated_token::authority=creator, associated_token::token_program=token_program)]
     pub destination: InterfaceAccount<'info, TokenAccount>,
     pub token_program: Interface<'info, TokenInterface>,

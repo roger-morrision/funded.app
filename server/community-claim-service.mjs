@@ -22,7 +22,7 @@ const u64 = value => {
 };
 
 export function createCommunityClaimService({ connection, store, programId, authority, eligibilityMint,
-  cluster = 'devnet', expectedCommunityProgramDataSha256,
+  cluster = 'devnet', expectedCommunityProgramDataSha256, accountSetup = 'program',
   captureSnapshot = captureExactCommunitySnapshot, captureQaSnapshot = captureQaCommunitySnapshot,
   qaCutoffMint = '', qaCutoffAuthority = '', reserveReader = readCommunityReserveStatus,
   programEvidence = readProgramDataEvidence }) {
@@ -179,7 +179,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
     const source = await connection.getTokenAccountBalance(tokenAccount, 'finalized');
     return buildCommunityInitializeInstruction({ programId:program, authority:issuer,
       creator:record.creator, mint:record.mint, eligibilityMint:eligible, tokenProgram:record.tokenProgram,
-      manifest:record.manifest, sourceVaultBalance:source.value.amount });
+      manifest:record.manifest, sourceVaultBalance:source.value.amount, accountSetup });
   }
 
   async function approvalInstruction({ mint, appOwner }) {

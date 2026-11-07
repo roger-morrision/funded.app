@@ -1,6 +1,6 @@
 import {Buffer} from 'buffer';
 import {PublicKey,SystemProgram,TransactionInstruction} from '@solana/web3.js';
-import {TOKEN_2022_PROGRAM_ID,ASSOCIATED_TOKEN_PROGRAM_ID,getAssociatedTokenAddressSync} from '@solana/spl-token';
+import {TOKEN_2022_PROGRAM_ID,ASSOCIATED_TOKEN_PROGRAM_ID,getAssociatedTokenAddressSync,createAssociatedTokenAccountIdempotentInstruction} from '@solana/spl-token';
 
 export const DEVELOPER_TOKEN_LOCK_PROGRAM_ID='EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT';
 export const DEVELOPER_TOKEN_LOCK_SECONDS=43_200;
@@ -31,6 +31,13 @@ export function developerReleaseInstruction({mint,creator,payer=creator,programI
     keys:[key(payer,true,true),key(creator),key(mint),key(addresses.lock,true),key(addresses.vault,true),key(addresses.source,true),
       key(TOKEN_2022_PROGRAM_ID),key(ASSOCIATED_TOKEN_PROGRAM_ID),key(SystemProgram.programId)]}) };
 }
+// Setup and custody instructions must be submitted in one atomic transaction.
+// Idempotent setup also supports ATAs already created by an earlier launch.
+export function developerReleaseInstructions({mint,creator,payer=creator,programId=DEVELOPER_TOKEN_LOCK_PROGRAM_ID}) {
+  const built=developerReleaseInstruction({mint,creator,payer,programId});
+  return [createAssociatedTokenAccountIdempotentInstruction(new PublicKey(payer),built.source,
+    new PublicKey(creator),new PublicKey(mint),TOKEN_2022_PROGRAM_ID),built.instruction];
+}
 export function decodeDeveloperTokenLock(account,{mint,creator,programId=DEVELOPER_TOKEN_LOCK_PROGRAM_ID}) {
   const {lock,bump}=developerLockAddresses({mint,creator,programId}),data=Buffer.from(account?.data||[]);
   if(account?.owner?.toBase58?.()!==String(programId)||data.length!==105||!data.subarray(0,8).equals(accountDiscriminator)
@@ -45,5 +52,7 @@ export function developerLockLaunchInstructions({mint,creator,amount,config,quot
   if(BigInt(amount)===0n)return [];
   if(!config?.ready||config.programId!==DEVELOPER_TOKEN_LOCK_PROGRAM_ID||config.lockSeconds!==DEVELOPER_TOKEN_LOCK_SECONDS)
     throw Error('The 12-hour developer token escrow is unavailable. No launch was sent.');
-  return [developerLockInstruction({mint,creator,amount,quoteId}).instruction];
+  const built=developerLockInstruction({mint,creator,amount,quoteId});
+  return [createAssociatedTokenAccountIdempotentInstruction(new PublicKey(creator),built.vault,
+    built.lock,new PublicKey(mint),TOKEN_2022_PROGRAM_ID),built.instruction];
 }

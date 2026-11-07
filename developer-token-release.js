@@ -1,7 +1,7 @@
 import {Buffer} from 'buffer';
 import bs58 from 'bs58';
 import {PublicKey,Transaction} from '@solana/web3.js';
-import {developerReleaseInstruction,developerLockAddresses,decodeDeveloperTokenLock} from './developer-token-lock.js';
+import {developerReleaseInstruction,developerReleaseInstructions,developerLockAddresses,decodeDeveloperTokenLock} from './developer-token-lock.js';
 
 export const developerReleaseStorageKey=(mint,creator)=>`funded.developer-release.devnet:${mint}:${creator}`;
 export async function verifyDeveloperRelease({connection,mint,creator,receipt}){
@@ -44,7 +44,7 @@ export async function releaseDeveloperTokens({connection,provider,mint,creator,a
   if(provider.publicKey?.toBase58()!==creator||typeof provider.signTransaction!=='function')throw Error('Connect the original developer wallet.');
   const latest=await connection.getLatestBlockhash('finalized');
   const transaction=new Transaction({feePayer:new PublicKey(creator),recentBlockhash:latest.blockhash})
-    .add(developerReleaseInstruction({mint,creator}).instruction);
+    .add(...developerReleaseInstructions({mint,creator}));
   const message=Buffer.from(transaction.serializeMessage());assertCurrent();
   const signed=await provider.signTransaction(transaction);assertCurrent();
   if(!(signed instanceof Transaction)||!Buffer.from(signed.serializeMessage()).equals(message))throw Error('Wallet changed the reviewed token release. Nothing was sent.');
