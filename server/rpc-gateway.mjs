@@ -25,7 +25,8 @@ export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxRespo
       const chunks=[];let size=0;
       response.on('data',chunk=>{size+=chunk.length;if(size>maxResponseBytes)response.destroy(Error('RPC response too large'));else chunks.push(chunk);});
       response.once('error',reject);response.once('end',()=>{
-        let body;try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{body=null;}
+        const text=Buffer.concat(chunks).toString('utf8');
+        let body;try{body=JSON.parse(text);}catch{body=text.slice(0,1000);}
         resolve({status:response.statusCode,headers:response.headers,body});
       });
     });
@@ -47,6 +48,7 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
     cooldownRemainingMs:Math.max(0,blockedUntil-now()),
     methodCooldowns:Object.fromEntries([...methodCooldowns].filter(([,until])=>until>now()).map(([method,until])=>[method,until-now()])),
     upstreamVerified:verified,cluster:'devnet',redis:sharedCache?.stats?.()||{enabled:false},
+    failover:transport.stats?.()||{enabled:false},
     pacing:{minIntervalMs,blockIntervalMs,sendIntervalMs,maxConcurrent}});
   const cooling=method=>Math.max(blockedUntil,methodCooldowns.get(method)||0)>now();
   const erase=key=>{const entry=cache.get(key);if(entry){cacheBytes-=entry.bytes;cache.delete(key);}};
