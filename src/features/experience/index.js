@@ -1,4 +1,5 @@
 import { mountGetStarted } from './get-started.js';
+import { mountMetricAccents } from './metric-accents.js';
 import { initializeDiscoveryIntent } from './discovery-intent.js';
 import { initializeFinancialCenter } from './financial-center.js';
 import { initializeCreatorActivity } from './creator-activity.js';
@@ -60,6 +61,7 @@ export function initializeProductFlows(app) {
     mountJourneySupport();
     mountExploreReturn();
     mountGetStarted(app);
+    mountMetricAccents();
     document.body.classList.add('product-flows-ready');
     window.dispatchEvent(new Event('funded:layout-change'));
     return true;

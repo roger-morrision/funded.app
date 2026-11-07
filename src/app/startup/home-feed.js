@@ -2,7 +2,15 @@ import { initializeAppState } from '../runtime.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeHomeFeed(appState) {
-  window.addEventListener('funded:home-discovery', () => appState.renderHomeLaunchBoard());
+  const followingActive=()=>document.body.classList.contains('page-route-overview')&&document.querySelector('.home-launch-board')?.dataset.discovery==='following';
+  const refreshFollowing=()=>{
+    if(!followingActive())return;
+    const pending=appState.refreshFollowedWalletHoldings();
+    appState.renderHomeLaunchBoard();
+    void pending.then(()=>{if(followingActive())appState.renderHomeLaunchBoard();});
+  };
+  window.addEventListener('funded:home-discovery', () => {if(followingActive())refreshFollowing();else appState.renderHomeLaunchBoard();});
+  window.addEventListener('funded:following-changed',refreshFollowing);
   // app-source: 480
   const homeHolderCountCache = new Map();
   initializeAppState(appState, 'homeHolderCountCache', homeHolderCountCache);

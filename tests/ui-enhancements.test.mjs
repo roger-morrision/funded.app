@@ -4,6 +4,18 @@ import { describeTradeQuote, estimateBuyTokenAmountFromSnapshot } from '../trade
 import { buildTradeReview } from '../trade-review-model.js';
 import { reviewRows } from '../src/features/shared/transaction-review.js';
 import { roleSteps } from '../src/features/experience/get-started.js';
+import { metricTone } from '../src/features/experience/metric-accents.js';
+
+test('metric accents distinguish zero, unavailable values and gain or loss', () => {
+  for (const value of ['—', '$—', 'None yet', 'Checking…', '10 unavailable']) assert.equal(metricTone(value), 'muted');
+  assert.equal(metricTone('0 SOL'), 'info');
+  assert.equal(metricTone('−2.3%'), 'danger');
+  assert.equal(metricTone('-$12.34'), 'danger');
+  assert.equal(metricTone('+2.3%'), 'success');
+  assert.equal(metricTone('2.3%', 0, 'negative'), 'danger');
+  assert.equal(metricTone('≥$98.81', 1), 'success');
+  assert.equal(metricTone('3%', 2), 'accent');
+});
 
 test('lazy quote display keeps integer slippage floors and net sell fees', () => {
   const trade={side:'sell',tokenDecimals:6,outputAmount:1000000007n,feeLamports:10000000};

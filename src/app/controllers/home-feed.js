@@ -235,7 +235,7 @@ export function createHomeFeedController(appState) {
       EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER,
       get homeFrozenOrder() { return appState.homeFrozenOrder; },
       set homeFrozenOrder(value) { appState.homeFrozenOrder = value; },
-    }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, withVerifiedExploreBenefits: appState.withVerifiedExploreBenefits, launchCardVolumeUsd: appState.launchCardVolumeUsd, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, setupHomeTicker: appState.setupHomeTicker, getWatchlist: appState.getWatchlist, promotionForMint: appState.promotionForMint, formatCoinUsd: appState.formatCoinUsd, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos, homeLaunchCardMarkup: appState.homeLaunchCardMarkup, decorateHomeLaunchCard: appState.decorateHomeLaunchCard });
+    }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, withVerifiedExploreBenefits: appState.withVerifiedExploreBenefits, launchCardVolumeUsd: appState.launchCardVolumeUsd, exploreBoostAmountMarkup: appState.exploreBoostAmountMarkup, setupHomeTicker: appState.setupHomeTicker, getWatchlist: appState.getWatchlist, getFollowingTokenSources:appState.getFollowingTokenSources, getFollowingCoverage:appState.getFollowingCoverage, promotionForMint: appState.promotionForMint, formatCoinUsd: appState.formatCoinUsd, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos, homeLaunchCardMarkup: appState.homeLaunchCardMarkup, decorateHomeLaunchCard: appState.decorateHomeLaunchCard });
   }
   // app-source-end
 

@@ -14,6 +14,8 @@
   --fv-accent: #f4a340;
   --fv-accent-soft: #f4a3401f;
   --fv-success: #73e8c3;
+  --fv-info: var(--blue);
+  --fv-violet: color-mix(in srgb, var(--fv-info) 70%, var(--fv-danger));
   --fv-warning: #f1c873;
   --fv-danger: #f78989;
   --fv-space-1: 4px;
@@ -87,16 +89,16 @@ html:has(.technical-notice-stack .technical-notice.is-compact:not([hidden])) { s
    compact launchpad cards: identity + socials, market figures, curve, actions. */
 html body #main-content .token-card-shell.home-launch-card { position: relative; display: flex; flex-direction: column; gap: var(--fv-space-3); min-height: 0; padding: var(--fv-space-4); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); background: var(--token-card-surface, var(--fv-surface)); box-shadow: none; transition: border-color .15s, transform .15s; }
 html body #main-content .token-card-shell.home-launch-card:hover { border-color: color-mix(in srgb, var(--fv-accent) 40%, transparent); transform: translateY(-1px); }
-html body #main-content .home-launch-card .home-card-overview { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: var(--fv-space-3); margin: 0; padding: 0 36px 0 0; border: 0; }
+html body #main-content .home-launch-card .home-card-overview { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 4px var(--fv-space-3); margin: 0; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-card-media { align-self: start; width: 56px; height: 56px; min-height: 0; max-height: 56px; aspect-ratio: 1; margin: 0; }
 html body #main-content .home-launch-card .home-launch-card-media img,
 html body #main-content .home-launch-card .home-token-avatar { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; }
-html body #main-content .home-launch-card .home-card-info { display: grid; gap: var(--fv-space-1); min-width: 0; }
-html body #main-content .home-launch-card .home-card-heading { display: flex; align-items: center; gap: var(--fv-space-2); min-width: 0; }
+html body #main-content .home-launch-card .home-card-info { display: contents; }
+html body #main-content .home-launch-card .home-card-heading { display: flex; grid-column:2; grid-row:1; align-items: center; gap: var(--fv-space-2); min-width: 0; padding-right:32px; }
 html body #main-content .home-launch-card .home-token-identity { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--fv-space-2); min-width: 0; }
 html body #main-content .home-launch-card .home-token-identity strong { color: var(--fv-text); font: 800 16px var(--fv-font-ui); letter-spacing: -.01em; }
 html body #main-content .home-launch-card .home-token-identity small { min-width: 0; color: var(--fv-text-muted); font: 500 13px var(--fv-font-ui); overflow-wrap: anywhere; white-space: normal; }
-html body #main-content .home-launch-card .home-card-meta { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-card-meta { position: relative; z-index: 2; grid-column:1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--fv-space-2); color: var(--fv-text-subtle); font: 500 12px var(--fv-font-ui); }
 html body #main-content .home-launch-card .home-launch-card-addresses { display: inline-flex; align-items: center; gap: 2px; margin: 0; }
 html body #main-content .home-launch-card .home-launch-card-addresses code { color: var(--fv-text-subtle); font: 12px var(--fv-font-data); }
 html body #main-content .home-launch-card .home-launch-copy-address { width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: var(--fv-radius-sm); background: transparent; color: var(--fv-text-subtle); }
@@ -342,3 +344,10 @@ html body #main-content > .site-footer .site-footer-bottom { grid-column: 1 / -1
 }
 /* Home service status: aligned to the content column like every other section, not a centered 720px box. */
 html body.page-route #main-content > .preview-status-drawer { width: 100%; max-width: none; margin: var(--fv-space-6) 0 0; }
+
+/* Ranking values carry distinct accents; missing data stays neutral. */
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="volume"] strong { color:var(--fv-success); }
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="airdrop"] strong { color:var(--fv-accent); }
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="holder-fee"] strong { color:var(--fv-info); }
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="x-fee"] strong { color:color-mix(in srgb,var(--fv-info) 70%,var(--fv-danger)); }
+html body #main-content #explore-benefit-leaders :is([data-state="empty"],[data-state="unavailable"]) strong { color:var(--fv-text-muted); }

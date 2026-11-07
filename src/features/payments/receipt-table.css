@@ -31,11 +31,16 @@
  #rewards-history .payment-history-heading h2{font-size:22px}
  #payment-list .payment-table-head{display:none}
  #payment-list .payment-history-row{grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:18px 0}
- #payment-list .payment-history-identity{grid-column:1;grid-row:1}
- #payment-list .payment-history-actions{grid-column:2;grid-row:1;align-self:start;gap:8px}
- #payment-list .payment-history-metadata{grid-column:1/-1;grid-row:2}
+ #payment-list .payment-history-identity{grid-column:1/-1;grid-row:1}
+ #payment-list .payment-history-actions{grid-column:2;grid-row:2;align-self:start;gap:8px}
+ #payment-list .payment-history-metadata{grid-column:1;grid-row:2}
  #payment-list .payment-history-details summary{min-height:44px;padding-block:12px;font-size:14px!important;line-height:1.5}
  #payment-list .payment-history-details>small{font-size:14px!important;line-height:1.5}
  #rewards-history .payment-history-filters{--receipt-control-size:16px}
 }
-@media(max-width:420px){#rewards-history .payment-history-filters{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:420px){
+ #rewards-history .payment-history-filters{grid-template-columns:minmax(0,1fr)}
+ #payment-list .payment-history-metadata{grid-column:1/-1;grid-row:2}
+ #payment-list .payment-history-actions{grid-column:1/-1;grid-row:3;justify-content:space-between}
+ #payment-list .payment-history-actions .payment-amount{align-items:flex-start}
+}

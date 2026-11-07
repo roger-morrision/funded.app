@@ -15,6 +15,8 @@ export function renderHomeLaunchBoard(state, {
   exploreBoostAmountMarkup,
   setupHomeTicker,
   getWatchlist,
+  getFollowingTokenSources = () => new Map(),
+  getFollowingCoverage = () => ({total:0}),
   promotionForMint,
   formatCoinUsd,
   loadVerifiedTokenLogos,
@@ -57,7 +59,7 @@ export function renderHomeLaunchBoard(state, {
   if (tableBody?.closest('table')) tableBody.closest('table').hidden = paidListingView;
   if (paidTable) paidTable.hidden = !paidListingView;
   const boardTitle = document.querySelector('#home-launch-board-title');
-  if (boardTitle) boardTitle.textContent = homePreview ? ({trending:'Trending coins',new:'New coins',near:'Near graduation',saved:'Your favorite coins'}[discovery] || 'Coins') : paidListingView ? 'Paid listings' : 'Live launches';
+  if (boardTitle) boardTitle.textContent = homePreview ? ({trending:'Trending coins',new:'New coins',near:'Near graduation',saved:'Your favorite coins',following:'Coins from followed wallets'}[discovery] || 'Coins') : paidListingView ? 'Paid listings' : 'Live launches';
   const footerLink = document.querySelector('.home-board-footer .home-launch-all');
   if (footerLink) {
     footerLink.href = paidListingView ? '/list' : '#explore';
@@ -205,6 +207,7 @@ export function renderHomeLaunchBoard(state, {
   if (homePreview) {
     if(discovery==='near')visible=visible.filter(item=>item.complete===false && item.curveProgressPercent>=80);
     if(discovery==='saved')visible=visible.filter(item=>getWatchlist().includes(item.address));
+    if(discovery==='following'){const sources=getFollowingTokenSources();visible=visible.filter(item=>sources.has(item.address));}
     if(discovery==='trending'){
       const ranked=rankTrending(visible.filter(item=>trendingMetric(item,homeLaunchWindow)?.score>0),homeLaunchWindow);
       visible=ranked.length?ranked:visible.sort((a,b)=>Number(b.createdTimestamp||0)-Number(a.createdTimestamp||0));
@@ -225,12 +228,17 @@ export function renderHomeLaunchBoard(state, {
     const stageUnavailable = !filtersActive && stage && verified.some(item => homeLaunchTab === 'curve'
       ? item.complete == null && item.migrated !== true
       : item.complete == null || (item.complete === true && item.migrated == null));
-    const title = homePreview && verified.length && !visible.length ? ({trending:'Not enough participation to rank yet.',near:'No verified coins near graduation.',saved:'No favorite coins yet.'}[discovery] || 'No coins in this view.') : initialCheck ? stage ? 'Checking launch stages…' : 'Checking verified launches…'
+    let title = homePreview && verified.length && !visible.length ? ({trending:'Not enough participation to rank yet.',near:'No verified coins near graduation.',saved:'No favorite coins yet.'}[discovery] || 'No coins in this view.') : initialCheck ? stage ? 'Checking launch stages…' : 'Checking verified launches…'
       : stageUnavailable ? `${stage} verification is unavailable.`
       : feedUnavailable ? 'Tokens are temporarily unavailable.' : homeLaunchTab === 'watchlist' ? 'No favorite tokens yet.' : filtersActive ? 'No launches match these filters.' : 'No verified launches in this view.';
-    const detail = initialCheck ? homePreview ? 'Checking verified launches and current market activity.' : 'Current launch checks are in progress. You can select All to view verified registry tokens.'
+    let detail = initialCheck ? homePreview ? 'Checking verified launches and current market activity.' : 'Current launch checks are in progress. You can select All to view verified registry tokens.'
       : stageUnavailable ? `${stage} status is unverified. Select All to view verified registry tokens, or try again.`
       : feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homePreview ? 'Verified coins will appear here. Open Explore to browse the full directory.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
+    if(homePreview && discovery==='following' && !initialCheck && !feedUnavailable){
+      const coverage=getFollowingCoverage();
+      title=!coverage.total?'No followed wallets yet.':coverage.refreshing?'Checking followed wallets…':'No tokens found for followed wallets.';
+      detail=!coverage.total?'Open a trader wallet from a token page and choose Follow wallet.':coverage.refreshing?'Looking for held tokens and observed recent trades.':coverage.unavailable||coverage.partial||coverage.checked<coverage.total?'Balance checks are incomplete. Recent trades cover only the indexed sample; try again later.':'No current holdings or recent trades were found among listed tokens.';
+    }
     const retry = !initialCheck && (stageUnavailable || feedUnavailable) ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : '';
     grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${retry}</div>`;
     if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;
