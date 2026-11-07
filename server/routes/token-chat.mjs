@@ -38,7 +38,7 @@ function verifyTokenChatSignature(statement, signatureValue, publicKey) {
 // Return true only after sending a response; false lets the router continue.
 export function createTokenChatRoutes({
   body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized,
-  respond, readMarketCaps = null, readHolderShare = null, readCalloutFeed = null,
+  respond, readMarketCaps = null, readHolderShare = null, readCalloutFeed = null, readTradeMetrics = null,
 }) {
 
   const json = (...args) => { respond(...args); return true; };
@@ -50,10 +50,11 @@ export function createTokenChatRoutes({
       const rows = (await store.readRecentCoinChats(50)).filter(row => !['hidden','deleted'].includes(row.status)).slice(0,50);
       const calls = rows.some(row => row.callout) && readCalloutFeed ? await readCalloutFeed().catch(() => null) : null;
       const byId = new Map((calls?.callouts || []).map(row => [row.id,row]));
+      const metrics = readTradeMetrics ? await readTradeMetrics(rows).catch(()=>({})) : {};
       const messages = rows.map(row => {
         const message = tokenChatPublicMessage(row), call = byId.get(row.id);
-        // Market-cap movement is not wallet P&L. Purchase cost basis is not recorded here.
-        if (message.callout) message.callout = {...message.callout, purchasedSol:null, pnlSol:null,
+        if (message.callout) message.callout = {...message.callout, purchasedSol:metrics[row.id]?.purchasedSol??null, pnlSol:metrics[row.id]?.pnlSol??null,
+          tradeMetrics:metrics[row.id]||null,
           marketChangePercent:Number.isFinite(call?.multiple) ? (call.multiple - 1) * 100 : null};
         return message;
       });

@@ -60,7 +60,7 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   if (!instruction) throw new Error('The Pump creation transaction has no matching atomic $FUNDED BurnChecked instruction.');
   return {
     tier: tier.id, label: tier.label, amountTokens: requiredAmount, fundedMint,
-    status: 'verified', receipt: { signature, instruction: 'BurnChecked', atomicWithPumpLaunch: true, verified: true },
+    status: 'verified', receipt: { signature, slot:transaction.slot, blockTime:transaction.blockTime??null, instruction: 'BurnChecked', atomicWithPumpLaunch: true, verified: true },
   };
 }
 

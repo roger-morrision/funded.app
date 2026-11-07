@@ -77,7 +77,7 @@ export function createTokenCardsController(appState) {
       if (avatar) {
         avatar.textContent = '';
         avatar.style.backgroundImage = `url("${appState.isDevnetImageUri(launch.imageUri, mint) ? tokenArtworkUrl(mint, launch.imageUri) : `/devnet-images/${encodeURIComponent(mint)}`}")`;
-        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat';
         avatar.style.backgroundPosition = 'center';
         avatar.title = appState.isDevnetImageUri(launch.imageUri, mint) ? '' : 'Generated token avatar; project artwork was not uploaded';
       }

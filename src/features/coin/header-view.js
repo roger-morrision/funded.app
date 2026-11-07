@@ -1,5 +1,6 @@
 import { icon } from '../../../ui-icons.js';
 import { buildCoinSummary } from '../../../coin-summary-model.js';
+import {syncCoinBurnCards} from './burn-dashboard.js';
 import { formatSmallDashboardUsd, formatDashboardQuantity, escapeHtml } from '../shared/display.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
@@ -77,4 +78,5 @@ export function renderCoinSummary(
         : formatDashboardQuantity(item.amount);
     return `<article class="coin-summary-card" data-metric="${escapeHtml(item.id)}" data-state="${escapeHtml(item.state)}"><span class="coin-summary-icon" aria-hidden="true">${escapeHtml(item.icon)}</span><div><small>${escapeHtml(item.label)}</small><span class="coin-summary-value"><strong>${escapeHtml(value)}</strong><b>${escapeHtml(item.unit)}</b></span><em>${escapeHtml(item.note)}</em></div></article>`;
   }).join('');
+  syncCoinBurnCards(document);
 }

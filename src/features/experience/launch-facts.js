@@ -1,4 +1,5 @@
-import {savedFeeDistributionChart} from '../fees/saved-distribution-chart.js';
+import {savedFeeDistributionChart,savedFeeDistributionRows} from '../fees/saved-distribution-chart.js';
+import {feeBenefitDetailsMarkup} from '../fees/benefit-details.js';
 import { mountReserveFacts } from './reserve-facts.js';
 import { link, el, address, reportContextLink } from './view-utils.js';
 export function identityMatches(candidate, launches) {
@@ -11,11 +12,11 @@ export function initializeLaunchFacts(app) {
   const coin = document.querySelector('#coin-page'); if (!coin) return;
   const root = document.createElement('details'); root.className = 'flow-panel launch-facts';
   // Kept short by request: the coin's saved fee distribution and its airdrop rule.
-  root.innerHTML = '<summary>Fee distribution &amp; airdrop rule</summary><p data-facts-status hidden></p><dl></dl>';
+  root.innerHTML = '<summary>Fee distribution &amp; airdrop rule</summary><p data-facts-status hidden></p><dl></dl><details class="fee-distribution-details" data-facts-benefits hidden><summary>Benefits &amp; policy details</summary><div></div></details>';
   (coin.querySelector('.coin-main-column') || coin).append(root);
   mountReserveFacts(root,app);
   const report=reportContextLink('Report this coin');
-  const reset = () => { root.querySelector('dl').replaceChildren(); root.querySelector('[data-facts-status]').textContent = 'Checking this token’s RPC snapshot…'; };
+  const reset = () => { root.querySelector('dl').replaceChildren(); root.querySelector('[data-facts-benefits]').hidden=true; root.querySelector('[data-facts-status]').textContent = 'Checking this token’s RPC snapshot…'; };
   window.addEventListener('funded:coin-facts-loading', reset);
   window.addEventListener('funded:coin-facts', event => {
     const { mint, parsedMint, launch, checkedAt, error } = event.detail;
@@ -35,6 +36,12 @@ export function initializeLaunchFacts(app) {
     const chart = savedFeeDistributionChart(launch);
     const distribution = fact('Fee distribution', chart ? '' : 'Saved fee distribution unavailable');
     if (chart) distribution.innerHTML = chart;
+    const rows=savedFeeDistributionRows(launch),benefits=root.querySelector('[data-facts-benefits]');
+    benefits.hidden=!rows;
+    if(rows)benefits.querySelector('div').innerHTML=feeBenefitDetailsMarkup([
+      {key:'creator',label:'Creator, holders & X account',percent:rows.filter(row=>['creator','holders','x'].includes(row.key)).reduce((n,row)=>n+row.percent,0)},
+      ...rows.filter(row=>!['creator','holders','x'].includes(row.key)).map(row=>({...row,key:row.key==='bonus'?'community':row.key})),
+    ]);
   });
   const name = document.querySelector('#token-name'), symbol = document.querySelector('#token-symbol');
   const warning = document.createElement('p'); warning.className = 'flow-note'; warning.setAttribute('role', 'status'); symbol?.closest('label')?.after(warning);

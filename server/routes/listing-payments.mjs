@@ -153,7 +153,8 @@ export function createListingPaymentsRoutes({
         fundedMint: fundedTokenMint, quoteId, usd:quote.usd, serviceFeeVersion:1, tokenPriceUsd:quote.tokenPriceUsd,
         amountBaseUnits: proof.amountBaseUnits, amountTokens: quote.amountTokens, decimals:quote.decimals,
         slot: proof.slot, status: 'listed', onchainVerified: true, metadataSource:listingMetadata.source,
-        metadataAddress:listingMetadata.address, listedAt: proof.verifiedAt };
+        metadataAddress:listingMetadata.address, metadataStatus:listingMetadata.metadataStatus,tokenProgram:listingMetadata.tokenProgram,
+        tokenDecimals:listingMetadata.decimals,metadataUri:listingMetadata.uri||null,listedAt: proof.verifiedAt };
       try {
         const saved = await store.update(state => {
           state.listings ||= {};

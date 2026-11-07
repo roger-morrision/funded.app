@@ -132,7 +132,11 @@ export function tokenPage() {
     toolbar.append(controls);
   }
   const metrics=$('#coin-summary-dashboard',root);
-  if(layout&&metrics)layout.after(metrics);
+  if(metrics){
+    root.append(metrics);
+    // Later modules append burns and holder rewards; keep this summary last.
+    new MutationObserver(()=>{if(metrics.parentElement===root&&root.lastElementChild!==metrics)root.append(metrics);}).observe(root,{childList:true});
+  }
   const trade=$('#trade-panel',root);
   const pulse=$('.coin-pulse-panel',root);
   const side=$('.coin-side-column',root);
@@ -161,12 +165,7 @@ export function tokenPage() {
   }
   policy?.remove();
   // Preserve live nodes and listeners while making secondary evidence optional.
-  disclose(pulse,'Trade volume details');
-  const metricDetails=disclose(metrics,'Fee and reward details');
-  if(metricDetails){
-    const sync=()=>{metricDetails.hidden=metrics.hidden;};sync();
-    new MutationObserver(sync).observe(metrics,{attributes:true,attributeFilter:['hidden']});
-  }
+  // Trade volume is part of the trading workspace and stays visible.
   const slippage=$('#trade-slippage')?.closest('label');disclose(slippage,'Trade settings · slippage');
   const button=node('button','mobile-trade-open','Trade token');button.type='button';
   const tradeHeading = $('#coin-page-title', root);

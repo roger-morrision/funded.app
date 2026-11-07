@@ -37,6 +37,7 @@ import { createAirdropsRoutes } from './routes/airdrops.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
 import { createCalloutRoutes, createCalloutFeed } from './routes/callouts.mjs';
 import { createCalloutMarketReader, createHolderShareReader } from './callout-market.mjs';
+import { createCommunityTradeReader } from './community-trade-metrics.mjs';
 import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode } from './http-policy.mjs';
 import { readJsonBody } from './request-body.mjs';
@@ -292,7 +293,6 @@ const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics
     return {...confirmedProductTotals(state,evidence,solanaCluster),financialProcessing:financialOperations(state,rewards,solanaCluster).timing,tradingActivity:await productMetrics.trades(solanaCluster)};
   },
 });
-
 const handleBoostRoutes = createBoostRoutes({
   store, solanaCluster, boostPurchasesEnabled, clientKey, body, readSolUsdQuote, id, solanaRpcUrl, respond: json,
 });
@@ -304,6 +304,7 @@ let calloutConnection = null;
 const readCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
 const readCalloutFeed = createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps });
 const handleTokenChatRoutes = createTokenChatRoutes({
+  readTradeMetrics:createCommunityTradeReader({rpcUrl:solanaRpcUrl,cluster:solanaCluster,readMarketCaps:readCalloutMarketCaps}),
   readCalloutFeed,
   body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized, respond: json, readMarketCaps: readCalloutMarketCaps,
   readHolderShare: createHolderShareReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') }),

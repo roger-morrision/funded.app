@@ -59,7 +59,9 @@ export function createTradeExecutionController(appState) {
       const trade = await appState.buildTradeTransaction({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState) });
       appState.assertWalletSessionCurrent(session);
       if (version !== appState.tradeQuoteVersion || !appState.tradeInputs().valid || `${appState.tradeInputs().mint}:${appState.tradeInputs().side}:${appState.tradeInputs().amount}:${appState.tradeInputs().slippagePercent}:${session.address}` !== inputKey) return null;
-      const quote = appState.describeTradeQuote(trade, slippagePercent);
+      const tokenSymbol=appState.coinTradeEstimate?.mint===mint?appState.coinTradeEstimate.symbol
+        :appState.coinSummaryLaunch?.mint===mint?appState.coinSummaryLaunch.symbol:null;
+      const quote = appState.describeTradeQuote(trade, slippagePercent,tokenSymbol||`${mint.slice(0,4)}…${mint.slice(-4)}`);
       if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
       appState.tradePreview = { trade, inputKey, preparedAt: Date.now() };
       document.querySelector('#trade-live-countdown').innerHTML = appState.quoteCountdownMarkup(appState.tradePreview.preparedAt + TRADE_QUOTE_TTL_MS);

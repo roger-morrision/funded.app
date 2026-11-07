@@ -23,7 +23,7 @@ html body.page-route-overview.product-experience-style #main-content .hero-secti
   display: block; background: none; border-bottom: 1px solid var(--cp-line);
 }
 html body.page-route-overview.product-experience-style #main-content .hero-copy-column { display: block; min-width: 0; max-width: 840px; }
-html body.page-route-overview.product-experience-style #main-content .hero-section h1 { max-width: 22ch; line-height: 1.12 !important; letter-spacing: -.035em; }
+html body.page-route-overview.product-experience-style #main-content .hero-section h1 { max-width: 22ch; line-height: 1.12; letter-spacing: -.035em; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy { max-width: 56ch; margin: 20px 0; font-size: 16px; line-height: 1.6; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy > p { margin:0; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy > p + p { margin-top:10px; }
@@ -105,7 +105,7 @@ html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distributio
 html body.page-route-launch #launch-dialog #launch-fee-overview .fee-distribution-categories strong { font-size: 18px; }
 @media(max-width:600px) { html body.page-route-launch #launch-dialog #launch-project-links .social-grid { grid-template-columns: minmax(0,1fr); gap: 12px; } }
 @media(max-width:700px) {
-  html body.page-route-overview.product-experience-style #main-content .hero-section { padding: 28px 0 24px !important; }
+  html body.page-route-overview.product-experience-style #main-content .hero-section { padding: 28px 0 24px; }
   html body #main-content .home-start-grid { grid-template-columns: minmax(0,1fr); gap: 12px; }
   html body #main-content .home-start-grid > a { padding: 20px; }
   html body.page-route-launch #launch-dialog .launch-steps button { padding: 10px 4px; font-size: 12px; }

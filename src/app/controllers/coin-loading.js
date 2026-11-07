@@ -1,4 +1,3 @@
-import { renderMarketStatus } from '../../features/coin/market-status.js';
 import { recoverMarketSnapshots } from '../../features/coin/market-recovery.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
@@ -55,7 +54,7 @@ export function createCoinLoadingController(appState) {
     // market and trading fields still wait for their independent chain checks.
     if (known && appState.EXPLORE_CLUSTER === 'devnet') {
       const avatar = document.querySelector('#coin-avatar');
-      if (avatar) { avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; }
+      if (avatar) { avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat'; avatar.style.backgroundPosition = 'center'; }
     }
     try {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
@@ -143,7 +142,7 @@ export function createCoinLoadingController(appState) {
         if (avatar) {
           avatar.textContent = '';
           avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`;
-          avatar.style.backgroundSize = 'cover';
+          avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat';
           avatar.style.backgroundPosition = 'center';
           avatar.title = appState.isDevnetImageUri(registeredLaunch.imageUri, mintAddress) ? '' : 'Generated token avatar; project artwork was not uploaded';
         }
@@ -203,7 +202,7 @@ export function createCoinLoadingController(appState) {
         appState.setCoinFact('#coin-metadata-status', 'Name and symbol confirmed', 'clear');
         if (appState.isDevnetImageUri(details.image, mintAddress)) {
           const avatar = document.querySelector('#coin-avatar');
-          if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; avatar.removeAttribute('title'); }
+          if (avatar) { avatar.textContent = ''; avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat'; avatar.style.backgroundPosition = 'center'; avatar.removeAttribute('title'); }
         }
         for (const [selector, href] of [['#coin-website-link', details.website], ['#coin-x-link', details.twitter], ['#coin-telegram-link', details.telegram], ['#coin-discord-link', details.discord]]) {
           const link = document.querySelector(selector); if (link && typeof href === 'string' && href.startsWith('https://')) { link.href = href; link.hidden = false; }
@@ -223,7 +222,6 @@ export function createCoinLoadingController(appState) {
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, error:true}}));
       console.error('On-chain token detail failed', detail);
       appState.renderOnChainUnavailable(detail);
-      renderMarketStatus({mint:mintAddress,available:false,retry:async()=>{if(loadId!==appState.coinLoadId)return;appState.resetCoinSurface(mintAddress);await appState.loadCoinOnChain(mintAddress);}});
       appState.renderCoinRegistryIdentity(mintAddress);
       const feeLedger=loadedFeeLedger;
       if (loadId !== appState.coinLoadId || !feeLedger) return;

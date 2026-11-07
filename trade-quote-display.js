@@ -1,6 +1,6 @@
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-export function describeTradeQuote(trade, slippagePercent) {
+export function describeTradeQuote(trade, slippagePercent, tokenSymbol = trade.tokenSymbol) {
   const outputDecimals = trade.side === 'buy' ? trade.tokenDecimals : 9;
   const expected = Number(trade.outputAmount.toString()) / (10 ** outputDecimals);
   const slippageBps = Math.round(Number(slippagePercent) * 100);
@@ -12,7 +12,7 @@ export function describeTradeQuote(trade, slippagePercent) {
   const maximumSpendSol = trade.side === 'buy' && trade.maximumInputAmount
     ? Number(trade.maximumInputAmount.toString()) / LAMPORTS_PER_SOL
     : null;
-  return { expected, minimum, expectedNetSol, minimumNetSol, maximumSpendSol, outputSymbol: trade.side === 'buy' ? 'tokens' : 'SOL', appFeeSol: trade.feeLamports / LAMPORTS_PER_SOL, route: trade.route || 'curve' };
+  return { expected, minimum, expectedNetSol, minimumNetSol, maximumSpendSol, outputSymbol: trade.side === 'buy' ? String(tokenSymbol||'tokens').trim() : 'SOL', appFeeSol: trade.feeLamports / LAMPORTS_PER_SOL, route: trade.route || 'curve' };
 }
 
 export function estimateBuyTokenAmountFromSnapshot({ amountSol, curveSnapshot = null, graduatedPoolSnapshot = null } = {}) {

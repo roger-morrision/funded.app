@@ -99,7 +99,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (status) status.hidden = !verified && !pending && !recoveryError;
     mintInput.removeAttribute('aria-invalid');
     help.classList.remove('is-valid', 'is-invalid');
-    if (!value) help.textContent = 'Paste the token mint address to see if it can be listed.';
+    if (!value) help.textContent = 'Paste a Solana Devnet mint from any launchpad or DEX. Token details are read on-chain.';
     else if (!mint) { help.textContent = 'That is not a Solana token address. Check it and paste again.'; help.classList.add('is-invalid'); mintInput.setAttribute('aria-invalid', 'true'); }
     else { help.textContent = 'Address looks right. We check the token on Solana before you pay.'; help.classList.add('is-valid'); }
     const existing = mint && (listings.find(item => item.mint === mint) || (lookup?.mint===mint && lookup.included ? {included:true}:null));
@@ -110,13 +110,24 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const note = document.createElement('small');
       if (verified) {
         title.textContent = lookup.name;
-        note.textContent = `${lookup.symbol} · ${lookup.included ? 'Saved Funded launch · listing included' : 'Verified Solana token metadata'}`;
+        note.textContent = `${lookup.symbol} · ${lookup.included ? 'Saved Funded launch · listing included' : lookup.metadataStatus==='missing'?'Mint verified · name metadata unavailable':'Verified on-chain metadata'}`;
         if (existing) {
           const link = document.createElement('a');
           link.href = `/token/${encodeURIComponent(mint)}`;
           link.textContent = 'Already listed ↗';
           preview.append(title, note, link);
         } else preview.append(title, note);
+        if(Number.isInteger(lookup.decimals)){
+          const wrap=document.createElement('div');wrap.className='data-table-scroll';wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label','Verified token metadata');
+          const table=document.createElement('table');table.className='record-table listing-metadata-table';
+          const head=table.createTHead().insertRow();for(const label of ['Token standard','Decimals','Supply','Metadata']){const th=document.createElement('th');th.scope='col';th.textContent=label;head.append(th);}
+          const row=table.createTBody().insertRow();
+          const raw=/^\d+$/.test(lookup.supplyBaseUnits||'')?BigInt(lookup.supplyBaseUnits):null;
+          const scale=10n**BigInt(lookup.decimals),whole=raw===null?'—':(raw/scale).toLocaleString('en-US');
+          const fraction=raw===null?'':(raw%scale).toString().padStart(lookup.decimals,'0').replace(/0+$/,'');
+          for(const value of [lookup.tokenProgram,String(lookup.decimals),whole+(fraction?'.'+fraction:''),lookup.metadataStatus==='missing'?'Not published / unsupported':lookup.source==='token-2022-onchain-finalized'?'Token-2022':'On-chain identity'])row.insertCell().textContent=value;
+          wrap.append(table);preview.append(wrap);
+        }
       } else {
         title.textContent = lookup?.mint === mint && lookup.status === 'error' ? 'Token lookup unavailable' : 'Checking token metadata…';
         note.textContent = lookup?.mint === mint && lookup.status === 'error'
@@ -171,10 +182,10 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         if (sequence !== lookupSequence || mint !== mintValue()) return;
         if (!result.available || result.data?.cluster !== 'devnet' || result.data.mint !== mint
           || !result.data.name || !result.data.symbol) throw new Error('Verified token metadata is unavailable.');
-        lookup = { mint, status:'verified', name:result.data.name, symbol:result.data.symbol, included:result.data.included === true };
+        lookup = { ...result.data,mint,status:'verified',included:result.data.included === true };
         nameInput.value = lookup.name;
         symbolInput.value = lookup.symbol;
-        setStatus('Token metadata verified on Solana. Review remains gated by listing availability and wallet checks.');
+        setStatus(lookup.metadataStatus==='missing'?'Mint verified on Solana. Name metadata is unavailable; this token will be listed by its mint address.':'Token metadata verified on Solana. Review remains gated by listing availability and wallet checks.');
       } catch (error) {
         if (sequence !== lookupSequence || mint !== mintValue()) return;
         lookup = { mint, status:'error', message:error instanceof TypeError ? 'Solana metadata service unavailable.' : error.message || 'The Solana metadata service did not respond.' };

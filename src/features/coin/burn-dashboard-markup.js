@@ -1,5 +1,4 @@
-export const burnDashboardMarkup=`<section class="coin-burn-dashboard" id="coin-burn-dashboard" aria-labelledby="coin-burn-title" aria-busy="true">
-  <header><h2 id="coin-burn-title">Token burns</h2><span>On-chain supply</span></header>
+export const burnDashboardMarkup=`<div id="coin-burn-dashboard" hidden aria-busy="true">
   <div class="coin-burn-metrics">
     <article><span>Total tokens burned</span><strong data-burn-tokens>—</strong><small>This token</small></article>
     <article><span>Total supply burned</span><strong data-burn-percent>—</strong><small>Of original supply</small></article>
@@ -10,4 +9,4 @@ export const burnDashboardMarkup=`<section class="coin-burn-dashboard" id="coin-
     <p>Only reductions of this token’s supply count. Transfers to burn addresses, liquidity-token burns and $FUNDED promotion burns are excluded.</p>
     <a data-burn-explorer target="_blank" rel="noopener noreferrer" hidden>View mint on Explorer ↗</a>
   </details>
-</section>`;
+</div>`;

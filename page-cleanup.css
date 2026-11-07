@@ -1,4 +1,4 @@
-@import './src/features/explore/compact-cards.css';
+
 /* Optional illustrations are one click away; page tasks and evidence stay first. */
 body.page-route .page-cleanup-guide {
   display: block;

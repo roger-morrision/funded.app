@@ -1,3 +1,27 @@
+/* Ranking values carry distinct accents; missing data stays neutral. */
+html body #main-content .saved-fee-chart { min-width:0; }
+html body #main-content .saved-fee-bar { display:flex; width:100%; height:24px; overflow:hidden; border-radius:6px; background:var(--fv-border); }
+html body #main-content .saved-fee-bar > span { display:flex; flex:none; align-items:center; justify-content:center; min-width:0; overflow:hidden; background:var(--fee-share-color); color:var(--fv-bg); font:700 12px var(--fv-font-data); }
+html body #main-content .saved-fee-legend { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 20px; list-style:none; margin:12px 0 0; padding:0; }
+html body #main-content .saved-fee-legend li { display:grid; grid-template-columns:8px minmax(0,1fr) auto; align-items:center; gap:8px; min-width:0; margin:0; padding:8px 0; border-bottom:1px solid var(--fv-border); color:var(--fv-text-muted); font:12px/1.4 var(--fv-font-ui); }
+html body #main-content .saved-fee-legend i { flex:none; width:8px; height:8px; border-radius:2px; background:var(--fee-share-color); }
+html body #main-content .saved-fee-legend strong { color:var(--fv-text); font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right; }
+html body #main-content .saved-fee-basis { display:block; margin-top:10px; color:var(--fv-text-muted); font:11px/1.5 var(--fv-font-ui); }
+html body #main-content .saved-fee-legend .is-zero { --fee-share-color:var(--fv-text-subtle); }
+.fee-share-creator { --fee-share-color:var(--fv-accent); }
+.fee-share-holders { --fee-share-color:var(--fv-success); }
+.fee-share-x { --fee-share-color:var(--fv-info); }
+.fee-share-operations { --fee-share-color:var(--fv-violet); }
+.fee-share-referrals { --fee-share-color:var(--fv-warning); }
+.fee-share-bonus { --fee-share-color:var(--fv-danger); }
+.fee-share-buyback { --fee-share-color:color-mix(in srgb,var(--fv-success) 50%,var(--fv-info)); }
+.fee-share-agency { --fee-share-color:color-mix(in srgb,var(--fv-accent) 45%,var(--fv-danger)); }
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="volume"] strong { color:var(--fv-success); }
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="airdrop"] strong { color:var(--fv-accent); }
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="holder-fee"] strong { color:var(--fv-info); }
+html body #main-content #explore-benefit-leaders [data-state="ready"][data-explore-leader-sort="x-fee"] strong { color:color-mix(in srgb,var(--fv-info) 70%,var(--fv-danger)); }
+html body #main-content #explore-benefit-leaders :is([data-state="empty"],[data-state="unavailable"]) strong { color:var(--fv-text-muted); }
+
 /* Shared navigation, card links and touch targets. */
 
 /* Topbar: Creators is a support view on the Home route, so it inherits Home's hidden

@@ -38,7 +38,7 @@ export function createFundedBuyQuotes(app) {
           : await app.fetchVerifiedPoolBuyQuote(args);
         if(!matches()) return;
         if(session) app.assertWalletSessionCurrent(session);
-        app.fundedBuyPreview={trade,amount,wallet:address,provider,preparedAt:Date.now(),quote:app.describeTradeQuote(trade,1)};
+        app.fundedBuyPreview={trade,amount,wallet:address,provider,preparedAt:Date.now(),quote:app.describeTradeQuote(trade,1,'$FUNDED')};
         app.renderFundedBuyControl('Quote refreshes automatically. Review the amounts, then approve in your wallet.');
       } catch(error) {
         if(matches()){app.fundedBuyPreview=null;app.renderFundedBuyControl(fundedBuyFailureMessage(error));}

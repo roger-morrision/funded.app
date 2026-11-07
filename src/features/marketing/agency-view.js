@@ -1,5 +1,6 @@
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { renderAgencyHistory } from './agency-history.js';
+import {agencyTokenTable} from './agency-token-table.js';
 import { readLaunchAgencySelection } from './agency-selection.js';
 
 const agentDescription = agent => agent.id === 'x-promotion'
@@ -22,6 +23,7 @@ export function initMarketingAgency(document = globalThis.document) {
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
       <p>The separate $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
       <a href="#capital-flow">View the currently active fee policy →</a></div></details>
+    <section aria-labelledby="agency-tokens-title"><h2 id="agency-tokens-title">Tokens &amp; agent budgets</h2><div data-agency-tokens>Checking registered tokens…</div></section>
     <section aria-labelledby="agency-budget-title"><h2 id="agency-budget-title">Agency funds &amp; activity</h2><dl class="agency-funds"><div><dt>Verified funding</dt><dd data-agency-funded>Unavailable</dd></div><div><dt>Verified spending</dt><dd data-agency-spent>Unavailable</dd></div></dl><p data-agency-history>No agency execution history has been verified.</p></section>
     <a class="text-button" href="#launch">Review launch promotions →</a>`;
   for (const agent of POLICY.agents) {
@@ -124,6 +126,7 @@ export function initMarketingAgency(document = globalThis.document) {
         page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
         page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
         renderAgencyHistory(page.querySelector('[data-agency-history]'),data,{currentVerified:true});
+        page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);
         return;
       }
       if (data.status !== 'activation-blocked' || data.active !== false || data.executionEnabled !== false
@@ -137,9 +140,10 @@ export function initMarketingAgency(document = globalThis.document) {
       page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
       renderAgencyHistory(page.querySelector('[data-agency-history]'),data);
+      page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);
     } catch {
       if (id === serial){verifiedRates=null; publishingPaused=null; teamReadiness(false);page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
-        page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});renderAgencyHistory(page.querySelector('[data-agency-history]'),null);}
+        page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});renderAgencyHistory(page.querySelector('[data-agency-history]'),null);page.querySelector('[data-agency-tokens]').textContent='Token budgets are unavailable. Refresh to retry.';}
     } finally { view.clearTimeout(timeout); }
   }
   const active = () => ['marketing-agency','launch'].includes((view.location.hash || view.location.pathname).replace(/^([#/]+)/,'')) && !document.hidden;

@@ -1,3 +1,4 @@
+import {burnHistoryTable} from './burn-history-table.js';
 import { summarizeBuybackLedger } from '../../../buyback-policy.js';
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
 import { escapeHtml, formatTokenDisplay } from '../shared/display.js';
@@ -74,24 +75,12 @@ export function renderBuybackDashboard(
     const executed = executedIds.has(accrual.id);
     return `<div class="buyback-ledger-row"><span class="buyback-ledger-icon">↗</span><span><strong>${formatBuybackAmount(accrual.buybackAmount)} ${escapeHtml(accrual.asset)} allocated</strong><small>${formatBuybackAmount(accrual.grossCreatorFees)} ${escapeHtml(accrual.asset)} gross fees · claim ${escapeHtml(accrual.claimSignature.slice(-8))}</small></span><b>${executed ? 'Burned' : 'Pending'}</b></div>`;
   }).join('');
-  const launchRows = launchBurns.map(launch => {
-    const burn = launch.creatorLaunchBurn; const receipt = burn.receipt;
-    const signature = String(receipt.signature || '');
-    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens ?? burn.amountTokens, 2)} $FUNDED burned</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} launch promotion · ${escapeHtml(burn.label || burn.tier || 'verified tier')}</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`;
-  }).join('');
-  const standaloneRows = standaloneReceipts.filter(receipt => !launchBurns.some(launch => launch.creatorLaunchBurn.receipt.signature === receipt.signature)).map(receipt => `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.amountTokens, 6)} $FUNDED burned</strong><small>${escapeHtml(fundedReceiptProject(receipt))} · confirmed</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed transaction ↗</a></span><b>Supply ↓</b></div>`).join('');
-  const feeRows = feeReceipts.map(receipt => {
-    const baseUnits = BigInt(receipt.burnedBaseUnits || receipt.boughtAndBurnedBaseUnits || '0');
-    const amount = formatTokenBaseUnits(baseUnits, Number(receipt.tokenDecimals ?? 6), 6);
-    const spentSol = receipt.spentLamports != null ? BigInt(receipt.spentLamports)
-      : BigInt(receipt.settledLamports || '0') - BigInt(receipt.returnedLamports || '0');
-    return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${escapeHtml(amount)} $FUNDED bought and burned</strong><small>${escapeHtml(formatTokenBaseUnits(spentSol, 9, 9))} SOL from collected creator fees · finalized on Devnet</small><a href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(receipt.signature)}`))}" target="_blank" rel="noopener noreferrer">Confirmed buy and burn ↗</a></span><b>Supply ↓</b></div>`;
-  }).join('');
+  const historyTable=burnHistoryTable({feeReceipts,launchBurns,standaloneReceipts,exploreExplorer,fundedReceiptProject});
   const ledger = document.querySelector('#buyback-ledger');
   const restoreFocus = preserveBuybackLedgerFocus(ledger, document);
   const more = ledger.querySelector(':scope > .concise-ledger-more');
   if (more) ledger.dataset.buybackExpanded = String(more.open);
-  ledger.innerHTML = `${feeRows}${standaloneRows}${launchRows}${previewRows}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
+  ledger.innerHTML = `${historyTable}${previewRows?'<h3>Local preview</h3>'+previewRows:''}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
   restoreFocus();
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');

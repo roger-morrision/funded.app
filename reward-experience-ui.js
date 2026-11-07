@@ -7,6 +7,8 @@ import { createTokenCardActions } from './token-card-controls.js';
 import { tokenListMarket, tokenAge } from './token-list-market-state.js';
 import { devnetImageUri } from './devnet-metadata.js';
 import { newestBuybackReceipts } from './src/features/funded/buyback-receipts.js';
+import { formatTokenBaseUnits } from './funded-burn.js';
+import { burnTimestamp } from './src/features/funded/burn-history-table.js';
 
 const LAMPORTS = 1_000_000_000n;
 const ALERT_KEY = 'funded.vip.reward-alerts.v1';
@@ -217,22 +219,29 @@ function renderBuybacks(data) {
   const trigger = amount(data.dashboard?.thresholdLamports) > 0n
     ? sol(data.dashboard.thresholdLamports) : null;
   const minimum = amount(data.minimumOrderLamports) > 0n ? sol(data.minimumOrderLamports) : null;
-  const list = node('div','reward-buyback-list');
+  const list = node('div','reward-buyback-list data-table-scroll');list.tabIndex=0;list.setAttribute('role','region');list.setAttribute('aria-label','Buyback queue and receipts, scroll horizontally for all columns');
+  const table=node('table','record-table');table.append(node('caption','','Recent buyback allocations and executions'));
+  const headings=table.createTHead().insertRow();
+  for(const label of ['Project','Activity','Amount','Status / timing','Transaction']){const th=node('th','',label);th.scope='col';headings.append(th);}
+  const tbody=table.createTBody();list.append(table);
+  const addRow=(row,activity,value,status,signature)=>{
+    const tr=tbody.insertRow();tr.insertCell().append(link(short(row.mint),tokenUrl(row.mint)));
+    tr.insertCell().textContent=activity;const amount=tr.insertCell();amount.className='numeric';amount.textContent=value;
+    tr.insertCell().textContent=status;const proof=tr.insertCell();
+    if(signature){const a=link('View receipt ↗',explorer(signature),true);a.className='receipt-link';proof.append(a);}else proof.textContent='—';
+  };
   for (const row of pending.slice(0, 8)) {
-    const article = node('p'); article.append(link(short(row.mint), tokenUrl(row.mint)),
-      node('span','',` · ${sol(row.amountLamports)} ${row.status==='below-minimum-order' ? 'retained' : 'queued'} · ${row.status==='below-minimum-order'
+    addRow(row,'Allocation',sol(row.amountLamports),row.status==='below-minimum-order'
         ? `below ${minimum ? minimum+' order minimum' : 'execution minimum'}; retained in its vault`
         : ['queued','verification-pending'].includes(row.status)
         ? 'in progress' : data.dashboard?.triggerReached ? 'ready for the next batch'
-          : trigger ? `awaiting the ${trigger} trigger` : 'awaiting verified trigger'}`));
-    list.append(article);
+          : trigger ? `Awaiting ${trigger} trigger` : 'Awaiting verified trigger',null);
   }
   for (const row of receipts.slice(0, 8)) {
-    const article = node('p'); article.append(link(short(row.mint), tokenUrl(row.mint)),
-      node('span','',` · ${row.boughtAndBurnedBaseUnits || row.burnedBaseUnits} $FUNDED base units burned · `),
-      link('Proof ↗', explorer(row.signature), true)); list.append(article);
+    const at=burnTimestamp(row);
+    addRow(row,'Buy & burn',`${formatTokenBaseUnits(row.boughtAndBurnedBaseUnits||row.burnedBaseUnits,Number(row.tokenDecimals??6),6)} $FUNDED`,at?`${at.slice(0,19).replace('T',' ')} UTC`:'Finalized · time unavailable',row.signature);
   }
-  if (!list.children.length) list.append(node('p','reward-empty','No token buybacks are waiting, and no completed burns are available to show.'));
+  if (!tbody.children.length) {list.replaceChildren(node('p','reward-empty','No token buybacks are waiting, and no completed burns are available to show.'));list.removeAttribute('tabindex');}
   root.append(list);
 }
 function alertsEnabled() {

@@ -3,7 +3,7 @@
 [data-metric-frame] {
   position: relative;
   color: transparent !important;
-  text-shadow: none !important;
+  text-shadow: none;
 }
 [data-metric-frame]::after {
   content: attr(data-metric-frame) / "";

@@ -1,6 +1,7 @@
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
 function solFromLamports(value) {
+  if(!/^(?:0|[1-9]\d*)$/.test(String(value)))return null;
   try {
     const amount = BigInt(value);
     return amount >= 0n && amount <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(amount) / LAMPORTS_PER_SOL : null;
@@ -95,7 +96,7 @@ export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, 
     cards.push(card('airdrop', 'Estimated airdrop value', '◈', 'USD', amount,
       amount == null ? 'unavailable' : 'partial', amount == null
         ? 'Current price unavailable; check funding on Airdrops'
-        : `${reserved.toLocaleString()} planned tokens at current price · check funding on Airdrops`));
+        : `${reserved.toLocaleString()} planned ${launch.symbol||'tokens'} at current price · check funding on Airdrops`));
   }
 
   const burn = launch.creatorLaunchBurn;

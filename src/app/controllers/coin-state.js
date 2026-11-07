@@ -1,11 +1,9 @@
-import { renderMarketStatus } from '../../features/coin/market-status.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
 import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCoinStateController(appState) {
   // app-source: 979
   function resetCoinSurface(mintAddress){
-    document.querySelector('#coin-market-status')?.remove();
     const retry = document.querySelector('#coin-retry'); if (retry) retry.hidden = true;
     renderCoinBurnDashboard({mint:mintAddress,status:'loading',cluster:appState.EXPLORE_CLUSTER});
     appState.coinTradeEstimate = null;
@@ -93,7 +91,6 @@ export function createCoinStateController(appState) {
     const usablePoolHistory = hasPoolTradeCount && market.poolTradeCount24h >= 0
       && (market.poolTradeCount24h > 0 || completePoolHistory)
       && ['complete', 'partial'].includes(market.coverage) && market.volume24hSol != null && Number.isFinite(Number(market.volume24hSol));
-    renderMarketStatus({mint:mintAddress,observedAt:market?.observedAt,coverage:market?.coverage,available:graduated?usablePoolHistory:market?.volume24hSol!=null&&Number.isFinite(Number(market.volume24hSol)),retry:async()=>{if(loadId!==appState.coinLoadId)return;appState.resetCoinSurface(mintAddress);await appState.loadCoinOnChain(mintAddress);}});
     if (graduated && !usablePoolHistory) {
       const poolScanNote = !market ? 'PumpSwap trade history is unavailable right now.'
         : !hasPoolTradeCount ? 'PumpSwap trades are missing from the available history.'

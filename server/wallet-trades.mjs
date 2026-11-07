@@ -24,7 +24,9 @@ export function walletTradeRows({transaction,reference,wallet,decodePoolEvent}) 
   if (!keys.includes(wallet)) throw new Error('Wallet is absent from its transaction.');
   const mints=new Map();
   for (const balance of [...(transaction.meta.preTokenBalances||[]),...(transaction.meta.postTokenBalances||[])]) {
-    if (balance.owner!==wallet) continue;
+    // A launch purchase can send tokens directly to escrow. Event trader proof
+    // identifies the payer; restricting metadata to wallet-owned accounts loses
+    // that real purchase. Holdings reconciliation separately gates P&L.
     const mint=new PublicKey(balance.mint),decimals=balance.uiTokenAmount?.decimals;
     if (!Number.isInteger(decimals)||decimals<0||decimals>18) throw new Error('Token decimals are unavailable.');
     if (mints.has(balance.mint)&&mints.get(balance.mint).decimals!==decimals) throw new Error('Token decimals disagree.');
@@ -72,13 +74,19 @@ export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.
       || row.slot<1||!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature)))
     throw new Error('Invalid finalized wallet signature history.');
   const selected=references.filter(row=>!row.err&&(row.blockTime==null||row.blockTime>=cutoff));
-  const gaps=[],trades=[],coder=getPumpAmmProgram(connection).coder.events;
+  const gaps=[],trades=[],adjustedMints=new Set(),coder=getPumpAmmProgram(connection).coder.events;
   for (let offset=0;offset<selected.length;offset+=4) {
     const batch=await Promise.all(selected.slice(offset,offset+4).map(async reference=>{
       try {
         const transaction=await connection.getTransaction(reference.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
         const rows=walletTradeRows({transaction,reference,wallet:owner,decodePoolEvent:coder.decode.bind(coder)});
         if (transaction.blockTime<cutoff) return [];
+        const deltas=new Map();
+        for (const [balances,sign] of [[transaction.meta.preTokenBalances||[],-1n],[transaction.meta.postTokenBalances||[],1n]])
+          for (const balance of balances) if (balance.owner===owner)
+            deltas.set(balance.mint,(deltas.get(balance.mint)||0n)+sign*BigInt(balance.uiTokenAmount.amount));
+        for (const row of rows) deltas.set(row.mint,(deltas.get(row.mint)||0n)+(row.side==='buy'?-1n:1n)*BigInt(row.tokenAmountRaw));
+        for (const [mint,delta] of deltas) if (delta!==0n) adjustedMints.add(mint);
         return rows;
       } catch {gaps.push(reference.signature);return [];}
     }));
@@ -89,5 +97,5 @@ export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.
   const complete=windowCovered&&!gaps.length&&references.every(row=>Number.isSafeInteger(row.blockTime))&&trades.length<=100;
   return {wallet:owner,cluster:'devnet',source:'finalized-wallet-pump-trades',observedAt:new Date(nowSeconds*1000).toISOString(),
     coverage:complete?'complete':'partial',scannedSignatures:selected.length,fetchedSignatures:references.length,
-    signatureLimit:maxSignatures,rowLimit:100,windowHours:24,gaps: [...new Set(gaps)],trades:trades.slice(0,100)};
+    signatureLimit:maxSignatures,rowLimit:100,windowHours:24,gaps: [...new Set(gaps)],adjustedMints:[...adjustedMints],trades:trades.slice(0,100)};
 }

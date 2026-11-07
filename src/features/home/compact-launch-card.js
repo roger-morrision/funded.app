@@ -1,6 +1,6 @@
 import {escapeHtml} from '../shared/display.js';
 
-export function compactLaunchCard(item,{value,ageLabel,freshness,price='—',creator,holderCount='—',holderTitle='Verified holder count unavailable',progress={value:null,text:'Progress unavailable'},boostMarkup='',socialMarkup=''}) {
+export function compactLaunchCard(item,{value,ageLabel,freshness,price='—',creator,holderCount='—',holderTitle='Verified holder count unavailable',progress={value:null,text:'Progress unavailable'},boostMarkup='',socialMarkup='',watchMarkup=''}) {
  const shownCap=value==null||/^(?:\$)?—$/.test(String(value))?'—':value;
  const mint=String(item.address||''),symbol=item.symbol||'TOKEN',name=item.name||symbol;
  const progressLabel=progress.kind==='migrated'?'Migrated · 100%':progress.text==='On curve'?'Progress unavailable':progress.text;
@@ -13,6 +13,6 @@ export function compactLaunchCard(item,{value,ageLabel,freshness,price='—',cre
    <div class="home-new-token-market"><span>MC <strong title="Market cap · ${escapeHtml(freshness)}">${escapeHtml(shownCap)}</strong></span><span title="Token price · ${escapeHtml(freshness)}">${escapeHtml(price)}</span></div>
    <div class="home-new-token-meta">${creator?`<span>by <a href="/wallet/${encodeURIComponent(creator)}">${escapeHtml(creator.slice(0,4))}…${escapeHtml(creator.slice(-4))}</a></span>`:''}<span>${escapeHtml(ageLabel)}</span></div>
    <div class="home-new-token-holders" data-inline-status title="${escapeHtml(holderTitle)}"><span>Holders</span><strong>${escapeHtml(holderCount==='—'?'Unavailable':holderCount)}</strong></div>
-   <div class="home-new-token-footer"><div class="home-new-token-progress" data-inline-status><div><span>Migration</span><strong>${escapeHtml(progressLabel)}</strong></div><div class="home-new-token-track" ${progressAttributes}>${progress.value===null?'':`<i style="width:${progress.value}%"></i>`}</div></div><a class="card-review-buy" data-review-buy="${escapeHtml(mint)}" data-review-amount="0.2" href="/token/${encodeURIComponent(mint)}?reviewBuy=0.2" title="Review a 0.2 SOL buy">Buy ↗</a></div>
+   <div class="home-new-token-footer"><div class="home-new-token-progress" data-inline-status><div><span>Migration</span><strong>${escapeHtml(progressLabel)}</strong></div><div class="home-new-token-track" ${progressAttributes}>${progress.value===null?'':`<i style="width:${progress.value}%"></i>`}</div></div>${watchMarkup}<a class="card-review-buy" data-review-buy="${escapeHtml(mint)}" data-review-amount="0.2" href="/token/${encodeURIComponent(mint)}?reviewBuy=0.2" title="Review a 0.2 SOL buy">Buy ↗</a></div>
   </div></article>`;
 }

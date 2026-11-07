@@ -204,7 +204,7 @@ export function homeLaunchCardMarkup(
       const policy = verifiedLaunchPolicyForMint?.(item.address);
       const creator = policy?.onchainVerified ? policy.creatorWallet : item.creator;
       return compactLaunchCard(item,{value,ageLabel,price,creator:typeof creator==='string'&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(creator)?creator:null,
-        progress,holderCount,holderTitle,boostMarkup:boostPackageBadgesMarkup(verifiedBoosts?.[item.address]),freshness:marketFreshness(item,EXPLORE_CLUSTER),socialMarkup:exploreSocialLinksMarkup(item)});
+        progress,holderCount,holderTitle,boostMarkup:boostPackageBadgesMarkup(verifiedBoosts?.[item.address]),freshness:marketFreshness(item,EXPLORE_CLUSTER),socialMarkup:exploreSocialLinksMarkup(item),watchMarkup:tokenCardWatchMarkup(item.address,item.symbol)});
     }
     const launchPolicy = verifiedLaunchPolicyForMint(item.address);
     const mintLabel = item.address ? `${item.address.slice(0, 5)}…${item.address.slice(-4)}` : 'Unavailable';

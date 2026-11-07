@@ -5,7 +5,8 @@ import { matchesHomeLaunchFilters, homeLaunchFilterCount } from '../../../home-l
 import { paidListingCardMarkup, paidListingTableMarkup } from './paid-listing-view.js';
 import { renderActivityCoverage } from '../explore/activity-sampling.js';
 import { homeLiveCards } from './live-cards.js';
-import { rankTrending, trendingMetric } from '../../../market-trending.js';
+import { trendingMetric } from '../../../market-trending.js';
+import { homeTrendingSelection, isNearGraduation, NEAR_GRADUATION_PERCENT } from './discovery-data.js';
 
 // Render current data; the application owns pagination and paused-order state.
 export function renderHomeLaunchBoard(state, {
@@ -129,8 +130,10 @@ export function renderHomeLaunchBoard(state, {
     tableTxnsHeading.textContent = 'Txns';
     tableTxnsHeading.title = `${homeLaunchWindow} observed transactions`;
   }
+  const trending = homeTrendingSelection(verified, homeLaunchWindow);
+  if (tickerLabel && homePreview && !trending.ranked && trending.records.length) tickerLabel.textContent = 'New coins · ranking pending';
   if (ticker) {
-    const ranked = rankTrending(verified.filter(item => trendingMetric(item,homeLaunchWindow)?.score > 0),homeLaunchWindow).slice(0,6);
+    const ranked = trending.records.slice(0,6);
     const tickerMarkup = ranked.length ? ranked.map((item, index) => {
       const currentCap = capUsd(item);
       // Unknown figures read as one muted dash, not "$—", matching the coin cards.
@@ -205,19 +208,18 @@ export function renderHomeLaunchBoard(state, {
     visible.sort((a, b) => (frozenRank.get(a.address) ?? Infinity) - (frozenRank.get(b.address) ?? Infinity));
   }
   if (homePreview) {
-    if(discovery==='near')visible=visible.filter(item=>item.complete===false && item.curveProgressPercent>=80);
+    if(discovery==='near')visible=visible.filter(isNearGraduation);
     if(discovery==='saved')visible=visible.filter(item=>getWatchlist().includes(item.address));
     if(discovery==='following'){const sources=getFollowingTokenSources();visible=visible.filter(item=>sources.has(item.address));}
     if(discovery==='trending'){
-      const ranked=rankTrending(visible.filter(item=>trendingMetric(item,homeLaunchWindow)?.score>0),homeLaunchWindow);
-      visible=ranked.length?ranked:visible.sort((a,b)=>Number(b.createdTimestamp||0)-Number(a.createdTimestamp||0));
-      if(!ranked.length&&visible.length&&boardTitle)boardTitle.textContent='New coins · participation ranking pending';
+      visible=trending.records;
+      if(!trending.ranked&&visible.length&&boardTitle)boardTitle.textContent='New coins · participation ranking pending';
     }
     else visible.sort((a,b)=>discovery==='near' ? b.curveProgressPercent-a.curveProgressPercent : Number(b.createdTimestamp||0)-Number(a.createdTimestamp||0));
   }
   // The full scanner retains every verified launch.
   const boardCount = document.querySelector('#home-board-count');
-  if (boardCount) boardCount.textContent = homePreview ? discovery==='trending' ? 'Observed participation · paid boosts excluded · history may be partial' : `${visible.length} coins · ${discovery==='near'?'at least 80% of the curve target':'verified launch records'}` : visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
+  if (boardCount) boardCount.textContent = homePreview ? discovery==='trending' ? trending.ranked ? 'Observed participation · paid boosts excluded · history may be partial' : 'Newest verified coins · awaiting enough participation to rank' : `${visible.length} coins · ${discovery==='near'?`at least ${NEAR_GRADUATION_PERCENT}% of the curve target`:'verified launch records'}` : visible.length ? `Showing ${visible.length} verified coin${visible.length === 1 ? '' : 's'}` : '';
   if (!visible.length) {
     const feedUnavailable = (!exploreFeedAvailable && !exploreLastVerifiedAt)
       || /RPC (?:rate limited|unavailable)/i.test(exploreProviderStatus);
@@ -234,6 +236,11 @@ export function renderHomeLaunchBoard(state, {
     let detail = initialCheck ? homePreview ? 'Checking verified launches and current market activity.' : 'Current launch checks are in progress. You can select All to view verified registry tokens.'
       : stageUnavailable ? `${stage} status is unverified. Select All to view verified registry tokens, or try again.`
       : feedUnavailable ? 'Current Solana mint and market checks could not finish. Recorded reward and airdrop policies remain visible in their own sections.' : homePreview ? 'Verified coins will appear here. Open Explore to browse the full directory.' : homeLaunchTab === 'watchlist' ? 'Add a verified token from Explore to see it here.' : 'Try another view or adjust the filters.';
+    if(homePreview && discovery==='near' && !initialCheck && !feedUnavailable){
+      const progress=verified.filter(item=>item.complete===false && item.migrated!==true && item.curveProgressPercent!=null && Number.isFinite(Number(item.curveProgressPercent))).map(item=>Number(item.curveProgressPercent));
+      title=`No verified coins have reached ${NEAR_GRADUATION_PERCENT}% yet.`;
+      detail=`Coins appear here at ${NEAR_GRADUATION_PERCENT}% of their curve target, before graduation.${progress.length?` Highest verified progress: ${Math.max(...progress).toFixed(1)}%.`:' Current curve progress is unavailable.'}`;
+    }
     if(homePreview && discovery==='following' && !initialCheck && !feedUnavailable){
       const coverage=getFollowingCoverage();
       title=!coverage.total?'No followed wallets yet.':coverage.refreshing?'Checking followed wallets…':'No tokens found for followed wallets.';

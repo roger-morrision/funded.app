@@ -36,7 +36,8 @@ export function createCalloutMarketReader({ getConnection, ttlMs = 15_000, now =
         catch { marketCapSol = null; }
       } else marketCapSol = readCurveMetrics(curve, mintInfo).curveCapSol;
       return [mint, Number.isFinite(marketCapSol) && marketCapSol > 0
-        ? { marketCapSol, graduated: Boolean(curve.complete), observedAt: new Date(now()).toISOString() } : null];
+        ? { marketCapSol, priceSol:mintInfo.supply>0n?marketCapSol/(Number(mintInfo.supply)/10**mintInfo.decimals):null,
+          graduated: Boolean(curve.complete), observedAt: new Date(now()).toISOString() } : null];
     }));
   }
   // fresh: wait for a read newer than maxAgeMs (recording a call). Otherwise
