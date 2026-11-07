@@ -2,7 +2,7 @@ import { metricSelector } from './metric-selectors.js';
 import { compatibleMetrics, formatMetricFrame, metricValueAt, parseMetric } from './metric-number.js';
 import './metric-motion.css';
 
-const excluded = 'input,textarea,select,button,[contenteditable],time,[role="timer"],[data-no-count],.transaction-review,.launch-pay-summary';
+const excluded = 'input,textarea,select,button,[contenteditable],time,[role="timer"],[data-no-count],[data-transaction-review],.transaction-review,.launch-pay-summary';
 
 function metricText(node) {
   return [...node.childNodes].map(child => child.nodeType === 1 && child.tagName === 'SUB'

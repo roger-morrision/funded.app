@@ -34,3 +34,11 @@ test('unit and bound changes snap while compact scale changes remain comparable'
   assert.equal(formatMetricFrame(0.00000045,parseMetric('$0.0₆5462')),'$0.0₆45');
   assert.equal(formatMetricFrame(1250.75,parseMetric('1,300')),'1,251');
 });
+
+test('preserves dollar-prefixed and alphanumeric token units', () => {
+  for(const text of ['414 $FUNDED','27,451.36 QW4Q0L6Z','10 TOKEN2']) {
+    const parsed=parseMetric(text);
+    assert.ok(parsed,text);
+    assert.equal(formatMetricFrame(parsed.value,parsed),text);
+  }
+});

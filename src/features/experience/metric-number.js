@@ -6,7 +6,7 @@ const scales = { K:1e3, M:1e6, B:1e9, T:1e12 };
 // Parse display values only, never addresses, dates, ratios or prose containing numbers.
 export function parseMetric(text) {
   const exact = String(text).trim();
-  const match = exact.match(/^([≥≤<>≈~]?\s*)([+−-]?)([$€£]?)([+−-]?)(\d[\d,]*(?:\.\d+)?(?:[₀₁₂₃₄₅₆₇₈₉]+\d+)?)([KMBT]?)(\s*(?:%|[A-Za-z]{2,12})?)$/);
+  const match = exact.match(/^([≥≤<>≈~]?\s*)([+−-]?)([$€£]?)([+−-]?)(\d[\d,]*(?:\.\d+)?(?:[₀₁₂₃₄₅₆₇₈₉]+\d+)?)([KMBT]?)(\s*(?:%|\$?[A-Za-z][A-Za-z0-9]{0,11})?)$/);
   if (!match || (match[2] && match[4])) return null;
   const [, bound, sign, currency, innerSign, number, compact, unit] = match;
   if (number.includes(',') && !/^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(number)) return null;
