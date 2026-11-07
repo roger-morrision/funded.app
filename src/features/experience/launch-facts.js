@@ -1,4 +1,4 @@
-import {savedFeeAllocationCopy} from '../fees/fee-policy-copy.js';
+import {savedFeeDistributionChart} from '../fees/saved-distribution-chart.js';
 import { mountReserveFacts } from './reserve-facts.js';
 import { link, el, address, reportContextLink } from './view-utils.js';
 export function identityMatches(candidate, launches) {
@@ -30,9 +30,11 @@ export function initializeLaunchFacts(app) {
       const value = document.createElement('dd'); value.textContent = text;
       if (href) { const link = document.createElement('a'); link.href = href; link.textContent = ' Inspect source ↗'; link.target = '_blank'; link.rel = 'noopener noreferrer'; value.append(link); }
       list.append(term, value);
+      return value;
     };
-    const shares = launch?.feeDistribution?.creatorDirected?.shares;
-    fact('Fee distribution', launch?.onchainVerified && shares ? `${shares.creatorWalletPercent}% creator · ${shares.holderAirdropPercent}% holders · ${shares.solClaimPercent}% X · ${savedFeeAllocationCopy(launch.feeDistribution)}` : 'Saved fee distribution unavailable');
+    const chart = savedFeeDistributionChart(launch);
+    const distribution = fact('Fee distribution', chart ? '' : 'Saved fee distribution unavailable');
+    if (chart) distribution.innerHTML = chart;
   });
   const name = document.querySelector('#token-name'), symbol = document.querySelector('#token-symbol');
   const warning = document.createElement('p'); warning.className = 'flow-note'; warning.setAttribute('role', 'status'); symbol?.closest('label')?.after(warning);
