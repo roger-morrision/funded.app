@@ -1,4 +1,4 @@
-import { recoverMarketSnapshots } from '../../features/coin/market-recovery.js';
+import { renderEarlyMarketPrice } from '../../features/coin/early-market-price.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
@@ -64,31 +64,24 @@ export function createCoinLoadingController(appState) {
       const metadataProgram = new PublicKey(appState.TOKEN_METADATA_PROGRAM_ID);
       const [metadataPda] = PublicKey.findProgramAddressSync([appState.Buffer.from('metadata'), metadataProgram.toBuffer(), mint.toBuffer()], metadataProgram);
       const rpcRequest = async (promise,label) => {let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),12000);})]);}finally{clearTimeout(timer);}};
-      const [mintResult, metadataResult, curveResult, largestResult, launchesResult] = await Promise.allSettled([
-        rpcRequest(detailConnection.getParsedAccountInfo(mint, 'confirmed'), 'Mint RPC request'),
+      const snapshotPromise=rpcRequest(import('../../../coin-display-snapshot.js')
+        .then(({readCoinDisplaySnapshot})=>readCoinDisplaySnapshot({connection:detailConnection,mint})), 'Market snapshot RPC request')
+        .then(snapshot=>{if(loadId===appState.coinLoadId) renderEarlyMarketPrice(appState,snapshot);return snapshot;});
+      const [snapshotResult, metadataResult, largestResult, launchesResult] = await Promise.allSettled([
+        snapshotPromise,
         rpcRequest(detailConnection.getAccountInfo(metadataPda, 'confirmed'), 'Metadata RPC request'),
-        rpcRequest(appState.fetchBondingCurveSnapshot({ connection: detailConnection, mint }), 'Pump curve RPC request'),
         rpcRequest(appState.fetchTokenAccountSample(mintAddress, detailConnection, PublicKey), 'Token-account RPC request'),
         appState.apiRequest('/api/launches', { signal: AbortSignal.timeout(12000) }),
       ]);
       if (loadId !== appState.coinLoadId) return;
-      if (mintResult.status === 'rejected') throw mintResult.reason;
-      const mintInfo = mintResult.value;
+      if (snapshotResult.status === 'rejected') throw snapshotResult.reason;
+      const {mintInfo,curve,pool:graduatedPool}=snapshotResult.value;
       const metadataInfo = metadataResult.status === 'fulfilled' ? metadataResult.value : null;
-      let curve = curveResult.status === 'fulfilled' ? curveResult.value : null;
       const largestAccounts = largestResult.status === 'fulfilled' ? largestResult.value.accounts : [];
-      const parsedMint = mintInfo.value?.data?.parsed?.info;
-      if (!parsedMint) throw new Error('Mint account was not returned by Solana RPC.');
+      const parsedMint = mintInfo.value.data.parsed.info;
       renderCoinBurnDashboard({mint:mintAddress,parsedMint,curve,tokenProgram:mintInfo.value.owner?.toBase58?.(),cluster:appState.EXPLORE_CLUSTER,checkedAt:Date.now()});
-      const decimals = Number(parsedMint.decimals ?? 0);
+      const decimals = Number(parsedMint.decimals);
       const supply = Number(parsedMint.supply) / (10 ** decimals);
-      const recovered=await recoverMarketSnapshots({curveResult,
-        fetchCurve:()=>rpcRequest(appState.fetchBondingCurveSnapshot({connection:detailConnection,mint}),'Pump curve retry'),
-        fetchPool:()=>rpcRequest(appState.fetchGraduatedPoolSnapshot({connection:detailConnection,mint,tokenDecimals:decimals}),'PumpSwap pool RPC request'),
-        isCurrent:()=>loadId===appState.coinLoadId});
-      curve=recovered.curve;
-      const graduatedPool=recovered.pool;
-      if (loadId !== appState.coinLoadId) return;
       const metadata = appState.parseOnChainMetadata(metadataInfo?.data);
       const fetchedLaunch = launchesResult.status === 'fulfilled' && launchesResult.value.available
         ? appState.verifiedRegistryLaunch(launchesResult.value.data, mintAddress, appState.EXPLORE_CLUSTER)
@@ -114,6 +107,7 @@ export function createCoinLoadingController(appState) {
       const tokenProgram = mintInfo.value.owner;
       const verifiedTokenProgram = tokenProgram?.equals?.(TOKEN_PROGRAM_ID) || tokenProgram?.equals?.(TOKEN_2022_PROGRAM_ID);
       const { bondingCurvePda } = await import('@pump-fun/pump-sdk');
+      if (loadId !== appState.coinLoadId) return;
       const curveVaultAddress = graduatedPool?.poolBaseTokenAccount || (curve && verifiedTokenProgram
         ? getAssociatedTokenAddressSync(mint, bondingCurvePda(mint), true, tokenProgram).toBase58() : null);
       const accounts = largestAccounts.filter(item => Number(item.amount) > 0).map(item => {
@@ -125,9 +119,7 @@ export function createCoinLoadingController(appState) {
       const fullHolderDistribution = accountAvailable
         ? appState.summarizeFullHolderDistribution(largestAccounts, curveVaultAddress, parsedMint.supply) : null;
       const realQuote = graduatedPool?.quoteReservesSol ?? curve?.realQuoteReservesSol;
-      const ledger = await feeLedgerPromise;
-      if (loadId !== appState.coinLoadId) return;
-      const feeLedger=verifiedV3FeeLedger(ledger,mintAddress,appState.EXPLORE_CLUSTER);
+      const feeLedger=loadedFeeLedger;
       const ledgerAvailable=Boolean(feeLedger);
       const sharedRouter = linkedSharedRouterFeeCollections(feeLedger, curve?.creator);
       const linkedRouter = sharedRouter.linked;
