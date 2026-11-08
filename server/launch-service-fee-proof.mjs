@@ -1,7 +1,7 @@
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { launchServiceMemo } from '../launch-service-fee.js';
-import {developerLockInstruction,DEVELOPER_TOKEN_LOCK_PROGRAMS} from '../developer-token-lock.js';
+import {developerLockInstruction,decodeDeveloperLockInstruction,DEVELOPER_TOKEN_LOCK_PROGRAMS} from '../developer-token-lock.js';
 const MEMO = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 export function verifyLaunchServiceFee({ transaction:tx, signature, mint, payer, quote }) {
   if (!quote || quote.payer !== payer || !/^\d+$/.test(quote.amountLamports || '') || BigInt(quote.amountLamports) > 5_000_000_000n)
@@ -20,8 +20,10 @@ export function verifyLaunchServiceFee({ transaction:tx, signature, mint, payer,
   const escrowMarkers=instructions.filter(ix=>{
     const data=decode(ix),accounts=Array.from(ix.accountKeyIndexes||ix.accounts||[],i=>keys[i]);
     const programId=keys[ix.programIdIndex];
-    if(!DEVELOPER_TOKEN_LOCK_PROGRAMS.includes(programId)||data.length!==24||data.readBigUInt64LE(8)<=0n)return false;
-    const expected=developerLockInstruction({mint,creator:payer,amount:data.readBigUInt64LE(8),quoteId:quote.id,programId}).instruction;
+    if(!DEVELOPER_TOKEN_LOCK_PROGRAMS.includes(programId)||![24,28].includes(data.length))return false;
+    let decoded;try{decoded=decodeDeveloperLockInstruction(data);}catch{return false;}
+    if(!decoded||decoded.amount<=0n)return false;
+    const expected=developerLockInstruction({mint,creator:payer,amount:decoded.amount,lockSeconds:decoded.lockSeconds,quoteId:quote.id,programId}).instruction;
     return data.equals(expected.data)&&JSON.stringify(accounts)===JSON.stringify(expected.keys.map(k=>k.pubkey.toBase58()));
   });
   const transfers = instructions.filter(ix => {

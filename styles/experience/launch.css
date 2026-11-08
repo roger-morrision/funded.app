@@ -97,7 +97,7 @@
 .launch-funding-section { padding: 0 0 18px; border: 0; border-bottom: 1px solid #263943; border-radius: 0; background: transparent; }
 .launch-funding-section .section-label-row { margin-bottom: 14px; }
 .launch-funding-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.launch-funding-grid > label { display: flex; min-width: 0; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #2d4650; border-radius: 8px; background: #10242a; color: #eaf0f7; font-size: 12px; font-weight: 700; }
+.launch-funding-grid > :is(label, .developer-buy-field) { display: flex; min-width: 0; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #2d4650; border-radius: 8px; background: #10242a; color: #eaf0f7; font-size: 12px; font-weight: 700; }
 .launch-funding-grid .optional { color: #78879b; font: 600 9px 'DM Mono', monospace; text-transform: uppercase; }
 .amount-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #35515c; border-radius: 7px; background: #09181d; }
 .launch-page .amount-input input { min-width: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }

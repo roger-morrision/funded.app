@@ -1,4 +1,5 @@
 import { assertRpcNetwork } from './solana-network.js';
+import {normalizeDeveloperLockSeconds} from './developer-lock-period.js';
 import { buildLaunchTransaction, normalizeLaunchInput } from './launch-core.js';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint } from '@solana/spl-token';
@@ -221,7 +222,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
     authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
   const developerLockInstructions = developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
-    amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id});
+    amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id,lockSeconds:input.developerLockSeconds});
   const hostedMetadataUri = devnetLaunchMetadataUri(mint.publicKey.toBase58());
   let symbolReservationExpiresAt = null;
   if (prepareMetadata) {
@@ -284,6 +285,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     reserveInstructions:[...reserve.instructions,...developerLockInstructions,...serviceInstructions], lookupTable });
   plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
     kind:'launch', mint:mint.publicKey.toBase58(), tokenName:launchInput.name, tokenSymbol:launchInput.symbol,
+    ...(developerBuy.amountBaseUnits>0n?{developerLockSeconds:normalizeDeveloperLockSeconds(input.developerLockSeconds)}:{}),
     reserveTokens:String(input.reserveTokens), vault:reserve.vault.toBase58(),
     expectedSol:(Number(initialBuy.solAmountLamports) / 1_000_000_000).toFixed(9),
     maximumSol:(Number(initialBuy.maxSolAmountLamports) / 1_000_000_000).toFixed(9),

@@ -1,3 +1,4 @@
+import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
 import {savedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
 import {promotionContentState} from '../../features/launch/promotion-requirements.js';
 import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
@@ -69,6 +70,7 @@ export function createLaunchSubmitController(appState) {
         appState.assertWalletSessionCurrent(session);
       }
       const creatorBuySol = appState.getCreatorBuySol();
+      const developerLockSeconds = readDeveloperLockSeconds();
       if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) { appState.setLaunchStatus('Developer buy must be a valid SOL amount of zero or more.', true); return; }
       const xLinked = feeDistributionInput.solClaimPercent > 0;
       let xUserId = null;
@@ -112,6 +114,7 @@ export function createLaunchSubmitController(appState) {
           const draft = {
             chain:'solana', cluster:'devnet', mint:recoveryMint,
             creatorWallet:session.address, name, symbol, communityAllocation,
+            ...(creatorBuySol>0?{developerLockSeconds}:{}),
             feeDistribution:appState.buildFeeDistributionPolicy({ ...feeDistributionInput,
               feeRouterAddress:routeAddress }, { fundedSplit:v3FeeRouter.split }),
             pumpFeeRoute:{ scope:'per-mint-v3', router:routeAddress,
@@ -147,7 +150,7 @@ export function createLaunchSubmitController(appState) {
         }
         return row;
       };
-      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:recordAndSaveRecovery, onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
+      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, developerLockSeconds, reserveTokens:communityTokens, maxInitialBuyLamports:reviewedCost.buyMaximum, feeShares:feeDistributionInput }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:recordAndSaveRecovery, onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
       const routeAddress = result.feeRouter.toBase58();
       const routeState = { ...deriveMintRouterV3(v3FeeRouter.programId, result.mint.publicKey),
         address:routeAddress, scope:'per-mint-v3',agencyPolicy:Boolean(v3FeeRouter.agency) };
@@ -157,6 +160,7 @@ export function createLaunchSubmitController(appState) {
         launchpad: 'pump',
         mint: result.mint.publicKey.toBase58(),
         creatorWallet: session.address,
+        ...(creatorBuySol>0?{developerLockSeconds}:{}),
         name: result.name,
         symbol: result.symbol,
         metadataUri: result.metadataUri,

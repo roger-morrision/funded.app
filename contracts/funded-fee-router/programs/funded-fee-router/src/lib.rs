@@ -23,6 +23,10 @@ pub mod funded_fee_router {
     pub fn initialize_and_lock(ctx: Context<InitializeAndLock>, amount: u64) -> Result<()> {
         developer_escrow::initialize_and_lock_handler(ctx, amount)
     }
+
+    pub fn initialize_and_lock_for(ctx: Context<InitializeAndLock>, amount: u64, lock_seconds: u32) -> Result<()> {
+        developer_escrow::initialize_and_lock_for_handler(ctx, amount, lock_seconds)
+    }
     pub fn release(ctx: Context<Release>) -> Result<()> {
         developer_escrow::release_handler(ctx)
     }

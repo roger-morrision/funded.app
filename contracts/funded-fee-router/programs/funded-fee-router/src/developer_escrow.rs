@@ -7,6 +7,11 @@ pub const DEVELOPER_LOCK_SECONDS:i64=43_200;
 pub const DEVELOPER_LOCK_SEED:&[u8]=b"developer-lock-v1";
 
 pub fn initialize_and_lock_handler(ctx: Context<InitializeAndLock>, amount: u64) -> Result<()> {
+    initialize_and_lock_for_handler(ctx, amount, DEVELOPER_LOCK_SECONDS as u32)
+}
+
+pub fn initialize_and_lock_for_handler(ctx: Context<InitializeAndLock>, amount: u64, lock_seconds: u32) -> Result<()> {
+    require!(matches!(lock_seconds, 21_600 | 43_200 | 86_400 | 172_800), LockError::InvalidLockPeriod);
     require!(amount > 0 && amount <= ctx.accounts.mint.supply / 5, LockError::InvalidAmount);
     require!(ctx.accounts.mint.mint_authority.is_none() && ctx.accounts.mint.freeze_authority.is_none(), LockError::UnsafeMint);
     require_keys_eq!(ctx.accounts.token_program.key(), anchor_spl::token_2022::ID, LockError::UnsafeMint);
@@ -31,7 +36,7 @@ pub fn initialize_and_lock_handler(ctx: Context<InitializeAndLock>, amount: u64)
     let lock = &mut ctx.accounts.lock;
     lock.mint = ctx.accounts.mint.key(); lock.creator = ctx.accounts.creator.key();
     lock.amount = amount; lock.locked_at = now;
-    lock.unlock_at = now.checked_add(DEVELOPER_LOCK_SECONDS).ok_or(LockError::InvalidClock)?;
+    lock.unlock_at = now.checked_add(i64::from(lock_seconds)).ok_or(LockError::InvalidClock)?;
     lock.released_at = 0; lock.bump = ctx.bumps.lock;
     emit!(DeveloperTokensLocked { mint:lock.mint, creator:lock.creator, amount, unlock_at:lock.unlock_at });
     Ok(())
@@ -109,10 +114,11 @@ pub struct DeveloperTokensLocked { pub mint:Pubkey, pub creator:Pubkey, pub amou
 pub struct DeveloperTokensReleased { pub mint:Pubkey, pub creator:Pubkey, pub amount:u64 }
 #[error_code]
 pub enum LockError {
-    #[msg("Developer tokens remain locked for 12 hours.")] StillLocked,
+    #[msg("Developer tokens remain locked until their saved unlock time.")] StillLocked,
     #[msg("Developer allocation was already released.")] AlreadyReleased,
     #[msg("Developer allocation must be positive and at most 20% of supply.")] InvalidAmount,
     #[msg("Mint authorities or extensions can bypass safe custody.")] UnsafeMint,
     #[msg("Vault custody is invalid.")] UnsafeVault,
     #[msg("Invalid chain clock.")] InvalidClock,
+    #[msg("Choose a developer token lock of 6, 12, 24 or 48 hours.")] InvalidLockPeriod,
 }

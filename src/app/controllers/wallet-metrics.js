@@ -1,3 +1,4 @@
+import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
 import { promotionBurnStep } from '../../../launch-promotion-receipt.js';
 import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
 import { developerLockLaunchInstructions } from '../../../developer-token-lock.js';
@@ -81,7 +82,7 @@ export function createWalletMetricsController(appState) {
         const latest = await appState.connection.getLatestBlockhash('finalized');
         plan = appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
           mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
-            amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:serviceQuote.id}),...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote,escrowReceiptMarker:developerBuy.amountBaseUnits>0n})], lookupTable });
+            amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:serviceQuote.id,lockSeconds:readDeveloperLockSeconds()}),...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote,escrowReceiptMarker:developerBuy.amountBaseUnits>0n})], lookupTable });
         if (burnPlan) plan.steps.unshift(promotionBurnStep({payer,mint,burnInstruction:burnPlan.instruction,
           quoteId:launchBurn.quoteId || 'launch_tier_0_0000000000000000',blockhash:latest.blockhash}));
         const estimateTransactions = plan.steps.map(step => step.transaction);

@@ -5,6 +5,7 @@ import { validateLaunchBurnPolicy } from '../../../launch-burn-policy.js';
 import { canSignTransactions } from '../../../wallet-core.js';
 import { freshLaunchReview } from '../../../launch-review.js';
 import { promotionContentState } from './promotion-requirements.js';
+import {readDeveloperLockSeconds} from '../../../developer-lock-period.js';
 
 function feeSplitError(distribution){
   if(distribution.valid)return null;
@@ -72,6 +73,8 @@ export function getLaunchStepState(
     const communityTokens = getCommunityAirdropTokens();
     if (!Number.isSafeInteger(communityTokens) || communityTokens < MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > MAX_COMMUNITY_AIRDROP_TOKENS) return { valid: false, field: '#community-airdrop-tokens', message: 'Community airdrop must be between 30,000,000 and 500,000,000 tokens.' };
     const creatorBuySol = getCreatorBuySol();
+    try { readDeveloperLockSeconds(document); }
+    catch(error) { return {valid:false,field:'#creator-buy-lock-period',message:error.message}; }
     if (!Number.isFinite(creatorBuySol) || creatorBuySol < 0) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy must be a valid SOL amount of zero or more.' };
     if (developerBuyLimitReached()) return { valid: false, field: '#creator-buy-sol', message: 'Developer buy exceeds its 20% cap or the curve supply available after the community reserve. Lower the SOL amount or set it to 0.' };
     const splitError=feeSplitError(distribution);if(splitError)return splitError;

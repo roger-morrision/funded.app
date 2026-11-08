@@ -176,9 +176,9 @@ export function createLaunchRegistrationRoutes({
       if(!existingLaunch){
         const lockConnection=connectionFactory(solanaRpcUrl);
         try{const transaction=await lockConnection.getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
-          developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,serviceQuote,transaction,
+          developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,serviceQuote,transaction,lockSeconds:policy.developerLockSeconds,
           config:await developerLockConfig({connection:lockConnection,env,programId:developerLockProgramFromTransaction(transaction)})});}
-        catch{return json(res,422,{error:'The finalized launch must escrow its exact developer token purchase for 12 hours. Escrow verification failed; recover this launch receipt before creating another coin.'});}
+        catch{return json(res,422,{error:'The finalized launch must escrow its exact developer token purchase for the selected lock period. Escrow verification failed; recover this launch receipt before creating another coin.'});}
       }
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter },{fundedSplit:currentSplit});
       const record = {
@@ -189,6 +189,7 @@ export function createLaunchRegistrationRoutes({
         ...(preparedMetadata ? { metadataUri: preparedMetadataUri, description: preparedMetadata.description, imageUri: publicMetadata(preparedMetadata).image, website: preparedMetadata.website, twitter: preparedMetadata.x, telegram: preparedMetadata.telegram, discord: preparedMetadata.discord } : {}),
         ...(preparedMetadata?.bannerSha256 && verifiedPromotionBadge(proof) ? { bannerUri: publicMetadata(preparedMetadata).banner } : {}),
         communityAllocation: policy.communityAllocation,
+        ...(policy.developerLockSeconds!=null?{developerLockSeconds:policy.developerLockSeconds}:{}),
         ...(xLinked ? { xUserId: policy.xUserId } : {}),
         communityAirdrop: verifiedReserve
           ? fundedCommunityAirdropPolicy({ allocationPercent:policy.communityAllocation, supply:1_000_000_000,

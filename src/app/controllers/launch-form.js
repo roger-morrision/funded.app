@@ -1,3 +1,4 @@
+import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
 
 // Dependencies and mutable application state are read live through appState.
@@ -79,7 +80,7 @@ export function createLaunchFormController(appState) {
       name: value('token-name').trim(), symbol: value('token-symbol').trim().toUpperCase(),
       description: value('token-description'), tagline: value('token-tagline'), roadmap: value('token-roadmap'),
       website: value('token-website').trim(), x: value('token-x').trim(), telegram: value('token-telegram').trim(), discord: value('token-discord').trim(),
-      communityTokens: Number(value('community-airdrop-tokens')), creatorBuySol: Number(value('creator-buy-sol')),
+      communityTokens: Number(value('community-airdrop-tokens')), creatorBuySol: Number(value('creator-buy-sol')), developerLockSeconds: readDeveloperLockSeconds(),
       creatorWalletPercent: Number(value('creator-wallet-share')), holderAirdropPercent: Number(value('holder-airdrop-share')),
       solClaimPercent: Number(value('x-share')), xRecipient: appState.normalizeXHandle(value('x-recipient')),
       agencySelection:readLaunchAgencySelection(appState.getLaunchBurnPolicy()),

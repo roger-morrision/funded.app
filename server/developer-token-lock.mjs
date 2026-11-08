@@ -5,7 +5,10 @@ import {readProgramDataEvidence,DEVNET_GENESIS_HASH} from './automatic-reward-ch
 import {successfulEventLogs} from './product-trade-index.mjs';
 import {decodePumpTrades} from './coin-market.mjs';
 import {completeFinalizedEventReceipt} from './finalized-event-receipt.mjs';
-import {DEVELOPER_TOKEN_LOCK_PROGRAM_ID,DEVELOPER_TOKEN_LOCK_SECONDS,developerLockProgramId,DEVELOPER_TOKEN_LOCK_PROGRAMS,developerLockAddresses,developerLockInstruction,decodeDeveloperTokenLock} from '../developer-token-lock.js';
+import {DEVELOPER_TOKEN_LOCK_PROGRAM_ID,DEVELOPER_TOKEN_LOCK_SECONDS,developerLockProgramId,DEVELOPER_TOKEN_LOCK_PROGRAMS,developerLockAddresses,developerLockInstruction,decodeDeveloperTokenLock,decodeDeveloperLockInstruction} from '../developer-token-lock.js';
+import {normalizeDeveloperLockSeconds} from '../developer-lock-period.js';
+import {matchesAgencyBinary} from './agency-release.mjs';
+import candidates from '../config/contract-build-candidates.json' with {type:'json'};
 
 export async function developerLockConfig({connection,env=process.env,programId:requested,readEvidence=readProgramDataEvidence}) {
   const active=developerLockProgramId(env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID||DEVELOPER_TOKEN_LOCK_PROGRAM_ID);
@@ -19,7 +22,10 @@ export async function developerLockConfig({connection,env=process.env,programId:
   try {
     const [genesis,evidence]=await Promise.all([connection.getGenesisHash(),readEvidence(connection,new PublicKey(programId))]);
     const ready=genesis===DEVNET_GENESIS_HASH&&evidence.account?.executable===true&&evidence.sha256===hash;
+    const selectable=ready&&programId!==DEVELOPER_TOKEN_LOCK_PROGRAM_ID
+      &&candidates.devnet.developerLockPeriodsSeconds&&matchesAgencyBinary(evidence.programData?.data,candidates.devnet);
     return {ready,programId,programDataSha256:hash,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,
+      lockPeriodsSeconds:selectable?candidates.devnet.developerLockPeriodsSeconds:[DEVELOPER_TOKEN_LOCK_SECONDS],
       ...(!ready?{reason:'Developer token escrow deployment could not be verified.'}:{})};
   }catch{return {ready:false,programId,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,reason:'Developer token escrow deployment verification is unavailable.'};}
 }
@@ -30,13 +36,14 @@ export function developerLockProgramFromTransaction(transaction) {
   const keys=[...(message.accountKeys||message.staticAccountKeys||[]),...(transaction.meta?.loadedAddresses?.writable||[]),...(transaction.meta?.loadedAddresses?.readonly||[])].map(k=>new PublicKey(k.pubkey||k).toBase58());
   const matches=(message.instructions||message.compiledInstructions||[]).filter(ix=>{
     const data=Buffer.from(typeof ix.data==='string'?bs58.decode(ix.data):ix.data);
-    return DEVELOPER_TOKEN_LOCK_PROGRAMS.includes(keys[ix.programIdIndex])&&data.subarray(0,8).equals(Buffer.from('7997ce5b503ff839','hex'));
+    return DEVELOPER_TOKEN_LOCK_PROGRAMS.includes(keys[ix.programIdIndex])&&Boolean(decodeDeveloperLockInstruction(data));
   });
   if(matches.length>1)throw Error('Ambiguous developer escrow instructions.');
   return matches.length?keys[matches[0].programIdIndex]:undefined;
 }
 
-export async function verifyLaunchDeveloperLock({connection,proof,reserve,transaction,config,serviceQuote}) {
+export async function verifyLaunchDeveloperLock({connection,proof,reserve,transaction,config,serviceQuote,lockSeconds=DEVELOPER_TOKEN_LOCK_SECONDS}) {
+  lockSeconds=normalizeDeveloperLockSeconds(lockSeconds);
   if(!config?.ready)throw Error('The approved developer token escrow is unavailable.');
   if(!transaction||transaction.meta?.err!==null||transaction.transaction?.signatures?.[0]!==proof.signature||transaction.slot!==proof.slot)
     throw Error('A finalized launch transaction is required for developer-token verification.');
@@ -55,7 +62,7 @@ export async function verifyLaunchDeveloperLock({connection,proof,reserve,transa
     ||balances.some(b=>b.owner===creator&&BigInt(b.uiTokenAmount.amount)!==0n))
     throw Error('The declared developer allocation must be escrowed atomically; unexpected launch token recipients were found.');
   if(amount===0n)return {version:1,status:'not-selected',verified:true,amount:'0',lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS};
-  const expected=developerLockInstruction({mint,creator,amount,quoteId:serviceQuote?.id,programId}).instruction;
+  const expected=developerLockInstruction({mint,creator,amount,quoteId:serviceQuote?.id,programId,lockSeconds}).instruction;
   const message=transaction.transaction.message;
   const keys=[...(message.accountKeys||message.staticAccountKeys||[]),...(transaction.meta.loadedAddresses?.writable||[]),...(transaction.meta.loadedAddresses?.readonly||[])].map(k=>k.toBase58());
   const instructions=message.instructions||message.compiledInstructions||[];
@@ -67,7 +74,7 @@ export async function verifyLaunchDeveloperLock({connection,proof,reserve,transa
   const index=keys.indexOf(addresses.lock.toBase58());
   if(index<0||transaction.meta.preBalances[index]!==0||transaction.meta.postBalances[index]<=0)throw Error('Developer escrow must be initialized in the launch transaction.');
   const saved=decodeDeveloperTokenLock(await connection.getAccountInfo(addresses.lock,'finalized'),{mint,creator,programId});
-  if(saved.amount!==String(amount)||saved.lockedAt!==proof.createdTimestamp)throw Error('Developer escrow does not match the verified launch allocation and time.');
+  if(saved.amount!==String(amount)||saved.lockedAt!==proof.createdTimestamp||saved.lockSeconds!==lockSeconds)throw Error('Developer escrow does not match the verified launch allocation and time.');
   return {...saved,version:1,status:'funded',verified:true,programId:config.programId,programDataSha256:config.programDataSha256,
-    vault:addresses.vault.toBase58(),fundingSignature:proof.signature,atomicWithLaunch:true,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS};
+    vault:addresses.vault.toBase58(),fundingSignature:proof.signature,atomicWithLaunch:true,lockSeconds};
 }

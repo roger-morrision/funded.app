@@ -6,6 +6,7 @@ import nacl from 'tweetnacl';
 import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import { inspectPhantomTradeTransaction } from '../phantom-mobile-crypto.js';
 import { renderTradeSignerPage } from './trade-signer-page.mjs';
+import {DEVELOPER_TOKEN_LOCK_PERIODS} from '../developer-lock-period.js';
 
 const FLOW_ID = /^[a-f0-9]{48}$/;
 const POLL_TOKEN = /^[a-f0-9]{64}$/;
@@ -31,6 +32,7 @@ function validTradeSummary(summary) {
     && typeof summary.tokenName === 'string' && summary.tokenName.trim().length > 0 && summary.tokenName.length <= 80 && !/[\x00-\x1f<>]/.test(summary.tokenName)
     && typeof summary.tokenSymbol === 'string' && /^[A-Z0-9]{1,10}$/.test(summary.tokenSymbol)
     && typeof summary.reserveTokens === 'string' && /^\d{1,12}$/.test(summary.reserveTokens) && Number(summary.reserveTokens) > 0
+    && (summary.developerLockSeconds==null || DEVELOPER_TOKEN_LOCK_PERIODS.includes(summary.developerLockSeconds))
     && typeof summary.expectedSol === 'string' && /^\d+(?:\.\d{1,9})?$/.test(summary.expectedSol)
     && typeof summary.maximumSol === 'string' && /^\d+(?:\.\d{1,9})?$/.test(summary.maximumSol)
     && Number(summary.maximumSol) >= Number(summary.expectedSol);

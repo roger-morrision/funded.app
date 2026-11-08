@@ -52,7 +52,7 @@ function showReview(summary){
   document.querySelector('#trade-title').textContent='Launch '+summary.tokenSymbol;
   document.querySelector('#sol-label').textContent='Estimated SOL for reserve buy';
   document.querySelector('#sol-amount').textContent=number(summary.expectedSol)+' SOL';
-  document.querySelector('#sol-hint').textContent='Launch rent and network fees are additional.';
+  document.querySelector('#sol-hint').textContent='Launch rent and network fees are additional.'+(summary.developerLockSeconds?' Developer tokens lock for '+(summary.developerLockSeconds/3600)+'h after launch.':'');
   document.querySelector('#token-label').textContent='Tokens sent to reward vault';
   document.querySelector('#token-amount').textContent=number(summary.reserveTokens)+' '+summary.tokenSymbol;
   document.querySelector('#token-name').textContent=summary.tokenName;

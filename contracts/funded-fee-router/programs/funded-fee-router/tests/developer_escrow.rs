@@ -36,6 +36,11 @@ impl Fixture {
  fn release(&self,creator:Pubkey)->Instruction{Instruction{program_id:funded_fee_router::id(),
   accounts:funded_fee_router::accounts::Release{payer:self.creator.pubkey(),creator,mint:self.mint,lock:self.lock,vault:self.vault,destination:self.source,
     token_program:TOKEN_ID,associated_token_program:ATA_ID,system_program:system_program::ID}.to_account_metas(None),data:funded_fee_router::instruction::Release{}.data()}}
+ fn deposit_for(&self,amount:u64,lock_seconds:u32)->Instruction {
+  let mut ix=self.deposit(amount);
+  ix.data=funded_fee_router::instruction::InitializeAndLockFor{amount,lock_seconds}.data();
+  ix.data.extend_from_slice(&[1,2,3,4,5,6,7,8]);ix
+ }
  fn setup(&self,owner:Pubkey)->Instruction {
   anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account_idempotent(
    &self.creator.pubkey(),&owner,&self.mint,&TOKEN_ID)
@@ -49,6 +54,32 @@ impl Fixture {
   self.svm.send_transaction(tx).map(|_| ()).map_err(|error| format!("{:?}\n{}",error.err,error.meta.logs.join("\n")))}
  fn clock(&mut self,time:i64){let mut clock=self.svm.get_sysvar::<Clock>();clock.unix_timestamp=time;self.svm.set_sysvar(&clock);}
  fn amount(&self,address:Pubkey)->u64{let a=self.svm.get_account(&address).unwrap();TokenAccount::unpack(&a.data[..TokenAccount::LEN]).unwrap().amount}
+}
+
+#[test]
+fn selected_periods_enforce_exact_deadlines_and_cannot_be_shortened(){
+ for seconds in [21_600u32,43_200,86_400,172_800] {
+  let mut f=Fixture::new(false,false);let before=f.amount(f.source);
+  f.send_all(&[f.setup(f.lock),f.deposit_for(AMOUNT,seconds)]).unwrap();
+  let state=f.svm.get_account(&f.lock).unwrap().data;
+  assert_eq!(i64::from_le_bytes(state[88..96].try_into().unwrap()),START+i64::from(seconds));
+  f.clock(START+i64::from(seconds)-1);
+  assert!(f.send(f.release(f.creator.pubkey())).unwrap_err().contains("StillLocked"));
+  assert_eq!(f.amount(f.vault),AMOUNT);
+  assert!(f.send_all(&[f.deposit_for(AMOUNT,21_600)]).is_err());
+  f.clock(START+i64::from(seconds));f.send(f.release(f.creator.pubkey())).unwrap();
+  assert_eq!(f.amount(f.source),before);assert_eq!(f.amount(f.vault),0);
+  assert!(f.send(f.release(f.creator.pubkey())).unwrap_err().contains("AlreadyReleased"));
+ }
+}
+
+#[test]
+fn unsupported_periods_roll_back_setup_and_preserve_tokens(){
+ for seconds in [0u32,1,21_599,43_201,172_801,u32::MAX] {
+  let mut f=Fixture::new(false,false);let before=f.amount(f.source);
+  assert!(f.send_all(&[f.setup(f.lock),f.deposit_for(AMOUNT,seconds)]).unwrap_err().contains("InvalidLockPeriod"));
+  assert_eq!(f.amount(f.source),before);assert!(f.svm.get_account(&f.lock).is_none());assert!(f.svm.get_account(&f.vault).is_none());
+ }
 }
 
 #[test]

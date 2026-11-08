@@ -22,7 +22,7 @@ html body.page-route-launch #launch-dialog .launch-preview { min-width: 0; min-h
 
 /* Funding controls use the same quiet surfaces as the token form. */
 #launch-dialog .launch-funding-grid { gap: 16px; }
-#launch-dialog .launch-funding-grid > label { padding: 0; border: 0; background: transparent; gap: 6px; }
+#launch-dialog .launch-funding-grid > :is(label, .developer-buy-field) { padding: 0; border: 0; background: transparent; gap: 6px; }
 #launch-dialog .launch-funding-grid .amount-presets { margin-top: 4px; }
 #launch-dialog .launch-funding-grid .creator-buy-preview { margin-top: 4px; padding: 8px 10px; }
 #launch-dialog .launch-funding-grid .creator-buy-preview strong { margin-block: 3px; font-size: 15px; }
@@ -66,3 +66,8 @@ html body.page-route-launch #launch-dialog .launch-preview { min-width: 0; min-h
 
 /* AI marketing share is reserved but agents are not executing yet. */
 [data-fixed-fee-category="agency"][data-agency-state="paused"] dt::after{content:" · not active yet";color:var(--muted,#8a93a6);font-weight:400}
+
+.developer-lock-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.developer-lock-control label { margin: 0; color: var(--muted); font-size: 12px; }
+.developer-lock-control select { width: 108px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+.developer-lock-control select:focus-visible { outline: 2px solid var(--yellow, #ffcf45); outline-offset: 2px; }

@@ -67,11 +67,11 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 673
-  document.querySelectorAll('#token-name, #token-symbol, #token-description, #token-tagline, #token-roadmap, #token-website, #token-x, #token-telegram, #token-discord, #x-recipient, #community-airdrop-tokens, #creator-buy-sol').forEach(input => input.addEventListener('input', () => {
+  document.querySelectorAll('#token-name, #token-symbol, #token-description, #token-tagline, #token-roadmap, #token-website, #token-x, #token-telegram, #token-discord, #x-recipient, #community-airdrop-tokens, #creator-buy-sol, #creator-buy-lock-period').forEach(input => input.addEventListener('input', () => {
     if (input.matches('#token-name, #token-symbol')) { input.dataset.launchTouched = 'true'; appState.updateLaunchIdentityWarnings(); }
     if (appState.LAUNCH_SOCIAL_FIELDS.includes(input.id)) appState.updateLaunchSocialValidity(input);
     if (input.matches('#community-airdrop-tokens')) appState.syncCommunityAirdropPresets();
-    if (input.matches('#token-name, #token-symbol, #creator-buy-sol, #community-airdrop-tokens')) appState.scheduleLaunchCostRefresh();
+    if (input.matches('#token-name, #token-symbol, #creator-buy-sol, #community-airdrop-tokens, #creator-buy-lock-period')) appState.scheduleLaunchCostRefresh();
     appState.updateLaunchPreview();
     appState.updateCostSummary();
     appState.updateLaunchButton();

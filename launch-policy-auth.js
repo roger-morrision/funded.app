@@ -2,6 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import { validateCommunityAllocation } from './airdrop-policy.js';
 import { validateFeeDistribution, validateProtocolFeeSplit } from './distribution-policy.js';
 import {canonicalAgencySelection,MARKETING_AGENCY_POLICY} from './config/marketing-agency.js';
+import {normalizeDeveloperLockSeconds} from './developer-lock-period.js';
 
 export function canonicalLaunchPolicy(input = {}) {
   const communityAllocation = Number(input.communityAllocation);
@@ -43,6 +44,7 @@ export function canonicalLaunchPolicy(input = {}) {
     ...v3,
     ...(marketingAgency?{marketingAgency}:{}),
     communityAllocation,
+    ...(input.developerLockSeconds!=null?{developerLockSeconds:normalizeDeveloperLockSeconds(input.developerLockSeconds)}:{}),
     creatorWalletPercent: distribution.shares.creatorWalletPercent,
     holderAirdropPercent: distribution.shares.holderAirdropPercent,
     solClaimPercent: distribution.shares.solClaimPercent,
