@@ -63,7 +63,13 @@ export function initializeExploreSearchActions(appState) {
   // app-source-end
 
   // app-source: 778
-  document.querySelector('#explore-promotion-filter')?.addEventListener('change', event => { appState.explorePromotion = event.target.value; appState.updateExploreViews(); });
+  document.querySelector('#explore-promotion-filter')?.addEventListener('change', event => {
+    const changed = appState.explorePromotion !== event.target.value;
+    appState.explorePromotion = event.target.value;
+    if (changed && ['pro', 'premier', 'paid-list'].includes(appState.exploreTab))
+      appState.exploreTab = ['pro', 'premier'].includes(event.target.value) ? event.target.value : 'trending';
+    appState.updateExploreViews();
+  });
   // app-source-end
 
   // app-source: 779
@@ -206,10 +212,12 @@ export function initializeExploreSearchActions(appState) {
   // app-source: 803
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => button.addEventListener('click', event => {
     event.preventDefault();
-    const previousTab = appState.exploreTab;
     document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(item => { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); });
     const tab = button.dataset.exploreTab;
     appState.exploreTab = tab;
+    appState.explorePromotion = 'all';
+    document.querySelector('#explore-promotion-filter').value = 'all';
+    if (['new', 'migrated'].includes(tab)) appState.exploreStage = 'all';
     if (tab === 'new') { appState.exploreNewLane = 'all'; appState.exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
     else if (tab === 'trending') { appState.exploreSort = 'trending'; document.querySelector('#explore-sort').value = appState.exploreSort; }
     appState.updateExploreViews(true);

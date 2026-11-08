@@ -33,6 +33,10 @@ export function renderExploreControls(
   const page = document.querySelector('#explore');
   if (page) { page.dataset.exploreView = exploreView; page.dataset.cluster = EXPLORE_CLUSTER; page.dataset.exploreTab = exploreTab; }
   document.querySelectorAll('.explore-tabs [data-explore-tab]').forEach(button => { const active = button.dataset.exploreTab === exploreTab; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
+  document.querySelectorAll('[data-explore-stage]').forEach(button => {
+    const active = button.dataset.exploreStage === exploreStage;
+    button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active));
+  });
   document.querySelectorAll('[data-explore-window]').forEach(button => {
     const active = button.dataset.exploreWindow === exploreWindow;
     button.classList.toggle('active', active);

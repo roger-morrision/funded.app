@@ -333,3 +333,7 @@ html body #main-content .hero-benefit-tags span { display:block;margin-top:4px;f
 @media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
   body.page-route-explore #asset-grid :is(.asset-card, .explore-launch-card):hover { animation:explore-card-vibration 260ms ease-in-out 1; }
 }
+
+/* Keep all discovery categories visible on narrow screens. */
+html body #main-content #explore .explore-tabs { display:flex;flex-wrap:wrap;width:100%;max-width:100%; }
+html body #main-content #explore .explore-tabs > button { flex:0 0 auto;white-space:nowrap; }

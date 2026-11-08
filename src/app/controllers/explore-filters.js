@@ -30,6 +30,19 @@ export function createExploreFiltersController(appState) {
   // app-source: 408
   function filterExploreTabRecords(records, query = appState.exploreQuery){
     const filtered = appState.filterMarketRecords(records.map(record => marketFacts(record, appState.EXPLORE_CLUSTER)), appState.exploreFilterOptions(query));
+    if (['pro', 'premier'].includes(appState.exploreTab)) return filtered.filter(record => record.benefitPolicyVerified === true && record.promotionTier === appState.exploreTab);
+    if (appState.exploreTab === 'paid-list') return filtered.filter(record => record.listingPayment?.verified === true && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(record.listingPayment.signature || ''));
+    if (appState.exploreTab === 'migrated') return filtered.filter(record => record.complete === true && record.migrated === true);
+    if (appState.exploreTab === 'new') {
+      const now = Date.now(), cutoff = now - 12 * 60 * 60 * 1000;
+      return filtered.filter(record => {
+        const policy = appState.verifiedLaunchPolicyForMint(record.address);
+        const timestamp = policy?.blockTime ? Number(policy.blockTime) * 1000
+          : record.listingPayment && !record.launchAgeVerified ? NaN : Number(record.createdTimestamp);
+        const at = timestamp > 10_000_000_000 ? timestamp : timestamp * 1000;
+        return Number.isFinite(at) && at >= cutoff && at <= now;
+      });
+    }
     if (appState.exploreTab === 'favorites') {
       const saved = new Set(appState.getWatchlist());
       return filtered.filter(record => saved.has(record.address));
