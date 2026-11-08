@@ -1,5 +1,7 @@
+import {pricedBoostPackages} from '../../../boost-pricing.js';
 // Dependencies and mutable application state are read live through appState.
 export function createBoostCheckoutController(appState) {
+  let livePackages=null;
   // app-source: 283
   function exploreBoostStatus(mint){
     const multiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[mint]);
@@ -109,6 +111,8 @@ export function createBoostCheckoutController(appState) {
       appState.exploreBoostHistoryState = 'unavailable'; appState.renderExploreBoostDialog(); return;
     }
     appState.exploreBoostHistoryState = 'ready';
+    try{livePackages=pricedBoostPackages(Object.fromEntries(response.data.packages.map(pack=>[pack.id,Math.round(pack.usd*100)])));}
+    catch{livePackages=null;appState.exploreBoostHistoryState='unavailable';}
     appState.exploreBoostHistory = response.data.history;
     if (appState.boostCheckout.pendingSignature && !appState.boostCheckout.busy) {
       try {
@@ -141,7 +145,8 @@ export function createBoostCheckoutController(appState) {
     const name = appState.escapeHtml(asset.name || asset.symbol || appState.shortAddress(mint));
     document.querySelector('#explore-boost-title').textContent = `Boost ${asset.symbol || asset.name || 'token'}`;
     const active = appState.activeBoostMultiplier(appState.verifiedBoosts[mint]) ? appState.verifiedBoosts[mint] : null;
-    const selected = appState.boostPackage(packageId);
+    const packages=livePackages||appState.BOOST_PACKAGES;
+    const selected = packages.find(pack=>pack.id===packageId)||appState.boostPackage(packageId);
     const available = !recoveryError && ((appState.EXPLORE_CLUSTER === 'devnet' && !appState.APP_MAINNET_READ_ONLY && appState.boostPurchasesEnabled) || Boolean(pendingSignature));
     const quotedAmount = quote && quote.mint === mint && quote.packageId === packageId && Date.parse(quote.expiresAt) > Date.now()
       ? (quote.lamports / 1e9).toFixed(9) : null;
@@ -149,7 +154,7 @@ export function createBoostCheckoutController(appState) {
     const historyOpen = pendingSignature || details.querySelector('.explore-boost-history')?.open;
     const advancedOpen = details.querySelector('.explore-boost-how')?.open;
     details.innerHTML = `<p class="explore-boost-intro">Give ${name} more visibility in the Boosted list. Packs add together while active.</p>
-      <div class="explore-boost-packages" role="group" aria-label="Boost packages">${appState.BOOST_PACKAGES.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong><span class="boost-leading-icon">${appState.icon('boost')}</span>${item.id}</strong><small>${item.hours} hours</small><b>$${item.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</b><small>${Number.isFinite(appState.coinSolUsdPrice) && appState.coinSolUsdPrice > 0 ? `≈ ${(item.usd / appState.coinSolUsdPrice).toFixed(4)} SOL` : 'Paid in SOL'}</small></button>`).join('')}</div>
+      <div class="explore-boost-packages" role="group" aria-label="Boost packages">${packages.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong><span class="boost-leading-icon">${appState.icon('boost')}</span>${item.id}</strong><small>${item.hours} hours</small><b>$${item.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</b><small>${Number.isFinite(appState.coinSolUsdPrice) && appState.coinSolUsdPrice > 0 ? `≈ ${(item.usd / appState.coinSolUsdPrice).toFixed(4)} SOL` : 'Paid in SOL'}</small></button>`).join('')}</div>
       <div class="explore-boost-current"><span>Active boosts</span><strong>${appState.verifiedBoostsAvailable ? (active ? `${appState.escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong>${active ? `<small>${active.count} purchase${active.count === 1 ? '' : 's'} · latest expiry ${appState.escapeHtml(new Date(active.expiresAt).toLocaleString())}</small>` : ''}</div>
       <p class="explore-boost-explainer">Pay in Solana Devnet test SOL. Network fee is additional. Test SOL has no monetary value.</p>
       ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review your payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} package · $${quote.solUsd}/SOL</small><small>To ${appState.escapeHtml(quote.recipient)}</small>${appState.quoteCountdownMarkup(quote.expiresAt)}</div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">This price expired. Get an updated price before paying.</p>' : ''}

@@ -4,7 +4,7 @@ import {handleAdminXPosts} from '../admin-x-posts.mjs';
 import { handleIssueAdmin } from './issue-admin.mjs';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import {readAdminVaults} from '../admin-vaults.mjs';
 import {readAdminRpcHealth} from '../admin-rpc-health.mjs';
@@ -17,6 +17,9 @@ import {publishAgencyFeePolicy,prepareAgencyRules} from '../admin-agency-policy.
 import {readAgencyDeployment} from '../agency-deployment.mjs';
 import {createAdminEmailVerification,adminWriteNeedsEmail,ADMIN_EMAIL_AUTHORIZED} from '../admin-email-verification.mjs';
 import {createV3RewardFundingRoutes} from './v3-reward-funding.mjs';
+import {handleAdminBoostPricing} from '../admin-boost-pricing.mjs';
+import {createAdminWallets} from '../admin-wallets.mjs';
+import {createAdminWithdrawals} from '../admin-withdrawals.mjs';
 
 const COOKIE = 'funded_admin';
 const CHALLENGE_MS = 5 * 60_000;
@@ -46,7 +49,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
   const body=req=>{if(!bodies.has(req))bodies.set(req,Promise.resolve().then(()=>readBody(req)));return bodies.get(req);};
   const transferResidual=residualTransferFactory({body,store,solanaCluster,solanaRpcUrl,v3AuthorityKeypair,
     rewardStore:automaticRewardStore,respond,env});
-  const challenges = new Map(), sessions = new Map(), attempts = new Map(), withdrawals = new Map();
+  const challenges = new Map(), sessions = new Map(), attempts = new Map();
   const json = (res, status, value) => { respond(res, status, value); return true; };
   const allowed = () => new Set(String(env.FUNDED_ADMIN_WALLETS || '').split(',').map(value => validWallet(value.trim())).filter(Boolean));
   const origin = () => {
@@ -69,38 +72,9 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
     res.setHeader('set-cookie', `${COOKIE}=${value}; Path=/api/admin; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${origin()?.startsWith('https:') ? '; Secure' : ''}`);
   };
   const connection = () => connectionFactory(solanaRpcUrl);
-  const withdrawalDestinations = () => new Set(String(env.FUNDED_ADMIN_WITHDRAW_DESTINATIONS || env.FUNDED_ADMIN_WALLETS || '')
-    .split(',').map(value => validWallet(value.trim())).filter(Boolean));
-  const roleAddresses = () => {
-    const signer = read => { try { return read()?.publicKey?.toBase58() || null; } catch { return null; } };
-    const rows = [
-      { role:'Pump fee keeper', address:signer(keeperKeypair), custody:'server signer', withdrawable:false },
-      { role:'V3 router authority', address:signer(v3AuthorityKeypair), custody:'server signer', withdrawable:false },
-      { role:'Referral payout funder', address:signer(referralPayoutKeypair), custody:'server signer', withdrawable:false },
-      { role:'Protocol operations treasury', address:validWallet(env.FUNDED_PUMP_REVENUE_WALLET), custody:'external wallet', withdrawable:true },
-      { role:'V3 Operations & marketing', address:validWallet(env.FUNDED_V3_OPERATIONS_RECIPIENT), custody:'external wallet', withdrawable:true },
-      { role:'Trading fee treasury', address:validWallet(env.FUNDED_TRADE_FEE_OWNER || env.VITE_FUNDED_TRADE_FEE_OWNER), custody:'external wallet', withdrawable:true },
-      { role:'Boost payment wallet', address:validWallet(env.FUNDED_BOOST_PAYMENT_WALLET), custody:'external wallet', withdrawable:true },
-    ].filter(row => row.address);
-    const signers=new Set(rows.filter(row=>row.custody==='server signer').map(row=>row.address));
-    return rows.map(row=>signers.has(row.address)?{...row,custody:'server signer',withdrawable:false}:row);
-  };
-  const finalizedTransfer = async (rpc, signature) => {
-    const tx = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-    const instructions = tx?.transaction?.message?.instructions || [];
-    const transfer = instructions[0]?.parsed;
-    const accounts = tx?.transaction?.message?.accountKeys?.map(key => key.pubkey.toBase58()) || [];
-    const source = transfer?.info?.source, destination = transfer?.info?.destination;
-    const amount = transfer?.info?.lamports;
-    const sourceIndex = accounts.indexOf(source), destinationIndex = accounts.indexOf(destination);
-    if (!tx?.meta || tx.meta.err || instructions.length !== 1 || instructions[0]?.program !== 'system'
-      || transfer?.type !== 'transfer' || sourceIndex < 0 || destinationIndex < 0
-      || !Number.isSafeInteger(amount) || amount < 1_000_000 || amount > 5_000_000_000
-      || tx.meta.postBalances[destinationIndex] - tx.meta.preBalances[destinationIndex] !== amount
-      || tx.meta.preBalances[sourceIndex] - tx.meta.postBalances[sourceIndex] !== amount + tx.meta.fee)
-      return null;
-    return { tx, source, destination, amount };
-  };
+  const inventory=createAdminWallets({env,keeperKeypair,v3AuthorityKeypair,referralPayoutKeypair});
+  const roleAddresses=inventory.roles;
+  const handleWithdrawals=createAdminWithdrawals({store,env,connection,roles:roleAddresses,signerFor:inventory.signerFor});
   return async function handleAdminRoutes(req, res, url) {
     if (!url.pathname.startsWith('/api/admin/')) return false;
     if (solanaCluster !== 'devnet') return json(res, 403, { error:'This admin workspace is Devnet-only.' });
@@ -180,6 +154,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       try{return json(res,200,await readAdminRpcHealth({env}));}
       catch{return json(res,503,{error:'RPC gateway health is unavailable. Refresh to retry.'});}
     }
+    if(await handleAdminBoostPricing({req,res,url,store,body,json,session}))return true;
     if(await handleIssueAdmin(req,res,url,{store,body,json}))return true;
     if(req.method==='GET'&&path==='/api/admin/financial-health'){
       const health=(await automaticRewardStore?.read?.())?.financialFlowHealth;
@@ -272,7 +247,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
           finalizedSettlementCount:settlements.length,
           operationsAllocationLamports:String(settlements.reduce((sum, row) => sum + BigInt(row.categoryLamports?.[1] || 0), 0n)),
           note:'Recorded V3 collection and allocation totals; wallet balances are live finalized RPC reads, not cumulative revenue.' },
-        withdrawalDestinations:[...withdrawalDestinations()],
+        withdrawalDestination:session.wallet,
         gates:{ launch:env.FUNDED_V3_LAUNCH_ENABLED === 'true', collection:env.FUNDED_V3_COLLECTION_ENABLED === 'true',
           settlement:env.FUNDED_V3_SETTLEMENT_ENABLED === 'true', holder:env.FUNDED_V3_HOLDER_WORKER_ENABLED === 'true',
           automaticSettlement:env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED==='true',automaticPayouts:env.FUNDED_V3_AUTO_DISBURSEMENT_ENABLED==='true',
@@ -287,73 +262,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       try{return json(res,200,await readAdminVaults({state,offset,rpc:connection()}));}
       catch(error){return json(res,503,{error:String(error.message||'Vault balances unavailable.')});}
     }
-    if (req.method === 'POST' && path === '/api/admin/withdrawals/prepare') {
-      const input = await body(req) || {};
-      const source = validWallet(input.source), destination = validWallet(input.destination);
-      const amount = Number(input.amountLamports);
-      if (!source || !roleAddresses().some(row => row.address === source && row.custody === 'external wallet' && row.withdrawable)
-        || !destination || !withdrawalDestinations().has(destination)
-        || !Number.isSafeInteger(amount) || amount < 1_000_000 || amount > 5_000_000_000
-        || source === destination) return json(res, 400, { error:'Select a listed external source wallet, an allowed destination, and 0.001–5 Devnet SOL. Server signers and program vaults are not treasury withdrawal sources.' });
-      const rpc = connection();
-      if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
-      const balance = await rpc.getBalance(new PublicKey(source), 'finalized');
-      const blockhash = await rpc.getLatestBlockhash('finalized');
-      const message = new Transaction({feePayer:new PublicKey(source),recentBlockhash:blockhash.blockhash})
-        .add(SystemProgram.transfer({fromPubkey:new PublicKey(source),toPubkey:new PublicKey(destination),lamports:amount})).compileMessage();
-      const fee = (await rpc.getFeeForMessage(message,'finalized')).value;
-      if (!Number.isSafeInteger(fee) || fee < 0) return json(res,503,{error:'The network fee is unavailable. Refresh before preparing a withdrawal.'});
-      if (balance - amount - fee < 20_000_000) return json(res, 409, { error:'The source must retain at least 0.02 SOL after the transfer and network fee.' });
-      const id = randomBytes(16).toString('hex');
-      withdrawals.set(id, { source, destination, amount, blockhash:blockhash.blockhash,
-        expiresAt:Date.now() + 120_000, requestedBy:session.wallet });
-      if (withdrawals.size > 300) for (const [key, row] of withdrawals) if (row.expiresAt <= Date.now()) withdrawals.delete(key);
-      return json(res, 200, { id, source, destination, amountLamports:amount,
-        blockhash:blockhash.blockhash, lastValidBlockHeight:blockhash.lastValidBlockHeight, estimatedFeeLamports:fee,
-        expiresAt:new Date(Date.now() + 120_000).toISOString(),
-        note:'Only the source wallet can sign. This does not use a server-held key.' });
-    }
-    if (req.method === 'POST' && path === '/api/admin/withdrawals/verify') {
-      const input = await body(req) || {};
-      const plan = withdrawals.get(String(input.id || ''));
-      const signature = String(input.signature || '');
-      if (!plan || plan.expiresAt <= Date.now() || plan.requestedBy !== session.wallet
-        || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature))
-        return json(res, 409, { error:'The withdrawal review expired or the signature is invalid.' });
-      const rpc = connection();
-      if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
-      const transfer = await finalizedTransfer(rpc, signature);
-      if (!transfer || transfer.source !== plan.source || transfer.destination !== plan.destination
-        || transfer.amount !== plan.amount || transfer.tx.transaction.message.recentBlockhash !== plan.blockhash)
-        return json(res, 409, { error:'No matching finalized one-transfer withdrawal and exact balance delta were found.' });
-      const receipt = { action:'wallet-withdrawal', source:plan.source, destination:plan.destination,
-        amountLamports:String(plan.amount), signature, wallet:session.wallet,
-        slot:transfer.tx.slot, at:new Date().toISOString(), finalized:true, balanceDeltaVerified:true };
-      await store.update(state => { state.adminAudit ||= {}; state.adminAudit[`withdraw:${signature}`] = receipt; return receipt; });
-      withdrawals.delete(String(input.id));
-      return json(res, 200, receipt);
-    }
-    if (req.method === 'POST' && path === '/api/admin/withdrawals/reconcile') {
-      const input = await body(req) || {};
-      const signature = String(input.signature || '');
-      if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature)) return json(res, 400, { error:'Enter a Solana transaction signature.' });
-      const rpc = connection();
-      if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC is not Solana Devnet.' });
-      const transfer = await finalizedTransfer(rpc, signature);
-      if (!transfer || !roleAddresses().some(row => row.address === transfer.source && row.custody === 'external wallet' && row.withdrawable)
-        || !withdrawalDestinations().has(transfer.destination))
-        return json(res, 409, { error:'No eligible finalized Devnet transfer with exact balance deltas was found.' });
-      const receipt = await store.update(state => {
-        state.adminAudit ||= {};
-        const key = `withdraw:${signature}`;
-        state.adminAudit[key] ||= { action:'wallet-withdrawal-reconciled', source:transfer.source,
-          destination:transfer.destination, amountLamports:String(transfer.amount), signature,
-          wallet:session.wallet, initiatedByAdmin:'unverified', slot:transfer.tx.slot,
-          at:new Date().toISOString(), finalized:true, balanceDeltaVerified:true };
-        return state.adminAudit[key];
-      });
-      return json(res, 200, receipt);
-    }
+    if(await handleWithdrawals(req,res,url,{session,body,json}))return true;
     if (req.method === 'POST' && path === '/api/admin/fee-policy') {
       const input = await body(req) || {};
       if(input.split?.agencyPercent!==undefined)return json(res,409,{error:'Agency fee changes require a verified on-chain future-mint configuration update. Off-chain activation is not supported.'});

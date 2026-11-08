@@ -13,8 +13,8 @@ in. Reads and logout do not require a code. See [admin email security](admin-ema
 for configuration, per-action confirmation, recovery and deployment requirements.
 
 Set `FUNDED_ADMIN_WALLETS` to a comma-separated list of administrator public
-addresses. Set `FUNDED_ADMIN_WITHDRAW_DESTINATIONS` to approved Devnet receiving
-addresses. Both default to empty in a fresh deployment. Never use QA keys in a
+addresses. Withdrawals always pay the authenticated administrator wallet; the
+recipient is read-only and the API rejects other destinations. Never use QA keys in a
 Mainnet configuration. The local ignored `.env.deploy` can carry public
 addresses; `.secrets/devnet-admin-qa-keypair.json` is a local ignored test key.
 `node scripts/provision-admin-qa-wallet.mjs` provisions that key once without
@@ -35,28 +35,44 @@ V3 mint's saved category vaults (including agency where present) and holder/X re
 mints. The balances include rent and obligations; a vault has no ordinary
 private key and can only pay through its program's allowed instructions.
 
-An ordinary-wallet withdrawal is limited to 0.001–5 Devnet SOL, an approved
-destination, and at least 0.02 SOL left in the source. The connected **source**
-wallet signs exactly one System Program transfer. The browser submits it to
-the configured Devnet RPC. The admin API records a receipt only after a
-finalized transaction proves the source, destination, amount, and exact
-recipient balance increase. The app never uses a server-held keeper, referral,
-or router key to sign a generic withdrawal. Addresses used by these operational
-signers are excluded even if they are also configured as an external treasury.
-There is no general vault sweep action.
+An ordinary-wallet withdrawal accepts exact lamports and offers **Max**, which
+subtracts the network fee and protected reserve from the finalized balance.
+Operational signers retain at least 0.1 SOL; treasury wallets retain at least
+0.02 SOL. A configured reserve can raise these floors. The authenticated admin
+approves the exact action by email. For a server-held source, the server signs
+exactly one transfer to that admin and persists its identity before returning
+signed bytes. An external source still requires its owner's wallet signature.
+The browser submits the reviewed transaction to Devnet. No private key reaches
+the browser. Program vaults require their authorized payout instructions;
+there is no general vault sweep action.
+
+Optional treasury key references are documented in `config/admin-security.example`.
+Each loaded key must match its configured public recipient. The Operations
+overlay is `compose.admin-operations.yml`; never mount these Devnet keys in
+Mainnet. Missing or mismatched keys grant no server signing capability.
 
 The browser polls finalized RPC status without requiring a WebSocket. It shows
 the public transaction signature as soon as it is submitted. If receipt
 recording is interrupted after finalization, paste that signature into the
 reconcile form. The API independently verifies the finalized single-transfer
 transaction and exact balance deltas before recording it. A recovered receipt
-marks the initiating administrator as unverified.
+binds the receipt to the authenticated admin recipient. Server-signed pending
+intents survive database restart; retries reuse the original signed transaction
+until finalized failure or proven expiry permits a fresh preparation.
 
 Withdrawal preparation estimates the exact single-transfer message's network
-fee and checks that at least 0.02 SOL remains after both the transfer and fee.
+fee and checks that the source's protected reserve remains after transfer and fee.
 If the fee estimate is unavailable, preparation stops. This is a review-time
 balance check; another transaction can still change the source balance before
-signing. The source owner retains control of their wallet.
+signing. Receipts require exact finalized source debit, recipient credit and fee.
+
+## Boost pricing
+
+The Boost prices editor changes USD prices in exact cents for the five existing
+packages. Wallet authentication, email confirmation, an audit reason and matching
+revision/hash are required. New quotes snapshot the updated prices. Already
+issued quotes retain their original price and expiry; package duration and
+multiplier are not changed by a price edit.
 
 The gate panel reports launch, collection, settlement, holder, referral, X,
 and buyback runtime flags. It is read-only; enabling a gate requires the

@@ -1,7 +1,7 @@
 # Private server configuration only. No VITE variables or browser credentials.
 FUNDED_ADMIN_WALLETS=REPLACE_WITH_ADMIN_PUBLIC_WALLET
 FUNDED_ADMIN_EMAIL=REPLACE_WITH_ADMIN_EMAIL
-FUNDED_ADMIN_WITHDRAW_DESTINATIONS=REPLACE_WITH_APPROVED_TREASURY_DESTINATION
+# Withdrawal destination is always the authenticated administrator wallet.
 # Gmail SMTP uses the sender address as the authenticated Google account.
 # Enable Google 2-Step Verification and create an App Password, not a normal password/API key.
 FUNDED_ADMIN_EMAIL_PROVIDER=gmail
@@ -13,3 +13,14 @@ FUNDED_ADMIN_GMAIL_APP_PASSWORD_HOST_FILE=REPLACE_WITH_HOST_SECRET_FILE_PATH
 # FUNDED_ADMIN_EMAIL_API_KEY_FILE=REPLACE_WITH_SERVER_RESEND_KEY_FILE
 # FUNDED_ADMIN_EMAIL_API_KEY_HOST_FILE=REPLACE_WITH_HOST_RESEND_KEY_FILE
 # Existing Mainnet write guards remain in force. This does not enable Mainnet.
+# Optional server-held treasury signer files (JSON secret-key array or base58).
+# Each key must match its configured public treasury address; never put keys here.
+FUNDED_ADMIN_OPERATIONS_SIGNER_FILE=
+# Optional compose.admin-operations.yml mounts this existing Devnet key.
+FUNDED_ADMIN_OPERATIONS_SIGNER_HOST_FILE=
+FUNDED_ADMIN_PUMP_REVENUE_SIGNER_FILE=
+FUNDED_ADMIN_TRADE_FEE_SIGNER_FILE=
+FUNDED_ADMIN_SERVICE_FEE_SIGNER_FILE=
+FUNDED_ADMIN_BOOST_SIGNER_FILE=
+# Max preserves at least 0.1 SOL for operational signers and 0.02 SOL for treasuries.
+FUNDED_ADMIN_WITHDRAW_RESERVE_LAMPORTS=

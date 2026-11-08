@@ -1,12 +1,15 @@
 import bs58 from 'bs58';
 import {Connection,PublicKey,SystemProgram,Transaction} from '@solana/web3.js';
 import {exactSolLamports} from './exact-sol-units.js';
+import {Buffer} from 'buffer';
 const STORAGE='funded.admin.pending-withdrawal.devnet.v1';
 const SIGNATURE=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,document=globalThis.document}){
  const $=s=>document.querySelector(s),workspace=$('#workspace'),form=$('#withdraw-form'),reconcile=$('#reconcile-form');
  const submit=form.querySelector('[type=submit]'),receiptSubmit=reconcile.querySelector('[type=submit]');
- const review=$('#withdraw-review'),signatureInput=$('#reconcile-signature');let busy=false,pending;
+ const review=$('#withdraw-review'),signatureInput=$('#reconcile-signature');let busy=false,pending,recoveryKey='';
+ const maxButton=$('#withdraw-max');
+ const exactSol=value=>{const units=BigInt(value);return `${units/1000000000n}.${String(units%1000000000n).padStart(9,'0')}`;};
  try{const saved=JSON.parse(sessionStorage.getItem(STORAGE));if(SIGNATURE.test(saved?.signature)&&Number.isSafeInteger(saved.lastValidBlockHeight))pending=saved;}catch{}
  const token=()=>workspace.dataset.sessionEpoch,current=value=>!workspace.hidden&&token()===value;
  function save(row){
@@ -17,7 +20,16 @@ export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,doc
  function sync(){
   submit.disabled=busy||!!pending||!$('#withdraw-source').options.length||workspace.hidden;
   receiptSubmit.disabled=busy||workspace.hidden;
+  maxButton.disabled=busy||!!pending||workspace.hidden||!$('#withdraw-source').value;
   if(pending){signatureInput.value=pending.signature;review.textContent=`Transfer pending reconciliation: ${pending.signature}. Check this receipt before preparing another withdrawal.`;}
+  const source=$('#withdraw-source').value,key=token()+':'+source;
+  if(!workspace.hidden&&!busy&&!pending&&source&&key!==recoveryKey){recoveryKey=key;const epoch=token();
+   void api(`/api/admin/withdrawals/pending?source=${encodeURIComponent(source)}`).then(({pending:row})=>{
+    if(current(epoch)&&source===$('#withdraw-source').value&&row?.destination===$('#withdraw-destination').value&&SIGNATURE.test(row.signature)){
+      save(row);update();
+    }
+   }).catch(()=>{});
+  }
  }
  const checker=document.createElement('button');checker.type='button';checker.textContent='Check pending transfer';checker.hidden=!pending;
  reconcile.append(checker);
@@ -33,26 +45,37 @@ export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,doc
   show(`Finalized ${Number(receipt.amountLamports)/1e9} SOL transfer recorded: ${receipt.signature}`);await refresh();
  }
  async function run(action){if(busy||workspace.hidden)return;const epoch=token();busy=true;update();try{await action();}catch(error){if(current(epoch))show(error.message,true);}finally{busy=false;update();}}
+ maxButton.addEventListener('click',()=>{const epoch=token(),source=$('#withdraw-source').value;
+  void run(async()=>{const quote=await api(`/api/admin/withdrawals/maximum?source=${encodeURIComponent(source)}`);
+   if(!current(epoch)||source!==$('#withdraw-source').value)return;
+   if(quote.destination!==$('#withdraw-destination').value)throw Error('Admin session changed. Refresh before withdrawing.');
+   $('#withdraw-amount').value=exactSol(quote.maximumLamports);
+   review.textContent=`Available: ${exactSol(quote.maximumLamports)} SOL · fee ${exactSol(quote.estimatedFeeLamports)} SOL · reserve ${exactSol(quote.reserveLamports)} SOL.`;
+  });});
+ $('#withdraw-source').addEventListener('change',()=>{$('#withdraw-amount').value='';if(!pending)review.textContent='Use Max to check the available balance.';sync();});
  form.addEventListener('submit',event=>{
   event.preventDefault();if(busy||pending||!form.reportValidity())return;
   const epoch=token();void run(async()=>{
    const source=$('#withdraw-source').value,destination=$('#withdraw-destination').value,amount=Number(exactSolLamports($('#withdraw-amount').value));
-   if(!connected()||connected()!==source)throw Error('Connect the selected source wallet before signing its transfer.');
-   if(amount<1000000||amount>5000000000)throw Error('Enter 0.001–5 SOL in exact lamports.');
+   const server=$('#withdraw-source').selectedOptions[0]?.dataset.signingMode==='server';
+   if(!connected()||connected()!==(server?destination:source))throw Error(server?'Connect the signed-in admin wallet.':'Connect the external source wallet to sign its transfer to the admin.');
+   if(!Number.isSafeInteger(amount)||amount<1)throw Error('Enter a positive exact SOL amount.');
    const plan=await post('/api/admin/withdrawals/prepare',{source,destination,amountLamports:amount});if(!current(epoch))return;
+   if(plan.finalized===true&&plan.balanceDeltaVerified===true){await refresh();show('The prior withdrawal is finalized. Review the updated balance before another transfer.');return;}
    if(plan.source!==source||plan.destination!==destination||plan.amountLamports!==amount)throw Error('The withdrawal review changed. Review it again.');
-   const summary=`Withdraw ${amount/1e9} Devnet SOL\nFrom ${source}\nTo ${destination}\nThe source pays the network fee; at least 0.02 SOL must remain.`;
+   const summary=`Withdraw ${exactSol(amount)} Devnet SOL\nFrom ${source}\nTo admin ${destination}\nThe source pays the network fee; ${exactSol(plan.reserveLamports)} SOL stays reserved.`;
    review.textContent=summary.replaceAll('\n',' · ');if(!confirm(`${summary}\n\nContinue to your wallet?`))return;
    const connection=rpc();if(await connection.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('The browser RPC is not Devnet.');
    if(!current(epoch))return;
-   const provider=wallet();if(!provider?.signTransaction||provider.publicKey?.toBase58()!==source)throw Error('Connect the selected source wallet before signing.');
+   const provider=wallet();if(provider?.publicKey?.toBase58()!==(server?destination:source)||!server&&!provider?.signTransaction)throw Error('The connected wallet changed. Review the withdrawal again.');
    const tx=new Transaction({feePayer:new PublicKey(source),recentBlockhash:plan.blockhash})
     .add(SystemProgram.transfer({fromPubkey:new PublicKey(source),toPubkey:new PublicKey(destination),lamports:amount}));
    const reviewedMessage=tx.serializeMessage();
-   const signed=await provider.signTransaction(tx);if(!current(epoch))return;
-   if(provider.publicKey?.toBase58()!==source||!signed.serializeMessage().equals(reviewedMessage))throw Error('The wallet or reviewed transfer changed before submission.');
+   if(plan.signingMode!==(server?'server':'wallet'))throw Error('Source signing mode changed. Refresh before withdrawing.');
+   const signed=server?Transaction.from(Buffer.from(plan.signedTransaction,'base64')):await provider.signTransaction(tx);if(!current(epoch))return;
+   if(provider.publicKey?.toBase58()!==(server?destination:source)||!signed.serializeMessage().equals(reviewedMessage)||!signed.verifySignatures())throw Error('The wallet or reviewed transfer changed before submission.');
    if(!Number.isSafeInteger(plan.lastValidBlockHeight)||!Number.isFinite(Date.parse(plan.expiresAt)))throw Error('The withdrawal review is missing its expiry. Review it again.');
-   if(Date.now()>=Date.parse(plan.expiresAt)||!(await connection.isBlockhashValid(plan.blockhash,'confirmed')).value)throw Error('The withdrawal review expired. Review again before signing.');
+   if(!plan.recovery&&Date.now()>=Date.parse(plan.expiresAt)||!(await connection.isBlockhashValid(plan.blockhash,'confirmed')).value)throw Error('The withdrawal review expired. Reconcile its saved signature before preparing another.');
    if(!current(epoch))return;
    const wire=signed.serialize(),signature=bs58.encode(signed.signature);
    save({signature,source,destination,amountLamports:amount,lastValidBlockHeight:plan.lastValidBlockHeight});update();

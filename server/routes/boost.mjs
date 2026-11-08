@@ -1,8 +1,9 @@
 import { PublicKey, Connection } from '@solana/web3.js';
-import { activeBoosts, BOOST_PACKAGES, boostPackage, boostLamports, boostMemo } from '../../boost-offer.js';
+import { activeBoosts, boostLamports, boostMemo } from '../../boost-offer.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { verifyBoostPayment } from '../boost-proof.mjs';
+import {boostPricingSnapshot} from '../admin-boost-pricing.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -23,7 +24,8 @@ export function createBoostRoutes({
       const active = activeBoosts(state.boostReceipts);
       const history = mint ? Object.values(state.boostReceipts || {}).filter(row => row.mint === mint)
         .sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt)).slice(0, 30) : [];
-      return json(res, 200, { cluster:solanaCluster, enabled:boostPurchasesEnabled && Boolean(process.env.FUNDED_BOOST_PAYMENT_WALLET), packages:BOOST_PACKAGES, active:mint ? (active[mint] ? { [mint]:active[mint] } : {}) : active, history });
+      const pricing=boostPricingSnapshot(state);
+      return json(res, 200, { cluster:solanaCluster, enabled:boostPurchasesEnabled && Boolean(process.env.FUNDED_BOOST_PAYMENT_WALLET), packages:pricing.packages, pricingRevision:pricing.revision, active:mint ? (active[mint] ? { [mint]:active[mint] } : {}) : active, history });
     }
     if (req.method === 'POST' && url.pathname === '/api/boosts/quote') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Solana only.' });
@@ -40,9 +42,9 @@ export function createBoostRoutes({
       try { recipient = new PublicKey(String(process.env.FUNDED_BOOST_PAYMENT_WALLET || '')).toBase58(); }
       catch { return json(res, 503, { error:'The Devnet boost payment address is not configured. No payment was requested.' }); }
       if (mint !== input.mint || payer !== input.payer || payer === recipient) return json(res, 400, { error:'A valid token mint and distinct paying wallet are required.' });
-      const selected = boostPackage(input.packageId);
+      const state = await store.read(),pricing=boostPricingSnapshot(state);
+      const selected = pricing.packages.find(pack=>pack.id===input.packageId);
       if (!selected) return json(res, 400, { error:'Choose a supported boost package.' });
-      const state = await store.read();
       const launch = state.launches?.[mint];
       const listing = state.listings?.[mint];
       if (!(launch?.onchainVerified && launch.cluster === 'devnet') && !(listing?.onchainVerified && listing.cluster === 'devnet'))
@@ -52,7 +54,7 @@ export function createBoostRoutes({
         return json(res, 503, { error:'A fresh SOL/USD quote is unavailable. No payment was requested.' });
       const now = Date.now();
       const quote = { id:id('boost'), mint, payer, recipient, packageId:selected.id, multiplier:selected.multiplier,
-        hours:selected.hours, usd:selected.usd, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
+        hours:selected.hours, usd:selected.usd, pricingRevision:pricing.revision, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
         cluster:'devnet', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
       await store.update(current => {
         current.boostQuotes ||= {};

@@ -11,6 +11,7 @@ import bs58 from 'bs58';
 import {createAdminSession,STALE_ADMIN_REQUEST} from './admin-session.js';
 import {initAdminWithdrawals} from './admin-withdrawals.js';
 import {createConfirmedAdminPost} from './admin-email-confirmation.js';
+import {initAdminBoostPrices} from './admin-boost-prices.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
 
 globalThis.Buffer ??= Buffer;
@@ -39,10 +40,11 @@ const session=createAdminSession({document,onEnd:()=>{
  overview=policy=null;feeSaving=false;refreshGeneration++;auditGeneration++;vaultGeneration++;nextVault=0;vaultLoading=false;
  $('#refresh').disabled=false;
  for(const id of ['summary','wallet-rows','audit','vaults','gates'])document.getElementById(id).replaceChildren();
- $('#withdraw-source').replaceChildren();$('#withdraw-destination').replaceChildren();
+ $('#withdraw-source').replaceChildren();$('#withdraw-destination').value='';
  $('#financial-health').textContent='Sign in to load monitoring.';show('');withdrawals?.sync();
 }});
 const confirmedPost=createConfirmedAdminPost({api,session});
+initAdminBoostPrices({api,post,show});
 function authControls(){ $('#sign-in').disabled=authBusy||!connected;$('#sign-out').disabled=authBusy; }
 
 
@@ -95,14 +97,15 @@ function renderSummary() {
 function renderWallets() {
   const rows = overview?.wallets || [];
   $('#wallet-rows').innerHTML = rows.length ? rows.map(row => `<tr><td>${escape(row.role)}</td><td><code>${escape(row.address)}</code></td>
-    <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td><td>${row.withdrawable && row.address === connected
+    <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td><td>${row.withdrawable && row.address !== overview.withdrawalDestination
       ? `<button type="button" data-source="${escape(row.address)}">Withdraw</button>`
       : row.withdrawable ? '<span title="Connect this source wallet in Phantom to sign">Source signature required</span>'
         : '<span title="Operational signer; use its dedicated payout workflow">Operational signer · no sweep</span>'}</td></tr>`).join('') : '<tr><td colspan="5">No app wallet addresses configured.</td></tr>';
-  $('#withdraw-source').innerHTML = rows.filter(row => row.withdrawable && row.custody === 'external wallet')
-    .map(row => `<option value="${escape(row.address)}">${escape(row.role)} · ${escape(row.address.slice(0, 7))}…</option>`).join('');
+  $('#withdraw-source').innerHTML = rows.filter(row => row.withdrawable && row.address !== overview.withdrawalDestination)
+    .map(row => `<option value="${escape(row.address)}" data-signing-mode="${escape(row.signingMode)}">${escape(row.role)} · ${escape(row.address.slice(0, 7))}…</option>`).join('');
   withdrawals?.sync();
-  $('#withdraw-destination').innerHTML = (overview.withdrawalDestinations || []).map(address => `<option value="${escape(address)}">${escape(address)}</option>`).join('');
+  $('#withdraw-destination').value = overview.withdrawalDestination || '';
+  withdrawals?.sync();
   $('#wallet-rows').querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {
     $('#withdraw-source').value = button.dataset.source;
     $('#withdraw-amount').focus();

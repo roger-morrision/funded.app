@@ -1,0 +1,11 @@
+# Optional Devnet overlay. The key must match FUNDED_V3_OPERATIONS_RECIPIENT.
+# Only the app receives this signer; workers do not need generic withdrawals.
+services:
+  app:
+    environment:
+      FUNDED_ADMIN_OPERATIONS_SIGNER_FILE: /run/secrets/funded_admin_operations_signer
+    secrets:
+      - funded_admin_operations_signer
+secrets:
+  funded_admin_operations_signer:
+    file: ${FUNDED_ADMIN_OPERATIONS_SIGNER_HOST_FILE:?Set the existing Devnet Operations signer file path}
