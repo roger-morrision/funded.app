@@ -19,6 +19,7 @@ Start with the [all-page product guide](product-guide.md) for current features, 
 - [Launch protections](launch-protections.md)
 - [Persistent left navigation](left-navigation.md)
 - [Mainnet launch readiness](mainnet-launch-readiness.md)
+- [Mainnet preparation and verified Devnet launch, 8 November 2026](mainnet-preparation-2026-11-08.md)
 - [AI marketing agency policy](marketing-agency-policy.md)
 - [Devnet on-chain automation](onchain-automation.md)
 - [Release, incident and recovery runbook](operations-runbook.md)

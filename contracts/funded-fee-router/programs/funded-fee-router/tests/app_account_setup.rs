@@ -11,7 +11,7 @@ use {
 mod support;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], instructions: &[Instruction]) -> bool {
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     let instructions = {
         use anchor_lang::Discriminator;
         let mut rows = instructions.to_vec();
@@ -49,7 +49,7 @@ fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() { community_
 #[test]
 fn reward_vault_opening_preserves_reserve_and_claim_guards() { community_flow(90*86400, true); }
 
-#[cfg(feature = "devnet-v3-program")]
+#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 #[test]
 fn configured_five_minute_claim_window_is_enforced_by_program() { community_flow(300, true); }
 
@@ -97,7 +97,7 @@ fn community_flow(window: i64, from_reward: bool) {
     let root_b = leaf(drop, eligible_b.pubkey(), 60, 1);
     let root = if root_a <= root_b { hashv(&[&root_a, &root_b]).to_bytes() } else { hashv(&[&root_b, &root_a]).to_bytes() };
     let migration_at = svm.get_sysvar::<Clock>().unix_timestamp;
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     if window != 90*86400 {
         use anchor_lang::AccountSerialize;
         use funded_fee_router::instructions::agency_rules_v3::{write_rules,AgencyRules,POLICY_BASE,RULES_LEN};

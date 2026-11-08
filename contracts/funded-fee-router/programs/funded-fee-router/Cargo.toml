@@ -19,6 +19,7 @@ anchor-debug = []
 custom-heap = []
 custom-panic = []
 devnet-v3-program = []
+mainnet-v3-program = []
 historical-qa-recovery = ["devnet-v3-program"]
 
 

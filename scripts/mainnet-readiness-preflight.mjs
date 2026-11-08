@@ -146,8 +146,11 @@ export async function mainnetReadinessPreflight(env, { online = false } = {}) {
     onchain,
     publicPolicy:online?await readMainnetServicePolicy(env):{status:'unavailable',reason:'Offline preflight; saved deployment fee policy was not read.'},
     invariants:{tradingFeeBps:100,creatorBuyCapPercent:20},
+    preparedCode:{productionContractFeature:'mainnet-v3-program',productionIdentityRequired:true,
+      qaRecoveryExcluded:true,metadataEndpoint:'/api/token-metadata',networkBoundRouterProof:true,
+      backendMainnetMutations:'blocked',backendMainnetTransactionSubmission:'blocked'},
     evidenceRequired:['Independent contract and custody review tied to exact program bytes','Devnet finalized state and balance evidence for every financial path','Verified dedicated mainnet program and infrastructure inventory','Capped mainnet canary and rollback approval'],
-    remainingCodeGates:['Mainnet launch client and registration', 'Mainnet metadata and image storage',
+    remainingCodeGates:['Mainnet launch client and registration', 'Mainnet metadata activation and durable-storage verification',
       'Mainnet fee collection and all payout routes', 'Mainnet market indexing and claim reconciliation',
       'Independent program and custody audit', 'Capped canary and rollback evidence'],
   };

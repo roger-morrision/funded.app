@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-08",
+  "status": "no-go",
+  "mainnetTransactionsSent": 0,
+  "mainnetActivationAuthorized": false,
+  "baseRevision": "415d1043af596f76c7caf59ba959f4d5ba174086",
+  "sourceScope": "Preparation changes built and checked in the working tree; reviewed final production identity is not yet supplied.",
+  "candidates": {
+    "schemaVersion": 1,
+    "deployEligible": false,
+    "toolchain": {
+      "agave": "4.1.2",
+      "platformTools": "v1.54",
+      "arch": "v0"
+    },
+    "devnet": {
+      "feature": "devnet-v3-program",
+      "bytes": 1093784,
+      "sha256": "d17734ca993879e71228cb96798473ab9a7228de54efac977bc5e0b8ebc2b50b"
+    },
+    "productionBuildCheck": {
+      "feature": "mainnet-v3-program",
+      "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
+      "identityScope": "public-test-fixture-only",
+      "bytes": 894488,
+      "sha256": "0c2cb83170b8f2075178a520ee0fd63260653e71ee60bdfc965c9ee6e110365e",
+      "optimization": "z",
+      "strip": true
+    },
+    "retainedDevnetRuntimeCommitment": {
+      "bytes": 1093784,
+      "sha256": "4736fa6ceeef6ac6a2dd7d550b4b7d5e68a728f290ba53f4528a69087775f0f2"
+    }
+  },
+  "validation": {
+    "javascriptSuitePassed": 132,
+    "isolatedMainnetServerIntegrationPassed": 1,
+    "productionBytecodeVmPassed": 8,
+    "devnetCandidateBytecodeVmPassed": 8,
+    "rejectedBuildConfigurations": 6,
+    "appBuild": "passed",
+    "javascriptSyntax": "passed",
+    "sourceBudgets": "passed",
+    "liveDevnetLaunch": "passed; see mainnet-prep-devnet-launch-2026-11-08.json",
+    "independentAudit": "unavailable",
+    "mainnetCanary": "not-run"
+  },
+  "productionBlockers": [
+    "Mainnet program ID, upgrade authority, payer reference and spend cap",
+    "Mainnet FUNDED mint and fee recipient",
+    "Isolated Mainnet domain, RPC, database and durable metadata credential references",
+    "Finish Mainnet launch/registration, financial worker and indexing/reconciliation ports",
+    "Independent review of final production source, exact bytes and custody",
+    "Complete financial-path acceptance and optimized compute-budget validation",
+    "Capped Mainnet canary and verified rollback plan"
+  ]
+}

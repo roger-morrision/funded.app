@@ -137,7 +137,7 @@ export function createLaunchRegistrationRoutes({
         || protocolGrossUnits(policy.protocolSplit).some((units, index) => units !== configuredV3Units[index])) {
         return json(res, 409, { error:'The signed V3 program or protocol split does not match this deployment.' });
       }
-      const routeReadiness = await verifyV3LaunchRouterReadiness({ connection:new Connection(solanaRpcUrl, 'finalized'),
+      const routeReadiness = await verifyV3LaunchRouterReadiness({ connection:new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
           programId:configuredV3Program, expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
           mint:proof.mint, creatorWallet:proof.feePayer,
           initialAuthority:policy.feeRouterInitialAuthority, split:currentSplit,

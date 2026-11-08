@@ -35,7 +35,7 @@ export function createLaunchReviewController(appState) {
     const signed = await session.provider.signMessage(new TextEncoder().encode(appState.metadataStatement(record)));
     appState.assertWalletSessionCurrent(session);
     appState.setLaunchStatus?.('Publishing token metadata and checking the public image before transaction approval…');
-    const response = await appState.apiRequest('/api/devnet-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', bannerBase64, bannerType: banner?.type || '', signature: appState.bs58.encode(signed.signature || signed) } });
+    const response = await appState.apiRequest('/api/token-metadata', { method: 'POST', body: { ...record, imageBase64, imageType: image?.type || '', bannerBase64, bannerType: banner?.type || '', signature: appState.bs58.encode(signed.signature || signed) } });
     appState.assertWalletSessionCurrent(session);
     if (!response.available || (response.data?.uri !== devnetLaunchMetadataUri(mint) && !isPinnedMetadataUri(response.data?.uri))) throw new Error(response.data?.error || 'Solana metadata could not be published. No token transaction was sent.');
     assertMetadataPublication(response.data, response.data.uri,Date.now(),record.cluster);

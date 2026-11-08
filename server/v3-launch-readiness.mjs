@@ -3,32 +3,38 @@ import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 import { verifyFeeRouterAccount } from '../fee-router.js';
 import { deriveMintRouterV3, directedGrossUnits, verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from '../mint-router-v3.js';
-import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
+import { readProgramDataEvidence } from './automatic-reward-chain.mjs';
+import { requireSolanaCluster, SOLANA_GENESIS } from '../solana-network.js';
 
-// Registration must check the program actually running on Devnet, as well as
+// Registration must check the program actually running on the selected chain, as well as
 // the immutable per-mint accounts. A launch record or matching PDA alone does
 // not establish that the deployed program enforces the configured 80/20 split.
-export async function verifyV3LaunchRouterReadiness({ connection, programId, expectedProgramDataSha256,
+export async function verifyV3LaunchRouterReadiness({ connection, programId, expectedProgramDataSha256, cluster = 'devnet',
   mint, creatorWallet, initialAuthority, split = PROTOCOL_FEE_SPLIT,
   directedShares = null, requireProtectedPolicy = false,
   agencySelection = null,
   readEvidence = readProgramDataEvidence, verifyGlobal = verifyFeeRouterAccount,
   verifyRouter = verifyMintRouterV3Account, verifyPolicy = verifyMintPolicyV3Account }) {
   if (!programId || !/^[a-f0-9]{64}$/i.test(String(expectedProgramDataSha256 || ''))) {
-    return { ready:false, status:503, error:'The approved V3 Devnet program is not configured.' };
+    return { ready:false, status:503, error:'The approved V3 program is not configured.' };
   }
   try {
+    requireSolanaCluster(cluster);
     const program = new PublicKey(programId).toBase58();
     const mintKey = new PublicKey(mint).toBase58();
     const creator = new PublicKey(creatorWallet).toBase58();
     const authority = new PublicKey(initialAuthority).toBase58();
-    const [genesis, evidence, global] = await Promise.all([
-      connection.getGenesisHash(), readEvidence(connection, program),
+    const genesis = await connection.getGenesisHash();
+    if (genesis !== SOLANA_GENESIS[cluster]) {
+      return { ready:false, status:503, error:'The RPC does not match the selected network.' };
+    }
+    const [evidence, global] = await Promise.all([
+      readEvidence(connection, program, cluster === 'devnet' ? {} : {rpcUrl:''}),
       verifyGlobal({ connection, programId:program, commitment:'finalized' }),
     ]);
-    if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
+    if (genesis !== SOLANA_GENESIS[cluster] || !evidence.account?.executable
       || evidence.sha256 !== expectedProgramDataSha256.toLowerCase() || !global.verified) {
-      return { ready:false, status:503, error:'The approved V3 Devnet program or global router could not be verified.' };
+      return { ready:false, status:503, error:'The approved V3 program or global router could not be verified on the selected network.' };
     }
     const [router, policy] = await Promise.all([
       verifyRouter({ connection, programId:program, mint:mintKey, initialAuthority:authority }),
@@ -47,9 +53,9 @@ export async function verifyV3LaunchRouterReadiness({ connection, programId, exp
       const{agencySelectionMask}=await import('../agency-mint-router-v3.js');
       if(policy.selectedMask!==agencySelectionMask(agencySelection.selectedAgents))return{ready:false,status:409,error:'The immutable agency selection differs from the signed launch.'};
     }
-    return { ready:true, configuredRouter, programId:program,
+    return { ready:true, cluster, genesisHash:genesis, configuredRouter, programId:program,
       protectedPolicy:Boolean(policy.protectedPolicy), directedUnits:policy.directedUnits || null };
   } catch {
-    return { ready:false, status:503, error:'The V3 Devnet router accounts could not be verified.' };
+    return { ready:false, status:503, error:'The V3 router accounts could not be verified.' };
   }
 }

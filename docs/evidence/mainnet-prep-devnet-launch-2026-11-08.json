@@ -1,0 +1,164 @@
+{
+  "scope": "live-devnet-client-and-server-acceptance",
+  "status": "passed",
+  "events": [
+    {
+      "state": "prepared",
+      "mint": "6Jw7EEAcjh7DHDkaqSbKhHEi5LMCgMrZcdzSWuR1ZL1x"
+    },
+    {
+      "state": "awaiting-approval",
+      "step": "promotion-burn",
+      "lastValidBlockHeight": 507006453
+    },
+    {
+      "state": "broadcasting",
+      "step": "promotion-burn",
+      "signature": "RthELdU4uz2NxyPC9JBSvY8N3pctWbdVsJGw1Dd3cK9pA62eSXqZuQyz4u3GCuL2BxWo9oBCDM47oP55h4kp8U2",
+      "lastValidBlockHeight": 507006453
+    },
+    {
+      "state": "submitted",
+      "step": "promotion-burn",
+      "signature": "RthELdU4uz2NxyPC9JBSvY8N3pctWbdVsJGw1Dd3cK9pA62eSXqZuQyz4u3GCuL2BxWo9oBCDM47oP55h4kp8U2"
+    },
+    {
+      "state": "confirmed",
+      "step": "promotion-burn",
+      "signature": "RthELdU4uz2NxyPC9JBSvY8N3pctWbdVsJGw1Dd3cK9pA62eSXqZuQyz4u3GCuL2BxWo9oBCDM47oP55h4kp8U2"
+    },
+    {
+      "state": "awaiting-approval",
+      "step": "initialize-mint-router",
+      "lastValidBlockHeight": 507006469
+    },
+    {
+      "state": "broadcasting",
+      "step": "initialize-mint-router",
+      "signature": "2mSSYab1tUjS3XJFDvJtdCY5jfiEF97f7uY7Uj6MMjzT7oajUnDAoYbVFKCLiFJmAhpsGPY7BPm6MqevVgvVh81r",
+      "lastValidBlockHeight": 507006469
+    },
+    {
+      "state": "submitted",
+      "step": "initialize-mint-router",
+      "signature": "2mSSYab1tUjS3XJFDvJtdCY5jfiEF97f7uY7Uj6MMjzT7oajUnDAoYbVFKCLiFJmAhpsGPY7BPm6MqevVgvVh81r"
+    },
+    {
+      "state": "confirmed",
+      "step": "initialize-mint-router",
+      "signature": "2mSSYab1tUjS3XJFDvJtdCY5jfiEF97f7uY7Uj6MMjzT7oajUnDAoYbVFKCLiFJmAhpsGPY7BPm6MqevVgvVh81r"
+    },
+    {
+      "state": "awaiting-approval",
+      "step": "launch",
+      "lastValidBlockHeight": 507006481
+    },
+    {
+      "state": "broadcasting",
+      "step": "launch",
+      "signature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC",
+      "lastValidBlockHeight": 507006481
+    },
+    {
+      "state": "submitted",
+      "step": "launch",
+      "signature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC"
+    },
+    {
+      "state": "confirmed",
+      "step": "launch",
+      "signature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC"
+    },
+    {
+      "state": "verification-pending",
+      "signature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC"
+    }
+  ],
+  "transactions": [
+    {
+      "label": "fund-ephemeral-qa",
+      "signature": "4sb6gLZZPwCnHcjKP8hRxKpyvM6V7GBiyCMSbjWyuMA9t8p6piSydP4QFnYfiRBMkdrNVeUZCEtKFu5BsVUbv4wR",
+      "finalized": true
+    },
+    {
+      "label": "return-unused-funded-and-ata-rent",
+      "signature": "3E5cXVjvV4b1hgrNAknxBACXiYrnog85uhVGgV4RENo7JmntfQydFEsGboBPoQ9Y9cRFi8cs1F1Mhi7qJZnSfrJc",
+      "finalized": true
+    },
+    {
+      "label": "return-unused-test-sol",
+      "signature": "64UhTNsGhiWVWjKnV4PWVpmzEMsduz4BPQvNLsFgTiJnLd5b7zWqcy7nJmxSALhA2yAxu5YhAXoMLekJuk9gRqiC",
+      "finalized": true
+    }
+  ],
+  "checks": {
+    "burnBeforeCreation": true,
+    "burnSupplyVerified": true,
+    "atomicReserveVerified": true,
+    "feeOwnerVerified": true,
+    "serverRegistrationVerified": true
+  },
+  "payer": "AdKZkGSW5R2n4NZdqdK6T6akRae9kvQTZGusQnySVsnp",
+  "sourceBuild": "415d1043af596f76c7caf59ba959f4d5ba174086",
+  "mint": "6Jw7EEAcjh7DHDkaqSbKhHEi5LMCgMrZcdzSWuR1ZL1x",
+  "burn": {
+    "signature": "RthELdU4uz2NxyPC9JBSvY8N3pctWbdVsJGw1Dd3cK9pA62eSXqZuQyz4u3GCuL2BxWo9oBCDM47oP55h4kp8U2",
+    "slot": 519859270,
+    "blockTime": 1794102195,
+    "instruction": "BurnChecked",
+    "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+    "tokenAccount": "5Gvr7Hq2AmXM8zvwUnSFVShAaZRRMph1UmGdY7ZU9dA3",
+    "amountTokens": 139,
+    "amountBaseUnits": "139000000",
+    "decimals": 6,
+    "supplyBefore": "998105757788617",
+    "supplyAfter": "998105618788617",
+    "atomicWithPumpLaunch": false,
+    "confirmedBeforeLaunch": true,
+    "verified": true
+  },
+  "launch": {
+    "mint": "6Jw7EEAcjh7DHDkaqSbKhHEi5LMCgMrZcdzSWuR1ZL1x",
+    "signature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC",
+    "slot": 519859298,
+    "metadataUri": "ipfs://bafkreihw4ud64eu6qestvsshnnzjwgw3cs4rydlutvutcz7mlnuk7satbm"
+  },
+  "registration": {
+    "verified": true,
+    "developerTokenLock": {
+      "lock": "6d1U6HzJZCGFf5PzCbspQ8EDRDiierVbtKZWiBYrEnoT",
+      "mint": "6Jw7EEAcjh7DHDkaqSbKhHEi5LMCgMrZcdzSWuR1ZL1x",
+      "creator": "AdKZkGSW5R2n4NZdqdK6T6akRae9kvQTZGusQnySVsnp",
+      "amount": "3529601674803",
+      "lockedAt": 1794102202,
+      "unlockAt": 1794145402,
+      "releasedAt": 0,
+      "version": 1,
+      "status": "funded",
+      "verified": true,
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "programDataSha256": "d9e690282ca9634cef4790f2fed405d628421db2e6c845185d2282e80ee1d708",
+      "vault": "8s3tdeNXUqVaeqGGRZLfkBuSBBeEfnVF5gho24v9dSm",
+      "fundingSignature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC",
+      "atomicWithLaunch": true,
+      "lockSeconds": 43200
+    },
+    "communityReserve": {
+      "vault": "dRBCBLQjbWo4jNydDQAxyLkrxDsbJCiEbBbdvQoRBoX",
+      "tokenAccount": "9D5Mfr27ZuELGt4PYrS6zqo2VFT5PhUyMzAQmSTxeVwF",
+      "fundingSignature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC",
+      "fundedTokens": "30000000",
+      "verified": true,
+      "atomicWithPumpLaunch": true
+    }
+  },
+  "cleanup": "Unused QA SOL and FUNDED returned; developer tokens remain in their 12-hour escrow.",
+  "date": "2026-11-08",
+  "network": "devnet",
+  "mainnetEvidence": false,
+  "limitations": [
+    "Executed the real launch client and server with an ephemeral in-memory QA signer, not Phantom UI automation.",
+    "The 12-hour escrow deposit was verified on-chain; release timing and rejection paths were exercised locally in LiteSVM.",
+    "This receipt does not establish Mainnet readiness or coverage of every financial worker."
+  ]
+}

@@ -1,6 +1,7 @@
 import {WebSocket,WebSocketServer} from 'ws';
+import {readOnlyRpcSubscription} from './network-write-policy.mjs';
 
-export function installRpcWebsocketProxy(server,{upstreamUrl,allowedOrigin}={}){
+export function installRpcWebsocketProxy(server,{upstreamUrl,allowedOrigin,readOnly=false}={}){
   if(!upstreamUrl)return;
   const target=new URL(upstreamUrl);if(!['ws:','wss:'].includes(target.protocol))throw Error('Invalid RPC WebSocket target');
   const sockets=new WebSocketServer({noServer:true,maxPayload:16384,perMessageDeflate:false});
@@ -13,7 +14,10 @@ export function installRpcWebsocketProxy(server,{upstreamUrl,allowedOrigin}={}){
     sockets.handleUpgrade(request,socket,head,client=>{
       const remote=new WebSocket(target,{perMessageDeflate:false,handshakeTimeout:10000,maxPayload:16384});
       const pending=[];let pendingBytes=0;
-      client.on('message',bytes=>{if(remote.readyState===WebSocket.OPEN)remote.send(bytes,{binary:false});
+      client.on('message',bytes=>{
+        if(readOnly){let request;try{request=JSON.parse(bytes.toString());}catch{}
+          if(!readOnlyRpcSubscription(request)){client.send(JSON.stringify({jsonrpc:'2.0',id:request?.id??null,error:{code:-32600,message:'Only read-only RPC subscriptions are enabled.'}}));return;}}
+        if(remote.readyState===WebSocket.OPEN)remote.send(bytes,{binary:false});
         else if(remote.readyState===WebSocket.CONNECTING&&pendingBytes+bytes.length<=32768){pending.push(bytes);pendingBytes+=bytes.length;}
         else client.close(1013,'RPC connection busy');});
       remote.on('open',()=>{for(const bytes of pending)remote.send(bytes,{binary:false});pending.length=0;pendingBytes=0;});

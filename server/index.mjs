@@ -1,4 +1,6 @@
+import {publicState} from './public-state.mjs';
 import { createPublicTradeSharingRoutes } from './routes/public-trade-sharing.mjs';
+import {deploymentCluster,mainnetMutationBlocked} from './network-write-policy.mjs';
 import {startApiFinancialWorkerServices} from './api-financial-workers.mjs';
 import { createLaunchSupportRoutes } from './routes/launch-support.mjs';
 import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
@@ -102,7 +104,7 @@ const solanaRpcUrl = String(process.env.SOLANA_RPC_URL || 'https://api.devnet.so
 const fundedTokenMint = String(process.env.FUNDED_TOKEN_MINT || process.env.VITE_FUNDED_TOKEN_MINT || '').trim();
 const fundedSwapPool = String(process.env.FUNDED_SWAP_POOL || process.env.VITE_FUNDED_SWAP_POOL || '').trim();
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getGenesisHash', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
-const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/referrals/session/prepare', '/api/referrals/session/verify', '/api/referrals/session/logout', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata']);
+const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/referrals/session/prepare', '/api/referrals/session/verify', '/api/referrals/session/logout', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata', '/api/token-metadata']);
 publicPostPaths.add('/api/airdrops/reserves/receipt');
 publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-origin check.
 publicPostPaths.add('/api/shares/visit');
@@ -115,7 +117,7 @@ publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');
 
-const solanaCluster = String(process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER || 'devnet').trim();
+const solanaCluster = deploymentCluster(process.env);
 const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 async function communityClaimService(mint) {
   if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
@@ -170,23 +172,10 @@ function clientKey(req) {
   return remote;
 }
 async function body(req) {
-  return readJsonBody(req, { maxBytes: req.url === '/api/devnet-metadata' ? 2_000_000 : maxBodyBytes });
+  return readJsonBody(req, { maxBytes: ['/api/devnet-metadata','/api/token-metadata'].includes(req.url?.split('?')[0]) ? 2_000_000 : maxBodyBytes });
 }
 function route(path, method, pattern) { const match = path.match(pattern); return match && match[1] && method ? match[1] : null; }
 
-function publicState(state) {
-  return {
-    version: state.version,
-    launches: Object.values(state.launches || {}).filter(item => item.pumpFeeRoute?.scope === 'per-mint-v3'),
-    settlements: Object.values(state.v3Settlements || {}).map(item => ({
-      collectionSignature:item.collectionSignature, settlementSignature:item.settlementSignature,
-      mint:item.mint, status:item.status, allocationPlan:item.allocationPlan || null })),
-    collections: Object.values(state.collections || {}).filter(item => item.scope === 'per-mint-v3')
-      .map(item => ({ id:item.id, mint:item.mint, signature:item.signature,
-        status:item.status, collectedLamports:item.collectedLamports,
-        recordedAt:item.recordedAt })),
-  };
-}
 function authorized(req) {
   const token = String(process.env.FUNDED_API_TOKEN || '').trim();
   if (!token) return false;
@@ -330,7 +319,7 @@ const handleTokenMarketRoutes = createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
 });
 
-const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, body, authorized, clientKey, json, rpcMethods });
+const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, solanaCluster, body, authorized, clientKey, json, rpcMethods });
 const { fetchBirdeye, fetchPump } = createMarketProviders({ birdeyeApiKey, birdeyeBaseUrl, birdeyeChain, birdeyeTimeoutMs, pumpApiUrl });
 const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote });
 
@@ -400,6 +389,7 @@ async function handle(req, res) {
   let url;
   try { url = new URL(req.url, 'http://localhost'); }
   catch { throw invalidRequest('Invalid request URL.'); }
+  if(mainnetMutationBlocked(solanaCluster,req.method,url.pathname))return json(res,403,{error:'Mainnet is read-only until the financial release is verified.'});
   const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images|devnet-banners)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session, x-creator-csrf, x-issue-token' }); return res.end(); }
@@ -417,7 +407,7 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname !== '/api/solana/rpc') {
       if (/^\/api\/dev-wallet\/sign-(?:transaction|message)$/.test(url.pathname) && !devMode)
         return json(res, 403, { error: 'Local wallet signing is unavailable here.' });
-      const cost = ['/api/launches', '/api/devnet-metadata'].includes(url.pathname) ? 10 : url.pathname.startsWith('/api/referrals/') ? 5 : 1;
+      const cost = ['/api/launches', '/api/devnet-metadata', '/api/token-metadata'].includes(url.pathname) ? 10 : url.pathname.startsWith('/api/referrals/') ? 5 : 1;
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`api:${clientKey(req)}`, cost, 120, windowStart)) return json(res, 429, { error: 'API request limit reached; retry shortly.' });
       const chatPost = req.method === 'POST' && (/^\/api\/tokens\/[^/]+\/chat(?:\/(?:report|delete))?$/.test(url.pathname) || /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/.test(url.pathname));

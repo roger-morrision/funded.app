@@ -10,15 +10,17 @@ import {assertMetadataPublication} from '../metadata-publication.js';
 import {assertSymbolAvailable,reserveLaunchSymbol,registerLaunchProtection,LAUNCH_PROTECTION_MS} from '../server/launch-protections.mjs';
 import {SOLANA_GENESIS} from '../solana-network.js';
 
-function fixture({cluster='devnet',genesis=SOLANA_GENESIS.devnet,existing=null}={}){
+function fixture({cluster='devnet',genesis=SOLANA_GENESIS.devnet,existing=null,path='/api/devnet-metadata',
+  allowMainnetPublishing=false,signedCluster=cluster}={}){
   const signer=Keypair.generate(),record={mint:Keypair.generate().publicKey.toBase58(),
-    creatorWallet:signer.publicKey.toBase58(),name:'Devnet fixture',symbol:'FIXTURE',imageSha256:''};
+    creatorWallet:signer.publicKey.toBase58(),name:'Devnet fixture',symbol:'FIXTURE',imageSha256:'',
+    ...(signedCluster!=='devnet'?{cluster:signedCluster}:{})};
   const state={launches:{},launchSymbolReservations:{}},effects={updates:0,published:0,accountReads:0,networkReads:0,saved:0};
   let response;
   const store={read:async()=>structuredClone(state),update:async action=>{effects.updates++;return action(state);},
     readMetadata:async()=>existing?{...record,...existing}:null,
     writeMetadata:async prepared=>{effects.saved++;return prepared;}};
-  const route=createDevnetMetadataRoutes({store,solanaCluster:cluster,solanaRpcUrl:'https://rpc.invalid',
+  const route=createDevnetMetadataRoutes({store,solanaCluster:cluster,solanaRpcUrl:'https://rpc.invalid',allowMainnetPublishing,
     devnetMetadataOrigin:'https://metadata.example',
     body:async()=>({...record,signature:bs58.encode(nacl.sign.detached(new TextEncoder().encode(metadataStatement(record)),signer.secretKey))}),
     respond:(_res,status,data)=>{response={status,data};},
@@ -27,7 +29,7 @@ function fixture({cluster='devnet',genesis=SOLANA_GENESIS.devnet,existing=null}=
     publish:async({record:prepared})=>{effects.published++;return prepared;},
     verifyPublication:async saved=>({verified:true,uri:devnetLaunchMetadataUri(saved.mint),image:publicMetadata(saved).image,
       storage:'hosted-devnet',checkedAt:new Date().toISOString()})});
-  return {record,state,store,effects,run:async()=>{await route({method:'POST'},{},new URL('https://app.example/api/devnet-metadata'));return response;}};
+  return {record,state,store,effects,run:async()=>{await route({method:'POST'},{},new URL(`https://app.example${path}`));return response;}};
 }
 
 test('conflicting immutable metadata cannot reserve a different ticker',async()=>{
@@ -51,8 +53,29 @@ test('Devnet metadata verifies genesis and returns a network-bound publication p
 });
 
 test('Mainnet metadata writes remain blocked without reading bodies, RPC or storage',async()=>{
-  const f=fixture({cluster:'mainnet-beta'}),r=await f.run();assert.equal(r.status,403);
+  for(const path of ['/api/token-metadata','/api/devnet-metadata']){
+    const f=fixture({cluster:'mainnet-beta',path}),r=await f.run();assert.equal(r.status,403);
+    assert.deepEqual(f.effects,{updates:0,published:0,accountReads:0,networkReads:0,saved:0});
+  }
+});
+
+test('canonical metadata endpoint preserves Devnet behavior',async()=>{
+  const f=fixture({path:'/api/token-metadata'}),r=await f.run();
+  assert.equal(r.status,201);assert.equal(r.data.cluster,'devnet');assert.equal(f.effects.published,1);
+});
+
+test('Mainnet publisher rejects Devnet signatures and the legacy endpoint before effects',async()=>{
+  const f=fixture({path:'/api/token-metadata',cluster:'mainnet-beta',allowMainnetPublishing:true,signedCluster:'devnet'});
+  await assert.rejects(f.run,/network does not match/);
   assert.deepEqual(f.effects,{updates:0,published:0,accountReads:0,networkReads:0,saved:0});
+  const legacy=fixture({cluster:'mainnet-beta',allowMainnetPublishing:true});
+  assert.equal((await legacy.run()).status,403);
+});
+
+test('Mainnet publisher refuses a Devnet RPC before reserving or publishing',async()=>{
+  const f=fixture({path:'/api/token-metadata',cluster:'mainnet-beta',allowMainnetPublishing:true});
+  assert.equal((await f.run()).status,503);
+  assert.deepEqual(f.effects,{updates:0,published:0,accountReads:0,networkReads:1,saved:0});
 });
 
 test('browser refuses a wrong-network metadata proof while preserving legacy Devnet responses',async()=>{

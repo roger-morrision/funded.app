@@ -1,5 +1,4 @@
-
-
+import {rpcWriteBlocked} from './network-write-policy.mjs';
 // Created once by the server composition layer; state belongs to this instance.
 export function createSolanaRpcProxy({
   store,
@@ -9,6 +8,7 @@ export function createSolanaRpcProxy({
   clientKey,
   json,
   rpcMethods,
+  solanaCluster = 'devnet',
   centralized = process.env.FUNDED_RPC_GATEWAY_ENABLED === 'true',
   fetch = (...args) => globalThis.fetch(...args),
 }) {
@@ -24,6 +24,7 @@ export function createSolanaRpcProxy({
     }
     const request = await body(req);
     if (!request || request.jsonrpc !== '2.0' || !rpcMethods.has(request.method) || !Array.isArray(request.params)) return json(res, 400, { jsonrpc: '2.0', id: request?.id ?? null, error: { code: -32600, message: 'Unsupported Solana RPC request.' } });
+    if (rpcWriteBlocked(solanaCluster,request.method)) return json(res,403,{jsonrpc:'2.0',id:request.id??null,error:{code:-32000,message:'Mainnet transaction submission is not enabled.'}});
     if (request.method === 'getProgramAccounts' && !authorized(req)) return json(res, 401, { error: 'Privileged Solana RPC authorization is required.' });
     const now = Date.now();
     if (['sendTransaction', 'simulateTransaction'].includes(request.method) && (typeof request.params[0] !== 'string' || request.params[0].length > 3_000)) return json(res, 400, { error: 'Invalid serialized transaction.' });
