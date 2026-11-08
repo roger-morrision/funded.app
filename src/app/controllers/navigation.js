@@ -128,7 +128,7 @@ export function createNavigationController(appState) {
     if (hash.startsWith('docs/')) return 'docs';
     if (hash === 'funded-holder-token-rewards' || /^payments\/(history|holders|activity|creator|x)$/.test(hash)) return 'payments';
     // Shared links often use the sidebar label instead of the route name.
-    const labelRoutes = { rewards: 'payments', portfolio: 'my-launches', listing: 'list', listings: 'list', 'get-listed': 'list', leaderboards: 'leaderboard', referral: 'referrals', airdrop: 'airdrops', 'daily-bonuses': 'bonuses', analytics: 'analytics-detail', help: 'docs' };
+    const labelRoutes = { top300: 'top100', rewards: 'payments', portfolio: 'my-launches', listing: 'list', listings: 'list', 'get-listed': 'list', leaderboards: 'leaderboard', referral: 'referrals', airdrop: 'airdrops', 'daily-bonuses': 'bonuses', analytics: 'analytics-detail', help: 'docs' };
     if (labelRoutes[hash]) return labelRoutes[hash];
     return PAGE_ROUTE_TARGETS[hash] ? MERGED_PAGE_ROUTES[hash] || hash : 'overview';
   }
@@ -179,7 +179,7 @@ export function createNavigationController(appState) {
     let copy = {
       overview: ['Home', 'Your next step on Solana'],
       explore: ['Explore', 'Verified launches and market signals'],
-      top300: ['Top 300', 'Token rankings and sponsored boosts'],
+      top100: ['Top 100', 'Token rankings and sponsored boosts'],
       callouts: ['Callouts', 'Live calls from verified wallets'],
       list: ['Get listed', 'Listing status and token mint check'],
       payments: ['Rewards', 'Eligibility, payments and claims'],

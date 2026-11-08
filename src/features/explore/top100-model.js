@@ -3,7 +3,7 @@ import {withMarketWindow} from '../../../market-intelligence.js';
 
 const number = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
 const nonnegative = value => { const n = number(value); return n != null && n >= 0 ? n : null; };
-export function top300Records(assets, {boosts = {}, solUsd = null, now = Date.now()} = {}) {
+export function top100Records(assets, {boosts = {}, solUsd = null, now = Date.now()} = {}) {
   const rate = number(solUsd), unique = new Map();
   for (const asset of assets) {
     const mint = asset.address || asset.mint;
@@ -28,12 +28,12 @@ export function top300Records(assets, {boosts = {}, solUsd = null, now = Date.no
   return [...unique.values()];
 }
 
-export function rankTop300(records, {sort = 'market-cap', query = '', stage = 'all', tier = 'all', minCap = 0, maxAge = 0} = {}) {
+export function rankTop100(records, {sort = 'market-cap', query = '', stage = 'all', tier = 'all', minCap = 0, maxAge = 0} = {}) {
   const metric = row => sort === 'boosted' ? row.boost : sort === 'volume' ? row.volumeUsd : sort === 'trades' ? row.trades : row.capUsd;
   const ranked = records.filter(row => sort !== 'boosted' || row.boost > 0)
     .filter(row => metric(row) != null)
     .sort((a,b) => metric(b) - metric(a) || (b.capUsd ?? -1) - (a.capUsd ?? -1) || a.mint.localeCompare(b.mint))
-    .slice(0,300).map((row,index) => ({...row,rank:index+1}));
+    .slice(0,100).map((row,index) => ({...row,rank:index+1}));
   const q = query.trim().toLowerCase();
   return {total:ranked.length, rows:ranked.filter(row => (!q || `${row.name} ${row.symbol} ${row.mint}`.toLowerCase().includes(q))
     && (stage === 'all' || row.stage === stage)

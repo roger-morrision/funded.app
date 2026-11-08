@@ -1,4 +1,4 @@
-import {loadTop300Feed, readAccountBatches} from '../../features/explore/top300-feed.js';
+import {loadTop100Feed, readAccountBatches} from '../../features/explore/top100-feed.js';
 // Dependencies and mutable application state are read live through appState.
 import { exploreStatusText } from '../../features/explore/status-copy.js';
 import { curveMigrationProgress } from '../../../explore-onchain-metrics.js';
@@ -32,20 +32,20 @@ export function createExploreLoadingController(appState) {
 
   // app-source: 524
   async function loadOnchainExploreDataOnce(signal, requestedSort){
-      const top300 = location.hash === '#top300';
+      const top100 = ['#top100','#top300'].includes(location.hash);
       const pumpSort = requestedSort === 'newest' ? 'created_timestamp' : 'last_trade_timestamp';
       const birdeyeSort = requestedSort === 'change' ? 'price_change_24h_percent' : requestedSort === 'market-cap' ? 'market_cap' : 'volume_24h_usd';
       const feeds = [
         Promise.resolve({ available: false, data: null }),
-        (top300 ? loadTop300Feed(appState.apiRequest, {signal}) : appState.apiRequest(`/api/pump/explore?limit=40&sort=${encodeURIComponent(pumpSort)}`, { signal })).catch(() => ({ available: false, data: null })),
+        (top100 ? loadTop100Feed(appState.apiRequest, {signal}) : appState.apiRequest(`/api/pump/explore?limit=40&sort=${encodeURIComponent(pumpSort)}`, { signal })).catch(() => ({ available: false, data: null })),
       ];
       if (appState.EXPLORE_CLUSTER !== 'devnet') feeds[0] = appState.apiRequest(`/api/birdeye/explore?limit=40&sort_by=${encodeURIComponent(birdeyeSort)}`, { signal }).catch(() => ({ available: false, data: null }));
       const [birdeyeFeed, pumpFeed] = await Promise.all(feeds);
       signal?.throwIfAborted();
       if (appState.EXPLORE_CLUSTER === 'devnet' && appState.verifiedLaunchPoliciesStatus !== 'ready') await appState.loadVerifiedLaunchPolicies(signal);
       appState.exploreFeedAvailable = pumpFeed.available;
-      appState.top300FeedChecked = top300;
-      if (top300) appState.top300DirectoryComplete = pumpFeed.available && pumpFeed.data?.directoryComplete === true;
+      appState.top100FeedChecked = top100;
+      if (top100) appState.top100DirectoryComplete = pumpFeed.available && pumpFeed.data?.directoryComplete === true;
       if (pumpFeed.available) appState.exploreFeedSort = pumpSort;
       const birdeyeRecords = Array.isArray(birdeyeFeed.data?.items) ? birdeyeFeed.data.items : [];
       const pumpRecords = Array.isArray(pumpFeed.data?.items) ? pumpFeed.data.items : [];
@@ -148,7 +148,7 @@ export function createExploreLoadingController(appState) {
       if (!sameFeed(requestedSort, appState.exploreSort)) return;
       if (exploreRateLimited) appState.exploreBackoffUntil = Date.now() + 60_000;
       else if (!exploreVerificationFailed) appState.exploreBackoffUntil = 0;
-      if (top300) appState.top300VerificationFailed = exploreVerificationFailed;
+      if (top100) appState.top100VerificationFailed = exploreVerificationFailed;
       if ((exploreVerificationFailed || !pumpFeed.available) && appState.assets.length && appState.exploreLastVerifiedAt) {
         appState.publishVerifiedCurves([]);
         appState.publishTokenListMarkets([], appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);

@@ -2,7 +2,7 @@ export const PAGE_ROUTE_TARGETS = {
     launch: '#launch-route-shell',
     list: '#list',
     explore: '#explore',
-    top300: '#top300',
+    top100: '#top100',
     callouts: '#callouts',
     payments: '#payments',
     'analytics-detail': '#analytics-detail',

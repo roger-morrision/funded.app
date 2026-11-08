@@ -1,6 +1,6 @@
 // Read the directory in bounded pages, not just Explore's first 40 coins.
 // The ceiling protects clients; coverage is explicitly reported if reached.
-export async function loadTop300Feed(request, {signal, maxPages = 200} = {}) {
+export async function loadTop100Feed(request, {signal, maxPages = 200} = {}) {
   const items = new Map(), accounts = {}, marketActivity = {};
   let complete = false, fetchedAt = null, cluster = null, total = null;
   for (let page = 0; page < maxPages; page++) {

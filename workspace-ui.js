@@ -28,7 +28,7 @@ function coinTitle() {
 const routeTitle=()=>coinTitle()||`${$('[data-route-label]')?.textContent||'funded.vip'} · funded.vip`;
 function syncRoute() {
   const route=location.hash.slice(1)||(/^\/funded\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'launch':/^\/explore\/?$/.test(location.pathname)?'explore':'overview');
-  const mergedRoutes={pilot:'launch',community:'my-launches',buybacks:'paid','referral-faq':'referrals','payments/history':'payments','payments/holders':'payments','payments/activity':'payments','payments/creator':'payments','payments/x':'payments'};
+  const mergedRoutes={top300:'top100',pilot:'launch',community:'my-launches',buybacks:'paid','referral-faq':'referrals','payments/history':'payments','payments/holders':'payments','payments/activity':'payments','payments/creator':'payments','payments/x':'payments'};
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
   const creatorSupportRoute = route==='creators'||/^creator\/\d{1,24}$/.test(route)
@@ -38,7 +38,7 @@ function syncRoute() {
     ? (/^\/wallet\//.test(location.pathname) ? 'my-launches' : /^\/launch\/coin\//.test(location.pathname) ? 'launch' : 'explore')
     : creatorSupportRoute ? 'explore'
     : route==='creator-settings' ? 'my-launches'
-    : ({ top300: 'explore', community: 'my-launches', leaderboard: 'explore', 'analytics-detail': 'explore', airdrops: 'payments', referrals: 'payments', bonuses: 'payments', 'capital-flow': 'payments', 'marketing-agency': 'launch', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
+    : ({ top100: 'explore', community: 'my-launches', leaderboard: 'explore', 'analytics-detail': 'explore', airdrops: 'payments', referrals: 'payments', bonuses: 'payments', 'capital-flow': 'payments', 'marketing-agency': 'launch', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
   $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${mobileRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
   const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
