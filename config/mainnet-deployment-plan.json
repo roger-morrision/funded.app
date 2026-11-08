@@ -21,6 +21,10 @@
   "metadataSecretPath": null,
   "feeRecipient": null,
   "fundedMint": null,
+  "maximumTotalSpendLamports": null,
+  "maximumPriorityFeeLamports": null,
+  "independentReviewer": null,
+  "independentReviewReference": null,
   "referenceArtifacts": [
     {
       "variant": "merged-v3-size-optimized",

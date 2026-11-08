@@ -1,5 +1,7 @@
 # Planning template only. NOT a deployable Mainnet release or verified inventory.
 # Never set VITE_ALLOW_MAINNET=true to bypass unimplemented financial routes.
+# Fill public values and secret-file references in a private copy, never credential values here.
+# Empty budget/review fields are placeholders, not approval or a zero-cost deployment.
 VITE_SOLANA_CLUSTER=mainnet-beta
 SOLANA_CLUSTER=mainnet-beta
 MAINNET_PROGRAM_LAYOUT=merged-v3
@@ -13,11 +15,12 @@ DEV_WALLET_ENABLED=false
 VITE_FUNDED_TRADE_FEE_BPS=100
 # Creator buy cap is enforced in application/transaction policy at 20%.
 # Do not put Helius keys in VITE_* variables or a committed config.
-# Resolve SOLANA_RPC_URL securely at preflight runtime; example only:
-SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=REPLACE_IN_SECRET_STORE
-DEVNET_SOLANA_RPC_URL=https://devnet.helius-rpc.com/?api-key=REPLACE_IN_SECRET_STORE
-DATABASE_URL=REPLACE_WITH_ISOLATED_MAINNET_POSTGRES
-DEVNET_DATABASE_URL=REPLACE_WITH_DEVNET_DATABASE_FOR_ISOLATION_CHECK
+# Resolve these files into the corresponding URL variables securely before preflight.
+# The preflight CLI does not itself load *_FILE references.
+SOLANA_RPC_URL_FILE=REPLACE_WITH_MAINNET_RPC_SECRET_FILE_PATH
+DEVNET_SOLANA_RPC_URL_FILE=REPLACE_WITH_DEVNET_RPC_SECRET_FILE_PATH
+DATABASE_URL_FILE=REPLACE_WITH_MAINNET_DATABASE_SECRET_FILE_PATH
+DEVNET_DATABASE_URL_FILE=REPLACE_WITH_DEVNET_DATABASE_SECRET_FILE_PATH
 FUNDED_STORE_PATH=
 # One independently reviewed merged production deployment; no Devnet defaults.
 # Legacy config names are aliases, not instructions to deploy a second router.
@@ -38,4 +41,12 @@ VITE_FUNDED_TOKEN_MINT=REPLACE_MAINNET_FUNDED_MINT
 FUNDED_TRADE_FEE_OWNER=REPLACE_MAINNET_PLATFORM_FEE_RECIPIENT
 VITE_FUNDED_TRADE_FEE_OWNER=REPLACE_MAINNET_PLATFORM_FEE_RECIPIENT
 METADATA_STORAGE=pinata
-PINATA_JWT_FILE=/run/secrets/mainnet_metadata_token
+PINATA_JWT_FILE=REPLACE_WITH_MAINNET_METADATA_SECRET_FILE_PATH
+
+# Release planning fields; these do not activate signers, workers or deployment.
+# Copy the completed values into mainnet-deployment-plan.json and mainnet-acceptance-plan.json.
+MAINNET_DEPLOYMENT_PAYER_SIGNER_REFERENCE=REPLACE_WITH_SIGNER_REFERENCE_NOT_PRIVATE_KEY
+MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS=
+MAINNET_MAXIMUM_PRIORITY_FEE_LAMPORTS=
+MAINNET_INDEPENDENT_REVIEWER=REPLACE_WITH_REVIEWER_NAME
+MAINNET_INDEPENDENT_REVIEW_REFERENCE=REPLACE_WITH_FINAL_BINARY_REVIEW_REPORT_REFERENCE

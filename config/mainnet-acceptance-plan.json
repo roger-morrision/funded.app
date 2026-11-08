@@ -11,6 +11,7 @@
   "maximumTotalSpendLamports": null,
   "maximumPriorityFeeLamports": null,
   "independentReviewReference": null,
+  "independentReviewer": null,
   "requiredCases": [
     {"id":"launch-standard","proof":"Finalized creation, immutable fee owner and shares, exact community reserve, developer allocation and escrow deadline; registered receipt matches chain."},
     {"id":"launch-promotion","proof":"Reviewed FUNDED burn and exact balance/supply reductions finalize before creation; cancelled creation can recover without a second burn."},
