@@ -60,7 +60,7 @@ export function createLeaderboardsController(appState) {
 
   // app-source: 457
   function renderProjectBurnBoard(){
-    return appState.renderProjectBurnBoardView({ burnBoardState: appState.burnBoardState, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus }, { launchBurnBoardFallback: appState.launchBurnBoardFallback, formatOnchainAge: appState.formatOnchainAge, exploreExplorer: appState.exploreExplorer });
+    return appState.renderProjectBurnBoardView({ burnBoardState: appState.burnBoardState, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus }, { launchBurnBoardFallback: appState.launchBurnBoardFallback, formatOnchainAge: appState.formatOnchainAge, exploreExplorer: appState.exploreExplorer, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
   }
   // app-source-end
 

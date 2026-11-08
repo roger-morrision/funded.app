@@ -262,3 +262,10 @@ html body #main-content #coin-page .chat-callout-badge { display: inline-flex; f
   html body #main-content .callouts-toolbar small { width: 100%; margin-left: 0; }
   html body #main-content .callouts-leaders { display: grid; }
 }
+
+html body #main-content .callout-who > span { display:flex;align-items:center;gap:4px;min-width:0; }
+html body #main-content .callout-copy { display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:44px;min-height:44px;padding:8px;border:0;background:transparent;color:var(--fv-text-subtle);border-radius:6px; }
+html body #main-content .callout-copy svg { width:16px;height:16px; }
+html body #main-content .callout-copy:hover { color:var(--fv-accent); }
+html body #main-content .callout-copy:focus-visible { outline:2px solid var(--fv-accent);outline-offset:2px; }
+html body #main-content #leaderboard .leader-token-logo img { width:100%;height:100%;object-fit:contain; }

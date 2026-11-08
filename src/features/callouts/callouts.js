@@ -1,3 +1,4 @@
+import {icon} from '../../../ui-icons.js';
 import { tokenArtworkUrl } from '../shared/token-artwork.js';
 // Callouts: chat posts that call a coin. The server records the market cap at
 // the moment of the call, and whether the caller held the coin. This page shows
@@ -82,10 +83,10 @@ export function calloutRowMarkup(row, { solUsd, wallet, nowMs = Date.now(), fres
   const record = caller ? `${caller.calls} call${caller.calls === 1 ? '' : 's'} · ${formatMultiple(caller.avgMultiple)} mean observed peak` : 'Wallet-verified caller';
   const conviction = row.holdingPercent > 0 ? `<span class="callout-conviction" title="Share of supply this wallet held when it made the call">Holds ${escape(formatHolding(row.holdingPercent))}</span>` : '';
   return `<li class="callout-card${row.holdingPercent > 0 ? ' is-conviction' : ''}${fresh ? ' is-new' : ''}" data-callout-id="${escape(row.id)}">
-<header><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><span class="callout-who"><span><button type="button" class="callout-author" data-callout-author="${escape(row.author)}" title="Show only this wallet's calls">${escape(shortWallet(row.author))}</button>${you}</span><small>${escape(record)}</small></span>${conviction}<time datetime="${escape(row.createdAt)}">${escape(timeAgo(row.createdAt, nowMs))}</time></header>
+<header><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><span class="callout-who"><span><button type="button" class="callout-author" data-callout-author="${escape(row.author)}" title="Show only this wallet's calls">${escape(shortWallet(row.author))}</button><button type="button" class="callout-copy" data-copy-caller="${escape(row.author)}" aria-label="Copy caller wallet address" title="Copy ${escape(row.author)}">${icon('copy')}</button>${you}</span><small>${escape(record)}</small></span>${conviction}<time datetime="${escape(row.createdAt)}">${escape(timeAgo(row.createdAt, nowMs))}</time></header>
 <p class="callout-text">${escape(row.text)}</p>
 <a class="callout-chip" href="#coin/${escape(row.mint)}" title="${escape(row.token?.name || 'Open coin')}">${image}<strong>$${escape(symbol)}</strong><b class="callout-multiple" data-trend="${multipleTrend(row.multiple)}" aria-label="Change since the call">${escape(formatMultiple(row.multiple))}</b><span aria-hidden="true">›</span></a>
-<p class="callout-figures">Called at ${escape(formatCalloutCap(row.calledMarketCapSol, solUsd))} · now ${escape(formatCalloutCap(row.currentMarketCapSol, solUsd))} · observed peak ${escape(formatMultiple(row.peakMultiple))}</p><small class="callout-coverage">${row.currentMarketCapSol == null ? 'Current quote unavailable · ' : row.marketObservedAt ? `Market checked ${escape(timeAgo(row.marketObservedAt, nowMs))} · ` : 'Market check time unavailable · '}Called ${escape(new Date(row.createdAt).toLocaleString())} · <a href="/wallet/${escape(row.author)}">Caller profile</a></small>
+<p class="callout-figures">Called at ${escape(formatCalloutCap(row.calledMarketCapSol, solUsd))} · now ${escape(formatCalloutCap(row.currentMarketCapSol, solUsd))} · observed peak ${escape(formatMultiple(row.peakMultiple))}</p>
 </li>`;
 }
 
@@ -185,7 +186,15 @@ export function mountCallouts(app, document = globalThis.document) {
     state.timer = setTimeout(async () => { if (!document.hidden) await refresh(); schedule(); }, active() ? LIVE_MS : BACKGROUND_MS);
   }
 
-  page.addEventListener('click', event => {
+  page.addEventListener('click', async event => {
+    const copy = event.target.closest('[data-copy-caller]');
+    if (copy) {
+      const address = copy.dataset.copyCaller;
+      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address || '')) return;
+      try { await navigator.clipboard.writeText(address); app.showToast('Caller wallet address copied.'); }
+      catch { app.showToast('Could not copy the wallet address. Please try again.'); }
+      return;
+    }
     const filter = event.target.closest('[data-callouts-filter]');
     if (filter) {
       state.filter = filter.dataset.calloutsFilter;

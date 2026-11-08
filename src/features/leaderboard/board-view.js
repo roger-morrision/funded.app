@@ -85,6 +85,7 @@ export function renderProjectBurnBoard(
     launchBurnBoardFallback,
     formatOnchainAge,
     exploreExplorer,
+    loadVerifiedTokenLogos,
     document = globalThis.document,
   } = {}
 ) {
@@ -127,8 +128,9 @@ export function renderProjectBurnBoard(
     const amount = Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 });
     const tokenHref = `/token/${encodeURIComponent(item.mint)}`;
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="${escapeHtml(tokenHref)}"><span class="leader-avatar mint" aria-hidden="true">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity" data-logo-mint="${escapeHtml(item.mint)}"><a class="leaderboard-profile" href="${escapeHtml(tokenHref)}"><span class="leader-avatar leader-token-logo mint" aria-hidden="true">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
   }).join('')}`);
+  loadVerifiedTokenLogos?.(table);
 }
 
 export function renderLeaderboard(

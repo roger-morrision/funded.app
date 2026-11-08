@@ -70,7 +70,6 @@ html body #main-content #explore .explore-view-switch { display: inline-flex; }
 .reward-program-guide article { padding: 8px 0; border-bottom: 1px solid var(--fv-border); }
 .reward-program-guide p { margin: 6px 0; }
 .payment-cost-explanation, .payment-gross-headline { display: block; white-space: normal; overflow-wrap: anywhere; }
-.callout-coverage { color: var(--fv-text-muted); overflow-wrap: anywhere; }
 .market-freshness { font-size: 11px; color: var(--fv-text-muted); overflow-wrap: anywhere; }
 .coin-readiness { padding: 12px 16px; border: 1px solid var(--fv-border); border-radius: 12px; }
 .coin-readiness p { margin: 4px 0; }
