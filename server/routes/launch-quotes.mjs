@@ -1,4 +1,4 @@
-import { SOLANA_GENESIS } from '../../solana-network.js';
+import { SOLANA_GENESIS,assertQuoteNetwork } from '../../solana-network.js';
 import { PublicKey } from '@solana/web3.js';
 import { LAUNCH_TIER_USD } from '../../launch-tier-quote.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
@@ -13,6 +13,11 @@ export function createLaunchQuoteRoutes({
   solanaCluster = String(env.VITE_SOLANA_CLUSTER || env.SOLANA_CLUSTER || 'devnet').trim(),
 }) {
   const json = (...args) => { respond(...args); return true; };
+  const checkedPricing=async()=>{
+    const pricing=await currentLaunchTierPricing();assertQuoteNetwork(pricing,solanaCluster);
+    if(pricing.fundedMint!==fundedTokenMint)throw Error('Pricing mint differs from the configured launch mint.');
+    return pricing;
+  };
   return async function handleLaunchQuoteRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/service-fees') {
       if (!['devnet','mainnet-beta'].includes(solanaCluster)) return json(res,503,{error:'Service fees are unavailable for this network.'});
@@ -36,7 +41,7 @@ export function createLaunchQuoteRoutes({
       return json(res,201,quote);
     }
     if (req.method === 'GET' && url.pathname === '/api/launch-tier-quote') {
-      try { const pricing = await currentLaunchTierPricing(), fees = await readServiceFees(store); return json(res, 200, { ...pricing,
+      try { const pricing = await checkedPricing(), fees = await readServiceFees(store); return json(res, 200, { ...pricing,
         amounts:launchTierAmounts(pricing.tokenPriceUsd,fees.policy), usdTargets:{pro:fees.policy.proUsd,premier:fees.policy.premierUsd}, serviceFees:fees }); }
       catch (error) { return json(res, 503, { error: String(error.message || 'The $FUNDED tier price is unavailable.') }); }
     }
@@ -49,13 +54,13 @@ export function createLaunchQuoteRoutes({
       if (!Object.hasOwn(LAUNCH_TIER_USD, tier)) return json(res, 400, { error:'Choose Pro or Premier for a paid launch quote.' });
       let payer;
       try { payer = new PublicKey(String(input.payer || '')).toBase58(); }
-      catch { return json(res, 400, { error:'Connect a valid Devnet wallet before requesting a paid tier quote.' }); }
+      catch { return json(res, 400, { error:'Connect a valid wallet before requesting a paid tier quote.' }); }
       let pricing;
-      try { pricing = await currentLaunchTierPricing(); }
+      try { pricing = await checkedPricing(); }
       catch (error) { return json(res, 503, { error:String(error.message || 'The $FUNDED tier price is unavailable.') }); }
       const now = Date.now();
       const fees = await readServiceFees(store);
-      const quote = { id:id('launch_tier'), tier, payer, fundedMint:fundedTokenMint,
+      const quote = { id:id('launch_tier'), cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],tier, payer, fundedMint:fundedTokenMint,
         amountTokens:launchTierAmounts(pricing.tokenPriceUsd,fees.policy)[tier], usd:tier === 'pro' ? fees.policy.proUsd : fees.policy.premierUsd, tokenPriceUsd:pricing.tokenPriceUsd,
         serviceFeeHash:fees.hash,
         pool:pricing.pool, slot:pricing.slot, source:pricing.source,
@@ -66,6 +71,9 @@ export function createLaunchQuoteRoutes({
           if (Date.parse(old.expiresAt) < now - 48 * 3_600_000) delete current.launchTierQuotes[key];
         current.launchTierQuotes[quote.id] = quote;
       });
+      const persisted=(await store.read()).launchTierQuotes?.[quote.id];
+      if(!persisted||Object.keys(quote).some(key=>persisted[key]!==quote[key]))
+        return json(res,503,{error:'Launch tier quote could not be saved. No burn should be signed; retry after storage recovers.'});
       return json(res, 201, quote);
     }
     return false;

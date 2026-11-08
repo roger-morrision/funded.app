@@ -1,4 +1,5 @@
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import {assertQuoteNetwork,assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import { PUMP_PROGRAM_ID, PUMP_SDK, pumpIdl } from '@pump-fun/pump-sdk';
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, decodeBurnCheckedInstruction, unpackMint } from '@solana/spl-token';
 import bs58 from 'bs58';
@@ -27,8 +28,9 @@ export function readPumpCreateEvent(logs = []) {
   return null;
 }
 
-export function verifyAtomicLaunchPromotion({ transaction, payer, signature, claim, fundedMint, tiers = createLaunchBurnTiers(), quote = null }) {
+export function verifyAtomicLaunchPromotion({ transaction, payer, signature, claim, fundedMint, tiers = createLaunchBurnTiers(), quote = null,cluster='devnet' }) {
   if (!claim || claim.tier === 'standard') return null;
+  if(quote||cluster==='mainnet-beta')assertQuoteNetwork(quote,cluster);
   if (!transaction?.meta || transaction.meta.err) throw Error('Promotion burn transaction did not succeed.');
   const tier = tiers.find(item => item.id === claim.tier && item.amountTokens > 0);
   const requiredAmount = quote ? quote.amountTokens : tier?.amountTokens;
@@ -66,13 +68,13 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   };
 }
 
-export async function verifyLaunchPromotion({connection,transaction,payer,signature,mint,claim,fundedMint,tiers,quote}) {
+export async function verifyLaunchPromotion({connection,transaction,payer,signature,mint,claim,fundedMint,tiers,quote,cluster='devnet'}) {
   const burnSignature=claim?.receipt?.signature;
   if (!burnSignature || burnSignature===signature)
-    return verifyAtomicLaunchPromotion({transaction,payer,signature,claim,fundedMint,tiers,quote});
+    return verifyAtomicLaunchPromotion({transaction,payer,signature,claim,fundedMint,tiers,quote,cluster});
   const burn=await connection.getTransaction(burnSignature,{commitment:'finalized',maxSupportedTransactionVersion:0});
   verifyPromotionBurnBinding({transaction:burn,payer,mint,quoteId:claim.quoteId,launchSlot:transaction.slot});
-  const result=verifyAtomicLaunchPromotion({transaction:burn,payer,signature:burnSignature,claim,fundedMint,tiers,quote});
+  const result=verifyAtomicLaunchPromotion({transaction:burn,payer,signature:burnSignature,claim,fundedMint,tiers,quote,cluster});
   if(!result)throw Error('Separate burn requires a promotion package.');
   result.quoteId=claim.quoteId;
   result.receipt.atomicWithPumpLaunch=false;
@@ -80,7 +82,9 @@ export async function verifyLaunchPromotion({connection,transaction,payer,signat
   return result;
 }
 
-export async function verifyPumpLaunch({ connection, mint, signature, promotionClaim = null, promotionQuote = null, fundedMint = null, promotionTiers, commitment = 'confirmed' }) {
+export async function verifyPumpLaunch({ connection, mint, signature, promotionClaim = null, promotionQuote = null, fundedMint = null, promotionTiers, commitment = 'confirmed',cluster='devnet' }) {
+  requireSolanaCluster(cluster);
+  if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
   if (!['confirmed', 'finalized'].includes(commitment)) throw new Error('Unsupported launch verification commitment.');
   const mintKey = new PublicKey(String(mint || '').trim());
   if (!signature || typeof signature !== 'string') throw new Error('A Pump creation transaction signature is required.');
@@ -92,9 +96,9 @@ export async function verifyPumpLaunch({ connection, mint, signature, promotionC
   if (!account || (!account.owner.equals(TOKEN_PROGRAM_ID) && !account.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The mint account is not owned by a supported token program.');
   unpackMint(mintKey, account, account.owner);
   const payer = (transaction.transaction.message.accountKeys || transaction.transaction.message.staticAccountKeys)[0].toBase58();
-  const promotion = await verifyLaunchPromotion({ connection, transaction, payer, signature, mint:mintKey.toBase58(), claim: promotionClaim, fundedMint, tiers: promotionTiers, quote: promotionQuote });
+  const promotion = await verifyLaunchPromotion({ connection, transaction, payer, signature, mint:mintKey.toBase58(), claim: promotionClaim, fundedMint, tiers: promotionTiers, quote: promotionQuote,cluster });
   return {
-    chain: 'solana', mint: mintKey.toBase58(), signature, slot: transaction.slot,
+    chain: 'solana',cluster,genesisHash:SOLANA_GENESIS[cluster],mint: mintKey.toBase58(), signature, slot: transaction.slot,
     feePayer:payer,
     name: event.name, symbol: event.symbol, uri: event.uri || null, creator: event.creator.toBase58(),
     createdTimestamp: Number(event.timestamp.toString()), blockTime: transaction.blockTime ?? null,

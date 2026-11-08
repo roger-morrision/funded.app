@@ -1,4 +1,5 @@
 import { currentServiceFees } from './service-fees.js';
+import {assertQuoteNetwork} from './solana-network.js';
 export const LAUNCH_TIER_USD = Object.freeze({ get pro() { return currentServiceFees().proUsd; }, get premier() { return currentServiceFees().premierUsd; } });
 
 export function launchTierAmounts(tokenPriceUsd, fees = currentServiceFees()) {
@@ -10,7 +11,8 @@ export function launchTierAmounts(tokenPriceUsd, fees = currentServiceFees()) {
   return amounts;
 }
 
-export function launchTierQuoteCurrent(quote, { tier, payer, mint, now = Date.now() } = {}) {
+export function launchTierQuoteCurrent(quote, { tier, payer, mint, cluster='devnet', now = Date.now() } = {}) {
+  try{assertQuoteNetwork(quote,cluster);}catch{return false;}
   if (!quote || !Object.hasOwn(LAUNCH_TIER_USD, quote.tier)) return false;
   if (tier && quote.tier !== tier) return false;
   if (payer && quote.payer !== payer) return false;

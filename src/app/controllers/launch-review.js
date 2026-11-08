@@ -171,7 +171,7 @@ export function createLaunchReviewController(appState) {
         const quote = reusable && Date.parse(reusable.expiresAt) - Date.now() > 120_000
           ? reusable
           : (await appState.apiRequest('/api/launch-tier-quote', { method:'POST', body:{ tier:burn.tier, payer:session.address } })).data;
-        if (!appState.launchTierQuoteCurrent(quote, { tier:burn.tier, payer:session.address, mint:appState.PROTOCOL_FUNDED_MINT }))
+        if (!appState.launchTierQuoteCurrent(quote, { cluster:appState.APP_CLUSTER,tier:burn.tier, payer:session.address, mint:appState.PROTOCOL_FUNDED_MINT }))
           throw new Error('The paid tier quote could not be verified.');
         appState.assertWalletSessionCurrent(session);
         if (appState.launchBurnTier !== burn.tier) throw new Error('Launch tier changed while getting the quote. Review again.');

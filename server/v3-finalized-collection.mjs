@@ -20,7 +20,7 @@ export async function loadFinalizedV3PumpCollection({ connection, signature, pro
 
   await assertRpcNetwork(connection,cluster);
   const launchProof = await verifyLaunch({ connection, mint:mintKey, signature:route.transaction,
-    commitment:'finalized' });
+    commitment:'finalized',cluster });
   if (!launchProof?.onchainVerified || launchProof.creator !== router
     || launchProof.feePayer !== launch.creatorWallet || launchProof.signature !== route.transaction) return null;
 

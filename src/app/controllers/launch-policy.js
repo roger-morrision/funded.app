@@ -7,7 +7,7 @@ export function createLaunchPolicyController(appState) {
   // app-source: 216
   function currentLaunchTierQuote(){
     if (!appState.connectedWalletAddress) return null;
-    return appState.launchTierQuoteCurrent(appState.launchTierQuote, { tier:appState.launchBurnTier, payer:appState.connectedWalletAddress, mint:appState.PROTOCOL_FUNDED_MINT })
+    return appState.launchTierQuoteCurrent(appState.launchTierQuote, { cluster:appState.APP_CLUSTER,tier:appState.launchBurnTier, payer:appState.connectedWalletAddress, mint:appState.PROTOCOL_FUNDED_MINT })
       ? appState.launchTierQuote : null;
   }
   // app-source-end
