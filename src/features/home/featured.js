@@ -2,6 +2,7 @@ import {activeBoostPackages} from '../../../boost-offer.js';
 import {featuredMetrics} from './featured-metrics.js';
 import {marketFacts} from '../explore/market-facts.js';
 import {createFeaturedScroller} from './featured-view.js';
+import {currentFeaturedTokens} from './featured-placement.js';
 
 export function initializeFeaturedTokens(appState) {
   const root=document.querySelector('.home-featured');if(!root)return;
@@ -17,7 +18,7 @@ export function initializeFeaturedTokens(appState) {
     })));
   };
   const render=()=>{
-    items=items.filter(item=>item.expiresAt>Date.now());
+    items=currentFeaturedTokens(items);
     scroller.render(items,appState.EXPLORE_CLUSTER);
     updateMetrics();
     if(!items.length){status.hidden=false;status.textContent='Your token could be here. Paid promotions and listings appear for 48 hours.';}

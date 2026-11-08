@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {Keypair} from '@solana/web3.js';
 import {featuredTokens,FEATURED_WINDOW_MS} from '../src/features/home/featured-data.js';
 import {featuredCardMarkup} from '../src/features/home/featured-view.js';
+import {currentFeaturedTokens} from '../src/features/home/featured-placement.js';
 import {createDirectoryRoutes} from '../server/routes/directory.mjs';
 const now=Date.parse('2026-11-08T10:00:00Z'),mint=()=>Keypair.generate().publicKey.toBase58(),sig='2'.repeat(64);
 const launch=(extra={})=>({mint:mint(),name:'Community coin',symbol:'FULLSYMBOL',onchainVerified:true,cluster:'devnet',blockTime:(now-1000)/1000,signature:sig,
@@ -22,11 +23,14 @@ test('48-hour eligibility excludes exact expiry, future dates, unverified, unpai
   assert.deepEqual(select({launches:invalid,listings:[listing({listedAt:'invalid'}),listing({onchainVerified:false}),listing({status:'pending'})]}),[]);
   assert.equal(select({launches:[launch({blockTime:(now-FEATURED_WINDOW_MS+1000)/1000})]}).length,1);
 });
-test('recent finalized boosts feature older tokens once, without claiming the boost itself remains active',()=>{
+test('only active finalized boosts feature older tokens, until their exact expiry',()=>{
   const old=launch({blockTime:(now-FEATURED_WINDOW_MS-1000)/1000});
-  const boost={mint:old.mint,cluster:'devnet',status:'finalized',packageId:'10x',multiplier:10,startsAt:new Date(now-24*3600000).toISOString(),signature:sig};
+  const boost={mint:old.mint,cluster:'devnet',status:'finalized',packageId:'10x',multiplier:10,startsAt:new Date(now-1000).toISOString(),expiresAt:new Date(now+1000).toISOString(),signature:sig};
   const result=select({launches:[old],boosts:[boost,boost]});assert.equal(result.length,1);assert.equal(result[0].label,'Paid boost');
-  assert.deepEqual(select({launches:[old],boosts:[{...boost,status:'pending'},{...boost,multiplier:999},{...boost,cluster:'mainnet-beta'}]}),[]);
+  assert.equal(result[0].expiresAt,now+1000);
+  assert.deepEqual(currentFeaturedTokens(result,now+1000),[]);
+  assert.deepEqual(select({launches:[old],boosts:[{...boost,status:'pending'},{...boost,multiplier:999},{...boost,cluster:'mainnet-beta'},
+    {...boost,expiresAt:new Date(now).toISOString()},{...boost,expiresAt:'invalid'},{...boost,expiresAt:undefined}]}),[]);
   const recent=launch();assert.equal(select({launches:[recent],listings:[listing({mint:recent.mint})]}).length,1);
 });
 test('featured endpoint returns the full verified placement projection and no payer data',async()=>{
@@ -59,9 +63,37 @@ test('Featured metrics use fresh caps and holder snapshots, label estimates, and
 });
 test('Featured age is launch age, never placement or listing age',()=>{
  const old=launch({blockTime:(now-10*86400000)/1000});
- const boost={mint:old.mint,cluster:'devnet',status:'finalized',packageId:'10x',multiplier:10,startsAt:new Date(now-1000).toISOString(),signature:sig};
+ const boost={mint:old.mint,cluster:'devnet',status:'finalized',packageId:'10x',multiplier:10,startsAt:new Date(now-1000).toISOString(),expiresAt:new Date(now+1000).toISOString(),signature:sig};
  assert.equal(select({launches:[old],boosts:[boost]})[0].createdAt,now-10*86400000);
  assert.equal(select({listings:[listing()]})[0].createdAt,null);
+});
+
+test('boost expiry falls back locally and on the server to a separate unexpired paid placement',()=>{
+ const coin=launch({blockTime:(now-2000)/1000});
+ const boost={mint:coin.mint,cluster:'devnet',status:'finalized',packageId:'10x',multiplier:10,startsAt:new Date(now-1000).toISOString(),expiresAt:new Date(now+1000).toISOString(),signature:sig};
+ for(const source of [{launches:[coin]}, {listings:[listing({mint:coin.mint})]}]) {
+   const result=select({...source,boosts:[boost]});
+   assert.equal(result[0].label,'Paid boost');
+   const local=currentFeaturedTokens(result,now+1000);
+   const server=featuredTokens({...source,boosts:[boost],cluster:'devnet',now:now+1000});
+   assert.equal(local[0].label,source.launches?'Pro promotion':'Paid listing');
+   assert.equal(local[0].label,server[0].label);
+   assert.equal(local[0].expiresAt,now-2000+FEATURED_WINDOW_MS);
+   assert.doesNotMatch(featuredCardMarkup(local[0],'devnet',now+1000),/Paid boost|home-featured-boost/);
+   assert.deepEqual(currentFeaturedTokens(result,now-2000+FEATURED_WINDOW_MS),[]);
+ }
+});
+
+test('an earlier active boost keeps the card until the last paid boost expires',()=>{
+ const coin=launch({blockTime:(now-FEATURED_WINDOW_MS-1000)/1000});
+ const first={mint:coin.mint,cluster:'devnet',status:'finalized',packageId:'10x',multiplier:10,startsAt:new Date(now-2000).toISOString(),expiresAt:new Date(now+5000).toISOString(),signature:sig};
+ const second={...first,startsAt:new Date(now-1000).toISOString(),expiresAt:new Date(now+1000).toISOString(),signature:'3'.repeat(64)};
+ const result=select({launches:[coin],boosts:[first,second]});
+ assert.match(featuredCardMarkup(result[0],'devnet',now),/20×/);
+ const remaining=currentFeaturedTokens(result,now+1000);
+ assert.equal(remaining[0].label,'Paid boost');
+ assert.match(featuredCardMarkup(remaining[0],'devnet',now+1000),/10×/);
+ assert.deepEqual(currentFeaturedTokens(result,now+5000),[]);
 });
 
 

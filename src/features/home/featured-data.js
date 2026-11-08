@@ -1,6 +1,7 @@
 import {verifiedPromotionBadge} from '../../../promotion-badge.js';
 import {verifiedPaidListings} from './paid-listings.js';
 import {boostPackage,activeBoostPackages} from '../../../boost-offer.js';
+import {currentFeaturedTokens} from './featured-placement.js';
 
 export const FEATURED_WINDOW_MS = 48 * 60 * 60 * 1000;
 const address = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -14,14 +15,15 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
   for (const launch of launches) if (launch.onchainVerified === true && launch.cluster === cluster && address.test(launch.mint)) {known.set(launch.mint,launch);const at=Number(launch.blockTime)*1000;if(Number.isFinite(at)&&at>0&&at<=now)launchTimes.set(launch.mint,at);}
   const paid = verifiedPaidListings(listings,cluster);
   for (const listing of paid) if (!known.has(listing.mint)) known.set(listing.mint,listing);
-  const add = (mint,time,label,proof) => {
+  const add = (mint,time,label,proof,end=time+FEATURED_WINDOW_MS) => {
     const token=known.get(mint);
-    if (!token || !recent(time) || !signature.test(proof||'')) return;
+    if (!token || !recent(time) || !signature.test(proof||'') || !Number.isFinite(end) || end<=now) return;
     const previous=featured.get(mint);
-    if (previous && previous.featuredAt >= time) return;
+    const placement={label,signature:proof,featuredAt:time,expiresAt:Math.min(end,time+FEATURED_WINDOW_MS)};
+    if (previous) {previous.placements.push(placement);return;}
     featured.set(mint,{mint,name:token.name||'Token',symbol:token.symbol||'TOKEN',
       imageUri:token.imageUri||null,bannerUri:verifiedPromotionBadge(token)?token.bannerUri||null:null,
-      createdAt:launchTimes.get(mint)||null,label,signature:proof,featuredAt:time,expiresAt:time+FEATURED_WINDOW_MS});
+      createdAt:launchTimes.get(mint)||null,placements:[placement]});
   };
   for (const launch of known.values()) {
     const promotion=verifiedPromotionBadge(launch);
@@ -32,11 +34,11 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
   for (const boost of boosts) if (boost.cluster===cluster && boost.status==='finalized'
     && boostPackage(boost.packageId)?.multiplier===boost.multiplier && signature.test(boost.signature||'') && !seenBoosts.has(boost.signature)) {
     seenBoosts.add(boost.signature);
-    add(boost.mint,Date.parse(boost.startsAt),'Paid boost',boost.signature);
+    add(boost.mint,Date.parse(boost.startsAt),'Paid boost',boost.signature,Date.parse(boost.expiresAt));
     const packs=packagesByMint.get(boost.mint)||[];
     packs.push({packageId:boost.packageId,multiplier:boost.multiplier,startsAt:boost.startsAt,expiresAt:boost.expiresAt});
     packagesByMint.set(boost.mint,packs);
   }
   for(const item of featured.values()) item.boost={packages:activeBoostPackages({packages:packagesByMint.get(item.mint)||[]},now)};
-  return [...featured.values()].sort((a,b)=>b.featuredAt-a.featuredAt||a.mint.localeCompare(b.mint));
+  return currentFeaturedTokens([...featured.values()],now);
 }
