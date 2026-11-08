@@ -74,7 +74,8 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
   const verifiedReferrals = new Map();
   const verifiedDaily = new Map();
   const rebuild = () => cache('recent', async () => {
-    const [evidence, ledger, state] = await Promise.all([readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
+    // V3 history verifies its own receipts; a legacy scan must not block it.
+    const [evidence, ledger, state] = await Promise.all([v3Only ? {} : readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
     const dailySelection = cluster === 'devnet' ? dailyPaymentCandidates(ledger) : {candidates:[],checked:0,unavailable:0};
     let daily = {rows:[],checked:dailySelection.checked,
       unavailable:dailySelection.unavailable + dailySelection.candidates.length};
@@ -245,7 +246,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         ? verifiedXHandle(state, cluster, record.mint, record.obligationId, proof.to) : null;
       return xHandle ? { ...proof, xHandle } : proof;
     });
-    const rows = [...new Map([...attributed, ...automatic, ...creators, ...daily.rows].filter(row =>
+    const rows = [...new Map([...attributed, ...automatic, ...creators, ...daily.rows, ...referralReceipts].filter(row =>
       ADDRESS.test(String(row.to || '')) && SIGNATURE.test(String(row.signature || ''))
       && Number.isSafeInteger(row.actualReceivedLamports)
       && (row.actualReceivedLamports > 0 || row.feePayer === row.to
@@ -265,9 +266,9 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         .map(row=>({to:row.recipient,signature:row.signature})),
     ];
     return { cluster, commitment:'finalized', status:unavailable || !v3Only && evidence.status === 'unavailable' ? 'partial' : 'onchain-indexed',
-      ...(v3Only ? {payoutCoverage:payoutCoverage(recordedReceipts,[...rows,...referralReceipts])} : {}),
+      ...(v3Only ? {payoutCoverage:payoutCoverage(recordedReceipts,rows)} : {}),
       verifiedPayouts:rows, checkedAutomatic:candidates.length, checkedCreator:creatorCandidates.length,
-      checkedOperations:operationsCandidates.length,
+      checkedOperations:operationsCandidates.length, checkedReferral:referralCount,
       checkedDaily:daily.checked, dailyBonusSummary:{status:daily.unavailable ? 'partial' : 'verified',
         payoutCount:daily.rows.length, paidLamports:String(daily.rows.reduce((sum,row)=>sum+BigInt(row.amountLamports),0n)),
         receivedLamports:String(daily.rows.reduce((sum,row)=>sum+BigInt(row.actualReceivedLamports),0n))},

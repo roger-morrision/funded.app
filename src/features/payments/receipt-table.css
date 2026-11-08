@@ -1,4 +1,4 @@
-#rewards-history .payment-history-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 20px}
+#rewards-history .payment-history-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin:0 0 20px}
 #rewards-history .payment-history-heading h2{margin:0}
 #rewards-history .payment-history-heading .payment-history-bonus-link{font-size:14px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--accent,#ffc629)}
 #rewards-history .payment-history-filters{display:grid;grid-template-columns:minmax(180px,2fr) minmax(240px,1.25fr) minmax(155px,.8fr) minmax(155px,.8fr) auto;align-items:end;gap:12px;padding:18px 0;margin:0}

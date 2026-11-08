@@ -1,7 +1,15 @@
 import { mountMobileFilterDrawer } from '../shared/mobile-filter-drawer.js';
 import { mountFilterChips } from '../shared/filter-toolbar.js';
 // Bind once at the existing History startup position; rendering owns no requests.
-export function initializePaymentHistoryControls({ document, renderHistory }) {
+export function initializePaymentHistoryControls({ document, renderHistory, refreshHistory }) {
+  const heading=document.querySelector('#payment-list')?.closest('.panel')?.querySelector('.panel-heading');
+  if(heading&&refreshHistory&&!document.querySelector('#payment-history-refresh')) {
+    const refresh=document.createElement('button');refresh.id='payment-history-refresh';
+    refresh.type='button';refresh.className='secondary-button';refresh.textContent='Refresh';
+    refresh.onclick=async()=>{refresh.disabled=true;refresh.textContent='Checking…';
+      try{await refreshHistory();}finally{refresh.disabled=false;renderHistory();}};
+    heading.append(refresh);
+  }
   const toolbar=document.querySelector('#payment-history-filters');
   if(toolbar&&!document.querySelector('#payment-history-sort')) {
     const label=document.createElement('label');label.textContent='Sort';

@@ -196,11 +196,11 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
     }
     const recentPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
     const coverage = paymentHistoryEvidence?.payoutCoverage?.status;
-    const unavailable = receiptEvidenceChecked && (!paymentHistoryEvidence || paymentHistoryEvidence.status === 'unavailable' || coverage === 'unavailable');
+    const unavailable = !paymentHistoryEvidence ? receiptEvidenceChecked : paymentHistoryEvidence.status === 'unavailable' || coverage === 'unavailable';
     const partial = paymentHistoryEvidence?.status === 'partial' || coverage === 'partial';
     const complete = paymentHistoryEvidence?.status === 'onchain-indexed'
       && (!Object.hasOwn(paymentHistoryEvidence, 'payoutCoverage') || coverage === 'verified');
-    const state = !receiptEvidenceChecked ? 'loading' : unavailable ? 'unavailable' : partial ? 'partial' : complete ? 'complete' : 'unavailable';
+    const state = !receiptEvidenceChecked && !paymentHistoryEvidence ? 'loading' : unavailable ? 'unavailable' : partial ? 'partial' : complete ? 'complete' : 'unavailable';
     const labels = { loading:'Checking payments', unavailable:'Payment history unavailable', partial:'Partial payment history', complete:'No finalized payments' };
     const messages = { loading:'Checking finalized payment history.', unavailable:'Payment history is temporarily unavailable.', partial:'Verification coverage is incomplete. Verified recipient rows are not available in this response.', complete:'No finalized payout receipts are available yet.' };
     const count = recipients.querySelector('.panel-count');
@@ -217,7 +217,7 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
         const name = document.createElement('strong');
         const xHandle = ['mint-router-settle-mint', 'automatic-x'].includes(payout.source)
           && /^@[A-Za-z0-9_]{1,15}$/.test(payout.xHandle || '') ? payout.xHandle : null;
-        name.textContent = `${({ 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'v3-creator-wallet':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'v3-operations':'Operations & marketing', 'automatic-community':'Community', 'daily-bonus':'Daily bonus', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${xHandle || shortAddress(payout.to)}`;
+        name.textContent = `${({ 'v3-referral':'Referral', 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'v3-creator-wallet':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'v3-operations':'Operations & marketing', 'automatic-community':'Community', 'daily-bonus':'Daily bonus', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${xHandle || shortAddress(payout.to)}`;
         const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer';
         proof.className = 'payment-receipt-link solana-explorer-link';
         proof.innerHTML = icon('solana');

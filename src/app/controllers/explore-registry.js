@@ -1,19 +1,20 @@
+import {createPaymentHistoryLoader} from '../../features/payments/history-loader.js';
 // Dependencies and mutable application state are read live through appState.
 export function createExploreRegistryController(appState) {
+  const loadPaymentHistory = createPaymentHistoryLoader(appState);
   // app-source: 530
   async function loadReceiptEvidence(signal){
     if (appState.receiptEvidenceLoading) return;
     appState.receiptEvidenceLoading = true;
     try {
-      const [result, summary, history] = await Promise.all([
+      const [result, summary] = await Promise.all([
         appState.apiRequest('/api/evidence/receipts', { signal }).catch(() => null),
         appState.apiRequest('/api/analytics/summary', { signal }).catch(() => null),
-        appState.apiRequest('/api/evidence/payment-history', { signal }).catch(() => null),
+        loadPaymentHistory(signal),
       ]);
       signal?.throwIfAborted();
       const data = result?.data;
       appState.receiptEvidence = result?.available === true && data?.cluster === appState.EXPLORE_CLUSTER ? data : null;
-      appState.paymentHistoryEvidence = history?.available === true && history.data?.cluster === appState.EXPLORE_CLUSTER ? history.data : null;
       appState.receiptEvidenceChecked = true;
       appState.analyticsSummary = summary?.available === true && summary.data?.homeFeeAllocations?.cluster === appState.EXPLORE_CLUSTER
         ? summary.data : null;
@@ -119,5 +120,5 @@ export function createExploreRegistryController(appState) {
   }
   // app-source-end
 
-  return { loadReceiptEvidence, updateExploreSortAvailability, refreshRegistryLaunches, renderRegistry };
+  return { loadReceiptEvidence, loadPaymentHistory, updateExploreSortAvailability, refreshRegistryLaunches, renderRegistry };
 }

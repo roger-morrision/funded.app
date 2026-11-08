@@ -7,7 +7,7 @@ import { icon } from '../../../ui-icons.js';
 import { shortAddress } from '../shared/display.js';
 
 export function payoutType(source) {
-  return ({ 'solana-keeper-referral-claim':'referral', 'mint-router-settle-mint':'x',
+  return ({ 'v3-referral':'referral', 'solana-keeper-referral-claim':'referral', 'mint-router-settle-mint':'x',
     'automatic-creator':'creator', 'v3-creator-wallet':'creator',
     'automatic-holder':'holder', 'automatic-operations':'operations', 'v3-operations':'operations',
     'automatic-community':'community', 'daily-bonus':'community', 'automatic-x':'x' })[source] || 'other';
@@ -143,14 +143,14 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   const historyPayouts = Array.isArray(paymentHistoryEvidence?.verifiedPayouts) ? paymentHistoryEvidence.verifiedPayouts : [];
   if (payoutCard) {
     payoutCard.querySelector('span').textContent = 'Finalized payments';
-    payoutCard.querySelector('strong').textContent = paymentHistoryEvidence ? String(historyPayouts.length) : '—';
+    payoutCard.querySelector('strong').textContent = paymentHistoryEvidence && paymentHistoryEvidence.status !== 'unavailable' ? String(historyPayouts.length) : '—';
     const recorded = Number(paymentHistoryEvidence?.checkedAutomatic || 0)
       + Number(paymentHistoryEvidence?.checkedCreator || 0) + Number(paymentHistoryEvidence?.checkedDaily || 0)
-      + Number(paymentHistoryEvidence?.checkedOperations || 0);
+      + Number(paymentHistoryEvidence?.checkedOperations || 0) + Number(paymentHistoryEvidence?.checkedReferral || 0);
     const checkedAt = Date.parse(paymentHistoryEvidence?.generatedAt || '');
     const freshness = Number.isFinite(checkedAt)
       ? ` · checked ${new Date(checkedAt).toISOString().slice(11, 16)} UTC` : '';
-    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked ? 'Checking payment history' : !paymentHistoryEvidence ? 'Payment history unavailable' : recorded ? `${historyPayouts.length}/${recorded} finalized payouts indexed${freshness}` : historyPayouts.length ? `${historyPayouts.length} finalized payouts indexed${freshness}` : 'No finalized payments in available history'}`;
+    payoutCard.querySelector('small').innerHTML = `<b>COUNT</b>${!receiptEvidenceChecked && !paymentHistoryEvidence ? 'Checking payment history' : !paymentHistoryEvidence || paymentHistoryEvidence.status === 'unavailable' ? 'Payment history unavailable' : recorded ? `${historyPayouts.length}/${recorded} finalized payouts indexed${freshness}` : historyPayouts.length ? `${historyPayouts.length} finalized payouts indexed${freshness}` : 'No finalized payments in available history'}`;
   }
   const list = document.querySelector('#payment-list');
   if (!list) return;
@@ -162,11 +162,13 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     to:document.querySelector('#payment-history-to')?.value || '',
   };
   const coverage = paymentHistoryEvidence?.payoutCoverage?.status;
-  const unavailable = receiptEvidenceChecked && (!paymentHistoryEvidence || paymentHistoryEvidence.status === 'unavailable' || coverage === 'unavailable');
+  const unavailable = !paymentHistoryEvidence ? receiptEvidenceChecked : paymentHistoryEvidence.status === 'unavailable' || coverage === 'unavailable';
   const partial = paymentHistoryEvidence?.status === 'partial' || coverage === 'partial';
   const complete = paymentHistoryEvidence?.status === 'onchain-indexed'
     && (!Object.hasOwn(paymentHistoryEvidence, 'payoutCoverage') || coverage === 'verified');
-  const historyState = !receiptEvidenceChecked ? 'loading' : unavailable ? 'unavailable' : partial ? 'partial' : complete ? 'complete' : 'unavailable';
+  const historyState = !receiptEvidenceChecked && !paymentHistoryEvidence ? 'loading' : unavailable ? 'unavailable' : partial ? 'partial' : complete ? 'complete' : 'unavailable';
+  const refresh=document.querySelector('#payment-history-refresh');
+  if(refresh&&!refresh.disabled)refresh.textContent=paymentHistoryEvidence?.refreshFailed?'Retry':'Refresh';
   const emptyMessages = {
     loading:'Checking finalized payout receipts.',
     unavailable:'Payment history is temporarily unavailable.',
@@ -191,7 +193,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const identity = document.createElement('span');
     identity.className = 'payment-history-identity';
     const name = document.createElement('strong');
-    name.textContent = ({ 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
+    name.textContent = ({ 'v3-referral':'Referral reward', 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
       'automatic-creator':'Creator fee', 'v3-creator-wallet':'Creator fee',
       'automatic-holder':'Coin Holder', 'automatic-operations':'Protocol payout', 'v3-operations':'Operations & marketing',
       'automatic-community':'Community payout', 'daily-bonus':'Daily bonus', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
@@ -290,14 +292,16 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
   }
   paginateHistory(list, {label:'Payment history', selector:'.payment-history-row', key:JSON.stringify(filters), pageSize:10});
   const footnote = document.querySelector('#payment-history-footnote');
-  const footnoteMessage = rangeConflict
+  const footnoteMessage = paymentHistoryEvidence?.refreshFailed && historyPayouts.length
+    ? `Showing ${filtered.length} previously verified payments. Refresh failed; retry to check for newer payments.`
+    : rangeConflict
     ? ({ loading:'Waiting for the current payment history check to finish.',
-      unavailable:'Payment history could not be fully checked. Try again shortly.',
+      unavailable:'Check your connection, then choose Retry.',
       partial:'Available history is incomplete.', complete:'Payment history check is complete.' })[historyState]
     : historyPayouts.length
     ? `${filtered.length} of ${historyPayouts.length} confirmed payments${filters.from || filters.to ? ' · dates in UTC' : ''} · fees in details${historyState === 'partial' ? ' · some history is missing' : historyState === 'unavailable' ? ' · coverage unavailable' : historyState === 'loading' ? ' · checking payment history' : ''}`
     : ({ loading:'Waiting for the current payment history check to finish.',
-      unavailable:'Payment history could not be fully checked. Try again shortly.',
+      unavailable:'Check your connection, then choose Retry.',
       partial:'Available history is incomplete. No confirmed payments are available in this response.',
       complete:'No confirmed payments are available.' })[historyState];
   if (footnote && footnote.textContent !== footnoteMessage) footnote.textContent = footnoteMessage;

@@ -56,7 +56,9 @@ export async function v3ReferralPaymentSummary({ state, connection, cluster,
         const identity = `${row.programId}:${proof.withdrawal}`;
         if (!seen.has(identity)) {
           seen.add(identity); paid += BigInt(proof.amount); count++;
-          onVerified({signature:proof.signature,to:proof.recipient,amountLamports:proof.amount});
+          onVerified({signature:proof.signature,source:'v3-referral',to:proof.recipient,mint:row.mint,
+            amountLamports:Number(proof.amount),actualReceivedLamports:Number(proof.amount),
+            feeLamports:proof.feeLamports,feePayer:proof.feePayer,slot:proof.slot,blockTime:proof.blockTime??null});
         }
       } catch { unavailable++; }
     }));

@@ -297,7 +297,7 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 705
-  initializePaymentHistoryControls({ document, renderHistory: () => appState.renderVerifiedReceiptEvidence() });
+  initializePaymentHistoryControls({ document, renderHistory: () => appState.renderVerifiedReceiptEvidence(), refreshHistory: () => appState.loadPaymentHistory() });
   // app-source-end
 
   // app-source: 706
