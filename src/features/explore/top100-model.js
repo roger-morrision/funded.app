@@ -1,11 +1,21 @@
+import {exploreSocialLinks} from '../../../explore-social-links.js';
 import {verifiedPromotionBadge} from '../../../promotion-badge.js';
 import {activeBoostMultiplier,activeBoostPackages} from '../../../boost-offer.js';
 import {withMarketWindow} from '../../../market-intelligence.js';
 
 const number = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+const featuredKeys = [row=>row.boost||0,row=>Number(row.paidListing===true),row=>Number(row.tier==='premier'),row=>Number(row.tier==='pro'),
+  row=>row.capGrowthUsd,row=>row.volumeUsd,row=>row.holderGrowth,row=>row.communityCount,row=>row.socialChannels,row=>row.trades];
 const nonnegative = value => { const n = number(value); return n != null && n >= 0 ? n : null; };
-export function top100Records(assets, {boosts = {}, solUsd = null, policies = [], cluster = 'devnet', now = Date.now()} = {}) {
+export function top100Records(assets, {boosts = {}, solUsd = null, policies = [], community = null, cluster = 'devnet', now = Date.now()} = {}) {
   const rate = number(solUsd), unique = new Map();
+  const fresh=at=>Number.isFinite(at)&&now>=at&&now-at<300000;
+  const communityReady=community?.cluster===cluster&&community.scope==='retained-visible-posts-24h'&&fresh(community.observedAt)&&community.items!=null&&typeof community.items==='object'&&!Array.isArray(community.items);
+  const growthReady = community?.cluster===cluster && community?.growth?.scope==='net-change-24h' && fresh(community.growth.observedAt);
+  const growthDelta = value => {
+    const from=number(value?.from), to=number(value?.to);
+    return value && fresh(to) && from!=null && from<=now-86400000 && now-86400000-from<=600000 ? number(value.delta) : null;
+  };
   const launches = new Map(policies.filter(row => row.onchainVerified === true && row.cluster === cluster).map(row => [row.mint,row]));
   for (const asset of assets) {
     const mint = asset.address || asset.mint;
@@ -23,8 +33,19 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
     const expiries = packs.map(pack => Date.parse(pack.expiresAt));
     const boostNextExpiry = boost > 0 ? expiries.length ? Math.min(...expiries) : Date.parse(boosts[mint].nextExpiry || boosts[mint].expiresAt) : null;
     const boostExpiresAt = boost > 0 ? expiries.length ? Math.max(...expiries) : Date.parse(boosts[mint].expiresAt) : null;
+    const growth=growthReady?community.growth.items?.[mint]:null, posts=communityReady?community.items[mint]:null;
+    const capGrowthUsd=growthDelta(growth?.marketCapUsd), holderDelta=growthDelta(growth?.holders);
+    const holderGrowth=Number.isSafeInteger(holderDelta)?holderDelta:null;
+    const communityCount=communityReady ? posts==null?0:Number.isSafeInteger(posts.total)&&posts.total>=0?posts.total:null : null;
+    const socialChannels=new Set(exploreSocialLinks(asset,policy).filter(link=>{
+      const host=new URL(link.href).hostname.toLowerCase().replace(/^www\./,'');
+      return link.icon==='socialX'?['x.com','twitter.com'].includes(host)
+        :link.icon==='telegram'?['t.me','telegram.me'].includes(host)
+        :link.icon==='discord'?['discord.gg','discord.com','discordapp.com'].includes(host):false;
+    }).map(link=>link.icon)).size;
     const record = {...asset, mint, capUsd, capSol, paidListing, boost, boostNextExpiry, boostExpiresAt,
-      tier:promotion?.tier || (policy ? 'standard' : 'external'), paidPriority:Boolean(promotion) || paidListing,
+      capGrowthUsd,holderGrowth,communityCount,socialChannels,
+      tier:promotion?.tier || (policy ? 'standard' : 'external'), paidPriority:['premier','pro'].includes(promotion?.tier) || paidListing,
       volumeUsd:activityFresh && volume != null && rate > 0 ? volume * rate : null,
       trades:activityFresh ? market.windowTradeCount : null,
       change:activityFresh ? market.windowPriceChangePercent : null,
@@ -37,11 +58,16 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
 }
 
 export function rankTop100(records, {sort = 'featured', query = '', stage = 'all', tier = 'all', minCap = 0, maxAge = 0} = {}) {
-  const metric = row => sort === 'boosted' ? row.boost : sort === 'volume' ? row.volumeUsd : sort === 'trades' ? row.trades : row.capUsd;
+  const metric = row => sort === 'boosted' ? row.boost : sort === 'volume' ? row.volumeUsd : sort === 'trades' ? row.trades : row.capGrowthUsd;
   const ranked = records.filter(row => sort !== 'boosted' || row.boost > 0)
     .filter(row => sort === 'featured' || metric(row) != null)
-    .sort((a,b) => (sort === 'featured' ? (b.boost || 0) - (a.boost || 0) || Number(b.paidPriority === true) - Number(a.paidPriority === true) : 0)
-      || (metric(b) ?? -1) - (metric(a) ?? -1) || (b.capUsd ?? -1) - (a.capUsd ?? -1) || a.mint.localeCompare(b.mint))
+    .sort((a,b) => {
+      if(sort==='featured') {
+        for(const key of featuredKeys){const order=(key(b)??-Infinity)-(key(a)??-Infinity);if(order)return order;}
+        return a.mint.localeCompare(b.mint);
+      }
+      return (metric(b)??-1)-(metric(a)??-1)||(b.capUsd??-1)-(a.capUsd??-1)||a.mint.localeCompare(b.mint);
+    })
     .slice(0,100).map((row,index) => ({...row,rank:index+1}));
   const q = query.trim().toLowerCase();
   return {total:ranked.length, rows:ranked.filter(row => (!q || `${row.name} ${row.symbol} ${row.mint}`.toLowerCase().includes(q))

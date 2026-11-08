@@ -43,7 +43,8 @@ export function createHolderRewardQuoteReader({ connection, env = process.env,
       || !Number.isFinite(Date.parse(solQuote?.fetchedAt))
       || Math.abs(now() - Date.parse(solQuote.fetchedAt)) > 5 * 60_000)
       throw new Error('A fresh SOL and token price quote is unavailable.');
-    return { tokenPriceUsd, solUsd, decimals, source:curve.complete
+    const supply = Number(mintAccount.value?.data?.parsed?.info?.supply) / 10 ** decimals;
+    return { tokenPriceUsd, marketCapUsd:Number.isFinite(supply) && supply >= 0 ? tokenPriceUsd * supply : null, solUsd, decimals, source:curve.complete
       ? 'finalized-PumpSwap-reserves-plus-SOL-USD' : 'finalized-Pump-curve-plus-SOL-USD',
       observedAt:new Date(now()).toISOString() };
   };

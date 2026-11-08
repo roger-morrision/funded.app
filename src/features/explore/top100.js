@@ -9,10 +9,11 @@ export function initializeTop100(appState) {
   root.innerHTML = top100Template;
   const find = selector => root.querySelector(selector), esc = appState.escapeHtml;
   const filters = {sort:'featured', query:'', stage:'all', tier:'all', minCap:0, maxAge:0};
-  let expiryTimer;
+  let expiryTimer, community=null;
   let page = 0, busy = false, checked = false, failure = false, lastRows = '';
   const active = () => appState.requestedPageRoute() === 'top100';
   const money = value => value == null ? '—' : new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2, notation:value >= 10000 ? 'compact' : 'standard'}).format(value);
+  const signed = (value, format = value=>value.toLocaleString()) => value==null?'—':`${value>0?'+':''}${format(value)}`;
   const age = hours => hours == null ? '—' : hours < 1 ? `${Math.floor(hours * 60)}m` : hours < 24 ? `${Math.floor(hours)}h` : `${Math.floor(hours / 24)}d`;
   const remaining = at => {const minutes=Math.max(1,Math.ceil((at-Date.now())/60000));return minutes<60?`${minutes}m`:`${Math.floor(minutes/60)}h ${minutes%60}m`;};
   const boostTime = row => row.boostNextExpiry === row.boostExpiresAt ? `${remaining(row.boostExpiresAt)} left`
@@ -21,7 +22,7 @@ export function initializeTop100(appState) {
     clearTimeout(expiryTimer);
     if (!active()) return;
     const records = top100Records((appState.assets || []).map(asset => ({...asset, launchAgeVerified:Boolean(appState.verifiedLaunchPolicyForMint(asset.address))})),
-      {boosts:appState.verifiedBoosts || {}, solUsd:appState.coinSolUsdPrice, policies:appState.verifiedLaunchPolicies || [], cluster:appState.EXPLORE_CLUSTER});
+      {boosts:appState.verifiedBoosts || {}, solUsd:appState.coinSolUsdPrice, policies:appState.verifiedLaunchPolicies || [], cluster:appState.EXPLORE_CLUSTER, community});
     const nextExpiry=Math.min(...records.map(row=>row.boostNextExpiry).filter(Number.isFinite));
     if(Number.isFinite(nextExpiry))expiryTimer=setTimeout(render,Math.min(nextExpiry-Date.now()+20,2147483647));
     const result = rankTop100(records, filters), pages = Math.max(1,Math.ceil(result.rows.length / 25));
@@ -29,17 +30,19 @@ export function initializeTop100(appState) {
     const priced = records.filter(row => row.capUsd != null).length;
     const coverage = checked && appState.top100DirectoryComplete ? 'Directory checked' : 'Directory coverage incomplete';
     const status = busy ? 'Refreshing verified rankings…' : failure ? 'Refresh unavailable. Showing last loaded data; retry shortly.' : !checked ? 'Loading verified rankings…' : `${coverage} · ${result.rows.length} of ${result.total} ranked tokens · ${records.length - priced} without market cap`;
-    find('[data-top-status]').textContent = status + (checked && !appState.verifiedBoostsAvailable ? ' · Boost data unavailable.' : '');
+    find('[data-top-status]').textContent = status + (checked && !appState.verifiedBoostsAvailable ? ' · Boost data unavailable.' : '')
+      + (checked && !community ? ' · 24h ranking metrics unavailable; retry shortly.' : checked && records.length && !records.some(row=>row.capGrowthUsd!=null||row.holderGrowth!=null) ? ' · 24h growth awaits opening and current snapshots.' : '');
     find('[data-top-refresh]').disabled = busy;
     const rows = result.rows.slice(page * 25, (page + 1) * 25);
     const html = rows.map(row => `<tr${row.boost >= 500 ? ' class="top100-golden"' : ''}>
       <td class="top100-rank">${row.rank}</td><th scope="row"><a class="top100-token" href="/token/${esc(row.mint)}"><span class="top100-logo" data-top-logo="${esc(row.mint)}" aria-hidden="true">${esc((row.symbol || 'T').slice(0,1))}</span><span><strong>${esc(row.name || row.symbol || row.mint)}</strong><small>$${esc(row.symbol || '—')}</small></span></a></th>
       <td><span class="top100-tier">${esc(row.paidListing && row.tier === 'external' ? 'Paid listing' : row.tier.charAt(0).toUpperCase()+row.tier.slice(1))}</span>${filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? `<small class="top100-paid-priority">${row.boost > 0 ? 'Boost priority' : 'Paid priority'}</small>` : ''}</td>
-      <td class="top100-cap">${money(row.capUsd)}</td><td class="top100-volume">${row.volumeUsd != null && row.partial ? '≥' : ''}${money(row.volumeUsd)}</td>
+      <td class="top100-cap">${money(row.capUsd)}</td><td class="${row.capGrowthUsd==null?'':row.capGrowthUsd<0?'top100-negative':'top100-positive'}">${signed(row.capGrowthUsd,money)}</td><td class="top100-volume">${row.volumeUsd != null && row.partial ? '≥' : ''}${money(row.volumeUsd)}</td>
       <td>${row.trades == null ? '—' : `${row.partial ? '≥' : ''}${row.trades.toLocaleString()}`}</td><td class="${row.change == null ? '' : row.change < 0 ? 'top100-negative' : 'top100-positive'}">${row.change == null ? '—' : `${row.change > 0 ? '+' : ''}${row.change.toFixed(2)}%`}</td>
+      <td title="Net change in distinct wallet owners over 24 hours. Requires complete account lists; program-owned vaults are excluded." class="${row.holderGrowth==null?'':row.holderGrowth<0?'top100-negative':'top100-positive'}">${signed(row.holderGrowth)}</td><td title="Visible posts retained by funded.vip in the last 24 hours; calls count once. Older trimmed posts are not included.">${row.communityCount==null?'—':row.communityCount.toLocaleString()}</td><td title="Linked X, Telegram and Discord channels; not follower counts.">${row.socialChannels}</td>
       <td>${age(row.ageHours)}</td><td>${row.stage === 'curve' ? 'On curve' : row.stage === 'migrated' ? 'Migrated' : 'Unverified'}</td>
       <td class="top100-boost">${appState.verifiedBoostsAvailable ? row.boost > 0 ? `${row.boost.toLocaleString()}× <small>Sponsored · ${esc(boostTime(row))}</small>` : '—' : 'Unavailable'}</td>
-      <td><button type="button" class="secondary-button" data-top-boost="${esc(row.mint)}" aria-label="Boost ${esc(row.symbol || row.name || row.mint)}"><span class="boost-leading-icon">${icon('boost')}</span>Boost</button></td></tr>`).join('') || `<tr><td colspan="11" class="top100-empty">${busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : 'No ranked tokens match these filters. Reset filters or browse Explore.'}</td></tr>`;
+      <td><button type="button" class="secondary-button" data-top-boost="${esc(row.mint)}" aria-label="Boost ${esc(row.symbol || row.name || row.mint)}"><span class="boost-leading-icon">${icon('boost')}</span>Boost</button></td></tr>`).join('') || `<tr><td colspan="15" class="top100-empty">${busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : filters.sort === 'market-cap' && !records.some(row=>row.capGrowthUsd!=null) ? '24h market-cap growth is not available yet. Both opening and current valuations are required.' : 'No ranked tokens match these filters. Reset filters or browse Explore.'}</td></tr>`;
     // Keep keyboard focus and loaded logos intact when a refresh changes no rows.
     if (html !== lastRows) {
       const focused = document.activeElement?.dataset?.topBoost;
@@ -59,7 +62,8 @@ export function initializeTop100(appState) {
     if (busy) return;
     busy = true; render();
     try {
-      await Promise.all([appState.loadVerifiedLaunchPolicies(signal), appState.loadVerifiedBoosts(signal), appState.loadOnchainExploreData(signal)]);
+      await Promise.all([appState.loadVerifiedLaunchPolicies(signal), appState.loadVerifiedBoosts(signal), appState.loadOnchainExploreData(signal),
+        appState.apiRequest('/api/top100/metrics',{signal}).then(response=>{community=response?.available?response.data:null;}).catch(()=>{community=null;})]);
       // A route transition may have joined an earlier 40-token Explore request.
       if (active() && !appState.top100FeedChecked) await appState.loadOnchainExploreData(signal);
       signal?.throwIfAborted();
@@ -88,7 +92,7 @@ export function initializeTop100(appState) {
     filters[key] = ['minCap','maxAge'].includes(key) ? Number(event.target.value) : event.target.value;
     page = 0;render();
   });
-  for (const name of ['funded:verified-search-index','funded:rankings-updated']) document.addEventListener(name,render);
+  for (const name of ['funded:verified-search-index','funded:rankings-updated','funded:holders-updated']) document.addEventListener(name,render);
   appState.createRoutePoller({run:refresh, active, intervalMs:60_000});
   if (active()) void refresh();
 }

@@ -1,3 +1,6 @@
+import {createSolUsdQuoteReader} from '../price-quote.mjs';
+import {recordTop100Snapshot} from '../top100-growth.mjs';
+import {createHolderRewardQuoteReader} from '../holder-reward-quote.mjs';
 import {requireSolanaCluster,assertRpcNetwork} from '../../solana-network.js';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { normalizeLargestTokenAccounts, attachVerifiedTokenAccountWallets, normalizeAllTokenAccounts } from '../token-accounts.mjs';
@@ -11,9 +14,11 @@ export function createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster,
   respond, readMarketActivity = readPumpMarketActivity,
   readWalletTrades = readWalletTradeHistory,
+  readRankingQuote = null,
   makeTokenConnection = endpoint => new Connection(endpoint, 'confirmed'),
 }) {
   requireSolanaCluster(solanaCluster);
+  const readRankingSolUsd = createSolUsdQuoteReader();
   const coinMarketCache = new Map();
   const tokenAccountsCache = new Map();
   const tokenAccountsInflight = new Map();
@@ -109,6 +114,10 @@ export function createTokenMarketRoutes({
         const data = { mint: address, cluster: solanaCluster, observedAt: new Date().toISOString(), ...verifiedSample };
         if (tokenAccountsCache.size >= 500) tokenAccountsCache.delete(tokenAccountsCache.keys().next().value);
         tokenAccountsCache.set(address, { at: Date.now(), data });
+        if (data.coverage === 'complete-account-list' && data.accounts.every(row => row.wallet)) {
+          const wallets = new Set(data.accounts.filter(row => PublicKey.isOnCurve(new PublicKey(row.wallet).toBytes())).map(row => row.wallet));
+          await recordTop100Snapshot(store,solanaCluster,address,'holders',wallets.size,Date.parse(data.observedAt)).catch(() => {});
+        }
         return data;
         })().finally(() => { if(tokenAccountsInflight.get(address) === pending) tokenAccountsInflight.delete(address); });
         tokenAccountsInflight.set(address, pending);
@@ -180,6 +189,11 @@ export function createTokenMarketRoutes({
                 && Date.now()-previous.at < 5*60_000) return previous.data;
               const result = { mint: address, cluster: solanaCluster, source: 'confirmed-pump-trade-events', observedAt: new Date().toISOString(), ...metrics };
               await store.writeMarketActivity(address, solanaCluster, result);
+              // Reuse the bounded scan queue; no browser-supplied ranking values.
+              try {
+                const quote = await (readRankingQuote || createHolderRewardQuoteReader({connection,readSolUsd:readRankingSolUsd}))(address);
+                await recordTop100Snapshot(store,solanaCluster,address,'marketCapUsd',quote?.marketCapUsd,Date.parse(quote?.observedAt));
+              } catch { /* Keep growth unavailable when a verified valuation cannot be read. */ }
               if (coinMarketCache.size >= 500) coinMarketCache.delete(coinMarketCache.keys().next().value);
               coinMarketCache.set(address, { at: Date.now(), data:result });
               return result;

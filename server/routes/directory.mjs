@@ -1,3 +1,5 @@
+import {top100Growth} from '../top100-growth.mjs';
+import {top100CommunityCounts} from '../top100-community.mjs';
 import { buildTerminalSignal } from '../../stonk-features.js';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
@@ -16,13 +18,22 @@ export function createDirectoryRoutes({
 }) {
 
   const json = (...args) => { respond(...args); return true; };
-  let metadataReader;
+  let metadataReader, communityCache;
   const readTokenMetadata=mint=>{
     metadataReader ||= createPortfolioMetadataReader({cluster:solanaCluster,connection:new Connection(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
       fetch:(url,init)=>fetch(url,{...init,signal:AbortSignal.timeout(8000)})})});
     return metadataReader(mint);
   };
   return async function handleDirectoryRoutes(req, res, url, requestId) {
+    if (req.method === 'GET' && url.pathname === '/api/top100/metrics') {
+      if (!communityCache || Date.now() - communityCache.at >= 15000) {
+        const at=Date.now();
+        const value=Promise.resolve().then(()=>store.read()).then(state=>({cluster:solanaCluster,...top100CommunityCounts(state.coinChats,at),growth:top100Growth(state.top100Snapshots,solanaCluster,at)}));
+        communityCache={at,value};
+        value.catch(()=>{if(communityCache?.value===value)communityCache=null;});
+      }
+      return json(res,200,await communityCache.value);
+    }
     if (req.method === 'GET' && url.pathname === '/api/home/featured') {
       const state=await store.read(), now=Date.now();
       return json(res,200,{cluster:solanaCluster,checkedAt:new Date(now).toISOString(),windowHours:FEATURED_WINDOW_MS/3600000,
