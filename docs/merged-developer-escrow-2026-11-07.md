@@ -1,5 +1,7 @@
 # Merged router and developer-token escrow
 
+Historical build record. New launches now offer **6h, 12h, 24h or 48h** developer locks (**12h default**); existing locks retain their saved deadlines. See [current behavior](launch-protections.md) and [8 November deployment evidence](developer-lock-periods-2026-11-08.md). The measurements and receipts below describe the original build.
+
 New launches can use the router itself for the 12-hour developer-token escrow. The merged instructions retain the standalone escrow's instruction names, account layout, seed text, transfer checks, fixed beneficiary, exact deadline, 20% supply limit, mint-authority checks and permitted Token-2022 extensions. Token-account setup remains an earlier instruction in the same atomic app transaction.
 
 The standalone escrow source and deployment remain available for existing locks. Its PDAs cannot be signed by the router. The app therefore uses the program ID recorded on each launch for custody reads, release instructions and receipt verification; older records without a program ID use the standalone escrow. Pending release storage is separated by program while preserving old receipt keys. A launch signed before cutover can still be registered against the separately pinned legacy program.

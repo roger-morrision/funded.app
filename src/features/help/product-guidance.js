@@ -6,7 +6,7 @@ import {communityAirdropCopy,communityAirdropGuide} from '../rewards/community-a
 import {guideOutline,outlineHtml,conciseFeePoints} from './guide-outlines.js';
 
 export const rewardActions = () => [
-  ['Creator wallet', 'SOL', 'Rewards → Coin Creator → select coin → Claim creator fees. Sign with the launch creator wallet.', 'Available after the saved wallet share is collected and settled; no 12-hour SOL hold.', '#payments/creator'],
+  ['Creator wallet', 'SOL', 'Rewards → Coin Creator → select coin → Claim creator fees. Sign with the launch creator wallet.', 'Available after the saved wallet share is collected and settled; developer token locks do not delay these SOL earnings.', '#payments/creator'],
   ['Coin holders', 'SOL', 'Automatic; no claim or signature. Check Rewards → Coin Holder and payout history.', 'After each completed UTC hour, with a funded pool, verified holdings, prices and minimums; small pools carry forward.', '#payments/holders'],
   ['X account', 'SOL', 'Rewards → X claims. Sign in with the named X account, link the receiving wallet and claim.', 'Available after the named account’s allocation is funded and verified.', '#payments/x'],
   ['Referral network', 'SOL', 'Referrals → Claim reward. Sign in with the earning wallet and sign the allocation’s claim message.', 'Available after qualifying fees are collected and settled; saved first-, second- and third-level shares apply.', '#referrals'],

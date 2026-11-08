@@ -1,5 +1,7 @@
 # Funded contract and performance review — November 6, 2026
 
+Historical build record. New launches now offer **6h, 12h, 24h or 48h** developer locks (**12h default**); existing locks retain their saved deadlines. See [current behavior](launch-protections.md) and [8 November deployment evidence](developer-lock-periods-2026-11-08.md). The measurements and receipts below describe the original build.
+
 **Release decision: keep Mainnet transactions disabled.** Both Funded-owned programs running on Devnet could be rebuilt byte for byte and exercised in a local Solana VM. The production router configuration, authorities and custody arrangements still require an independent audit. This review used read-only Devnet access and local simulations.
 
 ## Contract scope and reproducibility

@@ -1,6 +1,6 @@
 # Product guide: every page and workflow
 
-Reviewed against workspace source on 5 November 2026. This is source guidance, not a deployment or live transaction acceptance report. Check runtime network, feature gates, saved coin policy and finalized receipts. Devnet test assets have no monetary value.
+Reviewed against workspace source on 5 November 2026; developer lock guidance updated 8 November 2026. This is source guidance, not a deployment or live transaction acceptance report. Check runtime network, feature gates, saved coin policy and finalized receipts. Devnet test assets have no monetary value.
 
 Docs, Questions/FAQ and Help share explanations in `src/features/help/product-guidance.js` and `page-guidance.js`; the full topic catalog is `docs-topics.js`. Help opens a page-relevant answer and links to its guide. Existing topic deep links remain supported.
 
@@ -8,7 +8,7 @@ Docs, Questions/FAQ and Help share explanations in `src/features/help/product-gu
 
 | Page / flow | What to do | Maintained reference |
 | --- | --- | --- |
-| Create a coin | Review identity, costs, reserve, developer lock, package and saved split; sign; verify mint and receipt | [Launch protections](launch-protections.md), [service fees](app-service-fees.md) |
+| Create a coin | Choose a 6h, 12h, 24h or 48h developer lock (12h default); review identity, costs, reserve, package and saved split; sign; verify mint and receipt | [Launch protections](launch-protections.md), [service fees](app-service-fees.md) |
 | Coin detail / trading | Check quote, slippage, fee cap, wallet and network; verify finalized trade; reconcile uncertain sends | In-app `#docs/coin-pages`, `#docs/trading` |
 | Rewards: creator | Open Rewards, select your coin and claim available creator fees manually | [Automation](onchain-automation.md), [collection](creator-fee-collector.md) |
 | Rewards: holders | Check funded pool, finalized eligibility, price coverage and minima; no recipient claim | [Automatic rewards](automatic-rewards.md) |
@@ -62,10 +62,10 @@ Connect the intended wallet in Portfolio to inspect holdings, created coins and 
 
 Route: `#launch`. In-app guide: `#docs/launch-protections`.
 
-funded.vip prevents reuse of a ticker for 12 hours on this app, ignoring capitalization. New launches lock the declared initial developer token purchase for 12 hours on-chain. Creator SOL earnings have no 12-hour hold; normal funding and payout conditions still apply.
+funded.vip prevents reuse of a ticker for 12 hours on this app, ignoring capitalization. New launches lock the declared initial developer token purchase for a selected 6h, 12h, 24h or 48h period on-chain (12h default). Developer token locks do not delay creator SOL earnings; normal funding and payout conditions still apply.
 
-1. The initial developer purchase is capped at 20% of supply. Its lock is part of the creation transaction; a zero developer purchase needs no escrow.
-2. After unlock, use the coin page release action and verify the finalized token transfer. Existing launches are not retroactively locked. Later purchases, other wallets and extra tokens sent to escrow are outside the original locked allocation.
+1. Choose Token lock period beside Developer buy before signing. The initial developer purchase is capped at 20% of supply. Its lock starts at creation and the saved deadline cannot be changed; a zero developer purchase needs no escrow.
+2. After unlock, open your coin from Portfolio, connect the original developer wallet and choose Claim unlocked developer tokens. Sign and verify the finalized transfer. Existing locks retain their saved deadlines; launches without escrow are not retroactively locked. Later purchases, other wallets and extra tokens sent to escrow are outside the original locked allocation.
 3. Ticker protection does not reserve names across Solana. Bundle-wallet signals have bounded coverage and can flag shared funding or timing; they do not prove common ownership or prevent selling.
 4. The lock program is upgradeable. These protections do not guarantee a safe investment or an independent security audit.
 
@@ -75,7 +75,7 @@ Route: `#launch`. In-app guide: `#docs/launch-plans`.
 
 A saved launch plan is a public draft and a return reminder. It does not reserve a mint or ticker, schedule a transaction, or authorize signing. Resume the plan, restore artwork, obtain fresh quotes and review the final launch before approving it.
 
-1. Review identity, package, story, image, creator-directed split, community reserve, initial developer purchase and the full SOL/token budget. Paid promotion packages require the displayed project fields and banner.
+1. Review identity, package, story, image, creator-directed split, community reserve, initial developer purchase, selected lock period and the full SOL/token budget. Paid promotion packages require the displayed project fields and banner.
 2. A launch may require setup before the atomic creation transaction. Network or rent costs from successful setup can remain if creation later fails.
 3. After confirmation, use the completion checklist to inspect the mint, saved policy, reserve status, payments and included agents. Open the mint-specific airdrop link to check eligibility and custody.
 

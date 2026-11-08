@@ -107,7 +107,7 @@ Retired release, audit and planning reports are preserved in Git history and loc
 
 ## Launch protections and service prices
 
-New launches protect a ticker on funded.vip for 12 hours and escrow the declared initial developer token purchase for 12 hours, capped at 20% of supply. Creator SOL earnings have no 12-hour hold. Existing launches, later purchases and other wallets are outside this token lock. See [scope and release](docs/launch-protections.md).
+New launches protect a ticker on funded.vip for 12 hours and escrow the declared initial developer token purchase for a selected **6h, 12h, 24h or 48h** period (**12h default**), capped at 20% of supply. Choose the period beside Developer buy before signing; the deadline is fixed at launch. Existing locks keep their saved deadlines. Zero developer purchases need no escrow; later purchases and other wallets are outside this lock. Developer token locks do not delay creator SOL earnings. See [scope and release](docs/launch-protections.md).
 
 Code defaults are 1% app trading on buys and sells, 0.02 SOL per launch, $150 Pro, $300 Premier and $300 external listing in quoted $FUNDED burns. These are defaults, not locked live quotes. The service-price endpoint and reviewed quote govern; network, rent, Pump/pool costs and purchases are separate. See [service fees](docs/app-service-fees.md).
 

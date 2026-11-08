@@ -6,6 +6,8 @@ The supported launch flow remains **Devnet only**; this does not establish that 
 
 The subsequent deployment and fresh registered launch, escrow, creator payout and PumpSwap migration evidence are in [the November 5 release verification](devnet-release-verification-2026-11-05.md). Earlier incomplete-run statements below are historical and do not describe that later execution.
 
+Developer lock options were subsequently deployed on Devnet: **6h, 12h, 24h and 48h**, with **12h default**. See [current lock behavior](launch-protections.md) and [deployment evidence](developer-lock-periods-2026-11-08.md). Earlier 12-hour receipt examples keep their original deadlines. This does not establish Mainnet readiness.
+
 ## Running read-only staging locally
 
 From the release worktree, run `npm run build:mainnet-preview` and then `npm run start:mainnet-preview`. Open `http://127.0.0.1:4186`. The build uses a separate output directory and fixes the browser to read-only Mainnet with developer wallets disabled. The server binds to loopback and rejects submissions. It serves the bundled protocol split for display.

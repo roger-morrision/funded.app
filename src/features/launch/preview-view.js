@@ -84,7 +84,7 @@ export function updateLaunchPreview(
   if (previewBuy) previewBuy.textContent = buyLabel;
   const lockHelp = document.querySelector('#creator-buy-lock-help');
   if (lockHelp) lockHelp.textContent = creatorBuy.sol > 0
-    ? 'Token lock: '+lockHours+' hours after launch · release in Portfolio.'
+    ? 'Token lock: '+lockHours+' hours after launch · claim on your coin page.'
     : 'Optional buy · tokens lock for '+lockHours+' hours after launch.';
   const buyTokensNode = document.querySelector('#creator-buy-token-amount');
   const buySolNode = document.querySelector('#creator-buy-sol-amount');

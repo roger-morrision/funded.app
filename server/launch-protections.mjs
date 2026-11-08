@@ -13,7 +13,7 @@ export function verifiedLaunchTime(launch) {
 export function newLaunchProtection(proof) {
   const launchedAt = verifiedLaunchTime(proof);
   if (!launchedAt || launchedAt > Date.now() + 60_000)
-    throw conflict('A verified launch timestamp is required for the 12-hour protections.');
+    throw conflict('A verified launch timestamp is required for the 12-hour ticker protection.');
   return { version:2, launchedAt:new Date(launchedAt).toISOString(),
     symbolBlockedUntil:new Date(launchedAt + LAUNCH_PROTECTION_MS).toISOString(),
     creatorFeeUnlockAt:null,

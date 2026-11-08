@@ -3,7 +3,7 @@
 Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
 
 New funded.vip launches record a versioned protection policy using the verified
-Pump creation transaction. Creator SOL earnings have no 12-hour hold, including
+Pump creation transaction. Developer token locks do not delay creator SOL earnings, including
 launches saved under the earlier version-1 fee-hold policy. Normal settlement,
 minimum amounts, authorization and payout scheduling still apply.
 
@@ -22,9 +22,11 @@ minimum amounts, authorization and payout scheduling still apply.
   the launch. PostgreSQL uses the existing advisory lock; the file ledger uses
   its serialized update queue. Registration retries preserve the original policy.
 - New launches escrow the declared initial developer token purchase in the same
-  transaction as creation, purchase and community-reserve funding. The standalone
-  Token-2022 program fixes the beneficiary, amount and Solana clock plus 43,200
-  seconds. There is no early-release instruction. Amounts above 20% of mint supply,
+  transaction as creation, purchase and community-reserve funding. Choose **6h,
+  12h, 24h or 48h** beside Developer buy before signing; **12h is the default**.
+  The merged router fixes the beneficiary, amount and deadline using the Solana
+  clock at launch plus the selected duration. The saved deadline cannot be changed
+  and there is no early-release instruction. Amounts above 20% of mint supply,
   mint/freeze authorities and custody-bypassing extensions are rejected. Only
   MetadataPointer and TokenMetadata mint extensions are accepted.
 - For a developer purchase, the escrow instruction carries an eight-byte trailing
@@ -36,20 +38,49 @@ minimum amounts, authorization and payout scheduling still apply.
   metadata links and image origins remain valid. Packet-size checks keep creation,
   reserve, escrow and service payment atomic.
 - After unlock, a permissionless instruction transfers the original allocation to
-  the developer's associated token account. The coin page offers a claim button.
+  the developer's associated token account. In Portfolio, open the coin, connect
+  the original developer wallet and choose **Claim unlocked developer tokens**.
+  Sign the release in your wallet; reaching the deadline does not itself send tokens.
   Public signatures are saved before broadcast; uncertain sends are reconciled
   without signing again. Finalized failure or expiry with absent historical status
   permits a new attempt. Success requires the exact release instruction, escrow
   state and matching token debits and credits.
-- Program `EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT` requires a pinned complete
-  ProgramData hash in `FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256`. Missing or changed
-  deployments fail closed before launch. It is upgradeable: the deployment
-  authority can change program code. This is not immutable custody or an independent
-  security audit. The existing fee router is unchanged.
+- New Devnet launches use merged router `9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm`.
+  `FUNDED_DEVELOPER_LOCK_PROGRAM_ID` must match `FUNDED_V3_FEE_ROUTER_PROGRAM_ID`;
+  both `FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256` and `FUNDED_V3_PROGRAM_DATA_SHA256`
+  must pin its complete finalized ProgramData hash. The embedded executable
+  commitment must also match. Unsupported periods or unverified deployments stop
+  preparation before a promotion burn or launch signing.
+- The standalone legacy escrow `EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT`
+  still serves its existing 12h locks, pinned separately with
+  `FUNDED_DEVELOPER_LOCK_LEGACY_PROGRAM_DATA_SHA256`. Release uses each launch's
+  recorded program. Existing locks retain their original deadlines.
+- The programs are upgradeable: their deployment authority can change program
+  code. This is not immutable custody or an independent security audit.
 - Existing launches are not retroactively escrowed. Zero developer purchases need
   no escrow. Extra tokens sent to escrow are outside the original allocation and
   cannot be claimed through this instruction. Later purchases and undisclosed
   wallets are outside this lock. It does not guarantee no dumping.
+
+## Lock options and review
+
+| Option | On-chain duration | Selection |
+| --- | ---: | --- |
+| 6h | 21,600 seconds | Optional |
+| 12h | 43,200 seconds | Default |
+| 24h | 86,400 seconds | Optional |
+| 48h | 172,800 seconds | Optional |
+
+The review and mobile signing summary show the chosen duration for a nonzero
+developer buy. Changing it requires a fresh cost review. The signed launch policy
+and recovery record preserve the selection; receipt verification checks the exact
+instruction, allocation and saved duration. A zero developer buy creates no escrow,
+regardless of the selected period. These options do not change ticker protection,
+community-airdrop timing or creator SOL payment conditions.
+
+`GET /api/launch-reserve-config` reports the default `lockSeconds: 43200` and the
+verified `lockPeriodsSeconds: [21600, 43200, 86400, 172800]`. An older deployment
+can support only 12h; the client must not submit an unsupported period.
 
 ## Bundle-wallet signals
 
@@ -70,10 +101,13 @@ The panel displays receipt links, scan limits, incomplete coverage and unknown
 holdings. No indicators in scanned data does not mean bundle-free. This detector
 observes activity; it does not block trading or defeat undisclosed wallets.
 
-Validation: `tests/developer-token-lock.test.mjs`, `tests/bundle-wallet-detection.test.mjs`,
-`tests/launch-protections.test.mjs`, `tests/v3-reward-funding-route.test.mjs`, and
-browser fixtures. The compiled escrow is tested in LiteSVM by
-`contracts/funded-fee-router/programs/developer-token-lock/tests/escrow.rs`, including
-early withdrawal, exact unlock, replay, beneficiary mismatch and unsafe mints.
-Simulated-clock tests do not represent a live 12-hour Devnet wait. Deployment and
-live Devnet receipt evidence must be recorded separately.
+Lock validation: `tests/developer-lock-periods.test.mjs`,
+`tests/merged-escrow.test.mjs` and `tests/app-account-setup.test.mjs`. Compiled merged
+escrow checks live in
+`contracts/funded-fee-router/programs/funded-fee-router/tests/developer_escrow.rs`.
+They cover all four periods, early withdrawal, exact unlock, replay, fixed
+beneficiary, unsafe mints, invalid durations and legacy compatibility.
+Simulated-clock tests do not represent waiting through a live lock period.
+[Devnet deployment evidence](developer-lock-periods-2026-11-08.md) records the
+finalized deposits and exact durations for all four options; early release was
+rejected in simulation. Mainnet availability requires separate verification.

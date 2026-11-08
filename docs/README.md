@@ -1,6 +1,6 @@
 # Documentation index
 
-Start with the [all-page product guide](product-guide.md) for current features, recipient actions and recovery flows. In-app Docs, Questions and Help share the same source guidance. Source review date: 5 November 2026; runtime availability must be checked separately.
+Start with the [all-page product guide](product-guide.md) for current features, recipient actions and recovery flows. In-app Docs, Questions and Help share the same source guidance. Source review date: 5 November 2026; developer lock guidance updated 8 November 2026; runtime availability must be checked separately.
 
 ## Maintained product and operator references
 
@@ -16,7 +16,7 @@ Start with the [all-page product guide](product-guide.md) for current features, 
 - [Daily bonus and creator-fee allocation policy](daily-bonus-policy.md)
 - [Devnet QA buyback minimum](devnet-qa-minimums.md)
 - [Devnet wallet roles](devnet-wallet-role-separation.md)
-- [Launch protections](launch-protections.md)
+- [Launch protections and developer lock options: 6h, 12h, 24h, 48h](launch-protections.md)
 - [Persistent left navigation](left-navigation.md)
 - [Mainnet launch readiness](mainnet-launch-readiness.md)
 - [Mainnet preparation and verified Devnet launch, 8 November 2026](mainnet-preparation-2026-11-08.md)
@@ -42,6 +42,7 @@ Start with the [all-page product guide](product-guide.md) for current features, 
 
 These records preserve their original scope. Their build IDs, counts, activation statements and receipts are not current deployment guarantees. Future designs are not enabled features.
 
+- [Selectable developer locks: Devnet deployment and verification, 8 November 2026](developer-lock-periods-2026-11-08.md)
 - [Admin follow-up review - 2 November 2026](admin-followup-review-2026-11-02.md)
 - [Admin review — 1 November 2026](admin-review-2026-11-01.md)
 - [Devnet automation delivery status — 2026-10-31](automation-devnet-status-2026-10-31.md)

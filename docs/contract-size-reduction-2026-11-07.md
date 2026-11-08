@@ -1,5 +1,7 @@
 # Contract account setup moved to app services
 
+Historical build record. New launches now offer **6h, 12h, 24h or 48h** developer locks (**12h default**); existing locks retain their saved deadlines. See [current behavior](launch-protections.md) and [8 November deployment evidence](developer-lock-periods-2026-11-08.md). The measurements and receipts below describe the original build.
+
 This change moves associated token account (ATA) creation out of the developer-token escrow and both community-drop opening handlers. The app submits idempotent ATA creation immediately before the custody instruction in the same transaction. Failure rolls back both instructions. This is a local build and VM verification; no program has been deployed by this change.
 
 The escrow still checks the canonical vault, mint, token program, creator, unsafe mint extensions, delegates, close authority, exact transfer deltas, 20% supply cap, 12-hour deadline, and single release. Community drops retain snapshot authorization, canonical accounts, reserve accounting, Merkle proofs, claim replay protection, expiry, and remainder destinations. Pre-created community vaults must be empty and have neither a delegate nor a close authority. Program-owned state creation remains on-chain because it requires PDA signing.

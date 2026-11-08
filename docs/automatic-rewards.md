@@ -17,7 +17,7 @@ The [agency policy](marketing-agency-policy.md#approved-rules) separates policy 
 | Daily bonus | SOL | Automatic; no claim or recipient signature | Completed UTC day, verified rankings and exact source funding |
 | Community airdrop | Launched coin tokens | Automatic at migration after verification; no recipient claim or signature | Funded reserve; exact migration-time $FUNDED holdings; proportional allocation and finalized token transfer |
 
-Creator SOL earnings have no 12-hour hold. The separate [developer token lock](launch-protections.md) applies to the declared initial token purchase. Read [on-chain automation](onchain-automation.md) for route gates and [all-page guidance](product-guide.md) for recipient workflows.
+Developer token locks do not delay creator SOL earnings. The separate [developer token lock](launch-protections.md) applies to the declared initial token purchase for the selected 6h, 12h, 24h or 48h period (12h default). Existing locks keep their saved deadlines. Read [on-chain automation](onchain-automation.md) for route gates and [all-page guidance](product-guide.md) for recipient workflows.
 
 ### Holder cadence and conditions
 
