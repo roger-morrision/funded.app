@@ -21,7 +21,7 @@ export function createAnalyticsController(appState) {
 
   // app-source: 438
   function renderHomeKpiDashboard(verified = appState.assets){
-    return appState.renderHomeKpiDashboardView(verified, { assets: appState.assets, exploreUpdatedAt: appState.exploreUpdatedAt, coinSolUsdPrice: appState.coinSolUsdPrice, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, analyticsSummary: appState.analyticsSummary, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, receiptEvidence: appState.receiptEvidence, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, setHomeDashboardMetric: appState.setHomeDashboardMetric, homeFeeAllocations: appState.homeFeeAllocations, currentCommunityClaimSummary: appState.currentCommunityClaimSummary, renderFundedTokenLanding: appState.renderFundedTokenLanding });
+    return appState.renderHomeKpiDashboardView(verified, { assets: appState.assets, exploreUpdatedAt: appState.exploreUpdatedAt, coinSolUsdPrice: appState.coinSolUsdPrice, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, analyticsSummary: appState.analyticsSummary, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, receiptEvidence: appState.receiptEvidence, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, fundedBuyRoute: appState.fundedBuyRoute }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, setHomeDashboardMetric: appState.setHomeDashboardMetric, homeFeeAllocations: appState.homeFeeAllocations, currentCommunityClaimSummary: appState.currentCommunityClaimSummary, renderFundedTokenLanding: appState.renderFundedTokenLanding });
   }
   // app-source-end
 

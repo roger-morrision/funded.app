@@ -1,8 +1,9 @@
+import {recoverPublicRead} from './public-read-recovery.js';
 // Share simultaneous public reads across independently mounted page modules.
 // No response cache: quotes, refreshes and post-transaction reads stay fresh.
 const publicPaths = /^\/api\/(?:launches|token-config|listings(?:\/config)?|pump\/explore|analytics\/summary|airdrops\/reserves|buyback\/status|rewards\/(?:automatic|experience)|x-fee\/status|evidence\/(?:receipts|payment-history)|tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/(?:token-accounts|market-activity|fee-activity))$/;
 
-export function createPublicReadFetch(transport = (...args) => fetch(...args)) {
+export function createPublicReadFetch(transport = (...args) => fetch(...args), recoveryOptions) {
   const flights = new Map();
   return function read(input, options = {}) {
     const url = new URL(input, globalThis.location?.origin || 'https://funded.invalid');
@@ -18,13 +19,8 @@ export function createPublicReadFetch(transport = (...args) => fetch(...args)) {
     if (!entry) {
       const controller = new AbortController();
       entry = { controller, users:0 };
-      entry.promise = Promise.resolve().then(async () => {
-        const response = await transport(input, {...options, cache:'no-store', signal:controller.signal});
-        // Retain subscriber cancellation until the whole JSON body arrives.
-        const bytes = await response.arrayBuffer();
-        return new Response([204,205,304].includes(response.status) ? null : bytes,
-          {status:response.status, statusText:response.statusText, headers:response.headers});
-      })
+      entry.promise = Promise.resolve().then(() => recoverPublicRead(transport, input,
+        {...options, cache:'no-store', signal:controller.signal}, recoveryOptions))
         .finally(() => { if (flights.get(key) === entry) flights.delete(key); });
       flights.set(key, entry);
     }

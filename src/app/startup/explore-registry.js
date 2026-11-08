@@ -11,7 +11,6 @@ export function initializeExploreRegistry(appState) {
 
   // app-source: 533
   appState.loadReceiptEvidence();
-  window.addEventListener('online', () => { if(appState.requestedPageRoute()==='payments') void appState.loadPaymentHistory(); });
   // app-source-end
 
   // app-source: 534

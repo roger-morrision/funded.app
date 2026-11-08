@@ -45,7 +45,7 @@ export async function readCoinDisplaySnapshot({connection,mint,
   }
   // Match the parsed mint shape already consumed by the detail controller.
   return {curve,pool,mintInfo:{value:{owner:mintInfo.owner,data:{parsed:{info:{
-    decimals:parsed.decimals,supply:parsed.supply.toString(),
+    isInitialized:parsed.isInitialized,decimals:parsed.decimals,supply:parsed.supply.toString(),
     mintAuthority:parsed.mintAuthority?.toBase58() ?? null,
     freezeAuthority:parsed.freezeAuthority?.toBase58() ?? null,
   }}}}},slot};

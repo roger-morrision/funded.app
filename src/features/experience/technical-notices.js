@@ -43,14 +43,14 @@ export function classifyTechnicalText(text, { valueCell = false } = {}) {
   return NETWORK.test(value) ? 'network' : 'verification';
 }
 
-// Missing read-only data uses a dash. Transaction reviews and actionable errors
-// retain their original wording; no technical notification or device preference.
+// Use a dash only in numeric value cells. Keep explanations and recovery guidance
+// so an unavailable source is distinguishable from a genuine empty result.
 export function mountTechnicalNotices({document=globalThis.document,root=document?.querySelector('#main-content')}={}){
   if(!document||!root)return null;
   const view=document.defaultView;
   const excluded=SKIP+', #recovery-inbox, #community .section-state, #wallet-detail-content .wallet-detail-empty, [data-wallet-bonus-coverage], [data-agency-history], [data-agency-status], #wallet-detail-content .wallet-section-state, [data-flow-status], [data-flow-rows], [data-flow-empty], [data-flow-count], [data-flow-scope], [data-coin-trade-results], #coin-chat-post-result, #callouts-status, #creator-directory-status, [data-bonus-status], [data-bonus-history-status], #payment-history-footnote, [data-auto-status], #coin-description, .creator-reward-name, .creator-claim-heading a, .coin-chart-status, #coin-activity-list, [data-watchlist-status], #portfolio-holdings-status, #portfolio-trade-rows, #funded-buy-status, #funded-burn-status, form, [data-user-content], .callout-text, .coin-chat-messages, .guidance-outline, .guidance-points, .help-topics-answer';
   const clean=element=>{
-    if(!element?.matches?.(CANDIDATES)||!plainLine(element)||element.closest(excluded))return;
+    if(!element?.matches?.(VALUE_CELLS)||!plainLine(element)||element.closest(excluded+', [role="status"], [aria-live]'))return;
     if(isQuietDataGap(element.textContent)&&element.textContent!=='-')element.textContent='-';
   };
   const scan=()=>{for(const element of root.querySelectorAll(CANDIDATES))clean(element);};

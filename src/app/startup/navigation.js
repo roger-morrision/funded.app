@@ -225,7 +225,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 883
-  if (['buybacks', 'paid'].includes(appState.requestedPageRoute())) void appState.refreshFundedBuyRoute();
+  if (['overview', 'buybacks', 'paid'].includes(appState.requestedPageRoute())) void appState.refreshFundedBuyRoute();
   // app-source-end
 
   // app-source: 884
@@ -234,7 +234,7 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 885
-  appState.createRoutePoller({ run: signal => appState.refreshFundedBuyRoute(signal), active: () => !appState.fundedBuyBusy && ['buybacks', 'paid'].includes(appState.requestedPageRoute()), intervalMs: 60_000 });
+  appState.createRoutePoller({ run: signal => appState.refreshFundedBuyRoute(signal), active: () => !appState.fundedBuyBusy && ['overview', 'buybacks', 'paid'].includes(appState.requestedPageRoute()), intervalMs: 60_000 });
   // app-source-end
 
   // app-source: 886

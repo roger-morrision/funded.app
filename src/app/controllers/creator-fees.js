@@ -15,7 +15,7 @@ export function createCreatorFeesController(appState) {
 
   // app-source: 905
   function renderCoinSummary(){
-    return appState.renderCoinSummaryView({ coinSummaryLaunch: appState.coinSummaryLaunch, coinSummaryLedgerMint: appState.coinSummaryLedgerMint, currentCoinFeeOverview: appState.currentCoinFeeOverview, coinMarketActivity: appState.coinMarketActivity, coinSolUsdPrice: appState.coinSolUsdPrice, coinSolUsdValues: appState.coinSolUsdValues, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { getCoinMintAddress: appState.getCoinMintAddress });
+    return appState.renderCoinSummaryView({ paymentHistoryEvidence: appState.paymentHistoryEvidence, coinSummaryLaunch: appState.coinSummaryLaunch, coinSummaryLedgerMint: appState.coinSummaryLedgerMint, currentCoinFeeOverview: appState.currentCoinFeeOverview, coinMarketActivity: appState.coinMarketActivity, coinSolUsdPrice: appState.coinSolUsdPrice, coinSolUsdValues: appState.coinSolUsdValues, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, { getCoinMintAddress: appState.getCoinMintAddress });
   }
   // app-source-end
 

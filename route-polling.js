@@ -30,7 +30,8 @@ export function createRoutePoller({ run, active, intervalMs, document = globalTh
   }
   const suspend = () => { suspended = true; clearTimeout(timer); controller?.abort(); };
   const resume = () => { suspended = false; changed(); };
-  const events = [['visibilitychange', changed, document], ['hashchange', changed, window], ['popstate', changed, window], ['funded:route-change', changed, window], ['pagehide', suspend, window], ['pageshow', resume, window]];
+  const reconnected = () => { failures = 0; if (running && eligible()) refreshPending = true; else changed(); };
+  const events = [['visibilitychange', changed, document], ['hashchange', changed, window], ['popstate', changed, window], ['funded:route-change', changed, window], ['pagehide', suspend, window], ['pageshow', resume, window], ['online', reconnected, window]];
   for (const [event, handler, target] of events) target.addEventListener(event, handler);
   function stop() {
     stopped = true;

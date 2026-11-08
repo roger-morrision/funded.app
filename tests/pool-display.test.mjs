@@ -9,6 +9,7 @@ import BN from 'bn.js';
 import { canonicalPumpPoolPda, pumpPoolAuthorityPda, PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { readCoinDisplaySnapshot } from '../coin-display-snapshot.js';
 import { renderEarlyMarketPrice } from '../src/features/coin/early-market-price.js';
+import {tokenBurnSummary} from '../src/features/coin/burn-summary-model.js';
 
 function fixture(canonical=false,program=TOKEN_2022_PROGRAM_ID) {
   const mintKey=Keypair.generate().publicKey,creator=canonical?pumpPoolAuthorityPda(mintKey):Keypair.generate().publicKey;
@@ -37,7 +38,7 @@ function atomicFixture(program=TOKEN_2022_PROGRAM_ID) {
   const f=fixture(true,program),curveInfo={owner:PUMP_PROGRAM_ID,data:Buffer.alloc(1)};
   const expectedBase=String(f.pool.poolBaseTokenAccount);
   assert.equal(String(f.poolKey),String(canonicalPumpPoolPda(f.mintKey)));
-  const curve={complete:true,virtualTokenReserves:new BN(1000000000),virtualQuoteReserves:new BN(2000000000),
+  const curve={complete:true,tokenTotalSupply:new BN(2000000000),virtualTokenReserves:new BN(1000000000),virtualQuoteReserves:new BN(2000000000),
     realTokenReserves:new BN(1000000000),realQuoteReserves:new BN(1000000000),quoteMint:NATIVE_MINT};
   let calls=0;
   const connection={getMultipleAccountsInfoAndContext:async(keys,commitment)=>{
@@ -55,6 +56,10 @@ test('atomic price snapshot verifies either token program in one confirmed RPC w
     const f=atomicFixture(program),snapshot=await readCoinDisplaySnapshot(f);
     assert.equal(f.calls(),1);assert.equal(snapshot.slot,456);assert.equal(snapshot.pool.slot,456);
     assert.equal(snapshot.pool.spotPriceSol,0.002);assert.equal(snapshot.mintInfo.value.data.parsed.info.supply,'1000000000');
+    const burn=tokenBurnSummary({mint:String(f.mint),parsedMint:snapshot.mintInfo.value.data.parsed.info,
+      curve:snapshot.curve,tokenProgram:String(program)});
+    assert.equal(burn.status,'ready');
+    assert.equal(burn.burnedBaseUnits,(BigInt(snapshot.curve.tokenTotalSupplyBaseUnits)-1000000000n).toString());
   }
 });
 

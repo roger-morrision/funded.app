@@ -2,9 +2,10 @@ import { communityClaimUnit } from '../../../community-claim-summary.js';
 import { formatDashboardUsd, formatSmallDashboardUsd, formatDashboardQuantity } from '../shared/display.js';
 import { renderHomeProtocolFeeRoute } from './protocol-fee-route.js';
 import { platformVolume24h } from '../shared/platform-volume.js';
+import {fundedSpotUsd} from '../funded/spot-price.js';
 
 // Presentation only: callers own state, requests, and transaction lifecycles.
-export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdatedAt, coinSolUsdPrice, verifiedLaunchPoliciesStatus, analyticsSummary, EXPLORE_CLUSTER, receiptEvidence, PROTOCOL_FUNDED_MINT }, { verifiedLaunchPolicyForMint, setHomeDashboardMetric, homeFeeAllocations, currentCommunityClaimSummary, renderFundedTokenLanding, document = globalThis.document } = {}){
+export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdatedAt, coinSolUsdPrice, verifiedLaunchPoliciesStatus, analyticsSummary, EXPLORE_CLUSTER, receiptEvidence, PROTOCOL_FUNDED_MINT, fundedBuyRoute }, { verifiedLaunchPolicyForMint, setHomeDashboardMetric, homeFeeAllocations, currentCommunityClaimSummary, renderFundedTokenLanding, document = globalThis.document } = {}){
   // A direct token URL does not load the Explore index until the visitor
   // returns to a workspace route. Keep the HTML loading state in that case;
   // an empty pre-fetch array is not evidence that there are zero launches.
@@ -103,9 +104,7 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
   const burnedTokens = burnSummaryReady ? Number(allocation.burnedTokens) : NaN;
   const burnCount = burnSummaryReady ? Number(allocation.verifiedBurnCount || 0) : 0;
   const fundedAsset = records.find(item => item.address === PROTOCOL_FUNDED_MINT);
-  const fundedUsdPrice = Number(fundedAsset?.priceUsd) > 0
-    ? Number(fundedAsset.priceUsd)
-    : Number(fundedAsset?.curvePriceSol) > 0 && solQuoteReady ? Number(fundedAsset.curvePriceSol) * coinSolUsdPrice : null;
+  const fundedUsdPrice = fundedSpotUsd({mint:PROTOCOL_FUNDED_MINT, route:fundedBuyRoute, asset:fundedAsset, solUsd:coinSolUsdPrice});
   const burnUsdAvailable = burnSummaryReady && (burnedTokens === 0 || Number.isFinite(fundedUsdPrice));
   setHomeDashboardMetric('burn', burnSummaryReady ? formatDashboardQuantity(burnedTokens) : '—', !burnSummaryReady
     ? 'Burn receipts unavailable; amount not verified'

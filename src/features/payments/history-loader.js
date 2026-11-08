@@ -21,7 +21,10 @@ export function createPaymentHistoryLoader(appState, {timeoutMs = 20_000} = {}) 
           : {cluster:appState.EXPLORE_CLUSTER, status:'unavailable', verifiedPayouts:[], refreshFailed:true};
       } finally {
         pending = null;
-        if (!signal?.aborted) appState.renderVerifiedReceiptEvidence();
+        if (!signal?.aborted) {
+          appState.renderVerifiedReceiptEvidence();
+          appState.renderCoinSummary?.();
+        }
       }
     });
     return pending;

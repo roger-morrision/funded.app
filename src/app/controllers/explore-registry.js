@@ -6,24 +6,36 @@ export function createExploreRegistryController(appState) {
   async function loadReceiptEvidence(signal){
     if (appState.receiptEvidenceLoading) return;
     appState.receiptEvidenceLoading = true;
-    try {
-      const [result, summary] = await Promise.all([
-        appState.apiRequest('/api/evidence/receipts', { signal }).catch(() => null),
-        appState.apiRequest('/api/analytics/summary', { signal }).catch(() => null),
-        loadPaymentHistory(signal),
-      ]);
-      signal?.throwIfAborted();
-      const data = result?.data;
-      appState.receiptEvidence = result?.available === true && data?.cluster === appState.EXPLORE_CLUSTER ? data : null;
-      appState.receiptEvidenceChecked = true;
-      appState.analyticsSummary = summary?.available === true && summary.data?.homeFeeAllocations?.cluster === appState.EXPLORE_CLUSTER
-        ? summary.data : null;
-      appState.homeFeeAllocations = summary?.available === true && summary.data?.homeFeeAllocations?.cluster === appState.EXPLORE_CLUSTER
-        ? summary.data.homeFeeAllocations : null;
+    const cluster = appState.EXPLORE_CLUSTER;
+    const timeout = AbortSignal.timeout(20_000);
+    const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
+    const current = () => !signal?.aborted && appState.EXPLORE_CLUSTER === cluster;
+    const render = () => {
       appState.renderExplorePayoutStats();
       appState.renderOnchainReportState(appState.assets);
       appState.renderHomeKpiDashboard(appState.assets);
-      globalThis.document?.dispatchEvent?.(new Event('funded:analytics-summary'));
+    };
+    try {
+      // Publish each source as it arrives. A slow collection scan or payment
+      // history must not hold back Home and Explore metrics from analytics.
+      await Promise.all([
+        appState.apiRequest('/api/evidence/receipts', {signal:requestSignal}).catch(() => null).then(result => {
+          if (!current()) return;
+          appState.receiptEvidence = result?.available === true && result.data?.cluster === cluster ? result.data : null;
+          appState.receiptEvidenceChecked = true;
+          render();
+        }),
+        appState.apiRequest('/api/analytics/summary', {signal:requestSignal}).catch(() => null).then(summary => {
+          if (!current()) return;
+          const data = summary?.available === true && summary.data?.cluster === cluster
+            && summary.data?.homeFeeAllocations?.cluster === cluster ? summary.data : null;
+          appState.analyticsSummary = data;
+          appState.homeFeeAllocations = data?.homeFeeAllocations || null;
+          render();
+          globalThis.document?.dispatchEvent?.(new Event('funded:analytics-summary'));
+        }),
+        loadPaymentHistory(signal),
+      ]);
     } finally { appState.receiptEvidenceLoading = false; }
   }
   // app-source-end

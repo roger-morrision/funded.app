@@ -1,3 +1,4 @@
+import {coinReferralSummary} from './src/features/coin/referral-summary.js';
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
 function solFromLamports(value) {
@@ -45,7 +46,7 @@ function card(id, label, icon, unit, amount, state, note) {
   return { id, label, icon, unit, amount, state, note };
 }
 
-export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, market, solUsd, tokenSpotSol }) {
+export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, market, solUsd, tokenSpotSol, paymentHistoryEvidence }) {
   if (!mint || launch?.mint !== mint || launch.cluster !== cluster || launch.onchainVerified !== true) {
     return { visible: false, cards: [] };
   }
@@ -86,9 +87,14 @@ export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, 
   const referralReceipts = new Set(referralRows
     .filter(row => (solFromLamports(row.confirmedPaidLamports) || 0) > 0)
     .flatMap(row => row.payoutSignatures || [])).size;
-  cards.push(feeCard('referrals', 'Referral rewards paid', '♧', v3 ? null : paidLamports,
-    `${referralReceipts} confirmed payment${referralReceipts === 1 ? '' : 's'}`,
-    v3 ? 'See Rewards for verified referral payouts' : 'Verified amount unavailable'));
+  const referral = coinReferralSummary(paymentHistoryEvidence, mint, cluster);
+  const usesV3 = launch.pumpFeeRoute?.scope === 'per-mint-v3' || Boolean(v3);
+  const referralAmount = toUsd(solFromLamports(usesV3 ? referral.amountLamports : paidLamports), solUsd);
+  const referralCount = usesV3 ? referral.count : referralReceipts;
+  cards.push(card('referrals', 'Referral rewards paid', '♧', 'USD', referralAmount,
+    referralAmount == null ? 'unavailable' : usesV3 && referral.partial ? 'partial' : referralAmount > 0 ? 'available' : 'empty',
+    referralAmount == null ? 'Verified referral payment history or current SOL price unavailable'
+      : `${referralCount} confirmed payment${referralCount === 1 ? '' : 's'}${usesV3 && referral.partial ? ' · partial history; last verified receipts' : ' · available verified history'}`));
 
   const reserved = Number(launch.communityAirdrop?.reservedTokens);
   if (Number.isFinite(reserved) && reserved > 0) {

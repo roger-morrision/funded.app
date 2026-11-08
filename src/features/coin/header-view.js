@@ -54,6 +54,7 @@ export function renderCoinSummary(
     coinSolUsdPrice,
     coinSolUsdValues,
     EXPLORE_CLUSTER,
+    paymentHistoryEvidence,
   },
   {
     getCoinMintAddress,
@@ -67,6 +68,7 @@ export function renderCoinSummary(
     mint:getCoinMintAddress(), cluster:EXPLORE_CLUSTER, launch:coinSummaryLaunch,
     ledgerMint:coinSummaryLedgerMint, overview:currentCoinFeeOverview,
     market:coinMarketActivity, solUsd:coinSolUsdPrice, tokenSpotSol:coinSolUsdValues.spot,
+    paymentHistoryEvidence,
   });
   root.hidden = !summary.visible;
   if (!summary.visible) { grid.replaceChildren(); return; }

@@ -55,6 +55,7 @@ export function createFundedTradingController(appState) {
       appState.fundedBuyRoute = { status:'ready', snapshot, reason:null };
       appState.renderFundedBuyControl(`Verified Solana pool ${snapshot.pool.slice(0, 6)}…${snapshot.pool.slice(-4)} · ${snapshot.quoteReservesSol.toFixed(3)} SOL liquidity.`);
       appState.renderFundedTokenLanding();
+      appState.renderHomeKpiDashboard();
       if (globalThis.document?.querySelector('#funded-buy-amount')) buyQuotes.invalidate();
     } catch (error) {
       signal?.throwIfAborted();
@@ -64,6 +65,7 @@ export function createFundedTradingController(appState) {
       appState.fundedBuyRoute = { status:'unavailable', snapshot:null, reason };
       appState.renderFundedBuyControl();
       appState.renderFundedTokenLanding();
+      appState.renderHomeKpiDashboard();
     }
   }
   // app-source-end
