@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "cluster": "mainnet-beta",
+  "status": "awaiting-production-identity-and-independent-review",
+  "programId": null,
+  "upgradeAuthority": null,
+  "programDataSha256": null,
+  "sourceRevision": null,
+  "binary": {"bytes": null, "sha256": null},
+  "independentReview": {"reviewer": null, "reference": null, "sourceRevision": null, "binarySha256": null},
+  "developerLockPeriodsSeconds": [21600, 43200, 86400, 172800]
+}

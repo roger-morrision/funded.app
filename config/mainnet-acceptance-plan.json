@@ -3,6 +3,7 @@
   "status": "blocked-awaiting-production-inventory-and-review",
   "cluster": "mainnet-beta",
   "mainnetActivationAuthorized": false,
+  "upgradeable": true,
   "releaseRevision": null,
   "programId": null,
   "programDataSha256": null,
@@ -13,6 +14,7 @@
   "independentReviewReference": null,
   "independentReviewer": null,
   "requiredCases": [
+    {"id":"admin-operations-withdrawal","proof":"Allowlisted admin wallet sign-in and single-use email code; exact Operations treasury debit, fee and fixed admin credit; persistent pending intent and finalized audit receipt; destination tampering and duplicate submission rejected."},
     {"id":"launch-standard","proof":"Finalized creation, immutable fee owner and shares, exact community reserve, developer allocation and escrow deadline; registered receipt matches chain."},
     {"id":"launch-promotion","proof":"Reviewed FUNDED burn and exact balance/supply reductions finalize before creation; cancelled creation can recover without a second burn."},
     {"id":"buy-and-sell","proof":"Fresh selected-network quote, slippage and fee caps, finalized token/SOL deltas, trade history and trading fee recipient."},

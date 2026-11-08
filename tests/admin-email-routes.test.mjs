@@ -50,7 +50,7 @@ test('real HTTP admin handlers require wallet signature plus exact email proof b
     const challenge=await login();
     assert.equal((await request('/api/admin/session',{wallet:signer.publicKey.toBase58(),nonce:challenge.nonce,signature:'bad'})).status,401);
     assert.equal((await request('/api/admin/service-fees')).status,200);
-    const paths=['boost-prices','service-fees','fee-policy','withdrawals/prepare','withdrawals/verify','withdrawals/reconcile',
+    const paths=['boost-prices','service-fees','fee-policy','withdrawals/prepare','withdrawals/submit','withdrawals/verify','withdrawals/reconcile',
       'agency-rules','agency-fee-policy','daily-bonus/snapshot','daily-bonus/review','daily-bonus/reconcile',
       'v3-allocations/review','v3-allocations/approve','v3-allocations/transfer','x-posts/review','x-posts/pause','product-issues/'+'a'.repeat(32),'future-feature'];
     for(const path of paths)assert.equal((await request('/api/admin/'+path,{})).status,403,path);

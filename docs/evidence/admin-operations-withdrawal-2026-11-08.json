@@ -1,0 +1,33 @@
+{
+  "cluster": "devnet",
+  "signature": "5uYEPyFkw3Wnrp5YfwYpPwuD6Knn94aYpogkNMwhFpK63oUrdnMR2pjjpHwV9F77BKRaTLeEGfoYSg6ugJanuKms",
+  "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+  "destination": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+  "amountLamports": 3748,
+  "feeLamports": 5000,
+  "sourceDebitLamports": 8748,
+  "recipientCreditLamports": 3748,
+  "slot": 519917282,
+  "finalized": true,
+  "balanceDeltaVerified": true,
+  "priorPayout": {
+    "signature": "3bqCrXgN7WCYyBsvCUxkXvEs8EM9hLLASNBFZS4Mqsxnqff1bJrPnGcbWH49MyNEFuLAdw3AnpyWmp7K7SxDcvHZ",
+    "slot": 519241615,
+    "creditedLamports": 3748
+  },
+  "auditReceipt": {
+    "action": "wallet-withdrawal",
+    "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+    "destination": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+    "amountLamports": "3748",
+    "signature": "5uYEPyFkw3Wnrp5YfwYpPwuD6Knn94aYpogkNMwhFpK63oUrdnMR2pjjpHwV9F77BKRaTLeEGfoYSg6ugJanuKms",
+    "wallet": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+    "slot": 519917282,
+    "at": "2026-11-08T05:36:23.808Z",
+    "finalized": true,
+    "balanceDeltaVerified": true
+  },
+  "releaseRevision": "d16ae8a8ed56d505a10ed3597a2b8ba020abafaf",
+  "verificationScope": "Live Devnet API, wallet-signed admin login, two user-supplied email codes, finalized transaction and exact balance deltas",
+  "walletExtensionUi": "unavailable: browser automation profile already in use"
+}

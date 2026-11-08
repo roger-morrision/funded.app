@@ -5,11 +5,11 @@ request rechecks that allowlist and the session expiry. A new sign-in for the
 same wallet revokes its previous session and pending email codes. The existing
 Devnet-only admin restriction and Mainnet write protections remain in force.
 
-All non-read admin requests pass through a central email gate before individual
+All non-read admin requests pass through a central authorization gate before individual
 handlers, including fees, withdrawal preparation/receipt recording, issue
 updates, agency rules, X reviews, Daily bonus and legacy allocation recovery.
 Login challenge/session creation, logout and the email-code request itself are
-the only exceptions. Code requests require an already signed-in admin session.
+the authentication exceptions. Code requests require an already signed-in admin session.
 All write methods require the configured same origin and reject query strings.
 The recovery panel's transfer preparation and signed submission use
 `/api/admin/v3-allocations/transfer`. Shared payout routes reject administrative
@@ -33,8 +33,15 @@ write and before dispatch. Concurrent reuse cannot authorize a second request.
 Audit storage failure blocks the action. An authorization audit records only
 the actor, route, request digest and time; it does not establish action success.
 
-Each protected API needs its own code, including withdrawal preparation and
-later receipt reconciliation. The source wallet must still sign the transfer.
+Each new protected action needs its own code. A withdrawal's later signed
+submission and receipt can continue its persisted email-approved intent without
+a second code. This narrow continuation requires the same admin session, exact
+intent, fixed admin fee payer/recipient and both valid signatures on the unchanged
+message. The signed transaction identity is persisted before broadcast. A new
+amount, another wallet, another session or an unregistered signature cannot use
+this approval. Manual recovery after session loss requires a new code.
+Phantom must sign with the same authenticated admin wallet, which pays the fee;
+the server supplies only the source's partial signature after email verification.
 If email delivery fails after a transfer, reconcile its existing signature when
 delivery returns; do not send another transfer to fix a missing receipt. A code
 does not grant authority to sign a treasury, creator or program transaction.

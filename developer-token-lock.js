@@ -2,11 +2,13 @@ import {Buffer} from 'buffer';
 import {PublicKey,SystemProgram,TransactionInstruction} from '@solana/web3.js';
 import {TOKEN_2022_PROGRAM_ID,ASSOCIATED_TOKEN_PROGRAM_ID,getAssociatedTokenAddressSync,createAssociatedTokenAccountIdempotentInstruction} from '@solana/spl-token';
 import {DEVELOPER_TOKEN_LOCK_SECONDS,normalizeDeveloperLockSeconds} from './developer-lock-period.js';
+import {MAINNET_REVIEWED_PROGRAM_ID} from './mainnet-program.js';
 export {DEVELOPER_TOKEN_LOCK_SECONDS,DEVELOPER_TOKEN_LOCK_PERIODS} from './developer-lock-period.js';
 
 export const DEVELOPER_TOKEN_LOCK_PROGRAM_ID='EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT';
 export const DEVELOPER_TOKEN_LOCK_PROGRAMS=Object.freeze([DEVELOPER_TOKEN_LOCK_PROGRAM_ID,
-  '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm','61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa']);
+  '9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm','61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa',
+  ...(MAINNET_REVIEWED_PROGRAM_ID?[MAINNET_REVIEWED_PROGRAM_ID]:[])]);
 export function developerLockProgramId(value=DEVELOPER_TOKEN_LOCK_PROGRAM_ID) {
   const id=new PublicKey(value).toBase58();
   if(!DEVELOPER_TOKEN_LOCK_PROGRAMS.includes(id))throw Error('Unsupported developer token escrow program.');

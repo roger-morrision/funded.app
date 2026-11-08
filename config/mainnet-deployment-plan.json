@@ -4,6 +4,7 @@
   "cluster": "mainnet-beta",
   "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "mainnetActivationAuthorized": false,
+  "upgradeable": true,
   "sourceRevision": "e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",
   "ciRun": "https://github.com/roger-morrision/funded.app/actions/runs/42349176721",
   "ciArtifact": "contract-bytecode-e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",

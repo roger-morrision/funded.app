@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { readProgramDataEvidence } from '../server/program-data-evidence.mjs';
+import {loadMainnetConfig} from './mainnet-config.mjs';
+import {reviewedMainnetManifest} from '../mainnet-program.js';
 
 const UPGRADEABLE_LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const PUBLIC_MAINNET_RPCS = new Set([new URL(clusterApiUrl('mainnet-beta')).hostname, 'api.mainnet.solana.com']);
@@ -14,6 +16,7 @@ function validPublicKey(value) {
 }
 
 function validProductionRpc(value) {
+  if(/REPLACE|PLACEHOLDER/i.test(String(value||'')))return false;
   try {
     const url = new URL(value);
     return url.protocol === 'https:' && !url.username && !url.password
@@ -54,12 +57,13 @@ export function assessMainnetConfig(env) {
     v3RouterConfigured: Boolean(validPublicKey(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) && /^[a-f0-9]{64}$/.test(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '')),
     developerEscrowConfigured: Boolean(validPublicKey(env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID) && /^[a-f0-9]{64}$/.test(env.FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256 || '')),
     fundedMintConfigured: Boolean(validPublicKey(env.FUNDED_TOKEN_MINT) && env.FUNDED_TOKEN_MINT===env.VITE_FUNDED_TOKEN_MINT),
-    durableMetadata: env.METADATA_STORAGE==='pinata' && Boolean(env.PINATA_JWT_FILE),
+    durableMetadata: env.METADATA_STORAGE==='pinata' && Boolean(env.PINATA_JWT_FILE)
+      && !/REPLACE|PLACEHOLDER/i.test(env.PINATA_JWT_FILE),
     writeGuardStillDisabled: String(env.VITE_ALLOW_MAINNET || 'false').toLowerCase() !== 'true',
     dedicatedHttpsRpc: validProductionRpc(env.SOLANA_RPC_URL),
     routerIdentity: Boolean(routerId && routerId === clientRouterId),
     approvedRouterHash: /^[0-9a-f]{64}$/.test(hash),
-    approvedUpgradeAuthority: Boolean(authority) !== immutable,
+    approvedUpgradeAuthority: Boolean(authority) && !immutable,
     persistentDatabase: /^postgres(?:ql)?:\/\//.test(String(env.DATABASE_URL || '')) && !String(env.FUNDED_STORE_PATH || '').trim(),
     isolatedDatabase: Boolean(env.DATABASE_URL && env.DEVNET_DATABASE_URL && endpointIdentity(env.DATABASE_URL,{database:true}) && endpointIdentity(env.DEVNET_DATABASE_URL,{database:true}) && endpointIdentity(env.DATABASE_URL,{database:true})!==endpointIdentity(env.DEVNET_DATABASE_URL,{database:true})),
     isolatedRpc: Boolean(env.SOLANA_RPC_URL && env.DEVNET_SOLANA_RPC_URL && endpointIdentity(env.DEVNET_SOLANA_RPC_URL) && endpointIdentity(env.SOLANA_RPC_URL)!==endpointIdentity(env.DEVNET_SOLANA_RPC_URL)),
@@ -143,6 +147,8 @@ export async function mainnetReadinessPreflight(env, { online = false } = {}) {
     scope:online ? 'read-only-mainnet-preflight' : 'offline-mainnet-preflight',
     configuration:config.checks,
     configurationComplete:config.configurationComplete,
+    programReview:{configured:Boolean(reviewedMainnetManifest()),upgradeableRequired:true,
+      status:reviewedMainnetManifest()?'reviewed-manifest-present':'blocked-awaiting-production-identity-and-independent-review'},
     onchain,
     publicPolicy:online?await readMainnetServicePolicy(env):{status:'unavailable',reason:'Offline preflight; saved deployment fee policy was not read.'},
     invariants:{tradingFeeBps:100,creatorBuyCapPercent:20},
@@ -158,8 +164,13 @@ export async function mainnetReadinessPreflight(env, { online = false } = {}) {
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
-  if (args.some(arg => arg !== '--online')) throw new Error('Only --online is supported. Offline mode is the default.');
-  const report = await mainnetReadinessPreflight(process.env, { online:args.includes('--online') });
+  let configFile;
+  for(let i=0;i<args.length;i++){
+    if(args[i]==='--online')continue;
+    if(args[i]==='--config'&&args[i+1]&&!args[i+1].startsWith('--')&&!configFile){configFile=args[++i];continue;}
+    throw Error('Use [--config FILE] [--online]. Offline mode is the default.');
+  }
+  const report = await mainnetReadinessPreflight(configFile?loadMainnetConfig(configFile):process.env, { online:args.includes('--online') });
   console.log(JSON.stringify(report, null, 2));
   process.exitCode = 1; // Code paths and operational evidence still block Mainnet activation.
 }

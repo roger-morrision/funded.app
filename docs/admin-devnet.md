@@ -35,14 +35,18 @@ V3 mint's saved category vaults (including agency where present) and holder/X re
 mints. The balances include rent and obligations; a vault has no ordinary
 private key and can only pay through its program's allowed instructions.
 
-An ordinary-wallet withdrawal accepts exact lamports and offers **Max**, which
-subtracts the network fee and protected reserve from the finalized balance.
+The withdrawal flow is **select source → enter SOL or Max → Submit → email OTP
+→ sign in Phantom with the authenticated admin wallet**. The admin is both the
+fixed recipient and network-fee payer. Max subtracts only the protected reserve
+from the source's finalized balance; the admin must already have enough SOL
+for the fee. The source and admin both sign, so the fee estimate covers both.
 Operational signers retain at least 0.1 SOL; treasury wallets retain at least
 0.02 SOL. A configured reserve can raise these floors. The authenticated admin
-approves the exact action by email. For a server-held source, the server signs
-exactly one transfer to that admin and persists its identity before returning
-signed bytes. An external source still requires its owner's wallet signature.
-The browser submits the reviewed transaction to Devnet. No private key reaches
+approves the exact action by email. The server partially signs exactly one
+transfer and stores its intent. Phantom supplies the admin's signature; changing
+wallet, amount, destination or fee payer is rejected. The complete signature is
+persisted before broadcast. Sources without a configured matching signer are
+shown as unavailable. No private key reaches
 the browser. Program vaults require their authorized payout instructions;
 there is no general vault sweep action.
 
@@ -57,14 +61,20 @@ recording is interrupted after finalization, paste that signature into the
 reconcile form. The API independently verifies the finalized single-transfer
 transaction and exact balance deltas before recording it. A recovered receipt
 binds the receipt to the authenticated admin recipient. Server-signed pending
-intents survive database restart; retries reuse the original signed transaction
+intents survive database restart; retries reuse the original transaction
 until finalized failure or proven expiry permits a fresh preparation.
 
 Withdrawal preparation estimates the exact single-transfer message's network
-fee and checks that the source's protected reserve remains after transfer and fee.
+fee and checks that the source retains its reserve and the admin can pay the fee
+while preserving the admin account's rent reserve.
 If the fee estimate is unavailable, preparation stops. This is a review-time
 balance check; another transaction can still change the source balance before
 signing. Receipts require exact finalized source debit, recipient credit and fee.
+
+The signed submission and receipt continue the original OTP-approved intent in
+the same admin session. They cannot change the request or authorize another
+transfer and do not request a second code. After logout/restart, manual receipt
+recovery requires a fresh code. Historical source-paid receipts remain supported.
 
 ## Boost pricing
 

@@ -42,7 +42,10 @@ test('merged preflight rejects split identities, mixed hashes, authority ambigui
   for(const changes of [{FUNDED_DEVELOPER_LOCK_PROGRAM_ID:authority.toBase58()},
     {FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256:'ff'.repeat(32)},{FUNDED_REWARD_PROGRAM_DATA_SHA256:'ff'.repeat(32)},
     {FUNDED_FEE_ROUTER_PROGRAM_ID:authority.toBase58()},{MAINNET_PROGRAM_LAYOUT:'unknown'},
-    {MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true'},{VITE_ALLOW_MAINNET:'true'},{VITE_DEV_MODE:'true'}])
+    {MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true'},
+    {MAINNET_APPROVED_UPGRADE_AUTHORITY:'',MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true'},
+    {VITE_ALLOW_MAINNET:'true'},{VITE_DEV_MODE:'true'},
+    {PINATA_JWT_FILE:'REPLACE_WITH_METADATA_SECRET'},{SOLANA_RPC_URL:'https://replace_with_rpc.invalid'}])
     assert.equal(assessMainnetConfig({...env(),...changes}).configurationComplete,false,JSON.stringify(changes));
   const old={...env(),MAINNET_PROGRAM_LAYOUT:'legacy-three-role',FUNDED_FEE_ROUTER_PROGRAM_ID:program.toBase58(),FUNDED_REWARD_PROGRAM_DATA_SHA256:hash};
   assert.equal(mainnetProgramRoles(old,assessMainnetConfig(old)).length,3);

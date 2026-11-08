@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {mainnetReleaseVerified} from './mainnet-program.mjs';
 
 // Source-built with platform-tools v1.54 and the devnet-v3-program feature.
 // The loader header/upgrade slot is excluded from this binary commitment;
@@ -13,7 +14,9 @@ export function matchesAgencyBinary(data,manifest=AGENCY_REVIEWED_BINARY){
     &&createHash('sha256').update(bytes.subarray(45,45+manifest.bytes)).digest('hex')===manifest.sha256
     &&bytes.subarray(45+manifest.bytes).every(byte=>byte===0);
 }
-export function agencyReleaseVerified(evidence,programId,approvedHash){
+export function agencyReleaseVerified(evidence,programId,approvedHash,{cluster='devnet'}={}){
+  if(cluster==='mainnet-beta')return mainnetReleaseVerified(evidence,programId,approvedHash);
+  if(cluster!=='devnet')return false;
   return String(programId)===AGENCY_DEVNET_PROGRAM&&/^[a-f0-9]{64}$/.test(String(approvedHash))
     &&evidence?.sha256===approvedHash&&evidence.account?.executable===true
     &&matchesAgencyBinary(evidence.programData?.data);

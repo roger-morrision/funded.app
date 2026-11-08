@@ -25,9 +25,9 @@ export function createAdminWallets({env,keeperKeypair,v3AuthorityKeypair,referra
         const key=address(value);if(!key)continue;
         if(rows.has(key))rows.get(key).role+=' / '+role;else rows.set(key,{role,address:key});
       }
-      return [...rows.values()].map(row=>({...row,custody:keys.has(row.address)?'server signer':'external wallet',withdrawable:true,
+      return [...rows.values()].map(row=>({...row,custody:keys.has(row.address)?'server signer':'external wallet',withdrawable:keys.has(row.address),
         reserveFloorLamports:keys.get(row.address)?.operational?'100000000':'20000000',
-        signingMode:keys.has(row.address)?'server':'wallet',note:keys.has(row.address)?'Admin email approval; server signs this source.':'Source wallet signature required.'}));
+        signingMode:keys.has(row.address)?'server':'wallet',note:keys.has(row.address)?'Email approval, then admin signs in Phantom and pays the fee.':'Source signer is not configured.'}));
     }
   };
 }

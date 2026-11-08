@@ -134,9 +134,10 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       try{
         const input=await body(req)||{};
         if(currentSession(req)!==session)return json(res,401,{error:'Admin session ended.'});
-        const proof=emailVerification.consume({sessionId,wallet:session.wallet,method:req.method,path,
+        const continuation=req.method==='POST'?await handleWithdrawals.authorizeContinuation({session,sessionId,path,input}):null;
+        const proof=continuation||emailVerification.consume({sessionId,wallet:session.wallet,method:req.method,path,
           payload:input,id:req.headers['x-admin-confirmation-id'],code:req.headers['x-admin-confirmation-code']});
-        await store.update(state=>{state.adminAudit||={};state.adminAudit[`email-confirmation:${proof.id}`]={
+        if(!continuation)await store.update(state=>{state.adminAudit||={};state.adminAudit[`email-confirmation:${proof.id}`]={
           action:'email-confirmation-consumed',...proof,note:'Authorizes one API attempt; does not prove the action succeeded.'};});
         if(currentSession(req)!==session)return json(res,401,{error:'Admin session ended.'});
         req[ADMIN_EMAIL_AUTHORIZED]=proof;
@@ -262,7 +263,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       try{return json(res,200,await readAdminVaults({state,offset,rpc:connection()}));}
       catch(error){return json(res,503,{error:String(error.message||'Vault balances unavailable.')});}
     }
-    if(await handleWithdrawals(req,res,url,{session,body,json}))return true;
+    if(await handleWithdrawals(req,res,url,{session,sessionId,body,json}))return true;
     if (req.method === 'POST' && path === '/api/admin/fee-policy') {
       const input = await body(req) || {};
       if(input.split?.agencyPercent!==undefined)return json(res,409,{error:'Agency fee changes require a verified on-chain future-mint configuration update. Off-chain activation is not supported.'});

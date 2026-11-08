@@ -1,7 +1,7 @@
 import {PublicKey} from '@solana/web3.js';
 import {PUMP_PROGRAM_ID,bondingCurvePda} from '@pump-fun/pump-sdk';
 import bs58 from 'bs58';
-import {readProgramDataEvidence,DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
+import {readProgramDataEvidence} from './automatic-reward-chain.mjs';
 import {successfulEventLogs} from './product-trade-index.mjs';
 import {decodePumpTrades} from './coin-market.mjs';
 import {completeFinalizedEventReceipt} from './finalized-event-receipt.mjs';
@@ -9,8 +9,15 @@ import {DEVELOPER_TOKEN_LOCK_PROGRAM_ID,DEVELOPER_TOKEN_LOCK_SECONDS,developerLo
 import {normalizeDeveloperLockSeconds} from '../developer-lock-period.js';
 import {matchesAgencyBinary} from './agency-release.mjs';
 import candidates from '../config/contract-build-candidates.json' with {type:'json'};
+import {assertRpcNetwork,requireSolanaCluster} from '../solana-network.js';
+import {reviewedMainnetManifest} from '../mainnet-program.js';
+import {mainnetReleaseVerified} from './mainnet-program.mjs';
 
-export async function developerLockConfig({connection,env=process.env,programId:requested,readEvidence=readProgramDataEvidence}) {
+export async function developerLockConfig({connection,env=process.env,cluster=env.SOLANA_CLUSTER||'devnet',programId:requested,readEvidence=readProgramDataEvidence}) {
+  requireSolanaCluster(cluster);
+  const mainnet=cluster==='mainnet-beta',reviewed=mainnet?reviewedMainnetManifest():null;
+  if(mainnet&&(!reviewed||env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID!==reviewed.programId||requested&&requested!==reviewed.programId))
+    return {ready:false,cluster,reason:'A dedicated reviewed Mainnet escrow and upgrade authority are required.'};
   const active=developerLockProgramId(env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID||DEVELOPER_TOKEN_LOCK_PROGRAM_ID);
   const programId=developerLockProgramId(requested||active);
   const legacy=programId===DEVELOPER_TOKEN_LOCK_PROGRAM_ID&&active!==programId;
@@ -20,12 +27,14 @@ export async function developerLockConfig({connection,env=process.env,programId:
     return {ready:false,programId,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,reason:'Merged escrow must match the approved router deployment.'};
   if(!/^[a-f0-9]{64}$/.test(hash))return {ready:false,programId,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,reason:'Developer token escrow deployment is not configured.'};
   try {
-    const [genesis,evidence]=await Promise.all([connection.getGenesisHash(),readEvidence(connection,new PublicKey(programId))]);
-    const ready=genesis===DEVNET_GENESIS_HASH&&evidence.account?.executable===true&&evidence.sha256===hash;
+    await assertRpcNetwork(connection,cluster);
+    const evidence=await readEvidence(connection,new PublicKey(programId),mainnet?{cluster,rpcUrl:''}:{});
+    const ready=evidence.account?.executable===true&&evidence.sha256===hash
+      &&(!mainnet||mainnetReleaseVerified(evidence,programId,hash));
     const selectable=ready&&programId!==DEVELOPER_TOKEN_LOCK_PROGRAM_ID
       &&candidates.devnet.developerLockPeriodsSeconds&&matchesAgencyBinary(evidence.programData?.data,candidates.devnet);
-    return {ready,programId,programDataSha256:hash,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,
-      lockPeriodsSeconds:selectable?candidates.devnet.developerLockPeriodsSeconds:[DEVELOPER_TOKEN_LOCK_SECONDS],
+    return {ready,cluster,programId,programDataSha256:hash,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,
+      lockPeriodsSeconds:ready&&mainnet?reviewed.developerLockPeriodsSeconds:selectable?candidates.devnet.developerLockPeriodsSeconds:[DEVELOPER_TOKEN_LOCK_SECONDS],
       ...(!ready?{reason:'Developer token escrow deployment could not be verified.'}:{})};
   }catch{return {ready:false,programId,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,reason:'Developer token escrow deployment verification is unavailable.'};}
 }

@@ -1,0 +1,23 @@
+# Optional Devnet overlay for all ordinary app treasuries. No key values here.
+# Each key is verified against its configured public recipient before use.
+services:
+  app:
+    environment:
+      FUNDED_ADMIN_OPERATIONS_SIGNER_FILE: /run/secrets/funded_admin_operations_signer
+      FUNDED_ADMIN_PUMP_REVENUE_SIGNER_FILE: /run/secrets/funded_admin_revenue_signer
+      FUNDED_ADMIN_TRADE_FEE_SIGNER_FILE: /run/secrets/funded_admin_trade_signer
+      FUNDED_ADMIN_BOOST_SIGNER_FILE: /run/secrets/funded_admin_boost_signer
+    secrets:
+      - funded_admin_operations_signer
+      - funded_admin_revenue_signer
+      - funded_admin_trade_signer
+      - funded_admin_boost_signer
+secrets:
+  funded_admin_operations_signer:
+    file: ${FUNDED_ADMIN_OPERATIONS_SIGNER_HOST_FILE:?Set the existing Devnet Operations signer file}
+  funded_admin_revenue_signer:
+    file: ${FUNDED_ADMIN_PUMP_REVENUE_SIGNER_HOST_FILE:?Set the existing Devnet revenue signer file}
+  funded_admin_trade_signer:
+    file: ${FUNDED_ADMIN_TRADE_FEE_SIGNER_HOST_FILE:?Set the existing Devnet trade fee signer file}
+  funded_admin_boost_signer:
+    file: ${FUNDED_ADMIN_BOOST_SIGNER_HOST_FILE:?Set the existing Devnet boost signer file}
