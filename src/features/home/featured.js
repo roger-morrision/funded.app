@@ -49,4 +49,6 @@ export function initializeFeaturedTokens(appState) {
   if(appState.requestedPageRoute()==='overview')void refresh();
   for(const name of ['funded:token-list-markets','funded:verified-search-index','funded:holders-updated'])document.addEventListener(name,updateMetrics);
   for(const name of ['funded:listing-verified','funded:boost-verified'])window.addEventListener(name,()=>poller.refresh());
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)render();});
+  window.addEventListener('pageshow',render);
 }

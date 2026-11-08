@@ -41,6 +41,18 @@ export function activeBoostMultiplier(boost, now = Date.now()) {
     ? multiplier : 0;
 }
 
+export function currentBoostSnapshot(boosts, now = Date.now()) {
+  return Object.fromEntries(Object.entries(boosts || {}).flatMap(([mint,boost]) => {
+    const multiplier = activeBoostMultiplier(boost, now);
+    if (!multiplier) return [];
+    if (!Array.isArray(boost.packages)) return [[mint,{...boost,multiplier,golden:multiplier>=500}]];
+    const packages = activeBoostPackages(boost, now);
+    const expiries = packages.map(pack=>Date.parse(pack.expiresAt));
+    return [[mint,{...boost,packages,multiplier,count:packages.length,golden:multiplier>=500,
+      nextExpiry:new Date(Math.min(...expiries)).toISOString(),expiresAt:new Date(Math.max(...expiries)).toISOString()}]];
+  }));
+}
+
 export function activeBoosts(receipts, now = Date.now()) {
   const active = Object.values(receipts || {}).filter(row => row?.cluster === 'devnet' && row?.status === 'finalized'
     && boostPackage(row.packageId)?.multiplier === row.multiplier

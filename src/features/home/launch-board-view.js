@@ -195,12 +195,12 @@ export function renderHomeLaunchBoard(state, {
   if (homeLaunchTab === 'curve') visible = visible.filter(item => item.migrated !== true && item.complete === false);
   else if (homeLaunchTab === 'migrated') visible = visible.filter(item => item.migrated === true);
   else if (homeLaunchTab === 'watchlist') visible = visible.filter(item => getWatchlist().includes(item.address));
-  else if (homeLaunchTab === 'promoted') visible = visible.filter(item => Boolean(promotionForMint(item.address) || verifiedBoosts[item.address]));
+  else if (homeLaunchTab === 'promoted') visible = visible.filter(item => Boolean(promotionForMint(item.address) || activeBoostMultiplier(verifiedBoosts[item.address])));
   else if (homeLaunchTab === 'boost') visible = visible.filter(item => activeBoostMultiplier(verifiedBoosts[item.address]) > 0);
-  else if (['standard', 'pro', 'premier'].includes(homeLaunchTab)) visible = visible.filter(item => (promotionForMint(item.address)?.tier || 'standard') === homeLaunchTab && !verifiedBoosts[item.address]);
+  else if (['standard', 'pro', 'premier'].includes(homeLaunchTab)) visible = visible.filter(item => (promotionForMint(item.address)?.tier || 'standard') === homeLaunchTab && !activeBoostMultiplier(verifiedBoosts[item.address]));
   visible = visible.filter(item => matchesHomeLaunchFilters(item, homeLaunchFilters, { cluster: EXPLORE_CLUSTER, solUsdPrice: coinSolUsdPrice }));
   visible.sort((a, b) => (homeLaunchSort === 'market-cap' ? capUsd(b) - capUsd(a)
-    : (verifiedBoosts[b.address]?.multiplier || 0) - (verifiedBoosts[a.address]?.multiplier || 0) || volumeRank(b) - volumeRank(a))
+    : activeBoostMultiplier(verifiedBoosts[b.address]) - activeBoostMultiplier(verifiedBoosts[a.address]) || volumeRank(b) - volumeRank(a))
     || Number(b.createdTimestamp || 0) - Number(a.createdTimestamp || 0));
   if (homeLaunchPaused) {
     if (!state.homeFrozenOrder) state.homeFrozenOrder = visible.map(item => item.address);

@@ -1,6 +1,8 @@
 import { createReserveLoader } from '../../features/rewards/reserve-loader.js';
+import { currentBoostSnapshot } from '../../../boost-offer.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchRegistryController(appState) {
+  let displayedBoostQuantities;
   // app-source: 262
   function getPreviewClaims(){ try { return JSON.parse(localStorage.getItem(appState.AIRDROP_PREVIEW_CLAIM_KEY) || '{}'); } catch { return {}; } }
   // app-source-end
@@ -99,25 +101,40 @@ export function createLaunchRegistryController(appState) {
   // app-source: 281
   function scheduleBoostExpiryRefresh(){
     clearTimeout(appState.boostExpiryTimer);
+    refreshBoostViews();
     const nextExpiry = Math.min(...Object.values(appState.verifiedBoosts).flatMap(item => Array.isArray(item.packages)
       ? item.packages.map(pack => Date.parse(pack.expiresAt)) : [Date.parse(item.nextExpiry || item.expiresAt)])
       .filter(time => Number.isFinite(time) && time > Date.now()));
     if (!Number.isFinite(nextExpiry)) return;
     appState.boostExpiryTimer = setTimeout(() => {
-      appState.setCardBoostSnapshot(appState.verifiedBoosts);
-      document.dispatchEvent(new Event('funded:rankings-updated'));
-      for (const asset of appState.assets) asset.postLaunchBoostMultiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[asset.address]);
-      appState.renderExploreAssets();
-      appState.renderRegistry();
-      appState.renderHomeLaunchBoard();
-      appState.renderWatchlist();
-      appState.renderCreatorLaunches();
-      appState.renderAirdropDirectory();
-      appState.renderCoinPromotionBadge();
       appState.scheduleBoostExpiryRefresh();
       if (!document.hidden) void appState.loadVerifiedBoosts();
-    }, Math.max(100, nextExpiry - Date.now() + 100));
+    }, Math.max(1, Math.min(2147483647, nextExpiry - Date.now() + 1)));
   }
+  function refreshBoostViews(){
+    const previous = appState.verifiedBoosts;
+    appState.verifiedBoosts = currentBoostSnapshot(previous);
+    const quantities = displayedBoostQuantities || Object.fromEntries(Object.entries(previous).map(([mint,boost])=>[mint,Number(boost.multiplier)]));
+    const expired = Object.entries(quantities).some(([mint,amount]) => amount!==(appState.verifiedBoosts[mint]?.multiplier||0));
+    displayedBoostQuantities = Object.fromEntries(Object.entries(appState.verifiedBoosts).map(([mint,boost])=>[mint,boost.multiplier]));
+    for (const asset of appState.assets) asset.postLaunchBoostMultiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[asset.address]);
+    appState.setCardBoostSnapshot(appState.verifiedBoosts);
+    document.dispatchEvent(new Event('funded:rankings-updated'));
+    appState.renderExploreAssets({force:expired});
+    appState.renderRegistry();
+    appState.renderHomeLaunchBoard();
+    appState.renderWatchlist();
+    appState.renderCreatorLaunches();
+    appState.renderAirdropDirectory();
+    appState.renderCoinPromotionBadge();
+    if (document.querySelector('#explore-boost-dialog')?.open) appState.renderExploreBoostDialog();
+  }
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) scheduleBoostExpiryRefresh();
+  });
+  if (typeof window !== 'undefined') window.addEventListener('pageshow', event => {
+    if (event.persisted) scheduleBoostExpiryRefresh();
+  });
   // app-source-end
 
   // app-source: 282
@@ -127,34 +144,13 @@ export function createLaunchRegistryController(appState) {
     if (!response.available || response.data?.cluster !== appState.EXPLORE_CLUSTER) {
       appState.verifiedBoostsAvailable = false;
       appState.verifiedBoosts = {};
-      appState.setCardBoostSnapshot(appState.verifiedBoosts);
-      document.dispatchEvent(new Event('funded:rankings-updated'));
-      clearTimeout(appState.boostExpiryTimer);
-      for (const asset of appState.assets) asset.postLaunchBoostMultiplier = 0;
-      appState.renderExploreAssets();
-      appState.renderRegistry();
-      appState.renderHomeLaunchBoard();
-      appState.renderWatchlist();
-      appState.renderCreatorLaunches();
-      appState.renderAirdropDirectory();
-      appState.renderCoinPromotionBadge();
+      appState.scheduleBoostExpiryRefresh();
       return;
     }
     appState.verifiedBoosts = response.data.active || {};
     appState.verifiedBoostsAvailable = true;
     appState.boostPurchasesEnabled = response.data.enabled === true;
-    appState.setCardBoostSnapshot(appState.verifiedBoosts);
-      document.dispatchEvent(new Event('funded:rankings-updated'));
-    for (const asset of appState.assets) asset.postLaunchBoostMultiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[asset.address]);
     appState.scheduleBoostExpiryRefresh();
-    appState.renderExploreAssets();
-    appState.renderRegistry();
-    appState.renderHomeLaunchBoard();
-    appState.renderWatchlist();
-    appState.renderCreatorLaunches();
-    appState.renderAirdropDirectory();
-    appState.renderCoinPromotionBadge();
-    if (document.querySelector('#explore-boost-dialog')?.open) appState.renderExploreBoostDialog();
   }
   // app-source-end
 

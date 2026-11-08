@@ -1,4 +1,5 @@
 import {pricedBoostPackages} from '../../../boost-pricing.js';
+import {currentBoostSnapshot} from '../../../boost-offer.js';
 // Dependencies and mutable application state are read live through appState.
 export function createBoostCheckoutController(appState) {
   let livePackages=null;
@@ -127,11 +128,7 @@ export function createBoostCheckoutController(appState) {
     }
     if (response.data.active?.[mint]) appState.verifiedBoosts[mint] = response.data.active[mint];
     else delete appState.verifiedBoosts[mint];
-    for (const asset of appState.assets) if (asset.address === mint) asset.postLaunchBoostMultiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[mint]);
     appState.scheduleBoostExpiryRefresh();
-    appState.renderExploreAssets();
-    appState.renderRegistry();
-    appState.renderCoinPromotionBadge();
     appState.renderExploreBoostDialog();
   }
   // app-source-end
@@ -144,7 +141,7 @@ export function createBoostCheckoutController(appState) {
     if (!asset || !details) return;
     const name = appState.escapeHtml(asset.name || asset.symbol || appState.shortAddress(mint));
     document.querySelector('#explore-boost-title').textContent = `Boost ${asset.symbol || asset.name || 'token'}`;
-    const active = appState.activeBoostMultiplier(appState.verifiedBoosts[mint]) ? appState.verifiedBoosts[mint] : null;
+    const active = currentBoostSnapshot(appState.verifiedBoosts)[mint];
     const packages=livePackages||appState.BOOST_PACKAGES;
     const selected = packages.find(pack=>pack.id===packageId)||appState.boostPackage(packageId);
     const available = !recoveryError && ((appState.EXPLORE_CLUSTER === 'devnet' && !appState.APP_MAINNET_READ_ONLY && appState.boostPurchasesEnabled) || Boolean(pendingSignature));
