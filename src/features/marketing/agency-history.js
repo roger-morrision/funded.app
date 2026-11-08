@@ -25,7 +25,7 @@ export function renderAgencyHistory(container, data, { currentVerified = false }
   const table=document.createElement('table');table.className='record-table';
   const caption=document.createElement('caption');caption.textContent='Verified agency receipt history · UTC';table.append(caption);
   const head=table.createTHead().insertRow();
-  for(const label of ['Date & time (UTC)','Agent','Activity','Amount (SOL)','Saved trigger','Transaction']){const th=document.createElement('th');th.scope='col';th.textContent=label;head.append(th);}
+  for(const label of ['Date & time (UTC)','Agent','Activity','Amount (SOL)','Saved trigger','Transaction']){const th=document.createElement('th');th.scope='col';if(['Amount (SOL)','Saved trigger'].includes(label))th.className='numeric';th.textContent=label;head.append(th);}
   const list=table.createTBody();wrapper.append(table);
   for (const row of data.history) {
     if (row?.status !== 'worker-recorded-finalized' || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature)

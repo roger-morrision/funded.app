@@ -36,32 +36,17 @@ html body #main-content table.record-table { width:100%; min-width:720px; border
 html body #main-content .record-table caption { padding:10px 14px; color:var(--fv-text-muted); font-size:12px; text-align:left; }
 html body #main-content .record-table :is(th,td) { padding:12px 14px; border:0; border-bottom:1px solid var(--fv-border); vertical-align:middle; color:var(--fv-text); background:transparent; }
 html body #main-content .record-table th { background:var(--cp-surface); color:var(--fv-text-muted); font-size:11px; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
+html body #main-content .record-table tbody th { white-space:normal; overflow-wrap:anywhere; }
+html body #main-content .record-table td { overflow-wrap:anywhere; }
 html body #main-content .record-table tbody tr:last-child td { border-bottom:0; }
 html body #main-content .record-table tbody tr:hover { background:var(--cp-surface); }
 html body #main-content .record-table .numeric { text-align:right; font-variant-numeric:tabular-nums; }
 html body #main-content .burn-history-table th:nth-child(4),html body #main-content .burn-history-table th:nth-child(5) { text-align:right; }
-html body #main-content .fee-policy-table { min-width:1050px; table-layout:fixed; }
-html body #main-content .fee-policy-table :is(th,td) { white-space:normal; vertical-align:top; }
-html body #main-content .fee-policy-table th:nth-child(1) { width:17%; }
-html body #main-content .fee-policy-table th:nth-child(2) { width:7%; }
-html body #main-content .record-table time { white-space:nowrap; font-variant-numeric:tabular-nums; }
-html body #main-content .record-table small { display:block; color:var(--fv-text-muted); font-size:11px; }
-html body #main-content .record-table .burn-amount { color:var(--fv-success); font-weight:700; }
-html body #main-content .record-status { display:inline-flex; padding:3px 7px; border:1px solid var(--fv-border); border-radius:4px; color:var(--fv-success); font-size:11px; white-space:nowrap; }
-html body #main-content a.receipt-link { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:6px 10px; border:1px solid var(--fv-border); border-radius:6px; color:var(--fv-accent); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap; }
-html body #main-content a.receipt-link:hover { border-color:var(--fv-accent); background:var(--cp-surface); }
-html body #main-content .home-community-basis { display:block; margin:6px 0; color:var(--fv-text-muted); font-size:11px; line-height:1.5; }
-@media(max-width:700px) { html body #main-content a.receipt-link { min-height:44px; } }
-/* Shared record tables: explicit columns and readable horizontal scrolling on phones. */
-html body #main-content .data-table-scroll { max-width:100%; min-width:0; overflow-x:auto; overscroll-behavior-inline:contain; border:1px solid var(--fv-border); border-radius:var(--fv-radius-md); }
-html body #main-content .data-table-scroll:focus-visible { outline:2px solid var(--fv-accent); outline-offset:3px; }
-html body #main-content table.record-table { width:100%; min-width:720px; border-collapse:collapse; font:13px/1.5 var(--fv-font-ui); text-align:left; }
-html body #main-content .record-table caption { padding:10px 14px; color:var(--fv-text-muted); font-size:12px; text-align:left; }
-html body #main-content .record-table :is(th,td) { padding:12px 14px; border:0; border-bottom:1px solid var(--fv-border); vertical-align:middle; color:var(--fv-text); background:transparent; }
-html body #main-content .record-table th { background:var(--cp-surface); color:var(--fv-text-muted); font-size:11px; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
-html body #main-content .record-table tbody tr:last-child td { border-bottom:0; }
-html body #main-content .record-table tbody tr:hover { background:var(--cp-surface); }
-html body #main-content .record-table :is(.numeric,th:nth-last-child(4),th:nth-last-child(3)) { text-align:right; font-variant-numeric:tabular-nums; }
+html body #main-content table.fee-policy-table { min-width:1050px; table-layout:fixed; }
+html body #main-content table.fee-policy-table :is(th,td) { white-space:normal; overflow-wrap:anywhere; vertical-align:top; text-align:left; }
+html body #main-content table.fee-policy-table th:nth-child(1) { width:180px; }
+html body #main-content table.fee-policy-table th:nth-child(2) { width:80px; }
+html body #main-content table.fee-policy-table :is(th,td):nth-child(2) { white-space:nowrap; text-align:right; }
 html body #main-content .record-table time { white-space:nowrap; font-variant-numeric:tabular-nums; }
 html body #main-content .record-table small { display:block; color:var(--fv-text-muted); font-size:11px; }
 html body #main-content .record-table .burn-amount { color:var(--fv-success); font-weight:700; }

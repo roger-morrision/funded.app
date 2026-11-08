@@ -72,7 +72,7 @@ export function feeBenefitExplanation(key){
 }
 
 export function feeBenefitDetailsMarkup(rows){
-  return '<div class="data-table-scroll" role="region" aria-label="Fee policy details, scroll horizontally for all columns" tabindex="0"><table class="record-table fee-policy-table"><caption>Allocation rules</caption><thead><tr>'+['Allocation','Share','Recipients','Timing','Delivery'].map(label=>'<th scope="col">'+label+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>{
+  return '<div class="data-table-scroll" role="region" aria-label="Fee policy details, scroll horizontally for all columns" tabindex="0"><table class="record-table fee-policy-table"><caption>Allocation rules · scroll for all columns →</caption><thead><tr>'+['Allocation','Share','Recipients','Timing','Delivery'].map(label=>'<th scope="col">'+label+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>{
     const detail=feeBenefitExplanation(row.key);if(!detail)return '';
     return '<tr data-fee-benefit="'+escapeHtml(row.key)+'"><th scope="row">'+escapeHtml(row.label)+'</th><td class="numeric">'+row.percent+'%</td><td>'+escapeHtml(detail.who)+'</td><td>'+escapeHtml(detail.when)+'</td><td>'+escapeHtml(detail.receive)+'</td></tr>';
   }).join('')+'</tbody></table></div>';
