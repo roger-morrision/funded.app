@@ -22,7 +22,11 @@ export function featuredMetrics(item, {asset={},holderSnapshot,solUsd,cluster='d
 export function featuredMetricsMarkup(metrics=featuredMetrics({})) {
   const e=escapeHtml;
   return `<div><dt>MC</dt><dd class="featured-mc">${e(metrics.cap)}</dd></div>
-    <div title="Estimated 24-hour market-cap change at current supply and SOL/USD rate, based on verified token price change. Unavailable without a full-period baseline."><dt>MC Δ 24h</dt><dd data-direction="${e(metrics.direction)}">${e(metrics.change)}</dd></div>
-    <div title="${e(metrics.ageAt?'Confirmed launch time: '+metrics.ageAt:'Verified launch time unavailable')}" ><dt>Age</dt><dd>${e(metrics.age)}</dd></div>
+    <div title="Estimated 24-hour market-cap change at current supply and SOL/USD rate, based on verified token price change. Unavailable without a full-period baseline."><dt>MC Δ 24h</dt><dd data-direction="${e(metrics.direction)}">${e(metrics.change)}</dd></div>`;
+}
+
+export function featuredBannerMetricsMarkup(metrics=featuredMetrics({})) {
+  const e=escapeHtml;
+  return `<div title="${e(metrics.ageAt?'Confirmed launch time: '+metrics.ageAt:'Verified launch time unavailable')}" ><dt>Age</dt><dd>${e(metrics.age)}</dd></div>
     <div title="${e(metrics.holderTitle)}"><dt>Holders</dt><dd class="featured-holders">${e(metrics.holders)}</dd></div>`;
 }

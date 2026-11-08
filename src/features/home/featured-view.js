@@ -1,4 +1,4 @@
-import {featuredMetricsMarkup} from './featured-metrics.js';
+import {featuredMetricsMarkup,featuredBannerMetricsMarkup} from './featured-metrics.js';
 import {escapeHtml} from '../shared/display.js';
 import {tokenArtworkUrl} from '../shared/token-artwork.js';
 
@@ -14,7 +14,7 @@ export function featuredCardMarkup(item,cluster) {
   const e=escapeHtml;
   return `<article class="home-featured-card" data-featured-mint="${e(item.mint)}">
     <a class="home-featured-token" href="${href}" aria-label="View ${e(item.name)} (${e(item.symbol)})">
-      <div class="home-featured-art"><span class="home-featured-monogram" aria-hidden="true">${e(item.symbol.slice(0,5))}</span>${banner?`<img class="home-featured-banner" src="${e(banner)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}<span class="home-featured-label">${e(item.label)}</span></div>
+      <div class="home-featured-art"><span class="home-featured-monogram" aria-hidden="true">${e(item.symbol.slice(0,5))}</span>${banner?`<img class="home-featured-banner" src="${e(banner)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}<span class="home-featured-label">${e(item.label)}</span><dl class="home-featured-banner-metrics" aria-label="Token age and holders">${featuredBannerMetricsMarkup()}</dl></div>
       <div class="home-featured-identity"><span class="home-featured-logo" aria-hidden="true">${e(item.symbol.slice(0,2))}${logo?`<img src="${e(logo)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}</span><span><strong>${e(item.name)}</strong><small>$${e(item.symbol)}</small></span><span aria-hidden="true">↗</span></div>
     </a>
     <dl class="home-featured-footer" aria-label="Token metrics">${featuredMetricsMarkup()}</dl>
@@ -72,10 +72,13 @@ export function createFeaturedScroller(root) {
   sync();
   return {updateMetrics(byMint){
     for(const card of track.querySelectorAll('[data-featured-mint]')){
-      const footer=card.querySelector('.home-featured-footer'),metrics=byMint.get(card.dataset.featuredMint);
-      if(!footer||!metrics)continue;
-      const html=featuredMetricsMarkup(metrics);
-      if(footer.dataset.metricsKey!==html){footer.innerHTML=html;footer.dataset.metricsKey=html;}
+      const metrics=byMint.get(card.dataset.featuredMint);
+      if(!metrics)continue;
+      for(const [selector,markup] of [['.home-featured-footer',featuredMetricsMarkup],['.home-featured-banner-metrics',featuredBannerMetricsMarkup]]){
+        const target=card.querySelector(selector);if(!target)continue;
+        const html=markup(metrics);
+        if(target.dataset.metricsKey!==html){target.innerHTML=html;target.dataset.metricsKey=html;}
+      }
     }
   },render(items,cluster){
     const next=items.map(item=>featuredCardMarkup(item,cluster)).join('');

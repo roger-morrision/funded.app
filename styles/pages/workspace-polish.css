@@ -258,14 +258,15 @@ html body #main-content .home-featured { order:1;min-width:0;max-width:100%;marg
 .home-featured-identity small { margin-top:4px;font-size:12px;color:var(--cp-muted); }
 .home-featured-logo { position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--cp-surface-2);color:var(--cp-accent);font-weight:700; }
 .home-featured-logo img { position:absolute;width:100%;height:100%;object-fit:contain;background:var(--cp-surface-2); }
-.home-featured-footer { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:0;padding:12px;border-top:1px solid var(--cp-line);font-size:11px;color:var(--cp-muted); }
-.home-featured-footer > div { min-width:0; }
-.home-featured-footer dt { margin:0 0 4px;font-size:10px; }
-.home-featured-footer dd { margin:0;font-size:13px;font-weight:700;line-height:1.4;color:var(--cp-text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+.home-featured-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:10px 12px;border-top:1px solid var(--cp-line);font-size:11px;color:var(--cp-muted); }
+.home-featured-footer > div,.home-featured-banner-metrics > div { display:flex;align-items:baseline;gap:6px;min-width:0; }
+.home-featured-footer dt,.home-featured-banner-metrics dt { margin:0;font-size:10px;white-space:nowrap; }
+.home-featured-footer dd,.home-featured-banner-metrics dd { margin:0;min-width:0;font-size:12px;font-weight:700;line-height:1.4;color:var(--cp-text);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .home-featured-footer :is(.featured-mc,[data-direction="positive"]) { color:var(--fv-success); }
 .home-featured-footer [data-direction="negative"] { color:var(--red); }
 .home-featured-footer [data-direction="unknown"] { color:var(--cp-muted); }
-.home-featured-footer .featured-holders { color:var(--blue); }
+.home-featured-banner-metrics { position:absolute;z-index:1;bottom:8px;left:10px;right:10px;display:flex;justify-content:space-between;gap:10px;margin:0;padding:5px 8px;border:1px solid var(--cp-line);border-radius:6px;background:var(--cp-surface-2);color:var(--cp-muted); }
+.home-featured-banner-metrics .featured-holders { color:var(--blue); }
 .home-featured-card:hover { border-color:var(--cp-accent); }
 .home-featured :is(a,button,.home-featured-viewport):focus-visible { outline:2px solid var(--cp-accent);outline-offset:-2px; }
 @media(max-width:560px) {
@@ -321,9 +322,10 @@ html body #main-content .home-featured { order:1;min-width:0;max-width:100%;marg
 /* Compact, readable launch benefits replace long hero paragraphs. */
 html body #main-content .hero-benefit-tags { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none;margin:18px 0 0;padding:0;max-width:620px; }
 html body #main-content .hero-benefit-tags li { min-width:0;padding:10px 12px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-surface); }
-html body #main-content .hero-benefit-tags strong { display:block;font-size:12px;line-height:1.4;color:var(--cp-accent); }
-html body #main-content .hero-benefit-tags span { display:block;margin-top:4px;font-size:11px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
-@media(max-width:380px) { html body #main-content .hero-benefit-tags { grid-template-columns:minmax(0,1fr); } }
+html body #main-content .hero-benefit-tags strong { display:block;font-size:13px;line-height:1.4;color:var(--cp-accent); }
+html body #main-content .hero-benefit-tags span { display:block;margin-top:6px;font-size:13px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
+html body #main-content .hero-benefit-tags small { display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--cp-line);font-size:11px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
+@media(max-width:560px) { html body #main-content .hero-benefit-tags { grid-template-columns:minmax(0,1fr); } }
 
 @keyframes explore-card-vibration {
   0%,100% { transform:translateX(0) rotate(0); }
