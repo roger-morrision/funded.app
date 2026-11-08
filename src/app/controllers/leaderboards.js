@@ -10,7 +10,7 @@ export function createLeaderboardsController(appState) {
       const wallet = launch?.creatorWallet || launch?.feePayer;
       const amount = Number(receipt?.amountTokens ?? burn?.amountTokens);
       if (!launch?.onchainVerified || burn?.status !== 'verified' || receipt?.verified !== true
-        || receipt.instruction !== 'BurnChecked' || receipt.atomicWithPumpLaunch !== true
+        || receipt.instruction !== 'BurnChecked' || (receipt.atomicWithPumpLaunch !== true && receipt.confirmedBeforeLaunch !== true)
         || !receipt.signature || seen.has(receipt.signature) || !wallet
         || !Number.isFinite(amount) || amount <= 0) continue;
       seen.add(receipt.signature);
@@ -49,7 +49,7 @@ export function createLeaderboardsController(appState) {
       const receipt = burn?.receipt;
       const amount = Number(receipt?.amountTokens ?? burn?.amountTokens);
       if (!launch?.onchainVerified || !launch.mint || burn?.status !== 'verified' || receipt?.verified !== true
-        || receipt.instruction !== 'BurnChecked' || receipt.atomicWithPumpLaunch !== true
+        || receipt.instruction !== 'BurnChecked' || (receipt.atomicWithPumpLaunch !== true && receipt.confirmedBeforeLaunch !== true)
         || !receipt.signature || !Number.isFinite(amount) || amount <= 0) return [];
       return [{ mint: launch.mint, name: launch.name || 'Verified launch', symbol: launch.symbol || 'TOKEN',
         burnedTokens: amount, receiptCount: 1, burnerCount: Number(Boolean(launch.creatorWallet || launch.feePayer)),

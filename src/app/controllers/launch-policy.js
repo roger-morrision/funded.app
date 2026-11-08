@@ -27,7 +27,7 @@ export function createLaunchPolicyController(appState) {
       ? { ...tier, amountTokens:quote?.tier === tier.id ? quote.amountTokens : amounts?.[tier.id] || 0 } : tier);
     const policy = appState.buildLaunchBurnPolicy({ tierId:appState.launchBurnTier, fundedMint:appState.PROTOCOL_FUNDED_MINT || null, tiers });
     return Object.hasOwn(appState.LAUNCH_TIER_USD, policy.tier)
-      ? { ...policy, quoteId:quote?.id || null, usdTarget:appState.LAUNCH_TIER_USD[policy.tier] } : policy;
+      ? { ...policy, quoteId:quote?.id || null, quoteExpiresAt:quote?.expiresAt || null, usdTarget:appState.LAUNCH_TIER_USD[policy.tier] } : policy;
   }
   // app-source-end
 

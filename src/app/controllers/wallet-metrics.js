@@ -1,3 +1,4 @@
+import { promotionBurnStep } from '../../../launch-promotion-receipt.js';
 import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
 import { developerLockLaunchInstructions } from '../../../developer-token-lock.js';
 import { refreshServiceFees, quoteLaunchServiceFee } from '../../features/fees/service-fees-client.js';
@@ -78,9 +79,11 @@ export function createWalletMetricsController(appState) {
         // still reports that it has not observed the hash.
         if (blockhashAttempt > 0) await new Promise(resolve => setTimeout(resolve, 1100));
         const latest = await appState.connection.getLatestBlockhash('finalized');
-        plan = appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions, burnInstruction: burnPlan?.instruction,
+        plan = appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
           mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
             amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:serviceQuote.id}),...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote,escrowReceiptMarker:developerBuy.amountBaseUnits>0n})], lookupTable });
+        if (burnPlan) plan.steps.unshift(promotionBurnStep({payer,mint,burnInstruction:burnPlan.instruction,
+          quoteId:launchBurn.quoteId || 'launch_tier_0_0000000000000000',blockhash:latest.blockhash}));
         const estimateTransactions = plan.steps.map(step => step.transaction);
         try {
           // The split path still simulates every transaction; the legacy path is the original full launch simulation: connection.simulateTransaction(launchTransaction, undefined, [payer]).
@@ -116,7 +119,7 @@ export function createWalletMetricsController(appState) {
       }
       if (request !== appState.metricsRequest || !appState.isWalletSessionCurrent(session)) return;
       appState.launchBurnReadiness = burnPlan
-        ? { ready: true, message: `Wallet verified for an atomic ${appState.formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED burn with Pump creation${plan.mintRouterSeparate ? '; router initialization uses a separate approval' : ''}.` }
+        ? { ready: true, message: `Wallet verified to first burn ${appState.formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED, then approve Pump creation${plan.mintRouterSeparate ? '; router initialization uses a separate approval' : ''}.` }
         : { ready: true, message: 'No creator-funded burn is required.' };
       appState.renderLaunchBurnSelection();
       const review=appState.launchReview({balance,serviceFeeLamports:serviceQuote.amountLamports,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:initialBuy.solAmountLamports,buyMaximum:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});

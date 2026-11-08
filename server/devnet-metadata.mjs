@@ -7,7 +7,8 @@ import {isDeletedDevnetMint} from './deleted-devnet-mints.mjs';
 import { devnetImageUri, devnetBannerUri, metadataStatement, LEGACY_DEVNET_METADATA_ORIGIN, normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
 import { canonicalLaunchSocialUrl } from '../launch-social-url.js';
 
-export const MAX_METADATA_IMAGE_BYTES = 600_000;
+import { MAX_PUBLISHED_IMAGE_BYTES } from '../launch-media-policy.js';
+export const MAX_METADATA_IMAGE_BYTES = MAX_PUBLISHED_IMAGE_BYTES;
 
 function text(value, max, label) {
   if (typeof value !== 'string' || value.length > max) throw new Error(`${label} is invalid or too long.`);

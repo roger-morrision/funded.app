@@ -1,4 +1,5 @@
 import { MAX_IMAGE_BYTES, validateImageFile } from './launch-image.js';
+import { LAUNCH_MEDIA } from './launch-media-policy.js';
 
 let prepared = null;
 let pending = false;
@@ -26,15 +27,15 @@ export async function prepareLaunchBanner(file) {
   }
   let bitmap;
   try {
-    validateImageFile(file);
+    validateImageFile(file, 'banner');
     bitmap = await createImageBitmap(file);
     if (bitmap.width * bitmap.height > 25_000_000 || bitmap.width < 3 || bitmap.height < 1) throw new Error('Banner must be at most 25 megapixels.');
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 400;
+    canvas.width = LAUNCH_MEDIA.banner.width;
+    canvas.height = LAUNCH_MEDIA.banner.height;
     const sourceWidth = Math.min(bitmap.width, bitmap.height * 3);
     const sourceHeight = sourceWidth / 3;
-    canvas.getContext('2d').drawImage(bitmap, (bitmap.width - sourceWidth) / 2, (bitmap.height - sourceHeight) / 2, sourceWidth, sourceHeight, 0, 0, 1200, 400);
+    canvas.getContext('2d').drawImage(bitmap, (bitmap.width - sourceWidth) / 2, (bitmap.height - sourceHeight) / 2, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
     let blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', .88));
     for (const quality of [.78, .65, .5, .35]) {
       if (blob && blob.size <= MAX_IMAGE_BYTES) break;
@@ -45,7 +46,7 @@ export async function prepareLaunchBanner(file) {
     prepared = new File([blob], 'token-banner.webp', { type: 'image/webp' });
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = URL.createObjectURL(blob);
-    return { file: prepared, url: previewUrl, width: 1200, height: 400 };
+    return { file: prepared, url: previewUrl, width: canvas.width, height: canvas.height };
   } catch (cause) {
     if (request === generation) error = cause.message;
     throw cause;

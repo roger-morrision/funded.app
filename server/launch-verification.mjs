@@ -3,6 +3,7 @@ import { PUMP_PROGRAM_ID, PUMP_SDK, pumpIdl } from '@pump-fun/pump-sdk';
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, decodeBurnCheckedInstruction, unpackMint } from '@solana/spl-token';
 import bs58 from 'bs58';
 import { createLaunchBurnTiers, tokensToBaseUnits } from '../launch-burn-policy.js';
+import { verifyPromotionBurnBinding } from '../launch-promotion-receipt.js';
 
 const createDiscriminator = Buffer.from(pumpIdl.events.find(event => event.name === 'CreateEvent').discriminator);
 const pumpProgram = PUMP_PROGRAM_ID.toBase58();
@@ -28,6 +29,7 @@ export function readPumpCreateEvent(logs = []) {
 
 export function verifyAtomicLaunchPromotion({ transaction, payer, signature, claim, fundedMint, tiers = createLaunchBurnTiers(), quote = null }) {
   if (!claim || claim.tier === 'standard') return null;
+  if (!transaction?.meta || transaction.meta.err) throw Error('Promotion burn transaction did not succeed.');
   const tier = tiers.find(item => item.id === claim.tier && item.amountTokens > 0);
   const requiredAmount = quote ? quote.amountTokens : tier?.amountTokens;
   if (!tier || !fundedMint || claim.fundedMint !== fundedMint || claim.amountTokens !== requiredAmount
@@ -64,6 +66,20 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   };
 }
 
+export async function verifyLaunchPromotion({connection,transaction,payer,signature,mint,claim,fundedMint,tiers,quote}) {
+  const burnSignature=claim?.receipt?.signature;
+  if (!burnSignature || burnSignature===signature)
+    return verifyAtomicLaunchPromotion({transaction,payer,signature,claim,fundedMint,tiers,quote});
+  const burn=await connection.getTransaction(burnSignature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+  verifyPromotionBurnBinding({transaction:burn,payer,mint,quoteId:claim.quoteId,launchSlot:transaction.slot});
+  const result=verifyAtomicLaunchPromotion({transaction:burn,payer,signature:burnSignature,claim,fundedMint,tiers,quote});
+  if(!result)throw Error('Separate burn requires a promotion package.');
+  result.quoteId=claim.quoteId;
+  result.receipt.atomicWithPumpLaunch=false;
+  result.receipt.confirmedBeforeLaunch=true;
+  return result;
+}
+
 export async function verifyPumpLaunch({ connection, mint, signature, promotionClaim = null, promotionQuote = null, fundedMint = null, promotionTiers, commitment = 'confirmed' }) {
   if (!['confirmed', 'finalized'].includes(commitment)) throw new Error('Unsupported launch verification commitment.');
   const mintKey = new PublicKey(String(mint || '').trim());
@@ -76,7 +92,7 @@ export async function verifyPumpLaunch({ connection, mint, signature, promotionC
   if (!account || (!account.owner.equals(TOKEN_PROGRAM_ID) && !account.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The mint account is not owned by a supported token program.');
   unpackMint(mintKey, account, account.owner);
   const payer = (transaction.transaction.message.accountKeys || transaction.transaction.message.staticAccountKeys)[0].toBase58();
-  const promotion = verifyAtomicLaunchPromotion({ transaction, payer, signature, claim: promotionClaim, fundedMint, tiers: promotionTiers, quote: promotionQuote });
+  const promotion = await verifyLaunchPromotion({ connection, transaction, payer, signature, mint:mintKey.toBase58(), claim: promotionClaim, fundedMint, tiers: promotionTiers, quote: promotionQuote });
   return {
     chain: 'solana', mint: mintKey.toBase58(), signature, slot: transaction.slot,
     feePayer:payer,

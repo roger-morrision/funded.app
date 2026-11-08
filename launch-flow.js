@@ -1,7 +1,7 @@
 import { assertRpcNetwork } from './solana-network.js';
 import { buildLaunchTransaction, normalizeLaunchInput } from './launch-core.js';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint, unpackMint } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint } from '@solana/spl-token';
 import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
@@ -14,6 +14,7 @@ import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits, pr
   verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from './mint-router-v3.js';
 import { executeLaunchPlan } from './launch-executor.js';
+import { confirmPromotionBurn } from './launch-promotion-burn.js';
 import { initialCurvePremiumBps } from './launch-review.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy, launchBuyCapacity } from './launch-community-reserve.js';
 import { launchServiceFeeInstructions } from './launch-service-fee.js';
@@ -181,6 +182,8 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
 
 export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterProgramId = null, useMintRouter = false, v3FeeRouter = null, launchBurn = null, launchServiceQuote = null, reserveConfig = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
   if (cluster !== 'devnet') throw new Error('Mainnet coin launching is not enabled. No transaction was prepared or sent.');
+  if (launchBurn && launchBurn.tier !== 'standard' && (!Number.isSafeInteger(launchBurn.amountTokens) || launchBurn.amountTokens <= 0))
+    throw Error('A valid promotion burn quote is required before coin creation.');
   if (!v3FeeRouter?.programId || !v3FeeRouter.initialAuthority || !v3FeeRouter.split || !useMintRouter)
     throw new Error('Only verified V3 mint-router launches are supported. No transaction was prepared or sent.');
   if (v3FeeRouter.agency) {
@@ -217,6 +220,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!lookupTable?.isActive()) throw new Error('Solana launch reserve lookup table is missing or inactive. No coin was created.');
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
     authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
+  const developerLockInstructions = developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
+    amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id});
   const hostedMetadataUri = devnetLaunchMetadataUri(mint.publicKey.toBase58());
   let symbolReservationExpiresAt = null;
   if (prepareMetadata) {
@@ -232,6 +237,22 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const burnPlan = launchBurn?.amountTokens > 0
     ? await prepareFundedLaunchBurn({ connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
     : null;
+  const beforeBroadcast = () => {
+    // Leave enough lease time for this recent-blockhash transaction to expire
+    // before another creator may acquire the same ticker.
+    if (symbolReservationExpiresAt !== null && (!Number.isFinite(symbolReservationExpiresAt)
+      || Date.now() + 5 * 60_000 >= symbolReservationExpiresAt))
+      throw new Error('Ticker reservation expired. Check saved receipts before starting another launch review.');
+  };
+  const launchBurnReceipt = burnPlan ? await confirmPromotionBurn({connection,provider,payer,mint,burnPlan,quoteId:launchBurn.quoteId,
+    onJournal,onStatus,assertWalletCurrent,beforeBroadcast:()=>{
+      beforeBroadcast();
+      if(!Number.isFinite(Date.parse(launchBurn.quoteExpiresAt)) || Date.parse(launchBurn.quoteExpiresAt)<=Date.now()+30_000)
+        throw Error('Promotion quote expired before burning. Refresh the launch review.');
+      if(!Number.isFinite(Date.parse(launchServiceQuote.expiresAt)) || Date.parse(launchServiceQuote.expiresAt)<=Date.now()+60_000)
+        throw Error('Launch fee quote is too close to expiry. Refresh before burning.');
+    }}) : null;
+  onStatus(burnPlan ? 'Promotion burn verified. Preparing the Pump coin creation transaction…' : 'Preparing the Pump coin creation transaction…');
   const launchInstructions = initialBuy.amountBaseUnits > 0n
     ? await PUMP_SDK.createV2AndBuyInstructions({
       global: initialBuy.global,
@@ -259,9 +280,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     })];
   const latest = await connection.getLatestBlockhash('confirmed');
   const plan = buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
-    burnInstruction: burnPlan?.instruction, mintRouterInstruction: mintRouter?.instruction,
-    reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
-      amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id}),...serviceInstructions], lookupTable });
+    mintRouterInstruction: mintRouter?.instruction,
+    reserveInstructions:[...reserve.instructions,...developerLockInstructions,...serviceInstructions], lookupTable });
   plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
     kind:'launch', mint:mint.publicKey.toBase58(), tokenName:launchInput.name, tokenSymbol:launchInput.symbol,
     reserveTokens:String(input.reserveTokens), vault:reserve.vault.toBase58(),
@@ -269,16 +289,8 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     maximumSol:(Number(initialBuy.maxSolAmountLamports) / 1_000_000_000).toFixed(9),
   };
   assertWalletCurrent();
-  onStatus(plan.mintRouterSeparate ? 'Approve mint router initialization, then approve the Pump launch…' : burnPlan
-    ? `Approve one transaction to create the Pump coin and burn ${burnPlan.amountTokens.toLocaleString()} $FUNDED…`
+  onStatus(plan.mintRouterSeparate ? 'Approve mint router initialization, then approve the Pump launch…'
     : 'Approve the Pump launch with funded.app set as creator-fee owner…');
-  const beforeBroadcast = () => {
-    // Leave enough lease time for this recent-blockhash transaction to expire
-    // before another creator may acquire the same ticker.
-    if (symbolReservationExpiresAt !== null && (!Number.isFinite(symbolReservationExpiresAt)
-      || Date.now() + 5 * 60_000 >= symbolReservationExpiresAt))
-      throw new Error('Ticker reservation expired. Start a new launch review. No transaction was sent.');
-  };
   const {signature,mintRouterSignature}=await executeLaunchPlan({connection,provider,payer,mint,plan,assertWalletCurrent,onEvent:onJournal,beforeBroadcast});
   onJournal({state:'verification-pending',signature});
   const reserveAccount = await getAccount(connection, reserve.destination, 'finalized', TOKEN_2022_PROGRAM_ID);
@@ -309,40 +321,6 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!bondingCurve) throw new Error(`Coin was created, but its Pump bonding curve could not be verified. Mint: ${mint.publicKey.toBase58()}`);
   const feeRoute = verifyPermanentPumpCreatorRoute({ bondingCurve, feeRouter, payer });
   if (!feeRoute.verified) throw new Error(`Coin was created, but funded.app is not its Pump creator-fee owner. Mint: ${mint.publicKey.toBase58()}`);
-  let launchBurnReceipt = null;
-  if (burnPlan) {
-    const expectedMaximumSupply = burnPlan.supplyBefore - burnPlan.amount;
-    let mintAfter;
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      try {
-        // Require an account view at least as new as the finalized launch. A
-        // load-balanced RPC can otherwise return the mint's pre-burn supply.
-        const view = await connection.getAccountInfoAndContext(burnPlan.mint,
-          { commitment:'finalized', minContextSlot:reserveTransaction.slot });
-        if (view.context.slot < reserveTransaction.slot) throw new Error('The RPC mint view predates the launch.');
-        mintAfter = unpackMint(burnPlan.mint, view.value, TOKEN_PROGRAM_ID);
-        if (mintAfter.supply <= expectedMaximumSupply) break;
-      } catch (error) {
-        if (attempt === 4) throw new Error(`Launch confirmed, but the $FUNDED mint supply read is unavailable. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`, { cause:error });
-      }
-      if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 800));
-    }
-    if (mintAfter.supply > expectedMaximumSupply)
-      throw new Error(`Launch confirmed, but the $FUNDED supply reduction could not be verified. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`);
-    launchBurnReceipt = {
-      signature,
-      instruction: 'BurnChecked',
-      mint: burnPlan.mint.toBase58(),
-      tokenAccount: burnPlan.tokenAccount.toBase58(),
-      amountTokens: burnPlan.amountTokens,
-      amountBaseUnits: burnPlan.amount.toString(),
-      decimals: burnPlan.decimals,
-      supplyBefore: burnPlan.supplyBefore.toString(),
-      supplyAfter: mintAfter.supply.toString(),
-      atomicWithPumpLaunch: true,
-      verified: true,
-    };
-  }
   return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate,
     mintRouterScope:mintRouter.scope, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
     reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },

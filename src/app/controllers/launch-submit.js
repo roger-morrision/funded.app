@@ -79,7 +79,7 @@ export function createLaunchSubmitController(appState) {
         if (!resolved.available || !/^\d{1,24}$/.test(String(resolved.data?.id || '')) || String(resolved.data?.handle || '').toLowerCase() !== xRecipient.toLowerCase()) throw new Error('X account could not be checked. Retry before launching.');
         xUserId = resolved.data.id;
       }
-      const unresolved=appState.readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state));
+      const unresolved=appState.readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&row.state!=='completed'&&(['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state)||row.events?.some(event=>event.step==='promotion-burn'&&['broadcasting','submitted','unknown','confirmed'].includes(event.state))));
       if(unresolved)throw new Error('An earlier launch with this name and ticker needs recovery in Portfolio. Check its receipts before creating another coin.');
       if(!appState.freshLaunchReview(reviewedCost))throw new Error('Estimate expired during identity lookup. Refresh and review again before signing.');
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id || launchBurn.amountTokens !== appState.currentLaunchTierQuote().amountTokens))
@@ -129,6 +129,13 @@ export function createLaunchSubmitController(appState) {
           // Save before any broadcast so a confirmed mint remains registerable
           // if a later RPC verification fails or the page closes.
           localStorage.setItem(`funded.launch.${recoveryMint}`, JSON.stringify(draft));
+        }
+        if (event.step === 'promotion-burn' && event.signature && recoveryMint) {
+          const key = `funded.launch.${recoveryMint}`;
+          const draft = JSON.parse(localStorage.getItem(key) || 'null');
+          if (!draft?.creatorLaunchBurn) throw Error('Promotion recovery draft is missing. No further transaction will be sent.');
+          draft.creatorLaunchBurn.receipt = { signature:event.signature, atomicWithPumpLaunch:false };
+          localStorage.setItem(key, JSON.stringify(draft));
         }
         if (event.state === 'verification-pending' && event.signature && recoveryMint) {
           const key = `funded.launch.${recoveryMint}`;

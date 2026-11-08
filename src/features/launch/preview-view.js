@@ -1,3 +1,4 @@
+import { DEVELOPER_TOKEN_LOCK_SECONDS } from '../../../developer-token-lock.js';
 import { getPreparedImage } from '../../../launch-image.js';
 import { FEE_DISTRIBUTION, validateFeeDistribution } from '../../../distribution-policy.js';
 
@@ -80,6 +81,10 @@ export function updateLaunchPreview(
   const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} tokens` : ''}` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');
   if (previewBuy) previewBuy.textContent = buyLabel;
+  const lockHelp = document.querySelector('#creator-buy-lock-help');
+  if (lockHelp) lockHelp.textContent = creatorBuy.sol > 0
+    ? 'Token lock: '+(DEVELOPER_TOKEN_LOCK_SECONDS / 3600)+' hours after launch · release in Portfolio.'
+    : 'Optional buy · tokens lock for '+(DEVELOPER_TOKEN_LOCK_SECONDS / 3600)+' hours after launch.';
   const buyTokensNode = document.querySelector('#creator-buy-token-amount');
   const buySolNode = document.querySelector('#creator-buy-sol-amount');
   const buyPreview=buyTokensNode?.closest?.('.creator-buy-preview');

@@ -171,9 +171,9 @@ export function createXPostChainAdapters({ connection, fundedMint, programId, re
       const tier = marketingTier(record);
       if (!tier) throw new Error('The registered launch tier is invalid.');
       if (tier !== 'standard' && (!fundedMint || record.creatorLaunchBurn.fundedMint !== fundedMint
-        || record.creatorLaunchBurn.receipt?.signature !== record.signature
+        || (record.creatorLaunchBurn.receipt?.atomicWithPumpLaunch === true && record.creatorLaunchBurn.receipt?.signature !== record.signature)
         || record.creatorLaunchBurn.receipt?.verified !== true
-        || record.creatorLaunchBurn.receipt?.atomicWithPumpLaunch !== true))
+        || (record.creatorLaunchBurn.receipt?.atomicWithPumpLaunch !== true && record.creatorLaunchBurn.receipt?.confirmedBeforeLaunch !== true)))
         throw new Error('A verified paid $FUNDED launch tier is required.');
       const verified = await verifyPumpLaunch({ connection, mint: record.mint, signature: record.signature, commitment: 'finalized',
         ...(tier === 'standard' ? {} : { promotionClaim: record.creatorLaunchBurn, fundedMint,

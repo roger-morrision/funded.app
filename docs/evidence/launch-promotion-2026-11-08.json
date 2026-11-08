@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-08",
+  "changes": [
+    "Promotion BurnChecked transaction must finalize and its exact token/supply reduction must verify before Pump SDK creation instructions are requested.",
+    "Burn receipt is signed for exactly one launch mint and quote; server independently verifies it precedes coin creation.",
+    "Legacy atomic promotion receipts remain supported in badges, burn boards and promotion verification.",
+    "Promotion review explains that a confirmed burn is permanent if later creation fails; recovery blocks accidental repeat burns for the same unfinished launch.",
+    "Developer purchase amount displays the enforced 12-hour token lock.",
+    "Logo source limit 15 MB, banner source limit 5 MB; output 1024x1024 logo with full image preserved and 1500x500 centered banner, each up to 600 KB."
+  ],
+  "validation": {
+    "focusedTests": 53,
+    "failures": 0,
+    "build": "passed",
+    "structure": "passed",
+    "cssBudget": "passed",
+    "browserLogo": "2,276,517-byte source prepared as 1024x1024, 124 KB; no upload or transaction submitted",
+    "browserLock": "0.01 SOL input shows Token lock: 12 hours after launch; release in Portfolio",
+    "devnetSimulation": {
+      "cluster": "devnet",
+      "mode": "simulation-only",
+      "sent": false,
+      "burnTokens": 1,
+      "feeLamports": 10000,
+      "slot": 519850671,
+      "err": null,
+      "logs": [
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 138 of 400000 compute units",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+        "Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr invoke [1]",
+        "Program log: Signed by 5MEEvgzydPhkbnHRYs94ZtfMRZxyEwcsFXCTpq6dNZZq",
+        "Program log: Memo (len 102): \"funded:launch-promotion:v1:5MEEvgzydPhkbnHRYs94ZtfMRZxyEwcsFXCTpq6dNZZq:launch_tier_0_0000000000000000\"",
+        "Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr consumed 51073 of 399862 compute units",
+        "Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr success"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "url": "https://intercom.help/pumpfun-web/en/articles/11974680-create-a-coin-on-the-mobile-app",
+      "verified": "Pump image max 15 MB, min 1000x1000 recommended square; banner max 5 MB, recommended 1500x500."
+    },
+    {
+      "url": "https://github.com/pump-fun/pump-fun-skills/blob/main/create-coin/references/METADATA.md",
+      "verified": "Official SDK creation accepts a hosted metadata URI; this app uses its own signed metadata publishing flow."
+    },
+    {
+      "url": "https://docs.dexscreener.com/api/reference",
+      "verified": "Public API documents profile icon/header URLs, not a media upload API or upload size contract."
+    },
+    {
+      "url": "https://marketplace.dexscreener.com/product/token-info/order",
+      "verified": "Upload form requires sign-in; exact Marketplace upload cap not verified."
+    }
+  ],
+  "limits": [
+    "Transaction tests use mocked RPC responses and real signing/serialization; one additional real Devnet simulation passed, with no send.",
+    "A complete new burn-then-create launch was not executed on-chain in this run.",
+    "No Phantom extension signing, Mainnet writes or Dexscreener listing purchase."
+  ]
+}

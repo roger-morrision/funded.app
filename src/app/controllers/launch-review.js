@@ -202,6 +202,9 @@ export function createLaunchReviewController(appState) {
     document.querySelector('#launch-review-wallet').textContent = session.address;
     document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} tokens`;
     document.querySelector('#launch-review-buy').textContent = appState.getCreatorBuySol() ? `${appState.getCreatorBuySol()} SOL` : 'None';
+    const burnOrder = document.querySelector('#launch-review-burn-order');
+    burnOrder.hidden = !burn.requiresBurn;
+    burnOrder.textContent = 'Approve the $FUNDED burn first, then coin creation. A confirmed burn is permanent, even if creation is cancelled or fails.';
     const v3Route = appState.feeRouterState.scope === 'per-mint-v3';
     document.querySelector('#launch-review-route-short').textContent = v3Route
       ? 'Mint-specific V3 PDA' : `${appState.feeRouterState.address.slice(0, 7)}…${appState.feeRouterState.address.slice(-6)}`;

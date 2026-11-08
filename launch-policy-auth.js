@@ -18,6 +18,7 @@ export function canonicalLaunchPolicy(input = {}) {
     amountTokens: Number(burn.amountTokens),
     fundedMint: new PublicKey(String(burn.fundedMint || '')).toBase58(),
     ...(burn.quoteId ? { quoteId:String(burn.quoteId) } : {}),
+      ...(burn.receipt?.signature && burn.receipt.atomicWithPumpLaunch === false ? { burnSignature:String(burn.receipt.signature) } : {}),
   } : null;
   const v3 = input.pumpFeeRoute?.scope === 'per-mint-v3' ? {
     feeRouterScope:'per-mint-v3',

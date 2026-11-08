@@ -28,6 +28,7 @@ export function recordLaunchEvent(id, event, storage = globalThis.localStorage) 
 }
 export function journalRecovery(row) {
   if(row.state==='completed')return 'Registered. Inspect the on-chain receipt.';
+  if(row.events?.some(e=>e.step==='promotion-burn'&&e.state==='confirmed')&&!row.events?.some(e=>e.step==='launch'&&e.state==='confirmed'))return 'Promotion burn confirmed; coin creation is not confirmed. The burn cannot be reversed. Check all receipts before any retry; do not burn again.';
   if(['broadcasting','submitted','unknown'].includes(row.state))return 'Outcome uncertain. Check the recorded signature before starting another launch. Never assume a timeout means failure.';
   if(['confirmed','verification-pending','registration-pending'].includes(row.state))return 'A transaction confirmed. Verify the mint and finish registration; do not recreate the coin.';
   if(row.events?.some(e=>e.state==='confirmed'))return 'An earlier step confirmed. Router setup may remain on-chain. Inspect all receipts before starting again.';

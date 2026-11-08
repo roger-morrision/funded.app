@@ -232,7 +232,7 @@ function shortenPageCopy() {
     ['#community .section-heading .panel-explainer', 'Sign in to save favorites across devices.'],
     ['#capital-flow-title', 'How creator fees are split'],
     ['#analytics-detail .split-detail', 'Saved rates apply per coin. Allocations are not payments.'],
-    ['#token-image-help', 'PNG, JPG, WEBP · 12 MB max · square image recommended'],
+    ['#token-image-help', 'PNG, JPG, WebP · up to 15 MB · 1024×1024 output · compressed to 600 KB'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
     ['#referral-command-center .section-heading .panel-explainer', 'Earn from collected creator fees, not signups.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Review the pool quote, then approve in your wallet.'],

@@ -46,7 +46,7 @@ export function projectBurnBoard(state, cluster) {
     const burn = launch?.creatorLaunchBurn;
     const receipt = burn?.receipt;
     if (burn?.status !== 'verified' || receipt?.verified !== true
-      || receipt.instruction !== 'BurnChecked' || receipt.atomicWithPumpLaunch !== true) continue;
+      || receipt.instruction !== 'BurnChecked' || (receipt.atomicWithPumpLaunch !== true && receipt.confirmedBeforeLaunch !== true)) continue;
     include(projects.get(launch.mint), {
       signature: receipt.signature,
       amountTokens: receipt.amountTokens ?? burn.amountTokens,
@@ -97,7 +97,7 @@ export function walletBurnBoard(state, cluster) {
     const receipt = burn?.receipt;
     if (!launch?.onchainVerified || launch.cluster !== cluster || burn?.status !== 'verified'
       || receipt?.verified !== true || receipt.instruction !== 'BurnChecked'
-      || receipt.atomicWithPumpLaunch !== true) continue;
+      || (receipt.atomicWithPumpLaunch !== true && receipt.confirmedBeforeLaunch !== true)) continue;
     include({ signature: receipt.signature, amountTokens: receipt.amountTokens ?? burn.amountTokens,
       wallet: launch.creatorWallet || launch.feePayer, at: launch.onchainVerifiedAt || launch.createdTimestamp });
   }
