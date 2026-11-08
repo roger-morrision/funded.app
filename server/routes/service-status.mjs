@@ -27,15 +27,15 @@ export function createServiceStatusRoutes({
   const settlementStatus = createSettlementStatusReader({
     readSnapshot:async () => {
       const config = identity();
-      return { identity:config, state:config.cluster === 'devnet' && config.enabled
+      return { identity:config, state:['devnet','mainnet-beta'].includes(config.cluster) && config.enabled
         ? await store.read() : {} };
     },
     verify:async ({state,identity:config,signal}) => {
       if (readSettlementEvidence) return readSettlementEvidence({state,signal});
-      if (config.cluster !== 'devnet' || !config.enabled)
+      if (!['devnet','mainnet-beta'].includes(config.cluster) || !config.enabled)
         return { verified:false, scope:'all-recorded-v3-collections', recorded:0,
           checked:0, reason:'v3-settlement-disabled' };
-      return verifyRecordedV3Settlements({state,
+      return verifyRecordedV3Settlements({state,cluster:config.cluster,
         connection:connectionFactory(config.rpcUrl, {commitment:'finalized',
           disableRetryOnRateLimit:true, fetch:(target,options) => fetch(target,{...options,
             signal:options?.signal ? AbortSignal.any([signal,options.signal]) : signal})}),

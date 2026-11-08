@@ -1,4 +1,5 @@
 import {requireSolanaCluster,assertRpcNetwork} from '../solana-network.js';
+import {financialRecordNetwork} from './financial-network.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
@@ -33,11 +34,11 @@ export async function readFinalizedV3Allocations({store,connection,mint,cluster=
       || collection.cluster!==cluster || collection.scope!=='per-mint-v3'
       || collection.programId!==launch.pumpFeeRoute.programId || row.collectionSignature!==source)
       throw new Error('Cumulative allocation requires every matching finalized source collection.');
-    const proof=await loadSettlement({connection:proofConnection,signature:row.settlementSignature,
+    const proof=await loadSettlement({connection:proofConnection,signature:row.settlementSignature,cluster,
       programId:launch.pumpFeeRoute.programId,mint,authority:launch.pumpFeeRoute.initialAuthority,
       creator:launch.creatorWallet,claimId:Buffer.from(collection.claimId,'hex'),
       expectedLamports:collection.collectedLamports,split:launch.pumpFeeRoute.protocolSplit,includePosition:true});
-    if (!proof?.position || proof.signature!==row.settlementSignature
+    if (!proof?.position || !financialRecordNetwork(proof,cluster,{legacyDevnet:true}) || proof.signature!==row.settlementSignature
       || proof.claimId!==collection.claimId || proof.expectedLamports!==String(collection.collectedLamports))
       throw new Error('Finalized cumulative settlement evidence is unavailable.');
     const settlement={...proof,...(cluster==='mainnet-beta'?{cluster}:{}),programId:launch.pumpFeeRoute.programId,collectionSignature:source,settlementSignature:row.settlementSignature};

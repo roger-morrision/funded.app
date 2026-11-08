@@ -292,7 +292,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
         return json(res, 200, result);
       }
       const retry = await retryState({ connection, signatures:[existing.signature],
-        blockhash:existing.blockhash });
+        blockhash:existing.blockhash,receiptAddress:existing.receiptAddress,lastValidBlockHeight:existing.lastValidBlockHeight });
       if (!retry.retry) return json(res, 409, { error:retry.reason });
     }
     if(recipientClaim){
@@ -338,8 +338,9 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
           authority:authority.publicKey, blockhash:latest.blockhash }),
         lastValidBlockHeight:latest.lastValidBlockHeight });
     }
+    const latest=operatorSigned?await connection.getLatestBlockhash('finalized'):null;
     const transaction = operatorSigned ? new Transaction({feePayer:authority.publicKey,
-      recentBlockhash:(await connection.getLatestBlockhash('finalized')).blockhash})
+      recentBlockhash:latest.blockhash})
       .add(...(Array.isArray(payoutInstructions)?payoutInstructions:[payoutInstructions]))
       : verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
         instruction:payoutInstructions, authority:authority.publicKey,creator:launch.creatorWallet });
@@ -366,6 +367,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       current[ledger][ledgerKey] = { status:'verification-pending',
         signature, collectionSignature, ...residualMetadata, mint, category, ...(level ? { level } : {}),
         recipient:recipient.toBase58(), amount:String(amount),
+        cluster:solanaCluster,programId,signedTransaction:transaction.serialize().toString('base64'),
+        receiptAddress:payout.withdrawal.toBase58(),...(latest?{lastValidBlockHeight:latest.lastValidBlockHeight}:{}),
         blockhash:transaction.recentBlockhash, startedAt:new Date().toISOString() };
       return true;
     });

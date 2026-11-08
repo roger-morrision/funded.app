@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {financialRecordNetwork} from './financial-network.mjs';
 import {PublicKey,SystemProgram} from '@solana/web3.js';
 import {MARKETING_AGENCY_POLICY as POLICY} from '../config/marketing-agency.js';
 import {deriveAgencyPolicyV3,deriveAgencyVaultsV3,decodeAgencyPolicyV3} from '../agency-mint-router-v3.js';
@@ -60,10 +61,10 @@ export async function readAgencyMintContext({connection,state,mint,programId,app
     const collected=await loadCollection({connection:rpc,signature:source,programId,mint,launch,cluster});
     if(!collected||collected.signature!==source||collected.router!==expectedRouter||collected.claimId.toString('hex')!==collection.claimId
       ||String(collected.expectedLamports)!==String(collection.collectedLamports))throw new Error('An agency source is not a verified Pump creator-fee collection.');
-    const settled=await loadSettlement({connection:policyConnection,signature:saved.settlementSignature,programId,mint,
+    const settled=await loadSettlement({connection:policyConnection,signature:saved.settlementSignature,programId,mint,cluster,
       authority:route.initialAuthority,creator:launch.creatorWallet,claimId:collected.claimId,
       expectedLamports:collected.expectedLamports,split:route.protocolSplit});
-    if(!settled||settled.signature!==saved.settlementSignature||settled.mint!==mint||settled.categoryLamports?.length!==8
+    if(!settled||!financialRecordNetwork(settled,cluster,{legacyDevnet:true})||settled.signature!==saved.settlementSignature||settled.mint!==mint||settled.categoryLamports?.length!==8
       ||!Number.isSafeInteger(settled.slot)||settled.slot>snapshot.context.slot)throw new Error('Finalized eight-category agency settlement is unavailable.');
     gross+=BigInt(settled.expectedLamports);funded+=BigInt(settled.categoryLamports[7]);
     proofs.push({signature:settled.signature,slot:settled.slot,cluster,commitment:'finalized',verified:true});

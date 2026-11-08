@@ -1,4 +1,7 @@
 import bs58 from 'bs58';
+import {isDeepStrictEqual} from 'node:util';
+import {assertRpcNetwork,SOLANA_GENESIS} from '../../solana-network.js';
+import {financialProgramAllowed,financialRecordNetwork} from '../financial-network.mjs';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { buildMintRouterV3SettlementInstruction } from '../../mint-router-v3.js';
@@ -22,6 +25,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
   verifyTransaction = verifyCreatorSettlement,
   submitTransaction = submitCreatorSettlement,
   retryState = creatorSettlementRetryState,
+  programAllowed = financialProgramAllowed,
   originAllowed = allowedAuthOrigin }) {
   const json = (...args) => { respond(...args); return true; };
   return async function handleV3CreatorSettlement(req, res, url) {
@@ -30,14 +34,14 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
       ? url.pathname.match(/^\/api\/tokens\/([^/]+)\/v3-settlement\/([^/]+)$/) : null;
     if (!match && !automatic) return false;
     if (automatic && !requireAuthorized(req, res)) return true;
-    if (solanaCluster !== 'devnet' || !automatic && !originAllowed(req, env.CORS_ORIGIN)) {
-      return json(res, 403, { error:'V3 settlement requires the Devnet app origin.' });
+    if (!Object.hasOwn(SOLANA_GENESIS,solanaCluster) || !automatic && !originAllowed(req, env.CORS_ORIGIN)) {
+      return json(res, 403, { error:'V3 settlement requires a supported network and the app origin.' });
     }
     if (env.FUNDED_V3_SETTLEMENT_ENABLED !== 'true') {
       return json(res, 503, { error:'V3 settlement is not activated.' });
     }
     if (automatic && env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED !== 'true') {
-      return json(res, 503, { error:'Automatic V3 settlement requires the upgraded Devnet program and explicit activation.' });
+      return json(res, 503, { error:'Automatic V3 settlement requires the reviewed program and explicit activation.' });
     }
     const input = await body(req);
     let mint;
@@ -49,20 +53,20 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     }
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim();
-    if (!programId || !/^[a-f0-9]{64}$/i.test(approvedHash)) {
-      return json(res, 503, { error:'The approved V3 Devnet program is not configured.' });
+    if (!programId || !/^[a-f0-9]{64}$/i.test(approvedHash)||!programAllowed(solanaCluster,programId,approvedHash)) {
+      return json(res, 503, { error:'The reviewed V3 program is not configured for this network.' });
     }
     let authority;
     try { authority = v3AuthorityKeypair(); } catch {}
     const state = await store.read();
     const collection = state.collections?.[collectionSignature];
     const launch = state.launches?.[mint];
-    if (!authority || !launch?.onchainVerified || launch.cluster !== 'devnet'
+    if (!authority || !launch?.onchainVerified || !financialRecordNetwork(launch,solanaCluster)
       || launch.mint !== mint || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
       || launch.pumpFeeRoute.programId !== programId
       || launch.pumpFeeRoute.initialAuthority !== authority.publicKey.toBase58()
       || collection?.mint !== mint || collection.signature !== collectionSignature
-      || collection.scope !== 'per-mint-v3' || collection.cluster !== 'devnet'
+      || collection.scope !== 'per-mint-v3' || !financialRecordNetwork(collection,solanaCluster)
       || collection.status !== 'collected' || collection.onchainVerified !== true
       || collection.attribution !== 'mint-verified' || collection.programId !== programId
       || !Number.isSafeInteger(collection.collectedLamports)
@@ -70,28 +74,37 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
       return json(res, 409, { error:'A matching verified V3 launch, collection, and settlement signer are required.' });
     }
     const prior = state.v3Settlements?.[collectionSignature];
-    if (prior?.status === 'finalized') return json(res, 200, prior);
+    if(prior&&(!financialRecordNetwork(prior,solanaCluster,{legacyDevnet:true})||prior.mint!==mint
+      ||prior.collectionSignature!==collectionSignature
+      ||(solanaCluster==='mainnet-beta'||prior.programId!=null)&&prior.programId!==programId
+      ||prior.approvedHash!=null&&prior.approvedHash!==approvedHash.toLowerCase()))
+      return json(res,409,{error:'Stored settlement belongs to another network, program or source.'});
+    if(prior?.status==='finalized'&&!prior.settlementSignature)
+      return json(res,409,{error:'Finalized settlement has no signature to reconcile.'});
     const connection = connectionFactory(solanaRpcUrl);
-    const readiness = await verifyReadiness({ connection, programId,
+    try{await assertRpcNetwork(connection,solanaCluster);}
+    catch{return json(res,503,{error:'Settlement RPC does not match the selected network.'});}
+    const readiness = await verifyReadiness({ connection, programId,cluster:solanaCluster,
       expectedProgramDataSha256:approvedHash, mint, creatorWallet:launch.creatorWallet,
       initialAuthority:authority.publicKey, split:launch.pumpFeeRoute.protocolSplit });
     if (!readiness.ready || readiness.configuredRouter !== collection.router
       || launch.pumpFeeRoute.router !== collection.router) {
       return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
     }
-    const source = await loadCollection({ connection, signature:collectionSignature,
+    const source = await loadCollection({ connection, signature:collectionSignature,cluster:solanaCluster,
       programId, mint, launch });
     if (!source || source.signature !== collectionSignature || source.router !== collection.router
       || source.expectedLamports !== BigInt(collection.collectedLamports)
       || source.claimId.toString('hex') !== collection.claimId) {
       return json(res, 409, { error:'The finalized Pump collection does not match its record.' });
     }
-    const proofInput = { connection, programId, mint, authority:authority.publicKey,
+    const proofInput = { connection, programId, mint,cluster:solanaCluster, authority:authority.publicKey,
       creator:launch.creatorWallet, claimId:source.claimId,
       expectedLamports:source.expectedLamports, split:launch.pumpFeeRoute.protocolSplit, includePosition:true };
     const frozenUpline = (proof, current) => {
       const first = Object.values(current.v3Settlements || {}).filter(row =>
-        row.mint === mint && row.status === 'finalized' && Array.isArray(row.referralUpline))
+        row.mint === mint && row.status === 'finalized' && financialRecordNetwork(row,solanaCluster,{legacyDevnet:true})
+        && Array.isArray(row.referralUpline))
         .sort((a, b) => a.slot - b.slot)[0];
       if (first) return first.referralUpline;
       try { return v3ReferralUpline({ creatorWallet:launch.creatorWallet,
@@ -100,14 +113,16 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     };
     const recordedFinalized = (proof, signature, current) => ({ ...proof,
       collectionSignature, settlementSignature:signature, status:'finalized',
-      cluster:'devnet', finalizedAt:new Date().toISOString(),
+      cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],programId,approvedHash:approvedHash.toLowerCase(), finalizedAt:new Date().toISOString(),
       referralUpline:frozenUpline(proof, current),
-      allocationPlan:recordedV3AllocationPlan({ launch, settlement:{ ...proof,
-        programId, collectionSignature, settlementSignature:signature } }) });
+      allocationPlan:recordedV3AllocationPlan({ launch,cluster:solanaCluster, settlement:{ ...proof,
+        cluster:solanaCluster,programId, collectionSignature, settlementSignature:signature } }) });
+    const matchingProof=(proof,signature)=>Boolean(proof&&proof.signature===signature&&proof.mint===mint
+      &&financialRecordNetwork(proof,solanaCluster,{legacyDevnet:true})&&proof.router===collection.router
+      &&proof.claimId===collection.claimId&&proof.expectedLamports===String(collection.collectedLamports));
     if (prior?.settlementSignature) {
       const finalized = await loadSettlement({ ...proofInput, signature:prior.settlementSignature });
-      if (finalized && finalized.claimId === collection.claimId
-        && finalized.expectedLamports === String(collection.collectedLamports)) {
+      if (matchingProof(finalized,prior.settlementSignature)) {
         const result = await store.update(current => {
           const row = current.v3Settlements?.[collectionSignature];
           if (row?.settlementSignature !== prior.settlementSignature) return null;
@@ -117,8 +132,9 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
         return result ? json(res, 200, result)
           : json(res, 409, { error:'Settlement state changed during recovery.' });
       }
+      if(prior.status==='finalized')return json(res,409,{error:'Stored finalized settlement could not be reverified; no new transaction was signed.'});
       const retry = await retryState({ connection, signatures:[prior.settlementSignature],
-        blockhash:prior.blockhash });
+        blockhash:prior.blockhash,receiptAddress:prior.receiptAddress,lastValidBlockHeight:prior.lastValidBlockHeight });
       if (!retry.retry) return json(res, 409, { error:retry.reason });
     }
     const settlement = (automatic ? buildV3AutoPolicySettlement : buildV3PolicySettlement)({ programId, mint,split:launch.pumpFeeRoute.protocolSplit,
@@ -126,16 +142,17 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
       claimId:source.claimId, expectedLamports:source.expectedLamports });
     if (!automatic && !input?.creatorSignedTransaction) {
       const latest = await connection.getLatestBlockhash('finalized');
-      return json(res, 202, { status:'awaiting-creator-signature', mint,
+      return json(res, 202, { status:'awaiting-creator-signature', mint,cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],
         collectionSignature, creatorWallet:launch.creatorWallet,
         amountLamports:String(source.expectedLamports),
         transaction:prepareTransaction({ instruction:settlement.instruction,
           authority:authority.publicKey, blockhash:latest.blockhash }),
         lastValidBlockHeight:latest.lastValidBlockHeight });
     }
+    const latest=automatic?await connection.getLatestBlockhash('finalized'):null;
     const transaction = automatic
       ? new Transaction({feePayer:authority.publicKey,
-        recentBlockhash:(await connection.getLatestBlockhash('finalized')).blockhash})
+        recentBlockhash:latest.blockhash})
         .add(settlement.instruction)
       : verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
         instruction:settlement.instruction, authority:authority.publicKey,
@@ -146,13 +163,17 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
       const row = current.collections?.[collectionSignature];
       const existing = current.v3Settlements?.[collectionSignature];
       if (!row || row.claimId !== collection.claimId
+        ||!financialRecordNetwork(row,solanaCluster)||row.programId!==programId
+        ||!isDeepStrictEqual(current.launches?.[mint]?.pumpFeeRoute,launch.pumpFeeRoute)
         || row.collectedLamports !== collection.collectedLamports
         || existing?.status === 'finalized'
         || existing?.settlementSignature !== prior?.settlementSignature) return false;
       current.v3Settlements ||= {};
       current.v3Settlements[collectionSignature] = { collectionSignature,
         settlementSignature, mint, status:'verification-pending',
-        blockhash:transaction.recentBlockhash, cluster:'devnet',
+        blockhash:transaction.recentBlockhash, cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],
+        programId,approvedHash:approvedHash.toLowerCase(),signedTransaction:transaction.serialize().toString('base64'),
+        receiptAddress:settlement.claim.toBase58(),...(latest?{lastValidBlockHeight:latest.lastValidBlockHeight}:{}),
         startedAt:new Date().toISOString() };
       return true;
     });
@@ -160,8 +181,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const submitted = await submitTransaction({ connection, transaction, authority, automatic });
     if (submitted !== settlementSignature) throw new Error('Finalized V3 settlement signature changed.');
     const finalized = await loadSettlement({ ...proofInput, signature:submitted });
-    if (!finalized || finalized.claimId !== collection.claimId
-      || finalized.expectedLamports !== String(collection.collectedLamports)) {
+    if (!matchingProof(finalized,submitted)) {
       throw new Error('Finalized V3 category settlement proof is unavailable; reconcile before retrying.');
     }
     const result = await store.update(current => {

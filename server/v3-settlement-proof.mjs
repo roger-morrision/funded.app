@@ -1,4 +1,5 @@
 import bs58 from 'bs58';
+import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {createHash} from 'node:crypto';
 import {buildV3PolicySettlement} from './v3-policy-builders.mjs';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
@@ -14,12 +15,14 @@ const discriminator = name => createHash('sha256').update(`global:${name}`).dige
 const autoDiscriminators = [discriminator('settle_mint_v3_auto'),
   discriminator('settle_agency_mint_v3_auto')];
 
-// The caller must separately verify the approved Devnet program hash, the
+// The caller must separately verify the reviewed program on the selected network, the
 // immutable launch policy, and the source Pump collection before using this.
-export async function loadFinalizedV3Settlement({ connection, signature, programId, mint,
+export async function loadFinalizedV3Settlement({ connection, signature, programId, mint, cluster='devnet',
   authority, creator, claimId, expectedLamports, split, includePosition = false,
   verifyClaim = verifyMintClaimV3Account, verifyPolicy = verifyMintPolicyV3Account }) {
   try {
+    requireSolanaCluster(cluster);
+    if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
     let expected = buildV3PolicySettlement({ programId, mint,
       authority, creator, claimId, expectedLamports,split });
     const transaction = await connection.getTransaction(signature, {
@@ -49,6 +52,7 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
         automatic = true;
       }
       if (Buffer.from(data).subarray(0,8).equals(QA_RECOVERY_DISCRIMINATOR)) {
+        if(cluster!=='devnet')return null;
         expected = buildQaSettlementRecoveryInstruction({programId,mint,authority,creator,
           claimId,expectedLamports,split});
         recovery = true;
@@ -78,10 +82,10 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
       || policy.settledLamports < BigInt(expectedLamports)) return null;
     if (recovery && policy.settledLamports < BigInt(qaSettlementRecoveryForClaim(claimId).priorSettledLamports)
       + BigInt(expectedLamports)) return null;
-    const position = includePosition ? await loadV3SettlementPosition({connection,signature,
+    const position = includePosition ? await loadV3SettlementPosition({connection,signature,cluster,
       slot:transaction.slot,programId,mint,authority,creator,expectedLamports,split,
       categoryLamports:claim.categoryLamports,verifyPolicy}) : null;
-    return { signature, slot:transaction.slot, blockTime:transaction.blockTime || null,
+    return { cluster,genesisHash:SOLANA_GENESIS[cluster],signature, slot:transaction.slot, blockTime:transaction.blockTime || null,
       mint:new PublicKey(mint).toBase58(),
       router:expected.router.address.toBase58(), claim:expected.claim.toBase58(),
       policy:expected.policy.address.toBase58(), claimId:Buffer.from(claimId).toString('hex'),

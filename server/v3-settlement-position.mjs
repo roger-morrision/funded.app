@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import {assertRpcNetwork,requireSolanaCluster} from '../solana-network.js';
 import bs58 from 'bs58';
 import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 import {buildV3PolicySettlement} from './v3-policy-builders.mjs';
@@ -28,9 +29,11 @@ const targets = (total, split) => {
 // Recover an immutable settlement's cumulative position from a context-bound
 // finalized policy snapshot. Same-slot order comes from the finalized block,
 // never from the RPC's ordering of address-history results.
-export async function loadV3SettlementPosition({ connection, signature, slot, programId,
+export async function loadV3SettlementPosition({ connection, signature, slot, programId, cluster='devnet',
   mint, authority, creator, expectedLamports, categoryLamports, split,
   verifyPolicy = verifyMintPolicyV3Account }) {
+  requireSolanaCluster(cluster);
+  if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
   const policyAddress = (split?.agencyPercent!==undefined?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address;
   const snapshot = await connection.getAccountInfoAndContext(policyAddress,{commitment:'finalized'});
   if (!snapshot?.value || !Number.isSafeInteger(snapshot.context?.slot) || snapshot.context.slot < slot)
@@ -96,6 +99,7 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
         const code = data.subarray(0,8).toString('hex');
         if (unchanged.has(code)) continue;
         const recovery = code === QA_RECOVERY_DISCRIMINATOR.toString('hex');
+        if(recovery&&cluster!=='devnet')throw new Error('Historical QA recovery is not valid on Mainnet.');
         const automatic = code === (split?.agencyPercent!==undefined?agencyAutoSettle:autoSettle);
         if ((code !== (split?.agencyPercent!==undefined?agencySettle:settle) && !automatic && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
         const amount = data.readBigUInt64LE(40);

@@ -4,6 +4,13 @@ Status: **preparation in progress; Mainnet remains NO-GO**. This change does not
 
 ## Implemented
 
+- Settlement submission now takes the selected network through collection proof, settlement proof, cumulative position and allocation recording. Mainnet requires the committed reviewed release; configuration flags cannot substitute for the reviewed executable proof. Global Mainnet write guards remain closed.
+- Saved finalized settlements are reverified against chain evidence on replay. Foreign-network/program/source records are rejected before signing. A new settlement journals exact signed bytes, network, program, approved hash and immutable claim address before broadcast.
+- Settlement and agency allocation readers propagate the network instead of relabelling a default Devnet proof. Historical QA settlement recovery is rejected by Mainnet transaction and cumulative-history verification.
+- Payment retry requires finalized failure, or finalized expiry plus absence of the recorded signature, transaction and immutable payment receipt. Unknown outcomes and older records lacking expiry evidence remain blocked for reconciliation. New automatic settlement/category payments save the required expiry and receipt fields.
+
+These settlement and retry changes have local tests using mocked RPC and ephemeral signatures. They are not a completed Mainnet financial acceptance run. No production configuration or Mainnet write gate was enabled.
+
 - Program evidence accepts an explicit network, verifies Mainnet genesis before account reads, and requires any alternate provider to match that network. The Devnet evidence endpoint is not inherited by Mainnet.
 - Finalized collection verification binds the launch and RPC to the requested network before accepting financial evidence.
 - Allocation plans and automatic action selection support explicitly labelled Mainnet records. Unlabelled historical records remain Devnet-only; mixed-network settlements are rejected.

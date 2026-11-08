@@ -5,6 +5,7 @@ import { deriveMintRouterV3, directedGrossUnits, verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from '../mint-router-v3.js';
 import { readProgramDataEvidence } from './automatic-reward-chain.mjs';
 import { requireSolanaCluster, SOLANA_GENESIS } from '../solana-network.js';
+import {mainnetReleaseVerified} from './mainnet-program.mjs';
 
 // Registration must check the program actually running on the selected chain, as well as
 // the immutable per-mint accounts. A launch record or matching PDA alone does
@@ -33,7 +34,8 @@ export async function verifyV3LaunchRouterReadiness({ connection, programId, exp
       verifyGlobal({ connection, programId:program, commitment:'finalized' }),
     ]);
     if (genesis !== SOLANA_GENESIS[cluster] || !evidence.account?.executable
-      || evidence.sha256 !== expectedProgramDataSha256.toLowerCase() || !global.verified) {
+      || evidence.sha256 !== expectedProgramDataSha256.toLowerCase() || !global.verified
+      || cluster==='mainnet-beta'&&!mainnetReleaseVerified(evidence,program,expectedProgramDataSha256.toLowerCase())) {
       return { ready:false, status:503, error:'The approved V3 program or global router could not be verified on the selected network.' };
     }
     const [router, policy] = await Promise.all([

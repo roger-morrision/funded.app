@@ -1,6 +1,9 @@
 import { PublicKey } from '@solana/web3.js';
 import { verifyFeeRouterAccount } from '../fee-router.js';
-import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
+import {readProgramDataEvidence} from './automatic-reward-chain.mjs';
+import {assertRpcNetwork,requireSolanaCluster} from '../solana-network.js';
+import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
+import {mainnetReleaseVerified} from './mainnet-program.mjs';
 import { loadFinalizedV3PumpCollection } from './v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { allocationAuditHash } from './allocation-audit-hash.mjs';
@@ -13,13 +16,13 @@ const result = (verified, recorded, checked, reason) => ({
 
 // A persisted `finalized` label is insufficient. Recheck the approved program,
 // source collection, category claim, exact settlement instruction and balances.
-export async function verifyRecordedV3Settlements({ state, connection, programId,
+export async function verifyRecordedV3Settlements({ state, connection, programId, cluster='devnet',
   approvedHash, maxRecords = 100, readProgram = readProgramDataEvidence,
   verifyGlobal = verifyFeeRouterAccount,
   loadCollection = loadFinalizedV3PumpCollection,
   loadSettlement = loadFinalizedV3Settlement, verifiedProofCache }) {
   const collections = Object.values(state?.collections || {}).filter(row =>
-    row?.scope === 'per-mint-v3' && row.cluster === 'devnet');
+    row?.scope === 'per-mint-v3' && row.cluster === cluster);
   const recorded = collections.length;
   if (!recorded) return result(false, 0, 0, 'no-v3-collections');
   if (!Number.isSafeInteger(maxRecords) || maxRecords < 1 || recorded > maxRecords)
@@ -27,18 +30,22 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
   if (!programId || !HEX_32.test(String(approvedHash || '')) || !connection)
     return result(false, recorded, 0, 'approved-program-unavailable');
   try {
+    requireSolanaCluster(cluster);
+    if(!financialProgramAllowed(cluster,programId,approvedHash))return result(false,recorded,0,'reviewed-program-unavailable');
+    await assertRpcNetwork(connection,cluster);
     const program = new PublicKey(programId).toBase58();
-    const [genesis, evidence, global] = await Promise.all([
-      connection.getGenesisHash(), readProgram(connection, program),
+    const [evidence, global] = await Promise.all([
+      readProgram(connection, program,cluster==='devnet'?{}:{cluster,rpcUrl:''}),
       verifyGlobal({ connection, programId:program, commitment:'finalized' }),
     ]);
-    if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
+    if (!evidence.account?.executable
       || evidence.sha256 !== approvedHash.toLowerCase() || !global.verified
+      || cluster==='mainnet-beta'&&!mainnetReleaseVerified(evidence,program,approvedHash.toLowerCase())
       || !global.authority) return result(false, recorded, 0, 'approved-program-unverified');
     const verifyCollection = async collection => {
       const launch = state.launches?.[collection.mint];
       const settlement = state.v3Settlements?.[collection.signature];
-      if (!launch?.onchainVerified || launch.cluster !== 'devnet'
+      if (!launch?.onchainVerified || !financialRecordNetwork(launch,cluster)
         || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
         || launch.pumpFeeRoute?.verified !== true
         || launch.pumpFeeRoute.programId !== program
@@ -47,7 +54,7 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
         || collection.onchainVerified !== true || collection.attribution !== 'mint-verified'
         || !Number.isSafeInteger(collection.collectedLamports)
         || collection.collectedLamports <= 0 || !HEX_32.test(String(collection.claimId || ''))
-        || settlement?.status !== 'finalized' || settlement.cluster !== 'devnet'
+        || settlement?.status !== 'finalized' || !financialRecordNetwork(settlement,cluster)
         || settlement.collectionSignature !== collection.signature
         || settlement.mint !== collection.mint || settlement.claimId !== collection.claimId
         || settlement.expectedLamports !== String(collection.collectedLamports)
@@ -58,22 +65,22 @@ export async function verifyRecordedV3Settlements({ state, connection, programId
       // An interrupted 30-second scan can then finish its remaining records on
       // the next pass without trusting a stale label or changed policy.
       const cacheKey=verifiedProofCache&&allocationAuditHash({collection,settlement,launch,
-        program,approvedHash,authority:global.authority.toBase58()});
+        cluster,program,approvedHash,authority:global.authority.toBase58()});
       const cachedAt=cacheKey&&verifiedProofCache.get(cacheKey);
       if(Number.isSafeInteger(cachedAt)&&Date.now()-cachedAt>=0&&Date.now()-cachedAt<300000)return null;
-      const source = await loadCollection({ connection, signature:collection.signature,
+      const source = await loadCollection({ connection, signature:collection.signature,cluster,
         programId:program, mint:collection.mint, launch });
       if (!source || source.signature !== collection.signature
         || source.claimId.toString('hex') !== collection.claimId
         || source.expectedLamports !== BigInt(collection.collectedLamports)
         || source.router !== collection.router)
         return 'collection-proof-unavailable';
-      const proof = await loadSettlement({ connection,
+      const proof = await loadSettlement({ connection,cluster,
         signature:settlement.settlementSignature, programId:program,
         mint:collection.mint, authority:global.authority,
         creator:launch.creatorWallet, claimId:source.claimId,
         expectedLamports:source.expectedLamports, split:launch.pumpFeeRoute.protocolSplit });
-      if (!proof || proof.signature !== settlement.settlementSignature
+      if (!proof || !financialRecordNetwork(proof,cluster,{legacyDevnet:true}) || proof.signature !== settlement.settlementSignature
         || proof.claimId !== collection.claimId
         || proof.expectedLamports !== String(collection.collectedLamports)
         || proof.router !== collection.router

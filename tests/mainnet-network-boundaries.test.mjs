@@ -20,11 +20,14 @@ function fixture(cluster='mainnet-beta'){
     verifyPolicy:async()=>{effects.policy++;return {verified:true};}};
   return {options,effects};
 }
-test('router proof binds the selected network and uses the explicit Mainnet connection',async()=>{
+test('router proof binds the selected network and Mainnet also requires reviewed release evidence',async()=>{
   for(const cluster of ['devnet','mainnet-beta']){
     const f=fixture(cluster),proof=await verifyV3LaunchRouterReadiness(f.options);
-    assert.equal(proof.ready,true);assert.equal(proof.cluster,cluster);assert.equal(proof.genesisHash,SOLANA_GENESIS[cluster]);
-    assert.deepEqual(f.effects,{program:1,global:1,router:1,policy:1});
+    assert.equal(proof.ready,cluster==='devnet');
+    if(cluster==='devnet'){
+      assert.equal(proof.cluster,cluster);assert.equal(proof.genesisHash,SOLANA_GENESIS[cluster]);
+      assert.deepEqual(f.effects,{program:1,global:1,router:1,policy:1});
+    }else assert.deepEqual(f.effects,{program:1,global:1,router:0,policy:0});
   }
 });
 test('wrong or unknown network cannot read or approve program and mint accounts',async()=>{
