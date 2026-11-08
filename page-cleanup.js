@@ -1,3 +1,4 @@
+import {icon} from './ui-icons.js';
 // Keep the primary task visible before optional illustrations and supporting data.
 const guideLabels = {
   capital: 'How claimed fees are allocated',
@@ -82,6 +83,7 @@ function setupHomeTierShortcuts() {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = original.textContent.trim();
+    if(value==='boost')button.insertAdjacentHTML('afterbegin',`<span class="boost-leading-icon">${icon('boost')}</span>`);
     button.dataset.homeTierShortcut = value;
     button.addEventListener('click', () => { original.click(); settings.open = false; });
     group.append(button);

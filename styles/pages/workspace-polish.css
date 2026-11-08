@@ -258,8 +258,14 @@ html body #main-content .home-featured { order:1;min-width:0;max-width:100%;marg
 .home-featured-identity small { margin-top:4px;font-size:12px;color:var(--cp-muted); }
 .home-featured-logo { position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--cp-surface-2);color:var(--cp-accent);font-weight:700; }
 .home-featured-logo img { position:absolute;width:100%;height:100%;object-fit:contain;background:var(--cp-surface-2); }
-.home-featured-footer { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;border-top:1px solid var(--cp-line);font-size:11px;color:var(--cp-muted); }
-.home-featured-footer a { display:inline-flex;align-items:center;min-height:44px;color:var(--cp-accent);text-decoration:none; }
+.home-featured-footer { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:0;padding:12px;border-top:1px solid var(--cp-line);font-size:11px;color:var(--cp-muted); }
+.home-featured-footer > div { min-width:0; }
+.home-featured-footer dt { margin:0 0 4px;font-size:10px; }
+.home-featured-footer dd { margin:0;font-size:13px;font-weight:700;line-height:1.4;color:var(--cp-text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+.home-featured-footer :is(.featured-mc,[data-direction="positive"]) { color:var(--fv-success); }
+.home-featured-footer [data-direction="negative"] { color:var(--red); }
+.home-featured-footer [data-direction="unknown"] { color:var(--cp-muted); }
+.home-featured-footer .featured-holders { color:var(--blue); }
 .home-featured-card:hover { border-color:var(--cp-accent); }
 .home-featured :is(a,button,.home-featured-viewport):focus-visible { outline:2px solid var(--cp-accent);outline-offset:-2px; }
 @media(max-width:560px) {
@@ -307,3 +313,23 @@ html body #main-content .home-featured { order:1;min-width:0;max-width:100%;marg
 .top100-method summary { color:var(--cp-text);cursor:pointer;min-height:32px; }
 .top100-page :is(button,a,input,select,[tabindex]):focus-visible { outline:2px solid var(--cp-accent);outline-offset:2px; }
 @media(max-width:700px) { .top100-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }.top100-heading h1 { font-size:28px; }.top100-toolbar label { flex:1 1 140px;min-width:0; }.top100-toolbar .top100-search { flex-basis:100%; }.top100-modes button { flex:1 1 40%; }.top100-pagination { justify-content:space-between; }.top100-table .top100-empty { text-align:left;max-width:280px; } }
+
+/* Reuse the shared lightning icon before every boost label, including checkout. */
+.boost-leading-icon { display:inline-block;width:16px;height:16px;flex:none;vertical-align:-3px;margin-inline-end:6px; }
+.boost-leading-icon > svg { display:block;width:100%;height:100%; }
+
+/* Compact, readable launch benefits replace long hero paragraphs. */
+html body #main-content .hero-benefit-tags { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none;margin:18px 0 0;padding:0;max-width:620px; }
+html body #main-content .hero-benefit-tags li { min-width:0;padding:10px 12px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-surface); }
+html body #main-content .hero-benefit-tags strong { display:block;font-size:12px;line-height:1.4;color:var(--cp-accent); }
+html body #main-content .hero-benefit-tags span { display:block;margin-top:4px;font-size:11px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
+@media(max-width:380px) { html body #main-content .hero-benefit-tags { grid-template-columns:minmax(0,1fr); } }
+
+@keyframes explore-card-vibration {
+  0%,100% { transform:translateX(0) rotate(0); }
+  20%,60% { transform:translateX(-1.5px) rotate(-.15deg); }
+  40%,80% { transform:translateX(1.5px) rotate(.15deg); }
+}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  body.page-route-explore #asset-grid :is(.asset-card, .explore-launch-card):hover { animation:explore-card-vibration 260ms ease-in-out 1; }
+}

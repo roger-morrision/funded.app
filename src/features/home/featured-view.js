@@ -1,3 +1,4 @@
+import {featuredMetricsMarkup} from './featured-metrics.js';
 import {escapeHtml} from '../shared/display.js';
 import {tokenArtworkUrl} from '../shared/token-artwork.js';
 
@@ -16,7 +17,7 @@ export function featuredCardMarkup(item,cluster) {
       <div class="home-featured-art"><span class="home-featured-monogram" aria-hidden="true">${e(item.symbol.slice(0,5))}</span>${banner?`<img class="home-featured-banner" src="${e(banner)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}<span class="home-featured-label">${e(item.label)}</span></div>
       <div class="home-featured-identity"><span class="home-featured-logo" aria-hidden="true">${e(item.symbol.slice(0,2))}${logo?`<img src="${e(logo)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}</span><span><strong>${e(item.name)}</strong><small>$${e(item.symbol)}</small></span><span aria-hidden="true">↗</span></div>
     </a>
-    <div class="home-featured-footer"><span>Sponsored placement</span><a href="https://explorer.solana.com/tx/${encodeURIComponent(item.signature)}${cluster==='devnet'?'?cluster=devnet':''}" target="_blank" rel="noopener noreferrer">Payment receipt ↗</a></div>
+    <dl class="home-featured-footer" aria-label="Token metrics">${featuredMetricsMarkup()}</dl>
   </article>`;
 }
 
@@ -69,7 +70,14 @@ export function createFeaturedScroller(root) {
   new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;sync();}).observe(root);
   document.addEventListener('visibilitychange',sync);
   sync();
-  return {render(items,cluster){
+  return {updateMetrics(byMint){
+    for(const card of track.querySelectorAll('[data-featured-mint]')){
+      const footer=card.querySelector('.home-featured-footer'),metrics=byMint.get(card.dataset.featuredMint);
+      if(!footer||!metrics)continue;
+      const html=featuredMetricsMarkup(metrics);
+      if(footer.dataset.metricsKey!==html){footer.innerHTML=html;footer.dataset.metricsKey=html;}
+    }
+  },render(items,cluster){
     const next=items.map(item=>featuredCardMarkup(item,cluster)).join('');
     if(next===key)return;key=next;track.innerHTML=next?`<div class="home-featured-group">${next}</div>`:'';
     viewport.hidden=!items.length;button.hidden=!items.length;copies();sync();

@@ -1,8 +1,9 @@
+import {icon} from '../../../ui-icons.js';
 export const top100Template = `
           <div class="top100-heading"><div><p class="eyebrow">Discover · Solana Devnet</p><h1 id="top100-title">Top 100</h1><p>Ranked tokens. Real activity. Visible promotions.</p></div><div class="top100-actions"><a class="secondary-button" href="#list">Get listed</a><button type="button" class="secondary-button" data-top-refresh>Refresh</button></div></div>
           <div class="top100-stats" data-top-stats></div>
           <div class="top100-toolbar">
-            <div class="top100-modes" role="group" aria-label="Ranking"><button type="button" data-top-sort="market-cap" aria-pressed="true">Market cap</button><button type="button" data-top-sort="boosted" aria-pressed="false">Boosted · sponsored</button><button type="button" data-top-sort="volume" aria-pressed="false">24h volume</button><button type="button" data-top-sort="trades" aria-pressed="false">24h trades</button></div>
+            <div class="top100-modes" role="group" aria-label="Ranking"><button type="button" data-top-sort="market-cap" aria-pressed="true">Market cap</button><button type="button" data-top-sort="boosted" aria-pressed="false"><span class="boost-leading-icon">${icon('boost')}</span>Boosted · sponsored</button><button type="button" data-top-sort="volume" aria-pressed="false">24h volume</button><button type="button" data-top-sort="trades" aria-pressed="false">24h trades</button></div>
             <label class="top100-search">Search tokens<input type="search" data-top-filter="query" placeholder="Name, symbol or mint" autocomplete="off" /></label>
             <label>Stage<select data-top-filter="stage"><option value="all">All stages</option><option value="curve">On curve</option><option value="migrated">Migrated</option></select></label>
             <label>Tier<select data-top-filter="tier"><option value="all">All tokens</option><option value="standard">Standard</option><option value="pro">Pro</option><option value="premier">Premier</option><option value="listed">Paid listings</option></select></label>

@@ -1,3 +1,4 @@
+import {icon} from '../../../ui-icons.js';
 import { activeBoostMultiplier, activeBoostPackages } from '../../../boost-offer.js';
 import { coinDetailPackage } from '../../../promotion-badge.js';
 import { verifiedCoinRewardsPolicy, formatPolicyPercent } from '../../../coin-rewards-policy.js';
@@ -34,7 +35,7 @@ export function renderCoinPromotionBadge(
     if (watch) rail.append(watch);
     if (boost) {
       boost.className = 'coin-package-chip coin-package-chip--boost';
-      boost.textContent = '⚡ Boost';
+      boost.innerHTML = `<span class="boost-leading-icon">${icon('boost')}</span>Boost`;
       details.append(boost);
     }
     rail.append(details);

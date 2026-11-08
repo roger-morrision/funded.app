@@ -1,4 +1,4 @@
-export const EXPLORE_FILTER_KEYS = ['explore-search', 'explore-sort', 'explore-promotion-filter', 'explore-reward-filter', 'explore-risk-filter', 'explore-max-age-hours', 'explore-authority-filter', 'explore-min-volume-sol', 'explore-min-cap-sol', 'explore-min-trades', 'explore-min-traders', 'stage', 'tab', 'lane', 'window', 'view'];
+export const EXPLORE_FILTER_KEYS = ['explore-search', 'explore-sort', 'explore-promotion-filter', 'explore-reward-filter', 'explore-risk-filter', 'explore-max-age-hours', 'explore-min-volume-sol', 'explore-min-cap-sol', 'explore-min-trades', 'explore-min-traders', 'stage', 'tab', 'lane', 'window', 'view'];
 
 export function sanitizeExploreFilters(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return {};

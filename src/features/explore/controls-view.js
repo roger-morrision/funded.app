@@ -15,7 +15,6 @@ export function renderExploreControls(
     verifiedBoosts,
     exploreRisk,
     exploreStage,
-    exploreAuthority,
     explorePromotion,
     exploreReward,
     exploreMaxAgeHours,
@@ -50,7 +49,7 @@ export function renderExploreControls(
     : '—';
   const volumeSortButton = document.querySelector('[data-explore-sort="volume"]');
   if (volumeSortButton) volumeSortButton.textContent = `${exploreWindow} volume`;
-  const hasExploreFilters = exploreRisk !== 'all' || exploreStage !== 'all' || exploreAuthority !== 'all'
+  const hasExploreFilters = exploreRisk !== 'all' || exploreStage !== 'all'
     || explorePromotion !== 'all' || exploreReward !== 'all'
     || exploreMaxAgeHours != null || exploreMinVolumeUsd != null || exploreMinMarketCapUsd != null
     || exploreMinTrades != null || exploreMinTraders != null;

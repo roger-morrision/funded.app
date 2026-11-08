@@ -1,3 +1,4 @@
+import {featuredMetrics} from '../src/features/home/featured-metrics.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Keypair} from '@solana/web3.js';
@@ -40,6 +41,25 @@ test('featured endpoint returns the full verified placement projection and no pa
 test('cards preserve full identity, label paid placements and escape untrusted artwork and text',()=>{
   const item=select({launches:[launch({name:'<script>bad</script>',imageUri:'javascript:alert(1)'})]})[0];
   const html=featuredCardMarkup(item,'devnet');
-  assert.ok(html.includes('FULLSYMBOL'));assert.ok(html.includes('Sponsored placement'));assert.ok(html.includes('?cluster=devnet'));
+  assert.ok(html.includes('FULLSYMBOL'));assert.ok(html.includes('Pro promotion'));assert.ok(html.includes('Token metrics'));assert.ok(!html.includes('Payment receipt'));assert.ok(!html.includes('Sponsored placement'));
   assert.ok(!html.includes('<script>'));assert.ok(!html.includes('javascript:'));
+});
+
+test('Featured metrics use fresh caps and holder snapshots, label estimates, and preserve unknowns',()=>{
+ const item={createdAt:now-7200000};
+ const asset={verifiedAt:new Date(now-1000).toISOString(),complete:false,curveCapSol:10,marketActivityObservedAt:now-1000,priceChange24hPercent:12.5};
+ const result=featuredMetrics(item,{asset,solUsd:100,now,holderSnapshot:{at:now-1000,count:8,coverage:'lower-bound'}});
+ assert.equal(result.cap,'$1K');assert.equal(result.change,'≈+12.50%');assert.equal(result.age,'2h');assert.equal(result.holders,'≥8');
+ const stale=featuredMetrics(item,{asset:{...asset,verifiedAt:new Date(now-300001).toISOString()},solUsd:100,now,holderSnapshot:{at:now-300001,count:8}});
+ assert.equal(stale.cap,'—');assert.equal(stale.change,'—');assert.equal(stale.holders,'—');
+ const unknown=featuredMetrics({},{asset:{...asset,complete:true,poolMarketCapSol:null},now,solUsd:100});
+ assert.equal(unknown.cap,'—');assert.equal(unknown.age,'—');
+ const zero=featuredMetrics(item,{asset:{...asset,curveCapSol:0,priceChange24hPercent:0},solUsd:100,now,holderSnapshot:{at:now,count:0,coverage:'complete'}});
+ assert.equal(zero.cap,'$0');assert.equal(zero.holders,'0');assert.equal(zero.change,'≈0.00%');
+});
+test('Featured age is launch age, never placement or listing age',()=>{
+ const old=launch({blockTime:(now-10*86400000)/1000});
+ const boost={mint:old.mint,cluster:'devnet',status:'finalized',packageId:'10x',multiplier:10,startsAt:new Date(now-1000).toISOString(),signature:sig};
+ assert.equal(select({launches:[old],boosts:[boost]})[0].createdAt,now-10*86400000);
+ assert.equal(select({listings:[listing()]})[0].createdAt,null);
 });

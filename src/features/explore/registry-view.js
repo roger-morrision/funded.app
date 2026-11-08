@@ -159,7 +159,6 @@ export function renderRegistry(query, state, {
     exploreSort,
     exploreRisk,
     exploreStage,
-    exploreAuthority,
     explorePromotion,
     exploreReward,
     exploreTab,
@@ -180,7 +179,7 @@ export function renderRegistry(query, state, {
   } = state;
   const previousCriteriaKey = state.registryCriteriaKey, previousPage = state.registryPage;
   const followingSources = exploreTab === 'following' ? getFollowingTokenSources() : null;
-  const criteriaKey = JSON.stringify([query, exploreSort, exploreRisk, exploreStage, exploreAuthority,
+  const criteriaKey = JSON.stringify([query, exploreSort, exploreRisk, exploreStage,
     explorePromotion, exploreReward, exploreTab, exploreNewLane, exploreWindow, exploreMaxAgeHours,
     exploreMinVolumeUsd, exploreMinMarketCapUsd, exploreMinTrades, exploreMinTraders, getWatchlist(),
     followingSources ? [...followingSources.keys()].sort() : null]);

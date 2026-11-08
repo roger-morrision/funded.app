@@ -9,3 +9,9 @@ Home highlights verified paid launch promotions, finalized paid boosts and paid 
 - Cards move from right to left and pause on hover, keyboard focus or the Pause control. Touch and arrow-key scrolling remain available. Reduced-motion preferences disable automatic motion. Animation stops when the rail is offscreen or the document is hidden; cloned cards are excluded from the keyboard and screen-reader sequence.
 
 Verification: five focused regression tests cover the 48-hour boundary, payment eligibility, more than 40 placements, duplicates, boost history, endpoint projection and escaped card markup. Browser checks cover desktop/mobile layout, banner delivery, motion, pause, keyboard browsing and reduced motion. Local browser preview uses the new projection with live existing launch/listing data until the new endpoint is deployed.
+
+## Card metrics
+
+The card footer shows MC, MC Δ 24h, launch age and distinct wallet-holder count. MC reuses the confirmed curve/pool read and current SOL/USD quote. MC Δ is an **estimate**, prefixed with ≈: it applies verified 24-hour token price change at current supply and SOL/USD rate. It is not a historical circulating-supply/USD reconstruction. Without a valid full-period baseline it stays —. Holder counts reuse the confirmed account-owner cache; ≥ denotes a lower-bound sample. Values older than five minutes are withheld. External listing or boost payment time never substitutes for launch age. Paid-placement disclosure remains in the Featured header and the card's promotion/listing badge.
+
+Metrics refresh in place, preserving card links, keyboard focus and the scrolling position. They share the existing market and holder reads instead of starting another scan per card.

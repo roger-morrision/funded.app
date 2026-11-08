@@ -9,7 +9,6 @@ export function createExploreActionsController(appState) {
     appState.exploreQuery = '';
     appState.exploreRisk = 'all';
     appState.exploreStage = 'all';
-    appState.exploreAuthority = 'all';
     appState.explorePromotion = 'all';
     appState.exploreReward = 'all';
     appState.exploreWindow = '24h';
@@ -26,7 +25,6 @@ export function createExploreActionsController(appState) {
       if (input) input.value = '';
     }
     document.querySelector('#explore-risk-filter').value = 'all';
-    document.querySelector('#explore-authority-filter').value = 'all';
     document.querySelector('#explore-promotion-filter').value = 'all';
     document.querySelector('#explore-reward-filter').value = 'all';
     document.querySelector('#explore-sort').value = appState.exploreSort;

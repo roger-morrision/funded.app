@@ -43,7 +43,6 @@ export function exploreEmptyReason(
     exploreMinTraders,
     exploreMinTrades,
     exploreMaxAgeHours,
-    exploreAuthority,
     exploreRisk,
     exploreNewLane,
     exploreStage,
@@ -77,13 +76,11 @@ export function exploreEmptyReason(
   const rewardLabels = { 'community-airdrop': 'Community token airdrop', 'holder-fees': 'Holder rewards', 'x-fees': 'X account rewards', 'creator-wallet': 'Creator wallet fees' };
   const stageLabels = { curve: 'On curve', near: 'Near', graduated: 'Curve complete', migrated: 'Migrated' };
   const signalLabels = { normal: 'Clear signal', watch: 'Review data', high: 'High risk', watchlist: 'Favorites' };
-  const authorityLabels = { 'both-revoked': 'Creating and freezing disabled', 'mint-active': 'More tokens can be created', 'freeze-active': 'Transfers can be frozen' };
   const criteria = [];
   if (explorePromotion && explorePromotion !== 'all') criteria.push(tierLabels[explorePromotion] || `Tier: ${explorePromotion}`);
   if (exploreReward && exploreReward !== 'all') criteria.push(rewardLabels[exploreReward] || `Rewards: ${exploreReward}`);
   if (exploreStage && exploreStage !== 'all') criteria.push(stageLabels[exploreStage] || `Stage: ${exploreStage}`);
   if (exploreRisk && exploreRisk !== 'all') criteria.push(signalLabels[exploreRisk] || `Signal: ${exploreRisk}`);
-  if (exploreAuthority && exploreAuthority !== 'all') criteria.push(authorityLabels[exploreAuthority] || `Permissions: ${exploreAuthority}`);
   if (exploreMaxAgeHours != null) criteria.push(`Created within ${exploreMaxAgeHours} hours`);
   if (exploreMinVolumeUsd != null) criteria.push(`Minimum volume: $${exploreMinVolumeUsd}`);
   if (exploreMinMarketCapUsd != null) criteria.push(`Minimum market cap: $${exploreMinMarketCapUsd}`);
@@ -122,7 +119,6 @@ export function exploreEmptyReason(
   if (exploreMinTraders != null) return ['No launch meets the trading-wallet minimum.', 'Lower the selected-window minimum or clear filters.'];
   if (exploreMinTrades != null || exploreMinVolumeUsd != null) return ['No launch meets these trade-activity minimums.', 'Lower the selected-window minimums or clear filters.'];
   if (exploreMinMarketCapUsd != null || exploreMaxAgeHours != null) return ['No launch meets these advanced filters.', 'Broaden the market cap or age limit, or clear filters.'];
-  if (exploreAuthority && exploreAuthority !== 'all') return ['No token matches these permissions.', 'Choose Any permissions or clear filters to see more tokens.'];
   if (exploreRisk === 'watchlist') return ['No favorite tokens in this feed.', 'Use the star on a verified token to save it here.'];
   if (exploreTab === 'new' && exploreNewLane === 'almost') return ['No tokens near migration.', 'This view shows active curves at least 80% filled.'];
   if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];

@@ -172,6 +172,7 @@ export function createHomeFeedController(appState) {
       }));
     } finally {
       appState.homeHolderCountLoading = false;
+      document.dispatchEvent(new Event('funded:holders-updated'));
       appState.renderHomeLaunchBoard();
       if (document.body.classList.contains('page-route-explore')) appState.renderExploreAssets();
     }

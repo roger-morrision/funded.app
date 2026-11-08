@@ -116,7 +116,6 @@ export const appStateSchema = {
   exploreSort: 'let',
   exploreRisk: 'let',
   exploreStage: 'let',
-  exploreAuthority: 'let',
   explorePromotion: 'let',
   exploreReward: 'let',
   exploreWindow: 'let',

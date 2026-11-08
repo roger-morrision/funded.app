@@ -80,7 +80,6 @@ export function initializeExploreSearchActions(appState) {
   // app-source-end
 
   // app-source: 781
-  document.querySelector('#explore-authority-filter')?.addEventListener('change', event => { appState.exploreAuthority = event.target.value; appState.updateExploreViews(); });
   // app-source-end
 
   // app-source: 782

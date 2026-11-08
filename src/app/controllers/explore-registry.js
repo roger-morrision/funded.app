@@ -106,7 +106,6 @@ export function createExploreRegistryController(appState) {
       exploreSort: appState.exploreSort,
       exploreRisk: appState.exploreRisk,
       exploreStage: appState.exploreStage,
-      exploreAuthority: appState.exploreAuthority,
       explorePromotion: appState.explorePromotion,
       exploreReward: appState.exploreReward,
       exploreTab: appState.exploreTab,

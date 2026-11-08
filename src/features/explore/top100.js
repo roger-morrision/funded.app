@@ -1,3 +1,4 @@
+import {icon} from '../../../ui-icons.js';
 import {top100Template} from './top100-template.js';
 import {top100Records, rankTop100} from './top100-model.js';
 import {loadTokenArtwork} from '../shared/token-artwork.js';
@@ -34,7 +35,7 @@ export function initializeTop100(appState) {
       <td>${row.trades == null ? '—' : `${row.partial ? '≥' : ''}${row.trades.toLocaleString()}`}</td><td class="${row.change == null ? '' : row.change < 0 ? 'top100-negative' : 'top100-positive'}">${row.change == null ? '—' : `${row.change > 0 ? '+' : ''}${row.change.toFixed(2)}%`}</td>
       <td>${age(row.ageHours)}</td><td>${row.stage === 'curve' ? 'On curve' : row.stage === 'migrated' ? 'Migrated' : 'Unverified'}</td>
       <td class="top100-boost">${appState.verifiedBoostsAvailable ? row.boost > 0 ? `${row.boost.toLocaleString()}× <small>Sponsored</small>` : '—' : 'Unavailable'}</td>
-      <td><button type="button" class="secondary-button" data-top-boost="${esc(row.mint)}" aria-label="Boost ${esc(row.symbol || row.name || row.mint)}">Boost ↗</button></td></tr>`).join('') || `<tr><td colspan="11" class="top100-empty">${busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : 'No ranked tokens match these filters. Reset filters or browse Explore.'}</td></tr>`;
+      <td><button type="button" class="secondary-button" data-top-boost="${esc(row.mint)}" aria-label="Boost ${esc(row.symbol || row.name || row.mint)}"><span class="boost-leading-icon">${icon('boost')}</span>Boost</button></td></tr>`).join('') || `<tr><td colspan="11" class="top100-empty">${busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : 'No ranked tokens match these filters. Reset filters or browse Explore.'}</td></tr>`;
     // Keep keyboard focus and loaded logos intact when a refresh changes no rows.
     if (html !== lastRows) {
       const focused = document.activeElement?.dataset?.topBoost;

@@ -105,7 +105,7 @@ export function sortMarketRecords(records, sort = 'market-cap') {
     || (sort === 'boosted' ? (Number(b.windowVolumeSol ?? b.volume24hUsd ?? b.volume24hSol) || 0) - (Number(a.windowVolumeSol ?? a.volume24hUsd ?? a.volume24hSol) || 0) : 0));
 }
 
-export function filterMarketRecords(records, { query = '', risk = 'all', stage = 'all', authority = 'all', promotion = 'all', reward = 'all', sort = 'market-cap', watchlist = [], maxAgeHours = null, minVolumeSol = null, minCurveCapSol = null, minTrades = null, minTraders = null, nowMs = Date.now() } = {}) {
+export function filterMarketRecords(records, { query = '', risk = 'all', stage = 'all', promotion = 'all', reward = 'all', sort = 'market-cap', watchlist = [], maxAgeHours = null, minVolumeSol = null, minCurveCapSol = null, minTrades = null, minTraders = null, nowMs = Date.now() } = {}) {
   const normalized = String(query).trim().toLowerCase();
   const saved = new Set(watchlist);
   const filtered = records.filter(record => {
@@ -116,9 +116,6 @@ export function filterMarketRecords(records, { query = '', risk = 'all', stage =
     if (stage === 'near' && !(record.complete === false && record.curveProgressPercent != null && record.curveProgressPercent >= 80)) return false;
     if (stage === 'graduated' && record.complete !== true) return false;
     if (stage === 'migrated' && !(record.complete === true && record.migrated === true)) return false;
-    if (authority === 'both-revoked' && !(record.mintAuthorityRevoked === true && record.freezeAuthorityRevoked === true)) return false;
-    if (authority === 'mint-active' && record.mintAuthorityRevoked !== false) return false;
-    if (authority === 'freeze-active' && record.freezeAuthorityRevoked !== false) return false;
     if (promotion === 'promoted' && !['boost', 'pro', 'premier'].includes(record.promotionTier) && !(record.postLaunchBoostMultiplier > 0)) return false;
     if (promotion === 'boost' && record.promotionTier !== 'boost' && !(record.postLaunchBoostMultiplier > 0)) return false;
     if (promotion === 'standard' && (record.promotionTier !== 'standard' || record.postLaunchBoostMultiplier > 0)) return false;

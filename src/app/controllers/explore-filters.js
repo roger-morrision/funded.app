@@ -18,7 +18,7 @@ export function createExploreFiltersController(appState) {
   // app-source: 407
   function exploreFilterOptions(query = appState.exploreQuery, sort = appState.exploreSort){
     const laneStage = appState.exploreNewLane === 'almost' ? 'near' : appState.exploreNewLane === 'migrated' ? 'migrated' : appState.exploreNewLane === 'launch' ? 'launch' : 'all';
-    return { query, sort, risk: appState.exploreRisk, stage: appState.exploreTab === 'new' ? laneStage : appState.exploreStage, authority: appState.exploreAuthority,
+    return { query, sort, risk: appState.exploreRisk, stage: appState.exploreTab === 'new' ? laneStage : appState.exploreStage,
       promotion: appState.explorePromotion, reward: appState.exploreReward, watchlist: appState.getWatchlist(), maxAgeHours: appState.exploreMaxAgeHours,
       minVolumeSol: appState.EXPLORE_CLUSTER === 'devnet' ? appState.marketUsdFilterToSol(appState.exploreMinVolumeUsd) : null,
       minCurveCapSol: appState.EXPLORE_CLUSTER === 'devnet' ? appState.marketUsdFilterToSol(appState.exploreMinMarketCapUsd) : null,
@@ -114,13 +114,13 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 420
   function exploreEmptyReason(){
-    return appState.exploreEmptyReasonView({ exploreTab: appState.exploreTab, exploreWindow: appState.exploreWindow, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, assets: appState.assets, exploreMinVolumeUsd: appState.exploreMinVolumeUsd, exploreMinMarketCapUsd: appState.exploreMinMarketCapUsd, coinSolUsdPrice: appState.coinSolUsdPrice, exploreQuery: appState.exploreQuery, explorePromotion: appState.explorePromotion, exploreReward: appState.exploreReward, exploreMinTraders: appState.exploreMinTraders, exploreMinTrades: appState.exploreMinTrades, exploreMaxAgeHours: appState.exploreMaxAgeHours, exploreAuthority: appState.exploreAuthority, exploreRisk: appState.exploreRisk, exploreNewLane: appState.exploreNewLane, exploreStage: appState.exploreStage }, { getWatchlist: appState.getWatchlist, getFollowingCoverage: appState.getFollowingCoverage, getFollowingTokenSources: appState.getFollowingTokenSources });
+    return appState.exploreEmptyReasonView({ exploreTab: appState.exploreTab, exploreWindow: appState.exploreWindow, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, assets: appState.assets, exploreMinVolumeUsd: appState.exploreMinVolumeUsd, exploreMinMarketCapUsd: appState.exploreMinMarketCapUsd, coinSolUsdPrice: appState.coinSolUsdPrice, exploreQuery: appState.exploreQuery, explorePromotion: appState.explorePromotion, exploreReward: appState.exploreReward, exploreMinTraders: appState.exploreMinTraders, exploreMinTrades: appState.exploreMinTrades, exploreMaxAgeHours: appState.exploreMaxAgeHours, exploreRisk: appState.exploreRisk, exploreNewLane: appState.exploreNewLane, exploreStage: appState.exploreStage }, { getWatchlist: appState.getWatchlist, getFollowingCoverage: appState.getFollowingCoverage, getFollowingTokenSources: appState.getFollowingTokenSources });
   }
   // app-source-end
 
   // app-source: 421
   function renderExploreControls(){
-    return appState.renderExploreControlsView({ exploreView: appState.exploreView, exploreTab: appState.exploreTab, exploreWindow: appState.exploreWindow, exploreSort: appState.exploreSort, verifiedBoostsAvailable: appState.verifiedBoostsAvailable, assets: appState.assets, verifiedBoosts: appState.verifiedBoosts, exploreRisk: appState.exploreRisk, exploreStage: appState.exploreStage, exploreAuthority: appState.exploreAuthority, explorePromotion: appState.explorePromotion, exploreReward: appState.exploreReward, exploreMaxAgeHours: appState.exploreMaxAgeHours, exploreMinVolumeUsd: appState.exploreMinVolumeUsd, exploreMinMarketCapUsd: appState.exploreMinMarketCapUsd, exploreMinTrades: appState.exploreMinTrades, exploreMinTraders: appState.exploreMinTraders, exploreUpdatedAt: appState.exploreUpdatedAt, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, {  });
+    return appState.renderExploreControlsView({ exploreView: appState.exploreView, exploreTab: appState.exploreTab, exploreWindow: appState.exploreWindow, exploreSort: appState.exploreSort, verifiedBoostsAvailable: appState.verifiedBoostsAvailable, assets: appState.assets, verifiedBoosts: appState.verifiedBoosts, exploreRisk: appState.exploreRisk, exploreStage: appState.exploreStage, explorePromotion: appState.explorePromotion, exploreReward: appState.exploreReward, exploreMaxAgeHours: appState.exploreMaxAgeHours, exploreMinVolumeUsd: appState.exploreMinVolumeUsd, exploreMinMarketCapUsd: appState.exploreMinMarketCapUsd, exploreMinTrades: appState.exploreMinTrades, exploreMinTraders: appState.exploreMinTraders, exploreUpdatedAt: appState.exploreUpdatedAt, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER }, {  });
   }
   // app-source-end
 

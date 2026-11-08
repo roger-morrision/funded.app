@@ -59,8 +59,6 @@ export function initializeBuybackPreview(appState) {
   // app-source-end
 
   // app-source: 365
-  let exploreAuthority = 'all';
-  initializeAppState(appState, 'exploreAuthority', exploreAuthority);
   // app-source-end
 
   // app-source: 366
