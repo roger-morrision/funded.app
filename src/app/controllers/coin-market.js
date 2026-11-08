@@ -36,6 +36,7 @@ export function createCoinMarketController(appState) {
     const quote = Number(response.data?.priceUsd);
     if (!response.available || !Number.isFinite(quote) || quote <= 0) return;
     appState.coinSolUsdPrice = quote;
+    document.dispatchEvent(new Event('funded:rankings-updated'));
     appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
     appState.renderFundedTokenLanding();
     appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));

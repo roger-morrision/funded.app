@@ -75,7 +75,7 @@ export function createDiscoveryRoutes({
           readRecentActivity(page.map(item => item.mint)),
         ]);
         try { warmMarketActivity(page.map(item => item.mint).filter(mint => !activity[mint])); } catch {}
-        return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
+        return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, total:uniqueItems.length, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
       }
       const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
       return json(res, 200, { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) });

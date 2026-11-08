@@ -1,3 +1,4 @@
+import {PAGE_ROUTE_TARGETS, MERGED_PAGE_ROUTES} from '../page-routes.js';
 import { initializeAppState } from '../runtime.js';
 
 // Startup runs in the order declared in start.js.
@@ -47,32 +48,12 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 855
-  const pageRouteTargets = {
-    launch: '#launch-route-shell',
-    list: '#list',
-    explore: '#explore',
-    callouts: '#callouts',
-    payments: '#payments',
-    'analytics-detail': '#analytics-detail',
-    'my-launches': '#my-launches',
-    referrals: '#referral-command-center',
-    community: '#community',
-    leaderboard: '#leaderboard',
-    airdrops: '#airdrops',
-    buybacks: '#buybacks',
-    'capital-flow': '#capital-flow',
-    bonuses: '#bonuses',
-    'marketing-agency': '#marketing-agency',
-    docs: '#docs',
-    profile: '#profile',
-    privacy: '#privacy',
-    paid: '#paid',
-  };
+  const pageRouteTargets = PAGE_ROUTE_TARGETS;
   initializeAppState(appState, 'pageRouteTargets', pageRouteTargets);
   // app-source-end
 
   // app-source: 856
-  const mergedPageRoutes = { community: 'my-launches', buybacks: 'paid' };
+  const mergedPageRoutes = MERGED_PAGE_ROUTES;
   initializeAppState(appState, 'mergedPageRoutes', mergedPageRoutes);
   // app-source-end
 

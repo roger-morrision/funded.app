@@ -105,6 +105,7 @@ export function createLaunchRegistryController(appState) {
     if (!Number.isFinite(nextExpiry)) return;
     appState.boostExpiryTimer = setTimeout(() => {
       appState.setCardBoostSnapshot(appState.verifiedBoosts);
+      document.dispatchEvent(new Event('funded:rankings-updated'));
       for (const asset of appState.assets) asset.postLaunchBoostMultiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[asset.address]);
       appState.renderExploreAssets();
       appState.renderRegistry();
@@ -127,6 +128,7 @@ export function createLaunchRegistryController(appState) {
       appState.verifiedBoostsAvailable = false;
       appState.verifiedBoosts = {};
       appState.setCardBoostSnapshot(appState.verifiedBoosts);
+      document.dispatchEvent(new Event('funded:rankings-updated'));
       clearTimeout(appState.boostExpiryTimer);
       for (const asset of appState.assets) asset.postLaunchBoostMultiplier = 0;
       appState.renderExploreAssets();
@@ -142,6 +144,7 @@ export function createLaunchRegistryController(appState) {
     appState.verifiedBoostsAvailable = true;
     appState.boostPurchasesEnabled = response.data.enabled === true;
     appState.setCardBoostSnapshot(appState.verifiedBoosts);
+      document.dispatchEvent(new Event('funded:rankings-updated'));
     for (const asset of appState.assets) asset.postLaunchBoostMultiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[asset.address]);
     appState.scheduleBoostExpiryRefresh();
     appState.renderExploreAssets();

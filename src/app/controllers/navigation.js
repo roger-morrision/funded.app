@@ -1,3 +1,4 @@
+import {PAGE_ROUTE_TARGETS, MERGED_PAGE_ROUTES} from '../page-routes.js';
 // Dependencies and mutable application state are read live through appState.
 export function createNavigationController(appState) {
   let historyRouteLocation = globalThis.location?.href;
@@ -129,7 +130,7 @@ export function createNavigationController(appState) {
     // Shared links often use the sidebar label instead of the route name.
     const labelRoutes = { rewards: 'payments', portfolio: 'my-launches', listing: 'list', listings: 'list', 'get-listed': 'list', leaderboards: 'leaderboard', referral: 'referrals', airdrop: 'airdrops', 'daily-bonuses': 'bonuses', analytics: 'analytics-detail', help: 'docs' };
     if (labelRoutes[hash]) return labelRoutes[hash];
-    return appState.pageRouteTargets[hash] ? appState.mergedPageRoutes[hash] || hash : 'overview';
+    return PAGE_ROUTE_TARGETS[hash] ? MERGED_PAGE_ROUTES[hash] || hash : 'overview';
   }
   // app-source-end
 
@@ -178,6 +179,7 @@ export function createNavigationController(appState) {
     let copy = {
       overview: ['Home', 'Your next step on Solana'],
       explore: ['Explore', 'Verified launches and market signals'],
+      top300: ['Top 300', 'Token rankings and sponsored boosts'],
       callouts: ['Callouts', 'Live calls from verified wallets'],
       list: ['Get listed', 'Listing status and token mint check'],
       payments: ['Rewards', 'Eligibility, payments and claims'],

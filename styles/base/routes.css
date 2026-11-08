@@ -11,6 +11,7 @@
 .page-route-list #list{display:block!important;min-height:calc(100vh - 76px)}
 .page-route-launch #launch-route-shell{display:block!important;min-height:calc(100vh - 76px);padding-top:72px}
 .page-route-payments #payments{display:grid!important}
+.page-route-top300 #top300,
 .page-route-analytics-detail #analytics-detail,
 .page-route-my-launches #my-launches,
 .page-route-referrals #my-launches,
