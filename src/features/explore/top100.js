@@ -20,9 +20,6 @@ export function initializeTop100(appState) {
     const result = rankTop100(records, filters), pages = Math.max(1,Math.ceil(result.rows.length / 25));
     page = Math.min(page, pages - 1);
     const priced = records.filter(row => row.capUsd != null).length;
-    const sponsored = records.filter(row => row.boost > 0).length;
-    find('[data-top-stats]').innerHTML = [['Directory tokens',records.length],['Market caps available',`${priced} / ${records.length}`],['Active boosted tokens',appState.verifiedBoostsAvailable ? sponsored : '—'],['Migrated',records.filter(row => row.stage === 'migrated').length]]
-      .map(([label,value]) => `<div><span>${esc(label)}</span><strong>${esc(String(value))}</strong></div>`).join('');
     const coverage = checked && appState.top100DirectoryComplete ? 'Directory checked' : 'Directory coverage incomplete';
     const status = busy ? 'Refreshing verified rankings…' : failure ? 'Refresh unavailable. Showing last loaded data; retry shortly.' : !checked ? 'Loading verified rankings…' : `${coverage} · ${result.rows.length} of ${result.total} ranked tokens · ${records.length - priced} without market cap`;
     find('[data-top-status]').textContent = status + (checked && !appState.verifiedBoostsAvailable ? ' · Boost data unavailable.' : '');
