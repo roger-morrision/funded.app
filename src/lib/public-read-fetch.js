@@ -1,7 +1,7 @@
 import {recoverPublicRead} from './public-read-recovery.js';
 // Share simultaneous public reads across independently mounted page modules.
 // No response cache: quotes, refreshes and post-transaction reads stay fresh.
-const publicPaths = /^\/api\/(?:launches|token-config|listings(?:\/config)?|pump\/explore|analytics\/summary|airdrops\/reserves|buyback\/status|rewards\/(?:automatic|experience)|x-fee\/status|evidence\/(?:receipts|payment-history)|tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/(?:token-accounts|market-activity|fee-activity))$/;
+const publicPaths = /^\/api\/(?:home\/featured|launches|token-config|listings(?:\/config)?|pump\/explore|analytics\/summary|airdrops\/reserves|buyback\/status|rewards\/(?:automatic|experience)|x-fee\/status|evidence\/(?:receipts|payment-history)|tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/(?:token-accounts|market-activity|fee-activity))$/;
 
 export function createPublicReadFetch(transport = (...args) => fetch(...args), recoveryOptions) {
   const flights = new Map();

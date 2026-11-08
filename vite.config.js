@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
     '/api': { target: apiTarget, changeOrigin: false },
     '^/devnet-metadata/': { target: apiTarget, changeOrigin: false },
     '/devnet-images': { target: apiTarget, changeOrigin: false },
+    '/devnet-banners': { target: apiTarget, changeOrigin: false },
   } : undefined;
   return {
     cacheDir: process.env.VITE_CACHE_DIR || undefined,

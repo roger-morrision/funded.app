@@ -6,6 +6,7 @@ import { projectBurnBoard, walletBurnBoard } from '../leaderboard-burn-board.mjs
 import { LISTING_PRICE_USD, listingBurnTokens } from '../../listing-policy.js';
 import { readServiceFees } from '../service-fees.mjs';
 import { createPortfolioMetadataReader } from '../portfolio-token-metadata.mjs';
+import {featuredTokens,FEATURED_WINDOW_MS} from '../../src/features/home/featured-data.js';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -22,6 +23,12 @@ export function createDirectoryRoutes({
     return metadataReader(mint);
   };
   return async function handleDirectoryRoutes(req, res, url, requestId) {
+    if (req.method === 'GET' && url.pathname === '/api/home/featured') {
+      const state=await store.read(), now=Date.now();
+      return json(res,200,{cluster:solanaCluster,checkedAt:new Date(now).toISOString(),windowHours:FEATURED_WINDOW_MS/3600000,
+        items:featuredTokens({launches:Object.values(state.launches||{}),listings:Object.values(state.listings||{}),
+          boosts:Object.values(state.boostReceipts||{}),cluster:solanaCluster,now})});
+    }
     if (req.method === 'GET' && url.pathname === '/api/token-config') {
       return json(res, 200, {cluster:solanaCluster, fundedMint:fundedTokenMint || null});
     }

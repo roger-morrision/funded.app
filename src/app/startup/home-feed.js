@@ -1,7 +1,9 @@
 import { initializeAppState } from '../runtime.js';
+import {initializeFeaturedTokens} from '../../features/home/featured.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeHomeFeed(appState) {
+  initializeFeaturedTokens(appState);
   const followingActive=()=>document.body.classList.contains('page-route-overview')&&document.querySelector('.home-launch-board')?.dataset.discovery==='following';
   const refreshFollowing=()=>{
     if(!followingActive())return;
