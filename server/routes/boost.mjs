@@ -4,6 +4,7 @@ import { allowedAuthOrigin } from '../x-auth.mjs';
 import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { verifyBoostPayment } from '../boost-proof.mjs';
 import {boostPricingSnapshot} from '../admin-boost-pricing.mjs';
+import {projectBoostReceipts,STACKED_BOOST_POLICY} from '../../boost-timeline.js';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -13,6 +14,7 @@ export function createBoostRoutes({
 }) {
 
   const json = (...args) => { respond(...args); return true; };
+  const receiptView=(state,signature)=>projectBoostReceipts(state.boostReceipts).find(row=>row.signature===signature)||state.boostReceipts[signature];
   return async function handleBoostRoutes(req, res, url, requestId) {
     if (req.method === 'GET' && url.pathname === '/api/boosts') {
       const state = await store.read();
@@ -22,7 +24,7 @@ export function createBoostRoutes({
         catch { return json(res, 400, { error:'A valid token mint is required.' }); }
       }
       const active = activeBoosts(state.boostReceipts);
-      const history = mint ? Object.values(state.boostReceipts || {}).filter(row => row.mint === mint)
+      const history = mint ? projectBoostReceipts(state.boostReceipts).filter(row => row.mint === mint)
         .sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt)).slice(0, 30) : [];
       const pricing=boostPricingSnapshot(state);
       return json(res, 200, { cluster:solanaCluster, enabled:boostPurchasesEnabled && Boolean(process.env.FUNDED_BOOST_PAYMENT_WALLET), packages:pricing.packages, pricingRevision:pricing.revision, active:mint ? (active[mint] ? { [mint]:active[mint] } : {}) : active, history });
@@ -54,7 +56,7 @@ export function createBoostRoutes({
         return json(res, 503, { error:'A fresh SOL/USD quote is unavailable. No payment was requested.' });
       const now = Date.now();
       const quote = { id:id('boost'), mint, payer, recipient, packageId:selected.id, multiplier:selected.multiplier,
-        hours:selected.hours, usd:selected.usd, pricingRevision:pricing.revision, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
+        hours:selected.hours, durationPolicy:STACKED_BOOST_POLICY, usd:selected.usd, pricingRevision:pricing.revision, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
         cluster:'devnet', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
       await store.update(current => {
         current.boostQuotes ||= {};
@@ -74,7 +76,7 @@ export function createBoostRoutes({
         return json(res, 400, { error:'A valid boost quote and Solana signature are required.' });
       const state = await store.read();
       const existing = state.boostReceipts?.[signature];
-      if (existing) return existing.quoteId === quoteId ? json(res, 200, existing) : json(res, 409, { error:'This transaction was already used.' });
+      if (existing) return existing.quoteId === quoteId ? json(res, 200, receiptView(state,signature)) : json(res, 409, { error:'This transaction was already used.' });
       const quote = state.boostQuotes?.[quoteId];
       if (!quote) return json(res, 404, { error:'Boost quote was not found.' });
       const rpc = new Connection(solanaRpcUrl, { commitment:'finalized', disableRetryOnRateLimit:true,
@@ -95,20 +97,23 @@ export function createBoostRoutes({
       const record = { signature, quoteId, mint:quote.mint, payer:quote.payer, recipient:quote.recipient,
         packageId:quote.packageId, multiplier:quote.multiplier, hours:quote.hours, usd:quote.usd,
         solUsd:quote.solUsd, lamports:quote.lamports, cluster:'devnet', status:'finalized',
-        slot:proof.slot, startsAt:proof.startsAt, expiresAt:proof.expiresAt };
+        slot:proof.slot, startsAt:proof.startsAt, expiresAt:proof.expiresAt,
+        ...(quote.durationPolicy?{durationPolicy:quote.durationPolicy}:{}) };
       try {
+        let created=false;
         const saved = await store.update(current => {
           current.boostReceipts ||= {};
           if (current.boostReceipts[signature]) {
             if (current.boostReceipts[signature].quoteId !== quoteId) throw Object.assign(new Error('This transaction was already used.'), { statusCode:409 });
-            return current.boostReceipts[signature];
+            return receiptView(current,signature);
           }
           if (Object.values(current.boostReceipts).some(row => row.quoteId === quoteId)) throw Object.assign(new Error('This boost quote was already paid.'), { statusCode:409 });
           if (JSON.stringify(current.boostQuotes?.[quoteId]) !== JSON.stringify(quote)) throw Object.assign(new Error('Boost quote changed during verification.'), { statusCode:409 });
           current.boostReceipts[signature] = record;
-          return record;
+          created=true;
+          return receiptView(current,signature);
         });
-        return json(res, saved === record ? 201 : 200, saved);
+        return json(res, created ? 201 : 200, saved);
       } catch (error) {
         if (error.statusCode === 409) return json(res, 409, { error:error.message });
         console.error(JSON.stringify({ event:'boost_receipt_storage_failure', requestId }));

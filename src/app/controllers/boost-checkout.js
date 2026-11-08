@@ -150,7 +150,7 @@ export function createBoostCheckoutController(appState) {
     const historyRows = appState.boostHistoryRows(appState.exploreBoostHistory, appState.boostCheckout, mint);
     const historyOpen = pendingSignature || details.querySelector('.explore-boost-history')?.open;
     const advancedOpen = details.querySelector('.explore-boost-how')?.open;
-    details.innerHTML = `<p class="explore-boost-intro">Give ${name} more visibility in the Boosted list. Packs add together while active.</p>
+    details.innerHTML = `<p class="explore-boost-intro">Boost ${name}: each new purchase adds its quantity and hours to the active boost.</p>
       <div class="explore-boost-packages" role="group" aria-label="Boost packages">${packages.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong><span class="boost-leading-icon">${appState.icon('boost')}</span>${item.id}</strong><small>${item.hours} hours</small><b>$${item.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</b><small>${Number.isFinite(appState.coinSolUsdPrice) && appState.coinSolUsdPrice > 0 ? `≈ ${(item.usd / appState.coinSolUsdPrice).toFixed(4)} SOL` : 'Paid in SOL'}</small></button>`).join('')}</div>
       <div class="explore-boost-current"><span>Active boosts</span><strong>${appState.verifiedBoostsAvailable ? (active ? `${appState.escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong>${active ? `<small>${active.count} purchase${active.count === 1 ? '' : 's'} · latest expiry ${appState.escapeHtml(new Date(active.expiresAt).toLocaleString())}</small>` : ''}</div>
       <p class="explore-boost-explainer">Pay in Solana Devnet test SOL. Network fee is additional. Test SOL has no monetary value.</p>
@@ -158,7 +158,7 @@ export function createBoostCheckoutController(appState) {
       <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}><span class="boost-leading-icon">${appState.icon('boost')}</span>${busy ? 'Checking payment…' : failureProof ? 'Start a new purchase' : pendingSignature ? 'Check payment status' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `${quote ? 'Refresh price' : active ? 'Buy another boost' : 'Continue'} · ${selected.id} · $${selected.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}</button>
       <p class="explore-boost-message" role="status">${appState.escapeHtml(recoveryError || message || (available ? 'Review the exact SOL amount before approving in your wallet.' : 'New boost purchases are currently unavailable.'))}</p>
       <details class="explore-boost-history" ${historyOpen ? 'open' : ''}><summary>Payment history${historyRows.length ? ` (${historyRows.length})` : ''}</summary>${historyRows.map(row => `<p><span><strong>${appState.escapeHtml(row.packageId)} · ${appState.escapeHtml(row.state)}</strong><small>${row.pending ? 'Check the original payment before buying again.' : row.expiresAt ? `Expires ${appState.escapeHtml(new Date(row.expiresAt).toLocaleString())}` : 'View transaction for details'}</small></span><a href="${appState.escapeHtml(appState.exploreExplorer(`tx/${encodeURIComponent(row.signature)}`))}" target="_blank" rel="noopener noreferrer">${row.pending ? 'View transaction' : 'View receipt'} ↗</a></p>`).join('') || `<small>${appState.exploreBoostHistoryState === 'loading' ? 'Loading payment history…' : appState.exploreBoostHistoryState === 'unavailable' ? 'Payment history is unavailable. Reopen this window to try again.' : 'No boost purchases yet.'}</small>`}</details>
-      <details class="explore-boost-how advanced-details" ${advancedOpen ? 'open' : ''}><summary>Advanced details · boosts</summary><p>Packs last ${selected.hours} hours after payment is confirmed. Overlapping packs add together; 500 active boosts unlock the golden ticker. Boosts are paid visibility and do not guarantee trading activity or returns.</p></details>`;
+      <details class="explore-boost-how advanced-details" ${advancedOpen ? 'open' : ''}><summary>Advanced details · boosts</summary><p>Each new purchase adds ${selected.hours} hours to the remaining boost time and increases its total quantity immediately after confirmation. For example, 10× with 5 hours left plus a 10×/12-hour pack becomes 20× for 17 hours. After expiry, a new purchase starts fresh. 500 active boosts unlock the golden ticker. Paid boosts improve visibility, but do not guarantee a Top 100 position or returns.</p></details>`;
   }
   // app-source-end
 
@@ -259,6 +259,7 @@ export function createBoostCheckoutController(appState) {
           appState.boostCheckout.message = 'Your boost is active. You can buy another boost or view your receipt below.';
           await appState.loadVerifiedBoosts();
           await appState.loadExploreBoostHistory(mint);
+          window.dispatchEvent(new Event('funded:boost-verified'));
           void appState.refreshWalletBalance({ force:true });
           void appState.refreshTradeBalances();
           return;

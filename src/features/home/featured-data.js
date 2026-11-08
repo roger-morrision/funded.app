@@ -2,6 +2,7 @@ import {verifiedPromotionBadge} from '../../../promotion-badge.js';
 import {verifiedPaidListings} from './paid-listings.js';
 import {boostPackage,activeBoostPackages} from '../../../boost-offer.js';
 import {currentFeaturedTokens} from './featured-placement.js';
+import {projectBoostReceipts} from '../../../boost-timeline.js';
 
 export const FEATURED_WINDOW_MS = 48 * 60 * 60 * 1000;
 const address = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -17,9 +18,9 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
   for (const listing of paid) if (!known.has(listing.mint)) known.set(listing.mint,listing);
   const add = (mint,time,label,proof,end=time+FEATURED_WINDOW_MS) => {
     const token=known.get(mint);
-    if (!token || !recent(time) || !signature.test(proof||'') || !Number.isFinite(end) || end<=now) return;
+    if (!token || !(label==='Paid boost'?Number.isFinite(time)&&time<=now:recent(time)) || !signature.test(proof||'') || !Number.isFinite(end) || end<=now) return;
     const previous=featured.get(mint);
-    const placement={label,signature:proof,featuredAt:time,expiresAt:Math.min(end,time+FEATURED_WINDOW_MS)};
+    const placement={label,signature:proof,featuredAt:time,expiresAt:label==='Paid boost'?end:Math.min(end,time+FEATURED_WINDOW_MS)};
     if (previous) {previous.placements.push(placement);return;}
     featured.set(mint,{mint,name:token.name||'Token',symbol:token.symbol||'TOKEN',
       imageUri:token.imageUri||null,bannerUri:verifiedPromotionBadge(token)?token.bannerUri||null:null,
@@ -31,7 +32,7 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
   }
   for (const listing of paid) add(listing.mint,Date.parse(listing.listedAt),'Paid listing',listing.signature);
   const packagesByMint=new Map(),seenBoosts=new Set();
-  for (const boost of boosts) if (boost.cluster===cluster && boost.status==='finalized'
+  for (const boost of projectBoostReceipts(boosts,{cluster,now})) if (boost.cluster===cluster && boost.status==='finalized'
     && boostPackage(boost.packageId)?.multiplier===boost.multiplier && signature.test(boost.signature||'') && !seenBoosts.has(boost.signature)) {
     seenBoosts.add(boost.signature);
     add(boost.mint,Date.parse(boost.startsAt),'Paid boost',boost.signature,Date.parse(boost.expiresAt));
