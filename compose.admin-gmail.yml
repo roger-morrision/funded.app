@@ -1,0 +1,11 @@
+# Optional overlay: add after the Google App Password is saved to a private host file.
+services:
+  app:
+    environment:
+      FUNDED_ADMIN_EMAIL_PROVIDER: gmail
+      FUNDED_ADMIN_GMAIL_APP_PASSWORD_FILE: /run/secrets/funded_admin_gmail_app_password
+    secrets:
+      - funded_admin_gmail_app_password
+secrets:
+  funded_admin_gmail_app_password:
+    file: ${FUNDED_ADMIN_GMAIL_APP_PASSWORD_HOST_FILE:?Set the host path to the Google App Password file}

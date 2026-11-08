@@ -24,6 +24,7 @@ services:
       FUNDED_ADMIN_EMAIL_PROVIDER: ${FUNDED_ADMIN_EMAIL_PROVIDER:-}
       FUNDED_ADMIN_EMAIL_FROM: ${FUNDED_ADMIN_EMAIL_FROM:-}
       FUNDED_ADMIN_EMAIL_API_KEY_FILE: ${FUNDED_ADMIN_EMAIL_API_KEY_FILE:-}
+      FUNDED_ADMIN_GMAIL_APP_PASSWORD_FILE: ${FUNDED_ADMIN_GMAIL_APP_PASSWORD_FILE:-}
 
 # Keep the public app on the currently mounted, cleared Devnet data stores.
 # These names were verified against the running fundedapp app and db containers.

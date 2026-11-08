@@ -2,10 +2,14 @@
 FUNDED_ADMIN_WALLETS=REPLACE_WITH_ADMIN_PUBLIC_WALLET
 FUNDED_ADMIN_EMAIL=REPLACE_WITH_ADMIN_EMAIL
 FUNDED_ADMIN_WITHDRAW_DESTINATIONS=REPLACE_WITH_APPROVED_TREASURY_DESTINATION
-# Resend is approved. Delivery stays blocked until sender and secret are configured.
-FUNDED_ADMIN_EMAIL_PROVIDER=resend
-FUNDED_ADMIN_EMAIL_FROM=REPLACE_WITH_VERIFIED_SENDER_EMAIL
-FUNDED_ADMIN_EMAIL_API_KEY_FILE=REPLACE_WITH_SERVER_SECRET_FILE_PATH
-# For Docker, compose.admin-email.yml mounts this host file at /run/secrets/...
-FUNDED_ADMIN_EMAIL_API_KEY_HOST_FILE=REPLACE_WITH_HOST_SECRET_FILE_PATH
+# Gmail SMTP uses the sender address as the authenticated Google account.
+# Enable Google 2-Step Verification and create an App Password, not a normal password/API key.
+FUNDED_ADMIN_EMAIL_PROVIDER=gmail
+FUNDED_ADMIN_EMAIL_FROM=REPLACE_WITH_GMAIL_SENDER_EMAIL
+FUNDED_ADMIN_GMAIL_APP_PASSWORD_FILE=REPLACE_WITH_SERVER_SECRET_FILE_PATH
+# For Docker, compose.admin-gmail.yml mounts this host file at /run/secrets/...
+FUNDED_ADMIN_GMAIL_APP_PASSWORD_HOST_FILE=REPLACE_WITH_HOST_SECRET_FILE_PATH
+# Optional Resend alternative: provider=resend with a verified sender and these references.
+# FUNDED_ADMIN_EMAIL_API_KEY_FILE=REPLACE_WITH_SERVER_RESEND_KEY_FILE
+# FUNDED_ADMIN_EMAIL_API_KEY_HOST_FILE=REPLACE_WITH_HOST_RESEND_KEY_FILE
 # Existing Mainnet write guards remain in force. This does not enable Mainnet.

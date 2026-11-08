@@ -36,6 +36,7 @@
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
     "lightweight-charts": "5.2.1",
+    "nodemailer": "10.4.0",
     "pg": "^8.23.1",
     "redis": "6.3.1",
     "tweetnacl": "^1.0.3",

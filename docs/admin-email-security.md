@@ -41,7 +41,44 @@ does not grant authority to sign a treasury, creator or program transaction.
 On-chain signing keys can still be used outside this app: email confirmation
 protects app API operations, not arbitrary transactions signed externally.
 
-## Resend setup
+## Gmail SMTP setup (selected provider)
+
+Set `FUNDED_ADMIN_EMAIL_PROVIDER=gmail`. The private configuration uses the
+operator's Gmail address as both sender and recipient. Gmail does not require
+the custom sender-domain verification used by Resend. It does require an
+authenticated Google account: a generic Google API key or normal Gmail password
+cannot replace a Google App Password in this integration.
+
+1. Enable Google 2-Step Verification and create an App Password for this app.
+2. Save that password in a private server file, outside Git. Do not paste it into
+   chat or browser configuration. Google displays grouped characters; whitespace
+   is removed when reading the password.
+3. Set `FUNDED_ADMIN_GMAIL_APP_PASSWORD_FILE` to the server path. For Docker,
+   instead set `FUNDED_ADMIN_GMAIL_APP_PASSWORD_HOST_FILE` to the host path and
+   add `-f compose.admin-gmail.yml` last. It mounts the password read-only at
+   `/run/secrets/funded_admin_gmail_app_password`.
+4. Load `.env.admin-security.local` into the server/deployment environment and
+   verify inbox delivery with a harmless Devnet admin action. It is not loaded
+   automatically. Keep Mainnet writes blocked until their separate release gates
+   are satisfied.
+
+Delivery uses Nodemailer with the fixed endpoint `smtp.gmail.com:465`, TLS 1.2
+or newer, certificate verification, short DNS/connection/socket timeouts, and no
+SMTP debug logging or attachment/file/URL access. SMTP authentication uses the
+configured sender address and the app password. Missing credentials, rejected
+recipients, authentication errors or timeouts stop authorization; there is no
+automatic retry or provider fallback. SMTP acceptance is not inbox delivery.
+
+Gmail receives the same limited email content described below. Wallet addresses,
+amounts, full request payloads and signing keys are never included. Changing the
+Google account password revokes app passwords. Some accounts do not offer app
+passwords; those require a separate OAuth2 integration, which is not implemented
+by this SMTP change.
+
+References: [Google App Passwords](https://support.google.com/accounts/answer/185833)
+and [Nodemailer SMTP](https://nodemailer.com/smtp).
+
+## Optional Resend setup
 
 The operator approved Resend with limited disclosure. Its email contains the
 recipient, confirmation code, a general action name, expiry, app origin,
@@ -75,7 +112,9 @@ store is required before claiming a fleet-wide rate limit or seamless failover.
 `node --test tests/admin-email-*.test.mjs` covers real local HTTP wallet sign-in,
 all admin write families, code replay and request binding, expiry/attempt limits,
 logout and session replacement, delivery and audit failures, and browser request
-freezing. Provider delivery uses an injected fake transport in tests. No live
+freezing. Gmail tests check verified TLS, credential isolation, limited message
+content, rejected recipients, errors, connection cleanup and no fallback.
+Provider delivery uses an injected fake transport in tests. No live
 email, wallet-extension withdrawal or Mainnet operation is established by these
 tests. Configure the sender and secret, then verify inbox delivery and a harmless
 Devnet update before treating email protection as operational.
