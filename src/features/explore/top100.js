@@ -8,15 +8,22 @@ export function initializeTop100(appState) {
   if (!root) return;
   root.innerHTML = top100Template;
   const find = selector => root.querySelector(selector), esc = appState.escapeHtml;
-  const filters = {sort:'market-cap', query:'', stage:'all', tier:'all', minCap:0, maxAge:0};
+  const filters = {sort:'featured', query:'', stage:'all', tier:'all', minCap:0, maxAge:0};
+  let expiryTimer;
   let page = 0, busy = false, checked = false, failure = false, lastRows = '';
   const active = () => appState.requestedPageRoute() === 'top100';
   const money = value => value == null ? '—' : new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2, notation:value >= 10000 ? 'compact' : 'standard'}).format(value);
   const age = hours => hours == null ? '—' : hours < 1 ? `${Math.floor(hours * 60)}m` : hours < 24 ? `${Math.floor(hours)}h` : `${Math.floor(hours / 24)}d`;
+  const remaining = at => {const minutes=Math.max(1,Math.ceil((at-Date.now())/60000));return minutes<60?`${minutes}m`:`${Math.floor(minutes/60)}h ${minutes%60}m`;};
+  const boostTime = row => row.boostNextExpiry === row.boostExpiresAt ? `${remaining(row.boostExpiresAt)} left`
+    : `Changes in ${remaining(row.boostNextExpiry)} · ends in ${remaining(row.boostExpiresAt)}`;
   function render() {
+    clearTimeout(expiryTimer);
     if (!active()) return;
-    const records = top100Records((appState.assets || []).map(asset => ({...asset, launchAgeVerified:Boolean(appState.verifiedLaunchPolicyForMint(asset.address))})), {boosts:appState.verifiedBoosts || {}, solUsd:appState.coinSolUsdPrice})
-      .map(row => ({...row, tier:appState.promotionForMint(row.mint)?.tier || (appState.verifiedLaunchPolicyForMint(row.mint) ? 'standard' : 'external')}));
+    const records = top100Records((appState.assets || []).map(asset => ({...asset, launchAgeVerified:Boolean(appState.verifiedLaunchPolicyForMint(asset.address))})),
+      {boosts:appState.verifiedBoosts || {}, solUsd:appState.coinSolUsdPrice, policies:appState.verifiedLaunchPolicies || [], cluster:appState.EXPLORE_CLUSTER});
+    const nextExpiry=Math.min(...records.map(row=>row.boostNextExpiry).filter(Number.isFinite));
+    if(Number.isFinite(nextExpiry))expiryTimer=setTimeout(render,Math.min(nextExpiry-Date.now()+20,2147483647));
     const result = rankTop100(records, filters), pages = Math.max(1,Math.ceil(result.rows.length / 25));
     page = Math.min(page, pages - 1);
     const priced = records.filter(row => row.capUsd != null).length;
@@ -27,11 +34,11 @@ export function initializeTop100(appState) {
     const rows = result.rows.slice(page * 25, (page + 1) * 25);
     const html = rows.map(row => `<tr${row.boost >= 500 ? ' class="top100-golden"' : ''}>
       <td class="top100-rank">${row.rank}</td><th scope="row"><a class="top100-token" href="/token/${esc(row.mint)}"><span class="top100-logo" data-top-logo="${esc(row.mint)}" aria-hidden="true">${esc((row.symbol || 'T').slice(0,1))}</span><span><strong>${esc(row.name || row.symbol || row.mint)}</strong><small>$${esc(row.symbol || '—')}</small></span></a></th>
-      <td><span class="top100-tier">${esc(row.tier.charAt(0).toUpperCase()+row.tier.slice(1))}</span></td>
+      <td><span class="top100-tier">${esc(row.paidListing && row.tier === 'external' ? 'Paid listing' : row.tier.charAt(0).toUpperCase()+row.tier.slice(1))}</span>${filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? `<small class="top100-paid-priority">${row.boost > 0 ? 'Boost priority' : 'Paid priority'}</small>` : ''}</td>
       <td class="top100-cap">${money(row.capUsd)}</td><td class="top100-volume">${row.volumeUsd != null && row.partial ? '≥' : ''}${money(row.volumeUsd)}</td>
       <td>${row.trades == null ? '—' : `${row.partial ? '≥' : ''}${row.trades.toLocaleString()}`}</td><td class="${row.change == null ? '' : row.change < 0 ? 'top100-negative' : 'top100-positive'}">${row.change == null ? '—' : `${row.change > 0 ? '+' : ''}${row.change.toFixed(2)}%`}</td>
       <td>${age(row.ageHours)}</td><td>${row.stage === 'curve' ? 'On curve' : row.stage === 'migrated' ? 'Migrated' : 'Unverified'}</td>
-      <td class="top100-boost">${appState.verifiedBoostsAvailable ? row.boost > 0 ? `${row.boost.toLocaleString()}× <small>Sponsored</small>` : '—' : 'Unavailable'}</td>
+      <td class="top100-boost">${appState.verifiedBoostsAvailable ? row.boost > 0 ? `${row.boost.toLocaleString()}× <small>Sponsored · ${esc(boostTime(row))}</small>` : '—' : 'Unavailable'}</td>
       <td><button type="button" class="secondary-button" data-top-boost="${esc(row.mint)}" aria-label="Boost ${esc(row.symbol || row.name || row.mint)}"><span class="boost-leading-icon">${icon('boost')}</span>Boost</button></td></tr>`).join('') || `<tr><td colspan="11" class="top100-empty">${busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : 'No ranked tokens match these filters. Reset filters or browse Explore.'}</td></tr>`;
     // Keep keyboard focus and loaded logos intact when a refresh changes no rows.
     if (html !== lastRows) {

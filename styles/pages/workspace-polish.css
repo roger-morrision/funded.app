@@ -339,3 +339,5 @@ html body #main-content #explore .explore-tabs > button { flex:0 0 auto;white-sp
 /* Amber boost marks on dark controls; preserve contrast on the filled pay button. */
 html body :is(.boost-leading-icon, .token-card-action-boost) svg { color:var(--fv-accent); }
 html body .explore-boost-pay .boost-leading-icon svg { color:inherit; }
+
+.top100-paid-priority { display:block;margin-top:4px;color:var(--fv-accent);font-size:10px;white-space:nowrap; }

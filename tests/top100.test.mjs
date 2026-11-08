@@ -5,10 +5,60 @@ import {createNavigationController} from '../src/app/controllers/navigation.js';
 import {loadTop100Feed,readAccountBatches} from '../src/features/explore/top100-feed.js';
 
 const mint = 'A'.repeat(32), other = 'B'.repeat(32), now = Date.now();
+test('Featured gives verified paid listings and launch promotions priority without changing market ranks', () => {
+  const listed='C'.repeat(32), unpaid='D'.repeat(32), signature='2'.repeat(64);
+  const policies=[{mint,cluster:'devnet',onchainVerified:true,signature,
+    creatorLaunchBurn:{tier:'pro',status:'verified',receipt:{verified:true,atomicWithPumpLaunch:true,signature}}}];
+  const rows=top100Records([
+    {address:mint,curveCapSol:2},
+    {address:other,curveCapSol:100},
+    {address:listed,listingPayment:{verified:true,signature}},
+    {address:unpaid,curveCapSol:3,paidPriority:true,listingPayment:{verified:false,signature}},
+  ],{policies,solUsd:1,now});
+  assert.deepEqual(rankTop100(rows).rows.map(row=>row.mint),[mint,listed,other,unpaid]);
+  assert.deepEqual(rankTop100(rows,{sort:'market-cap'}).rows.map(row=>row.mint),[other,unpaid,mint]);
+  assert.deepEqual(rankTop100(rows,{tier:'listed'}).rows.map(row=>row.mint),[listed]);
+  assert.equal(rows.find(row=>row.mint===unpaid).paidPriority,false);
+  assert.equal(rankTop100(rows).rows[1].capUsd,null);
+  for(const invalid of [{...policies[0],cluster:'mainnet-beta'},{...policies[0],onchainVerified:false},
+    {...policies[0],creatorLaunchBurn:{...policies[0].creatorLaunchBurn,status:'pending'}}]) {
+    assert.equal(top100Records([{address:mint}],{policies:[invalid],now})[0].paidPriority,false);
+  }
+});
+test('Featured priority affects the 100-token cutoff; each group remains deterministic', () => {
+  const rows=Array.from({length:110},(_,i)=>({mint:String(i).padStart(4,'0'),capUsd:110-i,paidPriority:false}));
+  rows[109].paidPriority=true;
+  const featured=rankTop100(rows).rows;
+  assert.equal(featured.length,100);assert.equal(featured[0].mint,'0109');
+  assert.equal(featured[1].mint,'0000');assert.equal(featured.at(-1).mint,'0098');
+  assert.equal(rankTop100(rows,{sort:'market-cap'}).rows[0].mint,'0000');
+  assert.equal(rankTop100(rows,{sort:'market-cap'}).rows.at(-1).mint,'0099');
+});
+test('stacked boosts raise Featured priority only during each package lifetime', () => {
+  const listed='C'.repeat(32), signature='2'.repeat(64);
+  const pack=(packageId,multiplier,end,start=now-1000)=>({packageId,multiplier,startsAt:new Date(start).toISOString(),expiresAt:new Date(end).toISOString()});
+  const boosts={
+    [mint]:{packages:[pack('50x',50,now+1000),pack('10x',10,now+10000),pack('500x',500,now+50000,now+40000)]},
+    [other]:{packages:[pack('30x',30,now+5000)]},
+  };
+  const assets=[{address:mint,curveCapSol:1},{address:other,curveCapSol:100},
+    {address:listed,curveCapSol:500,listingPayment:{verified:true,signature}}];
+  const rows=at=>top100Records(assets,{boosts,solUsd:1,now:at});
+  assert.deepEqual(rankTop100(rows(now)).rows.map(row=>row.mint),[mint,other,listed]);
+  assert.equal(rows(now)[0].boost,60);
+  assert.equal(rows(now)[0].boostNextExpiry,now+1000);
+  assert.equal(rows(now)[0].boostExpiresAt,now+10000);
+  assert.deepEqual(rankTop100(rows(now+1000)).rows.map(row=>row.mint),[other,mint,listed]);
+  assert.equal(rows(now+1000)[0].boost,10);
+  assert.deepEqual(rankTop100(rows(now+5000)).rows.map(row=>row.mint),[mint,listed,other]);
+  assert.deepEqual(rankTop100(rows(now+10000)).rows.map(row=>row.mint),[listed,other,mint]);
+  assert.equal(rows(now+10000)[0].boostExpiresAt,null);
+  assert.deepEqual(rankTop100(rows(now),{sort:'market-cap'}).rows.map(row=>row.mint),[listed,other,mint]);
+});
 test('Top 100 keeps organic ranking separate from active sponsored boosts', () => {
   const records = top100Records([{address:mint,curveCapSol:5},{address:other,curveCapSol:10}],
     {solUsd:100,now,boosts:{[mint]:{multiplier:50,expiresAt:new Date(now+60000).toISOString()}}});
-  assert.equal(rankTop100(records).rows[0].mint,other);
+  assert.equal(rankTop100(records,{sort:'market-cap'}).rows[0].mint,other);
   assert.equal(rankTop100(records,{sort:'boosted'}).rows[0].mint,mint);
   assert.equal(rankTop100(top100Records(records,{now:now+60001,boosts:{[mint]:{multiplier:50,expiresAt:new Date(now+60000).toISOString()}}}),{sort:'boosted'}).rows.length,0);
 });
@@ -16,7 +66,7 @@ test('missing metrics, stale activity, migrated curve reserves and listing age a
   const rows = top100Records([{address:mint,complete:true,curveCapSol:500,listingPayment:{verified:true},createdTimestamp:now/1000-3600,
     volume24hSol:20,tradeCount24h:9,marketActivityObservedAt:now-300001},{address:other,curveCapSol:0}],{solUsd:100,now});
   assert.equal(rows[0].capUsd,null);assert.equal(rows[0].volumeUsd,null);assert.equal(rows[0].trades,null);assert.equal(rows[0].ageHours,null);
-  assert.equal(rankTop100(rows).rows[0].capUsd,0);
+  assert.equal(rankTop100(rows,{sort:'market-cap'}).rows[0].capUsd,0);
   assert.equal(rankTop100(rows,{sort:'volume'}).rows.length,0);
 });
 test('rank ceiling, deterministic ties and filters preserve global rank', () => {
