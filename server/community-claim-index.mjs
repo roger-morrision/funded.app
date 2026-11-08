@@ -1,7 +1,8 @@
+import {SOLANA_GENESIS,requireSolanaCluster,assertRpcNetwork} from '../solana-network.js';
 import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import { verifyCommunityProof } from '../community-merkle.js';
-import { DEVNET_GENESIS_HASH, readProgramDataEvidence } from './automatic-reward-chain.mjs';
+import { readProgramDataEvidence } from './automatic-reward-chain.mjs';
 import { communityAddresses } from './community-claim-chain.mjs';
 
 const dropDiscriminator = createHash('sha256').update('account:CommunityDrop').digest().subarray(0, 8);
@@ -37,19 +38,22 @@ function checkedPayment(info, drop, leaf, program) {
 
 export async function indexCommunityClaims({ connection, ledger, programId, authority, eligibilityMint,
   expectedProgramDataSha256, cluster = 'devnet', programEvidence = readProgramDataEvidence, persist = true }) {
-  if (cluster !== 'devnet' || !/^[a-f0-9]{64}$/i.test(String(expectedProgramDataSha256 || '')))
-    throw new Error('A pinned Devnet community program is required for claim indexing.');
+  requireSolanaCluster(cluster);
+  if ( !/^[a-f0-9]{64}$/i.test(String(expectedProgramDataSha256 || '')))
+    throw new Error('A pinned community program is required for claim indexing.');
   const program = new PublicKey(programId), issuer = new PublicKey(authority), eligible = new PublicKey(eligibilityMint);
+  await assertRpcNetwork(connection,cluster);
   const [genesis, evidence, ledgerState] = await Promise.all([
-    connection.getGenesisHash(), programEvidence(connection, program), ledger.read(),
+    connection.getGenesisHash(), programEvidence(connection, program,{cluster}), ledger.read(),
   ]);
-  if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
+  if (genesis !== SOLANA_GENESIS[cluster] || !evidence.account?.executable
     || evidence.sha256 !== expectedProgramDataSha256.toLowerCase())
-    throw new Error('Community claim program identity or bytecode differs from the reviewed Devnet build.');
+    throw new Error('Community claim program identity or bytecode differs from the reviewed build.');
 
   const drops = [], payments = [];
   for (const record of Object.values(ledgerState.communityDrops || {})) {
     if (!record?.openingSignature || record.programId !== program.toBase58()) continue;
+    if ((record.cluster || 'devnet')!==cluster) throw new Error('Community manifest network differs from the selected network.');
     if (record.authority !== issuer.toBase58()
       || record.eligibilityMint !== eligible.toBase58()
       || !Array.isArray(record.manifest?.leaves) || !positive(record.reservedBaseUnits))

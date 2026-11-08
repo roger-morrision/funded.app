@@ -4,7 +4,7 @@ import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, getPumpAmmProgram } from '@p
 import { NATIVE_MINT } from '@solana/spl-token';
 import { decodePumpTrades, decodePumpSwapTrades } from './coin-market.mjs';
 import { successfulEventLogs } from './product-trade-index.mjs';
-import { GENESIS_HASHES } from './service-status.mjs';
+import {assertRpcNetwork} from '../solana-network.js';
 
 const DAY=86_400;
 const address=value=>value?.toBase58?.() || value?.pubkey?.toBase58?.() || String(value);
@@ -63,10 +63,10 @@ export function walletTradeRows({transaction,reference,wallet,decodePoolEvent}) 
   return records;
 }
 
-export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.floor(Date.now()/1000),maxSignatures=50}) {
+export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.floor(Date.now()/1000),maxSignatures=50,cluster='devnet'}) {
   const key=new PublicKey(wallet),owner=key.toBase58(),cutoff=nowSeconds-DAY;
   if (!Number.isInteger(maxSignatures)||maxSignatures<1||maxSignatures>50) throw new Error('Invalid wallet scan bound.');
-  if (await connection.getGenesisHash()!==GENESIS_HASHES.devnet) throw new Error('Wallet history requires Devnet.');
+  await assertRpcNetwork(connection,cluster);
   const references=await connection.getSignaturesForAddress(key,{limit:maxSignatures},'finalized');
   if (!Array.isArray(references)||references.length>maxSignatures
     || new Set(references.map(row=>row.signature)).size!==references.length
@@ -95,7 +95,7 @@ export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.
   trades.sort((a,b)=>b.blockTime-a.blockTime||b.slot-a.slot||a.logIndex-b.logIndex);
   const windowCovered=references.length<maxSignatures||references.some(row=>row.blockTime!=null&&row.blockTime<cutoff);
   const complete=windowCovered&&!gaps.length&&references.every(row=>Number.isSafeInteger(row.blockTime))&&trades.length<=100;
-  return {wallet:owner,cluster:'devnet',source:'finalized-wallet-pump-trades',observedAt:new Date(nowSeconds*1000).toISOString(),
+  return {wallet:owner,cluster,source:'finalized-wallet-pump-trades',observedAt:new Date(nowSeconds*1000).toISOString(),
     coverage:complete?'complete':'partial',scannedSignatures:selected.length,fetchedSignatures:references.length,
     signatureLimit:maxSignatures,rowLimit:100,windowHours:24,gaps: [...new Set(gaps)],adjustedMints:[...adjustedMints],trades:trades.slice(0,100)};
 }

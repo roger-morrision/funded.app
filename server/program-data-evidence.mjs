@@ -1,25 +1,27 @@
 import {createHash} from 'node:crypto';
 import {Connection,PublicKey} from '@solana/web3.js';
-import {GENESIS_HASHES} from './service-status.mjs';
+import {SOLANA_GENESIS,requireSolanaCluster,assertRpcNetwork} from '../solana-network.js';
 
 const LOADER=new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 
 // An optional read-only provider serves large program accounts. It must agree
-// with the transaction provider on Devnet. Callers still pin the complete hash.
+// with the transaction provider on the selected network. Callers still pin the complete hash.
 export async function readProgramDataEvidence(connection,program,{
-  rpcUrl=process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL||'',timeoutMs=8000,fallbackTimeoutMs=15000,
+  cluster='devnet',rpcUrl=cluster==='devnet'?(process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL||''):(process.env.FUNDED_MAINNET_PROGRAM_EVIDENCE_RPC_URL||''),timeoutMs=8000,fallbackTimeoutMs=15000,
   connectionFactory=(url,signal)=>new Connection(url,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(target,options)=>fetch(target,{...options,signal:options?.signal?AbortSignal.any([signal,options.signal]):signal})}),
 }={}) {
+  requireSolanaCluster(cluster);
   const controller=new AbortController();let timer;
   const read=async()=>{
     let reader=connection;
+    if(cluster==='mainnet-beta'&&!rpcUrl)await assertRpcNetwork(connection,cluster);
     if(rpcUrl) {
       const url=new URL(rpcUrl);
       if(url.protocol!=='https:'||url.username||url.password||url.hash)throw new Error('Invalid program evidence RPC configuration.');
       reader=connectionFactory(rpcUrl,controller.signal);
       const [primary,alternate]=await Promise.all([connection.getGenesisHash(),reader.getGenesisHash()]);
-      if(primary!==GENESIS_HASHES.devnet||alternate!==primary)throw new Error('Program evidence RPC must match the transaction provider on Devnet.');
+      if(primary!==SOLANA_GENESIS[cluster]||alternate!==primary)throw new Error('Program evidence RPC must match the selected network and transaction provider.');
     }
     const key=new PublicKey(program),account=await reader.getAccountInfo(key,'finalized');
     if(!account?.executable)return {account,programData:null,sha256:null};
@@ -43,8 +45,8 @@ export async function readProgramDataEvidence(connection,program,{
     if(error.code!=='PROGRAM_EVIDENCE_TIMEOUT'||fallbackTimeoutMs<=0)throw error;
     let fallbackTimer;
     try{return await Promise.race([(async()=>{
-      if(await connection.getGenesisHash()!==GENESIS_HASHES.devnet)throw new Error('Program evidence fallback requires Devnet.');
-      return readProgramDataEvidence(connection,program,{rpcUrl:''});
+      await assertRpcNetwork(connection,cluster);
+      return readProgramDataEvidence(connection,program,{rpcUrl:'',cluster});
     })(),new Promise((_,reject)=>{fallbackTimer=setTimeout(()=>reject(new Error('Program evidence fallback timed out.')),fallbackTimeoutMs);})]);}
     finally{clearTimeout(fallbackTimer);}
   } finally {clearTimeout(timer);controller.abort();}

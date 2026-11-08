@@ -99,7 +99,7 @@ export async function readMainnetProgramEvidence(env, config, {connectionFactory
     for(const [role,programId,hash] of roles){
       // Explicitly use the verified dedicated Mainnet connection. A globally
       // configured Devnet large-account fallback must never enter this check.
-      if(!evidenceByProgram.has(programId))evidenceByProgram.set(programId,await withTimeout(readProgramDataEvidence(configured,programId,{rpcUrl:''})));
+      if(!evidenceByProgram.has(programId))evidenceByProgram.set(programId,await withTimeout(readProgramDataEvidence(configured,programId,{rpcUrl:'',cluster:'mainnet-beta'})));
       const program=evidenceByProgram.get(programId);
       const data=program.programData?.data;
       const validHeader=Boolean(data?.length>=45 && data.readUInt32LE(0)===3 && [0,1].includes(data[12]));

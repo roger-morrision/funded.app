@@ -1,3 +1,4 @@
+import {requireSolanaCluster,assertRpcNetwork} from '../../solana-network.js';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { normalizeLargestTokenAccounts, attachVerifiedTokenAccountWallets, normalizeAllTokenAccounts } from '../token-accounts.mjs';
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
@@ -12,6 +13,7 @@ export function createTokenMarketRoutes({
   readWalletTrades = readWalletTradeHistory,
   makeTokenConnection = endpoint => new Connection(endpoint, 'confirmed'),
 }) {
+  requireSolanaCluster(solanaCluster);
   const coinMarketCache = new Map();
   const tokenAccountsCache = new Map();
   const tokenAccountsInflight = new Map();
@@ -30,7 +32,7 @@ export function createTokenMarketRoutes({
   const WARM_BATCH = 2, WARM_FRESH_MS = 4 * 60_000;
   const WARMER_REQUEST = { socket: { remoteAddress: 'server-warmer' }, headers: {} };
   function warmMarketActivity(mints) {
-    if (solanaCluster !== 'devnet' || coinMarketInflight.size > 0) return 0;
+    if (coinMarketInflight.size > 0) return 0;
     let started = 0;
     for (const raw of [...(Array.isArray(mints) ? mints : [])].sort((a,b)=>(warmAttempts.get(a)||0)-(warmAttempts.get(b)||0))) {
       if (started >= WARM_BATCH) break;
@@ -50,7 +52,6 @@ export function createTokenMarketRoutes({
   async function handleTokenMarketRoutes(req, res, url, requestId) {
     const walletMatch=req.method==='GET'?/^\/api\/wallets\/([^/]+)\/trades$/.exec(url.pathname):null;
     if (walletMatch) {
-      if (solanaCluster!=='devnet') return json(res,503,{error:'Wallet trade scanning requires Devnet.'});
       let wallet;
       try {wallet=new PublicKey(decodeURIComponent(walletMatch[1])).toBase58();}
       catch {return json(res,400,{error:'A valid Solana wallet is required.'});}
@@ -65,7 +66,7 @@ export function createTokenMarketRoutes({
           const signal=AbortSignal.timeout(20_000);
           const connection=new Connection(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
             fetch:(input,init)=>fetch(input,{...init,signal})});
-          const data=await readWalletTrades({connection,wallet});
+          const data=await readWalletTrades({connection,wallet,cluster:solanaCluster});
           if (walletTradeCache.size>=250) walletTradeCache.delete(walletTradeCache.keys().next().value);
           walletTradeCache.set(wallet,{at:Date.now(),data});
           return {status:200,data};
@@ -88,6 +89,7 @@ export function createTokenMarketRoutes({
       if (!tokenAccountsInflight.has(address)) {
         const pending = (async () => {
         const connection = makeTokenConnection(solanaRpcUrl);
+        if(solanaCluster==='mainnet-beta')await assertRpcNetwork(connection,solanaCluster);
         const sample = normalizeLargestTokenAccounts(await connection.getTokenLargestAccounts(mint, 'confirmed'));
         const infos = sample.accounts.length
           ? await connection.getMultipleAccountsInfo(sample.accounts.map(account => new PublicKey(account.address)), 'confirmed').catch(() => [])
@@ -116,12 +118,11 @@ export function createTokenMarketRoutes({
     }
     const tokenMarketMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/market-activity$/) : null;
     if (tokenMarketMint) {
-      if (solanaCluster !== 'devnet') return json(res, 503, { error: 'Pump trade scanning is currently available for Solana only.' });
       let mint;
       try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const address = mint.toBase58();
-      const hasTradeBreakdown = data => data && Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
+      const hasTradeBreakdown = data => data?.cluster===solanaCluster && Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
         && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
       // A scan costs up to ~50 RPC reads. Results under a minute old are
@@ -171,6 +172,7 @@ export function createTokenMarketRoutes({
               const signal = AbortSignal.timeout(18_000);
               const connection = new Connection(solanaRpcUrl, {commitment:'confirmed', disableRetryOnRateLimit:true,
                 fetch:(input,init)=>fetch(input,{...init,signal})});
+              await assertRpcNetwork(connection,solanaCluster);
               const metrics = await readMarketActivity({ connection, mint });
               // A failed scan must not erase a still-recent successful snapshot.
               const previous = coinMarketCache.get(address);

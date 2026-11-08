@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-08",
+  "status": "preparation-in-progress-no-go",
+  "baseRevision": "3dcadbe2",
+  "scope": "Network evidence, allocation and claim core modules; no production activation",
+  "mainnetTransactionsSent": 0,
+  "validation": {
+    "javascriptTestsPassed": 171,
+    "javascriptFailures": 0,
+    "included": ["mocked financial/network proofs", "local HTTP/WebSocket Mainnet write rejection", "Devnet compatibility", "frontend behavior"],
+    "syntaxAndSourceBudgets": "passed",
+    "productionAppBuild": "passed",
+    "productionFeatureBytecodeVmTestsPassed": 10,
+    "productionFeatureBytecodeSha256": "fa0cd47f854ddeea47f50c2f240e4f3d64c93f55dc46976c063b4e5e327c5c0f",
+    "productionFeatureIdentityScope": "public-test-fixture-only-not-deployable",
+    "fullFreshDevnetFinancialAcceptance": "not-run",
+    "independentAudit": "unavailable",
+    "mainnetCanary": "not-run"
+  },
+  "remaining": [
+    "Actual production inventory, signing references and spending limits",
+    "Production identity and binary trust bindings",
+    "Launch and registration network port, worker and payout route integration",
+    "Full fresh financial acceptance and compute-budget evidence",
+    "Independent review of exact final source and program bytes",
+    "Finalized Mainnet deployment verification and capped canary"
+  ],
+  "acceptancePlan": "config/mainnet-acceptance-plan.json"
+}

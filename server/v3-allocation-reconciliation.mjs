@@ -1,3 +1,4 @@
+import {requireSolanaCluster,assertRpcNetwork} from '../solana-network.js';
 import { isDeepStrictEqual } from 'node:util';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
@@ -11,10 +12,12 @@ const usage = (state,source) => [state.v3CreatorWalletPayout?.[source],
 
 // Upgrade only unused creator allocations. Recorded transactions, enrolled
 // holder pools and X claims retain their original amounts and source IDs.
-export async function readFinalizedV3Allocations({store,connection,mint,loadSettlement=loadFinalizedV3Settlement}) {
+export async function readFinalizedV3Allocations({store,connection,mint,cluster='devnet',loadSettlement=loadFinalizedV3Settlement}) {
+  requireSolanaCluster(cluster);
   const state = await store.read(), launch = state.launches?.[mint];
-  if (!launch?.onchainVerified || launch.cluster!=='devnet' || launch.mint!==mint
-    || launch.pumpFeeRoute?.scope!=='per-mint-v3') throw new Error('A verified Devnet V3 launch is required.');
+  if (!launch?.onchainVerified || launch.cluster!==cluster || launch.mint!==mint
+    || launch.pumpFeeRoute?.scope!=='per-mint-v3') throw new Error('A verified V3 launch is required.');
+  if(cluster==='mainnet-beta') await assertRpcNetwork(connection,cluster);
   const entries = Object.entries(state.v3Settlements || {}).filter(([,row])=>row.mint===mint && row.status==='finalized');
   const reviewed=[];
   // The default reader fetches each distinct finalized input once per pass.
@@ -23,10 +26,11 @@ export async function readFinalizedV3Allocations({store,connection,mint,loadSett
   // Validators still inspect the complete history; no proof survives this pass.
   const proofConnection=createFinalizedReadCache(connection);
   for (const [source,row] of entries) {
+    if ((row.cluster || 'devnet')!==cluster) throw new Error('Settlement network differs from the selected network.');
     const collection=state.collections?.[source];
     if (!collection || collection.signature!==source || collection.mint!==mint
       || collection.status!=='collected' || collection.onchainVerified!==true
-      || collection.cluster!=='devnet' || collection.scope!=='per-mint-v3'
+      || collection.cluster!==cluster || collection.scope!=='per-mint-v3'
       || collection.programId!==launch.pumpFeeRoute.programId || row.collectionSignature!==source)
       throw new Error('Cumulative allocation requires every matching finalized source collection.');
     const proof=await loadSettlement({connection:proofConnection,signature:row.settlementSignature,
@@ -36,9 +40,9 @@ export async function readFinalizedV3Allocations({store,connection,mint,loadSett
     if (!proof?.position || proof.signature!==row.settlementSignature
       || proof.claimId!==collection.claimId || proof.expectedLamports!==String(collection.collectedLamports))
       throw new Error('Finalized cumulative settlement evidence is unavailable.');
-    const settlement={...proof,programId:launch.pumpFeeRoute.programId,collectionSignature:source,settlementSignature:row.settlementSignature};
-    const next=v3AllocationPlan({launch,settlement});
-    const original=v3AllocationPlan({launch,settlement:{...settlement,position:row.allocationPlan?.allocationVersion===2?proof.position:undefined}});
+    const settlement={...proof,...(cluster==='mainnet-beta'?{cluster}:{}),programId:launch.pumpFeeRoute.programId,collectionSignature:source,settlementSignature:row.settlementSignature};
+    const next=v3AllocationPlan({cluster,launch,settlement});
+    const original=v3AllocationPlan({cluster,launch,settlement:{...settlement,position:row.allocationPlan?.allocationVersion===2?proof.position:undefined}});
     if (!isDeepStrictEqual(original,row.allocationPlan)) throw new Error('The saved allocation differs from finalized source evidence.');
     const used=usage(state,source).some(Boolean);
     reviewed.push({source,row,proof,next,used,usage:usage(state,source)});

@@ -1,10 +1,11 @@
+import {requireSolanaCluster,assertRpcNetwork} from '../solana-network.js';
 import {deriveAgencyPolicyV3,agencyDiscriminator} from '../agency-mint-router-v3.js';
 import {decodeAgencyRules} from '../agency-rules-v3.js';
 import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { buildCommunityManifest, verifyCommunityProof } from '../community-merkle.js';
-import { DEVNET_GENESIS_HASH, readProgramDataEvidence, rewardAddresses } from './automatic-reward-chain.mjs';
+import { readProgramDataEvidence, rewardAddresses } from './automatic-reward-chain.mjs';
 import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, buildCommunitySnapshotApprovalInstruction, communityAddresses, supportsProgramRecipients } from './community-claim-chain.mjs';
 import { readCommunityReserveStatus } from './community-reserve-status.mjs';
 import { captureExactCommunitySnapshot, captureQaCommunitySnapshot } from './community-snapshot.mjs';
@@ -26,19 +27,20 @@ export function createCommunityClaimService({ connection, store, programId, auth
   captureSnapshot = captureExactCommunitySnapshot, captureQaSnapshot = captureQaCommunitySnapshot,
   qaCutoffMint = '', qaCutoffAuthority = '', reserveReader = readCommunityReserveStatus,
   programEvidence = readProgramDataEvidence }) {
-  if (cluster !== 'devnet') throw new Error('Community claim service is unavailable for this configuration.');
+  requireSolanaCluster(cluster);
+  if(cluster!=='devnet'&&(qaCutoffMint||qaCutoffAuthority)) throw new Error('QA snapshot settings are forbidden outside Devnet.');
   if (!store?.transaction || !store?.read) throw new Error('An atomic persistent reward store is required.');
   const program = new PublicKey(programId), issuer = new PublicKey(authority), eligible = new PublicKey(eligibilityMint);
 
-  async function assertDevnet() {
-    if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Community claim RPC failed verification.');
+  async function assertNetwork() {
+    await assertRpcNetwork(connection,cluster);
   }
 
   async function assertReviewedProgram(allowRecentRead = false) {
-    await assertDevnet();
+    await assertNetwork();
     if (!/^[a-f0-9]{64}$/i.test(String(expectedCommunityProgramDataSha256 || '')))
       throw new Error('Reviewed community program-data hash is not pinned.');
-    const cacheKey = `${program.toBase58()}:${expectedCommunityProgramDataSha256}`;
+    const cacheKey = `${cluster}:${program.toBase58()}:${expectedCommunityProgramDataSha256}`;
     if (allowRecentRead && programEvidence === readProgramDataEvidence) {
       const recent = recentReadProgramProofs.get(cacheKey);
       if (recent && Date.now() - recent < READ_PROGRAM_PROOF_TTL_MS) return;
@@ -46,7 +48,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
       if (pending) return pending;
     }
     const verify = async () => {
-      const evidence = await programEvidence(connection, program);
+      const evidence = await programEvidence(connection, program,{cluster});
       if (!evidence.account?.executable || evidence.sha256 !== expectedCommunityProgramDataSha256)
         throw new Error('Current on-chain community program differs from the reviewed build.');
       if (programEvidence === readProgramDataEvidence) recentReadProgramProofs.set(cacheKey, Date.now());
@@ -65,16 +67,19 @@ export function createCommunityClaimService({ connection, store, programId, auth
 
   async function prepared(mint) {
     const records = (await store.read()).communityDrops || {};
-    return records[key(mint)] || null;
+    const record=records[key(mint)] || null;
+    if(record&&(record.cluster||'devnet')!==cluster)throw new Error('Community manifest network differs from the selected network.');
+    return record;
   }
 
   async function prepareFresh({ mint, creator, reservedTokens, fundingSignature, migrationSignature,
     snapshotBasis = 'pump-migration' }) {
-    await assertDevnet();
+    await assertNetwork();
     const launchMint = new PublicKey(mint), creatorAddress = key(creator);
     if (!['pump-migration', 'devnet-qa-cutoff'].includes(snapshotBasis))
       throw new Error('Unsupported community snapshot basis.');
     if (snapshotBasis === 'devnet-qa-cutoff') {
+      if(cluster!=='devnet')throw new Error('QA snapshots are forbidden outside Devnet.');
       const allowed = String(qaCutoffMint || '').split(',').map(value => value.trim()).filter(Boolean);
       if (!qaCutoffAuthority || !allowed.length || allowed.length > 8
         || allowed.some(value => key(value) !== value)
@@ -111,14 +116,14 @@ export function createCommunityClaimService({ connection, store, programId, auth
       migrationBlockTime:snapshot.blockTime, snapshot, amountBaseUnits:String(amount),
       excludedWallets:[issuer.toBase58(), vault.toBase58(), drop.toBase58()] });
     manifest.claimWindowSeconds=claimWindowSeconds;manifest.expiresAt=snapshot.blockTime+claimWindowSeconds;
-    const record = { ...base, snapshotBasis, ...(snapshotBasis==='pump-migration'?{automaticDeliveryVersion:2}:{}), eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
+    const record = { ...base, cluster, snapshotBasis, ...(snapshotBasis==='pump-migration'?{automaticDeliveryVersion:2}:{}), eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
       tokenProgram:mintInfo.owner.toBase58(), reservedBaseUnits:String(amount), snapshot,
       manifest, openingSignature:null, preparedAt:new Date().toISOString() };
     return store.transaction(state => {
       state.communityDrops ||= {};
       const prior = state.communityDrops[record.mint];
       if (prior) {
-        if ((prior.snapshotBasis || 'pump-migration') !== snapshotBasis
+        if ((prior.cluster||'devnet')!==cluster || (prior.snapshotBasis || 'pump-migration') !== snapshotBasis
           || prior.creator !== record.creator || prior.fundingSignature !== record.fundingSignature
           || prior.migrationSignature !== migrationSignature || prior.eligibilityMint !== record.eligibilityMint
           || prior.programId !== record.programId || prior.authority !== record.authority
@@ -133,7 +138,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
   }
 
   async function prepare(input) {
-    await assertDevnet();
+    await assertNetwork();
     const args={mint:key(input.mint),creator:key(input.creator),reservedTokens:input.reservedTokens,
       fundingSignature:input.fundingSignature,migrationSignature:input.migrationSignature,
       snapshotBasis:input.snapshotBasis||'pump-migration'};
@@ -141,6 +146,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
     if(!Number.isSafeInteger(args.reservedTokens)||args.reservedTokens<=0||args.reservedTokens>500_000_000
       ||!args.fundingSignature||!args.migrationSignature)throw new Error('Verified launch reserve and migration identities are required.');
     if(args.snapshotBasis==='devnet-qa-cutoff'){
+      if(cluster!=='devnet')throw new Error('QA snapshots are forbidden outside Devnet.');
       const allowed=String(qaCutoffMint||'').split(',').map(value=>value.trim()).filter(Boolean);
       if(!qaCutoffAuthority||!allowed.length||allowed.length>8||allowed.some(value=>key(value)!==value)||!allowed.includes(args.mint))
         throw new Error('Devnet QA cutoff is not configured for this exact launch mint.');
@@ -186,7 +192,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
     await assertReviewedProgram();
     const record = await prepared(mint);
     if (!record) throw new Error('A verified immutable community manifest must be prepared before approval.');
-    const evidence = await programEvidence(connection, program);
+    const evidence = await programEvidence(connection, program,{cluster});
     const programData = evidence.programData;
     const ownerBytes = Buffer.from(programData?.data || []);
     if (!evidence.programDataAddress || ownerBytes.length < 45 || ownerBytes[12] !== 1

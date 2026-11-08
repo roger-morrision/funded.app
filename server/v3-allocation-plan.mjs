@@ -1,3 +1,4 @@
+import {requireSolanaCluster} from '../solana-network.js';
 import { validateFeeDistribution } from '../distribution-policy.js';
 
 const DECIMAL = /^(0|[1-9]\d*)$/;
@@ -17,10 +18,11 @@ function shareBps(value) {
 
 // This is an obligation plan, not a payment receipt. Only a finalized V3
 // settlement proof may supply its seven on-chain category allocations.
-export function v3AllocationPlan({ launch, settlement }) {
+export function v3AllocationPlan({ launch, settlement, cluster='devnet' }) {
+  requireSolanaCluster(cluster);
   if (launch?.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.mint !== settlement?.mint
-    || !launch.onchainVerified || launch.cluster !== 'devnet'
-    || launch.pumpFeeRoute.programId !== settlement.programId) {
+    || !launch.onchainVerified || launch.cluster !== cluster
+    || (settlement.cluster || 'devnet')!==cluster || launch.pumpFeeRoute.programId !== settlement.programId) {
     throw new Error('A matching verified V3 launch and settlement are required.');
   }
   const rows = settlement.categoryLamports;
@@ -53,6 +55,7 @@ export function v3AllocationPlan({ launch, settlement }) {
   const x = creatorPool - wallet - holder;
   if ([wallet,holder,x].some(value=>value<0n)) throw new Error('The collection is too small to release cumulative rounding safely.');
   return {
+    ...(cluster==='mainnet-beta'?{cluster}:{}),
     status:'allocated-not-funded', sourceCollectionSignature:settlement.collectionSignature,
     settlementSignature:settlement.settlementSignature,
     mint:launch.mint, programId:launch.pumpFeeRoute.programId,

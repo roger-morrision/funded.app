@@ -29,7 +29,7 @@ export async function verifyV3LaunchRouterReadiness({ connection, programId, exp
       return { ready:false, status:503, error:'The RPC does not match the selected network.' };
     }
     const [evidence, global] = await Promise.all([
-      readEvidence(connection, program, cluster === 'devnet' ? {} : {rpcUrl:''}),
+      readEvidence(connection, program, cluster === 'devnet' ? {} : {rpcUrl:'',cluster}),
       verifyGlobal({ connection, programId:program, commitment:'finalized' }),
     ]);
     if (genesis !== SOLANA_GENESIS[cluster] || !evidence.account?.executable
