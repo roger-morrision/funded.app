@@ -41,7 +41,7 @@ function home() {
 
 function explore() {
   setText('.explore-hero h1', 'Explore coins');
-  setText('.explore-lede', 'Find a token, compare its activity, and explore its community.');
+  setText('.explore-lede', 'Find a token, view its activity, and explore its community.');
   setText('button[data-explore-tab="trending"]', 'Trending');
   setText('.workspace-watch-link', 'Following');
   $('#explore-search')?.setAttribute('placeholder', 'Search coins or paste an address');

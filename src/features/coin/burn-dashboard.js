@@ -24,11 +24,17 @@ export function renderCoinBurnDashboard({status,mint,cluster='devnet',checkedAt,
 export function syncCoinBurnCards(document=globalThis.document){
   const root=document?.querySelector('#coin-burn-dashboard'),grid=document?.querySelector('#coin-summary-grid');if(!root||!grid)return;
   const symbol=document.querySelector('#coin-symbol')?.textContent?.trim()||'Tokens';
-  for(const [key,label,unit,note] of [['tokens','Total tokens burned',symbol,root.querySelector('[data-burn-status]').textContent],['percent','Total supply burned','', 'Of original supply']]){
-    let card=grid.querySelector(`[data-token-burn-metric="${key}"]`);
-    if(!card){card=document.createElement('article');card.className='coin-summary-card';card.dataset.tokenBurnMetric=key;card.innerHTML='<span class="coin-summary-icon" aria-hidden="true">♨</span><div><small></small><span class="coin-summary-value"><strong></strong><b></b></span><em></em></div>';grid.append(card);}
-    card.dataset.state=root.dataset.state==='ready'?'available':'unavailable';card.dataset.metric=key==='tokens'?'token-burn':'supply-burn';
-    card.querySelector('small').textContent=label;card.querySelector('strong').textContent=root.querySelector(`[data-burn-${key}]`).textContent;
-    card.querySelector('b').textContent=unit;card.querySelector('b').hidden=!unit;card.querySelector('em').textContent=note;
+  grid.querySelector('[data-token-burn-metric="percent"]')?.remove();
+  let card=grid.querySelector('[data-token-burn-metric="tokens"]');
+  if(!card){
+    card=document.createElement('article');card.className='coin-summary-card';card.dataset.tokenBurnMetric='tokens';
+    card.innerHTML='<span class="coin-summary-icon" aria-hidden="true">♨</span><div><small>Tokens burned</small><span class="coin-summary-value"><strong></strong><b></b></span><em></em></div>';
+    grid.append(card);
   }
+  const ready=root.dataset.state==='ready';
+  card.dataset.state=ready?'available':'unavailable';card.dataset.metric='token-burn';
+  card.querySelector('strong').textContent=root.querySelector('[data-burn-tokens]').textContent;
+  card.querySelector('b').textContent=symbol;
+  card.querySelector('em').textContent=ready?`${root.querySelector('[data-burn-percent]').textContent} of original supply`:root.querySelector('[data-burn-status]').textContent;
+  card.title=root.querySelector('[data-burn-status]').textContent;
 }

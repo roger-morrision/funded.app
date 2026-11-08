@@ -1,7 +1,6 @@
 export const burnDashboardMarkup=`<div id="coin-burn-dashboard" hidden aria-busy="true">
   <div class="coin-burn-metrics">
-    <article><span>Total tokens burned</span><strong data-burn-tokens>—</strong><small>This token</small></article>
-    <article><span>Total supply burned</span><strong data-burn-percent>—</strong><small>Of original supply</small></article>
+    <article><span>Tokens burned</span><strong data-burn-tokens>—</strong><small><span data-burn-percent>—</span> of original supply</small></article>
   </div>
   <p data-burn-status role="status" aria-live="polite">Checking token burn totals…</p>
   <details hidden><summary>Supply details</summary><dl><div><dt>Original supply</dt><dd data-burn-initial>Unavailable</dd></div><div><dt>Current supply</dt><dd data-burn-current>Unavailable</dd></div><div><dt>Last checked</dt><dd data-burn-checked>Unavailable</dd></div></dl>

@@ -67,7 +67,7 @@ function createPanels() {
   }
   if (payments && !byId('reward-discovery')) {
     const section = node('section', 'reward-experience-panel reward-discovery', null); section.id = 'reward-discovery';
-    section.innerHTML = `<header><div><p class="eyebrow">Reward programs</p><h2>Explore holder rewards</h2><p>Compare tokens that share fees with holders. Amounts shown are program totals, not rewards available to your wallet.</p></div><label>Show <select data-reward-filter><option value="all">All holder rewards</option><option value="allocated">Rewards set aside</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Eligible wallets receive SOL automatically after holdings and funding are confirmed. “0 paid wallets” means no holder payment is confirmed.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Reward programs</p><h2>Explore holder rewards</h2><p>Discover tokens that share fees with holders. Amounts shown are program totals, not rewards available to your wallet.</p></div><label>Show <select data-reward-filter><option value="all">All holder rewards</option><option value="allocated">Rewards set aside</option><option value="paid">Holders paid</option></select></label></header><div data-reward-discovery role="status">Checking verified launches…</div><small>Eligible wallets receive SOL automatically after holdings and funding are confirmed. “0 paid wallets” means no holder payment is confirmed.</small>`;
     (byId('rewards-holder') || rewardsOverview).append(section);
     section.querySelector('[data-reward-filter]').addEventListener('change', () => renderDiscovery(latest));
   }
