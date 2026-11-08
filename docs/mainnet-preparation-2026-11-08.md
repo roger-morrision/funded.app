@@ -27,6 +27,8 @@ Build a future reviewed-identity candidate on Linux/WSL with the pinned toolchai
 
 ```sh
 export FUNDED_MAINNET_PROGRAM_ID=PUBLIC_PROGRAM_ADDRESS
+export FUNDED_MAINNET_FUNDED_MINT=PUBLIC_MAINNET_FUNDED_MINT
+export FUNDED_MAINNET_FUNDED_POOL=PUBLIC_MAINNET_FUNDED_POOL
 export CARGO_BUILD_SBF=/path/to/agave-4.1.2/bin/cargo-build-sbf
 bash scripts/build-mainnet-contract.sh /path/to/new-artifact-directory
 ```

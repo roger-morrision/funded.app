@@ -3,7 +3,8 @@ import { OnlinePumpAmmSdk, PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK,
   buyQuoteInput } from '@pump-fun/pump-swap-sdk';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { BUYBACK_POLICY } from '../buyback-policy.js';
-import { V3_DEVNET_FUNDED_MINT, V3_DEVNET_FUNDED_POOL } from './v3-buyback-instruction.mjs';
+import {buybackAssets} from './buyback-assets.mjs';
+import {assertRpcNetwork,SOLANA_GENESIS} from '../solana-network.js';
 import { MIN_V3_BUYBACK_ORDER_LAMPORTS } from './v3-buyback-worker-policy.mjs';
 import {selectV3PumpBuy} from './v3-buyback-setup.mjs';
 
@@ -13,21 +14,23 @@ export function protectedV3BuybackClip(budgetLamports, reserveLamports) {
   return budget<cap?budget:cap;
 }
 
-export async function quoteV3Buyback({ connection, vault, budgetLamports }) {
+export async function quoteV3Buyback({ connection, vault, budgetLamports, cluster='devnet', programId }) {
+  const assets=buybackAssets(cluster,{programId});
+  await assertRpcNetwork(connection,cluster);
   const budget=BigInt(budgetLamports);
   if (budget<MIN_V3_BUYBACK_ORDER_LAMPORTS || budget>BigInt(Number.MAX_SAFE_INTEGER))
-    throw Object.assign(new Error('V3 buyback budget must be at least 10,000 lamports and within the bounded Devnet range.'), { statusCode:409 });
+    throw Object.assign(new Error('V3 buyback budget must be at least 10,000 lamports and within the bounded range.'), { statusCode:409 });
   const [state,mintInfo]=await Promise.all([
-    new OnlinePumpAmmSdk(connection).swapSolanaState(V3_DEVNET_FUNDED_POOL,vault),
-    connection.getAccountInfo(V3_DEVNET_FUNDED_MINT,'finalized'),
+    new OnlinePumpAmmSdk(connection).swapSolanaState(assets.pool,vault),
+    connection.getAccountInfo(assets.mint,'finalized'),
   ]);
   if (!mintInfo || ![TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID]
     .some(program=>mintInfo.owner.equals(program))
     || !state.poolAccountInfo?.owner?.equals(PUMP_AMM_PROGRAM_ID)
-    || !state.pool?.baseMint?.equals(V3_DEVNET_FUNDED_MINT)
+    || !state.pool?.baseMint?.equals(assets.mint)
     || !state.pool?.quoteMint?.equals(NATIVE_MINT)
     || BigInt(state.poolQuoteAmount?.toString()||0)<=0n)
-    throw new Error('The approved $FUNDED PumpSwap Devnet pool is unavailable.');
+    throw new Error('The approved $FUNDED PumpSwap pool is unavailable.');
   const reserves=BigInt(state.poolQuoteAmount.toString());
   const quote=protectedV3BuybackClip(budget,reserves);
   if (quote < MIN_V3_BUYBACK_ORDER_LAMPORTS)
@@ -44,7 +47,7 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports }) {
   if (minimum<=0n) throw new Error('The protected $FUNDED output quote is empty.');
   const instructions=await PUMP_AMM_SDK.buyQuoteInput(state,new BN(String(quote)),1);
   const buy=selectV3PumpBuy(instructions);
-  return { pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,
+  return { cluster,genesisHash:SOLANA_GENESIS[cluster],pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,
     spendableQuoteIn:String(quote),minBaseAmountOut:String(minimum),
     maxTotalDebit:String(quote) };
 }

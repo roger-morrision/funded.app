@@ -18,6 +18,7 @@ function fixture(){
  const header=Buffer.alloc(36);header.writeUInt32LE(2);address.toBuffer().copy(header,4);
  const bytes=Buffer.alloc(45+binary.length+10);bytes.writeUInt32LE(3);bytes[12]=1;authority.toBuffer().copy(bytes,13);binary.copy(bytes,45);
  const manifest={schemaVersion:1,cluster:'mainnet-beta',status:'reviewed',programId:program.toBase58(),upgradeAuthority:authority.toBase58(),
+  fundedMint:Keypair.generate().publicKey.toBase58(),fundedPool:Keypair.generate().publicKey.toBase58(),
   programDataSha256:sha(bytes),sourceRevision:'ab'.repeat(20),binary:{bytes:binary.length,sha256:sha(binary)},
   independentReview:{reviewer:'Test fixture only',reference:'fixture:test-only',sourceRevision:'ab'.repeat(20),binarySha256:sha(binary)},
   developerLockPeriodsSeconds:[21600,43200,86400,172800]};
@@ -28,7 +29,9 @@ test('Mainnet placeholders and Devnet/test identities never become runtime trust
  assert.equal(reviewedMainnetManifest(),null);assert.equal(MAINNET_REVIEWED_PROGRAM_ID,null);
  const f=fixture();assert.equal(mainnetReleaseVerified(f.evidence,f.manifest.programId,f.manifest.programDataSha256),false);
  assert.equal(agencyReleaseVerified(f.evidence,f.manifest.programId,f.manifest.programDataSha256,{cluster:'mainnet-beta'}),false);
- for(const change of [{status:'awaiting-review'},{upgradeAuthority:null},{programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm'},
+ for(const change of [{status:'awaiting-review'},{upgradeAuthority:null},{fundedMint:null},{fundedPool:null},
+  {fundedMint:'C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64'},{fundedPool:'EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32'},
+  {fundedPool:f.manifest.fundedMint},{fundedMint:f.manifest.programId},{programId:'9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm'},
   {programId:'3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh'},{independentReview:{...f.manifest.independentReview,binarySha256:'ff'.repeat(32)}}])
   assert.equal(reviewedMainnetManifest({...f.manifest,...change}),null);
  const result=await developerLockConfig({cluster:'mainnet-beta',env:{},connection:{getGenesisHash:()=>{throw Error('No RPC needed for missing review');}}});

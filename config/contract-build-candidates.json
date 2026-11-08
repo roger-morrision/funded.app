@@ -8,8 +8,10 @@
   },
   "devnet": {
     "feature": "devnet-v3-program",
-    "bytes": 1095080,
-    "sha256": "26f0b678c881b28e01cd927f82ffb95cd377de2449f9e7507edad18725196485",
+    "optimization": "z",
+    "strip": true,
+    "bytes": 900144,
+    "sha256": "03749b95dd6f4cd67e77eb9932012bcd7ee61d34a3da0171a2fc48b3a9d99a24",
     "developerLockPeriodsSeconds": [
       21600,
       43200,
@@ -20,9 +22,11 @@
   "productionBuildCheck": {
     "feature": "mainnet-v3-program",
     "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
+    "fundedMint": "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ",
+    "fundedPool": "3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7",
     "identityScope": "public-test-fixture-only",
     "bytes": 896304,
-    "sha256": "fa0cd47f854ddeea47f50c2f240e4f3d64c93f55dc46976c063b4e5e327c5c0f",
+    "sha256": "54b0b12f5bce7354cf902273db92c3c040d1290098d9a5a3336812caceebeb94",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [

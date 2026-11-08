@@ -2,6 +2,8 @@
 # Never set VITE_ALLOW_MAINNET=true to bypass unimplemented financial routes.
 # Fill public values and secret-file references in a private copy, never credential values here.
 # Empty budget/review fields are placeholders, not approval or a zero-cost deployment.
+# Fresh isolated installation: new Mainnet database/cache/deployment/production signers.
+# Do not import Devnet financial state, sessions, pending transactions or QA keys.
 VITE_SOLANA_CLUSTER=mainnet-beta
 SOLANA_CLUSTER=mainnet-beta
 MAINNET_PROGRAM_LAYOUT=merged-v3
@@ -39,6 +41,9 @@ MAINNET_APPROVED_UPGRADE_AUTHORITY=REPLACE_REVIEWED_AUTHORITY
 MAINNET_APPROVED_IMMUTABLE_PROGRAM=false
 FUNDED_TOKEN_MINT=REPLACE_MAINNET_FUNDED_MINT
 VITE_FUNDED_TOKEN_MINT=REPLACE_MAINNET_FUNDED_MINT
+FUNDED_SWAP_POOL=REPLACE_MAINNET_FUNDED_POOL
+VITE_FUNDED_SWAP_POOL=REPLACE_MAINNET_FUNDED_POOL
+# These must match the final bytecode build inputs and reviewed public manifest.
 FUNDED_TRADE_FEE_OWNER=REPLACE_MAINNET_PLATFORM_FEE_RECIPIENT
 VITE_FUNDED_TRADE_FEE_OWNER=REPLACE_MAINNET_PLATFORM_FEE_RECIPIENT
 METADATA_STORAGE=pinata

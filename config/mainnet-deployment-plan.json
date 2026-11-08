@@ -1,6 +1,25 @@
 {
   "schemaVersion": 1,
   "status": "preparation-only",
+  "deploymentMode": "fresh-isolated-mainnet",
+  "existingDevnetAction": "preserve",
+  "freshInfrastructure": {
+    "databaseReference": null,
+    "cacheReference": null,
+    "metadataNamespace": null,
+    "appDeploymentReference": null,
+    "backupReference": null
+  },
+  "freshSignerReferences": {
+    "automationAuthority": null,
+    "priceAttestation": null,
+    "operationsTreasury": null,
+    "tradeFeeTreasury": null,
+    "boostTreasury": null,
+    "revenueTreasury": null
+  },
+  "copyDevnetFinancialState": false,
+  "reuseDevnetSigners": false,
   "cluster": "mainnet-beta",
   "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "mainnetActivationAuthorized": false,
@@ -22,6 +41,7 @@
   "metadataSecretPath": null,
   "feeRecipient": null,
   "fundedMint": null,
+  "fundedPool": null,
   "maximumTotalSpendLamports": null,
   "maximumPriorityFeeLamports": null,
   "independentReviewer": null,
@@ -49,7 +69,7 @@
   "deploymentMarginLamports": 250000000,
   "excludedCosts": ["Liquidity", "Per-launch state and token accounts", "Initial configuration PDAs and lookup tables", "Canary transactions and operating balances", "RPC, database and metadata hosting", "Independent review"],
   "sequence": [
-    "Choose public production program ID, upgrade authority, payer signer reference, fee recipient and isolated infrastructure.",
+    "Create a fresh isolated Mainnet inventory: new production program identity and infrastructure, production signer references, FUNDED mint and pool. Preserve Devnet and do not copy its financial state or QA signers.",
     "Implement and review production network paths and agency custody; retain Mainnet write guards during preparation.",
     "Build the exact production artifact with pinned tools, verify program identity and reproduce executable hash in CI.",
     "Rerun custody, financial-path and transaction-size tests against that artifact, then refresh rent and fee quotes.",

@@ -12,14 +12,14 @@ use crate::{constants::*, error::ErrorCode, state::{AgencyBuybackV3, MintAgencyP
 use super::{rotate::assert_current_router_authority, agency_policy_v3::{AGENCY_POLICY_SEED, agent_targets}};
 
 // Devnet pilot assets. The production program cannot inherit these addresses.
-const FUNDED_MINT: &str = "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64";
-const FUNDED_POOL: &str = "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32";
+#[cfg(not(feature = "mainnet-v3-program"))] const FUNDED_MINT: &str = "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64";
+#[cfg(not(feature = "mainnet-v3-program"))] const FUNDED_POOL: &str = "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32";
 const PUMP_SWAP: &str = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA";
 const BUY_EXACT_QUOTE_IN: [u8; 8] = [198, 46, 21, 82, 180, 217, 232, 112];
 const INIT_USER_VOLUME: [u8; 8] = [94, 6, 202, 115, 255, 96, 232, 183];
 const BUY_ACCOUNTS: usize = 23;
 
-
+#[cfg(feature = "mainnet-v3-program")] include!(concat!(env!("OUT_DIR"), "/mainnet_assets.rs"));
 #[derive(Accounts)]
 #[instruction(buyback_id: [u8; 32], category: u8)]
 pub struct BuybackAgencyMintV3<'info> {

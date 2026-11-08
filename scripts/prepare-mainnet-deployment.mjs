@@ -56,7 +56,7 @@ export async function prepareMainnetDeployment(plan,{artifactDir,connection,now=
       sol:{locked:sol(locked),buffer:sol(bufferRent),estimatedBaseFees:sol(estimatedBaseFees),suggestedWallet:sol(suggested)}});
   }
   const required=['upgradeAuthority','mainnetProgramId','mainnetAppOrigin','productionRpcSecretPath',
-    'deploymentPayerSignerReference','productionDatabaseSecretPath','metadataSecretPath','feeRecipient','fundedMint'];
+    'deploymentPayerSignerReference','productionDatabaseSecretPath','metadataSecretPath','feeRecipient','fundedMint','fundedPool'];
   return {schemaVersion:1,status:'prepared-not-deployable',ready:false,mainnetActivationAuthorized:false,
     contractSourceRevision:plan.sourceRevision,ciRun:plan.ciRun,cluster:plan.cluster,genesisHash:plan.genesisHash,
     quote:{status:connection?'live-mainnet-rent':'offline-assumption',checkedAt:now().toISOString(),finalizedSlot:slot,

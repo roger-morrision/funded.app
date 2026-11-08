@@ -9,8 +9,8 @@ import { deriveFeeRouter } from '../fee-router.js';
 import { deriveMintPolicyV3, deriveMintVaultsV3 } from '../mint-router-v3.js';
 import {deriveAgencyPolicyV3,deriveAgencyVaultsV3,agencyDiscriminator,agencyU64} from '../agency-mint-router-v3.js';
 
-export const V3_DEVNET_FUNDED_MINT = new PublicKey('C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64');
-export const V3_DEVNET_FUNDED_POOL = new PublicKey('EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32');
+import {buybackAssets} from './buyback-assets.mjs';
+export {V3_DEVNET_FUNDED_MINT,V3_DEVNET_FUNDED_POOL} from './buyback-assets.mjs';
 const PUMP_BUY = Buffer.from([102, 6, 61, 18, 1, 218, 235, 234]);
 const BUYBACK_SEED = Buffer.from('mint-buyback-v3');
 const UINT64_MAX = (1n << 64n) - 1n;
@@ -42,10 +42,11 @@ export function v3BuybackOnchainId(mint, round = 1) {
 
 // The Pump instruction supplies current pool fee accounts only. The router
 // constructs its own exact-quote CPI and verifies every custody address.
-export function buildV3BuybackInstruction({ programId, sourceMint, authority, priceSigner,
+export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceMint, authority, priceSigner,
   creator, baseTokenProgram, buybackId, spendableQuoteIn,
   minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy=false,agencyExecution=null }) {
   const program = new PublicKey(programId);
+  const assets=buybackAssets(cluster,{programId:program});
   const mint = new PublicKey(sourceMint);
   const baseProgram = new PublicKey(baseTokenProgram);
   if (!baseProgram.equals(TOKEN_PROGRAM_ID) && !baseProgram.equals(TOKEN_2022_PROGRAM_ID))
@@ -61,7 +62,7 @@ export function buildV3BuybackInstruction({ programId, sourceMint, authority, pr
   if(agencyExecution&&!agencyPolicy)throw new Error('Agency execution requires its immutable eight-category policy.');
   if(own&&![1,2].includes(agencyExecution.agent))throw new Error('Only own-coin milestone agents may use the agency burn budget.');
   const category=own?7:6,agent=own?agencyExecution.agent:255;
-  const boughtMint=own?mint:V3_DEVNET_FUNDED_MINT,pool=own?new PublicKey(agencyExecution.pool):V3_DEVNET_FUNDED_POOL;
+  const boughtMint=own?mint:assets.mint,pool=own?new PublicKey(agencyExecution.pool):assets.pool;
   const vault = (agencyPolicy?deriveAgencyVaultsV3:deriveMintVaultsV3)(program, mint)[category];
   const fundedAta = getAssociatedTokenAddressSync(boughtMint,
     vault, true, baseProgram);
@@ -79,7 +80,7 @@ export function buildV3BuybackInstruction({ programId, sourceMint, authority, pr
     || !Buffer.from(buy.data || []).subarray(0, 8).equals(PUMP_BUY)
     || !Array.isArray(buy.keys) || buy.keys.length < 25 || buy.keys.length > 27
     || expected.some(([index, address]) => !buy.keys[index]?.pubkey?.equals(address)))
-    throw new Error('PumpSwap buy instruction does not use the approved Devnet market and vault custody.');
+    throw new Error('PumpSwap buy instruction does not use the approved market and vault custody.');
   const policy = (agencyPolicy?deriveAgencyPolicyV3:deriveMintPolicyV3)(program, mint).address;
   const legacy = deriveFeeRouter(program).address;
   const receipt = PublicKey.findProgramAddressSync([
@@ -121,7 +122,7 @@ export function buildV3BuybackInstruction({ programId, sourceMint, authority, pr
       isSigner:index === 1 ? false : entry.isSigner })),
   ];
   return { instruction:new TransactionInstruction({ programId:program, keys, data }),
-    vault, fundedAta, quoteAta, policy, receipt, buybackId:id,
+    vault, fundedAta, quoteAta, policy, receipt, buybackId:id, boughtMint, pool,
     spendableQuoteIn:String(spendableQuoteIn), minBaseAmountOut:String(minBaseAmountOut),
     maxTotalDebit:String(maxTotalDebit),...(agencyPolicy?{agencyPolicy:true,category,agent,boughtMint,pool}: {}) };
 }

@@ -4,6 +4,8 @@ set -euo pipefail
 # Build only. No wallet loading, RPC calls, deployment or authority changes.
 # Set FUNDED_MAINNET_PROGRAM_ID to the public address selected for the release.
 : "${FUNDED_MAINNET_PROGRAM_ID:?Set the dedicated Mainnet program public key}"
+: "${FUNDED_MAINNET_FUNDED_MINT:?Set the reviewed Mainnet FUNDED mint public key}"
+: "${FUNDED_MAINNET_FUNDED_POOL:?Set the reviewed Mainnet FUNDED pool public key}"
 : "${CARGO_BUILD_SBF:?Set the path to the pinned Agave 4.1.2 cargo-build-sbf}"
 tool_version="$("$CARGO_BUILD_SBF" --version)"
 # The checksum-verified Agave 4.1.2 archive ships cargo-build-sbf 4.1.0.
@@ -26,6 +28,8 @@ export CARGO_PROFILE_RELEASE_STRIP=true
 sha256sum "$output_dir/funded_fee_router.so" > "$output_dir/bytecode.sha256"
 wc -c "$output_dir/funded_fee_router.so" > "$output_dir/bytecode-size.txt"
 printf '%s\n' "$FUNDED_MAINNET_PROGRAM_ID" > "$output_dir/program-id.txt"
+printf '%s\n' "$FUNDED_MAINNET_FUNDED_MINT" > "$output_dir/funded-mint.txt"
+printf '%s\n' "$FUNDED_MAINNET_FUNDED_POOL" > "$output_dir/funded-pool.txt"
 git -C "$repo_root" rev-parse HEAD > "$output_dir/source-revision.txt"
 git -C "$repo_root" status --porcelain --untracked-files=all > "$output_dir/source-status.txt"
 printf '%s\n' "$tool_version" > "$output_dir/toolchain.txt"

@@ -139,6 +139,7 @@ export async function readMainnetServicePolicy(env,{fetchImpl=fetch}={}) {
 
 export async function mainnetReadinessPreflight(env, { online = false } = {}) {
   const config = assessMainnetConfig(env);
+  const release=reviewedMainnetManifest();
   const onchain = online ? await readMainnetProgramEvidence(env, config)
     : { status:'unavailable', reason:'Offline preflight; run with --online for read-only finalized RPC verification.' };
   return {
@@ -148,6 +149,8 @@ export async function mainnetReadinessPreflight(env, { online = false } = {}) {
     configuration:config.checks,
     configurationComplete:config.configurationComplete,
     programReview:{configured:Boolean(reviewedMainnetManifest()),upgradeableRequired:true,
+      buybackAssetsMatch:Boolean(release&&release.programId===config.routerId
+        &&release.fundedMint===env.FUNDED_TOKEN_MINT&&release.fundedPool===env.FUNDED_SWAP_POOL),
       status:reviewedMainnetManifest()?'reviewed-manifest-present':'blocked-awaiting-production-identity-and-independent-review'},
     onchain,
     publicPolicy:online?await readMainnetServicePolicy(env):{status:'unavailable',reason:'Offline preflight; saved deployment fee policy was not read.'},

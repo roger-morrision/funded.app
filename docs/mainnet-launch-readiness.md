@@ -2,6 +2,48 @@
 
 Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
 
+## Deployment and go-live sequence (8 November 2026)
+
+The requested deployment is a **fresh isolated Mainnet installation**. Provision new program and infrastructure identities and production signer references. Start with an empty production financial database and cache; do not copy Devnet launches, balances, receipts, sessions, pending transactions or QA private keys. Select/bootstrap the production FUNDED mint and real canonical pool before freezing the contract build. Record liquidity funding separately from contract rent and deployment fees. The admin recipient and retained upgrade authority must be explicitly selected public addresses. No existing Devnet reset, wallet transfer or deletion is part of this plan.
+
+**Current decision: NO-GO for public Mainnet writes.** Placeholders are intentional. The steps below describe the release order, not evidence that these steps have passed. The current preflight deliberately returns `ready:false`; replacing configuration alone cannot complete the network port. Keep the existing Devnet environment available throughout preparation.
+
+1. **Finish the Mainnet application paths.** Complete launch submission/registration, fee collection and settlement, every payout worker, market indexing and claim reconciliation. Bind quotes, stored obligations, RPC genesis, program identity and transaction receipts to the selected network. Review and test an explicit activation mechanism only after these paths are complete; the current backend blocks all Mainnet mutations. Flipping browser flags does not activate the backend.
+2. **Freeze and test a release revision.** Use a clean checkout, Node 24 and the pinned contract tools in `.github/workflows/contracts.yml`. Run the commands below and the compiled-bytecode custody tests in that workflow. Run every case in `config/mainnet-acceptance-plan.json` on Devnet at production thresholds, including real Phantom interaction. The admin must be the authenticated, allowlisted Phantom wallet, pay the network fee and receive the withdrawal after one email OTP. Record finalized signatures and exact deltas; an HTTP success or submitted transaction is insufficient.
+3. **Choose production identities and provision infrastructure.** Supply a dedicated program identity, retained upgrade authority, admin wallet, automation signers, fee recipients, Mainnet FUNDED mint and canonical pool, and deployment payer reference. Provision isolated PostgreSQL, Redis, durable metadata, HTTPS domain, RPC and same-network fallback. Test database restore, RPC credit exhaustion, WebSocket reconnect and metadata retrieval. Production signer/credential values stay in private server files; public browser variables contain no secrets. Select total deployment/canary and priority-fee limits.
+4. **Fill a private production configuration.** Start from `config/mainnet-staging.example`; keep placeholders in the committed template. Complete `config/mainnet-deployment-plan.json` and `config/mainnet-acceptance-plan.json` with public identities and references when available. The V3 router and developer escrow use the same merged program ID. Client/server mint and pool must match the contract build inputs. Keep `VITE_ALLOW_MAINNET=false` and `VITE_MAINNET_READ_ONLY=true` during preparation. Run the offline preflight against the explicit private file.
+5. **Build and independently review the exact contract.** Run the build-only command below using actual public production identities. Reproduce its bytes in CI from the same clean revision; review custody, authorization, all financial instructions, compute budgets and account migrations. Populate `config/mainnet-program-release.json` with the independent review and final source/binary identity. Its ProgramData hash is finalized after deployment. Test-only identities in `contract-build-candidates.json` must never become runtime trust or deployment inputs. Any production identity, mint, pool or source change requires another build and matching review.
+6. **Refresh costs and approve the exact deployment.** Quote live Mainnet rent for the verified ELF length plus loader accounts; include bounded transaction/priority fees, retry allowance, initialization, lookup tables and capped acceptance funding. The existing `prepare-mainnet-deployment.mjs` is a read-only reference-artifact cost planner, not a deployment runner; its plan/artifact hashes must match. Fund only after reviewing the final program ID, payer, authority, bytecode hash and total spend limit. No exact deployment cost is established by a placeholder plan.
+7. **Deploy the upgradeable program once.** After the previous gates pass, prepare a concrete command using the installed CLI's `solana program deploy`, an explicit Mainnet RPC, the reviewed ELF, explicit `--program-id` signer, `--fee-payer`, `--upgrade-authority` and exact reviewed `--max-len`. Set bounded priority/retry parameters from the approved packet. Do not use `--final`: the user requires upgrades to remain possible. Journal the deployment/buffer identities and signatures, reconcile interrupted submissions before retrying, and verify finalized loader ownership, full ProgramData hash, executable bytes and retained authority. This repository has no approved one-command Mainnet deployment yet.
+8. **Initialize protocol state and deploy a private app.** Prepare, review and execute the required router/configuration, authority, pricing, recipient and lookup-table initialization against the deployed program. Verify every resulting account. Create a Mainnet-specific deployment manifest rather than running the Devnet release command. Build one immutable app image from the approved revision with Mainnet browser configuration; migrate the isolated database and use the same digest for the API and workers. Mount only the required production secrets. Start read-only with financial workers disabled. Verify `/api/health`, `/api/status`, `/api/readiness`, release identity, metadata and email delivery. Run online preflight after actual deployed program evidence is recorded.
+9. **Run the capped private Mainnet canary.** Only after a reviewed activation mechanism exists, allow the approved test wallets and budget to exercise the acceptance plan: launch/burn/lock, buy/sell, collect/settle, all recipient categories, buyback/burn, community claims, developer unlock, admin withdrawal and restart recovery. Use ordinary production thresholds, never QA overrides. Reconcile every source debit, destination credit, fee, reserve and token supply change. Stop on unknown finality or any mismatch. Do not interpret read-only staging as a passed financial canary.
+10. **Open public traffic gradually.** Approve the canary evidence and release packet, enable only reviewed routes and one lease-owning instance of each signing worker, then direct the public domain to the verified image. Monitor RPC errors/latency, WebSocket reconnects, worker freshness, pending obligations, duplicate attempts, treasury reserves and backups. On incident, disable writes/signers first and reconcile journals. Restore a prior app image only if compatible with the schema and on-chain state; never rewind the financial database to undo a finalized transfer.
+
+Commands available now, from the repository root:
+
+```sh
+npm ci
+npm run check
+node --test tests/*.test.mjs
+npm run build
+npm run build:mainnet-preview
+node scripts/mainnet-readiness-preflight.mjs --config /private/mainnet.env
+```
+
+The placeholder preflight exits nonzero by design. On Linux/WSL, with the checksum-verified Agave toolchain and its Solana Rust compiler available on `PATH`, a future candidate is built with:
+
+```sh
+export FUNDED_MAINNET_PROGRAM_ID=REPLACE_WITH_PRODUCTION_PROGRAM_PUBLIC_KEY
+export FUNDED_MAINNET_FUNDED_MINT=REPLACE_WITH_MAINNET_FUNDED_MINT
+export FUNDED_MAINNET_FUNDED_POOL=REPLACE_WITH_MAINNET_FUNDED_POOL
+export CARGO_BUILD_SBF=/path/to/pinned/solana-release/bin/cargo-build-sbf
+bash scripts/build-mainnet-contract.sh /path/to/fresh-candidate-directory
+```
+
+That command rejects placeholders and builds only. It does not load deployment signers or submit transactions. After deployment and complete isolated configuration, `node scripts/mainnet-readiness-preflight.mjs --config /private/mainnet.env --online` performs read-only checks; the current implementation still reports the unfinished application/evidence gates.
+
+The Solana CLI's deployment and retained-authority behavior is documented in the [official deployment guide](https://solana.com/docs/programs/deploying). Operational backup, monitoring and recovery procedures are in the [operations runbook](operations-runbook.md).
+
 The supported launch flow remains **Devnet only**; this does not establish that the public host is currently available. The separate Mainnet preview is read only. A Mainnet build must not enable coin creation by changing `VITE_ALLOW_MAINNET` alone: the launch client, metadata service, registration API, and fee distribution still contain Devnet-specific paths. The client launch function and registration API reject Mainnet until these dependencies are implemented and verified.
 
 The subsequent deployment and fresh registered launch, escrow, creator payout and PumpSwap migration evidence are in [the November 5 release verification](devnet-release-verification-2026-11-05.md). Earlier incomplete-run statements below are historical and do not describe that later execution.

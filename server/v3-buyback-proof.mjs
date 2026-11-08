@@ -6,8 +6,8 @@ import { PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-swap-sdk';
 import { verifyMintPolicyV3Account } from '../mint-router-v3.js';
 import {agencyDiscriminator} from '../agency-mint-router-v3.js';
 import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
-import { buildV3BuybackInstruction, V3_DEVNET_FUNDED_MINT,
-  V3_DEVNET_FUNDED_POOL } from './v3-buyback-instruction.mjs';
+import { buildV3BuybackInstruction } from './v3-buyback-instruction.mjs';
+import {assertRpcNetwork,SOLANA_GENESIS} from '../solana-network.js';
 
 const discriminator = name => createHash('sha256').update(name).digest().subarray(0, 8);
 const address = value => typeof value === 'string' ? value : value?.toBase58?.() || '';
@@ -16,16 +16,17 @@ const bytes = value => typeof value === 'string' ? Buffer.from(bs58.decode(value
 // A successful transaction signature alone cannot establish a token burn.
 // The finality proof binds the category-vault debit, PumpSwap exact-quote CPI,
 // token burn CPI, immutable router receipt, and current policy budget.
-export async function loadFinalizedV3Buyback({ connection, signature, programId,
+export async function loadFinalizedV3Buyback({ connection, signature, programId, cluster='devnet',
   sourceMint, creator, initialAuthority, authority, baseTokenProgram, priceSigner,
   buybackId, spendableQuoteIn, minBaseAmountOut, maxTotalDebit,
   pumpBuyInstruction, split,agencyPolicy=split?.agencyPercent!==undefined,agencyExecution=null,
   verifyPolicy = verifyMintPolicyV3Account }) {
   try {
-    const expected = buildV3BuybackInstruction({ programId, sourceMint,
+    const expected = buildV3BuybackInstruction({ cluster, programId, sourceMint,
       creator, authority, baseTokenProgram, priceSigner, buybackId, spendableQuoteIn,
       minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy,agencyExecution });
-    const boughtMint=expected.boughtMint||V3_DEVNET_FUNDED_MINT,pool=expected.pool||V3_DEVNET_FUNDED_POOL;
+    if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
+    const {boughtMint,pool}=expected;
     const category=expected.category??6;
     const tx = await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -113,7 +114,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     const burnedAtSeconds = row.readBigInt64LE(152);
     const burnedAt = burnedAtSeconds > 0n && burnedAtSeconds < 8_640_000_000_000n
       ? new Date(Number(burnedAtSeconds) * 1000).toISOString() : null;
-    return { signature, slot:tx.slot, sourceMint:new PublicKey(sourceMint).toBase58(),
+    return { cluster,genesisHash:SOLANA_GENESIS[cluster],signature, slot:tx.slot, sourceMint:new PublicKey(sourceMint).toBase58(),
       receipt:expected.receipt.toBase58(), vault:expected.vault.toBase58(),
       spentLamports:String(spent), burnedBaseUnits:String(burnSeen),
       fundedMint:boughtMint.toBase58(),

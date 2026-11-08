@@ -3,6 +3,8 @@
   "cluster": "mainnet-beta",
   "status": "awaiting-production-identity-and-independent-review",
   "programId": null,
+  "fundedMint": null,
+  "fundedPool": null,
   "upgradeAuthority": null,
   "programDataSha256": null,
   "sourceRevision": null,
