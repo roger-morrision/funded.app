@@ -62,7 +62,7 @@ export function initMarketingAgency(document = globalThis.document) {
       for (const card of promotion.querySelectorAll('[data-burn-tier]')) {
         let note = card.querySelector('[data-post-availability]');
         if (!note) { note = document.createElement('small'); note.dataset.postAvailability = ''; card.append(note); }
-        note.textContent = 'Auto post X';
+        note.textContent = 'Auto post & promote project to app X page.';
         note.title = postStatus;
         note.hidden = !note.textContent;
       }

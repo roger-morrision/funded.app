@@ -65,7 +65,7 @@ export function renderLaunchBurnSelection(
   }
   const quoteStatus = document.querySelector('#launch-tier-quote-status');
   if (quoteStatus) quoteStatus.textContent = amounts
-    ? `1 $FUNDED ≈ $${Number(launchTierPricing.tokenPriceUsd).toLocaleString(undefined, { maximumSignificantDigits:6 })} · verified pool slot ${launchTierPricing.slot} · exact burn locked at review`
+    ? `1 $FUNDED ≈ $${Number(launchTierPricing.tokenPriceUsd).toLocaleString(undefined, { maximumSignificantDigits:6 })}`
     : currentLaunchTierQuote() ? `Your ${policy.label} quote is locked until ${new Date(launchTierQuote.expiresAt).toLocaleTimeString()}.`
       : 'Verified $FUNDED/USD pool price unavailable. Paid tiers cannot be launched until it refreshes.';
   const status = document.querySelector('#creator-burn-status');

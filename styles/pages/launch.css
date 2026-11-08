@@ -13,6 +13,12 @@ html body.page-route-launch #launch-dialog .launch-preview { min-width: 0; min-h
 #launch-dialog .launch-summary-policy dt { min-width: 0; font-size: 12px; line-height: 1.4; }
 #launch-dialog .launch-summary-policy dd { font-size: 13px; line-height: 1.4; }
 #launch-dialog .launch-summary-policy > dl:not([data-fee-fixed-list]) dd { font-size: 18px; }
+#launch-dialog #launch-summary-creator { color:var(--fv-violet); }
+#launch-dialog #launch-summary-holders { color:var(--fv-success); }
+#launch-dialog #launch-summary-x { color:var(--fv-warning); }
+#launch-dialog .launch-summary-fee-bar [data-summary-share="creator"] { background:var(--fv-violet); }
+#launch-dialog .launch-summary-fee-bar [data-summary-share="holders"] { background:var(--fv-success); }
+#launch-dialog .launch-summary-fee-bar [data-summary-share="x"] { background:var(--fv-warning); }
 #launch-dialog .launch-summary-policy [data-fee-fixed-list] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
 #launch-dialog .launch-summary-policy [data-fee-fixed-list] > div { gap: 6px; align-items: baseline; }
 #launch-dialog .launch-summary-policy [data-fee-fixed-list] > div:last-child { grid-column: 1 / -1; }

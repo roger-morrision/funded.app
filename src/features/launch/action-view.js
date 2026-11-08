@@ -53,7 +53,7 @@ export function updateLaunchButton(
     ? /^Developer buy (?:cannot exceed 20% of the token supply|exceeds the available launch supply)/.test(walletEstimateError || '')
       ? walletEstimateError
       : 'Developer buy is limited to 20% of supply and the curve tokens available after the community reserve. Lower the SOL amount; the quote will update automatically.'
-    : 'Maximum developer buy: 20% of token supply. The community airdrop is separate; both purchases must fit the available curve supply.';
+    : 'Maximum developer buy: 20% of token supply.';
   const buyInput = document.querySelector('#creator-buy-sol');
   if (buyInput) {
     if (overBuyLimit) {

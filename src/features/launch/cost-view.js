@@ -132,7 +132,7 @@ export function updateCostSummary(
   const burnPolicy = getLaunchBurnPolicy();
   const publicTier = document.querySelector('#cost-public-tier-note');
   if (publicTier) publicTier.textContent = burnPolicy.requiresBurn
-    ? `Selected tier: ${burnPolicy.label}. The $FUNDED burn is separate from the SOL budget.`
+    ? `Selected tier: ${burnPolicy.label}. Total $FUNDED tokens to burn: ${burnPolicy.amountTokens > 0 ? formatLaunchBurnAmount(burnPolicy.amountTokens) : 'Quote unavailable'}.`
     : 'Standard needs no $FUNDED tier burn (the 5% fee buyback still applies).';
   const creatorBuy = getCreatorBuySummary();
   const retrySeconds = launchEstimateRetry?.retryable
