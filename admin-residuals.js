@@ -58,16 +58,16 @@ export function initAdminResiduals({api,post,show,wallet,document=globalThis.doc
       const provider=wallet();
       if(!provider?.signTransaction||provider.publicKey?.toBase58()!==plan.beneficiaries.creatorWallet)
         throw new Error(`Connect launch creator ${plan.beneficiaries.creatorWallet} to sign this exact residual. The admin sign-in alone cannot authorize it.`);
-      const suffix=action==='creator-wallet'?'payout':'funding';
-      const path=`/api/tokens/${encodeURIComponent(plan.mint)}/v3-${action}-${suffix}/${encodeURIComponent(selected)}`;
-      let result=await post(path,{residualPlanHash:plan.hash});
+      const path='/api/admin/v3-allocations/transfer';
+      const transfer={mint:plan.mint,kind:action,collectionSignature:selected,residualPlanHash:plan.hash};
+      let result=await post(path,transfer);
       if(token!==generation)return;
       if(result.status==='awaiting-creator-signature'){
         if(!result.transaction)throw new Error('Residual signing request is unavailable.');
         const transaction=Transaction.from(Buffer.from(result.transaction,'base64'));
         const signed=await provider.signTransaction(transaction);
         if(token!==generation||provider.publicKey?.toBase58()!==plan.beneficiaries.creatorWallet)throw new Error('Wallet or reviewed residual changed before submission.');
-        result=await post(path,{residualPlanHash:plan.hash,creatorSignedTransaction:signed.serialize({requireAllSignatures:false,verifySignatures:false}).toString('base64')});
+        result=await post(path,{...transfer,creatorSignedTransaction:signed.serialize({requireAllSignatures:false,verifySignatures:false}).toString('base64')});
       }
       if(token!==generation)return;
       if(result.status!=='finalized'||result.balanceDeltaVerified!==true||result.residualPlanHash!==plan.hash||!result.signature)

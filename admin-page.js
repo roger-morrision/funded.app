@@ -10,6 +10,7 @@ import {initAdminProductIssues} from './admin-product-issues.js';
 import bs58 from 'bs58';
 import {createAdminSession,STALE_ADMIN_REQUEST} from './admin-session.js';
 import {initAdminWithdrawals} from './admin-withdrawals.js';
+import {createConfirmedAdminPost} from './admin-email-confirmation.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
 
 globalThis.Buffer ??= Buffer;
@@ -27,10 +28,10 @@ const api = async (path, options = {}) => {
   const data = await response.json().catch(() => ({}));
   if(!session.current(epoch))throw Error(STALE_ADMIN_REQUEST);
   if(response.status===401&&session.active)session.end('Session expired. Sign in again.');
-  if (!response.ok) throw Object.assign(new Error(data.error || `Request failed (${response.status}).`),{status:response.status});
+  if (!response.ok) throw Object.assign(new Error(data.error || `Request failed (${response.status}).`),{status:response.status,code:data.code});
   return data;
 };
-const post = (path, body) => api(path, { method:'POST', body:JSON.stringify(body) });
+const post = (path, body) => confirmedPost(path,body);
 const sol = lamports => (Number(lamports) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 });
 let connected = null, overview = null, policy = null, nextVault = 0, vaultLoading = false;
 let authBusy=false,feeSaving=false,refreshGeneration=0,auditGeneration=0,vaultGeneration=0,withdrawals;
@@ -41,6 +42,7 @@ const session=createAdminSession({document,onEnd:()=>{
  $('#withdraw-source').replaceChildren();$('#withdraw-destination').replaceChildren();
  $('#financial-health').textContent='Sign in to load monitoring.';show('');withdrawals?.sync();
 }});
+const confirmedPost=createConfirmedAdminPost({api,session});
 function authControls(){ $('#sign-in').disabled=authBusy||!connected;$('#sign-out').disabled=authBusy; }
 
 

@@ -1,0 +1,10 @@
+# Optional overlay: add only after Resend sender and host secret file are ready.
+services:
+  app:
+    environment:
+      FUNDED_ADMIN_EMAIL_API_KEY_FILE: /run/secrets/funded_admin_email_api_key
+    secrets:
+      - funded_admin_email_api_key
+secrets:
+  funded_admin_email_api_key:
+    file: ${FUNDED_ADMIN_EMAIL_API_KEY_HOST_FILE:?Set the host path to the Resend API key file}

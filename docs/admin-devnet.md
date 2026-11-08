@@ -7,6 +7,11 @@ configured administrator signs the one-use sign-in message. The admin key is a
 separate Devnet QA wallet; the browser never receives an API token or a server
 signer secret.
 
+Every admin write API now also requires an eight-digit email confirmation code.
+Sign-in still requires an allowlisted wallet signature; email alone cannot sign
+in. Reads and logout do not require a code. See [admin email security](admin-email-security.md)
+for configuration, per-action confirmation, recovery and deployment requirements.
+
 Set `FUNDED_ADMIN_WALLETS` to a comma-separated list of administrator public
 addresses. Set `FUNDED_ADMIN_WITHDRAW_DESTINATIONS` to approved Devnet receiving
 addresses. Both default to empty in a fresh deployment. Never use QA keys in a
@@ -36,9 +41,9 @@ wallet signs exactly one System Program transfer. The browser submits it to
 the configured Devnet RPC. The admin API records a receipt only after a
 finalized transaction proves the source, destination, amount, and exact
 recipient balance increase. The app never uses a server-held keeper, referral,
-or router key to sign a generic withdrawal. Those roles can only be withdrawn
-through this page if the operator independently controls the source wallet in
-a compatible browser wallet. There is no general vault sweep action.
+or router key to sign a generic withdrawal. Addresses used by these operational
+signers are excluded even if they are also configured as an external treasury.
+There is no general vault sweep action.
 
 The browser polls finalized RPC status without requiring a WebSocket. It shows
 the public transaction signature as soon as it is submitted. If receipt

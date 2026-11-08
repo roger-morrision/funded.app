@@ -1,0 +1,11 @@
+# Private server configuration only. No VITE variables or browser credentials.
+FUNDED_ADMIN_WALLETS=REPLACE_WITH_ADMIN_PUBLIC_WALLET
+FUNDED_ADMIN_EMAIL=REPLACE_WITH_ADMIN_EMAIL
+FUNDED_ADMIN_WITHDRAW_DESTINATIONS=REPLACE_WITH_APPROVED_TREASURY_DESTINATION
+# Resend is approved. Delivery stays blocked until sender and secret are configured.
+FUNDED_ADMIN_EMAIL_PROVIDER=resend
+FUNDED_ADMIN_EMAIL_FROM=REPLACE_WITH_VERIFIED_SENDER_EMAIL
+FUNDED_ADMIN_EMAIL_API_KEY_FILE=REPLACE_WITH_SERVER_SECRET_FILE_PATH
+# For Docker, compose.admin-email.yml mounts this host file at /run/secrets/...
+FUNDED_ADMIN_EMAIL_API_KEY_HOST_FILE=REPLACE_WITH_HOST_SECRET_FILE_PATH
+# Existing Mainnet write guards remain in force. This does not enable Mainnet.

@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import {ADMIN_EMAIL_AUTHORIZED} from '../admin-email-verification.mjs';
 import {prepareManualReferralPayout,verifyManualReferralPayout} from '../manual-referral-payout.mjs';
 import { creatorFeeLock } from '../launch-protections.mjs';
 import {buildV3PolicyApproval,buildV3PolicyDisbursement} from '../v3-policy-builders.mjs';
@@ -87,6 +88,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     }
     const input = automatic?automaticInput:await body(req);
     const residualHash=input?.residualPlanHash;
+    if(residualHash!==undefined&&req[ADMIN_EMAIL_AUTHORIZED]?.path!=='/api/admin/v3-allocations/transfer')
+      return json(res,403,{error:'Administrative residual transfers require the admin wallet session and email confirmation.'});
     if(residualHash!==undefined&&(!/^[a-f0-9]{64}$/.test(String(residualHash))
       ||!['creator-wallet','creator-reward'].includes(kind)))
       return json(res,400,{error:'A valid audited residual hash and creator beneficiary are required.'});

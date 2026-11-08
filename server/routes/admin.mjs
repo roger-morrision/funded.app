@@ -15,6 +15,8 @@ import {reviewV3AllocationResiduals,recordV3AllocationResidualPlan} from '../v3-
 import {verifyV3LaunchRouterReadiness} from '../v3-launch-readiness.mjs';
 import {publishAgencyFeePolicy,prepareAgencyRules} from '../admin-agency-policy.mjs';
 import {readAgencyDeployment} from '../agency-deployment.mjs';
+import {createAdminEmailVerification,adminWriteNeedsEmail,ADMIN_EMAIL_AUTHORIZED} from '../admin-email-verification.mjs';
+import {createV3RewardFundingRoutes} from './v3-reward-funding.mjs';
 
 const COOKIE = 'funded_admin';
 const CHALLENGE_MS = 5 * 60_000;
@@ -33,12 +35,17 @@ const ipLimit = (map, key, limit, windowMs) => {
   return count <= limit;
 };
 
-export function createAdminRoutes({ store, body, respond, solanaCluster, solanaRpcUrl, automaticRewardStore,
+export function createAdminRoutes({ store, body:readBody, respond, solanaCluster, solanaRpcUrl, automaticRewardStore,
   keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime, env = process.env,
   connectionFactory = url => new Connection(url, 'finalized'),
   verifyResidualReadiness = verifyV3LaunchRouterReadiness,
   reviewResiduals = reviewV3AllocationResiduals,
-  recordResidualPlan = recordV3AllocationResidualPlan }) {
+  recordResidualPlan = recordV3AllocationResidualPlan, emailVerificationOptions = {},
+  residualTransferFactory=createV3RewardFundingRoutes }) {
+  const bodies=new WeakMap();
+  const body=req=>{if(!bodies.has(req))bodies.set(req,Promise.resolve().then(()=>readBody(req)));return bodies.get(req);};
+  const transferResidual=residualTransferFactory({body,store,solanaCluster,solanaRpcUrl,v3AuthorityKeypair,
+    rewardStore:automaticRewardStore,respond,env});
   const challenges = new Map(), sessions = new Map(), attempts = new Map(), withdrawals = new Map();
   const json = (res, status, value) => { respond(res, status, value); return true; };
   const allowed = () => new Set(String(env.FUNDED_ADMIN_WALLETS || '').split(',').map(value => validWallet(value.trim())).filter(Boolean));
@@ -47,11 +54,13 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     catch { return null; }
   };
   const sameOrigin = req => String(req.headers.origin || '') === origin();
+  const emailVerification=createAdminEmailVerification({...emailVerificationOptions,env,cluster:solanaCluster,origin});
   const currentSession = req => {
     const token = cookieValue(req, COOKIE);
     if (!/^[a-f0-9]{64}$/.test(token)) return null;
     const session = sessions.get(token);
     if (!session || session.expiresAt <= Date.now() || !allowed().has(session.wallet)) {
+      emailVerification.revoke(token);
       sessions.delete(token); return null;
     }
     return session;
@@ -97,7 +106,9 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
     if (solanaCluster !== 'devnet') return json(res, 403, { error:'This admin workspace is Devnet-only.' });
     res.setHeader('cache-control', 'no-store');
     const path = url.pathname;
-    if (req.method === 'POST' && !sameOrigin(req)) return json(res, 403, { error:'Admin requests require the configured app origin.' });
+    if(!['GET','HEAD','OPTIONS'].includes(req.method)&&url.search)
+      return json(res,400,{error:'Admin write requests must not include query parameters.'});
+    if (!['GET','HEAD','OPTIONS'].includes(req.method) && !sameOrigin(req)) return json(res, 403, { error:'Admin requests require the configured app origin.' });
     const key = req.socket.remoteAddress || 'unknown';
     if (!ipLimit(attempts, key, 60, 60_000)) return json(res, 429, { error:'Admin request limit reached.' });
     if (req.method === 'POST' && path === '/api/admin/challenge') {
@@ -124,12 +135,47 @@ export function createAdminRoutes({ store, body, respond, solanaCluster, solanaR
         return json(res, 401, { error:'The admin wallet signature is invalid or expired.' });
       const token = randomBytes(32).toString('hex');
       const expiresAt = Date.now() + SESSION_MS;
+      for(const [oldId,old]of sessions)if(old.wallet===wallet||old.expiresAt<=Date.now()){
+        sessions.delete(oldId);emailVerification.revoke(oldId);
+      }
       sessions.set(token, { wallet, expiresAt });
       setCookie(res, token, Math.floor(SESSION_MS / 1_000));
       return json(res, 200, { wallet, expiresAt:new Date(expiresAt).toISOString() });
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
+    const sessionId=cookieValue(req,COOKIE);
+    if(path==='/api/admin/email-confirmation'){
+      if(req.method!=='POST')return json(res,405,{error:'Use POST.'});
+      try{
+        const input=await body(req)||{};
+        const confirmation=await emailVerification.issue({sessionId,wallet:session.wallet,
+          method:input.method,path:input.path,payload:input.payload});
+        if(currentSession(req)!==session){emailVerification.revoke(sessionId);return json(res,401,{error:'Admin session ended.'});}
+        return json(res,200,confirmation);
+      }catch(error){return json(res,error.status||503,{error:error.message});}
+    }
+    if(req.method==='POST'&&path==='/api/admin/logout')emailVerification.revoke(sessionId);
+    if(adminWriteNeedsEmail(req.method,path)){
+      try{
+        const input=await body(req)||{};
+        if(currentSession(req)!==session)return json(res,401,{error:'Admin session ended.'});
+        const proof=emailVerification.consume({sessionId,wallet:session.wallet,method:req.method,path,
+          payload:input,id:req.headers['x-admin-confirmation-id'],code:req.headers['x-admin-confirmation-code']});
+        await store.update(state=>{state.adminAudit||={};state.adminAudit[`email-confirmation:${proof.id}`]={
+          action:'email-confirmation-consumed',...proof,note:'Authorizes one API attempt; does not prove the action succeeded.'};});
+        if(currentSession(req)!==session)return json(res,401,{error:'Admin session ended.'});
+        req[ADMIN_EMAIL_AUTHORIZED]=proof;
+      }catch(error){return json(res,error.status||503,{error:error.status?error.message:'Admin verification audit is unavailable. No action was executed.',
+        ...(error.status===403?{code:'ADMIN_EMAIL_CONFIRMATION_FAILED'}:{})});}
+    }
+    if(req.method==='POST'&&path==='/api/admin/v3-allocations/transfer'){
+      const input=await body(req),mint=validWallet(input.mint),signature=String(input.collectionSignature||'');
+      if(!mint||!['creator-wallet','creator-reward'].includes(input.kind)||!/^[a-f0-9]{64}$/.test(input.residualPlanHash||'')
+        ||!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature))return json(res,400,{error:'A valid reviewed residual transfer is required.'});
+      const suffix=input.kind==='creator-wallet'?'payout':'funding';
+      return transferResidual(req,res,new URL(`/api/tokens/${mint}/v3-${input.kind}-${suffix}/${signature}`,origin()));
+    }
     if(req.method==='GET'&&path==='/api/admin/rpc-health'){
       try{return json(res,200,await readAdminRpcHealth({env}));}
       catch{return json(res,503,{error:'RPC gateway health is unavailable. Refresh to retry.'});}
