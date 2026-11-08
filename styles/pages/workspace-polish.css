@@ -256,6 +256,9 @@ html body #main-content .home-featured { order:1;min-width:0;max-width:100%;marg
 .home-featured-identity strong,.home-featured-identity small { display:block;overflow-wrap:anywhere; }
 .home-featured-identity strong { font-size:14px;line-height:1.35; }
 .home-featured-identity small { margin-top:4px;font-size:12px;color:var(--cp-muted); }
+.home-featured-identity .home-featured-symbol { display:flex;flex-wrap:wrap;align-items:center;gap:6px; }
+.home-featured-boost { display:inline-flex;align-items:center;white-space:nowrap;color:var(--cp-accent);font-weight:700; }
+.home-featured-boost .boost-leading-icon { width:13px;height:13px;margin-inline-end:3px; }
 .home-featured-logo { position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--cp-surface-2);color:var(--cp-accent);font-weight:700; }
 .home-featured-logo img { position:absolute;width:100%;height:100%;object-fit:contain;background:var(--cp-surface-2); }
 .home-featured-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:10px 12px;border-top:1px solid var(--cp-line);font-size:11px;color:var(--cp-muted); }
@@ -321,6 +324,8 @@ html body #main-content .hero-benefit-tags li { min-width:0;padding:10px 12px;bo
 html body #main-content .hero-benefit-tags strong { display:block;font-size:13px;line-height:1.4;color:var(--cp-accent); }
 html body #main-content .hero-benefit-tags span { display:block;margin-top:6px;font-size:13px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
 html body #main-content .hero-benefit-tags small { display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--cp-line);font-size:11px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
+@media(min-width:901px) { html body #main-content .hero-benefit-tags { max-width:none;margin:0; } }
+@media(min-width:1200px) { html body #main-content .hero-benefit-tags { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 @media(max-width:560px) { html body #main-content .hero-benefit-tags { grid-template-columns:minmax(0,1fr); } }
 
 @keyframes explore-card-vibration {

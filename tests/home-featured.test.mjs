@@ -63,3 +63,17 @@ test('Featured age is launch age, never placement or listing age',()=>{
  assert.equal(select({launches:[old],boosts:[boost]})[0].createdAt,now-10*86400000);
  assert.equal(select({listings:[listing()]})[0].createdAt,null);
 });
+
+
+test('Featured symbol shows summed active boosts and drops each package at expiry',()=>{
+  const coin=launch();
+  const pack=(packageId,multiplier,expiry,signature)=>({mint:coin.mint,cluster:'devnet',status:'finalized',packageId,multiplier,signature,
+    startsAt:new Date(now-1000).toISOString(),expiresAt:new Date(expiry).toISOString()});
+  const first=pack('10x',10,now+1000,sig),second=pack('30x',30,now+5000,'3'.repeat(64));
+  const item=select({launches:[coin],boosts:[first,first,second,pack('500x',500,now-1,'4'.repeat(64)),{...first,status:'pending',signature:'5'.repeat(64)}, {...first,cluster:'mainnet-beta',signature:'6'.repeat(64)}]})[0];
+  assert.equal(item.boost.packages.length,2);
+  assert.match(featuredCardMarkup(item,'devnet',now),/40×/);
+  assert.match(featuredCardMarkup(item,'devnet',now),/home-featured-symbol[\s\S]*FULLSYMBOL[\s\S]*home-featured-boost/);
+  assert.match(featuredCardMarkup(item,'devnet',now+1000),/30×/);
+  assert.doesNotMatch(featuredCardMarkup(item,'devnet',now+5000),/home-featured-boost/);
+});

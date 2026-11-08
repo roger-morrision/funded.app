@@ -1,3 +1,4 @@
+import {activeBoostPackages} from '../../../boost-offer.js';
 import {featuredMetrics} from './featured-metrics.js';
 import {marketFacts} from '../explore/market-facts.js';
 import {createFeaturedScroller} from './featured-view.js';
@@ -21,7 +22,10 @@ export function initializeFeaturedTokens(appState) {
     updateMetrics();
     if(!items.length){status.hidden=false;status.textContent='Your token could be here. Paid promotions and listings appear for 48 hours.';}
     clearTimeout(expiryTimer);
-    if(items.length)expiryTimer=setTimeout(render,Math.min(...items.map(item=>item.expiresAt))-Date.now()+10);
+    if(items.length){
+      const deadlines=items.flatMap(item=>[item.expiresAt,...activeBoostPackages(item.boost).map(pack=>Date.parse(pack.expiresAt))]);
+      expiryTimer=setTimeout(render,Math.max(10,Math.min(...deadlines)-Date.now()+10));
+    }
   };
   const refresh=signal=>{
     if(pending)return pending;

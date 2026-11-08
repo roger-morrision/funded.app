@@ -1,6 +1,6 @@
 import {verifiedPromotionBadge} from '../../../promotion-badge.js';
 import {verifiedPaidListings} from './paid-listings.js';
-import {boostPackage} from '../../../boost-offer.js';
+import {boostPackage,activeBoostPackages} from '../../../boost-offer.js';
 
 export const FEATURED_WINDOW_MS = 48 * 60 * 60 * 1000;
 const address = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -28,8 +28,15 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
     if (promotion) add(launch.mint,Number(launch.blockTime)*1000,`${promotion.tier === 'premier' ? 'Premier' : promotion.tier === 'pro' ? 'Pro' : 'Boost'} promotion`,promotion.signature);
   }
   for (const listing of paid) add(listing.mint,Date.parse(listing.listedAt),'Paid listing',listing.signature);
+  const packagesByMint=new Map(),seenBoosts=new Set();
   for (const boost of boosts) if (boost.cluster===cluster && boost.status==='finalized'
-    && boostPackage(boost.packageId)?.multiplier===boost.multiplier)
+    && boostPackage(boost.packageId)?.multiplier===boost.multiplier && signature.test(boost.signature||'') && !seenBoosts.has(boost.signature)) {
+    seenBoosts.add(boost.signature);
     add(boost.mint,Date.parse(boost.startsAt),'Paid boost',boost.signature);
+    const packs=packagesByMint.get(boost.mint)||[];
+    packs.push({packageId:boost.packageId,multiplier:boost.multiplier,startsAt:boost.startsAt,expiresAt:boost.expiresAt});
+    packagesByMint.set(boost.mint,packs);
+  }
+  for(const item of featured.values()) item.boost={packages:activeBoostPackages({packages:packagesByMint.get(item.mint)||[]},now)};
   return [...featured.values()].sort((a,b)=>b.featuredAt-a.featuredAt||a.mint.localeCompare(b.mint));
 }
