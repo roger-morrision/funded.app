@@ -1,3 +1,4 @@
+import { linkWalletText } from './src/features/shared/wallet-links.js';
 import { creatorRewardRow, filterCreatorRewards, verifiedV3CreatorLaunch } from './creator-reward-model.js';
 import { paginateHistory } from './history-pagination.js';
 import { EXPLORE_CLUSTER } from './app-config.js';
@@ -133,6 +134,7 @@ function refreshPersonalRewards() {
   if (!walletAddress) return;
   const current = () => id === refreshId;
   creator.querySelector('[data-creator-identity]').textContent = `${walletAddress.slice(0, 4)}…${walletAddress.slice(-4)}`;
+    linkWalletText(creator.querySelector('[data-creator-identity]'), walletAddress);
   setCard(creator, { note: 'Checking verified creator fees…' });
   void refreshCreator(creator, walletAddress, current);
   if (xConnected) {

@@ -1,3 +1,4 @@
+import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { renderTransactionReview } from '../../features/shared/transaction-review.js';
 import { formatReviewSol } from '../../../launch-review.js';
 import {sharedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
@@ -200,6 +201,7 @@ export function createLaunchReviewController(appState) {
       ? `${burn.label} · ${appState.formatLaunchBurnAmount(burn.amountTokens)} $RICH (≈$${burn.usdTarget}) · quote expires ${new Date(appState.launchTierQuote.expiresAt).toLocaleTimeString()}`
       : `${burn.label} tier`;
     document.querySelector('#launch-review-wallet').textContent = session.address;
+    linkWalletText(document.querySelector('#launch-review-wallet'), session.address);
     document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} tokens`;
     document.querySelector('#launch-review-buy').textContent = appState.getCreatorBuySol() ? `${appState.getCreatorBuySol()} SOL` : 'None';
     const burnOrder = document.querySelector('#launch-review-burn-order');

@@ -1,3 +1,4 @@
+import { linkWalletText } from './src/features/shared/wallet-links.js';
 import {Buffer} from 'buffer';
 import bs58 from 'bs58';
 import {Connection,Transaction} from '@solana/web3.js';
@@ -52,6 +53,7 @@ export function initAdminAgencyRules({api,post,show,refresh}){
       interval:rules.promotionIntervalSeconds,recipient:current.promotionRecipient};
     for(const[name,value]of Object.entries(values))form.elements[name].value=value;
     controls();status.textContent=`Verified configuration revision ${current.revision}. Required signer: ${current.authority}.`;
+    linkWalletText(status,current.authority);
   }
   form.addEventListener('submit',event=>{event.preventDefault();if(signing||!current||workspace?.hidden)return;invalidate();const serial=generation;(async()=>{
     const n=name=>Number(form.elements[name].value),split={operationsPercent:n('operations')*5,

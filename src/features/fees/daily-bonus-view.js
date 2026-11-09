@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { dailyBonusPayments, dailyBonusStatus } from './daily-bonus-payments.js';
 import { currentFeePolicyCopy } from './fee-policy-copy.js';
 import { bonusSnapshotLabel } from './bonus-labels.js';
@@ -55,7 +56,7 @@ export function initDailyBonusView(document = globalThis.document) {
         for (const text of [`#${winner.rank} · ${winner.percentOfCategory}%`, short(winner.wallet), sol(winner.scoreLamports), sol(winner.bonusLamports), !payments.has(winner.wallet) ? 'No finalized receipt' : payments.get(winner.wallet).receivedLamports == null ? 'Received amount unavailable' : sol(payments.get(winner.wallet).receivedLamports)]) {
           const cell = document.createElement('td'); cell.textContent = text; row.append(cell);
         }
-        row.children[1].title = winner.wallet; body.append(row);
+        row.children[1].title = winner.wallet; linkWalletText(row.children[1],winner.wallet); body.append(row);
       }
       if (!body.children.length) { const row = document.createElement('tr'), cell = document.createElement('td'); cell.colSpan = 5; cell.textContent = 'No eligible wallet in this snapshot.'; row.append(cell); body.append(row); }
       table.append(body); const wrap = document.createElement('div'); wrap.className = 'daily-bonus-table'; wrap.append(table); group.append(wrap); results.append(group);
@@ -68,7 +69,9 @@ export function initDailyBonusView(document = globalThis.document) {
     for (const [wallet, row] of payments) {
       for (const receipt of row.receipts) {
         const link = document.createElement('a');
-        link.textContent = `${short(wallet)} · ${receipt.receivedLamports == null ? 'received amount unavailable' : `${sol(receipt.receivedLamports)} received`} · finalized ↗`;
+        const recipient=document.createElement('span');recipient.textContent=short(wallet);linkWalletText(recipient,wallet);
+        proof.append(recipient,' · ');
+        link.textContent = ` ${receipt.receivedLamports == null ? 'received amount unavailable' : `${sol(receipt.receivedLamports)} received`} · finalized ↗`;
         link.href = receipt.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; proof.append(link);
       }
     }

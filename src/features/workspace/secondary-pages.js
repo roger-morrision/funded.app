@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import {AIRDROP_INTRO} from '../rewards/airdrop-intro.js';
 import {mountReferralList} from '../referrals/referral-list.js';
 import { currentFeePolicyCopy } from '../fees/fee-policy-copy.js';
@@ -58,7 +59,7 @@ export function secondaryPages() {
     heroArt.innerHTML=`<img src="${airdropWolfDropUrl}" alt="A black wolf watching a descending community supply parcel" loading="lazy" />`;
     intro?.after(heroLayout);
     heroLayout.append(walletGate,heroArt);
-    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Choose a launch to check your $RICH snapshot allocation.':'Connect the wallet that held $RICH at the snapshot.';walletGate.querySelector('button').hidden=Boolean(address);};
+    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';linkWalletText(walletGate.querySelector('.airdrop-wallet-gate-top strong'),address);walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Choose a launch to check your $RICH snapshot allocation.':'Connect the wallet that held $RICH at the snapshot.';walletGate.querySelector('button').hidden=Boolean(address);};
     window.addEventListener('funded:reward-identity-change',syncAirdropWallet);syncAirdropWallet();
     const publicPrograms=node('section','airdrop-public-programs');
     publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="all">All <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="distributed">Migrated &amp; Airdropped <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="curve">On Curve <span>—</span></button></div><p class="airdrop-stage-help">Hold $RICH until migration. Automatic airdrops are proportional to eligible holdings and follow verification. Test coins are labeled.</p>';

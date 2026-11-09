@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { icon } from '../../../ui-icons.js';
 import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
 import { shortAddress, formatDashboardQuantity, formatDashboardUsd } from '../shared/display.js';
@@ -218,6 +219,7 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
         const xHandle = ['mint-router-settle-mint', 'automatic-x'].includes(payout.source)
           && /^@[A-Za-z0-9_]{1,15}$/.test(payout.xHandle || '') ? payout.xHandle : null;
         name.textContent = `${({ 'v3-referral':'Referral', 'solana-keeper-referral-claim':'Referral', 'mint-router-settle-mint':'X account', 'automatic-creator':'Creator', 'v3-creator-wallet':'Creator', 'automatic-holder':'Holder', 'automatic-operations':'Protocol', 'v3-operations':'Operations & marketing', 'automatic-community':'Community', 'daily-bonus':'Daily bonus', 'automatic-x':'X account' })[payout.source] || 'Recipient'} · ${xHandle || shortAddress(payout.to)}`;
+        linkWalletText(name, payout.to);
         const proof = document.createElement('a'); proof.href = exploreExplorer(`tx/${encodeURIComponent(payout.signature)}`); proof.target = '_blank'; proof.rel = 'noopener noreferrer';
         proof.className = 'payment-receipt-link solana-explorer-link';
         proof.innerHTML = icon('solana');

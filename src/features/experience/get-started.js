@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { el, link, button } from './view-utils.js';
 
 export const roleSteps = {
@@ -30,6 +31,7 @@ export function mountGetStarted(app) {
   function syncWallet() {
     const address = app.connectedWalletAddress;
     status.textContent = address ? `Wallet connected · ${address.slice(0,4)}…${address.slice(-4)}` : 'First, connect the wallet you want to use.';
+    linkWalletText(status,address);
     connect.hidden = Boolean(address);
   }
   select.addEventListener('change', render); window.addEventListener('funded:reward-identity-change', syncWallet);

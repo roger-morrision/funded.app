@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { renderTransactionReview } from '../shared/transaction-review.js';
 import { APP_CLUSTER } from '../../../app-config.js';
 import { summarizeXClaims, formatXClaimSol } from '../../../x-claim-summary.js';
@@ -59,6 +60,7 @@ export function updateClaimBindingReview({
   if(check)check.disabled=!address;
   const destination=document.querySelector('#claim-binding-wallet');
   if(destination)destination.textContent=address?`Solana · ${address}`:'Connect the wallet that should receive this claim.';
+  linkWalletText(destination,address);
   syncXClaimFlow();
 }
 

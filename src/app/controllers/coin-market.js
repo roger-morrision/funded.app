@@ -1,3 +1,4 @@
+import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { formatTinyDecimal } from '../../features/shared/display.js';
 import { renderHeaderActivity } from '../../features/coin/header-activity.js';
 
@@ -117,7 +118,7 @@ export function createCoinMarketController(appState) {
   // app-source-end
 
   // app-source: 960
-  function setCoinAuthority(selector, value){ appState.setCoinFact(selector, appState.coinAuthorityLabel(value), value === null ? 'clear' : value ? 'caution' : 'unknown'); }
+  function setCoinAuthority(selector, value){ appState.setCoinFact(selector, appState.coinAuthorityLabel(value), value === null ? 'clear' : value ? 'caution' : 'unknown'); linkWalletText(document.querySelector(selector), value); }
   // app-source-end
 
   // app-source: 961

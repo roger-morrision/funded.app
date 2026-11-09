@@ -1,3 +1,4 @@
+import { walletAddressMarkup } from '../../features/shared/wallet-links.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { chatCalloutBadge } from '../../features/callouts/callouts.js';
 
@@ -44,7 +45,7 @@ export function createCoinCommunityController(appState) {
   function tokenChatMessageMarkup(item){
     const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
     const action = own ? `<footer><button type="button" data-chat-delete="${appState.escapeHtml(item.id)}">Delete</button></footer>` : `<footer><button type="button" data-chat-report="${appState.escapeHtml(item.id)}" title="Report spam or a scam for moderation review">Report spam or scam</button><button type="button" data-chat-hide="${appState.escapeHtml(item.author)}">Hide this wallet</button></footer>`;
-    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${appState.escapeHtml(appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div>${item.callout ? chatCalloutBadge(item.callout, appState.coinSolUsdValues?.marketCap, appState.coinSolUsdPrice) : ''}<p>${appState.escapeHtml(item.text)}</p>${action}</article>`;
+    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div>${item.callout ? chatCalloutBadge(item.callout, appState.coinSolUsdValues?.marketCap, appState.coinSolUsdPrice) : ''}<p>${appState.escapeHtml(item.text)}</p>${action}</article>`;
   }
   // app-source-end
 

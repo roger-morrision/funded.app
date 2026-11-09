@@ -367,3 +367,5 @@ html body #rewards-history .mobile-filter-drawer > button { margin-top:12px; }
   html body .coin-quick-edit-actions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }
   html body .coin-quick-edit-actions #coin-quick-edit-reset { grid-column:1 / -1; }
 }
+
+.wallet-address-link { color:inherit;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere; }

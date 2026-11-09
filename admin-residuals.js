@@ -1,3 +1,4 @@
+import { linkWalletText } from './src/features/shared/wallet-links.js';
 import {Buffer} from 'buffer';
 import {Transaction} from '@solana/web3.js';
 
@@ -24,6 +25,7 @@ export function initAdminResiduals({api,post,show,wallet,document=globalThis.doc
     submit.disabled||=amount===0n;
     if(preservation)status.textContent=`${approved?'Approved':'Reviewed, not approved'} · preserve original legacy funding and receipts. No corrective transfer is approved. Ordinary unpaid allocations retain their original creator-signature flow.`;
     else if(reviewed)status.textContent=`${approved?'Approved':'Reviewed, not approved'} · ${amount} lamports for this action. Launch creator ${reviewed.beneficiaries.creatorWallet} must sign. No recipient payment is confirmed by a review.`;
+    if(reviewed)linkWalletText(status,reviewed.beneficiaries.creatorWallet);
   }
   function clear(){generation++;reviewed=null;approved=false;source.replaceChildren();preview.textContent='';
     panel.querySelector('[data-residual-receipt]').replaceChildren();status.textContent='No residual reviewed or approved.';render();}

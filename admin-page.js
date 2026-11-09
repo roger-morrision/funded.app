@@ -1,3 +1,4 @@
+import { linkWalletText, walletAddressMarkup } from './src/features/shared/wallet-links.js';
 import { Buffer } from 'buffer';
 import { READ_ONLY_PREVIEW, PREVIEW_MESSAGE, assertWritablePreview } from './deployment-mode.js';
 import {refreshFinancialHealth} from './admin-financial-health.js';
@@ -52,6 +53,7 @@ function authControls(){ $('#sign-in').disabled=READ_ONLY_PREVIEW||authBusy||!co
 function updateWallet() {
   connected = wallet()?.publicKey?.toBase58() || null;
   $('#connected-address').textContent = connected || 'No wallet connected';
+  linkWalletText($('#connected-address'),connected);
   authControls();
   if (overview) renderWallets();
 }
@@ -100,7 +102,7 @@ function renderSummary() {
 function renderWallets() {
   const rows = overview?.wallets || [];
   const selectedSource=$('#withdraw-source').value;
-  $('#wallet-rows').innerHTML = rows.length ? rows.map(row => `<tr><td>${escape(row.role)}</td><td><code>${escape(row.address)}</code></td>
+  $('#wallet-rows').innerHTML = rows.length ? rows.map(row => `<tr><td>${escape(row.role)}</td><td><code>${walletAddressMarkup(row.address)}</code></td>
     <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td><td>${row.withdrawable && row.address !== overview.withdrawalDestination
       ? `<button type="button" data-source="${escape(row.address)}">Withdraw</button>`
       : row.withdrawable ? '<span>Signed-in admin wallet</span>'
@@ -168,7 +170,7 @@ async function refreshAudit() {
  try{
   const result=await api('/api/admin/audit');
   if(!session.current(epoch)||!session.active||request!==auditGeneration)return;
-  $('#audit').innerHTML=result.entries.length?result.entries.map(entry=>`<p><strong>${escape(entry.action)}</strong> · ${escape(entry.at)} · ${escape(entry.wallet)}${entry.signature?` · <code>${escape(entry.signature)}</code>`:''}</p>`).join(''):'<p>No admin actions recorded yet.</p>';
+  $('#audit').innerHTML=result.entries.length?result.entries.map(entry=>`<p><strong>${escape(entry.action)}</strong> · ${escape(entry.at)} · ${walletAddressMarkup(entry.wallet)}${entry.signature?` · <code>${escape(entry.signature)}</code>`:''}</p>`).join(''):'<p>No admin actions recorded yet.</p>';
  }catch(error){
   if(session.current(epoch)&&session.active&&request===auditGeneration)$('#audit').textContent='Audit history unavailable. Refresh to retry.';
   throw error;

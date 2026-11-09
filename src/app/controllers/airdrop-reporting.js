@@ -1,3 +1,4 @@
+import { linkWalletText } from '../../features/shared/wallet-links.js';
 // Dependencies and mutable application state are read live through appState.
 export function createAirdropReportingController(appState) {
   // app-source: 337
@@ -57,6 +58,7 @@ export function createAirdropReportingController(appState) {
     document.querySelectorAll('[data-airdrop-filter]').forEach(button => button.classList.toggle('active', button.dataset.airdropFilter === filter));
     const state = document.querySelector('#claim-wallet-state');
     if (state) state.textContent = appState.connectedWalletAddress ? `Wallet ${appState.connectedWalletAddress.slice(0, 4)}…${appState.connectedWalletAddress.slice(-4)} connected. View your automatic airdrops.` : 'Connect your wallet to view your airdrops.';
+    linkWalletText(state,appState.connectedWalletAddress);
     const count = document.querySelector('#claim-program-count');
     if (count) count.textContent = appState.verifiedLaunchPoliciesStatus === 'ready'
       ? `${programs.length} allocations · ${appState.communityReserveStatus === 'ready' && programs.every(program => program.claimVerification === 'verified') ? `${programs.filter(program => program.claimActive).length} open` : '-'}`

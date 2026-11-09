@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { el, link, utc } from './view-utils.js';
 import { rewardDashboardSummary } from './reward-dashboard-model.js';
 import { receivedTotal } from './reward-history-model.js';
@@ -44,6 +45,7 @@ export function initializeReadyQueue(root, app, onSelect = () => {}) {
       : `Verified received: ${result.state === 'partial' && !received.count ? 'Unavailable' : received.amount} · ${range.from || range.to ? 'Selected dates (UTC)' : 'All loaded dates'}${result.state === 'partial' || received.unknown ? ' · Incomplete coverage; total may be higher.' : ''}. Counts above cover all loaded records.`;
     summary.dataset.state = result.state;
     scope.textContent = wallet ? `Your wallet · ${wallet.slice(0, 5)}…${wallet.slice(-5)} · Solana Devnet` : 'Your wallet · Solana Devnet';
+    linkWalletText(scope,wallet);
     scope.title = wallet;
     status.textContent = result.state === 'disconnected' ? 'Connect your wallet to check its reward records.'
       : result.state === 'checking' ? 'Checking this wallet’s records…'

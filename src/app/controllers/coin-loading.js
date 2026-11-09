@@ -1,3 +1,4 @@
+import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { renderEarlyMarketPrice } from '../../features/coin/early-market-price.js';
 import {renderIndexedMarket} from '../../features/coin/indexed-market.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
@@ -148,6 +149,7 @@ export function createCoinLoadingController(appState) {
         market:{address:mintAddress, verifiedAt:new Date().toISOString(), complete:curve ? Boolean(curve.complete) : null, migrated:Boolean(graduatedPool), curveCapSol:graduatedPool ? null : marketCapSol, poolMarketCapSol:graduatedPool ? marketCapSol : null, source:'Solana RPC'}});
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-market-facts', {detail:journey}));
       appState.setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? appState.shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
+      linkWalletText(document.querySelector('#coin-fee-owner'), curve?.creator);
       appState.setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
       appState.coinSolUsdValues = { spot: spotPriceSol, marketCap: marketCapSol, reserve: realQuote, virtualQuote: curve?.virtualQuoteReservesSol ?? NaN, supply };
       appState.renderCoinSummary();

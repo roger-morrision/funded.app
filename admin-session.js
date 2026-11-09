@@ -1,3 +1,4 @@
+import { linkWalletText } from './src/features/shared/wallet-links.js';
 export const STALE_ADMIN_REQUEST='Previous admin session ended.';
 export function createAdminSession({document=globalThis.document,onEnd=()=>{}}={}){
  const workspace=document.querySelector('#workspace');let epoch=0,active=false,expiry;
@@ -14,6 +15,7 @@ export function createAdminSession({document=globalThis.document,onEnd=()=>{}}={
   active=true;workspace.inert=false;workspace.hidden=false;
   document.querySelector('#sign-out').hidden=false;
   document.querySelector('#auth-status').textContent=`Signed in: ${session.wallet.slice(0,5)}…${session.wallet.slice(-5)}`;
+    linkWalletText(document.querySelector('#auth-status'),session.wallet);
   if(Number.isFinite(expiresAt))expiry=setTimeout(()=>end('Session expired. Sign in again.'),Math.min(delay,2147483647));
   return true;
  }

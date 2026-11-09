@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { updateCompactTokenLink } from '../shared/compact-token.js';
 import { paginateHistory } from '../../../history-pagination.js';
 import { exactLamports } from '../../../exact-lamports.js';
@@ -206,10 +207,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const receiverWallet = document.createElement('a');
     receiverWallet.className = 'payment-history-wallet';
     receiverWallet.textContent = shortAddress(receipt.to);
-    receiverWallet.href = exploreExplorer(`address/${encodeURIComponent(receipt.to)}`);
-    receiverWallet.target = '_blank';
-    receiverWallet.rel = 'noopener noreferrer';
-    receiverWallet.title = `View receiver wallet ${receipt.to} on Solana Explorer`;
+    linkWalletText(receiverWallet, receipt.to);
     const copyReceiver = document.createElement('button');
     copyReceiver.type = 'button';
     copyReceiver.className = 'payment-copy-receiver';
@@ -230,6 +228,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     fee.className = 'payment-history-fee';
     fee.textContent = receipt.feeLamports == null ? 'Transaction fee unavailable'
       : `Transaction fee ${formatTokenBaseAmount(receipt.feeLamports, 9, 9)} SOL · paid by ${receipt.feePayer === receipt.to ? 'receiver' : shortAddress(receipt.feePayer)}`;
+    linkWalletText(fee, receipt.feePayer);
     identity.append(name);
     if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(receipt.mint || '')) {
       const coin=document.createElement('a');updateCompactTokenLink(coin,{mint:receipt.mint,showMarketCap:false},document);identity.append(coin);

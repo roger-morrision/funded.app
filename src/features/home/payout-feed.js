@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { apiRequest } from '../../../client.js';
 
 // Home proof strip: recent confirmed payouts, newest first, each linked to its
@@ -63,13 +64,16 @@ export async function mountPayoutFeed({ document = globalThis.document, request 
   const track = document.createElement('div');
   track.className = 'home-payout-track';
   const item = (row, hidden) => {
+    const item = document.createElement('span');
+    const wallet = document.createElement('a');wallet.textContent=shortWallet(row.to);linkWalletText(wallet,row.to);
     const link = document.createElement('a');
     link.href = `https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}${cluster}`;
     link.target = '_blank'; link.rel = 'noopener noreferrer';
-    if (hidden) { link.setAttribute('aria-hidden', 'true'); link.tabIndex = -1; }
+    if (hidden) { item.setAttribute('aria-hidden', 'true'); link.tabIndex = -1; wallet.tabIndex = -1; }
     const amount = document.createElement('b'); amount.textContent = formatPayoutSol(row.amountLamports);
-    link.append(amount, ` ${sourceLabel(row.source)} → ${shortWallet(row.to)} · ${age(row.blockTime)}`);
-    return link;
+    link.append(amount, ` ${sourceLabel(row.source)} · ${age(row.blockTime)} ↗`);
+    item.append(link,' → ',wallet);
+    return item;
   };
   payouts.forEach(row => track.append(item(row, false)));
   // A second, hidden copy keeps the scroll seamless.

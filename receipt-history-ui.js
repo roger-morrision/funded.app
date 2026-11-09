@@ -1,3 +1,4 @@
+import { linkWalletText } from './src/features/shared/wallet-links.js';
 import { downloadReceiptPage, formatReceiptSol, selectExactReceiptRows } from './receipt-export.js';
 import { apiRequest } from './client.js';
 import { receiptPaidAtDate } from './receipt-timestamp.js';
@@ -50,8 +51,7 @@ export function mountReceiptHistory(container, id, cluster, isCurrent = () => tr
           receiver.append('Receiver: ');
           const wallet = document.createElement('a');
           wallet.textContent = receipt.recipient;
-          wallet.href = `https://explorer.solana.com/address/${receipt.recipient}?cluster=${encodeURIComponent(cluster)}`;
-          wallet.target = '_blank'; wallet.rel = 'noopener noreferrer';
+          linkWalletText(wallet, receipt.recipient);
           receiver.append(wallet);
           article.append(receiver);
         }

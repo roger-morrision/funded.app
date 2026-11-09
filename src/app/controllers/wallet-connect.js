@@ -1,3 +1,4 @@
+import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { READ_ONLY_PREVIEW, PREVIEW_MESSAGE } from '../../../deployment-mode.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletConnectController(appState) {
@@ -70,6 +71,9 @@ export function createWalletConnectController(appState) {
     appState.renderCreatorLaunches();
     appState.renderPortfolio();
     document.querySelector('#profile-address').textContent = connected ? appState.connectedWalletAddress : 'Not connected';
+    for (const node of [popoverAddress,profileAddress,document.querySelector('#profile-address')]) linkWalletText(node,appState.connectedWalletAddress);
+    const sidebarLink = sidebarAddress?.closest('a');
+    if (sidebarLink) sidebarLink.href = connected ? `/wallet/${encodeURIComponent(appState.connectedWalletAddress)}` : '#profile';
     const profileCopyAddress = document.querySelector('#profile-copy-address');
     if (profileCopyAddress) {
       profileCopyAddress.disabled = !connected;

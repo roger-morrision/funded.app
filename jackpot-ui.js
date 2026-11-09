@@ -1,3 +1,4 @@
+import { linkWalletText } from './src/features/shared/wallet-links.js';
 import { createJackpotAlerts } from './src/features/jackpot/alerts-controller.js';
 import { addressPattern, signaturePattern, validLamports, activeRound, solAmount } from './src/features/jackpot/round-state.js';
 import { apiRequest } from './client.js';
@@ -318,6 +319,7 @@ if (host) {
     const wallet = state.reveal.querySelector('.jackpot-reveal-wallet');
     wallet.textContent = shortWallet;
     wallet.title = receipt.winner;
+    linkWalletText(wallet,receipt.winner);
     state.reveal.querySelector('.jackpot-reveal-receipt').hidden = false;
     state.reveal.querySelector('.jackpot-replay').hidden = false;
   }

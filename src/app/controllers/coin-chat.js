@@ -1,3 +1,4 @@
+import { linkWalletText } from '../../features/shared/wallet-links.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCoinChatController(appState) {
   // app-source: 993
@@ -34,6 +35,7 @@ export function createCoinChatController(appState) {
         ? 'Connect a Solana wallet to post. A wallet address does not prove project affiliation.'
         : ready ? `Posting as ${appState.shortAddress(appState.connectedWalletAddress)} · wallet control does not prove project affiliation. Report impersonation.`
           : `Posting as ${appState.shortAddress(appState.connectedWalletAddress)} · sign in once to use token discussions. This does not verify project affiliation.`;
+      linkWalletText(note,appState.connectedWalletAddress);
     });
   }
   // app-source-end

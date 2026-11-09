@@ -1,3 +1,4 @@
+import { linkWalletText } from './src/features/shared/wallet-links.js';
 import { Buffer } from 'buffer';
 import bs58 from 'bs58';
 import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
@@ -280,6 +281,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         fundedKey, tokenProgram, decimals: funded.decimals, amountTokens, amount, quote, source, supplyBefore: funded.supply };
       byId('list-review-mint').textContent = mint;
       byId('list-review-wallet').textContent = session.address;
+    linkWalletText(byId('list-review-wallet'), session.address);
       renderBurnCopy();
       review.showModal();
       setStatus('Review the exact Solana burn before asking your wallet to sign.');

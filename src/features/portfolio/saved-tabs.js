@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { updateCompactTokenLink } from '../shared/compact-token.js';
 import {formatTokenBaseAmount} from '../../../trade-panel-balance.js';
 
@@ -32,7 +33,7 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
       const avatar=document.createElement('span');avatar.className='portfolio-wallet-avatar';avatar.textContent=address.slice(0,2);avatar.setAttribute('aria-hidden','true');
       const identity=document.createElement('div');identity.className='portfolio-wallet-identity';
       const label=document.createElement('small');label.textContent='Following';identity.append(label,link(app.shortAddress(address),`/wallet/${encodeURIComponent(address)}`));
-      const full=document.createElement('small');full.textContent=address;identity.append(full);row.append(avatar,identity);
+      const full=document.createElement('small');full.textContent=address;linkWalletText(full,address);identity.append(full);row.append(avatar,identity);
       const actions=document.createElement('div');actions.className='portfolio-wallet-actions';actions.append(link('View wallet →',`/wallet/${encodeURIComponent(address)}`));
       const remove=document.createElement('button');remove.type='button';remove.className='secondary-button';remove.textContent='Unfollow';remove.setAttribute('aria-label',`Unfollow ${address}`);
       remove.addEventListener('click',async()=>{if(await app.saveFollowedWallet(address,{remove:true}))render();});actions.append(remove);row.append(actions);tracking.lastElementChild.append(row);
@@ -47,7 +48,7 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
     for(const key of ['rewards','referral']) {
       const panel=panels.get(key);panel.replaceChildren();
       const heading=document.createElement('h3');heading.textContent=key==='rewards'?'Total rewards received':'My referral';
-      const identity=document.createElement('p');identity.textContent=app.connectedWalletAddress?`Connected wallet · ${app.shortAddress(app.connectedWalletAddress)}`:'Connect your wallet to check your personal results.';panel.append(heading,identity);
+      const identity=document.createElement('p');identity.textContent=app.connectedWalletAddress?`Connected wallet · ${app.shortAddress(app.connectedWalletAddress)}`:'Connect your wallet to check your personal results.';linkWalletText(identity,app.connectedWalletAddress);panel.append(heading,identity);
       const cards=document.createElement('div');cards.className='portfolio-action-cards';
       const items=key==='rewards'?[
         ['Daily bonus',sol(totals?.bonusLamports),'#bonuses','View bonus history →'],

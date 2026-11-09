@@ -1,3 +1,4 @@
+import { linkWalletText } from '../shared/wallet-links.js';
 import { paginateHistory } from '../../../history-pagination.js';
 import { shortAddress } from '../shared/display.js';
 import { withMarketWindow, enrichMarketRecord } from '../../../market-intelligence.js';
@@ -79,6 +80,7 @@ export function renderCreatorLaunches(
         : state === 'unavailable'
           ? `Verified launches for ${shortAddress(connectedWalletAddress)} cannot be checked right now.`
           : `Checking verified launches for ${shortAddress(connectedWalletAddress)}…`;
+    linkWalletText(explanation, connectedWalletAddress);
     const actions = document.createElement('div');
     actions.className = 'projects-empty-actions';
     const walletLink = document.createElement('a');
