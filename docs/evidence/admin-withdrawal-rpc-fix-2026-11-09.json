@@ -1,0 +1,39 @@
+{
+  "at": "2026-11-09T02:48:14.675Z",
+  "cluster": "devnet",
+  "revision": "0df045b8757ff554f2e6628d3fb69803564f3a77",
+  "checks": [
+    {
+      "label": "fresh",
+      "httpStatus": 200,
+      "valid": true,
+      "slot": 520236404
+    },
+    {
+      "label": "expired",
+      "httpStatus": 200,
+      "valid": false,
+      "slot": 520236405
+    }
+  ],
+  "withdrawalSubmitted": false,
+  "deployment": {
+    "release": "0df045b8757ff554f2e6628d3fb69803564f3a77-2a6a0100-9c38-4e53-91f4-667dd398d075",
+    "revision": "0df045b8757ff554f2e6628d3fb69803564f3a77",
+    "ready": true,
+    "rollbackAvailable": true
+  },
+  "image": "sha256:11f7b2a06a7ba520bd0fcfaaf3f0e24a3107caefce413aacf56d9b7ce0256d13",
+  "tests": {
+    "application": 252,
+    "failed": 0,
+    "exactImage": true,
+    "networkDisabled": true,
+    "syntaxFiles": 943,
+    "maintainedFiles": 1166
+  },
+  "cause": "The browser checks isBlockhashValid after Phantom signs; the API allowlist rejected that read before submission.",
+  "contractChanged": false,
+  "mainnetWritesEnabled": false,
+  "adminWithdrawalVerified": false
+}
