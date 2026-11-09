@@ -5,8 +5,12 @@ import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { creatorVaultPda } from '@pump-fun/pump-sdk';
 import {readPumpCreatorFeeBalance} from '../pump-fee-balance.mjs';
 import { solFromLamports } from '../../fee-activity-amount.js';
+import {assertRpcNetwork,requireSolanaCluster} from '../../solana-network.js';
+import {financialRecordNetwork} from '../financial-network.mjs';
 
-export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond }) {
+export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond,
+  env=process.env,connectionFactory=url=>new Connection(url,'confirmed'),readBalance=readPumpCreatorFeeBalance }) {
+  requireSolanaCluster(solanaCluster);
   const json = (...args) => { respond(...args); return true; };
   return async function handleCreatorFeesRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/home/launch-filter-fees')
@@ -21,17 +25,19 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
     const state = balanceOnly ? null : await store.read();
     const launch = balanceOnly ? await store.readLaunch(mint) : state.launches?.[mint];
     if (!launch) return json(res, 404, { error:'Launch not found.' });
-    if (!launch.onchainVerified || launch.cluster !== 'devnet' || launch.cluster !== solanaCluster
+    if (!launch.onchainVerified || !financialRecordNetwork(launch,solanaCluster)
       || launch.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.pumpFeeRoute.router !== launch.creator
-      || launch.pumpFeeRoute.programId !== process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)
+      || launch.pumpFeeRoute.programId !== env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID)
       return json(res, 410, { error:'Only verified V3 launch fee activity is available.' });
     let pumpVault = null, pumpAccruedLamports = null, pumpError = null;
     let timeout;
     try {
       const owner = new PublicKey(launch.creator);
+      const connection=connectionFactory(solanaRpcUrl);
+      if (solanaCluster==='mainnet-beta') await assertRpcNetwork(connection,solanaCluster);
       pumpVault = creatorVaultPda(owner).toBase58();
       const amount = await Promise.race([
-        readPumpCreatorFeeBalance({connection:new Connection(solanaRpcUrl, 'confirmed'),creator:owner}),
+        readBalance({connection,creator:owner}),
         new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Pump vault read timed out')), 15000); }),
       ]);
       pumpAccruedLamports = amount.toString();
@@ -43,11 +49,18 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
       overview:{ available:!pumpError, scope:'per-mint-v3', pump } });
     const feeLock = creatorFeeLock(launch);
     const collections = Object.values(state.collections || {}).filter(row => row.mint === mint
+      && financialRecordNetwork(row,solanaCluster)
       && row.scope === 'per-mint-v3' && row.status === 'collected' && row.onchainVerified === true
       && row.programId === launch.pumpFeeRoute.programId && row.router === launch.pumpFeeRoute.router)
       .map(row => {
-        const settled = state.v3Settlements?.[row.signature];
-        const payout = state.v3CreatorWalletPayout?.[row.signature];
+        const related=bucket=>{
+          const entry=state[bucket]?.[row.signature];
+          return financialRecordNetwork(entry,solanaCluster,{legacyDevnet:true})
+            && entry.mint===mint && entry.programId===launch.pumpFeeRoute.programId
+            && entry.collectionSignature===row.signature ? entry : null;
+        };
+        const settled = related('v3Settlements');
+        const payout = related('v3CreatorWalletPayout');
         const allocation = settled?.allocationPlan?.creatorDirected?.walletLamports;
         const payoutVerified = payout?.status === 'finalized' && payout.balanceDeltaVerified === true
           && payout.collectionSignature === row.signature && payout.mint === mint
@@ -58,17 +71,22 @@ export function createCreatorFeesRoutes({ store, solanaCluster, route, solanaRpc
         amountLamports:solFromLamports(row.collectedLamports) == null ? null : String(row.collectedLamports),
         settlement:settled?.status || 'pending',
         allocationPlan:settled?.status === 'finalized' ? settled.allocationPlan : null,
-        communityFunding:state.v3CommunityFunding?.[row.signature]?.status || 'pending',
-        creatorRewardFunding:state.v3CreatorRewardFunding?.[row.signature]?.status || 'pending',
-        communityFundingVerified:state.v3CommunityFunding?.[row.signature]?.status === 'finalized'
-          && state.v3CommunityFunding[row.signature].balanceDeltaVerified === true,
-        creatorRewardFundingVerified:state.v3CreatorRewardFunding?.[row.signature]?.status === 'finalized'
-          && state.v3CreatorRewardFunding[row.signature].balanceDeltaVerified === true,
+        communityFunding:related('v3CommunityFunding')?.status || 'pending',
+        creatorRewardFunding:related('v3CreatorRewardFunding')?.status || 'pending',
+        communityFundingVerified:related('v3CommunityFunding')?.status === 'finalized'
+          && related('v3CommunityFunding').balanceDeltaVerified === true,
+        creatorRewardFundingVerified:related('v3CreatorRewardFunding')?.status === 'finalized'
+          && related('v3CreatorRewardFunding').balanceDeltaVerified === true,
         creatorWalletPayout:payout?.status || 'pending', creatorWalletPayoutVerified:payoutVerified,
-        operationsPayout:state.v3OperationsPayout?.[row.signature]?.status || 'pending',
-        referralPayouts:[1,2,3].map(level=>state.v3ReferralPayouts?.[`${row.signature}:${level}`]?.status||'pending'),
+        operationsPayout:related('v3OperationsPayout')?.status || 'pending',
+        referralPayouts:[1,2,3].map(level=>{
+          const entry=state.v3ReferralPayouts?.[`${row.signature}:${level}`];
+          return financialRecordNetwork(entry,solanaCluster,{legacyDevnet:true})&&entry.mint===mint
+            &&entry.programId===launch.pumpFeeRoute.programId&&entry.collectionSignature===row.signature
+            ? entry.status : 'pending';
+        }),
         referralPayable:[1,2,3].map(level=>Boolean(settled?.referralUpline?.[level-1])),
-        buyback:state.v3BuybackOrders?.[row.signature]?.status || 'pending' };
+        buyback:related('v3BuybackOrders')?.status || 'pending' };
       });
     const activity = { collections:collections.map(row => ({ signature:row.signature,
       recordedAt:row.recordedAt, collectedLamports:row.amountLamports })),

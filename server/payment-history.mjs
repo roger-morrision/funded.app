@@ -7,6 +7,8 @@ import { v3ReferralPaymentSummary } from './v3-referral-payment-summary.mjs';
 import { dailyPaymentCandidates, dailyPaymentHistory } from './daily-bonus-payment-history.mjs';
 import { payoutCoverage } from './payout-coverage.mjs';
 import {v3SourceAllocation,residualDisbursementId} from './v3-residual-source.mjs';
+import {financialRecordNetwork} from './financial-network.mjs';
+import {assertRpcNetwork,requireSolanaCluster} from '../solana-network.js';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -69,6 +71,7 @@ export function verifyAutomaticPayment(schedule, recipient, payment, transaction
 export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, connectionFactory, officialGenesis,
   cluster, v3Only = false, loadCreatorPayment = loadFinalizedV3RewardFunding,
   loadReferralPayment = loadFinalizedV3RewardFunding, loadOperationsPayment = loadFinalizedV3RewardFunding }) {
+  requireSolanaCluster(cluster);
   const cache = createReadCache({ ttlMs:30_000, maxEntries:1 });
   const verifiedAutomatic = new Map();
   const verifiedReferrals = new Map();
@@ -86,20 +89,26 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
     const recentKeys = new Set(verified.map(row => `${row.signature}:${row.to}`));
     const older = recorded.filter(row => !recentKeys.has(`${row.signature}:${row.to}`));
     const candidates = Object.values(ledger.schedules || {}).flatMap(schedule => {
-      if (!KINDS.has(schedule.kind) || schedule.asset !== 'SOL') return [];
+      if (!KINDS.has(schedule.kind) || schedule.asset !== 'SOL'
+        || !financialRecordNetwork(schedule,cluster,{legacyDevnet:true})) return [];
       return Object.entries(schedule.payments || {}).map(([recipient, payment]) => ({ schedule, recipient, payment }));
     }).filter(({ schedule, recipient, payment }) => (!v3Only || schedule.kind === 'holder'
       && (schedule.poolIds || []).some(id => id.startsWith('v3:')
+        && financialRecordNetwork(state.v3CreatorRewardFunding?.[id.slice(3)],cluster,{legacyDevnet:true})
+        && financialRecordNetwork(ledger.rewardPools?.[id],cluster,{legacyDevnet:true})
         && state.v3CreatorRewardFunding?.[id.slice(3)]?.status === 'finalized'
         && state.v3CreatorRewardFunding[id.slice(3)].balanceDeltaVerified === true
         && ledger.rewardPools?.[id]?.fundingSignature === state.v3CreatorRewardFunding[id.slice(3)].signature)
       || v3Only && schedule.kind === 'x'
+        && financialRecordNetwork(state.v3XClaims?.[schedule.sourceId],cluster,{legacyDevnet:true})
         && state.v3XClaims?.[schedule.sourceId]?.status === 'paid'
         && state.v3XClaims[schedule.sourceId].wallet === recipient
         && state.v3XClaims[schedule.sourceId].payment?.signature === payment.signature
         && state.v3XClaims[schedule.sourceId].payment?.finalized === true
         && state.v3XClaims[schedule.sourceId].payment?.balanceDeltaVerified === true)
+      && (cluster==='devnet'&&!state.launches?.[schedule.mint] || financialRecordNetwork(state.launches?.[schedule.mint],cluster))
       && KINDS.has(schedule.kind) && ADDRESS.test(recipient)
+      && financialRecordNetwork(payment,cluster,{legacyDevnet:true})
       && payment?.status === 'paid' && payment.finalized === true && payment.balanceDeltaVerified === true
       && SIGNATURE.test(String(payment.signature || '')))
       .sort((a, b) => String(b.payment.paidAt || '').localeCompare(String(a.payment.paidAt || '')));
@@ -120,6 +129,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
     if (candidates.length || older.length || directCandidates.length || referralCount || dailySelection.candidates.length) {
       try {
         const connection = connectionFactory();
+        if (cluster === 'mainnet-beta') await assertRpcNetwork(connection,cluster);
         if (await connection.getGenesisHash() !== await officialGenesis()) throw new Error('Wrong Solana network');
         daily = await dailyPaymentHistory({connection,state,selection:dailySelection,proofCache:verifiedDaily});
         unavailable += daily.unavailable - dailySelection.unavailable;
@@ -157,7 +167,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         for (let i = 0; i < candidates.length; i += 4) {
           await Promise.all(candidates.slice(i, i + 4).map(async ({ schedule, recipient, payment }) => {
             try {
-              const key = `${schedule.kind}:${payment.signature}:${recipient}:${payment.amount}`;
+              const key = JSON.stringify({cluster,kind:schedule.kind,asset:schedule.asset,payment,recipient});
               let proof = verifiedAutomatic.get(key);
               if (!proof) {
                 const tx = await connection.getTransaction(payment.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -190,18 +200,21 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
               const settlement = state.v3Settlements?.[source];
               const route = launch?.pumpFeeRoute;
               const amount = Number(row.amount);
-              if (cluster !== 'devnet' || !SIGNATURE.test(String(row.signature || ''))
+              if (!financialRecordNetwork(row,cluster,{legacyDevnet:true})
+                || !financialRecordNetwork(settlement,cluster,{legacyDevnet:true})
+                || !financialRecordNetwork(identity.allocation,cluster,{legacyDevnet:true})
+                || !SIGNATURE.test(String(row.signature || ''))
                 || !SIGNATURE.test(String(settlement?.settlementSignature || ''))
                 || !ADDRESS.test(String(row.mint || '')) || !ADDRESS.test(String(row.recipient || ''))
                 || !Number.isSafeInteger(amount) || amount <= 0
                 || row.balanceDeltaVerified !== true || row.category !== (operations?1:0)
                 || operations&&row.protectedPolicy!==true
                 || row.collectionSignature !== source || !operations&&row.recipient !== launch?.creatorWallet
-                || launch?.onchainVerified !== true || launch.cluster !== cluster
+                || launch?.onchainVerified !== true || !financialRecordNetwork(launch,cluster)
                 || route?.scope !== 'per-mint-v3' || !ADDRESS.test(String(route.programId || ''))
                 || row.programId !== route.programId || !ADDRESS.test(String(route.initialAuthority || ''))
                 || collection?.signature !== source || collection.mint !== row.mint
-                || collection.cluster !== cluster || collection.scope !== 'per-mint-v3'
+                || !financialRecordNetwork(collection,cluster) || collection.scope !== 'per-mint-v3'
                 || collection.programId !== route.programId || collection.status !== 'collected'
                 || collection.onchainVerified !== true || settlement?.status !== 'finalized'
                 || settlement.collectionSignature !== source || settlement.mint !== row.mint
@@ -213,14 +226,14 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
               const authority = addressOf(transaction?.transaction?.message?.accountKeys?.[0]
                 || transaction?.transaction?.message?.staticAccountKeys?.[0]);
               if (!ADDRESS.test(authority)) throw new Error('Missing transaction authority');
-              const proof = await (operations?loadOperationsPayment:loadCreatorPayment)({ connection, transaction, signature:row.signature,
+              const proof = await (operations?loadOperationsPayment:loadCreatorPayment)({ connection, cluster, transaction, signature:row.signature,
                 programId:route.programId, mint:row.mint, authority, creator:launch.creatorWallet,
                 initialAuthority:route.initialAuthority,
                 withdrawalId:identity.residualPlanHash?residualDisbursementId('creator-wallet',settlement.settlementSignature,identity.residualPlanHash)
                   :v3DisbursementId(operations?'operations':'creator-wallet', settlement.settlementSignature),
                 category:operations?1:0, amount:row.amount, recipient:row.recipient, split:route.protocolSplit,
                 protectedPolicy:row.protectedPolicy===true,beneficiary:operations?3:0,holderAmount:0n });
-              if (!proof || proof.signature !== row.signature || proof.recipient !== row.recipient
+              if (!financialRecordNetwork(proof,cluster,{legacyDevnet:true}) || proof.signature !== row.signature || proof.recipient !== row.recipient
                 || proof.mint !== row.mint || proof.programId !== route.programId
                 || proof.category !== (operations?1:0) || proof.amount !== String(row.amount)
                 || proof.balanceDeltaVerified !== true || !Number.isSafeInteger(proof.slot)

@@ -1,9 +1,12 @@
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import bs58 from 'bs58';
+import {assertQuoteNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import { launchServiceMemo } from '../launch-service-fee.js';
 import {developerLockInstruction,decodeDeveloperLockInstruction,DEVELOPER_TOKEN_LOCK_PROGRAMS} from '../developer-token-lock.js';
 const MEMO = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
-export function verifyLaunchServiceFee({ transaction:tx, signature, mint, payer, quote }) {
+export function verifyLaunchServiceFee({ transaction:tx, signature, mint, payer, quote,cluster='devnet' }) {
+  requireSolanaCluster(cluster);
+  assertQuoteNetwork(quote,cluster);
   if (!quote || quote.payer !== payer || !/^\d+$/.test(quote.amountLamports || '') || BigInt(quote.amountLamports) > 5_000_000_000n)
     throw new Error('Saved launch service quote is missing or does not match the payer.');
   const time = tx?.blockTime * 1000;
@@ -36,6 +39,6 @@ export function verifyLaunchServiceFee({ transaction:tx, signature, mint, payer,
   if (memos.length+escrowMarkers.length !== 1 || transfers.length !== (n > 0n ? 1 : 0)
     || n > 0n && (index < 0 || !Number.isSafeInteger(tx.meta.preBalances[index]) || !Number.isSafeInteger(tx.meta.postBalances[index])
       || BigInt(tx.meta.postBalances[index]) - BigInt(tx.meta.preBalances[index]) !== n)) throw new Error('Exact atomic launch fee transfer, memo and treasury delta are not verified.');
-  return { quoteId:quote.id, amountLamports:quote.amountLamports, recipient:quote.recipient, policyHash:quote.policyHash,
+  return { cluster, genesisHash:SOLANA_GENESIS[cluster], quoteId:quote.id, amountLamports:quote.amountLamports, recipient:quote.recipient, policyHash:quote.policyHash,
     signature, slot:tx.slot, finalized:true, balanceDeltaVerified:true, category:'launch-service-fee' };
 }

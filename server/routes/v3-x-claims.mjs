@@ -10,12 +10,17 @@ import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { verifyMintPolicyV3Account } from '../../mint-router-v3.js';
 import {parseV3SourceKey,v3ResidualAllocation,residualDisbursementId} from '../v3-residual-source.mjs';
+import {financialRecordNetwork} from '../financial-network.mjs';
+import {requireSolanaCluster,SOLANA_GENESIS} from '../../solana-network.js';
 
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const CLAIM_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000;
 
 export function v3XClaimStatement(claim, wallet) {
-  return `funded.app V3 SOL reward ${claim.collectionSignature} mint ${claim.mint} X user ${claim.xUserId} wallet ${wallet} nonce ${claim.nonce}`;
+  const cluster=requireSolanaCluster(claim.cluster||'devnet');
+  if(!financialRecordNetwork(claim,cluster,{legacyDevnet:true}))throw Error('X claim network does not match.');
+  const network=claim.cluster?` network ${cluster} genesis ${SOLANA_GENESIS[cluster]}`:'';
+  return `funded.app V3 SOL reward ${claim.collectionSignature} mint ${claim.mint} X user ${claim.xUserId} wallet ${wallet} nonce ${claim.nonce}${network}`;
 }
 
 // The X OAuth subject, creator-approved allocation, finalized category-0
@@ -57,18 +62,18 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     const funding = state.v3CreatorRewardFunding?.[claimKey];
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '');
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '');
-    if (!launch?.onchainVerified || launch.cluster !== 'devnet' || launch.mint !== mint
+    if (!launch?.onchainVerified || !financialRecordNetwork(launch,solanaCluster) || launch.mint !== mint
       || launch.pumpFeeRoute?.scope !== 'per-mint-v3'
       || launch.pumpFeeRoute.programId !== programId
       || String(launch.xUserId) !== String(session.user.id)
       || collection?.mint !== mint || collection.signature !== collectionSignature
-      || collection.cluster !== 'devnet' || collection.scope !== 'per-mint-v3'
+      || !financialRecordNetwork(collection,solanaCluster) || collection.scope !== 'per-mint-v3'
       || collection.status !== 'collected' || collection.onchainVerified !== true
       || collection.attribution !== 'mint-verified' || collection.programId !== programId
       || !/^[a-f0-9]{64}$/.test(String(collection.claimId || ''))
-      || settled?.status !== 'finalized' || settled.mint !== mint
+      || !financialRecordNetwork(settled,solanaCluster,{legacyDevnet:true}) || settled?.status !== 'finalized' || settled.mint !== mint
       || settled.collectionSignature !== collectionSignature
-      || funding?.status !== 'finalized' || funding.mint !== mint
+      || !financialRecordNetwork(funding,solanaCluster,{legacyDevnet:true}) || funding?.status !== 'finalized' || funding.mint !== mint
       ||residualPlanHash&&funding.residualPlanHash!==residualPlanHash
       || !SIGNATURE.test(String(funding.signature || ''))
       || !/^[a-f0-9]{64}$/i.test(approvedHash))
@@ -78,20 +83,20 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     if (!authority?.publicKey || authority.publicKey.toBase58() !== launch.pumpFeeRoute.initialAuthority)
       return json(res, 503, { error:'The approved V3 reward authority is unavailable.' });
     const connection = connectionFactory(solanaRpcUrl);
-    const chain = rewardChainFactory({ connection, programId, authority,
+    const chain = rewardChainFactory({ connection, programId, authority,cluster:solanaCluster,
       expectedProgramDataSha256:approvedHash });
     if (!(await chain.readiness()).constrainedPayouts)
       return json(res, 503, { error:'The approved V3 payout program is not verified.' });
-    const settlement = await loadSettlement({ connection,
+    const settlement = await loadSettlement({ connection,cluster:solanaCluster,
       signature:settled.settlementSignature, programId, mint,
       authority:launch.pumpFeeRoute.initialAuthority,
       creator:launch.creatorWallet, claimId:Buffer.from(collection.claimId, 'hex'),
       expectedLamports:collection.collectedLamports, split:launch.pumpFeeRoute.protocolSplit,
       includePosition:Boolean(residualPlanHash)||settled.allocationPlan?.allocationVersion === 2 });
-    if (!settlement || settlement.signature !== settled.settlementSignature)
+    if (!financialRecordNetwork(settlement,solanaCluster,{legacyDevnet:true}) || settlement.signature !== settled.settlementSignature)
       return json(res, 409, { error:'Finalized V3 settlement proof is unavailable.' });
     let plan;
-    try { plan = v3AllocationPlan({ launch, settlement:{ ...settlement,
+    try { plan = v3AllocationPlan({ launch, cluster:solanaCluster,settlement:{ ...settlement,
       position:settled.allocationPlan?.allocationVersion===2?settlement.position:undefined,programId,
       collectionSignature, settlementSignature:settled.settlementSignature } }); }
     catch { return json(res, 409, { error:'The V3 X allocation cannot be reconstructed.' }); }
@@ -99,7 +104,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     if(residualPlanHash){
       try{if(!settlement.position)throw new Error('Finalized cumulative settlement position is required.');
         plan=v3ResidualAllocation({state,collectionSignature,residualPlanHash,
-        canonicalTarget:v3AllocationPlan({launch,settlement:{...settlement,programId,collectionSignature,
+        canonicalTarget:v3AllocationPlan({launch,cluster:solanaCluster,settlement:{...settlement,programId,collectionSignature,
           settlementSignature:settled.settlementSignature}})}).allocation;}
       catch{return json(res,409,{error:'The audited residual X allocation cannot be verified.'});}
     }
@@ -118,14 +123,14 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     const { vault } = rewardAddresses({ programId, authority:authority.publicKey, mint });
     if (funding.amount !== String(amount) || funding.recipient !== vault.toBase58())
       return json(res, 409, { error:'The recorded V3 reward funding does not match its allocation.' });
-    const proof = await loadFunding({ connection, signature:funding.signature,
+    const proof = await loadFunding({ connection, cluster:solanaCluster,signature:funding.signature,
       programId, mint, authority:authority.publicKey, creator:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority, withdrawalId,
       category:0, amount, recipient:vault,
       split:launch.pumpFeeRoute.protocolSplit,
       protectedPolicy:policy.protectedPolicy, beneficiary:1,
       holderAmount:BigInt(plan.creatorDirected.holderLamports) });
-    if (!proof?.balanceDeltaVerified || proof.signature !== funding.signature
+    if (!financialRecordNetwork(proof,solanaCluster,{legacyDevnet:true}) || !proof?.balanceDeltaVerified || proof.signature !== funding.signature
       || proof.amount !== String(amount))
       return json(res, 409, { error:'Finalized V3 reward-vault funding proof is unavailable.' });
     const claim = state.v3XClaims?.[claimKey];
@@ -137,12 +142,13 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       const prepared = await store.update(current => {
         current.v3XClaims ||= {};
         const existing = current.v3XClaims[claimKey];
-        if (existing && (existing.mint !== mint || existing.xUserId !== String(session.user.id)
+        if (existing && (!financialRecordNetwork(existing,solanaCluster,{legacyDevnet:true}) || existing.mint !== mint || existing.xUserId !== String(session.user.id)
           || existing.amountLamports !== plan.creatorDirected.xLamports
           || existing.fundingSignature !== funding.signature)) return null;
         if (existing && (existing.wallet || Date.parse(existing.expiresAt) > Date.now()))
           return existing;
         return current.v3XClaims[claimKey] = {
+          cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],
           collectionSignature:claimKey,sourceCollectionSignature:collectionSignature,
           ...(residualPlanHash?{residualPlanHash}:{}),mint, xUserId:String(session.user.id),
           amountLamports:plan.creatorDirected.xLamports,
@@ -158,7 +164,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
         expiresAt:prepared.expiresAt })
         : json(res, 409, { error:'The V3 X claim changed during preparation.' });
     }
-    if (!claim || claim.mint !== mint || claim.xUserId !== String(session.user.id)
+    if (!financialRecordNetwork(claim,solanaCluster,{legacyDevnet:true}) || claim.mint !== mint || claim.xUserId !== String(session.user.id)
       || claim.amountLamports !== plan.creatorDirected.xLamports
       || claim.fundingSignature !== funding.signature)
       return json(res, 409, { error:'Prepare the matching V3 X claim first.' });

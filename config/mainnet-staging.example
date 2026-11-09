@@ -14,6 +14,18 @@ VITE_ALLOW_MAINNET=false
 VITE_DEV_MODE=false
 VITE_DEV_AUTOCONNECT=false
 DEV_WALLET_ENABLED=false
+FUNDED_API_ONLY=true
+# No financial workers or transaction signers run in read-only staging.
+FUNDED_V3_LAUNCH_ENABLED=false
+FUNDED_V3_COLLECTION_ENABLED=false
+FUNDED_V3_SETTLEMENT_ENABLED=false
+FUNDED_V3_AUTO_SETTLEMENT_ENABLED=false
+FUNDED_V3_AUTO_DISBURSEMENT_ENABLED=false
+FUNDED_V3_HOLDER_WORKER_ENABLED=false
+FUNDED_V3_BUYBACK_ENABLED=false
+FUNDED_V3_AGENCY_BUYBACK_ENABLED=false
+FUNDED_V3_X_CLAIMS_ENABLED=false
+X_POST_ENABLED=false
 VITE_FUNDED_TRADE_FEE_BPS=100
 # Creator buy cap is enforced in application/transaction policy at 20%.
 # Do not put Helius keys in VITE_* variables or a committed config.

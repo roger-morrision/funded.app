@@ -1,4 +1,5 @@
 import bs58 from 'bs58';
+import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {buildV3PolicyApproval,buildV3PolicyDisbursement} from './v3-policy-builders.mjs';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3DisbursementInstruction,
@@ -15,11 +16,13 @@ const address = value => typeof value === 'string' ? value : value?.pubkey
 export async function loadFinalizedV3RewardFunding({ connection, signature, programId,
   mint, authority, creator, initialAuthority, withdrawalId, category, amount,
   recipient, split, transaction:providedTransaction, protectedPolicy = false,
-  beneficiary = null, holderAmount = 0n,
+  beneficiary = null, holderAmount = 0n, cluster = 'devnet',
   verifyWithdrawal = verifyMintWithdrawalV3Account,
   verifyPolicy = verifyMintPolicyV3Account,
   verifyApproval = verifyMintWithdrawalApprovalV3Account }) {
   try {
+    requireSolanaCluster(cluster);
+    if (cluster === 'mainnet-beta') await assertRpcNetwork(connection,cluster);
     if (![0, 2, 3, 4, 5].includes(category) && !(protectedPolicy && category === 1)) return null;
     const transaction = providedTransaction || await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -84,7 +87,7 @@ export async function loadFinalizedV3RewardFunding({ connection, signature, prog
       || !withdrawal.address.equals(expected.withdrawal)
       || !policy.address.equals(expected.policy.address)
       || policy.withdrawnLamports[category] < lamports) return null;
-    return { signature, slot:transaction.slot, blockTime:transaction.blockTime ?? null,
+    return { signature, cluster, genesisHash:SOLANA_GENESIS[cluster], slot:transaction.slot, blockTime:transaction.blockTime ?? null,
       feePayer:staticKeys[0], feeLamports:transaction.meta.fee,
       mint:new PublicKey(mint).toBase58(),
       programId:new PublicKey(programId).toBase58(), category, amount:String(lamports),

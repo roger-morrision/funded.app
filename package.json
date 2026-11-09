@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "mainnet:packet": "node scripts/mainnet-launch-packet.mjs",
+    "mainnet:staging": "node scripts/start-mainnet-staging.mjs",
     "build:mainnet-preview": "node scripts/mainnet-preview.mjs build",
     "start:mainnet-preview": "node scripts/mainnet-preview.mjs serve",
     "release:devnet": "node scripts/funded-release.mjs",

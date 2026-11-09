@@ -7,6 +7,7 @@ import {v3DisbursementId} from './v3-disbursement-id.mjs';
 import {allocationAuditHash as bonusHash} from './allocation-audit-hash.mjs';
 import {parseV3SourceKey,v3ResidualAllocation,residualDisbursementId} from './v3-residual-source.mjs';
 import {reviewV3LegacyPreservation} from './v3-legacy-preservation.mjs';
+import {financialRecordNetwork} from './financial-network.mjs';
 
 const fields=['walletLamports','holderLamports','xLamports'];
 const vector=plan=>fields.map(key=>BigInt(plan.creatorDirected[key]));
@@ -16,9 +17,12 @@ const vector=plan=>fields.map(key=>BigInt(plan.creatorDirected[key]));
 export async function reviewV3AllocationResiduals({verifyPolicy=verifyMintPolicyV3Account,
   loadFunding=loadFinalizedV3RewardFunding,ignorePendingResidual=null,...options}){
   const {state,launch,reviewed,proofConnection:connection}=await readFinalizedV3Allocations(options);
-  const {mint}=options,programId=launch.pumpFeeRoute.programId,authority=launch.pumpFeeRoute.initialAuthority;
+  const {mint,cluster='devnet'}=options,programId=launch.pumpFeeRoute.programId,authority=launch.pumpFeeRoute.initialAuthority;
   const policy=await verifyPolicy({connection,programId,mint,creator:launch.creatorWallet,initialAuthority:authority,split:launch.pumpFeeRoute.protocolSplit});
-  if(policy?.verified&&!policy.protectedPolicy)return reviewV3LegacyPreservation({state,launch,reviewed,connection,policy,loadFunding});
+  if(policy?.verified&&!policy.protectedPolicy){
+    if(cluster!=='devnet')throw Error('Legacy preservation is not valid on Mainnet.');
+    return reviewV3LegacyPreservation({state,launch,reviewed,connection,policy,loadFunding});
+  }
   if(!policy?.verified||!policy.protectedPolicy||!Array.isArray(policy.directedReleased)||policy.directedReleased.length!==3)
     throw new Error('Residual review requires a verified protected V3 policy and released beneficiary counters.');
   if(!isDeepStrictEqual(policy.directedUnits,directedGrossUnits(launch.feeDistribution?.creatorDirected?.shares)))
@@ -31,15 +35,15 @@ export async function reviewV3AllocationResiduals({verifyPolicy=verifyMintPolicy
     if(state.v3XClaims?.[item.source]&&!funded)throw new Error('An X claim lacks its original source funding; reconcile that proof first.');
     for(const [kind,receipt] of [['creator-wallet',wallet],['creator-reward',funded]]){
       if(!receipt)continue;
-      if(receipt.status!=='finalized'||receipt.balanceDeltaVerified!==true||!receipt.signature)
+      if(!financialRecordNetwork(receipt,cluster,{legacyDevnet:true})||receipt.status!=='finalized'||receipt.balanceDeltaVerified!==true||!receipt.signature)
         throw new Error('A prepared or uncertain legacy transfer must be finalized or proven expired before residual review.');
       const old=vector(original),amount=kind==='creator-wallet'?old[0]:old[1]+old[2];
       const recipient=kind==='creator-wallet'?launch.creatorWallet:rewardAddresses({programId,authority,mint}).vault.toBase58();
-      const proof=await loadFunding({connection,signature:receipt.signature,programId,mint,authority,
+      const proof=await loadFunding({connection,cluster,signature:receipt.signature,programId,mint,authority,
         creator:launch.creatorWallet,initialAuthority:authority,withdrawalId:v3DisbursementId(kind,item.row.settlementSignature),
         category:0,amount,recipient,split:launch.pumpFeeRoute.protocolSplit,protectedPolicy:true,
         beneficiary:kind==='creator-wallet'?0:1,holderAmount:kind==='creator-wallet'?0n:old[1]});
-      if(!proof?.balanceDeltaVerified||proof.signature!==receipt.signature||proof.amount!==String(amount)
+      if(!financialRecordNetwork(proof,cluster,{legacyDevnet:true})||!proof?.balanceDeltaVerified||proof.signature!==receipt.signature||proof.amount!==String(amount)
         ||proof.mint!==mint||proof.category!==0||proof.recipient!==recipient
         ||receipt.mint!==mint||receipt.amount!==String(amount)||receipt.recipient!==recipient)
         throw new Error('A legacy transfer lacks exact finalized beneficiary and balance proof.');
@@ -51,16 +55,16 @@ export async function reviewV3AllocationResiduals({verifyPolicy=verifyMintPolicy
         if(ignorePendingResidual?.bucket===bucket&&ignorePendingResidual.key===key
           &&ignorePendingResidual.signature===receipt.signature&&receipt.status==='verification-pending')continue;
         const identity=parseV3SourceKey(key),approved=v3ResidualAllocation({state,...identity,canonicalTarget:item.next});
-        if(receipt.residualPlanHash!==identity.residualPlanHash||receipt.collectionSignature!==item.source
+        if(!financialRecordNetwork(receipt,cluster,{legacyDevnet:true})||receipt.residualPlanHash!==identity.residualPlanHash||receipt.collectionSignature!==item.source
           ||receipt.status!=='finalized'||receipt.balanceDeltaVerified!==true)
           throw new Error('A residual transfer is uncertain or conflicts with its audited approval.');
         const amounts=vector(approved.allocation),amount=kind==='creator-wallet'?amounts[0]:amounts[1]+amounts[2];
         const recipient=kind==='creator-wallet'?launch.creatorWallet:rewardAddresses({programId,authority,mint}).vault.toBase58();
-        const proof=await loadFunding({connection,signature:receipt.signature,programId,mint,authority,creator:launch.creatorWallet,
+        const proof=await loadFunding({connection,cluster,signature:receipt.signature,programId,mint,authority,creator:launch.creatorWallet,
           initialAuthority:authority,withdrawalId:residualDisbursementId(kind,item.row.settlementSignature,identity.residualPlanHash),
           category:0,amount,recipient,split:launch.pumpFeeRoute.protocolSplit,protectedPolicy:true,
           beneficiary:kind==='creator-wallet'?0:1,holderAmount:kind==='creator-wallet'?0n:amounts[1]});
-        if(amount<=0n||!proof?.balanceDeltaVerified||proof.signature!==receipt.signature||proof.amount!==String(amount)
+        if(amount<=0n||!financialRecordNetwork(proof,cluster,{legacyDevnet:true})||!proof?.balanceDeltaVerified||proof.signature!==receipt.signature||proof.amount!==String(amount)
           ||proof.mint!==mint||proof.category!==0||proof.recipient!==recipient||receipt.mint!==mint
           ||receipt.amount!==String(amount)||receipt.recipient!==recipient)
           throw new Error('A residual transfer lacks exact finalized beneficiary and balance proof.');
