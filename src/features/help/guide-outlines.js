@@ -2,7 +2,7 @@ import {currentFeePolicyCopy,bonusCategoryCopy} from '../fees/fee-policy-copy.js
 import {referralRatePresentation} from '../fees/referral-rate-copy.js';
 
 const guides={
-  overview:['Launch, discover and trade Solana coins.','Explore coins; use Portfolio for your holdings and launches.','Open Rewards for claims and payment history.','The current preview uses Devnet test assets.'],
+  overview:['Build together. Share the rewards.','Explore ways to earn as a creator, eligible holder, trader, or referrer.','Open Rewards to check eligibility, available claims, and payment history.','The current preview uses Devnet test assets.'],
   home:['Explore new coins and community activity.','Use Portfolio for your holdings and launches.','Open Rewards for claims and automatic payouts.'],
   wallet:['Connect your Solana wallet.','Sign a free message to access your private account.','Review any payment separately in your wallet.','Never share your seed phrase or private key.'],
   following:['Favorites saves starred coins to your signed-in account.','Followed wallets and reminders sync to your verified wallet account.','Sign in with the same account on another device to load them.','Following does not place trades for you.'],

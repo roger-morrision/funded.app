@@ -65,9 +65,9 @@ export async function initializeNavigation(appState) {
   // app-source: 861
   const routeGuideCopy = {
     payments: { group: 'Workspace', state: 'Confirmed payments', description: 'See rewards linked to your wallet and check what is ready to claim.', primary: ['View analytics', '#analytics-detail'], secondary: ['How claims work', '#docs'] },
-    'analytics-detail': { group: 'Workspace', state: 'Platform activity', description: 'Launches, fees, rewards and trading activity.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
+    'analytics-detail': { headline: 'See how value reaches the community.', group: 'Workspace', state: 'Platform activity', description: 'Track collected fees, reward payments, allocations, and burns.', primary: ['See capital flow', '#capital-flow'], secondary: ['Explore launches', '#explore'] },
     'my-launches': { group: 'Build', state: 'Your portfolio', description: 'See your launches, market activity, and token actions together.', primary: ['Launch a project', '#launch'], secondary: ['Launch guide', '#docs'] },
-    referrals: { group: 'Growth', state: 'Connect wallet to view payouts', description: 'Invite creators. Track rewards.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
+    referrals: { headline: 'Grow the community. Earn referral rewards.', group: 'Growth', state: 'Connect wallet to view payouts', description: 'Invite creators and track rewards from qualifying launches.', primary: ['How rewards work', '#referral-faq'], secondary: ['Explore launches', '#explore'] },
     community: { group: 'Growth', state: 'Account favorites', description: 'Verify the same wallet or sign in with X to sync favorite tokens across devices.', primary: ['Find launches', '#explore'], secondary: ['See airdrops', '#airdrops'] },
     leaderboard: { group: 'Growth', state: 'Confirmed activity', description: 'Explore creator and $RICH burn rankings.', primary: ['Explore launches', '#explore'], secondary: ['View service status', '#docs'] },
     airdrops: { group: 'Growth', state: 'Automatic payouts', description: 'Hold $RICH until migration. Receive tokens automatically.', primary: ['Explore launches', '#explore'], secondary: ['Airdrop guide', '#docs/airdrop-policy'] },
