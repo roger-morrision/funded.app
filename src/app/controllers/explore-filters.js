@@ -177,9 +177,9 @@ export function createExploreFiltersController(appState) {
     // No saved X link: offer an X search for the ticker instead, labelled as a search.
     const ticker = String(record.symbol || '').replace(/[^A-Za-z0-9]/g, '');
     const search = !links.some(link => link.icon === 'socialX') && ticker
-      ? `<a class="explore-social-link is-search" href="https://x.com/search?q=${encodeURIComponent('$' + ticker)}&amp;f=live" target="_blank" rel="noopener noreferrer" aria-label="Search X for $${ticker}" title="Search X for $${ticker}">${appState.icon('socialX')}</a>` : '';
+      ? `<a class="explore-social-link is-search" href="https://x.com/search?q=${encodeURIComponent('$' + ticker)}&amp;f=live" target="_blank" rel="noopener noreferrer" aria-label="Search X for $${ticker}" title="https://x.com/search?q=${encodeURIComponent('$' + ticker)}&amp;f=live">${appState.icon('socialX')}</a>` : '';
     if (!links.length && !search) return '';
-    return `<span class="explore-social-links" role="group" aria-label="Token social links">${links.map(({ icon: iconName, label, href }) => `<a class="explore-social-link" href="${appState.escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${symbol} ${label} link" title="${appState.escapeHtml(label)}">${appState.icon(iconName)}</a>`).join('')}${search}</span>`;
+    return `<span class="explore-social-links" role="group" aria-label="Token social links">${links.map(({ icon: iconName, label, href }) => `<a class="explore-social-link" href="${appState.escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${symbol} ${label} link: ${appState.escapeHtml(href)}" title="${appState.escapeHtml(href)}">${appState.icon(iconName)}</a>`).join('')}${search}</span>`;
   }
   // app-source-end
 

@@ -7,6 +7,8 @@ import {createTradeQuoteRetry} from '../../features/experience/trade-quote-retry
 import {tradeRecoveryCopy,tradeVerificationUnavailable} from '../../features/experience/trade-progress.js';
 import { assertTradeLimits, readTradePreferences } from '../../features/experience/trade-preferences.js';
 import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_SIGNING_REFRESH_AFTER_MS } from '../../../trade-quote-policy.js';
+import { tradeTokenSymbol } from '../../../trade-quote-display.js';
+import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
   let retryInputKey='', quoteSeen=false;
@@ -59,9 +61,13 @@ export function createTradeExecutionController(appState) {
       const trade = await appState.buildTradeTransaction({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState) });
       appState.assertWalletSessionCurrent(session);
       if (version !== appState.tradeQuoteVersion || !appState.tradeInputs().valid || `${appState.tradeInputs().mint}:${appState.tradeInputs().side}:${appState.tradeInputs().amount}:${appState.tradeInputs().slippagePercent}:${session.address}` !== inputKey) return null;
-      const tokenSymbol=appState.coinTradeEstimate?.mint===mint?appState.coinTradeEstimate.symbol
-        :appState.coinSummaryLaunch?.mint===mint?appState.coinSummaryLaunch.symbol:null;
-      const quote = appState.describeTradeQuote(trade, slippagePercent,tokenSymbol||`${mint.slice(0,4)}…${mint.slice(-4)}`);
+      const tokenSymbol = tradeTokenSymbol(mint, [
+        appState.coinTradeEstimate, appState.coinSummaryLaunch,
+        appState.verifiedLaunchPolicyForMint?.(mint),
+        { mint, ...serverCoinIdentity(mint) },
+        ...(appState.assets || []),
+      ]);
+      const quote = appState.describeTradeQuote(trade, slippagePercent, tokenSymbol);
       if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
       appState.tradePreview = { trade, inputKey, preparedAt: Date.now() };
       document.querySelector('#trade-live-countdown').innerHTML = appState.quoteCountdownMarkup(appState.tradePreview.preparedAt + TRADE_QUOTE_TTL_MS);

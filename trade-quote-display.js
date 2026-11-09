@@ -1,5 +1,15 @@
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
+export function tradeTokenSymbol(mint, records = []) {
+  if (!mint) return 'tokens';
+  for (const record of records) {
+    if ((record?.mint || record?.address) !== mint) continue;
+    const symbol = String(record.symbol || '').replace(/[\p{Cc}\p{Cf}]/gu, '').trim();
+    if (symbol && symbol !== mint && !symbol.includes('…') && !symbol.includes('...')) return symbol;
+  }
+  return 'tokens';
+}
+
 export function describeTradeQuote(trade, slippagePercent, tokenSymbol = trade.tokenSymbol) {
   const outputDecimals = trade.side === 'buy' ? trade.tokenDecimals : 9;
   const expected = Number(trade.outputAmount.toString()) / (10 ** outputDecimals);

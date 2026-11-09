@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeTradeQuote, estimateBuyTokenAmountFromSnapshot } from '../trade-quote-display.js';
+import { describeTradeQuote, estimateBuyTokenAmountFromSnapshot, tradeTokenSymbol } from '../trade-quote-display.js';
 import { buildTradeReview } from '../trade-review-model.js';
 import { reviewRows } from '../src/features/shared/transaction-review.js';
 import { roleSteps } from '../src/features/experience/get-started.js';
 import { metricTone } from '../src/features/experience/metric-accents.js';
+
+test('quote symbols resolve matching token records while metadata loads', () => {
+  const mint = 'EjcH3cizxAevcYHRjq29z1DQdn6oATap4uN9fRzTD2sa';
+  assert.equal(tradeTokenSymbol(mint, [{mint:'other',symbol:'WRONG'}, {mint,symbol:'EjcH…'}, {address:mint,symbol:'RCAT'}]), 'RCAT');
+  assert.equal(tradeTokenSymbol(mint, [{mint,symbol:mint}, {mint,symbol:'EjcH…D2sa'}]), 'tokens');
+  assert.equal(tradeTokenSymbol(mint, [{mint,symbol:' RCAT\u0000 '}]), 'RCAT');
+});
 
 test('metric accents distinguish zero, unavailable values and gain or loss', () => {
   for (const value of ['—', '$—', 'None yet', 'Checking…', '10 unavailable']) assert.equal(metricTone(value), 'muted');

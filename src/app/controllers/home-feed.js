@@ -5,6 +5,7 @@ export function createHomeFeedController(appState) {
   let paidListings = [];
   let paidListingsStatus = 'idle';
   let paidListingsRequest = 0;
+  let tickerScrollRemainder = 0;
 
   async function loadHomePaidListings() {
     const request = ++paidListingsRequest;
@@ -59,9 +60,13 @@ export function createHomeFeedController(appState) {
     appState.homeTickerLastFrame = now;
     if (ticker && appState.homeTickerCycleWidth && document.body.classList.contains('page-route-overview')
       && document.visibilityState === 'visible' && now >= appState.homeTickerPauseUntil
+      && ticker.dataset.autoscrollPaused !== 'true'
       && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
       && !ticker.matches(':hover, :focus-within')) {
-      ticker.scrollLeft += elapsed * 0.036;
+      const distance = elapsed * 0.036 + tickerScrollRemainder;
+      const pixels = Math.floor(distance);
+      tickerScrollRemainder = distance - pixels;
+      ticker.scrollLeft += pixels;
       if (ticker.scrollLeft >= appState.homeTickerCycleWidth) ticker.scrollLeft -= appState.homeTickerCycleWidth;
     }
     appState.homeTickerFrame = requestAnimationFrame(appState.animateHomeTicker);
@@ -76,14 +81,6 @@ export function createHomeFeedController(appState) {
     appState.homeTickerCount = count;
     ticker.innerHTML = markup;
     appState.homeTickerCycleWidth = 0;
-    // The compact Home strip scrolls on demand, without cloned or moving links.
-    if (document.querySelector('.home-start')) {
-      if (appState.homeTickerFrame) cancelAnimationFrame(appState.homeTickerFrame);
-      appState.homeTickerFrame = 0;
-      appState.loadVerifiedTokenLogos(ticker);
-      requestAnimationFrame(appState.syncHomeTickerArrows);
-      return;
-    }
     if (count) {
       const originals = [...ticker.querySelectorAll(':scope > a')];
       const appendCopy = () => {

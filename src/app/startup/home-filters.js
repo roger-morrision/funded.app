@@ -105,6 +105,20 @@ export function initializeHomeFilters(appState) {
   // app-source-end
 
   // app-source: 518
+  const tickerPause = document.querySelector('#home-ticker-pause');
+  if (tickerPause) {
+    tickerPause.innerHTML = appState.icon('pause');
+    tickerPause.addEventListener('click', () => {
+      const ticker = document.querySelector('#home-market-ticker-items');
+      if (!ticker) return;
+      const paused = ticker.dataset.autoscrollPaused !== 'true';
+      ticker.dataset.autoscrollPaused = String(paused);
+      tickerPause.setAttribute('aria-pressed', String(paused));
+      tickerPause.setAttribute('aria-label', paused ? 'Resume trending auto-scroll' : 'Pause trending auto-scroll');
+      tickerPause.title = paused ? 'Resume auto-scroll' : 'Pause auto-scroll';
+      tickerPause.innerHTML = appState.icon(paused ? 'play' : 'pause');
+    });
+  }
   document.querySelector('#home-market-ticker-items')?.addEventListener('scroll', appState.syncHomeTickerArrows, { passive: true });
   // app-source-end
 
