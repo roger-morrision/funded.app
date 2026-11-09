@@ -1,0 +1,463 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-09T08:54:22.405175+00:00",
+  "environment": "https://richpad.fun",
+  "cluster": "devnet",
+  "appRevisionTested": "36477d75e848bfe9c0d717bec0ca06c1746f2f80",
+  "scope": "Fresh financial acceptance plus public UI review; not exhaustive or Mainnet approval",
+  "adminWithdrawal": {
+    "verified": true,
+    "cluster": "devnet",
+    "signature": "4xqrX5r8k4zoN8nxttUCh21wSJiTuU9wQQ7koW5V4pDFmp3mZURFMoqtE2tHJ2XLsWFWz29edxtrvbYc3VYHmo2G",
+    "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+    "destination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "amountLamports": 5000000,
+    "feePayer": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "feeLamports": 10000,
+    "sourceDebitLamports": 5000000,
+    "recipientNetCreditLamports": 4990000,
+    "adminSigned": true,
+    "adminAllowlisted": true,
+    "emailApprovalRecorded": true,
+    "finalizedReceiptSaved": true,
+    "slot": 520320808,
+    "blockTime": 1794212682,
+    "applicationRevision": "36477d75e848bfe9c0d717bec0ca06c1746f2f80",
+    "checkedAt": "2026-11-09T08:27:10.884Z"
+  },
+  "newLaunch": {
+    "mint": "9LCmMNSsT1PtAyCZa5uVkYF2TMWggYZhhG3q372dTjnD",
+    "checks": [
+      {
+        "name": "network",
+        "status": "passed",
+        "at": "2026-11-09T08:39:20.957Z",
+        "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+        "finalizedSlot": 520324476
+      },
+      {
+        "name": "deployed-program",
+        "status": "passed",
+        "at": "2026-11-09T08:39:22.446Z",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "programDataAddress": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+        "programDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee",
+        "executableSha256": "4077fbffc479a1690ea87e351180007adad4cdb255a142a34ccdd1b53b466e60",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+      },
+      {
+        "name": "router-policy",
+        "status": "passed",
+        "at": "2026-11-09T08:39:22.929Z",
+        "address": "4jxmVjfBeiXjDwwaDQhPvVXhcJ4K4Xf5pmkXWgtkiGMw",
+        "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+      },
+      {
+        "name": "pump-program",
+        "status": "passed",
+        "at": "2026-11-09T08:39:23.590Z",
+        "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+      },
+      {
+        "name": "public-app",
+        "status": "passed",
+        "at": "2026-11-09T08:39:23.902Z",
+        "httpStatus": 200,
+        "cluster": "devnet"
+      },
+      {
+        "name": "ephemeral-memory-payer",
+        "status": "passed",
+        "at": "2026-11-09T08:39:24.905Z",
+        "payer": "6qkJSjiGNzq4ebKbGaw3gasmx1syG6f1MNAzimcyUaJY",
+        "balanceLamports": 216995000,
+        "faucetRequested": false
+      },
+      {
+        "name": "fee-recipient-funding",
+        "status": "passed",
+        "at": "2026-11-09T08:39:25.557Z",
+        "address": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+        "balanceLamports": 9538901071,
+        "fundingRequired": false
+      },
+      {
+        "name": "v3-launch-config",
+        "status": "passed",
+        "at": "2026-11-09T08:39:29.114Z",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "initialAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "split": {
+          "operationsPercent": 40,
+          "referralLevelPercents": [
+            3,
+            1.25,
+            0.75
+          ],
+          "communityPercent": 20,
+          "buybackPercent": 25,
+          "agencyPercent": 10
+        },
+        "agencyRevision": "10",
+        "lookupTable": "FqrcLjTPoiMQkhuTF9cg3X8tvPX6RVp1Dpb8XSeyghUW",
+        "serviceFeeLamports": "20000000"
+      },
+      {
+        "name": "v3-launch",
+        "status": "passed",
+        "at": "2026-11-09T08:39:42.290Z",
+        "signature": "5sENGVJ8BMnyWxACGYftumFuUJabYhFLnGDeQ56XB5uhWxLZBS4KHRaZgoewrfV7QPMFNBE43Vws7nH6ptZ91sw6",
+        "mint": "9LCmMNSsT1PtAyCZa5uVkYF2TMWggYZhhG3q372dTjnD",
+        "feeRouter": "EDpdzMNZguvziuTou3NSxNdSA3wndoUsu8YAHbVzaFyd",
+        "reserveVault": "GbVRMM53q1TvTmvsqFW4hur6P3ueYj4n6ouK1TrGXwMM",
+        "separateRouterTransaction": true
+      },
+      {
+        "name": "live-registration",
+        "status": "passed",
+        "at": "2026-11-09T08:39:54.122Z",
+        "mint": "9LCmMNSsT1PtAyCZa5uVkYF2TMWggYZhhG3q372dTjnD",
+        "signature": "5sENGVJ8BMnyWxACGYftumFuUJabYhFLnGDeQ56XB5uhWxLZBS4KHRaZgoewrfV7QPMFNBE43Vws7nH6ptZ91sw6",
+        "reserveTokens": "30000000",
+        "developerBaseUnits": "3529601674803",
+        "serviceFeeLamports": "20000000"
+      },
+      {
+        "name": "buy",
+        "status": "passed",
+        "at": "2026-11-09T08:40:02.139Z",
+        "signature": "2iidAx9mbK4roUfbvAGJvoLSfGPAjpiYrWiQ7xzQHBNKWHUyS7wphi23suLXaQe43jqiE952XsQ8NfQ33dqat6ru",
+        "slot": 520324642
+      },
+      {
+        "name": "buy-fee-delta",
+        "status": "passed",
+        "at": "2026-11-09T08:40:02.805Z",
+        "lamports": 30000,
+        "feeBps": 100,
+        "quoteLamports": "3000000"
+      },
+      {
+        "name": "sell",
+        "status": "passed",
+        "at": "2026-11-09T08:40:09.402Z",
+        "signature": "3jwUCRxsVyh8fwEfNC4gcY7PNG67PFaohP3D9EdbkXMAiwNaM4h2DhkfR96jvVcdPDZBWnnenhxyswG4BcrtJWyJ",
+        "slot": 520324681
+      },
+      {
+        "name": "sell-fee-delta",
+        "status": "passed",
+        "at": "2026-11-09T08:40:10.053Z",
+        "lamports": 29260,
+        "feeBps": 100,
+        "quoteLamports": "2925922"
+      },
+      {
+        "name": "creator-fee-collection",
+        "status": "passed",
+        "at": "2026-11-09T08:40:21.431Z",
+        "signature": "YHJX1WGi7jVv9XnMNhwsrZYmxdSEdcxqBuYNDR5h5bLp686eHs6KBCNApvBXCHKXub6mgRnwgVYq3ZE3G9NkTCM",
+        "lamports": 46809,
+        "slot": 520324722
+      },
+      {
+        "name": "settlement",
+        "status": "passed",
+        "at": "2026-11-09T08:40:30.019Z",
+        "signature": "4rtWjktQDX7Ltu3KW2tSHsk9BnH9LoE8EUGeWunepTU7uRaEeSELW1ZgKAXga34WsepYM5U92Gkb82C8tDTBjEB1",
+        "lamports": 46809,
+        "categories": [
+          "37447",
+          "3744",
+          "281",
+          "117",
+          "71",
+          "1872",
+          "2340",
+          "937"
+        ]
+      },
+      {
+        "name": "settlement-idempotency",
+        "status": "passed",
+        "at": "2026-11-09T08:40:34.888Z",
+        "signature": "4rtWjktQDX7Ltu3KW2tSHsk9BnH9LoE8EUGeWunepTU7uRaEeSELW1ZgKAXga34WsepYM5U92Gkb82C8tDTBjEB1"
+      },
+      {
+        "name": "referral-level-1",
+        "status": "passed",
+        "at": "2026-11-09T08:40:51.576Z",
+        "recipient": "BX3Hkbjyk2Jo4A6e1JkGzoAnEUXTSFgy5S3A1MTZdDc9",
+        "lamports": "281",
+        "signature": "5nm5VfMD8mrYa6ct3dEyoJoTs8qYtban8x5tCF8VSgk9umNhtKrwzgGGXtHBvFzGgjUBBdVd83cN25nwQb9ojKTt"
+      },
+      {
+        "name": "referral-level-2",
+        "status": "passed",
+        "at": "2026-11-09T08:41:21.655Z",
+        "recipient": "9TwP12BooW9KemKeoj4W5VfyQTwWpLZDstxL5zqhECQ9",
+        "lamports": "117",
+        "signature": "3p7fhRnDws3PaNrYEjviTXZpSje5fEZdzik8YqLRhTDzvWj6qvXzVNx3gEoQgoJqWV2vqGZPD6ymLCP1v1VXqxuj"
+      },
+      {
+        "name": "referral-level-3",
+        "status": "passed",
+        "at": "2026-11-09T08:41:34.184Z",
+        "recipient": "DHooVk4aSpCymS5jaSuEcv7grSMeseYFNSwQ6cAzz5uG",
+        "lamports": "71",
+        "signature": "sbnf1spD3EzYKHf7P9xi5pcZMo7ZXNLK2zSQHBTL3DYRhJviZEy215jRakt64wuxs7sbGHcCp5uQpkGvWfXmH3D"
+      },
+      {
+        "name": "creator-reward-funding",
+        "status": "passed",
+        "at": "2026-11-09T08:41:47.579Z",
+        "signature": "38UkzA5SP8S7Nv7Ywms9gCyN6t5YPYs5GojRnHH2DT9evJBfToB3jig4KkAQVKPUsxSRG3yTKSzFxDYmxcoGJraH",
+        "amount": "4681",
+        "recipient": "GbVRMM53q1TvTmvsqFW4hur6P3ueYj4n6ouK1TrGXwMM"
+      },
+      {
+        "name": "community-funding",
+        "status": "passed",
+        "at": "2026-11-09T08:42:00.145Z",
+        "signature": "5V3tVVJgj6HnxW5QkxHtSheoM88aDE2KkNoavtJ2Ld2t4t5oucZBErqPW2EaUECp9GNAapyR9ikDhdH4RPmThwt6",
+        "amount": "1872",
+        "recipient": "GbVRMM53q1TvTmvsqFW4hur6P3ueYj4n6ouK1TrGXwMM"
+      },
+      {
+        "name": "operations-payout",
+        "status": "passed",
+        "at": "2026-11-09T08:42:08.488Z",
+        "signature": "5vyV7gtmbZWFpFHMdb297KPq16fbLtNRef6rkJwmviRhiiKZDnADxD6VVnYVGjmJiTXFZ9uvbxN7QtEy9gvUkNSi",
+        "amount": "3744",
+        "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB"
+      },
+      {
+        "name": "creator-fee-collection",
+        "status": "failed",
+        "at": "2026-11-09T08:42:12.171Z",
+        "reason": "Expected values to be strictly equal:\n\n202 !== 423\n"
+      }
+    ],
+    "transactions": [
+      {
+        "name": "v3-launch",
+        "signature": "5sENGVJ8BMnyWxACGYftumFuUJabYhFLnGDeQ56XB5uhWxLZBS4KHRaZgoewrfV7QPMFNBE43Vws7nH6ptZ91sw6",
+        "explorer": "https://explorer.solana.com/tx/5sENGVJ8BMnyWxACGYftumFuUJabYhFLnGDeQ56XB5uhWxLZBS4KHRaZgoewrfV7QPMFNBE43Vws7nH6ptZ91sw6?cluster=devnet",
+        "finalized": true,
+        "slot": 520324544
+      },
+      {
+        "name": "v3-mint-router",
+        "signature": "2jpjF1Pdw3wKWA5tCVUD2pfZpPZzgndCno1GtDT3V84NztqBr3e4n96wKKzR2A611iWHoZdeBhwnWaddkWm8oF1k",
+        "finalized": true,
+        "slot": 520324532
+      },
+      {
+        "name": "buy",
+        "signature": "2iidAx9mbK4roUfbvAGJvoLSfGPAjpiYrWiQ7xzQHBNKWHUyS7wphi23suLXaQe43jqiE952XsQ8NfQ33dqat6ru",
+        "explorer": "https://explorer.solana.com/tx/2iidAx9mbK4roUfbvAGJvoLSfGPAjpiYrWiQ7xzQHBNKWHUyS7wphi23suLXaQe43jqiE952XsQ8NfQ33dqat6ru?cluster=devnet",
+        "finalized": true,
+        "slot": 520324642
+      },
+      {
+        "name": "sell",
+        "signature": "3jwUCRxsVyh8fwEfNC4gcY7PNG67PFaohP3D9EdbkXMAiwNaM4h2DhkfR96jvVcdPDZBWnnenhxyswG4BcrtJWyJ",
+        "explorer": "https://explorer.solana.com/tx/3jwUCRxsVyh8fwEfNC4gcY7PNG67PFaohP3D9EdbkXMAiwNaM4h2DhkfR96jvVcdPDZBWnnenhxyswG4BcrtJWyJ?cluster=devnet",
+        "finalized": true,
+        "slot": 520324681
+      }
+    ],
+    "runnerStatus": "blocked",
+    "runnerFailureExplanation": "The final old harness assertion expected HTTP423 for a creator SOL hold. This hold is retired; HTTP202 awaiting the creator signature is correct. The actual creator-signature path was separately completed with an existing QA Pro token below. The raw failure is retained, not rewritten as an app failure or erased.",
+    "unclaimedFixtureCreatorAllocation": "The ephemeral launch creator did not sign its 32,766-lamport allocation before cleanup; that disposable test allocation remains unclaimed. Its developer tokens retain their saved escrow deadline."
+  },
+  "fixtureFunding": {
+    "source": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+    "payer": "6qkJSjiGNzq4ebKbGaw3gasmx1syG6f1MNAzimcyUaJY",
+    "budgetLamports": 220000000,
+    "sourceBefore": 15466344705,
+    "sourceAfter": 15418893986,
+    "netSpentLamports": 47450719,
+    "refundsFinalized": true,
+    "transactions": [
+      {
+        "name": "fund-ephemeral",
+        "signature": "5xaYTxQMq4wXcaPUQDS2QU5ZPv6gGHbHfrwnZak8nK2VuLiaFLderPwopwphSeSDimqbA1q61bzPS8Hwquxd2AEE",
+        "lastValidBlockHeight": 507467254,
+        "finalized": true,
+        "slot": 520324413
+      },
+      {
+        "name": "fund-referral-recipients",
+        "signature": "9NMPNvLfaTBmZEyTw9LyX99FrqmmeT8t5J8TL4yQucWPdBoFfhsTqchJ4eziGT35iVcekQyJEF6xtYNDJYKFF5v",
+        "lastValidBlockHeight": 507467279,
+        "finalized": true,
+        "slot": 520324439
+      },
+      {
+        "name": "refund-0",
+        "signature": "2PidkfJ9FxzsWFWvmdBTkAGY71wSqN2Ym7B3MaH9fePUuKD5gP3eRuEeocE4yvTaTJ11JfVVVZ6JpS29vxn4SjHF",
+        "lastValidBlockHeight": 507468039,
+        "finalized": true,
+        "slot": 520325207
+      },
+      {
+        "name": "refund-1",
+        "signature": "JP5xBUh7Pe1PbNWTNLC9gdu2x57XMYMPGvvj221pAXEA3VNTykT4XL5UztD1sSRQc3Fz4PmjLQzLLqRAWY2bBmg",
+        "lastValidBlockHeight": 507468066,
+        "finalized": true,
+        "slot": 520325236
+      },
+      {
+        "name": "refund-2",
+        "signature": "HovB8hkc947t3cYH8BjjXewXrNdQX1A3vcBuX7nJqCR3r2MBjpzCqbyHk4T2qhDCxQuDK281PW6p3ec3SGdx8W5",
+        "lastValidBlockHeight": 507468094,
+        "finalized": true,
+        "slot": 520325265
+      },
+      {
+        "name": "refund-3",
+        "signature": "4wUJHwZE33erGya3AysMYQNBF3ViXqng7NcEdfvXQ5u2FcnGsperp89HAjx7MgtPeNS2MSdbx1cc4qFLDP1jGcH4",
+        "lastValidBlockHeight": 507468122,
+        "finalized": true,
+        "slot": 520325293
+      }
+    ],
+    "privateKeyPersistence": "Generated fixture/referral keys stayed in process memory only. Existing Devnet QA funder was loaded from its existing local key reference."
+  },
+  "creatorClaim": {
+    "cluster": "devnet",
+    "mint": "HQiP8prGdyuyfygCXNB8x8gvrzHyTrrTWLdKA6KQygjA",
+    "startedAt": "2026-11-09T08:46:22.397Z",
+    "receipts": [],
+    "collection": {
+      "signature": "392SEq6X8woepFEDRqnjCspC1cXPQeFDHpUUGXdhY8yPBTzuG9KRFMyBmYEWYZBsrBKYCmEEFQE4aPQ4MfDJLasD",
+      "lamports": 25887
+    },
+    "settlement": {
+      "signature": "2S9RFajgmuVSs7XGm2Pd4K2wZz9uiDEfLPMfXFdEawBqEkJp4Rk8uZmpDgDRzrPcJEqmZXKz8m8LVAbRVBu92sQg",
+      "categoryLamports": [
+        "20709",
+        "2071",
+        "155",
+        "65",
+        "39",
+        "1035",
+        "1295",
+        "518"
+      ]
+    },
+    "approvedAmountLamports": "20709",
+    "signature": "4sEWretEF36mGQRyRKo46Nbazd3rhhoGnMW7pxHjtVEhM8LCJviqVVxe6zrdHAgiyNcjTQYTuih2ZLoaqjVY9bTm",
+    "status": "passed",
+    "recipient": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+    "recipientCreditLamports": 20709,
+    "authorityPaysFee": true,
+    "feeLamports": 10000,
+    "replayPrevented": true,
+    "slot": 520326384,
+    "finishedAt": "2026-11-09T08:47:02.048Z"
+  },
+  "boostPayment": {
+    "cluster": "devnet",
+    "mint": "HQiP8prGdyuyfygCXNB8x8gvrzHyTrrTWLdKA6KQygjA",
+    "maximumPaymentLamports": 650000000,
+    "startedAt": "2026-11-09T08:50:40.189Z",
+    "payer": "7ngaVZdeipr6uZy2inh267PjZLLYFuAfsPoTRZixjJMk",
+    "recipient": "BHRHGiDRGrBXo6PuVvgxuH9nVbaGCLAxrdUKNJxzYb16",
+    "quoteId": "boost_1794214241027_9471a4e01e140ce6",
+    "pricingRevision": 0,
+    "lamports": 572055935,
+    "packageId": "10x",
+    "hours": 12,
+    "multiplier": 10,
+    "signature": "2NJvbvykikT79KuRTxWqJ7Znq7e8nVT6TGN4CzjLEPdt4ZZwt7Q6FCx33bQ7rj8huzPfTFMDWqXHkeKMV4QxN95j",
+    "lastValidBlockHeight": 507470142,
+    "journaledBeforeBroadcast": true,
+    "status": "passed",
+    "finalizedSlot": 520327327,
+    "recipientCreditLamports": 572055935,
+    "payerDebitLamports": 572060935,
+    "feeLamports": 5000,
+    "recoveredWithoutResigning": true,
+    "replaySingleReceipt": true,
+    "activeMultiplier": 10,
+    "activeExpiresAt": "2026-11-09T20:50:42.000Z",
+    "finishedAt": "2026-11-09T08:50:48.323Z"
+  },
+  "buybackEvidence": "docs/evidence/rich-devnet-fee-vault-lifecycle-2026-11-09.json",
+  "ui": {
+    "desktopViewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "publicRoutesInspected": [
+      "Home",
+      "Explore",
+      "Top 100",
+      "Portfolio",
+      "Rewards",
+      "Coin calls",
+      "Creators",
+      "Referrals",
+      "Daily bonuses",
+      "Airdrops",
+      "Leaderboard",
+      "Fee distribution",
+      "AI Marketing",
+      "Analytics",
+      "Get listed",
+      "Docs",
+      "Profile and wallet dialog",
+      "$RICH",
+      "Create",
+      "Privacy",
+      "Terms",
+      "Disclosures"
+    ],
+    "interactionsVerified": [
+      "Invalid listing mint displays an inline validation message",
+      "Guide search displays no-match state and Clear restores topics",
+      "Launch Details advances to Rewards and funding; disconnected submit requires wallet",
+      "Boost review displays published price and disconnected checkout requires wallet",
+      "Finalized 10x boost appears in active boost dialog",
+      "Profile dialog shows disconnected state and disables address copying",
+      "Terms and Disclosures open and close without agreement"
+    ],
+    "horizontalPageOverflowObserved": false,
+    "dataLimitations": "Some route snapshots were captured while their data was still loading. They establish navigation/rendering only. Receipt coverage briefly reported stale and later recovered to30of30 verified at08:47UTC.",
+    "mobile": {
+      "method": "Native Chrome responsive emulation",
+      "verifiedWidths": [
+        400,
+        375
+      ],
+      "height": 741,
+      "routes": [
+        "Home",
+        "Create"
+      ],
+      "navigationOpened": true,
+      "coverage": "partial",
+      "limitation": "Further native interaction overlapped external input in the test window. Full mobile route coverage and real mobile Phantom signing remain unverified. IAB viewport override did not change its actual1280px width."
+    }
+  },
+  "fix": {
+    "file": "src/features/workspace/secondary-pages.js",
+    "change": "Replace the duplicated Referrals intro with a dashboard-specific heading and instruction",
+    "validation": [
+      "JavaScript syntax check",
+      "Whitespace diff check"
+    ],
+    "deployment": "pending next exact source release"
+  },
+  "remainingLiveAcceptance": [
+    "Full mobile route coverage and real mobile wallet signing",
+    "Fresh scheduled holder SOL payout and daily bonus cycle",
+    "Fresh X identity and X reward claim with the user-controlled X account",
+    "Developer escrow release at its actual saved deadline",
+    "Paid-tier/listing burn and interrupted launch recovery repeated against this release",
+    "Live buyback worker activation/trigger evidence, distinct from the isolated fee-vault fixture"
+  ],
+  "mainnet": "Disabled. Production identities, secrets, spending limit, reviewed release and independent review remain required; missing configuration stays placeholder."
+}
