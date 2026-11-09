@@ -1,5 +1,7 @@
 # Mainnet preparation with placeholders
 
+For the latest owner inputs, completed safeguards and remaining implementation gates, see [Mainnet handoff](mainnet-handoff-2026-11-09.md). The user reconfirmed placeholder-first preparation on 9 November; that does not authorize activating an incomplete Mainnet release.
+
 The user requested completion of the go-live work. The selected admin and upgrade authority is `ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC`, with a maximum total spend of 5 SOL. Mainnet data providers are free Helius RPC, public Solana Mainnet RPC as backup, and Birdeye for indexed market metrics. Remaining production inputs still use placeholders. Mainnet transactions remain disabled; a budget and provider selection do not establish deployment or financial acceptance.
 
 ## Current preparation and live checks

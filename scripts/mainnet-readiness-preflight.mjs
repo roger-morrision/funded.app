@@ -57,6 +57,11 @@ export function assessMainnetConfig(env) {
     v3RouterConfigured: Boolean(validPublicKey(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID) && /^[a-f0-9]{64}$/.test(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '')),
     developerEscrowConfigured: Boolean(validPublicKey(env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID) && /^[a-f0-9]{64}$/.test(env.FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256 || '')),
     fundedMintConfigured: Boolean(validPublicKey(env.FUNDED_TOKEN_MINT) && env.FUNDED_TOKEN_MINT===env.VITE_FUNDED_TOKEN_MINT),
+    fundedPoolConfigured: Boolean(validPublicKey(env.FUNDED_SWAP_POOL) && env.FUNDED_SWAP_POOL===env.VITE_FUNDED_SWAP_POOL),
+    distinctProductionIdentities: Boolean(routerId && validPublicKey(env.FUNDED_TOKEN_MINT)
+      && validPublicKey(env.FUNDED_SWAP_POOL)
+      && new Set([routerId,env.FUNDED_TOKEN_MINT,env.FUNDED_SWAP_POOL]).size===3),
+    sameOriginBrowserApi: !String(env.VITE_API_BASE_URL || '').trim() || env.VITE_API_BASE_URL==='/',
     durableMetadata: env.METADATA_STORAGE==='pinata' && Boolean(env.PINATA_JWT_FILE)
       && !/REPLACE|PLACEHOLDER/i.test(env.PINATA_JWT_FILE),
     writeGuardStillDisabled: String(env.VITE_ALLOW_MAINNET || 'false').toLowerCase() !== 'true',

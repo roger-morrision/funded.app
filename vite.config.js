@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import { prunePosterSources } from './scripts/prune-build-sources.mjs';
 import { browserSourceDigest } from './scripts/browser-source-digest.mjs';
+import { browserReleaseIdentity } from './browser-release-identity.js';
 
 // Modules bootstrap.js loads in sequence on every page (see the funded-startup-preload plugin).
 const STARTUP_MODULES = ['bootstrap.js', 'app.js', 'page-experience.js', 'creator-support-ui.js', 'adoption-ui.js',
@@ -16,11 +17,15 @@ export function browserBuildSettings(fileEnv = {}, runtimeEnv = process.env) {
   if (cluster === 'mainnet-beta' && enabled('VITE_MAINNET_READ_ONLY') && enabled('VITE_ALLOW_MAINNET')) throw new Error('Read-only staging cannot enable Mainnet writes.');
   return { schemaVersion: 1, cluster, exploreCluster, mainnetEnabled: enabled('VITE_ALLOW_MAINNET'),
     mainnetReadOnly: cluster === 'mainnet-beta' && enabled('VITE_MAINNET_READ_ONLY'),
-    devWalletEnabled: cluster === 'devnet' && enabled('VITE_DEV_MODE') };
+    devWalletEnabled: cluster === 'devnet' && enabled('VITE_DEV_MODE'),
+    publicIdentity: browserReleaseIdentity(env) };
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  // The preview intentionally has no production identity yet. Even an explicit
+  // Vite envDir:false does not protect our own loadEnv() call from .env.local.
+  const isolatedPreview = mode === 'mainnet-preview';
+  const env = isolatedPreview ? {} : loadEnv(mode, process.cwd(), '');
   const settings = browserBuildSettings(env);
   const mainnetReadOnly = settings.mainnetReadOnly;
   let resolvedOutput;
@@ -33,6 +38,7 @@ export default defineConfig(({ mode }) => {
     '/devnet-banners': { target: apiTarget, changeOrigin: false },
   } : undefined;
   return {
+    ...(isolatedPreview ? { envDir: false } : {}),
     cacheDir: process.env.VITE_CACHE_DIR || undefined,
     plugins: [{ name: 'funded-build-settings',
       transformIndexHtml(html) {

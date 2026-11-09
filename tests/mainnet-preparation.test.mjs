@@ -21,7 +21,9 @@ function env(){return {MAINNET_PROGRAM_LAYOUT:'merged-v3',VITE_SOLANA_CLUSTER:'m
   FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program.toBase58(),FUNDED_V3_PROGRAM_DATA_SHA256:hash,
   FUNDED_DEVELOPER_LOCK_PROGRAM_ID:program.toBase58(),FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256:hash,
   VITE_FUNDED_FEE_ROUTER_PROGRAM_ID:program.toBase58(),MAINNET_APPROVED_UPGRADE_AUTHORITY:authority.toBase58(),
-  FUNDED_TOKEN_MINT:program.toBase58(),VITE_FUNDED_TOKEN_MINT:program.toBase58(),METADATA_STORAGE:'pinata',PINATA_JWT_FILE:'/run/secrets/metadata',
+  FUNDED_TOKEN_MINT:new PublicKey(new Uint8Array(32).fill(3)).toBase58(),VITE_FUNDED_TOKEN_MINT:new PublicKey(new Uint8Array(32).fill(3)).toBase58(),
+  FUNDED_SWAP_POOL:new PublicKey(new Uint8Array(32).fill(4)).toBase58(),VITE_FUNDED_SWAP_POOL:new PublicKey(new Uint8Array(32).fill(4)).toBase58(),
+  METADATA_STORAGE:'pinata',PINATA_JWT_FILE:'/run/secrets/metadata',
   SOLANA_RPC_URL:'https://rpc.production.example',DEVNET_SOLANA_RPC_URL:'https://rpc.devnet.example',
   DATABASE_URL:'postgresql://localhost/mainnet',DEVNET_DATABASE_URL:'postgresql://localhost/devnet'};}
 
@@ -45,6 +47,9 @@ test('merged preflight rejects split identities, mixed hashes, authority ambigui
     {MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true'},
     {MAINNET_APPROVED_UPGRADE_AUTHORITY:'',MAINNET_APPROVED_IMMUTABLE_PROGRAM:'true'},
     {VITE_ALLOW_MAINNET:'true'},{VITE_DEV_MODE:'true'},
+    {FUNDED_SWAP_POOL:''},{VITE_FUNDED_SWAP_POOL:authority.toBase58()},
+    {FUNDED_SWAP_POOL:env().FUNDED_TOKEN_MINT,VITE_FUNDED_SWAP_POOL:env().FUNDED_TOKEN_MINT},
+    {VITE_API_BASE_URL:'https://devnet.example'},
     {PINATA_JWT_FILE:'REPLACE_WITH_METADATA_SECRET'},{SOLANA_RPC_URL:'https://replace_with_rpc.invalid'}])
     assert.equal(assessMainnetConfig({...env(),...changes}).configurationComplete,false,JSON.stringify(changes));
   const old={...env(),MAINNET_PROGRAM_LAYOUT:'legacy-three-role',FUNDED_FEE_ROUTER_PROGRAM_ID:program.toBase58(),FUNDED_REWARD_PROGRAM_DATA_SHA256:hash};

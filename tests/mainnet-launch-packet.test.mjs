@@ -8,6 +8,8 @@ import {loadMainnetConfig} from '../scripts/mainnet-config.mjs';
 import {v3XClaimStatement} from '../server/routes/v3-x-claims.mjs';
 import {communityProgramForLaunch} from '../server/community-program-config.mjs';
 import {SOLANA_GENESIS} from '../solana-network.js';
+import {browserReleaseIdentity} from '../browser-release-identity.js';
+import viteConfig,{browserBuildSettings} from '../vite.config.js';
 
 const read=name=>JSON.parse(readFileSync(`config/${name}.json`,'utf8'));
 const key=n=>new PublicKey(new Uint8Array(32).fill(n)).toBase58();
@@ -19,10 +21,12 @@ function config(){return {MAINNET_PROGRAM_LAYOUT:'merged-v3',VITE_SOLANA_CLUSTER
   FUNDED_V3_FEE_ROUTER_PROGRAM_ID:key(1),FUNDED_V3_PROGRAM_DATA_SHA256:'ab'.repeat(32),
   FUNDED_DEVELOPER_LOCK_PROGRAM_ID:key(1),FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256:'ab'.repeat(32),
   VITE_FUNDED_FEE_ROUTER_PROGRAM_ID:key(1),MAINNET_APPROVED_UPGRADE_AUTHORITY:key(2),
-  FUNDED_TOKEN_MINT:key(3),VITE_FUNDED_TOKEN_MINT:key(3),METADATA_STORAGE:'pinata',PINATA_JWT_FILE:'/run/secrets/metadata',
+  FUNDED_TOKEN_MINT:key(3),VITE_FUNDED_TOKEN_MINT:key(3),FUNDED_SWAP_POOL:key(4),VITE_FUNDED_SWAP_POOL:key(4),
+  METADATA_STORAGE:'pinata',PINATA_JWT_FILE:'/run/secrets/metadata',
   SOLANA_RPC_URL:'https://rpc.mainnet.example',DEVNET_SOLANA_RPC_URL:'https://rpc.devnet.example',
   DATABASE_URL:'postgresql://db/mainnet',DEVNET_DATABASE_URL:'postgresql://devnet/db'};}
-const build={schemaVersion:1,cluster:'mainnet-beta',exploreCluster:'mainnet-beta',mainnetEnabled:false,mainnetReadOnly:true,devWalletEnabled:false};
+const build={schemaVersion:1,cluster:'mainnet-beta',exploreCluster:'mainnet-beta',mainnetEnabled:false,mainnetReadOnly:true,devWalletEnabled:false,
+  publicIdentity:browserReleaseIdentity(config())};
 
 test('placeholder packet lists missing production inputs without granting activation or treating history as current',async()=>{
   const input=packet();input.devnetEvidence={schemaVersion:1,cluster:'devnet',application:{revision:'b'.repeat(40)},
@@ -76,6 +80,26 @@ test('staging isolates inherited credentials, disables workers and rejects a wro
     assert.throws(()=>mainnetStagingEnvironment({...config(),...changes},build),/Read-only staging/);
   assert.throws(()=>mainnetStagingEnvironment(packet().config,build),/Complete/);
 });
+test('staging rejects a foreign asset or fee recipient even when the browser network matches',()=>{
+  for(const field of ['routerProgram','fundedMint','fundedPool','tradeFeeRecipient','tradeFeeBps','apiBase']) {
+    const changed={...build,publicIdentity:{...build.publicIdentity,[field]:'different'}};
+    assert.throws(()=>mainnetStagingEnvironment(config(),changed),/browser identity/);
+  }
+  assert.throws(()=>mainnetStagingEnvironment(config(),{...build,publicIdentity:undefined}),/browser identity/);
+  const publicValues=browserReleaseIdentity({...config(),BIRDEYE_API_KEY:'private-key',DATABASE_URL:'private-db',
+    SOLANA_RPC_URL:'https://rpc.example/private-key',VITE_UNEXPECTED_SECRET:'private-key'});
+  assert(!JSON.stringify(publicValues).includes('private'));
+});
+
+test('Mainnet preview disables local env files and release identity excludes server credentials',()=>{
+  assert.equal(viteConfig({mode:'mainnet-preview'}).envDir,false);
+  const settings=browserBuildSettings({}, {VITE_SOLANA_CLUSTER:'mainnet-beta',VITE_MAINNET_READ_ONLY:'true',
+    DATABASE_URL:'private-db',SOLANA_RPC_URL:'https://rpc.example/private-key'});
+  assert.equal(settings.publicIdentity.fundedMint,'');
+  assert.equal(settings.publicIdentity.routerProgram,'');
+  assert(!JSON.stringify(settings).includes('private'));
+});
+
 test('new X wallet challenges cannot be replayed across networks; historical Devnet wording is retained',()=>{
   const claim={collectionSignature:'source',mint:key(1),xUserId:'123',nonce:'abc'};
   const dev=v3XClaimStatement({...claim,cluster:'devnet'},key(2));

@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {assessMainnetConfig} from './mainnet-readiness-preflight.mjs';
 import {loadMainnetConfig} from './mainnet-config.mjs';
+import {browserReleaseIdentity} from '../browser-release-identity.js';
 
 export function mainnetStagingEnvironment(config,build,{systemEnv=process.env,port=4187}={}) {
   if(!assessMainnetConfig(config).configurationComplete)
@@ -11,6 +12,10 @@ export function mainnetStagingEnvironment(config,build,{systemEnv=process.env,po
   if(build?.schemaVersion!==1||build.cluster!=='mainnet-beta'||build.exploreCluster!==build.cluster
     ||build.mainnetEnabled!==false||build.mainnetReadOnly!==true||build.devWalletEnabled!==false)
     throw Error('Staging requires a Mainnet read-only browser build; a Devnet build cannot be served.');
+  const identity=browserReleaseIdentity(config);
+  if(identity.apiBase!=='/' || !build.publicIdentity
+    || Object.entries(identity).some(([name,value])=>build.publicIdentity[name]!==value))
+    throw Error('Staging browser identity must match the configured program, assets, fee recipient and same-origin API.');
   if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Use a non-privileged staging port.');
   for(const [name,value] of Object.entries(config)){
     if(value&&['NODE_OPTIONS','NODE_PATH'].includes(name))

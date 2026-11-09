@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-09T04:58:10.5474199Z",
+  "status": "no-go",
+  "scope": "placeholder-preparation-local-tests-and-read-only-live-checks",
+  "mainnetActivationAuthorized": false,
+  "transactionsSubmitted": 0,
+  "source": {
+    "baseRevision": "c60d1b03844ff557329f297a1e54bf6314a80080",
+    "workingTree": "Includes this preparation and concurrent boost/mobile fixes; not a frozen production release"
+  },
+  "ownerDecision": "PLACE HOLDER FIRST",
+  "verification": {
+    "tests": {
+      "passed": 294,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "local/mocked financial checks",
+      "log": "tmp/mainnet-final-preparation-tests.log"
+    },
+    "syntaxFiles": 962,
+    "sizeBudgetFiles": 1187,
+    "preview": {
+      "built": true,
+      "identitiesEmpty": true,
+      "settings": {
+        "schemaVersion": 1,
+        "cluster": "mainnet-beta",
+        "exploreCluster": "mainnet-beta",
+        "mainnetEnabled": false,
+        "mainnetReadOnly": true,
+        "devWalletEnabled": false,
+        "publicIdentity": {
+          "routerProgram": "",
+          "fundedMint": "",
+          "fundedPool": "",
+          "tradeFeeRecipient": "",
+          "tradeFeeBps": "100",
+          "apiBase": "/"
+        },
+        "sourceDigest": "fd0dd4f74dda539597f30b77db6b31cec481a26da257bbcccbdf20ffd339c58c"
+      },
+      "log": "tmp/mainnet-handoff-build.log"
+    },
+    "rpc": {
+      "at": "2026-11-09T04:55:06.552Z",
+      "scope": "live-read-only-providers-with-simulated-primary-quota",
+      "cluster": "mainnet-beta",
+      "transactionsSubmitted": 0,
+      "verified": true,
+      "primary": "helius",
+      "fallback": "public-solana-mainnet",
+      "primarySlot": 467190832,
+      "fallbackSlot": 467190837,
+      "mainnetWritesBlocked": true,
+      "stats": {
+        "enabled": true,
+        "cluster": "mainnet-beta",
+        "activeProvider": "public-mainnet-beta",
+        "failovers": 1,
+        "recoveryProbes": 0,
+        "primaryAttempts": 3,
+        "publicRequests": 1,
+        "nextPrimaryProbeInMs": 599428,
+        "publicVerified": true,
+        "publicRateLimited": 0
+      }
+    },
+    "devnetDependencies": {
+      "at": "2026-11-09T04:55:41.326Z",
+      "scope": "read-only-live-dependencies-not-financial-acceptance",
+      "cluster": "devnet",
+      "ready": false,
+      "lock": {
+        "lock": "C5v7gu9hcJggmezUdY16uUKo5xnYRrHePWyJPwMxBMA7",
+        "mint": "DHeL94ZYd4kdN3myY9FDnRA6WS4QEjk1XySDYefnRufg",
+        "creator": "44z5nXbFctEMZYksy1BqFSTUv8Qfrq2uNjkqi4XKLwrD",
+        "amount": "100000000",
+        "lockedAt": 1794104634,
+        "unlockAt": 1794277434,
+        "releasedAt": 0,
+        "lockSeconds": 172800,
+        "chainTime": 1794200143,
+        "unlockAtUtc": "2026-11-10T02:23:54Z",
+        "remainingSeconds": 77291,
+        "matured": false,
+        "earlyReleaseRejected": true,
+        "vaultBalanceUnchanged": true
+      },
+      "priceSignerAccount": {
+        "address": "pNgBvEvwdWsYUmDyPfYUrKvnn9QFdnoVV4mc7ZBfSUV",
+        "exists": false,
+        "owner": null
+      }
+    },
+    "publicStatus": {
+      "cluster": "devnet",
+      "build": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+      "status": "operational",
+      "mainnetActivationAuthorized": false,
+      "checkedWith": "Node HTTPS fetch; PowerShell TLS request unavailable"
+    }
+  },
+  "planningPacket": {
+    "path": "tmp/mainnet-handoff-packet-20261109.json",
+    "status": "no-go",
+    "missingProductionInputs": 21,
+    "reviewedRelease": false
+  },
+  "handoff": "docs/mainnet-handoff-2026-11-09.md",
+  "remaining": "Production financial network integrations, complete acceptance, identities/infrastructure/signers, exact binary review, complete budget and capped canary remain required"
+}
