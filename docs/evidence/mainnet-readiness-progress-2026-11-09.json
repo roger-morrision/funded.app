@@ -120,6 +120,89 @@
       "syntaxFiles": 957,
       "maintainedFiles": 1182,
       "passed": true
+    },
+    "exactImageTests": {
+      "passed": 285,
+      "failed": 0,
+      "network": "none"
     }
+  },
+  "deployment": {
+    "revision": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+    "release": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53-c3085894-4f2a-42ff-9118-76d2afde13ff",
+    "at": "2026-11-09T04:27:47.335Z",
+    "ready": true,
+    "services": [
+      {
+        "service": "app",
+        "image": "sha256:f60133ade73a650c4fb47f971309cd3962718ed408b52137b253722ddf77b4b6",
+        "build": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "revision": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "fee-collector",
+        "image": "sha256:f60133ade73a650c4fb47f971309cd3962718ed408b52137b253722ddf77b4b6",
+        "build": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "revision": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "buyback-worker",
+        "image": "sha256:f60133ade73a650c4fb47f971309cd3962718ed408b52137b253722ddf77b4b6",
+        "build": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "revision": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "agency-buyback-worker",
+        "image": "sha256:f60133ade73a650c4fb47f971309cd3962718ed408b52137b253722ddf77b4b6",
+        "build": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "revision": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      }
+    ],
+    "errors": []
+  },
+  "gatewayDeployment": {
+    "at": "2026-11-09T04:26:17.836Z",
+    "ready": true,
+    "revision": "e905d3ac0fcd46ee5bc869af5359f070fd39fc53",
+    "image": "sha256:f60133ade73a650c4fb47f971309cd3962718ed408b52137b253722ddf77b4b6",
+    "scope": "rpc-gateway-only",
+    "appAndWorkersUnchanged": true,
+    "cluster": "devnet",
+    "finalizedSlot": 520260989,
+    "failover": {
+      "enabled": true,
+      "cluster": "devnet",
+      "activeProvider": "helius",
+      "failovers": 0,
+      "recoveryProbes": 0,
+      "primaryAttempts": 2,
+      "publicRequests": 0,
+      "nextPrimaryProbeInMs": 0,
+      "publicVerified": false,
+      "publicRateLimited": 0
+    },
+    "rollbackAvailable": true
+  },
+  "isolatedMainnetContainerCheck": {
+    "cluster": "mainnet-beta",
+    "healthy": true,
+    "genesisVerified": true,
+    "writesBlocked": true,
+    "transactionsSubmitted": 0,
+    "image": "sha256:f60133ade73a650c4fb47f971309cd3962718ed408b52137b253722ddf77b4b6",
+    "at": "2026-11-09T04:25:36.981Z",
+    "temporaryContainerStopped": true
   }
 }

@@ -16,6 +16,8 @@ services:
     tmpfs: [/tmp]
     environment:
       SOLANA_CLUSTER: mainnet-beta
+      PORT: '8899'
+      WS_PORT: '8900'
       FUNDED_RPC_UPSTREAM_URL_FILE: /run/secrets/mainnet_rpc
     secrets: [mainnet_rpc]
     ports: ['127.0.0.1:18999:8899', '127.0.0.1:19000:8900']
