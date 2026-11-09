@@ -346,3 +346,24 @@ html body :is(.boost-leading-icon, .token-card-action-boost) svg { color:var(--f
 html body .explore-boost-pay .boost-leading-icon svg { color:inherit; }
 
 .top100-paid-priority { display:block;margin-top:4px;color:var(--fv-accent);font-size:10px;white-space:nowrap; }
+
+/* Keep the artwork preview square when upload actions share a narrow form. */
+html body .launch-dialog .image-picker { display:grid;grid-template-columns:38px minmax(0,1fr) auto; }
+html body .launch-dialog .image-preview { width:38px;height:38px; }
+html body .launch-dialog .image-picker > span:nth-child(2) { min-width:0; }
+/* Wrapped labels must not move neighboring metric values onto different rows. */
+html body #main-content .proof-total > span { display:flex;align-items:flex-end;min-height:2.8em;line-height:1.4; }
+/* The workspace header already presents this title and description. */
+html body.page-route-referrals #referral-command-center > .section-heading { display:none; }
+html body #main-content .referral-earnings-calculator li { align-items:baseline; }
+html body #main-content .referral-earnings-calculator li > strong { margin:0;white-space:nowrap; }
+html body #main-content #coin-page #coin-promotion-badge:empty { display:none; }
+html body #rewards-history .mobile-filter-drawer > button { margin-top:12px; }
+@media(max-width:560px) {
+  html body .launch-dialog .image-picker { grid-template-columns:38px minmax(0,1fr); }
+  html body .launch-dialog .image-picker-actions { grid-column:2;justify-self:end; }
+  html body.product-experience-style .explore-boost-packages { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  html body .explore-boost-packages button b { white-space:nowrap; }
+  html body .coin-quick-edit-actions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }
+  html body .coin-quick-edit-actions #coin-quick-edit-reset { grid-column:1 / -1; }
+}
