@@ -74,18 +74,18 @@ Keep image-layer sizes separate from physical disk usage. Moving permissions ear
 
 ## Verify app and worker release readiness
 
-For the existing funded.vip Devnet stack, deploy `app`, `fee-collector`, `buyback-worker` and `agency-buyback-worker` from the same immutable image with the same `FUNDED_BUILD_ID` and revision label. An app-only update can leave the agency worker publishing the previous build; the launch readiness gate correctly refuses new launches in that state. Include worker alignment in the release operation, even for frontend-only changes that replace the app image.
+For the existing richpad.fun Devnet stack, deploy `app`, `fee-collector`, `buyback-worker` and `agency-buyback-worker` from the same immutable image with the same `FUNDED_BUILD_ID` and revision label. An app-only update can leave the agency worker publishing the previous build; the launch readiness gate correctly refuses new launches in that state. Include worker alignment in the release operation, even for frontend-only changes that replace the app image.
 
-After the workers complete startup verification, run `node scripts/verify-deployment-readiness.mjs fundedapp <full-tested-commit> https://funded.vip`. This read-only check requires matching images and revisions, Devnet configuration, running services, healthy configured health checks, the expected public API build and a ready developer escrow launch gate. Workers without Docker health checks are reported as `not-configured`, never as healthy. A failed check means deployment acceptance is incomplete; do not weaken the on-chain readiness gate to make it pass. It does not prove trades or payouts.
+After the workers complete startup verification, run `node scripts/verify-deployment-readiness.mjs fundedapp <full-tested-commit> https://richpad.fun`. This read-only check requires matching images and revisions, Devnet configuration, running services, healthy configured health checks, the expected public API build and a ready developer escrow launch gate. Workers without Docker health checks are reported as `not-configured`, never as healthy. A failed check means deployment acceptance is incomplete; do not weaken the on-chain readiness gate to make it pass. It does not prove trades or payouts.
 
-## Release the existing funded.vip stack as one unit
+## Release the existing richpad.fun stack as one unit
 
 Use `npm run release:devnet -- ...` for an existing, explicitly selected Devnet stack. This host-side helper replaces the app and all three financial workers together. It never starts Docker Desktop, starts infrastructure dependencies, builds/pulls images, prunes storage, or reverses database migrations. Keep Docker stopped when only preparing or checking a bundle.
 
 Prepare a release from **resolved Compose JSON** (`docker compose ... config --format json` using the current stack's exact configuration files), an already built immutable image ID, its full source revision, and the HTTPS origin:
 
 ```sh
-npm run release:devnet -- prepare /private/resolved-compose.json sha256:<64-hex-image-id> <40-hex-revision> https://funded.vip
+npm run release:devnet -- prepare /private/resolved-compose.json sha256:<64-hex-image-id> <40-hex-revision> https://richpad.fun
 npm run release:devnet -- check <returned-release-id>
 ```
 

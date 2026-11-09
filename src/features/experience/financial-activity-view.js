@@ -4,7 +4,7 @@ import { icon } from '../../../ui-icons.js';
 import { rewardNextAction } from './reward-next-action.js';
 
 export function financialAmountParts(value) {
-  const match = /^(\d+)(\.\d+)? (SOL|\$FUNDED base units)$/.exec(String(value));
+  const match = /^(\d+)(\.\d+)? (SOL|\$RICH base units)$/.exec(String(value));
   if (!match) return { value:String(value), unit:'' };
   // Keep integer and fractional digits exact; base units can exceed Number precision.
   return { value:match[1].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (match[2] || ''), unit:match[3] };

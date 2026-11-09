@@ -15,7 +15,7 @@ remain in `.env.devnet-qa-wallets.local`. Never load either QA key file on Mainn
 | App revenue from trading | `trading_fee_treasury` | Public fee owner passed to PumpSwap trades. |
 | Router settlement and reward vault authority | `router_authority` | Signs router settlements and reward cycles; each reward vault is a program derived address. |
 | Creator rewards | Existing `creator` | The actual coin creator's verified launch wallet, distinct for each creator. |
-| $FUNDED holder reward test | `funded_holder` | QA recipient only; real recipients come from finalized eligible holder snapshots. |
+| $RICH holder reward test | `funded_holder` | QA recipient only; real recipients come from finalized eligible holder snapshots. |
 | Coin holder reward test | `coin_holder` | QA recipient only; real recipients come from finalized eligible holder snapshots. |
 | Referral rewards | Existing three `referrer` roles | Each verified inviter receives its level's payout. |
 | Manual referral payout funding | `referral_payout_funder` | Dedicated signer and SOL source for referral payouts. |

@@ -16,7 +16,7 @@ const ledgerPath = resolve(value('--ledger'));
 const mints = JSON.parse(await readFile(resolve(value('--mints-file')), 'utf8'));
 if (!Array.isArray(mints) || mints.length !== 13 || new Set(mints).size !== 13
   || mints.some(mint => typeof mint !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint))) {
-  throw new Error('The inventoried 13 funded.vip V2 Devnet mint addresses are required.');
+  throw new Error('The inventoried 13 richpad.fun V2 Devnet mint addresses are required.');
 }
 const retired = new Set(mints);
 const state = JSON.parse(await readFile(ledgerPath, 'utf8'));

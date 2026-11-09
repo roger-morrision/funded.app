@@ -24,7 +24,7 @@ export function renderHomeRewardCards({ homeSpotlight, homeFundedTokens, homeRes
     const empty = document.createElement('p'); empty.className = 'home-rewards-empty';
     empty.textContent = homeLaunchPolicyStatus === 'unavailable' ? 'Verified reward data is unavailable.'
       : homeLaunchPolicyStatus === 'loading' ? 'Checking verified reward policies…'
-      : !homeFundedTokens.length ? 'No $FUNDED holder airdrops are available.'
+      : !homeFundedTokens.length ? 'No $RICH holder airdrops are available.'
       : homeReserves === null ? 'Checking funded vaults…'
       : !reservesAvailable ? 'Vault verification is unavailable.'
       : `${homeFundedTokens.length} published ${homeFundedTokens.length === 1 ? 'allocation' : 'allocations'}; no verified funded vaults yet.`;
@@ -62,9 +62,9 @@ export function renderHomeRewardCards({ homeSpotlight, homeFundedTokens, homeRes
     } else if (homeReceiverEstimate?.wallets) {
       const excluded = new Set([homeReserves.claimPolicy?.unclaimedRecipient, reserve.vault, reserve.drop].filter(Boolean));
       const count = [...homeReceiverEstimate.wallets].filter(wallet => !excluded.has(wallet)).length;
-      addValue('Est. receivers', `~${count.toLocaleString()} wallets`).title = 'Current distinct $FUNDED wallets with a positive balance, excluding known protocol addresses. The final count is determined at migration.';
+      addValue('Est. receivers', `~${count.toLocaleString()} wallets`).title = 'Current distinct $RICH wallets with a positive balance, excluding known protocol addresses. The final count is determined at migration.';
     } else {
-      addValue('Est. receivers', homeReceiverEstimate === null ? 'Checking…' : 'Unavailable').title = 'A complete current $FUNDED wallet list is required for this estimate.';
+      addValue('Est. receivers', homeReceiverEstimate === null ? 'Checking…' : 'Unavailable').title = 'A complete current $RICH wallet list is required for this estimate.';
     }
     const dropOpened = ['drop-active', 'drop-closed'].includes(reserve.status);
     const claimedWallets = dropOpened ? reserve.claimedWalletCount : 0;
@@ -80,7 +80,7 @@ export function renderHomeRewardCards({ homeSpotlight, homeFundedTokens, homeRes
     const addSnapshot = value => { const line = document.createElement('span'); line.textContent = value; snapshot.append(line); };
     const migrationSlot = Number(reserve.migrationSlot);
     const migrationAt = Number(reserve.migrationAt);
-    const label = reserve.snapshotBasis === 'devnet-qa-cutoff' ? 'Devnet QA cutoff' : '$FUNDED snapshot';
+    const label = reserve.snapshotBasis === 'devnet-qa-cutoff' ? 'Devnet QA cutoff' : '$RICH snapshot';
     const when = Number.isSafeInteger(migrationSlot) && migrationSlot > 0
       ? `${label} · ${Number.isSafeInteger(migrationAt) && migrationAt > 0 ? `${utcMoment(migrationAt * 1000)} · ` : ''}slot ${migrationSlot.toLocaleString()}`
       : `${label} · pending`;

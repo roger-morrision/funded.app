@@ -2,11 +2,11 @@ import { withoutDefaultSocialTags } from './social-template.mjs';
 const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export function tokenSocialModel(launch, metadata, mint, cluster, publicOrigin='') {
   const verified=Boolean(launch?.mint===mint&&launch.cluster===cluster&&launch.onchainVerified===true&&launch.policySignature&&launch.name&&launch.symbol);
-  if(!verified)return {available:false,title:'Token verification unavailable | funded.vip',description:'This token is not verified in the current app registry. Do not infer safety or endorsement.',canonical:null,image:null};
+  if(!verified)return {available:false,title:'Token verification unavailable | richpad.fun',description:'This token is not verified in the current app registry. Do not infer safety or endorsement.',canonical:null,image:null};
   const signed=metadata?.mint===mint&&metadata.creatorWallet===launch.creatorWallet&&metadata.name===launch.name&&metadata.symbol===launch.symbol;
   const purpose=signed?String(metadata.tagline||metadata.description||'').slice(0,160):'';
   let origin=null;try{const url=new URL(publicOrigin);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)origin=url.origin;}catch{}
-  return {available:true,title:`${String(launch.name).slice(0,32)} (${String(launch.symbol).slice(0,10)}) | funded.vip`,
+  return {available:true,title:`${String(launch.name).slice(0,32)} (${String(launch.symbol).slice(0,10)}) | richpad.fun`,
     description: [purpose, 'Review the canonical mint and fee policy. Not an endorsement. Tokens can lose all value.'].filter(Boolean).join(' '),
     canonical:origin?`${origin}/token/${mint}`:null,image:origin&&signed&&metadata.imageSha256&&cluster==='devnet'?`${origin}/devnet-images/${mint}`:null};
 }

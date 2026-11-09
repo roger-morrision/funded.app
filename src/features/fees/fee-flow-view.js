@@ -67,7 +67,7 @@ export function createFeeFlowView(APP_ECONOMICS) {
     for(const example of document.querySelectorAll('.referral-tier-strip [data-referral-example]'))mountReferralCalculator(example.parentElement,referral.levels);
     set('.home-referral-guide-head > div > p:last-child',`Invite creators with your personal link. ${referral.scope}`);
     setAll('.app-revenue-grid > span b', effective.map(percent));
-    setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED burn']);
+    setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$RICH burn']);
     setAll('.allocation-chips span b', effective.map(percent));
     setAll('.allocation-chips span small', ['Operations & marketing', 'Referral network', 'Daily bonus', 'Buyback allocation']);
     setAll('.app-revenue-grid > span small', [

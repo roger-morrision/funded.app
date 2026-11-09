@@ -42,7 +42,7 @@ export function planTokenAccountBurns(tokenAccounts = [], amountBaseUnits) {
     burns.push({ address: account.address, amount });
     remaining -= amount;
   }
-  if (remaining > 0n) throw new Error('The burn amount exceeds this wallet’s $FUNDED balance.');
+  if (remaining > 0n) throw new Error('The burn amount exceeds this wallet’s $RICH balance.');
   return burns;
 }
 

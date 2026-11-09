@@ -29,7 +29,7 @@ export function homeLaunchFeeRouteMarkup(
     x > 0 ? `${xName} ${formatVerifiedPercent(x)}` : '',
   ].filter(Boolean);
   // The remaining 20% is the protocol share: referrals, daily bonuses,
-  // community rewards and $FUNDED buyback.
+  // community rewards and $RICH buyback.
   recipients.push('Rewards & buyback 20%');
   const summary = `Trading fees: ${recipients.join(' · ')}`;
   return `<div class="home-launch-fee-route" title="${escapeHtml(summary)}" aria-label="${escapeHtml(summary)}"><small>Fees</small><span>${recipients.map(escapeHtml).join(' · ')}</span></div>`;
@@ -209,8 +209,8 @@ export function homeLaunchCardMarkup(
     const launchPolicy = verifiedLaunchPolicyForMint(item.address);
     const mintLabel = item.address ? `${item.address.slice(0, 5)}…${item.address.slice(-4)}` : 'Unavailable';
     const feeRoute = homeLaunchFeeRouteMarkup(launchPolicy);
-    // Protocol facts beside the launch package and boost: paid listing, $FUNDED
-    // burned for this coin, and its airdrop to $FUNDED holders.
+    // Protocol facts beside the launch package and boost: paid listing, $RICH
+    // burned for this coin, and its airdrop to $RICH holders.
     const promotion = promotionForMint(item.address);
     const listing = verifiedPaidListingPayment(item);
     const burnedTokens = [promotion?.amountTokens, listing?.amountTokens]
@@ -223,8 +223,8 @@ export function homeLaunchCardMarkup(
     ].join('');
     const protocolChips = trustChips + [
       listing ? `<span class="home-launch-chip is-listed" title="Paid listing confirmed on Solana">${icon('listingBag')}Listed</span>` : '',
-      burnedTokens ? `<span class="home-launch-chip is-burn" title="$FUNDED burned for this coin's launch package and listing">${icon('burn')}${escapeHtml(burnedTokens.toLocaleString())} $FUNDED burned</span>` : '',
-      airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $FUNDED holders">${icon('send')}${escapeHtml(airdropPercent)} to $FUNDED holders</span>` : '',
+      burnedTokens ? `<span class="home-launch-chip is-burn" title="$RICH burned for this coin's launch package and listing">${icon('burn')}${escapeHtml(burnedTokens.toLocaleString())} $RICH burned</span>` : '',
+      airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $RICH holders">${icon('send')}${escapeHtml(airdropPercent)} to $RICH holders</span>` : '',
     ].join('');
     const socialLinks = exploreSocialLinksMarkup(item);
     const boost = verifiedBoosts[item.address];
@@ -256,7 +256,7 @@ export function homeLaunchCardMarkup(
       </div>
       <div class="home-card-market-summary">
       ${progressMarkup}
-      <div class="home-launch-protocol" aria-label="funded.vip launch details">
+      <div class="home-launch-protocol" aria-label="richpad.fun launch details">
         <span class="home-launch-media-package"></span>
         ${exploreBoostAmountMarkup(item.address)}
         ${protocolChips}
@@ -284,7 +284,7 @@ export function decorateHomeLaunchCard(
   const promotion = promotionElement(mint, true);
   if (promotion) {
     const launchPromotion = promotionForMint(mint);
-    if (launchPromotion?.tier === 'boost') promotion.textContent = `Boost · ${launchPromotion.amountTokens.toLocaleString()} $FUNDED`;
+    if (launchPromotion?.tier === 'boost') promotion.textContent = `Boost · ${launchPromotion.amountTokens.toLocaleString()} $RICH`;
     packageBadge?.append(promotion);
   } else if (verifiedLaunchPolicyForMint(mint)?.onchainVerified) {
     const standard = document.createElement('span');

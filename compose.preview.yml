@@ -30,7 +30,7 @@ services:
       args:
         FUNDED_SOURCE_REVISION: ${FUNDED_BUILD_ID:-local-development}
         VITE_API_BASE_URL: /
-        VITE_DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://metadata.funded.vip}
+        VITE_DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://richpad.fun}
         VITE_SOLANA_CLUSTER: devnet
         VITE_EXPLORE_CLUSTER: devnet
         VITE_ALLOW_MAINNET: "false"
@@ -60,7 +60,7 @@ services:
       FUNDED_DEVNET_QA_BONUS_PERIOD_SECONDS: ${FUNDED_DEVNET_QA_BONUS_PERIOD_SECONDS:-86400}
       FUNDED_DEVNET_QA_BONUS_MINTS: ${FUNDED_DEVNET_QA_BONUS_MINTS:-}
       SOLANA_CLUSTER: devnet
-      DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://metadata.funded.vip}
+      DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://richpad.fun}
       VITE_ALLOW_MAINNET: "false"
       NODE_ENV: production
       DEV_MODE: "false"
@@ -108,8 +108,8 @@ services:
       DATABASE_URL_FILE: /run/secrets/database_url
       DATABASE_SSL: "false"
       TRUST_PROXY: "true"
-      CORS_ORIGIN: ${FUNDED_PUBLIC_APP_URL:-https://funded.vip}
-      PUBLIC_APP_URL: ${FUNDED_PUBLIC_APP_URL:-https://funded.vip}
+      CORS_ORIGIN: ${FUNDED_PUBLIC_APP_URL:-https://richpad.fun}
+      PUBLIC_APP_URL: ${FUNDED_PUBLIC_APP_URL:-https://richpad.fun}
       FUNDED_ADMIN_WALLETS: ${FUNDED_ADMIN_WALLETS:-}
       FUNDED_ADMIN_WITHDRAW_DESTINATIONS: ${FUNDED_ADMIN_WITHDRAW_DESTINATIONS:-}
       FUNDED_ADMIN_EMAIL: ${FUNDED_ADMIN_EMAIL:-}
@@ -147,7 +147,7 @@ services:
       SOLANA_CLUSTER: devnet
       FUNDED_V3_BUYBACK_ENABLED: ${FUNDED_V3_BUYBACK_ENABLED:-false}
       FUNDED_INTERNAL_APP_URL: http://app:8787
-      CORS_ORIGIN: ${FUNDED_PUBLIC_APP_URL:-https://funded.vip}
+      CORS_ORIGIN: ${FUNDED_PUBLIC_APP_URL:-https://richpad.fun}
       FUNDED_API_TOKEN_FILE: /run/secrets/funded_api_token
     secrets:
       - funded_api_token

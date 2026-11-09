@@ -39,7 +39,7 @@ for (const target of targets) {
   if (before < desired) plans.push({ ...target, ata, before, amount: desired - before });
 }
 const total = plans.reduce((sum, plan) => sum + plan.amount, 0n);
-assert(total <= 70_000n * scale, 'QA transfer exceeds the 70,000 $FUNDED cap.');
+assert(total <= 70_000n * scale, 'QA transfer exceeds the 70,000 $RICH cap.');
 assert(sourceBefore - total >= 998_000_000n * scale, 'Do not deplete the retired Devnet supply.');
 assert(await connection.getBalance(targets[0].wallet.publicKey, 'finalized') >= 50_000_000, 'Creator needs Devnet SOL to pay transaction fees.');
 const tierResponse = await fetch('http://127.0.0.1:8788/api/launch-tier-quote', { signal: AbortSignal.timeout(15_000) });

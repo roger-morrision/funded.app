@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "status": "implemented-and-verified-locally-not-deployed",
+  "brand": "richpad.fun",
+  "tokenDisplaySymbol": "$RICH",
+  "xAccount": "placeholder-requested-by-owner; old public links removed",
+  "scope": ["frontend and admin UI", "in-app Docs, Questions and Help", "wallet and trade display labels", "server-facing copy and share cards", "maintained documentation and SVG diagrams", "printable flow PDF", "deployment origin and callback templates"],
+  "compatibility": [
+    "The /rich token page and historical /funded alias both resolve.",
+    "Legacy metadata URIs remain bound to the original mint and signed record.",
+    "Historical airdrop eligibility labels remain readable.",
+    "Contract identities, mint derivation seeds, storage namespaces, memo and signed-message formats remain unchanged where required for recovery.",
+    "Other projects' token names, creator-supplied metadata and dated financial evidence are preserved.",
+    "Existing boost recovery and mobile-menu edits from another chat were preserved."
+  ],
+  "verification": {
+    "tests": {"passed": 296, "failed": 0, "skipped": 0, "scope": "local/mocked; no financial transactions submitted", "log": "tmp/richpad-tests.log"},
+    "sourceChecks": {"syntaxFiles": 962, "sizeBudgetFiles": 1187, "passed": true, "log": "tmp/richpad-check.log"},
+    "build": {"passed": true, "log": "tmp/richpad-build.log", "developmentWalletDisabled": true, "warning": "Existing large JavaScript chunk warning"},
+    "browser": {
+      "environment": "local compiled preview at http://127.0.0.1:5191",
+      "mobileViewport": "390x844",
+      "desktopViewport": "1440x1000",
+      "pages": ["Home", "/rich", "Docs", "Create a coin", "/welcome"],
+      "checks": ["Current visible copy and document titles use the new domain and symbol", "No old X account links in the application template", "No horizontal overflow on sampled mobile routes", "RICH navigation selects the token page", "X account preview shows the explicit placeholder"],
+      "dataLimit": "Existing creator-supplied FCAT website links still reference their signed historical website; those are not app-owned navigation links.",
+      "cleanup": "Task-owned preview process and browser tab were closed"
+    },
+    "pdf": {"file": "docs/funded-app-flow-infographic.pdf", "pages": 1, "title": "richpad.fun | From coin launch to community value", "renderInspected": true, "newSymbolVerified": true, "oldBrandTextFound": false}
+  },
+  "cutoverCheck": {"date": "2026-11-09", "currentApp": "funded.vip returned Devnet build e905d3ac0fcd46ee5bc869af5359f070fd39fc53; Mainnet activation false", "richpad.fun": "HTTPS connect timeout from verification environment", "www.richpad.fun": "HTTPS connection reset from verification environment", "decision": "Keep public cutover pending until new origin routing and HTTPS are verified", "legacyMetadataHost": "Metadata-only request restrictions preserved for both old and new hosts"},
+  "notPerformed": ["DNS or tunnel changes", "public deployment", "on-chain metadata or mint changes", "Mainnet activation", "social posting"],
+  "operatorHandoff": "docs/richpad-brand-migration.md"
+}

@@ -47,9 +47,9 @@ export function renderWalletBurnersBoard(
   const board = burnersBoardState.status === 'unavailable' && verifiedLaunchPoliciesStatus === 'ready'
     ? { status:'partial', wallets:launchBurnersFallback() } : burnersBoardState;
   document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-burners-tab');
-  setCoinField('#leaderboard-table-kicker', board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $FUNDED burns');
+  setCoinField('#leaderboard-table-kicker', board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $RICH burns');
   setCoinField('#leaderboard-table-title', 'Wallet burn leaderboard');
-  setCoinField('#leaderboard-hero-description', 'Wallets ranked by confirmed $FUNDED burns.');
+  setCoinField('#leaderboard-hero-description', 'Wallets ranked by confirmed $RICH burns.');
   setCoinField('#leaderboard-source-note', board.status === 'partial'
     ? 'Only burns made during a launch are available right now. Other burns will appear when their history is ready.'
     : 'Only confirmed burns on this network count. Each transaction is counted once.');
@@ -64,7 +64,7 @@ export function renderWalletBurnersBoard(
   if (!board.wallets.length) {
     const detail = board.status === 'partial'
       ? 'No launch burns are available in the current history.'
-      : 'Wallets appear after a confirmed $FUNDED burn.';
+      : 'Wallets appear after a confirmed $RICH burn.';
     replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${board.status === 'partial' ? 'No launch burns in this feed.' : 'No verified wallet burns yet.'}</strong><span>${detail}</span></div></div>`);
     return;
   }
@@ -72,7 +72,7 @@ export function renderWalletBurnersBoard(
     const amount = Number(item.burnedTokens).toLocaleString(undefined,{maximumFractionDigits:6});
     const firstBurn = item.firstBurnAt ? formatOnchainAge(Date.parse(item.firstBurnAt)) : 'Time unavailable';
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index+1).padStart(2,'0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar" aria-hidden="true">${escapeHtml(String(item.wallet || '').slice(0,2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(firstBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index+1).padStart(2,'0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar" aria-hidden="true">${escapeHtml(String(item.wallet || '').slice(0,2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$RICH</small></span><span role="cell" class="leader-value">${escapeHtml(firstBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
   }).join('')}`);
 }
 
@@ -100,12 +100,12 @@ export function renderProjectBurnBoard(
   const note = document.querySelector('#leaderboard-source-note');
   const heroDescription = document.querySelector('#leaderboard-hero-description');
   const builders = document.querySelector('#leaderboard .leaderboard-grid')?.closest('details');
-  if (kicker) kicker.textContent = board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $FUNDED burns';
+  if (kicker) kicker.textContent = board.status === 'partial' ? 'Confirmed launch burns · limited history' : 'Confirmed $RICH burns';
   if (heading) heading.textContent = 'Project burn board';
   if (note) note.textContent = board.status === 'partial'
     ? 'Only burns made during a launch are available right now. Other project burns will appear when their history is ready.'
     : 'Projects are ranked by confirmed burns linked to their launches.';
-  if (heroDescription) heroDescription.textContent = 'Projects ranked by verified $FUNDED burns attributed to their launches.';
+  if (heroDescription) heroDescription.textContent = 'Projects ranked by verified $RICH burns attributed to their launches.';
   if (builders) builders.hidden = true;
   table.setAttribute('aria-label', 'Solana project burn board');
   const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Project</span><span role="columnheader">Burned</span><span role="columnheader">Last burn</span><span role="columnheader">Proof</span></div>';
@@ -119,7 +119,7 @@ export function renderProjectBurnBoard(
   if (!projects.length) {
     const detail = board.status === 'partial'
       ? 'No launch burns are available in the current history.'
-      : 'Projects appear here after a confirmed $FUNDED burn is linked to a launch.';
+      : 'Projects appear here after a confirmed $RICH burn is linked to a launch.';
     replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>No project burns yet.</strong><span>${detail}</span></div></div>`);
     return;
   }
@@ -128,7 +128,7 @@ export function renderProjectBurnBoard(
     const amount = Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 });
     const tokenHref = `/token/${encodeURIComponent(item.mint)}`;
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
-    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity" data-logo-mint="${escapeHtml(item.mint)}"><a class="leaderboard-profile" href="${escapeHtml(tokenHref)}"><span class="leader-avatar leader-token-logo mint" aria-hidden="true">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$FUNDED</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
+    return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity" data-logo-mint="${escapeHtml(item.mint)}"><a class="leaderboard-profile" href="${escapeHtml(tokenHref)}"><span class="leader-avatar leader-token-logo mint" aria-hidden="true">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$RICH</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
   }).join('')}`);
   loadVerifiedTokenLogos?.(table);
 }

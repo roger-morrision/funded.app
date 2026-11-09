@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 
 export function renderTradeSignerPage(id) {
   const nonce = randomBytes(18).toString('base64');
-  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review funded.vip Solana trade</title>
+  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review richpad.fun Solana trade</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}
 body{max-width:36rem;margin:0 auto;padding:1.4rem 1.1rem 3rem;background:#14111e;color:#f5f1fb}
@@ -20,7 +20,7 @@ h1{font-size:clamp(1.75rem,6vw,2.2rem);line-height:1.16;letter-spacing:-.03em;ma
 a{display:inline-flex;align-items:center;justify-content:center;min-height:2.7rem;padding:.5rem .75rem;border:1px solid #8171b4;border-radius:.6rem;color:#e4d9ff;text-decoration:none;font-weight:650}
 a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #e0ceff;outline-offset:3px}.receipt-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.2rem}.receipt-actions a{flex:1}[hidden]{display:none!important}
 </style>
-<p class="eyebrow">Solana · funded.vip</p>
+<p class="eyebrow">Solana · richpad.fun</p>
 <h1 id="heading">Review trade</h1><p id="intro">Check the amounts, then approve the transaction in Phantom.</p>
 <section class="card" id="review" hidden aria-label="Trade review">
 <h2 id="trade-title">Trade</h2><div class="flow">

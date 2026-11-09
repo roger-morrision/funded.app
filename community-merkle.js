@@ -44,7 +44,7 @@ export function buildCommunityManifest({ drop, launchMint, eligibilityMint, migr
   if (!accounts.length || accounts.reduce((sum, row) => sum + row.balance, 0n) !== supply) throw new Error('Snapshot balances do not cover the full finalized eligibility supply.');
   const weights = accounts.filter(row => row.balance > 0n && !exclusions.includes(row.wallet)).map(row => ({ wallet:row.wallet, weight:String(row.balance) }));
   const allocation = allocateHolderPool(String(amount), weights);
-  if (!allocation.allocations.length) throw new Error('No eligible $FUNDED holder has a payable allocation.');
+  if (!allocation.allocations.length) throw new Error('No eligible $RICH holder has a payable allocation.');
   const snapshotHash = hash(SNAPSHOT_DOMAIN, key(launchMint), key(eligibilityMint), u64(migrationSlot), u64(migrationBlockTime), u64(supply), u32(accounts.length),
     ...accounts.flatMap(row => [key(row.wallet), u64(row.balance)]), u32(exclusions.length), ...exclusions.map(key)).toString('hex');
   const leaves = allocation.allocations.map((row, index) => ({ index, recipient:row.wallet, amount:row.amountLamports,

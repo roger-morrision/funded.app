@@ -41,7 +41,7 @@ export function createTokenCardsController(appState) {
     const element = document.createElement(withProof ? 'a' : 'span');
     element.className = `promotion-badge promotion-badge--${badge.tier}`;
     element.textContent = badge.label;
-    element.title = `${badge.amountTokens.toLocaleString()} $FUNDED burned in the creation transaction · paid promotion, not a token safety endorsement`;
+    element.title = `${badge.amountTokens.toLocaleString()} $RICH burned in the creation transaction · paid promotion, not a token safety endorsement`;
     if (withProof) {
       element.href = appState.exploreExplorer(`tx/${encodeURIComponent(badge.signature)}`);
       element.target = '_blank';

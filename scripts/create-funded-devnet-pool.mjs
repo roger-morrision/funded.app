@@ -13,7 +13,7 @@ const mint = new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT);
 const signer = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_DEVNET_CREATOR_SECRET_KEY));
 const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || process.env.SOLANA_RPC_URL, 'finalized');
 assert.equal(await connection.getGenesisHash(), 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
-const baseIn = new BN('100000000000'); // 100,000 $FUNDED at six decimals.
+const baseIn = new BN('100000000000'); // 100,000 $RICH at six decimals.
 const quoteIn = new BN('100000000'); // 0.1 Devnet SOL.
 const state = await new OnlinePumpAmmSdk(connection).createPoolSolanaState(1, signer.publicKey, mint, NATIVE_MINT);
 if (await connection.getAccountInfo(state.poolKey, 'finalized')) {
@@ -23,7 +23,7 @@ if (await connection.getAccountInfo(state.poolKey, 'finalized')) {
 const balance = await connection.getBalance(signer.publicKey, 'finalized');
 const source = await connection.getTokenAccountBalance(state.userBaseTokenAccount, 'finalized');
 assert.ok(balance > Number(quoteIn.toString()) + 50_000_000, 'Issuer lacks the bounded SOL budget and account reserve.');
-assert.ok(BigInt(source.value.amount) >= BigInt(baseIn.toString()), 'Issuer lacks the bounded $FUNDED liquidity.');
+assert.ok(BigInt(source.value.amount) >= BigInt(baseIn.toString()), 'Issuer lacks the bounded $RICH liquidity.');
 const instructions = await PUMP_AMM_SDK.createPoolInstructions(state, baseIn, quoteIn);
 const block = await connection.getLatestBlockhash('finalized');
 const transaction = new Transaction({ feePayer: signer.publicKey, recentBlockhash:block.blockhash }).add(...instructions);

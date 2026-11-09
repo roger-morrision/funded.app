@@ -10,7 +10,7 @@ import { preserveBuybackLedgerFocus } from './buyback-ledger-focus.js';
 function setTokenAmount(node, exact) {
   if (!node) return;
   node.textContent = exact == null ? '—' : formatTokenDisplay(exact);
-  if (exact == null) node.removeAttribute('title'); else node.title = `${exact} $FUNDED`;
+  if (exact == null) node.removeAttribute('title'); else node.title = `${exact} $RICH`;
 }
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
@@ -69,7 +69,7 @@ export function renderBuybackDashboard(
   const previewRows = events.map(event => {
     if (event.type === 'receipt') {
       const receipt = event.data;
-      return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.tokensBurned, 2)} $FUNDED burned</strong><small>${formatBuybackAmount(receipt.inputAmount)} ${escapeHtml(receipt.asset)} · ${escapeHtml(receipt.burnInstruction)} · local preview</small></span><b>Supply ↓</b></div>`;
+      return `<div class="buyback-ledger-row burn"><span class="buyback-ledger-icon">♨</span><span><strong>${formatBuybackAmount(receipt.tokensBurned, 2)} $RICH burned</strong><small>${formatBuybackAmount(receipt.inputAmount)} ${escapeHtml(receipt.asset)} · ${escapeHtml(receipt.burnInstruction)} · local preview</small></span><b>Supply ↓</b></div>`;
     }
     const accrual = event.data;
     const executed = executedIds.has(accrual.id);
@@ -80,7 +80,7 @@ export function renderBuybackDashboard(
   const restoreFocus = preserveBuybackLedgerFocus(ledger, document);
   const more = ledger.querySelector(':scope > .concise-ledger-more');
   if (more) ledger.dataset.buybackExpanded = String(more.open);
-  ledger.innerHTML = `${historyTable}${previewRows?'<h3>Local preview</h3>'+previewRows:''}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $FUNDED burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
+  ledger.innerHTML = `${historyTable}${previewRows?'<h3>Local preview</h3>'+previewRows:''}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $RICH burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
   restoreFocus();
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');
@@ -100,7 +100,7 @@ export function renderBuybackDashboard(
     paidTiers.forEach(tier => {
       const row = tierCard.querySelector(`[data-burn-tier="${tier.id}"]`);
       if (!row) return;
-      row.querySelector('b').textContent = `${tier.amountTokens.toLocaleString('en-US')} $FUNDED`;
+      row.querySelector('b').textContent = `${tier.amountTokens.toLocaleString('en-US')} $RICH`;
       row.querySelector('em').style.width = `${Math.max(8, tier.amountTokens / maximum * 100)}%`;
     });
   }

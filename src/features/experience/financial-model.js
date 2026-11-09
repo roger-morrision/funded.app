@@ -69,7 +69,7 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
   if (buybacks?.cluster === 'devnet') {
     for (const row of buybacks.pending || []) {
       if (!address(row.mint) || !unsigned(row.amountLamports) || BigInt(row.amountLamports) === 0n) continue;
-      rows.push({ id:`burn:${row.mint}`, mint:row.mint, title:'Protocol $FUNDED buyback',
+      rows.push({ id:`burn:${row.mint}`, mint:row.mint, title:'Protocol $RICH buyback',
         stage:['queued','verification-pending'].includes(row.status) ? 'Processing' : 'Accrued',
         amount:solText(row.amountLamports), href:'#buybacks', action:'Inspect vault and trigger',
         detail:row.status === 'below-minimum-order' ? 'Below the execution minimum; retained in this mint’s vault.'
@@ -78,8 +78,8 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
     for (const row of buybacks.receipts || []) {
       if (row.status !== 'finalized' || row.vaultDebitVerified !== true || row.burnInstructionVerified !== true
         || !signature(row.signature) || !address(row.mint)) continue;
-      rows.push({ id:`burned:${row.signature}`, mint:row.mint, title:'Protocol $FUNDED burned', stage:'Verified',
-        amount:`${row.boughtAndBurnedBaseUnits || row.burnedBaseUnits || 'Unknown'} $FUNDED base units`,
+      rows.push({ id:`burned:${row.signature}`, mint:row.mint, title:'Protocol $RICH burned', stage:'Verified',
+        amount:`${row.boughtAndBurnedBaseUnits || row.burnedBaseUnits || 'Unknown'} $RICH base units`,
         detail:'Supply burn instruction and source-vault debit verified. Locked balances are excluded.',
         signature:row.signature, at:row.finalizedAt, href:'#buybacks',receiptView:row.sourceKind==='onchain-policy'?'explorer':'exact' });
     }

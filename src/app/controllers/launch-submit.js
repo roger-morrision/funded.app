@@ -35,7 +35,7 @@ export function createLaunchSubmitController(appState) {
     const launchBurnValidation = appState.validateLaunchBurnPolicy(launchBurn);
     const feeDistributionInput = appState.getFeeDistributionInputs();
     const feeDistribution = appState.validateFeeDistribution(feeDistributionInput);
-    if (!document.querySelector('#fee-route-agree').checked) { appState.setLaunchStatus('Confirm the funded.vip creator-fee route before launching.', true); return; }
+    if (!document.querySelector('#fee-route-agree').checked) { appState.setLaunchStatus('Confirm the richpad.fun creator-fee route before launching.', true); return; }
     if (!document.querySelector('#terms-agree').checked) { appState.setLaunchStatus('Agree to the Terms of Use before launching.', true); return; }
     if (!name || !/^[A-Z0-9]{1,10}$/.test(symbol) || !Number.isFinite(supply) || supply < 1 || decimals < 0 || decimals > 9) { appState.setLaunchStatus('Enter a valid name and a 1–10 character ticker using letters or numbers.', true); return; }
     const invalidSocial = appState.invalidLaunchSocial();
@@ -43,9 +43,9 @@ export function createLaunchSubmitController(appState) {
     if (!Number.isSafeInteger(communityTokens) || communityTokens < appState.MIN_COMMUNITY_AIRDROP_TOKENS || communityTokens > appState.MAX_COMMUNITY_AIRDROP_TOKENS || !Number.isFinite(communityAllocation)) { appState.setLaunchStatus('Community airdrop must be between 30,000,000 and 500,000,000 tokens.', true); return; }
      if (feeDistributionInput.solClaimPercent > 0 && !/^@[A-Za-z0-9_]{1,15}$/.test(xRecipient)) { appState.setLaunchStatus('Enter a valid X handle such as @account when X account rewards are above 0%.', true); return; }
     if (!feeDistribution.valid) { appState.setLaunchStatus('Creator fee shares must total exactly 80%. Check the wallet, holder, and X percentages.', true); return; }
-    if (!launchBurnValidation.valid) { appState.setLaunchStatus('The fixed $FUNDED mint must be configured before a paid launch tier can be used.', true); return; }
+    if (!launchBurnValidation.valid) { appState.setLaunchStatus('The fixed $RICH mint must be configured before a paid launch tier can be used.', true); return; }
     if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id)) {
-      appState.setLaunchStatus('The $FUNDED tier quote expired or changed. Review the launch again.', true); return;
+      appState.setLaunchStatus('The $RICH tier quote expired or changed. Review the launch again.', true); return;
     }
     if (launchBurn.requiresBurn && !appState.launchBurnReadiness.ready) { appState.setLaunchStatus(appState.launchBurnReadiness.message, true); return; }
     if (!appState.feeRouterState.verified || !appState.feeRouterState.v3FeeRouter
@@ -85,7 +85,7 @@ export function createLaunchSubmitController(appState) {
       if(unresolved)throw new Error('An earlier launch with this name and ticker needs recovery in Portfolio. Check its receipts before creating another coin.');
       if(!appState.freshLaunchReview(reviewedCost))throw new Error('Estimate expired during identity lookup. Refresh and review again before signing.');
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id || launchBurn.amountTokens !== appState.currentLaunchTierQuote().amountTokens))
-        throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
+        throw new Error('The $RICH tier quote expired before signing. Review the launch again.');
       const configuredV3=appState.feeRouterState.v3FeeRouter;
       const v3FeeRouter={...configuredV3,...(configuredV3.agency?{agency:{...configuredV3.agency,selectedAgents:agencySelection}}:{})};
       const liveV3 = await appState.apiRequest('/api/v3-launch-config');
@@ -102,7 +102,7 @@ export function createLaunchSubmitController(appState) {
       const reserveConfig = await appState.getLaunchReserveConfig();
       appState.assertWalletSessionCurrent(session);
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id))
-        throw new Error('The $FUNDED tier quote expired before signing. Review the launch again.');
+        throw new Error('The $RICH tier quote expired before signing. Review the launch again.');
       journalId=crypto.randomUUID();appState.recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
       appState.emitPilotSignal('launch-submission-started');
       let recoveryMint = null;
@@ -246,16 +246,16 @@ export function createLaunchSubmitController(appState) {
       if (!appState.isWalletSessionCurrent(session)) { appState.showToast(`${result.symbol} launched from ${session.address.slice(0, 4)}… while wallet account changed. Check your launch history.`); return; }
       const burnReceipt = result.launchBurnReceipt;
       const burnSummary = burnReceipt
-        ? ` · ${appState.formatLaunchBurnAmount(burnReceipt.amountTokens)} $FUNDED burned ${burnReceipt.atomicWithPumpLaunch ? 'atomically' : 'in a separately confirmed transaction'}`
+        ? ` · ${appState.formatLaunchBurnAmount(burnReceipt.amountTokens)} $RICH burned ${burnReceipt.atomicWithPumpLaunch ? 'atomically' : 'in a separately confirmed transaction'}`
         : '';
       const launchLinks = [
         { label: burnReceipt?.atomicWithPumpLaunch ? 'Verify launch and burn on Explorer ↗' : 'Verify fee owner on Explorer ↗', href: devnetExplorer(`tx/${result.signature}`) },
-        ...(burnReceipt && !burnReceipt.atomicWithPumpLaunch ? [{ label: 'Verify separate $FUNDED burn on Explorer ↗', href: devnetExplorer(`tx/${burnReceipt.signature}`) }] : []),
+        ...(burnReceipt && !burnReceipt.atomicWithPumpLaunch ? [{ label: 'Verify separate $RICH burn on Explorer ↗', href: devnetExplorer(`tx/${burnReceipt.signature}`) }] : []),
         { label: 'View mint on Explorer ↗', href: devnetExplorer(`address/${result.mint.publicKey.toBase58()}`) },
         { label: 'Open My launches →', href: '#my-launches' },
         { label: 'Review this coin’s migration airdrop →', href: `/?airdropMint=${launchPolicy.mint}#airdrops` },
       ];
-      appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: funded.vip router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed · ${savedFeeAllocationCopy(launchPolicy.feeDistribution)}${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
+      appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nPump creator-fee owner: richpad.fun router\nYour wallet has no creator-fee authority.\nCommunity reserve funded: ${communityAllocation}% (${launchPolicy.communityAirdrop.reservedTokens.toLocaleString()} tokens)\nReward vault: ${result.reserveReceipt.vault}\nClaims open after a verified migration snapshot.\nSettlement policy: 80% creator-directed · ${savedFeeAllocationCopy(launchPolicy.feeDistribution)}${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
       document.querySelector('#launch-status').classList.add('launch-complete');
       appState.showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); appState.renderAirdropClaims(); appState.refreshWalletBalance();
       showLaunchSuccess({mint:launchPolicy.mint,name:result.name,symbol:result.symbol,signature:result.signature,registered:persistedLaunch.available});

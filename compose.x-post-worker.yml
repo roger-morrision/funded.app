@@ -28,14 +28,14 @@ services:
       X_POST_ENABLED: ${X_POST_ENABLED:-false}
       X_POST_ACCOUNT_STATUS: ${X_POST_ACCOUNT_STATUS:-suspended}
       X_POST_ALLOW_DEVNET: ${X_POST_ALLOW_DEVNET:-false}
-      X_POST_EXPECTED_HANDLE: ${X_POST_EXPECTED_HANDLE:-fundedvip}
+      X_POST_EXPECTED_HANDLE: ${X_POST_EXPECTED_HANDLE:-}
       X_POST_PAYOUTS_ONLY: ${X_POST_PAYOUTS_ONLY:-false}
       X_POST_ACCOUNT_ID: ${X_POST_ACCOUNT_ID:-}
       X_POST_API_KEY_FILE: /run/secrets/x_post_api_key
       X_POST_API_SECRET_FILE: /run/secrets/x_post_api_secret
       X_POST_ACCESS_TOKEN_FILE: /run/secrets/x_post_access_token
       X_POST_ACCESS_TOKEN_SECRET_FILE: /run/secrets/x_post_access_token_secret
-      X_POST_PUBLIC_ORIGIN: ${X_POST_PUBLIC_ORIGIN:-https://funded.vip}
+      X_POST_PUBLIC_ORIGIN: ${X_POST_PUBLIC_ORIGIN:-https://richpad.fun}
       X_POST_START_AT: ${X_POST_START_AT:-}
       # Deliberately bounded in this profile; the worker also validates its limits.
       X_POST_INTERVAL_MS: ${X_POST_INTERVAL_MS:-300000}

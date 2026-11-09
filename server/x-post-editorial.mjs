@@ -38,7 +38,7 @@ function validProof(proof){
     &&Array.isArray(proof.sample)&&proof.sample.length>0&&proof.sample.every(validProof);
   try{return proof.verified===true&&Number.isSafeInteger(proof.slot)&&proof.slot>0&&bs58.decode(proof.signature).length===64;}catch{return false;}
 }
-export function buildPayoutDigest(rows,{day,origin='https://funded.vip'}={}){
+export function buildPayoutDigest(rows,{day,origin='https://richpad.fun'}={}){
   const start=Date.parse(`${day}T00:00:00Z`);
   if(!Number.isFinite(start)||new Date(start).toISOString().slice(0,10)!==day||!rows.length||rows.length>10000)
     throw new Error('A bounded completed UTC recording day is required.');

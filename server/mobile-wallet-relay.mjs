@@ -120,13 +120,13 @@ const TRADE_SIGNATURE_ERRORS = Object.freeze({
 
 function signerPage(id) {
   const nonce = randomBytes(18).toString('base64');
-  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign funded.vip claim</title><style>body{font:16px system-ui;max-width:34rem;margin:3rem auto;padding:0 1.25rem;background:#15121f;color:#fff}button{font:inherit;padding:.9rem 1.2rem;border:0;border-radius:.7rem;background:#b4a3ff;color:#171125}code{overflow-wrap:anywhere}p{line-height:1.5;color:#d4cce5}</style><h1>Sign your Solana claim</h1><p>This page asks Phantom to sign the exact claim message. The funded.vip desktop tab will receive the result.</p><p>Expected wallet: <code id="wallet">Loading…</code></p><p>Message: <code id="message">Loading…</code></p><button id="sign" disabled>Connect and sign in Phantom</button><p id="status" role="status">Loading request…</p><script nonce="${nonce}">
+  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign richpad.fun claim</title><style>body{font:16px system-ui;max-width:34rem;margin:3rem auto;padding:0 1.25rem;background:#15121f;color:#fff}button{font:inherit;padding:.9rem 1.2rem;border:0;border-radius:.7rem;background:#b4a3ff;color:#171125}code{overflow-wrap:anywhere}p{line-height:1.5;color:#d4cce5}</style><h1>Sign your Solana claim</h1><p>This page asks Phantom to sign the exact claim message. The richpad.fun desktop tab will receive the result.</p><p>Expected wallet: <code id="wallet">Loading…</code></p><p>Message: <code id="message">Loading…</code></p><button id="sign" disabled>Connect and sign in Phantom</button><p id="status" role="status">Loading request…</p><script nonce="${nonce}">
 const id='${id}';
 const status=document.querySelector('#status');
 const button=document.querySelector('#sign');
 let request;
 fetch('/api/mobile-wallet/sign-request/'+id,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error('Signing request expired. Start again on the desktop.');request=await response.json();document.querySelector('#wallet').textContent=request.publicKey;document.querySelector('#message').textContent=request.message;button.disabled=false;status.textContent='Review the wallet and message, then tap Connect and sign.'}).catch(error=>status.textContent=error.message);
-button.addEventListener('click',async()=>{button.disabled=true;try{const provider=window.phantom?.solana||window.solana;if(!provider?.signMessage)throw new Error('Open this page inside Phantom on your phone.');const connected=await provider.connect();const address=String(connected?.publicKey||provider.publicKey||'');if(address!==request.publicKey)throw new Error('Wrong wallet selected. Switch Phantom to '+request.publicKey+' and try again.');status.textContent='Approve the message in Phantom…';const signed=await provider.signMessage(new TextEncoder().encode(request.message),'utf8');const bytes=signed.signature||signed;if(!bytes||bytes.length!==64)throw new Error('Phantom did not return a valid signature.');const signature= btoa(Array.from(bytes,byte=>String.fromCharCode(byte)).join(''));const response=await fetch('/api/mobile-wallet/sign/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({signature})});if(!response.ok)throw new Error((await response.json()).error||'Could not send the signature to the desktop.');status.textContent='Signature received. Return to the funded.vip desktop tab.'}catch(error){status.textContent=error.message||'Signing failed.';button.disabled=false}});
+button.addEventListener('click',async()=>{button.disabled=true;try{const provider=window.phantom?.solana||window.solana;if(!provider?.signMessage)throw new Error('Open this page inside Phantom on your phone.');const connected=await provider.connect();const address=String(connected?.publicKey||provider.publicKey||'');if(address!==request.publicKey)throw new Error('Wrong wallet selected. Switch Phantom to '+request.publicKey+' and try again.');status.textContent='Approve the message in Phantom…';const signed=await provider.signMessage(new TextEncoder().encode(request.message),'utf8');const bytes=signed.signature||signed;if(!bytes||bytes.length!==64)throw new Error('Phantom did not return a valid signature.');const signature= btoa(Array.from(bytes,byte=>String.fromCharCode(byte)).join(''));const response=await fetch('/api/mobile-wallet/sign/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({signature})});if(!response.ok)throw new Error((await response.json()).error||'Could not send the signature to the desktop.');status.textContent='Signature received. Return to the richpad.fun desktop tab.'}catch(error){status.textContent=error.message||'Signing failed.';button.disabled=false}});
   </script></html>`;
   return { html, nonce };
 }
@@ -214,7 +214,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
       }
       if (sign?.[1] === 'sign' && req.method === 'POST') {
         const flow = flows.get(sign[2]);
-        if (req.headers.origin !== appOrigin) { reply(res, 403, { error:'Open the signer on funded.vip.' }); return true; }
+        if (req.headers.origin !== appOrigin) { reply(res, 403, { error:'Open the signer on richpad.fun.' }); return true; }
         if (!flow?.signRequest || flow.result) { reply(res, 404, { error:'Signing request unavailable.' }); return true; }
         const input = await readBody(req);
         const encoded = String(input.signature || '');
@@ -263,7 +263,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         return true;
       }
       if (trade?.[1] === 'trade-refresh' && req.method === 'POST') {
-        if (req.headers.origin !== appOrigin) { reply(res, 403, { error:'Open the signer on funded.vip.' }); return true; }
+        if (req.headers.origin !== appOrigin) { reply(res, 403, { error:'Open the signer on richpad.fun.' }); return true; }
         const flow = flows.get(trade[2]);
         if (!flow?.transactionRequest || flow.result) { reply(res, 404, { error:'Trade request unavailable.' }); return true; }
         if (flow.preSigned) {
@@ -295,7 +295,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
       }
       if (trade?.[1] === 'trade' && req.method === 'POST') {
         const flow = flows.get(trade[2]);
-        if (req.headers.origin !== appOrigin) { reply(res, 403, { error:'Open the signer on funded.vip.' }); return true; }
+        if (req.headers.origin !== appOrigin) { reply(res, 403, { error:'Open the signer on richpad.fun.' }); return true; }
         if (!flow?.transactionRequest || flow.result) { reply(res, 404, { error:'Trade request unavailable.' }); return true; }
         const input = await readBody(req);
         const encoded = String(input.transaction || '');
@@ -342,7 +342,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         const flow = flows.get(match[2]);
         if (flow && !url.searchParams.has('data') && !url.searchParams.has('errorCode')) {
           res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'" });
-          res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>funded.vip · Phantom approval</title><meta property="og:title" content="funded.vip"><link rel="icon" href="${appOrigin}/favicon.svg"><body style="font:16px system-ui;padding:2rem;background:#15121f;color:#fff"><h1>funded.vip</h1><p>Approve this wallet request in Phantom, then return to the desktop tab.</p></body>`);
+          res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>richpad.fun · Phantom approval</title><meta property="og:title" content="richpad.fun"><link rel="icon" href="${appOrigin}/favicon.svg"><body style="font:16px system-ui;padding:2rem;background:#15121f;color:#fff"><h1>richpad.fun</h1><p>Approve this wallet request in Phantom, then return to the desktop tab.</p></body>`);
           return true;
         }
         let result = null;
@@ -356,7 +356,7 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         }
         const accepted = Boolean(flow && !flow.result && result);
         if (accepted) flow.result = result;
-        const message = accepted ? 'Return to the funded.vip desktop tab. You can close this page.' : 'This wallet request expired or could not be completed. Start again on the desktop.';
+        const message = accepted ? 'Return to the richpad.fun desktop tab. You can close this page.' : 'This wallet request expired or could not be completed. Start again on the desktop.';
         res.writeHead(accepted ? 200 : 400, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'" });
         res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Phantom approval</title><body style="font:16px system-ui;padding:2rem;background:#15121f;color:#fff"><h1>Phantom approval received</h1><p>${message}</p></body>`);
         return true;

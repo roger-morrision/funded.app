@@ -38,7 +38,7 @@ export function createFundedBuyQuotes(app) {
           : await app.fetchVerifiedPoolBuyQuote(args);
         if(!matches()) return;
         if(session) app.assertWalletSessionCurrent(session);
-        app.fundedBuyPreview={trade,amount,wallet:address,provider,preparedAt:Date.now(),quote:app.describeTradeQuote(trade,1,'$FUNDED')};
+        app.fundedBuyPreview={trade,amount,wallet:address,provider,preparedAt:Date.now(),quote:app.describeTradeQuote(trade,1,'$RICH')};
         app.renderFundedBuyControl('Quote refreshes automatically. Review the amounts, then approve in your wallet.');
       } catch(error) {
         if(matches()){app.fundedBuyPreview=null;app.renderFundedBuyControl(fundedBuyFailureMessage(error));}
@@ -48,7 +48,7 @@ export function createFundedBuyQuotes(app) {
   }
   function invalidate() {
     generation++;paused=false;lastAttempt=-Infinity;notBefore=Date.now()+500;clearTimeout(timer);app.fundedBuyPreview=null;
-    app.renderFundedBuyControl(Number(input()?.value)>0 ? 'Updating quote…' : 'Enter a SOL amount to see how much $FUNDED you could receive.');
+    app.renderFundedBuyControl(Number(input()?.value)>0 ? 'Updating quote…' : 'Enter a SOL amount to see how much $RICH you could receive.');
     timer=setTimeout(()=>{void refresh();},500);
   }
   function pause(){generation++;paused=true;clearTimeout(timer);}

@@ -71,10 +71,10 @@ function upgradeAnalyticsDashboard() {
   if (!page || !dashboard) return;
   const heading = page.querySelector(':scope > .section-heading h2');
   const explanation = byId('analytics-range-status');
-  if (heading) heading.textContent = 'Funded at a glance';
+  if (heading) heading.textContent = 'Richpad at a glance';
   if (explanation) explanation.textContent = 'Checking confirmed activity…';
   dashboard.classList.add('analytics-kpis-complete');
-  dashboard.setAttribute('aria-label', 'Funded protocol key figures');
+  dashboard.setAttribute('aria-label', 'Richpad protocol key figures');
   dashboard.innerHTML = `
     <article data-analytics-metric="fees"><span>Fees collected</span><strong>—</strong><small><b>SOL / USD</b>No confirmed fee claims</small></article>
     <article data-analytics-metric="launches"><span>Total launches</span><strong>—</strong><small><b>COUNT</b>Confirmed launches only</small></article>
@@ -82,7 +82,7 @@ function upgradeAnalyticsDashboard() {
     <article data-analytics-metric="volume"><span>Trading volume</span><strong>—</strong><small><b>USD · 24H</b>Confirmed trades</small></article>
     <article data-analytics-metric="airdrops"><span>Community airdrops</span><strong>—</strong><small><b>USD</b>Claimed distributions only</small></article>
     <article data-analytics-metric="referrals"><span>Referral rewards</span><strong>—</strong><small><b>USD</b>Confirmed payments</small></article>
-    <article data-analytics-metric="burned"><span>Launch-tier $FUNDED burns</span><strong>—</strong><small><b>$FUNDED</b>Confirmed launch burns</small></article>
+    <article data-analytics-metric="burned"><span>Launch-tier $RICH burns</span><strong>—</strong><small><b>$RICH</b>Confirmed launch burns</small></article>
     <article data-analytics-metric="wallets"><span>Trading wallets</span><strong>—</strong><small><b>COUNT · 24H</b>Confirmed activity</small></article>`;
   document.dispatchEvent(new Event('funded:analytics-upgraded'));
 }
@@ -141,7 +141,7 @@ function addContextPanels() {
   const privacy = byId('privacy');
   addOnce(privacy, 'privacy-safety-steps', `<div class="safety-steps" id="privacy-safety-steps"><div><strong>Before signing</strong><small>Verify Solana, the exact amount, recipient, and program in the review. Standard wallets also show their own signing prompt.</small></div><div><strong>After signing</strong><small>Open the transaction on Solana Explorer and wait for confirmation. A submitted transaction is not a payout receipt.</small></div><div><strong>If something looks wrong</strong><small>Do not submit. Reject a standard-wallet signing prompt if one appears. Never enter a seed phrase or private key into this page.</small></div></div>`);
   const paid = byId('paid');
-  addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Solana preview</strong><span>Fee-route policy can be reviewed before signing. A user-initiated $FUNDED burn requires a configured Solana mint, an eligible wallet, and on-chain confirmation; check Buy & burn for current availability. Production settlement and automated recipient payouts are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
+  addOnce(paid, 'paid-status', `<div class="source-note" id="paid-status"><strong>Current status · Solana preview</strong><span>Fee-route policy can be reviewed before signing. A user-initiated $RICH burn requires a configured Solana mint, an eligible wallet, and on-chain confirmation; check Buy & burn for current availability. Production settlement and automated recipient payouts are not live. Any figures below are allocation policy, not paid totals.</span></div>`, paid?.querySelector('.revenue-model'));
   const profile = byId('profile');
   addOnce(profile, 'profile-source-note', `<p class="source-note" id="profile-source-note">Connect your wallet to check your tokens and rewards. Balances, payments, and eligibility are shown once they can be confirmed on Solana.</p>`, profile?.querySelector('.profile-grid'));
   const wallet = byId('wallet-page');

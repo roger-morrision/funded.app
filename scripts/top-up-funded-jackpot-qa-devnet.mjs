@@ -17,7 +17,7 @@ const connection = new Connection('https://api.devnet.solana.com', 'finalized');
 assert.equal(await connection.getGenesisHash(), 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
 const mint = new PublicKey(process.env.VITE_FUNDED_TOKEN_MINT);
 const mintBefore = await getMint(connection, mint, 'finalized', TOKEN_PROGRAM_ID);
-assert.equal(mintBefore.mintAuthority, null, 'The test $FUNDED mint must have revoked mint authority.');
+assert.equal(mintBefore.mintAuthority, null, 'The test $RICH mint must have revoked mint authority.');
 const scale = 10n ** BigInt(mintBefore.decimals);
 const sourceAta = getAssociatedTokenAddressSync(mint, source.publicKey);
 const sourceBefore = await getAccount(connection, sourceAta, 'finalized', TOKEN_PROGRAM_ID);
@@ -33,7 +33,7 @@ for (const [role, desiredTokens] of [['creator', 1_000n], ['claimant', 1_100n]])
   plans.push({ role, wallet, ata, before:before.amount, amount, desiredTokens });
 }
 const total = plans.reduce((sum, plan) => sum + plan.amount, 0n);
-assert(sourceBefore.amount >= total, 'QA referrer lacks $FUNDED for the planned top-ups.');
+assert(sourceBefore.amount >= total, 'QA referrer lacks $RICH for the planned top-ups.');
 assert(await connection.getBalance(source.publicKey, 'finalized') > 100_000_000,
   'Keep at least 0.1 Devnet SOL in the QA referrer for future test fees.');
 const preview = { mode:process.argv.includes('--execute') ? 'execute' : 'read-only',
@@ -69,20 +69,20 @@ for (;;) {
     await new Promise(resolve => setTimeout(resolve, 2_000));
     continue;
   }
-  if (finalized?.meta?.err || status?.err) throw new Error(`$FUNDED top-up ${signature} failed on Devnet.`);
+  if (finalized?.meta?.err || status?.err) throw new Error(`$RICH top-up ${signature} failed on Devnet.`);
   if (finalized) break;
   if (height > latest.lastValidBlockHeight && !status)
-    throw new Error(`$FUNDED top-up ${signature} expired without a confirmed signature.`);
+    throw new Error(`$RICH top-up ${signature} expired without a confirmed signature.`);
   await new Promise(resolve => setTimeout(resolve, 2_000));
 }
 const sourceAfter = await getAccount(connection, sourceAta, 'finalized', TOKEN_PROGRAM_ID);
-assert.equal(sourceBefore.amount - sourceAfter.amount, total, 'Source $FUNDED balance delta mismatch.');
+assert.equal(sourceBefore.amount - sourceAfter.amount, total, 'Source $RICH balance delta mismatch.');
 for (const plan of plans) {
   const after = await getAccount(connection, plan.ata, 'finalized', TOKEN_PROGRAM_ID);
-  assert.equal(after.amount - plan.before, plan.amount, `${plan.role} $FUNDED balance delta mismatch.`);
+  assert.equal(after.amount - plan.before, plan.amount, `${plan.role} $RICH balance delta mismatch.`);
 }
 assert.equal((await getMint(connection, mint, 'finalized', TOKEN_PROGRAM_ID)).supply,
-  mintBefore.supply, '$FUNDED transfer changed mint supply.');
+  mintBefore.supply, '$RICH transfer changed mint supply.');
 console.log(JSON.stringify({ status:'finalized-devnet-funded-transfer', signature,
   mint:mint.toBase58(), source:source.publicKey.toBase58(),
   transferredBaseUnits:String(total), targets:plans.map(plan => ({

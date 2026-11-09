@@ -19,7 +19,7 @@ export const pageGuides=[
       'Recovery keeps public launch and trade references scoped to the wallet. Check an existing signature before retrying an uncertain submission; a timeout is not a finalized failure.',
       'If device storage is unavailable, recovery can be temporary in this tab. Preserve the public signature before closing it. No private keys are saved by this recovery feature.'], '#my-launches','Open Portfolio'),
   guide('launch-protections','Launch protections and developer tokens','How do ticker protection and developer locks work?',
-    'funded.vip prevents reuse of a ticker for 12 hours on this app, ignoring capitalization. New launches lock the declared initial developer token purchase for the selected 6h, 12h, 24h or 48h period on-chain (12h by default). Developer token locks do not delay creator SOL earnings; normal funding and payout conditions still apply.',
+    'richpad.fun prevents reuse of a ticker for 12 hours on this app, ignoring capitalization. New launches lock the declared initial developer token purchase for the selected 6h, 12h, 24h or 48h period on-chain (12h by default). Developer token locks do not delay creator SOL earnings; normal funding and payout conditions still apply.',
     ['Choose Token lock period beside Developer buy before signing. The initial developer purchase is capped at 20% of supply. Its lock starts at creation and the saved deadline cannot be changed; a zero developer purchase needs no escrow.',
       'After unlock, open your coin from Portfolio, connect the original developer wallet and choose Claim unlocked developer tokens. Sign and verify the finalized transfer. Existing locks retain their saved deadlines; launches without escrow are not retroactively locked. Later purchases, other wallets and extra tokens sent to escrow are outside the original locked allocation.',
       'Ticker protection does not reserve names across Solana. Bundle-wallet signals have bounded coverage and can flag shared funding or timing; they do not prove common ownership or prevent selling.',
@@ -30,12 +30,12 @@ export const pageGuides=[
       'A launch may require setup before the atomic creation transaction. Network or rent costs from successful setup can remain if creation later fails.',
       'After confirmation, use the completion checklist to inspect the mint, saved policy, reserve status, payments and included agents. Open the mint-specific airdrop link to check eligibility and custody.'], '#launch','Open Create a coin'),
   guide('listing','Get listed and listing recovery','Do I pay again to list a coin launched here?',
-    'Listing is included for a verified funded.vip launch. For an external coin, Get listed checks the exact mint and metadata, then offers the current quoted $FUNDED burn when eligible. Listing, launch promotion packages and directory SOL boosts have separate terms and receipts.',
+    'Listing is included for a verified richpad.fun launch. For an external coin, Get listed checks the exact mint and metadata, then offers the current quoted $RICH burn when eligible. Listing, launch promotion packages and directory SOL boosts have separate terms and receipts.',
     ['Paste the mint on the selected network and inspect its identity and included-listing status. A failed metadata read does not prove an included launch owes a new listing fee.',
       'For a paid listing, review the quoted burn, expiry and wallet before signing. A matching finalized burn is required and cannot be reused for another listing.',
       'If confirmation is uncertain, retain and verify the existing transaction before another payment. Listing does not change the saved creator-fee split.'], '#list','Open Get listed'),
-  guide('marketing-agency','AI Marketing and coin buybacks','How do the AI agents differ from the $FUNDED buyback?',
-    'Every new launch includes two agents that buy and burn the launched coin. Promotion packages also include X promotion. Included agents share the separate AI marketing allocation equally. The platform $FUNDED buyback uses its own allocation and buys a different asset.',
+  guide('marketing-agency','AI Marketing and coin buybacks','How do the AI agents differ from the $RICH buyback?',
+    'Every new launch includes two agents that buy and burn the launched coin. Promotion packages also include X promotion. Included agents share the separate AI marketing allocation equally. The platform $RICH buyback uses its own allocation and buys a different asset.',
     ['Default own-coin milestones are $100,000 and $300,000 verified USD market cap, once per agent per mint. Inspect the saved thresholds and budgets; future admin changes do not rewrite existing coins.',
       'X promotion uses the saved cadence, at least 24 hours by default, and is billed only after verified delivery. Account limits, content review and publisher availability can delay it. A launch announcement is separate from recurring agency promotion.',
       'The page separates published policy, funded budgets, worker readiness and completed receipts. X publishing can be paused while buyback workers remain independently available.',
@@ -74,7 +74,7 @@ export const pageGuides=[
   guide('analytics','Analytics and financial activity','Why do Analytics, receipts and balances show different totals?',
     'Analytics summarizes indexed platform evidence with its displayed coverage. Financial activity separates completed, pending and failed operations. A current vault balance, an allocation, gross rewards and net received SOL measure different things.',
     ['Inspect exact receipts, source collections, token units, fee/rent details and recipient balance changes. Missing net amounts or proof remain unavailable.',
-      'Market volume covers observed activity in the stated window; some registered tokens trade through other apps. It is not necessarily funded.vip-originated volume.',
+      'Market volume covers observed activity in the stated window; some registered tokens trade through other apps. It is not necessarily richpad.fun-originated volume.',
       'Worker heartbeats describe current readiness. Historical receipts describe past execution. Neither alone proves that every balance or pending obligation has been reconciled.'], '#analytics-detail','Open Analytics'),
   guide('privacy','Privacy and public sharing','What should I check before sharing a page or receipt?',
     'Wallet addresses and finalized Solana transactions are public. Sharing a coin, profile or receipt can expose those public identifiers. Review the exact content and destination before sharing; a connected wallet does not authorize a public post.',
@@ -122,7 +122,7 @@ export function helpTopicForLocation({pathname='/',hash=''}={}) {
   if(/^\/creator\//.test(pathname))return 'creator-updates';
   if(/^\/admin(?:\/|$)/.test(pathname))return 'admin';
   if(/^\/list\/?$/.test(pathname))return 'listing';
-  if(/^\/funded\/?$/.test(pathname))return 'funded';
+  if(/^\/(?:rich|funded)\/?$/.test(pathname))return 'funded';
   if(/^\/explore\/?$/.test(pathname))return 'search';
   if(/^\/pilot\/?$/.test(pathname))return 'launch';
   return 'home';

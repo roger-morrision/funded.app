@@ -26,7 +26,7 @@ export function createLaunchQuoteRoutes({
         tradeRecipient:new PublicKey(env.FUNDED_TRADE_FEE_OWNER).toBase58() });
     }
     if (req.method === 'POST' && url.pathname === '/api/launch-service-quote') {
-      if (!allowedAuthOrigin(req,env.CORS_ORIGIN)) return json(res,403,{error:'Request the launch fee quote from funded.vip.'});
+      if (!allowedAuthOrigin(req,env.CORS_ORIGIN)) return json(res,403,{error:'Request the launch fee quote from richpad.fun.'});
       if (!await store.chargeRpcRate(`launch-service:${clientKey(req)}`,1,8,Math.floor(Date.now()/60_000)*60_000)) return json(res,429,{error:'Too many launch fee quotes.'});
       const input = await body(req); let payer;
       try { payer = new PublicKey(input.payer).toBase58(); } catch { return json(res,400,{error:'A valid payer is required.'}); }
@@ -43,10 +43,10 @@ export function createLaunchQuoteRoutes({
     if (req.method === 'GET' && url.pathname === '/api/launch-tier-quote') {
       try { const pricing = await checkedPricing(), fees = await readServiceFees(store); return json(res, 200, { ...pricing,
         amounts:launchTierAmounts(pricing.tokenPriceUsd,fees.policy), usdTargets:{pro:fees.policy.proUsd,premier:fees.policy.premierUsd}, serviceFees:fees }); }
-      catch (error) { return json(res, 503, { error: String(error.message || 'The $FUNDED tier price is unavailable.') }); }
+      catch (error) { return json(res, 503, { error: String(error.message || 'The $RICH tier price is unavailable.') }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/launch-tier-quote') {
-      if (!allowedAuthOrigin(req, env.CORS_ORIGIN)) return json(res, 403, { error:'Request the launch quote from funded.vip.' });
+      if (!allowedAuthOrigin(req, env.CORS_ORIGIN)) return json(res, 403, { error:'Request the launch quote from richpad.fun.' });
       if (!await store.chargeRpcRate(`launch-tier-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
         return json(res, 429, { error:'Too many launch quotes; retry shortly.' });
       const input = await body(req);
@@ -57,7 +57,7 @@ export function createLaunchQuoteRoutes({
       catch { return json(res, 400, { error:'Connect a valid wallet before requesting a paid tier quote.' }); }
       let pricing;
       try { pricing = await checkedPricing(); }
-      catch (error) { return json(res, 503, { error:String(error.message || 'The $FUNDED tier price is unavailable.') }); }
+      catch (error) { return json(res, 503, { error:String(error.message || 'The $RICH tier price is unavailable.') }); }
       const now = Date.now();
       const fees = await readServiceFees(store);
       const quote = { id:id('launch_tier'), cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],tier, payer, fundedMint:fundedTokenMint,

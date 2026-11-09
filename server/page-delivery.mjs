@@ -85,7 +85,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
         || launch.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.pumpFeeRoute.verified !== true
         || launch.pumpFeeRoute.router !== launch.creator || !launch.pumpFeeRoute.programId
         || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified V3 launch metadata is not available.' });
-      return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Token launched on funded.vip.', image: 'https://funded.vip/favicon.svg' });
+      return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Token launched on richpad.fun.', image: 'https://richpad.fun/favicon.svg' });
     }
     if (req.method === 'GET' && /^\/creator\/x\/\d{1,24}\/?$/.test(url.pathname)) {
       const creatorId=url.pathname.split('/')[3];

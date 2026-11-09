@@ -2,7 +2,7 @@
 
 Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
 
-The default agency policy for new V3 launches is **80% creator-directed / 8% Operations & marketing / 1% referral network / 2% AI agency / 4% Daily bonus / 5% $FUNDED buyback**, measured against gross collected Pump creator fees. Referral levels are 0.6% / 0.25% / 0.15%. The creator-directed 80% follows the launch-time wallet, holder and X allocation; it is not necessarily all paid to the creator wallet.
+The default agency policy for new V3 launches is **80% creator-directed / 8% Operations & marketing / 1% referral network / 2% AI agency / 4% Daily bonus / 5% $RICH buyback**, measured against gross collected Pump creator fees. Referral levels are 0.6% / 0.25% / 0.15%. The creator-directed 80% follows the launch-time wallet, holder and X allocation; it is not necessarily all paid to the creator wallet.
 
 The authoritative policy is the verified on-chain configuration published through the admin workflow, not a file default or a deployment report. See [configurable financial rules](configurable-financial-rules.md) for the authority-signing workflow, launch snapshots, limits and evidence requirements.
 

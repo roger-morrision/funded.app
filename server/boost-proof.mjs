@@ -3,13 +3,19 @@ import { BOOST_MEMO_PROGRAM, boostMemo } from '../boost-offer.js';
 
 function address(value) { return value?.toBase58?.() || String(value || ''); }
 
-export function verifyBoostPayment(transaction, quote) {
+export function verifyBoostPayment(transaction, quote, payment) {
   if (!transaction || !transaction.meta || transaction.meta.err !== null || !Number.isSafeInteger(transaction.blockTime))
     throw new Error('A finalized, successful transaction with a block time is required.');
   const transactionTime = transaction.blockTime * 1000;
-  if (transactionTime < Date.parse(quote.createdAt) - 30_000 || transactionTime > Date.parse(quote.expiresAt) + 30_000)
+  if (transactionTime < Date.parse(quote.createdAt) - 30_000)
     throw new Error('The payment was outside the quote window.');
+  // Expiry stops new signing in checkout; it cannot cancel a SystemProgram
+  // transfer already signed/broadcast. Honor each exact successful payment once,
+  // including legacy quotes, instead of keeping SOL without delivering the boost.
   const message = transaction.transaction?.message;
+  if (quote.paymentProtocol === 'journal-v1' && (!payment?.broadcastAllowed || payment.quoteId !== quote.id
+    || payment.blockhash !== message?.recentBlockhash || Date.parse(payment.registeredAt) > Date.parse(quote.expiresAt)))
+    throw Error('The payment does not match a transaction registered before quote expiry. Contact support with its signature.');
   const keys = message?.accountKeys || [];
   if (address(keys[0]?.pubkey || keys[0]) !== quote.payer || !keys[0]?.signer || keys.filter(key => key.signer).length !== 1)
     throw new Error('The quoted wallet must be the only transaction signer and fee payer.');

@@ -1,11 +1,11 @@
 // A compact version of the platform overview, mounted before workspace routing.
 export function mountHomeStart(document=globalThis.document) {
   const section=document.querySelector('.home-start');
-  if(section) section.innerHTML=`<header><p class="eyebrow">Why funded.vip</p><h2 id="home-start-title">Fees go back to the community.</h2><p class="home-start-note">Collected creator fees follow the allocation saved on Solana at launch.</p></header>
+  if(section) section.innerHTML=`<header><p class="eyebrow">Why richpad.fun</p><h2 id="home-start-title">Fees go back to the community.</h2><p class="home-start-note">Collected creator fees follow the allocation saved on Solana at launch.</p></header>
           <div class="home-start-grid">
             <a href="#launch"><span class="home-benefit-value">80%</span><h3>Creator-directed fees</h3><p>Choose your wallet, holders and X split.</p></a>
-            <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Token reserve</h3><p>For eligible $FUNDED holders at migration.</p></a>
-            <a href="#buybacks"><span class="home-benefit-value">5%</span><h3>$FUNDED buyback &amp; burn</h3><p>Collected fees fund verified buys and burns.</p></a>
+            <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Token reserve</h3><p>For eligible $RICH holders at migration.</p></a>
+            <a href="#buybacks"><span class="home-benefit-value">5%</span><h3>$RICH buyback &amp; burn</h3><p>Collected fees fund verified buys and burns.</p></a>
             <a href="#bonuses"><span class="home-benefit-value">4%</span><h3>Daily bonuses</h3><p>Top creators, referrers and traders; paid when funded.</p></a>
             <a href="#referrals"><span class="home-benefit-value">1%</span><h3>Referrals</h3><p>Three reward levels from qualifying creator fees.</p></a>
             <a href="#marketing-agency"><span class="home-benefit-value">2%</span><h3>AI agents &amp; buybacks</h3><p>Coin promotion and milestone buys, when funded.</p></a>

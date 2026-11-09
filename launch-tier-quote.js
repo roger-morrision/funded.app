@@ -4,10 +4,10 @@ export const LAUNCH_TIER_USD = Object.freeze({ get pro() { return currentService
 
 export function launchTierAmounts(tokenPriceUsd, fees = currentServiceFees()) {
   const price = Number(tokenPriceUsd);
-  if (!Number.isFinite(price) || price <= 0) throw new Error('A positive $FUNDED/USD price is required.');
+  if (!Number.isFinite(price) || price <= 0) throw new Error('A positive $RICH/USD price is required.');
   const amounts = { pro:Math.ceil(fees.proUsd/price), premier:Math.ceil(fees.premierUsd/price) };
   if (Object.values(amounts).some(amount => !Number.isSafeInteger(amount) || amount <= 0))
-    throw new Error('The $FUNDED price cannot be converted to a safe token amount.');
+    throw new Error('The $RICH price cannot be converted to a safe token amount.');
   return amounts;
 }
 

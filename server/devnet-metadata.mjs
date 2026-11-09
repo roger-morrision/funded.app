@@ -75,7 +75,7 @@ export function publicMetadata(record, origin = metadataRecordOrigin(record)) {
   return {
     name: record.name,
     symbol: record.symbol,
-    description: record.description || (record.cluster==='mainnet-beta' ? 'Token launched on funded.vip.' : 'Devnet test token launched on funded.vip. Devnet assets have no intended monetary value.'),
+    description: record.description || (record.cluster==='mainnet-beta' ? 'Token launched on richpad.fun.' : 'Devnet test token launched on richpad.fun. Devnet assets have no intended monetary value.'),
     image: record.pinnedMetadata?.image || (record.imageSha256 ? devnetImageUri(record.mint, origin) : `${origin}/default.svg`),
     ...(record.bannerSha256 ? { banner: record.pinnedMetadata?.banner || devnetBannerUri(record.mint, origin) } : {}),
     ...(record.website ? { external_url: record.website, website: record.website } : {}),

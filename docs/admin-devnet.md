@@ -2,7 +2,7 @@
 
 Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
 
-Open `/admin` on the deployed funded.vip Devnet preview. The page is inert until a
+Open `/admin` on the deployed richpad.fun Devnet preview. The page is inert until a
 configured administrator signs the one-use sign-in message. The admin key is a
 separate Devnet QA wallet; the browser never receives an API token or a server
 signer secret.
@@ -108,13 +108,13 @@ Once agency policy is published, the old off-chain fee form is disabled and its 
 
 ## App service fees
 
-The separate App service fees editor controls trading on buys and sells (default 1%), the SOL service charge on every launch (0.02 SOL), Pro promotion ($150 in $FUNDED burned), Premier promotion ($300 burned), and external coin listing ($300 burned). Promotion burns are additional to the SOL launch service charge. Listing is included for verified funded.vip launches.
+The separate App service fees editor controls trading on buys and sells (default 1%), the SOL service charge on every launch (0.02 SOL), Pro promotion ($150 in $RICH burned), Premier promotion ($300 burned), and external coin listing ($300 burned). Promotion burns are additional to the SOL launch service charge. Listing is included for verified richpad.fun launches.
 
 Sign in with an allowlisted wallet, refresh the current revision, enter the new prices and an audit reason, then review the summary before saving. Updates use revision/hash comparison and an audit record. Prices are persisted in `adminSettings.serviceFees`; they do not require a rebuild. Trading accepts 0–5% in whole basis points, launch fees 0–5 SOL in whole lamports, and promotion/listing prices whole positive USD amounts, with Premier above Pro.
 
 Each new launch or burn quote snapshots the configured amount. Issued quotes remain valid for ten minutes, and their finalized receipts remain recoverable after an admin price change. Trading reviews use their short-lived fee snapshot. A page already open refreshes on route change; the signing flow obtains current fees before preparing a new quote. The launch charge is included in the atomic coin-creation transaction and verified against its saved quote, memo, payer, and exact treasury credit. The SOL treasury defaults to `FUNDED_TRADE_FEE_OWNER`; `FUNDED_SERVICE_FEE_RECIPIENT` can select a dedicated public recipient.
 
-SOL service charges, app trade charges, and $FUNDED burns are separate from the immutable 80/20 creator-fee allocation. Burning $FUNDED reduces token supply and does not credit SOL revenue to the app. Quotes and allocations alone do not prove collection.
+SOL service charges, app trade charges, and $RICH burns are separate from the immutable 80/20 creator-fee allocation. Burning $RICH reduces token supply and does not credit SOL revenue to the app. Quotes and allocations alone do not prove collection.
 
 ## X publishing review verification
 

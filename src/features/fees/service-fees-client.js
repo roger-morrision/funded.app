@@ -50,7 +50,7 @@ export async function quoteLaunchServiceFee(appState,fees,payer) {
 }
 export function serviceFeeGuide() {
   const f = currentServiceFees();
-  return `App trading: ${f.tradeBps/100}% on buys and sells. Every coin launch: ${serviceFeeSol(f.launchLamports)} SOL service fee. Optional Pro: $${f.proUsd} in $FUNDED burned; Premier: $${f.premierUsd} in $FUNDED burned, plus the launch service fee. External coin listing: $${f.listingUsd} in $FUNDED burned. Listing is included for coins launched through funded.vip. Pump/pool fees, network costs, account rent and community reserve purchases are separate. Service fees are accounted for separately from the collected creator-fee distribution, whose app allocation and reward budgets are itemized separately. Issued quotes retain their reviewed amounts until expiry; admin edits apply to new quotes.`;
+  return `App trading: ${f.tradeBps/100}% on buys and sells. Every coin launch: ${serviceFeeSol(f.launchLamports)} SOL service fee. Optional Pro: $${f.proUsd} in $RICH burned; Premier: $${f.premierUsd} in $RICH burned, plus the launch service fee. External coin listing: $${f.listingUsd} in $RICH burned. Listing is included for coins launched through richpad.fun. Pump/pool fees, network costs, account rent and community reserve purchases are separate. Service fees are accounted for separately from the collected creator-fee distribution, whose app allocation and reward budgets are itemized separately. Issued quotes retain their reviewed amounts until expiry; admin edits apply to new quotes.`;
 }
 export function initServiceFeeCopy() {
   const render = () => {

@@ -53,7 +53,7 @@ for (const target of targets) {
 }
 const total = plans.reduce((sum, plan) => sum + plan.amount, 0n);
 assert(sourceBefore.amount >= total, 'The selected Devnet QA source cannot cover the requested budget.');
-if (sourceRole === 'referrer') assert(sourceBefore.amount - total >= 10_000n * scale, 'Keep at least 10,000 $FUNDED in the referrer QA wallet.');
+if (sourceRole === 'referrer') assert(sourceBefore.amount - total >= 10_000n * scale, 'Keep at least 10,000 $RICH in the referrer QA wallet.');
 const preview = { status:'planned', cluster:'devnet', mint:mint.toBase58(), sourceRole, source:source.publicKey.toBase58(), sourceBalanceBaseUnits:String(sourceBefore.amount), sourceSol:sourceSol / 1e9, transferBaseUnits:String(total), targets:plans.map(plan => ({ role:plan.role, wallet:plan.wallet.publicKey.toBase58(), baseUnits:String(plan.amount) })) };
 if (!process.argv.includes('--execute')) { console.log(JSON.stringify(preview)); process.exit(0); }
 if (!plans.length) {
@@ -71,5 +71,5 @@ const status = await connection.getSignatureStatus(signature, { searchTransactio
 assert.equal(status.value?.confirmationStatus, 'finalized'); assert.equal(status.value?.err, null);
 for (const plan of plans) assert.equal((await getAccount(connection, plan.ata, 'finalized', TOKEN_PROGRAM_ID)).amount - plan.before, plan.amount, `${plan.role} balance delta mismatch.`);
 assert.equal(sourceBefore.amount - (await getAccount(connection, sourceAta, 'finalized', TOKEN_PROGRAM_ID)).amount, total, 'Funding-source delta mismatch.');
-assert.equal((await getMint(connection, mint, 'finalized', TOKEN_PROGRAM_ID)).supply, supplyBefore, 'Transfer changed the $FUNDED supply.');
+assert.equal((await getMint(connection, mint, 'finalized', TOKEN_PROGRAM_ID)).supply, supplyBefore, 'Transfer changed the $RICH supply.');
 console.log(JSON.stringify({ status:'verified', cluster:'devnet', signature, source:source.publicKey.toBase58(), transferredBaseUnits:String(total), targets:plans.map(plan => ({ role:plan.role, wallet:plan.wallet.publicKey.toBase58(), baseUnits:String(plan.amount) })) }));

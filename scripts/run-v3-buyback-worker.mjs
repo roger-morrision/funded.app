@@ -6,7 +6,7 @@ import { recordWorkerCycle } from './worker-health.mjs';
 
 if (process.env.SOLANA_CLUSTER !== 'devnet') throw new Error('Automatic V3 buyback worker is Devnet-only.');
 const endpoint = new URL(process.env.FUNDED_INTERNAL_APP_URL || 'http://app:8787');
-const origin = process.env.CORS_ORIGIN || 'https://funded.vip';
+const origin = process.env.CORS_ORIGIN || 'https://richpad.fun';
 const token = String(process.env.FUNDED_API_TOKEN || (process.env.FUNDED_API_TOKEN_FILE
   ? readFileSync(process.env.FUNDED_API_TOKEN_FILE, 'utf8') : '')).trim();
 if (!token) throw new Error('Automatic V3 buyback worker requires internal API authorization.');

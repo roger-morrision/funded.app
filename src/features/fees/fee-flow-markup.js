@@ -9,7 +9,7 @@ export const feeFlowCalculatorMarkup = `<article class="panel fee-flow-calculato
                 <div class="operations"><span>Operations &amp; marketing</span><strong id="fee-output-operations">8 SOL</strong><small>8% of gross</small></div>
                 <div class="referrals"><span>Referral network</span><strong id="fee-output-referrals">1 SOL</strong><small>L1 0.6% · L2 0.25% · L3 0.15%</small></div>
                 <div class="community"><span>Daily bonus</span><strong id="fee-output-community">4 SOL</strong><small>4% of gross</small></div>
-                <div class="burn"><span>$FUNDED buyback</span><strong id="fee-output-buyback">5 SOL</strong><small>5% of gross</small></div><div class="agency" data-agency-fee><span>AI marketing &amp; coin buybacks</span><strong id="fee-output-agency">2 SOL</strong><small>2% of gross</small></div>
+                <div class="burn"><span>$RICH buyback</span><strong id="fee-output-buyback">5 SOL</strong><small>5% of gross</small></div><div class="agency" data-agency-fee><span>AI marketing &amp; coin buybacks</span><strong id="fee-output-agency">2 SOL</strong><small>2% of gross</small></div>
               </div>
               <p class="fee-flow-note" id="fee-flow-note">A 100 SOL claim allocates exactly 100 SOL under the published policy.</p>
             </article>`;

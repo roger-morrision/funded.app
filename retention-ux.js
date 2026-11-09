@@ -39,6 +39,6 @@ const cost = document.querySelector('#cost-summary');
 if (cost && !cost.querySelector('.launch-total-cost-note')) {
   const note = document.createElement('small');
   note.className = 'launch-total-cost-note';
-  note.textContent = 'A zero platform fee does not mean a free transaction. Check network fees, optional developer buy, and any $FUNDED burn in the final review.';
+  note.textContent = 'A zero platform fee does not mean a free transaction. Check network fees, optional developer buy, and any $RICH burn in the final review.';
   cost.append(note);
 }

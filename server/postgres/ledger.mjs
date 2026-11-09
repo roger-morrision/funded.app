@@ -16,6 +16,7 @@ buckets.push('v3AllocationResidualPlans');
 buckets.push('v3AgencyExecutions');
 buckets.push('v3AgencyPromotions');
 buckets.push('communityExecutions', 'manualReferralPayoutClaims');
+buckets.push('boostPayments');
 
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
@@ -23,7 +24,7 @@ function baseState() {
   return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
-function initialState() { return { ...baseState(), top100Snapshots:{}, productIssues:{}, adminSettings:{}, adminAudit:{}, adminWithdrawalIntents:{}, launchServiceQuotes:{}, launchSymbolReservations:{}, v3AllocationResidualPlans:{}, v3AgencyExecutions:{}, v3AgencyPromotions:{}, communityExecutions:{}, manualReferralPayoutClaims:{} }; }
+function initialState() { return { ...baseState(), boostPayments:{}, top100Snapshots:{}, productIssues:{}, adminSettings:{}, adminAudit:{}, adminWithdrawalIntents:{}, launchServiceQuotes:{}, launchSymbolReservations:{}, v3AllocationResidualPlans:{}, v3AgencyExecutions:{}, v3AgencyPromotions:{}, communityExecutions:{}, manualReferralPayoutClaims:{} }; }
 
 function normalizeState(state) {
   const next = { ...initialState(), ...state };
@@ -38,6 +39,7 @@ function normalizeState(state) {
   next.listingQuotes ||= {};
   next.boostQuotes ||= {};
   next.boostReceipts ||= {};
+  next.boostPayments ||= {};
   next.launchTierQuotes ||= {};
   next.xPublicTradeShares ||= {};
   next.settlements ||= {};

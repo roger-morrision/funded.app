@@ -80,7 +80,7 @@ Historical evidence is retained in `docs/evidence/smaller-devnet-release-2026-11
 ## Production handoff
 
 1. Finish the remaining gated worker/launch integrations and Devnet cases above. Preserve failed and pending transaction journals; do not resubmit an unknown payment.
-2. Replace the placeholders in the deployment inventory and private staging config: dedicated program, upgrade authority, admin, FUNDED mint/pool, RPC/database/storage, signer references and spend limits.
+2. Replace the placeholders in the deployment inventory and private staging config: dedicated program, upgrade authority, admin, RICH mint/pool, RPC/database/storage, signer references and spend limits.
 3. Freeze the actual production binary and source, reproduce its bytes, and obtain independent contract/custody review. Historical reference binaries are not deployment approvals.
 4. Refresh rent and transaction estimates against those exact bytes. Approve the concrete program ID, authority, payer reference and total capped spend.
 5. Deploy to isolated Mainnet infrastructure, verify finalized bytecode/state, and run the capped canary. Public writes open only after every financial delta and recovery case is accepted.

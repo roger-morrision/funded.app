@@ -220,7 +220,7 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 691
-  document.querySelector('#referral-share-native')?.addEventListener('click', async () => { const code = await appState.referralCodeForShare(); if (!code) return; appState.openShareComposer({ kind:'referral', title:'Join funded.vip', text:'Explore verified launches and published fee routes with me on funded.vip.', url:appState.buildReferralUrl(code) }); });
+  document.querySelector('#referral-share-native')?.addEventListener('click', async () => { const code = await appState.referralCodeForShare(); if (!code) return; appState.openShareComposer({ kind:'referral', title:'Join richpad.fun', text:'Explore verified launches and published fee routes with me on richpad.fun.', url:appState.buildReferralUrl(code) }); });
   // app-source-end
 
   // app-source: 692
@@ -249,7 +249,7 @@ export function initializeLaunchActions(appState) {
     shareButton.addEventListener('click', async () => {
       const code = await appState.referralCodeForShare();
       if (!code) return;
-      appState.openShareComposer({ kind:'referral', title:'Join funded.vip', text:'Explore verified launches and published fee routes with me on funded.vip.', url:appState.buildReferralUrl(code) });
+      appState.openShareComposer({ kind:'referral', title:'Join richpad.fun', text:'Explore verified launches and published fee routes with me on richpad.fun.', url:appState.buildReferralUrl(code) });
     });
     const messageButton = document.createElement('button');
     messageButton.type = 'button'; messageButton.className = 'secondary-button'; messageButton.textContent = 'Copy message';
@@ -257,7 +257,7 @@ export function initializeLaunchActions(appState) {
       const code = await appState.referralCodeForShare();
       if (!code) return;
       const link = appState.buildReferralUrl(code);
-      const message = `Join me on funded.vip to launch a coin: ${link}`;
+      const message = `Join me on richpad.fun to launch a coin: ${link}`;
       try { await navigator.clipboard.writeText(message); appState.trackReferralEvent('invite_message_copied'); appState.showToast('Invite message copied'); } catch { appState.showToast(message); }
     });
     actions.append(shareButton, messageButton); row.append(actions);

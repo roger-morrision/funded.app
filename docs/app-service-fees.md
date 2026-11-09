@@ -4,12 +4,12 @@ Product workflows: [all-page guide](product-guide.md). Documentation scope and d
 
 | Service | Default | Payment |
 | --- | --- | --- |
-| Trading through funded.vip | 1% on buys and sells | SOL transfer included in the trade |
+| Trading through richpad.fun | 1% on buys and sells | SOL transfer included in the trade |
 | Every coin launch, including Standard | 0.02 SOL | Atomic SOL transfer to the app service treasury |
-| Optional Pro promotion | $150 | $FUNDED BurnChecked in the creation transaction, plus launch SOL fee |
-| Optional Premier promotion | $300 | $FUNDED BurnChecked in the creation transaction, plus launch SOL fee |
-| External coin listing | $300 | Quoted $FUNDED BurnChecked bound to the listing mint |
-| Listing for a verified funded.vip launch | Included | No additional listing burn |
+| Optional Pro promotion | $150 | $RICH BurnChecked in the creation transaction, plus launch SOL fee |
+| Optional Premier promotion | $300 | $RICH BurnChecked in the creation transaction, plus launch SOL fee |
+| External coin listing | $300 | Quoted $RICH BurnChecked bound to the listing mint |
+| Listing for a verified richpad.fun launch | Included | No additional listing burn |
 
 Defaults above come from `service-fees.js`. The verified `/api/service-fees` policy and the reviewed quote take precedence; admin changes apply to future quotes. Boost, when offered, uses its displayed configured token-burn amount rather than the Pro/Premier USD price fields.
 
@@ -23,10 +23,10 @@ The API registers a new launch only after finalized Pump creation, immutable V3 
 
 Launch service quotes are persisted in the file and PostgreSQL stores. The quote endpoint reads its write back before permitting payment preparation; a storage failure returns an unavailable response before signing.
 
-External listings require verified mint metadata, a saved USD/token quote, and a finalized matching burn. A burn cannot be reused for another listing. Verified funded.vip launches are already in the launch directory and are excluded from paid listing quotes. Older confirmed receipts retain their original USD value in history.
+External listings require verified mint metadata, a saved USD/token quote, and a finalized matching burn. A burn cannot be reused for another listing. Verified richpad.fun launches are already in the launch directory and are excluded from paid listing quotes. Older confirmed receipts retain their original USD value in history.
 
 ## Accounting and disclosure
 
-App trading and launch fees are service charges. $FUNDED promotion/listing payments are token burns. These are separate from Pump/pool trading fees and from the 80/20 split of creator fees actually collected by each mint router. Network costs, account rent, reserve purchases, price impact, and slippage are shown separately where relevant. Admin prices do not change Pump contracts or the fee policy of an existing mint.
+App trading and launch fees are service charges. $RICH promotion/listing payments are token burns. These are separate from Pump/pool trading fees and from the 80/20 split of creator fees actually collected by each mint router. Network costs, account rent, reserve purchases, price impact, and slippage are shown separately where relevant. Admin prices do not change Pump contracts or the fee policy of an existing mint.
 
 The default AI agency allocation is 2% of collected creator fees under the agency policy. Policy publication, source funding and executor readiness are separate. Raising service prices neither changes a saved mint policy nor activates an executor.

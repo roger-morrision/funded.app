@@ -15,16 +15,16 @@ Docs, Questions/FAQ and Help share explanations in `src/features/help/product-gu
 | Rewards: X | Sign in as the named account, link and verify the recipient wallet, claim and check the receipt | [X claims](x-fee-claims-devnet.md) |
 | Referrals / Questions | Frozen first-touch upline; claim available three-level rewards in Referrals with the earning wallet | [Fee policy](protocol-fee-split-config.md) |
 | Daily bonuses | Completed UTC window, verified rankings and source funding; automatic recipient payment | [Bonus rules](daily-bonus-policy.md) |
-| Airdrops | Hold $FUNDED until migration; receive launched tokens automatically in proportion to eligible holdings | [Community airdrops](community-airdrop-devnet.md) |
-| Buy & burn / $FUNDED | Distinguish manual/package burns from fee-funded $FUNDED purchases and burns | [Buybacks](buyback-devnet-executor.md) |
+| Airdrops | Hold $RICH until migration; receive launched tokens automatically in proportion to eligible holdings | [Community airdrops](community-airdrop-devnet.md) |
+| Buy & burn / $RICH | Distinguish manual/package burns from fee-funded $RICH purchases and burns | [Buybacks](buyback-devnet-executor.md) |
 | AI Marketing | Check saved agents, own-coin milestones, budget and executor status | [Agency rules](marketing-agency-policy.md) |
 | Rewards History / Analytics | Inspect finalized gross/net receipts, fees, rent and source coverage | [Measurement](product-measurement.md) |
 | Admin | Allowlisted wallet sign-in; separate service-price and authority-signed policy changes; audited withdrawals | [Admin](admin-devnet.md), [financial rules](configurable-financial-rules.md) |
 | Welcome / Home / Docs / Help | Pick a workflow, search guides, open page help; use Profile for reviewed issue reports | Sections below |
 
-The agency defaults are 80% creator-directed, 8% Operations & marketing, 1% referrals (0.6/0.25/0.15), 2% AI agency, 4% Daily bonus and 5% $FUNDED buyback, all of gross collected creator fees. Published configuration governs new launches; existing coins keep their saved rates. The old fallback has 3% referrals and no agency category. File defaults do not prove live policy or worker activation.
+The agency defaults are 80% creator-directed, 8% Operations & marketing, 1% referrals (0.6/0.25/0.15), 2% AI agency, 4% Daily bonus and 5% $RICH buyback, all of gross collected creator fees. Published configuration governs new launches; existing coins keep their saved rates. The old fallback has 3% referrals and no agency category. File defaults do not prove live policy or worker activation.
 
-App service-price defaults are 1% trading, 0.02 SOL launch, $150 Pro, $300 Premier and $300 external listing in quoted $FUNDED burns. Listing is included for verified launches. Review current quotes; network, rent, Pump/pool costs and purchases are separate.
+App service-price defaults are 1% trading, 0.02 SOL launch, $150 Pro, $300 Premier and $300 external listing in quoted $RICH burns. Listing is included for verified launches. Review current quotes; network, rent, Pump/pool costs and purchases are separate.
 
 Collection → settlement → funding → eligibility/claim → finalized payment are separate stages. Creator fees, X rewards and three-level referral rewards require manual claims. Coin-holder SOL, Daily bonuses and migration token airdrops pay automatically after their eligibility and funding checks. The developer token lock does not hold creator SOL income.
 
@@ -62,7 +62,7 @@ Connect the intended wallet in Portfolio to inspect holdings, created coins and 
 
 Route: `#launch`. In-app guide: `#docs/launch-protections`.
 
-funded.vip prevents reuse of a ticker for 12 hours on this app, ignoring capitalization. New launches lock the declared initial developer token purchase for a selected 6h, 12h, 24h or 48h period on-chain (12h default). Developer token locks do not delay creator SOL earnings; normal funding and payout conditions still apply.
+richpad.fun prevents reuse of a ticker for 12 hours on this app, ignoring capitalization. New launches lock the declared initial developer token purchase for a selected 6h, 12h, 24h or 48h period on-chain (12h default). Developer token locks do not delay creator SOL earnings; normal funding and payout conditions still apply.
 
 1. Choose Token lock period beside Developer buy before signing. The initial developer purchase is capped at 20% of supply. Its lock starts at creation and the saved deadline cannot be changed; a zero developer purchase needs no escrow.
 2. After unlock, open your coin from Portfolio, connect the original developer wallet and choose Claim unlocked developer tokens. Sign and verify the finalized transfer. Existing locks retain their saved deadlines; launches without escrow are not retroactively locked. Later purchases, other wallets and extra tokens sent to escrow are outside the original locked allocation.
@@ -83,7 +83,7 @@ A saved launch plan is a public draft and a return reminder. It does not reserve
 
 Route: `#list`. In-app guide: `#docs/listing`.
 
-Listing is included for a verified funded.vip launch. For an external coin, Get listed checks the exact mint and metadata, then offers the current quoted $FUNDED burn when eligible. Listing, launch promotion packages and directory SOL boosts have separate terms and receipts.
+Listing is included for a verified richpad.fun launch. For an external coin, Get listed checks the exact mint and metadata, then offers the current quoted $RICH burn when eligible. Listing, launch promotion packages and directory SOL boosts have separate terms and receipts.
 
 1. Paste the mint on the selected network and inspect its identity and included-listing status. A failed metadata read does not prove an included launch owes a new listing fee.
 2. For a paid listing, review the quoted burn, expiry and wallet before signing. A matching finalized burn is required and cannot be reused for another listing.
@@ -93,7 +93,7 @@ Listing is included for a verified funded.vip launch. For an external coin, Get 
 
 Route: `#marketing-agency`. In-app guide: `#docs/marketing-agency`.
 
-Every new launch includes two agents that buy and burn the launched coin. Promotion packages also include X promotion. Included agents share the separate AI marketing allocation equally. The platform $FUNDED buyback uses its own allocation and buys a different asset.
+Every new launch includes two agents that buy and burn the launched coin. Promotion packages also include X promotion. Included agents share the separate AI marketing allocation equally. The platform $RICH buyback uses its own allocation and buys a different asset.
 
 1. Default own-coin milestones are $100,000 and $300,000 verified USD market cap, once per agent per mint. Inspect the saved thresholds and budgets; future admin changes do not rewrite existing coins.
 2. X promotion uses the saved cadence, at least 24 hours by default, and is billed only after verified delivery. Account limits, content review and publisher availability can delay it. A launch announcement is separate from recurring agency promotion.
@@ -168,7 +168,7 @@ Route: `#analytics-detail`. In-app guide: `#docs/analytics`.
 Analytics summarizes indexed platform evidence with its displayed coverage. Financial activity separates completed, pending and failed operations. A current vault balance, an allocation, gross rewards and net received SOL measure different things.
 
 1. Inspect exact receipts, source collections, token units, fee/rent details and recipient balance changes. Missing net amounts or proof remain unavailable.
-2. Market volume covers observed activity in the stated window; some registered tokens trade through other apps. It is not necessarily funded.vip-originated volume.
+2. Market volume covers observed activity in the stated window; some registered tokens trade through other apps. It is not necessarily richpad.fun-originated volume.
 3. Worker heartbeats describe current readiness. Historical receipts describe past execution. Neither alone proves that every balance or pending obligation has been reconciled.
 
 ## Community pilot planner

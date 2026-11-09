@@ -6,7 +6,7 @@ import bs58 from 'bs58';
 import { PROTOCOL_FEE_SPLIT } from '../config/protocol-fee-split.js';
 
 const base = new URL(process.env.FUNDED_PREVIEW_API_URL || 'http://127.0.0.1:8788');
-assert(['http://127.0.0.1:8788/', 'https://funded.vip/'].includes(base.href), 'Use the named Devnet preview.');
+assert(['http://127.0.0.1:8788/', 'https://richpad.fun/'].includes(base.href), 'Use the named Devnet preview.');
 const expectedBuild = process.argv.find(arg => arg.startsWith('--expected-build='))?.split('=')[1];
 assert(/^[a-f0-9]{40}$/.test(expectedBuild || ''), 'Supply the tested full --expected-build SHA.');
 const read = async path => {
@@ -26,7 +26,7 @@ if (JSON.stringify(before.split) === JSON.stringify(PROTOCOL_FEE_SPLIT)) {
   let cookie;
   const post = async (path, input) => {
     const res = await fetch(new URL(path, base), { method:'POST',
-      headers:{ 'content-type':'application/json', origin:'https://funded.vip', ...(cookie ? { cookie } : {}) },
+      headers:{ 'content-type':'application/json', origin:'https://richpad.fun', ...(cookie ? { cookie } : {}) },
       body:JSON.stringify(input), signal:AbortSignal.timeout(15_000) });
     const setCookie = res.headers.get('set-cookie');
     if (setCookie) cookie = setCookie.split(';')[0];

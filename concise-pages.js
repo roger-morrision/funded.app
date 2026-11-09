@@ -18,7 +18,7 @@ function compactAirdrop() {
   const root = document.getElementById('airdrops');
   if (!root) return;
   const intro = root.querySelector('.airdrop-intro');
-  const copy = 'Each launch reserves at least 3% of token supply for eligible $FUNDED holders. Hold $Funded till launched token get migrated to receive the airdrop automatically';
+  const copy = 'Each launch reserves at least 3% of token supply for eligible $RICH holders. Hold $RICH till launched token get migrated to receive the airdrop automatically';
   if (intro && intro.textContent !== copy) intro.textContent = copy;
   const directory = root.querySelector('.airdrop-public-programs');
   const poster = root.querySelector('.airdrop-trust:has([data-infographic-poster="airdrops"])');
@@ -237,13 +237,13 @@ function shortenPageCopy() {
     ['#referral-command-center .section-heading .panel-explainer', 'Earn from collected creator fees, not signups.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Review the pool quote, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Optionally link a project. Review and approve the permanent burn.'],
-    ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by funded.vip. Total supply can include other burns.'],
+    ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by richpad.fun. Total supply can include other burns.'],
     ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL and Daily bonuses are automatic after verification; X rewards need matching sign-in and a claim.'],
     ['#reward-discovery > small', 'Eligible wallets receive SOL automatically when funds are available. “0 paid wallets” means no holder payment is confirmed.'],
     ['#payments .auto-rewards-intro', 'Eligible holders receive SOL automatically after each verified cutoff and funding check. No claim needed.'],
     ['#payments .auto-rewards-fineprint', 'Target time is not payment. Each cycle checks funding and eligibility.'],
     ['#funded-holder-token-rewards > small', 'Tokens are paid automatically after migration checks.'],
-    ['#airdrops .airdrop-trust > p', 'Hold $FUNDED until migration. Receive tokens automatically.'],
+    ['#airdrops .airdrop-trust > p', 'Hold $RICH until migration. Receive tokens automatically.'],
     ['#list .list-field-note', 'Verified Solana metadata supplies name and ticker. Mint and burn are rechecked before payment.'],
     ['#profile .section-heading .panel-explainer', 'Check wallet and network before signing.'],
     ['#profile .source-note', 'Connecting shows which wallet will sign. Check each transaction before approving.'],

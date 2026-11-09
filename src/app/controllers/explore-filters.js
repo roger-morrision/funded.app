@@ -74,7 +74,7 @@ export function createExploreFiltersController(appState) {
     const payment = appState.verifiedPaidListingPayment(record);
     if (!payment) return '';
     const amount = Number(payment.amountTokens);
-    const burn = Number.isSafeInteger(amount) && amount > 0 ? `${amount.toLocaleString()} $FUNDED burn` : '$FUNDED burn';
+    const burn = Number.isSafeInteger(amount) && amount > 0 ? `${amount.toLocaleString()} $RICH burn` : '$RICH burn';
     const label = `Verified paid listing · ${burn} · view transaction receipt`;
     return `<a class="explore-paid-listing-bag" href="${appState.escapeHtml(appState.exploreExplorer(`tx/${encodeURIComponent(payment.signature)}`))}" target="_blank" rel="noopener noreferrer" aria-label="${appState.escapeHtml(label)}" title="${appState.escapeHtml(label)}">${appState.icon('listingBag')}</a>`;
   }

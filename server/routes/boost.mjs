@@ -5,16 +5,19 @@ import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
 import { verifyBoostPayment } from '../boost-proof.mjs';
 import {boostPricingSnapshot} from '../admin-boost-pricing.mjs';
 import {projectBoostReceipts,STACKED_BOOST_POLICY} from '../../boost-timeline.js';
+import {prepareBoostPayment, registerBoostPayment, expiredBoostPayment} from '../boost-payment-journal.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
 export function createBoostRoutes({
   store, solanaCluster, boostPurchasesEnabled, clientKey, body, readSolUsdQuote, id, solanaRpcUrl,
-  respond,
+  respond, connectionFactory=(url,options)=>new Connection(url,options),
 }) {
 
   const json = (...args) => { respond(...args); return true; };
   const receiptView=(state,signature)=>projectBoostReceipts(state.boostReceipts).find(row=>row.signature===signature)||state.boostReceipts[signature];
+  const connection=()=>connectionFactory(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
+    fetch:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(8000)})});
   return async function handleBoostRoutes(req, res, url, requestId) {
     if (req.method === 'GET' && url.pathname === '/api/boosts') {
       const state = await store.read();
@@ -32,10 +35,11 @@ export function createBoostRoutes({
     if (req.method === 'POST' && url.pathname === '/api/boosts/quote') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Solana only.' });
       if (!boostPurchasesEnabled) return json(res, 503, { error:'New boost purchases are currently paused.' });
-      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Start boost checkout from funded.vip.' });
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Start boost checkout from richpad.fun.' });
       if (!await store.chargeRpcRate(`boost-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
         return json(res, 429, { error:'Too many boost quotes; retry shortly.' });
       const input = await body(req);
+      if (input.paymentProtocol !== 'journal-v1') return json(res,409,{error:'Refresh the app before purchasing a boost. Checkout recovery has been updated.'});
       let mint, payer, recipient;
       try {
         mint = new PublicKey(String(input.mint || '')).toBase58();
@@ -50,25 +54,37 @@ export function createBoostRoutes({
       const launch = state.launches?.[mint];
       const listing = state.listings?.[mint];
       if (!(launch?.onchainVerified && launch.cluster === 'devnet') && !(listing?.onchainVerified && listing.cluster === 'devnet'))
-        return json(res, 404, { error:'Only verified tokens in the funded.vip Solana directory can be boosted.' });
+        return json(res, 404, { error:'Only verified tokens in the richpad.fun Solana directory can be boosted.' });
       const price = await readSolUsdQuote();
       if (!price || Date.now() - Date.parse(price.fetchedAt) > 120_000)
         return json(res, 503, { error:'A fresh SOL/USD quote is unavailable. No payment was requested.' });
       const now = Date.now();
       const quote = { id:id('boost'), mint, payer, recipient, packageId:selected.id, multiplier:selected.multiplier,
         hours:selected.hours, durationPolicy:STACKED_BOOST_POLICY, usd:selected.usd, pricingRevision:pricing.revision, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
-        cluster:'devnet', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
+        cluster:'devnet', paymentProtocol:'journal-v1', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
       await store.update(current => {
         current.boostQuotes ||= {};
-        for (const [key, old] of Object.entries(current.boostQuotes))
-          if (Date.parse(old.expiresAt) < now - 48 * 3_600_000) delete current.boostQuotes[key];
+        // Retain immutable quotes for delayed receipt recovery, including legacy
+        // payments whose browser closed before a server journal was available.
         current.boostQuotes[quote.id] = quote;
       });
       return json(res, 201, { ...quote, memo:boostMemo(quote.id) });
     }
+    if (req.method === 'POST' && url.pathname === '/api/boosts/prepare') {
+      if (solanaCluster !== 'devnet' || !boostPurchasesEnabled) return json(res,503,{error:'New boost purchases are unavailable.'});
+      if (!allowedAuthOrigin(req,process.env.CORS_ORIGIN)) return json(res,403,{error:'Prepare checkout from richpad.fun.'});
+      if (!await store.chargeRpcRate(`boost-prepare:${clientKey(req)}`,1,8,Math.floor(Date.now()/60000)*60000)) return json(res,429,{error:'Too many payment preparations. Retry shortly.'});
+      const input=await body(req),quote=(await store.read()).boostQuotes?.[String(input.quoteId||'')];
+      if (!quote) return json(res,404,{error:'Boost quote was not found.'});
+      if (Date.now()>=Date.parse(quote.expiresAt)) return json(res,409,{error:'The quote expired. Request a fresh quote.'});
+      try {
+        const rpc=connection();if(await rpc.getGenesisHash()!==DEVNET_GENESIS_HASH) throw Error('Network mismatch');
+        return json(res,200,await prepareBoostPayment({store,rpc,quote}));
+      } catch { return json(res,503,{error:'Payment preparation is unavailable. No transaction was requested.'}); }
+    }
     if (req.method === 'POST' && url.pathname === '/api/boosts/confirm') {
       if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Solana only.' });
-      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Confirm boost checkout from funded.vip.' });
+      if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Confirm boost checkout from richpad.fun.' });
       const input = await body(req);
       const quoteId = String(input.quoteId || '');
       const signature = String(input.signature || '');
@@ -79,20 +95,34 @@ export function createBoostRoutes({
       if (existing) return existing.quoteId === quoteId ? json(res, 200, receiptView(state,signature)) : json(res, 409, { error:'This transaction was already used.' });
       const quote = state.boostQuotes?.[quoteId];
       if (!quote) return json(res, 404, { error:'Boost quote was not found.' });
-      const rpc = new Connection(solanaRpcUrl, { commitment:'finalized', disableRetryOnRateLimit:true,
-        fetch:(url, options) => fetch(url, { ...options, signal:AbortSignal.timeout(8000) }) });
+      const rpc = connection();
       let transaction;
+      let payment = state.boostPayments?.[signature];
       try {
         if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC failed verification.' });
+        if (input.signedTransaction) {
+          try { payment = await registerBoostPayment({store,rpc,quote,signature,signedTransaction:input.signedTransaction}); }
+          catch { return json(res, 503, { error:'The signed payment could not be journaled. Retry the same payment; do not sign another.' }); }
+        }
+        if (payment && payment.quoteId !== quoteId) return json(res, 409, {error:'This transaction belongs to another quote.'});
         transaction = await rpc.getParsedTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+        if (!transaction) {
+          const expired = await expiredBoostPayment(rpc, payment);
+          if (expired) {
+            await store.update(current => { if (current.boostPayments?.[signature]?.quoteId === quoteId) current.boostPayments[signature].status='expired'; });
+            return json(res, 200, expired);
+          }
+          return json(res, 202, {status:'pending', signature, quoteId, cluster:'devnet',
+            journaled:Boolean(payment), broadcastAllowed:Boolean(payment?.broadcastAllowed) && Date.now() <= Date.parse(quote.expiresAt),
+            message:payment ? 'Payment is not finalized yet. Check the same signature.' : 'Payment proof is pending. Legacy recovery needs the original signature; do not pay again.'});
+        }
       } catch { return json(res, 503, { error:'Finalized Solana payment proof is currently unavailable. Retry the same signature.' }); }
-      if (!transaction) return json(res, 202, { status:'pending', signature, message:'Payment is not finalized yet. Retry verification with the same signature.' });
       if (transaction.transaction?.signatures?.[0] !== signature || !Number.isSafeInteger(transaction.slot) || transaction.slot < 1)
         return json(res, 503, { error:'Finalized payment proof did not match the requested signature. Retry verification of the same payment.' });
       if (transaction.meta?.err != null) return json(res, 200, { status:'failed', signature, quoteId,
         cluster:'devnet', commitment:'finalized', slot:transaction.slot });
       let proof;
-      try { proof = verifyBoostPayment(transaction, quote); }
+      try { proof = verifyBoostPayment(transaction, quote, payment); }
       catch (error) { return json(res, 409, { error:error.message || 'Payment does not match this boost quote.' }); }
       const record = { signature, quoteId, mint:quote.mint, payer:quote.payer, recipient:quote.recipient,
         packageId:quote.packageId, multiplier:quote.multiplier, hours:quote.hours, usd:quote.usd,
@@ -110,6 +140,7 @@ export function createBoostRoutes({
           if (Object.values(current.boostReceipts).some(row => row.quoteId === quoteId)) throw Object.assign(new Error('This boost quote was already paid.'), { statusCode:409 });
           if (JSON.stringify(current.boostQuotes?.[quoteId]) !== JSON.stringify(quote)) throw Object.assign(new Error('Boost quote changed during verification.'), { statusCode:409 });
           current.boostReceipts[signature] = record;
+          if (current.boostPayments?.[signature]) current.boostPayments[signature].status='finalized';
           created=true;
           return receiptView(current,signature);
         });

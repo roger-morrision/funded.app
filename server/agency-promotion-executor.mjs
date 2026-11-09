@@ -24,7 +24,7 @@ function assertCurrent(context,row,{delivered=false}={}){
 // retained across restarts and budget changes; it never generates a fresh ID.
 export async function runAgencyPromotion({store,outbox,connection,mint,programId,approvedHash,authority,publisher,
   readContext=readAgencyMintContext,journal=executeAgencyJournal,loadProof=loadFinalizedAgencyPromotion,
-  publicOrigin='https://funded.vip',now=()=>Date.now()}){
+  publicOrigin='https://richpad.fun',now=()=>Date.now()}){
   const state=await store.read(),current=await readContext({connection,state,mint,programId,approvedHash,authority:authority.publicKey});
   const pending=Object.values(state[BUCKET]||{}).filter(row=>row.mint===mint&&row.status!=='finalized');
   if(pending.length>1)throw new Error('More than one unpaid agency promotion requires audit.');

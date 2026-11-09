@@ -55,7 +55,7 @@ export function renderFundedTokenLanding(
   for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
     set('funded-token-' + tier.id + '-note', Object.hasOwn(LAUNCH_TIER_USD, tier.id)
       ? `$${LAUNCH_TIER_USD[tier.id]} target · ${tierAmounts?.[tier.id] ? 'current pool quote' : 'quote unavailable'}`
-      : Number.isFinite(quote) && quote > 0 ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot` : '$FUNDED burn per launch');
+      : Number.isFinite(quote) && quote > 0 ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot` : '$RICH burn per launch');
   const poolUnavailableNote = fundedBuyRoute.status === 'unavailable'
     ? /rate limit/i.test(fundedBuyRoute.reason || '') ? 'Solana RPC rate limited' : 'Verified Solana pool unavailable'
     : 'Verified quote unavailable';
@@ -75,14 +75,14 @@ export function renderFundedTokenLanding(
   const burnedTokens = supplyReady ? Number(formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 2)) : null;
   set('funded-token-burned', Number.isFinite(burnedTokens) ? formatDashboardQuantity(burnedTokens) : '—');
   const burnedValue = document.getElementById('funded-token-burned');
-  if (burnedValue) burnedValue.title = Number.isFinite(burnedTokens) ? `${burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })} $FUNDED from the on-chain supply delta` : '';
+  if (burnedValue) burnedValue.title = Number.isFinite(burnedTokens) ? `${burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })} $RICH from the on-chain supply delta` : '';
   set('funded-token-burned-note', supplyReady ? 'Confirmed supply reduction' : fundedBurnState.status === 'error' ? 'Supply total unavailable' : 'Checking supply');
   const tape = document.getElementById('funded-token-tape-items');
   if (tape) {
     const entries = [];
-    if (poolReady) entries.push(['$FUNDED', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 4 }) : poolSpotSol.toPrecision(4) + ' SOL', '/funded']);
-    if (Number.isFinite(poolCapSol)) entries.push(['FUNDED MC', marketCap, '/funded']);
-    if (Number.isFinite(burnedTokens)) entries.push(['BURNED', burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 0 }), '/funded']);
+    if (poolReady) entries.push(['$RICH', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 4 }) : poolSpotSol.toPrecision(4) + ' SOL', '/rich']);
+    if (Number.isFinite(poolCapSol)) entries.push(['RICH MC', marketCap, '/rich']);
+    if (Number.isFinite(burnedTokens)) entries.push(['BURNED', burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 0 }), '/rich']);
     if (exploreLastVerifiedAt && !exploreProviderStatus.includes('stale')) {
       for (const item of assets) {
         const cap = exploreMarketCapUsd(item);

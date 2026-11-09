@@ -22,7 +22,7 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
   const launchNote = document.querySelector('#home-pulse-launches-note');
   if (launchCard) launchCard.dataset.state = launchFeedUnavailable ? 'unavailable' : fundedLaunchRecords.length ? 'available' : 'empty';
   if (launchValue) launchValue.textContent = launchFeedUnavailable ? '—' : fundedLaunchRecords.length.toLocaleString();
-  if (launchNote) launchNote.textContent = launchFeedUnavailable ? 'Launch feed unavailable; count not verified' : fundedLaunchRecords.length ? `Funded policy and mint confirmed on Solana` : 'No funded launch policies confirmed';
+  if (launchNote) launchNote.textContent = launchFeedUnavailable ? 'Launch feed unavailable; count not verified' : fundedLaunchRecords.length ? `Richpad policy and mint confirmed on Solana` : 'No funded launch policies confirmed';
 
   const finalizedReady = analyticsSummary?.cluster === EXPLORE_CLUSTER
     && analyticsSummary.receiptCommitment === 'finalized'
@@ -112,8 +112,8 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
     : Number.isFinite(fundedUsdPrice) ? `${formatDashboardUsd(burnedTokens * fundedUsdPrice)} spot value · ${burnCount} verified receipt${burnCount === 1 ? '' : 's'}` : `${burnCount} verified receipt${burnCount === 1 ? '' : 's'} · USD quote unavailable`, !burnSummaryReady ? 'unavailable' : burnedTokens === 0 ? 'empty' : burnUsdAvailable ? 'available' : 'partial');
   setHomeDashboardMetric('burn-value', burnUsdAvailable ? formatDashboardUsd(burnedTokens * (fundedUsdPrice || 0)) : '$—',
     !burnSummaryReady ? 'Verified burn receipts unavailable'
-      : burnedTokens === 0 ? 'No indexed confirmed $FUNDED burns'
-      : Number.isFinite(fundedUsdPrice) ? `${burnCount} confirmed burn receipt${burnCount === 1 ? '' : 's'} · current $FUNDED quote` : 'Current $FUNDED/USD quote unavailable',
+      : burnedTokens === 0 ? 'No indexed confirmed $RICH burns'
+      : Number.isFinite(fundedUsdPrice) ? `${burnCount} confirmed burn receipt${burnCount === 1 ? '' : 's'} · current $RICH quote` : 'Current $RICH/USD quote unavailable',
     burnUsdAvailable ? burnedTokens ? 'available' : 'empty' : 'unavailable');
 
   const airdropClaims = currentCommunityClaimSummary();

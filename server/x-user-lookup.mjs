@@ -14,7 +14,7 @@ export function createXUserResolver({ getBearerToken, fetchUser = fetch, pause =
     const username = String(handle || '').trim().replace(/^@/, '');
     if (!X_USERNAME.test(username)) throw lookupError('Enter a valid X handle such as @account.', 400);
     const bearer = String(getBearerToken() || '').trim();
-    if (!bearer) throw lookupError('X account lookup is not configured. Contact the funded.vip operator.');
+    if (!bearer) throw lookupError('X account lookup is not configured. Contact the richpad.fun operator.');
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
       let response;
@@ -45,8 +45,8 @@ export function createXUserResolver({ getBearerToken, fetchUser = fetch, pause =
         throw lookupError(`X account @${username} was not found. Check the handle and retry; no coin transaction was sent.`, 404, 404);
       }
       const message = response.status === 429 ? 'X account lookup is rate limited. Retry shortly; no coin transaction was sent.'
-        : response.status === 402 ? 'X API credits are unavailable for account lookup. Contact the funded.vip operator; no coin transaction was sent.'
-          : response.status === 401 || response.status === 403 ? 'X account lookup credentials were rejected. Contact the funded.vip operator; no coin transaction was sent.'
+        : response.status === 402 ? 'X API credits are unavailable for account lookup. Contact the richpad.fun operator; no coin transaction was sent.'
+          : response.status === 401 || response.status === 403 ? 'X account lookup credentials were rejected. Contact the richpad.fun operator; no coin transaction was sent.'
             : `X account lookup failed (${response.status}). Retry the launch; no coin transaction was sent.`;
       if ([401, 402, 403, 429].includes(response.status)) {
         const reason = response.status === 402 ? 'X account lookup is blocked by unavailable API credits'

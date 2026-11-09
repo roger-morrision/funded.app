@@ -129,7 +129,7 @@ wallet credentials, fetch data, or submit transactions.
 | `src/features/fees/fee-flow-view.js` | Published policy and fee calculator |
 | `src/features/shared/display.js` | Shared formatting, escaping, and small DOM helpers |
 | `src/features/portfolio/` | Holdings, creator launches, and wallet detail rendering |
-| `src/features/funded/` | $FUNDED landing page and buyback receipt views |
+| `src/features/funded/` | $RICH landing page and buyback receipt views |
 | `src/features/rewards/airdrop-view.js` | Airdrop details, eligibility states, and analytics |
 | `src/features/rewards/x-claim-view.js` | X reward totals, claim steps, destination confirmation, and status copy |
 | `src/features/rewards/x-claim-controller.js` | X identity loading, reward selection, and session-guarded SOL claims |
@@ -287,7 +287,7 @@ wallet-change checks intact when extracting controllers.
   history and expanded fee details, token chart states, holder balances, fee
   collections, and allocations. No wallet signing or new transactions.
 - Additional local checks after the workspace split: disconnected Portfolio and
-  Created tokens tabs, Rewards and $FUNDED allocations, airdrop detail expansion,
+  Created tokens tabs, Rewards and $RICH allocations, airdrop detail expansion,
   Explore sorting and Following, token promotion and fee-share labels, wallet
   launch history, and launch form composition. No console errors were captured.
   Missing live trade and reserve evidence remained unavailable; these checks

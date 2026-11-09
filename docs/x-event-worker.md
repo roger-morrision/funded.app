@@ -2,7 +2,7 @@
 
 Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
 
-The funded.vip payout profile targets **@fundedvip** (`X_POST_EXPECTED_HANDLE=fundedvip`) with a separately verified, pinned account ID. The current policy replaces individual payout congratulations with reviewed daily summaries. The generic worker remains draft-only unless its explicit execution gates are enabled. This worker is separate from the hourly engineering automation.
+The richpad.fun payout profile requires a verified account (currently a placeholder; set `X_POST_EXPECTED_HANDLE` only after confirmation) with a separately verified, pinned account ID. The current policy replaces individual payout congratulations with reviewed daily summaries. The generic worker remains draft-only unless its explicit execution gates are enabled. This worker is separate from the hourly engineering automation.
 
 ## Reviewed daily payout summaries (2026-10-20)
 
@@ -10,7 +10,7 @@ The account is suspended. Both publishing services stay stopped. `X_POST_ACCOUNT
 
 The payout profile (`X_POST_PAYOUTS_ONLY=true`) dispatches only `payout_digest`. The collector continues independently checking each V3 holder, creator, X, referral, Operations and Daily bonus payment against its collection, settlement, funding, finalized payment and balance deltas. Individual `auto_payout` records remain immutable internal evidence and cannot be approved or dispatched. Existing posted and pending history is retained. Community funding transfers, vault funding and buyback orders are not recipient SOL payouts.
 
-One immutable summary is prepared per completed UTC **recording day**, grouping newly verified receipts by their durable outbox creation time. Late-discovered receipts enter the day they are recorded, not a rewritten earlier summary. Gross lamports and unique wallets are counted exactly. The summary explicitly describes recorded receipts, not complete chain-wide coverage, gains or net proceeds; links lead to individual receipt/net-amount details on funded.vip. No recipients are tagged. Each source ID is preserved in `x_post_digest_sources` and the full immutable source set has a deterministic hash in the summary. Up to 10,000 source records are supported per recording day; an overflow fails visibly without truncation. Old records without summary facts are preserved and not inferred into a digest. At most one previously unsummarized closed day is prepared per collector cycle; empty days do not create posts.
+One immutable summary is prepared per completed UTC **recording day**, grouping newly verified receipts by their durable outbox creation time. Late-discovered receipts enter the day they are recorded, not a rewritten earlier summary. Gross lamports and unique wallets are counted exactly. The summary explicitly describes recorded receipts, not complete chain-wide coverage, gains or net proceeds; links lead to individual receipt/net-amount details on richpad.fun. No recipients are tagged. Each source ID is preserved in `x_post_digest_sources` and the full immutable source set has a deterministic hash in the summary. Up to 10,000 source records are supported per recording day; an overflow fails visibly without truncation. Old records without summary facts are preserved and not inferred into a digest. At most one previously unsummarized closed day is prepared per collector cycle; empty days do not create posts.
 
 Sign into `/admin.html` with an allowlisted admin wallet. **X publishing review** shows pending summaries/promotions, exact text, content hash, source evidence and holds. Approve or reject with an audit reason. Decisions record the signed-in actor and an append-only audit; approvals expire after 24 hours and bind the complete immutable event, including proof commitments. All profiles require approval. The worker rechecks the durable account pause, current claim, exact content hash and approval expiry both before dispatch and immediately before the provider POST, after asynchronous funding preflight. A newly blocked intent returns to pending without a provider request. A deadline prevents a slow preflight from starting a late request. Requests already transmitted before a pause are not cancellable with certainty and still require delivery reconciliation. Legacy `daily_rewards` posts are also retired from dispatch so they cannot create a second payout-summary stream. The review queue is paginated in 50-row pages with exact microsecond recording cursors, so older rejected/held items do not hide later posts. Kind-filtered draft previews filter in PostgreSQL before applying their limit. There is no publish or resume endpoint. Reinstatement and a separate reviewed operational activation are prerequisites for lifting the database pause and starting either publisher.
 
@@ -28,9 +28,9 @@ For an orphaned lock, inspect every container sharing the exact ledger volume, s
 
 ## Image and data
 
-The funded.vip profile uses `FUNDED_RELEASE_IMAGE` and `FUNDED_RELEASE_SHA`, matching the app's tested production image. The generic optional `compose.x-post-worker.yml` uses `FUNDED_APP_IMAGE` with `compose.devnet-release.yml`. Both require the explicit `x-posting` profile.
+The richpad.fun profile uses `FUNDED_RELEASE_IMAGE` and `FUNDED_RELEASE_SHA`, matching the app's tested production image. The generic optional `compose.x-post-worker.yml` uses `FUNDED_APP_IMAGE` with `compose.devnet-release.yml`. Both require the explicit `x-posting` profile.
 
-If the transaction RPC struggles with large program accounts, `FUNDED_PROGRAM_EVIDENCE_RPC_URL` selects a separate HTTPS provider for read-only program evidence in the funded.vip app and payout worker. Both providers must independently identify Devnet. Alternate reads have an eight-second deadline, validate the upgradeable account owner and header, and still require the complete approved ProgramData hash. This setting does not change transaction submission, payout amounts, recipient consent or X delivery state. An unavailable or mismatched provider blocks verification.
+If the transaction RPC struggles with large program accounts, `FUNDED_PROGRAM_EVIDENCE_RPC_URL` selects a separate HTTPS provider for read-only program evidence in the richpad.fun app and payout worker. Both providers must independently identify Devnet. Alternate reads have an eight-second deadline, validate the upgradeable account owner and header, and still require the complete approved ProgramData hash. This setting does not change transaction submission, payout amounts, recipient consent or X delivery state. An unavailable or mismatched provider blocks verification.
 
 The worker shares PostgreSQL, the configured Devnet RPC secret and a read-only application data volume. `AUTOMATIC_REWARD_STORE_PATH` matches the web service's reward ledger. Set `FUNDED_TOKEN_MINT`, `FUNDED_FEE_ROUTER_PROGRAM_ID` and the public `FUNDED_REWARD_AUTHORITY` address to the verified Devnet identities for the deployed application; missing source configuration is a coverage gap, not evidence that no events happened. No Solana wallet, keeper key, payout key or browser-login credential is mounted.
 
@@ -38,7 +38,7 @@ The worker shares PostgreSQL, the configured Devnet RPC secret and a read-only a
 
 | Setting | Required value or purpose |
 | --- | --- |
-| `X_POST_EXPECTED_HANDLE` | `fundedvip`; the publisher independently checks the authenticated account before dispatch |
+| `X_POST_EXPECTED_HANDLE` | Owner-supplied verified handle (placeholder until provided); the publisher independently checks the authenticated account before dispatch |
 | `X_POST_ACCOUNT_ID` | Optional numeric account ID, recommended as an additional identity check |
 | `X_POST_PUBLIC_ORIGIN` | Verified public HTTPS app origin, without a path; localhost preview does not qualify |
 | `X_POST_START_AT` | Explicit ISO activation watermark at or before now; select deliberately to avoid unintended historical announcements |
@@ -63,7 +63,7 @@ Defaults live in `config/x-posting.js`. Compose exposes the validated settings a
 | --- | --- |
 | Finalized holder, creator, X, referral, Operations and Daily bonus SOL payments | Eligible receipts become internal evidence for a reviewed daily summary; payment completion does not depend on posting |
 | Agent 1 paid coin promotion | At most once per coin per 24 hours, additionally subject to the same shared account limits; no billing while merely queued |
-| Launch/follow-up, paid listing, opted-in profit share, daily projects/rewards summaries | Generic explicitly enabled profile only; the same queue and account limits apply; funded.vip's payout-only worker does not dispatch these kinds |
+| Launch/follow-up, paid listing, opted-in profit share, daily projects/rewards summaries | Generic explicitly enabled profile only; the same queue and account limits apply; richpad.fun's payout-only worker does not dispatch these kinds |
 | Manual X share/intent | User action; does not start an automatic posting worker |
 
 Do not clear the queue, reset counters, recreate account namespaces, or relax limits to flush a backlog. Stopped publishers remain stopped during policy review; credential repair alone is not permission to resume public delivery.

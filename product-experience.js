@@ -71,7 +71,7 @@ function explore() {
   // Common sorts first; protocol-specific and detailed sorts in labelled groups.
   if (sort && !sort.querySelector('optgroup')) {
     const groups = [
-      ['funded.vip rewards', ['boosted', 'tier-burn', 'airdrop', 'holder-fee', 'x-fee']],
+      ['richpad.fun rewards', ['boosted', 'tier-burn', 'airdrop', 'holder-fee', 'x-fee']],
       ['More', ['trades', 'turnover', 'liquidity', 'recent-trade']],
     ];
     for (const value of ['trending', 'volume', 'market-cap', 'newest', 'holders', 'change']) {
@@ -147,7 +147,7 @@ function launch() {
   if (story) options.append(story);
   const preview = $('#launch-presentation-preview');
   if (preview) options.append(preview);
-  setText('.launch-total-cost-note', 'Review network fees, optional purchases, and any $FUNDED burn before signing.');
+  setText('.launch-total-cost-note', 'Review network fees, optional purchases, and any $RICH burn before signing.');
 }
 
 function portfolio() {

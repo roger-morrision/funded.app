@@ -132,8 +132,8 @@ export function updateCostSummary(
   const burnPolicy = getLaunchBurnPolicy();
   const publicTier = document.querySelector('#cost-public-tier-note');
   if (publicTier) publicTier.textContent = burnPolicy.requiresBurn
-    ? `Selected tier: ${burnPolicy.label}. Total $FUNDED tokens to burn: ${burnPolicy.amountTokens > 0 ? formatLaunchBurnAmount(burnPolicy.amountTokens) : 'Quote unavailable'}.`
-    : 'Standard needs no $FUNDED tier burn (the 5% fee buyback still applies).';
+    ? `Selected tier: ${burnPolicy.label}. Total $RICH tokens to burn: ${burnPolicy.amountTokens > 0 ? formatLaunchBurnAmount(burnPolicy.amountTokens) : 'Quote unavailable'}.`
+    : 'Standard needs no $RICH tier burn (the 5% fee buyback still applies).';
   const creatorBuy = getCreatorBuySummary();
   const retrySeconds = launchEstimateRetry?.retryable
     ? Math.max(0, Math.ceil((launchEstimateRetry.nextAt - Date.now()) / 1000)) : null;
@@ -144,8 +144,8 @@ export function updateCostSummary(
     ? `<b>${communityPercent.toFixed(2)}% of supply</b> · bought and locked in the reward vault when launch finalizes`
     : '<b>Enter a valid airdrop amount</b>';
   if (burnNode) burnNode.textContent = burnPolicy.requiresBurn
-    ? burnPolicy.amountTokens > 0 ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $FUNDED${burnPolicy.usdTarget ? ` (≈$${burnPolicy.usdTarget})` : ''}` : 'Quote unavailable'
-    : '0 $FUNDED';
+    ? burnPolicy.amountTokens > 0 ? `${formatLaunchBurnAmount(burnPolicy.amountTokens)} $RICH${burnPolicy.usdTarget ? ` (≈$${burnPolicy.usdTarget})` : ''}` : 'Quote unavailable'
+    : '0 $RICH';
   if (burnRow) burnRow.hidden = !burnPolicy.requiresBurn;
   if (tierLabelNode) tierLabelNode.textContent = displayedLaunchFeeLamports == null
     ? 'Checking current launch service fee…'
@@ -174,7 +174,7 @@ export function updateCostSummary(
         if (serviceFeeNode) serviceFeeNode.textContent = formatLaunchCost(publicBudget.serviceFee);
         totalNode.textContent = formatLaunchCost(publicBudget.total);
         if (previewLaunchNode) previewLaunchNode.textContent = formatLaunchCost(publicBudget.total);
-        noteNode.textContent = 'Estimated total includes the live Pump quote for the holder reserve and optional developer buy, its 1% purchase allowance, the current app launch service fee, and a 0.05 SOL planning allowance for network fees and account rent. The wallet-specific simulation replaces the planning allowance before signing. Any $FUNDED tier burn is separate.';
+        noteNode.textContent = 'Estimated total includes the live Pump quote for the holder reserve and optional developer buy, its 1% purchase allowance, the current app launch service fee, and a 0.05 SOL planning allowance for network fees and account rent. The wallet-specific simulation replaces the planning allowance before signing. Any $RICH tier burn is separate.';
       } else {
         const pending = publicPlanningStatus(publicQuote, launchFeeLamports);
         if (initialBuyNode) initialBuyNode.textContent = pending;
@@ -218,8 +218,8 @@ export function updateCostSummary(
   totalNode.textContent = launchCost;
   if (previewLaunchNode) previewLaunchNode.textContent = launchCost;
   noteNode.textContent = burnPolicy.requiresBurn
-    ? 'SOL total includes the approved app launch service fee, network fees, account reserve, and any developer buy. The $FUNDED burn is separate.'
-    : 'Standard needs no $FUNDED tier burn (the 5% fee buyback still applies). Total includes the approved app launch service fee, network fees, account reserve, and any creator buy with its 1% allowance.';
+    ? 'SOL total includes the approved app launch service fee, network fees, account reserve, and any developer buy. The $RICH burn is separate.'
+    : 'Standard needs no $RICH tier burn (the 5% fee buyback still applies). Total includes the approved app launch service fee, network fees, account reserve, and any creator buy with its 1% allowance.';
   syncMobileBudget();
 }
 

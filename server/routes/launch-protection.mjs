@@ -18,7 +18,7 @@ export function createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,c
     try{requireSolanaCluster(solanaCluster);}catch{return json(res,503,{error:'Unsupported launch protection network.'});}
     let mint;try{mint=new PublicKey(decodeURIComponent(match[1])).toBase58();}catch{return json(res,400,{error:'A valid mint is required.'});}
     const launch=await store.readLaunch(mint);
-    if(!launch?.onchainVerified||launch.cluster!==solanaCluster)return json(res,404,{error:'A verified funded.vip launch on the selected network is required.'});
+    if(!launch?.onchainVerified||launch.cluster!==solanaCluster)return json(res,404,{error:'A verified richpad.fun launch on the selected network is required.'});
     const connection=connectionFactory();
     if(solanaCluster==='mainnet-beta')try{await assertRpcNetwork(connection,solanaCluster);}catch{return json(res,503,{error:'Launch protection RPC network could not be verified.'});}
     let tokenLock={status:'not-required-for-legacy-launch',verified:false};

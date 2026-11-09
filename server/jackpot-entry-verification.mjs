@@ -25,7 +25,7 @@ export async function verifyJackpotCreatorEntry({ connection, expectedGenesisHas
     || appLaunch.pumpFeeRoute?.scope !== 'per-mint-v3'
     || appLaunch.pumpFeeRoute?.verified !== true || !appLaunch.mint
     || !appLaunch.creatorWallet || !appLaunch.signature)
-    throw new Error('A registered funded.vip launch is required.');
+    throw new Error('A registered richpad.fun launch is required.');
   const proof = await verifyPumpLaunch({ connection, mint:appLaunch.mint,
     signature:appLaunch.signature, commitment:'finalized' });
   if (proof.feePayer !== appLaunch.creatorWallet || proof.creator !== appLaunch.creator)

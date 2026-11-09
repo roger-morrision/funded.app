@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="1840" viewBox="0 0 1600 1840" role="img" aria-labelledby="title description">
-  <title id="title">funded.vip animated capital flow</title>
+  <title id="title">richpad.fun animated capital flow</title>
   <desc id="description">Animated Devnet policy map. A launch pays a separate SOL service fee, optional promotion burns FUNDED, and a launched-coin reserve supports a later migration claim. Trading generates Pump creator fees that are collected by a per-mint V3 router, then require creator approval and funding. Current gross fee shares are 80 percent creator-directed, 8 percent operations, 1 percent referrals, 4 percent Daily bonus, and 5 percent FUNDED buyback. The separate 2 percent AI agency budget is included in the shared allocation pool. Only 8 percent is the app allocation.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#102d3c"/><stop offset="0.52" stop-color="#071b28"/><stop offset="1" stop-color="#091a2c"/></linearGradient>
@@ -15,11 +15,11 @@
   </style>
 
   <rect width="1600" height="1840" fill="url(#background)"/><rect width="1600" height="1840" fill="url(#grid)"/>
-  <text x="65" y="70" class="brand">funded<tspan class="brand-accent">.vip</tspan></text>
+  <text x="65" y="70" class="brand">richpad<tspan class="brand-accent">.fun</tspan></text>
   <rect x="1265" y="42" width="270" height="40" rx="20" fill="#113a41" stroke="#3baaa9"/><text x="1400" y="68" text-anchor="middle" font-size="15" font-weight="800" letter-spacing="1.3" fill="#6df3e8">DEVNET POLICY MAP</text>
   <text x="65" y="158" class="title">Follow the capital.</text>
   <text x="65" y="195" class="subtitle">Three assets, separate routes, and receipts at every completed step.</text>
-  <g transform="translate(65 223)"><circle r="8" cx="8" cy="8" fill="#53ded8"/><text x="26" y="15" class="small">SOL</text><circle r="8" cx="127" cy="8" fill="#ffc56a"/><text x="145" y="15" class="small">$FUNDED</text><circle r="8" cx="300" cy="8" fill="#b5a1ff"/><text x="318" y="15" class="small">Launched coin</text><text x="555" y="15" class="tiny">Moving dots show intended transfer direction; finality and eligibility still govern execution.</text></g>
+  <g transform="translate(65 223)"><circle r="8" cx="8" cy="8" fill="#53ded8"/><text x="26" y="15" class="small">SOL</text><circle r="8" cx="127" cy="8" fill="#ffc56a"/><text x="145" y="15" class="small">$RICH</text><circle r="8" cx="300" cy="8" fill="#b5a1ff"/><text x="318" y="15" class="small">Launched coin</text><text x="555" y="15" class="tiny">Moving dots show intended transfer direction; finality and eligibility still govern execution.</text></g>
 
   <!-- 1. Launch cash and token routes -->
   <rect class="panel" x="60" y="270" width="1480" height="320" rx="29"/>
@@ -33,7 +33,7 @@
   <circle class="packet funded-packet" r="7"><animateMotion dur="3.5s" repeatCount="indefinite" path="M378 469 C473 469 502 488 583 488"/></circle>
   <circle class="packet coin-packet" r="7"><animateMotion dur="5s" repeatCount="indefinite" path="M378 510 C503 565 630 562 794 554 S990 525 1054 525"/></circle>
   <rect class="node" x="595" y="376" width="420" height="77" rx="17"/><text x="620" y="408" class="route-title">0.02 SOL → service treasury</text><text x="620" y="434" class="tiny">Default fee for every launch; separate from creator fees.</text>
-  <rect class="node-gold" x="595" y="463" width="420" height="77" rx="17"/><text x="620" y="495" class="route-title">Pro / Premier → $FUNDED burn</text><text x="620" y="521" class="tiny">Optional quoted promotion; burned in creation tx.</text>
+  <rect class="node-gold" x="595" y="463" width="420" height="77" rx="17"/><text x="620" y="495" class="route-title">Pro / Premier → $RICH burn</text><text x="620" y="521" class="tiny">Optional quoted promotion; burned in creation tx.</text>
   <rect class="node-coin" x="1065" y="463" width="425" height="77" rx="17"/><text x="1090" y="495" class="route-title">Launched coin → reserve vault</text><text x="1090" y="521" class="tiny">3–50% of supply; custody requires proof.</text>
   <text x="1063" y="423" class="small">Standard / Pro / Premier</text><text x="1063" y="446" class="tiny">Package posts depend on active X publishing.</text>
 
@@ -65,14 +65,14 @@
   <rect x="801" y="1093" width="295" height="89" rx="13" fill="#163745"/><text x="823" y="1130" class="metric-small">8%</text><text x="882" y="1129" class="route-title">Operations</text><text x="823" y="1159" class="tiny">App operations &amp; marketing</text>
   <rect x="1112" y="1093" width="297" height="89" rx="13" fill="#163745"/><text x="1134" y="1130" class="metric-small">1%</text><text x="1193" y="1129" class="route-title">Referrals</text><text x="1134" y="1159" class="tiny">Qualified three-level uplines</text>
   <rect x="801" y="1193" width="295" height="89" rx="13" fill="#163745"/><text x="823" y="1230" class="metric-small">4%</text><text x="882" y="1229" class="route-title">Daily bonus</text><text x="823" y="1259" class="tiny">Creators, referrers, traders</text>
-  <rect x="1112" y="1193" width="297" height="89" rx="13" fill="#283227" stroke="#718d48"/><text x="1134" y="1230" class="metric-small">5%</text><text x="1193" y="1229" class="route-title">Buyback</text><text x="1134" y="1259" class="tiny">SOL → $FUNDED → burn</text>
+  <rect x="1112" y="1193" width="297" height="89" rx="13" fill="#283227" stroke="#718d48"/><text x="1134" y="1230" class="metric-small">5%</text><text x="1193" y="1229" class="route-title">Buyback</text><text x="1134" y="1259" class="tiny">SOL → $RICH → burn</text>
   <text x="801" y="1309" class="tiny">Includes 2% AI agents. Only 8% is app Operations &amp; marketing.</text>
   <text x="98" y="1370" class="tiny">Percentages are of gross creator fees actually collected, not trading volume or app service charges. Existing mints retain saved rates.</text>
 
   <!-- 3. Migration token route -->
   <rect class="panel" x="60" y="1439" width="1480" height="184" rx="29"/>
   <rect x="95" y="1464" width="51" height="51" rx="15" fill="#b5a1ff"/><text x="120.5" y="1497" text-anchor="middle" class="number">03</text>
-  <text x="165" y="1484" class="section-label violet">AT MIGRATION</text><text x="165" y="1518" class="section-title">Reserved launched coins can reach eligible $FUNDED holders</text>
+  <text x="165" y="1484" class="section-label violet">AT MIGRATION</text><text x="165" y="1518" class="section-title">Reserved launched coins can reach eligible $RICH holders</text>
   <rect class="node-coin" x="100" y="1545" width="310" height="56" rx="15"/><text x="123" y="1581" class="route-title">Verified reserve custody</text>
   <rect class="node-coin" x="627" y="1545" width="335" height="56" rx="15"/><text x="650" y="1581" class="route-title">Snapshot + proof gate</text>
   <rect class="node-coin" x="1177" y="1545" width="315" height="56" rx="15"/><text x="1200" y="1581" class="route-title">Eligible holder wallet</text>

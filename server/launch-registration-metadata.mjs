@@ -1,4 +1,4 @@
-import {devnetMetadataUri,devnetLaunchMetadataUri} from '../devnet-metadata.js';
+import {devnetMetadataUri,isDevnetLaunchMetadataUri} from '../devnet-metadata.js';
 import {isPinnedMetadataUri,onchainMetadataUri} from '../metadata-publication.js';
 import {metadataRecordOrigin} from './devnet-metadata.mjs';
 import {verifyPublishedMetadata} from './metadata-publication.mjs';
@@ -16,7 +16,7 @@ export async function registeredLaunchMetadata({proof,record,inputUri,cluster,ve
   if (cluster==='mainnet-beta' && (!record || !isPinnedMetadataUri(pinned)))
     throw Error('Mainnet launch registration requires signed durable metadata.');
   const uri=pinned ? (proof.uri===pinned ? pinned : onchainMetadataUri(pinned))
-    : proof.uri===devnetLaunchMetadataUri(proof.mint) ? proof.uri
+    : isDevnetLaunchMetadataUri(proof.uri,proof.mint) ? proof.uri
       : devnetMetadataUri(proof.mint,metadataRecordOrigin(record));
   if (inputUri && inputUri!==uri) throw Error('Launch metadata URL does not match the mint.');
   if (inputUri && !record) throw Error('Signed token metadata is missing.');

@@ -55,13 +55,13 @@ export function createXIdentityRoutes({
       try { tokenResponse = await fetch('https://api.x.com/2/oauth2/token', { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form, signal: AbortSignal.timeout(10000) }); }
       catch { return html(res, 503, 'X sign-in unavailable', 'X could not be reached. Start sign-in again shortly.'); }
       const token = await tokenResponse.json().catch(() => ({}));
-      if (tokenResponse.status === 402) return html(res, 503, 'X sign-in unavailable', 'X API credits are unavailable. Contact the funded.vip operator.');
+      if (tokenResponse.status === 402) return html(res, 503, 'X sign-in unavailable', 'X API credits are unavailable. Contact the richpad.fun operator.');
       if (!tokenResponse.ok || !token.access_token) return html(res, 502, 'X sign-in failed', 'X did not issue an access token. Check the exact callback URL and OAuth settings.');
       let userResponse;
       try { userResponse = await fetch('https://api.x.com/2/users/me?user.fields=id,name,username', { headers: { authorization: `Bearer ${token.access_token}` }, signal: AbortSignal.timeout(10000) }); }
       catch { return html(res, 503, 'X profile unavailable', 'X could not load the account profile. Start sign-in again shortly.'); }
       const profile = await userResponse.json().catch(() => ({}));
-      if (userResponse.status === 402) return html(res, 503, 'X profile unavailable', 'X API credits are unavailable. Contact the funded.vip operator.');
+      if (userResponse.status === 402) return html(res, 503, 'X profile unavailable', 'X API credits are unavailable. Contact the richpad.fun operator.');
       if (!userResponse.ok || !profile.data?.id) return html(res, 502, 'X profile lookup failed', 'X sign-in succeeded but the account profile could not be loaded.');
       await xAuth.revoke(cookieValue(req, 'funded_x_session'));
       const sessionId = await xAuth.issue(profile.data);

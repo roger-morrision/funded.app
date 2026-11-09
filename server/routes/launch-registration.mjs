@@ -109,7 +109,7 @@ export function createLaunchRegistrationRoutes({
       if (paidClaim && !existingLaunch && (!promotionQuote
         || promotionQuote.tier !== promotionClaim.tier || promotionQuote.payer !== policy.creatorWallet
         || promotionQuote.fundedMint !== fundedTokenMint || promotionQuote.amountTokens !== promotionClaim.amountTokens))
-        return json(res, 409, { error:'A saved $FUNDED launch quote matching this wallet and burn is required.' });
+        return json(res, 409, { error:'A saved $RICH launch quote matching this wallet and burn is required.' });
       const promotionTiers = createLaunchBurnTiers({
         boostAmount:Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
         proAmount:Number(process.env.VITE_FUNDED_PRO_BURN_AMOUNT || 100_000),

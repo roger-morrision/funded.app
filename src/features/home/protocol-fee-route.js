@@ -37,7 +37,7 @@ export function protocolFeeRouteModel(allocation) {
   const completeAmounts = evidenceReady && amounts.every(amount => amount != null)
     && total != null && amounts.reduce((sum, amount) => sum + amount, 0n) === total
     && (allocation.status === 'verified' || allocation.settledCollections > 0);
-  const labels = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback & burn','AI marketing & coin buybacks'];
+  const labels = ['Operations & marketing', 'Referral network', 'Daily bonus', '$RICH buyback & burn','AI marketing & coin buybacks'];
   const rates = policyReady ? [split.operationsPercent,
     split.referralLevelPercents.reduce((sum, rate) => sum + rate, 0),
     split.communityPercent, split.buybackPercent,...(agency?[split.agencyPercent]:[])] : [];

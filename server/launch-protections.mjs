@@ -1,4 +1,4 @@
-// These are funded.vip admission and authority-signing rules, not a token-transfer lock.
+// These are richpad.fun admission and authority-signing rules, not a token-transfer lock.
 import {requireSolanaCluster} from '../solana-network.js';
 export const LAUNCH_PROTECTION_MS = 12 * 60 * 60 * 1000;
 export const SYMBOL_RESERVATION_MS = 30 * 60 * 1000;

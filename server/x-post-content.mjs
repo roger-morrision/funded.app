@@ -104,7 +104,7 @@ function windowLabel(payload) {
  * validates the evidence schema and facts; the collector must reverify receipts,
  * amounts, interval completeness and consent against their authoritative sources.
  */
-export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://funded.vip', minProfitLamports = DEFAULT_BIG_PROFIT_LAMPORTS } = {}) {
+export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://richpad.fun', minProfitLamports = DEFAULT_BIG_PROFIT_LAMPORTS } = {}) {
   requireValue(X_POST_KINDS.includes(kind), 'Unsupported X post kind.');
   requireValue(['devnet', 'mainnet-beta'].includes(cluster), 'Unsupported X post cluster.');
   requireValue(payload && typeof payload === 'object', 'A verified collector payload is required.');
@@ -126,7 +126,7 @@ export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://fun
     requireValue(payload.agencyVersion==='marketing-agency-v1'&&payload.agentId==='x-promotion'
       &&Number.isSafeInteger(payload.sequence)&&payload.sequence>=0&&payload.sequence<0xffffffff,
       'An immutable, funded agency promotion sequence is required.');
-    makeText=budget=>`${prefix}AI marketing team spotlight: “${sanitizeXLabel(payload.name||payload.symbol,budget)}”. Explore this launched coin and its public activity on funded.vip.\n${origin}/token/${mint}`;
+    makeText=budget=>`${prefix}AI marketing team spotlight: “${sanitizeXLabel(payload.name||payload.symbol,budget)}”. Explore this launched coin and its public activity on richpad.fun.\n${origin}/token/${mint}`;
   } else if (kind === 'launch' || kind === 'launch_followup' || kind === 'listing' || kind === 'trade_profit') {
     const mint = address(payload.mint);
     const link = `${origin}/token/${mint}`;
@@ -134,8 +134,8 @@ export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://fun
     if (kind === 'launch') {
       requireValue(['standard', 'pro', 'premier'].includes(payload.marketingTier), 'Launch posts require a verified marketing tier.');
       makeText = budget => payload.marketingTier === 'standard'
-        ? `${prefix}New project on funded.vip: ${project(budget)}. Token creation finalized.\n${link}`
-        : `${prefix}${payload.marketingTier === 'premier' ? 'Premier' : 'Pro'} launch: ${project(budget)}. Creation and $FUNDED tier burn finalized.\n${link}`;
+        ? `${prefix}New project on richpad.fun: ${project(budget)}. Token creation finalized.\n${link}`
+        : `${prefix}${payload.marketingTier === 'premier' ? 'Premier' : 'Pro'} launch: ${project(budget)}. Creation and $RICH tier burn finalized.\n${link}`;
     }
     if (kind === 'launch_followup') {
       requireValue(payload.marketingTier === 'premier', 'Follow-up posts require a verified Premier marketing tier.');

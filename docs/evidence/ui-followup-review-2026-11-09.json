@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "environment": "https://funded.vip on Solana Devnet",
+  "type": "Follow-up browser, API and source review; not complete financial acceptance",
+  "deployedBuildAtApiCheck": "c1f24c445d8dc80fa2511d59e666c3880d652b9c",
+  "workspaceRevisionAtStart": "e905d3ac",
+  "workspaceRevisionAtCompletion": "c60d1b03",
+  "concurrentChanges": "Another task advanced the workspace during review. Files cited in the findings were compared with the deployed c1f24c44 revision and were unchanged. Concurrent changes were preserved.",
+  "changes": "Review evidence only. No runtime fixes, deployment, wallet signatures, OTP emails or financial transactions performed.",
+  "coverage": {
+    "publicViews": ["Home", "Explore", "Top 100", "Rewards", "Portfolio", "Referrals", "Daily bonuses", "Airdrops", "Leaderboard", "Marketing agents", "Analytics", "Fee distribution", "Coin calls", "Creators", "Get listed", "Profile", "Privacy", "Docs", "Launch details and funding", "Terms", "External listed token", "Curve token details", "Admin sign-in"],
+    "interactions": ["Global token search and opening its result", "Mobile navigation and keyboard traversal", "Explore Premier filter and clearing filters", "Explore table page two", "Empty launch name validation and draft continuation", "Terms dialog and its Privacy link", "Invalid listing mint validation", "Token holders tab", "Mobile Buy/Sell dialog and disconnected signing gate"],
+    "viewport": {"width": 390, "height": 844, "restored": true},
+    "mobileRouteOverflow": "No document-level horizontal overflow in the 16 route sweep; content width and scroll width both 380 CSS pixels. Scrollable data tables are intentional.",
+    "browserConsoleErrorsOrWarnings": [],
+    "automatedTests": {"command": "node --test tests/*.test.mjs", "passed": 285, "failed": 0, "skipped": 0, "log": "tmp/ui-second-review-tests.log"},
+    "sourceCheck": {"command": "npm run check", "syntaxCheckedFiles": 957, "sizeBudgetCheckedFiles": 1182, "passed": true, "log": "tmp/ui-followup-source-check.log"},
+    "targetedReproduction": {"command": "node tmp/ui-boost-review.mjs", "result": "Three local cases reproduced with real modules and in-memory fixtures; no network or persisted private keys."},
+    "publicApiSamples": [
+      {"path": "/api/status", "httpStatus": 200, "elapsedMs": 293, "cluster": "devnet", "status": "operational"},
+      {"path": "/api/marketing-agency", "httpStatus": 200, "elapsedMs": 575, "status": "deployment-verified", "allThreeAgents": "paused"},
+      {"path": "/api/readiness", "httpStatus": 200, "elapsedMs": 114, "ready": false, "missing": ["productionRpc"]},
+      {"path": "/api/launch-reserve-config", "httpStatus": 200, "elapsedMs": 578, "developerTokenLockReady": true}
+    ],
+    "limitations": ["API times are single samples, not load or latency benchmarks.", "Browser session remained disconnected; no new wallet-signed financial acceptance was performed.", "Paid checkout edge cases were local-only or mocked, not live transfers.", "No claim that every UI branch, contract instruction or authenticated admin function was exercised.", "No sustained WebSocket, RPC failover, worker restart or production-load test was run.", "Route sweeps verify navigation and layout; selected views were also examined after their data settled."]
+  },
+  "findings": [
+    {
+      "id": "FOLLOWUP-01",
+      "priority": "P1",
+      "title": "Successful boost transfers can be rejected after late inclusion without automatic fulfillment or refund",
+      "verification": "Mocked parsed transaction with real verifyBoostPayment plus source review",
+      "source": ["server/boost-proof.mjs:10", "server/routes/boost.mjs:96", "src/app/controllers/boost-checkout.js:218"],
+      "reproduction": "An otherwise identical successful parsed SOL transfer plus correct memo is accepted when included 29 seconds after quote expiry, and rejected at 31 seconds with 'The payment was outside the quote window.'. The browser checks quote time before broadcast, but its SystemProgram transfer does not enforce that wall-clock deadline on-chain.",
+      "impact": "A transaction signed and submitted before expiry may land after the grace period while its blockhash remains valid. SOL has transferred, but confirm returns 409, no boost receipt is saved and the browser remains pending. No live loss was demonstrated.",
+      "recommendation": "Make successful matching payments reconcilable: honor a bounded signed quote through its valid transaction lifetime, or record an explicit refundable/needs-review obligation. Do not silently discard an already-paid transaction."
+    },
+    {
+      "id": "FOLLOWUP-02",
+      "priority": "P1",
+      "title": "Changing a boost price in Admin breaks checkout for the changed package",
+      "verification": "Local-only integration of real admin pricing route, public quote route and frontend validator",
+      "source": ["boost-checkout-recovery.js:6", "boost-checkout-recovery.js:13", "server/routes/boost.mjs:47", "src/app/controllers/boost-checkout.js:190"],
+      "reproduction": "The default 10x quote at USD 49.50 validates. Updating its admin price to 1234 cents succeeds; the new server quote is USD 12.34 at pricing revision 1. validateBoostQuote rejects it because it compares quote.usd with the static package default.",
+      "impact": "The price editor and displayed packages support dynamic pricing, but users cannot obtain a payable quote for any package whose price differs from its built-in default.",
+      "recommendation": "Validate against the reviewed dynamic price revision and exact quote, preserving amount/recipient checks and issued-quote consistency. Add an end-to-end test spanning admin price update and frontend quote validation."
+    },
+    {
+      "id": "FOLLOWUP-03",
+      "priority": "P2",
+      "title": "A signed boost payment that never lands can permanently block retry on that browser",
+      "verification": "Local-only recovery storage reproduction and source-confirmed confirm behavior",
+      "source": ["boost-checkout-recovery.js:19", "boost-checkout-recovery.js:36", "boost-checkout-recovery.js:60", "server/routes/boost.mjs:64", "server/routes/boost.mjs:89", "src/app/controllers/boost-checkout.js:180"],
+      "reproduction": "The client stores the signed identity before sendRawTransaction. If broadcast never lands, confirm returns pending for an absent transaction with no terminal expiry reconciliation. archiveBoostPayment accepts only matching finalized or failed receipts; a new quote/signature for that mint is rejected as already saved. Stored lastValidBlockHeight is not used to resolve this state.",
+      "impact": "A definitive preflight rejection or never-broadcast transaction can leave checkout verification-only indefinitely. New quote issuance also prunes old quotes after 48 hours, making an unresolved original confirm return 404. Recovery storage is scoped only to mint, so switching wallet does not avoid the stale record.",
+      "recommendation": "Journal pending payments server-side, retain unresolved quote records, and resolve never-landed attempts with verified finalized expiry and signature absence. Scope local records by network and payer. Never clear merely because one RPC lookup is missing."
+    },
+    {
+      "id": "FOLLOWUP-04",
+      "priority": "P2",
+      "title": "Keyboard focus escapes behind the open mobile navigation overlay",
+      "verification": "Reproduced in deployed browser at 390 by 844 viewport",
+      "source": ["src/app/controllers/navigation.js:22", "src/app/startup/navigation.js:47"],
+      "reproduction": "Open menu, tab from Profile and wallet to Close navigation, then tab to Open menu and Search launches in main content. The sidebar still has class open while focus reaches Search launches behind it.",
+      "impact": "Keyboard and assistive-technology users can operate obscured page controls while the overlay remains open.",
+      "recommendation": "Make background content inert while the mobile menu is open and contain Tab/Shift+Tab focus, preserving Escape and focus restoration."
+    },
+    {
+      "id": "FOLLOWUP-05",
+      "priorFinding": "UI-02",
+      "priority": "P2",
+      "title": "Launch cards still promise X promotion while publishing is paused",
+      "verification": "Reconfirmed in live mobile launch funding step and marketing status",
+      "source": ["src/features/marketing/agency-view.js:65"],
+      "reproduction": "The package cards display 'Auto post & promote project to app X page.' and featured/launch post benefits. Their paused disclosure remains a title tooltip. The Marketing page explicitly says X publishing is paused pending account reinstatement.",
+      "impact": "Package selection overstates immediate service availability, particularly on touch devices. This was intentionally left outside the previous requested fix set.",
+      "recommendation": "Show the paused status and delivery conditions beside package benefits and price, before a user chooses a paid tier."
+    }
+  ],
+  "recentFixChecks": [
+    {"item": "Buyback readiness", "result": "Live API and Marketing page now show paused with independent price signer not configured."},
+    {"item": "Terms", "result": "Live version 1.1-devnet contains nine sections; Privacy link closes the dialog and navigates correctly. Production legal placeholders remain explicit."},
+    {"item": "Admin withdrawal recovery and inline errors", "result": "Covered by existing local tests and source inspection. No new Phantom/OTP withdrawal performed in this pass."}
+  ],
+  "releaseGaps": [
+    "Mainnet acceptance plan remains blocked; activation is not authorized and program identity, payer signer and independent review references remain incomplete.",
+    "X publishing and milestone buybacks remain paused; correct UI disclosure is not proof of execution readiness.",
+    "Authenticated identity/payout, scheduled holder distribution, migration/claim lifecycle, unlock expiry and interrupted paid-flow acceptance need their explicit finalized evidence before Mainnet sign-off."
+  ],
+  "priorEvidence": ["docs/evidence/ui-flow-review-2026-11-09.json", "docs/evidence/ui-selected-fixes-2026-11-09.json", "docs/evidence/admin-operations-withdrawal-2026-11-09.json"],
+  "priorEvidenceNote": "Earlier evidence is historical context; it was not represented as a fresh successful transaction during this review."
+}

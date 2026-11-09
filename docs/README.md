@@ -4,11 +4,13 @@ Start with the [all-page product guide](product-guide.md) for current features, 
 
 ## Maintained product and operator references
 
+- [richpad.fun / $RICH branding and domain cutover](richpad-brand-migration.md)
+
 - [Devnet admin workspace](admin-devnet.md)
 - [App service fees](app-service-fees.md)
 - [Architecture and safety baseline](architecture.md)
 - [V3 rewards: automatic delivery, claims and approvals](automatic-rewards.md)
-- [V3 fee-funded $FUNDED buyback and burn](buyback-devnet-executor.md)
+- [V3 fee-funded $RICH buyback and burn](buyback-devnet-executor.md)
 - [Code structure and file-size limits](code-structure.md)
 - [V3 community token airdrops](community-airdrop-devnet.md)
 - [Financial enforcement and configurable launch rules](configurable-financial-rules.md)
@@ -58,7 +60,7 @@ These records preserve their original scope. Their build IDs, counts, activation
 - [Raypad-inspired product flows](raypad-inspired-product-flows.md)
 - [ui-followup-audit-2026-11-01.md](ui-followup-audit-2026-11-01.md)
 - [ui-full-audit-2026-11-01.md](ui-full-audit-2026-11-01.md)
-- [funded.vip UI structure and retention review](ui-structure-review-2026-11-05.md)
+- [richpad.fun UI structure and retention review](ui-structure-review-2026-11-05.md)
 - [X account suspension: owner action](x-suspension-appeal.md)
 
 Static flow illustrations and exported PDF/PNG/SVG files are design artifacts. They are not the authoritative live fee policy; use the current Capital flow page and saved on-chain policy.

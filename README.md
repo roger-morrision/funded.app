@@ -1,4 +1,6 @@
-# funded.vip
+# richpad.fun
+
+Platform token: **$RICH**. See the [brand and domain migration notes](docs/richpad-brand-migration.md) for deployment configuration and compatibility details.
 
 A Solana Devnet application for launching and discovering tokens, inspecting V3 creator-fee routes, and tracking verified rewards. Mainnet activation is a separate reviewed release.
 
@@ -41,7 +43,7 @@ The current new-launch default, as a percentage of **gross creator fees collecte
 | Operations & marketing | 8% | The app allocation for platform operations and marketing |
 | Referral network | 1% | Levels 1/2/3: 0.6% / 0.25% / 0.15% of gross |
 | Daily bonus | 4% | Equal creator, direct-referrer and trader category pools |
-| $FUNDED buyback | 5% | Dedicated V3 vault allocations for protected purchase and burn |
+| $RICH buyback | 5% | Dedicated V3 vault allocations for protected purchase and burn |
 | AI marketing & coin buybacks | 2% | Both buyback agents are included; promotion packages add X promotion. Execution requires verified funding and readiness |
 
 These are percentages of creator fees, not trade volume or every Pump fee. Only **8%** is the app allocation for Operations & marketing; **92%** is allocated to creators and ecosystem benefits. The published `/api/fee-policy` and verified on-chain configuration govern new launches. [config/marketing-agency.js](config/marketing-agency.js) contains the current defaults; [config/protocol-fee-split.js](config/protocol-fee-split.js) is the historical fallback, not the current agency policy. Existing coins and settlements retain their recorded on-chain category units. Collection, settlement, source funding and finalized recipient payment are separate stages. Active automatic routes settle and disburse the saved policy without repeated creator signatures; manual routes can require creator approval.
@@ -67,7 +69,7 @@ For selected disposable Devnet mints, an explicit five-minute QA bonus schedule 
 
 Community token airdrops normally use verified migration eligibility and a 90-day claim window. A clearly labeled Devnet QA cutoff is not proof of a genuine migration snapshot.
 
-The normal aggregate buyback trigger is 5 SOL. Selected Devnet QA settings can lower that trigger without changing the saved fee split. Quotes, liquidity, spend controls, current program approval and finalized purchase/burn proofs remain required. This program buys and burns $FUNDED. The separate AI agency agents buy and burn the launched coin using its saved agency budget and milestones.
+The normal aggregate buyback trigger is 5 SOL. Selected Devnet QA settings can lower that trigger without changing the saved fee split. Quotes, liquidity, spend controls, current program approval and finalized purchase/burn proofs remain required. This program buys and burns $RICH. The separate AI agency agents buy and burn the launched coin using its saved agency budget and milestones.
 
 ## Pages and evidence
 
@@ -85,7 +87,7 @@ The normal aggregate buyback trigger is 5 SOL. Selected Devnet QA settings can l
 - **Community pilot:** a local communication plan; it does not post, trade or allocate incentives.
 - **Admin:** allowlisted Devnet sign-in, versioned protocol fee policy, wallet/vault inventory, audited source-signed withdrawals and guarded Daily bonus recovery.
 
-Launch promotion tiers, paid listings and directory SOL boosts have separate receipts. Launch tiers burn the displayed $FUNDED amount; paid listings have their own burn quote; an enabled SOL boost uses an exact payment and unique quote memo before sponsored placement activates.
+Launch promotion tiers, paid listings and directory SOL boosts have separate receipts. Launch tiers burn the displayed $RICH amount; paid listings have their own burn quote; an enabled SOL boost uses an exact payment and unique quote memo before sponsored placement activates.
 
 An allocation, funded vault, submitted signature, healthy HTTP response or similar-looking page is not a finalized payment. Tests using mocked receipts are labeled accordingly. Verify the exact source revision, Devnet genesis, configured program and expected finalized account/balance changes.
 
@@ -107,9 +109,9 @@ Retired release, audit and planning reports are preserved in Git history and loc
 
 ## Launch protections and service prices
 
-New launches protect a ticker on funded.vip for 12 hours and escrow the declared initial developer token purchase for a selected **6h, 12h, 24h or 48h** period (**12h default**), capped at 20% of supply. Choose the period beside Developer buy before signing; the deadline is fixed at launch. Existing locks keep their saved deadlines. Zero developer purchases need no escrow; later purchases and other wallets are outside this lock. Developer token locks do not delay creator SOL earnings. See [scope and release](docs/launch-protections.md).
+New launches protect a ticker on richpad.fun for 12 hours and escrow the declared initial developer token purchase for a selected **6h, 12h, 24h or 48h** period (**12h default**), capped at 20% of supply. Choose the period beside Developer buy before signing; the deadline is fixed at launch. Existing locks keep their saved deadlines. Zero developer purchases need no escrow; later purchases and other wallets are outside this lock. Developer token locks do not delay creator SOL earnings. See [scope and release](docs/launch-protections.md).
 
-Code defaults are 1% app trading on buys and sells, 0.02 SOL per launch, $150 Pro, $300 Premier and $300 external listing in quoted $FUNDED burns. These are defaults, not locked live quotes. The service-price endpoint and reviewed quote govern; network, rent, Pump/pool costs and purchases are separate. See [service fees](docs/app-service-fees.md).
+Code defaults are 1% app trading on buys and sells, 0.02 SOL per launch, $150 Pro, $300 Premier and $300 external listing in quoted $RICH burns. These are defaults, not locked live quotes. The service-price endpoint and reviewed quote govern; network, rent, Pump/pool costs and purchases are separate. See [service fees](docs/app-service-fees.md).
 
 ## Local development
 

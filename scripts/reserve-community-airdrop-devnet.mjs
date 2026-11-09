@@ -111,7 +111,7 @@ if (!execute) {
     assert.equal(sourceBefore - sourceAfter, amount, 'Creator token balance did not fall by the exact reserve amount.');
     assert.equal(vaultAfter - vaultBefore, amount, 'Vault token balance did not rise by the exact reserve amount.');
     const recorded = await fetch(`${apiUrl}/api/airdrops/reserves/receipt`, { method:'POST',
-      headers:{ 'content-type':'application/json', origin:'https://funded.vip' },
+      headers:{ 'content-type':'application/json', origin:'https://richpad.fun' },
       body:JSON.stringify({ mint:mint.toBase58(), signature:submittedSignature }), signal:AbortSignal.timeout(20_000) });
     const receipt = await recorded.json().catch(() => ({}));
     assert.ok(recorded.ok && receipt.verified, `App did not verify reserve funding: ${receipt.error || recorded.status}`);

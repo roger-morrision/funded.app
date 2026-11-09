@@ -80,8 +80,8 @@ export function getLaunchStepState(
     const splitError=feeSplitError(distribution);if(splitError)return splitError;
     const launchBurn = getLaunchBurnPolicy();
     const burnValidation = validateLaunchBurnPolicy(launchBurn);
-    if (!burnValidation.valid) return { valid: false, message: 'The protocol $FUNDED mint must be configured before a paid burn tier can launch.' };
-    return { valid: true, message: launchBurn.requiresBurn ? `${launchBurn.label} selected: ${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED will be burned. Review the approval steps before signing.` : launchMode === 'quick' ? 'Recommended distribution selected.' : 'Custom distribution is balanced.' };
+    if (!burnValidation.valid) return { valid: false, message: 'The protocol $RICH mint must be configured before a paid burn tier can launch.' };
+    return { valid: true, message: launchBurn.requiresBurn ? `${launchBurn.label} selected: ${formatLaunchBurnAmount(launchBurn.amountTokens)} $RICH will be burned. Review the approval steps before signing.` : launchMode === 'quick' ? 'Recommended distribution selected.' : 'Custom distribution is balanced.' };
   }
   return { valid: true, message: 'Launch settings are ready.' };
 }
@@ -124,7 +124,7 @@ export function getLaunchSubmissionState(
     if (walletBalanceLamports < estimatedLaunchFeeLamports) return { valid: false, message: 'Add SOL before continuing.' };
     const launchBurn = getLaunchBurnPolicy();
     if (launchBurn.requiresBurn && !launchBurnReadiness.ready) return { valid: false, message: launchBurnReadiness.message };
-    if (!document.querySelector('#fee-route-agree').checked) return { valid: false, message: 'Confirm that the Pump creator-fee route belongs to funded.vip.' };
+    if (!document.querySelector('#fee-route-agree').checked) return { valid: false, message: 'Confirm that the Pump creator-fee route belongs to richpad.fun.' };
     if (!document.querySelector('#terms-agree').checked) return { valid: false, message: 'Accept the Terms and Disclosures to continue.' };
     return { valid: true, message: 'Ready to review the transaction before signing.' };
 }

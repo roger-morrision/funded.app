@@ -35,7 +35,7 @@ if(main && !document.querySelector('#creator-pilot')) {
   const sync=()=>{
     const active=location.hash==='#pilot' || (!location.hash && /^\/pilot\/?$/.test(location.pathname));page.hidden=!active;
     if(!active)return;
-    refresh();document.title='Creator community pilot · funded.vip';
+    refresh();document.title='Creator community pilot · richpad.fun';
     const label=document.querySelector('[data-route-label]');if(label)label.textContent='Creator pilot';
     requestAnimationFrame(()=>{if(!page.hidden)page.querySelector('h1').focus({preventScroll:true});});
   };

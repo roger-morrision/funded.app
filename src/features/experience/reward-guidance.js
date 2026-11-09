@@ -2,7 +2,7 @@ import { el, link, address } from './view-utils.js';
 
 export const rewardPrograms = [
   ['Coin-holder payments', 'Hold the launched coin at its eligible cutoff', 'SOL', 'Automatic after funding and eligibility checks', '#payments/holders'],
-  ['$FUNDED-holder airdrops', 'Hold $FUNDED at the verified migration snapshot', 'Launched coin tokens', 'Automatic after migration verification, proportional to your eligible $FUNDED holdings; check Airdrops', '#airdrops'],
+  ['$RICH-holder airdrops', 'Hold $RICH at the verified migration snapshot', 'Launched coin tokens', 'Automatic after migration verification, proportional to your eligible $RICH holdings; check Airdrops', '#airdrops'],
   ['Creator payouts', 'Be the saved launch recipient', 'SOL', 'Claim manually in Rewards → Coin Creator → select coin → Claim creator fees after settlement', '#payments/creator'],
   ['X-linked rewards', 'Own the named X account and link your recipient wallet', 'SOL', 'Sign in to X, check available funds, then claim', '#payments/x'],
   ['Referral payments', 'Be in the launch’s saved upline', 'SOL', 'Claim manually in Referrals after qualifying fee settlement and funding', '#referrals'],

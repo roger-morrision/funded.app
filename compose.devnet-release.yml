@@ -32,7 +32,7 @@ services:
       PORT: '8787'
       FUNDED_BUILD_ID: ${FUNDED_BUILD_ID:?Set the verified source revision}
       SOLANA_CLUSTER: devnet
-      DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://metadata.funded.vip}
+      DEVNET_METADATA_ORIGIN: ${FUNDED_DEVNET_METADATA_ORIGIN:-https://richpad.fun}
       VITE_SOLANA_CLUSTER: devnet
       VITE_ALLOW_MAINNET: 'false'
       DEV_MODE: 'false'

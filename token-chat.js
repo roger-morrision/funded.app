@@ -21,13 +21,13 @@ export function validateTokenChatText(value) {
 }
 
 export function tokenChatPostStatement({ mint, author, text, nonce, issuedAt }) {
-  return `funded.app token discussion post v1\n${canonical({ mint, author, text: validateTokenChatText(text), nonce: String(nonce), issuedAt: String(issuedAt) })}`;
+  return `richpad.fun token discussion post v1\n${canonical({ mint, author, text: validateTokenChatText(text), nonce: String(nonce), issuedAt: String(issuedAt) })}`;
 }
 
 export function tokenChatDeleteStatement({ mint, messageId, author, nonce, issuedAt }) {
-  return `funded.app token discussion delete v1\n${canonical({ mint, messageId: String(messageId), author, nonce: String(nonce), issuedAt: String(issuedAt) })}`;
+  return `richpad.fun token discussion delete v1\n${canonical({ mint, messageId: String(messageId), author, nonce: String(nonce), issuedAt: String(issuedAt) })}`;
 }
 
 export function tokenChatSessionStatement({ address, nonce, issuedAt, expiresAt, origin }) {
-  return `funded.app discussion access v1\n${canonical({ address: String(address), nonce: String(nonce), issuedAt: String(issuedAt), expiresAt: String(expiresAt), origin: String(origin) })}`;
+  return `richpad.fun discussion access v1\n${canonical({ address: String(address), nonce: String(nonce), issuedAt: String(issuedAt), expiresAt: String(expiresAt), origin: String(origin) })}`;
 }

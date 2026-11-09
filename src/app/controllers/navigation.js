@@ -4,6 +4,7 @@ export function createNavigationController(appState) {
   let historyRouteLocation = globalThis.location?.href;
   let unknownRouteNotified = '';
   let historyRouteTransition = false;
+  const menuBackground = new Map();
   // app-source: 847
   function setDesktopSidebarCollapsed(collapsed){
     const isCollapsed = Boolean(collapsed);
@@ -24,6 +25,15 @@ export function createNavigationController(appState) {
     const opener=document.querySelector('#open-menu');
     const mobile=window.matchMedia('(max-width: 700px)').matches;
     const visible=mobile&&Boolean(open);
+    if (visible) {
+      for (const element of document.querySelectorAll('#main-content, .skip-link, .mobile-workspace-nav')) {
+        if (!menuBackground.has(element)) menuBackground.set(element,element.inert);
+        element.inert=true;
+      }
+    } else {
+      for (const [element,inert] of menuBackground) element.inert=inert;
+      menuBackground.clear();
+    }
     if (!visible&&mobile&&sidebar.contains(document.activeElement)) {
       if (restoreFocus) opener.focus();
       else document.querySelector('#main-content').focus({preventScroll:true});
@@ -35,10 +45,21 @@ export function createNavigationController(appState) {
     document.querySelector('#menu-backdrop').hidden=!visible;
     opener.setAttribute('aria-expanded',String(visible));
     document.body.classList.toggle('menu-open',visible);
-    const bottomNavigation=document.querySelector('.mobile-workspace-nav');
-    if (bottomNavigation) bottomNavigation.inert=visible;
     if (visible) document.querySelector('#close-menu').focus();
     else if (restoreFocus&&mobile) opener.focus();
+  }
+  function handleMenuKeydown(event) {
+    const sidebar=document.querySelector('#sidebar');
+    if (!sidebar?.classList.contains('open')) return;
+    if (event.key==='Escape') { event.preventDefault();setMenuOpen(false,true);return; }
+    if (event.key!=='Tab') return;
+    const controls=[...sidebar.querySelectorAll('a[href],button,[tabindex]'),document.querySelector('#menu-backdrop')]
+      .filter(element=>element && !element.disabled && element.tabIndex>=0 && !element.closest('[inert]') && element.getClientRects().length);
+    if (!controls.length) return;
+    const index=controls.indexOf(document.activeElement);
+    if (index<0 || (event.shiftKey && index===0) || (!event.shiftKey && index===controls.length-1)) {
+      event.preventDefault();controls[event.shiftKey?controls.length-1:0].focus();
+    }
   }
   // app-source-end
 
@@ -117,7 +138,7 @@ export function createNavigationController(appState) {
   // app-source: 860
   function requestedPageRoute(){
     if (/^\/pilot\/?$/.test(location.pathname) && !location.hash) return 'launch';
-    if (/^\/funded\/?$/.test(location.pathname) && !location.hash) return 'paid';
+    if (/^\/(?:rich|funded)\/?$/.test(location.pathname) && !location.hash) return 'paid';
     if (/^\/list\/?$/.test(location.pathname) && !location.hash) return 'list';
     if (/^\/explore\/?$/.test(location.pathname)) return 'explore';
     const hash = location.hash.replace(/^#/, '');
@@ -172,7 +193,7 @@ export function createNavigationController(appState) {
     const navRoute = creatorSupportRoute ? 'creators' : appState.coinRouteRequested() ? 'explore'
       : appState.walletRouteRequested() || requestedHash === 'creator-settings' ? 'my-launches' : route;
     document.querySelectorAll('.nav-item').forEach(item => {
-      const hrefRoute = item.getAttribute('href') === '/funded' ? 'paid' : item.getAttribute('href')?.replace(/^#/, '');
+      const hrefRoute = ['/rich','/funded'].includes(item.getAttribute('href')) ? 'paid' : item.getAttribute('href')?.replace(/^#/, '');
       item.classList.toggle('active', hrefRoute === navRoute);
       if (hrefRoute === navRoute) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
@@ -190,20 +211,20 @@ export function createNavigationController(appState) {
       community: ['Favorites', 'Favorites and verified signals'],
       leaderboard: ['Leaderboard', 'Ranked community contribution'],
       airdrops: ['Airdrops', 'Automatic token payouts'],
-      buybacks: ['Burn $FUNDED', 'Supply reduction and burn receipts'],
+      buybacks: ['Burn $RICH', 'Supply reduction and burn receipts'],
       'capital-flow': ['Capital flow', 'Follow the published allocation'],
       bonuses: ['Daily bonuses', 'Payout history and all-time recipients'],
       'marketing-agency': ['AI Marketing', 'Launch teams, budgets and milestone actions'],
       docs: ['Docs', 'Guides, safety, and disclosures'],
       profile: ['Profile', 'Wallet and signing safety'],
       privacy: ['Privacy', 'Wallet and browser data'],
-      paid: ['$FUNDED', 'Token policy and availability'],
+      paid: ['$RICH', 'Token policy and availability'],
     }[route] || ['Overview', 'Verified activity and next steps'];
     if (appState.coinRouteRequested()) copy = ['Token', 'Market activity and trade'];
     if (appState.walletRouteRequested()) copy = ['Wallet', 'Balances and confirmed activity'];
     if (requestedHash === 'community') copy = ['Favorites', 'Favorite tokens and followed wallets'];
     if (requestedHash === 'capital-flow') copy = ['Capital flow', 'Published fee allocation'];
-    if (requestedHash === 'buybacks') copy = ['Buy & burn', '$FUNDED actions and receipts'];
+    if (requestedHash === 'buybacks') copy = ['Buy & burn', '$RICH actions and receipts'];
     const routeContext = document.querySelector('#route-context');
     if (routeContext) {
       const label = routeContext.querySelector('[data-route-label]');
@@ -238,5 +259,5 @@ export function createNavigationController(appState) {
   }
   // app-source-end
 
-  return { setDesktopSidebarCollapsed, setMenuOpen, requestPageRouteFocus, focusCurrentPageRoute, focusCurrentPageContent, requestedPageRoute, normalizeDirectPagePathForHashRoute, syncPageRoute };
+  return { setDesktopSidebarCollapsed, setMenuOpen, handleMenuKeydown, requestPageRouteFocus, focusCurrentPageRoute, focusCurrentPageContent, requestedPageRoute, normalizeDirectPagePathForHashRoute, syncPageRoute };
 }

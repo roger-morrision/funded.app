@@ -9,8 +9,37 @@ import {createCreatorFeesRoutes} from '../server/routes/creator-fees.mjs';
 import {registeredLaunchMetadata} from '../server/launch-registration-metadata.mjs';
 import {verifyLaunchServiceFee} from '../server/launch-service-fee-proof.mjs';
 import {pinnedMetadataUri,onchainMetadataUri} from '../metadata-publication.js';
+import {isDevnetImageUri,isDevnetBannerUri} from '../devnet-metadata.js';
+import {serverCoinIdentity} from '../src/features/coin/server-identity.js';
+import {isAppPagePath} from '../server/page-routes.mjs';
 
 const cluster='mainnet-beta',key=n=>new PublicKey(new Uint8Array(32).fill(n)).toBase58();
+
+test('rebranding preserves finalized legacy metadata without accepting unrelated hosts or mints',async()=>{
+  const mint=key(4),creatorWallet=key(3),record={cluster:'devnet',mint,creatorWallet,name:'Fixture',symbol:'FIX'};
+  for(const host of ['richpad.fun','funded.vip']) {
+    const uri=`https://${host}/m/${mint}`;
+    assert.equal(await registeredLaunchMetadata({cluster:'devnet',record,inputUri:uri,
+      proof:{cluster:'devnet',mint,feePayer:creatorWallet,name:'Fixture',symbol:'FIX',uri}}),uri);
+    assert(isDevnetImageUri(`https://${host}/devnet-images/${mint}`,mint));
+    assert(isDevnetBannerUri(`https://${host}/devnet-banners/${mint}`,mint));
+  }
+  for(const uri of [`https://richpad.fun.evil.example/m/${mint}`,`https://richpad.fun/m/${key(5)}`])
+    await assert.rejects(registeredLaunchMetadata({cluster:'devnet',record,inputUri:uri,
+      proof:{cluster:'devnet',mint,feePayer:creatorWallet,name:'Fixture',symbol:'FIX',uri}}));
+});
+
+test('new and historical token routes and verified social titles still resolve',()=>{
+  for(const path of ['/rich','/rich/','/funded'])assert(isAppPagePath(path));
+  assert.equal(isAppPagePath('/rich/unknown'),false);
+  const mint=key(4);
+  for(const brand of ['richpad.fun','funded.vip']) {
+    const document={querySelector:selector=>({getAttribute:()=>selector==='link[rel="canonical"]'
+      ?`https://richpad.fun/token/${mint}`:`Fixture (FIX) | ${brand}`})};
+    assert.deepEqual(serverCoinIdentity(mint,document),{name:'Fixture',symbol:'FIX'});
+    assert.equal(serverCoinIdentity(key(5),document),null);
+  }
+});
 function fixture(kind='referral'){
   const mint=key(4),recipient=key(3),programId=key(5),authority=key(6),source='7'.repeat(64),signature='2'.repeat(64);
   const category=kind==='referral'?2:0;

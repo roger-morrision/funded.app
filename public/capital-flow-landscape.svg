@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="610" viewBox="0 0 1600 610" role="img" aria-labelledby="title description">
   <title id="title">Creator-fee capital flow</title>
-  <desc id="description">New-launch policy: 80% creator-directed; only 8% Operations and marketing; 1% referrals; 4% Daily bonus for top traders, creators and referrers; 5% $FUNDED buyback and burn; 2% AI marketing and launched-coin buybacks. Percentages apply to collected creator fees, not trade volume. Existing coins keep saved rates; funding, eligibility and finalized receipts are required.</desc>
+  <desc id="description">New-launch policy: 80% creator-directed; only 8% Operations and marketing; 1% referrals; 4% Daily bonus for top traders, creators and referrers; 5% $RICH buyback and burn; 2% AI marketing and launched-coin buybacks. Percentages apply to collected creator fees, not trade volume. Existing coins keep saved rates; funding, eligibility and finalized receipts are required.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#183849"/><stop offset=".55" stop-color="#0e2436"/><stop offset="1" stop-color="#102137"/></linearGradient>
     <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1e3c4d"/><stop offset="1" stop-color="#102b3b"/></linearGradient>
@@ -13,7 +13,7 @@
   </style>
   <rect width="1600" height="610" rx="24" fill="url(#background)"/><rect width="1600" height="610" rx="24" fill="url(#grid)"/><rect x="1.5" y="1.5" width="1597" height="607" rx="22.5" fill="none" stroke="#4c7382" stroke-width="3"/>
   <text x="44" y="43" class="kicker">CAPITAL FLOW · SAVED-POLICY GUIDE</text><text x="44" y="85" class="headline">Creator fees, from trade to verified destination</text>
-  <circle cx="1330" cy="52" r="8" fill="#60e1d7"/><text x="1346" y="58" class="legend">SOL flow</text><circle cx="1460" cy="52" r="8" fill="#ffc977"/><text x="1476" y="58" class="legend">$FUNDED</text>
+  <circle cx="1330" cy="52" r="8" fill="#60e1d7"/><text x="1346" y="58" class="legend">SOL flow</text><circle cx="1460" cy="52" r="8" fill="#ffc977"/><text x="1476" y="58" class="legend">$RICH</text>
 
   <rect x="44" y="122" width="296" height="136" rx="19" fill="url(#card)" stroke="#4e7683" stroke-width="2"/>
   <text x="67" y="154" class="step">01 · TRADE</text><text x="67" y="190" class="card-title">Fees accrue</text><text x="67" y="222" class="copy">Pump creator fees</text><text x="67" y="246" class="small">arise from eligible trades.</text>
@@ -40,11 +40,11 @@
   <rect x="814" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="827" y="452" class="chip">8% Operations</text>
   <rect x="957" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="970" y="452" class="chip">1% Referrals</text>
   <rect x="1100" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="1113" y="452" class="chip">4% Daily bonus</text>
-  <rect x="1243" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="1256" y="452" class="chip">5% $FUNDED</text>
+  <rect x="1243" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="1256" y="452" class="chip">5% $RICH</text>
   <rect x="1386" y="425" width="135" height="41" rx="11" fill="#1b4852"/><text x="1399" y="452" class="chip">2% AI agents</text>
 
   <rect x="44" y="510" width="490" height="61" rx="13" fill="#242d3d" stroke="#617286"/>
-  <circle cx="64" cy="529" r="6" fill="#ffc977"/><text x="79" y="534" class="step" fill="#ffda9f">SEPARATE AT LAUNCH</text><text x="63" y="555" class="small">SOL service fee; paid tiers burn $FUNDED.</text>
+  <circle cx="64" cy="529" r="6" fill="#ffc977"/><text x="79" y="534" class="step" fill="#ffda9f">SEPARATE AT LAUNCH</text><text x="63" y="555" class="small">SOL service fee; paid tiers burn $RICH.</text>
   <rect x="555" y="510" width="490" height="61" rx="13" fill="#292b45" stroke="#786dab"/>
   <circle cx="575" cy="529" r="6" fill="#b9a6ff"/><text x="590" y="534" class="step" fill="#d7caff">SEPARATE AT MIGRATION</text><text x="574" y="555" class="small">Launched-coin reserve → eligible token claim.</text>
   <rect x="1066" y="510" width="490" height="61" rx="13" fill="#302d28" stroke="#a18459" stroke-dasharray="7 5"/>

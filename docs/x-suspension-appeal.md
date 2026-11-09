@@ -4,7 +4,7 @@ The suspension notice does not identify the specific violation. A lower posting 
 
 ## Draft for the owner to review
 
-Please review the suspension of our funded.vip account and identify the specific posts or behavior that violated your rules. The account published application updates and Devnet test payout announcements. We have stopped both automatic publishing workers and are reviewing the previous activity.
+Please review the suspension of our richpad.fun account and identify the specific posts or behavior that violated your rules. The account published application updates and Devnet test payout announcements. We have stopped both automatic publishing workers and are reviewing the previous activity.
 
 We have changed the application to replace individual payout announcements with at most one manually reviewed summary per completed UTC recording day. Promotions also require review of their exact content. We added stronger duplicate-content holds, expiring approvals and a persistent publishing pause. The application does not automate replies, direct messages, likes or follows. Its publishing integration uses the official API.
 

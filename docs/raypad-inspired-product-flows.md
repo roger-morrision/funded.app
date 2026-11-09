@@ -1,6 +1,6 @@
 # Raypad-inspired product flows
 
-Implemented in the funded.app workspace on 2026-10-30. Inspiration was reviewed on Raypad's public Feed, Discover, Launch, Burns, Creators, and coin pages. Funded's saved fee policies, required signing permissions, and ranked windows remain authoritative.
+Implemented in the richpad.fun workspace on 2026-10-30. Inspiration was reviewed on Raypad's public Feed, Discover, Launch, Burns, Creators, and coin pages. Funded's saved fee policies, required signing permissions, and ranked windows remain authoritative.
 
 ## Discovery and trading
 
@@ -14,7 +14,7 @@ Implemented in the funded.app workspace on 2026-10-30. Inspiration was reviewed 
 
 Open `/#payments/activity`. The center shows separate Accrued, Awaiting approval, Funded, Processing, and Verified states, with per-record mint, wallet where relevant, action, reason, timestamp, and proof link.
 
-Personal rows use the connected wallet's V3 experience projection and check up to eight creator launch fee overviews. Additional launches remain accessible in Portfolio. Wallet changes clear prior personal records. Vault funding needs recorded balance-delta evidence; it is never counted as recipient delivery. Public protocol burns require recorded source-debit and burn-instruction verification. $FUNDED base units stay separate from SOL and launched-token airdrops. Locked balances are not supply burns.
+Personal rows use the connected wallet's V3 experience projection and check up to eight creator launch fee overviews. Additional launches remain accessible in Portfolio. Wallet changes clear prior personal records. Vault funding needs recorded balance-delta evidence; it is never counted as recipient delivery. Public protocol burns require recorded source-debit and burn-instruction verification. $RICH base units stay separate from SOL and launched-token airdrops. Locked balances are not supply burns.
 
 Existing holder cutoff/payout targets, token snapshot/deadline views, X claims, referrals, and ranked bonus dashboards remain linked. No early top-three bonus distribution was introduced. Each verified trade can wake ready processing under the existing rules; creator approvals and funding requirements still apply.
 
@@ -72,6 +72,6 @@ Browser financial responses and write flows above use mocked Devnet fixtures and
 
 The follow-up [local API candidate](product-experience-candidate.md) runs the current API and built browser on loopback port 8789 over a read-only export copied into isolated files. The public API remains on its earlier build. Real HTTP acceptance checks and three browser cases now cover the new endpoints without mocked API responses, including report persistence across an API restart. Missing verified sessions continue to block creator writes.
 
-An existing burn was independently rechecked on finalized Devnet RPC: slot 516699579, vault debit 21,681 lamports and 2,785 $FUNDED base units burned. This verifies historical chain evidence, not a newly submitted burn. No signing keys or financial workers were enabled.
+An existing burn was independently rechecked on finalized Devnet RPC: slot 516699579, vault debit 21,681 lamports and 2,785 $RICH base units burned. This verifies historical chain evidence, not a newly submitted burn. No signing keys or financial workers were enabled.
 
 Runtime coverage exposed an additional gap: registry-based exact receipts do not cover every `onchain-policy` burn. Those rows now retain direct Explorer links, and engine-health coverage explicitly limits its operation counts to registered V3 launch policies. Six new isolation tests, 64 final combined affected unit tests, three actual-candidate browser tests and one mocked Explorer-link regression passed. See the candidate document for commands and evidence boundaries.

@@ -30,7 +30,7 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports, cluste
     || !state.pool?.baseMint?.equals(assets.mint)
     || !state.pool?.quoteMint?.equals(NATIVE_MINT)
     || BigInt(state.poolQuoteAmount?.toString()||0)<=0n)
-    throw new Error('The approved $FUNDED PumpSwap pool is unavailable.');
+    throw new Error('The approved $RICH PumpSwap pool is unavailable.');
   const reserves=BigInt(state.poolQuoteAmount.toString());
   const quote=protectedV3BuybackClip(budget,reserves);
   if (quote < MIN_V3_BUYBACK_ORDER_LAMPORTS)
@@ -44,7 +44,7 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports, cluste
     quoteMint:state.pool.quoteMint,isMayhemMode:state.pool.isMayhemMode,
     creatorFeeBps:state.pool.creatorFeeBps });
   const minimum=BigInt(quoted.base?.toString()||0);
-  if (minimum<=0n) throw new Error('The protected $FUNDED output quote is empty.');
+  if (minimum<=0n) throw new Error('The protected $RICH output quote is empty.');
   const instructions=await PUMP_AMM_SDK.buyQuoteInput(state,new BN(String(quote)),1);
   const buy=selectV3PumpBuy(instructions);
   return { cluster,genesisHash:SOLANA_GENESIS[cluster],pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,

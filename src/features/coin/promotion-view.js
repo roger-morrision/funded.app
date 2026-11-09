@@ -77,7 +77,7 @@ export function renderCoinPromotionBadge(
   const artworkLabel = document.querySelector('#coin-artwork-package');
   if (artworkLabel) {
     artworkLabel.hidden = !badge;
-    artworkLabel.textContent = badge ? `${presentation.label} launch · ${Number(badge.amountTokens).toLocaleString()} $FUNDED burned` : '';
+    artworkLabel.textContent = badge ? `${presentation.label} launch · ${Number(badge.amountTokens).toLocaleString()} $RICH burned` : '';
   }
   const packageElement = document.createElement(badge ? 'a' : 'span');
   packageElement.className = `explore-tier-badge promotion-badge promotion-badge--${presentation.tier}`;
@@ -86,7 +86,7 @@ export function renderCoinPromotionBadge(
     packageElement.href = exploreExplorer(`tx/${encodeURIComponent(badge.signature)}`);
     packageElement.target = '_blank';
     packageElement.rel = 'noopener noreferrer';
-    packageElement.title = `${badge.amountTokens.toLocaleString()} $FUNDED burned in the verified launch · view receipt`;
+    packageElement.title = `${badge.amountTokens.toLocaleString()} $RICH burned in the verified launch · view receipt`;
     packageElement.setAttribute('aria-label', `${badge.tier} launch promotion · view verified burn receipt`);
   } else {
     packageElement.title = presentation.tier === 'standard' ? 'Verified standard launch; no paid promotion burn' : 'Launch package cannot be verified yet';

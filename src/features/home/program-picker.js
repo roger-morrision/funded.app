@@ -3,7 +3,7 @@ import { currentServiceFees, serviceFeeSol } from '../../../service-fees.js';
 function feeStat(tier, fallback = '') {
   if (!['standard','pro','premier'].includes(tier)) return fallback;
   const fees=currentServiceFees(), launch=`${serviceFeeSol(fees.launchLamports)} SOL`;
-  return tier==='standard' ? `${launch} · no promotion burn` : `$${fees[tier+'Usd']} in $FUNDED + ${launch}`;
+  return tier==='standard' ? `${launch} · no promotion burn` : `$${fees[tier+'Usd']} in $RICH + ${launch}`;
 }
 // One instance owns the picker listener; wallet state is read only when rendering.
 export function initProgramPicker({ isWalletConnected }) {
@@ -11,7 +11,7 @@ export function initProgramPicker({ isWalletConnected }) {
     standard: { name: 'Standard launch', subtitle: 'A calm, accountable first step', progress: '1 of 3 complete', width: '33%', note: 'Connect a wallet to begin your launch review.' },
     pro: { name: 'Pro launch', subtitle: 'For teams ready to move with intent', progress: '2 of 3 complete', width: '78%', note: 'Priority review is available after the published route is confirmed.' },
     premier: { name: 'Premier launch', subtitle: 'Largest project showcase', progress: '2 of 3 complete', width: '88%', note: 'Spotlight review is available after the published route is confirmed.' },
-    airdrop: { name: 'Airdrop reserve', subtitle: 'Automatic proportional airdrops at migration', progress: '2 of 3 complete', width: '66%', note: 'Hold $FUNDED until migration; review your proportional allocation and delivery.' },
+    airdrop: { name: 'Airdrop reserve', subtitle: 'Automatic proportional airdrops at migration', progress: '2 of 3 complete', width: '66%', note: 'Hold $RICH until migration; review your proportional allocation and delivery.' },
     explore: { name: 'Browse Launch Directory', subtitle: 'Find launches with a visible signal', progress: '1 of 3 complete', width: '33%', note: 'Open the explorer to inspect route, tier, and receipt history.' },
     receipts: { name: 'Receipt center', subtitle: 'Follow value after the launch', progress: '3 of 3 complete', width: '100%', note: 'Every verified event stays linked to its on-chain source.' },
   };
@@ -24,9 +24,9 @@ export function initProgramPicker({ isWalletConnected }) {
       cta: 'Open creator launch',
       href: '#launch',
       cards: [
-        ['standard', 'STANDARD', 'Start here', 'Launch without the guesswork', 'Core Pump launch, public fee route, and a basic funded.vip X announcement when publishing is active.', '0 $FUNDED', 'Basic X post'],
-        ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and a featured funded.vip X launch post after verification when publishing is active.', '', 'Featured X post'],
-        ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, one funded.vip X launch post and a follow-up after 24 hours when publishing is active.', '', 'Two X posts'],
+        ['standard', 'STANDARD', 'Start here', 'Launch without the guesswork', 'Core Pump launch, public fee route, and a basic richpad.fun X announcement when publishing is active.', '0 $RICH', 'Basic X post'],
+        ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and a featured richpad.fun X launch post after verification when publishing is active.', '', 'Featured X post'],
+        ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, one richpad.fun X launch post and a follow-up after 24 hours when publishing is active.', '', 'Two X posts'],
       ],
     },
     community: {
@@ -34,7 +34,7 @@ export function initProgramPicker({ isWalletConnected }) {
       cta: 'Open community hub',
       href: '#airdrops',
       cards: [
-        ['airdrop', 'AIRDROP', 'Receive automatically', 'See your community allocation', 'Hold $FUNDED until migration. Your share of eligible holdings determines your automatic airdrop.', '3% MINIMUM', 'Wallet eligibility'],
+        ['airdrop', 'AIRDROP', 'Receive automatically', 'See your community allocation', 'Hold $RICH until migration. Your share of eligible holdings determines your automatic airdrop.', '3% MINIMUM', 'Wallet eligibility'],
         ['explore', 'DIRECTORY', 'Discover with signal', 'Find launches worth a closer look', 'Inspect verified routes, launch tiers, and visible commitment signals.', 'LIVE FEED', 'Route + tier'],
         ['receipts', 'RECEIPTS', 'Track what happened', 'Follow every value movement', 'Review the public record from launch through claims, burns, and payouts.', 'ON-CHAIN', 'Source linked'],
       ],

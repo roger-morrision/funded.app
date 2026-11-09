@@ -103,8 +103,8 @@ export function createBuybackController(appState) {
       if (triggerText) triggerText.textContent = trigger ? `${trigger} trigger` : 'Trigger unavailable';
       const policy = document.querySelector(`#${prefix}-policy`);
       if (policy && trigger) policy.textContent = (prefix === 'home-buyback'
-        ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified vault allocations, the app reviews protected $FUNDED purchases and burns.`
-        : `The published buyback share of collected creator fees stays in dedicated program vaults. At the ${trigger} aggregate trigger, the worker reviews protected $FUNDED purchases and burns.`)
+        ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified vault allocations, the app reviews protected $RICH purchases and burns.`
+        : `The published buyback share of collected creator fees stays in dedicated program vaults. At the ${trigger} aggregate trigger, the worker reviews protected $RICH purchases and burns.`)
         + ageRule + ' Each order must meet its own minimum and pass fresh custody, market quote and liquidity checks; failed market checks leave funds in custody.';
       else if (policy) policy.textContent = 'Current buyback rules are unavailable.';
       if (prefix === 'buyback-route') document.querySelector('#buyback-route-title').textContent = !trigger
@@ -197,17 +197,17 @@ export function createBuybackController(appState) {
       button.title = pending ? `Original burn: ${pending.signature}. Reconnect ${pending.wallet} to verify; no new burn will be signed.` : 'Waiting for your burn.';
       return;
     }
-    button.textContent = 'Burn $FUNDED';
+    button.textContent = 'Burn $RICH';
     const signingReady = appState.fundedBurnState.status === 'ready' && Boolean(appState.wallet && appState.canSignTransactions(appState.wallet));
     let reason = '';
     try {
       const amount = appState.parseTokenAmount(input.value, appState.fundedBurnState.decimals);
-      if (amount > appState.fundedBurnState.balanceBaseUnits) reason = 'The burn amount exceeds this wallet’s $FUNDED balance.';
+      if (amount > appState.fundedBurnState.balanceBaseUnits) reason = 'The burn amount exceeds this wallet’s $RICH balance.';
     } catch (error) { reason = error.message; }
     input.disabled = !signingReady || appState.fundedBurnState.balanceBaseUnits <= 0n;
     button.disabled = input.disabled || Boolean(reason) || appState.fundedBurnState.status === 'submitting';
     button.title = input.disabled
-      ? (appState.fundedBurnState.status === 'loading' ? 'Loading the on-chain $FUNDED balance.' : 'Connect a signing wallet with a verified $FUNDED balance.')
+      ? (appState.fundedBurnState.status === 'loading' ? 'Loading the on-chain $RICH balance.' : 'Connect a signing wallet with a verified $RICH balance.')
       : reason;
   }
   // app-source-end
@@ -223,7 +223,7 @@ export function createBuybackController(appState) {
     const airdropBalance = document.querySelector('#airdrop-funded-balance');
     if (airdropBalance) {
       airdropBalance.hidden = !appState.connectedWalletAddress;
-      airdropBalance.querySelector('strong').textContent = ready ? `${amount} $FUNDED`
+      airdropBalance.querySelector('strong').textContent = ready ? `${amount} $RICH`
         : currentWallet && appState.fundedBurnState.status === 'error' ? 'Balance unavailable' : 'Checking balance…';
     }
     if (note) note.textContent = ready ? 'Live SPL token balance' : currentWallet && appState.fundedBurnState.status === 'loading' ? 'Loading from Devnet' : 'Balance unavailable';
@@ -237,15 +237,15 @@ export function createBuybackController(appState) {
     if (!force && appState.fundedBurnState.status === 'loading') return;
     if (!force && appState.fundedBurnState.status === 'ready' && appState.fundedBurnState.wallet === address && Date.now() - (appState.fundedBurnState.loadedAt || 0) < 30_000) return;
     const request = ++appState.fundedBurnRequest;
-    appState.fundedBurnState = { ...appState.fundedBurnState, status: 'loading', wallet: address, message: 'Checking your $FUNDED balance and burn history…' };
+    appState.fundedBurnState = { ...appState.fundedBurnState, status: 'loading', wallet: address, message: 'Checking your $RICH balance and burn history…' };
     appState.renderBuybackDashboard();
     appState.renderWalletFundedBalance();
     try {
-      if (!appState.PROTOCOL_FUNDED_MINT) throw new Error('The protocol $FUNDED mint is not configured.');
+      if (!appState.PROTOCOL_FUNDED_MINT) throw new Error('The protocol $RICH mint is not configured.');
       const { PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getMint, unpackAccount } = await appState.getSolana();
       const mint = new PublicKey(appState.PROTOCOL_FUNDED_MINT);
       const mintAccount = await appState.connection.getAccountInfo(mint, 'confirmed');
-      if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The configured $FUNDED mint is not a supported SPL mint on Solana.');
+      if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The configured $RICH mint is not a supported SPL mint on Solana.');
       const tokenProgram = mintAccount.owner;
       const mintState = await getMint(appState.connection, mint, 'confirmed', tokenProgram);
       let tokenAccounts = [];

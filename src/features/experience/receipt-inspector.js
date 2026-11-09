@@ -33,7 +33,7 @@ export function initializeReceiptInspector(app) {
       row.append(el('strong',solText(event.amountLamports))); body.append(row);
     }
     for (const row of array(data.recipients)) body.append(el('p',`${row.kind} · ${solText(row.amountLamports)} to ${row.wallet} · Mint ${row.mint||'Unavailable'}`));
-    for (const row of array(data.burns)) body.append(el('p',`Supply burn: ${row.burnedBaseUnits ?? 'Unavailable'} $FUNDED base units · spent ${solText(row.spentLamports)} · vault ${row.vault || 'unavailable'} · recorded network cost ${solText(row.networkFeeLamports)}`));
+    for (const row of array(data.burns)) body.append(el('p',`Supply burn: ${row.burnedBaseUnits ?? 'Unavailable'} $RICH base units · spent ${solText(row.spentLamports)} · vault ${row.vault || 'unavailable'} · recorded network cost ${solText(row.networkFeeLamports)}`));
     if (data.trade) body.append(el('p',`${data.trade.side} · ${data.trade.tokenAmountRaw} token base units · ${solText(data.trade.solLamports)}. No profit claim.`),el('p',`Network cost: ${solText(data.trade.networkFeeLamports)} · Fee payer: ${data.trade.feePayer||'Unavailable'}. Account rent and other SOL movements require the full transaction.`));
     else body.append(el('p','Fee payer and recipient net after network costs: unavailable in this recorded projection. Recorded payment amounts are gross; inspect the full transaction for all balance movements.'));
     for (const source of array(data.sourceSignatures)) if (signature(source)) body.append(link(`Source collection ${source.slice(0,10)}… ↗`,`https://explorer.solana.com/tx/${source}?cluster=devnet`,true));

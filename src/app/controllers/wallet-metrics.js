@@ -63,8 +63,8 @@ export function createWalletMetricsController(appState) {
       const mintRouter = buildLaunchMintRouter({mint:mint.publicKey,payer,v3FeeRouter:launchV3,feeShares:appState.getFeeDistributionInputs()});
       const router = mintRouter.router.address;
       const launchInstructions = initialBuy.amountBaseUnits > 0n
-        ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
-        : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, mayhemMode: false, holderReward: false })];
+        ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://richpad.fun/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
+        : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://richpad.fun/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, mayhemMode: false, holderReward: false })];
       const launchBurn = appState.getLaunchBurnPolicy();
       const burnPlan = launchBurn.requiresBurn
         ? await prepareFundedLaunchBurn({ connection: appState.connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
@@ -120,7 +120,7 @@ export function createWalletMetricsController(appState) {
       }
       if (request !== appState.metricsRequest || !appState.isWalletSessionCurrent(session)) return;
       appState.launchBurnReadiness = burnPlan
-        ? { ready: true, message: `Wallet verified to first burn ${appState.formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED, then approve Pump creation${plan.mintRouterSeparate ? '; router initialization uses a separate approval' : ''}.` }
+        ? { ready: true, message: `Wallet verified to first burn ${appState.formatLaunchBurnAmount(launchBurn.amountTokens)} $RICH, then approve Pump creation${plan.mintRouterSeparate ? '; router initialization uses a separate approval' : ''}.` }
         : { ready: true, message: 'No creator-funded burn is required.' };
       appState.renderLaunchBurnSelection();
       const review=appState.launchReview({balance,serviceFeeLamports:serviceQuote.amountLamports,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:initialBuy.solAmountLamports,buyMaximum:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});
@@ -150,7 +150,7 @@ export function createWalletMetricsController(appState) {
         appState.launchEstimateRetry = { ...launchEstimateRetry(error, appState.launchEstimateRetry || {}), wallet: session.address, reason };
         const launchBurn = appState.getLaunchBurnPolicy();
         if (launchBurn.requiresBurn) {
-          appState.launchBurnReadiness = { ready: false, message: error?.message || 'The $FUNDED burn could not be prepared.' };
+          appState.launchBurnReadiness = { ready: false, message: error?.message || 'The $RICH burn could not be prepared.' };
           appState.renderLaunchBurnSelection();
         }
         appState.setWalletMetrics({ ...(balanceReadStarted ? { balance: fetchedBalance } : {}), fee: null, error: reason });

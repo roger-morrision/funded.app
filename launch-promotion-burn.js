@@ -3,7 +3,7 @@ import { executeLaunchPlan } from './launch-executor.js';
 import { promotionBurnStep, verifyPromotionBurnBinding } from './launch-promotion-receipt.js';
 
 export async function confirmPromotionBurn({connection,provider,payer,mint,burnPlan,quoteId,onJournal,onStatus,assertWalletCurrent,beforeBroadcast}) {
-  onStatus(`First approve burning ${burnPlan.amountTokens.toLocaleString()} $FUNDED. Coin creation follows after confirmation.`);
+  onStatus(`First approve burning ${burnPlan.amountTokens.toLocaleString()} $RICH. Coin creation follows after confirmation.`);
   const latest=await connection.getLatestBlockhash('finalized');
   const step=promotionBurnStep({payer,mint,burnInstruction:burnPlan.instruction,quoteId,blockhash:latest.blockhash});
   const {signature}=await executeLaunchPlan({connection,provider,payer,mint,plan:{steps:[step]},onEvent:onJournal,assertWalletCurrent,beforeBroadcast});

@@ -111,7 +111,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
     for (const [, row] of burns) if (SIGNATURE.test(String(row.signature || '')))
       events.push({ mint, kind:'buyback-burned', signature:row.signature,
         amountLamports:String(row.spentLamports || '0'), at:row.finalizedAt || null,
-        label:'Fee-funded $FUNDED buyback and burn' });
+        label:'Fee-funded $RICH buyback and burn' });
     const holderPaid = payouts.filter(row => row.kind === 'holder');
     const paidByWallet = new Map();
     for (const row of holderPaid) {

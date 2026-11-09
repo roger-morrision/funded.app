@@ -18,10 +18,10 @@ export function initMarketingAgency(document = globalThis.document) {
     <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
     <details class="agency-policy"><summary>Fee policy</summary><div class="agency-policy-body"><h2 id="agency-policy-title">New-launch agency allocation</h2>
-      <p data-agency-policy-split>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI marketing &amp; coin buybacks · 4% Daily bonus · 5% $FUNDED buyback &amp; burn.</p>
+      <p data-agency-policy-split>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI marketing &amp; coin buybacks · 4% Daily bonus · 5% $RICH buyback &amp; burn.</p>
       <p data-agency-policy-referrals>Both buyback agents are included in every new launch. Promotion packages also include X promotion. Included agents share the agency allocation equally. Actions require verified funding and ready executors. Existing coins keep their saved selections. Referral levels: ${POLICY.referralUnits.map((units,index)=>`L${index+1} ${units*100/POLICY.grossUnits}%`).join(' · ')} of gross collected creator fees.</p>
       <p>Agents 2 and 3 each buy and burn the launched coin once, using only their accumulated budget. Reaching a milestone is not a purchase or burn receipt. Later fees remain reserved after a one-time action.</p>
-      <p>The separate $FUNDED buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
+      <p>The separate $RICH buyback allocation keeps its own trigger and funds. Existing launches retain their signed fee policy.</p>
       <a href="#capital-flow">View the currently active fee policy →</a></div></details>
     <section aria-labelledby="agency-tokens-title"><h2 id="agency-tokens-title">Tokens &amp; agent budgets</h2><div data-agency-tokens>Checking registered tokens…</div></section>
     <section aria-labelledby="agency-budget-title"><h2 id="agency-budget-title">Agency funds &amp; activity</h2><dl class="agency-funds"><div><dt>Verified funding</dt><dd data-agency-funded>Unavailable</dd></div><div><dt>Verified spending</dt><dd data-agency-spent>Unavailable</dd></div></dl><p data-agency-history>No agency execution history has been verified.</p></section>
@@ -67,7 +67,7 @@ export function initMarketingAgency(document = globalThis.document) {
         note.hidden = !note.textContent;
       }
       const rates = verifiedRates;
-      const example = rates ? Object.entries({'creator-directed':rates.creator, operations:rates.operations, referrals:rates.referrals, 'daily bonus':rates.dailyBonus, '$FUNDED buyback':rates.fundedBuyback, agents:rates.agency}).map(([label, rate]) => `${rate / 100} SOL ${label}`).join(', ') : '';
+      const example = rates ? Object.entries({'creator-directed':rates.creator, operations:rates.operations, referrals:rates.referrals, 'daily bonus':rates.dailyBonus, '$RICH buyback':rates.fundedBuyback, agents:rates.agency}).map(([label, rate]) => `${rate / 100} SOL ${label}`).join(', ') : '';
       terms.textContent = [postStatus, selected.includes('x-promotion') ? 'Recurring agent posts are billed separately after verified delivery.' : '', example && 'For 1 SOL of collected creator fees: ' + example + '.'].filter(Boolean).join(' ');
       const review = document.getElementById('launch-review-package');
       if (review) review.textContent = terms.textContent + ' ' + agencyGrossPercent + '% shared equally among ' + selected.length + ' included agents (' + (agencyGrossPercent / selected.length).toLocaleString(undefined,{maximumFractionDigits:4}) + '% each, rounded).';
@@ -107,7 +107,7 @@ export function initMarketingAgency(document = globalThis.document) {
         const rates=data.requiredGrossPercent;
         if(rates&&Object.values(rates).every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0)){
           verifiedRates=rates; agencyGrossPercent=rates.agency;
-          page.querySelector('[data-agency-policy-split]').textContent=`${rates.creator}% creator-directed · ${rates.operations}% Operations & marketing · ${rates.referrals}% referrals · ${rates.agency}% AI marketing & coin buybacks · ${rates.dailyBonus}% Daily bonus · ${rates.fundedBuyback}% $FUNDED buyback & burn.`;
+          page.querySelector('[data-agency-policy-split]').textContent=`${rates.creator}% creator-directed · ${rates.operations}% Operations & marketing · ${rates.referrals}% referrals · ${rates.agency}% AI marketing & coin buybacks · ${rates.dailyBonus}% Daily bonus · ${rates.fundedBuyback}% $RICH buyback & burn.`;
           page.querySelector('[data-agency-policy-referrals]').textContent=`Both buyback agents are included in every new launch. Promotion packages also include X promotion. Included agents share the agency allocation equally. Existing coins keep their saved selections. Referral levels: ${data.referralGrossPercents.map((n,i)=>`L${i+1} ${n}%`).join(' · ')} of gross collected creator fees.`;
         }
         for(const[ i,card]of [...page.querySelectorAll('.agency-agent')].entries()){

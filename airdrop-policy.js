@@ -3,7 +3,7 @@ export const COMMUNITY_AIRDROP = Object.freeze({
   maximumSupplyPercent: 50,
   claimWindowDays: 90,
   snapshotTrigger: 'launch-migration',
-  eligibilityAsset: '$FUNDED',
+  eligibilityAsset: '$RICH',
 });
 
 export function validateCommunityAllocation(value) {

@@ -30,8 +30,8 @@ const posterDefinitions = [
   },
   {
     selector: '#paid .paid-reference-hero > div > p:not(.eyebrow)', mountAfter: '#paid .paid-reference-hero',
-    key: 'fees', eyebrow: '$FUNDED at a glance',
-    title: 'One token, three jobs', summary: 'Read the full $FUNDED explanation',
+    key: 'fees', eyebrow: '$RICH at a glance',
+    title: 'One token, three jobs', summary: 'Read the full $RICH explanation',
     items: [
       ['01', 'Launch tiers', 'Teams can burn for promotion.'],
       ['02', 'Community', 'Holder allocations have their own proof.'],

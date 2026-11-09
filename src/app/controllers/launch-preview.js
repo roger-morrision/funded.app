@@ -102,9 +102,9 @@ export function createLaunchPreviewController(appState) {
     appState.launchTierQuote = null;
     const policy = appState.getLaunchBurnPolicy();
     appState.launchBurnReadiness = policy.requiresBurn
-      ? { ready: false, message: !appState.PROTOCOL_FUNDED_MINT ? 'The fixed $FUNDED mint is not configured.'
-        : !policy.amountTokens ? 'The verified $FUNDED price is unavailable. Refresh the quote.'
-          : appState.wallet ? 'Checking the connected wallet’s $FUNDED balance…' : 'Connect a wallet to verify its $FUNDED balance.' }
+      ? { ready: false, message: !appState.PROTOCOL_FUNDED_MINT ? 'The fixed $RICH mint is not configured.'
+        : !policy.amountTokens ? 'The verified $RICH price is unavailable. Refresh the quote.'
+          : appState.wallet ? 'Checking the connected wallet’s $RICH balance…' : 'Connect a wallet to verify its $RICH balance.' }
       : { ready: true, message: 'No creator-funded burn is required.' };
     appState.estimatedLaunchFeeLamports = null;
     appState.renderLaunchBurnSelection();

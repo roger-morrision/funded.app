@@ -108,7 +108,7 @@ export function buildCoinSummary({ mint, cluster, launch, ledgerMint, overview, 
   const burn = launch.creatorLaunchBurn;
   const burnedTokens = Number(burn?.receipt?.amountTokens ?? burn?.amountTokens);
   if (burn?.status === 'verified' && burn.receipt?.signature && Number.isFinite(burnedTokens) && burnedTokens > 0) {
-    cards.push(card('burn', '$FUNDED burned at launch', '♨', '$FUNDED', burnedTokens, 'available', 'Confirmed launch burn'));
+    cards.push(card('burn', '$RICH burned at launch', '♨', '$RICH', burnedTokens, 'available', 'Confirmed launch burn'));
   }
 
   const volumeSol = market?.volume24hSol == null ? null : Number(market.volume24hSol);

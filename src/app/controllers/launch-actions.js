@@ -13,7 +13,7 @@ export function createLaunchActionsController(appState) {
         throw new Error('V3 launch configuration is not verified.');
       const router = deriveMintRouterV3(v3.programId, mint.publicKey).address;
       appState.setLaunchStatus('Dry run: building one Pump launch with the router as creator-fee owner…');
-      const createInstruction = await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://funded.vip/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer.publicKey, mayhemMode: false, holderReward: false });
+      const createInstruction = await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://richpad.fun/devnet-metadata/${mint.publicKey.toBase58()}`, creator: router, user: payer.publicKey, mayhemMode: false, holderReward: false });
       const launchTransaction = new Transaction().add(createInstruction); const blockhash = Keypair.generate().publicKey.toBase58();
       launchTransaction.recentBlockhash = blockhash; launchTransaction.feePayer = payer.publicKey; launchTransaction.partialSign(mint, payer);
       const launchBytes = launchTransaction.serialize().length;

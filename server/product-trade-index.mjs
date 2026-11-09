@@ -192,5 +192,5 @@ export async function productTradeReport(pool,cluster) {
     scope:'registered-mints-pump-curves-and-canonical-sol-pools',commitment:'finalized',coverage:'observed-only',
     volumeBasis:'curve-event-SOL; pool-buyer-total-SOL-in-and-seller-net-SOL-out; excludes-network-fees',
     appOriginAttribution:false, historicalCompletenessVerified:false, scans:scans.rows,unresolvedProofs:gaps.reduce((sum,row)=>sum+row.proofs,0),gaps,excludedMigrations:excluded.migrations,
-    guidance:'Trade activity on registered tokens can originate outside funded.vip. Provider history exhaustion does not prove archival completeness. Refresh and backfill are bounded operator runs.'};
+    guidance:'Trade activity on registered tokens can originate outside richpad.fun. Provider history exhaustion does not prove archival completeness. Refresh and backfill are bounded operator runs.'};
 }

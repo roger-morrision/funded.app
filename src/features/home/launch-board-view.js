@@ -172,7 +172,7 @@ export function renderHomeLaunchBoard(state, {
       const title = paidListingsStatus === 'unavailable' ? 'Paid listings are temporarily unavailable.'
         : paidListingsStatus === 'ready' ? 'No verified paid listings yet.' : 'Loading verified paid listings…';
       const detail = paidListingsStatus === 'unavailable' ? 'Try again to load on-chain verified listing receipts.'
-        : paidListingsStatus === 'ready' ? 'Listings appear here after a verified $FUNDED burn.' : 'Checking the paid listing index.';
+        : paidListingsStatus === 'ready' ? 'Listings appear here after a verified $RICH burn.' : 'Checking the paid listing index.';
       const retry = paidListingsStatus === 'unavailable' ? '<button type="button" class="secondary-button" data-paid-listing-retry>Try again</button>' : '';
       grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${retry}</div>`;
       if (paidTableBody) paidTableBody.innerHTML = `<tr><td colspan="4" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;

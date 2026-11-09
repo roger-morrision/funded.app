@@ -14,7 +14,7 @@ const panel = (prefix, eyebrow, title, description, link = '') => `
 export function mountBuybackProgressPanels(document) {
   const home = document.querySelector('#home-buyback-panel');
   if (home && !home.firstElementChild)
-    home.innerHTML = panel('home-buyback', '5% fee route · $FUNDED',
+    home.innerHTML = panel('home-buyback', '5% fee route · $RICH',
       'Collected fees fund buybacks and burns.',
       'For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. The verified trigger and eligible balance appear below. Execution depends on a verified market quote and available liquidity.',
       '<a href="#buybacks">See buyback receipts →</a>');
@@ -22,5 +22,5 @@ export function mountBuybackProgressPanels(document) {
   if (route && !route.firstElementChild)
     route.innerHTML = panel('buyback-route', 'Fee-funded buyback',
       'Checking verified trigger and eligible fees.',
-      'The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the current aggregate trigger. The worker then attempts protected $FUNDED purchases and burns; failed market checks leave funds in custody.');
+      'The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the current aggregate trigger. The worker then attempts protected $RICH purchases and burns; failed market checks leave funds in custody.');
 }

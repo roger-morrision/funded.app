@@ -1,7 +1,7 @@
 services:
   community-claim-worker:
     profiles: ["automatic-rewards"]
-    image: ${FUNDED_APP_IMAGE:?Set the deployed funded.app image}
+    image: ${FUNDED_APP_IMAGE:?Set the deployed richpad.fun image}
     restart: unless-stopped
     command: ["node", "scripts/run-community-claim-worker.mjs"]
     environment:

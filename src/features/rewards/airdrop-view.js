@@ -54,15 +54,15 @@ export function renderAirdropProgramDetail(
   }
   status.textContent = unknownClaim ? '-' : (program.claimActive
     ? program.snapshotBasis === 'devnet-qa-cutoff'
-      ? `This disposable Devnet QA airdrop uses a $FUNDED holder cutoff at ${program.snapshot}. Historical QA allocations are shown separately from automatic migration airdrops.`
+      ? `This disposable Devnet QA airdrop uses a $RICH holder cutoff at ${program.snapshot}. Historical QA allocations are shown separately from automatic migration airdrops.`
       : program.snapshotBasis === 'pump-migration'
-        ? `$FUNDED holders at migration receive this coin automatically, in proportion to their share of eligible holdings. No claim or signature is needed. Processing follows snapshot and funding verification.`
+        ? `$RICH holders at migration receive this coin automatically, in proportion to their share of eligible holdings. No claim or signature is needed. Processing follows snapshot and funding verification.`
         : `The verified snapshot fixes each eligible wallet’s proportional allocation. Check automatic delivery status.`
     : program.status === 'closed'
     ? `The on-chain distribution window ended ${program.deadline}. You can still review delivery receipts and verification details.`
     : program.vaultVerified
-    ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Automatic delivery follows migration and verification of eligible $FUNDED holdings. Your share of those holdings determines your allocation.`
-    : 'This airdrop is planned. Hold $FUNDED until migration. Automatic delivery requires verified funding and migration-time holdings.');
+    ? `${formatTokenAmount(program.reservedTokens)} tokens are set aside. Automatic delivery follows migration and verification of eligible $RICH holdings. Your share of those holdings determines your allocation.`
+    : 'This airdrop is planned. Hold $RICH until migration. Automatic delivery requires verified funding and migration-time holdings.');
   if (program.claimVerification === 'unavailable' || program.claimVerification === 'checking') {
     const retry = document.createElement('button');
     retry.type = 'button'; retry.className = 'secondary-button'; retry.dataset.retryCommunityMint = program.id;

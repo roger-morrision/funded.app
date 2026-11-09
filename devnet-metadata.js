@@ -4,7 +4,7 @@ export const LEGACY_DEVNET_METADATA_ORIGIN = 'https://metadata.funded.vip';
 
 // Only deployment configuration may choose the host. Never derive this from an
 // upload or a request Host header. Local HTTP is useful for isolated previews.
-export function normalizeDevnetMetadataOrigin(value = LEGACY_DEVNET_METADATA_ORIGIN) {
+export function normalizeDevnetMetadataOrigin(value = 'https://richpad.fun') {
   const input = String(value).trim();
   let url;
   try { url = new URL(input); } catch { throw new Error('Devnet metadata origin must be an HTTPS origin.'); }
@@ -15,7 +15,7 @@ export function normalizeDevnetMetadataOrigin(value = LEGACY_DEVNET_METADATA_ORI
   return url.origin;
 }
 
-export const DEVNET_METADATA_ORIGIN = normalizeDevnetMetadataOrigin(import.meta.env?.VITE_DEVNET_METADATA_ORIGIN || LEGACY_DEVNET_METADATA_ORIGIN);
+export const DEVNET_METADATA_ORIGIN = normalizeDevnetMetadataOrigin(import.meta.env?.VITE_DEVNET_METADATA_ORIGIN || 'https://richpad.fun');
 
 export function devnetMetadataUri(mint, origin = DEVNET_METADATA_ORIGIN) {
   return `${normalizeDevnetMetadataOrigin(origin)}/devnet-metadata/${mint}`;
@@ -23,7 +23,10 @@ export function devnetMetadataUri(mint, origin = DEVNET_METADATA_ORIGIN) {
 
 // New launches use the public app's compact read-only alias. Existing metadata
 // and image URLs retain their configured origin and remain valid.
-export const devnetLaunchMetadataUri = mint => `https://funded.vip/m/${mint}`;
+export const devnetLaunchMetadataUri = mint => `https://richpad.fun/m/${mint}`;
+// Historical mints retain their immutable metadata URI after the domain move.
+export const isDevnetLaunchMetadataUri = (uri, mint) =>
+  uri === devnetLaunchMetadataUri(mint) || uri === `https://funded.vip/m/${mint}`;
 
 export function devnetImageUri(mint, origin = DEVNET_METADATA_ORIGIN) {
   return `${normalizeDevnetMetadataOrigin(origin)}/devnet-images/${mint}`;
@@ -34,11 +37,13 @@ export function devnetBannerUri(mint, origin = DEVNET_METADATA_ORIGIN) {
 }
 
 export function isDevnetBannerUri(uri, mint) {
-  return uri === devnetBannerUri(mint) || uri === devnetBannerUri(mint, LEGACY_DEVNET_METADATA_ORIGIN) || isPinnedMetadataUri(uri);
+  return uri === devnetBannerUri(mint) || uri === devnetBannerUri(mint, LEGACY_DEVNET_METADATA_ORIGIN)
+    || uri === devnetBannerUri(mint, 'https://funded.vip') || isPinnedMetadataUri(uri);
 }
 
 export function isDevnetImageUri(uri, mint) {
-  return uri === devnetImageUri(mint) || uri === devnetImageUri(mint, LEGACY_DEVNET_METADATA_ORIGIN) || isPinnedMetadataUri(uri);
+  return uri === devnetImageUri(mint) || uri === devnetImageUri(mint, LEGACY_DEVNET_METADATA_ORIGIN)
+    || uri === devnetImageUri(mint, 'https://funded.vip') || isPinnedMetadataUri(uri);
 }
 
 export function metadataStatement(record) {

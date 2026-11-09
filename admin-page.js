@@ -200,7 +200,7 @@ $('#fee-form').addEventListener('input', feeTotal);
 $('#fee-form').addEventListener('submit', event => { event.preventDefault(); (async () => {
   if(!session.active||!policy||feeSaving)return;
   const split = validateProtocolFeeSplit(readSplit());
-  if (!confirm(`Publish this split for future V3 launches?\nOperations & marketing ${Number((split.operationsPercent/5).toFixed(6))}% · referrals ${split.referralLevelPercents.map(rate=>Number((rate/5).toFixed(6))).join('/')}% · Daily bonus ${Number((split.communityPercent/5).toFixed(6))}% · $FUNDED buyback ${Number((split.buybackPercent/5).toFixed(6))}% (percentages of collected creator fees)\nExisting mint policies remain unchanged.`)) return;
+  if (!confirm(`Publish this split for future V3 launches?\nOperations & marketing ${Number((split.operationsPercent/5).toFixed(6))}% · referrals ${split.referralLevelPercents.map(rate=>Number((rate/5).toFixed(6))).join('/')}% · Daily bonus ${Number((split.communityPercent/5).toFixed(6))}% · $RICH buyback ${Number((split.buybackPercent/5).toFixed(6))}% (percentages of collected creator fees)\nExisting mint policies remain unchanged.`)) return;
   const epoch=session.epoch;feeSaving=true;refreshGeneration++;renderPolicy();
   let updated;try{updated=await post('/api/admin/fee-policy',{split,expectedRevision:policy.revision});}finally{if(session.current(epoch)){feeSaving=false;$('#refresh').disabled=false;if(policy&&session.active)renderPolicy();}}
   if(!session.current(epoch)||!session.active)return;

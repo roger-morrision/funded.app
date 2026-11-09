@@ -137,7 +137,7 @@ export function rewardExperience(state = {}, rewards = {}, evidence = {}, cluste
       && integer(row.supplyBefore) > integer(row.supplyAfter));
     for (const row of burns) events.push({ mint, kind:'buyback-burned', signature:row.signature,
       amountLamports:String(row.settledLamports || '0'), at:row.burnFinalizedAt || null,
-      label:'Fee-funded $FUNDED buyback and burn' });
+      label:'Fee-funded $RICH buyback and burn' });
     const holderPaid = payouts.filter(row => row.kind === 'holder');
     const holderWallets = new Set(holderPaid.map(row => row.wallet));
     const xPaid = payouts.filter(row => row.kind === 'x');

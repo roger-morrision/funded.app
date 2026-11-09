@@ -145,7 +145,7 @@ export function renderExplorePayoutStats(
     { label:'Total fee paid to coin holders', kind:'holder' },
     { label:'Top X account paid', kind:'x', top:true },
     { label:'Top coin holder paid', kind:'holder', top:true },
-    { label:'Top $FUNDED holder paid', kind:'fundedHolder', top:true },
+    { label:'Top $RICH holder paid', kind:'fundedHolder', top:true },
     { label:'Top creator paid', kind:'creator', top:true },
   ];
   // One coverage note for the whole section instead of repeating it on every card.

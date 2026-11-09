@@ -32,7 +32,7 @@ export function createListingPaymentsRoutes({
   return async function handleListingPaymentsRoutes(req, res, url) {
     if (req.method === 'POST' && url.pathname === '/api/listings/quote') {
       if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error:'Paid listings are unavailable on this network.' });
-      if (!allowedAuthOrigin(req, env.CORS_ORIGIN)) return json(res, 403, { error:'Request a listing quote from funded.vip.' });
+      if (!allowedAuthOrigin(req, env.CORS_ORIGIN)) return json(res, 403, { error:'Request a listing quote from richpad.fun.' });
       if (!await store.chargeRpcRate(`listing-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
         return json(res, 429, { error:'Too many listing quotes; retry shortly.' });
       const input = await body(req);
@@ -41,16 +41,16 @@ export function createListingPaymentsRoutes({
       catch { return json(res, 400, { error:'A valid listing mint and paying wallet are required.' }); }
       const state = await store.read();
       if (state.launches?.[mint]?.onchainVerified && state.launches[mint].cluster === solanaCluster
-        && state.launches[mint].pumpFeeRoute?.scope === 'per-mint-v3') return json(res,409,{error:'Listing is included for funded.vip launches. No payment is required.',included:true,mint});
+        && state.launches[mint].pumpFeeRoute?.scope === 'per-mint-v3') return json(res,409,{error:'Listing is included for richpad.fun launches. No payment is required.',included:true,mint});
       if (state.listings?.[mint]) return json(res, 409, { error:'This token is already listed.' });
       let pricing;
       try { pricing = await currentLaunchTierPricing(); }
-      catch (error) { return json(res, 503, { error:error.message || 'A verified $FUNDED price is unavailable.' }); }
+      catch (error) { return json(res, 503, { error:error.message || 'A verified $RICH price is unavailable.' }); }
       let decimals;
       try {
         decimals = readFundedDecimals ? await readFundedDecimals() :
           (await new Connection(solanaRpcUrl, 'confirmed').getTokenSupply(new PublicKey(fundedTokenMint), 'confirmed')).value.decimals;
-      } catch { return json(res, 503, { error:'The $FUNDED mint precision is unavailable. No payment was requested.' }); }
+      } catch { return json(res, 503, { error:'The $RICH mint precision is unavailable. No payment was requested.' }); }
       let amountBaseUnits;
       const fees = await readServiceFees(store);
       try { amountBaseUnits = listingBurnBaseUnitsForUsd(pricing.tokenPriceUsd, decimals,fees.policy.listingUsd); }
@@ -72,7 +72,7 @@ export function createListingPaymentsRoutes({
     if (req.method === 'POST' && url.pathname === '/api/burn-receipts') {
       const input = await body(req);
       const configuredMint = fundedTokenMint;
-      if (!configuredMint) return json(res, 503, { error: 'The protocol $FUNDED mint is not configured.' });
+      if (!configuredMint) return json(res, 503, { error: 'The protocol $RICH mint is not configured.' });
       let burnWallet;
       try { burnWallet = walletKey(input.wallet); } catch { return json(res, 400, { error: 'A valid burn wallet is required.' }); }
       const signature = String(input.signature || '').trim();
@@ -112,7 +112,7 @@ export function createListingPaymentsRoutes({
     }
 
     if (req.method === 'POST' && url.pathname === '/api/listings') {
-      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Solana $FUNDED mint.' });
+      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Solana $RICH mint.' });
       const input = await body(req);
       let mint, burnWallet;
       try { mint = new PublicKey(String(input.mint || '')).toBase58(); burnWallet = walletKey(input.wallet); }
@@ -125,7 +125,7 @@ export function createListingPaymentsRoutes({
       if (existing) return existing.signature === signature && existing.wallet === burnWallet
         ? json(res, 200, existing) : json(res, 409, { error: 'This mint has already been listed with another payment.' });
       if (priorState.launches?.[mint]?.onchainVerified && priorState.launches[mint].cluster === solanaCluster
-        && priorState.launches[mint].pumpFeeRoute?.scope === 'per-mint-v3') return json(res,409,{error:'Listing is included with this funded.vip launch. No burn is required.',included:true});
+        && priorState.launches[mint].pumpFeeRoute?.scope === 'per-mint-v3') return json(res,409,{error:'Listing is included with this richpad.fun launch. No burn is required.',included:true});
       if (listingBurnAlreadyUsed(priorState, signature))
         return json(res, 409, { error: 'This burn signature has already been used.' });
       const quote = priorState.listingQuotes?.[quoteId];
@@ -141,7 +141,7 @@ export function createListingPaymentsRoutes({
         const fundedSupply = await rpc.getTokenSupply(new PublicKey(fundedTokenMint), 'finalized');
         if (fundedSupply.value.decimals !== quote.decimals ||
           listingBurnBaseUnitsForUsd(quote.tokenPriceUsd, quote.decimals,quote.usd).toString() !== quote.amountBaseUnits)
-          throw new Error('The listing quote no longer matches the $FUNDED mint.');
+          throw new Error('The listing quote no longer matches the $RICH mint.');
         proof = await verifyListingBurn({ connection: rpc, signature, fundedMint: fundedTokenMint, wallet: burnWallet,
           amountBaseUnits: quote.amountBaseUnits, expectedMemo: listingMemo(mint) });
         const confirmedAt = Number(proof.blockTime) * 1000;

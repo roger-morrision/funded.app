@@ -16,7 +16,7 @@ export function initAdminAgencyRules({api,post,show,refresh}){
     <label>Referral L2 %<input name="l2" type="number" min="0" max="20" step="0.00002" required></label>
     <label>Referral L3 %<input name="l3" type="number" min="0" max="20" step="0.00002" required></label>
     <label>Daily bonus %<input name="bonus" type="number" min="0" max="20" step="0.00002" required></label>
-    <label>$FUNDED buyback %<input name="buyback" type="number" min="0" max="20" step="0.00002" required></label>
+    <label>$RICH buyback %<input name="buyback" type="number" min="0" max="20" step="0.00002" required></label>
     <label>Agency %<input name="agency" type="number" min="0" max="20" step="0.00002" required></label>
     <label>Agent 2 market cap (USD)<input name="cap1" type="number" min="1" max="1000000000" step="1" required></label>
     <label>Agent 3 market cap (USD)<input name="cap2" type="number" min="1" max="1000000000" step="1" required></label>

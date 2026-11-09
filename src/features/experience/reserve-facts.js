@@ -15,7 +15,7 @@ export function mountReserveFacts(root,app){
       const row=response.available?reserveFacts(response.data,mint):null;
       const reserved=row?.reservedTokens!=null?Number(row.reservedTokens).toLocaleString('en-US'):null;
       box.replaceChildren(el('h3','Airdrop rule'),
-        el('p',`${reserved?reserved+' tokens of this coin are':'Part of this coin’s supply is'} reserved for $FUNDED holders. Hold $FUNDED until migration to receive tokens automatically, proportional to your share of eligible holdings. No claim is needed.`));
+        el('p',`${reserved?reserved+' tokens of this coin are':'Part of this coin’s supply is'} reserved for $RICH holders. Hold $RICH until migration to receive tokens automatically, proportional to your share of eligible holdings. No claim is needed.`));
       if(row)box.append(el('p','Delivery status: '+airdropClaimState(row).label));
       box.append(link('Check your allocation', `/?airdropMint=${encodeURIComponent(mint)}#airdrops`));
       if(!row)last='';

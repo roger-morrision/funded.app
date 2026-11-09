@@ -4,11 +4,11 @@ Product workflows: [all-page guide](product-guide.md). Historical evidence below
 
 ## Automatic migration airdrop
 
-Every launch reserves at least **3% of its launched coin supply**. Hold **$FUNDED until the coin migrates** to qualify. Tokens are sent automatically to the eligible wallet after the exact migration snapshot, funding and on-chain approval are verified. No recipient claim, wallet signature or recipient transaction fee is required. Migration fixes eligibility; network verification and processing can delay delivery.
+Every launch reserves at least **3% of its launched coin supply**. Hold **$RICH until the coin migrates** to qualify. Tokens are sent automatically to the eligible wallet after the exact migration snapshot, funding and on-chain approval are verified. No recipient claim, wallet signature or recipient transaction fee is required. Migration fixes eligibility; network verification and processing can delay delivery.
 
-New migration snapshots include eligible $FUNDED held by program-controlled addresses. The platform pays to the canonical token account owned by that exact address and covers its creation if necessary. No signature from the recipient is required. The program controls what happens to those tokens afterward. This does not change already published allocations or the directly signable wallet requirement for trader bonuses.
+New migration snapshots include eligible $RICH held by program-controlled addresses. The platform pays to the canonical token account owned by that exact address and covers its creation if necessary. No signature from the recipient is required. The program controls what happens to those tokens afterward. This does not change already published allocations or the directly signable wallet requirement for trader bonuses.
 
-**Wallet allocation = airdrop pool × wallet eligible $FUNDED balance ÷ total eligible $FUNDED holdings at migration.** Amounts round down to token base units. Excluded wallets do not enter the denominator. A wallet holding 1% of eligible $FUNDED receives 1% of the pool: 300,000 tokens from a 30,000,000-token pool. Later purchases do not qualify retrospectively. These are launched coin tokens, separate from SOL rewards.
+**Wallet allocation = airdrop pool × wallet eligible $RICH balance ÷ total eligible $RICH holdings at migration.** Amounts round down to token base units. Excluded wallets do not enter the denominator. A wallet holding 1% of eligible $RICH receives 1% of the pool: 300,000 tokens from a 30,000,000-token pool. Later purchases do not qualify retrospectively. These are launched coin tokens, separate from SOL rewards.
 
 Open **Airdrops** or **Rewards → Token airdrops** to inspect your allocation and delivery. Missing exact-slot evidence never becomes a substitute snapshot. Existing on-chain expiry and remainder terms remain intact. Historical QA cutoffs remain explicitly labeled and are not automatically distributed by the real-migration worker.
 
@@ -34,7 +34,7 @@ A fresh dry run with the configured Devnet reward-authority signer rejected rese
 
 ## Eligibility and claims
 
-Claims remain closed for every historical launch. The 7T5 launch has not migrated, so no migration-time $FUNDED holder snapshot exists. The already migrated Y5 launch has no saved exact-slot holder snapshot. Current balances cannot establish historical eligibility. Y5 claims stay closed indefinitely unless independently reproducible exact-slot evidence is recovered. A later snapshot is not authorized as a substitute; changing that rule would require a separately published policy before any Y5 claim opens.
+Claims remain closed for every historical launch. The 7T5 launch has not migrated, so no migration-time $RICH holder snapshot exists. The already migrated Y5 launch has no saved exact-slot holder snapshot. Current balances cannot establish historical eligibility. Y5 claims stay closed indefinitely unless independently reproducible exact-slot evidence is recovered. A later snapshot is not authorized as a substitute; changing that rule would require a separately published policy before any Y5 claim opens.
 
 An additive contract candidate in `contracts/funded-fee-router` implements a dedicated funded community vault, immutable migration slot/signature and snapshot commitment, Merkle allocation root, one payment PDA per recipient, exact payout deltas, 90-day on-chain claim expiry, and a remainder transfer to the recorded app-owner reward-authority wallet. Its locally built SBF artifact has SHA-256 `85420269c25b579e91e795c5ca1a73d25354b464bae561cb1bd4ac620f5ebcf2`; this is not the deployed ProgramData hash. The matching `community-merkle.js` builder rejects incomplete or later snapshots and produces deterministic proofs. These are local candidate code, not an activated Devnet claim program. The contract accepts operator-attested historical data; it cannot itself prove that an archival holder list was captured at migration. A verified exact-slot archival source and independent manifest review are required before a cycle can open.
 
@@ -43,7 +43,7 @@ The app owner has chosen the reward authority `B2Ns79FNQBseayg77fT7CvxQYs2NJ3DJB
 ## Remaining acceptance evidence
 
 1. Obtain the creator-signed, finalized 30 million token transfer for each historical launch that retains this promise. The existing issuer wallet is not automatically the creator wallet. Do not use another account as its signer or silently reduce the promised allocation.
-2. Capture a complete finalized $FUNDED holder account state at the exact migration slot for a fresh launch; verify the migration signature, mint, slot, block time, total supply, exclusions, allocations, root, and each proof from independently reproducible archival data.
+2. Capture a complete finalized $RICH holder account state at the exact migration slot for a fresh launch; verify the migration signature, mint, slot, block time, total supply, exclusions, allocations, root, and each proof from independently reproducible archival data.
 3. Review and deploy the exact on-chain artifact to Devnet; pin its ProgramData hash and update the API only after verified deployment.
 4. On a fresh funded launch, verify eligible payout, ineligible rejection, duplicate rejection, expiry rejection, and post-expiry vault/recipient/remainder deltas from finalized transactions.
 5. Keep Y5 and all unsupported historical claims closed until their evidence is established under a disclosed policy. Historical Devnet reserves need not be copied to Mainnet.

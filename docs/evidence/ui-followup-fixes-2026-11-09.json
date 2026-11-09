@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "baseRevision": "c60d1b03",
+  "status": "implemented-and-verified-locally-not-deployed",
+  "scope": ["FOLLOWUP-01", "FOLLOWUP-02", "FOLLOWUP-03", "FOLLOWUP-04"],
+  "manualXPromotion": "User confirmed that admins will post X promotions manually. Issue 5 and its UI were left unchanged.",
+  "changes": [
+    {
+      "finding": "FOLLOWUP-01",
+      "result": "A matching successful payment registered before quote expiry can finalize after the quote window and receive its boost. The receipt remains idempotent and bound to the exact signed blockhash, payer, recipient, amount and memo. Matching successful legacy-quote payments remain recoverable without the former upper wall-clock rejection."
+    },
+    {
+      "finding": "FOLLOWUP-02",
+      "result": "Checkout validates prices against the fetched admin pricing revision, then pins the reviewed quote through signing. It checks package duration/multiplier, exact SOL calculation, price cents, recipient, quote identity and transaction message integrity. A concurrent pricing revision requires a refreshed quote before payment."
+    },
+    {
+      "finding": "FOLLOWUP-03",
+      "result": "Before signing, the server persists the exact blockhash and expiry. Before broadcast, the browser stores the signed transaction and the server validates and journals its signed identity. Recovery survives reload and service restart. Finalized failure or finalized expiry plus fresh absent history and absent confirmed transaction permits a new purchase. RPC errors, stale contexts, valid blockhashes or any observed transaction keep the original attempt pending. Quotes are retained for receipt recovery. Browser records are scoped by network, payer and mint, with Web Locks protecting competing tabs."
+    },
+    {
+      "finding": "FOLLOWUP-04",
+      "result": "The mobile menu makes main content, skip link and bottom navigation inert; Tab and Shift+Tab wrap within the menu/backdrop. Escape restores opener focus. Closing, navigating and resizing to desktop restore prior inert states."
+    }
+  ],
+  "rolloutCompatibility": {
+    "newQuotes": "Require paymentProtocol=journal-v1. Older open tabs receive a refresh-required response before a payable quote can be issued.",
+    "existingQuotes": "Finalized matching legacy receipts can still be reconciled; quote history is retained.",
+    "legacyNeverLandedAttempts": "Old pending records that lack signed transaction and server preparation data cannot safely establish automatic expiry. The UI explicitly requests support reconciliation with the existing signature instead of guessing failure or encouraging a second payment.",
+    "storage": "The boostPayments bucket is persisted by both file storage and the existing PostgreSQL generic entity ledger. No new SQL table or contract instruction is required.",
+    "deployment": "Frontend and backend changes belong in the same release. No deployment or contract upgrade performed in this task."
+  },
+  "validation": {
+    "tests": {"command": "node --test tests/*.test.mjs", "passed": 292, "failed": 0, "skipped": 0, "log": "tmp/ui-boost-fixes-suite.log"},
+    "targetedTests": ["tests/admin-boost-pricing.test.mjs", "tests/boost-payment-recovery.test.mjs", "tests/boost-checkout-flow.test.mjs", "tests/boost-stacking.test.mjs", "tests/mobile-menu-focus.test.mjs"],
+    "build": {"command": "npm run build -- --outDir tmp/ui-boost-fixes-build", "passed": true, "log": "tmp/ui-boost-fixes-build.log", "warning": "Existing large JavaScript chunk warning remains."},
+    "sourceChecks": {"command": "npm run check", "syntaxCheckedFiles": 961, "sizeBudgetCheckedFiles": 1186, "passed": true, "log": "tmp/ui-boost-fixes-check.log", "note": "Final small controller/validator edits were also syntax checked and included in the passing build/tests."},
+    "diffWhitespaceCheck": "passed",
+    "browser": {
+      "environment": "local Vite app at http://127.0.0.1:5188",
+      "viewport": {"width": 390, "height": 844, "restored": true},
+      "checks": [
+        "Opening the menu focuses Close menu and marks background regions inert.",
+        "Tab from Profile and wallet reaches Close navigation; the next Tab wraps to funded.vip home, not background Search.",
+        "Shift+Tab from funded.vip home wraps to Close navigation.",
+        "Escape closes the menu, focuses Open menu and removes main content inert state.",
+        "Choosing Create closes the menu and restores page controls.",
+        "After desktop resize settles, the menu is closed and both main content and desktop sidebar are usable."
+      ],
+      "dataLimitation": "The local development proxy encountered TLS handshake errors to the live API. Browser verification covered the actual local navigation implementation, not live token data or payment submission.",
+      "serverCleanup": "Task-owned Vite process was stopped after checks."
+    },
+    "financialEvidence": "local-only/mocked RPC and in-memory ephemeral signers; no real wallet, OTP email, transfer or live Devnet transaction was used."
+  },
+  "implementationReference": "https://solana.com/developers/cookbook/transactions/confirmation",
+  "priorReview": "docs/evidence/ui-followup-review-2026-11-09.json"
+}

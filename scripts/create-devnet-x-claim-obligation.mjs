@@ -18,7 +18,7 @@ assert.match(handle, /^@[A-Za-z0-9_]{1,15}$/, 'Set X_TEST_HANDLE to a valid reci
 const existingMint = process.argv.find(arg => arg.startsWith('--settle-existing-mint='))?.slice(23);
 const existingSignature = process.argv.find(arg => arg.startsWith('--settle-existing-signature='))?.slice(28);
 assert.equal(Boolean(existingMint), Boolean(existingSignature), 'Pass both existing mint and collection signature to resume allocation.');
-const appUrl = 'https://funded.vip';
+const appUrl = 'https://richpad.fun';
 const localApiUrl = 'http://127.0.0.1:8788';
 const cluster = process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER;
 assert.equal(cluster, 'devnet', 'This script only creates Devnet transactions.');

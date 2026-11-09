@@ -10,16 +10,16 @@ export function listingMemo(mint) {
 
 export function listingBurnTokens(tokenPriceUsd, usd = LISTING_PRICE_USD) {
   const price = Number(tokenPriceUsd);
-  if (!Number.isFinite(price) || price <= 0) throw new Error('A verified $FUNDED/USD price is required.');
+  if (!Number.isFinite(price) || price <= 0) throw new Error('A verified $RICH/USD price is required.');
   const amount = Math.ceil(usd / price);
   if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('The listing price cannot be converted to a safe token amount.');
   return amount;
 }
 
 export function listingBurnBaseUnitsForUsd(tokenPriceUsd, decimals, usd = LISTING_PRICE_USD) {
-  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error('Unsupported $FUNDED mint decimals.');
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error('Unsupported $RICH mint decimals.');
   const price = Number(tokenPriceUsd);
-  if (!Number.isFinite(price) || price <= 0) throw new Error('A verified $FUNDED/USD price is required.');
+  if (!Number.isFinite(price) || price <= 0) throw new Error('A verified $RICH/USD price is required.');
   const units = Math.ceil((usd / price) * (10 ** decimals));
   if (!Number.isSafeInteger(units) || units <= 0) throw new Error('The listing cannot be represented safely at this token price.');
   return BigInt(units);
@@ -38,7 +38,7 @@ export function listingQuoteCurrent(quote, { mint, payer, fundedMint, now = Date
 }
 
 export function listingBurnBaseUnits(decimals, amountTokens) {
-  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error('Unsupported $FUNDED mint decimals.');
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error('Unsupported $RICH mint decimals.');
   if (!Number.isSafeInteger(amountTokens) || amountTokens <= 0) throw new Error('Unsupported Solana listing burn amount.');
   const baseUnits = BigInt(amountTokens) * 10n ** BigInt(decimals);
   if (baseUnits > 18446744073709551615n) throw new Error('The listing burn exceeds the SPL token amount limit.');

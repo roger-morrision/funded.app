@@ -17,7 +17,7 @@ Opting out stops later sends, cancels in-flight fetches where possible, and remo
 From an authorized operator environment:
 
 ```powershell
-node scripts/product-metrics-report.mjs https://funded.vip
+node scripts/product-metrics-report.mjs https://richpad.fun
 ```
 
 Set `FUNDED_API_TOKEN` or `FUNDED_API_TOKEN_FILE` outside source control. The script refuses redirects and insecure non-local origins. It prints JSON without the token.
@@ -51,6 +51,6 @@ A narrow exception can resolve a truncated-log gap as a **non-trade migration**,
 
 This uses [Anchor's events stored in CPI instruction data](https://www.anchor-lang.com/docs/features/events), which remain available in the observed records despite truncated logs. [Pump's pool documentation](https://github.com/pump-fun/pump-public-docs/blob/main/docs/PUMP_SWAP_README.md) distinguishes pool creation through migration from buy and sell instructions. Neither migration liquidity nor a successful transaction alone is treated as trading volume.
 
-Coverage is deliberately `observed-only`. RPC history can be pruned; unsupported event layouts and noncanonical or non-SOL pools are not covered. Tokens registered in funded.vip may be traded through other apps, so these totals are token activity, not app-originated trading volume. Pool amounts use the buyer's total quote input and seller's net quote output; curve amounts use the trade event's SOL amount. Network fees are excluded. Scan status and time range must accompany any reported figure.
+Coverage is deliberately `observed-only`. RPC history can be pruned; unsupported event layouts and noncanonical or non-SOL pools are not covered. Tokens registered in richpad.fun may be traded through other apps, so these totals are token activity, not app-originated trading volume. Pool amounts use the buyer's total quote input and seller's net quote output; curve amounts use the trade event's SOL amount. Network fees are excluded. Scan status and time range must accompany any reported figure.
 
 The index is currently run on demand, not as a scheduled worker. Page limits bound RPC work; repeat a pass to continue history. Source references: [Solana signature pagination](https://solana.com/docs/rpc/http/getsignaturesforaddress) and [transaction retrieval](https://solana.com/docs/rpc/http/gettransaction).

@@ -19,7 +19,7 @@ export function createFundedTradingController(appState) {
     const preview = currentFundedBuyQuote(appState,amount);
     input.disabled = !ready || appState.fundedBuyBusy;
     button.disabled = !ready || appState.fundedBuyBusy || !Number.isFinite(amount) || amount <= 0 || !preview;
-    button.textContent = appState.fundedBuyBusy ? 'Waiting for Solana…' : appState.wallet ? 'Buy $FUNDED' : 'Connect wallet to buy';
+    button.textContent = appState.fundedBuyBusy ? 'Waiting for Solana…' : appState.wallet ? 'Buy $RICH' : 'Connect wallet to buy';
     badge.textContent = ready ? 'Solana pool live' : appState.fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
     badge.classList.toggle('unavailable', !ready);
     const clock = document.querySelector('#funded-buy-countdown');
@@ -29,8 +29,8 @@ export function createFundedTradingController(appState) {
       estimate.hidden = !preview?.quote;
       if (preview?.quote) {
         const q=preview.quote, tokens=value=>value.toLocaleString(undefined,{maximumFractionDigits:6});
-        estimate.querySelector('[data-buy-receive]').textContent=`${tokens(q.expected)} $FUNDED`;
-        estimate.querySelector('[data-buy-minimum]').textContent=`${tokens(q.minimum)} $FUNDED`;
+        estimate.querySelector('[data-buy-receive]').textContent=`${tokens(q.expected)} $RICH`;
+        estimate.querySelector('[data-buy-minimum]').textContent=`${tokens(q.minimum)} $RICH`;
         estimate.querySelector('[data-buy-spend]').textContent=`${q.maximumSpendSol.toFixed(6)} SOL`;
         estimate.querySelector('[data-buy-fee]').textContent=`${q.appFeeSol.toFixed(6)} SOL`;
       }
@@ -43,7 +43,7 @@ export function createFundedTradingController(appState) {
   // app-source: 352
   async function refreshFundedBuyRoute(signal){
     try {
-      if (appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT || !appState.PROTOCOL_FUNDED_SWAP_POOL) throw new Error('A Solana $FUNDED mint and pool are required.');
+      if (appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT || !appState.PROTOCOL_FUNDED_SWAP_POOL) throw new Error('A Solana $RICH mint and pool are required.');
       const snapshot = await appState.withRpcRetry(async attempt => {
         if (attempt > 0) appState.tradePreviewConnection = null;
         const rpc = await appState.getTradePreviewConnection();
@@ -90,7 +90,7 @@ export function createFundedTradingController(appState) {
       const { PublicKey, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } = await appState.getSolana();
       const mint = new PublicKey(appState.PROTOCOL_FUNDED_MINT);
       const mintInfo = await rpc.getAccountInfo(mint, 'finalized');
-      if (!mintInfo || (!mintInfo.owner.equals(TOKEN_PROGRAM_ID) && !mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The $FUNDED mint is not a verified SPL mint.');
+      if (!mintInfo || (!mintInfo.owner.equals(TOKEN_PROGRAM_ID) && !mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID))) throw new Error('The $RICH mint is not a verified SPL mint.');
       const tokenAccount = getAssociatedTokenAddressSync(mint, session.provider.publicKey, false, mintInfo.owner);
       const beforeAccount = await rpc.getAccountInfo(tokenAccount, 'finalized');
       const before = beforeAccount ? BigInt((await rpc.getTokenAccountBalance(tokenAccount, 'finalized')).value.amount) : 0n;
@@ -100,16 +100,16 @@ export function createFundedTradingController(appState) {
       }
       const preparedTrade = preview.trade;
       appState.fundedBuyPreview = null;
-      const result = await appState.submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:preparedTrade.feePolicy.feeOwner, feeBps:preparedTrade.feePolicy.feeBps, preparedTrade, tokenName:'Funded', tokenSymbol:'FUNDED', assertWalletCurrent:()=>appState.assertWalletSessionCurrent(session), onStatus:appState.renderFundedBuyControl });
+      const result = await appState.submitTrade({ connection:rpc, provider:session.provider, side:'buy', mint, user:session.provider.publicKey, amount, slippagePercent:1, feeOwner:preparedTrade.feePolicy.feeOwner, feeBps:preparedTrade.feePolicy.feeBps, preparedTrade, tokenName:'RICH', tokenSymbol:'RICH', assertWalletCurrent:()=>appState.assertWalletSessionCurrent(session), onStatus:appState.renderFundedBuyControl });
       submittedSignature = result.signature;
       await appState.waitForSignatureConfirmation(rpc, { signature:result.signature, commitment:'finalized' });
       appState.assertWalletSessionCurrent(session);
       const after = BigInt((await rpc.getTokenAccountBalance(tokenAccount, 'finalized')).value.amount);
       const minimum = BigInt((result.minimumOutputAmount || result.outputAmount).toString());
-      if (after - before < minimum) throw new Error(`Transaction ${result.signature} finalized, but the expected $FUNDED balance increase was not observed.`);
+      if (after - before < minimum) throw new Error(`Transaction ${result.signature} finalized, but the expected $RICH balance increase was not observed.`);
       document.querySelector('#funded-buy-amount').value = '';
-      appState.renderFundedBuyControl(`Buy finalized: ${result.signature}. Received ${Number(after - before) / 10 ** result.tokenDecimals} $FUNDED.`);
-      appState.showToast('Verified $FUNDED buy finalized on Solana');
+      appState.renderFundedBuyControl(`Buy finalized: ${result.signature}. Received ${Number(after - before) / 10 ** result.tokenDecimals} $RICH.`);
+      appState.showToast('Verified $RICH buy finalized on Solana');
       void appState.loadFundedBurnState({ force:true });
     } catch (error) {
       appState.fundedBuyPreview = null;
@@ -135,13 +135,13 @@ export function createFundedTradingController(appState) {
     if (readPendingBurn()) return burnRecovery.check();
     if (!appState.wallet) { await appState.connectWallet(); if (!appState.wallet) return; }
     const session = appState.captureWalletSession();
-    if (!session || !appState.canSignTransactions(session.provider)) { appState.fundedBurnState.message = 'Open this page in a signing wallet to burn $FUNDED.'; appState.renderBuybackDashboard(); return; }
+    if (!session || !appState.canSignTransactions(session.provider)) { appState.fundedBurnState.message = 'Open this page in a signing wallet to burn $RICH.'; appState.renderBuybackDashboard(); return; }
     const input = document.querySelector('#funded-burn-amount');
     const projectMint = document.querySelector('#funded-burn-project')?.value || null;
     let amount;
     try {
       amount = appState.parseTokenAmount(input.value, appState.fundedBurnState.decimals);
-      if (amount > appState.fundedBurnState.balanceBaseUnits) throw new Error('The burn amount exceeds this wallet’s $FUNDED balance.');
+      if (amount > appState.fundedBurnState.balanceBaseUnits) throw new Error('The burn amount exceeds this wallet’s $RICH balance.');
     } catch (error) { appState.fundedBurnState.message = error.message; appState.renderBuybackDashboard(); return; }
     let burnPlan;
     try { burnPlan = appState.planTokenAccountBurns(appState.fundedBurnState.tokenAccounts, amount); }

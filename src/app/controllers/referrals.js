@@ -294,7 +294,7 @@ function updateReferralStatus(state){
                 throw new Error('The finalized V3 payout transfer is not verified yet.');
               if (!appState.isWalletSessionCurrent(session)) return;
               const code = appState.registeredShareCode();
-              appState.openShareComposer({ kind:'result', title:'Finalized referral payout on funded.vip', text:`My ${appState.EXPLORE_NETWORK_LABEL} referral payout of ${formatReferralLamports(claim.amountLamports)} SOL is finalized. Check the receipt on funded.vip.`, url: code ? appState.buildReferralUrl(code) : new URL('/#referrals', location.origin).toString(),
+              appState.openShareComposer({ kind:'result', title:'Finalized referral payout on richpad.fun', text:`My ${appState.EXPLORE_NETWORK_LABEL} referral payout of ${formatReferralLamports(claim.amountLamports)} SOL is finalized. Check the receipt on richpad.fun.`, url: code ? appState.buildReferralUrl(code) : new URL('/#referrals', location.origin).toString(),
                 result:{ verified:true, amount:Number(claim.amountLamports) / 1_000_000_000, asset:'SOL', receipt:claim.payoutSignature, receiptUrl:appState.exploreExplorer(`tx/${encodeURIComponent(claim.payoutSignature)}`), wallet:walletAddress, network:appState.EXPLORE_NETWORK_LABEL, period:'Finalized payout' } });
             } catch (error) { appState.showToast(error.message || 'Finalized payout verification is unavailable.'); }
             finally { sharePaid.disabled = false; }
@@ -369,9 +369,9 @@ function updateReferralStatus(state){
     if (code) url.searchParams.set('ref', code);
     const label = String(name || symbol || 'Coin').trim().slice(0, 60);
     const verifiedName = !/^(token data unavailable|loading token)/i.test(label);
-    appState.openShareComposer({ kind:'coin', title:`${verifiedName ? label : 'Token'} on funded.vip`, text: verifiedName
-      ? `Explore ${label} on funded.vip. Review its ${appState.EXPLORE_NETWORK_LABEL} mint and market facts, then watch it for updates.`
-      : `Open this ${appState.EXPLORE_NETWORK_LABEL} token record on funded.vip. Verify its data before relying on it.`, url:url.toString(), network:appState.EXPLORE_NETWORK_LABEL });
+    appState.openShareComposer({ kind:'coin', title:`${verifiedName ? label : 'Token'} on richpad.fun`, text: verifiedName
+      ? `Explore ${label} on richpad.fun. Review its ${appState.EXPLORE_NETWORK_LABEL} mint and market facts, then watch it for updates.`
+      : `Open this ${appState.EXPLORE_NETWORK_LABEL} token record on richpad.fun. Verify its data before relying on it.`, url:url.toString(), network:appState.EXPLORE_NETWORK_LABEL });
   }
   // app-source-end
 

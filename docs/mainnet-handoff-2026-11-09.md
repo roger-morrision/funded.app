@@ -10,7 +10,7 @@ Status: **NO-GO**. The user reconfirmed “PLACE HOLDER FIRST” on 9 November 2
 | Total SOL spending limit | **5 SOL**, including deployment and trial; do not silently increase it |
 | Primary / backup RPC | Free Helius / public Solana Mainnet RPC |
 | Indexed market fallback | Birdeye; its existing key stays server-side |
-| Intended public site | funded.vip; preserve a separate Devnet environment |
+| Intended public site | richpad.fun; preserve a separate Devnet environment |
 | Current activation | Disabled; read-only preparation |
 
 ## Inputs the owner will need to supply
@@ -19,8 +19,8 @@ No immediate response is required while placeholders are requested. Provide publ
 
 | Input | Exact information needed | Work it unlocks |
 | --- | --- | --- |
-| Mainnet $FUNDED assets | Existing mint and canonical pool addresses. If neither exists, say “create new” and specify supply, decimals, allocation/treasury ownership, pool venue and initial liquidity budget within the 5 SOL cap. | Build-time asset binding, burn pricing, buyback verification and final cost estimate |
-| Production hosting | Host/provider and deployment-access reference; DNS access for funded.vip and the retained Devnet host. Existing production Postgres, cache, storage and backup references if supplied by that provider. | Provision isolated services and backups; configure TLS and routing. The implementation can create the infrastructure once access and service choices are known. |
+| Mainnet $RICH assets | Existing mint and canonical pool addresses. If neither exists, say “create new” and specify supply, decimals, allocation/treasury ownership, pool venue and initial liquidity budget within the 5 SOL cap. | Build-time asset binding, burn pricing, buyback verification and final cost estimate |
+| Production hosting | Host/provider and deployment-access reference; DNS access for richpad.fun and the retained Devnet host. Existing production Postgres, cache, storage and backup references if supplied by that provider. | Provision isolated services and backups; configure TLS and routing. The implementation can create the infrastructure once access and service choices are known. |
 | Metadata storage | Production Pinata credential-file reference and account/namespace to use. | Durable logo/banner/metadata storage and retrieval verification |
 | Deployment payer | Public payer address plus supported signing method or protected signer-file reference. Confirm whether the recorded admin wallet is also the payer. | Exact deployment messages, signatures and capped canary; authority address alone is not signing access |
 | Treasury and automation custody | Public recipients for operations, trade fees, boost payments and revenue, or a decision to create separate production wallets. Provide secure signer-service/file references for automation and the independently controlled price-attestation role. | Worker configuration, withdrawals, reward execution and verified buybacks |

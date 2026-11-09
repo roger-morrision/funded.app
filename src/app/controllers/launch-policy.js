@@ -43,22 +43,22 @@ export function createLaunchPolicyController(appState) {
     const previousAmount = appState.getLaunchBurnPolicy().amountTokens;
     try {
       const response = await appState.apiRequest('/api/launch-tier-quote');
-      if (!response.available) throw new Error(response.data?.error || 'The verified $FUNDED price is unavailable.');
+      if (!response.available) throw new Error(response.data?.error || 'The verified $RICH price is unavailable.');
       const data = response.data;
       if (data?.fundedMint !== appState.PROTOCOL_FUNDED_MINT || data?.pool !== appState.PROTOCOL_FUNDED_SWAP_POOL
         || !Number.isFinite(Number(data.tokenPriceUsd)) || Number(data.tokenPriceUsd) <= 0
         || !['pro', 'premier'].every(tier => Number.isSafeInteger(data.amounts?.[tier]) && data.amounts[tier] > 0))
-        throw new Error('The launch tier quote did not match the configured $FUNDED pool.');
+        throw new Error('The launch tier quote did not match the configured $RICH pool.');
       if (request !== appState.launchTierPriceRequest) return;
       appState.launchTierPricing = data;
     } catch (error) {
       if (request !== appState.launchTierPriceRequest) return;
       appState.launchTierPricing = null;
       const status = document.querySelector('#launch-tier-quote-status');
-      if (status) status.textContent = String(error.message || 'The verified $FUNDED price is unavailable.');
+      if (status) status.textContent = String(error.message || 'The verified $RICH price is unavailable.');
     }
     if (appState.launchBurnTier !== 'standard' && !appState.currentLaunchTierQuote() && appState.getLaunchBurnPolicy().amountTokens !== previousAmount) {
-      appState.launchBurnReadiness = { ready:false, message:'Refresh the wallet and launch estimate after the $FUNDED quote changes.' };
+      appState.launchBurnReadiness = { ready:false, message:'Refresh the wallet and launch estimate after the $RICH quote changes.' };
       appState.launchCostReview = null;
       appState.estimatedLaunchFeeLamports = null;
       if (appState.wallet) appState.scheduleLaunchCostRefresh();

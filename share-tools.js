@@ -45,14 +45,14 @@ export function drawEarningsCard(canvas, result, { hideAmount = false, hideWalle
   const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
-  ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('funded.vip', 72, 82);
+  ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('richpad.fun', 72, 82);
   ctx.fillStyle = '#ffffff'; ctx.font = '700 58px sans-serif'; ctx.fillText('Paid referral earnings', 72, 200);
   ctx.font = '700 88px sans-serif'; ctx.fillText(hideAmount ? 'Amount hidden' : `${result.amount.toFixed(4)} ${result.asset || 'SOL'}`, 72, 336);
   ctx.fillStyle = '#bbd3d5'; ctx.font = '30px sans-serif';
   ctx.fillText(`${result.network || 'Solana'} · paid receipt · ${result.period || 'All time'}`, 72, 395);
   if (!hideWallet && result.wallet) ctx.fillText(`Wallet ${result.wallet.slice(0, 6)}…${result.wallet.slice(-6)}`, 72, 447);
   ctx.fillStyle = '#214f56'; roundedRect(ctx, 72, 500, 1056, 74, 14);
-  ctx.fillStyle = '#d5f8ee'; ctx.font = '25px sans-serif'; ctx.fillText(`Receipt ${result.receipt.slice(0, 14)}…  ·  Verify in funded.vip`, 95, 548);
+  ctx.fillStyle = '#d5f8ee'; ctx.font = '25px sans-serif'; ctx.fillText(`Receipt ${result.receipt.slice(0, 14)}…  ·  Verify in richpad.fun`, 95, 548);
   return canvas;
 }
 
@@ -64,7 +64,7 @@ export function drawTradeCard(canvas, result, { hideWallet = true } = {}) {
   const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
-  ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('funded.vip', 72, 82);
+  ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('richpad.fun', 72, 82);
   ctx.fillStyle = '#ffffff'; ctx.font = '700 58px sans-serif'; ctx.fillText('Verified Solana trade', 72, 200);
   ctx.font = '700 82px sans-serif'; ctx.fillText(`${result.side === 'buy' ? 'Bought' : 'Sold'} ${String(result.tokenSymbol || 'token').slice(0, 16)}`, 72, 325);
   ctx.fillStyle = '#bbd3d5'; ctx.font = '27px sans-serif';
@@ -84,7 +84,7 @@ export function drawRoundTripCard(canvas, result, { hideAmount = false, hideWall
   const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
-  ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('funded.vip', 72, 82);
+  ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('richpad.fun', 72, 82);
   ctx.fillStyle = '#ffffff'; ctx.font = '700 55px sans-serif'; ctx.fillText('Closed trade · Solana', 72, 190);
   const lamports = BigInt(result.netLamports);
   const fractional = (lamports % 1_000_000_000n).toString().padStart(9, '0').replace(/0+$/, '');
@@ -103,7 +103,7 @@ export function drawLaunchCard(canvas, result) {
   canvas.width=1200;canvas.height=630;
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Image creation is unavailable');
   ctx.fillStyle='#101426';ctx.fillRect(0,0,1200,630);
-  ctx.fillStyle='#ffc46b';ctx.font='700 32px sans-serif';ctx.fillText('funded.vip · New community',64,80);
+  ctx.fillStyle='#ffc46b';ctx.font='700 32px sans-serif';ctx.fillText('richpad.fun · New community',64,80);
   ctx.fillStyle='#fff';ctx.font='700 54px sans-serif';ctx.fillText(String(result.name||'New coin').slice(0,32),64,210,1072);
   ctx.font='700 72px sans-serif';ctx.fillText('$'+String(result.symbol||'TOKEN').slice(0,10),64,315);
   ctx.fillStyle='#c4ccdc';ctx.font='28px sans-serif';ctx.fillText('Explore the coin. Meet its community. Check the receipts.',64,400);
@@ -183,7 +183,7 @@ export function initShareComposer() {
   dialog.querySelector('#share-native')?.addEventListener('click', async () => {
     if (!activeShare) return;
     if (!navigator.share) { status('Native sharing is unavailable here. Choose a channel or copy the link.'); return; }
-    try { await navigator.share({ title: activeShare.title, text: shareText(), url: shareUrl('') });  status('Share sheet completed. Posting status is not visible to funded.vip.'); }
+    try { await navigator.share({ title: activeShare.title, text: shareText(), url: shareUrl('') });  status('Share sheet completed. Posting status is not visible to richpad.fun.'); }
     catch (error) { if (error?.name !== 'AbortError') status('Share sheet unavailable. Choose a channel or copy the link.'); }
   });
   dialog.querySelectorAll('[data-share-channel]').forEach(button => button.addEventListener('click', () => {
@@ -192,7 +192,7 @@ export function initShareComposer() {
     const destination = channelShareUrl(channel, shareUrl(channel), shareText());
     window.open(destination, '_blank', 'noopener,noreferrer');
 
-    status(`${button.textContent.trim()} composer requested. If it did not open, copy the message. Posting status is not visible to funded.vip.`);
+    status(`${button.textContent.trim()} composer requested. If it did not open, copy the message. Posting status is not visible to richpad.fun.`);
   }));
   dialog.querySelector('#share-download-card')?.addEventListener('click', () => {
     if (!activeShare?.result) return;

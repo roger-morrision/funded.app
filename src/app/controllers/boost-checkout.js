@@ -2,7 +2,16 @@ import {pricedBoostPackages} from '../../../boost-pricing.js';
 import {currentBoostSnapshot} from '../../../boost-offer.js';
 // Dependencies and mutable application state are read live through appState.
 export function createBoostCheckoutController(appState) {
-  let livePackages=null;
+  let livePackages=null, pricingRevision=null;
+  function restorePendingBoost(mint,payer) {
+    if (!payer) return false;
+    const pending=appState.readPendingBoost(mint,undefined,{payer,cluster:'devnet'});
+    if (!pending) return false;
+    Object.assign(appState.boostCheckout,{packageId:pending.quote.packageId,quote:pending.quote,
+      pendingSignature:pending.signature,blockhash:pending.blockhash,signedTransaction:pending.signedTransaction,
+      message:'Your previous payment is awaiting confirmation. Check it before paying again.'});
+    return true;
+  }
   // app-source: 283
   function exploreBoostStatus(mint){
     const multiplier = appState.activeBoostMultiplier(appState.verifiedBoosts[mint]);
@@ -21,7 +30,7 @@ export function createBoostCheckoutController(appState) {
   function exploreTierBadgeMarkup(mint){
     const promotion = appState.promotionForMint(mint);
     const info = `<button type="button" class="explore-tier-info" data-tier-info-mint="${appState.escapeHtml(mint)}" aria-label="Explain launch tier for ${appState.escapeHtml(appState.shortAddress(mint))}" title="Explain this launch tier">${appState.icon('info')}</button>`;
-    if (promotion) return `<span class="scanner-tier-wrap"><a class="explore-tier-badge" data-tier="${appState.escapeHtml(promotion.tier)}" href="${appState.escapeHtml(appState.exploreExplorer(`tx/${encodeURIComponent(promotion.signature)}`))}" target="_blank" rel="noopener noreferrer" title="${appState.escapeHtml(`${promotion.amountTokens.toLocaleString()} $FUNDED burned with the verified launch · view receipt`)}">${appState.escapeHtml(promotion.tier.charAt(0).toUpperCase() + promotion.tier.slice(1))}</a>${info}</span>`;
+    if (promotion) return `<span class="scanner-tier-wrap"><a class="explore-tier-badge" data-tier="${appState.escapeHtml(promotion.tier)}" href="${appState.escapeHtml(appState.exploreExplorer(`tx/${encodeURIComponent(promotion.signature)}`))}" target="_blank" rel="noopener noreferrer" title="${appState.escapeHtml(`${promotion.amountTokens.toLocaleString()} $RICH burned with the verified launch · view receipt`)}">${appState.escapeHtml(promotion.tier.charAt(0).toUpperCase() + promotion.tier.slice(1))}</a>${info}</span>`;
     const verified = Boolean(appState.verifiedLaunchPolicyForMint(mint));
     return `<span class="scanner-tier-wrap"><span class="explore-tier-badge" data-tier="${verified ? 'standard' : 'unavailable'}" title="${verified ? 'Verified launch policy · no paid promotion burn' : 'Launch tier unavailable without a verified policy'}">${verified ? 'Standard' : 'Unavailable'}</span>${info}</span>`;
   }
@@ -43,7 +52,7 @@ export function createBoostCheckoutController(appState) {
       const allocation = appState.verifiedPolicyPercent(policy.communityAirdrop?.allocationPercent);
       const airdrop = allocation == null ? 'Unavailable' : appState.formatVerifiedPercent(allocation);
       const tier = promotion ? promotion.tier.charAt(0).toUpperCase() + promotion.tier.slice(1) : 'Standard';
-      details.innerHTML = `<div class="explore-tier-fact"><span>Verified launch tier</span><strong>${appState.escapeHtml(tier)}</strong><small>${promotion ? `${appState.escapeHtml(Number(promotion.amountTokens).toLocaleString())} $FUNDED burned in the confirmed launch transaction` : 'No verified paid promotion burn'}</small></div>
+      details.innerHTML = `<div class="explore-tier-fact"><span>Verified launch tier</span><strong>${appState.escapeHtml(tier)}</strong><small>${promotion ? `${appState.escapeHtml(Number(promotion.amountTokens).toLocaleString())} $RICH burned in the confirmed launch transaction` : 'No verified paid promotion burn'}</small></div>
         <div class="explore-tier-fact"><span>Community allocation</span><strong>${appState.escapeHtml(airdrop)}</strong><small>Share of token supply in the launch policy; vault funding and distribution require separate verification.</small></div>
         ${promotion ? `<a class="explore-tier-detail-link" href="${appState.escapeHtml(appState.exploreExplorer(`tx/${encodeURIComponent(promotion.signature)}`))}" target="_blank" rel="noopener noreferrer">View burn receipt ↗</a>` : ''}
         <a class="explore-tier-detail-link" href="/token/${encodeURIComponent(mint)}">Open token record ↗</a>`;
@@ -88,12 +97,9 @@ export function createBoostCheckoutController(appState) {
     const dialog = document.querySelector('#explore-boost-dialog');
     if (!asset || !dialog) return;
     appState.boostCheckout = { mint, packageId:'10x', quote:null, pendingSignature:null, busy:false, message:'' };
+    livePackages=null;pricingRevision=null;
     try {
-      const pending = appState.readPendingBoost(mint);
-      if (pending?.quote?.mint === mint && pending?.signature && pending?.quote?.id) {
-        appState.boostCheckout = { ...appState.boostCheckout, packageId:pending.quote.packageId, quote:pending.quote,
-          pendingSignature:pending.signature, message:'Your previous payment is awaiting confirmation. Check it before paying again.' };
-      }
+      restorePendingBoost(mint,appState.connectedWalletAddress);
     } catch (error) { appState.boostCheckout.recoveryError = error.message || 'Saved payment details are unavailable. Check device storage before paying again.'; }
     appState.exploreBoostHistory = [];
     appState.exploreBoostHistoryState = 'loading';
@@ -112,7 +118,11 @@ export function createBoostCheckoutController(appState) {
       appState.exploreBoostHistoryState = 'unavailable'; appState.renderExploreBoostDialog(); return;
     }
     appState.exploreBoostHistoryState = 'ready';
-    try{livePackages=pricedBoostPackages(Object.fromEntries(response.data.packages.map(pack=>[pack.id,Math.round(pack.usd*100)])));}
+    try{
+      if(!Number.isSafeInteger(response.data.pricingRevision)||response.data.pricingRevision<0)throw Error('Invalid pricing revision');
+      livePackages=pricedBoostPackages(Object.fromEntries(response.data.packages.map(pack=>[pack.id,Math.round(pack.usd*100)])));
+      pricingRevision=response.data.pricingRevision;
+    }
     catch{livePackages=null;appState.exploreBoostHistoryState='unavailable';}
     appState.exploreBoostHistory = response.data.history;
     if (appState.boostCheckout.pendingSignature && !appState.boostCheckout.busy) {
@@ -144,7 +154,7 @@ export function createBoostCheckoutController(appState) {
     const active = currentBoostSnapshot(appState.verifiedBoosts)[mint];
     const packages=livePackages||appState.BOOST_PACKAGES;
     const selected = packages.find(pack=>pack.id===packageId)||appState.boostPackage(packageId);
-    const available = !recoveryError && ((appState.EXPLORE_CLUSTER === 'devnet' && !appState.APP_MAINNET_READ_ONLY && appState.boostPurchasesEnabled) || Boolean(pendingSignature));
+    const available = !recoveryError && ((livePackages && appState.EXPLORE_CLUSTER === 'devnet' && !appState.APP_MAINNET_READ_ONLY && appState.boostPurchasesEnabled) || Boolean(pendingSignature));
     const quotedAmount = quote && quote.mint === mint && quote.packageId === packageId && Date.parse(quote.expiresAt) > Date.now()
       ? (quote.lamports / 1e9).toFixed(9) : null;
     const historyRows = appState.boostHistoryRows(appState.exploreBoostHistory, appState.boostCheckout, mint);
@@ -165,13 +175,18 @@ export function createBoostCheckoutController(appState) {
   // app-source: 294
   async function handleExploreBoostPay(){
     if (appState.boostCheckout.busy || !appState.boostCheckout.mint || appState.boostCheckout.recoveryError) return;
+    if (appState.connectedWalletAddress && appState.boostCheckout.quote?.payer
+      && appState.boostCheckout.quote.payer !== appState.connectedWalletAddress) {
+      appState.openExploreBoost(appState.boostCheckout.mint);return;
+    }
     if (appState.boostCheckout.failureProof) {
       try {
         appState.archiveBoostPayment(appState.boostCheckout, appState.boostCheckout.failureProof);
         appState.boostCheckout.pendingSignature = null;
         appState.boostCheckout.quote = null;
         appState.boostCheckout.failureProof = null;
-        appState.boostCheckout.message = 'The failed transaction is saved in device history. Request a new quote when you are ready.';
+        appState.boostCheckout.reviewedQuote = null;
+        appState.boostCheckout.message = 'The resolved attempt is saved in device history. Choose a package and request a new quote when ready.';
       } catch (error) { appState.boostCheckout.message = error.message || 'Recovery could not be saved. Keep the original payment and retry.'; }
       appState.renderExploreBoostDialog();
       return;
@@ -184,20 +199,32 @@ export function createBoostCheckoutController(appState) {
       if (!appState.wallet) await appState.connectWallet();
       const session = appState.captureWalletSession();
       if (!session || !appState.canSignTransactions(session.provider)) throw new Error('Connect a Solana wallet that can sign transactions.');
+      if (restorePendingBoost(appState.boostCheckout.mint,session.address)) { await appState.verifyExploreBoostPayment(true);return; }
       if (!appState.boostCheckout.quote || appState.boostCheckout.quote.mint !== appState.boostCheckout.mint || appState.boostCheckout.quote.packageId !== appState.boostCheckout.packageId || appState.boostCheckout.quote.payer !== session.address || Date.parse(appState.boostCheckout.quote.expiresAt) <= Date.now()) {
-        const response = await appState.apiRequest('/api/boosts/quote', { method:'POST', body:{ mint:appState.boostCheckout.mint, payer:session.address, packageId:appState.boostCheckout.packageId } });
+        const response = await appState.apiRequest('/api/boosts/quote', { method:'POST', body:{ mint:appState.boostCheckout.mint, payer:session.address, packageId:appState.boostCheckout.packageId, paymentProtocol:'journal-v1' } });
         appState.assertWalletSessionCurrent(session);
         if (!response.available) throw new Error('Quotes are unavailable. Try again shortly.');
-        appState.boostCheckout.quote = appState.validateBoostQuote(response.data, { mint: appState.boostCheckout.mint, payer: session.address, packageId: appState.boostCheckout.packageId });
+        try {
+          appState.boostCheckout.quote = appState.validateBoostQuote(response.data, { mint: appState.boostCheckout.mint, payer: session.address,
+            packageId: appState.boostCheckout.packageId, pricing:{packages:livePackages,revision:pricingRevision} });
+        } catch(error) { appState.boostCheckout.quote=null;await appState.loadExploreBoostHistory(appState.boostCheckout.mint);throw error; }
+        appState.boostCheckout.reviewedQuote = {...appState.boostCheckout.quote};
         appState.boostCheckout.message = 'Review the exact SOL amount and recipient, then select Pay.';
       } else {
         const { PublicKey, SystemProgram, Transaction, TransactionInstruction } = await appState.getSolana();
         appState.assertWalletSessionCurrent(session);
         const rpc = appState.connection;
-        const quote = appState.validateBoostQuote(appState.boostCheckout.quote, { mint: appState.boostCheckout.mint, payer: session.address, packageId: appState.boostCheckout.packageId });
-        const latest = await rpc.getLatestBlockhash('confirmed');
+        const expected={mint:appState.boostCheckout.mint,payer:session.address,packageId:appState.boostCheckout.packageId,reviewedQuote:appState.boostCheckout.reviewedQuote};
+        const quote = appState.validateBoostQuote(appState.boostCheckout.quote, expected);
+        const preparation=await appState.apiRequest('/api/boosts/prepare',{method:'POST',body:{quoteId:quote.id}});
+        const prepared=preparation.data;
+        if (!preparation.available || prepared?.quoteId!==quote.id || prepared.cluster!=='devnet'
+          || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(prepared.blockhash)
+          || !Number.isSafeInteger(prepared.expiryUpperBound) || prepared.expiryUpperBound<1 || prepared.expiresAt!==quote.expiresAt)
+          throw Error('Payment preparation could not be verified. No transaction was requested.');
+        const latest={blockhash:prepared.blockhash,lastValidBlockHeight:prepared.expiryUpperBound};
         appState.assertWalletSessionCurrent(session);
-        appState.validateBoostQuote(quote, { mint: appState.boostCheckout.mint, payer: session.address, packageId: appState.boostCheckout.packageId });
+        appState.validateBoostQuote(quote, expected);
         const transaction = new Transaction().add(
           SystemProgram.transfer({ fromPubkey:session.provider.publicKey, toPubkey:new PublicKey(quote.recipient), lamports:quote.lamports }),
           new TransactionInstruction({ keys:[], programId:new PublicKey(appState.BOOST_MEMO_PROGRAM), data:new TextEncoder().encode(quote.memo) }),
@@ -213,18 +240,30 @@ export function createBoostCheckoutController(appState) {
         if (balance < quote.lamports + fee.value) throw new Error(`Not enough SOL. You need ${((quote.lamports + fee.value) / 1e9).toFixed(9)} SOL including the network fee. No payment was sent.`);
         appState.boostCheckout.message = 'Review the SOL transfer and boost memo in your wallet.';
         appState.renderExploreBoostDialog();
+        const reviewedMessage=appState.Buffer.from(transaction.serializeMessage());
         const signed = await session.provider.signTransaction(transaction);
         appState.assertWalletSessionCurrent(session);
-        appState.validateBoostQuote(quote, { mint: appState.boostCheckout.mint, payer: session.address, packageId: appState.boostCheckout.packageId });
+        appState.validateBoostQuote(quote, expected);
+        if (!appState.Buffer.from(signed.serializeMessage()).equals(reviewedMessage))
+          throw Error('Wallet changed the reviewed payment. No payment was sent.');
         const signedBytes = signed.serialize();
         if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned a transaction without a valid signature. No payment was sent.');
         const signature = appState.bs58.encode(signed.signature);
         // Persist the signed identity BEFORE broadcast. An RPC timeout can occur after acceptance.
         // Recovery remains verification-only until the original signature is resolved.
-        try { await appState.saveSignedBoostPayment({ quote, signature, lastValidBlockHeight: latest.lastValidBlockHeight }); }
+        const signedTransaction=appState.Buffer.from(signedBytes).toString('base64');
+        try { await appState.saveSignedBoostPayment({ quote, signature, blockhash:latest.blockhash, signedTransaction, lastValidBlockHeight: latest.lastValidBlockHeight }); }
         catch (error) { throw new Error(`${error.message || 'Device recovery storage is unavailable.'} No payment was sent.`); }
         appState.boostCheckout.pendingSignature = signature;
         appState.boostCheckout.quote = quote;
+        appState.boostCheckout.blockhash = latest.blockhash;
+        appState.boostCheckout.signedTransaction = signedTransaction;
+        const journal=await appState.apiRequest('/api/boosts/confirm',{method:'POST',body:{quoteId:quote.id,signature,signedTransaction}});
+        appState.assertWalletSessionCurrent(session);
+        if (!journal.available || journal.data?.signature!==signature || journal.data?.quoteId!==quote.id)
+          throw Error('Payment recovery could not be saved. Check the original payment before retrying.');
+        if (appState.boostPaymentResolution(journal.data,appState.boostCheckout)!=='pending') {await appState.verifyExploreBoostPayment(true);return;}
+        if (!journal.data.journaled || !journal.data.broadcastAllowed) throw Error('This attempt is no longer available to send. Check its expiry before starting again.');
         const submitted = await rpc.sendRawTransaction(signedBytes, { skipPreflight:false, maxRetries:3 });
         if (submitted !== signature) throw new Error('RPC returned a different signature. Verify the originally signed payment before continuing.');
         appState.boostCheckout.message = 'Payment submitted. Waiting for confirmation.';
@@ -242,12 +281,15 @@ export function createBoostCheckoutController(appState) {
     if (!alreadyBusy) { appState.boostCheckout.busy = true; appState.renderExploreBoostDialog(); }
     try {
       for (let attempt = 0; attempt < 10; attempt += 1) {
-        const response = await appState.apiRequest('/api/boosts/confirm', { method:'POST', body:{ quoteId:appState.boostCheckout.quote.id, signature:appState.boostCheckout.pendingSignature } });
+        const response = await appState.apiRequest('/api/boosts/confirm', { method:'POST', body:{ quoteId:appState.boostCheckout.quote.id,
+          signature:appState.boostCheckout.pendingSignature, signedTransaction:appState.boostCheckout.signedTransaction } });
         if (!response.available) throw new Error('Payment verification is unavailable. Try again shortly.');
         const resolution = appState.boostPaymentResolution(response.data, appState.boostCheckout);
-        if (resolution === 'failed') {
+        if (resolution === 'failed' || resolution === 'expired') {
           appState.boostCheckout.failureProof = response.data;
-          appState.boostCheckout.message = 'The transaction failed on-chain. The boost payment was not transferred; a network fee may apply. You can start a new quote.';
+          appState.boostCheckout.message = resolution==='expired'
+            ? 'The transaction expired without a transfer. You can start a new purchase and choose any package.'
+            : 'The transaction failed on-chain. The boost payment was not transferred; a network fee may apply. You can start a new quote.';
           return;
         }
         if (resolution === 'finalized') {
@@ -262,6 +304,10 @@ export function createBoostCheckoutController(appState) {
           window.dispatchEvent(new Event('funded:boost-verified'));
           void appState.refreshWalletBalance({ force:true });
           void appState.refreshTradeBalances();
+          return;
+        }
+        if (!appState.boostCheckout.signedTransaction) {
+          appState.boostCheckout.message='This older payment has no saved signed transaction for automatic expiry recovery. Its receipt can still be checked. Contact support with its signature if it never reached Solana; do not pay again while its outcome is unknown.';
           return;
         }
         await new Promise(resolve => setTimeout(resolve, 3000));

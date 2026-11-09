@@ -7,7 +7,7 @@ const panel = document.querySelector('#community-preferences details');
 if (panel) {
   const section = document.createElement('section');
   section.className = 'journey-preferences';
-  section.innerHTML = '<h3>Help improve funded.vip</h3><label><input id="journey-consent" type="checkbox" aria-describedby="journey-privacy">Share anonymous app usage</label><p id="journey-privacy">Optional. Shares which app steps you use, with a random session code that changes daily. No wallet addresses, X accounts, page URLs, or amounts are included. Counts are kept for 30 days. You can turn this off at any time; previously shared counts remain until they expire.</p><p id="journey-status" role="status" aria-live="polite"></p>';
+  section.innerHTML = '<h3>Help improve richpad.fun</h3><label><input id="journey-consent" type="checkbox" aria-describedby="journey-privacy">Share anonymous app usage</label><p id="journey-privacy">Optional. Shares which app steps you use, with a random session code that changes daily. No wallet addresses, X accounts, page URLs, or amounts are included. Counts are kept for 30 days. You can turn this off at any time; previously shared counts remain until they expire.</p><p id="journey-status" role="status" aria-live="polite"></p>';
   panel.append(section);
   const checkbox = section.querySelector('input');
   const status = section.querySelector('#journey-status');

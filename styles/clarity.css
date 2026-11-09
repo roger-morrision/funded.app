@@ -319,7 +319,7 @@ html body #launch-dialog .launch-summary-plain { margin: var(--fv-space-2) 0; pa
 html body #main-content img[data-deferred-art] { color: transparent; background: var(--fv-surface); }
 
 /* One site footer on every page (index.html), replacing the separate Home, Explore,
-   Get listed and $FUNDED footers. Home's main column is a flex column, so it goes last. */
+   Get listed and $RICH footers. Home's main column is a flex column, so it goes last. */
 html body #main-content > .site-footer { order: 999; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .7fr); gap: var(--fv-space-5) var(--fv-space-6); margin: var(--fv-space-6) 0 0; padding: var(--fv-space-6) 0 0; border-top: 1px solid var(--fv-border); color: var(--fv-text-muted); font: 13px/1.55 var(--fv-font-ui); }
 html body.support-view-active #main-content > .site-footer { display: grid; }
 html body #main-content > .site-footer .site-footer-about { display: grid; gap: var(--fv-space-3); align-content: start; max-width: 420px; }

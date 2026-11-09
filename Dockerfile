@@ -9,7 +9,7 @@ RUN --mount=type=secret,id=proxy_ca \
     npm ci --strict-ssl=true --no-audit --no-fund
 COPY . .
 ARG VITE_API_BASE_URL=/
-ARG VITE_DEVNET_METADATA_ORIGIN=https://metadata.funded.vip
+ARG VITE_DEVNET_METADATA_ORIGIN=https://richpad.fun
 ARG VITE_SOLANA_CLUSTER=devnet
 ARG VITE_EXPLORE_CLUSTER=devnet
 ARG VITE_ALLOW_MAINNET=false
@@ -50,7 +50,7 @@ RUN if [ "$VITE_SOLANA_CLUSTER" = "devnet" ] && [ -z "$VITE_API_BASE_URL" ]; the
     && chmod -R a+rX /app
 
 FROM ${NODE_IMAGE}
-ARG VITE_DEVNET_METADATA_ORIGIN=https://metadata.funded.vip
+ARG VITE_DEVNET_METADATA_ORIGIN=https://richpad.fun
 ENV DEVNET_METADATA_ORIGIN=$VITE_DEVNET_METADATA_ORIGIN
 ARG RENDER_GIT_COMMIT
 ARG FUNDED_SOURCE_REVISION=${RENDER_GIT_COMMIT:-local-development}

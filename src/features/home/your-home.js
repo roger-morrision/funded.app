@@ -18,7 +18,7 @@ export function yourHomeSummary({ wallet, assets = [], policies = [], holdings =
 export function yourHomeMarkup(summary) {
   if (!summary) return '';
   const stat = (label, value, note, href) => `<a class="your-home-stat" href="${href}"><span>${label}</span><strong>${escape(value)}</strong><small>${escape(note)}</small></a>`;
-  return `<div class="your-home-head"><div><p class="eyebrow">Your funded.vip</p><h2 id="your-home-title">Welcome back, ${escape(shortWallet(summary.wallet))}</h2></div><a class="text-button" href="#my-launches">Open portfolio →</a></div>
+  return `<div class="your-home-head"><div><p class="eyebrow">Your richpad.fun</p><h2 id="your-home-title">Welcome back, ${escape(shortWallet(summary.wallet))}</h2></div><a class="text-button" href="#my-launches">Open portfolio →</a></div>
 <div class="your-home-grid">
 ${stat('Your projects', summary.launched, 'Manage your coins and review their activity', '#my-launches')}
 ${stat('Your holdings', summary.held == null ? 'Unavailable' : summary.held, 'Balances and available prices', '#my-launches')}

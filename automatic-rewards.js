@@ -6,7 +6,7 @@ export const AUTOMATIC_REWARDS = Object.freeze({
   costReserveUsdPerHolder: 0.01, maxEligibleHolders: 1000,
   referralDelivery: 'manual-claim',
   holderDelivery: 'automatic', airdropAsset: 'launched-token',
-  airdropEligibility: '$FUNDED', feeBudget: 'operations',
+  airdropEligibility: '$RICH', feeBudget: 'operations',
 });
 
 export function distributionClock(schedule, now = Date.now()) {

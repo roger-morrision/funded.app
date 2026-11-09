@@ -1,7 +1,7 @@
-# Optional funded.vip QA overlay for an exhausted private Devnet RPC quota.
+# Optional richpad.fun QA overlay for an exhausted private Devnet RPC quota.
 # Append after the normal release overlays. Existing secret files stay intact.
 # This selects the official public endpoint; it does not remove its rate limits.
-# The normal funded.vip release pins and all finalized V3 checks still apply.
+# The normal richpad.fun release pins and all finalized V3 checks still apply.
 services:
   app:
     environment:

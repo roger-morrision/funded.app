@@ -182,8 +182,8 @@ export function navigation() {
   helpPanel.id = 'help-topics-panel';
   helpPanel.hidden = true;
   helpPanel.setAttribute('role', 'dialog');
-  helpPanel.setAttribute('aria-label', 'funded.vip help topics');
-  helpPanel.innerHTML = `<header><div><strong>funded.vip</strong><small>Solana help topics</small></div><button type="button" aria-label="Close help topics">${icon('close')}</button></header><p class="help-topics-intro">Guides and answers. Live chat is unavailable.</p><div class="help-topics-choices">${Object.entries(productHelpTopics()).map(([id,topic])=>`<button type="button" data-help-topic="${id}" aria-pressed="false">${topic.title}</button>`).join('')}</div><div class="help-topics-answer" role="status" aria-live="polite"><strong>How can we help?</strong><p>Choose a topic to see guidance.</p><a href="#docs">Open the help guide →</a></div>`;
+  helpPanel.setAttribute('aria-label', 'richpad.fun help topics');
+  helpPanel.innerHTML = `<header><div><strong>richpad.fun</strong><small>Solana help topics</small></div><button type="button" aria-label="Close help topics">${icon('close')}</button></header><p class="help-topics-intro">Guides and answers. Live chat is unavailable.</p><div class="help-topics-choices">${Object.entries(productHelpTopics()).map(([id,topic])=>`<button type="button" data-help-topic="${id}" aria-pressed="false">${topic.title}</button>`).join('')}</div><div class="help-topics-answer" role="status" aria-live="polite"><strong>How can we help?</strong><p>Choose a topic to see guidance.</p><a href="#docs">Open the help guide →</a></div>`;
   const setHelpOpen = open => {
     helpPanel.hidden = !open;
     helpTrigger.setAttribute('aria-expanded', String(open));

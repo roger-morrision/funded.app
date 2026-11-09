@@ -50,12 +50,12 @@ html body.page-route-airdrops #airdrops .airdrop-reference-tabs > button[aria-se
   html body.page-route-airdrops #airdrops .airdrop-reference-tabs { display: flex; flex-wrap: nowrap; gap: var(--fv-space-1); overflow-x: auto; scrollbar-width: none; }
   html body.page-route-airdrops #airdrops .airdrop-reference-tabs > button { flex: 0 0 auto; width: auto; min-width: 0; white-space: nowrap; }
 }
-/* Sub-page navigation ($FUNDED / Buy & burn, Analytics, Portfolio) uses the same tabs. */
+/* Sub-page navigation ($RICH / Buy & burn, Analytics, Portfolio) uses the same tabs. */
 html body #main-content .purpose-page-nav { gap: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 html body #main-content .purpose-page-nav > a { min-height: 40px; padding: 8px 14px; border: 1px solid transparent; border-radius: var(--cp-radius); background: transparent; box-shadow: none; color: var(--cp-muted); font: 700 13px var(--fv-font-ui); text-transform: none; letter-spacing: 0; }
 html body #main-content .purpose-page-nav > a:hover { color: var(--cp-text); background: transparent; }
 html body #main-content .purpose-page-nav > a[aria-current="location"] { border-color: var(--cp-line-strong); background: var(--cp-surface); color: var(--cp-accent); }
-/* Buy & burn sits inside the $FUNDED section; align it with the page column instead of indenting it. */
+/* Buy & burn sits inside the $RICH section; align it with the page column instead of indenting it. */
 html body #main-content #paid > #buybacks { width: auto; max-width: none; margin-inline: 0; }
 /* Portfolio and Creators used a centered 1120px column; every other page uses the full content column. */
 html body.page-route #main-content > :is(#my-launches.section-block, #creator-support-page.creator-support-page, #route-guide.route-guide, #profile.profile-section),

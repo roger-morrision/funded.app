@@ -84,7 +84,7 @@ const targetRows = [
   { role:'creator', wallet:creator, balance:await balance(creator.publicKey) },
   { role:'claimant', wallet:claimant, balance:await balance(claimant.publicKey) },
 ];
-assert(targetRows[1].balance >= 5_000n * scale, 'Buy $FUNDED for claimant before transfers.');
+assert(targetRows[1].balance >= 5_000n * scale, 'Buy $RICH for claimant before transfers.');
 const plans = [];
 for (const source of sources) {
   const owned = await balance(source.wallet.publicKey);
@@ -101,7 +101,7 @@ for (const target of targetRows) {
     source.balance -= amount;
     needed -= amount;
   }
-  assert.equal(needed, 0n, `QA sources cannot fund ${target.role} to 25,000 $FUNDED.`);
+  assert.equal(needed, 0n, `QA sources cannot fund ${target.role} to 25,000 $RICH.`);
 }
 console.log(JSON.stringify({ stage:'transfer-preview', cluster:'devnet', mint:mint.toBase58(), execute,
   plans:plans.map(row => ({ sourceRole:row.source.role, source:row.source.wallet.publicKey.toBase58(), targetRole:row.target.role,
@@ -121,8 +121,8 @@ for (const plan of plans) {
   console.log(JSON.stringify({ status:'verified', stage:'transfer', signature, sourceRole:plan.source.role,
     targetRole:plan.target.role, baseUnits:String(plan.amount) }));
 }
-assert((await balance(creator.publicKey)) >= desired, 'Creator still lacks 25,000 $FUNDED.');
-assert((await balance(claimant.publicKey)) >= desired, 'Claimant still lacks 25,000 $FUNDED.');
+assert((await balance(creator.publicKey)) >= desired, 'Creator still lacks 25,000 $RICH.');
+assert((await balance(claimant.publicKey)) >= desired, 'Claimant still lacks 25,000 $RICH.');
 assert.equal((await getMint(connection, mint, 'finalized', TOKEN_PROGRAM_ID)).supply, initialMint.supply, 'Transfers changed mint supply.');
 console.log(JSON.stringify({ status:'verified', stage:'complete', creator:creator.publicKey.toBase58(), claimant:claimant.publicKey.toBase58(),
   creatorBaseUnits:String(await balance(creator.publicKey)), claimantBaseUnits:String(await balance(claimant.publicKey)), mintSupplyUnchanged:true }));

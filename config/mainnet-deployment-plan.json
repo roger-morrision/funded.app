@@ -37,7 +37,7 @@
   "separateEscrowRequired": false,
   "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "mainnetProgramId": null,
-  "mainnetAppOrigin": null,
+  "mainnetAppOrigin": "https://richpad.fun",
   "productionRpcSecretPath": ".secrets/mainnet-helius-rpc.url",
   "deploymentPayerSignerReference": null,
   "productionDatabaseSecretPath": null,

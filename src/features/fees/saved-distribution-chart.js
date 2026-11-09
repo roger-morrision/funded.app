@@ -8,7 +8,7 @@ export function savedFeeDistributionRows(launch) {
   const protocol=[['operations','Operations & marketing',fixed?.operations?.effectivePercentOfCreatorFees],
     ['referrals','Referral network',fixed?.appReferral?.effectivePercentOfCreatorFees],
     ['bonus','Daily bonus',fixed?.communityRewards?.effectivePercentOfCreatorFees],
-    ['buyback','$FUNDED buyback & burn',fixed?.fundedBuyback?.effectivePercentOfCreatorFees],
+    ['buyback','$RICH buyback & burn',fixed?.fundedBuyback?.effectivePercentOfCreatorFees],
     ...(fixed?.marketingAgency ? [['agency','AI marketing & coin buybacks',fixed.marketingAgency.effectivePercentOfCreatorFees]] : [])];
   const rows=[...directed,...protocol];
   const sum=items=>items.reduce((total,row)=>total+row[2],0);

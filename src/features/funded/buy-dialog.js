@@ -3,7 +3,7 @@ export function initializeFundedBuyDialog(appState) {
   const trigger = document.querySelector('.launch-tier-buy-link');
   const card = document.querySelector('.burn-buy-card');
   if (!trigger || !card || document.querySelector('#funded-buy-dialog')) return;
-  const home = document.createComment('Shared FUNDED buy controls');
+  const home = document.createComment('Shared RICH buy controls');
   card.before(home);
   const dialog = document.createElement('dialog');
   dialog.id = 'funded-buy-dialog';

@@ -12,7 +12,7 @@ const settings = [
   `FUNDED_FEE_ROUTER_PROGRAM_ID=${publicValue('FUNDED_FEE_ROUTER_PROGRAM_ID')}`,
   `FUNDED_TRADE_FEE_OWNER=${publicValue('VITE_FUNDED_TRADE_FEE_OWNER')}`,
   'FUNDED_TOKEN_MINT=',
-  '# Add a Cloudflare Tunnel token only after funded.vip is active in Cloudflare.',
+  '# Add a Cloudflare Tunnel token only after richpad.fun is active in Cloudflare.',
   'CLOUDFLARE_TUNNEL_TOKEN=',
   '',
 ].join('\n');

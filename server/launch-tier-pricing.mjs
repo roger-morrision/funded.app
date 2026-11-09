@@ -26,7 +26,7 @@ export function createLaunchTierPricing({
   async function readLaunchTierPricing() {
     requireSolanaCluster(solanaCluster);
     if (!fundedTokenMint || !fundedSwapPool)
-      throw new Error('The selected network $FUNDED mint and verified SOL pool must be configured.');
+      throw new Error('The selected network $RICH mint and verified SOL pool must be configured.');
     const connection=connectionFactory(solanaRpcUrl);
     await assertRpcNetwork(connection,solanaCluster);
     const [sol, pool] = await Promise.all([

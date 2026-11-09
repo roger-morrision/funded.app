@@ -91,7 +91,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       if (!wallet || !allowed().has(wallet)) return json(res, 403, { error:'This wallet is not configured as an administrator.' });
       const nonce = randomBytes(24).toString('hex');
       const expiresAt = Date.now() + CHALLENGE_MS;
-      const message = `funded.vip Devnet admin sign-in\nOrigin: ${origin()}\nWallet: ${wallet}\nNonce: ${nonce}\nExpires: ${new Date(expiresAt).toISOString()}`;
+      const message = `richpad.fun Devnet admin sign-in\nOrigin: ${origin()}\nWallet: ${wallet}\nNonce: ${nonce}\nExpires: ${new Date(expiresAt).toISOString()}`;
       challenges.set(nonce, { wallet, message, expiresAt });
       if (challenges.size > 500) for (const [id, row] of challenges) if (row.expiresAt <= Date.now()) challenges.delete(id);
       return json(res, 200, { nonce, message, expiresAt:new Date(expiresAt).toISOString() });

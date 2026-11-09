@@ -69,12 +69,12 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const disclosure = byId('list-burn-disclosure');
     const reviewCopy = byId('list-review-copy');
     const reviewPayment = byId('list-review-payment');
-    if (step) step.textContent = `Approve a permanent burn of $${LISTING_PRICE_USD} worth of $FUNDED. The exact token amount is quoted before wallet approval.`;
-    if (disclosure) disclosure.textContent = `Pay $${LISTING_PRICE_USD} by burning $FUNDED at the current pool price. Your listing goes live once the burn is confirmed.`;
+    if (step) step.textContent = `Approve a permanent burn of $${LISTING_PRICE_USD} worth of $RICH. The exact token amount is quoted before wallet approval.`;
+    if (disclosure) disclosure.textContent = `Pay $${LISTING_PRICE_USD} by burning $RICH at the current pool price. Your listing goes live once the burn is confirmed.`;
     if (reviewCopy) reviewCopy.textContent = prepared
-      ? `Burning ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $FUNDED for this $${LISTING_PRICE_USD} listing is permanent. The quote expires ${new Date(prepared.quote.expiresAt).toLocaleTimeString()}. Your listing appears after the finalized burn and token details are verified.`
-      : `The exact $FUNDED burn will be shown after a verified $${LISTING_PRICE_USD} quote is prepared.`;
-    if (reviewPayment) reviewPayment.textContent = prepared ? `$${LISTING_PRICE_USD} · ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $FUNDED burn` : `$${LISTING_PRICE_USD} in $FUNDED`;
+      ? `Burning ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $RICH for this $${LISTING_PRICE_USD} listing is permanent. The quote expires ${new Date(prepared.quote.expiresAt).toLocaleTimeString()}. Your listing appears after the finalized burn and token details are verified.`
+      : `The exact $RICH burn will be shown after a verified $${LISTING_PRICE_USD} quote is prepared.`;
+    if (reviewPayment) reviewPayment.textContent = prepared ? `$${LISTING_PRICE_USD} · ${prepared.amountTokens.toLocaleString('en-US', { maximumFractionDigits:prepared.decimals })} $RICH burn` : `$${LISTING_PRICE_USD} in $RICH`;
   }
 
   function mintValue() {
@@ -110,7 +110,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const note = document.createElement('small');
       if (verified) {
         title.textContent = lookup.name;
-        note.textContent = `${lookup.symbol} · ${lookup.included ? 'Saved Funded launch · listing included' : lookup.metadataStatus==='missing'?'Mint verified · name metadata unavailable':'Verified on-chain metadata'}`;
+        note.textContent = `${lookup.symbol} · ${lookup.included ? 'Saved Richpad launch · listing included' : lookup.metadataStatus==='missing'?'Mint verified · name metadata unavailable':'Verified on-chain metadata'}`;
         if (existing) {
           const link = document.createElement('a');
           link.href = `/token/${encodeURIComponent(mint)}`;
@@ -150,13 +150,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     const ready = listingsAvailable && config?.enabled === true && config.cluster === 'devnet' && config.fundedMint === fundedMint
       && amountTokens != null && cluster === 'devnet' && !mainnetReadOnly;
     renderBurnCopy();
-    availability.textContent = existing?.included ? 'Listing included with launch · no additional fee' : ready ? `$${LISTING_PRICE_USD} in $FUNDED · about ${burnLabel()} tokens` : !configChecked || !listingsChecked ? 'Checking $FUNDED price…' : '$FUNDED price unavailable';
+    availability.textContent = existing?.included ? 'Listing included with launch · no additional fee' : ready ? `$${LISTING_PRICE_USD} in $RICH · about ${burnLabel()} tokens` : !configChecked || !listingsChecked ? 'Checking $RICH price…' : '$RICH price unavailable';
     payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending) || Boolean(recoveryError);
     payButton.textContent = busy ? 'Processing…' : pending ? 'Resolve pending burn first' : existing ? 'Already listed' : ready ? `Review $${LISTING_PRICE_USD} listing burn` : 'Listing unavailable';
     if (recoveryError) setStatus(recoveryError, pending?.signature);
     else if (pending) setStatus(pendingNotice?.signature === pending.signature ? pendingNotice.message
       : 'A signed burn is saved in this tab. Verify its original receipt before another payment; submission may be unconfirmed.', pending.signature);
-    else if (existing) setStatus(existing.included ? 'Listing is included with this funded.vip launch. No extra payment.' : 'Listing burn verified.', existing.signature);
+    else if (existing) setStatus(existing.included ? 'Listing is included with this richpad.fun launch. No extra payment.' : 'Listing burn verified.', existing.signature);
   }
   function queueLookup() {
     const sequence = ++lookupSequence;
@@ -228,7 +228,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if(Number.isInteger(config?.usd))setListingPriceUsd(config.usd);
       const pending = readPending();
       setStatus(pending ? 'A prior burn is awaiting receipt verification. Retry the receipt before another payment.'
-        : config?.enabled ? `Enter a token mint to review the $${LISTING_PRICE_USD} $FUNDED burn.` : 'Listing payments are unavailable until the verified $FUNDED price can be loaded.', pending?.signature);
+        : config?.enabled ? `Enter a token mint to review the $${LISTING_PRICE_USD} $RICH burn.` : 'Listing payments are unavailable until the verified $RICH price can be loaded.', pending?.signature);
     } catch { config = null; setStatus('Listing payment service unavailable. No burn can be submitted.'); }
     configChecked = true;
     draw();
@@ -259,7 +259,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const fundedKey = new PublicKey(fundedMint);
       const fundedAccount = await rpc.getAccountInfo(fundedKey, 'confirmed');
       if (!fundedAccount || (!fundedAccount.owner.equals(TOKEN_PROGRAM_ID) && !fundedAccount.owner.equals(TOKEN_2022_PROGRAM_ID)))
-        throw new Error('The configured $FUNDED mint is unavailable on Solana.');
+        throw new Error('The configured $RICH mint is unavailable on Solana.');
       const tokenProgram = fundedAccount.owner;
       const funded = await getMint(rpc, fundedKey, 'confirmed', tokenProgram);
       const quoteResponse = await apiRequest('/api/listings/quote', { method:'POST',
@@ -274,7 +274,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       const accounts = await rpc.getTokenAccountsByOwner(new PublicKey(session.address), { mint: fundedKey }, 'confirmed');
       const source = accounts.value.map(row => ({ address: row.pubkey, amount: unpackAccount(row.pubkey, row.account, tokenProgram).amount }))
         .find(row => row.amount >= amount);
-      if (!source) throw new Error(`This wallet needs ${amountTokens.toLocaleString('en-US', { maximumFractionDigits:funded.decimals })} $FUNDED in one token account for the $${LISTING_PRICE_USD} listing quote.`);
+      if (!source) throw new Error(`This wallet needs ${amountTokens.toLocaleString('en-US', { maximumFractionDigits:funded.decimals })} $RICH in one token account for the $${LISTING_PRICE_USD} listing quote.`);
       assertSession(session);
       prepared = { session, rpc, mint, name: nameInput.value.trim(), symbol: symbolInput.value.trim(),
         fundedKey, tokenProgram, decimals: funded.decimals, amountTokens, amount, quote, source, supplyBefore: funded.supply };
@@ -325,7 +325,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
           payment.amount, payment.decimals, [], payment.tokenProgram),
         new TransactionInstruction({ programId: MEMO_PROGRAM, keys: [], data: Buffer.from(listingMemo(payment.mint), 'utf8') }),
       );
-      setStatus(`Review the irreversible ${payment.amountTokens.toLocaleString('en-US', { maximumFractionDigits:payment.decimals })} $FUNDED burn in your wallet.`);
+      setStatus(`Review the irreversible ${payment.amountTokens.toLocaleString('en-US', { maximumFractionDigits:payment.decimals })} $RICH burn in your wallet.`);
       const signed = await payment.session.provider.signTransaction(transaction);
       assertSession(payment.session);
       const raw = signed.serialize();

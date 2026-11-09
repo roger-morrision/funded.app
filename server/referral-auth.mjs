@@ -31,7 +31,7 @@ export function createReferralAuth(store, { verifyMessage = verifyWalletMessage 
       const canonical = canonicalWallet(wallet);
       const challengeId = opaque();
       const nonce = randomBytes(24).toString('hex');
-      const statement = `Sign in to funded.vip\nWallet: ${canonical}\nUse referrals and token discussions with one session.\nNo transaction or network fee.\nNonce: ${nonce}`;
+      const statement = `Sign in to richpad.fun\nWallet: ${canonical}\nUse referrals and token discussions with one session.\nNo transaction or network fee.\nNonce: ${nonce}`;
       await store.authPut('referral-challenge', digest(challengeId), { wallet: canonical, statement }, Date.now() + CHALLENGE_SECONDS * 1000);
       return { challengeId, wallet: canonical, statement, expiresInSeconds: CHALLENGE_SECONDS };
     },

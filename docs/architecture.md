@@ -38,7 +38,7 @@ not another container. The enabled overlays and profiles determine the inventory
 | `rpc-cache` | Private Redis cache for reusable RPC reads |
 | `tunnel` | Cloudflare connection for public access to the local deployment |
 | `fee-collector` | Eligible fee collection and gated automatic processing |
-| `buyback-worker` | Protected $FUNDED purchases and burns |
+| `buyback-worker` | Protected $RICH purchases and burns |
 | `agency-buyback-worker` | Protected own-coin purchases and burns for saved agents |
 
 Separate workers allow independent recovery and keep long-running financial

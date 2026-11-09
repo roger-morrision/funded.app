@@ -180,13 +180,13 @@ export function createLaunchReviewController(appState) {
         appState.renderLaunchBurnSelection();
         if (estimatedBurnAmount !== burn.amountTokens) {
           appState.launchCostReview = null;
-          appState.launchBurnReadiness = { ready:false, message:'The $FUNDED price changed. Refresh the launch estimate, then review the new burn amount.' };
+          appState.launchBurnReadiness = { ready:false, message:'The $RICH price changed. Refresh the launch estimate, then review the new burn amount.' };
           await appState.refreshWalletInfo();
-          appState.setLaunchStatus('The $FUNDED quote changed. Check the new amount and review the refreshed estimate.', true);
+          appState.setLaunchStatus('The $RICH quote changed. Check the new amount and review the refreshed estimate.', true);
           return;
         }
       } catch (error) {
-        appState.setLaunchStatus(String(error.message || 'The $FUNDED quote is unavailable.'), true);
+        appState.setLaunchStatus(String(error.message || 'The $RICH quote is unavailable.'), true);
         return;
       }
     }
@@ -197,14 +197,14 @@ export function createLaunchReviewController(appState) {
     appState.pendingLaunchReview = { ...appState.currentLaunchReviewState(), wallet: session.address };
     document.querySelector('#launch-review-token').textContent = `${name} (${symbol})`;
     document.querySelector('#launch-review-tier').textContent = burn.requiresBurn
-      ? `${burn.label} · ${appState.formatLaunchBurnAmount(burn.amountTokens)} $FUNDED (≈$${burn.usdTarget}) · quote expires ${new Date(appState.launchTierQuote.expiresAt).toLocaleTimeString()}`
+      ? `${burn.label} · ${appState.formatLaunchBurnAmount(burn.amountTokens)} $RICH (≈$${burn.usdTarget}) · quote expires ${new Date(appState.launchTierQuote.expiresAt).toLocaleTimeString()}`
       : `${burn.label} tier`;
     document.querySelector('#launch-review-wallet').textContent = session.address;
     document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} tokens`;
     document.querySelector('#launch-review-buy').textContent = appState.getCreatorBuySol() ? `${appState.getCreatorBuySol()} SOL` : 'None';
     const burnOrder = document.querySelector('#launch-review-burn-order');
     burnOrder.hidden = !burn.requiresBurn;
-    burnOrder.textContent = 'Approve the $FUNDED burn first, then coin creation. A confirmed burn is permanent, even if creation is cancelled or fails.';
+    burnOrder.textContent = 'Approve the $RICH burn first, then coin creation. A confirmed burn is permanent, even if creation is cancelled or fails.';
     const v3Route = appState.feeRouterState.scope === 'per-mint-v3';
     document.querySelector('#launch-review-route-short').textContent = v3Route
       ? 'Mint-specific V3 PDA' : `${appState.feeRouterState.address.slice(0, 7)}…${appState.feeRouterState.address.slice(-6)}`;

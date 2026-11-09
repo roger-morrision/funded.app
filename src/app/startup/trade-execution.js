@@ -25,7 +25,7 @@ export function initializeTradeExecution(appState) {
       if (!appState.isWalletSessionCurrent(session)) return;
       const url = new URL(`/token/${encodeURIComponent(button.dataset.mint)}`, location.origin);
       const code = appState.registeredShareCode(); if (code) url.searchParams.set('ref', code);
-      appState.openShareComposer({ kind:'trade', title:'Finalized Solana trade on funded.vip',
+      appState.openShareComposer({ kind:'trade', title:'Finalized Solana trade on richpad.fun',
         text:`I ${button.dataset.side === 'buy' ? 'bought' : 'sold'} ${button.dataset.symbol || 'a token'} on Solana. Review the token and finalized receipt. This is not a profit claim.`, url:url.toString(),
         result:{ kind:'trade', verified:true, side:button.dataset.side, mint:button.dataset.mint, tokenSymbol:button.dataset.symbol,
           receipt:button.dataset.signature, receiptUrl:appState.exploreExplorer(`tx/${encodeURIComponent(button.dataset.signature)}`), wallet:session.address, network:appState.EXPLORE_CLUSTER } });
@@ -52,7 +52,7 @@ export function initializeTradeExecution(appState) {
       url.searchParams.set('buy', pair.buySignature);
       url.searchParams.set('sell', pair.sellSignature);
       const code = appState.registeredShareCode(); if (code) url.searchParams.set('ref', code);
-      appState.openShareComposer({ kind:'roundtrip', title:'Verified closed Devnet trade on funded.vip',
+      appState.openShareComposer({ kind:'roundtrip', title:'Verified closed Devnet trade on richpad.fun',
         publicShareApproval:{ assertCurrent:()=>appState.assertWalletSessionCurrent(session), sign:async statement=>{
           appState.assertWalletSessionCurrent(session);
           if (typeof session.provider.signMessage !== 'function') throw new Error('Use a wallet that supports message signing.');

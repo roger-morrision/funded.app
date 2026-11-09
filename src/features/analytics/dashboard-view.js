@@ -139,8 +139,8 @@ export function renderExtendedAnalyticsDashboard({ assets, verifiedLaunchPolicie
   if (burnCard) {
     burnCard.querySelector('strong').textContent = burnedTokens ? formatDashboardQuantity(burnedTokens) : '—';
     burnCard.querySelector('small').innerHTML = burnedTokens
-      ? `<b>$FUNDED</b>${burns.length} confirmed launch burn${burns.length === 1 ? '' : 's'}`
-      : `<b>$FUNDED</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Launch burn history unavailable' : 'No confirmed launch burns; other burns appear on the Burn page'}`;
+      ? `<b>$RICH</b>${burns.length} confirmed launch burn${burns.length === 1 ? '' : 's'}`
+      : `<b>$RICH</b>${verifiedLaunchPoliciesStatus === 'unavailable' ? 'Launch burn history unavailable' : 'No confirmed launch burns; other burns appear on the Burn page'}`;
   }
 
   const reserves = verifiedLaunchPolicies.filter(launch => launch?.onchainVerified && Number(launch?.communityAirdrop?.reservedTokens) > 0);

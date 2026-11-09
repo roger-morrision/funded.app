@@ -54,7 +54,7 @@ function createPanels() {
   const rewardsOverview = byId('rewards-overview') || payments;
   if (payments && !byId('reward-portfolio')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'reward-portfolio';
-    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>Recent SOL receipts</h2><p>Recorded payments and creator rewards for your connected wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$FUNDED airdrops</strong><small>View automatic delivery</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Your connected wallet</p><h2>Recent SOL receipts</h2><p>Recorded payments and creator rewards for your connected wallet.</p></div><div class="reward-portfolio-top-actions"><span data-reward-evidence>Checking evidence…</span><button type="button" data-reward-connect>Connect wallet</button></div></header><div class="reward-portfolio-body" data-reward-portfolio role="status">Connect a wallet to see your reward records.</div><div class="reward-portfolio-destinations"><p class="reward-portfolio-label">Other reward programs</p><nav class="reward-portfolio-links" aria-label="Reward programs"><a href="#airdrops"><span><strong>$RICH airdrops</strong><small>View automatic delivery</small></span><b aria-hidden="true">↗</b></a><a href="#referrals"><span><strong>Referral rewards</strong><small>Sign in to view paid SOL</small></span><b aria-hidden="true">↗</b></a><a href="#payments" data-x-reward-link><span><strong>X account rewards</strong><small>Use the matching X sign-in</small></span><b aria-hidden="true">↗</b></a></nav></div><small class="reward-portfolio-note">A published allocation is not your wallet balance. Holder payments are automatic after an eligible snapshot and verified payout.</small>`;
     const publicHistory = payments.querySelector('.x-claim-activity');
     if (publicHistory && rewardsOverview === payments) payments.insertBefore(section, publicHistory);
     else rewardsOverview.prepend(section);
@@ -74,7 +74,7 @@ function createPanels() {
   const buybacks = byId('buybacks');
   if (buybacks && !byId('verified-buyback-flow')) {
     const section = node('section', 'reward-experience-panel', null); section.id = 'verified-buyback-flow';
-    section.innerHTML = `<header><div><p class="eyebrow">Fee-funded $FUNDED burn</p><h2>Buyback progress</h2><p>See fees waiting for a buyback and confirmed purchases that permanently remove $FUNDED from supply.</p></div></header><div data-buyback-flow role="status">Checking the Solana buyback queue…</div><small>Launch-tier burns are separate. A buyback does not guarantee a price change.</small>`;
+    section.innerHTML = `<header><div><p class="eyebrow">Fee-funded $RICH burn</p><h2>Buyback progress</h2><p>See fees waiting for a buyback and confirmed purchases that permanently remove $RICH from supply.</p></div></header><div data-buyback-flow role="status">Checking the Solana buyback queue…</div><small>Launch-tier burns are separate. A buyback does not guarantee a price change.</small>`;
     buybacks.prepend(section);
   }
 }
@@ -107,7 +107,7 @@ function renderPortfolio(data) {
   const rows = wallet.rows || [];
   const paid = rows.flatMap(row => row.payouts || []);
   const tokenNote = node('p', 'reward-token-claim-note');
-  tokenNote.append(node('strong', '', 'Token airdrops: '), document.createTextNode('automatic at migration, based on eligible $FUNDED holdings. '), link('View airdrops →', '#airdrops'));
+  tokenNote.append(node('strong', '', 'Token airdrops: '), document.createTextNode('automatic at migration, based on eligible $RICH holdings. '), link('View airdrops →', '#airdrops'));
   body.append(tokenNote);
   if (!rows.length) return;
   const historyHeading = node('div', 'reward-history-heading');
@@ -239,7 +239,7 @@ function renderBuybacks(data) {
   }
   for (const row of receipts.slice(0, 8)) {
     const at=burnTimestamp(row);
-    addRow(row,'Buy & burn',`${formatTokenBaseUnits(row.boughtAndBurnedBaseUnits||row.burnedBaseUnits,Number(row.tokenDecimals??6),6)} $FUNDED`,at?`${at.slice(0,19).replace('T',' ')} UTC`:'Finalized · time unavailable',row.signature);
+    addRow(row,'Buy & burn',`${formatTokenBaseUnits(row.boughtAndBurnedBaseUnits||row.burnedBaseUnits,Number(row.tokenDecimals??6),6)} $RICH`,at?`${at.slice(0,19).replace('T',' ')} UTC`:'Finalized · time unavailable',row.signature);
   }
   if (!tbody.children.length) {list.replaceChildren(node('p','reward-empty','No token buybacks are waiting, and no completed burns are available to show.'));list.removeAttribute('tabindex');}
   root.append(list);

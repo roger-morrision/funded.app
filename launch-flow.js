@@ -166,9 +166,9 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
   const mintAccount = await getMint(connection, mint, 'confirmed', TOKEN_PROGRAM_ID);
   const tokenAccount = await getAssociatedTokenAddress(mint, payer, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
   const account = await getAccount(connection, tokenAccount, 'confirmed', TOKEN_PROGRAM_ID);
-  if (!account.owner.equals(payer)) throw new Error('The connected wallet does not own its $FUNDED token account.');
+  if (!account.owner.equals(payer)) throw new Error('The connected wallet does not own its $RICH token account.');
   const amount = tokensToBaseUnits(Number(amountTokens), mintAccount.decimals);
-  if (account.amount < amount) throw new Error(`This wallet needs ${Number(amountTokens).toLocaleString()} $FUNDED for the selected launch tier.`);
+  if (account.amount < amount) throw new Error(`This wallet needs ${Number(amountTokens).toLocaleString()} $RICH for the selected launch tier.`);
   return {
     instruction: createBurnCheckedInstruction(tokenAccount, mint, payer, amount, mintAccount.decimals, [], TOKEN_PROGRAM_ID),
     mint,
@@ -292,7 +292,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   };
   assertWalletCurrent();
   onStatus(plan.mintRouterSeparate ? 'Approve mint router initialization, then approve the Pump launch…'
-    : 'Approve the Pump launch with funded.app set as creator-fee owner…');
+    : 'Approve the Pump launch with richpad.fun set as creator-fee owner…');
   const {signature,mintRouterSignature}=await executeLaunchPlan({connection,provider,payer,mint,plan,assertWalletCurrent,onEvent:onJournal,beforeBroadcast});
   onJournal({state:'verification-pending',signature});
   const reserveAccount = await getAccount(connection, reserve.destination, 'finalized', TOKEN_2022_PROGRAM_ID);
@@ -305,7 +305,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     && !(reserveTransaction.meta.preTokenBalances || []).some(row => row.mint === mint.publicKey.toBase58()
       && row.owner === reserve.vault.toBase58() && BigInt(row.uiTokenAmount.amount) !== 0n);
   if (!fundedInTransaction) throw new Error(`Coin was created but its atomic reserve receipt could not be verified. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`);
-  onStatus('Verifying Pump recorded funded.app—not the user—as creator-fee owner…');
+  onStatus('Verifying Pump recorded richpad.fun—not the user—as creator-fee owner…');
   const [router, policy] = await Promise.all([
     verifyMintRouterV3Account({ connection, programId:v3FeeRouter.programId,
       mint:mint.publicKey, initialAuthority:v3FeeRouter.initialAuthority }),
@@ -322,7 +322,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const bondingCurve = await new OnlinePumpSdk(connection).fetchBondingCurve(mint.publicKey);
   if (!bondingCurve) throw new Error(`Coin was created, but its Pump bonding curve could not be verified. Mint: ${mint.publicKey.toBase58()}`);
   const feeRoute = verifyPermanentPumpCreatorRoute({ bondingCurve, feeRouter, payer });
-  if (!feeRoute.verified) throw new Error(`Coin was created, but funded.app is not its Pump creator-fee owner. Mint: ${mint.publicKey.toBase58()}`);
+  if (!feeRoute.verified) throw new Error(`Coin was created, but richpad.fun is not its Pump creator-fee owner. Mint: ${mint.publicKey.toBase58()}`);
   return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate,
     mintRouterScope:mintRouter.scope, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
     reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },

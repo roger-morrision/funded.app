@@ -30,7 +30,7 @@ export function paidListingCardMarkup(listing) {
     </div></div></div>
     <div class="home-launch-protocol" aria-label="Listing details">
       <span class="home-launch-chip is-listed">${icon('listingBag')}Listed ${listedDate}</span>
-      ${burned ? `<span class="home-launch-chip is-burn">${icon('burn')}${escapeHtml(burned)} $FUNDED burned</span>` : ''}
+      ${burned ? `<span class="home-launch-chip is-burn">${icon('burn')}${escapeHtml(burned)} $RICH burned</span>` : ''}
       ${price ? `<span class="home-launch-chip">${escapeHtml(price)} listing</span>` : ''}
     </div>
     <div class="home-launch-card-actions"><button type="button" class="watch-button token-card-action-watch${saved?' active':''}" data-mint="${mint}" aria-pressed="${saved}" aria-label="${saved?'Remove token from favorites':`Add ${symbol} to favorites`}">${icon(saved?'starFilled':'star')}</button><a class="card-review-buy" href="/token/${encodeURIComponent(mint)}">View token <span aria-hidden="true">→</span></a><a class="paid-listing-proof" href="${proofUrl}" target="_blank" rel="noopener noreferrer">View burn proof ↗</a></div>

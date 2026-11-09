@@ -40,7 +40,7 @@ The app, collector and both buyback workers use `http://rpc-gateway:8899`; their
 
 A controlled real Devnet test sent 20 logical account reads for two addresses. The gateway made one upstream atomic account request, coalesced 18 duplicate reads, and returned every result at finalized slot 517338560. A separate finalized read verified full ProgramData SHA-256 `f0517fce9b8361be087456be2f5e5547af23b114ca1c0cf4ebaba5a42a8bd9ca` before the clients switched. This is measured request reduction, rather than a claim about billed Helius credits.
 
-One memo-only Devnet transaction, `5ped18mLzF3YVBzZcfL2W5LyxLgSfzM513UdpbUXqGPQHaD2rKVszct1ZbXxem5BEmqpDZb764thRT9aEjGVxSbV`, finalized at slot 517339032. Its exact memo and 5,000-lamport fee matched the receipt. Internal SDK confirmation and the public `wss://funded.vip/api/solana/ws` notification both passed. Exactly one transaction was submitted; no token transfer or provider WebSocket was used.
+One memo-only Devnet transaction, `5ped18mLzF3YVBzZcfL2W5LyxLgSfzM513UdpbUXqGPQHaD2rKVszct1ZbXxem5BEmqpDZb764thRT9aEjGVxSbV`, finalized at slot 517339032. Its exact memo and 5,000-lamport fee matched the receipt. Internal SDK confirmation and the public `wss://richpad.fun/api/solana/ws` notification both passed. Exactly one transaction was submitted; no token transfer or provider WebSocket was used.
 
 At 02:06:58 UTC the gateway counters recorded 343 logical requests, 170 upstream requests, 57 cache hits, 20 coalesced reads and 96 account-batch savings, with no upstream transport failures or queue rejections. Two jobs were still queued, so these cumulative counters are a live snapshot rather than a completed billing-period comparison. The startup provider limit produced one shared cooldown and subsequently recovered.
 

@@ -35,7 +35,7 @@ export function secondaryPages() {
   disclose($('.referral-toolkit'), 'Campaign links and sharing tools');
   for (const button of $$('[data-referral-campaign]')) button.addEventListener('focus', revealCampaignFocus);
   const receipts=$('.burn-receipts-panel');
-  if(receipts)receipts.prepend(node('p','field-help','This history shows confirmed burns available to funded.vip. Total supply can include other burns.'));
+  if(receipts)receipts.prepend(node('p','field-help','This history shows confirmed burns available to richpad.fun. Total supply can include other burns.'));
 
   const airdrops=$('#airdrops');
   if(airdrops){
@@ -48,7 +48,7 @@ export function secondaryPages() {
     heading?.before(back);
     const walletGate=node('section','airdrop-wallet-gate');
     walletGate.setAttribute('aria-label','Wallet eligibility');
-    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>Your airdrops</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Check your airdrops</h3><p>Connect the wallet that held $FUNDED at the snapshot.</p><button type="button" class="primary-button">Connect wallet</button></div>';
+    walletGate.innerHTML='<div class="airdrop-wallet-gate-top"><span>Your airdrops</span><strong>Not connected</strong></div><div class="airdrop-wallet-gate-body"><span class="airdrop-wallet-art" aria-hidden="true">◈</span><h3>Check your airdrops</h3><p>Connect the wallet that held $RICH at the snapshot.</p><button type="button" class="primary-button">Connect wallet</button></div>';
     walletGate.querySelector('button').addEventListener('click',()=>$('#connect-button')?.click());
     const fundedBalance=$('#airdrop-funded-balance',airdrops);
     if(fundedBalance)walletGate.querySelector('button').before(fundedBalance);
@@ -57,13 +57,13 @@ export function secondaryPages() {
     heroArt.innerHTML=`<img src="${airdropWolfDropUrl}" alt="A black wolf watching a descending community supply parcel" loading="lazy" />`;
     intro?.after(heroLayout);
     heroLayout.append(walletGate,heroArt);
-    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Choose a launch to check your $FUNDED snapshot allocation.':'Connect the wallet that held $FUNDED at the snapshot.';walletGate.querySelector('button').hidden=Boolean(address);};
+    const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Choose a launch to check your $RICH snapshot allocation.':'Connect the wallet that held $RICH at the snapshot.';walletGate.querySelector('button').hidden=Boolean(address);};
     window.addEventListener('funded:reward-identity-change',syncAirdropWallet);syncAirdropWallet();
     const publicPrograms=node('section','airdrop-public-programs');
-    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="all">All <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="distributed">Migrated &amp; Airdropped <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="curve">On Curve <span>—</span></button></div><p class="airdrop-stage-help">Hold $FUNDED until migration. Automatic airdrops are proportional to eligible holdings and follow verification. Test coins are labeled.</p>';
+    publicPrograms.innerHTML='<div class="airdrop-reference-tabs" role="tablist" aria-label="Launch airdrop status"><button type="button" role="tab" aria-selected="true" data-public-airdrop-tab="all">All <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="distributed">Migrated &amp; Airdropped <span>—</span></button><button type="button" role="tab" aria-selected="false" data-public-airdrop-tab="curve">On Curve <span>—</span></button></div><p class="airdrop-stage-help">Hold $RICH until migration. Automatic airdrops are proportional to eligible holdings and follow verification. Test coins are labeled.</p>';
     for(const selector of ['.airdrop-directory-head','.airdrop-directory','#airdrop-directory-pagination','#airdrop-selected-program']){const item=$(selector,airdrops);if(item)publicPrograms.append(item);}
     heroLayout.after(publicPrograms);
-    text('.airdrop-directory-head h2','$FUNDED holder airdrops');
+    text('.airdrop-directory-head h2','$RICH holder airdrops');
     const directoryHead=$('.airdrop-directory-head',publicPrograms);
     directoryHead?.classList.add('airdrop-directory-heading');
     const toolbar=node('div','airdrop-discovery-toolbar');
@@ -118,12 +118,12 @@ export function protocolPage() {
   const collectionNote = root.querySelector(':scope > p:not(.eyebrow)');
   if (collectionNote) collectionNote.textContent = copy.collection;
   const hero = node('div', 'paid-reference-hero');
-  hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true">ƒ</span><div><p class="eyebrow">$FUNDED · network token</p><h1>The token behind every launch</h1><p>$FUNDED connects launch tiers, community allocations, and the published burn policy. Verify holder rewards and burns through their receipts.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">Buy or burn $FUNDED ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>View on Solana ↗</a><a class="secondary-button" href="#explore">Explore launches</a><a class="secondary-button" href="#launch">Burn for a tier</a></div></div>';
+  hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true">R</span><div><p class="eyebrow">$RICH · network token</p><h1>The token behind every launch</h1><p>$RICH connects launch tiers, community allocations, and the published burn policy. Verify holder rewards and burns through their receipts.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">Buy or burn $RICH ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>View on Solana ↗</a><a class="secondary-button" href="#explore">Explore launches</a><a class="secondary-button" href="#launch">Burn for a tier</a></div></div>';
   const facts = node('div', 'paid-reference-metrics');
-  facts.setAttribute('aria-label', '$FUNDED token and tier metrics');
-  facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$FUNDED BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$FUNDED burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$FUNDED burn per launch</small></div>';
+  facts.setAttribute('aria-label', '$RICH token and tier metrics');
+  facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$RICH BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$RICH burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$RICH burn per launch</small></div>';
   const story = node('div', 'funded-token-story');
-  story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $FUNDED. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. Standard has no promotion burn; every launch pays the configured SOL service fee.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $FUNDED holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>Funded.vip links launches, creator fee routes, community rewards, and token burns in one place.</p><p>Operations &amp; marketing is the app allocation. Referrals, Daily bonus, $FUNDED buyback and burn, and AI coin buybacks use separate budgets. <a href="#capital-flow">Follow the fee route →</a></p></article>';
+  story.innerHTML = '<article><h2>What it does here</h2><p>Teams can choose a paid launch tier by burning $RICH. The tier and amount are recorded with the launch, and the badge only appears after verification.</p><p>The burn receipt can be checked on-chain; a tier is a promotion signal, not a promise of liquidity or returns. Standard has no promotion burn; every launch pays the configured SOL service fee.</p></article><article><h2>Why holding it matters</h2><p>Funded launches reserve community tokens for eligible $RICH holders. Eligibility, funding, and delivery are shown through their own records.</p><p>A policy allocation alone is not a completed airdrop. <a href="#airdrops">Review airdrops →</a></p></article><article><h2>The story</h2><p>richpad.fun links launches, creator fee routes, community rewards, and token burns in one place.</p><p>Operations &amp; marketing is the app allocation. Referrals, Daily bonus, $RICH buyback and burn, and AI coin buybacks use separate budgets. <a href="#capital-flow">Follow the fee route →</a></p></article>';
   const contract = node('div', 'funded-token-contract');
   contract.innerHTML = '<span>CONTRACT</span><code id="funded-token-mint">Mint not configured</code><button type="button" id="funded-token-copy" class="secondary-button" disabled>Copy</button>';
   const policy = node('details', 'funded-policy-details advanced-details');
@@ -151,7 +151,7 @@ export function protocolPage() {
 export function mergePurposePages() {
   const groups = [
     { host: '#my-launches', child: '#community', after: ':scope > .section-heading', childAtEnd: true, label: 'Portfolio sections', links: [['my-launches', 'Overview'], ['community', 'Favorites']] },
-    { host: '#paid', child: '#buybacks', after: ':scope > .paid-reference-metrics', label: '$FUNDED sections', links: [['paid', 'Token overview'], ['buybacks', 'Buy & burn']] },
+    { host: '#paid', child: '#buybacks', after: ':scope > .paid-reference-metrics', label: '$RICH sections', links: [['paid', 'Token overview'], ['buybacks', 'Buy & burn']] },
   ];
   for (const group of groups) {
     const host = $(group.host);

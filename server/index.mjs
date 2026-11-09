@@ -73,7 +73,7 @@ import { createPaymentHistoryReader } from './payment-history.mjs';
 import { verifyPumpLaunch } from './launch-verification.mjs';
 
 
-import { normalizeDevnetMetadataOrigin, LEGACY_DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
+import { normalizeDevnetMetadataOrigin, DEVNET_METADATA_ORIGIN } from '../devnet-metadata.js';
 
 import { createTokenChatSessions } from './token-chat-session.mjs';
 import { createXUserResolver } from './x-user-lookup.mjs';
@@ -95,7 +95,7 @@ if (process.env.NODE_ENV === 'production' && !databaseUrl) throw new Error('DATA
 if (process.env.NODE_ENV === 'production' && !String(process.env.FUNDED_API_TOKEN || '').trim()) throw new Error('FUNDED_API_TOKEN is required in production.');
 const store = createStore(storePath, databaseUrl);
 const maxBodyBytes = 1_000_000;
-const devnetMetadataOrigin = normalizeDevnetMetadataOrigin(process.env.DEVNET_METADATA_ORIGIN || LEGACY_DEVNET_METADATA_ORIGIN);
+const devnetMetadataOrigin = normalizeDevnetMetadataOrigin(process.env.DEVNET_METADATA_ORIGIN || DEVNET_METADATA_ORIGIN);
 const birdeyeApiKey = String(process.env.BIRDEYE_API_KEY || '').trim();
 const birdeyeBaseUrl = String(process.env.BIRDEYE_API_URL || 'https://public-api.birdeye.so').replace(/\/$/, '');
 const birdeyeChain = String(process.env.BIRDEYE_CHAIN || 'solana').trim();
@@ -111,6 +111,7 @@ publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-ori
 publicPostPaths.add('/api/shares/visit');
 publicPostPaths.add('/api/boosts/quote');
 publicPostPaths.add('/api/boosts/confirm');
+publicPostPaths.add('/api/boosts/prepare');
 publicPostPaths.add('/api/launch-tier-quote');
 publicPostPaths.add('/api/launch-service-quote');
 publicPostPaths.add('/api/listings/quote');
@@ -269,7 +270,7 @@ const handleCreatorSupport = createCreatorSupportHandler({ store, cluster: solan
     creatorDirectory: { storage: databaseUrl ? 'postgresql-projection' : 'local-file', cursorPagination: true },
     xPayouts: v3XCapability({ cluster:solanaCluster, launch:await v3LaunchConfig(),
       enabled:process.env.FUNDED_V3_X_CLAIMS_ENABLED === 'true',
-      oauthConfigured:xOAuthConfigured({ headers:{ host:'funded.vip' } }),
+      oauthConfigured:xOAuthConfigured({ headers:{ host:'richpad.fun' } }),
       lookupConfigured:Boolean(String(process.env.X_BEARER_TOKEN || '').trim()),
       lookupError:resolveXUser.health() }),
     gifts: { enabled: false, reason: 'No approved gifting provider or delivery-receipt integration is configured.' } }) });
@@ -393,7 +394,7 @@ async function handle(req, res) {
   try { url = new URL(req.url, 'http://localhost'); }
   catch { throw invalidRequest('Invalid request URL.'); }
   if(mainnetMutationBlocked(solanaCluster,req.method,url.pathname))return json(res,403,{error:'Mainnet is read-only until the financial release is verified.'});
-  const metadataHost = String(req.headers.host || '').split(':')[0].toLowerCase() === 'metadata.funded.vip';
+  const metadataHost = ['metadata.richpad.fun', 'metadata.funded.vip'].includes(String(req.headers.host || '').split(':')[0].toLowerCase());
   if (metadataHost && (req.method !== 'GET' || !/^\/(?:devnet-metadata|devnet-images|devnet-banners)\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(url.pathname) && url.pathname !== '/default.svg')) return json(res, 404, { error: 'Not found.' });
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': process.env.CORS_ORIGIN || '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, solana-client, authorization, x-token-chat-session, x-creator-csrf, x-issue-token' }); return res.end(); }
     if (req.method === 'GET' && url.pathname === '/api/fee-policy') return json(res, 200, await publicFeePolicy(store));

@@ -11,7 +11,7 @@ export function createFeeReadinessController(appState) {
     const status = document.querySelector('#funded-mint-status');
     if (!input || !status) return;
     const result = appState.validateSolanaMint(appState.PROTOCOL_FUNDED_MINT);
-    if (input.parentElement?.firstChild) input.parentElement.firstChild.textContent = 'Protocol $FUNDED mint';
+    if (input.parentElement?.firstChild) input.parentElement.firstChild.textContent = 'Protocol $RICH mint';
     input.value = appState.PROTOCOL_FUNDED_MINT;
     input.readOnly = true;
     input.placeholder = 'Set by the protocol deployment';

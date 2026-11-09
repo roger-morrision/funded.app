@@ -56,7 +56,7 @@ if (!existing) {
     createMintToInstruction(mint.publicKey, tokenAccount, payer.publicKey, SUPPLY_BASE_UNITS),
     createSetAuthorityInstruction(mint.publicKey, payer.publicKey, AuthorityType.MintTokens, null),
   );
-  console.log(`Creating Devnet $FUNDED mint ${mint.publicKey.toBase58()}...`);
+  console.log(`Creating Devnet $RICH mint ${mint.publicKey.toBase58()}...`);
   try {
     const signature = await sendAndConfirmTransaction(connection, transaction, [payer, mint], {
       commitment: 'confirmed',

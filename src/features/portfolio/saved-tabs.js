@@ -51,7 +51,7 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
       const cards=document.createElement('div');cards.className='portfolio-action-cards';
       const items=key==='rewards'?[
         ['Daily bonus',sol(totals?.bonusLamports),'#bonuses','View bonus history →'],
-        ['$FUNDED Holder airdrops',Array.isArray(totals?.airdrops)?totals.airdrops.length?totals.airdrops.map(row=>`${formatTokenBaseAmount(row.amountBaseUnits,row.decimals,row.decimals)} ${row.symbol}`).join(' · '):'0 tokens':'-','#airdrops','View airdrops →'],
+        ['$RICH Holder airdrops',Array.isArray(totals?.airdrops)?totals.airdrops.length?totals.airdrops.map(row=>`${formatTokenBaseAmount(row.amountBaseUnits,row.decimals,row.decimals)} ${row.symbol}`).join(' · '):'0 tokens':'-','#airdrops','View airdrops →'],
         ['Coin Holder & creator rewards',sol(totals?.rewardsLamports),'#payments','View rewards →'],
       ]:[
         ['Invite creators','Get your wallet-linked invite link and track your network.','#referrals','Open my referral dashboard →'],

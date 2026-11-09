@@ -2,12 +2,12 @@
 
 Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
 
-New funded.vip launches record a versioned protection policy using the verified
+New richpad.fun launches record a versioned protection policy using the verified
 Pump creation transaction. Developer token locks do not delay creator SOL earnings, including
 launches saved under the earlier version-1 fee-hold policy. Normal settlement,
 minimum amounts, authorization and payout scheduling still apply.
 
-- A ticker cannot be reused for 12 hours on funded.vip, including different
+- A ticker cannot be reused for 12 hours on richpad.fun, including different
   capitalization. Archived launches still count. This does not reserve a ticker
   across Solana or prevent lookalike names or artwork.
 - Signed metadata takes an atomic, durable 30-minute reservation before wallet
@@ -34,7 +34,7 @@ minimum amounts, authorization and payout scheduling still apply.
   handler ignores this receipt marker; the API verifies it against the saved quote
   and independently requires the exact SOL transfer and treasury balance increase.
   The launch lookup table must include current Pump fee and buyback recipients.
-  New launch metadata uses the compact `https://funded.vip/m/<mint>` alias; old
+  New launch metadata uses the compact `https://richpad.fun/m/<mint>` alias; old
   metadata links and image origins remain valid. Packet-size checks keep creation,
   reserve, escrow and service payment atomic.
 - After unlock, a permissionless instruction transfers the original allocation to

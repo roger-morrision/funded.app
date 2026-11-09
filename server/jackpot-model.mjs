@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 export const JACKPOT_PERIOD_SECONDS = 86_400;
-export const CREATOR_SHARE_BPS = 100; // 1% of funded.vip's settled share.
+export const CREATOR_SHARE_BPS = 100; // 1% of richpad.fun's settled share.
 export const TRADER_FEE_BPS = 500; // 5% of verified app trading fees.
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;

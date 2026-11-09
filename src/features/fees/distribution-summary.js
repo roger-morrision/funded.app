@@ -19,7 +19,7 @@ export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
     ['operations',fee.operationsEffectivePercent,'Operations & marketing','Pays for platform operations and marketing.'],
     ['referrals',fee.appReferralEffectivePercent,'Referral network','Earn SOL from qualified creators you invite.'],
     ['community',fee.communityEffectivePercent,'Daily bonus','SOL rewards for the top 3 per category: creators, referrers and traders.'],
-    ['buyback',fee.buybackEffectivePercent,'$FUNDED buyback & burn','Buys $FUNDED and permanently removes it from supply, when funded and ready.'],
+    ['buyback',fee.buybackEffectivePercent,'$RICH buyback & burn','Buys $RICH and permanently removes it from supply, when funded and ready.'],
     ...(fee.agencyEffectivePercent===undefined?[]:[['agency',fee.agencyEffectivePercent,'AI marketing & coin buybacks','X promotion and buybacks for this coin, after funding and milestone checks.']]),
   ].map(([key,percent,label,benefit])=>({key,percent,label,benefit}));
   const total=rows.reduce((sum,row)=>sum+row.percent,0);

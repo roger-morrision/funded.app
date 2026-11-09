@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
-  <title id="title">funded.vip coin capital flow</title>
+  <title id="title">richpad.fun coin capital flow</title>
   <desc id="description">Concise Devnet policy infographic. Launch with Standard, Pro or Premier; paid tiers burn FUNDED. Trades accrue creator fees. Verified collection, creator-approved settlement and funding precede distribution. Current default shares of gross collected creator fees are 80 percent creator-directed, 8 percent operations, 1 percent creator referrals, 4 percent Daily bonus and 5 percent FUNDED buyback and burn. A separate launched-coin reserve can be claimed by eligible FUNDED holders after a verified migration snapshot. A separate 2 percent AI agent budget is included for new launches. Only 8 percent is the app allocation.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08182a"/><stop offset=".58" stop-color="#0d1931"/><stop offset="1" stop-color="#14213b"/></linearGradient>
@@ -22,16 +22,16 @@
 
   <!-- Header and legend -->
   <g transform="translate(52 47)"><rect width="62" height="62" rx="16" fill="#111b2f"/><path d="M9 29 11 4 25 19 32 17 39 19 53 4 55 29 51 43 40 54 32 61 24 54 13 43Z" fill="#e99b49"/><path d="M14 29 15 15 26 25 32 22 38 25 49 15 50 29 47 41 38 50 32 56 26 50 17 41Z" fill="#151d2c"/><path d="M20 36 27 32 32 35 37 32 44 36 38 39 32 38 26 39Z" fill="#aebbd0"/><path d="M23 40 32 35 41 40 38 49 32 54 26 49Z" fill="#d7d3c9"/><path d="M27 42 32 40 37 42 32 47Z" fill="#151d2c"/><circle cx="25" cy="34" r="1.8" fill="#f4a340"/><circle cx="39" cy="34" r="1.8" fill="#f4a340"/></g>
-  <text x="129" y="90" class="brand">funded<tspan fill="#ffc77a">.vip</tspan></text>
+  <text x="129" y="90" class="brand">richpad<tspan fill="#ffc77a">.fun</tspan></text>
   <text x="504" y="76" class="heading">FROM LAUNCH TO VERIFIED REWARDS</text>
   <text x="506" y="105" class="sub">Solana Devnet · current policy</text>
-  <circle cx="1280" cy="103" r="7" fill="#6de8e1"/><text x="1295" y="109" class="tiny">SOL</text><circle cx="1360" cy="103" r="7" fill="#ffd17e"/><text x="1375" y="109" class="tiny">$FUNDED</text><circle cx="1480" cy="103" r="7" fill="#cfb9ff"/><text x="1495" y="109" class="tiny">New coin</text>
+  <circle cx="1280" cy="103" r="7" fill="#6de8e1"/><text x="1295" y="109" class="tiny">SOL</text><circle cx="1360" cy="103" r="7" fill="#ffd17e"/><text x="1375" y="109" class="tiny">$RICH</text><circle cx="1480" cy="103" r="7" fill="#cfb9ff"/><text x="1495" y="109" class="tiny">New coin</text>
 
   <!-- Four step route -->
   <rect x="54" y="149" width="338" height="193" rx="23" fill="url(#card)" stroke="#397ca2" stroke-width="2"/>
   <circle cx="92" cy="190" r="22" fill="#244f6a" stroke="#4ebcf0" stroke-width="2"/><text x="92" y="198" text-anchor="middle" font-size="22" font-weight="900" fill="#e9f8ff">1</text>
   <text x="128" y="196" class="step">LAUNCH</text><text x="77" y="246" class="cardTitle">Choose a tier</text>
-  <text x="77" y="279" class="body">Standard · Pro · Premier</text><text x="77" y="314" class="small">Paid tiers burn <tspan class="gold">$FUNDED</tspan></text>
+  <text x="77" y="279" class="body">Standard · Pro · Premier</text><text x="77" y="314" class="small">Paid tiers burn <tspan class="gold">$RICH</tspan></text>
 
   <rect x="438" y="149" width="338" height="193" rx="23" fill="url(#card)" stroke="#397ca2" stroke-width="2"/>
   <circle cx="476" cy="190" r="22" fill="#244f6a" stroke="#4ebcf0" stroke-width="2"/><text x="476" y="198" text-anchor="middle" font-size="22" font-weight="900" fill="#e9f8ff">2</text>
@@ -65,14 +65,14 @@
   <rect x="827" y="493" width="318" height="53" rx="13" fill="#1a3e4e"/><text x="848" y="528" class="chip"><tspan fill="#8af3e6">8%</tspan> Operations</text>
   <rect x="1158" y="493" width="358" height="53" rx="13" fill="#1a3e4e"/><text x="1179" y="528" class="chip"><tspan fill="#8af3e6">1%</tspan> Creator referrals</text>
   <rect x="827" y="559" width="318" height="53" rx="13" fill="#1a3e4e"/><text x="848" y="594" class="chip"><tspan fill="#8af3e6">4%</tspan> Daily bonus</text>
-  <rect x="1158" y="559" width="358" height="53" rx="13" fill="#3c322b" stroke="#9d7b4d"/><text x="1179" y="594" class="chip"><tspan class="gold">5%</tspan> $FUNDED buy + burn</text>
+  <rect x="1158" y="559" width="358" height="53" rx="13" fill="#3c322b" stroke="#9d7b4d"/><text x="1179" y="594" class="chip"><tspan class="gold">5%</tspan> $RICH buy + burn</text>
 
   <text x="827" y="632" class="footer">Includes 2% AI agents · app Operations &amp; marketing is only 8%</text>
   <!-- Separate token path and AI-agent budget -->
   <rect x="54" y="673" width="723" height="151" rx="23" fill="url(#violetCard)" stroke="#8f78c7" stroke-width="2"/>
   <circle cx="90" cy="714" r="11" fill="#cfb9ff"/><text x="114" y="721" class="over violet">MIGRATION · PUMPSWAP</text>
   <text x="82" y="767" class="cardTitle">New-coin airdrop</text>
-  <text x="82" y="800" class="body">Eligible $FUNDED snapshot holders claim</text>
+  <text x="82" y="800" class="body">Eligible $RICH snapshot holders claim</text>
   <path d="M546 752 H697" fill="none" stroke="#c2aaff" stroke-width="4" stroke-linecap="round" marker-end="url(#purpleArrow)"/>
   <circle cx="548" cy="752" r="17" fill="#6e5a9e" stroke="#c2aaff" stroke-width="2"/><text x="548" y="758" text-anchor="middle" font-size="18" font-weight="900" fill="#f2eaff">✦</text>
 

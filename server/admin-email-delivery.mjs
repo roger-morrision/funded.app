@@ -30,7 +30,7 @@ export async function deliverAdminCode({env,to,id,code,path,cluster,origin,expir
   if(config.to!==to)throw Error('Admin confirmation recipient changed.');
   // Provider disclosure is deliberately limited. No wallet addresses, amounts,
   // exact payload, raw route, cookies or signing keys are included in the email.
-  const message={from:config.from,to:[config.to],subject:'funded.vip admin action confirmation',
+  const message={from:config.from,to:[config.to],subject:'richpad.fun admin action confirmation',
     text:`Confirmation code: ${code}\n\nAction: ${actionName(path)}\nExpires: ${new Date(expiresAt).toISOString()}\nApp: ${origin}\nNetwork: ${cluster}\nRequest fingerprint: ${digest}\n\nReview the exact action in the admin dialog before entering this code. It authorizes one API attempt only. If you did not request this action, do not share the code.`};
   if(config.provider==='gmail'){
     const transport=createTransport({host:'smtp.gmail.com',port:465,secure:true,

@@ -70,10 +70,10 @@ test('quote/confirm retries and concurrent confirmations store each verified pay
  t.mock.method(Connection.prototype,'getGenesisHash',async()=>DEVNET_GENESIS_HASH);
  const proofRead=t.mock.method(Connection.prototype,'getParsedTransaction',async signature=>transactions.get(signature));
  const call=async(path,input,method='POST')=>{const res={};await route({method,headers:{origin:'https://funded.test'},input},res,new URL('https://funded.test'+path));return res;};
- const quote=async()=>{const res=await call('/api/boosts/quote',{mint,payer,packageId:'10x'});assert.equal(res.status,201);assert.equal(res.data.durationPolicy,STACKED_BOOST_POLICY);return res.data;};
- const payment=(q,signature)=>transactions.set(signature,{blockTime:Date.now()/1000,slot:100+sequence,meta:{err:null},transaction:{signatures:[signature],message:{accountKeys:[{pubkey:payer,signer:true}],instructions:[
+ const quote=async()=>{const res=await call('/api/boosts/quote',{mint,payer,packageId:'10x',paymentProtocol:'journal-v1'});assert.equal(res.status,201);assert.equal(res.data.durationPolicy,STACKED_BOOST_POLICY);return res.data;};
+ const payment=(q,signature)=>{(state.boostPayments||={})[signature]={quoteId:q.id,broadcastAllowed:true,blockhash:mint,registeredAt:q.createdAt};return transactions.set(signature,{blockTime:Date.now()/1000,slot:100+sequence,meta:{err:null},transaction:{signatures:[signature],message:{recentBlockhash:mint,accountKeys:[{pubkey:payer,signer:true}],instructions:[
   {programId:SystemProgram.programId,parsed:{type:'transfer',info:{source:payer,destination:recipient,lamports:q.lamports}}},
-  {programId:BOOST_MEMO_PROGRAM,parsed:boostMemo(q.id)}]}}});
+  {programId:BOOST_MEMO_PROGRAM,parsed:boostMemo(q.id)}]}}});};
  try {
   const first=await quote(),sig1='2'.repeat(64);payment(first,sig1);
   assert.equal((await call('/api/boosts/confirm',{quoteId:first.id,signature:sig1})).status,201);

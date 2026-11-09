@@ -37,13 +37,13 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
   if (!tier || !fundedMint || claim.fundedMint !== fundedMint || claim.amountTokens !== requiredAmount
     || (quote && (claim.quoteId !== quote.id || quote.tier !== claim.tier || quote.payer !== payer
       || quote.fundedMint !== fundedMint || !Number.isInteger(quote.usd) || quote.usd < 1))) {
-    throw new Error('The claimed promotion package does not match the configured $FUNDED burn policy.');
+    throw new Error('The claimed promotion package does not match the configured $RICH burn policy.');
   }
   if (quote) {
     const blockTime = Number(transaction.blockTime) * 1000;
     if (!Number.isFinite(blockTime) || blockTime < Date.parse(quote.createdAt) - 30_000
       || blockTime > Date.parse(quote.expiresAt) + 30_000)
-      throw new Error('The $FUNDED launch quote was not current when the burn confirmed.');
+      throw new Error('The $RICH launch quote was not current when the burn confirmed.');
   }
   const keys = transactionKeys(transaction);
   const instruction = (transaction.transaction.message.instructions || transaction.transaction.message.compiledInstructions || []).find(compiled => {
@@ -61,7 +61,7 @@ export function verifyAtomicLaunchPromotion({ transaction, payer, signature, cla
         && decoded.data.amount === tokensToBaseUnits(requiredAmount, decoded.data.decimals);
     } catch { return false; }
   });
-  if (!instruction) throw new Error('The Pump creation transaction has no matching atomic $FUNDED BurnChecked instruction.');
+  if (!instruction) throw new Error('The Pump creation transaction has no matching atomic $RICH BurnChecked instruction.');
   return {
     tier: tier.id, label: tier.label, amountTokens: requiredAmount, fundedMint,
     status: 'verified', receipt: { signature, slot:transaction.slot, blockTime:transaction.blockTime??null, instruction: 'BurnChecked', atomicWithPumpLaunch: true, verified: true },

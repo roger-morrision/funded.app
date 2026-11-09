@@ -14,7 +14,7 @@ async function launchKeys({ global, payer, programId, authority }) {
   const router = buildMintRouterInitializeInstruction({ programId, mint, payer }).router.address;
   const amount = 30_000_000n * 1_000_000n;
   const quote = getBuySolAmountFromTokenAmount({ global, feeConfig:null, mintSupply:null, bondingCurve:null, amount:new BN(amount.toString()), quoteMint:NATIVE_MINT });
-  const instructions = await PUMP_SDK.createV2AndBuyInstructions({ global, mint, name:'Reserve lookup', symbol:'RLOOK', uri:`https://funded.vip/devnet-metadata/${mint.toBase58()}`, creator:router, user:payer, amount:new BN(amount.toString()), solAmount:quote, mayhemMode:false, cashback:false, holderReward:false });
+  const instructions = await PUMP_SDK.createV2AndBuyInstructions({ global, mint, name:'Reserve lookup', symbol:'RLOOK', uri:`https://richpad.fun/devnet-metadata/${mint.toBase58()}`, creator:router, user:payer, amount:new BN(amount.toString()), solAmount:quote, mayhemMode:false, cashback:false, holderReward:false });
   const { vault } = rewardAddresses({ programId, authority, mint });
   const source = getAssociatedTokenAddressSync(mint, payer, false, TOKEN_2022_PROGRAM_ID);
   const destination = getAssociatedTokenAddressSync(mint, vault, true, TOKEN_2022_PROGRAM_ID);

@@ -2,7 +2,7 @@ import { escapeHtml } from '../shared/display.js';
 
 // "My rewards" tab on the coin page: what the connected wallet received from
 // this coin (SOL holder, X and creator payouts), plus shortcuts to this coin's
-// $FUNDED airdrop allocation and the wallet's Daily bonus results.
+// $RICH airdrop allocation and the wallet's Daily bonus results.
 const CACHE_MS = 60_000;
 const cache = new Map();
 const requests = new WeakMap();
@@ -17,7 +17,7 @@ const explorer = signature => `https://explorer.solana.com/tx/${encodeURICompone
 
 function shortcuts(mint) {
   return `<div class="coin-my-rewards-links">
-    <a class="coin-my-rewards-card" href="/?airdropMint=${encodeURIComponent(mint)}#airdrops"><strong>$FUNDED airdrop</strong><span>Check your allocation of this coin →</span></a>
+    <a class="coin-my-rewards-card" href="/?airdropMint=${encodeURIComponent(mint)}#airdrops"><strong>$RICH airdrop</strong><span>Check your allocation of this coin →</span></a>
     <a class="coin-my-rewards-card" href="#bonuses"><strong>Daily bonus</strong><span>See if your wallet won today →</span></a>
   </div>`;
 }

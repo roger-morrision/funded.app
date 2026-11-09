@@ -65,10 +65,10 @@ export function updateLaunchPreview(
     xLabelWeight += weight;
   }
   xLabel = xLabel.trim() || 'Token';
-  const xLink = 'funded.vip/token/your-token';
+  const xLink = 'richpad.fun/token/your-token';
   const xLaunch = launchBurn.tier === 'standard'
-    ? `New project on funded.vip: “${xLabel}”. Token creation finalized.`
-    : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $FUNDED tier burn finalized.`;
+    ? `New project on richpad.fun: “${xLabel}”. Token creation finalized.`
+    : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $RICH tier burn finalized.`;
   const xPost = document.querySelector('#launch-x-post-preview');
   if (xPost) xPost.textContent = `${xLaunch}\n${xLink}`;
   const xPostCount = document.querySelector('#launch-x-post-count');
@@ -129,7 +129,7 @@ export function updateLaunchPreview(
     promotionBadge.className = `preview-promotion-badge ${launchBurn.tier}`;
   }
   const previewBurnAmount = document.querySelector('#preview-burn-amount');
-  if (previewBurnAmount) previewBurnAmount.textContent = launchBurn.requiresBurn ? `${formatLaunchBurnAmount(launchBurn.amountTokens)} $FUNDED` : 'None';
+  if (previewBurnAmount) previewBurnAmount.textContent = launchBurn.requiresBurn ? `${formatLaunchBurnAmount(launchBurn.amountTokens)} $RICH` : 'None';
   const routerPreview = document.querySelector('#preview-fee-router');
   if (routerPreview) routerPreview.textContent = !feeRouterState.verified ? 'Launch blocked'
     : feeRouterState.scope === 'per-mint-v3' ? '100% → mint-specific V3 router'
@@ -165,5 +165,5 @@ export function launchFeeSentence({ symbol = '', creator = 0, holders = 0, x = 0
   if (n(holders) > 0) parts.push(`holders share ${n(holders)}%`);
   if (n(x) > 0) parts.push(`${/^@[A-Za-z0-9_]{1,15}$/.test(xHandle || '') ? xHandle : 'the X account'} gets ${n(x)}%`);
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0];
-  return `Of every creator fee ${symbol ? `$${symbol}` : 'your coin'} earns, ${list}. The other ${Math.max(0, 100 - n(creator) - n(holders) - n(x))}% pays for operations, referrals, the Daily bonus and $FUNDED burns.`;
+  return `Of every creator fee ${symbol ? `$${symbol}` : 'your coin'} earns, ${list}. The other ${Math.max(0, 100 - n(creator) - n(holders) - n(x))}% pays for operations, referrals, the Daily bonus and $RICH burns.`;
 }

@@ -11,7 +11,7 @@ export function sharedFeeAllocationCopy(fee=FEE_DISTRIBUTION) {
 export function savedFeeAllocationCopy(policy) {
   const saved=policy?.fixedFunded;
   const rows=[['Operations & marketing',saved?.operations],['Referral network',saved?.appReferral],
-    ['Daily bonus',saved?.communityRewards],['$FUNDED buyback & burn',saved?.fundedBuyback],
+    ['Daily bonus',saved?.communityRewards],['$RICH buyback & burn',saved?.fundedBuyback],
     ...(saved?.marketingAgency?[['AI marketing & coin buybacks',saved.marketingAgency]]:[])];
   if(saved?.percent!==20||rows.some(([,row])=>typeof row?.effectivePercentOfCreatorFees!=='number'||!Number.isFinite(row.effectivePercentOfCreatorFees)||row.effectivePercentOfCreatorFees<0)
     ||Math.abs(rows.reduce((sum,[,row])=>sum+row.effectivePercentOfCreatorFees,0)-20)>0.000001)return 'Operations & marketing and reward allocations: inspect the saved policy';
@@ -31,7 +31,7 @@ export function currentFeePolicyCopy() {
   const fee = FEE_DISTRIBUTION;
   const rates = [fee.operationsEffectivePercent, fee.appReferralEffectivePercent,
     fee.communityEffectivePercent, fee.buybackEffectivePercent];
-  const names = ['Operations & marketing', 'Referral network', 'Daily bonus', '$FUNDED buyback & burn'];
+  const names = ['Operations & marketing', 'Referral network', 'Daily bonus', '$RICH buyback & burn'];
   if(fee.agencyEffectivePercent!==undefined){rates.push(fee.agencyEffectivePercent);names.push('AI marketing & coin buybacks');}
   const presentation=feeDistributionPresentation(fee);
   return {
@@ -47,7 +47,7 @@ export function currentFeePolicyCopy() {
     reserve: 'Missing referral levels stay in the community reserve. They are not reassigned to another inviter or added to the Daily bonus pool.',
     bonus: `The ${fee.communityEffectivePercent}% Daily bonus pool is funded from gross collected creator fees at each coin’s saved rate. ${bonusCategoryCopy()} Each completed UTC day closes at 00:00 UTC. Creators rank by finalized settled fees, referrers by direct referred creators’ settled fees, and traders by finalized buy and sell SOL volume. Fees qualify in the window when settlement finalizes; later settlements enter a later window. New trader rankings include only wallets that can sign directly; program-derived addresses are excluded. Existing snapshots keep their original eligibility and paid rankings stay frozen.`,
     bonusFunding: 'Daily bonuses are paid automatically to winning wallets after the snapshot and source funding are verified. No manual claim or recipient signature is required. Standard snapshots close daily; an explicitly labeled Devnet QA mode uses five-minute windows for selected test coins, with checks every 30 seconds. The cutoff is not an immediate payment guarantee. Ties use wallet address order; unfilled ranks retain their share in the reserve. The separate community airdrop uses launched coin tokens, not this SOL pool.',
-    buyback: 'The buyback allocation stays in dedicated program vaults until the configured aggregate trigger is met. The worker then attempts a protected $FUNDED purchase and burn. Market checks and finalized purchase/burn receipts are required; the allocation itself is not a burn.',
+    buyback: 'The buyback allocation stays in dedicated program vaults until the configured aggregate trigger is met. The worker then attempts a protected $RICH purchase and burn. Market checks and finalized purchase/burn receipts are required; the allocation itself is not a burn.',
     agency: 'Every new launch includes both own-coin buyback-and-burn agents. Promotion packages also include X promotion. They share the separate AI marketing allocation equally and use only verified, funded budgets at their saved milestones or cadence. Existing coins retain their saved selections. Policy publication does not establish current executor readiness.',
     steps: [`${fee.creatorPercent}% creator-directed`,...rates.map((rate, i) => `${rate}% ${names[i]}`)],
   };

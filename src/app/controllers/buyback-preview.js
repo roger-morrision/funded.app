@@ -29,7 +29,7 @@ export function createBuybackPreviewController(appState) {
     const stamp = Date.now();
     state.receipts.push(appState.buildBuybackReceipt({ accrualIds: pendingAccruals.map(accrual => accrual.id), asset: 'SOL', inputAmount: decision.executionAmount, tokensBought, buySignature: `preview-buy-${stamp}`, burnSignature: `preview-burn-${stamp}`, supplyBefore, supplyAfter: supplyBefore - tokensBought, mode: 'local-preview' }));
     appState.saveBuybackPreviewState(state);
-    appState.renderBuybackDashboard(`Protected preview bought and burned ${appState.formatBuybackAmount(tokensBought, 2)} $FUNDED. No transaction was submitted.`);
+    appState.renderBuybackDashboard(`Protected preview bought and burned ${appState.formatBuybackAmount(tokensBought, 2)} $RICH. No transaction was submitted.`);
     appState.showToast('Buyback preview completed');
   }
   // app-source-end

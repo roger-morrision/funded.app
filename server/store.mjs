@@ -35,6 +35,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.listingQuotes ||= {};
     state.boostQuotes ||= {};
     state.boostReceipts ||= {};
+    state.boostPayments ||= {};
     state.launchTierQuotes ||= {};
     state.launchServiceQuotes ||= {};
     state.launchSymbolReservations ||= {};
