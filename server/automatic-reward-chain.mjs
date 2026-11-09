@@ -16,6 +16,8 @@ import {
 import { SOL_ASSET_MINT, verifyRewardProof } from '../reward-merkle.js';
 import {readProgramDataEvidence} from './program-data-evidence.mjs';
 import {requireNativeRewardRecipient} from './native-reward-recipient.mjs';
+import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
+import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
 export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
@@ -109,8 +111,16 @@ function parsePayment(account) {
   return { cycle: new PublicKey(data.subarray(8, 40)).toBase58(), recipient: new PublicKey(data.subarray(40, 72)).toBase58(), amount: String(data.readBigUInt64LE(72)), leafIndex: data.readUInt32LE(80), paidAt: Number(data.readBigInt64LE(84)), receivedAmount: data.length >= 100 ? String(data.readBigUInt64LE(92)) : null };
 }
 
-export async function finalizedSend(connection, transaction, signers, { pollMs = 1000, timeoutMs = 90_000 } = {}) {
+export async function finalizedSend(connection, transaction, signers, { pollMs = 1000, timeoutMs = 90_000,
+  cluster = 'devnet', programId, expectedProgramDataSha256 } = {}) {
   if (!Array.isArray(signers) || !signers.length) throw new Error('A reward transaction signer is required.');
+  if (!financialProgramAllowed(cluster,programId,expectedProgramDataSha256)) throw new Error('Reward program has no reviewed release for this network.');
+  await assertRpcNetwork(connection,cluster);
+  if (cluster==='mainnet-beta') {
+    const evidence=await readProgramDataEvidence(connection,new PublicKey(programId),{cluster});
+    if (!evidence.account?.executable || evidence.sha256!==expectedProgramDataSha256?.toLowerCase())
+      throw new Error('Reward program does not match the reviewed Mainnet release.');
+  }
   const latest = await connection.getLatestBlockhash('finalized');
   const fresh = new Transaction({ feePayer:transaction.feePayer || signers[0].publicKey,
     recentBlockhash:latest.blockhash }).add(...transaction.instructions);
@@ -148,26 +158,41 @@ export async function finalizedSend(connection, transaction, signers, { pollMs =
   throw new Error(`Reward transaction ${signature} has no verified finalized receipt; reconcile before retrying.${lastRpcError ? ` Last RPC error: ${String(lastRpcError.message || lastRpcError)}` : ''}`);
 }
 
-export function createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256, expectedVersion = REWARD_PROGRAM_VERSION }) {
+export function createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256, expectedVersion = REWARD_PROGRAM_VERSION, cluster = 'devnet' }) {
+  requireSolanaCluster(cluster);
   const program = new PublicKey(programId);
   const [legacyRouter] = PublicKey.findProgramAddressSync([ROUTER_SEED], program);
   if (!authority?.publicKey) throw new Error('A reward authority signer is required.');
 
   async function readiness() {
-    const [genesisHash, evidence, routerAccount] = await Promise.all([connection.getGenesisHash(), readProgramDataEvidence(connection, program), connection.getAccountInfo(legacyRouter, 'finalized')]);
+    if (!financialProgramAllowed(cluster,program.toBase58(),expectedProgramDataSha256))
+      return {constrainedPayouts:false,cluster,program:program.toBase58(),reasons:['program-release-not-reviewed']};
+    const genesisHash = await assertRpcNetwork(connection,cluster);
+    const [evidence, routerAccount] = await Promise.all([readProgramDataEvidence(connection, program,{cluster}), connection.getAccountInfo(legacyRouter, 'finalized')]);
     const account = evidence.account;
     const reasons = [];
-    if (genesisHash !== DEVNET_GENESIS_HASH) reasons.push('cluster-is-not-devnet');
+    if (genesisHash !== SOLANA_GENESIS[cluster]) reasons.push('cluster-mismatch');
     if (!account?.executable) reasons.push('program-is-not-executable');
     if (expectedVersion !== REWARD_PROGRAM_VERSION) reasons.push('program-version-not-approved');
     if (!expectedProgramDataSha256) reasons.push('program-data-hash-not-configured');
     if (expectedProgramDataSha256 && evidence.sha256 !== expectedProgramDataSha256.toLowerCase()) reasons.push('program-data-hash-mismatch');
     const routerData = Buffer.from(routerAccount?.data || []);
     if (!routerAccount?.owner?.equals(program) || routerData.length !== 74 || routerData.subarray(0, 8).toString() !== 'FUNDFEE1' || !routerData.subarray(41, 73).equals(authority.publicKey.toBuffer())) reasons.push('router-authority-mismatch');
-    return { constrainedPayouts: reasons.length === 0, cluster: genesisHash === DEVNET_GENESIS_HASH ? 'devnet' : 'unknown', program: program.toBase58(), programDataAddress: evidence.programDataAddress || null, observedProgramDataSha256: evidence.sha256, reasons };
+    return { constrainedPayouts: reasons.length === 0, cluster, genesisHash, program: program.toBase58(), programDataAddress: evidence.programDataAddress || null, observedProgramDataSha256: evidence.sha256, reasons };
+  }
+
+  async function requireReady(plan) {
+    if (plan && !financialRecordNetwork(plan,cluster,{legacyDevnet:true})) throw new Error('Reward plan belongs to a different network.');
+    const ready = await readiness();
+    if (!ready.constrainedPayouts) throw new Error(`Reward chain unavailable: ${ready.reasons.join(', ')}`);
+  }
+  async function send(transaction) {
+    await requireReady();
+    return finalizedSend(connection,transaction,[authority],{cluster,programId:program.toBase58(),expectedProgramDataSha256});
   }
 
   async function ensureVault(mint) {
+    await requireReady();
     const { vault } = rewardAddresses({ programId: program, authority: authority.publicKey, mint });
     const [, bump] = PublicKey.findProgramAddressSync([VAULT_SEED, authority.publicKey.toBuffer(), new PublicKey(mint).toBuffer()], program);
     const validVault = account => {
@@ -187,12 +212,13 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       keys: [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: new PublicKey(mint), isSigner: false, isWritable: false }, { pubkey: vault, isSigner: false, isWritable: true }, { pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }],
       data: discriminator('global', 'initialize_reward_vault'),
     });
-    await finalizedSend(connection, new Transaction().add(instruction), [authority]);
+    await send(new Transaction().add(instruction));
     if (!validVault(await connection.getAccountInfo(vault, 'finalized'))) throw new Error('Reward vault initialization lacks a verified finalized account.');
     return vault;
   }
 
   async function ensureReserve(vault, asset) {
+    await requireReady();
     const assetKey = new PublicKey(asset === 'SOL' ? SOL_ASSET_MINT : asset);
     const reserve = rewardReserveAddress({ programId:program, vault, asset:assetKey });
     const valid = account => {
@@ -209,15 +235,14 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       {pubkey:reserve,isSigner:false,isWritable:true}, {pubkey:legacyRouter,isSigner:false,isWritable:false},
       {pubkey:SystemProgram.programId,isSigner:false,isWritable:false}],
       data:Buffer.concat([discriminator('global','initialize_reward_reserve'),assetKey.toBuffer()])});
-    await finalizedSend(connection,new Transaction().add(instruction),[authority]);
+    await send(new Transaction().add(instruction));
     if (!valid(await connection.getAccountInfo(reserve,'finalized'))) throw new Error('Reward reserve initialization lacks a verified finalized account.');
     return reserve;
   }
 
   async function ensureCycle(plan) {
+    await requireReady(plan);
     if (new PublicKey(plan.mint).equals(program)) throw new Error('Community program reserve payouts require a separate published program flow.');
-    const ready = await readiness();
-    if (!ready.constrainedPayouts) throw new Error(`Reward chain unavailable: ${ready.reasons.join(', ')}`);
     const vault = await ensureVault(plan.mint);
     const reserve = await ensureReserve(vault, plan.manifest.asset);
     const { cycle } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId });
@@ -249,7 +274,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       ? Buffer.concat([discriminator('global', isSol ? 'migrate_reward_cycle_sol' : 'migrate_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId')])
       : Buffer.concat([discriminator('global', isSol ? 'create_reward_cycle' : 'create_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
     const instruction = new TransactionInstruction({ programId: program, keys, data });
-    const signature = await finalizedSend(connection, new Transaction().add(instruction), [authority]);
+    const signature = await send(new Transaction().add(instruction));
     const committed = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
     if (!committed || committed.root !== expected.root || committed.totalAmount !== expected.totalAmount) throw new Error('Reward cycle transaction finalized without the expected state delta.');
     const reserveAfter = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
@@ -260,6 +285,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   }
 
   async function inspectLeaf(plan, leaf) {
+    await requireReady(plan);
     if (!verifyRewardProof({cycleId:plan.manifest.cycleId,asset:plan.manifest.asset,recipient:leaf.recipient,
       amount:leaf.amount,index:leaf.index,proof:leaf.proof,root:plan.manifest.root})) throw new Error('Invalid reviewed reward Merkle proof.');
     const {vault,cycle,payment}=rewardAddresses({programId:program,authority:authority.publicKey,
@@ -280,13 +306,12 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   }
 
   async function submitLeaf(plan, leaf) {
+    await requireReady(plan);
     if (!verifyRewardProof({ cycleId: plan.manifest.cycleId, asset: plan.manifest.asset, recipient: leaf.recipient, amount: leaf.amount, index: leaf.index, proof: leaf.proof, root: plan.manifest.root })) throw new Error('Refusing to submit an invalid local Merkle proof.');
     const { vault, cycle, payment } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId, recipient: leaf.recipient });
-    const prior = parsePayment(await connection.getAccountInfo(payment, 'finalized'));
+    const prior = await inspectLeaf(plan,leaf);
     if (prior) {
-      if (prior.cycle !== cycle.toBase58() || prior.recipient !== leaf.recipient || prior.amount !== leaf.amount || prior.leafIndex !== leaf.index) throw new Error('Existing reward payment conflicts with the manifest.');
-      if (prior.receivedAmount === null || BigInt(prior.receivedAmount) <= 0n || BigInt(prior.receivedAmount) > BigInt(prior.amount)) throw new Error('Existing reward payment lacks verified net receipt data; reconcile its finalized transaction before marking paid.');
-      return { signature: null, finalized: true, balanceDeltaVerified: true, amountReceived: prior.receivedAmount, payment: payment.toBase58(), alreadyPaid: true };
+      return { signature: null, finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: payment.toBase58(), alreadyPaid: true };
     }
     const proof = Buffer.concat(leaf.proof.map(node => hex32(node, 'proof node')));
     const data = Buffer.concat([discriminator('global', plan.manifest.asset === 'SOL' ? 'payout_reward_sol' : 'payout_reward_token'), u64(leaf.amount), u32(leaf.index), u32(leaf.proof.length), proof]);
@@ -320,7 +345,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const reserveBefore = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
     if (!cycleBefore || !reserveBefore) throw new Error('Reward cycle or reserve account is not verified before payout.');
     const vaultBefore = plan.manifest.asset === 'SOL' ? await connection.getBalance(vault, 'finalized') : null;
-    const signature = await finalizedSend(connection, transaction, [authority]);
+    const signature = await send(transaction);
     const record = parsePayment(await connection.getAccountInfo(payment, 'finalized'));
     if (!record || record.amount !== leaf.amount || record.recipient !== leaf.recipient || record.leafIndex !== leaf.index) throw new Error('Payout finalized without the expected payment record.');
     if (record.receivedAmount === null || BigInt(record.receivedAmount) <= 0n || BigInt(record.receivedAmount) > BigInt(leaf.amount)) throw new Error('Payout record lacks a valid net received amount.');
@@ -360,7 +385,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const vault = await ensureVault(mint), lamports = BigInt(amount);
     if (lamports <= 0n || lamports > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Invalid SOL vault funding amount.');
     const before = await connection.getBalance(vault, 'finalized');
-    const signature = await finalizedSend(connection, new Transaction().add(SystemProgram.transfer({ fromPubkey: authority.publicKey, toPubkey: vault, lamports: Number(lamports) })), [authority]);
+    const signature = await send(new Transaction().add(SystemProgram.transfer({ fromPubkey: authority.publicKey, toPubkey: vault, lamports: Number(lamports) })));
     const after = await connection.getBalance(vault, 'finalized');
     if (BigInt(after - before) !== lamports) throw new Error('SOL vault funding finalized without the exact expected balance delta.');
     return { signature, vault: vault.toBase58(), amount: String(lamports), balanceDeltaVerified: true };
@@ -376,7 +401,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const transaction = new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, destination, vault, assetKey, tokenProgram), createTransferCheckedInstruction(source, assetKey, destination, authority.publicKey, gross, decimals, [], tokenProgram));
     const sourceBefore = BigInt((await connection.getTokenAccountBalance(source, 'finalized')).value.amount);
     const vaultBefore = await connection.getTokenAccountBalance(destination, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
-    const signature = await finalizedSend(connection, transaction, [authority]);
+    const signature = await send(transaction);
     const [sourceAfter, vaultAfter] = await Promise.all([source, destination].map(address =>
       connection.getTokenAccountBalance(address, 'finalized').then(row => BigInt(row.value.amount))));
     const netAmount = verifiedTokenFundingDeltas({ sourceBefore, sourceAfter, vaultBefore, vaultAfter, requestedAmount: gross });

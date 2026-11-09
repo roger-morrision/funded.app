@@ -16,4 +16,4 @@ const expected=manifest[variant],bytes=readFileSync(path);
 assert.equal(bytes.subarray(0,4).toString('hex'),'7f454c46','Expected ELF bytecode');
 assert.equal(bytes.length,expected.bytes,'Candidate size differs from recorded evidence');
 assert.equal(createHash('sha256').update(bytes).digest('hex'),expected.sha256,'Candidate bytecode differs from recorded evidence');
-console.log(`${variant} candidate reproduced; deployed Devnet trust unchanged; deployment not authorized.`);
+console.log(`${variant} candidate reproduced; runtime commitment matches manifest. This command does not deploy or authorize deployment.`);

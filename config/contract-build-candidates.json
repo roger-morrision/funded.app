@@ -37,7 +37,7 @@
     ]
   },
   "retainedDevnetRuntimeCommitment": {
-    "bytes": 1095080,
-    "sha256": "26f0b678c881b28e01cd927f82ffb95cd377de2449f9e7507edad18725196485"
+    "bytes": 900144,
+    "sha256": "03749b95dd6f4cd67e77eb9932012bcd7ee61d34a3da0171a2fc48b3a9d99a24"
   }
 }

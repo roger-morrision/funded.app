@@ -24,6 +24,8 @@ These core modules are preparatory building blocks. Production financial workers
 
 ## Validation boundaries
 
+Reward chain preparation now binds every vault, reserve, funding, cycle, payout and payment-receipt operation to the selected RPC network and approved program evidence. The generic reward sender defaults to Devnet and refuses a Mainnet endpoint before signing. Explicit Mainnet sending requires the committed reviewed release and matching finalized ProgramData. Duplicate payouts revalidate the complete frozen manifest, cycle and payment ownership. These are locally tested boundaries; existing worker entry points and production write gates remain restricted until their remaining integration and acceptance cases pass.
+
 The JavaScript checks exercise mocked financial/network boundaries and an actual isolated local HTTP/WebSocket server. Production-feature compiled-bytecode tests use the public test identity in `config/contract-build-candidates.json`; that identity is not deployable. Neither suite is an independent audit, a current full financial acceptance run, or a Mainnet canary.
 
 The existing production-input inventory remains `config/mainnet-deployment-plan.json`. Its quoted reference binary is historical; it must not be confused with the latest production-feature test binary or the eventual production artifact.
