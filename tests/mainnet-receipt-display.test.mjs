@@ -9,7 +9,7 @@ import {createCreatorFeesRoutes} from '../server/routes/creator-fees.mjs';
 import {registeredLaunchMetadata} from '../server/launch-registration-metadata.mjs';
 import {verifyLaunchServiceFee} from '../server/launch-service-fee-proof.mjs';
 import {pinnedMetadataUri,onchainMetadataUri} from '../metadata-publication.js';
-import {isDevnetImageUri,isDevnetBannerUri} from '../devnet-metadata.js';
+import {isDevnetImageUri,isDevnetBannerUri,devnetLaunchMetadataUri} from '../devnet-metadata.js';
 import {serverCoinIdentity} from '../src/features/coin/server-identity.js';
 import {isAppPagePath} from '../server/page-routes.mjs';
 
@@ -19,6 +19,7 @@ test('rebranding preserves finalized legacy metadata without accepting unrelated
   const mint=key(4),creatorWallet=key(3),record={cluster:'devnet',mint,creatorWallet,name:'Fixture',symbol:'FIX'};
   for(const host of ['richpad.fun','funded.vip']) {
     const uri=`https://${host}/m/${mint}`;
+    assert.equal(devnetLaunchMetadataUri(mint,`https://${host}`),uri);
     assert.equal(await registeredLaunchMetadata({cluster:'devnet',record,inputUri:uri,
       proof:{cluster:'devnet',mint,feePayer:creatorWallet,name:'Fixture',symbol:'FIX',uri}}),uri);
     assert(isDevnetImageUri(`https://${host}/devnet-images/${mint}`,mint));

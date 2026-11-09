@@ -23,10 +23,10 @@ export function devnetMetadataUri(mint, origin = DEVNET_METADATA_ORIGIN) {
 
 // New launches use the public app's compact read-only alias. Existing metadata
 // and image URLs retain their configured origin and remain valid.
-export const devnetLaunchMetadataUri = mint => `https://richpad.fun/m/${mint}`;
+export const devnetLaunchMetadataUri = (mint, origin = DEVNET_METADATA_ORIGIN) => `${normalizeDevnetMetadataOrigin(origin)}/m/${mint}`;
 // Historical mints retain their immutable metadata URI after the domain move.
 export const isDevnetLaunchMetadataUri = (uri, mint) =>
-  uri === devnetLaunchMetadataUri(mint) || uri === `https://funded.vip/m/${mint}`;
+  uri === devnetLaunchMetadataUri(mint) || uri === `https://richpad.fun/m/${mint}` || uri === `https://funded.vip/m/${mint}`;
 
 export function devnetImageUri(mint, origin = DEVNET_METADATA_ORIGIN) {
   return `${normalizeDevnetMetadataOrigin(origin)}/devnet-images/${mint}`;

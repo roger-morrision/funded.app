@@ -8,6 +8,8 @@ Navigation, page titles, SEO descriptions, wallet and trade labels, launch promo
 
 ## Deployment handoff
 
+The owner approved deploying the new branding on the existing domain first, with richpad.fun connected later. During this transition, the runtime public origin, CORS, OAuth callback and frontend metadata origin stay on the working domain. Compact launch metadata URLs and launch estimates follow the configured metadata origin. The visible brand remains richpad.fun / $RICH. Rebuild with the new origin and update runtime configuration together when the domain is ready.
+
 The deployment templates target `https://richpad.fun`, including CORS, OAuth callbacks, public share links and new Devnet metadata URLs. The Mainnet planning origin is also recorded; Mainnet activation remains disabled and all remaining production identity/signer placeholders remain in place.
 
 Before switching the public site:

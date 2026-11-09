@@ -7,6 +7,7 @@ import { tokenPageHtml } from './token-social.mjs';
 import { publicMetadata } from './devnet-metadata.mjs';
 import { tokenPlaceholderSvg } from './token-placeholder.mjs';
 import { publicDiscoveryHtml } from './public-discovery.mjs';
+import { normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
 
 // Keep the public metadata lookup before API dispatch and page fallbacks after it.
 export function createPageDelivery({ staticRoot, store, solanaCluster, respond }) {
@@ -85,7 +86,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
         || launch.pumpFeeRoute?.scope !== 'per-mint-v3' || launch.pumpFeeRoute.verified !== true
         || launch.pumpFeeRoute.router !== launch.creator || !launch.pumpFeeRoute.programId
         || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified V3 launch metadata is not available.' });
-      return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Token launched on richpad.fun.', image: 'https://richpad.fun/favicon.svg' });
+      return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Token launched on richpad.fun.', image: `${normalizeDevnetMetadataOrigin(process.env.PUBLIC_APP_URL || process.env.DEVNET_METADATA_ORIGIN)}/favicon.svg` });
     }
     if (req.method === 'GET' && /^\/creator\/x\/\d{1,24}\/?$/.test(url.pathname)) {
       const creatorId=url.pathname.split('/')[3];

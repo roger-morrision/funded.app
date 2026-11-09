@@ -1,4 +1,5 @@
 import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
+import { devnetLaunchMetadataUri } from '../../../devnet-metadata.js';
 import { promotionBurnStep } from '../../../launch-promotion-receipt.js';
 import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
 import { developerLockLaunchInstructions } from '../../../developer-token-lock.js';
@@ -63,8 +64,8 @@ export function createWalletMetricsController(appState) {
       const mintRouter = buildLaunchMintRouter({mint:mint.publicKey,payer,v3FeeRouter:launchV3,feeShares:appState.getFeeDistributionInputs()});
       const router = mintRouter.router.address;
       const launchInstructions = initialBuy.amountBaseUnits > 0n
-        ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://richpad.fun/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
-        : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: `https://richpad.fun/m/${mint.publicKey.toBase58()}`, creator: router, user: payer, mayhemMode: false, holderReward: false })];
+        ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: devnetLaunchMetadataUri(mint.publicKey.toBase58()), creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
+        : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: devnetLaunchMetadataUri(mint.publicKey.toBase58()), creator: router, user: payer, mayhemMode: false, holderReward: false })];
       const launchBurn = appState.getLaunchBurnPolicy();
       const burnPlan = launchBurn.requiresBurn
         ? await prepareFundedLaunchBurn({ connection: appState.connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
