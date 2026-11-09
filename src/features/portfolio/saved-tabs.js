@@ -50,15 +50,27 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
       const heading=document.createElement('h3');heading.textContent=key==='rewards'?'Total rewards received':'My referral';
       const identity=document.createElement('p');identity.textContent=app.connectedWalletAddress?`Connected wallet · ${app.shortAddress(app.connectedWalletAddress)}`:'Connect your wallet to check your personal results.';linkWalletText(identity,app.connectedWalletAddress);panel.append(heading,identity);
       const cards=document.createElement('div');cards.className='portfolio-action-cards';
-      const items=key==='rewards'?[
-        ['Daily bonus',sol(totals?.bonusLamports),'#bonuses','View bonus history →'],
-        ['$RICH Holder airdrops',Array.isArray(totals?.airdrops)?totals.airdrops.length?totals.airdrops.map(row=>`${formatTokenBaseAmount(row.amountBaseUnits,row.decimals,row.decimals)} ${row.symbol}`).join(' · '):'0 tokens':'-','#airdrops','View airdrops →'],
-        ['Coin Holder & creator rewards',sol(totals?.rewardsLamports),'#payments','View rewards →'],
-      ]:[
+      const items=[
         ['Invite creators','Get your wallet-linked invite link and track your network.','#referrals','Open my referral dashboard →'],
         ['Referral payments','Review qualifying activity and verified payment receipts.','#referrals','Check my referral rewards →'],
       ];
-      for(const [title,description,href,action] of items){const card=link('',href);card.className='portfolio-action-card';const strong=document.createElement('strong'),note=document.createElement('span'),cta=document.createElement('b');strong.textContent=title;note.textContent=description;cta.textContent=action;card.append(strong,note,cta);cards.append(card);}panel.append(cards);
+      if(key==='rewards'){
+        const wrap=document.createElement('div');wrap.className='records-table-wrap';wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label','Rewards received');
+        const table=document.createElement('table');table.className='records-table';
+        const head=document.createElement('thead'),tr=document.createElement('tr'),body=document.createElement('tbody');
+        for(const label of ['Reward','Asset','Received','History']){const th=document.createElement('th');th.scope='col';th.textContent=label;tr.append(th);}head.append(tr);table.append(head,body);wrap.append(table);
+        const rewardRows=[['Daily bonus','SOL',sol(totals?.bonusLamports),'#bonuses'],['Coin holder & creator rewards','SOL',sol(totals?.rewardsLamports),'#payments']];
+        if(Array.isArray(totals?.airdrops)&&totals.airdrops.length){
+          for(const row of totals.airdrops)rewardRows.push(['$RICH holder airdrop',row.symbol||'Token',formatTokenBaseAmount(row.amountBaseUnits,row.decimals,row.decimals),'#airdrops']);
+        }else rewardRows.push(['$RICH holder airdrops','Tokens',Array.isArray(totals?.airdrops)?'0':'—','#airdrops']);
+        for(const [category,asset,received,href] of rewardRows){
+          const row=document.createElement('tr');for(const value of [category,asset,received]){const td=document.createElement('td');td.textContent=value;row.append(td);}
+          row.children[2].className='numeric';const action=document.createElement('td');action.append(link('View history →',href));row.append(action);body.append(row);
+        }
+        panel.append(wrap);
+      }else{
+        for(const [title,description,href,action] of items){const card=link('',href);card.className='portfolio-action-card';const strong=document.createElement('strong'),note=document.createElement('span'),cta=document.createElement('b');strong.textContent=title;note.textContent=description;cta.textContent=action;card.append(strong,note,cta);cards.append(card);}panel.append(cards);
+      }
       if(!app.connectedWalletAddress){const connect=document.createElement('button');connect.type='button';connect.className='primary-button';connect.textContent='Connect wallet';connect.addEventListener('click',()=>document.querySelector('#connect-button')?.click());panel.append(connect);}
     }
     void loadTotals();

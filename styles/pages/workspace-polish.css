@@ -383,3 +383,12 @@ html body #rewards-history .mobile-filter-drawer > button { margin-top:12px; }
 .portfolio-lock-status[data-state="claimable"] { background:rgba(65,212,157,.12);color:#76e6b8; }
 .portfolio-lock-status[data-state="locked"] { background:rgba(255,202,60,.1);color:#f4d57c; }
 .portfolio-lock-action { display:inline-block;white-space:nowrap;text-decoration:none;font-weight:600; }
+.records-table-wrap { max-width:100%;overflow-x:auto;margin-block:16px;border:1px solid var(--border, #343656);border-radius:12px; }
+.records-table { width:100%;min-width:620px;border-collapse:collapse;text-align:left;font-size:14px; }
+.records-table th { padding:12px 15px;color:#a9b7d6;background:rgba(255,255,255,.025);font-size:12px;font-weight:600;white-space:nowrap; }
+.records-table td { padding:15px;border-top:1px solid var(--border, #343656);vertical-align:middle;line-height:1.5; }
+.records-table .numeric { white-space:nowrap;font-variant-numeric:tabular-nums; }
+.records-table td:last-child a { white-space:nowrap;text-decoration:none;font-weight:600; }
+.records-table small { display:block;margin-top:5px;color:#a9b7d6;font-size:12px; }
+.explore-boost-history .records-table td { max-width:200px; }
+.explore-boost-history .records-table td small { white-space:normal; }
