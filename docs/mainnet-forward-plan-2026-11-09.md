@@ -72,3 +72,9 @@ Historical evidence is retained in `docs/evidence/smaller-devnet-release-2026-11
 5. Deploy to isolated Mainnet infrastructure, verify finalized bytecode/state, and run the capped canary. Public writes open only after every financial delta and recovery case is accepted.
 
 Rollback starts by stopping new writes and financial workers while preserving journals, then reconciling every submitted signature. Do not automatically downgrade the on-chain program or clear financial records.
+
+## Devnet deployment verification
+
+Preparation code `0cd8b8677fcdf1a21269982106d459fa3f9065b3` was committed, pushed and deployed to funded.vip on Devnet. The exact image passed all 263 tests with networking disabled. Syntax checks passed for 948 JavaScript files and size budgets for 1,171 maintained files. The normal release verifier accepted the deployment and retained rollback; the on-chain program pins were unchanged.
+
+Post-deployment public checks reported the expected revision, an operational Devnet app and Mainnet activation disabled. Payment history retained 25 verified API receipts with `onchain-indexed` status. The sampled token retained its 46,853-lamport finalized collection and verified creator, community and holder-funding states. These were read-only regression checks; no new financial acceptance transaction was submitted. See [deployment evidence](evidence/mainnet-preparation-2026-11-09.json).

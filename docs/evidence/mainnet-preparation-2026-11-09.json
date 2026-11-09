@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "scope": "network-plumbing-and-readonly-staging-preparation",
+  "mainnetReady": false,
+  "mainnetActivationAuthorized": false,
+  "allFinancialPathsVerified": false,
+  "productionInputs": "placeholders requested by user",
+  "application": {
+    "cluster": "devnet",
+    "revision": "0cd8b8677fcdf1a21269982106d459fa3f9065b3",
+    "image": "sha256:671920926315b9caacf32270e779ce7346d321cd2a383fc774f8751421345196",
+    "release": "0cd8b8677fcdf1a21269982106d459fa3f9065b3-382196ef-b516-4c4a-b437-d9c2a053a2a0",
+    "releaseVerification": {"ready": true, "rollbackAvailable": true},
+    "contractPinsChanged": false
+  },
+  "checks": {
+    "applicationTests": {"passed": 263, "failed": 0, "local": true, "exactImageNetworkDisabled": true},
+    "syntax": {"passed": true, "javascriptFiles": 948},
+    "sourceBudgets": {"passed": true, "maintainedFiles": 1171},
+    "mainnetPreviewBuild": "passed",
+    "newFinancialTests": "mocked RPC; not new on-chain transactions"
+  },
+  "readonlyBrowser": {
+    "origin": "http://127.0.0.1:4186",
+    "cluster": "mainnet-beta",
+    "mainnetEnabled": false,
+    "mainnetReadOnly": true,
+    "devWalletEnabled": false,
+    "observedGenesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+    "observedFinalizedSlot": 467158763,
+    "rejectedPosts": [
+      {"path": "/api/launches", "http": 405},
+      {"path": "/api/keeper/disburse-v3", "http": 405},
+      {"path": "/api/solana/rpc", "http": 405}
+    ],
+    "serverStoppedAfterVerification": true
+  },
+  "publicRegression": {
+    "origin": "https://funded.vip",
+    "cluster": "devnet",
+    "status": "operational",
+    "mainnetActivationAuthorized": false,
+    "paymentHistory": {"http": 200, "beforeVerifiedApiReceipts": 25, "afterVerifiedApiReceipts": 25, "status": "onchain-indexed"},
+    "feeActivity": {
+      "http": 200,
+      "mint": "5JD7MVWqvtJegDofVcBToQAf1UbtBN6vQJErEWy74i6Q",
+      "collectionSignature": "5VdnHbL6nYy1SBY6p25M6ULADCSMRRJg7jmodeNa3nu2X6mMe5pDH5sxrn6NVtEEnksYgnKBQ8Tkr7NBXqxW3NxS",
+      "amountLamports": "46853",
+      "settlement": "finalized",
+      "creatorWalletPayoutVerified": true,
+      "communityFundingVerified": true,
+      "creatorRewardFundingVerified": true,
+      "unchangedAfterDeployment": true
+    },
+    "scope": "read-only public API regression; no new payments or wallet signatures"
+  },
+  "planningPacket": {
+    "sourceRevision": "0cd8b8677fcdf1a21269982106d459fa3f9065b3",
+    "dirtyAtGeneration": false,
+    "status": "no-go",
+    "missingProductionInputs": 23,
+    "acceptanceCases": 13,
+    "historicalEvidenceReverified": false,
+    "productionBudgetApproved": false,
+    "independentReviewComplete": false
+  }
+}
