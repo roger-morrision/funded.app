@@ -111,7 +111,12 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
           const fullReady=env.X_POST_ENABLED==='true'&&env.X_POST_ACCOUNT_STATUS==='active'&&agencyWorkerHealth(agencyState||{},health);
           buybackReadiness=buybacksReady||fullReady?priceReadiness:
             {ready:false,reason:'Milestone buyback worker has no fresh verified readiness.'};
-          if(!buybacksReady&&!fullReady)reasons.push('Agency worker has no fresh matching verified deployment readiness');
+          // Optional agency execution may be intentionally paused while normal
+          // launches, fee settlement and RICH buybacks remain available.
+          const agencyWorkerRequired=env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'
+            ||env.X_POST_ENABLED==='true'&&env.X_POST_ACCOUNT_STATUS==='active';
+          if(agencyWorkerRequired&&!buybacksReady&&!fullReady)
+            reasons.push('Agency worker has no fresh matching verified deployment readiness');
         }
       } catch { reasons.push('V3 program verification is unavailable'); }
       finally { clearTimeout(timer); controller.abort(); }
