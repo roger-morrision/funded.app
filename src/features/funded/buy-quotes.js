@@ -6,7 +6,7 @@ export const FUNDED_BUY_QUOTE_TTL = 15_000;
 export function currentFundedBuyQuote(app,amount,now=Date.now()) {
   const quote=app.fundedBuyPreview;
   return quote && quote.amount===amount && quote.wallet===(app.connectedWalletAddress || null)
-    && quote.provider===(app.wallet || null) && now-quote.preparedAt<FUNDED_BUY_QUOTE_TTL ? quote : null;
+    && quote.provider===(app.wallet || null) && now>=quote.preparedAt && now-quote.preparedAt<FUNDED_BUY_QUOTE_TTL ? quote : null;
 }
 
 // Only read while the controls are visible. A debounce and retry cooldown bound RPC traffic.
@@ -32,7 +32,7 @@ export function createFundedBuyQuotes(app) {
         const rpc=await app.getTradePreviewConnection();
         await refreshServiceFees(app);
         if(!matches()) return;
-        const args={connection:rpc,side:'buy',mint:app.PROTOCOL_FUNDED_MINT,poolAddress:app.PROTOCOL_FUNDED_SWAP_POOL,
+        const args={connection:rpc,cluster:app.APP_CLUSTER,side:'buy',mint:app.PROTOCOL_FUNDED_MINT,poolAddress:app.PROTOCOL_FUNDED_SWAP_POOL,
           amount,slippagePercent:1,feeOwner:appTradeRecipient(app),feeBps:appTradeBps(app)};
         const trade=session && app.canSignTransactions(session.provider)
           ? await buildRichTradeTransaction({...args,user:session.provider.publicKey})

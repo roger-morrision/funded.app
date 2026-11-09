@@ -1,7 +1,7 @@
 {
   "scope": "RICH market lifecycle and buyback UI",
   "verification": "local-only; SDK and receipt fixtures are mocked",
-  "javascriptTests": { "passed": 306, "failed": 0 },
+  "javascriptTests": { "passed": 308, "failed": 0 },
   "sourceBudgetFiles": 1192,
   "contract": {
     "feature": "devnet-v3-program",
@@ -22,7 +22,9 @@
     "Liquidity clip, bounded spend, curve exhaustion and unsupported-mode rejection",
     "Mint, market, custody and signer substitution rejection",
     "Receipt verifier requires finalized purchase, burn, vault debit and matching receipt",
-    "RPC errors never imply migration"
+    "RPC errors never imply migration",
+    "Wallet quotes and promotion pricing reject mismatched network identities",
+    "Prepared wallet quotes reject expiry, future timestamps and changed sessions"
   ],
   "activation": {
     "curveAutomationDefault": false,

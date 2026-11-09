@@ -48,7 +48,7 @@ export function createFundedTradingController(appState) {
       const snapshot = await appState.withRpcRetry(async attempt => {
         if (attempt > 0) appState.tradePreviewConnection = null;
         const rpc = await appState.getTradePreviewConnection();
-        return fetchRichMarketSnapshot({ connection:rpc, mint:appState.PROTOCOL_FUNDED_MINT, poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL });
+        return fetchRichMarketSnapshot({ connection:rpc, cluster:appState.APP_CLUSTER,mint:appState.PROTOCOL_FUNDED_MINT, poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL });
       });
       signal?.throwIfAborted();
       if (appState.fundedBuyBusy) return;

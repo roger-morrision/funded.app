@@ -4,11 +4,13 @@ import {PUMP_SDK,PUMP_PROGRAM_ID,bondingCurvePda} from '@pump-fun/pump-sdk';
 import {canonicalPumpPoolPda} from '@pump-fun/pump-swap-sdk';
 import {fetchVerifiedPoolSnapshot,buildVerifiedPoolTradeTransaction,fetchVerifiedPoolBuyQuote,
   buildTradeTransaction,formatBondingCurveSnapshot} from './pump-trading.js';
+import {assertRpcNetwork,SOLANA_GENESIS} from './solana-network.js';
 
 // One market resolver for RICH valuation, promotion/listing prices and wallet
 // purchases. A failed RPC read never proves that a token has migrated.
-export async function fetchRichMarketSnapshot({connection,mint,poolAddress,
+export async function fetchRichMarketSnapshot({connection,mint,poolAddress,cluster,
   readPool=fetchVerifiedPoolSnapshot,decodeCurve=account=>PUMP_SDK.decodeBondingCurve(account)}) {
+  if(cluster)await assertRpcNetwork(connection,cluster);
   const key=new PublicKey(mint),curveKey=bondingCurvePda(key);
   const {context,value:[curveAccount,mintAccount]}=await connection.getMultipleAccountsInfoAndContext([curveKey,key],'finalized');
   if(!mintAccount||![TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID].some(p=>p.equals(mintAccount.owner)))
@@ -54,8 +56,10 @@ export async function fetchRichBuyQuote(args){
   return quote;
 }
 
-export function matchesRichPricingMarket(data,{mint,pool}){
+export function matchesRichPricingMarket(data,{mint,pool,cluster}){
   if(data?.fundedMint!==mint)return false;
+  if(cluster&&(!SOLANA_GENESIS[cluster]||data.cluster!==cluster||data.genesisHash!==SOLANA_GENESIS[cluster]))return false;
   if(data.market==='pump-curve')return data.pool===null&&data.bondingCurve===bondingCurvePda(new PublicKey(mint)).toBase58();
+  if(data.market!=null&&data.market!=='pump-swap')return false;
   return data.pool===(pool||canonicalPumpPoolPda(new PublicKey(mint),NATIVE_MINT).toBase58());
 }

@@ -46,7 +46,7 @@ export function createLaunchPolicyController(appState) {
       if (!response.available) throw new Error(response.data?.error || 'The verified $RICH price is unavailable.');
       const data = response.data;
       const {matchesRichPricingMarket}=await import('../../../rich-market.js');
-      if (!matchesRichPricingMarket(data,{mint:appState.PROTOCOL_FUNDED_MINT,pool:appState.PROTOCOL_FUNDED_SWAP_POOL})
+      if (!matchesRichPricingMarket(data,{mint:appState.PROTOCOL_FUNDED_MINT,pool:appState.PROTOCOL_FUNDED_SWAP_POOL,cluster:appState.APP_CLUSTER})
         || !Number.isFinite(Number(data.tokenPriceUsd)) || Number(data.tokenPriceUsd) <= 0
         || !['pro', 'premier'].every(tier => Number.isSafeInteger(data.amounts?.[tier]) && data.amounts[tier] > 0))
         throw new Error('The launch tier quote did not match the configured $RICH market.');

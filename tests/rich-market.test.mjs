@@ -7,6 +7,7 @@ import {canonicalPumpPoolPda} from '@pump-fun/pump-swap-sdk';
 import {fetchRichMarketSnapshot,matchesRichPricingMarket} from '../rich-market.js';
 import {createLaunchTierPricing} from '../server/launch-tier-pricing.mjs';
 import {SOLANA_GENESIS} from '../solana-network.js';
+import {currentFundedBuyQuote,FUNDED_BUY_QUOTE_TTL} from '../src/features/funded/buy-quotes.js';
 
 const mint=Keypair.generate().publicKey,pool=canonicalPumpPoolPda(mint,NATIVE_MINT).toBase58();
 function fixture(base=TOKEN_PROGRAM_ID){
@@ -59,4 +60,26 @@ test('promotion and listing pricing accepts curve prices without a pool and bind
   assert(matchesRichPricingMarket(quote,{mint:mint.toBase58(),pool:''}));
   assert(!matchesRichPricingMarket({...quote,bondingCurve:Keypair.generate().publicKey.toBase58()},{mint:mint.toBase58(),pool}));
   assert(!matchesRichPricingMarket({...quote,fundedMint:Keypair.generate().publicKey.toBase58()},{mint:mint.toBase58(),pool}));
+});
+
+test('wallet RICH quotes and promotion prices cannot cross RPC networks',async()=>{
+  const {args}=fixture();let reads=0;
+  args.connection.getMultipleAccountsInfoAndContext=async()=>{reads++;throw Error('unexpected read');};
+  await assert.rejects(()=>fetchRichMarketSnapshot({...args,cluster:'mainnet-beta'}),/network/);assert.equal(reads,0);
+  const data={fundedMint:mint.toBase58(),pool,market:'pump-swap',cluster:'devnet',genesisHash:SOLANA_GENESIS.devnet};
+  const identity={mint:mint.toBase58(),pool,cluster:'devnet'};
+  assert(matchesRichPricingMarket(data,identity));
+  assert(!matchesRichPricingMarket({...data,genesisHash:SOLANA_GENESIS['mainnet-beta']},identity));
+  assert(!matchesRichPricingMarket({...data,cluster:'mainnet-beta'},identity));
+  assert(!matchesRichPricingMarket({...data,market:'unknown-market'},identity));
+});
+
+test('prepared RICH quotes expire, reject future timestamps and bind the wallet session',()=>{
+  const provider={},quote={amount:1,wallet:'wallet',provider,preparedAt:100000};
+  const app={wallet:provider,connectedWalletAddress:'wallet',fundedBuyPreview:quote};
+  assert.equal(currentFundedBuyQuote(app,1,100001),quote);
+  assert.equal(currentFundedBuyQuote(app,1,99999),null);
+  assert.equal(currentFundedBuyQuote(app,1,100000+FUNDED_BUY_QUOTE_TTL),null);
+  assert.equal(currentFundedBuyQuote({...app,wallet:{}},1,100001),null);
+  assert.equal(currentFundedBuyQuote(app,2,100001),null);
 });
