@@ -1,4 +1,4 @@
-import {PublicKey} from '@solana/web3.js';
+import {PublicKey,SystemProgram} from '@solana/web3.js';
 import {createAssociatedTokenAccountIdempotentInstruction,getAssociatedTokenAddressSync,NATIVE_MINT,TOKEN_PROGRAM_ID} from '@solana/spl-token';
 import {PUMP_AMM_PROGRAM_ID} from '@pump-fun/pump-swap-sdk';
 import {isCurveBuy,validateCurveBuy} from './v3-buyback-curve.mjs';
@@ -16,10 +16,15 @@ export function selectV3PumpBuy(instructions){
 
 // Front canonical fee-account rent with the authority in the same atomic
 // transaction so category funds pay only for the bounded purchase.
-export function v3BuybackFeeSetup({pumpBuyInstruction:buy,authority}){
+export function v3BuybackFeeSetup({pumpBuyInstruction:buy,authority,curveCreatorVaultRentLamports='0'}){
   if(isCurveBuy(buy)){
     validateCurveBuy(buy,{mint:buy.keys?.[2]?.pubkey,vault:buy.keys?.[6]?.pubkey,baseTokenProgram:buy.keys?.[8]?.pubkey});
-    return []; // Router fronts ATA and Pump volume-account rent with the authority.
+    const raw=String(curveCreatorVaultRentLamports);
+    if(!/^(0|[1-9]\d{0,6})$/.test(raw)||BigInt(raw)>5000000n)throw Error('Invalid curve creator-vault rent.');
+    // A first trade may also fund Pump's system-owned creator-fee vault. Keep
+    // that account deposit outside the category's protected purchase budget.
+    return BigInt(raw)>0n?[SystemProgram.transfer({fromPubkey:new PublicKey(authority),
+      toPubkey:buy.keys[9].pubkey,lamports:BigInt(raw)})]:[];
   }
   if(!buy?.programId?.equals(PUMP_AMM_PROGRAM_ID)||!Buffer.from(buy.data||[]).subarray(0,8).equals(BUY)
     ||![25,26,27].includes(buy.keys?.length))throw new Error('Reviewed PumpSwap fee accounts are required.');

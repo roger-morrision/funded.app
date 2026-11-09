@@ -186,7 +186,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       authority:authority.publicKey,baseTokenProgram:row.baseTokenProgram,priceSigner:row.priceSigner,
       buybackId:Buffer.from(row.buybackId,'hex'),spendableQuoteIn:row.spendableQuoteIn,
       minBaseAmountOut:row.minBaseAmountOut,maxTotalDebit:row.maxTotalDebit,
-      pumpBuyInstruction:storedPumpInstruction(row),split});
+      pumpBuyInstruction:storedPumpInstruction(row),curveCreatorVaultRentLamports:row.curveCreatorVaultRentLamports,split});
     if(saved?.signature){
       const proof=await proofFor(saved);
       if(proof){
@@ -289,7 +289,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     if(!lookup.value||!lookup.value.key.equals(new PublicKey(lookupAddress)))
       return json(res,503,{error:'The V3 buyback address lookup table is unavailable.'});
     const latest=await connection.getLatestBlockhash('finalized');
-    const setupInstructions=v3BuybackFeeSetup({pumpBuyInstruction:quoted.pumpBuyInstruction,authority:authority.publicKey});
+    const setupInstructions=v3BuybackFeeSetup({pumpBuyInstruction:quoted.pumpBuyInstruction,authority:authority.publicKey,
+      curveCreatorVaultRentLamports:quoted.curveCreatorVaultRentLamports||'0'});
     const transactionInput={
       instruction:built.instruction,authority:authority.publicKey,
       blockhash:latest.blockhash,lookupTable:lookup.value,
@@ -325,6 +326,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
       minBaseAmountOut:quoted.minBaseAmountOut,
       maxTotalDebit:quoted.maxTotalDebit,
       pumpProgram:quoted.pumpBuyInstruction.programId.toBase58(),
+      curveCreatorVaultRentLamports:quoted.curveCreatorVaultRentLamports||'0',
       pumpData:Buffer.from(quoted.pumpBuyInstruction.data).toString('base64'),
       pumpKeys:quoted.pumpBuyInstruction.keys.map(key=>({
         pubkey:key.pubkey.toBase58(),isSigner:key.isSigner,isWritable:key.isWritable})),

@@ -29,10 +29,16 @@ The [machine-readable evidence](evidence/rich-devnet-lifecycle-2026-11-09.json) 
 
 The first test runner stopped at an incorrect BN numeric comparison in its graduation budget check; the corrected test continued using the same mint. Its refund also failed the rent-exemption check. Another test runner was interrupted by a concurrent app container redeployment after the post-migration burn was verified. Their ephemeral private keys were never saved; 1.255384960 Devnet SOL remains in those two disposable wallets and is not recoverable. The middle runner refunded its unused SOL successfully. No Mainnet funds were used.
 
-## Activation gate
+## Earlier activation gate (superseded by fee-vault verification)
 
 Local app configuration has the upgrade authority and worker signers, but neither `FUNDED_DEVNET_BUYBACK_PRICE_SIGNER` nor `FUNDED_DEVNET_BUYBACK_PRICE_SIGNER_URL`. The on-chain price-signer configuration account is also absent. The existing authority or worker key must not be substituted for the independent custodian.
 
 An operator must provide the independent public signer and HTTPS endpoint or their existing configuration-file reference. Both the upgrade authority and that signer must approve `configure_buyback_price_signer`. Then verify actual router-vault purchases, exact vault debits, supply reductions, immutable receipts and replay rejection before enabling curve automation. The current app mint has no Pump bonding curve; the isolated new mint above is not automatically substituted into the contract's approved-asset identity. A fee-vault lifecycle test needs an explicitly reviewed test deployment bound to that fixture.
 
-The 5 SOL aggregate trigger, order limits, price checks, protected authority reserve and Mainnet gates remain in place. The curve flag remains disabled until the above checks pass.
+The 5 SOL aggregate trigger, order limits, price checks, protected authority reserve and Mainnet gates remain in place.
+
+## Fee-vault verification completed
+
+A separate key and price-review service were provisioned with independent finalized reads. The fixture program `FQijKUCngaPCcM5fAcAWWEN1URxD8mo1AHJco6Xb7ZNq` uses the reviewed contract logic with explicit test asset identities. Its genuine category-6 vault bought and burned RICH before and after migration; both finalized receipts, exact debits, supply reductions, zero receiving balances and replay rejection were verified. [Fee-vault evidence](evidence/rich-devnet-fee-vault-lifecycle-2026-11-09.json) and [signer operation and test limitations](independent-price-signer.md).
+
+Testing exposed and fixed missing first-trade creator-vault rent setup and an AMM minimum-output calculation that applied zero slippage instead of the published 1% policy. No additional contract upgrade was required. Service and key separation is under the same operator, not an independent third-party audit. Live activation is recorded separately after deployment checks; isolated test funding is not live worker revenue.

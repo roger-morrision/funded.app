@@ -15,6 +15,14 @@ export function protectedV3BuybackClip(budgetLamports, reserveLamports) {
   return budget<cap?budget:cap;
 }
 
+// Pump's buyQuoteInput.base is the estimated output, not a slippage floor.
+// The router fixes the quote input, so apply the policy to output instead.
+export function protectedV3BuybackMinimum(estimatedBase) {
+  const amount=BigInt(estimatedBase);
+  if(amount<=0n)throw Error('The protected $RICH output quote is empty.');
+  return amount*BigInt(10000-BUYBACK_POLICY.maximumSlippageBps)/10000n;
+}
+
 export async function quoteV3Buyback({ connection, vault, budgetLamports, cluster='devnet', programId,
   curveEnabled=false,readCurve=readBuybackCurve,quoteCurve=quoteCurveBuyback }) {
   const assets=buybackAssets(cluster,{programId});
@@ -51,7 +59,7 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports, cluste
     coinCreator:state.pool.coinCreator,creator:state.pool.creator,
     quoteMint:state.pool.quoteMint,isMayhemMode:state.pool.isMayhemMode,
     creatorFeeBps:state.pool.creatorFeeBps });
-  const minimum=BigInt(quoted.base?.toString()||0);
+  const minimum=protectedV3BuybackMinimum(quoted.base?.toString()||0);
   if (minimum<=0n) throw new Error('The protected $RICH output quote is empty.');
   const instructions=await PUMP_AMM_SDK.buyQuoteInput(state,new BN(String(quote)),1);
   const buy=selectV3PumpBuy(instructions);

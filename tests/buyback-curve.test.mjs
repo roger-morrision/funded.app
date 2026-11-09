@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import BN from 'bn.js';
 import {createHash} from 'node:crypto';
-import {Keypair,PublicKey,SystemProgram} from '@solana/web3.js';
+import {Keypair,PublicKey,SystemProgram,SystemInstruction} from '@solana/web3.js';
 import {TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID,MintLayout} from '@solana/spl-token';
 import {PUMP_SDK,PUMP_PROGRAM_ID,PUMP_FEE_PROGRAM_ID} from '@pump-fun/pump-sdk';
 import {readBuybackCurve,quoteCurveBuyback,validateCurveBuy,bondingCurvePda} from '../server/v3-buyback-curve.mjs';
-import {quoteV3Buyback} from '../server/v3-buyback-quote.mjs';
+import {quoteV3Buyback,protectedV3BuybackMinimum} from '../server/v3-buyback-quote.mjs';
 import {buildV3BuybackInstruction} from '../server/v3-buyback-instruction.mjs';
 import {v3BuybackFeeSetup} from '../server/v3-buyback-setup.mjs';
 import {V3_DEVNET_FUNDED_MINT as mint} from '../server/buyback-assets.mjs';
@@ -49,7 +49,9 @@ async function fixture({base=TOKEN_PROGRAM_ID,agency=false}={}){
     {owner:PUMP_FEE_PROGRAM_ID,data:await encode('feeConfig',fee)}];
   const account={owner:PUMP_PROGRAM_ID,data:await encode('bondingCurve',curve)};
   const connection={getGenesisHash:async()=>SOLANA_GENESIS.devnet,
-    getAccountInfo:async(key,commitment)=>{assert.equal(commitment,'finalized');assert(key.equals(bondingCurvePda(mint)));return account;},
+    getAccountInfo:async(key,commitment)=>{assert.equal(commitment,'finalized');if(key.equals(bondingCurvePda(mint)))return account;
+      assert(key.equals(PublicKey.findProgramAddressSync([Buffer.from('creator-vault'),authority.toBuffer()],PUMP_PROGRAM_ID)[0]));return null;},
+    getMinimumBalanceForRentExemption:async size=>{assert.equal(size,0);return 650240;},
     getMultipleAccountsInfo:async(keys,commitment)=>{assert.equal(commitment,'finalized');assert.equal(keys.length,3);return accounts;}};
   return {connection,mint,vault,budgetLamports:'5000000000',snapshot:{account,curve},base,agency};
 }
@@ -78,6 +80,28 @@ test('curve route requires explicit activation, and RPC failures never masquerad
   await assert.rejects(()=>quoteV3Buyback({...f,curveEnabled:true,readCurve:async()=>{throw Error('RPC offline');}}),/RPC offline/);
   f.connection.getAccountInfo=async()=>({owner:SystemProgram.programId,data:Buffer.alloc(128)});
   await assert.rejects(()=>readBuybackCurve(f.connection,mint),/invalid owner/);
+});
+
+test('fixed-quote AMM buy applies the 1 percent output floor without raising the SOL budget',()=>{
+  assert.equal(protectedV3BuybackMinimum('19824178243'),19625936460n);
+  assert.equal(protectedV3BuybackMinimum('100'),99n);
+  assert.throws(()=>protectedV3BuybackMinimum('0'),/empty/);
+});
+
+test('first curve buy funds only missing creator-vault rent from authority, never the fee budget',async()=>{
+  const f=await fixture(),q=await quoteCurveBuyback(f);
+  assert.equal(q.curveCreatorVaultRentLamports,'650240');
+  const setup=v3BuybackFeeSetup({...q,authority}),transfer=SystemInstruction.decodeTransfer(setup[0]);
+  assert(transfer.fromPubkey.equals(authority));assert(transfer.toPubkey.equals(q.pumpBuyInstruction.keys[9].pubkey));
+  assert.equal(transfer.lamports,650240n);
+  f.connection.getAccountInfo=async()=>({owner:SystemProgram.programId,data:Buffer.alloc(0),lamports:650240});
+  const funded=await quoteCurveBuyback(f);assert.equal(funded.curveCreatorVaultRentLamports,'0');
+  assert.deepEqual(v3BuybackFeeSetup({...funded,authority}),[]);
+  f.connection.getAccountInfo=async()=>({owner:SystemProgram.programId,data:Buffer.alloc(0),lamports:200000});
+  assert.equal((await quoteCurveBuyback(f)).curveCreatorVaultRentLamports,'450240');
+  f.connection.getAccountInfo=async()=>({owner:PUMP_PROGRAM_ID,data:Buffer.alloc(0),lamports:650240});
+  await assert.rejects(()=>quoteCurveBuyback(f),/rent/);
+  assert.throws(()=>v3BuybackFeeSetup({...q,authority,curveCreatorVaultRentLamports:'5000001'}),/rent/);
 });
 test('curve purchases reject completed curves, unsupported modes, dust and curve exhaustion',async()=>{
   for(const flag of ['complete','isMayhemMode','isCashbackCoin']){
@@ -117,9 +141,14 @@ test('curve receipts require finalized purchase, burn, bounded vault debit and m
     meta:{err:null,preBalances:pre,postBalances:post,innerInstructions:[{index:0,instructions:[
       {programIdIndex:index(PUMP_PROGRAM_ID),accounts:q.pumpBuyInstruction.keys.map(k=>index(k.pubkey)),data:buyData},
       {programIdIndex:index(f.base),accounts:[built.fundedAta,mint,built.vault].map(index),data:burnData}]}]}};
+  const setup=v3BuybackFeeSetup({...q,authority})[0];
+  tx.transaction.message.instructions.unshift({programIdIndex:index(setup.programId),accounts:setup.keys.map(k=>index(k.pubkey)),data:setup.data});
+  tx.meta.innerInstructions[0].index=1;
   const args={...input,signature,connection:{getTransaction:async()=>tx,getAccountInfo:async()=>({owner:programId,data:receipt})},
     verifyPolicy:async()=>({verified:true,withdrawnLamports:[0n,0n,0n,0n,0n,0n,spent]})};
   const proof=await loadFinalizedV3Buyback(args);assert(proof?.finalized);assert.equal(proof.burnedBaseUnits,String(bought));
+  assert((await loadFinalizedV3Buyback({...args,curveCreatorVaultRentLamports:null}))?.finalized);
+  assert.equal(await loadFinalizedV3Buyback({...args,curveCreatorVaultRentLamports:'1'}),null);
   burnData.writeBigUInt64LE(bought-1n,1);assert.equal(await loadFinalizedV3Buyback(args),null);burnData.writeBigUInt64LE(bought,1);
   buyData[24]=1;assert.equal(await loadFinalizedV3Buyback(args),null);buyData[24]=0;
   post[index(built.vault)]=pre[index(built.vault)];assert.equal(await loadFinalizedV3Buyback(args),null);

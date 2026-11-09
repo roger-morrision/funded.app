@@ -5,6 +5,7 @@ import {OnlinePumpAmmSdk,PUMP_AMM_SDK,PUMP_AMM_PROGRAM_ID,buyQuoteInput} from '@
 import {GLOBAL_PDA,PUMP_SDK} from '@pump-fun/pump-sdk';
 import {readBuybackCurve,quoteCurveBuyback} from './v3-buyback-curve.mjs';
 import {selectV3PumpBuy} from './v3-buyback-setup.mjs';
+import {protectedV3BuybackMinimum} from './v3-buyback-quote.mjs';
 
 // Always fetch from the signer's own finalized connection. No price, reserves,
 // market identity, or RPC URL from the HTTP caller is trusted.
@@ -36,5 +37,5 @@ export async function independentMarketQuote({connection,config,vault,quote}){
   const choices=new Map([[9,state.globalConfig.protocolFeeRecipients],
     [buy.keys.length-2,state.globalConfig.buybackFeeRecipients]]);
   return{curve:false,pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,
-    spendableQuoteIn:String(quote),minBaseAmountOut:String(output.base),recipientChoices:choices};
+    spendableQuoteIn:String(quote),minBaseAmountOut:String(protectedV3BuybackMinimum(output.base.toString())),recipientChoices:choices};
 }

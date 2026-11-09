@@ -20,7 +20,7 @@ const bytes = value => typeof value === 'string' ? Buffer.from(bs58.decode(value
 export async function loadFinalizedV3Buyback({ connection, signature, programId, cluster='devnet',
   sourceMint, creator, initialAuthority, authority, baseTokenProgram, priceSigner,
   buybackId, spendableQuoteIn, minBaseAmountOut, maxTotalDebit,
-  pumpBuyInstruction, split,agencyPolicy=split?.agencyPercent!==undefined,agencyExecution=null,
+  pumpBuyInstruction, split,agencyPolicy=split?.agencyPercent!==undefined,agencyExecution=null,curveCreatorVaultRentLamports=null,
   verifyPolicy = verifyMintPolicyV3Account }) {
   try {
     const expected = buildV3BuybackInstruction({ cluster, programId, sourceMint,
@@ -43,7 +43,22 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     if(priceSigner && (String(priceSigner)===String(authority)||!signers.includes(String(priceSigner))))return null;
     const instructions = message.instructions || message.compiledInstructions || [];
     let routerIndex = -1,setupIndex=0;
-    const setup=()=>v3BuybackFeeSetup({pumpBuyInstruction,authority});
+    // Older/discovered receipts have no local setup field. Infer only an exact
+    // bounded authority -> canonical Pump creator-vault transfer from the tx.
+    let curveRent=curveCreatorVaultRentLamports;
+    if(curve&&curveRent==null){
+      curveRent='0';
+      for(const instruction of instructions){
+        const raw=bytes(instruction.data),indices=instruction.accounts||instruction.accountKeyIndexes||[];
+        if(keys[instruction.programIdIndex]==='11111111111111111111111111111111'
+          &&raw.length===12&&raw.readUInt32LE(0)===2&&indices.length===2
+          &&keys[indices[0]]===String(authority)&&keys[indices[1]]===String(pumpBuyInstruction.keys[9].pubkey)){
+          if(curveRent!=='0')return null;
+          curveRent=String(raw.readBigUInt64LE(4));
+        }
+      }
+    }
+    const setup=()=>v3BuybackFeeSetup({pumpBuyInstruction,authority,curveCreatorVaultRentLamports:curveRent||'0'});
     for (let index = 0; index < instructions.length; index++) {
       const ix = instructions[index];
       if (keys[ix.programIdIndex] === ComputeBudgetProgram.programId.toBase58()) continue;
@@ -64,7 +79,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
           keys[ixKeys[offset]] !== entry.pubkey.toBase58())) return null;
       routerIndex = index;
     }
-    if (routerIndex < 0||setupIndex&&setupIndex!==setup().length) return null;
+    if (routerIndex < 0||setupIndex&&setupIndex!==setup().length||curve&&setupIndex!==setup().length) return null;
     const inner = tx.meta.innerInstructions?.find(group => group.index === routerIndex)?.instructions || [];
     let pumpSeen = false, burnSeen = false;
     for (const ix of inner) {

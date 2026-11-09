@@ -60,7 +60,14 @@ export async function quoteCurveBuyback({connection,mint,vault,budgetLamports,
   const buys=instructions.filter(ix=>isCurveBuy(ix)&&Buffer.from(ix.data||[]).subarray(0,8).equals(CURVE_BUY));
   if(buys.length!==1)throw Error('A unique Pump curve purchase is required.');
   const buy=validateCurveBuy(buys[0],{mint,vault,baseTokenProgram:mintInfo.owner});
+  const creatorVault=PublicKey.findProgramAddressSync([Buffer.from('creator-vault'),curve.creator.toBuffer()],PUMP_PROGRAM_ID)[0];
+  if(!buy.keys[9].pubkey.equals(creatorVault))throw Error('Pump creator-fee vault differs.');
+  const [creatorInfo,rent]=await Promise.all([connection.getAccountInfo(creatorVault,'finalized'),
+    connection.getMinimumBalanceForRentExemption(0,'finalized')]);
+  if(creatorInfo&&(!creatorInfo.owner.equals(SystemProgram.programId)||creatorInfo.data.length!==0)
+    ||!Number.isSafeInteger(rent)||rent<=0||rent>5000000)throw Error('Pump creator-fee rent is unavailable.');
+  const curveCreatorVaultRentLamports=String(Math.max(0,rent-(creatorInfo?.lamports||0)));
   // The router reconstructs this exact-output purchase and burns it atomically.
-  return {pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,market:'pump-curve',
+  return {pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,market:'pump-curve',curveCreatorVaultRentLamports,
     spendableQuoteIn:String(spend),maxTotalDebit:String(spend),minBaseAmountOut:String(minimum)};
 }

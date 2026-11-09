@@ -1,0 +1,83 @@
+{
+  "cluster": "devnet",
+  "status": "verified",
+  "verifiedAt": "2026-11-09T08:46:42.919Z",
+  "scope": "Isolated test-funded category-6 policy; genuine router CPI buys and burns, not live worker revenue",
+  "program": "FQijKUCngaPCcM5fAcAWWEN1URxD8mo1AHJco6Xb7ZNq",
+  "mint": "EHxofLbw3A1ZjiKqJZmedsyVG4HFmmbRnjhF48sjKkmY",
+  "pool": "C2o93VYEeLyChwAMbfphQRjNDJ4P4QbVctkiX2S6f6Bi",
+  "priceSigner": "29FSTxMEWVTxSCZRdeP7yngAvj5BHQPqZMoq5jpibQ9T",
+  "programDataSha256": "ee202c17cff45060be2b1418d19a97c85dc75422aaace22f48f7d165c36670bf",
+  "liveProgramDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee",
+  "burns": [
+    {
+      "market": "pump-curve",
+      "signature": "4Q2D14e9oTg17KMmWtzkr4GJYkzMFm2A32hKhg3JfXxzwbrTPLWRu5HkKLzWpb4EyxhkSKwaasnZrXnbfeRRRWse",
+      "receipt": "8u26gSQ574ZDpnk2rmHijimtByn9NvVKkMoFgvLct1m3",
+      "vault": "AthXuLH8WTM413Ymbv9fy85eCKTQWWTwb5GG7TP4uWbN",
+      "spentLamports": "99000",
+      "burnedBaseUnits": "349598355159",
+      "supplyBefore": "1000000000000000",
+      "supplyAfter": "999650401644841",
+      "vaultTokenBalance": "0",
+      "replayRejected": true,
+      "finalized": true,
+      "slot": 520323880,
+      "feeLamports": 10000,
+      "pumpBuyCpiVerified": true,
+      "burnCheckedCpiVerified": true,
+      "vaultDebitVerified": true,
+      "receiptVerified": true
+    },
+    {
+      "market": "pump-swap",
+      "signature": "39NntmAvE3BqUhUZ8DDBcdswq6CR6N2DatXYf7yz1CyND1bGEWTyJUuYP15RiyF4SonBH9kYgnoh4t16z8abaCBC",
+      "receipt": "6EU4RDiuU7LzNna6v3xadJeHtof5r7hqfw3MGN2j2nAM",
+      "vault": "AthXuLH8WTM413Ymbv9fy85eCKTQWWTwb5GG7TP4uWbN",
+      "spentLamports": "100000",
+      "burnedBaseUnits": "16797911822",
+      "supplyBefore": "171430944283759",
+      "supplyAfter": "171414146371937",
+      "vaultTokenBalance": "0",
+      "replayRejected": true,
+      "finalized": true,
+      "slot": 520326068,
+      "feeLamports": 10000,
+      "pumpBuyCpiVerified": true,
+      "burnCheckedCpiVerified": true,
+      "vaultDebitVerified": true,
+      "receiptVerified": true
+    }
+  ],
+  "policyWithdrawnLamports": "199000",
+  "weakMinimumRejected": true,
+  "automaticPumpMigrationObserved": true,
+  "refunds": [
+    {
+      "wallet": "5SMv3KyrNg4MUzZL4QVJD2YPk7HT6FbyJDWB3JXjGJCt",
+      "signature": "5e4FyVZzviXKnQ4DwKbk5vt9Skf9cYWsGqUtTZv9J9vfBqeD6WfgsUEgBXLYMCJoZDjwLBVE4CoKFMpKrNsndxuK",
+      "finalized": true,
+      "balanceLamports": 0
+    },
+    {
+      "wallet": "6UJk8hsBcNMtuRvJMruRQyyPUrZfr61xCyGvh66iJNBJ",
+      "signature": "3M2dKFbZHjhqzYsLXjwe2t7F4Z8dC1yd6myknvd4ZVYNLzFop4h6ssLrVSNgVrJkqiGR5TzT7h2mb6tSSHTcT6do",
+      "finalized": true,
+      "balanceLamports": 0
+    },
+    {
+      "wallet": "TpqdYJWNbwqZpjrunbqsRwszMrNMSSzHHcfwraHdvWh",
+      "signature": "4JqcP3SCTGARw26DuVR1hSzExurdVeRG8qyu4GEWHn7DoJcr2JWetFrQUhBmzYYQWaSh6AgBPB1zVURaxpN1BDQm",
+      "finalized": true,
+      "balanceLamports": 0
+    }
+  ],
+  "firstRunnerFailure": {
+    "cause": "Public RPC throttling interrupted cleanup; disposable key was never persisted",
+    "wallet": "3pG2wBBTMLSUHhHjYHqJbxcsUrxemfsesz5JgSXbAZiv",
+    "unrecoverableWalletLamports": 2411283520,
+    "unrecoverableProgramDataRentLamports": 4672162360,
+    "mainnetFundsUsed": false
+  },
+  "liveAutoBuybackActivated": false
+}
