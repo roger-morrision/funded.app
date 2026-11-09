@@ -31,7 +31,8 @@ function revealCampaignFocus(event) {
 
 export function secondaryPages() {
   mountReferralList();
-  text('#referral-command-title', 'Grow the community. Earn referral rewards.');
+  text('#referral-command-title', 'Your referral dashboard');
+  text('#referral-command-center .panel-explainer', 'Get your invite link, review qualified creators, and track your payouts.');
   disclose($('.referral-toolkit'), 'Campaign links and sharing tools');
   for (const button of $$('[data-referral-campaign]')) button.addEventListener('focus', revealCampaignFocus);
   const receipts=$('.burn-receipts-panel');

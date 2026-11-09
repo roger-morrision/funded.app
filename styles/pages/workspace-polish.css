@@ -176,8 +176,8 @@ html body #main-content #profile > .section-heading h1 { margin:4px 0 8px;font-s
   html body #main-content #coin-page .coin-identity > .coin-identity-main { display:block;grid-area:1 / 2;min-width:0; }
   html body #main-content #coin-page .coin-identity #coin-page-title { font-size:22px;line-height:1.2;margin:4px 0 8px;overflow-wrap:anywhere; }
   html body #main-content #coin-page .coin-identity .coin-socials { gap:2px;flex-wrap:wrap;margin-top:8px; }
-  html body #main-content #coin-page .coin-identity > .coin-package-rail { grid-column:1 / -1;grid-row:auto;display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px; }
-  html body #main-content #coin-page .coin-package-rail .coin-watch { align-self:center; }
+  html body #main-content #coin-page .coin-identity > .coin-package-rail { grid-column:1 / -1;grid-row:auto;display:flex;align-items:flex-end;justify-content:space-between;width:100%;gap:12px; }
+  html body #main-content #coin-page .coin-package-rail .coin-watch { align-self:flex-end; }
   html body #main-content #coin-page .coin-promotion-details { flex:0 1 auto;width:auto;gap:4px; }
   html body #main-content #coin-page .coin-identity > [data-watchlist-status] { grid-column:1 / -1;margin:0; }
   html body #main-content #coin-page .coin-identity > [data-watchlist-status]:empty { display:none; }

@@ -13,6 +13,26 @@
   --cp-accent: #ffc46b;
   --cp-radius: 8px;  /* the app-wide panel radius */
 }
+/* Keep the artwork preview square when upload actions share a narrow form. */
+html body .launch-dialog .image-picker { display:grid;grid-template-columns:38px minmax(0,1fr) auto; }
+html body .launch-dialog .image-preview { width:38px;height:38px; }
+html body .launch-dialog .image-picker > span:nth-child(2) { min-width:0; }
+/* Wrapped labels must not move neighboring metric values onto different rows. */
+html body #main-content .proof-total > span { display:flex;align-items:flex-end;min-height:2.8em;line-height:1.4; }
+/* The workspace header already presents this title and description. */
+html body.page-route-referrals #referral-command-center > .section-heading { display:none; }
+html body #main-content .referral-earnings-calculator li { align-items:baseline; }
+html body #main-content .referral-earnings-calculator li > strong { margin:0;white-space:nowrap; }
+html body #main-content #coin-page #coin-promotion-badge:empty { display:none; }
+html body #rewards-history .mobile-filter-drawer > button { margin-top:12px; }
+@media(max-width:560px) {
+  html body .launch-dialog .image-picker { grid-template-columns:38px minmax(0,1fr); }
+  html body .launch-dialog .image-picker-actions { grid-column:2;justify-self:end; }
+  html body.product-experience-style .explore-boost-packages { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  html body .explore-boost-packages button b { white-space:nowrap; }
+  html body .coin-quick-edit-actions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }
+  html body .coin-quick-edit-actions #coin-quick-edit-reset { grid-column:1 / -1; }
+}
 html body #main-content :is(.watch-button,#coin-watch)[aria-pressed="true"],
 html body #main-content :is(.watch-button,#coin-watch).active { color: var(--cp-accent); }
 html body #main-content :is(.watch-button,#coin-watch)[aria-pressed="true"] svg,
@@ -20,7 +40,15 @@ html body #main-content :is(.watch-button,#coin-watch).active svg { fill: curren
 
 /* Task-oriented Home, Rewards and creation use the existing shared components. */
 html body.page-route-overview.product-experience-style #main-content .hero-section {
-  display: block; background: none; border-bottom: 1px solid var(--cp-line);
+  display: block;
+  background: url('/home-community-banner.svg') center top / 100% 300px no-repeat;
+  border-bottom: 1px solid var(--cp-line);
+}
+@media(max-width:900px) {
+  html body.page-route-overview.product-experience-style #main-content .hero-section {
+    background-size: 1000px 260px;
+    background-position: 45% top;
+  }
 }
 html body.page-route-overview.product-experience-style #main-content .hero-copy-column { display: block; min-width: 0; max-width: 840px; }
 html body.page-route-overview.product-experience-style #main-content .hero-copy-column p.home-hero-kicker { display:block;margin:0 0 12px;color:#ffd166;font-size:13px;letter-spacing:.02em;text-transform:none; }

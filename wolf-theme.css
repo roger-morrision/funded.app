@@ -155,7 +155,7 @@ body.page-route-overview .hero-section {
   background: linear-gradient(90deg, #0b1020 0%, #0b1020e8 30%, #0b102080 68%, #0b102033 100%),
     linear-gradient(0deg, #0b1020 0%, #0b102000 34%),
     url('/home-wolf-hero.webp') center right / cover no-repeat,
-    #0b1020 !important;
+    #0b1020;
 }
 body.page-route-overview .hero-copy-column { max-width: 690px; }
 body.page-route-overview .hero-section h1 { font-size: clamp(52px, 6.5vw, 104px) !important; line-height: .95; letter-spacing: -.075em; }
@@ -362,7 +362,7 @@ body.page-route-coin .coin-page .coin-transactions-table tbody tr:hover { backgr
     background: url('/richpad-mark.svg') center / contain no-repeat;
   }
   body.page-route .mobile-trade-open { background: #f4a340; border-color: #ffd28a; color: #18151c; }
-  body.page-route-overview .hero-section { min-height: 545px !important; background-position: center, center, 60% bottom, center !important; }
+  body.page-route-overview .hero-section { min-height: 545px !important; background-position: center, center, 60% bottom, center; }
   body.page-route-overview .hero-section h1 { font-size: clamp(47px, 12vw, 70px) !important; white-space: normal; }
 }
 /* Keep secondary dashboards and instructional dialogs on the shared wolf palette. */

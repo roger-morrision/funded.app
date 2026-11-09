@@ -92,7 +92,7 @@ export function renderCoinPromotionBadge(
     packageElement.title = presentation.tier === 'standard' ? 'Verified standard launch; no paid promotion burn' : 'Launch package cannot be verified yet';
   }
   packageElement.textContent = badge?.label || presentation.label;
-  holder.append(packageElement);
+  if (presentation.tier !== 'standard') holder.append(packageElement);
   renderCoinRegistryIdentity(mint);
   renderCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint);
 }

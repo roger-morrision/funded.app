@@ -55,7 +55,7 @@ html body.product-experience-style #explore .explore-benefit-leaders { padding: 
 /* Smaller heroes keep live content and the first form fields in view. */
 html body.product-experience-style.page-route-overview #main-content .hero-section {
   display: block; min-height: 0 !important; padding: 16px 0 !important; margin-block: 0 12px;
-  background-image: none !important; border-bottom: 1px solid var(--line);
+  background-image: none; border-bottom: 1px solid var(--line);
 }
 html body.product-experience-style.page-route-overview #main-content .hero-copy-column { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: 'title actions' 'copy actions'; align-items: center; gap: 6px 20px; width: 100%; max-width: none; }
 html body.product-experience-style.page-route-overview #main-content .home-hero-kicker { display: none; }

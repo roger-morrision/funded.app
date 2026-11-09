@@ -3,7 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-const BUDGET = { files: 125, important: 453, hexColors: 2664 };
+const BUDGET = { files: 125, important: 450, hexColors: 2664 };
 
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '*.css'], { encoding: 'utf8' })
   .split('\n').filter(path => path && !/^(dist|dist-mainnet-readonly|node_modules|public\/vendor)\//.test(path));

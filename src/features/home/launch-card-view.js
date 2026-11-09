@@ -275,8 +275,6 @@ export function decorateHomeLaunchCard(
   {
     promotionElement,
     promotionForMint,
-    verifiedLaunchPolicyForMint,
-    document = globalThis.document,
   } = {}
 ) {
   const packageBadge = card.querySelector('.home-launch-media-package');
@@ -286,11 +284,5 @@ export function decorateHomeLaunchCard(
     const launchPromotion = promotionForMint(mint);
     if (launchPromotion?.tier === 'boost') promotion.textContent = `Boost · ${launchPromotion.amountTokens.toLocaleString()} $RICH`;
     packageBadge?.append(promotion);
-  } else if (verifiedLaunchPolicyForMint(mint)?.onchainVerified) {
-    const standard = document.createElement('span');
-    standard.className = 'home-launch-package-standard';
-    standard.textContent = 'Standard';
-    standard.title = 'Standard launch package · verified policy, no paid launch promotion';
-    packageBadge?.append(standard);
-  } else packageBadge?.replaceChildren();
+  }
 }

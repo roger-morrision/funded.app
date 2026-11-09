@@ -231,7 +231,14 @@ html body #main-content .home-new-token-market strong { font-size:13px;color:var
 html body #main-content .home-new-token-meta { justify-content:flex-start;flex-wrap:wrap;gap:6px;font-family:inherit; }
 html body #main-content .home-new-token-meta a { position:relative;z-index:2;color:var(--cp-accent); }
 html body #main-content .home-new-token-footer { display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--cp-muted); }
-html body #main-content .home-new-token-footer .card-review-buy { position:relative;z-index:2;display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 8px;color:var(--cp-accent);text-decoration:none;white-space:nowrap; }
+html body #main-content .home-new-token-footer .card-review-buy { position:relative;z-index:2;display:inline-flex;flex:none;align-items:center;justify-content:center;height:44px;min-height:44px;margin:0;padding:0 8px;color:var(--cp-accent);text-decoration:none;white-space:nowrap; }
+html body #main-content .home-launch-media-package:empty { display:none; }
+@media(max-width:560px) {
+ html body #main-content .home-new-token-footer { display:grid;grid-template-columns:minmax(0,1fr) 44px auto; }
+ html body #main-content .home-new-token-footer .home-new-token-progress { grid-column:1 / -1; }
+ html body #main-content .home-new-token-footer > .watch-button { grid-column:2; }
+ html body #main-content .home-new-token-footer > .card-review-buy { grid-column:3; }
+}
 html body #main-content #home-community { min-width:0;border:1px solid var(--cp-line);border-top:3px solid var(--cp-accent);border-radius:10px;background:var(--cp-surface);overflow:hidden; }
 html body #main-content .home-community-heading { display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--cp-line);gap:8px; }
 html body #main-content .home-community-heading h2 { margin:0;font-size:16px; }
