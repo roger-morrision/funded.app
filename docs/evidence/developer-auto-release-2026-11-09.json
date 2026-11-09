@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-09",
+  "network": "devnet",
+  "runtimeRevision": "a97e3719b2fc33487d1a9c99f68eda992799f319",
+  "runtimeImage": "sha256:545c66f6e8fe38ca6ac5fa5155d06398964867ec42397557044394dd2f3f71f3",
+  "tests": {
+    "isolatedContainer": 358,
+    "failures": 0
+  },
+  "automaticRelease": {
+    "cluster": "devnet",
+    "status": "finalized",
+    "signature": "4Ud5oL55yQi9EPZFNffsKbUGGNPMpq2mTunD6RAMf8kso4MHgcybYWSQTSTmkjevMgyLy1rWMKqfpaBZ6MwFxLjd",
+    "amount": "151982998893100",
+    "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+    "creator": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "payer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "slot": 520351343,
+    "feeLamports": 5000,
+    "creatorBalanceDeltaVerified": true,
+    "escrowBalanceDeltaVerified": true,
+    "preTokenBalances": [
+      {
+        "accountIndex": 1,
+        "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+        "uiTokenAmount": {
+          "uiAmount": 191663837.558753,
+          "decimals": 6,
+          "amount": "191663837558753",
+          "uiAmountString": "191663837.558753"
+        },
+        "owner": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+      },
+      {
+        "accountIndex": 3,
+        "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+        "uiTokenAmount": {
+          "uiAmount": 151982998.8931,
+          "decimals": 6,
+          "amount": "151982998893100",
+          "uiAmountString": "151982998.8931"
+        },
+        "owner": "53nYyCv5SBHmVFAeEPCW4RmagQEZ5biCcD9ZBkqQ6y9G",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+      }
+    ],
+    "postTokenBalances": [
+      {
+        "accountIndex": 1,
+        "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+        "uiTokenAmount": {
+          "uiAmount": 343646836.451853,
+          "decimals": 6,
+          "amount": "343646836451853",
+          "uiAmountString": "343646836.451853"
+        },
+        "owner": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+      },
+      {
+        "accountIndex": 3,
+        "mint": "AqSK8Dpov641bGo2LWpkMjE1nf7dsZuHkqBBm5Pkeww8",
+        "uiTokenAmount": {
+          "uiAmount": null,
+          "decimals": 6,
+          "amount": "0",
+          "uiAmountString": "0"
+        },
+        "owner": "53nYyCv5SBHmVFAeEPCW4RmagQEZ5biCcD9ZBkqQ6y9G",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+      }
+    ]
+  },
+  "qaTrial": {
+    "signature": "dFQLWrkmRRHjWACzVE1o6th5MX4Hg1gB2o1hxkPYwjgEX2RxEbcF6NEWRBRetqNyANzVH6yQsVd394fRCf5FE6U",
+    "finalized": true,
+    "balanceDeltaVerified": true,
+    "feeLamports": 5000,
+    "repeatDidNotResubmit": true
+  },
+  "ui": {
+    "recordTables": [
+      "Locked tokens",
+      "My rewards",
+      "Boost payment history"
+    ],
+    "narrowViewportDocumentWidth": 360,
+    "pageOverflow": false,
+    "buyRichHeaderLink": "/token/C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+    "fcatLiveStatus": "Released",
+    "rcatLiveStatus": "Locked",
+    "rcatReleaseTimeUtc": "2026-11-09T21:28:06.000Z"
+  },
+  "mainnetEnabled": false
+}
