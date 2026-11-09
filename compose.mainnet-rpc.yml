@@ -1,0 +1,29 @@
+# Isolated read-only Mainnet RPC preview. No app database or transaction signer.
+# Use its own project; never overlay this onto the live Devnet deployment.
+name: funded-mainnet-readonly
+services:
+  rpc-gateway:
+    image: ${FUNDED_MAINNET_PREVIEW_IMAGE:?Set the tested exact image digest}
+    command: [node, scripts/run-rpc-gateway.mjs]
+    user: node
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.50
+    mem_limit: 256m
+    memswap_limit: 256m
+    tmpfs: [/tmp]
+    environment:
+      SOLANA_CLUSTER: mainnet-beta
+      FUNDED_RPC_UPSTREAM_URL_FILE: /run/secrets/mainnet_rpc
+    secrets: [mainnet_rpc]
+    ports: ['127.0.0.1:18999:8899', '127.0.0.1:19000:8900']
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8899/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+secrets:
+  mainnet_rpc:
+    file: ${FUNDED_MAINNET_RPC_URL_FILE:?Set the private Mainnet Helius URL file}

@@ -1,6 +1,8 @@
 import http from 'node:http';
 import https from 'node:https';
 import {PublicKey} from '@solana/web3.js';
+import {requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
+import {rpcWriteBlocked} from './network-write-policy.mjs';
 
 export const RPC_GATEWAY_DEVNET_GENESIS='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -38,8 +40,10 @@ export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxRespo
 
 export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=2500,sendIntervalMs=1000,maxConcurrent=1,batchWindowMs=15,
   maxQueue=48,maxQueueWaitMs=12000,cacheMaxEntries=1000,cacheMaxBytes=32*1024*1024,
-  cooldownMs=30000,now=Date.now,wait=pause,sharedCache}={}){
+  cooldownMs=30000,now=Date.now,wait=pause,sharedCache,cluster='devnet'}={}){
   if(typeof transport!=='function')throw Error('RPC transport is required');
+  requireSolanaCluster(cluster);
+  const genesis=SOLANA_GENESIS[cluster];
   const cache=new Map(),inflight=new Map(),accountGroups=new Map(),methodCooldowns=new Map(),waiters=[];
   const counters={requests:0,upstreamRequests:0,cacheHits:0,coalescedReads:0,accountBatchSavings:0,
     accountBatches:0,uncacheableRequests:0,upstreamFailures:0,rateLimited:0,queueRejected:0,redisCacheHits:0,redisCacheErrors:0};
@@ -47,14 +51,14 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
   const stats=()=>({...counters,queueDepth:queued,cacheEntries:cache.size,cacheBytes,
     cooldownRemainingMs:Math.max(0,blockedUntil-now()),
     methodCooldowns:Object.fromEntries([...methodCooldowns].filter(([,until])=>until>now()).map(([method,until])=>[method,until-now()])),
-    upstreamVerified:verified,cluster:'devnet',redis:sharedCache?.stats?.()||{enabled:false},
+    upstreamVerified:verified,cluster,redis:sharedCache?.stats?.()||{enabled:false},
     failover:transport.stats?.()||{enabled:false},
     pacing:{minIntervalMs,blockIntervalMs,sendIntervalMs,maxConcurrent}});
   const cooling=method=>Math.max(blockedUntil,methodCooldowns.get(method)||0)>now();
   const erase=key=>{const entry=cache.get(key);if(entry){cacheBytes-=entry.bytes;cache.delete(key);}};
   function cacheDuration(request,result){
     if(result===null||result===undefined)return 0;
-    if(request.method==='getGenesisHash')return result===RPC_GATEWAY_DEVNET_GENESIS?3600000:0;
+    if(request.method==='getGenesisHash')return result===genesis?3600000:0;
     if(['getTransaction','getBlock'].includes(request.method)&&request.params?.[1]?.commitment==='finalized')return 300000;
     return 0; // Mutable balances, blockhashes, indexes and status results stay fresh.
   }
@@ -159,16 +163,17 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
   async function initialize(){
     if(verified)return true;if(initializing)return initializing;
     initializing=(async()=>{const response=await upstream({method:'getGenesisHash',params:[]});
-      verified=response.httpStatus===200&&response.body.result===RPC_GATEWAY_DEVNET_GENESIS;
-      if(verified)remember(stable(['getGenesisHash',[]]),{method:'getGenesisHash',params:[]},response);
+      verified=response.httpStatus===200&&response.body.result===genesis;
+      if(verified)remember(stable([cluster,'getGenesisHash',[]]),{method:'getGenesisHash',params:[]},response);
       return verified;})().finally(()=>{initializing=null;});return initializing;
   }
   async function request(input){
     counters.requests++;
     const id=input?.id??null,finish=response=>({...response,body:{...response.body,id}});
     if(!validRequest(input))return finish(failure(400,'Unsupported JSON-RPC request.',-32600));
-    if(!verified)return finish(failure(503,'RPC gateway has not verified Devnet.'));
-    const readonly=readMethod(input.method),key=stable([input.method,input.params]);
+    if(rpcWriteBlocked(cluster,input.method))return finish(failure(403,'Mainnet transaction submission is not activated.'));
+    if(!verified)return finish(failure(503,'RPC gateway has not verified the selected network.'));
+    const readonly=readMethod(input.method),key=stable([cluster,input.method,input.params]);
     if(!readonly){
       counters.uncacheableRequests++;generation++;inflight.clear();
       try{return finish(await upstream(input));}finally{generation++;inflight.clear();}

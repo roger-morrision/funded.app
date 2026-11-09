@@ -1,6 +1,18 @@
 # Mainnet preparation with placeholders
 
-The user requested completion of the go-live work and chose placeholders for production inputs. This is a preparation release. Mainnet transactions remain disabled; placeholders do not authorize deployment, wallet funding, signing, or a public launch.
+The user requested completion of the go-live work. The selected admin and upgrade authority is `ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC`, with a maximum total spend of 5 SOL. Mainnet data providers are free Helius RPC, public Solana Mainnet RPC as backup, and Birdeye for indexed market metrics. Remaining production inputs still use placeholders. Mainnet transactions remain disabled; a budget and provider selection do not establish deployment or financial acceptance.
+
+## Current preparation and live checks
+
+- Public identities and the 5,000,000,000-lamport cap are recorded in the deployment and acceptance plans. The private staging configuration uses secret-file references, including the verified Mainnet Helius endpoint and existing Birdeye key. No transaction signer was created or loaded. Priority fees default to zero within the total cap.
+- The RPC gateway now verifies the selected network at startup, during fallback initialization and before primary recovery. Mainnet and Devnet use separate history cache keys and Redis namespaces. Mainnet submission and airdrop methods stay blocked. A simulated Helius quota rejection successfully switched to the live public Mainnet endpoint; both providers returned finalized slots on the correct network. Read timeouts and server failures may fail over; ambiguous transaction outcomes never trigger a replay.
+- `compose.mainnet-rpc.yml` describes an isolated, read-only gateway preview with distinct localhost ports and no database, transaction signer or Devnet volume. Supply a tested image digest and `FUNDED_MAINNET_RPC_URL_FILE` to its private credential file. This is not a Mainnet application deployment. The app's public write gates remain closed.
+- Live Mainnet rent for the 900,144-byte reference program was 4.574443480 SOL, including the program account. A fresh Loader-v3 deployment reuses buffer lamports; do not count buffer rent twice. That leaves 0.425556520 SOL within the cap before fees, setup, token/pool provisioning and the canary. The final production binary and complete launch budget are not yet verified. The selected public wallet held zero Mainnet SOL at the check; the deployment payer/signing method is still unspecified.
+- The existing 48-hour Devnet lock still holds 100,000,000 base units and rejected early release in a live simulation without a balance change. Its chain deadline is 2026-11-10 02:23:54 UTC (09:23:54 Bangkok). A successful matured release and duplicate rejection remain pending.
+- The historical promoted launch `6Jw7EEAcjh7DHDkaqSbKhHEi5LMCgMrZcdzSWuR1ZL1x` was revalidated from finalized transactions: 139 FUNDED burned at slot 519859270 before creation at slot 519859298, with matching mint/quote binding and wallet debit. This does not verify a new current-release launch or cancelled-creation recovery.
+- The independent Devnet buyback price-signer account is still absent. X identity/payment, full holder delivery, community distribution and recovery cases retain their separate acceptance requirements. An unavailable service is not treated as completed.
+
+The public Solana endpoint is a backup with rate limits, not a production SLA. Helius is paced within its documented free-tier RPC limits. References: [Solana public endpoints](https://solana.com/docs/references/clusters), [Helius plans](https://www.helius.dev/pricing).
 
 ## Delivered in this preparation
 

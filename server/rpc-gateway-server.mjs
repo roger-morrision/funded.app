@@ -62,7 +62,7 @@ export function createRpcSignatureServer({gateway,pollIntervalMs=2000,maxSubscri
 export function createRpcGatewayServer({gateway}={}){
   const server=createServer(async(req,res)=>{
     const json=(status,value)=>{if(res.destroyed)return;res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(value));};
-    if(req.method==='GET'&&req.url==='/health')return json(gateway.stats().upstreamVerified?200:503,{ok:gateway.stats().upstreamVerified,cluster:'devnet'});
+    if(req.method==='GET'&&req.url==='/health')return json(gateway.stats().upstreamVerified?200:503,{ok:gateway.stats().upstreamVerified,cluster:gateway.stats().cluster});
     if(req.method==='GET'&&req.url==='/metrics')return json(200,gateway.stats());
     if(req.method!=='POST'||req.url!=='/')return json(404,{error:'Not found'});
     try{

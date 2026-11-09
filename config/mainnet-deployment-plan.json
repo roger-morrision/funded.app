@@ -38,7 +38,7 @@
   "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "mainnetProgramId": null,
   "mainnetAppOrigin": null,
-  "productionRpcSecretPath": ".secrets/mainnet-solana-rpc.url",
+  "productionRpcSecretPath": ".secrets/mainnet-helius-rpc.url",
   "deploymentPayerSignerReference": null,
   "productionDatabaseSecretPath": null,
   "metadataSecretPath": null,
@@ -90,7 +90,8 @@
     "Run the separately approved capped canary before enabling Mainnet application writes. Preserve the Devnet deployment."
   ],
   "adminWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
-  "rpcProvider": "solana-public",
+  "rpcProvider": "helius-free",
   "publicRpcUrl": "https://api.mainnet-beta.solana.com",
-  "marketDataProvider": "birdeye"
+  "marketDataProvider": "birdeye",
+  "rpcFallbackProvider": "solana-public"
 }

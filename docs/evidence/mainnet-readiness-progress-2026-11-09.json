@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-09T04:21:11.447Z",
+  "status": "no-go",
+  "mainnetActivationAuthorized": false,
+  "scope": "live-read-only-checks-and-simulated-failover-not-full-financial-acceptance",
+  "selected": {
+    "adminWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "maximumTotalSpendLamports": "5000000000",
+    "rpcPrimary": "helius-free",
+    "rpcFallback": "solana-public-mainnet",
+    "marketFallback": "birdeye"
+  },
+  "rpc": {
+    "at": "2026-11-09T04:18:30.035Z",
+    "scope": "live-read-only-providers-with-simulated-primary-quota",
+    "cluster": "mainnet-beta",
+    "transactionsSubmitted": 0,
+    "verified": true,
+    "primary": "helius",
+    "fallback": "public-solana-mainnet",
+    "primarySlot": 467180622,
+    "fallbackSlot": 467180630,
+    "mainnetWritesBlocked": true,
+    "stats": {
+      "enabled": true,
+      "cluster": "mainnet-beta",
+      "activeProvider": "public-mainnet-beta",
+      "failovers": 1,
+      "recoveryProbes": 0,
+      "primaryAttempts": 3,
+      "publicRequests": 1,
+      "nextPrimaryProbeInMs": 598761,
+      "publicVerified": true,
+      "publicRateLimited": 0
+    }
+  },
+  "referenceRent": {
+    "at": "2026-11-09T04:11:04.954Z",
+    "cluster": "mainnet-beta",
+    "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+    "scope": "reference-binary-rent-estimate-not-final-deployment-quote",
+    "referenceBytes": 900144,
+    "maximumSpendLamports": "5000000000",
+    "programDataRentLamports": 4573610360,
+    "programRentLamports": 833120,
+    "bufferRentLamports": 4573569720,
+    "retainedRentLamports": 4574443480,
+    "feesAndAppAccountsExcluded": true,
+    "withinCap": true,
+    "adminBalanceLamports": 0,
+    "slot": 467178540,
+    "fundingModel": "Fresh Loader-v3 deployment returns buffer lamports to the same payer before funding ProgramData. Buffer rent is not added twice.",
+    "remainingAfterRetainedRentLamports": 425556520
+  },
+  "devnetDependencies": {
+    "at": "2026-11-09T04:10:21.214Z",
+    "scope": "read-only-live-dependencies-not-financial-acceptance",
+    "cluster": "devnet",
+    "ready": false,
+    "lock": {
+      "lock": "C5v7gu9hcJggmezUdY16uUKo5xnYRrHePWyJPwMxBMA7",
+      "mint": "DHeL94ZYd4kdN3myY9FDnRA6WS4QEjk1XySDYefnRufg",
+      "creator": "44z5nXbFctEMZYksy1BqFSTUv8Qfrq2uNjkqi4XKLwrD",
+      "amount": "100000000",
+      "lockedAt": 1794104634,
+      "unlockAt": 1794277434,
+      "releasedAt": 0,
+      "lockSeconds": 172800,
+      "chainTime": 1794197423,
+      "unlockAtUtc": "2026-11-10T02:23:54.000Z",
+      "remainingSeconds": 80011,
+      "matured": false,
+      "earlyReleaseRejected": true,
+      "vaultBalanceUnchanged": true
+    },
+    "priceSignerAccount": {
+      "address": "pNgBvEvwdWsYUmDyPfYUrKvnn9QFdnoVV4mc7ZBfSUV",
+      "exists": false,
+      "owner": null
+    }
+  },
+  "promotion": {
+    "at": "2026-11-09T04:19:27.860Z",
+    "scope": "historical-promoted-launch-revalidated-not-new-acceptance",
+    "cluster": "devnet",
+    "transactionsSubmitted": 0,
+    "verified": true,
+    "mint": "6Jw7EEAcjh7DHDkaqSbKhHEi5LMCgMrZcdzSWuR1ZL1x",
+    "burnSignature": "RthELdU4uz2NxyPC9JBSvY8N3pctWbdVsJGw1Dd3cK9pA62eSXqZuQyz4u3GCuL2BxWo9oBCDM47oP55h4kp8U2",
+    "launchSignature": "3QB21RTLkYmd8mkcPa7wgyQwf7He3PY9AQvDr8FjgLYhqezCvEhHRnAZLcxMmCWuPkjqKgNfRodHhgeknuMGgjAC",
+    "burnSlot": 519859270,
+    "launchSlot": 519859298,
+    "burnBeforeCreate": true,
+    "mintAndQuoteBindingVerified": true,
+    "feePayer": "AdKZkGSW5R2n4NZdqdK6T6akRae9kvQTZGusQnySVsnp",
+    "amountBaseUnits": "139000000",
+    "decimals": 6,
+    "walletTokenDebitVerified": true,
+    "cancelledCreationRecoveryVerified": false,
+    "currentReleaseEndToEndVerified": false
+  },
+  "mainnetTransactionsSubmitted": 0,
+  "remaining": [
+    "Production mint and pool, fee recipient, hosting and isolated database/storage",
+    "Deployment payer signing method and funded Mainnet balance",
+    "Independent price signer and contract/custody review",
+    "Complete current-release financial and recovery acceptance",
+    "Matured 48h release after its on-chain deadline",
+    "Final binary, full setup/canary costs and capped deployment verification"
+  ],
+  "validation": {
+    "applicationTests": {
+      "passed": 285,
+      "failed": 0,
+      "scope": "local application tests; mocked financial and failure scenarios"
+    },
+    "source": {
+      "syntaxFiles": 957,
+      "maintainedFiles": 1182,
+      "passed": true
+    }
+  }
+}

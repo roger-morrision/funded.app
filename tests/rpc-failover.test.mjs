@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createRpcFailoverTransport,isRpcQuotaRejection,isHeliusRpc} from '../server/rpc-failover.mjs';
 import {createRpcGateway,createRpcUpstreamTransport,RPC_GATEWAY_DEVNET_GENESIS as genesis} from '../server/rpc-gateway.mjs';
+import {SOLANA_GENESIS} from '../solana-network.js';
 const ok=(p,result)=>({status:200,headers:{},body:{jsonrpc:'2.0',id:p.id,result}});
 const quota=()=>({status:429,headers:{},body:'max usage reached'});
 const request=(method='getSlot',params=[])=>({jsonrpc:'2.0',id:77,method,params});
@@ -113,4 +114,47 @@ test('HTTP transport preserves bounded plain-text credit errors for classificati
   const transport=createRpcUpstreamTransport(`http://127.0.0.1:${server.address().port}`);
   try{const response=await transport(request());assert.equal(response.body,'max usage reached');assert(isRpcQuotaRejection(response));}
   finally{transport.close();await new Promise(resolve=>server.close(resolve));}
+});
+
+test('Mainnet failover verifies Mainnet, rejects Devnet recovery and blocks transaction submission',async()=>{
+  let time=1000,recovered=false,primaryCalls=0;const calls=[];
+  const transport=createRpcFailoverTransport({cluster:'mainnet-beta',now:()=>time,recoveryIntervalMs:30000,
+    primary:async p=>{primaryCalls++;return recovered?ok(p,genesis):quota();},
+    publicTransport:async p=>{calls.push(p.method);return ok(p,p.method==='getGenesisHash'?SOLANA_GENESIS['mainnet-beta']:456);},
+    publicOptions:{wait:async ms=>{time+=ms;}}});
+  try{
+    assert.equal((await transport(request())).body.result,456);assert.equal(transport.stats().activeProvider,'public-mainnet-beta');
+    const before=primaryCalls;assert.equal((await transport(request('sendTransaction',['signed']))).status,403);
+    assert.equal((await transport(request('requestAirdrop',['wallet',1]))).status,403);assert.equal(primaryCalls,before);
+    time+=30000;recovered=true;await transport(request());assert.equal(transport.stats().activeProvider,'public-mainnet-beta');
+    assert(!calls.includes('sendTransaction'));assert(!calls.includes('requestAirdrop'));
+  }finally{transport.close();}
+});
+
+test('Mainnet gateway rejects a Devnet endpoint and keeps history cache keys network-bound',async()=>{
+  const keys=[],cached=new Map();
+  const sharedCache={close(){},get:async key=>{keys.push(key);return cached.get(key);},set:async(key,response,ttl)=>cached.set(key,{response,expiresAt:Date.now()+ttl})};
+  const options={minIntervalMs:0,wait:async()=>{},sharedCache};
+  const wrong=createRpcGateway({...options,cluster:'mainnet-beta',transport:async p=>ok(p,genesis)});
+  assert.equal(await wrong.initialize(),false);assert.equal((await wrong.request(request())).httpStatus,503);wrong.close();
+  for(const cluster of ['devnet','mainnet-beta']){
+    const gateway=createRpcGateway({...options,cluster,transport:async p=>ok(p,p.method==='getGenesisHash'?SOLANA_GENESIS[cluster]:{cluster})});
+    try{
+      assert.equal(await gateway.initialize(),true);
+      const result=await gateway.request(request('getTransaction',['signature',{commitment:'finalized'}]));
+      assert.equal(result.body.result.cluster,cluster);
+      if(cluster==='mainnet-beta')assert.equal((await gateway.request(request('sendTransaction',['signed']))).httpStatus,403);
+    }finally{gateway.close();}
+  }
+  assert.equal(new Set(keys).size,2);
+});
+
+test('read timeouts and server outages fail over, but ambiguous writes and successful results never replay',async()=>{
+  for(const primary of [()=>{throw Error('timeout');},()=>({status:503})]){
+    const f=fixture({primary});try{assert.equal((await f.transport(request())).body.result,123);assert.equal(f.transport.stats().failovers,1);}finally{f.transport.close();}
+  }
+  const write=fixture({primary:()=>({status:503})});
+  try{assert.equal((await write.transport(request('sendTransaction',['signed']))).status,503);assert.equal(write.publicCalls.length,0);}finally{write.transport.close();}
+  const result=fixture({primary:p=>({...ok(p,123),status:503})});
+  try{await result.transport(request());assert.equal(result.publicCalls.length,0);}finally{result.transport.close();}
 });
