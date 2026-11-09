@@ -592,8 +592,8 @@
   "acceptance": [
     {
       "id": "admin-operations-withdrawal",
-      "status": "blocked",
-      "detail": "Selected wallet is allowlisted and email approval is recorded. Intent for 13415977 lamports remains awaiting-admin-signature, with no saved signature or finalized receipt; user transaction signature requested. No replacement transfer sent."
+      "status": "passed-live",
+      "detail": "Completed on follow-up app revision 0df045b8757ff554f2e6628d3fb69803564f3a77. Email approval, same allowlisted admin signature/fee payer/destination, 3748-lamport source debit and -6252-lamport admin net delta after 10000-lamport fee verified at finalized slot 520236974."
     },
     {
       "id": "launch-standard",
@@ -948,29 +948,53 @@
     ]
   },
   "adminWithdrawal": {
-    "at": "2026-11-09T02:36:36.375Z",
+    "at": "2026-11-09T02:51:16.586Z",
     "cluster": "devnet",
     "destination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
     "adminAllowed": true,
-    "status": "no-matching-saved-receipt",
-    "results": [],
+    "status": "verified",
+    "results": [
+      {
+        "action": "wallet-withdrawal",
+        "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+        "destination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "amountLamports": "3748",
+        "signature": "2oujRS9fmShegZpYH62VuQGVFFMeMfhKuxJk8zETZwAsWvhzLthFnwD47RnecK22JuLEjD64RfyFV52eKzNv1nqi",
+        "wallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "slot": 520236974,
+        "at": "2026-11-09T02:50:33.310Z",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "feePayer": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "feeLamports": 10000,
+        "sourceDebitLamports": "3748",
+        "recipientCreditLamports": "-6252",
+        "verifiedNow": true,
+        "adminSigned": true,
+        "signatures": 2,
+        "emailApprovalRecorded": true,
+        "approvedWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "blockTime": 1794192632
+      }
+    ],
     "intents": [
       {
+        "expiresAt": "2026-11-09T02:52:25.584Z",
+        "blockhash": "CdEzrEBSX6ZnZv7daDYdJeAryoE4ynMB19v8FDWfVfqv",
+        "lastValidBlockHeight": 507380663,
+        "signature": "2oujRS9fmShegZpYH62VuQGVFFMeMfhKuxJk8zETZwAsWvhzLthFnwD47RnecK22JuLEjD64RfyFV52eKzNv1nqi",
         "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
         "destination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
         "feePayer": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
-        "status": "awaiting-admin-signature",
-        "amountLamports": 13415977,
+        "status": "finalized",
+        "amountLamports": 3748,
         "emailApprovalRecorded": true,
         "approvedWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
       }
     ],
-    "chainSearch": {
-      "at": "2026-11-09T02:37:03.498Z",
-      "recentMatchingTransfers": 0,
-      "scope": "latest 12 finalized transactions for destination; no transaction in last two hours"
-    },
-    "userReportedComplete": true,
-    "verifiedComplete": false
+    "applicationRevision": "0df045b8757ff554f2e6628d3fb69803564f3a77",
+    "userReportedPhantomApproval": true,
+    "scope": "Operations source to allowlisted admin; email approval, admin co-signature and fee payer, exact finalized source debit and net recipient credit verified",
+    "mainnetReady": false
   }
 }
