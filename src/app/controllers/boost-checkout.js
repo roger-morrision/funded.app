@@ -1,5 +1,6 @@
 import {pricedBoostPackages} from '../../../boost-pricing.js';
 import {currentBoostSnapshot} from '../../../boost-offer.js';
+import {snapshotBoostPayment,assertBoostWalletPayment,MAX_BOOST_NETWORK_FEE_LAMPORTS} from '../../../boost-wallet-review.js';
 // Dependencies and mutable application state are read live through appState.
 export function createBoostCheckoutController(appState) {
   let livePackages=null, pricingRevision=null;
@@ -163,7 +164,7 @@ export function createBoostCheckoutController(appState) {
     details.innerHTML = `<p class="explore-boost-intro">Boost ${name}: each new purchase adds its quantity and hours to the active boost.</p>
       <div class="explore-boost-packages" role="group" aria-label="Boost packages">${packages.map(item => `<button type="button" data-boost-package="${item.id}" aria-pressed="${item.id === packageId}" ${busy || pendingSignature ? 'disabled' : ''}><strong><span class="boost-leading-icon">${appState.icon('boost')}</span>${item.id}</strong><small>${item.hours} hours</small><b>$${item.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</b><small>${Number.isFinite(appState.coinSolUsdPrice) && appState.coinSolUsdPrice > 0 ? `≈ ${(item.usd / appState.coinSolUsdPrice).toFixed(4)} SOL` : 'Paid in SOL'}</small></button>`).join('')}</div>
       <div class="explore-boost-current"><span>Active boosts</span><strong>${appState.verifiedBoostsAvailable ? (active ? `${appState.escapeHtml(active.multiplier)}x${active.golden ? ' · golden ticker' : ''}` : 'None') : 'Unavailable'}</strong>${active ? `<small>${active.count} purchase${active.count === 1 ? '' : 's'} · latest expiry ${appState.escapeHtml(new Date(active.expiresAt).toLocaleString())}</small>` : ''}</div>
-      <p class="explore-boost-explainer">Pay in Solana Devnet test SOL. Network fee is additional. Test SOL has no monetary value.</p>
+      <p class="explore-boost-explainer">Pay in Solana Devnet test SOL. Network fee is additional, up to 0.001 SOL. Test SOL has no monetary value.</p>
       ${quotedAmount ? `<div class="explore-boost-quote"><strong>Review your payment</strong><span>${quotedAmount} SOL</span><small>$${quote.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} package · $${quote.solUsd}/SOL</small><small>To ${appState.escapeHtml(quote.recipient)}</small>${appState.quoteCountdownMarkup(quote.expiresAt)}</div>` : quote && !pendingSignature ? '<p class="explore-boost-quote-expired">This price expired. Get an updated price before paying.</p>' : ''}
       <button type="button" class="primary-button explore-boost-pay" ${!available || busy ? 'disabled' : ''}><span class="boost-leading-icon">${appState.icon('boost')}</span>${busy ? 'Checking payment…' : failureProof ? 'Start a new purchase' : pendingSignature ? 'Check payment status' : quotedAmount ? `Pay ${quotedAmount} SOL · ${selected.id}` : `${quote ? 'Refresh price' : active ? 'Buy another boost' : 'Continue'} · ${selected.id} · $${selected.usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}</button>
       <p class="explore-boost-message" role="status">${appState.escapeHtml(recoveryError || message || (available ? 'Review the exact SOL amount before approving in your wallet.' : 'New boost purchases are currently unavailable.'))}</p>
@@ -237,18 +238,33 @@ export function createBoostCheckoutController(appState) {
         ]);
         appState.assertWalletSessionCurrent(session);
         if (!Number.isSafeInteger(balance) || !Number.isSafeInteger(fee?.value) || fee.value < 0) throw new Error('Unable to check your balance and network fee. Try again.');
+        if(fee.value>MAX_BOOST_NETWORK_FEE_LAMPORTS)throw Error('Network fee exceeds the 0.001 SOL checkout limit. No payment was sent.');
         if (balance < quote.lamports + fee.value) throw new Error(`Not enough SOL. You need ${((quote.lamports + fee.value) / 1e9).toFixed(9)} SOL including the network fee. No payment was sent.`);
         appState.boostCheckout.message = 'Review the SOL transfer and boost memo in your wallet.';
         appState.renderExploreBoostDialog();
-        const reviewedMessage=appState.Buffer.from(transaction.serializeMessage());
+        const reviewedPayment=snapshotBoostPayment(transaction);
         const signed = await session.provider.signTransaction(transaction);
         appState.assertWalletSessionCurrent(session);
         appState.validateBoostQuote(quote, expected);
-        if (!appState.Buffer.from(signed.serializeMessage()).equals(reviewedMessage))
-          throw Error('Wallet changed the reviewed payment. No payment was sent.');
         const signedBytes = signed.serialize();
-        if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned a transaction without a valid signature. No payment was sent.');
-        const signature = appState.bs58.encode(signed.signature);
+        const payment=Transaction.from(signedBytes);
+        assertBoostWalletPayment(payment,reviewedPayment);
+        if (!payment.verifySignatures() || payment.signatures.length!==1 || !payment.signature || payment.signature.length !== 64)
+          throw new Error('Wallet returned a transaction without a valid signature. No payment was sent.');
+        // Phantom may add priority fees. Check the actual signed message's fee,
+        // not just the unsigned estimate, before journaling or broadcasting.
+        const [signedBalance,signedFee]=await Promise.all([
+          rpc.getBalance(session.provider.publicKey,'confirmed'),rpc.getFeeForMessage(payment.compileMessage(),'confirmed'),
+        ]);
+        appState.assertWalletSessionCurrent(session);
+        appState.validateBoostQuote(quote,expected);
+        if(!Number.isSafeInteger(signedBalance)||!Number.isSafeInteger(signedFee?.value)||signedFee.value<0)
+          throw Error('Unable to verify the wallet-selected network fee. No payment was sent.');
+        if(signedFee.value>MAX_BOOST_NETWORK_FEE_LAMPORTS)
+          throw Error('Wallet network fee exceeds 0.001 SOL. Lower the priority fee in your wallet and retry. No payment was sent.');
+        if(BigInt(signedBalance)<BigInt(quote.lamports)+BigInt(signedFee.value))
+          throw Error('Not enough SOL for the boost and wallet-selected network fee. No payment was sent.');
+        const signature = appState.bs58.encode(payment.signature);
         // Persist the signed identity BEFORE broadcast. An RPC timeout can occur after acceptance.
         // Recovery remains verification-only until the original signature is resolved.
         const signedTransaction=appState.Buffer.from(signedBytes).toString('base64');

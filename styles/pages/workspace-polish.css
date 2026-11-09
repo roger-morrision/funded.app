@@ -369,3 +369,5 @@ html body #rewards-history .mobile-filter-drawer > button { margin-top:12px; }
 }
 
 .wallet-address-link { color:inherit;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere; }
+.portfolio-locked-card { border:1px solid var(--border, #343656);border-radius:14px;padding:16px;margin-block:14px;overflow-wrap:anywhere; }
+.portfolio-locked-card p { margin-block:8px; }

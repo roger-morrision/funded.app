@@ -8,18 +8,20 @@ import * as recovery from '../boost-checkout-recovery.js';
 import {BOOST_MEMO_PROGRAM,boostMemo,boostLamports} from '../boost-offer.js';
 import {pricedBoostPackages,DEFAULT_BOOST_PRICES} from '../boost-pricing.js';
 
-test('changed price reaches signing; failed broadcast survives restart and verified expiry permits another package',async()=>{
+for(const walletAddsPriority of [false,true])test(`changed price and wallet priority=${walletAddsPriority}: failed broadcast survives restart and verified expiry permits another package`,async()=>{
   const payer=solana.Keypair.generate(),recipient=solana.Keypair.generate().publicKey.toBase58(),mint=solana.Keypair.generate().publicKey.toBase58();
-  const blockhash=solana.Keypair.generate().publicKey.toBase58(),data=new Map(),events=[];
+  const blockhash=solana.Keypair.generate().publicKey.toBase58(),data=new Map(),events=[],feeMessages=[];
   const storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};
   const packages=pricedBoostPackages({...DEFAULT_BOOST_PRICES,'10x':1234});
   let sequence=0,expire=false,confirmCalls=0;
-  const wallet={publicKey:payer.publicKey,signTransaction:async tx=>{events.push('sign');tx.sign(payer);return tx;}};
+  const wallet={publicKey:payer.publicKey,signTransaction:async tx=>{events.push('sign');
+    if(walletAddsPriority)tx.instructions.unshift(solana.ComputeBudgetProgram.setComputeUnitLimit({units:100000}),solana.ComputeBudgetProgram.setComputeUnitPrice({microLamports:150000}));
+    tx.sign(payer);return solana.Transaction.from(tx.serialize());}};
   const session={address:payer.publicKey.toBase58(),provider:wallet};
   const app={wallet,connectedWalletAddress:session.address,boostCheckout:{mint,packageId:'10x'},verifiedBoosts:{},Buffer,bs58,BOOST_MEMO_PROGRAM,
     captureWalletSession:()=>session,assertWalletSessionCurrent:()=>{},canSignTransactions:()=>true,getSolana:async()=>solana,
     connection:{getLatestBlockhash:async()=>({blockhash,lastValidBlockHeight:200}),getBalance:async()=>10000000000,
-      getFeeForMessage:async()=>({value:5000}),sendRawTransaction:async()=>{events.push('broadcast');throw Error('Preflight rejected');}},
+      getFeeForMessage:async message=>{feeMessages.push(message);return{value:feeMessages.length===1?5000:20000};},sendRawTransaction:async()=>{events.push('broadcast');throw Error('Preflight rejected');}},
     validateBoostQuote:recovery.validateBoostQuote,boostPaymentResolution:recovery.boostPaymentResolution,
     readPendingBoost:(mint,_storage,scope)=>recovery.readPendingBoost(mint,storage,scope),
     saveSignedBoostPayment:async row=>{events.push('persist');await recovery.saveSignedBoostPayment(row,storage,null);},
@@ -43,6 +45,8 @@ test('changed price reaches signing; failed broadcast survives restart and verif
   install();await app.loadExploreBoostHistory(mint);
   await app.handleExploreBoostPay();assert.equal(app.boostCheckout.quote.usd,12.34);assert.deepEqual(events,['quote']);
   await app.handleExploreBoostPay();assert.deepEqual(events,['quote','prepare','sign','persist','journal','broadcast']);
+  assert.equal(feeMessages.length,2);
+  assert.equal(feeMessages[1].instructions.length,walletAddsPriority?4:2);
   const saved=recovery.readPendingBoost(mint,storage,{payer:session.address});assert.ok(saved.signedTransaction);assert.ok(app.boostCheckout.pendingSignature);
   // A new controller models reload; no wallet prompt or replacement send during recovery.
   app.boostCheckout={mint,packageId:'10x'};install();expire=true;await app.loadExploreBoostHistory(mint);

@@ -1,5 +1,5 @@
 import {PublicKey,Connection} from '@solana/web3.js';
-import {unpackAccount,TOKEN_2022_PROGRAM_ID} from '@solana/spl-token';
+import {unpackAccount,unpackMint,TOKEN_2022_PROGRAM_ID} from '@solana/spl-token';
 import {DEVELOPER_TOKEN_LOCK_PROGRAM_ID,developerLockAddresses,decodeDeveloperTokenLock} from '../../developer-token-lock.js';
 import {developerLockConfig} from '../developer-token-lock.mjs';
 import {scanBundleWallets} from '../bundle-wallet-detection.mjs';
@@ -28,14 +28,15 @@ export function createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,c
         const programId=launch.developerTokenLock.programId||DEVELOPER_TOKEN_LOCK_PROGRAM_ID;
         const config=await configReader({connection,env,programId,cluster:solanaCluster});if(!config.ready||config.programId!==programId)throw Error('Escrow program verification is unavailable.');
         const addresses=developerLockAddresses({mint,creator:launch.creatorWallet,programId});
-        const [account,vault,slot]=await Promise.all([connection.getAccountInfo(addresses.lock,'finalized'),connection.getAccountInfo(addresses.vault,'finalized'),connection.getSlot('finalized')]);
+        const [account,vault,mintAccount,slot]=await Promise.all([connection.getAccountInfo(addresses.lock,'finalized'),connection.getAccountInfo(addresses.vault,'finalized'),connection.getAccountInfo(new PublicKey(mint),'finalized'),connection.getSlot('finalized')]);
         const state=decodeDeveloperTokenLock(account,{mint,creator:launch.creatorWallet,programId});
         const tokens=unpackAccount(addresses.vault,vault,TOKEN_2022_PROGRAM_ID);
+        const mintState=unpackMint(new PublicKey(mint),mintAccount,TOKEN_2022_PROGRAM_ID);
         if(state.amount!==launch.developerTokenLock.amount||!tokens.owner.equals(addresses.lock)||!tokens.mint.equals(new PublicKey(mint))
           ||tokens.delegate||tokens.closeAuthority||state.releasedAt===0&&tokens.amount<BigInt(state.amount))throw Error('Escrow custody does not match the saved launch.');
         const now=await connection.getBlockTime(slot);if(!Number.isSafeInteger(now))throw Error('Finalized chain time is unavailable.');
         tokenLock={...state,programId:config.programId,vault:addresses.vault.toBase58(),verified:true,checkedSlot:slot,
-          balance:tokens.amount.toString(),status:state.releasedAt?'released':now>=state.unlockAt?'claimable':'locked',
+          balance:tokens.amount.toString(),decimals:mintState.decimals,status:state.releasedAt?'released':now>=state.unlockAt?'claimable':'locked',
           fundingSignature:launch.developerTokenLock.fundingSignature};
       }catch{tokenLock={status:'unavailable',verified:false,error:'Developer token custody or deployment could not be verified. Retry before signing.'};}
     }

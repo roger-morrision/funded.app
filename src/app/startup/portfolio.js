@@ -1,7 +1,9 @@
 import { mountSavedPortfolioTabs } from '../../features/portfolio/saved-tabs.js';
+import { mountLockedTokens } from '../../features/portfolio/locked-tokens.js';
 // Startup runs in the order declared in start.js.
 export function initializePortfolio(appState) {
   mountSavedPortfolioTabs(appState);
+  mountLockedTokens(appState);
   // app-source: 940
   document.querySelector('.portfolio-view-tabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-portfolio-tab]');

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PublicKey,Keypair,Transaction,TransactionMessage,VersionedTransaction} from '@solana/web3.js';
-import {TOKEN_2022_PROGRAM_ID,AccountLayout} from '@solana/spl-token';
+import {TOKEN_2022_PROGRAM_ID,AccountLayout,MintLayout} from '@solana/spl-token';
 import {DEVELOPER_TOKEN_LOCK_PROGRAM_ID as legacy,DEVELOPER_TOKEN_LOCK_PROGRAMS,developerLockAddresses,
   developerLockLaunchInstructions,developerLockInstruction,developerReleaseInstruction,decodeDeveloperTokenLock} from '../developer-token-lock.js';
 import {developerLockConfig,developerLockProgramFromTransaction} from '../server/developer-token-lock.mjs';
@@ -85,12 +85,15 @@ for(const programId of [legacy,router])test(`protection endpoint reads the saved
   const addresses=developerLockAddresses({mint,creator,programId});
   const vault=Buffer.alloc(AccountLayout.span);AccountLayout.encode({mint:new PublicKey(mint),owner:addresses.lock,amount:BigInt(amount),
     delegateOption:0,delegate:new PublicKey(mint),state:1,isNativeOption:0,isNative:0n,delegatedAmount:0n,closeAuthorityOption:0,closeAuthority:new PublicKey(mint)},vault);
+  const mintData=Buffer.alloc(MintLayout.span);MintLayout.encode({mintAuthorityOption:0,mintAuthority:new PublicKey(mint),supply:1000000000n,
+    decimals:6,isInitialized:true,freezeAuthorityOption:0,freezeAuthority:new PublicKey(mint)},mintData);
   let response;
   const handler=createLaunchProtectionRoutes({solanaCluster:'devnet',env,clientKey:()=>'',
     store:{readLaunch:async()=>({onchainVerified:true,cluster:'devnet',creatorWallet:creator,developerTokenLock:{verified:true,amount,...(programId===router?{programId}:{})}})},
     configReader:async args=>{assert.equal(args.programId,programId);return {ready:true,programId};},
-    connectionFactory:()=>({getAccountInfo:async address=>address.equals(addresses.lock)?account(programId,false):{owner:TOKEN_2022_PROGRAM_ID,data:vault},
+    connectionFactory:()=>({getAccountInfo:async address=>address.equals(addresses.lock)?account(programId,false):{owner:TOKEN_2022_PROGRAM_ID,data:address.equals(new PublicKey(mint))?mintData:vault},
       getSlot:async()=>100,getBlockTime:async()=>now+43200}),respond:(_res,status,body)=>{response={status,body};}});
   await handler({method:'GET'},{},new URL(`https://example.test/api/tokens/${mint}/launch-protection`));
   assert.equal(response.status,200);assert.equal(response.body.tokenLock.programId,programId);assert.equal(response.body.tokenLock.status,'claimable');
+  assert.equal(response.body.tokenLock.decimals,6);
 });
