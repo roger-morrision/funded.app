@@ -1,25 +1,27 @@
+import { createRpcReadRecovery } from './rpc-read-recovery.js';
 // Bound browser RPC reads across discovery, token details and trade previews.
 // Transactions, simulations and faucet requests are never queued or retried here.
-export function createRpcReadScheduler({fetch:send=globalThis.fetch,maxActive=4,maxQueued=128}={}) {
+export function createRpcReadScheduler({fetch:send=globalThis.fetch,maxActive=4,maxQueued=128,cluster,timeoutMs}={}) {
   if(!Number.isInteger(maxActive)||maxActive<1||!Number.isInteger(maxQueued)||maxQueued<1)throw new Error('Invalid RPC queue limits');
+  const recover=createRpcReadRecovery({fetch:send,cluster,timeoutMs});
   let active=0;const queue=[];
   const drain=()=>{
     while(active<maxActive&&queue.length){
       const entry=queue.shift();entry.signal?.removeEventListener('abort',entry.abort);
       if(entry.signal?.aborted){entry.reject(entry.signal.reason);continue;}
       active++;
-      Promise.resolve().then(()=>send(entry.input,entry.init)).then(entry.resolve,entry.reject).finally(()=>{active--;drain();});
+      Promise.resolve().then(()=>recover(entry.input,entry.init,true)).then(entry.resolve,entry.reject).finally(()=>{active--;drain();});
     }
   };
   return function scheduledFetch(input,init={}) {
-    let request;try{request=JSON.parse(init.body);}catch{return send(input,init);}
+    let request;try{request=JSON.parse(init.body);}catch{return recover(input,init);}
     const reads=Array.isArray(request)?request:[request];
     // Exact allowlist: unknown methods keep the SDK's normal behavior.
     const allowed=new Set(['getAccountInfo','getMultipleAccounts','getBalance','getTokenAccountsByOwner',
       'getTokenAccountBalance','getMinimumBalanceForRentExemption','getSlot','getBlockHeight',
       'getLatestBlockhash','getGenesisHash','getSignatureStatuses','getTransaction','getSignaturesForAddress',
       'getTokenLargestAccounts','getTokenSupply','getProgramAccounts','getBlockTime','getVersion','getEpochInfo','getFeeForMessage','isBlockhashValid']);
-    if(!reads.length||!reads.every(row=>allowed.has(row?.method)))return send(input,init);
+    if(!reads.length||!reads.every(row=>allowed.has(row?.method)))return recover(input,init);
     const signal=init.signal;
     if(signal?.aborted)return Promise.reject(signal.reason);
     if(queue.length>=maxQueued)return Promise.reject(new Error('RPC read queue is busy; retry shortly.'));

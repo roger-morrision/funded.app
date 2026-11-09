@@ -1,14 +1,15 @@
 import { createRpcReadScheduler } from '../../features/shared/rpc-read-scheduler.js';
 // Dependencies and mutable application state are read live through appState.
 export function createConnectionsController(appState) {
-  const rpcFetch=createRpcReadScheduler();
+  const rpcFetchByCluster=new Map();
   let solanaLoading;
   // app-source: 135
   function connectionConfig(web3, cluster = appState.APP_CLUSTER){
+    if(!rpcFetchByCluster.has(cluster))rpcFetchByCluster.set(cluster,createRpcReadScheduler({cluster}));
     return {
       commitment: 'confirmed',
       disableRetryOnRateLimit: true,
-      fetch:rpcFetch,
+      fetch:rpcFetchByCluster.get(cluster),
       ...(appState.APP_RPC_URL ? { wsEndpoint: appState.APP_RPC_URL.replace(/^http/, 'ws').replace(/\/api\/solana\/rpc(?:\?.*)?$/, '/api/solana/ws') } : {}),
     };
   }
