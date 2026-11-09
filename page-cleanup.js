@@ -9,7 +9,6 @@ const guideLabels = {
   'docs-subtopic': 'View the illustrated guide',
   list: 'How a listing is verified',
   rewards: 'How rewards become payable',
-  burn: 'How a burn is verified',
   fees: 'View the published fee split',
   docs: 'View the illustrated guide',
   airdrops: 'How automatic airdrops work',

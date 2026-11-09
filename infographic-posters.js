@@ -20,15 +20,6 @@ const posterDefinitions = [
     footnote: 'Never enter a seed phrase.',
   },
   {
-    selector: '#buybacks .burn-center-hero > p:not(.eyebrow)', key: 'burn', eyebrow: 'Burn path',
-    title: 'A burn counts after confirmation', summary: 'Read the full burn explanation',
-    items: [
-      ['01', 'Choose', 'Set an amount and optional project.'],
-      ['02', 'Approve', 'Review the permanent wallet action.'],
-      ['03', 'Verify', 'Check the on-chain burn receipt.'],
-    ],
-  },
-  {
     selector: '#paid .paid-reference-hero > div > p:not(.eyebrow)', mountAfter: '#paid .paid-reference-hero',
     key: 'fees', eyebrow: '$RICH at a glance',
     title: 'One token, three jobs', summary: 'Read the full $RICH explanation',
