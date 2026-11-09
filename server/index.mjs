@@ -33,6 +33,7 @@ import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
 import { createTokenMarketRoutes } from './routes/token-market.mjs';
+import {createBirdeyeMarketFallback} from './birdeye-market-fallback.mjs';
 import { createLaunchProtectionRoutes } from './routes/launch-protection.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
@@ -315,12 +316,14 @@ const handleDirectoryRoutes = createDirectoryRoutes({
 const dailyBonusRuntime = createDailyBonusRuntime({ store, rewardStore:automaticRewardStore,
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair });
 const handleLaunchProtectionRoutes=createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,clientKey,respond:json});
+const { fetchBirdeye, fetchPump } = createMarketProviders({ birdeyeApiKey, birdeyeBaseUrl, birdeyeChain, birdeyeTimeoutMs, pumpApiUrl });
+const readMarketFallback = createBirdeyeMarketFallback({fetchBirdeye,cluster:solanaCluster});
 const handleTokenMarketRoutes = createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
+  readMarketFallback,
 });
 
 const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, solanaCluster, body, authorized, clientKey, json, rpcMethods });
-const { fetchBirdeye, fetchPump } = createMarketProviders({ birdeyeApiKey, birdeyeBaseUrl, birdeyeChain, birdeyeTimeoutMs, pumpApiUrl });
 const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote });
 
 const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({

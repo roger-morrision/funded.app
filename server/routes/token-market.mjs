@@ -15,6 +15,8 @@ export function createTokenMarketRoutes({
   respond, readMarketActivity = readPumpMarketActivity,
   readWalletTrades = readWalletTradeHistory,
   readRankingQuote = null,
+  readMarketFallback = async () => null,
+  makeMarketConnection = null,
   makeTokenConnection = endpoint => new Connection(endpoint, 'confirmed'),
 }) {
   requireSolanaCluster(solanaCluster);
@@ -131,14 +133,14 @@ export function createTokenMarketRoutes({
       try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const address = mint.toBase58();
-      const hasTradeBreakdown = data => data?.cluster===solanaCluster && Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
+      const hasTradeBreakdown = data => data?.cluster===solanaCluster && (data.source==='birdeye' || (Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
-        && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)));
+        && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)))));
       // A scan costs up to ~50 RPC reads. Results under a minute old are
       // current; results up to five minutes old (the client's activity window)
       // are served at once while a background scan replaces them.
       const fresh = entry => entry && Date.now() - entry.at < (entry.data.coverage==='unavailable'?5_000:60_000) && hasTradeBreakdown(entry.data);
-      const usable = entry => entry && entry.data.coverage!=='unavailable' && Date.now() - entry.at < 5 * 60_000 && hasTradeBreakdown(entry.data);
+      const usable = entry => entry && entry.data.source!=='birdeye' && entry.data.coverage!=='unavailable' && Date.now() - entry.at < 5 * 60_000 && hasTradeBreakdown(entry.data);
       let cached = coinMarketCache.get(address);
       if (fresh(cached)) return json(res, 200, cached.data);
       if (!usable(cached)) {
@@ -179,10 +181,23 @@ export function createTokenMarketRoutes({
             coinMarketActive += 1;
             (async () => {
               const signal = AbortSignal.timeout(18_000);
-              const connection = new Connection(solanaRpcUrl, {commitment:'confirmed', disableRetryOnRateLimit:true,
+              const connection = makeMarketConnection ? makeMarketConnection(solanaRpcUrl) : new Connection(solanaRpcUrl, {commitment:'confirmed', disableRetryOnRateLimit:true,
                 fetch:(input,init)=>fetch(input,{...init,signal})});
-              await assertRpcNetwork(connection,solanaCluster);
-              const metrics = await readMarketActivity({ connection, mint });
+              let metrics;
+              try {
+                await assertRpcNetwork(connection,solanaCluster);
+                metrics = await readMarketActivity({ connection, mint });
+                if (metrics.coverage === 'unavailable') metrics = await readMarketFallback(address) || metrics;
+              } catch (error) {
+                metrics = await readMarketFallback(address);
+                if (!metrics) throw error;
+              }
+              if (metrics.source === 'birdeye') {
+                // Keep indexed summaries out of confirmed-event storage and ranking snapshots.
+                if (coinMarketCache.size >= 500) coinMarketCache.delete(coinMarketCache.keys().next().value);
+                coinMarketCache.set(address,{at:Date.now(),data:metrics});
+                return metrics;
+              }
               // A failed scan must not erase a still-recent successful snapshot.
               const previous = coinMarketCache.get(address);
               if (metrics.coverage === 'unavailable' && previous?.data.volume24hSol != null

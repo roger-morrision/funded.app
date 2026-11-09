@@ -1,4 +1,5 @@
 import { renderEarlyMarketPrice } from '../../features/coin/early-market-price.js';
+import {renderIndexedMarket} from '../../features/coin/indexed-market.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
@@ -56,11 +57,11 @@ export function createCoinLoadingController(appState) {
       const avatar = document.querySelector('#coin-avatar');
       if (avatar) { avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat'; avatar.style.backgroundPosition = 'center'; }
     }
+    const marketRequest=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,{signal:AbortSignal.timeout(32000)}).catch(error=>({available:false,data:null,status:error?.status}));
     try {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
       const detailConnection = await appState.getExploreConnection();
       const mint = new PublicKey(mintAddress);
-      const marketRequest=appState.EXPLORE_CLUSTER==='devnet' ? appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,{signal:AbortSignal.timeout(20000)}).catch(error=>({available:false,data:null,status:error?.status})) : null;
       const metadataProgram = new PublicKey(appState.TOKEN_METADATA_PROGRAM_ID);
       const [metadataPda] = PublicKey.findProgramAddressSync([appState.Buffer.from('metadata'), metadataProgram.toBuffer(), mint.toBuffer()], metadataProgram);
       const rpcRequest = async (promise,label) => {let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),12000);})]);}finally{clearTimeout(timer);}};
@@ -204,8 +205,7 @@ export function createCoinLoadingController(appState) {
       void appState.loadSolUsdQuote();
       // History has an independent verified source. Reserve lookup failures
       // must not hide it; fresh reserves remain mandatory for trade quotes.
-      if (appState.EXPLORE_CLUSTER === 'devnet') void appState.loadCoinMarketActivity(mintAddress, loadId, decimals, Boolean(graduatedPool) || curve?.complete === true, marketRequest);
-      else { appState.coinMarketActivity = { status: 'unavailable', trades: [], coverage: null, decimals }; appState.renderCoinSummary(); appState.renderCoinPricePath(); appState.renderCoinFlow(NaN, NaN); appState.renderCoinPulse(); appState.setCoinField('#coin-trade-count', 'Unavailable'); appState.setCoinField('#coin-trade-breakdown', 'Pump curve required'); appState.setCoinTabLabels(); appState.renderCoinActivityTab(); }
+      void appState.loadCoinMarketActivity(mintAddress, loadId, decimals, Boolean(graduatedPool) || curve?.complete === true, marketRequest);
     } catch (error) {
       if (loadId !== appState.coinLoadId) return;
       renderCoinBurnDashboard({mint:mintAddress,status:'unavailable',cluster:appState.EXPLORE_CLUSTER});
@@ -215,6 +215,11 @@ export function createCoinLoadingController(appState) {
       console.error('On-chain token detail failed', detail);
       appState.renderOnChainUnavailable(detail);
       appState.renderCoinRegistryIdentity(mintAddress);
+      if (appState.EXPLORE_CLUSTER === 'mainnet-beta') {
+        const fallback = await marketRequest;
+        if (loadId !== appState.coinLoadId) return;
+        if (fallback.available) renderIndexedMarket(appState,fallback.data,mintAddress);
+      }
       const feeLedger=loadedFeeLedger;
       if (loadId !== appState.coinLoadId || !feeLedger) return;
       appState.coinSummaryLedgerMint=mintAddress;

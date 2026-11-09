@@ -1,0 +1,12 @@
+# Server-only data-provider credential; never pass it as a frontend build argument.
+services:
+  app:
+    environment:
+      BIRDEYE_API_KEY_FILE: /run/secrets/birdeye_api_key
+      BIRDEYE_CHAIN: solana
+      BIRDEYE_API_URL: https://public-api.birdeye.so
+    secrets:
+      - birdeye_api_key
+secrets:
+  birdeye_api_key:
+    file: ${FUNDED_BIRDEYE_API_KEY_FILE:?Set the absolute path to the server-only Birdeye key file}

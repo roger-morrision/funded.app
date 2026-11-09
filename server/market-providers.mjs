@@ -6,16 +6,26 @@ export function createMarketProviders({
   birdeyeTimeoutMs,
   pumpApiUrl,
   fetch = (...args) => globalThis.fetch(...args),
+  now = Date.now,
 }) {
+  let birdeyeNextRequestAt = 0;
   async function fetchBirdeye(path, params = {}) {
     if (!birdeyeApiKey) return { configured: false, data: null };
+    // Keep credentials on the official HTTPS origin, including on redirects.
+    if (new URL(birdeyeBaseUrl).origin !== 'https://public-api.birdeye.so' || !path.startsWith('/defi/'))
+      throw new Error('Invalid Birdeye endpoint.');
+    if (now() < birdeyeNextRequestAt) throw new Error('Birdeye is cooling down.');
+    birdeyeNextRequestAt = now() + 1100;
     const query = new URLSearchParams(params);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), birdeyeTimeoutMs);
     try {
-      const response = await fetch(`${birdeyeBaseUrl}${path}?${query}`, { headers: { accept: 'application/json', 'X-API-KEY': birdeyeApiKey, 'x-chain': birdeyeChain }, signal: controller.signal });
+      const response = await fetch(`${birdeyeBaseUrl}${path}?${query}`, { redirect:'error', headers: { accept: 'application/json', 'X-API-KEY': birdeyeApiKey, 'x-chain': birdeyeChain }, signal: controller.signal });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok || payload.success === false) throw new Error(payload.message || `Birdeye request failed (${response.status}).`);
+      if (!response.ok || payload.success !== true) {
+        birdeyeNextRequestAt = now() + ([401,403].includes(response.status) ? 300_000 : 30_000);
+        throw new Error(`Birdeye request failed (${response.status}).`);
+      }
       return { configured: true, data: payload.data || null };
     } finally { clearTimeout(timeout); }
   }

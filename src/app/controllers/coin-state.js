@@ -1,4 +1,5 @@
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
+import {renderIndexedMarket} from '../../features/coin/indexed-market.js';
 import { serverCoinIdentity } from '../../features/coin/server-identity.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCoinStateController(appState) {
@@ -86,6 +87,13 @@ export function createCoinStateController(appState) {
     }
     if (loadId !== appState.coinLoadId) return;
     const market = response.available && response.data?.cluster === appState.EXPLORE_CLUSTER && (!response.data.mint || response.data.mint===mintAddress) ? response.data : null;
+    if (market?.source === 'birdeye') {
+      appState.coinMarketActivity = {status:'summary-only',trades:[],coverage:'indexed',decimals};
+      appState.renderCoinSummary(); appState.renderCoinPricePath(); appState.renderCoinFlow(NaN,NaN); appState.renderCoinPulse();
+      appState.setCoinTabLabels(); appState.renderCoinActivityTab();
+      renderIndexedMarket(appState,market,mintAddress);
+      return;
+    }
     const hasPoolTradeCount = Number.isInteger(market?.poolTradeCount24h);
     const completePoolHistory = market?.poolHistoryCoverage === 'complete' && market?.coverage === 'complete';
     const usablePoolHistory = hasPoolTradeCount && market.poolTradeCount24h >= 0
