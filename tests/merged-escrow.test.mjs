@@ -81,6 +81,19 @@ test('pending releases are separated by program and never silently retargeted',a
     storage:{getItem:()=>JSON.stringify({mint,creator,amount,signature:'old'})}}),/identity differs/);
 });
 
+test('service-paid developer release proves the fixed creator credit and rejects a different payer',async()=>{
+  const payer=Keypair.fromSeed(new Uint8Array(32).fill(29)).publicKey.toBase58();
+  const addresses=developerLockAddresses({mint,creator,programId:router});
+  const tx=transaction([developerReleaseInstruction({mint,creator,payer,programId:router}).instruction]);
+  const row=(owner,value)=>({mint,owner,uiTokenAmount:{amount:String(value)}});
+  tx.meta.preTokenBalances=[row(addresses.lock.toBase58(),amount),row(creator,0)];
+  tx.meta.postTokenBalances=[row(addresses.lock.toBase58(),0),row(creator,amount)];
+  const connection={getTransaction:async()=>tx,getAccountInfo:async()=>account(router)};
+  const receipt={signature:'signature',payer,programId:router,amount};
+  assert.equal((await verifyDeveloperRelease({connection,mint,creator,receipt})).status,'finalized');
+  await assert.rejects(()=>verifyDeveloperRelease({connection,mint,creator,receipt:{...receipt,payer:creator}}),/instruction is missing/);
+});
+
 for(const programId of [legacy,router])test(`protection endpoint reads the saved program after cutover: ${programId}`,async()=>{
   const addresses=developerLockAddresses({mint,creator,programId});
   const vault=Buffer.alloc(AccountLayout.span);AccountLayout.encode({mint:new PublicKey(mint),owner:addresses.lock,amount:BigInt(amount),

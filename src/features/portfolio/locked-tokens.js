@@ -18,7 +18,7 @@ export function mountLockedTokens(app,{document=globalThis.document,window=globa
     if(wallet!==app.connectedWalletAddress||cluster!==app.EXPLORE_CLUSTER){
       wallet=app.connectedWalletAddress;cluster=app.EXPLORE_CLUSTER;generation++;locks.clear();loading=false;lastRead=0;
     }
-    panel.replaceChildren(text('h3','Locked developer tokens'),text('p','Developer buys held in escrow are separate from spendable wallet holdings. Claim them on the token page after their saved deadline.'));
+    panel.replaceChildren(text('h3','Locked developer tokens'),text('p','Developer buys stay in escrow until their saved deadline. Automatic delivery sends them to the original creator wallet after unlock and network confirmation.'));
     const refresh=document.createElement('button');refresh.type='button';refresh.className='secondary-button';
     refresh.textContent=loading?'Checking locks…':'Refresh locked tokens';refresh.disabled=loading;
     refresh.onclick=()=>{lastRead=0;void load();};panel.append(refresh);
@@ -43,11 +43,11 @@ export function mountLockedTokens(app,{document=globalThis.document,window=globa
       badge.dataset.state=live?.verified?lock.status:'unavailable';state.append(badge,text('small',live?.verified?'Escrow verified':'Live verification unavailable'));
       const release=document.createElement('td'),time=text('time',info.release);if(info.deadline)time.dateTime=info.deadline.toISOString();release.append(time);
       const remaining=text('td',info.remaining);remaining.title=info.timing;
-      const action=document.createElement('td'),open=text('a',info.state==='Ready to claim'?'Claim tokens →':'View token →');
+      const action=document.createElement('td'),open=text('a','View token →');
       open.href=link.href;open.className='portfolio-lock-action';action.append(open);
       row.append(token,amount,state,release,remaining,action);body.append(row);
     }
-    panel.append(text('p','Amounts are original developer allocations. Locked tokens are excluded from spendable holdings. Claim with your creator wallet after the verified deadline.'));
+    panel.append(text('p','Locked tokens are excluded from spendable holdings until delivery confirms. No creator signature is needed for automatic delivery; network or service delays can postpone arrival.'));
   }
   async function load(){
     render();if(!wallet||loading||Date.now()-lastRead<30000)return;

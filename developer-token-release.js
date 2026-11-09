@@ -19,7 +19,7 @@ export async function verifyDeveloperRelease({connection,mint,creator,receipt}){
   if(tx.transaction.signatures[0]!==receipt.signature)throw Error('Release receipt identity differs.');
   if(tx.meta?.err)return {status:'failed',signature:receipt.signature};
   const addresses=developerLockAddresses({mint,creator,programId});
-  const expected=developerReleaseInstruction({mint,creator,programId}).instruction,message=tx.transaction.message;
+  const expected=developerReleaseInstruction({mint,creator,payer:receipt.payer||creator,programId}).instruction,message=tx.transaction.message;
   const keys=[...(message.accountKeys||message.staticAccountKeys||[]),...(tx.meta.loadedAddresses?.writable||[]),...(tx.meta.loadedAddresses?.readonly||[])].map(k=>k.toBase58());
   const matches=(message.instructions||message.compiledInstructions||[]).filter(ix=>keys[ix.programIdIndex]===expected.programId.toBase58()
     &&Buffer.from(typeof ix.data==='string'?bs58.decode(ix.data):ix.data).equals(expected.data)

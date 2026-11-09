@@ -37,14 +37,21 @@ minimum amounts, authorization and payout scheduling still apply.
   New launch metadata uses the compact `https://richpad.fun/m/<mint>` alias; old
   metadata links and image origins remain valid. Packet-size checks keep creation,
   reserve, escrow and service payment atomic.
-- After unlock, a permissionless instruction transfers the original allocation to
-  the developer's associated token account. In Portfolio, open the coin, connect
-  the original developer wallet and choose **Claim unlocked developer tokens**.
-  Sign the release in your wallet; reaching the deadline does not itself send tokens.
+- After unlock, the Devnet automatic release worker submits the permissionless
+  instruction and pays the fee, transferring the original allocation only to
+  the original creator's associated token account. No creator signature is needed.
+  Delivery follows the saved deadline and network confirmation; outages or low
+  worker funds can delay arrival. Portfolio and the coin page show delivery status.
+  **Release manually (fallback)** remains available when automation is unavailable.
   Public signatures are saved before broadcast; uncertain sends are reconciled
   without signing again. Finalized failure or expiry with absent historical status
   permits a new attempt. Success requires the exact release instruction, escrow
   state and matching token debits and credits.
+- Enable the primary worker with `FUNDED_DEVELOPER_AUTO_RELEASE_ENABLED=true`.
+  API-only instances and Mainnet never start it. It checks up to four locks every
+  30 seconds, pins the deployed escrow, and uses finalized chain time. Fees are
+  capped at 0.0001 SOL per transaction; rent at 0.01 SOL; combined rolling daily
+  reservations at 0.02 SOL. The automation payer keeps at least 0.1 SOL.
 - New Devnet launches use merged router `9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm`.
   `FUNDED_DEVELOPER_LOCK_PROGRAM_ID` must match `FUNDED_V3_FEE_ROUTER_PROGRAM_ID`;
   both `FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256` and `FUNDED_V3_PROGRAM_DATA_SHA256`

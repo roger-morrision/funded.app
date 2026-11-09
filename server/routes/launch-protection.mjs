@@ -40,6 +40,13 @@ export function createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,c
           fundingSignature:launch.developerTokenLock.fundingSignature};
       }catch{tokenLock={status:'unavailable',verified:false,error:'Developer token custody or deployment could not be verified. Retry before signing.'};}
     }
+    if(tokenLock.programId&&solanaCluster==='devnet'&&env.FUNDED_DEVELOPER_AUTO_RELEASE_ENABLED==='true'){
+      const key=`${tokenLock.programId}:${mint}`;
+      let rows;try{rows=await store.readDeveloperReleaseStatus?.(key);}catch{}
+      const worker=rows?.worker,receipt=rows?.[key];
+      tokenLock.automaticRelease={enabled:true,healthy:worker?.status==='ready'&&Date.now()-worker.checkedAt<180000,
+        status:receipt?.status||'scheduled',signature:receipt?.signature||null};
+    }
     const prior=scans.get(mint);
     if(solanaCluster==='devnet'&&url.searchParams.get('scan')==='1'&&!pending.has(mint)&&(!prior||Date.now()-prior.at>60_000)){
       if(pending.size>=1)return json(res,429,{error:'Another launch risk scan is running. Retry shortly.',mint,tokenLock});

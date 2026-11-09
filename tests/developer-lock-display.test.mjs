@@ -10,7 +10,10 @@ test('RCAT escrow amount and saved deadline are exact; a local clock cannot auth
   assert.match(before.timing,/1h 1m remaining/);assert.equal(before.state,'Locked');
   const after=developerLockDisplay(lock,(lock.unlockAt+1)*1000);
   assert.equal(after.state,'Locked');assert.match(after.timing,/Refresh to verify/);
-  assert.equal(developerLockDisplay({...lock,status:'claimable'}).state,'Ready to claim');
+  assert.equal(developerLockDisplay({...lock,status:'claimable'}).state,'Ready to release');
+  const auto=developerLockDisplay({...lock,status:'claimable',automaticRelease:{enabled:true,healthy:true}});
+  assert.equal(auto.state,'Awaiting automatic transfer');assert.match(auto.timing,/No wallet signature/);
+  assert.match(developerLockDisplay({...lock,automaticRelease:{enabled:true}},(lock.unlockAt-60)*1000).timing,/original creator wallet/);
 });
 test('unverified, missing decimals and released balances never masquerade as spendable holdings',()=>{
   assert.equal(developerLockDisplay({...lock,verified:false}).state,'Verification unavailable');

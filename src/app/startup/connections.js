@@ -1,4 +1,5 @@
 import { initializeAppState } from '../runtime.js';
+import { mountRichTokenShortcut } from '../../features/shared/rich-token-shortcut.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeConnections(appState) {
@@ -337,6 +338,7 @@ export function initializeConnections(appState) {
   // app-source: 206
   const PROTOCOL_FUNDED_MINT = String(import.meta.env.VITE_FUNDED_TOKEN_MINT || '').trim();
   initializeAppState(appState, 'PROTOCOL_FUNDED_MINT', PROTOCOL_FUNDED_MINT);
+  mountRichTokenShortcut(PROTOCOL_FUNDED_MINT);
   // app-source-end
 
   // app-source: 207

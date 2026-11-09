@@ -1,0 +1,4 @@
+.topbar .buy-rich-button { display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:44px;padding:10px 16px;border:1px solid var(--fv-accent,#f5b900);border-radius:10px;color:var(--fv-accent,#f5b900);background:transparent;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap; }
+.topbar .buy-rich-button:hover { background:rgba(245,185,0,.1); }
+.topbar .buy-rich-button:focus-visible { outline:2px solid var(--fv-accent,#f5b900);outline-offset:3px; }
+@media(max-width:700px) { .topbar .buy-rich-button { min-height:40px;padding:8px 10px;font-size:12px; } }

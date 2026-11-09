@@ -85,6 +85,10 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
   }
 
   return {
+    async readDeveloperReleaseStatus(key) {
+      const rows=(await load()).developerTokenReleases||{};
+      return structuredClone({worker:rows.worker,[key]:rows[key]});
+    },
     async readWatchlist(accountId, cluster) {
       return structuredClone((await load()).accountWatchlists?.[`${cluster}:${accountId}`] || { mints: [], imports: [] });
     },

@@ -14,12 +14,12 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
       panel.append(text('strong',`Developer tokens · ${info.state}`));
       if(info.amount)panel.append(text('p',`${info.amount} tokens · original developer allocation`));
       panel.append(text('p',`Release time: ${info.release}`),text('p',info.timing));
-      if(!lock.verified)panel.append(text('small','Current escrow custody could not be verified. Refresh before claiming.'));
+      if(!lock.verified)panel.append(text('small','Current escrow custody could not be verified. Refresh to check delivery.'));
       const all=text('a','View all your locked tokens in Portfolio');all.href='/#my-launches';panel.append(all);panel.hidden=false;
     }
     let pending=false;try{pending=Boolean(window.localStorage.getItem(developerReleaseStorageKey(activeMint,data.creatorWallet,lock.programId)));}catch{}
-    if((lock.status==='claimable'||pending)&&data.creatorWallet===appState.connectedWalletAddress){
-      const claim=text('button',pending?'Verify token release':'Claim unlocked developer tokens');claim.type='button';claim.className='secondary-button';claim.disabled=busy||!lock.verified;
+    if((lock.status==='claimable'&&!lock.automaticRelease?.healthy||pending)&&data.creatorWallet===appState.connectedWalletAddress){
+      const claim=text('button',pending?'Verify token release':'Release manually (fallback)');claim.type='button';claim.className='secondary-button';claim.disabled=busy||!lock.verified;
       claim.onclick=async()=>{
         if(busy)return;busy=true;claim.disabled=true;const mint=activeMint,session=appState.captureWalletSession();
         try{if(!session||session.address!==data.creatorWallet)throw Error('Connect the original developer wallet.');
@@ -40,7 +40,7 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
     }
     latest=response.data;render(latest);window.clearTimeout(timer);
     if(latest.bundleDetection?.scanning&&polls<4)timer=window.setTimeout(()=>{void refresh(false,polls+1);},15000);
-    else if(latest.tokenLock?.status==='locked')timer=window.setTimeout(()=>{void refresh(false);},60000);
+    else if(['locked','claimable'].includes(latest.tokenLock?.status))timer=window.setTimeout(()=>{void refresh(false);},30000);
   }
   window.addEventListener('funded:coin-facts',event=>{generation++;window.clearTimeout(timer);activeMint=event.detail?.launch?.mint||null;latest=null;panel.hidden=true;panel.replaceChildren();if(activeMint)void refresh(false);});
   window.addEventListener('hashchange',()=>{if(!appState.getCoinMintAddress?.()){generation++;activeMint=null;window.clearTimeout(timer);panel.hidden=true;}});
