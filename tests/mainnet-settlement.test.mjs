@@ -68,6 +68,33 @@ test('placeholder Mainnet release is blocked before loading the authority signer
   const f=routeFixture(),result=await f.invoke({programAllowed:undefined});
   assert.equal(result.status,503);assert.equal(f.calls.signer,0);assert.equal(f.calls.submitted,0);
 });
+
+test('concurrent finalization of the same proven settlement returns its receipt without resubmission',async()=>{
+  for(const selected of ['devnet',cluster]){
+    const f=routeFixture(selected);
+    const result=await f.invoke({loadSettlement:async input=>{
+      const proof=f.proof(input.signature);
+      Object.assign(f.state.v3Settlements[f.source],proof,{status:'finalized'});
+      return proof;
+    }});
+    assert.equal(result.status,200);assert.equal(result.data.status,'finalized');
+    assert.equal(result.data.settlementSignature,f.state.v3Settlements[f.source].settlementSignature);
+    assert.equal(f.calls.submitted,1);
+  }
+});
+
+test('concurrent finalized records still reject changed network, signature, program or category amounts',async()=>{
+  for(const changes of [{cluster:'devnet'},{settlementSignature:'other'},{programId:key().publicKey.toBase58()},
+    {approvedHash:'ff'.repeat(32)},{categoryLamports:['10000','0','0','0','0','0','0','0']}]){
+    const f=routeFixture();
+    const result=await f.invoke({loadSettlement:async input=>{
+      const proof=f.proof(input.signature);
+      Object.assign(f.state.v3Settlements[f.source],proof,{status:'finalized'},changes);
+      return proof;
+    }});
+    assert.equal(result.status,409);assert.equal(f.calls.submitted,1);
+  }
+});
 test('wrong RPC and cross-network stored sources cannot prepare a settlement',async()=>{
   const f=routeFixture();f.connection.getGenesisHash=async()=>SOLANA_GENESIS.devnet;
   assert.equal((await f.invoke()).status,503);assert.equal(f.calls.readiness,0);assert.equal(f.calls.submitted,0);

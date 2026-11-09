@@ -186,7 +186,13 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     }
     const result = await store.update(current => {
       const row = current.v3Settlements?.[collectionSignature];
-      if (row?.settlementSignature !== submitted || row.status !== 'verification-pending') return null;
+      if (row?.settlementSignature !== submitted) return null;
+      // A concurrent worker can reconcile our exact signature while this request
+      // waits for finality. Return that proven result without another submission.
+      if (row.status === 'finalized') return matchingProof(row,submitted)
+        && row.programId === programId && row.approvedHash === approvedHash.toLowerCase()
+        && isDeepStrictEqual(row.categoryLamports,finalized.categoryLamports) ? row : null;
+      if (row.status !== 'verification-pending') return null;
       return current.v3Settlements[collectionSignature] = recordedFinalized(finalized, submitted, current);
     });
     return result ? json(res, 200, result)

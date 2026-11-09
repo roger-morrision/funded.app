@@ -9,3 +9,11 @@ The candidate manifest is a reproducibility record, not an automatic deployment 
 Before cutover, all ten existing LiteSVM contract tests passed against these exact bytes. The finalized upload buffer was independently compared with the local executable. The release requires finalized upgrade receipt, exact executable plus zero padding, retained authority, unchanged legacy escrow and matching app/worker ProgramData pins. Live acceptance evidence is recorded separately; VM success does not imply that every financial journey has passed on Devnet.
 
 The existing ProgramData allocation is retained. This upgrade does not reclaim its existing rent. Upload-buffer rent returns to the same Devnet authority on upgrade; no Mainnet SOL is spent.
+
+## Finalized upgrade
+
+Upgrade transaction: `eG7Eg56XgL4qW7UyceYWqkzUAhwfVZmsb2n4ow6M6GRgKtbnUugwCaSVYttYubQDaE5XUbufvo6CJCHaos6fDSn`, finalized slot `520225491`. Full ProgramData SHA-256: `8238170ec0f484837494985148bc0104bc32506cfa09057fdfc938a85b7cb8b5`. Exact binary, zero padding and retained authority were verified. Upload-buffer refund: 4,573,569,720 lamports; upgrade transaction fee: 5,000 lamports. No allocation extension was needed.
+
+The coordinated app release `b2744cd54f9bd952b30991421d9f91a73836b7f4` passed public and four-service health checks. No Devnet data reset was needed. Matured 6h and 12h legacy fixtures under this same router released exactly 100,000,000 token base units each to their original beneficiaries and rejected repeat release. A 24h fixture rejected early release.
+
+Fresh live launch, registration, 30-million-token reserve, developer escrow, buy/sell fees, collection, category conservation and settlement replay checks passed. A concurrent worker finalizing the same settlement exposed a spurious conflict response; the follow-up fix accepts only the already-proven same signature, network, program and category amounts. Regression tests also reject concurrent foreign or altered records. This does not authorize resubmission.
