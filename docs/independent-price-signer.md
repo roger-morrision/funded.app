@@ -46,3 +46,13 @@ The AMM quote now applies the existing 1% output floor explicitly: the SDK's `bu
 Pump automatically migrated this fixture immediately after curve completion. The test's expectation of an observable migration gap was therefore invalid; finalized market reads selected the real pool. The live app's mint was not replaced with the fixture.
 
 An earlier fixture runner exited during public-RPC throttling before cleanup. Its unsaved disposable key left 2.411283520 Devnet SOL and 4.672162360 SOL of program-data rent unrecoverable, plus small fixture account rents. Subsequent funded runners refunded unused balances and verified zero disposable-wallet balances. No Mainnet funds were used.
+
+## Active remote deployment
+
+Activated November 9 on `https://richpad.fun`, Devnet only, release `e7a40513bc3e42dffef82568867305f303111d6c`. The remote-only signer public key is `6GStEooNK4PwNL1c4fqf5yUSt91mkZMuD5pJEL2qVywU`; its finalized configuration is at slot 520327631. The app receives only the authentication token, never the price-signing key. Runtime inspection confirmed separate key mounts, a read-only signer container and no published signer port. HTTPS identity, unauthorized-request rejection and authenticated invalid-transaction rejection passed from the actual app network.
+
+All eight active services are healthy. The buyback worker completed a matching-build ready cycle; public launch readiness and price-signer readiness are true. Verified live fee funding is 17,687 lamports, so automation is enabled and waiting for eligible funds. No live automatic purchase is claimed. The 5 SOL aggregate trigger and older-fee rules remain unchanged. The isolated fee-vault burns establish both market paths separately.
+
+Own-coin agency execution remains disabled, and its worker is stopped in the `disabled-own-coin-buyback` Compose profile. Disabled optional agency actions do not block normal launches or RICH buybacks; enabling agency actions or active X publishing still requires matching worker evidence. Mainnet remains disabled. [Activation evidence](evidence/rich-devnet-auto-buyback-activation-2026-11-09.json).
+
+The final release passed 340 local tests, syntax checks for 983 JavaScript files, source-size checks and remote container tests. It also includes the coordinated browser read-RPC recovery fix. The final cutover preserved the running RPC gateway and database. An earlier rollout rolled back because the disabled agency process was still supervised; the resulting short app interruption was reconciled in the other chat before the final cutover.

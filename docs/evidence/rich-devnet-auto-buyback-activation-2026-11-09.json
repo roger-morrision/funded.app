@@ -1,0 +1,114 @@
+{
+  "status": "activated-waiting-for-eligible-funds",
+  "cluster": "devnet",
+  "checkedAt": "2026-11-09T09:09:42.825Z",
+  "revision": "e7a40513bc3e42dffef82568867305f303111d6c",
+  "image": "sha256:0f761df8693a8bb1361ba04775fe77036e7f53b3d09039325723898f58a22b5b",
+  "onchainSignerActivation": {
+    "cluster": "devnet",
+    "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "signer": "6GStEooNK4PwNL1c4fqf5yUSt91mkZMuD5pJEL2qVywU",
+    "address": "pNgBvEvwdWsYUmDyPfYUrKvnn9QFdnoVV4mc7ZBfSUV",
+    "signature": "5BUJF8bPJ9ynbbFLXezy6j7HqLihbYUJsifnYxXW4BD97owhTKmJfNXpF4qmYCgQgJ7aXyPqcSpxbJpkXvd9fv2g",
+    "blockhash": "ASGCUCRio9qz9ParWQAfDjaiB5fR5ccXEn1dWuPoa1Dz",
+    "lastValidBlockHeight": 507470439,
+    "status": "finalized",
+    "slot": 520327631,
+    "verifiedAt": "2026-11-09T08:51:56.318Z"
+  },
+  "independence": "Separate key and process, independent finalized reads; same operator, not third-party custody",
+  "runtime": {
+    "revision": "e7a40513bc3e42dffef82568867305f303111d6c",
+    "image": "sha256:0f761df8693a8bb1361ba04775fe77036e7f53b3d09039325723898f58a22b5b",
+    "services": [
+      {
+        "service": "app",
+        "image": "sha256:0f761df8693a8bb1361ba04775fe77036e7f53b3d09039325723898f58a22b5b",
+        "healthy": true
+      },
+      {
+        "service": "fee-collector",
+        "image": "sha256:0f761df8693a8bb1361ba04775fe77036e7f53b3d09039325723898f58a22b5b",
+        "healthy": true
+      },
+      {
+        "service": "buyback-worker",
+        "image": "sha256:0f761df8693a8bb1361ba04775fe77036e7f53b3d09039325723898f58a22b5b",
+        "healthy": true
+      },
+      {
+        "service": "price-signer",
+        "image": "sha256:0f761df8693a8bb1361ba04775fe77036e7f53b3d09039325723898f58a22b5b",
+        "healthy": true
+      },
+      {
+        "service": "rpc-gateway",
+        "image": "sha256:c5d8ca9d31b496edaea8da798cf310f5c026e7417a6434b4788023157e496abf",
+        "healthy": true
+      },
+      {
+        "service": "db",
+        "image": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+        "healthy": true
+      },
+      {
+        "service": "rpc-cache",
+        "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+        "healthy": true
+      },
+      {
+        "service": "https",
+        "image": "sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9",
+        "healthy": true
+      }
+    ],
+    "worker": {
+      "role": "buyback-worker",
+      "status": "completed",
+      "readiness": "ready",
+      "pid": 1,
+      "build": "e7a40513bc3e42dffef82568867305f303111d6c",
+      "cluster": "devnet",
+      "completedAt": 1794215384799
+    },
+    "agencyWorkerStopped": true,
+    "signingKeyMountsSeparated": true,
+    "signerHasNoPublishedPort": true,
+    "curveEnabled": true,
+    "mainnetEnabled": false
+  },
+  "publicChecks": {
+    "launchReady": true,
+    "priceSignerReady": true,
+    "automationEnabled": true,
+    "workerCheckedAt": "2026-11-09T09:08:44.130Z",
+    "homeHeadStatus": 200,
+    "rpcHttp": 200,
+    "rpcSlot": 520332087
+  },
+  "funding": {
+    "verifiedCustodyLamports": "17687",
+    "aggregateTriggerLamports": "5000000000",
+    "executionReasons": [
+      "Verified buyback funding is below the execution threshold.",
+      "No verified executable buyback allocation is currently available."
+    ],
+    "liveAutomaticBurnObserved": false
+  },
+  "replayReceipts": [
+    {
+      "market": "pump-curve",
+      "receipt": "8u26gSQ574ZDpnk2rmHijimtByn9NvVKkMoFgvLct1m3",
+      "replayReceiptConflictVerified": true
+    },
+    {
+      "market": "pump-swap",
+      "receipt": "6EU4RDiuU7LzNna6v3xadJeHtof5r7hqfw3MGN2j2nAM",
+      "replayReceiptConflictVerified": true
+    }
+  ],
+  "localTestsPassed": 340,
+  "mainnetEnabled": false,
+  "ownCoinAgencyEnabled": false,
+  "feeVaultLifecycleEvidence": "rich-devnet-fee-vault-lifecycle-2026-11-09.json"
+}
