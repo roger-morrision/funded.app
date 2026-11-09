@@ -11,6 +11,7 @@ import { loadFinalizedV3PumpCollection as loadV3Collection } from './v3-finalize
 import { buildMintCreatorFeeCollectionInstructions as buildMintInstructions } from './pump-fee-collection.mjs';
 import { LAUNCH_TIER_USD } from '../launch-tier-quote.js';
 import { readServiceFees } from './service-fees.mjs';
+import {assertRpcNetwork} from '../solana-network.js';
 import { sendFinalizedSolPayout as sendFinalizedReferral, reconcileFinalizedSolPayout as reconcileFinalizedReferral, solToLamports } from './referral-sol-transfer.mjs';
 
 // One service per API instance. Inject RPC/signing dependencies for isolated tests.
@@ -24,6 +25,7 @@ export function createFeeRouterService({
   loadFinalizedV3PumpCollection = loadV3Collection,
 }) {
   function keeperKeypair() {
+    if(solanaCluster!=='devnet')return null;
     const filePath = String(env.SOLANA_KEEPER_KEYPAIR_PATH || '').trim();
     if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
     const encoded = String(env.SOLANA_KEEPER_SECRET_KEY || '').trim();
@@ -31,6 +33,7 @@ export function createFeeRouterService({
     return Keypair.fromSecretKey(bs58.decode(encoded));
   }
   function referralPayoutKeypair() {
+    if(solanaCluster!=='devnet')return null;
     const filePath = String(env.SOLANA_REFERRAL_PAYOUT_KEYPAIR_PATH || '').trim();
     if (filePath) return uniquePayoutKeypair(Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8')))));
     const encoded = String(env.SOLANA_REFERRAL_PAYOUT_SECRET_KEY || '').trim();
@@ -44,6 +47,7 @@ export function createFeeRouterService({
     return payer;
   }
   function routerAuthorityKeypair() {
+    if(solanaCluster!=='devnet')return null;
     const filePath = String(env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
     if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
     const encoded = String(env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
@@ -51,6 +55,7 @@ export function createFeeRouterService({
     return Keypair.fromSecretKey(bs58.decode(encoded));
   }
   function v3AuthorityKeypair() {
+    if(solanaCluster!=='devnet')return null;
     const filePath = String(env.FUNDED_V3_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
     if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
     const encoded = String(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
@@ -81,6 +86,7 @@ export function createFeeRouterService({
     const recipient = new PublicKey(recipientWallet);
     const lamports = solToLamports(amountSol);
     const connection = new Connection(solanaRpcUrl, 'confirmed');
+    await assertRpcNetwork(connection,solanaCluster);
     const proof = await sendFinalizedSolPayout({ connection, payer, recipient, lamports, onSigned });
     return { ...proof, amountSol: Number(amountSol), cluster: solanaCluster };
   }
@@ -90,6 +96,7 @@ export function createFeeRouterService({
     const recipient = new PublicKey(recipientWallet);
     const lamports = solToLamports(amountSol);
     const connection = new Connection(solanaRpcUrl, 'confirmed');
+    await assertRpcNetwork(connection,solanaCluster);
     const proof = await reconcileFinalizedSolPayout({ connection, payer, recipient, lamports, signature });
     return { ...proof, amountSol: Number(amountSol), cluster: solanaCluster };
   }
@@ -98,6 +105,7 @@ export function createFeeRouterService({
     if (!keeper || (env.SOLANA_KEEPER_CONFIGURED !== 'true' && !devnetTestMode))
       throw new Error('Keeper configuration is required.');
     const connection = new Connection(solanaRpcUrl, 'confirmed');
+    await assertRpcNetwork(connection,solanaCluster);
     const mintKey = new PublicKey(String(requestedMint || ''));
     const launch = await store.readLaunch(mintKey.toBase58());
     if (!launch?.onchainVerified || launch.cluster !== solanaCluster) throw new Error('A verified launch for this mint is required before collection.');
@@ -121,7 +129,7 @@ export function createFeeRouterService({
       && row.scope === 'per-mint-v3' && main.v3Settlements?.[row.signature]?.status !== 'finalized')) {
       throw new Error('A prior V3 collection needs finalized settlement before another collection.');
     }
-    const readiness = await verifyV3LaunchRouterReadiness({ connection, programId:v3ProgramId,
+    const readiness = await verifyV3LaunchRouterReadiness({ connection, programId:v3ProgramId,cluster:solanaCluster,
       expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
       mint:mintKey, creatorWallet:launch.creatorWallet,
       initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit });
@@ -151,7 +159,7 @@ export function createFeeRouterService({
     })});
     const afterLamports = await connection.getBalance(router.address, 'confirmed').catch(() => null);
     let proof = null;
-    try { proof = await loadFinalizedV3PumpCollection({ connection, signature,
+    try { proof = await loadFinalizedV3PumpCollection({ connection, signature,cluster:solanaCluster,
       programId:v3ProgramId, mint:mintKey, launch }); } catch {}
     if (!proof || proof.signature !== signature || proof.mint !== mintKey.toBase58()
       || proof.router !== router.address.toBase58() || proof.expectedLamports <= 0n

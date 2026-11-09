@@ -5,8 +5,10 @@ import {pathToFileURL} from 'node:url';
 import {assessMainnetConfig} from './mainnet-readiness-preflight.mjs';
 import {loadMainnetConfig} from './mainnet-config.mjs';
 import {browserReleaseIdentity} from '../browser-release-identity.js';
+import {assertMainnetStagingPolicy} from '../server/mainnet-staging-policy.mjs';
 
 export function mainnetStagingEnvironment(config,build,{systemEnv=process.env,port=4187}={}) {
+  assertMainnetStagingPolicy(config);
   if(!assessMainnetConfig(config).configurationComplete)
     throw Error('Complete the isolated read-only Mainnet configuration before starting staging.');
   if(build?.schemaVersion!==1||build.cluster!=='mainnet-beta'||build.exploreCluster!==build.cluster
@@ -17,14 +19,6 @@ export function mainnetStagingEnvironment(config,build,{systemEnv=process.env,po
     || Object.entries(identity).some(([name,value])=>build.publicIdentity[name]!==value))
     throw Error('Staging browser identity must match the configured program, assets, fee recipient and same-origin API.');
   if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Use a non-privileged staging port.');
-  for(const [name,value] of Object.entries(config)){
-    if(value&&['NODE_OPTIONS','NODE_PATH'].includes(name))
-      throw Error('Read-only staging must not inject Node runtime hooks.');
-    if(value&&/SECRET_KEY|PRIVATE_KEY|KEYPAIR|SIGNER_FILE$/.test(name))
-      throw Error('Read-only staging must not load transaction signers.');
-    if(/(?:ENABLED|AUTOCONNECT)$/.test(name)&&/^(true|1|yes|on)$/i.test(value))
-      throw Error('Read-only staging must not enable financial workers or developer wallets.');
-  }
   // Never inherit a local Devnet database, signer, RPC, NODE_OPTIONS or .env.
   const systemNames=new Set(['PATH','SYSTEMROOT','WINDIR','COMSPEC','PATHEXT','TEMP','TMP','TMPDIR','LANG','LC_ALL','NODE_EXTRA_CA_CERTS']);
   const env=Object.fromEntries(Object.entries(systemEnv).filter(([name])=>systemNames.has(name.toUpperCase())));

@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {Connection} from '@solana/web3.js';
 import {SOLANA_GENESIS} from '../solana-network.js';
 import {rentExempt} from './estimate-program-deploy-cost.mjs';
+import {assessMainnetFunding} from './mainnet-funding-plan.mjs';
 
 const sol=lamports=>Number((lamports/1_000_000_000).toFixed(9));
 const safeInteger=value=>Number.isSafeInteger(value)&&value>=0;
@@ -53,6 +54,7 @@ export async function prepareMainnetDeployment(plan,{artifactDir,connection,now=
       freshDeploymentFundingBeforeFeesLamports:locked,estimatedBaseFeeLamports:estimatedBaseFees,
       feeAllowanceLamports:feeAllowance,deploymentMarginLamports:plan.deploymentMarginLamports,
       suggestedWalletLamports:suggested,
+      funding:assessMainnetFunding(plan,{lockedLamports:locked,feeAllowanceLamports:feeAllowance,marginLamports:plan.deploymentMarginLamports}),
       sol:{locked:sol(locked),buffer:sol(bufferRent),estimatedBaseFees:sol(estimatedBaseFees),suggestedWallet:sol(suggested)}});
   }
   const required=['upgradeAuthority','mainnetProgramId','mainnetAppOrigin','productionRpcSecretPath',

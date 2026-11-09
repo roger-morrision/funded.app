@@ -9,6 +9,7 @@ import {priceConfigAddress,priceSignerActivated} from './buyback-price-signer.mj
 import {v3BuybackFeeSetup,verifyV3BuybackAuthorityReserve} from './v3-buyback-setup.mjs';
 import {independentMarketQuote} from './price-signer-market.mjs';
 import {bondingCurvePda,PUMP_PROGRAM_ID} from './v3-buyback-curve.mjs';
+import {priceReviewNetwork} from './price-review-network.mjs';
 
 const key=x=>new PublicKey(x),hash=x=>createHash('sha256').update(x).digest('hex');
 const loader=key('BPFLoaderUpgradeab1e11111111111111111111111');
@@ -49,7 +50,7 @@ export async function verifiedProgram(connection,config){
 
 export async function reviewBuyback({connection,config,signer,request,marketQuote=independentMarketQuote,now=Date.now()}){
   const started=Date.now(),program=key(config.programId),authority=key(config.authority);
-  assert(request?.cluster==='devnet'&&request.programId===config.programId,'Unapproved network or program.');
+  const network=priceReviewNetwork(config,request);
   assert(typeof request.transaction==='string'&&request.transaction.length<=1644,'Invalid transaction size.');
   const raw=Buffer.from(request.transaction,'base64');
   assert(raw.length<=1232&&raw.toString('base64')===request.transaction,'Invalid transaction encoding.');
@@ -57,7 +58,7 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   assert(message.version===0&&message.header.numRequiredSignatures===2&&message.staticAccountKeys[0].equals(authority)
     &&message.staticAccountKeys[1].equals(signer)&&!signer.equals(authority),'Unapproved signing authorities.');
   assert(transaction.signatures.every(s=>s.every(b=>b===0)),'Only unsigned transactions may be reviewed.');
-  assert(await connection.getGenesisHash()===PRICE_SIGNER_GENESIS,'Signer requires Devnet.');
+  assert(await connection.getGenesisHash()===network.genesisHash,'Price review RPC does not match the approved network.');
   await verifiedProgram(connection,config);
   assert(await priceSignerActivated(connection,program,signer),'Price signer is not activated.');
   const slot=await connection.getSlot('finalized'),time=await connection.getBlockTime(slot);

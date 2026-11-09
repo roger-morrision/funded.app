@@ -65,7 +65,7 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
     })) reasons.push('V3 launch reserve and buyback lookup tables are not configured');
     if (!programId || !/^[a-f0-9]{64}$/.test(approvedHash)) reasons.push('Approved V3 program is not configured');
     let authority = null;
-    try { authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
+    try { if(solanaCluster==='devnet')authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
     if (!authority?.publicKey) reasons.push('V3 authority signer is unavailable');
     if (!reasons.length) {
       const controller = new AbortController();

@@ -16,6 +16,7 @@ const pda=PublicKey.findProgramAddressSync([program.toBuffer()],loader)[0];
 const data=Buffer.alloc(49);data.writeUInt32LE(3);data[12]=1;authority.toBuffer().copy(data,13);
 const hash=sha(data);
 function env(){return {MAINNET_PROGRAM_LAYOUT:'merged-v3',VITE_SOLANA_CLUSTER:'mainnet-beta',SOLANA_CLUSTER:'mainnet-beta',
+  FUNDED_API_TOKEN:'isolated-test-only-api-token',
   VITE_MAINNET_READ_ONLY:'true',VITE_ALLOW_MAINNET:'false',MAINNET_APP_ORIGIN:'https://staging.funded.example',
   FUNDED_TRADE_FEE_OWNER:authority.toBase58(),VITE_FUNDED_TRADE_FEE_OWNER:authority.toBase58(),
   FUNDED_V3_FEE_ROUTER_PROGRAM_ID:program.toBase58(),FUNDED_V3_PROGRAM_DATA_SHA256:hash,

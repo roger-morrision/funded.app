@@ -27,6 +27,7 @@ export function startCommunityClaimIndex({
   createConnection = url => new Connection(url, 'finalized'),
   indexClaims = indexCommunityClaims, logger = console,
 }) {
+  if(solanaCluster!=='devnet')return;
   let authority;
   try { authority = v3AuthorityKeypair?.()?.publicKey?.toBase58(); } catch { return; }
   if (solanaCluster !== 'devnet' || !fundedTokenMint || !authority

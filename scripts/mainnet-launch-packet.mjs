@@ -7,6 +7,7 @@ import {PublicKey} from '@solana/web3.js';
 import {loadMainnetConfig} from './mainnet-config.mjs';
 import {mainnetReadinessPreflight} from './mainnet-readiness-preflight.mjs';
 import {reviewedMainnetManifest} from '../mainnet-program.js';
+import {mainnetEvidenceSummary} from './mainnet-evidence-summary.mjs';
 
 const requiredCases=['admin-operations-withdrawal','launch-standard','launch-promotion','buy-and-sell',
   'collect-and-settle','creator-payout','holder-rewards','x-payout','protocol-payouts','buyback-burn',
@@ -63,10 +64,9 @@ export async function buildMainnetLaunchPacket({plan,acceptance,manifest,config,
   const specified=acceptance.requiredCases?.map(row=>row.id)||[];
   checks.completeAcceptancePlan=specified.length===requiredCases.length&&new Set(specified).size===specified.length
     &&requiredCases.every(id=>specified.includes(id));
-  const evidenceValid=devnetEvidence?.cluster==='devnet'&&devnetEvidence.schemaVersion===1
-    &&/^[a-f0-9]{40}$/.test(devnetEvidence.application?.revision||'');
+  const summary=mainnetEvidenceSummary(devnetEvidence),evidenceValid=Boolean(summary);
   const recorded=requiredCases.map(id=>{
-    const rows=evidenceValid?devnetEvidence.acceptance?.filter(row=>row.id===id)||[]:[];
+    const rows=evidenceValid?summary.acceptance.filter(row=>row.id===id):[];
     const row=rows.length===1?rows[0]:null;
     return {id,recordedStatus:row?.status||'unavailable',currentReleaseVerified:false,
       action:row?.status==='passed-live'?'Revalidate against the final release and retain finalized deltas.':row?.detail||'Run the complete acceptance case.'};
@@ -78,7 +78,7 @@ export async function buildMainnetLaunchPacket({plan,acceptance,manifest,config,
     configuration:preflight.configuration,
     reviewedRelease:checks.reviewedExactRelease?'matching-review-record':'blocked',
     devnetEvidence:{status:evidenceValid?'historical-record-not-reverified':'unavailable',
-      revision:evidenceValid?devnetEvidence.application.revision:null,
+      revision:summary?.revision||null,format:summary?.format||null,observations:summary?.observations||[],
       sha256:evidenceValid?sha(devnetEvidence):null,cases:recorded},
     remainingCodeGates:preflight.remainingCodeGates,
     nextSteps:['Finish network integration and exercise all financial/recovery cases on Devnet.',

@@ -24,7 +24,7 @@
     },
     {
       "id": "launch-promotion",
-      "proof": "Reviewed FUNDED burn and exact balance/supply reductions finalize before creation; cancelled creation can recover without a second burn."
+      "proof": "Reviewed RICH burn and exact balance/supply reductions finalize before creation; cancelled creation can recover without a second burn."
     },
     {
       "id": "buy-and-sell",
@@ -52,7 +52,7 @@
     },
     {
       "id": "buyback-burn",
-      "proof": "Approved budget, canonical pool, slippage cap, finalized purchase and burn, exact supply reduction; failed execution retains obligation."
+      "proof": "Before migration: canonical Pump curve; after migration: canonical PumpSwap pool. Both require independent price review, approved fee-vault budget, slippage cap, finalized CPI purchase and burn, exact vault and supply reductions, empty purchased-token account, replay rejection, and worker restart reconciliation; failed execution retains obligation."
     },
     {
       "id": "community-claim",

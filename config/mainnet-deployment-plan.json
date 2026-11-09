@@ -23,6 +23,16 @@
   "cluster": "mainnet-beta",
   "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "mainnetActivationAuthorized": false,
+  "productionReleaseRevision": null,
+  "referenceArtifactStatus": "Historical sizing references only; freeze and reproduce new production bytes after public identities are selected",
+  "currentPlaceholderBuild": {
+    "variant": "productionBuildCheck",
+    "identityScope": "public-test-fixture-only",
+    "bytes": 915704,
+    "sha256": "1d13df0ee7b5dba55701a304ab9b975f426128c4eeadc5745a93d86abafaf135",
+    "deployEligible": false,
+    "evidence": "docs/evidence/mainnet-placeholder-preparation-2026-11-09.json"
+  },
   "upgradeable": true,
   "sourceRevision": "e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",
   "ciRun": "https://github.com/roger-morrision/funded.app/actions/runs/42349176721",
@@ -50,13 +60,17 @@
     "venue": "pump.fun",
     "status": "planned-not-launched",
     "requiredQuoteAsset": "SOL",
-    "poolDependency": "Canonical SOL/RICH PumpSwap pool after graduation; verify live liquidity before pricing or buybacks",
+    "poolDependency": "Before migration use the verified canonical Pump bonding curve; after migration use the reviewed canonical SOL/RICH PumpSwap pool. Verify current reserves on the selected venue; never treat a derived pool address as liquidity.",
     "mintAndPoolVerification": "pending",
     "launchTransactionSignature": null,
     "migrationTransactionSignature": null
   },
   "maximumTotalSpendLamports": "5000000000",
   "maximumPriorityFeeLamports": "0",
+  "minimumOperatingReserveLamports": "3000000000",
+  "initializationBudgetLamports": null,
+  "tokenLaunchAndLiquidityBudgetLamports": null,
+  "canaryBudgetLamports": null,
   "independentReviewer": null,
   "independentReviewReference": null,
   "referenceArtifacts": [
@@ -89,7 +103,7 @@
     "Independent review"
   ],
   "sequence": [
-    "Create a fresh isolated Mainnet inventory: new production program identity and infrastructure, production signer references, FUNDED mint and pool. Preserve Devnet and do not copy its financial state or QA signers.",
+    "Create a fresh isolated Mainnet inventory: new production program identity and infrastructure, production signer references, RICH mint and reviewed future pool identity. Preserve Devnet and do not copy its financial state or QA signers.",
     "Implement and review production network paths and agency custody; retain Mainnet write guards during preparation.",
     "Build the exact production artifact with pinned tools, verify program identity and reproduce executable hash in CI.",
     "Rerun custody, financial-path and transaction-size tests against that artifact, then refresh rent and fee quotes.",

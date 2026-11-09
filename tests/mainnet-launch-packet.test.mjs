@@ -16,6 +16,7 @@ const key=n=>new PublicKey(new Uint8Array(32).fill(n)).toBase58();
 function packet(){return {plan:read('mainnet-deployment-plan'),acceptance:read('mainnet-acceptance-plan'),
   manifest:read('mainnet-program-release'),config:loadMainnetConfig('config/mainnet-staging.example'),sourceRevision:'a'.repeat(40)};}
 function config(){return {MAINNET_PROGRAM_LAYOUT:'merged-v3',VITE_SOLANA_CLUSTER:'mainnet-beta',SOLANA_CLUSTER:'mainnet-beta',
+  FUNDED_API_TOKEN:'isolated-test-only-api-token',
   VITE_MAINNET_READ_ONLY:'true',VITE_ALLOW_MAINNET:'false',MAINNET_APP_ORIGIN:'https://mainnet.example',
   FUNDED_TRADE_FEE_OWNER:key(2),VITE_FUNDED_TRADE_FEE_OWNER:key(2),
   FUNDED_V3_FEE_ROUTER_PROGRAM_ID:key(1),FUNDED_V3_PROGRAM_DATA_SHA256:'ab'.repeat(32),

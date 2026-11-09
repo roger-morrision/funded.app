@@ -6,6 +6,7 @@ import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { readProgramDataEvidence } from '../server/program-data-evidence.mjs';
 import {loadMainnetConfig} from './mainnet-config.mjs';
 import {reviewedMainnetManifest} from '../mainnet-program.js';
+import {mainnetStagingProblems} from '../server/mainnet-staging-policy.mjs';
 
 const UPGRADEABLE_LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const PUBLIC_MAINNET_RPCS = new Set([new URL(clusterApiUrl('mainnet-beta')).hostname, 'api.mainnet.solana.com']);
@@ -42,6 +43,8 @@ export function assessMainnetConfig(env) {
   const authority = validPublicKey(env.MAINNET_APPROVED_UPGRADE_AUTHORITY);
   const immutable = String(env.MAINNET_APPROVED_IMMUTABLE_PROGRAM || '').toLowerCase() === 'true';
   const checks = {
+    noSignersOrWorkers:mainnetStagingProblems(env).length===0,
+    stagingApiAccess:Boolean(String(env.FUNDED_API_TOKEN||'').trim())&&!/REPLACE|PLACEHOLDER/i.test(env.FUNDED_API_TOKEN||''),
     programLayout:['merged-v3','legacy-three-role'].includes(layout),
     mergedProgramIdentity:!merged||Boolean(routerId&&env.FUNDED_DEVELOPER_LOCK_PROGRAM_ID===routerId
       &&env.FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256===hash
@@ -64,7 +67,7 @@ export function assessMainnetConfig(env) {
     sameOriginBrowserApi: !String(env.VITE_API_BASE_URL || '').trim() || env.VITE_API_BASE_URL==='/',
     durableMetadata: env.METADATA_STORAGE==='pinata' && Boolean(env.PINATA_JWT_FILE)
       && !/REPLACE|PLACEHOLDER/i.test(env.PINATA_JWT_FILE),
-    writeGuardStillDisabled: String(env.VITE_ALLOW_MAINNET || 'false').toLowerCase() !== 'true',
+    writeGuardStillDisabled: ['false','0','no','off'].includes(String(env.VITE_ALLOW_MAINNET || 'false').trim().toLowerCase()),
     dedicatedHttpsRpc: validProductionRpc(env.SOLANA_RPC_URL),
     routerIdentity: Boolean(routerId && routerId === clientRouterId),
     approvedRouterHash: /^[0-9a-f]{64}$/.test(hash),

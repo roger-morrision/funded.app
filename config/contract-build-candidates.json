@@ -25,8 +25,8 @@
     "fundedMint": "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ",
     "fundedPool": "3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7",
     "identityScope": "public-test-fixture-only",
-    "bytes": 896304,
-    "sha256": "54b0b12f5bce7354cf902273db92c3c040d1290098d9a5a3336812caceebeb94",
+    "bytes": 915704,
+    "sha256": "1d13df0ee7b5dba55701a304ab9b975f426128c4eeadc5745a93d86abafaf135",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [

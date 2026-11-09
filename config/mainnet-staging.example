@@ -15,6 +15,8 @@ VITE_DEV_MODE=false
 VITE_DEV_AUTOCONNECT=false
 DEV_WALLET_ENABLED=false
 FUNDED_API_ONLY=true
+# Dedicated API access token for isolated staging, not a transaction signer.
+FUNDED_API_TOKEN_FILE=REPLACE_WITH_MAINNET_STAGING_API_TOKEN_FILE
 # No financial workers or transaction signers run in read-only staging.
 FUNDED_V3_LAUNCH_ENABLED=false
 FUNDED_V3_COLLECTION_ENABLED=false
@@ -53,11 +55,13 @@ FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256=REPLACE_MERGED_PROGRAMDATA_HASH
 FUNDED_V3_COMMUNITY_ACCOUNT_SETUP=app
 # Both roles must resolve to the same program, full ProgramData hash and authority.
 # Keep the program upgradeable. A reviewed, non-empty authority is mandatory.
-MAINNET_APPROVED_UPGRADE_AUTHORITY=REPLACE_REVIEWED_AUTHORITY
+MAINNET_APPROVED_UPGRADE_AUTHORITY=ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC
 MAINNET_APPROVED_IMMUTABLE_PROGRAM=false
 # RICH will launch on pump.fun. Record its actual Mainnet mint after launch.
-# The current pricing/buyback implementation requires its canonical SOL/RICH
-# PumpSwap pool after graduation. A derived pool address alone is not liquidity.
+# Before migration, verify the canonical Pump bonding curve and live reserves.
+# After migration, verify the canonical SOL/RICH PumpSwap pool and live reserves.
+# Record the reviewed future pool identity even before its account exists;
+# a derived address alone is not liquidity or permission to execute.
 # Keep legacy FUNDED_* variable names for application compatibility.
 FUNDED_TOKEN_MINT=REPLACE_MAINNET_FUNDED_MINT
 VITE_FUNDED_TOKEN_MINT=REPLACE_MAINNET_FUNDED_MINT
@@ -72,8 +76,8 @@ PINATA_JWT_FILE=REPLACE_WITH_MAINNET_METADATA_SECRET_FILE_PATH
 # Release planning fields; these do not activate signers, workers or deployment.
 # Copy the completed values into mainnet-deployment-plan.json and mainnet-acceptance-plan.json.
 MAINNET_DEPLOYMENT_PAYER_SIGNER_REFERENCE=REPLACE_WITH_SIGNER_REFERENCE_NOT_PRIVATE_KEY
-MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS=
-MAINNET_MAXIMUM_PRIORITY_FEE_LAMPORTS=
+MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS=5000000000
+MAINNET_MAXIMUM_PRIORITY_FEE_LAMPORTS=0
 MAINNET_INDEPENDENT_REVIEWER=REPLACE_WITH_REVIEWER_NAME
 MAINNET_INDEPENDENT_REVIEW_REFERENCE=REPLACE_WITH_FINAL_BINARY_REVIEW_REPORT_REFERENCE
 
@@ -82,7 +86,7 @@ FUNDED_V3_OPERATIONS_RECIPIENT=REPLACE_WITH_MAINNET_OPERATIONS_WALLET
 FUNDED_PUMP_REVENUE_WALLET=REPLACE_WITH_MAINNET_REVENUE_WALLET
 FUNDED_BOOST_PAYMENT_WALLET=REPLACE_WITH_MAINNET_BOOST_WALLET
 FUNDED_SERVICE_FEE_RECIPIENT=REPLACE_WITH_MAINNET_SERVICE_FEE_WALLET
-FUNDED_ADMIN_WALLETS=REPLACE_WITH_MAINNET_ADMIN_PUBLIC_WALLET
+FUNDED_ADMIN_WALLETS=ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC
 FUNDED_ADMIN_EMAIL=REPLACE_WITH_ADMIN_EMAIL
 FUNDED_ADMIN_EMAIL_FROM=REPLACE_WITH_VERIFIED_SENDER
 FUNDED_ADMIN_EMAIL_PROVIDER=gmail

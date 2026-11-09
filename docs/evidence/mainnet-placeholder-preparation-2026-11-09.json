@@ -1,0 +1,525 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-09T10:27:20.949Z",
+  "status": "local-preparation-verified-not-mainnet-ready",
+  "source": {
+    "revision": "a97e3719b2fc33487d1a9c99f68eda992799f319",
+    "dirty": true,
+    "files": [
+      {
+        "path": "config/contract-build-candidates.json",
+        "sha256": "04b410cc8683020c835a2026470f6a14da53a08cb99ab608f5a15934f2c2a0a3"
+      },
+      {
+        "path": "config/mainnet-acceptance-plan.json",
+        "sha256": "963ecd8eabf08a56164781d436d991c71919805d883785e27ec76cca2324e05e"
+      },
+      {
+        "path": "config/mainnet-deployment-plan.json",
+        "sha256": "36bb06d20d04d78f390370ba1eccbe7db841fbdf159d08a57bdf372e1e579db1"
+      },
+      {
+        "path": "config/mainnet-staging.example",
+        "sha256": "246b78cfebb4fde6ce129da6ab47233a9b4cecc03c1399a95e752b6f801890e6"
+      },
+      {
+        "path": "scripts/mainnet-config.mjs",
+        "sha256": "9d0a828e864c6af3a3a054b5e706d844290c31e3afeb2863cbc7c4051cc97f25"
+      },
+      {
+        "path": "scripts/mainnet-evidence-summary.mjs",
+        "sha256": "38da72da39bb671229c385cd62099502bf0b71e30a06c0d007617faed08e6501"
+      },
+      {
+        "path": "scripts/mainnet-funding-plan.mjs",
+        "sha256": "e88968a03e51e53ce00ae21abbfdb50b2a123c11a2dea613d6bfcf5bb1d5934a"
+      },
+      {
+        "path": "scripts/mainnet-launch-packet.mjs",
+        "sha256": "a37dda8eb20ef6835055d7c44d8f201798832adccff4a4e395a209450490f4bc"
+      },
+      {
+        "path": "scripts/mainnet-readiness-preflight.mjs",
+        "sha256": "8ff20a6dd061472f17d0c81b7a55c0ae74b40b67f061cda30d94a35387fcb867"
+      },
+      {
+        "path": "scripts/prepare-mainnet-deployment.mjs",
+        "sha256": "e8c309eeb8c86343d09b6fdb44138494d215dc3c3d1d943e1138b3c0faa8e6df"
+      },
+      {
+        "path": "scripts/run-price-signer.mjs",
+        "sha256": "c78e2a9127ef1ee01f53babf2bfbe55951524aabbccf7592ee7f7058f5a6cea8"
+      },
+      {
+        "path": "scripts/start-mainnet-staging.mjs",
+        "sha256": "9e961dd867cf2f52356eef7b2b5a40e15e77e4bfc4cdd74561317a0b06bfcda2"
+      },
+      {
+        "path": "server/background-maintenance.mjs",
+        "sha256": "6cca089cb5d08de8fdc4e91ef6e48b3602b0be7c127ae0cbf95606ae8b9aef54"
+      },
+      {
+        "path": "server/environment.mjs",
+        "sha256": "40ecf4d4fbe300ecfa36cbebeba6890566db69392baf96424786db44cbab9294"
+      },
+      {
+        "path": "server/fee-router-service.mjs",
+        "sha256": "a3bf64113db62c28af6e7a916a43d2a0f556bf60488c0431779d81f33a7b9124"
+      },
+      {
+        "path": "server/mainnet-staging-policy.mjs",
+        "sha256": "a6cd147bb2c5f563028b27b48ee15feb93bc098c524681759cd4b427bcc4ec66"
+      },
+      {
+        "path": "server/price-review-network.mjs",
+        "sha256": "c557b0f7d0a4eba3ed9063f99fe5d7015c4253064155aa54e8aa3da4124db75a"
+      },
+      {
+        "path": "server/price-signer-bootstrap.mjs",
+        "sha256": "e78479b56171015c07ed0f4045ecb3085116acad7f0216b1081abc6cd848ba51"
+      },
+      {
+        "path": "server/price-signer-review.mjs",
+        "sha256": "0d0770b5edbf4a8074ccdd98f9b123c647583429f13a647bd909ce7be99d4988"
+      },
+      {
+        "path": "server/v3-launch-config.mjs",
+        "sha256": "ef2763a2cb9057e43a77ceb2dc2ce5fef2a07f4f77ed71605c469e1d703ebd4d"
+      },
+      {
+        "path": "tests/mainnet-evidence-summary.test.mjs",
+        "sha256": "91301cb9cc4e5d5dc8c2d1ed35534a74dc026b6c1d076919845734d09859d1bc"
+      },
+      {
+        "path": "tests/mainnet-funding-plan.test.mjs",
+        "sha256": "b5c32dca6b956300655d07422fdd9a5bc889ceada7fb01dabc5eff600748c968"
+      },
+      {
+        "path": "tests/mainnet-launch-packet.test.mjs",
+        "sha256": "a957e0b1c1df11f58b16b85159d47dfc8b34236195298fed9e2e9e41b1e7fbbf"
+      },
+      {
+        "path": "tests/mainnet-preparation-isolation.test.mjs",
+        "sha256": "996a0af9a788f6b68dd5e800ec2114d258a2b3f6c2cad0d677884d3f9fdcb178"
+      },
+      {
+        "path": "tests/mainnet-preparation.test.mjs",
+        "sha256": "e636a25c4106de5acfce1b734fd49156dc4c50f3ffda15b46b64bf12173d142e"
+      },
+      {
+        "path": "tests/price-signer-network.test.mjs",
+        "sha256": "2fe74c168e8e53751c82e6d6512cc8a766ea647342447429feab947c55592111"
+      }
+    ]
+  },
+  "mainnetEnabled": false,
+  "mainnetTransactionsSubmitted": 0,
+  "productionIdentityPlaceholders": true,
+  "tests": {
+    "javascript": {
+      "passed": 382,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "local and mocked; includes local HTTP/WebSocket boundaries"
+    },
+    "followupIsolationTests": {
+      "passed": 5,
+      "failed": 0,
+      "reason": "Case-insensitive Windows environment settings"
+    },
+    "rust": {
+      "passed": 11,
+      "native": 1,
+      "compiledBytecode": 10,
+      "scope": "offline fixture and LiteSVM; not live Mainnet"
+    },
+    "buildIdentity": {
+      "rejectedInvalidCases": 14,
+      "acceptedPublicFixture": true
+    },
+    "syntax": {
+      "files": 1005,
+      "passed": true
+    },
+    "sizeBudget": {
+      "files": 1233,
+      "passed": true
+    }
+  },
+  "contract": {
+    "feature": "mainnet-v3-program",
+    "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
+    "fundedMint": "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ",
+    "fundedPool": "3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7",
+    "identityScope": "public-test-fixture-only",
+    "bytes": 915704,
+    "sha256": "1d13df0ee7b5dba55701a304ab9b975f426128c4eeadc5745a93d86abafaf135",
+    "optimization": "z",
+    "strip": true,
+    "developerLockPeriodsSeconds": [
+      21600,
+      43200,
+      86400,
+      172800
+    ],
+    "deployEligible": false,
+    "reproduced": true,
+    "productionApprovalChanged": false,
+    "devnetRuntimeTrustChanged": false
+  },
+  "builds": {
+    "app": {
+      "passed": true,
+      "cluster": "devnet",
+      "mainnetEnabled": false,
+      "scope": "compilation using local Devnet settings only"
+    },
+    "mainnetPreview": {
+      "passed": true,
+      "cluster": "mainnet-beta",
+      "mainnetEnabled": false,
+      "mainnetReadOnly": true,
+      "devWalletEnabled": false,
+      "publicIdentity": {
+        "routerProgram": "",
+        "fundedMint": "",
+        "fundedPool": "",
+        "tradeFeeRecipient": "",
+        "tradeFeeBps": "100",
+        "apiBase": "/"
+      }
+    }
+  },
+  "funding": {
+    "schemaVersion": 1,
+    "status": "prepared-not-deployable",
+    "ready": false,
+    "mainnetActivationAuthorized": false,
+    "contractSourceRevision": "a97e3719b2fc33487d1a9c99f68eda992799f319",
+    "ciRun": null,
+    "cluster": "mainnet-beta",
+    "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+    "quote": {
+      "status": "live-mainnet-rent",
+      "checkedAt": "2026-11-09T10:23:58.325Z",
+      "finalizedSlot": 467282716,
+      "feeStatus": "estimate-plus-allowance; refresh against the final messages before signing"
+    },
+    "layout": {
+      "physicalPrograms": 1,
+      "roles": [
+        "v3-router",
+        "developer-escrow"
+      ],
+      "legacyRouterRequired": false,
+      "separateEscrowRequired": false
+    },
+    "rows": [
+      {
+        "variant": "productionBuildCheck",
+        "file": "mainnet-placeholder-20261109/funded_fee_router.so",
+        "bytes": 915704,
+        "sha256": "1d13df0ee7b5dba55701a304ab9b975f426128c4eeadc5745a93d86abafaf135",
+        "deployEligible": false,
+        "identityScope": "public-test-fixture-only",
+        "artifactVerified": true,
+        "maxLen": 915704,
+        "programRentLamports": 833120,
+        "programDataRentLamports": 4652655160,
+        "bufferRentLamports": 4652614520,
+        "lockedLamports": 4653488280,
+        "freshDeploymentFundingBeforeFeesLamports": 4653488280,
+        "estimatedBaseFeeLamports": 10210000,
+        "feeAllowanceLamports": 25000000,
+        "deploymentMarginLamports": 250000000,
+        "suggestedWalletLamports": 5000000000,
+        "funding": {
+          "status": "incomplete",
+          "approvedSpendCapLamports": "5000000000",
+          "knownMaximumSpendLamports": "4928488280",
+          "knownCostsWithinCap": true,
+          "remainingUnderCapLamports": "71511720",
+          "minimumOperatingReserveLamports": "3000000000",
+          "minimumFundingIncludingReserveLamports": "7928488280",
+          "missingEstimates": [
+            "initializationBudgetLamports",
+            "tokenLaunchAndLiquidityBudgetLamports",
+            "canaryBudgetLamports"
+          ],
+          "finalTransactionFeesVerified": false,
+          "payerBalanceVerified": false,
+          "deploymentAuthorized": false
+        },
+        "sol": {
+          "locked": 4.65348828,
+          "buffer": 4.65261452,
+          "estimatedBaseFees": 0.01021,
+          "suggestedWallet": 5
+        }
+      }
+    ],
+    "fundingModel": "Fresh Loader-v3 deployment returns the buffer lamports to the same payer before funding ProgramData. Do not add buffer rent twice. Assumes exact allocation, one program, no abandoned buffers and the same deployment payer.",
+    "missingInputs": [
+      "mainnetProgramId",
+      "deploymentPayerSignerReference",
+      "productionDatabaseSecretPath",
+      "metadataSecretPath",
+      "feeRecipient",
+      "fundedMint",
+      "fundedPool"
+    ],
+    "remainingGates": [
+      "Select and review an actual production program identity and build; reference binaries are not Mainnet releases.",
+      "Implement and verify production network paths, agency custody, metadata, launch registration and financial workers.",
+      "Verify isolated infrastructure, independent custody review, deployment spend cap and explicit Mainnet approval.",
+      "Verify finalized deployed bytes and initialize state, then run an approved capped canary before enabling writes."
+    ],
+    "excludedCosts": [
+      "Liquidity",
+      "Per-launch state and token accounts",
+      "Initial configuration PDAs and lookup tables",
+      "Canary transactions and operating balances",
+      "RPC, database and metadata hosting",
+      "Independent review"
+    ],
+    "sequence": [
+      "Create a fresh isolated Mainnet inventory: new production program identity and infrastructure, production signer references, RICH mint and reviewed future pool identity. Preserve Devnet and do not copy its financial state or QA signers.",
+      "Implement and review production network paths and agency custody; retain Mainnet write guards during preparation.",
+      "Build the exact production artifact with pinned tools, verify program identity and reproduce executable hash in CI.",
+      "Rerun custody, financial-path and transaction-size tests against that artifact, then refresh rent and fee quotes.",
+      "Present the exact binary, program ID, authority, payer and spending cap for explicit Mainnet deployment approval.",
+      "After approval, deploy once through Loader-v3 with explicit Mainnet URL and exact max-len; journal signatures before submission.",
+      "Verify finalized deployed bytes, loader ownership, authority, ProgramData hash and rent deltas before initializing application state.",
+      "Point both V3-router and developer-escrow roles to the same verified production program and full ProgramData hash.",
+      "Run the separately approved capped canary before enabling Mainnet application writes. Preserve the Devnet deployment."
+    ],
+    "sources": {
+      "loader": "https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L260-L280",
+      "cli": "https://github.com/anza-xyz/agave/blob/v4.1.2/cli/src/program.rs#L2433-L2551",
+      "deployment": "https://solana.com/docs/core/programs/program-deployment"
+    }
+  },
+  "planningPacket": {
+    "schemaVersion": 1,
+    "generatedAt": "2026-11-09T10:27:20.754Z",
+    "status": "no-go",
+    "ready": false,
+    "mainnetActivationAuthorized": false,
+    "scope": "offline-planning-not-live-acceptance",
+    "source": {
+      "revision": "a97e3719b2fc33487d1a9c99f68eda992799f319",
+      "dirty": true
+    },
+    "checks": {
+      "freshInstall": true,
+      "retainedUpgradeAuthority": true,
+      "cleanSource": false,
+      "boundedSpend": true,
+      "adminIdentity": true,
+      "selectedAuthority": true,
+      "configuredSpend": true,
+      "reviewedExactRelease": false,
+      "completeAcceptancePlan": true
+    },
+    "missingProductionInputs": [
+      "mainnetProgramId",
+      "feeRecipient",
+      "fundedMint",
+      "fundedPool",
+      "deploymentPayerSignerReference",
+      "productionDatabaseSecretPath",
+      "metadataSecretPath",
+      "independentReviewer",
+      "independentReviewReference",
+      "freshInfrastructure.databaseReference",
+      "freshInfrastructure.cacheReference",
+      "freshInfrastructure.metadataNamespace",
+      "freshInfrastructure.appDeploymentReference",
+      "freshInfrastructure.backupReference",
+      "freshSignerReferences.automationAuthority",
+      "freshSignerReferences.priceAttestation",
+      "freshSignerReferences.operationsTreasury",
+      "freshSignerReferences.tradeFeeTreasury",
+      "freshSignerReferences.boostTreasury",
+      "freshSignerReferences.revenueTreasury"
+    ],
+    "configuration": {
+      "noSignersOrWorkers": true,
+      "stagingApiAccess": false,
+      "programLayout": true,
+      "mergedProgramIdentity": false,
+      "cluster": true,
+      "stagingReadOnly": true,
+      "stagingOrigin": true,
+      "developmentWalletDisabled": true,
+      "tradingFeeOnePercent": true,
+      "configuredTradeRecipient": false,
+      "v3RouterConfigured": false,
+      "developerEscrowConfigured": false,
+      "fundedMintConfigured": false,
+      "fundedPoolConfigured": false,
+      "distinctProductionIdentities": false,
+      "sameOriginBrowserApi": true,
+      "durableMetadata": false,
+      "writeGuardStillDisabled": true,
+      "dedicatedHttpsRpc": false,
+      "routerIdentity": false,
+      "approvedRouterHash": false,
+      "approvedUpgradeAuthority": true,
+      "persistentDatabase": false,
+      "isolatedDatabase": false,
+      "isolatedRpc": false
+    },
+    "reviewedRelease": "blocked",
+    "devnetEvidence": {
+      "status": "historical-record-not-reverified",
+      "revision": "36477d75e848bfe9c0d717bec0ca06c1746f2f80",
+      "format": "financial-step-report",
+      "observations": [
+        {
+          "name": "creator-fee-collection",
+          "status": "failed"
+        }
+      ],
+      "sha256": "e29594c7f0d78e0ba749a8c20a5ba5b8c5a846b530dd72768e3cb3dee006dcf1",
+      "cases": [
+        {
+          "id": "admin-operations-withdrawal",
+          "recordedStatus": "partial",
+          "currentReleaseVerified": false,
+          "action": "Historical verified withdrawal is recorded; revalidate the complete case on the final release."
+        },
+        {
+          "id": "launch-standard",
+          "recordedStatus": "partial",
+          "currentReleaseVerified": false,
+          "action": "Historical step report: 2 passed, 0 failed. Full current-release acceptance is still required."
+        },
+        {
+          "id": "launch-promotion",
+          "recordedStatus": "unavailable",
+          "currentReleaseVerified": false,
+          "action": "Run the complete acceptance case."
+        },
+        {
+          "id": "buy-and-sell",
+          "recordedStatus": "partial",
+          "currentReleaseVerified": false,
+          "action": "Historical step report: 4 passed, 0 failed. Full current-release acceptance is still required."
+        },
+        {
+          "id": "collect-and-settle",
+          "recordedStatus": "partial",
+          "currentReleaseVerified": false,
+          "action": "Historical step report: 3 passed, 1 failed. Full current-release acceptance is still required."
+        },
+        {
+          "id": "creator-payout",
+          "recordedStatus": "partial",
+          "currentReleaseVerified": false,
+          "action": "A historical creator claim is recorded; revalidate beneficiary, deltas and duplicate handling on the final release."
+        },
+        {
+          "id": "holder-rewards",
+          "recordedStatus": "unavailable",
+          "currentReleaseVerified": false,
+          "action": "Run the complete acceptance case."
+        },
+        {
+          "id": "x-payout",
+          "recordedStatus": "unavailable",
+          "currentReleaseVerified": false,
+          "action": "Run the complete acceptance case."
+        },
+        {
+          "id": "protocol-payouts",
+          "recordedStatus": "partial",
+          "currentReleaseVerified": false,
+          "action": "Historical step report: 5 passed, 0 failed. Full current-release acceptance is still required."
+        },
+        {
+          "id": "buyback-burn",
+          "recordedStatus": "unavailable",
+          "currentReleaseVerified": false,
+          "action": "Run the complete acceptance case."
+        },
+        {
+          "id": "community-claim",
+          "recordedStatus": "unavailable",
+          "currentReleaseVerified": false,
+          "action": "Run the complete acceptance case."
+        },
+        {
+          "id": "developer-unlock",
+          "recordedStatus": "unavailable",
+          "currentReleaseVerified": false,
+          "action": "Run the complete acceptance case."
+        },
+        {
+          "id": "recovery",
+          "recordedStatus": "unavailable",
+          "currentReleaseVerified": false,
+          "action": "Run the complete acceptance case."
+        }
+      ]
+    },
+    "remainingCodeGates": [
+      "Mainnet launch client and registration",
+      "Mainnet metadata activation and durable-storage verification",
+      "Mainnet fee collection and all payout routes",
+      "Mainnet market indexing and claim reconciliation",
+      "Independent program and custody audit",
+      "Capped canary and rollback evidence"
+    ],
+    "nextSteps": [
+      "Finish network integration and exercise all financial/recovery cases on Devnet.",
+      "Replace production placeholders with isolated infrastructure and public identity/secret references.",
+      "Freeze final bytes; obtain independent review and refresh rent, fees and total budget.",
+      "Approve the exact program deployment and capped canary; verify finalized state before public activation."
+    ],
+    "rollback": {
+      "firstAction": "Disable public writes and stop financial workers; preserve journals and pending obligations.",
+      "reconcile": "Check every recorded signature against finalized chain state before resuming or retrying.",
+      "application": "Restore the previous verified application image only if compatible with current program state and schema.",
+      "program": "No automatic downgrade, authority change, buffer closure or account migration. Require a separately reviewed compatible recovery transaction.",
+      "devnet": "Keep the existing Devnet environment and database isolated and available."
+    }
+  },
+  "logs": [
+    {
+      "path": "tmp/mainnet-preparation-final-tests.log",
+      "sha256": "2550a4a58edb05645d5cbc7bd679d0acdedb05716f341b390c7ebc04ba501766"
+    },
+    {
+      "path": "tmp/mainnet-case-insensitive-check.log",
+      "sha256": "48578658e6921373a75d54f5120b1966d59b5f3d9021a9107ca451efc5b964b0"
+    },
+    {
+      "path": "tmp/mainnet-preparation-final-check.log",
+      "sha256": "4edfe6271823fb63bb87383b22b151653b1435314f97d9a58bf39504fa00711e"
+    },
+    {
+      "path": "tmp/mainnet-placeholder-vm-tests.log",
+      "sha256": "844bd5cfb90328ff11f015607c8ea83ae3c474f9111e6a5841170dcdfb3aadb5"
+    },
+    {
+      "path": "tmp/mainnet-placeholder-identity.log",
+      "sha256": "eb9474567964af02f41b4fc0663dff0f233a1f40b5a720a9c2539d85cb382781"
+    },
+    {
+      "path": "tmp/mainnet-preparation-app-build.log",
+      "sha256": "d1f88f533513ea2646140d581fd9ab7ab75280383998b81ed4da0fa36cf6a49f"
+    },
+    {
+      "path": "tmp/mainnet-preparation-preview-build.log",
+      "sha256": "449c2e76d9f620a8a394370d51187c5290555f83310aa1d9474258d052285721"
+    }
+  ],
+  "limitations": [
+    "No live Mainnet deployment, transaction, canary or production signer activation.",
+    "No new live Devnet acceptance transactions in this preparation pass; historical receipts remain separately scoped.",
+    "48-hour live release test waits until 2026-11-10T02:23:54Z.",
+    "Production business-flow integration and final acceptance still require reviewed identities and isolated infrastructure.",
+    "Builds ran in a shared working tree; this is not an independently reviewed or deployable production release."
+  ]
+}

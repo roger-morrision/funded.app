@@ -1,5 +1,7 @@
 # Mainnet handoff — placeholders first
 
+Latest implementation and test results: [placeholder preparation update](mainnet-placeholder-preparation-2026-11-09.md). Earlier test counts and release revisions below are historical, not current deployment attestations.
+
 Status: **NO-GO**. The user reconfirmed “PLACE HOLDER FIRST” on 9 November 2026. Keep unknown production values empty; do not generate funded accounts, deploy a program, submit transactions, or enable financial workers to fill those gaps. Preparation is not a completed launch.
 
 ## Already supplied
@@ -20,8 +22,8 @@ No immediate response is required while placeholders are requested. Provide publ
 
 | Input | Exact information needed | Work it unlocks |
 | --- | --- | --- |
-| Mainnet $RICH assets | RICH will launch on Pump.fun. Supply the actual mint and launch receipt after creation. The current app requires the canonical SOL/RICH PumpSwap pool after graduation, with verified reserves, before RICH pricing and buybacks. Launch custody and any initial purchase budget still need to be selected within the spending cap. | Build-time asset binding, burn pricing, buyback verification and final cost estimate |
-| Production hosting | Host/provider and deployment-access reference; DNS access for richpad.fun and the retained Devnet host. Existing production Postgres, cache, storage and backup references if supplied by that provider. | Provision isolated services and backups; configure TLS and routing. The implementation can create the infrastructure once access and service choices are known. |
+| Mainnet $RICH assets | Supply the actual mint and launch receipt, or request creation with a selected payer and budget. Before migration use the verified canonical Pump curve; after migration use the reviewed SOL/RICH PumpSwap pool and verified reserves. The future canonical pool identity can be recorded before its account exists. | Bind production assets to final bytecode and verify both market routes |
+| Production isolation | Remote hosting access and richpad.fun TLS already exist. Select isolated Mainnet services on that host or a separate host, the retained Devnet hostname, and an off-host backup destination. | Provision separate production database/cache/storage and prove restoration without copying Devnet financial state |
 | Metadata storage | Production Pinata credential-file reference and account/namespace to use. | Durable logo/banner/metadata storage and retrieval verification |
 | Deployment payer | Public payer address plus supported signing method or protected signer-file reference. Confirm whether the recorded admin wallet is also the payer. | Exact deployment messages, signatures and capped canary; authority address alone is not signing access |
 | Treasury and automation custody | Public recipients for operations, trade fees, boost payments and revenue, or a decision to create separate production wallets. Provide secure signer-service/file references for automation and the independently controlled price-attestation role. | Worker configuration, withdrawals, reward execution and verified buybacks |
@@ -37,7 +39,7 @@ The program ID, deployment hashes, lookup tables, build revision, database names
 | Mainnet financial integration | Launch readiness and registration, X capability, fee collector, holder/daily-bonus workers and community delivery still contain Devnet-only guards. Complete their selected-network configuration and reviewed-program checks before considering activation. Setting a flag cannot replace this work. |
 | Exact release | Boost recovery and mobile-menu fixes are included in committed Devnet release `df58498490d8f2b208fd923618c44b7ce3fc7928`. Freeze the final production application release and reproduce its program binary with actual program, mint and pool identities. Devnet deployment does not certify Mainnet acceptance. |
 | Financial acceptance | Revalidate all 13 cases in `config/mainnet-acceptance-plan.json` against that release. Historical receipts and mocked tests are not current-release acceptance. Remaining cases include full holder delivery, X identity/payment, protocol distributions, buyback/burn, community claims and interrupted-transaction recovery. |
-| Independent price signer | The Devnet price-signer account was still absent in the finalized 9 November read. Configure independently controlled attestation and prove purchase/burn accounting. |
+| Independent price signer | A separate Devnet signer service is configured and activated. Fee-vault curve and post-migration buy/burn proofs are recorded. Production still needs its own key custody and reviewed allowlist; the existing service refuses Mainnet before loading private keys. Separate processes under the same operator are not an independent external audit. |
 | 48-hour lock | Early release is rejected and the vault balance is unchanged. The lock matures **10 November 2026, 09:23:54 Bangkok**. After that, verify finalized release to the original beneficiary and duplicate rejection. Do not shorten the deadline to pass the test. |
 | Infrastructure | Verify isolated database/cache, backups **and restoration**, metadata retrieval, secret permissions, rate limits, health monitoring, and restart reconciliation. |
 | Cost and funding | Refresh rent for the final reviewed binary and estimate all setup, transaction, liquidity, operating and canary costs. Keep their total within 5 SOL. Check the selected payer's live balance only after the payer is identified. |

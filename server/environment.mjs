@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 // Keep startup precedence: existing environment, secret files, then local values.
 export function loadServerEnvironment({ env = process.env, cwd = process.cwd(), readFile = readFileSync } = {}) {
   if (env.FUNDED_SKIP_LOCAL_ENV === 'true') return;
+  if([env.SOLANA_CLUSTER,env.VITE_SOLANA_CLUSTER].includes('mainnet-beta'))
+    throw Error('Mainnet requires explicit isolated configuration with FUNDED_SKIP_LOCAL_ENV=true; local defaults and signer files were not loaded.');
   for (const [name, filePath] of Object.entries(env)) {
     if (!name.endsWith('_FILE') || !filePath || env[name.slice(0, -5)] != null) continue;
     try { env[name.slice(0, -5)] = readFile(filePath, 'utf8').trim(); }
