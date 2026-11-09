@@ -1,0 +1,14 @@
+{
+  "status": "finalized-exact-binary",
+  "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+  "binarySha256": "cf11bbe12479fc931ec97479707b3912f5c0d99bf7815c40ebcef775f824a36c",
+  "binaryBytes": 919544,
+  "programDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee",
+  "programDataBytes": 1104069,
+  "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+  "signature": "5q9cMw9CvEK8qLhymjMPabPuY9UQDYtDurgdJBQPRrgGhZXRQxNG64PfhPKZTLupqQgcH9AknA7Kes2vehgRf5F4",
+  "slot": 520311193,
+  "bufferRefundLamports": 4672162360,
+  "feeLamports": 5000,
+  "at": "2026-11-09T07:46:29.055Z"
+}

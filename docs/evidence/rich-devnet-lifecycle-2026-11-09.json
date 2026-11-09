@@ -1,0 +1,92 @@
+{
+  "checkedAt": "2026-11-09T07:36:09.257Z",
+  "cluster": "devnet",
+  "scope": "isolated Pump.fun wallet lifecycle; not fee-vault automation",
+  "mint": "BFrpkRScmF3xAmPsBKevVBzcXeALha8TGoyRA9gfWYQm",
+  "canonicalPool": "ALHSQzXX64tx623D8E7eMKPXsrvmYL5hWyksnhPTw24W",
+  "receipts": [
+    {
+      "at": "2026-11-09T07:22:51.022Z",
+      "stage": "verified-burn",
+      "operation": "curve-buy-and-burn",
+      "signature": "2fmq1TBSt1F8yeaEsf5UVcqoAs5jhJd1wRDqZBGw2mdgCReUTg5M4ZUR1te8JqgzAUrjTcZaiLKT1gpDVCeRYv2f",
+      "burnedBaseUnits": "2616422437965",
+      "supplyBefore": "1000000000000000",
+      "supplyAfter": "997383577562035",
+      "walletDebitLamports": 4257761,
+      "tokenBalanceAfter": "0",
+      "slot": 520305269,
+      "feeLamports": 5000,
+      "atomicBuyAndBurn": true,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-09T07:24:47.088Z",
+      "stage": "verified-burn",
+      "operation": "curve-buy-and-burn",
+      "signature": "5WkQQEN3ejZyoGyzvEYthq816mFNjvXCYt8EDP96ArqKKB5K7dSLRM6KZVV63SmDr88eGRbZDNRUTWkn2cqUyWFH",
+      "burnedBaseUnits": "2610043742219",
+      "supplyBefore": "997383577562035",
+      "supplyAfter": "994773533819816",
+      "walletDebitLamports": 3609337,
+      "tokenBalanceAfter": "0",
+      "slot": 520305753,
+      "feeLamports": 5000,
+      "atomicBuyAndBurn": true,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-09T07:24:53.044Z",
+      "stage": "verified-burn",
+      "operation": "complete-curve-and-burn",
+      "signature": "21ExMUgMC9r82PG276j1xWGMFGecWfaDMtVC3zLbEyZbLNEJrRsm7aje1GWNqGsD4aS6jpz13skjiHR3ioPPjCtx",
+      "burnedBaseUnits": "787873533819816",
+      "supplyBefore": "994773533819816",
+      "supplyAfter": "206900000000000",
+      "walletDebitLamports": 859197490,
+      "tokenBalanceAfter": "0",
+      "slot": 520305772,
+      "feeLamports": 5000,
+      "atomicBuyAndBurn": true,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-09T07:26:04.670Z",
+      "stage": "verified-burn",
+      "operation": "migrated-buy-and-burn",
+      "signature": "4Ndkcjutv6SrWLNKinxoxVCJPG9BuwXvmejM63Tfrt9Uqyt1ZeXounWyjajinCaTBnqUMzBoqoXdG74n3eSq5fAa",
+      "burnedBaseUnits": "22778438549",
+      "supplyBefore": "199630566181245",
+      "supplyAfter": "199607787742696",
+      "walletDebitLamports": 4525599,
+      "tokenBalanceAfter": "0",
+      "slot": 520306072,
+      "feeLamports": 5000,
+      "atomicBuyAndBurn": true,
+      "finalized": true
+    }
+  ],
+  "migration": {
+    "signature": "2KENgoPhoVtafzu77XawMUDXQ7Defj3GLKLWHkCf1eTCD4dnXqEQZSfBZzKwgLEd6PVFje9ZL5r8CPf3mL8Kj6GP",
+    "slot": 520305792,
+    "finalized": true
+  },
+  "completedCurveQuoteRejected": true,
+  "remainingTestBalances": [
+    {
+      "wallet": "GeJachNntBZnZdQXUcsxciUtHx8mjn3B6tHG4LVLSdiP",
+      "lamports": 1239910559
+    },
+    {
+      "wallet": "CTHwmpbFxB1hL2iwNZFkRzVdPQrW4FnVptH6f8YMzfTs",
+      "lamports": 0
+    },
+    {
+      "wallet": "D8qeK6Au2gonFkpZAkAHKcqyiZjXmpXzgKXNNNT6pDSx",
+      "lamports": 15474401
+    }
+  ],
+  "cleanupLimitations": "The first refund failed rent-exemption checks; the third process was interrupted by a concurrent app redeploy after verification. Ephemeral private keys were never persisted, so remaining test SOL is not recoverable. No Mainnet funds were used.",
+  "feeVaultAutomationTested": false,
+  "automationActivated": false
+}

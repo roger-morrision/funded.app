@@ -46,10 +46,10 @@ pub fn execute<'info>(ctx: CurveAccounts<'info>, accounts: &[AccountInfo<'info>]
     }
     require!(minimum < amount(&ctx.curve, 24)?, ErrorCode::InvalidMintBuybackV3);
     let ata = anchor_spl::associated_token::get_associated_token_address_with_program_id;
-    require!(accounts.len() == 18 && ctx.ata.key() == ata(&ctx.mint.key(), &ctx.vault.key(), &base),
+    require!(accounts.len() == 18 && ctx.ata.key() == ata(&ctx.vault.key(), &ctx.mint.key(), &base),
         ErrorCode::InvalidMintBuybackV3);
     let expected = [(0, Pubkey::find_program_address(&[b"global"], &PUMP).0),
-        (2, ctx.mint.key()), (3, curve), (4, ata(&ctx.mint.key(), &curve, &base)),
+        (2, ctx.mint.key()), (3, curve), (4, ata(&curve, &ctx.mint.key(), &base)),
         (5, ctx.ata.key()), (6, ctx.vault.key()), (7, ctx.system.key()), (8, base), (11, PUMP)];
     for (index, key) in expected { require!(accounts[index].key() == key, ErrorCode::InvalidMintBuybackV3); }
     require!(accounts.iter().enumerate().all(|(i,a)| !a.is_signer || i == 6), ErrorCode::InvalidMintBuybackV3);
@@ -89,4 +89,54 @@ pub fn execute<'info>(ctx: CurveAccounts<'info>, accounts: &[AccountInfo<'info>]
     let spent = before.checked_sub(ctx.vault.lamports()).ok_or(ErrorCode::InvalidMintBuybackV3)?;
     require!(spent > 0 && spent <= quote && spent <= limit, ErrorCode::MintWithdrawalBudgetExceededV3);
     Ok((spent,bought))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anchor_lang::solana_program::program_error::ProgramError;
+
+    // Public addresses independently verified by the JS SPL SDK and finalized
+    // Pump Devnet trades. Native tests stop at Rent; no CPI is mocked as success.
+    #[test]
+    fn finalized_devnet_token_accounts_pass_curve_address_validation() {
+        fn info(key: Pubkey, owner: Pubkey, data: Vec<u8>, executable: bool) -> AccountInfo<'static> {
+            AccountInfo::new(Box::leak(Box::new(key)), false, true,
+                Box::leak(Box::new(10_000_000)), Box::leak(data.into_boxed_slice()),
+                Box::leak(Box::new(owner)), executable)
+        }
+        let wallet = pubkey!("CTHwmpbFxB1hL2iwNZFkRzVdPQrW4FnVptH6f8YMzfTs");
+        let mint = pubkey!("BFrpkRScmF3xAmPsBKevVBzcXeALha8TGoyRA9gfWYQm");
+        let curve = pubkey!("Gy4gDdccQdYCSAaNswngGHVTdmoanK6yAiSeKeQt2SU5");
+        let wallet_ata = pubkey!("84QpSHDPNFNMsNHjc4qVCv93Ah2T39va94qzLgcXNRSS");
+        let curve_ata = pubkey!("7xJR2auTCEa7GLEQfeLWL3VrHuoz7aFBFByqDNTui7g6");
+        let token = anchor_spl::token_2022::ID;
+        let mut curve_data = vec![0; 81];
+        curve_data[..8].copy_from_slice(&CURVE);
+        curve_data[24..32].copy_from_slice(&1_000_000u64.to_le_bytes());
+        let make_context = || CurveAccounts {
+            authority: info(Pubkey::new_unique(), System::id(), vec![], false),
+            vault: info(wallet, System::id(), vec![], false),
+            mint: info(mint, token, vec![0; 82], false),
+            ata: info(wallet_ata, token, vec![0; 165], false),
+            curve: info(curve, PUMP, curve_data.clone(), false),
+            base: info(token, System::id(), vec![], true),
+            associated: info(anchor_spl::associated_token::ID, System::id(), vec![], true),
+            system: info(System::id(), System::id(), vec![], true),
+            pump: info(PUMP, System::id(), vec![], true),
+        };
+        let mut accounts: Vec<_> = (0..18).map(|_| info(Pubkey::new_unique(), System::id(), vec![], false)).collect();
+        for (index, key) in [(0, Pubkey::find_program_address(&[b"global"], &PUMP).0),
+            (2,mint),(3,curve),(4,curve_ata),(5,wallet_ata),(6,wallet),
+            (7,System::id()),(8,token),(11,PUMP)] {
+            accounts[index] = info(key, System::id(), vec![], false);
+        }
+        let error = execute(make_context(), &accounts, &[], 100, 100, 1, 100).unwrap_err();
+        assert!(matches!(error, anchor_lang::error::Error::ProgramError(ref e)
+            if e.program_error == ProgramError::UnsupportedSysvar), "{error:?}");
+        accounts[4] = info(wallet_ata, token, vec![], false);
+        let error = execute(make_context(), &accounts, &[], 100, 100, 1, 100).unwrap_err();
+        assert!(matches!(error, anchor_lang::error::Error::AnchorError(ref e)
+            if e.error_name == "InvalidMintBuybackV3"), "{error:?}");
+    }
 }

@@ -17,7 +17,7 @@ A completed curve with no usable migrated pool returns unavailable and retains p
 
 The source now includes a curve path for category-6 $RICH budgets in both V3 fee-policy layouts. The vault remains the buyer; the authority fronts account rent. The router reconstructs the bounded purchase, burns the received tokens in the same transaction, checks the vault debit and supply reduction, and records its normal immutable receipt with the curve address as the market. The normal 5 SOL aggregate trigger, smaller protected orders, independent price cosigner, daily budget and retry/reconciliation rules remain in force.
 
-`FUNDED_V3_CURVE_BUYBACK_ENABLED` defaults to false. This is intentional: the currently accepted on-chain bytecode only understands PumpSwap. Building or deploying the web app does not upgrade the Solana program.
+`FUNDED_V3_CURVE_BUYBACK_ENABLED` defaults to false. The [Devnet contract upgrade](rich-devnet-buyback-activation-2026-11-09.md) now includes the corrected curve path, but automatic execution remains disabled pending the independent price signer and actual fee-vault acceptance tests. Building or deploying the web app does not upgrade the Solana program.
 
 Before enabling it:
 
@@ -26,6 +26,6 @@ Before enabling it:
 3. Upgrade the approved fee-router, update its reviewed bytecode hash and verify/extend the buyback lookup table for curve accounts. Preserve the existing independent price signer and protected operator reserve.
 4. Enable the flag only for that reviewed deployment. A Mainnet release also needs the real $RICH mint and canonical future/migrated pool in its reviewed manifest; placeholders cannot execute.
 
-Current verification is local SDK fixtures, receipt-verifier fixtures, Rust compilation and an SBF build candidate. These are not evidence of a new finalized on-chain curve buyback. Existing Mainnet activation gates remain unchanged.
+Current verification includes local SDK/receipt fixtures, eleven Rust checks, reproducible SBF bytecode and finalized isolated wallet purchases with atomic burns on both sides of a real Pump.fun Devnet migration. The upgraded router's fee-vault buyback and worker execution are still unverified; wallet transactions do not establish automatic execution. Existing Mainnet activation gates remain unchanged.
 
 Pump reference: [bonding-curve buy and migration instructions](https://github.com/pump-fun/pump-public-docs/blob/main/docs/PUMP_PROGRAM_README.md).

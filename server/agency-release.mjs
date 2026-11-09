@@ -4,8 +4,8 @@ import {mainnetReleaseVerified} from './mainnet-program.mjs';
 // Source-built with platform-tools v1.54 and the devnet-v3-program feature.
 // The loader header/upgrade slot is excluded from this binary commitment;
 // callers separately pin the complete finalized ProgramData account hash.
-export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:900144,
-  sha256:'03749b95dd6f4cd67e77eb9932012bcd7ee61d34a3da0171a2fc48b3a9d99a24'});
+export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:919544,
+  sha256:'cf11bbe12479fc931ec97479707b3912f5c0d99bf7815c40ebcef775f824a36c'});
 export const AGENCY_DEVNET_PROGRAM='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 export function matchesAgencyBinary(data,manifest=AGENCY_REVIEWED_BINARY){
   const bytes=Buffer.from(data||[]);
