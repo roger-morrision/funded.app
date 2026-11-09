@@ -51,7 +51,7 @@ test('promotional launch posts preserve proof checks and fit X limits for long n
   const proof={verified:true,commitment:'finalized',cluster:'devnet',slot:10,signature:bs58.encode(new Uint8Array(64).fill(3))};
   for (const marketingTier of ['standard','pro','premier']) for (const name of ['RICH CAT','龍'.repeat(100)+' @fake https://bad.example']) {
     const result=buildXPost('launch',{name,marketingTier,mint:'So11111111111111111111111111111111111111112',proofs:[proof]},{cluster:'devnet'});
-    assert.match(result.text,/Explore the token/);
+    assert.match(result.text,/Explore holder SOL rewards and token airdrops\. Eligibility and funding apply\./);
     assert.ok(result.weightedLength<=280 && result.byteLength<=280);
     assert.doesNotMatch(result.text,/@fake|https:\/\/bad/);
   }
