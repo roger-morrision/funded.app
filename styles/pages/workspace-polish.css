@@ -371,3 +371,15 @@ html body #rewards-history .mobile-filter-drawer > button { margin-top:12px; }
 .wallet-address-link { color:inherit;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere; }
 .portfolio-locked-card { border:1px solid var(--border, #343656);border-radius:14px;padding:16px;margin-block:14px;overflow-wrap:anywhere; }
 .portfolio-locked-card p { margin-block:8px; }
+.portfolio-lock-table-wrap { max-width:100%;overflow-x:auto;margin-block:16px;border:1px solid var(--border, #343656);border-radius:14px; }
+.portfolio-lock-table { width:100%;min-width:880px;border-collapse:collapse;text-align:left;font-size:14px; }
+.portfolio-lock-table th { padding:13px 16px;color:#a9b7d6;font-weight:600;font-size:12px;white-space:nowrap;background:rgba(255,255,255,.025); }
+.portfolio-lock-table td { padding:18px 16px;border-top:1px solid var(--border, #343656);vertical-align:middle; }
+.portfolio-lock-table td:first-child a { font-weight:700;color:inherit;text-decoration:none; }
+.portfolio-lock-table small { display:block;margin-top:6px;color:#a9b7d6;font-size:12px; }
+.portfolio-lock-amount { font-variant-numeric:tabular-nums;white-space:nowrap; }
+.portfolio-lock-table time { display:block;max-width:210px;line-height:1.6; }
+.portfolio-lock-status { display:inline-block;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.07);white-space:nowrap;font-size:12px; }
+.portfolio-lock-status[data-state="claimable"] { background:rgba(65,212,157,.12);color:#76e6b8; }
+.portfolio-lock-status[data-state="locked"] { background:rgba(255,202,60,.1);color:#f4d57c; }
+.portfolio-lock-action { display:inline-block;white-space:nowrap;text-decoration:none;font-weight:600; }
