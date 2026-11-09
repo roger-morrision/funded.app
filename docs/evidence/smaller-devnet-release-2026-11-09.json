@@ -1,0 +1,976 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-09T02:37:17.428Z",
+  "cluster": "devnet",
+  "allFunctionsVerified": false,
+  "mainnetReady": false,
+  "mainnetActivationAuthorized": false,
+  "application": {
+    "revision": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+    "image": "sha256:3b797a053cc927a72a78f30463c7e59453a4257bbfad582ad790569b1a627288",
+    "release": "447b7b6d1d804e04a82e8f4e62100faa206fb381-1a464e34-2162-4ed0-a921-bfafa0232d28"
+  },
+  "program": {
+    "status": "finalized-exact-merged-binary",
+    "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "binary": {
+      "path": "tmp/mainnet-assets-build-v2/devnet-optimized/funded_fee_router.so",
+      "bytes": 900144,
+      "sha256": "03749b95dd6f4cd67e77eb9932012bcd7ee61d34a3da0171a2fc48b3a9d99a24"
+    },
+    "upgraded": true,
+    "extended": false,
+    "programDataHash": "8238170ec0f484837494985148bc0104bc32506cfa09057fdfc938a85b7cb8b5",
+    "programDataLamports": 5609320760,
+    "deployedSlot": 520225491,
+    "readSlot": 520225493,
+    "bufferLamports": 0,
+    "legacy": {
+      "program": "EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT",
+      "programDataHash": "02e41471271b9953721e3acb3ad77156802c2e97f5de7acf8d2e03d36f0228a8",
+      "unchanged": true
+    },
+    "extension": null,
+    "upgrade": "eG7Eg56XgL4qW7UyceYWqkzUAhwfVZmsb2n4ow6M6GRgKtbnUugwCaSVYttYubQDaE5XUbufvo6CJCHaos6fDSn",
+    "additionalRentLamports": 0,
+    "bufferRefundLamports": 4573569720,
+    "feesLamports": 5000,
+    "allocationResized": false,
+    "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "upgradeable": true
+  },
+  "tests": {
+    "application": {
+      "passed": 251,
+      "failed": 0,
+      "scope": "exact deployed image; network disabled"
+    },
+    "compiledContract": {
+      "passed": 10,
+      "failed": 0,
+      "scope": "LiteSVM against exact optimized Devnet bytes"
+    },
+    "source": {
+      "syntaxFiles": 942,
+      "maintainedFiles": 1165,
+      "passed": true
+    }
+  },
+  "fixes": [
+    "Reward operations verify selected network and reviewed program before preparing signatures; duplicate payment receipts validate frozen manifests and ownership.",
+    "Concurrent finalization returns only the same verified settlement signature, network, program and category amounts."
+  ],
+  "liveFinancial": {
+    "status": "passed",
+    "mint": "5JD7MVWqvtJegDofVcBToQAf1UbtBN6vQJErEWy74i6Q",
+    "checks": [
+      {
+        "name": "network",
+        "status": "passed",
+        "at": "2026-11-09T02:31:27.217Z",
+        "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+        "finalizedSlot": 520232197
+      },
+      {
+        "name": "deployed-program",
+        "status": "passed",
+        "at": "2026-11-09T02:31:29.122Z",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "programDataAddress": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+        "programDataSha256": "8238170ec0f484837494985148bc0104bc32506cfa09057fdfc938a85b7cb8b5",
+        "executableSha256": "ac37a5dd39369c17d58f9616371ed6596f951eed6acd2f08ace7768bd8c2f9a4",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+      },
+      {
+        "name": "router-policy",
+        "status": "passed",
+        "at": "2026-11-09T02:31:29.799Z",
+        "address": "4jxmVjfBeiXjDwwaDQhPvVXhcJ4K4Xf5pmkXWgtkiGMw",
+        "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+      },
+      {
+        "name": "pump-program",
+        "status": "passed",
+        "at": "2026-11-09T02:31:30.657Z",
+        "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+      },
+      {
+        "name": "public-app",
+        "status": "passed",
+        "at": "2026-11-09T02:31:30.991Z",
+        "httpStatus": 200,
+        "cluster": "devnet"
+      },
+      {
+        "name": "ephemeral-memory-payer",
+        "status": "passed",
+        "at": "2026-11-09T02:31:32.368Z",
+        "payer": "8BprwuzBipSYVFABeJ8JbmNgXix5tb5zwzNiSvguSCsF",
+        "balanceLamports": 250000000,
+        "faucetRequested": false
+      },
+      {
+        "name": "fee-recipient-funding",
+        "status": "passed",
+        "at": "2026-11-09T02:31:33.219Z",
+        "address": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+        "balanceLamports": 9518841665,
+        "fundingRequired": false
+      },
+      {
+        "name": "v3-launch-config",
+        "status": "passed",
+        "at": "2026-11-09T02:31:34.691Z",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "initialAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "split": {
+          "operationsPercent": 40,
+          "referralLevelPercents": [
+            3,
+            1.25,
+            0.75
+          ],
+          "communityPercent": 20,
+          "buybackPercent": 25,
+          "agencyPercent": 10
+        },
+        "agencyRevision": "10",
+        "lookupTable": "FqrcLjTPoiMQkhuTF9cg3X8tvPX6RVp1Dpb8XSeyghUW",
+        "serviceFeeLamports": "20000000"
+      },
+      {
+        "name": "v3-launch",
+        "status": "passed",
+        "at": "2026-11-09T02:31:51.876Z",
+        "signature": "2gdKikJNvruARXGcKtTAapQupYic3bEePcaFZFY91NQaGdDaJkjsbNV7GJYQNeH7T6rg1vZaqWRvUrydFXhxmAXj",
+        "mint": "5JD7MVWqvtJegDofVcBToQAf1UbtBN6vQJErEWy74i6Q",
+        "feeRouter": "AUVCYcxudrkR8RWnJzCSnwCAMYe9KY1qQA6VVZ6a6hoG",
+        "reserveVault": "3SiayhBt84Di3UPZddf5hxvLX3mjk4zh5AoEgKfNNXfJ",
+        "separateRouterTransaction": true
+      },
+      {
+        "name": "live-registration",
+        "status": "passed",
+        "at": "2026-11-09T02:31:59.992Z",
+        "mint": "5JD7MVWqvtJegDofVcBToQAf1UbtBN6vQJErEWy74i6Q",
+        "signature": "2gdKikJNvruARXGcKtTAapQupYic3bEePcaFZFY91NQaGdDaJkjsbNV7GJYQNeH7T6rg1vZaqWRvUrydFXhxmAXj",
+        "reserveTokens": "30000000",
+        "developerBaseUnits": "3529601674803",
+        "serviceFeeLamports": "20000000"
+      },
+      {
+        "name": "buy",
+        "status": "passed",
+        "at": "2026-11-09T02:32:06.978Z",
+        "signature": "xQiSGFnRuy8sLrRERKVjf6BWBVTpX3XhggetfBusKqarEz4duwDPsETTKmZWU1KyJm9vp4tzo7dFMpfiBhzKHQk",
+        "slot": 520232361
+      },
+      {
+        "name": "buy-fee-delta",
+        "status": "passed",
+        "at": "2026-11-09T02:32:07.790Z",
+        "lamports": 30000,
+        "feeBps": 100,
+        "quoteLamports": "3000000"
+      },
+      {
+        "name": "sell",
+        "status": "passed",
+        "at": "2026-11-09T02:32:15.495Z",
+        "signature": "5mBfUsZnuCCFEEbCvHMj3LM7GdCoYLMDLPRA5k2tVE99k9GaVSLyuiW8HMQ9otLS2t3ggsb5tbK7ZLQhjAN4JFXA",
+        "slot": 520232397
+      },
+      {
+        "name": "sell-fee-delta",
+        "status": "passed",
+        "at": "2026-11-09T02:32:16.362Z",
+        "lamports": 29406,
+        "feeBps": 100,
+        "quoteLamports": "2940591"
+      },
+      {
+        "name": "creator-fee-collection",
+        "status": "passed",
+        "at": "2026-11-09T02:32:23.993Z",
+        "signature": "5VdnHbL6nYy1SBY6p25M6ULADCSMRRJg7jmodeNa3nu2X6mMe5pDH5sxrn6NVtEEnksYgnKBQ8Tkr7NBXqxW3NxS",
+        "lamports": 46853,
+        "slot": 520232419
+      },
+      {
+        "name": "settlement",
+        "status": "passed",
+        "at": "2026-11-09T02:32:29.113Z",
+        "signature": "2JRwr3st6U7cvHPdeXteHyuUMAbMpPLnGYoFyJU4DS32hZUMv12wn8DHPhj1r6ktqKJ7X7wfmJDTkFUMTx9Z6Fj9",
+        "lamports": 46853,
+        "categories": [
+          "37482",
+          "3748",
+          "281",
+          "117",
+          "71",
+          "1874",
+          "2342",
+          "938"
+        ]
+      },
+      {
+        "name": "settlement-idempotency",
+        "status": "passed",
+        "at": "2026-11-09T02:32:31.242Z",
+        "signature": "2JRwr3st6U7cvHPdeXteHyuUMAbMpPLnGYoFyJU4DS32hZUMv12wn8DHPhj1r6ktqKJ7X7wfmJDTkFUMTx9Z6Fj9"
+      },
+      {
+        "name": "referral-level-1",
+        "status": "passed",
+        "at": "2026-11-09T02:32:44.796Z",
+        "recipient": "A7WXuM2kbncUzXw69G4fsh8ezjRa3VH8hJNEw2VvdjNy",
+        "lamports": "281",
+        "signature": "58zRspyAWn8XnUXZDtS3En3gyBZXTSqEGfCSHt71daCBHsdb9XUP5J5LP5SwXTtEuQTNJQUDZPVFnpN2DoLBpLY3"
+      },
+      {
+        "name": "referral-level-2",
+        "status": "passed",
+        "at": "2026-11-09T02:32:53.943Z",
+        "recipient": "JDUBfZ8x2DJ8aqguusMH88WFp44HKUw9PC79MuTJXJZw",
+        "lamports": "117",
+        "signature": "3PB3oteCQE8D4iaawup5kuyXd48WZo4MGAuMmVMhp1fJuXXVnnTsGw3JPJ4iaGXPUfR7W7FA1Jp7ov4bXkWJtuX8"
+      },
+      {
+        "name": "referral-level-3",
+        "status": "passed",
+        "at": "2026-11-09T02:33:03.340Z",
+        "recipient": "91fgWUAC45iXYfszuaF4xa4U9wUfeNTjiXXxwC5L62th",
+        "lamports": "71",
+        "signature": "2V1Q5ucGm1tQBRp26nKKS2DySvFxzQBnzFYof9mVhm8koNdFAgmcCQDWrpmjPpdsySwDJC9rMuPmGxfpTkfpZdef"
+      },
+      {
+        "name": "creator-reward-funding",
+        "status": "passed",
+        "at": "2026-11-09T02:33:09.866Z",
+        "signature": "55cFsayHbnYX8arGW6zDmkDDpJ8rP5dhtEFJCYeynWfPQuaQaijWTaLhqqXV8mdRv95vPrE3hpr62VjESRTqRKqg",
+        "amount": "4686",
+        "recipient": "3SiayhBt84Di3UPZddf5hxvLX3mjk4zh5AoEgKfNNXfJ"
+      },
+      {
+        "name": "community-funding",
+        "status": "passed",
+        "at": "2026-11-09T02:33:22.728Z",
+        "signature": "kngLfgHZcMrWB1pAsuQyQfZptndLMTky7nnRK1upQJU6jBxj1n52HmS3ofTKMkyzSPRK5d2GePksKDb4N9M6ZyD",
+        "amount": "1874",
+        "recipient": "3SiayhBt84Di3UPZddf5hxvLX3mjk4zh5AoEgKfNNXfJ"
+      },
+      {
+        "name": "operations-payout",
+        "status": "passed",
+        "at": "2026-11-09T02:33:29.319Z",
+        "signature": "2QUJWuHewqkXbdWsVvGyuiCXcCRRzqGxzCnFha85HH5HJbLA5QSKb4uq3BgVzhaeeTXaQfbUw3FvE1fQsBThuex4",
+        "amount": "3748",
+        "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB"
+      },
+      {
+        "name": "creator-wallet-payout",
+        "status": "passed",
+        "at": "2026-11-09T02:33:38.779Z",
+        "signature": "4caHCgdcoc91ZbRtzDLwG8grvDV3a1hpZzaA7yZaS9Twag121pvNJcabh3MBKoaQNsDQig2kn15XP7pWrstFB5vZ",
+        "lamports": "32796",
+        "recipient": "8BprwuzBipSYVFABeJ8JbmNgXix5tb5zwzNiSvguSCsF",
+        "duplicateSuppressed": true
+      }
+    ],
+    "transactions": [
+      {
+        "name": "v3-launch",
+        "signature": "2gdKikJNvruARXGcKtTAapQupYic3bEePcaFZFY91NQaGdDaJkjsbNV7GJYQNeH7T6rg1vZaqWRvUrydFXhxmAXj",
+        "explorer": "https://explorer.solana.com/tx/2gdKikJNvruARXGcKtTAapQupYic3bEePcaFZFY91NQaGdDaJkjsbNV7GJYQNeH7T6rg1vZaqWRvUrydFXhxmAXj?cluster=devnet",
+        "finalized": true,
+        "slot": 520232272
+      },
+      {
+        "name": "v3-mint-router",
+        "signature": "2pJDMTokGoB6LgRakwRRYQs34PQFFBzS7xLtVsFbb9sN8iVPRUqMFjcezSG4F35pjecC1FJuPap2c8DvjyRRjZGC",
+        "finalized": true,
+        "slot": 520232257
+      },
+      {
+        "name": "buy",
+        "signature": "xQiSGFnRuy8sLrRERKVjf6BWBVTpX3XhggetfBusKqarEz4duwDPsETTKmZWU1KyJm9vp4tzo7dFMpfiBhzKHQk",
+        "explorer": "https://explorer.solana.com/tx/xQiSGFnRuy8sLrRERKVjf6BWBVTpX3XhggetfBusKqarEz4duwDPsETTKmZWU1KyJm9vp4tzo7dFMpfiBhzKHQk?cluster=devnet",
+        "finalized": true,
+        "slot": 520232361
+      },
+      {
+        "name": "sell",
+        "signature": "5mBfUsZnuCCFEEbCvHMj3LM7GdCoYLMDLPRA5k2tVE99k9GaVSLyuiW8HMQ9otLS2t3ggsb5tbK7ZLQhjAN4JFXA",
+        "explorer": "https://explorer.solana.com/tx/5mBfUsZnuCCFEEbCvHMj3LM7GdCoYLMDLPRA5k2tVE99k9GaVSLyuiW8HMQ9otLS2t3ggsb5tbK7ZLQhjAN4JFXA?cluster=devnet",
+        "finalized": true,
+        "slot": 520232397
+      }
+    ]
+  },
+  "rewardCustody": {
+    "cluster": "devnet",
+    "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "programDataHash": "8238170ec0f484837494985148bc0104bc32506cfa09057fdfc938a85b7cb8b5",
+    "mint": "A34VyJEWTbYmwKEmKkU3cgspEqTuu7nFqvV88MGYVsy1",
+    "recipient": "7DL4cPZUp1MS6ZXkov6LBdbHBUjknz57b1Cea7FYKzri",
+    "scope": "isolated contract funding and Merkle payouts; not holder eligibility or OAuth",
+    "receipts": [
+      {
+        "label": "create-isolated-test-mint",
+        "signature": "K9XpadMo5EY7YK29bySnpMPRsQKtzXuBZt8g4WH2Uta1ehQbTs8eUS17ts86PueoQEo4zKjPNxLzhWKBKrhdkfa",
+        "finalized": true,
+        "slot": 520228290,
+        "fee": 10000
+      },
+      {
+        "label": "fund-SOL",
+        "signature": "4N7wHLchFz3GcSr92kFFiTKYZA5ERG4UN498szmUfjUWmQwvAfHx58FxR9ruXR7TmwTGAf6zmepUWk8uTv1SgUiJ",
+        "finalized": true,
+        "slot": 520228324,
+        "fee": 5000
+      },
+      {
+        "label": "fund-SOL",
+        "signature": "3rgDxVvphkJariZKCaDGS7R8tpqnN9gGu8WE2d6844FcX7NLDShnbeBPdH8bAnBhgoWHg3zBUyvqKBMVs4B1sZWj",
+        "finalized": true,
+        "slot": 520228351,
+        "fee": 5000
+      },
+      {
+        "label": "create-cycle-SOL",
+        "signature": "5hGgi4HfNxpnbwmwLr2S6ZKy3ihiLZ6M4rcp3H5JiMaSFYsotQHXpUBUfkT7k94F34cpoLY2kNSCwYuZdyH2a2xx",
+        "finalized": true,
+        "slot": 520228408,
+        "fee": 5000
+      },
+      {
+        "label": "create-cycle-SOL",
+        "signature": "2KegRr3vUfcgxyC4czFtQjzgLigAFiAW1YZLwhVTbC2HQBYQf8EAz1zBQ5k64Km8BEzmoiFvsBCkhhzKaaFEQBSB",
+        "finalized": true,
+        "slot": 520228437,
+        "fee": 5000
+      },
+      {
+        "label": "payout-SOL",
+        "signature": "kNh3hGt13fKgyDdHS7ppWM2HprJusJ7bKkFucbHJhWWxdcYXgpJE7nEoPy63NLDQ5Pxbi6yeYKi1GXzUyy14GNv",
+        "finalized": true,
+        "slot": 520228537,
+        "fee": 5000
+      },
+      {
+        "label": "fund-A34VyJEWTbYmwKEmKkU3cgspEqTuu7nFqvV88MGYVsy1",
+        "signature": "wFooTLayBKXrrbkZ9w5r6Dqj18dksDrkinyTo62KrsvcaoUzVSiHiAW1zySds6RBguYd52jDtMZAVWengL8cxZ8",
+        "finalized": true,
+        "slot": 520228626,
+        "fee": 5000
+      },
+      {
+        "label": "create-cycle-A34VyJEWTbYmwKEmKkU3cgspEqTuu7nFqvV88MGYVsy1",
+        "signature": "2RQw8a7Lmed63Ya1y9XgFiJizdX3EBmtHVdwN7px8GrM4SWqN8ULG34aJHpBHhiQUYicf5YHtmk4HSzVQjsNP8Te",
+        "finalized": true,
+        "slot": 520228720,
+        "fee": 5000
+      },
+      {
+        "label": "create-cycle-A34VyJEWTbYmwKEmKkU3cgspEqTuu7nFqvV88MGYVsy1",
+        "signature": "3bRaYn72HKGPpHBgaU2kh3WxLqvjHDCgoL6YmoSmHSshE7GZpgT8U7ccWRZVj6RZhE8bJPwuP7NQKsRkXaoemiYL",
+        "finalized": true,
+        "slot": 520228752,
+        "fee": 5000
+      },
+      {
+        "label": "payout-A34VyJEWTbYmwKEmKkU3cgspEqTuu7nFqvV88MGYVsy1",
+        "signature": "2FgSN6ZD4ZrU4ghFuJL81xuBKZnkfxBuJ1sqvFb6Ye4MFD5VPT6NMStKmkeEhzPFvDdPokBQxdZj5yDU1gWv2Zmu",
+        "finalized": true,
+        "slot": 520228854,
+        "fee": 5000
+      },
+      {
+        "label": "burn-disposable-test-tokens",
+        "signature": "49brod7QMjpKKSvEJHKYgJeSstLmc6fEEbuEEqRrMeESQXvhn5NiVoHDQNFuB3gUMtZk6zy8581Cfd8pAK4ghJPS",
+        "finalized": true,
+        "slot": 520229005,
+        "fee": 10000
+      },
+      {
+        "label": "return-test-sol",
+        "signature": "2LFC4oLFDzifqrS4r3n5UjUhaeNkoimok6TStr4JC1rK23vT26hcRk3uuTyo5CFM4irQ73SnHaD3QUDo2W6nax35",
+        "finalized": true,
+        "slot": 520229022,
+        "fee": 10000
+      }
+    ],
+    "cases": [
+      {
+        "asset": "SOL",
+        "amount": "100000",
+        "funding": "3rgDxVvphkJariZKCaDGS7R8tpqnN9gGu8WE2d6844FcX7NLDShnbeBPdH8bAnBhgoWHg3zBUyvqKBMVs4B1sZWj",
+        "cycle": "2KegRr3vUfcgxyC4czFtQjzgLigAFiAW1YZLwhVTbC2HQBYQf8EAz1zBQ5k64Km8BEzmoiFvsBCkhhzKaaFEQBSB",
+        "payout": "kNh3hGt13fKgyDdHS7ppWM2HprJusJ7bKkFucbHJhWWxdcYXgpJE7nEoPy63NLDQ5Pxbi6yeYKi1GXzUyy14GNv",
+        "slot": 520228537,
+        "computeUnits": 27430,
+        "duplicateSuppressed": true,
+        "invalidProofRejected": true,
+        "reserveOutstanding": "0"
+      },
+      {
+        "asset": "A34VyJEWTbYmwKEmKkU3cgspEqTuu7nFqvV88MGYVsy1",
+        "amount": "1000",
+        "funding": "wFooTLayBKXrrbkZ9w5r6Dqj18dksDrkinyTo62KrsvcaoUzVSiHiAW1zySds6RBguYd52jDtMZAVWengL8cxZ8",
+        "cycle": "3bRaYn72HKGPpHBgaU2kh3WxLqvjHDCgoL6YmoSmHSshE7GZpgT8U7ccWRZVj6RZhE8bJPwuP7NQKsRkXaoemiYL",
+        "payout": "2FgSN6ZD4ZrU4ghFuJL81xuBKZnkfxBuJ1sqvFb6Ye4MFD5VPT6NMStKmkeEhzPFvDdPokBQxdZj5yDU1gWv2Zmu",
+        "slot": 520228854,
+        "computeUnits": 60291,
+        "duplicateSuppressed": true,
+        "invalidProofRejected": true,
+        "reserveOutstanding": "0"
+      }
+    ],
+    "status": "passed"
+  },
+  "developerEscrow": {
+    "earlyAndMature": [
+      {
+        "period": 21600,
+        "mint": "7ma6JsZRorHYiA4pZY1o9MgSCnWVAvvw2vwvEXNmPE5e",
+        "beneficiary": "9rjThkJWdcNFgwor4HBq22PXu8FzCZqmcj2si3DgPuvW",
+        "stateBefore": {
+          "lock": "E8n8Sp7hStA7uG73wYGrCjEbCez1Jy6iCCXXQ5N67eYx",
+          "mint": "7ma6JsZRorHYiA4pZY1o9MgSCnWVAvvw2vwvEXNmPE5e",
+          "creator": "9rjThkJWdcNFgwor4HBq22PXu8FzCZqmcj2si3DgPuvW",
+          "amount": "100000000",
+          "lockedAt": 1794104559,
+          "unlockAt": 1794126159,
+          "releasedAt": 0,
+          "lockSeconds": 21600
+        },
+        "clock": 1794190012,
+        "signature": "43Ccj5inHBDMzLRipnjA7QiNj6hqtMdVJmrMYFULQEj2oXEjHmqK7p1dZyKcLGhj8fbTkhGnbVnqkzQrznx6bEoE",
+        "blockhash": "BDKAgBJbcQ6YnEXLMfFpycF5vCYh54d7PG42MQchSnpg",
+        "lastValidBlockHeight": 507369864,
+        "status": "finalized-fixed-beneficiary-release",
+        "slot": 520226035,
+        "computeUnits": 44058,
+        "fee": 5000,
+        "stateAfter": {
+          "lock": "E8n8Sp7hStA7uG73wYGrCjEbCez1Jy6iCCXXQ5N67eYx",
+          "mint": "7ma6JsZRorHYiA4pZY1o9MgSCnWVAvvw2vwvEXNmPE5e",
+          "creator": "9rjThkJWdcNFgwor4HBq22PXu8FzCZqmcj2si3DgPuvW",
+          "amount": "100000000",
+          "lockedAt": 1794104559,
+          "unlockAt": 1794126159,
+          "releasedAt": 1794190012,
+          "lockSeconds": 21600
+        },
+        "duplicateRejected": true,
+        "recipientCredit": "100000000",
+        "vaultDebit": "100000000"
+      },
+      {
+        "period": 43200,
+        "mint": "TBDDc6JTeWensxB6U6TMEkkcD5ao6sAhQhBGZ4ctZpj",
+        "beneficiary": "3gYoLVkR5ncHzPEbddQH8uPvUF1xcDeWxmPJcpRPFK54",
+        "stateBefore": {
+          "lock": "FmQXprJXMPfgBi8Pvvgi4zEkRqUbQaxoH8gnENwNkXn8",
+          "mint": "TBDDc6JTeWensxB6U6TMEkkcD5ao6sAhQhBGZ4ctZpj",
+          "creator": "3gYoLVkR5ncHzPEbddQH8uPvUF1xcDeWxmPJcpRPFK54",
+          "amount": "100000000",
+          "lockedAt": 1794104584,
+          "unlockAt": 1794147784,
+          "releasedAt": 0,
+          "lockSeconds": 43200
+        },
+        "clock": 1794190013,
+        "signature": "35Lu2ZfHC2c5W4Y9WqHUFJrML7c2RrjrDTb4wzeUfUVCLv2mZtVARpfcdy8Sv713Gmi7XaRDbmj4fuEQvUj9526i",
+        "blockhash": "AeamLtzngzVFH51gx3tzyC69u5gFztLjnX7FzBAif89j",
+        "lastValidBlockHeight": 507369870,
+        "status": "finalized-fixed-beneficiary-release",
+        "slot": 520226042,
+        "computeUnits": 44058,
+        "fee": 5000,
+        "stateAfter": {
+          "lock": "FmQXprJXMPfgBi8Pvvgi4zEkRqUbQaxoH8gnENwNkXn8",
+          "mint": "TBDDc6JTeWensxB6U6TMEkkcD5ao6sAhQhBGZ4ctZpj",
+          "creator": "3gYoLVkR5ncHzPEbddQH8uPvUF1xcDeWxmPJcpRPFK54",
+          "amount": "100000000",
+          "lockedAt": 1794104584,
+          "unlockAt": 1794147784,
+          "releasedAt": 1794190014,
+          "lockSeconds": 43200
+        },
+        "duplicateRejected": true,
+        "recipientCredit": "100000000",
+        "vaultDebit": "100000000"
+      },
+      {
+        "period": 86400,
+        "mint": "2E24MunVY4euJse9dWACcNKxNW8DB1h2McDvHQm23Km7",
+        "beneficiary": "7Mk6Jsn7e49bCN42u4DuLLhDtAJsmSPUcgqtRM7P1zU2",
+        "stateBefore": {
+          "lock": "2e2YuAemNLxddeLrgfX2sRkjrGAkzQoB9p72PaGv5Gyp",
+          "mint": "2E24MunVY4euJse9dWACcNKxNW8DB1h2McDvHQm23Km7",
+          "creator": "7Mk6Jsn7e49bCN42u4DuLLhDtAJsmSPUcgqtRM7P1zU2",
+          "amount": "100000000",
+          "lockedAt": 1794104609,
+          "unlockAt": 1794191009,
+          "releasedAt": 0,
+          "lockSeconds": 86400
+        },
+        "clock": 1794190015,
+        "status": "early-release-rejected"
+      },
+      {
+        "period": 172800,
+        "mint": "DHeL94ZYd4kdN3myY9FDnRA6WS4QEjk1XySDYefnRufg",
+        "beneficiary": "44z5nXbFctEMZYksy1BqFSTUv8Qfrq2uNjkqi4XKLwrD",
+        "stateBefore": {
+          "lock": "C5v7gu9hcJggmezUdY16uUKo5xnYRrHePWyJPwMxBMA7",
+          "mint": "DHeL94ZYd4kdN3myY9FDnRA6WS4QEjk1XySDYefnRufg",
+          "creator": "44z5nXbFctEMZYksy1BqFSTUv8Qfrq2uNjkqi4XKLwrD",
+          "amount": "100000000",
+          "lockedAt": 1794104634,
+          "unlockAt": 1794277434,
+          "releasedAt": 0,
+          "lockSeconds": 172800
+        },
+        "clock": 1794190016,
+        "status": "early-release-rejected",
+        "vaultBalanceUnchanged": "100000000",
+        "checkedAt": "2026-11-09T02:14:46.673Z"
+      }
+    ],
+    "mature24h": [
+      {
+        "period": 86400,
+        "mint": "2E24MunVY4euJse9dWACcNKxNW8DB1h2McDvHQm23Km7",
+        "beneficiary": "7Mk6Jsn7e49bCN42u4DuLLhDtAJsmSPUcgqtRM7P1zU2",
+        "stateBefore": {
+          "lock": "2e2YuAemNLxddeLrgfX2sRkjrGAkzQoB9p72PaGv5Gyp",
+          "mint": "2E24MunVY4euJse9dWACcNKxNW8DB1h2McDvHQm23Km7",
+          "creator": "7Mk6Jsn7e49bCN42u4DuLLhDtAJsmSPUcgqtRM7P1zU2",
+          "amount": "100000000",
+          "lockedAt": 1794104609,
+          "unlockAt": 1794191009,
+          "releasedAt": 0,
+          "lockSeconds": 86400
+        },
+        "clock": 1794191058,
+        "signature": "5qzjbxysyw7E95zZc7bw3Vsvc7ddG8whHAvnSAyT6oRmXA5Sbtw66JYH5tFPutk9581Hdbies91Z4eBKFucSqA9C",
+        "blockhash": "4PnDTmPM8S9czYuNsEmvXamfEmqy75hvVYdxSS14TmqS",
+        "lastValidBlockHeight": 507374197,
+        "status": "finalized-fixed-beneficiary-release",
+        "slot": 520230415,
+        "computeUnits": 47058,
+        "fee": 5000,
+        "stateAfter": {
+          "lock": "2e2YuAemNLxddeLrgfX2sRkjrGAkzQoB9p72PaGv5Gyp",
+          "mint": "2E24MunVY4euJse9dWACcNKxNW8DB1h2McDvHQm23Km7",
+          "creator": "7Mk6Jsn7e49bCN42u4DuLLhDtAJsmSPUcgqtRM7P1zU2",
+          "amount": "100000000",
+          "lockedAt": 1794104609,
+          "unlockAt": 1794191009,
+          "releasedAt": 1794191061,
+          "lockSeconds": 86400
+        },
+        "duplicateRejected": true,
+        "recipientCredit": "100000000",
+        "vaultDebit": "100000000"
+      }
+    ]
+  },
+  "browser": {
+    "scope": "read-only smoke; disconnected wallet",
+    "pages": [
+      "Home",
+      "Explore",
+      "new token details",
+      "Create",
+      "Rewards"
+    ],
+    "observed": "Verified new token and market data rendered; reward wallet gates present; no token-page console errors. Not a full browser transaction test."
+  },
+  "acceptance": [
+    {
+      "id": "admin-operations-withdrawal",
+      "status": "blocked",
+      "detail": "Selected wallet is allowlisted and email approval is recorded. Intent for 13415977 lamports remains awaiting-admin-signature, with no saved signature or finalized receipt; user transaction signature requested. No replacement transfer sent."
+    },
+    {
+      "id": "launch-standard",
+      "status": "passed-live",
+      "detail": "Creation, registry, 30M reserve and developer escrow verified from the fresh launch."
+    },
+    {
+      "id": "launch-promotion",
+      "status": "local-only",
+      "detail": "Automated burn-order and quote tests passed; paid launch and cancellation recovery were not rerun on-chain in this release."
+    },
+    {
+      "id": "buy-and-sell",
+      "status": "passed-live",
+      "detail": "Finalized buy/sell, exact 1% app-fee deltas and sold inventory checks. Earlier run also appears in complete public trade history."
+    },
+    {
+      "id": "collect-and-settle",
+      "status": "passed-live",
+      "detail": "46853 lamports reconciled to all eight categories; repeated settlement returns the same receipt."
+    },
+    {
+      "id": "creator-payout",
+      "status": "passed-live",
+      "detail": "Creator-signed payout transaction, exact credit and duplicate suppression verified. The retired creator SOL fee hold was not reinstated."
+    },
+    {
+      "id": "holder-rewards",
+      "status": "partial",
+      "detail": "SOL and SPL Merkle funding/payout/reserves passed live; full hourly eligibility/snapshot worker journey was not rerun."
+    },
+    {
+      "id": "x-payout",
+      "status": "blocked",
+      "detail": "Real X OAuth identity and bound-wallet claim remain untested for this release."
+    },
+    {
+      "id": "protocol-payouts",
+      "status": "partial",
+      "detail": "Operations, all three referral levels, community and creator-reward funding passed live; agency allocation is conserved but agency spending is not fully exercised."
+    },
+    {
+      "id": "buyback-burn",
+      "status": "blocked",
+      "detail": "Independent price-signer configuration account is absent; did not bypass its guard or configure a self-approved signer."
+    },
+    {
+      "id": "community-claim",
+      "status": "VM-only",
+      "detail": "Compiled-candidate tests cover duplicate, ineligible, expiry and reward-vault claim guards; real migration/claim journey not rerun."
+    },
+    {
+      "id": "developer-unlock",
+      "status": "partial",
+      "detail": "6h, 12h and 24h matured fixtures released exact tokens to original beneficiaries; repeat/early release rejected. 48h expiry release is VM-only so far."
+    },
+    {
+      "id": "recovery",
+      "status": "partial",
+      "detail": "Live settlement/referral/creator replay checks and local uncertain-finality tests passed; full process-restart fault campaign not completed."
+    }
+  ],
+  "releaseVerification": {
+    "at": "2026-11-09T02:31:17.815Z",
+    "ready": true,
+    "services": [
+      {
+        "service": "app",
+        "image": "sha256:3b797a053cc927a72a78f30463c7e59453a4257bbfad582ad790569b1a627288",
+        "build": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "revision": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "fee-collector",
+        "image": "sha256:3b797a053cc927a72a78f30463c7e59453a4257bbfad582ad790569b1a627288",
+        "build": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "revision": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "buyback-worker",
+        "image": "sha256:3b797a053cc927a72a78f30463c7e59453a4257bbfad582ad790569b1a627288",
+        "build": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "revision": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "agency-buyback-worker",
+        "image": "sha256:3b797a053cc927a72a78f30463c7e59453a4257bbfad582ad790569b1a627288",
+        "build": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "revision": "447b7b6d1d804e04a82e8f4e62100faa206fb381",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      }
+    ],
+    "errors": []
+  },
+  "dataReset": false,
+  "cleanup": {
+    "successfulRun": {
+      "cluster": "devnet",
+      "payer": "8BprwuzBipSYVFABeJ8JbmNgXix5tb5zwzNiSvguSCsF",
+      "privateKeyPersistence": "none; ephemeral memory only",
+      "transactions": [
+        {
+          "label": "fund-ephemeral",
+          "signature": "5zxgJ5EnjJwykfEnArJ48eZv3fdgUfkQdnip2LDL1TWyQL4Hv3Bk5D2jF9idUgXXBpH5FMvtiGS5diXjARL4kMz2",
+          "lamports": 250000000,
+          "blockhash": "Bpzhes6roVKwgP61VBq5MAUeSRGk8jsdDiYt9VvWC5da",
+          "lastValidBlockHeight": 507375886,
+          "finalized": true,
+          "slot": 520232121,
+          "fee": 5000
+        },
+        {
+          "label": "fund-referrer-1",
+          "signature": "3DNXUfsJqzvAEBtxyrDAh3Z6Jwbwgsh8Ni3BcvTnLvLnHeHLuYvujkMhchZ2PBWK76VjryPLkqioL3TethEEmX3D",
+          "lamports": 1000000,
+          "blockhash": "H9eqciZ7D6ak6jpL9jaYJoish1Wk1owTxKcQ7XjLz6p5",
+          "lastValidBlockHeight": 507375905,
+          "finalized": true,
+          "slot": 520232139,
+          "fee": 5000
+        },
+        {
+          "label": "fund-referrer-2",
+          "signature": "2bVXPPYEMMZnD11Qj5o1BeWbi9DYvb8fAjKHL7E66reV1Q9VGFTb2mVD2eYDrdZLfLSTVXs6gio1Q4NQ4ezTGXGQ",
+          "lamports": 1000000,
+          "blockhash": "CTSuCWA2HodJugD2vHM8LjmnZjEpjhhtZqA5BWtspJUK",
+          "lastValidBlockHeight": 507375926,
+          "finalized": true,
+          "slot": 520232160,
+          "fee": 5000
+        },
+        {
+          "label": "fund-referrer-3",
+          "signature": "26dL52D5VcqYbAg2YNs58oDEnzwfGXWwDPHVV8ThERXAMx1PynnwC4KVvmuhAtjq9NQfkW93Eb4aHyrSqma2wqd7",
+          "lamports": 1000000,
+          "blockhash": "2C1h6cNwyo68qsZTpVvxsreyNXeAEWTwMubAAoCfDCST",
+          "lastValidBlockHeight": 507375946,
+          "finalized": true,
+          "slot": 520232181,
+          "fee": 5000
+        },
+        {
+          "label": "refund-unused-test-sol",
+          "signature": "2L2NrTppXvycbYqDQEkL57vvoHBLseRDpPTV4opBg4pcHRNavzcUEiVC2ojjLMxoke5bNf4h8aQtffkHGuHWQHDc",
+          "lamports": 202611360,
+          "blockhash": "AbAEEyLsWYmeWMwKC3GxMS6M5pgbxG5zNMioombFG6RD",
+          "lastValidBlockHeight": 507376525,
+          "finalized": true,
+          "slot": 520232764,
+          "fee": 5000
+        },
+        {
+          "label": "refund-referrer-1",
+          "signature": "3asiogFZsxsgQ8JqJP6GGTH9GHQj8BUoWy9ZPGS9N9qYDg4WAzU3xtxaMwnNinHLevVip8BVRBuWP8wN4EaErEUy",
+          "lamports": 995281,
+          "blockhash": "7EjPs2EyFiTZEXBUNqeWuzMw47XeUYdtsho8wNvvtNj",
+          "lastValidBlockHeight": 507376546,
+          "finalized": true,
+          "slot": 520232785,
+          "fee": 5000
+        },
+        {
+          "label": "refund-referrer-2",
+          "signature": "2vfu59Fv2aS7XKjFR4x5X4LX64URcjwfBkKkL2JvXiKR4tN6Cxq44F63xpKtvUzUqPDnpLK7nK5zLhAEePU8oMfN",
+          "lamports": 995117,
+          "blockhash": "HetLA9ZNhuUwRfR5cCjELzppfz6qab3Vpsxg8QT9ZBEA",
+          "lastValidBlockHeight": 507376568,
+          "finalized": true,
+          "slot": 520232806,
+          "fee": 5000
+        },
+        {
+          "label": "refund-referrer-3",
+          "signature": "S65vyNJ2S5jEmGQwmK4LMmPv9o6Dt7irSxRB6CH4HpXdtHY6LiWoVZMaWzdUq1WEnQ82gYgV1NX3rj1ZBsTJ7U8",
+          "lamports": 995071,
+          "blockhash": "GYJ2MmCasKjb4aphFrr3rirTkQc7zvERf2XXDLmNxqLv",
+          "lastValidBlockHeight": 507376589,
+          "finalized": true,
+          "slot": 520232828,
+          "fee": 5000
+        }
+      ]
+    },
+    "earlierInterruptedRun": {
+      "cluster": "devnet",
+      "payer": "FHzMS9W1tkoawJT9FQSzHQj6mFE9qr9oR2HEgFrMKo4R",
+      "privateKeyPersistence": "none; ephemeral memory only",
+      "transactions": [
+        {
+          "label": "fund-ephemeral",
+          "signature": "2WYW7XWMd3udnwUugpjdw6SeWZ2ub3UXeFSDqzK6gyNsTbVLUxpYPtKXjY7qWgeDP2rAcvYtDwdgHZf8zPfRhtnj",
+          "lamports": 250000000,
+          "blockhash": "FcaGmiweK1bfxwbSYMVJhzmMK2uUBscxksS7bZqtJpXF",
+          "lastValidBlockHeight": 507372549,
+          "finalized": true,
+          "slot": 520228758,
+          "fee": 5000
+        },
+        {
+          "label": "fund-referrer-1",
+          "signature": "9xXZYzotAQNGLdAQ57FGAbRWbqn3FeUUfsvCnRDcCUo3FPmMRCB2REUVNLdKzgMZfXX6eQQWFJNA2cVKXiJSXCs",
+          "lamports": 1000000,
+          "blockhash": "KB2izxBthdeat4CAbyz2QrQXpS1rhygiUJsyhFGv8q3",
+          "lastValidBlockHeight": 507372564,
+          "finalized": true,
+          "slot": 520228772,
+          "fee": 5000
+        },
+        {
+          "label": "fund-referrer-2",
+          "signature": "2PbwFskvuC2sSiSAPmDMLZRCXgmVyaNhBBvBHfpN7iDDfYFeBkdKB8t4nmZm2vrrxKU6QVM6sSQZKKFwa8A8F64X",
+          "lamports": 1000000,
+          "blockhash": "E4UpWSUqdLj5HBTJTrbPDkXZi8wPtXs8tZoAhpKvbjV9",
+          "lastValidBlockHeight": 507372585,
+          "finalized": true,
+          "slot": 520228793,
+          "fee": 5000
+        },
+        {
+          "label": "fund-referrer-3",
+          "signature": "2aafGRmVdTR4Bph7GfiDirEG9YERYWaodc2iM4LKPPACYyfeHUXyUrovscMzqF2mmXsfhNDuGy6zShcQNbousv8t",
+          "lamports": 1000000,
+          "blockhash": "6m7Wtu4ymwevqsPTWqzXMyqZYuE2wmNmjdHnCowfYW7n",
+          "lastValidBlockHeight": 507372606,
+          "finalized": true,
+          "slot": 520228815,
+          "fee": 5000
+        },
+        {
+          "label": "refund-unused-test-sol",
+          "signature": "5e3SZPEtLqc52AcCRWnib8kNr4nUdmwd2Wqjf1vbGzDrTJjfbza1mjm7yT7xwudBszmRNPYgRChq5bzer62HtY6n",
+          "lamports": 249995000,
+          "blockhash": "9pTetcpfBwY3QzYDH1vqDRxxDi8nbB1ufy1mDCCvGo6V",
+          "lastValidBlockHeight": 507372701,
+          "finalized": true,
+          "slot": 520228910,
+          "fee": 5000
+        },
+        {
+          "label": "refund-referrer-1",
+          "signature": "2wnoMCMMkXSWKohUvCUGy5m2e7KiNDnP2tmLYr9nNssiP3Xq6cedX8i44mcNVheLVVN7rZpmffLgWkSfBWEHFwgJ",
+          "lamports": 995000,
+          "blockhash": "FjoLHGejD2F5sm2AFs2XMTbXq8XNGaz283j5B4oXNXD5",
+          "lastValidBlockHeight": 507372718,
+          "finalized": true,
+          "slot": 520228926,
+          "fee": 5000
+        },
+        {
+          "label": "refund-referrer-2",
+          "signature": "2eP5zpB4qwFzecQ8gL1cv4aFSJd1H8b5HVRp25PUEAZcGhm1PpkZa9kfCFaGwohvuBJuTFUoVRJDwfMMzmpBzHQn",
+          "lamports": 995000,
+          "blockhash": "FWUiVCdtgdB57H8UPcMwcecmtugLtTdmcUz8jdM1HSjj",
+          "lastValidBlockHeight": 507372740,
+          "reconciled": "expired-without-submission",
+          "finalizedBlockHeight": 507373291
+        }
+      ],
+      "remainingEphemeralWallets": [
+        {
+          "address": "F8vHuCtZSsH4TxrsdqCdPSrP7yHSa5Mubp41BTLv5GtJ",
+          "lamports": 1000000,
+          "reason": "ephemeral test key discarded after failed cleanup; disposable Devnet funds"
+        },
+        {
+          "address": "E4waXyPRbzQ3nhfir499Ck2oYccPD13RGX8wctCN1GdW",
+          "lamports": 1000000,
+          "reason": "ephemeral test key discarded after failed cleanup; disposable Devnet funds"
+        }
+      ]
+    },
+    "note": "Two disposable ephemeral wallets from a rate-limited cleanup retain a total of 0.002 Devnet SOL; their keys were not persisted. Unknown refund was reconciled as expired and absent."
+  },
+  "mainnet": {
+    "ready": false,
+    "status": "no-go",
+    "scope": "offline-mainnet-preflight",
+    "configuration": {
+      "programLayout": true,
+      "mergedProgramIdentity": false,
+      "cluster": true,
+      "stagingReadOnly": true,
+      "stagingOrigin": false,
+      "developmentWalletDisabled": true,
+      "tradingFeeOnePercent": true,
+      "configuredTradeRecipient": false,
+      "v3RouterConfigured": false,
+      "developerEscrowConfigured": false,
+      "fundedMintConfigured": false,
+      "durableMetadata": false,
+      "writeGuardStillDisabled": true,
+      "dedicatedHttpsRpc": false,
+      "routerIdentity": false,
+      "approvedRouterHash": false,
+      "approvedUpgradeAuthority": false,
+      "persistentDatabase": false,
+      "isolatedDatabase": false,
+      "isolatedRpc": false
+    },
+    "configurationComplete": false,
+    "programReview": {
+      "configured": false,
+      "upgradeableRequired": true,
+      "buybackAssetsMatch": false,
+      "status": "blocked-awaiting-production-identity-and-independent-review"
+    },
+    "onchain": {
+      "status": "unavailable",
+      "reason": "Offline preflight; run with --online for read-only finalized RPC verification."
+    },
+    "publicPolicy": {
+      "status": "unavailable",
+      "reason": "Offline preflight; saved deployment fee policy was not read."
+    },
+    "invariants": {
+      "tradingFeeBps": 100,
+      "creatorBuyCapPercent": 20
+    },
+    "preparedCode": {
+      "productionContractFeature": "mainnet-v3-program",
+      "productionIdentityRequired": true,
+      "qaRecoveryExcluded": true,
+      "metadataEndpoint": "/api/token-metadata",
+      "networkBoundRouterProof": true,
+      "backendMainnetMutations": "blocked",
+      "backendMainnetTransactionSubmission": "blocked"
+    },
+    "evidenceRequired": [
+      "Independent contract and custody review tied to exact program bytes",
+      "Devnet finalized state and balance evidence for every financial path",
+      "Verified dedicated mainnet program and infrastructure inventory",
+      "Capped mainnet canary and rollback approval"
+    ],
+    "remainingCodeGates": [
+      "Mainnet launch client and registration",
+      "Mainnet metadata activation and durable-storage verification",
+      "Mainnet fee collection and all payout routes",
+      "Mainnet market indexing and claim reconciliation",
+      "Independent program and custody audit",
+      "Capped canary and rollback evidence"
+    ]
+  },
+  "adminWithdrawal": {
+    "at": "2026-11-09T02:36:36.375Z",
+    "cluster": "devnet",
+    "destination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "adminAllowed": true,
+    "status": "no-matching-saved-receipt",
+    "results": [],
+    "intents": [
+      {
+        "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+        "destination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "feePayer": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+        "status": "awaiting-admin-signature",
+        "amountLamports": 13415977,
+        "emailApprovalRecorded": true,
+        "approvedWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
+      }
+    ],
+    "chainSearch": {
+      "at": "2026-11-09T02:37:03.498Z",
+      "recentMatchingTransfers": 0,
+      "scope": "latest 12 finalized transactions for destination; no transaction in last two hours"
+    },
+    "userReportedComplete": true,
+    "verifiedComplete": false
+  }
+}
