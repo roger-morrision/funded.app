@@ -59,7 +59,7 @@ export function createListingPaymentsRoutes({
       const quote = { id:id('listing'), mint, payer, fundedMint:fundedTokenMint, usd:fees.policy.listingUsd, serviceFeeHash:fees.hash,
         decimals, amountBaseUnits:amountBaseUnits.toString(), amountTokens:Number(amountBaseUnits) / (10 ** decimals),
         tokenPriceUsd:pricing.tokenPriceUsd,
-        pool:pricing.pool, slot:pricing.slot, source:pricing.source,
+        pool:pricing.pool, market:pricing.market,bondingCurve:pricing.bondingCurve,slot:pricing.slot, source:pricing.source,
         createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 10 * 60_000).toISOString() };
       await store.update(current => {
         current.listingQuotes ||= {};

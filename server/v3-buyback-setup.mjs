@@ -1,6 +1,7 @@
 import {PublicKey} from '@solana/web3.js';
 import {createAssociatedTokenAccountIdempotentInstruction,getAssociatedTokenAddressSync,NATIVE_MINT,TOKEN_PROGRAM_ID} from '@solana/spl-token';
 import {PUMP_AMM_PROGRAM_ID} from '@pump-fun/pump-swap-sdk';
+import {isCurveBuy,validateCurveBuy} from './v3-buyback-curve.mjs';
 
 const BUY=Buffer.from([102,6,61,18,1,218,235,234]);
 
@@ -16,6 +17,10 @@ export function selectV3PumpBuy(instructions){
 // Front canonical fee-account rent with the authority in the same atomic
 // transaction so category funds pay only for the bounded purchase.
 export function v3BuybackFeeSetup({pumpBuyInstruction:buy,authority}){
+  if(isCurveBuy(buy)){
+    validateCurveBuy(buy,{mint:buy.keys?.[2]?.pubkey,vault:buy.keys?.[6]?.pubkey,baseTokenProgram:buy.keys?.[8]?.pubkey});
+    return []; // Router fronts ATA and Pump volume-account rent with the authority.
+  }
   if(!buy?.programId?.equals(PUMP_AMM_PROGRAM_ID)||!Buffer.from(buy.data||[]).subarray(0,8).equals(BUY)
     ||![25,26,27].includes(buy.keys?.length))throw new Error('Reviewed PumpSwap fee accounts are required.');
   const payer=new PublicKey(authority),pairs=[[9,10],[18,17],[buy.keys.length-2,buy.keys.length-1]],seen=new Set();

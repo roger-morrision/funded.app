@@ -45,10 +45,11 @@ export function createLaunchPolicyController(appState) {
       const response = await appState.apiRequest('/api/launch-tier-quote');
       if (!response.available) throw new Error(response.data?.error || 'The verified $RICH price is unavailable.');
       const data = response.data;
-      if (data?.fundedMint !== appState.PROTOCOL_FUNDED_MINT || data?.pool !== appState.PROTOCOL_FUNDED_SWAP_POOL
+      const {matchesRichPricingMarket}=await import('../../../rich-market.js');
+      if (!matchesRichPricingMarket(data,{mint:appState.PROTOCOL_FUNDED_MINT,pool:appState.PROTOCOL_FUNDED_SWAP_POOL})
         || !Number.isFinite(Number(data.tokenPriceUsd)) || Number(data.tokenPriceUsd) <= 0
         || !['pro', 'premier'].every(tier => Number.isSafeInteger(data.amounts?.[tier]) && data.amounts[tier] > 0))
-        throw new Error('The launch tier quote did not match the configured $RICH pool.');
+        throw new Error('The launch tier quote did not match the configured $RICH market.');
       if (request !== appState.launchTierPriceRequest) return;
       appState.launchTierPricing = data;
     } catch (error) {

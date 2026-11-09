@@ -86,7 +86,7 @@ export function createBuybackController(appState) {
         ? `${waitSeconds / 3600} hour${waitSeconds === 3600 ? '' : 's'}`
         : waitSeconds % 60 === 0 ? `${waitSeconds / 60} minutes` : `${waitSeconds} seconds` : null;
       const ageRule = ageEnabled
-        ? ` Older fee allocations may also be reviewed below that trigger when they total at least ${formatSol(ageMinimum)} and every included settlement has been finalized for at least ${waitLabel}.`
+        ? ` Older fees may qualify from ${formatSol(ageMinimum)} after ${waitLabel}.`
         : '';
       const ageEligible = ageEnabled && appState.buybackNetworkState.pending.some(row => row.ageEligible === true);
       const minimumOrder = /^\d+$/.test(String(appState.buybackNetworkState.minimumOrderLamports))
@@ -102,14 +102,11 @@ export function createBuybackController(appState) {
       const triggerText = document.querySelector(`#${prefix}-trigger`);
       if (triggerText) triggerText.textContent = trigger ? `${trigger} trigger` : 'Trigger unavailable';
       const policy = document.querySelector(`#${prefix}-policy`);
-      if (policy && trigger) policy.textContent = (prefix === 'home-buyback'
-        ? `For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. At ${trigger} in verified vault allocations, the app reviews protected $RICH purchases and burns.`
-        : `The published buyback share of collected creator fees stays in dedicated program vaults. At the ${trigger} aggregate trigger, the worker reviews protected $RICH purchases and burns.`)
-        + ageRule + ' Each order must meet its own minimum and pass fresh custody, market quote and liquidity checks; failed market checks leave funds in custody.';
+      if (policy && trigger) policy.textContent = `The app buys back and burns $RICH when collected buyback funds reach ${trigger}.`
+        + ageRule + ' Purchases run when price and liquidity checks pass.';
       else if (policy) policy.textContent = 'Current buyback rules are unavailable.';
       if (prefix === 'buyback-route') document.querySelector('#buyback-route-title').textContent = !trigger
-        ? 'Buybacks from verified fees.' : ageEnabled ? `${trigger} trigger or eligible older fees.`
-          : `${trigger} trigger, verified eligible fees.`;
+        ? 'Automatic $RICH buyback & burn.' : `Buy back and burn $RICH at ${trigger}.`;
       note.textContent = !eligible && appState.buybackNetworkState.refreshing ? 'Checking finalized vault balances…'
         : !eligible || !trigger ? 'Eligible vault or trigger verification unavailable or incomplete'
         : !appState.buybackNetworkState.automationEnabled ? 'Automatic execution is not active on this deployment'

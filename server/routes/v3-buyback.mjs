@@ -274,7 +274,8 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     const capped=remaining<executionPolicy.maxOrderLamports?remaining:executionPolicy.maxOrderLamports;
     const orderBudget=capped<dailyBudget?capped:dailyBudget;
     if(orderBudget<=0n)return json(res,409,{error:'Buyback daily budget is exhausted.'});
-    const quoted=await quote({connection,vault,
+    const quoted=await quote({connection,vault,programId,cluster:solanaCluster,
+      curveEnabled:env.FUNDED_V3_CURVE_BUYBACK_ENABLED==='true',
       budgetLamports:String(orderBudget)});
     if(BigInt(quoted.maxTotalDebit)<=0n
       ||BigInt(quoted.maxTotalDebit)>orderBudget)

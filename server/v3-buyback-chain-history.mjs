@@ -5,6 +5,8 @@ import { PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-swap-sdk';
 import { deriveMintPolicyV3 } from '../mint-router-v3.js';
 import { loadFinalizedV3Buyback } from './v3-buyback-proof.mjs';
 import {isDeletedDevnetMint} from './deleted-devnet-mints.mjs';
+import {PUMP_PROGRAM_ID,CURVE_BUY} from './v3-buyback-curve.mjs';
+import {priceConfigAddress} from './buyback-price-signer.mjs';
 
 const receiptDiscriminator = createHash('sha256').update('account:MintBuybackV3').digest().subarray(0, 8);
 const policyDiscriminator = Buffer.from('25d0c7eca736c38f', 'hex');
@@ -75,15 +77,20 @@ export async function latestUnindexedV3Burn({ connection, programId,
         const indices = ix.accounts || ix.accountKeyIndexes || [];
         const accounts = indices.map(index => keys[index]);
         if (data.length !== 64 || !data.subarray(0, 8).equals(instructionDiscriminator)
-          || !data.subarray(8, 40).equals(id) || accounts.length < 41
+          || !data.subarray(8, 40).equals(id) || accounts.length < 34
           || !accounts[1]?.equals(creator) || !accounts[2]?.equals(mint)
           || !accounts[10]?.equals(pubkey)) continue;
-        const pumpBuyInstruction = { programId:PUMP_AMM_PROGRAM_ID,
-          data:pumpBuyDiscriminator,
-          keys:accounts.slice(16).map(key => ({ pubkey:key, isSigner:false, isWritable:false })) };
+        const curve=accounts[14]?.equals(PUMP_PROGRAM_ID);
+        if(!curve&&!accounts[14]?.equals(PUMP_AMM_PROGRAM_ID))continue;
+        const priceSigner=accounts[16]?.equals(priceConfigAddress(program))?accounts[17]:null;
+        const curveData=Buffer.alloc(25);CURVE_BUY.copy(curveData);
+        data.copy(curveData,8,48,56);data.copy(curveData,16,40,48);
+        const pumpBuyInstruction = { programId:curve?PUMP_PROGRAM_ID:PUMP_AMM_PROGRAM_ID,
+          data:curve?curveData:pumpBuyDiscriminator,
+          keys:accounts.slice(priceSigner?18:16).map(key => ({ pubkey:key, isSigner:false, isWritable:false })) };
         const proof = await verifyBurn({ connection, signature:row.signature,
           programId:program, sourceMint:mint, creator, initialAuthority,
-          authority:accounts[0], baseTokenProgram:accounts[11], buybackId:id,
+          authority:accounts[0], baseTokenProgram:accounts[11], buybackId:id,priceSigner,
           spendableQuoteIn:data.readBigUInt64LE(40),
           minBaseAmountOut:data.readBigUInt64LE(48),
           maxTotalDebit:data.readBigUInt64LE(56), pumpBuyInstruction, split:null });

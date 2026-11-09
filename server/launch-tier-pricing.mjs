@@ -1,5 +1,5 @@
 import { Connection } from '@solana/web3.js';
-import { fetchVerifiedPoolSnapshot as readVerifiedPoolSnapshot } from '../pump-trading.js';
+import { fetchRichMarketSnapshot } from '../rich-market.js';
 import { launchTierAmounts } from '../launch-tier-quote.js';
 import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 
@@ -10,7 +10,7 @@ export function createLaunchTierPricing({
   fundedSwapPool,
   solanaRpcUrl,
   readSolUsdQuote,
-  fetchVerifiedPoolSnapshot = readVerifiedPoolSnapshot,
+  readMarket = fetchRichMarketSnapshot,
   connectionFactory=url=>new Connection(url,'confirmed'),
 }) {
   let launchTierPriceCache = null;
@@ -25,21 +25,24 @@ export function createLaunchTierPricing({
 
   async function readLaunchTierPricing() {
     requireSolanaCluster(solanaCluster);
-    if (!fundedTokenMint || !fundedSwapPool)
-      throw new Error('The selected network $RICH mint and verified SOL pool must be configured.');
+    if (!fundedTokenMint)
+      throw new Error('The selected network $RICH mint must be configured.');
     const connection=connectionFactory(solanaRpcUrl);
     await assertRpcNetwork(connection,solanaCluster);
     const [sol, pool] = await Promise.all([
       readSolUsdQuote(),
-      fetchVerifiedPoolSnapshot({ connection, mint:fundedTokenMint, poolAddress:fundedSwapPool }),
+      readMarket({ connection, mint:fundedTokenMint, poolAddress:fundedSwapPool }),
     ]);
-    if (!sol || Date.now() - Date.parse(sol.fetchedAt) > 120_000)
+    if (!sol || !Number.isFinite(Date.parse(sol.fetchedAt))
+      || Math.abs(Date.now() - Date.parse(sol.fetchedAt)) > 120_000
+      || !Number.isFinite(Number(sol.priceUsd)) || Number(sol.priceUsd)<=0)
       throw new Error('A fresh SOL/USD quote is unavailable.');
     const priceUsd = Number(pool.spotPriceSol) * Number(sol.priceUsd);
     const amounts = launchTierAmounts(priceUsd);
     const value = { cluster:solanaCluster, genesisHash:SOLANA_GENESIS[solanaCluster], fundedMint:fundedTokenMint, pool:pool.pool, slot:pool.slot,
+      market:pool.market,bondingCurve:pool.bondingCurve,
       tokenPriceUsd:priceUsd, solUsd:Number(sol.priceUsd), amounts,
-      observedAt:new Date().toISOString(), source:'verified-pump-swap-pool' };
+      observedAt:new Date().toISOString(), source:pool.market==='pump-curve'?'verified-pump-bonding-curve':'verified-pump-swap-pool' };
     launchTierPriceCache = { value, expires:Date.now() + 30_000 };
     return value;
   }

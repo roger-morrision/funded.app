@@ -1,6 +1,7 @@
 import { createBurnRecovery, readPendingBurn, savePendingBurn } from '../../features/funded/burn-recovery.js';
 import { fundedBuyFailureMessage, fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
 import {createFundedBuyQuotes,currentFundedBuyQuote,FUNDED_BUY_QUOTE_TTL} from '../../features/funded/buy-quotes.js';
+import {fetchRichMarketSnapshot} from '../../features/trade/lazy-trading.js';
 // Dependencies and mutable application state are read live through appState.
 export function createFundedTradingController(appState) {
   const burnRecovery = createBurnRecovery(appState);
@@ -20,7 +21,7 @@ export function createFundedTradingController(appState) {
     input.disabled = !ready || appState.fundedBuyBusy;
     button.disabled = !ready || appState.fundedBuyBusy || !Number.isFinite(amount) || amount <= 0 || !preview;
     button.textContent = appState.fundedBuyBusy ? 'Waiting for Solana…' : appState.wallet ? 'Buy $RICH' : 'Connect wallet to buy';
-    badge.textContent = ready ? 'Solana pool live' : appState.fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
+    badge.textContent = ready ? appState.fundedBuyRoute.snapshot?.market==='pump-curve'?'Pump.fun curve live':'PumpSwap pool live' : appState.fundedBuyRoute.status === 'checking' ? 'Checking' : 'Unavailable';
     badge.classList.toggle('unavailable', !ready);
     const clock = document.querySelector('#funded-buy-countdown');
     if (clock) clock.textContent = preview && !appState.fundedBuyBusy ? 'Auto-refreshing quote · 1% slippage' : '';
@@ -43,17 +44,18 @@ export function createFundedTradingController(appState) {
   // app-source: 352
   async function refreshFundedBuyRoute(signal){
     try {
-      if (appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT || !appState.PROTOCOL_FUNDED_SWAP_POOL) throw new Error('A Solana $RICH mint and pool are required.');
+      if (appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT) throw new Error('A configured Solana $RICH mint is required.');
       const snapshot = await appState.withRpcRetry(async attempt => {
         if (attempt > 0) appState.tradePreviewConnection = null;
         const rpc = await appState.getTradePreviewConnection();
-        return appState.fetchVerifiedPoolSnapshot({ connection:rpc, mint:appState.PROTOCOL_FUNDED_MINT, poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL });
+        return fetchRichMarketSnapshot({ connection:rpc, mint:appState.PROTOCOL_FUNDED_MINT, poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL });
       });
       signal?.throwIfAborted();
       if (appState.fundedBuyBusy) return;
       appState.fundedBuyPreview = null;
       appState.fundedBuyRoute = { status:'ready', snapshot, reason:null };
-      appState.renderFundedBuyControl(`Verified Solana pool ${snapshot.pool.slice(0, 6)}…${snapshot.pool.slice(-4)} · ${snapshot.quoteReservesSol.toFixed(3)} SOL liquidity.`);
+      appState.renderFundedBuyControl(snapshot.market==='pump-curve'?'Buy $RICH directly on the Pump.fun bonding curve.'
+        :`Verified PumpSwap pool · ${snapshot.quoteReservesSol.toFixed(3)} SOL liquidity.`);
       appState.renderFundedTokenLanding();
       appState.renderHomeKpiDashboard();
       if (globalThis.document?.querySelector('#funded-buy-amount')) buyQuotes.invalidate();

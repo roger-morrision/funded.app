@@ -244,10 +244,13 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
   const snapshot = formatBondingCurveSnapshot({ mint: mintKey, bondingCurve: state.bondingCurve });
   if (state.bondingCurve.complete) return buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, snapshot });
   if (!state.quoteMint?.equals?.(NATIVE_MINT)) throw new Error('This trade is not quoted in SOL.');
+  const feeConfig=await sdk.fetchFeeConfig();
+  const mintSupply=new BN(String(mintAccount.value.data.parsed.info.supply));
+  const curveQuote={global,feeConfig,mintSupply,bondingCurve:state.bondingCurve,quoteMint:state.quoteMint};
 
   if (side === 'buy') {
     const solAmount = tradeUnits(amount, 9);
-    const tokenAmount = getBuyTokenAmountFromSolAmount({ global, bondingCurve: state.bondingCurve, amount: solAmount });
+    const tokenAmount = getBuyTokenAmountFromSolAmount({ ...curveQuote, amount: solAmount });
     assertPositiveQuoteAmount(tokenAmount, 'token');
     const instructions = await PUMP_SDK.buyV2Instructions({
       global,
@@ -269,7 +272,7 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
   }
 
   const tokenAmount = tradeUnits(amount, tokenDecimals);
-  const solAmount = getSellSolAmountFromTokenAmount({ global, bondingCurve: state.bondingCurve, amount: tokenAmount });
+  const solAmount = getSellSolAmountFromTokenAmount({ ...curveQuote, amount: tokenAmount });
   assertPositiveQuoteAmount(solAmount, 'SOL');
   const instructions = await PUMP_SDK.sellV2Instructions({
     global,

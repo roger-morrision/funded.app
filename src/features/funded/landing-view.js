@@ -54,14 +54,14 @@ export function renderFundedTokenLanding(
   const quote = poolReady ? poolPriceUsd : assetPriceUsd;
   for (const tier of LAUNCH_BURN_TIERS.filter(item => SELECTABLE_LAUNCH_TIERS.has(item.id) && item.id !== 'standard'))
     set('funded-token-' + tier.id + '-note', Object.hasOwn(LAUNCH_TIER_USD, tier.id)
-      ? `$${LAUNCH_TIER_USD[tier.id]} target · ${tierAmounts?.[tier.id] ? 'current pool quote' : 'quote unavailable'}`
+      ? `$${LAUNCH_TIER_USD[tier.id]} target · ${tierAmounts?.[tier.id] ? 'current market quote' : 'quote unavailable'}`
       : Number.isFinite(quote) && quote > 0 ? `≈ ${formatDashboardUsd(tier.amountTokens * quote)} at current spot` : '$RICH burn per launch');
   const poolUnavailableNote = fundedBuyRoute.status === 'unavailable'
-    ? /rate limit/i.test(fundedBuyRoute.reason || '') ? 'Solana RPC rate limited' : 'Verified Solana pool unavailable'
+    ? /rate limit/i.test(fundedBuyRoute.reason || '') ? 'Solana RPC rate limited' : 'Verified $RICH market unavailable'
     : 'Verified quote unavailable';
   set('funded-token-price', Number.isFinite(quote) ? '$' + quote.toLocaleString(undefined, { maximumSignificantDigits: 6 })
     : poolReady ? poolSpotSol.toPrecision(6) + ' SOL' : '$—');
-  set('funded-token-price-note', poolReady ? 'Current Solana pool quote' + TEST_VALUE : Number.isFinite(quote) ? 'Current market estimate' + TEST_VALUE : poolUnavailableNote);
+  set('funded-token-price-note', poolReady ? 'Current $RICH market quote' + TEST_VALUE : Number.isFinite(quote) ? 'Current market estimate' + TEST_VALUE : poolUnavailableNote);
   const supplyReady = fundedBurnState.status === 'ready' && mintReady;
   const supplyTokens = supplyReady ? Number(fundedBurnState.supplyBaseUnits) / 10 ** fundedBurnState.decimals : null;
   const poolCapSol = poolReady && Number.isFinite(supplyTokens) ? poolSpotSol * supplyTokens : null;
@@ -70,7 +70,7 @@ export function renderFundedTokenLanding(
       : asset ? exploreMarketCapUsd(asset) : '$—';
   set('funded-token-market-cap', marketCap);
   const capValue = document.getElementById('funded-token-market-cap');
-  if (capValue) capValue.title = Number.isFinite(poolCapSol) && solUsdReady ? `${formatDashboardUsd(poolCapSol * coinSolUsdPrice)} estimated from the verified pool spot price and live mint supply` : '';
+  if (capValue) capValue.title = Number.isFinite(poolCapSol) && solUsdReady ? `${formatDashboardUsd(poolCapSol * coinSolUsdPrice)} estimated from the verified market spot price and live mint supply` : '';
   set('funded-token-market-cap-note', Number.isFinite(poolCapSol) ? 'Pool spot × live mint supply · estimate' + TEST_VALUE : marketCap === '$—' ? poolUnavailableNote : 'Verified market snapshot' + TEST_VALUE);
   const burnedTokens = supplyReady ? Number(formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 2)) : null;
   set('funded-token-burned', Number.isFinite(burnedTokens) ? formatDashboardQuantity(burnedTokens) : '—');

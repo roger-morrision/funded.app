@@ -6,3 +6,6 @@ export async function fetchBondingCurveSnapshot(...args) { const sdk = await imp
 export async function fetchGraduatedPoolSnapshot(...args) { const sdk = await import('../../../pump-trading.js'); return sdk.fetchGraduatedPoolSnapshot(...args); }
 export async function fetchVerifiedPoolSnapshot(...args) { const sdk = await import('../../../pump-trading.js'); return sdk.fetchVerifiedPoolSnapshot(...args); }
 export async function submitTrade(...args) { const sdk = await import('../../../pump-trading.js'); return sdk.submitTrade(...args); }
+export async function fetchRichMarketSnapshot(...args) { const sdk = await import('../../../rich-market.js'); return sdk.fetchRichMarketSnapshot(...args); }
+export async function buildRichTradeTransaction(...args) { const sdk = await import('../../../rich-market.js'); return sdk.buildRichTradeTransaction(...args); }
+export async function fetchRichBuyQuote(...args) { const sdk = await import('../../../rich-market.js'); return sdk.fetchRichBuyQuote(...args); }

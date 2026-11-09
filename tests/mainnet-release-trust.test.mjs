@@ -68,7 +68,7 @@ test('promotion pricing checks the selected genesis before pool reads and binds 
  let reads=0,genesis=SOLANA_GENESIS.devnet;
  const pricing=createLaunchTierPricing({solanaCluster:'mainnet-beta',fundedTokenMint:'configured-mint',fundedSwapPool:'configured-pool',
   connectionFactory:()=>({getGenesisHash:async()=>genesis}),readSolUsdQuote:async()=>({priceUsd:100,fetchedAt:new Date().toISOString()}),
-  fetchVerifiedPoolSnapshot:async()=>{reads++;return{spotPriceSol:0.01,pool:'configured-pool',slot:123};}});
+  readMarket:async()=>{reads++;return{spotPriceSol:0.01,pool:'configured-pool',slot:123};}});
  await assert.rejects(()=>pricing.currentLaunchTierPricing(),/network/);assert.equal(reads,0);
  genesis=SOLANA_GENESIS['mainnet-beta'];const [a,b]=await Promise.all([pricing.currentLaunchTierPricing(),pricing.currentLaunchTierPricing()]);
  assert.equal(a.cluster,'mainnet-beta');assert.equal(a.genesisHash,genesis);assert.equal(a,b);assert.equal(reads,1);

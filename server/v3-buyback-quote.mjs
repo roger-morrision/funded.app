@@ -7,6 +7,7 @@ import {buybackAssets} from './buyback-assets.mjs';
 import {assertRpcNetwork,SOLANA_GENESIS} from '../solana-network.js';
 import { MIN_V3_BUYBACK_ORDER_LAMPORTS } from './v3-buyback-worker-policy.mjs';
 import {selectV3PumpBuy} from './v3-buyback-setup.mjs';
+import {readBuybackCurve,quoteCurveBuyback} from './v3-buyback-curve.mjs';
 
 export function protectedV3BuybackClip(budgetLamports, reserveLamports) {
   const budget=BigInt(budgetLamports),reserves=BigInt(reserveLamports);
@@ -14,12 +15,19 @@ export function protectedV3BuybackClip(budgetLamports, reserveLamports) {
   return budget<cap?budget:cap;
 }
 
-export async function quoteV3Buyback({ connection, vault, budgetLamports, cluster='devnet', programId }) {
+export async function quoteV3Buyback({ connection, vault, budgetLamports, cluster='devnet', programId,
+  curveEnabled=false,readCurve=readBuybackCurve,quoteCurve=quoteCurveBuyback }) {
   const assets=buybackAssets(cluster,{programId});
   await assertRpcNetwork(connection,cluster);
   const budget=BigInt(budgetLamports);
   if (budget<MIN_V3_BUYBACK_ORDER_LAMPORTS || budget>BigInt(Number.MAX_SAFE_INTEGER))
     throw Object.assign(new Error('V3 buyback budget must be at least 10,000 lamports and within the bounded range.'), { statusCode:409 });
+  const snapshot=await readCurve(connection,assets.mint);
+  if(snapshot&&!snapshot.curve.complete){
+    if(!curveEnabled)throw Error('Pre-migration $RICH buybacks await activation of the reviewed curve-capable fee-router. Funds remain in custody.');
+    const quote=await quoteCurve({connection,mint:assets.mint,vault,budgetLamports,snapshot});
+    return {...quote,cluster,genesisHash:SOLANA_GENESIS[cluster]};
+  }
   const [state,mintInfo]=await Promise.all([
     new OnlinePumpAmmSdk(connection).swapSolanaState(assets.pool,vault),
     connection.getAccountInfo(assets.mint,'finalized'),

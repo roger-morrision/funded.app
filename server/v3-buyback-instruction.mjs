@@ -10,6 +10,7 @@ import { deriveMintPolicyV3, deriveMintVaultsV3 } from '../mint-router-v3.js';
 import {deriveAgencyPolicyV3,deriveAgencyVaultsV3,agencyDiscriminator,agencyU64} from '../agency-mint-router-v3.js';
 
 import {buybackAssets} from './buyback-assets.mjs';
+import {isCurveBuy,validateCurveBuy,bondingCurvePda,PUMP_PROGRAM_ID} from './v3-buyback-curve.mjs';
 export {V3_DEVNET_FUNDED_MINT,V3_DEVNET_FUNDED_POOL} from './buyback-assets.mjs';
 const PUMP_BUY = Buffer.from([102, 6, 61, 18, 1, 218, 235, 234]);
 const BUYBACK_SEED = Buffer.from('mint-buyback-v3');
@@ -62,7 +63,11 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
   if(agencyExecution&&!agencyPolicy)throw new Error('Agency execution requires its immutable eight-category policy.');
   if(own&&![1,2].includes(agencyExecution.agent))throw new Error('Only own-coin milestone agents may use the agency burn budget.');
   const category=own?7:6,agent=own?agencyExecution.agent:255;
-  const boughtMint=own?mint:assets.mint,pool=own?new PublicKey(agencyExecution.pool):assets.pool;
+  const curve=isCurveBuy(pumpBuyInstruction);
+  if(curve&&(!priceSigner||new PublicKey(priceSigner).equals(new PublicKey(authority))))
+    throw new Error('Curve buybacks require an independent price signer.');
+  if(curve&&own)throw new Error('Own-coin milestone buybacks require their verified AMM observation.');
+  const boughtMint=own?mint:assets.mint,pool=curve?bondingCurvePda(boughtMint):own?new PublicKey(agencyExecution.pool):assets.pool;
   const vault = (agencyPolicy?deriveAgencyVaultsV3:deriveMintVaultsV3)(program, mint)[category];
   const fundedAta = getAssociatedTokenAddressSync(boughtMint,
     vault, true, baseProgram);
@@ -76,7 +81,8 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
     [12, TOKEN_PROGRAM_ID], [13, SystemProgram.programId],
     [14, ASSOCIATED_TOKEN_PROGRAM_ID], [16, PUMP_AMM_PROGRAM_ID],
   ];
-  if (!buy?.programId?.equals(PUMP_AMM_PROGRAM_ID)
+  if(curve)validateCurveBuy(buy,{mint:boughtMint,vault,baseTokenProgram:baseProgram});
+  else if (!buy?.programId?.equals(PUMP_AMM_PROGRAM_ID)
     || !Buffer.from(buy.data || []).subarray(0, 8).equals(PUMP_BUY)
     || !Array.isArray(buy.keys) || buy.keys.length < 25 || buy.keys.length > 27
     || expected.some(([index, address]) => !buy.keys[index]?.pubkey?.equals(address)))
@@ -112,14 +118,14 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
     { pubkey:baseProgram, isSigner:false, isWritable:false },
     { pubkey:TOKEN_PROGRAM_ID, isSigner:false, isWritable:false },
     { pubkey:ASSOCIATED_TOKEN_PROGRAM_ID, isSigner:false, isWritable:false },
-    { pubkey:PUMP_AMM_PROGRAM_ID, isSigner:false, isWritable:false },
+    { pubkey:curve?PUMP_PROGRAM_ID:PUMP_AMM_PROGRAM_ID, isSigner:false, isWritable:false },
     { pubkey:SystemProgram.programId, isSigner:false, isWritable:false },
     ...(priceSigner ? [
       {pubkey:priceConfigAddress(program),isSigner:false,isWritable:false},
       {pubkey:new PublicKey(priceSigner),isSigner:true,isWritable:false},
     ] : []), // Older finalized receipts used the original account list.
     ...buy.keys.map((entry, index) => ({ ...entry,
-      isSigner:index === 1 ? false : entry.isSigner })),
+      isSigner:index === (curve?6:1) ? false : entry.isSigner })),
   ];
   return { instruction:new TransactionInstruction({ programId:program, keys, data }),
     vault, fundedAta, quoteAta, policy, receipt, buybackId:id, boughtMint, pool,

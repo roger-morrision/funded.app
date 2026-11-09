@@ -8,6 +8,7 @@ import {agencyDiscriminator} from '../agency-mint-router-v3.js';
 import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
 import { buildV3BuybackInstruction } from './v3-buyback-instruction.mjs';
 import {assertRpcNetwork,SOLANA_GENESIS} from '../solana-network.js';
+import {isCurveBuy,PUMP_PROGRAM_ID,CURVE_BUY} from './v3-buyback-curve.mjs';
 
 const discriminator = name => createHash('sha256').update(name).digest().subarray(0, 8);
 const address = value => typeof value === 'string' ? value : value?.toBase58?.() || '';
@@ -27,6 +28,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
       minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy,agencyExecution });
     if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
     const {boughtMint,pool}=expected;
+    const curve=isCurveBuy(pumpBuyInstruction);
     const category=expected.category??6;
     const tx = await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
@@ -69,7 +71,13 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
       const program = keys[ix.programIdIndex];
       const data = bytes(ix.data);
       const accounts = (ix.accounts || ix.accountKeyIndexes || []).map(index => keys[index]);
-      if (program === PUMP_AMM_PROGRAM_ID.toBase58()
+      if (curve&&program===PUMP_PROGRAM_ID.toBase58()
+        &&data.length===25&&data[24]===0&&data.subarray(0,8).equals(CURVE_BUY)
+        &&data.readBigUInt64LE(8)===BigInt(minBaseAmountOut)
+        &&data.readBigUInt64LE(16)===BigInt(spendableQuoteIn)
+        &&accounts[2]===boughtMint.toBase58()&&accounts[3]===pool.toBase58()
+        &&accounts[5]===expected.fundedAta.toBase58()&&accounts[6]===expected.vault.toBase58())pumpSeen=true;
+      if (!curve&&program === PUMP_AMM_PROGRAM_ID.toBase58()
         && data.length === 25 && data[24] === 0
         && data.subarray(0, 8).equals(Buffer.from([198, 46, 21, 82, 180, 217, 232, 112]))
         && data.readBigUInt64LE(8) === BigInt(spendableQuoteIn)

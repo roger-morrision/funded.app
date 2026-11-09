@@ -1,5 +1,6 @@
 import {refreshServiceFees,appTradeBps,appTradeRecipient} from '../fees/service-fees-client.js';
 import {fundedBuyFailureMessage} from './buy-feedback.js';
+import {buildRichTradeTransaction,fetchRichBuyQuote} from '../trade/lazy-trading.js';
 
 export const FUNDED_BUY_QUOTE_TTL = 15_000;
 export function currentFundedBuyQuote(app,amount,now=Date.now()) {
@@ -34,8 +35,8 @@ export function createFundedBuyQuotes(app) {
         const args={connection:rpc,side:'buy',mint:app.PROTOCOL_FUNDED_MINT,poolAddress:app.PROTOCOL_FUNDED_SWAP_POOL,
           amount,slippagePercent:1,feeOwner:appTradeRecipient(app),feeBps:appTradeBps(app)};
         const trade=session && app.canSignTransactions(session.provider)
-          ? await app.buildVerifiedPoolTradeTransaction({...args,user:session.provider.publicKey})
-          : await app.fetchVerifiedPoolBuyQuote(args);
+          ? await buildRichTradeTransaction({...args,user:session.provider.publicKey})
+          : await fetchRichBuyQuote(args);
         if(!matches()) return;
         if(session) app.assertWalletSessionCurrent(session);
         app.fundedBuyPreview={trade,amount,wallet:address,provider,preparedAt:Date.now(),quote:app.describeTradeQuote(trade,1,'$RICH')};

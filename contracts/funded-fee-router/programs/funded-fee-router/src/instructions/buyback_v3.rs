@@ -108,6 +108,30 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         && max_total_debit >= spendable_quote_in,
         ErrorCode::InvalidAmount);
     let funded_mint = Pubkey::from_str(FUNDED_MINT).map_err(|_| ErrorCode::InvalidMintBuybackV3)?;
+    if ctx.accounts.pump_swap_program.key() == super::buyback_curve_v3::PUMP {
+        require!(ctx.accounts.funded_mint.key() == funded_mint, ErrorCode::InvalidMintBuybackV3);
+        let source = ctx.accounts.mint.key();
+        let category_seed = [6u8]; let bump = [ctx.bumps.vault];
+        let signer: &[&[u8]] = &[MINT_VAULT_V3_SEED, source.as_ref(), &category_seed, &bump];
+        let remaining = ctx.accounts.policy.paid_lamports[6].checked_sub(ctx.accounts.policy.withdrawn_lamports[6])
+            .ok_or(ErrorCode::AmountOverflow)?;
+        let (spent, bought) = super::buyback_curve_v3::execute(super::buyback_curve_v3::CurveAccounts {
+            authority:ctx.accounts.authority.to_account_info(), vault:ctx.accounts.vault.to_account_info(),
+            mint:ctx.accounts.funded_mint.to_account_info(), ata:ctx.accounts.funded_token_account.to_account_info(),
+            curve:ctx.accounts.pool.to_account_info(), base:ctx.accounts.base_token_program.to_account_info(),
+            associated:ctx.accounts.associated_token_program.to_account_info(), system:ctx.accounts.system_program.to_account_info(),
+            pump:ctx.accounts.pump_swap_program.to_account_info(),
+        }, ctx.remaining_accounts, signer, remaining, spendable_quote_in, min_base_amount_out, max_total_debit)?;
+        ctx.accounts.policy.withdrawn_lamports[6] = ctx.accounts.policy.withdrawn_lamports[6]
+            .checked_add(spent).ok_or(ErrorCode::AmountOverflow)?;
+        let receipt = &mut ctx.accounts.receipt;
+        receipt.buyback_id = buyback_id; receipt.source_mint = source; receipt.funded_mint = funded_mint;
+        receipt.pool = ctx.accounts.pool.key(); receipt.spent_lamports = spent;
+        receipt.burned_base_units = bought; receipt.created_at = Clock::get()?.unix_timestamp;
+
+        emit!(MintBuybackV3Event { source_mint:source, buyback_id, spent_lamports:spent, burned_base_units:bought });
+        return Ok(());
+    }
     let pool = Pubkey::from_str(FUNDED_POOL).map_err(|_| ErrorCode::InvalidMintBuybackV3)?;
     let pump = Pubkey::from_str(PUMP_SWAP).map_err(|_| ErrorCode::InvalidMintBuybackV3)?;
     let vault = &ctx.accounts.vault;

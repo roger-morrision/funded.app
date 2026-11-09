@@ -1,0 +1,37 @@
+{
+  "scope": "RICH market lifecycle and buyback UI",
+  "verification": "local-only; SDK and receipt fixtures are mocked",
+  "javascriptTests": { "passed": 306, "failed": 0 },
+  "sourceBudgetFiles": 1192,
+  "contract": {
+    "feature": "devnet-v3-program",
+    "cargoCheck": "passed",
+    "sbfBuild": "passed",
+    "agave": "4.1.2",
+    "platformTools": "v1.54",
+    "bytes": 919544,
+    "sha256": "e30c10a709701b3df1727455a2a46c2d99e7a5e68f9c0796cc5ddbac1a684da6",
+    "deployed": false,
+    "newFinalizedCurveBuyback": false
+  },
+  "coverage": [
+    "Active curve pricing and quotes for SPL Token and Token-2022",
+    "Canonical pool routing after migration; unavailable during missing-pool interval",
+    "Promotion and paid-listing price quotes before migration",
+    "Both immutable fee-policy vault layouts",
+    "Liquidity clip, bounded spend, curve exhaustion and unsupported-mode rejection",
+    "Mint, market, custody and signer substitution rejection",
+    "Receipt verifier requires finalized purchase, burn, vault debit and matching receipt",
+    "RPC errors never imply migration"
+  ],
+  "activation": {
+    "curveAutomationDefault": false,
+    "mainnetAuthorized": false,
+    "requires": [
+      "Independent contract and price-cosigner review",
+      "Devnet lifecycle execution with finalized balance and supply deltas",
+      "Approved program upgrade, bytecode hash and curve lookup-table accounts",
+      "Real reviewed Mainnet assets before any Mainnet activation"
+    ]
+  }
+}

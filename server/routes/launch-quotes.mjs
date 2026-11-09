@@ -63,7 +63,7 @@ export function createLaunchQuoteRoutes({
       const quote = { id:id('launch_tier'), cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],tier, payer, fundedMint:fundedTokenMint,
         amountTokens:launchTierAmounts(pricing.tokenPriceUsd,fees.policy)[tier], usd:tier === 'pro' ? fees.policy.proUsd : fees.policy.premierUsd, tokenPriceUsd:pricing.tokenPriceUsd,
         serviceFeeHash:fees.hash,
-        pool:pricing.pool, slot:pricing.slot, source:pricing.source,
+        pool:pricing.pool, market:pricing.market,bondingCurve:pricing.bondingCurve,slot:pricing.slot, source:pricing.source,
         createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 10 * 60_000).toISOString() };
       await store.update(current => {
         current.launchTierQuotes ||= {};

@@ -22,6 +22,8 @@ pub mod agency_disburse_v3;
 pub mod agency_buyback_v3;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub mod buyback_v3;
+#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+pub mod buyback_curve_v3;
 #[cfg(feature = "historical-qa-recovery")]
 pub mod recover_qa_v3;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]

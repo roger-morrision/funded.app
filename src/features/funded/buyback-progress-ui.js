@@ -1,7 +1,7 @@
 const panel = (prefix, eyebrow, title, description, link = '') => `
   <div class="home-buyback-intro">
     <p class="eyebrow">${eyebrow}</p><h2 id="${prefix === 'home-buyback' ? 'home-buyback-progress-title' : 'buyback-route-title'}">${title}</h2>
-    <details class="buyback-policy-disclosure"><summary>Fee custody &amp; execution conditions</summary><p id="${prefix}-policy">${description}</p></details>${link}
+    <p id="${prefix}-policy">${description}</p>${link}
   </div>
   <div class="home-buyback-live" aria-live="polite">
     <div class="home-buyback-live-head"><span>Verified SOL eligible for buyback</span><strong id="${prefix}-balance">Checking…</strong></div>
@@ -16,11 +16,11 @@ export function mountBuybackProgressPanels(document) {
   if (home && !home.firstElementChild)
     home.innerHTML = panel('home-buyback', '5% fee route · $RICH',
       'Collected fees fund buybacks and burns.',
-      'For launches using the published 5% buyback split, that share goes into dedicated on-chain vaults. The verified trigger and eligible balance appear below. Execution depends on a verified market quote and available liquidity.',
+      'Collected buyback funds pay for $RICH purchases and burns. Checking the current trigger…',
       '<a href="#buybacks">See buyback receipts →</a>');
   const route = document.querySelector('#buyback-route-panel');
   if (route && !route.firstElementChild)
     route.innerHTML = panel('buyback-route', 'Fee-funded buyback',
-      'Checking verified trigger and eligible fees.',
-      'The published buyback share of collected creator fees remains in dedicated program vaults until verified vault allocations reach the current aggregate trigger. The worker then attempts protected $RICH purchases and burns; failed market checks leave funds in custody.');
+      'Automatic $RICH buyback & burn.',
+      'Collected buyback funds pay for $RICH purchases and burns. Checking the current trigger…');
 }

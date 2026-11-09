@@ -4,6 +4,8 @@ Product workflows: [all-page guide](product-guide.md). Documentation scope and d
 
 ## Current execution rule
 
+For pre-migration support and the separate contract activation gate, see [$RICH market lifecycle](rich-market-lifecycle.md). The source supports the bonding curve and PumpSwap; the deployed contract must be reviewed and upgraded before curve automation is enabled.
+
 The coin's saved buyback share of collected creator fees accrues in dedicated V3 program vaults. The current new-launch default is 5% of gross creator fees. Existing coins retain their recorded rates. It is not 5% of trade volume. This budget buys $RICH; the separate [agency budget](marketing-agency-policy.md) buys and burns the launched coin at its saved milestones.
 
 The normal aggregate trigger is **5 SOL** of verified eligible allocations. A bounded Devnet QA profile can lower it; the API/dashboard displays the active value. Rent, holder/X obligations, unrelated funds and spent allocations are not eligible balances.

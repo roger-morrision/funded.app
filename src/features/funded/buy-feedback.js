@@ -22,7 +22,7 @@ export function fundedBuyFailureMessage(error, phase = 'preview') {
   if (/service fees.*unavailable/i.test(detail))
     return 'Current app fees could not be verified. Refresh and preview again before signing.';
   return unavailableMessage(error,phase === 'preview' ? 'Buy preview' : 'Buy') || (phase === 'preview'
-    ? 'Buy preview is unavailable because the pool could not be verified. Try again shortly.'
+    ? 'Buy preview is unavailable because the $RICH market could not be verified. Try again shortly.'
     : 'Buy could not be completed. Refresh the quote and try again.');
 }
 
