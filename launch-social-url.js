@@ -30,3 +30,13 @@ export function normalizeXProfileInput(value) {
   if (parsed.protocol === 'http:') parsed.protocol = 'https:';
   return parsed.protocol === 'https:' ? parsed.href : raw;
 }
+
+export function xProfileHandleFromUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password || !LINK_RULES.x.hosts.includes(url.hostname.toLowerCase())) return '';
+    const handle = /^\/([A-Za-z0-9_]{1,15})\/?$/.exec(url.pathname)?.[1];
+    if (!handle || /^(home|explore|search|i|intent|share|settings|messages|notifications|login|logout|signup|compose)$/i.test(handle)) return '';
+    return `@${handle}`;
+  } catch { return ''; }
+}

@@ -1,5 +1,6 @@
 import { $, node, $$, tabs, disclose } from './dom.js';
 import { openCoinRecord } from '../coin/records-navigation.js';
+import { xProfileHandleFromUrl } from '../../../launch-social-url.js';
 
 // Tiny prices arrive as "$0.0₇3415"; subscript glyphs read like a comma in
 // the price font, so the zero count is re-rendered as a real <sub> element.
@@ -100,7 +101,8 @@ export function tokenPage() {
         try{host=new URL(href).hostname;}catch{continue;}
         const item=node('li');const link=node('a','',`${label} ↗`);
         link.href=href;link.target='_blank';link.rel='noopener noreferrer';
-        item.append(link,node('small','',host));linksList.append(item);
+        const account = label === 'X' ? xProfileHandleFromUrl(href) : '';
+        item.append(link,node('small','',account || host));linksList.append(item);
       }
       selectProfile.setAvailable('links',linksList.childElementCount>0);
     };
