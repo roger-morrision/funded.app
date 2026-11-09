@@ -131,7 +131,7 @@ export function renderHomeLaunchBoard(state, {
     tableTxnsHeading.title = `${homeLaunchWindow} observed transactions`;
   }
   const trending = homeTrendingSelection(verified, homeLaunchWindow);
-  if (tickerLabel && homePreview && !trending.ranked && trending.records.length) tickerLabel.textContent = 'New coins · ranking pending';
+  if (tickerLabel && homePreview && !trending.ranked && trending.records.length) tickerLabel.textContent = 'Trending';
   if (ticker) {
     const ranked = trending.records.slice(0,6);
     const tickerMarkup = ranked.length ? ranked.map((item, index) => {

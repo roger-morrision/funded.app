@@ -121,7 +121,7 @@ function launch() {
   setText('[data-launch-step-target="2"] span', 'Rewards & launch');
   $('[data-launch-step-target="2"]')?.setAttribute('aria-label', 'Step 2: Rewards and launch');
   setText('#launch-route-title', 'Launch your token. Share its success.');
-  setText('#launch-route-shell .page-lede', 'Earn creator fees and choose how to reward holders and an X partner. Set your token details, fee split, and developer lock.');
+  setText('#launch-route-shell .page-lede', 'Earn creator fees and choose how to reward holders and an X partner. Your token symbol is protected on richpad.fun for 12 hours to help prevent copycats.');
   setText('#benefits-step-title', 'Choose your fee route');
   setText('[data-launch-step="2"] > .step-heading p', 'The recommended setup directs 80% of collected creator fees to your wallet. Airdrop size, developer buy, and promotion are separate choices.');
   const funding = $('.launch-funding-section');

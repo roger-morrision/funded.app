@@ -227,7 +227,7 @@ function shortenPageCopy() {
     ['#payments > .workspace-page-header > p:last-child', 'Find eligible rewards, claim available SOL, and track payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Rates for new launches. Existing coins keep saved rates. Allocations are not payments.'],
-    ['#launch-route-shell > .page-lede', 'Earn creator fees and choose how to reward holders and an X partner. Review the full cost before signing.'],
+    ['#launch-route-shell > .page-lede', 'Earn creator fees and choose how to reward holders and an X partner. Your token symbol is protected on richpad.fun for 12 hours to help prevent copycats.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Sign in to save favorites across devices.'],
     ['#capital-flow-title', 'How creator fees are split'],

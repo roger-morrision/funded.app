@@ -220,6 +220,7 @@ export function initializeExploreSearchActions(appState) {
     if (['new', 'migrated'].includes(tab)) appState.exploreStage = 'all';
     if (tab === 'new') { appState.exploreNewLane = 'all'; appState.exploreSort = 'newest'; document.querySelector('#explore-sort').value = 'newest'; }
     else if (tab === 'trending') { appState.exploreSort = 'trending'; document.querySelector('#explore-sort').value = appState.exploreSort; }
+    else if (tab === 'boosted') { appState.exploreSort = 'boosted'; document.querySelector('#explore-sort').value = appState.exploreSort; }
     appState.updateExploreViews(true);
     if (tab === 'following') void appState.refreshFollowedWalletHoldings();
     if (!['following', 'favorites'].includes(tab)) appState.refreshExploreFeedForSort();

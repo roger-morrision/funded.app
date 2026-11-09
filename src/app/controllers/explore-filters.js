@@ -1,5 +1,6 @@
 // Dependencies and mutable application state are read live through appState.
 import { marketFacts } from '../../features/explore/market-facts.js';
+import { activeBoostMultiplier } from '../../../boost-offer.js';
 export function createExploreFiltersController(appState) {
   // app-source: 405
   function formatFeedAge(timestamp){
@@ -33,6 +34,8 @@ export function createExploreFiltersController(appState) {
     if (['pro', 'premier'].includes(appState.exploreTab)) return filtered.filter(record => record.benefitPolicyVerified === true && record.promotionTier === appState.exploreTab);
     if (appState.exploreTab === 'paid-list') return filtered.filter(record => record.listingPayment?.verified === true && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(record.listingPayment.signature || ''));
     if (appState.exploreTab === 'migrated') return filtered.filter(record => record.complete === true && record.migrated === true);
+    if (appState.exploreTab === 'boosted') return appState.verifiedBoostsAvailable
+      ? filtered.filter(record => activeBoostMultiplier(appState.verifiedBoosts?.[record.address]) > 0) : [];
     if (appState.exploreTab === 'new') {
       const now = Date.now(), cutoff = now - 12 * 60 * 60 * 1000;
       return filtered.filter(record => {

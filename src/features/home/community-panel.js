@@ -10,13 +10,15 @@ export function communityMessageMarkup(row, token = {}) {
   const hue = [...String(row.author)].reduce((sum,c) => sum+c.charCodeAt(0),0)%360;
   const number = value => Number.isFinite(value) ? `${value.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} SOL` : 'Unavailable';
   const change = row.callout?.marketChangePercent;
-  const metrics=row.callout?.tradeMetrics, note=metrics?.coverage==='partial'?'P&L unavailable.':metrics?.reason||'Checking verified wallet trades…';
+  const metrics=row.callout?.tradeMetrics;
+  const noRecentBuys=metrics?.reason==='No verified buys in the last 24 hours.';
+  const note=metrics?.coverage==='partial'||noRecentBuys?'P&L unavailable.':metrics?.reason||'Checking verified wallet trades…';
   const pnl=row.callout?.pnlSol, pnlText=Number.isFinite(pnl)?`${pnl>0?'+':''}${number(pnl)}`:'—';
   return `<article class="home-community-message" data-message-id="${esc(row.id)}">
     <header><a class="home-community-author" style="--author-hue:${hue}" href="/wallet/${encodeURIComponent(row.author)}">${esc(short(row.author))}</a><time datetime="${esc(row.createdAt)}" title="${esc(row.createdAt)}">${esc(age(row.createdAt))}</time><span class="home-community-kind">${row.callout?'Call':'Chat'}</span></header>
     <a class="home-community-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${esc(String(token.symbol || '?').slice(0,2).toUpperCase())}</span><strong>${esc(token.symbol ? `$${token.symbol}` : short(row.mint))}</strong></a>
     <p>${esc(row.text)}</p>
-    ${row.callout ? `<dl class="home-community-metrics"><div><dt>Purchased · 24h</dt><dd title="Verified purchase amounts in the last 24 hours. Additional app/network fees are excluded.">${number(row.callout.purchasedSol)}</dd></div><div><dt>Est. P&amp;L · 24h</dt><dd class="${pnl<0?'is-negative':pnl>0?'is-positive':''}" title="${esc(note)}">${pnlText}</dd></div></dl>${metrics?.coverage==='partial'?'':`<small class="home-community-basis">${Number.isFinite(pnl)?'Trade value · before additional fees':esc(note)}</small>`}${Number.isFinite(change)?`<small class="home-community-change">MC since call: ${change>=0?'+':''}${change.toFixed(1)}%</small>`:''}`:''}
+    ${row.callout ? `<dl class="home-community-metrics"><div><dt>Purchased · 24h</dt><dd title="Verified purchase amounts in the last 24 hours. Additional app/network fees are excluded.">${number(row.callout.purchasedSol)}</dd></div><div><dt>Est. P&amp;L · 24h</dt><dd class="${pnl<0?'is-negative':pnl>0?'is-positive':''}" title="${esc(note)}">${pnlText}</dd></div></dl>${metrics?.coverage==='partial'||noRecentBuys?'':`<small class="home-community-basis">${Number.isFinite(pnl)?'Trade value · before additional fees':esc(note)}</small>`}${Number.isFinite(change)?`<small class="home-community-change">MC since call: ${change>=0?'+':''}${change.toFixed(1)}%</small>`:''}`:''}
   </article>`;
 }
 

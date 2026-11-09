@@ -77,7 +77,7 @@ export function exploreEmptyReason(
   const stageLabels = { curve: 'On curve', near: 'Near', graduated: 'Curve complete', migrated: 'Migrated' };
   const signalLabels = { normal: 'Clear signal', watch: 'Review data', high: 'High risk', watchlist: 'Favorites' };
   const criteria = [];
-  if (['pro', 'premier', 'paid-list', 'migrated', 'new'].includes(exploreTab)) criteria.push({pro:'Pro',premier:'Premier','paid-list':'Paid list',migrated:'Migrated',new:'Launched in the last 12 hours'}[exploreTab]);
+  if (['pro', 'premier', 'paid-list', 'boosted', 'migrated', 'new'].includes(exploreTab)) criteria.push({pro:'Pro',premier:'Premier','paid-list':'Paid list',boosted:'Active boosts',migrated:'Migrated',new:'Launched in the last 12 hours'}[exploreTab]);
   if (explorePromotion && explorePromotion !== 'all') criteria.push(tierLabels[explorePromotion] || `Tier: ${explorePromotion}`);
   if (exploreReward && exploreReward !== 'all') criteria.push(rewardLabels[exploreReward] || `Rewards: ${exploreReward}`);
   if (exploreStage && exploreStage !== 'all') criteria.push(stageLabels[exploreStage] || `Stage: ${exploreStage}`);
@@ -125,6 +125,7 @@ export function exploreEmptyReason(
   if (exploreTab === 'new' && exploreNewLane === 'migrated') return ['No RPC-verified migrated pools in this feed.', 'A completed curve alone is not migration proof. A PumpSwap pool must also exist on this network.'];
   if (exploreTab === 'new') return ['No launches from the last 12 hours match this view.', 'Try Trending for older tokens or clear other filters.'];
   if (exploreTab === 'migrated') return ['No verified migrated tokens match this view.', 'A completed curve alone is not migration proof. Clear other filters to broaden the view.'];
+  if (exploreTab === 'boosted') return ['No active verified boosts match this view.', 'Expired boosts are excluded. Refresh or clear other filters to broaden the view.'];
   if (['pro', 'premier', 'paid-list'].includes(exploreTab)) return [`No ${{pro:'Pro',premier:'Premier','paid-list':'paid listing'}[exploreTab]} tokens match this view.`, 'Only verified promotions and paid listings appear here. Clear other filters to broaden the view.'];
   if (exploreStage === 'near') return ['No launch is in the final stretch.', 'This lane requires a verified active Pump curve at least 80% filled.'];
   if (exploreStage === 'graduated') return ['No completed curves in this view.', 'Tokens appear here once their launch curve is complete.'];
