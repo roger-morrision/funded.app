@@ -1,0 +1,60 @@
+{
+  "checkedAt": "2026-11-09T09:09:33.341Z",
+  "site": "https://richpad.fun",
+  "build": "e7a40513bc3e42dffef82568867305f303111d6c",
+  "cluster": "devnet",
+  "launchReady": true,
+  "launchReasons": [],
+  "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+  "agencyBuybacksReady": false,
+  "blockhash": {
+    "context": {
+      "slot": 520332045
+    },
+    "value": {
+      "blockhash": "2bMqwHsAkHkx1rKTKEFMTELbv3ZKkQ22eJE3tVFxbVTY",
+      "lastValidBlockHeight": 507474827
+    },
+    "elapsedMs": 624
+  },
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "mainnetEnabled": false,
+  "readOnlyPreview": false,
+  "tests": {
+    "automatedSuite": {
+      "passed": 340,
+      "failed": 0
+    },
+    "browserRpcRecovery": 14,
+    "note": "Automated transport failure injection; no user wallet transaction submitted by this verifier."
+  },
+  "userFailedAttempt": {
+    "approval": "message signature only",
+    "transactionApproved": false
+  },
+  "fixes": [
+    "Recover allowlisted RPC reads with bounded retries and network-verified public fallback",
+    "Sanitize gateway responses and never replay transaction writes",
+    "Paused optional agency actions do not block verified normal launches"
+  ],
+  "browser": {
+    "url": "https://richpad.fun/#launch",
+    "launchCheck": "Launch checks passed.",
+    "detailsToFunding": "passed",
+    "disconnectedSubmit": "Connect wallet to create coin",
+    "viewportWidth": 507,
+    "documentWidth": 507,
+    "termsAccepted": false,
+    "walletTransactionSubmitted": false,
+    "limitation": "Verified readiness and form navigation; the user must approve their own launch transaction in Phantom."
+  },
+  "rootCauses": [
+    "Cloudflare 502 during application deployment rollback",
+    "Disabled optional agency worker incorrectly blocked normal launch readiness"
+  ],
+  "release": {
+    "image": "sha256:0f761df8693a8bb1361ba04775fe77036e7f53b3d09039325723898f58a22b5b",
+    "rpcGatewayRestarted": false,
+    "databaseRestarted": false
+  }
+}

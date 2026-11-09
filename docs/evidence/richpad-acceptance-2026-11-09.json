@@ -449,7 +449,7 @@
       "JavaScript syntax check",
       "Whitespace diff check"
     ],
-    "deployment": "pending next exact source release"
+    "deployment": "Included in verified remote release e7a40513bc3e42dffef82568867305f303111d6c"
   },
   "remainingLiveAcceptance": [
     "Full mobile route coverage and real mobile wallet signing",
@@ -459,5 +459,6 @@
     "Paid-tier/listing burn and interrupted launch recovery repeated against this release",
     "Live buyback worker activation/trigger evidence, distinct from the isolated fee-vault fixture"
   ],
-  "mainnet": "Disabled. Production identities, secrets, spending limit, reviewed release and independent review remain required; missing configuration stays placeholder."
+  "mainnet": "Disabled. Production identities, secrets, spending limit, reviewed release and independent review remain required; missing configuration stays placeholder.",
+  "launchRecoveryEvidence": "docs/evidence/richpad-launch-recovery-2026-11-09.json"
 }
