@@ -7,26 +7,65 @@
   "releaseRevision": null,
   "programId": null,
   "programDataSha256": null,
-  "upgradeAuthority": null,
+  "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "payerSignerReference": null,
-  "maximumTotalSpendLamports": null,
-  "maximumPriorityFeeLamports": null,
+  "maximumTotalSpendLamports": "5000000000",
+  "maximumPriorityFeeLamports": "0",
   "independentReviewReference": null,
   "independentReviewer": null,
   "requiredCases": [
-    {"id":"admin-operations-withdrawal","proof":"Allowlisted admin wallet sign-in and single-use email code; exact Operations treasury debit, fee and fixed admin credit; persistent pending intent and finalized audit receipt; destination tampering and duplicate submission rejected."},
-    {"id":"launch-standard","proof":"Finalized creation, immutable fee owner and shares, exact community reserve, developer allocation and escrow deadline; registered receipt matches chain."},
-    {"id":"launch-promotion","proof":"Reviewed FUNDED burn and exact balance/supply reductions finalize before creation; cancelled creation can recover without a second burn."},
-    {"id":"buy-and-sell","proof":"Fresh selected-network quote, slippage and fee caps, finalized token/SOL deltas, trade history and trading fee recipient."},
-    {"id":"collect-and-settle","proof":"Finalized collection and cumulative settlement reconcile gross receipts to every category without double counting."},
-    {"id":"creator-payout","proof":"Fixed beneficiary and exact payout; repeated requests cannot transfer the same obligation twice."},
-    {"id":"holder-rewards","proof":"Verified funding, eligibility snapshot, recipient proofs, actual net receipts and conserved reserve."},
-    {"id":"x-payout","proof":"Real identity verification and bound wallet; wrong identity rejected; exact payment and idempotent claim."},
-    {"id":"protocol-payouts","proof":"Operations, all referral levels, community and agency accounting reconcile to immutable allocations; no eligible recipient retains funds rather than rerouting."},
-    {"id":"buyback-burn","proof":"Approved budget, canonical pool, slippage cap, finalized purchase and burn, exact supply reduction; failed execution retains obligation."},
-    {"id":"community-claim","proof":"Migration snapshot and published root; authorized recipient, exact vault debit, duplicate/ineligible/expired claims rejected."},
-    {"id":"developer-unlock","proof":"Early release rejected; selected lock period enforced; elapsed release pays only original beneficiary and cannot repeat."},
-    {"id":"recovery","proof":"Restart after submission, timeout and duplicate event preserves signed transaction identity, reconciles finality, and never resends a new payment blindly."}
+    {
+      "id": "admin-operations-withdrawal",
+      "proof": "Allowlisted admin wallet sign-in and single-use email code; exact Operations treasury debit, fee and fixed admin credit; persistent pending intent and finalized audit receipt; destination tampering and duplicate submission rejected."
+    },
+    {
+      "id": "launch-standard",
+      "proof": "Finalized creation, immutable fee owner and shares, exact community reserve, developer allocation and escrow deadline; registered receipt matches chain."
+    },
+    {
+      "id": "launch-promotion",
+      "proof": "Reviewed FUNDED burn and exact balance/supply reductions finalize before creation; cancelled creation can recover without a second burn."
+    },
+    {
+      "id": "buy-and-sell",
+      "proof": "Fresh selected-network quote, slippage and fee caps, finalized token/SOL deltas, trade history and trading fee recipient."
+    },
+    {
+      "id": "collect-and-settle",
+      "proof": "Finalized collection and cumulative settlement reconcile gross receipts to every category without double counting."
+    },
+    {
+      "id": "creator-payout",
+      "proof": "Fixed beneficiary and exact payout; repeated requests cannot transfer the same obligation twice."
+    },
+    {
+      "id": "holder-rewards",
+      "proof": "Verified funding, eligibility snapshot, recipient proofs, actual net receipts and conserved reserve."
+    },
+    {
+      "id": "x-payout",
+      "proof": "Real identity verification and bound wallet; wrong identity rejected; exact payment and idempotent claim."
+    },
+    {
+      "id": "protocol-payouts",
+      "proof": "Operations, all referral levels, community and agency accounting reconcile to immutable allocations; no eligible recipient retains funds rather than rerouting."
+    },
+    {
+      "id": "buyback-burn",
+      "proof": "Approved budget, canonical pool, slippage cap, finalized purchase and burn, exact supply reduction; failed execution retains obligation."
+    },
+    {
+      "id": "community-claim",
+      "proof": "Migration snapshot and published root; authorized recipient, exact vault debit, duplicate/ineligible/expired claims rejected."
+    },
+    {
+      "id": "developer-unlock",
+      "proof": "Early release rejected; selected lock period enforced; elapsed release pays only original beneficiary and cannot repeat."
+    },
+    {
+      "id": "recovery",
+      "proof": "Restart after submission, timeout and duplicate event preserves signed transaction identity, reconciles finality, and never resends a new payment blindly."
+    }
   ],
   "stopConditions": [
     "RPC genesis, deployed bytes, authority, program ID or configuration differs from reviewed release",
@@ -41,5 +80,6 @@
     "application": "Restore the previous verified application image only if compatible with current program state and schema.",
     "program": "No automatic downgrade, authority change, buffer closure or account migration. Require a separately reviewed compatible recovery transaction.",
     "devnet": "Keep the existing Devnet environment and database isolated and available."
-  }
+  },
+  "adminWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
 }

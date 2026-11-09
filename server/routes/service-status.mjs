@@ -80,7 +80,7 @@ export function createServiceStatusRoutes({
     return false;
   }
   async function handleOperationsStatus(req, res, url) {
-    if (req.method === 'GET' && url.pathname === '/api/readiness') return json(res, 200, buildProductionReadiness(process.env));
+    if (req.method === 'GET' && url.pathname === '/api/readiness') return json(res, 200, buildProductionReadiness(env));
     if (req.method === 'GET' && url.pathname === '/api/ops/receipt-worker') {
       res.setHeader('cache-control','no-store');
       if(!requireAuthorized(req,res))return true;

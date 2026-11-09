@@ -65,3 +65,6 @@
 .admin-email-dialog input { width:100%;letter-spacing:.2em;font-size:20px; }
 .admin-email-dialog pre { white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:220px;overflow:auto; }
 .admin-email-dialog [role="status"] { min-height:24px; }
+.withdraw-status { margin:12px 0; padding:12px; border:1px solid #52637a; border-radius:8px; overflow-wrap:anywhere; }
+.withdraw-status:empty { display:none; }
+.withdraw-status.error { color:#ffb4ab; border-color:#dc7878; }

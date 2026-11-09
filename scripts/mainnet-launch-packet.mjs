@@ -28,7 +28,7 @@ export async function buildMainnetLaunchPacket({plan,acceptance,manifest,config,
     retainedUpgradeAuthority:plan.upgradeable===true&&acceptance.upgradeable===true,
     cleanSource:!dirty};
   const missing=[];
-  for(const field of ['upgradeAuthority','mainnetProgramId','feeRecipient','fundedMint','fundedPool'])
+  for(const field of ['adminWallet','upgradeAuthority','mainnetProgramId','feeRecipient','fundedMint','fundedPool'])
     if(!key(plan[field]))missing.push(field);
   for(const field of ['mainnetAppOrigin','productionRpcSecretPath','deploymentPayerSignerReference',
     'productionDatabaseSecretPath','metadataSecretPath','independentReviewer','independentReviewReference'])
@@ -43,6 +43,12 @@ export async function buildMainnetLaunchPacket({plan,acceptance,manifest,config,
     &&BigInt(plan.maximumPriorityFeeLamports)<BigInt(plan.maximumTotalSpendLamports)
     &&acceptance.maximumTotalSpendLamports===plan.maximumTotalSpendLamports
     &&acceptance.maximumPriorityFeeLamports===plan.maximumPriorityFeeLamports;
+  checks.adminIdentity=key(plan.adminWallet)&&acceptance.adminWallet===plan.adminWallet
+    &&config.FUNDED_ADMIN_WALLETS===plan.adminWallet;
+  checks.selectedAuthority=key(plan.upgradeAuthority)&&acceptance.upgradeAuthority===plan.upgradeAuthority
+    &&config.MAINNET_APPROVED_UPGRADE_AUTHORITY===plan.upgradeAuthority;
+  checks.configuredSpend=checks.boundedSpend&&config.MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS===plan.maximumTotalSpendLamports
+    &&config.MAINNET_MAXIMUM_PRIORITY_FEE_LAMPORTS===plan.maximumPriorityFeeLamports;
   const reviewed=reviewedMainnetManifest(manifest);
   checks.reviewedExactRelease=Boolean(reviewed&&reviewed.sourceRevision===sourceRevision
     &&reviewed.programId===plan.mainnetProgramId&&reviewed.upgradeAuthority===plan.upgradeAuthority

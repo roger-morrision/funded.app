@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "status": "implemented-and-locally-verified-not-deployed",
+  "baseRevisionAtFinalChecks": "5754f2c3",
+  "review": "docs/evidence/ui-flow-review-2026-11-09.json",
+  "selectedFindings": ["UI-01", "UI-03", "UI-04", "UI-05"],
+  "changes": {
+    "UI-01": "Milestone availability requires the feature flag, matching fresh worker evidence, configured price service and a finalized on-chain signer match. Missing readiness is returned as a per-agent reason and shown inline. Verified deployment is separate from executionEnabled. Missing price configuration does not itself change launch eligibility.",
+    "UI-03": "Public pending identities are scoped by network, admin and source. Legacy Devnet records migrate without storing signed bytes. Wallet/source switching preserves unresolved records. Refresh preserves the selected source.",
+    "UI-04": "Preparation, email verification, signing, submission, finality and error messages are displayed in an accessible region beside withdrawal controls.",
+    "UI-05": "The Terms modal contains nine product-specific sections, version 1.1-devnet, covering network scope, wallet authorization, launches, fees and recovery, rewards, paid services, acceptable use, risks, privacy and support. Internal support links close the modal. Production operator identity, jurisdiction and review remain explicitly pending."
+  },
+  "withdrawalRetryRequirement": {
+    "amountAndMaxRemainUsable": true,
+    "submitChecksPreviousIdentityAutomatically": true,
+    "finalizedFailure": "Clear the local pending identity after matching finalized failure proof; prepare the newly entered amount through the existing OTP/server authorization flow.",
+    "expiredWithoutLanding": "Clear only after finalized height exceeds the stored last-valid height plus the existing margin and both transaction/status are absent; allow a newly entered amount.",
+    "unknownOutcome": "Retain the receipt identity and entered amount, show inline status and do not sign a replacement that could duplicate a payment.",
+    "existingSuccessfulTransfer": "Record the finalized receipt and refresh balances; do not silently submit another transfer in the same click.",
+    "sourceRules": "Existing on-chain balance, protected reserve, admin destination, admin fee payer, OTP, signature and server source-lock checks remain enforced."
+  },
+  "validation": {
+    "applicationTests": {"command": "node --test tests/*.test.mjs", "passed": 278, "failed": 0, "skipped": 0},
+    "focusedTests": {"files": ["tests/agency-buyback-readiness.test.mjs", "tests/admin-withdrawal-ui.test.mjs", "tests/admin-withdrawals.test.mjs"], "passed": 16},
+    "build": {"command": "npm run build", "passed": true},
+    "browser": {
+      "environment": "Local Vite app, no live wallet or financial writes",
+      "terms": "All nine sections rendered in the actual app modal; Docs and help link closed it and navigated to Docs.",
+      "withdrawal": "Mocked local fixture imported the actual frontend module and withdrawal section/styles. Max failure and email cancellation appeared beside the form. Retried from 0.25 to 0.5 SOL; Submit and Max remained enabled. No email or transaction was sent."
+    },
+    "sourceChecks": {"command": "npm run check", "passed": true, "javascriptFilesSyntaxChecked": 956, "maintainedFilesWithinSizeBudgets": 1180}
+  },
+  "remaining": [
+    "No production or Devnet deployment performed in this task.",
+    "Independent price signer still needs real configuration and activation before buybacks can execute.",
+    "Production operator details and independent Terms review remain Mainnet gates.",
+    "UI-02 (X promotion package-card copy) was not selected and remains open.",
+    "Real Phantom withdrawal was not repeated; current retry regressions use mocked RPC/DOM and local HTTP fixtures."
+  ]
+}

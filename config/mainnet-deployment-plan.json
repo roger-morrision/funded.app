@@ -29,21 +29,24 @@
   "ciArtifact": "contract-bytecode-e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",
   "targetLayout": "merged-v3",
   "intendedFeatureSet": "Agency features equivalent to the current Devnet app, subject to production implementation and review",
-  "roles": ["v3-router", "developer-escrow"],
+  "roles": [
+    "v3-router",
+    "developer-escrow"
+  ],
   "separateLegacyRouterRequired": false,
   "separateEscrowRequired": false,
-  "upgradeAuthority": null,
+  "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "mainnetProgramId": null,
   "mainnetAppOrigin": null,
-  "productionRpcSecretPath": null,
+  "productionRpcSecretPath": ".secrets/mainnet-solana-rpc.url",
   "deploymentPayerSignerReference": null,
   "productionDatabaseSecretPath": null,
   "metadataSecretPath": null,
   "feeRecipient": null,
   "fundedMint": null,
   "fundedPool": null,
-  "maximumTotalSpendLamports": null,
-  "maximumPriorityFeeLamports": null,
+  "maximumTotalSpendLamports": "5000000000",
+  "maximumPriorityFeeLamports": "0",
   "independentReviewer": null,
   "independentReviewReference": null,
   "referenceArtifacts": [
@@ -67,7 +70,14 @@
   "allocationPolicy": "Exact final reviewed binary length; do not reserve twice its size by default",
   "feeAllowanceLamports": 25000000,
   "deploymentMarginLamports": 250000000,
-  "excludedCosts": ["Liquidity", "Per-launch state and token accounts", "Initial configuration PDAs and lookup tables", "Canary transactions and operating balances", "RPC, database and metadata hosting", "Independent review"],
+  "excludedCosts": [
+    "Liquidity",
+    "Per-launch state and token accounts",
+    "Initial configuration PDAs and lookup tables",
+    "Canary transactions and operating balances",
+    "RPC, database and metadata hosting",
+    "Independent review"
+  ],
   "sequence": [
     "Create a fresh isolated Mainnet inventory: new production program identity and infrastructure, production signer references, FUNDED mint and pool. Preserve Devnet and do not copy its financial state or QA signers.",
     "Implement and review production network paths and agency custody; retain Mainnet write guards during preparation.",
@@ -78,5 +88,9 @@
     "Verify finalized deployed bytes, loader ownership, authority, ProgramData hash and rent deltas before initializing application state.",
     "Point both V3-router and developer-escrow roles to the same verified production program and full ProgramData hash.",
     "Run the separately approved capped canary before enabling Mainnet application writes. Preserve the Devnet deployment."
-  ]
+  ],
+  "adminWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+  "rpcProvider": "solana-public",
+  "publicRpcUrl": "https://api.mainnet-beta.solana.com",
+  "marketDataProvider": "birdeye"
 }

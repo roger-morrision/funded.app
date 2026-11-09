@@ -96,6 +96,7 @@ function renderSummary() {
 }
 function renderWallets() {
   const rows = overview?.wallets || [];
+  const selectedSource=$('#withdraw-source').value;
   $('#wallet-rows').innerHTML = rows.length ? rows.map(row => `<tr><td>${escape(row.role)}</td><td><code>${escape(row.address)}</code></td>
     <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td><td>${row.withdrawable && row.address !== overview.withdrawalDestination
       ? `<button type="button" data-source="${escape(row.address)}">Withdraw</button>`
@@ -103,7 +104,7 @@ function renderWallets() {
         : '<span title="Operational signer; use its dedicated payout workflow">Operational signer · no sweep</span>'}</td></tr>`).join('') : '<tr><td colspan="5">No app wallet addresses configured.</td></tr>';
   $('#withdraw-source').innerHTML = rows.filter(row => row.withdrawable && row.address !== overview.withdrawalDestination)
     .map(row => `<option value="${escape(row.address)}" data-signing-mode="${escape(row.signingMode)}">${escape(row.role)} · ${escape(row.address.slice(0, 7))}…</option>`).join('');
-  withdrawals?.sync();
+  if([...$('#withdraw-source').options].some(option=>option.value===selectedSource))$('#withdraw-source').value=selectedSource;
   $('#withdraw-destination').value = overview.withdrawalDestination || '';
   withdrawals?.sync();
   $('#wallet-rows').querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {

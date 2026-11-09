@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "type": "UI, API and source review; not full financial acceptance",
+  "environment": "https://funded.vip on Solana Devnet",
+  "sourceRevisionAtCompletion": "41c682a6",
+  "liveBuildAtFinalCapabilityCheck": "0cd8b8677fcdf1a21269982106d459fa3f9065b3",
+  "releaseChangedDuringReview": true,
+  "changes": "Review evidence only. No runtime fixes, deployment, external publication or financial transactions performed.",
+  "coverage": {
+    "publicViews": ["Home", "Explore", "Top 100", "Portfolio", "Rewards overview", "Holder rewards", "Creator rewards", "X rewards", "Payout history", "Referrals", "Daily bonuses", "Airdrops", "Leaderboard", "AI Marketing", "Analytics", "Capital flow", "Coin calls", "Creators", "Launch", "Get listed", "Docs", "Profile", "Privacy", "Terms", "Disclosures", "Token details", "FUNDED", "Welcome", "Public wallet details", "Admin sign-in"],
+    "interactions": ["Launch draft identity and funding steps without signing", "Boost package dialog and wallet gate without purchase", "Mobile buy/sell sheet and disconnected disabled actions", "Mobile navigation open/close", "Reward tab navigation", "Invalid listing mint validation", "Documentation search and topic navigation", "Terms dialog open/close", "Public wallet Activity/Balances tabs"],
+    "mobile": {
+      "viewport": {"width": 390, "height": 844},
+      "routes": ["#overview", "#explore", "#top100", "#launch", "#payments/history", "#airdrops", "#bonuses", "#capital-flow", "#marketing-agency", "#profile", "#list", "#docs"],
+      "horizontalPageOverflowObserved": false,
+      "viewportRestored": true
+    },
+    "browserConsoleWarningsOrErrorsObserved": [],
+    "automatedTests": {"command": "node --test tests/*.test.mjs", "passed": 263, "failed": 0, "skipped": 0},
+    "sourceChecks": {"command": "npm run check", "passed": true, "javascriptFilesSyntaxChecked": 948, "maintainedFilesWithinSizeBudgets": 1171},
+    "limitations": ["Browser session was disconnected; authenticated signing flows were not repeated.", "Pending-wallet reproduction used a mocked DOM with the real frontend module, without signing or network calls.", "No claim that every contract instruction or every recovery branch was exercised.", "No production-load, RPC failover or WebSocket soak benchmark was run in this review.", "Snapshots include loading and settled states; rendering alone is not financial success evidence."]
+  },
+  "findings": [
+    {
+      "id": "UI-01",
+      "priority": "P1",
+      "title": "Milestone buybacks advertised as available without the required price signer",
+      "verification": "Live UI, public capability API, finalized Devnet account read and source review",
+      "evidence": {"api": "/api/marketing-agency", "status": "deployment-verified", "executionEnabled": true, "agents": {"buyback-100k": "available", "buyback-300k": "available"}, "blockers": [], "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm", "priceConfig": "pNgBvEvwdWsYUmDyPfYUrKvnn9QFdnoVV4mc7ZBfSUV", "finalizedSlot": 520243032, "priceConfigAccount": null},
+      "source": ["server/routes/marketing-agency.mjs:33", "server/v3-launch-config.mjs:106", "server/agency-buyback-executor.mjs:36", "server/buyback-price-signer.mjs:19", "contracts/funded-fee-router/programs/funded-fee-router/src/instructions/agency_buyback_v3.rs:55"],
+      "impact": "Users are told only funding and milestones remain, although execution cannot pass its mandatory signer configuration. No bypass or loss of funds was demonstrated.",
+      "recommendation": "Include price-service configuration and finalized signer-account verification in per-agent readiness; display the actual blocker. Keep execution paused until verified."
+    },
+    {
+      "id": "UI-02",
+      "priority": "P2",
+      "title": "Launch package cards promise X promotion while publishing is paused",
+      "verification": "Live launch funding step, public API and source review",
+      "evidence": {"publishingPaused": true, "visibleCardText": "Auto post & promote project to app X page.", "availabilityDisclosure": "Only in title on cards; help and terms elements are created but not appended. A later review summary does include the pause."},
+      "source": ["src/features/marketing/agency-view.js:49", "src/features/marketing/agency-view.js:60", "src/features/marketing/agency-view.js:82"],
+      "impact": "The package selection screen overstates current service availability, especially on touch devices without hover disclosure.",
+      "recommendation": "Render the paused status beside package benefits and pricing, explain reserved budgets and delivery conditions, and retain the same status on the final review."
+    },
+    {
+      "id": "UI-03",
+      "priority": "P2",
+      "title": "One admin's saved pending withdrawal blocks another admin and unrelated sources",
+      "verification": "Reproduced locally with mocked DOM and real initAdminWithdrawals; source confirms destination-bound reconciliation",
+      "evidence": {"storageKey": "funded.admin.pending-withdrawal.devnet.v1", "savedDestination": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ", "currentDestination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC", "savedSource": "source-A", "selectedSource": "source-B", "submitDisabled": true, "maxDisabled": true, "pendingRecoveryRequests": 0},
+      "source": ["admin-withdrawals.js:5", "admin-withdrawals.js:13", "admin-withdrawals.js:20", "server/admin-withdrawals.mjs"],
+      "impact": "After reload or wallet/session switching in the same tab, the new admin cannot start an unrelated withdrawal. A finalized receipt for the other admin cannot be reconciled under the new admin's destination.",
+      "recommendation": "Scope pending records by network, admin and source. Preserve unresolved records and enforce source-level server locks without blocking unrelated sources."
+    },
+    {
+      "id": "UI-04",
+      "priority": "P2",
+      "title": "Withdrawal failures are not displayed beside the withdrawal controls",
+      "verification": "Source-confirmed error path; no new live failure transaction attempted",
+      "source": ["admin-withdrawals.js:57", "admin-page.js:23", "admin.html"],
+      "impact": "The catch path updates the global message near the top of the page while the withdrawal section can retain its earlier quote or pending text. A user at the withdrawal form can miss a signing/RPC error and mistake the quote for the result.",
+      "recommendation": "Use an inline status/error region beside Submit, preserve pending signature identity, and make preparation, signing, submission, confirmation and failure states explicit."
+    },
+    {
+      "id": "UI-05",
+      "priority": "P2",
+      "title": "Required Terms agreement points to an outline rather than completed service terms",
+      "verification": "Live Terms modal and source review; product content gap, not legal advice",
+      "source": ["src/app/controllers/wallet-session.js:6", "index.html:771"],
+      "impact": "Launch requires agreement, but the modal contains one responsibility paragraph, version/date metadata and a contents list with no corresponding sections.",
+      "recommendation": "Complete and review the actual service terms, including package delivery and recovery expectations, and keep the agreement linked to the applicable version."
+    }
+  ],
+  "remainingAcceptanceGaps": [
+    "Fresh end-to-end X identity verification and payout to its bound wallet.",
+    "Milestone and protocol buyback purchase/burn with finalized debit, receipt and supply proof after the independent signer is activated.",
+    "Full scheduled holder payout and migration/airdrop lifecycle with actual recipient deltas.",
+    "Developer unlock expiry cases and paid-launch cancellation/recovery without a second burn.",
+    "Restart, wallet/session switch and interrupted receipt recording across financial flows.",
+    "Production identities, reviewed binary, isolated infrastructure, spending limits and capped Mainnet acceptance remain blocked in config/mainnet-acceptance-plan.json."
+  ],
+  "priorEvidence": {
+    "adminOperationsWithdrawal": "docs/evidence/admin-operations-withdrawal-2026-11-09.json",
+    "note": "Previously recorded finalized real-Phantom withdrawal evidence was inspected as context; it was not repeated during this review."
+  }
+}

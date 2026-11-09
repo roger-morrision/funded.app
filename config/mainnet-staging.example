@@ -36,6 +36,10 @@ SOLANA_RPC_URL_FILE=REPLACE_WITH_MAINNET_RPC_SECRET_FILE_PATH
 DEVNET_SOLANA_RPC_URL_FILE=REPLACE_WITH_DEVNET_RPC_SECRET_FILE_PATH
 DATABASE_URL_FILE=REPLACE_WITH_MAINNET_DATABASE_SECRET_FILE_PATH
 DEVNET_DATABASE_URL_FILE=REPLACE_WITH_DEVNET_DATABASE_SECRET_FILE_PATH
+# Optional server-only market fallback; no Devnet token data comes from Birdeye.
+BIRDEYE_API_KEY_FILE=
+BIRDEYE_API_URL=https://public-api.birdeye.so
+BIRDEYE_CHAIN=solana
 FUNDED_STORE_PATH=
 # One independently reviewed merged production deployment; no Devnet defaults.
 # Legacy config names are aliases, not instructions to deploy a second router.

@@ -30,17 +30,21 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
     const feePolicy={status:Number.isFinite(published?.split?.agencyPercent)?'published':'unavailable',revision:published?.revision??null};
     const xPaused=env.X_POST_ENABLED!=='true'||env.X_POST_ACCOUNT_STATUS!=='active';
     const agents=enabled=>marketingAgencyCapabilities().policy.agents.map((agent,index)=>{
-      const available=enabled&&(index===0?!xPaused:env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'||!xPaused);
-      return{id:agent.id,enabled:available,status:index===0&&xPaused?'paused':available?'available':'not-activated',
-        reason:index===0&&xPaused?'X publishing is paused pending account reinstatement. Its budget remains reserved.':null};
+      const available=enabled&&(index===0?!xPaused:
+        env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'&&config?.agency?.buybacks?.ready===true);
+      const reason=index===0&&xPaused?'X publishing is paused pending account reinstatement. Its budget remains reserved.':
+        index>0&&!available?config?.agency?.buybacks?.reason||'Milestone buyback readiness is unverified.':null;
+      return{id:agent.id,enabled:available,status:available?'available':reason?'paused':'not-activated',reason};
     });
     if(env.FUNDED_V3_AGENCY_ENABLED==='true'&&store&&readLaunchConfig){
       try{
         config=await readLaunchConfig();
         if(config.ready&&config.agency&&Number.isFinite(config.protocolSplit.agencyPercent)){
           state=await store.read();
-          respond(res,200,{...marketingAgencyCapabilities({split:config.protocolSplit,rules:config.agency.rules}),status:'deployment-verified',active:true,executionEnabled:true,blockers:[],
-            agents:agents(true),feePolicy,publishingPaused:xPaused,
+          const currentAgents=agents(true);
+          respond(res,200,{...marketingAgencyCapabilities({split:config.protocolSplit,rules:config.agency.rules}),status:'deployment-verified',active:true,
+            executionEnabled:currentAgents.some(row=>row.enabled),blockers:[...new Set(currentAgents.filter(row=>!row.enabled).map(row=>row.reason).filter(Boolean))],
+            agents:currentAgents,feePolicy,publishingPaused:xPaused,
             verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:config.programId,
               approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID,configRevision:config.agency.configRevision},
             ...agencyPublicSummary({state,mint,programId:config.programId,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID})});

@@ -47,6 +47,20 @@ test('server preparation is persisted before issuing signed bytes and pending re
   f.rpc.getBlockHeight=async()=>1033;
   const replacement=await f.request('prepare',input);assert.equal(replacement.status,200);assert.notEqual(replacement.data.sourceSignature,plan.sourceSignature);
 });
+
+test('finalized failed transfer releases its source for a different withdrawal amount',async()=>{
+  const f=fixture(),source=f.source.publicKey.toBase58();
+  const plan=(await f.request('prepare',{source,amountLamports:1000000})).data;
+  const tx=Transaction.from(Buffer.from(plan.signedTransaction,'base64'));tx.partialSign(f.adminKey);
+  const signature=bs58.encode(tx.signature);
+  await f.request('submit',{intentId:plan.id,signedTransaction:tx.serialize().toString('base64')});
+  const err={InstructionError:[0,'InsufficientFunds']};
+  f.rpc.getSignatureStatuses=async()=>({value:[{confirmationStatus:'finalized',err}]});
+  f.rpc.getTransaction=async()=>({meta:{err},transaction:{signatures:[signature]}});
+  const replacement=await f.request('prepare',{source,amountLamports:2500000});
+  assert.equal(replacement.status,200);assert.equal(replacement.data.amountLamports,2500000);
+  assert.notEqual(replacement.data.id,plan.id);assert.equal(replacement.data.signature,undefined);
+});
 test('reconciliation proves exact source/destination deltas and returns a prior finalized transfer instead of paying twice',async()=>{
   const f=fixture(),source=f.source.publicKey.toBase58(),input={source,amountLamports:1000000};
   const plan=(await f.request('prepare',input)).data;

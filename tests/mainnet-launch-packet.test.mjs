@@ -28,6 +28,8 @@ test('placeholder packet lists missing production inputs without granting activa
   const input=packet();input.devnetEvidence={schemaVersion:1,cluster:'devnet',application:{revision:'b'.repeat(40)},
     acceptance:input.acceptance.requiredCases.map(row=>({id:row.id,status:'passed-live'}))};
   input.config.DATABASE_URL='postgresql://secret-user:secret-password@db/mainnet';
+  input.plan.maximumTotalSpendLamports=null;
+  input.plan.maximumTotalSpendLamports=null;
   const result=await buildMainnetLaunchPacket(input);
   assert.equal(result.ready,false);assert.equal(result.mainnetActivationAuthorized,false);
   assert.equal(result.checks.reviewedExactRelease,false);assert.equal(result.checks.boundedSpend,false);
@@ -43,6 +45,25 @@ test('packet refuses enabled activation, incomplete plans, duplicate evidence an
   const d=packet();d.devnetEvidence={schemaVersion:1,cluster:'devnet',application:{revision:'b'.repeat(40)},
     acceptance:[{id:'launch-standard',status:'passed-live'},{id:'launch-standard',status:'passed-live'}]};
   assert.equal((await buildMainnetLaunchPacket(d)).devnetEvidence.cases.find(row=>row.id==='launch-standard').recordedStatus,'unavailable');
+});
+
+test('selected public admin, authority and spending cap must agree across the launch inputs',async()=>{
+  const input=packet(),wallet=key(9);
+  Object.assign(input.plan,{adminWallet:wallet,upgradeAuthority:wallet,maximumTotalSpendLamports:'5000000000',maximumPriorityFeeLamports:'0'});
+  Object.assign(input.acceptance,{adminWallet:wallet,upgradeAuthority:wallet,maximumTotalSpendLamports:'5000000000',maximumPriorityFeeLamports:'0'});
+  Object.assign(input.config,{FUNDED_ADMIN_WALLETS:wallet,MAINNET_APPROVED_UPGRADE_AUTHORITY:wallet});
+  const valid=await buildMainnetLaunchPacket(input);
+  assert.equal(valid.checks.adminIdentity,true);assert.equal(valid.checks.selectedAuthority,true);assert.equal(valid.checks.boundedSpend,true);
+  assert.equal(valid.ready,false);
+  input.acceptance.maximumTotalSpendLamports='6000000000';input.config.FUNDED_ADMIN_WALLETS=key(8);
+  const invalid=await buildMainnetLaunchPacket(input);assert.equal(invalid.checks.adminIdentity,false);assert.equal(invalid.checks.boundedSpend,false);
+});
+
+test('explicit Mainnet configuration loads optional data credentials without inheriting local secrets',()=>{
+  const contents='SOLANA_CLUSTER=mainnet-beta\nVITE_SOLANA_CLUSTER=mainnet-beta\nBIRDEYE_API_KEY_FILE=birdeye.key\nPINATA_JWT_FILE=metadata.key\n';
+  const result=loadMainnetConfig('/config/staging.env',{read:file=>file.endsWith('staging.env')?contents:file.endsWith('birdeye.key')?'test-data-key':'test-metadata-key'});
+  assert.equal(result.BIRDEYE_API_KEY,'test-data-key');assert.equal(result.PINATA_JWT,'test-metadata-key');assert.equal(result.SOLANA_KEEPER_SECRET_KEY,undefined);
+  assert.throws(()=>loadMainnetConfig('/config/staging.env',{read:file=>file.endsWith('staging.env')?contents:(()=>{throw Error('sensitive upstream message');})()}),/Cannot read BIRDEYE_API_KEY_FILE/);
 });
 test('staging isolates inherited credentials, disables workers and rejects a wrong or writable build',()=>{
   const result=mainnetStagingEnvironment(config(),build,{systemEnv:{PATH:'tools',SOLANA_KEEPER_SECRET_KEY:'private',NODE_OPTIONS:'--require injection',DATABASE_URL:'postgresql://devnet'}});

@@ -7,6 +7,7 @@ import { readProgramDataEvidence, DEVNET_GENESIS_HASH } from './automatic-reward
 import { rewardServiceHealth } from './reward-service-health.mjs';
 import {readAgencyDeployment,agencyWorkerHealth,agencyBuybackWorkerHealth} from './agency-deployment.mjs';
 import {MARKETING_AGENCY_POLICY} from '../config/marketing-agency.js';
+import {readAgencyBuybackReadiness} from './agency-buyback-readiness.mjs';
 
 // This exact Devnet ProgramData was verified against the tested protected V3
 // binary and exercised with finalized disposable-wallet payouts. An operator
@@ -27,13 +28,15 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
     fetch:(target, options) => fetch(target, { ...options,
       signal:options?.signal ? AbortSignal.any([signal,options.signal]) : signal }),
   }),
-  programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount,readAgency=readAgencyDeployment }) {
+  programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount,readAgency=readAgencyDeployment,
+  readBuybackReadiness=readAgencyBuybackReadiness }) {
   let pending;
   const check = async () => {
     const reasons = [];
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim().toLowerCase();
     const agencyEnabled=env.FUNDED_V3_AGENCY_ENABLED==='true';let agencyDeployment=null;
+    let buybackReadiness={ready:false,reason:'Agency deployment and worker readiness are unverified.'};
     let beneficiaryRoutingOnChainEnforced = !agencyEnabled&&V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED
       && approvedHash === PROTECTED_V3_PROGRAM_DATA_SHA256;
     if (!beneficiaryRoutingOnChainEnforced&&!agencyEnabled) reasons.push(V3_BENEFICIARY_RELEASE_BLOCKER);
@@ -77,10 +80,11 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
           agencyEnabled?readAgency({connection,programId,approvedHash,authority:authority.publicKey,
             readProgram:()=>programRead,verifyRouter:()=>routerRead}):null,
           agencyEnabled&&store?store.read():null,
+          agencyEnabled?readBuybackReadiness({connection,programId,env}):null,
         ]);
         // Cap the complete verification, including sequential ProgramData reads.
         // Slow RPC must close readiness, not leave public capability requests pending.
-        const [genesis, evidence, router, reserveLookup, buybackLookup,agency,agencyState] = await Promise.race([
+        const [genesis, evidence, router, reserveLookup, buybackLookup,agency,agencyState,priceReadiness] = await Promise.race([
           checks,
           new Promise((_,reject) => { timer=setTimeout(() => {
             controller.abort(); reject(new Error('V3 verification timed out'));
@@ -105,6 +109,8 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
           const health={programId,approvedHash,authority:authority.publicKey.toBase58(),revision:agency.revision,build:env.FUNDED_BUILD_ID};
           const buybacksReady=env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'&&agencyBuybackWorkerHealth(agencyState||{},health);
           const fullReady=env.X_POST_ENABLED==='true'&&env.X_POST_ACCOUNT_STATUS==='active'&&agencyWorkerHealth(agencyState||{},health);
+          buybackReadiness=buybacksReady||fullReady?priceReadiness:
+            {ready:false,reason:'Milestone buyback worker has no fresh verified readiness.'};
           if(!buybacksReady&&!fullReady)reasons.push('Agency worker has no fresh matching verified deployment readiness');
         }
       } catch { reasons.push('V3 program verification is unavailable'); }
@@ -117,7 +123,7 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
       beneficiaryRoutingOnChainEnforced,
       programId:programId || null, initialAuthority:authority?.publicKey.toBase58() || null,
       protocolSplit:protocolSplit || PROTOCOL_FEE_SPLIT,
-      ...(agencyDeployment?{agency:{version:MARKETING_AGENCY_POLICY.version,configRevision:agencyDeployment.revision,...(agencyDeployment.rules?{rules:agencyDeployment.rules}:{})}}:{}),
+      ...(agencyDeployment?{agency:{version:MARKETING_AGENCY_POLICY.version,configRevision:agencyDeployment.revision,buybacks:buybackReadiness,...(agencyDeployment.rules?{rules:agencyDeployment.rules}:{})}}:{}),
       reasons:protocolSplit ? reasons : [...reasons, 'Active fee policy is unavailable'] };
   };
   // Concurrent capability and launch requests share only in-flight evidence.
