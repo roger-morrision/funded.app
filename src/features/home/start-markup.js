@@ -1,7 +1,7 @@
 // A compact version of the platform overview, mounted before workspace routing.
 export function mountHomeStart(document=globalThis.document) {
   const section=document.querySelector('.home-start');
-  if(section) section.innerHTML=`<header><p class="eyebrow">Why richpad.fun</p><h2 id="home-start-title">Fees go back to the community.</h2><p class="home-start-note">Collected creator fees follow the allocation saved on Solana at launch.</p></header>
+  if(section) section.innerHTML=`<header><p class="eyebrow">Why richpad.fun</p><h2 id="home-start-title">Rewards for every role.</h2><p class="home-start-note">Explore how collected creator fees support creators, holders, referrers, and daily reward pools.</p></header>
           <div class="home-start-grid">
             <a href="#launch"><span class="home-benefit-value">80%</span><h3>Creator-directed fees</h3><p>Choose your wallet, holders and X split.</p></a>
             <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Token reserve</h3><p>For eligible $RICH holders at migration.</p></a>
@@ -15,7 +15,7 @@ export function mountHomeStart(document=globalThis.document) {
   if(section && !section.querySelector('.home-proof-summary')) {
     const proof=document.createElement('section');proof.className='home-proof-summary';
     proof.setAttribute('aria-labelledby','home-proof-title');
-    proof.innerHTML='<header><h2 id="home-proof-title">On-chain activity</h2><a href="#analytics-detail">View activity →</a></header><div class="home-proof-metrics"></div>';
+    proof.innerHTML='<header><h2 id="home-proof-title">See how value reaches the community.</h2><a href="#analytics-detail">View activity →</a></header><div class="home-proof-metrics"></div>';
     for(const id of ['home-kpi-launches-card','home-kpi-volume-card','home-kpi-fees-card','home-kpi-holder-paid-card',
       'home-kpi-referrals-card','home-kpi-airdrop-card','home-kpi-burn-card','home-kpi-buyback-card']) {
       const card=document.getElementById(id);if(card)proof.lastElementChild.append(card);

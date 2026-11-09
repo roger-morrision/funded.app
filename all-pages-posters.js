@@ -31,7 +31,7 @@ function mountPagePoster(definition) {
   const description = document.createElement('p');
   description.textContent = definition.note;
   const mark = document.createElement('img');
-  mark.src = document.querySelector('.brand .brand-mark img')?.getAttribute('src') || '/wolf-mark.svg';
+  mark.src = document.querySelector('.brand .brand-mark img')?.getAttribute('src') || '/richpad-mark.svg';
   mark.alt = '';
   mark.width = 26;
   mark.height = 26;

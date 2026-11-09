@@ -5,7 +5,7 @@ export function rewards() {
   const x = node('div'); x.id = 'rewards-x';
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
-  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your rewards</h1><p>See what needs action, what arrives automatically, and what has been paid.</p></div>
+  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your participation can pay back.</h1><p>Find eligible rewards, claim available SOL, and track payments.</p></div>
     <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">How to qualify</h2></header><div class="reward-upcoming-grid">
       <article><span>SOL · COIN HOLDERS</span><h3>Hold through the cutoff</h3><ul><li>Choose a coin that shares fees with holders.</li><li>Hold through its displayed hourly cutoff.</li><li>Eligible wallets receive SOL automatically.</li><li>Small pools carry forward to a later payout.</li></ul><button type="button" data-reward-open="holder">View holder rewards →</button></article>
       <article><span>LAUNCHED COIN TOKENS · $RICH HOLDERS</span><h3>Airdrops at migration</h3><ul><li>Hold $RICH until the coin migrates.</li><li>At least 3% of supply is reserved for eligible holders.</li><li>Your share depends on your $RICH holdings.</li><li>Tokens arrive automatically after checks. No claim needed.</li></ul><a href="#airdrops">View airdrops →</a></article>
@@ -19,7 +19,7 @@ export function rewards() {
     if(rect.bottom+8>bottom)window.scrollBy({top:Math.ceil(rect.bottom+12-bottom),behavior:'instant'});
   });
   const creator = node('div'); creator.id = 'rewards-creator';
-  creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator rewards</h2><p>Track SOL payments from your launches.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
+  creator.innerHTML = '<div class="reward-section-intro"><p class="eyebrow">Your launches</p><h2>Creator rewards</h2><p>Earn your saved share of creator fees. Review available claims and confirmed SOL payments.</p></div><div class="reward-creator-gate"><p class="reward-wallet-prompt">Connect your launch wallet to view creator rewards.</p><div class="reward-creator-actions"><button type="button" class="primary-button" data-reward-connect>Connect wallet</button><a class="secondary-button" href="#my-launches">Open Portfolio →</a></div></div>';
   const personal = $('[data-personal-rewards]'); if(personal)creator.append(personal);
   const xSummary = $('[data-x-rewards]',personal || creator);if(xSummary)x.prepend(xSummary);
   const holder = node('div'); holder.id = 'rewards-holder';

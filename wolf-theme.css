@@ -1,4 +1,4 @@
-/* Funded's black wolf identity: deep ink, storm blue, warm amber and ivory. */
+/* Richpad identity: deep navy, warm gold and mint accents. */
 :root {
   --bg: #0b1020;
   --panel: #121b2e;
@@ -359,7 +359,7 @@ body.page-route-coin .coin-page .coin-transactions-table tbody tr:hover { backgr
     display: block;
     flex: 0 0 22px;
     height: 22px;
-    background: url('/wolf-mark.svg') center / contain no-repeat;
+    background: url('/richpad-mark.svg') center / contain no-repeat;
   }
   body.page-route .mobile-trade-open { background: #f4a340; border-color: #ffd28a; color: #18151c; }
   body.page-route-overview .hero-section { min-height: 545px !important; background-position: center, center, 60% bottom, center !important; }

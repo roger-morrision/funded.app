@@ -31,7 +31,7 @@ function revealCampaignFocus(event) {
 
 export function secondaryPages() {
   mountReferralList();
-  text('#referral-command-title', 'Your dashboard');
+  text('#referral-command-title', 'Grow the community. Earn referral rewards.');
   disclose($('.referral-toolkit'), 'Campaign links and sharing tools');
   for (const button of $$('[data-referral-campaign]')) button.addEventListener('focus', revealCampaignFocus);
   const receipts=$('.burn-receipts-panel');
@@ -118,7 +118,7 @@ export function protocolPage() {
   const collectionNote = root.querySelector(':scope > p:not(.eyebrow)');
   if (collectionNote) collectionNote.textContent = copy.collection;
   const hero = node('div', 'paid-reference-hero');
-  hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true">R</span><div><p class="eyebrow">$RICH · network token</p><h1>The token behind every launch</h1><p>$RICH connects launch tiers, community allocations, and the published burn policy. Verify holder rewards and burns through their receipts.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">Buy or burn $RICH ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>View on Solana ↗</a><a class="secondary-button" href="#explore">Explore launches</a><a class="secondary-button" href="#launch">Burn for a tier</a></div></div>';
+  hero.innerHTML = '<span class="paid-hero-mark" aria-hidden="true"><img src="/richpad-mark.svg" alt="" width="110" height="110" /></span><div><p class="eyebrow">$RICH · network token</p><h1>Hold a stake in community rewards.</h1><p>Explore airdrop eligibility, buybacks, and confirmed burns. Eligible $RICH holders can receive launched-token allocations at migration.</p><div class="paid-hero-actions"><a class="primary-button" href="#buybacks">Buy or burn $RICH ↗</a><a class="secondary-button" id="funded-token-chart" href="#explore" hidden>View on Solana ↗</a><a class="secondary-button" href="#explore">Explore launches</a><a class="secondary-button" href="#launch">Burn for a tier</a></div></div>';
   const facts = node('div', 'paid-reference-metrics');
   facts.setAttribute('aria-label', '$RICH token and tier metrics');
   facts.innerHTML = '<div><span>PRICE</span><strong id="funded-token-price">$—</strong><small id="funded-token-price-note">Verified quote unavailable</small></div><div><span>MARKET CAP</span><strong id="funded-token-market-cap">$—</strong><small id="funded-token-market-cap-note">Verified market unavailable</small></div><div><span>$RICH BURNED</span><strong id="funded-token-burned">—</strong><small id="funded-token-burned-note">Checking on-chain supply</small></div><div><span>PRO TIER</span><strong id="funded-token-pro">—</strong><small id="funded-token-pro-note">$RICH burn per launch</small></div><div><span>PREMIER TIER</span><strong id="funded-token-premier">—</strong><small id="funded-token-premier-note">$RICH burn per launch</small></div>';

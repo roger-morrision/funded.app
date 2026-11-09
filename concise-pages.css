@@ -169,7 +169,7 @@ body.page-route-analytics-detail .recipients-panel .concise-recipient-more {
 }
 body.page-route-paid .paid-hero-mark {
   font-size: 0 !important; text-shadow: none !important;
-  background: url('/wolf-mark.svg') center / contain no-repeat !important;
+  background: url('/richpad-mark.svg') center / contain no-repeat !important;
 }
 
 /* Put the transaction controls first; the queue and older proof remain available on demand. */

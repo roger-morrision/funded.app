@@ -55,6 +55,10 @@ FUNDED_V3_COMMUNITY_ACCOUNT_SETUP=app
 # Keep the program upgradeable. A reviewed, non-empty authority is mandatory.
 MAINNET_APPROVED_UPGRADE_AUTHORITY=REPLACE_REVIEWED_AUTHORITY
 MAINNET_APPROVED_IMMUTABLE_PROGRAM=false
+# RICH will launch on pump.fun. Record its actual Mainnet mint after launch.
+# The current pricing/buyback implementation requires its canonical SOL/RICH
+# PumpSwap pool after graduation. A derived pool address alone is not liquidity.
+# Keep legacy FUNDED_* variable names for application compatibility.
 FUNDED_TOKEN_MINT=REPLACE_MAINNET_FUNDED_MINT
 VITE_FUNDED_TOKEN_MINT=REPLACE_MAINNET_FUNDED_MINT
 FUNDED_SWAP_POOL=REPLACE_MAINNET_FUNDED_POOL

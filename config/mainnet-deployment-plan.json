@@ -45,6 +45,16 @@
   "feeRecipient": null,
   "fundedMint": null,
   "fundedPool": null,
+  "richTokenLaunch": {
+    "symbol": "RICH",
+    "venue": "pump.fun",
+    "status": "planned-not-launched",
+    "requiredQuoteAsset": "SOL",
+    "poolDependency": "Canonical SOL/RICH PumpSwap pool after graduation; verify live liquidity before pricing or buybacks",
+    "mintAndPoolVerification": "pending",
+    "launchTransactionSignature": null,
+    "migrationTransactionSignature": null
+  },
   "maximumTotalSpendLamports": "5000000000",
   "maximumPriorityFeeLamports": "0",
   "independentReviewer": null,

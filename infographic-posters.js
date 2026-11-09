@@ -84,7 +84,7 @@ function addPoster(definition) {
   mark.className = 'infographic-poster-mark';
   mark.setAttribute('aria-hidden', 'true');
   const wolf = document.createElement('img');
-  wolf.src = document.querySelector('.brand .brand-mark img')?.getAttribute('src') || '/wolf-mark.svg';
+  wolf.src = document.querySelector('.brand .brand-mark img')?.getAttribute('src') || '/richpad-mark.svg';
   wolf.alt = '';
   wolf.width = 28;
   wolf.height = 28;

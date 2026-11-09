@@ -224,17 +224,17 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#payments > .workspace-page-header > p:last-child', 'See what needs action, what arrives automatically, and what has been paid.'],
+    ['#payments > .workspace-page-header > p:last-child', 'Find eligible rewards, claim available SOL, and track payments.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Rates for new launches. Existing coins keep saved rates. Allocations are not payments.'],
-    ['#launch-route-shell > .page-lede', 'Add your coin details, choose rewards and funding, then review the full cost before signing.'],
+    ['#launch-route-shell > .page-lede', 'Earn creator fees and choose how to reward holders and an X partner. Review the full cost before signing.'],
     ['#buybacks .burn-center-hero > p:not(.eyebrow)', 'Burn permanently. Verify the receipt on-chain.'],
     ['#community .section-heading .panel-explainer', 'Sign in to save favorites across devices.'],
     ['#capital-flow-title', 'How creator fees are split'],
     ['#analytics-detail .split-detail', 'Saved rates apply per coin. Allocations are not payments.'],
     ['#token-image-help', 'PNG, JPG, WebP · up to 15 MB · 1024×1024 output · compressed to 600 KB'],
     ['#launch-route-shell .launch-immutable-note', 'Token details publish at launch and cannot be edited here later.'],
-    ['#referral-command-center .section-heading .panel-explainer', 'Earn from collected creator fees, not signups.'],
+    ['#referral-command-center .section-heading .panel-explainer', 'Invite creators and track rewards from qualifying launches.'],
     ['#buybacks .burn-buy-card > p:not(.eyebrow):not(.funded-burn-status)', 'Review the pool quote, then approve in your wallet.'],
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Optionally link a project. Review and approve the permanent burn.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by richpad.fun. Total supply can include other burns.'],

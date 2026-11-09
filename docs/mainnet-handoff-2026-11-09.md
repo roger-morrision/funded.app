@@ -12,6 +12,7 @@ Status: **NO-GO**. The user reconfirmed “PLACE HOLDER FIRST” on 9 November 2
 | Indexed market fallback | Birdeye; its existing key stays server-side |
 | Intended public site | richpad.fun; preserve a separate Devnet environment |
 | Current activation | Disabled; read-only preparation |
+| RICH launch venue | Pump.fun; actual Mainnet mint and pool remain placeholders until verified |
 
 ## Inputs the owner will need to supply
 
@@ -19,7 +20,7 @@ No immediate response is required while placeholders are requested. Provide publ
 
 | Input | Exact information needed | Work it unlocks |
 | --- | --- | --- |
-| Mainnet $RICH assets | Existing mint and canonical pool addresses. If neither exists, say “create new” and specify supply, decimals, allocation/treasury ownership, pool venue and initial liquidity budget within the 5 SOL cap. | Build-time asset binding, burn pricing, buyback verification and final cost estimate |
+| Mainnet $RICH assets | RICH will launch on Pump.fun. Supply the actual mint and launch receipt after creation. The current app requires the canonical SOL/RICH PumpSwap pool after graduation, with verified reserves, before RICH pricing and buybacks. Launch custody and any initial purchase budget still need to be selected within the spending cap. | Build-time asset binding, burn pricing, buyback verification and final cost estimate |
 | Production hosting | Host/provider and deployment-access reference; DNS access for richpad.fun and the retained Devnet host. Existing production Postgres, cache, storage and backup references if supplied by that provider. | Provision isolated services and backups; configure TLS and routing. The implementation can create the infrastructure once access and service choices are known. |
 | Metadata storage | Production Pinata credential-file reference and account/namespace to use. | Durable logo/banner/metadata storage and retrieval verification |
 | Deployment payer | Public payer address plus supported signing method or protected signer-file reference. Confirm whether the recorded admin wallet is also the payer. | Exact deployment messages, signatures and capped canary; authority address alone is not signing access |
@@ -34,7 +35,7 @@ The program ID, deployment hashes, lookup tables, build revision, database names
 | Gate | Current state / next action |
 | --- | --- |
 | Mainnet financial integration | Launch readiness and registration, X capability, fee collector, holder/daily-bonus workers and community delivery still contain Devnet-only guards. Complete their selected-network configuration and reviewed-program checks before considering activation. Setting a flag cannot replace this work. |
-| Exact release | The shared checkout includes uncommitted boost-recovery/mobile-menu changes. Review and freeze a coherent application release; reproduce the production program binary with its actual program, mint and pool identities. |
+| Exact release | Boost recovery and mobile-menu fixes are included in committed Devnet release `df58498490d8f2b208fd923618c44b7ce3fc7928`. Freeze the final production application release and reproduce its program binary with actual program, mint and pool identities. Devnet deployment does not certify Mainnet acceptance. |
 | Financial acceptance | Revalidate all 13 cases in `config/mainnet-acceptance-plan.json` against that release. Historical receipts and mocked tests are not current-release acceptance. Remaining cases include full holder delivery, X identity/payment, protocol distributions, buyback/burn, community claims and interrupted-transaction recovery. |
 | Independent price signer | The Devnet price-signer account was still absent in the finalized 9 November read. Configure independently controlled attestation and prove purchase/burn accounting. |
 | 48-hour lock | Early release is rejected and the vault balance is unchanged. The lock matures **10 November 2026, 09:23:54 Bangkok**. After that, verify finalized release to the original beneficiary and duplicate rejection. Do not shorten the deadline to pass the test. |

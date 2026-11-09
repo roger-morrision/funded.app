@@ -1,12 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true">
-  <rect width="64" height="64" rx="15" fill="#111b2f"/>
-  <path d="M9 29 11 4 25 19 32 17 39 19 53 4 55 29 51 43 40 54 32 61 24 54 13 43Z" fill="#e99b49"/>
-  <path d="M14 29 15 15 26 25 32 22 38 25 49 15 50 29 47 41 38 50 32 56 26 50 17 41Z" fill="#151d2c"/>
-  <path d="M17 17 24 26 19 29Z M47 17 40 26 45 29Z" fill="#8e623c"/>
-  <path d="M20 36 27 32 32 35 37 32 44 36 38 39 32 38 26 39Z" fill="#aebbd0"/>
-  <path d="M23 40 32 35 41 40 38 49 32 54 26 49Z" fill="#d7d3c9"/>
-  <path d="M27 42 32 40 37 42 32 47Z" fill="#151d2c"/>
-  <path d="M25 48 32 52 39 48" fill="none" stroke="#151d2c" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M20 33 27 32 M37 32 44 33" fill="none" stroke="#e99b49" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="25" cy="34" r="1.8" fill="#f4a340"/><circle cx="39" cy="34" r="1.8" fill="#f4a340"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="16" fill="#111B2F"/>
+  <path fill-rule="evenodd" d="M15 49V23h8v-8h12c9 0 15 4 15 12 0 9-6 13-15 13H25v9H15Zm10-25v7h10c3 0 5-1 5-4s-2-3-5-3H25Z" fill="#FFD166"/>
+  <path d="m29 36 10-2 12 15H38L29 36Z" fill="#56E4BD"/>
 </svg>

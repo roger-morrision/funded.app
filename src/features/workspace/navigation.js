@@ -200,7 +200,7 @@ export function navigation() {
     }
   };
   helpTrigger.addEventListener('click', () => setHelpOpen(helpPanel.hidden));
-  helpPanel.querySelector('.help-topics-intro').textContent = 'Help center · Guidance for this page and every app workflow. Issue reports are available in Profile; live chat is unavailable.';
+  helpPanel.querySelector('.help-topics-intro').textContent = 'Find your way to participate and earn. Understand rewards, eligibility, claims, and token protections. Issue reports are available in Profile.';
   helpPanel.querySelector('.help-topics-choices').before(helpPanel.querySelector('.help-topics-answer'));
   const menuHelp = node('button', 'nav-item help-menu-trigger', 'Help for this page');
   menuHelp.id = 'help-menu-trigger';

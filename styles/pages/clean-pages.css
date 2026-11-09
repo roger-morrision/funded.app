@@ -23,6 +23,8 @@ html body.page-route-overview.product-experience-style #main-content .hero-secti
   display: block; background: none; border-bottom: 1px solid var(--cp-line);
 }
 html body.page-route-overview.product-experience-style #main-content .hero-copy-column { display: block; min-width: 0; max-width: 840px; }
+html body.page-route-overview.product-experience-style #main-content .hero-copy-column p.home-hero-kicker { display:block;margin:0 0 12px;color:#ffd166;font-size:13px;letter-spacing:.02em;text-transform:none; }
+html body.page-route-overview.product-experience-style #main-content .home-benefit-intro { margin:14px 0;max-width:70ch;color:var(--cp-muted);font-size:15px;line-height:1.6; }
 html body.page-route-overview.product-experience-style #main-content .hero-section h1 { max-width: 22ch; line-height: 1.12; letter-spacing: -.035em; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy { max-width: 56ch; margin: 20px 0; font-size: 16px; line-height: 1.6; }
 html body.page-route-overview.product-experience-style #main-content .hero-section .hero-copy > p { margin:0; }
@@ -32,9 +34,10 @@ html body.page-route-overview.product-experience-style #main-content .hero-actio
  html body.page-route-overview.product-experience-style #main-content .hero-copy-column { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:20px 32px;max-width:none; }
  html body.page-route-overview.product-experience-style #main-content .hero-copy-column > * { grid-column:1 / -1; }
  html body.page-route-overview.product-experience-style #main-content .hero-copy-column .home-hero-kicker { grid-column:1;grid-row:1; }
- html body.page-route-overview.product-experience-style #main-content .hero-copy-column h1 { grid-column:1;grid-row:1;margin:0; }
- html body.page-route-overview.product-experience-style #main-content .hero-copy-column .hero-actions { grid-column:2;grid-row:1;justify-content:flex-end;margin:0; }
- html body.page-route-overview.product-experience-style #main-content .hero-copy-column .hero-copy { grid-column:1 / -1;grid-row:2;margin:0;padding:0;border:0;max-width:none; }
+ html body.page-route-overview.product-experience-style #main-content .hero-copy-column h1 { grid-column:1;grid-row:2;margin:0; }
+ html body.page-route-overview.product-experience-style #main-content .hero-copy-column .hero-actions { grid-column:2;grid-row:2;justify-content:flex-end;margin:0; }
+ html body.page-route-overview.product-experience-style #main-content .hero-copy-column .home-benefit-intro { grid-row:3;margin:0; }
+ html body.page-route-overview.product-experience-style #main-content .hero-copy-column .hero-copy { grid-column:1 / -1;grid-row:4;margin:0;padding:0;border:0;max-width:none; }
 }
 html body #main-content .home-receipts a:focus-visible { outline: 2px solid var(--cp-accent); outline-offset: 3px; }
 html body #main-content .home-start { order: 3; margin: 32px 0; }

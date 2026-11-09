@@ -14,7 +14,7 @@ export const HOME_BONUS_MARKUP = `
           <details class="ui-disclosure home-bonus-rules"><summary>How bonuses are split</summary><p class="field-help">${bonusCategoryCopy()} Amounts are allocations from verified indexed settlements, not paid rewards. Unfilled ranks retain their share.</p></details>
         `;
 export const BONUS_HISTORY_MARKUP = `
-          <header class="bonus-section-heading"><div><p class="eyebrow">Ranked rewards · SOL</p><h1 id="bonuses-title">Daily bonuses</h1><p>Finalized payouts to winning wallets.</p></div><button type="button" data-bonus-history-refresh>Refresh</button></header>
+          <header class="bonus-section-heading"><div><p class="eyebrow">Ranked rewards · SOL</p><h1 id="bonuses-title">Stay active. Compete for daily rewards.</h1><p>Eligible creators, traders, and referrers can share funded bonus pools. Track confirmed payouts below.</p></div><button type="button" data-bonus-history-refresh>Refresh</button></header>
           <details class="bonus-policy-disclosure ui-disclosure"><summary>Ranking &amp; payout rules</summary><p class="field-help" data-bonus-delivery>${bonusCategoryCopy()} Snapshots close at 00:00 UTC. Bonuses are paid automatically to winning wallets after snapshot and funding verification. No manual claim or recipient signature is required.</p></details>
           <p data-bonus-history-status role="status">Checking finalized bonus receipts…</p>
           <section aria-labelledby="bonus-leaders-title"><h2 id="bonus-leaders-title">All-time top recipients</h2><p class="field-help">Top 10 per category · confirmed payouts from all recorded snapshots.</p><div class="bonus-leaders-grid" data-bonus-leaders></div></section>
