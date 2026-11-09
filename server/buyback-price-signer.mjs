@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {PublicKey} from '@solana/web3.js';
 import nacl from 'tweetnacl';
 import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
@@ -13,7 +14,10 @@ export function buybackPriceService(env=process.env) {
   const endpoint=new URL(raw), signer=new PublicKey(key);
   if(endpoint.protocol!=='https:'||endpoint.username||endpoint.password||endpoint.hash||endpoint.search
     ||!PublicKey.isOnCurve(signer.toBytes()))throw Error('Invalid independent Devnet buyback signer configuration.');
-  return {signer,endpoint};
+  const tokenFile=env.FUNDED_DEVNET_BUYBACK_PRICE_SIGNER_TOKEN_FILE;
+  const token=tokenFile?readFileSync(tokenFile,'utf8').trim():null;
+  if(token!==null&&!/^[a-f0-9]{64}$/.test(token))throw Error('Invalid price signer authentication file.');
+  return {signer,endpoint,token};
 }
 
 export async function priceSignerActivated(connection,program,signer) {
@@ -30,8 +34,8 @@ export async function cosignBuyback({connection,transaction,program,service,requ
     ||message.staticAccountKeys[0].equals(signer))throw Error('Unexpected buyback signers.');
   if(!await priceSignerActivated(connection,program,signer))
     throw Error('Independent price signer is not activated on Devnet.');
-  const response=await request(service.endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(8000),
-    headers:{'content-type':'application/json'},body:JSON.stringify({cluster:'devnet',programId:String(program),
+  const response=await request(service.endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(45000),
+    headers:{'content-type':'application/json',...(service.token?{authorization:`Bearer ${service.token}`}:{})},body:JSON.stringify({cluster:'devnet',programId:String(program),
       transaction:Buffer.from(transaction.serialize()).toString('base64')})});
   if(!response.ok)throw Error('The independent price signer declined the buyback.');
   const {signature}=await response.json();

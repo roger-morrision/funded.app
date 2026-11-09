@@ -1,0 +1,39 @@
+# Separate signing key, independent finalized RPC reads, no application/database
+# credentials, no published port. HTTPS is terminated by the origin proxy.
+services:
+  price-signer:
+    image: ${RICH_PRICE_SIGNER_IMAGE:?Pin the tested application image digest}
+    command: ["node", "scripts/run-price-signer.mjs"]
+    user: "1000:1000"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 64
+    environment:
+      PRICE_SIGNER_HOST: 0.0.0.0
+      PRICE_SIGNER_PORT: "8789"
+      PRICE_SIGNER_KEY_FILE: /run/secrets/price-key
+      PRICE_SIGNER_TOKEN_FILE: /run/secrets/price-token
+      PRICE_SIGNER_CONFIG_FILE: /run/secrets/price-config
+      PRICE_SIGNER_RPC_FILE: /run/secrets/price-rpc
+      PRICE_SIGNER_JOURNAL: /state/reservations.jsonl
+    volumes:
+      - ${RICH_PRICE_SIGNER_KEY_FILE:?Dedicated signer file required}:/run/secrets/price-key:ro
+      - ${RICH_PRICE_SIGNER_TOKEN_FILE:?Dedicated API token required}:/run/secrets/price-token:ro
+      - ${RICH_PRICE_SIGNER_CONFIG_FILE:?Reviewed allowlist required}:/run/secrets/price-config:ro
+      - ${RICH_PRICE_SIGNER_RPC_FILE:?Independent Devnet RPC file required}:/run/secrets/price-rpc:ro
+      - ${RICH_PRICE_SIGNER_STATE_DIR:?Persistent signer journal directory required}:/state
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8789/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
