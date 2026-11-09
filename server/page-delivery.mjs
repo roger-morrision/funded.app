@@ -46,11 +46,12 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
   }
 
   async function handlePublicMetadata(req, res, url, metadataHost) {
-    if (req.method === 'GET' && url.pathname === '/default.svg') {
+    const readRequest = req.method === 'GET' || req.method === 'HEAD';
+    if (readRequest && url.pathname === '/default.svg') {
       res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'" });
       return end(res, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="48" fill="#111827"/><circle cx="128" cy="128" r="68" fill="#d7b65d"/><text x="128" y="148" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="70" fill="#111827">F</text></svg>');
     }
-    const publicMint = req.method === 'GET' ? url.pathname.match(/^\/(?:devnet-(?:metadata|images|banners)|m)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
+    const publicMint = readRequest ? url.pathname.match(/^\/(?:devnet-(?:metadata|images|banners)|m)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
     if (publicMint && url.pathname.startsWith('/devnet-banners/')) {
       const banner = await store.readMetadataBanner(publicMint);
       if (!banner) return json(res, 404, { error: 'Banner not found.' });
@@ -79,7 +80,8 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
   }
 
   async function handlePages(req, res, url) {
-    const metadataMint = req.method === 'GET' ? url.pathname.match(/^\/(?:devnet-metadata|m)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
+    const readRequest = req.method === 'GET' || req.method === 'HEAD';
+    const metadataMint = readRequest ? url.pathname.match(/^\/(?:devnet-metadata|m)\/([1-9A-HJ-NP-Za-km-z]{32,44})$/)?.[1] : null;
     if (metadataMint) {
       const launch = await store.readLaunch(metadataMint);
       if (!launch || launch.cluster !== 'devnet' || !launch.onchainVerified
@@ -88,29 +90,29 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
         || !launch.name || !launch.symbol) return json(res, 404, { error: 'Verified V3 launch metadata is not available.' });
       return json(res, 200, { name: launch.name, symbol: launch.symbol, description: 'Token launched on richpad.fun.', image: `${normalizeDevnetMetadataOrigin(process.env.PUBLIC_APP_URL || process.env.DEVNET_METADATA_ORIGIN)}/favicon.svg` });
     }
-    if (req.method === 'GET' && /^\/creator\/x\/\d{1,24}\/?$/.test(url.pathname)) {
+    if (readRequest && /^\/creator\/x\/\d{1,24}\/?$/.test(url.pathname)) {
       const creatorId=url.pathname.split('/')[3];
       const html = creatorPageHtml(await readFile(resolve(staticRoot, 'index.html'), 'utf8'), await store.readCreatorState(creatorId,solanaCluster,{financial:false}), creatorId, solanaCluster);
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
       return end(res, html);
     }
-    const tokenPageMint=req.method==='GET'?url.pathname.match(/^\/(?:token|launch\/coin)\/([1-9A-HJ-NP-Za-km-z]{32,44})\/?$/)?.[1]:null;
+    const tokenPageMint=readRequest?url.pathname.match(/^\/(?:token|launch\/coin)\/([1-9A-HJ-NP-Za-km-z]{32,44})\/?$/)?.[1]:null;
     if(tokenPageMint){
       const [template,launch,metadata]=await Promise.all([readFile(resolve(staticRoot,'index.html'),'utf8'),store.readLaunch(tokenPageMint),store.readMetadata(tokenPageMint)]);
       const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search);
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return end(res, page);
     }
-    if (req.method === 'GET' && /^\/welcome\/?$/.test(url.pathname)) return await serveStatic('/welcome.html', res);
-    if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname === '/admin/')) return await serveStatic('/admin.html', res);
-    if (req.method === 'GET' && ['/', '/explore', '/explore/'].includes(url.pathname)) {
+    if (readRequest && /^\/welcome\/?$/.test(url.pathname)) return await serveStatic('/welcome.html', res);
+    if (readRequest && (url.pathname === '/admin' || url.pathname === '/admin/')) return await serveStatic('/admin.html', res);
+    if (readRequest && ['/', '/explore', '/explore/'].includes(url.pathname)) {
       const [template, launches] = await Promise.all([
         readFile(resolve(staticRoot, 'index.html'), 'utf8'), recentLaunches(),
       ]);
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
       return end(res, publicDiscoveryHtml(template, launches, solanaCluster));
     }
-    if (req.method === 'GET' && isAppPagePath(url.pathname)) return await serveStatic('/', res);
-    if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return await serveStatic(url.pathname, res);
+    if (readRequest && isAppPagePath(url.pathname)) return await serveStatic('/', res);
+    if (readRequest && !url.pathname.startsWith('/api/')) return await serveStatic(url.pathname, res);
     return false;
   }
 
