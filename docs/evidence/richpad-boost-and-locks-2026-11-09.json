@@ -1,0 +1,117 @@
+{
+  "checkedAt": "2026-11-09T09:50:29.953Z",
+  "release": "36139a60de6293e1959802ef4065b60d2dcaf493",
+  "image": "sha256:95ef31fddbd7aeb79867f89e2bfc1915ee6bed9e0a82ccfe3142a42dc8aef9de",
+  "frontendDigest": "a4d8769ff62317543f7777f9c79349a62e7ca82f7f7ca82aa1e14878d11062cb",
+  "cluster": "devnet",
+  "mainnetEnabled": false,
+  "launchReady": true,
+  "tests": {
+    "local": 356,
+    "deploymentContainer": 347,
+    "excludedFromContainer": "Nine Mainnet launch-packet tests requiring source-only operational fixtures"
+  },
+  "boost": {
+    "cluster": "devnet",
+    "mint": "HQiP8prGdyuyfygCXNB8x8gvrzHyTrrTWLdKA6KQygjA",
+    "startedAt": "2026-11-09T09:47:18.719Z",
+    "maximumPaymentLamports": 650000000,
+    "events": [
+      "wallet-priority-added-and-signed",
+      "persist-before-broadcast",
+      "server-journaled",
+      "server-journaled"
+    ],
+    "release": "36139a60de6293e1959802ef4065b60d2dcaf493",
+    "priorMultiplier": 10,
+    "payer": "H9jpmj9h8HtTRWyXCsz4krzQRujTn1nkvFaLYYY4rHBD",
+    "funder": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+    "quoteId": "boost_1794217639913_515dee3619047182",
+    "lamports": 572452874,
+    "recipient": "BHRHGiDRGrBXo6PuVvgxuH9nVbaGCLAxrdUKNJxzYb16",
+    "fundingSignature": "2WjsuxVeKuBR6NCNkDnZbvsRgEuSWeBPMvZY2wefPURUAjkDouxvQDtR3TsEBbCYaohQTDtt8dpHNXRuDFeqURyW",
+    "signature": "2wtnCw8SbnuuuUQgEUeeciuT1EKcspXhfEMQ2Uuxwe52xbpAMrJZWmig8cyaLMRfWZxyuYwGo3gh7byFc9gghQ22",
+    "receipt": {
+      "signature": "2wtnCw8SbnuuuUQgEUeeciuT1EKcspXhfEMQ2Uuxwe52xbpAMrJZWmig8cyaLMRfWZxyuYwGo3gh7byFc9gghQ22",
+      "quoteId": "boost_1794217639913_515dee3619047182",
+      "mint": "HQiP8prGdyuyfygCXNB8x8gvrzHyTrrTWLdKA6KQygjA",
+      "payer": "H9jpmj9h8HtTRWyXCsz4krzQRujTn1nkvFaLYYY4rHBD",
+      "recipient": "BHRHGiDRGrBXo6PuVvgxuH9nVbaGCLAxrdUKNJxzYb16",
+      "packageId": "10x",
+      "multiplier": 10,
+      "hours": 12,
+      "usd": 49.5,
+      "solUsd": 86.47,
+      "lamports": 572452874,
+      "cluster": "devnet",
+      "status": "finalized",
+      "slot": 520341561,
+      "startsAt": "2026-11-09T09:47:27.000Z",
+      "expiresAt": "2026-11-10T08:50:42.000Z",
+      "durationPolicy": "add-quantity-and-hours-v1",
+      "originalExpiresAt": "2026-11-09T21:47:27.000Z"
+    },
+    "uiMessage": "Your boost is active. You can buy another boost or view your receipt below.",
+    "status": "passed",
+    "slot": 520341561,
+    "networkFeeLamports": 20000,
+    "recipientCreditLamports": 572452874,
+    "activeMultiplier": 20,
+    "singleReceiptOnReplay": true,
+    "walletType": "Ephemeral test signer reproducing Phantom priority instructions; not a real Phantom approval",
+    "refundSignature": "3ynqJvZUkeaKoKGmpJwcxEWzvgVV8mJJ7joywyaNtzzLtWRQdZeaQBgTe6vkKDvRt6taEGqEyymU3Qj7GT685Zrx",
+    "refundedLamports": 87522126,
+    "remainingTestWalletLamports": 0,
+    "finishedAt": "2026-11-09T09:47:39.294Z"
+  },
+  "rcat": {
+    "mint": "EjcH3cizxAevcYHRjq29z1DQdn6oATap4uN9fRzTD2sa",
+    "cluster": "devnet",
+    "creatorWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "creatorFeesLocked": false,
+    "tokenLock": {
+      "lock": "Hh8romtQfJ6d56Jds9eJ2XtrPZwaLCkvSG7XEUryK8Qd",
+      "mint": "EjcH3cizxAevcYHRjq29z1DQdn6oATap4uN9fRzTD2sa",
+      "creator": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+      "amount": "34281146476108",
+      "lockedAt": 1794216486,
+      "unlockAt": 1794259686,
+      "releasedAt": 0,
+      "lockSeconds": 43200,
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "vault": "8MWw9yvpb3GGts2hnRKPYN5Av2Y9zbSZvTFGv6XBQu8z",
+      "verified": true,
+      "checkedSlot": 520342312,
+      "balance": "34281146476108",
+      "decimals": 6,
+      "status": "locked",
+      "fundingSignature": "55ifMBuViFrkYTxzWpJCdf7w44Ppon8WneU1ugWd7HjuJe6NZ9szyQjC34fvXmzJN4fzPHoA4sosBy3neTtcWZ54"
+    },
+    "bundleDetection": {
+      "status": "not-scanned",
+      "bundleConfirmed": false,
+      "scanning": false,
+      "cachedAt": null
+    },
+    "spendableSnapshot": {
+      "slot": 520341849,
+      "rawAmount": "440022325920356",
+      "decimals": 6,
+      "tokenAccount": "6TJ3qVbvL1hVfW8md2fyAKjtTYJr4sjvTa6Uv6YcPTXe",
+      "portfolioReader": "Both SPL Token and Token-2022 reads succeeded; app aggregate includes RCAT quantity440022325.920356"
+    }
+  },
+  "browser": {
+    "coinPanel": "Developer tokens · Locked",
+    "displayedAmount": "34,281,146.476108 tokens",
+    "displayedDeadline": "Nov 10, 2026, 4:28:06 AM GMT+7",
+    "portfolioLockedTab": "Verified navigation and disconnected-wallet state",
+    "limitation": "Connected-wallet rendering and the user’s real Phantom retry remain user-confirmation steps."
+  },
+  "custody": {
+    "rpcGatewayAndDatabaseRestarted": false,
+    "existingRuntimeConfigurationPreserved": true,
+    "developerReleaseRequiresWalletClaim": true
+  },
+  "sourceReference": "https://github.com/phantom/docs/blob/master/development-powertools/solana-priority-fees.md"
+}
