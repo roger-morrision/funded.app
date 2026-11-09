@@ -8,9 +8,9 @@ const program = {description:'A community-powered cat token on Solana.',holderPe
 test('preview includes the entered name, description and configured programs',()=>{
   const post=launchPromotionPreview('RICH CAT',program);
   assert.match(post,/^RICH CAT\nA community-powered cat token on Solana\./);
-  assert.match(post,/SOL creator fees: 10% to holders\./);
+  assert.match(post,/SOL rewards: 10% to holders\./);
   assert.match(post,/Airdrop: 3% of supply to eligible \$RICH holders at migration\./);
-  assert.match(post,/Eligibility and funding apply/);
+  assert.match(post,/Join the community\. Discover your rewards/);
   assert.ok(xWeightedLength(post)<=280);
 });
 
@@ -37,9 +37,9 @@ test('long descriptions fit X limits without removing program terms',()=>{
   for(const description of ['A long token description '.repeat(30),'猫のコミュニティ'.repeat(60)]) {
     const post=launchPromotionPreview('A'.repeat(32),{...program,description,xPercent:10,xHandle:'@abcdefghijklmn',airdropPercent:50,followup:true});
     assert.ok(xWeightedLength(post)<=280);
-    assert.match(post,/…\nSOL creator fees/);
+    assert.match(post,/…\nSOL rewards/);
     assert.match(post,/10% to holders; 10% to @abcdefghijklmn/);
     assert.match(post,/Airdrop: 50% of supply to eligible \$RICH holders at migration/);
-    assert.match(post,/Eligibility and funding apply/);
+    assert.match(post,/Join the community\. Discover your rewards/);
   }
 });
