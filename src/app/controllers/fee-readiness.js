@@ -1,4 +1,5 @@
 import { ensureLaunchAvailability, updateLaunchAvailabilityView } from '../../features/launch/availability-view.js';
+import { launchConfigurationBlocked, launchReadinessMessage } from '../../features/launch/readiness-message.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createFeeReadinessController(appState) {
@@ -39,9 +40,11 @@ export function createFeeReadinessController(appState) {
       programId:null, scope:'per-mint-v3', v3FeeRouter:null };
     if (status) { status.textContent = 'Checking launch availability…'; status.className = 'field-help'; }
     updateLaunchAvailability();
+    let configurationBlocked = false;
     try {
       const service = await appState.apiRequest('/api/v3-launch-config');
       const config = service.available ? service.data : null;
+      configurationBlocked = launchConfigurationBlocked(config);
       if (config?.ready !== true || config.cluster !== 'devnet'
         || !config.programId || !config.initialAuthority || !config.protocolSplit) {
         throw new Error(config?.reasons?.join('; ') || 'Launch service is unavailable');
@@ -63,9 +66,9 @@ export function createFeeReadinessController(appState) {
         status.className = 'field-help funded-mint-valid'; }
     } catch (error) {
       appState.feeRouterState = { status:String(error?.message || 'V3 launch verification unavailable'),
-        verified:false, address:null, programId:null, scope:'per-mint-v3', v3FeeRouter:null };
+        configurationBlocked, verified:false, address:null, programId:null, scope:'per-mint-v3', v3FeeRouter:null };
       window.dispatchEvent(new CustomEvent('funded:agency-readiness',{detail:{active:false}}));
-      if (status) { status.textContent = 'Launch checks are unavailable. Retry checks to continue.';
+      if (status) { status.textContent = launchReadinessMessage(appState.feeRouterState);
         status.className = 'field-help funded-mint-invalid'; }
       if (addressNode) addressNode.textContent = 'Not verified';
     }

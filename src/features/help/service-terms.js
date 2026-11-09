@@ -1,11 +1,11 @@
-// Product-specific Devnet terms. Production operator/jurisdiction details and
+// Product-specific terms. Production operator/jurisdiction details and
 // independent legal review remain Mainnet release requirements, not guessed defaults.
-export const TERMS_VERSION='1.1-devnet';
+export const TERMS_VERSION='1.2';
 export const SERVICE_TERMS_HTML=`
-<div class="legal-meta"><span>Updated 9 Nov 2026</span><span>Version ${TERMS_VERSION}</span><span>Devnet preview</span></div>
-<p>These terms describe use of the richpad.fun Devnet preview, including creating and discovering coins, trading, reward routes and promotion tools. Review these terms, the Disclosures and the transaction details before agreeing or signing. If you do not agree, do not submit a launch or use transaction features.</p>
+<div class="legal-meta"><span>Updated 9 Nov 2026</span><span>Version ${TERMS_VERSION}</span><span>richpad.fun</span></div>
+<p>These terms describe use of richpad.fun, including creating and discovering coins, trading, reward routes and promotion tools. Review these terms, the Disclosures and the transaction details before agreeing or signing. If you do not agree, do not submit a launch or use transaction features.</p>
 <h3>1. Scope and network</h3>
-<p>The current public app uses Solana Devnet and test assets with no monetary value. Devnet balances, tokens and records may be reset during testing. Devnet results do not establish Mainnet availability or production acceptance. The operator's legal identity, service address, applicable jurisdiction and production support details remain [TO BE CONFIRMED BEFORE MAINNET]. Production terms require review before a Mainnet release.</p>
+<p>richpad.fun provides tools for Solana tokens and their communities. Available features depend on the network and service configuration shown in the app. Verify the active network and asset before signing. The operator's legal identity, service address, applicable jurisdiction and production support details remain [TO BE CONFIRMED BEFORE PUBLIC PRODUCTION RELEASE]. Production terms require review before that release.</p>
 <h3>2. Wallets and authorization</h3>
 <p>You must control, or be authorized to use, each wallet and external account you connect. Keep your recovery phrase and private keys private; never include them in support requests. A sign-in message proves account control and is different from a transaction approval. Check the network, program, amount, destination, fees and permissions in your wallet before signing. Disconnecting a wallet does not reverse a transaction.</p>
 <p>The app uses separate operational signers and program-controlled vaults for specified routes. Connecting your wallet does not give an administrator unrestricted access to it. App-wallet withdrawals are limited to the signed-in approved administrator, require email verification and the matching Phantom signature, and charge the administrator the transfer fee. Program vaults retain their payout and reserve rules.</p>

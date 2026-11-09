@@ -1,3 +1,4 @@
+import { READ_ONLY_PREVIEW, PREVIEW_MESSAGE } from '../../../deployment-mode.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletConnectController(appState) {
   // app-source: 647
@@ -112,6 +113,7 @@ export function createWalletConnectController(appState) {
 
   // app-source: 648
   async function connectWallet({ interactiveSignIn = true } = {}){
+    if (READ_ONLY_PREVIEW) { appState.showToast(PREVIEW_MESSAGE); return; }
     if (appState.APP_MAINNET_READ_ONLY) {
       appState.setLaunchStatus('This workspace is read-only. Wallet connection and signing are disabled.', true);
       appState.showToast('This workspace is read-only. Wallet actions are disabled.');

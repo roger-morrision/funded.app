@@ -140,7 +140,7 @@ export function createNavigationController(appState) {
     if (/^\/pilot\/?$/.test(location.pathname) && !location.hash) return 'launch';
     if (/^\/(?:rich|funded)\/?$/.test(location.pathname) && !location.hash) return 'paid';
     if (/^\/list\/?$/.test(location.pathname) && !location.hash) return 'list';
-    if (/^\/explore\/?$/.test(location.pathname)) return 'explore';
+    if (/^\/explore\/?$/.test(location.pathname) && !location.hash) return 'explore';
     const hash = location.hash.replace(/^#/, '');
     if (hash === 'pilot') return 'launch';
     if (hash === 'overview' || hash === '') return 'overview';

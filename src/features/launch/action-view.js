@@ -118,7 +118,7 @@ export function updateLaunchNavigation(
   next.disabled = false;
   next.textContent = 'Continue';
   if (retry) {
-    retry.hidden = launchStep !== 2 || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
+    retry.hidden = launchStep !== 2 || feeRouterState.configurationBlocked === true || (feeRouterState.verified && (!wallet || (estimatedLaunchFeeLamports != null && freshLaunchReview(launchCostReview))));
     retry.disabled = feeRouterState.status === 'checking' || walletMetricsLoading;
     retry.textContent = retry.disabled ? 'Checking…' : developerBuyLimitReached() ? 'Edit developer buy' : 'Retry checks';
   }

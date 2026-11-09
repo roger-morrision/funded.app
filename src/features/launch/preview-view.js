@@ -1,6 +1,7 @@
 import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
 import { getPreparedImage } from '../../../launch-image.js';
 import { FEE_DISTRIBUTION, validateFeeDistribution } from '../../../distribution-policy.js';
+import { launchPromotionCopy } from '../../../launch-promotion-copy.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function updateLaunchPreview(
@@ -66,9 +67,7 @@ export function updateLaunchPreview(
   }
   xLabel = xLabel.trim() || 'Token';
   const xLink = 'richpad.fun/token/your-token';
-  const xLaunch = launchBurn.tier === 'standard'
-    ? `New project on richpad.fun: “${xLabel}”. Token creation finalized.`
-    : `${launchBurn.tier === 'premier' ? 'Premier' : 'Pro'} launch: “${xLabel}”. Creation and $RICH tier burn finalized.`;
+  const xLaunch = launchPromotionCopy(xLabel, launchBurn.tier);
   const xPost = document.querySelector('#launch-x-post-preview');
   if (xPost) xPost.textContent = `${xLaunch}\n${xLink}`;
   const xPostCount = document.querySelector('#launch-x-post-count');
@@ -76,7 +75,7 @@ export function updateLaunchPreview(
   const xFollowup = document.querySelector('#launch-x-followup');
   if (xFollowup) xFollowup.hidden = launchBurn.tier !== 'premier';
   const xFollowupText = document.querySelector('#launch-x-followup-preview');
-  if (xFollowupText) xFollowupText.textContent = `Premier project follow-up: “${xLabel}”. Explore the verified launch and public token page.\n${xLink}`;
+  if (xFollowupText) xFollowupText.textContent = `${launchPromotionCopy(xLabel, 'premier', { followup:true })}\n${xLink}`;
   const quotedBuyTokens = creatorBuy.tokens || (!wallet && publicQuote?.status === 'ready' ? publicQuote.developerTokens : 0);
   const lockHours = readDeveloperLockSeconds(document) / 3600;
   const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} tokens` : ''} · ${lockHours}h lock` : 'Creation only';

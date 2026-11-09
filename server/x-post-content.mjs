@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
+import { launchPromotionCopy } from '../launch-promotion-copy.js';
 
 export const X_POST_KINDS = Object.freeze(['launch', 'launch_followup', 'listing', 'trade_profit', 'daily_projects', 'daily_rewards', 'auto_payout','agency_promotion']);
 export const DEFAULT_BIG_PROFIT_LAMPORTS = '1000000000';
@@ -133,13 +134,11 @@ export function buildXPost(kind, payload, { cluster, publicOrigin = 'https://ric
     const project = budget => `“${sanitizeXLabel(payload.name || payload.symbol, budget)}”`;
     if (kind === 'launch') {
       requireValue(['standard', 'pro', 'premier'].includes(payload.marketingTier), 'Launch posts require a verified marketing tier.');
-      makeText = budget => payload.marketingTier === 'standard'
-        ? `${prefix}New project on richpad.fun: ${project(budget)}. Token creation finalized.\n${link}`
-        : `${prefix}${payload.marketingTier === 'premier' ? 'Premier' : 'Pro'} launch: ${project(budget)}. Creation and $RICH tier burn finalized.\n${link}`;
+      makeText = budget => `${prefix}${launchPromotionCopy(sanitizeXLabel(payload.name || payload.symbol, budget), payload.marketingTier)}\n${link}`;
     }
     if (kind === 'launch_followup') {
       requireValue(payload.marketingTier === 'premier', 'Follow-up posts require a verified Premier marketing tier.');
-      makeText = budget => `${prefix}Premier project follow-up: ${project(budget)}. Explore the verified launch and public token page.\n${link}`;
+      makeText = budget => `${prefix}${launchPromotionCopy(sanitizeXLabel(payload.name || payload.symbol, budget), 'premier', { followup:true })}\n${link}`;
     }
     if (kind === 'listing') {
       requireValue(payload.listingType === 'paid', 'Listing posts require a verified paid listing type.');

@@ -17,6 +17,7 @@ export function browserBuildSettings(fileEnv = {}, runtimeEnv = process.env) {
   if (cluster === 'mainnet-beta' && enabled('VITE_MAINNET_READ_ONLY') && enabled('VITE_ALLOW_MAINNET')) throw new Error('Read-only staging cannot enable Mainnet writes.');
   return { schemaVersion: 1, cluster, exploreCluster, mainnetEnabled: enabled('VITE_ALLOW_MAINNET'),
     mainnetReadOnly: cluster === 'mainnet-beta' && enabled('VITE_MAINNET_READ_ONLY'),
+    readOnlyPreview: enabled('VITE_READ_ONLY_PREVIEW'),
     devWalletEnabled: cluster === 'devnet' && enabled('VITE_DEV_MODE'),
     publicIdentity: browserReleaseIdentity(env) };
 }

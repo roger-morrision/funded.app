@@ -8,8 +8,8 @@ export function renderTodayBonuses(page,data,document=globalThis.document){
   for(const[key,title]of Object.entries(groups)){
     const section=make('section','');section.append(make('h3',title));const list=make('ol','');list.className='bonus-wallet-list';
     const rows=data?.today?.[key];
-    if(!Array.isArray(rows))section.append(make('p','-'));
-    else if(!rows.length)section.append(make('p','-'));
+    if(!Array.isArray(rows))section.append(make('p','Rankings unavailable'));
+    else if(!rows.length)section.append(make('p','No eligible activity yet'));
     else for(const row of rows.slice(0,5)){
       const li=make('li',''),identity=make('div',`${row.rank}. `),link=make('a',`${row.wallet.slice(0,5)}…${row.wallet.slice(-5)}`);
       link.href=`/wallet/${encodeURIComponent(row.wallet)}`;link.title=row.wallet;identity.append(link);
@@ -26,5 +26,5 @@ export function tickTodayBonus(page,data,clockBase,performanceNow){
   const node=page.querySelector('[data-today-countdown]');if(!node)return;
   const now=Date.now();
   node.textContent=clockBase&&performanceNow-clockBase.started>120_000?'-':clockBase?bonusCountdown(clockBase.cutoff,clockBase.at,performanceNow-clockBase.started)
-    :data?.schedule?.mode==='devnet-qa-5m'?'—:—:—':bonusCountdown(nextUtcCutoff(now),now,0);
+    :!data || data?.schedule?.mode==='devnet-qa-5m'?'—:—:—':bonusCountdown(nextUtcCutoff(now),now,0);
 }

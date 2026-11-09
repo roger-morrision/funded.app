@@ -1,11 +1,13 @@
 import { beginApiTiming } from './src/features/experience/flow-timing.js';
 import { publicReadFetch } from './src/lib/public-read-fetch.js';
+import { assertWritablePreview } from './deployment-mode.js';
 // Solana hosts the API on the same origin. Keep that route available even when
 // an image build accidentally passes an empty VITE_API_BASE_URL.
 const CONFIGURED_API_BASE = String(import.meta.env?.VITE_API_BASE_URL || (String(import.meta.env?.VITE_SOLANA_CLUSTER || 'devnet') === 'devnet' ? '/' : '')).trim();
 const API_BASE = CONFIGURED_API_BASE === '/' ? '' : CONFIGURED_API_BASE.replace(/\/$/, '');
 
 export async function apiRequest(path, options = {}) {
+  if (!['GET','HEAD','OPTIONS'].includes(String(options.method || 'GET').toUpperCase())) assertWritablePreview();
   if (!CONFIGURED_API_BASE) return { available: false, data: null };
   const finishTiming = beginApiTiming(path);
   try {

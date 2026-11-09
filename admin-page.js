@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+import { READ_ONLY_PREVIEW, PREVIEW_MESSAGE, assertWritablePreview } from './deployment-mode.js';
 import {refreshFinancialHealth} from './admin-financial-health.js';
 import {initAdminRpcHealth} from './admin-rpc-health.js';
 import { initAdminDailyBonus } from './admin-daily-bonus.js';
@@ -45,7 +46,7 @@ const session=createAdminSession({document,onEnd:()=>{
 }});
 const confirmedPost=createConfirmedAdminPost({api,session});
 initAdminBoostPrices({api,post,show});
-function authControls(){ $('#sign-in').disabled=authBusy||!connected;$('#sign-out').disabled=authBusy; }
+function authControls(){ $('#sign-in').disabled=READ_ONLY_PREVIEW||authBusy||!connected;$('#sign-out').disabled=authBusy; }
 
 
 function updateWallet() {
@@ -55,11 +56,13 @@ function updateWallet() {
   if (overview) renderWallets();
 }
 async function connect() {
+  assertWritablePreview();
   const provider = wallet();
   if (!provider?.connect || !provider?.signMessage) throw new Error('A Solana wallet with message signing is required.');
   await provider.connect(); updateWallet();
 }
 async function signIn() {
+  assertWritablePreview();
  if(authBusy)return;authBusy=true;const epoch=session.end();authControls();
  try{
   if(!connected)await connect();const address=connected,provider=wallet();
@@ -191,6 +194,7 @@ async function loadVaults() {
   }
 }
 $('#connect').addEventListener('click', () => connect().catch(error => show(error.message, true)));
+if (READ_ONLY_PREVIEW) { $('#connect').disabled = true; show(PREVIEW_MESSAGE); }
 $('#sign-in').addEventListener('click', () => signIn().catch(error => show(error.message, true)));
 $('#sign-out').addEventListener('click',()=>{void signOut();});
 $('#refresh').addEventListener('click', () => {const epoch=session.epoch;refresh().then(() => {if(session.current(epoch)&&session.active)show('Finalized balances refreshed.');}).catch(error => show(error.message, true));});

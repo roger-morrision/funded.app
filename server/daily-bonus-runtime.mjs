@@ -65,7 +65,7 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
       if (!url.pathname.startsWith('/api/daily-bonus')) return false;
       res.setHeader('cache-control', 'no-store');
       if (req.method === 'GET' && url.pathname === '/api/daily-bonus/dashboard') {
-        if (!service) { respond(res, 503, { error:unavailable }); return true; }
+        if (!service) { respond(res, 503, { error:unavailable, code:'BONUS_NOT_CONFIGURED' }); return true; }
         try {
           const value = await service.dashboard({ category:url.searchParams.get('category') || 'all',
             page:Number(url.searchParams.get('page') || 1) });

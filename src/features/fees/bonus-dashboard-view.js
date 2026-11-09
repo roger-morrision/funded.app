@@ -230,13 +230,13 @@ export function initBonusDashboard(document = globalThis.document) {
     pageNumber = data.history.page; pageLabel.textContent = `Page ${pageNumber} of ${data.history.pages} · ${data.history.total} payments`;
     previous.disabled = pageNumber <= 1; next.disabled = pageNumber >= data.history.pages;
   }
-  function unavailable(owner) {
+  function unavailable(owner, reason) {
     renderTodayBonuses(page,null,document);
     data = null; clockBase = null; tick();
     for (const el of home.querySelectorAll('[data-bonus-pool]')) animate(el, null);
     poolStatus.textContent = 'Bonus pool data is unavailable. No amount is confirmed here.';
     home.querySelector('[data-bonus-verification]').textContent = 'Current payout readiness is unavailable.';
-    status.textContent = 'Bonus history is unavailable. No payout or ranking is confirmed here.';
+    status.textContent = reason || 'Bonus history is unavailable. No payout or ranking is confirmed here.';
     leaders.replaceChildren();
     mutateHistory(owner, true, () => { rows.replaceChildren(); historyState = undefined; });
     pageLabel.textContent = ''; previous.disabled = next.disabled = true;
@@ -247,7 +247,12 @@ export function initBonusDashboard(document = globalThis.document) {
     const controller = request, timeout = view.setTimeout(() => controller.abort(), 45_000);
     try {
       const response = await view.fetch(`/api/daily-bonus/dashboard?category=${select.value}&page=${pageNumber}`, { signal:request.signal, cache:'no-store' });
-      if (!response.ok) throw new Error('Unavailable');
+      if (!response.ok) {
+        const failure = await response.json().catch(() => ({}));
+        if (id === serial) unavailable(owner, failure.code === 'BONUS_NOT_CONFIGURED'
+          ? 'Daily bonuses are not enabled on this site yet. Rankings and payouts will appear after the operator completes setup.' : undefined);
+        return;
+      }
       const value = await response.json();
       if (id !== serial) return;
       if (value.cluster !== 'devnet' || value.scope !== 'all-recorded-snapshots'

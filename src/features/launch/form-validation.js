@@ -6,6 +6,7 @@ import { canSignTransactions } from '../../../wallet-core.js';
 import { freshLaunchReview } from '../../../launch-review.js';
 import { promotionContentState } from './promotion-requirements.js';
 import {readDeveloperLockSeconds} from '../../../developer-lock-period.js';
+import { launchReadinessMessage } from './readiness-message.js';
 
 function feeSplitError(distribution){
   if(distribution.valid)return null;
@@ -105,6 +106,7 @@ export function getLaunchSubmissionState(
   } = {}
 ) {
     const content=promotionContentState(getLaunchBurnPolicy(),{document});if(!content.valid)return content;
+    if (feeRouterState.configurationBlocked) return {valid:false, message:launchReadinessMessage(feeRouterState)};
     if (!feeRouterState.verified) return { valid: false, message: feeRouterState.status === 'checking'
       ? 'Checking launch availability…'
       : feeRouterState.status === 'router-verification-unavailable'

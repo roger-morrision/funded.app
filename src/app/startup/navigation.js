@@ -1,4 +1,5 @@
 import {PAGE_ROUTE_TARGETS, MERGED_PAGE_ROUTES} from '../page-routes.js';
+import { READ_ONLY_PREVIEW, PREVIEW_MESSAGE } from '../../../deployment-mode.js';
 import { initializeAppState } from '../runtime.js';
 
 // Startup runs in the order declared in start.js.
@@ -137,11 +138,11 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 869
-  if (appState.APP_MAINNET_READ_ONLY) {
+  if (appState.APP_MAINNET_READ_ONLY || READ_ONLY_PREVIEW) {
     const banner = document.createElement('div');
     banner.id = 'mainnet-readonly-banner';
     banner.setAttribute('role', 'status');
-    banner.textContent = 'Read-only workspace · wallet signing and financial actions disabled';
+    banner.textContent = READ_ONLY_PREVIEW ? PREVIEW_MESSAGE : 'Read-only workspace · wallet signing and financial actions disabled';
     document.body.prepend(banner);
   } else {
     const phantomAvailableAtStartup = Boolean(appState.phantomProvider());

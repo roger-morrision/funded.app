@@ -1,4 +1,5 @@
 import {SERVICE_TERMS_HTML} from '../../features/help/service-terms.js';
+import { READ_ONLY_PREVIEW } from '../../../deployment-mode.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletSessionController(appState) {
   // app-source: 575
@@ -135,6 +136,7 @@ export function createWalletSessionController(appState) {
 
   // app-source: 587
   async function restoreTrustedPhantomWallet(){
+    if (READ_ONLY_PREVIEW) return false;
     const remembered = appState.rememberedWalletProviderId();
     if ((remembered && remembered !== 'phantom' && remembered !== 'legacy') || appState.wasWalletManuallyDisconnected() || appState.wallet) return false;
     const provider = await appState.waitForPhantomProvider();
@@ -259,7 +261,7 @@ export function createWalletSessionController(appState) {
 
   // app-source: 596
   function activateWallet(provider, message = 'Wallet connected', { interactiveSignIn = false } = {}){
-    if (appState.APP_MAINNET_READ_ONLY) return;
+    if (appState.APP_MAINNET_READ_ONLY || READ_ONLY_PREVIEW) return;
     const address = appState.walletAddress(provider);
     if (!address) throw new Error('Wallet did not provide an account address.');
     const signIn = () => {
