@@ -9,6 +9,7 @@ import { assertTradeLimits, readTradePreferences } from '../../features/experien
 import { TRADE_QUOTE_TTL_MS, TRADE_QUOTE_REFRESH_MS, TRADE_SIGNING_REFRESH_AFTER_MS } from '../../../trade-quote-policy.js';
 import { tradeTokenSymbol } from '../../../trade-quote-display.js';
 import { serverCoinIdentity } from '../../features/coin/server-identity.js';
+import {buildRichTradeTransaction} from '../../features/trade/lazy-trading.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeExecutionController(appState) {
   let retryInputKey='', quoteSeen=false;
@@ -58,7 +59,10 @@ export function createTradeExecutionController(appState) {
       await refreshServiceFees(appState); appState.assertWalletSessionCurrent(session);
       const previewConnection = await appState.getTradePreviewConnection();
       appState.assertWalletSessionCurrent(session);
-      const trade = await appState.buildTradeTransaction({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState) });
+      const rich=mint===appState.PROTOCOL_FUNDED_MINT&&appState.APP_CLUSTER===appState.EXPLORE_CLUSTER;
+      const builder=rich?buildRichTradeTransaction:appState.buildTradeTransaction;
+      const trade = await builder({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState),
+        ...(rich?{cluster:appState.APP_CLUSTER,poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL}:{}) });
       appState.assertWalletSessionCurrent(session);
       if (version !== appState.tradeQuoteVersion || !appState.tradeInputs().valid || `${appState.tradeInputs().mint}:${appState.tradeInputs().side}:${appState.tradeInputs().amount}:${appState.tradeInputs().slippagePercent}:${session.address}` !== inputKey) return null;
       const tokenSymbol = tradeTokenSymbol(mint, [

@@ -6,6 +6,7 @@ import { coinUnavailableMessage } from '../../features/coin/unavailable-message.
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
 import { rememberCoinJourney } from '../../features/experience/coin-journey-state.js';
 import { serverCoinIdentity } from '../../features/coin/server-identity.js';
+import {fetchRichMarketSnapshot} from '../../features/trade/lazy-trading.js';
 
 export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
   const router = ledgerData?.sharedRouter;
@@ -24,6 +25,7 @@ export function verifiedV3FeeLedger(response, mint, cluster) {
 export function createCoinLoadingController(appState) {
   // app-source: 981
   async function loadCoinOnChain(mintAddress){
+    const isRich=mintAddress===appState.PROTOCOL_FUNDED_MINT&&appState.APP_CLUSTER===appState.EXPLORE_CLUSTER;
     const loadId = ++appState.coinLoadId;
     rememberCoinJourney({mint:mintAddress,status:'loading'});
     renderCoinBurnDashboard({mint:mintAddress,status:mintAddress?'loading':'unavailable',cluster:appState.EXPLORE_CLUSTER});
@@ -67,7 +69,13 @@ export function createCoinLoadingController(appState) {
       const [metadataPda] = PublicKey.findProgramAddressSync([appState.Buffer.from('metadata'), metadataProgram.toBuffer(), mint.toBuffer()], metadataProgram);
       const rpcRequest = async (promise,label) => {let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),12000);})]);}finally{clearTimeout(timer);}};
       const snapshotPromise=rpcRequest(import('../../../coin-display-snapshot.js')
-        .then(({readCoinDisplaySnapshot})=>readCoinDisplaySnapshot({connection:detailConnection,mint})), 'Market snapshot RPC request')
+        .then(({readCoinDisplaySnapshot})=>readCoinDisplaySnapshot({connection:detailConnection,mint}))
+        .then(async snapshot=>{
+          if(isRich&&!snapshot.curve&&!snapshot.pool){
+            try{snapshot.pool=await fetchRichMarketSnapshot({connection:detailConnection,cluster:appState.APP_CLUSTER,mint:mintAddress,poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL});}catch{/* Keep unavailable prices explicit. */}
+          }
+          return snapshot;
+        }), 'Market snapshot RPC request')
         .then(snapshot=>{if(loadId===appState.coinLoadId) renderEarlyMarketPrice(appState,snapshot);return snapshot;});
       const [snapshotResult, metadataResult, largestResult, launchesResult] = await Promise.allSettled([
         snapshotPromise,
@@ -96,8 +104,8 @@ export function createCoinLoadingController(appState) {
       const artwork = document.querySelector('.coin-artwork');
       if (artwork) artwork.dataset.bannerUrl = promotedBanner;
       appState.renderCoinRewardsPolicy(registeredLaunch, mintAddress);
-      const symbol = metadata.symbol || registeredLaunch?.symbol || `${mintAddress.slice(0, 4)}…`;
-      const name = metadata.name || registeredLaunch?.name || 'Unnamed on-chain token';
+      const symbol = metadata.symbol || registeredLaunch?.symbol || (isRich?'RICH':`${mintAddress.slice(0, 4)}…`);
+      const name = metadata.name || registeredLaunch?.name || (isRich?'RICH':'Unnamed on-chain token');
       appState.coinTradeEstimate = { mint: mintAddress, symbol, curve, graduatedPool, decimals };
       appState.updateTradeAmountLabel();
       void appState.refreshTradeBalances();
@@ -151,6 +159,7 @@ export function createCoinLoadingController(appState) {
       appState.setCoinFact('#coin-fee-owner', linkedRouter ? 'App router address matched' : curve?.creator ? appState.shortAddress(curve.creator) : 'Unavailable', linkedRouter ? 'clear' : 'unknown');
       linkWalletText(document.querySelector('#coin-fee-owner'), curve?.creator);
       appState.setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
+      if(isRich&&!metadata.name&&!metadata.symbol&&!registeredLaunch)appState.setCoinFact('#coin-metadata-status','Configured platform token','clear');
       appState.coinSolUsdValues = { spot: spotPriceSol, marketCap: marketCapSol, reserve: realQuote, virtualQuote: curve?.virtualQuoteReservesSol ?? NaN, supply };
       appState.renderCoinSummary();
       appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(marketCapSol)); appState.setCoinField('#coin-change', '24h —');
