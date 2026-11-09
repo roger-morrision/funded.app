@@ -1,7 +1,7 @@
 import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
 import { getPreparedImage } from '../../../launch-image.js';
 import { FEE_DISTRIBUTION, validateFeeDistribution } from '../../../distribution-policy.js';
-import { launchPromotionCopy } from '../../../launch-promotion-copy.js';
+import { launchPromotionPreview } from '../../../launch-promotion-copy.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function updateLaunchPreview(
@@ -66,16 +66,17 @@ export function updateLaunchPreview(
     xLabelWeight += weight;
   }
   xLabel = xLabel.trim() || 'Token';
-  const xLink = 'richpad.fun/token/your-token';
-  const xLaunch = launchPromotionCopy(xLabel, launchBurn.tier);
+  const xDetails = { description, holderPercent: feeDistribution.holderAirdropPercent,
+    xPercent: feeDistribution.solClaimPercent, xHandle: feeDistribution.xRecipient, airdropPercent: allocation };
+  const xLaunch = launchPromotionPreview(xLabel, xDetails);
   const xPost = document.querySelector('#launch-x-post-preview');
-  if (xPost) xPost.textContent = `${xLaunch}\n${xLink}`;
+  if (xPost) xPost.textContent = xLaunch;
   const xPostCount = document.querySelector('#launch-x-post-count');
   if (xPostCount) xPostCount.textContent = launchBurn.tier === 'premier' ? '2 posts' : '1 post';
   const xFollowup = document.querySelector('#launch-x-followup');
   if (xFollowup) xFollowup.hidden = launchBurn.tier !== 'premier';
   const xFollowupText = document.querySelector('#launch-x-followup-preview');
-  if (xFollowupText) xFollowupText.textContent = `${launchPromotionCopy(xLabel, 'premier', { followup:true })}\n${xLink}`;
+  if (xFollowupText) xFollowupText.textContent = launchPromotionPreview(xLabel, { ...xDetails, followup:true });
   const quotedBuyTokens = creatorBuy.tokens || (!wallet && publicQuote?.status === 'ready' ? publicQuote.developerTokens : 0);
   const lockHours = readDeveloperLockSeconds(document) / 3600;
   const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} tokens` : ''} · ${lockHours}h lock` : 'Creation only';
