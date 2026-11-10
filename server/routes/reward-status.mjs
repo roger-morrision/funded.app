@@ -333,7 +333,7 @@ export function createRewardStatusRoutes({
         mainnetReady:false, pending,
         budgetSummary:buybackOrderSizeSummary(pending),
         dashboard,
-        refreshing:buybackReads.has(buybackCacheKey(state,thresholdLamports)),
+        refreshing:Boolean(programRead)||buybackReads.has(buybackCacheKey(state,thresholdLamports)),
         ...(dashboard.status!=='verified'&&buybackSnapshot?.key===buybackCacheKey(state,thresholdLamports)&&buybackSnapshot?.value?.status==='verified'?{
           lastVerified:{...buybackSnapshot.value,fresh:false}}:{}),
         receipts:verifiedV3Burns(state)
