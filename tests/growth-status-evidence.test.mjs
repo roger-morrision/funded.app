@@ -19,10 +19,10 @@ test('verified public data is distinguished from transaction execution', async (
   assert.equal(rows.find(row => row[0] === 'Daily bonus data')[1], 'ok');
 });
 
-test('pending buyback reads and incomplete bonus receipts stay degraded', async () => {
+test('pending buyback reads stay checking and incomplete bonus receipts stay degraded', async () => {
   const rows = await readStatus(async path => path.includes('buyback')
     ? {dashboard:{status:'verified'},refreshing:true}
     : {pool:{status:'verified'},unavailableReceipts:1,unavailableSnapshots:0});
-  assert.equal(rows.find(row => row[0] === 'Buyback data')[1], 'degraded');
+  assert.equal(rows.find(row => row[0] === 'Buyback data')[1], 'checking');
   assert.equal(rows.find(row => row[0] === 'Daily bonus data')[1], 'degraded');
 });

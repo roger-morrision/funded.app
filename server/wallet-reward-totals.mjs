@@ -1,9 +1,10 @@
 const integer=value=>/^-?(?:0|[1-9]\d*)$/.test(String(value));
 const address=value=>/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value));
-export function walletRewardTotals({wallet,history,ledger,launches={},now=Date.now()}){
-  const result={wallet,bonusLamports:null,rewardsLamports:null,airdrops:null};
+export function walletRewardTotals({wallet,cluster,history,ledger,launches={},now=Date.now()}){
+  requireSolanaCluster(cluster);
+  const result={wallet,cluster,bonusLamports:null,rewardsLamports:null,airdrops:null};
   if(!address(wallet))throw new Error('A valid wallet is required.');
-  if(history?.cluster==='devnet'&&history.status==='onchain-indexed'&&history.commitment==='finalized'
+  if(history?.cluster===cluster&&history.status==='onchain-indexed'&&history.commitment==='finalized'
     &&(!history.payoutCoverage||history.payoutCoverage.status==='verified')&&Array.isArray(history.verifiedPayouts)){
     const seen=new Map();let bonus=0n,rewards=0n,valid=true;
     for(const row of history.verifiedPayouts){
@@ -18,14 +19,14 @@ export function walletRewardTotals({wallet,history,ledger,launches={},now=Date.n
     if(valid){result.bonusLamports=String(bonus);result.rewardsLamports=String(rewards);}
   }
   const index=ledger?.communityClaimIndex;
-  if(index?.cluster!=='devnet'||index.status!=='verified'||index.commitment!=='finalized'
+  if(index?.cluster!==cluster||index.status!=='verified'||index.commitment!=='finalized'
     ||!Array.isArray(index.payments)||!Number.isFinite(Date.parse(index.indexedAt))
     ||Math.abs(now-Date.parse(index.indexedAt))>600000)return result;
   const tokens=new Map(),seen=new Set();
   for(const payment of index.payments){
     if(payment.recipient!==wallet)continue;
     const drop=ledger.communityDrops?.[payment.mint],leaf=drop?.manifest?.leaves?.find(row=>row.recipient===wallet);
-    if(!drop?.openingSignature||drop.programId!==index.programId||!address(payment.payment)
+    if(!financialRecordNetwork(drop,cluster,{legacyDevnet:true})||!drop?.openingSignature||drop.programId!==index.programId||!address(payment.payment)
       ||leaf?.amount!==payment.amountBaseUnits||!/^[1-9]\d*$/.test(String(payment.amountBaseUnits)))return result;
     const key=`${payment.mint}:${payment.payment}`;if(seen.has(key))continue;seen.add(key);
     if(!integer(drop.reservedBaseUnits)||!integer(drop.reservedTokens))return result;
@@ -38,3 +39,5 @@ export function walletRewardTotals({wallet,history,ledger,launches={},now=Date.n
   }
   result.airdrops=[...tokens.values()];return result;
 }
+import {requireSolanaCluster} from '../solana-network.js';
+import {financialRecordNetwork} from './financial-network.mjs';

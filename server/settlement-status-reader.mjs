@@ -1,4 +1,5 @@
 import { allocationAuditHash } from './allocation-audit-hash.mjs';
+import { requireSolanaCluster } from '../solana-network.js';
 
 const scope = 'all-recorded-v3-collections';
 const reasons = new Set(['no-v3-collections','verification-budget-exceeded','approved-program-unavailable',
@@ -42,8 +43,9 @@ export function createSettlementStatusReader({ readSnapshot, verify,
           controller.abort(); reject(new Error('Status inventory read timed out.'));
         },snapshotTimeoutMs); }),
       ]).then(input => {
+        const cluster = requireSolanaCluster(input.identity?.cluster);
         const collections = Object.fromEntries(Object.entries(input.state?.collections || {})
-          .filter(([, row]) => row?.scope === 'per-mint-v3' && row.cluster === 'devnet'));
+          .filter(([, row]) => row?.scope === 'per-mint-v3' && row.cluster === cluster));
         const launches = {}, v3Settlements = {};
         for (const row of Object.values(collections)) {
           if (input.state?.launches?.[row.mint]) launches[row.mint] = input.state.launches[row.mint];

@@ -23,7 +23,7 @@ export function createPublicReportsRoutes({
       const wallet=url.searchParams.get('wallet');
       if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet||''))return json(res,400,{error:'A valid wallet is required.'});
       const [history,ledger,state]=await Promise.all([readPaymentHistory().catch(()=>null),automaticRewardStore.read().catch(()=>null),store.read()]);
-      return json(res,200,walletRewardTotals({wallet,history,ledger,launches:state.launches}));
+      return json(res,200,walletRewardTotals({wallet,cluster:solanaCluster,history,ledger,launches:state.launches}));
     }
     if (req.method === 'GET' && url.pathname === '/api/state') return json(res, 200, publicState(await store.readPublicBuckets()));
     if (req.method === 'GET' && url.pathname === '/api/evidence/receipts') {

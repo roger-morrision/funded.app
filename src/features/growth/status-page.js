@@ -17,9 +17,9 @@ export async function readStatus(read = getJSON) {
   return [
     ['App & database', check('storage') === 'operational' ? 'ok' : status ? 'down' : 'unknown', status ? `Build ${String(status.build || '').slice(0, 8) || 'unknown'} · checked ${ago(status.observedAt)}` : 'Status unavailable'],
     ['Solana network', check('network') === 'operational' ? 'ok' : check('network') === 'wrong-network' ? 'down' : 'unknown', status ? `Cluster ${status.cluster}` : 'Status unavailable'],
-    ['Fee settlement proofs', status?.settlementVerified ? 'ok' : status ? 'degraded' : 'unknown', status?.settlementVerified ? 'All recorded settlements verified' : 'Verification incomplete or unavailable'],
+    ['Fee settlement proofs', status?.settlementVerified ? 'ok' : status?.settlementEvidence?.status === 'pending' ? 'checking' : status ? 'degraded' : 'unknown', status?.settlementVerified ? 'All recorded settlements verified' : status?.settlementEvidence?.status === 'pending' ? 'Reading finalized settlement proofs' : 'Verification incomplete or unavailable'],
     ['Launch indexer', indexer?.status === 'ready' ? 'ok' : indexer ? 'degraded' : 'unknown', indexer ? `${indexer.indexedLaunches ?? 0} launches · last sync ${ago(indexer.lastIndexedAt)}` : 'Status unavailable'],
-    ['Buyback data', !buyback ? 'unknown' : buyback.refreshing || buyback.dashboard?.status !== 'verified' ? 'degraded' : 'ok',
+    ['Buyback data', !buyback ? 'unknown' : buyback.refreshing ? 'checking' : buyback.dashboard?.status !== 'verified' ? 'degraded' : 'ok',
       buyback?.dashboard?.status === 'verified' ? 'Custody verified; execution still depends on funding and worker checks' : 'Custody verification pending or unavailable'],
     ['Daily bonus data', !bonus ? 'unknown' : bonus.pool?.status !== 'verified' || bonus.unavailableReceipts !== 0 || bonus.unavailableSnapshots !== 0 ? 'degraded' : 'ok',
       bonus?.serverTime ? `${bonus.snapshots ?? 0} snapshots recorded; payments depend on funding and verified eligibility` : 'Status unavailable'],
@@ -37,7 +37,7 @@ export function mountStatusPage(document = globalThis.document) {
   const footer = main.querySelector(':scope > .site-footer');
   if (footer) footer.before(page); else main.append(page);
   const list = page.querySelector('[data-status-list]'), overall = page.querySelector('[data-status-overall]');
-  let busy = false;
+  let busy = false, retryTimer, quickReads = 0;
   async function refresh() {
     if (busy || location.hash !== '#status') return; busy = true;
     const rows = await readStatus(); busy = false;
@@ -47,13 +47,15 @@ export function mountStatusPage(document = globalThis.document) {
     list.replaceChildren(...rows.map(([name, state, detail]) => {
       const item = el(document, 'li'); item.dataset.state = state;
       item.append(el(document, 'span', 'status-dot'), el(document, 'strong', null, name), el(document, 'small', null, detail),
-        el(document, 'b', null, { ok: 'Operational', degraded: 'Degraded', down: 'Down', unknown: 'Unavailable' }[state]));
+        el(document, 'b', null, { ok: 'Operational', checking: 'Checking', degraded: 'Degraded', down: 'Down', unknown: 'Unavailable' }[state]));
       return item;
     }));
+    if (rows.some(([, state]) => state === 'checking') && quickReads++ < 6) retryTimer = setTimeout(() => void refresh(), 3000);
   }
-  page.querySelector('[data-status-refresh]').addEventListener('click', () => void refresh());
-  globalThis.addEventListener?.('hashchange', () => void refresh());
-  globalThis.setInterval?.(() => { if (!document.hidden) void refresh(); }, 60_000);
+  function restart() { clearTimeout(retryTimer); quickReads = 0; void refresh(); }
+  page.querySelector('[data-status-refresh]').addEventListener('click', restart);
+  globalThis.addEventListener?.('hashchange', restart);
+  globalThis.setInterval?.(() => { if (!document.hidden) restart(); }, 60_000);
   void refresh();
   return true;
 }
