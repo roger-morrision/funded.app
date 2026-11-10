@@ -86,3 +86,16 @@ html body #main-content .fee-policy-card dd { margin: 0; color: var(--fv-text, #
 
 /* Burn page: top-level page, no "back to overview" link (see back-link rule above). */
 html body #main-content .burn-back-link { display: none; }
+
+/* One page-title size: Home's hero title and route-guide titles match the other pages. */
+html body #main-content :is(.hero-copy-column, #route-guide, .section-heading, .workspace-page-header, .explore-hero, .callouts-head) h1 {
+  font-size: clamp(24px, 2.4vw, 30px); line-height: 1.2; letter-spacing: -.035em;
+}
+
+/* Callouts: with no calls in any column, show the empty note once (Latest) instead of three times. */
+html body #main-content .callouts-columns:not(:has(.callouts-list > li:not(.callouts-empty-note))) .callouts-column:not([data-callouts-column="latest"]) .callouts-empty-note { display: none; }
+
+/* Burn $RICH: the fee split and full fee policy belong to $RICH overview and Fee distribution;
+   on the burn view they repeated content and doubled the page length. */
+html body.page-route-buybacks #main-content #paid :is([data-fee-distribution="protocol"], .funded-policy-details) { display: none; }
+html body.page-route-buybacks #main-content .home-receipt-card:has(.fee-distribution-summary, [data-fee-distribution]) { display: none; }

@@ -103,7 +103,7 @@ export function createBuybackController(appState) {
       if (triggerText) triggerText.textContent = trigger ? `${trigger} trigger` : 'Trigger unavailable';
       const policy = document.querySelector(`#${prefix}-policy`);
       if (policy && trigger) policy.textContent = `The app buys back and burns $RICH when collected buyback funds reach ${trigger}.`
-        + ageRule + ' Purchases run when price and liquidity checks pass.';
+        + ageRule;
       else if (policy) policy.textContent = 'Current buyback rules are unavailable.';
       if (prefix === 'buyback-route') document.querySelector('#buyback-route-title').textContent = !trigger
         ? 'Automatic $RICH buyback & burn.' : `Buy back and burn $RICH at ${trigger}.`;
