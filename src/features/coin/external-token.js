@@ -64,10 +64,10 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
   tradeNote.id = 'coin-external-trade'; tradeNote.className = 'coin-external-trade'; tradeNote.hidden = true;
   document.getElementById('trade-panel')?.prepend(tradeNote);
 
-  let facts = null, active = null, load = 0, applied = null, details = null;
+  let facts = null, active = null, load = 0, applied = null, details = null, enrichedFor = null;
   const richMint = () => app.PROTOCOL_FUNDED_MINT || app.fundedMint || app.richMint || '';
   const reset = () => {
-    active = null; applied = null; details = null; load++;
+    active = null; applied = null; details = null; enrichedFor = null; load++;
     document.body.classList.remove('coin-external');
     panel.hidden = true; panel.replaceChildren(); tradeNote.hidden = true; tradeNote.replaceChildren();
   };
@@ -144,25 +144,37 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
     if (active === mint) return;
     active = mint; const id = ++load;
     document.body.classList.add('coin-external');
-    const metadata = loadTokenMetadata(app.apiRequest, mint).then(value => {
-      if (id !== load || active !== mint || !value) return;
-      details = value; applyIdentity();
-      if (applied) render(mint, applied);
-    });
+    enrich(mint);
     let data;
     try { data = (await app.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/external-market`, { signal: AbortSignal.timeout(12000) })).data; }
     catch { data = { status: 'error' }; }
     if (id !== load || active !== mint) return;
     applied = data; render(mint, data);
-    await metadata;
+  };
+  // Any token without a Richpad launch (pump.fun or other launchpads, on a
+  // curve or not) gets its logo, name, description and links from its own
+  // on-chain metadata; the page itself only reads Metaplex name and symbol.
+  const enrich = mint => {
+    if (enrichedFor === mint) return;
+    enrichedFor = mint;
+    void loadTokenMetadata(app.apiRequest, mint).then(value => {
+      if (enrichedFor !== mint || !value) return;
+      details = value; applyIdentity();
+      if (applied && active === mint) render(mint, applied);
+    });
   };
 
   globalThis.addEventListener?.('funded:coin-facts-loading', reset);
-  globalThis.addEventListener?.('funded:coin-facts', event => { facts = event.detail || null; });
+  globalThis.addEventListener?.('funded:coin-facts', event => {
+    facts = event.detail || null;
+    const mint = facts?.mint;
+    if (mint && !facts.launch && MINT.test(mint) && mint !== richMint()) enrich(mint);
+  });
   globalThis.addEventListener?.('funded:coin-market-facts', event => {
     const detail = event.detail || {};
     const mint = detail.mint || facts?.mint;
     if (!facts || facts.mint !== mint) return;
+    if (details) applyIdentity();
     if (isExternalToken({ launch: facts.launch, market: detail.market, mint, richMint: richMint() })) void activate(mint);
     else if (active) reset();
   });
