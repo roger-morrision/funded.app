@@ -49,12 +49,13 @@ export function renderPortfolio(
   let total = 0;
   rows.innerHTML = holdings.map(holding => {
     const asset = assetByMint.get(holding.mint);
-    const unitUsd = portfolioUnitPriceUsd(asset);
+    const marketUsd = Number(holding.market?.priceUsd);
+    const unitUsd = portfolioUnitPriceUsd(asset) ?? (Number.isFinite(marketUsd) && marketUsd > 0 ? marketUsd : null);
     const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
     if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
     const launch=verifiedLaunchPolicyForMint(holding.mint);
     const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, fundedMint:PROTOCOL_FUNDED_MINT});
-    const image=holding.mint===PROTOCOL_FUNDED_MINT?'/richpad-mark.svg':(launch?.onchainVerified ? tokenArtworkUrl(holding.mint,holdingImageUrl(launch.imageUri)) : null)||holdingImageUrl(holding.metadata?.image)||holdingImageUrl(asset?.imageUri);
+    const image=holding.mint===PROTOCOL_FUNDED_MINT?'/richpad-mark.svg':(launch?.onchainVerified ? tokenArtworkUrl(holding.mint,holdingImageUrl(launch.imageUri)) : null)||holdingImageUrl(holding.metadata?.image)||holdingImageUrl(asset?.imageUri)||holdingImageUrl(holding.market?.logoUri);
     return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span class="portfolio-holding-token"><span class="portfolio-holding-logo" aria-hidden="true">${escapeHtml(identity.label==='Unnamed token'?'?':identity.label.replace(/^\$/,'').slice(0,2))}${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`:''}</span><span class="portfolio-holding-identity"><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="portfolio-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
   }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? `Token balances are unavailable from Solana RPC. ${escapeHtml(portfolioHoldings.reason || 'Select Refresh to retry.')}` : partial ? 'Some token balances could not be checked. Select Refresh to retry.' : 'No SPL token holdings in this wallet.'}</div>`;
   status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} ${partial ? holdings.length === 1 ? 'observed token' : 'observed tokens' : 'tokens'} · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}${partial ? ' · Select Refresh to retry.' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';

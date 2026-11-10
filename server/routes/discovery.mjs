@@ -26,7 +26,34 @@ export function createDiscoveryRoutes({
       return Number.isFinite(at) && Date.now() - at < 5 * 60_000 && row.mint === mints[index] ? [[mints[index], row]] : [];
     }));
   };
+  // Display-only Birdeye price and logo for wallet holdings; cached briefly per mint.
+  const tokenMarketCache = new Map();
+  const birdeyeRetry = (path, params) => fetchBirdeye(path, params)
+    .catch(() => new Promise(done => setTimeout(done, 1300)).then(() => fetchBirdeye(path, params))).catch(() => null);
+  async function readTokenMarkets(mints) {
+    const now = Date.now(), missing = mints.filter(mint => !(tokenMarketCache.get(mint)?.expiresAt > now));
+    if (missing.length) {
+      const list = missing.join(',');
+      const prices = await birdeyeRetry('/defi/multi_price', { list_address: list });
+      const meta = await birdeyeRetry('/defi/v3/token/meta-data/multiple', { list_address: list });
+      for (const mint of missing) {
+        const price = Number(prices?.data?.[mint]?.value), info = meta?.data?.[mint];
+        const logo = typeof info?.logo_uri === 'string' && /^https:\/\//.test(info.logo_uri) ? info.logo_uri : null;
+        if (prices?.data || meta?.data) tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { mint,
+          priceUsd: Number.isFinite(price) && price > 0 ? price : null, logoUri: logo,
+          name: typeof info?.name === 'string' ? info.name.slice(0, 80) : null, symbol: typeof info?.symbol === 'string' ? info.symbol.slice(0, 20) : null } });
+      }
+      if (tokenMarketCache.size > 5000) for (const [key, value] of tokenMarketCache) if (value.expiresAt <= now) tokenMarketCache.delete(key);
+    }
+    return mints.flatMap(mint => tokenMarketCache.get(mint)?.row ? [tokenMarketCache.get(mint).row] : []);
+  }
   return async function handleDiscoveryRoutes(req, res, url) {
+    if (req.method === 'GET' && url.pathname === '/api/tokens/market') {
+      if (solanaCluster === 'devnet') return json(res, 200, { cluster: solanaCluster, items: [] });
+      const mints = [...new Set(String(url.searchParams.get('mints') || '').split(',').map(value => value.trim()).filter(value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value)))].slice(0, 50);
+      if (!mints.length) return json(res, 400, { error: 'Provide up to 50 token mints.' });
+      return json(res, 200, { cluster: solanaCluster, provider: 'birdeye', items: await readTokenMarkets(mints) });
+    }
     if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {
       const { limit, offset } = explorePagination(url.searchParams);
       const sortBy = ['volume_24h_usd', 'market_cap', 'recent_listing_time', 'price_change_24h_percent'].includes(url.searchParams.get('sort_by')) ? url.searchParams.get('sort_by') : 'volume_24h_usd';

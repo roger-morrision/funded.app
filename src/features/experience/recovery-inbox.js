@@ -4,9 +4,10 @@ import { tradeRecoveryCopy } from './trade-progress.js';
 import { progressView } from './transaction-progress-view.js';
 import { recordFlowTiming } from './flow-timing.js';
 import { el, panel, link, button, address, signature, utc, portfolioTools } from './view-utils.js';
+const NET = String(import.meta.env?.VITE_SOLANA_CLUSTER || 'devnet').trim();
 export function recoveryItems(wallet, launches, trades) {
   if (!address(wallet)) return [];
-  return [...launches.filter(row => row.cluster === 'devnet' && row.payer === wallet && row.state !== 'completed')
+  return [...launches.filter(row => row.cluster === NET && row.payer === wallet && row.state !== 'completed')
     .map(row => ({...row,kind:'launch',label:`Launch ${row.symbol || row.name || ''}`,detail:journalRecovery(row),at:row.updatedAt})),
   ...trades.filter(row => row.walletAddress === wallet && row.state === 'pending').map(row => ({...row,kind:'trade',
     label:`${row.side === 'buy' ? 'Buy' : 'Sell'} ${row.symbol}`,detail:tradeRecoveryCopy(row).detail}))];
@@ -21,7 +22,7 @@ export function initializeRecoveryInbox(app) {
     const owned=root.contains(document.activeElement); list.replaceChildren();
     const launches=readLaunchJournal(),trades=readTradeRecovery();
     const items = recoveryItems(wallet, launches, trades);
-    const savedPending=launches.some(row=>row.cluster==='devnet'&&row.state!=='completed')||trades.some(row=>row.state==='pending');
+    const savedPending=launches.some(row=>row.cluster===NET&&row.state!=='completed')||trades.some(row=>row.state==='pending');
     root.hidden=wallet?items.length===0:!savedPending;
     if(owned&&root.hidden){const heading=parent.querySelector(':scope > .section-heading :is(h1,h2)');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}}
     root.classList.toggle('is-empty',items.length===0);
