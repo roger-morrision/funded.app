@@ -40,7 +40,11 @@ export function createExploreLoadingController(appState) {
         (top100 ? loadTop100Feed(appState.apiRequest, {signal}) : appState.apiRequest(`/api/pump/explore?limit=40&sort=${encodeURIComponent(pumpSort)}`, { signal })).catch(() => ({ available: false, data: null })),
       ];
       if (appState.EXPLORE_CLUSTER !== 'devnet') feeds[0] = appState.apiRequest(`/api/birdeye/explore?limit=40&sort_by=${encodeURIComponent(birdeyeSort)}`, { signal }).catch(() => ({ available: false, data: null }));
-      const [birdeyeFeed, pumpFeed] = await Promise.all(feeds);
+      let [birdeyeFeed, pumpFeed] = await Promise.all(feeds);
+      // Pump.fun's public API can refuse server reads; Mainnet then lists Birdeye tokens.
+      if (appState.EXPLORE_CLUSTER !== 'devnet' && !top100 && !pumpFeed.available && birdeyeFeed.available && Array.isArray(birdeyeFeed.data?.items))
+        pumpFeed = { available:true, data:{ fetchedAt:birdeyeFeed.data.fetchedAt, items:birdeyeFeed.data.items.map(item => ({ mint:item.address, name:item.name, symbol:item.symbol,
+          imageUri:item.logoUri || null, marketCapUsd:item.marketCapUsd ?? null, feedSource:'Birdeye' })) } };
       signal?.throwIfAborted();
       if (appState.EXPLORE_CLUSTER === 'devnet' && appState.verifiedLaunchPoliciesStatus !== 'ready') await appState.loadVerifiedLaunchPolicies(signal);
       appState.exploreFeedAvailable = pumpFeed.available;
@@ -62,7 +66,7 @@ export function createExploreLoadingController(appState) {
           volume24hUsd: market?.volume24hUsd ?? null,
           holders: market?.holders ?? null,
           lastTradeUnixTime: market?.lastTradeUnixTime ?? pump.lastTradeTimestamp ?? null,
-          source: appState.verifiedPaidListingPayment(pump) ? 'Paid listing · mint verified' : market ? 'Pump.fun + Birdeye' : appState.EXPLORE_CLUSTER === 'devnet' ? 'Verified Solana registry' : 'Pump.fun',
+          source: appState.verifiedPaidListingPayment(pump) ? 'Paid listing · mint verified' : market ? (pump.feedSource === 'Birdeye' ? 'Birdeye' : 'Pump.fun + Birdeye') : appState.EXPLORE_CLUSTER === 'devnet' ? 'Verified Solana registry' : 'Pump.fun',
           fetchedAt: market ? birdeyeFeed.data?.fetchedAt : pumpFeed.data?.fetchedAt,
         };
       });
