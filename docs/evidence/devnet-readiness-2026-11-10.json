@@ -205,11 +205,15 @@
     "contracts": "Unchanged; no new program deployment or new Rust test run in this pass"
   },
   "freshLaunchTradePayout": {
-    "status": "blocked-before-funding",
-    "reason": "QA funder below the test reserve; awaiting approval of a bounded 0.22 test-SOL run with a 14 SOL reserve.",
-    "sourceBalanceLamports": 14846431821,
-    "transactionsSubmitted": 0,
-    "faucet": "One RPC faucet request returned 410; no retries."
+    "status": "passed-targeted-financial-acceptance",
+    "checkedAt": "2026-11-10T03:12:46.936Z",
+    "appRevision": "82983bd23e4d8e4103eeb41b4debd8d6d92fa543",
+    "evidence": "devnet-financial-acceptance-2026-11-10.json",
+    "totalNetSpentLamports": 134567432,
+    "maxAuthorizedLamports": 220000000,
+    "qaFinalBalanceLamports": 14751563149,
+    "allUnusedEphemeralSolRefunded": true,
+    "scope": "Fresh launch, buy/sell, fee collection and settlement, referrals, reward/community vault funding, Operations payout and creator-authorized wallet payout. Not exhaustive app or Mainnet acceptance."
   },
   "mainnet": {
     "ready": false,
@@ -246,7 +250,6 @@
     ]
   },
   "remainingAcceptance": [
-    "Fresh current-release launch, trade and payout run awaiting test-budget answer",
     "Full holder and Daily bonus delivery, community migration delivery, paid-launch cancellation/recovery and remaining protocol/agency flows",
     "Reward-volume and off-host restore; scheduled backups and complete restart reconciliation",
     "Independent exact-artifact review and capped Mainnet canary after production inputs are supplied"

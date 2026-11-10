@@ -1,0 +1,840 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-10T03:12:46.936Z",
+  "cluster": "devnet",
+  "appOrigin": "https://richpad.fun",
+  "status": "passed-targeted-financial-acceptance",
+  "scope": "Fresh launch, buy/sell, fee collection and settlement, referrals, reward/community vault funding, Operations payout and creator-authorized wallet payout. Not exhaustive app or Mainnet acceptance.",
+  "testCorrection": "The first run stopped at a stale harness assertion expecting a retired 12-hour SOL creator-fee hold (423). The app correctly returned 202 requesting the creator signature. The corrected second run verified the exact transaction message, creator authorization, finalized recipient balance increase and idempotent replay. Developer-token escrow remains separate. No application code was changed for this correction.",
+  "budget": {
+    "authorizedLamports": 220000000,
+    "totalNetSpentLamports": 134567432,
+    "qaNetSpentLamports": 94868672,
+    "servicePayerDebitsLamports": 39698760,
+    "returnedToQaLamports": 235131328,
+    "qaFinalBalanceLamports": 14751563149,
+    "minimumQaReserveLamports": 14000000000,
+    "allEightEphemeralWalletsZeroSol": true,
+    "accountingScope": "Net QA funding debit after finalized refunds plus observed service fee-payer net debits on every unique test transaction, including transaction fees and created-account rent. Remaining on-chain tokens and program accounts are fixtures, not liquid SOL refunds."
+  },
+  "publicStatusAfter": {
+    "cluster": "devnet",
+    "build": "82983bd23e4d8e4103eeb41b4debd8d6d92fa543",
+    "status": "operational",
+    "checks": [
+      {
+        "id": "storage",
+        "status": "operational"
+      },
+      {
+        "id": "network",
+        "status": "operational"
+      }
+    ],
+    "observedAt": "2026-11-10T03:12:23.621Z",
+    "scope": "storage-network-and-v3-settlement-evidence",
+    "settlementVerified": false,
+    "settlementEvidence": {
+      "verified": false,
+      "scope": "all-recorded-v3-collections",
+      "recorded": 10,
+      "checked": 0,
+      "reason": "verification-pending",
+      "status": "pending"
+    },
+    "mainnetActivationAuthorized": false,
+    "respondedAt": "2026-11-10T03:12:23.84Z"
+  },
+  "runs": [
+    {
+      "status": "blocked",
+      "startedAt": "2026-11-10T02:59:42.789Z",
+      "finishedAt": "2026-11-10T03:02:33.185Z",
+      "appRevision": "82983bd23e4d8e4103eeb41b4debd8d6d92fa543",
+      "checks": [
+        {
+          "name": "network",
+          "status": "passed",
+          "at": "2026-11-10T02:59:43.499Z",
+          "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+          "finalizedSlot": 520600448
+        },
+        {
+          "name": "deployed-program",
+          "status": "passed",
+          "at": "2026-11-10T02:59:45.012Z",
+          "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+          "programDataAddress": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+          "programDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee",
+          "executableSha256": "4077fbffc479a1690ea87e351180007adad4cdb255a142a34ccdd1b53b466e60",
+          "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+        },
+        {
+          "name": "router-policy",
+          "status": "passed",
+          "at": "2026-11-10T02:59:45.465Z",
+          "address": "4jxmVjfBeiXjDwwaDQhPvVXhcJ4K4Xf5pmkXWgtkiGMw",
+          "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+        },
+        {
+          "name": "pump-program",
+          "status": "passed",
+          "at": "2026-11-10T02:59:46.117Z",
+          "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+        },
+        {
+          "name": "public-app",
+          "status": "passed",
+          "at": "2026-11-10T02:59:46.370Z",
+          "httpStatus": 200,
+          "cluster": "devnet"
+        },
+        {
+          "name": "ephemeral-memory-payer",
+          "status": "passed",
+          "at": "2026-11-10T02:59:47.423Z",
+          "payer": "FNDi2fkg4xUnNH6mYHJMmJpUhB9aUWx7CMike3iLxNxC",
+          "balanceLamports": 216990000,
+          "faucetRequested": false
+        },
+        {
+          "name": "fee-recipient-funding",
+          "status": "passed",
+          "at": "2026-11-10T02:59:48.082Z",
+          "address": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+          "balanceLamports": 9581460331,
+          "fundingRequired": false
+        },
+        {
+          "name": "v3-launch-config",
+          "status": "passed",
+          "at": "2026-11-10T02:59:51.834Z",
+          "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+          "initialAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "split": {
+            "operationsPercent": 40,
+            "referralLevelPercents": [
+              3,
+              1.25,
+              0.75
+            ],
+            "communityPercent": 20,
+            "buybackPercent": 25,
+            "agencyPercent": 10
+          },
+          "agencyRevision": "10",
+          "lookupTable": "FqrcLjTPoiMQkhuTF9cg3X8tvPX6RVp1Dpb8XSeyghUW",
+          "serviceFeeLamports": "20000000"
+        },
+        {
+          "name": "v3-launch",
+          "status": "passed",
+          "at": "2026-11-10T03:00:05.009Z",
+          "signature": "38VFZxP3pLH7WfsM2FgXQroQEUUpKwJbzvBrLBGH8g8RMvwxDyiPhtR49wMXYaNGHUU4YC3MkrMF9LkgLLN3p9v7",
+          "mint": "2uzcsmamuyT2rbj49TctYQR7gCze11eS8vsdedfFNTz5",
+          "feeRouter": "FTtSFhETHVDJ6ux6J9sGR9VdWsoPudpYtBVTTCcsXvE3",
+          "reserveVault": "7Yg8uqrGM9uyyqRcTUgfArMgCg8pi2qX9tibtkBxyQ1n",
+          "separateRouterTransaction": true
+        },
+        {
+          "name": "live-registration",
+          "status": "passed",
+          "at": "2026-11-10T03:00:17.374Z",
+          "mint": "2uzcsmamuyT2rbj49TctYQR7gCze11eS8vsdedfFNTz5",
+          "signature": "38VFZxP3pLH7WfsM2FgXQroQEUUpKwJbzvBrLBGH8g8RMvwxDyiPhtR49wMXYaNGHUU4YC3MkrMF9LkgLLN3p9v7",
+          "reserveTokens": "30000000",
+          "developerBaseUnits": "3529601674803",
+          "serviceFeeLamports": "20000000"
+        },
+        {
+          "name": "buy",
+          "status": "passed",
+          "at": "2026-11-10T03:00:25.491Z",
+          "signature": "8vj2fqDdnfiY6A784JbeFzheYqb2qbgD7WkrYHBKCYEnoJDQ4DNqfdn5W7mKeqrKmyZk5eLaaxFgkSiNVb5qSJq",
+          "slot": 520600616
+        },
+        {
+          "name": "buy-fee-delta",
+          "status": "passed",
+          "at": "2026-11-10T03:00:26.133Z",
+          "lamports": 30000,
+          "feeBps": 100,
+          "quoteLamports": "3000000"
+        },
+        {
+          "name": "sell",
+          "status": "passed",
+          "at": "2026-11-10T03:00:34.765Z",
+          "signature": "3wPK2YozJf3JX6hpTit6NZunmDadSrdNNEaGGVHVRrV6NMGUFEmHihBzXYDeVdSCztKHzXRsfq8U5vHvVqnvqzTm",
+          "slot": 520600656
+        },
+        {
+          "name": "sell-fee-delta",
+          "status": "passed",
+          "at": "2026-11-10T03:00:35.418Z",
+          "lamports": 29260,
+          "feeBps": 100,
+          "quoteLamports": "2925922"
+        },
+        {
+          "name": "creator-fee-collection",
+          "status": "passed",
+          "at": "2026-11-10T03:00:46.783Z",
+          "signature": "3ZQufjYE98yu6SRqUEuEnRAv4zVQeCii7LYTRb9WAexkUnpL9eMDdqxb38ArRxWAYykX9UkN6gNsqwSGxdpwPWnG",
+          "lamports": 46809,
+          "slot": 520600704
+        },
+        {
+          "name": "settlement",
+          "status": "passed",
+          "at": "2026-11-10T03:00:56.491Z",
+          "signature": "4ugBQDGDXYvZQsshVAuheGr2zgBaoYunmjQ7RXXzPATgJUcbSkeTkD5B6Sh8txFYWUGN8oB8BEyod1wAMfXtWnk4",
+          "lamports": 46809,
+          "categories": [
+            "37447",
+            "3744",
+            "281",
+            "117",
+            "71",
+            "1872",
+            "2340",
+            "937"
+          ]
+        },
+        {
+          "name": "settlement-idempotency",
+          "status": "passed",
+          "at": "2026-11-10T03:01:02.630Z",
+          "signature": "4ugBQDGDXYvZQsshVAuheGr2zgBaoYunmjQ7RXXzPATgJUcbSkeTkD5B6Sh8txFYWUGN8oB8BEyod1wAMfXtWnk4"
+        },
+        {
+          "name": "referral-level-1",
+          "status": "passed",
+          "at": "2026-11-10T03:01:17.109Z",
+          "recipient": "EgZxBzY5qkECxB3fN19RmeZAnGfiGhPtbaVUqqtF2dqf",
+          "lamports": "281",
+          "signature": "56pKLuxp77kc8KJ7HaahLFMdA3u3AWgUwVJRHA7nyHYqiTop9g5LFWLDEaJg3zxwJvHzed5TZwBFWB4fFNT9ZLiN"
+        },
+        {
+          "name": "referral-level-2",
+          "status": "passed",
+          "at": "2026-11-10T03:01:26.559Z",
+          "recipient": "AgMZAhmW4VFdy8YHS3J7JNVKenMrxtgrQg8Yv3qNv83i",
+          "lamports": "117",
+          "signature": "41p8GYRk6eepHkLCkf2vAaw3RRgCa4gmyWSYuWEQXgjokDcuPgsDd8cbHvB37wp8S53VSnJvgYaCJ8Zogh8wVAmn"
+        },
+        {
+          "name": "referral-level-3",
+          "status": "passed",
+          "at": "2026-11-10T03:01:35.775Z",
+          "recipient": "58wGQM77vZ6rUqUdwJJad6DiGzxey8zDGJHTB1QbuL6x",
+          "lamports": "71",
+          "signature": "ABgyKvc9AE88ydE3rWdspzwGUYBr2S1bPzXUUQGmQy9MhmxVqVJe4v42SMoY5QZikuWuvDt2DeoBnabrM9E9oEG"
+        },
+        {
+          "name": "creator-reward-funding",
+          "status": "passed",
+          "at": "2026-11-10T03:01:45.342Z",
+          "signature": "m9y8LHCfWY2V6cu4fjxQnf6Tcx5miEqU9PK6q3Tj758Nwr1kNPiLPS2azjkKmX6dX5QijaGydSFSL8WqoBjPdKT",
+          "amount": "4681",
+          "recipient": "7Yg8uqrGM9uyyqRcTUgfArMgCg8pi2qX9tibtkBxyQ1n"
+        },
+        {
+          "name": "community-funding",
+          "status": "passed",
+          "at": "2026-11-10T03:01:56.823Z",
+          "signature": "uf2UW4QRUvf94oH4EBD2oQVHGGrdWUmSUMcr2163wqCqoHyMoMqjmT6U6gqfxQGMWSMTMgePGJLYrQC33Rmyefs",
+          "amount": "1872",
+          "recipient": "7Yg8uqrGM9uyyqRcTUgfArMgCg8pi2qX9tibtkBxyQ1n"
+        },
+        {
+          "name": "operations-payout",
+          "status": "passed",
+          "at": "2026-11-10T03:02:06.357Z",
+          "signature": "3VhKYNM7VMb4ZzfYchzSQ21yD5YWJAUaKdNZS72DP7C7bnsn6YVXSbmDBNSizVNY3a41fUfULKCb8nwX3Z8pftxh",
+          "amount": "3744",
+          "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB"
+        },
+        {
+          "name": "creator-fee-collection",
+          "status": "failed",
+          "at": "2026-11-10T03:02:10.568Z",
+          "reason": "Expected values to be strictly equal:\n\n202 !== 423\n"
+        }
+      ],
+      "blockers": [
+        "creator-fee-collection: Expected values to be strictly equal:\n\n202 !== 423\n"
+      ],
+      "fundingAndRefunds": [
+        {
+          "name": "fund-ephemeral",
+          "signature": "5ap38uwdiohhC6vABgaxqNJJBxYyuugf9pfwF7sbsY1mkFXRRBSDJM1Ztw9rbj6zYY6EFmjzpcENBXimY1B4aog",
+          "lastValidBlockHeight": 507740506,
+          "finalized": true,
+          "slot": 520600390
+        },
+        {
+          "name": "fund-referral-recipients",
+          "signature": "4BZNxZBDpLaex7aT2DKn9JEQ2axw4sqnxPsS8A1r4WtjP28HSyW1eq62G4WL4VUJCLwd4dNcCBnogJU1eZdiEguf",
+          "lastValidBlockHeight": 507740533,
+          "finalized": true,
+          "slot": 520600416
+        },
+        {
+          "name": "refund-0",
+          "signature": "3W7FwVDV1aUBMM4QuhKfDGMUMmjnsL46JmBtCVXkRjdPjUbVshrW8qJfLFLUxBK6J2CKpVwKN8PNBMy2FzEoaCA8",
+          "lastValidBlockHeight": 507741182,
+          "finalized": true,
+          "slot": 520601082
+        },
+        {
+          "name": "refund-1",
+          "signature": "4xafmXDeeK7m6T5aKhGP1MCcCQZH81oyGfMg9D5dGL5mbgu86zibUU7QQ9MmjzB1uxnyeF41S4RB3purqdaSwPFc",
+          "lastValidBlockHeight": 507741211,
+          "finalized": true,
+          "slot": 520601112
+        },
+        {
+          "name": "refund-2",
+          "signature": "58smhqdRuv718SkkWBRbmNNToVa8q86KdytubikV8EupHHneUNuEs7eZtrCQS8X3AeTKyQXzK3SnYMhZtR2ePLx7",
+          "lastValidBlockHeight": 507741241,
+          "finalized": true,
+          "slot": 520601141
+        },
+        {
+          "name": "refund-3",
+          "signature": "4g57noLoYq3jh3ppJm6oMVusRfLvrxjk5bkCVyE5iBs5E5cMPA21zcWHa3CwHrNiyuDgCNZTFy7SakumyZxXCgML",
+          "lastValidBlockHeight": 507741257,
+          "finalized": true,
+          "slot": 520601157
+        }
+      ],
+      "accounting": {
+        "checkedAt": "2026-11-10T03:05:23.221Z",
+        "cluster": "devnet",
+        "status": "finalized-receipts-and-refunds-verified",
+        "maxAuthorizedLamports": 220000000,
+        "qaFundingDebit": 220000000,
+        "returnedLamports": 172549281,
+        "qaNetSpentLamports": 47450719,
+        "servicePayerDebitLamports": 19211920,
+        "totalNetSpentLamports": 66662639,
+        "qaBalanceLamports": 14798981102,
+        "ephemeralWalletsZeroBalance": true,
+        "transactions": [
+          {
+            "signature": "5ap38uwdiohhC6vABgaxqNJJBxYyuugf9pfwF7sbsY1mkFXRRBSDJM1Ztw9rbj6zYY6EFmjzpcENBXimY1B4aog",
+            "slot": 520600390,
+            "feePayer": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "4BZNxZBDpLaex7aT2DKn9JEQ2axw4sqnxPsS8A1r4WtjP28HSyW1eq62G4WL4VUJCLwd4dNcCBnogJU1eZdiEguf",
+            "slot": 520600416,
+            "feePayer": "FNDi2fkg4xUnNH6mYHJMmJpUhB9aUWx7CMike3iLxNxC",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3W7FwVDV1aUBMM4QuhKfDGMUMmjnsL46JmBtCVXkRjdPjUbVshrW8qJfLFLUxBK6J2CKpVwKN8PNBMy2FzEoaCA8",
+            "slot": 520601082,
+            "feePayer": "EgZxBzY5qkECxB3fN19RmeZAnGfiGhPtbaVUqqtF2dqf",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "4xafmXDeeK7m6T5aKhGP1MCcCQZH81oyGfMg9D5dGL5mbgu86zibUU7QQ9MmjzB1uxnyeF41S4RB3purqdaSwPFc",
+            "slot": 520601112,
+            "feePayer": "AgMZAhmW4VFdy8YHS3J7JNVKenMrxtgrQg8Yv3qNv83i",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "58smhqdRuv718SkkWBRbmNNToVa8q86KdytubikV8EupHHneUNuEs7eZtrCQS8X3AeTKyQXzK3SnYMhZtR2ePLx7",
+            "slot": 520601141,
+            "feePayer": "58wGQM77vZ6rUqUdwJJad6DiGzxey8zDGJHTB1QbuL6x",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "4g57noLoYq3jh3ppJm6oMVusRfLvrxjk5bkCVyE5iBs5E5cMPA21zcWHa3CwHrNiyuDgCNZTFy7SakumyZxXCgML",
+            "slot": 520601157,
+            "feePayer": "FNDi2fkg4xUnNH6mYHJMmJpUhB9aUWx7CMike3iLxNxC",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "38VFZxP3pLH7WfsM2FgXQroQEUUpKwJbzvBrLBGH8g8RMvwxDyiPhtR49wMXYaNGHUU4YC3MkrMF9LkgLLN3p9v7",
+            "slot": 520600517,
+            "feePayer": "FNDi2fkg4xUnNH6mYHJMmJpUhB9aUWx7CMike3iLxNxC",
+            "feeLamports": 10000
+          },
+          {
+            "signature": "eF2PsweKGnoDzurJnVkChgy7nb5pxo2rKiEYDWNqWc675FD7Dxd83wiRNrzgZqxW7cspiHCTr2yUQHcRcpofuWy",
+            "slot": 520600506,
+            "feePayer": "FNDi2fkg4xUnNH6mYHJMmJpUhB9aUWx7CMike3iLxNxC",
+            "feeLamports": 10000
+          },
+          {
+            "signature": "8vj2fqDdnfiY6A784JbeFzheYqb2qbgD7WkrYHBKCYEnoJDQ4DNqfdn5W7mKeqrKmyZk5eLaaxFgkSiNVb5qSJq",
+            "slot": 520600616,
+            "feePayer": "FNDi2fkg4xUnNH6mYHJMmJpUhB9aUWx7CMike3iLxNxC",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3wPK2YozJf3JX6hpTit6NZunmDadSrdNNEaGGVHVRrV6NMGUFEmHihBzXYDeVdSCztKHzXRsfq8U5vHvVqnvqzTm",
+            "slot": 520600656,
+            "feePayer": "FNDi2fkg4xUnNH6mYHJMmJpUhB9aUWx7CMike3iLxNxC",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3ZQufjYE98yu6SRqUEuEnRAv4zVQeCii7LYTRb9WAexkUnpL9eMDdqxb38ArRxWAYykX9UkN6gNsqwSGxdpwPWnG",
+            "slot": 520600704,
+            "feePayer": "3nA4cRAKSXBupbRQ9gcktV7VkDL1E2Wn48VpjXMkp7Bm",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "4ugBQDGDXYvZQsshVAuheGr2zgBaoYunmjQ7RXXzPATgJUcbSkeTkD5B6Sh8txFYWUGN8oB8BEyod1wAMfXtWnk4",
+            "slot": 520600748,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "56pKLuxp77kc8KJ7HaahLFMdA3u3AWgUwVJRHA7nyHYqiTop9g5LFWLDEaJg3zxwJvHzed5TZwBFWB4fFNT9ZLiN",
+            "slot": 520600824,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "41p8GYRk6eepHkLCkf2vAaw3RRgCa4gmyWSYuWEQXgjokDcuPgsDd8cbHvB37wp8S53VSnJvgYaCJ8Zogh8wVAmn",
+            "slot": 520600870,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "ABgyKvc9AE88ydE3rWdspzwGUYBr2S1bPzXUUQGmQy9MhmxVqVJe4v42SMoY5QZikuWuvDt2DeoBnabrM9E9oEG",
+            "slot": 520600907,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "m9y8LHCfWY2V6cu4fjxQnf6Tcx5miEqU9PK6q3Tj758Nwr1kNPiLPS2azjkKmX6dX5QijaGydSFSL8WqoBjPdKT",
+            "slot": 520600954,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "uf2UW4QRUvf94oH4EBD2oQVHGGrdWUmSUMcr2163wqCqoHyMoMqjmT6U6gqfxQGMWSMTMgePGJLYrQC33Rmyefs",
+            "slot": 520601005,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3VhKYNM7VMb4ZzfYchzSQ21yD5YWJAUaKdNZS72DP7C7bnsn6YVXSbmDBNSizVNY3a41fUfULKCb8nwX3Z8pftxh",
+            "slot": 520601044,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          }
+        ]
+      }
+    },
+    {
+      "status": "passed",
+      "startedAt": "2026-11-10T03:08:04.010Z",
+      "finishedAt": "2026-11-10T03:11:43.535Z",
+      "appRevision": "82983bd23e4d8e4103eeb41b4debd8d6d92fa543",
+      "checks": [
+        {
+          "name": "network",
+          "status": "passed",
+          "at": "2026-11-10T03:08:04.703Z",
+          "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+          "finalizedSlot": 520602551
+        },
+        {
+          "name": "deployed-program",
+          "status": "passed",
+          "at": "2026-11-10T03:08:06.227Z",
+          "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+          "programDataAddress": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+          "programDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee",
+          "executableSha256": "4077fbffc479a1690ea87e351180007adad4cdb255a142a34ccdd1b53b466e60",
+          "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+        },
+        {
+          "name": "router-policy",
+          "status": "passed",
+          "at": "2026-11-10T03:08:06.680Z",
+          "address": "4jxmVjfBeiXjDwwaDQhPvVXhcJ4K4Xf5pmkXWgtkiGMw",
+          "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+        },
+        {
+          "name": "pump-program",
+          "status": "passed",
+          "at": "2026-11-10T03:08:07.337Z",
+          "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+        },
+        {
+          "name": "public-app",
+          "status": "passed",
+          "at": "2026-11-10T03:08:07.706Z",
+          "httpStatus": 200,
+          "cluster": "devnet"
+        },
+        {
+          "name": "ephemeral-memory-payer",
+          "status": "passed",
+          "at": "2026-11-10T03:08:08.644Z",
+          "payer": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+          "balanceLamports": 106990000,
+          "faucetRequested": false
+        },
+        {
+          "name": "fee-recipient-funding",
+          "status": "passed",
+          "at": "2026-11-10T03:08:09.295Z",
+          "address": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+          "balanceLamports": 9601519591,
+          "fundingRequired": false
+        },
+        {
+          "name": "v3-launch-config",
+          "status": "passed",
+          "at": "2026-11-10T03:08:13.192Z",
+          "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+          "initialAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "split": {
+            "operationsPercent": 40,
+            "referralLevelPercents": [
+              3,
+              1.25,
+              0.75
+            ],
+            "communityPercent": 20,
+            "buybackPercent": 25,
+            "agencyPercent": 10
+          },
+          "agencyRevision": "10",
+          "lookupTable": "FqrcLjTPoiMQkhuTF9cg3X8tvPX6RVp1Dpb8XSeyghUW",
+          "serviceFeeLamports": "20000000"
+        },
+        {
+          "name": "v3-launch",
+          "status": "passed",
+          "at": "2026-11-10T03:08:26.364Z",
+          "signature": "53xCypQGtnoQ6hSiShZkVp4AhsUsL7HvxJtRmN9tnwBgCcCHERc8YbaoLJk5jS4wMyuKiFTBFyVBvo79sKEWDpAH",
+          "mint": "88MvSoPQy4KXLeMP7ihkE6p7yE63BqPU4wuXyTucQYhr",
+          "feeRouter": "5uxKJkbzMK5yKnAizSZiA5j5LqfUqWyDKYvcuh1uN2Fi",
+          "reserveVault": "4j6mezpQVQmke3TMB53wq9LmbpXzfYU27bSsodbn21wx",
+          "separateRouterTransaction": true
+        },
+        {
+          "name": "live-registration",
+          "status": "passed",
+          "at": "2026-11-10T03:08:34.933Z",
+          "mint": "88MvSoPQy4KXLeMP7ihkE6p7yE63BqPU4wuXyTucQYhr",
+          "signature": "53xCypQGtnoQ6hSiShZkVp4AhsUsL7HvxJtRmN9tnwBgCcCHERc8YbaoLJk5jS4wMyuKiFTBFyVBvo79sKEWDpAH",
+          "reserveTokens": "30000000",
+          "developerBaseUnits": "3529601674803",
+          "serviceFeeLamports": "20000000"
+        },
+        {
+          "name": "buy",
+          "status": "passed",
+          "at": "2026-11-10T03:08:43.039Z",
+          "signature": "SVf8txB19QPet6zTui8aUEfVDKFyqFpFD34u9rzP1B5DWQdpFdgaRsDy9es3EPtZjTpyn1AVnQNipHAG83LeHBD",
+          "slot": 520602702
+        },
+        {
+          "name": "buy-fee-delta",
+          "status": "passed",
+          "at": "2026-11-10T03:08:43.698Z",
+          "lamports": 30000,
+          "feeBps": 100,
+          "quoteLamports": "3000000"
+        },
+        {
+          "name": "sell",
+          "status": "passed",
+          "at": "2026-11-10T03:09:12.400Z",
+          "signature": "3M8RCgiGGLr4aVtjZxeGZojuL4f1idVs8PGvXwNFyKdM5f3nGDKd8uV8gtosUq5ZrQL2wEVYGXbyiZie7f4o3ERv",
+          "slot": 520602825
+        },
+        {
+          "name": "sell-fee-delta",
+          "status": "passed",
+          "at": "2026-11-10T03:09:13.053Z",
+          "lamports": 29260,
+          "feeBps": 100,
+          "quoteLamports": "2925922"
+        },
+        {
+          "name": "creator-fee-collection",
+          "status": "passed",
+          "at": "2026-11-10T03:09:23.555Z",
+          "signature": "a2q7NwcCyTPJ4KbKNzDmC2AtC68ZVY7dQNgR4iMVsbAuSz9HuueMawGWsEyFFiwX8uZ9uu9WU4my42axkrFtTCi",
+          "lamports": 46809,
+          "slot": 520602871
+        },
+        {
+          "name": "settlement",
+          "status": "passed",
+          "at": "2026-11-10T03:09:31.454Z",
+          "signature": "4zbjxEdGcqo5hSNV4Jnvvi4FVQCooWN87jaY4Lh9ghWDULz7JKam6UHzPEm2ny5YAGrGyaqmeaK5AFh1eo6Tj8Wg",
+          "lamports": 46809,
+          "categories": [
+            "37447",
+            "3744",
+            "281",
+            "117",
+            "71",
+            "1872",
+            "2340",
+            "937"
+          ]
+        },
+        {
+          "name": "settlement-idempotency",
+          "status": "passed",
+          "at": "2026-11-10T03:09:37.761Z",
+          "signature": "4zbjxEdGcqo5hSNV4Jnvvi4FVQCooWN87jaY4Lh9ghWDULz7JKam6UHzPEm2ny5YAGrGyaqmeaK5AFh1eo6Tj8Wg"
+        },
+        {
+          "name": "referral-level-1",
+          "status": "passed",
+          "at": "2026-11-10T03:09:51.230Z",
+          "recipient": "99QqDsKULb4CZu1PyfsaxW8PdxbKLqcnxDmJM617EvNs",
+          "lamports": "281",
+          "signature": "3nCVzpTGbjAho1i3xAGH5jRSUQCtTsenXzC4Gugbpc5D236SxoN6P6HD4vSHDGNgkgrwqtmnmVaaaJ3d3q1SuQr2"
+        },
+        {
+          "name": "referral-level-2",
+          "status": "passed",
+          "at": "2026-11-10T03:10:02.607Z",
+          "recipient": "4tdBGi6G23u1NcdVmLN29Ky9vuyLjXRcX1oYdLnnKSs4",
+          "lamports": "117",
+          "signature": "497HCwEU6U6dN7kqK15sfxkCQWvABraYN1avMQquKuiJs4kEcRPTD3VQJvQ5cxMjeVxMxZ5cfRcGM35RHx3LyGc7"
+        },
+        {
+          "name": "referral-level-3",
+          "status": "passed",
+          "at": "2026-11-10T03:10:14.295Z",
+          "recipient": "ApKJSMqn2oxKJLFbP8tuGrTQTMHqmXUSB7UsHXnDYjic",
+          "lamports": "71",
+          "signature": "3ozDj5TEwy9cFDJ6jQjNnjt8Cf6MppM91jcPBHvAC5XuiHxDvdHaVNfkhFoY2BEqBepAiGbtGcaXmi6MSa2bNJNN"
+        },
+        {
+          "name": "creator-reward-funding",
+          "status": "passed",
+          "at": "2026-11-10T03:10:27.386Z",
+          "signature": "652zTkUwbsJ9At76rhmX5g5MDCx7KvorshLtGAtf7gxquCApwKUursjXhYtaijrRZV5dEhDr8DNXXSvGdMm4MkAW",
+          "amount": "4681",
+          "recipient": "4j6mezpQVQmke3TMB53wq9LmbpXzfYU27bSsodbn21wx"
+        },
+        {
+          "name": "community-funding",
+          "status": "passed",
+          "at": "2026-11-10T03:10:37.804Z",
+          "signature": "eJG13m6HDmnqgGP9oXotPxHkLzPsoYirdjSZHiqkdCvtkdiBGgaDGhhq63tcbGXCNKPUTEZM8Ej2vHQkqv7dwfm",
+          "amount": "1872",
+          "recipient": "4j6mezpQVQmke3TMB53wq9LmbpXzfYU27bSsodbn21wx"
+        },
+        {
+          "name": "operations-payout",
+          "status": "passed",
+          "at": "2026-11-10T03:10:48.634Z",
+          "signature": "3xkhT538ScCCTrHVNcvorvtUxNTFUTD9NmzRQKB67CHKUipuFbTpSsFnHWg2n6XMRyCoauBv9cuQXdrMF7uzLvTa",
+          "amount": "3744",
+          "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB"
+        },
+        {
+          "name": "creator-wallet-payout",
+          "status": "passed",
+          "at": "2026-11-10T03:11:00.876Z",
+          "recipient": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+          "lamports": "32766",
+          "signature": "ziQzCuWhGhK31pQssRWBP43sxPm58z2CBz6WqrzUV7pD5N4CPzDdV1t5GrjSqq2FXPnu2CZx6t6rqdVsRrryZcn",
+          "creatorSigned": true,
+          "balanceDeltaVerified": true,
+          "replaySameSignature": true
+        }
+      ],
+      "blockers": [],
+      "fundingAndRefunds": [
+        {
+          "name": "fund-ephemeral",
+          "signature": "2A5Z1GRoLAaxKQKr4eUUhfrQGb6zBcaHgDTB2Qf5HN7bytRxoaTUsDMdsYe827HKFxLkeg6172tktyp5S28BX1aQ",
+          "lastValidBlockHeight": 507742581,
+          "finalized": true,
+          "slot": 520602505
+        },
+        {
+          "name": "fund-referral-recipients",
+          "signature": "JbcFKep8gXmPS4gqGEw8YGmGZNaSfKo46Gb9KYbN4aktjYUPjPqRhd9o2Yd6MjE37Rv4Dgx5hfKeFW6kHkgajhU",
+          "lastValidBlockHeight": 507742595,
+          "finalized": true,
+          "slot": 520602520
+        },
+        {
+          "name": "refund-0",
+          "signature": "2GekDtvXXbHn7svsw4ArRjqxeBQntbuPQyRyrf3kFvXTaRbQqa6PXFdZ7iWKU1aJzFKBi3duviP7z8ubSZAB7d2D",
+          "lastValidBlockHeight": 507743378,
+          "finalized": true,
+          "slot": 520603303
+        },
+        {
+          "name": "refund-1",
+          "signature": "9NJUEuJMejAtLBPbEi17n9heqa6fwjMtJxmwwaBPG7JwDehzdXfLah3ktiSKjrYeHwPyBR3MErF85KWV98V4oTS",
+          "lastValidBlockHeight": 507743395,
+          "finalized": true,
+          "slot": 520603319
+        },
+        {
+          "name": "refund-2",
+          "signature": "4bV7494LQXM9dsfb2g5wLXPAQPGTU7zxjLnzdNPmdrsXYoKSJVHZG53XW11mosnhQpRpKLCQsXY1v3xKXKPak4oa",
+          "lastValidBlockHeight": 507743497,
+          "finalized": true,
+          "slot": 520603420
+        },
+        {
+          "name": "refund-3",
+          "signature": "4xjnHauqBxmQGKywGtMyCqki1Jot5pjrURXpSrEuAGZXyzGzNxKQ7M2vV4EUVeQFiE2GVFmMn1SPrggGCbrEQeSe",
+          "lastValidBlockHeight": 507743525,
+          "finalized": true,
+          "slot": 520603449
+        }
+      ],
+      "accounting": {
+        "checkedAt": "2026-11-10T03:12:46.936Z",
+        "cluster": "devnet",
+        "status": "finalized-receipts-and-refunds-verified",
+        "maxAuthorizedLamports": 220000000,
+        "qaFundingDebit": 110000000,
+        "returnedLamports": 62582047,
+        "qaNetSpentLamports": 47417953,
+        "servicePayerDebitLamports": 20486840,
+        "totalNetSpentLamports": 67904793,
+        "combinedNetSpentLamports": 134567432,
+        "qaBalanceLamports": 14751563149,
+        "ephemeralWalletsZeroBalance": true,
+        "transactions": [
+          {
+            "signature": "2A5Z1GRoLAaxKQKr4eUUhfrQGb6zBcaHgDTB2Qf5HN7bytRxoaTUsDMdsYe827HKFxLkeg6172tktyp5S28BX1aQ",
+            "slot": 520602505,
+            "feePayer": "8ZCtLWxvBGwniEgybr1k89wS9NSaKrgxF4kPDvGvn1Wk",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "JbcFKep8gXmPS4gqGEw8YGmGZNaSfKo46Gb9KYbN4aktjYUPjPqRhd9o2Yd6MjE37Rv4Dgx5hfKeFW6kHkgajhU",
+            "slot": 520602520,
+            "feePayer": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "2GekDtvXXbHn7svsw4ArRjqxeBQntbuPQyRyrf3kFvXTaRbQqa6PXFdZ7iWKU1aJzFKBi3duviP7z8ubSZAB7d2D",
+            "slot": 520603303,
+            "feePayer": "99QqDsKULb4CZu1PyfsaxW8PdxbKLqcnxDmJM617EvNs",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "9NJUEuJMejAtLBPbEi17n9heqa6fwjMtJxmwwaBPG7JwDehzdXfLah3ktiSKjrYeHwPyBR3MErF85KWV98V4oTS",
+            "slot": 520603319,
+            "feePayer": "4tdBGi6G23u1NcdVmLN29Ky9vuyLjXRcX1oYdLnnKSs4",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "4bV7494LQXM9dsfb2g5wLXPAQPGTU7zxjLnzdNPmdrsXYoKSJVHZG53XW11mosnhQpRpKLCQsXY1v3xKXKPak4oa",
+            "slot": 520603420,
+            "feePayer": "ApKJSMqn2oxKJLFbP8tuGrTQTMHqmXUSB7UsHXnDYjic",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "4xjnHauqBxmQGKywGtMyCqki1Jot5pjrURXpSrEuAGZXyzGzNxKQ7M2vV4EUVeQFiE2GVFmMn1SPrggGCbrEQeSe",
+            "slot": 520603449,
+            "feePayer": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "53xCypQGtnoQ6hSiShZkVp4AhsUsL7HvxJtRmN9tnwBgCcCHERc8YbaoLJk5jS4wMyuKiFTBFyVBvo79sKEWDpAH",
+            "slot": 520602619,
+            "feePayer": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+            "feeLamports": 10000
+          },
+          {
+            "signature": "4rGC9HwKvB7pF1bvLMFs7SxigAFg1YHyJ7vddZ9fCgdJpaKKUVrD27JoVua4ii5FzNVggTJZbtK6PnTubokrCiYV",
+            "slot": 520602608,
+            "feePayer": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+            "feeLamports": 10000
+          },
+          {
+            "signature": "SVf8txB19QPet6zTui8aUEfVDKFyqFpFD34u9rzP1B5DWQdpFdgaRsDy9es3EPtZjTpyn1AVnQNipHAG83LeHBD",
+            "slot": 520602702,
+            "feePayer": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3M8RCgiGGLr4aVtjZxeGZojuL4f1idVs8PGvXwNFyKdM5f3nGDKd8uV8gtosUq5ZrQL2wEVYGXbyiZie7f4o3ERv",
+            "slot": 520602825,
+            "feePayer": "fVuudx8RGh9JurS6Gqn2LBuYwXSB8zL4x6Z2MPRCeRw",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "a2q7NwcCyTPJ4KbKNzDmC2AtC68ZVY7dQNgR4iMVsbAuSz9HuueMawGWsEyFFiwX8uZ9uu9WU4my42axkrFtTCi",
+            "slot": 520602871,
+            "feePayer": "3nA4cRAKSXBupbRQ9gcktV7VkDL1E2Wn48VpjXMkp7Bm",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "4zbjxEdGcqo5hSNV4Jnvvi4FVQCooWN87jaY4Lh9ghWDULz7JKam6UHzPEm2ny5YAGrGyaqmeaK5AFh1eo6Tj8Wg",
+            "slot": 520602907,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3nCVzpTGbjAho1i3xAGH5jRSUQCtTsenXzC4Gugbpc5D236SxoN6P6HD4vSHDGNgkgrwqtmnmVaaaJ3d3q1SuQr2",
+            "slot": 520602974,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "497HCwEU6U6dN7kqK15sfxkCQWvABraYN1avMQquKuiJs4kEcRPTD3VQJvQ5cxMjeVxMxZ5cfRcGM35RHx3LyGc7",
+            "slot": 520603026,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3ozDj5TEwy9cFDJ6jQjNnjt8Cf6MppM91jcPBHvAC5XuiHxDvdHaVNfkhFoY2BEqBepAiGbtGcaXmi6MSa2bNJNN",
+            "slot": 520603067,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "652zTkUwbsJ9At76rhmX5g5MDCx7KvorshLtGAtf7gxquCApwKUursjXhYtaijrRZV5dEhDr8DNXXSvGdMm4MkAW",
+            "slot": 520603135,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "eJG13m6HDmnqgGP9oXotPxHkLzPsoYirdjSZHiqkdCvtkdiBGgaDGhhq63tcbGXCNKPUTEZM8Ej2vHQkqv7dwfm",
+            "slot": 520603184,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "3xkhT538ScCCTrHVNcvorvtUxNTFUTD9NmzRQKB67CHKUipuFbTpSsFnHWg2n6XMRyCoauBv9cuQXdrMF7uzLvTa",
+            "slot": 520603230,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 5000
+          },
+          {
+            "signature": "ziQzCuWhGhK31pQssRWBP43sxPm58z2CBz6WqrzUV7pD5N4CPzDdV1t5GrjSqq2FXPnu2CZx6t6rqdVsRrryZcn",
+            "slot": 520603272,
+            "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+            "feeLamports": 10000
+          }
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "API/client-builder acceptance with in-memory test wallets; not a fresh Phantom/OTP or mobile interaction test.",
+    "Holder and Daily bonus delivery, community migration delivery, paid-launch cancellation/recovery, new buyback/burn, graduation and remaining agency/protocol flows are not covered by these runs.",
+    "Only the listed test receipts and balance changes were independently finalized; the public all-recorded-settlement status may be pending its asynchronous verification.",
+    "Production placeholders, independent review, complete recovery checks and Mainnet canary remain outstanding. No Mainnet transaction was submitted."
+  ]
+}
