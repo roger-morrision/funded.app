@@ -1,4 +1,4 @@
-import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
+import {assertBonusRpc,assertBonusNetwork} from './daily-bonus-network.mjs';
 import {PublicKey} from '@solana/web3.js';
 import {readDailyBonusTrades} from './daily-bonus-evidence.mjs';
 
@@ -15,17 +15,18 @@ export function rankLiveBonus(entries){
 
 // Read-only preview. Never stored as a winner snapshot or used by payout code.
 // Rotate one mint per refresh, retaining independent finalized trade evidence.
-export function createLiveBonusReader({connection,programId,readTrades=readDailyBonusTrades,now=()=>Math.floor(Date.now()/1000)}){
+export function createLiveBonusReader({connection,programId,cluster='devnet',readTrades=readDailyBonusTrades,now=()=>Math.floor(Date.now()/1000)}){
+  assertBonusNetwork(cluster);
   let startAt,rows=new Map(),cursor=0,job,lastAttempt=0;
   return function read(state,start,end){
     if(startAt!==start){startAt=start;rows=new Map();cursor=0;lastAttempt=0;}
-    const launches=Object.values(state.launches||{}).filter(row=>row.onchainVerified===true&&row.cluster==='devnet'
+    const launches=Object.values(state.launches||{}).filter(row=>row.onchainVerified===true&&row.cluster===cluster
       &&row.pumpFeeRoute?.scope==='per-mint-v3'&&row.pumpFeeRoute.verified===true&&row.pumpFeeRoute.programId===programId
       &&Number.isSafeInteger(row.createdTimestamp)&&row.createdTimestamp<end);
     const allowed=new Set(launches.map(row=>row.mint));for(const key of rows.keys())if(!allowed.has(key))rows.delete(key);
     if(!job&&launches.length&&now()-lastAttempt>=15){
       lastAttempt=now();const launch=launches[cursor++%launches.length],capturedStart=start,checkedAt=now();
-      job=Promise.resolve().then(async()=>{if(await connection.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Daily bonus rankings require Devnet.');return readTrades({connection,launch,window:{start,end:Math.min(end,checkedAt+1)},maxPages:3});}).then(result=>{
+      job=Promise.resolve().then(async()=>{await assertBonusRpc(connection,cluster);return readTrades({connection,launch,cluster,window:{start,end:Math.min(end,checkedAt+1)},maxPages:3});}).then(result=>{
         if(startAt===capturedStart&&result.coverage?.complete===true)rows.set(launch.mint,{rows:result.rows,checkedAt});
       }).catch(()=>{if(startAt===capturedStart)rows.delete(launch.mint);}).finally(()=>{job=null;});
     }

@@ -79,7 +79,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
   const rebuild = () => cache('recent', async () => {
     // V3 history verifies its own receipts; a legacy scan must not block it.
     const [evidence, ledger, state] = await Promise.all([v3Only ? {} : readEvidence(), rewardsStore.read(), store?.read?.() ?? {}]);
-    const dailySelection = cluster === 'devnet' ? dailyPaymentCandidates(ledger) : {candidates:[],checked:0,unavailable:0};
+    const dailySelection = dailyPaymentCandidates(ledger,cluster);
     let daily = {rows:[],checked:dailySelection.checked,
       unavailable:dailySelection.unavailable + dailySelection.candidates.length};
     const verified = !v3Only && evidence.cluster === cluster && evidence.commitment === 'finalized'
@@ -131,7 +131,7 @@ export function createPaymentHistoryReader({ readEvidence, rewardsStore, store, 
         const connection = connectionFactory();
         if (cluster === 'mainnet-beta') await assertRpcNetwork(connection,cluster);
         if (await connection.getGenesisHash() !== await officialGenesis()) throw new Error('Wrong Solana network');
-        daily = await dailyPaymentHistory({connection,state,selection:dailySelection,proofCache:verifiedDaily});
+        daily = await dailyPaymentHistory({connection,state,cluster,selection:dailySelection,proofCache:verifiedDaily});
         unavailable += daily.unavailable - dailySelection.unavailable;
         if (v3Only) {
           referralSummary = await v3ReferralPaymentSummary({ state, connection, cluster,

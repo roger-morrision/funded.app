@@ -10,7 +10,7 @@ import {reviewedMainnetManifest} from '../mainnet-program.js';
 import {mainnetEvidenceSummary} from './mainnet-evidence-summary.mjs';
 
 const requiredCases=['admin-operations-withdrawal','launch-standard','launch-promotion','buy-and-sell',
-  'collect-and-settle','creator-payout','holder-rewards','x-payout','protocol-payouts','buyback-burn',
+  'collect-and-settle','creator-payout','holder-rewards','daily-bonus','x-payout','protocol-payouts','buyback-burn',
   'community-claim','developer-unlock','recovery'];
 const present=value=>typeof value==='string'&&value.trim().length>0&&!/REPLACE|PLACEHOLDER/i.test(value);
 const key=value=>{try{return present(value)&&new PublicKey(value).toBase58()===value;}catch{return false;}};

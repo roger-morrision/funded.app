@@ -56,7 +56,7 @@ export async function verifyLaunchDeveloperLock({connection,proof,reserve,transa
   if(!config?.ready)throw Error('The approved developer token escrow is unavailable.');
   if(!transaction||transaction.meta?.err!==null||transaction.transaction?.signatures?.[0]!==proof.signature||transaction.slot!==proof.slot)
     throw Error('A finalized launch transaction is required for developer-token verification.');
-  transaction=await completeFinalizedEventReceipt({connection,transaction,signature:proof.signature});
+  transaction=await completeFinalizedEventReceipt({connection,transaction,signature:proof.signature,cluster:config.cluster||'devnet'});
   const mint=new PublicKey(proof.mint),creator=proof.feePayer;
   const trades=successfulEventLogs(transaction.meta.logMessages).filter(e=>e.program===PUMP_PROGRAM_ID.toBase58())
     .flatMap(e=>decodePumpTrades([e.log],mint));

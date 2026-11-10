@@ -43,6 +43,10 @@
       "proof": "Verified funding, eligibility snapshot, recipient proofs, actual net receipts and conserved reserve."
     },
     {
+      "id": "daily-bonus",
+      "proof": "Complete UTC cutoff evidence, eligible creator/referral/trader rankings, exact funded allocations and recipient SOL credits; retain unfunded obligations, reject duplicate payments, and reconcile the same receipts after worker restart."
+    },
+    {
       "id": "x-payout",
       "proof": "Real identity verification and bound wallet; wrong identity rejected; exact payment and idempotent claim."
     },

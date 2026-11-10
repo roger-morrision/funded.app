@@ -1,14 +1,17 @@
 import { bonusSnapshotLabel } from './bonus-labels.js';
+import {requireSolanaCluster,solanaExplorerUrl} from '../../../solana-network.js';
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const positive = value => /^[1-9]\d*$/.test(String(value || '')) ? BigInt(value) : null;
 
 // One payment can cover awards from several ranking groups. Count its proof once.
 export function dailyBonusPayments(snapshot) {
+  const cluster=requireSolanaCluster(snapshot?.cluster||'devnet');
   const wallets = new Map(), seen = new Map();
   for (const source of Array.isArray(snapshot?.sources) ? snapshot.sources : []) {
     for (const [wallet, payment] of Object.entries(source.payments || {})) {
-      if (!ADDRESS.test(wallet) || payment?.finalized !== true || payment.balanceDeltaVerified !== true) continue;
+      if (!ADDRESS.test(wallet) || payment?.finalized !== true || payment.balanceDeltaVerified !== true
+        ||(payment.cluster||'devnet')!==cluster) continue;
       const account = ADDRESS.test(payment.payment || '') ? payment.payment : null;
       const signature = SIGNATURE.test(payment.signature || '') ? payment.signature : null;
       const amount = positive(payment.amount);
@@ -40,7 +43,7 @@ export function dailyBonusPayments(snapshot) {
       record.receipt.paidAt ||= payment.paidAt || null;
       record.receipt.day ||= source.snapshotDay || null;
       const proof = record.receipt;
-      proof.href = `https://explorer.solana.com/${proof.signature ? 'tx' : 'address'}/${proof.signature || proof.paymentAccount}?cluster=devnet`;
+      proof.href = solanaExplorerUrl(proof.signature ? 'tx' : 'address',proof.signature || proof.paymentAccount,cluster);
       for (const key of keys) record.keys.add(key);
       for (const key of record.keys) seen.set(key, record);
       wallets.set(wallet, row);

@@ -1,7 +1,8 @@
 import { DAILY_BONUS_POLICY as POLICY } from '../config/daily-bonus.js';
 import { splitBonusLamports, bonusHash } from './daily-bonus.mjs';
 import { dailyBonusPayments } from '../src/features/fees/daily-bonus-payments.js';
-import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
+import {assertBonusRpc} from './daily-bonus-network.mjs';
+import {financialRecordNetwork} from './financial-network.mjs';
 import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, bonusWindowKey } from './daily-bonus-schedule.mjs';
@@ -33,7 +34,7 @@ function attributeNet(net, weights) {
   return values;
 }
 
-export function bonusDashboardHistory(ledger, { category = 'all', page = 1, pageSize = 20 } = {}) {
+export function bonusDashboardHistory(ledger, { category = 'all', page = 1, pageSize = 20, cluster='devnet' } = {}) {
   if (!['all', ...categories].includes(category)) throw new Error('Unknown bonus category.');
   page = Math.max(1, Number.isSafeInteger(page) ? page : 1);
   pageSize = Math.min(50, Math.max(1, Number.isSafeInteger(pageSize) ? pageSize : 20));
@@ -57,7 +58,7 @@ export function bonusDashboardHistory(ledger, { category = 'all', page = 1, page
   }
   const totals = Object.fromEntries(categories.map(key => [key, new Map()]));
   const history = []; let unavailableReceipts = 0;
-  for (const [wallet, result] of dailyBonusPayments({ sources })) {
+  for (const [wallet, result] of dailyBonusPayments({ sources,cluster })) {
     for (const receipt of result.receipts) {
       const matching = [...new Set([...(aliases.get(`tx:${wallet}:${receipt.signature}`) || []),
         ...(aliases.get(`account:${wallet}:${receipt.paymentAccount}`) || [])])];
@@ -98,20 +99,23 @@ export function bonusDashboardHistory(ledger, { category = 'all', page = 1, page
 
 // Read only finalized indexed collections under a saved Daily bonus policy.
 // This pool is an allocation, not a vault balance or a payment promise.
-export async function readBonusPool({ state, connection, programId, now, signal, schedule = DEFAULT_BONUS_SCHEDULE,
+export async function readBonusPool({ state, connection, programId, now, signal, cluster='devnet', schedule = DEFAULT_BONUS_SCHEDULE, proofCache=new Map(),
   verifyCollection = verifyV3PumpCollection, loadSettlement = loadFinalizedV3Settlement }) {
   const start = currentBonusStart(now,schedule);
   signal?.throwIfAborted();
-  if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Bonus pool RPC is not Devnet.');
+  await assertBonusRpc(connection,cluster,{schedule});
   const candidates = Object.values(state.collections || {}).filter(row => {
     const launch = state.launches?.[row.mint], settled = state.v3Settlements?.[row.signature];
-    return row.scope === 'per-mint-v3' && row.cluster === 'devnet' && row.programId === programId
+    return row.scope === 'per-mint-v3' && row.cluster === cluster && row.programId === programId
       && row.status === 'collected' && row.onchainVerified === true && row.attribution === 'mint-verified'
-      && launch?.onchainVerified === true && launch.cluster === 'devnet'
+      && launch?.onchainVerified === true && launch.cluster === cluster
       && (!schedule.mints || schedule.mints.includes(row.mint))
       && launch.pumpFeeRoute?.programId === programId && launch.pumpFeeRoute?.verified === true
       && launch.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version === 1
-      && settled?.status === 'finalized';
+      && settled?.status === 'finalized'
+      // These are already-finalized app records, used only to narrow a provisional
+      // preview. Financial snapshots independently scan the complete chain window.
+      && (!Number.isSafeInteger(settled.blockTime)||settled.blockTime>=start&&settled.blockTime<start+schedule.periodSeconds);
   });
   if (candidates.length > 2000) throw new Error('Bonus pool coverage requires a larger reviewed indexer.');
   const seen = new Set(), values = categories.map(() => 0n),creators=[],referrals=[]; let collections = 0;
@@ -120,22 +124,31 @@ export async function readBonusPool({ state, connection, programId, now, signal,
     signal?.throwIfAborted();
     if (seen.has(row.signature)) continue; seen.add(row.signature);
     const launch = state.launches[row.mint], settled = state.v3Settlements[row.signature];
+    if(!financialRecordNetwork(settled,cluster,{legacyDevnet:true}))throw new Error('Bonus settlement belongs to another network.');
     if(!/^[a-f0-9]{64}$/.test(String(row.claimId||'')))throw new Error('Bonus source claim identity is unavailable.');
-    const proof = await loadSettlement({ connection, signature:settled.settlementSignature, programId,
-      mint:row.mint, authority:launch.pumpFeeRoute.initialAuthority, creator:launch.creatorWallet,
-      claimId:Buffer.from(row.claimId,'hex'), expectedLamports:row.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
-    if (!proof || integer(proof.categoryLamports?.[5]) == null) throw new Error('Bonus settlement proof is unavailable.');
-    if(!Number.isSafeInteger(proof.blockTime))throw new Error('Bonus settlement time is unavailable.');
-    if(proof.blockTime<start||proof.blockTime>=start+schedule.periodSeconds||proof.blockTime>now)continue;
-    const tx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
-    signal?.throwIfAborted();
-    if (!tx || !Number.isSafeInteger(tx.blockTime)||tx.blockTime>proof.blockTime) throw new Error('Bonus collection proof is unavailable.');
-    const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
-      mint:row.mint, expectedLamports:row.collectedLamports });
-    if (!collected||Buffer.from(collected.claimId).toString('hex')!==row.claimId) throw new Error('Bonus collection proof is unavailable.');
-    creators.push([launch.creatorWallet,String(collected.expectedLamports)]);
-    if(settled.referralUpline?.[0])referrals.push([settled.referralUpline[0],String(collected.expectedLamports)]);
-    const shares = splitBonusLamports(BigInt(proof.categoryLamports[5]), POLICY.categoryWeights);
+    const key=bonusHash({cluster,programId,row,settled,launch});
+    let verified=proofCache.get(key);
+    if(!verified){
+      const proof = await loadSettlement({ connection, cluster, signature:settled.settlementSignature, programId,
+        mint:row.mint, authority:launch.pumpFeeRoute.initialAuthority, creator:launch.creatorWallet,
+        claimId:Buffer.from(row.claimId,'hex'), expectedLamports:row.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
+      if (!proof || integer(proof.categoryLamports?.[5]) == null) throw new Error('Bonus settlement proof is unavailable.');
+      if(!Number.isSafeInteger(proof.blockTime))throw new Error('Bonus settlement time is unavailable.');
+      if(proof.blockTime<start||proof.blockTime>=start+schedule.periodSeconds||proof.blockTime>now)continue;
+      const tx = await connection.getTransaction(row.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
+      signal?.throwIfAborted();
+      if (!tx || !Number.isSafeInteger(tx.blockTime)||tx.blockTime>proof.blockTime) throw new Error('Bonus collection proof is unavailable.');
+      const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
+        mint:row.mint, expectedLamports:row.collectedLamports });
+      if (!collected||Buffer.from(collected.claimId).toString('hex')!==row.claimId) throw new Error('Bonus collection proof is unavailable.');
+      verified={blockTime:proof.blockTime,amountLamports:String(collected.expectedLamports),communityLamports:String(proof.categoryLamports[5])};
+      if(proofCache.size>=2000)proofCache.delete(proofCache.keys().next().value);
+      proofCache.set(key,verified);
+    }
+    if(verified.blockTime<start||verified.blockTime>=start+schedule.periodSeconds||verified.blockTime>now)continue;
+    creators.push([launch.creatorWallet,verified.amountLamports]);
+    if(settled.referralUpline?.[0])referrals.push([settled.referralUpline[0],verified.amountLamports]);
+    const shares = splitBonusLamports(BigInt(verified.communityLamports), POLICY.categoryWeights);
     shares.forEach((value, index) => { values[index] += value; }); collections++;
   }
   return { status:'verified-indexed-settlements', day:bonusWindowKey(start,schedule),

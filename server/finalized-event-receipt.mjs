@@ -1,6 +1,6 @@
 import {Connection} from '@solana/web3.js';
 import {successfulEventLogs} from './product-trade-index.mjs';
-import {GENESIS_HASHES} from './service-status.mjs';
+import {SOLANA_GENESIS,requireSolanaCluster} from '../solana-network.js';
 
 const canonical=value=>JSON.stringify(value,(_,item)=>item&&typeof item==='object'&&!Array.isArray(item)
   ?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
@@ -10,10 +10,11 @@ const identity=receipt=>canonical({slot:receipt.slot,blockTime:receipt.blockTime
 
 // Some providers truncate otherwise finalized receipts. Recover only missing
 // event logs, never accept a different transaction or changed balance evidence.
-export async function completeFinalizedEventReceipt({connection,transaction,signature,
+export async function completeFinalizedEventReceipt({connection,transaction,signature,cluster='devnet',
   rpcUrl=process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL||'',timeoutMs=8000,
   connectionFactory=(url,signal)=>new Connection(url,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(target,options)=>fetch(target,{...options,signal})})}) {
+  requireSolanaCluster(cluster);
   try {successfulEventLogs(transaction?.meta?.logMessages);return transaction;}
   catch(error){if(!['logs-incomplete','logs-unavailable'].includes(error.reason)||!rpcUrl)throw error;}
   if(!transaction||transaction.meta?.err!==null||transaction.transaction?.signatures?.[0]!==signature)
@@ -25,7 +26,7 @@ export async function completeFinalizedEventReceipt({connection,transaction,sign
     return await Promise.race([(async()=>{
       const reader=connectionFactory(rpcUrl,controller.signal);
       const [primary,alternate]=await Promise.all([connection.getGenesisHash(),reader.getGenesisHash()]);
-      if(primary!==GENESIS_HASHES.devnet||alternate!==primary)throw Error('Receipt providers must agree on Devnet.');
+      if(primary!==SOLANA_GENESIS[cluster]||alternate!==primary)throw Error('Receipt providers must agree on the selected network.');
       const complete=await reader.getTransaction(signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
       if(!complete||identity(complete)!==identity(transaction))throw Error('Finalized receipt providers disagree.');
       successfulEventLogs(complete.meta.logMessages);

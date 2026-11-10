@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 import { bonusHash } from './daily-bonus.mjs';
+import {financialRecordNetwork} from './financial-network.mjs';
 
 const discriminators=['settle_mint_v3','recover_qa_settlement_v3','settle_agency_mint_v3',
   'settle_mint_v3_auto','settle_agency_mint_v3_auto']
@@ -29,7 +30,7 @@ export function dailyBonusSettlementReferences(transaction,{programId,mint,polic
 }
 
 export async function finalizedBonusSettlementSources({job,state,byMint,programId,connection,
-  verifyCollection,loadSettlement,remainingReads}){
+  verifyCollection,loadSettlement,remainingReads,cluster='devnet'}){
   const collections=[];let reads=0;
   for(const reference of Object.values(job.settlements||{})){
     const matches=Object.entries(state.v3Settlements||{}).filter(([,value])=>
@@ -39,9 +40,10 @@ export async function finalizedBonusSettlementSources({job,state,byMint,programI
     const [source,settled]=matches[0],recorded=state.collections?.[source],launch=byMint.get(reference.mint);
     if(!recorded||!launch)return {complete:false,reason:'Waiting for the settled source collection and creator attribution.',reads};
     if(recorded.signature!==source||recorded.mint!==reference.mint||recorded.scope!=='per-mint-v3'
-      ||recorded.cluster!=='devnet'||recorded.programId!==programId||recorded.status!=='collected'
+      ||recorded.cluster!==cluster||recorded.programId!==programId||recorded.status!=='collected'
       ||recorded.onchainVerified!==true||recorded.attribution!=='mint-verified'
       ||String(recorded.collectedLamports)!==reference.amountLamports||recorded.claimId!==reference.claimId
+      ||!financialRecordNetwork(settled,cluster,{legacyDevnet:true})
       ||settled.collectionSignature!==source||!Array.isArray(settled.referralUpline))
       throw new Error('Indexed bonus settlement conflicts with its recorded source.');
     const fingerprint=bonusHash({reference,recorded,settled});
@@ -56,7 +58,7 @@ export async function finalizedBonusSettlementSources({job,state,byMint,programI
       if(!collected||String(collected.expectedLamports)!==reference.amountLamports
         ||Buffer.from(collected.claimId).toString('hex')!==reference.claimId)
         throw new Error('Finalized bonus source collection proof is unavailable.');
-      const proof=await loadSettlement({connection,signature:reference.signature,programId,mint:reference.mint,
+      const proof=await loadSettlement({connection,cluster,signature:reference.signature,programId,mint:reference.mint,
         authority:launch.pumpFeeRoute.initialAuthority,creator:launch.creatorWallet,
         claimId:Buffer.from(reference.claimId,'hex'),expectedLamports:reference.amountLamports,split:launch.pumpFeeRoute.protocolSplit});reads++;
       if(!proof||proof.signature!==reference.signature||proof.claimId!==reference.claimId

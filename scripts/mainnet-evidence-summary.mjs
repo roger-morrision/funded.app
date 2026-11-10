@@ -6,6 +6,18 @@ const statuses=new Set(['passed-live','partial','blocked','unavailable','failed'
 // Those steps are useful historical evidence, not a complete acceptance case.
 export function mainnetEvidenceSummary(evidence) {
   if(evidence?.schemaVersion!==1||evidence.cluster!=='devnet')return null;
+  if(Array.isArray(evidence.runs)) {
+    if(!evidence.runs.length||evidence.runs.some(run=>!revision(run?.appRevision)||!Array.isArray(run.checks)
+      ||run.blockers!=null&&!Array.isArray(run.blockers)))return null;
+    const last=evidence.runs.at(-1);
+    const summary=mainnetEvidenceSummary({schemaVersion:1,cluster:'devnet',appRevisionTested:last.appRevision,
+      newLaunch:{checks:last.checks}});
+    return {...summary,format:'bounded-financial-runs',observations:evidence.runs.flatMap((run,index)=>[
+      ...run.checks.filter(row=>row?.status==='failed').map(row=>({run:index+1,revision:run.appRevision,name:row.name,status:'failed'})),
+      ...(run.blockers||[]).map(reason=>({run:index+1,revision:run.appRevision,status:'blocked',reason:String(reason)})),
+      ...(['blocked','failed'].includes(run.status)?[{run:index+1,revision:run.appRevision,status:run.status}]:[]),
+    ])};
+  }
   if(revision(evidence.application?.revision)&&Array.isArray(evidence.acceptance))return {
     revision:evidence.application.revision,format:'acceptance-matrix',
     acceptance:evidence.acceptance.filter(row=>statuses.has(row?.status)),observations:[],
@@ -16,6 +28,7 @@ export function mainnetEvidenceSummary(evidence) {
     'launch-standard':['v3-launch','live-registration'],
     'buy-and-sell':['buy','buy-fee-delta','sell','sell-fee-delta'],
     'collect-and-settle':['creator-fee-collection','settlement','settlement-idempotency'],
+    'creator-payout':['creator-wallet-payout'],
     'protocol-payouts':['referral-level-1','referral-level-2','referral-level-3','community-funding','operations-payout'],
   };
   const acceptance=Object.entries(groups).flatMap(([id,names])=>{

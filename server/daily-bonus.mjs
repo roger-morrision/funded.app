@@ -1,3 +1,4 @@
+import {bonusSnapshotIdentity} from './daily-bonus-network.mjs';
 import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import { DAILY_BONUS_POLICY } from '../config/daily-bonus.js';
@@ -48,7 +49,7 @@ export function allocateDailyBonusSource(row, rankings) {
     retainedLamports:String(budget - paid), allocations:[...allocations].sort((a, b) => compareText(a[0], b[0]))
       .map(([recipient, value]) => ({ recipient, amount:String(value) })) };
 }
-export function buildDailyBonusSnapshot({ day, collections, trades, coverage, now, excludedCollectionSignatures = [], eligibilityBasis='collection-time-v1', traderEligibility=DAILY_BONUS_POLICY.traderEligibility }) {
+export function buildDailyBonusSnapshot({ day, cluster='devnet', programId, collections, trades, coverage, now, excludedCollectionSignatures = [], eligibilityBasis='collection-time-v1', traderEligibility=DAILY_BONUS_POLICY.traderEligibility }) {
   if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
   if(!['all-wallets-v1','direct-signers-v1'].includes(traderEligibility))throw new Error('Unknown trader bonus eligibility.');
   const settlementTime=eligibilityBasis==='settlement-time-v1';
@@ -91,7 +92,7 @@ export function buildDailyBonusSnapshot({ day, collections, trades, coverage, no
   if(traderEligibility==='all-wallets-v1')delete basePolicy.traderEligibility;
   const policy=settlementTime?{...basePolicy,eligibilityBasis,metrics:{...basePolicy.metrics,
     creators:'settled-creator-fee-lamports',referrals:'direct-referred-settled-fee-lamports'}}:basePolicy;
-  const snapshot = { version:1, ...window, ...(settlementTime?{eligibilityBasis}:{}), policy:window.qa ? { ...policy, periodSeconds:300, qa:true } : policy, rankings, sources,
+  const snapshot = { version:1, ...window, ...bonusSnapshotIdentity(cluster,programId,window), ...(settlementTime?{eligibilityBasis}:{}), policy:window.qa ? { ...policy, periodSeconds:300, qa:true } : policy, rankings, sources,
     evidence:{ collections:fees, trades:events, coverage:[...coverage].sort((a, b) => compareText(a.mint, b.mint)),
       ...(excluded.length ? { excludedCollectionSignatures:excluded } : {}) } };
   return { ...snapshot, hash:bonusHash(snapshot) };

@@ -1,3 +1,5 @@
+import {assertBonusNetwork,assertBonusLedgerNetwork,assertBonusSnapshotNetwork} from './daily-bonus-network.mjs';
+import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { DAILY_BONUS_POLICY } from '../config/daily-bonus.js';
 import { verifyMintPolicyV3Account } from '../mint-router-v3.js';
@@ -19,12 +21,15 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   verifyPolicy = verifyMintPolicyV3Account, now = () => Math.floor(Date.now() / 1000),
   readPool = readBonusPool, poolTimeoutMs = 12_000, schedule = DEFAULT_BONUS_SCHEDULE, eligibilityBasis='settlement-time-v1' }) {
   if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
-  if (cluster !== 'devnet') throw new Error('Daily bonus execution is available only on Devnet.');
-  const chain = chainFactory({ connection, programId, authority, expectedProgramDataSha256 });
+  assertBonusNetwork(cluster,{schedule});
+  if(!financialProgramAllowed(cluster,programId,expectedProgramDataSha256))throw Error('Daily bonus program requires an independently reviewed release.');
+  const readLedger=async(method='read')=>{const state=await (rewardStore[method]?.()||rewardStore.read());assertBonusLedgerNetwork(state,cluster,programId);return state;};
+  const chain = chainFactory({ connection, programId, authority, expectedProgramDataSha256, cluster });
   const readIndexedEvidence = readEvidence || createDailyBonusEvidenceIndex({ rewardStore });
   let running = false;
   let poolCache, poolRead;
-  const liveBonus=createLiveBonusReader({connection,programId,now});
+  const poolProofCache=new Map();
+  const liveBonus=createLiveBonusReader({connection,programId,now,cluster});
   async function dashboard(options) {
     const at = now();
     const sameDay = poolCache?.day === currentBonusStart(at,schedule);
@@ -33,7 +38,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         let value, timer; const controller = new AbortController();
         try {
           value = await Promise.race([
-            (async () => readPool({ state:await store.read(), connection, programId, now:at, schedule, signal:controller.signal }))(),
+            (async () => readPool({ state:await store.read(), connection, programId, cluster, now:at, schedule, signal:controller.signal,proofCache:poolProofCache }))(),
             new Promise(resolve => { timer = setTimeout(() => {
               controller.abort(); resolve({ status:'unavailable', categoryLamports:null });
             }, poolTimeoutMs); timer.unref(); }),
@@ -57,7 +62,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       nextCutoffAt:new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),
       poolCheckedAt:new Date(poolCache.at * 1000).toISOString(),
       pool:poolCache.day === currentBonusStart(now(),schedule) ? poolCache.value : { status:'unavailable', categoryLamports:null },
-      ...bonusDashboardHistory(await (rewardStore.readBonusSnapshot?.() || rewardStore.read()), options) };
+      ...bonusDashboardHistory(await readLedger('readBonusSnapshot'), {...options,cluster}) };
   }
   const ready = async () => {
     if (!(await chain.readiness()).constrainedPayouts) throw new Error('Daily bonus requires the reviewed V3 program and authority.');
@@ -67,9 +72,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     if (Boolean(window.qa) !== (schedule.periodSeconds === 300)) throw new Error('Snapshot period does not match the active bonus schedule.');
     if (window.qa && window.cohort !== schedule.cohort) throw new Error('Snapshot belongs to a different QA mint cohort.');
     const basis=prior?.snapshot.eligibilityBasis||(prior?'collection-time-v1':eligibilityBasis);
-    const evidence = await readIndexedEvidence({ connection, state:await store.read(), programId, day, now:now(), qaMints:schedule.mints,eligibilityBasis:basis });
+    const evidence = await readIndexedEvidence({ connection, state:await store.read(), programId, cluster, day, now:now(), qaMints:schedule.mints,eligibilityBasis:basis });
     if (evidence.complete === false) return evidence;
-    const ledger = await rewardStore.read();
+    const ledger = await readLedger();
     const excluded = evidence.collections
       .filter(row=>ledger.dailyBonusAssignments?.[row.signature] && !(prior && bonusAssignmentMatches(prior,
         prior.snapshot.sources.find(source=>source.collectionSignature===row.signature)||{collectionSignature:row.signature},ledger.dailyBonusAssignments[row.signature])))
@@ -80,7 +85,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   }
   async function capture(day = latestBonusDay(now(),schedule)) {
     await ready();
-    const prior = (await rewardStore.read()).dailyBonusSnapshots?.[day];
+    const prior = (await readLedger()).dailyBonusSnapshots?.[day];
     if(prior)assertBonusSnapshot(prior.snapshot);
     const evidence = await evidenceFor(day,prior);
     if (evidence.complete === false) {
@@ -89,7 +94,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       await rewardStore.transaction(state => { state.dailyBonusProgress ||= {}; state.dailyBonusProgress[day] = progress; });
       return progress;
     }
-    const snapshot = buildDailyBonusSnapshot({ day, ...evidence, now:now() });
+    const snapshot = buildDailyBonusSnapshot({ day, ...evidence, cluster, programId, now:now() });
     const result = await rewardStore.transaction(state => {
       state.dailyBonusSnapshots ||= {};
       const prior = state.dailyBonusSnapshots[day];
@@ -113,16 +118,17 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     running = true;
     try {
       await ready();
-      const record = (await rewardStore.read()).dailyBonusSnapshots?.[day] || await capture(day);
+      const record = (await readLedger()).dailyBonusSnapshots?.[day] || await capture(day);
       if (record.status === 'indexing') return await status();
       if (record.status === 'reconciliation-required') throw new Error(record.reason);
       const { snapshot } = record;
+      assertBonusSnapshotNetwork(snapshot,cluster,programId);
       const window = bonusWindow(day,now());
       if (snapshot.day !== day || snapshot.start !== window.start || snapshot.end !== window.end) throw new Error('Daily bonus requires a completed verified window.');
       const { hash, ...frozen } = snapshot;
       if (snapshot.version !== 1 || hash !== bonusHash(frozen)) throw new Error('Saved daily bonus snapshot evidence changed.');
       for (const source of snapshot.sources) {
-        const prior = (await rewardStore.read()).dailyBonusSnapshots[day].payouts[source.collectionSignature];
+        const prior = (await readLedger()).dailyBonusSnapshots[day].payouts[source.collectionSignature];
         if (prior?.status === 'paid') continue;
         const manifest = dailyBonusManifest(snapshot, source);
         if (!manifest) continue;
@@ -130,7 +136,8 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         const funded = app.v3CommunityFunding?.[source.collectionSignature];
         if (funded?.status !== 'finalized') continue;
         const vault = rewardAddresses({ programId, authority:authority.publicKey, mint:source.mint }).vault.toBase58();
-        if (funded.balanceDeltaVerified !== true || funded.amount !== source.amountLamports
+        if (!financialRecordNetwork(funded,cluster,{legacyDevnet:true})||!financialRecordNetwork(launch,cluster)
+          ||funded.balanceDeltaVerified !== true || funded.amount !== source.amountLamports
           || funded.mint !== source.mint || funded.recipient !== vault
           || launch?.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version !== 1)
           throw new Error('Daily bonus source conflicts with its finalized community funding.');
@@ -139,7 +146,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
           creator:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
           split:launch.pumpFeeRoute.protocolSplit });
         if (!policy.verified) throw new Error('Daily bonus source mint policy is not verified.');
-        const proof = await loadFunding({ connection, signature:funded.signature, programId, mint:source.mint,
+        const proof = await loadFunding({ connection, cluster, signature:funded.signature, programId, mint:source.mint,
           authority:authority.publicKey, creator:launch.creatorWallet,
           initialAuthority:launch.pumpFeeRoute.initialAuthority,
           withdrawalId:v3DisbursementId('community', source.settlementSignature),
@@ -150,7 +157,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
           || proof.mint !== source.mint || proof.category !== 5
           || proof.amount !== source.amountLamports || proof.recipient !== vault)
           throw new Error('Daily bonus source lacks exact finalized community funding proof.');
-        const plan = { mint:source.mint, cutoffAt:snapshot.end, payoutAt:snapshot.end, manifest };
+        const plan = { cluster, mint:source.mint, cutoffAt:snapshot.end, payoutAt:snapshot.end, manifest };
         await rewardStore.transaction(state => {
           state.dailyBonusAssignments ||= {};
           const assigned = state.dailyBonusAssignments[source.collectionSignature];
@@ -167,7 +174,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         await rewardStore.transaction(state => Object.assign(state.dailyBonusSnapshots[day].payouts[source.collectionSignature],
           { status:'distributing', cycle:cycle.address, ...(cycle.signature ? { cycleSignature:cycle.signature } : {}) }));
         for (const leaf of manifest.leaves) {
-          const current = (await rewardStore.read()).dailyBonusSnapshots[day];
+          const current = (await readLedger()).dailyBonusSnapshots[day];
           if (current.status !== 'snapshotted' || current.snapshot.hash !== snapshot.hash)
             throw new Error('Daily bonus snapshot changed or was paused before payment.');
           const saved = current.payouts[source.collectionSignature].payments[leaf.recipient];
@@ -186,7 +193,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
             throw new Error('Daily bonus payment lacks finalized account and balance evidence.');
           await rewardStore.transaction(state => {
             state.dailyBonusSnapshots[day].payouts[source.collectionSignature].payments[leaf.recipient] = {
-              ...payment, amount:leaf.amount, paidAt:new Date(now() * 1000).toISOString() };
+              ...payment, cluster, amount:leaf.amount, paidAt:new Date(now() * 1000).toISOString() };
           });
         }
         await rewardStore.transaction(state => {
@@ -199,10 +206,10 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     } finally { running = false; }
   }
   async function status() {
-    const state = await (rewardStore.readBonusSnapshot?.() || rewardStore.read());
+    const state = await readLedger('readBonusSnapshot');
     const app=await store.read();
     const pendingSettlementSources=Object.values(app.collections||{}).filter(row=>row.scope==='per-mint-v3'
-      &&row.cluster==='devnet'&&row.programId===programId&&row.status==='collected'
+      &&row.cluster===cluster&&row.programId===programId&&row.status==='collected'
       &&app.launches?.[row.mint]?.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version===1
       &&app.v3Settlements?.[row.signature]?.status!=='finalized')
       .map(row=>({mint:row.mint,collectionSignature:row.signature,status:'not-eligible',reason:'Awaiting a matching finalized settlement; no bonus window assigned.'}));
@@ -211,7 +218,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       indexing:Object.values(state.dailyBonusProgress || {}).sort((a,b) => a.day.localeCompare(b.day)), nextCutoffAt:
       new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),
       snapshots:Object.values(state.dailyBonusSnapshots || {}).sort((a, b) => b.snapshot.start - a.snapshot.start)
-        .slice(0, 30).map(({ snapshot, status:state, reason, payouts }) => ({ day:snapshot.day,
+        .slice(0, 30).map(({ snapshot, status:state, reason, payouts }) => ({ day:snapshot.day,cluster,
           eligibilityBasis:snapshot.eligibilityBasis||'collection-time-v1',reconciliation:snapshot.reconciliation||null,
           traderEligibility:snapshot.policy.traderEligibility||'all-wallets-v1',
           cutoffAt:new Date(snapshot.end * 1000).toISOString(), hash:snapshot.hash, status:state, reason,
@@ -224,14 +231,14 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   async function reviewReconciliation(day, expectedHash) {
     if (!/^[a-f0-9]{64}$/.test(String(expectedHash))) throw new Error('The reviewed snapshot hash is required.');
     await ready();
-    const prior = (await rewardStore.read()).dailyBonusSnapshots?.[day];
+    const prior = (await readLedger()).dailyBonusSnapshots?.[day];
     if (!prior || prior.snapshot.hash !== expectedHash) throw new Error('The selected snapshot changed; review its current hash.');
     const { hash, ...frozen } = prior.snapshot;
     if (hash !== bonusHash(frozen)) throw new Error('Saved daily bonus snapshot evidence changed.');
     let reserved=Object.keys(prior.payouts || {}).length>0;
     const evidence = await evidenceFor(day,prior);
     if (evidence.complete === false) throw new Error(evidence.reason);
-    const rebuilt = buildDailyBonusSnapshot({ day, ...evidence, now:now() });
+    const rebuilt = buildDailyBonusSnapshot({ day, ...evidence, cluster, programId, now:now() });
     for (const source of prior.snapshot.sources) {
       const manifest = dailyBonusManifest(prior.snapshot, source);
       if (!manifest) continue;
@@ -240,7 +247,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       for(const [recipient,payment] of Object.entries(payout?.payments||{})){
         const leaf=manifest.leaves.find(row=>row.recipient===recipient);
         if(!leaf||payment.amount!==leaf.amount||!chain.inspectLeaf)throw new Error('Finalized paid bonus proof is required for reconciliation.');
-        const proof=await chain.inspectLeaf({mint:source.mint,cutoffAt:prior.snapshot.end,payoutAt:prior.snapshot.end,manifest},leaf);
+        const proof=await chain.inspectLeaf({cluster,mint:source.mint,cutoffAt:prior.snapshot.end,payoutAt:prior.snapshot.end,manifest},leaf);
         if(!proof?.finalized||proof.amount!==payment.amount||proof.payment!==payment.payment
           ||proof.amountReceived!==payment.amountReceived)throw new Error('Finalized paid bonus proof conflicts with its recorded receipt.');
       }

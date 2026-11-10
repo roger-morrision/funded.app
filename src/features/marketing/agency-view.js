@@ -58,11 +58,11 @@ export function initMarketingAgency(document = globalThis.document) {
     const update = () => {
       const selected=readLaunchAgencySelection({requiresBurn:['boost','pro','premier'].includes(promotion.dataset.selectedTier)});
       for(const row of team.children){const included=selected.includes(row.dataset.launchAgent);row.dataset.included=String(included);row.querySelector('.agency-included-badge').textContent=included?'Included':'Promotion only';}
-      const postStatus = publishingPaused === true ? 'X publishing is paused. Package posts await reinstatement.' : publishingPaused === false ? 'Package posts require a confirmed launch and available publishing.' : 'X publishing availability is unverified.';
+      const postStatus = 'Launch promotion is posted manually by the admin after the launch is confirmed. Posting is not immediate.';
       for (const card of promotion.querySelectorAll('[data-burn-tier]')) {
         let note = card.querySelector('[data-post-availability]');
         if (!note) { note = document.createElement('small'); note.dataset.postAvailability = ''; card.append(note); }
-        note.textContent = 'Auto post & promote project to app X page.';
+        note.textContent = 'Admin posts your launch promotion manually.';
         note.title = postStatus;
         note.hidden = !note.textContent;
       }
@@ -139,7 +139,7 @@ export function initMarketingAgency(document = globalThis.document) {
         const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
         node.textContent=row?.reason?'Paused':'Unavailable';node.title=row?.reason||'Readiness unavailable';
       });
-      page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Current agency readiness is unavailable. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' X promotion is paused pending account reinstatement.':''} Earlier receipts below do not establish current readiness. See Capital flow for the published fee policy.`;
+      page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Current agency readiness is unavailable. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' Automated X publishing is disabled. Launch promotion is handled manually by the admin.':''} Earlier receipts below do not establish current readiness. See Capital flow for the published fee policy.`;
       { const reasons=[...new Set((data.agents||[]).map(row=>row.reason).filter(Boolean))]; if(reasons.length)page.querySelector('[data-agency-status]').textContent+=` ${reasons.join(' ')}`; }
       page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';

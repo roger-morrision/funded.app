@@ -39,7 +39,8 @@ test('placeholder packet lists missing production inputs without granting activa
   assert.equal(result.ready,false);assert.equal(result.mainnetActivationAuthorized,false);
   assert.equal(result.checks.reviewedExactRelease,false);assert.equal(result.checks.boundedSpend,false);
   assert(result.missingProductionInputs.includes('freshSignerReferences.priceAttestation'));
-  assert.equal(result.devnetEvidence.cases.length,13);
+  assert.equal(result.devnetEvidence.cases.length,14);
+  assert(result.devnetEvidence.cases.some(row=>row.id==='daily-bonus'));
   assert(result.devnetEvidence.cases.every(row=>row.currentReleaseVerified===false));
   assert(!JSON.stringify(result).includes('secret-password'));
 });

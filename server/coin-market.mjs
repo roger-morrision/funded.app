@@ -1,4 +1,5 @@
-import { PUMP_SDK, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
+import { PUMP_SDK, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
+import {successfulEventLogs} from './trade-event-logs.mjs';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { summarizeTrending } from '../market-trending.js';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
@@ -161,9 +162,16 @@ export async function readPumpMarketActivity({ connection, mint, poolAddress, re
   if (scans.every(scan => !scan.signatures.length)) return { poolHistoryCoverage: 'unavailable', observedVolumeSol: null, observedTradeCount: null, observedCoverage: 'unavailable', volume24hSol: null, buyVolume24hSol: null, sellVolume24hSol: null, tradeCount24h: null, poolTradeCount24h: 0, buyCount24h: null, sellCount24h: null, recentTrades: [], activityWindows: null, priceChangePercent: null, priceChangeBasis: null, coverage: 'unavailable' };
   const firstOlder = scans.some(scan => scan.signatures.some(item => item.blockTime != null && item.blockTime < cutoffSeconds));
   const selectedBySignature = new Map();
+  let omittedHistory=false;
   for (const scan of scans) {
-    // Scan every fetched signature, including trades before the 24h chart window.
+    // Read the current window plus one earlier receipt per route for a possible
+    // baseline. Older receipts must not starve a current 24-hour activity scan.
+    let olderSelected=false;
     for (const item of scan.signatures.filter(item => !item.err && item.blockTime != null)) {
+      if(item.blockTime<cutoffSeconds){
+        if(olderSelected){omittedHistory=true;continue;}
+        olderSelected=true;
+      }
       const entry = selectedBySignature.get(item.signature) || { ...item, routes:new Set() };
       entry.routes.add(scan.kind);
       selectedBySignature.set(item.signature, entry);
@@ -173,26 +181,34 @@ export async function readPumpMarketActivity({ connection, mint, poolAddress, re
   const poolEventCoder = poolVerified ? getPumpAmmProgram(connection).coder.events : null;
   const decodePoolEvent = poolEventCoder?.decode.bind(poolEventCoder);
   const records = [];
-  let missingTransactions = false;
+  let missingTransactions = false,missingRecentTransactions=false;
   for (let start = 0; start < selected.length; start += 4) {
     const group = selected.slice(start, start + 4);
     const transactions = await Promise.all(group.map(item => connection.getTransaction(item.signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }).catch(() => null)));
     for (let index = 0; index < group.length; index += 1) {
       const transaction = transactions[index];
-      if (!transaction) { missingTransactions = true; continue; }
-      const blockTime = transaction.blockTime ?? group[index].blockTime;
-      if (blockTime == null) { missingTransactions = true; continue; }
-      if (group[index].routes.has('curve')) {
-        for (const trade of decodePumpTrades(transaction.meta?.logMessages, mint)) records.push({ ...trade, route:'curve', signature: group[index].signature, blockTime, order: start + index });
-      }
-      if (group[index].routes.has('pool')) {
-        for (const trade of decodePumpSwapTrades(transaction.meta?.logMessages, pool, decodePoolEvent)) records.push({ ...trade, route:'pool', signature: group[index].signature, blockTime, order: start + index });
+      let events;
+      try{
+        if(!transaction||transaction.meta?.err!==null||transaction.slot!==group[index].slot
+          ||transaction.transaction?.signatures?.[0]!==group[index].signature
+          ||!Number.isSafeInteger(transaction.blockTime)||transaction.blockTime!==group[index].blockTime
+          ||transaction.blockTime>nowSeconds)throw Error('Receipt identity differs.');
+        events=successfulEventLogs(transaction.meta.logMessages);
+      }catch{missingTransactions=true;if(group[index].blockTime>=cutoffSeconds)missingRecentTransactions=true;continue;}
+      const blockTime = transaction.blockTime;
+      for(const event of events){
+        const curve=group[index].routes.has('curve')&&event.program===PUMP_PROGRAM_ID.toBase58();
+        const amm=group[index].routes.has('pool')&&event.program===PUMP_AMM_PROGRAM_ID.toBase58();
+        if(!curve&&!amm)continue;
+        const trades=curve?decodePumpTrades([event.log],mint):decodePumpSwapTrades([
+          `Program ${event.program} invoke [1]`,event.log,`Program ${event.program} success`],pool,decodePoolEvent);
+        for(const trade of trades)records.push({...trade,route:curve?'curve':'pool',signature:group[index].signature,blockTime,order:start+index});
       }
     }
   }
-  const complete = !poolLookupFailed && !missingTransactions && scans.every(scan => !scan.failed && scan.signatures.every(item => item.blockTime != null)
+  const complete = !poolLookupFailed && !missingRecentTransactions && scans.every(scan => !scan.failed && scan.signatures.every(item => item.blockTime != null)
     && (scan.signatures.length < maxSignatures || scan.signatures.some(item => item.blockTime < cutoffSeconds)));
-  const observedComplete = !poolLookupFailed && !missingTransactions && scans.every(scan => !scan.failed && scan.signatures.length < maxSignatures
+  const observedComplete = !omittedHistory && !poolLookupFailed && !missingTransactions && scans.every(scan => !scan.failed && scan.signatures.length < maxSignatures
     && scan.signatures.every(item => item.blockTime != null));
   return {
     ...summarizePumpTrades(records, { cutoffSeconds, complete, observedComplete,

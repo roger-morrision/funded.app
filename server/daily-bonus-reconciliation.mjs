@@ -16,6 +16,7 @@ export function verifyBonusSnapshotRevision(record){
     if(seen.has(snapshot.hash)||seen.size>=64)throw new Error('Invalid bonus revision chain.');
     seen.add(snapshot.hash);
     const rebuilt=buildDailyBonusSnapshot({day:snapshot.day,...snapshot.evidence,
+      cluster:snapshot.cluster||'devnet',programId:snapshot.programId,
       traderEligibility:snapshot.policy.traderEligibility||'all-wallets-v1',
       eligibilityBasis:snapshot.eligibilityBasis||'collection-time-v1',now:snapshot.end});
     if(!snapshot.reconciliation){
@@ -48,6 +49,7 @@ export function bonusAssignmentMatches(record,source,hash){
 export function appendDailyBonusResidual(prior,next){
   assertBonusSnapshot(prior);assertBonusSnapshot(next);
   if(prior.day!==next.day||prior.start!==next.start||prior.end!==next.end
+    ||prior.cluster!==next.cluster||prior.programId!==next.programId
     ||!isDeepStrictEqual(prior.policy,next.policy))throw new Error('Bonus reconciliation cannot change a frozen window or policy.');
   for(const [kind,key] of [['collections',row=>row.signature],['trades',row=>`${row.signature}:${row.logIndex}:${row.mint}`]]){
     const current=new Map(next.evidence[kind].map(row=>[key(row),row]));

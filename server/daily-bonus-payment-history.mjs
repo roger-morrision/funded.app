@@ -1,3 +1,5 @@
+import {assertBonusRpc,assertBonusSnapshotNetwork} from './daily-bonus-network.mjs';
+import {financialRecordNetwork} from './financial-network.mjs';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
@@ -19,7 +21,7 @@ const accountData = (account, program, name, size) => {
 
 // Select all recorded receipts, including recovered payments with only a PDA.
 // An invalid immutable snapshot is missing evidence, never an empty history.
-export function dailyPaymentCandidates(ledger) {
+export function dailyPaymentCandidates(ledger,cluster='devnet') {
   const candidates=[]; let unavailable=0, checked=0;
   for (const row of Object.values(ledger.dailyBonusSnapshots || {})) {
     const saved=Object.entries(row.payouts || {}).flatMap(([source,payout]) =>
@@ -30,6 +32,7 @@ export function dailyPaymentCandidates(ledger) {
     try {
       verifyBonusSnapshotRevision(row);
       const snapshot=row.snapshot;
+      assertBonusSnapshotNetwork(snapshot,cluster,snapshot.programId);
       for (const record of saved) {
         const source=snapshot.sources.find(source=>source.collectionSignature === record.source);
         const manifest=source && dailyBonusManifest(snapshot,source);
@@ -81,16 +84,19 @@ function transactionProof(tx, signature, candidate, program, addresses) {
     slot:tx.slot,blockTime:tx.blockTime,paymentAccount:address(addresses.payment),cycleId:manifest.cycleId};
 }
 
-export async function loadDailyPayment({connection,state,candidate}) {
+export async function loadDailyPayment({connection,state,candidate,cluster='devnet'}) {
+  if(cluster==='mainnet-beta')await assertBonusRpc(connection,cluster);
   const {source,snapshot,payout,payment,manifest,leaf}=candidate;
   const launch=state.launches?.[source.mint], route=launch?.pumpFeeRoute;
+  assertBonusSnapshotNetwork(snapshot,cluster,route?.programId);
   const collection=state.collections?.[source.collectionSignature], settled=state.v3Settlements?.[source.collectionSignature];
   const funding=state.v3CommunityFunding?.[source.collectionSignature];
-  if (launch?.onchainVerified !== true || launch.cluster !== 'devnet' || route?.scope !== 'per-mint-v3'
+  if (launch?.onchainVerified !== true || launch.cluster !== cluster || route?.scope !== 'per-mint-v3'
     || launch.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version !== 1
     || collection?.mint !== source.mint || collection.signature !== source.collectionSignature
-    || collection.cluster !== 'devnet' || collection.programId !== route.programId
+    || collection.cluster !== cluster || collection.programId !== route.programId
     || collection.scope !== 'per-mint-v3' || collection.onchainVerified !== true || collection.status !== 'collected'
+    || !financialRecordNetwork(settled,cluster,{legacyDevnet:true}) || !financialRecordNetwork(funding,cluster,{legacyDevnet:true})
     || settled?.status !== 'finalized' || settled.mint !== source.mint
     || settled.collectionSignature !== source.collectionSignature || settled.settlementSignature !== source.settlementSignature
     || funding?.status !== 'finalized' || funding.balanceDeltaVerified !== true || funding.mint !== source.mint
@@ -136,16 +142,16 @@ export async function loadDailyPayment({connection,state,candidate}) {
   throw new Error('Daily payment finalized transaction and balance evidence are unavailable.');
 }
 
-export async function dailyPaymentHistory({connection,state,selection,proofCache=new Map()}) {
+export async function dailyPaymentHistory({connection,state,selection,proofCache=new Map(),cluster='devnet'}) {
   const rows=[]; let unavailable=selection.unavailable;
   for (let index=0;index<selection.candidates.length;index+=4) {
     await Promise.all(selection.candidates.slice(index,index+4).map(async candidate=>{
       try {
         const mint=candidate.source.mint, source=candidate.source.collectionSignature;
-        const key=bonusHash({candidate,launch:state.launches?.[mint],collection:state.collections?.[source],
+        const key=bonusHash({cluster,candidate,launch:state.launches?.[mint],collection:state.collections?.[source],
           settlement:state.v3Settlements?.[source],funding:state.v3CommunityFunding?.[source]});
         let proof=proofCache.get(key);
-        if (!proof) {proof=await loadDailyPayment({connection,state,candidate});
+        if (!proof) {proof=await loadDailyPayment({connection,state,candidate,cluster});
           if (proofCache.size>=1000) proofCache.delete(proofCache.keys().next().value); proofCache.set(key,proof);}
         rows.push(proof);
       } catch {unavailable++;}

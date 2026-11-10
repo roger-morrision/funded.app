@@ -48,11 +48,11 @@ export function createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,c
         status:receipt?.status||'scheduled',signature:receipt?.signature||null};
     }
     const prior=scans.get(mint);
-    if(solanaCluster==='devnet'&&url.searchParams.get('scan')==='1'&&!pending.has(mint)&&(!prior||Date.now()-prior.at>60_000)){
+    if(url.searchParams.get('scan')==='1'&&!pending.has(mint)&&(!prior||Date.now()-prior.at>60_000)){
       if(pending.size>=1)return json(res,429,{error:'Another launch risk scan is running. Retry shortly.',mint,tokenLock});
       if(!await store.chargeRpcRate(`launch-risk:${clientKey(req)}`,10,30,Math.floor(Date.now()/60_000)*60_000))return json(res,429,{error:'Risk scan refresh limit reached.',mint,tokenLock});
       if(pending.size>=1)return json(res,429,{error:'Another launch risk scan is running. Retry shortly.',mint,tokenLock});
-      const task=scanner({connection:connectionFactory(60000),launch,excludedFunders:String(env.FUNDED_BUNDLE_SHARED_SERVICE_FUNDERS||'').split(',').filter(Boolean)})
+      const task=scanner({connection:connectionFactory(60000),launch,cluster:solanaCluster,excludedFunders:String(env.FUNDED_BUNDLE_SHARED_SERVICE_FUNDERS||'').split(',').filter(Boolean)})
         .then(data=>scans.set(mint,{at:Date.now(),data})).catch(()=>scans.set(mint,{at:Date.now(),data:{status:'unavailable',bundleConfirmed:false,coverage:{status:'unavailable'},explanation:'Finalized history could not be verified. No safety assessment is available.'}}))
         .finally(()=>pending.delete(mint));
       pending.set(mint,task);

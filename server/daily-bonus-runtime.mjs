@@ -3,14 +3,18 @@ import { DAILY_BONUS_POLICY } from '../config/daily-bonus.js';
 import { createDailyBonusService } from './daily-bonus-service.mjs';
 import { dailyBonusWork } from './daily-bonus-queue.mjs';
 import { bonusSchedule } from './daily-bonus-schedule.mjs';
+import {financialProgramAllowed} from './financial-network.mjs';
 
 export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, env = process.env, logger = console,
   serviceFactory = createDailyBonusService, now = () => Math.floor(Date.now() / 1000) }) {
-  let service, schedule, unavailable = 'Daily bonus requires a configured reviewed Devnet V3 program and authority.';
+  let service, schedule, unavailable = 'Daily bonus requires a configured reviewed program and authority for the selected network.';
   try {
     schedule = bonusSchedule({ cluster:solanaCluster,env });
-    if (solanaCluster === 'devnet' && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
+    // Production activation remains a separate reviewed release step. Network-aware
+    // readers and manifests can be exercised without loading a Mainnet authority.
+    if (solanaCluster==='devnet'&&financialProgramAllowed(solanaCluster,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,env.FUNDED_V3_PROGRAM_DATA_SHA256)
+      && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
       && /^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))) {
       service = serviceFactory({ store, rewardStore,
         connection:new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
@@ -25,7 +29,8 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
     running = true;
     try {
       const app = await store.read();
-      let work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now(), schedule });
+      let work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now(), schedule,
+        cluster:solanaCluster,programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID });
       if (!work.eligible) {
         await rewardStore.transaction(state => { state.dailyBonusServiceStatus = { status:'waiting-for-eligible-launch', checkedAt:new Date().toISOString() }; });
         return;
@@ -43,7 +48,8 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
         await rewardStore.transaction(state => { state.dailyBonusCaptureCursor = day; });
       }
       if (env.FUNDED_DAILY_BONUS_PAYOUT_ENABLED === 'true') {
-        work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now(), schedule });
+        work = dailyBonusWork({ app, ledger:await rewardStore.read(), now:now(), schedule,
+          cluster:solanaCluster,programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID });
         for (const day of work.pending) {
           try { await service.execute(day); }
           catch (error) { failures.push({ day, reason:String(error.message || error).slice(0,180) }); }

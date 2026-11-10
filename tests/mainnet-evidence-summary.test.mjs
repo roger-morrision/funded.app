@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mainnetEvidenceSummary} from '../scripts/mainnet-evidence-summary.mjs';
+import {readFileSync} from 'node:fs';
+test('bounded run reports preserve failures and scope creator payouts as partial evidence',()=>{
+  const report=JSON.parse(readFileSync(new URL('../docs/evidence/devnet-financial-acceptance-2026-11-10.json',import.meta.url)));
+  const summary=mainnetEvidenceSummary(report);
+  assert.equal(summary.format,'bounded-financial-runs');
+  assert.equal(summary.revision,report.runs.at(-1).appRevision);
+  assert(summary.observations.some(row=>row.run===1&&row.status==='blocked'));
+  assert.equal(summary.acceptance.find(row=>row.id==='creator-payout').status,'partial');
+  assert(summary.acceptance.every(row=>row.status==='partial'));
+  assert.equal(mainnetEvidenceSummary({...report,runs:[]}),null);
+  assert.equal(mainnetEvidenceSummary({...report,runs:[{appRevision:'main',checks:[]}]}),null);
+  const failed=structuredClone(report);failed.runs.at(-1).status='failed';
+  failed.runs.at(-1).checks.push({name:'creator-wallet-payout',status:'failed'});
+  assert(mainnetEvidenceSummary(failed).observations.some(row=>row.run===2&&row.status==='failed'));
+});
 test('new financial evidence keeps later failures and never promotes step results into full acceptance',()=>{
   const report={schemaVersion:1,cluster:'devnet',appRevisionTested:'a'.repeat(40),adminWithdrawal:{verified:true},
     newLaunch:{checks:[{name:'creator-fee-collection',status:'passed'},{name:'settlement',status:'passed'},

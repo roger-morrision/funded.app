@@ -2,7 +2,8 @@ import { PublicKey } from '@solana/web3.js';
 import { bondingCurvePda, PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { canonicalPumpPoolPda, PUMP_AMM_PROGRAM_ID, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
 import { NATIVE_MINT } from '@solana/spl-token';
-import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
+import {assertBonusRpc} from './daily-bonus-network.mjs';
+import {financialRecordNetwork} from './financial-network.mjs';
 import { decodePumpTrades, decodePumpSwapTrades } from './coin-market.mjs';
 import { successfulEventLogs } from './product-trade-index.mjs';
 import { migrationOnlyProof } from './product-migration-proof.mjs';
@@ -71,16 +72,18 @@ export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePo
 // Only missing logs may be recovered; signature, network and balance evidence
 // must still agree before any trading volume enters the daily snapshot.
 export async function readDailyBonusTradeRows({ connection, transaction, reference, mint, pool,
-  decodePoolEvent, decodeTrade = dailyBonusTradeRows, completeReceipt = completeFinalizedEventReceipt }) {
+  cluster='devnet', decodePoolEvent, decodeTrade = dailyBonusTradeRows, completeReceipt = completeFinalizedEventReceipt }) {
   try { return await decodeTrade(transaction, reference, mint, pool, decodePoolEvent); }
   catch (error) {
     if (!['logs-incomplete', 'logs-unavailable'].includes(error.reason)) throw error;
-    const complete = await completeReceipt({ connection, transaction, signature:reference.signature });
+    const complete = await completeReceipt({ connection, transaction, signature:reference.signature, cluster });
     return await decodeTrade(complete, reference, mint, pool, decodePoolEvent);
   }
 }
 
-export async function readDailyBonusTrades({ connection, launch, window, maxPages = 20, pageSize = 100 }) {
+export async function readDailyBonusTrades({ connection, launch, window, cluster='devnet', maxPages = 20, pageSize = 100 }) {
+  await assertBonusRpc(connection,cluster,{window});
+  if(launch.cluster!==cluster)throw Error('Daily bonus launch network differs.');
   const mint = new PublicKey(launch.mint), pool = canonicalPumpPoolPda(mint, NATIVE_MINT);
   const account = await connection.getAccountInfo(pool, 'finalized');
   if (account && !account.owner.equals(PUMP_AMM_PROGRAM_ID)) throw new Error('Daily bonus pool owner mismatch.');
@@ -106,7 +109,7 @@ export async function readDailyBonusTrades({ connection, launch, window, maxPage
         if (ref.err || ref.blockTime < window.start || ref.blockTime >= window.end) continue;
         const tx = await connection.getTransaction(ref.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
         rows.push(...await readDailyBonusTradeRows({ connection, transaction:tx, reference:ref,
-          mint, pool, decodePoolEvent:coder.decode.bind(coder) }));
+          mint, pool, cluster, decodePoolEvent:coder.decode.bind(coder) }));
       }
       if (refs.length < pageSize || refs.some(row => row.blockTime < window.start)) { complete = true; break; }
       before = refs.at(-1)?.signature;
@@ -116,24 +119,24 @@ export async function readDailyBonusTrades({ connection, launch, window, maxPage
   return { rows, coverage:{ mint:launch.mint, complete:true, routes:routes.length } };
 }
 
-export async function readDailyBonusEvidence({ connection, state, programId, day, now, qaMints,
+export async function readDailyBonusEvidence({ connection, state, programId, day, now, qaMints, cluster='devnet',
   readTrades = readDailyBonusTrades, verifyCollection = verifyV3PumpCollection,
   loadSettlement = loadFinalizedV3Settlement }) {
   const window = dailyBonusWindow(day, now);
-  if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Daily bonus RPC is not Devnet.');
+  await assertBonusRpc(connection,cluster,{window});
   const finalizedSlot = await connection.getSlot('finalized');
   const finalizedTime = await connection.getBlockTime(finalizedSlot);
   if (!Number.isSafeInteger(finalizedTime) || finalizedTime < window.end)
-    throw new Error('Wait until the UTC cutoff is finalized on Devnet.');
+    throw new Error('Wait until the UTC cutoff is finalized on the selected network.');
   const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified === true
-    && row.cluster === 'devnet' && row.pumpFeeRoute?.scope === 'per-mint-v3'
+    && row.cluster === cluster && row.pumpFeeRoute?.scope === 'per-mint-v3'
     && row.pumpFeeRoute.programId === programId && row.pumpFeeRoute.verified === true
     && (!window.qa || qaMints?.includes(row.mint))
     && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp < window.end);
   if (launches.length > 200) throw new Error('Daily bonus mint coverage requires a larger reviewed indexer.');
   const byMint = new Map(launches.map(row => [row.mint, row]));
   const candidates = Object.values(state.collections || {}).filter(row => byMint.has(row.mint)
-    && row.scope === 'per-mint-v3' && row.cluster === 'devnet' && row.programId === programId
+    && row.scope === 'per-mint-v3' && row.cluster === cluster && row.programId === programId
     && row.status === 'collected' && row.onchainVerified === true && row.attribution === 'mint-verified');
   if (candidates.length > 2_000) throw new Error('Daily bonus collection coverage requires a larger reviewed indexer.');
   const collections = [], trades = [], coverage = [];
@@ -144,12 +147,12 @@ export async function readDailyBonusEvidence({ connection, state, programId, day
     const launch = byMint.get(row.mint), settled = state.v3Settlements?.[row.signature];
     const collected = await verifyCollection({ transaction:tx, signature:row.signature, programId,
       mint:row.mint, expectedLamports:row.collectedLamports });
-    if (!collected || settled?.status !== 'finalized') throw new Error('Daily bonus requires a verified collection and finalized settlement.');
-    const proof = await loadSettlement({ connection, signature:settled.settlementSignature, programId,
+    if (!collected || settled?.status !== 'finalized'||!financialRecordNetwork(settled,cluster,{legacyDevnet:true})) throw new Error('Daily bonus requires a verified collection and finalized settlement.');
+    const proof = await loadSettlement({ connection, cluster, signature:settled.settlementSignature, programId,
       mint:row.mint, authority:launch.pumpFeeRoute.initialAuthority, creator:launch.creatorWallet,
       claimId:collected.claimId, expectedLamports:row.collectedLamports, split:launch.pumpFeeRoute.protocolSplit });
     if (!proof) throw new Error('Daily bonus settlement proof is unavailable.');
-    const plan = v3AllocationPlan({ launch, settlement:{ ...proof, programId,
+    const plan = v3AllocationPlan({ launch, cluster, settlement:{ ...proof, programId,
       collectionSignature:row.signature, settlementSignature:settled.settlementSignature } });
     if (!Array.isArray(settled.referralUpline)) throw new Error('Daily bonus referral attribution has not been frozen.');
     const referrer = settled.referralUpline[0] || null;
@@ -160,7 +163,7 @@ export async function readDailyBonusEvidence({ connection, state, programId, day
       dailyBonusVersion:launch.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version || null });
   }
   for (const launch of launches.sort((a, b) => a.mint.localeCompare(b.mint))) {
-    const result = await readTrades({ connection, launch, window });
+    const result = await readTrades({ connection, launch, window, cluster });
     trades.push(...result.rows); coverage.push(result.coverage);
   }
   return { collections, trades, coverage };

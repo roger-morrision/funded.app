@@ -1,7 +1,9 @@
+import {assertBonusNetwork,assertBonusLedgerNetwork} from './daily-bonus-network.mjs';
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, bonusWindowKey, bonusWindow } from './daily-bonus-schedule.mjs';
 import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
-export function dailyBonusWork({ app, ledger, now, limit = 3, schedule = DEFAULT_BONUS_SCHEDULE }) {
-  const timestamps = Object.values(app.launches || {}).filter(row => row.cluster === 'devnet'
+export function dailyBonusWork({ app, ledger, now, cluster='devnet', programId, limit = 3, schedule = DEFAULT_BONUS_SCHEDULE }) {
+  assertBonusNetwork(cluster,{schedule});assertBonusLedgerNetwork(ledger,cluster,programId);
+  const timestamps = Object.values(app.launches || {}).filter(row => row.cluster === cluster
     && row.onchainVerified === true && row.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version === 1
     && (!schedule.mints || schedule.mints.includes(row.mint))
     && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp > 0).map(row => row.createdTimestamp);

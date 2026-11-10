@@ -4,7 +4,7 @@ import {TOKEN_2022_PROGRAM_ID,unpackAccount} from '@solana/spl-token';
 import bs58 from 'bs58';
 import {successfulEventLogs} from './product-trade-index.mjs';
 import {decodePumpTrades} from './coin-market.mjs';
-import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
+import {assertRpcNetwork} from '../solana-network.js';
 import {completeFinalizedEventReceipt} from './finalized-event-receipt.mjs';
 
 export const BUNDLE_SCAN_POLICY=Object.freeze({windowSeconds:60,maxReceipts:24,maxWallets:8,fundingReferences:6,
@@ -63,10 +63,10 @@ export function analyzeBundleEvidence({trades,funding,holdings={},supply,creator
     assessedWallets:first.size,explanation:'Observational risk signals only. Timing alone is not bundle evidence; unscanned history and undiscovered wallets remain unknown.'};
 }
 
-export async function scanBundleWallets({connection,launch,excludedFunders=[]}){
-  if(await connection.getGenesisHash()!==DEVNET_GENESIS_HASH)throw Error('Bundle scanning requires Devnet.');
+export async function scanBundleWallets({connection,launch,cluster='devnet',excludedFunders=[]}){
+  await assertRpcNetwork(connection,cluster);
   const mint=new PublicKey(launch.mint),start=Number(launch.createdTimestamp),end=start+BUNDLE_SCAN_POLICY.windowSeconds;
-  if(launch.onchainVerified!==true||launch.cluster!=='devnet'||!Number.isSafeInteger(start)||start<=0)throw Error('A verified launch is required.');
+  if(launch.onchainVerified!==true||launch.cluster!==cluster||!Number.isSafeInteger(start)||start<=0)throw Error('A verified launch is required.');
   const reasons=new Set(),refs=[],seen=new Set();let before,historyComplete=false;
   for(let page=0;page<2;page++){
     const rows=await connection.getSignaturesForAddress(bondingCurvePda(mint),{limit:100,...(before?{before}:{})},'finalized');
@@ -83,7 +83,7 @@ export async function scanBundleWallets({connection,launch,excludedFunders=[]}){
   const trades=[];
   for(const ref of selected){try{
     const transaction=await connection.getTransaction(ref.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
-    trades.push(...receiptBuyers(await completeFinalizedEventReceipt({connection,transaction,signature:ref.signature}),ref,launch.mint));}
+    trades.push(...receiptBuyers(await completeFinalizedEventReceipt({connection,transaction,cluster,signature:ref.signature}),ref,launch.mint));}
     catch{reasons.add('One or more early trade receipts could not be verified.');}}
   const first=new Map();for(const row of trades)if(!first.has(row.wallet))first.set(row.wallet,row);
   if(first.size>BUNDLE_SCAN_POLICY.maxWallets)reasons.add('Wallet funding scan limit reached.');

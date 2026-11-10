@@ -32,7 +32,7 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
     const agents=enabled=>marketingAgencyCapabilities().policy.agents.map((agent,index)=>{
       const available=enabled&&(index===0?!xPaused:
         env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'&&config?.agency?.buybacks?.ready===true);
-      const reason=index===0&&xPaused?'X publishing is paused pending account reinstatement. Its budget remains reserved.':
+      const reason=index===0&&xPaused?'Automated X publishing is disabled. The admin handles launch promotion manually; protected agent funds remain reserved until verified delivery.':
         index>0&&!available?config?.agency?.buybacks?.reason||'Milestone buyback readiness is unverified.':null;
       return{id:agent.id,enabled:available,status:available?'available':reason?'paused':'not-activated',reason};
     });

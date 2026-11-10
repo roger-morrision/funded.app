@@ -3,7 +3,7 @@ import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { canonicalPumpPoolPda, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { deriveMintRouterV3, deriveMintPolicyV3 } from '../mint-router-v3.js';
-import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
+import {assertBonusRpc} from './daily-bonus-network.mjs';
 import { dailyBonusTradeRows, readDailyBonusTradeRows } from './daily-bonus-evidence.mjs';
 import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
@@ -21,19 +21,19 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
   pagesPerTick = 64, transactionsPerTick = 128, verifyCollection = verifyV3PumpCollection,
   loadSettlement = loadFinalizedV3Settlement, decodeTrade = dailyBonusTradeRows, completeReceipt }) {
   const running = new Map();
-  async function read({ connection, state, programId, day, now, qaMints, eligibilityBasis='collection-time-v1' }) {
+  async function read({ connection, state, programId, day, now, qaMints, cluster='devnet', eligibilityBasis='collection-time-v1' }) {
     if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
     const settlementTime=eligibilityBasis==='settlement-time-v1',indexBucket=settlementTime?'dailyBonusSettlementIndexes':'dailyBonusIndexes';
     const window = dailyBonusWindow(day, now);
-    if (await connection.getGenesisHash() !== DEVNET_GENESIS_HASH) throw new Error('Daily bonus RPC is not Devnet.');
+    await assertBonusRpc(connection,cluster,{window});
     const finalizedSlot = await connection.getSlot('finalized');
     const finalizedTime = await connection.getBlockTime(finalizedSlot);
     if (!Number.isSafeInteger(finalizedTime) || finalizedTime < window.end)
       return { complete:false, day, reason:'Waiting for the finalized UTC cutoff.' };
     const saved = (await rewardStore.read())[indexBucket]?.[day];
-    const job = saved ? structuredClone(saved) : { version:1, programId, day, revision:0,
+    const job = saved ? structuredClone(saved) : { version:1, programId, cluster, day, revision:0,
       cutoffSlot:finalizedSlot, mints:{}, routes:{}, trades:{}, collections:{}, verifiedCollections:{} };
-    if (job.version !== 1 || job.programId !== programId) throw new Error('Daily bonus index network or program changed.');
+    if (job.version !== 1 || job.programId !== programId || (job.cluster||'devnet')!==cluster) throw new Error('Daily bonus index network or program changed.');
     job.settlements ||= {};
     if(settlementTime&&job.settlementDetectionVersion!==BONUS_EVIDENCE_COVERAGE_VERSION){
       // Re-read only settlement routes. Preserve source proofs, trade coverage,
@@ -44,7 +44,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       job.settlementDetectionVersion=BONUS_EVIDENCE_COVERAGE_VERSION;
     }
     const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified === true
-      && row.cluster === 'devnet' && row.pumpFeeRoute?.scope === 'per-mint-v3'
+      && row.cluster === cluster && row.pumpFeeRoute?.scope === 'per-mint-v3'
       && row.pumpFeeRoute.programId === programId && row.pumpFeeRoute.verified === true
       && (!window.qa || qaMints?.includes(row.mint))
       && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp < window.end)
@@ -127,7 +127,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
             } else {
               const mint = new PublicKey(route.mint), pool = canonicalPumpPoolPda(mint,NATIVE_MINT);
               try {
-                const rows = await readDailyBonusTradeRows({ connection, transaction:tx, reference:ref,
+                const rows = await readDailyBonusTradeRows({ connection, cluster, transaction:tx, reference:ref,
                   mint, pool, decodePoolEvent:coder.decode.bind(coder), decodeTrade, completeReceipt });
                 for (const row of rows) job.trades[`${row.signature}:${row.logIndex}:${row.mint}`] = row;
               } catch (error) {
@@ -152,7 +152,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       await persist(); return { complete:false, day, reason:'Indexing finalized history.', progress };
     }
     if(settlementTime){
-      const result=await finalizedBonusSettlementSources({job,state,byMint,programId,connection,verifyCollection,loadSettlement,remainingReads:transactionsPerTick-transactions});
+      const result=await finalizedBonusSettlementSources({job,state,byMint,programId,connection,cluster,verifyCollection,loadSettlement,remainingReads:transactionsPerTick-transactions});
       await persist();
       if(!result.complete)return {complete:false,day,reason:result.reason,progress};
       return {complete:true,eligibilityBasis,collections:result.collections,trades:Object.values(job.trades),
@@ -164,7 +164,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       const launch = byMint.get(row.mint), recorded = state.collections?.[row.signature];
       const settled = state.v3Settlements?.[row.signature];
       if (!recorded || settled?.status !== 'finalized') { waiting = 'Waiting for indexed collections and creator-signed settlements.'; break; }
-      if (recorded.signature !== row.signature || recorded.mint !== row.mint || recorded.scope !== 'per-mint-v3' || recorded.cluster !== 'devnet'
+      if (recorded.signature !== row.signature || recorded.mint !== row.mint || recorded.scope !== 'per-mint-v3' || recorded.cluster !== cluster
         || recorded.programId !== programId || recorded.status !== 'collected' || recorded.onchainVerified !== true
         || recorded.attribution !== 'mint-verified' || String(recorded.collectedLamports) !== row.amountLamports
         || recorded.claimId !== row.claimId || settled.mint !== row.mint || settled.collectionSignature !== row.signature
@@ -174,7 +174,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       let proved = job.verifiedCollections[row.signature];
       if (proved?.fingerprint !== fingerprint) {
         if (transactions >= transactionsPerTick) { waiting = 'Verifying finalized settlement coverage.'; break; }
-        const proof = await loadSettlement({ connection, signature:settled.settlementSignature,
+        const proof = await loadSettlement({ connection, cluster, signature:settled.settlementSignature,
           programId, mint:row.mint, authority:launch.pumpFeeRoute.initialAuthority, creator:launch.creatorWallet,
           claimId:Buffer.from(row.claimId,'hex'), expectedLamports:row.amountLamports, split:launch.pumpFeeRoute.protocolSplit });
         transactions++;
@@ -194,7 +194,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       coverage:launches.map(row => ({ mint:row.mint, complete:true, routes:2, collectionHistoryComplete:true })) };
   }
   return args => {
-    const id = `${args.programId}:${args.day}:${args.eligibilityBasis||'collection-time-v1'}`;
+    const id = `${args.cluster||'devnet'}:${args.programId}:${args.day}:${args.eligibilityBasis||'collection-time-v1'}`;
     if (!running.has(id)) running.set(id, read(args).finally(() => running.delete(id)));
     return running.get(id);
   };
