@@ -3,6 +3,7 @@
 // launch, no curve and no PumpSwap pool, hide curve-only facts and show DEX
 // market data plus links to trade it where it actually trades.
 import { loadTokenMetadata, safeImageUrl, metadataLinks } from './token-metadata-client.js';
+import { setCoinFact } from '../shared/display.js';
 
 const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
@@ -88,6 +89,12 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
       avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center';
     }
     if (details?.description) setText('#coin-description', details.description);
+    // The page's own fact only knows Metaplex metadata; Token-2022 tokens
+    // (pump.fun create_v2 and others) keep name and symbol on the mint.
+    const status = document.getElementById('coin-metadata-status');
+    if (status && details?.metadataStatus === 'verified' && /No verified name/.test(status.textContent)) {
+      setCoinFact('#coin-metadata-status', details.source === 'token-2022-onchain-finalized' ? 'Token-2022 name / symbol' : 'On-chain name / symbol', 'clear', document);
+    }
     const ids = { Website: 'coin-website-link', X: 'coin-x-link', Telegram: 'coin-telegram-link', Discord: 'coin-discord-link' };
     for (const [label, href] of metadataLinks(details)) {
       const anchor = document.getElementById(ids[label]);
