@@ -30,7 +30,6 @@ html body.page-route-overview .main-content > .home-daily-bonuses { order: 5; di
 .bonus-pool-grid p, .bonus-pool-grid small { display: block; color: #acb8cf; font-size: 12px; line-height: 1.6; }
 .bonus-pool-grid a { display: inline-block; margin-top: 18px; font-size: 12px; }
 .bonus-history-page > section { margin: 32px 0; }
-.bonus-history-page .bonus-leaders-grid h3 { margin: 0 0 18px; }
 .bonus-wallet-list { list-style: none; margin: 0; padding: 0; }
 .bonus-wallet-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #30354b; font-size: 12px; }
 .bonus-wallet-list li span { text-align: right; font-variant-numeric: tabular-nums; }
@@ -53,11 +52,6 @@ html body.product-experience-style #bonuses .bonus-receipt-help > p { margin: 0;
 html body.product-experience-style #bonuses .bonus-history-toolbar { flex-direction: row; flex-wrap: wrap; align-items: center; }
 html body.product-experience-style #bonuses .bonus-history-toolbar h2 { margin: 0; }
 html body.product-experience-style #bonuses .bonus-history-toolbar label { margin-left: auto; }
-html body.product-experience-style #bonuses .bonus-leaders-grid > section { padding: 14px; border-radius: 8px; background: var(--panel); }
-html body.product-experience-style #bonuses .bonus-leaders-grid h3 { margin-bottom: 8px; font-size: 15px; }
-html body.product-experience-style #bonuses .bonus-leaders-grid > section:has(> p) { display: grid; grid-template-columns: minmax(76px,1fr) minmax(0,2fr); align-items: center; gap: 12px; }
-html body.product-experience-style #bonuses .bonus-leaders-grid > section:has(> p) :is(h3,p) { margin: 0; }
-html body.product-experience-style #bonuses .bonus-leaders-grid > section > p { color: var(--muted); font-size: 12px; line-height: 1.5; }
 html body.product-experience-style #bonuses .bonus-wallet-list li:last-child { border-bottom: 0; }
 html body.product-experience-style #bonuses .bonus-wallet-list a { display: inline-flex; align-items: center; min-height: 44px; }
 html body.product-experience-style #bonuses .bonus-wallet-list li { align-items: center; padding-block: 2px; }

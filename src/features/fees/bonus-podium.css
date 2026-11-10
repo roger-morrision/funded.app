@@ -1,0 +1,129 @@
+/* Honor board for #bonuses: hero, gold/silver/bronze podium (ranks 1-3) and ranked list (4+). */
+#bonuses {
+  --medal-1: #f6c445; --medal-1-deep: #a8750e;
+  --medal-2: #d5dde8; --medal-2-deep: #7c8899;
+  --medal-3: #e0955a; --medal-3-deep: #8e4f22;
+}
+
+/* Hero */
+html body #main-content #bonuses .bonus-hero {
+  position: relative; overflow: hidden; isolation: isolate; padding: 28px 28px 26px;
+  border: 1px solid color-mix(in srgb, var(--medal-1) 32%, var(--fv-border, #29323a)); border-radius: var(--fv-radius-lg, 16px);
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--medal-1) 20%, transparent) 0, transparent 55%),
+    radial-gradient(80% 120% at 0% 100%, color-mix(in srgb, var(--fv-accent, #f4a340) 10%, transparent) 0, transparent 60%),
+    var(--fv-surface, #121a26);
+}
+html body #main-content #bonuses .bonus-hero::after {
+  content: ""; position: absolute; right: -30px; bottom: -50px; z-index: -1; width: 210px; height: 210px; opacity: .08; background: var(--medal-1);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 3h10v3a5 5 0 0 1-10 0V3zm-3 1h3v2a3 3 0 0 1-3-2zm13 0h3a3 3 0 0 1-3 2V4zM11 12h2v4h3v3H8v-3h3v-4z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 3h10v3a5 5 0 0 1-10 0V3zm-3 1h3v2a3 3 0 0 1-3-2zm13 0h3a3 3 0 0 1-3 2V4zM11 12h2v4h3v3H8v-3h3v-4z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+html body #main-content #bonuses .bonus-hero .eyebrow { color: var(--medal-1); letter-spacing: .14em; }
+html body #main-content #bonuses .bonus-hero h1 {
+  margin: 6px 0 8px; font-size: clamp(26px, 3.2vw, 38px); line-height: 1.12; letter-spacing: -.02em;
+  background: linear-gradient(100deg, var(--fv-text, #f3f6fa) 35%, var(--medal-1) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+html body #main-content #bonuses .bonus-hero p { max-width: 60ch; }
+
+/* Section heads */
+#bonuses .bonus-stage-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 24px; margin-bottom: 16px; }
+#bonuses .bonus-stage-head h2 { margin: 4px 0 6px; font-size: clamp(20px, 2.2vw, 26px); letter-spacing: -.01em; }
+#bonuses .bonus-stage-head .eyebrow { margin: 0; color: var(--medal-1); letter-spacing: .12em; }
+#bonuses .bonus-stage-head .field-help { max-width: 62ch; margin: 0; }
+html body #main-content #bonuses .bonus-today .bonus-clock {
+  flex-direction: column; align-items: flex-end; gap: 2px; margin: 0; padding: 10px 16px; font-size: 12px;
+  border: 1px solid color-mix(in srgb, var(--medal-1) 35%, var(--fv-border, #29323a)); border-radius: var(--fv-radius-md, 10px);
+  background: color-mix(in srgb, var(--medal-1) 7%, var(--fv-surface, #121a26));
+}
+html body #main-content #bonuses .bonus-today .bonus-clock strong { color: var(--medal-1); font-size: 24px; line-height: 1.1; }
+
+/* Category cards */
+html body #main-content #bonuses .bonus-honor-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+html body #main-content #bonuses .bonus-honor {
+  display: flex; flex-direction: column; min-width: 0; padding: 18px 16px 14px;
+  border: 1px solid var(--fv-border, #29323a); border-radius: var(--fv-radius-lg, 16px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--medal-1) 6%, var(--fv-surface-raised, #182233)) 0, var(--fv-surface, #121a26) 70%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .04), 0 18px 40px -28px rgb(0 0 0 / .8);
+}
+#bonuses .bonus-honor-head { display: flex; align-items: center; gap: 12px; }
+#bonuses .bonus-honor-head h3 { margin: 0; font-size: 16px; }
+#bonuses .bonus-honor-head p { margin: 2px 0 0; color: var(--fv-text-subtle, #77869b); font-size: 12px; }
+#bonuses .bonus-honor-icon {
+  display: grid; flex: none; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: #1b1300;
+  background: linear-gradient(145deg, var(--medal-1), var(--medal-1-deep)); box-shadow: 0 6px 18px -8px var(--medal-1);
+}
+#bonuses .bonus-honor-icon svg { width: 20px; height: 20px; fill: currentColor; }
+#bonuses .bonus-honor-empty { margin: 10px 0 0; color: var(--fv-text-muted, #a8b2bc); font-size: 12px; text-align: center; }
+
+/* Podium: DOM order 1-2-3 for screen readers, visual order 2-1-3. */
+#bonuses .bonus-podium {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "p2 p1 p3"; align-items: end; gap: 6px;
+  margin: 16px 0 0; padding: 0; list-style: none;
+}
+#bonuses .bonus-podium-step {
+  --c: var(--medal-1); --c-deep: var(--medal-1-deep); --h: 92px;
+  position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; text-align: center; grid-area: p1;
+}
+#bonuses .bonus-podium-step[data-place="2"] { --c: var(--medal-2); --c-deep: var(--medal-2-deep); --h: 66px; grid-area: p2; }
+#bonuses .bonus-podium-step[data-place="3"] { --c: var(--medal-3); --c-deep: var(--medal-3-deep); --h: 48px; grid-area: p3; }
+#bonuses .bonus-podium-crown { display: block; width: 26px; height: 20px; margin-bottom: 1px; color: var(--medal-1); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--medal-1) 60%, transparent)); }
+#bonuses .bonus-podium-crown svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+#bonuses .bonus-podium-avatar {
+  display: grid; place-items: center; width: 50px; height: 50px; border: 3px solid var(--c); border-radius: 50%;
+  color: #fff; font: 700 15px var(--fv-font-data, monospace); text-shadow: 0 1px 2px rgb(0 0 0 / .4);
+  background: linear-gradient(145deg, hsl(var(--avatar-hue, 220) 70% 55%), hsl(calc(var(--avatar-hue, 220) + 50) 65% 30%));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 16%, transparent), 0 10px 24px -10px var(--c);
+}
+#bonuses .bonus-podium-step[data-place="1"] .bonus-podium-avatar { width: 62px; height: 62px; font-size: 18px; }
+#bonuses .bonus-podium-medal {
+  position: relative; display: grid; place-items: center; width: 22px; height: 22px; margin-top: -12px; border-radius: 50%;
+  color: #1b1300; font: 800 11px var(--fv-font-ui, sans-serif); border: 1.5px solid color-mix(in srgb, #fff 55%, var(--c));
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, #fff 45%, var(--c)), var(--c) 55%, var(--c-deep));
+}
+#bonuses .bonus-podium-wallet {
+  max-width: 100%; margin-top: 6px; overflow: hidden; color: var(--fv-text, #f3f6fa); font: 600 12px var(--fv-font-data, monospace);
+  text-overflow: ellipsis; white-space: nowrap; text-decoration: none;
+}
+html body #main-content #bonuses a.bonus-podium-wallet { color: var(--fv-text, #f3f6fa); text-decoration: none; }
+html body #main-content #bonuses a.bonus-podium-wallet:is(:hover, :focus-visible) { color: var(--c); text-decoration: underline; }
+#bonuses .bonus-podium-amount { margin-top: 2px; color: var(--c); font: 700 12px var(--fv-font-data, monospace); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#bonuses .bonus-podium-step[data-place="1"] .bonus-podium-amount { font-size: 13px; }
+#bonuses .bonus-podium-note { margin-top: 1px; color: var(--fv-text-subtle, #77869b); font-size: 10px; line-height: 1.3; }
+#bonuses .bonus-podium-block {
+  display: flex; align-items: flex-start; justify-content: center; width: 100%; height: var(--h); margin-top: 10px; padding-top: 10px;
+  border-top: 2px solid var(--c); border-radius: 8px 8px 2px 2px;
+  color: var(--c); font: 800 10px var(--fv-font-ui, sans-serif); letter-spacing: .18em; text-transform: uppercase;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 26%, var(--fv-surface-raised, #182233)), color-mix(in srgb, var(--c) 4%, var(--fv-surface, #121a26)));
+}
+#bonuses .bonus-podium-step.is-open { opacity: .5; }
+#bonuses .bonus-podium-step.is-open .bonus-podium-avatar { border-style: dashed; color: var(--fv-text-subtle, #77869b); background: var(--fv-surface-raised, #182233); box-shadow: none; text-shadow: none; }
+#bonuses .bonus-podium-step.is-open .bonus-podium-wallet { color: var(--fv-text-subtle, #77869b); font-family: var(--fv-font-ui, sans-serif); font-weight: 500; }
+
+/* Ranks 4+ */
+#bonuses .bonus-honor-list { margin: 12px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--fv-border, #29323a); }
+#bonuses .bonus-honor-list li {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 2px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--fv-border, #29323a) 60%, transparent); font-size: 12px;
+}
+#bonuses .bonus-honor-list li:last-child { border-bottom: 0; }
+#bonuses .bonus-honor-list li:hover { background: rgb(255 255 255 / .025); }
+#bonuses .bonus-honor-rank { color: var(--fv-text-subtle, #77869b); font: 700 12px var(--fv-font-data, monospace); }
+#bonuses .bonus-honor-who { display: flex; flex-direction: column; min-width: 0; }
+#bonuses .bonus-honor-who a { display: inline-flex; align-items: center; min-height: 28px; font-family: var(--fv-font-data, monospace); }
+#bonuses .bonus-honor-who small { color: var(--fv-text-subtle, #77869b); font-size: 10px; }
+#bonuses .bonus-honor-amount { color: var(--fv-text, #f3f6fa); font: 600 12px var(--fv-font-data, monospace); font-variant-numeric: tabular-nums; text-align: right; }
+
+@media (prefers-reduced-motion: no-preference) {
+  #bonuses .bonus-honor-grid:not([data-podium-settled]) .bonus-podium-block { transform-origin: bottom; animation: bonus-rise .7s cubic-bezier(.2, .8, .2, 1) both; }
+  #bonuses .bonus-podium-step[data-place="3"] .bonus-podium-block { animation-delay: .06s; }
+  #bonuses .bonus-podium-step[data-place="1"] .bonus-podium-block { animation-delay: .12s; }
+  #bonuses .bonus-podium-step[data-place="1"]:not(.is-open) .bonus-podium-avatar { animation: bonus-glow 3.2s ease-in-out infinite; }
+}
+@keyframes bonus-rise { from { transform: scaleY(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes bonus-glow { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--medal-1) 24%, transparent), 0 10px 30px -6px var(--medal-1); } }
+
+@media (max-width: 700px) {
+  html body #main-content #bonuses .bonus-hero { padding: 20px 18px; }
+  html body #main-content #bonuses .bonus-today .bonus-clock { align-items: flex-start; width: 100%; }
+}

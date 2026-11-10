@@ -2,6 +2,7 @@ import { HOME_BONUS_MARKUP, BONUS_HISTORY_MARKUP } from './bonus-dashboard-marku
 import { bonusSnapshotLabel, bonusVerificationLabel } from './bonus-labels.js';
 import {bonusCategoryCopy} from './fee-policy-copy.js';
 import {BONUS_TODAY_MARKUP,renderTodayBonuses,tickTodayBonus} from './bonus-today-view.js';
+import {renderBonusPodium,settlePodiumGrid} from './bonus-podium.js';
 const GROUPS = { creators:'Creators', referrals:'Referrers', traders:'Traders' };
 const HISTORY_COLUMNS = ['UTC snapshot', 'Wallet', 'Wallet received', 'Creator bonus', 'Referral bonus', 'Trader bonus', 'Receipt'];
 const integer = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : null;
@@ -218,14 +219,10 @@ export function initBonusDashboard(document = globalThis.document) {
     status.textContent = `${data.snapshots} recorded snapshot(s) · ${data.totalPayments} finalized receipt(s). ${data.unavailableSnapshots ? `${data.unavailableSnapshots} snapshot(s) failed integrity checks and are excluded. ` : ''}${data.unavailableReceipts ? `${data.unavailableReceipts} receipt(s) have unavailable category attribution and are excluded from rankings. ` : ''}${bonusVerificationLabel(data)} A cutoff starts verification; it does not guarantee immediate payment.`;
     leaders.replaceChildren();
     for (const [key, title] of Object.entries(GROUPS)) {
-      const group = node('section'); group.append(node('h3', title));
-      const list = node('ol'); list.className = 'bonus-wallet-list';
-      for (const [index, winner] of data.leaders[key].entries()) {
-        const item = node('li'), identity = node('div', `${index + 1}. `);
-        identity.append(walletLink(winner.wallet)); item.append(identity, node('span', bonusSol(winner.receivedLamports))); list.append(item);
-      }
-      group.append(list.children.length ? list : node('p', 'No finalized bonus payout yet.')); leaders.append(group);
+      leaders.append(renderBonusPodium(document, { key, title, metric:'Total confirmed bonus received', emptyText:'No finalized bonus payout yet.',
+        rows:data.leaders[key].map((winner, index) => ({ rank:index + 1, wallet:winner.wallet, amount:bonusSol(winner.receivedLamports) })) }));
     }
+    settlePodiumGrid(leaders, view);
     renderHistory(owner);
     pageNumber = data.history.page; pageLabel.textContent = `Page ${pageNumber} of ${data.history.pages} · ${data.history.total} payments`;
     previous.disabled = pageNumber <= 1; next.disabled = pageNumber >= data.history.pages;
