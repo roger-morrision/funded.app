@@ -254,7 +254,7 @@ if (host) {
       const item = document.createElement('li');
       item.textContent = `${receipt.winner} · ${solAmount(receipt.amountLamports)} · `;
       const link = document.createElement('a');
-      link.href = `https://explorer.solana.com/tx/${encodeURIComponent(receipt.signature)}?cluster=devnet`;
+      link.href = `https://explorer.solana.com/tx/${encodeURIComponent(receipt.signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
       link.textContent = 'Finalized receipt';
       link.rel = 'noopener noreferrer';
       link.target = '_blank';
@@ -294,7 +294,7 @@ if (host) {
     const receipt = state.receipt;
     state.reveal.hidden = false;
     state.reveal.classList.remove('is-winner', 'is-drawing');
-    link.href = `https://explorer.solana.com/tx/${encodeURIComponent(receipt.signature)}?cluster=devnet`;
+    link.href = `https://explorer.solana.com/tx/${encodeURIComponent(receipt.signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
     if (reducedMotion.matches) {
       showWinner(state, receipt);
       return;

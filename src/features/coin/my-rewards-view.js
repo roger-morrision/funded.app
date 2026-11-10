@@ -13,7 +13,7 @@ const sol = lamports => {
   if (!Number.isFinite(n) || n <= 0) return '0 SOL';
   return `${n.toLocaleString('en-US', { maximumFractionDigits: n < 0.001 ? 9 : 6 })} SOL`;
 };
-const explorer = signature => `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+const explorer = signature => `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
 
 function shortcuts(mint) {
   return `<div class="coin-my-rewards-links">

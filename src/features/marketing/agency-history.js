@@ -38,7 +38,7 @@ export function renderAgencyHistory(container, data, { currentVerified = false }
       const n = BigInt(row.amountLamports), fraction = String(n % 1000000000n).padStart(9, '0').replace(/0+$/, '');
       amount = `${n / 1000000000n}${fraction ? '.' + fraction : ''}`;
     }
-    link.href = `https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}?cluster=devnet`;
+    link.href = `https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
     link.target = '_blank'; link.rel = 'noopener noreferrer';
     link.className='receipt-link';link.textContent='View receipt ↗';link.setAttribute('aria-label',`View agent ${row.agent+1} transaction ${row.signature}`);
     for(const [index,value] of [utcMinute(row.finalizedAt)||'Time unavailable',`Agent ${row.agent+1}`,row.agent===0?POLICY.agents[0].name:'Own-coin buyback',amount,trigger].entries()){

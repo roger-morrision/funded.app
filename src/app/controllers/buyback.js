@@ -145,7 +145,7 @@ export function createBuybackController(appState) {
           : dashboard?.status === 'verified' ? 'No burns yet' : 'Waiting for the next burn update';
       const signature = String(burn?.signature || '');
       proof.hidden = !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature);
-      if (!proof.hidden) proof.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+      if (!proof.hidden) proof.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
       else proof.removeAttribute('href');
     }
     appState.renderBuybackDashboard();

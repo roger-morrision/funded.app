@@ -56,6 +56,27 @@ export function enqueueLaunchPostEmail(state,launch,{env,cluster,now=Date.now()}
   return row;
 }
 
+// External listings: the burn was verified at registration in the same store
+// transaction, so the draft only restates the saved listing facts.
+export function listingPostEmailDraft(listing,{cluster,origin}) {
+  if(listing?.cluster!==cluster||listing.onchainVerified!==true||listing.status!=='listed'||!listing.mint||!listing.signature)
+    throw Error('A verified listing is required for its post email.');
+  const base=new URL(origin).origin,name=sanitizeXLabel(listing.name||listing.symbol||'Token',60);
+  const symbol=listing.symbol?`$${sanitizeXLabel(listing.symbol,16)}`:name;
+  const text=`${cluster==='devnet'?'[Devnet test] ':''}New listing on Richpad: ${symbol} (${name})\nCA: ${listing.mint}\n${base}/token/${listing.mint}`;
+  if(xWeightedLength(text)>280)throw Error('Listing facts exceed one X post.');
+  const id=`${cluster}:${listing.mint}:${listing.signature}:listing`;
+  return {id,cluster,mint:listing.mint,signature:listing.signature,slot:listing.slot,name,origin:base,text,
+    contentHash:digest({id,text}),weightedLength:xWeightedLength(text),version:2,event:'listing',
+    symbol:listing.symbol||null,metadataUri:listing.metadataUri||null,payer:listing.wallet||null};
+}
+export function enqueueListingPostEmail(state,listing,{env,cluster,now=Date.now()}) {
+  if(!launchPostEmailEnabled(env))return null;
+  const draft=listingPostEmailDraft(listing,{cluster,origin:env.PUBLIC_APP_URL||env.CORS_ORIGIN});
+  const outbox=state.launchPostEmails||={};
+  return outbox[draft.id] ||= {...draft,status:'pending',createdAt:now,nextAttemptAt:now,attempts:0};
+}
+
 const htmlEscape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function promotionXIntent(text){const url=new URL('https://twitter.com/intent/tweet');url.searchParams.set('text',text);return url.href;}
 
@@ -68,14 +89,16 @@ export async function deliverLaunchPostEmail({env,draft,createTransport=options=
     connectionTimeout:10000,greetingTimeout:10000,socketTimeout:15000,dnsTimeout:10000,
     disableFileAccess:true,disableUrlAccess:true});
   const messageId=`<launch-${digest(draft.id)}@${new URL(draft.origin).hostname}>`;
-  const event=draft.event==='migration'?'migration':'launch',action=promotionXIntent(draft.text);
-  const intro=`Your token ${event} is finalized. Review the draft and post it manually on X.`;
+  const event=['migration','listing'].includes(draft.event)?draft.event:'launch',action=promotionXIntent(draft.text);
+  const intro=event==='listing'
+    ?`A new external token listing is verified (${draft.symbol?'$'+draft.symbol+' · ':''}mint ${draft.mint}${draft.payer?', paid by '+draft.payer:''}). Review the draft and post it manually on X.`
+    :`Your token ${event} is finalized. Review the draft and post it manually on X.`;
   try{
     const result=await transport.sendMail({from:config.from,to:[config.to],
       envelope:{from:config.from,to:[config.to]},messageId,
       subject:`[${draft.cluster==='devnet'?'Devnet':'Mainnet'}] X ${event} post ready: ${draft.name}`,
       text:`${intro}\nNothing has been posted to X automatically.\n\n--- COPY POST ---\n${draft.text}\n--- END POST ---\n\nPost to X: ${action}\nOpens a prefilled composer; click Post on X to publish.\n\nToken page: ${draft.origin}/token/${draft.mint}\nFinalized ${event}: ${draft.migrationSignature||draft.signature}\nX character count: ${draft.weightedLength}/280\n\nAllocations are policy terms, not proof of completed reward payments. ${draft.cluster==='devnet'?'This is a Devnet test. Keep the Devnet label when sharing.':''}`,
-      html:`<div style="font-family:Arial,sans-serif;line-height:1.6;max-width:640px"><h2>${htmlEscape(event==='migration'?'Migration post ready':'Launch post ready')}</h2><p>${htmlEscape(intro)}</p><pre style="white-space:pre-wrap;background:#f3f4f6;padding:20px;border-radius:8px;font-family:Arial,sans-serif">${htmlEscape(draft.text)}</pre><p><a href="${htmlEscape(action)}" style="display:inline-block;background:#111;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Post to X</a></p><p>Opens X with this draft prefilled. Review it, then click Post to publish. Nothing is posted automatically.</p><p>Fee and airdrop allocations are policy terms; migration alone does not confirm reward delivery.</p><p><a href="${htmlEscape(draft.origin+'/token/'+draft.mint)}">View token details</a></p></div>`});
+      html:`<div style="font-family:Arial,sans-serif;line-height:1.6;max-width:640px"><h2>${htmlEscape(event==='migration'?'Migration post ready':event==='listing'?'Listing post ready':'Launch post ready')}</h2><p>${htmlEscape(intro)}</p><pre style="white-space:pre-wrap;background:#f3f4f6;padding:20px;border-radius:8px;font-family:Arial,sans-serif">${htmlEscape(draft.text)}</pre><p><a href="${htmlEscape(action)}" style="display:inline-block;background:#111;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Post to X</a></p><p>Opens X with this draft prefilled. Review it, then click Post to publish. Nothing is posted automatically.</p><p>Fee and airdrop allocations are policy terms; migration alone does not confirm reward delivery.</p><p><a href="${htmlEscape(draft.origin+'/token/'+draft.mint)}">View token details</a></p></div>`});
     if(!result?.accepted?.some(address=>String(address).toLowerCase()===config.to.toLowerCase())||result.rejected?.length)
       throw Object.assign(Error('Recipient was not acknowledged.'),{delivery:'uncertain'});
     return {messageId,recipient:config.to,provider:'gmail',accepted:true};
@@ -89,7 +112,7 @@ export async function deliverLaunchPostEmail({env,draft,createTransport=options=
 export function createLaunchPostEmailWorker({store,connection,cluster,env=process.env,now=Date.now,
   deliver=deliverLaunchPostEmail,verifyLaunch=verifyPumpLaunch,verifyMigration=verifyMigrationEmailProof,logger=console}) {
   let running=false,timer;
-  const enabled=launchPostEmailEnabled(env)&&cluster==='devnet';
+  const enabled=launchPostEmailEnabled(env)&&['devnet','mainnet-beta'].includes(cluster);
   async function tick(){
     if(!enabled||running)return {status:enabled?'busy':'disabled'};
     running=true;
@@ -117,6 +140,11 @@ export function createLaunchPostEmailWorker({store,connection,cluster,env=proces
       if(!claimed)return {status:'idle'};
       try{
         await assertRpcNetwork(connection,cluster);
+        if(claimed.event==='listing'){
+          const listing=(await store.read()).listings?.[claimed.mint];
+          const expected=listingPostEmailDraft(listing,{cluster,origin:claimed.origin});
+          if(Object.entries(expected).some(([key,value])=>claimed[key]!==value))throw Error('Listing email content changed.');
+        }else{
         const launch=(await store.read()).launches?.[claimed.mint];
         const migration=claimed.event==='migration'?await verifyMigration({connection,cluster,mint:claimed.mint,
           signature:claimed.migrationSignature}):null;
@@ -132,6 +160,7 @@ export function createLaunchPostEmailWorker({store,connection,cluster,env=proces
         if(claimed.version===2&&paidLaunchPromotion(launch)
           &&(proof.creatorLaunchBurn?.tier!==burn.tier||proof.creatorLaunchBurn?.amountTokens!==burn.amountTokens))
           throw Error('Promotion burn verification changed.');
+        }
       }catch{
         await finish({status:'pending',nextAttemptAt:now()+300000,reason:'launch-verification-unavailable'});
         return {status:'verification-pending'};

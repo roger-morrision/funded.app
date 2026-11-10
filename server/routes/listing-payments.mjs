@@ -2,7 +2,8 @@ import { PublicKey, Connection } from '@solana/web3.js';
 import { verifyFundedBurn } from '../burn-verification.mjs';
 import { projectBurnMemo } from '../../funded-burn.js';
 import { invalidRequest } from '../http-policy.mjs';
-import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
+import { SOLANA_GENESIS } from '../../solana-network.js';
+import { enqueueListingPostEmail } from '../launch-post-email.mjs';
 import { readVerifiedListingMint } from '../token-metadata.mjs';
 import { LISTING_PRICE_USD, listingBurnBaseUnitsForUsd, listingMemo, listingQuoteCurrent } from '../../listing-policy.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
@@ -31,7 +32,7 @@ export function createListingPaymentsRoutes({
   const json = (...args) => { respond(...args); return true; };
   return async function handleListingPaymentsRoutes(req, res, url) {
     if (req.method === 'POST' && url.pathname === '/api/listings/quote') {
-      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error:'Paid listings are unavailable on this network.' });
+      if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster) || !fundedTokenMint) return json(res, 503, { error:'Paid listings are unavailable on this network.' });
       if (!allowedAuthOrigin(req, env.CORS_ORIGIN)) return json(res, 403, { error:'Request a listing quote from richpad.fun.' });
       if (!await store.chargeRpcRate(`listing-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
         return json(res, 429, { error:'Too many listing quotes; retry shortly.' });
@@ -112,7 +113,7 @@ export function createListingPaymentsRoutes({
     }
 
     if (req.method === 'POST' && url.pathname === '/api/listings') {
-      if (solanaCluster !== 'devnet' || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Solana $RICH mint.' });
+      if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster) || !fundedTokenMint) return json(res, 503, { error: 'Paid listings require a configured Solana $RICH mint.' });
       const input = await body(req);
       let mint, burnWallet;
       try { mint = new PublicKey(String(input.mint || '')).toBase58(); burnWallet = walletKey(input.wallet); }
@@ -134,7 +135,7 @@ export function createListingPaymentsRoutes({
       const rpc = connectionFactory(solanaRpcUrl, 'finalized');
       let proof, listingMetadata;
       try {
-        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH)
+        if (await rpc.getGenesisHash() !== SOLANA_GENESIS[solanaCluster])
           return json(res, 503, { error: 'Listing payments require a Solana RPC.' });
         const [trustedLaunch, signedMetadata] = await Promise.all([store.readLaunch(mint), store.readMetadata(mint)]);
         listingMetadata = await readListingMint(rpc, mint, { trustedLaunch, signedMetadata });
@@ -149,7 +150,7 @@ export function createListingPaymentsRoutes({
           || confirmedAt > Date.parse(quote.expiresAt) + 30_000)
           throw new Error('The priced listing quote was not current when the burn finalized. Keep the original receipt for review.');
       } catch (error) { return json(res, 409, { error: error.message || 'The listing payment could not be verified on Solana.' }); }
-      const record = { mint, name:listingMetadata.name, symbol:listingMetadata.symbol, wallet: burnWallet, cluster: 'devnet', signature,
+      const record = { mint, name:listingMetadata.name, symbol:listingMetadata.symbol, wallet: burnWallet, cluster: solanaCluster, signature,
         fundedMint: fundedTokenMint, quoteId, usd:quote.usd, serviceFeeVersion:1, tokenPriceUsd:quote.tokenPriceUsd,
         amountBaseUnits: proof.amountBaseUnits, amountTokens: quote.amountTokens, decimals:quote.decimals,
         slot: proof.slot, status: 'listed', onchainVerified: true, metadataSource:listingMetadata.source,
@@ -166,6 +167,9 @@ export function createListingPaymentsRoutes({
           if (listingBurnAlreadyUsed(state, signature))
             throw new Error('This burn signature has already been used.');
           state.listings[mint] = record;
+          try { enqueueListingPostEmail(state, record, { env, cluster: solanaCluster }); }
+          catch { // A draft problem never blocks a verified paid listing.
+          }
           return record;
         });
         return json(res, saved === record ? 201 : 200, saved);

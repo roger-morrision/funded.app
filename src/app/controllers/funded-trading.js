@@ -44,7 +44,7 @@ export function createFundedTradingController(appState) {
   // app-source: 352
   async function refreshFundedBuyRoute(signal){
     try {
-      if (appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT) throw new Error('A configured Solana $RICH mint is required.');
+      if (appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT) throw new Error('A configured Solana $RICH mint is required.');
       const snapshot = await appState.withRpcRetry(async attempt => {
         if (attempt > 0) appState.tradePreviewConnection = null;
         const rpc = await appState.getTradePreviewConnection();
@@ -173,7 +173,7 @@ export function createFundedTradingController(appState) {
       appState.assertWalletSessionCurrent(session);
       if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned an unsigned burn. No burn was sent.');
       const signature = appState.bs58.encode(signed.signature);
-      const pending = { cluster:'devnet', signature, wallet:session.address, fundedMint:appState.PROTOCOL_FUNDED_MINT,
+      const pending = { cluster:appState.APP_CLUSTER, signature, wallet:session.address, fundedMint:appState.PROTOCOL_FUNDED_MINT,
         amountBaseUnits:amount.toString(), projectMint, lastValidBlockHeight:latest.lastValidBlockHeight };
       savePendingBurn(pending);
       submittedBurnSignature = signature;

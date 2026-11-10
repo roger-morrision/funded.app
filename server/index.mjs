@@ -126,7 +126,7 @@ publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');
 
 const solanaCluster = deploymentCluster(process.env);
-const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
+const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 async function communityClaimService(mint) {
   if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
   const config = communityProgramForLaunch(await store.readLaunch(mint), process.env, v3AuthorityKeypair);

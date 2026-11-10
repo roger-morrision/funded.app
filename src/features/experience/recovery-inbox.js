@@ -30,7 +30,7 @@ export function initializeRecoveryInbox(app) {
       const row = el('article', null, 'flow-activity-row'); row.append(el('h3', item.label),el('p',item.detail),el('small',`${wallet} · ${utc(item.at)}`));
       row.prepend(progressView(document,item.kind,item));
       if(item.kind==='trade'&&!item.persisted)row.append(el('p','Browser storage is unavailable. This record remains in this tab only; preserve its transaction signature before closing.'));
-      if (signature(item.signature)) row.append(link('Inspect transaction ↗',`https://explorer.solana.com/tx/${item.signature}?cluster=devnet`,true));
+      if (signature(item.signature)) row.append(link('Inspect transaction ↗',`https://explorer.solana.com/tx/${item.signature}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,true));
       if (item.kind === 'trade') row.append(button(tradeRecoveryCopy(item).action,async event => {
         if (wallet !== app.connectedWalletAddress) return;
         const control = event.currentTarget; control.disabled = true; const started=performance.now();

@@ -24,4 +24,4 @@ export async function buildLaunchTransaction({ connection, payer, supply, decima
   return { transaction, mint, ata, amount, rent };
 }
 
-export function devnetExplorer(path) { return `https://explorer.solana.com/${path}?cluster=devnet`; }
+export function devnetExplorer(path) { return `https://explorer.solana.com/${path}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`; }

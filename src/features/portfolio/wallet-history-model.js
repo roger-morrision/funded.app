@@ -44,7 +44,7 @@ export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClai
             : payout.kind === 'creator' ? 'Creator fee claimed' : 'Holder reward received',
           detail:`${token.symbol || 'Token'} · finalized V3 payment`,
           amount:walletHistorySol(payout.amountLamports), signature:payout.signature,
-          href:`https://explorer.solana.com/tx/${encodeURIComponent(payout.signature)}?cluster=devnet`,
+          href:`https://explorer.solana.com/tx/${encodeURIComponent(payout.signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,
           time:Date.parse(payout.paidAt || '') || 0 });
       }
     }
@@ -61,7 +61,7 @@ export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClai
     rows.push({ id, type:'airdrop', title:'Community airdrop received',
       detail:`${entry.symbol || 'Token'} · finalized payment account`,
       amount:amount ? `${amount} ${entry.symbol || 'tokens'}` : 'Received',
-      href:`https://explorer.solana.com/address/${encodeURIComponent(proof.payment)}?cluster=devnet`,
+      href:`https://explorer.solana.com/address/${encodeURIComponent(proof.payment)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,
       time:0 });
   }
   for (const claim of bonusClaims) {
@@ -76,7 +76,7 @@ export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClai
     rows.push({ id, type:'bonus', title:'Referral bonus received',
       detail:`Level ${Number.isInteger(Number(claim.level)) ? claim.level : '—'} · finalized payout`,
       amount:walletHistorySol(BigInt(whole) * LAMPORTS + BigInt(fraction.padEnd(9, '0'))),
-      href:`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`,
+      href:`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,
       time:Date.parse(claim.paidAt || '') || 0 });
   }
   if (dailyBonus?.cluster === 'devnet' && Array.isArray(dailyBonus.snapshots)) {

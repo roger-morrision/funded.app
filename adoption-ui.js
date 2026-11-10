@@ -54,7 +54,7 @@ if (recoveryHost) {
       const detail = document.createElement('p');
       detail.textContent = journalRecovery(row);
       const receipt = document.createElement('a');
-      receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+      receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
       receipt.target = '_blank'; receipt.rel = 'noopener noreferrer';
       receipt.textContent = 'Check original transaction ↗';
       item.append(title, detail, receipt);

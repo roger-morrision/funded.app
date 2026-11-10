@@ -2,12 +2,13 @@ import { boostMemo, boostPackage, boostLamports } from './boost-offer.js';
 const signaturePattern = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const addressPattern = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const quotePattern = /^boost_\d+_[0-9a-f]{16}$/;
+const NET = String(import.meta.env?.VITE_SOLANA_CLUSTER || 'devnet').trim();
 
 export function validateBoostQuote(quote, { mint, payer, packageId, pricing, reviewedQuote }, now = Date.now()) {
   const selected = boostPackage(packageId);
   const expected = reviewedQuote || pricing?.packages?.find(pack => pack.id === packageId);
   const revision = reviewedQuote?.pricingRevision ?? pricing?.revision;
-  if (!selected || !quote || quote.cluster !== 'devnet' || quote.mint !== mint || quote.payer !== payer || quote.packageId !== packageId
+  if (!selected || !quote || quote.cluster !== NET || quote.mint !== mint || quote.payer !== payer || quote.packageId !== packageId
     || !quotePattern.test(quote.id) || !addressPattern.test(quote.recipient)
     || !Number.isSafeInteger(quote.lamports) || quote.lamports <= 0
     || !Number.isFinite(quote.solUsd) || quote.solUsd <= 0 || !Number.isFinite(quote.usd) || quote.usd <= 0
@@ -26,7 +27,7 @@ export function validateBoostQuote(quote, { mint, payer, packageId, pricing, rev
 
 export function boostPaymentResolution(data, pending) {
   if (!['finalized', 'failed', 'expired'].includes(data?.status)) return 'pending';
-  if (data.signature !== pending.pendingSignature || data.quoteId !== pending.quote?.id || data.cluster !== 'devnet'
+  if (data.signature !== pending.pendingSignature || data.quoteId !== pending.quote?.id || data.cluster !== NET
     || !Number.isSafeInteger(data.slot) || data.slot < 1 || (data.status === 'failed' && data.commitment !== 'finalized')) {
     throw new Error('The payment receipt does not match this signed payment. Check the original transaction again.');
   }
@@ -39,15 +40,15 @@ export function boostPaymentResolution(data, pending) {
 
 const pendingKey = quote => `funded.boost.pending.${quote.cluster}.${quote.payer}.${quote.mint}`;
 export function readPendingBoost(mint, storage = globalThis.localStorage, scope = {}) {
-  const key = scope.payer ? pendingKey({mint,cluster:scope.cluster||'devnet',payer:scope.payer}) : `funded.boost.pending.${mint}`;
+  const key = scope.payer ? pendingKey({mint,cluster:scope.cluster||NET,payer:scope.payer}) : `funded.boost.pending.${mint}`;
   const legacy = storage.getItem(`funded.boost.pending.${mint}`);
   const raw = storage.getItem(key) ?? legacy;
   if (raw == null) return null;
   let pending;
   try { pending = JSON.parse(raw); } catch { throw new Error('Saved payment details are unreadable. Keep this device data and contact support before paying again.'); }
   if (!signaturePattern.test(pending?.signature) || pending?.quote?.mint !== mint || !quotePattern.test(pending?.quote?.id)
-    || pending.quote.cluster !== 'devnet') throw new Error('Saved payment details could not be verified. Contact support before paying again.');
-  if (scope.payer && (pending.quote.payer !== scope.payer || pending.quote.cluster !== (scope.cluster||'devnet'))) return null;
+    || pending.quote.cluster !== NET) throw new Error('Saved payment details could not be verified. Contact support before paying again.');
+  if (scope.payer && (pending.quote.payer !== scope.payer || pending.quote.cluster !== (scope.cluster||NET))) return null;
   if (scope.payer && storage.getItem(key) == null) {
     storage.setItem(key,raw);
     storage.removeItem(`funded.boost.pending.${mint}`);

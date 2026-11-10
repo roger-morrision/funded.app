@@ -53,7 +53,7 @@ export function mountCoinAgents(root, app) {
         const spent = units(entry.amountLamports) ? formatReviewSol(entry.amountLamports) : 'unavailable';
         const burned = i && units(entry.burnedBaseUnits) ? ' · ' + entry.burnedBaseUnits + ' launched-token base units burned' : '';
         box.append(el('p','Last recorded action ' + utc(entry.finalizedAt) + ' · spent ' + spent + burned),
-          link(i ? 'Buyback and burn transaction ↗' : 'Verified promotion billing ↗','https://explorer.solana.com/tx/' + entry.signature + '?cluster=devnet',true));
+          link(i ? 'Buyback and burn transaction ↗' : 'Verified promotion billing ↗','https://explorer.solana.com/tx/' + entry.signature + (import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'),true));
       }
       if (i) box.append(el('p',units(observed?.marketCapUsdMicros) ? 'Market cap at ' + utc(observed.observedAt) + ': $' + (Number(observed.marketCapUsdMicros)/1e6).toLocaleString() : units(entry?.observedMarketCapUsdMicros)
         ? 'Market cap observed at execution: $' + (Number(entry.observedMarketCapUsdMicros)/1e6).toLocaleString()

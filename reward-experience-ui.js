@@ -15,7 +15,7 @@ const ALERT_KEY = 'funded.vip.reward-alerts.v1';
 const WATCH_KEY = 'funded.app.community.watchlist';
 const byId = id => document.getElementById(id);
 const validMint = value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value || ''));
-const explorer = signature => `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+const explorer = signature => `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
 const tokenUrl = mint => `/token/${encodeURIComponent(mint)}`;
 const short = value => `${String(value).slice(0, 5)}…${String(value).slice(-5)}`;
 function sol(value) {

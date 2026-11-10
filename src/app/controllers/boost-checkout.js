@@ -7,7 +7,7 @@ export function createBoostCheckoutController(appState) {
   let livePackages=null, pricingRevision=null;
   function restorePendingBoost(mint,payer) {
     if (!payer) return false;
-    const pending=appState.readPendingBoost(mint,undefined,{payer,cluster:'devnet'});
+    const pending=appState.readPendingBoost(mint,undefined,{payer,cluster:appState.EXPLORE_CLUSTER});
     if (!pending) return false;
     Object.assign(appState.boostCheckout,{packageId:pending.quote.packageId,quote:pending.quote,
       pendingSignature:pending.signature,blockhash:pending.blockhash,signedTransaction:pending.signedTransaction,
@@ -156,7 +156,7 @@ export function createBoostCheckoutController(appState) {
     const active = currentBoostSnapshot(appState.verifiedBoosts)[mint];
     const packages=livePackages||appState.BOOST_PACKAGES;
     const selected = packages.find(pack=>pack.id===packageId)||appState.boostPackage(packageId);
-    const available = !recoveryError && ((livePackages && appState.EXPLORE_CLUSTER === 'devnet' && !appState.APP_MAINNET_READ_ONLY && appState.boostPurchasesEnabled) || Boolean(pendingSignature));
+    const available = !recoveryError && ((livePackages && !appState.APP_MAINNET_READ_ONLY && appState.boostPurchasesEnabled) || Boolean(pendingSignature));
     const quotedAmount = quote && quote.mint === mint && quote.packageId === packageId && Date.parse(quote.expiresAt) > Date.now()
       ? (quote.lamports / 1e9).toFixed(9) : null;
     const historyRows = appState.boostHistoryRows(appState.exploreBoostHistory, appState.boostCheckout, mint);
@@ -220,7 +220,7 @@ export function createBoostCheckoutController(appState) {
         const quote = appState.validateBoostQuote(appState.boostCheckout.quote, expected);
         const preparation=await appState.apiRequest('/api/boosts/prepare',{method:'POST',body:{quoteId:quote.id}});
         const prepared=preparation.data;
-        if (!preparation.available || prepared?.quoteId!==quote.id || prepared.cluster!=='devnet'
+        if (!preparation.available || prepared?.quoteId!==quote.id || prepared.cluster!==appState.EXPLORE_CLUSTER
           || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(prepared.blockhash)
           || !Number.isSafeInteger(prepared.expiryUpperBound) || prepared.expiryUpperBound<1 || prepared.expiresAt!==quote.expiresAt)
           throw Error('Payment preparation could not be verified. No transaction was requested.');

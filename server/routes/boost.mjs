@@ -1,7 +1,7 @@
 import { PublicKey, Connection } from '@solana/web3.js';
 import { activeBoosts, boostLamports, boostMemo } from '../../boost-offer.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
-import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
+import { SOLANA_GENESIS } from '../../solana-network.js';
 import { verifyBoostPayment } from '../boost-proof.mjs';
 import {boostPricingSnapshot} from '../admin-boost-pricing.mjs';
 import {projectBoostReceipts,STACKED_BOOST_POLICY} from '../../boost-timeline.js';
@@ -33,7 +33,7 @@ export function createBoostRoutes({
       return json(res, 200, { cluster:solanaCluster, enabled:boostPurchasesEnabled && Boolean(process.env.FUNDED_BOOST_PAYMENT_WALLET), packages:pricing.packages, pricingRevision:pricing.revision, active:mint ? (active[mint] ? { [mint]:active[mint] } : {}) : active, history });
     }
     if (req.method === 'POST' && url.pathname === '/api/boosts/quote') {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Solana only.' });
+      if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster)) return json(res, 403, { error:'Boost payments are available on Solana only.' });
       if (!boostPurchasesEnabled) return json(res, 503, { error:'New boost purchases are currently paused.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Start boost checkout from richpad.fun.' });
       if (!await store.chargeRpcRate(`boost-quote:${clientKey(req)}`, 1, 8, Math.floor(Date.now() / 60_000) * 60_000))
@@ -46,14 +46,14 @@ export function createBoostRoutes({
         payer = new PublicKey(String(input.payer || '')).toBase58();
       } catch { return json(res, 400, { error:'Enter a valid token mint and paying wallet before requesting a boost quote.' }); }
       try { recipient = new PublicKey(String(process.env.FUNDED_BOOST_PAYMENT_WALLET || '')).toBase58(); }
-      catch { return json(res, 503, { error:'The Devnet boost payment address is not configured. No payment was requested.' }); }
+      catch { return json(res, 503, { error:'The boost payment address is not configured. No payment was requested.' }); }
       if (mint !== input.mint || payer !== input.payer || payer === recipient) return json(res, 400, { error:'A valid token mint and distinct paying wallet are required.' });
       const state = await store.read(),pricing=boostPricingSnapshot(state);
       const selected = pricing.packages.find(pack=>pack.id===input.packageId);
       if (!selected) return json(res, 400, { error:'Choose a supported boost package.' });
       const launch = state.launches?.[mint];
       const listing = state.listings?.[mint];
-      if (!(launch?.onchainVerified && launch.cluster === 'devnet') && !(listing?.onchainVerified && listing.cluster === 'devnet'))
+      if (!(launch?.onchainVerified && launch.cluster === solanaCluster) && !(listing?.onchainVerified && listing.cluster === solanaCluster))
         return json(res, 404, { error:'Only verified tokens in the richpad.fun Solana directory can be boosted.' });
       const price = await readSolUsdQuote();
       if (!price || Date.now() - Date.parse(price.fetchedAt) > 120_000)
@@ -61,7 +61,7 @@ export function createBoostRoutes({
       const now = Date.now();
       const quote = { id:id('boost'), mint, payer, recipient, packageId:selected.id, multiplier:selected.multiplier,
         hours:selected.hours, durationPolicy:STACKED_BOOST_POLICY, usd:selected.usd, pricingRevision:pricing.revision, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
-        cluster:'devnet', paymentProtocol:'journal-v1', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
+        cluster:solanaCluster, paymentProtocol:'journal-v1', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
       await store.update(current => {
         current.boostQuotes ||= {};
         // Retain immutable quotes for delayed receipt recovery, including legacy
@@ -71,19 +71,19 @@ export function createBoostRoutes({
       return json(res, 201, { ...quote, memo:boostMemo(quote.id) });
     }
     if (req.method === 'POST' && url.pathname === '/api/boosts/prepare') {
-      if (solanaCluster !== 'devnet' || !boostPurchasesEnabled) return json(res,503,{error:'New boost purchases are unavailable.'});
+      if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster) || !boostPurchasesEnabled) return json(res,503,{error:'New boost purchases are unavailable.'});
       if (!allowedAuthOrigin(req,process.env.CORS_ORIGIN)) return json(res,403,{error:'Prepare checkout from richpad.fun.'});
       if (!await store.chargeRpcRate(`boost-prepare:${clientKey(req)}`,1,8,Math.floor(Date.now()/60000)*60000)) return json(res,429,{error:'Too many payment preparations. Retry shortly.'});
       const input=await body(req),quote=(await store.read()).boostQuotes?.[String(input.quoteId||'')];
       if (!quote) return json(res,404,{error:'Boost quote was not found.'});
       if (Date.now()>=Date.parse(quote.expiresAt)) return json(res,409,{error:'The quote expired. Request a fresh quote.'});
       try {
-        const rpc=connection();if(await rpc.getGenesisHash()!==DEVNET_GENESIS_HASH) throw Error('Network mismatch');
+        const rpc=connection();if(await rpc.getGenesisHash()!==SOLANA_GENESIS[solanaCluster]) throw Error('Network mismatch');
         return json(res,200,await prepareBoostPayment({store,rpc,quote}));
       } catch { return json(res,503,{error:'Payment preparation is unavailable. No transaction was requested.'}); }
     }
     if (req.method === 'POST' && url.pathname === '/api/boosts/confirm') {
-      if (solanaCluster !== 'devnet') return json(res, 403, { error:'Boost payments are available on Solana only.' });
+      if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster)) return json(res, 403, { error:'Boost payments are available on Solana only.' });
       if (!allowedAuthOrigin(req, process.env.CORS_ORIGIN)) return json(res, 403, { error:'Confirm boost checkout from richpad.fun.' });
       const input = await body(req);
       const quoteId = String(input.quoteId || '');
@@ -99,7 +99,7 @@ export function createBoostRoutes({
       let transaction;
       let payment = state.boostPayments?.[signature];
       try {
-        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'The configured RPC failed verification.' });
+        if (await rpc.getGenesisHash() !== SOLANA_GENESIS[solanaCluster]) return json(res, 503, { error:'The configured RPC failed verification.' });
         if (input.signedTransaction) {
           try { payment = await registerBoostPayment({store,rpc,quote,signature,signedTransaction:input.signedTransaction}); }
           catch { return json(res, 503, { error:'The signed payment could not be journaled. Retry the same payment; do not sign another.' }); }
@@ -112,7 +112,7 @@ export function createBoostRoutes({
             await store.update(current => { if (current.boostPayments?.[signature]?.quoteId === quoteId) current.boostPayments[signature].status='expired'; });
             return json(res, 200, expired);
           }
-          return json(res, 202, {status:'pending', signature, quoteId, cluster:'devnet',
+          return json(res, 202, {status:'pending', signature, quoteId, cluster:solanaCluster,
             journaled:Boolean(payment), broadcastAllowed:Boolean(payment?.broadcastAllowed) && Date.now() <= Date.parse(quote.expiresAt),
             message:payment ? 'Payment is not finalized yet. Check the same signature.' : 'Payment proof is pending. Legacy recovery needs the original signature; do not pay again.'});
         }
@@ -120,13 +120,13 @@ export function createBoostRoutes({
       if (transaction.transaction?.signatures?.[0] !== signature || !Number.isSafeInteger(transaction.slot) || transaction.slot < 1)
         return json(res, 503, { error:'Finalized payment proof did not match the requested signature. Retry verification of the same payment.' });
       if (transaction.meta?.err != null) return json(res, 200, { status:'failed', signature, quoteId,
-        cluster:'devnet', commitment:'finalized', slot:transaction.slot });
+        cluster:solanaCluster, commitment:'finalized', slot:transaction.slot });
       let proof;
       try { proof = verifyBoostPayment(transaction, quote, payment); }
       catch (error) { return json(res, 409, { error:error.message || 'Payment does not match this boost quote.' }); }
       const record = { signature, quoteId, mint:quote.mint, payer:quote.payer, recipient:quote.recipient,
         packageId:quote.packageId, multiplier:quote.multiplier, hours:quote.hours, usd:quote.usd,
-        solUsd:quote.solUsd, lamports:quote.lamports, cluster:'devnet', status:'finalized',
+        solUsd:quote.solUsd, lamports:quote.lamports, cluster:solanaCluster, status:'finalized',
         slot:proof.slot, startsAt:proof.startsAt, expiresAt:proof.expiresAt,
         ...(quote.durationPolicy?{durationPolicy:quote.durationPolicy}:{}) };
       try {
