@@ -116,7 +116,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (status) status.hidden = !verified && !pending && !recoveryError;
     mintInput.removeAttribute('aria-invalid');
     help.classList.remove('is-valid', 'is-invalid');
-    if (!value) help.textContent = 'Paste a Solana Devnet mint from any launchpad or DEX. Token details are read on-chain.';
+    if (!value) help.textContent = 'Paste a Solana token mint from any launchpad or DEX. Token details are read on-chain.';
     else if (!mint) { help.textContent = 'That is not a Solana token address. Check it and paste again.'; help.classList.add('is-invalid'); mintInput.setAttribute('aria-invalid', 'true'); }
     else { help.textContent = 'Address looks right. We check the token on Solana before you pay.'; help.classList.add('is-valid'); }
     const existing = mint && (listings.find(item => item.mint === mint) || (lookup?.mint===mint && lookup.included ? {included:true}:null));
