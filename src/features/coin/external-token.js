@@ -129,7 +129,7 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
       body.append(grid);
     }
     const note = document.createElement('p'); note.className = 'field-help';
-    note.textContent = message || `Market data from ${data.source}, refreshed every minute. Richpad holder payouts, curve and boosts apply only to Richpad launches.`;
+    note.textContent = message || `Market data from ${data.source}, refreshed every minute. ${import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta' ? 'Buy and sell here through Jupiter; holder payouts and the curve apply only to Richpad launches.' : 'Richpad holder payouts, curve and boosts apply only to Richpad launches.'}`;
     body.append(note);
     const actions = document.createElement('nav'); actions.className = 'coin-external-actions'; actions.setAttribute('aria-label', 'Trade this token elsewhere');
     for (const [label, href] of tradeLinks(mint)) actions.append(link(document, `Trade on ${label}`, href));

@@ -40,7 +40,11 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = appState.exploreExplorer(`address/${mint}`); explorerLink.hidden = false; }
     const supply = Number.isFinite(data.marketCapUsd) && data.priceUsd > 0 ? data.marketCapUsd / data.priceUsd : null;
     appState.coinIndexedSupply = { mint, supply };
-    appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6 };
+    const solUsd = Number(appState.coinSolUsdPrice) > 0 ? Number(appState.coinSolUsdPrice)
+      : Number((await appState.apiRequest('/api/market/sol-usd', { signal: AbortSignal.timeout(6000) }).catch(() => null))?.data?.priceUsd) || null;
+    if (!current()) return;
+    appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6, priceUsd: data.priceUsd, solUsd };
+    appState.renderTradeAmountEstimate?.();
     appState.updateTradeAmountLabel?.();
     void appState.refreshTradeBalances?.();
     globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', { detail: { mint, launch: null, checkedAt: Date.now() } }));
