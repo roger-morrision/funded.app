@@ -1,6 +1,5 @@
-import { HOME_BONUS_MARKUP, BONUS_HISTORY_MARKUP } from './bonus-dashboard-markup.js';
+import { HOME_BONUS_MARKUP, BONUS_HISTORY_MARKUP, bonusRulesOutline } from './bonus-dashboard-markup.js';
 import { bonusSnapshotLabel, bonusVerificationLabel } from './bonus-labels.js';
-import {bonusCategoryCopy} from './fee-policy-copy.js';
 import {BONUS_TODAY_MARKUP,renderTodayBonuses,tickTodayBonus} from './bonus-today-view.js';
 import {renderBonusPodium,settlePodiumGrid} from './bonus-podium.js';
 const GROUPS = { creators:'Creators', referrals:'Referrers', traders:'Traders' };
@@ -208,7 +207,7 @@ export function initBonusDashboard(document = globalThis.document) {
       ? 'Devnet QA: top 3 in each group. Snapshots every 5 minutes for selected test coins.'
       : 'Three leaderboards. Top 3 in each. One snapshot every UTC day.';
     home.querySelector('[data-bonus-cutoff-label]').textContent = qa ? 'Next QA snapshot · every 5 minutes' : 'Next snapshot · 00:00 UTC';
-    page.querySelector('[data-bonus-delivery]').textContent = `${bonusCategoryCopy()} ${qa ? 'Devnet QA snapshots close every 5 minutes for selected test coins. Standard daily policy remains 24 hours.' : 'Snapshots close at 00:00 UTC.'} Bonuses are paid automatically after snapshot and funding verification. No manual claim or recipient signature is required.`;
+    page.querySelector('[data-bonus-delivery]').innerHTML = bonusRulesOutline(qa);
     clockBase = { cutoff:Date.parse(data.nextCutoffAt), at:Date.parse(data.serverTime), started:view.performance.now() };
     tick();
     home.querySelector('[data-bonus-verification]').textContent = bonusVerificationLabel(data);

@@ -1,6 +1,8 @@
 import { setCoinField as writeCoinField, escapeHtml, shortAddress, formatDashboardUsd } from '../shared/display.js';
+import { renderLeaderPodium, clearLeaderPodium, restRowsOrNote } from './leader-podium.js';
 
-function replaceLeaderboardRows(table, html) {
+function replaceLeaderboardRows(table, html, podium) {
+  if (!podium) clearLeaderPodium(table);
   const document = table.ownerDocument, active = document?.activeElement;
   const link = active?.closest('a[href]'), row = link?.closest('.leaderboard-row');
   const key = row?.querySelector('a[href]')?.getAttribute('href');
@@ -68,12 +70,19 @@ export function renderWalletBurnersBoard(
     replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${board.status === 'partial' ? 'No launch burns in this feed.' : 'No verified wallet burns yet.'}</strong><span>${detail}</span></div></div>`);
     return;
   }
-  replaceLeaderboardRows(table, `${header}${board.wallets.slice(0,50).map((item,index) => {
+  const burnerTop = board.wallets.slice(0, 3);
+  const burnerPodium = renderLeaderPodium(table, burnerTop.map(item => ({
+    href:`/wallet/${encodeURIComponent(item.wallet)}`, initials:String(item.wallet || '').slice(0,2).toUpperCase(), hueKey:item.wallet,
+    name:shortAddress(item.wallet), sub:`${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}`,
+    value:`${Number(item.burnedTokens).toLocaleString(undefined,{maximumFractionDigits:6})} $RICH`, valueSub:'burned',
+    proofHref:exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`), proofLabel:'Receipt ↗',
+  })), { label:'Top 3 wallet burners' });
+  replaceLeaderboardRows(table, `${header}${restRowsOrNote(board.wallets.slice(0,50).map((item,index) => {
     const amount = Number(item.burnedTokens).toLocaleString(undefined,{maximumFractionDigits:6});
     const firstBurn = item.firstBurnAt ? formatOnchainAge(Date.parse(item.firstBurnAt)) : 'Time unavailable';
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
     return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index+1).padStart(2,'0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar" aria-hidden="true">${escapeHtml(String(item.wallet || '').slice(0,2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.receiptCount} verified receipt${item.receiptCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$RICH</small></span><span role="cell" class="leader-value">${escapeHtml(firstBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
-  }).join('')}`);
+  }).slice(3).join(''), board.wallets.slice(0,50).length)}`, burnerPodium);
 }
 
 export function renderProjectBurnBoard(
@@ -123,14 +132,20 @@ export function renderProjectBurnBoard(
     replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>No project burns yet.</strong><span>${detail}</span></div></div>`);
     return;
   }
-  replaceLeaderboardRows(table, `${header}${projects.slice(0, 50).map((item, index) => {
+  const projectPodium = renderLeaderPodium(table, projects.slice(0, 3).map(item => ({
+    href:`/token/${encodeURIComponent(item.mint)}`, initials:String(item.symbol || 'T').slice(0, 2), mint:item.mint, hueKey:item.mint,
+    name:item.name, sub:`${item.symbol} · ${item.burnerCount} burner${item.burnerCount === 1 ? '' : 's'}`,
+    value:`${Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 })} $RICH`, valueSub:'burned',
+    proofHref:exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`), proofLabel:'Receipt ↗',
+  })), { label:'Top 3 projects by burns' });
+  replaceLeaderboardRows(table, `${header}${restRowsOrNote(projects.slice(0, 50).map((item, index) => {
     const lastBurn = item.lastBurnAt ? formatOnchainAge(Date.parse(item.lastBurnAt)) : 'Time unavailable';
     const amount = Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 });
     const tokenHref = `/token/${encodeURIComponent(item.mint)}`;
     const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
     return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity" data-logo-mint="${escapeHtml(item.mint)}"><a class="leaderboard-profile" href="${escapeHtml(tokenHref)}"><span class="leader-avatar leader-token-logo mint" aria-hidden="true">${escapeHtml(String(item.symbol || 'T').slice(0, 2))}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.symbol)} · ${item.burnerCount} verified burner${item.burnerCount === 1 ? '' : 's'}</small></span></a></span><span role="cell"><b>${escapeHtml(amount)}</b><small>$RICH</small></span><span role="cell" class="leader-value">${escapeHtml(lastBurn)}</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer">Receipt ↗</a></span></div>`;
-  }).join('')}`);
-  loadVerifiedTokenLogos?.(table);
+  }).slice(3).join(''), Math.min(projects.length, 50))}`, projectPodium);
+  loadVerifiedTokenLogos?.(table); loadVerifiedTokenLogos?.(projectPodium);
 }
 
 export function renderLeaderboard(
@@ -207,11 +222,17 @@ export function renderLeaderboard(
       replaceLeaderboardRows(table, `${header}<div class="empty-state" role="row"><div role="cell" aria-colspan="5"><strong>${heading}</strong><span>${detail}</span>${action}</div></div>`);
       return;
     }
-    replaceLeaderboardRows(table, `${header}${traders.slice(0, 50).map((item, index) => {
+    const traderPodium = renderLeaderPodium(table, traders.slice(0, 3).map((item, index) => ({
+      href:`/wallet/${encodeURIComponent(item.wallet)}`, initials:item.wallet.slice(0, 2).toUpperCase(), hueKey:item.wallet,
+      name:shortAddress(item.wallet), sub:`${item.tradeCount}${item.sampleCapped ? '+' : ''} trades · ${item.tokenCount} coin${item.tokenCount === 1 ? '' : 's'}`,
+      value:`${item.volumeSol > 0 && item.volumeSol < 0.000001 ? '<0.000001' : item.volumeSol.toLocaleString(undefined, { maximumFractionDigits: 6 })} SOL`, valueSub:'24h volume',
+      proofHref:exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`), proofLabel:'Trade ↗', isYou:index === yourIndex,
+    })), { label:'Top 3 traders' });
+    replaceLeaderboardRows(table, `${header}${restRowsOrNote(traders.slice(0, 50).map((item, index) => {
       const amount = item.volumeSol > 0 && item.volumeSol < 0.000001 ? '<0.000001' : item.volumeSol.toLocaleString(undefined, { maximumFractionDigits: 6 });
       const receiptHref = exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`);
       return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}${index === yourIndex ? ' is-you' : ''}" role="row"${index === yourIndex ? ' aria-current="true"' : ''}><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leader-identity"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.wallet)}"><span class="leader-avatar blue" aria-hidden="true">${escapeHtml(item.wallet.slice(0, 2).toUpperCase())}</span><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.wallet))}</strong><small>${item.tokenCount} coin${item.tokenCount === 1 ? '' : 's'} traded</small></span></a></span><span role="cell"><b${item.sampleCapped ? ' title="Counted from the newest 20 trades per coin; may be higher"' : ''}>${item.tradeCount}${item.sampleCapped ? '+' : ''}</b><small>${item.buyCount} buy · ${item.sellCount} sell</small></span><span role="cell" class="leader-value">${escapeHtml(amount)} SOL</span><span role="cell"><a class="leaderboard-proof" href="${escapeHtml(receiptHref)}" target="_blank" rel="noopener noreferrer" aria-label="View recent transaction for ${escapeHtml(shortAddress(item.wallet))} on Solana Explorer">Trade ↗</a></span></div>`;
-    }).join('')}`);
+    }).slice(3).join(''), Math.min(traders.length, 50))}`, traderPodium);
     return;
   }
   document.querySelector('#leaderboard-panel')?.setAttribute('aria-labelledby', 'leaderboard-creators-tab');
@@ -261,10 +282,16 @@ export function renderLeaderboard(
   if (note) note.textContent = 'Ranked from confirmed launch policies and available market caps. Missing market data is shown as unavailable.';
   if (badge) badge.textContent = 'RPC verified';
   const avatarClass = index => ['mint', 'lavender', 'coral', 'blue'][index % 4];
-  replaceLeaderboardRows(table, `${header}${ranked.map((item, index) => {
+  const creatorPodium = renderLeaderPodium(table, ranked.slice(0, 3).map(item => {
+    const symbol = String(item.symbol || 'TOKEN').trim() || 'TOKEN';
+    return { href:`/token/${encodeURIComponent(item.address)}`, initials:symbol.slice(0, 2).toUpperCase(), mint:item.address, hueKey:item.address,
+      name:symbol, sub:`by ${shortAddress(item.creator)}`,
+      value:item.capUsd == null ? '$—' : formatDashboardUsd(item.capUsd), valueSub:item.capUsd == null ? 'Market data unavailable' : 'Market cap' };
+  }), { label:'Top 3 creator launches' });
+  replaceLeaderboardRows(table, `${header}${restRowsOrNote(ranked.map((item, index) => {
     const symbol = String(item.symbol || 'TOKEN').trim() || 'TOKEN';
     const name = String(item.name || symbol).trim() || symbol;
     return `<div class="leaderboard-row${index === 0 ? ' featured' : ''}" role="row"><span role="cell" class="rank-number">${String(index + 1).padStart(2, '0')}</span><span role="cell" class="leaderboard-token-cell" data-logo-mint="${escapeHtml(item.address)}"><a class="leaderboard-profile" href="/token/${encodeURIComponent(item.address)}"><span class="leader-avatar leader-token-logo ${avatarClass(index)}" aria-hidden="true">${escapeHtml(symbol.slice(0, 2).toUpperCase())}</span><span class="leaderboard-token-label"><strong>${escapeHtml(symbol)}</strong><small title="${escapeHtml(name)}">${escapeHtml(name)}</small></span></a></span><span role="cell" class="leader-identity leaderboard-creator-cell"><a class="leaderboard-profile" href="/wallet/${encodeURIComponent(item.creator)}"><span class="leaderboard-profile-copy"><strong>${escapeHtml(shortAddress(item.creator))}</strong><small>Creator wallet</small></span></a></span><span role="cell"><b>${item.capUsd == null ? '$—' : escapeHtml(formatDashboardUsd(item.capUsd))}</b><small>${item.capUsd == null ? 'Market data unavailable' : item.migrated === true ? 'Market cap · pool' : 'Market cap · curve'}</small></span><span role="cell" class="leader-value">${item.createdTimestamp ? escapeHtml(formatOnchainAge(Number(item.createdTimestamp) * 1000)) : 'Time unavailable'}</span></div>`;
-  }).join('')}`);
-  loadVerifiedTokenLogos?.(table);
+  }).slice(3).join(''), ranked.length)}`, creatorPodium);
+  loadVerifiedTokenLogos?.(table); loadVerifiedTokenLogos?.(creatorPodium);
 }

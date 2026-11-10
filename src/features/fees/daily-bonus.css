@@ -40,6 +40,12 @@ html body.page-route-overview .main-content > .home-daily-bonuses { order: 5; di
 html body.product-experience-style #bonuses > .bonus-section-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: start; margin-bottom: 12px; }
 html body.product-experience-style #bonuses .bonus-policy-disclosure { margin-block: 12px; background: var(--panel); }
 html body.product-experience-style #bonuses .bonus-policy-disclosure > p { margin: 0; padding: 0 12px 12px; }
+.bonus-rules-list { display: grid; gap: 8px; margin: 0; padding: 0 12px 14px; list-style: none; }
+.bonus-rules-list li { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: baseline; font-size: 13px; line-height: 1.5; }
+.bonus-rules-list li::before { content: none; }
+.bonus-rules-list b { color: var(--fv-text-subtle, #77869b); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.bonus-rules-list span { color: var(--fv-text, #f3f6fa); }
+@media (max-width: 480px) { .bonus-rules-list li { grid-template-columns: 1fr; gap: 0; } }
 html body.product-experience-style #bonuses > section { margin-block: 20px; }
 html body.product-experience-style #bonuses section .bonus-section-heading { gap: 8px; margin-bottom: 12px; }
 html body.product-experience-style #bonuses section .bonus-section-heading label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }

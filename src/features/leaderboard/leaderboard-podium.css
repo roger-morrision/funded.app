@@ -1,0 +1,31 @@
+/* Leaderboard top 3 podium; shared podium styles live in src/features/fees/bonus-podium.css. */
+html body #main-content #leaderboard #leaderboard-podium {
+  max-width: 640px; margin: 8px auto 18px; padding: 22px 16px 0;
+  border-bottom: 1px solid var(--fv-border, #29323a);
+  background: radial-gradient(70% 90% at 50% 100%, color-mix(in srgb, var(--medal-1) 10%, transparent) 0, transparent 70%);
+}
+html body #main-content #leaderboard #leaderboard-podium[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  #leaderboard #leaderboard-podium:not([data-podium-settled]) .bonus-podium-block { transform-origin: bottom; animation: bonus-rise .7s cubic-bezier(.2, .8, .2, 1) both; }
+  #leaderboard #leaderboard-podium:not([data-podium-settled]) .bonus-podium-step[data-place="3"] .bonus-podium-block { animation-delay: .06s; }
+  #leaderboard #leaderboard-podium:not([data-podium-settled]) .bonus-podium-step[data-place="1"] .bonus-podium-block { animation-delay: .12s; }
+}
+@media (prefers-reduced-motion: reduce) { #leaderboard-podium .bonus-podium-block { animation: none; } }
+#leaderboard .bonus-podium-avatar { overflow: hidden; }
+#leaderboard .bonus-podium-avatar :is(img, picture) { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+#leaderboard .bonus-podium-step[data-place="1"] .bonus-podium-avatar { width: 72px; height: 72px; }
+#leaderboard .bonus-podium-step .bonus-podium-wallet { font-size: 13px; }
+#leaderboard .bonus-podium-step[data-place="1"] .bonus-podium-amount { font-size: 15px; }
+html body #main-content #leaderboard a.bonus-podium-proof {
+  display: inline-flex; align-items: center; min-height: 32px; color: var(--fv-text-muted, #a8b2bc); font-size: 11px; font-weight: 600; text-decoration: none;
+}
+html body #main-content #leaderboard a.bonus-podium-proof:is(:hover, :focus-visible) { color: var(--c); text-decoration: underline; }
+#leaderboard .bonus-podium-you {
+  margin-top: 4px; padding: 1px 8px; border-radius: 999px; color: #1b1300; background: var(--fv-accent, #f4a340); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+}
+#leaderboard .bonus-podium-step.is-you .bonus-podium-avatar { outline: 2px solid var(--fv-accent, #f4a340); outline-offset: 3px; }
+#leaderboard .leaderboard-rest-note span { color: var(--fv-text-subtle, #77869b); font-size: 12px; }
+@media (max-width: 700px) {
+  html body #main-content #leaderboard #leaderboard-podium { padding-inline: 4px; }
+  #leaderboard .bonus-podium-step[data-place="1"] .bonus-podium-avatar { width: 60px; height: 60px; }
+}
