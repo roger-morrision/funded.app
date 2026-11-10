@@ -79,7 +79,25 @@ export function createDiscoveryRoutes({
       }
       let items;
       try { items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' }); }
-      catch { return json(res, 503, { error:'Pump.fun discovery is temporarily unavailable.', provider:'pump.fun', items:[] }); }
+      catch {
+        // Pump.fun's API refuses server reads behind its bot challenge. Birdeye's
+        // launchpad-filtered meme list still returns Pump.fun mints.
+        const memeSort = sort === 'created_timestamp' ? 'creation_time' : sort === 'market_cap' ? 'market_cap' : 'volume_24h_usd';
+        const memeParams = { sort_by: memeSort, sort_type: 'desc', offset: String(offset), limit: String(Math.min(limit, 100)), source: 'pump_dot_fun' };
+        // Birdeye calls are spaced ~1.1s apart; the parallel market read may hold the slot.
+        const meme = await fetchBirdeye('/defi/v3/token/meme/list', memeParams)
+          .catch(() => new Promise(done => setTimeout(done, 1300)).then(() => fetchBirdeye('/defi/v3/token/meme/list', memeParams))).catch(() => null);
+        const rows = Array.isArray(meme?.data?.items) ? meme.data.items : null;
+        if (!meme?.configured || !rows) return json(res, 503, { error:'Pump.fun discovery is temporarily unavailable.', provider:'pump.fun', items:[] });
+        const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
+        return json(res, 200, { provider: 'birdeye-pump', chain: 'solana', fetchedAt: new Date().toISOString(), items: rows.flatMap(row => {
+          const mint = String(row?.address || '').trim(); if (!mint) return [];
+          const ext = row.extensions || {};
+          return [{ mint, name: String(row.name || 'Unnamed token').slice(0, 80), symbol: String(row.symbol || 'TOKEN').slice(0, 20), imageUri: row.logo_uri || null,
+            marketCapUsd: number(row.market_cap), twitter: ext.twitter || null, website: ext.website || null, telegram: ext.telegram || null, discord: ext.discord || null,
+            description: typeof ext.description === 'string' ? ext.description.slice(0, 500) : null, lastTradeTimestamp: number(row.last_trade_unix_time) }];
+        }) });
+      }
       return json(res, 200, { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) });
     }
     return false;
