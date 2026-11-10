@@ -24,7 +24,12 @@
 #payment-list .payment-history-actions .payment-amount small{font-size:12px!important}
 .guidance-outline{margin:12px 0;padding-left:20px;line-height:1.65}
 .guidance-outline>li+li{margin-top:6px}
-.guidance-points{line-height:1.8}
+.guidance-points{line-height:1.6}
+/* Auto-outlined prose (src/features/help/plain-copy.js): one sentence per hanging bullet. */
+.guidance-points>.guidance-point{position:relative;display:block;padding-left:1.15em;max-width:78ch}
+.guidance-points>.guidance-point+.guidance-point{margin-top:.35em}
+.guidance-points>.guidance-point::before{content:"";position:absolute;left:.2em;top:.68em;width:.36em;height:.36em;border-radius:50%;background:var(--fv-accent,#f4a340);opacity:.85}
+small.guidance-points,.source-note>span.guidance-points{display:block}
 @media(max-width:1000px){#rewards-history .payment-history-filters{grid-template-columns:1fr 1fr}#rewards-history .payment-history-search,#rewards-history .payment-history-filters label:has(select){grid-column:1/-1}#rewards-history #payment-history-clear{width:auto;justify-self:start}}
 @media(max-width:700px){
  #rewards-history .payment-history-heading{gap:8px;align-items:center}
