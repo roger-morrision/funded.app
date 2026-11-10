@@ -7,7 +7,7 @@ import { createExploreAccountSnapshot } from '../explore-account-snapshot.mjs';
 
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createDiscoveryRoutes({
-  store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey,
+  store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, tokenCache = null, freeMarketData = null,
   Connection = SolanaConnection, verifyPumpLaunch = verifyLaunch, respond,
   warmMarketActivity = () => 0,
   readAccountSnapshot = null,
@@ -31,7 +31,19 @@ export function createDiscoveryRoutes({
   const birdeyeRetry = (path, params) => fetchBirdeye(path, params)
     .catch(() => new Promise(done => setTimeout(done, 1300)).then(() => fetchBirdeye(path, params))).catch(() => null);
   async function readTokenMarkets(mints) {
-    const now = Date.now(), missing = mints.filter(mint => !(tokenMarketCache.get(mint)?.expiresAt > now));
+    const now = Date.now();
+    let missing = mints.filter(mint => !(tokenMarketCache.get(mint)?.expiresAt > now));
+    if (missing.length && freeMarketData) {
+      // Free first: Jupiter prices and DexScreener logos/names.
+      const [prices, dex] = await Promise.all([freeMarketData.jupPrices(missing).catch(() => new Map()), freeMarketData.dexTokens(missing).catch(() => new Map())]);
+      for (const mint of missing) {
+        const price = prices.get(mint)?.priceUsd ?? dex.get(mint)?.priceUsd ?? null, d = dex.get(mint);
+        if (price != null && d?.imageUri) tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { mint, priceUsd: price, logoUri: d.imageUri, name: d.name || null, symbol: d.symbol || null } });
+        else if (price != null || d) tokenMarketCache.set(mint, { expiresAt: now + 60_000, partial: true, row: { mint, priceUsd: price, logoUri: d?.imageUri || null, name: d?.name || null, symbol: d?.symbol || null } });
+      }
+      void tokenCache?.upsert([...dex.values()]);
+      missing = missing.filter(mint => !tokenMarketCache.get(mint) || tokenMarketCache.get(mint).partial);
+    }
     if (missing.length) {
       const list = missing.join(',');
       const prices = await birdeyeRetry('/defi/multi_price', { list_address: list });
@@ -39,13 +51,39 @@ export function createDiscoveryRoutes({
       for (const mint of missing) {
         const price = Number(prices?.data?.[mint]?.value), info = meta?.data?.[mint];
         const logo = typeof info?.logo_uri === 'string' && /^https:\/\//.test(info.logo_uri) ? info.logo_uri : null;
+        const prior = tokenMarketCache.get(mint)?.row;
         if (prices?.data || meta?.data) tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { mint,
-          priceUsd: Number.isFinite(price) && price > 0 ? price : null, logoUri: logo,
+          priceUsd: Number.isFinite(price) && price > 0 ? price : prior?.priceUsd ?? null, logoUri: logo || prior?.logoUri || null,
           name: typeof info?.name === 'string' ? info.name.slice(0, 80) : null, symbol: typeof info?.symbol === 'string' ? info.symbol.slice(0, 20) : null } });
       }
       if (tokenMarketCache.size > 5000) for (const [key, value] of tokenMarketCache) if (value.expiresAt <= now) tokenMarketCache.delete(key);
     }
     return mints.flatMap(mint => tokenMarketCache.get(mint)?.row ? [tokenMarketCache.get(mint).row] : []);
+  }
+  const feedCache = new Map(), feedRefresh = new Map();
+  async function fetchMainnetFeed(sort, offset, limit) {
+    try {
+      const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
+      return { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) };
+    } catch {
+      // Pump.fun's API refuses server reads behind its bot challenge. Birdeye's
+      // launchpad-filtered meme list still returns Pump.fun mints.
+      const memeSort = sort === 'created_timestamp' ? 'creation_time' : sort === 'market_cap' ? 'market_cap' : 'volume_24h_usd';
+      const memeParams = { sort_by: memeSort, sort_type: 'desc', offset: String(offset), limit: String(Math.min(limit, 100)), source: 'pump_dot_fun' };
+      const meme = await fetchBirdeye('/defi/v3/token/meme/list', memeParams).catch(() => null);
+      const rows = Array.isArray(meme?.data?.items) ? meme.data.items : null;
+      if (!meme?.configured || !rows) return null;
+      const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
+      return { provider: 'birdeye-pump', chain: 'solana', fetchedAt: new Date().toISOString(), items: rows.flatMap(row => {
+        const mint = String(row?.address || '').trim(); if (!mint) return [];
+        const ext = row.extensions || {};
+        return [{ mint, name: String(row.name || 'Unnamed token').slice(0, 80), symbol: String(row.symbol || 'TOKEN').slice(0, 20), imageUri: row.logo_uri || null,
+          decimals: Number.isInteger(row.decimals) ? row.decimals : null, marketCapUsd: number(row.market_cap), liquidityUsd: number(row.liquidity),
+          volume24hUsd: number(row.volume_24h_usd), priceUsd: number(row.price), priceChange24hPercent: number(row.price_change_24h_percent),
+          holders: number(row.holder), twitter: ext.twitter || null, website: ext.website || null, telegram: ext.telegram || null, discord: ext.discord || null,
+          description: typeof ext.description === 'string' ? ext.description.slice(0, 500) : null, lastTradeTimestamp: number(row.last_trade_unix_time) }];
+      }) };
+    }
   }
   return async function handleDiscoveryRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/tokens/market') {
@@ -104,28 +142,27 @@ export function createDiscoveryRoutes({
         try { warmMarketActivity(page.map(item => item.mint).filter(mint => !activity[mint])); } catch {}
         return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, total:uniqueItems.length, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
       }
-      let items;
-      try { items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' }); }
-      catch {
-        // Pump.fun's API refuses server reads behind its bot challenge. Birdeye's
-        // launchpad-filtered meme list still returns Pump.fun mints.
-        const memeSort = sort === 'created_timestamp' ? 'creation_time' : sort === 'market_cap' ? 'market_cap' : 'volume_24h_usd';
-        const memeParams = { sort_by: memeSort, sort_type: 'desc', offset: String(offset), limit: String(Math.min(limit, 100)), source: 'pump_dot_fun' };
-        // Birdeye calls are spaced ~1.1s apart; the parallel market read may hold the slot.
-        const meme = await fetchBirdeye('/defi/v3/token/meme/list', memeParams)
-          .catch(() => new Promise(done => setTimeout(done, 1300)).then(() => fetchBirdeye('/defi/v3/token/meme/list', memeParams))).catch(() => null);
-        const rows = Array.isArray(meme?.data?.items) ? meme.data.items : null;
-        if (!meme?.configured || !rows) return json(res, 503, { error:'Pump.fun discovery is temporarily unavailable.', provider:'pump.fun', items:[] });
-        const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
-        return json(res, 200, { provider: 'birdeye-pump', chain: 'solana', fetchedAt: new Date().toISOString(), items: rows.flatMap(row => {
-          const mint = String(row?.address || '').trim(); if (!mint) return [];
-          const ext = row.extensions || {};
-          return [{ mint, name: String(row.name || 'Unnamed token').slice(0, 80), symbol: String(row.symbol || 'TOKEN').slice(0, 20), imageUri: row.logo_uri || null,
-            marketCapUsd: number(row.market_cap), twitter: ext.twitter || null, website: ext.website || null, telegram: ext.telegram || null, discord: ext.discord || null,
-            description: typeof ext.description === 'string' ? ext.description.slice(0, 500) : null, lastTradeTimestamp: number(row.last_trade_unix_time) }];
-        }) });
+      // Mainnet feed: answer from the in-memory/DB token cache at once and refresh
+      // upstream in the background (stale-while-revalidate) for fast page loads.
+      const key = `${sort}:${offset}:${limit}`, cached = feedCache.get(key);
+      const refresh = () => {
+        if (feedRefresh.has(key)) return feedRefresh.get(key);
+        const job = fetchMainnetFeed(sort, offset, limit).then(result => {
+          if (result?.items?.length) { feedCache.set(key, { at: Date.now(), result }); void tokenCache?.upsert(result.items.map(item => ({ ...item, mint: item.mint }))); }
+          return result;
+        }).finally(() => feedRefresh.delete(key));
+        feedRefresh.set(key, job); return job;
+      };
+      if (cached && Date.now() - cached.at < 45_000) return json(res, 200, { ...cached.result, cache: 'fresh' });
+      if (cached) { void refresh().catch(() => {}); return json(res, 200, { ...cached.result, cache: 'stale' }); }
+      const stored = tokenCache ? await tokenCache.list({ sort: sort === 'created_timestamp' ? 'newest' : sort === 'market_cap' ? 'market_cap' : 'volume', limit, offset }).catch(() => []) : [];
+      if (stored.length >= Math.min(limit, 10)) {
+        void refresh().catch(() => {});
+        return json(res, 200, { provider: 'token-cache', chain: 'solana', fetchedAt: new Date().toISOString(), cache: 'database', items: stored });
       }
-      return json(res, 200, { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) });
+      const result = await refresh().catch(() => null);
+      if (!result?.items?.length) return json(res, 503, { error:'Pump.fun discovery is temporarily unavailable.', provider:'pump.fun', items:[] });
+      return json(res, 200, result);
     }
     return false;
   };

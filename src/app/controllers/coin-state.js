@@ -87,7 +87,7 @@ export function createCoinStateController(appState) {
     }
     if (loadId !== appState.coinLoadId) return;
     const market = response.available && response.data?.cluster === appState.EXPLORE_CLUSTER && (!response.data.mint || response.data.mint===mintAddress) ? response.data : null;
-    if (market?.source === 'birdeye') {
+    if (['birdeye','dexscreener'].includes(market?.source)) {
       appState.coinMarketActivity = {status:'summary-only',trades:[],coverage:'indexed',decimals};
       appState.renderCoinSummary(); appState.renderCoinPricePath(); appState.renderCoinFlow(NaN,NaN); appState.renderCoinPulse();
       appState.setCoinTabLabels(); appState.renderCoinActivityTab();

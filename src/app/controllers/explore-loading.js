@@ -39,7 +39,7 @@ export function createExploreLoadingController(appState) {
         Promise.resolve({ available: false, data: null }),
         (top100 ? loadTop100Feed(appState.apiRequest, {signal}) : appState.apiRequest(`/api/pump/explore?limit=40&sort=${encodeURIComponent(pumpSort)}`, { signal })).catch(() => ({ available: false, data: null })),
       ];
-      if (appState.EXPLORE_CLUSTER !== 'devnet') feeds[0] = appState.apiRequest(`/api/birdeye/explore?limit=40&sort_by=${encodeURIComponent(birdeyeSort)}`, { signal }).catch(() => ({ available: false, data: null }));
+      // Mainnet: the cached server feed already carries market fields; no paid list call.
       let [birdeyeFeed, pumpFeed] = await Promise.all(feeds);
       // Pump.fun's public API can refuse server reads; Mainnet then lists Birdeye tokens.
       if (appState.EXPLORE_CLUSTER !== 'devnet' && !top100 && !pumpFeed.available && birdeyeFeed.available && Array.isArray(birdeyeFeed.data?.items))
@@ -59,12 +59,12 @@ export function createExploreLoadingController(appState) {
         return {
           ...pump,
           address: pump.mint,
-          priceUsd: market?.priceUsd ?? null,
-          priceChange24hPercent: market?.priceChange24hPercent ?? null,
+          priceUsd: market?.priceUsd ?? pump.priceUsd ?? null,
+          priceChange24hPercent: market?.priceChange24hPercent ?? pump.priceChange24hPercent ?? null,
           marketCapUsd: market?.marketCapUsd ?? pump.marketCapUsd,
-          liquidityUsd: market?.liquidityUsd ?? null,
-          volume24hUsd: market?.volume24hUsd ?? null,
-          holders: market?.holders ?? null,
+          liquidityUsd: market?.liquidityUsd ?? pump.liquidityUsd ?? null,
+          volume24hUsd: market?.volume24hUsd ?? pump.volume24hUsd ?? null,
+          holders: market?.holders ?? pump.holders ?? null,
           lastTradeUnixTime: market?.lastTradeUnixTime ?? pump.lastTradeTimestamp ?? null,
           source: appState.verifiedPaidListingPayment(pump) ? 'Paid listing · mint verified' : market ? (pump.feedSource === 'Birdeye' ? 'Birdeye' : 'Pump.fun + Birdeye') : appState.EXPLORE_CLUSTER === 'devnet' ? 'Verified Solana registry' : 'Pump.fun',
           fetchedAt: market ? birdeyeFeed.data?.fetchedAt : pumpFeed.data?.fetchedAt,
@@ -73,7 +73,20 @@ export function createExploreLoadingController(appState) {
       const verified = [];
       let exploreVerificationFailed = false;
       let exploreRateLimited = false;
-      if (records.length) {
+      if (records.length && appState.EXPLORE_CLUSTER !== 'devnet') {
+        // Mainnet: indexed feed data renders immediately; trades re-check the chain at quote time.
+        const numeric = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+        for (const record of records) {
+          const marketCap = numeric(record.marketCapUsd), change = numeric(record.priceChange24hPercent);
+          verified.push({ imageUri:record.imageUri || null, mint:record.address, address:record.address, symbol:record.symbol || 'TOKEN', name:record.name || 'Unnamed token',
+            value: marketCap != null ? `MC · ${appState.formatUsd(marketCap)}` : 'MC unavailable', change: change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—',
+            meta: marketCap != null ? `MC ${appState.formatCompactUsd(marketCap)} · ${record.source || 'Indexed'}` : (record.source || 'Indexed'), icon:String(record.symbol || 'T').slice(0, 1),
+            source:record.source || 'Indexed', creator:record.creator || null, website:record.website || null, twitter:record.twitter || record.x || null, telegram:record.telegram || null, discord:record.discord || null,
+            complete:null, migrated:null, fetchedAt:record.fetchedAt || null, verifiedAt:new Date().toISOString(), mintDecimals:Number.isInteger(record.decimals) ? record.decimals : null,
+            volume24hUsd:numeric(record.volume24hUsd), liquidityUsd:numeric(record.liquidityUsd), holders:numeric(record.holders), marketCapUsd:marketCap, priceUsd:numeric(record.priceUsd),
+            priceChange24hPercent:change, createdTimestamp:record.createdTimestamp || null, lastTradeUnixTime:record.lastTradeUnixTime || record.lastTradeTimestamp || null });
+        }
+      } else if (records.length) {
         try {
           const { PublicKey, getAssociatedTokenAddressSync, unpackAccount, unpackMint, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
           const { OnlinePumpSdk, PUMP_PROGRAM_ID, PUMP_SDK, bondingCurvePda } = await import('@pump-fun/pump-sdk');
@@ -207,7 +220,7 @@ export function createExploreLoadingController(appState) {
       if (!exploreVerificationFailed && pumpFeed.available && records.length) appState.exploreLastVerifiedAt = appState.exploreUpdatedAt;
       appState.exploreProviderStatus = appState.EXPLORE_CLUSTER === 'devnet' && appState.assets.length && verified.length < appState.assets.length
         ? `Verified launch registry · ${verified.length ? `${verified.length}/${appState.assets.length} live mint checks` : 'live mint checks unavailable'}`
-        : exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches' : !verified.length ? 'Indexed launches · none passed RPC verification' : appState.EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : !birdeyeFeed.available ? `Pump.fun · Birdeye unavailable · RPC verified` : 'Pump.fun + Birdeye · RPC verified';
+        : exploreVerificationFailed ? `Solana RPC ${exploreRateLimited ? 'rate limited · retry shortly' : 'unavailable'}` : !pumpFeed.available ? 'Launch feed unavailable' : !records.length ? 'No indexed launches' : !verified.length ? 'Indexed launches · none passed RPC verification' : appState.EXPLORE_CLUSTER === 'devnet' ? `Solana registry · RPC verified${marketScanRateLimited ? ' · trade history rate limited' : ''}` : 'Pump.fun tokens · indexed market data';
       const feedStatus = document.querySelector('#explore-data-status');
       appState.renderExploreAssets();
       appState.renderHomeLaunchBoard();

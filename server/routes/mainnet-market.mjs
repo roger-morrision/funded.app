@@ -1,0 +1,102 @@
+import { Connection, PublicKey, AddressLookupTableAccount } from '@solana/web3.js';
+import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
+
+// Mainnet external-token data: free sources first (DexScreener, Jupiter,
+// GeckoTerminal), paid Birdeye only as fallback. Results are written to the
+// discovered-token cache so later page loads render from the database.
+export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, tokenCache, fetchBirdeye, readMarketFallback, store, clientKey, body, respond }) {
+  const json = (...args) => { respond(...args); return true; };
+  const altCache = new Map();
+  let rpc;
+  const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
+  const validMint = value => { try { return new PublicKey(String(value || '')).toBase58() === value; } catch { return false; } };
+
+  async function overview(mint) {
+    const [dex, jup, cached] = await Promise.all([free.dexTokens([mint]).then(m => m.get(mint)).catch(() => null),
+      free.jupPrices([mint]).then(m => m.get(mint)).catch(() => null), tokenCache.read([mint]).then(m => m.get(mint)).catch(() => null)]);
+    let row = dex ? { ...dex } : null;
+    if (row && jup) row = { ...row, priceUsd: row.priceUsd ?? jup.priceUsd, decimals: jup.decimals, launchpad: jup.launchpad };
+    let source = row ? 'dexscreener' : null;
+    if (!row) {
+      const birdeye = await readMarketFallback(mint).catch(() => null);
+      if (birdeye) { row = { ...birdeye, decimals: jup?.decimals ?? null, launchpad: jup?.launchpad ?? null }; source = 'birdeye'; }
+      else if (jup) { row = { mint, priceUsd: jup.priceUsd, decimals: jup.decimals, liquidityUsd: jup.liquidityUsd, launchpad: jup.launchpad }; source = 'jupiter'; }
+    }
+    if (!row) return cached ? { ...cached, source: 'cache', stale: true } : null;
+    const merged = { ...(cached || {}), ...Object.fromEntries(Object.entries(row).filter(([, v]) => v != null)), mint, source, observedAt: new Date().toISOString() };
+    void tokenCache.upsert([merged]);
+    return merged;
+  }
+
+  return async function handleMainnetMarketRoutes(req, res, url) {
+    if (solanaCluster !== 'mainnet-beta') return false;
+    const overviewMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/overview$/.exec(url.pathname);
+    if (overviewMatch) {
+      const mint = decodeURIComponent(overviewMatch[1]);
+      if (!validMint(mint)) return json(res, 400, { error: 'A valid Solana mint is required.' });
+      const data = await overview(mint);
+      return data ? json(res, 200, { cluster: solanaCluster, ...data }) : json(res, 404, { error: 'No market data was found for this token.' });
+    }
+    const ohlcvMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/ohlcv$/.exec(url.pathname);
+    if (ohlcvMatch) {
+      const mint = decodeURIComponent(ohlcvMatch[1]), frame = Object.hasOwn(free.GECKO_FRAMES, url.searchParams.get('frame')) ? url.searchParams.get('frame') : '15m';
+      if (!validMint(mint)) return json(res, 400, { error: 'A valid Solana mint is required.' });
+      let pool = (await tokenCache.read([mint])).get(mint)?.pairAddress;
+      if (!pool) pool = (await free.dexTokens([mint]).catch(() => new Map())).get(mint)?.pairAddress;
+      let candles = pool ? await free.geckoOhlcv(pool, frame).catch(() => null) : null, source = 'geckoterminal';
+      if (!candles?.length) {
+        const seconds = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '4h': 14400, '1d': 86400 }[frame], to = Math.floor(Date.now() / 1000);
+        const type = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1H', '4h': '4H', '1d': '1D' }[frame];
+        const result = await fetchBirdeye('/defi/ohlcv', { address: mint, type, time_from: String(to - seconds * 300), time_to: String(to) }).catch(() => null);
+        candles = Array.isArray(result?.data?.items) ? result.data.items.map(row => ({ time: row.unixTime, open: row.o, high: row.h, low: row.l, close: row.c, volume: row.v }))
+          .filter(row => [row.time, row.open, row.high, row.low, row.close].every(Number.isFinite)) : [];
+        source = 'birdeye';
+      }
+      return json(res, 200, { cluster: solanaCluster, mint, frame, source, pool: pool || null, candles });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/trade/jupiter/build') {
+      const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
+      if (!await store.chargeRpcRate(`jupiter:${clientKey(req)}`, 1, 30, windowStart)) return json(res, 429, { error: 'Too many quotes; wait a moment.' });
+      const input = await body(req);
+      const side = input.side, mint = String(input.mint || ''), user = String(input.user || '');
+      const slippageBps = Number(input.slippageBps);
+      if (!['buy', 'sell'].includes(side) || !validMint(mint) || !validMint(user) || mint === WSOL) return json(res, 400, { error: 'A valid side, token and wallet are required.' });
+      if (!Number.isInteger(slippageBps) || slippageBps < 10 || slippageBps > 1000) return json(res, 400, { error: 'Slippage must be between 0.1% and 10%.' });
+      const amountText = String(input.amount || '');
+      if (!/^\d+(\.\d+)?$/.test(amountText) || Number(amountText) <= 0) return json(res, 400, { error: 'Enter a positive amount.' });
+      let decimals = (await free.jupPrices([mint]).catch(() => new Map())).get(mint)?.decimals;
+      if (!Number.isInteger(decimals)) {
+        const info = await connection().getParsedAccountInfo(new PublicKey(mint), 'confirmed').catch(() => null);
+        decimals = info?.value?.data?.parsed?.info?.decimals;
+      }
+      if (!Number.isInteger(decimals)) return json(res, 503, { error: 'Token decimals are unavailable. Try again shortly.' });
+      const inputDecimals = side === 'buy' ? 9 : decimals;
+      const [whole, fraction = ''] = amountText.split('.');
+      if (fraction.length > inputDecimals) return json(res, 400, { error: `Use at most ${inputDecimals} decimal places.` });
+      const amount = BigInt(whole) * 10n ** BigInt(inputDecimals) + BigInt((fraction + '0'.repeat(inputDecimals)).slice(0, inputDecimals) || '0');
+      try {
+        const quote = await free.jupQuote({ inputMint: side === 'buy' ? WSOL : mint, outputMint: side === 'buy' ? mint : WSOL, amount, slippageBps });
+        if (!quote?.outAmount || quote.error) return json(res, 404, { error: 'No swap route was found for this token and amount.' });
+        const instructions = await free.jupSwapInstructions({ quoteResponse: quote, userPublicKey: user });
+        if (instructions?.error) return json(res, 502, { error: 'The swap route could not be prepared.' });
+        const keys = (instructions.addressLookupTableAddresses || []).filter(validMint).slice(0, 8);
+        const missing = keys.filter(key => !(altCache.get(key)?.expiresAt > Date.now()));
+        if (missing.length) {
+          const infos = await connection().getMultipleAccountsInfo(missing.map(key => new PublicKey(key)), 'confirmed');
+          infos.forEach((info, index) => { if (info) altCache.set(missing[index], { expiresAt: Date.now() + 600_000,
+            addresses: AddressLookupTableAccount.deserialize(info.data).addresses.map(key => key.toBase58()) }); });
+        }
+        if (keys.some(key => !altCache.get(key))) return json(res, 503, { error: 'Swap lookup tables are unavailable. Try again.' });
+        const latest = await connection().getLatestBlockhash('confirmed');
+        return json(res, 200, { cluster: solanaCluster, side, mint, user, decimals, amount: amount.toString(), slippageBps,
+          quote: { inAmount: quote.inAmount, outAmount: quote.outAmount, otherAmountThreshold: quote.otherAmountThreshold, priceImpactPct: quote.priceImpactPct,
+            routes: (quote.routePlan || []).map(step => step?.swapInfo?.label).filter(Boolean).slice(0, 6) },
+          instructions: { computeBudgetInstructions: instructions.computeBudgetInstructions || [], setupInstructions: instructions.setupInstructions || [],
+            swapInstruction: instructions.swapInstruction, cleanupInstruction: instructions.cleanupInstruction || null, otherInstructions: instructions.otherInstructions || [] },
+          lookupTables: keys.map(key => ({ key, addresses: altCache.get(key).addresses })), blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight });
+      } catch { return json(res, 503, { error: 'Swap routing is temporarily unavailable. Try again shortly.' }); }
+    }
+    return false;
+  };
+}
+export { dexMarketActivity };

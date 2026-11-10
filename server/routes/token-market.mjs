@@ -174,14 +174,14 @@ export function createTokenMarketRoutes({
       try { mint = new PublicKey(decodeURIComponent(tokenMarketMint)); }
       catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
       const address = mint.toBase58();
-      const hasTradeBreakdown = data => data?.cluster===solanaCluster && (data.source==='birdeye' || (Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
+      const hasTradeBreakdown = data => data?.cluster===solanaCluster && (['birdeye','dexscreener'].includes(data.source) || (Object.hasOwn(data, 'poolHistoryCoverage') && Object.hasOwn(data, 'observedCoverage') && (data.tradeCount24h == null || (data.activityWindows?.['1h']
         && data.activityWindows?.['6h'] && data.activityWindows?.['24h']
         && Number.isInteger(data.buyCount24h) && Number.isInteger(data.sellCount24h)))));
       // A scan costs up to ~50 RPC reads. Results under a minute old are
       // current; results up to five minutes old (the client's activity window)
       // are served at once while a background scan replaces them.
       const fresh = entry => entry && Date.now() - entry.at < (entry.data.coverage==='unavailable'?5_000:60_000) && hasTradeBreakdown(entry.data);
-      const usable = entry => entry && entry.data.source!=='birdeye' && entry.data.coverage!=='unavailable' && Date.now() - entry.at < 5 * 60_000 && hasTradeBreakdown(entry.data);
+      const usable = entry => entry && !['birdeye','dexscreener'].includes(entry.data.source) && entry.data.coverage!=='unavailable' && Date.now() - entry.at < 5 * 60_000 && hasTradeBreakdown(entry.data);
       let cached = coinMarketCache.get(address);
       if (fresh(cached)) return json(res, 200, cached.data);
       if (!usable(cached)) {
@@ -226,15 +226,19 @@ export function createTokenMarketRoutes({
                 fetch:(input,init)=>fetch(input,{...init,signal})});
               let metrics;
               try {
+                // Mainnet uses indexed providers (free DexScreener, then Birdeye), never ~50 RPC reads.
+                if (solanaCluster === 'mainnet-beta') { metrics = await readMarketFallback(address); if (!metrics) throw Error('Indexed market data unavailable'); }
+                else {
                 await assertRpcNetwork(connection,solanaCluster);
                 metrics = await readMarketActivity({ connection, mint,
                   ...(address===env.FUNDED_TOKEN_MINT&&env.FUNDED_SWAP_POOL?{poolAddress:env.FUNDED_SWAP_POOL}:{}) });
                 if (metrics.coverage === 'unavailable') metrics = await readMarketFallback(address) || metrics;
+                }
               } catch (error) {
                 metrics = await readMarketFallback(address);
                 if (!metrics) throw error;
               }
-              if (metrics.source === 'birdeye') {
+              if (['birdeye','dexscreener'].includes(metrics.source)) {
                 // Keep indexed summaries out of confirmed-event storage and ranking snapshots.
                 if (coinMarketCache.size >= 500) coinMarketCache.delete(coinMarketCache.keys().next().value);
                 coinMarketCache.set(address,{at:Date.now(),data:metrics});
