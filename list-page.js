@@ -380,7 +380,14 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   byId('list-review-confirm').addEventListener('click', submitPayment);
   byId('list-retry').addEventListener('click', () => void claimPending());
   window.addEventListener('funded:reward-identity-change', draw);
-  window.addEventListener('funded:route-change', event => { if (event.detail?.route === 'list') { void refreshConfig(); void refreshListings(); } });
+  // "List this token" on an external token page hands its mint over here.
+  const takeHandoffMint = () => {
+    let mint = null;
+    try { mint = sessionStorage.getItem('richpad.list.mint'); sessionStorage.removeItem('richpad.list.mint'); } catch { /* optional */ }
+    if (mint && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) && mintInput.value.trim() !== mint) { mintInput.value = mint; mintInput.dispatchEvent(new Event('input', { bubbles: true })); }
+  };
+  takeHandoffMint();
+  window.addEventListener('funded:route-change', event => { if (event.detail?.route === 'list') { takeHandoffMint(); void refreshConfig(); void refreshListings(); } });
   const pending = readPending();
   if (pending) { mintInput.value = pending.mint; nameInput.value = pending.name; symbolInput.value = pending.symbol; }
   queueLookup();

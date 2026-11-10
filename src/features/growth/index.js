@@ -1,6 +1,7 @@
 // Growth features: each mount returns true once its host exists. Pages render at
 // different times, so unfinished mounts retry on DOM changes for up to 30 seconds.
 import {mountProjectUpdates} from '../coin/project-updates.js';
+import { mountExternalTokenMode } from '../coin/external-token.js';
 import { mountEarningsHub } from './earnings-hub.js';
 import { mountLaunchAssist } from './launch-assist.js';
 import { mountReferralKit, mountInvitedBanner } from './referral-kit.js';
@@ -14,6 +15,7 @@ export function mountGrowthFeatures(app, document = globalThis.document) {
   mountInvitedBanner(document);
   const pending = new Map([
     ['project-updates', () => mountProjectUpdates(app, document)],
+    ['external-token', () => mountExternalTokenMode(app, document)],
     ['earnings', () => mountEarningsHub(app, document)],
     ['launch', () => mountLaunchAssist(document)],
     ['referral', () => mountReferralKit(document)],

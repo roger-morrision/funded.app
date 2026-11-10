@@ -7,6 +7,7 @@ import { normalizeLargestTokenAccounts, attachVerifiedTokenAccountWallets, norma
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { readPumpMarketActivity } from '../coin-market.mjs';
 import { readWalletTradeHistory } from '../wallet-trades.mjs';
+import { createExternalTokenMarketReader } from '../external-token-market.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -18,6 +19,7 @@ export function createTokenMarketRoutes({
   readMarketFallback = async () => null,
   makeMarketConnection = null,
   makeTokenConnection = endpoint => new Connection(endpoint, 'confirmed'),
+  readExternalMarket = createExternalTokenMarketReader({ solanaCluster }),
 }) {
   requireSolanaCluster(solanaCluster);
   const readRankingSolUsd = createSolUsdQuoteReader();
@@ -82,6 +84,16 @@ export function createTokenMarketRoutes({
       }
       try {const result=await pending;return json(res,result.status,result.data);}
       catch {return json(res,502,{error:'Finalized wallet trade history is unavailable.'});}
+    }
+    const externalMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/external-market$/) : null;
+    if (externalMint) {
+      let address;
+      try { address = new PublicKey(decodeURIComponent(externalMint)).toBase58(); }
+      catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
+      const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
+      if (!await store.chargeRpcRate(`external-market:${clientKey(req)}`, 2, 30, windowStart)) return json(res, 429, { error: 'Market refresh limit reached; retry shortly.' });
+      try { return json(res, 200, await readExternalMarket(address)); }
+      catch { return json(res, 502, { error: 'DEX market data is unavailable right now.' }); }
     }
     const tokenAccountsMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/token-accounts$/) : null;
     if (tokenAccountsMint) {

@@ -168,3 +168,17 @@ html body #main-content .example-toggle[data-active="true"] { border-color: var(
 /* Home shows only whitelisted sections; allow the guide and the rank card there. */
 html body.page-route-overview #main-content > #first-visit-guide:not([hidden]),
 html body.page-route-overview #main-content > .bonus-rank-card:not([hidden]) { display: block !important; }
+
+/* External tokens (launched outside Richpad): hide curve-only facts, show DEX data. */
+body.coin-external :is(.coin-curve-track, .coin-curve-rail, .coin-header-curve, #coin-boost, #coin-fee-route, .coin-policy-card) { display: none !important; }
+body.coin-external #trade-panel > :not(#coin-external-trade, .mobile-trade-close) { display: none !important; }
+.coin-external-panel { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--fv-border); border-radius: 12px; background: var(--fv-surface); margin-bottom: 16px; }
+.coin-external-panel[hidden], .coin-external-trade[hidden] { display: none !important; }
+.coin-external-panel h2 { margin: 2px 0 0; font-size: 1.1rem; }
+.coin-external-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.coin-external-facts > div { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--fv-border); border-radius: 10px; background: var(--fv-surface-raised); }
+.coin-external-facts span { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--fv-text-subtle); }
+.coin-external-facts strong { font-family: var(--fv-font-data); color: var(--fv-text); }
+.coin-external-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.coin-external-trade { display: grid; gap: 10px; padding: 14px; }
+.coin-external-trade p { margin: 0; color: var(--fv-text-muted); }
