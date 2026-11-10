@@ -43,7 +43,7 @@ export function mountLockedTokens(app,{document=globalThis.document,window=globa
       badge.dataset.state=live?.verified?lock.status:'unavailable';state.append(badge,text('small',live?.verified?'Escrow verified':'Live verification unavailable'));
       const release=document.createElement('td'),time=text('time',info.release);if(info.deadline)time.dateTime=info.deadline.toISOString();release.append(time);
       const remaining=text('td',info.remaining);remaining.title=info.timing;
-      const action=document.createElement('td'),open=text('a','View token →');
+      const action=document.createElement('td'),open=text('a','View →');open.setAttribute('aria-label','View token');
       open.href=link.href;open.className='portfolio-lock-action';action.append(open);
       row.append(token,amount,state,release,remaining,action);body.append(row);
     }
