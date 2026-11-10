@@ -43,7 +43,7 @@
     "qrcode-generator": "^1.4.4",
     "redis": "6.3.1",
     "tweetnacl": "^1.0.3",
-    "ws": "8.21.3"
+    "ws": "8.22.1"
   },
   "devDependencies": {
     "vite": "^8.3.5"
