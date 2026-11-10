@@ -4,6 +4,7 @@ import bs58 from 'bs58';
 import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { createBurnCheckedInstruction, getAccount, getMint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-token';
 import { apiRequest } from './client.js';
+import { loadTokenMetadata, tokenLogo, metadataLinks } from './src/features/coin/token-metadata-client.js';
 import { waitForSignatureConfirmation } from './funded-burn.js';
 import { LISTING_PRICE_USD, LISTING_DEVNET_GENESIS_HASH, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent, setListingPriceUsd } from './listing-policy.js';
 import { canSignTransactions } from './wallet-core.js';
@@ -112,12 +113,24 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (verified) {
         title.textContent = lookup.name;
         note.textContent = `${lookup.symbol} · ${lookup.included ? 'Saved Richpad launch · listing included' : lookup.metadataStatus==='missing'?'Mint verified · name metadata unavailable':'Verified on-chain metadata'}`;
+        const logo = tokenLogo(document, lookup.details?.image, `${lookup.name} logo`, 'list-token-logo');
+        const extra = [];
+        if (lookup.details?.description) { const about = document.createElement('p'); about.className = 'list-token-description'; about.textContent = lookup.details.description; extra.push(about); }
+        const links = metadataLinks(lookup.details);
+        if (links.length) {
+          const nav = document.createElement('nav'); nav.className = 'list-token-links'; nav.setAttribute('aria-label', 'Token links');
+          for (const [label, href] of links) { const a = document.createElement('a'); a.href = href; a.textContent = label; a.target = '_blank'; a.rel = 'noopener noreferrer nofollow'; nav.append(a); }
+          extra.push(nav);
+        }
+        const head = document.createElement('div'); head.className = 'list-token-head';
+        const identity = document.createElement('div'); identity.append(title, note);
+        head.append(...(logo ? [logo] : []), identity);
         if (existing) {
           const link = document.createElement('a');
           link.href = `/token/${encodeURIComponent(mint)}`;
           link.textContent = 'Already listed ↗';
-          preview.append(title, note, link);
-        } else preview.append(title, note);
+          preview.append(head, ...extra, link);
+        } else preview.append(head, ...extra);
         if(Number.isInteger(lookup.decimals)){
           const wrap=document.createElement('div');wrap.className='data-table-scroll';wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label','Verified token metadata');
           const table=document.createElement('table');table.className='record-table listing-metadata-table';
@@ -187,6 +200,12 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         nameInput.value = lookup.name;
         symbolInput.value = lookup.symbol;
         setStatus(lookup.metadataStatus==='missing'?'Mint verified on Solana. Name metadata is unavailable; this token will be listed by its mint address.':'Token metadata verified on Solana. Review remains gated by listing availability and wallet checks.');
+        // Logo, description and links from the metadata URI arrive separately.
+        void loadTokenMetadata(apiRequest, mint).then(details => {
+          if (!details || sequence !== lookupSequence || lookup?.mint !== mint) return;
+          lookup = { ...lookup, details };
+          draw();
+        });
       } catch (error) {
         if (sequence !== lookupSequence || mint !== mintValue()) return;
         lookup = { mint, status:'error', message:error instanceof TypeError ? 'Solana metadata service unavailable.' : error.message || 'The Solana metadata service did not respond.' };

@@ -10,13 +10,15 @@ export function tokenMetadataAddress(mint) {
   ], TOKEN_METADATA_PROGRAM_ID)[0];
 }
 
-function metadataString(data, offset, maxBytes, label) {
+function metadataString(data, offset, maxBytes, label, { allowEmpty = false } = {}) {
   if (offset + 4 > data.length) throw new Error(`The token metadata ${label} is truncated.`);
   const length = data.readUInt32LE(offset);
   const start = offset + 4;
   const end = start + length;
   if (length === 0 || length > maxBytes || end > data.length) throw new Error(`The token metadata ${label} is invalid.`);
   const value = data.subarray(start, end).toString('utf8').replace(/\0+$/g, '').trim();
+  // Metaplex pads fields with zero bytes; an all-padding URI means no URI.
+  if (!value && allowEmpty) return { value:null, offset:end };
   if (!value || value.includes('\ufffd') || /[\u0000-\u001f\u007f]/.test(value)) throw new Error(`The token metadata ${label} is invalid.`);
   return { value, offset:end };
 }
@@ -29,7 +31,7 @@ export function parseVerifiedTokenMetadata(account, mint) {
     throw new Error('The token metadata account does not match the listed mint.');
   const name = metadataString(data, 65, 32, 'name');
   const symbol = metadataString(data, name.offset, 10, 'symbol');
-  const uri=symbol.offset+4<=data.length&&data.readUInt32LE(symbol.offset)>0?metadataString(data,symbol.offset,2048,'URI').value:null;
+  const uri=symbol.offset+4<=data.length&&data.readUInt32LE(symbol.offset)>0?metadataString(data,symbol.offset,2048,'URI',{allowEmpty:true}).value:null;
   return { name:name.value, symbol:symbol.value,uri };
 }
 

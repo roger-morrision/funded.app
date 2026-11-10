@@ -2,6 +2,8 @@
 // The page is built around Richpad's Pump curve; when a token has no Richpad
 // launch, no curve and no PumpSwap pool, hide curve-only facts and show DEX
 // market data plus links to trade it where it actually trades.
+import { loadTokenMetadata, safeImageUrl, metadataLinks } from './token-metadata-client.js';
+
 const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 export function isExternalToken({ launch, market, mint, richMint }) {
@@ -62,15 +64,38 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
   tradeNote.id = 'coin-external-trade'; tradeNote.className = 'coin-external-trade'; tradeNote.hidden = true;
   document.getElementById('trade-panel')?.prepend(tradeNote);
 
-  let facts = null, active = null, load = 0, applied = null;
+  let facts = null, active = null, load = 0, applied = null, details = null;
   const richMint = () => app.PROTOCOL_FUNDED_MINT || app.fundedMint || app.richMint || '';
   const reset = () => {
-    active = null; applied = null; load++;
+    active = null; applied = null; details = null; load++;
     document.body.classList.remove('coin-external');
     panel.hidden = true; panel.replaceChildren(); tradeNote.hidden = true; tradeNote.replaceChildren();
   };
   const setText = (selector, value) => { const node = document.querySelector(selector); if (node && value != null) node.textContent = value; };
+  // Identity from the token's own metadata first, DEX data second.
+  const applyIdentity = () => {
+    const m = applied?.market || {};
+    const name = details?.name || m.name, symbol = details?.symbol || m.symbol;
+    if (name && /Unnamed on-chain token|^Token [1-9A-HJ-NP-Za-km-z]{6}…/.test(document.getElementById('coin-page-title')?.textContent || '')) {
+      setText('#coin-page-title', name); if (symbol) { setText('#coin-symbol', symbol); setText('#coin-artwork-symbol', symbol); }
+      document.title = `${name} · richpad.fun`;
+    }
+    const image = safeImageUrl(details?.image) || safeImageUrl(m.imageUrl);
+    const avatar = document.getElementById('coin-avatar');
+    if (avatar && image && avatar.dataset.externalLogo !== image) {
+      avatar.dataset.externalLogo = image; avatar.textContent = '';
+      avatar.style.backgroundImage = `url("${image.replace(/"/g, '%22')}")`;
+      avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center';
+    }
+    if (details?.description) setText('#coin-description', details.description);
+    const ids = { Website: 'coin-website-link', X: 'coin-x-link', Telegram: 'coin-telegram-link', Discord: 'coin-discord-link' };
+    for (const [label, href] of metadataLinks(details)) {
+      const anchor = document.getElementById(ids[label]);
+      if (anchor && anchor.hidden) { anchor.href = href; anchor.hidden = false; anchor.rel = 'noopener noreferrer nofollow'; }
+    }
+  };
   const applyHeader = () => {
+    applyIdentity();
     const m = applied?.market; if (!m) return;
     setText('#coin-price', formatUsd(m.priceUsd));
     setText('#coin-market-cap', formatUsd(m.marketCapUsd));
@@ -78,22 +103,13 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
     setText('#coin-strip-volume', formatUsd(m.volume24hUsd));
     setText('#coin-strip-trades', String(m.trades24h ?? '—'));
     setText('#coin-change', m.priceChange24h == null ? '24h —' : `24h ${m.priceChange24h > 0 ? '+' : ''}${m.priceChange24h.toFixed(2)}%`);
-    if (m.name && /Unnamed on-chain token/.test(document.getElementById('coin-page-title')?.textContent || '')) {
-      setText('#coin-page-title', m.name); setText('#coin-symbol', m.symbol); setText('#coin-artwork-symbol', m.symbol);
-      document.title = `${m.name} · richpad.fun`;
-    }
-    const avatar = document.getElementById('coin-avatar');
-    if (avatar && m.imageUrl && !avatar.style.backgroundImage) {
-      avatar.textContent = '';
-      avatar.style.backgroundImage = `url("${m.imageUrl.replace(/"/g, '%22')}")`;
-      avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center';
-    }
   };
   const render = (mint, data) => {
     const message = explainStatus(data), m = data?.market;
     const head = document.createElement('header');
     head.innerHTML = '<div><p class="eyebrow">External token</p><h2 id="coin-external-title">Launched outside Richpad</h2></div>';
     const body = document.createElement('div'); body.className = 'coin-external-body';
+    if (details?.description) { const about = document.createElement('p'); about.className = 'coin-external-about'; about.textContent = details.description; body.append(about); }
     if (m) {
       const grid = document.createElement('div'); grid.className = 'coin-external-facts';
       grid.append(
@@ -128,11 +144,17 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
     if (active === mint) return;
     active = mint; const id = ++load;
     document.body.classList.add('coin-external');
+    const metadata = loadTokenMetadata(app.apiRequest, mint).then(value => {
+      if (id !== load || active !== mint || !value) return;
+      details = value; applyIdentity();
+      if (applied) render(mint, applied);
+    });
     let data;
     try { data = (await app.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/external-market`, { signal: AbortSignal.timeout(12000) })).data; }
     catch { data = { status: 'error' }; }
     if (id !== load || active !== mint) return;
     applied = data; render(mint, data);
+    await metadata;
   };
 
   globalThis.addEventListener?.('funded:coin-facts-loading', reset);

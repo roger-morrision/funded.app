@@ -8,6 +8,8 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { readPumpMarketActivity } from '../coin-market.mjs';
 import { readWalletTradeHistory } from '../wallet-trades.mjs';
 import { createExternalTokenMarketReader } from '../external-token-market.mjs';
+import { createOffchainMetadataReader } from '../token-offchain-metadata.mjs';
+import { readVerifiedListingMint } from '../token-metadata.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -20,10 +22,13 @@ export function createTokenMarketRoutes({
   makeMarketConnection = null,
   makeTokenConnection = endpoint => new Connection(endpoint, 'confirmed'),
   readExternalMarket = createExternalTokenMarketReader({ solanaCluster }),
+  readMintMetadata = readVerifiedListingMint,
+  readOffchainMetadata = createOffchainMetadataReader(),
 }) {
   requireSolanaCluster(solanaCluster);
   const readRankingSolUsd = createSolUsdQuoteReader();
   const coinMarketCache = new Map();
+  const tokenMetadataCache = new Map();
   const tokenAccountsCache = new Map();
   const tokenAccountsInflight = new Map();
   const coinMarketInflight = new Map();
@@ -84,6 +89,30 @@ export function createTokenMarketRoutes({
       }
       try {const result=await pending;return json(res,result.status,result.data);}
       catch {return json(res,502,{error:'Finalized wallet trade history is unavailable.'});}
+    }
+    const metadataMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/metadata$/) : null;
+    if (metadataMint) {
+      let address;
+      try { address = new PublicKey(decodeURIComponent(metadataMint)).toBase58(); }
+      catch { return json(res, 400, { error: 'A valid Solana mint is required.' }); }
+      const cached = tokenMetadataCache.get(address);
+      if (cached && Date.now() - cached.at < 5 * 60_000) return json(res, 200, cached.data);
+      const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
+      if (!await store.chargeRpcRate(`token-metadata:${clientKey(req)}`, 2, 30, windowStart)) return json(res, 429, { error: 'Metadata refresh limit reached; retry shortly.' });
+      let onchain;
+      try { onchain = await readMintMetadata(makeTokenConnection(solanaRpcUrl), address); }
+      catch (error) { return json(res, /not found|not a supported|not initialized/i.test(String(error?.message)) ? 404 : 502, { error: /not found|not a supported|not initialized/i.test(String(error?.message)) ? error.message : 'Token metadata is unavailable right now.' }); }
+      const offchain = await readOffchainMetadata(onchain.uri);
+      const data = { mint: address, cluster: solanaCluster, name: onchain.metadataStatus === 'missing' ? offchain.metadata?.name || null : onchain.name,
+        symbol: onchain.metadataStatus === 'missing' ? offchain.metadata?.symbol || null : onchain.symbol,
+        metadataStatus: onchain.metadataStatus, source: onchain.source, tokenProgram: onchain.tokenProgram, decimals: onchain.decimals,
+        uri: onchain.uri || null, offchainStatus: offchain.status,
+        image: offchain.metadata?.image || null, description: offchain.metadata?.description || null,
+        links: { website: offchain.metadata?.website || null, twitter: offchain.metadata?.twitter || null, telegram: offchain.metadata?.telegram || null, discord: offchain.metadata?.discord || null },
+        observedAt: new Date().toISOString() };
+      if (tokenMetadataCache.size >= 500) tokenMetadataCache.delete(tokenMetadataCache.keys().next().value);
+      tokenMetadataCache.set(address, { at: Date.now(), data });
+      return json(res, 200, data);
     }
     const externalMint = req.method === 'GET' ? route(url.pathname, req.method, /^\/api\/tokens\/([^/]+)\/external-market$/) : null;
     if (externalMint) {
