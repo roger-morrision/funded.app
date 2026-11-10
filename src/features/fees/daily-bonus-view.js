@@ -109,3 +109,12 @@ export function initDailyBonusView(document = globalThis.document) {
     document.removeEventListener('visibilitychange', refreshActive);
   };
 }
+
+export function mountDailyBonusLink(document = globalThis.document) {
+  const parent = document?.getElementById?.('capital-flow');
+  if (!parent || document.getElementById('daily-bonus-link')) return;
+  const card = document.createElement('a');
+  card.id = 'daily-bonus-link'; card.className = 'daily-bonus-link-card'; card.href = '#bonuses';
+  card.innerHTML = '<span class="eyebrow">Daily bonus</span><strong>Top creators, referrers and traders share the Daily bonus pool.</strong><span class="daily-bonus-link-cta">See today’s standings and winners →</span>';
+  parent.append(card);
+}

@@ -1,6 +1,6 @@
 // Read the published policy supplied by the application; this preview never moves funds.
 import { currentFeePolicyCopy } from './fee-policy-copy.js';
-import { initDailyBonusView } from './daily-bonus-view.js';
+import { mountDailyBonusLink } from './daily-bonus-view.js';
 import { initBonusDashboard } from './bonus-dashboard-view.js';
 import { renderProductFaqs } from '../help/product-guidance.js';
 import { initMarketingAgency } from '../marketing/agency-view.js';
@@ -15,7 +15,8 @@ export function createFeeFlowView(APP_ECONOMICS) {
     initServiceFeeCopy();
     window.addEventListener('funded:service-fees', () => renderProductFaqs());
   }
-  initDailyBonusView();
+  // The full bonus dashboard lives on Daily bonuses; Fee distribution links to it instead of repeating it.
+  mountDailyBonusLink();
   initBonusDashboard();
   renderProductFaqs();
   bindCalculatorVisibility();

@@ -10,7 +10,15 @@ export function mountSavedPortfolioTabs(app, document = globalThis.document) {
     button.setAttribute('role','tab');button.setAttribute('aria-selected','false');button.tabIndex=-1;button.setAttribute('aria-controls',`portfolio-${key}-panel`);button.textContent=label;
     const panel=document.createElement('section');panel.id=`portfolio-${key}-panel`;panel.className='portfolio-tab-panel portfolio-saved-panel';panel.hidden=true;panel.tabIndex=0;
     panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',button.id);
+    // These four repeat whole pages (Favorites, Rewards, Referrals). Their tabs stay in the DOM for
+    // deep links but are hidden; a short link row points to the full pages instead.
+    button.hidden=true;
     tabs.append(button);tabs.parentElement.append(panel);panels.set(key,panel);
+  }
+  if(!document.querySelector('.portfolio-related')){
+    const related=document.createElement('nav');related.className='portfolio-related';related.setAttribute('aria-label','Related pages');
+    related.innerHTML='<span>Also in your account:</span><a href="#community">Favorites</a><a href="#payments">Rewards</a><a href="#referrals">Referrals</a>';
+    tabs.after(related);
   }
   const link=(label,href)=>Object.assign(document.createElement('a'),{textContent:label,href});
   let totals=null,totalWallet=null,lastRead=0,loadId=0,loading=false;

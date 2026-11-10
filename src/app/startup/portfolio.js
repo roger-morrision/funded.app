@@ -14,7 +14,7 @@ export function initializePortfolio(appState) {
   // app-source: 941
   document.querySelector('.portfolio-view-tabs')?.addEventListener('keydown', event => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    const tabs = [...event.currentTarget.querySelectorAll('[data-portfolio-tab]')];
+    const tabs = [...event.currentTarget.querySelectorAll('[data-portfolio-tab]:not([hidden])')];
     const current = tabs.indexOf(document.activeElement);
     if (current < 0) return;
     event.preventDefault();

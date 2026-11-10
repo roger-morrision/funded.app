@@ -1,5 +1,5 @@
 /* Cross-page consistency pass: one fact once per page, one pattern per UI element.
-   Loaded last; selectors are scoped under #main-content so they win without !important. */
+   Loaded last; selectors are scoped under #main-content. !important is used only where a route or legacy rule forces display, and every display-forcing rule is scoped to its own route.
 
 /* Referrals: the calculator lists every level's rate and an example, so the
    static rate tiles and the second worked example would repeat them. */
@@ -99,3 +99,121 @@ html body #main-content .callouts-columns:not(:has(.callouts-list > li:not(.call
    on the burn view they repeated content and doubled the page length. */
 html body.page-route-buybacks #main-content #paid :is([data-fee-distribution="protocol"], .funded-policy-details) { display: none; }
 html body.page-route-buybacks #main-content .home-receipt-card:has(.fee-distribution-summary, [data-fee-distribution]) { display: none; }
+
+/* ── Re-layout pass (Tier 1–3) ─────────────────────────────────────────── */
+
+/* Top bar: search, Devnet badge, Create a coin, Connect wallet. The bell moved into the wallet menu. */
+html body .topbar .top-actions #notifications-button { display: none; }
+html body #wallet-popover nav #wallet-popover-notifications { all: unset; display: flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 8px; color: inherit; font: inherit; cursor: pointer; }
+html body #wallet-popover nav #wallet-popover-notifications:is(:hover, :focus-visible) { background: var(--fv-surface-raised, #182233); }
+
+/* Profile: settings layout (see src/features/workspace/profile-layout.js). */
+html body #main-content #profile .settings-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; align-items: start; min-width: 0; }
+html body #main-content #profile .settings-nav { position: sticky; top: 88px; display: grid; gap: 2px; padding: 8px; border: 1px solid var(--fv-border, #29323a); border-radius: var(--fv-radius-md, 10px); background: var(--fv-surface, #121a26); }
+html body #main-content #profile .settings-nav button { min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--fv-text-muted, #a8b2bc); font: 600 13px var(--fv-font-ui, sans-serif); text-align: left; cursor: pointer; }
+html body #main-content #profile .settings-nav button:is(:hover, :focus-visible) { color: var(--fv-text, #f3f6fa); background: var(--fv-surface-raised, #182233); }
+html body #main-content #profile .settings-nav button[aria-current="true"] { color: var(--fv-text, #f3f6fa); background: var(--fv-surface-raised, #182233); box-shadow: inset 2px 0 0 var(--fv-accent, #f4a340); }
+html body #main-content #profile .settings-body { display: grid; gap: 28px; min-width: 0; }
+html body #main-content #profile .settings-panel { display: grid; gap: 12px; min-width: 0; scroll-margin-top: 88px; }
+html body #main-content #profile .settings-panel > h2 { margin: 0; padding-bottom: 8px; border-bottom: 1px solid var(--fv-border, #29323a); font-size: 16px; }
+html body #main-content #profile .settings-panel > :is(details, .workspace-preference, .profile-grid, .workspace-shortcuts, .flow-note) { margin: 0; width: 100%; max-width: none; }
+html body #main-content #profile .settings-panel > .profile-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+html body #main-content #profile .settings-panel > button { justify-self: start; }
+@media (max-width: 900px) {
+  html body #main-content #profile .settings-shell { grid-template-columns: 1fr; gap: 16px; }
+  html body #main-content #profile .settings-nav { position: static; display: flex; overflow-x: auto; padding: 4px; }
+  html body #main-content #profile .settings-nav button { flex: none; white-space: nowrap; }
+}
+
+/* Top 100: column picker and a token column that stays visible while scrolling. */
+html body #main-content #top100 .top100-columns { position: relative; justify-self: end; margin: 0 0 8px auto; width: max-content; }
+html body #main-content #top100 .top100-columns > summary { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid color-mix(in srgb, var(--fv-text, #f3f6fa) 16%, transparent); border-radius: 8px; background: var(--fv-surface-raised, #182233); font: 600 13px var(--fv-font-ui, sans-serif); cursor: pointer; list-style: none; }
+html body #main-content #top100 .top100-columns > summary::-webkit-details-marker { display: none; }
+html body #main-content #top100 .top100-columns-list { position: absolute; right: 0; z-index: 20; display: grid; gap: 4px; min-width: 220px; margin-top: 6px; padding: 10px; border: 1px solid var(--fv-border, #29323a); border-radius: var(--fv-radius-md, 10px); background: var(--fv-surface, #121a26); box-shadow: 0 16px 40px -16px rgb(0 0 0 / .7); }
+html body #main-content #top100 .top100-columns-list label { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px; cursor: pointer; }
+html body #main-content #top100 .top100-columns-list button { margin-top: 6px; min-height: 36px; border: 0; border-top: 1px solid var(--fv-border, #29323a); background: none; color: var(--fv-accent, #f4a340); font: 600 12px var(--fv-font-ui, sans-serif); text-align: left; cursor: pointer; }
+html body #main-content #top100 table.top100-table { min-width: 0; }
+html body #main-content #top100 table.top100-table :is(th, td):nth-child(2) { position: sticky; left: 0; z-index: 1; background: var(--fv-surface, #121a26); box-shadow: 1px 0 0 var(--fv-border, #29323a); }
+
+/* Portfolio: four tabs; the pages that used to be repeated as tabs are linked instead. */
+html body #main-content #my-launches .portfolio-view-tabs [data-portfolio-tab][hidden] { display: none; }
+html body #main-content .portfolio-related { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 8px 0 4px; color: var(--fv-text-subtle, #77869b); font-size: 12px; }
+html body #main-content .portfolio-related a { color: var(--fv-text-muted, #a8b2bc); font-weight: 600; text-decoration: none; }
+html body #main-content .portfolio-related a:is(:hover, :focus-visible) { color: var(--fv-accent, #f4a340); text-decoration: underline; }
+
+/* Fee distribution: one link card to Daily bonuses instead of a second copy of that page. */
+html body #main-content #capital-flow .daily-bonus-link-card { display: grid; gap: 6px; margin-top: 20px; padding: 18px 20px; border: 1px solid var(--fv-border, #29323a); border-radius: var(--fv-radius-lg, 16px); background: var(--fv-surface, #121a26); color: var(--fv-text, #f3f6fa); text-decoration: none; }
+html body #main-content #capital-flow .daily-bonus-link-card .eyebrow { margin: 0; }
+html body #main-content #capital-flow .daily-bonus-link-card strong { font-size: 15px; }
+html body #main-content #capital-flow .daily-bonus-link-card .daily-bonus-link-cta { color: var(--fv-accent, #f4a340); font-weight: 600; font-size: 13px; }
+html body #main-content #capital-flow .daily-bonus-link-card:is(:hover, :focus-visible) { border-color: var(--fv-accent, #f4a340); }
+
+/* Referrals: invite link and your stats on the left, rates + calculator on the right, history below. */
+@media (min-width: 901px) {
+  html body:is(.page-route-referrals, .page-route-referral-faq) #main-content #referral-command-center:not([hidden]) { display: grid !important; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-areas: "head head" "share rates" "kpi rates" "views views"; gap: 16px; align-items: start; }
+  html body #main-content #referral-command-center > .referral-command-grid { display: contents; }
+  html body #main-content #referral-command-center > .section-heading { grid-area: head; }
+  html body #main-content #referral-command-center .referral-share-panel { grid-area: share; margin: 0; }
+  html body #main-content #referral-command-center .referral-tier-strip { grid-area: rates; margin: 0; }
+  html body #main-content #referral-command-center > .referral-kpi-grid { grid-area: kpi; margin: 0; }
+  html body #main-content #referral-command-center > #referral-views { grid-area: views; }
+}
+
+/* Get listed: form and steps on the left; what you get and the fee in a summary column on the right. */
+@media (min-width: 901px) {
+  html body #main-content #list .list-main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 16px 20px; align-items: start; }
+  html body #main-content #list .list-main > .list-form-card { grid-column: 1; grid-row: 1; margin: 0; }
+  html body #main-content #list .list-main > .list-steps { grid-column: 1; grid-row: 2; }
+  html body #main-content #list .list-main > .list-benefits { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: 1fr; gap: 10px; margin: 0; }
+  html body #main-content #list .list-main > .list-disclosure { grid-column: 2; grid-row: 3; }
+}
+html body #main-content #list .list-main > .list-process-heading { display: none; }
+html body #main-content #list .list-main > .list-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+html body #main-content #list .list-main > .list-steps > li { padding: 12px 14px; border: 1px solid var(--fv-border, #29323a); border-radius: var(--fv-radius-md, 10px); background: var(--fv-surface, #121a26); font-size: 13px; }
+html body #main-content #list .list-main > .list-disclosure { margin: 0; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--fv-accent, #f4a340) 40%, var(--fv-border, #29323a)); border-radius: var(--fv-radius-md, 10px); background: color-mix(in srgb, var(--fv-accent, #f4a340) 6%, var(--fv-surface, #121a26)); color: var(--fv-text, #f3f6fa); font-size: 13px; }
+
+/* Airdrops: title block uses the full width, the count reads as a badge, and an empty pager is hidden. */
+html body #main-content #airdrops > .section-heading { align-items: flex-end; }
+html body #main-content #airdrops > .section-heading > div:first-child { flex: 1 1 auto; max-width: none; }
+html body #main-content #airdrops > .airdrop-intro { max-width: 78ch; }
+html body #main-content #airdrops #claim-program-count { padding: 4px 10px; border: 1px solid var(--fv-border, #29323a); border-radius: 999px; background: var(--fv-surface, #121a26); color: var(--fv-text-muted, #a8b2bc); font: 600 12px var(--fv-font-ui, sans-serif); white-space: nowrap; }
+html body #main-content :is(.airdrop-directory-pagination, .bonus-pagination, .pagination):not(:has(button:not(:disabled))) { display: none !important; }
+
+/* AI Marketing: consistent section spacing and a neutral status note. */
+html body #main-content #marketing-agency > section { margin-top: 28px; }
+html body #main-content #marketing-agency > section > h2 { margin: 0 0 10px; }
+html body #main-content #marketing-agency > .agency-status { max-width: none; margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--fv-border, #29323a); border-left-width: 1px; border-radius: var(--fv-radius-md, 10px); background: var(--fv-surface, #121a26); color: var(--fv-text-muted, #a8b2bc); font-size: 13px; }
+html body #main-content #marketing-agency .agency-funds { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+
+/* Rewards: without a wallet, one connect card (like Portfolio) instead of three "—" cards. */
+html body #main-content .reward-dashboard:has(> .primary-button:not([hidden])) > :is(.reward-dashboard-cards, .reward-dashboard-note) { display: none !important; }
+html body #main-content .reward-dashboard:has(> .primary-button:not([hidden])) { justify-items: center; text-align: center; }
+html body #main-content .reward-dashboard:has(> .primary-button:not([hidden])) > .primary-button { justify-self: center; }
+
+/* Docs: the topic list is a viewport-height sticky sidebar (standard docs pattern) with a thin
+   scrollbar; the article keeps a readable line length. */
+@media (min-width: 901px) {
+  html body #main-content .docs-guide-nav { top: 84px; max-height: calc(100vh - 100px); }
+  html body #main-content .docs-guide-nav #docs-guide-browser { display: flex; flex-direction: column; height: 100%; }
+  html body #main-content .docs-guide-nav #docs-guide-topic-results { flex: 1 1 auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--fv-border, #29323a) transparent; }
+}
+html body #main-content .docs-guide-article { max-width: 760px; }
+html body #main-content .docs-guide-article .docs-guide-body { font-size: 15px; line-height: 1.7; }
+
+/* Home order: hero → trending + new coins → stats & where fees go → paid promotion → FAQ. */
+html body.page-route-overview #main-content > .home-featured { order: 4; }
+
+/* Explore: on wide screens the public payout records sit in a right column beside the feed. */
+@media (min-width: 1400px) {
+  html body.page-route-explore #main-content #explore.explore-page:not([hidden]) { display: grid !important; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: repeat(5, auto) 1fr; column-gap: 20px; align-items: start; }
+  html body #main-content #explore.explore-page > * { grid-column: 1; min-width: 0; }
+  html body #main-content #explore.explore-page > #explore-public-records { grid-column: 2; grid-row: 1 / span 6; position: sticky; top: 84px; margin: 0; }
+  html body #main-content #explore #explore-public-records :is(#explore-payout-stats, .explore-payout-grid, .explore-benefit-leaders) { grid-template-columns: 1fr; }
+}
+
+/* Reading width: descriptive text stops at a comfortable line length; tables and grids stay wide. */
+html body #main-content :is(.section-heading p:not(.eyebrow), .panel-explainer, .explore-lede, .projects-lede, .airdrop-intro, .workspace-page-header > p, #route-guide-description, .bonus-hero p, .callouts-head p) { max-width: 72ch; }
+
+/* Spacing scale: 20px under a page heading, 28px between top-level sections of a page. */
+html body #main-content .section-block > .section-heading { margin-bottom: 20px; }
+html body #main-content .section-block > section + section { margin-top: 28px; }
