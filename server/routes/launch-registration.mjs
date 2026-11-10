@@ -25,6 +25,7 @@ import { createV3LaunchConfig } from '../v3-launch-config.mjs';
 import nacl from 'tweetnacl';
 import {isDeletedDevnetMint} from '../deleted-devnet-mints.mjs';
 import {newLaunchAgencySelection} from '../../config/marketing-agency.js';
+import {enqueueLaunchPostEmail} from '../launch-post-email.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -213,6 +214,7 @@ export function createLaunchRegistrationRoutes({
         if (record.xUserId && state.creatorProfiles?.[record.xUserId]?.optedOut) throw invalidRequest('This creator opted out during verification. Registration is blocked.');
         registerLaunchProtection(state, record);
         state.launches[record.mint] = record;
+        enqueueLaunchPostEmail(state,record,{env,cluster:solanaCluster});
         if (verifiedReserve) {
           state.communityReserveReceipts ||= {};
           state.communityReserveReceipts[record.mint] = { signature:proof.signature,

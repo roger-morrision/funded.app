@@ -2,6 +2,7 @@ import {publicState} from './public-state.mjs';
 import { createPublicTradeSharingRoutes } from './routes/public-trade-sharing.mjs';
 import {deploymentCluster,mainnetMutationBlocked} from './network-write-policy.mjs';
 import {startApiFinancialWorkerServices} from './api-financial-workers.mjs';
+import {createLaunchPostEmailWorker} from './launch-post-email.mjs';
 import { createLaunchSupportRoutes } from './routes/launch-support.mjs';
 import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
 import { createServiceStatusRoutes } from './routes/service-status.mjs';
@@ -492,3 +493,4 @@ async function handle(req, res) {
 await startShareVisitCleanup({ store });
 startAppListener({port,host,handle,solanaRpcUrl});
 startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,store});
+createLaunchPostEmailWorker({store,connection:new Connection(solanaRpcUrl,'finalized'),cluster:solanaCluster}).start();
