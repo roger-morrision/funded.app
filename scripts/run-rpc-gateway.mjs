@@ -12,7 +12,9 @@ const sharedCache=process.env.FUNDED_RPC_REDIS_URL?createRedisRpcCache({url:proc
 await sharedCache?.start();
 const pacing=rpcGatewayPacing(url);
 const primary=createRpcUpstreamTransport(url,{maxSockets:pacing.maxConcurrent});
-const transport=isHeliusRpc(url)?createRpcFailoverTransport({primary,publicTransport:createRpcUpstreamTransport(publicRpcForCluster(cluster)),cluster}):primary;
+const transport=isHeliusRpc(url)?createRpcFailoverTransport({primary,publicTransport:createRpcUpstreamTransport(publicRpcForCluster(cluster),{maxSockets:2}),cluster,
+  // Public Mainnet allows ~10 req/s per IP; stay well below it.
+  publicOptions:cluster==='mainnet-beta'?{minIntervalMs:150,maxConcurrent:2}:{}}):primary;
 const gateway=createRpcGateway({transport,sharedCache,cluster,...pacing});
 const server=createRpcGatewayServer({gateway}),signatures=createRpcSignatureServer({gateway});
 server.listen(Number(process.env.PORT||8899),'0.0.0.0');signatures.server.listen(Number(process.env.WS_PORT||8900),'0.0.0.0');

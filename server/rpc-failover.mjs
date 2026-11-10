@@ -29,8 +29,8 @@ export function createRpcFailoverTransport({primary,publicTransport,recoveryInte
   if(typeof primary!=='function'||typeof publicTransport!=='function'||!Number.isSafeInteger(recoveryIntervalMs)||recoveryIntervalMs<30000)
     throw Error('Valid RPC transports and a recovery interval of at least 30 seconds are required');
   requireSolanaCluster(cluster);
-  const fallback=createRpcGateway({transport:publicTransport,now,...publicOptions,cluster,
-    minIntervalMs:500,blockIntervalMs:2500,sendIntervalMs:1000,maxConcurrent:1});
+  const fallback=createRpcGateway({transport:publicTransport,now,cluster,
+    minIntervalMs:500,blockIntervalMs:2500,sendIntervalMs:1000,maxConcurrent:1,...publicOptions});
   let active=false,nextProbeAt=0,probe=null,closed=false,failovers=0,recoveryProbes=0,primaryAttempts=0,publicRequests=0;
   async function recover(){
     if(probe)return probe;
