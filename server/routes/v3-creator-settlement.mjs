@@ -8,7 +8,7 @@ import { buildMintRouterV3SettlementInstruction } from '../../mint-router-v3.js'
 import {buildV3PolicySettlement, buildV3AutoPolicySettlement} from '../v3-policy-builders.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
-import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
+import { verifyV3LaunchRouterReadiness, retryUnavailableReadiness, readinessRejection } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3PumpCollection } from '../v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
@@ -84,12 +84,12 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const connection = connectionFactory(solanaRpcUrl);
     try{await assertRpcNetwork(connection,solanaCluster);}
     catch{return json(res,503,{error:'Settlement RPC does not match the selected network.'});}
-    const readiness = await verifyReadiness({ connection, programId,cluster:solanaCluster,
+    const readiness = await retryUnavailableReadiness(() => verifyReadiness({ connection, programId,cluster:solanaCluster,
       expectedProgramDataSha256:approvedHash, mint, creatorWallet:launch.creatorWallet,
-      initialAuthority:authority.publicKey, split:launch.pumpFeeRoute.protocolSplit });
+      initialAuthority:authority.publicKey, split:launch.pumpFeeRoute.protocolSplit }));
     if (!readiness.ready || readiness.configuredRouter !== collection.router
       || launch.pumpFeeRoute.router !== collection.router) {
-      return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
+      { const rejection = readinessRejection(readiness); return json(res, rejection.status, { error:rejection.error }); }
     }
     const source = await loadCollection({ connection, signature:collectionSignature,cluster:solanaCluster,
       programId, mint, launch });

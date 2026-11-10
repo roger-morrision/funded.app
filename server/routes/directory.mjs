@@ -71,9 +71,13 @@ export function createDirectoryRoutes({
     }
     if (req.method === 'GET' && url.pathname === '/api/indexer/status') {
       const state = await store.read();
-      return json(res, 200, { provider: 'pump.fun', configured: true,
-        indexedLaunches:Object.values(state.launches || {}).filter(item => item.pumpFeeRoute?.scope === 'per-mint-v3').length,
-        lastIndexedAt: state.lastIndexedAt || null, status: state.lastIndexedAt ? 'ready' : 'waiting-for-sync' });
+      const indexed = Object.values(state.launches || {}).filter(item => item.pumpFeeRoute?.scope === 'per-mint-v3');
+      // The legacy keeper route was the only writer of lastIndexedAt; verified V3
+      // launches carry their own timestamps, so use the newest of either.
+      const times = [state.lastIndexedAt, ...indexed.map(item => item.onchainVerifiedAt || item.updatedAt)].map(value => Date.parse(value)).filter(Number.isFinite);
+      const lastIndexedAt = times.length ? new Date(Math.max(...times)).toISOString() : null;
+      return json(res, 200, { provider: 'pump.fun', configured: true, indexedLaunches: indexed.length,
+        lastIndexedAt, status: lastIndexedAt ? 'ready' : 'waiting-for-sync' });
     }
     if (req.method === 'GET' && url.pathname === '/api/launches') {
       const requestedLimit = url.searchParams.get('limit');

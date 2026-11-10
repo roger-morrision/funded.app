@@ -1,6 +1,6 @@
 import { PublicKey, Connection } from '@solana/web3.js';
 import { deriveMintRouterV3 } from '../../mint-router-v3.js';
-import { verifyV3LaunchRouterReadiness as verifyV3Readiness } from '../v3-launch-readiness.mjs';
+import { verifyV3LaunchRouterReadiness as verifyV3Readiness, retryUnavailableReadiness, readinessRejection } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3PumpCollection as loadV3Collection } from '../v3-finalized-collection.mjs';
 import { loadFinalizedV3Settlement as loadV3Settlement } from '../v3-settlement-proof.mjs';
 import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
@@ -177,11 +177,11 @@ export function createKeeperCollectionRoutes({
         return json(res, 409, { error:'A matching recorded V3 collection and launch are required.' });
       }
       const connection = connectionFactory(solanaRpcUrl);
-      const readiness = await verifyV3LaunchRouterReadiness({ connection, programId,
+      const readiness = await retryUnavailableReadiness(() => verifyV3LaunchRouterReadiness({ connection, programId,
         expectedProgramDataSha256:approvedHash, mint, creatorWallet:launch.creatorWallet,
-        initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit });
+        initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit }));
       if (!readiness.ready || readiness.configuredRouter !== router) {
-        return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
+        { const rejection = readinessRejection(readiness); return json(res, rejection.status, { error:rejection.error }); }
       }
       const proof = await loadFinalizedV3PumpCollection({ connection, signature,
         programId, mint, launch });
@@ -250,13 +250,13 @@ export function createKeeperCollectionRoutes({
         return json(res, 409, { error:'A matching verified V3 collection and settlement attempt are required.' });
       }
       const connection = connectionFactory(solanaRpcUrl);
-      const readiness = await verifyV3LaunchRouterReadiness({ connection, programId,
+      const readiness = await retryUnavailableReadiness(() => verifyV3LaunchRouterReadiness({ connection, programId,
         expectedProgramDataSha256:approvedHash, mint:collection.mint,
         creatorWallet:launch.creatorWallet, initialAuthority:launch.pumpFeeRoute.initialAuthority,
-        split:launch.pumpFeeRoute.protocolSplit });
+        split:launch.pumpFeeRoute.protocolSplit }));
       if (!readiness.ready || readiness.configuredRouter !== collection.router
         || launch.pumpFeeRoute.router !== collection.router) {
-        return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
+        { const rejection = readinessRejection(readiness); return json(res, rejection.status, { error:rejection.error }); }
       }
       const collectionProof = await loadFinalizedV3PumpCollection({ connection,
         signature:collectionSignature, programId, mint:collection.mint, launch });

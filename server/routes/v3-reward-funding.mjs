@@ -18,7 +18,7 @@ import { holderFundingMinimumLamports } from '../reward-scheduler.mjs';
 import { AUTOMATIC_REWARDS } from '../../automatic-rewards.js';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
-import { verifyV3LaunchRouterReadiness } from '../v3-launch-readiness.mjs';
+import { verifyV3LaunchRouterReadiness, retryUnavailableReadiness, readinessRejection } from '../v3-launch-readiness.mjs';
 import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { v3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { reconcileV3Allocations } from '../v3-allocation-reconciliation.mjs';
@@ -124,12 +124,12 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       return json(res, 409, { error:'A matching finalized V3 settlement and payable allocation are required.' });
     }
     const connection = connectionFactory(solanaRpcUrl);
-    const readiness = await verifyReadiness({ connection, programId,cluster:solanaCluster,
+    const readiness = await retryUnavailableReadiness(() => verifyReadiness({ connection, programId,cluster:solanaCluster,
       expectedProgramDataSha256:approvedHash, mint,
       creatorWallet:launch.creatorWallet,
-      initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit });
+      initialAuthority:launch.pumpFeeRoute.initialAuthority, split:launch.pumpFeeRoute.protocolSplit }));
     if (!readiness.ready || readiness.configuredRouter !== collection.router) {
-      return json(res, 409, { error:'The approved V3 program and mint policy are not verified.' });
+      { const rejection = readinessRejection(readiness); return json(res, rejection.status, { error:rejection.error }); }
     }
     if (kind === 'operations' && !readiness.protectedPolicy)
       return json(res, 409, { error:'Operations funds require the protected V3 on-chain approval policy.' });

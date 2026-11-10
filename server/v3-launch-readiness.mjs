@@ -61,3 +61,22 @@ export async function verifyV3LaunchRouterReadiness({ connection, programId, exp
     return { ready:false, status:503, error:'The V3 router accounts could not be verified.' };
   }
 }
+
+// verifyV3LaunchRouterReadiness reports RPC failures as status 503. Retry those
+// once, so a single rate-limited read does not reject a payout or settlement.
+export async function retryUnavailableReadiness(check, { attempts = 2, delayMs = 1000 } = {}) {
+  let result;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    result = await check();
+    if (result?.ready || result?.status !== 503) return result;
+    if (attempt < attempts - 1) await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  return result;
+}
+
+// A temporary RPC failure must not look like a permanent policy mismatch.
+export function readinessRejection(readiness) {
+  return readiness && !readiness.ready && readiness.status === 503
+    ? { status: 503, error: 'Solana RPC could not verify the V3 program right now. Retry shortly.' }
+    : { status: 409, error: 'The approved V3 program and mint policy are not verified.' };
+}
