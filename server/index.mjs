@@ -37,6 +37,7 @@ import { createPublicReportsRoutes } from './routes/public-reports.mjs';
 import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
 import { createTokenMarketRoutes } from './routes/token-market.mjs';
+import { createDevWalletRoutes } from './routes/dev-wallet.mjs';
 import {createBirdeyeMarketFallback} from './birdeye-market-fallback.mjs';
 import { createLaunchProtectionRoutes } from './routes/launch-protection.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
@@ -60,7 +61,7 @@ import { resolve } from 'node:path';
 import { isIP } from 'node:net';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Connection, Keypair, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { createReferralCode } from '../referral-program.js';
 import { createStore } from './store.mjs';
 import { rewardLedgerPath } from './reward-ledger-path.mjs';
@@ -391,6 +392,7 @@ const { handleServiceStatus, handleOperationsStatus, handleKeeperStatus } = crea
   readSolUsdQuote, requireAuthorized, respond: json,
 });
 
+const handleDevWalletRoutes = createDevWalletRoutes({ devMode, devWalletKeypair, body, respond: json });
 const handlePublicTradeSharing = createPublicTradeSharingRoutes({ store, solanaCluster, solanaRpcUrl, clientKey, respond: json });
 const { handleLaunchPreview, handleLaunchSupport } = createLaunchSupportRoutes({ store, body, id, respond: json });
 
@@ -428,32 +430,7 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/solana/rpc') return await proxySolanaRpc(req, res);
     if (await handleBoostRoutes(req, res, url, requestId)) return;
     if (await handleDevnetMetadataRoutes(req, res, url)) return;
-    if (req.method === 'GET' && url.pathname === '/api/dev-wallet') {
-      if (!devMode) return json(res, 403, { error: 'Automatic wallet access is unavailable here.' });
-      const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
-      return json(res, 200, { role: wallet.role, publicKey: wallet.keypair.publicKey.toBase58(), cluster: 'devnet' });
-    }
-    if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-transaction') {
-      const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
-      const input = await body(req);
-      try {
-        const bytes = Buffer.from(String(input.transaction || ''), 'base64');
-        const decoded = VersionedTransaction.deserialize(bytes);
-        const transaction = decoded.version === 'legacy' ? Transaction.from(bytes) : decoded;
-        if (transaction instanceof VersionedTransaction) transaction.sign([wallet.keypair]);
-        else transaction.partialSign(wallet.keypair);
-        return json(res, 200, { transaction: Buffer.from(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })).toString('base64') });
-      } catch { return json(res, 400, { error: 'Invalid development transaction.' }); }
-    }
-    if (req.method === 'POST' && url.pathname === '/api/dev-wallet/sign-message') {
-      const wallet = devWalletKeypair();
-      if (!wallet) return json(res, 503, { error: 'Local Solana wallet role is not configured.' });
-      const input = await body(req);
-      try { return json(res, 200, { signature: Buffer.from(nacl.sign.detached(Buffer.from(String(input.message || ''), 'base64'), wallet.keypair.secretKey)).toString('base64') }); }
-      catch { return json(res, 400, { error: 'Invalid development message.' }); }
-    }
+    if (await handleDevWalletRoutes(req, res, url)) return;
     if (await handleRewardStatusRoutes(req, res, url)) return;
     if (await dailyBonusRuntime.handle(req, res, url, { body, requireAuthorized, respond:json })) return;
     if (await handleAirdropsRoutes(req, res, url, requestId)) return;
