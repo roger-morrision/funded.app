@@ -257,3 +257,9 @@ html body .home-featured-banner-metrics [data-direction="negative"] { color: var
 
 html body #main-content #coin-page .coin-socials.is-compact :is(a,button) { display: inline-flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
 html body #main-content #coin-page .coin-socials.is-compact :is(a,button) svg { display: block; flex: none; margin: 0; }
+
+/* Icon-only buttons: center the icon regardless of the button's display or padding. */
+html body :is(button, a[role="button"])[aria-label]:has(> svg:only-child) { display: inline-grid; place-items: center; }
+html body :is(button, a[role="button"])[aria-label]:has(> svg:only-child) > svg { display: block; margin: 0; }
+html body.page-route-overview #main-content .home-market-ticker-arrows button { display: inline-grid; place-items: center; padding: 0; line-height: 1; }
+html body.page-route-overview #main-content .home-market-ticker-arrows button > svg { width: 16px; height: 16px; }
