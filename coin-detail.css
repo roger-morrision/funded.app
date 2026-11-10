@@ -7,3 +7,6 @@
 @import './styles/coin/trade-review.css';
 @import './styles/coin/workspace.css';
 @import './styles/coin/burn-dashboard.css';
+/* External tokens: hide Richpad-only records (rewards, fee collections, allocations, fee rules). */
+body.coin-external .coin-tabs :is([data-coin-tab="rewards"],[data-coin-tab="payments"],[data-coin-tab="claims"]),
+body.coin-external .launch-facts { display: none !important; }

@@ -93,6 +93,11 @@ export function createCoinLoadingController(appState) {
       const registeredLaunch = fetchedLaunch || appState.verifiedRegistryLaunch(
         [appState.verifiedLaunchPolicyForMint(mintAddress)], mintAddress, appState.EXPLORE_CLUSTER);
       appState.coinSummaryLaunch = registeredLaunch;
+      // External (non-Richpad) tokens have no app fee, reward or allocation records.
+      const externalToken = !registeredLaunch?.onchainVerified;
+      document.body.classList.toggle('coin-external', externalToken);
+      if (externalToken && document.querySelector('.coin-tabs [data-coin-tab].active:is([data-coin-tab="rewards"],[data-coin-tab="payments"],[data-coin-tab="claims"])'))
+        document.querySelector('.coin-tabs [data-coin-tab="trades"]')?.click();
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, parsedMint, launch:registeredLaunch, checkedAt:Date.now()}}));
       const promotedBanner = verifiedTokenBannerUri(registeredLaunch, mintAddress);
       const artwork = document.querySelector('.coin-artwork');

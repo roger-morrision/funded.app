@@ -469,18 +469,20 @@
                   <div class="list-recovery" id="list-recovery" hidden><p>A signed burn may need receipt verification. Keep this tab open and retry the original receipt before another payment. Recovery is saved in this tab, not across tab closure.</p><button type="button" class="secondary-button" id="list-retry">Retry receipt verification</button></div>
                 </div>
               </div>
-              <ul class="list-benefits" aria-label="What a paid listing includes">
-                <li><strong>Shown in Explore and on Home</strong><span>Once the mint and burn are confirmed.</span></li>
-                <li><strong>Paid Listing tab</strong><span>Traders can filter for listed tokens.</span></li>
-                <li><strong>"Listed" badge</strong><span>On your token card, backed by the on-chain receipt.</span></li>
-              </ul>
               <div class="list-process-heading"><span aria-hidden="true">||||||||||||</span><span>How listing works</span></div>
               <ol class="list-steps">
                 <li><span>01</span><h2>Enter your token</h2><p>Paste the Solana token address. We check it before you continue.</p></li>
                 <li><span>02</span><h2>Burn $RICH</h2><p id="list-burn-step-copy">Approve a permanent burn of $300 worth of $RICH. The exact token amount is quoted before wallet approval.</p></li>
                 <li><span>03</span><h2>Go live</h2><p>Your token appears in Explore after its mint and listing burn are confirmed.</p></li>
               </ol>
-              <p class="list-disclosure" id="list-burn-disclosure">Pay $300 by burning $RICH at the current pool price. Your listing goes live once the burn is confirmed.</p>
+              <div class="list-summary">
+                <ul class="list-benefits" aria-label="What a paid listing includes">
+                <li><strong>Shown in Explore and on Home</strong><span>Once the mint and burn are confirmed.</span></li>
+                <li><strong>Paid Listing tab</strong><span>Traders can filter for listed tokens.</span></li>
+                <li><strong>"Listed" badge</strong><span>On your token card, backed by the on-chain receipt.</span></li>
+              </ul>
+                <p class="list-disclosure" id="list-burn-disclosure">Pay $300 by burning $RICH at the current pool price. Your listing goes live once the burn is confirmed.</p>
+              </div>
             </div>
           </div>
           <section class="list-live" aria-labelledby="list-live-title"><div><p class="eyebrow">On-chain verified</p><h2 id="list-live-title">Paid listings</h2></div><div id="list-live-items" class="list-live-items" role="list"><p>Loading verified listings…</p></div></section>
