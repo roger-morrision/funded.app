@@ -19,5 +19,6 @@ export const PAGE_ROUTE_TARGETS = {
     profile: '#profile',
     privacy: '#privacy',
     paid: '#paid',
+    status: '#status',
   };
 export const MERGED_PAGE_ROUTES = {community: 'my-launches', buybacks: 'paid'};

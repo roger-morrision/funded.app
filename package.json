@@ -40,6 +40,7 @@
     "lightweight-charts": "5.2.1",
     "nodemailer": "10.4.0",
     "pg": "^8.23.1",
+    "qrcode-generator": "^1.4.4",
     "redis": "6.3.1",
     "tweetnacl": "^1.0.3",
     "ws": "8.21.3"

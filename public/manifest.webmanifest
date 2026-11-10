@@ -1,0 +1,14 @@
+{
+  "name": "richpad.fun",
+  "short_name": "richpad",
+  "description": "Launch, hold, trade and invite on Solana. Creator fees are shared with the community.",
+  "start_url": "/#overview",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0d1a",
+  "theme_color": "#0b1020",
+  "icons": [
+    { "src": "/richpad-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -220,6 +220,7 @@ export function createNavigationController(appState) {
       profile: ['Profile', 'Wallet and signing safety'],
       privacy: ['Privacy', 'Wallet and browser data'],
       paid: ['$RICH', 'Token policy and availability'],
+      status: ['Service status', 'Live service checks'],
     }[route] || ['Overview', 'Verified activity and next steps'];
     if (appState.coinRouteRequested()) copy = ['Token', 'Market activity and trade'];
     if (appState.walletRouteRequested()) copy = ['Wallet', 'Balances and confirmed activity'];

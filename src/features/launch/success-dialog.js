@@ -1,3 +1,4 @@
+import { appendLaunchKit } from '../growth/launch-assist.js';
 import { openShareComposer } from '../../../share-tools.js';
 // Called only after the launch's on-chain reserve, fee route and policy verification.
 export function showLaunchSuccess({ mint, name, symbol, signature, registered }, document = globalThis.document) {
@@ -26,6 +27,7 @@ export function showLaunchSuccess({ mint, name, symbol, signature, registered },
       url:new URL(`/token/${mint}`,globalThis.location.origin).href,
       result:{kind:'launch',verified:true,mint,name,symbol,receipt:signature,network:'devnet',receiptUrl:`https://explorer.solana.com/tx/${signature}?cluster=devnet`}});
   });
+  appendLaunchKit(dialog, { mint, name, symbol }, document);
   document.body.append(dialog); dialog.showModal();
   dialog.querySelector('[data-open-token]').focus();
 }

@@ -3,6 +3,7 @@ import { mountGetStarted } from './get-started.js';
 import { mountCompactExploreControls } from '../explore/compact-controls.js';
 import { mountProfileLayout } from '../workspace/profile-layout.js';
 import { mountTop100ColumnsWhenReady } from '../explore/top100-columns.js';
+import { mountGrowthFeatures } from '../growth/index.js';
 import { mountMetricAccents } from './metric-accents.js';
 import { initializeDiscoveryIntent } from './discovery-intent.js';
 import { initializeFinancialCenter } from './financial-center.js';
@@ -68,6 +69,7 @@ export function initializeProductFlows(app) {
     mountCompactExploreControls();
     mountProfileLayout();
     mountTop100ColumnsWhenReady();
+    mountGrowthFeatures(app);
     mountMetricAccents();
     mountMetricMotion();
     document.body.classList.add('product-flows-ready');

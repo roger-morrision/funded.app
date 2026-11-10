@@ -5,7 +5,7 @@ const ROUTE_GROUPS = {
   callouts:'Community', creators:'Community', 'creator-settings':'Community', community:'Community',
   referrals:'Reward programs', 'referral-faq':'Reward programs', bonuses:'Reward programs', airdrops:'Reward programs', leaderboard:'Reward programs',
   paid:'Protocol', buybacks:'Protocol', 'capital-flow':'Protocol', 'analytics-detail':'Protocol', list:'Protocol', 'marketing-agency':'Protocol',
-  docs:'Help', privacy:'Help', profile:'Account',
+  docs:'Help', privacy:'Help', status:'Help', profile:'Account',
   coin:'Explore · Token', wallet:'Explore · Wallet',
 };
 
