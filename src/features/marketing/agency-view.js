@@ -1,3 +1,4 @@
+import {loadTokenArtwork} from '../shared/token-artwork.js';
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { renderAgencyHistory } from './agency-history.js';
 import {agencyTokenTable} from './agency-token-table.js';
@@ -35,6 +36,7 @@ export function initMarketingAgency(document = globalThis.document) {
   }
   main.insertBefore(page, main.querySelector(':scope > .site-footer'));
   const buybackProgress=document.createElement('section');buybackProgress.dataset.buybackProgress='';page.querySelector('[data-agency-tokens]').parentElement.after(buybackProgress);
+  const loadLogos=()=>page.querySelectorAll('.agency-token-link[data-logo-mint]').forEach(link=>loadTokenArtwork(link.querySelector('.agency-token-logo'),link.dataset.logoMint));
   const oldHistory=page.querySelector('[data-agency-history]'),historyContainer=document.createElement('div');
   historyContainer.dataset.agencyHistory='';historyContainer.textContent=oldHistory.textContent;oldHistory.replaceWith(historyContainer);
   const nav = document.querySelector('.primary-nav'), anchor = nav?.querySelector('a[href="#capital-flow"]');
@@ -97,8 +99,8 @@ export function initMarketingAgency(document = globalThis.document) {
       const data = await response.json(); if (id !== serial) return;
       manualEmailReady=data.agents?.some(row=>row.id==='x-promotion'&&row.enabled===true&&row.status==='manual-ready'&&row.deliveryMode==='admin-email')===true;
       buybackProgress.textContent='Checking buyback funding…';
-      void view.fetch('/api/marketing-agency/progress',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(progress=>{if(id===serial&&progress?.scope==='display-only'){data.progress=progress.rows;page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);}});
-      void view.fetch('/api/buyback/status',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(buyback=>{if(id===serial)buybackProgress.innerHTML=buybackProgressTable(buyback,data.launches||[]);});
+      void view.fetch('/api/marketing-agency/progress',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(progress=>{if(id===serial&&progress?.scope==='display-only'){data.progress=progress.rows;page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);loadLogos();}});
+      void view.fetch('/api/buyback/status',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(buyback=>{if(id===serial){buybackProgress.innerHTML=buybackProgressTable(buyback,data.launches||[]);loadLogos();}});
       page.querySelectorAll('.agency-agent').forEach((card,index)=>{
         let reason=card.querySelector('[data-agent-reason]');if(!reason){reason=document.createElement('small');reason.dataset.agentReason='';card.append(reason);}
         const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);reason.textContent=row?.reason||'';
@@ -133,7 +135,7 @@ export function initMarketingAgency(document = globalThis.document) {
         page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
         page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
         renderAgencyHistory(page.querySelector('[data-agency-history]'),data,{currentVerified:true});
-        page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);
+        page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);loadLogos();
         return;
       }
       if (data.status !== 'activation-blocked' || data.active !== false || data.executionEnabled !== false
@@ -147,7 +149,7 @@ export function initMarketingAgency(document = globalThis.document) {
       page.querySelector('[data-agency-funded]').textContent = data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
       renderAgencyHistory(page.querySelector('[data-agency-history]'),data);
-      page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);
+      page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);loadLogos();
     } catch {
       if (id === serial){verifiedRates=null; publishingPaused=null; manualEmailReady=false; teamReadiness(false);
         page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});renderAgencyHistory(page.querySelector('[data-agency-history]'),null);page.querySelector('[data-agency-tokens]').textContent='Token budgets are unavailable. Refresh to retry.';}

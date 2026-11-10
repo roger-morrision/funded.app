@@ -41,3 +41,7 @@ html body.product-experience-style #marketing-agency .agency-status { margin-blo
 @media (max-width: 1050px) { .agency-agent-grid { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .agency-funds { grid-template-columns: 1fr; } .agency-page { padding: 16px 8px; } }
 @media (min-width: 351px) and (max-width: 760px) { html body.product-experience-style #marketing-agency .agency-funds { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+
+.agency-token-link { display:inline-flex; align-items:center; gap:10px; white-space:nowrap; overflow-wrap:normal; }
+.agency-token-logo { display:grid; place-items:center; width:32px; height:32px; flex:0 0 32px; overflow:hidden; border-radius:8px; background:var(--surface-2,#23233e); font-size:11px; text-decoration:none; }
+.agency-token-logo img { width:100%; height:100%; object-fit:cover; display:block; }

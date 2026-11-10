@@ -1,3 +1,4 @@
+import {agencyTokenLink} from './agency-token-link.js';
 import {escapeHtml as esc} from '../shared/display.js';
 import {formatTokenBaseUnits} from '../../../funded-burn.js';
 
@@ -25,6 +26,6 @@ export function agencyTokenTable(data) {
     const selected=Array.isArray(row.selectedAgents)&&row.selectedAgents.length?row.selectedAgents.map(id=>names[id]||id).join(', '):Number.isInteger(row.selectedMask)?[row.selectedMask&1?'X promotion':'',row.selectedMask&2?'Buyback 1':'',row.selectedMask&4?'Buyback 2':''].filter(Boolean).join(', '):'Not recorded';
     const time=Date.parse(row.checkedAt),market=marketFor(data,row);
     const status=!ready?'Awaiting fresh snapshot':row.completedMask===row.selectedMask?'Actions completed':exact&&BigInt(row.paidLamports)===0n?'Awaiting funding':'Waiting for execution checks';
-    return `<tr><td><a class="text-link" href="/token/${encodeURIComponent(row.mint)}">${esc(row.symbol||row.name||row.mint.slice(0,6)+'…'+row.mint.slice(-4))}</a></td><td>${esc(selected)}</td><td class="numeric">${exact?amount(row.paidLamports):'—'}</td><td class="numeric">${exact?amount(row.spentLamports):'—'}</td><td class="numeric">${exact?amount(String(BigInt(row.paidLamports)-BigInt(row.spentLamports))):'—'}</td><td>${capFor(market)===null?'—':'≈$'+capFor(market).toLocaleString('en-US',{maximumFractionDigits:2})}</td>${[0,1].map(index=>`<td>${esc(agencyMilestoneProgress(market||{targets:ready?row.rules?.marketCapUsd:null},index))}</td>`).join('')}<td>${esc(status)}</td><td>${ready&&Number.isFinite(time)?`<time datetime="${new Date(time).toISOString()}">${new Date(time).toISOString().slice(0,16).replace('T',' ')}</time>`:'—'}</td></tr>`;
+    return `<tr><td>${agencyTokenLink(row)}</td><td>${esc(selected)}</td><td class="numeric">${exact?amount(row.paidLamports):'—'}</td><td class="numeric">${exact?amount(row.spentLamports):'—'}</td><td class="numeric">${exact?amount(String(BigInt(row.paidLamports)-BigInt(row.spentLamports))):'—'}</td><td>${capFor(market)===null?'—':'≈$'+capFor(market).toLocaleString('en-US',{maximumFractionDigits:2})}</td>${[0,1].map(index=>`<td>${esc(agencyMilestoneProgress(market||{targets:ready?row.rules?.marketCapUsd:null},index))}</td>`).join('')}<td>${esc(status)}</td><td>${ready&&Number.isFinite(time)?`<time datetime="${new Date(time).toISOString()}">${new Date(time).toISOString().slice(0,16).replace('T',' ')}</time>`:'—'}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
