@@ -16,15 +16,29 @@ export function boostPackageBadgesMarkup(boost, now = Date.now()) {
 }
 
 const extraCards = [
-  ['.home-reward-token-card[data-reward-mint]', card => card.dataset.rewardMint, card => card.querySelector('.home-reward-token-identity')],
-  ['.claim-card[data-logo-mint]', card => card.dataset.logoMint, card => card.querySelector('.claim-token > div')],
-  ['.reward-discovery-list article', card => mintFromTokenLink(card), card => card.querySelector('.reward-token-identity')],
-  ['.reward-portfolio-list article', card => mintFromTokenLink(card), card => card.querySelector('.reward-row-head')],
-  ['.creator-coin-card[data-coin-mint]', card => card.dataset.coinMint, card => card],
+  ['.home-reward-token-card[data-reward-mint]', card => card.dataset.rewardMint, card => card.querySelector('.home-reward-token-identity strong')],
+  ['.claim-card[data-logo-mint]', card => card.dataset.logoMint, card => card.querySelector('.claim-token strong')],
+  ['.reward-discovery-list article', card => mintFromTokenLink(card), card => card.querySelector('.reward-token-info strong')],
+  ['.reward-portfolio-list article', card => mintFromTokenLink(card), card => card.querySelector('.reward-row-head a')],
+  ['.creator-coin-card[data-coin-mint]', card => card.dataset.coinMint, card => card.querySelector('h3 strong')],
+  ['.paid-listing-card[data-mint]', card => card.dataset.mint, card => card.querySelector('.home-token-identity strong')],
+  ['.home-table-coin', mintFromTokenLink, card => card.querySelector('strong')],
+  ['.home-community-token', mintFromTokenLink, card => card.querySelector('strong')],
+  ['.home-holder-reward-coin', mintFromTokenLink, card => card.querySelector('.home-holder-reward-identity small')],
+  ['.leaderboard-token-cell', mintFromTokenLink, card => card.querySelector('.leaderboard-token-label strong')],
+  ['.portfolio-holding-row', mintFromTokenLink, card => card.querySelector('.portfolio-holding-identity strong')],
+  ['.portfolio-trade-row', mintFromTokenLink, card => card.querySelector('a[href^="/token/"]')],
+  ['.portfolio-lock-table tbody tr', mintFromTokenLink, card => card.querySelector('td:first-child a')],
+  ['.wallet-activity-row[data-token-mint]', card => card.dataset.tokenMint, card => card.querySelector('span > small')],
+  ['.holder-airdrop-row', mintFromTokenLink, card => card.querySelector('.holder-airdrop-info strong')],
+  ['.x-claim-coin', mintFromTokenLink, card => card],
+  ['.record-table tbody tr', mintFromTokenLink, card => card.querySelector('a[href^="/token/"]')],
+  ['.header-search-result[href^="/token/"]', mintFromTokenLink, card => card.querySelector('.header-search-identity small')],
 ];
 
 function mintFromTokenLink(card) {
-  const path = card.querySelector('a[href^="/token/"]')?.getAttribute('href') || '';
+  const link = card.matches?.('a[href^="/token/"]') ? card : card.querySelector('a[href^="/token/"]');
+  const path = link?.getAttribute('href') || '';
   try { return decodeURIComponent(path.slice('/token/'.length).split(/[?#]/, 1)[0]); }
   catch { return ''; }
 }
@@ -36,17 +50,19 @@ function decorateCard(card, mint, target) {
   if (!target || !mintPattern.test(String(mint || ''))) return;
   const badge = boostPackageBadgesMarkup(activeByMint[mint]);
   const existing = card.querySelector(':scope .card-boost-packages');
+  // Templates that already render verified badges own their refresh lifecycle.
+  if (!existing && card.querySelector('.boost-package-badges')) return;
   if (!badge) { existing?.remove(); return; }
   if (existing?.innerHTML === badge) return;
   const holder = existing || document.createElement('span');
   holder.className = 'card-boost-packages';
   holder.innerHTML = badge;
-  if (!existing) target.append(holder);
+  if (holder.parentElement !== target) target.append(holder);
 }
 
 export function decorateSupplementalBoostCards(root = document) {
   for (const [selector, mintOf, targetOf] of extraCards) {
-    const cards = root.matches?.(selector) ? [root] : root.querySelectorAll?.(selector) || [];
+    const cards = [...(root.matches?.(selector) ? [root] : []), ...(root.querySelectorAll?.(selector) || [])];
     for (const card of cards) decorateCard(card, mintOf(card), targetOf(card));
   }
 }

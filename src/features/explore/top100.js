@@ -1,3 +1,4 @@
+import {boostPackageBadgesMarkup} from '../../../boost-card-badges.js';
 import {icon} from '../../../ui-icons.js';
 import {top100Template} from './top100-template.js';
 import {top100Records, rankTop100} from './top100-model.js';
@@ -35,7 +36,7 @@ export function initializeTop100(appState) {
     find('[data-top-refresh]').disabled = busy;
     const rows = result.rows.slice(page * 25, (page + 1) * 25);
     const html = rows.map(row => `<tr${row.boost >= 500 ? ' class="top100-golden"' : ''}>
-      <td class="top100-rank">${row.rank}</td><th scope="row"><a class="top100-token" href="/token/${esc(row.mint)}"><span class="top100-logo" data-top-logo="${esc(row.mint)}" aria-hidden="true">${esc((row.symbol || 'T').slice(0,1))}</span><span><strong>${esc(row.name || row.symbol || row.mint)}</strong><small>$${esc(row.symbol || '—')}</small></span></a></th>
+      <td class="top100-rank">${row.rank}</td><th scope="row"><a class="top100-token" href="/token/${esc(row.mint)}"><span class="top100-logo" data-top-logo="${esc(row.mint)}" aria-hidden="true">${esc((row.symbol || 'T').slice(0,1))}</span><span><strong>${esc(row.name || row.symbol || row.mint)}</strong><small>$${esc(row.symbol || '—')} ${appState.verifiedBoostsAvailable ? boostPackageBadgesMarkup(appState.verifiedBoosts?.[row.mint]) : ''}</small></span></a></th>
       <td><span class="top100-tier">${esc(row.paidListing && row.tier === 'external' ? 'Paid listing' : row.tier.charAt(0).toUpperCase()+row.tier.slice(1))}</span>${filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? `<small class="top100-paid-priority">${row.boost > 0 ? 'Boost priority' : 'Paid priority'}</small>` : ''}</td>
       <td class="top100-cap">${money(row.capUsd)}</td><td class="${row.capGrowthUsd==null?'':row.capGrowthUsd<0?'top100-negative':'top100-positive'}">${signed(row.capGrowthUsd,money)}</td><td class="top100-volume">${row.volumeUsd != null && row.partial ? '≥' : ''}${money(row.volumeUsd)}</td>
       <td>${row.trades == null ? '—' : `${row.partial ? '≥' : ''}${row.trades.toLocaleString()}`}</td><td class="${row.change == null ? '' : row.change < 0 ? 'top100-negative' : 'top100-positive'}">${row.change == null ? '—' : `${row.change > 0 ? '+' : ''}${row.change.toFixed(2)}%`}</td>

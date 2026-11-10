@@ -1,11 +1,10 @@
-// The top bar keeps one primary action (Create a coin) and the wallet button.
-// "Buy $RICH" and notifications live in the wallet menu instead of the top bar.
+// Open the configured token directly from the top bar, without connecting a wallet.
 export function mountRichTokenShortcut(mint, document = globalThis.document) {
-  const nav = document.querySelector('#wallet-popover nav');
+  const nav = document.querySelector('.top-actions');
   if (!nav || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || document.getElementById('header-buy-rich')) return;
   const link = document.createElement('a');
   link.id = 'header-buy-rich';
-  link.setAttribute('role', 'menuitem');
+  link.className = 'header-buy-rich';
   link.textContent = 'Buy $RICH';
   link.href = `/token/${encodeURIComponent(mint)}`;
   link.title = 'Open the $RICH token page';

@@ -1,0 +1,638 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-10T06:14:10.657Z",
+  "cluster": "devnet",
+  "scope": "Targeted live reward tests and deployed app checks; not final Mainnet acceptance",
+  "deployment": {
+    "revision": "c531ad02327ba822aac508862b89458f1359b230",
+    "previousBuild": "e7f6fce9815d1b96c586b35ca60d26124bf37edc",
+    "image": "sha256:29ec6648d11df007671dfd7b03c458ca1e19ccd7e0d29f23f43683de1477e4db",
+    "frontendDigest": "5d7617ce3499ab5a98f5d4111d960d46a47f31510e23d1c290ef4aaf569bb5e3",
+    "cluster": "devnet",
+    "mainnetEnabled": false,
+    "developerWalletEnabled": false,
+    "services": [
+      {
+        "service": "rpc-gateway",
+        "health": "healthy",
+        "image": "sha256:29ec6648d11df007671dfd7b03c458ca1e19ccd7e0d29f23f43683de1477e4db"
+      },
+      {
+        "service": "price-signer",
+        "health": "healthy",
+        "image": "sha256:29ec6648d11df007671dfd7b03c458ca1e19ccd7e0d29f23f43683de1477e4db"
+      },
+      {
+        "service": "app",
+        "health": "healthy",
+        "image": "sha256:29ec6648d11df007671dfd7b03c458ca1e19ccd7e0d29f23f43683de1477e4db"
+      },
+      {
+        "service": "fee-collector",
+        "health": "healthy",
+        "image": "sha256:29ec6648d11df007671dfd7b03c458ca1e19ccd7e0d29f23f43683de1477e4db"
+      },
+      {
+        "service": "buyback-worker",
+        "health": "healthy",
+        "image": "sha256:29ec6648d11df007671dfd7b03c458ca1e19ccd7e0d29f23f43683de1477e4db"
+      },
+      {
+        "service": "agency-buyback-worker",
+        "health": "healthy",
+        "image": "sha256:29ec6648d11df007671dfd7b03c458ca1e19ccd7e0d29f23f43683de1477e4db"
+      },
+      {
+        "service": "db",
+        "health": "healthy",
+        "image": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+      },
+      {
+        "service": "rpc-cache",
+        "health": "healthy",
+        "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537"
+      },
+      {
+        "service": "https",
+        "health": "healthy",
+        "image": "sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9"
+      }
+    ],
+    "launchReady": true,
+    "priceSignerReady": true,
+    "dataServicesPreserved": true
+  },
+  "validation": {
+    "localJavaScriptTests": 428,
+    "remoteRuntimeTests": 419,
+    "remoteSyntaxFiles": 1031,
+    "readOnlyMainnetPreviewBuilt": true,
+    "localDevelopment": {
+      "revision": "c531ad02327ba822aac508862b89458f1359b230",
+      "origin": "http://127.0.0.1:8788",
+      "financialWorkersEnabled": false
+    },
+    "publicLaunchReady": true,
+    "priceSignerReady": true,
+    "unauthorizedSigningStatus": 401,
+    "buybackExecutionReasons": [
+      "Verified buyback funding is below the execution threshold.",
+      "No verified executable buyback allocation is currently available."
+    ]
+  },
+  "programObservation": {
+    "at": "2026-11-10T05:38:19.958Z",
+    "build": "12f42577f7a323182ffbc8e290ba1efb4259ec7c",
+    "cluster": "devnet",
+    "inventory": {
+      "FUNDED_FEE_ROUTER_PROGRAM_ID": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "FUNDED_V3_FEE_ROUTER_PROGRAM_ID": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "FUNDED_DEVELOPER_LOCK_PROGRAM_ID": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+    },
+    "programs": [
+      {
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "roles": [
+          "FUNDED_FEE_ROUTER_PROGRAM_ID",
+          "FUNDED_V3_FEE_ROUTER_PROGRAM_ID",
+          "FUNDED_DEVELOPER_LOCK_PROGRAM_ID"
+        ],
+        "executable": true,
+        "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programDataAddress": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+        "programDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee"
+      },
+      {
+        "programId": "EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT",
+        "roles": [],
+        "executable": true,
+        "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programDataAddress": "DcerG6KdauUaMQXcW2nfZm6nN2iHKsrBThDEisYPdyCz",
+        "programDataSha256": "02e41471271b9953721e3acb3ad77156802c2e97f5de7acf8d2e03d36f0228a8"
+      },
+      {
+        "programId": "61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa",
+        "roles": [],
+        "executable": true,
+        "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programDataAddress": "6XCDxJhkqnBCcy6hwZjdHTCqUVvfUaqAzsY5493n27x7",
+        "programDataSha256": "65993e0b50fcf6650ecaa6e8e4b23c1ff345547e55c2d7b07ead4ba81333c77d"
+      }
+    ],
+    "rcat": {
+      "status": "finalized",
+      "signature": "2QtmesBGwVuiw2va3xT4tz59ZUFirfGZ9qoKFHmaLuCZqjKuWDcimSiVtjyiqj3CCAfx4ChW6zGsxUHKZhDWJG9g",
+      "amount": "34281146476108",
+      "mint": "EjcH3cizxAevcYHRjq29z1DQdn6oATap4uN9fRzTD2sa",
+      "creator": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
+    },
+    "releaseWorker": {
+      "status": "ready",
+      "cluster": "devnet",
+      "pending": 0,
+      "examined": 2,
+      "failures": [],
+      "released": 0,
+      "checkedAt": 1794289085685
+    }
+  },
+  "emailDelivery": {
+    "status": "sent",
+    "cluster": "devnet",
+    "mint": "EjcH3cizxAevcYHRjq29z1DQdn6oATap4uN9fRzTD2sa",
+    "recipientAccepted": true,
+    "messageId": "<launch-82df711b3b6b943d921e6e7bd74ba92179bdf82903a9d4f98e6f09f957c2e5d5@richpad.fun>",
+    "xPosted": false,
+    "liveQueueModified": false,
+    "scope": "One labelled delivery test using existing verified RCAT launch"
+  },
+  "websocket": {
+    "checkedAt": "2026-11-10T05:53:25.551Z",
+    "scope": "Read-only notification for an existing finalized Devnet withdrawal; no new transaction",
+    "signature": "4xqrX5r8k4zoN8nxttUCh21wSJiTuU9wQQ7koW5V4pDFmp3mZURFMoqtE2tHJ2XLsWFWz29edxtrvbYc3VYHmo2G",
+    "notification": {
+      "context": {
+        "slot": 520643972
+      },
+      "value": {
+        "err": null
+      }
+    },
+    "elapsedMs": 3053,
+    "rejectedOrigin": 403
+  },
+  "publicApiLatency": {
+    "checkedAt": "2026-11-10T06:06:33.640Z",
+    "scope": "Two sequential public read samples from this workstation; not a load test or latency guarantee",
+    "samples": [
+      {
+        "round": 1,
+        "path": "/api/launches?limit=20",
+        "http": 200,
+        "elapsedMs": 1793,
+        "json": true,
+        "cluster": null,
+        "status": null
+      },
+      {
+        "round": 1,
+        "path": "/api/service-fees",
+        "http": 200,
+        "elapsedMs": 310,
+        "json": true,
+        "cluster": "devnet",
+        "status": null
+      },
+      {
+        "round": 1,
+        "path": "/api/market/sol-usd",
+        "http": 200,
+        "elapsedMs": 547,
+        "json": true,
+        "cluster": null,
+        "status": null
+      },
+      {
+        "round": 1,
+        "path": "/api/analytics/summary",
+        "http": 200,
+        "elapsedMs": 1017,
+        "json": true,
+        "cluster": "devnet",
+        "status": "indexed"
+      },
+      {
+        "round": 1,
+        "path": "/api/daily-bonus/dashboard?category=all&page=1",
+        "http": 200,
+        "elapsedMs": 646,
+        "json": true,
+        "cluster": "devnet",
+        "status": null
+      },
+      {
+        "round": 1,
+        "path": "/api/status",
+        "http": 200,
+        "elapsedMs": 688,
+        "json": true,
+        "cluster": "devnet",
+        "status": "operational"
+      },
+      {
+        "round": 2,
+        "path": "/api/launches?limit=20",
+        "http": 200,
+        "elapsedMs": 897,
+        "json": true,
+        "cluster": null,
+        "status": null
+      },
+      {
+        "round": 2,
+        "path": "/api/service-fees",
+        "http": 200,
+        "elapsedMs": 332,
+        "json": true,
+        "cluster": "devnet",
+        "status": null
+      },
+      {
+        "round": 2,
+        "path": "/api/market/sol-usd",
+        "http": 200,
+        "elapsedMs": 375,
+        "json": true,
+        "cluster": null,
+        "status": null
+      },
+      {
+        "round": 2,
+        "path": "/api/analytics/summary",
+        "http": 200,
+        "elapsedMs": 553,
+        "json": true,
+        "cluster": "devnet",
+        "status": "indexed"
+      },
+      {
+        "round": 2,
+        "path": "/api/daily-bonus/dashboard?category=all&page=1",
+        "http": 200,
+        "elapsedMs": 314,
+        "json": true,
+        "cluster": "devnet",
+        "status": null
+      },
+      {
+        "round": 2,
+        "path": "/api/status",
+        "http": 200,
+        "elapsedMs": 291,
+        "json": true,
+        "cluster": "devnet",
+        "status": "operational"
+      }
+    ]
+  },
+  "holder": {
+    "mint": "8Uk6Fmd4YzrNTw4mWBR7ipeWwbAG5boTdzR7vbdTqniQ",
+    "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "vault": "6jjG3UuF5iKEAhM8GXk6xNepRzPepdmBwdNKM9Xtbb2V",
+    "cluster": "devnet",
+    "fundingSource": "QA-sponsored isolated ledger",
+    "receipts": [
+      {
+        "label": "market-buy",
+        "signature": "2jc8qEcP5GUx9W2MKaabX1A2dxkhfHhUbTwbHgT5SUeswQeahN7p7wQ3e9W84qHxGjZxqJgRrrpUqtedyf3zVRDz"
+      },
+      {
+        "label": "establish-test-holdings",
+        "signature": "3HT8W1MZy6WfoV61rnZLrTxQjTQd6iDx5NXoy8rPeoH8weJZvTwNeBnux1CogmyQcnfdespLzfzRDgdQ6SrtNrnY"
+      },
+      {
+        "label": "QA-funded-holder-pool",
+        "signature": "5u8KSJQbTMoVjDtvRdTrP713nac1dtJyu6YWUdvVucpx5azfjtYUHHgfCCpuA25zHdEddZqW4DEeHXxrjEbhawL1"
+      },
+      {
+        "label": "return-test-assets",
+        "signature": "3uFSyDGGg9Q4xgS9cPrZ9CPGdZYH7T7JoJCdQxbk3LGfSBzXafhopnMDdmfMFeFhHAtmGkJBH2cbLkV1BLTHvvrk"
+      },
+      {
+        "label": "market-sell",
+        "signature": "ga6iimTvRRLc2vfjf5hZpwSjGHAKSuNAkibpj7W8mizDjVxsy5gDM5kbF1bZnbqy9bCN2wSSq7ZMeeNEZDT3mkh"
+      }
+    ],
+    "appRevision": "2a511ab67eaef97be5e0cb8d9b422f489a597ab9",
+    "authorizedBudgetLamports": 650000000,
+    "scope": "Full one-hour isolated holder scheduler with real Devnet holdings, price quote, reward pool and payout; no production ledger changes",
+    "holders": [
+      "8pSXn8qkg5Qk1YA8M782QkkbuLPDVD4gqHfkTXs9zdDB",
+      "9RF97FunRwLsFHZZfJpVhyj1jLxPTd44xCFEefvdPH5a"
+    ],
+    "startingValuesUsd": [
+      53.008890472810954,
+      1.827892774924501
+    ],
+    "fundingLamports": 267980670,
+    "start": 1794286800,
+    "end": 1794290400,
+    "initialMinimumLamports": "233026669",
+    "operatorBefore": 3138262087,
+    "qaBefore": 14751563149,
+    "status": "paid",
+    "eligibility": {
+      "policy": "usd-20-hourly-v1",
+      "quoteSource": "finalized-Pump-curve-plus-SOL-USD",
+      "quoteObservedAt": "2026-11-10T06:00:05.663Z",
+      "tokenPriceUsd": 1.049440912386399e-7,
+      "solUsd": 86.28,
+      "minimumTokenUnits": "190577666297768",
+      "minimumHolderUsd": 20,
+      "minimumPoolUsd": 20,
+      "eligibleCount": 1,
+      "minimumPoolLamports": "231919333"
+    },
+    "payment": {
+      "signature": "341TBkjXUUjNPzX7eh9r8ioHHfweAVreN1vdDpq9Q15r3R3XcYjKrtX6H2f61LdPDSxRy9n1EwQPJ4yaqvpJfrj3",
+      "slot": 520645800,
+      "vaultDelta": -267980670,
+      "recipientDelta": 267980670
+    },
+    "snapshots": [
+      520630531,
+      520630793,
+      520631057,
+      520631321,
+      520631585,
+      520631848,
+      520632112,
+      520632373,
+      520632637,
+      520632901,
+      520633159,
+      520633423,
+      520633687,
+      520633948,
+      520634211,
+      520634473,
+      520634737,
+      520635003,
+      520635267,
+      520635533,
+      520635791,
+      520636056,
+      520636317,
+      520636583,
+      520636845,
+      520637107,
+      520637371,
+      520637635,
+      520637893,
+      520638153,
+      520638421,
+      520638683,
+      520638947,
+      520639209,
+      520639471,
+      520639731,
+      520639995,
+      520640255,
+      520640517,
+      520640779,
+      520641043,
+      520641301,
+      520641566,
+      520641827,
+      520642091,
+      520642353,
+      520642615,
+      520642876,
+      520643133,
+      520643395,
+      520643657,
+      520643921,
+      520644183,
+      520644445,
+      520644711,
+      520644972,
+      520645233,
+      520645495,
+      520645495
+    ],
+    "cycle": "G7QtrvP9bWbAcYavynWJWvuZKsfnCQfVCQCJEuStDWJU",
+    "replaySubmitted": 0,
+    "remainingHolderLamports": [
+      0,
+      0
+    ],
+    "qaAfter": 14737305922,
+    "qaNetCostLamports": 14257227,
+    "operatorAfter": 3135559687,
+    "finishedAt": "2026-11-10T06:01:13.357Z"
+  },
+  "dailyBonus": {
+    "cluster": "devnet",
+    "scope": "Isolated unregistered QA mint; real five-minute bonus window, source fees, funding, rankings and payouts. Not a full UTC-day or live-primary ledger test.",
+    "receipts": [
+      {
+        "signature": "2XC7xzkhe4vXGqthj5bxMwqJn4wG8d1s5A45r5mNTqyFxDFHbwFuEC3q1vpJddwdJLfFjiMLsUvgUdsyvNqYzP2a",
+        "blockhash": "8X7eaXHkxCctehdnZ13a1ozgjyBTRCm7QvNdNhM1GCo3",
+        "label": "fund-disposable-fixture",
+        "slot": 520646135,
+        "reconciled": true
+      },
+      {
+        "signature": "4fXrKpGMUXrn8VPpscFkfzYXEjaj7RZpUnfsCrVsgHLt32AcNMGEEeWYmRW12qEE6SEmcLP5jM6cLme2WknE9wgg",
+        "blockhash": "9v67uBFjTpL2xahiqtFBDMX7oLoLcbwvFwne7AWSaXfe",
+        "reconciled": true
+      },
+      {
+        "signature": "Evj1vytgxSpUMi2oWtJh5sFSb8pJUnGuBDBZHxsNf5XsZ14KCc7sRY2vc3QrrpGw2v6ZL2onGFq1ZjAkieEJbNe",
+        "blockhash": "HsHNAGRAdAPCRPJcRD4rR8wPxjYGw5Q1KbbtUHPJFmVW",
+        "reconciled": true
+      },
+      {
+        "signature": "4wNWEF75Ufxs9wheV7jTaUXapGWmgaBogHTpnQwKkBxaxfqU2G4Jhhivip5TLNkpZ11em4xuWEV9iniwpJhep1tQ",
+        "blockhash": "8iGoX7zuv945TwmXJDqdZHLnULkKRzrzHoe6eptMsysH",
+        "label": "trader-buy",
+        "slot": 520646906,
+        "reconciled": true
+      },
+      {
+        "signature": "3kBK1jydn5YhPSL4oTBLYpuqbyejfnxz5AgzVthSc6XXV5VfQmUGfNKF1EdJQ8TsnMQH8D9SK2hG55vsanNXETRm",
+        "blockhash": "9p1AVPbC9ViA9QmGZny7tS1frpUiPRJkb3JTxn9xNsmz",
+        "label": "trader-sell",
+        "slot": 520646949,
+        "reconciled": true
+      },
+      {
+        "signature": "B4UfCXB2S5krFDTokJMmYQdKHaWtLdCvGMi2utegMJt6U68GeFejC4npQac3UFPgVjF8pwc26Pd3aKTF8Mi6siW",
+        "blockhash": "2TqvQrYdQ1Do7s2NKLe83gcSsH7uxKFP1aNU7igr4Tm8",
+        "label": "collect-fees",
+        "slot": 520646984,
+        "reconciled": true
+      },
+      {
+        "signature": "f7Hq2oiQ1Kzybqy3mFX6AYPqmf3TbyK4T2XtWyaEmCrr7AwPEsQQ1diTjwo1YK9bzehm3jfNgn9pxbGTyLqsJc2",
+        "blockhash": "Df8mF4jQ3W6tFUwEG2GB9rhcmVB88ocKAjRx2ksWDa6",
+        "label": "settle-fees",
+        "slot": 520647013,
+        "reconciled": true
+      },
+      {
+        "signature": "XPtAkArY1efzvHUrEh4EHreCMAz9b2kKoJ3YZVdhkjuqRS25soans4DnXFzrJct1opXzi2nPEX9kP5hX1wHMWvD",
+        "blockhash": "41iFrHhpxFjMRojXGHqft2f77MgnamendkTdpej227Z2",
+        "reconciled": true
+      },
+      {
+        "signature": "xq9nkzdPcZD299nHjwg5ZozHfHL8Z4m2H7ACdD5poc8VonJn8gPifBqHrpoG9GtH8LwnEUygugzBD6Kz9hrDBQ1",
+        "blockhash": "6XHb8nPxj35PSKjbbA8fRrkyfoWXbCaLtUdxhX3TMkPC",
+        "label": "fund-community-bonus",
+        "slot": 520647100,
+        "reconciled": true
+      },
+      {
+        "signature": "idCkvQcPXby9eVookGSKvLU1ag31eFjBQ1R7egBv6RMsRuF92dff1PMmUTXvuiYXXsFcpMk8JVxdCif7UWE2tcW",
+        "blockhash": "HVQXofo6NnGbUzNBswSoQReaLuitgdEEVK24GRsPVALR",
+        "reconciled": true
+      },
+      {
+        "signature": "Lx1ByuRAsJNXZaaqEqFNxFLMKZnaWKqm7qumrvwrV5QavEBk7qumUHetuqJanjJfhvamKQnxNsgkxkNpemPT1wR",
+        "blockhash": "8y68p8X9Z3PhmTH7swWMSKmGVLSoD6Hm5anN7d82heWs",
+        "reconciled": true
+      },
+      {
+        "signature": "5LvqXTL2vLaEKLJC3FbgWb9fgEZbBAtVjshA8HZyuFcMQWVVf9LbLQAzoGGYB99jcXjerrQf9rF4eqdCS7JiSLrb",
+        "blockhash": "9YmRo4wfWek3gEKr7xvTvp3VpzHAoSnU7xycekDVzD6E",
+        "reconciled": true
+      },
+      {
+        "signature": "4QbRfPpAPSUUpzD9t6Ta9tZL4xXTjaxT4atWy25b8RJc6ohZYyrWcfNYooYdp6qd5A4P6PdyQj27gpSLB9vut2aM",
+        "blockhash": "9mQAnEGHfbqk9Hus7v5miyVg15mgmZvpc5s5TNVPNaRM",
+        "reconciled": true
+      },
+      {
+        "signature": "5BPtuPZz1noqDz3Reqnuu7GvqnTfWWFGKFz9PXurVenjfm7b67iE2oXdAfUYMe2EKYrH4YPFXUeoiGvmhMSMmcFh",
+        "blockhash": "CXSkBQX3LrZpev2yGPbjfsaFUmw4j5Rv3EzEE1tcx7yK",
+        "reconciled": true
+      },
+      {
+        "signature": "4CxR2YhnaueWGi3NkM2oJ2sm79kHic4kneSrbNPwc18oyZNmxkFoZTcVDK9KxenwvRYQGifHfF37xf5frJnwLejK",
+        "blockhash": "5HChBSeAX7bQt9b23UWbiJJ9hqUURyFJeQGXjHu2ZVwB",
+        "label": "refund-unused-fixture-funds",
+        "slot": 520648936
+      }
+    ],
+    "wallets": {
+      "creator": "E96mX4WEjwuMTdReoiTkYHsnKPjBStssHxvxAYQ8dpLU",
+      "trader": "E6kSoitJMeBfd1SbJZT7GzmMGZQALDfM6AhodsQjghoM",
+      "referrer": "Gf8CsSMx1m9EgdD8W2SPMPtUob3RKyoZx4vQ9duXKbRR"
+    },
+    "startedAt": "2026-11-10T06:01:52.984Z",
+    "qaBefore": 14737305922,
+    "operatorBefore": 3135559687,
+    "appRevision": "c531ad02327ba822aac508862b89458f1359b230",
+    "launchJournal": {
+      "state": "verification-pending",
+      "signature": "Evj1vytgxSpUMi2oWtJh5sFSb8pJUnGuBDBZHxsNf5XsZ14KCc7sRY2vc3QrrpGw2v6ZL2onGFq1ZjAkieEJbNe"
+    },
+    "mint": "E3St9fG3dn6oYpWNjJJzx2T3GTPsg7bQXTiFHAg5G3dq",
+    "launchSignature": "Evj1vytgxSpUMi2oWtJh5sFSb8pJUnGuBDBZHxsNf5XsZ14KCc7sRY2vc3QrrpGw2v6ZL2onGFq1ZjAkieEJbNe",
+    "window": {
+      "day": "qa5m:2026-11-10T06:05:00Z@2ea2aeb5f9cb",
+      "start": 1794290700,
+      "end": 1794291000,
+      "periodSeconds": 300
+    },
+    "communityFundingLamports": "1747",
+    "status": "passed",
+    "snapshotHash": "1cbc1cc66ba60949f5de7ee64e012a9f0d02d20da9da0a4d4aea13bca33f9376",
+    "rankings": {
+      "creators": [
+        {
+          "rank": 1,
+          "wallet": "E96mX4WEjwuMTdReoiTkYHsnKPjBStssHxvxAYQ8dpLU",
+          "scoreLamports": "43665",
+          "percentOfCategory": 50,
+          "bonusLamports": "291"
+        }
+      ],
+      "referrals": [
+        {
+          "rank": 1,
+          "wallet": "Gf8CsSMx1m9EgdD8W2SPMPtUob3RKyoZx4vQ9duXKbRR",
+          "scoreLamports": "43665",
+          "percentOfCategory": 50,
+          "bonusLamports": "291"
+        }
+      ],
+      "traders": [
+        {
+          "rank": 1,
+          "wallet": "E6kSoitJMeBfd1SbJZT7GzmMGZQALDfM6AhodsQjghoM",
+          "scoreLamports": "5925921",
+          "percentOfCategory": 50,
+          "bonusLamports": "291"
+        }
+      ]
+    },
+    "payments": [
+      {
+        "recipient": "E6kSoitJMeBfd1SbJZT7GzmMGZQALDfM6AhodsQjghoM",
+        "signature": "5LvqXTL2vLaEKLJC3FbgWb9fgEZbBAtVjshA8HZyuFcMQWVVf9LbLQAzoGGYB99jcXjerrQf9rF4eqdCS7JiSLrb",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "amountReceived": "291",
+        "payment": "2CTZZn31x5jTC22RtbrtCotcMKsEtNaPZT5jv9DTNBAE",
+        "vaultBalanceDeltaVerified": true,
+        "cluster": "devnet",
+        "amount": "291",
+        "paidAt": "2026-11-10T06:11:40.000Z",
+        "slot": 520648534,
+        "recipientDelta": 291
+      },
+      {
+        "recipient": "E96mX4WEjwuMTdReoiTkYHsnKPjBStssHxvxAYQ8dpLU",
+        "signature": "4QbRfPpAPSUUpzD9t6Ta9tZL4xXTjaxT4atWy25b8RJc6ohZYyrWcfNYooYdp6qd5A4P6PdyQj27gpSLB9vut2aM",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "amountReceived": "291",
+        "payment": "FNm48BQAksz9HrDCxmuXXTWwKTgUZcmohJSsWSEkcmSA",
+        "vaultBalanceDeltaVerified": true,
+        "cluster": "devnet",
+        "amount": "291",
+        "paidAt": "2026-11-10T06:12:00.000Z",
+        "slot": 520648622,
+        "recipientDelta": 291
+      },
+      {
+        "recipient": "Gf8CsSMx1m9EgdD8W2SPMPtUob3RKyoZx4vQ9duXKbRR",
+        "signature": "5BPtuPZz1noqDz3Reqnuu7GvqnTfWWFGKFz9PXurVenjfm7b67iE2oXdAfUYMe2EKYrH4YPFXUeoiGvmhMSMmcFh",
+        "finalized": true,
+        "balanceDeltaVerified": true,
+        "amountReceived": "291",
+        "payment": "6P3eWGuj8bcvTx7K59vyF71VMUwWgSR1Ahvwf5rw7M9s",
+        "vaultBalanceDeltaVerified": true,
+        "cluster": "devnet",
+        "amount": "291",
+        "paidAt": "2026-11-10T06:12:21.000Z",
+        "slot": 520648709,
+        "recipientDelta": 291
+      }
+    ],
+    "retainedLamports": "874",
+    "restartReplaySubmissions": 0,
+    "remainingWalletLamports": [
+      0,
+      0,
+      0
+    ],
+    "qaAfter": 14693812200,
+    "operatorAfter": 3120523767,
+    "qaNetCostLamports": 43493722,
+    "finishedAt": "2026-11-10T06:13:14.502Z"
+  },
+  "budget": {
+    "authorizedLamports": 650000000,
+    "totalNetSpentLamports": 75489269,
+    "qaFinalBalanceLamports": 14693812200,
+    "minimumQaReserveLamports": 14000000000,
+    "accountingScope": "Net QA funding after finalized refunds plus observed operator debits during both isolated tests; remaining program accounts and token reserve are disposable fixtures, not refundable liquid SOL."
+  },
+  "mainnet": {
+    "ready": false,
+    "activationAuthorized": false,
+    "productionPlaceholdersRetained": true,
+    "remaining": [
+      "Production program, RICH mint/pool, isolated infrastructure and signer/custody references",
+      "Independent review of final exact program bytes",
+      "Production network integration and gated signing activation",
+      "Fresh normal-threshold buyback and real X-identity acceptance",
+      "Final-release acceptance and capped Mainnet canary"
+    ]
+  }
+}

@@ -2,6 +2,7 @@
 // and a reminder one hour before the snapshot. In-app toasts always; browser
 // notifications only after the person turns them on. Also registers the PWA worker.
 import { el, sol, lamports, getJSON, nextUtcMidnight, safeStorage } from './format.js';
+import { standing } from './bonus-rank-card.js';
 
 const OPT_KEY = 'richpad.alerts.enabled', SEEN_KEY = 'richpad.alerts.received';
 
@@ -79,7 +80,16 @@ export function mountAlerts(app, document = globalThis.document) {
     }
   }
 
-  // Prize places: the rank card emits this when the wallet enters the top 3.
+  // Prize-place alerts remain available without rendering a rank card.
+  async function checkPrizes() {
+    const wallet = app.connectedWalletAddress; if (!wallet) return;
+    const data = await getJSON('/api/daily-bonus/dashboard?category=all&page=1');
+    if (app.connectedWalletAddress !== wallet) return;
+    for (const [key, category] of Object.entries({ creators:'Creators', referrals:'Referrers', traders:'Traders' })) {
+      const result = standing(data?.today?.[key], wallet);
+      if (result.state === 'winning') globalThis.dispatchEvent?.(new CustomEvent('richpad:bonus-prize', { detail:{category,rank:result.rank} }));
+    }
+  }
   globalThis.addEventListener?.('richpad:bonus-prize', event => {
     const { category, rank } = event.detail || {};
     const key = `richpad.alerts.prize.${nextUtcMidnight()}.${category}`;
@@ -88,8 +98,8 @@ export function mountAlerts(app, document = globalThis.document) {
     void notify(document, `You're #${rank} in ${category}`, 'You are in a Daily bonus prize place right now.', '/#bonuses');
   });
 
-  void checkPayouts(); checkSnapshot();
-  globalThis.setInterval?.(() => { void checkPayouts(); checkSnapshot(); }, 120_000);
-  globalThis.addEventListener?.('funded:reward-identity-change', () => void checkPayouts());
+  void checkPayouts(); void checkPrizes(); checkSnapshot();
+  globalThis.setInterval?.(() => { void checkPayouts(); void checkPrizes(); checkSnapshot(); }, 120_000);
+  globalThis.addEventListener?.('funded:reward-identity-change', () => { void checkPayouts(); void checkPrizes(); });
   return true;
 }

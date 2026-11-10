@@ -1,6 +1,5 @@
 import { $$, $, node } from './dom.js';
 import { icon } from '../../../ui-icons.js';
-import { EXPLORE_CLUSTER, APP_MAINNET_READ_ONLY } from '../../../app-config.js';
 import { isDevnetImageUri } from '../../../devnet-metadata.js';
 import { loadTokenArtwork } from '../shared/token-artwork.js';
 import { productHelpTopics } from '../help/product-guidance.js';
@@ -243,11 +242,6 @@ export function navigation() {
   }
   mobile.append(tradeActions, mobileLinks);
   document.body.append(mobile);
-  const network = $('.workspace-network') || node('span', 'workspace-network');
-  network.textContent = EXPLORE_CLUSTER === 'mainnet-beta' ? (APP_MAINNET_READ_ONLY ? 'Mainnet · read only' : 'Mainnet') : 'Devnet · test SOL';
-  network.title = EXPLORE_CLUSTER === 'devnet' ? 'Solana Devnet uses test SOL with no monetary value.' : APP_MAINNET_READ_ONLY ? 'Solana Mainnet preview: transactions are disabled.' : 'Solana Mainnet: transactions use real SOL.';
-  network.setAttribute('aria-label', network.title);
-  if (!network.isConnected) $('.top-actions')?.prepend(network);
   const preference = node('label', 'workspace-preference', 'Start page');
   const select = node('select'); select.setAttribute('aria-label', 'Preferred start page');
   select.innerHTML = '<option value="overview">Home</option><option value="explore">Explore</option>';

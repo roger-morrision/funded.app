@@ -200,8 +200,8 @@ html body #main-content .reward-dashboard:has(> .primary-button:not([hidden])) >
 html body #main-content .docs-guide-article { max-width: 760px; }
 html body #main-content .docs-guide-article .docs-guide-body { font-size: 15px; line-height: 1.7; }
 
-/* Home order: hero → trending + new coins → stats & where fees go → paid promotion → FAQ. */
-html body.page-route-overview #main-content > .home-featured { order: 4; }
+/* Featured projects follow the Home hero before the remaining sections. */
+html body.page-route-overview #main-content > .home-featured { order: 1; }
 
 /* Explore: on wide screens the public payout records sit in a right column beside the feed. */
 @media (min-width: 1400px) {
@@ -217,3 +217,12 @@ html body #main-content :is(.section-heading p:not(.eyebrow), .panel-explainer, 
 /* Spacing scale: 20px under a page heading, 28px between top-level sections of a page. */
 html body #main-content .section-block > .section-heading { margin-bottom: 20px; }
 html body #main-content .section-block > section + section { margin-top: 28px; }
+
+/* Direct access to the configured RICH token on desktop and mobile. */
+.topbar .top-actions .header-buy-rich { display: inline-flex; align-items: center; justify-content: center; flex: none; padding: 8px 12px; border: 1px solid var(--accent, #f5b800); border-radius: 8px; color: var(--accent, #f5b800); font-weight: 700; white-space: nowrap; text-decoration: none; }
+.topbar .top-actions .header-buy-rich:hover { background: #f5b80018; }
+.topbar .top-actions .header-buy-rich:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (max-width: 480px) { .topbar .top-actions .header-buy-rich { padding: 8px; font-size: 12px; } }
+
+.card-boost-packages { display: inline-flex; vertical-align: middle; margin-inline-start: 6px; }
+.top100-token .boost-package-badges, .card-boost-packages .boost-package-badges { display: inline-flex; white-space: nowrap; vertical-align: middle; }
