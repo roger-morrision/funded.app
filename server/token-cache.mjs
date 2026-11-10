@@ -48,15 +48,15 @@ export function createTokenCache({ databaseUrl = process.env.DATABASE_URL, clust
     for (const mint of wanted) if (!result.has(mint) && memory.has(mint)) result.set(mint, memory.get(mint));
     return result;
   }
-  async function list({ sort = 'volume', limit = 40, offset = 0 } = {}) {
+  async function list({ sort = 'volume', limit = 40, offset = 0, feed = null } = {}) {
     const order = sort === 'market_cap' ? 'market_cap DESC NULLS LAST' : sort === 'newest' ? 'last_seen DESC' : 'volume_24h DESC NULLS LAST';
     if (await init()) {
-      const { rows } = await pool.query(`SELECT data, updated_at FROM discovered_tokens WHERE cluster=$1 AND updated_at > now() - interval '7 days'
+      const { rows } = await pool.query(`SELECT data, updated_at FROM discovered_tokens WHERE cluster=$1 AND updated_at > now() - interval '7 days'${feed === 'pump' ? " AND data->>'pumpFeed' = 'true'" : ''}
         ORDER BY ${order} LIMIT $2 OFFSET $3`, [cluster, Math.min(limit, 100), Math.max(offset, 0)]).catch(() => ({ rows: [] }));
       if (rows.length) return rows.map(row => ({ ...row.data, cachedAt: row.updated_at.toISOString() }));
     }
     const key = sort === 'market_cap' ? 'marketCapUsd' : 'volume24hUsd';
-    return [...memory.values()].sort((a, b) => (b[key] || 0) - (a[key] || 0)).slice(offset, offset + limit);
+    return [...memory.values()].filter(row => feed !== 'pump' || row.pumpFeed).sort((a, b) => (b[key] || 0) - (a[key] || 0)).slice(offset, offset + limit);
   }
   return { upsert, read, list, close: () => pool?.end?.() };
 }

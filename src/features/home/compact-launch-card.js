@@ -7,7 +7,7 @@ export function compactLaunchCard(item,{value,ageLabel,freshness,price='—',cre
  const progressAttributes=progress.value===null?'role="img" aria-label="Migration progress unavailable"':`role="progressbar" aria-label="Migration progress for ${escapeHtml(symbol)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.value}" aria-valuetext="${escapeHtml(progressLabel)}"`;
  return `<article class="home-new-token-card" data-mint="${escapeHtml(mint)}" data-logo-mint="${escapeHtml(mint)}">
   <a class="home-new-token-link" href="/token/${encodeURIComponent(mint)}" aria-label="Open ${escapeHtml(name)} token details"></a>
-  <div class="home-new-token-media"><div class="home-new-token-art"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon||symbol.slice(0,2))}</span></div></div>
+  <div class="home-new-token-media"><div class="home-new-token-art"><span class="home-token-avatar" aria-hidden="true">${escapeHtml(item.icon||symbol.slice(0,2))}${/^https:\/\//.test(String(item.imageUri||''))&&!String(item.imageUri).includes('devnet-images')?`<img src="${escapeHtml(item.imageUri)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</span></div></div>
   <div class="home-new-token-body"><div class="home-new-token-heading"><strong title="${escapeHtml(name)}">${escapeHtml(name)}</strong><small title="${escapeHtml(symbol)}">$${escapeHtml(symbol)}</small>${boostMarkup}</div>
    <span class="home-launch-media-package"></span>
    <div class="home-new-token-market"><span>MC <strong title="Market cap · ${escapeHtml(freshness)}">${escapeHtml(shownCap)}</strong></span><span title="Token price · ${escapeHtml(freshness)}">${escapeHtml(price)}</span></div>

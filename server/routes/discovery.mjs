@@ -148,14 +148,14 @@ export function createDiscoveryRoutes({
       const refresh = () => {
         if (feedRefresh.has(key)) return feedRefresh.get(key);
         const job = fetchMainnetFeed(sort, offset, limit).then(result => {
-          if (result?.items?.length) { feedCache.set(key, { at: Date.now(), result }); void tokenCache?.upsert(result.items.map(item => ({ ...item, mint: item.mint }))); }
+          if (result?.items?.length) { feedCache.set(key, { at: Date.now(), result }); void tokenCache?.upsert(result.items.map(item => ({ ...item, mint: item.mint, pumpFeed: true }))); }
           return result;
         }).finally(() => feedRefresh.delete(key));
         feedRefresh.set(key, job); return job;
       };
       if (cached && Date.now() - cached.at < 45_000) return json(res, 200, { ...cached.result, cache: 'fresh' });
       if (cached) { void refresh().catch(() => {}); return json(res, 200, { ...cached.result, cache: 'stale' }); }
-      const stored = tokenCache ? await tokenCache.list({ sort: sort === 'created_timestamp' ? 'newest' : sort === 'market_cap' ? 'market_cap' : 'volume', limit, offset }).catch(() => []) : [];
+      const stored = tokenCache ? await tokenCache.list({ sort: sort === 'created_timestamp' ? 'newest' : sort === 'market_cap' ? 'market_cap' : 'volume', limit, offset, feed: 'pump' }).catch(() => []) : [];
       if (stored.length >= Math.min(limit, 10)) {
         void refresh().catch(() => {});
         return json(res, 200, { provider: 'token-cache', chain: 'solana', fetchedAt: new Date().toISOString(), cache: 'database', items: stored });
