@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-10T02:26:46.320Z",
+  "cluster": "devnet",
+  "appOrigin": "https://richpad.fun",
+  "scope": "Targeted Devnet verification, not exhaustive financial acceptance or Mainnet approval",
+  "deployment": {
+    "revision": "82983bd23e4d8e4103eeb41b4debd8d6d92fa543",
+    "image": "sha256:79c1e532f9d84bbce24e2fad77a4fdf2a69ac197f3c3ee9d51e6a32ead9fbcdd",
+    "frontendDigest": "2e5fe082cf67f678168e567c8b5c10959ffe3c5baf8172b8f547a61db40a9d74",
+    "mainnetEnabled": false,
+    "dataServicesPreserved": true,
+    "services": [
+      {
+        "service": "rpc-gateway",
+        "health": "healthy"
+      },
+      {
+        "service": "price-signer",
+        "health": "healthy"
+      },
+      {
+        "service": "app",
+        "health": "healthy"
+      },
+      {
+        "service": "fee-collector",
+        "health": "healthy"
+      },
+      {
+        "service": "buyback-worker",
+        "health": "healthy"
+      },
+      {
+        "service": "agency-buyback-worker",
+        "health": "healthy"
+      },
+      {
+        "service": "db",
+        "health": "healthy"
+      },
+      {
+        "service": "rpc-cache",
+        "health": "healthy"
+      },
+      {
+        "service": "https",
+        "health": "healthy"
+      }
+    ]
+  },
+  "upgradeability": {
+    "at": "2026-11-10T02:18:56.197Z",
+    "build": "82983bd23e4d8e4103eeb41b4debd8d6d92fa543",
+    "cluster": "devnet",
+    "status": "verified",
+    "programs": [
+      {
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "status": "verified",
+        "checks": {
+          "executableUpgradeableProgram": true,
+          "canonicalProgramData": true,
+          "validProgramDataHeader": true,
+          "retainedUpgradeAuthority": true,
+          "approvedUpgradeAuthority": true,
+          "approvedProgramBytes": true
+        },
+        "programDataAddress": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+        "observedProgramDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "role": "active-merged-router-and-escrow"
+      },
+      {
+        "programId": "EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT",
+        "status": "verified",
+        "checks": {
+          "executableUpgradeableProgram": true,
+          "canonicalProgramData": true,
+          "validProgramDataHeader": true,
+          "retainedUpgradeAuthority": true,
+          "approvedUpgradeAuthority": true,
+          "approvedProgramBytes": true
+        },
+        "programDataAddress": "DcerG6KdauUaMQXcW2nfZm6nN2iHKsrBThDEisYPdyCz",
+        "observedProgramDataSha256": "02e41471271b9953721e3acb3ad77156802c2e97f5de7acf8d2e03d36f0228a8",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "role": "legacy-developer-escrow"
+      },
+      {
+        "programId": "61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa",
+        "status": "verified",
+        "checks": {
+          "executableUpgradeableProgram": true,
+          "canonicalProgramData": true,
+          "validProgramDataHeader": true,
+          "retainedUpgradeAuthority": true,
+          "approvedUpgradeAuthority": true,
+          "approvedProgramBytes": true
+        },
+        "programDataAddress": "6XCDxJhkqnBCcy6hwZjdHTCqUVvfUaqAzsY5493n27x7",
+        "observedProgramDataSha256": "65993e0b50fcf6650ecaa6e8e4b23c1ff345547e55c2d7b07ead4ba81333c77d",
+        "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "role": "legacy-router"
+      }
+    ]
+  },
+  "automaticRcatRelease": {
+    "status": "finalized",
+    "signature": "2QtmesBGwVuiw2va3xT4tz59ZUFirfGZ9qoKFHmaLuCZqjKuWDcimSiVtjyiqj3CCAfx4ChW6zGsxUHKZhDWJG9g",
+    "amount": "34281146476108",
+    "mint": "EjcH3cizxAevcYHRjq29z1DQdn6oATap4uN9fRzTD2sa",
+    "creator": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
+  },
+  "mature48HourRelease": {
+    "at": "2026-11-10T02:25:07.292Z",
+    "cluster": "devnet",
+    "build": "82983bd23e4d8e4103eeb41b4debd8d6d92fa543",
+    "status": "finalized",
+    "signature": "iDzSz3YCFCoo1kLuYFZDwyrqJbbE3fk39jiCyNTMdXTqHjGTXwHtfVR5FEt1bYoAhrHymvfnm1qJoZmY1JkvCwj",
+    "amount": "100000000",
+    "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "mint": "DHeL94ZYd4kdN3myY9FDnRA6WS4QEjk1XySDYefnRufg",
+    "creator": "44z5nXbFctEMZYksy1BqFSTUv8Qfrq2uNjkqi4XKLwrD",
+    "after": {
+      "lock": "C5v7gu9hcJggmezUdY16uUKo5xnYRrHePWyJPwMxBMA7",
+      "mint": "DHeL94ZYd4kdN3myY9FDnRA6WS4QEjk1XySDYefnRufg",
+      "creator": "44z5nXbFctEMZYksy1BqFSTUv8Qfrq2uNjkqi4XKLwrD",
+      "amount": "100000000",
+      "lockedAt": 1794104634,
+      "unlockAt": 1794277434,
+      "releasedAt": 1794277502,
+      "lockSeconds": 172800
+    },
+    "feeLamports": 5000,
+    "slot": 520591746,
+    "creatorDelta": "100000000",
+    "vaultDelta": "-100000000",
+    "duplicateSimulationRejected": 6001,
+    "journalReplaySameSignature": true
+  },
+  "adminWithdrawal": {
+    "checkedAt": "2026-11-10T02:25:49.101Z",
+    "cluster": "devnet",
+    "status": "historical-receipt-reverified",
+    "signature": "4xqrX5r8k4zoN8nxttUCh21wSJiTuU9wQQ7koW5V4pDFmp3mZURFMoqtE2tHJ2XLsWFWz29edxtrvbYc3VYHmo2G",
+    "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+    "destination": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "amountLamports": 5000000,
+    "feeLamports": 10000,
+    "adminIsFeePayer": true,
+    "slot": 520320808,
+    "newWithdrawalSubmitted": false
+  },
+  "richHistory": {
+    "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+    "observedAt": "2026-11-10T02:18:18.987Z",
+    "coverage": "complete",
+    "poolHistoryCoverage": "complete",
+    "observedTradeCount": 48,
+    "observedCoverage": "partial",
+    "tradeCount24h": 0,
+    "desktopAndMobile": "Verified no-recent-trades state replaces unavailable-history error",
+    "mobileViewport": {
+      "width": 390,
+      "height": 844,
+      "documentWidth": 380
+    }
+  },
+  "readiness": {
+    "launchReady": true,
+    "priceSignerReady": true,
+    "automationEnabled": true,
+    "workerCheckedAt": "2026-11-10T02:19:16.611Z",
+    "executionReasons": [
+      "Verified buyback funding is below the execution threshold.",
+      "No verified executable buyback allocation is currently available."
+    ],
+    "newBuybackBurnVerified": false,
+    "unauthorizedSigningStatus": 401,
+    "firstRead": "Cold asynchronous buyback verification initially reported not-ready; bounded later check verified signer and custody."
+  },
+  "postgresRestore": {
+    "status": "passed-isolated-devnet-restore",
+    "checkedAt": 1794277349.9502118,
+    "archiveBytes": 846123,
+    "archiveSha256": "49d03d983bcbb265320cff08b1f1081db50b676d6ab4a1187facceaaa6b9b2f0",
+    "tables": 26,
+    "rows": 948,
+    "consistentSnapshot": true,
+    "allTableCountsMatched": true,
+    "publicPorts": false,
+    "productionDatabaseWrites": false,
+    "scope": "PostgreSQL restore only; reward-volume and off-host restore remain unverified"
+  },
+  "tests": {
+    "javascript": 389,
+    "failed": 0,
+    "isolatedRuntime": 380,
+    "isolatedRuntimeExcluded": "9 git-dependent Mainnet packet tests passed locally",
+    "frontendBuild": "passed",
+    "readOnlyMainnetPreviewBuild": "passed",
+    "sourceSize": "passed",
+    "isolatedSyntaxFiles": 995,
+    "contracts": "Unchanged; no new program deployment or new Rust test run in this pass"
+  },
+  "freshLaunchTradePayout": {
+    "status": "blocked-before-funding",
+    "reason": "QA funder below the test reserve; awaiting approval of a bounded 0.22 test-SOL run with a 14 SOL reserve.",
+    "sourceBalanceLamports": 14846431821,
+    "transactionsSubmitted": 0,
+    "faucet": "One RPC faucet request returned 410; no retries."
+  },
+  "mainnet": {
+    "ready": false,
+    "mainnetActivationAuthorized": false,
+    "missingProductionInputs": [
+      "mainnetProgramId",
+      "feeRecipient",
+      "fundedMint",
+      "fundedPool",
+      "deploymentPayerSignerReference",
+      "productionDatabaseSecretPath",
+      "metadataSecretPath",
+      "independentReviewer",
+      "independentReviewReference",
+      "freshInfrastructure.databaseReference",
+      "freshInfrastructure.cacheReference",
+      "freshInfrastructure.metadataNamespace",
+      "freshInfrastructure.appDeploymentReference",
+      "freshInfrastructure.backupReference",
+      "freshSignerReferences.automationAuthority",
+      "freshSignerReferences.priceAttestation",
+      "freshSignerReferences.operationsTreasury",
+      "freshSignerReferences.tradeFeeTreasury",
+      "freshSignerReferences.boostTreasury",
+      "freshSignerReferences.revenueTreasury"
+    ],
+    "remainingCodeGates": [
+      "Mainnet launch client and registration",
+      "Mainnet metadata activation and durable-storage verification",
+      "Mainnet fee collection and all payout routes",
+      "Mainnet market indexing and claim reconciliation",
+      "Independent program and custody audit",
+      "Capped canary and rollback evidence"
+    ]
+  },
+  "remainingAcceptance": [
+    "Fresh current-release launch, trade and payout run awaiting test-budget answer",
+    "Full holder and Daily bonus delivery, community migration delivery, paid-launch cancellation/recovery and remaining protocol/agency flows",
+    "Reward-volume and off-host restore; scheduled backups and complete restart reconciliation",
+    "Independent exact-artifact review and capped Mainnet canary after production inputs are supplied"
+  ]
+}
