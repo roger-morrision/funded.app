@@ -50,6 +50,7 @@ export function createCoinChatController(appState) {
 
   // app-source: 997
   async function tokenChatRequest(action, payload, targetMint){
+    if(action==='post')payload={...payload,requestId:payload.requestId||crypto.randomUUID()};
     if (!appState.wallet) await appState.connectWallet();
     const session = appState.captureWalletSession();
     if (!session) throw new Error('Connect a Solana wallet to post.');

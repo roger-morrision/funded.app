@@ -16,7 +16,6 @@ export const ACTIONS = [
   ['Fee distribution', '#capital-flow', 'fee distribution split policy'],
   ['Get listed', '#list', 'list listing external token'],
   ['Wallet & preferences', '#profile', 'profile wallet settings notifications alerts'],
-  ['Service status', '#status', 'status health workers uptime'],
   ['Docs & help', '#docs', 'docs help guide faq'],
 ];
 

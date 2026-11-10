@@ -18,7 +18,7 @@ export async function apiRequest(path, options = {}) {
   if (!response.ok) {
     const isJson = response.headers.get('content-type')?.toLowerCase().includes('application/json');
     const fallback = !isJson && response.status >= 500
-      ? 'API service unavailable. Check the local API and database services, then retry.'
+      ? 'Service temporarily unavailable. Check the action’s status before retrying.'
       : `API request failed (${response.status}).`;
     const error = new Error(data.error || fallback);
     error.status = response.status;

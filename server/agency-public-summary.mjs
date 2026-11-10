@@ -31,7 +31,7 @@ export function agencyPublicSummary({state,programId,approvedHash,build,mint=nul
     paid+=BigInt(row.paidLamports);spent+=BigInt(row.spentLamports);
     return{...row,...identity,status:'worker-verified-snapshot'};
   });
-  const complete=rows.every(row=>row.status==='worker-verified-snapshot');
+  const complete=rows.length>0&&rows.every(row=>row.status==='worker-verified-snapshot');
   const history=Object.values(state.v3AgencyExecutions||{}).filter(row=>(!mint || row.intent?.mint===mint) && row.status==='finalized'
     &&row.intent?.programId===programId&&row.intent.approvedHash===approvedHash&&row.proof?.finalized===true
     &&row.proof.balanceDeltaVerified===true&&row.proof.signature===row.signature).map(row=>({mint:row.intent.mint,agent:row.intent.agent,

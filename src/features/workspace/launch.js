@@ -24,9 +24,9 @@ export function launch() {
   text('#creator-burn-title + span', 'Select one');
   if (tier) {
     const explanations = {
-      standard: ['Standard', 'No promotion burn; the configured SOL launch service fee applies. The core Pump launch, community airdrop policy, and basic richpad.fun X announcement apply when account publishing is active.'],
-      pro: ['Pro', 'A confirmed $RICH burn is bound to the launch transaction. The package adds a verified badge and a featured richpad.fun X launch post when account publishing is active.'],
-      premier: ['Premier', 'A confirmed $RICH burn adds the Premier badge, one richpad.fun X launch post, and a separate follow-up after 24 hours once the first post is published.'],
+      standard: ['Standard', 'No promotion burn; the configured SOL launch service fee applies. The core Pump launch and community airdrop policy apply. A launch draft is emailed to the admin for manual X posting.'],
+      pro: ['Pro', 'A confirmed $RICH burn adds a verified badge. Launch and verified migration drafts are emailed to the admin for manual X posting.'],
+      premier: ['Premier', 'A confirmed $RICH burn adds the Premier badge. Launch and verified migration drafts are emailed to the admin for manual X posting.'],
     };
     const guide = node('div', 'launch-tier-guide-links');
     const guideDialog = node('dialog', 'launch-tier-guide-dialog');

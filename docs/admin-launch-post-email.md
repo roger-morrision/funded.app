@@ -1,6 +1,8 @@
 # Launch post drafts by email
 
-The primary Devnet app can email a ready-to-copy X post to the configured administrator after a newly registered launch has finalized. The admin reviews and posts it manually; this does not enable the X publisher or bill a marketing delivery.
+The primary Devnet app emails a ready-to-copy X post after a newly registered launch has finalized. Paid Boost, Pro and Premier packages also queue a second draft after a verified migration. There is no timed 24-hour follow-up. Each email includes a **Post to X** button that opens the draft in X; the admin reviews and clicks Post manually. This does not enable the automated X publisher or bill a recurring marketing delivery.
+
+Drafts begin with `New launch: $SYMBOL` or `$SYMBOL is migrated` and include the saved developer-lock duration, fee shares, airdrop allocation, package and verified RICH burn. The optional description is shortened to fit one post. Migration delivery requires the finalized canonical Pump migration receipt; an ordinary trade, a pool URL or a UI status is insufficient. New drafts are versioned; already queued legacy launch drafts retain their original content and hash.
 
 Enable `FUNDED_LAUNCH_POST_EMAIL_ENABLED=true` only on the primary app. It uses the existing Gmail SMTP configuration: `FUNDED_ADMIN_EMAIL`, `FUNDED_ADMIN_EMAIL_FROM`, `FUNDED_ADMIN_EMAIL_PROVIDER=gmail` and the server-side Gmail App Password reference. Set `PUBLIC_APP_URL=https://richpad.fun`. Keep the flag disabled on development, restore and API-only instances. Production activation remains disabled with the rest of the Mainnet release.
 

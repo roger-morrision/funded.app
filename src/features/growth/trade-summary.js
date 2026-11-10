@@ -6,7 +6,7 @@ export function mountTradeSummary(document = globalThis.document) {
   const slippage = document.getElementById('trade-slippage');
   if (!submit || !slippage || document.getElementById('trade-plain-summary')) return Boolean(submit);
   const summary = el(document, 'p', 'trade-plain-summary'); summary.id = 'trade-plain-summary'; summary.setAttribute('aria-live', 'polite');
-  submit.before(summary);
+  (submit.closest('.trade-actions') || submit).before(summary);
   const side = document.getElementById('trade-side'), amount = document.getElementById('trade-amount');
   const symbol = document.getElementById('trade-asset-symbol'), estimate = document.getElementById('trade-live-amount');
   function sync() {

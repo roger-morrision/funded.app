@@ -2,44 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {launchPromotionPreview} from '../launch-promotion-copy.js';
 import {xWeightedLength} from '../server/x-post-content.mjs';
-
-const program = {description:'A community-powered cat token on Solana.',holderPercent:10,xPercent:0,airdropPercent:3};
-
-test('preview includes the entered name, description and configured programs',()=>{
-  const post=launchPromotionPreview('RICH CAT',program);
-  assert.match(post,/^RICH CAT\nA community-powered cat token on Solana\./);
-  assert.match(post,/SOL rewards: 10% to holders\./);
-  assert.match(post,/Airdrop: 3% of supply to eligible \$RICH holders at migration\./);
-  assert.match(post,/Join the community\. Discover your rewards/);
-  assert.ok(xWeightedLength(post)<=280);
+const program={symbol:'RCAT',description:'A cat community.',creatorPercent:30,holderPercent:50,xPercent:0,airdropPercent:3,
+  developerBuy:true,lockHours:12,tier:'pro',burnTokens:100000};
+test('launch and migration drafts contain event header and saved promotion facts',()=>{
+  for(const event of ['launch','migration']){
+    const post=launchPromotionPreview('Rich Cat',{...program,event});
+    assert(post.startsWith(event==='launch'?'New launch: $RCAT':'$RCAT is migrated'));
+    for(const value of ['12h from launch','30% creator / 50% holders / 0% X','3% supply to eligible $RICH holders at migration','Pro | $RICH burn: 100,000'])assert(post.includes(value),value);
+    assert(xWeightedLength(post)<=280);assert(!post.includes('airdrops paid'));
+  }
 });
-
-test('changed allocations and follow-up previews reflect the same draft',()=>{
-  const post=launchPromotionPreview('RICH CAT',{...program,holderPercent:20,xPercent:5,xHandle:'@savipww',airdropPercent:5,followup:true});
-  assert.match(post,/RICH CAT · Follow-up/);
-  assert.match(post,/20% to holders; 5% to @savipww/);
-  assert.match(post,/Airdrop: 5% of supply/);
-  assert.match(post,/A community-powered cat token/);
-  assert.doesNotMatch(post,/10%|Airdrop: 3%/);
+test('no developer buy and unverified inputs never invent lock or reward amounts',()=>{
+  const post=launchPromotionPreview('Cat',{...program,developerBuy:false,holderPercent:NaN,airdropPercent:100});
+  assert(post.includes('Dev buy: none.'));assert(!post.includes('12h'));assert(post.includes('check allocation'));
+  assert(!post.includes('NaN')&&!post.includes('100%'));
 });
-
-test('disabled holder rewards and missing input never invent reward amounts',()=>{
-  const off=launchPromotionPreview('RICH CAT',{...program,description:'',holderPercent:0});
-  assert.match(off,/Holder SOL rewards: off/);
-  assert.doesNotMatch(off,/community-powered|10% to holders/);
-  const invalid=launchPromotionPreview('RICH CAT',{holderPercent:NaN,airdropPercent:100});
-  assert.match(invalid,/check fee allocation/);
-  assert.match(invalid,/check allocation/);
-  assert.doesNotMatch(invalid,/NaN%|100%/);
-});
-
-test('long descriptions fit X limits without removing program terms',()=>{
-  for(const description of ['A long token description '.repeat(30),'猫のコミュニティ'.repeat(60)]) {
-    const post=launchPromotionPreview('A'.repeat(32),{...program,description,xPercent:10,xHandle:'@abcdefghijklmn',airdropPercent:50,followup:true});
-    assert.ok(xWeightedLength(post)<=280);
-    assert.match(post,/…\nSOL rewards/);
-    assert.match(post,/10% to holders; 10% to @abcdefghijklmn/);
-    assert.match(post,/Airdrop: 50% of supply to eligible \$RICH holders at migration/);
-    assert.match(post,/Join the community\. Discover your rewards/);
+test('long descriptions and Unicode preserve allocation facts within X weighted limit',()=>{
+  for(const description of ['Long description '.repeat(80),'猫のコミュニティ'.repeat(80)]){
+    const post=launchPromotionPreview('Cat',{...program,symbol:'ABCDEFGHIJ',description,cluster:'devnet',airdropPercent:50,
+      creatorPercent:33.3333,holderPercent:33.3333,xPercent:13.3334,tier:'premier',burnTokens:1234567890123});
+    assert(xWeightedLength(post)<=280,post);assert(post.includes('[Devnet test]'));assert(post.includes('50% supply'));
+    assert(post.includes('1,234,567,890,123'));assert(post.includes('12h from launch'));
   }
 });

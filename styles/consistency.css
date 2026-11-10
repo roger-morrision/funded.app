@@ -226,3 +226,30 @@ html body #main-content .section-block > section + section { margin-top: 28px; }
 
 .card-boost-packages { display: inline-flex; vertical-align: middle; margin-inline-start: 6px; }
 .top100-token .boost-package-badges, .card-boost-packages .boost-package-badges { display: inline-flex; white-space: nowrap; vertical-align: middle; }
+
+/* Keep card links in a single accessible row across both card columns. */
+html body #main-content .home-new-token-socials { grid-column: 1 / -1; position: relative; z-index: 2; }
+html body #main-content .home-new-token-socials .explore-social-links { display: flex; flex-wrap: nowrap; gap: 4px; justify-content: flex-start; }
+html body #main-content .home-new-token-socials .explore-social-link { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; min-height: 44px; padding: 0; }
+html body #main-content .home-new-token-socials .explore-social-link svg { width: 16px; height: 16px; }
+html body #trade-panel .trade-actions { display: flex; flex-direction: column; align-items: stretch; width: 100%; }
+html body #trade-panel .trade-actions button { width: 100%; min-height: 46px; white-space: normal; }
+html body #coin-creator-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+html body #coin-creator-actions[hidden] { display: none; }
+html body #main-content .launch-facts > dl { display: block; margin: 14px 0; }
+html body #main-content .launch-facts > dl > dt { margin: 0 0 10px; }
+html body #main-content .launch-facts > dl > dd { width: 100%; margin: 0; }
+html body #main-content .launch-facts .fee-distribution-details { margin-top: 14px; }
+
+.coin-profile-updates form { display: grid; gap: 10px; margin-top: 16px; }
+.coin-profile-updates form[hidden] { display: none; }
+.coin-profile-updates textarea { width: 100%; resize: vertical; min-height: 100px; }
+.coin-profile-updates .project-update { padding: 12px 0; border-bottom: 1px solid var(--cp-line, #343b4c); }
+.coin-profile-updates .project-update-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.coin-profile-updates time, .coin-profile-updates .project-update small { color: var(--cp-muted, #a4acbf); font-size: 12px; }
+
+html body .home-featured-banner-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px 10px; background: #0b1022db; padding: 7px 8px; }
+html body .home-featured-banner-metrics > div:nth-child(even) { justify-content: flex-end; }
+html body .home-featured-banner-metrics :is(.featured-mc,[data-direction="positive"]) { color: var(--fv-success, #6de6ba); }
+html body .home-featured-banner-metrics [data-direction="negative"] { color: var(--red, #ff7b8f); }
+.agency-agent [data-agent-reason] { display:block; margin-top:10px; line-height:1.5; overflow-wrap:anywhere; }

@@ -134,7 +134,7 @@ export function renderProjectBurnBoard(
   }
   const projectPodium = renderLeaderPodium(table, projects.slice(0, 3).map(item => ({
     href:`/token/${encodeURIComponent(item.mint)}`, initials:String(item.symbol || 'T').slice(0, 2), mint:item.mint, hueKey:item.mint,
-    name:item.name, sub:`${item.symbol} · ${item.burnerCount} burner${item.burnerCount === 1 ? '' : 's'}`,
+    name:item.symbol&&item.symbol!==item.mint?'$'+String(item.symbol).replace(/^\$/,''):'Symbol unavailable', sub:`${item.burnerCount} burner${item.burnerCount === 1 ? '' : 's'}`,
     value:`${Number(item.burnedTokens).toLocaleString(undefined, { maximumFractionDigits: 6 })} $RICH`, valueSub:'burned',
     proofHref:exploreExplorer(`tx/${encodeURIComponent(item.latestSignature)}`), proofLabel:'Receipt ↗',
   })), { label:'Top 3 projects by burns' });
@@ -285,7 +285,7 @@ export function renderLeaderboard(
   const creatorPodium = renderLeaderPodium(table, ranked.slice(0, 3).map(item => {
     const symbol = String(item.symbol || 'TOKEN').trim() || 'TOKEN';
     return { href:`/token/${encodeURIComponent(item.address)}`, initials:symbol.slice(0, 2).toUpperCase(), mint:item.address, hueKey:item.address,
-      name:symbol, sub:`by ${shortAddress(item.creator)}`,
+      name:symbol===item.address?'Symbol unavailable':'$'+symbol.replace(/^\$/,''), sub:`by ${shortAddress(item.creator)}`,
       value:item.capUsd == null ? '$—' : formatDashboardUsd(item.capUsd), valueSub:item.capUsd == null ? 'Market data unavailable' : 'Market cap' };
   }), { label:'Top 3 creator launches' });
   replaceLeaderboardRows(table, `${header}${restRowsOrNote(ranked.map((item, index) => {

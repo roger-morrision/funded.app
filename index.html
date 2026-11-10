@@ -107,7 +107,6 @@
       <p class="nav-label nav-label-spaced">Help</p>
       <a class="nav-item" href="/welcome" aria-label="About richpad.fun"><span class="nav-icon" data-icon="info"></span>About richpad.fun</a>
       <a class="nav-item" href="#docs" aria-label="Docs and help"><span class="nav-icon" data-icon="info"></span>Docs &amp; help</a>
-      <a class="nav-item" href="#status" aria-label="Service status"><span class="nav-icon" data-icon="analytics"></span>Service status</a>
 
   </nav>
         <div class="sidebar-footer">
@@ -170,7 +169,7 @@
                   <div class="coin-trade-slippage"><label for="trade-slippage">Max slippage %</label><input id="trade-slippage" type="number" min="0.1" max="10" step="0.1" value="1" /><div class="coin-slippage-presets" role="group" aria-label="Slippage presets"><button type="button" data-coin-slippage="1">1%</button><button type="button" data-coin-slippage="2">2%</button><button type="button" data-coin-slippage="3">3%</button><button type="button" data-coin-slippage="5">5%</button><button type="button" data-coin-slippage="10">10%</button></div></div>
                   <div class="trade-live-estimate" id="trade-live-estimate" aria-live="polite"><span>Estimated tokens received</span><strong id="trade-live-amount">Enter a SOL amount</strong><small id="trade-live-detail">Your estimated token amount will appear here.</small></div>
 <div class="trade-actions"><button type="button" class="primary-button" id="trade-submit" disabled>Buy in wallet</button><button type="button" class="secondary-button" id="trade-verify" hidden>Check trade status</button><button type="button" class="secondary-button" id="trade-share" hidden>Share verified trade</button><button type="button" class="secondary-button" id="trade-roundtrip-share" hidden>Share closed trade result</button></div>
-                  <p id="trade-live-countdown"></p><details class="coin-trade-quote-details advanced-details"><summary>Advanced details · quote and fees</summary><div class="trade-quote" id="trade-quote" aria-live="polite">Enter an amount to calculate the estimated output, slippage floor, and fee.</div></details>
+                  <p id="trade-live-countdown"></p><div id="trade-quote" hidden></div>
 <p class="field-help" id="trade-status" role="status" aria-live="polite" aria-atomic="true">A live price quote appears before you approve a trade.</p><button type="button" id="trade-quote-retry" class="secondary-button" hidden disabled>Retry quote</button><p class="field-help" id="trade-receipt-status" role="status" hidden></p>
                 </div></div>
               </div>
@@ -388,20 +387,20 @@
               <button type="button" class="program-option active" data-program-tier="standard" aria-pressed="true">
                 <span class="program-option-top"><b>STANDARD</b><span>Start here</span></span>
                 <strong>Launch without the guesswork</strong>
-                <small>Core Pump launch, public fee route, and a basic richpad.fun X announcement when publishing is active.</small>
-                <span class="program-option-meta"><i>0 $RICH</i><i>Basic X post</i><em>→</em></span>
+                <small>Core Pump launch, public fee route, and a launch draft emailed to the admin for manual X posting.</small>
+                <span class="program-option-meta"><i>0 $RICH</i><i>Launch draft</i><em>→</em></span>
               </button>
               <button type="button" class="program-option" data-program-tier="pro" aria-pressed="false">
                 <span class="program-option-top"><b>PRO</b><span>For serious launches</span></span>
                 <strong>Give the launch a stronger signal</strong>
-                <small>Pro badge, public burn receipt, and a featured richpad.fun X launch post after verification when publishing is active.</small>
-                <span class="program-option-meta"><i>Configured burn</i><i>Featured X post</i><em>→</em></span>
+                <small>Pro badge, public burn receipt, and launch plus migration drafts emailed to the admin for manual X posting.</small>
+                <span class="program-option-meta"><i>Configured burn</i><i>Launch + migration drafts</i><em>→</em></span>
               </button>
               <button type="button" class="program-option" data-program-tier="premier" aria-pressed="false">
                 <span class="program-option-top"><b>PREMIER</b><span>Largest showcase</span></span>
                 <strong>Put your launch in the spotlight</strong>
-                <small>Premier badge, public burn receipt, a featured richpad.fun X launch post and a follow-up after 24 hours when publishing is active.</small>
-                <span class="program-option-meta"><i>Configured burn</i><i>Two X posts</i><em>→</em></span>
+                <small>Premier badge, public burn receipt, and launch plus migration drafts emailed to the admin for manual X posting.</small>
+                <span class="program-option-meta"><i>Configured burn</i><i>Launch + migration drafts</i><em>→</em></span>
               </button>
             </div>
             <aside class="workspace-preview-card" aria-label="Workspace preview">
@@ -707,7 +706,7 @@
                       <p id="preview-tagline">Your coin description appears here.</p>
                       <div class="launch-package-example-tabs" aria-hidden="true"><span>Overview</span><span>Trades</span><span>Holders</span></div>
                     </div>
-                    <div class="launch-x-example"><div class="launch-x-example-heading"><span>X post preview</span><strong id="launch-x-post-count">1 post</strong></div><div class="launch-x-example-account"><span aria-hidden="true">R</span><div><strong>richpad.fun</strong></div></div><p id="launch-x-post-preview"></p><div class="launch-x-example-followup" id="launch-x-followup" hidden><strong>Follow-up after 24 hours</strong><p id="launch-x-followup-preview"></p></div></div>
+                    <div class="launch-x-example"><div class="launch-x-example-heading"><span>X post preview</span><strong id="launch-x-post-count">1 post</strong></div><div class="launch-x-example-account"><span aria-hidden="true">R</span><div><strong>richpad.fun</strong></div></div><p id="launch-x-post-preview"></p><div class="launch-x-example-followup" id="launch-x-followup" hidden><strong>After verified migration</strong><p id="launch-x-followup-preview"></p></div></div>
                   </div>
                 </section>
                 <section class="launch-optional-socials" id="launch-project-links" aria-labelledby="launch-social-links-title"><h3 id="launch-social-links-title">Project links <span>(optional)</span></h3><p class="field-help">Website, X, Telegram and Discord can help people verify your project. Add them before signing; these details cannot be edited here after launch.</p><div class="social-grid"><label for="token-website">Website<input id="token-website" name="tokenWebsite" type="url" aria-label="Project website URL" placeholder="https://yourproject.com" autocomplete="url" /></label><label for="token-x">X profile<input id="token-x" name="tokenX" type="url" aria-label="Project X profile URL" placeholder="https://x.com/yourproject" autocomplete="url" /></label><label for="token-telegram">Telegram<input id="token-telegram" name="tokenTelegram" type="url" aria-label="Project Telegram URL" placeholder="https://t.me/yourproject" autocomplete="url" /></label><label for="token-discord">Discord<input id="token-discord" name="tokenDiscord" type="url" aria-label="Project Discord URL" placeholder="https://discord.gg/yourproject" autocomplete="url" /></label></div></section>
@@ -727,7 +726,7 @@
                   <div class="creator-burn-tiers" role="group" aria-label="$RICH burn tier">
                     <button type="button" class="creator-burn-card active" data-burn-tier="standard" aria-pressed="true"><span>STANDARD</span><strong>No promotion burn</strong><small>Compact token page · one launch post</small><b>Selected</b></button>
                     <button type="button" class="creator-burn-card pro" data-burn-tier="pro" aria-pressed="false"><span>PRO · $150</span><strong id="pro-burn-amount">Checking price…</strong><small>Larger token page · one featured post</small><em id="pro-tier-progress">Connect wallet to check balance</em><b>Select Pro</b></button>
-                    <button type="button" class="creator-burn-card premier" data-burn-tier="premier" aria-pressed="false"><span>PREMIER · $300</span><strong id="premier-burn-amount">Checking price…</strong><small>Largest token page · launch + follow-up posts</small><em id="premier-tier-progress">Connect wallet to check balance</em><b>Select Premier</b></button>
+                    <button type="button" class="creator-burn-card premier" data-burn-tier="premier" aria-pressed="false"><span>PREMIER · $300</span><strong id="premier-burn-amount">Checking price…</strong><small>Largest token page · launch + migration drafts</small><em id="premier-tier-progress">Connect wallet to check balance</em><b>Select Premier</b></button>
                   </div>
                   <div class="launch-banner-upload" id="launch-banner-upload" hidden>
                     <label for="token-banner"><strong>Token page banner <span class="optional">optional</span></strong><span>Shown at the top of your token page after a verified Pro or Premier launch.</span></label>

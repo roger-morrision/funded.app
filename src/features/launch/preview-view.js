@@ -70,19 +70,20 @@ export function updateLaunchPreview(
     xLabelWeight += weight;
   }
   xLabel = xLabel.trim() || 'Token';
-  const xDetails = { description, holderPercent: feeDistribution.holderAirdropPercent,
+  const lockHours = readDeveloperLockSeconds(document) / 3600;
+  const xDetails = { symbol, description, lockHours, developerBuy:creatorBuy.sol > 0,
+    tier:launchBurn.tier, burnTokens:launchBurn.amountTokens, creatorPercent:feeDistribution.creatorWalletPercent, holderPercent: feeDistribution.holderAirdropPercent,
     xPercent: feeDistribution.solClaimPercent, xHandle: feeDistribution.xRecipient, airdropPercent: allocation };
   const xLaunch = launchPromotionPreview(xLabel, xDetails);
   const xPost = document.querySelector('#launch-x-post-preview');
   if (xPost) xPost.textContent = xLaunch;
   const xPostCount = document.querySelector('#launch-x-post-count');
-  if (xPostCount) xPostCount.textContent = launchBurn.tier === 'premier' ? '2 posts' : '1 post';
+  if (xPostCount) xPostCount.textContent = launchBurn.requiresBurn ? '2 event drafts' : '1 launch draft';
   const xFollowup = document.querySelector('#launch-x-followup');
-  if (xFollowup) xFollowup.hidden = launchBurn.tier !== 'premier';
+  if (xFollowup) xFollowup.hidden = !launchBurn.requiresBurn;
   const xFollowupText = document.querySelector('#launch-x-followup-preview');
-  if (xFollowupText) xFollowupText.textContent = launchPromotionPreview(xLabel, { ...xDetails, followup:true });
+  if (xFollowupText) xFollowupText.textContent = launchPromotionPreview(xLabel, { ...xDetails, event:'migration' });
   const quotedBuyTokens = creatorBuy.tokens || (!wallet && publicQuote?.status === 'ready' ? publicQuote.developerTokens : 0);
-  const lockHours = readDeveloperLockSeconds(document) / 3600;
   const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} ${tokenUnit}` : ''} · ${lockHours}h lock` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');
   if (previewBuy) previewBuy.textContent = buyLabel;

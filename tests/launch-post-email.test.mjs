@@ -34,7 +34,7 @@ function fixture(){
 test('launch email contains bounded sanitized X copy and fixed app links',()=>{
   const f=fixture();f.launch.name='\r\nBcc: attacker@evil.test <script> 🎉'.repeat(8);
   const draft=launchPostEmailDraft(f.launch,{cluster:'devnet',origin:env.PUBLIC_APP_URL});
-  assert(draft.text.startsWith('[Devnet test]'));assert(draft.weightedLength<=280);
+  assert(draft.text.startsWith('New launch: $QA'));assert(draft.text.includes('[Devnet test]'));assert(draft.weightedLength<=280);
   assert(!draft.name.includes('@')&&!draft.name.includes('\n')&&!draft.text.includes('<script>'));
   assert(draft.text.includes('https://richpad.fun/token/'+f.launch.mint));
   assert.throws(()=>launchPostEmailDraft({...f.launch,onchainVerified:false},{cluster:'devnet',origin:env.PUBLIC_APP_URL}));
@@ -105,7 +105,9 @@ test('SMTP delivery fixes recipient, validates TLS and distinguishes DATA uncert
     return {close:()=>closed++,sendMail:async value=>{message=value;return {accepted:[env.FUNDED_ADMIN_EMAIL],rejected:[]};}};
   }});
   assert(result.accepted);assert.deepEqual(message.envelope.to,[env.FUNDED_ADMIN_EMAIL]);
-  assert(message.text.includes('--- COPY POST ---'));assert(!message.text.includes(env.FUNDED_ADMIN_GMAIL_APP_PASSWORD));
+  assert(message.text.includes('--- COPY POST ---'));assert(message.html.includes('Post to X'));
+  const intent=new URL(message.text.match(/Post to X: (https:\/\/[^\s]+)/)[1]);
+  assert.equal(intent.origin,'https://twitter.com');assert.equal(intent.searchParams.get('text'),draft.text);assert(!message.text.includes(env.FUNDED_ADMIN_GMAIL_APP_PASSWORD));
   assert.equal(closed,1);
   for(const [command,delivery] of [['CONN','not-sent'],['DATA','uncertain']]){
     await assert.rejects(deliverLaunchPostEmail({env,draft,createTransport:()=>({close(){},sendMail:async()=>{

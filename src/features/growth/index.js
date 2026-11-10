@@ -1,30 +1,28 @@
 // Growth features: each mount returns true once its host exists. Pages render at
 // different times, so unfinished mounts retry on DOM changes for up to 30 seconds.
+import {mountProjectUpdates} from '../coin/project-updates.js';
 import { mountEarningsHub } from './earnings-hub.js';
 import { mountLaunchAssist } from './launch-assist.js';
 import { mountReferralKit, mountInvitedBanner } from './referral-kit.js';
-import { mountTokenExtras } from './token-extras.js';
 import { mountTradeSummary } from './trade-summary.js';
 import { mountAlerts } from './alerts.js';
 import { mountPayoutChart, mountCreatorPanel } from './insights.js';
 import { mountCommandActions } from './command-actions.js';
-import { mountStatusPage } from './status-page.js';
 import { mountSkeletons } from './skeletons.js';
 import { mountExampleData } from './example-data.js';
 
 export function mountGrowthFeatures(app, document = globalThis.document) {
   mountInvitedBanner(document);
   const pending = new Map([
+    ['project-updates', () => mountProjectUpdates(app, document)],
     ['earnings', () => mountEarningsHub(app, document)],
     ['launch', () => mountLaunchAssist(document)],
     ['referral', () => mountReferralKit(document)],
-    ['token', () => mountTokenExtras(app, document)],
     ['trade', () => mountTradeSummary(document)],
     ['alerts', () => mountAlerts(app, document)],
     ['chart', () => mountPayoutChart(document)],
     ['creator', () => mountCreatorPanel(app, document)],
     ['command', () => mountCommandActions(document)],
-    ['status', () => mountStatusPage(document)],
     ['skeletons', () => mountSkeletons(document)],
     ['examples', () => mountExampleData(document)],
   ]);

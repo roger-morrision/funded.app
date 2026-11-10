@@ -40,3 +40,11 @@ Automatic approval review rejected a proposed conditional Mainnet price-signer a
 ## Home and token-list presentation follow-up
 
 Removed the first-visit role chooser and Your rank today cards, moved Featured projects directly after the Home hero, replaced the header network badge with a Buy $RICH link to the configured token details, and renamed Verified fee payouts to Payout Summary. Payment/network disclosures remain in transaction reviews. Active boost quantities appear beside symbols in Top 100, portfolio, reward, community, listing and leaderboard surfaces, using the shared verified boost snapshot and expiry handling.
+
+## Token page and promotion follow-up
+
+The next application release removes the redundant creator/reward/release panels, moves creator recovery actions into the fees summary, puts the trade button below its review, places Featured market-cap metrics over the banner, and keeps compact-card social icons on one row. Token-page Updates now support original-creator wallet authentication, idempotent publishing and version-checked edits. Telegram/Discord community labels use cached public provider names with explicit fallbacks for unavailable/private links. Service status moves into the authenticated admin workspace.
+
+Promotion packages queue launch and verified-migration emails with an X compose button for manual publication. Existing queued legacy emails retain their exact contents. Chat posts use bounded optional holdings checks and recover an already-stored post on retry. Agency records remain visible during readiness failures; verified funding and unknown balances stay distinct, with a separate pooled RICH buyback progress table. Execution flags are not enabled by these presentation changes.
+
+Local validation: 441 JavaScript tests passed and the production build passed. Creator authorization, migration receipts, email delivery and community-provider behavior use deterministic mocked tests in this follow-up; no new live financial transaction, actual migration email or real creator update was submitted. The earlier deployment attempt of d177afd1 rolled back when holder-worker readiness did not become fresh in its short verification window. Subsequent diagnostics observed RPC 429 failures followed by fresh holder readiness; the new release retains the readiness gate with a longer bounded warm-up.

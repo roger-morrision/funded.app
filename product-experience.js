@@ -178,21 +178,13 @@ function details() {
   void summary;
   disclosure($('.reward-upcoming'), 'How to qualify for upcoming rewards');
   setText('.coin-profile-updates > strong', 'No updates yet');
-  setText('.coin-profile-updates > p', 'Updates from this project will appear here.');
   setText('.coin-profile-links-note', 'Links provided by the project.');
   const about = $('.coin-hero-about');
   const headerAside = $('#coin-page .coin-hero-aside');
   if (about && headerAside) { about.classList.add('product-token-about'); headerAside.prepend(about); }
   setText('.coin-market-aside-title', 'Launch progress');
   setText('.header-search-results-head strong', 'Explore coins');
-  const trade = $('#trade-panel');
-  const quote = trade?.querySelector('.coin-trade-quote-details');
-  const submit = trade?.querySelector('.trade-actions');
-  if (quote && submit) {
-    submit.before(quote);
-    quote.open = true;
-    setText('.coin-trade-quote-details > summary', 'Quote, maximum spend, and fees');
-  }
+
 }
 
 home(); explore(); launch(); portfolio(); details(); initializeLeaderboardScroll();

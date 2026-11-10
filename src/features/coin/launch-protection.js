@@ -1,22 +1,13 @@
 import {releaseDeveloperTokens,developerReleaseStorageKey} from '../../../developer-token-release.js';
-import {developerLockDisplay} from '../portfolio/developer-lock-display.js';
 export function initializeLaunchProtection(appState,{document=globalThis.document,window=globalThis.window}={}){
   let activeMint=null,generation=0,timer=null,latest=null,busy=false;
-  // Show escrow balances and deadlines before the owner's claim becomes available.
+  // Keep recovery actions in the fees summary; release details live in Portfolio.
   const panel=document.createElement('div');panel.id='coin-developer-token-claim';panel.hidden=true;
-  document.querySelector('#coin-page .coin-socials')?.after(panel);
+  document.querySelector('#coin-summary-dashboard')?.append(panel);
   const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
   function render(data){
     panel.replaceChildren();panel.hidden=true;
     const lock=data.tokenLock||{};
-    if(['locked','claimable','released','unavailable'].includes(lock.status)){
-      const info=developerLockDisplay(lock);panel.className='portfolio-locked-card';
-      panel.append(text('strong',`Developer tokens · ${info.state}`));
-      if(info.amount)panel.append(text('p',`${info.amount} tokens · original developer allocation`));
-      panel.append(text('p',`Release time: ${info.release}`),text('p',info.timing));
-      if(!lock.verified)panel.append(text('small','Current escrow custody could not be verified. Refresh to check delivery.'));
-      const all=text('a','View all your locked tokens in Portfolio');all.href='/#my-launches';panel.append(all);panel.hidden=false;
-    }
     let pending=false;try{pending=Boolean(window.localStorage.getItem(developerReleaseStorageKey(activeMint,data.creatorWallet,lock.programId)));}catch{}
     if((lock.status==='claimable'&&!lock.automaticRelease?.healthy||pending)&&data.creatorWallet===appState.connectedWalletAddress){
       const claim=text('button',pending?'Verify token release':'Release manually (fallback)');claim.type='button';claim.className='secondary-button';claim.disabled=busy||!lock.verified;

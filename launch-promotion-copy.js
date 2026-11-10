@@ -13,28 +13,33 @@ const percent = (value, max = 80) => typeof value === 'number' && Number.isFinit
 const postWeight = text => [...text.replace(/https:\/\/[^\s]+/g, 'x'.repeat(23))]
   .reduce((sum, char) => sum + (char.codePointAt(0) <= 0x7f ? 1 : 2), 0);
 
-// The creation form is a draft: use its current inputs, never imply a payout
-// has happened. Preserve the program terms when shortening the description.
+// One draft per event. Facts take priority over optional description text.
 export function launchPromotionPreview(label, {
-  description = '', holderPercent, xPercent = 0, xHandle = '', airdropPercent,
-  followup = false, link = 'https://richpad.fun/token/your-token',
+  symbol = '', description = '', holderPercent, xPercent = 0, creatorPercent,
+  airdropPercent, developerBuy = null, lockHours, tier = 'standard', burnTokens,
+  event = 'launch', followup = false, cluster = '',
+  link = 'https://richpad.fun/token/your-token',
 } = {}) {
-  const holder = percent(holderPercent), x = percent(xPercent);
+  const ticker = cleanText(symbol).replace(/[^A-Za-z0-9_]/g, '').slice(0, 10).toUpperCase() || 'SYMBOL';
+  const migrated = event === 'migration' || followup;
+  const holder = percent(holderPercent), x = percent(xPercent), creator = percent(creatorPercent);
   const airdrop = percent(airdropPercent, 50);
-  const rewards = [];
-  if (holder > 0) rewards.push(`${holder}% to holders`);
-  if (x > 0) rewards.push(`${x}% to ${/^@[A-Za-z0-9_]{1,15}$/.test(xHandle) ? xHandle : 'X account'}`);
-  const rewardLine = holder === null || x === null ? 'SOL rewards: check fee allocation.'
-    : rewards.length ? `SOL rewards: ${rewards.join('; ')}.` : 'Holder SOL rewards: off.';
-  const airdropLine = airdrop !== null && airdrop >= 3
-    ? `Airdrop: ${airdrop}% of supply to eligible $RICH holders at migration.`
-    : 'Token airdrop: check allocation.';
-  const name = cleanText(label) || 'Token name';
-  const text = cleanText(description);
-  const compose = summary => [followup ? `${name} · Follow-up` : name, summary,
-    rewardLine, airdropLine, 'Join the community. Discover your rewards.', link].filter(Boolean).join('\n');
-  if (postWeight(compose(text)) <= 280) return compose(text);
-  const chars = [...text];
-  while (chars.length && postWeight(compose(`${chars.join('').trimEnd()}…`)) > 280) chars.pop();
-  return compose(chars.length ? `${chars.join('').trimEnd()}…` : '');
+  const promotion = ['boost', 'pro', 'premier'].includes(tier) ? tier[0].toUpperCase() + tier.slice(1) : 'Standard';
+  const burn = typeof burnTokens === 'number' && Number.isSafeInteger(burnTokens) && burnTokens >= 0
+    ? burnTokens.toLocaleString('en-US') : tier === 'standard' ? '0' : 'quote pending';
+  const hours = [6,12,24,48].includes(lockHours) ? lockHours : null;
+  const lock = developerBuy === false ? 'Dev buy: none.' : developerBuy === true && hours
+    ? `Dev lock: ${hours}h from launch; auto-transfer.` : 'Dev lock: check token page.';
+  const fees = holder === null || x === null ? 'SOL fees: check allocation.'
+    : `SOL fees: ${creator === null ? '' : `${creator}% creator / `}${holder}% holders / ${x}% X.`;
+  const reserve = airdrop !== null && airdrop >= 3
+    ? `Airdrop: ${airdrop}% supply to eligible $RICH holders at migration.` : 'Airdrop: check allocation.';
+  const header = migrated ? `$${ticker} is migrated` : `New launch: $${ticker}`;
+  const network = cluster === 'devnet' ? '[Devnet test]' : cluster === 'mainnet-beta' ? '[Mainnet]' : '';
+  const facts = [header, lock, fees, reserve, `${promotion} | $RICH burn: ${burn}`, network, link].filter(Boolean);
+  // Never silently remove allocation/lock facts to squeeze in promotional prose.
+  const summary = [...cleanText(description || label)];
+  const compose = text => [facts[0], text, ...facts.slice(1)].filter(Boolean).join('\n');
+  while (summary.length && postWeight(compose(summary.join(''))) > 280) summary.pop();
+  return compose(summary.join('').trim());
 }

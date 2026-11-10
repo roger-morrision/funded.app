@@ -1,6 +1,7 @@
 import { $, node, $$, tabs, disclose } from './dom.js';
 import { openCoinRecord } from '../coin/records-navigation.js';
 import { xProfileHandleFromUrl } from '../../../launch-social-url.js';
+import {communityLink} from '../../../community-link.js';
 
 // Tiny prices arrive as "$0.0₇3415"; subscript glyphs read like a comma in
 // the price font, so the zero count is re-rendered as a real <sub> element.
@@ -80,7 +81,7 @@ export function tokenPage() {
     const factRibbon=$('.coin-fact-ribbon',hero);
     if(factRibbon)aboutPanel.append(factRibbon);
     const updatesPanel=node('div','coin-profile-panel coin-profile-updates');
-    updatesPanel.append(node('strong','','No updates yet'),node('p','','Updates from this project will appear here.'));
+    updatesPanel.append(node('strong','','No updates yet'));
     const roadmapPanel=node('section','coin-profile-roadmap-section');roadmapPanel.id='coin-profile-roadmap-section';
     roadmapPanel.append(node('h3','','Project roadmap'));
     const roadmap=node('p','coin-profile-roadmap','No signed roadmap was provided for this token.');roadmap.id='coin-profile-roadmap';
@@ -101,8 +102,10 @@ export function tokenPage() {
         try{host=new URL(href).hostname;}catch{continue;}
         const item=node('li');const link=node('a','',`${label} ↗`);
         link.href=href;link.target='_blank';link.rel='noopener noreferrer';
-        const account = label === 'X' ? xProfileHandleFromUrl(href) : '';
-        item.append(link,node('small','',account || host));linksList.append(item);
+        const type=label.toLowerCase();
+        const account = label === 'X' ? xProfileHandleFromUrl(href) : communityLink(href,type)?.fallback;
+        const caption=node('small','',details?.communityNames?.[type] || account || host);
+        item.append(link,caption);linksList.append(item);
       }
       selectProfile.setAvailable('links',linksList.childElementCount>0);
     };

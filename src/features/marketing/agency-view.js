@@ -1,6 +1,7 @@
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { renderAgencyHistory } from './agency-history.js';
 import {agencyTokenTable} from './agency-token-table.js';
+import {buybackProgressTable} from './buyback-progress.js';
 import { readLaunchAgencySelection } from './agency-selection.js';
 
 const agentDescription = agent => agent.id === 'x-promotion'
@@ -34,6 +35,7 @@ export function initMarketingAgency(document = globalThis.document) {
     card.append(title, description, state); page.querySelector('[data-agency-cards]').append(card);
   }
   main.insertBefore(page, main.querySelector(':scope > .site-footer'));
+  const buybackProgress=document.createElement('section');buybackProgress.dataset.buybackProgress='';page.querySelector('[data-agency-tokens]').parentElement.after(buybackProgress);
   const oldHistory=page.querySelector('[data-agency-history]'),historyContainer=document.createElement('div');
   historyContainer.dataset.agencyHistory='';historyContainer.textContent=oldHistory.textContent;oldHistory.replaceWith(historyContainer);
   const nav = document.querySelector('.primary-nav'), anchor = nav?.querySelector('a[href="#capital-flow"]');
@@ -95,6 +97,12 @@ export function initMarketingAgency(document = globalThis.document) {
       const response = await view.fetch('/api/marketing-agency', { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('Unavailable');
       const data = await response.json(); if (id !== serial) return;
+      buybackProgress.textContent='Checking buyback funding…';
+      void view.fetch('/api/buyback/status',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(buyback=>{if(id===serial)buybackProgress.innerHTML=buybackProgressTable(buyback,data.launches||[]);});
+      page.querySelectorAll('.agency-agent').forEach((card,index)=>{
+        let reason=card.querySelector('[data-agent-reason]');if(!reason){reason=document.createElement('small');reason.dataset.agentReason='';card.append(reason);}
+        const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);reason.textContent=row?.reason||'';
+      });
       if(data.status==='deployment-verified'&&data.active===true&&typeof data.executionEnabled==='boolean'){
         const proof=data.verification;
         if(data.policy?.version!==POLICY.version||proof?.scope!=='reviewed-devnet-program-and-fresh-worker'
@@ -123,7 +131,7 @@ export function initMarketingAgency(document = globalThis.document) {
         page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
           const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
           // The status line lists each distinct reason once; badges stay short and keep the reason as a tooltip.
-          node.textContent=row?.enabled===true?'Available':'Paused';node.title=row?.enabled===true?'Execution requires proof':row?.reason||'Readiness unverified';
+          node.textContent=row?.id==='x-promotion'&&data.publishingPaused?'Manual posting':row?.enabled===true?'Available':'Paused';node.title=row?.enabled===true?'Execution requires proof':row?.reason||'Readiness unverified';
         });
         page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
         page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
@@ -137,12 +145,12 @@ export function initMarketingAgency(document = globalThis.document) {
       if(data.feePolicy?.status==='published')page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
       page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
         const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
-        node.textContent=row?.reason?'Paused':'Unavailable';node.title=row?.reason||'Readiness unavailable';
+        node.textContent=row?.id==='x-promotion'&&data.publishingPaused?'Manual posting':row?.reason?'Paused':'Unavailable';node.title=row?.reason||'Readiness unavailable';
       });
       page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Current agency readiness is unavailable. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' Automated X publishing is disabled. Launch promotion is handled manually by the admin.':''} Earlier receipts below do not establish current readiness. See Capital flow for the published fee policy.`;
       { const reasons=[...new Set((data.agents||[]).map(row=>row.reason).filter(Boolean))]; if(reasons.length)page.querySelector('[data-agency-status]').textContent+=` ${reasons.join(' ')}`; }
-      page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
-      page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
+      page.querySelector('[data-agency-funded]').textContent = data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
+      page.querySelector('[data-agency-spent]').textContent = data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
       renderAgencyHistory(page.querySelector('[data-agency-history]'),data);
       page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);
     } catch {

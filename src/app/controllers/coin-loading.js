@@ -203,6 +203,10 @@ export function createCoinLoadingController(appState) {
         const tagline = document.querySelector('#coin-profile-tagline');
         if (tagline) { tagline.textContent = details.tagline || ''; tagline.hidden = !details.tagline; }
         window.fundedSetCoinProfileMetadata?.(details);
+        if(details.telegram||details.discord)void appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/community-names`,{signal:AbortSignal.timeout(6000)}).then(result=>{
+          if(loadId===appState.coinLoadId&&result.available&&result.data?.mint===mintAddress)
+            window.fundedSetCoinProfileMetadata?.({...details,communityNames:result.data.names});
+        }).catch(()=>{});
         appState.setCoinFact('#coin-metadata-status', 'Name and symbol confirmed', 'clear');
         if (appState.isDevnetImageUri(details.image, mintAddress)) {
           const avatar = document.querySelector('#coin-avatar');

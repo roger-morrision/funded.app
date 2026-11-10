@@ -1,6 +1,6 @@
 import {icon} from '../../../ui-icons.js';
 import {activeBoostMultiplier} from '../../../boost-offer.js';
-import {featuredMetricsMarkup,featuredBannerMetricsMarkup} from './featured-metrics.js';
+import {featuredBannerMetricsMarkup} from './featured-metrics.js';
 import {escapeHtml} from '../shared/display.js';
 import {tokenArtworkUrl} from '../shared/token-artwork.js';
 
@@ -16,10 +16,9 @@ export function featuredCardMarkup(item,cluster,now=Date.now()) {
   const e=escapeHtml,boost=activeBoostMultiplier(item.boost,now);
   return `<article class="home-featured-card" data-featured-mint="${e(item.mint)}">
     <a class="home-featured-token" href="${href}" aria-label="View ${e(item.name)} (${e(item.symbol)})${boost>0?` · ${boost.toLocaleString('en-US')} times active boost`:''}">
-      <div class="home-featured-art"><span class="home-featured-monogram" aria-hidden="true">${e(item.symbol.slice(0,5))}</span>${banner?`<img class="home-featured-banner" src="${e(banner)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}<span class="home-featured-label">${e(item.label)}</span><dl class="home-featured-banner-metrics" aria-label="Token age and holders">${featuredBannerMetricsMarkup()}</dl></div>
+      <div class="home-featured-art"><span class="home-featured-monogram" aria-hidden="true">${e(item.symbol.slice(0,5))}</span>${banner?`<img class="home-featured-banner" src="${e(banner)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}<span class="home-featured-label">${e(item.label)}</span><dl class="home-featured-banner-metrics" aria-label="Token metrics">${featuredBannerMetricsMarkup()}</dl></div>
       <div class="home-featured-identity"><span class="home-featured-logo" aria-hidden="true">${e(item.symbol.slice(0,2))}${logo?`<img src="${e(logo)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer">`:''}</span><span><strong>${e(item.name)}</strong><small class="home-featured-symbol"><span>$${e(item.symbol)}</span>${boost>0?`<span class="home-featured-boost" aria-label="${boost.toLocaleString('en-US')} times active boost" title="Active paid boost"><span class="boost-leading-icon">${icon('boost')}</span>${boost.toLocaleString('en-US')}×</span>`:''}</small></span><span aria-hidden="true">↗</span></div>
     </a>
-    <dl class="home-featured-footer" aria-label="Token metrics">${featuredMetricsMarkup()}</dl>
   </article>`;
 }
 

@@ -32,8 +32,8 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
     const agents=enabled=>marketingAgencyCapabilities().policy.agents.map((agent,index)=>{
       const available=enabled&&(index===0?!xPaused:
         env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'&&config?.agency?.buybacks?.ready===true);
-      const reason=index===0&&xPaused?'Automated X publishing is disabled. The admin handles launch promotion manually; protected agent funds remain reserved until verified delivery.':
-        index>0&&!available?config?.agency?.buybacks?.reason||'Milestone buyback readiness is unverified.':null;
+      const reason=index===0&&xPaused?'Manual posting by admin. Automated recurring posts are disabled.':
+        index>0&&!available?env.FUNDED_V3_AGENCY_BUYBACK_ENABLED!=='true'?'Milestone buyback execution is disabled.':config?.agency?.buybacks?.reason||'Milestone buyback readiness is unverified.':null;
       return{id:agent.id,enabled:available,status:available?'available':reason?'paused':'not-activated',reason};
     });
     if(env.FUNDED_V3_AGENCY_ENABLED==='true'&&store&&readLaunchConfig){
@@ -57,8 +57,8 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
     respond(res, 200, { ...marketingAgencyCapabilities(),
       agents:agents(false),feePolicy,publishingPaused:xPaused,
       ...(config?.reasons?.length?{blockers:config.reasons}:{}),
-      funding: { status: 'unavailable', collectedLamports: null, spentLamports: null },
-      launches: [], ...recordedHistory(state,env,mint) });
+      ...agencyPublicSummary({state,mint,programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID}),
+      ...recordedHistory(state,env,mint) });
     return true;
   };
 }

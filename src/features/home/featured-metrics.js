@@ -28,5 +28,5 @@ export function featuredMetricsMarkup(metrics=featuredMetrics({})) {
 export function featuredBannerMetricsMarkup(metrics=featuredMetrics({})) {
   const e=escapeHtml;
   return `<div title="${e(metrics.ageAt?'Confirmed launch time: '+metrics.ageAt:'Verified launch time unavailable')}" ><dt>Age</dt><dd>${e(metrics.age)}</dd></div>
-    <div title="${e(metrics.holderTitle)}"><dt>Holders</dt><dd class="featured-holders">${e(metrics.holders)}</dd></div>`;
+    <div title="${e(metrics.holderTitle)}"><dt>Holders</dt><dd class="featured-holders">${e(metrics.holders)}</dd></div>${featuredMetricsMarkup(metrics)}`;
 }

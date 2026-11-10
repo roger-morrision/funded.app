@@ -1,6 +1,6 @@
 // Analytics chart of verified payouts per day, a pinned "your rank" row on the
 // leaderboard, and a creator panel on the token page for the coin's creator.
-import { el, lamports, sol, getJSON, shortWallet } from './format.js';
+import { el, lamports, sol, getJSON } from './format.js';
 
 const SERIES = [
   ['holders', 'Holder & creator SOL', ['automatic-holder', 'automatic-creator', 'v3-creator-wallet'], 'var(--fv-info, #8fb2f0)'],
@@ -66,30 +66,23 @@ export function mountPayoutChart(document = globalThis.document) {
 }
 
 export function mountCreatorPanel(app, document = globalThis.document) {
-  const coin = document.getElementById('coin-page');
-  if (!coin || document.getElementById('coin-creator-panel')) return Boolean(coin);
-  const panel = el(document, 'section', 'coin-creator-panel panel'); panel.id = 'coin-creator-panel'; panel.hidden = true;
-  (coin.querySelector('.coin-main-column') || coin).prepend(panel);
-  const clear = () => { panel.hidden = true; panel.replaceChildren(); };
+  const summary = document.getElementById('coin-summary-dashboard');
+  if (!summary || document.getElementById('coin-creator-actions')) return Boolean(summary);
+  const actions = el(document, 'nav', 'coin-creator-links'); actions.id = 'coin-creator-actions';
+  actions.setAttribute('aria-label', 'Creator actions'); actions.hidden = true;
+  summary.append(actions);
+  const clear = () => { actions.hidden = true; actions.replaceChildren(); };
   globalThis.addEventListener?.('funded:reward-identity-change', clear);
   globalThis.addEventListener?.('funded:coin-facts-loading', clear);
   globalThis.addEventListener?.('funded:coin-facts', event => {
     const { mint, launch, error } = event.detail || {};
-    const wallet = app.connectedWalletAddress;
-    const creator = launch?.creatorWallet || launch?.feePayer;
-    panel.hidden = Boolean(error || !wallet || !creator || wallet !== creator || mint !== app.getCoinMintAddress?.());
-    if (panel.hidden) return;
-    const text = id => document.getElementById(id)?.textContent.trim() || '—';
-    panel.innerHTML = `<header><div><p class="eyebrow">Creator view · ${shortWallet(wallet)}</p><h2>Your coin at a glance</h2></div></header>`;
-    const stats = el(document, 'dl', 'coin-creator-stats');
-    for (const [label, value] of [['Holders', text('coin-holder-count')], ['24h volume', text('coin-strip-volume')], ['Market cap', text('coin-strip-market-cap')], ['24h trades', text('coin-strip-trades')]]) {
-      const box = el(document, 'div'); box.append(el(document, 'dt', null, label), el(document, 'dd', null, value)); stats.append(box);
-    }
-    const links = el(document, 'nav', 'coin-creator-links'); links.setAttribute('aria-label', 'Creator actions');
+    const wallet = app.connectedWalletAddress, creator = launch?.creatorWallet || launch?.feePayer;
+    clear();
+    if (error || !wallet || !creator || wallet !== creator || mint !== app.getCoinMintAddress?.()) return;
     for (const [label, href] of [['Claim creator fees', '#payments/creator'], ['AI agents & milestones', '#marketing-agency'], ['Invite creators', '#referrals'], ['My projects', '#my-launches']]) {
-      const a = el(document, 'a', 'secondary-button', label); a.href = href; links.append(a);
+      const link = el(document, 'a', 'secondary-button', label); link.href = href; actions.append(link);
     }
-    panel.append(stats, links);
+    actions.hidden = false;
   });
   return true;
 }

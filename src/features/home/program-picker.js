@@ -24,9 +24,9 @@ export function initProgramPicker({ isWalletConnected }) {
       cta: 'Open creator launch',
       href: '#launch',
       cards: [
-        ['standard', 'STANDARD', 'Start here', 'Launch without the guesswork', 'Core Pump launch, public fee route, and a basic richpad.fun X announcement when publishing is active.', '0 $RICH', 'Basic X post'],
-        ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and a featured richpad.fun X launch post after verification when publishing is active.', '', 'Featured X post'],
-        ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, one richpad.fun X launch post and a follow-up after 24 hours when publishing is active.', '', 'Two X posts'],
+        ['standard', 'STANDARD', 'Start here', 'Launch without the guesswork', 'Core Pump launch, public fee route, and a launch draft emailed to the admin for manual X posting.', '0 $RICH', 'Launch draft'],
+        ['pro', 'PRO', 'For serious launches', 'Give the launch a stronger signal', 'Pro badge, public burn receipt, and launch plus migration drafts emailed to the admin for manual X posting.', '', 'Launch + migration drafts'],
+        ['premier', 'PREMIER', 'Largest showcase', 'Put your launch in the spotlight', 'Premier badge, public burn receipt, and launch plus migration drafts emailed to the admin for manual X posting.', '', 'Launch + migration drafts'],
       ],
     },
     community: {

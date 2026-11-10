@@ -166,6 +166,9 @@ export function createNavigationController(appState) {
 
   // app-source: 863
   function syncPageRoute(){
+    if(location.hash==='#status'||/^\/status\/?$/.test(location.pathname)){
+      location.replace('/admin#admin-service-status');return;
+    }
     // Only actual transitions involving an explicit reward alias request route focus.
     // Same-location data refreshes must preserve a visitor's tab and caret.
     if (location.href !== historyRouteLocation) {

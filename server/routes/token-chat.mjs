@@ -8,6 +8,11 @@ import { randomBytes, createHash } from 'node:crypto';
 import { recordCallout } from './callouts.mjs';
 
 const tokenChatSignatureWindowMs = 5 * 60 * 1000;
+async function optionalLookup(promise,ms){
+  let timer;
+  try{return await Promise.race([Promise.resolve(promise).catch(()=>null),new Promise(resolve=>{timer=setTimeout(()=>resolve(null),ms);})]);}
+  finally{clearTimeout(timer);}
+}
 
 function tokenChatPublicMessage(message) {
   return {
@@ -39,6 +44,7 @@ function verifyTokenChatSignature(statement, signatureValue, publicKey) {
 export function createTokenChatRoutes({
   body, walletKey, store, clientKey, tokenChatSessions, referralSession, requireAuthorized,
   respond, readMarketCaps = null, readHolderShare = null, readCalloutFeed = null, readTradeMetrics = null,
+  optionalLookupTimeoutMs = 2000,
 }) {
 
   const json = (...args) => { respond(...args); return true; };
@@ -126,25 +132,31 @@ export function createTokenChatRoutes({
         catch { return json(res, 400, { error: 'Connect a valid Solana wallet before posting.' }); }
         const text = validateInput(() => validateTokenChatText(input.text));
         if (sessionAddress ? sessionAddress !== author : !verifyTokenChatSignature(tokenChatPostStatement({ mint, author, text, ...envelope }), input.signature, new PublicKey(author))) return json(res, 401, { error: 'Wallet verification is invalid for this account.' });
+        const requestId=typeof input.requestId==='string'&&/^[a-f0-9-]{36}$/i.test(input.requestId)?input.requestId:null;
+        const retry=(await store.readCoinChat(mint,100)).find(row=>row.author===author&&row.status==='visible'
+          &&row.text===text&&Date.now()-Date.parse(row.createdAt)<10*60_000);
+        if(retry)return json(res,200,{message:tokenChatPublicMessage(retry),calloutStatus:retry.callout?'recorded':'not-recorded',alreadyPosted:true});
         const minute = Math.floor(Date.now() / 60_000) * 60_000;
         if (!await store.chargeRpcRate(`chat-wallet:${author}`, 1, 5, minute)) return json(res, 429, { error: 'Posting limit reached. Wait a minute before posting again.' });
         let callout = null, calloutStatus = 'holdings-unavailable';
         // Authenticated posts become calls only from a current server-read holding.
         // Unknown/zero holdings, unavailable quotes and call limits still allow chat.
-        const holding = readHolderShare ? await readHolderShare(author, mint).catch(() => null) : null;
+        const holding = readHolderShare ? await optionalLookup(readHolderShare(author, mint),optionalLookupTimeoutMs) : null;
         if(Number.isFinite(holding)&&holding===0)calloutStatus='not-holder';
         if (Number.isFinite(holding) && holding > 0 && readMarketCaps && store.updateCallouts) {
-          const checked = await recordCallout({ store, readMarketCaps, readHolderShare: async () => holding, mint, author });
+          const checked = await optionalLookup(recordCallout({ store, readMarketCaps, readHolderShare: async () => holding, mint, author }),optionalLookupTimeoutMs)
+            || {error:true,status:503};
           calloutStatus=checked.error?(checked.status===429?'repeat-call':'market-unavailable'):'rate-limited';
           if (!checked.error && await store.chargeRpcRate(`callout-wallet:${author}`, 1, 10, Math.floor(Date.now() / 3_600_000) * 3_600_000)) {
             callout = { marketCapSol: checked.cap.marketCapSol, holdingPercent: checked.holdingPercent, observedAt: checked.cap.observedAt };
             calloutStatus='recorded';
           }
         }
-        const messageId = sessionAddress ? `chat_${randomBytes(12).toString('hex')}` : `chat_${createHash('sha256').update(String(input.signature)).digest('hex').slice(0, 24)}`;
+        const messageId = sessionAddress ? requestId?`chat_${createHash('sha256').update(`${mint}:${author}:${requestId}`).digest('hex').slice(0,24)}`:`chat_${randomBytes(12).toString('hex')}` : `chat_${createHash('sha256').update(String(input.signature)).digest('hex').slice(0, 24)}`;
         const createdAt = new Date().toISOString();
         const outcome = await store.updateCoinChat(mint, messages => {
-          if (messages.some(message => message.id === messageId)) return { status: 409, error: 'This signed message was already posted.' };
+          const prior=messages.find(message=>message.id===messageId);
+          if(prior)return prior.text===text&&prior.status==='visible'?{status:200,message:tokenChatPublicMessage(prior)}:{status:409,error:'This request ID was already used for another message.'};
           const recentByAuthor = [...messages].reverse().find(message => message.author === author);
           if (recentByAuthor && Date.now() - Date.parse(recentByAuthor.createdAt) < 10_000) return { status: 429, error: 'Wait a few seconds before posting again.' };
           const duplicate = messages.some(message => message.author === author && message.text === text && Date.now() - Date.parse(message.createdAt) < 10 * 60_000);
@@ -154,7 +166,7 @@ export function createTokenChatRoutes({
           return { status: 201, message: tokenChatPublicMessage(message) };
         });
         feedCache=null;
-        if (callout && !outcome.error) await store.updateCallouts(list => { list.push({ id: messageId, mint, author, text, createdAt, marketCapSol: callout.marketCapSol, peakMarketCapSol: callout.marketCapSol, holdingPercent: callout.holdingPercent }); });
+        if (callout && outcome.status===201) await store.updateCallouts(list => { if(!list.some(row=>row.id===messageId))list.push({ id: messageId, mint, author, text, createdAt, marketCapSol: callout.marketCapSol, peakMarketCapSol: callout.marketCapSol, holdingPercent: callout.holdingPercent }); });
         return json(res, outcome.status, outcome.error ? { error: outcome.error } : { message: outcome.message, calloutStatus });
       }
       const messageId = String(input.messageId || '').trim();

@@ -1,8 +1,10 @@
 import {publicState} from './public-state.mjs';
+import {createCommunityNameRoutes} from './routes/community-names.mjs';
 import { createPublicTradeSharingRoutes } from './routes/public-trade-sharing.mjs';
 import {deploymentCluster,mainnetMutationBlocked} from './network-write-policy.mjs';
 import {startApiFinancialWorkerServices} from './api-financial-workers.mjs';
 import {createLaunchPostEmailWorker} from './launch-post-email.mjs';
+import {createMigrationPostEmailWatcher} from './migration-post-email.mjs';
 import { createLaunchSupportRoutes } from './routes/launch-support.mjs';
 import { createReferralActivityRoutes } from './routes/referral-activity.mjs';
 import { createServiceStatusRoutes } from './routes/service-status.mjs';
@@ -38,6 +40,7 @@ import {createBirdeyeMarketFallback} from './birdeye-market-fallback.mjs';
 import { createLaunchProtectionRoutes } from './routes/launch-protection.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
+import {createProjectUpdateRoutes} from './routes/project-updates.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
 import { createCalloutRoutes, createCalloutFeed } from './routes/callouts.mjs';
 import { createCalloutMarketReader, createHolderShareReader } from './callout-market.mjs';
@@ -295,6 +298,8 @@ const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsR
 let calloutConnection = null;
 const readCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
 const readCalloutFeed = createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps });
+const handleCommunityNames=createCommunityNameRoutes({store,respond:json});
+const handleProjectUpdates=createProjectUpdateRoutes({store,body,referralSession,cluster:solanaCluster,respond:json});
 const handleTokenChatRoutes = createTokenChatRoutes({
   readTradeMetrics:createCommunityTradeReader({rpcUrl:solanaRpcUrl,cluster:solanaCluster,readMarketCaps:readCalloutMarketCaps}),
   readCalloutFeed,
@@ -457,6 +462,8 @@ async function handle(req, res) {
     if (await handleLaunchPreview(req, res, url)) return;
     if (await handleKeeperStatus(req, res, url)) return;
     if (await handleDiscoveryRoutes(req, res, url)) return;
+    if (await handleCommunityNames(req, res, url)) return;
+    if (await handleProjectUpdates(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
     if (await handleCalloutRoutes(req, res, url)) return;
     if (await handleV3Routes(req, res, url, requestId)) return;
@@ -494,3 +501,4 @@ await startShareVisitCleanup({ store });
 startAppListener({port,host,handle,solanaRpcUrl});
 startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,store});
 createLaunchPostEmailWorker({store,connection:new Connection(solanaRpcUrl,'finalized'),cluster:solanaCluster}).start();
+createMigrationPostEmailWatcher({store,connection:new Connection(solanaRpcUrl,'finalized'),cluster:solanaCluster}).start();

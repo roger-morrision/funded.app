@@ -2,6 +2,7 @@ import { linkWalletText, walletAddressMarkup } from './src/features/shared/walle
 import { Buffer } from 'buffer';
 import { READ_ONLY_PREVIEW, PREVIEW_MESSAGE, assertWritablePreview } from './deployment-mode.js';
 import {refreshFinancialHealth} from './admin-financial-health.js';
+import {initAdminServiceStatus} from './admin-service-status.js';
 import {initAdminRpcHealth} from './admin-rpc-health.js';
 import { initAdminDailyBonus } from './admin-daily-bonus.js';
 import { initAdminServiceFees } from './admin-service-fees.js';
@@ -46,6 +47,7 @@ const session=createAdminSession({document,onEnd:()=>{
  $('#financial-health').textContent='Sign in to load monitoring.';show('');withdrawals?.sync();
 }});
 const confirmedPost=createConfirmedAdminPost({api,session});
+const serviceStatus=initAdminServiceStatus({api,session});
 initAdminBoostPrices({api,post,show});
 function authControls(){ $('#sign-in').disabled=READ_ONLY_PREVIEW||authBusy||!connected;$('#sign-out').disabled=authBusy; }
 
@@ -150,6 +152,8 @@ function feeTotal() {
 }
 async function refresh() {
  if(!session.active||feeSaving)return;
+ void serviceStatus.refresh();
+ void serviceStatus.refresh();
  const epoch=session.epoch,request=++refreshGeneration;$('#refresh').disabled=true;
  try{
   const [feeResult,walletResult]=await Promise.allSettled([api('/api/fee-policy'),api('/api/admin/overview')]);
