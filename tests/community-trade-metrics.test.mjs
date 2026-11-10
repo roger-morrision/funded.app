@@ -57,7 +57,7 @@ import {agencyTokenTable} from '../src/features/marketing/agency-token-table.js'
 import {describeTradeQuote} from '../trade-quote-display.js';
 test('agency queue shows registered tokens while withholding stale balances',()=>{
  const html=agencyTokenTable({status:'deployment-verified',publishingPaused:true,launches:[{mint,symbol:'FCAT',status:'awaiting-fresh-finalized-snapshot',paidLamports:'9999999999'}]});
- assert.match(html,/FCAT/);assert.match(html,/Awaiting fresh snapshot/);assert.doesNotMatch(html,/9.999999999/);assert.equal((html.match(/scope="col"/g)||[]).length,9);
+ assert.match(html,/FCAT/);assert.match(html,/Awaiting fresh snapshot/);assert.doesNotMatch(html,/9.999999999/);assert.equal((html.match(/scope="col"/g)||[]).length,10);
 });
 test('buy quote uses the actual token symbol; sell output stays SOL',()=>{
  const trade={side:'buy',tokenDecimals:6,outputAmount:123804454967255n,minimumOutputAmount:122566410417582n,feeLamports:1000000,route:'curve'};

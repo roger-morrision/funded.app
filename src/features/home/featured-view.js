@@ -75,7 +75,7 @@ export function createFeaturedScroller(root) {
     for(const card of track.querySelectorAll('[data-featured-mint]')){
       const metrics=byMint.get(card.dataset.featuredMint);
       if(!metrics)continue;
-      for(const [selector,markup] of [['.home-featured-footer',featuredMetricsMarkup],['.home-featured-banner-metrics',featuredBannerMetricsMarkup]]){
+      for(const [selector,markup] of [['.home-featured-banner-metrics',featuredBannerMetricsMarkup]]){
         const target=card.querySelector(selector);if(!target)continue;
         const html=markup(metrics);
         if(target.dataset.metricsKey!==html){target.innerHTML=html;target.dataset.metricsKey=html;}

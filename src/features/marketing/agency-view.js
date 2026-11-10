@@ -98,6 +98,7 @@ export function initMarketingAgency(document = globalThis.document) {
       if (!response.ok) throw new Error('Unavailable');
       const data = await response.json(); if (id !== serial) return;
       buybackProgress.textContent='Checking buyback funding…';
+      void view.fetch('/api/marketing-agency/progress',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(progress=>{if(id===serial&&progress?.scope==='display-only'){data.progress=progress.rows;page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);}});
       void view.fetch('/api/buyback/status',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(buyback=>{if(id===serial)buybackProgress.innerHTML=buybackProgressTable(buyback,data.launches||[]);});
       page.querySelectorAll('.agency-agent').forEach((card,index)=>{
         let reason=card.querySelector('[data-agent-reason]');if(!reason){reason=document.createElement('small');reason.dataset.agentReason='';card.append(reason);}

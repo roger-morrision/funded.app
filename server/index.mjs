@@ -1,5 +1,6 @@
 import {publicState} from './public-state.mjs';
 import {createCommunityNameRoutes} from './routes/community-names.mjs';
+import {createAgencyProgressReader} from './agency-progress.mjs';
 import { createPublicTradeSharingRoutes } from './routes/public-trade-sharing.mjs';
 import {deploymentCluster,mainnetMutationBlocked} from './network-write-policy.mjs';
 import {startApiFinancialWorkerServices} from './api-financial-workers.mjs';
@@ -299,6 +300,7 @@ let calloutConnection = null;
 const readCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
 const readCalloutFeed = createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps });
 const handleCommunityNames=createCommunityNameRoutes({store,respond:json});
+const readAgencyProgress=createAgencyProgressReader({connection:new SharedRpcConnection(solanaRpcUrl,'finalized'),readMarketCaps:readCalloutMarketCaps,readSolUsd:readSolUsdQuote});
 const handleProjectUpdates=createProjectUpdateRoutes({store,body,referralSession,cluster:solanaCluster,respond:json});
 const handleTokenChatRoutes = createTokenChatRoutes({
   readTradeMetrics:createCommunityTradeReader({rpcUrl:solanaRpcUrl,cluster:solanaCluster,readMarketCaps:readCalloutMarketCaps}),
@@ -463,6 +465,10 @@ async function handle(req, res) {
     if (await handleKeeperStatus(req, res, url)) return;
     if (await handleDiscoveryRoutes(req, res, url)) return;
     if (await handleCommunityNames(req, res, url)) return;
+    if(req.method==='GET'&&url.pathname==='/api/marketing-agency/progress'){
+      if(solanaCluster!=='devnet')return json(res,200,{rows:[],scope:'display-only'});
+      return json(res,200,{rows:await readAgencyProgress(await store.read()),scope:'display-only',cluster:'devnet'});
+    }
     if (await handleProjectUpdates(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
     if (await handleCalloutRoutes(req, res, url)) return;

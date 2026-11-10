@@ -11,7 +11,8 @@ export function communityLink(value, type) {
       if(/^[A-Za-z0-9_-]{5,80}$/.test(invite||''))return {fallback:'Telegram invite',url:'https://t.me/+'+invite};
     }
     if(type==='discord'&&['discord.gg','discord.com','discordapp.com','www.discord.com'].includes(host)) {
-      const code=host==='discord.gg'?parts[0]:parts[0]==='invite'?parts[1]:null;
+      const reserved=['channels','login','register','app','developers','terms','privacy','download','nitro','shop','application-directory'];
+      const code=host==='discord.gg'?parts[0]:parts[0]==='invite'?parts[1]:parts.length===1&&!reserved.includes(parts[0])?parts[0]:null;
       if(/^[A-Za-z0-9_-]{2,80}$/.test(code||''))return {fallback:'Discord invite · '+code,url:'https://discord.com/api/v10/invites/'+code};
       if(parts[0]==='channels')return {fallback:'Discord channel',url:null};
     }
