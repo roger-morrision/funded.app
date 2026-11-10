@@ -139,3 +139,9 @@ change the 90-second readiness window, 60-second market freshness limit,
 protected reserve, fee policy or creator-buy limit. Logger failures do not
 interrupt the worker. Investigate the recorded phase before changing any
 readiness gate; a previous generic outage cannot be attributed retroactively.
+
+## Manual promotion delivery and Devnet activation
+
+When admin-email delivery is configured, Agent 1 is shown as **Email drafts enabled**. It emails the existing launch draft and the paid-package migration draft with a Post to X action. The administrator reviews and publishes the post. This mode does not enable recurring automatic X posts or charge the protected agency promotion budget.
+
+The buyback-only worker must share the app's existing independent price-signer public address, HTTPS endpoint and token secret mount. `scripts/agency-service-config.mjs` copies only those settings and fails closed if an enabled worker lacks them. Activation still requires the reviewed Devnet program, exact-build worker evidence, saved per-token thresholds, protected budget, migration and finalized purchase/burn verification.

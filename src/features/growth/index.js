@@ -9,7 +9,6 @@ import { mountAlerts } from './alerts.js';
 import { mountPayoutChart, mountCreatorPanel } from './insights.js';
 import { mountCommandActions } from './command-actions.js';
 import { mountSkeletons } from './skeletons.js';
-import { mountExampleData } from './example-data.js';
 
 export function mountGrowthFeatures(app, document = globalThis.document) {
   mountInvitedBanner(document);
@@ -24,7 +23,6 @@ export function mountGrowthFeatures(app, document = globalThis.document) {
     ['creator', () => mountCreatorPanel(app, document)],
     ['command', () => mountCommandActions(document)],
     ['skeletons', () => mountSkeletons(document)],
-    ['examples', () => mountExampleData(document)],
   ]);
   const run = () => {
     for (const [name, mount] of pending) {

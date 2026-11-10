@@ -1,3 +1,4 @@
+import {wireAgencyPriceSigner} from './agency-service-config.mjs';
 import {execFileSync} from 'node:child_process';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -69,6 +70,7 @@ if(inactive){
   config.services['buyback-worker'].environment.FUNDED_V3_BUYBACK_ENABLED=process.env.FUNDED_V3_BUYBACK_ENABLED||'false';
   config.services['agency-buyback-worker'].environment.FUNDED_V3_AGENCY_BUYBACK_ENABLED=process.env.FUNDED_V3_AGENCY_BUYBACK_ENABLED||'false';
 }
+wireAgencyPriceSigner(config);
 const folder=resolve('tmp/automation-release');await mkdir(folder,{recursive:true});
 await writeFile(resolve(folder,'previous-services.json'),rendered);
 await writeFile(resolve(folder,'services.compose.json'),JSON.stringify(config,null,2));

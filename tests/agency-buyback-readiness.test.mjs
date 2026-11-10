@@ -45,3 +45,16 @@ test('public capability keeps verified deployment separate from blocked executio
   f.env.FUNDED_V3_AGENCY_BUYBACK_ENABLED='true';await request();assert(payload.agents.every(row=>row.enabled));
   assert.deepEqual(payload.blockers,[]);
 });
+
+test('manual email promotion is available independently and never enables automatic execution',async()=>{
+  const env={FUNDED_LAUNCH_POST_EMAIL_ENABLED:'true',FUNDED_ADMIN_EMAIL_PROVIDER:'gmail',
+    FUNDED_ADMIN_EMAIL:'admin@richpad.fun',FUNDED_ADMIN_EMAIL_FROM:'admin@richpad.fun',FUNDED_ADMIN_GMAIL_APP_PASSWORD:'abcdefghijklmnop',X_POST_ENABLED:'false'};
+  let payload;
+  const handle=createMarketingAgencyRoutes({env,store:{read:async()=>({})},respond:(_res,_status,data)=>{payload=data;}});
+  const request=()=>handle({method:'GET'},{},new URL('https://richpad.fun/api/marketing-agency'));
+  await request();assert.equal(payload.agents[0].enabled,true);assert.equal(payload.agents[0].deliveryMode,'admin-email');
+  assert.equal(payload.agents[0].status,'manual-ready');assert.equal(payload.executionEnabled,false);
+  assert(payload.agents.slice(1).every(row=>!row.enabled));assert.equal(payload.publishingPaused,true);
+  env.FUNDED_API_ONLY='true';await request();assert.equal(payload.agents[0].enabled,false);
+  env.FUNDED_API_ONLY='false';env.FUNDED_ADMIN_GMAIL_APP_PASSWORD='';await request();assert.equal(payload.agents[0].enabled,false);
+});

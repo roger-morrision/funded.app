@@ -12,11 +12,10 @@ export function initMarketingAgency(document = globalThis.document) {
   const main = document?.querySelector('.main-content');
   if (!main || document.getElementById('marketing-agency')) return;
   const view = document.defaultView, page = document.createElement('section');
-  let verifiedRates=null, publishingPaused=null,agencyGrossPercent=2,agencyReady=false,updateLaunchTeam=()=>{};
+  let verifiedRates=null, publishingPaused=null,manualEmailReady=false,agencyGrossPercent=2,agencyReady=false,updateLaunchTeam=()=>{};
   page.id = 'marketing-agency'; page.className = 'agency-page section-block';
   page.setAttribute('aria-labelledby', 'agency-title');
   page.innerHTML = `<header class="section-heading"><div><p class="eyebrow">Launch promotion</p><h1 id="agency-title">Help your project reach more people.</h1><p>Explore promotion and funded milestone buybacks for your community.</p></div><button type="button" data-agency-refresh>Refresh</button></header>
-    <p class="agency-status" data-agency-status role="status">Checking agency activation…</p>
     <div class="agency-agent-grid" data-agency-cards></div>
     <details class="agency-policy"><summary>Fee policy</summary><div class="agency-policy-body"><h2 id="agency-policy-title">New-launch agency allocation</h2>
       <p data-agency-policy-split>80% creator-directed · 8% Operations &amp; marketing · 1% referrals · 2% AI marketing &amp; coin buybacks · 4% Daily bonus · 5% $RICH buyback &amp; burn.</p>
@@ -70,13 +69,13 @@ export function initMarketingAgency(document = globalThis.document) {
       }
       const rates = verifiedRates;
       const example = rates ? Object.entries({'creator-directed':rates.creator, operations:rates.operations, referrals:rates.referrals, 'daily bonus':rates.dailyBonus, '$RICH buyback':rates.fundedBuyback, agents:rates.agency}).map(([label, rate]) => `${rate / 100} SOL ${label}`).join(', ') : '';
-      terms.textContent = [postStatus, selected.includes('x-promotion') ? 'Recurring agent posts are billed separately after verified delivery.' : '', example && 'For 1 SOL of collected creator fees: ' + example + '.'].filter(Boolean).join(' ');
+      terms.textContent = [postStatus, selected.includes('x-promotion') ? 'Launch and migration drafts are emailed to admin for manual posting.' : '', example && 'For 1 SOL of collected creator fees: ' + example + '.'].filter(Boolean).join(' ');
       const review = document.getElementById('launch-review-package');
       if (review) review.textContent = terms.textContent + ' ' + agencyGrossPercent + '% shared equally among ' + selected.length + ' included agents (' + (agencyGrossPercent / selected.length).toLocaleString(undefined,{maximumFractionDigits:4}) + '% each, rounded).';
       split.textContent=`${agencyGrossPercent}% of collected creator fees · shared equally across the ${selected.length} included agents (≈${(agencyGrossPercent/selected.length).toLocaleString(undefined,{maximumFractionDigits:4})}% each).`;
       help.textContent=agencyReady?'Actions wait for verified funding and their milestones.':'Agent execution is not yet available.';
       for(const row of document.querySelectorAll('[data-fixed-fee-category="agency"]')){row.dataset.agencyState=agencyReady?'ready':'paused';row.title=agencyReady?'':'Agent execution is not yet available. This share stays reserved for the agents of this coin.';}
-      if(publishingPaused&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved.';
+      if(publishingPaused&&!manualEmailReady&&selected.includes('x-promotion'))help.textContent+=' X promotion is paused; its budget stays reserved.';
     };
     updateLaunchTeam=update;view.addEventListener('funded:launch-promotion',update);
     fieldset.addEventListener('change', update); update(); promotion.append(fieldset);
@@ -89,7 +88,6 @@ export function initMarketingAgency(document = globalThis.document) {
   async function refresh() {
     const id = ++serial; request?.abort(); const controller = new AbortController(); request = controller;
     const timeout = view.setTimeout(() => controller.abort(), 10_000);
-    page.querySelector('[data-agency-status]').textContent = 'Checking agency activation…';
     page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Checking availability';});
     page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
     page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
@@ -97,12 +95,14 @@ export function initMarketingAgency(document = globalThis.document) {
       const response = await view.fetch('/api/marketing-agency', { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('Unavailable');
       const data = await response.json(); if (id !== serial) return;
+      manualEmailReady=data.agents?.some(row=>row.id==='x-promotion'&&row.enabled===true&&row.status==='manual-ready'&&row.deliveryMode==='admin-email')===true;
       buybackProgress.textContent='Checking buyback funding…';
       void view.fetch('/api/marketing-agency/progress',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(progress=>{if(id===serial&&progress?.scope==='display-only'){data.progress=progress.rows;page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);}});
       void view.fetch('/api/buyback/status',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(buyback=>{if(id===serial)buybackProgress.innerHTML=buybackProgressTable(buyback,data.launches||[]);});
       page.querySelectorAll('.agency-agent').forEach((card,index)=>{
         let reason=card.querySelector('[data-agent-reason]');if(!reason){reason=document.createElement('small');reason.dataset.agentReason='';card.append(reason);}
         const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);reason.textContent=row?.reason||'';
+        if(index===0&&manualEmailReady)card.querySelector('p').textContent='Launch and migration post drafts sent to admin email, with a Post to X button.';
       });
       if(data.status==='deployment-verified'&&data.active===true&&typeof data.executionEnabled==='boolean'){
         const proof=data.verification;
@@ -111,7 +111,7 @@ export function initMarketingAgency(document = globalThis.document) {
           ||!/^[a-f0-9]{40}$/.test(proof.build)||!(/^[1-9]\d{0,19}$/).test(String(proof.configRevision)))throw new Error('Unverified agency deployment');
         if(!Array.isArray(data.agents)||data.agents.length!==POLICY.agents.length||POLICY.agents.some(agent=>
           data.agents.filter(row=>row.id===agent.id&&typeof row.enabled==='boolean').length!==1)
-          ||(data.publishingPaused&&data.agents.some(row=>row.id==='x-promotion'&&(row.enabled||row.status!=='paused'))))
+          ||(data.publishingPaused&&data.agents.some(row=>row.id==='x-promotion'&&(row.enabled&&!(row.deliveryMode==='admin-email'&&row.status==='manual-ready')||!['paused','manual-ready'].includes(row.status)))))
           throw new Error('Unverified per-agent readiness');
         const rates=data.requiredGrossPercent;
         if(rates&&Object.values(rates).every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0)){
@@ -120,19 +120,15 @@ export function initMarketingAgency(document = globalThis.document) {
           page.querySelector('[data-agency-policy-referrals]').textContent=`Both buyback agents are included in every new launch. Promotion packages also include X promotion. Included agents share the agency allocation equally. Existing coins keep their saved selections. Referral levels: ${data.referralGrossPercents.map((n,i)=>`L${i+1} ${n}%`).join(' · ')} of gross collected creator fees.`;
         }
         for(const[ i,card]of [...page.querySelectorAll('.agency-agent')].entries()){
-          const agent=data.policy.agents[i];card.querySelector('h2').textContent=agent.name;card.querySelector('p').textContent=agent.description;
+          const agent=data.policy.agents[i];card.querySelector('h2').textContent=agent.name;if(!(agent.id==='x-promotion'&&manualEmailReady))card.querySelector('p').textContent=agent.description;
           const label=document.querySelector(`[data-launch-agent="${agent.id}"] [data-launch-agent-name]`);
           if(label)label.textContent=agent.name;
         }
         publishingPaused=data.publishingPaused===true;teamReadiness(data.executionEnabled);page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
-        const blockers=[...new Set(data.agents.filter(row=>!row.enabled).map(row=>row.reason).filter(Boolean))];
-        page.querySelector('[data-agency-status]').textContent=(data.executionEnabled
-          ?'Available agents still require verified funding and their execution conditions. '
-          :'Agent execution is paused; protected budgets remain reserved. ')+blockers.join(' ');
         page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
           const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
-          // The status line lists each distinct reason once; badges stay short and keep the reason as a tooltip.
-          node.textContent=row?.id==='x-promotion'&&data.publishingPaused?'Manual posting':row?.enabled===true?'Available':'Paused';node.title=row?.enabled===true?'Execution requires proof':row?.reason||'Readiness unverified';
+          // Keep each agent status and its readiness reason on its card.
+          node.textContent=row?.id==='x-promotion'&&manualEmailReady?'Email drafts enabled':row?.id==='x-promotion'&&data.publishingPaused?'Manual posting':row?.enabled===true?'Available':'Paused';node.title=row?.deliveryMode==='admin-email'?row.reason:row?.enabled===true?'Execution requires proof':row?.reason||'Readiness unverified';
         });
         page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
         page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
@@ -146,16 +142,14 @@ export function initMarketingAgency(document = globalThis.document) {
       if(data.feePolicy?.status==='published')page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
       page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
         const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
-        node.textContent=row?.id==='x-promotion'&&data.publishingPaused?'Manual posting':row?.reason?'Paused':'Unavailable';node.title=row?.reason||'Readiness unavailable';
+        node.textContent=row?.id==='x-promotion'&&manualEmailReady?'Email drafts enabled':row?.id==='x-promotion'&&data.publishingPaused?'Manual posting':row?.reason?'Paused':'Unavailable';node.title=row?.reason||'Readiness unavailable';
       });
-      page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Current agency readiness is unavailable. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' Automated X publishing is disabled. Launch promotion is handled manually by the admin.':''} Earlier receipts below do not establish current readiness. See Capital flow for the published fee policy.`;
-      { const reasons=[...new Set((data.agents||[]).map(row=>row.reason).filter(Boolean))]; if(reasons.length)page.querySelector('[data-agency-status]').textContent+=` ${reasons.join(' ')}`; }
       page.querySelector('[data-agency-funded]').textContent = data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
       renderAgencyHistory(page.querySelector('[data-agency-history]'),data);
       page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);
     } catch {
-      if (id === serial){verifiedRates=null; publishingPaused=null; teamReadiness(false);page.querySelector('[data-agency-status]').textContent = 'Agency status unavailable. No agency funding or execution is confirmed. Refresh to try again.';
+      if (id === serial){verifiedRates=null; publishingPaused=null; manualEmailReady=false; teamReadiness(false);
         page.querySelectorAll('.agency-agent .data-badge').forEach(node=>{node.textContent='Unavailable';});renderAgencyHistory(page.querySelector('[data-agency-history]'),null);page.querySelector('[data-agency-tokens]').textContent='Token budgets are unavailable. Refresh to retry.';}
     } finally { view.clearTimeout(timeout); }
   }

@@ -1,3 +1,4 @@
+import {adminEmailConfig} from '../admin-email-delivery.mjs';
 import { marketingAgencyCapabilities } from '../marketing-agency-policy.mjs';
 import {agencyPublicSummary} from '../agency-public-summary.mjs';
 import {AGENCY_RECEIPT_PROGRAM,AGENCY_RECEIPT_SCOPE} from '../../config/agency-history.js';
@@ -29,7 +30,13 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
     const published=state?.adminSettings?.protocolFeePolicy;
     const feePolicy={status:Number.isFinite(published?.split?.agencyPercent)?'published':'unavailable',revision:published?.revision??null};
     const xPaused=env.X_POST_ENABLED!=='true'||env.X_POST_ACCOUNT_STATUS!=='active';
+    let manualEmailReady=false;
+    if(xPaused&&env.FUNDED_LAUNCH_POST_EMAIL_ENABLED==='true'&&env.FUNDED_API_ONLY!=='true'){
+      try{adminEmailConfig(env);manualEmailReady=true;}catch{}
+    }
     const agents=enabled=>marketingAgencyCapabilities().policy.agents.map((agent,index)=>{
+      if(index===0&&manualEmailReady)return{id:agent.id,enabled:true,status:'manual-ready',deliveryMode:'admin-email',
+        reason:'Launch and paid-package migration drafts are emailed to admin. Admin confirms posting on X; no automatic posting or agency billing.'};
       const available=enabled&&(index===0?!xPaused:
         env.FUNDED_V3_AGENCY_BUYBACK_ENABLED==='true'&&config?.agency?.buybacks?.ready===true);
       const reason=index===0&&xPaused?'Manual posting by admin. Automated recurring posts are disabled.':
@@ -43,7 +50,7 @@ export function createMarketingAgencyRoutes({ respond,store,readLaunchConfig,env
           state=await store.read();
           const currentAgents=agents(true);
           respond(res,200,{...marketingAgencyCapabilities({split:config.protocolSplit,rules:config.agency.rules}),status:'deployment-verified',active:true,
-            executionEnabled:currentAgents.some(row=>row.enabled),blockers:[...new Set(currentAgents.filter(row=>!row.enabled).map(row=>row.reason).filter(Boolean))],
+            executionEnabled:currentAgents.some(row=>row.enabled&&row.deliveryMode!=='admin-email'),blockers:[...new Set(currentAgents.filter(row=>!row.enabled).map(row=>row.reason).filter(Boolean))],
             agents:currentAgents,feePolicy,publishingPaused:xPaused,
             verification:{scope:'reviewed-devnet-program-and-fresh-worker',programId:config.programId,
               approvedHash:env.FUNDED_V3_PROGRAM_DATA_SHA256,build:env.FUNDED_BUILD_ID,configRevision:config.agency.configRevision},

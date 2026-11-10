@@ -228,7 +228,8 @@ html body #main-content .section-block > section + section { margin-top: 28px; }
 .top100-token .boost-package-badges, .card-boost-packages .boost-package-badges { display: inline-flex; white-space: nowrap; vertical-align: middle; }
 
 /* Keep card links in a single accessible row across both card columns. */
-html body #main-content .home-new-token-socials { grid-column: 1 / -1; position: relative; z-index: 2; }
+html body #main-content .home-new-token-community { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; }
+html body #main-content .home-new-token-socials { position: relative; z-index: 2; margin-left: auto; }
 html body #main-content .home-new-token-socials .explore-social-links { display: flex; flex-wrap: nowrap; gap: 4px; justify-content: flex-start; }
 html body #main-content .home-new-token-socials .explore-social-link { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; min-height: 44px; padding: 0; }
 html body #main-content .home-new-token-socials .explore-social-link svg { width: 16px; height: 16px; }
@@ -253,3 +254,6 @@ html body .home-featured-banner-metrics > div:nth-child(even) { justify-content:
 html body .home-featured-banner-metrics :is(.featured-mc,[data-direction="positive"]) { color: var(--fv-success, #6de6ba); }
 html body .home-featured-banner-metrics [data-direction="negative"] { color: var(--red, #ff7b8f); }
 .agency-agent [data-agent-reason] { display:block; margin-top:10px; line-height:1.5; overflow-wrap:anywhere; }
+
+html body #main-content #coin-page .coin-socials.is-compact :is(a,button) { display: inline-flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
+html body #main-content #coin-page .coin-socials.is-compact :is(a,button) svg { display: block; flex: none; margin: 0; }
