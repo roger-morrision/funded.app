@@ -70,6 +70,9 @@ export function mountCreatorPanel(app, document = globalThis.document) {
   if (!coin || document.getElementById('coin-creator-panel')) return Boolean(coin);
   const panel = el(document, 'section', 'coin-creator-panel panel'); panel.id = 'coin-creator-panel'; panel.hidden = true;
   (coin.querySelector('.coin-main-column') || coin).prepend(panel);
+  const clear = () => { panel.hidden = true; panel.replaceChildren(); };
+  globalThis.addEventListener?.('funded:reward-identity-change', clear);
+  globalThis.addEventListener?.('funded:coin-facts-loading', clear);
   globalThis.addEventListener?.('funded:coin-facts', event => {
     const { mint, launch, error } = event.detail || {};
     const wallet = app.connectedWalletAddress;

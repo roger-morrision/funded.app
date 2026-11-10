@@ -60,6 +60,7 @@ export function mountAlerts(app, document = globalThis.document) {
   async function checkPayouts() {
     const wallet = app.connectedWalletAddress; if (!wallet) return;
     const data = await getJSON(`/api/rewards/totals?wallet=${encodeURIComponent(wallet)}`);
+    if (app.connectedWalletAddress !== wallet) return;
     const rewards = lamports(data?.rewardsLamports), bonus = lamports(data?.bonusLamports);
     const total = rewards == null && bonus == null ? null : (rewards ?? 0n) + (bonus ?? 0n);
     if (total == null) return;

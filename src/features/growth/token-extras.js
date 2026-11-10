@@ -1,5 +1,5 @@
 // Token page: a rewards strip (holder share + next payout), a holder-share calculator,
-// and a sticky Buy/Sell bar on phones.
+// The existing mobile navigation owns the Buy/Sell dialog controls.
 import { savedFeeDistributionRows } from '../fees/saved-distribution-chart.js';
 import { el, nextUtcHour, countdown } from './format.js';
 
@@ -62,18 +62,5 @@ export function mountTokenExtras(app, document = globalThis.document) {
   globalThis.addEventListener?.('funded:coin-facts-loading', () => { state = null; render(); });
   globalThis.setInterval?.(() => { if (state && !strip.hidden) render(); }, 60_000);
 
-  // Phones: sticky Buy / Sell bar above the bottom navigation.
-  const bar = el(document, 'div', 'coin-mobile-trade-bar'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Quick trade');
-  for (const [side, label] of [['buy', 'Buy'], ['sell', 'Sell']]) {
-    const button = el(document, 'button', side === 'buy' ? 'primary-button' : 'secondary-button', label); button.type = 'button';
-    button.addEventListener('click', () => {
-      const select = document.getElementById('trade-side');
-      if (select && select.value !== side) { select.value = side; select.dispatchEvent(new Event('change', { bubbles: true })); }
-      document.getElementById('trade-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(() => document.getElementById('trade-amount')?.focus({ preventScroll: true }), 400);
-    });
-    bar.append(button);
-  }
-  coin.append(bar);
   return true;
 }

@@ -8,10 +8,10 @@ const ago = iso => {
   return s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : s < 172800 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} days ago`;
 };
 
-export async function readStatus() {
+export async function readStatus(read = getJSON) {
   const [status, indexer, buyback, bonus, analytics] = await Promise.all([
-    getJSON('/api/status'), getJSON('/api/indexer/status'), getJSON('/api/buyback/status'),
-    getJSON('/api/daily-bonus/dashboard?category=all&page=1'), getJSON('/api/analytics/summary'),
+    read('/api/status'), read('/api/indexer/status'), read('/api/buyback/status'),
+    read('/api/daily-bonus/dashboard?category=all&page=1'), read('/api/analytics/summary'),
   ]);
   const check = id => status?.checks?.find(row => row.id === id)?.status;
   return [
@@ -19,9 +19,12 @@ export async function readStatus() {
     ['Solana network', check('network') === 'operational' ? 'ok' : check('network') === 'wrong-network' ? 'down' : 'unknown', status ? `Cluster ${status.cluster}` : 'Status unavailable'],
     ['Fee settlement proofs', status?.settlementVerified ? 'ok' : status ? 'degraded' : 'unknown', status?.settlementVerified ? 'All recorded settlements verified' : 'Verification incomplete or unavailable'],
     ['Launch indexer', indexer?.status === 'ready' ? 'ok' : indexer ? 'degraded' : 'unknown', indexer ? `${indexer.indexedLaunches ?? 0} launches · last sync ${ago(indexer.lastIndexedAt)}` : 'Status unavailable'],
-    ['Buyback & burn', buyback ? 'ok' : 'unknown', buyback ? 'Status endpoint answering' : 'Status unavailable'],
-    ['Daily bonus', bonus?.serverTime ? 'ok' : 'unknown', bonus?.serverTime ? `${bonus.snapshots ?? 0} snapshots recorded · next cutoff ${new Date(bonus.nextCutoffAt).toUTCString().slice(17, 22)} UTC` : 'Status unavailable'],
-    ['Analytics & payouts', analytics ? 'ok' : 'unknown', analytics?.freshness ? `Evidence updated ${ago(analytics.freshness)}` : analytics ? 'Answering' : 'Status unavailable'],
+    ['Buyback data', !buyback ? 'unknown' : buyback.refreshing || buyback.dashboard?.status !== 'verified' ? 'degraded' : 'ok',
+      buyback?.dashboard?.status === 'verified' ? 'Custody verified; execution still depends on funding and worker checks' : 'Custody verification pending or unavailable'],
+    ['Daily bonus data', !bonus ? 'unknown' : bonus.pool?.status !== 'verified' || bonus.unavailableReceipts !== 0 || bonus.unavailableSnapshots !== 0 ? 'degraded' : 'ok',
+      bonus?.serverTime ? `${bonus.snapshots ?? 0} snapshots recorded; payments depend on funding and verified eligibility` : 'Status unavailable'],
+    ['Analytics data', !analytics ? 'unknown' : Number.isFinite(Date.parse(analytics.freshness)) ? 'ok' : 'degraded',
+      analytics?.freshness ? `Evidence updated ${ago(analytics.freshness)}` : 'Evidence freshness unavailable'],
   ];
 }
 
@@ -30,8 +33,9 @@ export function mountStatusPage(document = globalThis.document) {
   if (!main || document.getElementById('status')) return Boolean(main);
   const page = el(document, 'section', 'section-block status-page'); page.id = 'status';
   page.setAttribute('aria-labelledby', 'status-title');
-  page.innerHTML = '<div class="section-heading"><div><p class="eyebrow">Service status</p><h1 id="status-title">Is everything running?</h1><p>Live checks of the app, the Solana connection and the payout services. Refreshes every minute.</p></div><button type="button" class="secondary-button" data-status-refresh>Refresh</button></div><p class="status-overall" data-status-overall role="status">Checking…</p><ul class="status-list" data-status-list></ul>';
-  main.querySelector(':scope > .site-footer')?.before(page) ?? main.append(page);
+  page.innerHTML = '<div class="section-heading"><div><p class="eyebrow">Service status</p><h1 id="status-title">Service and data checks</h1><p>Checks of storage, network and public evidence. These checks do not confirm that a payout has executed. Refreshes every minute.</p></div><button type="button" class="secondary-button" data-status-refresh>Refresh</button></div><p class="status-overall" data-status-overall role="status">Checking…</p><ul class="status-list" data-status-list></ul>';
+  const footer = main.querySelector(':scope > .site-footer');
+  if (footer) footer.before(page); else main.append(page);
   const list = page.querySelector('[data-status-list]'), overall = page.querySelector('[data-status-overall]');
   let busy = false;
   async function refresh() {
@@ -39,7 +43,7 @@ export function mountStatusPage(document = globalThis.document) {
     const rows = await readStatus(); busy = false;
     const bad = rows.filter(([, state]) => state !== 'ok').length;
     overall.dataset.state = bad === 0 ? 'ok' : rows.some(([, s]) => s === 'down') ? 'down' : 'degraded';
-    overall.textContent = bad === 0 ? 'All systems operational' : `${bad} of ${rows.length} checks need attention`;
+    overall.textContent = bad === 0 ? 'All listed checks passed' : `${bad} of ${rows.length} checks need attention`;
     list.replaceChildren(...rows.map(([name, state, detail]) => {
       const item = el(document, 'li'); item.dataset.state = state;
       item.append(el(document, 'span', 'status-dot'), el(document, 'strong', null, name), el(document, 'small', null, detail),

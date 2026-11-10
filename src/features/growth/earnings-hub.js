@@ -28,7 +28,7 @@ export function mountEarningsHub(app, document = globalThis.document) {
   host.after(hub);
   const total = hub.querySelector('[data-earnings-total]'), note = hub.querySelector('[data-earnings-note]');
   const breakdown = hub.querySelector('[data-earnings-breakdown]'), next = hub.querySelector('[data-earnings-next]');
-  let loadedFor = null, serial = 0;
+  let loadedFor = null, loadedAt = 0, serial = 0;
 
   function renderNext() {
     const now = Date.now();
@@ -45,16 +45,19 @@ export function mountEarningsHub(app, document = globalThis.document) {
   async function load() {
     const wallet = app.connectedWalletAddress || '';
     if (!wallet) {
+      serial++;
       loadedFor = null; total.textContent = '—'; breakdown.replaceChildren();
       note.textContent = 'Connect a wallet to see what it has earned.'; return;
     }
-    if (loadedFor === wallet) return;
-    loadedFor = wallet; const id = ++serial;
+    if (loadedFor === wallet && Date.now() - loadedAt < 60_000) return;
+    loadedFor = wallet; loadedAt = Date.now(); const id = ++serial;
     total.textContent = 'Checking…'; note.textContent = 'Reading verified receipts for this wallet.';
+    breakdown.replaceChildren();
     const data = await getJSON(`/api/rewards/totals?wallet=${encodeURIComponent(wallet)}`);
-    if (id !== serial) return;
+    if (id !== serial || app.connectedWalletAddress !== wallet) return;
     const rewards = lamports(data?.rewardsLamports), bonus = lamports(data?.bonusLamports);
     if (rewards == null && bonus == null) {
+      loadedFor = null;
       total.textContent = 'Unavailable'; note.textContent = 'Verified totals are unavailable right now. Unavailable does not mean zero.';
       breakdown.replaceChildren(); return;
     }
@@ -69,6 +72,7 @@ export function mountEarningsHub(app, document = globalThis.document) {
 
   renderNext(); void load();
   globalThis.setInterval?.(renderNext, 30_000);
+  globalThis.setInterval?.(() => { if (!document.hidden && location.hash.startsWith('#payments')) void load(); }, 60_000);
   globalThis.addEventListener?.('funded:reward-identity-change', () => { loadedFor = null; void load(); });
   globalThis.addEventListener?.('hashchange', () => { if (location.hash.startsWith('#payments')) void load(); });
   return true;
