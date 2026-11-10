@@ -56,6 +56,12 @@ jobs:
           FUNDED_MAINNET_FUNDED_POOL: 3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7
         run: |
           CARGO_TARGET_DIR="$RUNNER_TEMP/mainnet-build-check-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --features mainnet-v3-program --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy/mainnet-build-check" -- --locked
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      # verify-contract-candidate.mjs imports @solana/web3.js through server modules.
+      - run: npm ci
       - name: Verify candidates without changing deployed program trust
         run: |
           node scripts/verify-contract-candidate.mjs contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so devnet
