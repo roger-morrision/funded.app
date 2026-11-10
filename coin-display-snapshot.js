@@ -4,15 +4,20 @@ import { canonicalPumpPoolPda, PUMP_AMM_SDK } from '@pump-fun/pump-swap-sdk';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, unpackMint } from '@solana/spl-token';
 import { decodePoolDisplayState } from './pool-display-state.js';
 import { formatBondingCurveSnapshot, formatGraduatedPoolSnapshot } from './pump-trading.js';
+import { assertRpcNetwork } from './solana-network.js';
 
 // All addresses are deterministic. Read both possible base ATAs so discovering
 // the mint's token program does not require another network round trip.
 // This is display-only; trade construction still fetches fresh SDK quote state.
-export async function readCoinDisplaySnapshot({connection,mint,
+export async function readCoinDisplaySnapshot({connection,mint,poolAddress,cluster,
   decodeCurve = info => PUMP_SDK.decodeBondingCurve(info),
   decodeGlobal = info => PUMP_SDK.decodeGlobal(info),
   decodePool = info => PUMP_AMM_SDK.decodePool(info)}) {
-  const mintKey = new PublicKey(mint), poolKey = canonicalPumpPoolPda(mintKey,NATIVE_MINT);
+  // Platform tokens can use a configured, non-migration pool. Verify the network
+  // and read that pool with the mint/vault batch instead of loading swap state.
+  if (poolAddress) await assertRpcNetwork(connection,cluster);
+  const mintKey = new PublicKey(mint), canonicalPool = canonicalPumpPoolPda(mintKey,NATIVE_MINT);
+  const poolKey = poolAddress ? new PublicKey(poolAddress) : canonicalPool;
   const baseKeys = [TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID].map(program => getAssociatedTokenAddressSync(mintKey,poolKey,true,program));
   const quoteKey = getAssociatedTokenAddressSync(NATIVE_MINT,poolKey,true,TOKEN_PROGRAM_ID);
   const {context,value} = await connection.getMultipleAccountsInfoAndContext(
@@ -34,7 +39,7 @@ export async function readCoinDisplaySnapshot({connection,mint,
       }
     } catch {}
   }
-  if (!curve || curve.complete) {
+  if ((!curve || curve.complete) && (!curveInfo || poolKey.equals(canonicalPool))) {
     try {
       const decoded=decodePool(poolInfo), baseIndex=mintInfo.owner.equals(TOKEN_PROGRAM_ID)?0:1;
       if (!decoded.poolBaseTokenAccount.equals(baseKeys[baseIndex]) || !decoded.poolQuoteTokenAccount.equals(quoteKey)) throw Error('Pool vault addresses could not be verified.');

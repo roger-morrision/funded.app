@@ -6,7 +6,6 @@ import { coinUnavailableMessage } from '../../features/coin/unavailable-message.
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
 import { rememberCoinJourney } from '../../features/experience/coin-journey-state.js';
 import { serverCoinIdentity } from '../../features/coin/server-identity.js';
-import {fetchRichMarketSnapshot} from '../../features/trade/lazy-trading.js';
 
 export function linkedSharedRouterFeeCollections(ledgerData, curveCreator) {
   const router = ledgerData?.sharedRouter;
@@ -69,13 +68,8 @@ export function createCoinLoadingController(appState) {
       const [metadataPda] = PublicKey.findProgramAddressSync([appState.Buffer.from('metadata'), metadataProgram.toBuffer(), mint.toBuffer()], metadataProgram);
       const rpcRequest = async (promise,label) => {let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),12000);})]);}finally{clearTimeout(timer);}};
       const snapshotPromise=rpcRequest(import('../../../coin-display-snapshot.js')
-        .then(({readCoinDisplaySnapshot})=>readCoinDisplaySnapshot({connection:detailConnection,mint}))
-        .then(async snapshot=>{
-          if(isRich&&!snapshot.curve&&!snapshot.pool){
-            try{snapshot.pool=await fetchRichMarketSnapshot({connection:detailConnection,cluster:appState.APP_CLUSTER,mint:mintAddress,poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL});}catch{/* Keep unavailable prices explicit. */}
-          }
-          return snapshot;
-        }), 'Market snapshot RPC request')
+        .then(({readCoinDisplaySnapshot})=>readCoinDisplaySnapshot({connection:detailConnection,mint,
+          ...(isRich?{poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL,cluster:appState.APP_CLUSTER}:{})})), 'Market snapshot RPC request')
         .then(snapshot=>{if(loadId===appState.coinLoadId) renderEarlyMarketPrice(appState,snapshot);return snapshot;});
       const [snapshotResult, metadataResult, largestResult, launchesResult] = await Promise.allSettled([
         snapshotPromise,

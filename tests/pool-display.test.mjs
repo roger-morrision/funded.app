@@ -10,6 +10,7 @@ import { canonicalPumpPoolPda, pumpPoolAuthorityPda, PUMP_PROGRAM_ID } from '@pu
 import { readCoinDisplaySnapshot } from '../coin-display-snapshot.js';
 import { renderEarlyMarketPrice } from '../src/features/coin/early-market-price.js';
 import {tokenBurnSummary} from '../src/features/coin/burn-summary-model.js';
+import { SOLANA_GENESIS } from '../solana-network.js';
 
 function fixture(canonical=false,program=TOKEN_2022_PROGRAM_ID) {
   const mintKey=Keypair.generate().publicKey,creator=canonical?pumpPoolAuthorityPda(mintKey):Keypair.generate().publicKey;
@@ -60,6 +61,43 @@ test('atomic price snapshot verifies either token program in one confirmed RPC w
       curve:snapshot.curve,tokenProgram:String(program)});
     assert.equal(burn.status,'ready');
     assert.equal(burn.burnedBaseUnits,(BigInt(snapshot.curve.tokenTotalSupplyBaseUnits)-1000000000n).toString());
+  }
+});
+
+function configuredFixture() {
+  const f=fixture(false,TOKEN_PROGRAM_ID);let calls=0;
+  const connection={getGenesisHash:async()=>SOLANA_GENESIS.devnet,
+    getMultipleAccountsInfoAndContext:async keys=>{
+      calls++;assert.equal(String(keys[3]),String(f.poolKey));
+      assert.equal(String(keys[4]),String(f.pool.poolBaseTokenAccount));
+      return {context:{slot:789},value:[f.mintInfo,f.curveInfo||null,null,f.poolInfo,f.baseInfo,null,f.quoteInfo]};
+    }};
+  return {...f,source:f,connection,mint:f.mintKey,poolAddress:String(f.poolKey),cluster:'devnet',calls:()=>calls};
+}
+
+test('configured platform pool renders verified mint and price in one account batch without swap SDK reads',async()=>{
+  const f=configuredFixture(),snapshot=await readCoinDisplaySnapshot(f);
+  assert.equal(f.calls(),1);assert.equal(snapshot.curve,null);
+  assert.equal(snapshot.pool.pool,f.poolAddress);assert.equal(snapshot.pool.slot,789);
+  assert.equal(snapshot.pool.spotPriceSol,0.002);
+  assert.equal(snapshot.mintInfo.value.data.parsed.info.supply,'1000000000');
+});
+
+test('configured pool rejects a foreign network before reading accounts',async()=>{
+  const f=configuredFixture();f.connection.getGenesisHash=async()=>SOLANA_GENESIS['mainnet-beta'];
+  await assert.rejects(readCoinDisplaySnapshot(f),/network does not match/);
+  assert.equal(f.calls(),0);
+});
+
+test('unverified or noncanonical migration pools cannot supply a price but retain the verified mint',async()=>{
+  for(const invalidate of [f=>{f.poolInfo.owner=TOKEN_PROGRAM_ID;},
+    f=>{f.pool.baseMint=Keypair.generate().publicKey;},
+    f=>{Keypair.generate().publicKey.toBuffer().copy(f.baseInfo.data,32);},
+    f=>{f.source.curveInfo={owner:PUMP_PROGRAM_ID,data:Buffer.alloc(1)};}]) {
+    const f=configuredFixture();invalidate(f);
+    const snapshot=await readCoinDisplaySnapshot(f);
+    assert.equal(snapshot.pool,null);
+    assert.equal(snapshot.mintInfo.value.data.parsed.info.supply,'1000000000');
   }
 });
 
