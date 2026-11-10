@@ -68,7 +68,7 @@ function fixture(){
   const dir=fs.mkdtempSync(join(tmpdir(),'funded-mainnet-plan-')),binary=Buffer.alloc(1000);binary.set([127,69,76,70]);
   fs.writeFileSync(join(dir,'program.so'),binary);
   const plan={schemaVersion:1,cluster:'mainnet-beta',genesisHash:SOLANA_GENESIS['mainnet-beta'],mainnetActivationAuthorized:false,
-    sourceRevision:'a'.repeat(40),targetLayout:'merged-v3',roles:['v3-router','developer-escrow'],feeAllowanceLamports:25_000_000,deploymentMarginLamports:250_000_000,
+    sourceRevision:'a'.repeat(40),targetLayout:'merged-v3',upgradeable:true,roles:['v3-router','developer-escrow'],feeAllowanceLamports:25_000_000,deploymentMarginLamports:250_000_000,
     referenceArtifacts:[{variant:'reference',file:'program.so',bytes:binary.length,sha256:sha(binary),deployEligible:false}],excludedCosts:[],sequence:[]};
   return {dir,plan,binary,cleanup:()=>fs.rmSync(dir,{recursive:true,force:true})};
 }
@@ -88,6 +88,7 @@ test('planner rejects a wrong chain, tampered artifact, path escape and deployme
   const f=fixture();try{
     await assert.rejects(()=>prepareMainnetDeployment(f.plan,{artifactDir:f.dir,connection:{getGenesisHash:async()=>SOLANA_GENESIS.devnet}}),/not Mainnet/);
     await assert.rejects(()=>prepareMainnetDeployment({...f.plan,mainnetActivationAuthorized:true},{artifactDir:f.dir}),/must not authorize/);
+    await assert.rejects(()=>prepareMainnetDeployment({...f.plan,upgradeable:false},{artifactDir:f.dir}),/retain upgradeability/);
     await assert.rejects(()=>prepareMainnetDeployment({...f.plan,referenceArtifacts:[{...f.plan.referenceArtifacts[0],file:'../escape.so'}]},{artifactDir:f.dir}),/escapes/);
     f.binary[999]=1;fs.writeFileSync(join(f.dir,'program.so'),f.binary);
     await assert.rejects(()=>prepareMainnetDeployment(f.plan,{artifactDir:f.dir}),/hash differs/);

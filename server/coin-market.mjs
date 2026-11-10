@@ -2,6 +2,8 @@ import { PUMP_SDK, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sd
 import { NATIVE_MINT } from '@solana/spl-token';
 import { summarizeTrending } from '../market-trending.js';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
+import {PublicKey} from '@solana/web3.js';
+import {fetchVerifiedPoolSnapshot} from '../pump-trading.js';
 
 const TRADE_EVENT_DISCRIMINATOR = Buffer.from([189, 219, 127, 211, 78, 230, 97, 238]);
 const DAY_SECONDS = 24 * 60 * 60;
@@ -139,11 +141,15 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
   };
 }
 
-export async function readPumpMarketActivity({ connection, mint, nowSeconds = Math.floor(Date.now() / 1000), maxSignatures = 50 }) {
+export async function readPumpMarketActivity({ connection, mint, poolAddress, readPool=fetchVerifiedPoolSnapshot,
+  nowSeconds = Math.floor(Date.now() / 1000), maxSignatures = 50 }) {
   const cutoffSeconds = nowSeconds - DAY_SECONDS;
-  const pool = canonicalPumpPoolPda(mint, NATIVE_MINT);
+  const pool = poolAddress ? new PublicKey(poolAddress) : canonicalPumpPoolPda(mint, NATIVE_MINT);
+  // The configured platform token can use a noncanonical Devnet pool. Prove
+  // its mint, SOL quote and vault custody before accepting its trade history.
   let poolLookupFailed=false;
   const poolAccount = await connection.getAccountInfo?.(pool, 'confirmed').catch(()=>{poolLookupFailed=true;return null;});
+  if(poolAddress&&poolAccount)await readPool({connection,mint,poolAddress:pool.toBase58()});
   const poolVerified = poolAccount?.owner?.equals(PUMP_AMM_PROGRAM_ID) === true;
   const routes = [{ kind:'curve', address:bondingCurvePda(mint) }];
   if (poolVerified) routes.push({ kind:'pool', address:pool });

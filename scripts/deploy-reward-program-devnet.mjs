@@ -97,6 +97,11 @@ try {
     '--commitment', 'finalized',
   ]);
   const deployed = JSON.parse(run('solana', ['program', 'show', expectedProgram, '--keypair', payerPath, '--url', rpcUrl, '--output', 'json']).stdout);
+  if (deployed.programId !== expectedProgram || deployed.owner !== 'BPFLoaderUpgradeab1e11111111111111111111111'
+    || deployed.authority !== payerPublicKey || !Number.isSafeInteger(deployed.dataLen)
+    || deployed.dataLen < statSync(binary).size) {
+    throw new Error('Deployment submitted but finalized program identity, retained upgrade authority or allocated space is not verified. Inspect Devnet before retrying.');
+  }
   console.log(JSON.stringify({
     status: mode === '--upgrade' ? 'upgraded' : 'deployed',
     cluster: 'devnet',

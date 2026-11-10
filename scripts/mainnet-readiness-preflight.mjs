@@ -7,8 +7,8 @@ import { readProgramDataEvidence } from '../server/program-data-evidence.mjs';
 import {loadMainnetConfig} from './mainnet-config.mjs';
 import {reviewedMainnetManifest} from '../mainnet-program.js';
 import {mainnetStagingProblems} from '../server/mainnet-staging-policy.mjs';
+import {inspectUpgradeability} from './program-upgradeability.mjs';
 
-const UPGRADEABLE_LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const PUBLIC_MAINNET_RPCS = new Set([new URL(clusterApiUrl('mainnet-beta')).hostname, 'api.mainnet.solana.com']);
 
 function validPublicKey(value) {
@@ -113,17 +113,7 @@ export async function readMainnetProgramEvidence(env, config, {connectionFactory
       // configured Devnet large-account fallback must never enter this check.
       if(!evidenceByProgram.has(programId))evidenceByProgram.set(programId,await withTimeout(readProgramDataEvidence(configured,programId,{rpcUrl:'',cluster:'mainnet-beta'})));
       const program=evidenceByProgram.get(programId);
-      const data=program.programData?.data;
-      const validHeader=Boolean(data?.length>=45 && data.readUInt32LE(0)===3 && [0,1].includes(data[12]));
-      const upgradeAuthority=validHeader && data[12]===1 ? new PublicKey(data.subarray(13,45)).toBase58():null;
-      const checks={
-        executableUpgradeableProgram:Boolean(program.account?.executable && program.account.owner.equals(UPGRADEABLE_LOADER)),
-        validProgramDataHeader:validHeader,
-        approvedProgramBytes:program.sha256===hash,
-        approvedUpgradeAuthority:validHeader && upgradeAuthority===config.authority && (config.immutable===(upgradeAuthority===null)),
-      };
-      programs.push({role,programId,status:Object.values(checks).every(Boolean)?'verified':'blocked',checks,
-        programDataAddress:program.programDataAddress||null,observedProgramDataSha256:program.sha256||null,upgradeAuthority});
+      programs.push({role,...inspectUpgradeability(program,{programId,authority:config.authority,hash})});
     }
     return {status:programs.every(p=>p.status==='verified')?'verified':'blocked',mainnetGenesis:true,programs};
   } catch {

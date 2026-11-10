@@ -1,0 +1,60 @@
+{
+  "at": "2026-11-10T02:11:05.627Z",
+  "build": "a94e2e63a10e64c3d472c6c26fbc0dc9e7b37b8b",
+  "cluster": "devnet",
+  "inventory": {
+    "FUNDED_V3_FEE_ROUTER_PROGRAM_ID": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "FUNDED_FEE_ROUTER_PROGRAM_ID": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "FUNDED_DEVELOPER_LOCK_PROGRAM_ID": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+  },
+  "programs": [
+    {
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "roles": [
+        "FUNDED_V3_FEE_ROUTER_PROGRAM_ID",
+        "FUNDED_FEE_ROUTER_PROGRAM_ID",
+        "FUNDED_DEVELOPER_LOCK_PROGRAM_ID"
+      ],
+      "executable": true,
+      "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "programDataAddress": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+      "programDataSha256": "da4ffff61db136d8aae0cc9528e61ecf6a24cc43e8b73bacfb81b20062b0b1ee"
+    },
+    {
+      "programId": "EPywNBhXu8QEeukKfwKwo7WPBw6KoSbUGyKgcMFPH9pT",
+      "roles": [],
+      "executable": true,
+      "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "programDataAddress": "DcerG6KdauUaMQXcW2nfZm6nN2iHKsrBThDEisYPdyCz",
+      "programDataSha256": "02e41471271b9953721e3acb3ad77156802c2e97f5de7acf8d2e03d36f0228a8"
+    },
+    {
+      "programId": "61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa",
+      "roles": [],
+      "executable": true,
+      "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "programDataAddress": "6XCDxJhkqnBCcy6hwZjdHTCqUVvfUaqAzsY5493n27x7",
+      "programDataSha256": "65993e0b50fcf6650ecaa6e8e4b23c1ff345547e55c2d7b07ead4ba81333c77d"
+    }
+  ],
+  "rcat": {
+    "status": "finalized",
+    "signature": "2QtmesBGwVuiw2va3xT4tz59ZUFirfGZ9qoKFHmaLuCZqjKuWDcimSiVtjyiqj3CCAfx4ChW6zGsxUHKZhDWJG9g",
+    "amount": "34281146476108",
+    "mint": "EjcH3cizxAevcYHRjq29z1DQdn6oATap4uN9fRzTD2sa",
+    "creator": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
+  },
+  "releaseWorker": {
+    "status": "ready",
+    "cluster": "devnet",
+    "pending": 0,
+    "examined": 0,
+    "failures": [],
+    "released": 0,
+    "checkedAt": 1794276640765
+  },
+  "scope": "Read-only finalized Devnet observations; not a deployment trust manifest or Mainnet approval"
+}

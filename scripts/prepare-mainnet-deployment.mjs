@@ -16,6 +16,7 @@ export async function prepareMainnetDeployment(plan,{artifactDir,connection,now=
   assert.equal(plan.genesisHash,SOLANA_GENESIS['mainnet-beta']);
   assert.equal(plan.mainnetActivationAuthorized,false,'Preparation must not authorize deployment.');
   assert.equal(plan.targetLayout,'merged-v3');
+  assert.equal(plan.upgradeable,true,'Deployment planning must retain upgradeability.');
   assert(/^[a-f0-9]{40}$/.test(plan.sourceRevision));
   assert(plan.referenceArtifacts?.length>0);assert(safeInteger(plan.feeAllowanceLamports)&&safeInteger(plan.deploymentMarginLamports));
   const root=resolve(artifactDir),artifacts=plan.referenceArtifacts.map(row=>{

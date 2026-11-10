@@ -12,7 +12,7 @@ import { readWalletTradeHistory } from '../wallet-trades.mjs';
 // Return true only after sending a response; false lets the router continue.
 export function createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster,
-  respond, readMarketActivity = readPumpMarketActivity,
+  respond, readMarketActivity = readPumpMarketActivity, env=process.env,
   readWalletTrades = readWalletTradeHistory,
   readRankingQuote = null,
   readMarketFallback = async () => null,
@@ -186,7 +186,8 @@ export function createTokenMarketRoutes({
               let metrics;
               try {
                 await assertRpcNetwork(connection,solanaCluster);
-                metrics = await readMarketActivity({ connection, mint });
+                metrics = await readMarketActivity({ connection, mint,
+                  ...(address===env.FUNDED_TOKEN_MINT&&env.FUNDED_SWAP_POOL?{poolAddress:env.FUNDED_SWAP_POOL}:{}) });
                 if (metrics.coverage === 'unavailable') metrics = await readMarketFallback(address) || metrics;
               } catch (error) {
                 metrics = await readMarketFallback(address);
