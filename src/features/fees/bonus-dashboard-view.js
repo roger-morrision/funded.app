@@ -42,7 +42,7 @@ export function initBonusDashboard(document = globalThis.document) {
   home.classList.add('home-daily-bonuses'); home.setAttribute('aria-labelledby', 'home-bonus-title');
   page.classList.add('bonus-history-page', 'section-block'); page.setAttribute('aria-labelledby', 'bonuses-title');
   home.innerHTML = HOME_BONUS_MARKUP; page.innerHTML = BONUS_HISTORY_MARKUP;
-  page.querySelector('.bonus-policy-disclosure').insertAdjacentHTML('afterend',BONUS_TODAY_MARKUP);
+  page.querySelector('.bonus-hero').insertAdjacentHTML('afterend',BONUS_TODAY_MARKUP);
   const menu = document.querySelector('.nav-more-menu');
   if (menu && !menu.querySelector('a[href="#bonuses"]')) {
     const link = document.createElement('a'); link.className = 'nav-item'; link.href = '#bonuses'; link.textContent = 'Daily bonuses';
