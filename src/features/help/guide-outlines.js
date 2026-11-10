@@ -20,7 +20,7 @@ const guides={
   trading:['Choose Buy or Sell and enter an amount.','Review the quote, slippage and total cost.','Approve the trade in your wallet.','Check the transaction before retrying a pending trade.'],
   'enhanced-page':['Project stories, roadmaps and links come from creators.','Review the coin’s mint and creator before trading.','A paid package adds the features shown in its launch review.'],
   'creator-updates':['Follow creators to find their updates.','Set reminders for scheduled announcements.','Reminders sync to your verified wallet account.','Creator posts describe their plans; they are not payment guarantees.'],
-  'creator-fees':['Trading fees are collected and divided using the coin’s saved split.','Open Rewards → Coin Creator and select your coin.','Choose Claim creator fees when available.','Approve the claim with the launch creator wallet.'],
+  'creator-fees':['Trading fees are collected and divided using the coin’s saved split.','Open Rewards → Coin creator and select your coin.','Choose Claim creator fees when available.','Approve the claim with the launch creator wallet.'],
   holders:['Choose a coin that shares fees with holders.','Hold through its displayed cutoff.','Eligible wallets receive SOL automatically after checks.','Small pools carry forward; no claim is needed.'],
   'x-rewards':['Open Rewards → X claims.','Sign in with the X account named by the coin.','Link your receiving wallet.','Claim when funded rewards are available.'],
   referrals:['Share your invite link before a creator’s qualifying fees are settled.','Open My referral list to view your three-level network.','Claim available three-level rewards manually in Referrals.','Daily top-referrer bonuses are separate and automatic.'],

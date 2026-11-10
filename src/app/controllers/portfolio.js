@@ -1,3 +1,4 @@
+import { routeGroup } from '../route-group.js';
 import { walletHistoryRows, walletBonusCoverage } from '../../features/portfolio/wallet-history-model.js';
 import { readPortfolioTokenAccounts, portfolioLookupReason } from '../../features/portfolio/holdings-read.js';
 import { enrichHoldingsMetadata } from '../../features/portfolio/holdings-metadata.js';
@@ -34,7 +35,7 @@ export function createPortfolioController(appState) {
     const routeLabel = document.querySelector('#route-context [data-route-label]');
     const routeDescription = document.querySelector('#route-context [data-route-description]');
     if (routeLabel) routeLabel.textContent = 'Wallet';
-    if (routeDescription) routeDescription.textContent = 'Balances, launches, and available activity';
+    if (routeDescription) routeDescription.textContent = routeGroup('wallet');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   // app-source-end

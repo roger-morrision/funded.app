@@ -277,7 +277,8 @@ export function renderRegistry(query, state, {
       ? `<div class="empty-state"><strong>${escapeHtml(outage.title)}</strong><span>${escapeHtml(outage.detail)}</span><button type="button" class="secondary-button" data-verified-feed-retry>Try again</button><a class="explore-policy-link" href="#airdrops">Browse recorded airdrop policies →</a></div>`
       : `<div class="empty-state"><strong>${escapeHtml(reason?.[0] || (assets.length ? 'No verified launches match these filters.' : 'No tokens to show yet.'))}</strong><span>${escapeHtml(reason?.[1] || (assets.length ? 'Try All stages or clear the search.' : 'Confirmed launches will appear here when available.'))}</span>${reason?.[2] ? `<small class="explore-empty-criteria">${escapeHtml(reason[2])}</small>` : ''}</div>`;
     if (!registryLoading && !registryUnavailable) {
-      list.querySelector('.empty-state')?.append(createExploreEmptyAction(document, { hasAssets: assets.length, exploreTab }));
+      const emptyAction = createExploreEmptyAction(document, { hasAssets: assets.length, exploreTab });
+      if (emptyAction) list.querySelector('.empty-state')?.append(emptyAction);
     }
     restoreRemovedPrimary(true);
     restoreTierFocus();

@@ -15,13 +15,13 @@ test('quote symbols resolve matching token records while metadata loads', () => 
 
 test('metric accents distinguish zero, unavailable values and gain or loss', () => {
   for (const value of ['—', '$—', 'None yet', 'Checking…', '10 unavailable']) assert.equal(metricTone(value), 'muted');
-  assert.equal(metricTone('0 SOL'), 'info');
+  assert.equal(metricTone('0 SOL'), 'neutral');
   assert.equal(metricTone('−2.3%'), 'danger');
   assert.equal(metricTone('-$12.34'), 'danger');
   assert.equal(metricTone('+2.3%'), 'success');
   assert.equal(metricTone('2.3%', 0, 'negative'), 'danger');
-  assert.equal(metricTone('≥$98.81', 1), 'success');
-  assert.equal(metricTone('3%', 2), 'accent');
+  assert.equal(metricTone('≥$98.81', 1), 'neutral');
+  assert.equal(metricTone('3%', 2), 'neutral');
 });
 
 test('lazy quote display keeps integer slippage floors and net sell fees', () => {

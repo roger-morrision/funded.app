@@ -6,7 +6,7 @@ import { escapeHtml } from '../shared/display.js';
 const CACHE_MS = 60_000;
 const cache = new Map();
 const requests = new WeakMap();
-const KIND_LABEL = { holder: 'Coin Holder', x: 'X account reward', creator: 'Creator payout' };
+const KIND_LABEL = { holder: 'Coin holder', x: 'X account reward', creator: 'Creator payout' };
 
 const sol = lamports => {
   const n = Number(lamports) / 1e9;

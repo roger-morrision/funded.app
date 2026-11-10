@@ -5,7 +5,7 @@ export function rewards() {
   const x = node('div'); x.id = 'rewards-x';
   while(root.firstChild) x.append(root.firstChild);
   const overview = node('div'); overview.id = 'rewards-overview';
-  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Rewards</p><h1>Your participation can pay back.</h1><p>Find eligible rewards, claim available SOL, and track payments.</p></div>
+  overview.innerHTML = `<div class="workspace-page-header rewards-page-header"><p class="eyebrow">Payouts &amp; claims</p><h1>Your participation can pay back.</h1><p>Find eligible rewards, claim available SOL, and track payments.</p></div>
     <section class="reward-upcoming" aria-labelledby="reward-upcoming-title"><header><p class="eyebrow">Plan ahead</p><h2 id="reward-upcoming-title">How to qualify</h2></header><div class="reward-upcoming-grid">
       <article><span>SOL · COIN HOLDERS</span><h3>Hold through the cutoff</h3><ul><li>Choose a coin that shares fees with holders.</li><li>Hold through its displayed hourly cutoff.</li><li>Eligible wallets receive SOL automatically.</li><li>Small pools carry forward to a later payout.</li></ul><button type="button" data-reward-open="holder">View holder rewards →</button></article>
       <article><span>LAUNCHED COIN TOKENS · $RICH HOLDERS</span><h3>Airdrops at migration</h3><ul><li>Hold $RICH until the coin migrates.</li><li>At least 3% of supply is reserved for eligible holders.</li><li>Your share depends on your $RICH holdings.</li><li>Tokens arrive automatically after checks. No claim needed.</li></ul><a href="#airdrops">View airdrops →</a></article>
@@ -49,7 +49,7 @@ export function rewards() {
   const history = node('div'); history.id = 'rewards-history';
   const historyPanel = $('.x-claim-activity', x); if (historyPanel) history.append(historyPanel);
   root.append(overview,creator,holder,funded,x,history);
-  const select = tabs(root,[{key:'overview',label:'Overview',panel:overview},{key:'holder',label:'Coin Holder',panel:holder},{key:'funded',label:'Token airdrops',panel:funded},{key:'creator',label:'Coin Creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'All Payout History',panel:history}],'Reward type');
+  const select = tabs(root,[{key:'overview',label:'Overview',panel:overview},{key:'holder',label:'Coin holder',panel:holder},{key:'funded',label:'Token airdrops',panel:funded},{key:'creator',label:'Coin creator',panel:creator},{key:'x',label:'X claims',panel:x},{key:'history',label:'Payout history',panel:history}],'Reward type');
   root.prepend(overview.querySelector('.workspace-page-header'));
   $$('[data-reward-open]',root).forEach(button=>button.addEventListener('click',()=>select(button.dataset.rewardOpen,true)));
   for(const tab of root.querySelectorAll(':scope > .ui-tabs > [role="tab"]'))tab.dataset.rewardOpen=tab.getAttribute('aria-controls').replace('rewards-','');

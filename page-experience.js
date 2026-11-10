@@ -43,7 +43,7 @@ function upgradeProjectsPage() {
   if (!page) return;
   page.classList.add('projects-page');
   const heading = page.querySelector(':scope > .section-heading');
-  if (heading) heading.innerHTML = `<div><p class="eyebrow">Your wallet</p><h1>Your holdings. Your rewards. Together.</h1><p class="projects-lede">Track your tokens, trading activity, and available claims.</p></div><a class="primary-button projects-launch-button" href="#launch">Launch coin <span aria-hidden="true">↗</span></a>`;
+  if (heading) heading.innerHTML = `<div><p class="eyebrow">Your wallet</p><h1>Your holdings. Your rewards. Together.</h1><p class="projects-lede">Track your tokens, trading activity, and available claims.</p></div><a class="primary-button projects-launch-button" href="#launch">Create a coin <span aria-hidden="true">↗</span></a>`;
   const launchesLabel = page.querySelector('.portfolio-launches-heading .eyebrow');
   if (launchesLabel) launchesLabel.textContent = 'Your launches';
   const creatorPanel = page.querySelector('.role-panel:not(.referral-growth-card)');

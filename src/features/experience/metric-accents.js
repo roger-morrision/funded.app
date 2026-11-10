@@ -1,7 +1,8 @@
 import { metricSelector } from './metric-selectors.js';
 
-const tones = ['info', 'success', 'accent', 'violet'];
-const colors = { info:'var(--fv-info)', success:'var(--fv-success)', accent:'var(--fv-accent)',
+// Color carries meaning only: up/down, unavailable, and a few semantic values set below.
+// Plain numbers use the text color instead of rotating hues by card position.
+const colors = { neutral:'var(--fv-text)', info:'var(--fv-info)', success:'var(--fv-success)', accent:'var(--fv-accent)',
   violet:'var(--fv-violet)', danger:'var(--fv-danger)', muted:'var(--fv-text-muted)' };
 
 export function metricTone(text, position = 0, trend = '') {
@@ -9,7 +10,7 @@ export function metricTone(text, position = 0, trend = '') {
   if (!/\d/.test(value) || /unavailable|checking|pending|loading|none yet|not reported|—/i.test(value)) return 'muted';
   if (trend === 'negative' || /^[−-]\s*[$€£]?\s*\d/.test(value)) return 'danger';
   if (trend === 'positive' || /^\+\s*[$€£]?\s*\d/.test(value)) return 'success';
-  return tones[position % tones.length];
+  return 'neutral';
 }
 
 export function mountMetricAccents(root = document.querySelector('#main-content')) {

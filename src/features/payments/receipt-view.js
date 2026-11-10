@@ -196,7 +196,7 @@ export function renderVerifiedReceiptEvidence({ receiptEvidence, analyticsSummar
     const name = document.createElement('strong');
     name.textContent = ({ 'v3-referral':'Referral reward', 'solana-keeper-referral-claim':'Referral reward', 'mint-router-settle-mint':'X account reward',
       'automatic-creator':'Creator fee', 'v3-creator-wallet':'Creator fee',
-      'automatic-holder':'Coin Holder', 'automatic-operations':'Protocol payout', 'v3-operations':'Operations & marketing',
+      'automatic-holder':'Coin holder', 'automatic-operations':'Protocol payout', 'v3-operations':'Operations & marketing',
       'automatic-community':'Community payout', 'daily-bonus':'Daily bonus', 'automatic-x':'X account reward' })[receipt.source] || 'SOL payout';
     if (['mint-router-settle-mint', 'automatic-x'].includes(receipt.source)
       && /^@[A-Za-z0-9_]{1,15}$/.test(receipt.xHandle || '')) name.textContent += ` · ${receipt.xHandle}`;

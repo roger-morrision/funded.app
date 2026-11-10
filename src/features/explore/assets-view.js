@@ -136,7 +136,8 @@ export function renderExploreAssets(
   });
   loadVerifiedTokenLogos(grid);
   if (!visible.length && !loading) {
-    grid.querySelector('.empty-state')?.append(createExploreEmptyAction(document, { hasAssets: assets.length, exploreTab }));
+    const emptyAction = createExploreEmptyAction(document, { hasAssets: assets.length, exploreTab });
+    if (emptyAction) grid.querySelector('.empty-state')?.append(emptyAction);
   }
   renderWatchlist();
   renderWalletDetail();

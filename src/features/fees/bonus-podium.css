@@ -127,3 +127,4 @@ html body #main-content :is(#bonuses, #leaderboard) a.bonus-podium-wallet:is(:ho
   html body #main-content :is(#bonuses, #leaderboard) .bonus-hero { padding: 20px 18px; }
   html body #main-content :is(#bonuses, #leaderboard) .bonus-today .bonus-clock { align-items: flex-start; width: 100%; }
 }
+html body #main-content :is(#bonuses, #leaderboard) .bonus-honor-empty-all { grid-column: 1 / -1; margin: 0; padding: 28px 16px; border: 1px dashed var(--fv-border, #29323a); border-radius: var(--fv-radius-lg, 16px); }

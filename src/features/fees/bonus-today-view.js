@@ -5,7 +5,13 @@ export const BONUS_TODAY_MARKUP='<section class="bonus-today" aria-labelledby="b
 export function renderTodayBonuses(page,data,document=globalThis.document){
   const root=page.querySelector('[data-bonus-today]');if(!root)return;
   root.replaceChildren();
-  for(const[key,[title,metric]]of Object.entries(groups)){
+  // With no rankings at all, one message replaces three identical "unavailable" cards.
+  if(!Object.keys(groups).some(key=>Array.isArray(data?.today?.[key]))){
+    const empty=document.createElement('p');empty.className='bonus-honor-empty bonus-honor-empty-all';
+    empty.textContent=data?'Today’s rankings are not available yet.':'Rankings are unavailable right now. They appear here once today’s activity is indexed.';
+    root.append(empty);
+  }
+  else for(const[key,[title,metric]]of Object.entries(groups)){
     const rows=data?.today?.[key];
     root.append(renderBonusPodium(document,{key,title,metric,emptyText:'No eligible activity yet',
       rows:Array.isArray(rows)?rows.slice(0,5).map(row=>({rank:row.rank,wallet:row.wallet,amount:bonusSol(row.scoreLamports),note:row.rank>3?'Outside bonus places':undefined})):null}));

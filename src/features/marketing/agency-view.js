@@ -122,7 +122,8 @@ export function initMarketingAgency(document = globalThis.document) {
           :'Agent execution is paused; protected budgets remain reserved. ')+blockers.join(' ');
         page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
           const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
-          node.textContent=row?.enabled===true?'Available · execution requires proof':`Paused · ${row?.reason||'Readiness unverified'}`;
+          // The status line lists each distinct reason once; badges stay short and keep the reason as a tooltip.
+          node.textContent=row?.enabled===true?'Available':'Paused';node.title=row?.enabled===true?'Execution requires proof':row?.reason||'Readiness unverified';
         });
         page.querySelector('[data-agency-funded]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.collectedLamports):'Unavailable';
         page.querySelector('[data-agency-spent]').textContent=data.funding?.status==='worker-verified-snapshots'?sol(data.funding.spentLamports):'Unavailable';
@@ -136,9 +137,10 @@ export function initMarketingAgency(document = globalThis.document) {
       if(data.feePolicy?.status==='published')page.querySelector('#agency-policy-title').textContent='Published new-launch fee policy';
       page.querySelectorAll('.agency-agent .data-badge').forEach((node,index)=>{
         const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);
-        node.textContent=row?.reason?`Paused · ${row.reason}`:'Readiness unavailable';
+        node.textContent=row?.reason?'Paused':'Unavailable';node.title=row?.reason||'Readiness unavailable';
       });
       page.querySelector('[data-agency-status]').textContent = `${data.feePolicy?.status==='published'?'The 1% referral / 2% agency policy is published. ':''}Current agency readiness is unavailable. Agency execution is unavailable. New agency launches remain disabled until deployment and worker verification passes.${data.publishingPaused?' X promotion is paused pending account reinstatement.':''} Earlier receipts below do not establish current readiness. See Capital flow for the published fee policy.`;
+      { const reasons=[...new Set((data.agents||[]).map(row=>row.reason).filter(Boolean))]; if(reasons.length)page.querySelector('[data-agency-status]').textContent+=` ${reasons.join(' ')}`; }
       page.querySelector('[data-agency-funded]').textContent = 'Unavailable';
       page.querySelector('[data-agency-spent]').textContent = 'Unavailable';
       renderAgencyHistory(page.querySelector('[data-agency-history]'),data);

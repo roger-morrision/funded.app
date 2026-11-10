@@ -1,5 +1,6 @@
 import { mountMetricMotion } from './metric-motion.js';
 import { mountGetStarted } from './get-started.js';
+import { mountCompactExploreControls } from '../explore/compact-controls.js';
 import { mountMetricAccents } from './metric-accents.js';
 import { initializeDiscoveryIntent } from './discovery-intent.js';
 import { initializeFinancialCenter } from './financial-center.js';
@@ -62,6 +63,7 @@ export function initializeProductFlows(app) {
     mountJourneySupport();
     mountExploreReturn();
     mountGetStarted(app);
+    mountCompactExploreControls();
     mountMetricAccents();
     mountMetricMotion();
     document.body.classList.add('product-flows-ready');

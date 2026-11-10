@@ -1,7 +1,7 @@
 // A compact version of the platform overview, mounted before workspace routing.
 export function mountHomeStart(document=globalThis.document) {
   const section=document.querySelector('.home-start');
-  if(section) section.innerHTML=`<header><p class="eyebrow">Why richpad.fun</p><h2 id="home-start-title">Rewards for every role.</h2><p class="home-start-note">Explore how collected creator fees support creators, holders, referrers, and daily reward pools.</p></header>
+  if(section) section.innerHTML=`<header><p class="eyebrow">Why richpad.fun</p><h2 id="home-start-title">Where collected fees go.</h2><p class="home-start-note">Every launch splits its creator fees the same published way.</p></header>
           <div class="home-start-grid">
             <a href="#launch"><span class="home-benefit-value">80%</span><h3>Creator-directed fees</h3><p>Choose your wallet, holders and X split.</p></a>
             <a href="#airdrops"><span class="home-benefit-value">≥3%</span><h3>Token reserve</h3><p>For eligible $RICH holders at migration.</p></a>
@@ -10,7 +10,7 @@ export function mountHomeStart(document=globalThis.document) {
             <a href="#referrals"><span class="home-benefit-value">1%</span><h3>Referrals</h3><p>Three reward levels from qualifying creator fees.</p></a>
             <a href="#marketing-agency"><span class="home-benefit-value">2%</span><h3>AI agents &amp; buybacks</h3><p>Coin promotion and milestone buys, when funded.</p></a>
           </div>
-          <div class="home-receipts"><div><h3>See where the fees go.</h3><p>Review confirmed payments and their Solana receipts.</p></div><a href="#payments/history">All payout history <span aria-hidden="true">→</span></a></div>`;
+          <div class="home-receipts"><div><h3>Every payout has a receipt.</h3><p>Confirmed payments link to their Solana transaction.</p></div><a href="#payments/history">All payout history <span aria-hidden="true">→</span></a></div>`;
   // Reuse the original metric nodes and verification logic; no duplicate IDs or counters.
   if(section && !section.querySelector('.home-proof-summary')) {
     const proof=document.createElement('section');proof.className='home-proof-summary';

@@ -122,9 +122,9 @@ function compactBuyback() {
 
 function compactTokenStory() {
   const story = document.querySelector('#paid .funded-token-story');
-  if (!story || story.dataset.conciseStory === '3') return;
-  story.innerHTML = '<article><h2>Launch tiers</h2><p>Standard has no promotion burn. Launch and network fees still apply.</p></article><article><h2>Holder airdrops</h2><p>Token claims need a verified snapshot and funding. <a href="#airdrops">View airdrops →</a></p></article><article><h2>Fee sharing</h2><p>Each coin keeps its saved fee policy. <a href="#capital-flow">View the fee split →</a></p></article>';
-  story.dataset.conciseStory = '3';
+  if (!story || story.dataset.conciseStory === '4') return;
+  story.innerHTML = '<article><h2>Launch tiers</h2><p>Standard has no promotion burn. Launch and network fees still apply.</p></article><article><h2>Holder airdrops</h2><p>Token claims need a verified snapshot and funding. <a href="#airdrops">View airdrops →</a></p></article><article><h2>Fee sharing</h2><p>Each coin keeps its saved fee policy. <a href="#capital-flow">Full allocation rules →</a></p></article>';
+  story.dataset.conciseStory = '4';
 }
 
 function compactRewardsSpotlight() {

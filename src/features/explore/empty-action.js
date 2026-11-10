@@ -1,4 +1,7 @@
+// An empty feed is not a failure: offer an action only when filters hide results.
+// Load failures render their own "Try again" in the outage state.
 export function createExploreEmptyAction(document, { hasAssets, exploreTab }) {
+  if (!hasAssets) return null;
   const action = document.createElement('button');
   action.type = 'button';
   action.className = 'explore-empty-action';

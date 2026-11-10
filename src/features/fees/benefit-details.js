@@ -11,7 +11,7 @@ export function feeBenefitExplanation(key){
     creator:{
       who:'The creator wallet, eligible holders of this coin and the named X account, only where the coin’s saved launch split gives them a share.',
       when:'Creator-wallet SOL is available to claim manually after collection and settlement. Holder SOL uses standard hourly cutoffs after the reward program is active and funded. X rewards become receivable when the named account has an eligible funded claim.',
-      receive:'Creators open Rewards → Coin Creator, select their coin and choose Claim creator fees, then sign with the launch creator wallet. Eligible coin holders receive SOL automatically without claiming or signing. The named X recipient must sign in with the matching X account, link a wallet and claim.',
+      receive:'Creators open Rewards → Coin creator, select their coin and choose Claim creator fees, then sign with the launch creator wallet. Eligible coin holders receive SOL automatically without claiming or signing. The named X recipient must sign in with the matching X account, link a wallet and claim.',
       conditions:`For current standard holder programs, the closing balance must meet a $${AUTOMATIC_REWARDS.minimumHolderUsd}-equivalent minimum in this coin. Rewards are weighted by balance and holding time. The pool must meet its $${AUTOMATIC_REWARDS.minimumPoolUsd}-equivalent minimum plus distribution costs. Selected, labeled Devnet QA coins use five-minute periods and reduced minimums. Each coin’s saved rules and verified price apply.`,
       links:[['Holder eligibility & schedule','#payments/holders'],['X claims','#payments/x']],
     },
@@ -51,7 +51,7 @@ export function feeBenefitExplanation(key){
   const simple={
     creator:{who:'The creator, eligible coin holders and the X account chosen in the coin’s saved split.',
       when:'Creator: claim after collection and settlement. Holders: hourly when eligible and funded. X account: when a funded claim is ready.',
-      receive:'Creators claim manually in Rewards → Coin Creator → select coin → Claim creator fees. Holders receive SOL automatically. The named X account must sign in, link a wallet and claim.'},
+      receive:'Creators claim manually in Rewards → Coin creator → select coin → Claim creator fees. Holders receive SOL automatically. The named X account must sign in, link a wallet and claim.'},
     operations:{who:'richpad.fun’s operations and marketing.',when:'When collected creator fees are split.',
       receive:'No user payout or claim. This share pays for running and promoting the platform.'},
     referrals:{who:'Wallets in the creator’s three-level referral network.',
@@ -71,9 +71,14 @@ export function feeBenefitExplanation(key){
   return rules?{...rules,...simple[key],rules}:null;
 }
 
+// One card per allocation (who · when · how it is received) instead of a 1050px-wide
+// table of paragraph cells that needed horizontal scrolling on every screen.
 export function feeBenefitDetailsMarkup(rows){
-  return '<div class="data-table-scroll" role="region" aria-label="Fee policy details, scroll horizontally for all columns" tabindex="0"><table class="record-table fee-policy-table"><caption>Allocation rules · scroll for all columns →</caption><thead><tr>'+['Allocation','Share','Recipients','Timing','Delivery'].map(label=>'<th scope="col">'+label+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>{
+  const cards=rows.map(row=>{
     const detail=feeBenefitExplanation(row.key);if(!detail)return '';
-    return '<tr data-fee-benefit="'+escapeHtml(row.key)+'"><th scope="row">'+escapeHtml(row.label)+'</th><td class="numeric">'+row.percent+'%</td><td>'+escapeHtml(detail.who)+'</td><td>'+escapeHtml(detail.when)+'</td><td>'+escapeHtml(detail.receive)+'</td></tr>';
-  }).join('')+'</tbody></table></div>';
+    return '<article class="fee-policy-card" role="listitem" data-fee-benefit="'+escapeHtml(row.key)+'"><header><h4>'+escapeHtml(row.label)+'</h4><b>'+row.percent+'%</b></header><dl>'
+      +[['Who',detail.who],['When',detail.when],['How it arrives',detail.receive]].map(([term,text])=>'<div><dt>'+term+'</dt><dd>'+escapeHtml(text)+'</dd></div>').join('')
+      +'</dl></article>';
+  }).join('');
+  return '<div class="fee-policy-cards" role="list" aria-label="Allocation rules">'+cards+'</div>';
 }

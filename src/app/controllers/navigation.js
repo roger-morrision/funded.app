@@ -1,4 +1,5 @@
 import {PAGE_ROUTE_TARGETS, MERGED_PAGE_ROUTES} from '../page-routes.js';
+import {routeGroup} from '../route-group.js';
 // Dependencies and mutable application state are read live through appState.
 export function createNavigationController(appState) {
   let historyRouteLocation = globalThis.location?.href;
@@ -212,7 +213,7 @@ export function createNavigationController(appState) {
       leaderboard: ['Leaderboard', 'Ranked community contribution'],
       airdrops: ['Airdrops', 'Automatic token payouts'],
       buybacks: ['Burn $RICH', 'Supply reduction and burn receipts'],
-      'capital-flow': ['Capital flow', 'Follow the published allocation'],
+      'capital-flow': ['Fee distribution', 'Follow the published allocation'],
       bonuses: ['Daily bonuses', 'Payout history and all-time recipients'],
       'marketing-agency': ['AI Marketing', 'Launch teams, budgets and milestone actions'],
       docs: ['Docs', 'Guides, safety, and disclosures'],
@@ -223,20 +224,22 @@ export function createNavigationController(appState) {
     if (appState.coinRouteRequested()) copy = ['Token', 'Market activity and trade'];
     if (appState.walletRouteRequested()) copy = ['Wallet', 'Balances and confirmed activity'];
     if (requestedHash === 'community') copy = ['Favorites', 'Favorite tokens and followed wallets'];
-    if (requestedHash === 'capital-flow') copy = ['Capital flow', 'Published fee allocation'];
-    if (requestedHash === 'buybacks') copy = ['Buy & burn', '$RICH actions and receipts'];
+    if (requestedHash === 'capital-flow') copy = ['Fee distribution', 'Published fee allocation'];
+    if (requestedHash === 'buybacks') copy = ['Burn $RICH', '$RICH actions and receipts'];
     const routeContext = document.querySelector('#route-context');
     if (routeContext) {
       const label = routeContext.querySelector('[data-route-label]');
       const description = routeContext.querySelector('[data-route-description]');
       if (label) label.textContent = copy[0];
-      if (description) description.textContent = copy[1];
+      if (description) description.textContent = appState.coinRouteRequested() ? routeGroup('coin') : appState.walletRouteRequested() ? routeGroup('wallet') : routeGroup(requestedHash || route);
     }
     const guide = appState.routeGuideCopy[route];
     const routeGuide = document.querySelector('#route-guide');
     routeGuide.hidden = !guide || /^payments\/(history|holders|creator|x)$/.test(requestedHash);
     if (guide) {
-      document.querySelector('#route-guide-group').textContent = guide.group;
+      // The top bar already names the sidebar section, so the hero label names this page's topic.
+      // The top bar already names the sidebar section, so the hero label names this page's topic.
+      document.querySelector('#route-guide-group').textContent = guide.eyebrow || guide.state;
       document.querySelector('#route-guide-state').textContent = route === 'referrals' ? document.documentElement.dataset.referralStatus || (appState.connectedWalletAddress ? 'Verify wallet' : 'Connect wallet') : guide.state;
       document.querySelector('#route-guide-title').textContent = guide.headline || copy[0];
       document.querySelector('#route-guide-description').textContent = guide.description;

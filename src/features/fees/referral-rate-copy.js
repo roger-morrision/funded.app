@@ -11,7 +11,9 @@ export function referralRatePresentation(){
   const levels=rates.map((rate,index)=>({level:index+1,rate}));
   const scope=published?'Published rates for new launches. Existing coins keep their saved rates.'
     :'Awaiting V3 agency activation. Existing coins keep their saved rates.';
-  const deployment=published?'':`Until activation, the published deployment uses ${current.map((rate,index)=>`L${index+1} ${rate}%`).join(' / ')}. `;
+  // Mention the live deployment only when it differs; otherwise it repeats the approved rates.
+  const sameRates=current.length===rates.length&&current.every((rate,index)=>rate===rates[index]);
+  const deployment=published||sameRates?'':`Until activation, the published deployment uses ${current.map((rate,index)=>`L${index+1} ${rate}%`).join(' / ')}. `;
   // One worked number makes the percentages concrete; it reads from the same rate table.
   const direct=Number((10*levels[0].rate/100).toFixed(6));
   const example=`${published?'Example':'Example at the approved rates'}: a creator you invited collects 10 SOL in creator fees. As their direct referrer you receive ${direct} SOL.`;

@@ -150,6 +150,13 @@ export function renderExplorePayoutStats(
   ];
   // One coverage note for the whole section instead of repeating it on every card.
   const coverageMarkup = loading ? '' : `<p class="explore-payout-coverage"${coverage.reason ? ` data-state="stale"` : ''}>${escapeHtml(coverage.text)}${coverage.reason ? ` · ${escapeHtml(coverage.reason)}` : ''}</p>`;
+  // Before the first verified payout, one line replaces seven cards of zeros and "none yet".
+  const noPayoutsYet = ready && ['x', 'creator', 'holder'].every(kind => ['verified', 'partial'].includes(stats[kind]?.status) && !Number(stats[kind]?.payoutCount))
+    && !stats.fundedHolder?.top;
+  if (noPayoutsYet) {
+    container.innerHTML = coverageMarkup + '<p class="explore-payout-empty">No verified fee payouts yet. Totals and top recipients appear here after the first finalized payment.</p>';
+    return;
+  }
   container.innerHTML = coverageMarkup + cards.map(card => {
     const group = ready && stats[card.kind] ? stats[card.kind] : loading ? null : { status: 'unavailable' };
     const available = ['verified', 'partial'].includes(group?.status);
