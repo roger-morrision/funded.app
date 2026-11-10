@@ -51,6 +51,9 @@ export function createCoinLoadingController(appState) {
     });
     void appState.loadCoinChat(mintAddress, loadId);
     const known = serverCoinIdentity(mintAddress);
+    // Mark external (non-Richpad) tokens before any chain read so app-only tabs stay hidden even if RPC fails.
+    const earlyLaunch = appState.verifiedRegistryLaunch([appState.verifiedLaunchPolicyForMint(mintAddress)], mintAddress, appState.EXPLORE_CLUSTER);
+    document.body.classList.toggle('coin-external', !earlyLaunch?.onchainVerified);
     appState.setCoinField('#coin-page-title', known?.name || 'Loading token…'); appState.setCoinField('#coin-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinField('#coin-description', 'Checking coin details on Solana…');
     // Registry-verified server identity can show its stored artwork immediately;
