@@ -2,7 +2,6 @@ import { mountHomeStart } from './src/features/home/start-markup.js';
 import { mountHomeDiscovery } from './src/features/home/discovery-controls.js';
 import { Buffer } from 'buffer';
 import { mountLaunchReviewDialog } from './launch-review-markup.js';
-import { mountFeeFlowCalculator } from './src/features/fees/fee-flow-markup.js';
 import { mountCapitalFlowDiagram } from './src/features/fees/capital-flow-markup.js';
 import { initializeFlowDiagrams } from './src/features/shared/diagram-motion.js';
 import { mountCalloutsPage } from './src/features/callouts/page-markup.js';
@@ -14,7 +13,6 @@ mountHomeStart();
 mountHomeDiscovery();
 mountLaunchReviewDialog();
 mountCalloutsPage();
-mountFeeFlowCalculator();
 mountCapitalFlowDiagram();
 initializeFlowDiagrams();
 

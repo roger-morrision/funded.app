@@ -11,7 +11,6 @@ import { createCommunityClaimsController } from './controllers/community-claims.
 import { createAirdropReportingController } from './controllers/airdrop-reporting.js';
 import { createBuybackController } from './controllers/buyback.js';
 import { createFundedTradingController } from './controllers/funded-trading.js';
-import { createBuybackPreviewController } from './controllers/buyback-preview.js';
 import { createFollowingController } from './controllers/following.js';
 import { createExploreFiltersController } from './controllers/explore-filters.js';
 import { createAnalyticsController } from './controllers/analytics.js';
@@ -60,7 +59,6 @@ export function registerAppControllers(appState) {
   Object.assign(appState, createAirdropReportingController(appState));
   Object.assign(appState, createBuybackController(appState));
   Object.assign(appState, createFundedTradingController(appState));
-  Object.assign(appState, createBuybackPreviewController(appState));
   Object.assign(appState, createFollowingController(appState));
   Object.assign(appState, createExploreFiltersController(appState));
   Object.assign(appState, createAnalyticsController(appState));

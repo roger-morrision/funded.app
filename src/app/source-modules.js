@@ -13,7 +13,6 @@ export const appSourceModules = [
   'controllers/airdrop-reporting.js',
   'controllers/buyback.js',
   'controllers/funded-trading.js',
-  'controllers/buyback-preview.js',
   'controllers/following.js',
   'controllers/explore-filters.js',
   'controllers/analytics.js',

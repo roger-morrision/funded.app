@@ -39,7 +39,7 @@ const guides={
   notifications:['Save reminders to your verified wallet account.','Open Notifications to view or dismiss them.','Reminders appear while the app is open.','They never trade, claim or move funds for you.'],
   settings:['Sign in to save favorites across devices.','Followed wallets and reminders use your verified wallet account.','Reconnect the same account to load saved items.','Wallet and X accounts have separate sign-ins.'],
   reporting:['Open Profile → Report a problem.','Describe the issue and add public transaction details if useful.','Review the report before sending.','Keep its private access token to check progress.'],
-  'capital-flow':['Enter collected creator fees to preview their split.','Each coin keeps the split saved at launch.','The calculator is an example, not a withdrawable balance.','Open Rewards for your available claims.'],
+  'capital-flow':['Review the published fee destinations.','Each coin keeps the split saved at launch.','An allocation is not a withdrawable balance.','Open Rewards for your available claims.'],
   analytics:['View platform activity and completed payments.','Use filters to view a selected period.','Collected fees, allocated rewards and received payments are different totals.','Unavailable values appear as “-”.'],
   callouts:['Hold the coin and post your message to call it.','Your holding is checked before the call is published.','Use the coin page to join the discussion.'],
   privacy:['Wallet addresses and on-chain transactions are public.','Review links and details before sharing.','Keep sign-in information and report access tokens private.','Never share a seed phrase or private key.'],

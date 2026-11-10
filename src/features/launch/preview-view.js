@@ -1,7 +1,5 @@
 import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
-import { getPreparedImage } from '../../../launch-image.js';
 import { FEE_DISTRIBUTION, validateFeeDistribution } from '../../../distribution-policy.js';
-import { launchPromotionPreview } from '../../../launch-promotion-copy.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function updateLaunchPreview(
@@ -36,53 +34,10 @@ export function updateLaunchPreview(
   const feeDistribution = getFeeDistributionInputs();
   const launchBurn = getLaunchBurnPolicy();
   const creatorBuy = getCreatorBuySummary();
-  document.querySelector('#preview-name').textContent = name || 'Token name';
-  document.querySelector('#preview-symbol').textContent = symbol || 'TICKER';
   const description = document.querySelector('#token-description')?.value || '';
   const descriptionCounter = document.querySelector('#token-description-counter');
   if (descriptionCounter) descriptionCounter.textContent = `${description.length}/280`;
-  const tagline = document.querySelector('#token-tagline')?.value.trim() || '';
-  const taglinePreview = document.querySelector('#preview-tagline');
-  if (taglinePreview) taglinePreview.textContent = tagline || description.trim() || 'Your coin description appears here.';
-  const packageExample = document.querySelector('#launch-package-example');
-  if (packageExample) packageExample.dataset.tier = launchBurn.tier;
-  const packageArtwork = document.querySelector('#launch-package-example-art');
-  if (packageArtwork) {
-    const bannerUrl = launchBurn.requiresBurn ? getBannerPreviewUrl?.() : null;
-    const tokenImageUrl = getPreparedImage() ? document.querySelector('#preview-token-image')?.style.backgroundImage : '';
-    packageArtwork.style.backgroundImage = bannerUrl ? `url("${bannerUrl}")` : tokenImageUrl || '';
-    packageArtwork.classList.toggle('has-image', Boolean(bannerUrl || tokenImageUrl));
-  }
-  const packageLabel = document.querySelector('#launch-package-label');
-  if (packageLabel) packageLabel.textContent = launchBurn.label;
-  const previewSummary = document.querySelector('#launch-presentation-preview > summary');
-  if (previewSummary) previewSummary.textContent = `Preview token page & X posts · ${launchBurn.label}`;
-  const packageArtBadge = document.querySelector('#launch-package-art-badge');
-  if (packageArtBadge) packageArtBadge.textContent = `${launchBurn.label.toUpperCase()} PROMOTION`;
-  const cleanedXLabel = (name || symbol || 'Token name').normalize('NFKC')
-    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, ' ')
-    .replace(/[^\p{L}\p{N}\p{M} _-]/gu, ' ').replace(/\s+/g, ' ').trim() || 'Unnamed token';
-  let xLabel = '', xLabelWeight = 0;
-  for (const character of cleanedXLabel) {
-    const weight = character.codePointAt(0) <= 0x7f ? 1 : 2;
-    if (xLabelWeight + weight > 32) break;
-    xLabel += character;
-    xLabelWeight += weight;
-  }
-  xLabel = xLabel.trim() || 'Token';
   const lockHours = readDeveloperLockSeconds(document) / 3600;
-  const xDetails = { symbol, description, lockHours, developerBuy:creatorBuy.sol > 0,
-    tier:launchBurn.tier, burnTokens:launchBurn.amountTokens, creatorPercent:feeDistribution.creatorWalletPercent, holderPercent: feeDistribution.holderAirdropPercent,
-    xPercent: feeDistribution.solClaimPercent, xHandle: feeDistribution.xRecipient, airdropPercent: allocation };
-  const xLaunch = launchPromotionPreview(xLabel, xDetails);
-  const xPost = document.querySelector('#launch-x-post-preview');
-  if (xPost) xPost.textContent = xLaunch;
-  const xPostCount = document.querySelector('#launch-x-post-count');
-  if (xPostCount) xPostCount.textContent = launchBurn.requiresBurn ? '2 event drafts' : '1 launch draft';
-  const xFollowup = document.querySelector('#launch-x-followup');
-  if (xFollowup) xFollowup.hidden = !launchBurn.requiresBurn;
-  const xFollowupText = document.querySelector('#launch-x-followup-preview');
-  if (xFollowupText) xFollowupText.textContent = launchPromotionPreview(xLabel, { ...xDetails, event:'migration' });
   const quotedBuyTokens = creatorBuy.tokens || (!wallet && publicQuote?.status === 'ready' ? publicQuote.developerTokens : 0);
   const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} ${tokenUnit}` : ''} · ${lockHours}h lock` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');

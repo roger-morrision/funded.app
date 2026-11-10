@@ -1,5 +1,4 @@
 import { initializeAppState } from '../runtime.js';
-import {referralRatePresentation} from '../../features/fees/referral-rate-copy.js';
 
 export function initializeExploreFiltersActions(appState) {
   const tierDialog = document.querySelector('#explore-tier-dialog');
@@ -158,17 +157,8 @@ export function initializeExploreFiltersActions(appState) {
   document.querySelector('#airdrop-export-csv')?.addEventListener('click', appState.exportAirdropCsv);
   // app-source-end
 
-  // app-source: 823
-  document.querySelector('#buyback-add-claim')?.addEventListener('click', appState.recordBuybackPreviewClaim);
-  // app-source-end
 
-  // app-source: 824
-  document.querySelector('#buyback-run-preview')?.addEventListener('click', appState.runBuybackPreview);
-  // app-source-end
 
-  // app-source: 825
-  document.querySelector('#buyback-example-fees')?.addEventListener('input', appState.renderBuybackExample);
-  // app-source-end
 
   // app-source: 826
   document.querySelector('#funded-burn-amount')?.addEventListener('input', appState.updateFundedBurnButton);
@@ -186,19 +176,7 @@ export function initializeExploreFiltersActions(appState) {
   document.querySelector('#funded-buy-submit')?.addEventListener('click', appState.handleFundedBuy);
   // app-source-end
 
-  // app-source: 830
-  document.querySelector('#referral-example-input').addEventListener('input', event => {
-    const fees = Math.max(0, Number(event.target.value) || 0);
-    referralRatePresentation().levels.forEach(level => {
-      const output = document.querySelector(`#referral-level-${level.level}-output`);
-      if (output) output.textContent = `$${(fees * level.rate / 100).toFixed(2)}`;
-    });
-  });
-  // app-source-end
 
-  // app-source: 831
-  document.querySelector('#fee-flow-input')?.addEventListener('input', appState.renderFeeFlowCalculator);
-  // app-source-end
 
   // app-source: 832
   document.querySelector('#launch-list').addEventListener('click', async event => {

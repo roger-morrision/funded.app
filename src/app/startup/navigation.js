@@ -73,7 +73,7 @@ export async function initializeNavigation(appState) {
     leaderboard: { group: 'Growth', state: 'Confirmed activity', description: 'Explore creator and $RICH burn rankings.', primary: ['Explore launches', '#explore'], secondary: ['View service status', '#docs'] },
     airdrops: { group: 'Growth', state: 'Automatic payouts', description: 'Hold $RICH until migration. Receive tokens automatically.', primary: ['Explore launches', '#explore'], secondary: ['Airdrop guide', '#docs/airdrop-policy'] },
     buybacks: { group: 'Protocol', state: 'Buy and burn', description: 'Buy or burn $RICH and check confirmed transactions.', primary: ['View my projects', '#my-launches'], secondary: ['Read the guide', '#docs'] },
-    'capital-flow': { group: 'Protocol', state: 'Example calculator', description: 'Enter any creator-fee amount to see how every destination is calculated. This preview never moves funds.', primary: ['View payments', '#payments'], secondary: ['Read the policy', '#docs'] },
+    'capital-flow': { group: 'Protocol', state: 'Published fee policy', description: 'Review fee destinations and the allocation saved for each coin.', primary: ['View payments', '#payments'], secondary: ['Read the policy', '#docs'] },
     docs: { headline: 'Guides for every step.', group: 'Protocol', state: 'Help and guides', description: 'Learn how launches, rewards, and wallet approvals work.', primary: ['Open launch', '#launch'], secondary: ['See fee distribution', '#capital-flow'] },
     privacy: { headline: 'Your keys stay in your wallet.', group: 'Protocol', state: 'Information', description: 'Understand what the browser stores, what the wallet signs, and how to verify a transaction safely.', primary: ['Wallet profile', '#profile'], secondary: ['Back to overview', '#overview'] },
     paid: { group: 'Protocol', state: 'Policy preview', description: 'See how $RICH supports community rewards, referrals, operations, and permanent token burns.', primary: ['See buybacks', '#buybacks'], secondary: ['Read the docs', '#docs'] },
@@ -228,7 +228,6 @@ export async function initializeNavigation(appState) {
   // app-source-end
 
   // app-source: 888
-  appState.renderFeeFlowCalculator();
   // app-source-end
 
   // app-source: 889

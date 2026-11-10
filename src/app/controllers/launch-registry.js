@@ -4,7 +4,6 @@ import { currentBoostSnapshot } from '../../../boost-offer.js';
 export function createLaunchRegistryController(appState) {
   let displayedBoostQuantities;
   // app-source: 262
-  function getPreviewClaims(){ try { return JSON.parse(localStorage.getItem(appState.AIRDROP_PREVIEW_CLAIM_KEY) || '{}'); } catch { return {}; } }
   // app-source-end
 
   // app-source: 271
@@ -154,5 +153,5 @@ export function createLaunchRegistryController(appState) {
   }
   // app-source-end
 
-  return { getPreviewClaims, loadCommunityReserveStatuses, includeVerifiedRegistryLaunches, loadVerifiedLaunchPolicies, promotionForMint, scheduleBoostExpiryRefresh, loadVerifiedBoosts };
+  return { loadCommunityReserveStatuses, includeVerifiedRegistryLaunches, loadVerifiedLaunchPolicies, promotionForMint, scheduleBoostExpiryRefresh, loadVerifiedBoosts };
 }

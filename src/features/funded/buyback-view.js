@@ -30,7 +30,6 @@ export function renderBuybackDashboard(
     getBuybackPreviewState,
     formatBuybackAmount,
     fundedReceiptProject,
-    renderBuybackExample,
     updateFundedBurnButton,
     exploreExplorer,
     document = globalThis.document,
@@ -86,7 +85,6 @@ export function renderBuybackDashboard(
   const addButton = document.querySelector('#buyback-add-claim');
   if (addButton) { addButton.disabled = true; addButton.title = 'Recording requires verified fee-claim receipts and a deployed buyback vault.'; }
   if (runButton) { runButton.disabled = true; runButton.title = 'Local simulation is disabled; V3 fee-funded buybacks execute automatically after the verified trigger.'; }
-  renderBuybackExample();
   const burnCard = document.querySelector('.burn-token-card');
   const burnBadge = burnCard?.querySelector('.burn-status');
   const burnStatus = document.querySelector('#funded-burn-status');

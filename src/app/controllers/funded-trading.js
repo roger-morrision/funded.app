@@ -127,7 +127,7 @@ export function createFundedTradingController(appState) {
 
   // app-source: 354
   function renderBuybackDashboard(message = ''){
-    return appState.renderBuybackDashboardView(message, { connectedWalletAddress: appState.connectedWalletAddress, fundedBurnState: appState.fundedBurnState, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, buybackNetworkState: appState.buybackNetworkState, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, wallet: appState.wallet, LAUNCH_BURN_TIERS: appState.LAUNCH_BURN_TIERS, SELECTABLE_LAUNCH_TIERS: appState.SELECTABLE_LAUNCH_TIERS }, { getBuybackPreviewState: appState.getBuybackPreviewState, formatBuybackAmount: appState.formatBuybackAmount, fundedReceiptProject: appState.fundedReceiptProject, renderBuybackExample: appState.renderBuybackExample, updateFundedBurnButton: appState.updateFundedBurnButton, exploreExplorer: appState.exploreExplorer });
+    return appState.renderBuybackDashboardView(message, { connectedWalletAddress: appState.connectedWalletAddress, fundedBurnState: appState.fundedBurnState, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, buybackNetworkState: appState.buybackNetworkState, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, wallet: appState.wallet, LAUNCH_BURN_TIERS: appState.LAUNCH_BURN_TIERS, SELECTABLE_LAUNCH_TIERS: appState.SELECTABLE_LAUNCH_TIERS }, { getBuybackPreviewState: appState.getBuybackPreviewState, formatBuybackAmount: appState.formatBuybackAmount, fundedReceiptProject: appState.fundedReceiptProject, updateFundedBurnButton: appState.updateFundedBurnButton, exploreExplorer: appState.exploreExplorer });
   }
   // app-source-end
 

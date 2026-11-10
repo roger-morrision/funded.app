@@ -6,9 +6,7 @@ import { renderProductFaqs } from '../help/product-guidance.js';
 import { initMarketingAgency } from '../marketing/agency-view.js';
 import { initServiceFeeCopy } from './service-fees-client.js';
 import {referralRatePresentation} from './referral-rate-copy.js';
-import {mountReferralCalculator} from './referral-calculator.js';
 import {renderFeeDistributionSummaries} from './distribution-summary.js';
-import {bindCalculatorVisibility,revealCalculatorFeedback} from './calculator-visibility.js';
 export function createFeeFlowView(APP_ECONOMICS) {
   if (typeof window !== 'undefined') {
     initMarketingAgency();
@@ -19,7 +17,6 @@ export function createFeeFlowView(APP_ECONOMICS) {
   mountDailyBonusLink();
   initBonusDashboard();
   renderProductFaqs();
-  bindCalculatorVisibility();
   function formatFlowAmount(value){
     const amount = Number(value || 0);
     if (amount > 0 && amount < 0.000000001) return '<0.000000001 SOL';
@@ -64,8 +61,6 @@ export function createFeeFlowView(APP_ECONOMICS) {
     setAll('.referral-tier-strip > span b', displayGross.map(percent));
     set('.referral-tier-strip .eyebrow',referral.heading);
     set('.referral-tier-strip > div > small:not([data-referral-example])',referral.scopeDetail);
-    set('.referral-tier-strip [data-referral-example]',referral.example);
-    for(const example of document.querySelectorAll('.referral-tier-strip [data-referral-example]'))mountReferralCalculator(example.parentElement,referral.levels);
     set('.home-referral-guide-head > div > p:last-child',`Invite creators with your personal link. ${referral.scope}`);
     setAll('.app-revenue-grid > span b', effective.map(percent));
     setAll('.app-revenue-grid > span em', ['Operations & marketing', 'Referral network', 'Daily bonus', '$RICH burn']);
@@ -82,9 +77,6 @@ export function createFeeFlowView(APP_ECONOMICS) {
     ]);
     setAll('.referral-level-results span small', displayGross.map((rate, index) => `Level ${index + 1} · ${percent(rate)} of gross`));
     set('.referral-growth-hero p', `The ${referral.pending?'approved':'published'} policy allocates ${percent(displayGross[0])} of a direct creator’s collected fees. ${referral.scope}`);
-    set('#referrals .referral-calculator + .field-help', `Example of the ${referral.pending?'approved':'published'} ${percent(referral.total)} referral policy; no funds move. ${referral.scope}`);
-    const example=Number(document.querySelector('#referral-example-input')?.value||0);
-    referral.levels.forEach(({level,rate})=>set(`#referral-level-${level}-output`,`$${(example*rate/100).toFixed(2)}`));
     set('.home-referral-guide .data-badge', `${percent(referral.total)} total · ${referral.pending?'activation pending':'published policy'}`);
     set('#referral-faq .section-heading .data-badge',referral.pending?'Approved policy · activation pending':'Published policy');
     set('#paid .revenue-model > .field-help', `Levels 1–3 receive ${levelGross.map(percent).join(', ')} of gross creator fees. ${copy.reserve} Existing coins keep their recorded split.`);
@@ -97,39 +89,5 @@ export function createFeeFlowView(APP_ECONOMICS) {
     set('#buyback-policy-note', `A 5 SOL claim allocates ${formatFlowAmount(5 * effective[3] / 100)} to the buyback allocation. Local calculation only; no claim recorded.`);
   }
 
-  function renderFeeFlowCalculator(){
-    const input = document.querySelector('#fee-flow-input');
-    if (!input) return;
-    const note = document.querySelector('#fee-flow-note');
-    const gross = Number(input.value);
-    const unavailable = input.value.trim() === '' || !Number.isFinite(gross) || gross < 0;
-    input.setAttribute('aria-invalid', String(unavailable));
-    const feedback = document.querySelector('#fee-flow-feedback');
-    const message = unavailable ? 'Enter an amount of 0 or more to preview the split.' : 'Preview ready.';
-    // Announce availability transitions, not each recalculated amount or keystroke.
-    if (feedback && feedback.textContent !== message){feedback.textContent = message;revealCalculatorFeedback();}
-    if (unavailable) {
-      ['creator', 'operations', 'referrals', 'community', 'buyback','agency'].forEach(key => {
-        const node = document.querySelector(`#fee-output-${key}`);
-        if (node) node.textContent = '—';
-      });
-      if (note) note.textContent = 'Enter a non-negative gross creator-fee amount to preview the policy split.';
-      return;
-    }
-    const allocations = {
-      creator: gross * APP_ECONOMICS.creatorSharePercent / 100,
-      operations: gross * APP_ECONOMICS.operationsEffectivePercent / 100,
-      referrals: gross * APP_ECONOMICS.appReferralEffectivePercent / 100,
-      community: gross * APP_ECONOMICS.communityEffectivePercent / 100,
-      buyback: gross * APP_ECONOMICS.buybackEffectivePercent / 100,
-      ...(APP_ECONOMICS.agencyEffectivePercent===undefined?{}:{agency:gross*APP_ECONOMICS.agencyEffectivePercent/100}),
-    };
-    Object.entries(allocations).forEach(([key, amount]) => {
-      const node = document.querySelector(`#fee-output-${key}`);
-      if (node) node.textContent = formatFlowAmount(amount);
-    });
-    const allocated = Object.values(allocations).reduce((sum, amount) => sum + amount, 0);
-    if (note) note.textContent = `A ${formatFlowAmount(gross)} claim allocates exactly ${formatFlowAmount(allocated)} under the published policy.`;
-  }
-  return { renderPublishedFeeRates, renderFeeFlowCalculator };
+  return { renderPublishedFeeRates };
 }

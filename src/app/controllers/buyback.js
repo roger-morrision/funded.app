@@ -160,18 +160,6 @@ export function createBuybackController(appState) {
   function formatBuybackAmount(value, maximumFractionDigits = 4){ return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits }); }
   // app-source-end
 
-  // app-source: 346
-  function renderBuybackExample(){
-    const input = document.querySelector('#buyback-example-fees');
-    const help = input?.parentElement?.querySelector('.field-help');
-    if (!help) return;
-    const fees = Number(input.value);
-    const buybackPercent = appState.FEE_DISTRIBUTION.buybackEffectivePercent;
-    help.textContent = input.value.trim() && Number.isFinite(fees) && fees > 0
-      ? `${appState.formatBuybackAmount(fees, 9)} SOL in gross fees would allocate ${appState.formatBuybackAmount(fees * buybackPercent / 100, 9)} SOL (${buybackPercent}%) to buybacks. Local calculation only; no claim recorded.`
-      : `Enter gross creator fees above zero to preview the ${buybackPercent}% buyback allocation.`;
-  }
-  // app-source-end
 
   // app-source: 347
   function fundedReceiptProject(receipt){
@@ -279,5 +267,5 @@ export function createBuybackController(appState) {
   }
   // app-source-end
 
-  return { getBuybackPreviewState, loadBuybackNetworkState, saveBuybackPreviewState, formatBuybackAmount, renderBuybackExample, fundedReceiptProject, updateFundedBurnButton, renderWalletFundedBalance, loadFundedBurnState };
+  return { getBuybackPreviewState, loadBuybackNetworkState, saveBuybackPreviewState, formatBuybackAmount, fundedReceiptProject, updateFundedBurnButton, renderWalletFundedBalance, loadFundedBurnState };
 }

@@ -39,20 +39,16 @@ export function createAirdropReportingController(appState) {
   function renderAirdropClaims(filter = appState.activeAirdropFilter){
     appState.activeAirdropFilter = filter;
     const list = document.querySelector('#airdrop-claim-list');
-    const previewClaimed = Boolean(appState.getPreviewClaims()[appState.previewAirdrop.id]);
     const programs = appState.getAirdropPrograms();
     const claims = [
-      ...programs.map(program => ({ ...program, state: program.id === appState.previewAirdrop.id && previewClaimed ? 'claimed' : program.claimActive ? 'claimable' : program.status, badge: program.id === appState.previewAirdrop.id ? 'Demo allocation' : 'Policy allocation' })),
+      ...programs.map(program => ({ ...program, state: program.claimActive ? 'claimable' : program.status, badge: 'Policy allocation' })),
     ];
     const filtered = claims.filter(claim => filter === 'all' || claim.state === filter);
     if (list) list.innerHTML = filtered.map(claim => {
-      const isPreview = claim.id === appState.previewAirdrop.id;
       const action = claim.state === 'claimable' ? `<button type="button" class="secondary-button claim-action" data-check-community-mint="${appState.escapeHtml(claim.id)}">View allocation</button>` : `<button type="button" class="secondary-button claim-action" disabled>${claim.state === 'claimed' ? 'Airdrop received' : claim.vaultVerified ? 'Automatic after migration' : 'Requires funded vault'}</button>`;
       const amount = claim.walletAllocation == null ? `${appState.formatTokenAmount(claim.reservedTokens)} ${claim.vaultVerified ? 'tokens vaulted' : 'tokens planned'}` : `${appState.formatTokenAmount(claim.walletAllocation)} ${appState.escapeHtml(claim.symbol)}`;
-      const detail = isPreview
-        ? 'Local interaction preview. No wallet signature or token transfer occurs.'
-        : `${claim.allocationPercent}% supply policy allocation · $RICH-holder snapshot at migration`;
-      return `<article class="token-card-shell claim-card" data-claim-state="${claim.state}" data-logo-mint="${appState.escapeHtml(claim.id)}"><div class="claim-token"><span>${appState.escapeHtml(claim.symbol.slice(0, 1))}</span><div><strong>${appState.escapeHtml(claim.symbol)}</strong><small>${appState.escapeHtml(claim.name)}</small><small>${appState.escapeHtml(claim.badge)}</small></div></div><div class="claim-amount"><span>${claim.state === 'claimed' ? 'Preview result' : claim.walletAllocation == null ? claim.vaultVerified ? 'Verified vault reserve' : 'Policy allocation' : 'Example allocation'}</span><strong>${amount}</strong></div><p>${detail}</p><div class="token-card-actions claim-token-actions">${!isPreview ? `${appState.tokenCardWatchMarkup(claim.id, claim.symbol)}${appState.tokenCardShareMarkup(claim.id, claim.symbol, claim.name)}` : ''}${action}</div></article>`;
+      const detail = `${claim.allocationPercent}% supply policy allocation · $RICH-holder snapshot at migration`;
+      return `<article class="token-card-shell claim-card" data-claim-state="${claim.state}" data-logo-mint="${appState.escapeHtml(claim.id)}"><div class="claim-token"><span>${appState.escapeHtml(claim.symbol.slice(0, 1))}</span><div><strong>${appState.escapeHtml(claim.symbol)}</strong><small>${appState.escapeHtml(claim.name)}</small><small>${appState.escapeHtml(claim.badge)}</small></div></div><div class="claim-amount"><span>${claim.state === 'claimed' ? 'Received allocation' : claim.walletAllocation == null ? claim.vaultVerified ? 'Verified vault reserve' : 'Policy allocation' : 'Wallet allocation'}</span><strong>${amount}</strong></div><p>${detail}</p><div class="token-card-actions claim-token-actions">${appState.tokenCardWatchMarkup(claim.id, claim.symbol)}${appState.tokenCardShareMarkup(claim.id, claim.symbol, claim.name)}${action}</div></article>`;
     }).join('') || `<div class="empty-state">${appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking published allocations…' : appState.verifiedLaunchPoliciesStatus === 'unavailable' ? '-' : 'No airdrops match this filter.'}</div>`;
     if (list) appState.loadVerifiedTokenLogos(list);
     document.querySelectorAll('[data-airdrop-filter]').forEach(button => button.classList.toggle('active', button.dataset.airdropFilter === filter));

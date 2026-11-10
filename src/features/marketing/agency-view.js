@@ -69,9 +69,7 @@ export function initMarketingAgency(document = globalThis.document) {
         note.title = postStatus;
         note.hidden = !note.textContent;
       }
-      const rates = verifiedRates;
-      const example = rates ? Object.entries({'creator-directed':rates.creator, operations:rates.operations, referrals:rates.referrals, 'daily bonus':rates.dailyBonus, '$RICH buyback':rates.fundedBuyback, agents:rates.agency}).map(([label, rate]) => `${rate / 100} SOL ${label}`).join(', ') : '';
-      terms.textContent = [postStatus, selected.includes('x-promotion') ? 'Launch and migration drafts are emailed to admin for manual posting.' : '', example && 'For 1 SOL of collected creator fees: ' + example + '.'].filter(Boolean).join(' ');
+      terms.textContent = [postStatus, selected.includes('x-promotion') ? 'Launch and migration drafts are emailed to admin for manual posting.' : ''].filter(Boolean).join(' ');
       const review = document.getElementById('launch-review-package');
       if (review) review.textContent = terms.textContent + ' ' + agencyGrossPercent + '% shared equally among ' + selected.length + ' included agents (' + (agencyGrossPercent / selected.length).toLocaleString(undefined,{maximumFractionDigits:4}) + '% each, rounded).';
       split.textContent=`${agencyGrossPercent}% of collected creator fees · shared equally across the ${selected.length} included agents (≈${(agencyGrossPercent/selected.length).toLocaleString(undefined,{maximumFractionDigits:4})}% each).`;

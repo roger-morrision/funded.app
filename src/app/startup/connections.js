@@ -306,8 +306,6 @@ export function initializeConnections(appState) {
   // app-source-end
 
   // app-source: 200
-  const AIRDROP_PREVIEW_CLAIM_KEY = 'funded.app.airdrop.preview-claims';
-  initializeAppState(appState, 'AIRDROP_PREVIEW_CLAIM_KEY', AIRDROP_PREVIEW_CLAIM_KEY);
   // app-source-end
 
   // app-source: 201
@@ -392,9 +390,8 @@ export function initializeConnections(appState) {
   // app-source-end
 
   // app-source: 214
-  const { renderPublishedFeeRates, renderFeeFlowCalculator } = appState.createFeeFlowView(appState.APP_ECONOMICS);
+  const { renderPublishedFeeRates } = appState.createFeeFlowView(appState.APP_ECONOMICS);
   initializeAppState(appState, 'renderPublishedFeeRates', renderPublishedFeeRates);
-  initializeAppState(appState, 'renderFeeFlowCalculator', renderFeeFlowCalculator);
   // app-source-end
 
 }
