@@ -18,6 +18,15 @@ export function createBoostRoutes({
   const receiptView=(state,signature)=>projectBoostReceipts(state.boostReceipts).find(row=>row.signature===signature)||state.boostReceipts[signature];
   const connection=()=>connectionFactory(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(8000)})});
+  // Mainnet external tokens: any finalized SPL / Token-2022 mint account.
+  const TOKEN_PROGRAMS=new Set(['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA','TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb']);
+  async function externalMintVerified(mint){
+    try{
+      const rpc=connection();if(await rpc.getGenesisHash()!==SOLANA_GENESIS[solanaCluster])return false;
+      const info=await rpc.getParsedAccountInfo(new PublicKey(mint),'finalized');
+      return TOKEN_PROGRAMS.has(info?.value?.owner?.toBase58?.())&&info.value.data?.parsed?.type==='mint';
+    }catch{return false;}
+  }
   return async function handleBoostRoutes(req, res, url, requestId) {
     if (req.method === 'GET' && url.pathname === '/api/boosts') {
       const state = await store.read();
@@ -53,8 +62,9 @@ export function createBoostRoutes({
       if (!selected) return json(res, 400, { error:'Choose a supported boost package.' });
       const launch = state.launches?.[mint];
       const listing = state.listings?.[mint];
-      if (!(launch?.onchainVerified && launch.cluster === solanaCluster) && !(listing?.onchainVerified && listing.cluster === solanaCluster))
-        return json(res, 404, { error:'Only verified tokens in the richpad.fun Solana directory can be boosted.' });
+      if (!(launch?.onchainVerified && launch.cluster === solanaCluster) && !(listing?.onchainVerified && listing.cluster === solanaCluster)
+        && !(solanaCluster === 'mainnet-beta' && await externalMintVerified(mint)))
+        return json(res, 404, { error:'Only verified Solana token mints can be boosted.' });
       const price = await readSolUsdQuote();
       if (!price || Date.now() - Date.parse(price.fetchedAt) > 120_000)
         return json(res, 503, { error:'A fresh SOL/USD quote is unavailable. No payment was requested.' });

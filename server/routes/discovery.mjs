@@ -77,7 +77,9 @@ export function createDiscoveryRoutes({
         try { warmMarketActivity(page.map(item => item.mint).filter(mint => !activity[mint])); } catch {}
         return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, total:uniqueItems.length, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
       }
-      const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
+      let items;
+      try { items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' }); }
+      catch { return json(res, 503, { error:'Pump.fun discovery is temporarily unavailable.', provider:'pump.fun', items:[] }); }
       return json(res, 200, { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) });
     }
     return false;

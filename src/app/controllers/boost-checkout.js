@@ -7,7 +7,7 @@ export function createBoostCheckoutController(appState) {
   let livePackages=null, pricingRevision=null;
   function restorePendingBoost(mint,payer) {
     if (!payer) return false;
-    const pending=appState.readPendingBoost(mint,undefined,{payer,cluster:appState.EXPLORE_CLUSTER});
+    const pending=appState.readPendingBoost(mint,undefined,{payer,cluster:appState.EXPLORE_CLUSTER||'devnet'});
     if (!pending) return false;
     Object.assign(appState.boostCheckout,{packageId:pending.quote.packageId,quote:pending.quote,
       pendingSignature:pending.signature,blockhash:pending.blockhash,signedTransaction:pending.signedTransaction,
@@ -220,7 +220,7 @@ export function createBoostCheckoutController(appState) {
         const quote = appState.validateBoostQuote(appState.boostCheckout.quote, expected);
         const preparation=await appState.apiRequest('/api/boosts/prepare',{method:'POST',body:{quoteId:quote.id}});
         const prepared=preparation.data;
-        if (!preparation.available || prepared?.quoteId!==quote.id || prepared.cluster!==appState.EXPLORE_CLUSTER
+        if (!preparation.available || prepared?.quoteId!==quote.id || prepared.cluster!==(appState.EXPLORE_CLUSTER||'devnet')
           || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(prepared.blockhash)
           || !Number.isSafeInteger(prepared.expiryUpperBound) || prepared.expiryUpperBound<1 || prepared.expiresAt!==quote.expiresAt)
           throw Error('Payment preparation could not be verified. No transaction was requested.');
