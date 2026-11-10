@@ -1,6 +1,7 @@
 import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { renderEarlyMarketPrice } from '../../features/coin/early-market-price.js';
 import {renderIndexedMarket} from '../../features/coin/indexed-market.js';
+import {loadIndexedCoin} from '../../features/coin/indexed-coin.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
@@ -63,6 +64,8 @@ export function createCoinLoadingController(appState) {
       if (avatar) { avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat'; avatar.style.backgroundPosition = 'center'; }
     }
     const marketRequest=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,{signal:AbortSignal.timeout(32000)}).catch(error=>({available:false,data:null,status:error?.status}));
+    if (appState.EXPLORE_CLUSTER === 'mainnet-beta' && !earlyLaunch?.onchainVerified && mintAddress !== appState.PROTOCOL_FUNDED_MINT)
+      return loadIndexedCoin(appState, mintAddress, loadId, marketRequest);
     try {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
       const detailConnection = await appState.getExploreConnection();

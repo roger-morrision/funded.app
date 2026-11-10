@@ -1,3 +1,4 @@
+import { INDEXED_FRAMES } from '../../features/coin/chart-data.js';
 import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { formatTinyDecimal } from '../../features/shared/display.js';
 import { renderHeaderActivity } from '../../features/coin/header-activity.js';
@@ -84,9 +85,25 @@ export function createCoinMarketController(appState) {
   }
   // app-source-end
 
+  // Mainnet candles come from the server's indexed OHLC route (free GeckoTerminal first).
+  const candleCache = new Map(), candleLoading = new Set();
+  function indexedCandles() {
+    const mint = appState.getCoinMintAddress(), frame = INDEXED_FRAMES[appState.coinChartPeriod] || '15m', key = `${mint}:${frame}`;
+    const supply = appState.coinIndexedSupply?.mint === mint ? appState.coinIndexedSupply.supply : null;
+    const hit = candleCache.get(key);
+    if (hit && Date.now() - hit.at < 60_000) return { ...hit.data, mint, supply, status: 'ready' };
+    if (mint && !candleLoading.has(key)) {
+      candleLoading.add(key);
+      appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/ohlcv?frame=${frame}`, { signal: AbortSignal.timeout(15000) })
+        .then(result => candleCache.set(key, { at: Date.now(), data: { candles: result.available && result.data?.mint === mint ? result.data.candles || [] : [], source: result.data?.source || null } }))
+        .catch(() => candleCache.set(key, { at: Date.now(), data: { candles: [], source: null } })).finally(() => { candleLoading.delete(key); if (appState.getCoinMintAddress() === mint) renderCoinPricePath(); });
+    }
+    return hit ? { ...hit.data, mint, supply, status: 'ready' } : { mint, candles: [], supply, status: candleLoading.has(key) ? 'loading' : 'ready' };
+  }
   // app-source: 956
   function renderCoinPricePath(){
-    return appState.renderCoinPricePathView({ coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, coinMint: appState.getCoinMintAddress() }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
+    const coinIndexedCandles = appState.EXPLORE_CLUSTER === 'mainnet-beta' ? indexedCandles() : null;
+    return appState.renderCoinPricePathView({ coinIndexedCandles, coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, coinMint: appState.getCoinMintAddress() }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
   }
   // app-source-end
 

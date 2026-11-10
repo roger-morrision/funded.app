@@ -37,3 +37,6 @@ if (APP_IS_MAINNET && APP_MAINNET_READ_ONLY === APP_ALLOW_MAINNET) {
 
 export const TRADE_FEE_OWNER = String(import.meta.env.VITE_FUNDED_TRADE_FEE_OWNER || '').trim();
 export const TRADE_FEE_BPS = Number(import.meta.env.VITE_FUNDED_TRADE_FEE_BPS || 100);
+
+// Lets styles switch Mainnet behavior (in-app Jupiter trading for external tokens).
+if (APP_IS_MAINNET) globalThis.document?.documentElement?.classList.add('app-mainnet');

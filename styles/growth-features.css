@@ -170,8 +170,9 @@ html body.page-route-overview #main-content > #first-visit-guide:not([hidden]),
 html body.page-route-overview #main-content > .bonus-rank-card:not([hidden]) { display: block !important; }
 
 /* External tokens (launched outside Richpad): hide curve-only facts, show DEX data. */
-body.coin-external :is(.coin-curve-track, .coin-curve-rail, .coin-header-curve, #coin-boost, #coin-fee-route, .coin-policy-card) { display: none !important; }
-body.coin-external #trade-panel > :not(#coin-external-trade, .mobile-trade-close) { display: none !important; }
+body.coin-external :is(.coin-curve-track, .coin-curve-rail, .coin-header-curve, #coin-fee-route, .coin-policy-card) { display: none !important; }
+html:not(.app-mainnet) body.coin-external #coin-boost { display: none !important; }
+html:not(.app-mainnet) body.coin-external #trade-panel > :not(#coin-external-trade, .mobile-trade-close) { display: none !important; }
 .coin-external-panel { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--fv-border); border-radius: 12px; background: var(--fv-surface); margin-bottom: 16px; }
 .coin-external-panel[hidden], .coin-external-trade[hidden] { display: none !important; }
 .coin-external-panel h2 { margin: 2px 0 0; font-size: 1.1rem; }

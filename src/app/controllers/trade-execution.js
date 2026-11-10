@@ -88,12 +88,12 @@ export function createTradeExecutionController(appState) {
       const slippageText = quote.maximumSpendSol != null
         ? `Quoted receive: ${receiveText}. Maximum pool spend: ${quote.maximumSpendSol.toFixed(9)} SOL with ${slippagePercent}% slippage.`
         : side === 'sell'
-          ? `Gross Pump output: ${receiveText}. Estimated to wallet after app fee: ${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL. Minimum after slippage and app fee: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL.`
+          ? `Gross ${quote.route === 'jupiter' ? 'swap' : 'Pump'} output: ${receiveText}. Estimated to wallet after app fee: ${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL. Minimum after slippage and app fee: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL.`
           : `Estimated receive: ${receiveText}. Slippage floor: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}.`;
       const feeText = quote.maximumSpendSol != null
         ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
-        : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees.`;
-      document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
+        : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and ${quote.route === 'jupiter' ? 'pool' : 'Pump'} fees.`;
+      document.querySelector('#trade-quote').textContent = `${quote.route === 'jupiter' ? `Jupiter${trade.routes?.length ? ` (${trade.routes.join(' → ')})` : ''}${trade.priceImpactPct > 0.01 ? ` · price impact ${(trade.priceImpactPct * 100).toFixed(2)}%` : ''}` : quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
       appState.setTradeStatus('Review this quote and the transaction in your wallet before signing.');
       appState.productEvent('trade_quote_ready');
       recordFlowTiming('quote', performance.now()-started, 'available', temperature);

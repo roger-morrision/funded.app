@@ -144,7 +144,9 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
     tradeHead.textContent = 'This token trades outside Richpad. Use one of these swaps:';
     const tradeActions = document.createElement('div'); tradeActions.className = 'coin-external-actions';
     for (const [label, href] of tradeLinks(mint)) tradeActions.append(link(document, label, href, 'primary-button'));
-    tradeNote.replaceChildren(tradeHead, tradeActions); tradeNote.hidden = false;
+    tradeNote.replaceChildren(tradeHead, tradeActions);
+    // Mainnet trades every token in-app through Jupiter; Devnet links out.
+    tradeNote.hidden = import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta';
     applyHeader();
   };
   const activate = async mint => {
