@@ -81,6 +81,7 @@ export function updateCostSummary(
     document = globalThis.document,
   } = {}
 ) {
+  const tokenUnit = document.querySelector('#token-symbol')?.value?.trim().toUpperCase() || 'tokens';
   const launchFeeLamports = getLaunchFeeLamports();
   const displayedLaunchFeeLamports = wallet && launchCostReview?.serviceFeeLamports != null
     ? launchCostReview.serviceFeeLamports : launchFeeLamports;
@@ -156,9 +157,9 @@ export function updateCostSummary(
       : developerBuyLimitReached() ? 'exceeds buy limit'
         : walletEstimateError ? retrySeconds == null ? 'estimate unavailable' : `retrying in ${retrySeconds}s`
           : walletMetricsLoading ? 'calculating…'
-            : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} tokens`
+            : creatorBuy.tokens > 0 ? `${Math.round(creatorBuy.tokens).toLocaleString()} ${tokenUnit}`
               : wallet ? 'calculating…' : publicQuote?.status === 'ready' && publicQuote.developerTokens > 0
-                ? `${Math.round(publicQuote.developerTokens).toLocaleString()} tokens`
+                ? `${Math.round(publicQuote.developerTokens).toLocaleString()} ${tokenUnit}`
                 : publicQuote?.status === 'invalid' ? 'invalid amount'
                   : publicQuote?.status === 'unavailable' ? 'quote unavailable' : 'calculating…';
     creatorBuyNode.textContent = `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL · ${buyStatus}`;

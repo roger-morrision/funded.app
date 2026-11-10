@@ -27,6 +27,10 @@ export function updateLaunchPreview(
 ) {
   const name = document.querySelector('#token-name').value.trim();
   const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase();
+  const tokenUnit = symbol || 'tokens';
+  document.querySelectorAll?.('[data-launch-token-unit]').forEach(node => { node.textContent = tokenUnit; });
+  const estimateLabel = document.querySelector('#creator-buy-token-label');
+  if (estimateLabel) estimateLabel.textContent = symbol ? `Estimated ${symbol}` : 'Estimated tokens';
   const allocation = getCommunityAllocationPercent();
   const communityTokens = getCommunityAirdropTokens();
   const feeDistribution = getFeeDistributionInputs();
@@ -79,7 +83,7 @@ export function updateLaunchPreview(
   if (xFollowupText) xFollowupText.textContent = launchPromotionPreview(xLabel, { ...xDetails, followup:true });
   const quotedBuyTokens = creatorBuy.tokens || (!wallet && publicQuote?.status === 'ready' ? publicQuote.developerTokens : 0);
   const lockHours = readDeveloperLockSeconds(document) / 3600;
-  const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} tokens` : ''} · ${lockHours}h lock` : 'Creation only';
+  const buyLabel = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL${quotedBuyTokens > 0 ? ` · ${Math.round(quotedBuyTokens).toLocaleString()} ${tokenUnit}` : ''} · ${lockHours}h lock` : 'Creation only';
   const previewBuy = document.querySelector('#preview-creator-buy');
   if (previewBuy) previewBuy.textContent = buyLabel;
   const lockHelp = document.querySelector('#creator-buy-lock-help');
@@ -90,7 +94,7 @@ export function updateLaunchPreview(
   const buySolNode = document.querySelector('#creator-buy-sol-amount');
   const buyPreview=buyTokensNode?.closest?.('.creator-buy-preview');
   if(buyPreview)buyPreview.hidden=!(creatorBuy.sol>0);
-  if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : quotedBuyTokens > 0 ? `${Math.round(quotedBuyTokens).toLocaleString()} tokens` : creatorBuy.sol > 0 ? wallet ? 'Calculating…' : publicQuote?.status === 'unavailable' ? 'Quote unavailable' : 'Calculating…' : 'None';
+  if (buyTokensNode) buyTokensNode.textContent = creatorBuyExceedsWalletBalance() ? 'Insufficient SOL' : quotedBuyTokens > 0 ? `${Math.round(quotedBuyTokens).toLocaleString()} ${tokenUnit}` : creatorBuy.sol > 0 ? wallet ? 'Calculating…' : publicQuote?.status === 'unavailable' ? 'Quote unavailable' : 'Calculating…' : 'None';
   if (buySolNode) buySolNode.textContent = creatorBuy.sol > 0 ? `${creatorBuy.sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL developer buy` : 'No developer buy';
   const compactPreviewValues = {
     '#preview-launchpad': 'Pump.fun',

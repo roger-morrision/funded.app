@@ -202,7 +202,7 @@ export function createLaunchReviewController(appState) {
       : `${burn.label} tier`;
     document.querySelector('#launch-review-wallet').textContent = session.address;
     linkWalletText(document.querySelector('#launch-review-wallet'), session.address);
-    document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} tokens`;
+    document.querySelector('#launch-review-reserve').textContent = `${appState.getCommunityAirdropTokens().toLocaleString()} ${symbol}`;
     document.querySelector('#launch-review-buy').textContent = appState.getCreatorBuySol() ? `${appState.getCreatorBuySol()} SOL` : 'None';
     const burnOrder = document.querySelector('#launch-review-burn-order');
     burnOrder.hidden = !burn.requiresBurn;
