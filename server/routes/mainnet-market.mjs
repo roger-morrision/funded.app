@@ -192,7 +192,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (fraction.length > inputDecimals) return json(res, 400, { error: `Use at most ${inputDecimals} decimal places.` });
       const amount = BigInt(whole) * 10n ** BigInt(inputDecimals) + BigInt((fraction + '0'.repeat(inputDecimals)).slice(0, inputDecimals) || '0');
       try {
-        const attempt = async fn => { try { return await fn(); } catch { await new Promise(done => setTimeout(done, 1200)); return fn(); } };
+        const attempt = async fn => { try { return await fn(); } catch (error) { if (error?.status === 400) throw error; await new Promise(done => setTimeout(done, 1500)); return fn(); } };
         const quote = await attempt(() => free.jupQuote({ inputMint: side === 'buy' ? WSOL : mint, outputMint: side === 'buy' ? mint : WSOL, amount, slippageBps }));
         if (!quote?.outAmount || quote.error) return json(res, 404, { error: 'No swap route was found for this token and amount.' });
         const instructions = await attempt(() => free.jupSwapInstructions({ quoteResponse: quote, userPublicKey: user }));
@@ -213,6 +213,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
             swapInstruction: instructions.swapInstruction, cleanupInstruction: instructions.cleanupInstruction || null, otherInstructions: instructions.otherInstructions || [] },
           lookupTables: keys.map(key => ({ key, addresses: altCache.get(key).addresses })), blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight });
       } catch (error) {
+        if (error?.status === 400) return json(res, 404, { error: 'No swap route was found for this token and amount.' });
         console.warn(JSON.stringify({ event: 'jupiter_build_failed', side, mint, message: String(error?.message || error).slice(0, 240) }));
         return json(res, 503, { error: 'Swap routing is temporarily unavailable. Try again shortly.' });
       }
