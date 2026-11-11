@@ -11,6 +11,7 @@ import { LISTING_PRICE_USD, listingBurnBaseUnitsForUsd, listingBurnTokens, listi
 import { canSignTransactions } from './wallet-core.js';
 import { paidListingCardMarkup } from './src/features/home/paid-listing-view.js';
 import { readPendingListing, savePendingListing, clearPendingListing } from './listing-recovery.js';
+import { ownerMintAccounts } from './src/features/shared/owner-mint-accounts.js';
 
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const LISTING_READ_TIMEOUT_MS = 30_000;
@@ -306,7 +307,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         throw new Error(quoteResponse.data?.error || `A fresh $${LISTING_PRICE_USD} listing quote is unavailable. No burn was submitted.`);
       const amountTokens = quote.amountTokens;
       const amount = BigInt(quote.amountBaseUnits);
-      const accounts = await rpc.getTokenAccountsByOwner(new PublicKey(session.address), { mint: fundedKey }, 'confirmed');
+      const accounts = await ownerMintAccounts(rpc, new PublicKey(session.address), fundedKey, 'confirmed');
       const source = accounts.value.map(row => ({ address: row.pubkey, amount: unpackAccount(row.pubkey, row.account, tokenProgram).amount }))
         .find(row => row.amount >= amount);
       if (!source) throw new Error(`This wallet needs ${amountTokens.toLocaleString('en-US', { maximumFractionDigits:funded.decimals })} $RICH in one token account for the $${LISTING_PRICE_USD} listing quote.`);

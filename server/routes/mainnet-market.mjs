@@ -9,6 +9,22 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
+  const supplyCache = new Map();
+  const KNOWN_INITIAL = new Set(['pump.fun', 'raydium-launchlab', 'letsbonk.fun', 'bonk.fun', 'moonshot']);
+  async function burnFacts(mint, launchpad) {
+    const initial = KNOWN_INITIAL.has(String(launchpad || '').toLowerCase()) || /(?:pump|bonk)$/.test(mint) ? 1_000_000_000 : null;
+    const hit = supplyCache.get(mint);
+    let supply = hit && Date.now() - hit.at < 300_000 ? hit.value : null;
+    if (supply == null) {
+      const result = await connection().getTokenSupply(new PublicKey(mint), 'confirmed').catch(() => null);
+      supply = Number(result?.value?.uiAmountString);
+      if (!Number.isFinite(supply)) supply = hit?.value ?? null; else supplyCache.set(mint, { at: Date.now(), value: supply });
+      if (supplyCache.size > 3000) supplyCache.delete(supplyCache.keys().next().value);
+    }
+    if (!Number.isFinite(supply)) return {};
+    const burned = initial && supply <= initial ? initial - supply : null;
+    return { supplyTokens: supply, initialSupplyTokens: initial, burnedTokens: burned, burnedPercent: burned != null ? burned / initial * 100 : null };
+  }
   const decimalsCache = new Map(), holdersCache = new Map(), holderCountCache = new Map();
   async function holderCount(mint) {
     const hit = holderCountCache.get(mint);
@@ -88,7 +104,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (!row.name && jupInfo?.name) row = { ...row, name: String(jupInfo.name).slice(0, 80) };
       if (!row.symbol && jupInfo?.symbol) row = { ...row, symbol: String(jupInfo.symbol).slice(0, 20) };
     }
-    const merged = { ...(cached || {}), ...Object.fromEntries(Object.entries(row).filter(([, v]) => v != null)), mint, source, observedAt: new Date().toISOString() };
+    const burn = await burnFacts(mint, row.launchpad ?? cached?.launchpad).catch(() => ({}));
+    const merged = { ...(cached || {}), ...Object.fromEntries(Object.entries({ ...row, ...burn }).filter(([, v]) => v != null)), mint, source, observedAt: new Date().toISOString() };
     void tokenCache.upsert([merged]);
     return merged;
   }

@@ -126,6 +126,18 @@ function applyNumbers(appState, data) {
   if (Number.isFinite(data.volume24hUsd)) appState.setCoinField('#coin-volume', usd(data.volume24hUsd));
   appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? usd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
   if (Number.isFinite(data.priceChangePercent)) appState.setCoinField('#coin-change', `${data.priceChangePercent.toFixed(2)}% · 24h`);
+  // Header strip: 24h volume (USD) and trades from the DEX index, plus burned supply.
+  const volumeLabel = globalThis.document?.querySelector('#coin-strip-volume')?.previousElementSibling;
+  if (volumeLabel) volumeLabel.textContent = '24h volume · USD';
+  appState.setCoinField('#coin-strip-volume', Number.isFinite(data.volume24hUsd) ? appState.formatCompactUsd(data.volume24hUsd) : '—');
+  const trades = Number(data.buyCount24h) + Number(data.sellCount24h);
+  appState.setCoinField('#coin-strip-trades', Number.isFinite(trades) ? trades.toLocaleString('en-US') : '—');
+  const burnCell = globalThis.document?.querySelector('#coin-strip-burn-cell');
+  if (burnCell) {
+    const known = Number.isFinite(data.burnedTokens);
+    burnCell.hidden = !known;
+    if (known) appState.setCoinField('#coin-strip-burned', `${appState.formatCompactNumber ? appState.formatCompactNumber(data.burnedTokens) : Math.round(data.burnedTokens).toLocaleString('en-US')} · ${data.burnedPercent.toFixed(2)}%`);
+  }
   if (appState.coinTradeEstimate?.mint === data.mint && Number.isFinite(data.priceUsd)) { appState.coinTradeEstimate.priceUsd = data.priceUsd; appState.renderTradeAmountEstimate?.(); }
 }
 

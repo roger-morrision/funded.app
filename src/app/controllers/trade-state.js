@@ -1,6 +1,7 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
 import { TRADE_QUOTE_TTL_MS } from '../../../trade-quote-policy.js';
 import {uncertainTrade} from '../../features/experience/trade-recovery-store.js';
+import { ownerMintParsedAccounts } from '../../features/shared/owner-mint-accounts.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeStateController(appState) {
   // app-source: 545
@@ -100,7 +101,7 @@ export function createTradeStateController(appState) {
       const rpc = await appState.getExploreConnection();
       const [sol, tokens] = await Promise.allSettled([
         rpc.getBalance(session.provider.publicKey, 'confirmed'),
-        rpc.getParsedTokenAccountsByOwner(session.provider.publicKey, { mint:new PublicKey(mint) }, 'confirmed'),
+        ownerMintParsedAccounts(rpc, session.provider.publicKey, new PublicKey(mint), 'confirmed'),
       ]);
       if (request !== appState.tradeBalanceRequest || !appState.isWalletSessionCurrent(session) || key !== appState.tradeBalanceKey()) return;
       // Reuse this wallet-scoped read so the header and trade form agree after

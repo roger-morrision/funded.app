@@ -16,3 +16,9 @@ body.coin-external [role="tab"][id$="-updates-tab"] { display: none !important; 
 
 /* External tokens carry no Richpad launch package, so no promotion tag. */
 body.coin-external #coin-promotion-badge { display: none !important; }
+
+/* Trades and holders tables scroll inside their panel with a visible right scroll bar. */
+#coin-activity-list :is(.coin-transactions-scroll, .coin-holders-scroll) { max-height: 560px; overflow-y: auto; overflow-x: auto; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #5b6b8c transparent; }
+#coin-activity-list :is(.coin-transactions-scroll, .coin-holders-scroll)::-webkit-scrollbar { width: 8px; height: 8px; }
+#coin-activity-list :is(.coin-transactions-scroll, .coin-holders-scroll)::-webkit-scrollbar-thumb { background: #5b6b8c; border-radius: 8px; }
+#coin-activity-list :is(.coin-transactions-scroll, .coin-holders-scroll) thead th { position: sticky; top: 0; z-index: 1; background: var(--fv-surface, #151b2b); }

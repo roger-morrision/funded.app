@@ -347,7 +347,10 @@ export function createFollowingController(appState) {
         meta: cap != null ? `MC ${appState.formatCompactUsd(cap)} · Indexed` : 'Indexed', source: 'Indexed', marketCapUsd: cap, priceUsd: data.priceUsd ?? null,
         priceChange24hPercent: change, volume24hUsd: data.volume24hUsd ?? null, liquidityUsd: data.liquidityUsd ?? null, complete: null, migrated: null,
         website: data.website || null, twitter: data.twitter || null, telegram: data.telegram || null, discord: data.discord || null });
-    }).finally(() => indexedFavoriteLoads.delete(mint)))).then(() => renderWatchlist());
+    }).finally(() => indexedFavoriteLoads.delete(mint)))).then(() => { renderWatchlist(); if (appState.exploreTab === 'favorites') appState.renderExploreAssets?.({ force: true }); });
+  }
+  function indexedFavoriteAssets(){
+    return [...indexedFavorites.values()];
   }
   function renderWatchlist(){
     const saved = appState.getWatchlist();
@@ -472,5 +475,5 @@ export function createFollowingController(appState) {
   }
   // app-source-end
 
-  return { showWatchlistStatus, getWatchlist, restoreWalletFavorites, verifyWalletFavorites, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets, getFollowingTokenSources, getFollowingCoverage, refreshFollowedWalletHoldings };
+  return { loadIndexedFavorites, indexedFavoriteAssets, showWatchlistStatus, getWatchlist, restoreWalletFavorites, verifyWalletFavorites, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets, getFollowingTokenSources, getFollowingCoverage, refreshFollowedWalletHoldings };
 }

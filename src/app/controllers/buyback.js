@@ -1,6 +1,7 @@
 import { readPendingBurn } from '../../features/funded/burn-recovery.js';
 import { mountBuybackProgressPanels } from '../../features/funded/buyback-progress-ui.js';
 import { fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
+import { ownerMintAccounts } from '../../features/shared/owner-mint-accounts.js';
 
 // Dependencies and mutable application state are read live through appState.
 // Share of the trigger already in eligible vaults, e.g. "<0.01%" or "42.5%".
@@ -237,7 +238,7 @@ export function createBuybackController(appState) {
       let balanceBaseUnits = 0n;
       if (address) {
         const owner = new PublicKey(address);
-        const response = await appState.connection.getTokenAccountsByOwner(owner, { mint }, 'confirmed');
+        const response = await ownerMintAccounts(appState.connection, owner, mint, 'confirmed');
         tokenAccounts = response.value.map(row => {
           const account = unpackAccount(row.pubkey, row.account, tokenProgram);
           return { address: row.pubkey, amount: account.amount };
