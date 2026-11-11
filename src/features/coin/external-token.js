@@ -103,6 +103,8 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
   };
   const applyHeader = () => {
     applyIdentity();
+    // Mainnet token pages keep their live indexed numbers; this panel's slower copy must not overwrite them.
+    if (document.documentElement.classList.contains('app-mainnet')) return;
     const m = applied?.market; if (!m) return;
     setText('#coin-price', formatUsd(m.priceUsd));
     setText('#coin-market-cap', formatUsd(m.marketCapUsd));

@@ -193,3 +193,6 @@ html:not(.app-mainnet) body.coin-external #trade-panel > :not(#coin-external-tra
 /* Indexed (Mainnet) token artwork rendered directly in card avatars. */
 .home-token-avatar { position: relative; overflow: hidden; }
 .home-token-avatar > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; background: var(--fv-surface, #121a26); }
+
+/* Mainnet: the token page itself shows market data and Jupiter trading; no separate external-token panel. */
+html.app-mainnet #coin-external-panel{display:none!important}
