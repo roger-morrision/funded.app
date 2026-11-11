@@ -15,19 +15,24 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   // Fresh hits return at once; an expired entry inside its stale window is
   // returned immediately while one background request refreshes it, so page
   // loads never wait on upstream once a token has been seen.
-  async function getJson(url, { ttlMs = 30_000, method = 'GET', body = null, staleMs = ttlMs * 6 } = {}) {
+  const lane = url => { const u = new URL(url); return u.hostname + u.pathname.split('/').slice(0, 3).join('/'); };
+  async function getJson(url, { ttlMs = 30_000, method = 'GET', body = null, staleMs = ttlMs * 6, priority = false } = {}) {
     const key = method + ' ' + url + (body ? ' ' + JSON.stringify(body) : '');
     const hit = cache.get(key);
     if (hit && hit.expiresAt > now()) return hit.value;
     const host = new URL(url).hostname;
     const refresh = () => {
       if (inflight.has(key)) return inflight.get(key);
-      if ((cooldownUntil.get(host) || 0) > now()) return Promise.reject(Error(`${host} is cooling down`));
+      if ((cooldownUntil.get(lane(url)) || 0) > now()) return Promise.reject(Error(`${lane(url)} is cooling down`));
       const call = (async () => {
-        await pace(host);
+        // Swap quotes skip the shared queue so background price reads never delay a trade.
+        if (!priority) await pace(host);
         const response = await fetch(url, { method, redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
           headers: { accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
-        if (response.status === 429 || response.status >= 500) cooldownUntil.set(host, now() + 30_000);
+        if (response.status === 429 || response.status >= 500) {
+          const retry = Number(response.headers.get('retry-after'));
+          cooldownUntil.set(lane(url), now() + (Number.isFinite(retry) && retry > 0 ? Math.min(retry * 1000, 60_000) : priority ? 3_000 : 15_000));
+        }
         if (!response.ok) throw Error(`${host} request failed (${response.status})`);
         const value = await response.json();
         if (ttlMs > 0) {
@@ -76,7 +81,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     const result = new Map();
     for (const batch of chunks([...new Set(mints.filter(m => MINT.test(m)))], 50)) {
       try {
-        const data = await getJson(`https://lite-api.jup.ag/price/v3?ids=${batch.join(',')}`, { ttlMs: 10_000 });
+        const data = await getJson(`https://lite-api.jup.ag/price/v3?ids=${batch.join(',')}`, { ttlMs: 30_000 });
         for (const mint of batch) {
           const row = data?.[mint];
           if (row) result.set(mint, { mint, priceUsd: num(row.usdPrice), decimals: Number.isInteger(row.decimals) ? row.decimals : null,
@@ -116,10 +121,10 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   }
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
     const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true' });
-    return getJson(`https://lite-api.jup.ag/swap/v1/quote?${query}`, { ttlMs: 0 });
+    return getJson(`https://lite-api.jup.ag/swap/v1/quote?${query}`, { ttlMs: 0, priority: true });
   }
   async function jupSwapInstructions({ quoteResponse, userPublicKey }) {
-    return getJson('https://lite-api.jup.ag/swap/v1/swap-instructions', { ttlMs: 0, method: 'POST', body: { quoteResponse, userPublicKey,
+    return getJson('https://lite-api.jup.ag/swap/v1/swap-instructions', { ttlMs: 0, priority: true, method: 'POST', body: { quoteResponse, userPublicKey,
       wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 500_000, priorityLevel: 'medium' } } } });
   }
   return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupToken, jupQuote, jupSwapInstructions, GECKO_FRAMES };

@@ -83,8 +83,9 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const validMint = value => { try { return new PublicKey(String(value || '')).toBase58() === value; } catch { return false; } };
 
   async function overview(mint) {
-    const [dex, jup, cached] = await Promise.all([free.dexTokens([mint]).then(m => m.get(mint)).catch(() => null),
-      free.jupPrices([mint]).then(m => m.get(mint)).catch(() => null), tokenCache.read([mint]).then(m => m.get(mint)).catch(() => null)]);
+    const [dex, cached] = await Promise.all([free.dexTokens([mint]).then(m => m.get(mint)).catch(() => null), tokenCache.read([mint]).then(m => m.get(mint)).catch(() => null)]);
+    const jup = !dex || !Number.isInteger(cached?.decimals) || !cached?.launchpad ? await free.jupPrices([mint]).then(m => m.get(mint)).catch(() => null)
+      : { decimals: cached.decimals, launchpad: cached.launchpad };
     let row = dex ? { ...dex } : null;
     if (row && jup) row = { ...row, priceUsd: row.priceUsd ?? jup.priceUsd, decimals: jup.decimals, launchpad: jup.launchpad };
     let source = row ? 'dexscreener' : null;
@@ -182,8 +183,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (!Number.isInteger(slippageBps) || slippageBps < 10 || slippageBps > 1000) return json(res, 400, { error: 'Slippage must be between 0.1% and 10%.' });
       const amountText = String(input.amount || '');
       if (!/^\d+(\.\d+)?$/.test(amountText) || Number(amountText) <= 0) return json(res, 400, { error: 'Enter a positive amount.' });
-      let decimals = (await free.jupPrices([mint]).catch(() => new Map())).get(mint)?.decimals;
-      if (!Number.isInteger(decimals)) decimals = (await tokenCache.read([mint]).catch(() => new Map())).get(mint)?.decimals;
+      let decimals = (await tokenCache.read([mint]).catch(() => new Map())).get(mint)?.decimals;
+      if (!Number.isInteger(decimals)) decimals = (await free.jupPrices([mint]).catch(() => new Map())).get(mint)?.decimals;
       if (!Number.isInteger(decimals)) decimals = await mintDecimals(mint);
       if (!Number.isInteger(decimals)) return json(res, 503, { error: 'Token decimals are unavailable. Try again shortly.' });
       const inputDecimals = side === 'buy' ? 9 : decimals;
@@ -191,9 +192,10 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (fraction.length > inputDecimals) return json(res, 400, { error: `Use at most ${inputDecimals} decimal places.` });
       const amount = BigInt(whole) * 10n ** BigInt(inputDecimals) + BigInt((fraction + '0'.repeat(inputDecimals)).slice(0, inputDecimals) || '0');
       try {
-        const quote = await free.jupQuote({ inputMint: side === 'buy' ? WSOL : mint, outputMint: side === 'buy' ? mint : WSOL, amount, slippageBps });
+        const attempt = async fn => { try { return await fn(); } catch { await new Promise(done => setTimeout(done, 1200)); return fn(); } };
+        const quote = await attempt(() => free.jupQuote({ inputMint: side === 'buy' ? WSOL : mint, outputMint: side === 'buy' ? mint : WSOL, amount, slippageBps }));
         if (!quote?.outAmount || quote.error) return json(res, 404, { error: 'No swap route was found for this token and amount.' });
-        const instructions = await free.jupSwapInstructions({ quoteResponse: quote, userPublicKey: user });
+        const instructions = await attempt(() => free.jupSwapInstructions({ quoteResponse: quote, userPublicKey: user }));
         if (instructions?.error) return json(res, 502, { error: 'The swap route could not be prepared.' });
         const keys = (instructions.addressLookupTableAddresses || []).filter(validMint).slice(0, 8);
         const missing = keys.filter(key => !(altCache.get(key)?.expiresAt > Date.now()));
@@ -210,7 +212,10 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
           instructions: { computeBudgetInstructions: instructions.computeBudgetInstructions || [], setupInstructions: instructions.setupInstructions || [],
             swapInstruction: instructions.swapInstruction, cleanupInstruction: instructions.cleanupInstruction || null, otherInstructions: instructions.otherInstructions || [] },
           lookupTables: keys.map(key => ({ key, addresses: altCache.get(key).addresses })), blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight });
-      } catch { return json(res, 503, { error: 'Swap routing is temporarily unavailable. Try again shortly.' }); }
+      } catch (error) {
+        console.warn(JSON.stringify({ event: 'jupiter_build_failed', side, mint, message: String(error?.message || error).slice(0, 240) }));
+        return json(res, 503, { error: 'Swap routing is temporarily unavailable. Try again shortly.' });
+      }
     }
     return false;
   };
