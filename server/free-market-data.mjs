@@ -87,6 +87,12 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     return Array.isArray(list) ? list.map(row => ({ time: row[0], open: row[1], high: row[2], low: row[3], close: row[4], volume: row[5] }))
       .filter(row => [row.time, row.open, row.high, row.low, row.close].every(Number.isFinite)).sort((a, b) => a.time - b.time) : null;
   }
+  // GeckoTerminal recent pool trades (free): newest first, last 24h.
+  async function geckoTrades(pool) {
+    if (!MINT.test(pool)) return null;
+    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/trades`, { ttlMs: 30_000 });
+    return Array.isArray(data?.data) ? data.data.map(row => row?.attributes).filter(Boolean) : null;
+  }
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
     const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true' });
     return getJson(`https://lite-api.jup.ag/swap/v1/quote?${query}`, { ttlMs: 0 });
@@ -95,7 +101,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     return getJson('https://lite-api.jup.ag/swap/v1/swap-instructions', { ttlMs: 0, method: 'POST', body: { quoteResponse, userPublicKey,
       wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 500_000, priorityLevel: 'medium' } } } });
   }
-  return { getJson, dexTokens, jupPrices, geckoOhlcv, jupQuote, jupSwapInstructions, GECKO_FRAMES };
+  return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, jupQuote, jupSwapInstructions, GECKO_FRAMES };
 }
 
 // Market-activity shape used by the token page, built from DexScreener first.

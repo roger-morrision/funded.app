@@ -12,6 +12,7 @@ export function renderIndexedMarket(appState, market, mint, now = Date.now()) {
   appState.setCoinField('#coin-price',market.priceUsd != null && market.priceUsd > 0 && market.priceUsd < 0.01
     ? `$${formatTinyDecimal(market.priceUsd)}` : usd(market.priceUsd));
   appState.setCoinField('#coin-volume',usd(market.volume24hUsd));
+  if (market.liquidityUsd != null) appState.setCoinField('#coin-liquidity',usd(market.liquidityUsd));
   appState.setCoinField('#coin-holder-count',market.holders == null ? '—' : String(market.holders));
   appState.setCoinField('#coin-trade-count',market.tradeCount24h == null ? '—' : String(market.tradeCount24h));
   appState.setCoinField('#coin-change',market.priceChangePercent == null ? '—' : `${market.priceChangePercent.toFixed(2)}% · 24h`);

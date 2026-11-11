@@ -33,6 +33,8 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     appState.setCoinField('#coin-market-cap-source', `${data.source === 'birdeye' ? 'Birdeye' : data.source === 'jupiter' ? 'Jupiter' : 'DexScreener'} · indexed market data`);
     appState.setCoinField('#coin-description', data.dexId ? `Trading on ${data.dexId}${data.launchpad ? ` · launched on ${data.launchpad}` : ''}. Swaps route through Jupiter.` : 'Swaps route through Jupiter.');
     appState.setCoinFact?.('#coin-stage', data.dexId ? `Trading · ${data.dexId}` : 'Indexed market', 'clear');
+    appState.setCoinFact?.('#coin-fee-owner', 'External token · no Richpad fees', 'clear');
+    appState.setCoinFact?.('#coin-metadata-status', data.name ? 'Indexed metadata' : 'Metadata unavailable', data.name ? 'clear' : 'warn');
     for (const [selector, href] of [['#coin-website-link', data.website], ['#coin-x-link', data.twitter], ['#coin-telegram-link', data.telegram], ['#coin-discord-link', data.discord]]) {
       const link = document.querySelector(selector); if (link && typeof href === 'string' && href.startsWith('https://')) { link.href = href; link.hidden = false; }
     }
@@ -52,7 +54,15 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   }
   void appState.loadSolUsdQuote?.();
   appState.renderCoinPricePath?.();
-  const market = await marketRequest;
+  const [market, trades] = await Promise.all([marketRequest,
+    appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/trades`, { signal: AbortSignal.timeout(15000) }).catch(() => ({ available: false, data: null }))]);
   if (!current()) return;
+  const rows = trades.available && trades.data?.mint === mint && trades.data.available ? trades.data.trades : null;
+  const tradeCount = market?.data?.tradeCount24h;
+  appState.coinMarketActivity = rows
+    ? { status: 'ready', trades: rows, coverage: 'partial', decimals: trades.data.decimals, graduated: true, tradeCount: Number.isSafeInteger(tradeCount) ? tradeCount : null, indexed: true }
+    : { status: 'unavailable', trades: [], coverage: null, decimals: 6, indexed: true };
+  appState.renderCoinActivityTab?.(); appState.setCoinTabLabels?.();
   if (market?.available) renderIndexedMarket(appState, market.data, mint);
+  else if (data) appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? appState.formatUsd(data.liquidityUsd) : '—');
 }

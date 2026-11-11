@@ -41,6 +41,7 @@ export function createCoinMarketController(appState) {
     document.dispatchEvent(new Event('funded:rankings-updated'));
     appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
     appState.renderFundedTokenLanding();
+    if (appState.coinMarketActivity?.indexed) return;
     appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
     appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
     appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));

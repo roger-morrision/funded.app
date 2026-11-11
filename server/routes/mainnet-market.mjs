@@ -54,6 +54,31 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       }
       return json(res, 200, { cluster: solanaCluster, mint, frame, source, pool: pool || null, candles });
     }
+    const tradesMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/trades$/.exec(url.pathname);
+    if (tradesMatch) {
+      const mint = decodeURIComponent(tradesMatch[1]);
+      if (!validMint(mint)) return json(res, 400, { error: 'A valid Solana mint is required.' });
+      const cached = (await tokenCache.read([mint])).get(mint);
+      const market = cached?.pairAddress ? cached : (await free.dexTokens([mint]).catch(() => new Map())).get(mint);
+      const pool = market?.pairAddress;
+      const [rows, prices] = await Promise.all([pool ? free.geckoTrades(pool).catch(() => null) : null, free.jupPrices([mint, WSOL]).catch(() => new Map())]);
+      const decimals = prices.get(mint)?.decimals ?? cached?.decimals;
+      const solUsd = prices.get(WSOL)?.priceUsd;
+      if (!Array.isArray(rows) || !Number.isInteger(decimals)) return json(res, 200, { cluster: solanaCluster, mint, source: 'geckoterminal', available: false, trades: [] });
+      const trades = rows.flatMap(row => {
+        const side = row.kind === 'buy' ? 'buy' : row.kind === 'sell' ? 'sell' : null;
+        const tokenAmount = Number(side === 'buy' ? row.to_token_amount : row.from_token_amount);
+        const quoteAddress = side === 'buy' ? row.from_token_address : row.to_token_address;
+        const quoteAmount = Number(side === 'buy' ? row.from_token_amount : row.to_token_amount);
+        const sol = quoteAddress === WSOL ? quoteAmount : Number(row.volume_in_usd) / solUsd;
+        const blockTime = Math.floor(Date.parse(row.block_timestamp) / 1000);
+        if (!side || !Number.isFinite(tokenAmount) || !Number.isFinite(sol) || !Number.isFinite(blockTime) || typeof row.tx_hash !== 'string') return [];
+        return [{ signature: row.tx_hash, blockTime, side, trader: typeof row.tx_from_address === 'string' ? row.tx_from_address : null,
+          solLamports: String(Math.round(sol * 1e9)), tokenAmountRaw: BigInt(Math.round(tokenAmount * 10 ** Math.min(decimals, 9))).toString() + '0'.repeat(Math.max(0, decimals - 9)),
+          usd: Number(row.volume_in_usd) || null }];
+      });
+      return json(res, 200, { cluster: solanaCluster, mint, source: 'geckoterminal', available: true, pool, decimals, trades });
+    }
     if (req.method === 'POST' && url.pathname === '/api/trade/jupiter/build') {
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`jupiter:${clientKey(req)}`, 1, 30, windowStart)) return json(res, 429, { error: 'Too many quotes; wait a moment.' });
