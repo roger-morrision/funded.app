@@ -9,7 +9,53 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
-  const decimalsCache = new Map();
+  const decimalsCache = new Map(), holdersCache = new Map(), holderCountCache = new Map();
+  async function holderCount(mint) {
+    const hit = holderCountCache.get(mint);
+    if (hit && Date.now() - hit.at < 3_600_000) return hit.value;
+    const gecko = await free.geckoTokenInfo(mint).catch(() => null);
+    let value = Number.isSafeInteger(gecko?.holders?.count) ? gecko.holders.count : null;
+    if (value == null) {
+      const result = await fetchBirdeye('/defi/token_overview', { address: mint }).catch(() => null);
+      value = Number.isSafeInteger(result?.data?.holder) ? result.data.holder : hit?.value ?? null;
+    }
+    holderCountCache.set(mint, { at: Date.now(), value });
+    if (holderCountCache.size > 2000) holderCountCache.delete(holderCountCache.keys().next().value);
+    return value;
+  }
+  async function topHolders(mint) {
+    const hit = holdersCache.get(mint);
+    if (hit && Date.now() - hit.at < (hit.value.source === 'birdeye' ? 600_000 : 60_000)) return hit.value;
+    const value = await rpcHolders(mint).catch(() => null) || await birdeyeHolders(mint).catch(() => null);
+    if (!value) return hit?.value || null;
+    holdersCache.set(mint, { at: Date.now(), value });
+    if (holdersCache.size > 1000) holdersCache.delete(holdersCache.keys().next().value);
+    return value;
+  }
+  async function birdeyeHolders(mint) {
+    const result = await fetchBirdeye('/defi/v3/token/holder', { address: mint, offset: '0', limit: '20' });
+    const items = Array.isArray(result?.data?.items) ? result.data.items : null;
+    if (!items?.length) return null;
+    const cached = (await tokenCache.read([mint]).catch(() => new Map())).get(mint);
+    const decimals = Number.isInteger(items[0].decimals) ? items[0].decimals : cached?.decimals;
+    const supply = cached?.marketCapUsd > 0 && cached?.priceUsd > 0 ? cached.marketCapUsd / cached.priceUsd : null;
+    const holders = items.flatMap(row => typeof row?.owner === 'string' && /^\d+$/.test(String(row.amount)) ? [{ wallet: row.owner, address: row.token_account || null,
+      amountRaw: String(row.amount), share: supply && Number.isFinite(Number(row.ui_amount)) ? Number(row.ui_amount) / supply * 100 : null }] : []);
+    return holders.length ? { source: 'birdeye', decimals: Number.isInteger(decimals) ? decimals : 6, holders } : null;
+  }
+  async function rpcHolders(mint) {
+    const key = new PublicKey(mint);
+    const [largest, supply] = await Promise.all([connection().getTokenLargestAccounts(key, 'confirmed'), connection().getTokenSupply(key, 'confirmed')]);
+    const accounts = largest.value.slice(0, 20);
+    const infos = await connection().getMultipleParsedAccounts(accounts.map(row => row.address), { commitment: 'confirmed' });
+    const total = BigInt(supply.value.amount);
+    const holders = accounts.flatMap((row, index) => {
+      const owner = infos.value[index]?.data?.parsed?.info?.owner;
+      if (!owner || BigInt(row.amount) === 0n) return [];
+      return [{ wallet: owner, address: row.address.toBase58(), amountRaw: row.amount, share: total > 0n ? Number(BigInt(row.amount) * 1_000_000n / total) / 10_000 : null }];
+    });
+    return holders.length ? { source: 'rpc', decimals: supply.value.decimals, supplyRaw: supply.value.amount, holders } : null;
+  }
   async function mintDecimals(mint) {
     if (decimalsCache.has(mint)) return decimalsCache.get(mint);
     const info = await connection().getParsedAccountInfo(new PublicKey(mint), 'confirmed').catch(() => null);
@@ -61,6 +107,13 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
         source = 'birdeye';
       }
       return json(res, 200, { cluster: solanaCluster, mint, frame, source, pool: pool || null, candles });
+    }
+    const holdersMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/holders$/.exec(url.pathname);
+    if (holdersMatch) {
+      const mint = decodeURIComponent(holdersMatch[1]);
+      if (!validMint(mint)) return json(res, 400, { error: 'A valid Solana mint is required.' });
+      const [top, count] = await Promise.all([topHolders(mint).catch(() => null), holderCount(mint).catch(() => null)]);
+      return json(res, 200, { cluster: solanaCluster, mint, available: Boolean(top), holderCount: count, ...(top || { holders: [] }) });
     }
     const tradesMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/trades$/.exec(url.pathname);
     if (tradesMatch) {

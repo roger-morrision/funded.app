@@ -60,8 +60,10 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   }
   void appState.loadSolUsdQuote?.();
   appState.renderCoinPricePath?.();
+  void loadHolders(appState, mint, loadId, data);
   const [market, trades] = await Promise.all([marketRequest, tradesRequest]);
   if (!current()) return;
+  appState.coinIndexedWindows = { mint, windows: data?.windows || null, solUsd: Number(appState.coinTradeEstimate?.solUsd) || null };
   applyTrades(appState, mint, trades, market?.data?.tradeCount24h ?? (data ? data.buyCount24h + data.sellCount24h : null));
   if (market?.available) renderIndexedMarket(appState, market.data, mint);
   if (data) applyNumbers(appState, data);
@@ -71,14 +73,49 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
 const readTrades = (appState, mint) => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/trades`, { signal: AbortSignal.timeout(15000) })
   .catch(() => ({ available: false, data: null }));
 
+// Top holders (largest token accounts) and the indexed holder count.
+async function loadHolders(appState, mint, loadId, data) {
+  const response = await appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/holders`, { signal: AbortSignal.timeout(15000) }).catch(() => null);
+  if (loadId !== appState.coinLoadId) return;
+  const body = response?.available && response.data?.mint === mint ? response.data : null;
+  const count = Number.isSafeInteger(body?.holderCount) ? body.holderCount : null;
+  appState.setCoinField('#coin-holder-count', count != null ? count.toLocaleString('en-US') : 'Not indexed');
+  appState.coinActivity = { ...(appState.coinActivity || {}), status: 'ready', symbol: appState.coinActivity?.symbol || data?.symbol || 'TOKEN', collections: [], claims: [], accounts: [],
+    holderDistribution: body?.available ? { holders: body.holders, partial: true } : null, holderCount: count ?? (body?.holders?.length ? `top ${body.holders.length}` : '—'),
+    tokenDecimals: Number.isInteger(body?.decimals) ? body.decimals : 6, ledgerAvailable: false, indexedPriceUsd: data?.priceUsd ?? null };
+  appState.setCoinTabLabels?.(); appState.renderCoinActivityTab?.();
+}
+
+// Trade Volumes panel: exact counts and volume from the DEX index; buy/sell
+// split, traders and largest trade from the loaded trade rows.
+function activityWindows(trades, indexed) {
+  const now = Math.floor(Date.now() / 1000), solUsd = indexed?.solUsd;
+  const oldest = trades.length ? Math.min(...trades.map(row => Number(row.blockTime))) : now;
+  return Object.fromEntries([['5m', 300], ['1h', 3600], ['6h', 21600], ['24h', 86400]].map(([key, seconds]) => {
+    const rows = trades.filter(row => Number(row.blockTime) >= now - seconds);
+    const sol = row => Number(row.solLamports || 0) / 1e9;
+    const buys = rows.filter(row => row.side === 'buy'), sells = rows.filter(row => row.side === 'sell');
+    const covered = oldest <= now - seconds;
+    const dex = indexed?.windows?.[key];
+    const buyVolumeSol = buys.reduce((sum, row) => sum + sol(row), 0), sellVolumeSol = sells.reduce((sum, row) => sum + sol(row), 0);
+    const dexVolumeSol = Number.isFinite(dex?.volumeUsd) && solUsd > 0 ? dex.volumeUsd / solUsd : null;
+    const scale = !covered && dexVolumeSol && buyVolumeSol + sellVolumeSol > 0 ? dexVolumeSol / (buyVolumeSol + sellVolumeSol) : 1;
+    return [key, { coverage: covered ? 'complete' : 'partial',
+      tradeCount: Number.isFinite(dex?.buys) ? dex.buys + dex.sells : rows.length, buyCount: Number.isFinite(dex?.buys) ? dex.buys : buys.length, sellCount: Number.isFinite(dex?.sells) ? dex.sells : sells.length,
+      traderCount: new Set(rows.map(row => row.trader).filter(Boolean)).size, volumeSol: dexVolumeSol ?? buyVolumeSol + sellVolumeSol,
+      buyVolumeSol: buyVolumeSol * scale, sellVolumeSol: sellVolumeSol * scale, largestTradeSol: rows.reduce((max, row) => Math.max(max, sol(row)), 0) }];
+  }));
+}
+
 function applyTrades(appState, mint, trades, tradeCount) {
   const rows = trades?.available && trades.data?.mint === mint && trades.data.available ? trades.data.trades : null;
   // A failed refresh keeps the last good rows instead of blanking the table.
   if (!rows && appState.coinMarketActivity?.indexed && appState.coinMarketActivity.status === 'ready') return;
   appState.coinMarketActivity = rows
-    ? { status: 'ready', trades: rows, coverage: 'partial', decimals: trades.data.decimals, graduated: true, tradeCount: Number.isSafeInteger(tradeCount) ? tradeCount : null, indexed: true }
+    ? { status: 'ready', trades: rows, coverage: 'partial', decimals: trades.data.decimals, graduated: true, tradeCount: Number.isSafeInteger(tradeCount) ? tradeCount : null, indexed: true,
+      activityWindows: activityWindows(rows, appState.coinIndexedWindows?.mint === mint ? appState.coinIndexedWindows : null) }
     : { status: 'unavailable', trades: [], coverage: null, decimals: 6, indexed: true };
-  appState.renderCoinActivityTab?.(); appState.setCoinTabLabels?.();
+  appState.renderCoinActivityTab?.(); appState.setCoinTabLabels?.(); appState.renderCoinPulse?.();
 }
 
 // Live numbers from a fresh overview; identity fields stay as first rendered.
@@ -106,7 +143,7 @@ function startLiveRefresh(appState, mint, loadId) {
         appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/overview`, { signal: AbortSignal.timeout(8000) }).catch(() => null), readTrades(appState, mint)]);
       if (loadId !== appState.coinLoadId) return;
       const data = overview?.available && overview.data?.mint === mint ? overview.data : null;
-      if (data) applyNumbers(appState, data);
+      if (data) { applyNumbers(appState, data); if (appState.coinIndexedWindows?.mint === mint) appState.coinIndexedWindows.windows = data.windows || appState.coinIndexedWindows.windows; }
       applyTrades(appState, mint, trades, data ? data.buyCount24h + data.sellCount24h : null);
       appState.renderCoinPricePath?.();
     }

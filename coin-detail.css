@@ -10,3 +10,6 @@
 /* External tokens: hide Richpad-only records (rewards, fee collections, allocations, fee rules). */
 body.coin-external .coin-tabs :is([data-coin-tab="rewards"],[data-coin-tab="payments"],[data-coin-tab="claims"]),
 body.coin-external .launch-facts { display: none !important; }
+
+/* External tokens have no Richpad creator updates. */
+body.coin-external [role="tab"][id$="-updates-tab"] { display: none !important; }

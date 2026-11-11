@@ -61,7 +61,9 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
           pairAddress: pair.pairAddress || null, dexId: pair.dexId || null, url: pair.url || null,
           quoteMint: pair.quoteToken?.address || null, priceUsd: num(pair.priceUsd), priceNative: num(pair.priceNative),
           marketCapUsd: num(pair.marketCap ?? pair.fdv), liquidityUsd: num(pair.liquidity?.usd), volume24hUsd: num(pair.volume?.h24),
-          buyCount24h: num(pair.txns?.h24?.buys), sellCount24h: num(pair.txns?.h24?.sells), priceChangePercent: num(pair.priceChange?.h24),
+          buyCount24h: num(pair.txns?.h24?.buys), sellCount24h: num(pair.txns?.h24?.sells),
+          windows: Object.fromEntries([['5m', 'm5'], ['1h', 'h1'], ['6h', 'h6'], ['24h', 'h24']].map(([key, field]) =>
+            [key, { buys: num(pair.txns?.[field]?.buys), sells: num(pair.txns?.[field]?.sells), volumeUsd: num(pair.volume?.[field]) }])), priceChangePercent: num(pair.priceChange?.h24),
           pairCreatedAt: num(pair.pairCreatedAt), imageUri: typeof info.imageUrl === 'string' && info.imageUrl.startsWith('https://') ? info.imageUrl : null,
           headerUri: typeof info.header === 'string' && info.header.startsWith('https://') ? info.header : null,
           website: info.websites?.find(row => typeof row?.url === 'string')?.url || null, twitter: social('twitter'), telegram: social('telegram'), discord: social('discord') });
@@ -100,6 +102,12 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/trades`, { ttlMs: 8_000 });
     return Array.isArray(data?.data) ? data.data.map(row => row?.attributes).filter(Boolean) : null;
   }
+  // GeckoTerminal token info (free): holder count and identity.
+  async function geckoTokenInfo(mint) {
+    if (!MINT.test(mint)) return null;
+    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/info`, { ttlMs: 600_000 });
+    return data?.data?.attributes || null;
+  }
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
     const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true' });
     return getJson(`https://lite-api.jup.ag/swap/v1/quote?${query}`, { ttlMs: 0 });
@@ -108,7 +116,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     return getJson('https://lite-api.jup.ag/swap/v1/swap-instructions', { ttlMs: 0, method: 'POST', body: { quoteResponse, userPublicKey,
       wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 500_000, priorityLevel: 'medium' } } } });
   }
-  return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, jupQuote, jupSwapInstructions, GECKO_FRAMES };
+  return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupQuote, jupSwapInstructions, GECKO_FRAMES };
 }
 
 // Market-activity shape used by the token page, built from DexScreener first.
