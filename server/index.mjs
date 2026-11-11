@@ -125,7 +125,7 @@ publicPostPaths.add('/api/listings/quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');
-publicPostPaths.add('/api/trade/jupiter/build');
+publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/client-errors');
 
 const solanaCluster = deploymentCluster(process.env);
 const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';

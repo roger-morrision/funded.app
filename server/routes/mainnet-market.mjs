@@ -137,6 +137,15 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       }
       return json(res, 200, { cluster: solanaCluster, mint, frame, source, pool: pool || null, candles });
     }
+    if (req.method === 'POST' && url.pathname === '/api/client-errors') {
+      const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
+      if (!await store.chargeRpcRate(`client-errors:${clientKey(req)}`, 1, 20, windowStart)) return json(res, 429, { error: 'Too many reports.' });
+      const input = await body(req).catch(() => ({}));
+      console.warn(JSON.stringify({ event: 'client_error', area: String(input.area || '').slice(0, 20), side: String(input.side || '').slice(0, 8),
+        mint: validMint(String(input.mint || '')) ? input.mint : null, message: String(input.message || '').slice(0, 300),
+        signature: /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(input.signature || '')) ? input.signature : null }));
+      return json(res, 200, { recorded: true });
+    }
     const holdersMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/holders$/.exec(url.pathname);
     if (holdersMatch) {
       const mint = decodeURIComponent(holdersMatch[1]);

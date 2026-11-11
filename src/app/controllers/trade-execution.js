@@ -221,6 +221,7 @@ export function createTradeExecutionController(appState) {
       await appState.verifyPendingTrade(activeConnection, submittedSignature);
       void appState.refreshTradeBalances();
     } catch (error) {
+      try { globalThis.navigator?.sendBeacon?.('/api/client-errors', new Blob([JSON.stringify({ area: 'trade', side, mint, message: String(error?.message || error).slice(0, 300), signature: submittedSignature || error?.signature || null })], { type: 'application/json' })); } catch {}
       const signature = submittedSignature || error.signature;
       if (signature) {
         const previous=appState.pendingTradeVerifications.get(signature);
