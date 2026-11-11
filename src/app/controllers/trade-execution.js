@@ -59,7 +59,8 @@ export function createTradeExecutionController(appState) {
       await refreshServiceFees(appState); appState.assertWalletSessionCurrent(session);
       const previewConnection = await appState.getTradePreviewConnection();
       appState.assertWalletSessionCurrent(session);
-      const rich=mint===appState.PROTOCOL_FUNDED_MINT&&appState.APP_CLUSTER===appState.EXPLORE_CLUSTER;
+      // Mainnet $RICH without a configured PumpSwap pool trades through Jupiter like any token.
+      const rich=mint===appState.PROTOCOL_FUNDED_MINT&&appState.APP_CLUSTER===appState.EXPLORE_CLUSTER&&!(appState.EXPLORE_CLUSTER==='mainnet-beta'&&!appState.PROTOCOL_FUNDED_SWAP_POOL);
       const builder=rich?buildRichTradeTransaction:appState.buildTradeTransaction;
       const trade = await builder({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState),
         ...(rich?{cluster:appState.APP_CLUSTER,poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL}:{}) });
