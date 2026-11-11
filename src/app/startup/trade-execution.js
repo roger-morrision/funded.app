@@ -23,11 +23,32 @@ export function initializeTradeExecution(appState) {
       const tx = await activeConnection.getParsedTransaction(button.dataset.signature, { commitment:'finalized', maxSupportedTransactionVersion:0 });
       if (!appState.verifiedTradeReceipt(tx, { wallet:session.address, mint:button.dataset.mint, side:button.dataset.side, signature:button.dataset.signature })) throw new Error('The finalized trade receipt is not available or does not match this wallet and token yet. Try again later.');
       if (!appState.isWalletSessionCurrent(session)) return;
+      // Card figures from the finalized receipt: token quantity, SOL moved and, for a
+      // sell with a remembered buy, realized P&L against that buy's cost.
+      const figures = tx => {
+        const keys = tx?.transaction?.message?.accountKeys || [], index = keys.findIndex(key => String(key.pubkey || key) === session.address);
+        const tokens = balances => (balances || []).filter(row => row.owner === session.address && row.mint === button.dataset.mint)
+          .reduce((sum, row) => sum + Number(row.uiTokenAmount?.uiAmountString || 0), 0);
+        return { tokens: Math.abs(tokens(tx?.meta?.postTokenBalances) - tokens(tx?.meta?.preTokenBalances)),
+          sol: index >= 0 ? Math.abs(tx.meta.postBalances[index] - tx.meta.preBalances[index]) / 1e9 : NaN };
+      };
+      const own = figures(tx);
+      let pnlSol = NaN, pnlPercent = NaN;
+      const saved = button.dataset.side === 'sell' ? appState.savedRoundTrip(session.address, button.dataset.mint) : null;
+      if (saved?.buySignature) {
+        const bought = figures(await activeConnection.getParsedTransaction(saved.buySignature, { commitment:'finalized', maxSupportedTransactionVersion:0 }).catch(() => null));
+        if (bought.tokens > 0 && bought.sol > 0) { const cost = bought.sol * Math.min(1, own.tokens / bought.tokens); pnlSol = own.sol - cost; pnlPercent = pnlSol / cost * 100; }
+      }
+      const identity = await appState.apiRequest(`/api/tokens/market?mints=${encodeURIComponent(button.dataset.mint)}`, { signal:AbortSignal.timeout(6000) }).catch(() => null);
+      const info = identity?.data?.items?.find(row => row.mint === button.dataset.mint) || {};
+      const logoImage = /^https:\/\//.test(info.logoUri || '') ? await new Promise(resolve => { const image = new Image(); image.crossOrigin = 'anonymous';
+        image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = info.logoUri; setTimeout(() => resolve(null), 5000); }) : null;
+      const symbol = info.symbol || button.dataset.symbol;
       const url = new URL(`/token/${encodeURIComponent(button.dataset.mint)}`, location.origin);
       const code = appState.registeredShareCode(); if (code) url.searchParams.set('ref', code);
       appState.openShareComposer({ kind:'trade', title:'Finalized Solana trade on richpad.fun',
-        text:`I ${button.dataset.side === 'buy' ? 'bought' : 'sold'} ${button.dataset.symbol || 'a token'} on Solana. Review the token and finalized receipt. This is not a profit claim.`, url:url.toString(),
-        result:{ kind:'trade', verified:true, side:button.dataset.side, mint:button.dataset.mint, tokenSymbol:button.dataset.symbol,
+        text:`I ${button.dataset.side === 'buy' ? 'bought' : 'sold'} ${own.tokens ? own.tokens.toLocaleString('en-US', { maximumFractionDigits:2 }) + ' ' : ''}$${symbol || 'TOKEN'} on richpad.fun${Number.isFinite(pnlSol) ? ` · P&L ${pnlSol >= 0 ? '+' : ''}${pnlSol.toFixed(4)} SOL` : ''}.`, url:url.toString(),
+        result:{ kind:'trade', verified:true, side:button.dataset.side, mint:button.dataset.mint, tokenSymbol:symbol, tokenAmount:own.tokens, solAmount:own.sol, pnlSol, pnlPercent, logoImage,
           receipt:button.dataset.signature, receiptUrl:appState.exploreExplorer(`tx/${encodeURIComponent(button.dataset.signature)}`), wallet:session.address, network:appState.EXPLORE_CLUSTER } });
     } catch (error) { appState.setTradeStatus(error.message || 'Trade receipt verification is unavailable.', true); }
     finally { button.disabled = false; }

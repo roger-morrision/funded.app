@@ -65,13 +65,27 @@ export function drawTradeCard(canvas, result, { hideWallet = true } = {}) {
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
   ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('richpad.fun', 72, 82);
-  ctx.fillStyle = '#ffffff'; ctx.font = '700 58px sans-serif'; ctx.fillText('Verified Solana trade', 72, 200);
-  ctx.font = '700 82px sans-serif'; ctx.fillText(`${result.side === 'buy' ? 'Bought' : 'Sold'} ${String(result.tokenSymbol || 'token').slice(0, 16)}`, 72, 325);
-  ctx.fillStyle = '#bbd3d5'; ctx.font = '27px sans-serif';
-  ctx.fillText(`Mint ${result.mint.slice(0, 10)}…${result.mint.slice(-8)}`, 72, 392);
-  if (!hideWallet && result.wallet) ctx.fillText(`Wallet ${result.wallet.slice(0, 6)}…${result.wallet.slice(-6)}`, 72, 440);
-  ctx.fillStyle = '#214f56'; roundedRect(ctx, 72, 500, 1056, 74, 14);
-  ctx.fillStyle = '#d5f8ee'; ctx.font = '25px sans-serif'; ctx.fillText(`Receipt ${result.receipt.slice(0, 14)}…  ·  No profit claim`, 95, 548);
+  // Token identity: logo (when it loaded with CORS) or a letter mark, then the action and symbol.
+  const symbol = String(result.tokenSymbol || 'TOKEN').replace(/^\$/, '').slice(0, 14);
+  if (result.logoImage) { ctx.save(); roundedRect(ctx, 72, 128, 136, 136, 24); ctx.clip(); ctx.drawImage(result.logoImage, 72, 128, 136, 136); ctx.restore(); }
+  else { ctx.fillStyle = '#25485a'; roundedRect(ctx, 72, 128, 136, 136, 24); ctx.fillStyle = '#ffffff'; ctx.font = '700 64px sans-serif'; ctx.fillText(symbol.slice(0, 1).toUpperCase(), 118, 220); }
+  ctx.fillStyle = '#ffffff'; ctx.font = '700 76px sans-serif'; ctx.fillText(`${result.side === 'buy' ? 'Bought' : 'Sold'} $${symbol}`, 240, 222);
+  const number = (value, digits) => Number(value).toLocaleString('en-US', { maximumFractionDigits: digits });
+  const stats = [
+    ['Quantity', Number.isFinite(result.tokenAmount) ? `${number(result.tokenAmount, result.tokenAmount >= 100 ? 2 : 6)} ${symbol}` : '—', '#ffffff'],
+    [result.side === 'buy' ? 'SOL spent' : 'SOL received', Number.isFinite(result.solAmount) ? `${number(result.solAmount, 4)} SOL` : '—', '#ffffff'],
+    ['P&L', Number.isFinite(result.pnlSol) ? `${result.pnlSol >= 0 ? '+' : ''}${number(result.pnlSol, 4)} SOL${Number.isFinite(result.pnlPercent) ? ` (${result.pnlPercent >= 0 ? '+' : ''}${result.pnlPercent.toFixed(1)}%)` : ''}` : result.side === 'buy' ? 'Open position' : '—',
+      Number.isFinite(result.pnlSol) ? (result.pnlSol >= 0 ? '#5ff0a8' : '#ff8a96') : '#bbd3d5'],
+  ];
+  stats.forEach(([label, value, color], index) => {
+    const x = 72 + index * 360;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)'; roundedRect(ctx, x, 304, 336, 150, 18);
+    ctx.fillStyle = '#9fc3c7'; ctx.font = '600 24px sans-serif'; ctx.fillText(label, x + 26, 350);
+    ctx.fillStyle = color; ctx.font = `700 ${value.length > 16 ? 30 : 38}px sans-serif`; ctx.fillText(value.slice(0, 26), x + 26, 412);
+  });
+  if (!hideWallet && result.wallet) { ctx.fillStyle = '#bbd3d5'; ctx.font = '24px sans-serif'; ctx.fillText(`Wallet ${result.wallet.slice(0, 6)}…${result.wallet.slice(-6)}`, 72, 488); }
+  ctx.fillStyle = '#214f56'; roundedRect(ctx, 72, 510, 1056, 74, 14);
+  ctx.fillStyle = '#d5f8ee'; ctx.font = '25px sans-serif'; ctx.fillText(`Receipt ${result.receipt.slice(0, 14)}…  ·  richpad.fun/token/${result.mint.slice(0, 6)}…`, 95, 558);
   return canvas;
 }
 
@@ -127,7 +141,7 @@ function updateResultPreview() {
     else if (result.kind === 'trade') drawTradeCard(canvas, result, { hideWallet:Boolean(document.querySelector('#share-hide-wallet')?.checked) });
     else if (result.kind === 'roundtrip') drawRoundTripCard(canvas, result, { hideAmount:Boolean(document.querySelector('#share-hide-amount')?.checked), hideWallet:Boolean(document.querySelector('#share-hide-wallet')?.checked) });
     else drawEarningsCard(canvas, result, { hideAmount:Boolean(document.querySelector('#share-hide-amount')?.checked), hideWallet:Boolean(document.querySelector('#share-hide-wallet')?.checked) });
-    status(result.kind === 'launch' ? 'Confirmed launch. Edit the message and preview your card before sharing.' : result.kind === 'trade' ? 'Finalized trade receipt verified. Profit is not calculated.' : result.kind === 'roundtrip' ? 'Closed position and both receipts verified. This is the wallet SOL change in those transactions.' : 'Paid amount and receipt verified. Sharing is optional.');
+    status(result.kind === 'launch' ? 'Confirmed launch. Edit the message and preview your card before sharing.' : result.kind === 'trade' ? 'Finalized trade receipt verified. Edit the message and preview your card before sharing.' : result.kind === 'roundtrip' ? 'Closed position and both receipts verified. This is the wallet SOL change in those transactions.' : 'Paid amount and receipt verified. Sharing is optional.');
     return true;
   } catch (error) { status(error.message); return false; }
 }

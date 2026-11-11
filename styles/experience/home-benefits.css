@@ -123,3 +123,8 @@
 /* Chat & calls: token logo fills its avatar. */
 .home-community-token .home-token-avatar { overflow: hidden; }
 .home-community-token .home-token-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+
+/* Token identity (logo + $SYMBOL) wherever a mint link is shown. */
+.token-identity { display: inline-flex; align-items: center; gap: 6px; }
+.token-identity-logo { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex: none; }
+.portfolio-pnl.is-positive { color: #5ff0a8; } .portfolio-pnl.is-negative { color: #ff8a96; } .portfolio-pnl-none { color: #8796b3; }

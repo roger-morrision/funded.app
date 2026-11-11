@@ -210,6 +210,12 @@ export function createPortfolioController(appState) {
   // app-source-end
 
   // app-source: 938
+  // Token symbols, logos and the SOL price load asynchronously; re-render the open portfolio when they arrive.
+  let identityRender = null;
+  globalThis.addEventListener?.('funded:token-identities', () => {
+    if (identityRender || !document.querySelector('#portfolio-trade-rows')?.isConnected) return;
+    identityRender = setTimeout(() => { identityRender = null; renderPortfolio(); }, 150);
+  });
   function renderPortfolio(){
     return appState.renderPortfolioView({ connectedWalletAddress: appState.connectedWalletAddress, portfolioHoldings: appState.portfolioHoldings, portfolioTradeHistory, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, assets: appState.assets, exploreScannedCount: appState.exploreScannedCount }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, portfolioUnitPriceUsd: appState.portfolioUnitPriceUsd, walletDetailTrades: appState.walletDetailTrades, formatOnchainAge: appState.formatOnchainAge, exploreExplorer: appState.exploreExplorer });
   }
