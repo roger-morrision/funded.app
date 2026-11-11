@@ -113,6 +113,22 @@ export async function submitJupiterTrade({ connection, provider, side, mint, use
   const reviewed = Buffer.from(message.serialize());
   assertWalletCurrent();
   onStatus('Waiting for wallet approval…');
+  const lastValidBlockHeight = trade.jupiter.lastValidBlockHeight;
+  // Wallets that can sign and send (Phantom) submit through their own RPC and
+  // apply their own guard instructions; every instruction was checked above.
+  if (typeof provider.signAndSendTransaction === 'function') {
+    const sent = await provider.signAndSendTransaction(transaction, { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 2 });
+    assertWalletCurrent();
+    const signature = typeof sent === 'string' ? sent : typeof sent?.signature === 'string' ? sent.signature : sent?.signature ? bs58.encode(sent.signature) : null;
+    if (!signature) throw Error('Wallet did not return a swap signature. Check your wallet activity before retrying.');
+    await onPrepared({ signature, lastValidBlockHeight, blockhash: trade.jupiter.blockhash });
+    onStatus('Confirming swap on Solana…');
+    try {
+      const confirmation = await waitForSignatureConfirmation(connection, { signature, lastValidBlockHeight, commitment: 'confirmed', pollIntervalMs: 1500 });
+      if (!confirmation?.value || confirmation.value.err) throw Error(`Swap did not confirm successfully${confirmation?.value?.err ? `: ${JSON.stringify(confirmation.value.err)}` : '.'}`);
+    } catch (error) { error.signature = signature; error.lastValidBlockHeight = lastValidBlockHeight; throw error; }
+    return { ...trade, signature, lastValidBlockHeight, confirmedAt: new Date().toISOString() };
+  }
   const signed = await provider.signTransaction(transaction);
   assertWalletCurrent();
   const signedTx = signed instanceof VersionedTransaction ? signed : VersionedTransaction.deserialize(signed.serialize());
@@ -120,7 +136,6 @@ export async function submitJupiterTrade({ connection, provider, side, mint, use
     lookupTables: trade.jupiter.lookupTables, user: trade.user, blockhash: trade.jupiter.blockhash });
   const signature = bs58.encode(signedTx.signatures[0]);
   if (!signedTx.signatures[0] || signedTx.signatures[0].every(byte => byte === 0)) throw Error('Wallet did not sign the swap. Nothing was submitted.');
-  const lastValidBlockHeight = trade.jupiter.lastValidBlockHeight;
   await onPrepared({ signature, lastValidBlockHeight, blockhash: trade.jupiter.blockhash });
   try {
     onStatus('Wallet signed. Submitting swap to Solana…');

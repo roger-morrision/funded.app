@@ -89,7 +89,8 @@ export function renderHomeLaunchBoard(state, {
     button.disabled = button.dataset.homeWindow !== '24h';
     if (button.disabled) button.title = 'Shorter indexed volume windows are unavailable on this feed';
   });
-  const verified = assets.filter(item => verifiedLaunchPolicyForMint(item.address))
+  // Mainnet favorites outside the Richpad registry arrive as indexed (source 'Indexed') records.
+  const verified = assets.filter(item => verifiedLaunchPolicyForMint(item.address) || item.source === 'Indexed')
     .map(item => {
       const raw = homeFeeAmounts.get(item.address);
       const lamports = /^\d+$/.test(raw || '') ? Number(raw) : NaN;

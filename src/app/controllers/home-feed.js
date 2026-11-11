@@ -213,13 +213,21 @@ export function createHomeFeedController(appState) {
   // app-source-end
 
   // app-source: 491
+  // Mainnet Favorites tab: saved tokens outside the Richpad feed come from the indexed overview.
+  function homeAssetsWithFavorites() {
+    const discovery = globalThis.document?.querySelector('.home-launch-board')?.dataset.discovery;
+    if (appState.EXPLORE_CLUSTER !== 'mainnet-beta' || discovery !== 'saved') return appState.assets;
+    appState.loadIndexedFavorites?.(appState.getWatchlist());
+    const known = new Set(appState.assets.map(item => item.address));
+    return [...appState.assets, ...(appState.indexedFavoriteAssets?.() || []).filter(item => !known.has(item.address))];
+  }
   function renderHomeLaunchBoard() {
     return appState.renderHomeLaunchBoardView({
       homeLaunchView: appState.homeLaunchView,
       exploreFeedAvailable: appState.exploreFeedAvailable,
       exploreLastVerifiedAt: appState.exploreLastVerifiedAt,
       homeLaunchWindow: appState.homeLaunchWindow,
-      assets: appState.assets,
+      assets: homeAssetsWithFavorites(),
       homeFeeAmounts: appState.homeFeeAmounts,
       coinSolUsdPrice: appState.coinSolUsdPrice,
       homeLaunchSort: appState.homeLaunchSort,

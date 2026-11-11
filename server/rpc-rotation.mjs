@@ -52,7 +52,8 @@ export function createRotatingRpcTransport({ free = [], paid = [], now = Date.no
       entry.failures++;
       entry.coolUntil = now() + (quota && /usage|credit|quota/i.test(JSON.stringify(response.body || '')) ? quotaCooldownMs : cooldownMs);
       last = response;
-      if (!readonly && !quota) return response;
+      // An explicit 401/403 means the endpoint never accepted the write; another may.
+      if (!readonly && !quota && ![401, 403].includes(response.status)) return response;
     }
     return last;
   };

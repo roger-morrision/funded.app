@@ -347,7 +347,7 @@ export function createFollowingController(appState) {
         meta: cap != null ? `MC ${appState.formatCompactUsd(cap)} · Indexed` : 'Indexed', source: 'Indexed', marketCapUsd: cap, priceUsd: data.priceUsd ?? null,
         priceChange24hPercent: change, volume24hUsd: data.volume24hUsd ?? null, liquidityUsd: data.liquidityUsd ?? null, complete: null, migrated: null,
         website: data.website || null, twitter: data.twitter || null, telegram: data.telegram || null, discord: data.discord || null });
-    }).finally(() => indexedFavoriteLoads.delete(mint)))).then(() => { renderWatchlist(); if (appState.exploreTab === 'favorites') appState.renderExploreAssets?.({ force: true }); });
+    }).finally(() => indexedFavoriteLoads.delete(mint)))).then(() => { renderWatchlist(); if (appState.exploreTab === 'favorites') appState.renderExploreAssets?.({ force: true }); appState.renderHomeLaunchBoard?.(); });
   }
   function indexedFavoriteAssets(){
     return [...indexedFavorites.values()];

@@ -16,7 +16,7 @@ export function communityMessageMarkup(row, token = {}) {
   const pnl=row.callout?.pnlSol, pnlText=Number.isFinite(pnl)?`${pnl>0?'+':''}${number(pnl)}`:'—';
   return `<article class="home-community-message" data-message-id="${esc(row.id)}">
     <header><a class="home-community-author" style="--author-hue:${hue}" href="/wallet/${encodeURIComponent(row.author)}">${esc(short(row.author))}</a><time datetime="${esc(row.createdAt)}" title="${esc(row.createdAt)}">${esc(age(row.createdAt))}</time><span class="home-community-kind">${row.callout?'Call':'Chat'}</span></header>
-    <a class="home-community-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${esc(String(token.symbol || '?').slice(0,2).toUpperCase())}</span><strong>${esc(token.symbol ? `$${token.symbol}` : short(row.mint))}</strong></a>
+    <a class="home-community-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${/^https:\/\//.test(token.logoUri || token.imageUri || '') ? `<img src="${esc(token.logoUri || token.imageUri)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : esc(String(token.symbol || '?').slice(0,2).toUpperCase())}</span><strong>${esc(token.symbol ? `$${token.symbol}` : short(row.mint))}</strong></a>
     <p>${esc(row.text)}</p>
     ${row.callout ? `<dl class="home-community-metrics"><div><dt>Purchased · 24h</dt><dd title="Verified purchase amounts in the last 24 hours. Additional app/network fees are excluded.">${number(row.callout.purchasedSol)}</dd></div><div><dt>Est. P&amp;L · 24h</dt><dd class="${pnl<0?'is-negative':pnl>0?'is-positive':''}" title="${esc(note)}">${pnlText}</dd></div></dl>${metrics?.coverage==='partial'||noRecentBuys?'':`<small class="home-community-basis">${Number.isFinite(pnl)?'Trade value · before additional fees':esc(note)}</small>`}${Number.isFinite(change)?`<small class="home-community-change">MC since call: ${change>=0?'+':''}${change.toFixed(1)}%</small>`:''}`:''}
   </article>`;
@@ -40,19 +40,33 @@ export function mountHomeCommunity(app, document = globalThis.document) {
   let messages=[],loading=false,timer,lastMarkup='',busy=false;
   const active=()=>document.body.classList.contains('page-route-overview')&&!document.hidden;
   const assets=()=>Array.isArray(app.assets)?app.assets:[];
+  // Tokens discussed in chat but outside the Richpad feed: symbol and logo from the indexed market route.
+  const indexed=new Map(),indexedTried=new Map();
+  const tokenFor=mint=>assets().find(asset=>asset.address===mint)||indexed.get(mint)||{};
+  function loadIndexed(){
+    const missing=[...new Set(messages.map(row=>row.mint))].filter(mint=>mintValid(mint)&&!assets().some(asset=>asset.address===mint)
+      &&!indexed.has(mint)&&!(Date.now()-(indexedTried.get(mint)||0)<120_000)).slice(0,50);
+    if(!missing.length)return;
+    missing.forEach(mint=>indexedTried.set(mint,Date.now()));
+    app.apiRequest(`/api/tokens/market?mints=${missing.join(',')}`,{signal:AbortSignal.timeout(10000)}).then(result=>{
+      for(const row of result?.data?.items||[])if(mintValid(row.mint))indexed.set(row.mint,{symbol:row.symbol||null,name:row.name||null,logoUri:row.logoUri||null});
+      lastMarkup='';render();
+    }).catch(()=>{});
+  }
   function updateIdentity(){button.textContent=app.connectedWalletAddress ? (app.tokenChatSessionReady?.()?'Post':'Sign in & post') : 'Connect wallet to chat';}
   function updateCoins(){
     if(document.activeElement===select && select.options.length>1)return;
     const selected=select.value,choices=new Map();
     for(const row of assets()) if(mintValid(row.address)) choices.set(row.address,row.symbol||short(row.address));
-    for(const row of messages) if(mintValid(row.mint)&&!choices.has(row.mint)) choices.set(row.mint,short(row.mint));
+    for(const row of messages) if(mintValid(row.mint)&&!choices.has(row.mint)) choices.set(row.mint,tokenFor(row.mint).symbol||short(row.mint));
     select.innerHTML='<option value="">Choose a coin</option>'+[...choices].map(([mint,symbol])=>`<option value="${esc(mint)}">${esc(symbol)} · ${esc(short(mint))}</option>`).join('');
     if(choices.has(selected))select.value=selected;
   }
   function render(){
     // Do not disturb a focused token link while someone is using the feed.
     if(feed.contains(document.activeElement)&&document.activeElement!==feed)return;
-    const html=messages.length?messages.map(row=>communityMessageMarkup(row,assets().find(asset=>asset.address===row.mint))).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
+    loadIndexed();
+    const html=messages.length?messages.map(row=>communityMessageMarkup(row,tokenFor(row.mint))).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
     if(html!==lastMarkup){const top=feed.scrollTop;feed.innerHTML=html;feed.scrollTop=top;lastMarkup=html;}
     app.loadVerifiedTokenLogos?.(feed);
     updateCoins();
