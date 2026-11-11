@@ -16,8 +16,23 @@ export function applyHttpPolicy(req, res) {
   res.setHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('content-security-policy', "frame-ancestors 'none'; object-src 'none'; base-uri 'self'");
   // Private and financial API responses must not be retained by shared caches.
-  res.setHeader('cache-control', 'no-store');
+  res.setHeader('cache-control', edgeCacheControl(req.method, String(req.url || '').split('?')[0]));
   return requestId;
+}
+
+// Public, wallet-independent market reads may sit briefly in the CDN edge
+// (Cloudflare Cache Rule) so distant visitors skip the trip to the origin.
+const EDGE_CACHEABLE = [
+  [/^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/(?:overview|trades)$/, 5],
+  [/^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/ohlcv$/, 15],
+  [/^\/api\/tokens\/market$/, 10],
+  [/^\/api\/pump\/explore$/, 10],
+  [/^\/api\/market\/sol-usd$/, 15],
+];
+export function edgeCacheControl(method, pathname) {
+  if (method !== 'GET' && method !== 'HEAD') return 'no-store';
+  const match = EDGE_CACHEABLE.find(([pattern]) => pattern.test(pathname));
+  return match ? `public, max-age=0, s-maxage=${match[1]}, stale-while-revalidate=30` : 'no-store';
 }
 
 export function publicError(error, requestId) {
