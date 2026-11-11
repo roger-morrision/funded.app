@@ -9,6 +9,14 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
+  const decimalsCache = new Map();
+  async function mintDecimals(mint) {
+    if (decimalsCache.has(mint)) return decimalsCache.get(mint);
+    const info = await connection().getParsedAccountInfo(new PublicKey(mint), 'confirmed').catch(() => null);
+    const decimals = info?.value?.data?.parsed?.info?.decimals;
+    if (Number.isInteger(decimals)) { decimalsCache.set(mint, decimals); if (decimalsCache.size > 5000) decimalsCache.delete(decimalsCache.keys().next().value); }
+    return decimals;
+  }
   const validMint = value => { try { return new PublicKey(String(value || '')).toBase58() === value; } catch { return false; } };
 
   async function overview(mint) {
@@ -62,7 +70,11 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       const market = cached?.pairAddress ? cached : (await free.dexTokens([mint]).catch(() => new Map())).get(mint);
       const pool = market?.pairAddress;
       const [rows, prices] = await Promise.all([pool ? free.geckoTrades(pool).catch(() => null) : null, free.jupPrices([mint, WSOL]).catch(() => new Map())]);
-      const decimals = prices.get(mint)?.decimals ?? cached?.decimals;
+      let decimals = prices.get(mint)?.decimals ?? cached?.decimals;
+      if (!Number.isInteger(decimals) && rows?.length) {
+        decimals = await mintDecimals(mint);
+        if (Number.isInteger(decimals)) void tokenCache.upsert([{ ...(cached || market || {}), mint, decimals }]);
+      }
       const solUsd = prices.get(WSOL)?.priceUsd;
       if (!Array.isArray(rows) || !Number.isInteger(decimals)) return json(res, 200, { cluster: solanaCluster, mint, source: 'geckoterminal', available: false, trades: [] });
       const trades = rows.flatMap(row => {
@@ -90,10 +102,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       const amountText = String(input.amount || '');
       if (!/^\d+(\.\d+)?$/.test(amountText) || Number(amountText) <= 0) return json(res, 400, { error: 'Enter a positive amount.' });
       let decimals = (await free.jupPrices([mint]).catch(() => new Map())).get(mint)?.decimals;
-      if (!Number.isInteger(decimals)) {
-        const info = await connection().getParsedAccountInfo(new PublicKey(mint), 'confirmed').catch(() => null);
-        decimals = info?.value?.data?.parsed?.info?.decimals;
-      }
+      if (!Number.isInteger(decimals)) decimals = (await tokenCache.read([mint]).catch(() => new Map())).get(mint)?.decimals;
+      if (!Number.isInteger(decimals)) decimals = await mintDecimals(mint);
       if (!Number.isInteger(decimals)) return json(res, 503, { error: 'Token decimals are unavailable. Try again shortly.' });
       const inputDecimals = side === 'buy' ? 9 : decimals;
       const [whole, fraction = ''] = amountText.split('.');

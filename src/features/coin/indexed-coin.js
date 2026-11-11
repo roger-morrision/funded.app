@@ -26,7 +26,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     const usd = value => Number.isFinite(value) ? appState.formatUsd(value) : '—';
     appState.setCoinField('#coin-price', Number.isFinite(data.priceUsd) ? (data.priceUsd < 0.01 ? `$${formatTinyDecimal(data.priceUsd)}` : usd(data.priceUsd)) : '—');
     for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) appState.setCoinField(selector, usd(data.marketCapUsd));
-    appState.setCoinField('#coin-volume', usd(data.volume24hUsd)); appState.setCoinField('#coin-liquidity', usd(data.liquidityUsd));
+    appState.setCoinField('#coin-volume', usd(data.volume24hUsd)); appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? usd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
     appState.setCoinField('#coin-liquidity-label', 'Liquidity');
     appState.setCoinField('#coin-change', Number.isFinite(data.priceChangePercent) ? `${data.priceChangePercent.toFixed(2)}% · 24h` : '24h —');
     appState.setCoinField('#coin-market-cap-label', 'Market cap');
@@ -66,5 +66,6 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     : { status: 'unavailable', trades: [], coverage: null, decimals: 6, indexed: true };
   appState.renderCoinActivityTab?.(); appState.setCoinTabLabels?.();
   if (market?.available) renderIndexedMarket(appState, market.data, mint);
-  else if (data) appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? appState.formatUsd(data.liquidityUsd) : '—');
+  if (data && !Number.isFinite(data.liquidityUsd)) appState.setCoinField('#coin-liquidity', data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
+  else if (data && !market?.available) appState.setCoinField('#coin-liquidity', appState.formatUsd(data.liquidityUsd));
 }
