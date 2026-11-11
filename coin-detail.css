@@ -13,3 +13,6 @@ body.coin-external .launch-facts { display: none !important; }
 
 /* External tokens have no Richpad creator updates. */
 body.coin-external [role="tab"][id$="-updates-tab"] { display: none !important; }
+
+/* External tokens carry no Richpad launch package, so no promotion tag. */
+body.coin-external #coin-promotion-badge { display: none !important; }

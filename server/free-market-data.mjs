@@ -102,6 +102,12 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/trades`, { ttlMs: 8_000 });
     return Array.isArray(data?.data) ? data.data.map(row => row?.attributes).filter(Boolean) : null;
   }
+  // Jupiter token search (free): icon, name, symbol, decimals and holder count.
+  async function jupToken(mint) {
+    if (!MINT.test(mint)) return null;
+    const rows = await getJson(`https://lite-api.jup.ag/tokens/v2/search?query=${mint}`, { ttlMs: 600_000 });
+    return Array.isArray(rows) ? rows.find(row => row?.id === mint) || null : null;
+  }
   // GeckoTerminal token info (free): holder count and identity.
   async function geckoTokenInfo(mint) {
     if (!MINT.test(mint)) return null;
@@ -116,7 +122,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     return getJson('https://lite-api.jup.ag/swap/v1/swap-instructions', { ttlMs: 0, method: 'POST', body: { quoteResponse, userPublicKey,
       wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 500_000, priorityLevel: 'medium' } } } });
   }
-  return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupQuote, jupSwapInstructions, GECKO_FRAMES };
+  return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupToken, jupQuote, jupSwapInstructions, GECKO_FRAMES };
 }
 
 // Market-activity shape used by the token page, built from DexScreener first.

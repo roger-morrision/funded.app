@@ -15,6 +15,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
     if (hit && Date.now() - hit.at < 3_600_000) return hit.value;
     const gecko = await free.geckoTokenInfo(mint).catch(() => null);
     let value = Number.isSafeInteger(gecko?.holders?.count) ? gecko.holders.count : null;
+    if (value == null) { const jupInfo = await free.jupToken(mint).catch(() => null); if (Number.isSafeInteger(jupInfo?.holderCount)) value = jupInfo.holderCount; }
     if (value == null) {
       const result = await fetchBirdeye('/defi/token_overview', { address: mint }).catch(() => null);
       value = Number.isSafeInteger(result?.data?.holder) ? result.data.holder : hit?.value ?? null;
@@ -77,6 +78,16 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       else if (jup) { row = { mint, priceUsd: jup.priceUsd, decimals: jup.decimals, liquidityUsd: jup.liquidityUsd, launchpad: jup.launchpad }; source = 'jupiter'; }
     }
     if (!row) return cached ? { ...cached, source: 'cache', stale: true } : null;
+    // DexScreener only has artwork for tokens with a paid profile; fill the logo
+    // (and missing identity) from Jupiter's token list, then GeckoTerminal.
+    if (!row.imageUri && !cached?.imageUri) {
+      const jupInfo = await free.jupToken(mint).catch(() => null);
+      let logo = typeof jupInfo?.icon === 'string' && jupInfo.icon.startsWith('https://') ? jupInfo.icon : null;
+      if (!logo) { const gecko = await free.geckoTokenInfo(mint).catch(() => null); logo = typeof gecko?.image_url === 'string' && gecko.image_url.startsWith('https://') ? gecko.image_url : null; }
+      if (logo) row = { ...row, imageUri: logo };
+      if (!row.name && jupInfo?.name) row = { ...row, name: String(jupInfo.name).slice(0, 80) };
+      if (!row.symbol && jupInfo?.symbol) row = { ...row, symbol: String(jupInfo.symbol).slice(0, 20) };
+    }
     const merged = { ...(cached || {}), ...Object.fromEntries(Object.entries(row).filter(([, v]) => v != null)), mint, source, observedAt: new Date().toISOString() };
     void tokenCache.upsert([merged]);
     return merged;
