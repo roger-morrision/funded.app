@@ -223,7 +223,10 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
             swapInstruction: instructions.swapInstruction, cleanupInstruction: instructions.cleanupInstruction || null, otherInstructions: instructions.otherInstructions || [] },
           lookupTables: keys.map(key => ({ key, addresses: altCache.get(key).addresses })), blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight });
       } catch (error) {
-        if (error?.status === 400) return json(res, 404, { error: 'No swap route was found for this token and amount.' });
+        if (error?.status === 400) {
+          console.warn(JSON.stringify({ event: 'jupiter_no_route', side, mint, amount: amount.toString(), message: String(error?.message || error).slice(0, 240) }));
+          return json(res, 404, { error: 'No swap route was found for this token and amount.' });
+        }
         console.warn(JSON.stringify({ event: 'jupiter_build_failed', side, mint, message: String(error?.message || error).slice(0, 240) }));
         return json(res, 503, { error: 'Swap routing is temporarily unavailable. Try again shortly.' });
       }

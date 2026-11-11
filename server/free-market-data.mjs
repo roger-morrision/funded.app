@@ -51,7 +51,10 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
           const retry = Number(response.headers.get('retry-after'));
           cooldownUntil.set(lane(url), now() + (Number.isFinite(retry) && retry > 0 ? Math.min(retry * 1000, 60_000) : priority ? 3_000 : 15_000));
         }
-        if (!response.ok) { const failure = Error(`${host} request failed (${response.status})`); failure.status = response.status; throw failure; }
+        if (!response.ok) {
+          const detail = (await response.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200);
+          const failure = Error(`${host} request failed (${response.status})${detail ? ': ' + detail : ''}`); failure.status = response.status; throw failure;
+        }
         const value = await response.json();
         if (ttlMs > 0) {
           if (cache.size > 3000) for (const [k, row] of cache) if (row.staleUntil <= now()) cache.delete(k);
@@ -138,11 +141,18 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     return data?.data?.attributes || null;
   }
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
-    const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true' });
+    const query = restrict => new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: String(restrict) });
     // Identical quotes within 4 s (refreshes, several viewers) share one call.
-    const read = base => getJson(`${base}/swap/v1/quote?${query}`, { ttlMs: 4_000, staleMs: 0, priority: true });
-    if (!jupiterApiKey) return read(JUP);
-    try { return await read(JUP); } catch (error) { if (error?.status === 400) throw error; return read('https://lite-api.jup.ag'); }
+    const read = (base, restrict = true) => getJson(`${base}/swap/v1/quote?${query(restrict)}`, { ttlMs: 4_000, staleMs: 0, priority: true });
+    // "No route" from one Jupiter host is often transient or caused by the
+    // intermediate-token restriction, so try the other host, then an unrestricted route.
+    const attempts = [[JUP, true], ...(jupiterApiKey ? [['https://lite-api.jup.ag', true]] : []), [JUP, false]];
+    let last;
+    for (const [base, restrict] of attempts) {
+      try { const quote = await read(base, restrict); if (quote?.outAmount && !quote.error) return quote; last = Object.assign(Error(`no route: ${quote?.error || 'empty quote'}`), { status: 400 }); }
+      catch (error) { last = error; }
+    }
+    throw last;
   }
   async function jupSwapInstructions({ quoteResponse, userPublicKey }) {
     const read = base => getJson(`${base}/swap/v1/swap-instructions`, { ttlMs: 0, priority: true, method: 'POST', body: { quoteResponse, userPublicKey,
