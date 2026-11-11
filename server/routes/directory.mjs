@@ -135,6 +135,18 @@ export function createDirectoryRoutes({
       const state = await store.read();
       return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', wallets: walletBurnBoard(state, solanaCluster) });
     }
+    if (req.method === 'GET' && url.pathname === '/api/burn-receipts' && !url.searchParams.has('wallet')) {
+      // Public history: every on-chain-verified $RICH burn recorded on this
+      // cluster (token burns and listing burns), newest first.
+      const state = await store.read();
+      const receipts = [
+        ...Object.values(state.burnReceipts || {}).filter(item => item.cluster === solanaCluster && item.onchainVerified),
+        ...Object.values(state.listings || {}).filter(item => item.cluster === solanaCluster && item.onchainVerified && item.signature)
+          .map(item => ({ id: `listing:${item.signature}`, signature: item.signature, cluster: item.cluster, wallet: item.wallet, projectMint: item.mint,
+            purpose: 'listing', amountTokens: item.amountTokens, blockTime: item.blockTime ?? null, burnedAt: item.listedAt, onchainVerified: true })),
+      ].sort((a, b) => (Number(b.blockTime) || Date.parse(b.burnedAt || b.verifiedAt) / 1000 || 0) - (Number(a.blockTime) || Date.parse(a.burnedAt || a.verifiedAt) / 1000 || 0)).slice(0, 100);
+      return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', receipts });
+    }
     if (req.method === 'GET' && url.pathname === '/api/burn-receipts') {
       let wallet;
       try { wallet = walletKey(url.searchParams.get('wallet')); } catch { return json(res, 400, { error: 'A valid wallet query parameter is required.' }); }

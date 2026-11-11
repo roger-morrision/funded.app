@@ -44,10 +44,12 @@ export function createLaunchPolicyController(appState) {
     try {
       // Mainnet: the $RICH page shows the indexed price and market cap (no pool RPC read).
       if (appState.EXPLORE_CLUSTER === 'mainnet-beta' && appState.PROTOCOL_FUNDED_MINT && !appState.PROTOCOL_FUNDED_SWAP_POOL)
-        void appState.apiRequest(`/api/tokens/${encodeURIComponent(appState.PROTOCOL_FUNDED_MINT)}/overview`).then(result => {
+        void Promise.all([appState.apiRequest(`/api/tokens/${encodeURIComponent(appState.PROTOCOL_FUNDED_MINT)}/overview`),
+          appState.apiRequest(`/api/tokens/${encodeURIComponent(appState.PROTOCOL_FUNDED_MINT)}/holders`).catch(() => null)]).then(([result, holders]) => {
           const data = result?.available && result.data?.mint === appState.PROTOCOL_FUNDED_MINT ? result.data : null;
           if (!data) return;
-          appState.richIndexedAsset = { address: data.mint, mint: data.mint, name: data.name, symbol: data.symbol, priceUsd: data.priceUsd ?? null, marketCapUsd: data.marketCapUsd ?? null, imageUri: data.imageUri || null };
+          appState.richIndexedAsset = { address: data.mint, mint: data.mint, name: data.name, symbol: data.symbol, priceUsd: data.priceUsd ?? null, marketCapUsd: data.marketCapUsd ?? null, imageUri: data.imageUri || null,
+            volume24hUsd: data.volume24hUsd ?? null, holders: holders?.data?.holderCount ?? null, indexedRich: true };
           appState.renderFundedTokenLanding();
         }).catch(() => {});
       const response = await appState.apiRequest('/api/launch-tier-quote');

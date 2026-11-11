@@ -73,6 +73,11 @@ export function renderFundedTokenLanding(
   if (capValue) capValue.title = Number.isFinite(poolCapSol) && solUsdReady ? `${formatDashboardUsd(poolCapSol * coinSolUsdPrice)} estimated from the verified market spot price and live mint supply` : '';
   set('funded-token-market-cap-note', Number.isFinite(poolCapSol) ? 'Pool spot × live mint supply · estimate' + TEST_VALUE : marketCap === '$—' ? poolUnavailableNote : 'Verified market snapshot' + TEST_VALUE);
   const burnedTokens = supplyReady ? Number(formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 2)) : null;
+  const indexed = assets.find(item => item.address === PROTOCOL_FUNDED_MINT && item.indexedRich);
+  if (indexed) {
+    set('funded-token-holders', Number.isSafeInteger(indexed.holders) ? indexed.holders.toLocaleString('en-US') : '—');
+    set('funded-token-volume', Number.isFinite(indexed.volume24hUsd) ? formatCompactUsd(indexed.volume24hUsd) : '—');
+  }
   set('funded-token-burned', Number.isFinite(burnedTokens) ? formatDashboardQuantity(burnedTokens) : '—');
   const burnedValue = document.getElementById('funded-token-burned');
   if (burnedValue) burnedValue.title = Number.isFinite(burnedTokens) ? `${burnedTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })} $RICH from the on-chain supply delta` : '';

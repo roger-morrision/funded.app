@@ -244,12 +244,15 @@ export function createBuybackController(appState) {
         }).filter(row => row.amount > 0n).sort((a, b) => a.amount === b.amount ? 0 : a.amount > b.amount ? -1 : 1);
         balanceBaseUnits = tokenAccounts.reduce((sum, row) => sum + row.amount, 0n);
       }
-      const indexed = address ? await appState.apiRequest(`/api/burn-receipts?wallet=${encodeURIComponent(address)}`).catch(() => ({ available: false })) : { available: true, data: { receipts: [] } };
+      const [indexed, publicIndex] = await Promise.all([
+        address ? appState.apiRequest(`/api/burn-receipts?wallet=${encodeURIComponent(address)}`).catch(() => ({ available: false })) : { available: true, data: { receipts: [] } },
+        appState.apiRequest('/api/burn-receipts').catch(() => ({ available: false }))]);
       if (request !== appState.fundedBurnRequest || address !== appState.connectedWalletAddress) return;
       appState.fundedBurnState = {
         status: 'ready', wallet: address, decimals: mintState.decimals, balanceBaseUnits,
         supplyBaseUnits: mintState.supply, burnedBaseUnits: appState.burnedSupplyBaseUnits(mintState.supply, mintState.decimals),
         tokenProgram, tokenAccounts, receipts: indexed.available && Array.isArray(indexed.data?.receipts) ? indexed.data.receipts : [],
+        publicReceipts: publicIndex.available && Array.isArray(publicIndex.data?.receipts) ? publicIndex.data.receipts : [], publicReceiptsAvailable: Boolean(publicIndex.available),
         receiptIndexAvailable: indexed.available, loadedAt: Date.now(), message: address
           ? (indexed.available ? 'Your balance and burn history are ready.' : 'Your balance is ready; burn history is unavailable.')
           : 'Live Solana supply loaded. Connect a wallet to view its balance and burn receipts.',
