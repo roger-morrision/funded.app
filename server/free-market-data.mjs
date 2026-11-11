@@ -131,7 +131,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     return data?.data?.attributes || null;
   }
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
-    const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true' });
+    const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true', maxAccounts: '54' });
     // Identical quotes within 4 s (refreshes, several viewers) share one call.
     return getJson(`https://lite-api.jup.ag/swap/v1/quote?${query}`, { ttlMs: 4_000, staleMs: 0, priority: true });
   }
