@@ -4,9 +4,14 @@
 const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 export const WSOL = 'So11111111111111111111111111111111111111112';
 
-export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...args), now = Date.now, timeoutMs = 8000 } = {}) {
+export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...args), now = Date.now, timeoutMs = 8000, jupiterApiKey = '', jupiterRps = 0 } = {}) {
+  // With a Jupiter API key (portal.jup.ag) calls go to api.jup.ag with the key;
+  // without one they use the keyless lite-api. JUPITER_RPS sets the swap pace.
+  const JUP = jupiterApiKey ? 'https://api.jup.ag' : 'https://lite-api.jup.ag';
+  const jupHeaders = jupiterApiKey ? { 'x-api-key': jupiterApiKey } : {};
+  const swapGapMs = Math.max(50, Math.round(1000 / (Number(jupiterRps) > 0 ? Number(jupiterRps) : 0.9)));
   const cache = new Map(), inflight = new Map(), nextAt = new Map(), cooldownUntil = new Map();
-  const spacing = { 'api.dexscreener.com': 220, 'lite-api.jup.ag': 120, 'api.geckoterminal.com': 2100 };
+  const spacing = { 'api.dexscreener.com': 220, 'lite-api.jup.ag': 120, 'api.jup.ag': 120, 'api.geckoterminal.com': 2100 };
   async function pace(host) {
     const wait = (nextAt.get(host) || 0) - now();
     nextAt.set(host, Math.max(now(), nextAt.get(host) || 0) + (spacing[host] || 200));
@@ -37,9 +42,9 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
       if (!priority && (cooldownUntil.get(lane(url)) || 0) > now()) return Promise.reject(Error(`${lane(url)} is cooling down`));
       const call = (async () => {
         // Swap quotes skip the shared queue so background price reads never delay a trade.
-        if (priority) await paceLane(lane(url), 1_100); else await pace(host);
+        if (priority) await paceLane(lane(url), swapGapMs); else await pace(host);
         const response = await fetch(url, { method, redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
-          headers: { accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+          headers: { accept: 'application/json', ...(host === 'api.jup.ag' ? jupHeaders : {}), ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
         if (response.status === 429 || response.status >= 500) {
           const retry = Number(response.headers.get('retry-after'));
           cooldownUntil.set(lane(url), now() + (Number.isFinite(retry) && retry > 0 ? Math.min(retry * 1000, 60_000) : priority ? 3_000 : 15_000));
@@ -92,7 +97,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     const result = new Map();
     for (const batch of chunks([...new Set(mints.filter(m => MINT.test(m)))], 50)) {
       try {
-        const data = await getJson(`https://lite-api.jup.ag/price/v3?ids=${batch.join(',')}`, { ttlMs: 30_000 });
+        const data = await getJson(`${JUP}/price/v3?ids=${batch.join(',')}`, { ttlMs: 30_000 });
         for (const mint of batch) {
           const row = data?.[mint];
           if (row) result.set(mint, { mint, priceUsd: num(row.usdPrice), decimals: Number.isInteger(row.decimals) ? row.decimals : null,
@@ -121,7 +126,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   // Jupiter token search (free): icon, name, symbol, decimals and holder count.
   async function jupToken(mint) {
     if (!MINT.test(mint)) return null;
-    const rows = await getJson(`https://lite-api.jup.ag/tokens/v2/search?query=${mint}`, { ttlMs: 600_000 });
+    const rows = await getJson(`${JUP}/tokens/v2/search?query=${mint}`, { ttlMs: 600_000 });
     return Array.isArray(rows) ? rows.find(row => row?.id === mint) || null : null;
   }
   // GeckoTerminal token info (free): holder count and identity.
@@ -133,10 +138,10 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
     const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true' });
     // Identical quotes within 4 s (refreshes, several viewers) share one call.
-    return getJson(`https://lite-api.jup.ag/swap/v1/quote?${query}`, { ttlMs: 4_000, staleMs: 0, priority: true });
+    return getJson(`${JUP}/swap/v1/quote?${query}`, { ttlMs: 4_000, staleMs: 0, priority: true });
   }
   async function jupSwapInstructions({ quoteResponse, userPublicKey }) {
-    return getJson('https://lite-api.jup.ag/swap/v1/swap-instructions', { ttlMs: 0, priority: true, method: 'POST', body: { quoteResponse, userPublicKey,
+    return getJson(`${JUP}/swap/v1/swap-instructions`, { ttlMs: 0, priority: true, method: 'POST', body: { quoteResponse, userPublicKey,
       wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 500_000, priorityLevel: 'medium' } } } });
   }
   return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupToken, jupQuote, jupSwapInstructions, GECKO_FRAMES };

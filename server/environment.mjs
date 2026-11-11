@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 // Mainnet non-program mode reads only service credentials. Signing keys and
 // .env.local are never loaded, so no Richpad program or payout can be signed.
 export const MAINNET_NON_PROGRAM_SECRET_FILES = Object.freeze(['DATABASE_URL_FILE', 'FUNDED_API_TOKEN_FILE',
-  'BIRDEYE_API_KEY_FILE', 'PINATA_JWT_FILE', 'FUNDED_ADMIN_GMAIL_APP_PASSWORD_FILE', 'X_CLIENT_SECRET_FILE', 'X_BEARER_TOKEN_FILE']);
+  'BIRDEYE_API_KEY_FILE', 'JUPITER_API_KEY_FILE', 'PINATA_JWT_FILE', 'FUNDED_ADMIN_GMAIL_APP_PASSWORD_FILE', 'X_CLIENT_SECRET_FILE', 'X_BEARER_TOKEN_FILE']);
 function loadMainnetNonProgramSecrets(env, readFile) {
   const signer = Object.keys(env).find(name => /SIGNER|SECRET_KEY|KEYPAIR|PRIVATE_KEY/i.test(name) && env[name]);
   if (signer) throw Error(`Mainnet non-program mode refuses signing configuration (${signer}).`);

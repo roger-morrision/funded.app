@@ -94,7 +94,7 @@ export function createTradeExecutionController(appState) {
       const feeText = quote.maximumSpendSol != null
         ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
         : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and ${quote.route === 'jupiter' ? 'pool' : 'Pump'} fees.`;
-      document.querySelector('#trade-quote').textContent = `${quote.route === 'jupiter' ? `Jupiter${trade.routes?.length ? ` (${trade.routes.join(' → ')})` : ''}${trade.priceImpactPct > 0.01 ? ` · price impact ${(trade.priceImpactPct * 100).toFixed(2)}%` : ''}` : quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
+      document.querySelector('#trade-quote').textContent = `${quote.route === 'jupiter' ? `Jupiter${trade.routes?.length ? ` (${trade.routes.join(' → ')})` : ''}${trade.priceImpactPct > 0.01 ? ` · price impact ${(trade.priceImpactPct * 100).toFixed(2)}%` : ''}` : quote.route === 'graduated-pool' ? 'PumpSwap pool (direct)' : 'Pump.fun curve (direct)'} · ${slippageText} ${feeText}`;
       appState.setTradeStatus('Review this quote and the transaction in your wallet before signing.');
       appState.productEvent('trade_quote_ready');
       recordFlowTiming('quote', performance.now()-started, 'available', temperature);
