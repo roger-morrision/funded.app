@@ -105,7 +105,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (!row.name && jupInfo?.name) row = { ...row, name: String(jupInfo.name).slice(0, 80) };
       if (!row.symbol && jupInfo?.symbol) row = { ...row, symbol: String(jupInfo.symbol).slice(0, 20) };
     }
-    const burn = await burnFacts(mint, row.launchpad ?? cached?.launchpad).catch(() => ({}));
+    const [burn, holders] = await Promise.all([burnFacts(mint, row.launchpad ?? cached?.launchpad).catch(() => ({})), holderCount(mint).catch(() => null)]);
+    if (Number.isSafeInteger(holders)) row = { ...row, holderCount: holders };
     const merged = { ...(cached || {}), ...Object.fromEntries(Object.entries({ ...row, ...burn }).filter(([, v]) => v != null)), mint, source, observedAt: new Date().toISOString() };
     void tokenCache.upsert([merged]);
     return merged;

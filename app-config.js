@@ -40,3 +40,8 @@ export const TRADE_FEE_BPS = Number(import.meta.env.VITE_FUNDED_TRADE_FEE_BPS ||
 
 // Lets styles switch Mainnet behavior (in-app Jupiter trading for external tokens).
 if (APP_IS_MAINNET) globalThis.document?.documentElement?.classList.add('app-mainnet');
+// Mainnet visitors see Mainnet wording only (shared Devnet copy is rewritten in place).
+if (APP_IS_MAINNET && globalThis.document) {
+  const startWording = () => import('./src/app/startup/mainnet-wording.js').then(module => module.installMainnetWording()).catch(() => {});
+  if (globalThis.document.body) startWording(); else globalThis.document.addEventListener('DOMContentLoaded', startWording, { once: true });
+}
