@@ -1,4 +1,5 @@
 import { panel, el, link, button, array, utc } from './view-utils.js';
+import { APP_NET } from '../shared/app-network.js';
 
 const value = number => number == null ? 'Unavailable' : Number(number).toLocaleString();
 const duration = seconds => seconds == null ? 'Unavailable' : seconds < 60 ? `${seconds}s` : `${Math.floor(Math.round(seconds)/60)}m ${Math.round(seconds)%60}s`;
@@ -22,7 +23,7 @@ export function initializeOperationsView(app) {
     if(!content.childElementCount)content.append(el('p','Checking payout records…'));
     try {
       const result=await app.apiRequest('/api/financial/operations',{signal:AbortSignal.timeout(18000)});
-      const data=result.available&&result.data?.cluster==='devnet'&&result.data.evidence==='recorded-finalized-v3'?result.data:null;
+      const data=result.available&&result.data?.cluster===APP_NET&&result.data.evidence==='recorded-finalized-v3'?result.data:null;
       if(!data)throw Error('Unavailable');
       const stats=el('dl',null,'operations-stats');
       for(const [label,count] of [['Completed buybacks',data.completedRecordedOperations],['Pending buybacks',data.pendingBuybackOperations],['Failed operations',data.failedRecordedOperations]]){

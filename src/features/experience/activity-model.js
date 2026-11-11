@@ -1,10 +1,11 @@
 import { address, signature, array } from './view-utils.js';
+import { APP_NET } from '../shared/app-network.js';
 const secondsDate = value => Number.isFinite(Number(value)) && Number(value) > 0 && Number(value) < 8640000000000 ? new Date(Number(value)*1000).toISOString() : null;
 export function activityRows(launches, experience, trades = [], statements = []) {
   const rows = [];
-  for (const row of array(launches)) if (row.onchainVerified === true && row.cluster === 'devnet' && address(row.mint)) rows.push({id:`launch:${row.mint}`,kind:'launch',mint:row.mint,
+  for (const row of array(launches)) if (row.onchainVerified === true && row.cluster === APP_NET && address(row.mint)) rows.push({id:`launch:${row.mint}`,kind:'launch',mint:row.mint,
     creator:row.creatorWallet,title:`${row.symbol || row.name || 'Token'} launched`,at:row.createdAt || secondsDate(row.createdTimestamp),href:`/token/${row.mint}`,evidence:'Verified launch record'});
-  if (experience?.cluster === 'devnet' && ['recorded-finalized-v3','onchain-indexed'].includes(experience.evidence?.status)) for (const row of array(experience.events)) {
+  if (experience?.cluster === APP_NET && ['recorded-finalized-v3','onchain-indexed'].includes(experience.evidence?.status)) for (const row of array(experience.events)) {
     if (!address(row.mint) || !signature(row.signature) || !(row.kind === 'buyback-burned' || String(row.kind).endsWith('-paid') && row.feeSourceVerified === true)) continue;
     rows.push({id:`${row.kind}:${row.signature}:${row.mint}`,kind:'receipt',mint:row.mint,signature:row.signature,amountLamports:row.amountLamports,title:row.label || row.kind,at:row.at,
       creator:array(launches).find(launch=>launch.mint===row.mint)?.creatorWallet,evidence:'Recorded finalized receipt'});

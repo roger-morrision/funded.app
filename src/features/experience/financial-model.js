@@ -1,4 +1,5 @@
 import { creatorPayoutActions } from '../fees/creator-payout-actions.js';
+import { APP_NET } from '../shared/app-network.js';
 const address = value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value || ''));
 const signature = value => /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(String(value || ''));
 export const unsigned = value => /^(0|[1-9]\d*)$/.test(String(value));
@@ -14,7 +15,7 @@ export function newestFirst(rows) {
 }
 export function financialRows({ experience, buybacks, overviews = [], wallet }) {
   const rows = [];
-  const validExperience = experience?.cluster === 'devnet' && ['recorded-finalized-v3', 'onchain-indexed', 'partial', 'no-records'].includes(experience.evidence?.status);
+  const validExperience = experience?.cluster === APP_NET && ['recorded-finalized-v3', 'onchain-indexed', 'partial', 'no-records'].includes(experience.evidence?.status);
   if (validExperience && experience.wallet?.address === wallet && address(wallet)) {
     for (const token of experience.wallet.rows || []) for (const payout of token.payouts || []) {
       if (!address(token.mint) || payout.wallet !== wallet || payout.feeSourceVerified !== true
@@ -66,7 +67,7 @@ export function financialRows({ experience, buybacks, overviews = [], wallet }) 
       }
     }
   }
-  if (buybacks?.cluster === 'devnet') {
+  if (buybacks?.cluster === APP_NET) {
     for (const row of buybacks.pending || []) {
       if (!address(row.mint) || !unsigned(row.amountLamports) || BigInt(row.amountLamports) === 0n) continue;
       rows.push({ id:`burn:${row.mint}`, mint:row.mint, title:'Protocol $RICH buyback',

@@ -1,9 +1,10 @@
+import { APP_NET } from '../shared/app-network.js';
 const evidenceStates=['recorded-finalized-v3','onchain-indexed','partial','no-records'];
 
 export function missingFinancialSources(experience,buybacks,overviews=[],wallet=''){
-  const rewardsReady=experience?.available&&experience.data?.cluster==='devnet'&&evidenceStates.includes(experience.data.evidence?.status)&&(!wallet||experience.data.wallet?.address===wallet);
-  const burnsReady=buybacks?.available&&buybacks.data?.cluster==='devnet'&&Array.isArray(buybacks.data.pending)&&Array.isArray(buybacks.data.receipts);
-  const approvalsMissing=overviews.some(row=>!row?.available||row.data?.cluster!=='devnet'||row.data.overview?.available!==true||row.data.overview?.scope!=='per-mint-v3');
+  const rewardsReady=experience?.available&&experience.data?.cluster===APP_NET&&evidenceStates.includes(experience.data.evidence?.status)&&(!wallet||experience.data.wallet?.address===wallet);
+  const burnsReady=buybacks?.available&&buybacks.data?.cluster===APP_NET&&Array.isArray(buybacks.data.pending)&&Array.isArray(buybacks.data.receipts);
+  const approvalsMissing=overviews.some(row=>!row?.available||row.data?.cluster!==APP_NET||row.data.overview?.available!==true||row.data.overview?.scope!=='per-mint-v3');
   return[!rewardsReady&&'rewards',!burnsReady&&'buybacks',approvalsMissing&&'creator approvals'].filter(Boolean);
 }
 

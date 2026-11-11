@@ -1,5 +1,6 @@
 import { activityRows, isActivityHidden } from './activity-model.js';
 import { array } from './view-utils.js';
+import { APP_NET } from '../shared/app-network.js';
 let latestExperience = null, experienceCheckedAt = 0;
 globalThis.addEventListener?.('funded:financial-experience',event=>{latestExperience=event.detail;experienceCheckedAt=Date.now();});
 
@@ -15,10 +16,10 @@ export function initializeActivityUpdates(app) {
     if(busy||!document.body.classList.contains('page-route-overview'))return;busy=true;
     try{
       const read=path=>app.apiRequest(path,{signal:AbortSignal.timeout(15000)}).catch(()=>null);
-      const cached=latestExperience?.cluster==='devnet'&&Date.now()-experienceCheckedAt<30000;
+      const cached=latestExperience?.cluster===APP_NET&&Date.now()-experienceCheckedAt<30000;
       const [experience,content]=await Promise.all([cached?Promise.resolve({available:true,data:latestExperience}):read('/api/rewards/experience'),read('/api/financial/activity')]);
       if(experience?.available){latestExperience=experience.data;experienceCheckedAt=Date.now();}
-      if(content?.available&&content.data?.cluster==='devnet')statements=array(content.data.statements);
+      if(content?.available&&content.data?.cluster===APP_NET)statements=array(content.data.statements);
       publish();
     }finally{busy=false;}
   }

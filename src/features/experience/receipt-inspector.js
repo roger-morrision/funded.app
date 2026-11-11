@@ -1,5 +1,6 @@
 import { el, panel, link, button, signature, address, array, utc, reportContextLink } from './view-utils.js';
 import { solText } from './financial-model.js';
+import { APP_NET } from '../shared/app-network.js';
 export function receiptUrl(sig, mint, wallet) {
   if (!signature(sig)) return '';
   const params = new URLSearchParams({receipt:sig});
@@ -19,7 +20,7 @@ export function initializeReceiptInspector(app) {
     const params = new URLSearchParams(); for (const key of ['mint','wallet']) if (address(url.searchParams.get(key))) params.set(key,url.searchParams.get(key));
     let response; try {response = await app.apiRequest(`/api/financial/receipts/${sig}${params.size ? '?' + params : ''}`,{signal:AbortSignal.timeout(20000)});} catch {response=null;}
     if (id !== serial || !dialog.open) return;
-    const data = response?.available && response.data?.signature === sig && response.data.cluster === 'devnet'
+    const data = response?.available && response.data?.signature === sig && response.data.cluster === APP_NET
       && ['recorded-finalized-v3','finalized-rpc-trade'].includes(response.data.evidence) ? response.data : null;
     body.replaceChildren(el('h2',data ? 'Verified event receipt' : 'Receipt verification unavailable'));
     body.append(el('p',`${import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta' ? 'Solana' : 'Solana Devnet'} · ${sig}`),link('Inspect transaction ↗',`https://explorer.solana.com/tx/${sig}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,true));

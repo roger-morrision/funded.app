@@ -2,6 +2,7 @@ import { MARKETING_AGENCY_POLICY } from '../../../config/marketing-agency.js';
 import { AGENCY_RECEIPT_PROGRAM, AGENCY_RECEIPT_SCOPE } from '../../../config/agency-history.js';
 import { formatReviewSol } from '../../../launch-review.js';
 import { address, signature, el, link, utc } from './view-utils.js';
+import { APP_NET } from '../shared/app-network.js';
 
 const units = value => typeof value === 'string' && /^(0|[1-9]\d*)$/.test(value);
 
@@ -13,7 +14,7 @@ export function mountCoinAgents(root, app) {
     const request = ++serial, mint = app.getCoinMintAddress();
     box.replaceChildren();
     if (!root.open || !address(mint)) return;
-    const launch = app.coinSummaryLaunch?.mint === mint && app.coinSummaryLaunch.onchainVerified ? app.coinSummaryLaunch : app.verifiedLaunchPolicies.find(row => row.onchainVerified && row.cluster === 'devnet' && row.mint === mint);
+    const launch = app.coinSummaryLaunch?.mint === mint && app.coinSummaryLaunch.onchainVerified ? app.coinSummaryLaunch : app.verifiedLaunchPolicies.find(row => row.onchainVerified && row.cluster === APP_NET && row.mint === mint);
     const selected = launch?.marketingAgency?.selectedAgents;
     if (!Array.isArray(selected) || !selected.length) {
       box.append(el('p','No verified agent selection for this mint.'));

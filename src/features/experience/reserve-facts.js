@@ -1,8 +1,9 @@
 import { airdropClaimState } from '../../../airdrop-directory-model.js';
 import { el, link, address, signature, array, utc } from './view-utils.js';
+import { APP_NET } from '../shared/app-network.js';
 const integer=value=>/^(0|[1-9]\d*)$/.test(String(value));
 export function reserveFacts(data,mint){
-  const row=data?.cluster==='devnet'?array(data.reserves).find(row=>row.mint===mint):null;
+  const row=data?.cluster===APP_NET?array(data.reserves).find(row=>row.mint===mint):null;
   if(!row||row.verified!==true)return null;
   return {...row,checkedAt:data.checkedAt,remainingBaseUnits:integer(row.remainingBaseUnits)?row.remainingBaseUnits:null,
     claimedBaseUnits:integer(row.claimedBaseUnits)?row.claimedBaseUnits:null,totalBaseUnits:integer(row.totalBaseUnits)?row.totalBaseUnits:null};
