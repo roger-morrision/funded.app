@@ -19,13 +19,19 @@ export const MAINNET_NON_PROGRAM_POSTS=Object.freeze(new Set([
   '/api/referrals/attribution/prepare','/api/referrals/attribution/verify',
   '/api/referrals/session/prepare','/api/referrals/session/verify','/api/referrals/session/logout',
 ]));
+// Wallet-signed token chat (post, delete own, report) and its session handshake.
+export const MAINNET_NON_PROGRAM_POST_PATTERNS=Object.freeze([
+  /^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/chat(?:\/(?:delete|report))?$/,
+  /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/,
+]);
 export const mainnetNonProgramWrites=(env=process.env)=>String(env.FUNDED_MAINNET_NON_PROGRAM_WRITES||'').toLowerCase()==='true';
 const MUTATING=new Set(['POST','PUT','PATCH','DELETE']);
 export function mainnetMutationBlocked(cluster,method,pathname,env=process.env) {
   requireSolanaCluster(cluster);
   if(cluster!=='mainnet-beta' || ['GET','HEAD','OPTIONS'].includes(method))return false;
   if(method==='POST' && pathname==='/api/solana/rpc')return false;
-  return !(mainnetNonProgramWrites(env) && MUTATING.has(method) && MAINNET_NON_PROGRAM_POSTS.has(pathname));
+  return !(mainnetNonProgramWrites(env) && MUTATING.has(method)
+    && (MAINNET_NON_PROGRAM_POSTS.has(pathname) || MAINNET_NON_PROGRAM_POST_PATTERNS.some(pattern => pattern.test(pathname))));
 }
 
 export function rpcWriteBlocked(cluster,method,env=process.env) {

@@ -38,3 +38,20 @@ test('a quote that does not match the requested amount is refused', async () => 
   const bad = response('buy'); bad.data.quote.inAmount = '1';
   await assert.rejects(buildJupiterTrade({ side: 'buy', mint, user, amount: '0.1', feeOwner: fee, request: async () => bad }), /did not match/);
 });
+
+test('wallet guard instructions and compute-budget changes are accepted; added transfers are refused', async () => {
+  const { TransactionMessage, TransactionInstruction, ComputeBudgetProgram } = await import('@solana/web3.js');
+  const { verifyWalletSwapMessage } = await import('../jupiter-trading.js');
+  const trade = await buildJupiterTrade({ side: 'buy', mint, user, amount: '0.1', feeOwner: fee, request: async () => response('buy') });
+  const blockhash = '11111111111111111111111111111111';
+  const compile = instructions => new TransactionMessage({ payerKey: user, recentBlockhash: blockhash, instructions }).compileToV0Message([]);
+  const reviewed = Buffer.from(compile(trade.jupiter.instructions).serialize());
+  const args = message => ({ reviewedBytes: reviewed, signedMessage: message, instructions: trade.jupiter.instructions, lookupTables: [], user, blockhash });
+  assert.equal(verifyWalletSwapMessage(args(compile(trade.jupiter.instructions))).modified, false);
+  const lighthouse = new TransactionInstruction({ programId: new PublicKey('L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95'), keys: [{ pubkey: user, isSigner: false, isWritable: false }], data: Buffer.from([1, 2, 3]) });
+  const guarded = [ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }), ...trade.jupiter.instructions.slice(1), lighthouse];
+  assert.equal(verifyWalletSwapMessage(args(compile(guarded))).modified, true);
+  const drained = [...trade.jupiter.instructions, SystemProgram.transfer({ fromPubkey: user, toPubkey: Keypair.generate().publicKey, lamports: 1 })];
+  assert.throws(() => verifyWalletSwapMessage(args(compile(drained))), /unexpected instruction/);
+  assert.throws(() => verifyWalletSwapMessage(args(compile(trade.jupiter.instructions.slice(0, -1)))), /removed part/);
+});

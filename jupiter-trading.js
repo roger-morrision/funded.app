@@ -13,6 +13,45 @@ export const JUPITER_PROGRAM_ID = 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4';
 const COMPUTE_BUDGET = 'ComputeBudget111111111111111111111111111111';
 const ALLOWED = new Set([JUPITER_PROGRAM_ID, COMPUTE_BUDGET, ASSOCIATED_TOKEN_PROGRAM_ID.toBase58(), TOKEN_PROGRAM_ID.toBase58(), TOKEN_2022_PROGRAM_ID.toBase58(), SystemProgram.programId.toBase58()]);
 const REBUILD_AFTER_MS = 20_000;
+// Wallet guard program Phantom appends (assertion-only instructions).
+const LIGHTHOUSE = 'L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95';
+const MAX_COMPUTE_UNITS = 1_400_000n;
+const MAX_PRIORITY_FEE_LAMPORTS = 5_000_000n;
+
+const sameInstruction = (a, b) => a.programId.equals(b.programId) && Buffer.from(a.data).equals(Buffer.from(b.data))
+  && a.keys.length === b.keys.length && a.keys.every((key, index) => key.pubkey.equals(b.keys[index].pubkey));
+
+// Wallets may re-sign a modified message (Phantom adds Lighthouse guard
+// assertions and can reset compute-budget prices). Accept only that: same fee
+// payer and blockhash, every reviewed non-compute-budget instruction in order,
+// extra instructions limited to Lighthouse assertions and bounded compute budget.
+export function verifyWalletSwapMessage({ reviewedBytes, signedMessage, instructions, lookupTables, user, blockhash }) {
+  if (Buffer.from(signedMessage.serialize()).equals(reviewedBytes)) return { modified: false };
+  let decoded;
+  try { decoded = TransactionMessage.decompile(signedMessage, { addressLookupTableAccounts: lookupTables }); }
+  catch { throw Error('Wallet changed the reviewed swap in a way that cannot be checked. Nothing was submitted.'); }
+  if (!decoded.payerKey.equals(user) || decoded.recentBlockhash !== blockhash) throw Error('Wallet changed the fee payer or blockhash of the reviewed swap. Nothing was submitted.');
+  const expected = instructions.filter(ix => ix.programId.toBase58() !== COMPUTE_BUDGET);
+  const reviewedBudget = instructions.filter(ix => ix.programId.toBase58() === COMPUTE_BUDGET);
+  let cursor = 0, units = MAX_COMPUTE_UNITS, microLamports = 0n;
+  for (const ix of decoded.instructions) {
+    const program = ix.programId.toBase58();
+    if (cursor < expected.length && sameInstruction(ix, expected[cursor])) { cursor++; continue; }
+    if (program === COMPUTE_BUDGET && !ix.keys.length) {
+      const data = Buffer.from(ix.data);
+      if (reviewedBudget.some(item => sameInstruction(item, ix)) && ![2, 3].includes(data[0])) continue;
+      if (data[0] === 2 && data.length === 5) { units = BigInt(data.readUInt32LE(1)); if (units < 1n || units > MAX_COMPUTE_UNITS) throw Error('Wallet set an unsafe compute limit. Nothing was submitted.'); continue; }
+      if (data[0] === 3 && data.length === 9) { microLamports = data.readBigUInt64LE(1); continue; }
+      throw Error('Wallet added an unexpected compute-budget instruction. Nothing was submitted.');
+    }
+    if (program === LIGHTHOUSE && !ix.keys.some(key => key.isSigner && !key.pubkey.equals(user))) continue;
+    throw Error('Wallet added an unexpected instruction to the reviewed swap. Nothing was submitted.');
+  }
+  if (cursor !== expected.length) throw Error('Wallet removed part of the reviewed swap. Nothing was submitted.');
+  const priorityFee = (units * microLamports + 999_999n) / 1_000_000n;
+  if (priorityFee > MAX_PRIORITY_FEE_LAMPORTS) throw Error('Wallet raised the priority fee above 0.005 SOL. Nothing was submitted.');
+  return { modified: true, priorityFeeLamports: Number(priorityFee) };
+}
 
 function toInstruction(raw, user) {
   if (!raw?.programId || !Array.isArray(raw.accounts) || typeof raw.data !== 'string') throw Error('The swap route returned an invalid instruction.');
@@ -77,7 +116,8 @@ export async function submitJupiterTrade({ connection, provider, side, mint, use
   const signed = await provider.signTransaction(transaction);
   assertWalletCurrent();
   const signedTx = signed instanceof VersionedTransaction ? signed : VersionedTransaction.deserialize(signed.serialize());
-  if (!Buffer.from(signedTx.message.serialize()).equals(reviewed)) throw Error('Wallet changed the reviewed swap. Nothing was submitted.');
+  verifyWalletSwapMessage({ reviewedBytes: reviewed, signedMessage: signedTx.message, instructions: trade.jupiter.instructions,
+    lookupTables: trade.jupiter.lookupTables, user: trade.user, blockhash: trade.jupiter.blockhash });
   const signature = bs58.encode(signedTx.signatures[0]);
   if (!signedTx.signatures[0] || signedTx.signatures[0].every(byte => byte === 0)) throw Error('Wallet did not sign the swap. Nothing was submitted.');
   const lastValidBlockHeight = trade.jupiter.lastValidBlockHeight;
