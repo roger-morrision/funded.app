@@ -22,7 +22,7 @@ export function initializeReceiptInspector(app) {
     const data = response?.available && response.data?.signature === sig && response.data.cluster === 'devnet'
       && ['recorded-finalized-v3','finalized-rpc-trade'].includes(response.data.evidence) ? response.data : null;
     body.replaceChildren(el('h2',data ? 'Verified event receipt' : 'Receipt verification unavailable'));
-    body.append(el('p',`Solana Devnet · ${sig}`),link('Inspect transaction ↗',`https://explorer.solana.com/tx/${sig}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,true));
+    body.append(el('p',`${import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta' ? 'Solana' : 'Solana Devnet'} · ${sig}`),link('Inspect transaction ↗',`https://explorer.solana.com/tx/${sig}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,true));
     const report=reportContextLink('Report an issue with this receipt');report.addEventListener('click',()=>dialog.close());body.append(report);
     if (!data) {body.append(el('p','The current API could not provide matching evidence. This is not proof of failure; retain this signature before retrying.'));return;}
     body.append(el('p',data.currentRpcRecheck ? 'Finalized trade and balance changes checked on RPC.' : 'Recorded finalized evidence; current RPC recheck is not included.'));
