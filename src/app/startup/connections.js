@@ -336,7 +336,7 @@ export function initializeConnections(appState) {
   // app-source: 206
   const PROTOCOL_FUNDED_MINT = String(import.meta.env.VITE_FUNDED_TOKEN_MINT || '').trim();
   initializeAppState(appState, 'PROTOCOL_FUNDED_MINT', PROTOCOL_FUNDED_MINT);
-  mountRichTokenShortcut(PROTOCOL_FUNDED_MINT);
+  mountRichTokenShortcut(PROTOCOL_FUNDED_MINT, globalThis.document, { mainnet: import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta' });
   mountWalletMenuNotifications();
   // app-source-end
 

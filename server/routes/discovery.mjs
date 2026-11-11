@@ -60,30 +60,38 @@ export function createDiscoveryRoutes({
     }
     return mints.flatMap(mint => tokenMarketCache.get(mint)?.row ? [tokenMarketCache.get(mint).row] : []);
   }
-  const feedCache = new Map(), feedRefresh = new Map();
-  async function fetchMainnetFeed(sort, offset, limit) {
-    try {
-      const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
-      return { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) };
-    } catch {
-      // Pump.fun's API refuses server reads behind its bot challenge. Birdeye's
-      // launchpad-filtered meme list still returns Pump.fun mints.
-      const memeSort = sort === 'created_timestamp' ? 'creation_time' : sort === 'market_cap' ? 'market_cap' : 'volume_24h_usd';
-      const memeParams = { sort_by: memeSort, sort_type: 'desc', offset: String(offset), limit: String(Math.min(limit, 100)), source: 'pump_dot_fun' };
-      const meme = await fetchBirdeye('/defi/v3/token/meme/list', memeParams).catch(() => null);
-      const rows = Array.isArray(meme?.data?.items) ? meme.data.items : null;
-      if (!meme?.configured || !rows) return null;
-      const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
-      return { provider: 'birdeye-pump', chain: 'solana', fetchedAt: new Date().toISOString(), items: rows.flatMap(row => {
-        const mint = String(row?.address || '').trim(); if (!mint) return [];
-        const ext = row.extensions || {};
-        return [{ mint, name: String(row.name || 'Unnamed token').slice(0, 80), symbol: String(row.symbol || 'TOKEN').slice(0, 20), imageUri: row.logo_uri || null,
-          decimals: Number.isInteger(row.decimals) ? row.decimals : null, marketCapUsd: number(row.market_cap), liquidityUsd: number(row.liquidity),
-          volume24hUsd: number(row.volume_24h_usd), priceUsd: number(row.price), priceChange24hPercent: number(row.price_change_24h_percent),
-          holders: number(row.holder), twitter: ext.twitter || null, website: ext.website || null, telegram: ext.telegram || null, discord: ext.discord || null,
-          description: typeof ext.description === 'string' ? ext.description.slice(0, 500) : null, lastTradeTimestamp: number(row.last_trade_unix_time) }];
-      }) };
+  // Mainnet Explore lists only Richpad tokens: verified app launches and
+  // verified paid listings on this cluster, with market fields from the free
+  // DexScreener batch (falling back to the discovered-token cache).
+  let registryCache = null;
+  async function mainnetRegistry() {
+    if (registryCache && Date.now() - registryCache.at < 15_000) return registryCache.items;
+    const state = await store.read();
+    const launches = Object.values(state.launches || {}).filter(item => item?.mint && item.cluster === solanaCluster && item.onchainVerified === true);
+    const listings = Object.values(state.listings || {}).filter(item => item?.mint && item.cluster === solanaCluster && item.onchainVerified === true);
+    const byMint = new Map();
+    for (const item of launches) byMint.set(item.mint, { ...item, registry: 'launch', createdTimestamp: item.createdTimestamp || Math.floor(Date.parse(item.createdAt || item.launchedAt || 0) / 1000) || null });
+    for (const item of listings) {
+      const listingPayment = { signature: item.signature, amountTokens: item.amountTokens, verified: true };
+      const prior = byMint.get(item.mint);
+      byMint.set(item.mint, prior ? { ...prior, listingPayment } : { mint: item.mint, name: item.name || 'Paid listing', symbol: item.symbol || 'TOKEN',
+        imageUri: item.imageUri || null, registry: 'listing', createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000) || null, listingPayment });
     }
+    const mints = [...byMint.keys()];
+    const [dex, cached] = await Promise.all([freeMarketData && mints.length ? freeMarketData.dexTokens(mints).catch(() => new Map()) : new Map(),
+      tokenCache && mints.length ? tokenCache.read(mints).catch(() => new Map()) : new Map()]);
+    const fresh = [];
+    const items = mints.map(mint => {
+      const base = byMint.get(mint), market = dex.get(mint) || cached.get(mint) || {};
+      if (dex.get(mint)) fresh.push({ ...(cached.get(mint) || {}), ...dex.get(mint), mint });
+      return { ...base, mint, name: base.name || market.name || 'Unnamed token', symbol: base.symbol || market.symbol || 'TOKEN',
+        imageUri: base.imageUri || market.imageUri || null, priceUsd: market.priceUsd ?? null, marketCapUsd: market.marketCapUsd ?? null,
+        liquidityUsd: market.liquidityUsd ?? null, volume24hUsd: market.volume24hUsd ?? null, priceChange24hPercent: market.priceChangePercent ?? market.priceChange24hPercent ?? null,
+        website: base.website || market.website || null, twitter: base.twitter || market.twitter || null, telegram: base.telegram || market.telegram || null, discord: base.discord || market.discord || null };
+    });
+    if (fresh.length) void tokenCache?.upsert(fresh);
+    registryCache = { at: Date.now(), items };
+    return items;
   }
   return async function handleDiscoveryRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/tokens/market') {
@@ -142,27 +150,11 @@ export function createDiscoveryRoutes({
         try { warmMarketActivity(page.map(item => item.mint).filter(mint => !activity[mint])); } catch {}
         return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, total:uniqueItems.length, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
       }
-      // Mainnet feed: answer from the in-memory/DB token cache at once and refresh
-      // upstream in the background (stale-while-revalidate) for fast page loads.
-      const key = `${sort}:${offset}:${limit}`, cached = feedCache.get(key);
-      const refresh = () => {
-        if (feedRefresh.has(key)) return feedRefresh.get(key);
-        const job = fetchMainnetFeed(sort, offset, limit).then(result => {
-          if (result?.items?.length) { feedCache.set(key, { at: Date.now(), result }); void tokenCache?.upsert(result.items.map(item => ({ ...item, mint: item.mint, pumpFeed: true }))); }
-          return result;
-        }).finally(() => feedRefresh.delete(key));
-        feedRefresh.set(key, job); return job;
-      };
-      if (cached && Date.now() - cached.at < 45_000) return json(res, 200, { ...cached.result, cache: 'fresh' });
-      if (cached) { void refresh().catch(() => {}); return json(res, 200, { ...cached.result, cache: 'stale' }); }
-      const stored = tokenCache ? await tokenCache.list({ sort: sort === 'created_timestamp' ? 'newest' : sort === 'market_cap' ? 'market_cap' : 'volume', limit, offset, feed: 'pump' }).catch(() => []) : [];
-      if (stored.length >= Math.min(limit, 10)) {
-        void refresh().catch(() => {});
-        return json(res, 200, { provider: 'token-cache', chain: 'solana', fetchedAt: new Date().toISOString(), cache: 'database', items: stored });
-      }
-      const result = await refresh().catch(() => null);
-      if (!result?.items?.length) return json(res, 503, { error:'Pump.fun discovery is temporarily unavailable.', provider:'pump.fun', items:[] });
-      return json(res, 200, result);
+      const items = await mainnetRegistry();
+      const key = sort === 'market_cap' ? 'marketCapUsd' : sort === 'created_timestamp' ? 'createdTimestamp' : 'volume24hUsd';
+      const sorted = [...items].sort((x, y) => (Number(y[key]) || 0) - (Number(x[key]) || 0));
+      return json(res, 200, { provider: 'richpad-registry', chain: 'solana', cluster: solanaCluster, fetchedAt: new Date().toISOString(),
+        items: sorted.slice(offset, offset + limit), total: sorted.length, directoryComplete: offset + limit >= sorted.length });
     }
     return false;
   };
