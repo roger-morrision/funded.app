@@ -70,6 +70,7 @@ export async function submitJupiterTrade({ connection, provider, side, mint, use
   const message = new TransactionMessage({ payerKey: trade.user, recentBlockhash: trade.jupiter.blockhash, instructions: trade.jupiter.instructions })
     .compileToV0Message(trade.jupiter.lookupTables);
   const transaction = new VersionedTransaction(message);
+  if (transaction.serialize().length > 1232) throw Error('This swap route is too large for one Solana transaction. Try a different amount. Nothing was signed.');
   const reviewed = Buffer.from(message.serialize());
   assertWalletCurrent();
   onStatus('Waiting for wallet approval…');
