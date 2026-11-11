@@ -95,8 +95,11 @@ export function createCoinMarketController(appState) {
     if (hit && Date.now() - hit.at < 60_000) return { ...hit.data, mint, supply, status: 'ready' };
     if (mint && !candleLoading.has(key)) {
       candleLoading.add(key);
-      appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/ohlcv?frame=${frame}`, { signal: AbortSignal.timeout(15000) })
-        .then(result => candleCache.set(key, { at: Date.now(), data: { candles: result.available && result.data?.mint === mint ? result.data.candles || [] : [], source: result.data?.source || null } }))
+      const read = f => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/ohlcv?frame=${f}`, { signal: AbortSignal.timeout(15000) })
+        .then(result => ({ candles: result.available && result.data?.mint === mint ? result.data.candles || [] : [], source: result.data?.source || null }));
+      // Young tokens have only a few coarse candles; use 1-minute candles so the chart is readable.
+      read(frame).then(async data => data.candles.length < 12 && frame !== '1m' ? await read('1m').then(fine => fine.candles.length > data.candles.length ? fine : data).catch(() => data) : data)
+        .then(data => candleCache.set(key, { at: Date.now(), data }))
         .catch(() => candleCache.set(key, { at: Date.now(), data: { candles: [], source: null } })).finally(() => { candleLoading.delete(key); if (appState.getCoinMintAddress() === mint) renderCoinPricePath(); });
     }
     return hit ? { ...hit.data, mint, supply, status: 'ready' } : { mint, candles: [], supply, status: candleLoading.has(key) ? 'loading' : 'ready' };
