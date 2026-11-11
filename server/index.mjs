@@ -338,7 +338,7 @@ const handleTokenMarketRoutes = createTokenMarketRoutes({
 const handleMainnetMarketRoutes = createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free: freeMarketData, tokenCache, fetchBirdeye,
   readMarketFallback: readBirdeyeMarket, store, clientKey, body, respond: json });
 const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, solanaCluster, body, authorized, clientKey, json, rpcMethods });
-const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote });
+const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote, readIndexedPriceUsd: mint => freeMarketData.jupPrices([mint]).then(m => m.get(mint)?.priceUsd) });
 
 const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({
   requireAuthorized, body, fetchPump, normalizePumpToken, store, solanaCluster, collectPumpCreatorFees, solanaRpcUrl, respond: json,

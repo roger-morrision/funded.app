@@ -10,6 +10,7 @@ export function createLaunchTierPricing({
   fundedSwapPool,
   solanaRpcUrl,
   readSolUsdQuote,
+  readIndexedPriceUsd = null,
   readMarket = fetchRichMarketSnapshot,
   connectionFactory=url=>new Connection(url,'confirmed'),
 }) {
@@ -27,6 +28,9 @@ export function createLaunchTierPricing({
     requireSolanaCluster(solanaCluster);
     if (!fundedTokenMint)
       throw new Error('The selected network $RICH mint must be configured.');
+    // Mainnet $RICH outside a Pump curve/PumpSwap pool (or without a configured
+    // pool) is priced from the indexed Jupiter price; Devnet keeps the pool proof.
+    if (solanaCluster === 'mainnet-beta' && readIndexedPriceUsd && !fundedSwapPool) return indexedPricing();
     const connection=connectionFactory(solanaRpcUrl);
     await assertRpcNetwork(connection,solanaCluster);
     const [sol, pool] = await Promise.all([
@@ -43,6 +47,16 @@ export function createLaunchTierPricing({
       market:pool.market,bondingCurve:pool.bondingCurve,
       tokenPriceUsd:priceUsd, solUsd:Number(sol.priceUsd), amounts,
       observedAt:new Date().toISOString(), source:pool.market==='pump-curve'?'verified-pump-bonding-curve':'verified-pump-swap-pool' };
+    launchTierPriceCache = { value, expires:Date.now() + 30_000 };
+    return value;
+  }
+
+  async function indexedPricing() {
+    const [sol, priceUsd] = await Promise.all([readSolUsdQuote(), readIndexedPriceUsd(fundedTokenMint)]);
+    if (!Number.isFinite(Number(priceUsd)) || Number(priceUsd) <= 0) throw new Error('An indexed $RICH price is unavailable. No payment was requested.');
+    if (!sol || !Number.isFinite(Number(sol.priceUsd)) || Number(sol.priceUsd) <= 0) throw new Error('A fresh SOL/USD quote is unavailable.');
+    const value = { cluster:solanaCluster, genesisHash:SOLANA_GENESIS[solanaCluster], fundedMint:fundedTokenMint, pool:null, slot:null, market:'indexed', bondingCurve:null,
+      tokenPriceUsd:Number(priceUsd), solUsd:Number(sol.priceUsd), amounts:launchTierAmounts(Number(priceUsd)), observedAt:new Date().toISOString(), source:'jupiter-indexed-price' };
     launchTierPriceCache = { value, expires:Date.now() + 30_000 };
     return value;
   }

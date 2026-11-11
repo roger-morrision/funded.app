@@ -64,7 +64,7 @@ export function createCoinLoadingController(appState) {
       if (avatar) { avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat'; avatar.style.backgroundPosition = 'center'; }
     }
     const marketRequest=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,{signal:AbortSignal.timeout(32000)}).catch(error=>({available:false,data:null,status:error?.status}));
-    if (appState.EXPLORE_CLUSTER === 'mainnet-beta' && !earlyLaunch?.onchainVerified && mintAddress !== appState.PROTOCOL_FUNDED_MINT)
+    if (appState.EXPLORE_CLUSTER === 'mainnet-beta' && !earlyLaunch?.onchainVerified && !(mintAddress === appState.PROTOCOL_FUNDED_MINT && appState.PROTOCOL_FUNDED_SWAP_POOL))
       return loadIndexedCoin(appState, mintAddress, loadId, marketRequest);
     try {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
