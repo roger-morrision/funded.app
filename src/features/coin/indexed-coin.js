@@ -8,6 +8,10 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   const current = () => loadId === appState.coinLoadId;
   const overviewRequest = appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/overview`, { signal: AbortSignal.timeout(15000) })
     .catch(() => ({ available: false, data: null }));
+  // Overview, trades and the SOL quote travel in parallel: one network round trip, not three.
+  const tradesRequest = readTrades(appState, mint);
+  const solRequest = Number(appState.coinSolUsdPrice) > 0 ? Promise.resolve(Number(appState.coinSolUsdPrice))
+    : appState.apiRequest('/api/market/sol-usd', { signal: AbortSignal.timeout(6000) }).then(r => Number(r?.data?.priceUsd) || null).catch(() => null);
   const overview = await overviewRequest;
   if (!current()) return;
   const data = overview.available && overview.data?.mint === mint ? overview.data : null;
@@ -45,8 +49,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     if (appState.coinActivity) appState.coinActivity.symbol = symbol;
     const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer');
     if (chartFooter) { const span = document.createElement('span'); span.textContent = Number.isFinite(supply) ? `Indexed candles · supply ≈ ${appState.formatOnChainNumber(supply, 0)}` : 'Indexed candles'; chartFooter.replaceChildren(span); }
-    const solUsd = Number(appState.coinSolUsdPrice) > 0 ? Number(appState.coinSolUsdPrice)
-      : Number((await appState.apiRequest('/api/market/sol-usd', { signal: AbortSignal.timeout(6000) }).catch(() => null))?.data?.priceUsd) || null;
+    const solUsd = await solRequest;
     if (!current()) return;
     appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6, priceUsd: data.priceUsd, solUsd };
     appState.renderTradeAmountEstimate?.();
@@ -57,16 +60,57 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   }
   void appState.loadSolUsdQuote?.();
   appState.renderCoinPricePath?.();
-  const [market, trades] = await Promise.all([marketRequest,
-    appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/trades`, { signal: AbortSignal.timeout(15000) }).catch(() => ({ available: false, data: null }))]);
+  const [market, trades] = await Promise.all([marketRequest, tradesRequest]);
   if (!current()) return;
-  const rows = trades.available && trades.data?.mint === mint && trades.data.available ? trades.data.trades : null;
-  const tradeCount = market?.data?.tradeCount24h;
+  applyTrades(appState, mint, trades, market?.data?.tradeCount24h ?? (data ? data.buyCount24h + data.sellCount24h : null));
+  if (market?.available) renderIndexedMarket(appState, market.data, mint);
+  if (data) applyNumbers(appState, data);
+  startLiveRefresh(appState, mint, loadId);
+}
+
+const readTrades = (appState, mint) => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/trades`, { signal: AbortSignal.timeout(15000) })
+  .catch(() => ({ available: false, data: null }));
+
+function applyTrades(appState, mint, trades, tradeCount) {
+  const rows = trades?.available && trades.data?.mint === mint && trades.data.available ? trades.data.trades : null;
+  // A failed refresh keeps the last good rows instead of blanking the table.
+  if (!rows && appState.coinMarketActivity?.indexed && appState.coinMarketActivity.status === 'ready') return;
   appState.coinMarketActivity = rows
     ? { status: 'ready', trades: rows, coverage: 'partial', decimals: trades.data.decimals, graduated: true, tradeCount: Number.isSafeInteger(tradeCount) ? tradeCount : null, indexed: true }
     : { status: 'unavailable', trades: [], coverage: null, decimals: 6, indexed: true };
   appState.renderCoinActivityTab?.(); appState.setCoinTabLabels?.();
-  if (market?.available) renderIndexedMarket(appState, market.data, mint);
-  if (data && !Number.isFinite(data.liquidityUsd)) appState.setCoinField('#coin-liquidity', data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
-  else if (data && !market?.available) appState.setCoinField('#coin-liquidity', appState.formatUsd(data.liquidityUsd));
+}
+
+// Live numbers from a fresh overview; identity fields stay as first rendered.
+function applyNumbers(appState, data) {
+  const usd = value => Number.isFinite(value) ? appState.formatUsd(value) : '—';
+  if (Number.isFinite(data.priceUsd)) appState.setCoinField('#coin-price', data.priceUsd < 0.01 ? `$${formatTinyDecimal(data.priceUsd)}` : usd(data.priceUsd));
+  for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) if (Number.isFinite(data.marketCapUsd)) appState.setCoinField(selector, usd(data.marketCapUsd));
+  if (Number.isFinite(data.volume24hUsd)) appState.setCoinField('#coin-volume', usd(data.volume24hUsd));
+  appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? usd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
+  if (Number.isFinite(data.priceChangePercent)) appState.setCoinField('#coin-change', `${data.priceChangePercent.toFixed(2)}% · 24h`);
+  if (appState.coinTradeEstimate?.mint === data.mint && Number.isFinite(data.priceUsd)) { appState.coinTradeEstimate.priceUsd = data.priceUsd; appState.renderTradeAmountEstimate?.(); }
+}
+
+// While the tab is visible: price, liquidity and trades every 10 s; the chart
+// refetches candles once its short client cache expires.
+const LIVE_MS = 10_000;
+let liveTimer = null;
+function startLiveRefresh(appState, mint, loadId) {
+  if (liveTimer) clearTimeout(liveTimer);
+  const tick = async () => {
+    liveTimer = null;
+    if (loadId !== appState.coinLoadId) return;
+    if (globalThis.document?.visibilityState !== 'hidden') {
+      const [overview, trades] = await Promise.all([
+        appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/overview`, { signal: AbortSignal.timeout(8000) }).catch(() => null), readTrades(appState, mint)]);
+      if (loadId !== appState.coinLoadId) return;
+      const data = overview?.available && overview.data?.mint === mint ? overview.data : null;
+      if (data) applyNumbers(appState, data);
+      applyTrades(appState, mint, trades, data ? data.buyCount24h + data.sellCount24h : null);
+      appState.renderCoinPricePath?.();
+    }
+    liveTimer = setTimeout(tick, LIVE_MS);
+  };
+  liveTimer = setTimeout(tick, LIVE_MS);
 }

@@ -92,7 +92,7 @@ export function createCoinMarketController(appState) {
     const mint = appState.getCoinMintAddress(), frame = INDEXED_FRAMES[appState.coinChartPeriod] || '15m', key = `${mint}:${frame}`;
     const supply = appState.coinIndexedSupply?.mint === mint ? appState.coinIndexedSupply.supply : null;
     const hit = candleCache.get(key);
-    if (hit && Date.now() - hit.at < 60_000) return { ...hit.data, mint, supply, status: 'ready' };
+    if (hit && Date.now() - hit.at < 20_000) return { ...hit.data, mint, supply, status: 'ready' };
     if (mint && !candleLoading.has(key)) {
       candleLoading.add(key);
       const read = f => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/ohlcv?frame=${f}`, { signal: AbortSignal.timeout(15000) })

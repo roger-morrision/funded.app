@@ -12,28 +12,35 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     nextAt.set(host, Math.max(now(), nextAt.get(host) || 0) + (spacing[host] || 200));
     if (wait > 0) await new Promise(done => setTimeout(done, Math.min(wait, 5000)));
   }
-  async function getJson(url, { ttlMs = 30_000, method = 'GET', body = null } = {}) {
+  // Fresh hits return at once; an expired entry inside its stale window is
+  // returned immediately while one background request refreshes it, so page
+  // loads never wait on upstream once a token has been seen.
+  async function getJson(url, { ttlMs = 30_000, method = 'GET', body = null, staleMs = ttlMs * 6 } = {}) {
     const key = method + ' ' + url + (body ? ' ' + JSON.stringify(body) : '');
     const hit = cache.get(key);
     if (hit && hit.expiresAt > now()) return hit.value;
-    if (inflight.has(key)) return inflight.get(key);
     const host = new URL(url).hostname;
-    if ((cooldownUntil.get(host) || 0) > now()) { if (hit) return hit.value; throw Error(`${host} is cooling down`); }
-    const call = (async () => {
-      await pace(host);
-      const response = await fetch(url, { method, redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
-        headers: { accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
-      if (response.status === 429 || response.status >= 500) cooldownUntil.set(host, now() + 30_000);
-      if (!response.ok) throw Error(`${host} request failed (${response.status})`);
-      const value = await response.json();
-      if (ttlMs > 0) {
-        if (cache.size > 3000) for (const [k, row] of cache) if (row.expiresAt <= now()) cache.delete(k);
-        cache.set(key, { value, expiresAt: now() + ttlMs });
-      }
-      return value;
-    })();
-    inflight.set(key, call);
-    try { return await call; } catch (error) { if (hit) return hit.value; throw error; } finally { inflight.delete(key); }
+    const refresh = () => {
+      if (inflight.has(key)) return inflight.get(key);
+      if ((cooldownUntil.get(host) || 0) > now()) return Promise.reject(Error(`${host} is cooling down`));
+      const call = (async () => {
+        await pace(host);
+        const response = await fetch(url, { method, redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
+          headers: { accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+        if (response.status === 429 || response.status >= 500) cooldownUntil.set(host, now() + 30_000);
+        if (!response.ok) throw Error(`${host} request failed (${response.status})`);
+        const value = await response.json();
+        if (ttlMs > 0) {
+          if (cache.size > 3000) for (const [k, row] of cache) if (row.staleUntil <= now()) cache.delete(k);
+          cache.set(key, { value, expiresAt: now() + ttlMs, staleUntil: now() + ttlMs + staleMs });
+        }
+        return value;
+      })().finally(() => inflight.delete(key));
+      inflight.set(key, call);
+      return call;
+    };
+    if (hit && ttlMs > 0 && hit.staleUntil > now()) { refresh().catch(() => {}); return hit.value; }
+    try { return await refresh(); } catch (error) { if (hit) return hit.value; throw error; }
   }
   const chunks = (list, size) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, i * size + size));
   const num = value => value != null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
@@ -43,7 +50,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     const result = new Map();
     for (const batch of chunks([...new Set(mints.filter(m => MINT.test(m)))], 30)) {
       let pairs = [];
-      try { pairs = await getJson(`https://api.dexscreener.com/tokens/v1/solana/${batch.join(',')}`, { ttlMs: 30_000 }); } catch { continue; }
+      try { pairs = await getJson(`https://api.dexscreener.com/tokens/v1/solana/${batch.join(',')}`, { ttlMs: 10_000 }); } catch { continue; }
       for (const pair of Array.isArray(pairs) ? pairs : []) {
         const mint = pair?.baseToken?.address;
         if (!batch.includes(mint)) continue;
@@ -67,7 +74,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     const result = new Map();
     for (const batch of chunks([...new Set(mints.filter(m => MINT.test(m)))], 50)) {
       try {
-        const data = await getJson(`https://lite-api.jup.ag/price/v3?ids=${batch.join(',')}`, { ttlMs: 20_000 });
+        const data = await getJson(`https://lite-api.jup.ag/price/v3?ids=${batch.join(',')}`, { ttlMs: 10_000 });
         for (const mint of batch) {
           const row = data?.[mint];
           if (row) result.set(mint, { mint, priceUsd: num(row.usdPrice), decimals: Number.isInteger(row.decimals) ? row.decimals : null,
@@ -82,7 +89,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   async function geckoOhlcv(pool, frame = '15m', limit = 300) {
     const [unit, aggregate] = GECKO_FRAMES[frame] || GECKO_FRAMES['15m'];
     if (!MINT.test(pool)) return null;
-    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/ohlcv/${unit}?aggregate=${aggregate}&limit=${Math.min(limit, 1000)}&currency=usd`, { ttlMs: 60_000 });
+    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/ohlcv/${unit}?aggregate=${aggregate}&limit=${Math.min(limit, 1000)}&currency=usd`, { ttlMs: unit === 'minute' ? 20_000 : 60_000 });
     const list = data?.data?.attributes?.ohlcv_list;
     return Array.isArray(list) ? list.map(row => ({ time: row[0], open: row[1], high: row[2], low: row[3], close: row[4], volume: row[5] }))
       .filter(row => [row.time, row.open, row.high, row.low, row.close].every(Number.isFinite)).sort((a, b) => a.time - b.time) : null;
@@ -90,7 +97,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   // GeckoTerminal recent pool trades (free): newest first, last 24h.
   async function geckoTrades(pool) {
     if (!MINT.test(pool)) return null;
-    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/trades`, { ttlMs: 30_000 });
+    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/trades`, { ttlMs: 8_000 });
     return Array.isArray(data?.data) ? data.data.map(row => row?.attributes).filter(Boolean) : null;
   }
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
