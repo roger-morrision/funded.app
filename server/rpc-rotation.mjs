@@ -14,7 +14,7 @@ export function createRotatingRpcTransport({ free = [], paid = [], now = Date.no
   const pool = [...free.map(t => ({ ...t, tier: 'free' })), ...paid.map(t => ({ ...t, tier: 'paid' }))]
     .map(entry => ({ ...entry, coolUntil: 0, requests: 0, failures: 0 }));
   if (!pool.length) throw Error('At least one RPC endpoint is required.');
-  let cursor = 0;
+  let cursor = 0, paidCursor = 0;
   // Endpoints that refuse a specific method (e.g. PublicNode's "indexed requests
   // require a personal token" 403) skip only that method for an hour.
   const methodBlocked = new Map();
@@ -24,7 +24,9 @@ export function createRotatingRpcTransport({ free = [], paid = [], now = Date.no
     const freeReady = pool.filter(entry => entry.tier === 'free' && entry.coolUntil <= t && !blocked(entry, method));
     for (let i = 0; i < freeReady.length; i++) order.push(freeReady[(cursor + i) % freeReady.length]);
     cursor = (cursor + 1) % Math.max(1, freeReady.length);
-    const paidReady = pool.filter(entry => entry.tier === 'paid' && entry.coolUntil <= t && !blocked(entry, method));
+    const paidAll = pool.filter(entry => entry.tier === 'paid' && entry.coolUntil <= t && !blocked(entry, method));
+    const paidReady = paidAll.map((_, i) => paidAll[(paidCursor + i) % paidAll.length]);
+    if (paidAll.length) paidCursor = (paidCursor + 1) % paidAll.length;
     if (paidFirst.has(method)) order.unshift(...paidReady); else order.push(...paidReady);
     if (!order.length) order.push([...pool].sort((a, b) => a.coolUntil - b.coolUntil)[0]);
     return order;

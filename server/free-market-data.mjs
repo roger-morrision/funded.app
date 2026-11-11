@@ -5,8 +5,10 @@ const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 export const WSOL = 'So11111111111111111111111111111111111111112';
 
 export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...args), now = Date.now, timeoutMs = 8000, jupiterApiKey = '', jupiterRps = 0 } = {}) {
-  // With a Jupiter API key (portal.jup.ag) calls go to api.jup.ag with the key;
-  // without one they use the keyless lite-api. JUPITER_RPS sets the swap pace.
+  // Swap quotes use api.jup.ag with the Jupiter API key (portal.jup.ag) when one
+  // is configured and fall back to the keyless lite-api lane (a separate limit)
+  // when the keyed lane is busy. Price and token lookups always use lite-api so
+  // they never spend the key's swap budget. JUPITER_RPS sets the keyed pace.
   const JUP = jupiterApiKey ? 'https://api.jup.ag' : 'https://lite-api.jup.ag';
   const jupHeaders = jupiterApiKey ? { 'x-api-key': jupiterApiKey } : {};
   const swapGapMs = Math.max(50, Math.round(1000 / (Number(jupiterRps) > 0 ? Number(jupiterRps) : 0.9)));
@@ -97,7 +99,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     const result = new Map();
     for (const batch of chunks([...new Set(mints.filter(m => MINT.test(m)))], 50)) {
       try {
-        const data = await getJson(`${JUP}/price/v3?ids=${batch.join(',')}`, { ttlMs: 30_000 });
+        const data = await getJson(`https://lite-api.jup.ag/price/v3?ids=${batch.join(',')}`, { ttlMs: 30_000 });
         for (const mint of batch) {
           const row = data?.[mint];
           if (row) result.set(mint, { mint, priceUsd: num(row.usdPrice), decimals: Number.isInteger(row.decimals) ? row.decimals : null,
@@ -126,7 +128,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   // Jupiter token search (free): icon, name, symbol, decimals and holder count.
   async function jupToken(mint) {
     if (!MINT.test(mint)) return null;
-    const rows = await getJson(`${JUP}/tokens/v2/search?query=${mint}`, { ttlMs: 600_000 });
+    const rows = await getJson(`https://lite-api.jup.ag/tokens/v2/search?query=${mint}`, { ttlMs: 600_000 });
     return Array.isArray(rows) ? rows.find(row => row?.id === mint) || null : null;
   }
   // GeckoTerminal token info (free): holder count and identity.
@@ -138,11 +140,15 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
     const query = new URLSearchParams({ inputMint, outputMint, amount: String(amount), slippageBps: String(slippageBps), restrictIntermediateTokens: 'true' });
     // Identical quotes within 4 s (refreshes, several viewers) share one call.
-    return getJson(`${JUP}/swap/v1/quote?${query}`, { ttlMs: 4_000, staleMs: 0, priority: true });
+    const read = base => getJson(`${base}/swap/v1/quote?${query}`, { ttlMs: 4_000, staleMs: 0, priority: true });
+    if (!jupiterApiKey) return read(JUP);
+    try { return await read(JUP); } catch (error) { if (error?.status === 400) throw error; return read('https://lite-api.jup.ag'); }
   }
   async function jupSwapInstructions({ quoteResponse, userPublicKey }) {
-    return getJson(`${JUP}/swap/v1/swap-instructions`, { ttlMs: 0, priority: true, method: 'POST', body: { quoteResponse, userPublicKey,
+    const read = base => getJson(`${base}/swap/v1/swap-instructions`, { ttlMs: 0, priority: true, method: 'POST', body: { quoteResponse, userPublicKey,
       wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 500_000, priorityLevel: 'medium' } } } });
+    if (!jupiterApiKey) return read(JUP);
+    try { return await read(JUP); } catch (error) { if (error?.status === 400) throw error; return read('https://lite-api.jup.ag'); }
   }
   return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupToken, jupQuote, jupSwapInstructions, GECKO_FRAMES };
 }
