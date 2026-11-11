@@ -42,6 +42,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = appState.exploreExplorer(`address/${mint}`); explorerLink.hidden = false; }
     const supply = Number.isFinite(data.marketCapUsd) && data.priceUsd > 0 ? data.marketCapUsd / data.priceUsd : null;
     appState.coinIndexedSupply = { mint, supply };
+    if (appState.coinActivity) appState.coinActivity.symbol = symbol;
     const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer');
     if (chartFooter) { const span = document.createElement('span'); span.textContent = Number.isFinite(supply) ? `Indexed candles · supply ≈ ${appState.formatOnChainNumber(supply, 0)}` : 'Indexed candles'; chartFooter.replaceChildren(span); }
     const solUsd = Number(appState.coinSolUsdPrice) > 0 ? Number(appState.coinSolUsdPrice)
