@@ -102,7 +102,7 @@ export function renderTradeAmountEstimate(
   }
   if (coinTradeEstimate.priceUsd > 0 && coinTradeEstimate.solUsd > 0 && !coinTradeEstimate.curve && !coinTradeEstimate.graduatedPool) {
     amountNode.textContent = `≈ ${formatTradeEstimateAmount(amountSol * coinTradeEstimate.solUsd / coinTradeEstimate.priceUsd)} ${coinTradeEstimate.symbol}`;
-    detailNode.textContent = 'Market price estimate · Connect a wallet for the live Jupiter quote with fees and slippage.';
+    detailNode.textContent = '';
     card.classList.add('is-ready');
     return;
   }
