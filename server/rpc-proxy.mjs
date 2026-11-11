@@ -72,6 +72,11 @@ export function createSolanaRpcProxy({
         if (rpcCache.size > 500) rpcCache.clear();
         rpcCache.set(cacheKey, { data: result, expiresAt: Date.now() + (request.method === 'getTransaction' ? 30_000 : request.method === 'getLatestBlockhash' ? 1_000 : 5_000) });
       }
+      // Record why a wallet-signed send or simulation was rejected (no transaction bytes logged).
+      if (['sendTransaction', 'simulateTransaction'].includes(request.method) && (result.error || result.result?.value?.err))
+        console.warn(JSON.stringify({ event: 'rpc_send_rejected', method: request.method, status: upstream.status,
+          error: result.error ? { code: result.error.code, message: String(result.error.message || '').slice(0, 300), logs: (result.error.data?.logs || []).slice(-6) }
+            : { err: result.result.value.err, logs: (result.result.value.logs || []).slice(-6) } }));
       return json(res, upstream.status, result);
     } catch { return json(res, 502, { jsonrpc: '2.0', id: request.id, error: { code: -32000, message: 'Solana RPC is unavailable.' } }); }
     finally { clearTimeout(timeout); rpcInflight -= 1; }
