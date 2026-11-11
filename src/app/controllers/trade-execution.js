@@ -137,7 +137,13 @@ export function createTradeExecutionController(appState) {
   async function requestTradeSignature(){
     if (appState.tradeActionBusy) return;
     const { mint, side, amount, slippagePercent, valid } = appState.tradeInputs();
-    if(holdUncertainTrade(mint))return;
+    // A saved signed trade is checked automatically; an expired, unlanded one clears.
+    const saved=uncertainTrade(appState.connectedWalletAddress,mint,appState.pendingTradeVerifications);
+    if(saved){
+      appState.setTradeStatus('Checking your previous trade before continuing…');
+      await verifyPendingTrade(null,saved.signature).catch(()=>{});
+      if(holdUncertainTrade(mint))return;
+    }
     if (!valid) return appState.setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.', true);
     // Give the wallet review a usable countdown even when the inline quote is
     // already near expiry. The refreshed quote is still checked before signing.
@@ -155,6 +161,13 @@ export function createTradeExecutionController(appState) {
       const session = appState.captureWalletSession();
       const inputKey = `${mint}:${side}:${amount}:${slippagePercent}:${session?.address || ''}`;
       if (!session || prepared.inputKey !== inputKey || Date.now() - prepared.preparedAt > TRADE_QUOTE_TTL_MS) return;
+      const balances = appState.tradeBalanceState;
+      const balancesCurrent = Boolean(balances.key && balances.key === appState.tradeBalanceKey());
+      if (balancesCurrent && side === 'buy' && balances.solLamports != null
+        && !appState.hasBuyBalance(balances.solLamports, { amountSol:amount, slippagePercent, feeBps:appTradeBps(appState), trade:prepared.trade }))
+        return appState.setTradeStatus('Not enough SOL for this buy plus the app fee and network costs. Lower the amount.', true);
+      if (balancesCurrent && side === 'sell' && balances.tokenRaw != null && amount > Number(balances.tokenRaw) / (10 ** balances.tokenDecimals))
+        return appState.setTradeStatus('This wallet does not hold that many tokens. Lower the amount.', true);
       readyToSign = true;
     } catch (error) { if (version === appState.tradeQuoteVersion) appState.setTradeStatus(appState.tradePreviewFailureMessage(error, side), true); }
     finally { appState.tradeActionBusy = false; appState.updateTradeActionState(); }

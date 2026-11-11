@@ -176,8 +176,11 @@ export function createTradeStateController(appState) {
       ? appState.hasBuyBalance(appState.tradeBalanceState.solLamports, { amountSol:amount, slippagePercent:inputs.slippagePercent, feeBps:appTradeBps(appState), trade:preview?.trade })
       : appState.tradeBalanceState.tokenRaw != null && amount <= Number(appState.tradeBalanceState.tokenRaw) / (10 ** appState.tradeBalanceState.tokenDecimals));
     const pending=uncertainTrade(appState.connectedWalletAddress,inputs.mint,appState.pendingTradeVerifications);
-    if (submit){submit.disabled = !!pending || appState.tradeActionBusy || !appState.wallet || !appState.canSignTransactions(appState.wallet) || !valid || !preview || !sufficient;
-      submit.title=pending?'Check the saved trade receipt before trading this coin again.':'';}
+    // Buy/Sell stays clickable; the click connects the wallet, checks a saved trade,
+    // refreshes the quote and explains any blocker. Only an in-flight trade disables it.
+    if (submit){submit.disabled = appState.tradeActionBusy;
+      submit.title=pending?'A saved trade is checked first when you continue.':'';
+      submit.dataset.ready=String(Boolean(!pending && appState.wallet && valid && preview && sufficient));}
   }
   // app-source-end
 
