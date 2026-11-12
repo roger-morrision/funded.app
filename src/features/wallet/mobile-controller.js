@@ -1,3 +1,4 @@
+import { APP_NET } from '../shared/app-network.js';
 import { Buffer } from 'buffer';
 import bs58 from 'bs58';
 
@@ -138,7 +139,7 @@ export function createMobileWalletController({
       const version = ++mobileWalletRequestVersion;
       const keyPair = nacl.box.keyPair();
       const link = new URL('https://phantom.app/ul/v1/connect');
-      link.search = new URLSearchParams({ app_url:window.location.origin, dapp_encryption_public_key:bs58.encode(keyPair.publicKey), redirect_link:flow.callbackUrl, cluster:'devnet' }).toString();
+      link.search = new URLSearchParams({ app_url:window.location.origin, dapp_encryption_public_key:bs58.encode(keyPair.publicKey), redirect_link:flow.callbackUrl, cluster:APP_NET }).toString();
       showMobileWalletRequest(link.toString(), 'connect');
       const result = await waitForMobileWalletFlow(flow, version);
       if (result.errorCode) throw new Error(result.errorMessage || 'Phantom connection was cancelled.');
