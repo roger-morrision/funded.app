@@ -7,7 +7,21 @@ const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EH5JBT5gH7r2uX8a5Ug8';
 const WSOL = 'So11111111111111111111111111111111111111112';
 
 export function createWalletHoldingsRoute({ connection, free, respond }) {
-  const cache = new Map();
+  const cache = new Map(), names = new Map();
+  let filling = null;
+  function fillNames(mints) {
+    if (filling || !mints.length) return filling;
+    filling = (async () => {
+      for (const mint of mints.slice(0, 40)) {
+        if (names.has(mint)) continue;
+        const info = await free.jupToken?.(mint).catch(() => null);
+        if (info?.symbol) names.set(mint, info);
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
+      if (names.size > 5000) names.clear();
+    })().finally(() => { filling = null; cache.clear(); });
+    return filling;
+  }
   const json = (...args) => { respond(...args); return true; };
   async function load(owner) {
     const key = new PublicKey(owner), rpc = connection();
@@ -26,8 +40,11 @@ export function createWalletHoldingsRoute({ connection, free, respond }) {
     const mints = [...byMint.keys()].slice(0, 60);
     const [dex, jup] = await Promise.all([free.dexTokens(mints).catch(() => new Map()), free.jupPrices(mints).catch(() => new Map())]);
     // Names, symbols and logos missing from DexScreener come from Jupiter's token list.
-    const named = new Map(await Promise.all(mints.filter(mint => !dex.get(mint)?.symbol).slice(0, 20)
-      .map(async mint => [mint, await free.jupToken?.(mint).catch(() => null)])));
+    // Known names are remembered; unknown ones fill in the background a few at a time.
+    const missing = mints.filter(mint => !dex.get(mint)?.symbol && !names.has(mint));
+    await Promise.all(missing.slice(0, 4).map(async mint => { const info = await free.jupToken?.(mint).catch(() => null); if (info?.symbol) names.set(mint, info); }));
+    void fillNames(missing.slice(4));
+    const named = names;
     const accounts = mints.map(mint => {
       const row = byMint.get(mint), market = dex.get(mint) || {}, info = named.get(mint) || {}, price = Number(market.priceUsd ?? jup.get(mint)?.priceUsd);
       return { ...row, market: { symbol: market.symbol || info.symbol || null, name: market.name || info.name || null,
