@@ -82,8 +82,10 @@ export function createExploreLoadingController(appState) {
             value: marketCap != null ? `MC · ${appState.formatUsd(marketCap)}` : 'MC unavailable', change: change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—',
             meta: marketCap != null ? `MC ${appState.formatCompactUsd(marketCap)} · ${record.source || 'Indexed'}` : (record.source || 'Indexed'), icon:String(record.symbol || 'T').slice(0, 1),
             source:record.source || 'Indexed', listingPayment:record.listingPayment || null, creator:record.creator || null, website:record.website || null, twitter:record.twitter || record.x || null, telegram:record.telegram || null, discord:record.discord || null,
-            complete:null, migrated:null, fetchedAt:record.fetchedAt || null, verifiedAt:new Date().toISOString(), mintDecimals:Number.isInteger(record.decimals) ? record.decimals : null,
-            volume24hUsd:numeric(record.volume24hUsd), liquidityUsd:numeric(record.liquidityUsd), holders:numeric(record.holders), marketCapUsd:marketCap, priceUsd:numeric(record.priceUsd),
+            // Venue from the indexed pair: Pump.fun curve is pre-migration; any DEX pool means migrated.
+            complete:record.dexId ? record.dexId !== 'pumpfun' : null, migrated:record.dexId ? record.dexId !== 'pumpfun' : null,
+            curveProgressPercent:record.dexId && record.dexId !== 'pumpfun' ? 100 : null, dexId:record.dexId || null, fetchedAt:record.fetchedAt || null, verifiedAt:new Date().toISOString(), mintDecimals:Number.isInteger(record.decimals) ? record.decimals : null,
+            volume24hUsd:numeric(record.volume24hUsd), liquidityUsd:numeric(record.liquidityUsd), holders:numeric(record.holders ?? record.holderCount), marketCapUsd:marketCap, priceUsd:numeric(record.priceUsd),
             priceChange24hPercent:change, createdTimestamp:record.createdTimestamp || null, lastTradeUnixTime:record.lastTradeUnixTime || record.lastTradeTimestamp || null });
         }
       } else if (records.length) {

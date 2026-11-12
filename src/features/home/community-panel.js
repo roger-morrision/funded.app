@@ -1,6 +1,7 @@
 import {escapeHtml as esc} from '../shared/display.js';
 import { callFigures, usdShort, signedUsd, multipleBadge, openCallShare } from '../callouts/call-share.js';
 import { solUsdPrice } from '../shared/token-identity.js';
+import { icon } from '../../../ui-icons.js';
 
 const short = value => `${String(value).slice(0,4)}…${String(value).slice(-4)}`;
 const mintValid = value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value || '');
@@ -10,7 +11,7 @@ function age(value) {
 }
 // Home "Chat & calls" card: caller, change since the call and time; the message;
 // a token row (market cap, holding value and its change since the call for calls).
-export function communityMessageMarkup(row, token = {}, solUsd = null) {
+export function communityMessageMarkup(row, token = {}, solUsd = null, wallet = null) {
   const hue = [...String(row.author)].reduce((sum,c) => sum+c.charCodeAt(0),0)%360;
   const change = row.callout?.marketChangePercent;
   const calledCapSol = row.callout?.marketCapSol;
@@ -25,7 +26,7 @@ export function communityMessageMarkup(row, token = {}, solUsd = null) {
   return `<article class="home-community-message home-call-card${row.callout ? ' is-call' : ''}" data-message-id="${esc(row.id)}">
     <header><span class="home-call-avatar" style="--author-hue:${hue}" aria-hidden="true">${esc(String(row.author).slice(0,2))}</span><a class="home-community-author" style="--author-hue:${hue}" href="/wallet/${encodeURIComponent(row.author)}">${esc(short(row.author))}</a>${badge ? `<b class="home-call-x" data-trend="${trend}" title="Market cap now vs. at the call">${esc(badge)}</b>` : row.callout ? '' : '<span class="home-community-kind">Chat</span>'}<time datetime="${esc(row.createdAt)}" title="${esc(row.createdAt)}">${esc(age(row.createdAt))}</time></header>
     <p>${esc(row.text)}</p>
-    <div class="home-call-foot"><a class="home-community-token home-call-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${logo}</span><strong>${esc(symbol)}</strong>${figures}</a>${row.callout ? `<button type="button" class="home-call-share" data-share-message="${esc(row.id)}" aria-label="Share this call">Share</button>` : ''}</div>
+    <div class="home-call-foot"><a class="home-community-token home-call-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${logo}</span><strong>${esc(symbol)}</strong>${figures}</a><div class="home-call-actions callout-actions"><button type="button" class="callout-like" data-like-message="${esc(row.id)}" data-mint="${esc(row.mint)}" data-liked="${wallet && Array.isArray(row.likedBy) && row.likedBy.includes(wallet) ? 'true' : 'false'}" aria-label="Like" title="Like">${icon('heart')}<span class="callout-like-count">${Number(row.likeCount) > 0 ? esc(String(row.likeCount)) : ''}</span></button><button type="button" class="callout-comment" data-comment-message="${esc(row.id)}" data-mint="${esc(row.mint)}" data-author="${esc(row.author)}" aria-label="Reply in this coin's chat" title="Reply in chat">${icon('chat')}</button><button type="button" class="callout-share" data-share-message="${esc(row.id)}" aria-label="Share" title="Share">${icon('share')}</button></div></div>
   </article>`;
 }
 
@@ -74,7 +75,7 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     if(feed.contains(document.activeElement)&&document.activeElement!==feed)return;
     loadIndexed();
     const solUsd=app.coinSolUsdPrice||solUsdPrice();
-    const html=messages.length?messages.map(row=>communityMessageMarkup(row,tokenFor(row.mint),solUsd)).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
+    const html=messages.length?messages.map(row=>communityMessageMarkup(row,tokenFor(row.mint),solUsd,app.connectedWalletAddress||null)).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
     if(html!==lastMarkup){const top=feed.scrollTop;feed.innerHTML=html;feed.scrollTop=top;lastMarkup=html;}
     app.loadVerifiedTokenLogos?.(feed);
     updateCoins();
@@ -106,8 +107,30 @@ export function mountHomeCommunity(app, document = globalThis.document) {
   });
   // Share a call from the feed: banner and prefilled post.
   feed.addEventListener('click',event=>{
+    // Like toggles with the signed-in wallet; comment replies in the coin's chat.
+    const like=event.target.closest('[data-like-message]');
+    if(like){
+      like.disabled=true;
+      void app.tokenChatRequest('like',{messageId:like.dataset.likeMessage},like.dataset.mint).then(result=>{
+        if(!result?.available)return;
+        like.dataset.liked=String(result.data.liked===true);
+        like.querySelector('.callout-like-count').textContent=result.data.likeCount>0?String(result.data.likeCount):'';
+        const row=messages.find(item=>item.id===like.dataset.likeMessage);
+        if(row){row.likeCount=result.data.likeCount;const by=new Set(row.likedBy||[]);const me=app.connectedWalletAddress;if(me){if(result.data.liked)by.add(me);else by.delete(me);}row.likedBy=[...by];lastMarkup='';}
+      }).catch(error=>app.showToast?.(error?.message||'Could not like this post.')).finally(()=>{like.disabled=false;});
+      return;
+    }
+    const comment=event.target.closest('[data-comment-message]');
+    if(comment){
+      const author=String(comment.dataset.author||'');
+      try{sessionStorage.setItem('funded.postBuyCall.text',`@${author.slice(0,4)}…${author.slice(-4)} `);}catch{}
+      location.assign(`/token/${encodeURIComponent(comment.dataset.mint)}?compose=callout`);
+      return;
+    }
     const share=event.target.closest('[data-share-message]');if(!share)return;
-    const row=messages.find(item=>item.id===share.dataset.shareMessage);if(!row?.callout)return;
+    const row=messages.find(item=>item.id===share.dataset.shareMessage);if(!row)return;
+    // Chat posts share the coin; calls share the call banner.
+    if(!row.callout){void app.openCoinShare?.(row.mint,tokenFor(row.mint).symbol||'Coin',tokenFor(row.mint).name||'');return;}
     const change=row.callout.marketChangePercent,called=row.callout.marketCapSol;
     void openCallShare({call:{id:row.id,mint:row.mint,author:row.author,text:row.text,createdAt:row.createdAt,calledMarketCapSol:called,
       currentMarketCapSol:Number.isFinite(change)&&called>0?called*(1+change/100):null,holdingPercent:row.callout.holdingPercent,token:{symbol:tokenFor(row.mint).symbol||''}},

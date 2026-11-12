@@ -45,7 +45,8 @@ try {
 try {
   if (document.documentElement.classList.contains('route-booting')) {
     const release = () => {
-      const routed = document.body && [...document.body.classList].some(name => name.startsWith('page-route-'));
+      // Wait for the requested page itself; the router may pass through Home first.
+      const routed = document.body && [...document.body.classList].some(name => name.startsWith('page-route-') && name !== 'page-route-overview');
       if (routed) { document.documentElement.classList.remove('route-booting'); observer.disconnect(); }
     };
     const observer = new MutationObserver(release);
