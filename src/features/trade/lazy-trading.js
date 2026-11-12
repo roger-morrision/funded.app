@@ -3,7 +3,17 @@
 // directly through the Pump SDK, with no aggregator rate limit; anything the
 // direct path cannot build (other DEXs, legacy migrations) routes through Jupiter.
 const MAINNET = import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta';
-const pumpCandidate = mint => /pump$/.test(String(mint?.toBase58?.() ?? mint ?? ''));
+// The token page records where a token trades (indexed DEX id). A Pump-suffixed
+// token already trading on a DEX (e.g. PumpSwap) goes straight to Jupiter, which
+// skips downloading the Pump SDK and several RPC reads that would fail anyway.
+const venues = new Map();
+export function setTradeVenueHint(mint, dexId) { if (mint) venues.set(String(mint), String(dexId || '').toLowerCase()); }
+const pumpCandidate = mint => {
+  const key = String(mint?.toBase58?.() ?? mint ?? '');
+  if (!/pump$/.test(key)) return false;
+  const venue = venues.get(key);
+  return !venue || venue === 'pumpfun';
+};
 const pumpSdk = () => import('../../../pump-trading.js');
 const jupiterSdk = () => import('../../../jupiter-trading.js');
 // Pools the direct Pump path cannot find (non-canonical PumpSwap pools) go straight

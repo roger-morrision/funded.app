@@ -51,7 +51,8 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     if (chartFooter) { const span = document.createElement('span'); span.textContent = Number.isFinite(supply) ? `Indexed candles · supply ≈ ${appState.formatOnChainNumber(supply, 0)}` : 'Indexed candles'; chartFooter.replaceChildren(span); }
     const solUsd = await solRequest;
     if (!current()) return;
-    appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6, priceUsd: data.priceUsd, solUsd };
+    appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6, priceUsd: data.priceUsd, solUsd, dexId: data.dexId || null };
+    if (data.dexId) void import('../trade/lazy-trading.js').then(module => module.setTradeVenueHint(mint, data.dexId)).catch(() => {});
     appState.renderTradeAmountEstimate?.();
     appState.updateTradeAmountLabel?.();
     void appState.refreshTradeBalances?.();
