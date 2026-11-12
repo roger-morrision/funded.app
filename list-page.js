@@ -218,7 +218,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (!mint) return;
     const existing = listings.find(item => item.mint === mint && item.onchainVerified === true && item.cluster === cluster);
     if (existing?.name && existing?.symbol) {
-      lookup = { mint, status:'verified', name:existing.name, symbol:existing.symbol };
+      lookup = { mint, status:'verified', name:existing.name, symbol:existing.symbol, details:{ image:`${location.origin}/api/tokens/${encodeURIComponent(mint)}/logo`, links:{} } };
       nameInput.value = existing.name;
       symbolInput.value = existing.symbol;
       draw();

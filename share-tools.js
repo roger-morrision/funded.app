@@ -1,3 +1,15 @@
+// Every richpad.fun link shared from the dialog carries the sharer's referral code.
+let referralCodeProvider = () => '';
+export function setShareReferralProvider(provider) { if (typeof provider === 'function') referralCodeProvider = provider; }
+function withReferral(input) {
+  try {
+    const url = new URL(input, globalThis.location?.origin);
+    if (url.origin !== globalThis.location?.origin || url.searchParams.has('ref')) return input;
+    const code = String(referralCodeProvider() || '').toUpperCase();
+    if (/^FND-[A-Z0-9]{8,16}$/.test(code)) url.searchParams.set('ref', code);
+    return url.toString();
+  } catch { return input; }
+}
 const CHANNELS = new Set(['x', 'telegram', 'whatsapp', 'facebook', 'linkedin', 'reddit']);
 let activeShare = null;
 
@@ -298,7 +310,7 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
   }
   const dialog = document.querySelector('#share-dialog');
   if (!dialog) throw new Error('Share menu is unavailable');
-  activeShare = { kind, title: cleanText(title, 100), url: taggedShareUrl(url), result };
+  activeShare = { kind, title: cleanText(title, 100), url: taggedShareUrl(withReferral(url)), result };
   if (!dialog.querySelector('#share-banner-format')) {
     const picker = document.createElement('label'); picker.className = 'share-banner-format'; picker.hidden = true;
     picker.innerHTML = 'Banner <select id="share-banner-format"><option value="wide">Wide 1200×630 · X, Facebook, LinkedIn</option><option value="square">Square 1080×1080 · Instagram, WhatsApp, Telegram</option></select>';

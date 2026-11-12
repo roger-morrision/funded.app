@@ -364,6 +364,7 @@ function updateReferralStatus(state){
   // app-source-end
 
   // app-source: 247
+  void import('../../../share-tools.js').then(module => module.setShareReferralProvider(() => registeredShareCode())).catch(() => {});
   function registeredShareCode(){
     if (!appState.connectedWalletAddress) return '';
     try {
