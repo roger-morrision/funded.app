@@ -16,7 +16,7 @@ function base58(bytes) {
 export function mountAdminListingButton({ anchor, getSession, connectWallet, onListed, setStatus }) {
   if (!anchor || document.getElementById('list-admin')) return () => {};
   const button = document.createElement('button');
-  button.type = 'button'; button.id = 'list-admin'; button.className = 'secondary-button list-admin-button'; button.hidden = true;
+  button.type = 'button'; button.id = 'list-admin'; button.className = 'secondary-button list-admin-button';
   button.textContent = 'List for free (admin)';
   anchor.after(button);
   const status = new Map();
@@ -32,13 +32,18 @@ export function mountAdminListingButton({ anchor, getSession, connectWallet, onL
     current = next;
     const wallet = getSession()?.address;
     check(wallet);
-    button.hidden = !(next.ready && next.mint && status.get(wallet) === true);
-    button.disabled = busy;
-    button.textContent = busy ? 'Listing…' : 'List for free (admin)';
+    const isAdmin = status.get(wallet) === true;
+    // Show button but disable for non-admin wallets so users can see the feature exists
+    button.hidden = !(next.ready && next.mint && !busy);
+    button.disabled = busy || !isAdmin;
+    button.textContent = busy ? 'Listing…' : isAdmin ? 'List for free (admin)' : 'List for free (admin only)';
+    button.title = isAdmin ? '' : 'Only available when signed in with an admin wallet';
   };
   button.addEventListener('click', async () => {
     const mint = current.mint;
     if (!mint || busy) return;
+    const isAdmin = status.get(getSession()?.address) === true;
+    if (!isAdmin) return;
     busy = true; update(current);
     try {
       let session = getSession();
