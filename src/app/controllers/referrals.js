@@ -224,6 +224,7 @@ function updateReferralStatus(state){
     ]);
     if (!appState.isWalletSessionCurrent(session)) return;
     appState.renderShareInsights(dashboardResult);
+    renderReferrer(dashboardResult.available && dashboardResult.data?.wallet === walletAddress ? dashboardResult.data.referrer : null);
     updateReferralList(dashboardResult.available&&dashboardResult.data?.wallet===walletAddress?dashboardResult.data:null);
     if (dashboardResult.available) {
       const creators = Number(dashboardResult.data.networkCreators || 0);
@@ -375,6 +376,18 @@ function updateReferralStatus(state){
   // app-source-end
 
   // app-source: 248
+  // "Referred by" line: the wallet whose link this wallet joined through.
+  function renderReferrer(referrer){
+    const host = document.querySelector('#referral-command-center .referral-kpi-grid') || document.querySelector('#referral-command-center');
+    let node = document.querySelector('#referral-referrer');
+    if (!host) return;
+    if (!referrer?.wallet || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(referrer.wallet)) { if (node) node.hidden = true; return; }
+    if (!node) { node = document.createElement('p'); node.id = 'referral-referrer'; node.className = 'referral-referrer'; host.before(node); }
+    const short = `${referrer.wallet.slice(0, 4)}…${referrer.wallet.slice(-4)}`;
+    const since = Date.parse(referrer.since);
+    node.hidden = false;
+    node.innerHTML = `Referred by <a href="/wallet/${encodeURIComponent(referrer.wallet)}">${appState.escapeHtml(short)}</a>${referrer.code ? ` · code <strong>${appState.escapeHtml(referrer.code)}</strong>` : ''}${Number.isFinite(since) ? ` · since ${appState.escapeHtml(new Date(since).toLocaleDateString())}` : ''}`;
+  }
   async function openCoinShare(mint, symbol = 'Coin', name = ''){
     if (!appState.validateSolanaMint(mint).valid) return appState.showToast('A valid token mint is required to share.');
     const url = new URL(`/token/${encodeURIComponent(mint)}`, location.origin);

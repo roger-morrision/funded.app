@@ -79,7 +79,11 @@ export function createReferralActivityRoutes({ store, body, clientKey, walletKey
         while(parent!==wallet&&level<3){parent=parents.get(parent);level++;}
         return {wallet:address,level,qualified:qualified.has(address)};
       }).sort((a,b)=>a.level-b.level||a.wallet.localeCompare(b.wallet));
-      return json(res, 200, { wallet, referrals, directCreators: direct.length, directCreatorsBySource, networkCreators: network.length, qualifiedCreators: qualified.size, conversionRate: network.length ? Number((qualified.size / network.length * 100).toFixed(1)) : null, shareVisits:code ? summarizeShareVisits(state.shareVisits, code) : null });
+      // Who referred this wallet (first-touch attribution), shown on the Referrals page.
+      const invitedBy = state.referrals.attributions[wallet];
+      const referrer = invitedBy?.status === 'active' && invitedBy.inviterWallet
+        ? { wallet: invitedBy.inviterWallet, code: invitedBy.inviterCode || null, since: invitedBy.capturedAt || null } : null;
+      return json(res, 200, { wallet, referrer, referrals, directCreators: direct.length, directCreatorsBySource, networkCreators: network.length, qualifiedCreators: qualified.size, conversionRate: network.length ? Number((qualified.size / network.length * 100).toFixed(1)) : null, shareVisits:code ? summarizeShareVisits(state.shareVisits, code) : null });
     }
     return false;
   }

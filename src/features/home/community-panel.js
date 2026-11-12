@@ -37,18 +37,13 @@ export function mountHomeCommunity(app, document = globalThis.document) {
   while(board.firstChild) coins.append(board.firstChild);
   board.append(coins); board.classList.add('home-discovery-layout');
   const panel=document.createElement('aside');panel.id='home-community';panel.setAttribute('aria-labelledby','home-community-title');panel.setAttribute('data-inline-status','');
-  panel.innerHTML=`<header class="home-community-heading"><h2 id="home-community-title">Chat &amp; calls</h2><a href="#callouts">Open calls ↗</a></header>
-    <div class="home-community-feed" tabindex="0" aria-label="Recent community messages"><p class="home-community-empty">Loading conversations…</p></div>
-    <form class="home-community-form"><label for="home-community-token">Post about a coin</label><select id="home-community-token" required><option value="">Choose a coin</option></select>
-    <label class="visually-hidden" for="home-community-text">Message</label><textarea id="home-community-text" maxlength="280" rows="2" placeholder="Share a message…" required></textarea>
-    <button type="submit">Connect wallet to chat</button><small>Holding this coin &amp; post your message to call this coin.</small></form>
-    <p class="home-community-status" role="status"></p>`;
+  panel.innerHTML=`<header class="home-community-heading"><h2 id="home-community-title">Calls</h2><a href="#callouts">Open calls ↗</a></header>
+    <div class="home-community-feed" tabindex="0" aria-label="Recent calls"><p class="home-community-empty">Loading calls…</p></div>`;
   board.append(panel);
-  const feed=panel.querySelector('.home-community-feed'),form=panel.querySelector('form'),select=form.querySelector('select'),input=form.querySelector('textarea'),button=form.querySelector('button'),status=panel.querySelector('[role="status"]');
-  let messages=[],loading=false,timer,lastMarkup='',busy=false;
+  const feed=panel.querySelector('.home-community-feed');
+  let messages=[],loading=false,timer,lastMarkup='';
   const active=()=>document.body.classList.contains('page-route-overview')&&!document.hidden;
   const assets=()=>Array.isArray(app.assets)?app.assets:[];
-  // Tokens discussed in chat but outside the Richpad feed: symbol and logo from the indexed market route.
   const indexed=new Map(),indexedTried=new Map();
   const tokenFor=mint=>assets().find(asset=>asset.address===mint)||indexed.get(mint)||{};
   function loadIndexed(){
@@ -61,24 +56,13 @@ export function mountHomeCommunity(app, document = globalThis.document) {
       lastMarkup='';render();
     }).catch(()=>{});
   }
-  function updateIdentity(){button.textContent=app.connectedWalletAddress ? (app.tokenChatSessionReady?.()?'Post':'Sign in & post') : 'Connect wallet to chat';}
-  function updateCoins(){
-    if(document.activeElement===select && select.options.length>1)return;
-    const selected=select.value,choices=new Map();
-    for(const row of assets()) if(mintValid(row.address)) choices.set(row.address,row.symbol||short(row.address));
-    for(const row of messages) if(mintValid(row.mint)&&!choices.has(row.mint)) choices.set(row.mint,tokenFor(row.mint).symbol||short(row.mint));
-    select.innerHTML='<option value="">Choose a coin</option>'+[...choices].map(([mint,symbol])=>`<option value="${esc(mint)}">${esc(symbol)} · ${esc(short(mint))}</option>`).join('');
-    if(choices.has(selected))select.value=selected;
-  }
   function render(){
-    // Do not disturb a focused token link while someone is using the feed.
     if(feed.contains(document.activeElement)&&document.activeElement!==feed)return;
     loadIndexed();
     const solUsd=app.coinSolUsdPrice||solUsdPrice();
-    const html=messages.length?messages.map(row=>communityMessageMarkup(row,tokenFor(row.mint),solUsd,app.connectedWalletAddress||null)).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
+    const html=messages.length?messages.filter(row=>row.callout).map(row=>communityMessageMarkup(row,tokenFor(row.mint),solUsd,app.connectedWalletAddress||null)).join(''):'<p class="home-community-empty">No calls yet.</p>';
     if(html!==lastMarkup){const top=feed.scrollTop;feed.innerHTML=html;feed.scrollTop=top;lastMarkup=html;}
     app.loadVerifiedTokenLogos?.(feed);
-    updateCoins();
   }
   async function refresh(){
     if(loading||!active())return;loading=true;
@@ -86,63 +70,13 @@ export function mountHomeCommunity(app, document = globalThis.document) {
       const result=await app.apiRequest('/api/token-chat/feed');
       if(!result?.available||!Array.isArray(result.data?.messages))throw new Error('Unavailable');
       messages=result.data.messages;if(active())render();
-    }catch{if(active()){if(!messages.length)feed.innerHTML='<p class="home-community-empty">Conversations are unavailable. Retrying shortly.</p>';else status.textContent='Showing the last loaded messages. Reconnecting…';}}
+    }catch{if(active()){if(!messages.length)feed.innerHTML='<p class="home-community-empty">Calls are unavailable. Retrying shortly.</p>';}}
     finally{loading=false;}
   }
   function schedule(){clearTimeout(timer);if(active()){void refresh();timer=setTimeout(schedule,30000);}}
-  form.addEventListener('submit',async event=>{
-    event.preventDefault();if(busy)return;
-    // Connecting alone never publishes a message.
-    if(!app.connectedWalletAddress){try{await app.connectWallet();updateIdentity();}catch{status.textContent='Wallet connection was not completed.';}return;}
-    if(!mintValid(select.value)||!input.value.trim())return;
-    busy=true;button.disabled=true;const mint=select.value,text=input.value.trim();
-    try{
-      const result=await app.tokenChatRequest('post',{text},mint);
-      if(!result?.available||!result.data?.message)throw new Error('Posting could not be confirmed. Check the conversation before retrying.');
-      if(input.value.trim()===text)input.value='';
-      status.textContent=result.data.calloutStatus==='recorded'?'Call posted.':result.data.calloutStatus==='not-holder'?'Chat posted.':'Chat posted. No new call was recorded; holding, market and call-limit checks apply.';
-      await refresh();
-    }catch(error){status.textContent=error.message||'Could not post. Please try again.';}
-    finally{busy=false;button.disabled=false;updateIdentity();}
-  });
-  // Share a call from the feed: banner and prefilled post.
-  feed.addEventListener('click',event=>{
-    // Like toggles with the signed-in wallet; comment replies in the coin's chat.
-    const like=event.target.closest('[data-like-message]');
-    if(like){
-      like.disabled=true;
-      void app.tokenChatRequest('like',{messageId:like.dataset.likeMessage},like.dataset.mint).then(result=>{
-        if(!result?.available)return;
-        like.dataset.liked=String(result.data.liked===true);
-        like.querySelector('.callout-like-count').textContent=result.data.likeCount>0?String(result.data.likeCount):'';
-        const row=messages.find(item=>item.id===like.dataset.likeMessage);
-        if(row){row.likeCount=result.data.likeCount;const by=new Set(row.likedBy||[]);const me=app.connectedWalletAddress;if(me){if(result.data.liked)by.add(me);else by.delete(me);}row.likedBy=[...by];lastMarkup='';}
-      }).catch(error=>app.showToast?.(error?.message||'Could not like this post.')).finally(()=>{like.disabled=false;});
-      return;
-    }
-    const comment=event.target.closest('[data-comment-message]');
-    if(comment){
-      const author=String(comment.dataset.author||'');
-      try{sessionStorage.setItem('funded.postBuyCall.text',`@${author.slice(0,4)}…${author.slice(-4)} `);}catch{}
-      location.assign(`/token/${encodeURIComponent(comment.dataset.mint)}?compose=callout`);
-      return;
-    }
-    const share=event.target.closest('[data-share-message]');if(!share)return;
-    const row=messages.find(item=>item.id===share.dataset.shareMessage);if(!row)return;
-    // Chat posts share the coin; calls share the call banner.
-    if(!row.callout){void app.openCoinShare?.(row.mint,tokenFor(row.mint).symbol||'Coin',tokenFor(row.mint).name||'');return;}
-    const change=row.callout.marketChangePercent,called=row.callout.marketCapSol;
-    void openCallShare({call:{id:row.id,mint:row.mint,author:row.author,text:row.text,createdAt:row.createdAt,calledMarketCapSol:called,
-      currentMarketCapSol:Number.isFinite(change)&&called>0?called*(1+change/100):null,holdingPercent:row.callout.holdingPercent,token:{symbol:tokenFor(row.mint).symbol||''}},
-      solUsd:app.coinSolUsdPrice||solUsdPrice(),wallet:app.connectedWalletAddress||null,referralCode:app.registeredShareCode?.()||''});
-  });
   window.addEventListener('funded:token-identities',()=>{lastMarkup='';if(active())render();});
-  // Allow connecting without a coin/message, while native validation still protects posts.
-  button.addEventListener('click',event=>{if(!app.connectedWalletAddress){event.preventDefault();form.dispatchEvent(new Event('submit',{cancelable:true}));}});
-  document.addEventListener('funded:verified-search-index',()=>{updateCoins();if(active())render();});
-  window.addEventListener('funded:reward-identity-change',updateIdentity);
   window.addEventListener('funded:route-change',schedule);
   window.addEventListener('hashchange',()=>setTimeout(schedule,0));
   document.addEventListener('visibilitychange',schedule);
-  updateCoins();updateIdentity();schedule();
+  schedule();
 }
