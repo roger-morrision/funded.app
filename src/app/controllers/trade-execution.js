@@ -311,6 +311,9 @@ export function createTradeExecutionController(appState) {
       }
       if (appState.getCoinMintAddress() === pending.mint) void appState.loadCoinOnChain(pending.mint);
       appState.showToast(`${pending.side === 'buy' ? 'Buy' : 'Sell'} verified on Solana`);
+      // Offer to call the coin right after a verified buy.
+      if (pending.side === 'buy') void import('../../features/callouts/post-buy-call.js')
+        .then(module => module.showPostBuyCall({ mint:pending.mint, symbol:pending.symbol, app:appState })).catch(() => {});
       appState.refreshWalletInfo();
       void appState.refreshPortfolioHoldings();
     } catch {

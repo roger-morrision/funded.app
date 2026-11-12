@@ -79,3 +79,24 @@ export function createHolderShareReader({ getConnection, timeoutMs = 8_000 }) {
     finally { clearTimeout(timer); }
   };
 }
+
+// Mainnet calls also cover tokens outside Pump (any DEX or launchpad): their
+// market cap comes from the indexed DexScreener pair, converted to SOL.
+const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+export function withIndexedCalloutCaps(readPumpCaps, { solanaCluster, readDex, readSolUsd }) {
+  return async function readMarketCaps(mintList, options) {
+    const caps = await readPumpCaps(mintList, options);
+    if (solanaCluster === 'devnet') return caps;
+    const missing = Object.keys(caps).filter(mint => !caps[mint]);
+    if (!missing.length) return caps;
+    const [dex, sol] = await Promise.all([readDex(missing).catch(() => new Map()), readSolUsd().catch(() => null)]);
+    for (const mint of missing) {
+      const row = dex.get(mint), solUsd = Number(sol?.priceUsd);
+      const solPerUsd = row?.quoteMint === WSOL_MINT && row.priceNative > 0 && row.priceUsd > 0 ? row.priceNative / row.priceUsd : solUsd > 0 ? 1 / solUsd : null;
+      const marketCapSol = Number(row?.marketCapUsd) * solPerUsd;
+      if (Number.isFinite(marketCapSol) && marketCapSol > 0) caps[mint] = { marketCapSol, priceSol: Number(row.priceUsd) * solPerUsd || null,
+        graduated: true, source: 'indexed', observedAt: new Date().toISOString() };
+    }
+    return caps;
+  };
+}

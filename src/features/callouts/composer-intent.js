@@ -35,6 +35,9 @@ export function mountCalloutIntent(app) {
     const form = document.querySelector('#coin-chat-form');
     if (!form) return;
     const field = form.querySelector('input:not([type="checkbox"])');
+    // Text written in the post-buy call pop-up on another page arrives here for review.
+    let draft = ''; try { draft = sessionStorage.getItem('funded.postBuyCall.text') || ''; sessionStorage.removeItem('funded.postBuyCall.text'); } catch { /* optional */ }
+    if (field && draft && !field.value) { field.value = draft.slice(0, Number(field.maxLength) > 0 ? Number(field.maxLength) : 280); field.dispatchEvent(new Event('input', { bubbles: true })); }
     field?.focus({preventScroll:true}); form.scrollIntoView({block:'center'});
     fulfilled = true;
     const url = new URL(location.href); url.searchParams.delete('compose'); history.replaceState(history.state, '', url);
