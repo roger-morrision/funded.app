@@ -1,3 +1,4 @@
+import { APP_NET } from '../../features/shared/app-network.js';
 import { readPendingBurn } from '../../features/funded/burn-recovery.js';
 import { mountBuybackProgressPanels } from '../../features/funded/buyback-progress-ui.js';
 import { fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
@@ -52,7 +53,7 @@ export function createBuybackController(appState) {
       const deadline = AbortSignal.timeout(30_000);
       const response = await appState.apiRequest('/api/buyback/status', { signal: signal ? AbortSignal.any([signal, deadline]) : deadline });
       signal?.throwIfAborted();
-      if (!response.available || !response.data || response.data.cluster !== 'devnet') throw new Error('Devnet buyback index unavailable.');
+      if (!response.available || !response.data || response.data.cluster !== APP_NET) throw new Error('Buyback index unavailable.');
       appState.buybackNetworkState = { status:'ready', receipts:Array.isArray(response.data.receipts) ? response.data.receipts : [], pending:Array.isArray(response.data.pending) ? response.data.pending : [], dashboard:response.data.dashboard || null, automationEnabled:response.data.automationEnabled === true,
         executionReady:response.data.executionReady === true, minimumOrderLamports:response.data.minimumOrderLamports,
         executionPolicy:response.data.executionPolicy,

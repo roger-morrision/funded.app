@@ -94,7 +94,7 @@ export function calloutRowMarkup(row, { solUsd, wallet, nowMs = Date.now(), fres
   <header class="callout-head-row"><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><span class="callout-who"><span class="callout-name"><a class="callout-author" href="/wallet/${encodeURIComponent(row.author)}">${escape(shortWallet(row.author))}</a>${you}${badge ? `<b class="callout-x" data-trend="${trend}" title="Market cap now vs. at the call">${escape(badge)}</b>` : ''}${row.holdingPercent > 0 ? '<span class="callout-holder" title="Held the coin when calling">Holder</span>' : ''}</span><small><button type="button" class="callout-filter-author" data-callout-author="${escape(row.author)}">${escape(record)}</button></small></span><time class="callout-age" datetime="${escape(row.createdAt)}">${escape(shortAge(row.createdAt, nowMs))}</time></header>
   <p class="callout-text">${escape(row.text)}</p>
   <div class="callout-foot"><a class="callout-token-row" href="/token/${encodeURIComponent(row.mint)}" title="${escape(row.token?.name || 'Open coin')}">${image}<strong>${escape(symbol.startsWith('$') ? symbol : `$${symbol}`)}</strong><span><i>MC</i> ${escape(usdShort(f.currentCapUsd ?? f.calledCapUsd))}</span>${Number.isFinite(f.holdUsd) ? `<span><i>Hold</i> ${escape(usdShort(f.holdUsd))}</span>` : ''}${holdChange}<span class="callout-chevron" aria-hidden="true">›</span></a>
-  <div class="callout-actions"><button type="button" class="callout-like" aria-label="Like this call" title="Like">${icon('heart')}</button><button type="button" class="callout-comment" aria-label="Comment on this call" title="Comment">${icon('chat')}</button><button type="button" class="callout-share" data-share-call="${escape(row.id)}" aria-label="Share this call">${icon('share')}</button></div></div>
+  <div class="callout-actions"><button type="button" class="callout-like" data-like-call="${escape(row.id)}" data-mint="${escape(row.mint)}" data-liked="${wallet && Array.isArray(row.likedBy) && row.likedBy.includes(wallet) ? 'true' : 'false'}" aria-label="Like this call" title="Like">${icon('heart')}<span class="callout-like-count">${Number(row.likeCount) > 0 ? escape(String(row.likeCount)) : ''}</span></button><button type="button" class="callout-comment" data-comment-call="${escape(row.id)}" data-mint="${escape(row.mint)}" data-author="${escape(row.author)}" aria-label="Reply in this coin's chat" title="Reply in chat">${icon('chat')}</button><button type="button" class="callout-share" data-share-call="${escape(row.id)}" aria-label="Share this call">${icon('share')}</button></div></div>
   <p class="callout-figures">Called at ${escape(usdShort(f.calledCapUsd))} MC${Number.isFinite(f.changePercent) ? ` · ${f.changePercent >= 0 ? '+' : ''}${escape(f.changePercent.toFixed(1))}% since` : ''} · peak ${escape(formatMultiple(row.peakMultiple))}</p>
   </li>`;
 }
@@ -196,6 +196,29 @@ export function mountCallouts(app, document = globalThis.document) {
   }
 
   page.addEventListener('click', async event => {
+    // Like toggles with the signed-in wallet; comment replies in the coin's chat.
+    const like = event.target.closest('[data-like-call]');
+    if (like) {
+      like.disabled = true;
+      try {
+        const result = await app.tokenChatRequest('like', { messageId: like.dataset.likeCall }, like.dataset.mint);
+        if (result?.available) {
+          like.dataset.liked = String(result.data.liked === true);
+          like.querySelector('.callout-like-count').textContent = result.data.likeCount > 0 ? String(result.data.likeCount) : '';
+          const row = state.feed?.callouts?.find(item => item.id === like.dataset.likeCall);
+          if (row) { row.likeCount = result.data.likeCount; const by = new Set(row.likedBy || []); const me = app.connectedWalletAddress; if (me) { if (result.data.liked) by.add(me); else by.delete(me); } row.likedBy = [...by]; }
+        }
+      } catch (error) { app.showToast?.(error?.message || 'Could not like this call.'); }
+      finally { like.disabled = false; }
+      return;
+    }
+    const comment = event.target.closest('[data-comment-call]');
+    if (comment) {
+      const author = String(comment.dataset.author || '');
+      try { sessionStorage.setItem('funded.postBuyCall.text', `@${author.slice(0, 4)}…${author.slice(-4)} `); } catch {}
+      location.assign(`/token/${encodeURIComponent(comment.dataset.mint)}?compose=callout`);
+      return;
+    }
     const shareCall = event.target.closest('[data-share-call]');
     if (shareCall) {
       const call = state.feed?.callouts?.find(row => row.id === shareCall.dataset.shareCall);

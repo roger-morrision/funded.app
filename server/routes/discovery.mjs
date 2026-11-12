@@ -64,6 +64,23 @@ export function createDiscoveryRoutes({
   // verified paid listings on this cluster, with market fields from the free
   // DexScreener batch (falling back to the discovered-token cache).
   let registryCache = null;
+  const registryHolders = new Map(), holdersCheckedAt = new Map();
+  let holdersRefresh = null;
+  function refreshRegistryHolders(mints) {
+    const due = mints.filter(mint => Date.now() - (holdersCheckedAt.get(mint) || 0) > 30 * 60_000);
+    if (!due.length || holdersRefresh) return holdersRefresh;
+    const positive = value => Number.isSafeInteger(value) && value > 0 ? value : null;
+    holdersRefresh = (async () => {
+      for (const mint of due) {
+        holdersCheckedAt.set(mint, Date.now());
+        const count = positive((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count)
+          ?? positive((await freeMarketData?.jupToken?.(mint).catch(() => null))?.holderCount);
+        if (count != null) registryHolders.set(mint, count);
+      }
+      registryCache = null;
+    })().finally(() => { holdersRefresh = null; });
+    return holdersRefresh;
+  }
   async function mainnetRegistry() {
     if (registryCache && Date.now() - registryCache.at < 15_000) return registryCache.items;
     const state = await store.read();
@@ -82,8 +99,10 @@ export function createDiscoveryRoutes({
     const [dex, cached] = await Promise.all([freeMarketData && mints.length ? freeMarketData.dexTokens(mints).catch(() => new Map()) : new Map(),
       tokenCache && mints.length ? tokenCache.read(mints).catch(() => new Map()) : new Map()]);
     const fresh = [];
-    const holders = new Map(await Promise.all(mints.slice(0, 40).map(async mint => [mint,
-      Number((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count)])));
+    // Holder counts (GeckoTerminal, else Jupiter) refresh in the background every
+    // 30 minutes; the list answers immediately with the last known counts.
+    const holders = registryHolders;
+    void refreshRegistryHolders(mints.slice(0, 40));
     const items = mints.map(mint => {
       const base = byMint.get(mint), market = dex.get(mint) || cached.get(mint) || {};
       if (dex.get(mint)) fresh.push({ ...(cached.get(mint) || {}), ...dex.get(mint), mint });

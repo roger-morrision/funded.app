@@ -1,3 +1,4 @@
+import { APP_NET } from '../shared/app-network.js';
 import { dailyBonusPayments } from '../fees/daily-bonus-payments.js';
 
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -28,7 +29,7 @@ export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClai
   if (!ADDRESS.test(String(wallet || ''))) return [];
   const rows = [];
   const seen = new Set();
-  if (experience?.cluster === 'devnet' && experience.wallet?.address === wallet) {
+  if (experience?.cluster === APP_NET && experience.wallet?.address === wallet) {
     for (const token of experience.wallet.rows || []) {
       if (!ADDRESS.test(String(token.mint || ''))) continue;
       for (const payout of token.payouts || []) {
@@ -79,7 +80,7 @@ export function walletHistoryRows({ wallet, experience, airdrops = [], bonusClai
       href:`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,
       time:Date.parse(claim.paidAt || '') || 0 });
   }
-  if (dailyBonus?.cluster === 'devnet' && Array.isArray(dailyBonus.snapshots)) {
+  if (dailyBonus?.cluster === APP_NET && Array.isArray(dailyBonus.snapshots)) {
     const sources = dailyBonus.snapshots.filter(row => /^\d{4}-\d{2}-\d{2}$/.test(row.day || ''))
       .flatMap(row => (Array.isArray(row.sources) ? row.sources : []).map(source => ({ ...source, snapshotDay:row.day })));
     const payments = dailyBonusPayments({ sources }).get(wallet);

@@ -85,7 +85,10 @@ function balanceDeltaSwap({transaction,keys,wallet,mints}) {
   if (tokens.length!==1||sol===0n) return null;
   const [mint,delta]=tokens[0],decimals=mints.get(mint)?.decimals;
   if (!Number.isInteger(decimals)||(delta>0n)===(sol>0n)) return null;
-  const solLamports=sol<0n?-sol:sol,tokenAmountRaw=delta<0n?-delta:delta;
+  let solLamports=sol<0n?-sol:sol;const tokenAmountRaw=delta<0n?-delta:delta;
+  // A buy that opened the token account also paid its rent; that is not trade volume.
+  const hadAccount=(meta.preTokenBalances||[]).some(row=>row.owner===wallet&&row.mint===mint);
+  if(delta>0n&&!hadAccount&&solLamports>2_039_280n)solLamports-=2_039_280n;
   // Ignore dust movements (rent refunds, airdrops) that are not swaps.
   if (solLamports<10_000n) return null;
   return {mint,decimals,side:delta>0n?'buy':'sell',solLamports:String(solLamports),tokenAmountRaw:String(tokenAmountRaw)};

@@ -40,6 +40,27 @@ export const TRADE_FEE_BPS = Number(import.meta.env.VITE_FUNDED_TRADE_FEE_BPS ||
 
 // Lets styles switch Mainnet behavior (in-app Jupiter trading for external tokens).
 if (APP_IS_MAINNET) globalThis.document?.documentElement?.classList.add('app-mainnet');
+// Features that need the Richpad programs (reserve funding, bonus program
+// dashboard, settlement activity) are not available on Mainnet: answer those reads
+// locally with the server's own "not configured" reply instead of a network call.
+if (APP_IS_MAINNET && typeof globalThis.fetch === 'function' && !globalThis.__richpadProgramReads) {
+  globalThis.__richpadProgramReads = true;
+  const nativeFetch = globalThis.fetch.bind(globalThis);
+  const PROGRAM_ONLY = [
+    [/^\/api\/airdrops\/reserves(?:\?|$)/, { error: 'Verified Solana community reserve checks are unavailable.' }],
+    [/^\/api\/financial\/activity(?:\?|$)/, { error: 'Financial insights are unavailable on this network.' }],
+    [/^\/api\/daily-bonus\/dashboard(?:\?|$)/, { error: 'Daily bonus requires a configured reviewed program and authority for the selected network.', code: 'BONUS_NOT_CONFIGURED' }],
+  ];
+  globalThis.fetch = (input, init) => {
+    try {
+      const method = String(init?.method || input?.method || 'GET').toUpperCase();
+      const url = new URL(typeof input === 'string' || input instanceof URL ? String(input) : input.url, globalThis.location?.href);
+      const match = method === 'GET' && url.origin === globalThis.location?.origin && PROGRAM_ONLY.find(([pattern]) => pattern.test(url.pathname + url.search));
+      if (match) return Promise.resolve(new Response(JSON.stringify(match[1]), { status: 503, headers: { 'content-type': 'application/json' } }));
+    } catch { /* fall through to the network */ }
+    return nativeFetch(input, init);
+  };
+}
 // Mainnet visitors see Mainnet wording only (shared Devnet copy is rewritten in place).
 if (APP_IS_MAINNET && globalThis.document) {
   const startWording = () => {

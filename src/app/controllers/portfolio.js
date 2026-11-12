@@ -1,3 +1,4 @@
+import { APP_NET } from '../../features/shared/app-network.js';
 import { routeGroup } from '../route-group.js';
 import { walletHistoryRows, walletBonusCoverage } from '../../features/portfolio/wallet-history-model.js';
 import { readPortfolioTokenAccounts, portfolioLookupReason } from '../../features/portfolio/holdings-read.js';
@@ -117,9 +118,9 @@ export function createPortfolioController(appState) {
     if (request !== walletHistoryRequest || address !== appState.connectedWalletAddress
       || address !== appState.getWalletDetailAddress()) return;
     const experience = experienceResponse.available
-      && experienceResponse.data?.cluster === 'devnet'
+      && experienceResponse.data?.cluster === APP_NET
       && experienceResponse.data.wallet?.address === address ? experienceResponse.data : null;
-    const reserves = reservesResponse.available && reservesResponse.data?.cluster === 'devnet'
+    const reserves = reservesResponse.available && reservesResponse.data?.cluster === APP_NET
       && Array.isArray(reservesResponse.data.reserves)
       ? reservesResponse.data.reserves.filter(row => row.verified === true
         && ['drop-active','drop-closed'].includes(row.status) && appState.validateSolanaMint(row.mint).valid)
@@ -141,7 +142,7 @@ export function createPortfolioController(appState) {
       mint:reserve.mint, symbol:appState.verifiedLaunchPolicies.find(row => row.mint === reserve.mint)?.symbol || '',
       reservedTokens:reserve.reservedTokens, totalBaseUnits:reserve.totalBaseUnits, proof,
     }));
-    const dailyBonus = dailyBonusResponse.available && dailyBonusResponse.data?.cluster === 'devnet'
+    const dailyBonus = dailyBonusResponse.available && dailyBonusResponse.data?.cluster === APP_NET
       && Array.isArray(dailyBonusResponse.data.snapshots) ? dailyBonusResponse.data : null;
     const coverage = {
       claim:experience ? 'ready' : 'unavailable',

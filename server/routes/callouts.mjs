@@ -48,6 +48,12 @@ export function createCalloutFeed({ store, readMarketCaps, readTokenMeta = mint 
       readMarketCaps(mints).catch(() => ({})),
       Promise.all(mints.map(async mint => [mint, await tokenMeta(mint)])).then(Object.fromEntries),
     ]);
+    // Likes live on each call's chat message.
+    const likes = new Map();
+    await Promise.all(mints.map(async mint => {
+      const messages = await Promise.resolve(store.readCoinChat?.(mint, 200)).catch(() => []);
+      for (const message of messages || []) if (Array.isArray(message.likes)) likes.set(message.id, message.likes);
+    }));
     const raised = [];
     const callouts = recent.map(entry => {
       const current = caps[entry.mint]?.marketCapSol ?? null;
@@ -55,6 +61,7 @@ export function createCalloutFeed({ store, readMarketCaps, readTokenMeta = mint 
       if (current && current > (entry.peakMarketCapSol || entry.marketCapSol) * 1.02) raised.push([entry.id, current]);
       return {
         id: entry.id, mint: entry.mint, author: entry.author, text: entry.text, createdAt: entry.createdAt,
+        likeCount: likes.get(entry.id)?.length || 0, likedBy: (likes.get(entry.id) || []).slice(-200),
         token: tokens[entry.mint] || null,
         holdingPercent: Number.isFinite(entry.holdingPercent) ? entry.holdingPercent : null,
         calledMarketCapSol: entry.marketCapSol, currentMarketCapSol: current, peakMarketCapSol: peak,

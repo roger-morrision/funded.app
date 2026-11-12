@@ -2,6 +2,7 @@
 // what is waiting in the pot for the next payout, and how often it pays.
 // Reads /api/rewards/experience?mint=… once per coin; hidden for coins that
 // do not share creator fees with holders.
+import { APP_NET } from '../shared/app-network.js';
 import { receiptUrl } from '../experience/receipt-inspector.js';
 import { signature, address, utc } from '../experience/view-utils.js';
 import { formatReviewSol } from '../../../launch-review.js';
@@ -95,10 +96,10 @@ export function mountHolderRewardsCard(app, document = globalThis.document, wind
     const request = ++serial;
     const result = await app.apiRequest(`/api/rewards/experience?mint=${encodeURIComponent(mint)}`).catch(() => null);
     if (request !== serial) return;
-    const token = result?.available === true && result.data?.cluster === 'devnet' ? result.data?.tokens?.find(item => item.mint === mint) : null;
+    const token = result?.available === true && result.data?.cluster === APP_NET ? result.data?.tokens?.find(item => item.mint === mint) : null;
     const summary = holderRewardsSummary(token);
     node.innerHTML = holderRewardsMarkup(summary, { solUsd: app.coinSolUsdPrice });
-    if (summary && result.data.cluster === 'devnet') {
+    if (summary && result.data.cluster === APP_NET) {
       node.insertAdjacentHTML('beforeend', holderTransfersMarkup(result.data.events, mint, result.data.generatedAt));
       if (result.data.evidence?.status === 'partial') {
         node.querySelector('.holder-rewards-main').textContent = 'Holder payment history unavailable.';

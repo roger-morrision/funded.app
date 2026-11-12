@@ -129,7 +129,12 @@ export function createWalletConnectController(appState) {
     }
     const choice = await appState.chooseWallet(appState.injectedWalletProviders(), { devnet:appState.APP_CLUSTER === 'devnet', preferred:appState.rememberedWalletProviderId() });
     if (!choice) return;
-    if (choice.mobile) { await appState.mobileWallet.open({ interactiveSignIn }); return; }
+    if (choice.mobile) {
+      // A failed QR start (relay unavailable, network) is shown instead of closing silently.
+      try { await appState.mobileWallet.open({ interactiveSignIn }); }
+      catch (error) { appState.showToast?.(error?.message || 'Phone wallet connection could not start. Try again.'); }
+      return;
+    }
     const provider = choice.provider;
     const request = ++appState.walletConnectRequest;
     try {

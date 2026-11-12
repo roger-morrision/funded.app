@@ -13,7 +13,7 @@ export function deploymentCluster(env) {
 // follows, favorites, referral identity and token page metadata reads.
 export const MAINNET_NON_PROGRAM_POSTS=Object.freeze(new Set([
   '/api/solana/rpc','/api/listings','/api/listings/quote','/api/burn-receipts',
-  '/api/boosts/quote','/api/boosts/prepare','/api/boosts/confirm','/api/trade/jupiter/build','/api/client-errors','/api/creator-support/issues','/api/listings/admin',
+  '/api/boosts/quote','/api/boosts/prepare','/api/boosts/confirm','/api/trade/jupiter/build','/api/client-errors','/api/creator-support/issues','/api/listings/admin','/api/mobile-wallet/relay',
   '/api/watchlist','/api/account-preferences','/api/token-metadata','/api/tokens/metadata','/api/shares/visit',
   '/api/referrals/registration/prepare','/api/referrals/registration/verify',
   '/api/referrals/attribution/prepare','/api/referrals/attribution/verify',
@@ -21,7 +21,9 @@ export const MAINNET_NON_PROGRAM_POSTS=Object.freeze(new Set([
 ]));
 // Wallet-signed token chat (post, delete own, report) and its session handshake.
 export const MAINNET_NON_PROGRAM_POST_PATTERNS=Object.freeze([
-  /^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/chat(?:\/(?:delete|report))?$/,
+  // Phantom-on-phone QR relay: passes requests between this tab and the phone wallet, which signs.
+  /^\/api\/mobile-wallet\/(?:callback|relay|sign|sign-request|trade|trade-request|trade-refresh)\/[a-f0-9]{48}$/,
+  /^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/chat(?:\/(?:delete|report|like))?$/,
   /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/,
 ]);
 export const mainnetNonProgramWrites=(env=process.env)=>String(env.FUNDED_MAINNET_NON_PROGRAM_WRITES||'').toLowerCase()==='true';

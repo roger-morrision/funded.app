@@ -1,3 +1,4 @@
+import { APP_NET } from '../shared/app-network.js';
 import { addressPattern, signaturePattern, validLamports, solAmount } from './round-state.js';
 
 // Owns device alert preferences and seen receipts; callers own status refreshes.
@@ -38,7 +39,7 @@ export function createJackpotAlerts({ section, isLoaded, document = globalThis.d
   function updateAlerts(data, enabled) {
     latestReceipts = ['creator', 'trader'].flatMap(kind =>
       (Array.isArray(data[kind].history) ? data[kind].history : [])
-        .filter(row => row?.status === 'paid' && row?.cluster === 'devnet'
+        .filter(row => row?.status === 'paid' && row?.cluster === APP_NET
           && signaturePattern.test(String(row.signature || ''))
           && addressPattern.test(String(row.winner || ''))
           && validLamports(row.amountLamports) && BigInt(row.amountLamports) > 0n)

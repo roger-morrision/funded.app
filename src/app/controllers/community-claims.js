@@ -1,3 +1,4 @@
+import { APP_NET } from '../../features/shared/app-network.js';
 // Read-only recipient allocations; only the creator reserve-funding action signs.
 export function createCommunityClaimsController(appState){
   async function loadCommunityAllocation(mintAddress){
@@ -72,7 +73,7 @@ export function createCommunityClaimsController(appState){
       if (!launch || launch.creatorWallet !== session.address || appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY) throw new Error('Only the verified Solana launch creator can fund this reserve.');
       const fresh = await appState.apiRequest('/api/airdrops/reserves');
       const reserve = fresh.data?.reserves?.find(row => row.mint === mintAddress);
-      if (!fresh.available || fresh.data.cluster !== 'devnet' || !reserve?.vaultInitialized || reserve.verified || reserve.creatorWallet !== session.address || reserve.status !== 'unfunded' || Number(reserve.reservedTokens) !== Number(launch.communityAirdrop?.reservedTokens)) throw new Error('Reserve state changed or the reward vault is not ready. Refresh the program details.');
+      if (!fresh.available || fresh.data.cluster !== APP_NET || !reserve?.vaultInitialized || reserve.verified || reserve.creatorWallet !== session.address || reserve.status !== 'unfunded' || Number(reserve.reservedTokens) !== Number(launch.communityAirdrop?.reservedTokens)) throw new Error('Reserve state changed or the reward vault is not ready. Refresh the program details.');
       const { PublicKey, Transaction, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction, createTransferCheckedInstruction } = await appState.getSolana();
       const rpc = await appState.getTradePreviewConnection();
       const mint = new PublicKey(mintAddress), vault = new PublicKey(reserve.vault);

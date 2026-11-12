@@ -210,3 +210,6 @@ html body #main-content .capital-flow-layout:has(> :only-child) { grid-template-
 html body #main-content .capital-flow-layout > :only-child { grid-column: 1 / -1; }
 /* Deep-link loads: keep the page content hidden until the router shows the requested page. */
 html.route-booting #main-content { visibility: hidden; }
+/* Mainnet: only trader standings exist (from app trades); creator, referrer and burn boards need the Richpad programs. */
+html.app-mainnet [data-bonus-category="creators"], html.app-mainnet [data-bonus-category="referrals"] { display: none !important; }
+html.app-mainnet [data-leaderboard-view="burners"], html.app-mainnet [data-leaderboard-view="burn-board"], html.app-mainnet [data-leaderboard-view="creators"] { display: none !important; }
