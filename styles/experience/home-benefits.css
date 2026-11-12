@@ -139,9 +139,10 @@
 .post-buy-call-field { display: grid; gap: 6px; font-size: 13px; color: var(--fv-text-muted, #9aa7c2); }
 .post-buy-call-field textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 84px; padding: 10px 12px; border: 1px solid var(--fv-border, #2a3550); border-radius: 10px; background: rgba(0,0,0,.25); color: inherit; font: inherit; }
 .post-buy-call-field textarea:focus-visible { outline: 2px solid var(--fv-accent, #f5b900); outline-offset: 1px; }
-.post-buy-call-optout { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fv-text-muted, #9aa7c2); }
+.post-buy-call .post-buy-call-optout { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--fv-text-muted, #9aa7c2); }
 .post-buy-call-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .post-buy-call-actions button { min-height: 44px; padding: 10px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; }
 .post-buy-call-skip { border: 1px solid var(--fv-border, #2a3550); background: transparent; color: inherit; }
 .post-buy-call-go { border: 0; background: var(--fv-accent, #f5b900); color: #111; }
 @media (max-width: 480px) { .post-buy-call-actions button { flex: 1; } }
+.post-buy-call .post-buy-call-optout input { flex: none; width: 18px; height: 18px; margin: 0; }
