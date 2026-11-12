@@ -19,6 +19,8 @@ buckets.push('communityExecutions', 'manualReferralPayoutClaims');
 buckets.push('boostPayments');
 buckets.push('developerTokenReleases');
 buckets.push('launchPostEmails', 'projectUpdates');
+// Mainnet app trades read from the fee wallet (keyed by signature) and the sync cursor.
+buckets.push('mainnetTrades', 'mainnetTradeCursor');
 
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
@@ -34,6 +36,8 @@ function normalizeState(state) {
   next.projectUpdates ||= {};
   next.developerTokenReleases ||= {};
   next.productIssues ||= {};
+  next.mainnetTrades ||= {};
+  next.mainnetTradeCursor ||= {};
   next.top100Snapshots ||= {};
   next.adminSettings ||= {};
   next.adminAudit ||= {};

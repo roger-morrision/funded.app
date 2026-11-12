@@ -226,8 +226,18 @@ export function initBonusDashboard(document = globalThis.document) {
     pageNumber = data.history.page; pageLabel.textContent = `Page ${pageNumber} of ${data.history.pages} · ${data.history.total} payments`;
     previous.disabled = pageNumber <= 1; next.disabled = pageNumber >= data.history.pages;
   }
-  function unavailable(owner, reason) {
+  // Without the bonus program (Mainnet), today's trader standings still come from
+  // trades placed on richpad.fun, read from the app fee wallet on Solana.
+  function showLedgerTraders(id) {
+    view.fetch('/api/leaderboard/traders?window=today', { cache:'no-store' }).then(response => response.ok ? response.json() : null).then(board => {
+      if (id !== serial || !Array.isArray(board?.traders)) return;
+      renderTodayBonuses(page, { today:{ checkedAt:board.syncedAt || new Date().toISOString(),
+        traders:board.traders.slice(0, 5).map((row, index) => ({ rank:index + 1, wallet:row.wallet, scoreLamports:Math.round(Number(row.volumeSol) * 1e9) })) } }, document);
+    }).catch(() => {});
+  }
+  function unavailable(owner, reason, ledgerTraders = false) {
     renderTodayBonuses(page,null,document);
+    if (ledgerTraders) showLedgerTraders(serial);
     data = null; clockBase = null; tick();
     for (const el of home.querySelectorAll('[data-bonus-pool]')) animate(el, null);
     poolStatus.textContent = 'Bonus pool data is unavailable. No amount is confirmed here.';
@@ -247,7 +257,7 @@ export function initBonusDashboard(document = globalThis.document) {
       if (!response.ok) {
         const failure = await response.json().catch(() => ({}));
         if (id === serial) unavailable(owner, failure.code === 'BONUS_NOT_CONFIGURED'
-          ? 'Daily bonuses are not enabled on this site yet. Rankings and payouts will appear after the operator completes setup.' : undefined);
+          ? 'Daily bonus payouts are not enabled yet. Trader standings below count every trade placed on richpad.fun today.' : undefined, failure.code === 'BONUS_NOT_CONFIGURED');
         return;
       }
       const value = await response.json();

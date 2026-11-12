@@ -1,5 +1,6 @@
 import { Connection, PublicKey, AddressLookupTableAccount } from '@solana/web3.js';
 import { createTokenLogoRoute } from './token-logo.mjs';
+import { createMainnetTradeLedger } from '../mainnet-trade-ledger.mjs';
 import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
 
 // Mainnet external-token data: free sources first (DexScreener, Jupiter,
@@ -8,6 +9,10 @@ import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
 export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, tokenCache, fetchBirdeye, readMarketFallback, store, clientKey, body, respond }) {
   const json = (...args) => { respond(...args); return true; };
   const handleTokenLogo = createTokenLogoRoute({ free, tokenCache });
+  // Trader ranking from the fee wallet's on-chain history, refreshed every minute.
+  const tradeLedger = solanaCluster === 'mainnet-beta' ? createMainnetTradeLedger({ store, rpcUrl: solanaRpcUrl, feeOwner: process.env.FUNDED_TRADE_FEE_OWNER,
+    feeBps: Number(process.env.FUNDED_TRADE_FEE_BPS) > 0 ? Number(process.env.FUNDED_TRADE_FEE_BPS) : 100 }) : null;
+  if (tradeLedger?.configured) setInterval(() => { void tradeLedger.sync().catch(() => {}); }, 60_000).unref?.();
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
@@ -118,6 +123,12 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   return async function handleMainnetMarketRoutes(req, res, url) {
     if (solanaCluster !== 'mainnet-beta') return false;
     if (await handleTokenLogo(req, res, url)) return true;
+    if (req.method === 'GET' && url.pathname === '/api/leaderboard/traders') {
+      if (!tradeLedger?.configured) return json(res, 503, { error: 'Trader ranking is unavailable.' });
+      const window = url.searchParams.get('window') === 'today' ? 'today' : '24h';
+      try { return json(res, 200, { cluster: solanaCluster, source: 'fee-wallet-trades', ...(await tradeLedger.board({ window })) }); }
+      catch (error) { return json(res, error.statusCode || 503, { error: 'Trader ranking is unavailable right now.' }); }
+    }
     const overviewMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/overview$/.exec(url.pathname);
     if (overviewMatch) {
       const mint = decodeURIComponent(overviewMatch[1]);
