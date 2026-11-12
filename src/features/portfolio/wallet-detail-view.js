@@ -4,6 +4,8 @@ import { formatTokenBaseUnits } from '../../../funded-burn.js';
 import { tokenIdentityMarkup } from '../shared/token-identity.js';
 import { portfolioTokenIdentity } from '../../../token-identity.js';
 import { holdingImageUrl } from './holdings-metadata.js';
+// A logo that fails to load leaves the token's initials showing.
+if (typeof document !== 'undefined') document.addEventListener('error', event => { if (event.target?.matches?.('.wallet-holding-logo img')) event.target.remove(); }, true);
 import { tokenArtworkUrl } from '../shared/token-artwork.js';
 
 // DOM identity belongs to one displayed wallet and only its Created tab.
@@ -67,6 +69,7 @@ export function renderWalletDetail(
     assets,
     exploreProviderStatus,
     walletBalanceLamports,
+    publicHoldings = null,
     coinSolUsdPrice,
     walletDetailTab,
     walletDetailFilter,
@@ -133,7 +136,9 @@ export function renderWalletDetail(
   }
   const statSol = document.querySelector('#wallet-stat-sol');
       const statSolNote = document.querySelector('#wallet-stat-sol-note');
-      if (statSol) statSol.textContent = walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
+      // Another wallet's SOL balance comes from the public holdings read.
+      const shownLamports = isSelf ? walletBalanceLamports : publicHoldings?.status === 'ready' && /^\d+$/.test(String(publicHoldings.solLamports)) ? Number(publicHoldings.solLamports) : null;
+      if (statSol) statSol.textContent = shownLamports != null ? formatSol(shownLamports) : '—';
       if (statSolNote) statSolNote.textContent = '';
     setCoinField('#wallet-stat-launches', registryReady ? String(launches.length) : '—');
     setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
@@ -163,9 +168,10 @@ export function renderWalletDetail(
       const assetByMint = new Map(assets.map(asset => [asset.address, asset]));
       const holdings = isSelf && portfolioHoldings?.wallet === address && portfolioHoldings?.status === 'ready'
         ? portfolioHoldings.accounts
-        : [];
+        : !isSelf && publicHoldings?.wallet === address && publicHoldings.status === 'ready' ? publicHoldings.accounts : [];
       if (!holdings.length) {
-        content.innerHTML = `<div class="empty-state">${isSelf ? 'No SPL token holdings in this wallet.' : 'Holdings shown only for your connected wallet.'}</div>`;
+        const loading = !isSelf && publicHoldings?.status === 'loading';
+        content.innerHTML = `<div class="empty-state">${loading ? 'Loading this wallet\'s token balances…' : !isSelf && publicHoldings?.status === 'unavailable' ? 'Token balances are unavailable right now. Try again shortly.' : 'No SPL token holdings in this wallet.'}</div>`;
         return;
       }
       content.innerHTML = `<div class="wallet-balance-table-wrap" role="region" aria-label="Token holdings" tabindex="0"><table class="wallet-balance-table"><thead><tr><th scope="col">Token</th><th scope="col" class="numeric">Quantity</th><th scope="col" class="numeric">Value</th></tr></thead><tbody>${holdings.map(holding => {
@@ -175,7 +181,7 @@ export function renderWalletDetail(
         const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
         const launch = verifiedLaunchPolicyForMint?.(holding.mint);
         const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, fundedMint:PROTOCOL_FUNDED_MINT});
-        const image = holding.mint === PROTOCOL_FUNDED_MINT ? '/richpad-mark.svg' : (launch?.onchainVerified ? tokenArtworkUrl(holding.mint, holdingImageUrl(launch.imageUri)) : null) || holdingImageUrl(holding.metadata?.image) || holdingImageUrl(asset?.imageUri) || holdingImageUrl(asset?.market?.logoUri);
+        const image = holding.mint === PROTOCOL_FUNDED_MINT ? '/richpad-mark.svg' : (launch?.onchainVerified ? tokenArtworkUrl(holding.mint, holdingImageUrl(launch.imageUri)) : null) || `/api/tokens/${encodeURIComponent(holding.mint)}/logo`;
         return `<tr><td><a href="/token/${encodeURIComponent(holding.mint)}"><span class="wallet-holding-token"><span class="wallet-holding-logo" aria-hidden="true">${escapeHtml(identity.label==='Unnamed token'?'?':identity.label.replace(/^\\$/,'').slice(0,2))}${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`:''}</span><span class="wallet-holding-identity"><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="wallet-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span></span></a></td><td class="numeric">${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</td><td class="numeric">${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</td></tr>`;
       }).join('')}</tbody></table></div>`;
       loadWalletRowLogos(content, holdings.map(h => ({ mint: h.mint })));

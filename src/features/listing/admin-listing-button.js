@@ -33,10 +33,10 @@ export function mountAdminListingButton({ anchor, getSession, connectWallet, onL
     const wallet = getSession()?.address;
     check(wallet);
     const isAdmin = status.get(wallet) === true;
-    // Show button but disable for non-admin wallets so users can see the feature exists
-    button.hidden = !(next.ready && next.mint && !busy);
-    button.disabled = busy || !isAdmin;
-    button.textContent = busy ? 'Listing…' : isAdmin ? 'List for free (admin)' : 'List for free (admin only)';
+    // Only admin wallets see the free listing option; everyone else sees the paid listing.
+    button.hidden = !(next.ready && next.mint && isAdmin);
+    button.disabled = busy;
+    button.textContent = busy ? 'Listing…' : 'List for free (admin)';
     button.title = isAdmin ? '' : 'Only available when signed in with an admin wallet';
   };
   button.addEventListener('click', async () => {

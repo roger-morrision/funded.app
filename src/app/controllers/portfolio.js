@@ -278,10 +278,24 @@ export function createPortfolioController(appState) {
   // app-source-end
 
   // app-source: 947
+  // Public holdings for a viewed wallet that is not the connected one.
+  let publicHoldings = null, publicHoldingsLoading = '';
+  function loadPublicHoldings(address){
+    if (!address || publicHoldingsLoading === address || (publicHoldings?.wallet === address && Date.now() - publicHoldings.at < 60_000)) return;
+    publicHoldingsLoading = address;
+    if (publicHoldings?.wallet !== address) publicHoldings = { wallet:address, status:'loading', accounts:[], solLamports:null, at:0 };
+    appState.apiRequest(`/api/wallets/${encodeURIComponent(address)}/holdings`, { signal:AbortSignal.timeout(20_000) })
+      .then(result => { publicHoldings = result?.available && result.data?.wallet === address
+        ? { wallet:address, status:'ready', accounts:(result.data.accounts || []).map(row => ({ ...row, metadata:{ name:row.market?.name || null, symbol:row.market?.symbol || null, image:row.market?.logoUri || null } })), solLamports:result.data.solLamports ?? null, at:Date.now() }
+        : { wallet:address, status:'unavailable', accounts:[], solLamports:null, at:Date.now() }; })
+      .catch(() => { publicHoldings = { wallet:address, status:'unavailable', accounts:[], solLamports:null, at:Date.now() }; })
+      .finally(() => { publicHoldingsLoading = ''; if (appState.getWalletDetailAddress() === address) renderWalletDetail(); });
+  }
   function renderWalletDetail(){
       const viewed=appState.getWalletDetailAddress();
+      if (viewed && viewed !== appState.connectedWalletAddress) loadPublicHoldings(viewed);
       if (viewed&&portfolioTradeHistory.wallet!==viewed&&portfolioTradeLoad?.wallet!==viewed) void refreshPortfolioTrades(viewed);
-      return appState.renderWalletDetailView({ connectedWalletAddress: appState.connectedWalletAddress, portfolioHoldings: appState.portfolioHoldings, portfolioTradeHistory, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreScannedCount: appState.exploreScannedCount, assets: appState.assets, exploreProviderStatus: appState.exploreProviderStatus, exploreFeedAvailable: appState.exploreFeedAvailable, walletBalanceLamports: appState.walletBalanceLamports, coinSolUsdPrice: appState.coinSolUsdPrice, walletDetailTab: appState.walletDetailTab, walletDetailFilter: appState.walletDetailFilter, walletHistory, fundedBurnState: appState.fundedBurnState, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT }, { getWalletDetailAddress: appState.getWalletDetailAddress, walletDetailLaunches: appState.walletDetailLaunches, walletDetailTrades: appState.walletDetailTrades, walletDetailBurned: appState.walletDetailBurned, walletLaunchTimestamp: appState.walletLaunchTimestamp, validateSolanaMint: appState.validateSolanaMint, getFollowedWallets: appState.getFollowedWallets, formatSol: appState.formatSol, formatOnchainAge: appState.formatOnchainAge, walletDetailEmpty: appState.walletDetailEmpty, loadWalletRowLogos: appState.loadWalletRowLogos, exploreExplorer: appState.exploreExplorer, verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint });
+      return appState.renderWalletDetailView({ publicHoldings: publicHoldings?.wallet === viewed ? publicHoldings : null, connectedWalletAddress: appState.connectedWalletAddress, portfolioHoldings: appState.portfolioHoldings, portfolioTradeHistory, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreScannedCount: appState.exploreScannedCount, assets: appState.assets, exploreProviderStatus: appState.exploreProviderStatus, exploreFeedAvailable: appState.exploreFeedAvailable, walletBalanceLamports: appState.walletBalanceLamports, coinSolUsdPrice: appState.coinSolUsdPrice, walletDetailTab: appState.walletDetailTab, walletDetailFilter: appState.walletDetailFilter, walletHistory, fundedBurnState: appState.fundedBurnState, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT }, { getWalletDetailAddress: appState.getWalletDetailAddress, walletDetailLaunches: appState.walletDetailLaunches, walletDetailTrades: appState.walletDetailTrades, walletDetailBurned: appState.walletDetailBurned, walletLaunchTimestamp: appState.walletLaunchTimestamp, validateSolanaMint: appState.validateSolanaMint, getFollowedWallets: appState.getFollowedWallets, formatSol: appState.formatSol, formatOnchainAge: appState.formatOnchainAge, walletDetailEmpty: appState.walletDetailEmpty, loadWalletRowLogos: appState.loadWalletRowLogos, exploreExplorer: appState.exploreExplorer, verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint });
     }
   // app-source-end
 

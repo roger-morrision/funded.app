@@ -31,7 +31,7 @@ const EDGE_CACHEABLE = [
   [/^\/api\/pump\/explore$/, 10],
   [/^\/api\/market\/sol-usd$/, 15],
   [/^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/holders$/, 60],
-  [/^\/api\/wallets\/[1-9A-HJ-NP-Za-km-z]{32,44}\/trades$/, 30],
+  [/^\/api\/wallets\/[1-9A-HJ-NP-Za-km-z]{32,44}\/(?:trades|holdings)$/, 30],
   // Public registry and report reads (no session or wallet input).
   [/^\/api\/(?:launches|listings|burn-receipts)$/, 10],
   [/^\/api\/home\/featured$/, 15],

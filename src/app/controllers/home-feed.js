@@ -216,8 +216,10 @@ export function createHomeFeedController(appState) {
   // Mainnet Favorites tab: saved tokens outside the Richpad feed come from the indexed overview.
   function homeAssetsWithFavorites() {
     const discovery = globalThis.document?.querySelector('.home-launch-board')?.dataset.discovery;
-    if (appState.EXPLORE_CLUSTER !== 'mainnet-beta' || discovery !== 'saved') return appState.assets;
-    appState.loadIndexedFavorites?.(appState.getWatchlist());
+    if (appState.EXPLORE_CLUSTER !== 'mainnet-beta' || !['saved', 'following'].includes(discovery)) return appState.assets;
+    // Favorites and tokens held by followed wallets may trade on any DEX: load them from indexed data.
+    const wanted = discovery === 'saved' ? appState.getWatchlist() : [...(appState.getFollowingTokenSources?.()?.keys?.() || [])];
+    appState.loadIndexedFavorites?.(wanted);
     const known = new Set(appState.assets.map(item => item.address));
     return [...appState.assets, ...(appState.indexedFavoriteAssets?.() || []).filter(item => !known.has(item.address))];
   }
