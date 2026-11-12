@@ -220,7 +220,9 @@ export function initializeLaunchActions(appState) {
   // app-source-end
 
   // app-source: 691
-  document.querySelector('#referral-share-native')?.addEventListener('click', async () => { const code = await appState.referralCodeForShare(); if (!code) return; appState.openShareComposer({ kind:'referral', title:'Join richpad.fun', text:'Explore verified launches and published fee routes with me on richpad.fun.', url:appState.buildReferralUrl(code) }); });
+  document.querySelector('#referral-share-native')?.addEventListener('click', async () => { const code = await appState.referralCodeForShare(); if (!code) return; appState.openShareComposer({ kind:'referral', title:'Join richpad.fun', text:`Join me on richpad.fun 🚀
+Trade any Solana token, before and after migration. Daily bonuses, coin calls and referral rewards.
+My code: ${code}`, url:appState.buildReferralUrl(code), result:{ kind:'referral', verified:true, code } }); });
   // app-source-end
 
   // app-source: 692
@@ -249,7 +251,9 @@ export function initializeLaunchActions(appState) {
     shareButton.addEventListener('click', async () => {
       const code = await appState.referralCodeForShare();
       if (!code) return;
-      appState.openShareComposer({ kind:'referral', title:'Join richpad.fun', text:'Explore verified launches and published fee routes with me on richpad.fun.', url:appState.buildReferralUrl(code) });
+      appState.openShareComposer({ kind:'referral', title:'Join richpad.fun', text:`Join me on richpad.fun 🚀
+Trade any Solana token, before and after migration. Daily bonuses, coin calls and referral rewards.
+My code: ${code}`, url:appState.buildReferralUrl(code), result:{ kind:'referral', verified:true, code } });
     });
     const messageButton = document.createElement('button');
     messageButton.type = 'button'; messageButton.className = 'secondary-button'; messageButton.textContent = 'Copy message';
