@@ -153,7 +153,11 @@ export function drawListingCard(canvas, result, { format = 'wide' } = {}) {
   ctx.fillStyle = '#f5b900'; ctx.font = `800 ${square ? 84 : 72}px sans-serif`; ctx.fillText('$' + symbol, textX, nameY + (square ? 96 : 84), maxText);
   const stats = [['Price', usdCompact(result.priceUsd)], ['Market cap', usdCompact(result.marketCapUsd)], ['24h volume', usdCompact(result.volume24hUsd)]];
   const statY = square ? nameY + 150 : 400, gap = 20, boxW = (W - pad * 2 - gap * 2) / 3, boxH = square ? 150 : 110;
-  stats.forEach(([label, value], index) => {
+  if (stats.every(([, value]) => value === '—')) {
+    ctx.fillStyle = '#c4ccdc'; ctx.font = `600 ${square ? 36 : 32}px sans-serif`;
+    const lines = String(result.tagline || 'Fresh on Solana · join the community early').split('\n').slice(0, 2);
+    lines.forEach((line, index) => ctx.fillText(line, pad, statY + 48 + index * (square ? 54 : 46), W - pad * 2));
+  } else stats.forEach(([label, value], index) => {
     const x = pad + index * (boxW + gap);
     ctx.fillStyle = 'rgba(255,255,255,0.08)'; roundedRect(ctx, x, statY, boxW, boxH, 18);
     ctx.fillStyle = '#9fc3c7'; ctx.font = '600 22px sans-serif'; ctx.fillText(label, x + 24, statY + 40);
@@ -233,7 +237,7 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
     picker.querySelector('select').addEventListener('change', updateResultPreview);
     dialog.querySelector('#share-result-canvas')?.after(picker);
   }
-  dialog.querySelector('#share-title').textContent = kind === 'listing' ? 'Share your listing' : kind === 'launch' ? 'Share your launch' : kind === 'referral' ? 'Share your invite' : kind === 'trade' ? 'Share verified trade' : kind === 'roundtrip' ? 'Share closed trade result' : kind === 'result' ? 'Share paid earnings' : 'Share this coin';
+  dialog.querySelector('#share-title').textContent = /^Share your /.test(activeShare.title) ? activeShare.title : kind === 'listing' ? 'Share your listing' : kind === 'launch' ? 'Share your launch' : kind === 'referral' ? 'Share your invite' : kind === 'trade' ? 'Share verified trade' : kind === 'roundtrip' ? 'Share closed trade result' : kind === 'result' ? 'Share paid earnings' : 'Share this coin';
   dialog.querySelector('#share-message').value = cleanText(text);
   dialog.querySelector('#share-link').value = activeShare.url;
   dialog.querySelector('#share-network').textContent = String(result?.network || network || (kind === 'coin' ? 'Check token page for network' : 'Referral link')).replace(/^mainnet-beta$/, 'Solana');
@@ -243,6 +247,7 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
   const receiptLink = dialog.querySelector('#share-receipt-link'); if (receiptLink && bannerOnly) receiptLink.hidden = true;
   for(const [id,label] of [['share-hide-amount',' Hide amount on image'],['share-hide-wallet',' Hide wallet on image']]){const wrap=dialog.querySelector(`#${id}`)?.closest('label');if(wrap?.lastChild?.nodeType===3)wrap.lastChild.textContent=label;}
   if (amountOption) amountOption.hidden = ['trade','launch'].includes(kind);
+  if (kind === 'launch' && result?.kind === 'listing') { const note0 = dialog.querySelector('#share-result-note'); if (note0) note0.dataset.launchBanner = 'true'; }
   const note = dialog.querySelector('#share-result-note');
   const walletOption=dialog.querySelector('#share-hide-wallet')?.closest('label');if(walletOption)walletOption.hidden=kind==='launch';
   if (note) note.textContent = kind === 'referral' ? 'Invites earn referral rewards only from eligible fees. Rewards are not guaranteed.' : kind === 'coin' ? 'Sharing a token page is not an endorsement or a safety check. Tokens can lose all value.' : kind === 'listing' ? 'A listing shows the token on richpad.fun. It is not an endorsement or a safety check. Tokens can lose all value.' : kind === 'launch' ? 'This card confirms creation, not liquidity, safety, earnings or future returns. Test funds have no monetary value.' : kind === 'trade' ? 'This card confirms one finalized trade. It does not show profit, cost basis, or future returns.' : kind === 'roundtrip' ? 'The amount is the wallet SOL balance change in two finalized transactions, including fees, rent, and any other SOL movements in those receipts. It is not wallet-wide trading profit or a future return.' : 'Paid referral earnings are not trading profit or a prediction of future returns.';
