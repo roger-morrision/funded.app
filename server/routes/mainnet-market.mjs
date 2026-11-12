@@ -220,6 +220,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
         const attempt = async fn => { try { return await fn(); } catch (error) { if (error?.status === 400) throw error; await new Promise(done => setTimeout(done, 1500)); return fn(); } };
         const quote = await attempt(() => free.jupQuote({ inputMint: side === 'buy' ? WSOL : mint, outputMint: side === 'buy' ? mint : WSOL, amount, slippageBps }));
         if (!quote?.outAmount || quote.error) return json(res, 404, { error: 'No swap route was found for this token and amount.' });
+        const blockhashRead = connection().getLatestBlockhash('confirmed');
+        blockhashRead.catch(() => {});
         const instructions = await attempt(() => free.jupSwapInstructions({ quoteResponse: quote, userPublicKey: user }));
         if (instructions?.error) return json(res, 502, { error: 'The swap route could not be prepared.' });
         const keys = (instructions.addressLookupTableAddresses || []).filter(validMint).slice(0, 8);
@@ -230,7 +232,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
             addresses: AddressLookupTableAccount.deserialize(info.data).addresses.map(key => key.toBase58()) }); });
         }
         if (keys.some(key => !altCache.get(key))) return json(res, 503, { error: 'Swap lookup tables are unavailable. Try again.' });
-        const latest = await connection().getLatestBlockhash('confirmed');
+        const latest = await blockhashRead.catch(() => connection().getLatestBlockhash('confirmed'));
         return json(res, 200, { cluster: solanaCluster, side, mint, user, decimals, amount: amount.toString(), slippageBps,
           quote: { inAmount: quote.inAmount, outAmount: quote.outAmount, otherAmountThreshold: quote.otherAmountThreshold, priceImpactPct: quote.priceImpactPct,
             routes: (quote.routePlan || []).map(step => step?.swapInfo?.label).filter(Boolean).slice(0, 6) },

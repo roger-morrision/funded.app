@@ -223,6 +223,7 @@ export function createHomeFeedController(appState) {
   }
   function renderHomeLaunchBoard() {
     return appState.renderHomeLaunchBoardView({
+      favoritesSignedIn: Boolean(appState.watchlistSync?.identity?.()),
       homeLaunchView: appState.homeLaunchView,
       exploreFeedAvailable: appState.exploreFeedAvailable,
       exploreLastVerifiedAt: appState.exploreLastVerifiedAt,

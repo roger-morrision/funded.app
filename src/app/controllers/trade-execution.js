@@ -1,4 +1,5 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
+import { buyRequiredLamports } from '../../../trade-spend-guard.js';
 import { recordFlowTiming } from '../../features/experience/flow-timing.js';
 import { estimateTradeNetworkFee } from '../../features/experience/trade-costs.js';
 import { recordTradeRecovery,uncertainTrade } from '../../features/experience/trade-recovery-store.js';
@@ -208,7 +209,11 @@ export function createTradeExecutionController(appState) {
       appState.assertWalletSessionCurrent(session);
       if (side === 'buy') {
         const latestBalance = await activeConnection.getBalance(session.provider.publicKey, 'confirmed');
-        if (!appState.hasBuyBalance(latestBalance, { amountSol:amount, slippagePercent, feeBps:appTradeBps(appState), trade:appState.tradePreview.trade })) throw new Error('Insufficient SOL for maximum spend, app fee, and network/account allowance.');
+        const spendInputs = { amountSol:amount, slippagePercent, feeBps:appTradeBps(appState), trade:appState.tradePreview.trade };
+        if (!appState.hasBuyBalance(latestBalance, spendInputs)) {
+          const needed = buyRequiredLamports(spendInputs);
+          throw new Error(`Insufficient SOL: this buy needs up to ${needed == null ? '—' : (Number(needed) / 1e9).toFixed(4)} SOL (amount, ${slippagePercent}% slippage, app fee and about 0.005 SOL network/account cost); the wallet has ${(Number(latestBalance) / 1e9).toFixed(4)} SOL.`);
+        }
       }
       appState.assertWalletSessionCurrent(session);
       if (!appState.currentTradePreview()) throw new Error('The trade quote expired during balance verification. Review a fresh quote.');

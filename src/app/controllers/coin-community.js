@@ -61,7 +61,7 @@ export function createCoinCommunityController(appState) {
   }
   function tokenChatMessageMarkup(item){
     const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
-    const action = own ? `<footer><button type="button" data-chat-delete="${appState.escapeHtml(item.id)}">Delete</button></footer>` : `<footer><button type="button" data-chat-report="${appState.escapeHtml(item.id)}" title="Report spam or a scam for moderation review">Report spam or scam</button><button type="button" data-chat-hide="${appState.escapeHtml(item.author)}">Hide this wallet</button></footer>`;
+    const action = own ? `<footer><button type="button" data-chat-delete="${appState.escapeHtml(item.id)}">Delete</button></footer>` : ''; // Report and hide actions are not shown in token chat.
     return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div><p>${appState.escapeHtml(item.text)}</p>${callRow(item)}${action}</article>`;
   }
   // app-source-end
