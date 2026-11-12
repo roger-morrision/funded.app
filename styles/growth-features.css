@@ -205,3 +205,6 @@ html.app-mainnet #coin-external-panel{display:none!important}
 .home-token-avatar:has(.paid-listing-logo) { overflow: hidden; padding: 0; }
 /* Mainnet Explore lists Richpad launches and listings across DEXs: launch-stage sub-tabs are not used. */
 html.app-mainnet #explore .explore-pulse-head, html.app-mainnet #explore #explore-pulse { display: none !important; }
+/* Fee distribution: when only one panel is present (Mainnet), it spans the full width. */
+html body #main-content .capital-flow-layout:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+html body #main-content .capital-flow-layout > :only-child { grid-column: 1 / -1; }
