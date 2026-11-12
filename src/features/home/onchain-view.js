@@ -1,6 +1,40 @@
 import { withMarketWindow } from '../../../market-intelligence.js';
 import { formatDashboardUsd } from '../shared/display.js';
 import { platformVolume24h } from '../shared/platform-volume.js';
+import { APP_NET } from '../shared/app-network.js';
+import { solUsdPrice } from '../shared/token-identity.js';
+
+// Mainnet has no richpad.fun launch program, so volume and trading wallets come
+// from trades placed through richpad.fun: each one pays the app fee to the fee
+// wallet, which the server indexes (the same ledger as the trader ranking).
+let ledgerRead = null, ledgerAt = 0;
+function readTradeLedger24h() {
+  if (!ledgerRead || Date.now() - ledgerAt > 60_000) {
+    ledgerAt = Date.now();
+    ledgerRead = fetch('/api/leaderboard/traders?window=24h', { signal: AbortSignal.timeout(15_000) })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => Array.isArray(data?.traders) ? {
+        volumeSol: data.traders.reduce((sum, row) => sum + (Number(row.volumeSol) || 0), 0),
+        wallets: data.traders.length, capped: data.traders.length >= 100,
+        trades: data.traders.reduce((sum, row) => sum + (Number(row.tradeCount) || 0), 0) } : null)
+      .catch(() => null);
+    ledgerRead.then(value => { if (!value) ledgerAt = 0; });
+  }
+  return ledgerRead;
+}
+function fillLedgerCards(volumeCard, walletCard, solUsd) {
+  void readTradeLedger24h().then(ledger => {
+    if (!ledger) return;
+    if (volumeCard?.isConnected) {
+      volumeCard.querySelector('strong').textContent = Number.isFinite(solUsd) && solUsd > 0 ? formatDashboardUsd(ledger.volumeSol * solUsd) : `${ledger.volumeSol.toFixed(3)} SOL`;
+      volumeCard.querySelector('small').innerHTML = `<b>USD · 24H</b>${ledger.trades ? `${ledger.trades.toLocaleString()} trade${ledger.trades === 1 ? '' : 's'} placed on richpad.fun` : 'No trades on richpad.fun in the past 24 hours'}`;
+    }
+    if (walletCard?.isConnected) {
+      walletCard.querySelector('strong').textContent = `${ledger.capped ? '≥' : ''}${ledger.wallets.toLocaleString()}`;
+      walletCard.querySelector('small').innerHTML = `<b>COUNT · 24H</b>${ledger.wallets ? 'Wallets that traded on richpad.fun' : 'No wallets traded on richpad.fun in the past 24 hours'}`;
+    }
+  });
+}
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderHomeOnchainSnapshot(
@@ -103,6 +137,7 @@ export function renderOnchainReportState(
     walletCard.querySelector('strong').textContent = hasWallets && (!partialWallets || observedWallets > 0) ? `${partialWallets ? '≥' : ''}${observedWallets.toLocaleString()}` : '—';
     walletCard.querySelector('small').innerHTML = `<b>COUNT · 24H</b>${!feedChecked ? 'Checking confirmed trades' : hasWallets ? partialWallets && observedWallets === 0 ? 'Some wallet activity is unavailable' : observedWallets === 0 ? 'No trading wallets in the past 24 hours' : `${partialWallets ? 'Partial history · ' : ''}wallet counts across launches` : marketUnavailable ? 'Market activity unavailable' : 'No confirmed wallet activity'}`;
   }
+  if (APP_NET === 'mainnet-beta') fillLedgerCards(volumeCard, walletCard, Number.isFinite(coinSolUsdPrice) ? coinSolUsdPrice : solUsdPrice());
   const strip = document.querySelector('#analytics .strip-stat');
   if (strip) strip.innerHTML = !feedChecked ? '— <small>checking launches</small>' : marketUnavailable ? '— <small>launch activity unavailable</small>' : verified.length ? `${verified.length} <small>confirmed launches</small>` : '— <small>no confirmed launches</small>';
   const chart = document.querySelector('.analytics-chart .mini-chart');
