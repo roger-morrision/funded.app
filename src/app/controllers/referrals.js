@@ -374,16 +374,19 @@ function updateReferralStatus(state){
   // app-source-end
 
   // app-source: 248
-  function openCoinShare(mint, symbol = 'Coin', name = ''){
+  async function openCoinShare(mint, symbol = 'Coin', name = ''){
     if (!appState.validateSolanaMint(mint).valid) return appState.showToast('A valid token mint is required to share.');
     const url = new URL(`/token/${encodeURIComponent(mint)}`, location.origin);
     const code = appState.registeredShareCode();
     if (code) url.searchParams.set('ref', code);
-    const label = String(name || symbol || 'Coin').trim().slice(0, 60);
-    const verifiedName = !/^(token data unavailable|loading token)/i.test(label);
-    appState.openShareComposer({ kind:'coin', title:`${verifiedName ? label : 'Token'} on richpad.fun`, text: verifiedName
-      ? `Explore ${label} on richpad.fun. Review its ${appState.EXPLORE_NETWORK_LABEL} mint and market facts, then watch it for updates.`
-      : `Open this ${appState.EXPLORE_NETWORK_LABEL} token record on richpad.fun. Verify its data before relying on it.`, url:url.toString(), network:appState.EXPLORE_NETWORK_LABEL });
+    const placeholder = /^(token data unavailable|loading token|coin|token)$/i;
+    // Banner with logo and live figures, plus a prefilled post (editable before sharing).
+    const { tokenBannerResult, tokenShareText } = await import('../../features/listing/listing-share.js');
+    const banner = await tokenBannerResult(mint, { symbol: placeholder.test(symbol) ? '' : symbol, name: placeholder.test(name) ? '' : name, tag: 'Live on richpad.fun' }).catch(() => null);
+    const label = String(banner?.name || name || symbol || 'Token').trim().slice(0, 60);
+    appState.openShareComposer({ kind:'coin', title:`${banner?.symbol ? `$${banner.symbol}` : label} on richpad.fun`,
+      text: tokenShareText({ symbol: banner?.symbol || '', name: label, mint }), url:url.toString(), network:appState.EXPLORE_NETWORK_LABEL,
+      result: banner?.result || null });
   }
   // app-source-end
 

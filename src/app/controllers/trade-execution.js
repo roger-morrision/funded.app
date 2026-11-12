@@ -308,9 +308,14 @@ export function createTradeExecutionController(appState) {
       if (share) {
         Object.assign(share.dataset, { signature:pending.signature, mint:pending.mint, wallet:pending.walletAddress, side:pending.side, symbol:pending.symbol });
         share.hidden = false;
+        // After a verified sell, open the share card (banner, quantity, SOL received, P&L) with a prefilled post.
+        if (pending.side === 'sell') setTimeout(() => { if (!share.hidden && share.dataset.signature === pending.signature) share.click(); }, 400);
       }
       if (appState.getCoinMintAddress() === pending.mint) void appState.loadCoinOnChain(pending.mint);
       appState.showToast(`${pending.side === 'buy' ? 'Buy' : 'Sell'} verified on Solana`);
+      // Offer to call the coin right after a verified buy.
+      if (pending.side === 'buy') void import('../../features/callouts/post-buy-call.js')
+        .then(module => module.showPostBuyCall({ mint:pending.mint, symbol:pending.symbol, app:appState })).catch(() => {});
       appState.refreshWalletInfo();
       void appState.refreshPortfolioHoldings();
     } catch {

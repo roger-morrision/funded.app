@@ -41,13 +41,14 @@ export function initializeTradeExecution(appState) {
       }
       const identity = await appState.apiRequest(`/api/tokens/market?mints=${encodeURIComponent(button.dataset.mint)}`, { signal:AbortSignal.timeout(6000) }).catch(() => null);
       const info = identity?.data?.items?.find(row => row.mint === button.dataset.mint) || {};
-      const logoImage = /^https:\/\//.test(info.logoUri || '') ? await new Promise(resolve => { const image = new Image(); image.crossOrigin = 'anonymous';
-        image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = info.logoUri; setTimeout(() => resolve(null), 5000); }) : null;
+      // Same-origin logo route: third-party logo hosts would taint the share card canvas.
+      const logoImage = await new Promise(resolve => { const image = new Image(); image.crossOrigin = 'anonymous';
+        image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = `/api/tokens/${encodeURIComponent(button.dataset.mint)}/logo`; setTimeout(() => resolve(null), 5000); });
       const symbol = info.symbol || button.dataset.symbol;
       const url = new URL(`/token/${encodeURIComponent(button.dataset.mint)}`, location.origin);
       const code = appState.registeredShareCode(); if (code) url.searchParams.set('ref', code);
       appState.openShareComposer({ kind:'trade', title:'Finalized Solana trade on richpad.fun',
-        text:`I ${button.dataset.side === 'buy' ? 'bought' : 'sold'} ${own.tokens ? own.tokens.toLocaleString('en-US', { maximumFractionDigits:2 }) + ' ' : ''}$${symbol || 'TOKEN'} on richpad.fun${Number.isFinite(pnlSol) ? ` · P&L ${pnlSol >= 0 ? '+' : ''}${pnlSol.toFixed(4)} SOL` : ''}.`, url:url.toString(),
+        text:`${button.dataset.side === 'buy' ? 'Bought' : 'Sold'} ${own.tokens ? own.tokens.toLocaleString('en-US', { maximumFractionDigits:2 }) + ' ' : ''}$${symbol || 'TOKEN'} on richpad.fun ${button.dataset.side === 'buy' ? '🚀' : '💰'}${Number.isFinite(own.sol) && own.sol > 0 ? `\n${button.dataset.side === 'buy' ? 'Spent' : 'Received'} ${own.sol.toFixed(4)} SOL` : ''}${Number.isFinite(pnlSol) ? ` · P&L ${pnlSol >= 0 ? '+' : ''}${pnlSol.toFixed(4)} SOL${Number.isFinite(pnlPercent) ? ` (${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(1)}%)` : ''}` : ''}\nCA: ${button.dataset.mint}`, url:url.toString(),
         result:{ kind:'trade', verified:true, side:button.dataset.side, mint:button.dataset.mint, tokenSymbol:symbol, tokenAmount:own.tokens, solAmount:own.sol, pnlSol, pnlPercent, logoImage,
           receipt:button.dataset.signature, receiptUrl:appState.exploreExplorer(`tx/${encodeURIComponent(button.dataset.signature)}`), wallet:session.address, network:appState.EXPLORE_CLUSTER } });
     } catch (error) { appState.setTradeStatus(error.message || 'Trade receipt verification is unavailable.', true); }
@@ -73,7 +74,7 @@ export function initializeTradeExecution(appState) {
       url.searchParams.set('buy', pair.buySignature);
       url.searchParams.set('sell', pair.sellSignature);
       const code = appState.registeredShareCode(); if (code) url.searchParams.set('ref', code);
-      appState.openShareComposer({ kind:'roundtrip', title:'Verified closed Devnet trade on richpad.fun',
+      appState.openShareComposer({ kind:'roundtrip', title:'Verified closed trade on richpad.fun',
         publicShareApproval:{ assertCurrent:()=>appState.assertWalletSessionCurrent(session), sign:async statement=>{
           appState.assertWalletSessionCurrent(session);
           if (typeof session.provider.signMessage !== 'function') throw new Error('Use a wallet that supports message signing.');

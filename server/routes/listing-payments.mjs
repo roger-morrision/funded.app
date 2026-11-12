@@ -8,6 +8,7 @@ import { readVerifiedListingMint } from '../token-metadata.mjs';
 import { LISTING_PRICE_USD, listingBurnBaseUnitsForUsd, listingMemo, listingQuoteCurrent } from '../../listing-policy.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { readServiceFees } from '../service-fees.mjs';
+import { createAdminListingRoutes } from './admin-listing.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -30,7 +31,9 @@ export function createListingPaymentsRoutes({
   env = process.env,
 }) {
   const json = (...args) => { respond(...args); return true; };
+  const handleAdminListing = createAdminListingRoutes({ body, store, solanaCluster, solanaRpcUrl, clientKey, respond, env, connectionFactory, readListingMint });
   return async function handleListingPaymentsRoutes(req, res, url) {
+    if (await handleAdminListing(req, res, url)) return true;
     if (req.method === 'POST' && url.pathname === '/api/listings/quote') {
       if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster) || !fundedTokenMint) return json(res, 503, { error:'Paid listings are unavailable on this network.' });
       if (!allowedAuthOrigin(req, env.CORS_ORIGIN)) return json(res, 403, { error:'Request a listing quote from richpad.fun.' });

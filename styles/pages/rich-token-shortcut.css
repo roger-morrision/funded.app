@@ -2,3 +2,7 @@
 .topbar .buy-rich-button:hover { background:rgba(245,185,0,.1); }
 .topbar .buy-rich-button:focus-visible { outline:2px solid var(--fv-accent,#f5b900);outline-offset:3px; }
 @media(max-width:700px) { .topbar .buy-rich-button { min-height:40px;padding:8px 10px;font-size:12px; } }
+/* $RICH logo as the icon of the Buy $RICH navigation item (phone bottom bar, sidebar). */
+.rich-nav-logo { flex: none; width: 22px; height: 22px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1.5px var(--fv-accent, #f5b900); }
+.rich-nav-logo-fallback { display: inline-grid; place-items: center; background: var(--fv-accent, #f5b900); color: #111; font: 800 12px/1 sans-serif; }
+.primary-nav .rich-nav-logo { margin-right: 2px; }

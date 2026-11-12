@@ -52,6 +52,16 @@ export function mountMainnetLaunchRedirects(richHref, document = globalThis.docu
     link.href = richHref; link.title = 'Open the $RICH token page';
     if (text) text.nodeValue = 'Buy $RICH';
     else link.textContent = 'Buy $RICH';
+    // Navigation items (phone bottom bar, sidebar) show the $RICH logo as their icon.
+    const richMint = String(richHref).match(/\/token\/([1-9A-HJ-NP-Za-km-z]{32,44})/)?.[1];
+    if (richMint && link.closest('.mobile-navigation-links, .primary-nav')) {
+      link.querySelectorAll(':scope > svg, :scope > .nav-icon').forEach(icon => icon.remove());
+      const logo = document.createElement('img');
+      logo.className = 'rich-nav-logo'; logo.alt = ''; logo.width = 22; logo.height = 22; logo.decoding = 'async';
+      logo.src = `/api/tokens/${encodeURIComponent(richMint)}/logo`;
+      logo.addEventListener('error', () => { logo.replaceWith(Object.assign(document.createElement('span'), { className: 'rich-nav-logo rich-nav-logo-fallback', textContent: 'R' })); }, { once: true });
+      link.prepend(logo);
+    }
   };
   const sweep = () => {
     document.querySelectorAll('a[href="#launch"]').forEach(relabel);

@@ -46,7 +46,7 @@ import { createAirdropsRoutes } from './routes/airdrops.mjs';
 import {createProjectUpdateRoutes} from './routes/project-updates.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
 import { createCalloutRoutes, createCalloutFeed } from './routes/callouts.mjs';
-import { createCalloutMarketReader, createHolderShareReader } from './callout-market.mjs';
+import { createCalloutMarketReader, createHolderShareReader, withIndexedCalloutCaps } from './callout-market.mjs';
 import { createCommunityTradeReader } from './community-trade-metrics.mjs';
 import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode } from './http-policy.mjs';
@@ -121,7 +121,7 @@ publicPostPaths.add('/api/boosts/confirm');
 publicPostPaths.add('/api/boosts/prepare');
 publicPostPaths.add('/api/launch-tier-quote');
 publicPostPaths.add('/api/launch-service-quote');
-publicPostPaths.add('/api/listings/quote');
+publicPostPaths.add('/api/listings/quote'); publicPostPaths.add('/api/listings/admin');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');
@@ -300,7 +300,8 @@ const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsR
   requireAuthorized, communityClaimService, v3AuthorityKeypair, respond: json,
 });
 let calloutConnection = null;
-const readCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
+const readPumpCalloutMarketCaps = createCalloutMarketReader({ getConnection: () => calloutConnection ||= new Connection(solanaRpcUrl, 'confirmed') });
+const readCalloutMarketCaps = withIndexedCalloutCaps(readPumpCalloutMarketCaps, { solanaCluster, readDex: mints => freeMarketData.dexTokens(mints), readSolUsd: () => readSolUsdQuote() });
 const readCalloutFeed = createCalloutFeed({ store, readMarketCaps: readCalloutMarketCaps });
 const handleCommunityNames=createCommunityNameRoutes({store,respond:json});
 const readAgencyProgress=createAgencyProgressReader({connection:new SharedRpcConnection(solanaRpcUrl,'finalized'),readMarketCaps:readCalloutMarketCaps,readSolUsd:readSolUsdQuote});
