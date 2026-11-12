@@ -49,6 +49,30 @@ function roundedRect(ctx, x, y, width, height, radius) {
   ctx.beginPath(); ctx.roundRect(x, y, width, height, radius); ctx.fill();
 }
 
+// Brand backdrop under every share banner (wide and square artwork, served from
+// our own origin so the canvas stays exportable). Until it loads, cards keep
+// their gradient; the open preview redraws once it is ready.
+const brandBackdrops = {};
+function brandBackdrop(square) {
+  if (typeof Image === 'undefined') return null;
+  const key = square ? 'square' : 'wide';
+  let entry = brandBackdrops[key];
+  if (!entry) {
+    const image = new Image(); image.decoding = 'async';
+    entry = brandBackdrops[key] = { image, ready: false };
+    image.onload = () => { entry.ready = true; if (document.querySelector('#share-dialog')?.open) updateResultPreview(); };
+    image.src = `/share-bg-${key}.png?v=1`;
+  }
+  return entry.ready ? entry.image : null;
+}
+function paintBrandBackdrop(ctx, W, H) {
+  const image = brandBackdrop(W === H);
+  if (!image) return false;
+  ctx.drawImage(image, 0, 0, W, H);
+  return true;
+}
+brandBackdrop(false); brandBackdrop(true);
+
 export function drawEarningsCard(canvas, result, { hideAmount = false, hideWallet = true } = {}) {
   if (!result || result.verified !== true || !Number.isFinite(result.amount) || result.amount <= 0 || !result.receipt) throw new Error('A verified paid receipt is required');
   canvas.width = 1200; canvas.height = 630;
@@ -56,7 +80,7 @@ export function drawEarningsCard(canvas, result, { hideAmount = false, hideWalle
   if (!ctx) throw new Error('Image creation is unavailable');
   const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
-  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630); paintBrandBackdrop(ctx, 1200, 630);
   ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('richpad.fun', 72, 82);
   ctx.fillStyle = '#ffffff'; ctx.font = '700 58px sans-serif'; ctx.fillText('Paid referral earnings', 72, 200);
   ctx.font = '700 88px sans-serif'; ctx.fillText(hideAmount ? 'Amount hidden' : `${result.amount.toFixed(4)} ${result.asset || 'SOL'}`, 72, 336);
@@ -75,7 +99,7 @@ export function drawTradeCard(canvas, result, { hideWallet = true } = {}) {
   if (!ctx) throw new Error('Image creation is unavailable');
   const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
-  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630); paintBrandBackdrop(ctx, 1200, 630);
   ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('richpad.fun', 72, 82);
   // Token identity: logo (when it loaded with CORS) or a letter mark, then the action and symbol.
   const symbol = String(result.tokenSymbol || 'TOKEN').replace(/^\$/, '').slice(0, 14);
@@ -109,7 +133,7 @@ export function drawRoundTripCard(canvas, result, { hideAmount = false, hideWall
   if (!ctx) throw new Error('Image creation is unavailable');
   const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
   gradient.addColorStop(0, '#101a34'); gradient.addColorStop(1, '#123c42');
-  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630);
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1200, 630); paintBrandBackdrop(ctx, 1200, 630);
   ctx.fillStyle = '#66e4c6'; ctx.font = '700 32px sans-serif'; ctx.fillText('richpad.fun', 72, 82);
   ctx.fillStyle = '#ffffff'; ctx.font = '700 55px sans-serif'; ctx.fillText('Closed trade · Solana', 72, 190);
   const lamports = BigInt(result.netLamports);
@@ -148,9 +172,9 @@ export function drawListingCard(canvas, result, { format = 'wide' } = {}) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Image creation is unavailable');
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0d1424'); bg.addColorStop(0.6, '#10213a'); bg.addColorStop(1, '#0f3b3a');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); const branded = paintBrandBackdrop(ctx, W, H);
   const glow = ctx.createRadialGradient(W * 0.85, H * 0.15, 10, W * 0.85, H * 0.15, W * 0.55); glow.addColorStop(0, 'rgba(245,185,0,0.28)'); glow.addColorStop(1, 'rgba(245,185,0,0)');
-  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  if (!branded) { ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H); }
   const pad = 64, symbol = String(result.symbol || 'TOKEN').replace(/^\$/, '').slice(0, 12), name = String(result.name || symbol).slice(0, 28);
   ctx.fillStyle = '#f5b900'; ctx.font = '800 34px sans-serif'; ctx.fillText('richpad.fun', pad, 86);
   ctx.font = '800 22px sans-serif'; const tag = String(result.tag || 'NEWLY LISTED').toUpperCase().slice(0, 22), tagW = ctx.measureText(tag).width + 40;
@@ -188,7 +212,7 @@ export function drawReferralCard(canvas, result, { format = 'wide' } = {}) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Image creation is unavailable');
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0d1424'); bg.addColorStop(0.55, '#1a1f3d'); bg.addColorStop(1, '#3a2a07');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); const branded = paintBrandBackdrop(ctx, W, H);
   ctx.fillStyle = '#f5b900'; ctx.font = '800 34px sans-serif'; ctx.fillText('richpad.fun', pad, 86);
   ctx.fillStyle = '#ffffff'; ctx.font = `800 ${square ? 92 : 76}px sans-serif`;
   ctx.fillText('Join me on', pad, square ? 300 : 220); ctx.fillStyle = '#f5b900'; ctx.fillText('richpad.fun', pad, square ? 410 : 310);
@@ -235,7 +259,7 @@ export function drawCalloutCard(canvas, result, { format = 'wide' } = {}) {
   const f = result.figures || {}, change = f.changePercent, up = !Number.isFinite(change) || change >= 0;
   const tone = up ? '#5ff0a8' : '#ff6b7d';
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0b1020'); bg.addColorStop(1, up ? '#0c2a22' : '#2a0f17');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); const branded = paintBrandBackdrop(ctx, W, H);
   const glow = ctx.createRadialGradient(W * 0.2, H * 0.45, 10, W * 0.2, H * 0.45, W * 0.5); glow.addColorStop(0, up ? 'rgba(95,240,168,0.22)' : 'rgba(255,107,125,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#f5b900'; ctx.font = '800 34px sans-serif'; ctx.fillText('richpad.fun', pad, 80);
