@@ -208,3 +208,5 @@ html.app-mainnet #explore .explore-pulse-head, html.app-mainnet #explore #explor
 /* Fee distribution: when only one panel is present (Mainnet), it spans the full width. */
 html body #main-content .capital-flow-layout:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
 html body #main-content .capital-flow-layout > :only-child { grid-column: 1 / -1; }
+/* Deep-link loads: keep the page content hidden until the router shows the requested page. */
+html.route-booting #main-content { visibility: hidden; }
