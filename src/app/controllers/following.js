@@ -15,8 +15,11 @@ export function createFollowingController(appState) {
       .finally(() => clearTimeout(timer));
   };
 
+  // Mainnet: every token a followed wallet holds counts, not only Richpad-listed ones.
   function getFollowingTokenSources(){
-    return followingTokenSources(appState.assets, appState.getFollowedWallets(), holdingsByWallet);
+    const held = appState.EXPLORE_CLUSTER === 'mainnet-beta'
+      ? [...holdingsByWallet.values()].flatMap(row => [...(row.mints || [])]).map(address => ({ address })) : [];
+    return followingTokenSources([...appState.assets, ...held], appState.getFollowedWallets(), holdingsByWallet);
   }
   function getFollowingCoverage(){
     const rows = appState.getFollowedWallets();

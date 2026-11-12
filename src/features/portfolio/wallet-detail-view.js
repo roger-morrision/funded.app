@@ -67,6 +67,7 @@ export function renderWalletDetail(
     assets,
     exploreProviderStatus,
     walletBalanceLamports,
+    publicHoldings = null,
     coinSolUsdPrice,
     walletDetailTab,
     walletDetailFilter,
@@ -133,7 +134,9 @@ export function renderWalletDetail(
   }
   const statSol = document.querySelector('#wallet-stat-sol');
       const statSolNote = document.querySelector('#wallet-stat-sol-note');
-      if (statSol) statSol.textContent = walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
+      // Another wallet's SOL balance comes from the public holdings read.
+      const shownLamports = isSelf ? walletBalanceLamports : publicHoldings?.status === 'ready' && /^\d+$/.test(String(publicHoldings.solLamports)) ? Number(publicHoldings.solLamports) : null;
+      if (statSol) statSol.textContent = shownLamports != null ? formatSol(shownLamports) : '—';
       if (statSolNote) statSolNote.textContent = '';
     setCoinField('#wallet-stat-launches', registryReady ? String(launches.length) : '—');
     setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
@@ -163,9 +166,10 @@ export function renderWalletDetail(
       const assetByMint = new Map(assets.map(asset => [asset.address, asset]));
       const holdings = isSelf && portfolioHoldings?.wallet === address && portfolioHoldings?.status === 'ready'
         ? portfolioHoldings.accounts
-        : [];
+        : !isSelf && publicHoldings?.wallet === address && publicHoldings.status === 'ready' ? publicHoldings.accounts : [];
       if (!holdings.length) {
-        content.innerHTML = `<div class="empty-state">${isSelf ? 'No SPL token holdings in this wallet.' : 'Holdings shown only for your connected wallet.'}</div>`;
+        const loading = !isSelf && publicHoldings?.status === 'loading';
+        content.innerHTML = `<div class="empty-state">${loading ? 'Loading this wallet\'s token balances…' : !isSelf && publicHoldings?.status === 'unavailable' ? 'Token balances are unavailable right now. Try again shortly.' : 'No SPL token holdings in this wallet.'}</div>`;
         return;
       }
       content.innerHTML = `<div class="wallet-balance-table-wrap" role="region" aria-label="Token holdings" tabindex="0"><table class="wallet-balance-table"><thead><tr><th scope="col">Token</th><th scope="col" class="numeric">Quantity</th><th scope="col" class="numeric">Value</th></tr></thead><tbody>${holdings.map(holding => {

@@ -1,5 +1,6 @@
 import { Connection, PublicKey, AddressLookupTableAccount } from '@solana/web3.js';
 import { createTokenLogoRoute } from './token-logo.mjs';
+import { createWalletHoldingsRoute } from './wallet-holdings.mjs';
 import { createMainnetTradeLedger } from '../mainnet-trade-ledger.mjs';
 import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
 
@@ -29,6 +30,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
+  const handleWalletHoldings = createWalletHoldingsRoute({ connection, free, respond });
   const supplyCache = new Map();
   const KNOWN_INITIAL = new Set(['pump.fun', 'raydium-launchlab', 'letsbonk.fun', 'bonk.fun', 'moonshot']);
   async function burnFacts(mint, launchpad) {
@@ -136,6 +138,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   return async function handleMainnetMarketRoutes(req, res, url) {
     if (solanaCluster !== 'mainnet-beta') return false;
     if (await handleTokenLogo(req, res, url)) return true;
+    if (await handleWalletHoldings(req, res, url)) return true;
     if (req.method === 'GET' && url.pathname === '/api/leaderboard/traders') {
       if (!tradeLedger?.configured) return json(res, 503, { error: 'Trader ranking is unavailable.' });
       const window = url.searchParams.get('window') === 'today' ? 'today' : '24h';
