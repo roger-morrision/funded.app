@@ -317,7 +317,7 @@ export function createTradeExecutionController(appState) {
       appState.renderRoundTripAction();
       const share = document.querySelector('#trade-share');
       if (share) {
-        Object.assign(share.dataset, { signature:pending.signature, mint:pending.mint, wallet:pending.walletAddress, side:pending.side, symbol:pending.symbol });
+        Object.assign(share.dataset, { signature:pending.signature, mint:pending.mint, wallet:pending.walletAddress, side:pending.side, symbol:pending.symbol, pnlSol:'', pnlPercent:'' });
         share.hidden = false;
         // After a verified sell, open the share card (banner, quantity, SOL received, P&L) with a prefilled post.
         if (pending.side === 'sell') setTimeout(() => { if (!share.hidden && share.dataset.signature === pending.signature) share.click(); }, 400);

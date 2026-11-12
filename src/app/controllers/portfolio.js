@@ -214,6 +214,15 @@ export function createPortfolioController(appState) {
   // app-source: 938
   // Token symbols, logos and the SOL price load asynchronously; re-render the open portfolio when they arrive.
   let identityRender = null;
+  // Share buttons in the trades table reuse the verified trade share card.
+  document.addEventListener('click', event => {
+    const row = event.target.closest?.('[data-share-trade]');
+    const share = document.querySelector('#trade-share');
+    if (!row || !share || !appState.connectedWalletAddress) return;
+    Object.assign(share.dataset, { signature: row.dataset.signature, mint: row.dataset.mint, side: row.dataset.side, symbol: row.dataset.symbol,
+      wallet: appState.connectedWalletAddress, pnlSol: row.dataset.pnlSol || '', pnlPercent: row.dataset.pnlPercent || '' });
+    share.disabled = false; share.click();
+  });
   globalThis.addEventListener?.('funded:token-identities', () => {
     if (identityRender || !document.querySelector('#portfolio-trade-rows')?.isConnected) return;
     identityRender = setTimeout(() => { identityRender = null; renderPortfolio(); if (getWalletDetailAddress()) renderWalletDetail(); }, 150);

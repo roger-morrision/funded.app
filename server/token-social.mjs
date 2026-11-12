@@ -4,7 +4,9 @@ export function tokenSocialModel(launch, metadata, mint, cluster, publicOrigin='
   const verified=Boolean(launch?.mint===mint&&launch.cluster===cluster&&launch.onchainVerified===true&&launch.policySignature&&launch.name&&launch.symbol);
   // Tokens outside the launch registry (any DEX or launchpad) get a neutral title the
   // client replaces with the indexed name once market data loads.
-  if(!verified)return {available:false,title:`Token ${String(mint).slice(0,4)}…${String(mint).slice(-4)} | richpad.fun`,description:'Live chart, trades and holders on richpad.fun. Not an endorsement. Tokens can lose all value.',canonical:null,image:null};
+  let siteOrigin=null;try{const url=new URL(publicOrigin);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)siteOrigin=url.origin;}catch{}
+  if(!verified)return {available:false,title:`Token ${String(mint).slice(0,4)}…${String(mint).slice(-4)} | richpad.fun`,description:'Live chart, trades, holders and calls on richpad.fun. Not an endorsement. Tokens can lose all value.',canonical:null,
+    image:null,logo:siteOrigin&&cluster!=='devnet'?`${siteOrigin}/api/tokens/${mint}/logo`:null};
   const signed=metadata?.mint===mint&&metadata.creatorWallet===launch.creatorWallet&&metadata.name===launch.name&&metadata.symbol===launch.symbol;
   const purpose=signed?String(metadata.tagline||metadata.description||'').slice(0,160):'';
   let origin=null;try{const url=new URL(publicOrigin);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)origin=url.origin;}catch{}
@@ -25,7 +27,9 @@ export function tokenPageHtml(template, launch, metadata, mint, cluster, publicO
       socialUrl.searchParams.set('buy',buy);socialUrl.searchParams.set('sell',sell);
     }
   }
-  const tags=`<meta property="og:type" content="website" /><meta property="og:title" content="${escape(model.title)}" /><meta property="og:description" content="${escape(model.description)}" /><meta name="twitter:card" content="${model.image?'summary_large_image':'summary'}" />${model.canonical?`<link rel="canonical" href="${escape(model.canonical)}" /><meta property="og:url" content="${escape(socialUrl)}" />`:''}${model.image?`<meta property="og:image" content="${escape(model.image)}" /><meta property="og:image:alt" content="Token image signed by the launcher; not an endorsement" />`:''}${model.available?'':'<meta name="robots" content="noindex" />'}`;
+  const logoTags=!model.image&&model.logo?`<meta property="og:image" content="${escape(model.logo)}" /><meta name="twitter:image" content="${escape(model.logo)}" />`:'';
+  if(logoTags)template=template.replace(/^\s*<meta (?:property="og:image(?::[a-z]+)?"|name="twitter:image")[^\n]*\r?\n/gm,'');
+  const tags=`${logoTags}<meta property="og:type" content="website" /><meta property="og:title" content="${escape(model.title)}" /><meta property="og:description" content="${escape(model.description)}" /><meta name="twitter:card" content="${model.image?'summary_large_image':'summary'}" />${model.canonical?`<link rel="canonical" href="${escape(model.canonical)}" /><meta property="og:url" content="${escape(socialUrl)}" />`:''}${model.image?`<meta property="og:image" content="${escape(model.image)}" /><meta property="og:image:alt" content="Token image signed by the launcher; not an endorsement" />`:''}${model.available?'':'<meta name="robots" content="noindex" />'}`;
   return withoutDefaultSocialTags(template).replace(/<title>[^<]*<\/title>/,`<title>${escape(model.title)}</title>`)
     .replace(/<meta name="description" content="[^"]*"\s*\/?>/,`<meta name="description" content="${escape(model.description)}" />`).replace('</head>',`${tags}</head>`);
 }

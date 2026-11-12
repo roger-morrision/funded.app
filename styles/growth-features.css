@@ -203,3 +203,5 @@ html.app-mainnet #coin-external-panel{display:none!important}
 /* Paid listing cards: token logo fills the avatar. */
 .paid-listing-logo { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
 .home-token-avatar:has(.paid-listing-logo) { overflow: hidden; padding: 0; }
+/* Mainnet Explore lists Richpad launches and listings across DEXs: launch-stage sub-tabs are not used. */
+html.app-mainnet #explore .explore-pulse-head, html.app-mainnet #explore #explore-pulse { display: none !important; }
