@@ -2,6 +2,9 @@ import { walletBonusCoverage } from './wallet-history-model.js';
 import { setCoinField as writeCoinField, shortAddress, escapeHtml, formatDashboardUsd, formatOnChainNumber } from '../shared/display.js';
 import { formatTokenBaseUnits } from '../../../funded-burn.js';
 import { tokenIdentityMarkup } from '../shared/token-identity.js';
+import { portfolioTokenIdentity } from '../../../token-identity.js';
+import { holdingImageUrl } from './holdings-metadata.js';
+import { tokenArtworkUrl } from '../shared/token-artwork.js';
 
 // DOM identity belongs to one displayed wallet and only its Created tab.
 const createdWalletRows = new WeakMap();
@@ -57,6 +60,7 @@ function reconcileCreatedRows(content, address, rows, emptyHtml, document) {
 export function renderWalletDetail(
   {
     connectedWalletAddress,
+    portfolioHoldings,
     portfolioTradeHistory,
     verifiedLaunchPoliciesStatus,
     exploreScannedCount,
@@ -68,6 +72,7 @@ export function renderWalletDetail(
     walletDetailFilter,
     walletHistory,
     fundedBurnState,
+    PROTOCOL_FUNDED_MINT,
   },
   {
     getWalletDetailAddress,
@@ -82,6 +87,7 @@ export function renderWalletDetail(
     walletDetailEmpty,
     loadWalletRowLogos,
     exploreExplorer,
+    verifiedLaunchPolicyForMint,
     document = globalThis.document,
   } = {}
 ) {
@@ -138,28 +144,43 @@ export function renderWalletDetail(
   setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
   setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
   document.querySelectorAll('[data-wallet-tab]').forEach(button => { const active = button.dataset.walletTab === walletDetailTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
-  const description = document.querySelector('#wallet-detail-description');
-  const content = document.querySelector('#wallet-detail-content');
-  const filters = document.querySelector('#wallet-detail-filters');
-  const historyFilters = ['claim','reward','airdrop','bonus'];
-  const activeFilter = !isSelf && historyFilters.includes(walletDetailFilter) ? 'all' : walletDetailFilter;
-  if (filters) {
-    filters.hidden = walletDetailTab !== 'activity';
-    filters.querySelectorAll('[data-wallet-filter]').forEach(button => {
-      button.hidden = !isSelf && historyFilters.includes(button.dataset.walletFilter);
-      button.setAttribute('aria-pressed', String(button.dataset.walletFilter === activeFilter));
-    });
-  }
-  if (!content || !description) return;
-  if (walletDetailTab !== 'created') createdWalletRows.delete(content);
-  if (walletDetailTab === 'balances') {
-    description.textContent = 'Balances are shown when current information is available.';
-    const fundedBalance = isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'ready'
-      ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6)
-      : isSelf && fundedBurnState.wallet === address && fundedBurnState.status === 'loading' ? 'Checking Solana…' : 'Unavailable';
-    content.innerHTML = `<div class="wallet-balance-grid"><article><span class="header-solana-mark" aria-hidden="true"></span><div><strong>${escapeHtml(isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : 'Unavailable')}</strong><small>Native SOL</small></div></article><article><span class="wallet-funded-mark" aria-hidden="true">f</span><div><strong>${escapeHtml(fundedBalance)}</strong><small>$RICH token balance${fundedBalance !== 'Unavailable' && fundedBalance !== 'Checking Solana…' ? ' · live' : ''}</small></div></article></div>`;
-    return;
-  }
+    const description = document.querySelector('#wallet-detail-description');
+    const content = document.querySelector('#wallet-detail-content');
+    const filters = document.querySelector('#wallet-detail-filters');
+    const historyFilters = ['claim','reward','airdrop','bonus'];
+    const activeFilter = !isSelf && historyFilters.includes(walletDetailFilter) ? 'all' : walletDetailFilter;
+    if (filters) {
+      filters.hidden = walletDetailTab !== 'activity';
+      filters.querySelectorAll('[data-wallet-filter]').forEach(button => {
+        button.hidden = !isSelf && historyFilters.includes(button.dataset.walletFilter);
+        button.setAttribute('aria-pressed', String(button.dataset.walletFilter === activeFilter));
+      });
+    }
+    if (!content || !description) return;
+    if (walletDetailTab !== 'created') createdWalletRows.delete(content);
+    if (walletDetailTab === 'holdings') {
+      description.textContent = 'Token balances from Solana RPC.';
+      const assetByMint = new Map(assets.map(asset => [asset.address, asset]));
+      const holdings = isSelf && portfolioHoldings?.wallet === address && portfolioHoldings?.status === 'ready'
+        ? portfolioHoldings.accounts
+        : [];
+      if (!holdings.length) {
+        content.innerHTML = `<div class="empty-state">${isSelf ? 'No SPL token holdings in this wallet.' : 'Holdings shown only for your connected wallet.'}</div>`;
+        return;
+      }
+      content.innerHTML = `<div class="wallet-balance-table-wrap" role="region" aria-label="Token holdings" tabindex="0"><table class="wallet-balance-table"><thead><tr><th scope="col">Token</th><th scope="col" class="numeric">Quantity</th><th scope="col" class="numeric">Value</th></tr></thead><tbody>${holdings.map(holding => {
+        const asset = assetByMint.get(holding.mint);
+        const marketUsd = Number(holding.market?.priceUsd);
+        const unitUsd = marketUsd > 0 && Number.isFinite(marketUsd) ? marketUsd : null;
+        const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
+        const launch = verifiedLaunchPolicyForMint?.(holding.mint);
+        const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, fundedMint:PROTOCOL_FUNDED_MINT});
+        const image = holding.mint === PROTOCOL_FUNDED_MINT ? '/richpad-mark.svg' : (launch?.onchainVerified ? tokenArtworkUrl(holding.mint, holdingImageUrl(launch.imageUri)) : null) || holdingImageUrl(holding.metadata?.image) || holdingImageUrl(asset?.imageUri) || holdingImageUrl(asset?.market?.logoUri);
+        return `<tr><td><a href="/token/${encodeURIComponent(holding.mint)}"><span class="wallet-holding-token"><span class="wallet-holding-logo" aria-hidden="true">${escapeHtml(identity.label==='Unnamed token'?'?':identity.label.replace(/^\\$/,'').slice(0,2))}${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`:''}</span><span class="wallet-holding-identity"><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="wallet-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span></span></a></td><td class="numeric">${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</td><td class="numeric">${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</td></tr>`;
+      }).join('')}</tbody></table></div>`;
+      loadWalletRowLogos(content, holdings.map(h => ({ mint: h.mint })));
+      return;
+    }
   const launchRows = launches.map(launch => ({ type:'launch', time:walletLaunchTimestamp(launch), mint:launch.mint, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(launch.mint)}" href="/token/${encodeURIComponent(launch.mint)}"><span class="wallet-activity-icon">✦</span><span><strong>Created ${escapeHtml(launch.name || launch.symbol || 'token')}</strong><small>${escapeHtml(launch.symbol || 'TOKEN')} · ${escapeHtml(shortAddress(launch.mint))}</small></span><b>Verified<small>${walletLaunchTimestamp(launch) ? escapeHtml(formatOnchainAge(walletLaunchTimestamp(launch))) : 'Time unavailable'}</small></b></a>` }));
   if (walletDetailTab === 'created') {
     description.textContent = registryReady ? 'Confirmed coins created by this wallet.' : 'Created coins are unavailable right now.';
