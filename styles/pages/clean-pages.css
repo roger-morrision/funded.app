@@ -179,7 +179,7 @@ html body #main-content #explore :is(.explore-timeframe,.explore-view-switch) > 
   html body #main-content #explore .review-buy-setting > span:first-child { grid-column: 1 / -1; font-size: 12px; line-height: 18px; }
 }
 /* Both buy amounts, Share and Boost stay on one row with full-size tap targets. */
-html body #main-content .home-launch-card .home-launch-card-actions.has-buy-presets { grid-template-columns: repeat(2,minmax(0,1fr)) repeat(2,44px); gap: 6px; }
+html body #main-content .home-launch-card .home-launch-card-actions.has-buy-presets { grid-template-columns: repeat(3,minmax(0,1fr)) repeat(2,44px); gap: 6px; }
 html body #main-content .home-launch-card .has-buy-presets > .card-review-buy { padding: 0 4px; font-size: 12px; line-height: 1.2; white-space: normal; text-align: center; }
 html body.page-route-my-launches:not(.page-route-community) #my-launches > .purpose-page-nav { display: none; }
 html body #main-content #portfolio-favorites-link { display: inline-flex; align-items: center; min-height: 44px; margin-left: auto; padding: 0 12px; }

@@ -264,7 +264,7 @@ export function homeLaunchCardMarkup(
             ${feeRoute}
             ${footerNote ? `<small class="home-launch-note">${escapeHtml(footerNote)}</small>` : ''}
             </div>
-      <div class="home-launch-card-actions has-buy-presets">${['0.2','0.5'].map(amount => `<a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" data-review-amount="${amount}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=${amount}" title="Review a ${amount} SOL buy">Buy ${amount} SOL</a>`).join('')}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
+      <div class="home-launch-card-actions has-buy-presets">${['0.2','0.5','1'].map(amount => `<a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" data-review-amount="${amount}" data-symbol="${escapeHtml(item.symbol || '')}" data-dex="${escapeHtml(item.dexId || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=${amount}" title="Review a ${amount} SOL buy">Buy ${amount} SOL</a>`).join('')}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
     </article>`;
 }
 
