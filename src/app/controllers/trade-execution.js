@@ -212,7 +212,7 @@ export function createTradeExecutionController(appState) {
         const spendInputs = { amountSol:amount, slippagePercent, feeBps:appTradeBps(appState), trade:appState.tradePreview.trade };
         if (!appState.hasBuyBalance(latestBalance, spendInputs)) {
           const needed = buyRequiredLamports(spendInputs);
-          throw new Error(`Not enough SOL: this buy needs up to ${needed == null ? '—' : (Number(needed) / 1e9).toFixed(4)} SOL (amount, ${slippagePercent}% slippage, app fee and about 0.005 SOL network/account cost); the wallet has ${(Number(latestBalance) / 1e9).toFixed(4)} SOL.`);
+          throw new Error(`Insufficient SOL: this buy needs up to ${needed == null ? '—' : (Number(needed) / 1e9).toFixed(4)} SOL (amount, ${slippagePercent}% slippage, app fee and about 0.005 SOL network/account cost); the wallet has ${(Number(latestBalance) / 1e9).toFixed(4)} SOL.`);
         }
       }
       appState.assertWalletSessionCurrent(session);

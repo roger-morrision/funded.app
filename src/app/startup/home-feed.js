@@ -35,6 +35,14 @@ export function initializeHomeFeed(appState) {
 
   const paidTableWrap = document.querySelector('#home-launch-table-wrap');
   let cancelRetryReveal = null;
+  // Home Favorites: sign in once on this device, then load the saved favorites.
+  document.addEventListener('click', event => {
+    const button = event.target.closest?.('[data-favorites-signin]');
+    if (!button) return;
+    button.disabled = true;
+    void Promise.resolve(appState.verifyWalletFavorites?.()).then(signedIn => { if (signedIn) appState.renderHomeLaunchBoard(); })
+      .finally(() => { button.disabled = false; });
+  });
   paidTableWrap?.addEventListener('focusout', () => cancelRetryReveal?.());
   paidTableWrap?.addEventListener('focusin', event => {
     cancelRetryReveal?.();

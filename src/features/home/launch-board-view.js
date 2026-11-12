@@ -248,7 +248,14 @@ export function renderHomeLaunchBoard(state, {
       title=!coverage.total?'No followed wallets yet.':coverage.refreshing?'Checking followed wallets…':'No tokens found for followed wallets.';
       detail=!coverage.total?'Open a trader wallet from a token page and choose Follow wallet.':coverage.refreshing?'Looking for held tokens and observed recent trades.':coverage.unavailable||coverage.partial||coverage.checked<coverage.total?'Balance checks are incomplete. Recent trades cover only the indexed sample; try again later.':'No current holdings or recent trades were found among listed tokens.';
     }
-    const retry = !initialCheck && (stageUnavailable || feedUnavailable) ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : '';
+    // Favorites live on the server under the wallet; this device has not signed in yet.
+    let signIn = '';
+    if (homePreview && discovery === 'saved' && state.favoritesSignedIn === false) {
+      title = 'Sign in to see your favorites.';
+      detail = 'Favorites are saved to your wallet. Sign a free message (no transaction) once on this device to load them.';
+      signIn = '<button type="button" class="primary-button" data-favorites-signin>Sign in with wallet</button>';
+    }
+    const retry = signIn || (!initialCheck && (stageUnavailable || feedUnavailable) ? '<button type="button" class="secondary-button" data-verified-feed-retry>Try again</button>' : '');
     grid.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${detail}</span>${retry}</div>`;
     if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="home-table-empty"><strong>${title}</strong><span>${detail}</span>${retry}</td></tr>`;
     return;
