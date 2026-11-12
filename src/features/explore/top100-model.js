@@ -44,8 +44,8 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
         :link.icon==='discord'?['discord.gg','discord.com','discordapp.com'].includes(host):false;
     }).map(link=>link.icon)).size;
     const record = {...asset, mint, capUsd, capSol, paidListing, boost, boostNextExpiry, boostExpiresAt,
-      capGrowthUsd,holderGrowth,communityCount,socialChannels,
-      tier:promotion?.tier || (policy ? 'standard' : 'external'), paidPriority:['premier','pro'].includes(promotion?.tier) || paidListing,
+          capGrowthUsd,holderGrowth,communityCount,socialChannels, holders: asset.holders,
+          tier:promotion?.tier || (policy ? 'standard' : 'external'), paidPriority:['premier','pro'].includes(promotion?.tier) || paidListing,
       // Indexed tokens (Mainnet) fall back to the indexed 24h figures.
       volumeUsd:activityFresh && volume != null && rate > 0 ? volume * rate : nonnegative(asset.volume24hUsd),
       trades:activityFresh ? market.windowTradeCount : Number.isSafeInteger(asset.buyCount24h) && Number.isSafeInteger(asset.sellCount24h) ? asset.buyCount24h + asset.sellCount24h : null,
