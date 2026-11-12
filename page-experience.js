@@ -114,7 +114,7 @@ function clarifyDataStates() {
 
   const airdrops = byId('airdrops');
   const programCount = byId('claim-program-count');
-  const syncPrograms = () => airdrops?.classList.toggle('no-indexed-programs', /^0\b/.test(programCount?.textContent.trim() || ''));
+  const syncPrograms = () => airdrops?.classList.toggle('no-indexed-programs', /^(?:0\b|$)/.test(programCount?.textContent.trim() || ''));
   syncPrograms();
   if (programCount) new MutationObserver(syncPrograms).observe(programCount, { childList: true, characterData: true, subtree: true });
   byId('claim-wallet-state')?.setAttribute('role', 'status');

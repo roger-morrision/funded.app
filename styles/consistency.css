@@ -14,7 +14,7 @@ html body #main-content .launch-fixed-distribution .fee-distribution-summary > :
 html body #main-content .launch-fixed-distribution .fee-distribution-summary { padding-block: 0; border: 0; background: none; }
 
 /* Rewards: X claims and Token airdrops are already tabs above; keep only the extra destinations. */
-html body #main-content #payments .reward-dashboard-programs :is(a[href="#payments/x"], a[href="#airdrops"]) { display: none !important; }
+html body #main-content #payments .reward-dashboard-programs :is(a[href="#payments/x"], a[href="#airdrops"], a[href="#referrals"]) { display: none !important; }
 
 /* Analytics: the page hero already carries this sentence. */
 html body:has(#route-guide:not([hidden])) #main-content #analytics-detail .analytics-fee-explainer { display: none; }

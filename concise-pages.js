@@ -224,7 +224,7 @@ function compactRecipients() {
 
 function shortenPageCopy() {
   const edits = [
-    ['#payments > .workspace-page-header > p:last-child', 'Find eligible rewards, claim available SOL, and track payments.'],
+    ['#payments > .workspace-page-header > p:last-child', 'Claim what you have earned and see every payment.'],
     ['#my-launches > .section-heading .panel-explainer', 'Your launches and saved tokens.'],
     ['#capital-flow > .section-heading .panel-explainer', 'Rates for new launches. Existing coins keep saved rates. Allocations are not payments.'],
     ['#launch-route-shell > .page-lede', 'Earn creator fees and choose how to reward holders and an X partner. Your token symbol is protected on richpad.fun for 12 hours to help prevent copycats.'],

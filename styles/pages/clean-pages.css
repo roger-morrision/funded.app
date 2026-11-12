@@ -416,3 +416,17 @@ html body #main-content .home-launch-card .explore-social-link:hover { color: va
 html body #main-content .home-launch-card .explore-social-link svg { width: 14px; height: 14px; }
 /* Price: the zero count after "0.0" is a real subscript, readable in any font. */
 html body #main-content #coin-price sub { font-size: .62em; vertical-align: -0.25em; line-height: 0; margin: 0 1px; opacity: .85; }
+
+/* Rewards: one help row instead of stacked disclosures; programs are reached through the tabs. */
+html body #main-content #payments .ui-tabs > [hidden],
+html body #main-content #rewards-overview > details,
+html body #main-content #rewards-overview #financial-center > details { display: none; }
+html body #main-content #rewards-overview > .reward-program-links { margin-top: 4px; }
+/* Airdrops: plain heading and a clear empty state; launch analytics only when there are airdrops. */
+#airdrops .airdrop-lede { margin: 6px 0 0; color: var(--fv-text-muted); }
+#airdrops .airdrop-empty { display: none; }
+#airdrops.no-indexed-programs .airdrop-empty { display: grid; gap: 8px; margin: 12px 0; padding: 18px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-surface); }
+#airdrops .airdrop-empty p { margin: 0; color: var(--fv-text-muted); line-height: 1.5; }
+#airdrops .airdrop-empty-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+#airdrops.no-indexed-programs #claim-program-count,
+#airdrops.no-indexed-programs > .ui-disclosure { display: none; }

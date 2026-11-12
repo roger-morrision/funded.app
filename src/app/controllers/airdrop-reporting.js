@@ -57,8 +57,8 @@ export function createAirdropReportingController(appState) {
     linkWalletText(state,appState.connectedWalletAddress);
     const count = document.querySelector('#claim-program-count');
     if (count) count.textContent = appState.verifiedLaunchPoliciesStatus === 'ready'
-      ? `${programs.length} allocations · ${appState.communityReserveStatus === 'ready' && programs.every(program => program.claimVerification === 'verified') ? `${programs.filter(program => program.claimActive).length} open` : '-'}`
-      : appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : '-';
+      ? `${programs.length} ${programs.length === 1 ? 'allocation' : 'allocations'}${appState.communityReserveStatus === 'ready' && programs.length && programs.every(program => program.claimVerification === 'verified') ? ` · ${programs.filter(program => program.claimActive).length} open` : ''}`
+      : appState.verifiedLaunchPoliciesStatus === 'loading' ? 'Checking airdrops…' : '';
     appState.renderAirdropSummary(programs);
     appState.renderAirdropDirectory(programs);
     appState.renderAirdropAnalytics();
