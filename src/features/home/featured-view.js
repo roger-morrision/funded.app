@@ -29,7 +29,7 @@ export function createFeaturedScroller(root) {
   const viewport=root.querySelector('.home-featured-viewport'),track=root.querySelector('.home-featured-track');
   const button=root.querySelector('[data-featured-pause]');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  let paused=reduced.matches,visible=false,frame=0,last=0,holdUntil=0,cycle=0,key='';
+  let paused=reduced.matches,visible=false,frame=0,last=0,holdUntil=0,cycle=0,key='',position=0;
   const copies=()=>{
     track.querySelectorAll('[data-featured-copy]').forEach(node=>node.remove());
     const group=track.firstElementChild;if(!group)return;
@@ -39,15 +39,19 @@ export function createFeaturedScroller(root) {
       const clone=group.cloneNode(true);clone.dataset.featuredCopy='';clone.setAttribute('aria-hidden','true');
       clone.querySelectorAll('a').forEach(a=>{a.tabIndex=-1;});track.append(clone);
     }
-    viewport.scrollLeft%=cycle;
+    viewport.scrollLeft%=cycle;position=viewport.scrollLeft;
   };
   const canRun=()=>visible&&!document.hidden&&!paused&&!reduced.matches;
   const animate=time=>{
     if(!canRun()){frame=0;last=0;return;}
     const elapsed=last?Math.min(time-last,64):0;last=time;
     if(cycle&&time>=holdUntil&&!root.matches(':hover, :focus-within')){
-      viewport.scrollLeft+=elapsed*0.03;
-      if(viewport.scrollLeft>=cycle)viewport.scrollLeft-=cycle;
+      // WebKit (iPhone Safari, wallet browsers) keeps scrollLeft in whole pixels, so
+      // sub-pixel steps added to it are lost; the position is tracked separately.
+      if(Math.abs(viewport.scrollLeft-position)>2)position=viewport.scrollLeft;
+      position+=elapsed*0.03;
+      if(position>=cycle)position-=cycle;
+      viewport.scrollLeft=position;
     }
     frame=requestAnimationFrame(animate);
   };
