@@ -1,8 +1,9 @@
 // Reusable share kit: copy link, post on X, and a scannable QR code.
-import qrcode from 'qrcode-generator';
 import { el } from './format.js';
 
-export function qrSvg(text, size = 160) {
+// The QR encoder loads only when a share kit is shown.
+export async function qrSvg(text, size = 160) {
+  const { default: qrcode } = await import('qrcode-generator');
   const qr = qrcode(0, 'M'); qr.addData(text); qr.make();
   const count = qr.getModuleCount(), cell = size / (count + 8);
   let path = '';
@@ -14,7 +15,7 @@ export function qrSvg(text, size = 160) {
 
 export function shareKit(document, { url, text, title = 'Share' }) {
   const kit = el(document, 'div', 'share-kit');
-  const qr = el(document, 'div', 'share-kit-qr'); qr.innerHTML = qrSvg(url);
+  const qr = el(document, 'div', 'share-kit-qr'); void qrSvg(url).then(svg => { qr.innerHTML = svg; }).catch(() => {});
   const body = el(document, 'div', 'share-kit-body');
   body.append(el(document, 'strong', null, title));
   const field = el(document, 'code', 'share-kit-url', url);

@@ -8,6 +8,34 @@ const STARTUP_MODULES = ['bootstrap.js', 'app.js', 'page-experience.js', 'creato
   'automatic-rewards-ui.js', 'personal-rewards-ui.js', 'workspace-ui.js', 'reward-experience-ui.js',
   'retention-ux.js', 'product-measurement.js', 'product-experience.js'];
 
+// The app shell (everything reachable only through app.js) is split by area into
+// separate files that download in parallel and stay cached when another area
+// changes. Modules shared with other entries or loaded on demand keep their chunks.
+const slashPath = id => String(id).replaceAll('\\', '/');
+export function appOnlyModule(id, getModuleInfo, seen = new Map()) {
+  if (seen.has(id)) return seen.get(id);
+  seen.set(id, true); // a cycle back into the app shell does not disqualify a module
+  const info = getModuleInfo?.(id);
+  const result = Boolean(info) && !info.isEntry && !info.dynamicImporters?.length && info.importers.length > 0
+    && info.importers.every(importer => slashPath(importer).endsWith('/app.js') && !slashPath(importer).includes('/src/')
+      || appOnlyModule(importer, getModuleInfo, seen));
+  seen.set(id, result);
+  return result;
+}
+export function appSourceGroup(id, getModuleInfo) {
+  const file = slashPath(id);
+  // Stylesheets keep their original bundling so the cascade order is unchanged.
+  if (!/\.js$/.test(file)) return undefined;
+  const area = /\/src\/(app\/(?:controllers|startup)|features)\/([^/]+)/.exec(file);
+  if (!area || !appOnlyModule(id, getModuleInfo)) return undefined;
+  const [, root, name] = area;
+  if (root === 'app/startup') return 'app-startup';
+  if (root === 'app/controllers') return 'app-controllers';
+  if (/^(?:coin|trade|callouts|chart|home|explore|leaderboard|analytics|portfolio)$/.test(name)) return 'app-pages';
+  if (/^(?:launch|fees|payments|funded|rewards|growth|marketing|listing)$/.test(name)) return 'app-growth';
+  return 'app-shared';
+}
+
 export function browserBuildSettings(fileEnv = {}, runtimeEnv = process.env) {
   const env = { ...fileEnv, ...runtimeEnv };
   const enabled = name => String(env[name] || '').toLowerCase() === 'true';
@@ -91,8 +119,8 @@ export default defineConfig(({ mode }) => {
         input: { main:'index.html', admin:'admin.html', welcome:'welcome.html' },
         output: {
           strictExecutionOrder: true,
-          codeSplitting: { includeDependenciesRecursively: false, groups: [{ name(id) {
-            if (!id.includes('node_modules')) return undefined;
+          codeSplitting: { includeDependenciesRecursively: false, groups: [{ name(id, ctx) {
+            if (!id.includes('node_modules')) return appSourceGroup(id, ctx?.getModuleInfo?.bind(ctx));
             // The browser entry installs Buffer before importing the Solana SDK.
             // Keep its implementation outside the SDK chunk so importing Buffer
             // cannot evaluate SDK module code first.
