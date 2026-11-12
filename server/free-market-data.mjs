@@ -25,12 +25,17 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   // Swap calls get their own paced lane (~55/min, Jupiter's free limit) and wait
   // briefly for a slot or a short cooldown instead of failing the user's quote.
   const laneNext = new Map();
+  // Swap calls use a rolling 10 s budget (rate × 10 calls) instead of a fixed gap,
+  // so a quote and its swap instructions run back to back while the API limit holds.
+  const laneCalls = new Map();
   async function paceLane(key, gapMs, maxWaitMs = 8_000) {
     const cool = (cooldownUntil.get(key) || 0) - now();
     if (cool > 0 && cool <= 5_000) await new Promise(done => setTimeout(done, cool));
-    const at = Math.max(now(), laneNext.get(key) || 0);
+    const budget = Math.max(1, Math.round(10_000 / gapMs));
+    const calls = (laneCalls.get(key) || []).filter(at => at > now() - 10_000).sort((a, b) => a - b);
+    const at = calls.length < budget ? now() : calls[calls.length - budget] + 10_000;
     if (at - now() > maxWaitMs) throw Error(`${key} is busy`);
-    laneNext.set(key, at + gapMs);
+    calls.push(at); laneCalls.set(key, calls);
     if (at > now()) await new Promise(done => setTimeout(done, at - now()));
   }
   const lane = url => { const u = new URL(url); return u.hostname + u.pathname.split('/').slice(0, 3).join('/'); };
