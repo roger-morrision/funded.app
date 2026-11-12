@@ -16,7 +16,7 @@ export function initializeDiscoveryIntent(app) {
   // Card quick buy: a plain click opens the wallet to approve the buy in place.
   // Ctrl/Cmd/Shift/middle click still opens the token page.
   document.addEventListener('click', event => {
-    const link = event.target.closest?.('a.card-review-buy[data-review-buy]');
+    const link = event.target.closest?.('.has-buy-presets a.card-review-buy[data-review-buy]');
     if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const value = validReviewAmount(link.dataset.reviewAmount) ? link.dataset.reviewAmount : null;
     if (!value) return;
