@@ -4,6 +4,7 @@
 // our own indexed market data is fetched; the caller cannot supply a URL.
 const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const MAX_BYTES = 2_000_000;
+const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://gateway.pinata.cloud/ipfs/', 'https://dweb.link/ipfs/'];
 
 export function createTokenLogoRoute({ free, tokenCache, fetchImpl = fetch, ttlMs = 6 * 60 * 60_000 }) {
   const cache = new Map();
@@ -14,14 +15,24 @@ export function createTokenLogoRoute({ free, tokenCache, fetchImpl = fetch, ttlM
     if (!url) url = (await free.jupToken(mint).catch(() => null))?.icon || null;
     return typeof url === 'string' && url.startsWith('https://') ? url : null;
   }
-  async function load(mint) {
-    const url = await logoUrl(mint);
-    if (!url) return null;
+  async function fetchImage(url) {
     const response = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(8000), headers: { accept: 'image/*' } });
     const type = String(response.headers.get('content-type') || '').split(';')[0].trim();
     if (!response.ok || !/^image\/(?:png|jpeg|webp|gif|avif)$/.test(type)) return null;
     const bytes = Buffer.from(await response.arrayBuffer());
     return bytes.length > 0 && bytes.length <= MAX_BYTES ? { type, bytes } : null;
+  }
+  async function load(mint) {
+    const url = await logoUrl(mint);
+    if (!url) return null;
+    // IPFS logos: retired gateways (cf-ipfs.com and others) fall back to live ones.
+    const cid = /\/ipfs\/([A-Za-z0-9]{40,100}(?:\/[^?#]*)?)/.exec(url)?.[1];
+    const urls = cid ? [...new Set([url, ...IPFS_GATEWAYS.map(gateway => gateway + cid)])] : [url];
+    for (const candidate of urls) {
+      const image = await fetchImage(candidate).catch(() => null);
+      if (image) return image;
+    }
+    return null;
   }
   return async function handleTokenLogo(req, res, url) {
     const match = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/logo$/.exec(url.pathname);
@@ -33,7 +44,7 @@ export function createTokenLogoRoute({ free, tokenCache, fetchImpl = fetch, ttlM
       const image = await load(mint).catch(() => null);
       hit = { image, expiresAt: Date.now() + (image ? ttlMs : 10 * 60_000) };
       cache.set(mint, hit);
-      if (cache.size > 300) cache.delete(cache.keys().next().value);
+      if (cache.size > 1000) cache.delete(cache.keys().next().value);
     }
     if (!hit.image) { res.writeHead(404, { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' }); res.end('{"error":"No logo is available for this token."}'); return true; }
     res.writeHead(200, { 'content-type': hit.image.type, 'content-length': hit.image.bytes.length, 'access-control-allow-origin': '*',
