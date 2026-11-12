@@ -121,7 +121,7 @@ publicPostPaths.add('/api/boosts/confirm');
 publicPostPaths.add('/api/boosts/prepare');
 publicPostPaths.add('/api/launch-tier-quote');
 publicPostPaths.add('/api/launch-service-quote');
-publicPostPaths.add('/api/listings/quote');
+publicPostPaths.add('/api/listings/quote'); publicPostPaths.add('/api/listings/admin');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');

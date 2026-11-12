@@ -1,4 +1,5 @@
 import { linkWalletText } from './src/features/shared/wallet-links.js';
+import { mountAdminListingButton } from './src/features/listing/admin-listing-button.js';
 import { Buffer } from 'buffer';
 import bs58 from 'bs58';
 import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
@@ -45,6 +46,8 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   let recoveryError = '';
   let pendingNotice = null;
   let retainedPending = null;
+  const updateAdminListing = mountAdminListingButton({ anchor: payButton, getSession, connectWallet, setStatus: message => setStatus(message),
+    onListed: async () => { await refreshListings(); draw(); } });
   function readPending() {
     try {
       const pending = readPendingListing();
@@ -174,6 +177,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       }
     }
     if (payButton) payButton.hidden = !verified || Boolean(existing);
+    updateAdminListing({ mint, ready: Boolean(verified && !existing && !pending && !busy) });
     recovery.hidden = !pending && !recoveryError;
     byId('list-retry').disabled = busy || !pending || Boolean(recoveryError);
     const amountTokens = configuredBurnTokens();
@@ -186,7 +190,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (recoveryError) setStatus(recoveryError, pending?.signature);
     else if (pending) setStatus(pendingNotice?.signature === pending.signature ? pendingNotice.message
       : 'A signed burn is saved in this tab. Verify its original receipt before another payment; submission may be unconfirmed.', pending.signature);
-    else if (existing) setStatus(existing.included ? 'Listing is included with this richpad.fun launch. No extra payment.' : 'Listing burn verified.', existing.signature);
+    else if (existing) setStatus(existing.included ? 'Listing is included with this richpad.fun launch. No extra payment.' : existing.adminListing ? 'Listed by admin. No fee was charged.' : 'Listing burn verified.', existing.signature || '');
   }
   function queueLookup() {
     const sequence = ++lookupSequence;
