@@ -231,8 +231,8 @@ html body #main-content .section-block > section + section { margin-top: 28px; }
 /* Keep card links in a single accessible row across both card columns. */
 html body #main-content .home-new-token-community { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; }
 html body #main-content .home-new-token-socials { position: relative; z-index: 2; margin-left: auto; }
-html body #main-content .home-new-token-socials .explore-social-links { display: flex; flex-wrap: nowrap; gap: 4px; justify-content: flex-start; }
-html body #main-content .home-new-token-socials .explore-social-link { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; min-height: 44px; padding: 0; }
+html body #main-content .home-new-token-socials .explore-social-links { display: flex; flex-wrap: nowrap; gap: 4px; justify-content: flex-end; width: max-content; }
+html body #main-content .home-new-token-socials .explore-social-link { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-width: 44px; min-height: 44px; padding: 0; }
 html body #main-content .home-new-token-socials .explore-social-link svg { width: 16px; height: 16px; }
 html body #trade-panel .trade-actions { display: flex; flex-direction: column; align-items: stretch; width: 100%; }
 html body #trade-panel .trade-actions button { width: 100%; min-height: 46px; white-space: normal; }
