@@ -69,7 +69,8 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     try{
       const result=await app.apiRequest('/api/token-chat/feed');
       if(!result?.available||!Array.isArray(result.data?.messages))throw new Error('Unavailable');
-      messages=result.data.messages;if(active())render();
+      // Newest first, as in every chat and call list.
+      messages=result.data.messages.slice().sort((a,b)=>(Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0));if(active())render();
     }catch{if(active()){if(!messages.length)feed.innerHTML='<p class="home-community-empty">Calls are unavailable. Retrying shortly.</p>';}}
     finally{loading=false;}
   }

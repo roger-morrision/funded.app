@@ -55,10 +55,12 @@ export function chatCalloutBadge(callout, currentCapSol, solUsd) {
 }
 
 // Hot: calls that have reached 2x at their peak. Mine: the connected wallet.
+// Newest first, as in every chat and call list.
+export const newestFirst = rows => rows.slice().sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0));
 export function filterCallouts(callouts, { filter = 'all', wallet = null, author = null } = {}) {
-  return callouts.filter(row => (filter !== 'hot' || row.peakMultiple >= 2)
+  return newestFirst(callouts.filter(row => (filter !== 'hot' || row.peakMultiple >= 2)
     && (filter !== 'mine' || (wallet && row.author === wallet))
-    && (!author || row.author === author));
+    && (!author || row.author === author)));
 }
 
 // The three live columns: every call; calls from this week's top callers;
@@ -180,7 +182,7 @@ export function mountCallouts(app, document = globalThis.document) {
       if (!response?.available || !Array.isArray(response.data?.callouts) || !Array.isArray(response.data.topCallers)) {
         throw new Error('Incomplete call feed');
       }
-      state.feed = response.data;
+      state.feed = { ...response.data, callouts: newestFirst(response.data.callouts) };
       state.unavailable = false;
       if (active()) render();
     } catch {
