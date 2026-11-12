@@ -233,7 +233,8 @@ export function initBonusDashboard(document = globalThis.document) {
     poolStatus.textContent = 'Bonus pool data is unavailable. No amount is confirmed here.';
     home.querySelector('[data-bonus-verification]').textContent = 'Current payout readiness is unavailable.';
     status.textContent = reason || 'Bonus history is unavailable. No payout or ranking is confirmed here.';
-    leaders.replaceChildren();
+    leaders.replaceChildren(...Object.entries(GROUPS).map(([key, title]) => renderBonusPodium(document, { key, title, metric:'Total confirmed bonus received', emptyText:'', rows:[] })));
+    settlePodiumGrid(leaders, view);
     mutateHistory(owner, true, () => { rows.replaceChildren(); historyState = undefined; });
     pageLabel.textContent = ''; previous.disabled = next.disabled = true;
   }

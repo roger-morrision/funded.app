@@ -15,6 +15,8 @@ import { startShareVisitCleanup } from './background-maintenance.mjs';
 import { createFeeRouterService } from './fee-router-service.mjs';
 import { createPageDelivery } from './page-delivery.mjs';
 import { createDiscoveryRoutes } from './routes/discovery.mjs';
+import { createMainnetMarketRoutes } from './routes/mainnet-market.mjs';
+import { createMarketDataServices } from './mainnet-market-wiring.mjs';
 import { createLaunchQuoteRoutes } from './routes/launch-quotes.mjs';
 import { createDevnetMetadataRoutes } from './routes/devnet-metadata.mjs';
 import { createRewardStatusRoutes } from './routes/reward-status.mjs';
@@ -38,7 +40,6 @@ import { createQuoteAssetsRoutes } from './routes/quote-assets.mjs';
 import { createDirectoryRoutes } from './routes/directory.mjs';
 import { createTokenMarketRoutes } from './routes/token-market.mjs';
 import { createDevWalletRoutes } from './routes/dev-wallet.mjs';
-import {createBirdeyeMarketFallback} from './birdeye-market-fallback.mjs';
 import { createLaunchProtectionRoutes } from './routes/launch-protection.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
@@ -124,9 +125,10 @@ publicPostPaths.add('/api/listings/quote');
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');
+publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/client-errors');
 
 const solanaCluster = deploymentCluster(process.env);
-const boostPurchasesEnabled = solanaCluster === 'devnet' && String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
+const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 async function communityClaimService(mint) {
   if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
   const config = communityProgramForLaunch(await store.readLaunch(mint), process.env, v3AuthorityKeypair);
@@ -327,14 +329,16 @@ const dailyBonusRuntime = createDailyBonusRuntime({ store, rewardStore:automatic
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair });
 const handleLaunchProtectionRoutes=createLaunchProtectionRoutes({store,solanaCluster,solanaRpcUrl,clientKey,respond:json});
 const { fetchBirdeye, fetchPump } = createMarketProviders({ birdeyeApiKey, birdeyeBaseUrl, birdeyeChain, birdeyeTimeoutMs, pumpApiUrl });
-const readMarketFallback = createBirdeyeMarketFallback({fetchBirdeye,cluster:solanaCluster});
+const { freeMarketData, tokenCache, readBirdeyeMarket, readMarketFallback } = createMarketDataServices({ fetchBirdeye, solanaCluster });
 const handleTokenMarketRoutes = createTokenMarketRoutes({
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
   readMarketFallback,
 });
 
+const handleMainnetMarketRoutes = createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free: freeMarketData, tokenCache, fetchBirdeye,
+  readMarketFallback: readBirdeyeMarket, store, clientKey, body, respond: json });
 const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, solanaCluster, body, authorized, clientKey, json, rpcMethods });
-const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote });
+const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote, readIndexedPriceUsd: mint => freeMarketData.jupPrices([mint]).then(m => m.get(mint)?.priceUsd) });
 
 const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({
   requireAuthorized, body, fetchPump, normalizePumpToken, store, solanaCluster, collectPumpCreatorFees, solanaRpcUrl, respond: json,
@@ -364,7 +368,7 @@ const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaC
   solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime,automaticRewardStore });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
-  store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json,
+  store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json, tokenCache, freeMarketData,
   warmMarketActivity: mints => handleTokenMarketRoutes.warmMarketActivity(mints),
 });
 const handleLaunchQuoteRoutes = createLaunchQuoteRoutes({
@@ -452,6 +456,7 @@ async function handle(req, res) {
     if (await handleV3Routes(req, res, url, requestId)) return;
     if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
     if (await handleLaunchProtectionRoutes(req,res,url)) return;
+    if (await handleMainnetMarketRoutes(req, res, url)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
     if (await handleReferralIdentityRoutes(req, res, url, requestId)) return;

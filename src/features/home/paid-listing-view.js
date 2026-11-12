@@ -10,7 +10,7 @@ function listingParts(listing) {
     symbol: escapeHtml(String(listing.symbol)),
     name: escapeHtml(String(listing.name)),
     shortMint: escapeHtml(`${mint.slice(0, 5)}…${mint.slice(-4)}`),
-    proofUrl: `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`,
+    proofUrl: `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`,
     listedDate: escapeHtml(new Date(listing.listedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })),
   };
 }

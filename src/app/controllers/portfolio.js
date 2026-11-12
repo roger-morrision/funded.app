@@ -1,7 +1,7 @@
 import { routeGroup } from '../route-group.js';
 import { walletHistoryRows, walletBonusCoverage } from '../../features/portfolio/wallet-history-model.js';
 import { readPortfolioTokenAccounts, portfolioLookupReason } from '../../features/portfolio/holdings-read.js';
-import { enrichHoldingsMetadata } from '../../features/portfolio/holdings-metadata.js';
+import { enrichHoldingsMetadata, enrichHoldingsMarket } from '../../features/portfolio/holdings-metadata.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createPortfolioController(appState) {
@@ -186,6 +186,12 @@ export function createPortfolioController(appState) {
     }
     appState.renderPortfolio();
     globalThis.document?.dispatchEvent?.(new Event('funded:portfolio-holdings'));
+    if(appState.portfolioHoldings.status==='ready')void enrichHoldingsMarket({
+      holdings:appState.portfolioHoldings.accounts,cluster:appState.EXPLORE_CLUSTER,
+      apiRequest:path=>appState.apiRequest(path),
+      isCurrent:()=>request===appState.portfolioRequest&&address===appState.connectedWalletAddress,
+      onUpdate:()=>appState.renderPortfolio(),
+    });
     if(appState.portfolioHoldings.status==='ready')await enrichHoldingsMetadata({
       holdings:appState.portfolioHoldings.accounts,cluster:appState.EXPLORE_CLUSTER,
       apiRequest:path=>appState.apiRequest(path),
@@ -204,6 +210,12 @@ export function createPortfolioController(appState) {
   // app-source-end
 
   // app-source: 938
+  // Token symbols, logos and the SOL price load asynchronously; re-render the open portfolio when they arrive.
+  let identityRender = null;
+  globalThis.addEventListener?.('funded:token-identities', () => {
+    if (identityRender || !document.querySelector('#portfolio-trade-rows')?.isConnected) return;
+    identityRender = setTimeout(() => { identityRender = null; renderPortfolio(); }, 150);
+  });
   function renderPortfolio(){
     return appState.renderPortfolioView({ connectedWalletAddress: appState.connectedWalletAddress, portfolioHoldings: appState.portfolioHoldings, portfolioTradeHistory, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, assets: appState.assets, exploreScannedCount: appState.exploreScannedCount }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, portfolioUnitPriceUsd: appState.portfolioUnitPriceUsd, walletDetailTrades: appState.walletDetailTrades, formatOnchainAge: appState.formatOnchainAge, exploreExplorer: appState.exploreExplorer });
   }

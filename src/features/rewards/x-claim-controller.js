@@ -103,7 +103,7 @@ export async function refreshXClaims({
           updateClaimBindingReview();resetSolClaimStatus();
         });row.append(select);
       }
-      if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.className='payment-receipt-link';receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}?cluster=devnet`;receipt.textContent='↗';receipt.setAttribute('aria-label','View X reward payment on Solana Explorer');receipt.title='View payment on Solana Explorer';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
+      if(claim.receiptVerified&&claim.payoutSignature){const receipt=document.createElement('a');receipt.className='payment-receipt-link';receipt.href=`https://explorer.solana.com/tx/${encodeURIComponent(claim.payoutSignature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;receipt.textContent='↗';receipt.setAttribute('aria-label','View X reward payment on Solana Explorer');receipt.title='View payment on Solana Explorer';receipt.target='_blank';receipt.rel='noopener noreferrer';row.append(receipt);}
       list.append(row);
     }
     syncXClaimFlow();

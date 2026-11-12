@@ -100,6 +100,12 @@ export function renderTradeAmountEstimate(
     detailNode.textContent = 'The estimate appears after the on-chain snapshot is verified.';
     return;
   }
+  if (coinTradeEstimate.priceUsd > 0 && coinTradeEstimate.solUsd > 0 && !coinTradeEstimate.curve && !coinTradeEstimate.graduatedPool) {
+    amountNode.textContent = `≈ ${formatTradeEstimateAmount(amountSol * coinTradeEstimate.solUsd / coinTradeEstimate.priceUsd)} ${coinTradeEstimate.symbol}`;
+    detailNode.textContent = '';
+    card.classList.add('is-ready');
+    return;
+  }
   try {
     const estimate = estimateBuyTokenAmountFromSnapshot({ amountSol, curveSnapshot: coinTradeEstimate.curve, graduatedPoolSnapshot: coinTradeEstimate.graduatedPool });
     amountNode.textContent = `≈ ${formatTradeEstimateAmount(estimate.expectedTokens)} ${coinTradeEstimate.symbol}`;

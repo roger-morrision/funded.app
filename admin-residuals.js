@@ -74,7 +74,7 @@ export function initAdminResiduals({api,post,show,wallet,document=globalThis.doc
       if(token!==generation)return;
       if(result.status!=='finalized'||result.balanceDeltaVerified!==true||result.residualPlanHash!==plan.hash||!result.signature)
         throw new Error('Residual remains unverified. Reconcile its existing signature before another attempt.');
-      const link=document.createElement('a');link.href=`https://explorer.solana.com/tx/${encodeURIComponent(result.signature)}?cluster=devnet`;
+      const link=document.createElement('a');link.href=`https://explorer.solana.com/tx/${encodeURIComponent(result.signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
       link.target='_blank';link.rel='noopener noreferrer';link.textContent='Verify finalized residual transfer ↗';
       panel.querySelector('[data-residual-receipt]').replaceChildren(link);
       show(action==='creator-wallet'?'Creator residual finalized and verified.':'Reward-vault residual funding finalized. Holder payouts and X claims use their separate verified flows.');

@@ -1,6 +1,7 @@
 import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { renderEarlyMarketPrice } from '../../features/coin/early-market-price.js';
 import {renderIndexedMarket} from '../../features/coin/indexed-market.js';
+import {loadIndexedCoin} from '../../features/coin/indexed-coin.js';
 import { verifiedTokenBannerUri } from '../../features/coin/token-banner.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
 import { renderCoinBurnDashboard } from '../../features/coin/burn-dashboard.js';
@@ -51,6 +52,9 @@ export function createCoinLoadingController(appState) {
     });
     void appState.loadCoinChat(mintAddress, loadId);
     const known = serverCoinIdentity(mintAddress);
+    // Mark external (non-Richpad) tokens before any chain read so app-only tabs stay hidden even if RPC fails.
+    const earlyLaunch = appState.verifiedRegistryLaunch([appState.verifiedLaunchPolicyForMint(mintAddress)], mintAddress, appState.EXPLORE_CLUSTER);
+    document.body.classList.toggle('coin-external', !earlyLaunch?.onchainVerified);
     appState.setCoinField('#coin-page-title', known?.name || 'Loading token…'); appState.setCoinField('#coin-symbol', known?.symbol || 'TOKEN'); appState.setCoinField('#coin-address', appState.shortAddress(mintAddress));
     appState.setCoinField('#coin-description', 'Checking coin details on Solana…');
     // Registry-verified server identity can show its stored artwork immediately;
@@ -60,6 +64,8 @@ export function createCoinLoadingController(appState) {
       if (avatar) { avatar.style.backgroundImage = `url("/devnet-images/${encodeURIComponent(mintAddress)}")`; avatar.style.backgroundSize = 'contain'; avatar.style.backgroundRepeat = 'no-repeat'; avatar.style.backgroundPosition = 'center'; }
     }
     const marketRequest=appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/market-activity`,{signal:AbortSignal.timeout(32000)}).catch(error=>({available:false,data:null,status:error?.status}));
+    if (appState.EXPLORE_CLUSTER === 'mainnet-beta' && !earlyLaunch?.onchainVerified && !(mintAddress === appState.PROTOCOL_FUNDED_MINT && appState.PROTOCOL_FUNDED_SWAP_POOL))
+      return loadIndexedCoin(appState, mintAddress, loadId, marketRequest);
     try {
       const { PublicKey, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = await appState.getSolana();
       const detailConnection = await appState.getExploreConnection();
@@ -93,6 +99,11 @@ export function createCoinLoadingController(appState) {
       const registeredLaunch = fetchedLaunch || appState.verifiedRegistryLaunch(
         [appState.verifiedLaunchPolicyForMint(mintAddress)], mintAddress, appState.EXPLORE_CLUSTER);
       appState.coinSummaryLaunch = registeredLaunch;
+      // External (non-Richpad) tokens have no app fee, reward or allocation records.
+      const externalToken = !registeredLaunch?.onchainVerified;
+      document.body.classList.toggle('coin-external', externalToken);
+      if (externalToken && document.querySelector('.coin-tabs [data-coin-tab].active:is([data-coin-tab="rewards"],[data-coin-tab="payments"],[data-coin-tab="claims"])'))
+        document.querySelector('.coin-tabs [data-coin-tab="trades"]')?.click();
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, parsedMint, launch:registeredLaunch, checkedAt:Date.now()}}));
       const promotedBanner = verifiedTokenBannerUri(registeredLaunch, mintAddress);
       const artwork = document.querySelector('.coin-artwork');

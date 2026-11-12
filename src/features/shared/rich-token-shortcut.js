@@ -1,5 +1,15 @@
 // Open the configured token directly from the top bar, without connecting a wallet.
-export function mountRichTokenShortcut(mint, document = globalThis.document) {
+export function mountRichTokenShortcut(mint, document = globalThis.document, { mainnet = false } = {}) {
+  const validMint = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint);
+  // Mainnet has no in-app launches: the primary header action buys $RICH.
+  const create = mainnet ? document.querySelector('.top-actions .create-coin-button') : null;
+  if (create) {
+    create.id = 'header-buy-rich';
+    create.firstChild.textContent = 'Buy $RICH ';
+    create.href = validMint ? `/token/${encodeURIComponent(mint)}` : '/rich';
+    create.title = 'Open the $RICH token page';
+    return;
+  }
   const nav = document.querySelector('.top-actions');
   if (!nav || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || document.getElementById('header-buy-rich')) return;
   const link = document.createElement('a');

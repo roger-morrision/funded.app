@@ -108,6 +108,10 @@ export function createTokenCardsController(appState) {
   // app-source: 305
   function loadTokenLogo(avatar, launch){
     const mint = String(launch?.mint || '');
+    if (avatar && launch?.indexedImageUri && /^https:\/\//.test(launch.indexedImageUri) && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) {
+      // Mainnet external tokens: indexed artwork from the cached token feed.
+      loadTokenArtwork(avatar, mint, launch.indexedImageUri); return;
+    }
     if (!avatar || appState.EXPLORE_CLUSTER !== 'devnet' || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || launch?.onchainVerified !== true) return;
     const trusted = appState.isDevnetImageUri(launch.imageUri, mint);
     avatar.title = trusted ? '' : 'Generated token avatar; project artwork was not uploaded';
@@ -123,7 +127,11 @@ export function createTokenCardsController(appState) {
 
   // app-source: 307
   function loadVerifiedTokenLogos(container){
-    container?.querySelectorAll('[data-logo-mint]').forEach(row => appState.loadPortfolioLogo(row, appState.verifiedLaunchPolicyForMint(row.dataset.logoMint)));
+    const indexed = appState.EXPLORE_CLUSTER === 'devnet' ? null : new Map((appState.assets || []).filter(asset => asset?.imageUri).map(asset => [asset.address || asset.mint, asset.imageUri]));
+    container?.querySelectorAll('[data-logo-mint]').forEach(row => {
+      const mint = row.dataset.logoMint, policy = appState.verifiedLaunchPolicyForMint(mint);
+      appState.loadPortfolioLogo(row, policy || (indexed?.get(mint) ? { mint, indexedImageUri: indexed.get(mint) } : null));
+    });
   }
   // app-source-end
 

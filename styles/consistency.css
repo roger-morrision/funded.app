@@ -164,13 +164,14 @@ html body #main-content #capital-flow .daily-bonus-link-card:is(:hover, :focus-v
   html body #main-content #list .list-main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 16px 20px; align-items: start; }
   html body #main-content #list .list-main > .list-form-card { grid-column: 1; grid-row: 1; margin: 0; }
   html body #main-content #list .list-main > .list-steps { grid-column: 1; grid-row: 2; }
-  html body #main-content #list .list-main > .list-benefits { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: 1fr; gap: 10px; margin: 0; }
-  html body #main-content #list .list-main > .list-disclosure { grid-column: 2; grid-row: 3; }
+  html body #main-content #list .list-main > .list-summary { grid-column: 2; grid-row: 1 / span 2; }
+  html body #main-content #list .list-summary > .list-benefits { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 0; }
 }
 html body #main-content #list .list-main > .list-process-heading { display: none; }
 html body #main-content #list .list-main > .list-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
 html body #main-content #list .list-main > .list-steps > li { padding: 12px 14px; border: 1px solid var(--fv-border, #29323a); border-radius: var(--fv-radius-md, 10px); background: var(--fv-surface, #121a26); font-size: 13px; }
-html body #main-content #list .list-main > .list-disclosure { margin: 0; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--fv-accent, #f4a340) 40%, var(--fv-border, #29323a)); border-radius: var(--fv-radius-md, 10px); background: color-mix(in srgb, var(--fv-accent, #f4a340) 6%, var(--fv-surface, #121a26)); color: var(--fv-text, #f3f6fa); font-size: 13px; }
+html body #main-content #list .list-summary { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+html body #main-content #list .list-summary > .list-disclosure { margin: 0; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--fv-accent, #f4a340) 40%, var(--fv-border, #29323a)); border-radius: var(--fv-radius-md, 10px); background: color-mix(in srgb, var(--fv-accent, #f4a340) 6%, var(--fv-surface, #121a26)); color: var(--fv-text, #f3f6fa); font-size: 13px; }
 
 /* Airdrops: title block uses the full width, the count reads as a badge, and an empty pager is hidden. */
 html body #main-content #airdrops > .section-heading { align-items: flex-end; }

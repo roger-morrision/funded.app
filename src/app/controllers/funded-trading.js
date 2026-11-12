@@ -13,6 +13,15 @@ export function createFundedTradingController(appState) {
     const badge = document.querySelector('#funded-buy-route-state');
     const status = document.querySelector('#funded-buy-status');
     if (!input || !button || !badge || !status) return;
+    // Mainnet $RICH without a PumpSwap pool trades through Jupiter on its token page.
+    if (appState.fundedBuyRoute.status === 'jupiter') {
+      input.disabled = true; input.closest('label, .field, div')?.setAttribute('hidden', '');
+      button.disabled = false; button.textContent = 'Buy $RICH';
+      badge.textContent = 'Jupiter route'; badge.classList.remove('unavailable');
+      const estimate = document.querySelector('#funded-buy-estimate'); if (estimate) estimate.hidden = true;
+      status.textContent = message ?? 'Opens the $RICH token page: live Jupiter quote, wallet balance and 1% app fee before you sign.';
+      return;
+    }
     const dialogClose = document.querySelector('#funded-buy-dialog .funded-buy-close');
     if (dialogClose) dialogClose.disabled = appState.fundedBuyBusy;
     const ready = appState.fundedBuyRoute.status === 'ready';
@@ -44,7 +53,11 @@ export function createFundedTradingController(appState) {
   // app-source: 352
   async function refreshFundedBuyRoute(signal){
     try {
-      if (appState.APP_CLUSTER !== 'devnet' || appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT) throw new Error('A configured Solana $RICH mint is required.');
+      if (appState.EXPLORE_CLUSTER === 'mainnet-beta' && appState.PROTOCOL_FUNDED_MINT && !appState.PROTOCOL_FUNDED_SWAP_POOL) {
+        appState.fundedBuyPreview = null; appState.fundedBuyRoute = { status:'jupiter', snapshot:null, reason:null };
+        appState.renderFundedBuyControl(); appState.renderFundedTokenLanding(); return;
+      }
+      if (appState.APP_MAINNET_READ_ONLY || !appState.PROTOCOL_FUNDED_MINT) throw new Error('A configured Solana $RICH mint is required.');
       const snapshot = await appState.withRpcRetry(async attempt => {
         if (attempt > 0) appState.tradePreviewConnection = null;
         const rpc = await appState.getTradePreviewConnection();
@@ -74,6 +87,7 @@ export function createFundedTradingController(appState) {
 
   // app-source: 353
   async function handleFundedBuy(){
+    if (appState.fundedBuyRoute.status === 'jupiter') { globalThis.location.assign(`/token/${encodeURIComponent(appState.PROTOCOL_FUNDED_MINT)}`); return; }
     if (appState.fundedBuyBusy || appState.fundedBuyRoute.status !== 'ready') return;
     const amount = Number(document.querySelector('#funded-buy-amount')?.value);
     if (!Number.isFinite(amount) || amount <= 0) return appState.renderFundedBuyControl('Enter a positive SOL amount.');
@@ -173,7 +187,7 @@ export function createFundedTradingController(appState) {
       appState.assertWalletSessionCurrent(session);
       if (!signed.signature || signed.signature.length !== 64) throw new Error('Wallet returned an unsigned burn. No burn was sent.');
       const signature = appState.bs58.encode(signed.signature);
-      const pending = { cluster:'devnet', signature, wallet:session.address, fundedMint:appState.PROTOCOL_FUNDED_MINT,
+      const pending = { cluster:appState.APP_CLUSTER, signature, wallet:session.address, fundedMint:appState.PROTOCOL_FUNDED_MINT,
         amountBaseUnits:amount.toString(), projectMint, lastValidBlockHeight:latest.lastValidBlockHeight };
       savePendingBurn(pending);
       submittedBurnSignature = signature;

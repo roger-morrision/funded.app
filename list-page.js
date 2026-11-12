@@ -6,10 +6,12 @@ import { createBurnCheckedInstruction, getAccount, getMint, TOKEN_PROGRAM_ID, TO
 import { apiRequest } from './client.js';
 import { loadTokenMetadata, tokenLogo, metadataLinks } from './src/features/coin/token-metadata-client.js';
 import { waitForSignatureConfirmation } from './funded-burn.js';
-import { LISTING_PRICE_USD, LISTING_DEVNET_GENESIS_HASH, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent, setListingPriceUsd } from './listing-policy.js';
+import { SOLANA_GENESIS, solanaExplorerUrl } from './solana-network.js';
+import { LISTING_PRICE_USD, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent, setListingPriceUsd } from './listing-policy.js';
 import { canSignTransactions } from './wallet-core.js';
 import { paidListingCardMarkup } from './src/features/home/paid-listing-view.js';
 import { readPendingListing, savePendingListing, clearPendingListing } from './listing-recovery.js';
+import { ownerMintAccounts } from './src/features/shared/owner-mint-accounts.js';
 
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const LISTING_READ_TIMEOUT_MS = 30_000;
@@ -86,10 +88,24 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     status.replaceChildren(document.createTextNode(message));
     if (signature) {
       const link = document.createElement('a');
-      link.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+      link.href = solanaExplorerUrl('tx', signature, cluster);
       link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = ' View burn proof ↗';
       status.append(link);
     }
+  }
+  function appendShareAction(listing) {
+    const label = listing.symbol ? `$${listing.symbol}` : (listing.name || 'my token');
+    const page = `${location.origin}/token/${encodeURIComponent(listing.mint)}`;
+    const intent = new URL('https://twitter.com/intent/tweet');
+    intent.searchParams.set('text', `${label} is now listed on richpad.fun\nCA: ${listing.mint}`);
+    intent.searchParams.set('url', page);
+    const share = document.createElement('a');
+    share.className = 'secondary-button list-share-x'; share.href = intent.href;
+    share.target = '_blank'; share.rel = 'noopener noreferrer'; share.textContent = 'Share on X';
+    const view = document.createElement('a');
+    view.className = 'secondary-button'; view.href = `/token/${encodeURIComponent(listing.mint)}`; view.textContent = 'View token';
+    const actions = document.createElement('div'); actions.className = 'list-share-actions'; actions.append(share, view);
+    status.append(actions);
   }
   function draw() {
     const mint = mintValue();
@@ -101,7 +117,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (status) status.hidden = !verified && !pending && !recoveryError;
     mintInput.removeAttribute('aria-invalid');
     help.classList.remove('is-valid', 'is-invalid');
-    if (!value) help.textContent = 'Paste a Solana Devnet mint from any launchpad or DEX. Token details are read on-chain.';
+    if (!value) help.textContent = 'Paste a Solana token mint from any launchpad or DEX. Token details are read on-chain.';
     else if (!mint) { help.textContent = 'That is not a Solana token address. Check it and paste again.'; help.classList.add('is-invalid'); mintInput.setAttribute('aria-invalid', 'true'); }
     else { help.textContent = 'Address looks right. We check the token on Solana before you pay.'; help.classList.add('is-valid'); }
     const existing = mint && (listings.find(item => item.mint === mint) || (lookup?.mint===mint && lookup.included ? {included:true}:null));
@@ -161,8 +177,8 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     recovery.hidden = !pending && !recoveryError;
     byId('list-retry').disabled = busy || !pending || Boolean(recoveryError);
     const amountTokens = configuredBurnTokens();
-    const ready = listingsAvailable && config?.enabled === true && config.cluster === 'devnet' && config.fundedMint === fundedMint
-      && amountTokens != null && cluster === 'devnet' && !mainnetReadOnly;
+    const ready = listingsAvailable && config?.enabled === true && config.cluster === cluster && config.fundedMint === fundedMint
+      && amountTokens != null && cluster === cluster && !mainnetReadOnly;
     renderBurnCopy();
     availability.textContent = existing?.included ? 'Listing included with launch · no additional fee' : ready ? `$${LISTING_PRICE_USD} in $RICH · about ${burnLabel()} tokens` : !configChecked || !listingsChecked ? 'Checking $RICH price…' : '$RICH price unavailable';
     payButton.disabled = !ready || !verified || busy || Boolean(existing) || Boolean(pending) || Boolean(recoveryError);
@@ -182,7 +198,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     setStatus(mint ? 'Checking verified Solana token metadata before payment.' : 'Enter a mint to check listing availability.');
     draw();
     if (!mint) return;
-    const existing = listings.find(item => item.mint === mint && item.onchainVerified === true && item.cluster === 'devnet');
+    const existing = listings.find(item => item.mint === mint && item.onchainVerified === true && item.cluster === cluster);
     if (existing?.name && existing?.symbol) {
       lookup = { mint, status:'verified', name:existing.name, symbol:existing.symbol };
       nameInput.value = existing.name;
@@ -194,7 +210,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       try {
         const result = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(LISTING_READ_TIMEOUT_MS) });
         if (sequence !== lookupSequence || mint !== mintValue()) return;
-        if (!result.available || result.data?.cluster !== 'devnet' || result.data.mint !== mint
+        if (!result.available || result.data?.cluster !== cluster || result.data.mint !== mint
           || !result.data.name || !result.data.symbol) throw new Error('Verified token metadata is unavailable.');
         lookup = { ...result.data,mint,status:'verified',included:result.data.included === true };
         nameInput.value = lookup.name;
@@ -225,13 +241,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   async function refreshListings() {
     try {
       const result = await apiRequest('/api/listings', { signal: AbortSignal.timeout(8000) });
-      if (!result.available || result.data?.cluster !== 'devnet' || !Array.isArray(result.data.listings)) throw new Error('Listing index unavailable.');
+      if (!result.available || result.data?.cluster !== cluster || !Array.isArray(result.data.listings)) throw new Error('Listing index unavailable.');
       listings = result.data.listings;
       listingsAvailable = true;
       listingsChecked = true;
       const pending = readPending();
       if (pending && listings.some(item => item.mint === pending.mint && item.signature === pending.signature
-        && item.onchainVerified === true && item.cluster === 'devnet' && (item.wallet == null || item.wallet === pending.wallet))) {
+        && item.onchainVerified === true && item.cluster === cluster && (item.wallet == null || item.wallet === pending.wallet))) {
         try { clearPendingListing(pending); retainedPending = null; pendingNotice = null; }
         catch (error) { setPendingStatus(`Listing receipt verified, but recovery cleanup is incomplete: ${error.message}`, pending); }
       }
@@ -265,13 +281,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (!session || !canSignTransactions(session.provider)) throw new Error('Connect a signing Solana wallet to continue.');
       await getSolana();
       const rpc = getConnection();
-      if (await rpc.getGenesisHash() !== LISTING_DEVNET_GENESIS_HASH) throw new Error('Wallet RPC failed verification. No burn was submitted.');
+      if (await rpc.getGenesisHash() !== SOLANA_GENESIS[cluster]) throw new Error('Wallet RPC failed verification. No burn was submitted.');
       const mint = new PublicKey(mintInput.value.trim()).toBase58();
       const mintAccount = await rpc.getAccountInfo(new PublicKey(mint), 'finalized');
       if (!mintAccount || (!mintAccount.owner.equals(TOKEN_PROGRAM_ID) && !mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID)))
         throw new Error('This mint is not a supported SPL token on Solana.');
       const listingMetadata = await apiRequest(`/api/listings/mint/${encodeURIComponent(mint)}`, { signal:AbortSignal.timeout(LISTING_READ_TIMEOUT_MS) });
-      if (!listingMetadata.available || listingMetadata.data?.mint !== mint || listingMetadata.data?.cluster !== 'devnet'
+      if (!listingMetadata.available || listingMetadata.data?.mint !== mint || listingMetadata.data?.cluster !== cluster
         || !listingMetadata.data?.name || !listingMetadata.data?.symbol)
         throw new Error('Verified token metadata is unavailable. No burn was submitted.');
       if (nameInput.value.trim() !== listingMetadata.data.name || symbolInput.value.trim() !== listingMetadata.data.symbol)
@@ -291,7 +307,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         throw new Error(quoteResponse.data?.error || `A fresh $${LISTING_PRICE_USD} listing quote is unavailable. No burn was submitted.`);
       const amountTokens = quote.amountTokens;
       const amount = BigInt(quote.amountBaseUnits);
-      const accounts = await rpc.getTokenAccountsByOwner(new PublicKey(session.address), { mint: fundedKey }, 'confirmed');
+      const accounts = await ownerMintAccounts(rpc, new PublicKey(session.address), fundedKey, 'confirmed');
       const source = accounts.value.map(row => ({ address: row.pubkey, amount: unpackAccount(row.pubkey, row.account, tokenProgram).amount }))
         .find(row => row.amount >= amount);
       if (!source) throw new Error(`This wallet needs ${amountTokens.toLocaleString('en-US', { maximumFractionDigits:funded.decimals })} $RICH in one token account for the $${LISTING_PRICE_USD} listing quote.`);
@@ -313,11 +329,12 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     try {
       const result = await apiRequest('/api/listings', { method: 'POST', body: pending, signal: AbortSignal.timeout(20000) });
       if (!result.available || result.data?.mint !== pending.mint || result.data?.signature !== pending.signature || result.data?.onchainVerified !== true
-        || result.data?.cluster !== 'devnet' || (result.data.wallet != null && result.data.wallet !== pending.wallet))
+        || result.data?.cluster !== cluster || (result.data.wallet != null && result.data.wallet !== pending.wallet))
         throw new Error('The receipt was not confirmed by the listing index.');
       try { clearPendingListing(pending); retainedPending = null; pendingNotice = null; }
       catch (error) { retainedPending = pending; setPendingStatus(`Listing receipt verified, but recovery cleanup is incomplete: ${error.message}`, pending); return; }
       setStatus('Listing verified and live in Launch Directory.', pending.signature);
+      appendShareAction(result.data);
       await refreshListings();
       window.dispatchEvent(new Event('funded:listing-verified'));
     } catch (error) { setPendingStatus(`Signed burn receipt verification is pending: ${error.message} Do not submit another burn.`, pending); }
@@ -354,7 +371,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (!signedIdentity || signedIdentity.length !== 64) throw new Error('The wallet did not return a valid signed transaction.');
       signature = bs58.encode(signedIdentity);
       pending = { mint: payment.mint, name: payment.name, symbol: payment.symbol, wallet: payment.session.address,
-        signature, quoteId:payment.quote.id, cluster: 'devnet' };
+        signature, quoteId:payment.quote.id, cluster };
       savePendingListing(pending);
       retainedPending = pending;
       assertSession(payment.session);

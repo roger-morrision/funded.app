@@ -87,7 +87,8 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
       const share = Number.isFinite(item.share) ? Math.max(0, Math.min(100, item.share)) : null;
       const wallet = item.wallet;
       const balance = Number(item.amountRaw) / (10 ** coinActivity.tokenDecimals);
-      const value = Number.isFinite(balance) && Number.isFinite(coinSolUsdValues.spot) && coinSolUsdValues.spot > 0 && Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? formatUsd(balance * coinSolUsdValues.spot * coinSolUsdPrice) : '$—';
+      const value = Number.isFinite(balance) && Number(coinActivity.indexedPriceUsd) > 0 ? formatUsd(balance * Number(coinActivity.indexedPriceUsd))
+        : Number.isFinite(balance) && Number.isFinite(coinSolUsdValues.spot) && coinSolUsdValues.spot > 0 && Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? formatUsd(balance * coinSolUsdValues.spot * coinSolUsdPrice) : '$—';
       const profile = `/wallet/${encodeURIComponent(wallet)}`;
       const tradeAction = `<button type="button" class="coin-holder-trades" data-coin-holder-trades="${escapeHtml(wallet)}" aria-label="Show recent trades by ${escapeHtml(wallet)}" title="Filter recent trades by this wallet">⌕</button>`;
       const amount = formatTradeAmountInput(formatTokenBaseAmount(item.amountRaw, coinActivity.tokenDecimals, Math.min(coinActivity.tokenDecimals, 6)));

@@ -21,6 +21,7 @@ export function matchedTradePnl(trades, decimalsByMint){
   const lots = new Map();
   let pnlSol = 0;
   let matchedSales = 0;
+  const bySignature = new Map();
   for (const trade of [...(trades || [])].sort((a, b) => Number(a.blockTime) - Number(b.blockTime))) {
     const decimals = decimalsByMint.get(trade.mint);
     const raw = String(trade.tokenAmountRaw ?? '');
@@ -44,11 +45,13 @@ export function matchedTradePnl(trades, decimalsByMint){
         if (lot.quantity < 1e-10) queue.shift();
       }
       if (matched > 0) {
-        pnlSol += sol * (matched / quantity) - basis;
+        const realized = sol * (matched / quantity) - basis;
+        pnlSol += realized;
         matchedSales += 1;
+        if (trade.signature) bySignature.set(trade.signature, { pnlSol: realized, basisSol: basis });
       }
     }
     lots.set(trade.mint, queue);
   }
-  return { pnlSol, matchedSales };
+  return { pnlSol, matchedSales, bySignature };
 }

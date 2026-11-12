@@ -40,7 +40,7 @@ function updateRecord(item,row){
   text(view.token,`${row.mint.slice(0,6)}…${row.mint.slice(-4)}`);view.token.href=`/token/${row.mint}`;view.token.title=row.mint;view.token.setAttribute('aria-label',`View token ${row.mint}`);
   const explorer=row.signature&&row.receiptView==='explorer';
   const next=rewardNextAction(row);text(view.next,`${next.label} · ${next.detail || ''}`);
-  view.action.href=explorer?`https://explorer.solana.com/tx/${row.signature}?cluster=devnet`:row.signature?receiptUrl(row.signature,row.mint,row.wallet):row.href;
+  view.action.href=explorer?`https://explorer.solana.com/tx/${row.signature}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`:row.signature?receiptUrl(row.signature,row.mint,row.wallet):row.href;
   text(view.action,explorer?'Inspect on-chain policy burn ↗':row.signature?'Inspect exact receipt':next.action);
   if(explorer){view.action.target='_blank';view.action.rel='noopener noreferrer';}else{view.action.removeAttribute('target');view.action.removeAttribute('rel');}
   const amount=financialAmountParts(row.amount);if(view.amount.nodeValue!==amount.value)view.amount.nodeValue=amount.value;text(view.unit,amount.unit?' '+amount.unit:'');text(view.stage,row.stage);text(view.detail,row.detail);

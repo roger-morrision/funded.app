@@ -103,6 +103,8 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
   };
   const applyHeader = () => {
     applyIdentity();
+    // Mainnet token pages keep their live indexed numbers; this panel's slower copy must not overwrite them.
+    if (document.documentElement.classList.contains('app-mainnet')) return;
     const m = applied?.market; if (!m) return;
     setText('#coin-price', formatUsd(m.priceUsd));
     setText('#coin-market-cap', formatUsd(m.marketCapUsd));
@@ -129,7 +131,7 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
       body.append(grid);
     }
     const note = document.createElement('p'); note.className = 'field-help';
-    note.textContent = message || `Market data from ${data.source}, refreshed every minute. Richpad holder payouts, curve and boosts apply only to Richpad launches.`;
+    note.textContent = message || `Market data from ${data.source}, refreshed every minute. ${import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta' ? 'Buy and sell here through Jupiter; holder payouts and the curve apply only to Richpad launches.' : 'Richpad holder payouts, curve and boosts apply only to Richpad launches.'}`;
     body.append(note);
     const actions = document.createElement('nav'); actions.className = 'coin-external-actions'; actions.setAttribute('aria-label', 'Trade this token elsewhere');
     for (const [label, href] of tradeLinks(mint)) actions.append(link(document, `Trade on ${label}`, href));
@@ -144,7 +146,9 @@ export function mountExternalTokenMode(app, document = globalThis.document) {
     tradeHead.textContent = 'This token trades outside Richpad. Use one of these swaps:';
     const tradeActions = document.createElement('div'); tradeActions.className = 'coin-external-actions';
     for (const [label, href] of tradeLinks(mint)) tradeActions.append(link(document, label, href, 'primary-button'));
-    tradeNote.replaceChildren(tradeHead, tradeActions); tradeNote.hidden = false;
+    tradeNote.replaceChildren(tradeHead, tradeActions);
+    // Mainnet trades every token in-app through Jupiter; Devnet links out.
+    tradeNote.hidden = import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta';
     applyHeader();
   };
   const activate = async mint => {

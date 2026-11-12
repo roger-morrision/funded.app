@@ -5,6 +5,7 @@ import { matchedTradePnl } from '../../../portfolio-model.js';
 import { revealPortfolioFocus } from './focus-visibility.js';
 import { holdingImageUrl } from './holdings-metadata.js';
 import { tokenArtworkUrl } from '../shared/token-artwork.js';
+import { tokenIdentityMarkup, rememberTokenIdentity, solUsdPrice } from '../shared/token-identity.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderPortfolio(
@@ -49,12 +50,13 @@ export function renderPortfolio(
   let total = 0;
   rows.innerHTML = holdings.map(holding => {
     const asset = assetByMint.get(holding.mint);
-    const unitUsd = portfolioUnitPriceUsd(asset);
+    const marketUsd = Number(holding.market?.priceUsd);
+    const unitUsd = portfolioUnitPriceUsd(asset) ?? (Number.isFinite(marketUsd) && marketUsd > 0 ? marketUsd : null);
     const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
     if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
     const launch=verifiedLaunchPolicyForMint(holding.mint);
     const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, fundedMint:PROTOCOL_FUNDED_MINT});
-    const image=holding.mint===PROTOCOL_FUNDED_MINT?'/richpad-mark.svg':(launch?.onchainVerified ? tokenArtworkUrl(holding.mint,holdingImageUrl(launch.imageUri)) : null)||holdingImageUrl(holding.metadata?.image)||holdingImageUrl(asset?.imageUri);
+    const image=holding.mint===PROTOCOL_FUNDED_MINT?'/richpad-mark.svg':(launch?.onchainVerified ? tokenArtworkUrl(holding.mint,holdingImageUrl(launch.imageUri)) : null)||holdingImageUrl(holding.metadata?.image)||holdingImageUrl(asset?.imageUri)||holdingImageUrl(holding.market?.logoUri);
     return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span class="portfolio-holding-token"><span class="portfolio-holding-logo" aria-hidden="true">${escapeHtml(identity.label==='Unnamed token'?'?':identity.label.replace(/^\$/,'').slice(0,2))}${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`:''}</span><span class="portfolio-holding-identity"><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="portfolio-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
   }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? `Token balances are unavailable from Solana RPC. ${escapeHtml(portfolioHoldings.reason || 'Select Refresh to retry.')}` : partial ? 'Some token balances could not be checked. Select Refresh to retry.' : 'No SPL token holdings in this wallet.'}</div>`;
   status.textContent = !address ? 'Connect wallet' : current ? `${holdings.length} ${partial ? holdings.length === 1 ? 'observed token' : 'observed tokens' : 'tokens'} · ${portfolioHoldings.coverage}${pricedCount < holdings.length ? ' · some values unavailable' : ''}${partial ? ' · Select Refresh to retry.' : ''}` : portfolioHoldings.status === 'loading' ? 'Checking Solana balances' : 'Balance lookup unavailable';
@@ -63,6 +65,9 @@ export function renderPortfolio(
   const history=portfolioTradeHistory?.wallet===address?portfolioTradeHistory:null;
   for (const trade of trades) if (Number.isInteger(trade.decimals)) decimalsByMint.set(trade.mint,trade.decimals);
   const observed = matchedTradePnl(trades, decimalsByMint);
+  for (const holding of portfolioHoldings?.holdings || []) if (holding.market?.symbol) rememberTokenIdentity(holding.mint, holding.market);
+  const solUsd = solUsdPrice();
+  const usdText = sol => solUsd > 0 && Number.isFinite(Number(sol)) ? formatDashboardUsd(Number(sol) * solUsd) : '—';
   pnl.textContent = observed.matchedSales ? `${observed.pnlSol >= 0 ? '+' : ''}${formatOnChainNumber(observed.pnlSol, 5)} SOL` : '—';
   pnl.title = observed.matchedSales ? `${observed.matchedSales} sale${observed.matchedSales === 1 ? '' : 's'} matched to buys observed in the last 24 hours. Excludes fees, unmatched trades and open positions.` : 'Cost basis is unavailable for older holdings and unmatched trades.';
   let basis = document.querySelector('#portfolio-calculation-basis');
@@ -75,8 +80,12 @@ export function renderPortfolio(
     const quantity = Number.isInteger(decimals) && /^\d+$/.test(raw) ? Number(raw) / 10 ** decimals : NaN;
     const tokenAmount = Number.isFinite(quantity) ? formatOnChainNumber(quantity, 6) : '—';
     const receiptUrl = exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`);
-    return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}">${escapeHtml(trade.symbol || shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a></td></tr>`;
-  }).join('') || `<tr><td class="portfolio-trade-empty" colspan="6"><span>${!address ? 'Connect a wallet to see trade transactions.'
+    return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}" title="${escapeHtml(trade.mint)}">${trade.symbol ? `$${escapeHtml(trade.symbol)}` : tokenIdentityMarkup(trade.mint, escapeHtml, shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td class="numeric">${escapeHtml(usdText(trade.solAmount))}</td><td class="numeric">${(() => { const row = trade.side === 'sell' ? observed.bySignature.get(trade.signature) : null;
+      if (!row) return '<span class="portfolio-pnl-none">—</span>';
+      const cls = row.pnlSol >= 0 ? 'is-positive' : 'is-negative', sign = row.pnlSol >= 0 ? '+' : '';
+      const pct = row.basisSol > 0 ? ` (${sign}${(row.pnlSol / row.basisSol * 100).toFixed(1)}%)` : '';
+      return `<span class="portfolio-pnl ${cls}">${sign}${escapeHtml(formatOnChainNumber(row.pnlSol, 5))} SOL${solUsd > 0 ? ` · ${sign}${escapeHtml(formatDashboardUsd(Math.abs(row.pnlSol) * solUsd)).replace(/^/, row.pnlSol < 0 ? '-' : '')}` : ''}${escapeHtml(pct)}</span>`; })()}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a></td></tr>`;
+  }).join('') || `<tr><td class="portfolio-trade-empty" colspan="8"><span>${!address ? 'Connect a wallet to see trade transactions.'
     : history?.status==='loading' ? 'Checking finalized wallet trades…'
       : history?.status==='unavailable' ? 'Wallet trade history is unavailable. Select Refresh trades to retry.'
         : history?.status==='ready' ? history.coverage==='complete' ? 'No finalized Pump or PumpSwap trades found for this wallet in the last 24 hours.'

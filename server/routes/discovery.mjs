@@ -7,7 +7,7 @@ import { createExploreAccountSnapshot } from '../explore-account-snapshot.mjs';
 
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createDiscoveryRoutes({
-  store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey,
+  store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, tokenCache = null, freeMarketData = null,
   Connection = SolanaConnection, verifyPumpLaunch = verifyLaunch, respond,
   warmMarketActivity = () => 0,
   readAccountSnapshot = null,
@@ -26,7 +26,80 @@ export function createDiscoveryRoutes({
       return Number.isFinite(at) && Date.now() - at < 5 * 60_000 && row.mint === mints[index] ? [[mints[index], row]] : [];
     }));
   };
+  // Display-only Birdeye price and logo for wallet holdings; cached briefly per mint.
+  const tokenMarketCache = new Map();
+  const birdeyeRetry = (path, params) => fetchBirdeye(path, params)
+    .catch(() => new Promise(done => setTimeout(done, 1300)).then(() => fetchBirdeye(path, params))).catch(() => null);
+  async function readTokenMarkets(mints) {
+    const now = Date.now();
+    let missing = mints.filter(mint => !(tokenMarketCache.get(mint)?.expiresAt > now));
+    if (missing.length && freeMarketData) {
+      // Free first: Jupiter prices and DexScreener logos/names.
+      const [prices, dex] = await Promise.all([freeMarketData.jupPrices(missing).catch(() => new Map()), freeMarketData.dexTokens(missing).catch(() => new Map())]);
+      for (const mint of missing) {
+        const price = prices.get(mint)?.priceUsd ?? dex.get(mint)?.priceUsd ?? null, d = dex.get(mint);
+        if (price != null && d?.imageUri) tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { mint, priceUsd: price, logoUri: d.imageUri, name: d.name || null, symbol: d.symbol || null } });
+        else if (price != null || d) tokenMarketCache.set(mint, { expiresAt: now + 60_000, partial: true, row: { mint, priceUsd: price, logoUri: d?.imageUri || null, name: d?.name || null, symbol: d?.symbol || null } });
+      }
+      void tokenCache?.upsert([...dex.values()]);
+      missing = missing.filter(mint => !tokenMarketCache.get(mint) || tokenMarketCache.get(mint).partial);
+    }
+    if (missing.length) {
+      const list = missing.join(',');
+      const prices = await birdeyeRetry('/defi/multi_price', { list_address: list });
+      const meta = await birdeyeRetry('/defi/v3/token/meta-data/multiple', { list_address: list });
+      for (const mint of missing) {
+        const price = Number(prices?.data?.[mint]?.value), info = meta?.data?.[mint];
+        const logo = typeof info?.logo_uri === 'string' && /^https:\/\//.test(info.logo_uri) ? info.logo_uri : null;
+        const prior = tokenMarketCache.get(mint)?.row;
+        if (prices?.data || meta?.data) tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { mint,
+          priceUsd: Number.isFinite(price) && price > 0 ? price : prior?.priceUsd ?? null, logoUri: logo || prior?.logoUri || null,
+          name: typeof info?.name === 'string' ? info.name.slice(0, 80) : null, symbol: typeof info?.symbol === 'string' ? info.symbol.slice(0, 20) : null } });
+      }
+      if (tokenMarketCache.size > 5000) for (const [key, value] of tokenMarketCache) if (value.expiresAt <= now) tokenMarketCache.delete(key);
+    }
+    return mints.flatMap(mint => tokenMarketCache.get(mint)?.row ? [tokenMarketCache.get(mint).row] : []);
+  }
+  // Mainnet Explore lists only Richpad tokens: verified app launches and
+  // verified paid listings on this cluster, with market fields from the free
+  // DexScreener batch (falling back to the discovered-token cache).
+  let registryCache = null;
+  async function mainnetRegistry() {
+    if (registryCache && Date.now() - registryCache.at < 15_000) return registryCache.items;
+    const state = await store.read();
+    const launches = Object.values(state.launches || {}).filter(item => item?.mint && item.cluster === solanaCluster && item.onchainVerified === true);
+    const listings = Object.values(state.listings || {}).filter(item => item?.mint && item.cluster === solanaCluster && item.onchainVerified === true);
+    const byMint = new Map();
+    for (const item of launches) byMint.set(item.mint, { ...item, registry: 'launch', createdTimestamp: item.createdTimestamp || Math.floor(Date.parse(item.createdAt || item.launchedAt || 0) / 1000) || null });
+    for (const item of listings) {
+      const listingPayment = { signature: item.signature, amountTokens: item.amountTokens, verified: true };
+      const prior = byMint.get(item.mint);
+      byMint.set(item.mint, prior ? { ...prior, listingPayment } : { mint: item.mint, name: item.name || 'Paid listing', symbol: item.symbol || 'TOKEN',
+        imageUri: item.imageUri || null, registry: 'listing', createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000) || null, listingPayment });
+    }
+    const mints = [...byMint.keys()];
+    const [dex, cached] = await Promise.all([freeMarketData && mints.length ? freeMarketData.dexTokens(mints).catch(() => new Map()) : new Map(),
+      tokenCache && mints.length ? tokenCache.read(mints).catch(() => new Map()) : new Map()]);
+    const fresh = [];
+    const items = mints.map(mint => {
+      const base = byMint.get(mint), market = dex.get(mint) || cached.get(mint) || {};
+      if (dex.get(mint)) fresh.push({ ...(cached.get(mint) || {}), ...dex.get(mint), mint });
+      return { ...base, mint, name: base.name || market.name || 'Unnamed token', symbol: base.symbol || market.symbol || 'TOKEN',
+        imageUri: base.imageUri || market.imageUri || null, priceUsd: market.priceUsd ?? null, marketCapUsd: market.marketCapUsd ?? null,
+        liquidityUsd: market.liquidityUsd ?? null, volume24hUsd: market.volume24hUsd ?? null, priceChange24hPercent: market.priceChangePercent ?? market.priceChange24hPercent ?? null,
+        website: base.website || market.website || null, twitter: base.twitter || market.twitter || null, telegram: base.telegram || market.telegram || null, discord: base.discord || market.discord || null };
+    });
+    if (fresh.length) void tokenCache?.upsert(fresh);
+    registryCache = { at: Date.now(), items };
+    return items;
+  }
   return async function handleDiscoveryRoutes(req, res, url) {
+    if (req.method === 'GET' && url.pathname === '/api/tokens/market') {
+      if (solanaCluster === 'devnet') return json(res, 200, { cluster: solanaCluster, items: [] });
+      const mints = [...new Set(String(url.searchParams.get('mints') || '').split(',').map(value => value.trim()).filter(value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value)))].slice(0, 50);
+      if (!mints.length) return json(res, 400, { error: 'Provide up to 50 token mints.' });
+      return json(res, 200, { cluster: solanaCluster, provider: 'birdeye', items: await readTokenMarkets(mints) });
+    }
     if (req.method === 'GET' && url.pathname === '/api/birdeye/explore') {
       const { limit, offset } = explorePagination(url.searchParams);
       const sortBy = ['volume_24h_usd', 'market_cap', 'recent_listing_time', 'price_change_24h_percent'].includes(url.searchParams.get('sort_by')) ? url.searchParams.get('sort_by') : 'volume_24h_usd';
@@ -77,8 +150,11 @@ export function createDiscoveryRoutes({
         try { warmMarketActivity(page.map(item => item.mint).filter(mint => !activity[mint])); } catch {}
         return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, total:uniqueItems.length, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
       }
-      const items = await fetchPump('/coins', { offset: String(offset), limit: String(limit), sort, order: 'DESC', includeNsfw: 'false' });
-      return json(res, 200, { provider: 'pump.fun', chain: 'solana', fetchedAt: new Date().toISOString(), items: items.map(normalizePumpToken).filter(Boolean) });
+      const items = await mainnetRegistry();
+      const key = sort === 'market_cap' ? 'marketCapUsd' : sort === 'created_timestamp' ? 'createdTimestamp' : 'volume24hUsd';
+      const sorted = [...items].sort((x, y) => (Number(y[key]) || 0) - (Number(x[key]) || 0));
+      return json(res, 200, { provider: 'richpad-registry', chain: 'solana', cluster: solanaCluster, fetchedAt: new Date().toISOString(),
+        items: sorted.slice(offset, offset + limit), total: sorted.length, directoryComplete: offset + limit >= sorted.length });
     }
     return false;
   };

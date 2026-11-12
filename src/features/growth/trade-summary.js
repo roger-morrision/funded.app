@@ -17,8 +17,8 @@ export function mountTradeSummary(document = globalThis.document) {
     const outText = /\d/.test(out) ? out : 'the quoted amount';
     summary.hidden = false;
     summary.textContent = buying
-      ? `You send ${value} SOL and receive about ${outText}. Max slippage ${slippage.value}%. Your wallet shows the final transaction before you sign.`
-      : `You sell ${value} ${token} and receive about ${outText}. Max slippage ${slippage.value}%. Your wallet shows the final transaction before you sign.`;
+      ? `You send ${value} SOL and receive about ${outText}. Max slippage ${slippage.value}%.`
+      : `You sell ${value} ${token} and receive about ${outText}. Max slippage ${slippage.value}%.`;
   }
   for (const node of [side, amount, slippage]) node?.addEventListener('input', sync);
   side?.addEventListener('change', sync);

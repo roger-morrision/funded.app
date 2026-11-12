@@ -1,6 +1,7 @@
 import { readPendingBurn } from '../../features/funded/burn-recovery.js';
 import { mountBuybackProgressPanels } from '../../features/funded/buyback-progress-ui.js';
 import { fundedBurnFailureMessage } from '../../features/funded/buy-feedback.js';
+import { ownerMintAccounts } from '../../features/shared/owner-mint-accounts.js';
 
 // Dependencies and mutable application state are read live through appState.
 // Share of the trigger already in eligible vaults, e.g. "<0.01%" or "42.5%".
@@ -145,7 +146,7 @@ export function createBuybackController(appState) {
           : dashboard?.status === 'verified' ? 'No burns yet' : 'Waiting for the next burn update';
       const signature = String(burn?.signature || '');
       proof.hidden = !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature);
-      if (!proof.hidden) proof.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+      if (!proof.hidden) proof.href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
       else proof.removeAttribute('href');
     }
     appState.renderBuybackDashboard();
@@ -237,19 +238,22 @@ export function createBuybackController(appState) {
       let balanceBaseUnits = 0n;
       if (address) {
         const owner = new PublicKey(address);
-        const response = await appState.connection.getTokenAccountsByOwner(owner, { mint }, 'confirmed');
+        const response = await ownerMintAccounts(appState.connection, owner, mint, 'confirmed');
         tokenAccounts = response.value.map(row => {
           const account = unpackAccount(row.pubkey, row.account, tokenProgram);
           return { address: row.pubkey, amount: account.amount };
         }).filter(row => row.amount > 0n).sort((a, b) => a.amount === b.amount ? 0 : a.amount > b.amount ? -1 : 1);
         balanceBaseUnits = tokenAccounts.reduce((sum, row) => sum + row.amount, 0n);
       }
-      const indexed = address ? await appState.apiRequest(`/api/burn-receipts?wallet=${encodeURIComponent(address)}`).catch(() => ({ available: false })) : { available: true, data: { receipts: [] } };
+      const [indexed, publicIndex] = await Promise.all([
+        address ? appState.apiRequest(`/api/burn-receipts?wallet=${encodeURIComponent(address)}`).catch(() => ({ available: false })) : { available: true, data: { receipts: [] } },
+        appState.apiRequest('/api/burn-receipts').catch(() => ({ available: false }))]);
       if (request !== appState.fundedBurnRequest || address !== appState.connectedWalletAddress) return;
       appState.fundedBurnState = {
         status: 'ready', wallet: address, decimals: mintState.decimals, balanceBaseUnits,
         supplyBaseUnits: mintState.supply, burnedBaseUnits: appState.burnedSupplyBaseUnits(mintState.supply, mintState.decimals),
         tokenProgram, tokenAccounts, receipts: indexed.available && Array.isArray(indexed.data?.receipts) ? indexed.data.receipts : [],
+        publicReceipts: publicIndex.available && Array.isArray(publicIndex.data?.receipts) ? publicIndex.data.receipts : [], publicReceiptsAvailable: Boolean(publicIndex.available),
         receiptIndexAvailable: indexed.available, loadedAt: Date.now(), message: address
           ? (indexed.available ? 'Your balance and burn history are ready.' : 'Your balance is ready; burn history is unavailable.')
           : 'Live Solana supply loaded. Connect a wallet to view its balance and burn receipts.',

@@ -59,6 +59,8 @@ export async function fetchRichBuyQuote(args){
 export function matchesRichPricingMarket(data,{mint,pool,cluster}){
   if(data?.fundedMint!==mint)return false;
   if(cluster&&(!SOLANA_GENESIS[cluster]||data.cluster!==cluster||data.genesisHash!==SOLANA_GENESIS[cluster]))return false;
+  // Mainnet $RICH without a configured pool is priced by the server from the indexed Jupiter price.
+  if(data.market==='indexed')return (!cluster||cluster==='mainnet-beta')&&data.cluster==='mainnet-beta'&&!pool&&data.pool===null;
   if(data.market==='pump-curve')return data.pool===null&&data.bondingCurve===bondingCurvePda(new PublicKey(mint)).toBase58();
   if(data.market!=null&&data.market!=='pump-swap')return false;
   return data.pool===(pool||canonicalPumpPoolPda(new PublicKey(mint),NATIVE_MINT).toBase58());

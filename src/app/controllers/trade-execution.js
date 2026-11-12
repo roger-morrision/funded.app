@@ -59,7 +59,8 @@ export function createTradeExecutionController(appState) {
       await refreshServiceFees(appState); appState.assertWalletSessionCurrent(session);
       const previewConnection = await appState.getTradePreviewConnection();
       appState.assertWalletSessionCurrent(session);
-      const rich=mint===appState.PROTOCOL_FUNDED_MINT&&appState.APP_CLUSTER===appState.EXPLORE_CLUSTER;
+      // Mainnet $RICH without a configured PumpSwap pool trades through Jupiter like any token.
+      const rich=mint===appState.PROTOCOL_FUNDED_MINT&&appState.APP_CLUSTER===appState.EXPLORE_CLUSTER&&!(appState.EXPLORE_CLUSTER==='mainnet-beta'&&!appState.PROTOCOL_FUNDED_SWAP_POOL);
       const builder=rich?buildRichTradeTransaction:appState.buildTradeTransaction;
       const trade = await builder({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState),
         ...(rich?{cluster:appState.APP_CLUSTER,poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL}:{}) });
@@ -88,12 +89,12 @@ export function createTradeExecutionController(appState) {
       const slippageText = quote.maximumSpendSol != null
         ? `Quoted receive: ${receiveText}. Maximum pool spend: ${quote.maximumSpendSol.toFixed(9)} SOL with ${slippagePercent}% slippage.`
         : side === 'sell'
-          ? `Gross Pump output: ${receiveText}. Estimated to wallet after app fee: ${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL. Minimum after slippage and app fee: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL.`
+          ? `Gross ${quote.route === 'jupiter' ? 'swap' : 'Pump'} output: ${receiveText}. Estimated to wallet after app fee: ${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL. Minimum after slippage and app fee: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL.`
           : `Estimated receive: ${receiveText}. Slippage floor: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}.`;
       const feeText = quote.maximumSpendSol != null
         ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
-        : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and Pump fees.`;
-      document.querySelector('#trade-quote').textContent = `${quote.route === 'graduated-pool' ? 'Graduated pool' : 'Pump curve'} · ${slippageText} ${feeText}`;
+        : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and ${quote.route === 'jupiter' ? 'pool' : 'Pump'} fees.`;
+      document.querySelector('#trade-quote').textContent = `${quote.route === 'jupiter' ? `Jupiter${trade.routes?.length ? ` (${trade.routes.join(' → ')})` : ''}${trade.priceImpactPct > 0.01 ? ` · price impact ${(trade.priceImpactPct * 100).toFixed(2)}%` : ''}` : quote.route === 'graduated-pool' ? 'PumpSwap pool (direct)' : 'Pump.fun curve (direct)'} · ${slippageText} ${feeText}`;
       appState.setTradeStatus('Review this quote and the transaction in your wallet before signing.');
       appState.productEvent('trade_quote_ready');
       recordFlowTiming('quote', performance.now()-started, 'available', temperature);
@@ -136,7 +137,13 @@ export function createTradeExecutionController(appState) {
   async function requestTradeSignature(){
     if (appState.tradeActionBusy) return;
     const { mint, side, amount, slippagePercent, valid } = appState.tradeInputs();
-    if(holdUncertainTrade(mint))return;
+    // A saved signed trade is checked automatically; an expired, unlanded one clears.
+    const saved=uncertainTrade(appState.connectedWalletAddress,mint,appState.pendingTradeVerifications);
+    if(saved){
+      appState.setTradeStatus('Checking your previous trade before continuing…');
+      await verifyPendingTrade(null,saved.signature).catch(()=>{});
+      if(holdUncertainTrade(mint))return;
+    }
     if (!valid) return appState.setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.', true);
     // Give the wallet review a usable countdown even when the inline quote is
     // already near expiry. The refreshed quote is still checked before signing.
@@ -220,6 +227,7 @@ export function createTradeExecutionController(appState) {
       await appState.verifyPendingTrade(activeConnection, submittedSignature);
       void appState.refreshTradeBalances();
     } catch (error) {
+      try { globalThis.navigator?.sendBeacon?.('/api/client-errors', new Blob([JSON.stringify({ area: 'trade', side, mint, message: String(error?.message || error).slice(0, 300), signature: submittedSignature || error?.signature || null })], { type: 'application/json' })); } catch {}
       const signature = submittedSignature || error.signature;
       if (signature) {
         const previous=appState.pendingTradeVerifications.get(signature);

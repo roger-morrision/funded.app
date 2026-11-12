@@ -66,10 +66,13 @@ export function navigation() {
   const defaultSearchHelp = searchHelp.textContent;
   let candidates = [];
   let creatorCandidates=[],creatorQuery='',creatorTimer=null,creatorVersion=0;
+  // A pasted address that is a token mint (any launchpad or DEX) opens its token page, ahead of the wallet profile.
+  let tokenCandidates=[],tokenQuery='';
   let activeCandidate = -1;
   const renderSearchResults = ({ preserveSelection = false } = {}) => {
     const selectedMint = preserveSelection && activeCandidate >= 0 ? candidates[activeCandidate]?.mint : null;
     candidates = window.fundedVerifiedSearchCandidates?.(modalSearch.value) || [];
+    if(modalSearch.value.trim()===tokenQuery&&tokenCandidates.length)candidates=[...tokenCandidates,...candidates.filter(row=>!tokenCandidates.some(token=>token.mint===row.mint))];
     if(modalSearch.value.trim()===creatorQuery)candidates=[...candidates,...creatorCandidates];
     if (preserveSelection) activeCandidate = selectedMint ? candidates.findIndex(candidate => candidate.mint === selectedMint) : -1;
     else activeCandidate = candidates.length ? 0 : -1;
@@ -100,7 +103,12 @@ export function navigation() {
       link.append(token, market);
       link.addEventListener('click', () => searchDialog.close());
       searchResults.append(link);
-      if (candidate.verifiedLaunch && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(candidate.mint)) {
+      if (candidate.logoUri && /^https:\/\//.test(candidate.logoUri)) {
+        const image = document.createElement('img'); image.alt = ''; image.referrerPolicy = 'no-referrer'; image.src = candidate.logoUri;
+        image.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit';
+        image.addEventListener('error', () => avatar.replaceChildren(String(candidate.symbol || 'T').slice(0, 1).toUpperCase()), { once: true });
+        avatar.replaceChildren(image);
+      } else if (candidate.verifiedLaunch && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(candidate.mint)) {
         const local = `/devnet-images/${encodeURIComponent(candidate.mint)}`;
         loadTokenArtwork(avatar, candidate.mint, isDevnetImageUri(candidate.imageUri,candidate.mint) ? candidate.imageUri : local);
       }
@@ -120,6 +128,17 @@ export function navigation() {
   };
   function lookupCreators(){
     clearTimeout(creatorTimer);const version=++creatorVersion,query=modalSearch.value.trim();creatorQuery=query;creatorCandidates=[];
+    if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)&&tokenQuery!==query){
+      tokenQuery=query;tokenCandidates=[];
+      apiRequest(`/api/tokens/market?mints=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(8000)}).then(result=>{
+        const row=(result?.data?.items||result?.items||[]).find(item=>item.mint===query);
+        if(!row?.symbol||tokenQuery!==query||!searchDialog.open||modalSearch.value.trim()!==query)return;
+        const price=Number(row.priceUsd);
+        tokenCandidates=[{mint:query,name:String(row.name||row.symbol).slice(0,80),symbol:String(row.symbol).slice(0,20),logoUri:row.logoUri||null,
+          marketCap:Number.isFinite(price)&&price>0?`$${price<0.01?price.toPrecision(3):price.toLocaleString('en-US',{maximumFractionDigits:4})}`:'Token',stage:'Open token page'}];
+        renderSearchResults();
+      }).catch(()=>{});
+    }
     if(query.length<2||query.length>80||/^[1-9A-HJ-NP-Za-km-z]{32,88}$/.test(query))return;
     creatorTimer=setTimeout(async()=>{
       let result;try{result=await apiRequest(`/api/creators?${new URLSearchParams({q:query})}`,{signal:AbortSignal.timeout(8000)});}catch{}

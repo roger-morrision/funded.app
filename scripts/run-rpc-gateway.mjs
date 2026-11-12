@@ -5,14 +5,28 @@ import {createRpcGatewayServer,createRpcSignatureServer} from '../server/rpc-gat
 import {createRedisRpcCache} from '../server/redis-rpc-cache.mjs';
 import {rpcGatewayPacing} from '../server/rpc-gateway-pacing.mjs';
 import {createRpcFailoverTransport,isHeliusRpc,publicRpcForCluster} from '../server/rpc-failover.mjs';
+import {createRotatingRpcTransport} from '../server/rpc-rotation.mjs';
 
 const cluster=requireSolanaCluster(process.env.SOLANA_CLUSTER);
 const url=process.env.FUNDED_RPC_UPSTREAM_URL||(await readFile(process.env.FUNDED_RPC_UPSTREAM_URL_FILE,'utf8')).trim();
 const sharedCache=process.env.FUNDED_RPC_REDIS_URL?createRedisRpcCache({url:process.env.FUNDED_RPC_REDIS_URL,genesis:SOLANA_GENESIS[cluster]}):null;
 await sharedCache?.start();
-const pacing=rpcGatewayPacing(url);
+// FUNDED_RPC_FREE_URLS: comma-separated free endpoints rotated first; the
+// configured upstream (e.g. paid Helius) is used only when all free ones cool down.
+const freeUrls=String(process.env.FUNDED_RPC_FREE_URLS||'').split(',').map(value=>value.trim()).filter(Boolean);
+const rotating=freeUrls.length>0;
+// FUNDED_RPC_PAID_URLS_FILE: newline-separated paid endpoints (e.g. several Helius
+// keys) rotated round-robin; a key that reports exhausted credits rests for an hour.
+const paidPool=process.env.FUNDED_RPC_PAID_URLS_FILE?(await readFile(process.env.FUNDED_RPC_PAID_URLS_FILE,'utf8').catch(()=>'')).split(/\s+/).map(value=>value.trim()).filter(value=>/^https:\/\//.test(value)):[];
+const pacing=rotating?{minIntervalMs:80,blockIntervalMs:2500,sendIntervalMs:500,maxConcurrent:4}:rpcGatewayPacing(url);
 const primary=createRpcUpstreamTransport(url,{maxSockets:pacing.maxConcurrent});
-const transport=isHeliusRpc(url)?createRpcFailoverTransport({primary,publicTransport:createRpcUpstreamTransport(publicRpcForCluster(cluster)),cluster}):primary;
+const hostName=value=>new URL(value).hostname;
+const transport=rotating?createRotatingRpcTransport({
+  free:freeUrls.map(value=>({name:hostName(value),transport:createRpcUpstreamTransport(value,{maxSockets:2})})),
+  paid:paidPool.length?paidPool.map((value,index)=>({name:`${hostName(value)}#${index+1}`,transport:createRpcUpstreamTransport(value,{maxSockets:2})}))
+    :freeUrls.includes(url)?[]:[{name:hostName(url),transport:primary}]}):isHeliusRpc(url)?createRpcFailoverTransport({primary,publicTransport:createRpcUpstreamTransport(publicRpcForCluster(cluster),{maxSockets:2}),cluster,
+  // Public Mainnet allows ~10 req/s per IP; stay well below it.
+  publicOptions:cluster==='mainnet-beta'?{minIntervalMs:150,maxConcurrent:2}:{}}):primary;
 const gateway=createRpcGateway({transport,sharedCache,cluster,...pacing});
 const server=createRpcGatewayServer({gateway}),signatures=createRpcSignatureServer({gateway});
 server.listen(Number(process.env.PORT||8899),'0.0.0.0');signatures.server.listen(Number(process.env.WS_PORT||8900),'0.0.0.0');

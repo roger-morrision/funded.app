@@ -31,7 +31,7 @@ export function verifyBoostPayment(transaction, quote, payment) {
     throw new Error('The payment transfer does not match the quote.');
   if (address(memo.programId) !== BOOST_MEMO_PROGRAM || memo.parsed !== boostMemo(quote.id))
     throw new Error('The payment memo does not match the quote.');
-  if (quote.cluster !== 'devnet' || new PublicKey(quote.recipient).toBase58() !== quote.recipient)
+  if (!['devnet','mainnet-beta'].includes(quote.cluster) || new PublicKey(quote.recipient).toBase58() !== quote.recipient)
     throw new Error('Boost payment configuration is invalid.');
   return { slot: transaction.slot, startsAt: new Date(transactionTime).toISOString(),
     expiresAt: new Date(transactionTime + quote.hours * 3_600_000).toISOString() };

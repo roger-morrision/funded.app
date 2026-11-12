@@ -38,7 +38,7 @@ test('Provider restricts key destination, suppresses upstream messages and backs
   await assert.rejects(createMarketProviders({...options,birdeyeBaseUrl:'https://evil.example'}).fetchBirdeye('/defi/price'),/Invalid/);
   assert.equal(calls,1);
 });
-test('Primary RPC failure falls back without recording indexed data as chain proof; primary recovers',async()=>{
+test('Mainnet market activity uses indexed providers without RPC scans or chain-proof writes',async()=>{
   let healthy=false,fallbackCalls=0,writes=0,response;
   const fallback={mint,cluster,source:'birdeye',displayOnly:true,coverage:'indexed',observedAt:new Date().toISOString(),volume24hUsd:20};
   const build=()=>createTokenMarketRoutes({route:(path,method,re)=>re.exec(path)?.[1],clientKey:()=> 'test',solanaRpcUrl:'https://example.test',solanaCluster:cluster,
@@ -50,7 +50,7 @@ test('Primary RPC failure falls back without recording indexed data as chain pro
   const req={method:'GET'},url=new URL(`https://app.test/api/tokens/${mint}/market-activity`);
   const handler=build();await handler(req,{},url);assert.equal(response.status,200);assert.equal(response.data,fallback);assert.equal(writes,0);
   await handler(req,{},url);assert.equal(fallbackCalls,1);
-  healthy=true;await build()(req,{},url);assert.equal(response.data.source,'confirmed-pump-trade-events');assert.equal(writes,1);assert.equal(fallbackCalls,1);
+  healthy=true;await new Promise(done=>setTimeout(done,10));await build()(req,{},url);assert.equal(response.data.source,'birdeye');assert.equal(writes,0);
 });
 test('Fallback renderer preserves unavailable values and never creates trading state',()=>{
   const fields={},app={EXPLORE_CLUSTER:cluster,setCoinField:(k,v)=>fields[k]=v,formatUsd:n=>`$${n}`};

@@ -9,7 +9,7 @@ export async function prepareBoostPayment({store,rpc,quote,now=Date.now()}) {
   if (!Number.isSafeInteger(latest?.value?.lastValidBlockHeight) || latest.value.lastValidBlockHeight < 1
     || !Number.isSafeInteger(latest?.context?.slot) || typeof latest.value.blockhash!=='string') throw Error('Payment expiry verification is unavailable.');
   const record={quoteId:quote.id,blockhash:latest.value.blockhash,expiryUpperBound:latest.value.lastValidBlockHeight,
-    observedSlot:latest.context.slot,kind:'prepared',cluster:'devnet',expiresAt:quote.expiresAt};
+    observedSlot:latest.context.slot,kind:'prepared',cluster:quote.cluster,expiresAt:quote.expiresAt};
   await store.update(state=>{state.boostPayments||={};state.boostPayments[windowKey(quote.id,record.blockhash)] ||= record;});
   return record;
 }
@@ -67,7 +67,7 @@ export async function expiredBoostPayment(rpc, payment) {
   const transaction = await rpc.getTransaction(payment.signature, {commitment:'confirmed', maxSupportedTransactionVersion:0});
   if (!Number.isSafeInteger(statuses?.context?.slot) || statuses.context.slot < validity.context.slot
     || statuses.value?.length !== 1 || statuses.value[0] !== null || transaction !== null) return null;
-  return {status:'expired', signature:payment.signature, quoteId:payment.quoteId, cluster:'devnet', commitment:'finalized',
+  return {status:'expired', signature:payment.signature, quoteId:payment.quoteId, cluster:payment.cluster||'devnet', commitment:'finalized',
     blockhash:payment.blockhash, finalizedBlockHeight:height, expiryUpperBound:payment.expiryUpperBound,
     slot:statuses.context.slot, transactionAbsent:true};
 }

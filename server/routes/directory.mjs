@@ -2,7 +2,7 @@ import {top100Growth} from '../top100-growth.mjs';
 import {top100CommunityCounts} from '../top100-community.mjs';
 import { buildTerminalSignal } from '../../stonk-features.js';
 import { PublicKey, Connection } from '@solana/web3.js';
-import { DEVNET_GENESIS_HASH } from '../automatic-reward-chain.mjs';
+import { SOLANA_GENESIS } from '../../solana-network.js';
 import { readVerifiedListingMint } from '../token-metadata.mjs';
 import { projectBurnBoard, walletBurnBoard } from '../leaderboard-burn-board.mjs';
 import { LISTING_PRICE_USD, listingBurnTokens } from '../../listing-policy.js';
@@ -92,7 +92,7 @@ export function createDirectoryRoutes({
       const fees = await readServiceFees(store);
       let pricing = null;
       try { pricing = await currentLaunchTierPricing(); } catch { /* A listing cannot be paid without a verified price. */ }
-      const enabled = solanaCluster === 'devnet' && Boolean(fundedTokenMint) && Boolean(pricing);
+      const enabled = Object.hasOwn(SOLANA_GENESIS, solanaCluster) && Boolean(fundedTokenMint) && Boolean(pricing);
       return json(res, 200, { cluster: solanaCluster, enabled, fundedMint: fundedTokenMint || null,
         usd: fees.policy.listingUsd, burnTokens: enabled ? listingBurnTokens(pricing.tokenPriceUsd,fees.policy.listingUsd) : null,
         serviceFees:fees,
@@ -101,7 +101,7 @@ export function createDirectoryRoutes({
     }
     const listingMintMatch = req.method === 'GET' ? /^\/api\/listings\/mint\/([^/]+)$/.exec(url.pathname) : null;
     if (listingMintMatch) {
-      if (solanaCluster !== 'devnet') return json(res, 503, { error:'Listing mint checks require Solana.' });
+      if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster)) return json(res, 503, { error:'Listing mint checks require Solana.' });
       let listingMint;
       try { listingMint = new PublicKey(listingMintMatch[1]).toBase58(); }
       catch { return json(res, 400, { error:'A valid token mint is required.' }); }
@@ -109,16 +109,16 @@ export function createDirectoryRoutes({
         const trustedLaunch = await store.readLaunch(listingMint);
         // Inclusion is a saved launch entitlement. It does not depend on today's
         // metadata RPC, pool quote, or the paid-listing price being available.
-        if (trustedLaunch?.onchainVerified === true && trustedLaunch.cluster === 'devnet'
+        if (trustedLaunch?.onchainVerified === true && trustedLaunch.cluster === solanaCluster
           && trustedLaunch.pumpFeeRoute?.scope === 'per-mint-v3') {
-          return json(res, 200, { cluster:'devnet', mint:listingMint, included:true,
+          return json(res, 200, { cluster:solanaCluster, mint:listingMint, included:true,
             name:trustedLaunch.name || 'Funded launch', symbol:trustedLaunch.symbol || 'TOKEN',
             source:'verified-launch-registry', marketStatus:'not-requested' });
         }
         const rpc = new Connection(solanaRpcUrl, 'finalized');
-        if (await rpc.getGenesisHash() !== DEVNET_GENESIS_HASH) return json(res, 503, { error:'Listing mint checks require a Solana RPC.' });
+        if (await rpc.getGenesisHash() !== SOLANA_GENESIS[solanaCluster]) return json(res, 503, { error:'Listing mint checks require a Solana RPC.' });
         const signedMetadata = await store.readMetadata(listingMint);
-        return json(res, 200, { cluster:'devnet', included:Boolean(trustedLaunch?.onchainVerified && trustedLaunch.cluster==='devnet' && trustedLaunch.pumpFeeRoute?.scope==='per-mint-v3'), ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
+        return json(res, 200, { cluster:solanaCluster, included:Boolean(trustedLaunch?.onchainVerified && trustedLaunch.cluster===solanaCluster && trustedLaunch.pumpFeeRoute?.scope==='per-mint-v3'), ...(await readVerifiedListingMint(rpc, listingMint, { trustedLaunch, signedMetadata })) });
       } catch (error) { return json(res, 409, { error:error.message || 'Verified token metadata is unavailable.' }); }
     }
     if (req.method === 'GET' && url.pathname === '/api/listings') {
@@ -134,6 +134,18 @@ export function createDirectoryRoutes({
     if (req.method === 'GET' && url.pathname === '/api/leaderboard/burners') {
       const state = await store.read();
       return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', wallets: walletBurnBoard(state, solanaCluster) });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/burn-receipts' && !url.searchParams.has('wallet')) {
+      // Public history: every on-chain-verified $RICH burn recorded on this
+      // cluster (token burns and listing burns), newest first.
+      const state = await store.read();
+      const receipts = [
+        ...Object.values(state.burnReceipts || {}).filter(item => item.cluster === solanaCluster && item.onchainVerified),
+        ...Object.values(state.listings || {}).filter(item => item.cluster === solanaCluster && item.onchainVerified && item.signature)
+          .map(item => ({ id: `listing:${item.signature}`, signature: item.signature, cluster: item.cluster, wallet: item.wallet, projectMint: item.mint,
+            purpose: 'listing', amountTokens: item.amountTokens, blockTime: item.blockTime ?? null, burnedAt: item.listedAt, onchainVerified: true })),
+      ].sort((a, b) => (Number(b.blockTime) || Date.parse(b.burnedAt || b.verifiedAt) / 1000 || 0) - (Number(a.blockTime) || Date.parse(a.burnedAt || a.verifiedAt) / 1000 || 0)).slice(0, 100);
+      return json(res, 200, { cluster: solanaCluster, source: 'verified-burn-receipts', receipts });
     }
     if (req.method === 'GET' && url.pathname === '/api/burn-receipts') {
       let wallet;

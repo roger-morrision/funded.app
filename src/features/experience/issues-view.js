@@ -1,5 +1,6 @@
 import { panel, el, button, array, utc, address, signature } from './view-utils.js';
 import { issueOperationContext } from '../../../issue-context.js';
+import { APP_NET } from '../shared/app-network.js';
 const KEY='funded.issue-reports.v1';
 export function initializeIssuesView(app) {
   const parent=document.querySelector('#profile');if(!parent)return;
@@ -43,6 +44,6 @@ export function initializeIssuesView(app) {
     }catch(error){status.textContent=error.message;}finally{sending=false;review.disabled=false;submit.disabled=!prepared||!enabled;}
   }
   form.addEventListener('input',()=>{const wasReviewed=Boolean(prepared);prepared=null;submit.disabled=true;copy.disabled=true;preview.hidden=true;if(wasReviewed)status.textContent='Changes need a new review before copying or sending.';});form.addEventListener('submit',event=>event.preventDefault());
-  app.apiRequest('/api/creator-support/issues/config',{signal:AbortSignal.timeout(10000)}).then(result=>{enabled=result.available&&result.data?.enabled===true&&result.data.cluster==='devnet';status.textContent=enabled?'Report service ready. Review a report before sending.':'Reporting is unavailable from this API. You can still describe and review the issue.';}).catch(()=>{status.textContent='Reporting is unavailable from this API.';});
+  app.apiRequest('/api/creator-support/issues/config',{signal:AbortSignal.timeout(10000)}).then(result=>{enabled=result.available&&result.data?.enabled===true&&result.data.cluster===APP_NET;status.textContent=enabled?'Report service ready. Review a report before sending.':'Reporting is unavailable from this API. You can still describe and review the issue.';}).catch(()=>{status.textContent='Reporting is unavailable from this API.';});
   void render();
 }

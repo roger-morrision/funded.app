@@ -88,9 +88,9 @@ test('known pre-delivery failures retry within bounds; parallel replicas claim o
   assert.equal(g.sent(),1);
 });
 
-test('disabled, API-only and Mainnet instances cannot dispatch or backfill email',async()=>{
+test('disabled and API-only instances cannot dispatch or backfill email',async()=>{
   const f=fixture();
-  for(const options of [{env:{...env,FUNDED_LAUNCH_POST_EMAIL_ENABLED:'false'}},{env:{...env,FUNDED_API_ONLY:'true'}},{cluster:'mainnet-beta'}])
+  for(const options of [{env:{...env,FUNDED_LAUNCH_POST_EMAIL_ENABLED:'false'}},{env:{...env,FUNDED_API_ONLY:'true'}}])
     assert.equal((await createLaunchPostEmailWorker({...f.options,...options}).tick()).status,'disabled');
   const empty={launches:{[f.launch.mint]:f.launch}};
   await createLaunchPostEmailWorker({...f.options,store:{read:async()=>empty,update:async fn=>fn(empty)}}).tick();
@@ -114,4 +114,18 @@ test('SMTP delivery fixes recipient, validates TLS and distinguishes DATA uncert
       throw Object.assign(Error('private provider response'),{command});
     }})}),error=>error.delivery===delivery&&!error.message.includes('private'));
   }
+});
+
+test('verified external listing queues an admin X draft once',async()=>{
+  const {enqueueListingPostEmail}=await import('../server/launch-post-email.mjs');
+  const listing={cluster:'mainnet-beta',onchainVerified:true,status:'listed',mint:'So11111111111111111111111111111111111111112',
+    signature:'5'.repeat(88),slot:9,name:'Wrapped SOL',symbol:'WSOL',wallet:'M1HfA8vPXwGGn8uv5p9BZSYjsh4jhxhoMfDx2sGsj4M'};
+  const state={},options={env:{FUNDED_LAUNCH_POST_EMAIL_ENABLED:'true',PUBLIC_APP_URL:'https://richpad.fun'},cluster:'mainnet-beta'};
+  const row=enqueueListingPostEmail(state,listing,options);
+  assert.equal(row.event,'listing');assert.equal(row.status,'pending');
+  assert.match(row.text,/New listing on Richpad: \$WSOL/);assert.match(row.text,/richpad\.fun\/token\/So111/);
+  assert.equal(enqueueListingPostEmail(state,listing,options),row);
+  assert.equal(Object.keys(state.launchPostEmails).length,1);
+  assert.equal(enqueueListingPostEmail({},listing,{...options,env:{}}),null);
+  assert.throws(()=>enqueueListingPostEmail({},{...listing,cluster:'devnet'},options));
 });

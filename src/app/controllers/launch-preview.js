@@ -157,7 +157,7 @@ export function createLaunchPreviewController(appState) {
     const balance = appState.walletBalanceLamports;
     const display = loading && balance == null ? 'Loading…' : balance == null ? 'Unavailable' : appState.formatSol(balance);
     document.querySelector('#profile-balance').textContent = appState.wallet ? display : 'Connect to load';
-    const compactBalance = loading && balance == null ? '…' : balance == null ? '—' : appState.formatSol(balance).replace(/\s*SOL$/i, '');
+    const compactBalance = loading && balance == null ? '…' : balance == null ? '—' : (Math.floor(Number(balance) / 1e7) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const headerBalance = document.querySelector('#header-wallet-balance');
     const headerWallet = document.querySelector('#connect-button');
     if (headerBalance) headerBalance.textContent = compactBalance;

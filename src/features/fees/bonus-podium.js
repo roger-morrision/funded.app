@@ -28,7 +28,8 @@ export function renderBonusPodium(document, { key, title, metric, rows, emptyTex
   mark.append(icon(document, 'trophy'));
   const heading = node('div'); heading.append(node('h3', null, title), node('p', null, metric));
   head.append(mark, heading); card.append(head);
-  if (!Array.isArray(rows)) { card.append(node('p', 'bonus-honor-empty', 'Rankings unavailable')); return card; }
+  // Missing or empty rankings still show the podium; each open step reads "No candidate".
+  if (!Array.isArray(rows)) rows = [];
 
   const podium = node('ol', 'bonus-podium'); podium.setAttribute('aria-label', `${title} top 3`);
   for (const place of [1, 2, 3]) {
@@ -49,7 +50,7 @@ export function renderBonusPodium(document, { key, title, metric, rows, emptyTex
     } else {
       step.dataset.bonusPlace = 'open'; step.classList.add('is-open');
       avatar.textContent = '?';
-      step.append(avatar, medal, node('span', 'bonus-podium-wallet', 'Open spot'), node('strong', 'bonus-podium-amount', '—'));
+      step.append(avatar, medal, node('span', 'bonus-podium-wallet', 'No candidate'), node('strong', 'bonus-podium-amount', '—'));
     }
     step.append(node('span', 'bonus-podium-block', MEDALS[place]));
     podium.append(step);
@@ -57,7 +58,6 @@ export function renderBonusPodium(document, { key, title, metric, rows, emptyTex
   card.append(podium);
 
   const rest = rows.filter(item => item.rank > 3).sort((a, b) => a.rank - b.rank);
-  if (!rows.length) card.append(node('p', 'bonus-honor-empty', emptyText));
   if (rest.length) {
     const list = node('ol', 'bonus-honor-list'); list.setAttribute('aria-label', `${title} ranks 4 and below`);
     for (const row of rest) {

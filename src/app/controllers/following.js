@@ -329,6 +329,30 @@ export function createFollowingController(appState) {
   }
 
   // app-source: 397
+  // Mainnet favorites outside the loaded feed: name, symbol, logo and market
+  // numbers from the server's cached token overview (no wallet RPC reads).
+  const indexedFavorites = new Map(), indexedFavoriteLoads = new Set(), indexedFavoriteTried = new Map();
+  function loadIndexedFavorites(saved){
+    const missing = saved.filter(mint => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) && !appState.assets.some(item => item.address === mint)
+      && !(Date.now() - (indexedFavoriteTried.get(mint) || 0) < 60_000) && !indexedFavoriteLoads.has(mint)).slice(0, 24);
+    if (!missing.length) return;
+    missing.forEach(mint => { indexedFavoriteLoads.add(mint); indexedFavoriteTried.set(mint, Date.now()); });
+    Promise.all(missing.map(mint => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/overview`, { signal: AbortSignal.timeout(12000) }).catch(() => null).then(response => {
+      const data = response?.available && response.data?.mint === mint ? response.data : null;
+      if (!data) return;
+      const cap = Number.isFinite(data.marketCapUsd) ? data.marketCapUsd : null, change = Number.isFinite(data.priceChangePercent) ? data.priceChangePercent : null;
+      indexedFavorites.set(mint, { loadedAt: Date.now(), observedAt: data.observedAt || '', address: mint, mint, name: data.name || 'Unnamed token', symbol: data.symbol || 'TOKEN',
+        imageUri: typeof data.imageUri === 'string' && data.imageUri.startsWith('https://') ? data.imageUri : null, icon: String(data.symbol || 'T').slice(0, 1),
+        value: cap != null ? `MC · ${appState.formatUsd(cap)}` : 'MC unavailable', change: change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—',
+        meta: cap != null ? `MC ${appState.formatCompactUsd(cap)} · Indexed` : 'Indexed', source: 'Indexed', marketCapUsd: cap, priceUsd: data.priceUsd ?? null,
+        priceChange24hPercent: change, volume24hUsd: data.volume24hUsd ?? null, liquidityUsd: data.liquidityUsd ?? null, complete: null, migrated: null,
+        createdTimestamp: Number(data.pairCreatedAt) > 0 ? Math.floor(Number(data.pairCreatedAt) / 1000) : null, holders: Number.isSafeInteger(data.holderCount) ? data.holderCount : null,
+        website: data.website || null, twitter: data.twitter || null, telegram: data.telegram || null, discord: data.discord || null });
+    }).finally(() => indexedFavoriteLoads.delete(mint)))).then(() => { renderWatchlist(); if (appState.exploreTab === 'favorites') appState.renderExploreAssets?.({ force: true }); appState.renderHomeLaunchBoard?.(); });
+  }
+  function indexedFavoriteAssets(){
+    return [...indexedFavorites.values()];
+  }
   function renderWatchlist(){
     const saved = appState.getWatchlist();
     const count = document.querySelector('#watch-count');
@@ -337,14 +361,17 @@ export function createFollowingController(appState) {
     if (count) count.textContent = appState.watchlistUnavailable ? 'Favorites unavailable' : `${saved.length} favorite${saved.length === 1 ? '' : 's'}`;
     if (empty) empty.hidden = saved.length > 0 || appState.watchlistUnavailable;
     const scene = items && watchlistScene(items);
+    if (appState.EXPLORE_CLUSTER === 'mainnet-beta') loadIndexedFavorites(saved);
     const candidates = items && saved.map(mint => {
       const asset = appState.assets.find(item => item.address === mint);
+      const indexed = !asset ? indexedFavorites.get(mint) : null;
       const policy = appState.verifiedLaunchPolicyForMint(mint);
-      const markup = asset ? appState.portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
+      const markup = indexed ? appState.homeLaunchCardMarkup(indexed, { volumeLabel: '24h', volumeValue: indexed.volume24hUsd, extraClass: ' watchlist-token-card' })
+        : asset ? appState.portfolioTokenCardMarkup({ mint: asset.address, name: asset.name, symbol: asset.symbol, source: 'Saved token · RPC verified', verified: true, removable: true })
         : policy?.onchainVerified ? appState.portfolioTokenCardMarkup({ mint, name: policy.name, symbol: policy.symbol, source: 'Saved token · verified launch', verified: true, removable: true })
           : `<div class="saved-token-row watchlist-unavailable"><div><strong>Token details unavailable</strong><span class="watchlist-unavailable-mint" title="${appState.escapeHtml(mint)}">${appState.escapeHtml(appState.shortAddress(mint))}</span><small>This token remains in your favorites.</small></div><div class="watchlist-unavailable-actions"><button type="button" class="secondary-button" data-watch-retry="${appState.escapeHtml(mint)}"${isWatchlistRetryPending(scene.sync, mint) ? ' disabled' : ''}>Retry check</button><button type="button" class="secondary-button token-card-copy-address" data-copy-address="${appState.escapeHtml(mint)}" data-copy-kind="token" aria-label="Copy full token address">Copy mint</button><button type="button" class="secondary-button" data-remove-watch="${appState.escapeHtml(mint)}" aria-label="Remove saved token">Remove</button></div></div>`;
       const template = document.createElement('template'); template.innerHTML = markup;
-      return { key:/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) ? JSON.stringify([mint, asset || policy?.onchainVerified ? 'verified' : 'unavailable']) : '', node:template.content.firstElementChild };
+      return { key:/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) ? JSON.stringify([mint, indexed ? `indexed:${indexed.observedAt}` : asset || policy?.onchainVerified ? 'verified' : 'unavailable']) : '', node:template.content.firstElementChild };
     });
     if (items) {
       if (scene.sync !== appState.watchlistSync || scene.owner !== scene.sync.identity() || scene.location !== watchlistLocation()
@@ -449,5 +476,5 @@ export function createFollowingController(appState) {
   }
   // app-source-end
 
-  return { showWatchlistStatus, getWatchlist, restoreWalletFavorites, verifyWalletFavorites, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets, getFollowingTokenSources, getFollowingCoverage, refreshFollowedWalletHoldings };
+  return { loadIndexedFavorites, indexedFavoriteAssets, showWatchlistStatus, getWatchlist, restoreWalletFavorites, verifyWalletFavorites, saveWatchlist, setWatchButtonState, renderWatchlist, readFollowedWallets, getFollowedWallets, walletRoles, saveFollowedWallet, renderFollowedWallets, getFollowingTokenSources, getFollowingCoverage, refreshFollowedWalletHoldings };
 }

@@ -1,3 +1,4 @@
+import { INDEXED_FRAMES } from '../../features/coin/chart-data.js';
 import { linkWalletText } from '../../features/shared/wallet-links.js';
 import { formatTinyDecimal } from '../../features/shared/display.js';
 import { renderHeaderActivity } from '../../features/coin/header-activity.js';
@@ -40,6 +41,7 @@ export function createCoinMarketController(appState) {
     document.dispatchEvent(new Event('funded:rankings-updated'));
     appState.publishTokenListMarkets(appState.assets, appState.EXPLORE_CLUSTER, appState.coinSolUsdPrice);
     appState.renderFundedTokenLanding();
+    if (appState.coinMarketActivity?.indexed) return;
     appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
     appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(appState.coinSolUsdValues.marketCap));
     appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
@@ -84,9 +86,28 @@ export function createCoinMarketController(appState) {
   }
   // app-source-end
 
+  // Mainnet candles come from the server's indexed OHLC route (free GeckoTerminal first).
+  const candleCache = new Map(), candleLoading = new Set();
+  function indexedCandles() {
+    const mint = appState.getCoinMintAddress(), frame = INDEXED_FRAMES[appState.coinChartPeriod] || '15m', key = `${mint}:${frame}`;
+    const supply = appState.coinIndexedSupply?.mint === mint ? appState.coinIndexedSupply.supply : null;
+    const hit = candleCache.get(key);
+    if (hit && Date.now() - hit.at < 20_000) return { ...hit.data, mint, supply, status: 'ready' };
+    if (mint && !candleLoading.has(key)) {
+      candleLoading.add(key);
+      const read = f => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/ohlcv?frame=${f}`, { signal: AbortSignal.timeout(15000) })
+        .then(result => ({ candles: result.available && result.data?.mint === mint ? result.data.candles || [] : [], source: result.data?.source || null }));
+      // Young tokens have only a few coarse candles; use 1-minute candles so the chart is readable.
+      read(frame).then(async data => data.candles.length < 12 && frame !== '1m' ? await read('1m').then(fine => fine.candles.length > data.candles.length ? fine : data).catch(() => data) : data)
+        .then(data => candleCache.set(key, { at: Date.now(), data }))
+        .catch(() => candleCache.set(key, { at: Date.now(), data: { candles: [], source: null } })).finally(() => { candleLoading.delete(key); if (appState.getCoinMintAddress() === mint) renderCoinPricePath(); });
+    }
+    return hit ? { ...hit.data, mint, supply, status: 'ready' } : { mint, candles: [], supply, status: candleLoading.has(key) ? 'loading' : 'ready' };
+  }
   // app-source: 956
   function renderCoinPricePath(){
-    return appState.renderCoinPricePathView({ coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, coinMint: appState.getCoinMintAddress() }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
+    const coinIndexedCandles = appState.EXPLORE_CLUSTER === 'mainnet-beta' ? indexedCandles() : null;
+    return appState.renderCoinPricePathView({ coinIndexedCandles, coinChartPeriod: appState.coinChartPeriod, coinChartMetric: appState.coinChartMetric, coinChartUnit: appState.coinChartUnit, coinMarketActivity: appState.coinMarketActivity, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, coinMint: appState.getCoinMintAddress() }, { formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd });
   }
   // app-source-end
 

@@ -25,7 +25,11 @@ export function createReferralsController(appState) {
   function captureAppReferral(){
     const query = new URLSearchParams(window.location.search);
     const code = query.get('ref')?.trim().toUpperCase();
-    const attribution = appState.captureFirstTouch(appState.getAppReferralAttribution(), code, { ownCode: appState.getReferralCode() });
+    // First touch is per wallet: an invite already bound to another wallet on this
+    // browser must not block a new invite link opened for a different wallet.
+    const stored = appState.getAppReferralAttribution();
+    const existing = code && stored?.wallet && stored.wallet !== appState.connectedWalletAddress ? null : stored;
+    const attribution = appState.captureFirstTouch(existing, code, { ownCode: appState.getReferralCode() });
     if (!attribution) return appState.getAppReferralAttribution();
     if (!attribution.source && appState.normalizeReferralCode(code) === attribution.code) attribution.source = String(query.get('src') || 'direct').slice(0, 24);
     localStorage.setItem(appState.APP_REFERRAL_KEY, JSON.stringify(attribution));
@@ -34,13 +38,21 @@ export function createReferralsController(appState) {
   }
   // app-source-end
 
+  const attributionSyncAttempted = new Set();
   // app-source: 235
   function bindAppReferralToWallet(){
     const attribution = appState.getAppReferralAttribution();
     const walletAddress = appState.connectedWalletAddress;
     if (!attribution || !walletAddress) return;
     const bound = appState.bindReferralAttribution(attribution, walletAddress, appState.getReferralCode());
-    if (bound) { localStorage.setItem(appState.APP_REFERRAL_KEY, JSON.stringify(bound)); appState.trackReferralEvent('wallet_bound'); }
+    if (bound) {
+      localStorage.setItem(appState.APP_REFERRAL_KEY, JSON.stringify(bound)); appState.trackReferralEvent('wallet_bound');
+      // Record the invite on the server once per wallet and page session (one wallet signature).
+      if (!bound.serverVerified && !attributionSyncAttempted.has(walletAddress)) {
+        attributionSyncAttempted.add(walletAddress);
+        void appState.syncServerReferralState({ register: false }).catch(() => attributionSyncAttempted.delete(walletAddress));
+      }
+    }
     else localStorage.removeItem(appState.APP_REFERRAL_KEY);
   }
   // app-source-end

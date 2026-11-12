@@ -17,7 +17,7 @@ export function burnHistoryTable({feeReceipts,launchBurns,standaloneReceipts,exp
     ...launchBurns.map(launch=>({receipt:launch.creatorLaunchBurn.receipt,at:burnTimestamp(launch.creatorLaunchBurn.receipt,launch),
       type:`Launch · ${launch.creatorLaunchBurn.label||launch.creatorLaunchBurn.tier}`,project:launch.symbol||'Token',mint:launch.mint,
       amount:String(launch.creatorLaunchBurn.receipt.amountTokens??launch.creatorLaunchBurn.amountTokens),spent:null,status:'Verified'})),
-    ...standaloneReceipts.map(receipt=>({receipt,at:burnTimestamp(receipt),type:'Token burn',project:fundedReceiptProject(receipt),
+    ...standaloneReceipts.map(receipt=>({receipt,at:burnTimestamp(receipt),type:receipt.purpose==='listing'?'Listing burn':'Token burn',project:fundedReceiptProject(receipt),
       amount:String(receipt.amountTokens),spent:null,status:'Verified'})),
   ];
   const seen=new Set();

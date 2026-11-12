@@ -154,3 +154,6 @@ body.page-route-list .list-pay-button:disabled { cursor: not-allowed; opacity: .
   .list-token-fields { grid-template-columns: 1fr; }
   .list-live-items { grid-template-columns: 1fr; }
 }
+.list-payment-status .list-share-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.list-payment-status .list-share-actions a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 14px; }
+.list-payment-status .list-share-actions .list-share-x { background: #fff; color: #0b0d0e; font-weight: 700; border-radius: 8px; }

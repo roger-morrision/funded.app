@@ -5,6 +5,7 @@ import { mountRewardHistoryControls } from './reward-history-controls.js';
 import { renderFinancialRecords } from './financial-activity-view.js';
 import {focusFilterRecovery} from '../shared/filter-recovery.js';
 import {missingFinancialSources,financialEmptyMessage} from './financial-empty-state.js';
+import { APP_NET } from '../shared/app-network.js';
 const stages = ['Accrued', 'Awaiting approval', 'Funded', 'Processing', 'Verified'];
 export function initializeFinancialCenter(app) {
   const parent = document.querySelector('#rewards-overview');
@@ -95,11 +96,11 @@ export function initializeFinancialCenter(app) {
     if (id !== request || wallet !== (app.connectedWalletAddress || '')) return;
     const missing=missingFinancialSources(experience,burns,overviews,wallet);
     if(experience?.data?.evidence?.status==='partial')missing.push('partial reward history');
-    missingSources=missing;nextCutoff=bonus?.data?.cluster==='devnet'?bonus.data.nextCutoffAt:null;
+    missingSources=missing;nextCutoff=bonus?.data?.cluster===APP_NET?bonus.data.nextCutoffAt:null;
     rows = financialRows({ experience:experience?.available ? experience.data : null, buybacks:burns?.available ? burns.data : null,
-      overviews:overviews.filter(row => row?.available && row.data?.cluster === 'devnet').map(row => ({ ...row.data?.overview, mint:row.data?.mint })), wallet }); loading = false; hasLoaded = true; render();
-    ready(rows,{missing,cutoff:bonus?.data?.cluster === 'devnet' ? bonus.data.nextCutoffAt : null});
-    window.dispatchEvent(new CustomEvent('funded:financial-center-data',{detail:{wallet,rows,missing,experience:experience?.data,buybacks:burns?.data,cutoff:bonus?.data?.cluster==='devnet'?bonus.data.nextCutoffAt:null}}));
+      overviews:overviews.filter(row => row?.available && row.data?.cluster === APP_NET).map(row => ({ ...row.data?.overview, mint:row.data?.mint })), wallet }); loading = false; hasLoaded = true; render();
+    ready(rows,{missing,cutoff:bonus?.data?.cluster === APP_NET ? bonus.data.nextCutoffAt : null});
+    window.dispatchEvent(new CustomEvent('funded:financial-center-data',{detail:{wallet,rows,missing,experience:experience?.data,buybacks:burns?.data,cutoff:bonus?.data?.cluster===APP_NET?bonus.data.nextCutoffAt:null}}));
     render();
     root.querySelector('[data-flow-checked]').textContent=`${missing.length?'Last attempted':'Updated'} ${new Date().toLocaleTimeString()}`;
   }

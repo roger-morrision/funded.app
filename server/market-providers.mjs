@@ -9,7 +9,30 @@ export function createMarketProviders({
   now = Date.now,
 }) {
   let birdeyeNextRequestAt = 0;
+  // Shared response cache and in-flight coalescing: identical Birdeye reads from
+  // any visitor reuse one upstream call while fresh, saving API credits.
+  const birdeyeCache = new Map(), birdeyeInflight = new Map();
+  const birdeyeTtlMs = path => /meta-data/.test(path) ? 3_600_000 : /multi_price|price/.test(path) ? 30_000 : 60_000;
   async function fetchBirdeye(path, params = {}) {
+    const key = path + '?' + new URLSearchParams(Object.entries(params).sort(([a], [b]) => a < b ? -1 : 1));
+    const hit = birdeyeCache.get(key);
+    if (hit && hit.expiresAt > now()) return hit.value;
+    if (birdeyeInflight.has(key)) return birdeyeInflight.get(key);
+    const call = (async () => {
+      // Wait out the shared pacing slot instead of failing parallel readers.
+      const wait = birdeyeNextRequestAt - now();
+      if (wait > 0 && wait <= 2_500) await new Promise(done => setTimeout(done, wait));
+      const value = await fetchBirdeyeUpstream(path, params);
+      if (value?.configured) {
+        if (birdeyeCache.size > 2_000) for (const [k, row] of birdeyeCache) if (row.expiresAt <= now()) birdeyeCache.delete(k);
+        birdeyeCache.set(key, { value, expiresAt: now() + birdeyeTtlMs(path) });
+      }
+      return value;
+    })();
+    birdeyeInflight.set(key, call);
+    try { return await call; } catch (error) { if (hit) return hit.value; throw error; } finally { birdeyeInflight.delete(key); }
+  }
+  async function fetchBirdeyeUpstream(path, params = {}) {
     if (!birdeyeApiKey) return { configured: false, data: null };
     // Keep credentials on the official HTTPS origin, including on redirects.
     if (new URL(birdeyeBaseUrl).origin !== 'https://public-api.birdeye.so' || !path.startsWith('/defi/'))

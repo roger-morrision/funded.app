@@ -194,7 +194,7 @@ export function renderLeaderboard(
     const { scannedTokens, traders } = rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
     // Before the registry and the first feed read finish, say so instead of "unavailable".
     const loading = EXPLORE_CLUSTER === 'devnet' && (verifiedLaunchPoliciesStatus === 'loading' || (!exploreFeedAvailable && !exploreUpdatedAt));
-    const unavailable = !loading && (EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable);
+    const unavailable = !loading && (EXPLORE_CLUSTER === 'devnet' ? verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable : !exploreFeedAvailable);
     setCoinField('#leaderboard-source-note', loading
       ? 'Reading recent trades…'
       : unavailable

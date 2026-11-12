@@ -42,7 +42,7 @@ export function renderBuybackDashboard(
   const launchBurns = verifiedLaunchPolicies.filter(launch => launch?.creatorLaunchBurn?.status === 'verified'
     && launch.creatorLaunchBurn.receipt && Number(launch.creatorLaunchBurn.receipt.amountTokens ?? launch.creatorLaunchBurn.amountTokens) > 0);
   const walletLaunchBurns = launchBurns.filter(launch => launch.creatorWallet === connectedWalletAddress);
-  const standaloneReceipts = fundedBurnState.wallet === connectedWalletAddress ? fundedBurnState.receipts : [];
+  const standaloneReceipts = [...(fundedBurnState.wallet === connectedWalletAddress ? fundedBurnState.receipts || [] : []), ...(fundedBurnState.publicReceipts || [])];
   const receiptSignatures = new Set([...walletLaunchBurns.map(launch => launch.creatorLaunchBurn.receipt.signature), ...standaloneReceipts.map(receipt => receipt.signature)].filter(Boolean));
   setTokenAmount(document.querySelector('#buyback-pending'), walletBalanceReady ? formatTokenBaseUnits(fundedBurnState.balanceBaseUnits, fundedBurnState.decimals, 6) : null);
   setTokenAmount(document.querySelector('#buyback-burned'), fundedBurnState.status === 'ready' ? formatTokenBaseUnits(fundedBurnState.burnedBaseUnits, fundedBurnState.decimals, 6) : null);
@@ -79,7 +79,7 @@ export function renderBuybackDashboard(
   const restoreFocus = preserveBuybackLedgerFocus(ledger, document);
   const more = ledger.querySelector(':scope > .concise-ledger-more');
   if (more) ledger.dataset.buybackExpanded = String(more.open);
-  ledger.innerHTML = `${historyTable}${previewRows?'<h3>Local preview</h3>'+previewRows:''}` || (buybackNetworkState.status === 'unavailable' ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $RICH burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
+  ledger.innerHTML = `${historyTable}${previewRows?'<h3>Local preview</h3>'+previewRows:''}` || (buybackNetworkState.status === 'unavailable' && !fundedBurnState.publicReceiptsAvailable ? '<div class="empty-state">Burn history is temporarily unavailable. Try again shortly.</div>' : '<div class="empty-state">No confirmed $RICH burns yet. Fee-funded buybacks and launch promotions appear here separately.</div>');
   restoreFocus();
   const runButton = document.querySelector('#buyback-run-preview');
   const addButton = document.querySelector('#buyback-add-claim');

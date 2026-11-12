@@ -183,7 +183,7 @@ export function homeLaunchCardMarkup(
     const progress = launchCardProgressState(displayMarket, exploreProviderStatus);
     const trackAttributes = progress.value === null ? 'aria-hidden="true"'
       : `role="progressbar" aria-label="Migration progress for ${escapeHtml(item.symbol || item.name || 'token')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.value)}" aria-valuetext="${escapeHtml(progress.text)}"`;
-    const progressMarkup = `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : `<i style="--launch-progress:${Number(progress.value.toFixed(2))}%"></i>`}</div></div>`;
+    const progressMarkup = EXPLORE_CLUSTER !== 'devnet' && progress.value === null ? '' : `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : `<i style="--launch-progress:${Number(progress.value.toFixed(2))}%"></i>`}</div></div>`;
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const capSol = displayMarket.migrated === true ? displayMarket.poolMarketCapSol : displayMarket.curveCapSol;
     const capLabel = displayMarket.migrated === true ? 'Market cap' : 'Curve cap';
@@ -236,7 +236,7 @@ export function homeLaunchCardMarkup(
     return `<article class="token-card-shell home-launch-card${extraClass}" data-mint="${escapeHtml(item.address || '')}" data-logo-mint="${escapeHtml(item.address || '')}">
       <a class="home-launch-card-link" href="/token/${encodeURIComponent(item.address || '')}" aria-label="Open ${escapeHtml(item.name || item.symbol || 'token')} token details"></a>
       <div class="home-card-overview">
-      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}</span></div>
+      <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}${EXPLORE_CLUSTER !== 'devnet' && /^https:\/\//.test(String(item.imageUri || '')) ? `<img src="${escapeHtml(item.imageUri)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span></div>
       <div class="home-card-info">
         <div class="home-card-heading">
           <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}${activeBoost ? ` ${boostPackageBadgesMarkup(boost)}` : ''}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>

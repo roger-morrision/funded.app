@@ -56,7 +56,7 @@ export function createJackpotAlerts({ section, isLoaded, document = globalThis.d
       const item = document.createElement('li');
       item.textContent = `${row.kind === 'creator' ? 'Creator' : 'Trader'} result · ${row.winner.slice(0, 4)}…${row.winner.slice(-4)} · ${solAmount(row.amountLamports)} · `;
       const receipt = document.createElement('a');
-      receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}?cluster=devnet`;
+      receipt.href = `https://explorer.solana.com/tx/${encodeURIComponent(row.signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
       receipt.target = '_blank';
       receipt.rel = 'noopener noreferrer';
       receipt.textContent = 'Receipt';

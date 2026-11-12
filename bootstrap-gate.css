@@ -27,3 +27,6 @@
   text-underline-offset: 3px;
 }
 #bootstrap-reload:focus-visible { outline: 3px solid #ffd28a; outline-offset: 3px; }
+
+/* The normal load is quick; only a failed boot shows the banner (with Reload). */
+body:not([data-bootstrap-state="failed"]) #bootstrap-status { display: none !important; }

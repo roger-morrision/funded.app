@@ -71,3 +71,11 @@ test('fee collection and referral transfers stop on a wrong RPC before reading s
   await assert.rejects(service.reconcileSolPayout({recipientWallet:String(keeper.publicKey),amountSol:1,from:String(payer.publicKey),signature:'old'}),/network/);
   assert.equal(stateReads,0);assert.equal(sends,0);
 });
+
+test('Mainnet non-program mode loads only service credentials and refuses signers',()=>{
+  const reads=[];
+  const env={SOLANA_CLUSTER:'mainnet-beta',FUNDED_MAINNET_NON_PROGRAM_WRITES:'true',DATABASE_URL_FILE:'/db',BIRDEYE_API_KEY_FILE:'/b',OTHER_FILE:'/o'};
+  loadServerEnvironment({env,readFile:path=>{reads.push(path);return 'value';}});
+  assert.deepEqual(reads.sort(),['/b','/db']);assert.equal(env.DATABASE_URL,'value');assert.equal(env.OTHER,undefined);
+  assert.throws(()=>loadServerEnvironment({env:{...env,FUNDED_ADMIN_TRADE_FEE_SIGNER_FILE:'/k'},readFile:()=>'x'}),/refuses signing/);
+});

@@ -42,7 +42,7 @@ export function renderCoinPulse({ coinMarketActivity, coinPulsePeriod }, { forma
   if (sellBar) sellBar.style.width = `${volume > 0 ? Number(pulse.sellVolumeSol) / volume * 100 : 0}%`;
   if (note) {
     note.hidden = !partial;
-    note.textContent = partial ? 'Some trade history is missing. Actual totals may be higher.' : '';
+    note.textContent = '';
   }
 }
 

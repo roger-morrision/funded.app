@@ -14,7 +14,7 @@ export function showLaunchSuccess({ mint, name, symbol, signature, registered },
   pending.hidden = registered === true;
   pending.textContent = 'The coin is created. Directory registration is still pending; check Portfolio before attempting another launch.';
   dialog.querySelector('[data-open-token]').href = `/token/${encodeURIComponent(mint)}`;
-  dialog.querySelector('[data-launch-receipt]').href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}?cluster=devnet`;
+  dialog.querySelector('[data-launch-receipt]').href = `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`;
   dialog.querySelector('[data-close-launch]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => { dialog.remove(); if (priorFocus?.isConnected) priorFocus.focus({ preventScroll:true }); });
   const share=dialog.querySelector('[data-share-launch]');
@@ -25,7 +25,7 @@ export function showLaunchSuccess({ mint, name, symbol, signature, registered },
     openShareComposer({kind:'launch',title:`${name} (${symbol})`,network:'Solana Devnet · test funds',
       text:`${name} ($${symbol}) is live on Solana Devnet. Explore our coin, join the discussion, and review its fee allocation. Test funds have no monetary value.`,
       url:new URL(`/token/${mint}`,globalThis.location.origin).href,
-      result:{kind:'launch',verified:true,mint,name,symbol,receipt:signature,network:'devnet',receiptUrl:`https://explorer.solana.com/tx/${signature}?cluster=devnet`}});
+      result:{kind:'launch',verified:true,mint,name,symbol,receipt:signature,network:'devnet',receiptUrl:`https://explorer.solana.com/tx/${signature}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`}});
   });
   appendLaunchKit(dialog, { mint, name, symbol }, document);
   document.body.append(dialog); dialog.showModal();

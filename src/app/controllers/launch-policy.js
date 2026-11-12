@@ -33,7 +33,7 @@ export function createLaunchPolicyController(appState) {
 
   // app-source: 219
   function renderFundedTokenLanding(){
-    return appState.renderFundedTokenLandingView({ PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, LAUNCH_BURN_TIERS: appState.LAUNCH_BURN_TIERS, SELECTABLE_LAUNCH_TIERS: appState.SELECTABLE_LAUNCH_TIERS, exploreUpdatedAt: appState.exploreUpdatedAt, assets: appState.assets, fundedBuyRoute: appState.fundedBuyRoute, coinSolUsdPrice: appState.coinSolUsdPrice, fundedBurnState: appState.fundedBurnState, exploreLastVerifiedAt: appState.exploreLastVerifiedAt, exploreProviderStatus: appState.exploreProviderStatus, APP_EXPLORER_QUERY: appState.APP_EXPLORER_QUERY }, { validateSolanaMint: appState.validateSolanaMint, currentLaunchTierAmounts: appState.currentLaunchTierAmounts, exploreMarketCapUsd: appState.exploreMarketCapUsd });
+    return appState.renderFundedTokenLandingView({ PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, LAUNCH_BURN_TIERS: appState.LAUNCH_BURN_TIERS, SELECTABLE_LAUNCH_TIERS: appState.SELECTABLE_LAUNCH_TIERS, exploreUpdatedAt: appState.exploreUpdatedAt || (appState.richIndexedAsset ? Date.now() : null), assets: appState.richIndexedAsset ? [...appState.assets.filter(item => item.address !== appState.richIndexedAsset.address), appState.richIndexedAsset] : appState.assets, fundedBuyRoute: appState.fundedBuyRoute, coinSolUsdPrice: appState.coinSolUsdPrice, fundedBurnState: appState.fundedBurnState, exploreLastVerifiedAt: appState.exploreLastVerifiedAt, exploreProviderStatus: appState.exploreProviderStatus, APP_EXPLORER_QUERY: appState.APP_EXPLORER_QUERY }, { validateSolanaMint: appState.validateSolanaMint, currentLaunchTierAmounts: appState.currentLaunchTierAmounts, exploreMarketCapUsd: appState.exploreMarketCapUsd });
   }
   // app-source-end
 
@@ -42,6 +42,16 @@ export function createLaunchPolicyController(appState) {
     const request = ++appState.launchTierPriceRequest;
     const previousAmount = appState.getLaunchBurnPolicy().amountTokens;
     try {
+      // Mainnet: the $RICH page shows the indexed price and market cap (no pool RPC read).
+      if (appState.EXPLORE_CLUSTER === 'mainnet-beta' && appState.PROTOCOL_FUNDED_MINT && !appState.PROTOCOL_FUNDED_SWAP_POOL)
+        void Promise.all([appState.apiRequest(`/api/tokens/${encodeURIComponent(appState.PROTOCOL_FUNDED_MINT)}/overview`),
+          appState.apiRequest(`/api/tokens/${encodeURIComponent(appState.PROTOCOL_FUNDED_MINT)}/holders`).catch(() => null)]).then(([result, holders]) => {
+          const data = result?.available && result.data?.mint === appState.PROTOCOL_FUNDED_MINT ? result.data : null;
+          if (!data) return;
+          appState.richIndexedAsset = { address: data.mint, mint: data.mint, name: data.name, symbol: data.symbol, priceUsd: data.priceUsd ?? null, marketCapUsd: data.marketCapUsd ?? null, imageUri: data.imageUri || null,
+            volume24hUsd: data.volume24hUsd ?? null, holders: holders?.data?.holderCount ?? null, indexedRich: true };
+          appState.renderFundedTokenLanding();
+        }).catch(() => {});
       const response = await appState.apiRequest('/api/launch-tier-quote');
       if (!response.available) throw new Error(response.data?.error || 'The verified $RICH price is unavailable.');
       const data = response.data;
