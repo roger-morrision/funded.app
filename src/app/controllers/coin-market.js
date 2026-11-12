@@ -129,7 +129,9 @@ export function createCoinMarketController(appState) {
 
   // app-source: 958
   function renderCoinPulse(){
-    renderHeaderActivity(appState.coinMarketActivity);
+    // Indexed (Mainnet) tokens keep the indexed 24h volume and trades the overview wrote.
+    const indexedCoin = appState.EXPLORE_CLUSTER === 'mainnet-beta' && appState.coinIndexedSupply?.mint && appState.coinIndexedSupply.mint === appState.getCoinMintAddress?.();
+    if (!indexedCoin) renderHeaderActivity(appState.coinMarketActivity);
     return appState.renderCoinPulseView({ coinMarketActivity: appState.coinMarketActivity, coinPulsePeriod: appState.coinPulsePeriod }, { formatExploreUsd: appState.formatExploreUsd });
   }
   // app-source-end

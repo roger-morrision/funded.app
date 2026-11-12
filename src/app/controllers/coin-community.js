@@ -1,6 +1,7 @@
 import { walletAddressMarkup } from '../../features/shared/wallet-links.js';
 import { coinUnavailableMessage } from '../../features/coin/unavailable-message.js';
-import { chatCalloutBadge } from '../../features/callouts/callouts.js';
+import { callFigures, callPillMarkup, multipleBadge } from '../../features/callouts/call-share.js';
+import { solUsdPrice } from '../../features/shared/token-identity.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createCoinCommunityController(appState) {
@@ -42,10 +43,26 @@ export function createCoinCommunityController(appState) {
   // app-source-end
 
   // app-source: 966
+  // Current market cap in SOL for this coin: on-chain value, or the indexed price × supply.
+  function currentCoinCapSol(mint, solUsd){
+    const onchain = Number(appState.coinSolUsdValues?.marketCap);
+    if (Number.isFinite(onchain) && onchain > 0) return onchain;
+    const estimate = appState.coinTradeEstimate, supply = appState.coinIndexedSupply;
+    const capUsd = estimate?.mint === mint && supply?.mint === mint && estimate.priceUsd > 0 && supply.supply > 0 ? estimate.priceUsd * supply.supply : null;
+    return capUsd && solUsd > 0 ? capUsd / solUsd : null;
+  }
+  function callRow(item){
+    if (!item.callout || !(item.callout.marketCapSol > 0)) return '';
+    const solUsd = appState.coinSolUsdPrice || appState.coinTradeEstimate?.solUsd || solUsdPrice();
+    const figures = callFigures({ calledCapSol:item.callout.marketCapSol, currentCapSol:currentCoinCapSol(item.mint, solUsd), holdingPercent:item.callout.holdingPercent, solUsd });
+    const badge = multipleBadge(figures.multiple), trend = !Number.isFinite(figures.multiple) ? 'flat' : figures.multiple >= 1.05 ? 'up' : figures.multiple <= 0.95 ? 'down' : 'flat';
+    const symbol = appState.coinTradeEstimate?.mint === item.mint ? appState.coinTradeEstimate.symbol : '';
+    return `<div class="callout-foot chat-call-foot"><span class="chat-call-tag">📣 Call${badge ? ` <b class="callout-x" data-trend="${trend}">${badge}</b>` : ''}</span>${callPillMarkup({ mint:item.mint, symbol, figures })}</div>`;
+  }
   function tokenChatMessageMarkup(item){
     const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
     const action = own ? `<footer><button type="button" data-chat-delete="${appState.escapeHtml(item.id)}">Delete</button></footer>` : `<footer><button type="button" data-chat-report="${appState.escapeHtml(item.id)}" title="Report spam or a scam for moderation review">Report spam or scam</button><button type="button" data-chat-hide="${appState.escapeHtml(item.author)}">Hide this wallet</button></footer>`;
-    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div>${item.callout ? chatCalloutBadge(item.callout, appState.coinSolUsdValues?.marketCap, appState.coinSolUsdPrice) : ''}<p>${appState.escapeHtml(item.text)}</p>${action}</article>`;
+    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div><p>${appState.escapeHtml(item.text)}</p>${callRow(item)}${action}</article>`;
   }
   // app-source-end
 
