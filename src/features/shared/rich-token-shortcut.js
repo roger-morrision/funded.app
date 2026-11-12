@@ -37,8 +37,7 @@ export function mountWalletMenuNotifications(document = globalThis.document) {
 }
 
 // Mainnet runs without the Richpad launch program: every "Create a coin" entry
-// point becomes "Buy $RICH", the #launch route opens the $RICH page, and the
-// sidebar Analytics item gives way to Daily bonuses (already in the sidebar).
+// point becomes "Buy $RICH" and the #launch route opens the $RICH page.
 export function mountMainnetLaunchRedirects(richHref, document = globalThis.document) {
   const relabel = link => {
     if (link.id === 'header-buy-rich' || link.dataset.mainnetLaunch) return;
@@ -65,7 +64,6 @@ export function mountMainnetLaunchRedirects(richHref, document = globalThis.docu
   };
   const sweep = () => {
     document.querySelectorAll('a[href="#launch"]').forEach(relabel);
-    document.querySelectorAll('.nav-item[href="#analytics-detail"]').forEach(item => { item.hidden = true; item.style.display = 'none'; });
   };
   sweep();
   new MutationObserver(records => { if (records.some(record => record.addedNodes.length)) sweep(); })
