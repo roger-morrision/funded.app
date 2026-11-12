@@ -32,3 +32,23 @@ try {
     if (message) message.textContent = 'Still loading. You can wait or reload to try again.';
   }, 10_000);
 })();
+
+// Deep links (#explore, /token/…, /wallet/…) start hidden until the router has
+// switched to the requested page, so the server's Home markup never flashes first.
+try {
+  const hash = location.hash.replace(/^#/, '').split(/[/?]/)[0];
+  if ((hash && hash !== 'overview') || (location.pathname !== '/' && location.pathname !== '/explore')) {
+    document.documentElement.classList.add('route-booting');
+    setTimeout(() => document.documentElement.classList.remove('route-booting'), 4000);
+  }
+} catch {}
+try {
+  if (document.documentElement.classList.contains('route-booting')) {
+    const release = () => {
+      const routed = document.body && [...document.body.classList].some(name => name.startsWith('page-route-'));
+      if (routed) { document.documentElement.classList.remove('route-booting'); observer.disconnect(); }
+    };
+    const observer = new MutationObserver(release);
+    document.addEventListener('DOMContentLoaded', () => { observer.observe(document.body, { attributes: true, attributeFilter: ['class'] }); release(); }, { once: true });
+  }
+} catch {}

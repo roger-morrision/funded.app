@@ -90,7 +90,8 @@ export function renderHomeLaunchBoard(state, {
     if (button.disabled) button.title = 'Shorter indexed volume windows are unavailable on this feed';
   });
   // Mainnet favorites outside the Richpad registry arrive as indexed (source 'Indexed') records.
-  const verified = assets.filter(item => verifiedLaunchPolicyForMint(item.address) || item.source === 'Indexed')
+  // Mainnet assets are already only the Richpad registry (launches and listings) and indexed favorites.
+  const verified = assets.filter(item => EXPLORE_CLUSTER !== 'devnet' || verifiedLaunchPolicyForMint(item.address) || item.source === 'Indexed')
     .map(item => {
       const raw = homeFeeAmounts.get(item.address);
       const lamports = /^\d+$/.test(raw || '') ? Number(raw) : NaN;

@@ -221,7 +221,17 @@ export function createHomeFeedController(appState) {
     const known = new Set(appState.assets.map(item => item.address));
     return [...appState.assets, ...(appState.indexedFavoriteAssets?.() || []).filter(item => !known.has(item.address))];
   }
+  // Favorites tab: reuse an existing wallet sign-in on this device before asking to sign.
+  let favoritesRestore = null;
+  function restoreFavoritesQuietly() {
+    const discovery = globalThis.document?.querySelector('.home-launch-board')?.dataset.discovery;
+    if (discovery !== 'saved' || favoritesRestore || appState.watchlistSync?.identity?.() || !appState.captureWalletSession?.()) return;
+    favoritesRestore = Promise.resolve(appState.restoreWalletFavorites?.({ force: true })).catch(() => false)
+      .then(restored => { if (restored) renderHomeLaunchBoard(); })
+      .finally(() => { setTimeout(() => { favoritesRestore = null; }, 30_000); });
+  }
   function renderHomeLaunchBoard() {
+    restoreFavoritesQuietly();
     return appState.renderHomeLaunchBoardView({
       favoritesSignedIn: Boolean(appState.watchlistSync?.identity?.()),
       homeLaunchView: appState.homeLaunchView,
