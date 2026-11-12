@@ -33,6 +33,7 @@ const paths = {
   socialX: '<path d="M4 4h4l12 16h-4L4 4ZM20 4 4 20"/>',
   send: '<path d="m21 3-8 18-3.5-7.5L2 10Z"/><path d="M9.5 13.5 21 3"/>',
   chat: '<path d="M4 5h16v12H9l-5 4Z"/><path d="M8 10h8M8 13h6"/>',
+  trash: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 12.5h9L17.5 7M10 11v5M14 11v5"/>',
   heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.7C19.5 15.4 12 20 12 20Z"/>',
   telegram: '<path d="m21 3-3.7 17-5.2-3.8-2.6 2.5.5-4.2L21 3ZM21 3 3 10.2l6.5 4.3L21 3"/>',
   discord: '<path d="M7 6.5c3.2-1.5 6.8-1.5 10 0l2 3.2c.7 2.3.6 4.7-.3 7-1.3 1-2.7 1.7-4.3 2.1l-.8-1.2M7 6.5 5 9.7c-.7 2.3-.6 4.7.3 7 1.3 1 2.7 1.7 4.3 2.1l.8-1.2M8 16.8c2.6 1.5 5.4 1.5 8 0"/><circle cx="9" cy="12.5" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r=".8" fill="currentColor" stroke="none"/>',
