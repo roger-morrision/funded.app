@@ -23,3 +23,12 @@
 .share-visit-consent{display:flex;align-items:center;gap:8px;cursor:pointer}
 .share-visit-consent input{width:18px;height:18px;flex:none}
 @media(max-width:560px){.share-dialog-inner{padding:18px}.share-dialog .share-channel-grid button{flex:1 1 30%}}
+/* Keep every part of the share dialog inside the screen: grid children may not
+   grow past the column (the 1200 px banner canvas otherwise widens it). */
+.share-dialog{max-width:calc(100vw - 16px);box-sizing:border-box}
+.share-dialog-inner{grid-template-columns:minmax(0,1fr);box-sizing:border-box}
+.share-dialog-inner>*,.share-result-options>*{min-width:0;max-width:100%}
+.share-dialog canvas{max-width:100%;height:auto;display:block}
+.share-dialog select{width:100%;max-width:100%;box-sizing:border-box;min-height:44px;padding:8px 10px;border:1px solid #30405b;border-radius:4px;background:#0d1728;color:#f6f2e9;font:inherit}
+.share-dialog input[type=url]{text-overflow:ellipsis}
+@media(max-width:560px){.share-dialog{width:calc(100vw - 16px)}.share-dialog-inner{padding:16px;gap:12px}.share-dialog-head h2{font-size:1.3rem}.share-dialog textarea{font-size:16px}}
