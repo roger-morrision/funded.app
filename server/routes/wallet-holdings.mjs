@@ -25,9 +25,13 @@ export function createWalletHoldingsRoute({ connection, free, respond }) {
     }
     const mints = [...byMint.keys()].slice(0, 60);
     const [dex, jup] = await Promise.all([free.dexTokens(mints).catch(() => new Map()), free.jupPrices(mints).catch(() => new Map())]);
+    // Names, symbols and logos missing from DexScreener come from Jupiter's token list.
+    const named = new Map(await Promise.all(mints.filter(mint => !dex.get(mint)?.symbol).slice(0, 20)
+      .map(async mint => [mint, await free.jupToken?.(mint).catch(() => null)])));
     const accounts = mints.map(mint => {
-      const row = byMint.get(mint), market = dex.get(mint) || {}, price = Number(market.priceUsd ?? jup.get(mint)?.priceUsd);
-      return { ...row, market: { symbol: market.symbol || null, name: market.name || null, logoUri: market.imageUri || null, priceUsd: Number.isFinite(price) && price > 0 ? price : null },
+      const row = byMint.get(mint), market = dex.get(mint) || {}, info = named.get(mint) || {}, price = Number(market.priceUsd ?? jup.get(mint)?.priceUsd);
+      return { ...row, market: { symbol: market.symbol || info.symbol || null, name: market.name || info.name || null,
+        logoUri: market.imageUri || (typeof info.icon === 'string' && info.icon.startsWith('https://') ? info.icon : null), priceUsd: Number.isFinite(price) && price > 0 ? price : null },
         valueUsd: Number.isFinite(price) && price > 0 ? row.quantity * price : null };
     }).sort((a, b) => (b.valueUsd ?? -1) - (a.valueUsd ?? -1));
     return { wallet: owner, solLamports: String(lamports), accounts, checkedAt: new Date().toISOString() };
