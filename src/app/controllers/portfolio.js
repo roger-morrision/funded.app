@@ -216,7 +216,7 @@ export function createPortfolioController(appState) {
   let identityRender = null;
   globalThis.addEventListener?.('funded:token-identities', () => {
     if (identityRender || !document.querySelector('#portfolio-trade-rows')?.isConnected) return;
-    identityRender = setTimeout(() => { identityRender = null; renderPortfolio(); }, 150);
+    identityRender = setTimeout(() => { identityRender = null; renderPortfolio(); if (getWalletDetailAddress()) renderWalletDetail(); }, 150);
   });
   function renderPortfolio(){
     return appState.renderPortfolioView({ connectedWalletAddress: appState.connectedWalletAddress, portfolioHoldings: appState.portfolioHoldings, portfolioTradeHistory, PROTOCOL_FUNDED_MINT: appState.PROTOCOL_FUNDED_MINT, assets: appState.assets, exploreScannedCount: appState.exploreScannedCount }, { verifiedLaunchPolicyForMint: appState.verifiedLaunchPolicyForMint, portfolioUnitPriceUsd: appState.portfolioUnitPriceUsd, walletDetailTrades: appState.walletDetailTrades, formatOnchainAge: appState.formatOnchainAge, exploreExplorer: appState.exploreExplorer });
