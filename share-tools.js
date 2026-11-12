@@ -236,7 +236,7 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
   dialog.querySelector('#share-title').textContent = kind === 'listing' ? 'Share your listing' : kind === 'launch' ? 'Share your launch' : kind === 'referral' ? 'Share your invite' : kind === 'trade' ? 'Share verified trade' : kind === 'roundtrip' ? 'Share closed trade result' : kind === 'result' ? 'Share paid earnings' : 'Share this coin';
   dialog.querySelector('#share-message').value = cleanText(text);
   dialog.querySelector('#share-link').value = activeShare.url;
-  dialog.querySelector('#share-network').textContent = result?.network || network || (kind === 'coin' ? 'Check token page for network' : 'Referral link');
+  dialog.querySelector('#share-network').textContent = String(result?.network || network || (kind === 'coin' ? 'Check token page for network' : 'Referral link')).replace(/^mainnet-beta$/, 'Solana');
   const amountOption = dialog.querySelector('#share-hide-amount')?.closest('label');
   const bannerOnly = ['listing', 'referral'].includes(result?.kind);
   const privacy = dialog.querySelector('.share-privacy'); if (privacy) privacy.hidden = bannerOnly;
