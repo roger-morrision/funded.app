@@ -13,6 +13,19 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const tradeLedger = solanaCluster === 'mainnet-beta' ? createMainnetTradeLedger({ store, rpcUrl: solanaRpcUrl, feeOwner: process.env.FUNDED_TRADE_FEE_OWNER,
     feeBps: Number(process.env.FUNDED_TRADE_FEE_BPS) > 0 ? Number(process.env.FUNDED_TRADE_FEE_BPS) : 100 }) : null;
   if (tradeLedger?.configured) setInterval(() => { void tradeLedger.sync().catch(() => {}); }, 60_000).unref?.();
+  // Keep listed tokens' holder lists and counts warm so the first visitor does not wait.
+  async function warmRegistryHolders() {
+    const state = await store.read().catch(() => ({}));
+    const mints = [...Object.values(state.launches || {}), ...Object.values(state.listings || {})]
+      .filter(row => row?.cluster === solanaCluster && row.onchainVerified === true && row.mint).map(row => row.mint).slice(0, 30);
+    for (const mint of [...new Set(mints)]) { await topHolders(mint).catch(() => null); await holderCount(mint).catch(() => null); }
+  }
+  if (solanaCluster === 'mainnet-beta') {
+    setTimeout(() => { void warmRegistryHolders(); }, 20_000).unref?.();
+    // Warm the Jupiter connection so the first user quote after a restart is not cold.
+    setTimeout(() => { void free.jupQuote({ inputMint: WSOL, outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', amount: 10_000_000n, slippageBps: 50 }).catch(() => null); }, 8_000).unref?.();
+    setInterval(() => { void warmRegistryHolders(); }, 4 * 60_000).unref?.();
+  }
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
@@ -49,7 +62,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   }
   async function topHolders(mint) {
     const hit = holdersCache.get(mint);
-    if (hit && Date.now() - hit.at < (hit.value.source === 'birdeye' ? 600_000 : 60_000)) return hit.value;
+    if (hit && Date.now() - hit.at < (hit.value.source === 'birdeye' ? 600_000 : 300_000)) return hit.value;
     const value = await rpcHolders(mint).catch(() => null) || await birdeyeHolders(mint).catch(() => null);
     if (!value) return hit?.value || null;
     holdersCache.set(mint, { at: Date.now(), value });
