@@ -126,9 +126,9 @@ export function renderWalletDetail(
     follow.setAttribute('aria-label', `${active ? 'Unfollow' : 'Follow'} ${escapeHtml(address || 'wallet')}`);
   }
   const statSol = document.querySelector('#wallet-stat-sol');
-  const statSolNote = document.querySelector('#wallet-stat-sol-note');
-  if (statSol) statSol.textContent = isSelf && walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
-  if (statSolNote) statSolNote.textContent = isSelf ? (walletBalanceLamports == null ? 'Balance currently unavailable' : 'Connected wallet balance') : 'Shown only for your connected wallet.';
+    const statSolNote = document.querySelector('#wallet-stat-sol-note');
+    if (statSol) statSol.textContent = walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
+    if (statSolNote) statSolNote.textContent = isSelf ? (walletBalanceLamports == null ? 'Balance currently unavailable' : 'Connected wallet balance') : 'Wallet SOL balance';
   setCoinField('#wallet-stat-launches', registryReady ? String(launches.length) : '—');
   setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
   setCoinField('#wallet-stat-trades-note', scanNote);

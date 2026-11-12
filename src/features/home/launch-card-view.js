@@ -250,20 +250,20 @@ export function homeLaunchCardMarkup(
       <div class="home-card-star">${tokenCardWatchMarkup(item.address, item.symbol)}</div>
       </div>
       <div class="home-launch-card-stats">
-        <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small>${unknownStatMarkup(value) || `<strong>${escapeHtml(value)}${changeClass ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(change)}</span>` : ''}</strong>`}</span>
-        <span><small>${escapeHtml(volumeLabel)} volume</small>${unknownStatMarkup(shownVolume) || `<strong>${escapeHtml(shownVolume)}</strong>`}</span>
-        <span title="${escapeHtml(holderTitle)}"><small>Holders</small>${unknownStatMarkup(holderCount) || `<strong>${escapeHtml(holderCount)}</strong>`}</span>
-      </div>
-      <div class="home-card-market-summary">
-      ${progressMarkup}
-      <div class="home-launch-protocol" aria-label="richpad.fun launch details">
-        <span class="home-launch-media-package"></span>
-        ${exploreBoostAmountMarkup(item.address)}
-        ${protocolChips}
-      </div>
-      ${feeRoute}
-      ${footerNote ? `<small class="home-launch-note">${escapeHtml(footerNote)}</small>` : ''}
-      </div>
+              <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small>${unknownStatMarkup(value) || `<strong>${escapeHtml(value)}${changeClass ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(change)}</span>` : ''}</strong>`}</span>
+              <span><small>${escapeHtml(volumeLabel)} volume</small>${unknownStatMarkup(shownVolume) || `<strong>${escapeHtml(shownVolume)}</strong>`}</span>
+              <span title="${escapeHtml(holderTitle)}"><small>Holders</small>${unknownStatMarkup(holderCount) || `<strong>${escapeHtml(holderCount)}</strong>`}</span>
+              ${progressMarkup}
+              <div class="home-launch-protocol" aria-label="richpad.fun launch details">
+                <span class="home-launch-media-package"></span>
+                ${exploreBoostAmountMarkup(item.address)}
+                ${protocolChips}
+              </div>
+            </div>
+            <div class="home-card-market-summary">
+            ${feeRoute}
+            ${footerNote ? `<small class="home-launch-note">${escapeHtml(footerNote)}</small>` : ''}
+            </div>
       <div class="home-launch-card-actions has-buy-presets">${['0.2','0.5'].map(amount => `<a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" data-review-amount="${amount}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=${amount}" title="Review a ${amount} SOL buy">Buy ${amount} SOL</a>`).join('')}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
     </article>`;
 }

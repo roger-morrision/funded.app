@@ -69,10 +69,10 @@ export function renderPortfolio(
   const solUsd = solUsdPrice();
   const usdText = sol => solUsd > 0 && Number.isFinite(Number(sol)) ? formatDashboardUsd(Number(sol) * solUsd) : '—';
   pnl.textContent = observed.matchedSales ? `${observed.pnlSol >= 0 ? '+' : ''}${formatOnChainNumber(observed.pnlSol, 5)} SOL` : '—';
-  pnl.title = observed.matchedSales ? `${observed.matchedSales} sale${observed.matchedSales === 1 ? '' : 's'} matched to buys observed in the last 24 hours. Excludes fees, unmatched trades and open positions.` : 'Cost basis is unavailable for older holdings and unmatched trades.';
-  let basis = document.querySelector('#portfolio-calculation-basis');
-  if (!basis) { basis = document.createElement('p'); basis.id = 'portfolio-calculation-basis'; basis.className = 'flow-note'; pnl.closest('article, .portfolio-stat')?.append(basis); if (!basis.isConnected) pnl.parentElement?.after(basis); }
-  basis.textContent = `${pnl.title} Holdings value covers ${pricedCount} of ${holdings.length} observed tokens${partial ? '; token-account coverage is partial' : ''}. Transferred or older holdings have unknown cost basis; missing values are not zero.`;
+    pnl.title = observed.matchedSales ? `${observed.matchedSales} sale${observed.matchedSales === 1 ? '' : 's'} matched to buys observed in the last 24 hours. Excludes fees, unmatched trades and open positions.` : 'Cost basis is unavailable for older holdings and unmatched trades.';
+    let basis = document.querySelector('#portfolio-calculation-basis');
+    if (!basis) { basis = document.createElement('p'); basis.id = 'portfolio-calculation-basis'; basis.className = 'flow-note'; pnl.closest('article, .portfolio-stat')?.append(basis); if (!basis.isConnected) pnl.parentElement?.after(basis); }
+    basis.textContent = `Holdings value covers ${pricedCount} of ${holdings.length} observed tokens${partial ? '; token-account coverage is partial' : ''}. Transferred or older holdings have unknown cost basis; missing values are not zero.`;
   txRows.innerHTML = trades.map(trade => {
     const timestamp = Number(trade.blockTime) * 1000;
     const decimals = decimalsByMint.get(trade.mint);

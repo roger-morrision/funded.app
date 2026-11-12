@@ -88,11 +88,111 @@ body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .explore-social-link svg { display: block; width: 15px; height: 15px; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .explore-social-link:hover { border-color: #ffd28a; color: #fff0cd; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .explore-social-link:focus-visible { outline: 2px solid #ffd28a; outline-offset: 2px; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 10px; border: 0; border-radius: 0; background: transparent; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats > span { padding: 5px 0; border-top: 1px solid #263039; background: transparent; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats > span:nth-child(even) { text-align: right; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats small { color: #788692; font-size: 9px !important; }
-body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats strong { font-size: 11px; }
+/* Single-row stats with 5 columns: MC, Volume, Holders, Curve, Protocol */
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats { 
+  grid-template-columns: 1.3fr repeat(4, 1fr); 
+  margin: 0 10px; 
+  border: 0; 
+  border-radius: 0; 
+  background: transparent; 
+}
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats > span { 
+  padding: 4px 0; 
+  border-top: 1px solid var(--fv-border); 
+  background: transparent; 
+  text-align: center; 
+}
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats small { 
+  color: var(--fv-text-subtle); 
+  font-size: 8px !important; 
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats strong { 
+  font-size: 11px; 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Integrate progress into stats row as 4th column */
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-row {
+  display: contents;
+}
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-row > * {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  border-top: 1px solid var(--fv-border);
+}
+
+/* Hide duplicate progress bar in market summary since it's now in stats row */
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-card-market-summary .home-launch-progress-row {
+  display: none;
+}
+
+/* Compact protocol chips to fit in stats row as 5th column */
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-protocol {
+  display: contents;
+}
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-protocol > * {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  border-top: 1px solid var(--fv-border);
+  font-size: 7px;
+}
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-protocol .home-launch-chip {
+  font-size: 7px;
+  padding: 1px 4px;
+  white-space: nowrap;
+}
+
+/* Hide fee route from market summary (moved to stats) */
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-card-market-summary .home-launch-fee-route {
+  display: none;
+}
+
+/* Hide footer note from market summary */
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-card-market-summary .home-launch-note {
+  display: none;
+}
+
+/* Compact market summary - only show what's not in stats row */
+body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-card-market-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 10px 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--fv-border);
+}
+
+/* Responsive: on mobile, collapse to 3 columns */
+@media (max-width: 900px) {
+  body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+    overflow-x: auto;
+  }
+  body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-row,
+  body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-protocol {
+    display: none;
+  }
+  body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-card-market-summary .home-launch-progress-row,
+  body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-card-market-summary .home-launch-protocol {
+    display: flex;
+  }
+}
+
+@media (max-width: 620px) {
+  body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-stats {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+}
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress { margin: 8px 10px 0; border-radius: 0; background: #111b2e; }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress i { border-radius: 0; background: var(--home-green); }
 body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-progress-row { min-width: 0; margin: 8px 10px 0; color: #aebcc7; font: 10px/1.4 'DM Mono', monospace; }

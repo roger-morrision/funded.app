@@ -23,6 +23,14 @@ html body #main-content .callout-chevron { color: var(--fv-text-subtle); }
 html body #main-content :is(.callout-share, .home-call-share) { min-height: 32px; margin-left: auto; padding: 0 12px; border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font-size: 12px; font-weight: 600; cursor: pointer; }
 html body #main-content :is(.callout-share, .home-call-share):hover { border-color: var(--fv-accent, #f5b900); color: var(--fv-text); }
 html body #main-content .callout-card .callout-figures { margin: 0; color: var(--fv-text-subtle); font-size: 11px; }
+
+/* Callout action buttons (Like, Comment, Share) */
+html body #main-content .callout-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+html body #main-content .callout-actions button { min-height: 32px; padding: 0 12px; border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+html body #main-content .callout-actions button:hover { border-color: var(--fv-accent, #f5b900); color: var(--fv-text); }
+html body #main-content .callout-actions button svg { width: 16px; height: 16px; display: block; }
+html body #main-content .callout-like[data-liked="true"] { color: var(--fv-danger, #f78989); border-color: var(--fv-danger, #f78989); }
+html body #main-content .callout-comment[data-has-comments="true"] { color: var(--fv-accent, #f5b900); border-color: var(--fv-accent, #f5b900); }
 /* Home feed card */
 html body #main-content .home-call-card header { display: flex; align-items: center; gap: 8px; }
 html body #main-content .home-call-avatar { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: hsl(var(--author-hue, 200) 45% 32%); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; }
