@@ -89,7 +89,7 @@ export function createMainnetTradeLedger({ store, rpcUrl, feeOwner, feeBps = 100
   async function sync({ maxAgeMs = 60_000 } = {}) {
     if (!owner) throw Object.assign(new Error('The trade fee wallet is not configured.'), { statusCode: 503 });
     if (now() - lastSync < maxAgeMs) return;
-    syncing ||= syncOnce().catch(error => { lastError = error; }).finally(() => { syncing = null; });
+    syncing ||= syncOnce().catch(error => { lastError = error; console.warn(JSON.stringify({ event: 'trade_ledger_sync_failed', message: String(error?.message || error).slice(0, 300) })); }).finally(() => { syncing = null; });
     return syncing;
   }
   async function board({ window = '24h' } = {}) {
