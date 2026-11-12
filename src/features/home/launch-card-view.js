@@ -1,3 +1,4 @@
+import { pairChipMarkup } from '../shared/pair-label.js';
 import { escapeHtml, formatDashboardUsd, formatCompactUsd } from '../shared/display.js';
 import { activeBoostMultiplier } from '../../../boost-offer.js';
 import { boostPackageBadgesMarkup } from '../../../boost-card-badges.js';
@@ -243,6 +244,7 @@ export function homeLaunchCardMarkup(
         </div>
         <div class="home-card-meta">
           ${item.createdTimestamp ? `<span class="home-launch-age">${escapeHtml(ageLabel)}</span>` : ''}
+          ${pairChipMarkup(item, escapeHtml)}
           <span class="home-launch-card-addresses" title="Token contract: ${escapeHtml(item.address || '')}"><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>
           ${socialLinks}
         </div>

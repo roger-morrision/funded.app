@@ -430,3 +430,4 @@ html body #main-content #rewards-overview > .reward-program-links { margin-top: 
 #airdrops .airdrop-empty-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 #airdrops.no-indexed-programs #claim-program-count,
 #airdrops.no-indexed-programs > .ui-disclosure { display: none; }
+

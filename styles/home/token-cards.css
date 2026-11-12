@@ -241,3 +241,12 @@ body.page-route-explore .home-launch-card-stats strong { font-size: 13px; }
 
 /* Native viewing region excludes the existing fixed mobile navigation. */
 @media (max-width: 700px) { html:has(body.page-route-overview #home-launch-grid:not([hidden]) [data-verified-feed-retry]), html:has(body.page-route-overview #home-launch-table-wrap:not([hidden]) .home-launch-table:not([hidden]) #home-launch-table-body [data-verified-feed-retry]) { scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom)); } }
+
+/* Paired with: the token a coin trades against. */
+.pair-chip { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 7px; border: 1px solid var(--fv-border); border-radius: 999px; background: var(--fv-surface-raised); color: var(--fv-text-muted); font-size: 11px; line-height: 1.5; white-space: nowrap; vertical-align: middle; }
+.pair-chip small { font-size: 10px; color: var(--fv-text-subtle); }
+.pair-chip b { color: var(--fv-text); font-weight: 700; }
+.pair-chip:is(.pair-stable, .pair-xstocks, .pair-stocks) { border-color: var(--fv-accent); }
+#coin-pair-chip { margin-left: 6px; }
+.explore-pair-filter { display: inline-flex; align-items: center; gap: 6px; color: var(--fv-text-muted); font-size: 12px; }
+.explore-pair-filter select { min-height: 36px; padding: 0 10px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-sm); background: var(--fv-surface); color: var(--fv-text); }

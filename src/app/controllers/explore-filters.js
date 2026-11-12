@@ -1,4 +1,5 @@
 // Dependencies and mutable application state are read live through appState.
+import { matchesPairFilter } from '../../features/shared/pair-label.js';
 import { marketFacts } from '../../features/explore/market-facts.js';
 import { activeBoostMultiplier } from '../../../boost-offer.js';
 export function createExploreFiltersController(appState) {
@@ -30,7 +31,10 @@ export function createExploreFiltersController(appState) {
 
   // app-source: 408
   function filterExploreTabRecords(records, query = appState.exploreQuery){
-    const filtered = appState.filterMarketRecords(records.map(record => marketFacts(record, appState.EXPLORE_CLUSTER)), appState.exploreFilterOptions(query));
+    // Paired with: the token each coin trades against (SOL, USDC, xStocks, ...).
+    const page = globalThis.document;
+    const pairFilter = page?.body?.classList.contains('page-route-explore') ? page.querySelector('#explore-pair-filter')?.value || 'all' : 'all';
+    const filtered = appState.filterMarketRecords(records.filter(record => matchesPairFilter(record, pairFilter)).map(record => marketFacts(record, appState.EXPLORE_CLUSTER)), appState.exploreFilterOptions(query));
     if (['pro', 'premier'].includes(appState.exploreTab)) return filtered.filter(record => record.benefitPolicyVerified === true && record.promotionTier === appState.exploreTab);
     if (appState.exploreTab === 'paid-list') return filtered.filter(record => record.listingPayment?.verified === true && (record.listingPayment.admin === true || /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(record.listingPayment.signature || '')));
     if (appState.exploreTab === 'migrated') return filtered.filter(record => record.complete === true && record.migrated === true);

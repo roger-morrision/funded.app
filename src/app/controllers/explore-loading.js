@@ -84,7 +84,7 @@ export function createExploreLoadingController(appState) {
             source:record.source || 'Indexed', listingPayment:record.listingPayment || null, creator:record.creator || null, website:record.website || null, twitter:record.twitter || record.x || null, telegram:record.telegram || null, discord:record.discord || null,
             // Venue from the indexed pair: Pump.fun curve is pre-migration; any DEX pool means migrated.
             complete:record.dexId ? record.dexId !== 'pumpfun' : null, migrated:record.dexId ? record.dexId !== 'pumpfun' : null,
-            curveProgressPercent:record.dexId && record.dexId !== 'pumpfun' ? 100 : null, dexId:record.dexId || null, fetchedAt:record.fetchedAt || null, verifiedAt:new Date().toISOString(), mintDecimals:Number.isInteger(record.decimals) ? record.decimals : null,
+            curveProgressPercent:record.dexId && record.dexId !== 'pumpfun' ? 100 : null, dexId:record.dexId || null, quoteMint:record.quoteMint || null, quoteSymbol:record.quoteSymbol || null, fetchedAt:record.fetchedAt || null, verifiedAt:new Date().toISOString(), mintDecimals:Number.isInteger(record.decimals) ? record.decimals : null,
             volume24hUsd:numeric(record.volume24hUsd), liquidityUsd:numeric(record.liquidityUsd), holders:numeric(record.holders ?? record.holderCount), marketCapUsd:marketCap, priceUsd:numeric(record.priceUsd),
             priceChange24hPercent:change, createdTimestamp:record.createdTimestamp || null, lastTradeUnixTime:record.lastTradeUnixTime || record.lastTradeTimestamp || null });
         }

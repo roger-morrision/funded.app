@@ -1,4 +1,5 @@
 import { initializeExploreTableScroll } from '../../features/explore/table-scroll.js';
+import { loadPairQuotes } from '../../features/shared/pair-label.js';
 import { beginWatchlistRetry, isWatchlistRetryPending } from '../../features/portfolio/watchlist-retry-state.js';
 
 export function initializeExploreSearchActions(appState) {
@@ -48,6 +49,10 @@ export function initializeExploreSearchActions(appState) {
   // app-source-end
 
   // app-source: 776
+  // Paired-with filter; pair names arrive with the quote list, then views redraw.
+  document.querySelector('#explore-pair-filter')?.addEventListener('change', () => appState.updateExploreViews());
+  window.addEventListener('funded:pair-quotes', () => appState.updateExploreViews());
+  void loadPairQuotes();
   document.querySelectorAll('[data-explore-sort]').forEach(button => button.addEventListener('click', () => {
     if (button.disabled) return;
     appState.exploreSort = button.dataset.exploreSort;

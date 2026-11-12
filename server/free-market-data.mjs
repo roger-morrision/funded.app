@@ -82,6 +82,13 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     for (const batch of chunks([...new Set(mints.filter(m => MINT.test(m)))], 30)) {
       let pairs = [];
       try { pairs = await getJson(`https://api.dexscreener.com/tokens/v1/solana/${batch.join(',')}`, { ttlMs: 10_000 }); } catch { continue; }
+      // The pair a coin was launched in (its Pump curve or PumpSwap pool) names
+      // what it is paired with; side pools in other tokens do not.
+      const origin = new Map();
+      for (const pair of Array.isArray(pairs) ? pairs : []) {
+        const mint = pair?.baseToken?.address, seen = origin.get(mint);
+        if (/^pump(?:fun|swap)$/.test(pair?.dexId || '') && (!seen || (num(seen.liquidity?.usd) || 0) < (num(pair.liquidity?.usd) || 0))) origin.set(mint, pair);
+      }
       for (const pair of Array.isArray(pairs) ? pairs : []) {
         const mint = pair?.baseToken?.address;
         if (!batch.includes(mint)) continue;
@@ -90,7 +97,7 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
         const info = pair.info || {}, social = type => info.socials?.find(row => row?.type === type)?.url || null;
         result.set(mint, { mint, name: String(pair.baseToken.name || '').slice(0, 80), symbol: String(pair.baseToken.symbol || '').slice(0, 20),
           pairAddress: pair.pairAddress || null, dexId: pair.dexId || null, url: pair.url || null,
-          quoteMint: pair.quoteToken?.address || null, priceUsd: num(pair.priceUsd), priceNative: num(pair.priceNative),
+          quoteMint: (origin.get(mint) || pair).quoteToken?.address || null, quoteSymbol: String((origin.get(mint) || pair).quoteToken?.symbol || '').slice(0, 20) || null, priceUsd: num(pair.priceUsd), priceNative: num(pair.priceNative),
           marketCapUsd: num(pair.marketCap ?? pair.fdv), liquidityUsd: num(pair.liquidity?.usd), volume24hUsd: num(pair.volume?.h24),
           buyCount24h: num(pair.txns?.h24?.buys), sellCount24h: num(pair.txns?.h24?.sells),
           windows: Object.fromEntries([['5m', 'm5'], ['1h', 'h1'], ['6h', 'h6'], ['24h', 'h24']].map(([key, field]) =>

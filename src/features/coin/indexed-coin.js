@@ -1,5 +1,6 @@
 import { renderIndexedMarket } from './indexed-market.js';
 import { formatTinyDecimal } from '../shared/display.js';
+import { tokenPair, pairChipMarkup, loadPairQuotes } from '../shared/pair-label.js';
 
 // Mainnet token page without per-visitor RPC reads: the server's cached
 // overview (DexScreener/Jupiter first, Birdeye fallback) fills the header,
@@ -36,7 +37,15 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     appState.setCoinField('#coin-market-cap-label', 'Market cap');
     appState.setCoinField('#coin-market-cap-source', `${data.source === 'birdeye' ? 'Birdeye' : data.source === 'jupiter' ? 'Jupiter' : 'DexScreener'} · indexed market data`);
     appState.setCoinField('#coin-description', data.dexId ? `Trading on ${data.dexId}${data.launchpad ? ` · launched on ${data.launchpad}` : ''}. Swaps route through Jupiter.` : 'Swaps route through Jupiter.');
-    appState.setCoinFact?.('#coin-stage', data.dexId ? `Trading · ${data.dexId}` : 'Indexed market', 'clear');
+    // Paired with: the token this coin's pool or curve is quoted in.
+    const showPair = () => {
+      const pair = tokenPair(data);
+      appState.setCoinFact?.('#coin-stage', `${data.dexId ? `Trading · ${data.dexId}` : 'Indexed market'}${pair ? ` · paired with ${pair.symbol}` : ''}`, 'clear');
+      const symbolNode = document.querySelector('#coin-symbol');
+      document.querySelector('#coin-pair-chip')?.remove();
+      if (pair && symbolNode && current()) symbolNode.insertAdjacentHTML('afterend', pairChipMarkup(data, appState.escapeHtml).replace('<span class="pair-chip', '<span id="coin-pair-chip" class="pair-chip'));
+    };
+    showPair(); void loadPairQuotes().then(() => { if (current()) showPair(); });
     appState.setCoinFact?.('#coin-fee-owner', 'External token · no Richpad fees', 'clear');
     appState.setCoinFact?.('#coin-metadata-status', data.name ? 'Indexed metadata' : 'Metadata unavailable', data.name ? 'clear' : 'warn');
     for (const [selector, href] of [['#coin-website-link', data.website], ['#coin-x-link', data.twitter], ['#coin-telegram-link', data.telegram], ['#coin-discord-link', data.discord]]) {
@@ -51,7 +60,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     if (chartFooter) { const span = document.createElement('span'); span.textContent = Number.isFinite(supply) ? `Indexed candles · supply ≈ ${appState.formatOnChainNumber(supply, 0)}` : 'Indexed candles'; chartFooter.replaceChildren(span); }
     const solUsd = await solRequest;
     if (!current()) return;
-    appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6, priceUsd: data.priceUsd, solUsd, dexId: data.dexId || null };
+    appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6, priceUsd: data.priceUsd, solUsd, dexId: data.dexId || null, quoteMint: data.quoteMint || null, quoteSymbol: data.quoteSymbol || null };
     if (data.dexId) void import('../trade/lazy-trading.js').then(module => module.setTradeVenueHint(mint, data.dexId)).catch(() => {});
     appState.renderTradeAmountEstimate?.();
     appState.updateTradeAmountLabel?.();
