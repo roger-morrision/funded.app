@@ -103,10 +103,10 @@ export function walletBonusCoverage(coverage = {}) {
     : [daily, referral].some(value => value === 'ready' || value === 'partial') ? 'partial' : 'unavailable';
   const dailyNote = daily === 'ready' ? 'Daily bonus: up to 30 published UTC snapshots.'
     : daily === 'partial' ? 'Daily bonus snapshot verification is incomplete; only recorded finalized payment proofs are shown.'
-      : 'Daily bonus history is unavailable.';
+      : '';
   const referralNote = referral === 'ready' ? 'Referral bonus records loaded.'
     : referral === 'sign-in-required' ? 'Verify this wallet in Referrals to load private referral bonus records.'
-      : referral === 'pending' ? 'Referral bonus payouts are pending; no referral payment is inferred.'
-        : 'Referral bonus history is unavailable.';
-  return { state, message:`${dailyNote} ${referralNote}` };
+      : referral === 'pending' ? 'Referral bonus payouts are pending.'
+        : '';
+  return { state, message:`${dailyNote} ${referralNote}`.trim() };
 }
