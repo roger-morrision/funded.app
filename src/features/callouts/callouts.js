@@ -1,5 +1,7 @@
 import {icon} from '../../../ui-icons.js';
 import { tokenArtworkUrl } from '../shared/token-artwork.js';
+import { callFigures, usdShort, signedUsd, multipleBadge, openCallShare } from './call-share.js';
+import { solUsdPrice } from '../shared/token-identity.js';
 // Callouts: chat posts that call a coin. The server records the market cap at
 // the moment of the call, and whether the caller held the coin. This page shows
 // every call live in three columns (latest, top callers, conviction) with how
@@ -73,20 +75,27 @@ export function splitCalloutColumns(rows, topCallers = []) {
 const hue = address => [...String(address)].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) % 360, 7);
 function formatHolding(percent) { return percent >= 1 ? `${percent.toFixed(1)}%` : percent >= 0.01 ? `${percent.toFixed(2)}%` : '<0.01%'; }
 
+const shortAge = (iso, nowMs) => timeAgo(iso, nowMs).replace(/ ago$/, '');
+// Call card: caller, change since the call, time; the call text; and a token row
+// with market cap, the caller's holding value and its change since the call.
 export function calloutRowMarkup(row, { solUsd, wallet, nowMs = Date.now(), fresh = false, callers = new Map() } = {}) {
   const symbol = row.token?.symbol || shortWallet(row.mint);
   const image = row.token?.image && /^https:\/\//.test(row.token.image)
     ? `<img src="${escape(tokenArtworkUrl(row.mint,row.token.image))}" alt="" width="20" height="20" loading="lazy" decoding="async" />`
-    : `<span class="callout-token-initial" aria-hidden="true">${escape(symbol.slice(0, 1).toUpperCase())}</span>`;
+    : `<img src="/api/tokens/${encodeURIComponent(row.mint)}/logo" alt="" width="20" height="20" loading="lazy" decoding="async" data-initial="${escape(symbol.replace(/^\$/, '').slice(0, 1).toUpperCase())}" />`;
   const you = wallet && row.author === wallet ? ' <em>you</em>' : '';
   const caller = callers.get(row.author);
-  const record = caller ? `${caller.calls} call${caller.calls === 1 ? '' : 's'} · ${formatMultiple(caller.avgMultiple)} mean observed peak` : 'Wallet-verified caller';
-  const conviction = row.holdingPercent > 0 ? `<span class="callout-conviction" title="Share of supply this wallet held when it made the call">Holds ${escape(formatHolding(row.holdingPercent))}</span>` : '';
+  const record = caller ? `${caller.calls} call${caller.calls === 1 ? '' : 's'} · ${formatMultiple(caller.avgMultiple)} avg peak` : 'Wallet-verified caller';
+  const f = callFigures({ calledCapSol: row.calledMarketCapSol, currentCapSol: row.currentMarketCapSol, holdingPercent: row.holdingPercent, solUsd });
+  const trend = multipleTrend(f.multiple);
+  const badge = multipleBadge(f.multiple);
+  const holdChange = Number.isFinite(f.holdChangeUsd) ? `<span class="callout-pnl" data-trend="${f.holdChangeUsd >= 0 ? 'up' : 'down'}">${escape(signedUsd(f.holdChangeUsd))}</span>` : '';
   return `<li class="callout-card${row.holdingPercent > 0 ? ' is-conviction' : ''}${fresh ? ' is-new' : ''}" data-callout-id="${escape(row.id)}">
-<header><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><span class="callout-who"><span><a class="callout-author" href="/wallet/${encodeURIComponent(row.author)}" title="View wallet ${escape(row.author)}">${escape(shortWallet(row.author))}</a><button type="button" class="callout-copy" data-callout-author="${escape(row.author)}" aria-label="Filter calls by this wallet" title="Show only this wallet's calls">⌕</button><button type="button" class="callout-copy" data-copy-caller="${escape(row.author)}" aria-label="Copy caller wallet address" title="Copy ${escape(row.author)}">${icon('copy')}</button>${you}</span><small>${escape(record)}</small></span>${conviction}<time datetime="${escape(row.createdAt)}">${escape(timeAgo(row.createdAt, nowMs))}</time></header>
+<header class="callout-head-row"><span class="callout-avatar" style="--callout-hue:${hue(row.author)}" aria-hidden="true">${escape(String(row.author).slice(0, 2))}</span><span class="callout-who"><span class="callout-name"><a class="callout-author" href="/wallet/${encodeURIComponent(row.author)}">${escape(shortWallet(row.author))}</a>${you}${badge ? `<b class="callout-x" data-trend="${trend}" title="Market cap now vs. at the call">${escape(badge)}</b>` : ''}${row.holdingPercent > 0 ? '<span class="callout-holder" title="Held the coin when calling">Holder</span>' : ''}</span><small><button type="button" class="callout-filter-author" data-callout-author="${escape(row.author)}">${escape(record)}</button></small></span><time class="callout-age" datetime="${escape(row.createdAt)}">${escape(shortAge(row.createdAt, nowMs))}</time></header>
 <p class="callout-text">${escape(row.text)}</p>
-<a class="callout-chip" href="#coin/${escape(row.mint)}" title="${escape(row.token?.name || 'Open coin')}">${image}<strong>$${escape(symbol)}</strong><b class="callout-multiple" data-trend="${multipleTrend(row.multiple)}" aria-label="Change since the call">${escape(formatMultiple(row.multiple))}</b><span aria-hidden="true">›</span></a>
-<p class="callout-figures">Called at ${escape(formatCalloutCap(row.calledMarketCapSol, solUsd))} · now ${escape(formatCalloutCap(row.currentMarketCapSol, solUsd))} · observed peak ${escape(formatMultiple(row.peakMultiple))}</p>
+<div class="callout-foot"><a class="callout-token-row" href="/token/${encodeURIComponent(row.mint)}" title="${escape(row.token?.name || 'Open coin')}">${image}<strong>${escape(symbol.startsWith('$') ? symbol : `$${symbol}`)}</strong><span><i>MC</i> ${escape(usdShort(f.currentCapUsd ?? f.calledCapUsd))}</span>${Number.isFinite(f.holdUsd) ? `<span><i>Hold</i> ${escape(usdShort(f.holdUsd))}</span>` : ''}${holdChange}<span class="callout-chevron" aria-hidden="true">›</span></a>
+<button type="button" class="callout-share" data-share-call="${escape(row.id)}" aria-label="Share this call">Share</button></div>
+<p class="callout-figures">Called at ${escape(usdShort(f.calledCapUsd))} MC${Number.isFinite(f.changePercent) ? ` · ${f.changePercent >= 0 ? '+' : ''}${escape(f.changePercent.toFixed(1))}% since` : ''} · peak ${escape(formatMultiple(row.peakMultiple))}</p>
 </li>`;
 }
 
@@ -143,7 +152,7 @@ export function mountCallouts(app, document = globalThis.document) {
     for (const [name, list] of Object.entries(columns)) {
       const items = split[name];
       list.innerHTML = items.length
-        ? items.map(row => calloutRowMarkup(row, { solUsd: app.coinSolUsdPrice, wallet, nowMs, callers, fresh: !firstPaint && !state.known.has(row.id) })).join('')
+        ? items.map(row => calloutRowMarkup(row, { solUsd: app.coinSolUsdPrice || solUsdPrice(), wallet, nowMs, callers, fresh: !firstPaint && !state.known.has(row.id) })).join('')
         : `<li class="callouts-empty-note">${state.filter === 'mine' && !wallet ? 'Connect a wallet to see your calls.' : state.author || state.filter !== 'all' ? 'No calls match this filter.' : EMPTY[name]}</li>`;
       for (const count of page.querySelectorAll(`[data-callouts-count="${name}"]`)) count.textContent = String(items.length);
     }
@@ -187,6 +196,12 @@ export function mountCallouts(app, document = globalThis.document) {
   }
 
   page.addEventListener('click', async event => {
+    const shareCall = event.target.closest('[data-share-call]');
+    if (shareCall) {
+      const call = state.feed?.callouts?.find(row => row.id === shareCall.dataset.shareCall);
+      if (call) void openCallShare({ call, solUsd: app.coinSolUsdPrice || solUsdPrice(), wallet: app.connectedWalletAddress || null, referralCode: app.registeredShareCode?.() || '' });
+      return;
+    }
     const copy = event.target.closest('[data-copy-caller]');
     if (copy) {
       const address = copy.dataset.copyCaller;
@@ -215,6 +230,13 @@ export function mountCallouts(app, document = globalThis.document) {
   window.addEventListener('hashchange', () => setTimeout(onRoute, 0));
   document.addEventListener('visibilitychange', onRoute);
   window.addEventListener('funded:reward-identity-change', render);
+  window.addEventListener('funded:token-identities', () => { if (active()) render(); });
+  // Token logos that fail to load fall back to the symbol's first letter.
+  page.addEventListener('error', event => {
+    const image = event.target;
+    if (image?.tagName !== 'IMG' || !image.dataset.initial) return;
+    image.replaceWith(Object.assign(document.createElement('span'), { className: 'callout-token-initial', textContent: image.dataset.initial }));
+  }, true);
   void refresh();
   schedule();
 }

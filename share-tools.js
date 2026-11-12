@@ -195,6 +195,73 @@ export function drawReferralCard(canvas, result, { format = 'wide' } = {}) {
   ctx.fillText('Sign up with my link and start trading', pad + 26, barY + (square ? 60 : 36), W - pad * 2 - 52);
   return canvas;
 }
+// Coin call banner: token, change since the call, the call quote, call and
+// current market cap, the caller's holding and its change, invite code.
+function wrapLines(ctx, text, width, maxLines) {
+  const words = String(text || '').replace(/\s+/g, ' ').trim().split(' '), lines = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width <= width) { line = next; continue; }
+    if (line) lines.push(line); line = word;
+    if (lines.length === maxLines) break;
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) lines[maxLines - 1] = lines[maxLines - 1].replace(/.{0,2}$/, '…');
+  return lines;
+}
+const callUsd = value => {
+  if (!Number.isFinite(value)) return '—';
+  const abs = Math.abs(value), sign = value < 0 ? '-' : '';
+  return abs >= 1e9 ? `${sign}$${(abs / 1e9).toFixed(2)}B` : abs >= 1e6 ? `${sign}$${(abs / 1e6).toFixed(2)}M` : abs >= 1e3 ? `${sign}$${(abs / 1e3).toFixed(2)}K` : `${sign}$${abs >= 1 ? abs.toFixed(2) : abs.toPrecision(2)}`;
+};
+export function drawCalloutCard(canvas, result, { format = 'wide' } = {}) {
+  if (result?.verified !== true || result.kind !== 'callout' || !result.mint) throw new Error('A recorded call is required');
+  const square = format === 'square', W = square ? 1080 : 1200, H = square ? 1080 : 630, pad = 64;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Image creation is unavailable');
+  const f = result.figures || {}, change = f.changePercent, up = !Number.isFinite(change) || change >= 0;
+  const tone = up ? '#5ff0a8' : '#ff6b7d';
+  const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0b1020'); bg.addColorStop(1, up ? '#0c2a22' : '#2a0f17');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W * 0.2, H * 0.45, 10, W * 0.2, H * 0.45, W * 0.5); glow.addColorStop(0, up ? 'rgba(95,240,168,0.22)' : 'rgba(255,107,125,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#f5b900'; ctx.font = '800 34px sans-serif'; ctx.fillText('richpad.fun', pad, 80);
+  ctx.font = '800 22px sans-serif'; const tag = '📣 COIN CALL', tagW = ctx.measureText(tag).width + 40;
+  ctx.fillStyle = 'rgba(245,185,0,0.16)'; roundedRect(ctx, W - pad - tagW, 46, tagW, 46, 23); ctx.fillStyle = '#f5b900'; ctx.fillText(tag, W - pad - tagW + 20, 77);
+  // Token
+  const symbol = String(result.symbol || 'TOKEN').replace(/^\$/, '').slice(0, 12), logoY = 130, logo = 64;
+  ctx.save(); ctx.fillStyle = '#25485a'; roundedRect(ctx, pad, logoY, logo, logo, 16); ctx.clip();
+  if (result.logoImage) ctx.drawImage(result.logoImage, pad, logoY, logo, logo);
+  ctx.restore();
+  ctx.fillStyle = '#ffffff'; ctx.font = '800 44px sans-serif'; ctx.fillText(`$${symbol}`, pad + logo + 20, logoY + 48);
+  // Big change since the call
+  ctx.fillStyle = tone; ctx.font = `800 ${square ? 150 : 128}px sans-serif`;
+  ctx.fillText(Number.isFinite(change) ? `${change >= 0 ? '+' : ''}${Math.abs(change) >= 1000 ? change.toFixed(0) : change.toFixed(1)}%` : 'New call', pad, square ? 380 : 330, square ? W - pad * 2 : 560);
+  ctx.fillStyle = '#9fc3c7'; ctx.font = '600 24px sans-serif'; ctx.fillText('market cap since the call', pad, square ? 425 : 372);
+  // Quote bubble
+  const qx = square ? pad : 660, qy = square ? 470 : 130, qw = square ? W - pad * 2 : W - 660 - pad, qh = square ? 190 : 200;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; roundedRect(ctx, qx, qy, qw, qh, 20);
+  ctx.fillStyle = '#ffffff'; ctx.font = `700 ${square ? 36 : 30}px sans-serif`;
+  wrapLines(ctx, `“${String(result.text || '').trim()}”`, qw - 56, 3).forEach((line, index) => ctx.fillText(line, qx + 28, qy + (square ? 62 : 56) + index * (square ? 50 : 44)));
+  // Figures
+  const cells = [['Hold P&L', Number.isFinite(f.holdChangeUsd) ? `${f.holdChangeUsd >= 0 ? '+' : '-'}${callUsd(Math.abs(f.holdChangeUsd))}` : '—', Number.isFinite(f.holdChangeUsd) ? (f.holdChangeUsd >= 0 ? '#5ff0a8' : '#ff6b7d') : '#ffffff'],
+    ['Call MC', callUsd(f.calledCapUsd), '#ffffff'], ['Hold', callUsd(f.holdUsd), '#ffffff'], ['MC now', callUsd(f.currentCapUsd), tone]];
+  const gx = square ? pad : 660, gy = square ? 700 : 360, gw = (square ? W - pad * 2 : W - 660 - pad) / 2;
+  cells.forEach(([label, value, color], index) => {
+    const x = gx + (index % 2) * gw, y = gy + Math.floor(index / 2) * (square ? 96 : 80);
+    ctx.fillStyle = '#9fc3c7'; ctx.font = `600 ${square ? 26 : 22}px sans-serif`; ctx.fillText(label, x, y);
+    ctx.fillStyle = color; ctx.font = `800 ${square ? 40 : 34}px sans-serif`; ctx.fillText(value, x, y + (square ? 46 : 40), gw - 16);
+  });
+  // Caller and invite code
+  const footY = H - (square ? 70 : 56);
+  ctx.fillStyle = '#c4ccdc'; ctx.font = `600 ${square ? 28 : 24}px sans-serif`; ctx.fillText(`Called by ${String(result.caller || '').slice(0, 24)}`, pad, footY);
+  if (result.referralCode) {
+    ctx.textAlign = 'right'; ctx.fillStyle = '#9fc3c7'; ctx.font = '600 20px sans-serif'; ctx.fillText('Invite code', W - pad, footY - 34);
+    ctx.fillStyle = '#ffffff'; ctx.font = '800 32px monospace'; ctx.fillText(String(result.referralCode).slice(0, 18), W - pad, footY + 4); ctx.textAlign = 'left';
+  }
+  return canvas;
+}
 const bannerFormat = () => document.querySelector('#share-banner-format')?.value === 'square' ? 'square' : 'wide';
 
 function updateResultPreview() {
@@ -208,7 +275,8 @@ function updateResultPreview() {
   const canvas = document.querySelector('#share-result-canvas');
   if (!result || !canvas) return false;
   try {
-    const formatPicker = document.querySelector('#share-banner-format')?.closest('label'); if (formatPicker) formatPicker.hidden = !['listing', 'referral'].includes(result.kind);
+    const formatPicker = document.querySelector('#share-banner-format')?.closest('label'); if (formatPicker) formatPicker.hidden = !['listing', 'referral', 'callout'].includes(result.kind);
+    if (result.kind === 'callout') { drawCalloutCard(canvas, result, { format: bannerFormat() }); status('Edit the message, pick a banner size, then share or download the banner.'); return true; }
     if (result.kind === 'listing') { drawListingCard(canvas, result, { format: bannerFormat() }); status('Edit the message, pick a banner size, then share or download the banner.'); return true; }
     if (result.kind === 'referral') { drawReferralCard(canvas, result, { format: bannerFormat() }); status('Edit the message, pick a banner size, then share or download the banner.'); return true; }
     if (result.kind === 'launch') drawLaunchCard(canvas,result);
@@ -237,12 +305,12 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
     picker.querySelector('select').addEventListener('change', updateResultPreview);
     dialog.querySelector('#share-result-canvas')?.after(picker);
   }
-  dialog.querySelector('#share-title').textContent = /^Share your /.test(activeShare.title) ? activeShare.title : kind === 'listing' ? 'Share your listing' : kind === 'launch' ? 'Share your launch' : kind === 'referral' ? 'Share your invite' : kind === 'trade' ? 'Share verified trade' : kind === 'roundtrip' ? 'Share closed trade result' : kind === 'result' ? 'Share paid earnings' : 'Share this coin';
+  dialog.querySelector('#share-title').textContent = /^Share (?:your|this) /.test(activeShare.title) ? activeShare.title : kind === 'listing' ? 'Share your listing' : kind === 'launch' ? 'Share your launch' : kind === 'referral' ? 'Share your invite' : kind === 'trade' ? 'Share verified trade' : kind === 'roundtrip' ? 'Share closed trade result' : kind === 'result' ? 'Share paid earnings' : 'Share this coin';
   dialog.querySelector('#share-message').value = cleanText(text);
   dialog.querySelector('#share-link').value = activeShare.url;
   dialog.querySelector('#share-network').textContent = String(result?.network || network || (kind === 'coin' ? 'Check token page for network' : 'Referral link')).replace(/^mainnet-beta$/, 'Solana');
   const amountOption = dialog.querySelector('#share-hide-amount')?.closest('label');
-  const bannerOnly = ['listing', 'referral'].includes(result?.kind);
+  const bannerOnly = ['listing', 'referral', 'callout'].includes(result?.kind);
   const privacy = dialog.querySelector('.share-privacy'); if (privacy) privacy.hidden = bannerOnly;
   const receiptLink = dialog.querySelector('#share-receipt-link'); if (receiptLink && bannerOnly) receiptLink.hidden = true;
   for(const [id,label] of [['share-hide-amount',' Hide amount on image'],['share-hide-wallet',' Hide wallet on image']]){const wrap=dialog.querySelector(`#${id}`)?.closest('label');if(wrap?.lastChild?.nodeType===3)wrap.lastChild.textContent=label;}
@@ -250,7 +318,7 @@ export function openShareComposer({ kind = 'coin', title, text, url, result = nu
   if (kind === 'launch' && result?.kind === 'listing') { const note0 = dialog.querySelector('#share-result-note'); if (note0) note0.dataset.launchBanner = 'true'; }
   const note = dialog.querySelector('#share-result-note');
   const walletOption=dialog.querySelector('#share-hide-wallet')?.closest('label');if(walletOption)walletOption.hidden=kind==='launch';
-  if (note) note.textContent = kind === 'referral' ? 'Invites earn referral rewards only from eligible fees. Rewards are not guaranteed.' : kind === 'coin' ? 'Sharing a token page is not an endorsement or a safety check. Tokens can lose all value.' : kind === 'listing' ? 'A listing shows the token on richpad.fun. It is not an endorsement or a safety check. Tokens can lose all value.' : kind === 'launch' ? 'This card confirms creation, not liquidity, safety, earnings or future returns. Test funds have no monetary value.' : kind === 'trade' ? 'This card confirms one finalized trade. It does not show profit, cost basis, or future returns.' : kind === 'roundtrip' ? 'The amount is the wallet SOL balance change in two finalized transactions, including fees, rent, and any other SOL movements in those receipts. It is not wallet-wide trading profit or a future return.' : 'Paid referral earnings are not trading profit or a prediction of future returns.';
+  if (note) note.textContent = kind === 'callout' ? 'A call is an opinion, not advice. Figures use the market cap recorded when the call was made and the current indexed market cap.' : kind === 'referral' ? 'Invites earn referral rewards only from eligible fees. Rewards are not guaranteed.' : kind === 'coin' ? 'Sharing a token page is not an endorsement or a safety check. Tokens can lose all value.' : kind === 'listing' ? 'A listing shows the token on richpad.fun. It is not an endorsement or a safety check. Tokens can lose all value.' : kind === 'launch' ? 'This card confirms creation, not liquidity, safety, earnings or future returns. Test funds have no monetary value.' : kind === 'trade' ? 'This card confirms one finalized trade. It does not show profit, cost basis, or future returns.' : kind === 'roundtrip' ? 'The amount is the wallet SOL balance change in two finalized transactions, including fees, rent, and any other SOL movements in those receipts. It is not wallet-wide trading profit or a future return.' : 'Paid referral earnings are not trading profit or a prediction of future returns.';
   if(note&&result)note.textContent+=' Image privacy controls do not hide public receipt links, transaction wallets, amounts, or text you choose to share.';
   status('Choose a channel or copy your link. You review the post before publishing.');
   updateResultPreview();
@@ -305,7 +373,7 @@ export function initShareComposer() {
   dialog.querySelector('#share-download-card')?.addEventListener('click', () => {
     if (!activeShare?.result) return;
     const canvas = document.querySelector('#share-result-canvas');
-    try { if (!updateResultPreview()) return; const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = ['listing', 'referral'].includes(activeShare.result?.kind) && activeShare.kind !== 'listing' ? `richpad-${activeShare.kind}-${bannerFormat()}.png` : activeShare.kind === 'listing' ? `richpad-${String(activeShare.result.symbol || 'listing').replace(/[^A-Za-z0-9]/g, '')}-${bannerFormat()}.png` : activeShare.kind === 'launch' ? 'funded-launch.png' : activeShare.kind === 'trade' ? 'funded-verified-trade.png' : activeShare.kind === 'roundtrip' ? 'funded-closed-trade.png' : 'funded-paid-earnings.png'; link.click();  status('Card downloaded. Share it from your preferred app.'); }
+    try { if (!updateResultPreview()) return; const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = ['listing', 'referral', 'callout'].includes(activeShare.result?.kind) && activeShare.kind !== 'listing' ? `richpad-${activeShare.kind}-${bannerFormat()}.png` : activeShare.kind === 'listing' ? `richpad-${String(activeShare.result.symbol || 'listing').replace(/[^A-Za-z0-9]/g, '')}-${bannerFormat()}.png` : activeShare.kind === 'launch' ? 'funded-launch.png' : activeShare.kind === 'trade' ? 'funded-verified-trade.png' : activeShare.kind === 'roundtrip' ? 'funded-closed-trade.png' : 'funded-paid-earnings.png'; link.click();  status('Card downloaded. Share it from your preferred app.'); }
     catch (error) { status(error.message || 'Card download unavailable'); }
   });
 }
