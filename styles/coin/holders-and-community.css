@@ -46,11 +46,14 @@
 .coin-page .coin-community-head h2{margin:0;color:#e8edf7;font-size:16px}
 .coin-page .coin-community-feed{display:grid;gap:8px;max-height:720px;overflow:auto;padding:12px 0}
 .coin-page .coin-community-message{padding:9px 10px;border:1px solid #29384b;border-radius:8px;background:#111a26}
-.coin-page .coin-community-message>div{display:flex;justify-content:space-between;gap:8px}
+.coin-page .coin-community-message-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .coin-page .coin-community-message strong{color:#b9c9e8;font:11px 'DM Mono',monospace}
 .coin-page .coin-community-message time{color:#a0aec2;font:10px 'DM Mono',monospace}
 .coin-page .coin-community-message p{margin:8px 0 0;color:#d3ddea;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
-.coin-page .coin-community-message footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
+.coin-page .coin-chat-delete{flex:none;width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid #304158;border-radius:6px;background:#0d1622;color:#becce0;cursor:pointer;opacity:0.6;transition:opacity 0.15s,border-color 0.15s,background 0.15s}
+.coin-page .coin-chat-delete:hover{border-color:#f07480;color:#f07480;background:#2a1a20;opacity:1}
+.coin-page .coin-chat-delete:focus-visible{outline:2px solid #a9b9ec;outline-offset:1px}
+.coin-page .coin-community-message:hover .coin-chat-delete{opacity:1}
 .coin-page :is(.coin-community-message footer,.coin-chat-note) button{min-height:32px;padding:8px 10px;border:1px solid #304158;border-radius:6px;background:#0d1622;color:#becce0;font-size:11px;line-height:1.5;cursor:pointer}
 .coin-page .coin-chat-note button{display:block;margin-top:8px}
 .coin-page .coin-community-message footer button:hover{border-color:#7787af;color:#e3ebf5}

@@ -60,10 +60,10 @@ export function createCoinCommunityController(appState) {
     return `<div class="callout-foot chat-call-foot"><span class="chat-call-tag">📣 Call${badge ? ` <b class="callout-x" data-trend="${trend}">${badge}</b>` : ''}</span>${callPillMarkup({ mint:item.mint, symbol, figures })}</div>`;
   }
   function tokenChatMessageMarkup(item){
-    const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
-    const action = own ? `<footer><button type="button" data-chat-delete="${appState.escapeHtml(item.id)}">Delete</button></footer>` : ''; // Report and hide actions are not shown in token chat.
-    return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time></div><p>${appState.escapeHtml(item.text)}</p>${callRow(item)}${action}</article>`;
-  }
+      const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
+      const deleteBtn = own ? `<button type="button" class="coin-chat-delete" data-chat-delete="${appState.escapeHtml(item.id)}" aria-label="Delete message" title="Delete message">${appState.icon('trash')}</button>` : '';
+      return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div class="coin-community-message-header"><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time>${deleteBtn}</div><p>${appState.escapeHtml(item.text)}</p>${callRow(item)}</article>`;
+    }
   // app-source-end
 
   // app-source: 967
