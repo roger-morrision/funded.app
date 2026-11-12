@@ -310,7 +310,7 @@ export function createBoostCheckoutController(appState) {
           return;
         }
         if (resolution === 'finalized') {
-          const mint = appState.boostCheckout.mint;
+          const mint = appState.boostCheckout.mint, paidQuote = appState.boostCheckout.quote;
           appState.archiveBoostPayment(appState.boostCheckout, response.data);
           appState.productEvent('boost_confirmed');
           appState.boostCheckout.pendingSignature = null;
@@ -319,6 +319,10 @@ export function createBoostCheckoutController(appState) {
           await appState.loadVerifiedBoosts();
           await appState.loadExploreBoostHistory(mint);
           window.dispatchEvent(new Event('funded:boost-verified'));
+          // Offer to share the boosted coin: banner plus a prefilled post (editable, never auto-posted).
+          const multiplier = appState.activeBoostMultiplier?.(appState.verifiedBoosts?.[mint]) || paidQuote?.multiplier || null;
+          void import('../../features/listing/listing-share.js').then(module => module.openBoostShare({ mint, multiplier, hours: paidQuote?.hours || null }))
+            .catch(() => {});
           void appState.refreshWalletBalance({ force:true });
           void appState.refreshTradeBalances();
           return;

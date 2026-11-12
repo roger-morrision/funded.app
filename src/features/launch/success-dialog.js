@@ -20,12 +20,18 @@ export function showLaunchSuccess({ mint, name, symbol, signature, registered },
   const share=dialog.querySelector('[data-share-launch]');
   share.disabled=registered!==true;
   share.title=registered===true?'Review your launch card and message':'Sharing becomes available after directory registration';
-  share.addEventListener('click',()=>{
+  const devnet = import.meta.env?.VITE_SOLANA_CLUSTER !== 'mainnet-beta';
+  share.addEventListener('click',async()=>{
     dialog.close();
-    openShareComposer({kind:'launch',title:`${name} (${symbol})`,network:'Solana Devnet · test funds',
-      text:`${name} ($${symbol}) is live on Solana Devnet. Explore our coin, join the discussion, and review its fee allocation. Test funds have no monetary value.`,
-      url:new URL(`/token/${mint}`,globalThis.location.origin).href,
-      result:{kind:'launch',verified:true,mint,name,symbol,receipt:signature,network:'devnet',receiptUrl:`https://explorer.solana.com/tx/${signature}${import.meta.env?.VITE_SOLANA_CLUSTER==='mainnet-beta'?'':'?cluster=devnet'}`}});
+    const url=new URL(`/token/${mint}`,globalThis.location.origin).href;
+    const fallback={kind:'launch',verified:true,mint,name,symbol,receipt:signature,network:devnet?'devnet':'mainnet-beta',receiptUrl:`https://explorer.solana.com/tx/${signature}${devnet?'?cluster=devnet':''}`};
+    // Live banner with the coin's own image (stored on this origin for Devnet launches).
+    const banner=await import('../listing/listing-share.js').then(module=>module.tokenBannerResult(mint,{symbol,name,tag:'Just launched',
+      logoUrl:devnet?`/devnet-images/${encodeURIComponent(mint)}`:'',tagline:'Fresh on Solana · join the community early\nLive chart, trades and holders on richpad.fun'})).catch(()=>null);
+    const { launchShareText } = await import('../listing/listing-share.js').catch(()=>({}));
+    openShareComposer({kind:'launch',title:`${name} ($${symbol})`,network:devnet?'Solana Devnet · test funds':'Solana',
+      text:launchShareText?launchShareText({symbol,name,mint,devnet}):`${name} ($${symbol}) just launched on richpad.fun. CA: ${mint}`,
+      url,result:banner?.result||fallback});
   });
   appendLaunchKit(dialog, { mint, name, symbol }, document);
   document.body.append(dialog); dialog.showModal();

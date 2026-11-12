@@ -1,4 +1,6 @@
 import {escapeHtml as esc} from '../shared/display.js';
+import { callFigures, usdShort, signedUsd, multipleBadge, openCallShare } from '../callouts/call-share.js';
+import { solUsdPrice } from '../shared/token-identity.js';
 
 const short = value => `${String(value).slice(0,4)}…${String(value).slice(-4)}`;
 const mintValid = value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value || '');
@@ -6,19 +8,24 @@ function age(value) {
   const seconds = Math.max(0, Math.floor((Date.now()-Date.parse(value))/1000));
   return !Number.isFinite(seconds) ? '' : seconds<60 ? 'now' : seconds<3600 ? `${Math.floor(seconds/60)}m` : seconds<86400 ? `${Math.floor(seconds/3600)}h` : `${Math.floor(seconds/86400)}d`;
 }
-export function communityMessageMarkup(row, token = {}) {
+// Home "Chat & calls" card: caller, change since the call and time; the message;
+// a token row (market cap, holding value and its change since the call for calls).
+export function communityMessageMarkup(row, token = {}, solUsd = null) {
   const hue = [...String(row.author)].reduce((sum,c) => sum+c.charCodeAt(0),0)%360;
-  const number = value => Number.isFinite(value) ? `${value.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} SOL` : 'Unavailable';
   const change = row.callout?.marketChangePercent;
-  const metrics=row.callout?.tradeMetrics;
-  const noRecentBuys=metrics?.reason==='No verified buys in the last 24 hours.';
-  const note=metrics?.coverage==='partial'||noRecentBuys?'P&L unavailable.':metrics?.reason||'Checking verified wallet trades…';
-  const pnl=row.callout?.pnlSol, pnlText=Number.isFinite(pnl)?`${pnl>0?'+':''}${number(pnl)}`:'—';
-  return `<article class="home-community-message" data-message-id="${esc(row.id)}">
-    <header><a class="home-community-author" style="--author-hue:${hue}" href="/wallet/${encodeURIComponent(row.author)}">${esc(short(row.author))}</a><time datetime="${esc(row.createdAt)}" title="${esc(row.createdAt)}">${esc(age(row.createdAt))}</time><span class="home-community-kind">${row.callout?'Call':'Chat'}</span></header>
-    <a class="home-community-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${/^https:\/\//.test(token.logoUri || token.imageUri || '') ? `<img src="${esc(token.logoUri || token.imageUri)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : esc(String(token.symbol || '?').slice(0,2).toUpperCase())}</span><strong>${esc(token.symbol ? `$${token.symbol}` : short(row.mint))}</strong></a>
+  const calledCapSol = row.callout?.marketCapSol;
+  const currentCapSol = Number.isFinite(change) && calledCapSol > 0 ? calledCapSol * (1 + change / 100) : null;
+  const f = row.callout ? callFigures({ calledCapSol, currentCapSol, holdingPercent: row.callout.holdingPercent, solUsd }) : null;
+  const badge = f ? multipleBadge(f.multiple) : '';
+  const trend = f && Number.isFinite(f.multiple) ? (f.multiple >= 1.05 ? 'up' : f.multiple <= 0.95 ? 'down' : 'flat') : 'flat';
+  const symbol = token.symbol ? `$${token.symbol}` : short(row.mint);
+  const logo = /^https:\/\//.test(token.logoUri || token.imageUri || '') ? `<img src="${esc(token.logoUri || token.imageUri)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : esc(String(token.symbol || '?').slice(0,2).toUpperCase());
+  const holdChange = f && Number.isFinite(f.holdChangeUsd) ? `<span class="home-call-pnl" data-trend="${f.holdChangeUsd >= 0 ? 'up' : 'down'}">${esc(signedUsd(f.holdChangeUsd))}</span>` : '';
+  const figures = f ? `<span><i>MC</i> ${esc(usdShort(f.currentCapUsd ?? f.calledCapUsd))}</span>${Number.isFinite(f.holdUsd) ? `<span><i>Hold</i> ${esc(usdShort(f.holdUsd))}</span>` : ''}${holdChange}` : '';
+  return `<article class="home-community-message home-call-card${row.callout ? ' is-call' : ''}" data-message-id="${esc(row.id)}">
+    <header><span class="home-call-avatar" style="--author-hue:${hue}" aria-hidden="true">${esc(String(row.author).slice(0,2))}</span><a class="home-community-author" style="--author-hue:${hue}" href="/wallet/${encodeURIComponent(row.author)}">${esc(short(row.author))}</a>${badge ? `<b class="home-call-x" data-trend="${trend}" title="Market cap now vs. at the call">${esc(badge)}</b>` : row.callout ? '' : '<span class="home-community-kind">Chat</span>'}<time datetime="${esc(row.createdAt)}" title="${esc(row.createdAt)}">${esc(age(row.createdAt))}</time></header>
     <p>${esc(row.text)}</p>
-    ${row.callout ? `<dl class="home-community-metrics"><div><dt>Purchased · 24h</dt><dd title="Verified purchase amounts in the last 24 hours. Additional app/network fees are excluded.">${number(row.callout.purchasedSol)}</dd></div><div><dt>Est. P&amp;L · 24h</dt><dd class="${pnl<0?'is-negative':pnl>0?'is-positive':''}" title="${esc(note)}">${pnlText}</dd></div></dl>${metrics?.coverage==='partial'||noRecentBuys?'':`<small class="home-community-basis">${Number.isFinite(pnl)?'Trade value · before additional fees':esc(note)}</small>`}${Number.isFinite(change)?`<small class="home-community-change">MC since call: ${change>=0?'+':''}${change.toFixed(1)}%</small>`:''}`:''}
+    <div class="home-call-foot"><a class="home-community-token home-call-token" data-logo-mint="${esc(row.mint)}" href="/token/${encodeURIComponent(row.mint)}"><span class="home-token-avatar" aria-hidden="true">${logo}</span><strong>${esc(symbol)}</strong>${figures}</a>${row.callout ? `<button type="button" class="home-call-share" data-share-message="${esc(row.id)}" aria-label="Share this call">Share</button>` : ''}</div>
   </article>`;
 }
 
@@ -66,7 +73,8 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     // Do not disturb a focused token link while someone is using the feed.
     if(feed.contains(document.activeElement)&&document.activeElement!==feed)return;
     loadIndexed();
-    const html=messages.length?messages.map(row=>communityMessageMarkup(row,tokenFor(row.mint))).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
+    const solUsd=app.coinSolUsdPrice||solUsdPrice();
+    const html=messages.length?messages.map(row=>communityMessageMarkup(row,tokenFor(row.mint),solUsd)).join(''):'<p class="home-community-empty">No conversations yet. Choose a coin and start one.</p>';
     if(html!==lastMarkup){const top=feed.scrollTop;feed.innerHTML=html;feed.scrollTop=top;lastMarkup=html;}
     app.loadVerifiedTokenLogos?.(feed);
     updateCoins();
@@ -96,6 +104,16 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     }catch(error){status.textContent=error.message||'Could not post. Please try again.';}
     finally{busy=false;button.disabled=false;updateIdentity();}
   });
+  // Share a call from the feed: banner and prefilled post.
+  feed.addEventListener('click',event=>{
+    const share=event.target.closest('[data-share-message]');if(!share)return;
+    const row=messages.find(item=>item.id===share.dataset.shareMessage);if(!row?.callout)return;
+    const change=row.callout.marketChangePercent,called=row.callout.marketCapSol;
+    void openCallShare({call:{id:row.id,mint:row.mint,author:row.author,text:row.text,createdAt:row.createdAt,calledMarketCapSol:called,
+      currentMarketCapSol:Number.isFinite(change)&&called>0?called*(1+change/100):null,holdingPercent:row.callout.holdingPercent,token:{symbol:tokenFor(row.mint).symbol||''}},
+      solUsd:app.coinSolUsdPrice||solUsdPrice(),wallet:app.connectedWalletAddress||null,referralCode:app.registeredShareCode?.()||''});
+  });
+  window.addEventListener('funded:token-identities',()=>{lastMarkup='';if(active())render();});
   // Allow connecting without a coin/message, while native validation still protects posts.
   button.addEventListener('click',event=>{if(!app.connectedWalletAddress){event.preventDefault();form.dispatchEvent(new Event('submit',{cancelable:true}));}});
   document.addEventListener('funded:verified-search-index',()=>{updateCoins();if(active())render();});

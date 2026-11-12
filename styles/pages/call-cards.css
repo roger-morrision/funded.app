@@ -1,0 +1,32 @@
+/* Coin call cards (Coin calls page and home "Chat & calls"): caller with the
+   change since the call and age; the message; a token row with market cap,
+   holding value and its change; a share action. */
+html body #main-content .callout-card > header.callout-head-row { align-items: flex-start; }
+html body #main-content .callout-name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+html body #main-content .callout-name .callout-author { color: var(--fv-text); font-weight: 700; text-decoration: none; }
+html body #main-content :is(.callout-x, .home-call-x) { padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--fv-text) 10%, transparent); color: var(--fv-text-muted); font: 700 11px/18px var(--fv-font-data, monospace); }
+html body #main-content :is(.callout-x, .home-call-x)[data-trend="up"] { background: rgba(95, 240, 168, .14); color: #5ff0a8; }
+html body #main-content :is(.callout-x, .home-call-x)[data-trend="down"] { background: rgba(255, 107, 125, .14); color: #ff8a96; }
+html body #main-content .callout-holder { padding: 1px 7px; border-radius: 999px; background: rgba(245, 185, 0, .14); color: var(--fv-accent, #f5b900); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+html body #main-content .callout-age { flex: none; margin-left: auto; color: #5ff0a8; font: 600 12px var(--fv-font-data, monospace); }
+html body #main-content .callout-filter-author { padding: 0; border: 0; background: none; color: var(--fv-text-subtle); font: inherit; font-size: 11px; cursor: pointer; }
+html body #main-content .callout-card .callout-text { margin: 0; color: var(--fv-text); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+html body #main-content :is(.callout-foot, .home-call-foot) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+html body #main-content :is(.callout-token-row, .home-call-token) { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; max-width: 100%; padding: 6px 10px; border: 1px solid var(--fv-border); border-radius: 999px; background: color-mix(in srgb, var(--fv-text) 4%, transparent); color: var(--fv-text); font-size: 12px; text-decoration: none; }
+html body #main-content :is(.callout-token-row, .home-call-token):hover { border-color: var(--fv-accent, #f5b900); }
+html body #main-content .callout-token-row img, html body #main-content .callout-token-row .callout-token-initial { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+html body #main-content .callout-token-initial { display: inline-grid; place-items: center; background: var(--fv-surface-raised); font-size: 10px; font-weight: 700; }
+html body #main-content :is(.callout-token-row, .home-call-token) i { color: var(--fv-text-subtle); font-style: normal; }
+html body #main-content :is(.callout-pnl, .home-call-pnl)[data-trend="up"] { color: #5ff0a8; font-weight: 700; }
+html body #main-content :is(.callout-pnl, .home-call-pnl)[data-trend="down"] { color: #ff8a96; font-weight: 700; }
+html body #main-content .callout-chevron { color: var(--fv-text-subtle); }
+html body #main-content :is(.callout-share, .home-call-share) { min-height: 32px; margin-left: auto; padding: 0 12px; border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text-muted); font-size: 12px; font-weight: 600; cursor: pointer; }
+html body #main-content :is(.callout-share, .home-call-share):hover { border-color: var(--fv-accent, #f5b900); color: var(--fv-text); }
+html body #main-content .callout-card .callout-figures { margin: 0; color: var(--fv-text-subtle); font-size: 11px; }
+/* Home feed card */
+html body #main-content .home-call-card header { display: flex; align-items: center; gap: 8px; }
+html body #main-content .home-call-avatar { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: hsl(var(--author-hue, 200) 45% 32%); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+html body #main-content .home-call-card header time { margin-left: auto; color: #5ff0a8; font-family: var(--fv-font-data, monospace); }
+html body #main-content .home-call-card .home-community-kind { margin-left: 0; }
+html body #main-content .home-call-card > p { margin: 8px 0; font-size: 14px; }
+html body #main-content .home-call-token .home-token-avatar { width: 18px; height: 18px; }
