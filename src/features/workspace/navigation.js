@@ -127,27 +127,29 @@ export function navigation() {
     searchResults.querySelector(`#header-search-result-${index}`)?.scrollIntoView({ block: 'nearest' });
   };
   function lookupCreators(){
-    clearTimeout(creatorTimer);const version=++creatorVersion,query=modalSearch.value.trim();creatorQuery=query;creatorCandidates=[];
-    if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)&&tokenQuery!==query){
-      tokenQuery=query;tokenCandidates=[];
-      apiRequest(`/api/tokens/market?mints=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(8000)}).then(result=>{
-        const row=(result?.data?.items||result?.items||[]).find(item=>item.mint===query);
-        if(!row?.symbol||tokenQuery!==query||!searchDialog.open||modalSearch.value.trim()!==query)return;
-        const price=Number(row.priceUsd);
-        tokenCandidates=[{mint:query,name:String(row.name||row.symbol).slice(0,80),symbol:String(row.symbol).slice(0,20),logoUri:row.logoUri||null,
-          marketCap:Number.isFinite(price)&&price>0?`$${price<0.01?price.toPrecision(3):price.toLocaleString('en-US',{maximumFractionDigits:4})}`:'Token',stage:'Open token page'}];
-        renderSearchResults();
-      }).catch(()=>{});
+      clearTimeout(creatorTimer);const version=++creatorVersion,query=modalSearch.value.trim();creatorQuery=query;creatorCandidates=[];
+      if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)&&tokenQuery!==query){
+        tokenQuery=query;tokenCandidates=[];
+        apiRequest(`/api/tokens/market?mints=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(8000)}).then(result=>{
+          const row=(result?.data?.items||result?.items||[]).find(item=>item.mint===query);
+          if(!row?.symbol||tokenQuery!==query||!searchDialog.open||modalSearch.value.trim()!==query)return;
+          const price=Number(row.priceUsd);
+          tokenCandidates=[{mint:query,name:String(row.name||row.symbol).slice(0,80),symbol:String(row.symbol).slice(0,20),logoUri:row.logoUri||null,
+            marketCap:Number.isFinite(price)&&price>0?`$${price<0.01?price.toPrecision(3):price.toLocaleString('en-US',{maximumFractionDigits:4})}`:'Token',stage:'Open token page'}];
+          // Auto-select the token candidate so Enter opens the token page
+          activeCandidate = 0;
+          renderSearchResults({ preserveSelection: false });
+        }).catch(()=>{});
+      }
+      if(query.length<2||query.length>80||/^[1-9A-HJ-NP-Za-km-z]{32,88}$/.test(query))return;
+      creatorTimer=setTimeout(async()=>{
+        let result;try{result=await apiRequest(`/api/creators?${new URLSearchParams({q:query})}`,{signal:AbortSignal.timeout(8000)});}catch{}
+        if(version!==creatorVersion||!searchDialog.open||modalSearch.value.trim()!==query)return;
+        const next=result?.available?creatorSearchCandidates(result.data):[];
+        if(JSON.stringify(next)!==JSON.stringify(creatorCandidates)){creatorCandidates=next;renderSearchResults({preserveSelection:true});}
+        if(!searchHelp.textContent.startsWith('Your selected result is no longer'))searchHelp.textContent=defaultSearchHelp+(result?.available?' · Creator directory checked.':' · Creator directory unavailable; loaded tokens and wallets remain searchable.');
+      },300);
     }
-    if(query.length<2||query.length>80||/^[1-9A-HJ-NP-Za-km-z]{32,88}$/.test(query))return;
-    creatorTimer=setTimeout(async()=>{
-      let result;try{result=await apiRequest(`/api/creators?${new URLSearchParams({q:query})}`,{signal:AbortSignal.timeout(8000)});}catch{}
-      if(version!==creatorVersion||!searchDialog.open||modalSearch.value.trim()!==query)return;
-      const next=result?.available?creatorSearchCandidates(result.data):[];
-      if(JSON.stringify(next)!==JSON.stringify(creatorCandidates)){creatorCandidates=next;renderSearchResults({preserveSelection:true});}
-      if(!searchHelp.textContent.startsWith('Your selected result is no longer'))searchHelp.textContent=defaultSearchHelp+(result?.available?' · Creator directory checked.':' · Creator directory unavailable; loaded tokens and wallets remain searchable.');
-    },300);
-  }
   searchTrigger.addEventListener('click', () => {
     modalSearch.value = globalSearch?.value || '';
     renderSearchResults();
