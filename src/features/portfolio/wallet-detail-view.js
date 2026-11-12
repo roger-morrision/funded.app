@@ -132,17 +132,17 @@ export function renderWalletDetail(
     follow.setAttribute('aria-label', `${active ? 'Unfollow' : 'Follow'} ${escapeHtml(address || 'wallet')}`);
   }
   const statSol = document.querySelector('#wallet-stat-sol');
-    const statSolNote = document.querySelector('#wallet-stat-sol-note');
-    if (statSol) statSol.textContent = walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
-    if (statSolNote) statSolNote.textContent = isSelf ? (walletBalanceLamports == null ? 'Balance currently unavailable' : 'Connected wallet balance') : 'Wallet SOL balance';
-  setCoinField('#wallet-stat-launches', registryReady ? String(launches.length) : '—');
-  setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
-  setCoinField('#wallet-stat-trades-note', scanNote);
-  const hasSolUsdQuote = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
-  setCoinField('#wallet-stat-volume', !tradeScanReady ? '$—' : !trades.length ? '$0.00' : hasSolUsdQuote ? formatDashboardUsd(volume * coinSolUsdPrice) : '$—');
-  setCoinField('#wallet-stat-volume-note', !tradeScanReady ? scanNote : !trades.length ? isSelf ? 'No recent trades found' : `No trades observed in available 24-hour records.${publicScopeNote}` : hasSolUsdQuote ? 'Estimated USD at the current SOL price' : 'SOL price unavailable');
-  setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
-  setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
+      const statSolNote = document.querySelector('#wallet-stat-sol-note');
+      if (statSol) statSol.textContent = walletBalanceLamports != null ? formatSol(walletBalanceLamports) : '—';
+      if (statSolNote) statSolNote.textContent = '';
+    setCoinField('#wallet-stat-launches', registryReady ? String(launches.length) : '—');
+    setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
+    setCoinField('#wallet-stat-trades-note', '');
+    const hasSolUsdQuote = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
+    setCoinField('#wallet-stat-volume', !tradeScanReady ? '$—' : !trades.length ? '$0.00' : hasSolUsdQuote ? formatDashboardUsd(volume * coinSolUsdPrice) : '$—');
+    setCoinField('#wallet-stat-volume-note', '');
+    setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
+    setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
   document.querySelectorAll('[data-wallet-tab]').forEach(button => { const active = button.dataset.walletTab === walletDetailTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
     const description = document.querySelector('#wallet-detail-description');
     const content = document.querySelector('#wallet-detail-content');
