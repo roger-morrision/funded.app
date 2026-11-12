@@ -28,11 +28,10 @@ export function initializeTop100(appState) {
     if(Number.isFinite(nextExpiry))expiryTimer=setTimeout(render,Math.min(nextExpiry-Date.now()+20,2147483647));
     const result = rankTop100(records, filters), pages = Math.max(1,Math.ceil(result.rows.length / 25));
     page = Math.min(page, pages - 1);
-    const priced = records.filter(row => row.capUsd != null).length;
-    const coverage = checked && appState.top100DirectoryComplete ? 'Directory checked' : 'Directory coverage incomplete';
-    const status = busy ? 'Refreshing verified rankings…' : failure ? 'Refresh unavailable. Showing last loaded data; retry shortly.' : !checked ? 'Loading verified rankings…' : `${coverage} · ${result.rows.length} of ${result.total} ranked tokens · ${records.length - priced} without market cap`;
-    find('[data-top-status]').textContent = status + (checked && !appState.verifiedBoostsAvailable ? ' · Boost data unavailable.' : '')
-      + (checked && !community ? ' · 24h ranking metrics unavailable; retry shortly.' : checked && records.length && !records.some(row=>row.capGrowthUsd!=null||row.holderGrowth!=null) ? ' · 24h growth awaits opening and current snapshots.' : '');
+    // Status line only for loading, refresh and data problems; a normal load shows nothing.
+    const status = busy ? 'Refreshing rankings…' : failure ? 'Refresh unavailable. Showing last loaded data; retry shortly.' : !checked ? 'Loading rankings…' : '';
+    find('[data-top-status]').textContent = [status, checked && !appState.verifiedBoostsAvailable ? 'Boost data unavailable.' : '',
+      checked && !community ? '24h ranking metrics unavailable; retry shortly.' : ''].filter(Boolean).join(' · ');
     find('[data-top-refresh]').disabled = busy;
     const rows = result.rows.slice(page * 25, (page + 1) * 25);
     const html = rows.map(row => `<tr${row.boost >= 500 ? ' class="top100-golden"' : ''}>
