@@ -14,7 +14,7 @@ export function deploymentCluster(env) {
 export const MAINNET_NON_PROGRAM_POSTS=Object.freeze(new Set([
   '/api/solana/rpc','/api/listings','/api/listings/quote','/api/burn-receipts',
   '/api/boosts/quote','/api/boosts/prepare','/api/boosts/confirm','/api/trade/jupiter/build','/api/client-errors','/api/creator-support/issues','/api/listings/admin','/api/mobile-wallet/relay',
-  '/api/watchlist','/api/account-preferences','/api/token-metadata','/api/tokens/metadata','/api/shares/visit',
+  '/api/watchlist','/api/account-preferences','/api/token-metadata','/api/pair-launch/record','/api/tokens/metadata','/api/shares/visit',
   '/api/referrals/registration/prepare','/api/referrals/registration/verify',
   '/api/referrals/attribution/prepare','/api/referrals/attribution/verify',
   '/api/referrals/session/prepare','/api/referrals/session/verify','/api/referrals/session/logout',

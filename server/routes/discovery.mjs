@@ -88,6 +88,10 @@ export function createDiscoveryRoutes({
     const listings = Object.values(state.listings || {}).filter(item => item?.mint && item.cluster === solanaCluster && item.onchainVerified === true);
     const byMint = new Map();
     for (const item of launches) byMint.set(item.mint, { ...item, registry: 'launch', createdTimestamp: item.createdTimestamp || Math.floor(Date.parse(item.createdAt || item.launchedAt || 0) / 1000) || null });
+    // Paired launches made on richpad.fun (verified on-chain when recorded).
+    for (const item of Object.values(state.pairLaunches || {}).filter(row => row?.mint && row.cluster === solanaCluster))
+      if (!byMint.has(item.mint)) byMint.set(item.mint, { mint: item.mint, name: item.name || null, symbol: item.symbol || null, creator: item.creator, registry: 'pair-launch',
+        quoteMint: item.quoteMint, quoteSymbol: item.quoteSymbol, createdTimestamp: item.blockTime || Math.floor(Date.parse(item.recordedAt) / 1000) || null });
     for (const item of listings) {
       const listingPayment = item.adminListing ? { signature: null, admin: true, adminSignature: item.adminSignature || null, verified: true }
         : { signature: item.signature, amountTokens: item.amountTokens, verified: true };
@@ -111,7 +115,7 @@ export function createDiscoveryRoutes({
         liquidityUsd: market.liquidityUsd ?? null, volume24hUsd: market.volume24hUsd ?? null, priceChange24hPercent: market.priceChangePercent ?? market.priceChange24hPercent ?? null,
         website: base.website || market.website || null, twitter: base.twitter || market.twitter || null, telegram: base.telegram || market.telegram || null, discord: base.discord || market.discord || null,
         pairCreatedAt: Number(market.pairCreatedAt) > 0 ? Number(market.pairCreatedAt) : null, dexId: market.dexId || null,
-        quoteMint: market.quoteMint || null, quoteSymbol: market.quoteSymbol || null,
+        quoteMint: base.quoteMint || market.quoteMint || null, quoteSymbol: base.quoteSymbol || market.quoteSymbol || null,
         buyCount24h: Number.isSafeInteger(market.buyCount24h) ? market.buyCount24h : null, sellCount24h: Number.isSafeInteger(market.sellCount24h) ? market.sellCount24h : null,
         holderCount: Number.isSafeInteger(holders.get(mint)) ? holders.get(mint) : null };
     });

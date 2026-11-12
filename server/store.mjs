@@ -30,6 +30,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.adminSettings ||= {};
     state.adminAudit ||= {};
     state.mainnetTrades ||= {};
+    state.pairLaunches ||= {};
     state.mainnetTradeCursor ||= {};
     state.adminWithdrawalIntents ||= {};
     state.referralClaims ||= {};

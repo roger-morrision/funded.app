@@ -16,7 +16,7 @@ import { createFeeRouterService } from './fee-router-service.mjs';
 import { createPageDelivery } from './page-delivery.mjs';
 import { createDiscoveryRoutes } from './routes/discovery.mjs';
 import { createMainnetMarketRoutes } from './routes/mainnet-market.mjs';
-import { createPairQuotesRoute } from './routes/pair-quotes.mjs';
+import { createPairRoutes, pairLaunchEnabled } from './routes/pairs.mjs';
 import { createMarketDataServices } from './mainnet-market-wiring.mjs';
 import { createLaunchQuoteRoutes } from './routes/launch-quotes.mjs';
 import { createDevnetMetadataRoutes } from './routes/devnet-metadata.mjs';
@@ -126,7 +126,7 @@ publicPostPaths.add('/api/listings/quote'); publicPostPaths.add('/api/listings/a
 publicPostPaths.add('/api/x-public-trade-shares/challenge');
 publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');
-publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/client-errors');
+publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/client-errors'); publicPostPaths.add('/api/pair-launch/record');
 
 const solanaCluster = deploymentCluster(process.env);
 const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
@@ -337,7 +337,7 @@ const handleTokenMarketRoutes = createTokenMarketRoutes({
   readMarketFallback,
 });
 
-const pairQuotes = createPairQuotesRoute({ solanaRpcUrl, respond: json });
+const handlePairRoutes = createPairRoutes({ solanaCluster, solanaRpcUrl, store, body, respond: json });
 const handleMainnetMarketRoutes = createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free: freeMarketData, tokenCache, fetchBirdeye,
   readMarketFallback: readBirdeyeMarket, store, clientKey, body, respond: json });
 const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, solanaCluster, body, authorized, clientKey, json, rpcMethods });
@@ -377,7 +377,7 @@ const handleDiscoveryRoutes = createDiscoveryRoutes({
 const handleLaunchQuoteRoutes = createLaunchQuoteRoutes({
   store, solanaCluster, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id, respond: json,
 });
-const handleDevnetMetadataRoutes = createDevnetMetadataRoutes({store,solanaCluster,solanaRpcUrl,devnetMetadataOrigin,body,respond:json});
+const handleDevnetMetadataRoutes = createDevnetMetadataRoutes({store,solanaCluster,solanaRpcUrl,devnetMetadataOrigin,body,respond:json,allowMainnetPublishing:pairLaunchEnabled({solanaCluster})});
 const handleRewardStatusRoutes = createRewardStatusRoutes({
   store, automaticRewardStore, solanaCluster, solanaRpcUrl,
   readFinalizedEvidence, clientKey, respond: json, requireAuthorized,
@@ -459,7 +459,7 @@ async function handle(req, res) {
     if (await handleV3Routes(req, res, url, requestId)) return;
     if (await handleCreatorFeesRoutes(req, res, url, requestId)) return;
     if (await handleLaunchProtectionRoutes(req,res,url)) return;
-    if (await pairQuotes.handle(req, res, url)) return;
+    if (await handlePairRoutes(req, res, url)) return;
     if (await handleMainnetMarketRoutes(req, res, url)) return;
     if (await handleTokenMarketRoutes(req, res, url, requestId)) return;
     if (await handleKeeperCollectionRoutes(req, res, url, requestId)) return;
