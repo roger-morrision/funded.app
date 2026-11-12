@@ -1,5 +1,6 @@
 import { linkWalletText } from './src/features/shared/wallet-links.js';
 import { mountAdminListingButton } from './src/features/listing/admin-listing-button.js';
+import { openListingShare } from './src/features/listing/listing-share.js';
 import { Buffer } from 'buffer';
 import bs58 from 'bs58';
 import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
@@ -47,7 +48,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   let pendingNotice = null;
   let retainedPending = null;
   const updateAdminListing = mountAdminListingButton({ anchor: payButton, getSession, connectWallet, setStatus: message => setStatus(message),
-    onListed: async () => { await refreshListings(); draw(); } });
+    onListed: async listing => { await refreshListings(); draw(); if (listing?.mint) void openListingShare(listing); } });
   function readPending() {
     try {
       const pending = readPendingListing();
@@ -96,15 +97,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       status.append(link);
     }
   }
+  // Share a listed token: opens the share dialog with prefilled text, a banner
+  // and every channel. Shown whenever the entered token is listed.
   function appendShareAction(listing) {
-    const label = listing.symbol ? `$${listing.symbol}` : (listing.name || 'my token');
-    const page = `${location.origin}/token/${encodeURIComponent(listing.mint)}`;
-    const intent = new URL('https://twitter.com/intent/tweet');
-    intent.searchParams.set('text', `${label} is now listed on richpad.fun\nCA: ${listing.mint}`);
-    intent.searchParams.set('url', page);
-    const share = document.createElement('a');
-    share.className = 'secondary-button list-share-x'; share.href = intent.href;
-    share.target = '_blank'; share.rel = 'noopener noreferrer'; share.textContent = 'Share on X';
+    if (!listing?.mint || status.querySelector('.list-share-actions')) return;
+    const share = document.createElement('button');
+    share.type = 'button'; share.className = 'primary-button list-share-x'; share.textContent = 'Share listing';
+    share.addEventListener('click', () => void openListingShare(listing));
     const view = document.createElement('a');
     view.className = 'secondary-button'; view.href = `/token/${encodeURIComponent(listing.mint)}`; view.textContent = 'View token';
     const actions = document.createElement('div'); actions.className = 'list-share-actions'; actions.append(share, view);
@@ -190,7 +189,10 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     if (recoveryError) setStatus(recoveryError, pending?.signature);
     else if (pending) setStatus(pendingNotice?.signature === pending.signature ? pendingNotice.message
       : 'A signed burn is saved in this tab. Verify its original receipt before another payment; submission may be unconfirmed.', pending.signature);
-    else if (existing) setStatus(existing.included ? 'Listing is included with this richpad.fun launch. No extra payment.' : existing.adminListing ? 'Listed by admin. No fee was charged.' : 'Listing burn verified.', existing.signature || '');
+    else if (existing) {
+      setStatus(existing.included ? 'Listing is included with this richpad.fun launch. No extra payment.' : existing.adminListing ? 'Listed by admin. No fee was charged.' : 'Listing burn verified.', existing.signature || '');
+      if (!existing.included) appendShareAction(existing);
+    }
   }
   function queueLookup() {
     const sequence = ++lookupSequence;
@@ -339,6 +341,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       catch (error) { retainedPending = pending; setPendingStatus(`Listing receipt verified, but recovery cleanup is incomplete: ${error.message}`, pending); return; }
       setStatus('Listing verified and live in Launch Directory.', pending.signature);
       appendShareAction(result.data);
+      void openListingShare(result.data);
       await refreshListings();
       window.dispatchEvent(new Event('funded:listing-verified'));
     } catch (error) { setPendingStatus(`Signed burn receipt verification is pending: ${error.message} Do not submit another burn.`, pending); }

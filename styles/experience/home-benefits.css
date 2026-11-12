@@ -146,3 +146,8 @@
 .post-buy-call-go { border: 0; background: var(--fv-accent, #f5b900); color: #111; }
 @media (max-width: 480px) { .post-buy-call-actions button { flex: 1; } }
 .post-buy-call .post-buy-call-optout input { flex: none; width: 18px; height: 18px; margin: 0; }
+/* Listing share: banner size picker. */
+.share-banner-format { display: grid; gap: 6px; margin: 10px 0 4px; font-size: 13px; }
+.share-banner-format[hidden] { display: none; }
+.share-banner-format select { min-height: 40px; padding: 8px 10px; border: 1px solid var(--fv-border, #2a3550); border-radius: 10px; background: rgba(0,0,0,.25); color: inherit; font: inherit; }
+.share-privacy[hidden] { display: none; }
