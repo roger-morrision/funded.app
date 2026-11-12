@@ -3,8 +3,10 @@ import { basename } from 'node:path';
 
 export function staticCacheControl(fileName) {
   // Only Vite's content-addressed build output may be cached across releases.
-  return /(?:^|\/)assets\//.test(fileName) && /-[A-Za-z0-9_-]{8,}\.[^.]+$/.test(basename(fileName))
-    ? 'public, max-age=31536000, immutable' : 'no-cache';
+  if (/(?:^|\/)assets\//.test(fileName) && /-[A-Za-z0-9_-]{8,}\.[^.]+$/.test(basename(fileName))) return 'public, max-age=31536000, immutable';
+  // Fonts and artwork rarely change: a day in browsers, a week at the edge (revalidated in the background).
+  if (/\.(?:woff2?|ttf|svg|png|webp|avif|jpe?g|ico)$/i.test(fileName)) return 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400';
+  return 'no-cache';
 }
 
 export function applyHttpPolicy(req, res) {
@@ -28,6 +30,12 @@ const EDGE_CACHEABLE = [
   [/^\/api\/tokens\/market$/, 10],
   [/^\/api\/pump\/explore$/, 10],
   [/^\/api\/market\/sol-usd$/, 15],
+  [/^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/holders$/, 60],
+  [/^\/api\/wallets\/[1-9A-HJ-NP-Za-km-z]{32,44}\/trades$/, 30],
+  // Public registry and report reads (no session or wallet input).
+  [/^\/api\/(?:launches|listings|burn-receipts)$/, 10],
+  [/^\/api\/home\/featured$/, 15],
+  [/^\/api\/(?:boosts|fee-policy|analytics\/summary|buyback\/status)$/, 30],
 ];
 export function edgeCacheControl(method, pathname) {
   if (method !== 'GET' && method !== 'HEAD') return 'no-store';

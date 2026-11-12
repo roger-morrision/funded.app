@@ -18,7 +18,7 @@ let scrollRequest = 0;
 // Coin tabs and bookmarks keep the coin name instead of a generic "Token" title.
 const coinRoute=()=>/^\/(token|launch\/coin)\//.test(location.pathname)&&!location.hash||location.hash.startsWith('#coin/');
 // The server already names verified coins in <title>; keep it while the page loads.
-const serverCoinTitle=coinRoute()&&!location.hash&&/ \| (?:richpad\.fun|funded\.vip)$/.test(document.title)&&!document.title.startsWith('Token verification unavailable')
+const serverCoinTitle=coinRoute()&&!location.hash&&/ \| (?:richpad\.fun|funded\.vip)$/.test(document.title)&&!document.title.startsWith('Token verification unavailable')&&!/^Token [1-9A-HJ-NP-Za-km-z]{4}…/.test(document.title)
   ?{path:location.pathname,title:document.title}:null;
 function coinTitle() {
   const name=coinRoute()?$('#coin-page-title')?.textContent?.trim():'';

@@ -6,11 +6,17 @@ const MAINNET = import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta';
 const pumpCandidate = mint => /pump$/.test(String(mint?.toBase58?.() ?? mint ?? ''));
 const pumpSdk = () => import('../../../pump-trading.js');
 const jupiterSdk = () => import('../../../jupiter-trading.js');
+// Pools the direct Pump path cannot find (non-canonical PumpSwap pools) go straight
+// to Jupiter for the next 10 minutes instead of retrying the direct build each quote.
+const directMisses = new Map();
+const mintText = mint => String(mint?.toBase58?.() ?? mint ?? '');
+const directFailed = mint => (directMisses.get(mintText(mint)) || 0) > Date.now();
+const rememberDirectFailure = (mint, error) => { if (/account not found|not found/i.test(String(error?.message)) && !/associated token account/i.test(String(error?.message))) directMisses.set(mintText(mint), Date.now() + 600_000); };
 
 export async function buildTradeTransaction(...args) {
   if (!MAINNET) return (await pumpSdk()).buildTradeTransaction(...args);
-  if (pumpCandidate(args[0]?.mint)) {
-    try { return await (await pumpSdk()).buildTradeTransaction(args[0]); } catch { /* fall back to Jupiter routing */ }
+  if (pumpCandidate(args[0]?.mint) && !directFailed(args[0]?.mint)) {
+    try { return await (await pumpSdk()).buildTradeTransaction(args[0]); } catch (error) { rememberDirectFailure(args[0]?.mint, error); /* fall back to Jupiter routing */ }
   }
   return (await jupiterSdk()).buildJupiterTrade(args[0]);
 }
@@ -50,10 +56,10 @@ export async function submitTrade(...args) {
   const input = args[0] || {};
   if (input.preparedTrade && input.preparedTrade.route !== 'jupiter')
     return walletSends(input.provider) ? submitPumpViaWallet(input, input.preparedTrade) : (await pumpSdk()).submitTrade(input);
-  if (!input.preparedTrade && pumpCandidate(input.mint)) {
+  if (!input.preparedTrade && pumpCandidate(input.mint) && !directFailed(input.mint)) {
     // Build before any signing, so a failed direct build can still fall back safely.
     let prepared = null;
-    try { prepared = await (await pumpSdk()).buildTradeTransaction(input); } catch { prepared = null; }
+    try { prepared = await (await pumpSdk()).buildTradeTransaction(input); } catch (error) { rememberDirectFailure(input.mint, error); prepared = null; }
     if (prepared) return walletSends(input.provider) ? submitPumpViaWallet(input, prepared) : (await pumpSdk()).submitTrade({ ...input, preparedTrade: prepared });
   }
   return (await jupiterSdk()).submitJupiterTrade(input);

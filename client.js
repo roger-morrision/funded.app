@@ -6,9 +6,30 @@ import { assertWritablePreview } from './deployment-mode.js';
 const CONFIGURED_API_BASE = String(import.meta.env?.VITE_API_BASE_URL || (String(import.meta.env?.VITE_SOLANA_CLUSTER || 'devnet') === 'devnet' ? '/' : '')).trim();
 const API_BASE = CONFIGURED_API_BASE === '/' ? '' : CONFIGURED_API_BASE.replace(/\/$/, '');
 
+// Identical GETs made while one is in flight (or within 2 s) share one response;
+// a path the server refused as unavailable (503) is not re-requested for a minute.
+const recentGets = new Map(), unavailablePaths = new Map();
 export async function apiRequest(path, options = {}) {
-  if (!['GET','HEAD','OPTIONS'].includes(String(options.method || 'GET').toUpperCase())) assertWritablePreview();
+  const method = String(options.method || 'GET').toUpperCase();
+  if (!['GET','HEAD','OPTIONS'].includes(method)) { assertWritablePreview(); recentGets.clear(); }
   if (!CONFIGURED_API_BASE) return { available: false, data: null };
+  if (method === 'GET' && !options.body && !options.cache) {
+    const bare = String(path).split('?')[0], refused = unavailablePaths.get(bare);
+    if (refused && refused.until > Date.now()) { const error = new Error(refused.message); error.status = 503; throw error; }
+    const hit = recentGets.get(path);
+    if (hit && (hit.pending || hit.at > Date.now() - 2000)) return hit.promise.then(result => ({ ...result }));
+    const promise = requestApi(path, options).catch(error => {
+      if (error?.status === 503) unavailablePaths.set(bare, { until: Date.now() + 60_000, message: error.message });
+      recentGets.delete(path); throw error;
+    });
+    const entry = { promise, pending: true, at: 0 }; recentGets.set(path, entry);
+    promise.then(() => { entry.pending = false; entry.at = Date.now(); }, () => {});
+    if (recentGets.size > 200) for (const [key, row] of recentGets) if (!row.pending && row.at < Date.now() - 2000) recentGets.delete(key);
+    return promise.then(result => ({ ...result }));
+  }
+  return requestApi(path, options);
+}
+async function requestApi(path, options) {
   const finishTiming = beginApiTiming(path);
   try {
   const headers = { ...(options.headers || {}) };

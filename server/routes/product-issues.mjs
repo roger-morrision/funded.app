@@ -5,11 +5,11 @@ import { allowedAuthOrigin } from '../x-auth.mjs';
 import {reviewProductIssue} from '../product-issue-review.mjs';
 export {issueStates} from '../product-issue-review.mjs';
 const hash = value => createHash('sha256').update(value).digest('hex');
-export function validateIssue(input) {
+export function validateIssue(input, cluster = 'devnet') {
   if (!input || typeof input.description !== 'string' || input.description.trim().length < 10 || input.description.length > 2000
     || !['bug','impersonation','spam','request'].includes(input.category)) throw new Error('Choose a category and describe the issue in 10–2000 characters.');
   const context = input.context || {};
-  return {category:input.category,description:input.description.trim(),context:{cluster:'devnet',...issueOperationContext(context),
+  return {category:input.category,description:input.description.trim(),context:{cluster,...issueOperationContext(context),
     route:typeof context.route === 'string' && /^\/[A-Za-z0-9/_#-]*$/.test(context.route) ? context.route.slice(0,160) : '/',
     mint:/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(context.mint || '') ? context.mint : null,
     signature:/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(context.signature || '') ? context.signature : null}};
@@ -18,7 +18,7 @@ export function createProductIssueRoutes({store,cluster,requireAuthorized}) {
   return async (req,res,url) => {
     if (!url.pathname.startsWith('/api/creator-support/issues')) return false;
     const json = (status,body) => {res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(body));return true;};
-    if (cluster !== 'devnet') return json(503,{error:'Issue reporting is available on the Devnet app.'});
+    if (!['devnet','mainnet-beta'].includes(cluster)) return json(503,{error:'Issue reporting is unavailable on this network.'});
     if (req.method === 'GET' && url.pathname.endsWith('/config')) return json(200,{enabled:true,cluster,tokenHoldingRequired:false});
     const id = url.pathname.match(/^\/api\/creator-support\/issues\/([a-f0-9]{32})(?:\/status)?$/)?.[1];
     if (req.method === 'POST') {
@@ -32,7 +32,7 @@ export function createProductIssueRoutes({store,cluster,requireAuthorized}) {
       const client = req.socket?.remoteAddress || 'local';
       if (!await store.chargeRpcRate(`product-issue:${client}`,1,2,Math.floor(Date.now()/60000)*60000)
         || !await store.chargeRpcRate('product-issues:global',1,200,Math.floor(Date.now()/86400000)*86400000)) return json(429,{error:'Reporting is busy. Save a copy and try later.'});
-      let value;try{value=validateIssue(await readJsonBody(req,{maxBytes:5000}));}catch(error){return json(400,{error:error.statusCode ? 'Report is too large or malformed.' : error.message});}
+      let value;try{value=validateIssue(await readJsonBody(req,{maxBytes:5000}),cluster);}catch(error){return json(400,{error:error.statusCode ? 'Report is too large or malformed.' : error.message});}
       const reportId=randomBytes(16).toString('hex'), token=randomBytes(24).toString('hex'), at=new Date().toISOString();
       await store.update(state=>{
         const rows = state.productIssues ||= {};

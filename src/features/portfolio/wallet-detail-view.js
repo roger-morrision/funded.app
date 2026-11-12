@@ -97,7 +97,7 @@ export function renderWalletDetail(
   const tradeScanReady = directTrades ? directTrades.status==='ready' : exploreScannedCount > 0 && assets.length > 0;
   const tradeScanStale = exploreProviderStatus.includes('stale');
   const scanNote = directTrades ? directTrades.status==='loading' ? 'Checking finalized wallet trades'
-    : directTrades.status==='ready' ? `${directTrades.scannedSignatures} wallet transactions checked · ${directTrades.coverage} Pump/PumpSwap history`
+    : directTrades.status==='ready' ? `${directTrades.scannedSignatures} wallet transactions checked · ${directTrades.coverage} trade history`
       : 'Wallet trade history is unavailable'
     : tradeScanReady ? `Trades shown for ${exploreScannedCount} of ${assets.length} listed coins${tradeScanStale ? ' (last available update)' : ''}` : 'Recent trades are unavailable';
   const publicScopeNote = !isSelf && tradeScanReady && (directTrades
