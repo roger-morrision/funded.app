@@ -16,12 +16,12 @@ export function createTradeExecutionController(appState) {
   const verificationInFlight=new Set();
   const quoteRetry=createTradeQuoteRetry(globalThis.document?.querySelector('#trade-quote-retry'),{
     isCurrent:()=>!appState.tradeActionBusy&&retryInputKey===JSON.stringify({...appState.tradeInputs(),wallet:appState.connectedWalletAddress}),
-    retry:()=>{if(holdUncertainTrade(appState.tradeInputs().mint))return;appState.invalidateTradePreview();appState.queueTradeQuote(0);}
+    retry:()=>{noteUncertainTrade(appState.tradeInputs().mint);appState.invalidateTradePreview();appState.queueTradeQuote(0);}
   });
   // app-source: 565
   function queueTradeQuote(delay = 350){
     clearTimeout(appState.tradeQuoteTimer);
-    if (holdUncertainTrade(appState.tradeInputs().mint)) return;
+    noteUncertainTrade(appState.tradeInputs().mint);
     if (!appState.tradeInputs().valid || !appState.wallet || !appState.canSignTransactions(appState.wallet) || document.visibilityState === 'hidden' || document.querySelector('#trade-panel')?.hidden) return;
     appState.tradeQuoteTimer = setTimeout(() => { void appState.prepareTradeQuote().catch(() => {}); }, delay);
   }
@@ -42,7 +42,7 @@ export function createTradeExecutionController(appState) {
   // app-source: 567
   async function prepareTradeQuote({ connectIfNeeded = false } = {}){
     const { mint, side, amount, slippagePercent, valid } = appState.tradeInputs();
-    if (holdUncertainTrade(mint)) return null;
+    noteUncertainTrade(mint);
     if (!valid) throw new Error('Enter a positive amount and slippage between 0.1% and 10%.');
     assertTradeLimits({slippagePercent});
     if (!appState.wallet && connectIfNeeded) await appState.connectWallet();
@@ -123,6 +123,17 @@ export function createTradeExecutionController(appState) {
   // app-source-end
 
   // app-source: 568
+  // A saved, unverified trade blocks signing (holdUncertainTrade) but never the
+  // price estimate: the estimate signs nothing. It is checked in the background
+  // (at most every 15 s) so an expired or landed trade clears on its own.
+  const backgroundChecks=new Map();
+  function noteUncertainTrade(mint){
+    const pending=uncertainTrade(appState.connectedWalletAddress,mint,appState.pendingTradeVerifications);
+    if(!pending)return;
+    if(Date.now()-(backgroundChecks.get(pending.signature)||0)<15_000)return;
+    backgroundChecks.set(pending.signature,Date.now());
+    void verifyPendingTrade(null,pending.signature).catch(()=>{});
+  }
   function holdUncertainTrade(mint){
     const pending=uncertainTrade(appState.connectedWalletAddress,mint,appState.pendingTradeVerifications);
     if(!pending)return false;

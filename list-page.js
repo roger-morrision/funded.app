@@ -19,6 +19,13 @@ const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
 const LISTING_READ_TIMEOUT_MS = 30_000;
 const byId = id => document.getElementById(id);
 
+// Social link icons for the token preview (website, X, Telegram, Discord).
+const SOCIAL_ICONS = {
+  Website: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  X: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M17.8 3h3.1l-6.8 7.7 8 10.3h-6.3l-4.9-6.4L5.3 21H2.2l7.3-8.3L1.8 3h6.4l4.4 5.9L17.8 3Zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5Z"/></svg>',
+  Telegram: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M21.4 4.2 18.3 19c-.2 1-.8 1.3-1.7.8l-4.6-3.4-2.2 2.1c-.3.3-.5.5-1 .5l.3-4.7 8.6-7.8c.4-.3-.1-.5-.6-.2L6.5 13 1.9 11.6c-1-.3-1-1 .2-1.5l17.9-6.9c.8-.3 1.6.2 1.4 1Z"/></svg>',
+  Discord: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M19.6 5.3A16.5 16.5 0 0 0 15.5 4l-.5 1a15.3 15.3 0 0 0-6 0l-.5-1a16.5 16.5 0 0 0-4.1 1.3C1.8 9.2 1.1 13 1.4 16.7a16.6 16.6 0 0 0 5 2.5l1.1-1.7c-.6-.2-1.2-.5-1.7-.9l.4-.3a11.8 11.8 0 0 0 11.6 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.7a16.6 16.6 0 0 0 5-2.5c.4-4.3-.7-8-3-11.4ZM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg>',
+};
 export function initPaidListing({ getSolana, getConnection, getSession, assertSession, connectWallet, cluster, fundedMint, mainnetReadOnly }) {
   const mintInput = byId('list-mint');
   if (!mintInput) return;
@@ -137,7 +144,12 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         const links = metadataLinks(lookup.details);
         if (links.length) {
           const nav = document.createElement('nav'); nav.className = 'list-token-links'; nav.setAttribute('aria-label', 'Token links');
-          for (const [label, href] of links) { const a = document.createElement('a'); a.href = href; a.textContent = label; a.target = '_blank'; a.rel = 'noopener noreferrer nofollow'; nav.append(a); }
+          for (const [label, href] of links) {
+            const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer nofollow';
+            a.className = 'list-social-icon'; a.title = label; a.setAttribute('aria-label', `${label} (opens in a new tab)`);
+            a.innerHTML = SOCIAL_ICONS[label] || ''; if (!a.innerHTML) a.textContent = label;
+            nav.append(a);
+          }
           extra.push(nav);
         }
         const head = document.createElement('div'); head.className = 'list-token-head';
@@ -223,11 +235,19 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
         symbolInput.value = lookup.symbol;
         setStatus(lookup.metadataStatus==='missing'?'Mint verified on Solana. Name metadata is unavailable; this token will be listed by its mint address.':'Token metadata verified on Solana. Review remains gated by listing availability and wallet checks.');
         // Logo, description and links from the metadata URI arrive separately.
-        void loadTokenMetadata(apiRequest, mint).then(details => {
-          if (!details || sequence !== lookupSequence || lookup?.mint !== mint) return;
-          lookup = { ...lookup, details };
-          draw();
-        });
+        // Indexed market data (DexScreener/Jupiter) fills a logo and social links
+        // the on-chain metadata does not publish (common for Token-2022 mints).
+        void Promise.all([loadTokenMetadata(apiRequest, mint).catch(() => null),
+          apiRequest(`/api/tokens/${encodeURIComponent(mint)}/overview`, { signal: AbortSignal.timeout(8000) }).then(result => result.data).catch(() => null)])
+          .then(([details, indexed]) => {
+            if (sequence !== lookupSequence || lookup?.mint !== mint) return;
+            const links = { ...(details?.links || {}) };
+            for (const key of ['website', 'twitter', 'telegram', 'discord']) if (!links[key] && /^https:\/\//.test(indexed?.[key] || '')) links[key] = indexed[key];
+            const image = details?.image || (indexed?.imageUri ? `${location.origin}/api/tokens/${encodeURIComponent(mint)}/logo` : null);
+            if (!details && !image && !Object.keys(links).length) return;
+            lookup = { ...lookup, details: { ...(details || {}), image, links, description: details?.description || indexed?.description || '' } };
+            draw();
+          });
       } catch (error) {
         if (sequence !== lookupSequence || mint !== mintValue()) return;
         lookup = { mint, status:'error', message:error instanceof TypeError ? 'Solana metadata service unavailable.' : error.message || 'The Solana metadata service did not respond.' };

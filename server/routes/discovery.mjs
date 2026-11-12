@@ -72,7 +72,8 @@ export function createDiscoveryRoutes({
     const byMint = new Map();
     for (const item of launches) byMint.set(item.mint, { ...item, registry: 'launch', createdTimestamp: item.createdTimestamp || Math.floor(Date.parse(item.createdAt || item.launchedAt || 0) / 1000) || null });
     for (const item of listings) {
-      const listingPayment = { signature: item.signature, amountTokens: item.amountTokens, verified: true };
+      const listingPayment = item.adminListing ? { signature: null, admin: true, adminSignature: item.adminSignature || null, verified: true }
+        : { signature: item.signature, amountTokens: item.amountTokens, verified: true };
       const prior = byMint.get(item.mint);
       byMint.set(item.mint, prior ? { ...prior, listingPayment } : { mint: item.mint, name: item.name || 'Paid listing', symbol: item.symbol || 'TOKEN',
         imageUri: item.imageUri || null, registry: 'listing', createdTimestamp: Math.floor(Date.parse(item.listedAt) / 1000) || null, listingPayment });

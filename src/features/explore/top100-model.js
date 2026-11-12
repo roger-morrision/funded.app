@@ -28,7 +28,7 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
     const created = number(asset.createdTimestamp);
     const createdMs = created > 0 ? created * (created < 10_000_000_000 ? 1000 : 1) : null;
     const policy = launches.get(mint), promotion = verifiedPromotionBadge(policy);
-    const paidListing = asset.listingPayment?.verified === true && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(asset.listingPayment.signature || '');
+    const paidListing = asset.listingPayment?.verified === true && (asset.listingPayment.admin === true || /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(asset.listingPayment.signature || ''));
     const boost = activeBoostMultiplier(boosts[mint], now), packs = activeBoostPackages(boosts[mint], now);
     const expiries = packs.map(pack => Date.parse(pack.expiresAt));
     const boostNextExpiry = boost > 0 ? expiries.length ? Math.min(...expiries) : Date.parse(boosts[mint].nextExpiry || boosts[mint].expiresAt) : null;
