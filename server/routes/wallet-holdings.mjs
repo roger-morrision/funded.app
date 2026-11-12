@@ -6,7 +6,7 @@ const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EH5JBT5gH7r2uX8a5Ug8';
 const WSOL = 'So11111111111111111111111111111111111111112';
 
-export function createWalletHoldingsRoute({ connection, free, respond }) {
+export function createWalletHoldingsRoute({ connection, free, tokenCache = null, respond }) {
   const cache = new Map(), names = new Map();
   let filling = null;
   function fillNames(mints) {
@@ -41,9 +41,22 @@ export function createWalletHoldingsRoute({ connection, free, respond }) {
     const [dex, jup] = await Promise.all([free.dexTokens(mints).catch(() => new Map()), free.jupPrices(mints).catch(() => new Map())]);
     // Names, symbols and logos missing from DexScreener come from Jupiter's token list.
     // Known names are remembered; unknown ones fill in the background a few at a time.
-    const missing = mints.filter(mint => !dex.get(mint)?.symbol && !names.has(mint));
-    await Promise.all(missing.slice(0, 4).map(async mint => { const info = await free.jupToken?.(mint).catch(() => null); if (info?.symbol) names.set(mint, info); }));
-    void fillNames(missing.slice(4));
+    // Names already indexed for Explore or token pages come from the token cache.
+    let missing = mints.filter(mint => !dex.get(mint)?.symbol && !names.has(mint));
+    if (missing.length && tokenCache) {
+      const cached = await tokenCache.read(missing).catch(() => new Map());
+      for (const [mint, row] of cached) if (row?.symbol) names.set(mint, { symbol: row.symbol, name: row.name || null, icon: row.imageUri || row.logoUri || null });
+      missing = missing.filter(mint => !names.has(mint));
+    }
+    // The rest: up to 12 from Jupiter now, three at a time within about 3 s; later ones fill in the background.
+    const lookups = missing.slice(0, 12), deadline = Date.now() + 3000;
+    await Promise.all([0, 1, 2].map(async lane => {
+      for (let index = lane; index < lookups.length && Date.now() < deadline; index += 3) {
+        const info = await free.jupToken?.(lookups[index]).catch(() => null);
+        if (info?.symbol) names.set(lookups[index], info);
+      }
+    }));
+    void fillNames(missing.filter(mint => !names.has(mint)));
     const named = names;
     const accounts = mints.map(mint => {
       const row = byMint.get(mint), market = dex.get(mint) || {}, info = named.get(mint) || {}, price = Number(market.priceUsd ?? jup.get(mint)?.priceUsd);

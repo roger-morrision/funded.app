@@ -30,7 +30,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
-  const handleWalletHoldings = createWalletHoldingsRoute({ connection, free, respond });
+  const handleWalletHoldings = createWalletHoldingsRoute({ connection, free, tokenCache, respond });
   const supplyCache = new Map();
   const KNOWN_INITIAL = new Set(['pump.fun', 'raydium-launchlab', 'letsbonk.fun', 'bonk.fun', 'moonshot']);
   async function burnFacts(mint, launchpad) {
