@@ -42,11 +42,16 @@ export function mountWalletMenuNotifications(document = globalThis.document) {
 export function mountMainnetLaunchRedirects(richHref, document = globalThis.document) {
   const relabel = link => {
     if (link.id === 'header-buy-rich' || link.dataset.mainnetLaunch) return;
+    const text = [...link.childNodes].reverse().find(node => node.nodeType === 3 && node.nodeValue.trim());
+    // Launch-guide cards and steps ("Prepare your coin", fee-split cards) do not
+    // apply without the launch program, so they are hidden rather than relabelled.
+    if (!/^\s*(?:create a coin|create)\s*$/i.test(text?.nodeValue || link.textContent || '')) {
+      link.dataset.mainnetLaunch = 'hidden'; link.hidden = true; link.style.setProperty('display', 'none', 'important'); return;
+    }
     link.dataset.mainnetLaunch = 'buy-rich';
     link.href = richHref; link.title = 'Open the $RICH token page';
-    const text = [...link.childNodes].reverse().find(node => node.nodeType === 3 && node.nodeValue.trim());
-    if (text) text.nodeValue = /create a coin/i.test(text.nodeValue) || /^\s*create\s*$/i.test(text.nodeValue) ? 'Buy $RICH' : text.nodeValue;
-    else if (!link.children.length) link.textContent = 'Buy $RICH';
+    if (text) text.nodeValue = 'Buy $RICH';
+    else link.textContent = 'Buy $RICH';
   };
   const sweep = () => {
     document.querySelectorAll('a[href="#launch"]').forEach(relabel);
