@@ -106,7 +106,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (!row.symbol && jupInfo?.symbol) row = { ...row, symbol: String(jupInfo.symbol).slice(0, 20) };
     }
     const [burn, holders] = await Promise.all([burnFacts(mint, row.launchpad ?? cached?.launchpad).catch(() => ({})), holderCount(mint).catch(() => null)]);
-    if (Number.isSafeInteger(holders)) row = { ...row, holderCount: holders };
+    // One holder figure: the fresh count replaces any older cached launchpad count.
+    if (Number.isSafeInteger(holders)) row = { ...row, holderCount: holders, holders };
     const merged = { ...(cached || {}), ...Object.fromEntries(Object.entries({ ...row, ...burn }).filter(([, v]) => v != null)), mint, source, observedAt: new Date().toISOString() };
     void tokenCache.upsert([merged]);
     return merged;
@@ -225,6 +226,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       } catch (error) {
         if (error?.status === 400) {
           console.warn(JSON.stringify({ event: 'jupiter_no_route', side, mint, amount: amount.toString(), message: String(error?.message || error).slice(0, 240) }));
+          if (/TOKEN_NOT_TRADABLE/.test(String(error?.message))) return json(res, 422, { code: 'TOKEN_NOT_TRADABLE',
+            error: 'Jupiter does not route this token (it is marked not tradable, often because of transfer restrictions), so it cannot be traded here. Nothing was signed.' });
           return json(res, 404, { error: 'No swap route was found for this token and amount.' });
         }
         console.warn(JSON.stringify({ event: 'jupiter_build_failed', side, mint, message: String(error?.message || error).slice(0, 240) }));

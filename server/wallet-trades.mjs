@@ -60,7 +60,35 @@ export function walletTradeRows({transaction,reference,wallet,decodePoolEvent}) 
     }
     if (expectedTrader===wallet&&records.length===before) throw new Error('Wallet trade mint or quote proof is unavailable.');
   }
+  if (!records.length) {
+    const swap=balanceDeltaSwap({transaction,keys,wallet,mints});
+    if (swap) records.push({...swap,trader:wallet,signature:reference.signature,slot:transaction.slot,
+      blockTime:transaction.blockTime,logIndex:0,route:'swap',finalized:true});
+  }
   return records;
+}
+
+// Aggregator and DEX swaps (Jupiter, Raydium, Meteora, …) emit no Pump events. A
+// successful transaction where this wallet's SOL (native + wrapped) moved one way
+// and exactly one other token moved the other way is recorded as a buy or sell.
+const WSOL=NATIVE_MINT.toBase58();
+function balanceDeltaSwap({transaction,keys,wallet,mints}) {
+  const index=keys.indexOf(wallet),meta=transaction.meta;
+  if (index<0||!Array.isArray(meta.preBalances)||!Array.isArray(meta.postBalances)) return null;
+  const deltas=new Map();
+  for (const [balances,sign] of [[meta.preTokenBalances||[],-1n],[meta.postTokenBalances||[],1n]])
+    for (const balance of balances) if (balance.owner===wallet&&/^\d+$/.test(String(balance.uiTokenAmount?.amount)))
+      deltas.set(balance.mint,(deltas.get(balance.mint)||0n)+sign*BigInt(balance.uiTokenAmount.amount));
+  const fee=index===0?BigInt(meta.fee||0):0n;
+  const sol=BigInt(meta.postBalances[index])-BigInt(meta.preBalances[index])+fee+(deltas.get(WSOL)||0n);
+  const tokens=[...deltas].filter(([mint,delta])=>mint!==WSOL&&delta!==0n);
+  if (tokens.length!==1||sol===0n) return null;
+  const [mint,delta]=tokens[0],decimals=mints.get(mint)?.decimals;
+  if (!Number.isInteger(decimals)||(delta>0n)===(sol>0n)) return null;
+  const solLamports=sol<0n?-sol:sol,tokenAmountRaw=delta<0n?-delta:delta;
+  // Ignore dust movements (rent refunds, airdrops) that are not swaps.
+  if (solLamports<10_000n) return null;
+  return {mint,decimals,side:delta>0n?'buy':'sell',solLamports:String(solLamports),tokenAmountRaw:String(tokenAmountRaw)};
 }
 
 export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.floor(Date.now()/1000),maxSignatures=50,cluster='devnet'}) {

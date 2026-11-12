@@ -2,7 +2,9 @@ import { withoutDefaultSocialTags } from './social-template.mjs';
 const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export function tokenSocialModel(launch, metadata, mint, cluster, publicOrigin='') {
   const verified=Boolean(launch?.mint===mint&&launch.cluster===cluster&&launch.onchainVerified===true&&launch.policySignature&&launch.name&&launch.symbol);
-  if(!verified)return {available:false,title:'Token verification unavailable | richpad.fun',description:'This token is not verified in the current app registry. Do not infer safety or endorsement.',canonical:null,image:null};
+  // Tokens outside the launch registry (any DEX or launchpad) get a neutral title the
+  // client replaces with the indexed name once market data loads.
+  if(!verified)return {available:false,title:`Token ${String(mint).slice(0,4)}…${String(mint).slice(-4)} | richpad.fun`,description:'Live chart, trades and holders on richpad.fun. Not an endorsement. Tokens can lose all value.',canonical:null,image:null};
   const signed=metadata?.mint===mint&&metadata.creatorWallet===launch.creatorWallet&&metadata.name===launch.name&&metadata.symbol===launch.symbol;
   const purpose=signed?String(metadata.tagline||metadata.description||'').slice(0,160):'';
   let origin=null;try{const url=new URL(publicOrigin);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)origin=url.origin;}catch{}
