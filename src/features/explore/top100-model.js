@@ -28,7 +28,7 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
     const created = number(asset.createdTimestamp);
     const createdMs = created > 0 ? created * (created < 10_000_000_000 ? 1000 : 1) : null;
     const policy = launches.get(mint), promotion = verifiedPromotionBadge(policy);
-    const paidListing = asset.listingPayment?.verified === true && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(asset.listingPayment.signature || '');
+    const paidListing = asset.listingPayment?.verified === true && (asset.listingPayment.admin === true || /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(asset.listingPayment.signature || ''));
     const boost = activeBoostMultiplier(boosts[mint], now), packs = activeBoostPackages(boosts[mint], now);
     const expiries = packs.map(pack => Date.parse(pack.expiresAt));
     const boostNextExpiry = boost > 0 ? expiries.length ? Math.min(...expiries) : Date.parse(boosts[mint].nextExpiry || boosts[mint].expiresAt) : null;
@@ -46,12 +46,13 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
     const record = {...asset, mint, capUsd, capSol, paidListing, boost, boostNextExpiry, boostExpiresAt,
       capGrowthUsd,holderGrowth,communityCount,socialChannels,
       tier:promotion?.tier || (policy ? 'standard' : 'external'), paidPriority:['premier','pro'].includes(promotion?.tier) || paidListing,
-      volumeUsd:activityFresh && volume != null && rate > 0 ? volume * rate : null,
-      trades:activityFresh ? market.windowTradeCount : null,
-      change:activityFresh ? market.windowPriceChangePercent : null,
+      // Indexed tokens (Mainnet) fall back to the indexed 24h figures.
+      volumeUsd:activityFresh && volume != null && rate > 0 ? volume * rate : nonnegative(asset.volume24hUsd),
+      trades:activityFresh ? market.windowTradeCount : Number.isSafeInteger(asset.buyCount24h) && Number.isSafeInteger(asset.sellCount24h) ? asset.buyCount24h + asset.sellCount24h : null,
+      change:activityFresh ? market.windowPriceChangePercent : Number.isFinite(asset.priceChange24hPercent) ? asset.priceChange24hPercent : null,
       partial:market.windowCoverage !== 'complete',
       ageHours:createdMs && createdMs <= now && (!asset.listingPayment || asset.launchAgeVerified) ? (now - createdMs) / 3600000 : null,
-      stage:asset.migrated === true ? 'migrated' : asset.complete === false ? 'curve' : 'unknown'};
+      stage:asset.migrated === true ? 'migrated' : asset.complete === false ? 'curve' : nonnegative(asset.liquidityUsd) > 0 ? 'trading' : 'unknown'};
     if (!unique.has(mint) || unique.get(mint).registryFallback) unique.set(mint, record);
   }
   return [...unique.values()];

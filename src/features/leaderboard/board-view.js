@@ -160,6 +160,7 @@ export function renderLeaderboard(
     exploreUpdatedAt = null,
     EXPLORE_CLUSTER,
     connectedWalletAddress = null,
+    mainnetTraderBoard = null,
   },
   {
     loadWalletBurnBoard,
@@ -191,16 +192,20 @@ export function renderLeaderboard(
     setCoinField('#leaderboard-table-kicker', 'Trades · last 24 hours');
     setCoinField('#leaderboard-table-title', 'Top traders');
     setCoinField('#leaderboard-hero-description', 'Top wallets by SOL traded in the last 24 hours.');
-    const { scannedTokens, traders } = rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
+    // Mainnet ranks every trade placed on richpad.fun, read from the app fee wallet on Solana.
+    const ledger = mainnetTraderBoard;
+    const { scannedTokens, traders } = ledger ? { scannedTokens: ledger.traders?.length ? Math.max(1, ledger.tokenCount || 0) : 0, traders: ledger.traders || [] }
+      : rankObservedTraders?.(assets, verifiedLaunchPolicies) || { scannedTokens: 0, traders: [] };
     // Before the registry and the first feed read finish, say so instead of "unavailable".
-    const loading = EXPLORE_CLUSTER === 'devnet' && (verifiedLaunchPoliciesStatus === 'loading' || (!exploreFeedAvailable && !exploreUpdatedAt));
-    const unavailable = !loading && (EXPLORE_CLUSTER === 'devnet' ? verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable : !exploreFeedAvailable);
+    const loading = ledger ? ledger.status === 'loading' : EXPLORE_CLUSTER === 'devnet' && (verifiedLaunchPoliciesStatus === 'loading' || (!exploreFeedAvailable && !exploreUpdatedAt));
+    const unavailable = ledger ? ledger.status === 'unavailable' : !loading && (EXPLORE_CLUSTER === 'devnet' ? verifiedLaunchPoliciesStatus !== 'ready' || !exploreFeedAvailable : !exploreFeedAvailable);
     setCoinField('#leaderboard-source-note', loading
       ? 'Reading recent trades…'
       : unavailable
       ? 'Trade data is unavailable right now.'
       : !scannedTokens
       ? 'No trades in the last 24 hours yet.'
+      : ledger ? `Every trade placed on richpad.fun in the last 24 hours, across ${ledger.tokenCount} coin${ledger.tokenCount === 1 ? '' : 's'}. Read from the app fee wallet on Solana.`
       : `Based on ${scannedTokens} coin${scannedTokens === 1 ? '' : 's'}, up to 20 recent trades per token. Not all trading is counted.`);
     setCoinField('#leaderboard-status-title', loading ? 'Loading trader ranking…' : unavailable ? 'Trader ranking unavailable' : traders.length ? `${traders.length} trading wallet${traders.length === 1 ? '' : 's'}` : 'No traders yet');
     // A connected wallet sees its own place first: the reason to come back.
@@ -209,7 +214,7 @@ export function renderLeaderboard(
       : yourIndex >= 0 ? `Your rank: #${yourIndex + 1} of ${traders.length} · ranked by SOL volume in the last 24 hours.`
       : connectedWalletAddress ? 'You are not ranked yet. Buy or sell any coin to join the ranking.'
       : 'Ranked by SOL traded in the last 24 hours. Connect a wallet to see your rank.');
-    setCoinField('#leaderboard-status-badge', loading ? 'Loading' : unavailable ? 'Unavailable' : 'Partial history');
+    setCoinField('#leaderboard-status-badge', loading ? 'Loading' : unavailable ? 'Unavailable' : ledger ? 'On-chain' : 'Partial history');
     table.setAttribute('aria-label', 'Top Solana traders in the last 24 hours');
     const header = '<div class="leaderboard-table-head" role="row"><span role="columnheader">Rank</span><span role="columnheader">Wallet</span><span role="columnheader">Trades</span><span role="columnheader">SOL volume</span><span role="columnheader">Proof</span></div>';
     if (loading || unavailable || !scannedTokens || !traders.length) {

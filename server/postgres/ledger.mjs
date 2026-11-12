@@ -19,6 +19,8 @@ buckets.push('communityExecutions', 'manualReferralPayoutClaims');
 buckets.push('boostPayments');
 buckets.push('developerTokenReleases');
 buckets.push('launchPostEmails', 'projectUpdates');
+// Mainnet app trades read from the fee wallet (keyed by signature) and the sync cursor.
+buckets.push('mainnetTrades', 'mainnetTradeCursor');
 
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
@@ -26,7 +28,7 @@ function baseState() {
   return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
-function initialState() { return { ...baseState(), projectUpdates:{}, launchPostEmails:{}, developerTokenReleases:{}, boostPayments:{}, top100Snapshots:{}, productIssues:{}, adminSettings:{}, adminAudit:{}, adminWithdrawalIntents:{}, launchServiceQuotes:{}, launchSymbolReservations:{}, v3AllocationResidualPlans:{}, v3AgencyExecutions:{}, v3AgencyPromotions:{}, communityExecutions:{}, manualReferralPayoutClaims:{} }; }
+function initialState() { return { ...baseState(), mainnetTrades:{}, mainnetTradeCursor:{}, projectUpdates:{}, launchPostEmails:{}, developerTokenReleases:{}, boostPayments:{}, top100Snapshots:{}, productIssues:{}, adminSettings:{}, adminAudit:{}, adminWithdrawalIntents:{}, launchServiceQuotes:{}, launchSymbolReservations:{}, v3AllocationResidualPlans:{}, v3AgencyExecutions:{}, v3AgencyPromotions:{}, communityExecutions:{}, manualReferralPayoutClaims:{} }; }
 
 function normalizeState(state) {
   const next = { ...initialState(), ...state };
@@ -34,6 +36,8 @@ function normalizeState(state) {
   next.projectUpdates ||= {};
   next.developerTokenReleases ||= {};
   next.productIssues ||= {};
+  next.mainnetTrades ||= {};
+  next.mainnetTradeCursor ||= {};
   next.top100Snapshots ||= {};
   next.adminSettings ||= {};
   next.adminAudit ||= {};

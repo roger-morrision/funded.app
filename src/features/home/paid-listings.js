@@ -5,7 +5,8 @@ export function verifiedPaidListings(records, cluster = 'devnet') {
   const seen = new Set();
   return records.filter(record => {
     const mint = String(record?.mint || '');
-    const signature = String(record?.signature || '');
+    // Admin listings carry the admin wallet's signature instead of a burn transaction.
+    const signature = String(record?.signature || (record?.adminListing === true ? record.adminSignature : '') || '');
     if (record?.onchainVerified !== true || record.status !== 'listed' || record.cluster !== cluster
       || mint.length < 32 || mint.length > 44 || !base58.test(mint)
       || signature.length < 64 || signature.length > 88 || !base58.test(signature)

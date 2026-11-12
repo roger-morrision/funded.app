@@ -30,7 +30,7 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
     const promotion=verifiedPromotionBadge(launch);
     if (promotion) add(launch.mint,Number(launch.blockTime)*1000,`${promotion.tier === 'premier' ? 'Premier' : promotion.tier === 'pro' ? 'Pro' : 'Boost'} promotion`,promotion.signature);
   }
-  for (const listing of paid) add(listing.mint,Date.parse(listing.listedAt),'Paid listing',listing.signature);
+  for (const listing of paid) add(listing.mint,Date.parse(listing.listedAt),listing.adminListing?'Listing':'Paid listing',listing.signature||listing.adminSignature);
   const packagesByMint=new Map(),seenBoosts=new Set();
   for (const boost of projectBoostReceipts(boosts,{cluster,now})) if (boost.cluster===cluster && boost.status==='finalized'
     && boostPackage(boost.packageId)?.multiplier===boost.multiplier && signature.test(boost.signature||'') && !seenBoosts.has(boost.signature)) {

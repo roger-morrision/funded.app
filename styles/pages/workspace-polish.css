@@ -320,9 +320,10 @@ html body #main-content .home-featured { order:1;min-width:0;max-width:100%;marg
 
 /* Compact, readable launch benefits replace long hero paragraphs. */
 html body #main-content .hero-benefit-tags { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none;margin:18px 0 0;padding:0;max-width:620px; }
-html body #main-content .hero-benefit-tags li { min-width:0;padding:10px 12px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-surface); }
-html body #main-content .hero-benefit-tags strong { display:block;font-size:13px;line-height:1.4;color:var(--cp-accent); }
-html body #main-content .hero-benefit-tags span { display:block;margin-top:6px;font-size:13px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
+html body #main-content .hero-benefit-tags li { min-width:0;padding:8px 12px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-surface); }
+/* Title and text read as one sentence to keep the cards compact. */
+html body #main-content .hero-benefit-tags strong { display:inline;font-size:13px;line-height:1.5;color:var(--cp-accent); }
+html body #main-content .hero-benefit-tags span { display:inline;margin:0 0 0 4px;font-size:13px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
 html body #main-content .hero-benefit-tags small { display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--cp-line);font-size:11px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
 @media(min-width:901px) { html body #main-content .hero-benefit-tags { max-width:none;margin:0; } }
 @media(min-width:1200px) { html body #main-content .hero-benefit-tags { grid-template-columns:repeat(4,minmax(0,1fr)); } }

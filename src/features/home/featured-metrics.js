@@ -9,9 +9,10 @@ export function featuredMetrics(item, {asset={},holderSnapshot,solUsd,cluster='d
   const cap=number(cluster==='devnet' ? asset.migrated===true ? asset.poolMarketCapSol : asset.complete===false ? asset.curveCapSol : null : asset.marketCapUsd);
   const usd=cap!=null&&cap>=0&&fresh ? cluster==='devnet' ? rate>0?cap*rate:null : cap : null;
   const market=withMarketWindow(asset,'24h');
-  const change=fresh&&recent(asset.marketActivityObservedAt,now)?number(market.windowPriceChangePercent):null;
-  const count=recent(holderSnapshot?.at,now)?number(holderSnapshot.count):null;
-  const age=tokenAge(item.createdAt,now);
+  const indexed=cluster!=='devnet';
+  const change=fresh&&recent(asset.marketActivityObservedAt,now)?number(market.windowPriceChangePercent):indexed?number(asset.priceChange24hPercent):null;
+  const count=recent(holderSnapshot?.at,now)?number(holderSnapshot.count):indexed&&Number.isSafeInteger(asset.holderCount)?asset.holderCount:null;
+  const age=tokenAge(item.createdAt||(indexed&&number(asset.pairCreatedAt)>0?number(asset.pairCreatedAt):null),now);
   return {cap:usd==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(usd),
     change:change==null?'—':`≈${change>0?'+':''}${change.toFixed(2)}%`,direction:change==null?'unknown':change<0?'negative':'positive',
     age:age.timestamp?age.label:'—',ageAt:age.timestamp,

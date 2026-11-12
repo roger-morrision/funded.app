@@ -35,6 +35,7 @@ const EDGE_CACHEABLE = [
   // Public registry and report reads (no session or wallet input).
   [/^\/api\/(?:launches|listings|burn-receipts)$/, 10],
   [/^\/api\/home\/featured$/, 15],
+  [/^\/api\/leaderboard\/traders$/, 30],
   [/^\/api\/(?:boosts|fee-policy|analytics\/summary|buyback\/status)$/, 30],
 ];
 export function edgeCacheControl(method, pathname) {

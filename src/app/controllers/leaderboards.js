@@ -93,8 +93,22 @@ export function createLeaderboardsController(appState) {
   // app-source-end
 
   // app-source: 462
+  // Mainnet: trader ranking from trades placed on richpad.fun (fee wallet history).
+  let traderBoardLoading = null;
+  function loadMainnetTraders(force = false){
+    if (appState.EXPLORE_CLUSTER === 'devnet' || traderBoardLoading) return traderBoardLoading;
+    const board = appState.mainnetTraderBoard;
+    if (!force && board?.status === 'ready' && Date.now() - board.loadedAt < 60_000) return null;
+    if (!board) appState.mainnetTraderBoard = { status:'loading', traders:[], tokenCount:0 };
+    traderBoardLoading = appState.apiRequest('/api/leaderboard/traders', { signal:AbortSignal.timeout(20000) })
+      .then(result => { appState.mainnetTraderBoard = result?.available && Array.isArray(result.data?.traders) ? { status:'ready', loadedAt:Date.now(), ...result.data } : { status:'unavailable', traders:[], tokenCount:0 }; })
+      .catch(() => { appState.mainnetTraderBoard = { status:'unavailable', traders:[], tokenCount:0 }; })
+      .finally(() => { traderBoardLoading = null; if (appState.leaderboardView === 'traders') appState.renderLeaderboard(); });
+    return traderBoardLoading;
+  }
   function renderLeaderboard(){
-    return appState.renderLeaderboardView({ leaderboardView: appState.leaderboardView, burnersBoardState: appState.burnersBoardState, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, assets: appState.assets, coinSolUsdPrice: appState.coinSolUsdPrice, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreFeedAvailable: appState.exploreFeedAvailable, exploreUpdatedAt: appState.exploreUpdatedAt, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, connectedWalletAddress: appState.connectedWalletAddress }, { loadWalletBurnBoard: appState.loadWalletBurnBoard, renderWalletBurnersBoard: appState.renderWalletBurnersBoard, renderProjectBurnBoard: appState.renderProjectBurnBoard, rankObservedTraders: appState.rankObservedTraders, exploreExplorer: appState.exploreExplorer, formatOnchainAge: appState.formatOnchainAge, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
+    if (appState.leaderboardView === 'traders') void loadMainnetTraders();
+    return appState.renderLeaderboardView({ mainnetTraderBoard: appState.EXPLORE_CLUSTER === 'devnet' ? null : appState.mainnetTraderBoard || { status:'loading', traders:[], tokenCount:0 }, leaderboardView: appState.leaderboardView, burnersBoardState: appState.burnersBoardState, verifiedLaunchPolicies: appState.verifiedLaunchPolicies, assets: appState.assets, coinSolUsdPrice: appState.coinSolUsdPrice, verifiedLaunchPoliciesStatus: appState.verifiedLaunchPoliciesStatus, exploreFeedAvailable: appState.exploreFeedAvailable, exploreUpdatedAt: appState.exploreUpdatedAt, EXPLORE_CLUSTER: appState.EXPLORE_CLUSTER, connectedWalletAddress: appState.connectedWalletAddress }, { loadWalletBurnBoard: appState.loadWalletBurnBoard, renderWalletBurnersBoard: appState.renderWalletBurnersBoard, renderProjectBurnBoard: appState.renderProjectBurnBoard, rankObservedTraders: appState.rankObservedTraders, exploreExplorer: appState.exploreExplorer, formatOnchainAge: appState.formatOnchainAge, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
   }
   // app-source-end
 

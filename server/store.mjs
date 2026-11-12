@@ -29,6 +29,8 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     try { state = { ...state, ...JSON.parse(await readFile(filePath, 'utf8')) }; } catch (error) { if (error.code !== 'ENOENT') throw error; }
     state.adminSettings ||= {};
     state.adminAudit ||= {};
+    state.mainnetTrades ||= {};
+    state.mainnetTradeCursor ||= {};
     state.adminWithdrawalIntents ||= {};
     state.referralClaims ||= {};
     state.listings ||= {};

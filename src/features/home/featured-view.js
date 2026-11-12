@@ -12,7 +12,8 @@ function artwork(mint,uri,kind,cluster) {
 
 export function featuredCardMarkup(item,cluster,now=Date.now()) {
   const href=`/token/${encodeURIComponent(item.mint)}`;
-  const logo=artwork(item.mint,item.imageUri,'image',cluster),banner=artwork(item.mint,item.bannerUri,'banner',cluster);
+  // Mainnet tokens without stored artwork use the same-origin logo route.
+  const logo=artwork(item.mint,item.imageUri,'image',cluster)||(cluster==='mainnet-beta'&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item.mint)?`/api/tokens/${encodeURIComponent(item.mint)}/logo`:''),banner=artwork(item.mint,item.bannerUri,'banner',cluster);
   const e=escapeHtml,boost=activeBoostMultiplier(item.boost,now);
   return `<article class="home-featured-card" data-featured-mint="${e(item.mint)}">
     <a class="home-featured-token" href="${href}" aria-label="View ${e(item.name)} (${e(item.symbol)})${boost>0?` · ${boost.toLocaleString('en-US')} times active boost`:''}">

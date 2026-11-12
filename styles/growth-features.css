@@ -196,3 +196,15 @@ html:not(.app-mainnet) body.coin-external #trade-panel > :not(#coin-external-tra
 
 /* Mainnet: the token page itself shows market data and Jupiter trading; no separate external-token panel. */
 html.app-mainnet #coin-external-panel{display:none!important}
+/* Token preview social links as icon buttons. */
+.list-token-links .list-social-icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--fv-border); border-radius: 50%; color: var(--fv-text-muted); background: var(--fv-surface-raised); }
+.list-token-links .list-social-icon:hover, .list-token-links .list-social-icon:focus-visible { border-color: var(--fv-accent, #f5b900); color: var(--fv-text); }
+.list-token-head { display: flex; align-items: center; gap: 12px; }
+/* Paid listing cards: token logo fills the avatar. */
+.paid-listing-logo { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.home-token-avatar:has(.paid-listing-logo) { overflow: hidden; padding: 0; }
+/* Mainnet Explore lists Richpad launches and listings across DEXs: launch-stage sub-tabs are not used. */
+html.app-mainnet #explore .explore-pulse-head, html.app-mainnet #explore #explore-pulse { display: none !important; }
+/* Fee distribution: when only one panel is present (Mainnet), it spans the full width. */
+html body #main-content .capital-flow-layout:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+html body #main-content .capital-flow-layout > :only-child { grid-column: 1 / -1; }

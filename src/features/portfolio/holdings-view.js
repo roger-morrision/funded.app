@@ -80,11 +80,14 @@ export function renderPortfolio(
     const quantity = Number.isInteger(decimals) && /^\d+$/.test(raw) ? Number(raw) / 10 ** decimals : NaN;
     const tokenAmount = Number.isFinite(quantity) ? formatOnChainNumber(quantity, 6) : '—';
     const receiptUrl = exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`);
+    // Share this trade's banner (quantity, SOL, and for a matched sale its P&L).
+    const matched = trade.side === 'sell' ? observed.bySignature.get(trade.signature) : null;
+    const shareButton = `<button type="button" class="portfolio-trade-share" data-share-trade data-signature="${escapeHtml(trade.signature)}" data-mint="${escapeHtml(trade.mint)}" data-side="${escapeHtml(trade.side)}" data-symbol="${escapeHtml(trade.symbol || '')}" data-pnl-sol="${matched ? escapeHtml(String(matched.pnlSol)) : ''}" data-pnl-percent="${matched && matched.basisSol > 0 ? escapeHtml(String(matched.pnlSol / matched.basisSol * 100)) : ''}" aria-label="Share this ${trade.side === 'buy' ? 'buy' : 'sale'}">Share</button>`;
     return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}" title="${escapeHtml(trade.mint)}">${trade.symbol ? `$${escapeHtml(trade.symbol)}` : tokenIdentityMarkup(trade.mint, escapeHtml, shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td class="numeric">${escapeHtml(usdText(trade.solAmount))}</td><td class="numeric">${(() => { const row = trade.side === 'sell' ? observed.bySignature.get(trade.signature) : null;
       if (!row) return '<span class="portfolio-pnl-none">—</span>';
       const cls = row.pnlSol >= 0 ? 'is-positive' : 'is-negative', sign = row.pnlSol >= 0 ? '+' : '';
       const pct = row.basisSol > 0 ? ` (${sign}${(row.pnlSol / row.basisSol * 100).toFixed(1)}%)` : '';
-      return `<span class="portfolio-pnl ${cls}">${sign}${escapeHtml(formatOnChainNumber(row.pnlSol, 5))} SOL${solUsd > 0 ? ` · ${sign}${escapeHtml(formatDashboardUsd(Math.abs(row.pnlSol) * solUsd)).replace(/^/, row.pnlSol < 0 ? '-' : '')}` : ''}${escapeHtml(pct)}</span>`; })()}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a></td></tr>`;
+      return `<span class="portfolio-pnl ${cls}">${sign}${escapeHtml(formatOnChainNumber(row.pnlSol, 5))} SOL${solUsd > 0 ? ` · ${sign}${escapeHtml(formatDashboardUsd(Math.abs(row.pnlSol) * solUsd)).replace(/^/, row.pnlSol < 0 ? '-' : '')}` : ''}${escapeHtml(pct)}</span>`; })()}</td><td><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View transaction ${escapeHtml(shortAddress(trade.signature))} on Solana Explorer">${escapeHtml(shortAddress(trade.signature))} ↗</a> ${shareButton}</td></tr>`;
   }).join('') || `<tr><td class="portfolio-trade-empty" colspan="8"><span>${!address ? 'Connect a wallet to see trade transactions.'
     : history?.status==='loading' ? 'Checking finalized wallet trades…'
       : history?.status==='unavailable' ? 'Wallet trade history is unavailable. Select Refresh trades to retry.'
@@ -92,7 +95,7 @@ export function renderPortfolio(
           : 'No trades found in the checked wallet history. Some transactions could not be checked.'
           : 'Trade history has not been checked yet. Select Refresh trades.'}</span></td></tr>`;
   txNote.textContent = !address ? 'Connect a wallet for Solana trade history.'
-    : history?.status==='ready' ? `Pump and PumpSwap · last 24 hours · ${history.scannedSignatures} wallet transactions checked · ${history.coverage} coverage within a ${history.signatureLimit}-signature lookback, up to ${history.rowLimit} trades.`
+    : history?.status==='ready' ? `All DEXs · last 24 hours · ${history.scannedSignatures} wallet transactions checked · ${history.coverage} coverage within a ${history.signatureLimit}-signature lookback, up to ${history.rowLimit} trades.`
       : history?.status==='loading' ? 'Checking this wallet’s finalized transactions independently of Explore.'
         : 'Wallet trades are not loaded. This does not mean the wallet has no trades.';
   paginateHistory(rows, {document, label:'Holdings', selector:'.portfolio-holding-row', key:address});

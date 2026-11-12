@@ -33,8 +33,9 @@ export function initializeTradeExecution(appState) {
           sol: index >= 0 ? Math.abs(tx.meta.postBalances[index] - tx.meta.preBalances[index]) / 1e9 : NaN };
       };
       const own = figures(tx);
-      let pnlSol = NaN, pnlPercent = NaN;
-      const saved = button.dataset.side === 'sell' ? appState.savedRoundTrip(session.address, button.dataset.mint) : null;
+      let pnlSol = Number(button.dataset.pnlSol ?? NaN), pnlPercent = Number(button.dataset.pnlPercent ?? NaN);
+      if (button.dataset.pnlSol === '' || button.dataset.pnlSol == null) { pnlSol = NaN; pnlPercent = NaN; }
+      const saved = button.dataset.side === 'sell' && !Number.isFinite(pnlSol) ? appState.savedRoundTrip(session.address, button.dataset.mint) : null;
       if (saved?.buySignature) {
         const bought = figures(await activeConnection.getParsedTransaction(saved.buySignature, { commitment:'finalized', maxSupportedTransactionVersion:0 }).catch(() => null));
         if (bought.tokens > 0 && bought.sol > 0) { const cost = bought.sol * Math.min(1, own.tokens / bought.tokens); pnlSol = own.sol - cost; pnlPercent = pnlSol / cost * 100; }
@@ -51,7 +52,7 @@ export function initializeTradeExecution(appState) {
         text:`${button.dataset.side === 'buy' ? 'Bought' : 'Sold'} ${own.tokens ? own.tokens.toLocaleString('en-US', { maximumFractionDigits:2 }) + ' ' : ''}$${symbol || 'TOKEN'} on richpad.fun ${button.dataset.side === 'buy' ? '🚀' : '💰'}${Number.isFinite(own.sol) && own.sol > 0 ? `\n${button.dataset.side === 'buy' ? 'Spent' : 'Received'} ${own.sol.toFixed(4)} SOL` : ''}${Number.isFinite(pnlSol) ? ` · P&L ${pnlSol >= 0 ? '+' : ''}${pnlSol.toFixed(4)} SOL${Number.isFinite(pnlPercent) ? ` (${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(1)}%)` : ''}` : ''}\nCA: ${button.dataset.mint}`, url:url.toString(),
         result:{ kind:'trade', verified:true, side:button.dataset.side, mint:button.dataset.mint, tokenSymbol:symbol, tokenAmount:own.tokens, solAmount:own.sol, pnlSol, pnlPercent, logoImage,
           receipt:button.dataset.signature, receiptUrl:appState.exploreExplorer(`tx/${encodeURIComponent(button.dataset.signature)}`), wallet:session.address, network:appState.EXPLORE_CLUSTER } });
-    } catch (error) { appState.setTradeStatus(error.message || 'Trade receipt verification is unavailable.', true); }
+    } catch (error) { appState.setTradeStatus(error.message || 'Trade receipt verification is unavailable.', true); appState.showToast?.(error.message || 'Trade receipt verification is unavailable.'); }
     finally { button.disabled = false; }
   });
   // app-source-end

@@ -32,7 +32,7 @@ export function createExploreFiltersController(appState) {
   function filterExploreTabRecords(records, query = appState.exploreQuery){
     const filtered = appState.filterMarketRecords(records.map(record => marketFacts(record, appState.EXPLORE_CLUSTER)), appState.exploreFilterOptions(query));
     if (['pro', 'premier'].includes(appState.exploreTab)) return filtered.filter(record => record.benefitPolicyVerified === true && record.promotionTier === appState.exploreTab);
-    if (appState.exploreTab === 'paid-list') return filtered.filter(record => record.listingPayment?.verified === true && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(record.listingPayment.signature || ''));
+    if (appState.exploreTab === 'paid-list') return filtered.filter(record => record.listingPayment?.verified === true && (record.listingPayment.admin === true || /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(record.listingPayment.signature || '')));
     if (appState.exploreTab === 'migrated') return filtered.filter(record => record.complete === true && record.migrated === true);
     if (appState.exploreTab === 'boosted') return appState.verifiedBoostsAvailable
       ? filtered.filter(record => activeBoostMultiplier(appState.verifiedBoosts?.[record.address]) > 0) : [];

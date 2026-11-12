@@ -362,13 +362,46 @@ export function initShareComposer() {
     try { await navigator.share({ title: activeShare.title, text: `${shareText()} ${shareUrl('')}`.trim(), ...(files ? { files } : { url: shareUrl('') }) });  status('Share sheet completed. Posting status is not visible to richpad.fun.'); }
     catch (error) { if (error?.name !== 'AbortError') status('Share sheet unavailable. Choose a channel or copy the link.'); }
   });
-  dialog.querySelectorAll('[data-share-channel]').forEach(button => button.addEventListener('click', () => {
+  // Web share links (X, Telegram, ...) carry text only. With a banner:
+  // phones hand the image and text to the app through the share sheet; desktops
+  // copy the banner to the clipboard so it can be pasted into the opened post.
+  const bannerBlob = () => new Promise((resolve, reject) => {
+    const canvas = document.querySelector('#share-result-canvas');
+    if (!activeShare?.result || !canvas || !updateResultPreview()) { reject(new Error('No banner')); return; }
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No banner')), 'image/png');
+  });
+  // Synchronous PNG (no await) so the share sheet keeps the click's permission.
+  const bannerFileSync = () => {
+    const canvas = document.querySelector('#share-result-canvas');
+    if (!activeShare?.result || !canvas || !updateResultPreview()) return null;
+    const bytes = atob(canvas.toDataURL('image/png').split(',')[1]), data = new Uint8Array(bytes.length);
+    for (let index = 0; index < bytes.length; index += 1) data[index] = bytes.charCodeAt(index);
+    return new File([data], `richpad-${activeShare.kind}.png`, { type: 'image/png' });
+  };
+  const touchDevice = () => globalThis.matchMedia?.('(pointer: coarse)').matches && navigator.maxTouchPoints > 0;
+  dialog.querySelectorAll('[data-share-channel]').forEach(button => button.addEventListener('click', async () => {
     if (!activeShare) return;
-    const channel = button.dataset.shareChannel;
+    const channel = button.dataset.shareChannel, label = button.textContent.trim();
+    if (activeShare.result && touchDevice() && navigator.share && navigator.canShare) {
+      try {
+        const file = bannerFileSync();
+        if (file && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], text: `${shareText()} ${shareUrl(channel)}`.trim(), title: activeShare.title });
+          status(`Choose ${label} in the share sheet. The banner and message are attached.`); return;
+        }
+      } catch (error) { if (error?.name === 'AbortError') { status('Share cancelled.'); return; } }
+    }
+    // Start the clipboard write and open the post in the same click, so neither is blocked.
+    let writing = null;
+    if (activeShare.result && navigator.clipboard?.write && globalThis.ClipboardItem) {
+      try { writing = navigator.clipboard.write([new ClipboardItem({ 'image/png': bannerBlob() })]); } catch { writing = null; }
+    }
     const destination = channelShareUrl(channel, shareUrl(channel), shareText());
     window.open(destination, '_blank', 'noopener,noreferrer');
-
-    status(`${button.textContent.trim()} composer requested. If it did not open, copy the message. Posting status is not visible to richpad.fun.`);
+    const copied = writing ? await writing.then(() => true, () => false) : false;
+    status(copied ? `Banner copied. In the ${label} post, paste (Ctrl+V or ⌘V) to attach the image, then post.`
+      : activeShare.result ? `${label} opened with your message. Download the banner below and attach it to the post.`
+      : `${label} composer requested. If it did not open, copy the message. Posting status is not visible to richpad.fun.`);
   }));
   dialog.querySelector('#share-download-card')?.addEventListener('click', () => {
     if (!activeShare?.result) return;
