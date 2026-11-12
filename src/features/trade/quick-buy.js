@@ -6,7 +6,7 @@ import { recordTradeRecovery } from '../experience/trade-recovery-store.js';
 // Pump curve or Jupiter, with the app fee and transaction checks) and opens the
 // wallet to approve, without leaving the current page.
 let busy = false;
-export async function quickBuy(app, { mint, amountSol, symbol = '', dexId = '', button = null }) {
+export async function quickBuy(app, { mint, amountSol, symbol = '', dexId = '', quoteMint = '', button = null }) {
   if (busy) return;
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint || '') || !(Number(amountSol) > 0)) return;
   busy = true;
@@ -22,6 +22,7 @@ export async function quickBuy(app, { mint, amountSol, symbol = '', dexId = '', 
     await refreshServiceFees(app);
     const lazy = await import('./lazy-trading.js');
     if (dexId) lazy.setTradeVenueHint?.(mint, dexId);
+    if (quoteMint) lazy.setTradeQuoteHint?.(mint, quoteMint);
     const connection = app.connection || (await app.getSolana(), app.connection);
     // Same default slippage as the trade panel, checked against the saved slippage cap.
     const slippagePercent = 1;

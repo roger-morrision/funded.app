@@ -8,9 +8,15 @@ const MAINNET = import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta';
 // skips downloading the Pump SDK and several RPC reads that would fail anyway.
 const venues = new Map();
 export function setTradeVenueHint(mint, dexId) { if (mint) venues.set(String(mint), String(dexId || '').toLowerCase()); }
+// Coins paired with a token other than SOL (USDC, xStocks, ...) cannot use the
+// direct SOL path; Jupiter routes SOL through the paired token (SOL > USDC > coin).
+const WSOL = 'So11111111111111111111111111111111111111112';
+const quotes = new Map();
+export function setTradeQuoteHint(mint, quoteMint) { if (mint && quoteMint) quotes.set(String(mint), String(quoteMint)); }
+export const isTokenPaired = mint => { const quote = quotes.get(String(mint?.toBase58?.() ?? mint ?? '')); return Boolean(quote) && quote !== WSOL; };
 const pumpCandidate = mint => {
   const key = String(mint?.toBase58?.() ?? mint ?? '');
-  if (!/pump$/.test(key)) return false;
+  if (!/pump$/.test(key) || isTokenPaired(key)) return false;
   const venue = venues.get(key);
   return !venue || venue === 'pumpfun';
 };
@@ -21,7 +27,7 @@ const jupiterSdk = () => import('../../../jupiter-trading.js');
 const directMisses = new Map();
 const mintText = mint => String(mint?.toBase58?.() ?? mint ?? '');
 const directFailed = mint => (directMisses.get(mintText(mint)) || 0) > Date.now();
-const rememberDirectFailure = (mint, error) => { if (/account not found|not found/i.test(String(error?.message)) && !/associated token account/i.test(String(error?.message))) directMisses.set(mintText(mint), Date.now() + 600_000); };
+const rememberDirectFailure = (mint, error) => { if (/not quoted in SOL/i.test(String(error?.message))) { directMisses.set(mintText(mint), Date.now() + 60 * 60_000); return; } if (/account not found|not found/i.test(String(error?.message)) && !/associated token account/i.test(String(error?.message))) directMisses.set(mintText(mint), Date.now() + 600_000); };
 
 export async function buildTradeTransaction(...args) {
   if (!MAINNET) return (await pumpSdk()).buildTradeTransaction(...args);

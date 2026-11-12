@@ -22,7 +22,7 @@ export function initializeDiscoveryIntent(app) {
     if (!value) return;
     event.preventDefault();
     void import('../trade/quick-buy.js').then(module => module.quickBuy(app, { mint: link.dataset.reviewBuy, amountSol: value,
-      symbol: link.dataset.symbol || '', dexId: link.dataset.dex || '', button: link }));
+      symbol: link.dataset.symbol || '', dexId: link.dataset.dex || '', quoteMint: link.dataset.quote || '', button: link }));
   });
   const explicit = new URL(location.href).searchParams.get('reviewBuy');
   const requested = explicit ?? amount;
