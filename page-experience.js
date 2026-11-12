@@ -155,3 +155,22 @@ upgradeAnalyticsDashboard();
 clarifyDataStates();
 clarifyReferrals();
 addContextPanels();
+
+// Back links return to the previous page in the app when there is one (a tap in
+// the app or a same-site referrer); otherwise they follow their own link.
+{
+  const KEY = 'funded.inAppHistory';
+  const mark = () => { try { sessionStorage.setItem(KEY, '1'); } catch {} };
+  try { if (document.referrer && new URL(document.referrer).origin === location.origin) mark(); } catch {}
+  let first = true;
+  window.addEventListener('funded:route-change', () => { if (first) { first = false; return; } mark(); });
+  window.addEventListener('hashchange', mark);
+  document.addEventListener('click', event => {
+    const link = event.target.closest?.('[data-app-back]');
+    if (!link || event.defaultPrevented || event.button || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    let known = false; try { known = sessionStorage.getItem(KEY) === '1'; } catch {}
+    if (!known || history.length < 2) return;
+    event.preventDefault();
+    history.back();
+  });
+}

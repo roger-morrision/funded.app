@@ -73,7 +73,8 @@ export function renderPortfolio(
     let basis = document.querySelector('#portfolio-calculation-basis');
     if (!basis) { basis = document.createElement('p'); basis.id = 'portfolio-calculation-basis'; basis.className = 'flow-note'; pnl.closest('article, .portfolio-stat')?.append(basis); if (!basis.isConnected) pnl.parentElement?.after(basis); }
     basis.textContent = `Holdings value covers ${pricedCount} of ${holdings.length} observed tokens${partial ? '; token-account coverage is partial' : ''}. Transferred or older holdings have unknown cost basis; missing values are not zero.`;
-  txRows.innerHTML = trades.map(trade => {
+  // Latest trades first.
+  txRows.innerHTML = [...trades].sort((a, b) => (Number(b.blockTime) || 0) - (Number(a.blockTime) || 0)).map(trade => {
       const timestamp = Number(trade.blockTime) * 1000;
       const decimals = decimalsByMint.get(trade.mint);
       const raw = String(trade.tokenAmountRaw ?? '');

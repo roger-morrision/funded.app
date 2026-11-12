@@ -165,3 +165,19 @@ html body.page-route :is(button,a,input,select,textarea,summary,[tabindex="0"]) 
   html body.page-route #main-content :is(.purpose-page-nav,.wallet-detail-tabs) { max-width:100%;overflow-x:auto;scrollbar-width:thin;gap:8px;padding-block:4px 8px; }
   html body.page-route #main-content :is(.purpose-page-nav > a,.wallet-detail-tabs > button) { flex-shrink:0; }
 }
+
+/* Back links: a full-size tap target above the page content. */
+html body #main-content [data-app-back] { position: relative; z-index: 3; display: inline-flex; align-items: center; min-width: 64px; min-height: 44px; padding: 0 14px 0 0; font-size: 14px; font-weight: 700; text-decoration: none; }
+html body #main-content .coin-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+
+/* Phone tap targets for small links and controls: an invisible ::after grows the
+   hit area toward 44px without moving layout (same pattern as above). */
+@media (max-width: 760px) {
+  html body #main-content :is(.text-button, .top100-method-link a, .proof-totals-head a, .portfolio-related a, .funded-token-story a, .home-featured-controls a, .callout-author, .callout-filter-author, .bonus-podium-wallet, .coin-call-button, .coin-trade-sort, .coin-trade-column-filter),
+  html body .preview-status-drawer > a,
+  html body #main-content .earnings-claims li { position: relative; }
+  html body #main-content :is(.text-button, .top100-method-link a, .proof-totals-head a, .portfolio-related a, .funded-token-story a, .home-featured-controls a, .callout-author, .callout-filter-author, .bonus-podium-wallet, .coin-call-button)::after,
+  html body .preview-status-drawer > a::after { content: ''; position: absolute; inset: -12px -4px; }
+  html body #main-content :is(.coin-trade-sort, .coin-trade-column-filter)::after { content: ''; position: absolute; inset: -10px -2px; }
+  html body #main-content .earnings-claims li > a::after { content: ''; position: absolute; inset: 0; }
+}
