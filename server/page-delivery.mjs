@@ -10,7 +10,7 @@ import { publicDiscoveryHtml } from './public-discovery.mjs';
 import { normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
 
 // Keep the public metadata lookup before API dispatch and page fallbacks after it.
-export function createPageDelivery({ staticRoot, store, solanaCluster, respond }) {
+export function createPageDelivery({ staticRoot, store, solanaCluster, respond, readTokenName = async () => null }) {
   const json = (...args) => { respond(...args); return true; };
   const end = (res, content) => { res.end(content); return true; };
   let discoveryCache = { expiresAt: 0, launches: [] };
@@ -98,8 +98,8 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond }
     }
     const tokenPageMint=readRequest?url.pathname.match(/^\/(?:token|launch\/coin)\/([1-9A-HJ-NP-Za-km-z]{32,44})\/?$/)?.[1]:null;
     if(tokenPageMint){
-      const [template,launch,metadata]=await Promise.all([readFile(resolve(staticRoot,'index.html'),'utf8'),store.readLaunch(tokenPageMint),store.readMetadata(tokenPageMint)]);
-      const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search);
+      const [template,launch,metadata,indexed]=await Promise.all([readFile(resolve(staticRoot,'index.html'),'utf8'),store.readLaunch(tokenPageMint),store.readMetadata(tokenPageMint),readTokenName(tokenPageMint)]);
+      const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search,indexed);
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return end(res, page);
     }
     if (readRequest && /^\/welcome\/?$/.test(url.pathname)) return await serveStatic('/welcome.html', res);

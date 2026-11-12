@@ -385,7 +385,7 @@ const handleRewardStatusRoutes = createRewardStatusRoutes({
 });
 
 const { handlePublicMetadata, handlePages } = createPageDelivery({
-  staticRoot, store, solanaCluster, respond: json,
+  staticRoot, store, solanaCluster, respond: json, readTokenName: mint => tokenCache?.read([mint]).then(rows => rows.get(mint) || null).catch(() => null),
 });
 
 const { handleShareVisit, handleReferralActivity } = createReferralActivityRoutes({
@@ -429,7 +429,7 @@ async function handle(req, res) {
       const cost = ['/api/launches', '/api/devnet-metadata', '/api/token-metadata'].includes(url.pathname) ? 10 : url.pathname.startsWith('/api/referrals/') ? 5 : 1;
       const windowStart = Math.floor(Date.now() / 60_000) * 60_000;
       if (!await store.chargeRpcRate(`api:${clientKey(req)}`, cost, 120, windowStart)) return json(res, 429, { error: 'API request limit reached; retry shortly.' });
-      const chatPost = req.method === 'POST' && (/^\/api\/tokens\/[^/]+\/chat(?:\/(?:report|delete))?$/.test(url.pathname) || /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/.test(url.pathname));
+      const chatPost = req.method === 'POST' && (/^\/api\/tokens\/[^/]+\/chat(?:\/(?:report|delete|like))?$/.test(url.pathname) || /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/.test(url.pathname));
       if (!publicPost(url.pathname) && !chatPost && !localDevWalletRequest(req, url.pathname) && !authorized(req)) return json(res, 401, { error: 'API authorization required.' });
     }
     if (req.method === 'POST' && url.pathname === '/api/solana/rpc') return await proxySolanaRpc(req, res);

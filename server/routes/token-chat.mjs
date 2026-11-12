@@ -16,6 +16,8 @@ async function optionalLookup(promise,ms){
 
 function tokenChatPublicMessage(message) {
   return {
+    likeCount: Array.isArray(message.likes) ? message.likes.length : 0,
+    likedBy: Array.isArray(message.likes) ? message.likes.slice(-200) : [],
     id: message.id,
     mint: message.mint,
     author: message.author,
@@ -91,7 +93,7 @@ export function createTokenChatRoutes({
       await tokenChatSessions.revoke(req.headers['x-token-chat-session']);
       return json(res, 200, { revoked: true });
     }
-    const tokenChatMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat(?:\/(delete|report))?$/);
+    const tokenChatMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)\/chat(?:\/(delete|report|like))?$/);
     if (tokenChatMatch && (req.method === 'GET' || req.method === 'POST')) {
       let mint;
       try { mint = new PublicKey(decodeURIComponent(tokenChatMatch[1])).toBase58(); }
@@ -108,6 +110,23 @@ export function createTokenChatRoutes({
         : sessionToken ? await tokenChatSessions.address(sessionToken, String(req.headers.origin)) : null;
       if (sessionToken && !sessionAddress) return json(res, 401, { error: 'Chat verification expired. Verify your wallet again.' });
       const input = await body(req);
+      // Like / unlike a message (calls are chat messages). One like per signed-in wallet.
+      if (action === 'like') {
+        if (!sessionAddress) return json(res, 401, { error: 'Verify your wallet to like messages.' });
+        const likeId = String(input.messageId || '').trim();
+        if (!/^chat_[a-f0-9]{24}$/.test(likeId)) return json(res, 400, { error: 'A valid discussion message is required.' });
+        if (!await store.chargeRpcRate(`chat-like:${sessionAddress}`, 1, 60, Math.floor(Date.now() / 60_000) * 60_000)) return json(res, 429, { error: 'Too many likes. Wait a minute.' });
+        const liked = await store.updateCoinChat(mint, messages => {
+          const message = messages.find(item => item.id === likeId && item.status === 'visible');
+          if (!message) return { status: 404, error: 'Discussion message not found.' };
+          const wallets = new Set(Array.isArray(message.likes) ? message.likes : []);
+          if (wallets.has(sessionAddress)) wallets.delete(sessionAddress); else wallets.add(sessionAddress);
+          message.likes = [...wallets].slice(0, 5000);
+          return { status: 200, messageId: likeId, likeCount: message.likes.length, liked: wallets.has(sessionAddress) };
+        });
+        feedCache = null;
+        return json(res, liked.status, liked.error ? { error: liked.error } : liked);
+      }
       if (action === 'report') {
         if (!sessionAddress) return json(res, 401, { error: 'Verify your wallet before reporting.' });
         const messageId = String(input.messageId || '');

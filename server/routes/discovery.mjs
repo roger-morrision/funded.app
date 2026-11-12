@@ -82,8 +82,11 @@ export function createDiscoveryRoutes({
     const [dex, cached] = await Promise.all([freeMarketData && mints.length ? freeMarketData.dexTokens(mints).catch(() => new Map()) : new Map(),
       tokenCache && mints.length ? tokenCache.read(mints).catch(() => new Map()) : new Map()]);
     const fresh = [];
+    // Holder count: GeckoTerminal, else Jupiter (Gecko has none for some Token-2022 mints).
+    const positive = value => Number.isSafeInteger(value) && value > 0 ? value : null;
     const holders = new Map(await Promise.all(mints.slice(0, 40).map(async mint => [mint,
-      Number((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count)])));
+      positive((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count)
+        ?? positive((await freeMarketData?.jupToken?.(mint).catch(() => null))?.holderCount)])));
     const items = mints.map(mint => {
       const base = byMint.get(mint), market = dex.get(mint) || cached.get(mint) || {};
       if (dex.get(mint)) fresh.push({ ...(cached.get(mint) || {}), ...dex.get(mint), mint });

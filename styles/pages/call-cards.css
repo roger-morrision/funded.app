@@ -42,3 +42,6 @@ html body #main-content .home-call-token .home-token-avatar { width: 18px; heigh
 html body #main-content .chat-call-foot { margin: 6px 0 4px; }
 html body #main-content .chat-call-tag { display: inline-flex; align-items: center; gap: 6px; color: var(--fv-accent, #f5b900); font-size: 12px; font-weight: 700; }
 html body #main-content .callout-token-row img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+html body #main-content .callout-like { display: inline-flex; align-items: center; gap: 4px; }
+html body #main-content .callout-like-count:empty { display: none; }
+html body #main-content .callout-like[data-liked="true"] svg { fill: currentColor; }

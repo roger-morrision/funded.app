@@ -37,7 +37,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
     const hit = holderCountCache.get(mint);
     if (hit && Date.now() - hit.at < 3_600_000) return hit.value;
     const gecko = await free.geckoTokenInfo(mint).catch(() => null);
-    let value = Number.isSafeInteger(gecko?.holders?.count) ? gecko.holders.count : null;
+    let value = Number.isSafeInteger(gecko?.holders?.count) && gecko.holders.count > 0 ? gecko.holders.count : null;
     if (value == null) { const jupInfo = await free.jupToken(mint).catch(() => null); if (Number.isSafeInteger(jupInfo?.holderCount)) value = jupInfo.holderCount; }
     if (value == null) {
       const result = await fetchBirdeye('/defi/token_overview', { address: mint }).catch(() => null);

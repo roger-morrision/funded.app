@@ -21,7 +21,7 @@ export const MAINNET_NON_PROGRAM_POSTS=Object.freeze(new Set([
 ]));
 // Wallet-signed token chat (post, delete own, report) and its session handshake.
 export const MAINNET_NON_PROGRAM_POST_PATTERNS=Object.freeze([
-  /^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/chat(?:\/(?:delete|report))?$/,
+  /^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/chat(?:\/(?:delete|report|like))?$/,
   /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/,
 ]);
 export const mainnetNonProgramWrites=(env=process.env)=>String(env.FUNDED_MAINNET_NON_PROGRAM_WRITES||'').toLowerCase()==='true';

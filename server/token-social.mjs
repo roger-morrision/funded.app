@@ -1,11 +1,14 @@
 import { withoutDefaultSocialTags } from './social-template.mjs';
 const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-export function tokenSocialModel(launch, metadata, mint, cluster, publicOrigin='') {
+export function tokenSocialModel(launch, metadata, mint, cluster, publicOrigin='', indexed=null) {
   const verified=Boolean(launch?.mint===mint&&launch.cluster===cluster&&launch.onchainVerified===true&&launch.policySignature&&launch.name&&launch.symbol);
   // Tokens outside the launch registry (any DEX or launchpad) get a neutral title the
   // client replaces with the indexed name once market data loads.
   let siteOrigin=null;try{const url=new URL(publicOrigin);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)siteOrigin=url.origin;}catch{}
-  if(!verified)return {available:false,title:`Token ${String(mint).slice(0,4)}…${String(mint).slice(-4)} | richpad.fun`,description:'Live chart, trades, holders and calls on richpad.fun. Not an endorsement. Tokens can lose all value.',canonical:null,
+  // Indexed name and symbol (any DEX token) make the preview readable.
+  const indexedName=String(indexed?.name||'').trim().slice(0,32),indexedSymbol=String(indexed?.symbol||'').trim().slice(0,12);
+  const label=indexedName?`${indexedName}${indexedSymbol?` ($${indexedSymbol})`:''}`:`Token ${String(mint).slice(0,4)}…${String(mint).slice(-4)}`;
+  if(!verified)return {available:false,title:`${label} | richpad.fun`,description:'Live chart, trades, holders and calls on richpad.fun. Not an endorsement. Tokens can lose all value.',canonical:null,
     image:null,logo:siteOrigin&&cluster!=='devnet'?`${siteOrigin}/api/tokens/${mint}/logo`:null};
   const signed=metadata?.mint===mint&&metadata.creatorWallet===launch.creatorWallet&&metadata.name===launch.name&&metadata.symbol===launch.symbol;
   const purpose=signed?String(metadata.tagline||metadata.description||'').slice(0,160):'';
@@ -14,8 +17,8 @@ export function tokenSocialModel(launch, metadata, mint, cluster, publicOrigin='
     description: [purpose, 'Review the canonical mint and fee policy. Not an endorsement. Tokens can lose all value.'].filter(Boolean).join(' '),
     canonical:origin?`${origin}/token/${mint}`:null,image:origin&&signed&&metadata.imageSha256&&cluster==='devnet'?`${origin}/devnet-images/${mint}`:null};
 }
-export function tokenPageHtml(template, launch, metadata, mint, cluster, publicOrigin=process.env.PUBLIC_APP_URL, shareSearch='') {
-  const model=tokenSocialModel(launch,metadata,mint,cluster,publicOrigin);
+export function tokenPageHtml(template, launch, metadata, mint, cluster, publicOrigin=process.env.PUBLIC_APP_URL, shareSearch='', indexed=null) {
+  const model=tokenSocialModel(launch,metadata,mint,cluster,publicOrigin,indexed);
   const socialUrl=model.canonical?new URL(model.canonical):null;
   if(socialUrl){
     const shared=new URLSearchParams(shareSearch);

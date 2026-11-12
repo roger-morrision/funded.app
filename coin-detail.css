@@ -22,3 +22,5 @@ body.coin-external #coin-promotion-badge { display: none !important; }
 #coin-activity-list :is(.coin-transactions-scroll, .coin-holders-scroll)::-webkit-scrollbar { width: 8px; height: 8px; }
 #coin-activity-list :is(.coin-transactions-scroll, .coin-holders-scroll)::-webkit-scrollbar-thumb { background: #5b6b8c; border-radius: 8px; }
 #coin-activity-list :is(.coin-transactions-scroll, .coin-holders-scroll) thead th { position: sticky; top: 0; z-index: 1; background: var(--fv-surface, #151b2b); }
+/* Tokens launched outside Richpad have no Richpad rewards, fee collections or allocations. */
+body.coin-external .coin-tabs :is([data-coin-tab="rewards"], [data-coin-tab="claims"], [data-coin-tab="payments"]) { display: none !important; }

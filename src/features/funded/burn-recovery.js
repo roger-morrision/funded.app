@@ -1,3 +1,4 @@
+import { APP_NET } from '../shared/app-network.js';
 import { expiredUnlandedTrade } from '../experience/trade-expiry.js';
 
 const KEY = 'funded.burn-recovery.devnet.v1';
@@ -5,7 +6,7 @@ const address = value => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value || '');
 export function readPendingBurn(storage = globalThis.localStorage) {
   try {
     const row = JSON.parse(storage.getItem(KEY) || 'null');
-    return row?.cluster === 'devnet' && address(row.wallet) && address(row.fundedMint)
+    return row?.cluster === APP_NET && address(row.wallet) && address(row.fundedMint)
       && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(row.signature || '')
       && /^[1-9]\d*$/.test(row.amountBaseUnits || '')
       && (!row.projectMint || address(row.projectMint)) ? row : null;
