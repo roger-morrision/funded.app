@@ -31,7 +31,7 @@
 .coin-page .coin-chat-message-head strong{color:#b9c9e8;font:10px 'DM Mono',monospace}
 .coin-page .coin-chat-message-head time{color:#718197;font:9px 'DM Mono',monospace}
 .coin-page .coin-chat-message p{margin:7px 0 0;color:#d5deea;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
-.coin-page .coin-chat-form{display:flex;gap:8px;padding-top:12px;border-top:1px solid #29384b}
+.coin-page .coin-chat-form{display:flex;gap:8px;padding:12px 0;border-bottom:1px solid #29384b}
 .coin-page .coin-chat-form label{flex:1;min-width:0}
 .coin-page .coin-chat-form input{width:100%;box-sizing:border-box;border:1px solid #35465b;border-radius:7px;padding:10px 11px;background:#0d1622;color:#e5edf6;font:11px Manrope,sans-serif}
 .coin-page .coin-chat-form input:focus-visible{outline:2px solid #a9b9ec;outline-offset:1px}

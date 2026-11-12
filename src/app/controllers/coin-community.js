@@ -11,9 +11,10 @@ export function createCoinCommunityController(appState) {
     const draft = previous?.querySelector('#coin-chat-input');
     const focused = draft === document.activeElement;
     const text = draft?.value || '';
-    const messages = appState.visibleCoinChatMessages();
+    // Newest messages and calls first, right under the composer.
+    const messages = appState.visibleCoinChatMessages().slice().sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0));
     const rows = messages.length ? messages.map(appState.tokenChatMessageMarkup).join('') : appState.coinChatMessages.length ? '<p role="status">Messages from hidden wallets are hidden on this device.</p>' : appState.tokenChatEmptyMarkup();
-    activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${appState.escapeHtml(appState.coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div><div class="coin-chat-messages">${rows}</div>${appState.tokenChatComposerMarkup('coin-chat')}</div>`;
+    activity.innerHTML = `<div class="coin-chat"><div class="coin-chat-intro"><div><strong>${appState.escapeHtml(appState.coinActivity.symbol || 'Token')} chat</strong><small>Wallet-verified community messages</small></div><span>${messages.length} message${messages.length === 1 ? '' : 's'}</span></div>${appState.tokenChatComposerMarkup('coin-chat')}<div class="coin-chat-messages">${rows}</div></div>`;
     const form = activity.querySelector('#coin-chat-form');
     if (form) {
       form.querySelector('#coin-chat-input').value = text;
