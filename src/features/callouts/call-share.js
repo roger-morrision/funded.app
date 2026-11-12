@@ -25,6 +25,16 @@ export const usdShort = value => {
 export const signedUsd = value => Number.isFinite(value) ? `${value >= 0 ? '+' : '-'}${usdShort(Math.abs(value))}` : '—';
 export const multipleBadge = multiple => Number.isFinite(multiple) && multiple > 0 ? `${multiple >= 10 ? multiple.toFixed(0) : multiple.toFixed(1)}x` : '';
 
+const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+// One-line token row shown under a call: logo · $SYMBOL · MC · Hold · ±$ since the call.
+export function callPillMarkup({ mint, symbol = '', figures = {} }) {
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint || '')) return '';
+  const ticker = String(symbol || '').replace(/^\$/, '') || `${mint.slice(0, 4)}…`;
+  const cap = figures.currentCapUsd ?? figures.calledCapUsd;
+  const change = Number.isFinite(figures.holdChangeUsd) ? `<span class="callout-pnl" data-trend="${figures.holdChangeUsd >= 0 ? 'up' : 'down'}">${esc(signedUsd(figures.holdChangeUsd))}</span>` : '';
+  return `<a class="callout-token-row" href="/token/${encodeURIComponent(mint)}" title="Market cap now, the caller's holding and its change since the call"><img src="/api/tokens/${encodeURIComponent(mint)}/logo" alt="" width="18" height="18" loading="lazy" decoding="async" data-initial="${esc(ticker.slice(0, 1).toUpperCase())}"><strong>$${esc(ticker)}</strong>${Number.isFinite(cap) ? `<span><i>MC</i> ${esc(usdShort(cap))}</span>` : ''}${Number.isFinite(figures.holdUsd) ? `<span><i>Hold</i> ${esc(usdShort(figures.holdUsd))}</span>` : ''}${change}<span class="callout-chevron" aria-hidden="true">›</span></a>`;
+}
+
 const loadImage = src => new Promise(resolve => {
   const image = new Image(); image.crossOrigin = 'anonymous';
   const timer = setTimeout(() => resolve(null), 5000);
@@ -57,4 +67,14 @@ export async function openCallShare({ call, solUsd, wallet, referralCode = '', c
     text: callShareText({ symbol, text: call.text, figures, own }),
     result: { kind: 'callout', verified: true, mint, symbol, text: call.text, logoImage, figures, referralCode,
       caller: callerLabel || `${String(call.author).slice(0, 4)}…${String(call.author).slice(-4)}`, createdAt: call.createdAt } });
+}
+
+// Token logos in call rows fall back to the symbol's first letter when they fail to load.
+if (globalThis.document && !globalThis.__richpadCallLogoFallback) {
+  globalThis.__richpadCallLogoFallback = true;
+  globalThis.document.addEventListener('error', event => {
+    const image = event.target;
+    if (image?.tagName !== 'IMG' || !image.dataset?.initial || !image.closest?.('.callout-token-row')) return;
+    image.replaceWith(Object.assign(globalThis.document.createElement('span'), { className: 'callout-token-initial', textContent: image.dataset.initial }));
+  }, true);
 }
