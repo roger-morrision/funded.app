@@ -164,26 +164,33 @@ export function renderWalletDetail(
     if (!content || !description) return;
     if (walletDetailTab !== 'created') createdWalletRows.delete(content);
     if (walletDetailTab === 'holdings') {
-      description.textContent = 'Token balances from Solana RPC.';
+      description.textContent = 'Tokens in this wallet, by value.';
       const assetByMint = new Map(assets.map(asset => [asset.address, asset]));
-      const holdings = isSelf && portfolioHoldings?.wallet === address && portfolioHoldings?.status === 'ready'
-        ? portfolioHoldings.accounts
-        : !isSelf && publicHoldings?.wallet === address && publicHoldings.status === 'ready' ? publicHoldings.accounts : [];
+      // The public holdings read carries names, logos and prices for any wallet,
+      // including the connected one; the connected wallet's own read fills in until it loads.
+      const publicReady = publicHoldings?.wallet === address && publicHoldings.status === 'ready';
+      const holdings = publicReady ? publicHoldings.accounts
+        : isSelf && portfolioHoldings?.wallet === address && portfolioHoldings?.status === 'ready' ? portfolioHoldings.accounts : [];
       if (!holdings.length) {
-        const loading = !isSelf && publicHoldings?.status === 'loading';
-        content.innerHTML = `<div class="empty-state">${loading ? 'Loading this wallet\'s token balances…' : !isSelf && publicHoldings?.status === 'unavailable' ? 'Token balances are unavailable right now. Try again shortly.' : 'No SPL token holdings in this wallet.'}</div>`;
+        const loading = publicHoldings?.status === 'loading';
+        content.innerHTML = `<div class="empty-state">${loading ? 'Loading this wallet\'s token balances…' : publicHoldings?.status === 'unavailable' && !isSelf ? 'Token balances are unavailable right now. Try again shortly.' : 'No SPL token holdings in this wallet.'}</div>`;
         return;
       }
-      content.innerHTML = `<div class="wallet-balance-table-wrap" role="region" aria-label="Token holdings" tabindex="0"><table class="wallet-balance-table"><thead><tr><th scope="col">Token</th><th scope="col" class="numeric">Quantity</th><th scope="col" class="numeric">Value</th></tr></thead><tbody>${holdings.map(holding => {
+      const compact = value => value >= 1_000 ? Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value) : formatOnChainNumber(value, value >= 1 ? 2 : 6);
+      content.innerHTML = `<ul class="wallet-holdings-list" aria-label="Token holdings">${holdings.map(holding => {
         const asset = assetByMint.get(holding.mint);
         const marketUsd = Number(holding.market?.priceUsd);
         const unitUsd = marketUsd > 0 && Number.isFinite(marketUsd) ? marketUsd : null;
         const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
         const launch = verifiedLaunchPolicyForMint?.(holding.mint);
         const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, fundedMint:PROTOCOL_FUNDED_MINT});
+        const marketSymbol = String(holding.market?.symbol || holding.metadata?.symbol || '').replace(/^\$/, '');
+        const symbol = identity.label !== 'Unnamed token' ? identity.label.replace(/^\$/, '') : marketSymbol;
+        const name = String(holding.market?.name || holding.metadata?.name || (/unavailable/i.test(identity.description) ? '' : identity.description) || '');
         const image = holding.mint === PROTOCOL_FUNDED_MINT ? '/richpad-mark.svg' : (launch?.onchainVerified ? tokenArtworkUrl(holding.mint, holdingImageUrl(launch.imageUri)) : null) || `/api/tokens/${encodeURIComponent(holding.mint)}/logo`;
-        return `<tr><td><a href="/token/${encodeURIComponent(holding.mint)}"><span class="wallet-holding-token"><span class="wallet-holding-logo" aria-hidden="true">${escapeHtml(identity.label==='Unnamed token'?'?':identity.label.replace(/^\\$/,'').slice(0,2))}${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`:''}</span><span class="wallet-holding-identity"><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="wallet-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span></span></a></td><td class="numeric">${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</td><td class="numeric">${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</td></tr>`;
-      }).join('')}</tbody></table></div>`;
+        const value = holdingValue == null ? '—' : holdingValue > 0 && holdingValue < 0.01 ? '<$0.01' : formatDashboardUsd(holdingValue);
+        return `<li><a class="wallet-holding-row" href="/token/${encodeURIComponent(holding.mint)}" title="${escapeHtml(holding.mint)}"><span class="wallet-holding-logo" aria-hidden="true">${escapeHtml((symbol || '?').slice(0, 2))}${image ? `<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />` : ''}</span><span class="wallet-holding-main"><strong>${escapeHtml(symbol ? '$' + symbol : shortAddress(holding.mint))}</strong><small>${escapeHtml(name && name.toLowerCase() !== symbol.toLowerCase() ? name : shortAddress(holding.mint))}</small></span><span class="wallet-holding-amounts"><strong>${escapeHtml(value)}</strong><small>${escapeHtml(compact(holding.quantity))}${symbol ? ` ${escapeHtml(symbol)}` : ''}</small></span></a></li>`;
+      }).join('')}</ul>`;
       loadWalletRowLogos(content, holdings.map(h => ({ mint: h.mint })));
       return;
     }
