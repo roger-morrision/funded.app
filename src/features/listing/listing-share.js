@@ -4,7 +4,7 @@ import { apiRequest } from '../../../client.js';
 // and the usual channels (X, Telegram, WhatsApp, Facebook, LinkedIn, Reddit,
 // the device share sheet, copy and download). Nothing is posted automatically.
 const loadImage = src => new Promise(resolve => {
-  if (!/^https:\/\//.test(src || '')) { resolve(null); return; }
+  if (!/^https?:\/\//.test(src || '')) { resolve(null); return; }
   const image = new Image(); image.crossOrigin = 'anonymous'; image.referrerPolicy = 'no-referrer';
   const timer = setTimeout(() => resolve(null), 5000);
   image.onload = () => { clearTimeout(timer); resolve(image); };
@@ -22,7 +22,8 @@ export async function openListingShare(listing) {
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint || '')) return;
   const overview = await apiRequest(`/api/tokens/${encodeURIComponent(mint)}/overview`, { signal: AbortSignal.timeout(8000) }).then(result => result.data).catch(() => null);
   const symbol = listing.symbol || overview?.symbol || '', name = listing.name || overview?.name || '';
-  const logoImage = await loadImage(overview?.imageUri || overview?.logoUri);
+  // Same-origin logo (the server fetches it from the token's indexed data) so the banner can be downloaded and shared.
+  const logoImage = await loadImage(`${location.origin}/api/tokens/${encodeURIComponent(mint)}/logo`);
   const { initShareComposer, openShareComposer } = await import('../../../share-tools.js');
   initShareComposer();
   openShareComposer({

@@ -41,8 +41,9 @@ export function initializeTradeExecution(appState) {
       }
       const identity = await appState.apiRequest(`/api/tokens/market?mints=${encodeURIComponent(button.dataset.mint)}`, { signal:AbortSignal.timeout(6000) }).catch(() => null);
       const info = identity?.data?.items?.find(row => row.mint === button.dataset.mint) || {};
-      const logoImage = /^https:\/\//.test(info.logoUri || '') ? await new Promise(resolve => { const image = new Image(); image.crossOrigin = 'anonymous';
-        image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = info.logoUri; setTimeout(() => resolve(null), 5000); }) : null;
+      // Same-origin logo route: third-party logo hosts would taint the share card canvas.
+      const logoImage = await new Promise(resolve => { const image = new Image(); image.crossOrigin = 'anonymous';
+        image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = `/api/tokens/${encodeURIComponent(button.dataset.mint)}/logo`; setTimeout(() => resolve(null), 5000); });
       const symbol = info.symbol || button.dataset.symbol;
       const url = new URL(`/token/${encodeURIComponent(button.dataset.mint)}`, location.origin);
       const code = appState.registeredShareCode(); if (code) url.searchParams.set('ref', code);

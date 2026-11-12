@@ -1,4 +1,5 @@
 import { Connection, PublicKey, AddressLookupTableAccount } from '@solana/web3.js';
+import { createTokenLogoRoute } from './token-logo.mjs';
 import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
 
 // Mainnet external-token data: free sources first (DexScreener, Jupiter,
@@ -6,6 +7,7 @@ import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
 // discovered-token cache so later page loads render from the database.
 export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, tokenCache, fetchBirdeye, readMarketFallback, store, clientKey, body, respond }) {
   const json = (...args) => { respond(...args); return true; };
+  const handleTokenLogo = createTokenLogoRoute({ free, tokenCache });
   const altCache = new Map();
   let rpc;
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
@@ -115,6 +117,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
 
   return async function handleMainnetMarketRoutes(req, res, url) {
     if (solanaCluster !== 'mainnet-beta') return false;
+    if (await handleTokenLogo(req, res, url)) return true;
     const overviewMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/overview$/.exec(url.pathname);
     if (overviewMatch) {
       const mint = decodeURIComponent(overviewMatch[1]);
