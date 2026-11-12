@@ -75,6 +75,34 @@ export function mountHomeCommunity(app, document = globalThis.document) {
     finally{loading=false;}
   }
   function schedule(){clearTimeout(timer);if(active()){void refresh();timer=setTimeout(schedule,30000);}}
+  // Like toggles with the signed-in wallet; comment replies in the coin's chat; share opens the call banner.
+  feed.addEventListener('click',event=>{
+    const like=event.target.closest('[data-like-message]');
+    if(like){
+      like.disabled=true;
+      void app.tokenChatRequest('like',{messageId:like.dataset.likeMessage},like.dataset.mint).then(result=>{
+        if(!result?.available){app.showToast?.(result?.error||'Could not like this call. Try again.');return;}
+        like.dataset.liked=String(result.data.liked===true);
+        like.querySelector('.callout-like-count').textContent=result.data.likeCount>0?String(result.data.likeCount):'';
+        const row=messages.find(item=>item.id===like.dataset.likeMessage);
+        if(row){row.likeCount=result.data.likeCount;const by=new Set(row.likedBy||[]);const me=app.connectedWalletAddress;if(me){if(result.data.liked)by.add(me);else by.delete(me);}row.likedBy=[...by];lastMarkup='';}
+      }).catch(error=>app.showToast?.(error?.message||'Could not like this call.')).finally(()=>{like.disabled=false;});
+      return;
+    }
+    const comment=event.target.closest('[data-comment-message]');
+    if(comment){
+      const author=String(comment.dataset.author||'');
+      try{sessionStorage.setItem('funded.postBuyCall.text',`@${author.slice(0,4)}…${author.slice(-4)} `);}catch{}
+      location.assign(`/token/${encodeURIComponent(comment.dataset.mint)}?compose=callout`);
+      return;
+    }
+    const share=event.target.closest('[data-share-message]');if(!share)return;
+    const row=messages.find(item=>item.id===share.dataset.shareMessage);if(!row?.callout)return;
+    const change=row.callout.marketChangePercent,called=row.callout.marketCapSol;
+    void openCallShare({call:{id:row.id,mint:row.mint,author:row.author,text:row.text,createdAt:row.createdAt,calledMarketCapSol:called,
+      currentMarketCapSol:Number.isFinite(change)&&called>0?called*(1+change/100):null,holdingPercent:row.callout.holdingPercent,token:{symbol:tokenFor(row.mint).symbol||''}},
+      solUsd:app.coinSolUsdPrice||solUsdPrice(),wallet:app.connectedWalletAddress||null,referralCode:app.registeredShareCode?.()||''});
+  });
   window.addEventListener('funded:token-identities',()=>{lastMarkup='';if(active())render();});
   window.addEventListener('funded:route-change',schedule);
   window.addEventListener('hashchange',()=>setTimeout(schedule,0));
