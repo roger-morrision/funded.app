@@ -27,4 +27,35 @@ export async function mountLaunchPairField(app) {
   const select = field.querySelector('select'), status = field.querySelector('[data-pair-status]');
   // The pair is read at launch; Continue keeps its normal two-step flow.
   select.addEventListener('change', () => { status.textContent = ''; });
+  // Review: the community reserve of a paired coin is bought with the paired
+  // token, so show that cost and the wallet's balance beside the SOL estimate.
+  const review = document.querySelector('#launch-review-dialog');
+  if (!review) return;
+  const describe = async () => {
+    review.querySelector('[data-pair-review]')?.remove();
+    const picked = quotes.find(row => row.mint === select.value);
+    if (!picked || !review.open) return;
+    const line = document.createElement('p');
+    line.dataset.pairReview = '';
+    line.className = 'launch-pair-review';
+    line.textContent = `Paired with ${picked.symbol}: checking the community reserve cost…`;
+    review.querySelector('h2, [id*="title"]')?.after(line) ?? review.prepend(line);
+    try {
+      const { PublicKey } = await import('@solana/web3.js');
+      const { getAssociatedTokenAddressSync } = await import('@solana/spl-token');
+      const connection = app.connection || (await app.getSolana(), app.connection);
+      const decimals = Number.isInteger(picked.decimals) ? picked.decimals : 6;
+      const quote = await app.quoteAtomicReserveBuy({ connection, supply: app.LAUNCH_TOKEN_SUPPLY, decimals: 6,
+        reserveTokens: app.getCommunityAirdropTokens(), developerBaseUnits: 0n, quoteMint: picked.mint });
+      const quoteInfo = await connection.getAccountInfo(new PublicKey(picked.mint));
+      const owner = app.captureWalletSession?.()?.provider?.publicKey;
+      const held = owner && quoteInfo ? await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(new PublicKey(picked.mint), owner, false, quoteInfo.owner))
+        .then(row => BigInt(row.value.amount)).catch(() => 0n) : null;
+      const units = value => (Number(value) / 10 ** decimals).toLocaleString('en-US', { maximumFractionDigits: Math.min(decimals, 6) });
+      line.textContent = `Paired with ${picked.symbol}: the community reserve costs up to ${units(quote.maxSolAmountLamports)} ${picked.symbol}, paid from your wallet`
+        + `${held == null ? '' : ` (you hold ${units(held)} ${picked.symbol})`}. The SOL estimate below still includes a SOL-priced reserve; your actual SOL cost is lower.`;
+      if (held != null && held < quote.maxSolAmountLamports) line.textContent += ` Add ${picked.symbol} before launching.`;
+    } catch { line.textContent = `Paired with ${picked.symbol}: the community reserve is paid in ${picked.symbol} from your wallet.`; }
+  };
+  new MutationObserver(() => { void describe(); }).observe(review, { attributes: true, attributeFilter: ['open'] });
 }

@@ -257,3 +257,4 @@ body.page-route-explore .home-launch-card-stats strong { font-size: 13px; }
 .launch-pair-field select { min-height: 44px; padding: 0 10px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-sm); background: var(--fv-surface); color: var(--fv-text); font: inherit; }
 .launch-pair-status { margin: 0; color: var(--fv-text); font-size: 13px; }
 .launch-pair-status:empty { display: none; }
+.launch-pair-review { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--fv-accent); border-radius: var(--fv-radius-sm); background: var(--fv-accent-soft); color: var(--fv-text); font-size: 13px; line-height: 1.5; }
