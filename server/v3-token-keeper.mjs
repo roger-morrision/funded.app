@@ -3,7 +3,7 @@ import { PublicKey, Transaction, ComputeBudgetProgram, sendAndConfirmTransaction
 import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_SDK, coinCreatorVaultAuthorityPda, coinCreatorVaultAtaPda } from '@pump-fun/pump-swap-sdk';
 import { buildTokenAccountSetupInstructions, buildTokenLedgerInitializeInstruction, buildTokenSettlementInstruction,
-  deriveTokenAccountsV3, deriveTokenLedgerV3 } from '../mint-router-v3-token.js';
+  deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3 } from '../mint-router-v3-token.js';
 
 // Keeper step for a coin paired with a token: make sure the router's and vaults'
 // paired-token accounts and the coin's token ledger exist, collect Pump's
@@ -16,9 +16,11 @@ export async function collectAndSettleTokenFees({ connection, programId, keeper,
   const tokenProgram = quoteInfo.owner;
   const accounts = deriveTokenAccountsV3(program, coin, quote, tokenProgram);
   const ledger = deriveTokenLedgerV3(program, coin, quote);
+  // Agency launches (all new launches) have an agency policy; older ones a protected policy.
+  const agency = Boolean(await connection.getAccountInfo(deriveAgencyPolicyV3(program, coin), 'confirmed'));
   const setup = [...buildTokenAccountSetupInstructions({ programId: program, mint: coin, quoteMint: quote, tokenProgram, payer: keeper.publicKey })];
   if (!await connection.getAccountInfo(ledger, 'confirmed'))
-    setup.push(buildTokenLedgerInitializeInstruction({ programId: program, mint: coin, quoteMint: quote, authority: keeper.publicKey }));
+    setup.push(buildTokenLedgerInitializeInstruction({ programId: program, mint: coin, quoteMint: quote, authority: keeper.publicKey, agency }));
   // PumpSwap fees (after migration) move to Pump's creator vault first; Pump's
   // collection then pays the router's paired-token account.
   const collect = await new OnlinePumpSdk(connection).collectCoinCreatorFeeV2Instructions(accounts.router, quote, tokenProgram, keeper.publicKey);
@@ -30,11 +32,11 @@ export async function collectAndSettleTokenFees({ connection, programId, keeper,
     new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }), ...setup, ...transfer, ...collect), [keeper], { commitment: 'confirmed' });
   const balance = BigInt((await connection.getTokenAccountBalance(accounts.routerToken, 'confirmed')).value.amount);
   const result = { tokenProgram: tokenProgram.toBase58(), routerToken: accounts.routerToken.toBase58(), collectSignature,
-    collected: String(balance - before), routerBalance: String(balance), settleSignature: null, settled: '0' };
+    collected: String(balance - before), routerBalance: String(balance), settleSignature: null, settled: '0', agency };
   if (!settle || balance === 0n) return result;
   const claimId = randomBytes(32);
   result.settleSignature = await sendAndConfirmTransaction(connection, new Transaction().add(
-    buildTokenSettlementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey, claimId, amount: balance })),
+    buildTokenSettlementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey, claimId, amount: balance, agency })),
   [keeper], { commitment: 'confirmed' });
   result.settled = String(balance);
   result.claimId = claimId.toString('hex');

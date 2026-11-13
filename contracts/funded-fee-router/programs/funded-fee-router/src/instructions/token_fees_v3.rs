@@ -6,12 +6,52 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 
-use crate::{constants::*, error::ErrorCode, state::{MintFeePolicyV3, MintTokenLedgerV3,
+use crate::{constants::*, error::ErrorCode, state::{MintAgencyPolicyV3, MintFeePolicyV3, MintTokenLedgerV3,
     MintClaimRecordV3, MintWithdrawalApprovalV3, MintWithdrawalV3, RewardVault}};
 use super::{policy_v3::category_targets, protected_v3::{read_shares, directed_targets},
-    rotate::assert_current_router_authority};
+    agency_policy_v3::{agency_category_targets, AGENCY_POLICY_SEED}, rotate::assert_current_router_authority};
 
-const VAULTS: usize = 7;
+/// Up to eight category vaults: seven for protected policies, eight (with the
+/// AI-agency budget) for agency policies.
+const VAULTS: usize = 8;
+
+/// The coin's fee policy, either protected (seven categories) or agency
+/// (eight), read from the account at its canonical PDA.
+struct PolicyView { creator: Pubkey, agency: bool, protocol: [u32; 7], directed: [u32; 3] }
+
+impl PolicyView {
+    fn vaults(&self) -> usize { if self.agency { 8 } else { 7 } }
+    fn targets(&self, total: u64) -> Result<[u64; VAULTS]> {
+        if self.agency { return agency_category_targets(total, self.protocol); }
+        let mut units = [0u32; 6];
+        units.copy_from_slice(&self.protocol[..6]);
+        let seven = category_targets(total, units)?;
+        let mut out = [0u64; VAULTS];
+        out[..7].copy_from_slice(&seven);
+        Ok(out)
+    }
+}
+
+fn read_policy(policy: &AccountInfo, program_id: &Pubkey, mint: &Pubkey) -> Result<PolicyView> {
+    require!(policy.owner == program_id, ErrorCode::InvalidMintFeePolicyV3);
+    let disc = policy.try_borrow_data()?[..8].to_vec();
+    if disc.as_slice() == MintFeePolicyV3::DISCRIMINATOR {
+        let (expected, _) = Pubkey::find_program_address(&[MINT_POLICY_V3_SEED, mint.as_ref()], program_id);
+        require!(policy.key() == expected, ErrorCode::InvalidMintFeePolicyV3);
+        let shares = read_shares(policy)?;
+        let state = MintFeePolicyV3::try_deserialize(&mut &policy.try_borrow_data()?[..])?;
+        require!(state.mint == *mint, ErrorCode::InvalidMintFeePolicyV3);
+        let mut protocol = [0u32; 7];
+        protocol[..6].copy_from_slice(&state.protocol_units);
+        return Ok(PolicyView { creator: state.creator, agency: false, protocol, directed: shares.units });
+    }
+    require!(disc.as_slice() == MintAgencyPolicyV3::DISCRIMINATOR, ErrorCode::InvalidMintFeePolicyV3);
+    let (expected, _) = Pubkey::find_program_address(&[AGENCY_POLICY_SEED, mint.as_ref()], program_id);
+    require!(policy.key() == expected, ErrorCode::InvalidMintFeePolicyV3);
+    let state = MintAgencyPolicyV3::try_deserialize(&mut &policy.try_borrow_data()?[..])?;
+    require!(state.mint == *mint, ErrorCode::InvalidMintFeePolicyV3);
+    Ok(PolicyView { creator: state.creator, agency: true, protocol: state.protocol_units, directed: state.directed_units })
+}
 
 fn vault_address(program_id: &Pubkey, mint: &Pubkey, category: u8) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[MINT_VAULT_V3_SEED, mint.as_ref(), &[category]], program_id)
@@ -29,9 +69,8 @@ pub struct InitializeTokenLedgerV3<'info> {
     /// CHECK: Global router header; its current authority is checked.
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,
-    #[account(seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
-        constraint = policy.mint == mint.key() @ ErrorCode::InvalidMintFeePolicyV3)]
-    pub policy: Account<'info, MintFeePolicyV3>,
+    /// CHECK: The coin's protected or agency fee policy; validated by read_policy.
+    pub policy: UncheckedAccount<'info>,
     #[account(init, payer = authority, space = 8 + MintTokenLedgerV3::INIT_SPACE,
         seeds = [MINT_TOKEN_LEDGER_V3_SEED, mint.key().as_ref(), quote_mint.key().as_ref()], bump)]
     pub ledger: Account<'info, MintTokenLedgerV3>,
@@ -40,7 +79,7 @@ pub struct InitializeTokenLedgerV3<'info> {
 
 pub fn initialize_token_ledger_v3_handler(ctx: Context<InitializeTokenLedgerV3>) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
-    read_shares(&ctx.accounts.policy.to_account_info())?;
+    read_policy(&ctx.accounts.policy.to_account_info(), ctx.program_id, &ctx.accounts.mint.key())?;
     let ledger = &mut ctx.accounts.ledger;
     ledger.mint = ctx.accounts.mint.key();
     ledger.quote_mint = ctx.accounts.quote_mint.key();
@@ -66,9 +105,8 @@ pub struct SettleMintTokenV3<'info> {
     /// CHECK: Global router header; its current authority is checked.
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,
-    #[account(seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
-        constraint = policy.mint == mint.key() @ ErrorCode::InvalidMintFeePolicyV3)]
-    pub policy: Account<'info, MintFeePolicyV3>,
+    /// CHECK: The coin's protected or agency fee policy; validated by read_policy.
+    pub policy: UncheckedAccount<'info>,
     #[account(mut, seeds = [MINT_TOKEN_LEDGER_V3_SEED, mint.key().as_ref(), quote_mint.key().as_ref()], bump = ledger.bump)]
     pub ledger: Account<'info, MintTokenLedgerV3>,
     /// CHECK: The coin's V3 router PDA, which owns `router_token`.
@@ -86,20 +124,20 @@ pub struct SettleMintTokenV3<'info> {
 pub fn settle_mint_token_v3_handler<'info>(ctx: Context<'info, SettleMintTokenV3<'info>>,
     claim_id: [u8; 32], expected_amount: u64) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
-    read_shares(&ctx.accounts.policy.to_account_info())?;
+    let view = read_policy(&ctx.accounts.policy.to_account_info(), ctx.program_id, &ctx.accounts.mint.key())?;
     require!(expected_amount > 0, ErrorCode::InvalidAmount);
     require!(expected_amount <= ctx.accounts.router_token.amount, ErrorCode::MintClaimAmountMismatchV3);
-    require!(ctx.remaining_accounts.len() == VAULTS, ErrorCode::InvalidMintFeeVaultV3);
+    require!(ctx.remaining_accounts.len() == view.vaults(), ErrorCode::InvalidMintFeeVaultV3);
     let mint = ctx.accounts.mint.key();
     let quote = ctx.accounts.quote_mint.key();
     let decimals = ctx.accounts.quote_mint.decimals;
     let ledger = &mut ctx.accounts.ledger;
     let new_total = ledger.settled.checked_add(expected_amount).ok_or(ErrorCode::AmountOverflow)?;
-    let targets = category_targets(new_total, ctx.accounts.policy.protocol_units)?;
+    let targets = view.targets(new_total)?;
     let router_bump = [ctx.bumps.router];
     let router_seeds: &[&[u8]] = &[MINT_ROUTER_V3_SEED, mint.as_ref(), &router_bump];
     let mut paid = [0u64; VAULTS];
-    for index in 0..VAULTS {
+    for index in 0..view.vaults() {
         let allocation = targets[index].checked_sub(ledger.paid[index]).ok_or(ErrorCode::AmountOverflow)?;
         let vault_info = &ctx.remaining_accounts[index];
         // Each vault token account must hold the paired token and belong to
@@ -124,7 +162,7 @@ pub fn settle_mint_token_v3_handler<'info>(ctx: Context<'info, SettleMintTokenV3
     claim.claim_id = claim_id;
     claim.mint = mint;
     claim.total_lamports = expected_amount;
-    claim.category_lamports = paid;
+    claim.category_lamports.copy_from_slice(&paid[..7]);
     claim.created_at = Clock::get()?.unix_timestamp;
     emit!(TokenSettlementV3Event { mint, quote_mint: quote, claim_id, total: expected_amount, category_amounts: paid });
     Ok(())
@@ -145,10 +183,8 @@ pub struct ApproveProtectedTokenWithdrawalV3<'info> {
     /// CHECK: Global router header; its current authority is checked.
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,
-    #[account(seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
-        constraint = policy.mint == mint.key() && policy.creator == creator.key()
-            @ ErrorCode::InvalidMintFeePolicyV3)]
-    pub policy: Account<'info, MintFeePolicyV3>,
+    /// CHECK: The coin's protected or agency fee policy; validated by read_policy.
+    pub policy: UncheckedAccount<'info>,
     /// CHECK: Recipient wallet; must be a plain system account.
     pub recipient: UncheckedAccount<'info>,
     #[account(init, payer = authority, space = 8 + MintWithdrawalApprovalV3::INIT_SPACE,
@@ -162,7 +198,8 @@ pub fn approve_protected_token_withdrawal_v3_handler(ctx: Context<ApproveProtect
     super::automation_v3::authorize(ctx.program_id, &ctx.accounts.creator.to_account_info(),
         &ctx.accounts.mint.key(), &ctx.accounts.policy.key(), category, &ctx.accounts.recipient.key(), ctx.remaining_accounts)?;
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
-    read_shares(&ctx.accounts.policy.to_account_info())?;
+    let view = read_policy(&ctx.accounts.policy.to_account_info(), ctx.program_id, &ctx.accounts.mint.key())?;
+    require!(view.creator == ctx.accounts.creator.key(), ErrorCode::InvalidMintFeePolicyV3);
     require!(amount > 0 && (1..=4).contains(&category) && beneficiary == category + 2, ErrorCode::InvalidMintApprovalV3);
     let recipient = &ctx.accounts.recipient;
     require!(recipient.owner == &System::id() && recipient.data_is_empty()
@@ -194,10 +231,8 @@ pub struct DisburseProtectedMintTokenV3<'info> {
     /// CHECK: Global router header; its current authority is checked.
     #[account(seeds = [SEED], bump)]
     pub legacy_router: UncheckedAccount<'info>,
-    #[account(seeds = [MINT_POLICY_V3_SEED, mint.key().as_ref()], bump = policy.bump,
-        constraint = policy.mint == mint.key() && policy.creator == creator.key()
-            @ ErrorCode::InvalidMintFeePolicyV3)]
-    pub policy: Account<'info, MintFeePolicyV3>,
+    /// CHECK: The coin's protected or agency fee policy; validated by read_policy.
+    pub policy: UncheckedAccount<'info>,
     #[account(mut, seeds = [MINT_TOKEN_LEDGER_V3_SEED, mint.key().as_ref(), quote_mint.key().as_ref()], bump = ledger.bump)]
     pub ledger: Account<'info, MintTokenLedgerV3>,
     /// CHECK: The category vault PDA, which owns `vault_token`.
@@ -226,7 +261,8 @@ pub fn disburse_protected_mint_token_v3_handler(ctx: Context<DisburseProtectedMi
         &ctx.accounts.mint.key(), &ctx.accounts.policy.key(), category, &owner_key, ctx.remaining_accounts)?;
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(category < 6 && amount > 0, ErrorCode::InvalidMintWithdrawalV3);
-    let shares = read_shares(&ctx.accounts.policy.to_account_info())?;
+    let view = read_policy(&ctx.accounts.policy.to_account_info(), ctx.program_id, &ctx.accounts.mint.key())?;
+    require!(view.creator == ctx.accounts.creator.key(), ErrorCode::InvalidMintFeePolicyV3);
     let mint = ctx.accounts.mint.key();
     let quote = ctx.accounts.quote_mint.key();
     let ledger = &mut ctx.accounts.ledger;
@@ -237,7 +273,7 @@ pub fn disburse_protected_mint_token_v3_handler(ctx: Context<DisburseProtectedMi
     let owner = &ctx.accounts.recipient_owner;
     if category == 0 {
         require!(beneficiary < 2, ErrorCode::InvalidProtectedMintPolicyV3);
-        let targets = directed_targets(ledger.paid[0], shares.units)?;
+        let targets = directed_targets(ledger.paid[0], view.directed)?;
         if beneficiary == 0 {
             require!(holder_amount == 0, ErrorCode::InvalidProtectedMintPolicyV3);
             ledger.released[0] = ledger.released[0].checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
@@ -304,7 +340,7 @@ pub struct TokenSettlementV3Event {
     pub quote_mint: Pubkey,
     pub claim_id: [u8; 32],
     pub total: u64,
-    pub category_amounts: [u64; 7],
+    pub category_amounts: [u64; 8],
 }
 
 #[event]

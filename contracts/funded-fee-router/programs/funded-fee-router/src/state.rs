@@ -166,14 +166,14 @@ pub struct MintTokenLedgerV3 {
     pub mint: Pubkey,
     pub quote_mint: Pubkey,
     pub settled: u64,
-    pub paid: [u64; 7],
-    pub withdrawn: [u64; 7],
+    pub paid: [u64; 8],
+    pub withdrawn: [u64; 8],
     pub released: [u64; 3],
     pub bump: u8,
 }
 
 impl MintTokenLedgerV3 {
-    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 * 7 + 8 * 7 + 8 * 3 + 1;
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 * 8 + 8 * 8 + 8 * 3 + 1;
 }
 
 #[account]

@@ -19,12 +19,13 @@ test('settlement passes the router token account and seven vault token accounts'
   const accounts = deriveTokenAccountsV3(programId, mint, quote, TOKEN_PROGRAM_ID);
   const ix = buildTokenSettlementInstruction({ programId, mint, quoteMint: quote, tokenProgram: TOKEN_PROGRAM_ID,
     authority: Keypair.generate().publicKey, claimId: new Uint8Array(32).fill(7), amount: 1234n });
-  assert.equal(ix.keys.length, 11 + 7);
+  assert.equal(ix.keys.length, 11 + 8);
   assert.ok(ix.keys[7].pubkey.equals(accounts.routerToken) && ix.keys[7].isWritable);
   assert.deepEqual(ix.keys.slice(11).map(row => row.pubkey.toBase58()), accounts.vaultTokens.map(account => account.toBase58()));
+  assert.equal(buildTokenSettlementInstruction({ programId, mint, quoteMint: quote, tokenProgram: TOKEN_PROGRAM_ID, authority: Keypair.generate().publicKey, claimId: new Uint8Array(32), amount: 1n, agency: false }).keys.length, 11 + 7);
   assert.equal(ix.data.length, 8 + 32 + 8);
   assert.equal(ix.data.readBigUInt64LE(40), 1234n);
-  assert.equal(buildTokenAccountSetupInstructions({ programId, mint, quoteMint: quote, tokenProgram: TOKEN_PROGRAM_ID, payer: Keypair.generate().publicKey }).length, 8);
+  assert.equal(buildTokenAccountSetupInstructions({ programId, mint, quoteMint: quote, tokenProgram: TOKEN_PROGRAM_ID, payer: Keypair.generate().publicKey }).length, 9);
   const pay = buildTokenDisbursementInstruction({ programId, mint, quoteMint: quote, tokenProgram: TOKEN_PROGRAM_ID, authority: Keypair.generate().publicKey,
     creator: Keypair.generate().publicKey, recipientOwner: Keypair.generate().publicKey, withdrawalId: new Uint8Array(32), category: 2, beneficiary: 4, amount: 5n });
   assert.ok(pay.keys[8].pubkey.equals(accounts.vaultTokens[2]));
@@ -32,7 +33,7 @@ test('settlement passes the router token account and seven vault token accounts'
 });
 
 test('token ledger decodes', () => {
-  const data = Buffer.alloc(8 + 32 + 32 + 8 + 56 + 56 + 24 + 1);
+  const data = Buffer.alloc(8 + 32 + 32 + 8 + 64 + 64 + 24 + 1);
   Buffer.from(tokenDiscriminators.MintTokenLedgerV3, 'hex').copy(data);
   const mint = Keypair.generate().publicKey; mint.toBuffer().copy(data, 8);
   data.writeBigUInt64LE(99n, 72); data.writeBigUInt64LE(5n, 80);
