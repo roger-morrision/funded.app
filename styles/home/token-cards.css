@@ -287,6 +287,5 @@ body.page-route-explore .home-launch-card-stats strong { font-size: 13px; }
 .launch-pair-field { display: grid; gap: 6px; margin: 4px 0 12px; }
 .launch-pair-field > label { font-weight: 600; }
 .launch-pair-field select { min-height: 44px; padding: 0 10px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-sm); background: var(--fv-surface); color: var(--fv-text); font: inherit; }
-.launch-pair-note { margin: 0; padding: 10px 12px; border: 1px solid var(--fv-accent); border-radius: var(--fv-radius-sm); background: var(--fv-accent-soft); color: var(--fv-text); font-size: 13px; line-height: 1.5; }
 .launch-pair-status { margin: 0; color: var(--fv-text); font-size: 13px; }
 .launch-pair-status:empty { display: none; }

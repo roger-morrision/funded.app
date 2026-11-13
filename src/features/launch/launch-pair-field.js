@@ -23,17 +23,14 @@ export async function mountLaunchPairField(app) {
       ${groups.map(([label, rows]) => `<optgroup label="${escapeHtml(`${label} (${rows.length})`)}">${rows.map(row => `<option value="${escapeHtml(row.mint)}">${escapeHtml(row.symbol)}${row.name ? ` · ${escapeHtml(row.name)}` : ''}</option>`).join('')}</optgroup>`).join('')}
     </select>
     <small class="field-help" id="launch-pair-help">Skip this to launch with SOL. Pick a token to launch a coin that trades against it on pump.fun.</small>
-    <p class="launch-pair-note" data-pair-note hidden></p>
     <p class="launch-pair-status" role="status" data-pair-status></p>`;
   anchor.after(field);
-  const select = field.querySelector('select'), note = field.querySelector('[data-pair-note]'), status = field.querySelector('[data-pair-status]');
+  const select = field.querySelector('select'), status = field.querySelector('[data-pair-status]');
   const next = document.querySelector('#launch-next');
   const nextLabel = next?.textContent;
   let picked = null, busy = false;
   const sync = () => {
     picked = quotes.find(row => row.mint === select.value) || null;
-    note.hidden = !picked;
-    if (picked) note.textContent = `Paired launch: your coin trades against ${picked.symbol} on pump.fun. It is created from this step in one transaction; your wallet is the creator and receives Pump's creator fees. richpad.fun fee sharing, community reserve and promotion tiers apply only to SOL launches. Trades on richpad.fun include the 1% app fee.`;
     if (next) next.textContent = picked ? `Launch paired with ${picked.symbol}` : nextLabel;
     status.textContent = '';
   };
