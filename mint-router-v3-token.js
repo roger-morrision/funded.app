@@ -84,20 +84,22 @@ export function buildTokenApprovalInstruction({ programId, mint, quoteMint, auth
   ] });
 }
 
-export function buildTokenDisbursementInstruction({ programId, mint, quoteMint, tokenProgram, authority, creator, creatorSigns = true,
-  recipientOwner, withdrawalId, category, beneficiary, amount, holderAmount = 0n, agency = true }) {
+export function buildTokenDisbursementInstruction({ programId, mint, quoteMint, tokenProgram, authority, creator, creatorSigns = undefined,
+  recipientOwner, withdrawalId, category, beneficiary, amount, holderAmount = 0n, agency = true, automation = false }) {
   const accounts = deriveTokenAccountsV3(programId, mint, quoteMint, tokenProgram);
   const recipientToken = getAssociatedTokenAddressSync(key(quoteMint), key(recipientOwner), true, key(tokenProgram));
   const data = Buffer.concat([Buffer.from(DISCRIMINATORS.disburse_protected_mint_token_v3, 'hex'), Buffer.from(withdrawalId),
     Buffer.from([category, beneficiary]), u64(amount), u64(holderAmount)]);
   return new TransactionInstruction({ programId: key(programId), data, keys: [
-    meta(authority, true, true), meta(creator, creatorSigns), meta(mint), meta(quoteMint), meta(deriveFeeRouter(programId).address),
+    meta(authority, true, true), meta(creator, creatorSigns ?? !automation), meta(mint), meta(quoteMint), meta(deriveFeeRouter(programId).address),
     meta(policyAddress(programId, mint, agency)), meta(deriveTokenLedgerV3(programId, mint, quoteMint), false, true),
     meta(accounts.vaults[category]), meta(accounts.vaultTokens[category], false, true),
     meta(recipientOwner), meta(recipientToken, false, true),
     meta(deriveTokenApprovalV3(programId, mint, quoteMint, withdrawalId), false, true),
     meta(deriveTokenWithdrawalV3(programId, mint, quoteMint, withdrawalId), false, true),
     meta(tokenProgram), meta(SystemProgram.programId),
+    // Automatic payouts: the coin's immutable automation record stands in for the creator's signature.
+    ...(automation ? [meta(PublicKey.findProgramAddressSync([seed('mint-automation-v3'), key(mint).toBuffer()], key(programId))[0])] : []),
   ] });
 }
 

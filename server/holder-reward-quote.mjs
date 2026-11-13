@@ -5,12 +5,34 @@ import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { fetchVerifiedPoolSnapshot } from '../pump-trading.js';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
 
+// USDC on Mainnet and Devnet: a coin paired with a stablecoin is priced 1:1 in USD.
+const STABLE_QUOTES = new Set(['EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU']);
+
 // Devnet dollar figures are reference-equivalent thresholds, never a claim that
 // Devnet SOL or a Devnet token has a realizable USD value.
 export function createHolderRewardQuoteReader({ connection, env = process.env,
   readSolUsd = createSolUsdQuoteReader(), now = Date.now,
   decodeCurve = account => PUMP_SDK.decodeBondingCurveNullable(account),
-  readPool = fetchVerifiedPoolSnapshot }) {
+  readPool = fetchVerifiedPoolSnapshot, readQuoteUsd = async () => null }) {
+  // A coin paired with a token (USDC, an xStock, ...) is priced in that token on
+  // its curve; stablecoins count as $1, others need a USD price for the token.
+  async function pairedQuote({ curve, mint, mintAccount, decimals }) {
+    if (curve.complete) throw new Error('Holder rewards for migrated paired coins need a verified pool price.');
+    const quoteMint = curve.quoteMint;
+    const quoteAccount = await connection.getParsedAccountInfo(quoteMint, 'finalized');
+    const quoteDecimals = Number(quoteAccount.value?.data?.parsed?.info?.decimals);
+    if (!Number.isInteger(quoteDecimals)) throw new Error('The paired token decimals are unavailable.');
+    const stable = STABLE_QUOTES.has(quoteMint.toBase58());
+    const quoteUsd = stable ? 1 : Number(await readQuoteUsd(quoteMint.toBase58()));
+    const curveTokens = Number(curve.virtualTokenReserves.toString()) / 10 ** decimals;
+    const curveQuote = Number(curve.virtualQuoteReserves.toString()) / 10 ** quoteDecimals;
+    const tokenPriceUsd = curveQuote / curveTokens * quoteUsd;
+    if (!Number.isFinite(tokenPriceUsd) || tokenPriceUsd <= 0) throw new Error('A fresh paired-token price quote is unavailable.');
+    const supply = Number(mintAccount.value?.data?.parsed?.info?.supply) / 10 ** decimals;
+    return { tokenPriceUsd, marketCapUsd:Number.isFinite(supply) && supply >= 0 ? tokenPriceUsd * supply : null, solUsd:null, decimals,
+      quoteMint:quoteMint.toBase58(), quoteUsd, quoteDecimals, source:stable ? 'finalized-Pump-curve-in-stablecoin' : 'finalized-Pump-curve-plus-token-USD',
+      observedAt:new Date(now()).toISOString() };
+  }
   return async function readHolderRewardQuote(mintAddress) {
     const mint = new PublicKey(mintAddress);
     const [mintAccount, curveAccount, solQuote] = await Promise.all([
@@ -28,7 +50,7 @@ export function createHolderRewardQuoteReader({ connection, env = process.env,
     const curve = decodeCurve(curveAccount);
     if (!curve?.quoteMint?.equals(NATIVE_MINT)
       && !curve?.quoteMint?.equals(SystemProgram.programId))
-      throw new Error('Holder rewards require a verified SOL-quoted Pump market.');
+      return pairedQuote({ curve, mint, mintAccount, decimals });
     const poolPrice = curve.complete
       ? (await readPool({ connection, mint,
           poolAddress:canonicalPumpPoolPda(mint, NATIVE_MINT) })).spotPriceSol

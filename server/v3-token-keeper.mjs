@@ -2,8 +2,9 @@ import { randomBytes } from 'node:crypto';
 import { PublicKey, Transaction, ComputeBudgetProgram, sendAndConfirmTransaction } from '@solana/web3.js';
 import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_SDK, coinCreatorVaultAuthorityPda, coinCreatorVaultAtaPda } from '@pump-fun/pump-swap-sdk';
+import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { buildTokenAccountSetupInstructions, buildTokenLedgerInitializeInstruction, buildTokenSettlementInstruction,
-  deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3 } from '../mint-router-v3-token.js';
+  buildTokenDisbursementInstruction, deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3, decodeTokenLedgerV3 } from '../mint-router-v3-token.js';
 
 // Keeper step for a coin paired with a token: make sure the router's and vaults'
 // paired-token accounts and the coin's token ledger exist, collect Pump's
@@ -46,4 +47,32 @@ export async function collectAndSettleTokenFees({ connection, programId, keeper,
   result.settled = String(balance);
   result.claimId = claimId.toString('hex');
   return result;
+}
+
+// Holder rewards in the paired token: pay the holders' part of the creator-
+// directed budget (category 0, beneficiary 1) into the coin's reward vault token
+// account, then enroll it with the holder scheduler as a funded pool of that
+// token. Signed by the creator when given, otherwise by the automation record.
+export async function fundTokenHolderRewards({ connection, programId, keeper, creator, creatorSigner = null, mint, quoteMint, amount, scheduler, activatedAt }) {
+  const quote = new PublicKey(quoteMint), coin = new PublicKey(mint), program = new PublicKey(programId);
+  const tokenProgram = (await connection.getAccountInfo(quote, 'confirmed')).owner;
+  const agency = Boolean(await connection.getAccountInfo(deriveAgencyPolicyV3(program, coin), 'confirmed'));
+  const [vault] = PublicKey.findProgramAddressSync([Buffer.from('reward-vault-v1'), keeper.publicKey.toBuffer(), coin.toBuffer()], program);
+  if (!await connection.getAccountInfo(vault, 'confirmed')) throw new Error('The coin has no reward vault.');
+  const vaultToken = getAssociatedTokenAddressSync(quote, vault, true, tokenProgram);
+  const ledger = decodeTokenLedgerV3((await connection.getAccountInfo(deriveTokenLedgerV3(program, coin, quote), 'confirmed')).data);
+  const pay = BigInt(amount);
+  if (pay <= 0n || pay > ledger.paid[0] - ledger.withdrawn[0]) throw new Error('The holder amount exceeds the creator-directed budget.');
+  const before = await connection.getTokenAccountBalance(vaultToken, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
+  const signature = await sendAndConfirmTransaction(connection, new Transaction().add(
+    createAssociatedTokenAccountIdempotentInstruction(keeper.publicKey, vaultToken, vault, quote, tokenProgram),
+    buildTokenDisbursementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey, creator,
+      automation: !creatorSigner, recipientOwner: vault, withdrawalId: randomBytes(32), category: 0, beneficiary: 1, amount: pay, holderAmount: pay, agency })),
+  [keeper, ...(creatorSigner ? [creatorSigner] : [])], { commitment: 'confirmed' });
+  const after = BigInt((await connection.getTokenAccountBalance(vaultToken, 'confirmed')).value.amount);
+  if (after - before !== pay) throw new Error('The reward vault did not receive the exact holder amount.');
+  const fundedAt = Math.floor(Date.now() / 1000);
+  if (scheduler) await scheduler.recordFundedPool({ id: `v3t:${signature}`, mint: coin.toBase58(), asset: quote.toBase58(), amount: String(pay),
+    fundingSignature: signature, balanceDeltaVerified: true, fundedAt });
+  return { signature, vault: vault.toBase58(), vaultToken: vaultToken.toBase58(), amount: String(pay), fundedAt, activatedAt };
 }

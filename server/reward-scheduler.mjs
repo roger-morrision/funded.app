@@ -68,6 +68,10 @@ export function holderUsdEligibility(quote, closingAccounts, excludedWallets = [
 }
 
 export function holderPoolMinimumLamports(config, quote, recipientCount, env = process.env) {
+  // A pool of a paired token (USDC, an xStock, ...): the same dollar threshold,
+  // converted to that token's base units at its USD price.
+  if (config?.asset && config.asset !== 'SOL' && config.asset === config.quoteMint)
+    return holderPoolMinimumTokenUnits(config, quote, recipientCount);
   const base = holderFundingMinimumLamports(config, env);
   const solUsd = Number(quote?.solUsd);
   if (!Number.isFinite(solUsd) || solUsd <= 0)
@@ -83,6 +87,22 @@ export function holderPoolMinimumLamports(config, quote, recipientCount, env = p
   const converted = ceilDiv(millidollars * 1_000_000_000n * ratio.denominator,
     1000n * ratio.numerator);
   return converted > base ? converted : base;
+}
+
+function holderPoolMinimumTokenUnits(config, quote, recipientCount) {
+  const quoteUsd = Number(quote?.quoteUsd), decimals = Number(quote?.quoteDecimals);
+  if (quote?.quoteMint !== config.quoteMint || !Number.isFinite(quoteUsd) || quoteUsd <= 0
+    || !Number.isInteger(decimals) || decimals < 0 || decimals > 18)
+    throw new Error('A fresh paired-token USD quote is required for the holder pool minimum.');
+  if (!Number.isSafeInteger(recipientCount) || recipientCount < 0
+    || recipientCount > AUTOMATIC_REWARDS.maxEligibleHolders)
+    throw new Error('Eligible holder count exceeds the configured distribution limit.');
+  const ratio = positiveDecimalRatio(quoteUsd, 'Paired-token USD quote');
+  const millidollars = BigInt(Math.round(poolUsdMinimum(config) * 1000))
+    + BigInt(recipientCount) * BigInt(config?.eligibilityPolicy === QA_HOLDER_POLICY ? 0
+      : Math.round(AUTOMATIC_REWARDS.costReserveUsdPerHolder * 1000));
+  const converted = ceilDiv(millidollars * 10n ** BigInt(decimals) * ratio.denominator, 1000n * ratio.numerator);
+  return converted > 0n ? converted : 1n;
 }
 
 function devnetQaShortWindow(config, env = process.env) {
@@ -116,7 +136,9 @@ function programConfig(input) {
   const firstPeriodStart = Number(input.firstPeriodStart ?? Math.ceil(activatedAt / periodSeconds) * periodSeconds);
   if (![periodSeconds, sampleIntervalSeconds, payoutDelaySeconds].every(Number.isSafeInteger) || periodSeconds < minimumPeriodSeconds || sampleIntervalSeconds < 30 || sampleIntervalSeconds > periodSeconds || payoutDelaySeconds < 0) throw new Error('Invalid reward schedule timing.');
   if (![activatedAt, firstPeriodStart].every(Number.isSafeInteger) || activatedAt < 0 || firstPeriodStart < activatedAt || firstPeriodStart % periodSeconds !== 0) throw new Error('Invalid reward program activation time.');
-  if (!['SOL', String(input.mint)].includes(String(input.asset || 'SOL'))) throw new Error('Holder rewards must use SOL or the launched token.');
+  // A coin paired with a token (USDC, an xStock, ...) pays holders in that token.
+  const pairedQuote = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(input.quoteMint || '')) ? String(input.quoteMint) : null;
+  if (!['SOL', String(input.mint), pairedQuote].filter(Boolean).includes(String(input.asset || 'SOL'))) throw new Error('Holder rewards must use SOL, the launched token or its paired token.');
   const qaMinimums = input.eligibilityPolicy === QA_HOLDER_POLICY ? input.qaMinimums : null;
   const qaPoolMillis = Math.round(Number(qaMinimums?.minimumPoolUsd) * 1000);
   const qaHolderCents = Math.round(Number(qaMinimums?.minimumHolderUsd) * 100);
@@ -135,7 +157,7 @@ function programConfig(input) {
     throw new Error('The Devnet QA holder policy requires persisted minimums.');
   }
   return {
-    mint: String(input.mint), enabled: input.enabled !== false, asset: String(input.asset || 'SOL'), kind: 'holder',
+    mint: String(input.mint), enabled: input.enabled !== false, asset: String(input.asset || 'SOL'), kind: 'holder', ...(pairedQuote ? { quoteMint: pairedQuote } : {}),
     periodSeconds, sampleIntervalSeconds, payoutDelaySeconds, activatedAt, firstPeriodStart,
     eligibilityPolicy: input.eligibilityPolicy || null, qaMinimums,
     excludedWallets: excludedHolderWallets(input.mint, input.excludedWallets || []),
@@ -257,9 +279,11 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
         if (!config.enabled || !pricedHolderPolicy(config)
           || now < config.firstPeriodStart + config.periodSeconds) return false;
         const total = Object.values(snapshot.rewardPools || {}).filter(pool => pool.mint === config.mint
-          && pool.status === 'available' && pool.asset === 'SOL')
+          && pool.status === 'available' && pool.asset === config.asset)
           .reduce((sum, pool) => sum + (/^\d+$/.test(String(pool.amount))
             ? BigInt(pool.amount) : 0n), 0n);
+        // SOL minimums apply to SOL pools; paired-token pools only need funds.
+        if (config.asset !== 'SOL') return total > 0n;
         try { return total >= holderFundingMinimumLamports(config); }
         catch { return false; }
       })
