@@ -12,7 +12,9 @@ await loadBootstrapModules([
     try {
       const response = await fetch('/api/fee-policy', { credentials:'same-origin', cache:'no-store' });
       if (!response.ok) throw new Error('The current fee policy is unavailable.');
-      setActiveProtocolFeeSplit((await response.json()).split);
+      // Revision 0 is the unpublished file fallback; keep the approved split shown on Home.
+      const policy = await response.json();
+      if (Number(policy?.revision) > 0) setActiveProtocolFeeSplit(policy.split);
       window.dispatchEvent(new Event('funded:fee-policy-ready'));
     } catch (error) { if (!import.meta.env.DEV) throw error; }
     await import('./app.js'); appReady();

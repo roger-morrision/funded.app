@@ -1,5 +1,6 @@
 import { PROTOCOL_FEE_SPLIT } from './config/protocol-fee-split.js';
 import { DAILY_BONUS_POLICY } from './config/daily-bonus.js';
+import { MARKETING_AGENCY_POLICY } from './config/marketing-agency.js';
 
 export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
   const levels = split?.referralLevelPercents;
@@ -18,7 +19,20 @@ export function validateProtocolFeeSplit(split = PROTOCOL_FEE_SPLIT) {
   };
 }
 
-let DEFAULT_PROTOCOL_SPLIT = validateProtocolFeeSplit();
+// The approved new-launch split (80% creator-directed · 8% Operations & marketing ·
+// 1% referrals · 2% AI agency · 4% Daily bonus · 5% $RICH buyback), as weights of the
+// 20% shared pool. The browser shows this until an admin publishes a policy
+// (/api/fee-policy revision > 0). Launches still use the server's saved split.
+const poolWeight = units => units / 20_000;
+export const APPROVED_PROTOCOL_FEE_SPLIT = Object.freeze(validateProtocolFeeSplit({
+  operationsPercent: poolWeight(MARKETING_AGENCY_POLICY.operationsUnits),
+  referralLevelPercents: MARKETING_AGENCY_POLICY.referralUnits.map(poolWeight),
+  communityPercent: poolWeight(MARKETING_AGENCY_POLICY.communityUnits),
+  buybackPercent: poolWeight(MARKETING_AGENCY_POLICY.fundedBuybackUnits),
+  agencyPercent: poolWeight(MARKETING_AGENCY_POLICY.agencyUnits),
+}));
+
+let DEFAULT_PROTOCOL_SPLIT = APPROVED_PROTOCOL_FEE_SPLIT;
 const effectivePercent = rate => Number((rate * 0.2).toFixed(6));
 
 function feeDistributionFor(split) { return Object.freeze({
