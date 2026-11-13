@@ -1,65 +1,14 @@
-import { escapeHtml } from '../shared/display.js';
-import { loadPairQuotes, PAIR_CATEGORIES, WSOL_MINT } from '../shared/pair-label.js';
+import { WSOL_MINT } from '../shared/pair-label.js';
 
 // "Create a coin paired with anything": a pump.fun coin whose bonding curve is
 // quoted in a token Pump accepts (SOL, USDC, xStocks, stocks, crypto). The
 // creator's wallet signs and is Pump's creator; nothing is sent before review.
 const NAME_MAX = 32, SYMBOL_MAX = 10, IMAGE_MAX = 600_000;
-let status = null, dialog = null;
+let status = null;
 
 async function launchStatus(app) {
   status ||= app.apiRequest('/api/pair-launch/status').then(result => result?.available ? result.data : { enabled: false }).catch(() => ({ enabled: false }));
   return status;
-}
-
-function markup() {
-  const chips = PAIR_CATEGORIES.filter(([key]) => key !== 'custom').map(([key, label]) => `<button type="button" data-pair-category="${key}" aria-pressed="${key === 'all'}">${escapeHtml(label)}</button>`).join('');
-  return `<form method="dialog" class="pair-launch" novalidate>
-    <header class="pair-launch-head"><div><p class="eyebrow">Create a coin</p><h2 id="pair-launch-title">Launch a coin paired with anything</h2>
-      <p>Your coin trades on pump.fun against the token you pick: SOL, USDC, xStocks, stocks or crypto.</p></div>
-      <button type="button" class="icon-button" data-pair-close aria-label="Close">✕</button></header>
-    <fieldset class="pair-launch-quote"><legend>Paired with</legend>
-      <div class="pair-launch-chips" role="group" aria-label="Pair categories">${chips}</div>
-      <input type="search" data-pair-search placeholder="Search SOL, USDC, NVDAx, SpaceX…" aria-label="Search paired tokens" />
-      <div class="pair-launch-list" role="listbox" aria-label="Paired token" data-pair-list><p class="empty-state">Loading tokens…</p></div>
-      <p class="pair-launch-picked" data-pair-picked>Paired with <b>SOL</b></p></fieldset>
-    <div class="pair-launch-fields">
-      <label>Name<input name="name" maxlength="${NAME_MAX}" required autocomplete="off" /></label>
-      <label>Ticker<input name="symbol" maxlength="${SYMBOL_MAX}" required autocomplete="off" /></label>
-      <label class="wide">Description <small>optional</small><textarea name="description" maxlength="280" rows="2"></textarea></label>
-      <label class="wide">Image <small>PNG, JPG or WEBP, under 600 KB</small><input name="image" type="file" accept="image/png,image/jpeg,image/webp" required /></label>
-      <label>Website <small>optional</small><input name="website" type="url" placeholder="https://" /></label>
-      <label>X <small>optional</small><input name="x" type="url" placeholder="https://x.com/…" /></label>
-      <label>Telegram <small>optional</small><input name="telegram" type="url" placeholder="https://t.me/…" /></label>
-      <label data-pair-buy>First buy <small>SOL, optional</small><input name="firstBuy" type="number" min="0" step="0.01" placeholder="0" /></label>
-    </div>
-    <p class="pair-launch-note" data-pair-note>Your wallet is the coin's creator and receives Pump's creator fees. Trades placed on richpad.fun include its 1% app fee. A coin can lose all its value.</p>
-    <p class="pair-launch-status" role="status" data-pair-status></p>
-    <div class="pair-launch-actions"><button type="submit" class="primary-button" data-pair-submit>Review and create</button></div>
-  </form>`;
-}
-
-// Grouped by category (SOL, Stablecoins, xStocks, Stocks, Crypto), in that order.
-function renderList(state) {
-  const query = state.query.trim().toLowerCase();
-  const rows = state.quotes.filter(row => (state.category === 'all' || row.category === state.category)
-    && (!query || `${row.symbol} ${row.name}`.toLowerCase().includes(query)));
-  const option = row => `<button type="button" role="option" class="pair-launch-option" data-pair-mint="${escapeHtml(row.mint)}" aria-selected="${row.mint === state.picked.mint}">
-      <span class="pair-launch-icon" aria-hidden="true">${row.icon ? `<img src="${escapeHtml(row.icon)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : escapeHtml(row.symbol.slice(0, 2))}</span>
-      <span><strong>${escapeHtml(row.symbol)}</strong><small>${escapeHtml(row.name || '')}</small></span></button>`;
-  const groups = PAIR_CATEGORIES.filter(([key]) => key !== 'all').map(([key, label]) => [label, rows.filter(row => (row.category || 'custom') === key)]).filter(([, list]) => list.length);
-  state.list.innerHTML = groups.length ? groups.map(([label, list]) => `<section class="pair-launch-group" role="group" aria-label="${escapeHtml(label)}">
-      <h3>${escapeHtml(label)} <small>${list.length}</small></h3><div class="pair-launch-group-items">${list.map(option).join('')}</div></section>`).join('')
-    : '<p class="empty-state">No pair tokens match.</p>';
-}
-
-async function submit(app, form, state) {
-  const say = text => { form.querySelector('[data-pair-status]').textContent = text; };
-  const data = new FormData(form);
-  form.querySelector('[data-pair-submit]').disabled = true;
-  await launchPairedCoin(app, { name: data.get('name'), symbol: data.get('symbol'), image: data.get('image'), description: data.get('description'),
-    website: data.get('website'), x: data.get('x'), telegram: data.get('telegram'), quote: state.picked, firstBuySol: data.get('firstBuy') }, say);
-  dialog?.close();
 }
 
 // Launch a coin paired with `quote` ({ mint, symbol }); used by this dialog and
@@ -131,53 +80,3 @@ export async function launchPairedCoin(app, input, say = () => {}) {
 
 
 export { launchStatus as pairLaunchStatus };
-
-export function openPairLaunch(app) {
-  if (!dialog) {
-    dialog = document.createElement('dialog');
-    dialog.className = 'info-dialog pair-launch-dialog';
-    dialog.setAttribute('aria-labelledby', 'pair-launch-title');
-    dialog.innerHTML = markup();
-    document.body.append(dialog);
-    const form = dialog.querySelector('form');
-    const state = { quotes: [], category: 'all', query: '', picked: { mint: WSOL_MINT, symbol: 'SOL' }, list: dialog.querySelector('[data-pair-list]') };
-    const pick = row => {
-      state.picked = { mint: row.mint, symbol: row.symbol };
-      dialog.querySelector('[data-pair-picked]').innerHTML = `Paired with <b>${escapeHtml(row.symbol)}</b>${row.name ? ` · ${escapeHtml(row.name)}` : ''}`;
-      dialog.querySelector('[data-pair-buy]').hidden = row.mint !== WSOL_MINT;
-      renderList(state);
-    };
-    void loadPairQuotes(path => app.apiRequest(path).then(result => result?.data || result)).then(list => { state.quotes = list; renderList(state); });
-    dialog.addEventListener('click', event => {
-      if (event.target.closest('[data-pair-close]')) { dialog.close(); return; }
-      const chip = event.target.closest('[data-pair-category]');
-      if (chip) { state.category = chip.dataset.pairCategory; dialog.querySelectorAll('[data-pair-category]').forEach(node => node.setAttribute('aria-pressed', String(node === chip))); renderList(state); return; }
-      const option = event.target.closest('[data-pair-mint]');
-      if (option) pick(state.quotes.find(row => row.mint === option.dataset.pairMint) || state.picked);
-    });
-    dialog.querySelector('[data-pair-search]').addEventListener('input', event => { state.query = event.target.value; renderList(state); });
-    form.addEventListener('submit', event => {
-      event.preventDefault();
-      void submit(app, form, state).catch(error => {
-        const message = String(error?.message || error || 'The coin could not be created.');
-        form.querySelector('[data-pair-status]').textContent = /reject|declin|cancel/i.test(message) ? 'Cancelled in your wallet. Nothing was created.' : message;
-      }).finally(() => { form.querySelector('[data-pair-submit]').disabled = false; });
-    });
-  }
-  if (!dialog.open) dialog.showModal();
-  return dialog;
-}
-
-// #pair-launch opens the dialog; on Mainnet, "Create a coin" opens it once paired launches are open.
-export function initializePairLaunch(app) {
-  const fromHash = () => { if (location.hash === '#pair-launch') openPairLaunch(app); };
-  window.addEventListener('hashchange', fromHash);
-  fromHash();
-  if (app.APP_CLUSTER !== 'mainnet-beta') return;
-  document.addEventListener('click', event => {
-    const link = event.target.closest?.('a[href="#launch"], [data-route="launch"], #nav-launch');
-    if (!link || event.defaultPrevented) return;
-    event.preventDefault();
-    void launchStatus(app).then(result => { if (result.enabled) openPairLaunch(app); else location.hash = '#launch'; });
-  }, true);
-}

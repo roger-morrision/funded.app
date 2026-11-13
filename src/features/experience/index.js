@@ -40,7 +40,6 @@ export function initializeProductFlows(app) {
   const mount = () => {
     if (!document.body.classList.contains('workspace-ready') || !document.body.classList.contains('product-experience-ready')) return false;
     initializeDiscoveryIntent(app);
-    void import('../launch/pair-launch.js').then(module => module.initializePairLaunch(app)).catch(() => {});
     void import('../launch/launch-pair-field.js').then(module => module.mountLaunchPairField(app)).catch(() => {});
     initializeFinancialCenter(app);
     initializeAccountPreferences(app);

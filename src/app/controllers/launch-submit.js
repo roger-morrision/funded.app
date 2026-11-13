@@ -11,6 +11,9 @@ export function createLaunchSubmitController(appState) {
   // app-source: 662
   async function launchToken(){
     if (appState.launchSubmitting) return;
+    // A token pair needs the fee router to handle token fees; until then never launch a SOL coin instead.
+    const pair = globalThis.document?.querySelector('#launch-pair-select')?.value;
+    if (pair) { appState.setLaunchStatus('Launching with a paired token is not available yet. Set Paired with back to SOL to launch now. No transaction was sent.', true); return; }
     const agencySelection=readLaunchAgencySelection(appState.getLaunchBurnPolicy());
     if (agencySelection.length&&!appState.feeRouterState?.v3FeeRouter?.agency) {
       appState.setLaunchStatus('AI agency launch is unavailable until its dedicated V3 fee budget and executors are verified. No transaction was sent.', true);

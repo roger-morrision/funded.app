@@ -251,38 +251,6 @@ body.page-route-explore .home-launch-card-stats strong { font-size: 13px; }
 .explore-pair-filter { display: inline-flex; align-items: center; gap: 6px; color: var(--fv-text-muted); font-size: 12px; }
 .explore-pair-filter select { min-height: 36px; padding: 0 10px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-sm); background: var(--fv-surface); color: var(--fv-text); }
 
-/* Paired launch dialog. */
-.pair-launch-dialog { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-lg); background: var(--fv-bg); color: var(--fv-text); }
-.pair-launch { display: grid; gap: 14px; padding: 18px; }
-.pair-launch-head { display: flex; justify-content: space-between; gap: 12px; }
-.pair-launch-head h2 { margin: 2px 0 6px; font-size: 20px; }
-.pair-launch-head p { margin: 0; color: var(--fv-text-muted); font-size: 13px; }
-.pair-launch-quote { display: grid; gap: 8px; margin: 0; padding: 12px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); }
-.pair-launch-quote legend { padding: 0 6px; font-weight: 700; }
-.pair-launch-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pair-launch-chips button { min-height: 36px; padding: 0 12px; border: 1px solid var(--fv-border); border-radius: 999px; background: var(--fv-surface); color: var(--fv-text-muted); }
-.pair-launch-chips button[aria-pressed="true"] { border-color: var(--fv-accent); color: var(--fv-text); background: var(--fv-accent-soft); }
-.pair-launch-quote input[type="search"], .pair-launch-fields :is(input, textarea) { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 10px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-sm); background: var(--fv-surface); color: var(--fv-text); font: inherit; }
-.pair-launch-list { display: grid; gap: 10px; max-height: 300px; overflow: auto; padding-right: 2px; }
-.pair-launch-group h3 { position: sticky; top: 0; z-index: 1; margin: 0 0 6px; padding: 4px 0; background: var(--fv-bg); color: var(--fv-text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
-.pair-launch-group h3 small { color: var(--fv-text-subtle); font-weight: 400; }
-.pair-launch-group-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-.pair-launch-option { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 8px; border: 1px solid var(--fv-border); border-radius: var(--fv-radius-sm); background: var(--fv-surface); color: var(--fv-text); text-align: left; }
-.pair-launch-option[aria-selected="true"] { border-color: var(--fv-accent); background: var(--fv-accent-soft); }
-.pair-launch-option span:last-child { display: flex; flex-direction: column; min-width: 0; }
-.pair-launch-option small { overflow: hidden; color: var(--fv-text-subtle); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.pair-launch-icon { position: relative; flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--fv-surface-raised); font-size: 10px; }
-.pair-launch-icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.pair-launch-picked { margin: 0; color: var(--fv-text-muted); font-size: 13px; }
-.pair-launch-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.pair-launch-fields label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
-.pair-launch-fields label.wide { grid-column: 1 / -1; }
-.pair-launch-fields small { color: var(--fv-text-subtle); font-weight: 400; }
-.pair-launch-note, .pair-launch-status { margin: 0; color: var(--fv-text-muted); font-size: 12px; line-height: 1.5; }
-.pair-launch-status:not(:empty) { color: var(--fv-text); font-size: 13px; }
-.pair-launch-actions { display: flex; justify-content: flex-end; }
-@media (max-width: 560px) { .pair-launch-fields { grid-template-columns: 1fr; } }
-
 /* Launch form step 1: optional Paired-with dropdown. */
 .launch-pair-field { display: grid; gap: 6px; margin: 4px 0 12px; }
 .launch-pair-field > label { font-weight: 600; }
