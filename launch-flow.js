@@ -2,7 +2,7 @@ import { assertRpcNetwork } from './solana-network.js';
 import {normalizeDeveloperLockSeconds} from './developer-lock-period.js';
 import { buildLaunchTransaction, normalizeLaunchInput } from './launch-core.js';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getMint } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createBurnCheckedInstruction, getAccount, getAssociatedTokenAddress, getAssociatedTokenAddressSync, getMint } from '@solana/spl-token';
 import { getBuySolAmountFromTokenAmount, getBuyTokenAmountFromSolAmount, OnlinePumpSdk, PUMP_SDK } from '@pump-fun/pump-sdk';
 import BN from 'bn.js';
 import { tokensToBaseUnits } from './launch-burn-policy.js';
@@ -204,9 +204,24 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!global.verified || !global.authority.equals(new PublicKey(v3FeeRouter.initialAuthority))) {
     throw new Error('The approved V3 router authority could not be verified before launch.');
   }
+  // Paired coin: its Pump curve is quoted in `input.quoteMint` (USDC, an xStock, ...).
+  // The community reserve is bought with that token; developer buy is SOL-only for now.
+  const quoteMint = input.quoteMint ? new PublicKey(input.quoteMint) : NATIVE_MINT;
+  const paired = !quoteMint.equals(NATIVE_MINT);
+  if (paired && Number(input.initialBuySol || 0) > 0) throw new Error('Developer buy is available for SOL launches only. Set the developer buy to 0 for a paired coin.');
   const developerBuy = await getInitialBuyQuote({ connection, input });
   const initialBuy = await quoteAtomicReserveBuy({ connection, supply:launchInput.supply, decimals:launchInput.decimals,
-    reserveTokens:input.reserveTokens, developerBaseUnits:developerBuy.amountBaseUnits });
+    reserveTokens:input.reserveTokens, developerBaseUnits:developerBuy.amountBaseUnits, quoteMint });
+  let quoteTokenProgram = TOKEN_PROGRAM_ID;
+  if (paired) {
+    const quoteInfo = await connection.getAccountInfo(quoteMint, 'confirmed');
+    if (!quoteInfo) throw new Error('The paired token was not found on Solana. No coin was created.');
+    quoteTokenProgram = quoteInfo.owner;
+    const payerQuote = getAssociatedTokenAddressSync(quoteMint, payer, false, quoteTokenProgram);
+    const held = await connection.getTokenAccountBalance(payerQuote, 'confirmed').then(result => BigInt(result.value.amount)).catch(() => 0n);
+    if (held < initialBuy.maxSolAmountLamports)
+      throw new Error(`The community reserve is bought with the paired token. Your wallet needs ${initialBuy.maxSolAmountLamports} base units of it and holds ${held}. No coin was created.`);
+  }
   initialBuy.curvePremiumBps = initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
   initialBuy.percent = Number(initialBuy.amountBaseUnits) / (launchInput.supply * 10 ** launchInput.decimals) * 100;
   initialBuy.developerAmountTokens = developerBuy.amountTokens;
@@ -254,7 +269,23 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
         throw Error('Launch fee quote is too close to expiry. Refresh before burning.');
     }}) : null;
   onStatus(burnPlan ? 'Promotion burn verified. Preparing the Pump coin creation transaction…' : 'Preparing the Pump coin creation transaction…');
-  const launchInstructions = initialBuy.amountBaseUnits > 0n
+  const launchInstructions = paired
+    ? await PUMP_SDK.createV2AndBuyV2Instructions({
+      global: initialBuy.global,
+      mint: mint.publicKey,
+      name: launchInput.name,
+      symbol: launchInput.symbol,
+      uri: launchMetadataUri,
+      creator: feeRouter,
+      user: payer,
+      amount: new BN(initialBuy.amountBaseUnits.toString()),
+      quoteAmount: new BN(initialBuy.maxSolAmountLamports.toString()),
+      mayhemMode: false,
+      quoteMint,
+      quoteTokenProgram,
+      holderReward: false,
+    })
+    : initialBuy.amountBaseUnits > 0n
     ? await PUMP_SDK.createV2AndBuyInstructions({
       global: initialBuy.global,
       mint: mint.publicKey,

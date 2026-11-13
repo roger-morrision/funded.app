@@ -39,7 +39,9 @@ export function launchReserveInstructions({ mint, payer, programId, authority, r
   ] };
 }
 
-export async function quoteAtomicReserveBuy({ connection, supply, decimals, reserveTokens, developerBaseUnits = 0n }) {
+// `quoteMint` (default SOL) is the coin's paired token; the reserve is then
+// priced, and paid, in that token's base units.
+export async function quoteAtomicReserveBuy({ connection, supply, decimals, reserveTokens, developerBaseUnits = 0n, quoteMint = NATIVE_MINT }) {
   if (!Number.isSafeInteger(supply) || !Number.isSafeInteger(reserveTokens) || reserveTokens <= 0 || reserveTokens >= supply
     || !Number.isInteger(decimals) || decimals < 0 || decimals > 9) throw new Error('Community reserve exceeds the launch supply.');
   const reserveBaseUnits = BigInt(reserveTokens) * 10n ** BigInt(decimals);
@@ -47,7 +49,11 @@ export async function quoteAtomicReserveBuy({ connection, supply, decimals, rese
   const amountBaseUnits = reserveBaseUnits + developer;
   if (developer < 0n || amountBaseUnits >= BigInt(supply) * 10n ** BigInt(decimals)) throw new Error('Reserve and developer buy exceed launch supply.');
   const { getBuySolAmountFromTokenAmount, OnlinePumpSdk } = await import('@pump-fun/pump-sdk');
-  const global = await new OnlinePumpSdk(connection).fetchGlobal();
+  const sdk = new OnlinePumpSdk(connection);
+  const global = await sdk.fetchGlobal();
+  const quote = new PublicKey(quoteMint);
+  // A quote admitted through Pump's QuoteControl list seeds the curve from that list.
+  const quoteControl = quote.equals(NATIVE_MINT) ? null : await sdk.fetchQuoteControl?.().catch(() => null) ?? null;
   const capacity = launchBuyCapacity({ global, decimals, reserveTokens });
   if (developer > capacity.creatorCapBaseUnits)
     throw new Error('Developer buy cannot exceed 20% of the token supply. Lower the SOL amount.');
@@ -56,9 +62,9 @@ export async function quoteAtomicReserveBuy({ connection, supply, decimals, rese
   if (developer > capacity.developerBaseUnits)
     throw new Error('Developer buy exceeds the available launch supply after the community reserve. Lower the SOL amount.');
   const quoted = BigInt(getBuySolAmountFromTokenAmount({ global, feeConfig:null, mintSupply:null, bondingCurve:null,
-    amount:new BN(amountBaseUnits.toString()), quoteMint:NATIVE_MINT }).toString());
+    amount:new BN(amountBaseUnits.toString()), quoteMint:quote, quoteControl }).toString());
   if (quoted <= 0n) throw new Error('The reserve purchase has no valid Pump quote.');
   return { reserveBaseUnits, developerBaseUnits:developer, amountBaseUnits,
     amountTokens:Number(amountBaseUnits / 10n ** BigInt(decimals)), solAmountLamports:quoted,
-    maxSolAmountLamports:quoted + (quoted + 99n) / 100n, global };
+    maxSolAmountLamports:quoted + (quoted + 99n) / 100n, global, quoteMint:quote };
 }
