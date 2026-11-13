@@ -28,8 +28,13 @@ export async function collectAndSettleTokenFees({ connection, programId, keeper,
   const ammAmount = await connection.getTokenAccountBalance(ammVault, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
   const transfer = ammAmount > 0n ? [await PUMP_AMM_SDK.transferCreatorFeesToPumpV2Instruction({ payer: keeper.publicKey, coinCreator: accounts.router, quoteMint: quote, quoteTokenProgram: tokenProgram })] : [];
   const before = await connection.getTokenAccountBalance(accounts.routerToken, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
+  // Account setup (nine token accounts and the ledger) is too large for one
+  // transaction: send it in small batches, then collect.
+  const setupSignatures = [];
+  for (let index = 0; index < setup.length; index += 4)
+    setupSignatures.push(await sendAndConfirmTransaction(connection, new Transaction().add(...setup.slice(index, index + 4)), [keeper], { commitment: 'confirmed' }));
   const collectSignature = await sendAndConfirmTransaction(connection,
-    new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }), ...setup, ...transfer, ...collect), [keeper], { commitment: 'confirmed' });
+    new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }), ...transfer, ...collect), [keeper], { commitment: 'confirmed' });
   const balance = BigInt((await connection.getTokenAccountBalance(accounts.routerToken, 'confirmed')).value.amount);
   const result = { tokenProgram: tokenProgram.toBase58(), routerToken: accounts.routerToken.toBase58(), collectSignature,
     collected: String(balance - before), routerBalance: String(balance), settleSignature: null, settled: '0', agency };
