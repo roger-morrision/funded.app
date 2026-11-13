@@ -138,6 +138,12 @@ pub mod funded_fee_router {
     }
 
     #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+    pub fn convert_token_budget_v3<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>,
+        conversion_id: [u8; 32], category: u8, amount_in: u64, min_sol_out: u64) -> Result<()> {
+        token_convert_v3::handler(ctx, conversion_id, category, amount_in, min_sol_out)
+    }
+
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn initialize_token_ledger_v3(ctx: Context<InitializeTokenLedgerV3>) -> Result<()> {
         token_fees_v3::initialize_token_ledger_v3_handler(ctx)
     }

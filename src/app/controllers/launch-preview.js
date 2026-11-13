@@ -36,10 +36,13 @@ export function createLaunchPreviewController(appState) {
               import('../../../launch-flow.js'), import('../../../launch-core.js'),
             ]);
             const input = normalizeLaunchInput({ name: 'Solana Coin', symbol: 'COIN', supply: appState.LAUNCH_TOKEN_SUPPLY, decimals: 6 });
-            const developer = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens, initialBuySol: creatorBuySol } });
+            const { readLaunchPair } = await import('../../features/launch/launch-pair-field.js');
+            const pair = readLaunchPair();
+            const developer = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens, initialBuySol: creatorBuySol, ...(pair || {}) } });
             const quote = await appState.quoteAtomicReserveBuy({ connection: appState.connection, supply: input.supply,
-              decimals: input.decimals, reserveTokens, developerBaseUnits: developer.amountBaseUnits });
-            return { developer, quote };
+              decimals: input.decimals, reserveTokens, developerBaseUnits: developer.amountBaseUnits, ...(pair ? { quoteMint: pair.quoteMint } : {}) });
+            // A paired coin pays these purchases in its paired token, not SOL.
+            return { developer, quote: pair ? { ...quote, solAmountLamports: 0n, maxSolAmountLamports: 0n } : quote };
           })(),
           new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Public quote timed out')), 12_000); }),
         ]);

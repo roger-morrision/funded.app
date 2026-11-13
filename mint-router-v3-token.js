@@ -12,6 +12,8 @@ const DISCRIMINATORS = Object.freeze({
   approve_protected_token_withdrawal_v3: '5d9bfae623a74a85',
   disburse_protected_mint_token_v3: 'ccdc558df80147d1',
   MintTokenLedgerV3: 'f24bd61b10120020',
+  convert_token_budget_v3: '647795a88d096dab',
+  MintSolCreditV3: '7f45143efe67c0a9',
 });
 const seed = text => Buffer.from(text);
 const key = value => new PublicKey(value);
@@ -110,4 +112,46 @@ export function decodeTokenLedgerV3(data) {
   const read = (offset, count) => Array.from({ length: count }, (_, index) => bytes.readBigUInt64LE(offset + index * 8));
   return { mint: new PublicKey(bytes.subarray(8, 40)).toBase58(), quoteMint: new PublicKey(bytes.subarray(40, 72)).toBase58(),
     settled: bytes.readBigUInt64LE(72), paid: read(80, 8), withdrawn: read(144, 8), released: read(208, 3), bump: bytes[232] };
+}
+
+const NATIVE = new PublicKey('So11111111111111111111111111111111111111112');
+const SPL_TOKEN = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const ATA_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+const PUMP_SWAP = new PublicKey('pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA');
+
+export const deriveSolCreditV3 = (programId, mint) =>
+  PublicKey.findProgramAddressSync([seed('mint-sol-credit-v3'), key(mint).toBuffer()], key(programId))[0];
+export const deriveTokenConversionV3 = (programId, mint, conversionId) =>
+  PublicKey.findProgramAddressSync([seed('mint-token-convert-v3'), key(mint).toBuffer(), Buffer.from(conversionId)], key(programId))[0];
+
+/** SOL credited per category by paired-token conversions (all zero when the record is absent). */
+export function decodeSolCreditV3(data) {
+  const raw = Buffer.from(data || []);
+  if (raw.length < 8 + 32 + 64 + 1 || raw.subarray(0, 8).toString('hex') !== DISCRIMINATORS.MintSolCreditV3) throw new Error('Invalid SOL credit record.');
+  return { mint: new PublicKey(raw.subarray(8, 40)).toBase58(), credited: Array.from({ length: 8 }, (_, i) => raw.readBigUInt64LE(40 + i * 8)) };
+}
+
+/**
+ * Converts part of a paired coin's buyback (6) or AI-agency (7) token budget to
+ * SOL through the router's pinned PumpSwap WSOL/<token> pool. `pumpBuyInstruction`
+ * is the SDK's PumpSwap buy for that pool with the category vault as user; its
+ * accounts become the router's CPI accounts.
+ */
+export function buildTokenConversionInstruction({ programId, mint, quoteMint, quoteTokenProgram, authority, conversionId, category, amountIn, minSolOut, pumpBuyInstruction }) {
+  if (![6, 7].includes(Number(category))) throw new Error('Only buyback (6) and AI-agency (7) budgets convert to SOL.');
+  if (Buffer.from(conversionId || []).length !== 32) throw new Error('A 32-byte conversion ID is required.');
+  if (!pumpBuyInstruction?.programId?.equals(PUMP_SWAP)) throw new Error('A PumpSwap buy instruction is required.');
+  const program = key(programId), coin = key(mint), quote = key(quoteMint), quoteProgram = key(quoteTokenProgram);
+  const vault = PublicKey.findProgramAddressSync([seed('mint-fee-vault-v3'), coin.toBuffer(), Buffer.from([Number(category)])], program)[0];
+  const ata = (owner, tokenMint, tokenProgram) => getAssociatedTokenAddressSync(tokenMint, owner, true, tokenProgram);
+  const keys = [
+    meta(authority, true, true), meta(coin), meta(quote), meta(deriveFeeRouter(program).address),
+    meta(deriveAgencyPolicyV3(program, coin), false, true), meta(deriveTokenLedgerV3(program, coin, quote), false, true),
+    meta(vault, false, true), meta(ata(vault, quote, quoteProgram), false, true), meta(ata(vault, NATIVE, SPL_TOKEN), false, true),
+    meta(deriveSolCreditV3(program, coin), false, true), meta(deriveTokenConversionV3(program, coin, conversionId), false, true),
+    meta(SPL_TOKEN), meta(quoteProgram), meta(ATA_PROGRAM), meta(PUMP_SWAP), meta(SystemProgram.programId),
+    ...pumpBuyInstruction.keys.map((row, index) => ({ pubkey: row.pubkey, isSigner: false, isWritable: index === 1 ? true : row.isWritable })),
+  ];
+  const data = Buffer.concat([Buffer.from(DISCRIMINATORS.convert_token_budget_v3, 'hex'), Buffer.from(conversionId), Buffer.from([Number(category)]), u64(amountIn), u64(minSolOut)]);
+  return { instruction: new TransactionInstruction({ programId: program, keys, data }), vault };
 }

@@ -88,17 +88,28 @@ export function normalizeInitialBuy(input = {}) {
 
 export async function getInitialBuyQuote({ connection, input }) {
   const launchInput = normalizeLaunchInput(input);
+  // A paired coin's developer buy is entered and paid in its paired token
+  // (USDC, an xStock, ...) on that token's Pump curve; amounts below stay in the
+  // quote's base units (lamports for SOL).
+  const quote = input?.quoteMint ? new PublicKey(input.quoteMint) : NATIVE_MINT;
+  const paired = !quote.equals(NATIVE_MINT);
+  const unit = paired ? String(input?.quoteSymbol || 'paired token') : 'SOL';
+  const unitDecimals = paired ? Number(input?.quoteDecimals ?? 6) : 9;
+  if (!Number.isInteger(unitDecimals) || unitDecimals < 0 || unitDecimals > 12) throw new Error('The paired token decimals are invalid.');
+  const sdk = new OnlinePumpSdk(connection);
+  const quoteArgs = async () => ({ quoteMint: quote, quoteControl: paired ? await sdk.fetchQuoteControl?.().catch(() => null) ?? null : undefined });
   const requestedSol = Number(input?.initialBuySol ?? 0);
-  if (!Number.isFinite(requestedSol) || requestedSol < 0) throw new Error('Developer buy must be a valid SOL amount of zero or more.');
+  if (!Number.isFinite(requestedSol) || requestedSol < 0) throw new Error(`Developer buy must be a valid ${unit} amount of zero or more.`);
   if (requestedSol > 0) {
-    const requestedLamports = BigInt(Math.round(requestedSol * 1_000_000_000));
-    if (requestedLamports <= 0n || requestedLamports > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Developer buy SOL amount is outside the supported range.');
-    const global = await new OnlinePumpSdk(connection).fetchGlobal();
+    const requestedLamports = BigInt(Math.round(requestedSol * 10 ** unitDecimals));
+    if (requestedLamports <= 0n || requestedLamports > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(`Developer buy ${unit} amount is outside the supported range.`);
+    const global = await sdk.fetchGlobal();
+    const quoting = await quoteArgs();
     const capacity = launchBuyCapacity({ global, decimals: launchInput.decimals, reserveTokens: input.reserveTokens });
     const limitBaseUnits = capacity.developerBaseUnits;
     const limitLamports = BigInt(getBuySolAmountFromTokenAmount({
       global, feeConfig: null, mintSupply: null, bondingCurve: null,
-      amount: new BN(limitBaseUnits.toString()), quoteMint: NATIVE_MINT,
+      amount: new BN(limitBaseUnits.toString()), ...quoting,
     }).toString());
     const amountBaseUnits = BigInt(getBuyTokenAmountFromSolAmount({
       global,
@@ -106,7 +117,7 @@ export async function getInitialBuyQuote({ connection, input }) {
       mintSupply: null,
       bondingCurve: null,
       amount: new BN(requestedLamports.toString()),
-      quoteMint: NATIVE_MINT,
+      ...quoting,
     }).toString());
     if (amountBaseUnits <= 0n) throw new Error('Developer buy is too small to receive tokens.');
     if (amountBaseUnits > limitBaseUnits || requestedLamports > limitLamports) {
@@ -114,7 +125,7 @@ export async function getInitialBuyQuote({ connection, input }) {
       let high = limitLamports;
       const tokensAt = lamports => BigInt(getBuyTokenAmountFromSolAmount({
         global, feeConfig: null, mintSupply: null, bondingCurve: null,
-        amount: new BN(lamports.toString()), quoteMint: NATIVE_MINT,
+        amount: new BN(lamports.toString()), ...quoting,
       }).toString());
       if (tokensAt(high) > limitBaseUnits) {
         while (low + 1n < high) {
@@ -123,12 +134,13 @@ export async function getInitialBuyQuote({ connection, input }) {
           else high = midpoint;
         }
       } else low = high;
-      const safeSixDecimalLamports = low / 1000n * 1000n;
-      const maxSol = `${safeSixDecimalLamports / 1_000_000_000n}.${String(safeSixDecimalLamports % 1_000_000_000n).padStart(9, '0').slice(0, 6)}`.replace(/\.?0+$/, '');
+      const scale = 10n ** BigInt(unitDecimals), keep = unitDecimals > 6 ? 10n ** BigInt(unitDecimals - 6) : 1n;
+      const safeSixDecimalLamports = low / keep * keep;
+      const maxSol = `${safeSixDecimalLamports / scale}.${String(safeSixDecimalLamports % scale).padStart(unitDecimals, '0').slice(0, 6)}`.replace(/\.?0+$/, '');
       const reason = limitBaseUnits === capacity.creatorCapBaseUnits
         ? 'Developer buy cannot exceed 20% of the token supply.'
         : 'Developer buy exceeds the available launch supply after the community reserve.';
-      throw new Error(`${reason} Enter ${maxSol} SOL or less at the current quote.`);
+      throw new Error(`${reason} Enter ${maxSol} ${unit} or less at the current quote.`);
     }
     const tokenDivisor = 10 ** launchInput.decimals;
     const amountTokens = Number(amountBaseUnits) / tokenDivisor;
@@ -144,7 +156,7 @@ export async function getInitialBuyQuote({ connection, input }) {
   }
   const buy = normalizeInitialBuy({ ...launchInput, initialBuyPercent: input?.initialBuyPercent });
   if (buy.amountBaseUnits === 0n) return { ...buy, solAmountLamports: 0n, maxSolAmountLamports:0n, curvePremiumBps:0 };
-  const global = await new OnlinePumpSdk(connection).fetchGlobal();
+  const global = await sdk.fetchGlobal();
   const capacity = launchBuyCapacity({ global, decimals: launchInput.decimals, reserveTokens: input.reserveTokens });
   if (buy.amountBaseUnits > capacity.developerBaseUnits)
     throw new Error('Developer buy exceeds the available launch supply after the community reserve. Lower the purchase percentage.');
@@ -154,7 +166,7 @@ export async function getInitialBuyQuote({ connection, input }) {
     mintSupply: null,
     bondingCurve: null,
     amount: new BN(buy.amountBaseUnits.toString()),
-    quoteMint: NATIVE_MINT,
+    ...await quoteArgs(),
   });
   const quoted=BigInt(solAmountLamports.toString());
   return { ...buy, solAmountLamports: quoted, maxSolAmountLamports:quoted+quoted/100n,
@@ -205,10 +217,12 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     throw new Error('The approved V3 router authority could not be verified before launch.');
   }
   // Paired coin: its Pump curve is quoted in `input.quoteMint` (USDC, an xStock, ...).
-  // The community reserve is bought with that token; developer buy is SOL-only for now.
+  // The community reserve is bought with that token. A developer buy would add
+  // its escrow to the same atomic launch transaction, which then exceeds
+  // Solana's 1232-byte limit, so paired coins launch without one.
   const quoteMint = input.quoteMint ? new PublicKey(input.quoteMint) : NATIVE_MINT;
   const paired = !quoteMint.equals(NATIVE_MINT);
-  if (paired && Number(input.initialBuySol || 0) > 0) throw new Error('Developer buy is available for SOL launches only. Set the developer buy to 0 for a paired coin.');
+  if (paired && Number(input.initialBuySol || 0) > 0) throw new Error('A paired coin launches without a developer buy: its escrow does not fit in the atomic launch transaction. Set the developer buy to 0. No coin was created.');
   const developerBuy = await getInitialBuyQuote({ connection, input });
   const initialBuy = await quoteAtomicReserveBuy({ connection, supply:launchInput.supply, decimals:launchInput.decimals,
     reserveTokens:input.reserveTokens, developerBaseUnits:developerBuy.amountBaseUnits, quoteMint });

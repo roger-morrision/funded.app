@@ -334,3 +334,32 @@ pub struct CommunityPayment {
 impl CommunityPayment {
     pub const INIT_SPACE: usize = 32 + 32 + 8 + 4 + 8;
 }
+
+/// SOL credited to a paired coin's category budgets by token conversions.
+#[account]
+pub struct MintSolCreditV3 {
+    pub mint: Pubkey,
+    pub credited: [u64; 8],
+    pub bump: u8,
+}
+
+impl MintSolCreditV3 {
+    pub const INIT_SPACE: usize = 32 + 64 + 1;
+}
+
+/// Replay-protected receipt of one paired-token to SOL budget conversion.
+#[account]
+pub struct MintTokenConversionV3 {
+    pub conversion_id: [u8; 32],
+    pub mint: Pubkey,
+    pub quote_mint: Pubkey,
+    pub pool: Pubkey,
+    pub category: u8,
+    pub spent_quote: u64,
+    pub received_lamports: u64,
+    pub created_at: i64,
+}
+
+impl MintTokenConversionV3 {
+    pub const INIT_SPACE: usize = 32 * 4 + 1 + 8 * 3;
+}

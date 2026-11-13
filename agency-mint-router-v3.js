@@ -110,6 +110,8 @@ export function buildAgencyMintV3SettlementInstruction(input){
   const result=buildMintRouterV3SettlementInstruction(input),policy=deriveAgencyPolicyV3(input.programId,input.mint),vaults=deriveAgencyVaultsV3(input.programId,input.mint);
   const data=Buffer.from(result.instruction.data);agencyDiscriminator(input.auto?'settle_agency_mint_v3_auto':'settle_agency_mint_v3').copy(data);
   const keys=result.instruction.keys.slice(0,8);keys[5]=meta(policy.address,false,true);keys.push(...vaults.map(pubkey=>meta(pubkey,false,true)));
+  // A coin with paired-token conversions passes its SOL credit record (mint-sol-credit-v3).
+  if(input.solCredit)keys.push(meta(input.solCredit));
   return{...result,policy,vaults,instruction:new TransactionInstruction({programId:key(input.programId),data,keys})};
 }
 export const buildAgencyMintV3AutoSettlementInstruction = input =>

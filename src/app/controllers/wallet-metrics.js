@@ -41,7 +41,7 @@ export function createWalletMetricsController(appState) {
       if (!appState.feeRouterState.verified || !appState.feeRouterState.v3FeeRouter)
         throw new Error(`V3 launch is blocked: ${appState.feeRouterState.status}.`);
       const creatorBuySol = appState.getCreatorBuySol();
-      if (creatorBuySol > 0 && Math.ceil(creatorBuySol * 1_000_000_000) >= balance) throw new Error('Insufficient SOL for the developer buy and network costs. Reduce the buy amount or add SOL.');
+      if (!document.querySelector('#launch-pair-select')?.value && creatorBuySol > 0 && Math.ceil(creatorBuySol * 1_000_000_000) >= balance) throw new Error('Insufficient SOL for the developer buy and network costs. Reduce the buy amount or add SOL.');
       const [{ PUMP_SDK, OnlinePumpSdk }, { normalizeLaunchInput },
         { getInitialBuyQuote, prepareFundedLaunchBurn,buildLaunchMintRouter },
         { buildProtectedMintRouterV3InitializeInstruction }] = await Promise.all([
@@ -52,9 +52,13 @@ export function createWalletMetricsController(appState) {
       const symbol = document.querySelector('#token-symbol').value.trim().toUpperCase() || 'COIN';
       const input = normalizeLaunchInput({ name, symbol, supply: appState.LAUNCH_TOKEN_SUPPLY, decimals: 6 });
       const reserveConfig = await appState.getLaunchReserveConfig();
-      const developerBuy = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens: appState.getCommunityAirdropTokens(), initialBuySol: appState.getCreatorBuySol() } });
+      // A paired coin buys its reserve and developer allocation with the paired
+      // token; the SOL estimate then covers only network fees and accounts.
+      const { readLaunchPair } = await import('../../features/launch/launch-pair-field.js');
+      const pair = readLaunchPair();
+      const developerBuy = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens: appState.getCommunityAirdropTokens(), initialBuySol: appState.getCreatorBuySol(), ...(pair || {}) } });
       const initialBuy = await appState.quoteAtomicReserveBuy({ connection: appState.connection, supply:input.supply, decimals:input.decimals,
-        reserveTokens:appState.getCommunityAirdropTokens(), developerBaseUnits:developerBuy.amountBaseUnits });
+        reserveTokens:appState.getCommunityAirdropTokens(), developerBaseUnits:developerBuy.amountBaseUnits, ...(pair ? { quoteMint: pair.quoteMint } : {}) });
       initialBuy.curvePremiumBps = appState.initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
       const mint = Keypair.generate();
       const v3 = appState.feeRouterState.v3FeeRouter;
@@ -63,7 +67,14 @@ export function createWalletMetricsController(appState) {
       const launchV3={...v3,...(v3.agency?{agency:{...v3.agency,selectedAgents:readLaunchAgencySelection(appState.getLaunchBurnPolicy())}}:{})};
       const mintRouter = buildLaunchMintRouter({mint:mint.publicKey,payer,v3FeeRouter:launchV3,feeShares:appState.getFeeDistributionInputs()});
       const router = mintRouter.router.address;
-      const launchInstructions = initialBuy.amountBaseUnits > 0n
+      const BN = (await import('bn.js')).default;
+      const quoteTokenProgram = pair ? (await appState.connection.getAccountInfo(new PublicKey(pair.quoteMint)))?.owner : null;
+      if (pair && !quoteTokenProgram) throw new Error('The paired token was not found on Solana.');
+      const launchInstructions = pair
+        ? await PUMP_SDK.createV2AndBuyV2Instructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol,
+          uri: devnetLaunchMetadataUri(mint.publicKey.toBase58()), creator: router, user: payer, amount: new BN(initialBuy.amountBaseUnits.toString()),
+          quoteAmount: new BN(initialBuy.maxSolAmountLamports.toString()), mayhemMode: false, quoteMint: new PublicKey(pair.quoteMint), quoteTokenProgram, holderReward: false })
+        : initialBuy.amountBaseUnits > 0n
         ? await PUMP_SDK.createV2AndBuyInstructions({ global:initialBuy.global, mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: devnetLaunchMetadataUri(mint.publicKey.toBase58()), creator: router, user: payer, amount: new (await import('bn.js')).default(initialBuy.amountBaseUnits.toString()), solAmount: new (await import('bn.js')).default(initialBuy.solAmountLamports.toString()), mayhemMode: false, cashback: false, holderReward: false })
         : [await PUMP_SDK.createV2Instruction({ mint: mint.publicKey, name: input.name, symbol: input.symbol, uri: devnetLaunchMetadataUri(mint.publicKey.toBase58()), creator: router, user: payer, mayhemMode: false, holderReward: false })];
       const launchBurn = appState.getLaunchBurnPolicy();
@@ -124,12 +135,12 @@ export function createWalletMetricsController(appState) {
         ? { ready: true, message: `Wallet verified to first burn ${appState.formatLaunchBurnAmount(launchBurn.amountTokens)} $RICH, then approve Pump creation${plan.mintRouterSeparate ? '; router initialization uses a separate approval' : ''}.` }
         : { ready: true, message: 'No creator-funded burn is required.' };
       appState.renderLaunchBurnSelection();
-      const review=appState.launchReview({balance,serviceFeeLamports:serviceQuote.amountLamports,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:initialBuy.solAmountLamports,buyMaximum:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});
+      const review=appState.launchReview({balance,serviceFeeLamports:serviceQuote.amountLamports,simulatedSpend:estimatedSpend,networkFee:fee,buyQuote:pair?0n:initialBuy.solAmountLamports,buyMaximum:pair?0n:initialBuy.maxSolAmountLamports,transactionCount:plan.steps.length,curvePremiumBps:initialBuy.curvePremiumBps,now:quoteStartedAt});
       if(!appState.freshLaunchReview(review))throw new Error('Estimate took too long and expired. Refresh before signing.');
       appState.launchCostReview=review;
       appState.launchServiceQuote=serviceQuote;
       appState.launchEstimateRetry = null;
-      appState.estimatedInitialBuyLamports=Number(initialBuy.solAmountLamports);
+      appState.estimatedInitialBuyLamports=pair?0:Number(initialBuy.solAmountLamports);
       appState.estimatedInitialBuyTokens=Number(developerBuy.amountTokens);
       appState.updateLaunchPreview();
       appState.setWalletMetrics({ balance, fee: Number(appState.launchCostReview.budget) });

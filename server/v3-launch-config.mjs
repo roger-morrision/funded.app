@@ -15,7 +15,7 @@ import {readAgencyBuybackReadiness} from './agency-buyback-readiness.mjs';
 // 2026-11-13: the owner-approved Devnet router with paired-coin token fees
 // (same build as AGENCY_REVIEWED_BINARY, commit 8be7173b). Devnet only.
 export const PROTECTED_V3_PROGRAM_DATA_SHA256 =
-  '004af5ee617bd8b309a3849fb0da0228babb442a263d81e22fc4c7c6661d1abd';
+  '916dcfe09c663fde059a2dcc060a9b65ec87aa5d03bf6a64c2822e32e57d99e1';
 export const V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED = true;
 export const V3_BENEFICIARY_RELEASE_BLOCKER =
   'Protected V3 beneficiary rules require the exact reviewed Devnet program bytes';

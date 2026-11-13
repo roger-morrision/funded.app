@@ -3,6 +3,7 @@ import {startTradeFinancialWakeWorker} from './trade-financial-wakeup.mjs';
 import {startFinancialFlowMonitor} from './financial-flow-monitor.mjs';
 import {createCommunityDeliveryRuntime} from './community-delivery-runtime.mjs';
 import {createDeveloperAutoRelease} from './developer-auto-release.mjs';
+import {startV3PairedTokenWorker} from './v3-paired-token-worker.mjs';
 
 // An API-only acceptance instance retains all signed routes and readiness
 // checks; the primary app remains the sole internal payout scheduler.
@@ -28,6 +29,8 @@ export function startApiFinancialWorkerServices(context) {
     if(delivery.enabled)result.started.push('community-auto-delivery');
     const developerRelease=createDeveloperAutoRelease(context);developerRelease.start();
     if(developerRelease.enabled)result.started.push('developer-auto-release');
+    const pairedToken=startV3PairedTokenWorker(context);
+    if(pairedToken)result.started.push('paired-token-fees');
     startTradeFinancialWakeWorker({store:context.automaticRewardStore,
       run:async()=>{await holder?.tick?.();await context.dailyBonusRuntime.tick();}});
     if(context.store)startFinancialFlowMonitor(context);

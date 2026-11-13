@@ -56,17 +56,30 @@ export async function verifyLaunchDeveloperLock({connection,proof,reserve,transa
   if(!config?.ready)throw Error('The approved developer token escrow is unavailable.');
   if(!transaction||transaction.meta?.err!==null||transaction.transaction?.signatures?.[0]!==proof.signature||transaction.slot!==proof.slot)
     throw Error('A finalized launch transaction is required for developer-token verification.');
-  transaction=await completeFinalizedEventReceipt({connection,transaction,signature:proof.signature,cluster:config.cluster||'devnet'});
   const mint=new PublicKey(proof.mint),creator=proof.feePayer;
-  const trades=successfulEventLogs(transaction.meta.logMessages).filter(e=>e.program===PUMP_PROGRAM_ID.toBase58())
-    .flatMap(e=>decodePumpTrades([e.log],mint));
-  if(!trades.length||trades.some(t=>!t.isBuy||t.trader!==creator))throw Error('Launch trades contain an unexpected buyer or sale.');
-  const purchased=trades.reduce((sum,t)=>sum+t.tokenAmountRaw,0n),reserved=BigInt(reserve.fundedTokens)*1_000_000n;
-  const amount=purchased-reserved;
-  if(amount<0n||amount>200_000_000n*1_000_000n)throw Error('Developer allocation exceeds its verified 20% limit.');
   const programId=developerLockProgramId(config.programId),addresses=developerLockAddresses({mint,creator,programId});
   const allowed=new Set([creator,reserve.vault,addresses.lock.toBase58(),bondingCurvePda(mint).toBase58()]);
   const balances=transaction.meta.postTokenBalances?.filter(b=>b.mint===proof.mint);
+  let purchased;
+  try {
+    transaction=await completeFinalizedEventReceipt({connection,transaction,signature:proof.signature,cluster:config.cluster||'devnet'});
+    const trades=successfulEventLogs(transaction.meta.logMessages).filter(e=>e.program===PUMP_PROGRAM_ID.toBase58())
+      .flatMap(e=>decodePumpTrades([e.log],mint,{anyQuote:true}));
+    if(!trades.length||trades.some(t=>!t.isBuy||t.trader!==creator))throw Error('Launch trades contain an unexpected buyer or sale.');
+    purchased=trades.reduce((sum,t)=>sum+t.tokenAmountRaw,0n);
+  } catch(error) {
+    // Paired launches (USDC, ...) log enough token-program activity that the
+    // validator truncates the receipt's logs. The mint is created in this
+    // transaction, so the finalized post balances outside the curve are exactly
+    // what the launch bought; the recipient checks below still apply.
+    if(error?.reason!=='logs-incomplete'||transaction.meta.preTokenBalances?.some(b=>b.mint===proof.mint))throw error;
+    const curve=bondingCurvePda(mint).toBase58();
+    purchased=(balances||[]).filter(b=>b.owner!==curve).reduce((sum,b)=>sum+BigInt(b.uiTokenAmount.amount),0n);
+    if(purchased<=0n)throw Error('Launch trades contain an unexpected buyer or sale.');
+  }
+  const reserved=BigInt(reserve.fundedTokens)*1_000_000n;
+  const amount=purchased-reserved;
+  if(amount<0n||amount>200_000_000n*1_000_000n)throw Error('Developer allocation exceeds its verified 20% limit.');
   if(!balances?.length||balances.some(b=>!allowed.has(b.owner)&&BigInt(b.uiTokenAmount.amount)>0n)
     ||balances.some(b=>b.owner===creator&&BigInt(b.uiTokenAmount.amount)!==0n))
     throw Error('The declared developer allocation must be escrowed atomically; unexpected launch token recipients were found.');

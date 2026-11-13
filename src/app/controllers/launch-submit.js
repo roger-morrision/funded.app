@@ -12,7 +12,9 @@ export function createLaunchSubmitController(appState) {
   async function launchToken(){
     if (appState.launchSubmitting) return;
     // Paired with: the token the coin's Pump curve is quoted in (empty = SOL).
-    const quoteMint = globalThis.document?.querySelector('#launch-pair-select')?.value || '';
+    const { readLaunchPair } = await import('../../features/launch/launch-pair-field.js');
+    const pair = readLaunchPair();
+    const quoteMint = pair?.quoteMint || '';
     const agencySelection=readLaunchAgencySelection(appState.getLaunchBurnPolicy());
     if (agencySelection.length&&!appState.feeRouterState?.v3FeeRouter?.agency) {
       appState.setLaunchStatus('AI agency launch is unavailable until its dedicated V3 fee budget and executors are verified. No transaction was sent.', true);
@@ -152,7 +154,7 @@ export function createLaunchSubmitController(appState) {
         }
         return row;
       };
-      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, developerLockSeconds, reserveTokens:communityTokens, maxInitialBuyLamports:quoteMint ? null : reviewedCost.buyMaximum, feeShares:feeDistributionInput, quoteMint: quoteMint || null }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:recordAndSaveRecovery, onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
+      const result = await submitPumpDevnetLaunch({ cluster: appState.APP_CLUSTER, connection: appState.connection, provider: session.provider, payer: session.provider.publicKey, input: { name, symbol, supply, decimals, initialBuySol: creatorBuySol, developerLockSeconds, reserveTokens:communityTokens, maxInitialBuyLamports:quoteMint ? null : reviewedCost.buyMaximum, feeShares:feeDistributionInput, quoteMint: quoteMint || null, quoteSymbol: pair?.quoteSymbol, quoteDecimals: pair?.quoteDecimals }, prepareMetadata: input => appState.prepareLaunchMetadata(input, session), feeRouterProgramId: reserveConfig.programId, useMintRouter: true, v3FeeRouter, launchBurn, launchServiceQuote:appState.launchServiceQuote, reserveConfig, assertWalletCurrent: () => appState.assertWalletSessionCurrent(session), onJournal:recordAndSaveRecovery, onStatus: message => { if (appState.isWalletSessionCurrent(session)) appState.setLaunchStatus(message); } });
       const routeAddress = result.feeRouter.toBase58();
       const routeState = { ...deriveMintRouterV3(v3FeeRouter.programId, result.mint.publicKey),
         address:routeAddress, scope:'per-mint-v3',agencyPolicy:Boolean(v3FeeRouter.agency) };

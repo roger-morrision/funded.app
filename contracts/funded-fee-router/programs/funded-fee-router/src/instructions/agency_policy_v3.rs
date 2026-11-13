@@ -185,9 +185,14 @@ fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'info>, mint
         && data[73..105] == mint.to_bytes() && data[105] == router_bump, ErrorCode::InvalidMintRouter); drop(data);
     require!(expected_lamports > 0 && router.lamports().saturating_sub(Rent::get()?.minimum_balance(MINT_ROUTER_DATA_LEN)) >= expected_lamports,
         ErrorCode::MintClaimAmountMismatchV3);
-    require!(vaults.len() == 8, ErrorCode::InvalidAgencyPolicyV3);
+    // A ninth account is the coin's SOL credit from paired-token conversions:
+    // credited SOL stays part of each category's budget across settlements.
+    require!(vaults.len() == 8 || vaults.len() == 9, ErrorCode::InvalidAgencyPolicyV3);
+    let credit = super::token_convert_v3::read_credit(program_id, &mint, vaults.get(8))?;
+    let vaults = &vaults[..8];
     let total = policy.settled_lamports.checked_add(expected_lamports).ok_or(ErrorCode::AmountOverflow)?;
-    let targets = agency_category_targets(total, policy.protocol_units)?;
+    let mut targets = agency_category_targets(total, policy.protocol_units)?;
+    for (target, extra) in targets.iter_mut().zip(credit) { *target = target.checked_add(extra).ok_or(ErrorCode::AmountOverflow)?; }
     let mut delta = [0u64; 8]; let reserve = Rent::get()?.minimum_balance(0);
     for (index, vault) in vaults.iter().enumerate() {
         let (expected, _) = Pubkey::find_program_address(&[MINT_VAULT_V3_SEED, mint.as_ref(), &[index as u8]], program_id);

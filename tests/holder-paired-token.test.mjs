@@ -30,3 +30,34 @@ test('a paired-token pool refuses a missing or mismatched quote', () => {
 test('SOL pools still require a SOL/USD quote', () => {
   assert.throws(() => holderPoolMinimumLamports({ asset: 'SOL', eligibilityPolicy: 'usd-20-hourly-v1' }, { solUsd: null }, 1), /SOL\/USD/);
 });
+
+import { PublicKey, Keypair } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
+import { createHolderRewardQuoteReader } from '../server/holder-reward-quote.mjs';
+
+function pairedReader({ complete, pool }) {
+  const quoteMint = new PublicKey(USDC);
+  const connection = {
+    getParsedAccountInfo: async key => key.equals(quoteMint)
+      ? { value: { data: { parsed: { info: { decimals: 6 } } } } }
+      : { value: { owner: TOKEN_2022_PROGRAM_ID, data: { parsed: { info: { decimals: 6, supply: '1000000000000000' } } } } },
+    getAccountInfo: async () => ({ owner: PUMP_PROGRAM_ID }),
+  };
+  return createHolderRewardQuoteReader({ connection, env: {}, readSolUsd: async () => ({}), now: () => Date.parse('2026-11-13T00:00:00Z'),
+    decodeCurve: () => ({ complete, quoteMint, virtualTokenReserves: 1_000_000_000_000_000n, virtualQuoteReserves: 5_000_000_000n }),
+    readPairedPool: async () => pool });
+}
+
+test('a USDC-paired curve is priced in USDC at $1', async () => {
+  const quote = await pairedReader({ complete: false })(Keypair.generate().publicKey.toBase58());
+  assert.equal(quote.tokenPriceUsd, 5_000 / 1_000_000_000);
+  assert.equal(quote.quoteDecimals, 6);
+  assert.equal(quote.source, 'finalized-Pump-curve-in-stablecoin');
+});
+
+test('a migrated USDC-paired coin is priced from its canonical pool', async () => {
+  const quote = await pairedReader({ complete: true, pool: { baseAmount: 200_000_000_000_000n, quoteAmount: 40_000_000_000n } })(Keypair.generate().publicKey.toBase58());
+  assert.equal(quote.tokenPriceUsd, 40_000 / 200_000_000);
+  assert.equal(quote.source, 'finalized-PumpSwap-pool-in-stablecoin');
+});

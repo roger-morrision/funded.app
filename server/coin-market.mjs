@@ -42,7 +42,9 @@ function summarizeActivityWindow(records, cutoffSeconds, complete, sinceLaunch =
   };
 }
 
-export function decodePumpTrades(logMessages, mint) {
+// Market views read SOL-quoted trades only; launch checks pass `anyQuote` so a
+// coin paired with a token (USDC, ...) is verified from its paired-token trades.
+export function decodePumpTrades(logMessages, mint, { anyQuote = false } = {}) {
   const trades = [];
   for (const log of logMessages || []) {
     if (!log.startsWith('Program data: ')) continue;
@@ -50,7 +52,7 @@ export function decodePumpTrades(logMessages, mint) {
     if (bytes.length < 8 || !bytes.subarray(0, 8).equals(TRADE_EVENT_DISCRIMINATOR)) continue;
     try {
       const event = PUMP_SDK.decodeTradeEventBc(bytes.subarray(8));
-      if (!event.mint.equals(mint) || !isSolLikeQuoteMint(event.quoteMint)) continue;
+      if (!event.mint.equals(mint) || (!anyQuote && !isSolLikeQuoteMint(event.quoteMint))) continue;
       const quoteReserves = Number(event.virtualQuoteReserves.toString());
       const tokenReserves = Number(event.virtualTokenReserves.toString());
       const priceRatio = quoteReserves > 0 && tokenReserves > 0 ? quoteReserves / tokenReserves : NaN;
@@ -59,6 +61,7 @@ export function decodePumpTrades(logMessages, mint) {
         tokenAmountRaw: BigInt(event.tokenAmount.toString()),
         isBuy: Boolean(event.isBuy),
         trader: event.user.toBase58(),
+        quoteMint: event.quoteMint ? event.quoteMint.toBase58() : null,
         priceRatio,
       });
     } catch { /* Ignore events from other Pump layouts or programs. */ }
