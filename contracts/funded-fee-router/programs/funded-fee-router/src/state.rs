@@ -158,6 +158,24 @@ impl MintClaimRecordV3 {
     pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 * 7 + 8;
 }
 
+/// Token-fee accounting for one coin and its paired token, beside the SOL
+/// figures in MintFeePolicyV3: settled total, per-category paid and
+/// withdrawn amounts, and released creator-directed shares.
+#[account]
+pub struct MintTokenLedgerV3 {
+    pub mint: Pubkey,
+    pub quote_mint: Pubkey,
+    pub settled: u64,
+    pub paid: [u64; 7],
+    pub withdrawn: [u64; 7],
+    pub released: [u64; 3],
+    pub bump: u8,
+}
+
+impl MintTokenLedgerV3 {
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 * 7 + 8 * 7 + 8 * 3 + 1;
+}
+
 #[account]
 pub struct MintWithdrawalV3 {
     pub withdrawal_id: [u8; 32],

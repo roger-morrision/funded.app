@@ -138,6 +138,31 @@ pub mod funded_fee_router {
     }
 
     #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+    pub fn initialize_token_ledger_v3(ctx: Context<InitializeTokenLedgerV3>) -> Result<()> {
+        token_fees_v3::initialize_token_ledger_v3_handler(ctx)
+    }
+
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+    pub fn settle_mint_token_v3<'info>(ctx: Context<'info, SettleMintTokenV3<'info>>,
+        claim_id: [u8; 32], expected_amount: u64) -> Result<()> {
+        token_fees_v3::settle_mint_token_v3_handler(ctx, claim_id, expected_amount)
+    }
+
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+    pub fn approve_protected_token_withdrawal_v3(ctx: Context<ApproveProtectedTokenWithdrawalV3>,
+        withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64) -> Result<()> {
+        token_fees_v3::approve_protected_token_withdrawal_v3_handler(ctx, withdrawal_id, category, beneficiary, amount)
+    }
+
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+    pub fn disburse_protected_mint_token_v3(ctx: Context<DisburseProtectedMintTokenV3>,
+        withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64,
+        holder_amount: u64) -> Result<()> {
+        token_fees_v3::disburse_protected_mint_token_v3_handler(ctx, withdrawal_id, category,
+            beneficiary, amount, holder_amount)
+    }
+
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn buyback_mint_v3<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         buyback_id: [u8; 32], spendable_quote_in: u64,
         min_base_amount_out: u64, max_total_debit: u64) -> Result<()> {

@@ -12,12 +12,12 @@ const EXTENSION_BYTES: usize = 8 + 3 * 4 + 3 * 8;
 const EXTENSION_MAGIC: &[u8; 8] = b"FNDPROT1";
 const DIRECTED_UNITS: u32 = 8_000_000;
 
-struct ProtectedShares {
-    units: [u32; 3],
-    released: [u64; 3],
+pub(crate) struct ProtectedShares {
+    pub(crate) units: [u32; 3],
+    pub(crate) released: [u64; 3],
 }
 
-fn read_shares(policy: &AccountInfo) -> Result<ProtectedShares> {
+pub(crate) fn read_shares(policy: &AccountInfo) -> Result<ProtectedShares> {
     require!(policy.data_len() == POLICY_BYTES + EXTENSION_BYTES,
         ErrorCode::InvalidProtectedMintPolicyV3);
     let data = policy.try_borrow_data()?;
@@ -51,7 +51,7 @@ fn write_shares(policy: &AccountInfo, shares: &ProtectedShares) -> Result<()> {
     Ok(())
 }
 
-fn directed_targets(total: u64, units: [u32; 3]) -> Result<[u64; 3]> {
+pub(crate) fn directed_targets(total: u64, units: [u32; 3]) -> Result<[u64; 3]> {
     let mut targets = [0u64; 3];
     let mut cumulative = 0u64;
     let mut previous = 0u64;

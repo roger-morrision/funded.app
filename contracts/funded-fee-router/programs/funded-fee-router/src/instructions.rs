@@ -58,3 +58,7 @@ pub use buyback_price::*;
 pub mod agency_rules_v3;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub use agency_rules_v3::*;
+#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+pub mod token_fees_v3;
+#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+pub use token_fees_v3::*;

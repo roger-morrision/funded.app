@@ -12,6 +12,11 @@ pub const MINT_CLAIM_V3_SEED: &[u8] = b"mint-fee-claim-v3";
 pub const MINT_WITHDRAWAL_V3_SEED: &[u8] = b"mint-withdraw-v3";
 pub const MINT_APPROVAL_V3_SEED: &[u8] = b"mint-approval-v3";
 pub const MINT_BUYBACK_V3_SEED: &[u8] = b"mint-buyback-v3";
+// Creator fees paid in a token (coins paired with USDC, xStocks, ...).
+pub const MINT_TOKEN_LEDGER_V3_SEED: &[u8] = b"mint-token-ledger-v3";
+pub const MINT_TOKEN_CLAIM_V3_SEED: &[u8] = b"mint-token-claim-v3";
+pub const MINT_TOKEN_APPROVAL_V3_SEED: &[u8] = b"mint-token-approval-v3";
+pub const MINT_TOKEN_WITHDRAWAL_V3_SEED: &[u8] = b"mint-token-withdraw-v3";
 pub const MINT_ROUTER_V3_MAGIC: &[u8; 8] = b"FUNDMNT3";
 pub const MINT_ROUTER_V3_VERSION: u8 = 3;
 pub const MAGIC: &[u8; 8] = b"FUNDFEE1";
