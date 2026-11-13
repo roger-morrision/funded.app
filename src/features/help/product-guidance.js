@@ -4,6 +4,7 @@ import { serviceFeeGuide } from '../fees/service-fees-client.js';
 import { pageHelpTopics, pageFaqs } from './page-guidance.js';
 import {communityAirdropCopy,communityAirdropGuide} from '../rewards/community-airdrop-copy.js';
 import {guideOutline,outlineHtml,conciseFeePoints} from './guide-outlines.js';
+import {pairLaunchPoints} from '../fees/pair-launch-copy.js';
 
 export const rewardActions = () => [
   ['Creator wallet', 'SOL', 'Rewards → Coin creator → select coin → Claim creator fees. Sign with the launch creator wallet.', 'Available after the saved wallet share is collected and settled; developer token locks do not delay these SOL earnings.', '#payments/creator'],
@@ -55,6 +56,7 @@ export function productFaqs() {
     ['service-prices','What does it cost to trade, launch or list?', `<p>${serviceFeeGuide()}</p><a href="#docs/fees">Review service charges and creator fees →</a>`],
     ['assets','Which rewards are SOL, and which are coin tokens?', '<p>Creator-wallet rewards, holder rewards, X rewards, referral payouts and Daily bonuses use <strong>SOL</strong>. Community airdrops use <strong>tokens of the launched coin</strong>. Check the asset and program on each record.</p>'],
     ['fees','How are collected creator fees allocated?', `<p id="fee-policy-faq">${copy.allocation} ${copy.scope}</p><a href="#capital-flow">See the fee split →</a>`],
+    ['paired-launch','Do coins paired with USDC, xStocks or other tokens use the same fees?', `<p>${pairLaunchPoints().join(' ')}</p><a href="#docs/paired-launch">Read about paired launches →</a>`],
     ['fee-base','Do these percentages apply to every trade?', '<p>They apply to gross creator fees actually collected through the richpad.fun route. They are not percentages of trade volume or all Pump trading fees. The creator-directed 80% is divided according to that coin’s saved wallet, holder and X settings.</p>'],
     ['collection','How does fee collection become a payment?', `<p>${copy.collection}</p><p>A collected fee, settled allocation, funded vault and finalized recipient transfer are separate stages.</p><a href="#docs/creator-fees">Follow collection to payout →</a>`],
     ['holders','How do coin holders receive SOL?', `<p>${copy.holders} Eligible wallets receive SOL automatically; there is no holder claim button. Subminimum funding carries forward. Holding a coin alone does not guarantee eligibility.</p><a href="#docs/holders">Check holder conditions →</a>`],

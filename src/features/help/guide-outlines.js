@@ -1,5 +1,6 @@
 import {currentFeePolicyCopy,bonusCategoryCopy} from '../fees/fee-policy-copy.js';
 import {referralRatePresentation} from '../fees/referral-rate-copy.js';
+import {pairLaunchPoints} from '../fees/pair-launch-copy.js';
 
 const guides={
   overview:['Build together. Share the rewards.','Explore ways to earn as a creator, eligible holder, trader, or referrer.','Open Rewards to check eligibility, available claims, and payment history.','The current preview uses Devnet test assets.'],
@@ -44,10 +45,11 @@ const guides={
   callouts:['Hold the coin and post your message to call it.','Your holding is checked before the call is published.','Use the coin page to join the discussion.'],
   privacy:['Wallet addresses and on-chain transactions are public.','Review links and details before sharing.','Keep sign-in information and report access tokens private.','Never share a seed phrase or private key.'],
 };
-const aliases={fees:'fees',bonus:'daily-bonus',airdrop:'airdrop-policy',referral:'referrals',rewards:'reward-actions',claims:'reward-actions',x:'x-rewards',coin:'coin-pages',trade:'trading',promotion:'promotions',pricing:'fees','enhanced-page':'enhanced-page'};
+const aliases={pair:'paired-launch',pairs:'paired-launch',fees:'fees',bonus:'daily-bonus',airdrop:'airdrop-policy',referral:'referrals',rewards:'reward-actions',claims:'reward-actions',x:'x-rewards',coin:'coin-pages',trade:'trading',promotion:'promotions',pricing:'fees','enhanced-page':'enhanced-page'};
 export function guideOutline(id){
   id=aliases[id]||id;
   if(id==='fees'){const copy=currentFeePolicyCopy();return [copy.headline,'Creator fees use the split saved at launch.','Launch, listing and trade costs are shown before you approve.','Only Operations & marketing is the app allocation.'];}
+  if(id==='paired-launch')return pairLaunchPoints();
   return guides[id]||null;
 }
 export const outlineHtml=points=>`<ul class="guidance-outline">${points.map(point=>`<li>${point}</li>`).join('')}</ul>`;

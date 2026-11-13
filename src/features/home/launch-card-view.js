@@ -29,9 +29,9 @@ export function homeLaunchFeeRouteMarkup(
     holders > 0 ? `Holders ${formatVerifiedPercent(holders)}` : '',
     x > 0 ? `${xName} ${formatVerifiedPercent(x)}` : '',
   ].filter(Boolean);
-  // The remaining 20% is the protocol share: referrals, daily bonuses,
-  // community rewards and $RICH buyback.
-  recipients.push('Rewards & buyback 20%');
+  // The remaining 20% is the shared pool: 8% Operations & marketing plus
+  // referrals, Daily bonus, $RICH buyback and AI agency (12%).
+  recipients.push('Platform & rewards 20%');
   const summary = `Trading fees: ${recipients.join(' · ')}`;
   return `<div class="home-launch-fee-route" title="${escapeHtml(summary)}" aria-label="${escapeHtml(summary)}"><small>Fees</small><span>${recipients.map(escapeHtml).join(' · ')}</span></div>`;
 }

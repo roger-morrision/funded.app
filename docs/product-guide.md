@@ -9,6 +9,7 @@ Docs, Questions/FAQ and Help share explanations in `src/features/help/product-gu
 | Page / flow | What to do | Maintained reference |
 | --- | --- | --- |
 | Create a coin | Choose a 6h, 12h, 24h or 48h developer lock (12h default); review identity, costs, reserve, package and saved split; sign; verify mint and receipt | [Launch protections](launch-protections.md), [service fees](app-service-fees.md) |
+| Create a coin: Paired with | Optional in step 1. Same router, split and fees as a SOL launch; launch blocked until router token-fee support ships | [Paired launches](../README.md#paired-launches), in-app `#docs/paired-launch` |
 | Coin detail / trading | Check quote, slippage, fee cap, wallet and network; verify finalized trade; reconcile uncertain sends | In-app `#docs/coin-pages`, `#docs/trading` |
 | Rewards: creator | Open Rewards, select your coin and claim available creator fees manually | [Automation](onchain-automation.md), [collection](creator-fee-collector.md) |
 | Rewards: holders | Check funded pool, finalized eligibility, price coverage and minima; no recipient claim | [Automatic rewards](automatic-rewards.md) |
@@ -23,6 +24,8 @@ Docs, Questions/FAQ and Help share explanations in `src/features/help/product-gu
 | Welcome / Home / Docs / Help | Pick a workflow, search guides, open page help; use Profile for reviewed issue reports | Sections below |
 
 The agency defaults are 80% creator-directed, 8% Operations & marketing, 1% referrals (0.6/0.25/0.15), 2% AI agency, 4% Daily bonus and 5% $RICH buyback, all of gross collected creator fees. Published configuration governs new launches; existing coins keep their saved rates. The old fallback has 3% referrals and no agency category. File defaults do not prove live policy or worker activation.
+
+Paired launches use these same rates. Step 1 of Create a coin has an optional **Paired with** list grouped by category: Stablecoins such as USDC, xStocks, Stocks and Crypto. Leaving it on SOL is a SOL launch. A paired coin trades on pump.fun against the chosen token and goes through the same two-step launch, the same V3 fee router and the same split of gross collected creator fees as every richpad.fun launch: **80% creator-directed · 8% Operations & marketing · 1% referral network · 2% AI marketing & coin buybacks · 4% Daily bonus · 5% $RICH buyback**. The 0.02 SOL launch service fee, 1% app trading fee, reserve, tiers and developer lock also apply unchanged. **Status: not open yet.** Launching with a token other than SOL stays blocked until the fee router can collect and settle creator fees paid in that token. The form says so and sends no transaction; set Paired with back to SOL to launch now. Existing pump.fun coins paired with other tokens can already be traded through Jupiter with the same 1% app fee.
 
 App service-price defaults are 1% trading, 0.02 SOL launch, $150 Pro, $300 Premier and $300 external listing in quoted $RICH burns. Listing is included for verified launches. Review current quotes; network, rent, Pump/pool costs and purchases are separate.
 

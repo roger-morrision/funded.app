@@ -66,6 +66,7 @@ export function initServiceFeeCopy() {
       const p = document.createElement('p'); p.id = 'service-fee-guide'; p.className = 'panel-explainer'; details.append(summary,p); target.append(details);
     }
     const p = document.getElementById('service-fee-guide'); if (p) p.textContent = serviceFeeGuide();
+    for (const badge of document.querySelectorAll('[data-trade-fee-badge]')) badge.textContent = `${f.tradeBps/100}% app fee`;
   };
   window.addEventListener('funded:service-fees', render);
   window.addEventListener('funded:service-fees-unavailable', render);

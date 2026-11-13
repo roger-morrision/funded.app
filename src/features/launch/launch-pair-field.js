@@ -1,9 +1,9 @@
 import { escapeHtml } from '../shared/display.js';
 import { loadPairQuotes, PAIR_CATEGORIES, WSOL_MINT } from '../shared/pair-label.js';
 // Step 1 of the launch form: an optional "Paired with" dropdown, grouped by
-// category. Leaving it on SOL keeps the standard richpad.fun launch. Picking a
-// token launches from this step as a paired pump.fun coin (the creator's wallet
-// is Pump's creator; richpad's SOL fee router, reserves and tiers do not apply).
+// category. Leaving it on SOL keeps the standard richpad.fun launch. A paired
+// coin uses the same two-step launch, V3 fee router and creator-fee split; the
+// launch stays blocked until the router supports fees paid in the paired token.
 export async function mountLaunchPairField(app) {
   const step = document.querySelector('#launch-form [data-launch-step="1"]');
   const anchor = step?.querySelector('.coin-fields');
@@ -21,7 +21,7 @@ export async function mountLaunchPairField(app) {
       <option value="">SOL · no pair (standard richpad.fun launch)</option>
       ${groups.map(([label, rows]) => `<optgroup label="${escapeHtml(`${label} (${rows.length})`)}">${rows.map(row => `<option value="${escapeHtml(row.mint)}">${escapeHtml(row.symbol)}${row.name ? ` · ${escapeHtml(row.name)}` : ''}</option>`).join('')}</optgroup>`).join('')}
     </select>
-    <small class="field-help" id="launch-pair-help">Skip this to launch with SOL. Pick a token for your coin to trade against it on pump.fun.</small>
+    <small class="field-help" id="launch-pair-help">Skip this to launch with SOL. Pick a token for your coin to trade against it on pump.fun. Fees and the creator-fee split are the same as a SOL launch.</small>
     <p class="launch-pair-status" role="status" data-pair-status></p>`;
   anchor.after(field);
   const select = field.querySelector('select'), status = field.querySelector('[data-pair-status]');

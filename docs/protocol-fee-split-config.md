@@ -4,6 +4,8 @@ Product workflows: [all-page guide](product-guide.md). Documentation scope and d
 
 The default agency policy for new V3 launches is **80% creator-directed / 8% Operations & marketing / 1% referral network / 2% AI agency / 4% Daily bonus / 5% $RICH buyback**, measured against gross collected Pump creator fees. Referral levels are 0.6% / 0.25% / 0.15%. The creator-directed 80% follows the launch-time wallet, holder and X allocation; it is not necessarily all paid to the creator wallet.
 
+Paired launches (a coin quoted in USDC, an xStock, a stock or crypto instead of SOL) use this same policy through the same V3 router; there is no separate paired split. They stay blocked until the router can collect and settle creator fees paid in the paired token.
+
 The authoritative policy is the verified on-chain configuration published through the admin workflow, not a file default or a deployment report. See [configurable financial rules](configurable-financial-rules.md) for the authority-signing workflow, launch snapshots, limits and evidence requirements.
 
 `config/marketing-agency.js` contains the new-launch defaults. `config/agency-rules.js` contains default thresholds and claim/billing intervals. `config/protocol-fee-split.js` remains the older seven-category fallback (including its 3% referral total), which must not be presented as the published agency policy. Existing coins retain their recorded rates. File edits alone cannot change on-chain configuration or a saved mint policy.

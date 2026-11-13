@@ -48,6 +48,12 @@ The current new-launch default, as a percentage of **gross creator fees collecte
 
 These are percentages of creator fees, not trade volume or every Pump fee. Only **8%** is the app allocation for Operations & marketing; **92%** is allocated to creators and ecosystem benefits. The published `/api/fee-policy` and verified on-chain configuration govern new launches. [config/marketing-agency.js](config/marketing-agency.js) contains the current defaults; [config/protocol-fee-split.js](config/protocol-fee-split.js) is the historical fallback, not the current agency policy. Existing coins and settlements retain their recorded on-chain category units. Collection, settlement, source funding and finalized recipient payment are separate stages. Active automatic routes settle and disburse the saved policy without repeated creator signatures; manual routes can require creator approval.
 
+## Paired launches
+
+Step 1 of Create a coin has an optional **Paired with** list grouped by category: Stablecoins such as USDC, xStocks, Stocks and Crypto. Leaving it on SOL is a SOL launch. A paired coin trades on pump.fun against the chosen token and goes through the same two-step launch, the same V3 fee router and the same split of gross collected creator fees as every richpad.fun launch: **80% creator-directed · 8% Operations & marketing · 1% referral network · 2% AI marketing & coin buybacks · 4% Daily bonus · 5% $RICH buyback**. The 0.02 SOL launch service fee, 1% app trading fee, reserve, tiers and developer lock also apply unchanged.
+
+**Status: not open yet.** Launching with a token other than SOL stays blocked until the fee router can collect and settle creator fees paid in that token. The form says so and sends no transaction; set Paired with back to SOL to launch now. Existing pump.fun coins paired with other tokens can already be traded through Jupiter with the same 1% app fee.
+
 ## Automatic rewards and claims
 
 | Program | Asset | Recipient action |

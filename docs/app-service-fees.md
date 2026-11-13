@@ -11,7 +11,7 @@ Product workflows: [all-page guide](product-guide.md). Documentation scope and d
 | External coin listing | $300 | Quoted $RICH BurnChecked bound to the listing mint |
 | Listing for a verified richpad.fun launch | Included | No additional listing burn |
 
-Defaults above come from `service-fees.js`. The verified `/api/service-fees` policy and the reviewed quote take precedence; admin changes apply to future quotes. Boost, when offered, uses its displayed configured token-burn amount rather than the Pro/Premier USD price fields.
+Paired launches (step 1 **Paired with** set to USDC, an xStock, a stock or crypto) pay the same launch and trading fees as a SOL launch and use the same creator-fee split. They stay blocked until the fee router supports creator fees paid in the paired token. Defaults above come from `service-fees.js`. The verified `/api/service-fees` policy and the reviewed quote take precedence; admin changes apply to future quotes. Boost, when offered, uses its displayed configured token-burn amount rather than the Pro/Premier USD price fields.
 
 ## Quote and payment rules
 
