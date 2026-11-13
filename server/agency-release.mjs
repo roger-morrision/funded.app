@@ -4,8 +4,10 @@ import {mainnetReleaseVerified} from './mainnet-program.mjs';
 // Source-built with platform-tools v1.54 and the devnet-v3-program feature.
 // The loader header/upgrade slot is excluded from this binary commitment;
 // callers separately pin the complete finalized ProgramData account hash.
-export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:919544,
-  sha256:'cf11bbe12479fc931ec97479707b3912f5c0d99bf7815c40ebcef775f824a36c'});
+// 2026-11-13: Devnet router with token-fee instructions for paired coins
+// (commit 8be7173b, Agave 4.1.2 build), approved by the owner for Devnet only.
+export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1225704,
+  sha256:'a9aae13e041b8c930d028957fdbba11fc63cf622974090c3d42e7edc533aea53'});
 export const AGENCY_DEVNET_PROGRAM='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 export function matchesAgencyBinary(data,manifest=AGENCY_REVIEWED_BINARY){
   const bytes=Buffer.from(data||[]);
