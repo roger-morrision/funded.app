@@ -39,13 +39,18 @@ function markup() {
   </form>`;
 }
 
+// Grouped by category (SOL, Stablecoins, xStocks, Stocks, Crypto), in that order.
 function renderList(state) {
   const query = state.query.trim().toLowerCase();
   const rows = state.quotes.filter(row => (state.category === 'all' || row.category === state.category)
-    && (!query || `${row.symbol} ${row.name}`.toLowerCase().includes(query))).slice(0, 80);
-  state.list.innerHTML = rows.length ? rows.map(row => `<button type="button" role="option" class="pair-launch-option" data-pair-mint="${escapeHtml(row.mint)}" aria-selected="${row.mint === state.picked.mint}">
+    && (!query || `${row.symbol} ${row.name}`.toLowerCase().includes(query)));
+  const option = row => `<button type="button" role="option" class="pair-launch-option" data-pair-mint="${escapeHtml(row.mint)}" aria-selected="${row.mint === state.picked.mint}">
       <span class="pair-launch-icon" aria-hidden="true">${row.icon ? `<img src="${escapeHtml(row.icon)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : escapeHtml(row.symbol.slice(0, 2))}</span>
-      <span><strong>${escapeHtml(row.symbol)}</strong><small>${escapeHtml(row.name || '')}</small></span></button>`).join('') : '<p class="empty-state">No pair tokens match.</p>';
+      <span><strong>${escapeHtml(row.symbol)}</strong><small>${escapeHtml(row.name || '')}</small></span></button>`;
+  const groups = PAIR_CATEGORIES.filter(([key]) => key !== 'all').map(([key, label]) => [label, rows.filter(row => (row.category || 'custom') === key)]).filter(([, list]) => list.length);
+  state.list.innerHTML = groups.length ? groups.map(([label, list]) => `<section class="pair-launch-group" role="group" aria-label="${escapeHtml(label)}">
+      <h3>${escapeHtml(label)} <small>${list.length}</small></h3><div class="pair-launch-group-items">${list.map(option).join('')}</div></section>`).join('')
+    : '<p class="empty-state">No pair tokens match.</p>';
 }
 
 async function submit(app, form, state) {

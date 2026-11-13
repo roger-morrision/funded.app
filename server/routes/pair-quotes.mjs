@@ -7,6 +7,8 @@ import { Connection } from '@solana/web3.js';
 export const WSOL_MINT = 'So11111111111111111111111111111111111111112';
 const STABLES = new Set(['USDC', 'USDT', 'USD1', 'PYUSD', 'USDG', 'USDS', 'USDE', 'FDUSD', 'EURC', 'USDH']);
 const TTL_MS = 6 * 60 * 60_000;
+// Devnet test tokens Jupiter does not list.
+const KNOWN = { '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU': { symbol: 'USDC', name: 'USD Coin (Devnet)', decimals: 6 } };
 
 export function quoteCategory({ mint, symbol = '', name = '' }) {
   if (mint === WSOL_MINT) return 'sol';
@@ -36,8 +38,8 @@ export function createPairQuotesRoute({ solanaRpcUrl, respond, fetchImpl = fetch
     const mints = rows.map(row => String(row.mint));
     const names = await jupiterNames(mints, fetchImpl);
     const quotes = rows.map(row => {
-      const mint = String(row.mint), info = names.get(mint) || {};
-      const symbol = mint === WSOL_MINT ? 'SOL' : String(info.symbol || '').slice(0, 20) || null;
+      const mint = String(row.mint), info = names.get(mint) || KNOWN[mint] || {};
+      const symbol = mint === WSOL_MINT ? 'SOL' : String(info.symbol || '').slice(0, 20) || `${mint.slice(0, 4)}…${mint.slice(-4)}`;
       const name = mint === WSOL_MINT ? 'Solana' : String(info.name || '').slice(0, 80) || null;
       const icon = typeof info.icon === 'string' && info.icon.startsWith('https://') ? info.icon : null;
       return { mint, symbol, name, icon, source: row.source, decimals: Number.isInteger(info.decimals) ? info.decimals : null,
