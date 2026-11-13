@@ -4,8 +4,35 @@
     {
       "name": "web",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["--report-on-fatalerror", "--report-uncaught-exception", "--report-directory=tmp/node-reports", "node_modules/vite/bin/vite.js", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "--report-on-fatalerror",
+        "--report-uncaught-exception",
+        "--report-directory=tmp/node-reports",
+        "node_modules/vite/bin/vite.js",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
+    },
+    {
+      "name": "devnet-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--env-file-if-exists=.env.local",
+        "--env-file-if-exists=.env.devnet-qa-wallets.local",
+        "tmp/devnet-dev/api.mjs"
+      ],
+      "port": 8799
+    },
+    {
+      "name": "devnet-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--env-file-if-exists=.env.local",
+        "tmp/devnet-dev/web.mjs"
+      ],
+      "port": 5174
     }
   ]
 }
