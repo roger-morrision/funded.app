@@ -99,12 +99,27 @@ export async function launchPairedCoin(app, input, say = () => {}) {
     quoteMint: quote.mint, firstBuySol });
   built.transaction.partialSign(mint);
   app.assertWalletSessionCurrent?.(session);
-  const sent = await session.provider.signAndSendTransaction(built.transaction, { skipPreflight: false, preflightCommitment: 'confirmed' });
+  // Wallets that only sign (no sign-and-send) are signed here and sent through the RPC.
+  const sent = typeof session.provider.signAndSendTransaction === 'function' && !session.provider.remoteMobile
+    ? await session.provider.signAndSendTransaction(built.transaction, { skipPreflight: false, preflightCommitment: 'confirmed' })
+    : await connection.sendRawTransaction((await session.provider.signTransaction(built.transaction)).serialize(), { skipPreflight: false, preflightCommitment: 'confirmed' });
   const signature = typeof sent === 'string' ? sent : sent?.signature;
   if (!signature) throw new Error('Your wallet did not return a transaction signature. Check your wallet activity.');
   say('Confirming on Solana…');
-  const confirmation = await connection.confirmTransaction({ signature, blockhash: built.transaction.recentBlockhash, lastValidBlockHeight: built.lastValidBlockHeight }, 'confirmed');
+  // A slow RPC can report an expired blockhash for a transaction that did land;
+  // the signature status decides.
+  const confirmation = await connection.confirmTransaction({ signature, blockhash: built.transaction.recentBlockhash, lastValidBlockHeight: built.lastValidBlockHeight }, 'confirmed')
+    .catch(async error => {
+      const { value } = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
+      if (value && !value.err && ['confirmed', 'finalized'].includes(value.confirmationStatus)) return { value: { err: null } };
+      throw new Error(`The launch was not confirmed on Solana. Check your wallet before retrying. Transaction: ${signature}${/expired/i.test(error?.message || '') ? ' (expired)' : ''}`);
+    });
   if (confirmation?.value?.err) throw new Error('The launch transaction failed on Solana. Nothing was created.');
+  // A first buy that did not fit the create transaction follows as a normal buy.
+  if (built.deferredBuySol > 0) {
+    say(`Coin created. Approve your ${built.deferredBuySol} SOL first buy…`);
+    await import('../trade/quick-buy.js').then(module => module.quickBuy(app, { mint: record.mint, amountSol: built.deferredBuySol, symbol })).catch(() => {});
+  }
   // 3. List it on richpad.fun after the server checks the coin on-chain.
   say('Listing your coin on richpad.fun…');
   await app.apiRequest('/api/pair-launch/record', { method: 'POST', body: { mint: record.mint, signature, name, symbol } }).catch(() => null);

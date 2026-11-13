@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isDeepStrictEqual} from 'node:util';
-import {publicMetadata} from './devnet-metadata.mjs';
+import {publicMetadata, metadataRecordOrigin} from './devnet-metadata.mjs';
 import {devnetLaunchMetadataUri} from '../devnet-metadata.js';
 import {pinnedMetadataUri,isPinnedMetadataUri} from '../metadata-publication.js';
 
@@ -39,7 +39,8 @@ export async function verifyPublishedMetadata(record, {fetchImpl = fetch} = {}) 
   if(record.cluster==='mainnet-beta'&&(!isPinnedMetadataUri(record.pinnedMetadata?.uri)||!isPinnedMetadataUri(record.pinnedMetadata?.image)
     ||record.bannerSha256&&!isPinnedMetadataUri(record.pinnedMetadata?.banner)))throw new Error('Mainnet requires durable content-addressed metadata.');
   const expected = publicMetadata(record);
-  const uri = record.pinnedMetadata?.uri || devnetLaunchMetadataUri(record.mint);
+  // Hosted metadata is checked at the record's own origin (local Devnet, staging, richpad.fun).
+  const uri = record.pinnedMetadata?.uri || devnetLaunchMetadataUri(record.mint, metadataRecordOrigin(record));
   try {
     const metadata = await publicBytes(fetchImpl, uri, 'application/json', 32_000);
     if (!isDeepStrictEqual(JSON.parse(metadata.toString()), expected)) throw new Error('Metadata mismatch');
