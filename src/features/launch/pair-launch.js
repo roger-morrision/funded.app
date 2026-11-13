@@ -55,18 +55,24 @@ function renderList(state) {
 
 async function submit(app, form, state) {
   const say = text => { form.querySelector('[data-pair-status]').textContent = text; };
-  const button = form.querySelector('[data-pair-submit]');
   const data = new FormData(form);
-  const name = String(data.get('name') || '').trim(), symbol = String(data.get('symbol') || '').trim().replace(/^\$/, '').toUpperCase();
-  const image = data.get('image');
+  form.querySelector('[data-pair-submit]').disabled = true;
+  await launchPairedCoin(app, { name: data.get('name'), symbol: data.get('symbol'), image: data.get('image'), description: data.get('description'),
+    website: data.get('website'), x: data.get('x'), telegram: data.get('telegram'), quote: state.picked, firstBuySol: data.get('firstBuy') }, say);
+  dialog?.close();
+}
+
+// Launch a coin paired with `quote` ({ mint, symbol }); used by this dialog and
+// by step 1 of the main launch form. Throws with a readable message.
+export async function launchPairedCoin(app, input, say = () => {}) {
+  const name = String(input.name || '').trim(), symbol = String(input.symbol || '').trim().replace(/^\$/, '').toUpperCase();
+  const image = input.image, quote = input.quote || { mint: WSOL_MINT, symbol: 'SOL' };
   if (!name || name.length > NAME_MAX) throw new Error(`Enter a name up to ${NAME_MAX} characters.`);
   if (!/^[A-Z0-9]{1,10}$/.test(symbol)) throw new Error('Enter a ticker of up to 10 letters or digits.');
-  if (!(image instanceof File) || !image.size) throw new Error('Choose an image for your coin.');
+  if (!(image instanceof Blob) || !image.size) throw new Error('Choose an image for your coin.');
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(image.type) || image.size > IMAGE_MAX) throw new Error('Choose a PNG, JPG or WEBP image under 600 KB.');
-  const solPair = state.picked.mint === WSOL_MINT;
-  const firstBuySol = solPair ? Math.max(0, Number(data.get('firstBuy') || 0)) : 0;
+  const firstBuySol = quote.mint === WSOL_MINT ? Math.max(0, Number(input.firstBuySol || 0)) : 0;
   if (!(await launchStatus(app)).enabled) throw new Error('Paired launches are not open on this network yet.');
-  button.disabled = true;
   if (!app.wallet) await app.connectWallet();
   const session = app.captureWalletSession?.();
   if (!session?.provider?.signMessage || !app.canSignTransactions?.(session.provider)) throw new Error('Connect a wallet that can sign messages and transactions.');
@@ -79,8 +85,8 @@ async function submit(app, form, state) {
   const imageSha256 = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2, '0')).join('');
   const link = (value, kind) => { const text = String(value || '').trim(); return text ? app.canonicalLaunchSocialUrl?.(text, kind) || text : ''; };
   const record = { mint: mint.publicKey.toBase58(), creatorWallet: session.address, name, symbol, cluster: app.APP_CLUSTER || 'devnet',
-    description: String(data.get('description') || '').trim(), tagline: '', roadmap: '', website: link(data.get('website'), 'website'), x: link(data.get('x'), 'x'),
-    telegram: link(data.get('telegram'), 'telegram'), discord: '', imageSha256 };
+    description: String(input.description || '').trim(), tagline: '', roadmap: '', website: link(input.website, 'website'), x: link(input.x, 'x'),
+    telegram: link(input.telegram, 'telegram'), discord: '', imageSha256 };
   const signed = await session.provider.signMessage(new TextEncoder().encode(app.metadataStatement(record)));
   app.assertWalletSessionCurrent?.(session);
   say('Publishing coin details…');
@@ -88,9 +94,9 @@ async function submit(app, form, state) {
     bannerBase64: '', bannerType: '', signature: app.bs58.encode(signed.signature || signed) } });
   if (!published?.available || !published.data?.uri) throw new Error(published?.data?.error || 'Coin details could not be published. Nothing was sent.');
   // 2. One transaction: create the coin on pump.fun, paired with the chosen token.
-  say(`Approve creating $${symbol} paired with ${state.picked.symbol} in your wallet…`);
+  say(`Approve creating $${symbol} paired with ${quote.symbol} in your wallet…`);
   const built = await buildPairLaunchTransaction({ connection, user: session.provider.publicKey, mint: mint.publicKey, name, symbol, uri: published.data.uri,
-    quoteMint: state.picked.mint, firstBuySol });
+    quoteMint: quote.mint, firstBuySol });
   built.transaction.partialSign(mint);
   app.assertWalletSessionCurrent?.(session);
   const sent = await session.provider.signAndSendTransaction(built.transaction, { skipPreflight: false, preflightCommitment: 'confirmed' });
@@ -103,10 +109,13 @@ async function submit(app, form, state) {
   say('Listing your coin on richpad.fun…');
   await app.apiRequest('/api/pair-launch/record', { method: 'POST', body: { mint: record.mint, signature, name, symbol } }).catch(() => null);
   say('');
-  app.showToast?.(`$${symbol} is live on pump.fun, paired with ${state.picked.symbol}.`);
-  dialog?.close();
+  app.showToast?.(`$${symbol} is live on pump.fun, paired with ${quote.symbol}.`);
   location.assign(`/token/${encodeURIComponent(record.mint)}`);
+  return { mint: record.mint, signature };
 }
+
+
+export { launchStatus as pairLaunchStatus };
 
 export function openPairLaunch(app) {
   if (!dialog) {
