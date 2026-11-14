@@ -32,9 +32,11 @@ export async function readAgencyMintContext({connection,state,mint,programId,app
   const snapshot=await connection.getMultipleAccountsInfoAndContext([identity.address,vault],{commitment:'finalized'});
   if(!Number.isSafeInteger(snapshot?.context?.slot)||snapshot.context.slot<1||snapshot.value?.length!==2)
     throw new Error('A finalized agency custody snapshot is required.');
+  // SOL credited by paired-token conversions is funding recorded on-chain by the router.
+  const credited=await readSolCreditLamportsV3(rpc,programId,mint);
   const policy=decodeAgencyPolicyV3(snapshot.value[0],{programId,mint,creator:launch.creatorWallet,initialAuthority:route.initialAuthority,
     protocolUnits:protocolGrossUnits(route.protocolSplit),shares:launch.feeDistribution?.creatorDirected?.shares,
-    selectedAgents:launch.marketingAgency.selectedAgents,credited:await readSolCreditLamportsV3(rpc,programId,mint)});
+    selectedAgents:launch.marketingAgency.selectedAgents,credited});
   const vaultInfo=snapshot.value[1],rent=BigInt(await rpc.getMinimumBalanceForRentExemption(0,'finalized'));
   const remaining=policy.paidLamports[7]-policy.withdrawnLamports[7];
   if(remaining>0n&&(!vaultInfo||!vaultInfo.owner?.equals(SystemProgram.programId)||vaultInfo.data?.length!==0
@@ -69,7 +71,7 @@ export async function readAgencyMintContext({connection,state,mint,programId,app
     gross+=BigInt(settled.expectedLamports);funded+=BigInt(settled.categoryLamports[7]);
     proofs.push({signature:settled.signature,slot:settled.slot,cluster,commitment:'finalized',verified:true});
   }
-  if(gross!==policy.settledLamports||funded!==policy.paidLamports[7])throw new Error('Agency counters contain unverified or unindexed source funding.');
+  if(gross!==policy.settledLamports||funded+credited[7]!==policy.paidLamports[7])throw new Error('Agency counters contain unverified or unindexed source funding.');
   const balance=await rpc.getBalance(new PublicKey(policy.promotionRecipient),'finalized');
   return{launch:{...launch,name:creation.name,symbol:creation.symbol},policy,vault,slot:snapshot.context.slot,remainingLamports:String(remaining),
     agentRemaining:policy.agentTargets.map((n,i)=>String(n-policy.agentSpent[i])),promotionRecipientReady:BigInt(balance)>=rent,
