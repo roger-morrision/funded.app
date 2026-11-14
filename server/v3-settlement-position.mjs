@@ -38,7 +38,10 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
   const snapshot = await connection.getAccountInfoAndContext(policyAddress,{commitment:'finalized'});
   if (!snapshot?.value || !Number.isSafeInteger(snapshot.context?.slot) || snapshot.context.slot < slot)
     throw new Error('Finalized V3 policy snapshot is unavailable.');
-  const policy = await verifyPolicy({ connection:{getAccountInfo:async()=>snapshot.value},
+  // Serve the policy from its context-bound snapshot; any other account the
+  // verifier reads (such as the paired-token SOL credit) comes from the chain.
+  const policy = await verifyPolicy({ connection:{getAccountInfo:async(address,...args)=>
+      new PublicKey(address).equals(policyAddress) ? snapshot.value : connection.getAccountInfo(address,'finalized')},
     programId,mint,creator,initialAuthority:authority,split });
   if (!policy.verified) throw new Error('Finalized V3 policy snapshot is invalid.');
   const positionAt = (prior,after) => {

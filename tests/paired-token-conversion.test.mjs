@@ -115,3 +115,18 @@ test('agency SOL settlement carries the SOL credit record when the coin has one'
   assert.equal(withCredit.length, plain.length + 1);
   assert.ok(withCredit.at(-1).pubkey.equals(credit) && !withCredit.at(-1).isWritable);
 });
+
+test('settlement position serves only the policy from its snapshot; other reads go to the chain', async () => {
+  const { loadV3SettlementPosition } = await import('../server/v3-settlement-position.mjs');
+  const { deriveAgencyPolicyV3 } = await import('../agency-mint-router-v3.js');
+  const mint = Keypair.generate().publicKey, other = Keypair.generate().publicKey;
+  const split = { operationsPercent: 40, referralLevelPercents: [3, 1.25, 0.75], communityPercent: 20, buybackPercent: 25, agencyPercent: 10 };
+  const policyAddress = deriveAgencyPolicyV3(PROGRAM, mint).address, snapshotValue = { owner: PROGRAM, data: Buffer.alloc(1) };
+  const connection = { getAccountInfoAndContext: async () => ({ value: snapshotValue, context: { slot: 10 } }), getAccountInfo: async () => 'live' };
+  let seen;
+  await assert.rejects(loadV3SettlementPosition({ connection, signature: 's', slot: 5, programId: PROGRAM, mint, authority: other, creator: other,
+    expectedLamports: 1n, categoryLamports: [], split, verifyPolicy: async ({ connection: c }) => {
+      seen = [await c.getAccountInfo(policyAddress), await c.getAccountInfo(other)]; return { verified: false }; } }), /snapshot is invalid/);
+  assert.equal(seen[0], snapshotValue);
+  assert.equal(seen[1], 'live');
+});
