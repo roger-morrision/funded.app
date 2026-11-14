@@ -81,7 +81,8 @@ async function executeAgencyCycle({config,store,outbox,connection,authority,publ
     await step('heartbeat',()=>store.update(current=>{
       if(!health(current,{...identity,now:now()}))return;
       const row=current.adminSettings[heartbeatKey];
-      if(events.some(event=>event.status==='execution-unavailable'))row.status='degraded';
+      // A coin that cannot be verified is skipped and listed; it never blocks the others.
+      row.degradedMints=[...new Set(events.filter(event=>event.status==='execution-unavailable').map(event=>event.mint))];
       row.checkedAt=new Date(now()).toISOString();
       row.diagnostics=diagnostics.snapshot();
     }));
@@ -116,7 +117,9 @@ async function executeAgencyCycle({config,store,outbox,connection,authority,publ
     for(const mint of ordered){
       if(shouldStop())break;
       const currentState=await step('state-read',()=>store.read(),{mint});
-      const context=await step('custody',()=>readContext({...base,mint,state:currentState,authority:authority.publicKey}),{mint});
+      let context;
+      try{context=await step('custody',()=>readContext({...base,mint,state:currentState,authority:authority.publicKey}),{mint});}
+      catch(error){events.push({mint,status:'execution-unavailable',phase:'custody',diagnostic:diagnostics.failure(error)});await refreshProgress();continue;}
       // Each finalized custody read is verified progress, just like a milestone
       // check. Keep the existing readiness window fresh during this serial sweep.
       await refreshProgress();
@@ -130,12 +133,14 @@ async function executeAgencyCycle({config,store,outbox,connection,authority,publ
         scope:'finalized-pump-sources-and-agency-vault',verified:true};
     }
     if(!shouldStop()){
-    const status=events.some(row=>row.status==='execution-unavailable')?'degraded':'ready';
+    // Deployment-level checks passed; coins that failed verification are listed
+    // and receive no budget or spending until they verify again.
+    const status='ready',degradedMints=[...new Set(events.filter(row=>row.status==='execution-unavailable').map(row=>row.mint))];
     await step('heartbeat',()=>store.update(current=>{
       current.adminSettings||={};current.adminSettings[heartbeatKey]={status,version:buybacksOnly?'agency-buyback-executor-v1':'agency-executor-v1',cluster:'devnet',
         programId:config.programId,approvedHash:config.approvedHash,authority:authority.publicKey.toBase58(),configRevision:deployment.revision,
         build:config.build,...(buybacksOnly?{}:{xAccountId:account.id}),capabilities:buybacksOnly?['buyback-100k','buyback-300k']:['x-promotion','buyback-100k','buyback-300k'],
-        checkedAt:new Date(now()).toISOString(),lastMint:ordered.at(-1)||previous,diagnostics:diagnostics.snapshot(),
+        checkedAt:new Date(now()).toISOString(),lastMint:ordered.at(-1)||previous,diagnostics:diagnostics.snapshot(),degradedMints,
         pendingExecutions:events.filter(row=>!['finalized','not-payable','below-threshold','cadence-wait','x-dispatch'].includes(row.status)).length};
       current.adminSettings.agencyBudgets={...(current.adminSettings.agencyBudgets||{}),...budgets};
     }));
