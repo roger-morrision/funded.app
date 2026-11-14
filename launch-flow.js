@@ -15,6 +15,7 @@ import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits, pr
   verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from './mint-router-v3.js';
 import { executeLaunchPlan } from './launch-executor.js';
+import { submitPairedDeveloperBuy } from './paired-developer-buy.js';
 import { confirmPromotionBurn } from './launch-promotion-burn.js';
 import { initialCurvePremiumBps } from './launch-review.js';
 import { launchReserveInstructions, quoteAtomicReserveBuy, launchBuyCapacity } from './launch-community-reserve.js';
@@ -219,13 +220,15 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   // Paired coin: its Pump curve is quoted in `input.quoteMint` (USDC, an xStock, ...).
   // The community reserve is bought with that token. A developer buy would add
   // its escrow to the same atomic launch transaction, which then exceeds
-  // Solana's 1232-byte limit, so paired coins launch without one.
+  // Solana's 1232-byte limit, so it follows in one second transaction that buys
+  // and escrows every purchased token (see paired-developer-buy.js).
   const quoteMint = input.quoteMint ? new PublicKey(input.quoteMint) : NATIVE_MINT;
   const paired = !quoteMint.equals(NATIVE_MINT);
-  if (paired && Number(input.initialBuySol || 0) > 0) throw new Error('A paired coin launches without a developer buy: its escrow does not fit in the atomic launch transaction. Set the developer buy to 0. No coin was created.');
   const developerBuy = await getInitialBuyQuote({ connection, input });
+  const separateDeveloperBuy = paired && developerBuy.amountBaseUnits > 0n;
+  const launchDeveloperBaseUnits = separateDeveloperBuy ? 0n : developerBuy.amountBaseUnits;
   const initialBuy = await quoteAtomicReserveBuy({ connection, supply:launchInput.supply, decimals:launchInput.decimals,
-    reserveTokens:input.reserveTokens, developerBaseUnits:developerBuy.amountBaseUnits, quoteMint });
+    reserveTokens:input.reserveTokens, developerBaseUnits:launchDeveloperBaseUnits, quoteMint });
   let quoteTokenProgram = TOKEN_PROGRAM_ID;
   if (paired) {
     const quoteInfo = await connection.getAccountInfo(quoteMint, 'confirmed');
@@ -233,15 +236,16 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     quoteTokenProgram = quoteInfo.owner;
     const payerQuote = getAssociatedTokenAddressSync(quoteMint, payer, false, quoteTokenProgram);
     const held = await connection.getTokenAccountBalance(payerQuote, 'confirmed').then(result => BigInt(result.value.amount)).catch(() => 0n);
-    if (held < initialBuy.maxSolAmountLamports)
-      throw new Error(`The community reserve is bought with the paired token. Your wallet needs ${initialBuy.maxSolAmountLamports} base units of it and holds ${held}. No coin was created.`);
+    const needed = initialBuy.maxSolAmountLamports + (separateDeveloperBuy ? developerBuy.maxSolAmountLamports : 0n);
+    if (held < needed)
+      throw new Error(`The community reserve${separateDeveloperBuy ? ' and developer buy are' : ' is'} bought with the paired token. Your wallet needs ${needed} base units of it and holds ${held}. No coin was created.`);
   }
   initialBuy.curvePremiumBps = initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
   initialBuy.percent = Number(initialBuy.amountBaseUnits) / (launchInput.supply * 10 ** launchInput.decimals) * 100;
   initialBuy.developerAmountTokens = developerBuy.amountTokens;
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
-  const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote, cluster,escrowReceiptMarker:developerBuy.amountBaseUnits>0n });
+  const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote, cluster,escrowReceiptMarker:launchDeveloperBaseUnits>0n });
   onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
   const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter,
     feeShares:input.feeShares });
@@ -251,7 +255,10 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const reserve = launchReserveInstructions({ mint:mint.publicKey, payer, programId:feeRouterProgramId,
     authority:reserveConfig.authority, reserveTokens:input.reserveTokens, decimals:launchInput.decimals });
   const developerLockInstructions = developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
-    amount:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id,lockSeconds:input.developerLockSeconds});
+    amount:launchDeveloperBaseUnits,config:reserveConfig.developerTokenLock,quoteId:launchServiceQuote.id,lockSeconds:input.developerLockSeconds});
+  // Fail before creating the coin when the selected lock period is unavailable.
+  if (separateDeveloperBuy) developerLockLaunchInstructions({ mint:mint.publicKey, creator:payer, amount:developerBuy.amountBaseUnits,
+    config:reserveConfig.developerTokenLock, quoteId:launchServiceQuote.id, lockSeconds:input.developerLockSeconds });
   const hostedMetadataUri = devnetLaunchMetadataUri(mint.publicKey.toBase58());
   let symbolReservationExpiresAt = null;
   if (prepareMetadata) {
@@ -330,7 +337,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     reserveInstructions:[...reserve.instructions,...developerLockInstructions,...serviceInstructions], lookupTable });
   plan.steps.find(step => step.kind === 'launch').transaction.fundedLaunchSummary = {
     kind:'launch', mint:mint.publicKey.toBase58(), tokenName:launchInput.name, tokenSymbol:launchInput.symbol,
-    ...(developerBuy.amountBaseUnits>0n?{developerLockSeconds:normalizeDeveloperLockSeconds(input.developerLockSeconds)}:{}),
+    ...(launchDeveloperBaseUnits>0n?{developerLockSeconds:normalizeDeveloperLockSeconds(input.developerLockSeconds)}:{}),
     reserveTokens:String(input.reserveTokens), vault:reserve.vault.toBase58(),
     expectedSol:(Number(initialBuy.solAmountLamports) / 1_000_000_000).toFixed(9),
     maximumSol:(Number(initialBuy.maxSolAmountLamports) / 1_000_000_000).toFixed(9),
@@ -368,7 +375,18 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!bondingCurve) throw new Error(`Coin was created, but its Pump bonding curve could not be verified. Mint: ${mint.publicKey.toBase58()}`);
   const feeRoute = verifyPermanentPumpCreatorRoute({ bondingCurve, feeRouter, payer });
   if (!feeRoute.verified) throw new Error(`Coin was created, but richpad.fun is not its Pump creator-fee owner. Mint: ${mint.publicKey.toBase58()}`);
-  return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate,
+  let developerBuySignature = null, developerBuyError = null;
+  if (separateDeveloperBuy) {
+    // The coin exists already: a cancelled or failed developer buy leaves it
+    // registered without one; nothing here is retried automatically.
+    try {
+      onStatus('Coin created. Approve the developer buy; every token it buys goes straight into the escrow…');
+      developerBuySignature = (await submitPairedDeveloperBuy({ connection, provider, payer, mint:mint.publicKey, quoteMint, quoteTokenProgram,
+        spend:developerBuy.solAmountLamports, maxSpend:developerBuy.maxSolAmountLamports, config:reserveConfig.developerTokenLock,
+        quoteId:launchServiceQuote.id, lockSeconds:input.developerLockSeconds, lookupTable, assertWalletCurrent, onJournal })).signature;
+    } catch (error) { developerBuyError = error.message; onStatus(`Coin created without the developer buy: ${error.message}`); }
+  }
+  return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate, developerBuySignature, developerBuyError,
     mintRouterScope:mintRouter.scope, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
     reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },
     metadataUri: launchMetadataUri };

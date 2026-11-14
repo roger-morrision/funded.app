@@ -38,8 +38,8 @@ export async function mountLaunchPairField(app) {
   // Developer buy is paid in the paired token: show its unit on the field.
   const unitLabel = document.querySelector('.developer-buy-field .amount-input b');
   const buyInput = document.querySelector('#creator-buy-sol');
-  // A paired coin launches without a developer buy: the escrow would push the
-  // atomic launch transaction past Solana's size limit.
+  // A paired coin's developer buy is paid in the paired token and follows the
+  // launch in a second wallet approval that escrows every purchased token.
   let buyHelp = document.querySelector('#creator-buy-pair-note');
   if (!buyHelp && buyInput) {
     buyHelp = document.createElement('small');
@@ -48,12 +48,9 @@ export async function mountLaunchPairField(app) {
   }
   const showUnit = () => {
     const pair = readLaunchPair();
-    if (unitLabel) unitLabel.textContent = 'SOL';
-    if (buyInput) {
-      if (pair && Number(buyInput.value) > 0) { buyInput.value = '0'; buyInput.dispatchEvent(new Event('input', { bubbles: true })); }
-      buyInput.disabled = Boolean(pair);
-    }
-    if (buyHelp) { buyHelp.hidden = !pair; buyHelp.textContent = pair ? `Developer buy is unavailable for coins paired with ${pair.quoteSymbol}: its escrow does not fit in the atomic launch transaction.` : ''; }
+    if (unitLabel) unitLabel.textContent = pair ? pair.quoteSymbol : 'SOL';
+    if (buyInput) buyInput.disabled = false;
+    if (buyHelp) { buyHelp.hidden = !pair; buyHelp.textContent = pair ? `Paid in ${pair.quoteSymbol}. After the coin is created, a second wallet approval buys your allocation and puts every token straight into the time lock.` : ''; }
   };
   select.addEventListener('change', () => { status.textContent = ''; showUnit(); app.scheduleLaunchCostRefresh?.(); });
   // Review: the community reserve of a paired coin is bought with the paired
@@ -81,9 +78,12 @@ export async function mountLaunchPairField(app) {
       const held = owner && quoteInfo ? await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(new PublicKey(picked.mint), owner, false, quoteInfo.owner))
         .then(row => BigInt(row.value.amount)).catch(() => 0n) : null;
       const units = value => (Number(value) / 10 ** decimals).toLocaleString('en-US', { maximumFractionDigits: Math.min(decimals, 6) });
-      line.textContent = `Paired with ${picked.symbol}: the community reserve costs up to ${units(quote.maxSolAmountLamports)} ${picked.symbol}, paid from your wallet`
+      const developer = BigInt(Math.round(Math.max(0, Number(document.querySelector('#creator-buy-sol')?.value) || 0) * 10 ** decimals));
+      const developerMax = developer + developer / 100n, total = quote.maxSolAmountLamports + developerMax;
+      line.textContent = `Paired with ${picked.symbol}: the community reserve costs up to ${units(quote.maxSolAmountLamports)} ${picked.symbol}`
+        + `${developer > 0n ? `, and your developer buy up to ${units(developerMax)} ${picked.symbol} in a second approval that escrows it` : ''}, paid from your wallet`
         + `${held == null ? '' : ` (you hold ${units(held)} ${picked.symbol})`}. The SOL estimate below covers network fees and accounts only.`;
-      if (held != null && held < quote.maxSolAmountLamports) line.textContent += ` Add ${picked.symbol} before launching.`;
+      if (held != null && held < total) line.textContent += ` Add ${picked.symbol} before launching.`;
     } catch { line.textContent = `Paired with ${picked.symbol}: the community reserve is paid in ${picked.symbol} from your wallet.`; }
   };
   new MutationObserver(() => { void describe(); }).observe(review, { attributes: true, attributeFilter: ['open'] });

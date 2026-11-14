@@ -165,6 +165,7 @@ export function createLaunchSubmitController(appState) {
         mint: result.mint.publicKey.toBase58(),
         creatorWallet: session.address,
         ...(creatorBuySol>0?{developerLockSeconds}:{}),
+        ...(result.developerBuySignature?{developerBuySignature:result.developerBuySignature}:{}),
         name: result.name,
         symbol: result.symbol,
         metadataUri: result.metadataUri,

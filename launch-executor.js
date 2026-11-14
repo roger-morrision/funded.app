@@ -15,9 +15,11 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
       // returned by one backend and rejected as unknown by the next.
       const latest=await connection.getLatestBlockhash('finalized');
       const versioned=step.transaction instanceof VersionedTransaction;
-      if(versioned){step.transaction.message.recentBlockhash=latest.blockhash;step.transaction.signatures=step.transaction.signatures.map(()=>new Uint8Array(64));step.transaction.sign([mint]);}
+      // A step after coin creation (the paired developer buy) needs no mint signature.
+      const signers=step.signers||[mint];
+      if(versioned){step.transaction.message.recentBlockhash=latest.blockhash;step.transaction.signatures=step.transaction.signatures.map(()=>new Uint8Array(64));if(signers.length)step.transaction.sign(signers);}
       else {step.transaction.recentBlockhash=latest.blockhash;step.transaction.feePayer=payer;
-        step.transaction.signatures=[];step.transaction.partialSign(mint);}
+        step.transaction.signatures=[];if(signers.length)step.transaction.partialSign(...signers);}
       step.transaction.fundedLastValidBlockHeight=latest.lastValidBlockHeight;
       assertWalletCurrent();
       onEvent({state:'awaiting-approval',step:step.kind,lastValidBlockHeight:latest.lastValidBlockHeight});
@@ -59,7 +61,8 @@ export async function executeLaunchPlan({connection,provider,payer,mint,plan,onE
         const error=new Error(`${step.kind} failed on-chain. Inspect ${signature}.`);error.knownFailure=true;throw error;
       }
       onEvent({state:'confirmed',step:step.kind,signature});
-      if(step.kind==='initialize-mint-router')result.mintRouterSignature=signature;else result.signature=signature;
+      if(step.kind==='initialize-mint-router')result.mintRouterSignature=signature;
+      else if(step.kind==='developer-buy')result.developerBuySignature=signature;else result.signature=signature;
     } catch(error) {
       if(!error.knownFailure)onEvent({state:broadcast?'unknown':/reject|cancel|denied/i.test(error.message)?'cancelled':'failed',step:step.kind,...(signature?{signature}:{}),message:error.message});
       throw error;

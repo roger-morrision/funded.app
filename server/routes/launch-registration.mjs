@@ -26,6 +26,15 @@ import nacl from 'tweetnacl';
 import {isDeletedDevnetMint} from '../deleted-devnet-mints.mjs';
 import {newLaunchAgencySelection} from '../../config/marketing-agency.js';
 import {enqueueLaunchPostEmail} from '../launch-post-email.mjs';
+import {verifyPairedDeveloperBuy} from '../paired-developer-buy.mjs';
+import {PUMP_SDK,bondingCurvePda} from '@pump-fun/pump-sdk';
+import {NATIVE_MINT} from '@solana/spl-token';
+import {SystemProgram} from '@solana/web3.js';
+
+async function readPairedCurve(connection,mint){
+  const curve=PUMP_SDK.decodeBondingCurveNullable(await connection.getAccountInfo(bondingCurvePda(new PublicKey(mint)),'finalized'));
+  return Boolean(curve?.quoteMint&&!curve.quoteMint.equals(NATIVE_MINT)&&!curve.quoteMint.equals(SystemProgram.programId));
+}
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -177,6 +186,16 @@ export function createLaunchRegistrationRoutes({
           developerTokenLock=await verifyLaunchDeveloperLock({connection:lockConnection,proof,reserve:verifiedReserve,serviceQuote,transaction,lockSeconds:policy.developerLockSeconds,
           config:await developerLockConfig({connection:lockConnection,env,cluster:solanaCluster,programId:developerLockProgramFromTransaction(transaction)})});}
         catch{return json(res,422,{error:'The finalized launch must escrow its exact developer token purchase for the selected lock period. Escrow verification failed; recover this launch receipt before creating another coin.'});}
+        // Paired coin: the developer buy and its escrow follow in one second transaction.
+        if(input.developerBuySignature!=null){
+          if(developerTokenLock?.status!=='not-selected'||policy.developerLockSeconds==null||!await readPairedCurve(connectionFactory(solanaRpcUrl),proof.mint))
+            return json(res,409,{error:'A separate developer buy is only accepted for a paired coin launched without one.'});
+          try{const lockConnection=connectionFactory(solanaRpcUrl),buySignature=String(input.developerBuySignature);
+            const buyTransaction=await lockConnection.getTransaction(buySignature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+            developerTokenLock=await verifyPairedDeveloperBuy({connection:lockConnection,proof,buyTransaction,buySignature,serviceQuote,
+              lockSeconds:policy.developerLockSeconds,config:await developerLockConfig({connection:lockConnection,env,cluster:solanaCluster})});}
+          catch(error){return json(res,422,{error:`The paired developer buy could not be verified: ${String(error.message||error).slice(0,160)} Register again without it to list the coin; the escrowed tokens stay locked on-chain.`});}
+        }
       }
       const feeDistribution = buildFeeDistributionPolicy({ creatorWalletPercent: policy.creatorWalletPercent, holderAirdropPercent: policy.holderAirdropPercent, solClaimPercent: policy.solClaimPercent, xRecipient: policy.xRecipient, feeRouterAddress: configuredRouter },{fundedSplit:currentSplit});
       const record = {

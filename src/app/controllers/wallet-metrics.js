@@ -58,7 +58,7 @@ export function createWalletMetricsController(appState) {
       const pair = readLaunchPair();
       const developerBuy = await getInitialBuyQuote({ connection: appState.connection, input: { ...input, reserveTokens: appState.getCommunityAirdropTokens(), initialBuySol: appState.getCreatorBuySol(), ...(pair || {}) } });
       const initialBuy = await appState.quoteAtomicReserveBuy({ connection: appState.connection, supply:input.supply, decimals:input.decimals,
-        reserveTokens:appState.getCommunityAirdropTokens(), developerBaseUnits:developerBuy.amountBaseUnits, ...(pair ? { quoteMint: pair.quoteMint } : {}) });
+        reserveTokens:appState.getCommunityAirdropTokens(), developerBaseUnits:pair ? 0n : developerBuy.amountBaseUnits, ...(pair ? { quoteMint: pair.quoteMint } : {}) });
       initialBuy.curvePremiumBps = appState.initialCurvePremiumBps(initialBuy.amountBaseUnits, initialBuy.global.initialVirtualTokenReserves.toString());
       const mint = Keypair.generate();
       const v3 = appState.feeRouterState.v3FeeRouter;
