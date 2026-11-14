@@ -10,8 +10,8 @@
     "feature": "devnet-v3-program",
     "optimization": "z",
     "strip": true,
-    "bytes": 919544,
-    "sha256": "cf11bbe12479fc931ec97479707b3912f5c0d99bf7815c40ebcef775f824a36c",
+    "bytes": 1287344,
+    "sha256": "42e23bb7b5c65f0b8ca22e539bc42e8123e1bdf8c40a4b8c9d78fb6f17a0ad24",
     "developerLockPeriodsSeconds": [
       21600,
       43200,
@@ -37,7 +37,7 @@
     ]
   },
   "retainedDevnetRuntimeCommitment": {
-    "bytes": 919544,
-    "sha256": "cf11bbe12479fc931ec97479707b3912f5c0d99bf7815c40ebcef775f824a36c"
+    "bytes": 1287344,
+    "sha256": "42e23bb7b5c65f0b8ca22e539bc42e8123e1bdf8c40a4b8c9d78fb6f17a0ad24"
   }
 }
