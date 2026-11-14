@@ -13,7 +13,8 @@ export function pairLaunchCopy() {
     what: `Step 1 of Create a coin has an optional Paired with list (${PAIR_LAUNCH_TOKENS}). Leave it on SOL for a SOL launch, or pick a token so your coin trades against it on pump.fun.`,
     fees: `A paired coin uses the same V3 fee router and the same split of collected creator fees as every richpad.fun launch: ${split}`,
     costs: `The launch service fee, the ${trade} app trading fee, reserve, tiers and developer lock work the same way.`,
-    status: 'Not open yet: launching with a token other than SOL stays blocked until the fee router can collect and settle creator fees paid in that token. Set Paired with back to SOL to launch now; no transaction is sent while a pair is selected.',
+    paid: 'The community reserve and any developer buy are paid in the paired token from your wallet. A developer buy follows the coin creation in a second wallet approval that puts every token it buys straight into the time lock.',
+    payouts: 'Creator fees are collected in the paired token: holder rewards and the creator wallet are paid in it, and the buyback and AI-agency shares are converted to SOL before they are spent. The Paired with list only appears where paired launches are open.',
   };
 }
 
