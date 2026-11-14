@@ -77,7 +77,10 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     if(prior&&(!financialRecordNetwork(prior,solanaCluster,{legacyDevnet:true})||prior.mint!==mint
       ||prior.collectionSignature!==collectionSignature
       ||(solanaCluster==='mainnet-beta'||prior.programId!=null)&&prior.programId!==programId
-      ||prior.approvedHash!=null&&prior.approvedHash!==approvedHash.toLowerCase()))
+      ||prior.approvedHash!=null&&prior.approvedHash!==approvedHash.toLowerCase()
+        // A Devnet settlement in flight during an approved router upgrade is still
+        // reconciled by its exact finalized signature below.
+        &&!(solanaCluster==='devnet'&&prior.status==='verification-pending')))
       return json(res,409,{error:'Stored settlement belongs to another network, program or source.'});
     if(prior?.status==='finalized'&&!prior.settlementSignature)
       return json(res,409,{error:'Finalized settlement has no signature to reconcile.'});
@@ -114,6 +117,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     const recordedFinalized = (proof, signature, current) => ({ ...proof,
       collectionSignature, settlementSignature:signature, status:'finalized',
       cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],programId,approvedHash:approvedHash.toLowerCase(), finalizedAt:new Date().toISOString(),
+      ...(prior?.approvedHash&&prior.approvedHash!==approvedHash.toLowerCase()?{signedUnderApprovedHash:prior.approvedHash}:{}),
       referralUpline:frozenUpline(proof, current),
       allocationPlan:recordedV3AllocationPlan({ launch,cluster:solanaCluster, settlement:{ ...proof,
         cluster:solanaCluster,programId, collectionSignature, settlementSignature:signature } }) });
