@@ -61,3 +61,16 @@ test('a migrated USDC-paired coin is priced from its canonical pool', async () =
   assert.equal(quote.tokenPriceUsd, 40_000 / 200_000_000);
   assert.equal(quote.source, 'finalized-PumpSwap-pool-in-stablecoin');
 });
+
+test('migrated paired coins exclude their paired-token pool and off-curve owners from holder payouts', async () => {
+  const { excludedHolderWallets, payableHolder } = await import('../server/reward-scheduler.mjs');
+  const { canonicalPumpPoolPda } = await import('@pump-fun/pump-swap-sdk');
+  const { PublicKey, Keypair } = await import('@solana/web3.js');
+  const mint = 'G4thnUUDeqrfPvLLLxeGcTTXzjut5qneCquqk1Bc5BMQ', usdc = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+  const pool = canonicalPumpPoolPda(new PublicKey(mint), new PublicKey(usdc)).toBase58();
+  assert.equal(pool, '2wgVgeLEmyQZ1mLxpk6djkbVgzZQrK3Q9VcUEhvzWQ98');
+  assert.ok(excludedHolderWallets(mint, [], usdc).includes(pool));
+  assert.ok(!excludedHolderWallets(mint, []).includes(pool));
+  assert.equal(payableHolder(pool), false);
+  assert.equal(payableHolder(Keypair.generate().publicKey.toBase58()), true);
+});

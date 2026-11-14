@@ -16,14 +16,22 @@ const holderUsdMinimum = config => config?.eligibilityPolicy === QA_HOLDER_POLIC
 const poolUsdMinimum = config => config?.eligibilityPolicy === QA_HOLDER_POLICY
   ? config.qaMinimums.minimumPoolUsd : AUTOMATIC_REWARDS.minimumPoolUsd;
 
-function excludedHolderWallets(mint, configured = []) {
+export function excludedHolderWallets(mint, configured = [], quoteMint = null) {
   const excluded = new Set(configured.map(String));
   let mintKey;
   try { mintKey = new PublicKey(mint); }
   catch { return [...excluded].sort(); /* Unit fixtures may use non-address mint labels. */ }
   excluded.add(canonicalPumpPoolPda(mintKey, NATIVE_MINT).toBase58());
+  // A migrated paired coin's liquidity sits in its <coin>/<paired token> pool.
+  if (quoteMint) excluded.add(canonicalPumpPoolPda(mintKey, new PublicKey(quoteMint)).toBase58());
   excluded.add(bondingCurvePda(mintKey).toBase58());
   return [...excluded].sort();
+}
+
+// Token payouts go to associated token accounts, which an off-curve owner
+// (a program account such as a pool or vault) cannot have.
+export function payableHolder(wallet) {
+  try { return PublicKey.isOnCurve(new PublicKey(wallet).toBytes()); } catch { return true; /* Unit fixtures use labels. */ }
 }
 
 function requireUnits(value, label) {
@@ -160,7 +168,7 @@ function programConfig(input) {
     mint: String(input.mint), enabled: input.enabled !== false, asset: String(input.asset || 'SOL'), kind: 'holder', ...(pairedQuote ? { quoteMint: pairedQuote } : {}),
     periodSeconds, sampleIntervalSeconds, payoutDelaySeconds, activatedAt, firstPeriodStart,
     eligibilityPolicy: input.eligibilityPolicy || null, qaMinimums,
-    excludedWallets: excludedHolderWallets(input.mint, input.excludedWallets || []),
+    excludedWallets: excludedHolderWallets(input.mint, input.excludedWallets || [], pairedQuote || null),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -345,9 +353,9 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
             continue;
           }
           const snapshots = snapshotsForPeriod(state.holderSnapshots[schedule.mint], schedule.periodStart, schedule.cutoffAt, config.sampleIntervalSeconds * 2);
-          const excluded = excludedHolderWallets(schedule.mint, config.excludedWallets || []);
+          const excluded = excludedHolderWallets(schedule.mint, config.excludedWallets || [], config.quoteMint || null);
           let weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt,
-            snapshots, excludedWallets:excluded, coverage:'finalized-sampled-v1' });
+            snapshots, excludedWallets:excluded, coverage:'finalized-sampled-v1' }).filter(row => payableHolder(row.wallet));
           if (pricedHolderPolicy(config)) {
             const quote = quotes.get(schedule.mint);
             const { eligible, minimumTokenUnits } = holderUsdEligibility(quote,
@@ -414,8 +422,8 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
     let submitted = 0;
     for (const plan of plans) {
       if (plan.kind === 'holder') {
-        const configured = await store.transaction(state => state.programs?.[plan.mint]?.excludedWallets || []);
-        const excluded = new Set(excludedHolderWallets(plan.mint, configured));
+        const program = await store.transaction(state => state.programs?.[plan.mint] || {});
+        const excluded = new Set(excludedHolderWallets(plan.mint, program.excludedWallets || [], program.quoteMint || null));
         if (plan.manifest.leaves.some(leaf => excluded.has(leaf.recipient))) {
           await store.transaction(state => { const row = state.schedules[plan.id]; row.status = 'blocked'; row.reason = 'Holder manifest contains a protocol-owned vault or PumpSwap liquidity pool; reconcile before payout.'; });
           continue;
