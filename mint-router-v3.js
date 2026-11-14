@@ -111,10 +111,10 @@ export async function verifyMintRouterV3Account({ connection, programId, mint, i
 
 export async function verifyMintPolicyV3Account({ connection, programId, mint, creator, initialAuthority, split = null }) {
   if(split?.agencyPercent!==undefined){
-    const {deriveAgencyPolicyV3,decodeAgencyPolicyV3}=await import('./agency-mint-router-v3.js');
+    const {deriveAgencyPolicyV3,decodeAgencyPolicyV3,readSolCreditLamportsV3}=await import('./agency-mint-router-v3.js');
     const identity=deriveAgencyPolicyV3(programId,mint);
     try{return decodeAgencyPolicyV3(await connection.getAccountInfo(identity.address,'finalized'),
-      {programId,mint,creator,initialAuthority,protocolUnits:protocolGrossUnits(split)});}
+      {programId,mint,creator,initialAuthority,protocolUnits:protocolGrossUnits(split),credited:await readSolCreditLamportsV3(connection,programId,mint)});}
     catch{return{...identity,verified:false,reason:'v3-agency-policy-invalid'};}
   }
   const address = deriveMintPolicyV3(programId, mint);

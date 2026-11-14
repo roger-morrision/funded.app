@@ -81,3 +81,22 @@ test('directed budget splits category 0 by the policy units and subtracts releas
 test('launch checks may decode paired-token Pump trades; market views stay SOL-only', () => {
   assert.deepEqual(decodePumpTrades(['Program log: unrelated'], USDC, { anyQuote: true }), []);
 });
+
+test('agency policy verification counts SOL credited by token conversions', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { decodeAgencyPolicyV3, readSolCreditLamportsV3 } = await import('../agency-mint-router-v3.js');
+  // Real Devnet accounts after converting G4th's buyback (6) and agency (7) USDC budgets.
+  const fx = JSON.parse(readFileSync(new URL('./fixtures/devnet-paired-agency-policy.json', import.meta.url)));
+  const program = new PublicKey(fx.programId);
+  const account = { owner: program, executable: false, data: Buffer.from(fx.policy, 'base64') };
+  const creditInfo = { owner: program, executable: false, data: Buffer.from(fx.credit, 'base64') };
+  const base = { programId: fx.programId, mint: fx.mint, creator: fx.creator, initialAuthority: fx.initialAuthority };
+  assert.throws(() => decodeAgencyPolicyV3(account, base), /released counters differ/);
+  const credited = await readSolCreditLamportsV3({ getAccountInfo: async () => creditInfo }, fx.programId, fx.mint);
+  assert.ok(credited[6] > 0n && credited[7] > 0n);
+  const policy = decodeAgencyPolicyV3(account, { ...base, credited });
+  assert.equal(policy.verified, true);
+  assert.ok(policy.paidLamports[6] >= credited[6] && policy.paidLamports[7] >= credited[7]);
+  assert.deepEqual(await readSolCreditLamportsV3({ getAccountInfo: async () => null }, fx.programId, fx.mint), Array(8).fill(0n));
+  await assert.rejects(readSolCreditLamportsV3({ getAccountInfo: async () => ({ ...creditInfo, owner: PublicKey.default }) }, fx.programId, fx.mint), /owner differs/);
+});

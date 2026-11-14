@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {financialRecordNetwork} from './financial-network.mjs';
 import {PublicKey,SystemProgram} from '@solana/web3.js';
 import {MARKETING_AGENCY_POLICY as POLICY} from '../config/marketing-agency.js';
-import {deriveAgencyPolicyV3,deriveAgencyVaultsV3,decodeAgencyPolicyV3} from '../agency-mint-router-v3.js';
+import {deriveAgencyPolicyV3,deriveAgencyVaultsV3,decodeAgencyPolicyV3,readSolCreditLamportsV3} from '../agency-mint-router-v3.js';
 import {protocolGrossUnits,deriveMintRouterV3} from '../mint-router-v3.js';
 import {readProgramDataEvidence} from './automatic-reward-chain.mjs';
 import {verifyFeeRouterAccount} from '../fee-router.js';
@@ -34,7 +34,7 @@ export async function readAgencyMintContext({connection,state,mint,programId,app
     throw new Error('A finalized agency custody snapshot is required.');
   const policy=decodeAgencyPolicyV3(snapshot.value[0],{programId,mint,creator:launch.creatorWallet,initialAuthority:route.initialAuthority,
     protocolUnits:protocolGrossUnits(route.protocolSplit),shares:launch.feeDistribution?.creatorDirected?.shares,
-    selectedAgents:launch.marketingAgency.selectedAgents});
+    selectedAgents:launch.marketingAgency.selectedAgents,credited:await readSolCreditLamportsV3(rpc,programId,mint)});
   const vaultInfo=snapshot.value[1],rent=BigInt(await rpc.getMinimumBalanceForRentExemption(0,'finalized'));
   const remaining=policy.paidLamports[7]-policy.withdrawnLamports[7];
   if(remaining>0n&&(!vaultInfo||!vaultInfo.owner?.equals(SystemProgram.programId)||vaultInfo.data?.length!==0

@@ -4,7 +4,7 @@ import {PublicKey,SystemProgram,ComputeBudgetProgram,TransactionMessage,Versione
 import {getAssociatedTokenAddressSync,NATIVE_MINT,TOKEN_PROGRAM_ID,ASSOCIATED_TOKEN_PROGRAM_ID} from '@solana/spl-token';
 import {deriveFeeRouter,verifyFeeRouterAccount} from '../fee-router.js';
 import {deriveMintPolicyV3,deriveMintVaultsV3,verifyMintPolicyV3Account} from '../mint-router-v3.js';
-import {deriveAgencyPolicyV3,decodeAgencyPolicyV3,agencyDiscriminator} from '../agency-mint-router-v3.js';
+import {deriveAgencyPolicyV3,decodeAgencyPolicyV3,agencyDiscriminator,readSolCreditLamportsV3} from '../agency-mint-router-v3.js';
 import {priceConfigAddress,priceSignerActivated} from './buyback-price-signer.mjs';
 import {v3BuybackFeeSetup,verifyV3BuybackAuthorityReserve} from './v3-buyback-setup.mjs';
 import {independentMarketQuote} from './price-signer-market.mjs';
@@ -81,7 +81,7 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   const [policyInfo,vaultInfo,receiptInfo,mintInfo]=await connection.getMultipleAccountsInfo([policyKey,vault,receipt,key(config.mint)],'finalized');
   assert(policyInfo?.owner.equals(program)&&policyInfo.data.length>=104,'Fee policy is unavailable.');
   const initialAuthority=key(policyInfo.data.subarray(72,104));
-  const policy=args.agency?decodeAgencyPolicyV3(policyInfo,{programId:program,mint:sourceMint,creator,initialAuthority}):
+  const policy=args.agency?decodeAgencyPolicyV3(policyInfo,{programId:program,mint:sourceMint,creator,initialAuthority,credited:await readSolCreditLamportsV3(connection,program,sourceMint)}):
     await verifyMintPolicyV3Account({connection,programId:program,mint:sourceMint,creator,initialAuthority});
   const router=await verifyFeeRouterAccount({connection,programId:program,commitment:'finalized'});
   assert(router.verified&&router.authority.equals(authority),'Current router authority differs.');

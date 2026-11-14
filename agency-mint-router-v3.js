@@ -6,6 +6,18 @@ import {deriveMintRouterV3,deriveMintClaimV3,directedGrossUnits,
   buildMintRouterV3SettlementInstruction} from './mint-router-v3.js';
 import {buildProtectedMintV3ApprovalInstruction,buildProtectedMintV3DisbursementInstruction} from './protected-mint-router-v3.js';
 import {canonicalAgencySelection,MARKETING_AGENCY_POLICY as POLICY} from './config/marketing-agency.js';
+import {decodeSolCreditV3,deriveSolCreditV3} from './mint-router-v3-token.js';
+
+// SOL credited to each category by paired-token conversions. The router keeps
+// paid_lamports = settled targets + credit, so verifiers must read it too.
+export async function readSolCreditLamportsV3(connection,programId,mint,commitment='finalized'){
+  const info=await connection.getAccountInfo(deriveSolCreditV3(programId,mint),commitment);
+  if(!info)return Array(8).fill(0n);
+  if(!info.owner?.equals(key(programId)))throw new Error('SOL credit record owner differs.');
+  const record=decodeSolCreditV3(info.data);
+  if(record.mint!==key(mint).toBase58())throw new Error('SOL credit record mint differs.');
+  return record.credited;
+}
 
 export const AGENCY_V3_DISCRIMINATORS=Object.freeze({
   configure_agency_rules_v3:'fcff468becf89818',
@@ -58,7 +70,7 @@ export function decodeAgencyConfigV3(account,program){
   if(recipient.equals(PublicKey.default)||revision<1n||data[76]!==bump)throw new Error('Agency configuration is invalid.');
   return{protocolUnits,promotionRecipient:recipient.toBase58(),revision:String(revision),bump,rules:decodeAgencyRules(data,77)};
 }
-export function decodeAgencyPolicyV3(account,{programId,mint,creator,initialAuthority,protocolUnits:expectedUnits,shares,selectedAgents}){
+export function decodeAgencyPolicyV3(account,{programId,mint,creator,initialAuthority,protocolUnits:expectedUnits,shares,selectedAgents,credited=null}){
   const data=ownedBytes(account,programId,'MintAgencyPolicyV3',[383,423]),identity=deriveAgencyPolicyV3(programId,mint);
   if(!data.subarray(8,40).equals(key(mint).toBuffer())||!data.subarray(40,72).equals(key(creator).toBuffer())
     ||!data.subarray(72,104).equals(key(initialAuthority).toBuffer())||data[382]!==identity.bump)throw new Error('Agency mint identity differs.');
@@ -72,7 +84,7 @@ export function decodeAgencyPolicyV3(account,{programId,mint,creator,initialAuth
   if(expectedUnits&&expectedUnits.some((n,i)=>n!==protocolUnits[i])||expectedUnits&&expectedUnits.length!==7
     ||shares&&directedGrossUnits(shares).some((n,i)=>n!==directedUnits[i])
     ||selectedAgents&&agencySelectionMask(selectedAgents)!==selectedMask
-    ||directedUnits.reduce((sum,n)=>sum+n,0)!==8000000||paidLamports.some((n,i)=>n!==targets[i])
+    ||directedUnits.reduce((sum,n)=>sum+n,0)!==8000000||paidLamports.some((n,i)=>n!==targets[i]+BigInt(credited?.[i]??0n))
     ||withdrawnLamports.some((n,i)=>n>paidLamports[i])||directedReleased.some((n,i)=>n>directedTargets[i])
     ||directedReleased.reduce((sum,n)=>sum+n,0n)!==withdrawnLamports[0]
     ||agentSpent.some((n,i)=>n>agentTargets[i])||agentSpent.reduce((sum,n)=>sum+n,0n)!==withdrawnLamports[7]
