@@ -194,7 +194,11 @@ export function applyDevnetProgramCutover({stateDir,revision},io,prepareAfterUpg
     return applyLockedRelease({stateDir,id},io,prior.manifestHash);
   });
 }
-async function applyLockedRelease({stateDir,id,rollback=false},io,verifiedPriorHash){
+// priorUnverified: an operator-recorded reason to replace a current release that
+// can no longer verify (e.g. its program pin was superseded by an approved
+// upgrade). The candidate must still pass full acceptance; the reason is kept
+// in the journal and the accepted state.
+async function applyLockedRelease({stateDir,id,rollback=false,priorUnverified=null},io,verifiedPriorHash){
     const stateFile=join(stateDir,'state.json'),state=fs.existsSync(stateFile)?readJSON(stateFile):{};
     const pendingFile=join(stateDir,'pending.json'),pending=fs.existsSync(pendingFile)?readJSON(pendingFile):null;
     const target=rollback?(pending?.previous||state.previous):{id};
@@ -207,12 +211,14 @@ async function applyLockedRelease({stateDir,id,rollback=false},io,verifiedPriorH
       const prior=loadRelease(stateDir,state.current.id);requireValue(prior.manifestHash===state.current.manifestHash,'Accepted release changed.');
       requireValue(prior.project===release.project&&prior.origin===release.origin,'Cannot switch project or origin during a release.');
       if(verifiedPriorHash)requireValue(prior.manifestHash===verifiedPriorHash,'Prior release changed during program cutover.');
-      else if(!pending&&!rollback){const before=await verifyRelease(prior,io);requireValue(before.ready,'Current release is not verified; diagnose drift before deploying.');}
+      else if(!pending&&!rollback){const before=await verifyRelease(prior,io);
+        if(!before.ready){requireValue(typeof priorUnverified==='string'&&priorUnverified.trim().length>=10,'Current release is not verified; diagnose drift before deploying.');
+          writeJSON(join(stateDir,'prior-unverified-'+Date.now()+'.json'),{prior:state.current,candidate:id,reason:priorUnverified.trim(),verification:before,at:new Date().toISOString()});}}
     }
     assertReleaseImage(await io.image(release.image),release);
     await io.preflight(release);
     fs.writeFileSync(join(release.dir,'empty.env'),'',{mode:0o600});
-    const journal={target:{id:release.id,manifestHash:release.manifestHash},previous:pending?.previous||state.current||null,startedAt:new Date().toISOString()};
+    const journal={target:{id:release.id,manifestHash:release.manifestHash},previous:pending?.previous||state.current||null,startedAt:new Date().toISOString(),...(priorUnverified?{priorUnverified:priorUnverified.trim()}:{})};
     writeJSON(pendingFile,journal);
     // Explicitly update all four services. No dependency startup, pull, build or volume deletion.
     await io.up(release);
@@ -221,7 +227,7 @@ async function applyLockedRelease({stateDir,id,rollback=false},io,verifiedPriorH
     requireValue(verification.ready,'Release acceptance failed. Prior accepted state was retained; retry the same release or run rollback.');
     const current={id:release.id,manifestHash:release.manifestHash};
     const previous=state.current?.id===release.id?state.previous:state.current;
-    writeJSON(stateFile,{current,previous:previous||null,acceptedAt:new Date().toISOString()});
+    writeJSON(stateFile,{current,previous:previous||null,acceptedAt:new Date().toISOString(),...(priorUnverified?{priorUnverified:priorUnverified.trim()}:{})});
     fs.unlinkSync(pendingFile);
     return{release:release.id,revision:release.revision,ready:true,rollbackAvailable:Boolean(previous)};
 }
@@ -280,9 +286,11 @@ async function main(){
     requireValue(args.length===1,'check requires a release ID.');const release=loadRelease(stateDir,args[0]);
     console.log(JSON.stringify({intact:true,id:release.id,revision:release.revision,liveVerified:false}));return;
   }
+  let priorUnverified=null;const flag=args.indexOf('--prior-unverified');
+  if(flag>=0){requireValue(mode==='deploy'&&args[flag+1],'--prior-unverified requires a reason.');priorUnverified=args[flag+1];args.splice(flag,2);}
   requireValue(mode==='deploy'&&args.length===1||mode==='rollback'&&args.length===0||mode==='verify'&&args.length===1,'Use prepare, check, deploy, rollback or verify.');
   const io=dockerIO();
-  const result=mode==='verify'?await verifyRelease(loadRelease(stateDir,args[0]),io):await applyRelease({stateDir,id:args[0],rollback:mode==='rollback'},io);
+  const result=mode==='verify'?await verifyRelease(loadRelease(stateDir,args[0]),io):await applyRelease({stateDir,id:args[0],rollback:mode==='rollback',priorUnverified},io);
   console.log(JSON.stringify(result,null,2));if(!result.ready)process.exitCode=1;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)main().catch(error=>{
