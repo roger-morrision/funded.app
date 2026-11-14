@@ -45,7 +45,10 @@ if (process.argv.includes('--check')) {
     }
     for (const pending of candidates.automaticSettlementEnabled ? candidates.pendingV3Settlements || [] : []) {
       lifecycle.assertRunning();
-      if (pausedMints.has(pending.mint) || pending.status === 'verification-pending') continue;
+      // A settlement awaiting finality is left to its own request; one still
+      // pending after three minutes is reconciled by its exact signature.
+      if (pausedMints.has(pending.mint) || pending.status === 'verification-pending'
+        && !(Date.now() - Date.parse(pending.startedAt) > 180_000)) continue;
       try {
         const result = await request('/api/keeper/settle-v3', {
           mint:pending.mint, collectionSignature:pending.collectionSignature });

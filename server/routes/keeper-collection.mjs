@@ -80,6 +80,7 @@ export function createKeeperCollectionRoutes({
         && state.v3Settlements?.[row.signature]?.status !== 'finalized')
         .map(row => ({ mint:row.mint, collectionSignature:row.signature,
           claimId:row.claimId, amountLamports:String(row.collectedLamports),
+          ...(state.v3Settlements?.[row.signature]?.startedAt?{startedAt:state.v3Settlements[row.signature].startedAt}:{}),
           status:state.v3Settlements?.[row.signature]?.status || (env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true'
             ? 'ready-for-automatic-settlement' : 'awaiting-creator-signature') }));
       return json(res, 200, { cluster:solanaCluster, automaticSettlementEnabled:env.FUNDED_V3_AUTO_SETTLEMENT_ENABLED === 'true',
