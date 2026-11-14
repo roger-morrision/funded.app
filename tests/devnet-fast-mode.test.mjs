@@ -43,3 +43,12 @@ test('Devnet test builds accept a 5-minute developer lock and promotion interval
   assert.equal(validateAgencyRules({ marketCapUsd: [1, 2], communityWindowSeconds: 300, promotionIntervalSeconds: 300 }).promotionIntervalSeconds, 300);
   assert.throws(() => validateAgencyRules({ marketCapUsd: [1, 2], communityWindowSeconds: 300, promotionIntervalSeconds: 299 }));
 });
+
+test('five-minute bonus windows only cover the last two hours, not every window since the first launch', async () => {
+  const { dailyBonusWork } = await import('../server/daily-bonus-queue.mjs');
+  const schedule = bonusSchedule({ cluster: 'devnet', env: fast }), now = 1_794_640_000;
+  const app = { launches: { a: { mint: 'a', cluster: 'devnet', onchainVerified: true, createdTimestamp: now - 7 * 86400,
+    feeDistribution: { fixedFunded: { communityRewards: { dailyBonus: { version: 1 } } } } } } };
+  const work = dailyBonusWork({ app, ledger: {}, now, cluster: 'devnet', programId: 'p', schedule, limit: 1000 });
+  assert.equal(work.missing.length, 24);
+});

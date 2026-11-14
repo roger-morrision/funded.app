@@ -9,7 +9,10 @@ export function dailyBonusWork({ app, ledger, now, cluster='devnet', programId, 
     && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp > 0).map(row => row.createdTimestamp);
   if (!timestamps.length) return { missing:[], pending:[], eligible:false };
   const snapshots = ledger.dailyBonusSnapshots || {}, period = schedule.periodSeconds;
-  const first = currentBonusStart(Math.min(...timestamps),schedule);
+  // Devnet five-minute QA windows cover only the last two hours; older coins
+  // would otherwise backfill thousands of windows.
+  const launched = currentBonusStart(Math.min(...timestamps),schedule);
+  const first = period === 300 ? Math.max(launched, currentBonusStart(now,schedule) - 24 * period) : launched;
   const missing = [];
   for (let time = first; time < currentBonusStart(now,schedule); time += period) {
     const day = bonusWindowKey(time,schedule);

@@ -71,6 +71,8 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
     expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256 });
   const indexer = createHolderHistoryIndexer({ connection:holderConnection,
     store:automaticRewardStore, rpcUrl:holderRpcUrl,
+    // Five-minute Devnet QA periods sample every minute; six hours of history is plenty.
+    ...(solanaCluster === 'devnet' && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true' ? { maxSnapshotsPerMint:360 } : {}),
     expectedGenesisHash:DEVNET_GENESIS_HASH });
   const scheduler = createRewardScheduler({ store:automaticRewardStore, chain, indexer,
     quoteReader:createHolderRewardQuoteReader({ connection:holderConnection, env }) });

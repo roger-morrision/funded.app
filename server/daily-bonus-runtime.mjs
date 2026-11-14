@@ -24,6 +24,20 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
     }
   } catch { service = null; }
   let running = false;
+  // Five-minute QA windows older than two hours keep their snapshot but drop
+  // the settlement index used to build it; the ledger file stays small.
+  async function pruneQaIndexes() {
+    const horizon = now() - 2 * 3600;
+    await rewardStore.transaction(state => {
+      for (const bucket of ['dailyBonusIndexes', 'dailyBonusSettlementIndexes']) {
+        for (const day of Object.keys(state[bucket] || {})) {
+          if (!day.startsWith('qa5m:') || !state.dailyBonusSnapshots?.[day]) continue;
+          const start = Date.parse(day.slice(5).split('@')[0]) / 1000;
+          if (Number.isFinite(start) && start < horizon) delete state[bucket][day];
+        }
+      }
+    });
+  }
   async function tick() {
     if (!service || running) return;
     running = true;
@@ -35,6 +49,7 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
         await rewardStore.transaction(state => { state.dailyBonusServiceStatus = { status:'waiting-for-eligible-launch', checkedAt:new Date().toISOString() }; });
         return;
       }
+      if (schedule.periodSeconds === 300) await pruneQaIndexes();
       const failures = [];
       let indexing = false;
       let progressing = false;
