@@ -8,6 +8,9 @@ export function bonusSchedule({ cluster, env = process.env }) {
   if (cluster !== 'devnet' || env.FUNDED_DEVNET_QA_MINIMUMS_ENABLED !== 'true' || period !== '300')
     throw new Error('Five-minute bonus snapshots require explicit Devnet QA configuration.');
   const mints = [...new Set(String(env.FUNDED_DEVNET_QA_BONUS_MINTS || '').split(',').map(row=>row.trim()).filter(Boolean))];
+  if (env.FUNDED_DEVNET_QA_ALL_MINTS === 'true' && !mints.length)
+    return Object.freeze({ periodSeconds:300, mode:'devnet-qa-5m', mints:null, allMints:true,
+      cohort:createHash('sha256').update('all-devnet-mints').digest('hex').slice(0,12) });
   if (!mints.length || mints.length > 8) throw new Error('Select one to eight disposable QA bonus mints.');
   for (const mint of mints) if (new PublicKey(mint).toBase58() !== mint) throw new Error('Invalid QA bonus mint.');
   return Object.freeze({ periodSeconds:300, mode:'devnet-qa-5m', mints:Object.freeze(mints),
@@ -29,4 +32,4 @@ export function bonusWindow(day, now = Math.floor(Date.now()/1000)) {
 export const currentBonusStart = (now, schedule = DEFAULT_BONUS_SCHEDULE) => Math.floor(now / schedule.periodSeconds) * schedule.periodSeconds;
 export const latestBonusDay = (now = Math.floor(Date.now()/1000), schedule = DEFAULT_BONUS_SCHEDULE) => bonusWindowKey(currentBonusStart(now,schedule) - schedule.periodSeconds,schedule);
 export const publicBonusSchedule = schedule => ({ periodSeconds:schedule.periodSeconds, mode:schedule.mode,
-  ...(schedule.mints ? { mints:schedule.mints, cohort:schedule.cohort } : {}) });
+  ...(schedule.mints ? { mints:schedule.mints, cohort:schedule.cohort } : {}), ...(schedule.allMints ? { allMints:true, cohort:schedule.cohort } : {}) });

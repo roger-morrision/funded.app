@@ -131,7 +131,7 @@ export async function readDailyBonusEvidence({ connection, state, programId, day
   const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified === true
     && row.cluster === cluster && row.pumpFeeRoute?.scope === 'per-mint-v3'
     && row.pumpFeeRoute.programId === programId && row.pumpFeeRoute.verified === true
-    && (!window.qa || qaMints?.includes(row.mint))
+    && (!window.qa || qaMints === '*' || qaMints?.includes(row.mint))
     && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp < window.end);
   if (launches.length > 200) throw new Error('Daily bonus mint coverage requires a larger reviewed indexer.');
   const byMint = new Map(launches.map(row => [row.mint, row]));

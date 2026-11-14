@@ -7,6 +7,11 @@ export function qaMintSelected(mint, cluster, env = process.env,
   plural = 'FUNDED_DEVNET_QA_HOLDER_MINTS', singular = 'FUNDED_DEVNET_QA_HOLDER_MINT',
   enabled = 'FUNDED_DEVNET_QA_MINIMUMS_ENABLED') {
   if (env[enabled] !== 'true') return false;
+  // Devnet test deployments may apply the QA timers and minimums to every coin.
+  if (env.FUNDED_DEVNET_QA_ALL_MINTS === 'true') {
+    if (cluster !== 'devnet') throw new Error('Devnet QA mint selection cannot be enabled outside Devnet.');
+    return true;
+  }
   const configured = [String(env[singular] || ''), ...String(env[plural] || '').split(',')]
     .map(value => value.trim()).filter(Boolean);
   if (!configured.length) return false;

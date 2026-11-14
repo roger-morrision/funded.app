@@ -46,7 +46,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
     const launches = Object.values(state.launches || {}).filter(row => row.onchainVerified === true
       && row.cluster === cluster && row.pumpFeeRoute?.scope === 'per-mint-v3'
       && row.pumpFeeRoute.programId === programId && row.pumpFeeRoute.verified === true
-      && (!window.qa || qaMints?.includes(row.mint))
+      && (!window.qa || qaMints === '*' || qaMints?.includes(row.mint))
       && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp < window.end)
       .sort((a,b) => a.mint.localeCompare(b.mint));
     const byMint = new Map(launches.map(row => [row.mint,row]));

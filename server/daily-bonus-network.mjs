@@ -5,7 +5,7 @@ import {PublicKey} from '@solana/web3.js';
 export function assertBonusNetwork(cluster,{window,schedule}={}) {
   requireSolanaCluster(cluster);
   if(cluster!=='devnet'&&(window?.qa||window?.periodSeconds!=null&&window.periodSeconds!==86400
-    ||schedule&&schedule.periodSeconds!==86400||schedule?.mints))
+    ||schedule&&schedule.periodSeconds!==86400||schedule?.mints||schedule?.allMints))
     throw Error('QA bonus windows are forbidden outside Devnet.');
 }
 

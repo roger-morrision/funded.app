@@ -42,10 +42,13 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
   async function ensureHolderProgram(launch, quoteMint) {
     const state = await automaticRewardStore.read();
     const existing = state.programs?.[launch.mint];
-    if (existing?.asset === quoteMint) return false;
-    const [vault] = PublicKey.findProgramAddressSync([Buffer.from('reward-vault-v1'), keeper.publicKey.toBuffer(), new PublicKey(launch.mint).toBuffer()], new PublicKey(programId));
     const qaMinimums = qaHolderMinimums(launch.mint, solanaCluster, env);
     const periodSeconds = qaShortHolderMintSelected(launch.mint, solanaCluster, env) ? 300 : 3600;
+    const eligibilityPolicy = qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1';
+    // Re-register when the Devnet QA period or minimums were switched on or off.
+    if (existing?.asset === quoteMint && existing.periodSeconds === periodSeconds && existing.eligibilityPolicy === eligibilityPolicy
+      && JSON.stringify(existing.qaMinimums || null) === JSON.stringify(qaMinimums)) return false;
+    const [vault] = PublicKey.findProgramAddressSync([Buffer.from('reward-vault-v1'), keeper.publicKey.toBuffer(), new PublicKey(launch.mint).toBuffer()], new PublicKey(programId));
     const now = Math.floor(Date.now() / 1000);
     await scheduler.register({ mint: launch.mint, asset: quoteMint, quoteMint, activatedAt: Number(launch.createdTimestamp || launch.blockTime || now),
       excludedWallets: [vault.toBase58()], eligibilityPolicy: qaMinimums ? QA_HOLDER_POLICY : 'usd-20-hourly-v1', qaMinimums,
