@@ -31,7 +31,7 @@ function fixture({ amount = 44_000_000_000_000n, creatorKeeps = 0n, extraProgram
       preTokenBalances: [row(curve, 800_000_000_000_000n)],
       postTokenBalances: [row(curve, 800_000_000_000_000n - amount - creatorKeeps), row(addresses.lock.toBase58(), escrowed), row(creator.toBase58(), creatorKeeps)] } };
   const data = Buffer.alloc(105); Buffer.from('c9e00b0c19713f1d', 'hex').copy(data); mint.toBuffer().copy(data, 8); creator.toBuffer().copy(data, 40);
-  data.writeBigUInt64LE(escrowed, 72); data.writeBigInt64LE(1_800_000_000n, 80); data.writeBigInt64LE(BigInt(1_800_000_000 + lockSeconds), 88); data[104] = addresses.bump;
+  data.writeBigUInt64LE(escrowed, 72); data.writeBigInt64LE(1_799_999_999n, 80); data.writeBigInt64LE(BigInt(1_799_999_999 + lockSeconds), 88); data[104] = addresses.bump;
   const connection = { getAccountInfo: async () => ({ owner: new PublicKey(PROGRAM), data }) };
   return { connection, proof: { mint: mint.toBase58(), feePayer: creator.toBase58(), slot: 1000 }, buyTransaction: tx, buySignature: 'buy-sig',
     config: { ready: true, programId: PROGRAM, programDataSha256: 'a'.repeat(64) }, serviceQuote: { id: QUOTE }, lockSeconds };

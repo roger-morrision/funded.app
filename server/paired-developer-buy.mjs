@@ -64,7 +64,8 @@ export async function verifyPairedDeveloperBuy({ connection, proof, buyTransacti
   if (index < 0 || tx.meta.preBalances[index] !== 0 || tx.meta.postBalances[index] <= 0)
     throw Error('Developer escrow must be initialized in the developer buy.');
   const saved = decodeDeveloperTokenLock(await connection.getAccountInfo(addresses.lock, 'finalized'), { mint, creator, programId });
-  if (saved.amount !== String(amount) || saved.lockedAt !== tx.blockTime || saved.lockSeconds !== lockSeconds)
+  // The escrow records the validator clock, which can trail the block time by a few seconds.
+  if (saved.amount !== String(amount) || saved.lockedAt > tx.blockTime || tx.blockTime - saved.lockedAt > 30 || saved.lockSeconds !== lockSeconds)
     throw Error('Developer escrow does not match the verified developer buy and time.');
   return { ...saved, version: 1, status: 'funded', verified: true, programId: config.programId, programDataSha256: config.programDataSha256,
     vault: addresses.vault.toBase58(), fundingSignature: buySignature, atomicWithLaunch: false, atomicBuyAndEscrow: true, lockSeconds };
