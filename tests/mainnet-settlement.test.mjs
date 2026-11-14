@@ -31,7 +31,7 @@ function routeFixture(selected=cluster,overrides={}){
   const sourceProof={cluster:selected,signature:f.source,router:f.router,expectedLamports:10000n,claimId:f.claimId};
   const proof=signature=>({cluster:selected,genesisHash:SOLANA_GENESIS[selected],signature,slot:91,mint:f.mint,router:f.router,
     claimId:f.claimId.toString('hex'),expectedLamports:'10000',categoryLamports:['8000','800','60','25','15','400','500','200']});
-  const connection={getGenesisHash:async()=>SOLANA_GENESIS[selected],getLatestBlockhash:async()=>({blockhash:key().publicKey.toBase58(),lastValidBlockHeight:1000})};
+  const connection={getGenesisHash:async()=>SOLANA_GENESIS[selected],getAccountInfo:async()=>null,getLatestBlockhash:async()=>({blockhash:key().publicKey.toBase58(),lastValidBlockHeight:1000})};
   const store={read:async()=>structuredClone(state),update:async fn=>fn(state)};
   const dependencies={body:async()=>({mint:f.mint,collectionSignature:f.source}),store,solanaCluster:selected,solanaRpcUrl:'mock:rpc',
     env:{FUNDED_V3_SETTLEMENT_ENABLED:'true',FUNDED_V3_AUTO_SETTLEMENT_ENABLED:'true',FUNDED_V3_FEE_ROUTER_PROGRAM_ID:f.programId,FUNDED_V3_PROGRAM_DATA_SHA256:f.hash},

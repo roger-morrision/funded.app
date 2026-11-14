@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import {assertRpcNetwork,requireSolanaCluster} from '../solana-network.js';
 import bs58 from 'bs58';
 import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
-import {buildV3PolicySettlement} from './v3-policy-builders.mjs';
+import {settlementWithOptionalCredit} from './v3-policy-builders.mjs';
 import { PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, deriveMintPolicyV3,
   verifyMintPolicyV3Account, protocolGrossUnits } from '../mint-router-v3.js';
@@ -103,7 +103,7 @@ export async function loadV3SettlementPosition({ connection, signature, slot, pr
         const automatic = code === (split?.agencyPercent!==undefined?agencyAutoSettle:autoSettle);
         if ((code !== (split?.agencyPercent!==undefined?agencySettle:settle) && !automatic && !recovery) || data.length !== 48) throw new Error('Unknown V3 policy mutation requires reconciliation.');
         const amount = data.readBigUInt64LE(40);
-        const build = recovery ? buildQaSettlementRecoveryInstruction : buildV3PolicySettlement;
+        const build = recovery ? buildQaSettlementRecoveryInstruction : input => settlementWithOptionalCredit(input,accounts.length);
         const expected = build({programId,mint,authority,creator,split,auto:automatic,
           claimId:data.subarray(8,40),expectedLamports:amount}).instruction;
         if (accounts.length !== expected.keys.length || expected.keys.some((key,index)=>key.pubkey.toBase58() !== accounts[index]))

@@ -1,7 +1,7 @@
 import bs58 from 'bs58';
 import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {createHash} from 'node:crypto';
-import {buildV3PolicySettlement} from './v3-policy-builders.mjs';
+import {buildV3PolicySettlement,settlementWithOptionalCredit} from './v3-policy-builders.mjs';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
 import { buildMintRouterV3SettlementInstruction, verifyMintClaimV3Account,
   verifyMintPolicyV3Account } from '../mint-router-v3.js';
@@ -58,6 +58,8 @@ export async function loadFinalizedV3Settlement({ connection, signature, program
         recovery = true;
       }
       const accounts = instruction.accounts || instruction.accountKeyIndexes || [];
+      if (!recovery) expected = settlementWithOptionalCredit({programId,mint,authority,creator,claimId,
+        expectedLamports,split,auto:automatic},accounts.length);
       if (!Buffer.from(data).equals(expected.instruction.data)
         || accounts.length !== expected.instruction.keys.length
         || expected.instruction.keys.some((entry, index) => keys[accounts[index]] !== entry.pubkey.toBase58())) return null;

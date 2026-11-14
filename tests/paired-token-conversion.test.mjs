@@ -100,3 +100,18 @@ test('agency policy verification counts SOL credited by token conversions', asyn
   assert.deepEqual(await readSolCreditLamportsV3({ getAccountInfo: async () => null }, fx.programId, fx.mint), Array(8).fill(0n));
   await assert.rejects(readSolCreditLamportsV3({ getAccountInfo: async () => ({ ...creditInfo, owner: PublicKey.default }) }, fx.programId, fx.mint), /owner differs/);
 });
+
+test('agency SOL settlement carries the SOL credit record when the coin has one', async () => {
+  const { v3SettlementSolCredit, settlementWithOptionalCredit } = await import('../server/v3-policy-builders.mjs');
+  const split = { operationsPercent: 40, referralLevelPercents: [3, 1.25, 0.75], communityPercent: 20, buybackPercent: 25, agencyPercent: 10 };
+  const mint = Keypair.generate().publicKey, credit = deriveSolCreditV3(PROGRAM, mint);
+  const present = { getAccountInfo: async address => address.equals(credit) ? { owner: PROGRAM } : null };
+  assert.ok((await v3SettlementSolCredit({ connection: present, programId: PROGRAM, mint, split })).equals(credit));
+  assert.equal(await v3SettlementSolCredit({ connection: { getAccountInfo: async () => null }, programId: PROGRAM, mint, split }), null);
+  const input = { programId: PROGRAM, mint, authority: Keypair.generate().publicKey, creator: Keypair.generate().publicKey,
+    claimId: Buffer.alloc(32, 1), expectedLamports: 1000n, split };
+  const plain = settlementWithOptionalCredit(input, 0).instruction.keys;
+  const withCredit = settlementWithOptionalCredit(input, plain.length + 1).instruction.keys;
+  assert.equal(withCredit.length, plain.length + 1);
+  assert.ok(withCredit.at(-1).pubkey.equals(credit) && !withCredit.at(-1).isWritable);
+});

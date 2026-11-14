@@ -5,7 +5,7 @@ import {financialProgramAllowed,financialRecordNetwork} from '../financial-netwo
 import { PublicKey, Transaction } from '@solana/web3.js';
 import {SharedRpcConnection as Connection} from '../rpc-connection.mjs';
 import { buildMintRouterV3SettlementInstruction } from '../../mint-router-v3.js';
-import {buildV3PolicySettlement, buildV3AutoPolicySettlement} from '../v3-policy-builders.mjs';
+import {buildV3PolicySettlement, buildV3AutoPolicySettlement, v3SettlementSolCredit} from '../v3-policy-builders.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement,
   submitCreatorSettlement, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
 import { verifyV3LaunchRouterReadiness, retryUnavailableReadiness, readinessRejection } from '../v3-launch-readiness.mjs';
@@ -139,7 +139,8 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
     }
     const settlement = (automatic ? buildV3AutoPolicySettlement : buildV3PolicySettlement)({ programId, mint,split:launch.pumpFeeRoute.protocolSplit,
       authority:authority.publicKey, creator:launch.creatorWallet,
-      claimId:source.claimId, expectedLamports:source.expectedLamports });
+      claimId:source.claimId, expectedLamports:source.expectedLamports,
+      solCredit:await v3SettlementSolCredit({connection,programId,mint,split:launch.pumpFeeRoute.protocolSplit}) });
     if (!automatic && !input?.creatorSignedTransaction) {
       const latest = await connection.getLatestBlockhash('finalized');
       return json(res, 202, { status:'awaiting-creator-signature', mint,cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],
