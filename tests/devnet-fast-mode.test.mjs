@@ -32,3 +32,14 @@ test('five-minute bonus windows can cover every Devnet coin', () => {
   assert.equal(bonusWindow(key, 1_794_626_000).cohort, schedule.cohort);
   assert.throws(() => assertBonusNetwork('mainnet-beta', { schedule }), /forbidden outside Devnet/);
 });
+
+test('Devnet test builds accept a 5-minute developer lock and promotion interval', async () => {
+  const { normalizeDeveloperLockSeconds, DEVELOPER_TOKEN_LOCK_PERIODS } = await import('../developer-lock-period.js');
+  const { validateAgencyRules } = await import('../config/agency-rules.js');
+  assert.equal(normalizeDeveloperLockSeconds(300), 300);
+  assert.throws(() => normalizeDeveloperLockSeconds(600), /6h, 12h, 24h or 48h/);
+  // The reviewed Mainnet manifest still lists only the standard periods.
+  assert.deepEqual(DEVELOPER_TOKEN_LOCK_PERIODS, [21600, 43200, 86400, 172800]);
+  assert.equal(validateAgencyRules({ marketCapUsd: [1, 2], communityWindowSeconds: 300, promotionIntervalSeconds: 300 }).promotionIntervalSeconds, 300);
+  assert.throws(() => validateAgencyRules({ marketCapUsd: [1, 2], communityWindowSeconds: 300, promotionIntervalSeconds: 299 }));
+});

@@ -6,7 +6,7 @@ import nacl from 'tweetnacl';
 import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import { inspectPhantomTradeTransaction } from '../phantom-mobile-crypto.js';
 import { renderTradeSignerPage } from './trade-signer-page.mjs';
-import {DEVELOPER_TOKEN_LOCK_PERIODS} from '../developer-lock-period.js';
+import {ACCEPTED_DEVELOPER_LOCK_PERIODS as DEVELOPER_TOKEN_LOCK_PERIODS} from '../developer-lock-period.js';
 
 const FLOW_ID = /^[a-f0-9]{48}$/;
 const POLL_TOKEN = /^[a-f0-9]{64}$/;

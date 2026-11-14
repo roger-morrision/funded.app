@@ -6,8 +6,8 @@ import {mainnetReleaseVerified} from './mainnet-program.mjs';
 // callers separately pin the complete finalized ProgramData account hash.
 // 2026-11-13: Devnet router with token-fee instructions for paired coins
 // (agency-policy support, Agave 4.1.2 build), approved by the owner for Devnet only.
-export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1287344,
-  sha256:'42e23bb7b5c65f0b8ca22e539bc42e8123e1bdf8c40a4b8c9d78fb6f17a0ad24'});
+export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1287328,
+  sha256:'a95ded19920779e8dcb6dc773a1ff1f2a69a355f2bf4c46c4d89bb9385e31d51'});
 export const AGENCY_DEVNET_PROGRAM='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 export function matchesAgencyBinary(data,manifest=AGENCY_REVIEWED_BINARY){
   const bytes=Buffer.from(data||[]);

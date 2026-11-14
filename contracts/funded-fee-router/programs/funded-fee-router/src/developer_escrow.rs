@@ -6,12 +6,19 @@ use anchor_spl::token_2022::spl_token_2022::{extension::{BaseStateWithExtensions
 pub const DEVELOPER_LOCK_SECONDS:i64=43_200;
 pub const DEVELOPER_LOCK_SEED:&[u8]=b"developer-lock-v1";
 
+// Devnet test builds also accept a 5-minute lock so release flows can be tested
+// quickly; Mainnet builds keep only the 6-48 hour periods.
+fn allowed_lock_seconds(lock_seconds: u32) -> bool {
+    matches!(lock_seconds, 21_600 | 43_200 | 86_400 | 172_800)
+        || cfg!(all(feature = "devnet-v3-program", not(feature = "mainnet-v3-program"))) && lock_seconds == 300
+}
+
 pub fn initialize_and_lock_handler(ctx: Context<InitializeAndLock>, amount: u64) -> Result<()> {
     initialize_and_lock_for_handler(ctx, amount, DEVELOPER_LOCK_SECONDS as u32)
 }
 
 pub fn initialize_and_lock_for_handler(ctx: Context<InitializeAndLock>, amount: u64, lock_seconds: u32) -> Result<()> {
-    require!(matches!(lock_seconds, 21_600 | 43_200 | 86_400 | 172_800), LockError::InvalidLockPeriod);
+    require!(allowed_lock_seconds(lock_seconds), LockError::InvalidLockPeriod);
     require!(amount > 0 && amount <= ctx.accounts.mint.supply / 5, LockError::InvalidAmount);
     require!(ctx.accounts.mint.mint_authority.is_none() && ctx.accounts.mint.freeze_authority.is_none(), LockError::UnsafeMint);
     require_keys_eq!(ctx.accounts.token_program.key(), anchor_spl::token_2022::ID, LockError::UnsafeMint);

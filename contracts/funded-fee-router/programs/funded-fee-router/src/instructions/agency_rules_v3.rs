@@ -8,6 +8,12 @@ const MAGIC: &[u8; 8] = b"FUNDRUL1";
 pub const CONFIG_BASE: usize = 77;
 pub const POLICY_BASE: usize = 383;
 
+// Devnet test builds allow 5-minute promotion billing; Mainnet keeps one day.
+#[cfg(all(feature = "devnet-v3-program", not(feature = "mainnet-v3-program")))]
+const MIN_PROMOTION_INTERVAL_SECONDS: i64 = 300;
+#[cfg(not(all(feature = "devnet-v3-program", not(feature = "mainnet-v3-program"))))]
+const MIN_PROMOTION_INTERVAL_SECONDS: i64 = 86_400;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AgencyRules {
     pub market_caps: [u64; 2], // USD micros, authority-attested; not a USD oracle.
@@ -24,7 +30,7 @@ impl AgencyRules {
             && self.market_caps[1] <= 1_000_000_000_000_000
             && self.market_caps.iter().all(|n| n % 1_000_000 == 0)
             && (300..=31_536_000).contains(&self.community_window_seconds)
-            && (86_400..=2_592_000).contains(&self.promotion_interval_seconds), ErrorCode::InvalidAgencyPolicyV3);
+            && (MIN_PROMOTION_INTERVAL_SECONDS..=2_592_000).contains(&self.promotion_interval_seconds), ErrorCode::InvalidAgencyPolicyV3);
         Ok(())
     }
 }

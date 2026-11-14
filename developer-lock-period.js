@@ -1,9 +1,13 @@
 export const DEVELOPER_TOKEN_LOCK_SECONDS = 43_200;
 export const DEVELOPER_TOKEN_LOCK_PERIODS = Object.freeze([21_600, 43_200, 86_400, 172_800]);
+// Devnet test builds of the router also accept a 5-minute lock; each
+// deployment offers it only when its verified binary allows it.
+export const DEVNET_TEST_LOCK_SECONDS = 300;
+export const ACCEPTED_DEVELOPER_LOCK_PERIODS = Object.freeze([DEVNET_TEST_LOCK_SECONDS, ...DEVELOPER_TOKEN_LOCK_PERIODS]);
 
 export function normalizeDeveloperLockSeconds(value = DEVELOPER_TOKEN_LOCK_SECONDS) {
   const seconds = Number(value);
-  if (!DEVELOPER_TOKEN_LOCK_PERIODS.includes(seconds)) throw Error('Choose a developer token lock of 6h, 12h, 24h or 48h.');
+  if (!ACCEPTED_DEVELOPER_LOCK_PERIODS.includes(seconds)) throw Error('Choose a developer token lock of 6h, 12h, 24h or 48h.');
   return seconds;
 }
 
