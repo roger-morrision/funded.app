@@ -302,3 +302,8 @@
     scroll-margin-block:calc(100px + env(safe-area-inset-bottom));
   }
 }
+/* Favorite star sits in the header's top-right corner; Boost keeps the rail's right edge. */
+html body #main-content #coin-page .coin-hero-card .coin-package-rail{justify-content:flex-end}
+html body #main-content #coin-page .coin-hero-card .coin-identity{position:relative}
+html body #main-content #coin-page .coin-hero-card .coin-package-rail .coin-watch{position:absolute;top:0;right:0;z-index:1;align-self:auto;margin:0}
+html body #main-content #coin-page .coin-hero-card .coin-identity-main{padding-right:48px}
