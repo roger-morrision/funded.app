@@ -242,11 +242,10 @@ export function homeLaunchCardMarkup(
       <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}${EXPLORE_CLUSTER !== 'devnet' && /^https:\/\//.test(String(item.imageUri || '')) ? `<img src="${escapeHtml(item.imageUri)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span></div>
       <div class="home-card-info">
         <div class="home-card-heading">
-          <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}${activeBoost ? ` ${boostPackageBadgesMarkup(boost)}` : ''}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
+          <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}${activeBoost ? ` ${boostPackageBadgesMarkup(boost)}` : ''}</strong>${pairChipMarkup(item, escapeHtml)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
         </div>
         <div class="home-card-meta">
           ${item.createdTimestamp ? `<span class="home-launch-age">${escapeHtml(ageLabel)}</span>` : ''}
-          ${pairChipMarkup(item, escapeHtml)}
           <span class="home-launch-card-addresses" title="Token contract: ${escapeHtml(item.address || '')}"><code>${escapeHtml(mintLabel)}</code><button type="button" class="home-launch-copy-address" data-copy-address="${escapeHtml(item.address || '')}" data-copy-kind="token" aria-label="Copy full token address" title="Copy full token address">${icon('copy')}</button></span>
           ${socialLinks}
         </div>

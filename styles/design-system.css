@@ -46,3 +46,10 @@ html body:not(.page-route-docs) #main-content .page-cleanup-guide { display: non
 
 /* Wallet summary: tiles with nothing to show are removed from the grid. */
 html body #main-content .wallet-detail-stats > [hidden] { display: none !important; }
+
+/* Token cards: market figures sit on the card itself (no panel or tile fills,
+   so no grey divider gaps); the pair chip sits beside the symbol. */
+html body #main-content .home-launch-card .home-launch-card-stats,
+html body #main-content .home-launch-card .home-launch-card-stats > span { background: transparent; border-radius: 0; box-shadow: none; }
+html body #main-content#main-content .home-launch-card .home-token-identity { flex-flow: row wrap; align-items: center; column-gap: 8px; row-gap: 2px; }
+html body #main-content#main-content .home-launch-card .home-token-identity > small { flex: 1 0 100%; }
