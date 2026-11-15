@@ -22,7 +22,8 @@ test('hub serves fresh, then stale while refreshing, and pushes only changes', a
   const hub = createLiveHub({ now: () => clock, read: async () => { calls++; return { status: 200, body }; } });
   assert.equal(hub.lookup('/api/market/sol-usd'), null);
   const pushes = [];
-  const stop = hub.subscribe('/api/market/sol-usd', (path, snap) => pushes.push(snap.body));
+  const confirmed = [];
+  const stop = hub.subscribe('/api/market/sol-usd', (path, snap, { unchanged }) => (unchanged ? confirmed : pushes).push(snap.body));
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(hub.lookup('/api/market/sol-usd').state, 'fresh');
   clock += 20_000; // past the 15s interval
@@ -33,6 +34,7 @@ test('hub serves fresh, then stale while refreshing, and pushes only changes', a
   hub.lookup('/api/market/sol-usd');
   await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(pushes, ['{"v":1}', '{"v":2}']);
+  assert.deepEqual(confirmed, ['{"v":1}'], 'an unchanged refresh only confirms');
   assert.equal(calls, 3);
   stop();
 });

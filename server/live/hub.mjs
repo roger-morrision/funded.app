@@ -38,7 +38,9 @@ export function createLiveHub({ read, now = Date.now, demandWindowMs = 120_000, 
         const previous = snapshots.get(path);
         snapshots.set(path, { body, etag, at: now(), status });
         row.failures = 0;
-        if (previous?.etag !== etag) for (const listener of row.subscribers) { try { listener(path, snapshots.get(path)); } catch {} }
+        // Changed data is pushed in full; unchanged data only confirms it is still current.
+        const unchanged = previous?.etag === etag;
+        for (const listener of row.subscribers) { try { listener(path, snapshots.get(path), { unchanged }); } catch {} }
         return snapshots.get(path);
       } catch {
         row.failures = Math.min(row.failures + 1, 6);

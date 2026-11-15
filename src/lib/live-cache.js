@@ -23,6 +23,14 @@ export function rememberLive(path, body, { ageMs = 0, maxAgeMs = 30_000, quiet =
   if (!quiet) globalThis.dispatchEvent?.(new CustomEvent('funded:live-update', { detail: { path } }));
 }
 
+// The server confirmed this path is unchanged: keep the local copy current.
+export function confirmLive(path, { ageMs = 0, maxAgeMs } = {}) {
+  const entry = store.get(path);
+  if (!entry) return;
+  entry.receivedAt = Date.now() - Math.max(0, ageMs);
+  if (maxAgeMs) entry.maxAgeMs = maxAgeMs;
+}
+
 const freshEntry = path => {
   const entry = store.get(path);
   if (!entry) return null;

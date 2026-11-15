@@ -81,7 +81,11 @@ export function installLiveData({ server, handle, env = process.env }) {
     sockets.handleUpgrade(request, socket, head, client => {
       const owned = new Map(); // path -> unsubscribe
       let alive = true;
-      const push = (path, snap) => { if (client.readyState === WebSocket.OPEN && client.bufferedAmount < 1_000_000) client.send(snapMessage(path, snap, (hub.intervalOf(path) || 30_000) * 2)); };
+      const push = (path, snap, { unchanged = false } = {}) => {
+        if (client.readyState !== WebSocket.OPEN || client.bufferedAmount >= 1_000_000) return;
+        const maxAgeMs = (hub.intervalOf(path) || 30_000) * 2;
+        client.send(unchanged ? `{"op":"fresh","path":${JSON.stringify(path)},"at":${snap.at},"maxAgeMs":${maxAgeMs}}` : snapMessage(path, snap, maxAgeMs));
+      };
       client.on('pong', () => { alive = true; });
       client.on('error', () => {});
       client.on('close', () => { for (const stop of owned.values()) stop(); owned.clear(); });

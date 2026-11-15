@@ -1,5 +1,5 @@
 import { GLOBAL_TOPICS, tokenTopicPaths } from './live-topics.js';
-import { LIVE_API_ORIGIN, rememberLive } from './live-cache.js';
+import { LIVE_API_ORIGIN, rememberLive, confirmLive } from './live-cache.js';
 
 // Push channel: one WebSocket per tab to /api/live. It subscribes to the shared
 // public reads and, on a token page, to that token's reads. Each pushed
@@ -37,6 +37,8 @@ export function startLiveSocket({ WebSocketImpl = globalThis.WebSocket } = {}) {
       let message; try { message = JSON.parse(event.data); } catch { return; }
       if (message?.op === 'snap' && typeof message.path === 'string')
         rememberLive(message.path, message.body, { ageMs: Math.max(0, Date.now() - Number(message.at || Date.now())), maxAgeMs: Number(message.maxAgeMs) || 30_000 });
+      if (message?.op === 'fresh' && typeof message.path === 'string')
+        confirmLive(message.path, { ageMs: Math.max(0, Date.now() - Number(message.at || Date.now())), maxAgeMs: Number(message.maxAgeMs) || 30_000 });
     };
     socket.onclose = () => { socket = null; schedule(); };
     socket.onerror = () => {};
