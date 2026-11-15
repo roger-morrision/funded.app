@@ -54,7 +54,8 @@ export function launchCardVolumeUsd(
       ? formatDashboardUsd(Number(item.windowVolumeSol) * coinSolUsdPrice, { partial: item.windowCoverage === 'partial' })
       : `${Number(item.windowVolumeSol).toLocaleString(undefined, { maximumFractionDigits: 2 })} SOL`;
   }
-  return window === '24h' && item.volume24hUsd != null ? formatDashboardUsd(item.volume24hUsd) : '$—';
+  // Compact ($196.71K), like market cap, so the card's stat column never cuts it off.
+  return window === '24h' && item.volume24hUsd != null ? formatCompactUsd(item.volume24hUsd) : '$—';
 }
 
 // Unknown figures render as one muted dash, not "$—", so empty cards read as pending rather than broken.

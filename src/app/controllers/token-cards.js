@@ -112,6 +112,10 @@ export function createTokenCardsController(appState) {
       // Mainnet external tokens: indexed artwork from the cached token feed.
       loadTokenArtwork(avatar, mint, launch.indexedImageUri); return;
     }
+    // Mainnet tokens launched elsewhere: the server's cached logo for that mint.
+    if (avatar && appState.EXPLORE_CLUSTER !== 'devnet' && launch?.onchainVerified !== true && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) {
+      loadTokenArtwork(avatar, mint, `/api/tokens/${encodeURIComponent(mint)}/logo`); return;
+    }
     if (!avatar || appState.EXPLORE_CLUSTER !== 'devnet' || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) || launch?.onchainVerified !== true) return;
     const trusted = appState.isDevnetImageUri(launch.imageUri, mint);
     avatar.title = trusted ? '' : 'Generated token avatar; project artwork was not uploaded';

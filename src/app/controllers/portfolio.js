@@ -265,7 +265,7 @@ export function createPortfolioController(appState) {
   function loadWalletRowLogos(content, launches){
     for (const row of content.querySelectorAll('.wallet-activity-row[data-token-mint]')) {
       const mint = row.dataset.tokenMint;
-      appState.loadPortfolioLogo(row, appState.verifiedLaunchPolicyForMint(mint) || launches.find(launch => launch.mint === mint));
+      appState.loadPortfolioLogo(row, appState.verifiedLaunchPolicyForMint(mint) || launches.find(launch => launch.mint === mint) || { mint });
     }
   }
   // app-source-end
