@@ -1,4 +1,6 @@
-import {releaseDeveloperTokens,developerReleaseStorageKey} from '../../../developer-token-release.js';
+// The release module pulls in the Solana libraries; it loads only for coins with a developer token lock.
+let releaseModule=null;
+const loadRelease=()=>import('../../../developer-token-release.js').then(module=>releaseModule=module);
 export function initializeLaunchProtection(appState,{document=globalThis.document,window=globalThis.window}={}){
   let activeMint=null,generation=0,timer=null,latest=null,busy=false;
   // Keep recovery actions in the fees summary; release details live in Portfolio.
@@ -8,13 +10,14 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
   function render(data){
     panel.replaceChildren();panel.hidden=true;
     const lock=data.tokenLock||{};
-    let pending=false;try{pending=Boolean(window.localStorage.getItem(developerReleaseStorageKey(activeMint,data.creatorWallet,lock.programId)));}catch{}
+    if(!releaseModule)return;
+    let pending=false;try{pending=Boolean(window.localStorage.getItem(releaseModule.developerReleaseStorageKey(activeMint,data.creatorWallet,lock.programId)));}catch{}
     if((lock.status==='claimable'&&!lock.automaticRelease?.healthy||pending)&&data.creatorWallet===appState.connectedWalletAddress){
       const claim=text('button',pending?'Verify token release':'Release manually (fallback)');claim.type='button';claim.className='secondary-button';claim.disabled=busy||!lock.verified;
       claim.onclick=async()=>{
         if(busy)return;busy=true;claim.disabled=true;const mint=activeMint,session=appState.captureWalletSession();
         try{if(!session||session.address!==data.creatorWallet)throw Error('Connect the original developer wallet.');
-          const result=await releaseDeveloperTokens({connection:appState.connection,provider:session.provider,mint,creator:data.creatorWallet,
+          const result=await releaseModule.releaseDeveloperTokens({connection:appState.connection,provider:session.provider,mint,creator:data.creatorWallet,
             amount:lock.amount,programId:lock.programId,assertCurrent:()=>appState.assertWalletSessionCurrent(session),storage:window.localStorage});
           appState.showToast(result.status==='finalized'?'Developer tokens released; token balance changes verified.':result.status==='failed'?'Release failed on-chain. Refresh before retrying.':'Release outcome is pending. Use Verify token release; do not sign again.');
         }catch(error){appState.showToast(error.message);}finally{busy=false;if(activeMint===mint)await refresh(false);}
@@ -29,7 +32,9 @@ export function initializeLaunchProtection(appState,{document=globalThis.documen
       if(latest?.tokenLock){latest={...latest,tokenLock:{...latest.tokenLock,verified:false,status:'unavailable'}};render(latest);}
       else{panel.hidden=true;panel.replaceChildren();}return;
     }
-    latest=response.data;render(latest);window.clearTimeout(timer);
+    latest=response.data;
+    if(latest.tokenLock&&!releaseModule){await loadRelease().catch(()=>{});if(id!==generation||activeMint!==mint)return;}
+    render(latest);window.clearTimeout(timer);
     if(latest.bundleDetection?.scanning&&polls<4)timer=window.setTimeout(()=>{void refresh(false,polls+1);},15000);
     else if(['locked','claimable'].includes(latest.tokenLock?.status))timer=window.setTimeout(()=>{void refresh(false);},30000);
   }

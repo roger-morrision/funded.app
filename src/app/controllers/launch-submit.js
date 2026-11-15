@@ -3,7 +3,6 @@ import {savedFeeAllocationCopy} from '../../features/fees/fee-policy-copy.js';
 import {promotionContentState} from '../../features/launch/promotion-requirements.js';
 import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
-import { deriveMintRouterV3 } from '../../../mint-router-v3.js';
 import { showLaunchSuccess } from '../../features/launch/success-dialog.js';
 
 // Dependencies and mutable application state are read live through appState.
@@ -13,6 +12,8 @@ export function createLaunchSubmitController(appState) {
     if (appState.launchSubmitting) return;
     // Paired with: the token the coin's Pump curve is quoted in (empty = SOL).
     const { readLaunchPair } = await import('../../features/launch/launch-pair-field.js');
+    // Launch-only Solana modules load when a launch starts, not with every page.
+    const { deriveMintRouterV3 } = await import('../../../mint-router-v3.js');
     const pair = readLaunchPair();
     const quoteMint = pair?.quoteMint || '';
     const agencySelection=readLaunchAgencySelection(appState.getLaunchBurnPolicy());
@@ -188,7 +189,7 @@ export function createLaunchSubmitController(appState) {
         },
         launchServiceFee:{quoteId:appState.launchServiceQuote.id,policyHash:appState.launchServiceQuote.policyHash,amountLamports:appState.launchServiceQuote.amountLamports,recipient:appState.launchServiceQuote.recipient},
         fundedTokenMint: fundedMint || null,
-        feeRouter: appState.buildFeeRouterPolicy(routeState),
+        feeRouter: await appState.buildFeeRouterPolicy(routeState),
         feeDistribution: appState.buildFeeDistributionPolicy({ ...feeDistributionInput, feeRouterAddress: routeAddress },{fundedSplit:v3FeeRouter.split}),
         ...(v3FeeRouter.agency?{marketingAgency:v3FeeRouter.agency}:{}),
         ...(xLinked ? { xUserId } : {}),
@@ -228,7 +229,7 @@ export function createLaunchSubmitController(appState) {
       try {
         appState.assertWalletSessionCurrent(session);
         if (typeof session.provider.signMessage !== 'function') throw new Error('Wallet message signing is required to register the immutable launch policy.');
-        const policySignature = await session.provider.signMessage(new TextEncoder().encode(appState.launchPolicyStatement(launchPolicy)));
+        const policySignature = await session.provider.signMessage(new TextEncoder().encode(await appState.launchPolicyStatement(launchPolicy)));
         appState.assertWalletSessionCurrent(session);
         launchPolicy.policySignature = appState.bs58.encode(policySignature.signature || policySignature);
         localStorage.setItem(`funded.launch.${launchPolicy.mint}`, JSON.stringify(launchPolicy));

@@ -1,10 +1,7 @@
 import { readDeveloperLockSeconds } from '../../../developer-lock-period.js';
 import { devnetLaunchMetadataUri } from '../../../devnet-metadata.js';
-import { promotionBurnStep } from '../../../launch-promotion-receipt.js';
 import { launchEstimateRetry } from '../../features/launch/estimate-refresh.js';
-import { developerLockLaunchInstructions } from '../../../developer-token-lock.js';
 import { refreshServiceFees, quoteLaunchServiceFee } from '../../features/fees/service-fees-client.js';
-import { launchServiceFeeInstructions } from '../../../launch-service-fee.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletMetricsController(appState) {
   // app-source: 645
@@ -28,6 +25,9 @@ export function createWalletMetricsController(appState) {
     appState.setWalletMetrics({ loading: true });
     try {
       await appState.getSolana();
+      // Launch transaction builders (and their Solana libraries) load with the wallet, not with every page.
+      const [{ promotionBurnStep }, { developerLockLaunchInstructions }, { launchServiceFeeInstructions }] = await Promise.all([
+        import('../../../launch-promotion-receipt.js'), import('../../../developer-token-lock.js'), import('../../../launch-service-fee.js')]);
       const fees = await refreshServiceFees(appState);
       appState.assertWalletSessionCurrent(session);
       const serviceQuote=await quoteLaunchServiceFee(appState,fees,session.address);
@@ -82,7 +82,7 @@ export function createWalletMetricsController(appState) {
         ? await prepareFundedLaunchBurn({ connection: appState.connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
         : null;
       const lookupTable = (await appState.connection.getAddressLookupTable(new PublicKey(reserveConfig.lookupTable), { commitment:'finalized' })).value;
-      const reserve = appState.launchReserveInstructions({ mint:mint.publicKey, payer, programId:reserveConfig.programId,
+      const reserve = await appState.launchReserveInstructions({ mint:mint.publicKey, payer, programId:reserveConfig.programId,
         authority:reserveConfig.authority, reserveTokens:appState.getCommunityAirdropTokens(), decimals:input.decimals });
       let plan;
       let estimates;
@@ -92,7 +92,7 @@ export function createWalletMetricsController(appState) {
         // still reports that it has not observed the hash.
         if (blockhashAttempt > 0) await new Promise(resolve => setTimeout(resolve, 1100));
         const latest = await appState.connection.getLatestBlockhash('finalized');
-        plan = appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
+        plan = await appState.buildPumpLaunchPlan({ payer, mint, blockhash: latest.blockhash, launchInstructions,
           mintRouterInstruction: mintRouter?.instruction, reserveInstructions:[...reserve.instructions,...developerLockLaunchInstructions({mint:mint.publicKey,creator:payer,
             amount:pair?0n:developerBuy.amountBaseUnits,config:reserveConfig.developerTokenLock,quoteId:serviceQuote.id,lockSeconds:readDeveloperLockSeconds()}),...launchServiceFeeInstructions({payer,mint:mint.publicKey,quote:serviceQuote,escrowReceiptMarker:!pair&&developerBuy.amountBaseUnits>0n})], lookupTable });
         if (burnPlan) plan.steps.unshift(promotionBurnStep({payer,mint,burnInstruction:burnPlan.instruction,

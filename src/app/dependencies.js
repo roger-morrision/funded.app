@@ -82,9 +82,6 @@ import bs58 from 'bs58';
 import { APP_REFERRAL_LEVELS, buildFeeDistributionPolicy, FEE_DISTRIBUTION, validateFeeDistribution } from '../../distribution-policy.js';
 import { buildLaunchReservePlan, fundedCommunityAirdropPolicy } from '../../airdrop-policy.js';
 import { buildBuybackAccrual, buildBuybackPolicy, buildBuybackReceipt, evaluateBuybackBatch, summarizeBuybackLedger } from '../../buyback-policy.js';
-import { buildFeeRouterPolicy, verifyFeeRouterAccount } from '../../fee-router.js';
-import { buildPumpLaunchPlan } from '../../mint-router-launch.js';
-import { launchReserveInstructions, quoteAtomicReserveBuy } from '../../launch-community-reserve.js';
 import { buildLaunchBurnPolicy, createLaunchBurnTiers, validateLaunchBurnPolicy } from '../../launch-burn-policy.js';
 import { LAUNCH_TIER_USD, launchTierQuoteCurrent } from '../../launch-tier-quote.js';
 import { burnedSupplyBaseUnits, formatTokenBaseUnits, parseTokenAmount, planTokenAccountBurns, projectBurnMemo, waitForSignatureConfirmation } from '../../funded-burn.js';
@@ -101,9 +98,20 @@ import '../../launch-accessibility.js';
 import { withRpcRetry } from '../../rpc-retry.js';
 import { getPreparedImage, prepareLaunchImage, assertImageReady } from '../../launch-image.js';
 import { getPreparedBanner, getBannerPreviewUrl, prepareLaunchBanner, assertBannerReady } from '../../launch-banner.js';
-import { launchPolicyStatement } from '../../launch-policy-auth.js';
 import { verifiedPromotionBadge } from '../../promotion-badge.js';
-import { initPaidListing } from '../../list-page.js';
+// Launch, listing-payment and fee-router helpers use the Solana libraries; they load
+// on first use (launching, paying for a listing) instead of with every page.
+// Every wrapper returns a promise; callers await it.
+const onDemand = (load, name) => async (...args) => (await load())[name](...args);
+const feeRouterModule = () => import('../../fee-router.js');
+const launchReserveModule = () => import('../../launch-community-reserve.js');
+const buildFeeRouterPolicy = onDemand(feeRouterModule, 'buildFeeRouterPolicy');
+const verifyFeeRouterAccount = onDemand(feeRouterModule, 'verifyFeeRouterAccount');
+const buildPumpLaunchPlan = onDemand(() => import('../../mint-router-launch.js'), 'buildPumpLaunchPlan');
+const launchReserveInstructions = onDemand(launchReserveModule, 'launchReserveInstructions');
+const quoteAtomicReserveBuy = onDemand(launchReserveModule, 'quoteAtomicReserveBuy');
+const launchPolicyStatement = onDemand(() => import('../../launch-policy-auth.js'), 'launchPolicyStatement');
+const initPaidListing = onDemand(() => import('../../list-page.js'), 'initPaidListing');
 import { metadataStatement, devnetMetadataUri, devnetImageUri, isDevnetImageUri, isDevnetBannerUri } from '../../devnet-metadata.js';
 import { canonicalLaunchSocialUrl, normalizeXProfileInput } from '../../launch-social-url.js';
 import '../../airdrop-claimers-model.js';

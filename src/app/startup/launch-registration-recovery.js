@@ -29,7 +29,7 @@ export function initializeLaunchRegistrationRecovery(appState) {
       }
       if (!policy.policySignature) {
         if (typeof session.provider.signMessage !== 'function') throw new Error('This wallet must support message signing.');
-        const signed = await session.provider.signMessage(new TextEncoder().encode(appState.launchPolicyStatement(policy)));
+        const signed = await session.provider.signMessage(new TextEncoder().encode(await appState.launchPolicyStatement(policy)));
         appState.assertWalletSessionCurrent(session);
         policy.policySignature = appState.bs58.encode(signed.signature || signed);
         localStorage.setItem(`funded.launch.${mint}`, JSON.stringify(policy));

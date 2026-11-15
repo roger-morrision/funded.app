@@ -22,9 +22,17 @@ export function initializeRewardIdentity(appState) {
   });
 
   // app-source: 1010
-  appState.initPaidListing({ getSolana: appState.getSolana, getConnection: () => appState.connection, getSession: appState.captureWalletSession,
-    assertSession: appState.assertWalletSessionCurrent, connectWallet: appState.connectWallet, cluster: appState.APP_CLUSTER,
-    fundedMint: appState.PROTOCOL_FUNDED_MINT, mainnetReadOnly: appState.APP_MAINNET_READ_ONLY });
+  // The Get listed page (and the Solana libraries it uses) starts the first time it is opened.
+  let listingStarted = false;
+  const startListing = () => {
+    if (listingStarted) return;
+    listingStarted = true;
+    void appState.initPaidListing({ getSolana: appState.getSolana, getConnection: () => appState.connection, getSession: appState.captureWalletSession,
+      assertSession: appState.assertWalletSessionCurrent, connectWallet: appState.connectWallet, cluster: appState.APP_CLUSTER,
+      fundedMint: appState.PROTOCOL_FUNDED_MINT, mainnetReadOnly: appState.APP_MAINNET_READ_ONLY }).catch(error => console.error('Could not start Get listed:', error));
+  };
+  if (location.hash === '#list' || location.pathname === '/list') startListing();
+  window.addEventListener('funded:route-change', event => { if (event.detail?.route === 'list') startListing(); });
   // app-source-end
 
 }
