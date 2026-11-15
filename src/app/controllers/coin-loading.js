@@ -32,11 +32,14 @@ export function createCoinLoadingController(appState) {
     globalThis.window?.dispatchEvent?.(new Event('funded:coin-facts-loading'));
     if (!mintAddress){ appState.renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
     // Off Devnet, a token with no verified richpad launch has no fee ledger; skip the request (it would 404).
-    const externalToken=appState.EXPLORE_CLUSTER!=='devnet'&&appState.verifiedLaunchPoliciesStatus==='ready'
-      &&!appState.verifiedLaunchPolicyForMint?.(mintAddress);
-    const feeLedgerPromise=externalToken?Promise.resolve({ available:false, data:null })
-      :appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`,
-        { signal:AbortSignal.timeout(20000) }).catch(() => ({ available:false, data:null }));
+    // On a direct page load the policies may still be loading, so wait for them first.
+    const feeLedgerPromise=(async()=>{
+      if(appState.EXPLORE_CLUSTER!=='devnet'){
+        if(appState.verifiedLaunchPoliciesStatus!=='ready')await appState.loadVerifiedLaunchPolicies?.().catch(()=>{});
+        if(appState.verifiedLaunchPoliciesStatus==='ready'&&!appState.verifiedLaunchPolicyForMint?.(mintAddress))return { available:false, data:null };
+      }
+      return appState.apiRequest(`/api/tokens/${encodeURIComponent(mintAddress)}/fee-activity`,{ signal:AbortSignal.timeout(20000) });
+    })().catch(() => ({ available:false, data:null }));
     let loadedFeeLedger = null;
     void feeLedgerPromise.then(response => {
       if (loadId !== appState.coinLoadId) return;

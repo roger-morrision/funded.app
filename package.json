@@ -27,7 +27,8 @@
     "check": "node scripts/check-source.mjs && npm run check:structure",
     "release:manifest": "node scripts/release-manifest.mjs",
     "x:posts": "node scripts/run-x-post-worker.mjs",
-    "check:structure": "node scripts/check-source-size.mjs"
+    "check:structure": "node scripts/check-source-size.mjs",
+    "test:smoke": "playwright test"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^2.0.0",
@@ -46,6 +47,7 @@
     "ws": "8.22.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "vite": "^8.3.6"
   },
   "overrides": {
