@@ -75,3 +75,7 @@ html body #main-content#main-content .home-launch-card .home-launch-card-stats :
 html body #main-content#main-content .home-launch-card .home-launch-card-stats .home-launch-change.is-positive { color: var(--fv-success); }
 html body #main-content#main-content .home-launch-card .home-launch-card-stats .home-launch-change.is-negative { color: var(--fv-danger); }
 html body #main-content#main-content .home-launch-card .home-launch-chip.is-dex-paid { border-color: color-mix(in srgb, var(--fv-text-muted) 60%, transparent); color: var(--fv-text); }
+
+/* Home hero: no Buy $RICH / Explore coins buttons (the row stays as the
+   anchor for the signed-in "Your home" panel). */
+html body #main-content#main-content .hero-section .hero-actions { display: none !important; }
