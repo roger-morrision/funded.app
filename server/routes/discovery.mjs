@@ -4,6 +4,7 @@ import { explorePagination } from '../explore-pagination.mjs';
 import { sortDevnetLaunches } from '../explore-registry.mjs';
 import { verifyPumpLaunch as verifyLaunch } from '../launch-verification.mjs';
 import { createExploreAccountSnapshot } from '../explore-account-snapshot.mjs';
+import { createVolumeChangeTracker } from '../volume-change.mjs';
 
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 // Jupiter reports the 24h holder change as a percentage of its own holder count;
@@ -86,7 +87,8 @@ export function createDiscoveryRoutes({
   // verified paid listings on this cluster, with market fields from the free
   // DexScreener batch (falling back to the discovered-token cache).
   let registryCache = null;
-  const registryHolders = new Map(), registryHolderChange = new Map(), holdersCheckedAt = new Map();
+  const registryHolders = new Map(), registryHolderChange = new Map(), registryChangePercent = new Map(), registryDexPaid = new Map(), holdersCheckedAt = new Map();
+  const volumeChange = createVolumeChangeTracker({ store, cluster: solanaCluster });
   let holdersRefresh = null;
   function refreshRegistryHolders(mints) {
     const due = mints.filter(mint => Date.now() - (holdersCheckedAt.get(mint) || 0) > 30 * 60_000);
@@ -100,6 +102,12 @@ export function createDiscoveryRoutes({
         if (count != null) registryHolders.set(mint, count);
         const change = holderChange24h(jup);
         if (change != null) registryHolderChange.set(mint, change); else registryHolderChange.delete(mint);
+        // Jupiter's 24h holder change as a percentage, for the card's holder figure.
+        const percent = Number(jup?.stats24h?.holderChange);
+        registryChangePercent.set(mint, { holders: jup?.stats24h?.holderChange != null && Number.isFinite(percent) ? percent : null });
+        // "DEX paid": an approved DexScreener token profile order.
+        const orders = await freeMarketData?.getJson?.(`https://api.dexscreener.com/orders/v1/solana/${mint}`, { ttlMs: 1_800_000 }).catch(() => null);
+        if (Array.isArray(orders?.orders)) registryDexPaid.set(mint, orders.orders.some(order => order?.type === 'tokenProfile' && order?.status === 'approved'));
       }
       registryCache = null;
     })().finally(() => { holdersRefresh = null; });
@@ -142,8 +150,13 @@ export function createDiscoveryRoutes({
         quoteMint: base.quoteMint || market.quoteMint || null, quoteSymbol: base.quoteSymbol || market.quoteSymbol || null,
         buyCount24h: Number.isSafeInteger(market.buyCount24h) ? market.buyCount24h : null, sellCount24h: Number.isSafeInteger(market.sellCount24h) ? market.sellCount24h : null,
         holderCount: Number.isSafeInteger(holders.get(mint)) ? holders.get(mint) : null,
-        holderChange24h: Number.isSafeInteger(registryHolderChange.get(mint)) ? registryHolderChange.get(mint) : null };
+        holderChange24h: Number.isSafeInteger(registryHolderChange.get(mint)) ? registryHolderChange.get(mint) : null,
+        holderChange24hPercent: registryChangePercent.get(mint)?.holders ?? null, dexPaid: registryDexPaid.get(mint) ?? null };
     });
+    await Promise.all(items.map(async item => {
+      item.volumeChange24hPercent = await volumeChange.change(item.mint, item.volume24hUsd).catch(() => null);
+      void volumeChange.record(item.mint, item.volume24hUsd).catch(() => {});
+    }));
     if (fresh.length) void tokenCache?.upsert(fresh);
     registryCache = { at: Date.now(), items };
     return items;

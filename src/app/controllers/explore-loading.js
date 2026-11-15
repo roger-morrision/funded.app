@@ -85,8 +85,26 @@ export function createExploreLoadingController(appState) {
             // Venue from the indexed pair: Pump.fun curve is pre-migration; any DEX pool means migrated.
             complete:record.dexId ? record.dexId !== 'pumpfun' : null, migrated:record.dexId ? record.dexId !== 'pumpfun' : null,
             curveProgressPercent:record.dexId && record.dexId !== 'pumpfun' ? 100 : null, dexId:record.dexId || null, quoteMint:record.quoteMint || null, quoteSymbol:record.quoteSymbol || null, fetchedAt:record.fetchedAt || null, verifiedAt:new Date().toISOString(), mintDecimals:Number.isInteger(record.decimals) ? record.decimals : null,
-            volume24hUsd:numeric(record.volume24hUsd), liquidityUsd:numeric(record.liquidityUsd), holders:numeric(record.holders ?? record.holderCount), holderChange24h:Number.isSafeInteger(record.holderChange24h) ? record.holderChange24h : null, marketCapUsd:marketCap, priceUsd:numeric(record.priceUsd),
+            volume24hUsd:numeric(record.volume24hUsd), liquidityUsd:numeric(record.liquidityUsd), holders:numeric(record.holders ?? record.holderCount), holderChange24h:Number.isSafeInteger(record.holderChange24h) ? record.holderChange24h : null, volumeChange24hPercent:numeric(record.volumeChange24hPercent), holderChange24hPercent:numeric(record.holderChange24hPercent), dexPaid:record.dexPaid === true, marketCapUsd:marketCap, priceUsd:numeric(record.priceUsd),
             priceChange24hPercent:change, createdTimestamp:record.createdTimestamp || null, pairCreatedAt:numeric(record.pairCreatedAt), lastTradeUnixTime:record.lastTradeUnixTime || record.lastTradeTimestamp || null });
+        }
+        // Coins still on the Pump curve: read their curve (read-only) for the migration bar.
+        const onCurve = verified.filter(item => item.dexId === 'pumpfun');
+        if (onCurve.length) {
+          try {
+            const { PublicKey } = await appState.getSolana();
+            const { OnlinePumpSdk, PUMP_PROGRAM_ID, PUMP_SDK, bondingCurvePda } = await import('@pump-fun/pump-sdk');
+            const rpc = await appState.getExploreConnection();
+            pumpInitialRealTokens ??= await new OnlinePumpSdk(rpc).fetchGlobal().then(global => global.initialRealTokenReserves.toString()).catch(() => null);
+            const curves = await readAccountBatches(rpc, onCurve.map(item => bondingCurvePda(new PublicKey(item.address))));
+            onCurve.forEach((item, index) => {
+              const curve = curves[index]?.owner?.equals(PUMP_PROGRAM_ID) ? PUMP_SDK.decodeBondingCurveNullable(curves[index]) : null;
+              if (!curve) return;
+              item.complete = Boolean(curve.complete);
+              const progress = curve.complete ? null : curveMigrationProgress(curve, pumpInitialRealTokens);
+              if (progress != null) Object.assign(item, { curveProgressPercent: progress, curveProgressBasis: 'pump-global' });
+            });
+          } catch {}
         }
       } else if (records.length) {
         try {

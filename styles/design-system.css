@@ -53,3 +53,25 @@ html body #main-content .home-launch-card .home-launch-card-stats,
 html body #main-content .home-launch-card .home-launch-card-stats > span { background: transparent; border-radius: 0; box-shadow: none; }
 html body #main-content#main-content .home-launch-card .home-token-identity { flex-flow: row wrap; align-items: center; column-gap: 8px; row-gap: 2px; }
 html body #main-content#main-content .home-launch-card .home-token-identity > small { flex: 1 0 100%; }
+
+/* Token cards: the 24h change is plain coloured text beside the market cap. */
+html body #main-content#main-content .home-launch-card .home-launch-cap .home-launch-change { padding: 0; border-radius: 0; background: transparent; }
+
+/* Token cards: launch labels (migration, DEX paid, listing, promotion, boost,
+   burn, airdrop) sit right-aligned below the age/address/socials row as
+   text-only pills; when they do not fit, whole labels wrap to the next line. */
+html body #main-content#main-content .home-launch-card .home-card-overview > .home-launch-protocol { grid-column: 1 / -1; grid-row: 3; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; min-height: 0; margin: 0; }
+html body #main-content#main-content .home-launch-card .home-card-overview > .home-card-info > .home-card-meta { grid-row: 2; }
+html body #main-content#main-content .home-launch-card .home-card-overview > .home-launch-protocol > *,
+html body #main-content#main-content .home-launch-card .home-card-overview > .home-launch-protocol .boost-package-badge { flex: none; min-height: 20px; padding: 0 8px; font-size: 11px; }
+html body #main-content#main-content .home-launch-card .home-card-overview > .home-launch-protocol svg { display: none; }
+html body #main-content#main-content .home-launch-card .home-launch-chip.is-migrated { border-color: color-mix(in srgb, var(--fv-success) 45%, transparent); color: var(--fv-success); }
+/* Coins still on their curve show the migration bar at every width. */
+@media (max-width: 900px) { html body #main-content#main-content .home-launch-card .home-launch-card-stats .home-launch-progress-row { display: block; } }
+html body #main-content#main-content .home-launch-card .home-launch-chip.is-listed { border-color: color-mix(in srgb, #f5c542 55%, transparent); color: #f5c542; }
+/* 24h changes under volume and holders match the market cap's. */
+html body #main-content#main-content .home-launch-card .home-launch-card-stats :is(.home-launch-volume, .home-launch-holders) strong { white-space: normal; overflow: visible; text-overflow: clip; }
+html body #main-content#main-content .home-launch-card .home-launch-card-stats :is(.home-launch-volume, .home-launch-holders) .home-launch-change { display: block; margin: 0; padding: 0; background: transparent; font: 600 11px var(--fv-font-data); }
+html body #main-content#main-content .home-launch-card .home-launch-card-stats .home-launch-change.is-positive { color: var(--fv-success); }
+html body #main-content#main-content .home-launch-card .home-launch-card-stats .home-launch-change.is-negative { color: var(--fv-danger); }
+html body #main-content#main-content .home-launch-card .home-launch-chip.is-dex-paid { border-color: color-mix(in srgb, var(--fv-text-muted) 60%, transparent); color: var(--fv-text); }

@@ -152,6 +152,13 @@ export function syncLaunchCardProgressFreshness(document, providerStatus) {
   state.update();
 }
 
+// 24h percentage change under a card figure (volume, holders), like the market cap's.
+function statChangeMarkup(value, title) {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '';
+  const number = Number(value);
+  return ` <span class="home-launch-change ${number >= 0 ? 'is-positive' : 'is-negative'}" title="${escapeHtml(title)}">${number >= 0 ? '+' : ''}${number.toFixed(2)}%</span>`;
+}
+
 export function homeLaunchCardMarkup(
   item,
   { volumeLabel, volumeValue, extraClass, extraActions, footerNote, compact = false },
@@ -181,12 +188,17 @@ export function homeLaunchCardMarkup(
     const change = item.change || '—';
     const changeValue = Number.parseFloat(change);
     const changeClass = Number.isFinite(changeValue) ? (changeValue >= 0 ? 'is-positive' : 'is-negative') : '';
-    const displayMarket = marketFacts(item, EXPLORE_CLUSTER);
+    const facts = marketFacts(item, EXPLORE_CLUSTER);
+    // Mainnet feeds name the venue: a Pump coin trading on an AMM has left its curve.
+    const migratedVenue = EXPLORE_CLUSTER !== 'devnet' && facts.migrated !== true && /^(pumpswap|raydium|meteora|orca)/i.test(String(item.dexId || ''));
+    const displayMarket = migratedVenue ? { ...facts, migrated: true } : facts;
     const progress = launchCardProgressState(displayMarket, exploreProviderStatus);
     const trackAttributes = progress.value === null ? 'aria-hidden="true"'
       : `role="progressbar" aria-label="Migration progress for ${escapeHtml(item.symbol || item.name || 'token')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.value)}" aria-valuetext="${escapeHtml(progress.text)}"`;
-    // Mainnet: the curve line only matters while a coin is still on its curve.
-    const progressMarkup = EXPLORE_CLUSTER !== 'devnet' && (progress.value === null || progress.kind === 'migrated') ? '' : `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : `<i style="--launch-progress:${Number(progress.value.toFixed(2))}%"></i>`}</div></div>`;
+    // Migration status: migrated coins get a "Migrated" label; coins still on
+    // their curve show the progress bar (Mainnet hides it when unknown).
+    const migrationLabel = progress.kind === 'migrated' ? '<span class="home-launch-chip is-migrated" title="Migrated from the bonding curve to a trading pool">Migrated</span>' : '';
+    const progressMarkup = progress.kind === 'migrated' || (EXPLORE_CLUSTER !== 'devnet' && progress.value === null) ? '' : `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : `<i style="--launch-progress:${Number(progress.value.toFixed(2))}%"></i>`}</div></div>`;
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const capSol = displayMarket.migrated === true ? displayMarket.poolMarketCapSol : displayMarket.curveCapSol;
     const capLabel = displayMarket.migrated === true ? 'Market cap' : 'Curve cap';
@@ -224,12 +236,13 @@ export function homeLaunchCardMarkup(
     // Trust checks traders look for first, from confirmed mint data.
     const sameTicker = sameTickerCount(item);
     const trustChips = [
-      sameTicker > 0 ? `<span class="home-launch-chip is-warning" title="Check the contract address before buying">⚠ ${sameTicker} other coin${sameTicker === 1 ? ' uses' : 's use'} $${escapeHtml(item.symbol || '')}</span>` : '',
+      sameTicker > 0 ? `<span class="home-launch-chip is-warning" title="Check the contract address before buying">${sameTicker} other coin${sameTicker === 1 ? ' uses' : 's use'} $${escapeHtml(item.symbol || '')}</span>` : '',
     ].join('');
-    const protocolChips = trustChips + [
-      listing ? `<span class="home-launch-chip is-listed" title="${listing?.admin ? 'Listed on richpad.fun' : 'Paid listing confirmed on Solana'}">${icon('listingBag')}Listed</span>` : '',
-      burnedTokens ? `<span class="home-launch-chip is-burn" title="$RICH burned for this coin's launch package and listing">${icon('burn')}${escapeHtml(burnedTokens.toLocaleString())} $RICH burned</span>` : '',
-      airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $RICH holders">${icon('send')}${escapeHtml(airdropPercent)} to $RICH holders</span>` : '',
+    const protocolChips = migrationLabel + trustChips + [
+      item.dexPaid === true ? '<span class="home-launch-chip is-dex-paid" title="Token profile paid on DexScreener">DEX paid</span>' : '',
+      listing ? `<span class="home-launch-chip is-listed" title="${listing?.admin ? 'Listed on richpad.fun' : 'Paid listing confirmed on Solana'}">Paid listing</span>` : '',
+      burnedTokens ? `<span class="home-launch-chip is-burn" title="$RICH burned for this coin's launch package and listing">${escapeHtml(burnedTokens.toLocaleString())} $RICH burned</span>` : '',
+      airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $RICH holders">${escapeHtml(airdropPercent)} to $RICH holders</span>` : '',
     ].join('');
     const socialLinks = exploreSocialLinksMarkup(item);
     const boost = verifiedBoosts[item.address];
@@ -244,7 +257,7 @@ export function homeLaunchCardMarkup(
       <div class="home-launch-card-media"><span class="home-token-avatar">${escapeHtml(item.icon || String(item.symbol || 'T').slice(0, 1))}${EXPLORE_CLUSTER !== 'devnet' && /^https:\/\//.test(String(item.imageUri || '')) ? `<img src="${escapeHtml(item.imageUri)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span></div>
       <div class="home-card-info">
         <div class="home-card-heading">
-          <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}${activeBoost ? ` ${boostPackageBadgesMarkup(boost)}` : ''}</strong>${pairChipMarkup(item, escapeHtml)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
+          <span class="home-token-identity"><strong class="${activeBoost && boostMultiplier >= 500 ? 'golden-ticker' : ''}">${escapeHtml(item.symbol || 'TOKEN')}</strong>${pairChipMarkup(item, escapeHtml)}<small>${escapeHtml(item.name || 'Unnamed token')}</small></span>
         </div>
         <div class="home-card-meta">
           ${item.createdTimestamp ? `<span class="home-launch-age">${escapeHtml(ageLabel)}</span>` : ''}
@@ -252,18 +265,13 @@ export function homeLaunchCardMarkup(
           ${socialLinks}
         </div>
       </div>
-      <div class="home-card-star">${tokenCardWatchMarkup(item.address, item.symbol)}</div>
+      <div class="home-card-star">${tokenCardWatchMarkup(item.address, item.symbol)}</div><div class="home-launch-protocol" aria-label="richpad.fun launch details"><span class="home-launch-media-package"></span>${exploreBoostAmountMarkup(item.address).replace('>⚡', '>Boosted ')}${protocolChips}</div>
       </div>
       <div class="home-launch-card-stats">
                     <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small>${unknownStatMarkup(value) || `<strong>${escapeHtml(value)}${changeClass ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(change)}</span>` : ''}</strong>`}</span>
-                    <span><small>${escapeHtml(volumeLabel)} volume</small>${unknownStatMarkup(shownVolume) || `<strong>${escapeHtml(shownVolume)}</strong>`}</span>
-                    <span title="${escapeHtml(holderTitle)}"><small>Holders</small>${unknownStatMarkup(holderCount) || `<strong>${escapeHtml(holderCount)}</strong>`}</span>
+                    <span class="home-launch-volume"><small>${escapeHtml(volumeLabel)} volume</small>${unknownStatMarkup(shownVolume) || `<strong>${escapeHtml(shownVolume)}${statChangeMarkup(item.volumeChange24hPercent, '24h volume change')}</strong>`}</span>
+                    <span class="home-launch-holders" title="${escapeHtml(holderTitle)}"><small>Holders</small>${unknownStatMarkup(holderCount) || `<strong>${escapeHtml(holderCount)}${statChangeMarkup(item.holderChange24hPercent, '24h holder change')}</strong>`}</span>
                     ${progressMarkup}
-                    <div class="home-launch-protocol" aria-label="richpad.fun launch details">
-                      <span class="home-launch-media-package"></span>
-                      ${exploreBoostAmountMarkup(item.address)}
-                      ${protocolChips}
-                    </div>
                   </div>
                   ${feeRoute || footerNote ? `<div class="home-card-market-summary">${feeRoute}${footerNote ? `<small class="home-launch-note">${escapeHtml(footerNote)}</small>` : ''}</div>` : ''}
             <div class="home-launch-card-actions has-buy-presets">${['0.2','0.5','1'].map(amount => `<a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" data-review-amount="${amount}" data-symbol="${escapeHtml(item.symbol || '')}" data-dex="${escapeHtml(item.dexId || '')}" data-quote="${escapeHtml(item.quoteMint || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=${amount}" title="Review a ${amount} SOL buy">Buy ${amount} SOL</a>`).join('')}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
