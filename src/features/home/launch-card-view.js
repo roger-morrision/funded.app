@@ -215,7 +215,9 @@ export function homeLaunchCardMarkup(
     // Protocol facts beside the launch package and boost: paid listing, $RICH
     // burned for this coin, and its airdrop to $RICH holders.
     const promotion = promotionForMint(item.address);
-    const listing = verifiedPaidListingPayment(item);
+    // Mainnet admin listings carry the admin's approval instead of a burn receipt.
+    const listing = verifiedPaidListingPayment(item)
+      || (item.listingPayment?.verified === true && (item.listingPayment.admin === true || item.listingPayment.signature) ? item.listingPayment : null);
     const burnedTokens = [promotion?.amountTokens, listing?.amountTokens]
       .map(Number).filter(amount => Number.isFinite(amount) && amount > 0).reduce((sum, amount) => sum + amount, 0);
     const airdropPercent = item.communityAirdropPercent == null ? null : formatVerifiedPercent(item.communityAirdropPercent);
@@ -225,7 +227,7 @@ export function homeLaunchCardMarkup(
       sameTicker > 0 ? `<span class="home-launch-chip is-warning" title="Check the contract address before buying">⚠ ${sameTicker} other coin${sameTicker === 1 ? ' uses' : 's use'} $${escapeHtml(item.symbol || '')}</span>` : '',
     ].join('');
     const protocolChips = trustChips + [
-      listing ? `<span class="home-launch-chip is-listed" title="Paid listing confirmed on Solana">${icon('listingBag')}Listed</span>` : '',
+      listing ? `<span class="home-launch-chip is-listed" title="${listing?.admin ? 'Listed on richpad.fun' : 'Paid listing confirmed on Solana'}">${icon('listingBag')}Listed</span>` : '',
       burnedTokens ? `<span class="home-launch-chip is-burn" title="$RICH burned for this coin's launch package and listing">${icon('burn')}${escapeHtml(burnedTokens.toLocaleString())} $RICH burned</span>` : '',
       airdropPercent ? `<span class="home-launch-chip is-airdrop" title="Share of this coin's supply reserved for $RICH holders">${icon('send')}${escapeHtml(airdropPercent)} to $RICH holders</span>` : '',
     ].join('');
