@@ -49,3 +49,9 @@ html body.product-experience-style #main-content .portfolio-disconnected .projec
 @media(max-width:620px){.portfolio-dashboard{padding:12px}.portfolio-view-tabs button{flex:1;padding:12px 8px}.portfolio-summary>div{padding:11px}.portfolio-holding-head,.portfolio-holding-row{grid-template-columns:minmax(80px,1fr) 92px 75px;gap:5px;padding:11px 3px;font-size:12px}.portfolio-trade-table{font-size:12px}.portfolio-trade-table th,.portfolio-trade-table td{padding:11px 10px}}
 @media(max-width:620px){.portfolio-holding-head,.portfolio-holding-row{grid-template-columns:minmax(68px,1fr) 73px 63px 38px}}
 @media(max-width:620px){.portfolio-trade-scroll-hint{display:block;margin:0 0 7px;color:#9aa8bf;font-size:11px}.portfolio-trade-table .portfolio-trade-empty{text-align:left}.portfolio-trade-empty span{margin:0;max-width:280px}}
+/* Portfolio without a wallet: look up any wallet by address. */
+html body #main-content .portfolio-wallet-lookup{display:grid;gap:6px;max-width:520px;margin-top:16px;padding-top:16px;border-top:1px solid var(--fv-border);text-align:left}
+html body #main-content .portfolio-wallet-lookup label{color:var(--fv-text-subtle);font:600 12px var(--fv-font-ui)}
+html body #main-content .portfolio-wallet-lookup-row{display:flex;gap:8px}
+html body #main-content .portfolio-wallet-lookup input{flex:1;min-width:0;min-height:44px;padding:0 12px;border:1px solid var(--fv-border);border-radius:var(--fv-radius-sm);background:var(--fv-surface);color:var(--fv-text);font:500 13px var(--fv-font-data)}
+html body #main-content .portfolio-wallet-lookup small:empty{display:none}

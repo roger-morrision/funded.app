@@ -57,10 +57,11 @@ export function chatCalloutBadge(callout, currentCapSol, solUsd) {
 // Hot: calls that have reached 2x at their peak. Mine: the connected wallet.
 // Newest first, as in every chat and call list.
 export const newestFirst = rows => rows.slice().sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0));
-export function filterCallouts(callouts, { filter = 'all', wallet = null, author = null } = {}) {
+export function filterCallouts(callouts, { filter = 'all', wallet = null, author = null, mint = null } = {}) {
   return newestFirst(callouts.filter(row => (filter !== 'hot' || row.peakMultiple >= 2)
     && (filter !== 'mine' || (wallet && row.author === wallet))
-    && (!author || row.author === author)));
+    && (!author || row.author === author)
+    && (!mint || row.mint === mint)));
 }
 
 // The three live columns: every call; calls from this week's top callers;
@@ -97,7 +98,7 @@ export function calloutRowMarkup(row, { solUsd, wallet, nowMs = Date.now(), fres
   <p class="callout-text">${escape(row.text)}</p>
   <div class="callout-foot"><a class="callout-token-row" href="/token/${encodeURIComponent(row.mint)}" title="${escape(row.token?.name || 'Open coin')}">${image}<strong>${escape(symbol.startsWith('$') ? symbol : `$${symbol}`)}</strong><span><i>MC</i> ${escape(usdShort(f.currentCapUsd ?? f.calledCapUsd))}</span>${Number.isFinite(f.holdUsd) ? `<span><i>Hold</i> ${escape(usdShort(f.holdUsd))}</span>` : ''}${holdChange}<span class="callout-chevron" aria-hidden="true">›</span></a>
   <div class="callout-actions"><button type="button" class="callout-like" data-like-call="${escape(row.id)}" data-mint="${escape(row.mint)}" data-liked="${wallet && Array.isArray(row.likedBy) && row.likedBy.includes(wallet) ? 'true' : 'false'}" aria-label="Like this call" title="Like">${icon('heart')}<span class="callout-like-count">${Number(row.likeCount) > 0 ? escape(String(row.likeCount)) : ''}</span></button><button type="button" class="callout-comment" data-comment-call="${escape(row.id)}" data-mint="${escape(row.mint)}" data-author="${escape(row.author)}" aria-label="Reply in this coin's chat" title="Reply in chat">${icon('chat')}</button><button type="button" class="callout-share" data-share-call="${escape(row.id)}" aria-label="Share this call">${icon('share')}</button></div></div>
-  <p class="callout-figures">Called at ${escape(usdShort(f.calledCapUsd))} MC${Number.isFinite(f.changePercent) ? ` · ${f.changePercent >= 0 ? '+' : ''}${escape(f.changePercent.toFixed(1))}% since` : ''} · peak ${escape(formatMultiple(row.peakMultiple))}</p>
+  <p class="callout-figures">Called at ${escape(usdShort(f.calledCapUsd))} MC${Number.isFinite(f.changePercent) ? ` · ${f.changePercent >= 0 ? '+' : ''}${escape(f.changePercent.toFixed(1))}% since` : ''} · peak ${escape(formatMultiple(row.peakMultiple))} · <button type="button" class="text-button callout-token-filter" data-callout-mint="${escape(row.mint)}">All calls on ${escape(symbol.startsWith('$') ? symbol : `$${symbol}`)}</button></p>
   </li>`;
 }
 
@@ -124,7 +125,9 @@ export function mountCallouts(app, document = globalThis.document) {
   const leaders = page.querySelector('#callouts-top');
   const status = page.querySelector('#callouts-status');
   const navBadge = document.querySelector('[data-callouts-unseen]');
-  const state = { filter: 'all', author: null, feed: null, known: new Set(), timer: null, loading: false, unavailable: false };
+  // A shared link may open the page filtered to one token (?calls.token=<mint>).
+  const linkedMint = new URLSearchParams(location.search).get('calls.token');
+  const state = { filter: 'all', author: null, mint: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(linkedMint || '') ? linkedMint : null, feed: null, known: new Set(), timer: null, loading: false, unavailable: false };
   const active = () => document.body.classList.contains('page-route-callouts') && !document.hidden;
 
   function updateFeedStatus() {
@@ -142,7 +145,7 @@ export function mountCallouts(app, document = globalThis.document) {
     if (!state.feed) return;
     const wallet = app.connectedWalletAddress || null;
     const assets = Array.isArray(app.assets) ? app.assets : [];
-    const rows = filterCallouts(state.feed.callouts, { filter: state.filter, wallet, author: state.author }).map(row => {
+    const rows = filterCallouts(state.feed.callouts, { filter: state.filter, wallet, author: state.author, mint: state.mint }).map(row => {
       if (row.token?.symbol) return row;
       const asset = assets.find(item => item.address === row.mint);
       return asset ? { ...row, token: { symbol: asset.symbol, name: asset.name, image: asset.icon } } : row;
@@ -155,7 +158,7 @@ export function mountCallouts(app, document = globalThis.document) {
       const items = split[name];
       list.innerHTML = items.length
         ? items.map(row => calloutRowMarkup(row, { solUsd: app.coinSolUsdPrice || solUsdPrice(), wallet, nowMs, callers, fresh: !firstPaint && !state.known.has(row.id) })).join('')
-        : `<li class="callouts-empty-note">${state.filter === 'mine' && !wallet ? 'Connect a wallet to see your calls.' : state.author || state.filter !== 'all' ? 'No calls match this filter.' : EMPTY[name]}</li>`;
+        : `<li class="callouts-empty-note">${state.filter === 'mine' && !wallet ? 'Connect a wallet to see your calls.' : state.author || state.mint || state.filter !== 'all' ? 'No calls match this filter.' : EMPTY[name]}</li>`;
       for (const count of page.querySelectorAll(`[data-callouts-count="${name}"]`)) count.textContent = String(items.length);
     }
     for (const row of state.feed.callouts) state.known.add(row.id);
@@ -163,6 +166,16 @@ export function mountCallouts(app, document = globalThis.document) {
     const authorChip = page.querySelector('#callouts-author-filter');
     authorChip.hidden = !state.author;
     authorChip.querySelector('span').textContent = state.author ? shortWallet(state.author) : '';
+    let tokenChip = page.querySelector('#callouts-token-filter');
+    if (!tokenChip) {
+      tokenChip = Object.assign(document.createElement('button'), { type: 'button', id: 'callouts-token-filter', className: authorChip.className });
+      tokenChip.setAttribute('aria-label', 'Remove token filter');
+      authorChip.after(tokenChip);
+    }
+    const tokenRow = state.mint && rows.find(row => row.mint === state.mint);
+    const tokenSymbol = String(tokenRow?.token?.symbol || assets.find(item => item.address === state.mint)?.symbol || '').replace(/^\$/, '');
+    tokenChip.hidden = !state.mint;
+    tokenChip.textContent = state.mint ? `Token ${tokenSymbol ? `$${tokenSymbol}` : shortWallet(state.mint)} ✕` : '';
   }
 
   function updateUnseen() {
@@ -250,7 +263,19 @@ export function mountCallouts(app, document = globalThis.document) {
     const author = event.target.closest('[data-callout-author]');
     if (author) { state.author = author.dataset.calloutAuthor; render(); }
     if (event.target.closest('#callouts-author-filter')) { state.author = null; render(); }
+    const token = event.target.closest('[data-callout-mint]');
+    if (token) { setMint(token.dataset.calloutMint); return; }
+    if (event.target.closest('#callouts-token-filter')) setMint(null);
   });
+  // Keeps the token filter in the address so the filtered view can be shared.
+  function setMint(mint) {
+    state.mint = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint || '') ? mint : null;
+    const params = new URLSearchParams(location.search);
+    if (state.mint) params.set('calls.token', state.mint); else params.delete('calls.token');
+    const search = params.toString();
+    history.replaceState(history.state, '', `${location.pathname}${search ? `?${search}` : ''}${location.hash}`);
+    render();
+  }
   const onRoute = () => { if (active()) { render(); void refresh(); } schedule(); };
   window.addEventListener('hashchange', () => setTimeout(onRoute, 0));
   document.addEventListener('visibilitychange', onRoute);

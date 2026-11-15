@@ -1,9 +1,11 @@
 import { mountSavedPortfolioTabs } from '../../features/portfolio/saved-tabs.js';
 import { mountLockedTokens } from '../../features/portfolio/locked-tokens.js';
+import { mountWalletLookup } from '../../features/portfolio/wallet-lookup.js';
 // Startup runs in the order declared in start.js.
 export function initializePortfolio(appState) {
   mountSavedPortfolioTabs(appState);
   mountLockedTokens(appState);
+  mountWalletLookup();
   // app-source: 940
   document.querySelector('.portfolio-view-tabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-portfolio-tab]');

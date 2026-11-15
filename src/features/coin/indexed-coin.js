@@ -13,6 +13,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   const tradesRequest = readTrades(appState, mint);
   const solRequest = Number(appState.coinSolUsdPrice) > 0 ? Promise.resolve(Number(appState.coinSolUsdPrice))
     : appState.apiRequest('/api/market/sol-usd', { signal: AbortSignal.timeout(6000) }).then(r => Number(r?.data?.priceUsd) || null).catch(() => null);
+  prefillFromExplore(appState, mint);
   const overview = await overviewRequest;
   if (!current()) return;
   const data = overview.available && overview.data?.mint === mint ? overview.data : null;
@@ -80,6 +81,23 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   if (market?.available) renderIndexedMarket(appState, market.data, mint);
   if (data) applyNumbers(appState, data);
   startLiveRefresh(appState, mint, loadId);
+}
+
+// Coming from Explore, the token's last indexed figures are already loaded;
+// show them at once instead of dashes. The overview response replaces them.
+function prefillFromExplore(appState, mint) {
+  const asset = (Array.isArray(appState.assets) ? appState.assets : []).find(row => row.address === mint);
+  if (!asset) return;
+  const finite = value => value != null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
+  const whole = value => value == null ? null : value >= 1000 ? `$${Math.round(value).toLocaleString('en-US')}` : appState.formatUsd(value);
+  const price = finite(asset.priceUsd), cap = finite(asset.marketCapUsd), volume = finite(asset.volume24hUsd), liquidity = finite(asset.liquidityUsd), change = finite(asset.priceChange24hPercent);
+  if (asset.name) appState.setCoinField('#coin-page-title', asset.name);
+  if (asset.symbol) appState.setCoinField('#coin-symbol', asset.symbol);
+  if (price != null) appState.setCoinField('#coin-price', price < 0.01 ? `$${formatTinyDecimal(price)}` : appState.formatUsd(price));
+  if (cap != null) for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) appState.setCoinField(selector, whole(cap));
+  if (volume != null) appState.setCoinField('#coin-volume', whole(volume));
+  if (liquidity != null) appState.setCoinField('#coin-liquidity', whole(liquidity));
+  if (change != null) appState.setCoinField('#coin-change', `${change.toFixed(2)}% · 24h`);
 }
 
 const readTrades = (appState, mint) => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/trades`, { signal: AbortSignal.timeout(15000) })
