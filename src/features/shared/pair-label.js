@@ -38,9 +38,11 @@ export function tokenPair(item) {
   return { mint, symbol, name: known?.name || null, icon: known?.icon || null, category, label: CATEGORY_LABEL[category] || 'Custom' };
 }
 
-export function pairChipMarkup(item, escapeHtml) {
+// SOL is the default pair, so cards and lists only label coins paired with
+// something else; the coin page passes showSol to name every pair.
+export function pairChipMarkup(item, escapeHtml, { showSol = false } = {}) {
   const pair = tokenPair(item);
-  if (!pair) return '';
+  if (!pair || (pair.category === 'sol' && !showSol)) return '';
   return `<span class="pair-chip pair-${escapeHtml(pair.category)}" title="Paired with ${escapeHtml(pair.name || pair.symbol)} · ${escapeHtml(pair.label)}"><small>Paired with</small><b>${escapeHtml(pair.symbol)}</b></span>`;
 }
 

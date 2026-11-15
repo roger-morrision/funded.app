@@ -5,6 +5,7 @@ import { renderActivityCoverage } from './activity-sampling.js';
 import { createExploreEmptyAction } from './empty-action.js';
 import { syncLaunchCardProgressFreshness } from '../home/launch-card-view.js';
 import { exploreStatusText, exploreSourceLabel } from './status-copy.js';
+import { exploreTableMarkup } from './explore-table-view.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderExploreAssets(
@@ -19,6 +20,7 @@ export function renderExploreAssets(
     verifiedBoosts,
     exploreTab,
     EXPLORE_CLUSTER,
+    exploreView = 'grid',
   },
   {
     exploreOutageCopy,
@@ -39,6 +41,9 @@ export function renderExploreAssets(
     renderWalletDetail,
     getFollowingCoverage,
     getFollowingTokenSources,
+    formatOnchainAge = () => '',
+    tokenCardWatchMarkup = () => '',
+    verifiedPaidListingPayment = () => null,
     document = globalThis.document,
   } = {}
 ) {
@@ -105,7 +110,15 @@ export function renderExploreAssets(
     }
   }
   if (!grid) return;
-  grid.innerHTML = visible.length ? visible.map(item => homeLaunchCardMarkup(item, {
+  const table = exploreView === 'table' && visible.length > 0;
+  grid.classList.toggle('is-table', table);
+  grid.innerHTML = table ? exploreTableMarkup(visible, {
+    cluster: EXPLORE_CLUSTER, providerStatus: exploreProviderStatus, windowLabel: exploreWindow,
+    volumeValue: item => launchCardVolumeUsd(item, exploreWindow), formatAge: formatOnchainAge, watchMarkup: tokenCardWatchMarkup,
+    boostMarkup: exploreBoostAmountMarkup,
+    // Mainnet admin listings carry an approval instead of a burn receipt.
+    paidListing: item => verifiedPaidListingPayment(item) || (item.listingPayment?.verified === true && (item.listingPayment.admin === true || item.listingPayment.signature) ? item.listingPayment : null),
+  }) : visible.length ? visible.map(item => homeLaunchCardMarkup(item, {
     volumeLabel: exploreWindow,
     volumeValue: launchCardVolumeUsd(item, exploreWindow),
     extraClass: ' explore-launch-card',

@@ -1,0 +1,76 @@
+/* Explore table view (Grid/Table switch): the new table renders in #asset-grid
+   and replaces the older registry scanner table. Loaded after design-system.css. */
+html body #main-content#main-content #explore[data-explore-view="table"] #asset-grid.is-table { display: block; }
+html body #main-content#main-content #explore[data-explore-view="table"]:has(#asset-grid.is-table) :is(.explore-scanner, .scanner-scroll) { display: none; }
+html body #main-content #asset-grid.is-table { display: block; }
+html body #main-content .explore-table-wrap { overflow-x: auto; border: 1px solid var(--fv-border); border-radius: var(--ds-radius, 8px); background: var(--fv-surface); }
+html body #main-content .explore-table { width: 100%; min-width: 860px; border-collapse: collapse; font: 500 13px var(--fv-font-ui); color: var(--fv-text); }
+html body #main-content .explore-table th { position: sticky; top: 0; padding: 10px 12px; border-bottom: 1px solid var(--fv-border); background: var(--fv-surface); color: var(--fv-text-subtle); font: 600 11px var(--fv-font-ui); letter-spacing: .02em; text-align: left; text-transform: uppercase; white-space: nowrap; }
+html body #main-content .explore-table td { padding: 10px 12px; border-bottom: 1px solid color-mix(in srgb, var(--fv-border) 60%, transparent); vertical-align: middle; white-space: nowrap; }
+html body #main-content .explore-table tbody tr:last-child td { border-bottom: 0; }
+html body #main-content .explore-table tbody tr:hover td { background: color-mix(in srgb, var(--fv-text) 3%, transparent); }
+html body #main-content .explore-table-rank { width: 32px; color: var(--fv-text-subtle); font-family: var(--fv-font-data); }
+html body #main-content .explore-table-token { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 240px; white-space: normal; }
+html body #main-content .explore-table-token > a { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: inherit; text-decoration: none; }
+html body #main-content .explore-table-token > a:hover strong { color: var(--fv-accent); }
+html body #main-content .explore-table .home-token-avatar { position: relative; display: inline-grid; flex: none; place-items: center; width: 36px; height: 36px; overflow: hidden; border-radius: 8px; background: var(--fv-surface-raised); font-weight: 700; }
+html body #main-content .explore-table .home-token-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+html body #main-content .explore-table-identity { display: grid; min-width: 0; }
+html body #main-content .explore-table-identity strong { font: 700 14px var(--fv-font-ui); }
+html body #main-content .explore-table-identity small { overflow: hidden; max-width: 160px; color: var(--fv-text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+html body #main-content .explore-table-tag { display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border: 1px solid var(--fv-border); border-radius: 999px; color: var(--fv-text); font: 600 11px var(--fv-font-ui); }
+html body #main-content .explore-table-tag.is-listed { border-color: color-mix(in srgb, #f5c542 55%, transparent); color: #f5c542; }
+html body #main-content .explore-table-tag.is-migrated { border-color: color-mix(in srgb, var(--fv-success) 45%, transparent); color: var(--fv-success); }
+html body #main-content .explore-table-num strong { display: block; font: 600 14px var(--fv-font-data); }
+html body #main-content .explore-table-change { display: block; font: 600 11px var(--fv-font-data); }
+html body #main-content .explore-table-change.is-positive { color: var(--fv-success); }
+html body #main-content .explore-table-change.is-negative { color: var(--fv-danger); }
+html body #main-content .explore-table-age, html body #main-content .explore-table-muted { color: var(--fv-text-muted); }
+html body #main-content .explore-table-progress { display: inline-flex; align-items: center; gap: 8px; }
+html body #main-content .explore-table-progress .home-launch-progress { width: 72px; height: 6px; margin: 0; overflow: hidden; border-radius: 99px; background: var(--fv-surface-raised); }
+html body #main-content .explore-table-progress .home-launch-progress i { display: block; width: var(--launch-progress); height: 100%; background: var(--fv-success); }
+html body #main-content .explore-table-progress small { color: var(--fv-text-muted); font: 600 12px var(--fv-font-data); }
+html body #main-content .explore-table-actions { text-align: right; }
+html body #main-content .explore-table-actions { display: table-cell; }
+html body #main-content .explore-table-actions .card-review-buy { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: var(--ds-radius, 8px); background: var(--fv-accent); color: #14100a; font: 700 12px var(--fv-font-ui); text-decoration: none; }
+html body #main-content .explore-table-actions .watch-button { display: inline-grid; place-items: center; width: 32px; height: 32px; min-height: 0; margin-left: 4px; padding: 0; border: 0; background: transparent; color: var(--fv-text-muted); vertical-align: middle; }
+html body #main-content .explore-table-actions .watch-button.active { color: var(--fv-accent); }
+html body #main-content .explore-table-actions .watch-button svg { width: 18px; height: 18px; }
+html body #main-content#main-content .explore-table .explore-table-token a, html body #main-content#main-content .explore-table .explore-table-token a :is(strong, small) { text-decoration: none; border-bottom: 0; box-shadow: none; }
+/* The Grid/Table switch sits in the control bar beside Filters. */
+html body #main-content .explore-control-bar .explore-view-switch { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--fv-border); border-radius: var(--ds-radius, 8px); background: var(--fv-surface); }
+html body #main-content .explore-control-bar .explore-view-switch button { min-height: 0; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: var(--fv-text-muted); font: 600 13px var(--fv-font-ui); }
+html body #main-content .explore-control-bar .explore-view-switch button:is(.active, [aria-pressed="true"]) { background: var(--fv-surface-raised); color: var(--fv-text); }
+html body #main-content :is(.explore-table-tier, .explore-table-airdrop) { color: var(--fv-text-muted); }
+html body #main-content .explore-table-tag.is-boosted { border-color: color-mix(in srgb, var(--fv-warning) 50%, transparent); color: var(--fv-warning); }
+/* Row actions: Buy, Boost and favourite stay inside the last cell. */
+html body #main-content#main-content .explore-table-actions .token-card-action-boost { display: inline-grid; place-items: center; width: 32px; height: 32px; min-height: 0; margin: 0 0 0 4px; padding: 0; border: 1px solid color-mix(in srgb, var(--fv-warning) 45%, transparent); border-radius: var(--ds-radius, 8px); background: transparent; color: var(--fv-warning); vertical-align: middle; }
+html body #main-content#main-content .explore-table-actions .token-card-action-boost:hover { background: color-mix(in srgb, var(--fv-warning) 12%, transparent); }
+/* "Paired with" sits to the left of its dropdown, on one line. */
+html body #main-content#main-content .explore-pair-filter { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; white-space: nowrap; }
+html body #main-content#main-content .explore-pair-filter > span { margin: 0; }
+/* Home token cards: paid listing and selected promotion as text-only pills. */
+html body #main-content .home-new-token-labels { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+html body #main-content .home-new-token-labels:not(:has(*:not(:empty))) { display: none; }
+html body #main-content .home-new-token-labels .home-launch-media-package:empty { display: none; }
+html body #main-content .home-new-token-labels :is(.home-launch-chip, .promotion-badge) { display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text); font: 600 11px var(--fv-font-ui); text-decoration: none; white-space: nowrap; }
+html body #main-content .home-new-token-labels .home-launch-chip.is-listed { border-color: color-mix(in srgb, #f5c542 55%, transparent); color: #f5c542; }
+html body #main-content .home-new-token-labels .promotion-badge--premier { border-color: var(--fv-accent); color: var(--fv-accent); }
+/* Featured cards: logo, name and symbol on top, banner below, the placement
+   label (Paid listing, promotion, boost) at the bottom. */
+html body #main-content .home-featured-token { display: flex; flex-direction: column; }
+html body #main-content .home-featured-identity { order: -1; }
+html body #main-content .home-featured-footer { display: flex; padding: 10px 12px 12px; }
+html body #main-content .home-featured-footer .home-featured-label { position: static; display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border: 1px solid color-mix(in srgb, #f5c542 55%, transparent); border-radius: 999px; background: transparent; color: #f5c542; font: 600 11px var(--fv-font-ui); }
+/* Featured cards without a banner: metrics sit directly under the header
+   instead of at the bottom of an empty 108px banner. */
+html body #main-content .home-featured-art:not(:has(.home-featured-banner)) { height: auto; background: transparent; }
+html body #main-content .home-featured-art:not(:has(.home-featured-banner)) .home-featured-monogram { display: none; }
+html body #main-content .home-featured-art:not(:has(.home-featured-banner)) .home-featured-banner-metrics { position: static; margin: 0 12px; }
+/* Home token list: favourite star in the card's top-right corner; no Buy button. */
+html body #main-content .home-new-token-star { position: absolute; z-index: 3; top: 6px; right: 6px; }
+html body #main-content .home-new-token-star .watch-button { display: inline-grid; place-items: center; width: 36px; height: 36px; min-height: 0; padding: 0; border: 0; border-radius: var(--ds-radius, 8px); background: transparent; color: var(--fv-text-muted); }
+html body #main-content .home-new-token-star .watch-button.active { color: var(--fv-accent); }
+html body #main-content .home-new-token-star .watch-button svg { width: 18px; height: 18px; }
+html body #main-content .home-new-token-card .home-new-token-heading { padding-right: 34px; }
+html body #main-content .home-new-token-meta { flex-wrap: wrap; row-gap: 4px; }

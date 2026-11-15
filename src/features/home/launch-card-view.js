@@ -218,7 +218,10 @@ export function homeLaunchCardMarkup(
       const price = Number.isFinite(usd) && usd > 0 ? `$${usd.toLocaleString(undefined,{maximumSignificantDigits:4})}` : Number.isFinite(priceSol) && priceSol > 0 ? `${priceSol.toLocaleString(undefined,{maximumSignificantDigits:4})} SOL` : '—';
       const policy = verifiedLaunchPolicyForMint?.(item.address);
       const creator = policy?.onchainVerified ? policy.creatorWallet : item.creator;
-      return compactLaunchCard(item,{value,ageLabel,price,creator:typeof creator==='string'&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(creator)?creator:null,
+      // Paid listing beside the selected promotion (filled in by decorateHomeLaunchCard).
+      const compactListing = verifiedPaidListingPayment(item) || (item.listingPayment?.verified === true && (item.listingPayment.admin === true || item.listingPayment.signature) ? item.listingPayment : null);
+      const labelsMarkup = compactListing ? `<span class="home-launch-chip is-listed" title="${compactListing.admin ? 'Listed on richpad.fun' : 'Paid listing confirmed on Solana'}">Paid listing</span>` : '';
+      return compactLaunchCard(item,{labelsMarkup,value,ageLabel,price,creator:typeof creator==='string'&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(creator)?creator:null,
         progress,holderCount,holderTitle,boostMarkup:boostPackageBadgesMarkup(verifiedBoosts?.[item.address]),freshness:marketFreshness(item,EXPLORE_CLUSTER),socialMarkup:exploreSocialLinksMarkup(item),watchMarkup:tokenCardWatchMarkup(item.address,item.symbol)});
     }
     const launchPolicy = verifiedLaunchPolicyForMint(item.address);

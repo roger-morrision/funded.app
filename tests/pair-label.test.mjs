@@ -26,4 +26,7 @@ test('a token row names its pair and matches the filter', () => {
   assert.equal(matchesPairFilter(custom, 'all'), true);
   assert.match(pairChipMarkup(custom, escape), /Paired with<\/small><b>mihao<\/b>/);
   assert.equal(pairChipMarkup({}, escape), '');
+  // SOL is the default pair: cards and lists skip it, the coin page names it.
+  assert.equal(pairChipMarkup({ quoteMint: 'So11111111111111111111111111111111111111112' }, escape), '');
+  assert.match(pairChipMarkup({ quoteMint: 'So11111111111111111111111111111111111111112' }, escape, { showSol: true }), /<b>SOL<\/b>/);
 });
