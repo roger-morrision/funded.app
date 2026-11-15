@@ -74,3 +74,13 @@ html body #main-content .home-new-token-star .watch-button.active { color: var(-
 html body #main-content .home-new-token-star .watch-button svg { width: 18px; height: 18px; }
 html body #main-content .home-new-token-card .home-new-token-heading { padding-right: 34px; }
 html body #main-content .home-new-token-meta { flex-wrap: wrap; row-gap: 4px; }
+/* Home token list: holders and 24h volume side by side (volume with its 24h change). */
+html body #main-content .home-new-token-stats { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+html body #main-content .home-new-token-stats > div { display: flex; align-items: baseline; gap: 6px; font-size: 11px; color: var(--cp-muted, var(--fv-text-muted)); }
+html body #main-content .home-new-token-stats strong { color: var(--fv-text); font: 600 12px var(--fv-font-data); }
+html body #main-content .home-new-token-change { font: 600 11px var(--fv-font-data); }
+html body #main-content .home-new-token-change.is-positive { color: var(--fv-success); }
+html body #main-content .home-new-token-change.is-negative { color: var(--fv-danger); }
+html body #main-content .home-new-token-community .home-new-token-stats { flex: 1 1 auto; min-width: 0; }
+html body #main-content .home-new-token-community .home-new-token-socials { margin-left: auto; }
+html body #main-content .home-new-token-market { display: flex; align-items: baseline; gap: 8px; }
