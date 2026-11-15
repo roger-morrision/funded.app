@@ -148,6 +148,6 @@ test('display prices reject wrong program, pool identity and vault authority',as
 test('hidden rewards do not compete with token and wallet detail reads',()=>{
   for(const path of ['/token/example','/wallet/example']) assert.equal(automaticRewardsRouteVisible({pathname:path,hash:''}),false);
   for(const hash of ['#launch','#explore','#list','#profile','#buybacks']) assert.equal(automaticRewardsRouteVisible({pathname:'/',hash}),false);
-  for(const hash of ['#overview','#airdrops','#payments/holders']) assert.equal(automaticRewardsRouteVisible({pathname:'/',hash}),true);
+  for(const hash of ['#overview','#airdrops','#payments/holders','#rewards']) assert.equal(automaticRewardsRouteVisible({pathname:'/',hash}),true);
   assert.equal(automaticRewardsRouteVisible({pathname:'/funded',hash:''}),true);
 });

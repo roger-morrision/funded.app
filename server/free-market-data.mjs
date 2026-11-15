@@ -137,7 +137,9 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   // GeckoTerminal recent pool trades (free): newest first, last 24h.
   async function geckoTrades(pool) {
     if (!MINT.test(pool)) return null;
-    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/trades`, { ttlMs: 8_000 });
+    // GeckoTerminal rate-limits the server IP (429) under load; refresh every 30s and keep
+    // serving the last good list for 15 minutes instead of showing no trades.
+    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/trades`, { ttlMs: 30_000, staleMs: 15 * 60_000 });
     return Array.isArray(data?.data) ? data.data.map(row => row?.attributes).filter(Boolean) : null;
   }
   // Jupiter token search (free): icon, name, symbol, decimals and holder count.

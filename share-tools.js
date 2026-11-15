@@ -71,7 +71,11 @@ function paintBrandBackdrop(ctx, W, H) {
   ctx.drawImage(image, 0, 0, W, H);
   return true;
 }
-brandBackdrop(false); brandBackdrop(true);
+// Warm both backdrops (~230 KB) after the page has settled, not during first load.
+if (typeof window !== 'undefined') setTimeout(() => {
+  const warm = () => { brandBackdrop(false); brandBackdrop(true); };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(warm, { timeout: 5000 }); else warm();
+}, 8000);
 
 export function drawEarningsCard(canvas, result, { hideAmount = false, hideWallet = true } = {}) {
   if (!result || result.verified !== true || !Number.isFinite(result.amount) || result.amount <= 0 || !result.receipt) throw new Error('A verified paid receipt is required');

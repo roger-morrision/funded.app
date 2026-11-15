@@ -254,6 +254,11 @@ html body .home-featured-banner-metrics { display: grid; grid-template-columns: 
 html body .home-featured-banner-metrics > div:nth-child(even) { justify-content: flex-end; }
 html body .home-featured-banner-metrics :is(.featured-mc,[data-direction="positive"]) { color: var(--fv-success, #6de6ba); }
 html body .home-featured-banner-metrics [data-direction="negative"] { color: var(--red, #ff7b8f); }
+/* Deferred artwork has no src until it nears the viewport; keep its space without a broken-image icon. */
+html body img[data-deferred-art] { visibility: hidden; }
+/* Narrow cards: a figure drops under its label instead of being cut to "…". */
+html body .home-featured-banner-metrics > div { flex-wrap: wrap; row-gap: 0; }
+html body .home-featured-banner-metrics dd { overflow: visible; text-overflow: clip; }
 .agency-agent [data-agent-reason] { display:block; margin-top:10px; line-height:1.5; overflow-wrap:anywhere; }
 
 html body #main-content #coin-page .coin-socials.is-compact :is(a,button) { display: inline-flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
@@ -264,3 +269,11 @@ html body :is(button, a[role="button"])[aria-label]:has(> svg:only-child) { disp
 html body :is(button, a[role="button"])[aria-label]:has(> svg:only-child) > svg { display: block; margin: 0; }
 html body.page-route-overview #main-content .home-market-ticker-arrows button { display: inline-grid; place-items: center; padding: 0; line-height: 1; }
 html body.page-route-overview #main-content .home-market-ticker-arrows button > svg { width: 16px; height: 16px; }
+/* Top 100: the search/filter toggle is phone-only; on phones the ranking modes form one scrollable row. */
+html body #top100 .top100-filter-toggle { display: none; }
+@media (max-width: 700px) {
+  html body #main-content #top100 .top100-modes { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  html body #main-content #top100 .top100-modes button { flex: 0 0 auto; white-space: nowrap; }
+  html body #main-content #top100 .top100-filter-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  html body #main-content #top100 .top100-toolbar:not(.is-filters-open) > :is(label, [data-top-reset]) { display: none; }
+}

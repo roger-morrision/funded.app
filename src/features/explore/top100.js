@@ -20,6 +20,11 @@ export function initializeTop100(appState) {
   Object.assign(filters, readTop100Url(location.search, allowed));
   for (const control of root.querySelectorAll('[data-top-filter]')) control.value = String(filters[control.dataset.topFilter] ?? '');
   root.querySelectorAll('[data-top-sort]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topSort === filters.sort)));
+  // Phones collapse search and filters behind one toggle; an active filter keeps them open.
+  const toolbar = root.querySelector('.top100-toolbar'), filterToggle = root.querySelector('[data-top-filter-toggle]');
+  const setFiltersOpen = open => { toolbar?.classList.toggle('is-filters-open', open); filterToggle?.setAttribute('aria-expanded', String(open)); };
+  setFiltersOpen(Boolean(filters.query || filters.stage !== 'all' || filters.tier !== 'all' || filters.minCap || filters.maxAge));
+  filterToggle?.addEventListener('click', () => setFiltersOpen(!toolbar.classList.contains('is-filters-open')));
   const syncUrl = () => {
     if (!active()) return;
     const search = top100Search(location.search, filters);

@@ -15,7 +15,8 @@ export function createFundedTradingController(appState) {
     if (!input || !button || !badge || !status) return;
     // Mainnet $RICH without a PumpSwap pool trades through Jupiter on its token page.
     if (appState.fundedBuyRoute.status === 'jupiter') {
-      input.disabled = true; input.closest('label, .field, div')?.setAttribute('hidden', '');
+      // Hide the whole field (label included), not just the input's wrapper.
+      input.disabled = true; (input.closest('.burn-amount-field') || input.closest('label, .field, div'))?.setAttribute('hidden', '');
       button.disabled = false; button.textContent = 'Buy $RICH';
       badge.textContent = 'Jupiter route'; badge.classList.remove('unavailable');
       const estimate = document.querySelector('#funded-buy-estimate'); if (estimate) estimate.hidden = true;

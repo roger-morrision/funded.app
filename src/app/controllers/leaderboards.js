@@ -99,10 +99,12 @@ export function createLeaderboardsController(appState) {
     if (appState.EXPLORE_CLUSTER === 'devnet' || traderBoardLoading) return traderBoardLoading;
     const board = appState.mainnetTraderBoard;
     if (!force && board?.status === 'ready' && Date.now() - board.loadedAt < 60_000) return null;
+    // A failed read re-renders the board, which would call this again at once; wait 30s before retrying.
+    if (!force && board?.status === 'unavailable' && Date.now() - (board.failedAt || 0) < 30_000) return null;
     if (!board) appState.mainnetTraderBoard = { status:'loading', traders:[], tokenCount:0 };
     traderBoardLoading = appState.apiRequest('/api/leaderboard/traders', { signal:AbortSignal.timeout(20000) })
-      .then(result => { appState.mainnetTraderBoard = result?.available && Array.isArray(result.data?.traders) ? { status:'ready', loadedAt:Date.now(), ...result.data } : { status:'unavailable', traders:[], tokenCount:0 }; })
-      .catch(() => { appState.mainnetTraderBoard = { status:'unavailable', traders:[], tokenCount:0 }; })
+      .then(result => { appState.mainnetTraderBoard = result?.available && Array.isArray(result.data?.traders) ? { status:'ready', loadedAt:Date.now(), ...result.data } : { status:'unavailable', failedAt:Date.now(), traders:[], tokenCount:0 }; })
+      .catch(() => { appState.mainnetTraderBoard = { status:'unavailable', failedAt:Date.now(), traders:[], tokenCount:0 }; })
       .finally(() => { traderBoardLoading = null; if (appState.leaderboardView === 'traders') appState.renderLeaderboard(); });
     return traderBoardLoading;
   }

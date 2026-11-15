@@ -23,7 +23,8 @@ export const usdShort = value => {
   return `${sign}$${abs >= 1 ? abs.toFixed(2) : abs.toPrecision(2)}`;
 };
 export const signedUsd = value => Number.isFinite(value) ? `${value >= 0 ? '+' : '-'}${usdShort(Math.abs(value))}` : '—';
-export const multipleBadge = multiple => Number.isFinite(multiple) && multiple > 0 ? `${multiple >= 10 ? multiple.toFixed(0) : multiple.toFixed(1)}x` : '';
+// Below 0.1x one decimal would read "0.0x" for a coin that is still trading.
+export const multipleBadge = multiple => Number.isFinite(multiple) && multiple > 0 ? `${multiple >= 10 ? multiple.toFixed(0) : multiple >= 0.1 ? multiple.toFixed(1) : multiple.toFixed(2)}x` : '';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 // One-line token row shown under a call: logo · $SYMBOL · MC · Hold · ±$ since the call.

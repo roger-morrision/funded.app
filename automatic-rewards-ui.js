@@ -312,6 +312,11 @@ if (panels.length) {
     void Promise.allSettled([refreshSchedules(), refreshFundedHolderTokens(), refreshXRoute(), refreshHomePaidSummary()]);
   };
   refreshVisible();
+  // In-page tabs (Rewards → Coin holder) reveal a panel without a route change; load it when it appears.
+  if (typeof IntersectionObserver === 'function') {
+    const seen = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) refreshVisible(); });
+    for (const panel of panels) seen.observe(panel);
+  }
   window.addEventListener('funded:route-change', refreshVisible);
   window.addEventListener('funded:layout-change', refreshVisible);
   document.addEventListener('visibilitychange', refreshVisible);

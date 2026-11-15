@@ -307,3 +307,5 @@ html body #main-content #coin-page .coin-hero-card .coin-package-rail{justify-co
 html body #main-content #coin-page .coin-hero-card .coin-identity{position:relative}
 html body #main-content #coin-page .coin-hero-card .coin-package-rail .coin-watch{position:absolute;top:0;right:0;z-index:1;align-self:auto;margin:0}
 html body #main-content #coin-page .coin-hero-card .coin-identity-main{padding-right:48px}
+html body #main-content #coin-page .coin-trade-more{display:block;width:100%;margin-top:10px;min-height:44px}
+html body #main-content #coin-page .coin-holder-pool{display:inline-block;margin-left:6px;padding:1px 6px;border:1px solid var(--fv-border);border-radius:999px;color:var(--fv-text-subtle);font-size:11px;white-space:nowrap}

@@ -1,4 +1,5 @@
 import { publicReadFetch as fetch } from './src/lib/public-read-fetch.js';
+import { apiRequest } from './client.js';
 import {accountFavorites} from './src/features/account/preferences.js';
 import { renderHolderAirdropDirectory } from './src/features/rewards/holder-airdrop-directory.js';
 import './reward-experience.css';
@@ -313,7 +314,8 @@ async function refresh({ force = false } = {}) {
   const scoped = validMint(mint);
   const [experience, buybacks, alertEvents] = await Promise.allSettled([
     fetchJson(`/api/rewards/experience${params.size ? '?' + params : ''}`),
-    fetchJson('/api/buyback/status', 30_000),
+    // Shared client: joins the buyback status read other panels make at the same time.
+    apiRequest('/api/buyback/status', { signal:AbortSignal.timeout(30_000) }).then(result => { if (!result.available) throw new Error('Buyback status unavailable'); return result.data; }),
     scoped && alertsEnabled() ? fetchJson('/api/rewards/experience') : Promise.resolve(null),
   ]);
   if (current !== refreshToken) return;

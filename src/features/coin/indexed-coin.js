@@ -112,7 +112,8 @@ async function loadHolders(appState, mint, loadId, data) {
   appState.setCoinField('#coin-holder-count', count != null ? count.toLocaleString('en-US') : 'Not indexed');
   appState.coinActivity = { ...(appState.coinActivity || {}), status: 'ready', symbol: appState.coinActivity?.symbol || data?.symbol || 'TOKEN', collections: [], claims: [], accounts: [],
     holderDistribution: body?.available ? { holders: body.holders, partial: true } : null, holderCount: count ?? (body?.holders?.length ? `top ${body.holders.length}` : '—'),
-    tokenDecimals: Number.isInteger(body?.decimals) ? body.decimals : 6, ledgerAvailable: false, indexedPriceUsd: data?.priceUsd ?? null };
+    tokenDecimals: Number.isInteger(body?.decimals) ? body.decimals : 6, ledgerAvailable: false, indexedPriceUsd: data?.priceUsd ?? null,
+    poolAddress: typeof data?.pairAddress === 'string' ? data.pairAddress : null };
   appState.setCoinTabLabels?.(); appState.renderCoinActivityTab?.();
 }
 
@@ -166,7 +167,8 @@ function applyNumbers(appState, data) {
   if (burnCell) {
     const known = Number.isFinite(data.burnedTokens);
     burnCell.hidden = !known;
-    if (known) appState.setCoinField('#coin-strip-burned', `${appState.formatCompactNumber ? appState.formatCompactNumber(data.burnedTokens) : Math.round(data.burnedTokens).toLocaleString('en-US')} · ${data.burnedPercent.toFixed(2)}%`);
+    // Compact (26.12M) so the figure fits the narrow stat cell instead of breaking mid-number.
+    if (known) appState.setCoinField('#coin-strip-burned', `${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(data.burnedTokens)} · ${data.burnedPercent.toFixed(2)}%`);
   }
   if (appState.coinTradeEstimate?.mint === data.mint && Number.isFinite(data.priceUsd)) { appState.coinTradeEstimate.priceUsd = data.priceUsd; appState.renderTradeAmountEstimate?.(); }
 }

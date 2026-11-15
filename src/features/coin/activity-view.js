@@ -4,6 +4,10 @@ import { formatTradeAmountInput } from '../../../trade-amount-input.js';
 import { formatTokenBaseAmount } from '../../../trade-panel-balance.js';
 import { escapeHtml, shortAddress, formatOnChainNumber, formatUsd } from '../shared/display.js';
 import { solFromLamports, feeAllocationSol, formatFeeSol } from '../../../fee-activity-amount.js';
+// Rendering every loaded trade (up to 300) made phone token pages ~13k DOM nodes;
+// rows are shown in pages and "Show more" adds the next batch.
+const TRADE_ROW_STEP = 50;
+let tradeRowLimit = TRADE_ROW_STEP, tradeRowMint = null;
 const filterKeys=['side','wallet','dateFrom','dateTo','minUsd','maxUsd','minToken','maxToken','minSol','maxSol','minPrice','maxPrice','signature'];
 
 // Presentation only: callers own state, requests, and transaction lifecycles.
@@ -44,8 +48,10 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
     countText(`${trades.length} of ${coinMarketActivity.trades.length} loaded trades`);
     const mint = getCoinMintAddress();
     const symbol = coinActivity.symbol || 'TOKEN';
+    if (tradeRowMint !== mint) { tradeRowMint = mint; tradeRowLimit = TRADE_ROW_STEP; }
+    const hiddenRows = Math.max(0, trades.length - tradeRowLimit);
     const explorerIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4h14l-3 3H3z" fill="#78e7b4"/><path d="M4 10h14l3 3H7z" fill="#ab91ff"/><path d="M6 16h14l-3 3H3z" fill="#78e7b4"/></svg>';
-    const rows = trades.map(item => {
+    const rows = trades.slice(0, tradeRowLimit).map(item => {
       const timestamp = Number(item.blockTime) * 1000;
       const validTime = Number.isFinite(timestamp) && timestamp > 0 && timestamp < 8.64e15;
       const time = validTime ? new Date(timestamp).toLocaleString() : 'Time unavailable';
@@ -66,7 +72,11 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
       return `<th scope="col" aria-sort="${direction === 'none' ? 'none' : direction === 'asc' ? 'ascending' : 'descending'}"><div class="coin-trade-column-head"><button type="button" class="coin-trade-sort" data-coin-trade-sort="${key}" aria-label="Sort ${label} ${active && direction === 'asc' ? 'descending' : 'ascending'}">${label}<span aria-hidden="true">${active ? direction === 'asc' ? '↑' : '↓' : '↕'}</span></button><button type="button" class="coin-trade-column-filter${filtered ? ' is-active' : ''}" data-coin-column-filter="${key}" aria-label="Filter ${label}"${expanded} aria-controls="${filterTarget}" title="Filter ${label}">⌕</button></div></th>`;
     }).join('');
     const empty = !trades.length ? `<div class="coin-trade-empty-state"><p class="coin-trade-no-results">${coinMarketActivity.trades.length ? 'No trades match these filters.' : 'No confirmed trades in the last 24 hours.'}${coinMarketActivity.coverage === 'partial' ? ' Some trade history is missing.' : ''}</p>${hasFilters&&coinMarketActivity.trades.length?'<button type="button" class="secondary-button" data-coin-trade-reset>Show all loaded trades</button>':''}</div>` : '';
-    activity.innerHTML = `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table coin-trades-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>${empty}`;
+    activity.innerHTML = `<div class="coin-transactions-scroll" role="region" aria-label="${escapeHtml(symbol)} transactions" tabindex="0"><table class="coin-transactions-table coin-trades-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>${empty}${hiddenRows ? `<button type="button" class="secondary-button coin-trade-more" data-coin-trade-more>Show ${Math.min(hiddenRows, TRADE_ROW_STEP * 2)} more trades · ${hiddenRows} not shown</button>` : ''}`;
+    activity.querySelector('[data-coin-trade-more]')?.addEventListener('click', () => {
+      tradeRowLimit += TRADE_ROW_STEP * 2;
+      renderCoinActivityTab(...arguments);
+    }, { once: true });
     if (trades.length) loadVerifiedTokenLogos(activity);
     return;
   }
@@ -91,8 +101,10 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
         : Number.isFinite(balance) && Number.isFinite(coinSolUsdValues.spot) && coinSolUsdValues.spot > 0 && Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0 ? formatUsd(balance * coinSolUsdValues.spot * coinSolUsdPrice) : '$—';
       const profile = `/wallet/${encodeURIComponent(wallet)}`;
       const tradeAction = `<button type="button" class="coin-holder-trades" data-coin-holder-trades="${escapeHtml(wallet)}" aria-label="Show recent trades by ${escapeHtml(wallet)}" title="Filter recent trades by this wallet">⌕</button>`;
-      const amount = formatTradeAmountInput(formatTokenBaseAmount(item.amountRaw, coinActivity.tokenDecimals, Math.min(coinActivity.tokenDecimals, 6)));
-      return `<tr><td class="coin-holder-rank">#${index + 1}</td><td><a class="coin-holder-address" href="${escapeHtml(profile)}" title="${escapeHtml(wallet)}">${escapeHtml(shortAddress(wallet))}</a></td><td class="coin-holder-percent">${escapeHtml(formatOnChainNumber(share, 2))}%</td><td><div class="coin-holder-amount"><strong>${escapeHtml(amount)} <small>${escapeHtml(coinActivity.symbol)}</small></strong><span class="coin-holder-bar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, share))}%"></i></span></div></td><td class="coin-holder-value">${escapeHtml(value)}</td><td class="coin-holder-action">${tradeAction}</td><td class="coin-holder-action"><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`address/${encodeURIComponent(wallet)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View wallet ${escapeHtml(wallet)} on Solana Explorer" title="View wallet on Solana Explorer">${explorerIcon}</a></td></tr>`;
+      // Large balances read as whole tokens (71,717,850 rather than 71,717,850.477359).
+      const amount = formatTradeAmountInput(formatTokenBaseAmount(item.amountRaw, coinActivity.tokenDecimals, balance >= 1000 ? 0 : Math.min(coinActivity.tokenDecimals, 4)));
+      const isPool = Boolean(coinActivity.poolAddress) && wallet === coinActivity.poolAddress;
+      return `<tr><td class="coin-holder-rank">#${index + 1}</td><td><a class="coin-holder-address" href="${escapeHtml(profile)}" title="${escapeHtml(wallet)}">${escapeHtml(shortAddress(wallet))}</a>${isPool ? ' <span class="coin-holder-pool" title="Tokens held by the trading pool, not a person">Liquidity pool</span>' : ''}</td><td class="coin-holder-percent">${escapeHtml(formatOnChainNumber(share, 2))}%</td><td><div class="coin-holder-amount"><strong>${escapeHtml(amount)} <small>${escapeHtml(coinActivity.symbol)}</small></strong><span class="coin-holder-bar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, share))}%"></i></span></div></td><td class="coin-holder-value">${escapeHtml(value)}</td><td class="coin-holder-action">${tradeAction}</td><td class="coin-holder-action"><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`address/${encodeURIComponent(wallet)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View wallet ${escapeHtml(wallet)} on Solana Explorer" title="View wallet on Solana Explorer">${explorerIcon}</a></td></tr>`;
     }).join('');
     activity.innerHTML = rows ? `<div class="coin-transactions-scroll coin-holders-scroll" role="region" aria-label="${escapeHtml(coinActivity.symbol)} complete holder wallets" tabindex="0"><table class="coin-transactions-table coin-holders-table"><thead><tr><th scope="col">Rank</th><th scope="col">Wallet</th><th scope="col">% supply</th><th scope="col">Amount</th><th scope="col" title="Spot token price at the current SOL/USD quote">Value est.</th><th scope="col">Txns</th><th scope="col">Explore</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state coin-activity-empty"><strong>No holder wallets</strong><small>The reconciled token supply is entirely in the protocol vault.</small></div>';
     return;
