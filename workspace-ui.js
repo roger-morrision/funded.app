@@ -39,7 +39,10 @@ function syncRoute() {
     : creatorSupportRoute ? 'explore'
     : route==='creator-settings' ? 'my-launches'
     : ({ top100: 'explore', community: 'my-launches', leaderboard: 'explore', 'analytics-detail': 'explore', airdrops: 'payments', referrals: 'payments', bonuses: 'payments', 'capital-flow': 'payments', 'marketing-agency': 'launch', profile: 'my-launches', list: 'launch', paid: 'payments' }[pageRoute] || pageRoute);
-  $$('.mobile-workspace-nav a').forEach(link=>{if(link.hash===`#${mobileRoute}`)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
+  // Mainnet's "Buy $RICH" tab (relabelled Create) owns the $RICH pages: Burn, $RICH and the $RICH token page.
+  const richLink=$$('.mobile-workspace-nav a').find(link=>link.dataset.mainnetLaunch==='buy-rich');
+  const richRoute=Boolean(richLink)&&(/^#(buybacks|paid)$/.test(location.hash)||(!location.hash&&location.pathname===new URL(richLink.href,location.origin).pathname));
+  $$('.mobile-workspace-nav a').forEach(link=>{const on=link===richLink?richRoute:!richRoute&&link.hash===`#${mobileRoute}`;if(on)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
   const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
   if(route==='funded-holder-token-rewards'){

@@ -148,6 +148,8 @@ export function renderWalletDetail(
     setCoinField('#wallet-stat-volume-note', '');
     setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
     setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
+    // Optional tiles with nothing to show are hidden rather than shown as "—".
+    for (const id of ['#wallet-stat-burned', '#wallet-stat-last']) { const tile = document.querySelector(id)?.parentElement; if (tile) tile.hidden = document.querySelector(id).textContent.trim() === '—'; }
   document.querySelectorAll('[data-wallet-tab]').forEach(button => { const active = button.dataset.walletTab === walletDetailTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
     const description = document.querySelector('#wallet-detail-description');
     const content = document.querySelector('#wallet-detail-content');
@@ -204,8 +206,8 @@ export function renderWalletDetail(
   // An unavailable scan would turn the whole guidance line into a quiet "-" (technical-notices.js).
   const shownScanNote = /unavailable/i.test(scanNote) ? '' : ` ${scanNote}.`;
   description.textContent = isSelf
-    ? `Confirmed wallet payments and airdrop claims, plus launches, burns, and recent trades.${shownScanNote}`
-    : `Confirmed launches and burns, plus recent trades from the last 24 hours.${shownScanNote}`;
+    ? `Your trades, launches, burns and rewards.${shownScanNote}`
+    : `Trades from the last 24 hours, plus launches and burns.${shownScanNote}`;
   const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${trade.symbol ? escapeHtml('$' + trade.symbol) : tokenIdentityMarkup(trade.mint, escapeHtml, 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
   const seenBurns = new Set();
   const burnRows = launches.flatMap(launch => {

@@ -185,7 +185,8 @@ export function homeLaunchCardMarkup(
     const progress = launchCardProgressState(displayMarket, exploreProviderStatus);
     const trackAttributes = progress.value === null ? 'aria-hidden="true"'
       : `role="progressbar" aria-label="Migration progress for ${escapeHtml(item.symbol || item.name || 'token')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.value)}" aria-valuetext="${escapeHtml(progress.text)}"`;
-    const progressMarkup = EXPLORE_CLUSTER !== 'devnet' && progress.value === null ? '' : `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : `<i style="--launch-progress:${Number(progress.value.toFixed(2))}%"></i>`}</div></div>`;
+    // Mainnet: the curve line only matters while a coin is still on its curve.
+    const progressMarkup = EXPLORE_CLUSTER !== 'devnet' && (progress.value === null || progress.kind === 'migrated') ? '' : `<div class="home-launch-progress-row" data-progress-state="${progress.kind}"><div class="home-launch-progress-heading"><span>Bonding curve</span><strong>${escapeHtml(progress.text)}</strong></div><div class="home-launch-progress" ${trackAttributes}>${progress.value === null ? '' : `<i style="--launch-progress:${Number(progress.value.toFixed(2))}%"></i>`}</div></div>`;
     const ageLabel = item.createdTimestamp ? formatOnchainAge(Number(item.createdTimestamp) * 1000) : 'Age unavailable';
     const capSol = displayMarket.migrated === true ? displayMarket.poolMarketCapSol : displayMarket.curveCapSol;
     const capLabel = displayMarket.migrated === true ? 'Market cap' : 'Curve cap';

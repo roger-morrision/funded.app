@@ -1,0 +1,48 @@
+/* Design system: one corner radius, two button sizes and one primary action
+   colour across every page. Loaded last; values come from the --fv-* tokens in
+   styles/clarity.css. Round icons and pills keep their own shape. */
+:root {
+  --ds-radius: 8px;
+  --ds-button: 44px;
+  --ds-button-compact: 32px;
+  /* Older layers read these tokens with stronger selectors; one value keeps them consistent. */
+  --fv-radius-md: var(--ds-radius);
+  --token-card-radius: var(--ds-radius);
+}
+
+/* Buttons: 8px corners everywhere (token card actions were 10px, address copy
+   6px, tab buttons 6–7px). */
+html body #main-content#main-content :is(
+  .watch-button, .token-card-action-watch, .token-card-action-share, .token-card-action-boost,
+  .primary-button, .secondary-button, .explore-filter-toggle, .burn-primary
+) { border-radius: var(--ds-radius); }
+/* Segmented tabs: 6px buttons inside an 8px container on every page. */
+html body #main-content#main-content :is(.portfolio-view-tabs, .ui-tabs, .home-market-window, .home-market-ticker-arrows) > button { border-radius: 6px; }
+
+/* Two sizes: standard actions 44px, compact controls (tabs, segmented windows) 32px. */
+html body #main-content :is(.explore-filter-toggle, .projects-launch-button, .burn-primary) { min-height: var(--ds-button); height: auto; }
+html body #main-content :is(.home-market-window button, .home-market-ticker-arrows button) { min-height: var(--ds-button-compact); }
+
+/* Cards and panels: 8px corners (Home featured cards were 12px). */
+html body #main-content :is(.home-featured-card, .home-launch-card, .home-new-token-card, .callout-card,
+  .panel, .reward-dashboard-card, .list-form-card, .community-card) { border-radius: var(--ds-radius); }
+
+/* One primary action colour: Burn's "Buy $RICH" uses the accent like every other
+   page; "Burn $RICH" stays an outlined destructive action. */
+html body #main-content#main-content .burn-primary:not(.burn-danger) { border-color: var(--fv-accent); background: var(--fv-accent); color: #14100a; }
+html body #main-content#main-content .burn-primary:not(.burn-danger):hover { background: color-mix(in srgb, var(--fv-accent) 88%, white); }
+html body #main-content#main-content .burn-primary.burn-danger { border: 1px solid var(--fv-danger); background: transparent; color: var(--fv-danger); }
+html body #main-content#main-content .burn-primary.burn-danger:hover { background: color-mix(in srgb, var(--fv-danger) 12%, transparent); }
+
+/* Callouts: author filters become tappable chips (were 17px-tall text). */
+html body #main-content .callout-filter-author {
+  display: inline-flex; align-items: center; min-height: var(--ds-button-compact); padding: 0 10px;
+  border: 1px solid var(--fv-border); border-radius: 999px; background: var(--fv-surface-raised);
+}
+html body #main-content .callout-filter-author:hover { border-color: var(--fv-accent); }
+
+/* Illustrated "How … works" fold-outs repeat the page's own copy; the Docs pages keep them. */
+html body:not(.page-route-docs) #main-content .page-cleanup-guide { display: none; }
+
+/* Wallet summary: tiles with nothing to show are removed from the grid. */
+html body #main-content .wallet-detail-stats > [hidden] { display: none !important; }

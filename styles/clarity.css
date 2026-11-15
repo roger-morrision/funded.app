@@ -123,6 +123,14 @@ html body #main-content .home-launch-card .home-launch-card-stats .home-launch-c
 html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap .home-launch-change { display: block; font-size: 11px; }
 html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { color: var(--fv-accent); font-size: 16px; }
 html body #main-content .home-launch-card .home-launch-card-stats strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
+/* Single source for card stats: labels 11px everywhere (were 8–11px by page). */
+html body #main-content .home-launch-card .home-launch-card-stats { align-content: start; }
+html body #main-content .home-launch-card .home-launch-card-stats small { font-size: 11px !important; }
+/* Curve line (coins still on their curve): one full-width row under the stats. */
+html body #main-content .home-launch-card .home-launch-card-stats .home-launch-progress-row { display: block; grid-column: 1 / -1; align-self: start; min-width: 0; margin: 0; padding-top: 6px; border-top: 1px solid var(--fv-border); color: var(--fv-text-muted); font: 500 11px var(--fv-font-ui); }
+html body #main-content .home-launch-card .home-launch-card-stats .home-launch-progress-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+html body #main-content .home-launch-card .home-launch-card-stats .home-launch-progress { height: 6px; margin: 4px 0 0; }
+@media (max-width: 900px) { html body #main-content .home-launch-card .home-launch-card-stats .home-launch-progress-row { display: none; } }
 html body #main-content .home-market-ticker-items small.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 html body #main-content .home-launch-card .home-card-market-summary { display: grid; gap: var(--fv-space-2); margin: 0; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-progress-heading { display: flex; justify-content: space-between; gap: var(--fv-space-2); color: var(--fv-text-subtle); font: 500 11px var(--fv-font-ui); }
