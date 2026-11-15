@@ -41,7 +41,7 @@ export function currentFeePolicyCopy() {
     scope: 'Current policy for new launches. Existing coins and historical settlements keep their recorded rates. Allocated SOL is not a wallet balance or a completed payment.',
   collection: FEE_EXECUTION_COPY.collection,
     creator: FEE_EXECUTION_COPY.creator,
-    holders: 'Holder SOL payouts are automatic after a funded reward pool and complete finalized eligibility snapshot are verified; recipients do not claim or sign. Standard payouts are hourly; selected Devnet QA coins use five-minute cycles and reduced minimums. Check the coin’s current conditions and receipt.',
+    holders: 'Holder payouts (SOL, or the paired token for a paired coin) are automatic after a funded reward pool and complete finalized eligibility snapshot are verified; recipients do not claim or sign. Standard payouts are hourly; selected Devnet QA coins use five-minute cycles and reduced minimums. Check the coin’s current conditions and receipt.',
     x: 'X rewards require the allocated X account to sign in, link the recipient wallet, and claim. A completed sign-in or signature prompt is not a finalized payment.',
     referrals: `${referralRatePresentation().guide} ${FEE_EXECUTION_COPY.referralDelivery}`,
     reserve: 'Missing referral levels stay in the community reserve. They are not reassigned to another inviter or added to the Daily bonus pool.',

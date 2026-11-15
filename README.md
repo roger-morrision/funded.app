@@ -50,22 +50,32 @@ These are percentages of creator fees, not trade volume or every Pump fee. Only 
 
 ## Paired launches
 
-Step 1 of Create a coin has an optional **Paired with** list grouped by category: Stablecoins such as USDC, xStocks, Stocks and Crypto. Leaving it on SOL is a SOL launch. A paired coin trades on pump.fun against the chosen token and goes through the same two-step launch, the same V3 fee router and the same split of gross collected creator fees as every richpad.fun launch: **80% creator-directed · 8% Operations & marketing · 1% referral network · 2% AI marketing & coin buybacks · 4% Daily bonus · 5% $RICH buyback**. The 0.02 SOL launch service fee, 1% app trading fee, reserve, tiers and developer lock also apply unchanged.
+Step 1 of Create a coin has an optional **Paired with** list grouped by category: Stablecoins such as USDC, xStocks, Stocks and Crypto. It appears only where paired launches are open (Devnet now; Mainnet needs `PAIR_LAUNCH_MAINNET=true` and Pinata metadata). Leaving it on SOL is a SOL launch. A paired coin trades on pump.fun against the chosen token and goes through the same two-step form, the same V3 fee router and the same split of gross collected creator fees: **80% creator-directed · 8% Operations & marketing · 1% referral network · 2% AI marketing & coin buybacks · 4% Daily bonus · 5% $RICH buyback**. The 0.02 SOL launch service fee, 1% app trading fee, tiers and developer lock also apply.
 
-**Status: not open yet.** Launching with a token other than SOL stays blocked until the fee router can collect and settle creator fees paid in that token. The form says so and sends no transaction; set Paired with back to SOL to launch now. Existing pump.fun coins paired with other tokens can already be traded through Jupiter with the same 1% app fee.
+What differs for a paired coin:
+
+| Step | Paired coin behavior |
+| --- | --- |
+| Launch | One transaction creates the coin and buys the community reserve, paid in the paired token from your wallet. The review shows the reserve's maximum token cost and your token balance. |
+| Developer buy | Optional, priced in the paired token. It follows in a second wallet approval that buys on the curve and puts every purchased token into the time lock. If you cancel it, the coin registers without a developer buy. |
+| Creator fees | Pump pays them in the paired token. The keeper collects them into the coin's router and settles all eight categories in that token. |
+| Payouts (Devnet worker) | Holder rewards and the creator wallet's share are paid in the paired token automatically. The $RICH buyback and AI-agency budgets are swapped to SOL through a pinned PumpSwap pool before they are spent. Operations, referral, X and Daily bonus shares stay in their token vaults; their payouts are not automated for paired coins yet. |
+| Holder eligibility | The coin's PumpSwap pool, program-owned accounts and operational wallets are never selected as holders. |
+
+Existing pump.fun coins paired with other tokens can be traded through Jupiter with the same 1% app fee.
 
 ## Automatic rewards and claims
 
 | Program | Asset | Recipient action |
 | --- | --- | --- |
-| Creator wallet | SOL | Automatic on an active funded automatic route; review/sign available manual actions |
-| Coin holders | SOL | Automatic after complete eligibility, funding and minimum checks |
+| Creator wallet | SOL (paired coins: the paired token) | Manual claim in Rewards → Coin creator for SOL coins; paid automatically for paired coins by the Devnet paired-token worker |
+| Coin holders | SOL (paired coins: the paired token) | Automatic after complete eligibility, funding and minimum checks |
 | X account | SOL | Named account signs in, links its recipient wallet and claims |
-| Referral network | SOL | No recipient claim; automatic or creator-approved transfers pay the frozen upline |
+| Referral network | SOL | Manual claim: the earning wallet opens Referrals, chooses Claim reward and signs the claim message |
 | Daily bonus | SOL | Automatic after completed-day snapshot and exact source funding |
-| Community airdrop | Launched coin tokens | Eligible wallet checks its proof and claims within the displayed window |
+| Community airdrop | Launched coin tokens | Automatic: delivered to eligible $RICH holders after the migration snapshot; no claim or signature |
 
-Standard holder rewards use hourly periods and five-minute finalized samples. Selected Devnet QA coins can use five-minute periods and reduced minima. Check each coin's actual program conditions.
+Standard holder rewards use hourly periods and five-minute finalized samples. Selected Devnet QA coins can use five-minute periods and reduced minima. Devnet fast-test mode (`FUNDED_DEVNET_QA_ALL_MINTS=true`, behind the QA master switch) applies those QA settings to every coin: 5-minute holder periods with 1-minute samples, low holder and collection minimums, and 5-minute Daily bonus windows covering the last two hours. Check each coin's actual program conditions.
 
 Daily bonus snapshots close at 00:00 UTC. Creators rank by finalized settled fees, direct referrers by referred creators' finalized settled fees, and traders by finalized buy/sell SOL volume. The 4% of gross collected creator fees is divided into three equal category budgets. Each category pays its top three 50% / 30% / 20% of that category's budget. New fee eligibility uses the settlement finalization window; late settlements enter a later window and paid rankings remain frozen. Ties use wallet address order; unfilled ranks retain their share. The worker checks every five minutes. Winners do not claim or sign; the cutoff does not guarantee immediate payment.
 
@@ -73,7 +83,7 @@ Ordinary referral-network levels are separate from the Daily referrer bonus. Mis
 
 For selected disposable Devnet mints, an explicit five-minute QA bonus schedule uses independent `qa5m:` snapshot keys and a 30-second worker check. Existing daily snapshots remain intact and a collection cannot fund both schedules. The UI displays the active schedule. See [QA setup and restoration](docs/daily-bonus-policy.md#five-minute-devnet-qa); the normal daily policy remains 24 hours.
 
-Community token airdrops normally use verified migration eligibility and a 90-day claim window. A clearly labeled Devnet QA cutoff is not proof of a genuine migration snapshot.
+Community token airdrops use verified migration eligibility; the platform delivers each wallet's tokens and pays the network fee. Drops stay open for a 90-day window. When it ends, the claim worker closes it and returns undelivered tokens to the app owner (`FUNDED_COMMUNITY_DROP_AUTO_CLOSE=false` disables this). A clearly labeled Devnet QA cutoff is not proof of a genuine migration snapshot.
 
 The normal aggregate buyback trigger is 5 SOL. Selected Devnet QA settings can lower that trigger without changing the saved fee split. Quotes, liquidity, spend controls, current program approval and finalized purchase/burn proofs remain required. This program buys and burns $RICH. The separate AI agency agents buy and burn the launched coin using its saved agency budget and milestones.
 
@@ -81,16 +91,22 @@ The normal aggregate buyback trigger is 5 SOL. Selected Devnet QA settings can l
 
 - **Home:** verified launches, discovery, animated Daily bonus allocations, UTC countdown, buyback progress and platform metrics.
 - **Explore:** search, time windows, filters, sorts, grid/table views; Favorites shows starred tokens and Following uses tracked trader wallets.
-- **Coin pages:** mint, trading stage, saved V3 policy, trades, fee collections, allocations, holders and transaction actions.
+- **Top 100:** featured ranking of verified directory coins (boosts, paid listing, Premier, Pro, then market-cap change and volume).
+- **Create a coin:** two-step form with optional Paired with token, package, creator-directed split, community reserve, developer buy and lock period.
+- **Coin pages:** mint, pair, trading stage, saved V3 policy, trades, fee collections, allocations, holders and transaction actions.
 - **Portfolio and wallet profiles:** created coins, holdings and available wallet activity, claims, rewards, airdrops and bonuses.
 - **Capital flow:** current policy calculator and completed-day snapshot rankings.
 - **Daily bonuses:** category-filtered finalized history and all-time top recipients across all recorded snapshots.
 - **Rewards / History / Analytics:** verified SOL payments, net recipient amounts, fee/rent details and explicit partial coverage.
 - **Airdrops:** launched-token custody, eligibility, claim proof and finalized claimed amounts.
+- **Referrals:** invite link, three-level network, claimable and paid referral rewards.
+- **Leaderboard:** creator, trader and burner rankings; Daily bonus standings reset each UTC day.
+- **$RICH and buyback & burn:** token page, promotion burns and fee-funded buyback/burn receipts.
+- **Creators:** creator directory, followed creators, project updates and confirmed payout receipts.
 - **Callouts:** token-chat calls, sampled market-cap rankings and caller profiles; observed peaks are not realized returns.
 - **AI Marketing:** saved agent selection, budgets, milestones, publisher readiness and execution receipts.
 - **Profile:** local notices and trade preferences, reviewed follows/reminders backup, optional X sync and reviewed guest issue reports.
-- **Community pilot:** a local communication plan; it does not post, trade or allocate incentives.
+- **Docs, Help and Status:** searchable guides, page help, FAQ and an on-demand storage/network status check.
 - **Admin:** allowlisted Devnet sign-in, versioned protocol fee policy, wallet/vault inventory, audited source-signed withdrawals and guarded Daily bonus recovery.
 
 Launch promotion tiers, paid listings and directory SOL boosts have separate receipts. Launch tiers burn the displayed $RICH amount; paid listings have their own burn quote; an enabled SOL boost uses an exact payment and unique quote memo before sponsored placement activates.
@@ -115,7 +131,7 @@ Retired release, audit and planning reports are preserved in Git history and loc
 
 ## Launch protections and service prices
 
-New launches protect a ticker on richpad.fun for 12 hours and escrow the declared initial developer token purchase for a selected **6h, 12h, 24h or 48h** period (**12h default**), capped at 20% of supply. Choose the period beside Developer buy before signing; the deadline is fixed at launch. Existing locks keep their saved deadlines. Zero developer purchases need no escrow; later purchases and other wallets are outside this lock. Developer token locks do not delay creator SOL earnings. See [scope and release](docs/launch-protections.md).
+New launches protect a ticker on richpad.fun for 12 hours and escrow the declared initial developer token purchase for a selected **6h, 12h, 24h or 48h** period (**12h default**), capped at 20% of supply. Devnet router builds also offer **5 min (Devnet test)** when the verified escrow configuration includes it; Mainnet builds keep 6–48 hours. Choose the period beside Developer buy before signing; the deadline is fixed at launch. Existing locks keep their saved deadlines. Zero developer purchases need no escrow; later purchases and other wallets are outside this lock. Developer token locks do not delay creator SOL earnings. See [scope and release](docs/launch-protections.md).
 
 Code defaults are 1% app trading on buys and sells, 0.02 SOL per launch, $150 Pro, $300 Premier and $300 external listing in quoted $RICH burns. These are defaults, not locked live quotes. The service-price endpoint and reviewed quote govern; network, rent, Pump/pool costs and purchases are separate. See [service fees](docs/app-service-fees.md).
 

@@ -15,13 +15,14 @@ The [agency policy](marketing-agency-policy.md#approved-rules) separates policy 
 | X account | SOL | Named X account signs in, links receiving wallet and claims | Identity, ownership, funding and finalized receipt |
 | Referral network | SOL | Manual: Referrals → Claim reward; sign the allocation message with the earning wallet | Frozen first-touch upline, collected fees and finalized transfer |
 | Daily bonus | SOL | Automatic; no claim or recipient signature | Completed UTC day, verified rankings and exact source funding |
+| Paired coins (USDC, xStocks, …) | The paired token | Holders and the creator wallet are paid automatically in the paired token by the Devnet paired-token worker; buyback and AI-agency budgets are swapped to SOL; operations, referral, X and Daily bonus shares stay in token vaults for now | Finalized token collection, settlement and exact vault deltas |
 | Community airdrop | Launched coin tokens | Automatic at migration after verification; no recipient claim or signature | Funded reserve; exact migration-time $RICH holdings; proportional allocation and finalized token transfer |
 
 Developer token locks do not delay creator SOL earnings. The separate [developer token lock](launch-protections.md) applies to the declared initial token purchase for the selected 6h, 12h, 24h or 48h period (12h default). Existing locks keep their saved deadlines. Read [on-chain automation](onchain-automation.md) for route gates and [all-page guidance](product-guide.md) for recipient workflows.
 
 ### Holder cadence and conditions
 
-Standard holder periods close hourly, with finalized samples normally every five minutes. Defaults include US$20 reference-equivalent holdings, at most 1,000 eligible wallets, and a funded pool meeting 0.01 SOL and the US$20-plus-cost condition. The economic allowance is US$0.01 per recipient; transaction/account costs are paid separately. Missing prices or incomplete coverage blocks preparation; small pools carry forward. Selected Devnet QA mints can use reduced minima and five-minute periods with one-minute samples. See [QA configuration](devnet-qa-minimums.md) and each coin's conditions.
+Standard holder periods close hourly, with finalized samples normally every five minutes. Defaults include US$20 reference-equivalent holdings, at most 1,000 eligible wallets, and a funded pool meeting 0.01 SOL and the US$20-plus-cost condition. The economic allowance is US$0.01 per recipient; transaction/account costs are paid separately. Missing prices or incomplete coverage blocks preparation; small pools carry forward. Selected Devnet QA mints can use reduced minima and five-minute periods with one-minute samples. Devnet fast-test mode (`FUNDED_DEVNET_QA_ALL_MINTS=true`) applies this to every coin. Holder selection never includes the coin's PumpSwap pool (SOL or paired token), program-owned accounts, the router authority/app owner, the trade-fee owner or `REWARD_EXCLUDED_WALLETS`. See [QA configuration](devnet-qa-minimums.md) and each coin's conditions.
 
 ### Daily bonus and history
 

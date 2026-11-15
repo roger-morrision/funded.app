@@ -67,3 +67,19 @@ five-minute period. Paid cycles remain immutable. Set the short-period flag to
 `false` to restore hourly cadence at the next boundary for larger UAT.
 
 The plural holder-mint allowlists support at most eight valid addresses and require the relevant Devnet-only flag. These gates do not alter fee percentages, existing prepared manifests or on-chain obligations. Shortening holder periods does not change the bonus schedule. A separate explicit `FUNDED_DEVNET_QA_BONUS_PERIOD_SECONDS=300` and `FUNDED_DEVNET_QA_BONUS_MINTS` allowlist enables namespaced five-minute bonus windows; see [bonus QA configuration](daily-bonus-policy.md#five-minute-devnet-qa). Community QA cutoffs have their own explicit approval and must not be presented as genuine migration evidence. See `server/devnet-qa-minimums.mjs` for the enforced ranges and each public coin/program record for active settings.
+
+## Devnet fast-test mode (every coin)
+
+`FUNDED_DEVNET_QA_ALL_MINTS=true` applies the QA settings to every coin instead
+of the eight-mint allowlists. It works only on Devnet and only with
+`FUNDED_DEVNET_QA_MINIMUMS_ENABLED=true`; any other cluster throws at startup.
+
+| Area | Fast-test behavior |
+| --- | --- |
+| Holder rewards | 5-minute periods with 1-minute samples and low minimums; holder history keeps six hours |
+| Fee collection | QA collection minimum instead of 0.01 SOL |
+| Daily bonus | With `FUNDED_DEVNET_QA_BONUS_PERIOD_SECONDS=300` and no `FUNDED_DEVNET_QA_BONUS_MINTS`, 5-minute windows cover all coins; backfill is limited to the last two hours |
+| Paired coins | Their holder programs re-register when the QA period or minimums change |
+
+The saved fee split and on-chain policy are unchanged. Turn the flag off to
+return every coin to standard hourly holder periods and daily bonus windows.

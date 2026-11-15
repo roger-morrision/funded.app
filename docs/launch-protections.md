@@ -77,6 +77,7 @@ minimum amounts, authorization and payout scheduling still apply.
 | 12h | 43,200 seconds | Default |
 | 24h | 86,400 seconds | Optional |
 | 48h | 172,800 seconds | Optional |
+| 5 min (Devnet test) | 300 seconds | Devnet router builds only, offered when the verified escrow configuration includes it |
 
 The review and mobile signing summary show the chosen duration for a nonzero
 developer buy. Changing it requires a fresh cost review. The signed launch policy
@@ -87,7 +88,17 @@ community-airdrop timing or creator SOL payment conditions.
 
 `GET /api/launch-reserve-config` reports the default `lockSeconds: 43200` and the
 verified `lockPeriodsSeconds: [21600, 43200, 86400, 172800]`. An older deployment
-can support only 12h; the client must not submit an unsupported period.
+can support only 12h; the client must not submit an unsupported period. Devnet
+builds (`devnet-v3-program` without `mainnet-v3-program`) also accept 300 seconds;
+Mainnet builds keep 6–48 hours.
+
+Paired coins (USDC, xStocks and other quote tokens) cannot fit the escrow in the
+atomic launch transaction. Their developer buy is a second creator-signed
+transaction that buys on the curve and escrows every purchased token.
+Registration accepts it only within 900 slots of the launch, with only Pump, the
+escrow program, compute budget and account setup, the creator ending with none of
+the coin, the curve outflow equal to the escrowed amount and the signed lock
+period. A cancelled or failed developer buy leaves the coin without one.
 
 ## Bundle-wallet signals
 

@@ -7,7 +7,7 @@ import {guideOutline,outlineHtml,conciseFeePoints} from './guide-outlines.js';
 import {pairLaunchPoints} from '../fees/pair-launch-copy.js';
 
 export const rewardActions = () => [
-  ['Creator wallet', 'SOL', 'Rewards → Coin creator → select coin → Claim creator fees. Sign with the launch creator wallet.', 'Available after the saved wallet share is collected and settled; developer token locks do not delay these SOL earnings.', '#payments/creator'],
+  ['Creator wallet', 'SOL', 'Rewards → Coin creator → select coin → Claim creator fees. Sign with the launch creator wallet.', 'Available after the saved wallet share is collected and settled; developer token locks do not delay these SOL earnings. Paired coins pay this share automatically in the paired token.', '#payments/creator'],
   ['Coin holders', 'SOL', 'Automatic; no claim or signature. Check Rewards → Coin holder and payout history.', 'After each completed UTC hour, with a funded pool, verified holdings, prices and minimums; small pools carry forward.', '#payments/holders'],
   ['X account', 'SOL', 'Rewards → X claims. Sign in with the named X account, link the receiving wallet and claim.', 'Available after the named account’s allocation is funded and verified.', '#payments/x'],
   ['Referral network', 'SOL', 'Referrals → Claim reward. Sign in with the earning wallet and sign the allocation’s claim message.', 'Available after qualifying fees are collected and settled; saved first-, second- and third-level shares apply.', '#referrals'],
@@ -54,7 +54,7 @@ export function productFaqs() {
   return [
     ...pageFaqs(),
     ['service-prices','What does it cost to trade, launch or list?', `<p>${serviceFeeGuide()}</p><a href="#docs/fees">Review service charges and creator fees →</a>`],
-    ['assets','Which rewards are SOL, and which are coin tokens?', '<p>Creator-wallet rewards, holder rewards, X rewards, referral payouts and Daily bonuses use <strong>SOL</strong>. Community airdrops use <strong>tokens of the launched coin</strong>. Check the asset and program on each record.</p>'],
+    ['assets','Which rewards are SOL, and which are coin tokens?', '<p>Creator-wallet rewards, holder rewards, X rewards, referral payouts and Daily bonuses use <strong>SOL</strong>. For a coin paired with another token (USDC, xStocks, …), holder rewards and the creator wallet are paid in <strong>that paired token</strong>. Community airdrops use <strong>tokens of the launched coin</strong>. Check the asset and program on each record.</p>'],
     ['fees','How are collected creator fees allocated?', `<p id="fee-policy-faq">${copy.allocation} ${copy.scope}</p><a href="#capital-flow">See the fee split →</a>`],
     ['paired-launch','Do coins paired with USDC, xStocks or other tokens use the same fees?', `<p>${pairLaunchPoints().join(' ')}</p><a href="#docs/paired-launch">Read about paired launches →</a>`],
     ['fee-base','Do these percentages apply to every trade?', '<p>They apply to gross creator fees actually collected through the richpad.fun route. They are not percentages of trade volume or all Pump trading fees. The creator-directed 80% is divided according to that coin’s saved wallet, holder and X settings.</p>'],

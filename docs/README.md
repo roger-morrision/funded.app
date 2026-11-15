@@ -1,6 +1,6 @@
 # Documentation index
 
-Start with the [all-page product guide](product-guide.md) for current features, recipient actions and recovery flows. In-app Docs, Questions and Help share the same source guidance. Source review date: 5 November 2026; developer lock guidance updated 8 November 2026; runtime availability must be checked separately.
+Start with the [all-page product guide](product-guide.md) for current features, recipient actions and recovery flows. In-app Docs, Questions and Help share the same source guidance. Source review date: 5 November 2026; developer lock guidance updated 8 November 2026; paired launches, payouts and Devnet fast-test mode updated 15 November 2026; runtime availability must be checked separately.
 
 ## Maintained product and operator references
 
@@ -16,9 +16,10 @@ Start with the [all-page product guide](product-guide.md) for current features, 
 - [Financial enforcement and configurable launch rules](configurable-financial-rules.md)
 - [V3 Devnet creator fee collection and distribution](creator-fee-collector.md)
 - [Daily bonus and creator-fee allocation policy](daily-bonus-policy.md)
-- [Devnet QA buyback minimum](devnet-qa-minimums.md)
+- [Devnet QA minimums and fast-test mode](devnet-qa-minimums.md)
 - [Devnet wallet roles](devnet-wallet-role-separation.md)
-- [Launch protections and developer lock options: 6h, 12h, 24h, 48h](launch-protections.md)
+- [Launch protections and developer lock options: 6h, 12h, 24h, 48h (5 min on Devnet)](launch-protections.md)
+- [Paired launches: USDC, xStocks and other quote tokens](../README.md#paired-launches)
 - [Persistent left navigation](left-navigation.md)
 - [Mainnet launch readiness](mainnet-launch-readiness.md)
 - [Mainnet preparation with placeholders and remaining acceptance work](mainnet-forward-plan-2026-11-09.md)

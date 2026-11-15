@@ -2,8 +2,8 @@ import { escapeHtml } from '../shared/display.js';
 import { loadPairQuotes, PAIR_CATEGORIES, WSOL_MINT } from '../shared/pair-label.js';
 // Step 1 of the launch form: an optional "Paired with" dropdown, grouped by
 // category. Leaving it on SOL keeps the standard richpad.fun launch. A paired
-// coin uses the same two-step launch, V3 fee router and creator-fee split; the
-// launch stays blocked until the router supports fees paid in the paired token.
+// coin uses the same two-step launch, V3 fee router and creator-fee split; its
+// reserve and developer buy are paid in the paired token.
 // The pair chosen in step 1, or null for a SOL launch. Read by the launch cost
 // estimate, the developer-buy quote and the submit step.
 export function readLaunchPair(doc = globalThis.document) {
