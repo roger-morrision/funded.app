@@ -16,9 +16,9 @@ export function renderTodayBonuses(page,data,document=globalThis.document){
   page.querySelector('[data-bonus-today-status]').textContent=today?.checkedAt?`Updated ${new Date(today.checkedAt).toLocaleTimeString()}`:'';
   page.querySelector('[data-today-cutoff]').textContent=data?.schedule?.mode==='devnet-qa-5m'?'Devnet QA snapshot · every 5 minutes':'Snapshot · 00:00 UTC';
 }
-export function tickTodayBonus(page,data,clockBase,performanceNow){
+export function tickTodayBonus(page,data,clockBase,performanceNow,inactive=false){
   const node=page.querySelector('[data-today-countdown]');if(!node)return;
   const now=Date.now();
   node.textContent=clockBase&&performanceNow-clockBase.started>120_000?'-':clockBase?bonusCountdown(clockBase.cutoff,clockBase.at,performanceNow-clockBase.started)
-    :!data || data?.schedule?.mode==='devnet-qa-5m'?'—:—:—':bonusCountdown(nextUtcCutoff(now),now,0);
+    :!data&&inactive?'Not active yet':!data || data?.schedule?.mode==='devnet-qa-5m'?'—:—:—':bonusCountdown(nextUtcCutoff(now),now,0);
 }

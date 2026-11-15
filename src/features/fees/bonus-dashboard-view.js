@@ -53,7 +53,7 @@ export function initBonusDashboard(document = globalThis.document) {
   const leaders = page.querySelector('[data-bonus-leaders]'), rows = page.querySelector('[data-bonus-history-rows]');
   const previous = page.querySelector('[data-bonus-previous]'), next = page.querySelector('[data-bonus-next]');
   const pageLabel = page.querySelector('[data-bonus-page]'), clock = home.querySelector('[data-bonus-countdown]');
-  const frames = new Map(); let request, serial = 0, pageNumber = 1, data, clockBase, qaSchedule = false;
+  const frames = new Map(); let request, serial = 0, pageNumber = 1, data, clockBase, qaSchedule = false, inactive = false;
   const node = (tag, text) => { const el = document.createElement(tag); if (text != null) el.textContent = text; return el; };
   const walletLink = wallet => {
     const link = node('a', short(wallet)); link.href = `/wallet/${encodeURIComponent(wallet)}`; link.title = wallet; return link;
@@ -189,10 +189,11 @@ export function initBonusDashboard(document = globalThis.document) {
     frames.set(el, view.requestAnimationFrame(step));
   }
   function tick() {
-    tickTodayBonus(page,data,clockBase,view.performance.now());
+    tickTodayBonus(page,data,clockBase,view.performance.now(),inactive);
     if (!clockBase) {
       const now = Date.now();
-      clock.textContent = qaSchedule ? '—:—:—' : bonusCountdown(nextUtcCutoff(now), now, 0);
+      // No countdown while bonus data is unavailable (e.g. Mainnet before the program runs).
+      clock.textContent = qaSchedule ? '—:—:—' : inactive ? 'Not active yet' : bonusCountdown(nextUtcCutoff(now), now, 0);
       return;
     }
     const elapsed = view.performance.now() - clockBase.started;
@@ -200,6 +201,7 @@ export function initBonusDashboard(document = globalThis.document) {
     clock.textContent = bonusCountdown(clockBase.cutoff, clockBase.at, elapsed);
   }
   function render(owner) {
+    inactive = false;
     renderTodayBonuses(page,data,document);
     const qa = data.schedule?.mode === 'devnet-qa-5m' && data.schedule.periodSeconds === 300;
     qaSchedule = qa;
@@ -238,7 +240,7 @@ export function initBonusDashboard(document = globalThis.document) {
   function unavailable(owner, reason, ledgerTraders = false) {
     renderTodayBonuses(page,null,document);
     if (ledgerTraders) showLedgerTraders(serial);
-    data = null; clockBase = null; tick();
+    data = null; clockBase = null; inactive = true; tick();
     for (const el of home.querySelectorAll('[data-bonus-pool]')) animate(el, null);
     poolStatus.textContent = 'Bonus pool data is unavailable. No amount is confirmed here.';
     home.querySelector('[data-bonus-verification]').textContent = 'Current payout readiness is unavailable.';

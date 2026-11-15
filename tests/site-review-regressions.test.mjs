@@ -57,3 +57,9 @@ test('promotional launch posts preserve proof checks and fit X limits for long n
   }
   assert.throws(()=>buildXPost('launch',{name:'RICH CAT',marketingTier:'standard',mint:'So11111111111111111111111111111111111111112',proofs:[]},{cluster:'devnet'}),/proofs/);
 });
+
+test('bonus data known to be unavailable reads "Not active yet" instead of a countdown', () => {
+  const clock={textContent:''};
+  tickTodayBonus({querySelector:()=>clock},null,null,0,true);
+  assert.equal(clock.textContent,'Not active yet');
+});

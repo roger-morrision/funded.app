@@ -45,10 +45,12 @@ try {
 try {
   if (document.documentElement.classList.contains('route-booting')) {
     // Reveal the page once the requested route is shown, the app reports ready, and
-    // startup modules have stopped rearranging the page for 120 ms (at most 1.2 s
+    // startup modules have stopped rearranging the page for 120 ms (at most 1 s
     // after ready), so the visitor never sees sections jump into place.
     let lastChange = performance.now(), readyAt = 0, timer = 0;
-    const observer = new MutationObserver(() => { lastChange = performance.now(); });
+    // Only structural changes count; values filling into existing elements do not move sections.
+    const structural = list => list.some(m => m.type === 'attributes' || [...m.addedNodes, ...m.removedNodes].some(node => node.nodeType === 1));
+    const observer = new MutationObserver(list => { if (structural(list)) lastChange = performance.now(); });
     const release = () => { document.documentElement.classList.remove('route-booting'); observer.disconnect(); clearInterval(timer); };
     const check = () => {
       if (!document.documentElement.classList.contains('route-booting')) { release(); return; }
@@ -57,7 +59,7 @@ try {
       const ready = ['ready', 'degraded'].includes(document.body?.dataset.bootstrapState);
       if (!routed || !ready) return;
       readyAt ||= performance.now();
-      if (performance.now() - lastChange >= 120 || performance.now() - readyAt >= 1200) release();
+      if (performance.now() - lastChange >= 120 || performance.now() - readyAt >= 1000) release();
     };
     document.addEventListener('DOMContentLoaded', () => {
       observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
