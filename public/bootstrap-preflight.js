@@ -44,12 +44,25 @@ try {
 } catch {}
 try {
   if (document.documentElement.classList.contains('route-booting')) {
-    const release = () => {
+    // Reveal the page once the requested route is shown, the app reports ready, and
+    // startup modules have stopped rearranging the page for 120 ms (at most 1.2 s
+    // after ready), so the visitor never sees sections jump into place.
+    let lastChange = performance.now(), readyAt = 0, timer = 0;
+    const observer = new MutationObserver(() => { lastChange = performance.now(); });
+    const release = () => { document.documentElement.classList.remove('route-booting'); observer.disconnect(); clearInterval(timer); };
+    const check = () => {
+      if (!document.documentElement.classList.contains('route-booting')) { release(); return; }
       // Wait for the requested page itself; the router may pass through Home first.
       const routed = document.body && [...document.body.classList].some(name => name.startsWith('page-route-') && name !== 'page-route-overview');
-      if (routed) { document.documentElement.classList.remove('route-booting'); observer.disconnect(); }
+      const ready = ['ready', 'degraded'].includes(document.body?.dataset.bootstrapState);
+      if (!routed || !ready) return;
+      readyAt ||= performance.now();
+      if (performance.now() - lastChange >= 120 || performance.now() - readyAt >= 1200) release();
     };
-    const observer = new MutationObserver(release);
-    document.addEventListener('DOMContentLoaded', () => { observer.observe(document.body, { attributes: true, attributeFilter: ['class'] }); release(); }, { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+      observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
+      timer = setInterval(check, 50);
+      check();
+    }, { once: true });
   }
 } catch {}

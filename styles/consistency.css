@@ -277,3 +277,4 @@ html body #top100 .top100-filter-toggle { display: none; }
   html body #main-content #top100 .top100-filter-toggle { display: inline-flex; align-items: center; justify-content: center; }
   html body #main-content #top100 .top100-toolbar:not(.is-filters-open) > :is(label, [data-top-reset]) { display: none; }
 }
+html body #main-content .home-kpi-mainnet-note{margin:12px 0 0;padding:14px 16px;border:1px solid var(--fv-border);border-radius:var(--fv-radius-md,10px);background:var(--fv-surface);color:var(--fv-text-subtle);line-height:1.5}

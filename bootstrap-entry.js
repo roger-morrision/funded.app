@@ -1,3 +1,5 @@
+// Must stay the first import: startup reads below are answered by the live cache.
+import './src/lib/live-boot.js';
 import { mountHomeStart } from './src/features/home/start-markup.js';
 import { mountHomeDiscovery } from './src/features/home/discovery-controls.js';
 import { Buffer } from 'buffer';

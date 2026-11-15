@@ -6,7 +6,8 @@ export function installRpcWebsocketProxy(server,{upstreamUrl,allowedOrigin,readO
   const target=new URL(upstreamUrl);if(!['ws:','wss:'].includes(target.protocol))throw Error('Invalid RPC WebSocket target');
   const sockets=new WebSocketServer({noServer:true,maxPayload:16384,perMessageDeflate:false});
   const upgrade=(request,socket,head)=>{
-    if(new URL(request.url,'http://localhost').pathname!=='/api/solana/ws'){socket.destroy();return;}
+    // Other upgrade paths (/api/live) have their own handler, which also closes unknown paths.
+    if(new URL(request.url,'http://localhost').pathname!=='/api/solana/ws'){if(!server.listeners('upgrade').some(listener=>listener.liveData))socket.destroy();return;}
     const origin=request.headers.origin;
     let allowed=origin===allowedOrigin;
     try{allowed||=['http:','https:'].includes(new URL(origin).protocol)&&['localhost','127.0.0.1'].includes(new URL(origin).hostname);}catch{}

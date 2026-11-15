@@ -30,11 +30,19 @@ export function mountEarningsHub(app, document = globalThis.document) {
   const breakdown = hub.querySelector('[data-earnings-breakdown]'), next = hub.querySelector('[data-earnings-next]');
   let loadedFor = null, loadedAt = 0, serial = 0;
 
+  // A countdown only for payouts that actually run; otherwise say they are not active.
+  // null = not yet known (countdown shown as before).
+  const running = { holder: null, bonus: null };
+  void getJSON('/api/rewards/automatic').then(data => { running.holder = data ? data.status === 'active' : null; renderNext(); });
+  void getJSON('/api/daily-bonus').then(data => { running.bonus = data ? data.payoutEnabled === true : null; renderNext(); });
   function renderNext() {
     const now = Date.now();
+    const off = 'Not active yet';
     next.replaceChildren(...[
-      ['Holder SOL rewards', `in ${countdown(nextUtcHour(now), now)}`, 'Automatic each completed UTC hour, when funded'],
-      ['Daily bonus snapshot', `in ${countdown(nextUtcMidnight(now), now)}`, 'Top 3 per category paid automatically after checks'],
+      ['Holder SOL rewards', running.holder === false ? off : `in ${countdown(nextUtcHour(now), now)}`,
+        running.holder === false ? 'Starts when automatic holder payouts are switched on' : 'Automatic each completed UTC hour, when funded'],
+      ['Daily bonus snapshot', running.bonus === false ? off : `in ${countdown(nextUtcMidnight(now), now)}`,
+        running.bonus === false ? 'Starts when daily bonus payouts are switched on' : 'Top 3 per category paid automatically after checks'],
     ].map(([title, when, detail]) => {
       const item = el(document, 'li');
       item.append(el(document, 'strong', null, title), el(document, 'b', null, when), el(document, 'small', null, detail));

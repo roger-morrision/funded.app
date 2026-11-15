@@ -28,7 +28,9 @@ export function createCoinMarketController(appState) {
   // app-source: 950
   function formatExploreUsd(value, options = {}){
     const prefix = options.partial ? '≥' : '';
-    return `${prefix}${appState.formatCoinUsd(value)}`;
+    // Volumes of $1,000 and more read as whole dollars ($79,626, not $79,625.66).
+    const text = appState.formatCoinUsd(value);
+    return `${prefix}${/^\$\d{1,3}(?:,\d{3})+\.\d+$/.test(text) ? `$${Math.round(Number(text.slice(1).replace(/,/g, ''))).toLocaleString('en-US')}` : text}`;
   }
   // app-source-end
 

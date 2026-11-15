@@ -38,6 +38,20 @@ export function renderHomeKpiDashboard(verified = assets, { assets, exploreUpdat
   const feeCount = feesFromFinalized ? Number(analyticsSummary.collections || 0) : collections.length;
   const recordedCollections = Number(analyticsSummary?.recordedCollections ?? receiptEvidence?.coverage?.recordedCollections ?? 0);
   const feeAvailable = solQuoteReady && (feesFromFinalized || evidenceReady);
+  // Mainnet before the first richpad launch: one plain line instead of a grid of zeros.
+  const kpiGrid = launchCard?.closest('.home-proof-metrics, .home-kpi-grid');
+  if (kpiGrid) {
+    const noLaunches = EXPLORE_CLUSTER !== 'devnet' && !launchFeedUnavailable && fundedLaunchRecords.length === 0 && !(feeCount > 0);
+    let note = kpiGrid.parentElement?.querySelector('[data-kpi-mainnet-note]');
+    if (noLaunches && !note) {
+      note = document.createElement('p');
+      note.className = 'home-kpi-mainnet-note'; note.dataset.kpiMainnetNote = '';
+      note.textContent = 'Launch totals, collected fees and payouts appear here once coins launch on richpad.fun. Trading and paid listings on Solana Mainnet are live now.';
+      kpiGrid.before(note);
+    }
+    kpiGrid.hidden = noLaunches;
+    if (note) note.hidden = !noLaunches;
+  }
   const partialFees = feesFromFinalized
     ? analyticsSummary.status === 'partial' || feeCount < recordedCollections
     : receiptEvidence?.status === 'partial' || feeCount < recordedCollections;
