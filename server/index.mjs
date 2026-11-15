@@ -131,7 +131,7 @@ publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/clien
 
 const solanaCluster = deploymentCluster(process.env);
 // Admin authentication (JWT in an HttpOnly cookie) shared by every admin API.
-const adminJwt = createAdminJwt({ cluster: solanaCluster });
+const adminJwt = createAdminJwt({ cluster: solanaCluster, store });
 const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 async function communityClaimService(mint) {
   if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');

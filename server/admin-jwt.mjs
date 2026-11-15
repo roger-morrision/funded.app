@@ -14,9 +14,10 @@ const b64url = value => Buffer.from(value).toString('base64url');
 const fromB64url = value => Buffer.from(String(value), 'base64url');
 const validWallet = value => { try { return new PublicKey(String(value)).toBase58(); } catch { return null; } };
 
-// Signing key: FUNDED_ADMIN_JWT_SECRET when set (at least 32 characters), else
-// derived from the server's existing FUNDED_API_TOKEN so production needs no
-// extra secret. Local development without either uses a per-process key.
+// Signing key: FUNDED_ADMIN_JWT_SECRET (at least 32 characters, usually from
+// FUNDED_ADMIN_JWT_SECRET_FILE) so rotating it signs every admin out without
+// touching other credentials. Older deployments without it derive a key from
+// FUNDED_API_TOKEN. Local development without either uses a per-process key.
 export function adminJwtKey(env = process.env) {
   const dedicated = String(env.FUNDED_ADMIN_JWT_SECRET || '').trim();
   if (dedicated.length >= 32) return Buffer.from(dedicated);
@@ -25,10 +26,27 @@ export function adminJwtKey(env = process.env) {
   return null;
 }
 
-export function createAdminJwt({ env = process.env, cluster, now = Date.now } = {}) {
+// Sign-outs are written to the store (bucket adminJwtRevocations) so a revoked
+// token stays revoked across restarts. Until the stored list has loaded, every
+// token is refused, so a restart never reopens a signed-out session.
+export function createAdminJwt({ env = process.env, cluster, now = Date.now, store = null, retryMs = 5000 } = {}) {
   const fallbackKey = randomBytes(32);
   const key = () => adminJwtKey(env) || fallbackKey;
   const revoked = new Map();
+  let loaded = !store;
+  if (store && String(env.FUNDED_ADMIN_JWT_SECRET || '').trim().length < 32)
+    console.warn(JSON.stringify({ event: 'admin_jwt_dedicated_secret_missing', cluster }));
+  async function loadRevocations() {
+    try {
+      const rows = (await store.read())?.adminJwtRevocations || {};
+      for (const [jti, row] of Object.entries(rows)) if (Number(row?.until) > now()) revoked.set(jti, Number(row.until));
+      loaded = true;
+    } catch {
+      console.error(JSON.stringify({ event: 'admin_jwt_revocations_load_failed' }));
+      setTimeout(loadRevocations, retryMs).unref?.();
+    }
+  }
+  const ready = store ? loadRevocations() : Promise.resolve();
   const admins = () => new Set(String(env.FUNDED_ADMIN_WALLETS || '').split(',').map(value => validWallet(value.trim())).filter(Boolean));
   const sign = (header, payload) => {
     const body = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
@@ -44,7 +62,7 @@ export function createAdminJwt({ env = process.env, cluster, now = Date.now } = 
   }
   function verify(token) {
     const parts = String(token || '').split('.');
-    if (parts.length !== 3) return null;
+    if (parts.length !== 3 || !loaded) return null;
     try {
       const header = JSON.parse(fromB64url(parts[0]).toString('utf8'));
       if (header?.alg !== 'HS256' || header?.typ !== 'JWT') return null;
@@ -64,16 +82,25 @@ export function createAdminJwt({ env = process.env, cluster, now = Date.now } = 
     .find(part => part.startsWith(`${ADMIN_JWT_COOKIE}=`))?.slice(ADMIN_JWT_COOKIE.length + 1) || '';
   // The verified admin behind a request, or null.
   function read(req) { return verify(decodeURIComponent(cookieValue(req))); }
-  function revoke(token) {
+  // Revokes in memory at once, then records it in the store. Resolves when stored.
+  async function revoke(token) {
     const claims = verify(token);
     if (!claims) return;
     revoked.set(claims.jti, claims.expiresAt);
     for (const [jti, until] of revoked) if (until <= now()) revoked.delete(jti);
+    if (!store) return;
+    try {
+      await store.update(state => {
+        const rows = state.adminJwtRevocations ||= {};
+        rows[claims.jti] = { until: claims.expiresAt, cluster };
+        for (const [jti, row] of Object.entries(rows)) if (!(Number(row?.until) > now())) delete rows[jti];
+      });
+    } catch { console.error(JSON.stringify({ event: 'admin_jwt_revocation_store_failed' })); }
   }
-  function revokeRequest(req) { revoke(decodeURIComponent(cookieValue(req))); }
+  function revokeRequest(req) { return revoke(decodeURIComponent(cookieValue(req))); }
   // Path=/api so every admin API receives it; SameSite=Strict blocks cross-site use.
   function cookie(value, seconds, secure) {
     return `${ADMIN_JWT_COOKIE}=${encodeURIComponent(value)}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=${seconds}${secure ? '; Secure' : ''}`;
   }
-  return { issue, verify, read, revoke, revokeRequest, cookie, isAdmin };
+  return { issue, verify, read, revoke, revokeRequest, cookie, isAdmin, ready };
 }

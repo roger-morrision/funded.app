@@ -59,7 +59,7 @@ export function createReferralIdentityRoutes({
       let cookieUrl;
       try { cookieUrl = requestCookieUrl(req); } catch (error) { return json(res, 403, { error:error.message }); }
       await referralAuth.revoke(cookieValue(req, 'funded_referral_session'));
-      adminJwt?.revokeRequest(req);
+      await adminJwt?.revokeRequest(req);
       res.setHeader('set-cookie', [authCookie('funded_referral_session', '', 0, cookieUrl),
         ...(adminJwt ? [adminJwt.cookie('', 0, new URL(cookieUrl).protocol === 'https:')] : [])]);
       return json(res, 200, { authenticated:false });

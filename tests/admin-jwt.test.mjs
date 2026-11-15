@@ -28,3 +28,22 @@ test('logout revokes the token on the server', () => {
   jwt.revoke(token);
   assert.equal(jwt.verify(token), null);
 });
+
+test('a signed-out token stays revoked after a restart, and nothing is accepted before revocations load', async () => {
+  let state = {};
+  const store = { read: async () => structuredClone(state), update: async fn => { const next = structuredClone(state); const out = fn(next); state = next; return out; } };
+  const first = createAdminJwt({ env, cluster: 'mainnet-beta', store });
+  await first.ready;
+  const kept = first.issue(admin).token, signedOut = first.issue(admin).token;
+  await first.revoke(signedOut);
+  assert.ok(Object.keys(state.adminJwtRevocations).length === 1);
+
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const slowStore = { ...store, read: async () => { await gate; return structuredClone(state); } };
+  const restarted = createAdminJwt({ env, cluster: 'mainnet-beta', store: slowStore });
+  assert.equal(restarted.verify(kept), null, 'refused until revocations load');
+  release(); await restarted.ready;
+  assert.equal(restarted.verify(kept).wallet, admin);
+  assert.equal(restarted.verify(signedOut), null);
+});

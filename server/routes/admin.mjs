@@ -113,7 +113,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
         || !nacl.sign.detached.verify(new TextEncoder().encode(challenge.message), signature, new PublicKey(wallet).toBytes()))
         return json(res, 401, { error:'The admin wallet signature is invalid or expired.' });
       // Signing in replaces any earlier admin token in this browser with a new JWT.
-      adminJwt.revokeRequest(req);
+      await adminJwt.revokeRequest(req);
       const issued = adminJwt?.issue(wallet);
       if (!issued) return json(res, 503, { error:'Admin sign-in is unavailable.' });
       setAdminCookies(res, issued.token, Math.max(1, Math.floor((issued.expiresAt - Date.now()) / 1_000)));
@@ -231,7 +231,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       } catch(error) {return json(res,409,{error:String(error.message || error)});}
     }
     if (req.method === 'POST' && path === '/api/admin/logout') {
-      adminJwt.revokeRequest(req); emailVerification.revoke(sessionId); setAdminCookies(res, '', 0);
+      await adminJwt.revokeRequest(req); emailVerification.revoke(sessionId); setAdminCookies(res, '', 0);
       return json(res, 200, { signedOut:true });
     }
     if (req.method === 'GET' && path === '/api/admin/overview') {
