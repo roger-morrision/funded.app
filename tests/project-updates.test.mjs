@@ -30,6 +30,6 @@ test('retry is idempotent, edits enforce version, and content remains plain text
 test('wrong network, unverified launches, oversized input and rate limits fail closed',async()=>{
  const f=fixture();assert.equal((await f.request('POST',{id:randomUUID(),text:'a'.repeat(2001)})).status,400);
  f.limit();assert.equal((await f.request('POST',{id:randomUUID(),text:'Text'})).status,429);
- f.state.launches[f.mint].cluster='mainnet-beta';assert.equal((await f.request()).status,404);
- f.state.launches[f.mint].cluster='devnet';f.state.launches[f.mint].onchainVerified=false;assert.equal((await f.request()).status,404);
+ f.state.launches[f.mint].cluster='mainnet-beta';assert.equal((await f.request()).data.creator,null);assert.equal((await f.request('POST',{id:randomUUID(),text:'Text'})).status,404);
+ f.state.launches[f.mint].cluster='devnet';f.state.launches[f.mint].onchainVerified=false;assert.deepEqual((await f.request()).data.updates,[]);
 });

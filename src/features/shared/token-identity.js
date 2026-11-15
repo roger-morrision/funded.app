@@ -1,10 +1,12 @@
 // Token symbol and logo for any mint, batched through the cached market route,
 // plus a page-wide pass that turns shortened mint links into logo + $SYMBOL.
+import { apiRequest } from '../../../client.js';
 const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const identities = new Map(), tried = new Map(), queue = new Set();
 let flushTimer = null, solUsd = { value: null, at: 0, loading: null };
-const request = (path, timeoutMs) => fetch(path, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: 'application/json' } })
-  .then(response => response.ok ? response.json() : null).catch(() => null);
+// Shared API client: concurrent identical reads (e.g. SOL/USD) share one request.
+const request = (path, timeoutMs) => apiRequest(path, { signal: AbortSignal.timeout(timeoutMs) })
+  .then(result => result?.available ? result.data : null).catch(() => null);
 
 export function tokenIdentity(mint) { return identities.get(mint) || null; }
 export function rememberTokenIdentity(mint, row) {

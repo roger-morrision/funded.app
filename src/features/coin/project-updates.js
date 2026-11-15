@@ -14,7 +14,7 @@ export function mountProjectUpdates(app, document=globalThis.document) {
   const resetDraft=()=>{input.value='';edit=null;requestId=null;cancel.hidden=true;submit.textContent='Publish update';};
   function render(){
     list.replaceChildren();form.hidden=!owns();
-    if(!rows.length)list.append(make('strong','No updates yet'));
+    if(!rows.length)list.append(make('strong',owner||!mint?'No updates yet':'Creator updates are available for coins launched on richpad.fun.'));
     for(const row of rows){
       const article=make('article');article.className='project-update';
       const time=make('time',new Date(row.createdAt).toLocaleString());time.dateTime=row.createdAt;

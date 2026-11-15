@@ -109,3 +109,9 @@ test('Featured symbol shows summed active boosts and drops each package at expir
   assert.match(featuredCardMarkup(item,'devnet',now+1000),/30×/);
   assert.doesNotMatch(featuredCardMarkup(item,'devnet',now+5000),/home-featured-boost/);
 });
+
+test('Mainnet featured metrics read normalized holders and pool age', () => {
+  const now=Date.parse('2026-11-15T12:00:00Z');
+  const m=featuredMetrics({mint:'x'},{asset:{holders:42,pairCreatedAt:now-7200000,verifiedAt:new Date(now).toISOString(),marketCapUsd:1000},cluster:'mainnet-beta',now});
+  assert.equal(m.holders,'42');assert.equal(m.age,'2h');
+});

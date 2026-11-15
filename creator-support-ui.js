@@ -104,7 +104,10 @@ async function renderDirectory() {
       const rows=result.data.creators.filter(c=>!$('#creators-followed').checked||following.includes(c.id));
       cursor=result.data.nextCursor;more.textContent='Load more creators';more.hidden=!cursor||($('#creators-followed').checked&&!following.length);
       $('#creator-directory').insertAdjacentHTML('beforeend',rows.map(c=>`<a class="creator-card" href="/creator/x/${esc(c.id)}"><span class="creator-avatar" aria-hidden="true">${esc(c.handle.slice(1,3).toUpperCase())}</span><h2>${esc(c.name)}</h2><p>${esc(c.handle)}</p><span class="support-badge">${c.identityVerified?'X account ownership verified':'Named recipient · unverified ownership'}</span><p>${c.coinCount} verified support ${Number(c.coinCount)===1?'policy':'policies'}</p></a>`).join(''));
-      const count=$('#creator-directory').children.length;$('#creator-directory-status').textContent=count?`${count} ${count===1?'creator':'creators'} shown${cursor?' · more available':''}`:'No matching creators yet. No earnings or endorsements are implied.';
+      const count=$('#creator-directory').children.length,searched=Boolean($('#creator-search').value.trim()||$('#creators-followed').checked);
+      $('#creator-directory-status').textContent=count?`${count} ${count===1?'creator':'creators'} shown${cursor?' · more available':''}`:'No matching creators yet. No earnings or endorsements are implied.';
+      // An empty Mainnet directory explains how creators appear and points to listing a token.
+      if(!count&&!searched&&APP_CLUSTER!=='devnet')$('#creator-directory-status').innerHTML='No creators on Solana Mainnet yet. Creator pages appear once a creator links their X account to a token listed here. <a href="#list">List your token</a>';
     } catch {
       if(generation!==routeGeneration || request!==directoryGeneration)return;
       $('#creator-directory-status').textContent=append?'More creators could not be loaded.':'Creator search is unavailable.';

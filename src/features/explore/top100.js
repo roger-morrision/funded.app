@@ -2,6 +2,7 @@ import {boostPackageBadgesMarkup} from '../../../boost-card-badges.js';
 import {icon} from '../../../ui-icons.js';
 import {top100Template} from './top100-template.js';
 import {top100Records, rankTop100} from './top100-model.js';
+import {readTop100Url, top100Search} from './top100-url.js';
 import {loadTokenArtwork} from '../shared/token-artwork.js';
 
 export function initializeTop100(appState) {
@@ -13,6 +14,17 @@ export function initializeTop100(appState) {
   let expiryTimer, community=null;
   let page = 0, busy = false, checked = false, failure = false, lastRows = '';
   const active = () => appState.requestedPageRoute() === 'top100';
+  // Restore a shared view, then mirror later changes into the address bar.
+  const allowed = {sort:[...root.querySelectorAll('[data-top-sort]')].map(button => button.dataset.topSort)};
+  for (const control of root.querySelectorAll('select[data-top-filter]')) allowed[control.dataset.topFilter] = [...control.options].map(option => option.value);
+  Object.assign(filters, readTop100Url(location.search, allowed));
+  for (const control of root.querySelectorAll('[data-top-filter]')) control.value = String(filters[control.dataset.topFilter] ?? '');
+  root.querySelectorAll('[data-top-sort]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topSort === filters.sort)));
+  const syncUrl = () => {
+    if (!active()) return;
+    const search = top100Search(location.search, filters);
+    if (search !== location.search) history.replaceState(history.state, '', `${location.pathname}${search}${location.hash}`);
+  };
   const money = value => value == null ? '—' : new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2, notation:value >= 10000 ? 'compact' : 'standard'}).format(value);
   const signed = (value, format = value=>value.toLocaleString()) => value==null?'—':`${value>0?'+':''}${format(value)}`;
   const age = hours => hours == null ? '—' : hours < 1 ? `${Math.floor(hours * 60)}m` : hours < 24 ? `${Math.floor(hours)}h` : `${Math.floor(hours / 24)}d`;
@@ -73,7 +85,7 @@ export function initializeTop100(appState) {
   }
   root.addEventListener('click', event => {
     const sort = event.target.closest('[data-top-sort]');
-    if (sort) {filters.sort = sort.dataset.topSort;page = 0;root.querySelectorAll('[data-top-sort]').forEach(button => button.setAttribute('aria-pressed',String(button === sort)));render();}
+    if (sort) {filters.sort = sort.dataset.topSort;page = 0;root.querySelectorAll('[data-top-sort]').forEach(button => button.setAttribute('aria-pressed',String(button === sort)));render();syncUrl();}
     const boost = event.target.closest('[data-top-boost]');
     if (boost) appState.openExploreBoost(boost.dataset.topBoost);
     if (event.target.closest('[data-top-refresh]')) void refresh();
@@ -84,13 +96,13 @@ export function initializeTop100(appState) {
         control.value = control.tagName === 'SELECT' ? control.options[0].value : '';
         filters[control.dataset.topFilter] = ['minCap','maxAge'].includes(control.dataset.topFilter) ? Number(control.value) : control.value;
       }
-      page = 0;render();
+      page = 0;render();syncUrl();
     }
   });
   root.addEventListener('input', event => {
     const key = event.target.dataset.topFilter;if (!key) return;
     filters[key] = ['minCap','maxAge'].includes(key) ? Number(event.target.value) : event.target.value;
-    page = 0;render();
+    page = 0;render();syncUrl();
   });
   for (const name of ['funded:verified-search-index','funded:rankings-updated','funded:holders-updated']) document.addEventListener(name,render);
   appState.createRoutePoller({run:refresh, active, intervalMs:60_000});

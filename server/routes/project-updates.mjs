@@ -9,9 +9,12 @@ export function createProjectUpdateRoutes({store,body,referralSession,cluster,re
     const match=url.pathname.match(/^\/api\/tokens\/([^/]+)\/updates$/);if(!match)return false;
     let mint;try{mint=new PublicKey(decodeURIComponent(match[1])).toBase58();}catch{return json(res,400,{error:'Invalid token address.'});}
     if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Method not allowed.'});
-    const state=await store.read(),owner=creator(state.launches?.[mint]),key=`${cluster}:${mint}`;
-    if(!owner)return json(res,404,{error:'Verified project unavailable.'});
-    if(req.method==='GET')return json(res,200,{mint,cluster,creator:owner,updates:state.projectUpdates?.[key]||[]});
+    // Check the single launch first so views of external coins skip the full store read.
+    const launch=typeof store.readLaunch==='function'?await store.readLaunch(mint):(await store.read()).launches?.[mint];
+    const owner=creator(launch),key=`${cluster}:${mint}`;
+    // Coins not launched here have no creator updates; reads get an empty list, not a 404.
+    if(!owner)return req.method==='GET'?json(res,200,{mint,cluster,creator:null,updates:[]}):json(res,404,{error:'Verified project unavailable.'});
+    if(req.method==='GET')return json(res,200,{mint,cluster,creator:owner,updates:(await store.read()).projectUpdates?.[key]||[]});
     if(!allowedAuthOrigin(req,origin))return json(res,403,{error:'Project update origin is not allowed.'});
     const session=await referralSession(req);
     if(!session?.wallet)return json(res,401,{error:'Sign in with the creator wallet to publish an update.'});

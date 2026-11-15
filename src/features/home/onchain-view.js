@@ -3,6 +3,7 @@ import { formatDashboardUsd } from '../shared/display.js';
 import { platformVolume24h } from '../shared/platform-volume.js';
 import { APP_NET } from '../shared/app-network.js';
 import { solUsdPrice } from '../shared/token-identity.js';
+import { apiRequest } from '../../../client.js';
 
 // Mainnet has no richpad.fun launch program, so volume and trading wallets come
 // from trades placed through richpad.fun: each one pays the app fee to the fee
@@ -11,8 +12,8 @@ let ledgerRead = null, ledgerAt = 0;
 function readTradeLedger24h() {
   if (!ledgerRead || Date.now() - ledgerAt > 60_000) {
     ledgerAt = Date.now();
-    ledgerRead = fetch('/api/leaderboard/traders?window=24h', { signal: AbortSignal.timeout(15_000) })
-      .then(response => response.ok ? response.json() : null)
+    ledgerRead = apiRequest('/api/leaderboard/traders?window=24h', { signal: AbortSignal.timeout(15_000) })
+      .then(result => result?.available ? result.data : null)
       .then(data => Array.isArray(data?.traders) ? {
         volumeSol: data.traders.reduce((sum, row) => sum + (Number(row.volumeSol) || 0), 0),
         wallets: data.traders.length, capped: data.traders.length >= 100,

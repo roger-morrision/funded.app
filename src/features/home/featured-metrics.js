@@ -11,7 +11,7 @@ export function featuredMetrics(item, {asset={},holderSnapshot,solUsd,cluster='d
   const market=withMarketWindow(asset,'24h');
   const indexed=cluster!=='devnet';
   const change=fresh&&recent(asset.marketActivityObservedAt,now)?number(market.windowPriceChangePercent):indexed?number(asset.priceChange24hPercent):null;
-  const count=recent(holderSnapshot?.at,now)?number(holderSnapshot.count):indexed&&Number.isSafeInteger(asset.holderCount)?asset.holderCount:null;
+  const count=recent(holderSnapshot?.at,now)?number(holderSnapshot.count):indexed&&Number.isSafeInteger(asset.holderCount??asset.holders)?asset.holderCount??asset.holders:null;
   const age=tokenAge(item.createdAt||(indexed&&number(asset.pairCreatedAt)>0?number(asset.pairCreatedAt):null),now);
   return {cap:usd==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(usd),
     change:change==null?'—':`≈${change>0?'+':''}${change.toLocaleString('en-US',{minimumFractionDigits:Math.abs(change)>=100?0:2,maximumFractionDigits:Math.abs(change)>=100?0:2})}%`,direction:change==null?'unknown':change<0?'negative':'positive',
