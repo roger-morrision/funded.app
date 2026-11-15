@@ -12,7 +12,7 @@ import {createAdminBoostRoute} from './admin-boost.mjs';
 // Return true only after sending a response; false lets the router continue.
 export function createBoostRoutes({
   store, solanaCluster, boostPurchasesEnabled, clientKey, body, readSolUsdQuote, id, solanaRpcUrl,
-  respond, connectionFactory=(url,options)=>new Connection(url,options),
+  respond, connectionFactory=(url,options)=>new Connection(url,options), adminJwt,
 }) {
 
   const json = (...args) => { respond(...args); return true; };
@@ -29,7 +29,7 @@ export function createBoostRoutes({
     }catch{return false;}
   }
   // Free boosts for admin wallets; the token must still be a real mint on this network.
-  const handleAdminBoost=createAdminBoostRoute({ body, store, solanaCluster, clientKey, respond,
+  const handleAdminBoost=createAdminBoostRoute({ body, store, solanaCluster, clientKey, respond, adminJwt,
     mintVerified: solanaCluster==='devnet' ? null : externalMintVerified });
   return async function handleBoostRoutes(req, res, url, requestId) {
     if (await handleAdminBoost(req, res, url)) return true;

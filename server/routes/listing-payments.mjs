@@ -29,9 +29,10 @@ export function createListingPaymentsRoutes({
   readListingMint = readVerifiedListingMint,
   respond,
   env = process.env,
+  adminJwt,
 }) {
   const json = (...args) => { respond(...args); return true; };
-  const handleAdminListing = createAdminListingRoutes({ body, store, solanaCluster, solanaRpcUrl, clientKey, respond, env, connectionFactory, readListingMint });
+  const handleAdminListing = createAdminListingRoutes({ body, store, solanaCluster, solanaRpcUrl, clientKey, respond, env, connectionFactory, readListingMint, adminJwt });
   return async function handleListingPaymentsRoutes(req, res, url) {
     if (await handleAdminListing(req, res, url)) return true;
     if (req.method === 'POST' && url.pathname === '/api/listings/quote') {

@@ -32,6 +32,7 @@ import { createAdminRoutes, publicFeePolicy } from './routes/admin.mjs';
 import { publicWalletSignedV3Post } from './v3-public-post-paths.mjs';
 import { createKeeperCollectionRoutes } from './routes/keeper-collection.mjs';
 import { createListingPaymentsRoutes } from './routes/listing-payments.mjs';
+import { createAdminJwt } from './admin-jwt.mjs';
 import { createLaunchRegistrationRoutes } from './routes/launch-registration.mjs';
 import { createV3LaunchConfig } from './v3-launch-config.mjs';
 import { v3XCapability } from './v3-x-capability.mjs';
@@ -129,6 +130,8 @@ publicPostPaths.add('/api/trades/finalized');
 publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/client-errors'); publicPostPaths.add('/api/pair-launch/record');
 
 const solanaCluster = deploymentCluster(process.env);
+// Admin authentication (JWT in an HttpOnly cookie) shared by every admin API.
+const adminJwt = createAdminJwt({ cluster: solanaCluster });
 const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
 async function communityClaimService(mint) {
   if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
@@ -294,7 +297,7 @@ const handleProductMetrics = createProductMetricsHandler({metrics:productMetrics
   },
 });
 const handleBoostRoutes = createBoostRoutes({
-  store, solanaCluster, boostPurchasesEnabled, clientKey, body, readSolUsdQuote, id, solanaRpcUrl, respond: json,
+  store, solanaCluster, boostPurchasesEnabled, clientKey, body, readSolUsdQuote, id, solanaRpcUrl, respond: json, adminJwt,
 });
 const { handle: handleAirdropsRoutes, invalidateReserveCache } = createAirdropsRoutes({
   solanaCluster, solanaRpcUrl, store, automaticRewardStore, fundedTokenMint, clientKey, body,
@@ -315,7 +318,7 @@ const handleTokenChatRoutes = createTokenChatRoutes({
 });
 const handleCalloutRoutes = createCalloutRoutes({ readFeed: readCalloutFeed, respond: json });
 const handleReferralIdentityRoutes = createReferralIdentityRoutes({
-  referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes, respond: json,
+  referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes, respond: json, adminJwt,
 });
 
 const handlePublicReportsRoutes = createPublicReportsRoutes({
@@ -348,7 +351,7 @@ const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({
 });
 const handleListingPaymentsRoutes = createListingPaymentsRoutes({
   body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed,
-  currentLaunchTierPricing, clientKey, id, respond: json,
+  currentLaunchTierPricing, clientKey, id, respond: json, adminJwt,
 });
 const v3LaunchConfig = createV3LaunchConfig({ solanaCluster, solanaRpcUrl,
   automaticRewardStore, v3AuthorityKeypair, store });
@@ -368,7 +371,7 @@ const handleV3Routes = createV3Routes({
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
 const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaCluster,
-  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime,automaticRewardStore });
+  solanaRpcUrl, keeperKeypair, referralPayoutKeypair, v3AuthorityKeypair, dailyBonusRuntime,automaticRewardStore, adminJwt });
 
 const handleDiscoveryRoutes = createDiscoveryRoutes({
   store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, respond: json, tokenCache, freeMarketData,

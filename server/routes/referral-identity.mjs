@@ -11,11 +11,17 @@ import { cleanShareSource } from '../share-visits.mjs';
 // Return true only after sending a response; false lets the router continue.
 export function createReferralIdentityRoutes({
   referralSession, body, walletKey, referralAuth, requestCookieUrl, store, id, referralChallengeStatement, walletSignature, referralCodeFromBytes,
-  respond,
+  respond, adminJwt,
 }) {
 
   const json = (...args) => { respond(...args); return true; };
   return async function handleReferralIdentityRoutes(req, res, url, requestId) {
+    // Admin status comes only from the server-verified admin JWT cookie.
+    if (req.method === 'GET' && url.pathname === '/api/auth/admin') {
+      res.setHeader('cache-control', 'no-store');
+      const admin = adminJwt?.read(req);
+      return admin ? json(res, 200, { admin:true, wallet:admin.wallet, expiresAt:admin.expiresAt }) : json(res, 401, { admin:false, error:'Sign in with an administrator wallet.' });
+    }
     if (req.method === 'GET' && url.pathname === '/api/referrals/session') {
       const session = await referralSession(req);
       res.setHeader('cache-control', 'no-store');
@@ -41,14 +47,21 @@ export function createReferralIdentityRoutes({
       const input = await body(req);
       const verified = await referralAuth.verify(input.challengeId, input.wallet, input.signature);
       if (!verified) return json(res, 401, { error:'Referral access approval is invalid or expired.' });
-      res.setHeader('set-cookie', authCookie('funded_referral_session', verified.token, REFERRAL_SESSION_SECONDS, cookieUrl));
-      return json(res, 200, { authenticated:true, wallet:verified.wallet, expiresAt:verified.expiresAt });
+      // An administrator wallet also receives the admin JWT (HttpOnly cookie);
+      // any other wallet has a stale admin cookie cleared.
+      const secure = new URL(cookieUrl).protocol === 'https:';
+      const admin = adminJwt?.issue(verified.wallet);
+      res.setHeader('set-cookie', [authCookie('funded_referral_session', verified.token, REFERRAL_SESSION_SECONDS, cookieUrl),
+        ...(adminJwt ? [admin ? adminJwt.cookie(admin.token, Math.min(REFERRAL_SESSION_SECONDS, Math.floor((admin.expiresAt - Date.now()) / 1000)), secure) : adminJwt.cookie('', 0, secure)] : [])]);
+      return json(res, 200, { authenticated:true, wallet:verified.wallet, expiresAt:verified.expiresAt, admin:Boolean(admin) });
     }
     if (req.method === 'POST' && url.pathname === '/api/referrals/session/logout') {
       let cookieUrl;
       try { cookieUrl = requestCookieUrl(req); } catch (error) { return json(res, 403, { error:error.message }); }
       await referralAuth.revoke(cookieValue(req, 'funded_referral_session'));
-      res.setHeader('set-cookie', authCookie('funded_referral_session', '', 0, cookieUrl));
+      adminJwt?.revokeRequest(req);
+      res.setHeader('set-cookie', [authCookie('funded_referral_session', '', 0, cookieUrl),
+        ...(adminJwt ? [adminJwt.cookie('', 0, new URL(cookieUrl).protocol === 'https:')] : [])]);
       return json(res, 200, { authenticated:false });
     }
     if (req.method === 'POST' && url.pathname === '/api/referrals/registration/prepare') {

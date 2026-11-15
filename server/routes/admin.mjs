@@ -44,7 +44,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
   verifyResidualReadiness = verifyV3LaunchRouterReadiness,
   reviewResiduals = reviewV3AllocationResiduals,
   recordResidualPlan = recordV3AllocationResidualPlan, emailVerificationOptions = {},
-  residualTransferFactory=createV3RewardFundingRoutes }) {
+  residualTransferFactory=createV3RewardFundingRoutes, adminJwt }) {
   const bodies=new WeakMap();
   const body=req=>{if(!bodies.has(req))bodies.set(req,Promise.resolve().then(()=>readBody(req)));return bodies.get(req);};
   const transferResidual=residualTransferFactory({body,store,solanaCluster,solanaRpcUrl,v3AuthorityKeypair,
@@ -58,13 +58,27 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
   };
   const sameOrigin = req => String(req.headers.origin || '') === origin();
   const emailVerification=createAdminEmailVerification({...emailVerificationOptions,env,cluster:solanaCluster,origin});
+  // Admin JWT sessions (wallet sign-in, see admin-jwt.mjs), kept by token id so
+  // repeated reads within a request return the same session object.
+  const jwtSessions = new Map();
+  const jwtSession = req => {
+    const admin = adminJwt?.read(req);
+    if (!admin) return null;
+    let session = jwtSessions.get(admin.jti);
+    if (!session) {
+      session = { wallet:admin.wallet, expiresAt:admin.expiresAt, id:`jwt:${admin.jti}` };
+      jwtSessions.set(admin.jti, session);
+      for (const [jti, row] of jwtSessions) if (row.expiresAt <= Date.now()) { jwtSessions.delete(jti); emailVerification.revoke(row.id); }
+    }
+    return session;
+  };
   const currentSession = req => {
     const token = cookieValue(req, COOKIE);
-    if (!/^[a-f0-9]{64}$/.test(token)) return null;
+    if (!/^[a-f0-9]{64}$/.test(token)) return jwtSession(req);
     const session = sessions.get(token);
     if (!session || session.expiresAt <= Date.now() || !allowed().has(session.wallet)) {
       emailVerification.revoke(token);
-      sessions.delete(token); return null;
+      sessions.delete(token); return jwtSession(req);
     }
     return session;
   };
@@ -118,7 +132,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
     }
     const session = currentSession(req);
     if (!session) return json(res, 401, { error:'Sign in with the configured admin wallet.' });
-    const sessionId=cookieValue(req,COOKIE);
+    const sessionId=session.id||cookieValue(req,COOKIE);
     if(path==='/api/admin/email-confirmation'){
       if(req.method!=='POST')return json(res,405,{error:'Use POST.'});
       try{
@@ -228,7 +242,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       } catch(error) {return json(res,409,{error:String(error.message || error)});}
     }
     if (req.method === 'POST' && path === '/api/admin/logout') {
-      sessions.delete(cookieValue(req, COOKIE)); setCookie(res, '', 0);
+      sessions.delete(cookieValue(req, COOKIE)); adminJwt?.revokeRequest(req); setCookie(res, '', 0);
       return json(res, 200, { signedOut:true });
     }
     if (req.method === 'GET' && path === '/api/admin/overview') {
