@@ -17,9 +17,12 @@ const adminStatus = new Map();
 let busy = false;
 
 // Called after each boost dialog render: adds "Boost for free (admin)" under
-// the pay button when the connected wallet is an administrator.
+// the pay button only while an admin wallet is signed in (a live wallet
+// session, not just a remembered address) and the server confirms it is an admin.
 export function decorateAdminBoost(appState, details) {
-  const wallet = appState.connectedWalletAddress;
+  const session = appState.captureWalletSession?.();
+  const live = session && (typeof appState.isWalletSessionCurrent === 'function' ? appState.isWalletSessionCurrent(session) : true);
+  const wallet = live ? session.address : null;
   const pay = details?.querySelector('.explore-boost-pay');
   if (!pay || !wallet) return;
   if (!adminStatus.has(wallet)) {
