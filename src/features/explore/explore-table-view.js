@@ -41,7 +41,7 @@ export function exploreTableMarkup(records, {
     return `<tr data-mint="${mint}" data-logo-mint="${mint}">
       <td class="explore-table-rank">${index + 1}</td>
       <td class="explore-table-token"><a href="${href}"><span class="home-token-avatar">${escapeHtml(String(item.symbol || 'T').slice(0, 1))}${logo}</span><span class="explore-table-identity"><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a>${pairChipMarkup(item, escapeHtml)}${tags}</td>
-      <td class="explore-table-num"><strong>${escapeHtml(cap)}</strong>${percentMarkup(item.priceChange24hPercent ?? Number.parseFloat(item.change))}</td>
+      <td class="explore-table-num"><strong>${escapeHtml(cap)}</strong>${percentMarkup(item.priceChange24hPercent ?? Number.parseFloat(item.change))}${Number(item.athMarketCapUsd) > 0 ? `<small class="explore-table-ath">ATH ${escapeHtml(formatCompactUsd(Number(item.athMarketCapUsd)))}</small>` : ''}</td>
       <td class="explore-table-num"><strong>${escapeHtml(volumeValue(item))}</strong>${percentMarkup(item.volumeChange24hPercent)}</td>
       <td class="explore-table-num"><strong>${escapeHtml(holders)}</strong>${percentMarkup(item.holderChange24hPercent)}</td>
       <td class="explore-table-age">${item.createdTimestamp ? escapeHtml(formatAge(Number(item.createdTimestamp) * 1000)) : '—'}</td>

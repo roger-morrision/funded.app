@@ -21,11 +21,11 @@ export function initializeFeaturedTokens(appState) {
     items=currentFeaturedTokens(items);
     scroller.render(items,appState.EXPLORE_CLUSTER);
     updateMetrics();
-    if(!items.length){status.hidden=false;status.textContent='Your token could be here. Paid promotions and listings appear for 48 hours.';}
+    if(!items.length){status.hidden=false;status.textContent='Your token could be here. Paid listings stay featured; promotions appear for 48 hours.';}
     clearTimeout(expiryTimer);
     if(items.length){
       const deadlines=items.flatMap(item=>[item.expiresAt,...activeBoostPackages(item.boost).map(pack=>Date.parse(pack.expiresAt))]);
-      expiryTimer=setTimeout(render,Math.max(10,Math.min(...deadlines)-Date.now()+10));
+      expiryTimer=setTimeout(render,Math.min(2_147_483_647,Math.max(10,Math.min(...deadlines)-Date.now()+10)));
     }
   };
   const refresh=signal=>{
@@ -37,7 +37,7 @@ export function initializeFeaturedTokens(appState) {
         if(!response.available||response.data?.cluster!==appState.EXPLORE_CLUSTER||!Array.isArray(response.data.items))throw Error('Featured data unavailable');
         items=response.data.items;render();
         status.hidden=items.length>0;
-        status.textContent=items.length?'':'Your token could be here. Paid promotions and listings appear for 48 hours.';
+        status.textContent=items.length?'':'Your token could be here. Paid listings stay featured; promotions appear for 48 hours.';
       }catch(error){
         if(signal?.aborted)return;
         render();status.hidden=false;

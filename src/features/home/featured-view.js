@@ -90,7 +90,13 @@ export function createFeaturedScroller(root) {
       }
     }
   },render(items,cluster){
-    const next=items.map(item=>featuredCardMarkup(item,cluster)).join('');
+    // Repeat the cards until the row holds at least 10 so it always scrolls;
+    // repeats are visual only (hidden from screen readers and the tab order).
+    const MIN_CARDS=10;
+    const repeats=items.length?Math.max(0,Math.ceil(MIN_CARDS/items.length)-1):0;
+    const once=items.map(item=>featuredCardMarkup(item,cluster)).join('');
+    const echo=once.replace(/<article class="home-featured-card"/g,'<article class="home-featured-card" data-featured-repeat aria-hidden="true"').replace(/<a class="home-featured-token"/g,'<a class="home-featured-token" tabindex="-1"');
+    const next=once+echo.repeat(repeats);
     if(next===key)return;key=next;track.innerHTML=next?`<div class="home-featured-group">${next}</div>`:'';
     viewport.hidden=!items.length;copies();sync();
   }};

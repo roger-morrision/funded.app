@@ -18,9 +18,11 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
   for (const listing of paid) if (!known.has(listing.mint)) known.set(listing.mint,listing);
   const add = (mint,time,label,proof,end=time+FEATURED_WINDOW_MS) => {
     const token=known.get(mint);
-    if (!token || !(label==='Paid boost'?Number.isFinite(time)&&time<=now:recent(time)) || !signature.test(proof||'') || !Number.isFinite(end) || end<=now) return;
+    // Boosts run to their own end; paid listings stay featured; promotions last 48 hours.
+    const open=label==='Paid boost'||label==='Paid listing';
+    if (!token || !(open?Number.isFinite(time)&&time<=now:recent(time)) || !signature.test(proof||'') || !Number.isFinite(end) || end<=now) return;
     const previous=featured.get(mint);
-    const placement={label,signature:proof,featuredAt:time,expiresAt:label==='Paid boost'?end:Math.min(end,time+FEATURED_WINDOW_MS)};
+    const placement={label,signature:proof,featuredAt:time,expiresAt:open?end:Math.min(end,time+FEATURED_WINDOW_MS)};
     if (previous) {previous.placements.push(placement);return;}
     featured.set(mint,{mint,name:token.name||'Token',symbol:token.symbol||'TOKEN',
       imageUri:token.imageUri||null,bannerUri:verifiedPromotionBadge(token)?token.bannerUri||null:null,
@@ -30,7 +32,7 @@ export function featuredTokens({launches=[],listings=[],boosts=[],cluster,now=Da
     const promotion=verifiedPromotionBadge(launch);
     if (promotion) add(launch.mint,Number(launch.blockTime)*1000,`${promotion.tier === 'premier' ? 'Premier' : promotion.tier === 'pro' ? 'Pro' : 'Boost'} promotion`,promotion.signature);
   }
-  for (const listing of paid) add(listing.mint,Date.parse(listing.listedAt),'Paid listing',listing.signature||listing.adminSignature);
+  for (const listing of paid) add(listing.mint,Date.parse(listing.listedAt),'Paid listing',listing.signature||listing.adminSignature,Number.MAX_SAFE_INTEGER);
   const packagesByMint=new Map(),seenBoosts=new Set();
   for (const boost of projectBoostReceipts(boosts,{cluster,now})) if (boost.cluster===cluster && boost.status==='finalized'
     && boostPackage(boost.packageId)?.multiplier===boost.multiplier && signature.test(boost.signature||'') && !seenBoosts.has(boost.signature)) {

@@ -152,6 +152,11 @@ export function syncLaunchCardProgressFreshness(document, providerStatus) {
   state.update();
 }
 
+// All-time-high market cap under the current one.
+function athMarkup(value) {
+  return value != null && Number.isFinite(Number(value)) && Number(value) > 0 ? `<small class="home-launch-ath" title="All-time-high market cap">ATH ${escapeHtml(formatCompactUsd(Number(value)))}</small>` : '';
+}
+
 // 24h percentage change under a card figure (volume, holders), like the market cap's.
 function statChangeMarkup(value, title) {
   if (value == null || value === '' || !Number.isFinite(Number(value))) return '';
@@ -271,7 +276,7 @@ export function homeLaunchCardMarkup(
       <div class="home-card-star">${tokenCardWatchMarkup(item.address, item.symbol)}</div><div class="home-launch-protocol" aria-label="richpad.fun launch details"><span class="home-launch-media-package"></span>${exploreBoostAmountMarkup(item.address).replace('>⚡', '>Boosted ')}${protocolChips}</div>
       </div>
       <div class="home-launch-card-stats">
-                    <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small>${unknownStatMarkup(value) || `<strong>${escapeHtml(value)}${changeClass ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(change)}</span>` : ''}</strong>`}</span>
+                    <span class="home-launch-cap"><small>${EXPLORE_CLUSTER === 'devnet' ? capLabel : 'Market cap'}</small>${unknownStatMarkup(value) || `<strong>${escapeHtml(value)}${changeClass ? ` <span class="home-launch-change ${changeClass}" title="${escapeHtml(volumeLabel)} change">${escapeHtml(change)}</span>` : ''}</strong>`}${athMarkup(item.athMarketCapUsd)}</span>
                     <span class="home-launch-volume"><small>${escapeHtml(volumeLabel)} volume</small>${unknownStatMarkup(shownVolume) || `<strong>${escapeHtml(shownVolume)}${statChangeMarkup(item.volumeChange24hPercent, '24h volume change')}</strong>`}</span>
                     <span class="home-launch-holders" title="${escapeHtml(holderTitle)}"><small>Holders</small>${unknownStatMarkup(holderCount) || `<strong>${escapeHtml(holderCount)}${statChangeMarkup(item.holderChange24hPercent, '24h holder change')}</strong>`}</span>
                     ${progressMarkup}

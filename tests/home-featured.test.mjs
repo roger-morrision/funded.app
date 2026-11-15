@@ -78,9 +78,10 @@ test('boost expiry falls back locally and on the server to a separate unexpired 
    const server=featuredTokens({...source,boosts:[boost],cluster:'devnet',now:now+1000});
    assert.equal(local[0].label,source.launches?'Pro promotion':'Paid listing');
    assert.equal(local[0].label,server[0].label);
-   assert.equal(local[0].expiresAt,now-2000+FEATURED_WINDOW_MS);
+   // Promotions last 48 hours; paid listings stay featured.
+   assert.equal(local[0].expiresAt,source.launches?now-2000+FEATURED_WINDOW_MS:Number.MAX_SAFE_INTEGER);
    assert.doesNotMatch(featuredCardMarkup(local[0],'devnet',now+1000),/Paid boost|home-featured-boost/);
-   assert.deepEqual(currentFeaturedTokens(result,now-2000+FEATURED_WINDOW_MS),[]);
+   assert.equal(currentFeaturedTokens(result,now-2000+FEATURED_WINDOW_MS).length,source.launches?0:1);
  }
 });
 

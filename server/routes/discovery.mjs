@@ -87,7 +87,7 @@ export function createDiscoveryRoutes({
   // verified paid listings on this cluster, with market fields from the free
   // DexScreener batch (falling back to the discovered-token cache).
   let registryCache = null;
-  const registryHolders = new Map(), registryHolderChange = new Map(), registryChangePercent = new Map(), registryDexPaid = new Map(), holdersCheckedAt = new Map();
+  const registryHolders = new Map(), registryHolderChange = new Map(), registryChangePercent = new Map(), registryDexPaid = new Map(), registryAth = new Map(), athCheckedAt = new Map(), holdersCheckedAt = new Map();
   const volumeChange = createVolumeChangeTracker({ store, cluster: solanaCluster });
   let holdersRefresh = null;
   function refreshRegistryHolders(mints) {
@@ -112,6 +112,25 @@ export function createDiscoveryRoutes({
       registryCache = null;
     })().finally(() => { holdersRefresh = null; });
     return holdersRefresh;
+  }
+  // All-time-high market cap: the highest daily candle of the coin's main pool
+  // (GeckoTerminal, free) times its supply (current market cap / price).
+  // Refreshed every 6 hours in the background; never below the current cap.
+  let athRefresh = null;
+  function refreshRegistryAth(rows) {
+    const due = rows.filter(row => row.pairAddress && Date.now() - (athCheckedAt.get(row.mint) || 0) > 6 * 3_600_000);
+    if (!due.length || athRefresh || typeof freeMarketData?.geckoOhlcv !== 'function') return athRefresh;
+    athRefresh = (async () => {
+      for (const row of due) {
+        athCheckedAt.set(row.mint, Date.now());
+        const candles = await freeMarketData.geckoOhlcv(row.pairAddress, '1d', 1000).catch(() => null);
+        const high = Array.isArray(candles) ? Math.max(...candles.map(candle => candle.high)) : NaN;
+        const supply = Number(row.marketCapUsd) / Number(row.priceUsd);
+        if (Number.isFinite(high) && high > 0 && Number.isFinite(supply) && supply > 0) registryAth.set(row.mint, high * supply);
+      }
+      registryCache = null;
+    })().finally(() => { athRefresh = null; });
+    return athRefresh;
   }
   async function mainnetRegistry() {
     if (registryCache && Date.now() - registryCache.at < 15_000) return registryCache.items;
@@ -142,6 +161,7 @@ export function createDiscoveryRoutes({
     const items = mints.map(mint => {
       const base = byMint.get(mint), market = dex.get(mint) || cached.get(mint) || {};
       if (dex.get(mint)) fresh.push({ ...(cached.get(mint) || {}), ...dex.get(mint), mint });
+      const ath = registryAth.get(mint), cap = Number(market.marketCapUsd);
       return { ...base, mint, name: base.name || market.name || 'Unnamed token', symbol: base.symbol || market.symbol || 'TOKEN',
         imageUri: base.imageUri || market.imageUri || null, priceUsd: market.priceUsd ?? null, marketCapUsd: market.marketCapUsd ?? null,
         liquidityUsd: market.liquidityUsd ?? null, volume24hUsd: market.volume24hUsd ?? null, priceChange24hPercent: market.priceChangePercent ?? market.priceChange24hPercent ?? null,
@@ -151,12 +171,14 @@ export function createDiscoveryRoutes({
         buyCount24h: Number.isSafeInteger(market.buyCount24h) ? market.buyCount24h : null, sellCount24h: Number.isSafeInteger(market.sellCount24h) ? market.sellCount24h : null,
         holderCount: Number.isSafeInteger(holders.get(mint)) ? holders.get(mint) : null,
         holderChange24h: Number.isSafeInteger(registryHolderChange.get(mint)) ? registryHolderChange.get(mint) : null,
-        holderChange24hPercent: registryChangePercent.get(mint)?.holders ?? null, dexPaid: registryDexPaid.get(mint) ?? null };
+        holderChange24hPercent: registryChangePercent.get(mint)?.holders ?? null, dexPaid: registryDexPaid.get(mint) ?? null,
+        athMarketCapUsd: Number.isFinite(ath) ? Math.max(ath, Number.isFinite(cap) ? cap : 0) : null };
     });
     await Promise.all(items.map(async item => {
       item.volumeChange24hPercent = await volumeChange.change(item.mint, item.volume24hUsd).catch(() => null);
       void volumeChange.record(item.mint, item.volume24hUsd).catch(() => {});
     }));
+    void refreshRegistryAth(mints.slice(0, 40).map(mint => ({ mint, ...(dex.get(mint) || cached.get(mint) || {}) })));
     if (fresh.length) void tokenCache?.upsert(fresh);
     registryCache = { at: Date.now(), items };
     return items;

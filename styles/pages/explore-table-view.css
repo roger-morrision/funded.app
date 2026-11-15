@@ -84,3 +84,10 @@ html body #main-content .home-new-token-change.is-negative { color: var(--fv-dan
 html body #main-content .home-new-token-community .home-new-token-stats { flex: 1 1 auto; min-width: 0; }
 html body #main-content .home-new-token-community .home-new-token-socials { margin-left: auto; }
 html body #main-content .home-new-token-market { display: flex; align-items: baseline; gap: 8px; }
+/* All-time-high market cap beside / under the current one. */
+html body #main-content#main-content .home-launch-card .home-launch-cap .home-launch-ath, html body #main-content .explore-table-ath { display: block; color: var(--fv-text-subtle); font: 600 11px var(--fv-font-data); text-transform: none; letter-spacing: 0; }
+html body #main-content .home-new-token-ath { color: var(--fv-text-subtle); font-size: 11px; }
+html body #main-content .home-new-token-ath strong { color: var(--fv-text-muted); font: 600 11px var(--fv-font-data); }
+/* Featured heading: "Feature your token" on its own line under the intro. */
+html body #main-content#main-content .home-featured-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+html body #main-content#main-content .home-featured-heading > div:last-child { white-space: nowrap; }
