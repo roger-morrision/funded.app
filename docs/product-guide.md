@@ -220,11 +220,11 @@ Route: `#creators` and `/creator/x/<id>`. In-app guide: `#docs/creator-updates`.
 
 Search creators or show only followed ones. A creator page lists coins supporting that account, creator updates and confirmed payout receipts. Listing a creator implies no earnings or endorsement.
 
-## Service status
+## Service status (admin)
 
-Route: `#status`.
+Route: `/admin#admin-service-status`; `#status` and `/status` redirect there.
 
-Check service status runs an on-demand check of saved records and the Solana network and shows each result. It does not prove that a specific payout or worker cycle completed.
+Service status is an admin panel. It checks saved records and the Solana network on demand. A healthy result does not prove that a specific payout or worker cycle completed.
 
 ## Capital flow calculator
 

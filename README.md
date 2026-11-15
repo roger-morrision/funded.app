@@ -106,7 +106,7 @@ The normal aggregate buyback trigger is 5 SOL. Selected Devnet QA settings can l
 - **Callouts:** token-chat calls, sampled market-cap rankings and caller profiles; observed peaks are not realized returns.
 - **AI Marketing:** saved agent selection, budgets, milestones, publisher readiness and execution receipts.
 - **Profile:** local notices and trade preferences, reviewed follows/reminders backup, optional X sync and reviewed guest issue reports.
-- **Docs, Help and Status:** searchable guides, page help, FAQ and an on-demand storage/network status check.
+- **Docs and Help:** searchable guides, page help and FAQ. Service status is an admin panel (`#status` redirects to `/admin#admin-service-status`).
 - **Admin:** allowlisted Devnet sign-in, versioned protocol fee policy, wallet/vault inventory, audited source-signed withdrawals and guarded Daily bonus recovery.
 
 Launch promotion tiers, paid listings and directory SOL boosts have separate receipts. Launch tiers burn the displayed $RICH amount; paid listings have their own burn quote; an enabled SOL boost uses an exact payment and unique quote memo before sponsored placement activates.
