@@ -56,17 +56,17 @@ html body #main-content .home-new-token-labels .home-launch-media-package:empty 
 html body #main-content .home-new-token-labels :is(.home-launch-chip, .promotion-badge) { display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border: 1px solid var(--fv-border); border-radius: 999px; background: transparent; color: var(--fv-text); font: 600 11px var(--fv-font-ui); text-decoration: none; white-space: nowrap; }
 html body #main-content .home-new-token-labels .home-launch-chip.is-listed { border-color: color-mix(in srgb, #f5c542 55%, transparent); color: #f5c542; }
 html body #main-content .home-new-token-labels .promotion-badge--premier { border-color: var(--fv-accent); color: var(--fv-accent); }
-/* Featured cards: logo, name and symbol on top, banner below, the placement
-   label (Paid listing, promotion, boost) at the bottom. */
+/* Featured cards: logo, name and symbol on top with the placement label
+   (Paid listing, promotion, boost) in the top-right corner; banner below. */
 html body #main-content .home-featured-token { display: flex; flex-direction: column; }
 html body #main-content .home-featured-identity { order: -1; }
-html body #main-content .home-featured-footer { display: flex; padding: 10px 12px 12px; }
-html body #main-content .home-featured-footer .home-featured-label { position: static; display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border: 1px solid color-mix(in srgb, #f5c542 55%, transparent); border-radius: 999px; background: transparent; color: #f5c542; font: 600 11px var(--fv-font-ui); }
+html body #main-content#main-content .home-featured-identity { grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; }
+html body #main-content#main-content .home-featured-identity .home-featured-label { position: static; display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border: 1px solid color-mix(in srgb, #f5c542 55%, transparent); border-radius: 999px; background: transparent; color: #f5c542; font: 600 11px var(--fv-font-ui); }
 /* Featured cards without a banner: metrics sit directly under the header
    instead of at the bottom of an empty 108px banner. */
 html body #main-content .home-featured-art:not(:has(.home-featured-banner)) { height: auto; background: transparent; }
 html body #main-content .home-featured-art:not(:has(.home-featured-banner)) .home-featured-monogram { display: none; }
-html body #main-content .home-featured-art:not(:has(.home-featured-banner)) .home-featured-banner-metrics { position: static; margin: 0 12px; }
+html body #main-content .home-featured-art:not(:has(.home-featured-banner)) .home-featured-banner-metrics { position: static; margin: 0 12px 12px; }
 /* Home token list: favourite star in the card's top-right corner; no Buy button. */
 html body #main-content .home-new-token-star { position: absolute; z-index: 3; top: 6px; right: 6px; }
 html body #main-content .home-new-token-star .watch-button { display: inline-grid; place-items: center; width: 36px; height: 36px; min-height: 0; padding: 0; border: 0; border-radius: var(--ds-radius, 8px); background: transparent; color: var(--fv-text-muted); }
