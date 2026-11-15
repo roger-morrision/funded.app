@@ -91,3 +91,8 @@ html body #main-content .home-new-token-ath strong { color: var(--fv-text-muted)
 /* Featured heading: "Feature your token" on its own line under the intro. */
 html body #main-content#main-content .home-featured-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 html body #main-content#main-content .home-featured-heading > div:last-child { white-space: nowrap; }
+/* Token cards: compact copy/social icons so they share the age/address line. */
+html body #main-content#main-content .home-launch-card .home-card-meta { flex-wrap: nowrap; gap: 0 4px; min-width: 0; }
+html body #main-content#main-content .home-launch-card .home-card-meta .home-launch-card-addresses { flex: none; }
+html body #main-content#main-content .home-launch-card .home-card-meta .explore-social-links { flex: none; gap: 0; margin-left: auto; }
+html body #main-content#main-content .home-launch-card .home-card-meta :is(.explore-social-link, .home-launch-copy-address) { width: 28px; height: 32px; }
