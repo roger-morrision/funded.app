@@ -118,6 +118,9 @@ html body #main-content .home-launch-card .home-launch-card-stats { display: gri
 html body #main-content .home-launch-card .home-launch-card-stats > span { display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; }
 html body #main-content .home-launch-card .home-launch-card-stats small { color: var(--fv-text-subtle); font: 600 11px var(--fv-font-ui); letter-spacing: .02em; text-transform: uppercase; }
 html body #main-content .home-launch-card .home-launch-card-stats strong { overflow: hidden; color: var(--fv-text); font: 600 14px var(--fv-font-data); text-overflow: ellipsis; white-space: nowrap; }
+/* Market cap and its 24h change wrap onto two lines instead of being cut to "…". */
+html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { white-space: normal; overflow: visible; text-overflow: clip; }
+html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap .home-launch-change { display: block; font-size: 11px; }
 html body #main-content .home-launch-card .home-launch-card-stats .home-launch-cap strong { color: var(--fv-accent); font-size: 16px; }
 html body #main-content .home-launch-card .home-launch-card-stats strong.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
 html body #main-content .home-market-ticker-items small.is-unknown { color: var(--fv-text-subtle); font-weight: 500; }
