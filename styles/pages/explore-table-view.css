@@ -96,3 +96,10 @@ html body #main-content#main-content .home-launch-card .home-card-meta { flex-wr
 html body #main-content#main-content .home-launch-card .home-card-meta .home-launch-card-addresses { flex: none; }
 html body #main-content#main-content .home-launch-card .home-card-meta .explore-social-links { flex: none; gap: 0; margin-left: auto; }
 html body #main-content#main-content .home-launch-card .home-card-meta :is(.explore-social-link, .home-launch-copy-address) { width: 28px; height: 32px; }
+html body #main-content .home-launch-card .home-token-identity small .home-launch-age { color: var(--fv-text-subtle); white-space: nowrap; }
+/* Token page header: Paid listing and the selected promotion beside the symbol. */
+html body #main-content .coin-header-labels { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: middle; }
+html body #main-content .coin-header-labels[hidden] { display: none; }
+html body #main-content .coin-header-label { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border: 1px solid var(--fv-border); border-radius: 999px; color: var(--fv-text); font: 600 12px var(--fv-font-ui); white-space: nowrap; }
+html body #main-content .coin-header-label.is-listed { border-color: color-mix(in srgb, #f5c542 55%, transparent); color: #f5c542; }
+html body #main-content .coin-header-label.is-promotion { border-color: var(--fv-accent); color: var(--fv-accent); }

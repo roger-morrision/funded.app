@@ -45,8 +45,8 @@ export function currentBoostSnapshot(boosts, now = Date.now()) {
   }));
 }
 
-export function activeBoosts(receipts, now = Date.now()) {
-  const active = projectBoostReceipts(receipts,{now}).filter(row => row?.cluster === 'devnet' && row?.status === 'finalized'
+export function activeBoosts(receipts, now = Date.now(), cluster = 'devnet') {
+  const active = projectBoostReceipts(receipts,{now,cluster}).filter(row => row?.cluster === cluster && row?.status === 'finalized'
     && boostPackage(row.packageId)?.multiplier === row.multiplier
     && Number.isFinite(Date.parse(row.startsAt)) && Date.parse(row.startsAt) <= now
     && Number.isFinite(Date.parse(row.expiresAt)) && Date.parse(row.expiresAt) > now);

@@ -2,6 +2,7 @@ import {pricedBoostPackages} from '../../../boost-pricing.js';
 import {currentBoostSnapshot} from '../../../boost-offer.js';
 import {snapshotBoostPayment,assertBoostWalletPayment,MAX_BOOST_NETWORK_FEE_LAMPORTS} from '../../../boost-wallet-review.js';
 import {boostHistoryTable} from '../../features/fees/boost-history-table.js';
+import {decorateAdminBoost} from '../../features/boost/admin-boost-button.js';
 // Dependencies and mutable application state are read live through appState.
 export function createBoostCheckoutController(appState) {
   let livePackages=null, pricingRevision=null;
@@ -171,6 +172,7 @@ export function createBoostCheckoutController(appState) {
       <p class="explore-boost-message" role="status">${appState.escapeHtml(recoveryError || message || (available ? 'Review the exact SOL amount before approving in your wallet.' : 'New boost purchases are currently unavailable.'))}</p>
       <details class="explore-boost-history" ${historyOpen ? 'open' : ''}><summary>Payment history${historyRows.length ? ` (${historyRows.length})` : ''}</summary>${boostHistoryTable(historyRows,{state:appState.exploreBoostHistoryState,explorer:appState.exploreExplorer})}</details>
       <details class="explore-boost-how advanced-details" ${advancedOpen ? 'open' : ''}><summary>Advanced details · boosts</summary><p>Each new purchase adds ${selected.hours} hours to the remaining boost time and increases its total quantity immediately after confirmation. After expiry, a new purchase starts fresh. 500 active boosts unlock the golden ticker. Paid boosts improve visibility, but do not guarantee a Top 100 position or returns.</p></details>`;
+    decorateAdminBoost(appState, details);
   }
   // app-source-end
 

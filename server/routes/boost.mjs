@@ -6,6 +6,7 @@ import { verifyBoostPayment } from '../boost-proof.mjs';
 import {boostPricingSnapshot} from '../admin-boost-pricing.mjs';
 import {projectBoostReceipts,STACKED_BOOST_POLICY} from '../../boost-timeline.js';
 import {prepareBoostPayment, registerBoostPayment, expiredBoostPayment} from '../boost-payment-journal.mjs';
+import {createAdminBoostRoute} from './admin-boost.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -15,7 +16,7 @@ export function createBoostRoutes({
 }) {
 
   const json = (...args) => { respond(...args); return true; };
-  const receiptView=(state,signature)=>projectBoostReceipts(state.boostReceipts).find(row=>row.signature===signature)||state.boostReceipts[signature];
+  const receiptView=(state,signature)=>projectBoostReceipts(state.boostReceipts,{cluster:solanaCluster}).find(row=>row.signature===signature)||state.boostReceipts[signature];
   const connection=()=>connectionFactory(solanaRpcUrl,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(8000)})});
   // Mainnet external tokens: any finalized SPL / Token-2022 mint account.
@@ -27,7 +28,11 @@ export function createBoostRoutes({
       return TOKEN_PROGRAMS.has(info?.value?.owner?.toBase58?.())&&info.value.data?.parsed?.type==='mint';
     }catch{return false;}
   }
+  // Free boosts for admin wallets; the token must still be a real mint on this network.
+  const handleAdminBoost=createAdminBoostRoute({ body, store, solanaCluster, clientKey, respond,
+    mintVerified: solanaCluster==='devnet' ? null : externalMintVerified });
   return async function handleBoostRoutes(req, res, url, requestId) {
+    if (await handleAdminBoost(req, res, url)) return true;
     if (req.method === 'GET' && url.pathname === '/api/boosts') {
       const state = await store.read();
       const mint = url.searchParams.get('mint');
@@ -35,8 +40,8 @@ export function createBoostRoutes({
         try { if (new PublicKey(mint).toBase58() !== mint) throw new Error(); }
         catch { return json(res, 400, { error:'A valid token mint is required.' }); }
       }
-      const active = activeBoosts(state.boostReceipts);
-      const history = mint ? projectBoostReceipts(state.boostReceipts).filter(row => row.mint === mint)
+      const active = activeBoosts(state.boostReceipts, Date.now(), solanaCluster);
+      const history = mint ? projectBoostReceipts(state.boostReceipts,{cluster:solanaCluster}).filter(row => row.mint === mint)
         .sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt)).slice(0, 30) : [];
       const pricing=boostPricingSnapshot(state);
       return json(res, 200, { cluster:solanaCluster, enabled:boostPurchasesEnabled && Boolean(process.env.FUNDED_BOOST_PAYMENT_WALLET), packages:pricing.packages, pricingRevision:pricing.revision, active:mint ? (active[mint] ? { [mint]:active[mint] } : {}) : active, history });

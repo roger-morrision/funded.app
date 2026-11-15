@@ -3,6 +3,7 @@ import { activeBoostMultiplier, activeBoostPackages } from '../../../boost-offer
 import { coinDetailPackage } from '../../../promotion-badge.js';
 import { verifiedCoinRewardsPolicy, formatPolicyPercent } from '../../../coin-rewards-policy.js';
 import {feeDistributionMarkup} from '../fees/distribution-summary.js';
+import { renderCoinHeaderLabels } from './header-labels.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderCoinPromotionBadge(
@@ -93,6 +94,7 @@ export function renderCoinPromotionBadge(
   }
   packageElement.textContent = badge?.label || presentation.label;
   if (presentation.tier !== 'standard') holder.append(packageElement);
+  renderCoinHeaderLabels(mint, { promotionLabel: badge ? `${presentation.label} promotion` : '', getCoinMintAddress, document });
   renderCoinRegistryIdentity(mint);
   renderCoinRewardsPolicy(verifiedLaunchPolicyForMint(mint), mint);
 }
