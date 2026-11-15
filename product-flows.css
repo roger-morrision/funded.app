@@ -7,11 +7,11 @@ html body.page-route-overview.product-experience-style .hero-section { padding:1
 html body.page-route-overview .hero-copy-column { max-width:980px; }
 html body.page-route-overview.product-experience-style .hero-section h1 { max-width:980px; font-size:clamp(28px,2.6vw,40px) !important; }
 html body.page-route-overview.product-experience-style .hero-copy { max-width:760px; font-size:13px; }
-html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media {
+html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches,.page-route-community) .home-launch-card-media {
   aspect-ratio:auto; height:112px; min-height:0; border-bottom-width:1px;
 }
-html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .home-token-avatar { font-size:38px; }
-html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media .home-token-avatar img { object-fit:contain; }
+html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches,.page-route-community) .home-launch-card-media .home-token-avatar { font-size:38px; }
+html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches,.page-route-community) .home-launch-card-media .home-token-avatar img { object-fit:contain; }
 .card-review-buy { display:flex; position:relative; z-index:4; justify-content:space-between; gap:8px; margin:10px 0 2px; padding:11px 12px; border:1px solid #8c744c; border-radius:7px; background:#332a1d; color:#ffe0a3; font-weight:700; font-size:12px; text-decoration:none; }
 .review-buy-setting { display:flex; flex-wrap:wrap; align-items:center; gap:6px; color:#c8cdd5; font-size:11px; }
 .review-buy-setting input { width:76px; min-height:36px; padding:6px; border:1px solid #61543e; border-radius:6px; background:#171c26; color:#fff0ce; }
@@ -52,7 +52,7 @@ html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .
   html body.page-route-overview.product-experience-style .hero-section h1 { max-width:28ch; font-size:26px !important; }
   .flow-panel { padding:15px; }.flow-panel header { flex-direction:column; }
   .launch-facts dl { grid-template-columns:1fr; gap:6px; }.launch-facts dd { margin-bottom:12px; }
-  html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches) .home-launch-card-media { height:84px; }
+  html body:is(.page-route-overview,.page-route-explore,.page-route-my-launches,.page-route-community) .home-launch-card-media { height:84px; }
   .review-buy-setting { width:100%; }.review-buy-setting input { min-height:44px; }
   body.page-route-coin .mobile-workspace-nav :is(.mobile-dock-buy,.mobile-trade-sell) { display:block; min-width:0; min-height:62px; margin:0; padding:7px 2px; border:1px solid #ac8a4a; border-radius:10px; font:800 13px Manrope,sans-serif; background:#30291e; color:#f1d6a2; }
   body.page-route-coin .mobile-workspace-nav .mobile-trade-sell { background:#242a38; color:#f4b2ab; border-color:#946c6b; }

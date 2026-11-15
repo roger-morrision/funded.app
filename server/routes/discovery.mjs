@@ -6,6 +6,14 @@ import { verifyPumpLaunch as verifyLaunch } from '../launch-verification.mjs';
 import { createExploreAccountSnapshot } from '../explore-account-snapshot.mjs';
 
 // Dispatch after shared authorization and rate checks; preserve caller route order.
+// Jupiter reports the 24h holder change as a percentage of its own holder count;
+// convert it to a net wallet change against that same count.
+export function holderChange24h(token) {
+  const count = Number(token?.holderCount), percent = Number(token?.stats24h?.holderChange);
+  if (!Number.isSafeInteger(count) || count <= 0 || !Number.isFinite(percent) || percent <= -100) return null;
+  return Math.round(count - count / (1 + percent / 100));
+}
+
 export function createDiscoveryRoutes({
   store, solanaCluster, solanaRpcUrl, birdeyeChain, fetchBirdeye, fetchPump, clientKey, tokenCache = null, freeMarketData = null,
   Connection = SolanaConnection, verifyPumpLaunch = verifyLaunch, respond,
@@ -78,7 +86,7 @@ export function createDiscoveryRoutes({
   // verified paid listings on this cluster, with market fields from the free
   // DexScreener batch (falling back to the discovered-token cache).
   let registryCache = null;
-  const registryHolders = new Map(), holdersCheckedAt = new Map();
+  const registryHolders = new Map(), registryHolderChange = new Map(), holdersCheckedAt = new Map();
   let holdersRefresh = null;
   function refreshRegistryHolders(mints) {
     const due = mints.filter(mint => Date.now() - (holdersCheckedAt.get(mint) || 0) > 30 * 60_000);
@@ -87,9 +95,11 @@ export function createDiscoveryRoutes({
     holdersRefresh = (async () => {
       for (const mint of due) {
         holdersCheckedAt.set(mint, Date.now());
-        const count = positive((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count)
-          ?? positive((await freeMarketData?.jupToken?.(mint).catch(() => null))?.holderCount);
+        const jup = await freeMarketData?.jupToken?.(mint).catch(() => null);
+        const count = positive((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count) ?? positive(jup?.holderCount);
         if (count != null) registryHolders.set(mint, count);
+        const change = holderChange24h(jup);
+        if (change != null) registryHolderChange.set(mint, change); else registryHolderChange.delete(mint);
       }
       registryCache = null;
     })().finally(() => { holdersRefresh = null; });
@@ -131,7 +141,8 @@ export function createDiscoveryRoutes({
         pairCreatedAt: Number(market.pairCreatedAt) > 0 ? Number(market.pairCreatedAt) : null, dexId: market.dexId || null,
         quoteMint: base.quoteMint || market.quoteMint || null, quoteSymbol: base.quoteSymbol || market.quoteSymbol || null,
         buyCount24h: Number.isSafeInteger(market.buyCount24h) ? market.buyCount24h : null, sellCount24h: Number.isSafeInteger(market.sellCount24h) ? market.sellCount24h : null,
-        holderCount: Number.isSafeInteger(holders.get(mint)) ? holders.get(mint) : null };
+        holderCount: Number.isSafeInteger(holders.get(mint)) ? holders.get(mint) : null,
+        holderChange24h: Number.isSafeInteger(registryHolderChange.get(mint)) ? registryHolderChange.get(mint) : null };
     });
     if (fresh.length) void tokenCache?.upsert(fresh);
     registryCache = { at: Date.now(), items };

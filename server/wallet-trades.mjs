@@ -32,7 +32,7 @@ export function walletTradeRows({transaction,reference,wallet,decodePoolEvent}) 
     if (mints.has(balance.mint)&&mints.get(balance.mint).decimals!==decimals) throw new Error('Token decimals disagree.');
     mints.set(balance.mint,{mint,decimals});
   }
-  const records=[];
+  const records=[];let unmatched=false;
   for (const event of successfulEventLogs(transaction.meta.logMessages)) {
     const curve=event.program===PUMP_PROGRAM_ID.toBase58(),pool=event.program===PUMP_AMM_PROGRAM_ID.toBase58();
     if (!curve&&!pool) continue;
@@ -58,12 +58,16 @@ export function walletTradeRows({transaction,reference,wallet,decodePoolEvent}) 
           tokenAmountRaw:String(trade.tokenAmountRaw),finalized:true});
       }
     }
-    if (expectedTrader===wallet&&records.length===before) throw new Error('Wallet trade mint or quote proof is unavailable.');
+    // This wallet's event in a pool not paired with SOL (for example a USDC-paired
+    // coin reached through Jupiter) has no SOL amount; the wallet's own balance
+    // changes below decide it instead.
+    if (expectedTrader===wallet&&records.length===before) unmatched=true;
   }
   if (!records.length) {
     const swap=balanceDeltaSwap({transaction,keys,wallet,mints});
     if (swap) records.push({...swap,trader:wallet,signature:reference.signature,slot:transaction.slot,
       blockTime:transaction.blockTime,logIndex:0,route:'swap',finalized:true});
+    else if (unmatched) throw new Error('Wallet trade mint or quote proof is unavailable.');
   }
   return records;
 }

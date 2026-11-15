@@ -3,7 +3,7 @@ const validAccount = value => /^\d{1,24}$/.test(value) || /^wallet:[1-9A-HJ-NP-Z
 const guestMessage = 'Verify a wallet or sign in with X to sync favorites across devices.';
 
 export function createWatchlistSync({ request, onChange = () => {}, onStatus = () => {} }) {
-  let accountId, mints = [], csrf = '', ready = false, epoch = 0;
+  let accountId, mints = [], csrf = '', ready = false, epoch = 0, loading = null;
   let queue = Promise.resolve();
   function publish() { onChange([...mints]); }
   function schedule(work) {
@@ -39,7 +39,11 @@ export function createWatchlistSync({ request, onChange = () => {}, onStatus = (
     setIdentity(next) {
       if (next !== null && next !== undefined && !validAccount(next)) next = undefined;
       if (next === accountId && ready) return Promise.resolve(true);
-      accountId = next; csrf = ''; ready = false; mints = [];
+      // Wallet connect, session restore and an explicit verify can all name the
+      // same account at once; restarting the load would cancel the caller that
+      // is waiting to save, so they share the load already in flight.
+      if (next === accountId && loading) return loading;
+      accountId = next; csrf = ''; ready = false; mints = []; loading = null;
       const generation = ++epoch;
       if (next === null) {
         publish();
@@ -48,7 +52,10 @@ export function createWatchlistSync({ request, onChange = () => {}, onStatus = (
       }
       publish();
       if (next === undefined) { onStatus('checking', 'Checking sign-in before loading favorites.'); return Promise.resolve(false); }
-      return schedule(() => generation === epoch ? load(next, generation) : false);
+      const pending = schedule(() => generation === epoch ? load(next, generation) : false);
+      loading = pending;
+      pending.finally(() => { if (loading === pending) loading = null; }).catch(() => {});
+      return pending;
     },
     refresh() {
       const expected = accountId, generation = epoch;

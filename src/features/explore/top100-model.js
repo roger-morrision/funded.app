@@ -35,7 +35,8 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
     const boostExpiresAt = boost > 0 ? expiries.length ? Math.max(...expiries) : Date.parse(boosts[mint].expiresAt) : null;
     const growth=growthReady?community.growth.items?.[mint]:null, posts=communityReady?community.items[mint]:null;
     const capGrowthUsd=growthDelta(growth?.marketCapUsd), holderDelta=growthDelta(growth?.holders);
-    const holderGrowth=Number.isSafeInteger(holderDelta)?holderDelta:null;
+    // Mainnet tokens have no indexed holder history; use the indexed 24h change.
+    const holderGrowth=Number.isSafeInteger(holderDelta)?holderDelta:Number.isSafeInteger(asset.holderChange24h)?asset.holderChange24h:null;
     const communityCount=communityReady ? posts==null?0:Number.isSafeInteger(posts.total)&&posts.total>=0?posts.total:null : null;
     const socialChannels=new Set(exploreSocialLinks(asset,policy).filter(link=>{
       const host=new URL(link.href).hostname.toLowerCase().replace(/^www\./,'');

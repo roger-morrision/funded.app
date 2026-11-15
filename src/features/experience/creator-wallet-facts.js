@@ -1,7 +1,8 @@
 import { panel,el,link,array,button,address,utc } from './view-utils.js';
 import { APP_NET } from '../shared/app-network.js';
 export function initializeCreatorWalletFacts(app){
-  const parent=document.querySelector('#wallet-page');if(!parent)return;
+  // Recorded creator delivery comes from the Richpad program, which Mainnet does not run.
+  const parent=document.querySelector('#wallet-page');if(!parent||APP_NET!=='devnet')return;
   const details=el('details',null,'flow-panel');details.append(el('summary','Creator delivery facts'));const body=panel('creator-wallet-facts','Creator delivery facts','Open to check recorded launch and reward-delivery coverage for this wallet.');details.append(body);parent.append(details);
   let serial=0,last='';
   async function refresh(){const wallet=app.getWalletDetailAddress();if(!details.open||!address(wallet)||last===wallet)return;last=wallet;const id=++serial;body.replaceChildren(el('h3','Checking creator delivery records…'));body.removeAttribute('aria-labelledby');
