@@ -34,7 +34,10 @@ export function createFeaturedScroller(root) {
     track.querySelectorAll('[data-featured-copy]').forEach(node=>node.remove());
     const group=track.firstElementChild;if(!group)return;
     cycle=group.getBoundingClientRect().width;
-    if (!cycle) return;
+    // When every card already fits, looping would only show the same tokens repeated.
+    if (cycle<=viewport.clientWidth) cycle=0;
+    button.hidden=!cycle;
+    if (!cycle) {viewport.scrollLeft=0;position=0;return;}
     for(let n=0;n<Math.ceil(viewport.clientWidth/cycle)+1;n++){
       const clone=group.cloneNode(true);clone.dataset.featuredCopy='';clone.setAttribute('aria-hidden','true');
       clone.querySelectorAll('a').forEach(a=>{a.tabIndex=-1;});track.append(clone);
@@ -89,6 +92,6 @@ export function createFeaturedScroller(root) {
   },render(items,cluster){
     const next=items.map(item=>featuredCardMarkup(item,cluster)).join('');
     if(next===key)return;key=next;track.innerHTML=next?`<div class="home-featured-group">${next}</div>`:'';
-    viewport.hidden=!items.length;button.hidden=!items.length;copies();sync();
+    viewport.hidden=!items.length;copies();sync();
   }};
 }

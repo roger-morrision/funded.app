@@ -4,6 +4,8 @@
 export async function offerTestLockPeriod(app) {
   const select = document.querySelector('#creator-buy-lock-period');
   if (!select || select.querySelector('option[value="300"]')) return;
+  // Mainnet never offers the test lock; skip the Devnet-only config request.
+  if (app.EXPLORE_CLUSTER && app.EXPLORE_CLUSTER !== 'devnet') return;
   const result = await app.apiRequest?.('/api/launch-reserve-config').catch(() => null);
   const config = result?.available ? result.data : null;
   if (config?.cluster !== 'devnet' || !config.developerTokenLock?.lockPeriodsSeconds?.includes(300)) return;

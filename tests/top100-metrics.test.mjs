@@ -81,3 +81,10 @@ test('token-account route records distinct wallet owners only from complete serv
     assert.equal(state.top100Snapshots?.[`devnet:${token}`]?.holdersLatest.value,partial?undefined:1);
   }
 });
+
+test('Mainnet 24h MC growth falls back to the indexed price change', () => {
+  const [row]=top100Records([{address:mint,marketCapUsd:200,priceChange24hPercent:100}],{cluster:'mainnet-beta',now});
+  assert.equal(row.capGrowthUsd,100);
+  const [devnet]=top100Records([{address:mint,marketCapUsd:200,priceChange24hPercent:100}],{cluster:'devnet',now});
+  assert.equal(devnet.capGrowthUsd,null);
+});

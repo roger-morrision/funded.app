@@ -30,8 +30,10 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     } else if (avatar) avatar.textContent = symbol.slice(0, 1).toUpperCase();
     const usd = value => Number.isFinite(value) ? appState.formatUsd(value) : '—';
     appState.setCoinField('#coin-price', Number.isFinite(data.priceUsd) ? (data.priceUsd < 0.01 ? `$${formatTinyDecimal(data.priceUsd)}` : usd(data.priceUsd)) : '—');
-    for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) appState.setCoinField(selector, usd(data.marketCapUsd));
-    appState.setCoinField('#coin-volume', usd(data.volume24hUsd)); appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? usd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
+    // Large stat-card amounts show whole dollars so market cap and liquidity read alike.
+    const wholeUsd = value => Number.isFinite(value) && Math.abs(value) >= 1000 ? `$${Math.round(value).toLocaleString('en-US')}` : usd(value);
+    for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) appState.setCoinField(selector, wholeUsd(data.marketCapUsd));
+    appState.setCoinField('#coin-volume', wholeUsd(data.volume24hUsd)); appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? wholeUsd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
     appState.setCoinField('#coin-liquidity-label', 'Liquidity');
     appState.setCoinField('#coin-change', Number.isFinite(data.priceChangePercent) ? `${data.priceChangePercent.toFixed(2)}% · 24h` : '24h —');
     appState.setCoinField('#coin-market-cap-label', 'Market cap');

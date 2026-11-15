@@ -34,7 +34,12 @@ export function top100Records(assets, {boosts = {}, solUsd = null, policies = []
     const boostNextExpiry = boost > 0 ? expiries.length ? Math.min(...expiries) : Date.parse(boosts[mint].nextExpiry || boosts[mint].expiresAt) : null;
     const boostExpiresAt = boost > 0 ? expiries.length ? Math.max(...expiries) : Date.parse(boosts[mint].expiresAt) : null;
     const growth=growthReady?community.growth.items?.[mint]:null, posts=communityReady?community.items[mint]:null;
-    const capGrowthUsd=growthDelta(growth?.marketCapUsd), holderDelta=growthDelta(growth?.holders);
+    const historyGrowth=growthDelta(growth?.marketCapUsd), holderDelta=growthDelta(growth?.holders);
+    // Indexed (Mainnet) tokens have fixed supply, so the indexed 24h price change
+    // gives the 24h market-cap change when no recorded history exists.
+    const indexedChange=cluster!=='devnet'?number(asset.priceChange24hPercent):null;
+    const capGrowthUsd=historyGrowth!=null?historyGrowth
+      :capUsd!=null&&indexedChange!=null&&indexedChange>-100?capUsd-capUsd/(1+indexedChange/100):null;
     // Mainnet tokens have no indexed holder history; use the indexed 24h change.
     const holderGrowth=Number.isSafeInteger(holderDelta)?holderDelta:Number.isSafeInteger(asset.holderChange24h)?asset.holderChange24h:null;
     const communityCount=communityReady ? posts==null?0:Number.isSafeInteger(posts.total)&&posts.total>=0?posts.total:null : null;

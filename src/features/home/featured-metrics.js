@@ -14,10 +14,10 @@ export function featuredMetrics(item, {asset={},holderSnapshot,solUsd,cluster='d
   const count=recent(holderSnapshot?.at,now)?number(holderSnapshot.count):indexed&&Number.isSafeInteger(asset.holderCount)?asset.holderCount:null;
   const age=tokenAge(item.createdAt||(indexed&&number(asset.pairCreatedAt)>0?number(asset.pairCreatedAt):null),now);
   return {cap:usd==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(usd),
-    change:change==null?'—':`≈${change>0?'+':''}${change.toFixed(2)}%`,direction:change==null?'unknown':change<0?'negative':'positive',
+    change:change==null?'—':`≈${change>0?'+':''}${change.toLocaleString('en-US',{minimumFractionDigits:Math.abs(change)>=100?0:2,maximumFractionDigits:Math.abs(change)>=100?0:2})}%`,direction:change==null?'unknown':change<0?'negative':'positive',
     age:age.timestamp?age.label:'—',ageAt:age.timestamp,
-    holders:count!=null&&Number.isSafeInteger(count)&&count>=0?`${holderSnapshot.coverage==='lower-bound'?'≥':''}${count.toLocaleString('en-US')}`:'—',
-    holderTitle:count==null?'Verified holder count unavailable':holderSnapshot.coverage==='lower-bound'?'At least this many distinct wallet owners in the confirmed token-account sample':'Distinct wallet owners in confirmed non-vault token accounts'};
+    holders:count!=null&&Number.isSafeInteger(count)&&count>=0?`${holderSnapshot?.coverage==='lower-bound'?'≥':''}${count.toLocaleString('en-US')}`:'—',
+    holderTitle:count==null?'Verified holder count unavailable':holderSnapshot?.coverage==='lower-bound'?'At least this many distinct wallet owners in the confirmed token-account sample':'Distinct wallet owners in confirmed non-vault token accounts'};
 }
 
 export function featuredMetricsMarkup(metrics=featuredMetrics({})) {
