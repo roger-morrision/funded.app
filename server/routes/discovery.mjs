@@ -54,10 +54,24 @@ export function createDiscoveryRoutes({
         const prior = tokenMarketCache.get(mint)?.row;
         if (prices?.data || meta?.data) tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { mint,
           priceUsd: Number.isFinite(price) && price > 0 ? price : prior?.priceUsd ?? null, logoUri: logo || prior?.logoUri || null,
-          name: typeof info?.name === 'string' ? info.name.slice(0, 80) : null, symbol: typeof info?.symbol === 'string' ? info.symbol.slice(0, 20) : null } });
+          // Birdeye metadata can be missing; keep the free-source identity rather than erase it.
+          name: typeof info?.name === 'string' ? info.name.slice(0, 80) : prior?.name ?? null,
+          symbol: typeof info?.symbol === 'string' ? info.symbol.slice(0, 20) : prior?.symbol ?? null } });
       }
       if (tokenMarketCache.size > 5000) for (const [key, value] of tokenMarketCache) if (value.expiresAt <= now) tokenMarketCache.delete(key);
     }
+    // A small lookup (such as a pasted mint in search) still lacking a name gets
+    // its identity from Jupiter's free token search.
+    if (freeMarketData?.jupToken && mints.length <= 3) await Promise.all(mints.map(async mint => {
+      const cached = tokenMarketCache.get(mint);
+      if (cached?.row?.symbol) return;
+      const token = await freeMarketData.jupToken(mint).catch(() => null);
+      if (!token?.symbol) return;
+      const icon = typeof token.icon === 'string' && token.icon.startsWith('https://') ? token.icon : null;
+      const row = cached?.row || { mint, priceUsd: Number.isFinite(Number(token.usdPrice)) ? Number(token.usdPrice) : null, logoUri: null };
+      tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { ...row, logoUri: row.logoUri || icon,
+        name: String(token.name || token.symbol).slice(0, 80), symbol: String(token.symbol).slice(0, 20) } });
+    }));
     return mints.flatMap(mint => tokenMarketCache.get(mint)?.row ? [tokenMarketCache.get(mint).row] : []);
   }
   // Mainnet Explore lists only Richpad tokens: verified app launches and

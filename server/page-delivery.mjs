@@ -40,7 +40,8 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond, 
     const filePath = resolve(staticRoot, fileName);
     if (!filePath.startsWith(`${staticRoot}${sep}`)) return json(res, 404, { error: 'Not found.' });
     const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.ico': 'image/x-icon',
-      '.json': 'application/json; charset=utf-8', '.webp': 'image/webp', '.avif': 'image/avif', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.woff2': 'font/woff2', '.woff': 'font/woff' };
+      '.json': 'application/json; charset=utf-8', '.webp': 'image/webp', '.avif': 'image/avif', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.woff2': 'font/woff2', '.woff': 'font/woff',
+      '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8' };
     try {
       const content = await readFile(filePath);
       res.writeHead(200, { 'content-type': mime[extname(filePath).toLowerCase()] || 'application/octet-stream', 'cache-control': staticCacheControl(fileName), 'x-content-type-options': 'nosniff' });
@@ -108,6 +109,8 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond, 
       const page=tokenPageHtml(template,launch,metadata,tokenPageMint,solanaCluster,undefined,url.search,indexed);
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return end(res, page);
     }
+    // Service status is an admin panel; the old public /status link lands there.
+    if (readRequest && /^\/status\/?$/.test(url.pathname)) { res.writeHead(302, { location: '/admin#admin-service-status', 'cache-control': 'no-store' }); return end(res); }
     if (readRequest && /^\/welcome\/?$/.test(url.pathname)) return await serveStatic('/welcome.html', res);
     if (readRequest && (url.pathname === '/admin' || url.pathname === '/admin/')) return await serveStatic('/admin.html', res);
     if (readRequest && ['/', '/explore', '/explore/'].includes(url.pathname)) {

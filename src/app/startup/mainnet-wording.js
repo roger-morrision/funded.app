@@ -17,8 +17,10 @@ const RULES = [
   [/\s*·\s*Devnet\b/g, ''],
   [/\bDevnet\s+/g, ''],
   [/\bDevnet\b/g, 'Solana'],
+  // Mainnet has no in-app launches (#launch opens the $RICH page).
+  [/See your portfolio, launch tokens, and claim rewards\./g, 'See your portfolio, trade tokens, and claim rewards.'],
 ];
-const NEEDS = /devnet|test sol|test funds|test tokens|test assets|monetary value|test value/i;
+const NEEDS = /devnet|test sol|test funds|test tokens|test assets|monetary value|test value|launch tokens, and claim/i;
 // Program-only facts (fee vaults, automatic buybacks, reserve funding, settlement
 // receipts) cannot exist without the Richpad programs, so their "unavailable"
 // placeholders are hidden on Mainnet instead of shown as failures.

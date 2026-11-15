@@ -32,9 +32,20 @@ document.addEventListener('keydown',event=>{
 });
 mobile.addEventListener('change',()=>setMenu(false));setMenu(false);
 
+// The admin API serves Devnet only. A Mainnet build shows that instead of a
+// sign-in form that cannot succeed.
+if((import.meta.env.VITE_SOLANA_CLUSTER||'devnet')!=='devnet'){
+  document.querySelector('.top .badge').textContent='ADMIN';
+  document.querySelector('#network').textContent='Solana';
+  const panel=document.querySelector('#auth-panel');
+  panel.replaceChildren(Object.assign(document.createElement('h2'),{textContent:'Not available on this network'}),
+    Object.assign(document.createElement('p'),{textContent:'The admin workspace, including service status, runs on the Devnet deployment only. Nothing here can be used on Mainnet.'}));
+  document.querySelector('#workspace').hidden=true;
+}else{
 await import('./admin-page.js');
 
 await import('./service-status-ui.js');
 
 // Keep the balance summary above panels added by optional admin features.
 document.querySelector('#workspace')?.prepend(document.querySelector('#summary'));
+}
