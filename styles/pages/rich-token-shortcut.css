@@ -6,3 +6,6 @@
 .rich-nav-logo { flex: none; width: 22px; height: 22px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1.5px var(--fv-accent, #f5b900); }
 .rich-nav-logo-fallback { display: inline-grid; place-items: center; background: var(--fv-accent, #f5b900); color: #111; font: 800 12px/1 sans-serif; }
 .primary-nav .rich-nav-logo { margin-right: 2px; }
+/* Phone bottom bar: "Buy $RICH" stays on one line under its logo, also beside the wider active tab. */
+.mobile-navigation-links a[data-mainnet-launch="buy-rich"] { white-space: nowrap; }
+@media (max-width: 359px) { .mobile-navigation-links a[data-mainnet-launch="buy-rich"] { font-size: 11px; } }
