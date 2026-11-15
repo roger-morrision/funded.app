@@ -1,9 +1,10 @@
 import { Connection } from '@solana/web3.js';
 import { indexCommunityClaims } from './community-claim-index.mjs';
+import { closeExpiredCommunityDrops } from './community-drop-closer.mjs';
 import { pruneShareVisits } from './share-visits.mjs';
 import { createAutomaticRewardChain, DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { createHolderHistoryIndexer } from './holder-history-indexer.mjs';
-import { createRewardScheduler } from './reward-scheduler.mjs';
+import { createRewardScheduler, protocolRewardWallets } from './reward-scheduler.mjs';
 import { createHolderRewardQuoteReader } from './holder-reward-quote.mjs';
 import { QA_HOLDER_POLICY, qaHolderMinimums, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
 
@@ -25,11 +26,11 @@ export function startCommunityClaimIndex({
   v3AuthorityKeypair,
   env = process.env, scheduleTimeout = setTimeout, scheduleInterval = setInterval,
   createConnection = url => new Connection(url, 'finalized'),
-  indexClaims = indexCommunityClaims, logger = console,
+  indexClaims = indexCommunityClaims, closeExpired = closeExpiredCommunityDrops, logger = console,
 }) {
   if(solanaCluster!=='devnet')return;
-  let authority;
-  try { authority = v3AuthorityKeypair?.()?.publicKey?.toBase58(); } catch { return; }
+  let authority, signer;
+  try { signer = v3AuthorityKeypair?.(); authority = signer?.publicKey?.toBase58(); } catch { return; }
   if (solanaCluster !== 'devnet' || !fundedTokenMint || !authority
     || !env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
     || !/^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))) return;
@@ -44,6 +45,9 @@ export function startCommunityClaimIndex({
         expectedProgramDataSha256: env.FUNDED_V3_PROGRAM_DATA_SHA256 });
       logger.log(JSON.stringify({ event: 'community_claim_indexed', drops: result.drops.length,
         claims: result.payments.length, indexedAt: result.indexedAt }));
+      // Return unclaimed tokens to the app owner once a drop's window ends.
+      if (env.FUNDED_COMMUNITY_DROP_AUTO_CLOSE !== 'false') await closeExpired({ connection: createConnection(solanaRpcUrl),
+        ledger: automaticRewardStore, programId: env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID, authority: signer, logger });
     } catch (error) {
       logger.error(JSON.stringify({ event: 'community_claim_index_failed', reason: String(error.message || error).slice(0, 180) }));
     } finally { indexing = false; }
@@ -75,6 +79,7 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
     ...(solanaCluster === 'devnet' && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true' ? { maxSnapshotsPerMint:360 } : {}),
     expectedGenesisHash:DEVNET_GENESIS_HASH });
   const scheduler = createRewardScheduler({ store:automaticRewardStore, chain, indexer,
+    protocolWallets:protocolRewardWallets(env, authority.publicKey),
     quoteReader:createHolderRewardQuoteReader({ connection:holderConnection, env }) });
   const migrateFundedV3Programs = async () => {
     const state = await automaticRewardStore.read();

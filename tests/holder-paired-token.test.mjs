@@ -74,3 +74,11 @@ test('migrated paired coins exclude their paired-token pool and off-curve owners
   assert.equal(payableHolder(pool), false);
   assert.equal(payableHolder(Keypair.generate().publicKey.toBase58()), true);
 });
+
+test('operational wallets (router authority, trade-fee owner, configured) never earn holder rewards', async () => {
+  const { protocolRewardWallets } = await import('../server/reward-scheduler.mjs');
+  const authority = Keypair.generate().publicKey, owner = Keypair.generate().publicKey.toBase58(), extra = Keypair.generate().publicKey.toBase58();
+  const wallets = protocolRewardWallets({ FUNDED_TRADE_FEE_OWNER: owner, REWARD_EXCLUDED_WALLETS: ` ${extra},,` }, authority);
+  assert.deepEqual(wallets, [authority.toBase58(), owner, extra].sort());
+  assert.deepEqual(protocolRewardWallets({}, null), []);
+});

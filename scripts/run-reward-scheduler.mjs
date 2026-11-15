@@ -6,7 +6,7 @@ import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs
 import { rewardLedgerPath } from '../server/reward-ledger-path.mjs';
 import { createHolderHistoryIndexer } from '../server/holder-history-indexer.mjs';
 import { createAutomaticRewardChain, DEVNET_GENESIS_HASH } from '../server/automatic-reward-chain.mjs';
-import { createRewardScheduler } from '../server/reward-scheduler.mjs';
+import { createRewardScheduler, protocolRewardWallets } from '../server/reward-scheduler.mjs';
 import { createRewardFundingProcessor } from '../server/reward-funding-processor.mjs';
 import { rewardWorkerFailureStatus } from '../server/worker-readiness.mjs';
 import { rpcQuotaExhausted, rpcWorkerWaitMs } from '../rpc-retry.js';
@@ -36,7 +36,7 @@ const authority = signer();
 const programId = new PublicKey(process.env.FUNDED_FEE_ROUTER_PROGRAM_ID || process.env.VITE_FUNDED_FEE_ROUTER_PROGRAM_ID);
 const store = createAutomaticRewardStore(rewardLedgerPath());
 const chain = createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256: process.env.FUNDED_REWARD_PROGRAM_DATA_SHA256 });
-const scheduler = createRewardScheduler({ store, chain, indexer: createHolderHistoryIndexer({ connection:holderIndexConnection, store, rpcUrl:holderIndexRpcUrl, expectedGenesisHash:DEVNET_GENESIS_HASH }) });
+const scheduler = createRewardScheduler({ store, chain, protocolWallets: protocolRewardWallets(process.env, authority.publicKey), indexer: createHolderHistoryIndexer({ connection:holderIndexConnection, store, rpcUrl:holderIndexRpcUrl, expectedGenesisHash:DEVNET_GENESIS_HASH }) });
 const fundingProcessor = createRewardFundingProcessor({ store, chain, scheduler });
 const configs = JSON.parse(process.env.FUNDED_REWARD_PROGRAMS_JSON || '[]');
 for (const config of configs) await scheduler.register(config);

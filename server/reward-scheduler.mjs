@@ -28,6 +28,14 @@ export function excludedHolderWallets(mint, configured = [], quoteMint = null) {
   return [...excluded].sort();
 }
 
+// Operational wallets (router authority/app owner, trade-fee owner and any
+// configured REWARD_EXCLUDED_WALLETS) that must never earn holder rewards.
+export function protocolRewardWallets(env = process.env, authority = null) {
+  const wallets = [authority?.toBase58?.() || authority, env.FUNDED_TRADE_FEE_OWNER,
+    ...String(env.REWARD_EXCLUDED_WALLETS || '').split(',')].map(row => String(row || '').trim()).filter(Boolean);
+  return [...new Set(wallets)].sort();
+}
+
 // Token payouts go to associated token accounts, which an off-curve owner
 // (a program account such as a pool or vault) cannot have.
 export function payableHolder(wallet) {
@@ -184,7 +192,10 @@ function publicSchedule(row) {
   return { id: row.id, mint: row.mint, asset: row.asset, kind: row.kind, periodStart: row.periodStart, cutoffAt: row.cutoffAt, payoutAt: row.payoutAt, status: row.status, reason: row.reason || null, recipientCount: row.manifest?.leaves?.length || 0, totalAmount: row.manifest?.totalAmount || null, cycle: row.cycle || null, paidCount: Object.values(row.payments || {}).filter(item => item.status === 'paid').length };
 }
 
-export function createRewardScheduler({ store, indexer, chain, quoteReader = null }) {
+// protocolWallets: app-owner/authority wallets that hold coins for operational
+// reasons (such as a closed community drop's remainder) and never earn holder rewards.
+export function createRewardScheduler({ store, indexer, chain, quoteReader = null, protocolWallets = [] }) {
+  const protocolExcluded = [...new Set(protocolWallets.map(String).filter(Boolean))];
   async function register(input) {
     return store.transaction(state => {
       state.programs ||= {};
@@ -353,7 +364,7 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
             continue;
           }
           const snapshots = snapshotsForPeriod(state.holderSnapshots[schedule.mint], schedule.periodStart, schedule.cutoffAt, config.sampleIntervalSeconds * 2);
-          const excluded = excludedHolderWallets(schedule.mint, config.excludedWallets || [], config.quoteMint || null);
+          const excluded = excludedHolderWallets(schedule.mint, [...(config.excludedWallets || []), ...protocolExcluded], config.quoteMint || null);
           let weights = holdingWeights({ start: schedule.periodStart, end: schedule.cutoffAt,
             snapshots, excludedWallets:excluded, coverage:'finalized-sampled-v1' }).filter(row => payableHolder(row.wallet));
           if (pricedHolderPolicy(config)) {
