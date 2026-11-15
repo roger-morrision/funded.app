@@ -36,6 +36,19 @@ export function protocolRewardWallets(env = process.env, authority = null) {
   return [...new Set(wallets)].sort();
 }
 
+const PROTOCOL_OWNED_MANIFEST = /protocol-owned vault or PumpSwap liquidity pool/;
+const UNPAYABLE_LEAF = /TokenOwnerOffCurve/;
+
+// A committed cycle is unpayable when its manifest was blocked for a protocol-owned
+// leaf, or when every unpaid leaf failed because its owner cannot hold a token account.
+export function unpayableCycleSchedule(row) {
+  if (!row?.cycle || !['blocked', 'distributing'].includes(row.status) || !Array.isArray(row.manifest?.leaves)) return false;
+  if (row.status === 'blocked' && PROTOCOL_OWNED_MANIFEST.test(String(row.reason || ''))) return true;
+  const unpaid = row.manifest.leaves.filter(leaf => row.payments?.[leaf.recipient]?.status !== 'paid');
+  return unpaid.length > 0 && unpaid.every(leaf => row.payments?.[leaf.recipient]?.status === 'verification-pending'
+    && UNPAYABLE_LEAF.test(String(row.payments[leaf.recipient].reason || '')));
+}
+
 // Token payouts go to associated token accounts, which an off-curve owner
 // (a program account such as a pool or vault) cannot have.
 export function payableHolder(wallet) {
@@ -422,11 +435,35 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
     return { captured, failures };
   }
 
+  // After the program's grace period, release the unpaid commitment of a cycle
+  // that can never be fully paid so the vault can fund later periods.
+  async function expireUnpayable(now, selected = null) {
+    if (typeof chain.expireCycle !== 'function') return 0;
+    const grace = Number(chain.cycleExpiryGraceSeconds);
+    if (!Number.isSafeInteger(grace) || grace <= 0) return 0;
+    const rows = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row =>
+      unpayableCycleSchedule(row) && now >= row.payoutAt + grace && (selected === null || selected.has(row.id)))));
+    let expired = 0;
+    for (const row of rows) {
+      try {
+        const result = await chain.expireCycle(row);
+        await store.transaction(state => Object.assign(state.schedules[row.id], { status:'expired',
+          reason:'Unpayable reward cycle expired on-chain; its unpaid amount stays in the vault for later periods.',
+          expiredUnpaidAmount:result.unpaidAmount, expirySignature:result.signature || null, expiredAt:new Date().toISOString() }));
+        expired += 1;
+      } catch (error) {
+        await store.transaction(state => { state.schedules[row.id].expiryError = String(error.message || error).slice(0, 180); });
+      }
+    }
+    return expired;
+  }
+
   async function execute(now = Math.floor(Date.now() / 1000), onlyIds = null) {
     const ready = await chain.readiness();
     await store.transaction(state => { state.serviceStatus = { constrainedPayouts: ready.constrainedPayouts === true, reasons: ready.reasons || [], reason: ready.constrainedPayouts ? null : `On-chain automatic payout is unavailable: ${(ready.reasons || []).join(', ')}`, checkedAt: new Date().toISOString() }; });
     if (!ready.constrainedPayouts) return { status: 'unavailable', reasons: ready.reasons, submitted: 0 };
     const selected = onlyIds === null ? null : new Set(onlyIds);
+    await expireUnpayable(now, selected);
     const plans = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row =>
       ['prepared', 'distributing'].includes(row.status) && now >= row.payoutAt
       && (selected === null || selected.has(row.id)))));

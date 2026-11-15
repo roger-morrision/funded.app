@@ -158,6 +158,10 @@ export async function finalizedSend(connection, transaction, signers, { pollMs =
   throw new Error(`Reward transaction ${signature} has no verified finalized receipt; reconcile before retrying.${lastRpcError ? ` Last RPC error: ${String(lastRpcError.message || lastRpcError)}` : ''}`);
 }
 
+// Grace after payout_at before expire_reward_cycle may release a cycle's unpaid
+// commitment; matches REWARD_CYCLE_EXPIRY_GRACE_SECONDS in the program build.
+export function rewardCycleExpiryGraceSeconds(cluster) { return cluster === 'devnet' ? 600 : 30 * 24 * 60 * 60; }
+
 export function createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256, expectedVersion = REWARD_PROGRAM_VERSION, cluster = 'devnet' }) {
   requireSolanaCluster(cluster);
   const program = new PublicKey(programId);
@@ -409,5 +413,31 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       grossAmount: gross.toString(), balanceDeltaVerified: true };
   }
 
-  return { readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, fundSolVault, fundTokenVault };
+  // Release the unpaid part of a reserved cycle that can never be fully paid.
+  // Tokens stay in the vault; the program rejects every later payout of the cycle.
+  async function expireCycle(plan) {
+    await requireReady(plan);
+    const { vault, cycle } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId });
+    const reserve = rewardReserveAddress({ programId: program, vault, asset: plan.manifest.asset });
+    const before = parseCycleFields(await connection.getAccountInfo(cycle, 'finalized'));
+    if (!before) throw new Error('Reward cycle is missing or has an unrecognized layout.');
+    if (before.root !== plan.manifest.root || before.totalAmount !== String(plan.manifest.totalAmount)) throw new Error('Reward cycle conflicts with its reviewed manifest.');
+    if (!before.reserved) return { address: cycle.toBase58(), expired: true, alreadyExpired: true, unpaidAmount: null };
+    const reserveBefore = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
+    if (!reserveBefore) throw new Error('Reward reserve is not verified before cycle expiry.');
+    const unpaid = BigInt(before.totalAmount) - BigInt(before.distributedAmount);
+    const instruction = new TransactionInstruction({ programId: program, data: discriminator('global', 'expire_reward_cycle'), keys: [
+      { pubkey: authority.publicKey, isSigner: true, isWritable: false }, { pubkey: vault, isSigner: false, isWritable: false },
+      { pubkey: reserve, isSigner: false, isWritable: true }, { pubkey: cycle, isSigner: false, isWritable: true },
+      { pubkey: legacyRouter, isSigner: false, isWritable: false }] });
+    const signature = await send(new Transaction().add(instruction));
+    const after = parseCycleFields(await connection.getAccountInfo(cycle, 'finalized'));
+    const reserveAfter = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
+    if (!after || after.reserved || !reserveAfter || BigInt(reserveBefore.outstanding) - BigInt(reserveAfter.outstanding) !== unpaid)
+      throw new Error('Reward cycle expiry finalized without the expected released liability delta.');
+    return { address: cycle.toBase58(), expired: true, signature, unpaidAmount: String(unpaid) };
+  }
+
+  return { readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, expireCycle, fundSolVault, fundTokenVault,
+    cycleExpiryGraceSeconds: rewardCycleExpiryGraceSeconds(cluster) };
 }

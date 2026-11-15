@@ -251,6 +251,10 @@ pub mod funded_fee_router {
         reward::create_cycle_token(ctx, cycle_id, merkle_root, asset_mint, total_amount, cutoff_at, payout_at, leaf_count)
     }
 
+    pub fn expire_reward_cycle(ctx: Context<ExpireRewardCycle>) -> Result<()> {
+        reward::expire_cycle(ctx)
+    }
+
     pub fn payout_reward_sol(
         ctx: Context<PayoutRewardSol>,
         amount: u64,

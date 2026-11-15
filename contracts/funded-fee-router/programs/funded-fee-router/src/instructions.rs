@@ -60,7 +60,9 @@ pub mod agency_rules_v3;
 pub use agency_rules_v3::*;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub mod token_fees_v3;
+#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub mod token_convert_v3;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub use token_fees_v3::*;
+#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub use token_convert_v3::*;

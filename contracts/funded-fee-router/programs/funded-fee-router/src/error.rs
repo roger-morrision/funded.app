@@ -84,4 +84,6 @@ pub enum ErrorCode {
     InvalidQaRecoveryV3,
     #[msg("The agency V3 policy, selected agent, budget, cadence or delivery attestation is invalid")]
     InvalidAgencyPolicyV3,
+    #[msg("Reward cycle cannot be expired before its grace period ends or after it was expired")]
+    RewardCycleNotExpirable,
 }

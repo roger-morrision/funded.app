@@ -40,4 +40,8 @@ pub const COMMUNITY_DROP_SEED: &[u8] = b"community-drop-v1";
 pub const SNAPSHOT_APPROVAL_SEED: &[u8] = b"snapshot-approval-v1";
 pub const COMMUNITY_PAYMENT_SEED: &[u8] = b"community-pay-v1";
 pub const COMMUNITY_LEAF_DOMAIN: &[u8] = b"funded-community-leaf-v1";
+// An unpaid reward cycle can release its commitment back to the vault only
+// after this grace period past payout_at. Devnet-only builds use ten minutes.
+pub const REWARD_CYCLE_EXPIRY_GRACE_SECONDS: i64 =
+    if cfg!(all(feature = "devnet-v3-program", not(feature = "mainnet-v3-program"))) { 600 } else { 30 * 24 * 60 * 60 };
 pub const COMMUNITY_WINDOW_SECONDS: i64 = 90 * 24 * 60 * 60;

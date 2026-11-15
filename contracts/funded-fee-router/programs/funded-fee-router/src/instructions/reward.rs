@@ -433,6 +433,46 @@ fn exact_token_delivery(vault_before: u64, vault_after: u64, recipient_before: u
         && recipient_after.checked_sub(recipient_before) == Some(amount)
 }
 
+#[derive(Accounts)]
+pub struct ExpireRewardCycle<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [REWARD_VAULT_SEED, authority.key().as_ref(), vault.mint.as_ref()], bump = vault.bump, has_one = authority)]
+    pub vault: Account<'info, RewardVault>,
+    #[account(mut, seeds = [REWARD_RESERVE_SEED, vault.key().as_ref(), cycle.asset_mint.as_ref()], bump = reserve.bump,
+        constraint = reserve.vault == vault.key() && reserve.asset_mint == cycle.asset_mint @ ErrorCode::InvalidRewardAsset)]
+    pub reserve: Account<'info, RewardReserve>,
+    #[account(mut, seeds = [REWARD_CYCLE_SEED, vault.key().as_ref(), cycle.cycle_id.as_ref()], bump = cycle.bump, has_one = vault)]
+    pub cycle: Account<'info, RewardCycle>,
+    /// CHECK: Validated against the current router authority.
+    #[account(seeds = [SEED], bump)]
+    pub legacy_router: UncheckedAccount<'info>,
+}
+
+// Release the unpaid part of a cycle that can never be fully paid (for
+// example a leaf whose owner cannot hold a token account). Tokens never move:
+// they stay in the vault and become available to later cycles. Clearing
+// `reserved` makes validate_payment reject every later payout of this cycle.
+pub fn expire_cycle(ctx: Context<ExpireRewardCycle>) -> Result<()> {
+    assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
+    let now = Clock::get()?.unix_timestamp;
+    let cycle = &mut ctx.accounts.cycle;
+    let expirable_at = cycle.payout_at.checked_add(REWARD_CYCLE_EXPIRY_GRACE_SECONDS).ok_or(ErrorCode::AmountOverflow)?;
+    require!(cycle.reserved && now >= expirable_at, ErrorCode::RewardCycleNotExpirable);
+    let unpaid = cycle.total_amount.checked_sub(cycle.distributed_amount).ok_or(ErrorCode::RewardTotalExceeded)?;
+    ctx.accounts.reserve.outstanding = ctx.accounts.reserve.outstanding.checked_sub(unpaid).ok_or(ErrorCode::RewardReserveExceeded)?;
+    cycle.reserved = false;
+    emit!(RewardCycleExpired { cycle: cycle.key(), asset_mint: cycle.asset_mint, unpaid_amount: unpaid, expired_at: now });
+    Ok(())
+}
+
+#[event]
+pub struct RewardCycleExpired {
+    pub cycle: Pubkey,
+    pub asset_mint: Pubkey,
+    pub unpaid_amount: u64,
+    pub expired_at: i64,
+}
+
 #[event]
 pub struct RewardCycleCreated {
     pub cycle: Pubkey,
