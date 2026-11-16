@@ -494,6 +494,6 @@ async function handle(req, res) {
 
 await startShareVisitCleanup({ store });
 startAppListener({port,host,handle,solanaRpcUrl});
-startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,dailyBonusRuntime,store});
+startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,keeperKeypair,referralPayoutKeypair,dailyBonusRuntime,store});
 createLaunchPostEmailWorker({store,connection:new Connection(solanaRpcUrl,'finalized'),cluster:solanaCluster}).start();
 createMigrationPostEmailWatcher({store,connection:new Connection(solanaRpcUrl,'finalized'),cluster:solanaCluster}).start();

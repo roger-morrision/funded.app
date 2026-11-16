@@ -1,3 +1,4 @@
+import {startOutflowAlerts} from './outflow-alert-runtime.mjs';
 import {startCommunityClaimIndex,startV3HolderRewardWorker} from './background-maintenance.mjs';
 import {startTradeFinancialWakeWorker} from './trade-financial-wakeup.mjs';
 import {startFinancialFlowMonitor} from './financial-flow-monitor.mjs';
@@ -16,6 +17,8 @@ export function startApiFinancialWorkers({env=process.env,startCommunity,startHo
 }
 
 export function startApiFinancialWorkerServices(context) {
+  // Outflow alerts watch treasuries on every network, including Mainnet.
+  try{startOutflowAlerts(context);}catch{console.error(JSON.stringify({event:'outflow_alerts_start_failed'}));}
   if(context.solanaCluster==='mainnet-beta')return{mode:'mainnet-read-only',started:[]};
   let holder;
   const result=startApiFinancialWorkers({env:context.env,

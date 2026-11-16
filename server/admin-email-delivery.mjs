@@ -55,3 +55,23 @@ export async function deliverAdminCode({env,to,id,code,path,cluster,origin,expir
   const result=await response.json().catch(()=>null);
   if(typeof result?.id!=='string'||!result.id)throw Error('Admin confirmation email was not acknowledged.');
 }
+
+// Security alerts (outflows, authority changes) to the configured admin address.
+export async function deliverAdminAlert({env,subject,lines,cluster,origin,fetchImpl=fetch,
+  createTransport=options=>nodemailer.createTransport(options)}={}) {
+  const config=adminEmailConfig(env||{});
+  const message={from:config.from,to:[config.to],subject:`richpad.fun ${cluster||''} ${subject}`.replace(/\s+/g,' ').trim(),
+    text:`${lines.map(line=>`- ${line}`).join('\n')}\n\nApp: ${origin||''}\nNetwork: ${cluster||''}\nTime: ${new Date().toISOString()}\n\nIf you did not expect this, pause payouts and review the admin audit now.`};
+  if(config.provider==='gmail'){
+    const transport=createTransport({host:'smtp.gmail.com',port:465,secure:true,
+      tls:{servername:'smtp.gmail.com',minVersion:'TLSv1.2',rejectUnauthorized:true},
+      auth:{user:config.from,pass:config.key},pool:false,logger:false,debug:false,
+      connectionTimeout:10000,greetingTimeout:10000,socketTimeout:15000,dnsTimeout:10000,
+      disableFileAccess:true,disableUrlAccess:true});
+    try{await transport.sendMail({...message,envelope:{from:config.from,to:[config.to]}});}finally{transport.close();}
+    return;
+  }
+  const response=await fetchImpl('https://api.resend.com/emails',{method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),
+    headers:{authorization:`Bearer ${config.key}`,'content-type':'application/json'},body:JSON.stringify(message)});
+  if(!response.ok)throw Error('Admin alert email could not be sent.');
+}
