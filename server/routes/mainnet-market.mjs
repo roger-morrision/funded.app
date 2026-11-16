@@ -3,6 +3,7 @@ import { createTokenLogoRoute } from './token-logo.mjs';
 import { createWalletHoldingsRoute } from './wallet-holdings.mjs';
 import { createMainnetTradeLedger } from '../mainnet-trade-ledger.mjs';
 import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
+import { readBirdeyeTrades } from '../birdeye-trades.mjs';
 
 // Mainnet external-token data: free sources first (DexScreener, Jupiter,
 // GeckoTerminal), paid Birdeye only as fallback. Results are written to the
@@ -199,7 +200,16 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
         if (Number.isInteger(decimals)) void tokenCache.upsert([{ ...(cached || market || {}), mint, decimals }]);
       }
       const solUsd = prices.get(WSOL)?.priceUsd;
-      if (!Array.isArray(rows) || !Number.isInteger(decimals)) return json(res, 200, { cluster: solanaCluster, mint, source: 'geckoterminal', available: false, trades: [] });
+      if (!Array.isArray(rows) || !rows.length || !Number.isInteger(decimals)) {
+        // GeckoTerminal gave nothing (rate limit, outage, unindexed pool): use Birdeye as the last resort.
+        const fallback = await readBirdeyeTrades(fetchBirdeye, { mint, wsol: WSOL, solUsd });
+        const fallbackDecimals = Number.isInteger(decimals) ? decimals : fallback?.decimals;
+        if (fallback && Number.isInteger(fallbackDecimals))
+          return json(res, 200, { cluster: solanaCluster, mint, source: 'birdeye', available: true, pool: pool || null, decimals: fallbackDecimals, trades: fallback.trades });
+        if (Array.isArray(rows) && !rows.length && Number.isInteger(decimals))
+          return json(res, 200, { cluster: solanaCluster, mint, source: 'geckoterminal', available: true, pool, decimals, trades: [] });
+        return json(res, 200, { cluster: solanaCluster, mint, source: 'geckoterminal', available: false, trades: [] });
+      }
       const trades = rows.flatMap(row => {
         const side = row.kind === 'buy' ? 'buy' : row.kind === 'sell' ? 'sell' : null;
         const tokenAmount = Number(side === 'buy' ? row.to_token_amount : row.from_token_amount);
