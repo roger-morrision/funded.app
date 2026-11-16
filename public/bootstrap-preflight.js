@@ -54,10 +54,11 @@ try {
     const release = () => { document.documentElement.classList.remove('route-booting'); observer.disconnect(); clearInterval(timer); };
     const check = () => {
       if (!document.documentElement.classList.contains('route-booting')) { release(); return; }
-      // Wait for the requested page itself; the router may pass through Home first.
-      const routed = document.body && [...document.body.classList].some(name => name.startsWith('page-route-') && name !== 'page-route-overview');
+      // The router applies the requested route before the app reports ready. Some
+      // deep links (#terms, #disclosures, #creators) keep the Home route class, so
+      // readiness, not the class, decides; the settle check below covers late markup.
       const ready = ['ready', 'degraded'].includes(document.body?.dataset.bootstrapState);
-      if (!routed || !ready) return;
+      if (!ready) return;
       readyAt ||= performance.now();
       if (performance.now() - lastChange >= 120 || performance.now() - readyAt >= 1000) release();
     };

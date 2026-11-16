@@ -16,6 +16,7 @@ export const LIVE_API_ORIGIN = (() => {
   try { return configured && configured !== '/' ? new URL(configured).origin : globalThis.location.origin; } catch { return globalThis.location?.origin || ''; }
 })();
 const store = new Map(); // path -> { body: string, receivedAt, maxAgeMs }
+const inFlight = new Map(); // path -> pending shared network read
 
 export function rememberLive(path, body, { ageMs = 0, maxAgeMs = 30_000, quiet = false } = {}) {
   if (typeof path !== 'string' || body == null) return;
@@ -59,11 +60,26 @@ export function installLiveCache() {
       if (!topic) return original(input, init);
       const hit = freshEntry(path);
       if (hit) return Promise.resolve(cachedResponse(hit));
-      // Network read: keep a copy so the next poll of this path is answered locally.
-      return original(input, init).then(response => {
-        if (response.ok && method === 'GET' && String(response.headers.get('content-type')).includes('application/json'))
-          response.clone().text().then(body => rememberLive(path, body, { maxAgeMs: topic.intervalMs, quiet: true })).catch(() => {});
-        return response;
+      if (method !== 'GET') return original(input, init);
+      // Network read, shared by every caller asking for this path while it is in flight,
+      // and kept so the next poll of this path is answered locally.
+      let shared = inFlight.get(path);
+      if (!shared) {
+        const { signal, ...rest } = init; // one caller's timeout must not cancel the others' read
+        shared = original(input, rest).then(async response => {
+          const body = await response.text();
+          const contentType = response.headers.get('content-type') || '';
+          if (response.ok && contentType.includes('application/json')) rememberLive(path, body, { maxAgeMs: topic.intervalMs, quiet: true });
+          return { status: response.status, statusText: response.statusText, body, contentType };
+        }).finally(() => inFlight.delete(path));
+        inFlight.set(path, shared);
+      }
+      const answer = shared.then(row => new Response(row.body, { status: row.status, statusText: row.statusText, headers: { 'content-type': row.contentType } }));
+      if (!init.signal) return answer;
+      return new Promise((resolve, reject) => {
+        const abort = () => reject(init.signal.reason ?? new DOMException('Aborted', 'AbortError'));
+        init.signal.addEventListener('abort', abort, { once: true });
+        answer.then(resolve, reject).finally(() => init.signal.removeEventListener('abort', abort));
       });
     } catch {}
     return original(input, init);

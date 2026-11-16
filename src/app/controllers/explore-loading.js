@@ -66,7 +66,7 @@ export function createExploreLoadingController(appState) {
           volume24hUsd: market?.volume24hUsd ?? pump.volume24hUsd ?? null,
           holders: market?.holders ?? pump.holders ?? null,
           lastTradeUnixTime: market?.lastTradeUnixTime ?? pump.lastTradeTimestamp ?? null,
-          source: appState.verifiedPaidListingPayment(pump) ? 'Paid listing · mint verified' : market ? (pump.feedSource === 'Birdeye' ? 'Birdeye' : 'Pump.fun + Birdeye') : appState.EXPLORE_CLUSTER === 'devnet' ? 'Verified Solana registry' : 'Richpad launch',
+          source: appState.verifiedPaidListingPayment(pump) ? 'Paid listing · mint verified' : market ? (pump.feedSource === 'Birdeye' ? 'Birdeye' : 'Pump.fun + Birdeye') : appState.EXPLORE_CLUSTER === 'devnet' ? 'Verified Solana registry' : pump.listingPayment ? 'Listed token' : 'Indexed token',
           fetchedAt: market ? birdeyeFeed.data?.fetchedAt : pumpFeed.data?.fetchedAt,
         };
       });

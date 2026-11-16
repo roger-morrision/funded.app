@@ -31,6 +31,7 @@ export const GLOBAL_TOPICS = Object.freeze([
   { path: '/api/top100/metrics', intervalMs: 60_000 },
   { path: '/api/x-fee/status', intervalMs: 120_000 },
   { path: '/api/pair-launch/status', intervalMs: 120_000 },
+  { path: '/api/daily-bonus', intervalMs: 60_000 },
   { path: '/api/creator-support/issues/config', intervalMs: 300_000 },
   { path: '/api/pairs/quotes', intervalMs: 60_000, boot: false },
 ]);

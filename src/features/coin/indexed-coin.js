@@ -151,7 +151,8 @@ function applyTrades(appState, mint, trades, tradeCount) {
 
 // Live numbers from a fresh overview; identity fields stay as first rendered.
 function applyNumbers(appState, data) {
-  const usd = value => Number.isFinite(value) ? appState.formatUsd(value) : '—';
+  // Whole dollars from $1,000 up, matching the first render (prices below that keep cents).
+  const usd = value => Number.isFinite(value) ? (Math.abs(value) >= 1000 ? `$${Math.round(value).toLocaleString('en-US')}` : appState.formatUsd(value)) : '—';
   if (Number.isFinite(data.priceUsd)) appState.setCoinField('#coin-price', data.priceUsd < 0.01 ? `$${formatTinyDecimal(data.priceUsd)}` : usd(data.priceUsd));
   for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) if (Number.isFinite(data.marketCapUsd)) appState.setCoinField(selector, usd(data.marketCapUsd));
   if (Number.isFinite(data.volume24hUsd)) appState.setCoinField('#coin-volume', usd(data.volume24hUsd));

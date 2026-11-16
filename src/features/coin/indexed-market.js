@@ -5,7 +5,8 @@ export function renderIndexedMarket(appState, market, mint, now = Date.now()) {
   if (appState.EXPLORE_CLUSTER !== 'mainnet-beta' || market?.cluster !== 'mainnet-beta'
     || market?.mint !== mint || !['birdeye','dexscreener'].includes(market?.source) || !market.displayOnly
     || !Number.isFinite(at) || now-at > 60_000 || at-now > 5000) return false;
-  const usd = value => value != null && Number.isFinite(value) ? appState.formatUsd(value) : '—';
+  // Whole dollars from $1,000 up so market cap, liquidity and volume read alike.
+  const usd = value => value != null && Number.isFinite(value) ? (Math.abs(value) >= 1000 ? `$${Math.round(value).toLocaleString('en-US')}` : appState.formatUsd(value)) : '—';
   if (market.name) appState.setCoinField('#coin-page-title',market.name);
   if (market.symbol) appState.setCoinField('#coin-symbol',market.symbol);
   for (const selector of ['#coin-market-cap','#coin-strip-market-cap']) appState.setCoinField(selector,usd(market.marketCapUsd));

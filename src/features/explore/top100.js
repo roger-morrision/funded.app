@@ -30,7 +30,7 @@ export function initializeTop100(appState) {
     const search = top100Search(location.search, filters);
     if (search !== location.search) history.replaceState(history.state, '', `${location.pathname}${search}${location.hash}`);
   };
-  const money = value => value == null ? '—' : new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2, notation:value >= 10000 ? 'compact' : 'standard'}).format(value);
+  const money = value => value == null ? '—' : new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2, notation:Math.abs(value) >= 10000 ? 'compact' : 'standard'}).format(value);
   const signed = (value, format = value=>value.toLocaleString()) => value==null?'—':`${value>0?'+':''}${format(value)}`;
   const age = hours => hours == null ? '—' : hours < 1 ? `${Math.floor(hours * 60)}m` : hours < 24 ? `${Math.floor(hours)}h` : `${Math.floor(hours / 24)}d`;
   const remaining = at => {const minutes=Math.max(1,Math.ceil((at-Date.now())/60000));return minutes<60?`${minutes}m`:`${Math.floor(minutes/60)}h ${minutes%60}m`;};
