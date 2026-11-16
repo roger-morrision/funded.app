@@ -9,9 +9,10 @@ import bs58 from 'bs58';
 //   instructions (authority rotation, header repair, price-signer changes);
 // - treasury keys sign only one System transfer to an admin wallet, paid by
 //   that admin wallet;
-// - other keys may call approved programs only, and explicit SOL leaving the
-//   signer (transfers and account creations it funds) is capped per
-//   transaction and per day, together with a signature rate limit.
+// - payout keys (keeper, authority, referral) may call approved programs only.
+//   Payouts to users are never capped per transaction or per day and are not
+//   rate limited; SOL leaving each key is still measured, journaled and
+//   watched by the outflow alerts.
 const SOL = 1_000_000_000n, DAY_MS = 24 * 60 * 60 * 1000;
 const anchor = name => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8).toString('hex');
 export const DENIED_ROUTER_INSTRUCTIONS = Object.freeze(['rotate_authority', 'repair_header', 'configure_buyback_price_signer',
@@ -34,12 +35,9 @@ function setting(env, name, fallback) {
 }
 export function signerLimits(env = process.env) {
   return {
-    txLamports: setting(env, 'FUNDED_SIGNER_TX_LAMPORTS', SOL / 2n),
-    dailyLamports: setting(env, 'FUNDED_SIGNER_DAILY_LAMPORTS', 3n * SOL),
     treasuryTxLamports: setting(env, 'FUNDED_ADMIN_WITHDRAW_MAX_LAMPORTS', 10n * SOL),
     treasuryDailyLamports: setting(env, 'FUNDED_ADMIN_WITHDRAW_DAILY_LAMPORTS', 20n * SOL),
-    perMinute: Number(setting(env, 'FUNDED_SIGNER_PER_MINUTE', 60n)),
-    perDay: Number(setting(env, 'FUNDED_SIGNER_PER_DAY', 20_000n)),
+    perMinute: Number(setting(env, 'FUNDED_SIGNER_TREASURY_PER_MINUTE', 10n)),
   };
 }
 export function allowedPrograms(env = process.env) {
@@ -90,13 +88,10 @@ export function evaluate({ role, signer, decoded, env = process.env, usage, now 
     else if (!adminWallets.has(ix.accounts[1]) || decoded.feePayer !== ix.accounts[1]) violations.push('treasury-destination-not-admin');
     if (outflow > limits.treasuryTxLamports) violations.push('treasury-tx-cap');
     if (usage.lamports(now) + outflow > limits.treasuryDailyLamports) violations.push('treasury-daily-cap');
+    if (usage.count(now, 60_000) >= limits.perMinute) violations.push('treasury-rate-minute');
   } else {
     for (const ix of decoded.instructions) if (!programs.has(ix.program)) violations.push(`program-not-allowed:${ix.program}`);
-    if (outflow > limits.txLamports) violations.push('tx-cap');
-    if (usage.lamports(now) + outflow > limits.dailyLamports) violations.push('daily-cap');
   }
-  if (usage.count(now, 60_000) >= limits.perMinute) violations.push('rate-minute');
-  if (usage.count(now, DAY_MS) >= limits.perDay) violations.push('rate-day');
   return { violations: [...new Set(violations)], outflow, programs: [...new Set(decoded.instructions.map(ix => ix.program))] };
 }
 

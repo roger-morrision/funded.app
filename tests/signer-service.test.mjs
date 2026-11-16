@@ -12,7 +12,7 @@ const program = Keypair.generate().publicKey, admin = Keypair.generate().publicK
 const keeper = Keypair.generate(), treasury = Keypair.generate(), user = Keypair.generate();
 const blockhash = Keypair.generate().publicKey.toBase58();
 const env = { FUNDED_SIGNER_TOKEN: TOKEN, FUNDED_V3_FEE_ROUTER_PROGRAM_ID: program.toBase58(), FUNDED_ADMIN_WALLETS: admin.toBase58(),
-  FUNDED_SIGNER_TX_LAMPORTS: String(SOL), FUNDED_SIGNER_DAILY_LAMPORTS: String(2 * SOL), FUNDED_SIGNER_PER_MINUTE: '50' };
+  FUNDED_SIGNER_TREASURY_PER_MINUTE: '10' };
 
 async function harness(extraEnv = {}) {
   const journal = [];
@@ -58,11 +58,9 @@ test('admin instructions, loaders, unknown programs and outflow caps are refused
       keys: [{ pubkey: keeper.publicKey, isSigner: true, isWritable: true }], data: Buffer.alloc(4) })), [handle]), /program-loader/);
     await assert.rejects(signTransaction(legacy(new TransactionInstruction({ programId: Keypair.generate().publicKey,
       keys: [{ pubkey: keeper.publicKey, isSigner: true, isWritable: true }], data: Buffer.alloc(1) })), [handle]), /program-not-allowed/);
-    const drain = to => SystemProgram.transfer({ fromPubkey: keeper.publicKey, toPubkey: to, lamports: 0.9 * SOL });
-    await signTransaction(legacy(drain(user.publicKey)), [handle]);
-    await signTransaction(legacy(drain(user.publicKey)), [handle]);
-    await assert.rejects(signTransaction(legacy(drain(user.publicKey)), [handle]), /daily-cap/);
-    await assert.rejects(signTransaction(legacy(SystemProgram.transfer({ fromPubkey: keeper.publicKey, toPubkey: user.publicKey, lamports: 1.5 * SOL })), [handle]), /tx-cap/);
+    // Payouts to users are never capped per transaction, per day or by rate.
+    for (let i = 0; i < 70; i++) await signTransaction(legacy(SystemProgram.transfer({ fromPubkey: keeper.publicKey, toPubkey: user.publicKey, lamports: 100 * SOL })), [handle]);
+    assert.equal(h.journal.filter(row => row.decision === 'signed').length, 70);
     await assert.rejects(signTransaction(legacy(SystemProgram.assign({ accountPubkey: keeper.publicKey, programId: program })), [handle]), /system-authority-change/);
     const bad = await fetch(`${h.url}/sign`, { method: 'POST', headers: { authorization: 'Bearer wrong' }, body: '{}' });
     assert.equal(bad.status, 401);
