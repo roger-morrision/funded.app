@@ -21,6 +21,7 @@ import {handleAdminBoostPricing} from '../admin-boost-pricing.mjs';
 import {createAdminWallets} from '../admin-wallets.mjs';
 import {createAdminWithdrawals} from '../admin-withdrawals.mjs';
 import {createAdminJwt} from '../admin-jwt.mjs';
+import { clientAddress } from '../client-address.mjs';
 
 // Retired opaque admin-session cookie; cleared on sign-in and logout.
 const COOKIE = 'funded_admin';
@@ -88,7 +89,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
     if(!['GET','HEAD','OPTIONS'].includes(req.method)&&url.search)
       return json(res,400,{error:'Admin write requests must not include query parameters.'});
     if (!['GET','HEAD','OPTIONS'].includes(req.method) && !sameOrigin(req)) return json(res, 403, { error:'Admin requests require the configured app origin.' });
-    const key = req.socket.remoteAddress || 'unknown';
+    const key = clientAddress(req);
     if (!ipLimit(attempts, key, 60, 60_000)) return json(res, 429, { error:'Admin request limit reached.' });
     if (req.method === 'POST' && path === '/api/admin/challenge') {
       const input = await body(req) || {};

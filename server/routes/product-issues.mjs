@@ -3,6 +3,7 @@ import { issueOperationContext } from '../../issue-context.js';
 import { readJsonBody } from '../request-body.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import {reviewProductIssue} from '../product-issue-review.mjs';
+import { clientAddress } from '../client-address.mjs';
 export {issueStates} from '../product-issue-review.mjs';
 const hash = value => createHash('sha256').update(value).digest('hex');
 export function validateIssue(input, cluster = 'devnet') {
@@ -29,7 +30,7 @@ export function createProductIssueRoutes({store,cluster,requireAuthorized}) {
         return json(result.status,result.data);
       }
       if (url.pathname !== '/api/creator-support/issues') return json(404,{error:'Report route not found.'});
-      const client = req.socket?.remoteAddress || 'local';
+      const client = clientAddress(req);
       if (!await store.chargeRpcRate(`product-issue:${client}`,1,2,Math.floor(Date.now()/60000)*60000)
         || !await store.chargeRpcRate('product-issues:global',1,200,Math.floor(Date.now()/86400000)*86400000)) return json(429,{error:'Reporting is busy. Save a copy and try later.'});
       let value;try{value=validateIssue(await readJsonBody(req,{maxBytes:5000}),cluster);}catch(error){return json(400,{error:error.statusCode ? 'Report is too large or malformed.' : error.message});}
@@ -43,7 +44,7 @@ export function createProductIssueRoutes({store,cluster,requireAuthorized}) {
       return json(201,{id:reportId,token,status:'received',createdAt:at});
     }
     if (req.method === 'GET' && id) {
-      if (!await store.chargeRpcRate(`product-issue-read:${req.socket?.remoteAddress || 'local'}`,1,30,Math.floor(Date.now()/60000)*60000)) return json(429,{error:'Wait before checking again.'});
+      if (!await store.chargeRpcRate(`product-issue-read:${clientAddress(req)}`,1,30,Math.floor(Date.now()/60000)*60000)) return json(429,{error:'Wait before checking again.'});
       const row=(await store.read()).productIssues?.[id], token=String(req.headers['x-issue-token'] || '');
       if (!row || !/^[a-f0-9]{48}$/.test(token) || !/^[a-f0-9]{64}$/.test(row.tokenHash || '')
         || !timingSafeEqual(Buffer.from(hash(token),'hex'),Buffer.from(row.tokenHash,'hex'))) return json(404,{error:'Report is unavailable on this device.'});

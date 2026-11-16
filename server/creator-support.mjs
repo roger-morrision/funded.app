@@ -12,6 +12,7 @@ import { publicCreatorUpdates, upcomingCreatorUpdates, creatorUpdateMutation } f
 import { saveCreatorBrief } from './creator-brief.mjs';
 import { createProductIssueRoutes } from './routes/product-issues.mjs';
 import { validatePreferenceTransfer } from '../experience-preferences.js';
+import { clientAddress } from './client-address.mjs';
 export { eligibleSupportLaunches } from './creator-directory.mjs';
 const financialInputs=state=>Object.fromEntries(['launches','collections','v3Settlements','v3CreatorRewardFunding','v3XClaims'].map(bucket=>[bucket,state[bucket]||{}]));
 const sameFinancialInputs=(before,after)=>receiptFingerprint('creator-inputs',financialInputs(before))===receiptFingerprint('creator-inputs',financialInputs(after));
@@ -97,7 +98,7 @@ export function createCreatorSupportHandler({ store, cluster, getSession, readEv
   return async (req, res, url) => {
     if (await issues(req,res,url)) return true;
     if (!url.pathname.startsWith('/api/creators') && !url.pathname.startsWith('/api/creator-support') && url.pathname !== '/api/capabilities') return false;
-    if(req.method==='GET'&&!await store.chargeRpcRate(`creator-read:${req.socket?.remoteAddress||'local'}`,1,120,Math.floor(Date.now()/60000)*60000))return respond(res,429,{error:'Creator read limit reached. Please wait before refreshing.'});
+    if(req.method==='GET'&&!await store.chargeRpcRate(`creator-read:${clientAddress(req)}`,1,120,Math.floor(Date.now()/60000)*60000))return respond(res,429,{error:'Creator read limit reached. Please wait before refreshing.'});
     if (req.method === 'GET' && url.pathname === '/api/capabilities') return respond(res, 200, await capabilityCache('capabilities',capabilities));
     const session = await getSession(req);
     if(req.method==='GET'&&url.pathname==='/api/creator-support/following-updates') {
