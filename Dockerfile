@@ -63,7 +63,7 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=8787
 WORKDIR /app
 COPY --from=build /app /app
 # Permissions are normalized before COPY so runtime layers do not copy up /app.
-RUN mkdir -p /app/data && chown node:node /app/data
+RUN mkdir -p /app/data/signer && chown -R node:node /app/data
 USER node
 EXPOSE 8787
 CMD ["node", "server/index.mjs"]

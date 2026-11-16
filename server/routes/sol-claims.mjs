@@ -10,6 +10,7 @@ import { assertObservedClaim } from '../claim-state.mjs';
 import { verifyMintFeeRouterAccount, verifyMintFeeLedgerAccount } from '../../fee-router.js';
 import { buildMintRouterSettlementInstruction, readMintClaimRecord } from '../mint-router-payout.mjs';
 import nacl from 'tweetnacl';
+import { signTransaction } from '../transaction-signing.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -154,7 +155,7 @@ export function createSolClaimsRoutes({
         }
         creatorTransaction = verifyCreatorSettlement({ signedTransaction:input.creatorSignedTransaction,
           instruction:settlement.instruction, authority:authority.publicKey, creator:creatorWallet });
-        creatorTransaction.partialSign(authority);
+        await signTransaction(creatorTransaction, [authority], { mode: 'partial' });
         expectedSignature = bs58.encode(creatorTransaction.signature);
       }
       const locked = await store.updateClaimState(executeId,current => {

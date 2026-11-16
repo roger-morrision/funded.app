@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { assertNoLocalKeys } from './remote-signer.mjs';
 
 // Mainnet non-program mode reads only service credentials. Signing keys and
 // .env.local are never loaded, so no Richpad program or payout can be signed.
@@ -37,4 +38,5 @@ export function loadServerEnvironment({ env = process.env, cwd = process.cwd(), 
       if (env[match[1]] == null) env[match[1]] = value;
     }
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  assertNoLocalKeys(env);
 }

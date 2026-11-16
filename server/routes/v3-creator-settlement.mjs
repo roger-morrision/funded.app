@@ -14,6 +14,7 @@ import { loadFinalizedV3Settlement } from '../v3-settlement-proof.mjs';
 import { recordedV3AllocationPlan } from '../v3-allocation-plan.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { v3ReferralUpline } from '../v3-referral-entitlement.mjs';
+import { signTransaction } from '../transaction-signing.mjs';
 
 export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, requireAuthorized = () => false, respond, env = process.env,
@@ -162,7 +163,7 @@ export function createV3CreatorSettlementRoutes({ body, store, solanaCluster, so
       : verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
         instruction:settlement.instruction, authority:authority.publicKey,
         creator:launch.creatorWallet });
-    transaction.partialSign(authority);
+    await signTransaction(transaction, [authority], { mode: 'partial' });
     const settlementSignature = bs58.encode(transaction.signature);
     const locked = await store.update(current => {
       const row = current.collections?.[collectionSignature];

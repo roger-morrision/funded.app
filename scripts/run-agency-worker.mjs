@@ -14,6 +14,7 @@ import {runAgencyPromotion,createAgencyPublisher} from '../server/agency-promoti
 import {runAgencyMilestone} from '../server/agency-buyback-executor.mjs';
 import {xPostingRetryWait} from '../config/x-posting.js';
 import {createAgencyDiagnostics,agencyErrorDiagnostics} from '../server/agency-worker-diagnostics.mjs';
+import {createRemoteSigner,assertNoLocalKeys} from '../server/remote-signer.mjs';
 
 export function agencyWorkerConfig(env,args=[]){
   if(args.includes('--status'))throw new Error('Use --once or --loop; omit --execute for a read-only execution preview.');
@@ -153,9 +154,10 @@ async function main(args){
   const env={...process.env};
   for(const name of ['DATABASE_URL','SOLANA_RPC_URL','FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY','X_POST_API_KEY','X_POST_API_SECRET','X_POST_ACCESS_TOKEN','X_POST_ACCESS_TOKEN_SECRET'])
     if(!env[name]&&env[`${name}_FILE`])env[name]=(await readFile(env[`${name}_FILE`],'utf8')).trim();
-  const config=agencyWorkerConfig(env,args),authority=env.FUNDED_V3_ROUTER_AUTHORITY_KEYPAIR_PATH
+  assertNoLocalKeys(env);
+  const config=agencyWorkerConfig(env,args),authority=createRemoteSigner({env})?.handle('authority')||(env.FUNDED_V3_ROUTER_AUTHORITY_KEYPAIR_PATH
     ?Keypair.fromSecretKey(Uint8Array.from(JSON.parse(await readFile(env.FUNDED_V3_ROUTER_AUTHORITY_KEYPAIR_PATH,'utf8'))))
-    :Keypair.fromSecretKey(bs58.decode(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY||''));
+    :Keypair.fromSecretKey(bs58.decode(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY||'')));
   const store=createPostgresStore(env.DATABASE_URL),outbox=createXPostStore({databaseUrl:env.DATABASE_URL,accountId:config.handle,
     minIntervalMs:config.minIntervalMs,maxHourlyPosts:config.maxHourlyPosts,maxDailyPosts:config.maxDailyPosts});
   const connection=new Connection(env.SOLANA_RPC_URL,{commitment:'finalized',disableRetryOnRateLimit:true,

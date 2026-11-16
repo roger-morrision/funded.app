@@ -7,6 +7,7 @@ import { verifiedRewardFundingRequests } from '../reward-funding-claim.mjs';
 import { prepareCreatorSettlement, verifyCreatorSettlement, submitCreatorSettlement,
   verifyFinalizedSettlementDelta, creatorSettlementRetryState } from '../creator-settlement-transaction.mjs';
 import { allowedAuthOrigin } from '../x-auth.mjs';
+import { signTransaction } from '../transaction-signing.mjs';
 
 // Only an immutable, verified fee allocation may enter this creator-approved route.
 // The worker observes the signed receipt later and schedules holder/direct payouts.
@@ -97,7 +98,7 @@ export function createRewardFundingRoutes({ store, automaticRewardStore, solanaC
         return json(res, 409, { error:'Creator approval expired. Prepare and sign a fresh transaction.' });
       const initializedVault = await chain.ensureVault(vaultMint);
       if (!initializedVault.equals(vault)) throw new Error('Initialized reward vault differs from the approved recipient.');
-      transaction.partialSign(authority);
+      await signTransaction(transaction, [authority], { mode: 'partial' });
       expectedSignature = bs58.encode(transaction.signature);
     }
     const locked = await automaticRewardStore.transaction(current => {

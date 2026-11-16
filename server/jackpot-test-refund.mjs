@@ -1,5 +1,6 @@
 import bs58 from 'bs58';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { signTransaction } from './transaction-signing.mjs';
 
 // This is only for in-memory Solana test keys. Keep the process alive on a
 // transient refund failure so the keys are not discarded before reconciliation.
@@ -11,7 +12,7 @@ export async function refundEphemeralDevnetBalances({ connection, signers, refun
       feePayer:signer.publicKey }).add(SystemProgram.transfer({
       fromPubkey:signer.publicKey, toPubkey:refund, lamports:amountLamports,
     }));
-    transaction.sign(signer);
+    await signTransaction(transaction, [signer]);
     const signature = bs58.encode(transaction.signature);
     try { await connection.sendRawTransaction(transaction.serialize()); }
     catch { /* The signature remains known; reconcile before any retry. */ }

@@ -1,16 +1,23 @@
 import {Keypair,PublicKey} from '@solana/web3.js';
 import {readFileSync} from 'node:fs';
 import bs58 from 'bs58';
+import {createRemoteSigner} from './remote-signer.mjs';
 const address=value=>{try{return new PublicKey(value).toBase58();}catch{return null;}};
+const TREASURY_ROLES={FUNDED_ADMIN_OPERATIONS_SIGNER_FILE:'treasury-operations',FUNDED_ADMIN_PUMP_REVENUE_SIGNER_FILE:'treasury-revenue',
+  FUNDED_ADMIN_TRADE_FEE_SIGNER_FILE:'treasury-trade',FUNDED_ADMIN_SERVICE_FEE_SIGNER_FILE:'treasury-service',FUNDED_ADMIN_BOOST_SIGNER_FILE:'treasury-boost'};
 export function createAdminWallets({env,keeperKeypair,v3AuthorityKeypair,referralPayoutKeypair}){
+  // With the internal signer, treasury keys stay there; handles carry only public keys.
+  const remote=env.SOLANA_CLUSTER==='mainnet-beta'?null:createRemoteSigner({env});
   const getters=[['Pump fee keeper',keeperKeypair],['V3 router authority',v3AuthorityKeypair],['Referral payout funder',referralPayoutKeypair]];
-  function signers(){const result=new Map();for(const[role,get]of getters){try{const key=get?.();if(key?.secretKey&&key.publicKey)result.set(key.publicKey.toBase58(),{role,key,operational:true});}catch{}}
+  function signers(){const result=new Map();for(const[role,get]of getters){try{const key=get?.();if((key?.secretKey||key?.remoteSign)&&key.publicKey)result.set(key.publicKey.toBase58(),{role,key,operational:true});}catch{}}
     for(const[role,variable,expected]of [
       ['V3 Operations & marketing','FUNDED_ADMIN_OPERATIONS_SIGNER_FILE',env.FUNDED_V3_OPERATIONS_RECIPIENT],
       ['Protocol operations treasury','FUNDED_ADMIN_PUMP_REVENUE_SIGNER_FILE',env.FUNDED_PUMP_REVENUE_WALLET],
       ['Trading fee treasury','FUNDED_ADMIN_TRADE_FEE_SIGNER_FILE',env.FUNDED_TRADE_FEE_OWNER||env.VITE_FUNDED_TRADE_FEE_OWNER],
       ['Launch service fee treasury','FUNDED_ADMIN_SERVICE_FEE_SIGNER_FILE',env.FUNDED_SERVICE_FEE_RECIPIENT],
       ['Boost payment wallet','FUNDED_ADMIN_BOOST_SIGNER_FILE',env.FUNDED_BOOST_PAYMENT_WALLET]]){
+      if(remote){const handle=remote.handle(TREASURY_ROLES[variable]);
+        if(handle&&expected&&handle.publicKey.toBase58()===expected)result.set(expected,{role,key:handle,operational:result.get(expected)?.operational||false});continue;}
       if(!env[variable]||!expected)continue;
       try{const raw=readFileSync(env[variable],'utf8').trim(),key=Keypair.fromSecretKey(raw.startsWith('[')?Uint8Array.from(JSON.parse(raw)):bs58.decode(raw));
         if(key.publicKey.toBase58()===expected)result.set(expected,{role,key,operational:result.get(expected)?.operational||false});}catch{/* No signer capability on missing or mismatched credentials. */}

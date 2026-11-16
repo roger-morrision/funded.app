@@ -3,6 +3,7 @@ import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
 import { TOKEN_2022_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstruction,
   getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { communityAddresses } from './community-claim-chain.mjs';
+import { signTransaction } from './transaction-signing.mjs';
 
 const dropDiscriminator = createHash('sha256').update('account:CommunityDrop').digest().subarray(0, 8);
 const closeDiscriminator = createHash('sha256').update('global:close_community_drop').digest().subarray(0, 8);
@@ -52,7 +53,7 @@ export async function closeExpiredCommunityDrops({ connection, ledger, programId
       tokenProgram:(await connection.getAccountInfo(decoded.mint, 'finalized'))?.owner || TOKEN_2022_PROGRAM_ID });
     transaction.feePayer = authority.publicKey;
     transaction.recentBlockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
-    transaction.sign(authority);
+    await signTransaction(transaction, [authority]);
     const simulation = await connection.simulateTransaction(transaction);
     if (simulation.value.err) {
       logger.error(JSON.stringify({ event:'community_drop_close_rejected', mint:record.mint,

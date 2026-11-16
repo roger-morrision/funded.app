@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import bs58 from 'bs58';
 import {VersionedTransaction} from '@solana/web3.js';
 import {allocationAuditHash} from './allocation-audit-hash.mjs';
+import { signTransaction } from './transaction-signing.mjs';
 
 const BUCKET='developerTokenReleases';
 const clone=value=>structuredClone(value);
@@ -53,7 +54,7 @@ export async function executeDeveloperRelease({store,connection,authority,intent
     const [fee,balance,valid]=await Promise.all([connection.getFeeForMessage(tx.message,'confirmed'),connection.getBalance(authority.publicKey,'finalized'),connection.isBlockhashValid(tx.message.recentBlockhash,'finalized')]);
     if(!valid.value||!Number.isSafeInteger(fee.value)||fee.value<0||fee.value>MAX_FEE
       ||!Number.isSafeInteger(balance)||balance-fee.value-built.rentLamports<RESERVE)throw Error('Developer release payer budget unavailable.');
-    tx.sign([authority]);
+    await signTransaction(tx,[authority]);
     active={...row,status:'pending',signature:bs58.encode(tx.signatures[0]),signedTransaction:Buffer.from(tx.serialize()).toString('base64'),
       blockhash:tx.message.recentBlockhash,lastValidBlockHeight:built.lastValidBlockHeight,reservedLamports:fee.value+built.rentLamports,preparedAt:now()};
     const saved=await store.update(state=>{

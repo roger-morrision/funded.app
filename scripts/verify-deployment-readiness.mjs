@@ -5,9 +5,11 @@ import {resolve} from 'node:path';
 import {localDockerHost} from './check-deployment-capacity.mjs';
 
 export const releaseServices = ['app','fee-collector','buyback-worker','agency-buyback-worker'];
-export function assessReleaseServices(containers,{project,revision}) {
+// The internal signer is a release service once a release's Compose file defines it.
+export const servicesFor = config => config?.services?.signer ? [...releaseServices,'signer'] : releaseServices;
+export function assessReleaseServices(containers,{project,revision,services:names=releaseServices}) {
   const errors=[],services=[];
-  for(const service of releaseServices){
+  for(const service of names){
     const matches=containers.filter(c=>c.Config?.Labels?.['com.docker.compose.project']===project
       &&c.Config.Labels['com.docker.compose.service']===service);
     if(matches.length!==1){errors.push(`${service}: expected exactly one container`);continue;}

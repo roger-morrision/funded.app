@@ -3,6 +3,7 @@ import bs58 from 'bs58';
 import {PublicKey,VersionedTransaction} from '@solana/web3.js';
 import {allocationAuditHash} from './allocation-audit-hash.mjs';
 import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
+import {signTransaction} from './transaction-signing.mjs';
 
 const BUCKET='communityExecutions',RESERVE=3000000000n;
 const snapshot=value=>structuredClone(value);
@@ -71,7 +72,7 @@ export async function executeCommunityJournal({store,connection,key,intent,autho
     if(!valid.value||!Number.isSafeInteger(fee.value)||fee.value<0||!Number.isSafeInteger(balance)
       ||BigInt(balance)-BigInt(fee.value)-BigInt(built.estimatedRentLamports)<BigInt(reserveLamports))
       throw new Error('Community execution would breach the protected payer reserve or its quote expired.');
-    tx.sign([authority]);
+    await signTransaction(tx,[authority]);
     const signedTransaction=Buffer.from(tx.serialize()).toString('base64'),signature=bs58.encode(tx.signatures[0]);
     const saved=await store.update(state=>{
       const active=state[BUCKET]?.[key];

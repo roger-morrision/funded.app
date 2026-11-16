@@ -18,6 +18,7 @@ import {readProgramDataEvidence} from './program-data-evidence.mjs';
 import {requireNativeRewardRecipient} from './native-reward-recipient.mjs';
 import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
+import { signTransaction } from './transaction-signing.mjs';
 export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
@@ -124,7 +125,7 @@ export async function finalizedSend(connection, transaction, signers, { pollMs =
   const latest = await connection.getLatestBlockhash('finalized');
   const fresh = new Transaction({ feePayer:transaction.feePayer || signers[0].publicKey,
     recentBlockhash:latest.blockhash }).add(...transaction.instructions);
-  fresh.sign(...signers);
+  await signTransaction(fresh, signers);
   const signature = bs58.encode(fresh.signature);
   try {
     const submitted = await connection.sendRawTransaction(fresh.serialize(), {

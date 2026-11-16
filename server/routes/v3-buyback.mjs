@@ -22,6 +22,7 @@ import {aggregateBuybackSource,aggregateSourceBudget,verifyAggregateSources,acti
 import {buybackExecutionPolicy,buybackAgeEligible,remainingBuybackDailyBudget} from '../v3-buyback-execution-policy.mjs';
 import {expiredTransactionAbsent} from '../expired-transaction-recovery.mjs';
 import {estimateBuybackComputeBudget} from '../buyback-compute-budget.mjs';
+import { signTransaction } from '../transaction-signing.mjs';
 
 const SIGNATURE=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 
@@ -309,7 +310,7 @@ export function createV3BuybackRoutes({ body, store, solanaCluster,
     catch{return json(res,503,{error:'Verified buyback fees, setup rent and authority balance are unavailable.'});}
     if(!reserveCheck.ready)return json(res,409,{error:'Buyback setup and transaction fees would breach the protected 3 SOL authority reserve.'});
     await cosignBuyback({connection,transaction:signed,program:programId,service:priceService,request:requestPriceSignature});
-    signed.sign([authority]);
+    await signTransaction(signed,[authority]);
     const signature=bs58.encode(signed.signatures[0]);
     const row={status:'verification-pending',mint,collectionSignature,
       programId,approvedHash:hash.toLowerCase(),

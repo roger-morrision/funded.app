@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { PublicKey, Transaction, TransactionMessage, VersionedTransaction, ComputeBudgetProgram, sendAndConfirmTransaction } from '@solana/web3.js';
+import { PublicKey, Transaction, TransactionMessage, VersionedTransaction, ComputeBudgetProgram } from '@solana/web3.js';
+import { sendAndConfirmSigned as sendAndConfirmTransaction, signTransaction } from './transaction-signing.mjs';
 import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { OnlinePumpAmmSdk, PUMP_AMM_SDK, buyQuoteInput, coinCreatorVaultAuthorityPda, coinCreatorVaultAtaPda } from '@pump-fun/pump-swap-sdk';
 import BN from 'bn.js';
@@ -179,7 +180,7 @@ export async function convertTokenBudgetToSol({ connection, programId, keeper, m
   if (table) {
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
     const tx = new VersionedTransaction(new TransactionMessage({ payerKey: keeper.publicKey, recentBlockhash: blockhash, instructions }).compileToV0Message([table]));
-    tx.sign([keeper]);
+    await signTransaction(tx, [keeper]);
     signature = await connection.sendTransaction(tx, { maxRetries: 5 });
     const status = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
     if (status.value.err) throw new Error(`Conversion failed: ${JSON.stringify(status.value.err)}`);

@@ -4,7 +4,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {resolve,join,dirname,relative,isAbsolute} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {releaseServices,assessReleaseServices} from './verify-deployment-readiness.mjs';
+import {releaseServices,servicesFor,assessReleaseServices} from './verify-deployment-readiness.mjs';
 import {localDockerHost,deploymentCapacity} from './check-deployment-capacity.mjs';
 import {monitoredWorkers,workerHealthcheck} from './worker-health.mjs';
 
@@ -56,7 +56,7 @@ export function validateReleaseIdentity({project,origin,image,revision}){
 export function prepareRelease({config,image,revision,origin,stateDir}){
   const project=config.name;validateReleaseIdentity({project,origin,image,revision});
   requireValue(!config.include&&!config.env_file,'Supply fully resolved Compose JSON.');
-  for(const service of releaseServices){
+  for(const service of servicesFor(config)){
     const s=config.services?.[service];
     requireValue(s&&s.environment?.SOLANA_CLUSTER==='devnet',`${service}: explicit Devnet configuration is required.`);
     requireValue(!Array.isArray(s.environment)&&!Array.isArray(s.labels),`${service}: resolve environment and labels first.`);
@@ -81,7 +81,7 @@ export function prepareRelease({config,image,revision,origin,stateDir}){
           mount.source=freeze(mount.source);
         }else requireValue(mount.type==='volume'||mount.type==='tmpfs','Unsupported runtime mount.');
       }
-      if(releaseServices.includes(name)){
+      if(servicesFor(config).includes(name)){
         s.image=image;s.environment.FUNDED_BUILD_ID=revision;
         s.labels={...s.labels,'org.opencontainers.image.revision':revision};
         if(name==='app')s.labels['vip.funded.frontend.revision']=revision;
@@ -140,7 +140,7 @@ export function loadRelease(stateDir,id){
 export function composeReleaseArgs(release){
   return ['compose','--project-name',release.project,'--project-directory',release.dir,
     '--env-file',join(release.dir,'empty.env'),'-f',release.composeFile,'up','--detach','--no-deps',
-    '--no-build','--pull','never','--wait','--wait-timeout','180',...releaseServices];
+    '--no-build','--pull','never','--wait','--wait-timeout','180',...servicesFor(readJSON(release.composeFile))];
 }
 export function assertReleaseImage(image,release){
   requireValue(image.Id===release.image&&image.Config?.Labels?.['org.opencontainers.image.revision']===release.revision
@@ -158,10 +158,11 @@ export function assessPublicRelease(release,checks){
 export async function verifyRelease(release,io,{attempts=1}={}){
   let report;
   for(let attempt=0;attempt<attempts;attempt++){
-    const services=assessReleaseServices(await io.containers(release.project),release);
+    const names=servicesFor(readJSON(release.composeFile));
+    const services=assessReleaseServices(await io.containers(release.project),{...release,services:names});
     let publicReady=false;
     try{publicReady=assessPublicRelease(release,await io.publicChecks(release.origin));}catch{/* Public failure is sanitized. */}
-    const exactImage=services.services.length===releaseServices.length&&services.services.every(s=>s.image===release.image);
+    const exactImage=services.services.length===names.length&&services.services.every(s=>s.image===release.image);
     report={at:new Date().toISOString(),ready:services.ready&&exactImage&&publicReady,services:services.services,
       errors:[...services.errors,...(!exactImage?['Prepared image is not running on every release service.']:[]),...(!publicReady?['Public build, fee policy or launch readiness is unavailable.']:[])]};
     if(report.ready)return report;
@@ -243,8 +244,8 @@ export function dockerIO(){
     preflight:async release=>{
       const current=await containers(release.project);
       for(const service of releaseServices)requireValue(current.filter(c=>c.Config.Labels['com.docker.compose.service']===service).length===1,'This command upgrades an existing four-service deployment only.');
-      const config=readJSON(release.composeFile);
-      for(const service of releaseServices)for(const [name,dependency]of Object.entries(config.services[service].depends_on||{}))if(!releaseServices.includes(name)){
+      const config=readJSON(release.composeFile),names=servicesFor(config);
+      for(const service of names)for(const [name,dependency]of Object.entries(config.services[service].depends_on||{}))if(!names.includes(name)){
         const c=current.find(c=>c.Config.Labels['com.docker.compose.service']===name);
         const ready=dependency.condition==='service_completed_successfully'?c?.State.Status==='exited'&&c.State.ExitCode===0
           :c?.State.Status==='running'&&(dependency.condition!=='service_healthy'||c.State.Health?.Status==='healthy');

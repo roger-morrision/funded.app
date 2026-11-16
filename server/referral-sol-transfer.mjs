@@ -1,5 +1,6 @@
 import bs58 from 'bs58';
 import { SystemProgram, Transaction } from '@solana/web3.js';
+import { signTransaction } from './transaction-signing.mjs';
 
 export function solToLamports(amountSol) {
   const scaled = Number(amountSol) * 1_000_000_000;
@@ -51,7 +52,7 @@ export async function sendFinalizedSolPayout({ connection, payer, recipient, lam
     latest = await connection.getLatestBlockhash('finalized');
     transaction = new Transaction({ feePayer: payer.publicKey, recentBlockhash: latest.blockhash })
       .add(SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: recipient, lamports }));
-    transaction.sign(payer);
+    await signTransaction(transaction, [payer]);
   } catch (error) {
     error.safeToRetry = true; // No signature was journaled or transaction broadcast.
     throw error;

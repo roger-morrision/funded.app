@@ -1,5 +1,6 @@
 import bs58 from 'bs58';
 import {createHash} from 'node:crypto';
+import {signTransaction} from './transaction-signing.mjs';
 
 // Persist the exact signed identity before the first network submission. A
 // timeout or process restart can then reconcile that identity without signing
@@ -9,7 +10,7 @@ export async function sendJournaledCollection(connection,transaction,signers,{
 }={}){
  if(typeof onSigned!=='function'||!Number.isSafeInteger(transaction.lastValidBlockHeight))
   throw Error('A durable collection journal and bounded blockhash are required.');
- transaction.sign(...signers);
+ await signTransaction(transaction,signers);
  const wire=transaction.serialize(),signature=bs58.encode(transaction.signature);
  await onSigned({signature,blockhash:transaction.recentBlockhash,lastValidBlockHeight:transaction.lastValidBlockHeight,
   wireHash:createHash('sha256').update(wire).digest('hex')});

@@ -6,6 +6,7 @@ import {createPostgresStore} from '../server/postgres-store.mjs';
 import {runAgencyCycle,agencyWorkerBlocked} from './run-agency-worker.mjs';
 import {runAgencyBuybackLoop} from '../server/agency-buyback-loop.mjs';
 import {recordWorkerCycle} from './worker-health.mjs';
+import {createRemoteSigner,assertNoLocalKeys} from '../server/remote-signer.mjs';
 
 // This entry point has no publisher, outbox or X credential configuration.
 export function agencyBuybackConfig(env,args=[]){
@@ -29,7 +30,8 @@ async function main(args){
   const env={...process.env};
   for(const name of ['DATABASE_URL','SOLANA_RPC_URL','FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY'])
     if(!env[name]&&env[name+'_FILE'])env[name]=(await readFile(env[name+'_FILE'],'utf8')).trim();
-  const config=agencyBuybackConfig(env,args),authority=Keypair.fromSecretKey(bs58.decode(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY||''));
+  assertNoLocalKeys(env);
+  const config=agencyBuybackConfig(env,args),authority=createRemoteSigner({env})?.handle('authority')||Keypair.fromSecretKey(bs58.decode(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY||''));
   recordWorkerCycle('agency-buyback-worker','starting');
   const store=createPostgresStore(env.DATABASE_URL),connection=new Connection(env.SOLANA_RPC_URL,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(url,options)=>fetch(url,{...options,signal:options?.signal?AbortSignal.any([options.signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})});

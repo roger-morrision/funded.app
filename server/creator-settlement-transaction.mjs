@@ -1,6 +1,7 @@
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { PublicKey, Transaction } from '@solana/web3.js';
+import { signTransaction } from './transaction-signing.mjs';
 
 export function prepareCreatorSettlement({ instruction, authority, blockhash }) {
   if (!blockhash) throw new Error('A recent Devnet blockhash is required.');
@@ -38,7 +39,7 @@ export async function submitCreatorSettlement({ connection, transaction, authori
   if (!valid.value) throw Object.assign(new Error(automatic
     ? 'Automatic settlement blockhash expired; prepare a fresh transaction.'
     : 'Creator approval expired. Prepare and sign a fresh transaction.'), {statusCode:409});
-  transaction.partialSign(authority);
+  await signTransaction(transaction, [authority], { mode: 'partial' });
   const signature = bs58.encode(transaction.signature);
   try {
     const submitted = await connection.sendRawTransaction(transaction.serialize(), {

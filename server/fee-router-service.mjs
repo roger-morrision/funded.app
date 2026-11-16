@@ -12,6 +12,7 @@ import { buildMintCreatorFeeCollectionInstructions as buildMintInstructions } fr
 import { LAUNCH_TIER_USD } from '../launch-tier-quote.js';
 import { readServiceFees } from './service-fees.mjs';
 import {assertRpcNetwork} from '../solana-network.js';
+import { createRemoteSigner } from './remote-signer.mjs';
 import { sendFinalizedSolPayout as sendFinalizedReferral, reconcileFinalizedSolPayout as reconcileFinalizedReferral, solToLamports } from './referral-sol-transfer.mjs';
 
 // One service per API instance. Inject RPC/signing dependencies for isolated tests.
@@ -24,8 +25,12 @@ export function createFeeRouterService({
   verifyV3LaunchRouterReadiness = verifyV3Readiness,
   loadFinalizedV3PumpCollection = loadV3Collection,
 }) {
+  // With FUNDED_SIGNER_URL the keys live only in the internal signer service;
+  // these getters then return public-key handles that sign through it.
+  const remote = solanaCluster === 'devnet' ? createRemoteSigner({ env }) : null;
   function keeperKeypair() {
     if(solanaCluster!=='devnet')return null;
+    if(remote)return remote.handle('keeper');
     const filePath = String(env.SOLANA_KEEPER_KEYPAIR_PATH || '').trim();
     if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
     const encoded = String(env.SOLANA_KEEPER_SECRET_KEY || '').trim();
@@ -34,6 +39,7 @@ export function createFeeRouterService({
   }
   function referralPayoutKeypair() {
     if(solanaCluster!=='devnet')return null;
+    if(remote){const handle=remote.handle('referral');return handle?uniquePayoutKeypair(handle):null;}
     const filePath = String(env.SOLANA_REFERRAL_PAYOUT_KEYPAIR_PATH || '').trim();
     if (filePath) return uniquePayoutKeypair(Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8')))));
     const encoded = String(env.SOLANA_REFERRAL_PAYOUT_SECRET_KEY || '').trim();
@@ -48,6 +54,7 @@ export function createFeeRouterService({
   }
   function routerAuthorityKeypair() {
     if(solanaCluster!=='devnet')return null;
+    if(remote)return remote.handle('legacyAuthority')||remote.handle('authority');
     const filePath = String(env.FUNDED_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
     if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
     const encoded = String(env.FUNDED_ROUTER_AUTHORITY_SECRET_KEY || '').trim();
@@ -56,6 +63,7 @@ export function createFeeRouterService({
   }
   function v3AuthorityKeypair() {
     if(solanaCluster!=='devnet')return null;
+    if(remote)return remote.handle('authority');
     const filePath = String(env.FUNDED_V3_ROUTER_AUTHORITY_KEYPAIR_PATH || '').trim();
     if (filePath) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(resolve(filePath), 'utf8'))));
     const encoded = String(env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY || '').trim();

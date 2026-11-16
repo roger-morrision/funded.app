@@ -30,6 +30,7 @@ import { allowedAuthOrigin } from '../x-auth.mjs';
 import { v3ReferralEntitlement } from '../v3-referral-entitlement.mjs';
 import { QA_HOLDER_POLICY, qaHolderMinimums, qaShortHolderMintSelected } from '../devnet-qa-minimums.mjs';
 import {financialRecordNetwork} from '../financial-network.mjs';
+import { signTransaction } from '../transaction-signing.mjs';
 
 export function createV3RewardFundingRoutes({ body, store, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, rewardStore, requireAuthorized = () => false, respond, env = process.env,
@@ -351,7 +352,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       .add(...(Array.isArray(payoutInstructions)?payoutInstructions:[payoutInstructions]))
       : verifyTransaction({ signedTransaction:input.creatorSignedTransaction,
         instruction:payoutInstructions, authority:authority.publicKey,creator:launch.creatorWallet });
-    transaction.partialSign(authority);
+    await signTransaction(transaction, [authority], { mode: 'partial' });
     const signature = bs58.encode(transaction.signature);
     const locked = await store.update(current => {
       if(recipientClaim)verifyManualReferralPayout(current,claimIntent,input);

@@ -5,6 +5,7 @@ import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
 import {ADMIN_EMAIL_AUTHORIZED} from './admin-email-verification.mjs';
 import {createWithdrawalPolicy} from './admin-withdrawal-policy.mjs';
 import {withdrawalSessionHash,adminWithdrawalTransaction,verifyAdminWithdrawalSignature} from './admin-withdrawal-signing.mjs';
+import {signTransaction} from './transaction-signing.mjs';
 const signaturePattern=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const error=(status,message)=>Object.assign(Error(message),{status});
 const integer=value=>Number.isSafeInteger(value)&&value>=0;
@@ -145,7 +146,7 @@ export function createAdminWithdrawals({store,env,connection,roles,signerFor,now
             state.adminWithdrawalIntents[source]={token,source,destination:admin,status:'preparing',amountLamports:amount,leaseUntil:now()+60000};return true;});
           if(!acquired)throw error(409,'Another withdrawal is pending for this source.');
           const signer=signerFor(source);if(!signer||signer.publicKey.toBase58()!==source)throw error(503,'Source signer is unavailable.');
-          const tx=adminWithdrawalTransaction(plan);tx.partialSign(signer);
+          const tx=adminWithdrawalTransaction(plan);await signTransaction(tx,[signer],{mode:'partial'});
           const signedTransaction=tx.serialize({requireAllSignatures:false}).toString('base64');
           const sourceSignature=bs58.encode(tx.signatures.find(row=>row.publicKey.equals(signer.publicKey)).signature);
           const saved=await store.update(state=>{const active=state.adminWithdrawalIntents?.[source];

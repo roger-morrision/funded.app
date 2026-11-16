@@ -1,6 +1,7 @@
 import bs58 from 'bs58';
 import { ComputeBudgetProgram, PublicKey, TransactionMessage,
   VersionedTransaction } from '@solana/web3.js';
+import { signTransaction } from './transaction-signing.mjs';
 
 export function prepareV3BuybackTransaction({ instruction, authority,
   blockhash, lookupTable, setupInstructions=[],computeUnitLimit=350_000,computeUnitPriceMicroLamports=0 }) {
@@ -25,7 +26,7 @@ export async function submitV3BuybackTransaction({ connection, transaction,
   if (!(await connection.isBlockhashValid(transaction.message.recentBlockhash,
     'confirmed')).value)
     throw new Error('The protected V3 quote expired; prepare a fresh buyback.');
-  transaction.sign([authority]);
+  await signTransaction(transaction, [authority]);
   const signature=bs58.encode(transaction.signatures[0]);
   try {
     const submitted=await connection.sendRawTransaction(transaction.serialize(),{
