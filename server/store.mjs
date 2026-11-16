@@ -34,6 +34,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.mainnetTradeCursor ||= {};
     state.adminWithdrawalIntents ||= {};
     state.adminJwtRevocations ||= {};
+    state.adminWithdrawalRequests ||= {};
     state.referralClaims ||= {};
     state.listings ||= {};
     state.listingQuotes ||= {};

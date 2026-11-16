@@ -3,6 +3,7 @@ import {Connection,PublicKey,SystemProgram,Transaction} from '@solana/web3.js';
 import {exactSolLamports} from './exact-sol-units.js';
 import {Buffer} from 'buffer';
 import {createPendingWithdrawals} from './admin-withdrawal-pending.js';
+import {createWithdrawalRequests} from './admin-withdrawal-requests.js';
 const SIGNATURE=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,document=globalThis.document,
  connectionFactory=()=>new Connection(`${location.origin}/api/solana/rpc`,'finalized')}){
@@ -12,6 +13,7 @@ export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,doc
  let busy=false,pending=null,recoveryKey='',activeScope='';
  const journal=createPendingWithdrawals(sessionStorage);
  function report(message,error=false){status.textContent=message;status.classList.toggle('error',error);show(message,error);}
+ const requests=createWithdrawalRequests({api,post,report,document,anchor:status});
  const maxButton=$('#withdraw-max');
  const exactSol=value=>{const units=BigInt(value);return `${units/1000000000n}.${String(units%1000000000n).padStart(9,'0')}`;};
  const token=()=>workspace.dataset.sessionEpoch,current=value=>!workspace.hidden&&token()===value;
@@ -82,8 +84,10 @@ export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,doc
    if(pending){report('Checking the previous transfer before preparing your new amount.');
     if(!await checkPending(epoch)||!current(epoch))return;
    }
+   const gate=await requests.gate({source,amount});if(!current(epoch))return;
+   if(gate.stop){report(gate.stop);return;}
    report('Preparing withdrawal. Verify the email code to authorize this amount and destination.');
-   const plan=await post('/api/admin/withdrawals/prepare',{source,destination,amountLamports:amount});if(!current(epoch))return;
+   const plan=await post('/api/admin/withdrawals/prepare',{source,destination,amountLamports:amount,...(gate.requestId?{requestId:gate.requestId}:{})});if(!current(epoch))return;
    if(plan.finalized===true&&plan.balanceDeltaVerified===true){await refresh();report('The prior withdrawal is finalized. Review the updated balance before another transfer.');return;}
    if(plan.source!==source||plan.destination!==destination||plan.amountLamports!==amount)throw Error('The withdrawal review changed. Review it again.');
    const summary=`Withdraw ${exactSol(amount)} Devnet SOL · From ${source} · To admin ${destination} · Admin pays ${exactSol(plan.estimatedFeeLamports)} SOL network fee; ${exactSol(plan.reserveLamports)} SOL stays in the source.`;
@@ -145,5 +149,5 @@ export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,doc
   throw Error('The previous transfer outcome is still pending. No new transfer was signed. Keep your new amount and submit again after confirmation or expiry.');
  }
  checker.addEventListener('click',()=>{const epoch=token();if(!pending)return;void run(()=>checkPending(epoch));});
- new MutationObserver(update).observe(workspace,{attributes:true,attributeFilter:['hidden']});update();return{sync:update};
+ new MutationObserver(()=>{update();if(!workspace.hidden)void requests.load();}).observe(workspace,{attributes:true,attributeFilter:['hidden']});update();return{sync:update};
 }

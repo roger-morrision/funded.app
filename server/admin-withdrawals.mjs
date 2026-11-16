@@ -3,6 +3,7 @@ import bs58 from 'bs58';
 import {PublicKey,SystemProgram,Transaction} from '@solana/web3.js';
 import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
 import {ADMIN_EMAIL_AUTHORIZED} from './admin-email-verification.mjs';
+import {createWithdrawalPolicy} from './admin-withdrawal-policy.mjs';
 import {withdrawalSessionHash,adminWithdrawalTransaction,verifyAdminWithdrawalSignature} from './admin-withdrawal-signing.mjs';
 const signaturePattern=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const error=(status,message)=>Object.assign(Error(message),{status});
@@ -27,6 +28,7 @@ export async function finalizedAdminTransfer(rpc,signature){
   return{tx,source,destination,amount,feePayer:adminPays?destination:source};
 }
 export function createAdminWithdrawals({store,env,connection,roles,signerFor,now=Date.now}){
+  const policy=createWithdrawalPolicy({store,env,now});
   function sourceRole(source,admin){
     const row=roles().find(row=>row.address===source&&row.withdrawable);
     if(!row||source===admin)throw error(400,'Choose an app source different from the signed-in admin wallet.');
@@ -97,7 +99,9 @@ export function createAdminWithdrawals({store,env,connection,roles,signerFor,now
   const handle=async function handle(req,res,url,{session,sessionId,body,json}){
     if(!url.pathname.startsWith('/api/admin/withdrawals/'))return false;
     try{
-      const admin=session.wallet,path=url.pathname,rpc=await verifiedRpc();
+      const admin=session.wallet,path=url.pathname;
+      if(req.method==='GET'&&path==='/api/admin/withdrawals/requests')return await policy.handle(req,res,path,{admin,json});
+      const rpc=await verifiedRpc();
       if(req.method==='GET'&&path==='/api/admin/withdrawals/maximum')return json(res,200,await quote(rpc,url.searchParams.get('source'),admin));
       if(req.method==='GET'&&path==='/api/admin/withdrawals/pending'){
         const source=url.searchParams.get('source');sourceRole(source,admin);
@@ -108,6 +112,10 @@ export function createAdminWithdrawals({store,env,connection,roles,signerFor,now
       if(req.method!=='POST')return json(res,405,{error:'Method not allowed.'});
       const input=await body(req)||{};
       if(Object.hasOwn(input,'destination')&&input.destination!==admin)throw error(403,'Withdrawals can only go to the signed-in admin wallet.');
+      if(['/api/admin/withdrawals/request','/api/admin/withdrawals/approve','/api/admin/withdrawals/cancel'].includes(path)){
+        if(!req[ADMIN_EMAIL_AUTHORIZED]||!sessionId)throw error(403,'Verify the email code for this action first.');
+        return await policy.handle(req,res,path,{admin,input,json,sourceRole});
+      }
       if(path==='/api/admin/withdrawals/prepare'){
         if(!req[ADMIN_EMAIL_AUTHORIZED]||!sessionId)throw error(403,'Verify the email code for this withdrawal first.');
         const source=String(input.source||''),role=sourceRole(source,admin),amount=Number(input.amountLamports);
@@ -124,13 +132,17 @@ export function createAdminWithdrawals({store,env,connection,roles,signerFor,now
         }
         const plan=await quote(rpc,source,admin);
         if(amount>Number(plan.maximumLamports))throw error(409,'Amount exceeds the available source balance after its protected reserve. Refresh Max.');
+        // Caps and the second-admin approval are checked again, atomically, below.
+        const reviewed=policy.check(await store.read(),amount);
+        if(reviewed&&!input.requestId)throw error(403,'Withdrawals above the review limit need a request approved by a second admin.');
         Object.assign(plan,{id:randomUUID(),amountLamports:amount,expiresAt:new Date(now()+120000).toISOString(),
           approvedSessionHash:withdrawalSessionHash(sessionId),emailApprovalId:req[ADMIN_EMAIL_AUTHORIZED].id});
         if(role.signingMode==='server'){
           const token=randomUUID();
           const acquired=await store.update(state=>{state.adminWithdrawalIntents||={};const current=state.adminWithdrawalIntents[source];
             if(current&&!['finalized','failed-finalized','expired'].includes(current.status)&&(current.signedTransaction||current.signature||current.leaseUntil>now()))return false;
-            state.adminWithdrawalIntents[source]={token,source,destination:admin,status:'preparing',leaseUntil:now()+60000};return true;});
+            if(policy.check(state,amount))policy.claim(state,{requestId:input.requestId,source,amount,admin,intentId:plan.id});
+            state.adminWithdrawalIntents[source]={token,source,destination:admin,status:'preparing',amountLamports:amount,leaseUntil:now()+60000};return true;});
           if(!acquired)throw error(409,'Another withdrawal is pending for this source.');
           const signer=signerFor(source);if(!signer||signer.publicKey.toBase58()!==source)throw error(503,'Source signer is unavailable.');
           const tx=adminWithdrawalTransaction(plan);tx.partialSign(signer);
@@ -142,6 +154,7 @@ export function createAdminWithdrawals({store,env,connection,roles,signerFor,now
           if(!saved)throw error(409,'Withdrawal preparation expired. No transaction was submitted.');
           return json(res,200,saved);
         }
+        await store.update(state=>{if(policy.check(state,amount))policy.claim(state,{requestId:input.requestId,source,amount,admin,intentId:plan.id});});
         return json(res,200,plan);
       }
       if(path==='/api/admin/withdrawals/submit'){

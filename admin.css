@@ -68,3 +68,6 @@
 .withdraw-status { margin:12px 0; padding:12px; border:1px solid #52637a; border-radius:8px; overflow-wrap:anywhere; }
 .withdraw-status:empty { display:none; }
 .withdraw-status.error { color:#ffb4ab; border-color:#dc7878; }
+.withdraw-requests ul { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px; }
+.withdraw-requests li { display:flex; flex-wrap:wrap; gap:8px; align-items:center; overflow-wrap:anywhere; }
+.withdraw-requests p:empty { display:none; }
