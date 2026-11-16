@@ -7,6 +7,7 @@ import { createHolderHistoryIndexer } from './holder-history-indexer.mjs';
 import { createRewardScheduler, protocolRewardWallets } from './reward-scheduler.mjs';
 import { createHolderRewardQuoteReader } from './holder-reward-quote.mjs';
 import { QA_HOLDER_POLICY, qaHolderMinimums, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
+import { rewardHeartbeat } from './reward-heartbeat.mjs';
 
 // The first cleanup must finish before the HTTP server starts accepting requests.
 export async function startShareVisitCleanup({ store, scheduleInterval = setInterval, logger = console }) {
@@ -123,5 +124,9 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
   };
   scheduleTimeout(() => { void tick(); }, 5_000).unref();
   scheduleInterval(() => { void tick(); }, 60_000).unref();
+  // Readiness heartbeat, independent of long ticks.
+  let beating = false;
+  scheduleInterval(() => { if (beating) return; beating = true;
+    void rewardHeartbeat({ store:automaticRewardStore, chain }).catch(() => {}).finally(() => { beating = false; }); }, 60_000).unref();
   return { tick };
 }
