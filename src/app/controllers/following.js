@@ -127,7 +127,7 @@ export function createFollowingController(appState) {
 
   // app-source: 395
   async function saveWatchlist(mint, { remove = false } = {}){
-    if(!appState.watchlistSync.identity()&&!await verifyWalletFavorites())return false;
+    // Without a verified account the favorite is kept in this browser (merged into the account later).
     const saved = await appState.watchlistSync.save(mint, remove);
     if (saved && !remove) window.dispatchEvent(new Event('funded:watchlist-added'));
     if (!saved) {
