@@ -129,9 +129,13 @@ export function createLaunchRegistrationRoutes({
         promotionClaim, promotionQuote, fundedMint: fundedTokenMint, promotionTiers,
         commitment:'finalized',cluster:solanaCluster });
       const preparedMetadata = await store.readMetadata(proof.mint);
-      const serviceFeeReceipt = !existingLaunch ? verifyLaunchServiceFee({
-        transaction:await connectionFactory(solanaRpcUrl).getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
-        signature:proof.signature, mint:proof.mint, payer:proof.feePayer, quote:serviceQuote,cluster:solanaCluster }) : existingLaunch.launchServiceFee;
+      let serviceFeeReceipt = existingLaunch?.launchServiceFee;
+      if (!existingLaunch) {
+        const feeTransaction = await connectionFactory(solanaRpcUrl).getTransaction(proof.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+        try { serviceFeeReceipt = verifyLaunchServiceFee({ transaction:feeTransaction,
+          signature:proof.signature, mint:proof.mint, payer:proof.feePayer, quote:serviceQuote,cluster:solanaCluster }); }
+        catch (error) { return json(res,409,{error:`${String(error.message||error).slice(0,200)} Register with the launch fee quote saved when the coin was created.`}); }
+      }
       let preparedMetadataUri;
       try { preparedMetadataUri=await registeredLaunchMetadata({proof,record:preparedMetadata,inputUri:input.metadataUri,cluster:solanaCluster}); }
       catch(error) { return json(res,409,{error:error.message}); }
