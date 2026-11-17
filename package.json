@@ -28,7 +28,14 @@
     "release:manifest": "node scripts/release-manifest.mjs",
     "x:posts": "node scripts/run-x-post-worker.mjs",
     "check:structure": "node scripts/check-source-size.mjs",
-    "test:smoke": "playwright test"
+    "test:smoke": "playwright test",
+    "review:build": "node scripts/review/build-mainnet.mjs",
+    "review:local": "node scripts/review/build-mainnet.mjs && node scripts/review/with-server.mjs npx playwright test",
+    "review:pages": "node scripts/review/pages.mjs",
+    "review:flows": "node scripts/review/flows.mjs",
+    "review:consistency": "node scripts/review/consistency.mjs",
+    "review:layout": "node scripts/review/layout.mjs",
+    "review:local-flows": "node scripts/review/with-server.mjs node scripts/review/flows.mjs"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^2.0.0",

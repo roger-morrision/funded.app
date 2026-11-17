@@ -1,0 +1,12 @@
+import { chromium } from '@playwright/test';
+const BASE = process.env.REVIEW_BASE_URL || 'https://richpad.fun', MINT = '85RhcSEMy15SNhFLmSArNm7udPKXVagVgsq4YmSopump';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const go = async p => { await page.goto(BASE + p, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(6000); };
+const grab = (sel) => page.evaluate(s => [...document.querySelectorAll(s)].filter(e => e.offsetParent && /bill/i.test(e.textContent)).map(e => e.textContent.replace(/\s+/g, ' ').trim().slice(0, 170))[0] || '-', sel);
+await go('/'); console.log('HOME featured:', await grab('.home-featured-card')); console.log('HOME list   :', await grab('.home-launch-card'));
+await go('/#explore'); console.log('EXPLORE     :', await grab('#explore .token-card-shell'));
+await go('/#top100'); console.log('TOP100      :', await grab('#top100 tbody tr'));
+await go('/#callouts'); console.log('CALLS       :', await grab('.callout-card'));
+await go('/token/' + MINT); console.log('TOKEN       :', await page.evaluate(() => ['#coin-price', '#coin-change', '#coin-market-cap', '#coin-liquidity', '#coin-volume', '#coin-holder-count', '#coin-strip-burned'].map(s => s + '=' + (document.querySelector(s)?.textContent.trim() || '-')).join(' ')));
+await browser.close();
