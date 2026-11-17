@@ -46,7 +46,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
       appState.setCoinFact?.('#coin-stage', `${data.dexId ? `Trading · ${data.dexId}` : 'Indexed market'}${pair ? ` · paired with ${pair.symbol}` : ''}`, 'clear');
       const symbolNode = document.querySelector('#coin-symbol');
       document.querySelector('#coin-pair-chip')?.remove();
-      if (pair && symbolNode && current()) symbolNode.insertAdjacentHTML('afterend', pairChipMarkup(data, appState.escapeHtml, { showSol: true }).replace('<span class="pair-chip', '<span id="coin-pair-chip" class="pair-chip'));
+      if (pair && symbolNode && current()) symbolNode.insertAdjacentHTML('afterend', pairChipMarkup(data, appState.escapeHtml).replace('<span class="pair-chip', '<span id="coin-pair-chip" class="pair-chip'));
     };
     showPair(); void loadPairQuotes().then(() => { if (current()) showPair(); });
     appState.setCoinFact?.('#coin-fee-owner', 'External token · no Richpad fees', 'clear');

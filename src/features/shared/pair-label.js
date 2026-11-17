@@ -39,7 +39,7 @@ export function tokenPair(item) {
 }
 
 // SOL is the default pair, so cards and lists only label coins paired with
-// something else; the coin page passes showSol to name every pair.
+// something else; pass showSol to name every pair.
 export function pairChipMarkup(item, escapeHtml, { showSol = false } = {}) {
   const pair = tokenPair(item);
   if (!pair || (pair.category === 'sol' && !showSol)) return '';
