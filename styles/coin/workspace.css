@@ -302,12 +302,14 @@
     scroll-margin-block:calc(100px + env(safe-area-inset-bottom));
   }
 }
-/* Favorite star sits in the header's top-right corner; Boost keeps the rail's right edge. */
+/* Favorite star sits in the header's top-right corner. */
 html body #main-content #coin-page .coin-hero-card .coin-package-rail{justify-content:flex-end}
-/* Wide layouts put Boost on the star's row: keep it clear of the star. */
-@media (min-width:701px){html body #main-content #coin-page .coin-hero-card .coin-package-rail{padding-right:44px}}
+/* Boost sits in the token card's bottom-right corner, clear of the star. */
+html body #main-content #coin-page .coin-hero-card .coin-promotion-details{position:absolute;right:12px;bottom:12px;z-index:1}
 html body #main-content #coin-page .coin-hero-card .coin-identity{position:relative}
 html body #main-content #coin-page .coin-hero-card .coin-package-rail .coin-watch{position:absolute;top:0;right:0;z-index:1;align-self:auto;margin:0}
 html body #main-content #coin-page .coin-hero-card .coin-identity-main{padding-right:48px}
 html body #main-content #coin-page .coin-trade-more{display:block;width:100%;margin-top:10px;min-height:44px}
 html body #main-content #coin-page .coin-holder-pool{display:inline-block;margin-left:6px;padding:1px 6px;border:1px solid var(--fv-border);border-radius:999px;color:var(--fv-text-subtle);font-size:11px;white-space:nowrap}
+html body #main-content #coin-page .coin-fee-distribution{display:grid;gap:8px;margin-top:12px;padding:12px 14px;border:1px solid var(--fv-border);border-radius:12px}
+html body #main-content #coin-page .coin-fee-distribution-label{color:var(--fv-text-subtle);font:600 11px var(--fv-font-data);letter-spacing:.06em;text-transform:uppercase}

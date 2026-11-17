@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 // Public wallet holdings (any address): SOL balance and SPL / Token-2022 balances,
 // with symbol, logo and USD price from indexed market data. Read-only; cached 60 s.
 const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
-const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EH5JBT5gH7r2uX8a5Ug8';
+const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
 const WSOL = 'So11111111111111111111111111111111111111112';
 
 export function createWalletHoldingsRoute({ connection, free, tokenCache = null, respond }) {

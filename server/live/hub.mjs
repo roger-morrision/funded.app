@@ -80,6 +80,8 @@ export function createLiveHub({ read, now = Date.now, demandWindowMs = 120_000, 
       if (age < row.topic.intervalMs * 4) { if (!row.refreshing) void refresh(path); return { ...snap, state: 'stale' }; }
       return null;
     },
+    // Re-read a topic now (after a write that changes it), instead of waiting for its interval.
+    refreshNow(path) { const row = entry(path); if (row && !row.refreshing) void refresh(path); },
     // A handler response for a topic path (cache miss) seeds the snapshot.
     remember(path, body) {
       const row = entry(path);

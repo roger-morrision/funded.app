@@ -33,6 +33,7 @@ export function mountAdminListingButton({ anchor, getSession, onListed, setStatu
   button.addEventListener('click', async () => {
     const mint = current.mint;
     if (!mint || busy || !status.admin) return;
+    if (!globalThis.confirm?.('List this token for free as admin? No payment and no wallet signature are needed.')) return;
     busy = true; update(current);
     try {
       const result = await apiRequest('/api/listings/admin', { method: 'POST', signal: AbortSignal.timeout(20000), body: { mint } });

@@ -51,8 +51,9 @@ export function initializeTop100(appState) {
       checked && !community ? '24h ranking metrics unavailable; retry shortly.' : ''].filter(Boolean).join(' · ');
     find('[data-top-refresh]').disabled = busy;
     const rows = result.rows.slice(page * 25, (page + 1) * 25);
+    const favorites = new Set(appState.lastKnownWatchlist || []), favorite = mint => favorites.has(mint);
     const html = rows.map(row => `<tr${row.boost >= 500 ? ' class="top100-golden"' : ''}>
-          <td class="top100-rank">${row.rank}</td><th scope="row"><a class="top100-token" href="/token/${esc(row.mint)}"><span class="top100-logo" data-top-logo="${esc(row.mint)}" aria-hidden="true">${esc((row.symbol || 'T').slice(0,1))}</span><span><strong>${esc(row.name || row.symbol || row.mint)}</strong><small>$${esc(row.symbol || '—')} ${appState.verifiedBoostsAvailable ? boostPackageBadgesMarkup(appState.verifiedBoosts?.[row.mint]) : ''}</small></span></a></th>
+          <td class="top100-rank"><span class="top100-rank-cell"><button type="button" class="watch-button top100-watch${favorite(row.mint) ? ' active' : ''}" data-top-watch="${esc(row.mint)}" aria-pressed="${favorite(row.mint)}" aria-label="${favorite(row.mint) ? 'Remove' : 'Add'} ${esc(row.symbol || 'token')} ${favorite(row.mint) ? 'from' : 'to'} favorites" title="Favorite">${icon('star')}</button>${row.rank}</span></td><th scope="row"><a class="top100-token" href="/token/${esc(row.mint)}"><span class="top100-logo" data-top-logo="${esc(row.mint)}" aria-hidden="true">${esc((row.symbol || 'T').slice(0,1))}</span><span><strong>${esc(row.name || row.symbol || row.mint)}</strong><small>$${esc(row.symbol || '—')} ${appState.verifiedBoostsAvailable ? boostPackageBadgesMarkup(appState.verifiedBoosts?.[row.mint]) : ''}</small></span></a></th>
           <td><span class="top100-tier">${esc(row.paidListing && row.tier === 'external' ? 'Paid listing' : row.tier.charAt(0).toUpperCase()+row.tier.slice(1))}</span>${filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? `<small class="top100-paid-priority">${row.boost > 0 ? 'Boost priority' : 'Paid priority'}</small>` : ''}</td>
           <td class="top100-cap">${money(row.capUsd)}</td><td class="${row.capGrowthUsd==null?'':row.capGrowthUsd<0?'top100-negative':'top100-positive'}">${signed(row.capGrowthUsd,money)}</td><td class="top100-volume">${row.volumeUsd != null && row.partial ? '≥' : ''}${money(row.volumeUsd)}</td>
           <td>${row.trades == null ? '—' : `${row.partial ? '≥' : ''}${row.trades.toLocaleString()}`}</td><td class="${row.change == null ? '' : row.change < 0 ? 'top100-negative' : 'top100-positive'}">${row.change == null ? '—' : `${row.change > 0 ? '+' : ''}${row.change.toFixed(2)}%`}</td>
@@ -93,6 +94,8 @@ export function initializeTop100(appState) {
     if (sort) {filters.sort = sort.dataset.topSort;page = 0;root.querySelectorAll('[data-top-sort]').forEach(button => button.setAttribute('aria-pressed',String(button === sort)));render();syncUrl();}
     const boost = event.target.closest('[data-top-boost]');
     if (boost) appState.openExploreBoost(boost.dataset.topBoost);
+    const watch = event.target.closest('[data-top-watch]');
+    if (watch) void appState.toggleExploreWatch(watch.dataset.topWatch, watch).then(render);
     if (event.target.closest('[data-top-refresh]')) void refresh();
     if (event.target.closest('[data-top-prev]')) {page--;render();}
     if (event.target.closest('[data-top-next]')) {page++;render();}

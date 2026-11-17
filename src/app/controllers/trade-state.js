@@ -23,6 +23,10 @@ export function createTradeStateController(appState) {
   // app-source-end
 
   // app-source: 548
+  function clearTradeReceiptStatus() {
+    const node = document.querySelector('#trade-receipt-status');
+    if (node) { node.hidden = true; node.textContent = ''; }
+  }
   function setTradeReceiptStatus(message, signature, error = false) {
     const node = document.querySelector('#trade-receipt-status');
     if (!node) return;
@@ -210,5 +214,5 @@ export function createTradeStateController(appState) {
   }
   // app-source-end
 
-  return { showToast, setTradeStatus, setTradeReceiptStatus, tradeBalanceKey, roundTripStorageKey, savedRoundTrip, rememberRoundTripReceipt, renderRoundTripAction, resetTradeBalances, renderTradeBalances, refreshTradeBalances, formatTradeEstimateAmount, renderTradeAmountEstimate, updateTradeAmountLabel, tradeInputs, currentTradePreview, updateTradeActionState, invalidateTradePreview, tradePreviewFailureMessage };
+  return { showToast, setTradeStatus, setTradeReceiptStatus, clearTradeReceiptStatus, tradeBalanceKey, roundTripStorageKey, savedRoundTrip, rememberRoundTripReceipt, renderRoundTripAction, resetTradeBalances, renderTradeBalances, refreshTradeBalances, formatTradeEstimateAmount, renderTradeAmountEstimate, updateTradeAmountLabel, tradeInputs, currentTradePreview, updateTradeActionState, invalidateTradePreview, tradePreviewFailureMessage };
 }

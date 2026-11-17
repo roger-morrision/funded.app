@@ -2,7 +2,7 @@ import { APP_NET } from '../../features/shared/app-network.js';
 import { routeGroup } from '../route-group.js';
 import { walletHistoryRows, walletBonusCoverage } from '../../features/portfolio/wallet-history-model.js';
 import { readPortfolioTokenAccounts, portfolioLookupReason } from '../../features/portfolio/holdings-read.js';
-import { enrichHoldingsMetadata, enrichHoldingsMarket } from '../../features/portfolio/holdings-metadata.js';
+import { enrichHoldingsMetadata, enrichHoldingsMarket, enrichHoldingsFromPublic } from '../../features/portfolio/holdings-metadata.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createPortfolioController(appState) {
@@ -191,6 +191,12 @@ export function createPortfolioController(appState) {
     globalThis.document?.dispatchEvent?.(new Event('funded:portfolio-holdings'));
     if(appState.portfolioHoldings.status==='ready')void enrichHoldingsMarket({
       holdings:appState.portfolioHoldings.accounts,cluster:appState.EXPLORE_CLUSTER,
+      apiRequest:path=>appState.apiRequest(path),
+      isCurrent:()=>request===appState.portfolioRequest&&address===appState.connectedWalletAddress,
+      onUpdate:()=>appState.renderPortfolio(),
+    });
+    if(appState.portfolioHoldings.status==='ready')void enrichHoldingsFromPublic({
+      holdings:appState.portfolioHoldings.accounts,cluster:appState.EXPLORE_CLUSTER,owner:address,
       apiRequest:path=>appState.apiRequest(path),
       isCurrent:()=>request===appState.portfolioRequest&&address===appState.connectedWalletAddress,
       onUpdate:()=>appState.renderPortfolio(),

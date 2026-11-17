@@ -36,11 +36,14 @@ export function decorateAdminBoost(appState, details) {
   button.addEventListener('click', async () => {
     const { mint, packageId } = appState.boostCheckout;
     if (!mint || !packageId || busy) return;
+    // Free boosts need no wallet signature, so confirm each one explicitly.
+    if (!globalThis.confirm?.(`Add a free ${packageId} boost to this token? No payment and no wallet signature are needed; each confirmation adds one more boost.`)) return;
     busy = true; appState.renderExploreBoostDialog();
     try {
       await apiRequest('/api/boosts/admin', { method: 'POST', signal: AbortSignal.timeout(20000), body: { mint, packageId } });
-      appState.boostCheckout.message = 'Boosted by admin. No fee was charged.';
       await appState.loadExploreBoostHistory(mint);
+      const total = appState.activeBoostMultiplier?.(appState.verifiedBoosts?.[mint]);
+      appState.boostCheckout.message = `Free ${packageId} boost added by admin${total ? ` · active now ${total}x` : ''}. No fee was charged.`;
       void appState.loadVerifiedBoosts?.();
     } catch (error) {
       if (error?.status === 401) Object.assign(status, { admin: false, checkedAt: Date.now() });

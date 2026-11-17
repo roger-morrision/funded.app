@@ -316,7 +316,8 @@ export function createTradeExecutionController(appState) {
       appState.pendingTradeVerifications.delete(pending.signature);
       recordTradeRecovery({...pending,state:'verified'});
       if (button) button.hidden = appState.pendingTradeVerifications.size === 0;
-      appState.setTradeReceiptStatus(`${pending.side === 'buy' ? 'Buy' : 'Sell'} finalized with verified balance change and indexed trade. App fee: ${pending.feeLamports==null?'Unavailable':(pending.feeLamports / 1_000_000_000).toFixed(9)+' SOL'}.`, pending.signature);
+      // A verified trade needs no extra receipt line; clear any pending status.
+      appState.clearTradeReceiptStatus?.();
       appState.rememberRoundTripReceipt({ walletAddress:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature, symbol:pending.symbol });
         appState.productEvent('trade_confirmed');
       appState.renderRoundTripAction();

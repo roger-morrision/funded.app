@@ -67,6 +67,11 @@ export function installLiveData({ server, handle, env = process.env }) {
         }
       }
     }
+    // A successful chat message, call, like or comment refreshes the shared feeds at once,
+    // so Home and Calls show it without waiting for the next interval.
+    if (!read && /^\/api\/(tokens\/[^/]+\/chat|token-chat|callouts)(\/|$)/.test(path.split('?')[0])) {
+      res.once('finish', () => { if (res.statusCode < 300) for (const topic of ['/api/token-chat/feed', '/api/callouts']) hub.refreshNow(topic); });
+    }
     return handle(req, res);
   }
 
