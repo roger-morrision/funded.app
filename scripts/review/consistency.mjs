@@ -8,5 +8,5 @@ await go('/'); console.log('HOME featured:', await grab('.home-featured-card'));
 await go('/#explore'); console.log('EXPLORE     :', await grab('#explore .token-card-shell'));
 await go('/#top100'); console.log('TOP100      :', await grab('#top100 tbody tr'));
 await go('/#callouts'); console.log('CALLS       :', await grab('.callout-card'));
-await go('/token/' + MINT); console.log('TOKEN       :', await page.evaluate(() => ['#coin-price', '#coin-change', '#coin-market-cap', '#coin-liquidity', '#coin-volume', '#coin-holder-count', '#coin-strip-burned'].map(s => s + '=' + (document.querySelector(s)?.textContent.trim() || '-')).join(' ')));
+await go('/token/' + MINT); console.log('TOKEN       :', await page.evaluate(() => ['#coin-price', '#coin-change', '#coin-strip-market-cap', '#coin-liquidity', '#coin-strip-volume', '#coin-holder-count', '#coin-strip-burned'].map(s => s + '=' + (document.querySelector(s)?.textContent.trim() || '-')).join(' ')));
 await browser.close();
