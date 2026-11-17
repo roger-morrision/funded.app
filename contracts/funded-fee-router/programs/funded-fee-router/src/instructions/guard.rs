@@ -77,6 +77,22 @@ pub(crate) fn assert_review_delay(payout_at: i64) -> Result<()> {
     Ok(())
 }
 
+/// Mainnet token conversions need the independent price signer, like buybacks.
+/// The caller appends [price config PDA, price signer] after the swap accounts;
+/// this checks them and returns the swap accounts alone.
+pub(crate) fn split_price_signer<'a, 'info>(program_id: &Pubkey, remaining: &'a [AccountInfo<'info>],
+    authority: &Pubkey) -> Result<&'a [AccountInfo<'info>]> {
+    require!(remaining.len() >= 2, ErrorCode::InvalidMintBuybackV3);
+    let (swap, price) = remaining.split_at(remaining.len() - 2);
+    let (config, signer) = (&price[0], &price[1]);
+    let (expected, _) = Pubkey::find_program_address(&[super::buyback_price::PRICE_SIGNER_SEED], program_id);
+    require!(config.key() == expected && config.owner == program_id, ErrorCode::InvalidMintBuybackV3);
+    let saved = super::buyback_price::BuybackPriceConfig::try_deserialize(&mut &config.try_borrow_data()?[..])?;
+    require!(signer.is_signer && signer.key() == saved.price_signer && signer.key() != *authority,
+        ErrorCode::InvalidRotationAuthority);
+    Ok(swap)
+}
+
 fn header_guardian(router: &AccountInfo, program_id: &Pubkey) -> Result<Pubkey> {
     require!(router.owner == program_id, ErrorCode::InvalidRouterHeader);
     let data = router.try_borrow_data()?;

@@ -7,9 +7,9 @@ use super::rotate::{assert_current_router_authority, assert_upgrade_owner};
 
 
 fn configured_window(program: &Pubkey, mint: &Pubkey, accounts: &[AccountInfo]) -> Result<i64> {
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     { super::agency_rules_v3::community_window(program, mint, accounts) }
-    #[cfg(not(feature = "devnet-v3-program"))]
+    #[cfg(not(any(feature = "devnet-v3-program", feature = "mainnet-v3-program")))]
     { let _ = (program, mint, accounts); Ok(COMMUNITY_WINDOW_SECONDS) }
 }
 

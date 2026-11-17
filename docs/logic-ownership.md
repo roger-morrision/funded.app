@@ -89,9 +89,14 @@ Rule of thumb: the program holds funds and enforces the rules that decide where 
 | 24 h review delay before a reward cycle can pay; guardian cancel | **Program** (`cancel_reward_cycle`) |
 | Planning payout times past the delay, committing cycles early | App |
 
-## Devnet only (not in the Mainnet program)
+## AI agency and token conversion (Devnet and Mainnet)
 
 | Logic | Done by |
 |---|---|
-| AI agency budgets, agent buybacks, promotion billing | Program on Devnet; app on Mainnet (not offered) |
-| Token-budget conversion | Program on Devnet; not offered on Mainnet |
+| AI agency budget (category 7), agent targets and milestones | **Program** (agency policy, rules and config) |
+| Agent selection, market-cap observation, when to buy or promote | App (agency workers) |
+| Agent buybacks | **Program**, with the independent price signer |
+| Promotion billing (one receipt per post, interval enforced) | **Program** (`bill_agency_promotion_v3`); posting is done by the app |
+| Agency payouts | **Program**; on Mainnet also paused by the guardian and counted against the daily cap |
+| Token-budget conversion (paired coins' buyback/agency budgets to SOL) | **Program**, through reviewed pinned pools; on Mainnet it also needs the independent price signer |
+| Which Mainnet conversion pools are allowed | Build setting `FUNDED_MAINNET_CONVERSION_POOLS` (empty until pools are reviewed) |

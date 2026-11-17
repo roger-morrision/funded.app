@@ -137,7 +137,9 @@ export function decodeSolCreditV3(data) {
  * is the SDK's PumpSwap buy for that pool with the category vault as user; its
  * accounts become the router's CPI accounts.
  */
-export function buildTokenConversionInstruction({ programId, mint, quoteMint, quoteTokenProgram, authority, conversionId, category, amountIn, minSolOut, pumpBuyInstruction }) {
+// Mainnet builds also require the independent price signer: pass `priceSigner`
+// and the router appends [price config PDA, price signer] after the swap accounts.
+export function buildTokenConversionInstruction({ programId, mint, quoteMint, quoteTokenProgram, authority, conversionId, category, amountIn, minSolOut, pumpBuyInstruction, priceSigner = null }) {
   if (![6, 7].includes(Number(category))) throw new Error('Only buyback (6) and AI-agency (7) budgets convert to SOL.');
   if (Buffer.from(conversionId || []).length !== 32) throw new Error('A 32-byte conversion ID is required.');
   if (!pumpBuyInstruction?.programId?.equals(PUMP_SWAP)) throw new Error('A PumpSwap buy instruction is required.');
@@ -152,6 +154,10 @@ export function buildTokenConversionInstruction({ programId, mint, quoteMint, qu
     meta(SPL_TOKEN), meta(quoteProgram), meta(ATA_PROGRAM), meta(PUMP_SWAP), meta(SystemProgram.programId),
     ...pumpBuyInstruction.keys.map((row, index) => ({ pubkey: row.pubkey, isSigner: false, isWritable: index === 1 ? true : row.isWritable })),
   ];
+  if (priceSigner) {
+    if (key(priceSigner).equals(key(authority))) throw new Error('The price signer must differ from the router authority.');
+    keys.push(meta(PublicKey.findProgramAddressSync([seed('buyback-price-signer-v1')], program)[0]), meta(priceSigner, true, false));
+  }
   const data = Buffer.concat([Buffer.from(DISCRIMINATORS.convert_token_budget_v3, 'hex'), Buffer.from(conversionId), Buffer.from([Number(category)]), u64(amountIn), u64(minSolOut)]);
   return { instruction: new TransactionInstruction({ programId: program, keys, data }), vault };
 }

@@ -30,7 +30,7 @@ const CONVERSION_POOLS: [(&str, &str); 1] = [
     ("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", "BT8wc5m9pkTQ1wwVYTzsqrBwSYWxuPEQ4t8ZwHcwd7SR"),
 ];
 #[cfg(feature = "mainnet-v3-program")]
-const CONVERSION_POOLS: [(&str, &str); 0] = [];
+include!(concat!(env!("OUT_DIR"), "/mainnet_conversion.rs"));
 
 #[derive(Accounts)]
 #[instruction(conversion_id: [u8; 32], category: u8)]
@@ -122,7 +122,7 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
         anchor_spl::associated_token::get_associated_token_address_with_program_id(owner, mint, program);
     require!(ctx.accounts.vault_token.key() == ata(&vault.key(), &quote, &quote_program)
         && ctx.accounts.wsol_token.key() == ata(&vault.key(), &native, &token_program), ErrorCode::InvalidMintBuybackV3);
-    let remaining = ctx.remaining_accounts;
+    #[cfg(feature = "mainnet-v3-program")] let remaining = super::guard::split_price_signer(ctx.program_id, ctx.remaining_accounts, &ctx.accounts.authority.key())?; #[cfg(not(feature = "mainnet-v3-program"))] let remaining = ctx.remaining_accounts;
     require!(remaining.len() >= BUY_ACCOUNTS + 2 && remaining.len() <= BUY_ACCOUNTS + 4, ErrorCode::InvalidMintBuybackV3);
     for (index, key) in [(0, pool), (1, vault.key()), (3, native), (4, quote), (5, ctx.accounts.wsol_token.key()),
         (6, ctx.accounts.vault_token.key()), (11, token_program), (12, quote_program), (13, ctx.accounts.system_program.key()),

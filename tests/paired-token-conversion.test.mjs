@@ -130,3 +130,17 @@ test('settlement position serves only the policy from its snapshot; other reads 
   assert.equal(seen[0], snapshotValue);
   assert.equal(seen[1], 'live');
 });
+
+test('a Mainnet conversion carries the independent price signer after the swap accounts', () => {
+  const mint = Keypair.generate().publicKey, authority = Keypair.generate().publicKey, priceSigner = Keypair.generate().publicKey;
+  const pump = new TransactionInstruction({ programId: PUMP_SWAP, data: Buffer.alloc(25),
+    keys: Array.from({ length: 25 }, () => ({ pubkey: Keypair.generate().publicKey, isSigner: false, isWritable: false })) });
+  const { instruction } = buildTokenConversionInstruction({ programId: PROGRAM, mint, quoteMint: USDC, quoteTokenProgram: TOKEN,
+    authority, conversionId: Buffer.alloc(32, 1), category: 7, amountIn: 1n, minSolOut: 1n, pumpBuyInstruction: pump, priceSigner });
+  assert.equal(instruction.keys.length, 16 + 25 + 2);
+  const [config, signer] = instruction.keys.slice(-2);
+  assert.ok(config.pubkey.equals(PublicKey.findProgramAddressSync([Buffer.from('buyback-price-signer-v1')], PROGRAM)[0]));
+  assert.ok(signer.pubkey.equals(priceSigner) && signer.isSigner && !signer.isWritable);
+  assert.throws(() => buildTokenConversionInstruction({ programId: PROGRAM, mint, quoteMint: USDC, quoteTokenProgram: TOKEN,
+    authority, conversionId: Buffer.alloc(32, 1), category: 7, amountIn: 1n, minSolOut: 1n, pumpBuyInstruction: pump, priceSigner: authority }), /differ/);
+});

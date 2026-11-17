@@ -10,14 +10,14 @@ The Mainnet build no longer contains:
 
 | Removed from Mainnet | Why | Where the work lives now |
 |---|---|---|
-| Agency (AI agent) instructions: rules, config, agency mint/settle, agency withdrawals, promotion billing, agency buyback | Devnet-only product; promotion billing is bookkeeping | App service and database (Devnet keeps the instructions) |
-| `convert_token_budget_v3` | Agency-only, no independent price check (audit finding 4), and no reviewed Mainnet pool | Not offered on Mainnet |
 | `initialize_mint_v3`, `disburse_mint_v3` (unprotected policy) | The authority alone could pay categories 1-4 to any wallet | Protected policies only (`initialize_protected_mint_v3`, approval + disbursement) |
 | Legacy v2 settle, repair, migrations, QA recovery | Already excluded before this change | — |
 
+The AI agency (budgets, agent buybacks, promotion billing) and token-budget conversion **are included** on Mainnet. On Mainnet, conversion also requires the independent price signer (audit finding 4); the caller appends the price config PDA and the price signer after the swap accounts. Allowed conversion pools are a build input, `FUNDED_MAINNET_CONVERSION_POOLS="<paired mint>:<pool>,..."`, empty until reviewed. Agency payouts are counted against the daily outflow cap.
+
 Holder snapshots, reward amounts and Merkle trees, referral eligibility and the daily bonus were already computed by the app; the program only checks proofs and moves funds.
 
-Mainnet build-check size: **797,368 bytes** (CI fixture identity), against 1,043,400 bytes before this change (about 1.25 SOL less locked rent at 5,080 lamports per byte). The Devnet build keeps its 1,066,000-byte size; only embedded source line numbers changed.
+Mainnet build-check size: **1,037,448 bytes** with the agency and no conversion pool (CI fixture identity), against 1,043,400 bytes before this change. With one conversion pool configured the build is 1,292,128 bytes (about 6.6 SOL of locked rent at 5,080 lamports per byte). The Devnet build keeps its 1,066,000-byte size; only embedded source line numbers changed.
 
 ## Protocol guard (audit findings 2 and 3)
 

@@ -37,9 +37,6 @@ pub fn initialize(ctx: Context<InitializeMintAutomationV3>, recipients: [Pubkey;
     require!(info.owner == ctx.program_id, ErrorCode::InvalidMintFeePolicyV3);
     let data = info.try_borrow_data()?;
     let standard = Pubkey::find_program_address(&[MINT_POLICY_V3_SEED, mint.as_ref()], ctx.program_id).0;
-    // Agency policies exist only in the Devnet build.
-    #[cfg(feature = "mainnet-v3-program")]
-    require!(info.key() == standard, ErrorCode::InvalidAgencyPolicyV3);
     let agency = Pubkey::find_program_address(&[b"mint-agency-policy-v3", mint.as_ref()], ctx.program_id).0;
     let identity = if info.key() == standard {
         // Only protected policies enforce the creator's three individual budgets.

@@ -39,45 +39,45 @@ pub mod funded_fee_router {
         automation_v3::initialize(ctx, recipients)
     }
 
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn configure_agency_rules_v3(ctx: Context<ConfigureAgencyRulesV3>, units: [u32; 7], recipient: Pubkey,
         expected_revision: u64, market_caps: [u64; 2], community_window_seconds: i64, promotion_interval_seconds: i64) -> Result<()> {
         instructions::agency_rules_v3::configure(ctx, units, recipient, expected_revision, market_caps, community_window_seconds, promotion_interval_seconds)
     }
 
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn initialize_agency_config_v3(ctx: Context<InitializeAgencyConfigV3>, units: [u32; 7], recipient: Pubkey) -> Result<()> {
         agency_policy_v3::initialize_config(ctx, units, recipient)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn update_agency_config_v3(ctx: Context<UpdateAgencyConfigV3>, units: [u32; 7], recipient: Pubkey, expected_revision: u64) -> Result<()> {
         agency_policy_v3::update_config(ctx, units, recipient, expected_revision)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn initialize_agency_mint_v3(ctx: Context<InitializeAgencyMintV3>, directed_units: [u32; 3], selected_agents: u8, config_revision: u64) -> Result<()> {
         agency_policy_v3::initialize_mint(ctx, directed_units, selected_agents, config_revision)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn settle_agency_mint_v3<'info>(ctx: Context<'info, SettleAgencyMintV3<'info>>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
         agency_policy_v3::settle(ctx, claim_id, expected_lamports)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn settle_agency_mint_v3_auto<'info>(ctx: Context<'info, SettleAgencyMintV3Auto<'info>>, claim_id: [u8; 32], expected_lamports: u64) -> Result<()> {
         agency_policy_v3::settle_auto(ctx, claim_id, expected_lamports)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn approve_agency_withdrawal_v3(ctx: Context<ApproveAgencyWithdrawalV3>, withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64) -> Result<()> {
         agency_disburse_v3::approve(ctx, withdrawal_id, category, beneficiary, amount)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn disburse_agency_mint_v3(ctx: Context<DisburseAgencyMintV3>, withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64, holder_amount: u64) -> Result<()> {
         agency_disburse_v3::disburse(ctx, withdrawal_id, category, beneficiary, amount, holder_amount)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn bill_agency_promotion_v3(ctx: Context<BillAgencyPromotionV3>, post_id: u64, delivery_hash: [u8; 32], sequence: u32, amount: u64, posted_at: i64) -> Result<()> {
         agency_disburse_v3::bill_promotion(ctx, post_id, delivery_hash, sequence, amount, posted_at)
     }
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn buyback_agency_mint_v3<'info>(ctx: Context<'info, BuybackAgencyMintV3<'info>>,
         buyback_id: [u8; 32], category: u8, agent: u8, observation_slot: u64, observed_at: i64,
         market_cap_usd_micros: u64, observation_hash: [u8; 32], spendable_quote_in: u64,
@@ -141,7 +141,7 @@ pub mod funded_fee_router {
             beneficiary, amount, holder_amount)
     }
 
-    #[cfg(feature = "devnet-v3-program")]
+    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     pub fn convert_token_budget_v3<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>,
         conversion_id: [u8; 32], category: u8, amount_in: u64, min_sol_out: u64) -> Result<()> {
         token_convert_v3::handler(ctx, conversion_id, category, amount_in, min_sol_out)
