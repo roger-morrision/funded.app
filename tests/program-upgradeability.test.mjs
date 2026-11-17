@@ -18,7 +18,8 @@ test('all app roles retain the expected upgrade authority; shared programs are r
   const f=fixture();let reads=0;
   const c={getGenesisHash:async()=>SOLANA_GENESIS.devnet,getAccountInfo:async k=>{reads++;return k.equals(f.program)?f.proof.account:f.proof.programData;}};
   const report=await auditProgramUpgradeability(c,['router','escrow'].map(role=>({...f.expected,role})),{cluster:'devnet'});
-  assert.equal(report.status,'verified');assert.equal(reads,2);assert.equal(report.programs.length,2);
+  assert.equal(report.status,'verified');assert.equal(reads,3); // program, ProgramData header slice, full ProgramData
+  assert.equal(report.programs.length,2);
 });
 test('immutable, changed-authority and malformed programs never pass upgradeability verification',()=>{
   for(const mutation of [f=>{f.proof.programData.data[12]=0;},f=>{key(3).toBuffer().copy(f.proof.programData.data,13);},

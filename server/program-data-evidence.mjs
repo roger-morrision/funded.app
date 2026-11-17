@@ -3,6 +3,8 @@ import {Connection,PublicKey} from '@solana/web3.js';
 import {SOLANA_GENESIS,requireSolanaCluster,assertRpcNetwork} from '../solana-network.js';
 
 const LOADER=new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
+const PROGRAM_DATA_CACHE_MS=10*60_000;
+const programDataCache=new Map();
 
 // An optional read-only provider serves large program accounts. It must agree
 // with the transaction provider on the selected network. Callers still pin the complete hash.
@@ -26,10 +28,24 @@ export async function readProgramDataEvidence(connection,program,{
     const key=new PublicKey(program),account=await reader.getAccountInfo(key,'finalized');
     if(!account?.executable)return {account,programData:null,sha256:null};
     if(account.owner.equals(LOADER)&&account.data.length>=36&&account.data.readUInt32LE(0)===2) {
-      const address=new PublicKey(account.data.subarray(4,36)),programData=await reader.getAccountInfo(address,'finalized');
+      const address=new PublicKey(account.data.subarray(4,36)),cacheKey=`${cluster}:${address.toBase58()}`;
+      // The 45-byte ProgramData header holds the last deploy slot and upgrade
+      // authority; any upgrade rewrites it and any extension changes lamports.
+      // While both match a full read hashed in the last few minutes, reuse it
+      // instead of downloading the whole binary again.
+      const header=await reader.getAccountInfo(address,{commitment:'finalized',dataSlice:{offset:0,length:45}}).catch(()=>null);
+      const fingerprint=header?.owner?.equals(LOADER)&&!header.executable&&header.data.length>=45
+        ?`${Buffer.from(header.data.subarray(0,45)).toString('hex')}:${header.lamports}`:null;
+      const cached=fingerprint&&programDataCache.get(cacheKey);
+      if(cached&&cached.fingerprint===fingerprint&&Date.now()-cached.at<PROGRAM_DATA_CACHE_MS)return {...cached.evidence,account};
+      const programData=await reader.getAccountInfo(address,'finalized');
       if(programData&&(!programData.owner.equals(LOADER)||programData.executable||programData.data.length<45||programData.data.readUInt32LE(0)!==3))
         throw new Error('Invalid upgradeable ProgramData account.');
-      return {account,programData,programDataAddress:address.toBase58(),sha256:programData?createHash('sha256').update(programData.data).digest('hex'):null};
+      const evidence={account,programData,programDataAddress:address.toBase58(),sha256:programData?createHash('sha256').update(programData.data).digest('hex'):null};
+      const fullFingerprint=programData?`${Buffer.from(programData.data.subarray(0,45)).toString('hex')}:${programData.lamports}`:null;
+      if(fullFingerprint&&fullFingerprint===fingerprint)programDataCache.set(cacheKey,{fingerprint,evidence,at:Date.now()});
+      else programDataCache.delete(cacheKey);
+      return evidence;
     }
     return {account,programData:account,programDataAddress:key.toBase58(),sha256:createHash('sha256').update(account.data).digest('hex')};
   };

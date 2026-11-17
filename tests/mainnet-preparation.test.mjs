@@ -36,7 +36,7 @@ test('one merged program satisfies both roles without requiring a separate legac
   const connectionFactory=()=>({getGenesisHash:async()=>SOLANA_GENESIS['mainnet-beta'],getAccountInfo:async key=>{
     reads++;return key.equals(program)?{owner:loader,executable:true,data:programData}:{owner:loader,executable:false,data};
   }});
-  const proof=await readMainnetProgramEvidence(values,config,{connectionFactory});assert.equal(proof.status,'verified');assert.equal(reads,2);
+  const proof=await readMainnetProgramEvidence(values,config,{connectionFactory});assert.equal(proof.status,'verified');assert.equal(reads,3); // program, ProgramData header slice, full ProgramData
   assert.equal(proof.programs.length,2);
   const report=await mainnetReadinessPreflight(values);assert.equal(report.ready,false);assert.equal(report.status,'no-go');
 });

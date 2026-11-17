@@ -25,7 +25,8 @@ function programFixture(genesis=SOLANA_GENESIS[cluster]){
 
 test('Mainnet bytecode evidence binds the network before account reads',async()=>{
   const good=programFixture(),proof=await readProgramDataEvidence(good.connection,good.program,{cluster,rpcUrl:''});
-  assert.match(proof.sha256,/^[a-f0-9]{64}$/);assert.equal(good.reads(),2);
+  // Program account, ProgramData header slice (cache fingerprint), full ProgramData.
+  assert.match(proof.sha256,/^[a-f0-9]{64}$/);assert.equal(good.reads(),3);
   const wrong=programFixture(SOLANA_GENESIS.devnet);
   await assert.rejects(readProgramDataEvidence(wrong.connection,wrong.program,{cluster,rpcUrl:''}),/network/);
   assert.equal(wrong.reads(),0);

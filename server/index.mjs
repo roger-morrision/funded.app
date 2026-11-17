@@ -487,7 +487,7 @@ async function handle(req, res) {
     }
     if (error instanceof URIError) error = Object.assign(new Error('Invalid URL encoding.'), { statusCode: 400 });
     const output = publicError(error, requestId);
-    if (output.status >= 500) console.error(JSON.stringify({ event: 'request_failure', requestId, code: 'INTERNAL_ERROR' }));
+    if (output.status >= 500) console.error(JSON.stringify({ event: 'request_failure', requestId, code: 'INTERNAL_ERROR', route: `${req.method} ${url?.pathname || ''}`.slice(0, 120), errorName: String(error?.name || 'Error').slice(0, 60), detail: String(error?.message || '').replace(/[a-z][a-z0-9+.-]*:\/\/\S+/gi, '<url>').slice(0, 200) }));
     return json(res, output.status, output.body);
   }
 }
