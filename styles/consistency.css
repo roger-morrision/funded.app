@@ -284,3 +284,7 @@ html body #main-content .home-kpi-mainnet-note{margin:12px 0 0;padding:14px 16px
 .top100-table .top100-watch svg{width:16px;height:16px}
 .top100-table .top100-watch.active{color:var(--cp-accent,#f5b400)}
 .top100-table .top100-watch.active svg{fill:currentColor}
+/* Explorer card: boost icon + active qty beside the symbol. */
+html body #main-content .home-launch-card .home-token-identity > .boost-package-badges { display: inline-flex; flex: none; }
+html body #main-content .home-launch-card .home-token-identity .boost-package-badge { min-height: 18px; padding: 0 6px; gap: 3px; font-size: 10px; }
+html body #main-content .home-launch-card .home-token-identity .boost-package-badge svg { width: 11px; height: 11px; }
