@@ -8,7 +8,7 @@ import {missingFinancialSources,financialEmptyMessage} from './financial-empty-s
 import { APP_NET } from '../shared/app-network.js';
 const stages = ['Accrued', 'Awaiting approval', 'Funded', 'Processing', 'Verified'];
 export function initializeFinancialCenter(app) {
-  const parent = document.querySelector('#rewards-overview');
+  const parent = document.querySelector('#rewards-history-mine') || document.querySelector('#rewards-overview');
   if (!parent) return;
   const root = document.createElement('section'); root.id = 'financial-center'; root.className = 'flow-panel';
   root.setAttribute('aria-labelledby', 'financial-center-title');
@@ -19,6 +19,8 @@ export function initializeFinancialCenter(app) {
   const scope = document.createElement('label'); scope.className = 'financial-scope-control';
   scope.innerHTML = 'Show <select data-flow-scope-filter aria-label="Activity scope"><option value="personal">My wallet activity</option><option value="protocol">Protocol activity · public</option></select>';
   root.querySelector('.financial-toolbar').prepend(scope);
+  // On Rewards → History the Mine / All switch replaces this scope picker.
+  if (parent.id === 'rewards-history-mine') scope.hidden = true;
   const scopeControl = scope.querySelector('select');
   const renderReady = initializeReadyQueue(root,app,group=>{
     scopeControl.value='personal';filterControl.value=`dashboard-${group}`;limit=10;render();

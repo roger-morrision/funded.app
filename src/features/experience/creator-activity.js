@@ -72,7 +72,7 @@ export function initializeCreatorActivity(app) {
     const button = event.target.closest('[data-announcement-reminder]');
     if (button) save(Date.parse(button.dataset.announcementReminder), button.dataset.reminderHref, 'Creator announcement', button.nextElementSibling);
   });
-  for (const target of document.querySelectorAll('#financial-center nav, #profile')) {
+  for (const target of document.querySelectorAll('#profile')) {
     const button = document.createElement('button'); button.type = 'button'; button.dataset.openActivity = ''; button.textContent = 'Activity & reminders'; target.append(button);
   }
   window.addEventListener('funded:financial-experience', event => { data = event.detail; render(); });

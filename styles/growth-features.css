@@ -70,7 +70,28 @@ html body #main-content .earnings-breakdown { display: flex; flex-wrap: wrap; ga
 html body #main-content .earnings-chip { display: grid; gap: 2px; padding: 8px 12px; border: 1px solid var(--fv-border, #29323a); border-radius: 10px; background: var(--fv-surface-raised, #182233); }
 html body #main-content .earnings-chip small { color: var(--fv-text-subtle, #77869b); font-size: 11px; }
 html body #main-content .earnings-chip b { font: 700 14px var(--fv-font-data, monospace); }
-html body #main-content .earnings-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+html body #main-content .earnings-columns { display: grid; grid-template-columns: 1fr; gap: 16px; }
+html body #main-content .earnings-connect { margin-top: 12px; }
+html body #main-content .earnings-connect[hidden] { display: none; }
+/* Rewards → Earnings: one row per reward type; its claim panel opens inside. */
+html body #main-content .earnings-rows { display: grid; gap: 8px; order: -1; grid-column: 1 / -1; width: 100%; }
+html body #main-content .rewards-title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+html body #main-content .earnings-row { border: 1px solid var(--fv-border, #29323a); border-radius: 10px; background: var(--fv-surface, transparent); }
+html body #main-content .earnings-row > summary, html body #main-content a.earnings-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 12px; align-items: center; min-height: 56px; padding: 10px 14px; cursor: pointer; list-style: none; color: inherit; text-decoration: none; }
+html body #main-content .earnings-row > summary::-webkit-details-marker { display: none; }
+html body #main-content :is(.earnings-row > summary, a.earnings-row) strong { font-size: 15px; }
+html body #main-content :is(.earnings-row > summary, a.earnings-row) small { grid-row: 2; color: var(--fv-text-subtle, #77869b); font-size: 12px; }
+html body #main-content .earnings-row-action { grid-column: 2; grid-row: 1 / span 2; color: var(--fv-accent, #f4a340); font-size: 13px; font-weight: 700; }
+html body #main-content details.earnings-row[open] .earnings-row-action { visibility: hidden; }
+html body #main-content details.earnings-row[open] > summary { border-bottom: 1px solid var(--fv-border, #29323a); }
+html body #main-content details.earnings-row > :not(summary) { margin: 0; padding: 14px; border: 0; }
+html body #main-content :is(.earnings-row, a.earnings-row):hover { border-color: var(--fv-accent, #f4a340); }
+html body #main-content .rewards-help-link { font-size: 14px; color: var(--fv-accent, #f4a340); font-weight: 600; white-space: nowrap; }
+html body #main-content .rewards-history-scope { display: inline-flex; gap: 4px; margin: 0 0 12px; }
+html body #main-content .rewards-history-scope[hidden] { display: none; }
+html body #main-content .rewards-history-scope button { min-height: 40px; padding: 0 16px; border: 1px solid var(--fv-border, #29323a); border-radius: 999px; background: transparent; color: inherit; font-weight: 600; }
+html body #main-content .rewards-history-scope button[aria-pressed="true"] { border-color: var(--fv-accent, #f4a340); color: var(--fv-accent, #f4a340); }
+html body #main-content #rewards-history > [hidden] { display: none !important; }
 html body #main-content .earnings-columns h3 { margin: 0 0 8px; font-size: 13px; color: var(--fv-text-muted, #a8b2bc); }
 html body #main-content :is(.earnings-claims, .earnings-next) { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 html body #main-content :is(.earnings-claims, .earnings-next) li { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--fv-border, #29323a); border-radius: 10px; }

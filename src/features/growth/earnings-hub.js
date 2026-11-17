@@ -2,12 +2,6 @@
 // claim what needs a signature, and when the next automatic payouts run.
 import { el, sol, lamports, getJSON, nextUtcHour, nextUtcMidnight, countdown } from './format.js';
 
-const CLAIMS = [
-  ['Creator fees', 'Claim your saved creator-wallet share', '#payments/creator'],
-  ['X account rewards', 'Linked X accounts claim their share', '#payments/x'],
-  ['Referral rewards', 'Claim funded referral rewards', '#referrals'],
-];
-
 export function mountEarningsHub(app, document = globalThis.document) {
   const host = document.querySelector('#payments .rewards-page-header');
   if (!host || document.getElementById('earnings-hub')) return Boolean(host);
@@ -15,16 +9,12 @@ export function mountEarningsHub(app, document = globalThis.document) {
   hub.id = 'earnings-hub';
   hub.setAttribute('aria-labelledby', 'earnings-hub-title');
   hub.innerHTML = `<div class="earnings-total"><p class="eyebrow">My earnings</p><h2 id="earnings-hub-title" data-earnings-total>—</h2>
-    <p class="earnings-total-note" data-earnings-note>Connect a wallet to see what it has earned.</p><div class="earnings-breakdown" data-earnings-breakdown></div></div>
-    <div class="earnings-columns"><div><h3>Claim now</h3><ul class="earnings-claims"></ul></div>
-    <div><h3>Coming next</h3><ul class="earnings-next" data-earnings-next></ul></div></div>`;
-  const claims = hub.querySelector('.earnings-claims');
-  for (const [title, note, href] of CLAIMS) {
-    const item = el(document, 'li');
-    const link = el(document, 'a', null, title); link.href = href;
-    item.append(link, el(document, 'small', null, note));
-    claims.append(item);
-  }
+    <p class="earnings-total-note" data-earnings-note>Connect a wallet to see what it has earned.</p>
+    <button type="button" class="primary-button earnings-connect" data-earnings-connect>Connect wallet</button><div class="earnings-breakdown" data-earnings-breakdown></div></div>
+    <div class="earnings-columns"><div><h3>Coming next</h3><ul class="earnings-next" data-earnings-next></ul></div></div>`;
+  // The page's only wallet prompt; each reward row below opens its own claim panel.
+  const connect = hub.querySelector('[data-earnings-connect]');
+  connect.addEventListener('click', () => document.querySelector('#connect-button')?.click());
   host.after(hub);
   const total = hub.querySelector('[data-earnings-total]'), note = hub.querySelector('[data-earnings-note]');
   const breakdown = hub.querySelector('[data-earnings-breakdown]'), next = hub.querySelector('[data-earnings-next]');
@@ -52,6 +42,7 @@ export function mountEarningsHub(app, document = globalThis.document) {
 
   async function load() {
     const wallet = app.connectedWalletAddress || '';
+    connect.hidden = Boolean(wallet);
     if (!wallet) {
       serial++;
       loadedFor = null; total.textContent = '—'; breakdown.replaceChildren();
