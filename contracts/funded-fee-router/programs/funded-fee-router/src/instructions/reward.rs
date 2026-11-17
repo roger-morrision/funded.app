@@ -188,6 +188,13 @@ pub fn create_cycle(
     require!(total_amount > 0 && leaf_count > 0, ErrorCode::InvalidAmount);
     require!(merkle_root != [0; 32], ErrorCode::InvalidRewardProof);
     require!(payout_at >= cutoff_at && cutoff_at > 0, ErrorCode::InvalidRewardTiming);
+    // Mainnet: leave the guardian review delay, and count the SOL commitment
+    // that later leaves the vault against the daily outflow cap.
+    #[cfg(feature = "mainnet-v3-program")]
+    {
+        super::guard::assert_review_delay(payout_at)?;
+        super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), total_amount)?;
+    }
     let rent = Rent::get()?.minimum_balance(8 + RewardVault::INIT_SPACE);
     let balance = ctx.accounts.vault.to_account_info().lamports().saturating_sub(rent);
     let committed = ctx.accounts.reserve.outstanding.checked_add(total_amount).ok_or(ErrorCode::AmountOverflow)?;
@@ -241,6 +248,8 @@ pub fn create_cycle_token(ctx: Context<CreateRewardCycleToken>, cycle_id: [u8; 3
     require!(asset_mint != Pubkey::default(), ErrorCode::InvalidRewardAsset);
     require!(total_amount > 0 && leaf_count > 0, ErrorCode::InvalidAmount);
     require!(payout_at >= cutoff_at && cutoff_at > 0, ErrorCode::InvalidRewardTiming);
+    #[cfg(feature = "mainnet-v3-program")]
+    super::guard::assert_review_delay(payout_at)?;
     let committed = ctx.accounts.reserve.outstanding.checked_add(total_amount).ok_or(ErrorCode::AmountOverflow)?;
     require!(committed <= ctx.accounts.vault_token_account.amount, ErrorCode::RewardReserveExceeded);
     ctx.accounts.reserve.outstanding = committed;

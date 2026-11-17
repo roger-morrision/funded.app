@@ -19,6 +19,7 @@ import {requireNativeRewardRecipient} from './native-reward-recipient.mjs';
 import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
 import { signTransaction } from './transaction-signing.mjs';
+import {parseProtocolGuard,rewardReviewDelaySeconds,routerHeaderLength} from '../protocol-guard.js';
 export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
@@ -182,7 +183,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     if (!expectedProgramDataSha256) reasons.push('program-data-hash-not-configured');
     if (expectedProgramDataSha256 && evidence.sha256 !== expectedProgramDataSha256.toLowerCase()) reasons.push('program-data-hash-mismatch');
     const routerData = Buffer.from(routerAccount?.data || []);
-    if (!routerAccount?.owner?.equals(program) || routerData.length !== 74 || routerData.subarray(0, 8).toString() !== 'FUNDFEE1' || !routerData.subarray(41, 73).equals(authority.publicKey.toBuffer())) reasons.push('router-authority-mismatch');
+    if (!routerAccount?.owner?.equals(program) || routerData.length !== routerHeaderLength(cluster) || routerData.subarray(0, 8).toString() !== 'FUNDFEE1' || !routerData.subarray(41, 73).equals(authority.publicKey.toBuffer())) reasons.push('router-authority-mismatch');
+    if (parseProtocolGuard(routerData)?.paused) reasons.push('protocol-paused');
     return { constrainedPayouts: reasons.length === 0, cluster, genesisHash, program: program.toBase58(), programDataAddress: evidence.programDataAddress || null, observedProgramDataSha256: evidence.sha256, reasons };
   }
 
@@ -274,7 +276,11 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       keys.push({pubkey:new PublicKey(asset),isSigner:false,isWritable:false},
         {pubkey:getAssociatedTokenAddressSync(new PublicKey(asset),vault,true,mintInfo.owner),isSigner:false,isWritable:false});
     }
-    keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
+    // Mainnet: a new cycle must leave the guardian's review window, and a SOL
+    // cycle is counted against the daily outflow cap kept in the router header.
+    if (!legacy && rewardReviewDelaySeconds(cluster) && Number(plan.payoutAt) < Math.floor(Date.now() / 1000) + rewardReviewDelaySeconds(cluster))
+      throw new Error('Reward cycle payout is inside the Mainnet review delay; plan it with plannedRewardPayoutAt.');
+    keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
     const data = legacy
       ? Buffer.concat([discriminator('global', isSol ? 'migrate_reward_cycle_sol' : 'migrate_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId')])
       : Buffer.concat([discriminator('global', isSol ? 'create_reward_cycle' : 'create_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
@@ -439,6 +445,6 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { address: cycle.toBase58(), expired: true, signature, unpaidAmount: String(unpaid) };
   }
 
-  return { readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, expireCycle, fundSolVault, fundTokenVault,
+  return { cluster, readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, expireCycle, fundSolVault, fundTokenVault,
     cycleExpiryGraceSeconds: rewardCycleExpiryGraceSeconds(cluster) };
 }

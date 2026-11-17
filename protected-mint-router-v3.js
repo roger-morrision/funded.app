@@ -84,7 +84,8 @@ export function buildProtectedMintV3DisbursementInstruction(input) {
       { pubkey:key(authority), isSigner:true, isWritable:true },
       { pubkey:key(creator), isSigner:true, isWritable:false },
       { pubkey:mintKey, isSigner:false, isWritable:false },
-      { pubkey:deriveFeeRouter(program).address, isSigner:false, isWritable:false },
+      // Writable: the Mainnet build counts this payout against the daily outflow cap stored there.
+      { pubkey:deriveFeeRouter(program).address, isSigner:false, isWritable:true },
       { pubkey:deriveMintPolicyV3(program, mintKey).address, isSigner:false, isWritable:true },
       { pubkey:vaults[category], isSigner:false, isWritable:true },
       { pubkey:destination, isSigner:false, isWritable:true },

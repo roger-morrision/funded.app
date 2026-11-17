@@ -1,4 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
+import { MAINNET_ROUTER_LEN, parseProtocolGuard, ROUTER_BASE_LEN } from './protocol-guard.js';
 
 export const FEE_ROUTER_SEED = 'funded-fee-router-v1';
 export const MINT_FEE_ROUTER_SEED = 'funded-mint-router-v2';
@@ -87,10 +88,14 @@ export async function verifyFeeRouterAccount({ connection, programId, commitment
   if (!account) return { ...router, verified: false, reason: 'router-account-not-deployed' };
   if (!account.owner.equals(router.programId)) return { ...router, verified: false, reason: 'router-owner-mismatch' };
   const data = Uint8Array.from(account.data || []);
-  if (data.length !== 74 || expectedPrefix.some((byte, index) => data[index] !== byte) || data[73] !== router.bump) {
+  // 74 bytes on Devnet; the Mainnet build appends the protocol guard.
+  if (data.length !== ROUTER_BASE_LEN && data.length !== MAINNET_ROUTER_LEN
+    || expectedPrefix.some((byte, index) => data[index] !== byte) || data[73] !== router.bump) {
     return { ...router, verified: false, reason: 'router-policy-layout-mismatch' };
   }
-  return { ...router, authority: new PublicKey(data.slice(41, 73)), verified: true, reason: 'verified' };
+  const guard = parseProtocolGuard(data);
+  if (guard?.paused) return { ...router, authority: new PublicKey(data.slice(41, 73)), guard, verified: false, reason: 'protocol-paused' };
+  return { ...router, authority: new PublicKey(data.slice(41, 73)), guard, verified: true, reason: 'verified' };
 }
 
 export function buildFeeRouterPolicy({ programId, address, bump, scope = 'shared-legacy', mint = null,agencyPolicy=false } = {}) {

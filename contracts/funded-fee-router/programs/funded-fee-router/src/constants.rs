@@ -30,7 +30,23 @@ pub const POLICY_HASH: [u8; 32] = [
     0x3f, 0xff, 0xa1, 0xc1, 0x0b, 0x89, 0x0e, 0x8b,
 ];
 pub const ROUTER_HEADER_LEN: usize = 41;
-pub const ROUTER_DATA_LEN: usize = 74;
+// Mainnet appends the protocol guard (see instructions/guard.rs) to the global
+// router header. Devnet and legacy builds keep the original 74-byte layout.
+pub const ROUTER_BASE_LEN: usize = 74;
+#[cfg(not(feature = "mainnet-v3-program"))]
+pub const ROUTER_DATA_LEN: usize = ROUTER_BASE_LEN;
+#[cfg(feature = "mainnet-v3-program")]
+pub const ROUTER_DATA_LEN: usize = ROUTER_BASE_LEN + GUARD_LEN;
+// guardian (32) | paused (1) | daily cap lamports (8) | window day (8) | window spent (8)
+pub const GUARD_LEN: usize = 57;
+pub const GUARD_GUARDIAN: usize = ROUTER_BASE_LEN;
+pub const GUARD_PAUSED: usize = GUARD_GUARDIAN + 32;
+pub const GUARD_DAILY_CAP: usize = GUARD_PAUSED + 1;
+pub const GUARD_WINDOW_DAY: usize = GUARD_DAILY_CAP + 8;
+pub const GUARD_WINDOW_SPENT: usize = GUARD_WINDOW_DAY + 8;
+// A new Mainnet reward cycle cannot pay out sooner than this after creation,
+// leaving the guardian time to cancel a wrong or malicious Merkle root.
+pub const REWARD_CYCLE_MIN_DELAY_SECONDS: i64 = 24 * 60 * 60;
 pub const REWARD_VAULT_SEED: &[u8] = b"reward-vault-v1";
 pub const REWARD_RESERVE_SEED: &[u8] = b"reward-reserve-v1";
 pub const REWARD_CYCLE_SEED: &[u8] = b"reward-cycle-v1";

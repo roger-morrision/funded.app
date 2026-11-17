@@ -9,6 +9,8 @@ import { PublicKey } from '@solana/web3.js';
 import { QA_HOLDER_POLICY, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
 import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
 import { expireUnpayableCycles } from './reward-cycle-expiry.mjs';
+import { plannedRewardPayoutAt, rewardReviewDelaySeconds } from '../protocol-guard.js';
+import { commitReviewedCycles } from './reward-cycle-commit.mjs';
 export { unpayableCycleSchedule } from './reward-cycle-expiry.mjs';
 
 const pricedHolderPolicy = config => ['usd-20-hourly-v1', QA_HOLDER_POLICY]
@@ -196,7 +198,7 @@ function publicSchedule(row) {
 
 // protocolWallets: app-owner/authority wallets that hold coins for operational
 // reasons (such as a closed community drop's remainder) and never earn holder rewards.
-export function createRewardScheduler({ store, indexer, chain, quoteReader = null, protocolWallets = [] }) {
+export function createRewardScheduler({ store, indexer, chain, quoteReader = null, protocolWallets = [], cluster = chain?.cluster || 'devnet' }) {
   const protocolExcluded = [...new Set(protocolWallets.map(String).filter(Boolean))];
   async function register(input) {
     return store.transaction(state => {
@@ -252,7 +254,7 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
     const fundedAt = Number(input.fundedAt || Math.floor(Date.now() / 1000));
     const id = `direct:${input.kind}:${input.id}`, cycleId = createHash('sha256').update(`funded-direct-cycle-v1:${id}`).digest('hex');
     const manifest = buildRewardManifest({ cycleId, asset:String(input.asset || 'SOL'), allocations:[{ recipient:String(input.recipient), amount }] });
-    const row = { id, mint:String(input.mint), asset:String(input.asset || 'SOL'), kind:input.kind, periodStart:fundedAt - 1, cutoffAt:fundedAt, payoutAt:fundedAt, status:'prepared', sourceId:String(input.id), fundingSignature:String(input.fundingSignature), balanceDeltaVerified:true, manifest, payments:{}, createdAt:new Date().toISOString() };
+    const row = { id, mint:String(input.mint), asset:String(input.asset || 'SOL'), kind:input.kind, periodStart:fundedAt - 1, cutoffAt:fundedAt, payoutAt:plannedRewardPayoutAt(cluster, fundedAt), status:'prepared', sourceId:String(input.id), fundingSignature:String(input.fundingSignature), balanceDeltaVerified:true, manifest, payments:{}, createdAt:new Date().toISOString() };
     return store.transaction(state => {
       state.schedules ||= {};
       const prior = state.schedules[id];
@@ -279,8 +281,9 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
     if (!allocation.allocations.length) throw new Error('The finalized eligibility snapshot has no eligible holders.');
     const id = `airdrop:${input.id}`, cycleId = createHash('sha256').update(`funded-snapshot-airdrop-v1:${id}:${snapshot.slot}`).digest('hex');
     const manifest = buildRewardManifest({ cycleId, asset:String(input.asset), allocations:allocation.allocations.map(row => ({ recipient:row.wallet, amount:row.amountLamports })) });
-    const payoutAt = Number(input.fundedAt || Math.floor(Date.now() / 1000));
-    const row = { id, mint:String(input.mint), eligibilityMint:String(input.eligibilityMint), asset:String(input.asset), kind:'community', periodStart:payoutAt - 1, cutoffAt:payoutAt, payoutAt, status:'prepared', sourceId:String(input.id), fundingSignature:String(input.fundingSignature), balanceDeltaVerified:true, snapshotSlot:snapshot.slot, snapshotAt:snapshot.at, remainderAmount:allocation.remainderLamports, manifest, payments:{}, createdAt:new Date().toISOString() };
+    const fundedAt = Number(input.fundedAt || Math.floor(Date.now() / 1000));
+    const payoutAt = plannedRewardPayoutAt(cluster, fundedAt);
+    const row = { id, mint:String(input.mint), eligibilityMint:String(input.eligibilityMint), asset:String(input.asset), kind:'community', periodStart:fundedAt - 1, cutoffAt:fundedAt, payoutAt, status:'prepared', sourceId:String(input.id), fundingSignature:String(input.fundingSignature), balanceDeltaVerified:true, snapshotSlot:snapshot.slot, snapshotAt:snapshot.at, remainderAmount:allocation.remainderLamports, manifest, payments:{}, createdAt:new Date().toISOString() };
     return store.transaction(state => {
       state.schedules ||= {};
       const prior = state.schedules[id];
@@ -396,7 +399,8 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
           schedule.remainderAmount = allocation.remainderLamports;
           schedule.snapshotSlots = snapshots.map(row => row.slot);
           schedule.poolIds = pools.map(row => row.id).sort();
-          schedule.status = now >= schedule.payoutAt ? 'prepared' : 'calculating';
+          schedule.payoutAt = plannedRewardPayoutAt(cluster, schedule.payoutAt, now);
+          schedule.status = now >= schedule.payoutAt || rewardReviewDelaySeconds(cluster) ? 'prepared' : 'calculating';
           schedule.reason = null;
           pools.forEach(pool => { pool.status = 'assigned'; pool.scheduleId = schedule.id; });
           prepared.push(structuredClone(schedule));
@@ -424,25 +428,28 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
     return { captured, failures };
   }
 
+  async function blockedHolderManifest(plan) {
+    if (plan.kind !== 'holder') return false;
+    const program = await store.transaction(state => state.programs?.[plan.mint] || {});
+    const excluded = new Set(excludedHolderWallets(plan.mint, program.excludedWallets || [], program.quoteMint || null));
+    if (!plan.manifest.leaves.some(leaf => excluded.has(leaf.recipient))) return false;
+    await store.transaction(state => { const row = state.schedules[plan.id]; row.status = 'blocked'; row.reason = 'Holder manifest contains a protocol-owned vault or PumpSwap liquidity pool; reconcile before payout.'; });
+    return true;
+  }
+
   async function execute(now = Math.floor(Date.now() / 1000), onlyIds = null) {
     const ready = await chain.readiness();
     await store.transaction(state => { state.serviceStatus = { constrainedPayouts: ready.constrainedPayouts === true, reasons: ready.reasons || [], reason: ready.constrainedPayouts ? null : `On-chain automatic payout is unavailable: ${(ready.reasons || []).join(', ')}`, checkedAt: new Date().toISOString() }; });
     if (!ready.constrainedPayouts) return { status: 'unavailable', reasons: ready.reasons, submitted: 0 };
     const selected = onlyIds === null ? null : new Set(onlyIds);
     await expireUnpayableCycles({ store, chain, now, selected });
+    await commitReviewedCycles({ store, chain, cluster, now, selected, screen: async plan => !await blockedHolderManifest(plan) });
     const plans = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row =>
       ['prepared', 'distributing'].includes(row.status) && now >= row.payoutAt
       && (selected === null || selected.has(row.id)))));
     let submitted = 0;
     for (const plan of plans) {
-      if (plan.kind === 'holder') {
-        const program = await store.transaction(state => state.programs?.[plan.mint] || {});
-        const excluded = new Set(excludedHolderWallets(plan.mint, program.excludedWallets || [], program.quoteMint || null));
-        if (plan.manifest.leaves.some(leaf => excluded.has(leaf.recipient))) {
-          await store.transaction(state => { const row = state.schedules[plan.id]; row.status = 'blocked'; row.reason = 'Holder manifest contains a protocol-owned vault or PumpSwap liquidity pool; reconcile before payout.'; });
-          continue;
-        }
-      }
+      if (await blockedHolderManifest(plan)) continue;
       const cycle = await chain.ensureCycle(plan);
       await store.transaction(state => { const row = state.schedules[plan.id]; row.cycle = cycle.address; row.cycleSignature ||= cycle.signature || null; row.status = 'distributing'; });
       for (const leaf of plan.manifest.leaves) {

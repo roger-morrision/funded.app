@@ -9,7 +9,10 @@ use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, Tran
 use crate::{constants::*, error::ErrorCode, state::{MintAgencyPolicyV3, MintFeePolicyV3, MintTokenLedgerV3,
     MintClaimRecordV3, MintWithdrawalApprovalV3, MintWithdrawalV3, RewardVault}};
 use super::{policy_v3::category_targets, protected_v3::{read_shares, directed_targets},
-    agency_policy_v3::{agency_category_targets, AGENCY_POLICY_SEED}, rotate::assert_current_router_authority};
+    rotate::assert_current_router_authority};
+// Agency (AI agent) policies exist only in the Devnet build.
+#[cfg(feature = "devnet-v3-program")]
+use super::agency_policy_v3::{agency_category_targets, AGENCY_POLICY_SEED};
 
 /// Up to eight category vaults: seven for protected policies, eight (with the
 /// AI-agency budget) for agency policies.
@@ -22,6 +25,7 @@ struct PolicyView { creator: Pubkey, agency: bool, protocol: [u32; 7], directed:
 impl PolicyView {
     fn vaults(&self) -> usize { if self.agency { 8 } else { 7 } }
     fn targets(&self, total: u64) -> Result<[u64; VAULTS]> {
+        #[cfg(feature = "devnet-v3-program")]
         if self.agency { return agency_category_targets(total, self.protocol); }
         let mut units = [0u32; 6];
         units.copy_from_slice(&self.protocol[..6]);
@@ -45,12 +49,17 @@ fn read_policy(policy: &AccountInfo, program_id: &Pubkey, mint: &Pubkey) -> Resu
         protocol[..6].copy_from_slice(&state.protocol_units);
         return Ok(PolicyView { creator: state.creator, agency: false, protocol, directed: shares.units });
     }
-    require!(disc.as_slice() == MintAgencyPolicyV3::DISCRIMINATOR, ErrorCode::InvalidMintFeePolicyV3);
-    let (expected, _) = Pubkey::find_program_address(&[AGENCY_POLICY_SEED, mint.as_ref()], program_id);
-    require!(policy.key() == expected, ErrorCode::InvalidMintFeePolicyV3);
-    let state = MintAgencyPolicyV3::try_deserialize(&mut &policy.try_borrow_data()?[..])?;
-    require!(state.mint == *mint, ErrorCode::InvalidMintFeePolicyV3);
-    Ok(PolicyView { creator: state.creator, agency: true, protocol: state.protocol_units, directed: state.directed_units })
+    #[cfg(feature = "devnet-v3-program")]
+    {
+        require!(disc.as_slice() == MintAgencyPolicyV3::DISCRIMINATOR, ErrorCode::InvalidMintFeePolicyV3);
+        let (expected, _) = Pubkey::find_program_address(&[AGENCY_POLICY_SEED, mint.as_ref()], program_id);
+        require!(policy.key() == expected, ErrorCode::InvalidMintFeePolicyV3);
+        let state = MintAgencyPolicyV3::try_deserialize(&mut &policy.try_borrow_data()?[..])?;
+        require!(state.mint == *mint, ErrorCode::InvalidMintFeePolicyV3);
+        Ok(PolicyView { creator: state.creator, agency: true, protocol: state.protocol_units, directed: state.directed_units })
+    }
+    #[cfg(not(feature = "devnet-v3-program"))]
+    { let _ = MintAgencyPolicyV3::DISCRIMINATOR; err!(ErrorCode::InvalidMintFeePolicyV3) }
 }
 
 fn vault_address(program_id: &Pubkey, mint: &Pubkey, category: u8) -> (Pubkey, u8) {

@@ -22,6 +22,7 @@ import {createAdminWallets} from '../admin-wallets.mjs';
 import {createAdminWithdrawals} from '../admin-withdrawals.mjs';
 import {createAdminJwt} from '../admin-jwt.mjs';
 import { clientAddress } from '../client-address.mjs';
+import { handleAdminAppLimits } from '../app-limits.mjs';
 
 // Retired opaque admin-session cookie; cleared on sign-in and logout.
 const COOKIE = 'funded_admin';
@@ -180,6 +181,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       catch{return json(res,409,{error:'Agency configuration proof is unavailable or mismatched. Refresh the revision and verify the finalized authority signature.'});}
     }
     if (await handleAdminServiceFees({ req,res,url,store,body,respond,session })) return true;
+    if (await handleAdminAppLimits({ req,res,url,store,body,respond,session,env })) return true;
     if (req.method === 'GET' && path === '/api/admin/session')
       return json(res, 200, { wallet:session.wallet, expiresAt:new Date(session.expiresAt).toISOString() });
     const residualAction=req.method==='POST'&&path.match(/^\/api\/admin\/v3-allocations\/(review|approve)$/);

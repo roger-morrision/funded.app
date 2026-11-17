@@ -11,7 +11,7 @@
     "optimization": "z",
     "strip": true,
     "bytes": 1066000,
-    "sha256": "ebc04a4baab3fb968fee895935551a68aceff7849c2fb8a504915e4d34c60500",
+    "sha256": "7a324118e2d4202b7deeae31ad8673d4d48dd2e380e37da513b1cce8481f8d05",
     "developerLockPeriodsSeconds": [
       300,
       21600,
@@ -26,8 +26,8 @@
     "fundedMint": "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ",
     "fundedPool": "3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7",
     "identityScope": "public-test-fixture-only",
-    "bytes": 1043400,
-    "sha256": "5b1ac8cbc1b0997b779ac3e2bbd804bf3bbe3c59d777f00d12a46011d068133a",
+    "bytes": 797368,
+    "sha256": "82bb6fcb6b22707abed32439f7124c26cce94f3600fc27e619222ce696eec053",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [

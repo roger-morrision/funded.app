@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {effectiveEnv} from './app-limits.mjs';
 
 // Limits on admin treasury withdrawals, enforced on the server before any
 // source signature is produced:
@@ -21,7 +22,8 @@ function setting(env,name,fallback){
 export function withdrawalLimits(env=process.env){
   return{maxLamports:setting(env,'FUNDED_ADMIN_WITHDRAW_MAX_LAMPORTS',10*SOL),
     dailyLamports:setting(env,'FUNDED_ADMIN_WITHDRAW_DAILY_LAMPORTS',20*SOL),
-    reviewLamports:setting(env,'FUNDED_ADMIN_WITHDRAW_REVIEW_LAMPORTS',2*SOL),
+    // Every withdrawal already needs the emailed OTP; a second-admin review is opt-in.
+    reviewLamports:setting(env,'FUNDED_ADMIN_WITHDRAW_REVIEW_LAMPORTS',Number.MAX_SAFE_INTEGER),
     delaySeconds:setting(env,'FUNDED_ADMIN_WITHDRAW_DELAY_SECONDS',24*60*60)};
 }
 
@@ -37,12 +39,13 @@ export function withdrawnInWindow(state,at){
 }
 
 export function createWithdrawalPolicy({store,env=process.env,now=Date.now}){
-  const limits=()=>withdrawalLimits(env);
+  // Admin-saved app limits (server/app-limits.mjs) override the environment.
+  const limits=state=>withdrawalLimits(effectiveEnv(env,state));
   const view=row=>({...row,usable:row.status==='approved'&&now()>=Date.parse(row.availableAt)&&now()<Date.parse(row.expiresAt)});
 
   // Checks caps for a new withdrawal; returns true when it needs an approved request.
   function check(state,amount){
-    const {maxLamports,dailyLamports,reviewLamports}=limits();
+    const {maxLamports,dailyLamports,reviewLamports}=limits(state);
     if(amount>maxLamports)throw error(409,`Amount exceeds the ${maxLamports/SOL} SOL per-withdrawal limit.`);
     const used=withdrawnInWindow(state,now());
     if(used+amount>dailyLamports)throw error(409,`Amount exceeds the 24-hour withdrawal limit (${dailyLamports/SOL} SOL; ${used/SOL} SOL already used).`);
@@ -63,16 +66,17 @@ export function createWithdrawalPolicy({store,env=process.env,now=Date.now}){
 
   async function handle(req,res,path,{admin,input,json,sourceRole}){
     if(req.method==='GET'&&path==='/api/admin/withdrawals/requests'){
-      const rows=Object.values((await store.read()).adminWithdrawalRequests||{})
+      const state=await store.read();
+      const rows=Object.values(state.adminWithdrawalRequests||{})
         .filter(row=>Date.parse(row.requestedAt)>now()-30*DAY_MS).sort((a,b)=>b.requestedAt.localeCompare(a.requestedAt)).map(view);
-      return json(res,200,{limits:limits(),requests:rows,admin});
+      return json(res,200,{limits:limits(state),requests:rows,admin});
     }
     if(req.method!=='POST')return false;
     if(path==='/api/admin/withdrawals/request'){
       const source=String(input.source||''),amount=Number(input.amountLamports);
       sourceRole(source,admin);
       if(!Number.isSafeInteger(amount)||amount<1)throw error(400,'Enter a positive exact SOL amount.');
-      const {maxLamports,reviewLamports,delaySeconds}=limits();
+      const {maxLamports,reviewLamports,delaySeconds}=limits(await store.read());
       if(amount<=reviewLamports)throw error(400,'This amount is within the review limit and needs no approval.');
       if(amount>maxLamports)throw error(409,`Amount exceeds the ${maxLamports/SOL} SOL per-withdrawal limit.`);
       const at=now(),row={id:randomUUID(),source,amountLamports:String(amount),requestedBy:admin,status:'pending',

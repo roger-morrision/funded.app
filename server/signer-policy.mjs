@@ -16,7 +16,9 @@ import bs58 from 'bs58';
 const SOL = 1_000_000_000n, DAY_MS = 24 * 60 * 60 * 1000;
 const anchor = name => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8).toString('hex');
 export const DENIED_ROUTER_INSTRUCTIONS = Object.freeze(['rotate_authority', 'repair_header', 'configure_buyback_price_signer',
-  'migrate_mint_fee_ledger', 'initialize', 'recover_qa_settlement_v3']);
+  'migrate_mint_fee_ledger', 'initialize', 'recover_qa_settlement_v3',
+  // Mainnet guard: only the upgrade owner wallet and the offline guardian sign these.
+  'configure_protocol_guard', 'set_protocol_pause', 'cancel_reward_cycle']);
 const DENIED_DISCRIMINATORS = new Map(DENIED_ROUTER_INSTRUCTIONS.map(name => [anchor(name), name]));
 const LOADERS = new Set(['BPFLoaderUpgradeab1e11111111111111111111111', 'BPFLoader2111111111111111111111111111111111',
   'BPFLoader1111111111111111111111111111111111', 'LoaderV411111111111111111111111111111111111', 'NativeLoader1111111111111111111111111111111']);

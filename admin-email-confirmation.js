@@ -1,6 +1,6 @@
 const AUTH_PATHS=new Set(['/api/admin/challenge','/api/admin/session','/api/admin/logout']);
 const actionName=path=>path.includes('/withdrawals/')?'Treasury withdrawal'
-  :path.includes('service-fees')?'Service fee update':path.includes('agency')?'Future-launch rules'
+  :path.includes('service-fees')?'Service fee update':path.includes('app-limits')?'App limits update':path.includes('agency')?'Future-launch rules'
     :path.includes('daily-bonus')?'Daily bonus recovery':path.includes('x-posts')?'X publishing review'
       :path.includes('product-issues')?'Issue update':path.includes('v3-allocations')?'Allocation recovery':'Admin change';
 

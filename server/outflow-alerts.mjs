@@ -1,4 +1,6 @@
 import {PublicKey} from '@solana/web3.js';
+import {parseProtocolGuard} from '../protocol-guard.js';
+import {effectiveEnv} from './app-limits.mjs';
 
 // Watches app treasuries, signer wallets and program vaults for SOL leaving
 // them, and the fee router's authority and upgrade authority for changes.
@@ -64,6 +66,9 @@ export function createOutflowWatcher({store,connection,accounts,programId=null,e
     const program=new PublicKey(programId),router=PublicKey.findProgramAddressSync([ROUTER_SEED],program)[0];
     const [programInfo,routerInfo]=await connection().getMultipleAccountsInfo([program,router],'finalized');
     const result={router:routerInfo?.data?.length>=73?new PublicKey(routerInfo.data.subarray(41,73)).toBase58():null,upgrade:null};
+    // Mainnet header: guardian, pause flag and daily outflow cap.
+    const guard=parseProtocolGuard(routerInfo?.data);
+    if(guard)Object.assign(result,{guardian:guard.guardian,paused:guard.paused?'paused':'running',dailyCap:`${guard.dailyCapLamports} lamports`});
     if(programInfo?.owner?.equals?.(LOADER)&&programInfo.data?.length>=36){
       const data=(await connection().getAccountInfo(new PublicKey(programInfo.data.subarray(4,36)),{commitment:'finalized',dataSlice:{offset:0,length:45}}))?.data;
       result.upgrade=data?.length>=45?(data[12]===1?new PublicKey(data.subarray(13,45)).toBase58():'immutable'):null;
@@ -72,7 +77,7 @@ export function createOutflowWatcher({store,connection,accounts,programId=null,e
   }
 
   async function check(){
-    const limits=outflowLimits(env),at=now(),rows=await accounts();
+    const limits=outflowLimits(effectiveEnv(env,await store.read?.())),at=now(),rows=await accounts();
     const groups=new Map();
     const current=await balances(rows);
     for(const row of rows){const group=groups.get(row.group)||{role:row.role,addresses:[],lamports:0};
@@ -95,12 +100,14 @@ export function createOutflowWatcher({store,connection,accounts,programId=null,e
       }
       if(authority){
         const prior=watch['program-authorities'];
-        for(const [name,label] of [['router','Fee router authority'],['upgrade','Program upgrade authority']]){
+        for(const [name,label] of [['router','Fee router authority'],['upgrade','Program upgrade authority'],
+          ['guardian','Protocol guardian'],['paused','Protocol pause state'],['dailyCap','Protocol daily outflow cap']]){
           if(authority[name]&&prior?.[name]&&prior[name]!==authority[name])alerts.push(`${label} changed from ${prior[name]} to ${authority[name]}.`);
         }
         if(expectedAuthority&&authority.router&&authority.router!==expectedAuthority&&prior?.router===expectedAuthority)
           alerts.push(`Fee router authority is no longer this server's configured authority (${short(expectedAuthority)}).`);
-        watch['program-authorities']={router:authority.router||prior?.router||null,upgrade:authority.upgrade||prior?.upgrade||null,at};
+        watch['program-authorities']={router:authority.router||prior?.router||null,upgrade:authority.upgrade||prior?.upgrade||null,
+          ...Object.fromEntries(['guardian','paused','dailyCap'].map(name=>[name,authority[name]||prior?.[name]||null]).filter(([,value])=>value)),at};
       }
       if(alerts.length){state.outflowAlerts||={};state.outflowAlerts[`${at}`]={at:new Date(at).toISOString(),alerts};
         for(const id of Object.keys(state.outflowAlerts))if(Number(id)<at-30*DAY_MS)delete state.outflowAlerts[id];}

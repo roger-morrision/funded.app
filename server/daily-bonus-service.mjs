@@ -14,6 +14,7 @@ import {assertBonusSnapshot,appendDailyBonusResidual,bonusAssignmentMatches} fro
 import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
 import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
 import {createLiveBonusReader} from './daily-bonus-live.mjs';
+import { plannedRewardPayoutAt } from '../protocol-guard.js';
 
 export function createDailyBonusService({ store, rewardStore, connection, programId, authority,
   expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
@@ -157,7 +158,8 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
           || proof.mint !== source.mint || proof.category !== 5
           || proof.amount !== source.amountLamports || proof.recipient !== vault)
           throw new Error('Daily bonus source lacks exact finalized community funding proof.');
-        const plan = { cluster, mint:source.mint, cutoffAt:snapshot.end, payoutAt:snapshot.end, manifest };
+        // Mainnet cycles must leave the guardian review delay; the chosen time is saved with the payout.
+        const plan = { cluster, mint:source.mint, cutoffAt:snapshot.end, payoutAt:plannedRewardPayoutAt(cluster, snapshot.end), manifest };
         await rewardStore.transaction(state => {
           state.dailyBonusAssignments ||= {};
           const assigned = state.dailyBonusAssignments[source.collectionSignature];
@@ -168,7 +170,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
             throw new Error(row.reason || 'The reviewed daily bonus snapshot changed.');
           const saved = row.payouts[source.collectionSignature];
           if (saved && !isDeepStrictEqual(saved.manifest, manifest)) throw new Error('Daily bonus payout manifest is immutable.');
-          row.payouts[source.collectionSignature] ||= { manifest, status:'prepared', payments:{}, fundingSignature:funded.signature };
+          if (saved?.payoutAt) plan.payoutAt = saved.payoutAt;
+          row.payouts[source.collectionSignature] ||= { manifest, status:'prepared', payments:{}, fundingSignature:funded.signature,
+            ...(plan.payoutAt !== snapshot.end ? { payoutAt:plan.payoutAt } : {}) };
         });
         const cycle = await chain.ensureCycle(plan);
         await rewardStore.transaction(state => Object.assign(state.dailyBonusSnapshots[day].payouts[source.collectionSignature],
@@ -247,7 +251,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       for(const [recipient,payment] of Object.entries(payout?.payments||{})){
         const leaf=manifest.leaves.find(row=>row.recipient===recipient);
         if(!leaf||payment.amount!==leaf.amount||!chain.inspectLeaf)throw new Error('Finalized paid bonus proof is required for reconciliation.');
-        const proof=await chain.inspectLeaf({cluster,mint:source.mint,cutoffAt:prior.snapshot.end,payoutAt:prior.snapshot.end,manifest},leaf);
+        const proof=await chain.inspectLeaf({cluster,mint:source.mint,cutoffAt:prior.snapshot.end,payoutAt:payout?.payoutAt??prior.snapshot.end,manifest},leaf);
         if(!proof?.finalized||proof.amount!==payment.amount||proof.payment!==payment.payment
           ||proof.amountReceived!==payment.amountReceived)throw new Error('Finalized paid bonus proof conflicts with its recorded receipt.');
       }

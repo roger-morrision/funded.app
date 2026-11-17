@@ -35,6 +35,8 @@ pub fn assert_current_router_authority(router: &AccountInfo, authority: &Pubkey,
         && data[9..41] == POLICY_HASH && data[41..73] == authority.to_bytes(), ErrorCode::InvalidRouterHeader);
     let (expected, bump) = Pubkey::find_program_address(&[SEED], program_id);
     require!(router.key() == expected && data[73] == bump, ErrorCode::InvalidRouterHeader);
+    #[cfg(feature = "mainnet-v3-program")]
+    super::guard::assert_not_paused(&data)?;
     Ok(())
 }
 
@@ -54,6 +56,9 @@ pub fn handler(ctx: Context<RotateAuthority>) -> Result<()> {
     require!(current == old.as_ref() || current == new.as_ref(), ErrorCode::InvalidRotationAuthority);
     let (_, bump) = Pubkey::find_program_address(&[SEED], ctx.program_id);
     require!(legacy_data[73] == bump, ErrorCode::InvalidRouterHeader);
+    // The hot authority must never also hold the guardian role.
+    #[cfg(feature = "mainnet-v3-program")]
+    require!(legacy_data[GUARD_GUARDIAN..GUARD_GUARDIAN + 32] != new.to_bytes(), super::guard::GuardError::InvalidGuardian);
 
     for router in ctx.remaining_accounts {
         require!(router.is_writable && router.owner == ctx.program_id, ErrorCode::InvalidMintRouter);

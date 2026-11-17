@@ -10,15 +10,19 @@ pub mod community;
 pub mod rotate;
 #[cfg(not(any(feature = "devnet-v3-program", feature = "mainnet-v3-program")))]
 pub mod recover_wrapped_sol;
+#[cfg(feature = "mainnet-v3-program")]
+pub mod guard;
+#[cfg(feature = "mainnet-v3-program")]
+pub use guard::*;
 pub mod policy_v3;
 pub mod protected_v3;
 pub mod automation_v3;
 pub use automation_v3::*;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub mod agency_policy_v3;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub mod agency_disburse_v3;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub mod agency_buyback_v3;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub mod buyback_v3;
@@ -41,11 +45,11 @@ pub use rotate::*;
 pub use recover_wrapped_sol::*;
 pub use policy_v3::*;
 pub use protected_v3::*;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub use agency_policy_v3::*;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub use agency_disburse_v3::*;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub use agency_buyback_v3::*;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub use buyback_v3::*;
@@ -54,15 +58,15 @@ pub use recover_qa_v3::*;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub use buyback_price::*;
 
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub mod agency_rules_v3;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub use agency_rules_v3::*;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub mod token_fees_v3;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub mod token_convert_v3;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub use token_fees_v3::*;
-#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[cfg(feature = "devnet-v3-program")]
 pub use token_convert_v3::*;
