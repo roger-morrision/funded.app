@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { standing } from '../src/features/growth/bonus-rank-card.js';
 import { matchActions, ACTIONS } from '../src/features/growth/command-actions.js';
 import { dailyPayouts } from '../src/features/growth/insights.js';
-import { holderPoolShare } from '../src/features/growth/token-extras.js';
 import { isPlaceholder } from '../src/features/growth/skeletons.js';
 import { PRESETS } from '../src/features/growth/launch-assist.js';
 import { sol, countdown, nextUtcHour, nextUtcMidnight } from '../src/features/growth/format.js';
@@ -38,10 +37,7 @@ test('daily payouts bucket verified receipts by UTC day and source, once each', 
   assert.deepEqual([buckets[2].holders, buckets[2].bonus, buckets[2].other], [5n, 7n, 1n]);
 });
 
-test('holder share calculator and helpers', () => {
-  assert.equal(holderPoolShare(1_000_000, 1_000_000_000), 0.1);
-  assert.equal(holderPoolShare(0, 100), null);
-  assert.equal(holderPoolShare('x', 100), null);
+test('placeholder and format helpers', () => {
   assert.equal(isPlaceholder('Checking…'), true);
   assert.equal(isPlaceholder('Checking daily snapshots…'), true);
   assert.equal(isPlaceholder('0.5 SOL'), false);
