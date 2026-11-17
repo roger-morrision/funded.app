@@ -20,7 +20,19 @@ export function createReferralIdentityRoutes({
     if (req.method === 'GET' && url.pathname === '/api/auth/admin') {
       res.setHeader('cache-control', 'no-store');
       const admin = adminJwt?.read(req);
-      return admin ? json(res, 200, { admin:true, wallet:admin.wallet, expiresAt:admin.expiresAt }) : json(res, 401, { admin:false, error:'Sign in with an administrator wallet.' });
+      if (admin) return json(res, 200, { admin:true, wallet:admin.wallet, expiresAt:admin.expiresAt });
+      // A still-valid wallet sign-in (signed message) for an admin wallet gets its
+      // admin cookie back, e.g. after that cookie expired or was never set while
+      // the wallet session stayed signed in. Never outlives the wallet session.
+      const session = adminJwt ? await referralSession(req).catch(() => null) : null;
+      const sessionEnds = Number(session?.expiresAt ?? (Number.isFinite(session?.createdAt) ? session.createdAt + REFERRAL_SESSION_SECONDS * 1000 : NaN));
+      const issued = session?.wallet && sessionEnds > Date.now() + 5000 ? adminJwt.issue(session.wallet) : null;
+      if (!issued) return json(res, 401, { admin:false, error:'Sign in with an administrator wallet.' });
+      let secure = true;
+      try { secure = new URL(requestCookieUrl(req)).protocol === 'https:'; } catch {}
+      const seconds = Math.max(1, Math.floor((Math.min(issued.expiresAt, sessionEnds) - Date.now()) / 1000));
+      res.setHeader('set-cookie', [adminJwt.cookie(issued.token, seconds, secure)]);
+      return json(res, 200, { admin:true, wallet:issued.wallet, expiresAt:Math.min(issued.expiresAt, sessionEnds) });
     }
     if (req.method === 'GET' && url.pathname === '/api/referrals/session') {
       const session = await referralSession(req);

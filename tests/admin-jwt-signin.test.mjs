@@ -31,3 +31,26 @@ test('wallet sign-in sets a verifiable admin JWT cookie only for admin wallets',
   assert.equal(signedUser.body.admin, false);
   assert.match(signedUser.cookies.find(value => value.startsWith(`${ADMIN_JWT_COOKIE}=`)), /Max-Age=0/);
 });
+
+async function adminStatus(wallet, session) {
+  const adminJwt = createAdminJwt({ env, cluster: 'mainnet-beta' });
+  const headers = {}, sent = [];
+  const routes = createReferralIdentityRoutes({ adminJwt, referralSession: async () => session && { wallet, ...session },
+    requestCookieUrl: () => 'https://richpad.fun/', respond: (res, status, body) => sent.push({ status, body }) });
+  await routes({ method: 'GET', headers: {} }, { setHeader: (name, value) => { headers[name] = value; } }, new URL('https://richpad.fun/api/auth/admin'));
+  return { ...sent.at(-1), cookies: [].concat(headers['set-cookie'] || []), adminJwt };
+}
+
+test('a signed-in admin wallet without an admin cookie gets it back, capped to the wallet session', async () => {
+  const ends = Date.now() + 600_000;
+  const restored = await adminStatus(admin, { expiresAt: ends });
+  assert.equal(restored.status, 200);
+  assert.equal(restored.body.admin, true);
+  assert.equal(restored.body.expiresAt, ends);
+  const cookie = restored.cookies.find(value => value.startsWith(`${ADMIN_JWT_COOKIE}=`));
+  const maxAge = Number(cookie.match(/Max-Age=(\d+)/)[1]);
+  assert.ok(maxAge <= 600 && maxAge > 590);
+  assert.equal((await adminStatus(user, { expiresAt: ends })).status, 401, 'other wallets stay non-admin');
+  assert.equal((await adminStatus(admin, null)).status, 401, 'no wallet session, no admin cookie');
+  assert.equal((await adminStatus(admin, { expiresAt: Date.now() - 1 })).status, 401, 'expired wallet session');
+});
