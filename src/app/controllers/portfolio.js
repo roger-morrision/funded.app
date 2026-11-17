@@ -63,7 +63,9 @@ export function createPortfolioController(appState) {
   // Loads the connected wallet's trades, or (on a public wallet page) the viewed wallet's.
   function refreshPortfolioTrades(target){
     const address=target||appState.connectedWalletAddress;
-    const wanted=()=>address===(target?appState.getWalletDetailAddress():appState.connectedWalletAddress);
+    // One load serves both the portfolio and the wallet page for the same address,
+    // so keep the result while either still shows it (never strand "loading").
+    const wanted=()=>Boolean(address)&&(address===appState.connectedWalletAddress||address===appState.getWalletDetailAddress?.());
     if (portfolioTradeLoad?.wallet!==address) portfolioTradeLoad=null;
     if (portfolioTradeLoad&&portfolioTradeLoad.wallet===address) return portfolioTradeLoad.promise;
     const request=++portfolioTradeRequest;
