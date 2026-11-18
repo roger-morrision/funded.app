@@ -30,7 +30,7 @@ export function mountEarningsHub(app, document = globalThis.document) {
     const off = 'Not active yet';
     next.replaceChildren(...[
       ['Holder SOL rewards', running.holder === false ? off : `in ${countdown(nextUtcHour(now), now)}`,
-        running.holder === false ? 'Starts when automatic holder payouts are switched on' : 'Automatic each completed UTC hour, when funded'],
+        running.holder === false ? 'Starts when automatic holder payouts are switched on' : 'Automatic each completed UTC hour, from that hour’s collected fees'],
       ['Daily bonus snapshot', running.bonus === false ? off : `in ${countdown(nextUtcMidnight(now), now)}`,
         running.bonus === false ? 'Starts when daily bonus payouts are switched on' : 'Top 3 per category paid automatically after checks'],
     ].map(([title, when, detail]) => {

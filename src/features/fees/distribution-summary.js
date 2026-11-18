@@ -4,7 +4,7 @@ import { escapeHtml } from '../shared/display.js';
 import { feeBenefitDetailsMarkup } from './benefit-details.js';
 
 export const FEE_PERCENT_BASIS = 'Percentages of collected creator fees, not trade volume. Trading, launch and optional promotion charges, plus network costs, are separate.';
-export const FEE_POLICY_SCOPE = 'New launches use the published policy. Existing coins keep their saved rates. Allocations become payouts or burns only after funding and finalized receipts.';
+export const FEE_POLICY_SCOPE = 'New launches use the published policy. Existing coins keep their saved rates. Each share is paid or burned from collected creator fees once its transaction is final on Solana.';
 
 export function approvedFeePresentation() {
   const policy=MARKETING_AGENCY_POLICY,percent=units=>units*100/policy.grossUnits;
@@ -19,8 +19,8 @@ export function feeDistributionPresentation(fee=FEE_DISTRIBUTION) {
     ['operations',fee.operationsEffectivePercent,'Operations & marketing','Pays for platform operations and marketing.'],
     ['referrals',fee.appReferralEffectivePercent,'Referral network','Earn SOL from qualified creators you invite.'],
     ['community',fee.communityEffectivePercent,'Daily bonus','SOL rewards for the top 3 per category: creators, referrers and traders.'],
-    ['buyback',fee.buybackEffectivePercent,'$RICH buyback & burn','Buys $RICH and permanently removes it from supply, when funded and ready.'],
-    ...(fee.agencyEffectivePercent===undefined?[]:[['agency',fee.agencyEffectivePercent,'AI marketing & coin buybacks','X promotion and buybacks for this coin, after funding and milestone checks.']]),
+    ['buyback',fee.buybackEffectivePercent,'$RICH buyback & burn','Buys $RICH and burns it each time the buyback pool reaches 5 SOL.'],
+    ...(fee.agencyEffectivePercent===undefined?[]:[['agency',fee.agencyEffectivePercent,'AI marketing & coin buybacks','X promotion, plus buybacks of this coin at each market-cap milestone.']]),
   ].map(([key,percent,label,benefit])=>({key,percent,label,benefit}));
   const total=rows.reduce((sum,row)=>sum+row.percent,0);
   if(rows.some(row=>!Number.isFinite(row.percent)||row.percent<0)||Math.abs(total-100)>0.000001)throw Error('Fee presentation must account for 100% of collected creator fees.');

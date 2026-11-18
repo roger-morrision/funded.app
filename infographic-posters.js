@@ -5,7 +5,7 @@ const posterDefinitions = [
     title: 'Follow the receipt', summary: 'Read the full reward status note',
     items: [
       ['01', 'Allocated', 'Policy sets an amount aside.'],
-      ['02', 'Claimable', 'Eligibility and funding are verified.'],
+      ['02', 'Claimable', 'You qualify and the coin’s fees are collected and settled.'],
       ['03', 'Paid', 'A confirmed transfer has a receipt.'],
     ],
   },

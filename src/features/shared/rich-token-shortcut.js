@@ -1,14 +1,16 @@
 // Open the configured token directly from the top bar, without connecting a wallet.
 export function mountRichTokenShortcut(mint, document = globalThis.document, { mainnet = false } = {}) {
   const validMint = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint);
-  // Mainnet has no in-app launches: the primary header action buys $RICH.
+  // Mainnet has no launch program yet: the header keeps "Launch coin" and submitting explains it is not ready.
   const create = mainnet ? document.querySelector('.top-actions .create-coin-button') : null;
   if (create) {
-    create.id = 'header-buy-rich';
-    create.firstChild.textContent = 'Buy $RICH ';
-    create.href = validMint ? `/token/${encodeURIComponent(mint)}` : '/rich';
-    create.title = 'Open the $RICH token page';
-    mountMainnetLaunchRedirects(create.href, document);
+    // The header keeps "Launch coin"; Buy $RICH stays in the sidebar, phone bar and Home hero.
+    create.id = 'header-launch-coin';
+    create.dataset.mainnetLaunch = 'launch';
+    create.firstChild.textContent = 'Launch coin ';
+    create.href = '#launch';
+    create.title = 'Launch a coin';
+    mountMainnetLaunchRedirects(validMint ? `/token/${encodeURIComponent(mint)}` : '/rich', document);
     return;
   }
   const nav = document.querySelector('.top-actions');
@@ -36,9 +38,23 @@ export function mountWalletMenuNotifications(document = globalThis.document) {
   nav.append(item);
 }
 
-// Mainnet runs without the Richpad launch program: every "Create a coin" entry
-// point becomes "Buy $RICH" and the #launch route opens the $RICH page.
+// Mainnet runs without the Richpad launch program. The launch page and its
+// "Launch coin" entry points stay visible so people can prepare a coin, but
+// submitting only explains that launching is not ready yet. Other "Create a coin"
+// links (sidebar, phone bar, Home hero) become "Buy $RICH".
+export const MAINNET_LAUNCH_NOT_READY = 'Launching coins on richpad.fun is not ready yet. Nothing was signed or sent. You can still trade and list existing coins.';
 export function mountMainnetLaunchRedirects(richHref, document = globalThis.document) {
+  const hero = document.querySelector('.hero-actions a.hero-secondary-action[href="#explore"]');
+  if (hero) { hero.textContent = 'Launch coin'; hero.href = '#launch'; hero.dataset.mainnetLaunch = 'launch'; }
+  const notReady = event => {
+    const action = event.target?.closest?.('[data-launch-action]');
+    const submit = event.type === 'submit' && event.target?.id === 'launch-form';
+    if (!submit && (!action || ['connect-wallet', 'refresh-estimate'].includes(action.dataset.launchAction))) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    globalThis.alert?.(MAINNET_LAUNCH_NOT_READY);
+  };
+  document.addEventListener('click', notReady, true);
+  document.addEventListener('submit', notReady, true);
   const relabel = link => {
     if (link.id === 'header-buy-rich' || link.dataset.mainnetLaunch) return;
     const text = [...link.childNodes].reverse().find(node => node.nodeType === 3 && node.nodeValue.trim());
@@ -68,6 +84,4 @@ export function mountMainnetLaunchRedirects(richHref, document = globalThis.docu
   sweep();
   new MutationObserver(records => { if (records.some(record => record.addedNodes.length)) sweep(); })
     .observe(document.body, { subtree: true, childList: true });
-  const route = () => { if (/^#launch(?:\/|$)/.test(globalThis.location?.hash || '')) globalThis.location.replace(richHref); };
-  route(); globalThis.addEventListener?.('hashchange', route);
 }

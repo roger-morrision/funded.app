@@ -55,7 +55,7 @@ export function holderRewardsMarkup(summary, { solUsd = null, now = Date.now() }
   return `<header class="holder-rewards-head"><div><p class="eyebrow"><i class="holder-rewards-dot" aria-hidden="true"></i>Holder rewards · active</p><h2 id="holder-rewards-title">${symbol} holders earn ${escape(summary.share)}% of creator fees</h2></div><a class="text-button" href="#payments/history">Receipts →</a></header>
 <div class="holder-rewards-grid">
 <div class="holder-rewards-main"><span>Paid to holders</span><strong>${escape(formatProofSol(summary.paid))}</strong>${usd(summary.paid)}<small>${escape(`${summary.payouts?.toLocaleString('en-US') ?? 'Unverified'} payment${summary.payouts === 1 ? '' : 's'} to ${summary.wallets?.toLocaleString('en-US') ?? 'unverified'} wallet${summary.wallets === 1 ? '' : 's'}`)}</small></div>
-<div><span>Allocated, unpaid</span><strong>${escape(formatProofSol(summary.waiting))}</strong>${usd(summary.waiting)}<small>Funding and eligibility checks apply</small></div>
+<div><span>Allocated, unpaid</span><strong>${escape(formatProofSol(summary.waiting))}</strong>${usd(summary.waiting)}<small>Paid hourly once the holder pool reaches $20</small></div>
 <div><span>Last payout</span><strong>${escape(relativeTime(summary.lastPaidAt, now))}</strong><small>Paid ${escape(summary.cadence)}</small></div>
 </div>
 <p class="holder-rewards-rule">${escape(rule + threshold + " " + gapText)}</p>`;

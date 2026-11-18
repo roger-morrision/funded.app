@@ -239,7 +239,7 @@ function shortenPageCopy() {
     ['#buybacks .burn-token-card > p:not(.eyebrow):not(.funded-burn-status)', 'Optionally link a project. Review and approve the permanent burn.'],
     ['#buybacks .burn-receipts-panel > .field-help', 'This history shows confirmed burns recorded by richpad.fun. Total supply can include other burns.'],
     ['#reward-portfolio .reward-portfolio-note', 'Allocations are not balances. Holder SOL and Daily bonuses are automatic after verification; X rewards need matching sign-in and a claim.'],
-    ['#reward-discovery > small', 'Eligible wallets receive SOL automatically when funds are available. “0 paid wallets” means no holder payment is confirmed.'],
+    ['#reward-discovery > small', 'Eligible wallets receive SOL automatically each hour once the holder pool reaches $20. “0 paid wallets” means no holder payment is confirmed.'],
     ['#payments .auto-rewards-intro', 'Eligible holders receive SOL automatically after each verified cutoff and funding check. No claim needed.'],
     ['#payments .auto-rewards-fineprint', 'Target time is not payment. Each cycle checks funding and eligibility.'],
     ['#funded-holder-token-rewards > small', 'Tokens are paid automatically after migration checks.'],

@@ -9,9 +9,9 @@ import {pairLaunchPoints} from '../fees/pair-launch-copy.js';
 export const rewardActions = () => [
   ['Creator wallet', 'SOL', 'Rewards → Coin creator → select coin → Claim creator fees. Sign with the launch creator wallet.', 'Available after the saved wallet share is collected and settled; developer token locks do not delay these SOL earnings. Paired coins pay this share automatically in the paired token.', '#payments/creator'],
   ['Coin holders', 'SOL', 'Automatic; no claim or signature. Check Rewards → Coin holder and payout history.', 'After each completed UTC hour, with a funded pool, verified holdings, prices and minimums; small pools carry forward.', '#payments/holders'],
-  ['X account', 'SOL', 'Rewards → X claims. Sign in with the named X account, link the receiving wallet and claim.', 'Available after the named account’s allocation is funded and verified.', '#payments/x'],
+  ['X account', 'SOL', 'Rewards → X claims. Sign in with the named X account, link the receiving wallet and claim.', 'Available once the coin’s fees for the named account are collected and settled.', '#payments/x'],
   ['Referral network', 'SOL', 'Referrals → Claim reward. Sign in with the earning wallet and sign the allocation’s claim message.', 'Available after qualifying fees are collected and settled; saved first-, second- and third-level shares apply.', '#referrals'],
-  ['Daily bonus', 'SOL', 'Automatic for top creators, referrers and traders. Check Daily bonuses for rankings and receipts; no claim.', 'After the UTC day closes at 00:00 UTC and rankings and funding are verified; each category pays its top three.', '#bonuses'],
+  ['Daily bonus', 'SOL', 'Automatic for top creators, referrers and traders. Check Daily bonuses for rankings and receipts; no claim.', 'After the UTC day closes at 00:00 UTC; each category pays its top three.', '#bonuses'],
   ['Community airdrop', 'Launched coin tokens', 'Hold $RICH until migration. Receive tokens automatically; no claim or signature.', 'At least 3% of supply, shared in proportion to eligible $RICH balances at the verified migration snapshot.', '#airdrops'],
 ];
 

@@ -20,7 +20,7 @@ export async function readStatus(read = getJSON) {
     ['Fee settlement proofs', status?.settlementVerified ? 'ok' : status?.settlementEvidence?.status === 'pending' ? 'checking' : status ? 'degraded' : 'unknown', status?.settlementVerified ? 'All recorded settlements verified' : status?.settlementEvidence?.status === 'pending' ? 'Reading finalized settlement proofs' : 'Verification incomplete or unavailable'],
     ['Launch indexer', indexer?.status === 'ready' ? 'ok' : indexer ? 'degraded' : 'unknown', indexer ? `${indexer.indexedLaunches ?? 0} launches · last sync ${ago(indexer.lastIndexedAt)}` : 'Status unavailable'],
     ['Buyback data', !buyback ? 'unknown' : buyback.refreshing ? 'checking' : buyback.dashboard?.status !== 'verified' ? 'degraded' : 'ok',
-      buyback?.dashboard?.status === 'verified' ? 'Custody verified; execution still depends on funding and worker checks' : 'Custody verification pending or unavailable'],
+      buyback?.dashboard?.status === 'verified' ? 'Custody verified; execution still depends on collected fees reaching the payout worker' : 'Custody verification pending or unavailable'],
     ['Daily bonus data', !bonus ? 'unknown' : bonus.pool?.status !== 'verified' || bonus.unavailableReceipts !== 0 || bonus.unavailableSnapshots !== 0 ? 'degraded' : 'ok',
       bonus?.serverTime ? `${bonus.snapshots ?? 0} snapshots recorded; payments depend on funding and verified eligibility` : 'Status unavailable'],
     ['Analytics data', !analytics ? 'unknown' : Number.isFinite(Date.parse(analytics.freshness)) ? 'ok' : 'degraded',

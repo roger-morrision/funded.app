@@ -31,8 +31,7 @@ export function initializeDiscoveryIntent(app) {
     const input = document.querySelector('#trade-amount'); input.value = requested;
     input.dispatchEvent(new Event('input', { bubbles:true }));
     app.setTradeStatus('Buy amount selected. Review a fresh quote before approving in your wallet.');
-    if (explicit && matchMedia('(max-width:700px)').matches) document.querySelector('.mobile-trade-open')?.click();
-    else if (explicit) document.querySelector('#trade-panel')?.scrollIntoView({ block:'center' });
+    if (explicit) document.querySelector('#trade-panel')?.scrollIntoView({ block:matchMedia('(max-width:700px)').matches ? 'start' : 'center' });
   }
   const buy = document.querySelector('.mobile-trade-open');
   const nav = document.querySelector('.mobile-workspace-nav');

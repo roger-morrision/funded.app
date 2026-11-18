@@ -59,7 +59,7 @@ export function createCreatorFeesController(appState) {
         : row.settlement === 'finalized'
         ? overview.automaticDisbursementEnabled
           ? 'Categories settled. Claim your creator fees below. Holder and bonus funding is automatic; buybacks follow their verified trigger.'
-          : 'Categories settled on Devnet. Buyback vault funds follow the verified trigger shown on Buybacks; other approved allocations are funded separately.'
+          : 'Categories settled on Devnet. The buyback vault spends each time it reaches 5 SOL; other shares are paid from each coin’s collected fees.'
         : overview.automaticSettlementEnabled
         ? 'Fixed-policy settlement is queued for the keeper. Funding and payouts are separate.'
         : 'Settlement requires the launch creator to review and sign the V3 transaction.';

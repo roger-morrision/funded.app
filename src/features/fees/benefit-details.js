@@ -30,8 +30,8 @@ export function feeBenefitExplanation(key){
     },
     community:{
       who:'The top 3 wallets in each of three categories: creators by finalized settled creator fees, direct referrers by their referred creators’ settled fees, and traders by finalized buy and sell SOL volume. Participation alone does not earn a ranked award.',
-      when:'Each standard UTC day closes at 00:00 UTC. Rankings are fixed after that completed window is verified. Fees enter the window in which settlement finalizes. Payment follows verified funding and snapshot checks, only when automatic bonus payouts are enabled; the cutoff is not an immediate payment promise.',
-      receive:'Winning wallets receive SOL automatically when payouts are enabled and ready. No manual claim or recipient signature is required. Each trade may wake ready processing, but cannot pay an unfinished ranking window. Check Daily bonuses for current availability and receipts.',
+      when:'Each standard UTC day closes at 00:00 UTC. Rankings are fixed after that completed window is verified. Fees enter the window in which settlement finalizes. Winners are paid after the snapshot, from the day’s settled creator fees; the cutoff is not an immediate payment promise.',
+      receive:'Winning wallets receive SOL automatically after each 00:00 UTC snapshot. No manual claim or recipient signature is required. Each trade may wake ready processing, but cannot pay an unfinished ranking window. Check Daily bonuses for current availability and receipts.',
       conditions:`Each category receives one third of the bonus pool. Within that category, 1st receives ${ranks[0]}%, 2nd ${ranks[1]}% and 3rd ${ranks[2]}%. Unfilled ranks retain their share in the reserve. Only explicitly labeled Devnet QA programs use five-minute ranking windows.`,
       links:[['Bonus rankings, availability & payouts','#bonuses']],
     },
@@ -43,7 +43,7 @@ export function feeBenefitExplanation(key){
     },
     agency:{
       who:'Every new coin includes two buyback-and-burn agents. Promotion packages also include X promotion. Coin holders do not claim this allocation as a cash reward.',
-      when:`Each buyback agent can execute once at its saved, verified market-cap milestone, after funding and execution checks pass. Default milestones are ${milestones}; the coin’s saved values apply. X promotion follows its saved interval, normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours between billed posts, and is billed only after the post is verified.`,
+      when:`Each buyback agent can execute once at its saved, verified market-cap milestone, paid from the coin’s agent budget. Default milestones are ${milestones}; the coin’s saved values apply. X promotion follows its saved interval, normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours between billed posts, and is billed only after the post is verified.`,
       receive:'The budget is divided equally across the included agents: two for Standard, three with a promotion package. Existing coins retain their saved selections. Execution also requires an enabled, ready executor; crossing a market-cap milestone alone is not proof of a purchase or burn. Unused budgets stay reserved.',
       links:[['Included agents, rules & receipts','#marketing-agency']],
     },
@@ -58,13 +58,13 @@ export function feeBenefitExplanation(key){
       when:'Claim after qualifying fees are collected and settled. Signups and clicks alone do not earn rewards.',
       receive:'Invite creators before they qualify. Open Referrals → Claim reward and sign with the earning wallet. Daily referrer bonuses stay automatic.'},
     community:{who:'Top 3 wallets in each group: creators, referrers and traders.',
-      when:'After each UTC day closes at 00:00 UTC and rankings and funds are checked.',
-      receive:'Winners receive SOL automatically when payouts are enabled. No claim or signature needed.'},
+      when:'After each UTC day closes at 00:00 UTC and the rankings are final.',
+      receive:'Winners receive SOL automatically after the snapshot. No claim or signature needed.'},
     buyback:{who:'No direct wallet payment. This share reduces the $RICH supply.',
-      when:'Normally when the pool reaches 5 SOL, or its configured wait ends. Funding and trade checks must pass.',
+      when:'Each time the buyback pool reaches 5 SOL.',
       receive:'The app buys $RICH and burns it. Check the finalized receipts; no claim is needed.'},
     agency:{who:'Every new coin includes two coin buyback-and-burn agents. X promotion is included with a promotion package.',
-      when:`Buybacks run once at the saved milestones (normally ${milestones} market cap), when funded and ready. X posts are normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours apart.`,
+      when:`Buybacks run once at the saved milestones (normally ${milestones} market cap), paid from the coin’s agent budget. X posts are normally at least ${DEFAULT_AGENCY_RULES.promotionIntervalSeconds/3600} hours apart.`,
       receive:'Included agents share the budget equally. X posts are charged only after verification. Unused budgets stay reserved.'},
   };
   const rules=explanations[key];

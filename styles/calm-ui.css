@@ -276,3 +276,19 @@ html body #main-content#main-content .referral-claim-note { margin-top: 12px; co
 html body #main-content#main-content .referral-list-table th.numeric { font-family: var(--fv-font-ui); }
 html body #main-content#main-content .referral-list-table td:first-child a { white-space: nowrap; }
 html body #main-content#main-content .referral-list-table td { white-space: nowrap; }
+
+/* ---------- Mobile token page: trade panel inline under the header ---------- */
+@media (max-width: 700px) {
+  html:has(body.page-route-coin) { --mobile-bottom-height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom)); }
+  html body.page-route-coin .mobile-trade-actions,
+  html body.workspace-ready #coin-page .mobile-trade-open,
+  html body.workspace-ready #coin-page .mobile-trade-close { display: none !important; }
+  html body.workspace-ready #coin-page:not(.trade-sheet-open) #trade-panel { display: block !important; }
+  html body.workspace-ready #coin-page .coin-side-column { order: 0 !important; }
+  html body.workspace-ready #coin-page .coin-main-column { order: 1 !important; }
+}
+
+/* ---------- Headlines in gold on every page ---------- */
+:root { --calm-headline: #f5c451; }
+html body #main-content#main-content :is(h1, h2),
+html body #main-content#main-content .home-featured-controls > a { color: var(--calm-headline) !important; }

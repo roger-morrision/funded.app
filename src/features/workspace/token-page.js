@@ -184,6 +184,8 @@ export function tokenPage() {
   button.addEventListener('focus', () => revealMobileFocus(button));
   const sheetBackground = new Map();
   const setSheet = open => {
+    // Phones show the trade panel inline; "open" just brings it into view.
+    if(open&&matchMedia('(max-width:700px)').matches){trade?.scrollIntoView({block:'start',behavior:'smooth'});return;}
     root.classList.toggle('trade-sheet-open',open);button.setAttribute('aria-expanded',String(open));
     if(open){
       for(let branch=trade;branch?.parentElement;branch=branch.parentElement){for(const sibling of branch.parentElement.children){if(sibling!==branch&&sibling.tagName!=='DIALOG'&&!sheetBackground.has(sibling)){sheetBackground.set(sibling,sibling.inert);sibling.inert=true;}}if(branch.parentElement===document.body)break;}
