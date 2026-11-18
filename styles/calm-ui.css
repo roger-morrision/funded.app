@@ -300,3 +300,12 @@ html body #main-content#main-content .hero-actions .hero-launch-mobile { display
   html body #main-content#main-content .hero-actions .hero-launch-mobile { display: inline-flex !important; }
   html body #main-content#main-content .hero-actions .hero-explore-desktop { display: none !important; }
 }
+
+/* ---------- Home Trending strip: controls on their own row above the coins ---------- */
+html body.page-route-overview #main-content#main-content .home-market-ticker {
+  display: grid !important; grid-template-columns: minmax(0, 1fr) auto !important; grid-template-rows: auto auto !important;
+  align-items: center; gap: 10px 12px !important;
+}
+html body.page-route-overview #main-content#main-content .home-market-ticker-heading { grid-column: 1 !important; grid-row: 1 !important; min-width: 0; }
+html body.page-route-overview #main-content#main-content .home-market-ticker-arrows { grid-column: 2 !important; grid-row: 1 !important; }
+html body.page-route-overview #main-content#main-content .home-market-ticker-items { grid-column: 1 / -1 !important; grid-row: 2 !important; min-width: 0; }
