@@ -11,7 +11,7 @@ import { waitForSignatureConfirmation } from './funded-burn.js';
 import { SOLANA_GENESIS, solanaExplorerUrl } from './solana-network.js';
 import { LISTING_PRICE_USD, listingBurnBaseUnitsForUsd, listingBurnTokens, listingMemo, listingQuoteCurrent, setListingPriceUsd } from './listing-policy.js';
 import { canSignTransactions } from './wallet-core.js';
-import { paidListingCardMarkup } from './src/features/home/paid-listing-view.js';
+import { paidListingCardMarkup, loadPaidListingMetrics } from './src/features/home/paid-listing-view.js';
 import { readPendingListing, savePendingListing, clearPendingListing } from './listing-recovery.js';
 import { ownerMintAccounts } from './src/features/shared/owner-mint-accounts.js';
 
@@ -263,6 +263,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     // Same listing card as the Home "Paid Listing" tab: logo, identity, burn and proof.
     live.innerHTML = listings.map(item => `<div role="listitem">${paidListingCardMarkup(item)}</div>`).join('');
     live.dispatchEvent(new CustomEvent('funded:token-logos', { bubbles: true }));
+    void loadPaidListingMetrics(live, apiRequest);
   }
   async function refreshListings() {
     try {

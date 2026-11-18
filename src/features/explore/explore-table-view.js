@@ -4,6 +4,8 @@ import { escapeHtml, formatCompactUsd } from '../shared/display.js';
 import { pairChipMarkup } from '../shared/pair-label.js';
 import { marketFacts } from './market-facts.js';
 import { launchCardProgressState } from '../home/launch-card-view.js';
+import { quickBuyLinksMarkup } from '../trade/quick-buy-presets.js';
+import { quickBuyMenuMarkup } from '../trade/quick-buy-menu.js';
 
 const percentMarkup = value => {
   if (value == null || value === '' || !Number.isFinite(Number(value))) return '';
@@ -50,7 +52,7 @@ export function exploreTableMarkup(records, {
       <td class="explore-table-tier">${escapeHtml(tier)}</td>
       <td class="explore-table-airdrop">${escapeHtml(airdrop)}</td>
       <td class="explore-table-status">${statusMarkup(item, cluster, providerStatus)}</td>
-      <td class="explore-table-actions"><a class="card-review-buy" data-review-buy="${mint}" data-review-amount="0.5" data-symbol="${escapeHtml(item.symbol || '')}" data-dex="${escapeHtml(item.dexId || '')}" data-quote="${escapeHtml(item.quoteMint || '')}" href="${href}?reviewBuy=0.5" title="Review a 0.5 SOL buy">Buy 0.5 SOL</a><button type="button" class="token-card-action-boost" data-boost-mint="${mint}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 1 3 9h4l-1 6 6-8H8z"/></svg></button>${watchMarkup(item.address, item.symbol)}</td>
+      <td class="explore-table-actions">${quickBuyMenuMarkup(item, escapeHtml, quickBuyLinksMarkup(item, escapeHtml, undefined, ' role="menuitem"'))}<button type="button" class="token-card-action-boost" data-boost-mint="${mint}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 1 3 9h4l-1 6 6-8H8z"/></svg></button>${watchMarkup(item.address, item.symbol)}</td>
     </tr>`;
   }).join('');
   return `<div class="explore-table-wrap"><table class="explore-table">

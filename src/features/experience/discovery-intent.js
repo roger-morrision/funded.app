@@ -1,8 +1,12 @@
+import { mountQuickBuyMenus, mountQuickBuySettings } from '../trade/quick-buy-menu.js';
 const KEY = 'funded.review-buy-sol.v1';
 export function validReviewAmount(value) {
   return /^\d+(?:\.\d{1,9})?$/.test(String(value)) && Number(value) > 0 && Number(value) <= 100;
 }
 export function initializeDiscoveryIntent(app) {
+  mountQuickBuyMenus(document); mountQuickBuySettings(document);
+  // New quick-buy amounts show on cards and tables straight away.
+  globalThis.addEventListener('funded:quick-buy-presets', () => { app.renderExploreAssets?.({ force: true }); app.renderHomeLaunchBoard?.(); });
   let amount = '0.1';
   try { const saved = localStorage.getItem(KEY); if (validReviewAmount(saved)) amount = saved; } catch { /* Optional preference. */ }
   const updateIntent = event => {

@@ -43,7 +43,6 @@ export function initializeTop100(appState) {
     const status = busy ? 'Refreshing rankings…' : failure ? 'Refresh unavailable. Showing last loaded data; retry shortly.' : !checked ? 'Loading rankings…' : '';
     find('[data-top-status]').textContent = [status, checked && !appState.verifiedBoostsAvailable ? 'Boost data unavailable.' : '',
       checked && !community ? '24h ranking metrics unavailable; retry shortly.' : ''].filter(Boolean).join(' · ');
-    find('[data-top-refresh]').disabled = busy;
     const rows = result.rows.slice(page * 25, (page + 1) * 25);
     // Same row layout as Explore's table view, in Top 100 rank order.
     const byMint = new Map((appState.assets || []).map(asset => [asset.address, asset]));
@@ -54,7 +53,7 @@ export function initializeTop100(appState) {
       const record = benefits(appState.EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(base, '24h') : enrichMarketRecord(base));
       return {...record, top100Rank:row.rank, top100Note:filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? (row.boost > 0 ? 'Boost priority' : 'Paid priority') : ''};
     });
-    const empty = busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : filters.sort === 'market-cap' && !records.some(row=>row.capGrowthUsd!=null) ? '24h market-cap growth is not available yet. Both opening and current valuations are required.' : 'No ranked tokens match these filters. Reset filters or browse Explore.';
+    const empty = busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. They retry automatically every minute.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. It retries automatically every minute.' : filters.sort === 'market-cap' && !records.some(row=>row.capGrowthUsd!=null) ? '24h market-cap growth is not available yet. Both opening and current valuations are required.' : 'No ranked tokens match these filters. Reset filters or browse Explore.';
     const html = items.length ? exploreTableMarkup(items, {
       cluster:appState.EXPLORE_CLUSTER, providerStatus:appState.exploreProviderStatus, windowLabel:'24h',
       volumeValue:item => appState.launchCardVolumeUsd(item, '24h'), formatAge:appState.formatOnchainAge, watchMarkup:appState.tokenCardWatchMarkup,
@@ -71,7 +70,7 @@ export function initializeTop100(appState) {
         if (!avatar || avatar.querySelector('img')) continue;
         loadTokenArtwork(avatar, row.dataset.mint, appState.verifiedLaunchPolicyForMint(row.dataset.mint)?.imageUri);
       }
-      if (focused) (root.querySelector(`[data-boost-mint="${CSS.escape(focused)}"]`) || find('[data-top-refresh]')).focus({preventScroll:true});
+      if (focused) root.querySelector(`[data-boost-mint="${CSS.escape(focused)}"]`)?.focus({preventScroll:true});
     }
     find('[data-top-page]').textContent = `Page ${page + 1} of ${pages} · ${result.rows.length} tokens`;
     find('[data-top-prev]').disabled = page === 0;
@@ -95,7 +94,6 @@ export function initializeTop100(appState) {
     if (sort) {filters.sort = sort.dataset.topSort;page = 0;root.querySelectorAll('[data-top-sort]').forEach(button => button.setAttribute('aria-pressed',String(button === sort)));render();syncUrl();}
     const boost = event.target.closest('[data-boost-mint]');
     if (boost) appState.openExploreBoost(boost.dataset.boostMint);
-    if (event.target.closest('[data-top-refresh]')) void refresh();
     if (event.target.closest('[data-top-prev]')) {page--;render();}
     if (event.target.closest('[data-top-next]')) {page++;render();}
     if (event.target.closest('[data-top-reset]')) {

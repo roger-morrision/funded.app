@@ -2,7 +2,8 @@ import { withMarketWindow } from '../../../market-intelligence.js';
 import { formatCompactUsd, escapeHtml } from '../shared/display.js';
 import { activeBoostPackages, activeBoostMultiplier } from '../../../boost-offer.js';
 import { matchesHomeLaunchFilters, homeLaunchFilterCount } from '../../../home-launch-filters.js';
-import { paidListingCardMarkup, paidListingTableMarkup } from './paid-listing-view.js';
+import { paidListingCardMarkup, paidListingTableMarkup, loadPaidListingMetrics } from './paid-listing-view.js';
+import { apiRequest } from '../../../client.js';
 import { renderActivityCoverage } from '../explore/activity-sampling.js';
 import { homeLiveCards } from './live-cards.js';
 import { trendingMetric } from '../../../market-trending.js';
@@ -192,6 +193,7 @@ export function renderHomeLaunchBoard(state, {
     if (paidTableBody) paidTableBody.innerHTML = listings.map(paidListingTableMarkup).join('');
     loadVerifiedTokenLogos(grid);
     if (paidTableBody) loadVerifiedTokenLogos(paidTableBody);
+    void loadPaidListingMetrics(grid, apiRequest);
     return;
   }
   let visible = [...verified];

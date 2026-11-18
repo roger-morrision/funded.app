@@ -5,6 +5,7 @@ import { boostPackageBadgesMarkup } from '../../../boost-card-badges.js';
 import { icon } from '../../../ui-icons.js';
 import { marketFreshness, marketFacts } from '../explore/market-facts.js';
 import { compactLaunchCard } from './compact-launch-card.js';
+import { quickBuyLinksMarkup } from '../trade/quick-buy-presets.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function homeLaunchFeeRouteMarkup(
@@ -281,7 +282,7 @@ export function homeLaunchCardMarkup(
                     ${progressMarkup}
                   </div>
                   ${feeRoute || footerNote ? `<div class="home-card-market-summary">${feeRoute}${footerNote ? `<small class="home-launch-note">${escapeHtml(footerNote)}</small>` : ''}</div>` : ''}
-            <div class="home-launch-card-actions has-buy-presets">${['0.2','0.5','1'].map(amount => `<a class="card-review-buy" data-review-buy="${escapeHtml(item.address || '')}" data-review-amount="${amount}" data-symbol="${escapeHtml(item.symbol || '')}" data-dex="${escapeHtml(item.dexId || '')}" data-quote="${escapeHtml(item.quoteMint || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=${amount}" title="Review a ${amount} SOL buy">Buy ${amount} SOL</a>`).join('')}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
+            <div class="home-launch-card-actions has-buy-presets">${quickBuyLinksMarkup(item, escapeHtml)}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
     </article>`;
 }
 

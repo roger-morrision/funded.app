@@ -7,7 +7,7 @@
       spacing instead of their own borders. */
 :root {
   --calm-label: var(--fv-text-subtle, #77869b);
-  --calm-link: var(--fv-text, #f3f6fa);
+  --calm-link: #f5c451;
   --calm-selected-bg: var(--fv-surface-raised, #182233);
   --calm-selected-border: #3b4a60;
   --calm-chip-bg: #ffffff0d;
@@ -145,7 +145,7 @@ html body #sidebar#sidebar .nav-item.active, html body #sidebar#sidebar .nav-ite
   border-color: transparent !important; outline-color: transparent;
   box-shadow: inset 3px 0 0 var(--fv-text) !important; color: var(--fv-text) !important; background: var(--calm-selected-bg) !important;
 }
-html body #sidebar#sidebar .nav-item.active .nav-icon { color: var(--fv-text) !important; }
+/* Active items keep their own icon colour (set below). */
 html body #sidebar#sidebar .nav-live-count { background: var(--calm-selected-border); color: var(--fv-text); }
 
 /* ---------- 3. Token header: one card, spacing inside ---------- */
@@ -312,3 +312,59 @@ html body.page-route-overview #main-content#main-content .home-market-ticker-ite
 /* Top 100: the status line keeps its height, so "Refreshing rankings…" never shifts the table. */
 html body #main-content#main-content #top100 .top100-status { display: block !important; min-height: 1.5em; margin-block: 8px; line-height: 1.5em; }
 html body #main-content#main-content #top100 .top100-status:empty::before { content: '\00a0'; }
+
+/* ---------- Quick buy: table Buy menu and profile amounts ---------- */
+html body #main-content#main-content .quick-buy-menu-host { position: relative; display: inline-flex; }
+html body .quick-buy-menu { z-index: 60; display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--calm-selected-border); border-radius: 8px; background: var(--fv-surface-raised); box-shadow: 0 12px 28px #0008; }
+html body .quick-buy-menu[hidden] { display: none !important; }
+html body .quick-buy-menu a.card-review-buy { display: block; width: 100%; text-align: left; white-space: nowrap; }
+html body .quick-buy-toggle span { margin-left: 4px; font-size: 10px; }
+html body #main-content#main-content .quick-buy-settings { margin-top: 20px; padding: 20px; }
+html body #main-content#main-content .quick-buy-settings p { color: var(--fv-text-muted); font-size: 13px; }
+html body #main-content#main-content .quick-buy-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+html body #main-content#main-content .quick-buy-fields label { display: grid; gap: 6px; color: var(--calm-label); font-size: 12px; }
+html body #main-content#main-content .quick-buy-input { display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--calm-selected-border); border-radius: 8px; background: var(--fv-bg); }
+html body #main-content#main-content .quick-buy-input input { flex: 1; min-width: 0; min-height: 40px; border: 0; background: transparent; color: var(--fv-text); font: 500 14px var(--fv-font-data); }
+html body #main-content#main-content .quick-buy-input b { color: var(--calm-label); font-size: 12px; }
+html body #main-content#main-content .quick-buy-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 700px) { html body #main-content#main-content .quick-buy-fields { grid-template-columns: 1fr; } }
+
+/* ---------- Listing cards: star top right, basic metrics ---------- */
+html body #main-content#main-content .paid-listing-card { position: relative; }
+html body #main-content#main-content .paid-listing-card .paid-listing-star { position: absolute; top: 12px; right: 12px; z-index: 2; min-width: 36px; min-height: 36px; }
+html body #main-content#main-content .paid-listing-card .home-card-info { padding-right: 44px; }
+html body #main-content#main-content .paid-listing-metrics { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--fv-border); }
+html body #main-content#main-content .paid-listing-metrics dt { color: var(--calm-label); font-size: 12px; }
+html body #main-content#main-content .paid-listing-metrics dd { margin: 2px 0 0; font: 600 14px/1.3 var(--fv-font-data); }
+html body #main-content#main-content .paid-listing-metrics dd small { display: block; font-size: 11px; }
+html body #main-content#main-content .paid-listing-metrics dd small.is-positive { color: var(--fv-success); }
+html body #main-content#main-content .paid-listing-metrics dd small.is-negative { color: var(--fv-danger); }
+html body #main-content#main-content .paid-listing-metrics [data-metric="cap"] dd { color: #8fb2f0; }
+html body #main-content#main-content .paid-listing-metrics [data-metric="volume"] dd { color: #f1c873; }
+html body #main-content#main-content .paid-listing-metrics [data-metric="holders"] dd { color: #b79cf2; }
+
+/* ---------- Sidebar and phone bar: one colour per menu icon ---------- */
+html body :is(#sidebar .nav-item, .mobile-navigation-links > a) :is(.nav-icon, svg) { color: var(--nav-icon, var(--fv-text-muted)) !important; }
+html body :is(#sidebar .nav-item, .mobile-navigation-links > a):is([href="#overview"]) { --nav-icon: #f5c451; }
+html body :is(#sidebar .nav-item, .mobile-navigation-links > a):is([href="#explore"]) { --nav-icon: #8fb2f0; }
+html body #sidebar .nav-item[href="#top100"] { --nav-icon: #f59e6b; }
+html body :is(#sidebar .nav-item, .mobile-navigation-links > a):is([href="#portfolio"], [href="#my-launches"]) { --nav-icon: #b79cf2; }
+html body :is(#sidebar .nav-item, .mobile-navigation-links > a):is([href="#rewards"], [href="#payments"]) { --nav-icon: #9ad97a; }
+html body #sidebar .nav-item[href="#calls"] { --nav-icon: #f28bc3; }
+html body #sidebar .nav-item[href="#creators"] { --nav-icon: #5fd4e8; }
+html body #sidebar .nav-item[href="#referrals"] { --nav-icon: #b79cf2; }
+html body #sidebar .nav-item[href="#bonuses"] { --nav-icon: #5fd4e8; }
+html body #sidebar .nav-item[href="#airdrops"] { --nav-icon: #7cc4fa; }
+html body #sidebar .nav-item[href="#leaderboard"] { --nav-icon: #f1c873; }
+html body #sidebar .nav-item[href="/rich"] { --nav-icon: #f5c451; }
+html body #sidebar .nav-item[href="#analytics-detail"] { --nav-icon: #8fb2f0; }
+html body #sidebar .nav-item[href="#list"] { --nav-icon: #f59e6b; }
+html body #sidebar .nav-item[href="#marketing-agency"] { --nav-icon: #f28bc3; }
+html body #sidebar .nav-item:is([href="/welcome"], [href="#docs"]) { --nav-icon: #a8b2bc; }
+/* Card and row titles are gold like headlines: hero cards, Rewards rows and linked rows, small card headings. */
+html body #main-content#main-content :is(.hero-benefit-tags li > strong, .earnings-row > summary > strong, a.earnings-row > strong, h4) { color: var(--calm-headline) !important; }
+/* Text links ("How rankings work →", "View burn proof ↗") are gold everywhere. */
+html body #main-content#main-content :is(.top100-method-link a, .paid-listing-proof, .text-link, .field-help a, p a:not(.primary-button):not(.secondary-button):not(.card-review-buy)) { color: var(--calm-link) !important; }
+/* Remaining text links found by the page audit, so every link reads the same gold. */
+html body #main-content#main-content :is(.coin-breadcrumb > a, .list-back, .docs-guide-link, .proof-totals-head > a, .support-shortcuts > a,
+  .portfolio-related > a, .callout-author, .preview-status-drawer > a, .purpose-page-nav > a:not([aria-current])) { color: var(--calm-link) !important; }
