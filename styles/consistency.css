@@ -204,13 +204,8 @@ html body #main-content .docs-guide-article .docs-guide-body { font-size: 15px; 
 /* Featured projects follow the Home hero before the remaining sections. */
 html body.page-route-overview #main-content > .home-featured { order: 1; }
 
-/* Explore: on wide screens the public payout records sit in a right column beside the feed. */
-@media (min-width: 1400px) {
-  html body.page-route-explore #main-content #explore.explore-page:not([hidden]) { display: grid !important; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: repeat(5, auto) 1fr; column-gap: 20px; align-items: start; }
-  html body #main-content #explore.explore-page > * { grid-column: 1; min-width: 0; }
-  html body #main-content #explore.explore-page > #explore-public-records { grid-column: 2; grid-row: 1 / span 6; position: sticky; top: 84px; margin: 0; }
-  html body #main-content #explore #explore-public-records :is(#explore-payout-stats, .explore-payout-grid, .explore-benefit-leaders) { grid-template-columns: 1fr; }
-}
+/* Explore: the feed uses the full width; rankings and payout totals live on Top 100 and Rewards. */
+html body #main-content #explore .explore-benefit-leaders[hidden] { display: none !important; }
 
 /* Reading width: descriptive text stops at a comfortable line length; tables and grids stay wide. */
 html body #main-content :is(.section-heading p:not(.eyebrow), .panel-explainer, .explore-lede, .projects-lede, .airdrop-intro, .workspace-page-header > p, #route-guide-description, .bonus-hero p, .callouts-head p) { max-width: 72ch; }

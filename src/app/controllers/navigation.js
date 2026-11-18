@@ -1,4 +1,4 @@
-import {PAGE_ROUTE_TARGETS, MERGED_PAGE_ROUTES} from '../page-routes.js';
+import {PAGE_ROUTE_TARGETS, MERGED_PAGE_ROUTES, PUBLIC_ROUTE_NAMES, PUBLIC_ROUTE_ALIASES} from '../page-routes.js';
 import {routeGroup} from '../route-group.js';
 // Dependencies and mutable application state are read live through appState.
 export function createNavigationController(appState) {
@@ -150,7 +150,7 @@ export function createNavigationController(appState) {
     if (hash.startsWith('docs/')) return 'docs';
     if (hash === 'funded-holder-token-rewards' || /^payments\/(history|holders|activity|creator|x)$/.test(hash)) return 'payments';
     // Shared links often use the sidebar label instead of the route name.
-    const labelRoutes = { top300: 'top100', rewards: 'payments', portfolio: 'my-launches', listing: 'list', listings: 'list', 'get-listed': 'list', leaderboards: 'leaderboard', referral: 'referrals', airdrop: 'airdrops', 'daily-bonuses': 'bonuses', analytics: 'analytics-detail', help: 'docs' };
+    const labelRoutes = { ...PUBLIC_ROUTE_ALIASES, 'coin-calls': 'callouts', top300: 'top100', listing: 'list', listings: 'list', 'get-listed': 'list', leaderboards: 'leaderboard', referral: 'referrals', airdrop: 'airdrops', 'daily-bonuses': 'bonuses', analytics: 'analytics-detail', help: 'docs' };
     if (labelRoutes[hash]) return labelRoutes[hash];
     return PAGE_ROUTE_TARGETS[hash] ? MERGED_PAGE_ROUTES[hash] || hash : 'overview';
   }
@@ -169,6 +169,9 @@ export function createNavigationController(appState) {
     if(location.hash==='#status'||/^\/status\/?$/.test(location.pathname)){
       location.replace('/admin#admin-service-status');return;
     }
+    // Older links use internal route keys; show the page's public name instead.
+    const publicName = PUBLIC_ROUTE_NAMES[location.hash.slice(1)];
+    if (publicName) history.replaceState(history.state, '', `${location.pathname}${location.search}#${publicName}`);
     // Only actual transitions involving an explicit reward alias request route focus.
     // Same-location data refreshes must preserve a visitor's tab and caret.
     if (location.href !== historyRouteLocation) {
@@ -197,7 +200,8 @@ export function createNavigationController(appState) {
     const navRoute = creatorSupportRoute ? 'creators' : appState.coinRouteRequested() ? 'explore'
       : appState.walletRouteRequested() || requestedHash === 'creator-settings' ? 'my-launches' : route;
     document.querySelectorAll('.nav-item').forEach(item => {
-      const hrefRoute = ['/rich','/funded'].includes(item.getAttribute('href')) ? 'paid' : item.getAttribute('href')?.replace(/^#/, '');
+      const hrefName = item.getAttribute('href')?.replace(/^#/, '');
+      const hrefRoute = ['/rich','/funded'].includes(item.getAttribute('href')) ? 'paid' : PUBLIC_ROUTE_ALIASES[hrefName] || hrefName;
       item.classList.toggle('active', hrefRoute === navRoute);
       if (hrefRoute === navRoute) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
@@ -205,7 +209,7 @@ export function createNavigationController(appState) {
       overview: ['Home', 'Your next step on Solana'],
       explore: ['Explore', 'Verified launches and market signals'],
       top100: ['Top 100', 'Token rankings and sponsored boosts'],
-      callouts: ['Callouts', 'Live calls from verified wallets'],
+      callouts: ['Coin calls', 'Live calls from verified wallets'],
       list: ['Get listed', 'Listing status and token mint check'],
       payments: ['Rewards', 'Eligibility, payments and claims'],
       'analytics-detail': ['Analytics', 'Indexed platform activity'],

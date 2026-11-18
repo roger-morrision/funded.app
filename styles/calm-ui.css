@@ -1,0 +1,184 @@
+/* Calm UI layer, loaded last.
+   1. Amber (--fv-accent) is reserved for the main action on a page (Buy, Connect,
+      the filled primary button). Price moves use green/red, labels grey, and
+      status chips a soft neutral.
+   2. Monospace is for numbers only. Labels are small sentence-case UI text.
+   3. The token header is one card; the stat row and About panel inside it use
+      spacing instead of their own borders. */
+:root {
+  --calm-label: var(--fv-text-subtle, #77869b);
+  --calm-link: var(--fv-text, #f3f6fa);
+  --calm-selected-bg: var(--fv-surface-raised, #182233);
+  --calm-selected-border: #3b4a60;
+  --calm-chip-bg: #ffffff0d;
+  --calm-chip-border: #ffffff1a;
+  --calm-chip-text: var(--fv-text-muted, #a8b2bc);
+}
+
+/* ---------- 2. Labels: UI font, sentence case, no letter-spacing ---------- */
+html body #main-content#main-content :is(
+  .coin-stat-strip > div > span, .coin-fact-ribbon > div > span, .coin-pulse-grid span,
+  .coin-panel-head .data-badge, .section-heading .data-badge, .coin-chart-range-label,
+  .coin-breadcrumb > span, .leaderboard-table-head span, .referral-kpi-grid span,
+  .workspace-metrics span, .wallet-detail-stats span, .paid-reference-metrics span,
+  .home-signal-stat span, .saved-token-metrics small, .home-new-token-ath, .panel-count,
+  .referral-link-box > strong, .route-guide-state, .section-state, .mini-status, .eyebrow,
+  .home-launch-card-stats small, .home-new-token-stats span, .home-featured-stats span
+) {
+  font-family: var(--fv-font-ui, 'Manrope', system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--calm-label);
+}
+html body #main-content#main-content .eyebrow { font-weight: 600; }
+/* The chart panel already names itself ("KATIA · Market cap in USD"). */
+html body #main-content#main-content .coin-chart-panel .coin-panel-head .eyebrow { display: none; }
+html body .site-footer nav > strong, html body footer nav > strong {
+  font-family: var(--fv-font-ui, 'Manrope', system-ui, sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* Words that were set in the data font. */
+html body #main-content#main-content :is(.coin-symbol, .coin-transaction-side, li > b, .earnings-row-action) {
+  font-family: var(--fv-font-ui, 'Manrope', system-ui, sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ---------- 1. Colour roles ---------- */
+/* Text links: readable text colour, underline on hover, never amber. */
+html body #main-content#main-content :is(
+  .text-button, .rewards-help-link, .hero-secondary-action, .home-featured-controls > a,
+  .home-receipts > a, .home-community-heading > a, .top100-method-link > a, .referral-tier-strip > a,
+  .projects-empty-actions > a, .panel-heading > a, header > a, .home-faq-more > summary, .ui-disclosure > summary,
+  .earnings-row-action
+) {
+  color: var(--calm-link);
+}
+html body #main-content#main-content :is(.text-button, .rewards-help-link, .home-receipts > a, .home-community-heading > a,
+  .top100-method-link > a, .referral-tier-strip > a, .panel-heading > a, header > a):hover { text-decoration: underline; text-underline-offset: 3px; }
+/* The secondary hero action is an outline in neutral grey, beside the one amber button. */
+html body #main-content#main-content .hero-actions .hero-secondary-action { border-color: var(--calm-selected-border); background: transparent; }
+html body #main-content#main-content .hero-actions .hero-secondary-action:hover { background: var(--calm-selected-bg); }
+
+/* Headline accents and highlighted words read as plain text. */
+html body #main-content#main-content :is(.home-hero-kicker) { color: var(--fv-text-muted); }
+html body #main-content#main-content :is(.hero-stakeholders li > strong, .home-benefit-value) { color: var(--fv-text); }
+
+/* Status chips (paid listing, boost, pair, holder, "not active yet"): one soft neutral. */
+html body #main-content#main-content :is(
+  .coin-header-label, .home-launch-chip, .home-featured-label, .boost-package-badge, .home-featured-boost,
+  .home-ticker-boost, .pair-chip, .callout-holder, .coin-package-chip
+) {
+  border-color: var(--calm-chip-border) !important;
+  background: var(--calm-chip-bg) !important;
+  color: var(--calm-chip-text) !important;
+}
+/* "Migrated" is the normal state of a listed coin, so it carries no colour either. */
+html body #main-content#main-content .home-launch-chip.is-migrated { color: var(--calm-chip-text) !important; }
+html body #main-content#main-content .pair-chip :is(b, strong, span) { color: var(--fv-text); }
+html body #main-content#main-content li > b { color: var(--calm-label); }
+html body #main-content#main-content .home-new-token-meta strong,
+html body #main-content#main-content .home-new-token-card div > strong { color: var(--fv-text-muted); }
+
+/* Letter avatars are identity, not actions. */
+html body #main-content#main-content :is(.home-featured-logo, .home-token-avatar, .top100-logo) {
+  background: var(--calm-selected-bg);
+  color: var(--fv-text-muted);
+  border-color: var(--calm-chip-border);
+}
+
+/* Buys are green, sells red, wherever a trade direction is shown. */
+html body #main-content#main-content :is(.coin-transaction-row.is-buy .coin-transaction-side, .coin-transaction-row.is-buy .coin-transaction-number) { color: var(--fv-success); }
+html body #main-content#main-content :is(.coin-transaction-row.is-sell .coin-transaction-side, .coin-transaction-row.is-sell .coin-transaction-number) { color: var(--fv-danger); }
+html body #main-content#main-content :is(#coin-pulse-buy-bar, #coin-flow-buy) { background: var(--fv-success); }
+html body #main-content#main-content :is(#coin-pulse-sell-bar, #coin-flow-sell) { background: var(--fv-danger); }
+html body #main-content#main-content .home-new-token-track > i { background: var(--fv-success); }
+
+/* Selected tabs, filters and windows: raised neutral, not amber. */
+html body #main-content#main-content :is(
+  .explore-tabs button.active, .home-launch-tabs button.active, .home-launch-tabs [aria-selected="true"],
+  .home-market-window button.active, .home-market-window [aria-pressed="true"],
+  .top100-page button[aria-pressed="true"], .top100-page button.active,
+  .coin-pulse-periods button.active, .coin-chart-panel button.active, .coin-chart-panel button[aria-pressed="true"],
+  .leaderboard-tabs button.active, .portfolio-view-tabs button.active, .callouts-page button.active, .callouts-page button[aria-pressed="true"]
+) {
+  border-color: var(--calm-selected-border);
+  background: var(--calm-selected-bg);
+  color: var(--fv-text);
+}
+html body #main-content#main-content .ui-tabs [role="tab"][aria-selected="true"] {
+  border-color: var(--calm-selected-border);
+  border-bottom-color: var(--fv-text);
+  color: var(--fv-text);
+}
+/* Trade side: Buy reads green, Sell red. */
+html body #main-content#main-content .coin-side-toggle [data-coin-trade-side="buy"].active { border-color: var(--fv-success); background: color-mix(in srgb, var(--fv-success) 14%, transparent); color: var(--fv-success); }
+html body #main-content#main-content .coin-side-toggle [data-coin-trade-side="sell"].active { border-color: var(--fv-danger); background: color-mix(in srgb, var(--fv-danger) 14%, transparent); color: var(--fv-danger); }
+
+/* Token page secondary actions (Call, Boost) are outlines, not amber. */
+html body #main-content#main-content :is(#coin-call-button, #coin-boost) {
+  border-color: var(--calm-selected-border);
+  background: transparent;
+  color: var(--fv-text);
+}
+
+/* Sidebar: the current page is marked with a light bar and white text. */
+html body #sidebar#sidebar .nav-item.active, html body #sidebar#sidebar .nav-item[aria-current="page"] {
+  border-color: transparent !important; outline-color: transparent;
+  box-shadow: inset 3px 0 0 var(--fv-text) !important; color: var(--fv-text) !important; background: var(--calm-selected-bg) !important;
+}
+html body #sidebar#sidebar .nav-item.active .nav-icon { color: var(--fv-text) !important; }
+html body #sidebar#sidebar .nav-live-count { background: var(--calm-selected-border); color: var(--fv-text); }
+
+/* ---------- 3. Token header: one card, spacing inside ---------- */
+html body #main-content#main-content #coin-page .coin-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px 28px;
+  border: 0;
+  border-top: 1px solid var(--fv-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 16px 0 0;
+}
+html body #main-content#main-content #coin-page .coin-stat-strip > div {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+html body #main-content#main-content #coin-page :is(.coin-stat-strip > div > strong, #coin-price) { color: var(--fv-text); }
+html body #main-content#main-content #coin-page .coin-hero-card :is(.coin-hero-aside, .coin-hero-about, #coin-profile) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html body #main-content#main-content #coin-page .coin-fact-ribbon,
+html body #main-content#main-content #coin-page .coin-fact-ribbon > div {
+  border: 0;
+  background: transparent;
+}
+
+/* ---------- Remaining spots found by the page audit ---------- */
+html body #main-content#main-content .site-footer nav > strong {
+  font-family: var(--fv-font-ui, 'Manrope', system-ui, sans-serif) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+html body #main-content#main-content :is(.top100-page th, .callout-holder, .referral-command-center div > strong) {
+  font-family: var(--fv-font-ui, 'Manrope', system-ui, sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+}
+html body #main-content#main-content :is(.hero-copy-column li > strong, .home-hero-stakeholders li > strong) { color: var(--fv-text) !important; }
+html body #main-content#main-content .home-token-avatar { background: var(--calm-selected-bg) !important; color: var(--fv-text-muted) !important; border-color: var(--calm-chip-border) !important; }
+html body #main-content#main-content :is(.home-launch-board button.active, .home-launch-board button[aria-selected="true"], .portfolio-view-tabs button.active, .portfolio-view-tabs button[aria-selected="true"]) {
+  border-color: var(--calm-selected-border) !important;
+  background: var(--calm-selected-bg) !important;
+  color: var(--fv-text) !important;
+  box-shadow: none !important;
+}
+html body #main-content#main-content .home-launch-board > aside { border-color: var(--fv-border) !important; }

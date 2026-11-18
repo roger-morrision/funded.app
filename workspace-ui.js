@@ -5,6 +5,7 @@ import { launch } from './src/features/workspace/launch.js';
 import { rewards } from './src/features/workspace/rewards.js';
 import { secondaryPages, protocolPage, mergePurposePages } from './src/features/workspace/secondary-pages.js';
 import { tokenPage } from './src/features/workspace/token-page.js';
+import { PUBLIC_ROUTE_ALIASES, publicRouteHash } from './src/app/page-routes.js';
 
 // Workspace composition owns layout and navigation. Financial state remains in its source modules.
 
@@ -28,7 +29,7 @@ function coinTitle() {
 const routeTitle=()=>coinTitle()||`${$('[data-route-label]')?.textContent||'richpad.fun'} · richpad.fun`;
 function syncRoute() {
   const route=location.hash.slice(1)||(/^\/(?:rich|funded)\/?$/.test(location.pathname)?'paid':/^\/list\/?$/.test(location.pathname)?'list':/^\/pilot\/?$/.test(location.pathname)?'launch':/^\/explore\/?$/.test(location.pathname)?'explore':'overview');
-  const mergedRoutes={top300:'top100',pilot:'launch',community:'my-launches',buybacks:'paid','referral-faq':'referrals','payments/history':'payments','payments/holders':'payments','payments/activity':'payments','payments/creator':'payments','payments/x':'payments'};
+  const mergedRoutes={...PUBLIC_ROUTE_ALIASES,top300:'top100',pilot:'launch',community:'my-launches',buybacks:'paid','referral-faq':'referrals','payments/history':'payments','payments/holders':'payments','payments/activity':'payments','payments/creator':'payments','payments/x':'payments'};
   const pageRoute=mergedRoutes[route]|| (route==='funded-holder-token-rewards'?'payments':route.startsWith('docs/')?'docs':route);
   const tokenOrWallet = /^\/(token|wallet|launch\/coin)\//.test(location.pathname) && !location.hash || route.startsWith('coin/');
   const creatorSupportRoute = route==='creators'||/^creator\/\d{1,24}$/.test(route)
@@ -42,9 +43,9 @@ function syncRoute() {
   // Mainnet's "Buy $RICH" tab (relabelled Create) owns the $RICH pages: Burn, $RICH and the $RICH token page.
   const richLink=$$('.mobile-workspace-nav a').find(link=>link.dataset.mainnetLaunch==='buy-rich');
   const richRoute=Boolean(richLink)&&(/^#(buybacks|paid)$/.test(location.hash)||(!location.hash&&location.pathname===new URL(richLink.href,location.origin).pathname));
-  $$('.mobile-workspace-nav a').forEach(link=>{const on=link===richLink?richRoute:!richRoute&&link.hash===`#${mobileRoute}`;if(on)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
+  $$('.mobile-workspace-nav a').forEach(link=>{const on=link===richLink?richRoute:!richRoute&&link.hash===publicRouteHash(mobileRoute);if(on)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   $$('[data-purpose-route]').forEach(link=>{const active=link.dataset.purposeRoute===route||(!location.hash&&link.dataset.purposeRoute===pageRoute);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
-  const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(route))target.hidden=true;
+  const target=$('#route-guide');if(target&&['payments','my-launches','community','profile'].includes(pageRoute))target.hidden=true;
   if(route==='funded-holder-token-rewards'){
     $('#rewards-funded-tab')?.click();
     requestAnimationFrame(()=>{

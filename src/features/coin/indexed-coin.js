@@ -160,7 +160,7 @@ function applyNumbers(appState, data) {
   if (Number.isFinite(data.priceChangePercent)) appState.setCoinField('#coin-change', `${data.priceChangePercent.toFixed(2)}% · 24h`);
   // Header strip: 24h volume (USD) and trades from the DEX index, plus burned supply.
   const volumeLabel = globalThis.document?.querySelector('#coin-strip-volume')?.previousElementSibling;
-  if (volumeLabel) volumeLabel.textContent = '24h volume · USD';
+  if (volumeLabel) volumeLabel.textContent = '24h volume';
   appState.setCoinField('#coin-strip-volume', Number.isFinite(data.volume24hUsd) ? appState.formatCompactUsd(data.volume24hUsd) : '—');
   const trades = Number(data.buyCount24h) + Number(data.sellCount24h);
   appState.setCoinField('#coin-strip-trades', Number.isFinite(trades) ? trades.toLocaleString('en-US') : '—');

@@ -48,15 +48,12 @@ function explore() {
   const hero=$('#explore .explore-hero');
   if(hero&&!$('#explore-community-links')){
     const links=document.createElement('nav');links.id='explore-community-links';links.className='task-page-links';links.setAttribute('aria-label','Explore community');
-    links.innerHTML='<a href="#callouts">Coin calls</a><a href="#creators">Creators</a><a href="#leaderboard">Rankings</a>';
+    links.innerHTML='<a href="#calls">Coin calls</a><a href="#creators">Creators</a><a href="#leaderboard">Rankings</a>';
     hero.append(links);
   }
   const leaders=$('#explore .explore-benefit-leaders');
-  if(leaders&&!$('#explore-public-records')){
-    const rankings=document.createElement('section');rankings.id='explore-public-records';rankings.className='task-page-disclosure';rankings.setAttribute('aria-labelledby','explore-public-records-title');
-    const heading=document.createElement('h2');heading.id='explore-public-records-title';heading.textContent='Rankings and public payouts';
-    leaders.before(rankings);rankings.append(heading,leaders);
-  }
+  // Rankings and payout totals live on Top 100 and Rewards; the feed keeps the full width.
+  if(leaders)leaders.hidden=true;
   const bar = $('.explore-control-bar');
   const sort = $('#explore-sort');
   const label = sort?.closest('label');
@@ -194,7 +191,7 @@ document.body.classList.add('product-experience-ready');
 function recordRoute() {
   if (location.pathname.startsWith('/token/') || location.hash.startsWith('#coin/')) productEvent('token_view');
   else if (location.hash === '#explore') productEvent('explore_view');
-  else if (location.hash === '#payments') productEvent('rewards_view');
+  else if (/^#(payments|rewards)$/.test(location.hash)) productEvent('rewards_view');
   else if (location.hash === '#launch') productEvent('launch_details');
 }
 window.addEventListener('hashchange', recordRoute); recordRoute();

@@ -71,8 +71,8 @@ export function mountEarningsHub(app, document = globalThis.document) {
 
   renderNext(); void load();
   globalThis.setInterval?.(renderNext, 30_000);
-  globalThis.setInterval?.(() => { if (!document.hidden && location.hash.startsWith('#payments')) void load(); }, 60_000);
+  globalThis.setInterval?.(() => { if (!document.hidden && /^#(payments|rewards)/.test(location.hash)) void load(); }, 60_000);
   globalThis.addEventListener?.('funded:reward-identity-change', () => { loadedFor = null; void load(); });
-  globalThis.addEventListener?.('hashchange', () => { if (location.hash.startsWith('#payments')) void load(); });
+  globalThis.addEventListener?.('hashchange', () => { if (/^#(payments|rewards)/.test(location.hash)) void load(); });
   return true;
 }

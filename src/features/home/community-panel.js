@@ -37,7 +37,7 @@ export function mountHomeCommunity(app, document = globalThis.document) {
   while(board.firstChild) coins.append(board.firstChild);
   board.append(coins); board.classList.add('home-discovery-layout');
   const panel=document.createElement('aside');panel.id='home-community';panel.setAttribute('aria-labelledby','home-community-title');panel.setAttribute('data-inline-status','');
-  panel.innerHTML=`<header class="home-community-heading"><h2 id="home-community-title">Calls</h2><a href="#callouts">Open calls ↗</a></header>
+  panel.innerHTML=`<header class="home-community-heading"><h2 id="home-community-title">Coin calls</h2><a href="#calls">Open coin calls ↗</a></header>
     <div class="home-community-feed" tabindex="0" aria-label="Recent calls"><p class="home-community-empty">Loading calls…</p></div>`;
   board.append(panel);
   const feed=panel.querySelector('.home-community-feed');

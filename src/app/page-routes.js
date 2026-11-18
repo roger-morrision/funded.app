@@ -22,3 +22,7 @@ export const PAGE_ROUTE_TARGETS = {
     status: '#status',
   };
 export const MERGED_PAGE_ROUTES = {community: 'my-launches', buybacks: 'paid'};
+// Address-bar names match the sidebar labels; the internal route keys stay as they are.
+export const PUBLIC_ROUTE_NAMES = {payments: 'rewards', 'my-launches': 'portfolio', callouts: 'calls'};
+export const PUBLIC_ROUTE_ALIASES = Object.fromEntries(Object.entries(PUBLIC_ROUTE_NAMES).map(([route, name]) => [name, route]));
+export const publicRouteHash = route => `#${PUBLIC_ROUTE_NAMES[route] || route}`;

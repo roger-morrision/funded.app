@@ -9,7 +9,7 @@ const PAGES = [
   { path: '/#portfolio', title: /^Portfolio/ },
   { path: '/#rewards', title: /^Rewards/ },
   { path: '/#payments', title: /^Rewards/ },
-  { path: '/#callouts', title: /^Callouts/ },
+  { path: '/#calls', title: /^Coin calls/ },
   { path: '/#creators', title: /^Creators/ },
   { path: '/#referrals', title: /^Referrals/ },
   { path: '/#bonuses', title: /^Daily bonuses/ },

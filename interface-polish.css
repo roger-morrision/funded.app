@@ -16,7 +16,7 @@ body.page-route .sidebar .primary-nav :is(.nav-item, summary) {
   letter-spacing: 0 !important;
   text-transform: none !important;
 }
-body.page-route .sidebar .primary-nav > :is(a[href='#my-launches'], a[href='#payments']) { display: flex !important; }
+body.page-route .sidebar .primary-nav > :is(a[href='#my-launches'], a[href='#payments'], a[href='#portfolio'], a[href='#rewards']) { display: flex !important; }
 body.page-route .nav-more-menu .nav-item { min-height: 40px; }
 body.page-route :is(button, a, input, select, textarea, summary):focus-visible {
   outline: 2px solid #ffd28a !important;
@@ -68,7 +68,7 @@ body.page-route .launch-optional-socials > h3 {
 body.page-route .launch-optional-socials > h3 span { color: var(--muted); font-weight: 400; }
 body.page-route .launch-optional-socials .social-grid { padding: 4px 0 14px; }
 /* Route themes must not hide primary destinations at intermediate widths. */
-body.page-route #sidebar .primary-nav > :is(a[href='#my-launches'], a[href='#payments']) { display: flex !important; }
+body.page-route #sidebar .primary-nav > :is(a[href='#my-launches'], a[href='#payments'], a[href='#portfolio'], a[href='#rewards']) { display: flex !important; }
 body.page-route :is(.primary-button, .hero-secondary-action, .create-coin-button) > span[aria-hidden='true'] {
   font-family: system-ui, sans-serif;
 }

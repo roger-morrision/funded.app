@@ -20,15 +20,8 @@ export function mountMetricAccents(root = document.querySelector('#main-content'
     const group = value.closest('article, .home-kpi-card, .your-home-stat, .scanner-metric, .proof-total') || value.parentElement;
     const position = Array.prototype.indexOf.call(group.parentElement?.children || [], group);
     const trend = value.closest('.is-negative,.negative') ? 'negative' : value.closest('.is-positive,.positive') ? 'positive' : '';
-    let tone = metricTone(value.textContent, Math.max(0, position), trend);
-    if (tone !== 'muted' && !trend && !/^[+−-]/.test(value.textContent.trim())) {
-      if (value.matches('.home-new-token-market strong,.payment-amount strong,.reward-history-amount strong,#coin-price')) tone = 'success';
-      if (value.matches('.home-new-token-holders strong')) tone = 'info';
-      if (value.matches('.home-new-token-progress strong,.home-launch-progress-heading strong,.scanner-airdrop strong')) tone = 'accent';
-      if (value.matches('.home-new-token-market > span:last-child')) tone = 'violet';
-    }
-    const ranking = value.closest('[data-explore-leader-sort]')?.dataset.exploreLeaderSort;
-    if (tone !== 'muted' && ranking) tone = ({volume:'success',airdrop:'accent','holder-fee':'info','x-fee':'violet'})[ranking] || tone;
+    // Green and red mean up and down only; prices, caps, holders and progress stay in the text colour.
+    const tone = metricTone(value.textContent, Math.max(0, position), trend);
     if (value.dataset.metricAccent !== tone) {
       value.dataset.metricAccent = tone;
       // Inline color bridges legacy page-specific selectors without more !important rules.
