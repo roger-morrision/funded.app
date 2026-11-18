@@ -290,5 +290,13 @@ html body #main-content#main-content .referral-list-table td { white-space: nowr
 
 /* ---------- Headlines in gold on every page ---------- */
 :root { --calm-headline: #f5c451; }
-html body #main-content#main-content :is(h1, h2),
+html body #main-content#main-content :is(h1, h2, h3),
 html body #main-content#main-content .home-featured-controls > a { color: var(--calm-headline) !important; }
+/* Paused fee shares are listed without a "not active yet" suffix. */
+html body [data-fixed-fee-category][data-agency-state="paused"] dt::after { content: none !important; }
+/* Home hero second action: Explore coins on desktop, Launch coin on phones. */
+html body #main-content#main-content .hero-actions .hero-launch-mobile { display: none !important; }
+@media (max-width: 700px) {
+  html body #main-content#main-content .hero-actions .hero-launch-mobile { display: inline-flex !important; }
+  html body #main-content#main-content .hero-actions .hero-explore-desktop { display: none !important; }
+}

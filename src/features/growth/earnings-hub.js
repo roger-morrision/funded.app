@@ -25,19 +25,19 @@ export function mountEarningsHub(app, document = globalThis.document) {
   const running = { holder: null, bonus: null };
   void getJSON('/api/rewards/automatic').then(data => { running.holder = data ? data.status === 'active' : null; renderNext(); });
   void getJSON('/api/daily-bonus').then(data => { running.bonus = data ? data.payoutEnabled === true : null; renderNext(); });
+  // Only payouts that are switched on are listed; switched-off ones are simply left out.
   function renderNext() {
     const now = Date.now();
-    const off = 'Not active yet';
-    next.replaceChildren(...[
-      ['Holder SOL rewards', running.holder === false ? off : `in ${countdown(nextUtcHour(now), now)}`,
-        running.holder === false ? 'Starts when automatic holder payouts are switched on' : 'Automatic each completed UTC hour, from that hour’s collected fees'],
-      ['Daily bonus snapshot', running.bonus === false ? off : `in ${countdown(nextUtcMidnight(now), now)}`,
-        running.bonus === false ? 'Starts when daily bonus payouts are switched on' : 'Top 3 per category paid automatically after checks'],
-    ].map(([title, when, detail]) => {
+    const rows = [
+      running.holder !== false && ['Holder SOL rewards', `in ${countdown(nextUtcHour(now), now)}`, 'Automatic each completed UTC hour, from that hour’s collected fees'],
+      running.bonus !== false && ['Daily bonus snapshot', `in ${countdown(nextUtcMidnight(now), now)}`, 'Top 3 per category, paid after 00:00 UTC'],
+    ].filter(Boolean);
+    next.replaceChildren(...rows.map(([title, when, detail]) => {
       const item = el(document, 'li');
       item.append(el(document, 'strong', null, title), el(document, 'b', null, when), el(document, 'small', null, detail));
       return item;
     }));
+    if (next.parentElement) next.parentElement.hidden = !rows.length;
   }
 
   async function load() {

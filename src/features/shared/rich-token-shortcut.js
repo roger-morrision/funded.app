@@ -44,8 +44,15 @@ export function mountWalletMenuNotifications(document = globalThis.document) {
 // links (sidebar, phone bar, Home hero) become "Buy $RICH".
 export const MAINNET_LAUNCH_NOT_READY = 'Launching coins on richpad.fun is not ready yet. Nothing was signed or sent. You can still trade and list existing coins.';
 export function mountMainnetLaunchRedirects(richHref, document = globalThis.document) {
+  // Home hero: desktop keeps "Explore coins" (the header has "Launch coin"); phones,
+  // whose header has no room for it, get "Launch coin" in the hero instead.
   const hero = document.querySelector('.hero-actions a.hero-secondary-action[href="#explore"]');
-  if (hero) { hero.textContent = 'Launch coin'; hero.href = '#launch'; hero.dataset.mainnetLaunch = 'launch'; }
+  if (hero && !document.querySelector('.hero-launch-mobile')) {
+    hero.classList.add('hero-explore-desktop');
+    const launch = Object.assign(document.createElement('a'), { className: 'hero-secondary-action hero-launch-mobile', href: '#launch', textContent: 'Launch coin' });
+    launch.dataset.mainnetLaunch = 'launch';
+    hero.after(launch);
+  }
   const notReady = event => {
     const action = event.target?.closest?.('[data-launch-action]');
     const submit = event.type === 'submit' && event.target?.id === 'launch-form';

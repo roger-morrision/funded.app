@@ -193,7 +193,7 @@ export function initBonusDashboard(document = globalThis.document) {
     if (!clockBase) {
       const now = Date.now();
       // No countdown while bonus data is unavailable (e.g. Mainnet before the program runs).
-      clock.textContent = qaSchedule ? '—:—:—' : inactive ? 'Not active yet' : bonusCountdown(nextUtcCutoff(now), now, 0);
+      clock.textContent = qaSchedule ? '—:—:—' : inactive ? '—:—:—' : bonusCountdown(nextUtcCutoff(now), now, 0);
       return;
     }
     const elapsed = view.performance.now() - clockBase.started;
