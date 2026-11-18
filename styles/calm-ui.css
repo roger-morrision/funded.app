@@ -197,3 +197,47 @@ html body #main-content#main-content :is(.home-launch-board button.active, .home
   box-shadow: none !important;
 }
 html body #main-content#main-content .home-launch-board > aside { border-color: var(--fv-border) !important; }
+
+/* ---------- Fee distribution: one colour per destination, on every page ---------- */
+:root {
+  --fee-creator: #a8d9bf; --fee-holders: #9ad97a; --fee-x: #8fb2f0; --fee-reserve: #7cc4fa;
+  --fee-operations: #f1c873; --fee-referrals: #b79cf2; --fee-community: #5fd4e8;
+  --fee-buyback: #f59e6b; --fee-agency: #f28bc3;
+}
+:is([data-fee-category], [data-fixed-fee-category], [data-protocol-destination], [data-fee-benefit], [class*="fee-share-"])
+  { --fee: var(--fv-text); }
+:is([data-fee-category="creator"], [data-fixed-fee-category="creator"], [data-protocol-destination="creator"], [data-fee-benefit="creator"], .fee-share-creator) { --fee: var(--fee-creator); }
+:is(.fee-share-holders, [data-fee-benefit="holders"]) { --fee: var(--fee-holders); }
+:is(.fee-share-x, [data-fee-benefit="x"]) { --fee: var(--fee-x); }
+:is([data-fee-category="operations"], [data-fixed-fee-category="operations"], [data-protocol-destination="operations"], [data-fee-benefit="operations"], .fee-share-operations) { --fee: var(--fee-operations); }
+:is([data-fee-category="referrals"], [data-fixed-fee-category="referrals"], [data-protocol-destination="referrals"], [data-fee-benefit="referrals"], .fee-share-referrals) { --fee: var(--fee-referrals); }
+:is([data-fee-category="community"], [data-fixed-fee-category="community"], [data-protocol-destination="community"], [data-fee-benefit="community"], .fee-share-bonus) { --fee: var(--fee-community); }
+:is([data-fee-category="buyback"], [data-fixed-fee-category="buyback"], [data-protocol-destination="buyback"], [data-fee-benefit="buyback"], .fee-share-buyback) { --fee: var(--fee-buyback); }
+:is([data-fee-category="agency"], [data-fixed-fee-category="agency"], [data-protocol-destination="agency"], [data-fee-benefit="agency"], .fee-share-agency) { --fee: var(--fee-agency); }
+/* Cards and rows: a coloured edge and percentage. */
+html body #main-content#main-content :is([data-fee-category], [data-protocol-destination], [data-fee-benefit]) { border-left: 3px solid var(--fee) !important; }
+html body #main-content#main-content :is([data-fee-category], [data-protocol-destination], [data-fee-benefit]) > strong,
+html body #main-content#main-content [data-fixed-fee-category] > dd,
+html body #main-content#main-content .saved-fee-legend [class*="fee-share-"] > strong { color: var(--fee) !important; }
+html body #main-content#main-content [data-fixed-fee-category] > dt::before,
+html body #main-content#main-content .saved-fee-legend [class*="fee-share-"] > i {
+  content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; background: var(--fee) !important;
+}
+html body #main-content#main-content .saved-fee-bar > [class*="fee-share-"] { background: var(--fee) !important; color: #0b0d1a; }
+/* Home "Where collected fees go" cards, keyed by where each one links. */
+html body #main-content#main-content .home-benefit-value { color: var(--fee, var(--fv-text)) !important; }
+html body #main-content#main-content a:has(> .home-benefit-value) { border-left: 3px solid var(--fee, var(--fv-border)) !important; }
+html body #main-content#main-content a[href="#launch"]:has(> .home-benefit-value) { --fee: var(--fee-creator); }
+html body #main-content#main-content a[href="#airdrops"]:has(> .home-benefit-value) { --fee: var(--fee-reserve); }
+html body #main-content#main-content a[href="#buybacks"]:has(> .home-benefit-value) { --fee: var(--fee-buyback); }
+html body #main-content#main-content a[href="#bonuses"]:has(> .home-benefit-value) { --fee: var(--fee-community); }
+html body #main-content#main-content a[href="#referrals"]:has(> .home-benefit-value) { --fee: var(--fee-referrals); }
+html body #main-content#main-content a[href="#marketing-agency"]:has(> .home-benefit-value) { --fee: var(--fee-agency); }
+
+/* ---------- Coin calls: the same figure colours as everywhere else ---------- */
+html body #main-content#main-content .callout-token-row > span:has(> i) { color: var(--fv-text); }
+html body #main-content#main-content .callout-token-row > span:nth-of-type(1):has(> i) { color: #8fb2f0; }
+html body #main-content#main-content .callout-token-row > span:nth-of-type(2):has(> i) { color: #b79cf2; }
+html body #main-content#main-content .callout-token-row > span > i { color: var(--calm-label); font-style: normal; }
+html body #main-content#main-content .callout-pnl[data-trend="up"] { color: var(--fv-success) !important; }
+html body #main-content#main-content .callout-pnl[data-trend="down"] { color: var(--fv-danger) !important; }
