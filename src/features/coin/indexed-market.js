@@ -17,7 +17,7 @@ export function renderIndexedMarket(appState, market, mint, now = Date.now()) {
   // DEX feeds rarely carry holders; keep the count the holders endpoint set.
   if (market.holders != null) appState.setCoinField('#coin-holder-count',String(market.holders));
   appState.setCoinField('#coin-trade-count',market.tradeCount24h == null ? '—' : String(market.tradeCount24h));
-  appState.setCoinField('#coin-change',market.priceChangePercent == null ? '—' : `${market.priceChangePercent.toFixed(2)}% · 24h`);
+  appState.setCoinField('#coin-change',market.priceChangePercent == null ? '—' : `${market.priceChangePercent > 0 ? '+' : ''}${market.priceChangePercent.toFixed(2)}% · 24h`);
   const provider=market.source==='dexscreener'?'DexScreener':'Birdeye';
   appState.setCoinField('#coin-market-cap-source',`${provider} · indexed market data`);
   appState.setCoinField('#coin-volume-source',`${provider} · 24h indexed volume`);

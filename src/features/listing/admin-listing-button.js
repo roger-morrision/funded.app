@@ -30,6 +30,11 @@ export function mountAdminListingButton({ anchor, getSession, onListed, setStatu
     button.disabled = busy;
     button.textContent = busy ? 'Listing…' : 'List for free (admin)';
   };
+  // Signing in (or switching wallets) changes the server's answer; check again at once
+  // instead of keeping a "not admin" result from before the signature.
+  const recheck = () => { Object.assign(status, { wallet: null, admin: false, checkedAt: 0 }); update(current); };
+  globalThis.addEventListener?.('funded:wallet-authenticated', recheck);
+  globalThis.addEventListener?.('funded:reward-identity-change', recheck);
   button.addEventListener('click', async () => {
     const mint = current.mint;
     if (!mint || busy || !status.admin) return;

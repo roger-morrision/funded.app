@@ -6,6 +6,7 @@ import { revealPortfolioFocus } from './focus-visibility.js';
 import { holdingImageUrl } from './holdings-metadata.js';
 import { tokenArtworkUrl } from '../shared/token-artwork.js';
 import { tokenIdentityMarkup, rememberTokenIdentity, solUsdPrice } from '../shared/token-identity.js';
+import { icon } from '../../../ui-icons.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function renderPortfolio(
@@ -55,7 +56,7 @@ export function renderPortfolio(
     const holdingValue = unitUsd == null ? null : holding.quantity * unitUsd;
     if (holdingValue != null) { pricedCount += 1; total += holdingValue; }
     const launch=verifiedLaunchPolicyForMint(holding.mint);
-    const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, fundedMint:PROTOCOL_FUNDED_MINT});
+    const identity = portfolioTokenIdentity(holding.mint, {asset, launch, metadata:holding.metadata, market:holding.market, fundedMint:PROTOCOL_FUNDED_MINT});
     const image=holding.mint===PROTOCOL_FUNDED_MINT?'/richpad-mark.svg':(launch?.onchainVerified ? tokenArtworkUrl(holding.mint,holdingImageUrl(launch.imageUri)) : null)||holdingImageUrl(holding.metadata?.image)||holdingImageUrl(asset?.imageUri)||holdingImageUrl(holding.market?.logoUri);
     return `<a class="portfolio-holding-row" href="/token/${encodeURIComponent(holding.mint)}"><span class="portfolio-holding-token"><span class="portfolio-holding-logo" aria-hidden="true">${escapeHtml(identity.label==='Unnamed token'?'?':identity.label.replace(/^\$/,'').slice(0,2))}${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`:''}</span><span class="portfolio-holding-identity"><strong>${escapeHtml(identity.label)}</strong><small>${escapeHtml(identity.description)}</small><small class="portfolio-token-address" title="${escapeHtml(holding.mint)}">${escapeHtml(identity.address)}</small></span></span><span>${escapeHtml(formatOnChainNumber(holding.quantity, 6))}</span><span>${holdingValue == null ? '—' : escapeHtml(formatDashboardUsd(holdingValue))}</span><span title="Complete cost basis unavailable">—</span></a>`;
   }).join('') || `<div class="empty-state">${!address ? 'Connect a wallet to see token holdings.' : portfolioHoldings.status === 'loading' ? 'Checking live Solana balances…' : portfolioHoldings.status === 'unavailable' ? `Token balances are unavailable from Solana RPC. ${escapeHtml(portfolioHoldings.reason || 'Select Refresh to retry.')}` : partial ? 'Some token balances could not be checked. Select Refresh to retry.' : 'No SPL token holdings in this wallet.'}</div>`;
@@ -65,7 +66,7 @@ export function renderPortfolio(
   const history=portfolioTradeHistory?.wallet===address?portfolioTradeHistory:null;
   for (const trade of trades) if (Number.isInteger(trade.decimals)) decimalsByMint.set(trade.mint,trade.decimals);
   const observed = matchedTradePnl(trades, decimalsByMint);
-  for (const holding of portfolioHoldings?.holdings || []) if (holding.market?.symbol) rememberTokenIdentity(holding.mint, holding.market);
+  for (const holding of holdings) if (holding.market?.symbol) rememberTokenIdentity(holding.mint, holding.market);
   const solUsd = solUsdPrice();
   const usdText = sol => solUsd > 0 && Number.isFinite(Number(sol)) ? formatDashboardUsd(Number(sol) * solUsd) : '—';
   pnl.textContent = observed.matchedSales ? `${observed.pnlSol >= 0 ? '+' : ''}${formatOnChainNumber(observed.pnlSol, 5)} SOL` : '—';
@@ -78,7 +79,7 @@ export function renderPortfolio(
       const timestamp = Number(trade.blockTime) * 1000;
       const decimals = decimalsByMint.get(trade.mint);
       const raw = String(trade.tokenAmountRaw ?? '');
-      const quantity = Number.isInteger(decimals) && /^\\d+$/.test(raw) ? Number(raw) / 10 ** decimals : NaN;
+      const quantity = Number.isInteger(decimals) && /^\d+$/.test(raw) ? Number(raw) / 10 ** decimals : NaN;
       const tokenAmount = Number.isFinite(quantity) ? formatOnChainNumber(quantity, 6) : '—';
       const receiptUrl = exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`);
       // Share this trade's banner (quantity, SOL, and for a matched sale its P&L).

@@ -36,7 +36,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) appState.setCoinField(selector, wholeUsd(data.marketCapUsd));
     appState.setCoinField('#coin-volume', wholeUsd(data.volume24hUsd)); appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? wholeUsd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
     appState.setCoinField('#coin-liquidity-label', 'Liquidity');
-    appState.setCoinField('#coin-change', Number.isFinite(data.priceChangePercent) ? `${data.priceChangePercent.toFixed(2)}% · 24h` : '24h —');
+    appState.setCoinField('#coin-change', Number.isFinite(data.priceChangePercent) ? `${data.priceChangePercent > 0 ? '+' : ''}${data.priceChangePercent.toFixed(2)}% · 24h` : '24h —');
     appState.setCoinField('#coin-market-cap-label', 'Market cap');
     appState.setCoinField('#coin-market-cap-source', `${data.source === 'birdeye' ? 'Birdeye' : data.source === 'jupiter' ? 'Jupiter' : 'DexScreener'} · indexed market data`);
     appState.setCoinField('#coin-description', data.dexId ? `Trading on ${data.dexId}${data.launchpad ? ` · launched on ${data.launchpad}` : ''}. Swaps route through Jupiter.` : 'Swaps route through Jupiter.');
@@ -97,7 +97,7 @@ function prefillFromExplore(appState, mint) {
   if (cap != null) for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) appState.setCoinField(selector, whole(cap));
   if (volume != null) appState.setCoinField('#coin-volume', whole(volume));
   if (liquidity != null) appState.setCoinField('#coin-liquidity', whole(liquidity));
-  if (change != null) appState.setCoinField('#coin-change', `${change.toFixed(2)}% · 24h`);
+  if (change != null) appState.setCoinField('#coin-change', `${change > 0 ? '+' : ''}${change.toFixed(2)}% · 24h`);
 }
 
 const readTrades = (appState, mint) => appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/trades`, { signal: AbortSignal.timeout(15000) })
@@ -157,7 +157,7 @@ function applyNumbers(appState, data) {
   for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) if (Number.isFinite(data.marketCapUsd)) appState.setCoinField(selector, usd(data.marketCapUsd));
   if (Number.isFinite(data.volume24hUsd)) appState.setCoinField('#coin-volume', usd(data.volume24hUsd));
   appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? usd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
-  if (Number.isFinite(data.priceChangePercent)) appState.setCoinField('#coin-change', `${data.priceChangePercent.toFixed(2)}% · 24h`);
+  if (Number.isFinite(data.priceChangePercent)) appState.setCoinField('#coin-change', `${data.priceChangePercent > 0 ? '+' : ''}${data.priceChangePercent.toFixed(2)}% · 24h`);
   // Header strip: 24h volume (USD) and trades from the DEX index, plus burned supply.
   const volumeLabel = globalThis.document?.querySelector('#coin-strip-volume')?.previousElementSibling;
   if (volumeLabel) volumeLabel.textContent = '24h volume';

@@ -275,6 +275,8 @@ html body #top100 .top100-filter-toggle { display: none; }
 html body #main-content .home-kpi-mainnet-note{margin:12px 0 0;padding:14px 16px;border:1px solid var(--fv-border);border-radius:var(--fv-radius-md,10px);background:var(--fv-surface);color:var(--fv-text-subtle);line-height:1.5}
 /* Favorite star beside the rank, same toggle as Explore cards. */
 .top100-rank-cell{display:inline-flex;align-items:center;gap:6px}
+/* Rank first, then the favorite star; a fixed width keeps stars aligned from 1 to 100. */
+.top100-rank-cell .top100-rank-number{min-width:3ch;text-align:right;font-variant-numeric:tabular-nums}
 .top100-table .top100-watch{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;padding:0;border:0;background:none;color:var(--fv-text-subtle);cursor:pointer}
 .top100-table .top100-watch svg{width:16px;height:16px}
 .top100-table .top100-watch.active{color:var(--cp-accent,#f5b400)}

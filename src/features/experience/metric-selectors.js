@@ -8,7 +8,7 @@ export const metricSelector = [
   '#explore-benefit-leaders strong', '.explore-market-kpis strong',
   '.explore-payout-grid article > strong', '.scanner-metric', '.scanner-metric strong',
   '.coin-stat-strip strong', '.coin-summary-value strong', '.coin-burn-metrics strong', '#coin-price', '#coin-change', '#coin-curve-progress',
-  '.coin-pulse-grid strong', '.portfolio-holding-row > span:not(:first-child)',
+  '.coin-pulse-grid strong', '.portfolio-holding-row > span:not(:first-child)', '.top100-cap', '.top100-volume',
   '.coin-my-rewards-stats strong', '.holder-rewards-grid strong',
   '.analytics-kpis strong', '.proof-total strong', '.verified-metrics strong',
   '.fee-distribution-categories > article > strong', '.support-metrics article strong',

@@ -39,7 +39,7 @@ export function initMarketingAgency(document = globalThis.document) {
   const loadLogos=()=>page.querySelectorAll('.agency-token-link[data-logo-mint]').forEach(link=>loadTokenArtwork(link.querySelector('.agency-token-logo'),link.dataset.logoMint));
   const oldHistory=page.querySelector('[data-agency-history]'),historyContainer=document.createElement('div');
   historyContainer.dataset.agencyHistory='';historyContainer.textContent=oldHistory.textContent;oldHistory.replaceWith(historyContainer);
-  const nav = document.querySelector('.primary-nav'), anchor = nav?.querySelector('a[href="#capital-flow"]');
+  const nav = document.querySelector('.primary-nav'), anchor = nav?.querySelector('a[href="#capital-flow"]') || nav?.querySelector('a[href="#list"]');
   if (nav && !nav.querySelector('a[href="#marketing-agency"]')) {
     const link = document.createElement('a'); link.href = '#marketing-agency'; link.className = 'nav-item';
     const icon = document.createElement('span'); icon.className = 'nav-icon'; icon.setAttribute('aria-hidden', 'true'); icon.textContent = '✦';

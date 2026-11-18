@@ -20,7 +20,18 @@ function refreshAdmin(appState, wallet) {
     });
 }
 
+// Signing in (or switching wallets) changes the server's answer; check again at once
+// instead of keeping a "not admin" result from before the signature.
+let lastAppState = null;
+const recheck = () => {
+  Object.assign(status, { wallet: null, admin: false, checkedAt: 0 });
+  lastAppState?.renderExploreBoostDialog?.();
+};
+globalThis.addEventListener?.('funded:wallet-authenticated', recheck);
+globalThis.addEventListener?.('funded:reward-identity-change', recheck);
+
 export function decorateAdminBoost(appState, details) {
+  lastAppState = appState;
   const session = appState.captureWalletSession?.();
   const live = session && (typeof appState.isWalletSessionCurrent === 'function' ? appState.isWalletSessionCurrent(session) : true);
   const wallet = live ? session.address : null;

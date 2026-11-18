@@ -78,6 +78,21 @@ html body #main-content#main-content :is(
 }
 /* "Migrated" is the normal state of a listed coin, so it carries no colour either. */
 html body #main-content#main-content .home-launch-chip.is-migrated { color: var(--calm-chip-text) !important; }
+/* Each tag type keeps one colour on every page: tint, soft border, same-hue text. */
+html body #main-content#main-content :is(.home-launch-chip, .coin-header-label, .home-featured-label, .boost-package-badge,
+  .home-featured-boost, .home-ticker-boost, .pair-chip, .callout-holder):is(*) {
+  --tag: var(--calm-chip-text);
+  color: var(--tag) !important;
+  border-color: color-mix(in srgb, var(--tag) 38%, transparent) !important;
+  background: color-mix(in srgb, var(--tag) 12%, transparent) !important;
+}
+html body #main-content#main-content :is(.home-launch-chip, .coin-header-label).is-migrated { --tag: #5fd4e8; }
+html body #main-content#main-content :is(.home-launch-chip, .coin-header-label).is-dex-paid { --tag: #8fb2f0; }
+html body #main-content#main-content :is(.home-launch-chip, .coin-header-label, .home-featured-label).is-listed,
+html body #main-content#main-content .home-featured-label { --tag: #f1c873; }
+html body #main-content#main-content :is(.boost-package-badge, .home-featured-boost, .home-ticker-boost) { --tag: #f59e6b; }
+html body #main-content#main-content .pair-chip { --tag: #b79cf2; }
+html body #main-content#main-content .callout-holder { --tag: #9ad97a; }
 html body #main-content#main-content .pair-chip :is(b, strong, span) { color: var(--fv-text); }
 html body #main-content#main-content li > b { color: var(--calm-label); }
 html body #main-content#main-content .home-new-token-meta strong,
@@ -150,7 +165,7 @@ html body #main-content#main-content #coin-page .coin-stat-strip > div {
   padding: 0;
   box-shadow: none;
 }
-html body #main-content#main-content #coin-page :is(.coin-stat-strip > div > strong, #coin-price) { color: var(--fv-text); }
+html body #main-content#main-content #coin-page #coin-price { color: var(--fv-text); }
 html body #main-content#main-content #coin-page .coin-hero-card :is(.coin-hero-aside, .coin-hero-about, #coin-profile) {
   border: 0;
   background: transparent;
