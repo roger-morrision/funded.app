@@ -241,3 +241,38 @@ html body #main-content#main-content .callout-token-row > span:nth-of-type(2):ha
 html body #main-content#main-content .callout-token-row > span > i { color: var(--calm-label); font-style: normal; }
 html body #main-content#main-content .callout-pnl[data-trend="up"] { color: var(--fv-success) !important; }
 html body #main-content#main-content .callout-pnl[data-trend="down"] { color: var(--fv-danger) !important; }
+/* Home: Trending ticker, New coins volume and the Coin calls panel use the same figure colours. */
+html body #main-content#main-content .home-ticker-mc:not(.is-unknown) { color: #8fb2f0 !important; }
+html body #main-content#main-content .home-new-token-volume strong { color: #f1c873 !important; }
+html body #main-content#main-content .home-community-token > span:nth-child(3):has(> i) { color: #8fb2f0; }
+html body #main-content#main-content .home-community-token > span:nth-child(4):has(> i) { color: #b79cf2; }
+html body #main-content#main-content .home-community-token > span > i { color: var(--calm-label); font-style: normal; }
+
+/* ---------- Referrals: My referral list table ---------- */
+html body #main-content#main-content .referral-list-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px 24px; margin: 16px 0; padding: 16px 0; border-block: 1px solid var(--fv-border); }
+html body #main-content#main-content .referral-list-summary span { display: block; color: var(--calm-label); font-size: 12px; }
+html body #main-content#main-content .referral-list-summary strong { font: 600 18px/1.3 var(--fv-font-data); }
+html body #main-content#main-content .referral-list-summary [data-role="holders"] strong { color: #b79cf2; }
+html body #main-content#main-content .referral-list-summary [data-role="trades"] strong { color: #9ad97a; }
+html body #main-content#main-content .referral-list-summary [data-role="cap"] strong { color: #8fb2f0; }
+html body #main-content#main-content .referral-list-summary [data-role="success"] strong { color: var(--fv-success); }
+html body #main-content#main-content .referral-list-summary [data-role="volume"] strong { color: #f1c873; }
+html body #main-content#main-content .referral-list-scroll { overflow-x: auto; }
+html body #main-content#main-content .referral-list-table { width: 100%; min-width: 860px; border-collapse: collapse; }
+html body #main-content#main-content .referral-list-table th { padding: 10px 12px; color: var(--calm-label); font: 500 12px var(--fv-font-ui); text-align: left; border-bottom: 1px solid var(--fv-border); }
+html body #main-content#main-content .referral-list-table td { padding: 12px; border-bottom: 1px solid var(--fv-border); color: var(--fv-text); font-size: 13px; vertical-align: middle; }
+html body #main-content#main-content .referral-list-table :is(th, td).numeric { text-align: right; font-family: var(--fv-font-data); }
+html body #main-content#main-content .referral-list-table td small.referral-level { display: block; margin-top: 2px; color: var(--calm-label); font-size: 12px; }
+html body #main-content#main-content .referral-list-table td.is-trades { color: #9ad97a; }
+html body #main-content#main-content .referral-list-table td.is-volume { color: #f1c873; }
+html body #main-content#main-content .referral-list-table td.is-cap { color: #8fb2f0; }
+html body #main-content#main-content .referral-list-table td.is-earned { color: var(--fv-success); }
+html body #main-content#main-content .referral-list-table td.is-claimable { color: #f59e6b; }
+html body #main-content#main-content .referral-claim-chip { --tag: var(--calm-chip-text); display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  color: var(--tag); border: 1px solid color-mix(in srgb, var(--tag) 38%, transparent); background: color-mix(in srgb, var(--tag) 12%, transparent); }
+html body #main-content#main-content .referral-claim-chip.is-unclaimed { --tag: #f59e6b; }
+html body #main-content#main-content .referral-claim-chip.is-claimed { --tag: var(--fv-success); }
+html body #main-content#main-content .referral-claim-note { margin-top: 12px; color: var(--fv-text-muted); font-size: 13px; }
+html body #main-content#main-content .referral-list-table th.numeric { font-family: var(--fv-font-ui); }
+html body #main-content#main-content .referral-list-table td:first-child a { white-space: nowrap; }
+html body #main-content#main-content .referral-list-table td { white-space: nowrap; }

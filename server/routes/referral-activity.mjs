@@ -3,6 +3,7 @@ import { cleanShareSource, recordShareVisit, summarizeShareVisits } from '../sha
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { validateInput } from '../http-policy.mjs';
 import {v3ReferralEntitlement} from '../v3-referral-entitlement.mjs';
+import {referralRows} from '../referral-rows.mjs';
 
 function referralNetworkForWallet(state, wallet) {
   return resolveReferralNetwork(wallet, state.referrals.attributions, 3);
@@ -73,12 +74,7 @@ export function createReferralActivityRoutes({ store, body, clientKey, walletKey
       const direct = Object.values(state.referrals.attributions).filter(item => item.inviterWallet === wallet);
       const directCreatorsBySource = {};
       for (const item of direct) directCreatorsBySource[cleanShareSource(item.source)] = (directCreatorsBySource[cleanShareSource(item.source)] || 0) + 1;
-      const parents=new Map(Object.values(state.referrals.attributions).map(row=>[row.wallet,row.inviterWallet]));
-      const referrals=[...new Set(network)].filter(address=>address!==wallet).map(address=>{
-        let parent=parents.get(address),level=1;
-        while(parent!==wallet&&level<3){parent=parents.get(parent);level++;}
-        return {wallet:address,level,qualified:qualified.has(address)};
-      }).sort((a,b)=>a.level-b.level||a.wallet.localeCompare(b.wallet));
+      const referrals=referralRows({state,wallet,network,qualified,cleanShareSource,entitlement:v3ReferralEntitlement});
       // Who referred this wallet (first-touch attribution), shown on the Referrals page.
       const invitedBy = state.referrals.attributions[wallet];
       const referrer = invitedBy?.status === 'active' && invitedBy.inviterWallet

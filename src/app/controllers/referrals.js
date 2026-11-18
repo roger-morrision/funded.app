@@ -243,7 +243,7 @@ function updateReferralStatus(state){
     if (!appState.isWalletSessionCurrent(session)) return;
     appState.renderShareInsights(dashboardResult);
     renderReferrer(dashboardResult.available && dashboardResult.data?.wallet === walletAddress ? dashboardResult.data.referrer : null);
-    updateReferralList(dashboardResult.available&&dashboardResult.data?.wallet===walletAddress?dashboardResult.data:null);
+    updateReferralList(dashboardResult.available&&dashboardResult.data?.wallet===walletAddress?dashboardResult.data:null,'unavailable');
     if (dashboardResult.available) {
       const creators = Number(dashboardResult.data.networkCreators || 0);
       appState.renderReferralActivityEmpty(creators > 0 ? 'Network summary available' : 'No qualified activity yet', creators > 0
