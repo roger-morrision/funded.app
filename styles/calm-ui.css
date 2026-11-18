@@ -165,7 +165,7 @@ html body #main-content#main-content #coin-page .coin-stat-strip > div {
   padding: 0;
   box-shadow: none;
 }
-html body #main-content#main-content #coin-page #coin-price { color: var(--fv-text); }
+html body #main-content#main-content #coin-page #coin-price { color: var(--fv-success) !important; }
 html body #main-content#main-content #coin-page .coin-hero-card :is(.coin-hero-aside, .coin-hero-about, #coin-profile) {
   border: 0;
   background: transparent;

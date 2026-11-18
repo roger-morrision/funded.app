@@ -8,6 +8,7 @@ const colors = { neutral:'var(--fv-text)', info:'var(--fv-info)', success:'var(-
 
 // Figure kind → colour role. Green/red stay reserved for signed changes.
 const ROLES = [
+  ['success', '#coin-price'],
   ['cap', '#coin-strip-market-cap, #coin-market-cap, .home-new-token-market strong, .home-launch-cap strong, .home-featured-stats .is-cap strong'],
   ['liquidity', '#coin-liquidity, .home-launch-liquidity strong'],
   ['holders', '#coin-holder-count, .home-new-token-holders strong, .home-launch-holders strong'],
