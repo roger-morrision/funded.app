@@ -58,23 +58,39 @@ export function createReferralsController(appState) {
   // app-source-end
 
   // app-source: 236
-  async function syncServerReferralState({ register = true } = {}){
+  // Signed-in wallet → its invite code (uses the sign-in session, no signature).
+  const registering = new Map();
+  async function registerWallet(session, registrationKey){
+    const walletAddress = session.address;
+    const prepared = await appState.apiRequest('/api/referrals/registration/prepare', { method: 'POST', body: { wallet: walletAddress } });
+    if (!prepared.available) throw new Error('Invite links are unavailable right now. Try again shortly.');
+    appState.assertWalletSessionCurrent(session);
+    const verified = await appState.apiRequest('/api/referrals/registration/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, useWalletSession: true } });
+    appState.assertWalletSessionCurrent(session);
+    if (!appState.normalizeReferralCode(verified.data?.code)) throw new Error('Invite link could not be created. Try again.');
+    localStorage.setItem(registrationKey, JSON.stringify(verified.data)); localStorage.setItem(`funded.app.referral.code.${walletAddress}`, verified.data.code);
+    appState.updateReferralLink();
+  }
+  // interactive=false (after sign-in) never prompts the wallet: it only uses an
+  // existing sign-in session, so the invite link is ready before anyone asks.
+  async function syncServerReferralState({ register = true, interactive = true } = {}){
     const session = appState.captureWalletSession();
     const walletAddress = session?.address;
-    if (!session || session.provider.remoteMobile || typeof session.provider.signMessage !== 'function') return;
+    if (!session) return;
     try {
-      await appState.ensureReferralSession(session, { interactive: true });
+      const ready = await appState.ensureReferralSession(session, { interactive: interactive && !session.provider.remoteMobile });
+      if (!ready) {
+        if (!interactive) return;
+        throw new Error(session.provider.remoteMobile ? 'Open richpad.fun in your wallet app’s browser to sign in and get your invite link.' : 'Approve the free sign-in message in your wallet to get your invite link.');
+      }
       const registrationKey = `${appState.REFERRAL_SERVER_KEY_PREFIX}${walletAddress}`;
       let registered = null;
       try { registered = JSON.parse(localStorage.getItem(registrationKey) || 'null'); } catch {}
-      if (register && !registered?.code) {
-        const prepared = await appState.apiRequest('/api/referrals/registration/prepare', { method: 'POST', body: { wallet: walletAddress } });
-        if (!prepared.available) return;
-        appState.assertWalletSessionCurrent(session);
-        const verified = await appState.apiRequest('/api/referrals/registration/verify', { method: 'POST', body: { challengeId: prepared.data.challengeId, wallet: walletAddress, useWalletSession: true } });
-        appState.assertWalletSessionCurrent(session);
-        if (verified.data?.code) { registered = verified.data; localStorage.setItem(registrationKey, JSON.stringify(registered)); localStorage.setItem(`funded.app.referral.code.${walletAddress}`, registered.code); }
-      }
+      // A cached record without a valid code (e.g. from an older build) is re-registered.
+      if (register && !appState.normalizeReferralCode(registered?.code)) await (registering.get(walletAddress) || (() => {
+        const task = registerWallet(session, registrationKey).finally(() => registering.delete(walletAddress));
+        registering.set(walletAddress, task); return task;
+      })());
       const attribution = appState.getAppReferralAttribution();
       if (attribution?.code && attribution.wallet === walletAddress && !attribution.serverVerified) {
         const prepared = await appState.apiRequest('/api/referrals/attribution/prepare', { method: 'POST', body: { wallet: walletAddress, code: attribution.code, source:attribution.source || 'direct' } });
@@ -119,6 +135,8 @@ export function createReferralsController(appState) {
       authenticatedIdentity = identity;
       void appState.restoreWalletFavorites();
       window.dispatchEvent(new Event('funded:wallet-authenticated'));
+      // Signed in: create this wallet's invite link now, with no extra approval.
+      void appState.syncServerReferralState?.({ interactive: false })?.catch(() => {});
     } else if (!ready) authenticatedIdentity = null;
     appState.updateTokenChatComposerState();
     return ready;
