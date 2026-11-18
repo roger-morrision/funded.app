@@ -22,7 +22,7 @@ export const MAINNET_NON_PROGRAM_POSTS=Object.freeze(new Set([
 // Wallet-signed token chat (post, delete own, report) and its session handshake.
 export const MAINNET_NON_PROGRAM_POST_PATTERNS=Object.freeze([
   // Phantom-on-phone QR relay: passes requests between this tab and the phone wallet, which signs.
-  /^\/api\/mobile-wallet\/(?:callback|relay|sign|sign-request|trade|trade-request|trade-refresh)\/[a-f0-9]{48}$/,
+  /^\/api\/mobile-wallet\/(?:callback|relay|sign|sign-request|trade|trade-request|trade-refresh|next)\/[a-f0-9]{48}$/,
   /^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/chat(?:\/(?:delete|report|like))?$/,
   /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/,
 ]);

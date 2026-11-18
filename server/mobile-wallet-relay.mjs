@@ -131,6 +131,20 @@ button.addEventListener('click',async()=>{button.disabled=true;try{const provide
   return { html, nonce };
 }
 
+// Shown on the phone after Phantom approves a connection. If the desktop asks
+// for a sign-in right away, this page opens it in Phantom: no second scan.
+function connectedPage(id, nonce) {
+  return `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>richpad.fun · Phantom connected</title><style>body{font:16px system-ui;padding:2rem;background:#15121f;color:#fff;max-width:34rem;margin:auto}a{display:block;margin-top:1.2rem;padding:1rem;border-radius:.7rem;background:#f4a340;color:#171125;font-weight:700;text-align:center;text-decoration:none}p{line-height:1.5;color:#d4cce5}</style><h1>Wallet connected</h1><p id="status">Waiting for the richpad.fun desktop tab… Keep this page open to sign in without scanning again.</p><a id="next" hidden>Continue to sign in</a><script nonce="${nonce}">
+const status=document.querySelector('#status'),next=document.querySelector('#next'),until=Date.now()+180000;let opened=false;
+async function poll(){try{const response=await fetch('/api/mobile-wallet/next/${id}',{cache:'no-store'});const data=response.ok?await response.json():{status:'expired'};
+if(data.status==='ready'){next.href=data.openUrl;next.hidden=false;status.textContent='The desktop asked you to sign in. Tap Continue, then approve the message in Phantom.';if(!opened){opened=true;location.href=data.openUrl}}
+else if(data.status==='complete'){next.hidden=true;status.textContent='Signed in. Return to the richpad.fun desktop tab. You can close this page.';return}
+else if(data.status==='expired'){next.hidden=true;status.textContent='Return to the richpad.fun desktop tab. You can close this page.';return}}catch{}
+if(Date.now()<until)setTimeout(poll,1500);else status.textContent='Return to the richpad.fun desktop tab. You can close this page.'}
+poll();
+</script>`;
+}
+
 export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBlockhash = null, getFinalizedTransaction = null } = {}) {
   if (!appOrigin || new URL(appOrigin).origin !== appOrigin) throw new Error('A fixed app origin is required for mobile wallet callbacks.');
   const flows = new Map();
@@ -146,7 +160,8 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
       const trade = url.pathname.match(/^\/api\/mobile-wallet\/(trade|trade-request|trade-refresh)\/([a-f0-9]{48})$/);
       const tradeStatus = url.pathname.match(/^\/api\/mobile-wallet\/trade-status\/([a-f0-9]{48})$/);
       const browserScript = url.pathname === '/api/mobile-wallet/web3.js';
-      if (!register && !match && !sign && !linkRoute && !trade && !tradeStatus && !browserScript) return false;
+      const next = url.pathname.match(/^\/api\/mobile-wallet\/next\/([a-f0-9]{48})$/);
+      if (!register && !match && !sign && !linkRoute && !trade && !tradeStatus && !browserScript && !next) return false;
       sweep();
       if (browserScript && req.method === 'GET') {
         res.writeHead(200, { 'content-type':'text/javascript; charset=utf-8', 'cache-control':'public, max-age=86400', 'x-content-type-options':'nosniff' });
@@ -177,6 +192,31 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         }
         flows.set(input.id, { pollToken: input.pollToken, expiresAt: now() + FLOW_TTL_MS, result: null, signRequest: signRequest || null, transactionRequest:transactionRequest || null, preSigned: Boolean(transactionRequest && coSignatures(parseTransaction(Buffer.from(transactionRequest.transaction, 'base64')), transactionRequest.publicKey).length), submittedSignature:null, outcome:null, nextStatusCheckAt:0 });
         reply(res, 201, { callbackUrl: `${appOrigin}/api/mobile-wallet/callback/${input.id}`, expiresInSeconds: FLOW_TTL_MS / 1000 });
+        return true;
+      }
+      // One scan: after Phantom approves a connection, the desktop hands its first
+      // signing request to that connection; the phone page still open from the
+      // connect callback picks it up and opens the signer in Phantom.
+      if (next && req.method === 'POST') {
+        const flow = flows.get(next[1]);
+        const provided = String(req.headers['x-mobile-wallet-token'] || '');
+        if (req.headers.origin !== appOrigin || !flow || flow.signRequest || flow.transactionRequest || !flow.result || flow.result.errorCode || flow.next || !POLL_TOKEN.test(provided) || !timingSafeEqual(Buffer.from(provided), Buffer.from(flow.pollToken))) { reply(res, 404, { error:'Wallet request unavailable.' }); return true; }
+        const input = await readBody(req);
+        const target = FLOW_ID.test(input.next || '') ? flows.get(input.next) : null;
+        if (!target?.signRequest || target.result) { reply(res, 400, { error:'Invalid signing request.' }); return true; }
+        flow.next = input.next;
+        reply(res, 200, { status:'handed-off' });
+        return true;
+      }
+      if (next && req.method === 'GET') {
+        const flow = flows.get(next[1]);
+        const target = flow?.next ? flows.get(flow.next) : null;
+        res.setHeader('cache-control', 'no-store');
+        if (!flow || flow.signRequest || flow.transactionRequest) { reply(res, 404, { error:'Wallet request unavailable.' }); return true; }
+        if (!target) { reply(res, 200, { status: flow.next ? 'expired' : 'pending' }); return true; }
+        if (target.result) { reply(res, 200, { status:'complete' }); return true; }
+        const signerUrl = `${appOrigin}/api/mobile-wallet/sign/${flow.next}`;
+        reply(res, 200, { status:'ready', openUrl:`https://phantom.app/ul/browse/${encodeURIComponent(signerUrl)}?ref=${encodeURIComponent(appOrigin)}` });
         return true;
       }
       if (linkRoute?.[1] === 'link' && req.method === 'POST') {
@@ -357,6 +397,12 @@ export function createMobileWalletRelay({ appOrigin, now = Date.now, getLatestBl
         const accepted = Boolean(flow && !flow.result && result);
         if (accepted) flow.result = result;
         const message = accepted ? 'Return to the richpad.fun desktop tab. You can close this page.' : 'This wallet request expired or could not be completed. Start again on the desktop.';
+        if (accepted && !result.errorCode && !flow.signRequest && !flow.transactionRequest) {
+          const nonce = randomBytes(18).toString('base64');
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'content-security-policy': `default-src 'none'; connect-src 'self'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'` });
+          res.end(connectedPage(match[2], nonce));
+          return true;
+        }
         res.writeHead(accepted ? 200 : 400, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'" });
         res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Phantom approval</title><body style="font:16px system-ui;padding:2rem;background:#15121f;color:#fff"><h1>Phantom approval received</h1><p>${message}</p></body>`);
         return true;

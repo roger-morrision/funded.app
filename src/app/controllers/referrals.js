@@ -78,10 +78,10 @@ export function createReferralsController(appState) {
     const walletAddress = session?.address;
     if (!session) return;
     try {
-      const ready = await appState.ensureReferralSession(session, { interactive: interactive && !session.provider.remoteMobile });
+      const ready = await appState.ensureReferralSession(session, { interactive });
       if (!ready) {
         if (!interactive) return;
-        throw new Error(session.provider.remoteMobile ? 'Open richpad.fun in your wallet app’s browser to sign in and get your invite link.' : 'Approve the free sign-in message in your wallet to get your invite link.');
+        throw new Error('Approve the free sign-in message in your wallet to get your invite link.');
       }
       const registrationKey = `${appState.REFERRAL_SERVER_KEY_PREFIX}${walletAddress}`;
       let registered = null;

@@ -32,6 +32,18 @@ export function createMobileWalletController({
     const qrLabel = document.querySelector('#mobile-wallet-qr-label');
     const alternate = document.querySelector('#mobile-wallet-alternate');
     if (alternate) alternate.hidden = phase !== 'sign';
+    if (phase === 'sign-handoff') {
+      dialog.querySelector('h2').textContent = 'Sign in on your phone';
+      const steps = dialog.querySelectorAll('.mobile-wallet-steps span');
+      if (steps.length === 3) { steps[0].textContent = 'Phantom opens the sign-in on your phone (or tap Continue there)'; steps[1].textContent = 'Tap Connect and sign the message'; steps[2].textContent = 'Return to this desktop'; }
+      mobileWalletLink = link;
+      message.textContent = 'No need to scan again: your phone continues from the connection you just approved. If nothing opens there, scan this QR instead.';
+      qr.src = `https://quickchart.io/qr?size=320&margin=2&text=${encodeURIComponent(qrLink)}`;
+      qr.alt = 'Scan to open richpad.fun signer in Phantom'; qr.hidden = false;
+      qrLabel.textContent = 'Waiting for the signature from Phantom · expires in 5 minutes';
+      if (!dialog.open) { if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', ''); }
+      return;
+    }
     dialog.querySelector('h2').textContent = phase === 'connect' ? 'Connect Phantom to this desktop' : phase === 'sign-fallback' ? 'Approve the message in Phantom' : phase === 'transaction' ? 'Review the Solana trade in Phantom' : 'Approve the claim in Phantom';
     const steps = dialog.querySelectorAll('.mobile-wallet-steps span');
     if (steps.length === 3) {
@@ -70,7 +82,7 @@ export function createMobileWalletController({
     }
     throw new Error('Phantom approval expired. Start a new wallet request.');
   }
-  async function createMobileWalletProvider(session){
+  async function createMobileWalletProvider(session, { handoff = null } = {}){
     const { verifyPhantomMobileSession, verifyPhantomMobileSignature, verifyPhantomMobileTransaction } = await import('../../../phantom-mobile-crypto.js');
     verifyPhantomMobileSession(session, window.location.origin);
     const { PublicKey } = await getSolana();
@@ -119,7 +131,11 @@ export function createMobileWalletController({
         const version = ++mobileWalletRequestVersion;
         const signerUrl = `${window.location.origin}/api/mobile-wallet/sign/${flow.id}`;
         const browseLink = `https://phantom.app/ul/browse/${encodeURIComponent(signerUrl)}?ref=${encodeURIComponent(window.location.origin)}`;
-        showMobileWalletRequest(browseLink, 'sign-fallback');
+        // First signature right after connecting: the phone page from the connect
+        // approval opens it, so no second scan. The QR stays as a fallback.
+        const connectFlow = handoff && Date.now() < handoff.expiresAt ? handoff : null; handoff = null;
+        const handedOff = connectFlow ? await apiRequest(`/api/mobile-wallet/next/${connectFlow.id}`, { method:'POST', headers:{ 'x-mobile-wallet-token':connectFlow.pollToken }, body:{ next:flow.id } }).then(() => true, () => false) : false;
+        showMobileWalletRequest(browseLink, handedOff ? 'sign-handoff' : 'sign-fallback');
         try {
           const signed = await waitForMobileWalletFlow(flow, version);
           const signature = verifyPhantomMobileSignature(bytes, signed.signature, session.publicKey);
@@ -147,7 +163,7 @@ export function createMobileWalletController({
       const sharedSecret = nacl.box.before(bs58.decode(result.phantom_encryption_public_key), keyPair.secretKey);
       const approved = decryptPhantomMobileResult(result, sharedSecret);
       const session = verifyPhantomMobileSession({ publicKey:approved.public_key, session:approved.session, secretKey:bs58.encode(keyPair.secretKey), phantomPublicKey:result.phantom_encryption_public_key }, window.location.origin);
-      const provider = await createMobileWalletProvider(session);
+      const provider = await createMobileWalletProvider(session, { handoff:flow });
       storage().setItem(MOBILE_WALLET_SESSION_KEY, JSON.stringify(session));
       allowWalletReconnect();
       activateWallet(provider, 'Phantom mobile wallet connected', { interactiveSignIn });
