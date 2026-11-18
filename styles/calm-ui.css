@@ -309,3 +309,6 @@ html body.page-route-overview #main-content#main-content .home-market-ticker {
 html body.page-route-overview #main-content#main-content .home-market-ticker-heading { grid-column: 1 !important; grid-row: 1 !important; min-width: 0; }
 html body.page-route-overview #main-content#main-content .home-market-ticker-arrows { grid-column: 2 !important; grid-row: 1 !important; }
 html body.page-route-overview #main-content#main-content .home-market-ticker-items { grid-column: 1 / -1 !important; grid-row: 2 !important; min-width: 0; }
+/* Top 100: the status line keeps its height, so "Refreshing rankings…" never shifts the table. */
+html body #main-content#main-content #top100 .top100-status { display: block !important; min-height: 1.5em; margin-block: 8px; line-height: 1.5em; }
+html body #main-content#main-content #top100 .top100-status:empty::before { content: '\00a0'; }

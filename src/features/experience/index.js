@@ -2,7 +2,6 @@ import { mountMetricMotion } from './metric-motion.js';
 import { mountGetStarted } from './get-started.js';
 import { mountCompactExploreControls } from '../explore/compact-controls.js';
 import { mountProfileLayout } from '../workspace/profile-layout.js';
-import { mountTop100ColumnsWhenReady } from '../explore/top100-columns.js';
 import { mountGrowthFeatures } from '../growth/index.js';
 import { mountMetricAccents } from './metric-accents.js';
 import { initializeDiscoveryIntent } from './discovery-intent.js';
@@ -70,7 +69,6 @@ export function initializeProductFlows(app) {
     mountGetStarted(app);
     mountCompactExploreControls();
     mountProfileLayout();
-    mountTop100ColumnsWhenReady();
     mountGrowthFeatures(app);
     mountMetricAccents();
     mountMetricMotion();

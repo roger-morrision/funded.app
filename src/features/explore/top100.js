@@ -1,9 +1,9 @@
-import {boostPackageBadgesMarkup} from '../../../boost-card-badges.js';
-import {icon} from '../../../ui-icons.js';
 import {top100Template} from './top100-template.js';
 import {top100Records, rankTop100} from './top100-model.js';
 import {readTop100Url, top100Search} from './top100-url.js';
 import {loadTokenArtwork} from '../shared/token-artwork.js';
+import {exploreTableMarkup} from './explore-table-view.js';
+import {withMarketWindow, enrichMarketRecord} from '../../../market-intelligence.js';
 
 export function initializeTop100(appState) {
   const root = document.querySelector('#top100');
@@ -30,12 +30,6 @@ export function initializeTop100(appState) {
     const search = top100Search(location.search, filters);
     if (search !== location.search) history.replaceState(history.state, '', `${location.pathname}${search}${location.hash}`);
   };
-  const money = value => value == null ? '—' : new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2, notation:Math.abs(value) >= 10000 ? 'compact' : 'standard'}).format(value);
-  const signed = (value, format = value=>value.toLocaleString()) => value==null?'—':`${value>0?'+':''}${format(value)}`;
-  const age = hours => hours == null ? '—' : hours < 1 ? `${Math.floor(hours * 60)}m` : hours < 24 ? `${Math.floor(hours)}h` : `${Math.floor(hours / 24)}d`;
-  const remaining = at => {const minutes=Math.max(1,Math.ceil((at-Date.now())/60000));return minutes<60?`${minutes}m`:`${Math.floor(minutes/60)}h ${minutes%60}m`;};
-  const boostTime = row => row.boostNextExpiry === row.boostExpiresAt ? `${remaining(row.boostExpiresAt)} left`
-    : `Changes in ${remaining(row.boostNextExpiry)} · ends in ${remaining(row.boostExpiresAt)}`;
   function render() {
     clearTimeout(expiryTimer);
     if (!active()) return;
@@ -51,26 +45,33 @@ export function initializeTop100(appState) {
       checked && !community ? '24h ranking metrics unavailable; retry shortly.' : ''].filter(Boolean).join(' · ');
     find('[data-top-refresh]').disabled = busy;
     const rows = result.rows.slice(page * 25, (page + 1) * 25);
-    const favorites = new Set(appState.lastKnownWatchlist || []), favorite = mint => favorites.has(mint);
-    const html = rows.map(row => `<tr${row.boost >= 500 ? ' class="top100-golden"' : ''}>
-          <td class="top100-rank"><span class="top100-rank-cell"><span class="top100-rank-number">${row.rank}</span><button type="button" class="watch-button top100-watch${favorite(row.mint) ? ' active' : ''}" data-top-watch="${esc(row.mint)}" aria-pressed="${favorite(row.mint)}" aria-label="${favorite(row.mint) ? 'Remove' : 'Add'} ${esc(row.symbol || 'token')} ${favorite(row.mint) ? 'from' : 'to'} favorites" title="Favorite">${icon('star')}</button></span></td><th scope="row"><a class="top100-token" href="/token/${esc(row.mint)}"><span class="top100-logo" data-top-logo="${esc(row.mint)}" aria-hidden="true">${esc((row.symbol || 'T').slice(0,1))}</span><span><strong>${esc(row.name || row.symbol || row.mint)}</strong><small>$${esc(row.symbol || '—')} ${appState.verifiedBoostsAvailable ? boostPackageBadgesMarkup(appState.verifiedBoosts?.[row.mint]) : ''}</small></span></a></th>
-          <td><span class="top100-tier">${esc(row.paidListing && row.tier === 'external' ? 'Paid listing' : row.tier.charAt(0).toUpperCase()+row.tier.slice(1))}</span>${filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? `<small class="top100-paid-priority">${row.boost > 0 ? 'Boost priority' : 'Paid priority'}</small>` : ''}</td>
-          <td class="top100-cap">${money(row.capUsd)}</td><td class="${row.capGrowthUsd==null?'':row.capGrowthUsd<0?'top100-negative':'top100-positive'}">${signed(row.capGrowthUsd,money)}</td><td class="top100-volume">${row.volumeUsd != null && row.partial ? '≥' : ''}${money(row.volumeUsd)}</td>
-          <td>${row.trades == null ? '—' : `${row.partial ? '≥' : ''}${row.trades.toLocaleString()}`}</td><td class="${row.change == null ? '' : row.change < 0 ? 'top100-negative' : 'top100-positive'}">${row.change == null ? '—' : `${row.change > 0 ? '+' : ''}${row.change.toFixed(2)}%`}</td>
-          <td>${row.holders == null ? '—' : row.holders.toLocaleString()}</td><td title="Net change in distinct wallet owners over 24 hours. Requires complete account lists; program-owned vaults are excluded." class="${row.holderGrowth==null?'':row.holderGrowth<0?'top100-negative':'top100-positive'}">${signed(row.holderGrowth)}</td><td title="Visible posts retained by richpad.fun in the last 24 hours; calls count once. Older trimmed posts are not included.">${row.communityCount==null?'—':row.communityCount.toLocaleString()}</td><td title="Linked X, Telegram and Discord channels; not follower counts.">${row.socialChannels}</td>
-          <td>${age(row.ageHours)}</td><td>${row.stage === 'curve' ? 'On curve' : row.stage === 'migrated' ? 'Migrated' : row.stage === 'trading' ? 'Trading' : 'Unverified'}</td>
-          <td class="top100-boost">${appState.verifiedBoostsAvailable ? row.boost > 0 ? `${row.boost.toLocaleString()}× <small>Sponsored · ${esc(boostTime(row))}</small>` : '—' : 'Unavailable'}</td>
-          <td><button type="button" class="secondary-button" data-top-boost="${esc(row.mint)}" aria-label="Boost ${esc(row.symbol || row.name || row.mint)}"><span class="boost-leading-icon">${icon('boost')}</span>Boost</button></td></tr>`).join('') || `<tr><td colspan="16" class="top100-empty">${busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : filters.sort === 'market-cap' && !records.some(row=>row.capGrowthUsd!=null) ? '24h market-cap growth is not available yet. Both opening and current valuations are required.' : 'No ranked tokens match these filters. Reset filters or browse Explore.'}</td></tr>`;
+    // Same row layout as Explore's table view, in Top 100 rank order.
+    const byMint = new Map((appState.assets || []).map(asset => [asset.address, asset]));
+    const benefits = appState.withVerifiedExploreBenefits || (item => item);
+    const items = rows.map(row => {
+      const asset = byMint.get(row.mint) || {address:row.mint, symbol:row.symbol, name:row.name, imageUri:row.imageUri};
+      const base = {...asset, holders:asset.holders ?? row.holders ?? null, holderChange24hPercent:asset.holderChange24hPercent ?? null};
+      const record = benefits(appState.EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(base, '24h') : enrichMarketRecord(base));
+      return {...record, top100Rank:row.rank, top100Note:filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? (row.boost > 0 ? 'Boost priority' : 'Paid priority') : ''};
+    });
+    const empty = busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. Use Refresh to retry.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. Use Refresh to retry.' : filters.sort === 'market-cap' && !records.some(row=>row.capGrowthUsd!=null) ? '24h market-cap growth is not available yet. Both opening and current valuations are required.' : 'No ranked tokens match these filters. Reset filters or browse Explore.';
+    const html = items.length ? exploreTableMarkup(items, {
+      cluster:appState.EXPLORE_CLUSTER, providerStatus:appState.exploreProviderStatus, windowLabel:'24h',
+      volumeValue:item => appState.launchCardVolumeUsd(item, '24h'), formatAge:appState.formatOnchainAge, watchMarkup:appState.tokenCardWatchMarkup,
+      boostMarkup:appState.exploreBoostAmountMarkup,
+      paidListing:item => appState.verifiedPaidListingPayment?.(item) || (item.listingPayment?.verified === true && (item.listingPayment.admin === true || item.listingPayment.signature) ? item.listingPayment : null),
+      rankOf:item => item.top100Rank, noteMarkup:item => item.top100Note ? `<small class="top100-paid-priority">${esc(item.top100Note)}</small>` : '',
+    }) : `<p class="top100-empty">${esc(empty)}</p>`;
     // Keep keyboard focus and loaded logos intact when a refresh changes no rows.
     if (html !== lastRows) {
-      const focused = document.activeElement?.dataset?.topBoost;
-      find('[data-top-rows]').innerHTML = html; lastRows = html;
-      for (const node of root.querySelectorAll('[data-top-logo]')) {
-        const row = rows.find(item => item.mint === node.dataset.topLogo);
-        const policy = appState.verifiedLaunchPolicyForMint(row.mint);
-        loadTokenArtwork(node,row.mint,row.imageUri || policy?.imageUri);
+      const focused = document.activeElement?.dataset?.boostMint;
+      find('[data-top-table]').innerHTML = html; lastRows = html;
+      for (const row of root.querySelectorAll('tr[data-mint]')) {
+        const avatar = row.querySelector('.home-token-avatar');
+        if (!avatar || avatar.querySelector('img')) continue;
+        loadTokenArtwork(avatar, row.dataset.mint, appState.verifiedLaunchPolicyForMint(row.dataset.mint)?.imageUri);
       }
-      if (focused) (root.querySelector(`[data-top-boost="${CSS.escape(focused)}"]`) || find('[data-top-refresh]')).focus({preventScroll:true});
+      if (focused) (root.querySelector(`[data-boost-mint="${CSS.escape(focused)}"]`) || find('[data-top-refresh]')).focus({preventScroll:true});
     }
     find('[data-top-page]').textContent = `Page ${page + 1} of ${pages} · ${result.rows.length} tokens`;
     find('[data-top-prev]').disabled = page === 0;
@@ -92,10 +93,8 @@ export function initializeTop100(appState) {
   root.addEventListener('click', event => {
     const sort = event.target.closest('[data-top-sort]');
     if (sort) {filters.sort = sort.dataset.topSort;page = 0;root.querySelectorAll('[data-top-sort]').forEach(button => button.setAttribute('aria-pressed',String(button === sort)));render();syncUrl();}
-    const boost = event.target.closest('[data-top-boost]');
-    if (boost) appState.openExploreBoost(boost.dataset.topBoost);
-    const watch = event.target.closest('[data-top-watch]');
-    if (watch) void appState.toggleExploreWatch(watch.dataset.topWatch, watch).then(render);
+    const boost = event.target.closest('[data-boost-mint]');
+    if (boost) appState.openExploreBoost(boost.dataset.boostMint);
     if (event.target.closest('[data-top-refresh]')) void refresh();
     if (event.target.closest('[data-top-prev]')) {page--;render();}
     if (event.target.closest('[data-top-next]')) {page++;render();}

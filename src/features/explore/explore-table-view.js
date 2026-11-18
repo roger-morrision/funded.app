@@ -23,6 +23,8 @@ function statusMarkup(item, cluster, providerStatus) {
 export function exploreTableMarkup(records, {
   cluster, providerStatus = '', windowLabel = '24h', volumeValue, formatAge, watchMarkup = () => '', paidListing = () => null,
   boostMarkup = () => '', formatPercent = value => `${value}%`,
+  // Top 100 reuses this table with its own rank numbers and a ranking note per coin.
+  rankOf = (item, index) => index + 1, noteMarkup = () => '',
 }) {
   const rows = records.map((item, index) => {
     const mint = escapeHtml(item.address || '');
@@ -39,8 +41,8 @@ export function exploreTableMarkup(records, {
     const airdrop = item.benefitPolicyVerified && item.communityAirdropPercent != null ? formatPercent(item.communityAirdropPercent) : '—';
     const logo = cluster !== 'devnet' && /^https:\/\//.test(String(item.imageUri || '')) ? `<img src="${escapeHtml(item.imageUri)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
     return `<tr data-mint="${mint}" data-logo-mint="${mint}">
-      <td class="explore-table-rank">${index + 1}</td>
-      <td class="explore-table-token"><a href="${href}"><span class="home-token-avatar">${escapeHtml(String(item.symbol || 'T').slice(0, 1))}${logo}</span><span class="explore-table-identity"><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a>${pairChipMarkup(item, escapeHtml)}${tags}</td>
+      <td class="explore-table-rank">${escapeHtml(String(rankOf(item, index)))}</td>
+      <td class="explore-table-token"><a href="${href}"><span class="home-token-avatar">${escapeHtml(String(item.symbol || 'T').slice(0, 1))}${logo}</span><span class="explore-table-identity"><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a>${pairChipMarkup(item, escapeHtml)}${tags}${noteMarkup(item)}</td>
       <td class="explore-table-num"><strong>${escapeHtml(cap)}</strong>${percentMarkup(item.priceChange24hPercent ?? Number.parseFloat(item.change))}${Number(item.athMarketCapUsd) > 0 ? `<small class="explore-table-ath">ATH ${escapeHtml(formatCompactUsd(Number(item.athMarketCapUsd)))}</small>` : ''}</td>
       <td class="explore-table-num"><strong>${escapeHtml(volumeValue(item))}</strong>${percentMarkup(item.volumeChange24hPercent)}</td>
       <td class="explore-table-num"><strong>${escapeHtml(holders)}</strong>${percentMarkup(item.holderChange24hPercent)}</td>
