@@ -45,7 +45,7 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
           const config=communityProgramForLaunch(launch,env,v3AuthorityKeypair);
           const service=serviceFactory({connection,store:automaticRewardStore,programId:config.programId,
             authority:config.authority,eligibilityMint:fundedTokenMint,cluster:solanaCluster,
-            expectedCommunityProgramDataSha256:config.expectedHash});
+            expectedCommunityProgramDataSha256:config.expectedHash,accountSetup:config.accountSetup});
           let record=ledger.communityDrops?.[launch.mint];
           if(record&&record.snapshotBasis!=='pump-migration'){waiting++;continue;}
           if(record&&preparationOnly)continue;
