@@ -19,13 +19,20 @@ assert.equal(process.env.REWARD_BATCH_LIVE_VERIFY,'devnet-ephemeral');
 const rpcFetch = async (url, options) => {
   for(let attempt=0;;attempt++) {
     try { const r=await fetch(url,{...options,signal:AbortSignal.timeout(30000)});
-      if(![429,502,503,504].includes(r.status)||attempt>=12)return r; await r.text();
+      const body=await r.clone().json().catch(()=>null);
+      const limited=[429,502,503,504].includes(r.status)||body?.error?.code===429
+        || /rate limit|too many requests/i.test(String(body?.error?.message||''));
+      if(!limited||attempt>=12)return r; await r.text();
     } catch(error) { if(attempt>=12)throw error; }
-    emit({type:'rpc-retry',attempt:attempt+1}); await new Promise(resolve=>setTimeout(resolve,5000));
+    emit({type:'rpc-retry',attempt:attempt+1}); await new Promise(resolve=>setTimeout(resolve,30000));
   }
 };
 const connection = new Connection(secret('SOLANA_RPC_URL'),{commitment:'finalized',disableRetryOnRateLimit:true,fetch:rpcFetch});
 assert.equal(await connection.getGenesisHash(),'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
+// Use the same finalized transaction provider for this isolated verification.
+// The optional evidence provider has its own connection/limits; the full
+// executable hash and network checks still run through the primary connection.
+process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL='';
 const remote=createRemoteSigner(),authority=remote.handle('authority'),keeper=remote.handle('keeper');
 assert(authority&&keeper);assert(await connection.getBalance(authority.publicKey)>200000000);
 const chain=createAutomaticRewardChain({connection,programId:process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,authority,

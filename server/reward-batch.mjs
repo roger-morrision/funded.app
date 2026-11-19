@@ -18,12 +18,15 @@ export function rewardBatchTransaction(prepared, payer, blockhash, units = REWAR
 }
 
 export function createRewardBatchSubmitter({ cluster, connection, authority, prepareLeaf, inspectLeaf, submitLeaf, send,
-  verify = verifyRewardBatch }) {
+  requireReady = async () => {}, verify = verifyRewardBatch }) {
   return async function submitLeaves(plan, leaves) {
     if (cluster !== 'devnet') throw new Error('Reward batching is enabled on Devnet only.');
     if (!Array.isArray(leaves) || !leaves.length || leaves.length > REWARD_BATCH_LIMITS.recipients
       || new Set(leaves.map(leaf => leaf.recipient)).size !== leaves.length)
       throw new Error('A bounded batch of distinct reward recipients is required.');
+    // Shared by the bounded group, with another check in send() before each
+    // transaction. Do not open a new program-evidence connection per recipient.
+    await requireReady(plan);
     const outcomes = new Map(), prepared = [];
     for (const leaf of leaves) {
       try {
@@ -61,6 +64,7 @@ export function createRewardBatchSubmitter({ cluster, connection, authority, pre
       }
       try {
         const signature = await send(transaction);
+        await requireReady(plan);
         const results = await verify({ connection, authority:authority.publicKey, plan, rows, signature, inspectLeaf });
         rows.forEach((row, index) => outcomes.set(row.leaf.recipient, { leaf:row.leaf, result:results[index] }));
       } catch (error) { rows.forEach(row => outcomes.set(row.leaf.recipient, { leaf:row.leaf, error })); }

@@ -309,6 +309,10 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
 
   async function inspectLeaf(plan, leaf) {
     await requireReady(plan);
+    return inspectReadyLeaf(plan, leaf);
+  }
+
+  async function inspectReadyLeaf(plan, leaf) {
     if (!verifyRewardProof({cycleId:plan.manifest.cycleId,asset:plan.manifest.asset,recipient:leaf.recipient,
       amount:leaf.amount,index:leaf.index,proof:leaf.proof,root:plan.manifest.root})) throw new Error('Invalid reviewed reward Merkle proof.');
     const {vault,cycle,payment}=rewardAddresses({programId:program,authority:authority.publicKey,
@@ -328,11 +332,11 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return {payment:payment.toBase58(),amount:record.amount,amountReceived:record.receivedAmount,finalized:true};
   }
 
-  async function prepareLeaf(plan, leaf) {
-    await requireReady(plan);
+  async function prepareLeaf(plan, leaf, readyChecked = false) {
+    if (!readyChecked) await requireReady(plan);
     if (!verifyRewardProof({ cycleId: plan.manifest.cycleId, asset: plan.manifest.asset, recipient: leaf.recipient, amount: leaf.amount, index: leaf.index, proof: leaf.proof, root: plan.manifest.root })) throw new Error('Refusing to submit an invalid local Merkle proof.');
     const { vault, cycle, payment } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId, recipient: leaf.recipient });
-    const prior = await inspectLeaf(plan,leaf);
+    const prior = await inspectReadyLeaf(plan,leaf);
     if (prior) {
       return { paid:{ signature: await recoverPaymentSignature(connection, payment), finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: payment.toBase58(), alreadyPaid: true } };
     }
@@ -465,7 +469,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { address: cycle.toBase58(), expired: true, signature, unpaidAmount: String(unpaid) };
   }
 
-  const submitLeaves = createRewardBatchSubmitter({ cluster, connection, authority, prepareLeaf, inspectLeaf, submitLeaf, send });
+  const submitLeaves = createRewardBatchSubmitter({ cluster, connection, authority, requireReady,
+    prepareLeaf:(plan, leaf) => prepareLeaf(plan, leaf, true), inspectLeaf:inspectReadyLeaf, submitLeaf, send });
   return { cluster, readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, submitLeaves, expireCycle, fundSolVault, fundTokenVault,
     paymentSignature: payment => recoverPaymentSignature(connection, payment),
     cycleExpiryGraceSeconds: rewardCycleExpiryGraceSeconds(cluster) };

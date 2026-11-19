@@ -22,7 +22,7 @@ function harness(options = {}) {
     const size=tx.message.compiledInstructions.length-1; simulations.push(size);
     return {value:{err:size>(options.simulationMax || 4)?{InstructionError:[0,'failed']}:null,unitsConsumed:options.units || 100000}};
   }};
-  const submit = createRewardBatchSubmitter({cluster:options.cluster || 'devnet',connection,authority,
+  const submit = createRewardBatchSubmitter({cluster:options.cluster || 'devnet',connection,authority,requireReady:options.requireReady,
     prepareLeaf:options.prepareLeaf || (async(plan, leaf)=>row(leaf)), inspectLeaf:async()=>null,
     send:async tx=>{sends.push(tx.instructions.length-1);if(options.sendError)throw Error('unknown submission');return 'sig';},
     verify:async({rows})=>rows.map(()=>({finalized:true,balanceDeltaVerified:true}))});
@@ -49,6 +49,12 @@ test('unknown send outcome never triggers fallback resubmission',async()=>{
 test('excessive compute never signs even single-recipient attempts',async()=>{
   const h=harness({units:600000});const out=await h.submit({},leaves.slice(0,4));
   assert.equal(h.sends.length,0);assert(out.every(row=>row.error));
+});
+test('batch shares preparation readiness and verifies again after sending',async()=>{
+  let checks=0;const h=harness({requireReady:async()=>{checks++;}});
+  await h.submit({},leaves.slice(0,4));assert.equal(checks,2);
+  const blocked=harness({requireReady:async()=>{throw Error('program hash mismatch');}});
+  await assert.rejects(blocked.submit({},leaves.slice(0,4)),/hash mismatch/);assert.equal(blocked.sends.length,0);
 });
 test('already paid and invalid recipients do not block valid payouts',async()=>{
   const h=harness({prepareLeaf:async(plan,leaf)=>{
