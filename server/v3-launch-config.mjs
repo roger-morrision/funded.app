@@ -33,6 +33,7 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
   programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount,readAgency=readAgencyDeployment,
   readBuybackReadiness=readAgencyBuybackReadiness }) {
   let pending;
+  let onchainProof = null;
   const check = async () => {
     const reasons = [];
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
@@ -70,28 +71,47 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
     try { if(solanaCluster==='devnet')authority = v3AuthorityKeypair?.(); } catch { reasons.push('V3 authority signer is invalid'); }
     if (!authority?.publicKey) reasons.push('V3 authority signer is unavailable');
     if (!reasons.length) {
-      const controller = new AbortController();
-      let timer;
       try {
-        const connection = connectionFactory(solanaRpcUrl, { signal:controller.signal });
-        const programRead=programEvidence(connection,programId),routerRead=verifyRouter({connection,programId,commitment:'finalized'});
-        const checks = Promise.all([
-          connection.getGenesisHash(), programRead,routerRead,
-          connection.getAddressLookupTable(new PublicKey(lookupAddresses[0]), { commitment:'finalized' }),
-          connection.getAddressLookupTable(new PublicKey(lookupAddresses[1]), { commitment:'finalized' }),
-          agencyEnabled?readAgency({connection,programId,approvedHash,authority:authority.publicKey,
-            readProgram:()=>programRead,verifyRouter:()=>routerRead}):null,
-          agencyEnabled&&store?store.read():null,
-          agencyEnabled?readBuybackReadiness({connection,programId,env}):null,
-        ]);
-        // Cap the complete verification, including sequential ProgramData reads.
-        // Slow RPC must close readiness, not leave public capability requests pending.
-        const [genesis, evidence, router, reserveLookup, buybackLookup,agency,agencyState,priceReadiness] = await Promise.race([
-          checks,
-          new Promise((_,reject) => { timer=setTimeout(() => {
-            controller.abort(); reject(new Error('V3 verification timed out'));
-          },verificationTimeoutMs); }),
-        ]);
+        // Public capability reads arrive in bursts from every page. Reuse only
+        // a successful finalized on-chain proof for 30 seconds. Worker health
+        // and published fee policy remain fresh, and launch registration still
+        // verifies the mint router independently before accepting a write.
+        const proofKey=JSON.stringify([programId,approvedHash,authority.publicKey.toBase58(),
+          ...lookupAddresses,agencyEnabled]);
+        if(onchainProof?.key!==proofKey)onchainProof=null;
+        let proof=onchainProof?.key===proofKey&&onchainProof.expiresAt>Date.now()
+          ?onchainProof.value:null;
+        if(!proof){
+          const controller=new AbortController();let timer;
+          try{
+            const connection=connectionFactory(solanaRpcUrl,{signal:controller.signal});
+            const programRead=programEvidence(connection,programId),routerRead=verifyRouter({connection,programId,commitment:'finalized'});
+            const checks=Promise.all([
+              connection.getGenesisHash(),programRead,routerRead,
+              connection.getAddressLookupTable(new PublicKey(lookupAddresses[0]),{commitment:'finalized'}),
+              connection.getAddressLookupTable(new PublicKey(lookupAddresses[1]),{commitment:'finalized'}),
+              agencyEnabled?readAgency({connection,programId,approvedHash,authority:authority.publicKey,
+                readProgram:()=>programRead,verifyRouter:()=>routerRead}):null,
+              agencyEnabled?readBuybackReadiness({connection,programId,env}):null,
+            ]);
+            // Slow RPC must close readiness rather than leaving capability
+            // requests pending. Failed or incomplete proofs are never cached.
+            proof=await Promise.race([checks,new Promise((_,reject)=>{timer=setTimeout(()=>{
+              controller.abort();reject(new Error('V3 verification timed out'));
+            },verificationTimeoutMs);})]);
+            const [genesis,evidence,router,reserveLookup,buybackLookup,agency]=proof;
+            if(genesis===DEVNET_GENESIS_HASH&&evidence.account?.executable
+              &&evidence.sha256===approvedHash&&router.verified
+              &&router.authority.equals(authority.publicKey)
+              &&reserveLookup.value&&buybackLookup.value
+              &&reserveLookup.value.state.deactivationSlot===BigInt('18446744073709551615')
+              &&buybackLookup.value.state.deactivationSlot===BigInt('18446744073709551615')
+              &&(!agencyEnabled||agency?.verified===true))
+              onchainProof={key:proofKey,value:proof,expiresAt:Date.now()+30000};
+          }finally{clearTimeout(timer);controller.abort();}
+        }
+        const [genesis,evidence,router,reserveLookup,buybackLookup,agency,priceReadiness]=proof;
+        const agencyState=agencyEnabled&&store?await store.read():null;
         if (genesis !== DEVNET_GENESIS_HASH || !evidence.account?.executable
           || evidence.sha256 !== approvedHash || !router.verified
           || !router.authority.equals(authority.publicKey)) reasons.push('Approved V3 program or authority is not verified on Devnet');
@@ -121,7 +141,6 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
             reasons.push('Agency worker has no fresh matching verified deployment readiness');
         }
       } catch { reasons.push('V3 program verification is unavailable'); }
-      finally { clearTimeout(timer); controller.abort(); }
     }
     const savedSplit = store ? await activeProtocolFeeSplit(store).catch(() => null) : PROTOCOL_FEE_SPLIT;
     const protocolSplit=agencyDeployment?.protocolSplit||savedSplit;

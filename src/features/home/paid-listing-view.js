@@ -2,8 +2,11 @@ import { escapeHtml } from '../shared/display.js';
 import { icon } from '../../../ui-icons.js';
 import {accountFavorites} from '../account/preferences.js';
 
-// Token logo through the same-origin logo route, letter mark until it loads.
-const logoMarkup = listing => `<img class="paid-listing-logo" src="/api/tokens/${encodeURIComponent(String(listing.mint))}/logo" alt="" loading="lazy" decoding="async" data-initial="${escapeHtml(String(listing.symbol || '?').slice(0, 1))}">`;
+// The indexed logo endpoint is Mainnet-only. Devnet listings without uploaded
+// artwork keep a letter mark instead of making a guaranteed 404 request.
+const logoMarkup = listing => import.meta.env?.VITE_SOLANA_CLUSTER === 'devnet'
+  ? escapeHtml(String(listing.symbol || '?').slice(0, 1).toUpperCase())
+  : `<img class="paid-listing-logo" src="/api/tokens/${encodeURIComponent(String(listing.mint))}/logo" alt="" loading="lazy" decoding="async" data-initial="${escapeHtml(String(listing.symbol || '?').slice(0, 1))}">`;
 function listingParts(listing) {
   const mint = String(listing.mint);
   const signature = String(listing.signature || '');
@@ -63,6 +66,15 @@ function fillMetrics(root, mint, data) {
 }
 export async function loadPaidListingMetrics(root, request) {
   const mints = [...root.querySelectorAll('[data-listing-metrics]')].map(node => node.dataset.listingMetrics);
+  if (import.meta.env?.VITE_SOLANA_CLUSTER === 'devnet') {
+    // Devnet has no indexed overview endpoint. An em dash represents missing
+    // market data accurately; zero would suggest a verified measurement.
+    for (const mint of mints) {
+      const box = root.querySelector(`[data-listing-metrics="${CSS.escape(mint)}"]`);
+      for (const cell of box?.querySelectorAll('dd') || []) cell.textContent = '—';
+    }
+    return;
+  }
   for (const mint of mints) if (overviewCache.has(mint)) fillMetrics(root, mint, overviewCache.get(mint));
   const queue = mints.filter(mint => !overviewCache.has(mint));
   const worker = async () => {
