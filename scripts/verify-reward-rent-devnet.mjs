@@ -93,8 +93,8 @@ async function run(mint,asset,mode) {
     const vault=rewardAddresses({programId:process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,authority:authority.publicKey,mint}).vault;
     if(asset==='SOL'){const v=keys.indexOf(vault.toBase58());assert.equal(tx.meta.preBalances[v]-tx.meta.postBalances[v],10000*entries.length);}
     rent+=receiptRent;
-    emit({type:'payout-proof',mode,asset,mint,signature,slot:tx.slot,feeLamports:tx.meta.fee,receiptRentLamports:receiptRent,
-      recipients:entries.map(([recipient,p])=>({recipient,amount:p.amount,payment:p.payment})),
+    emit({type:'payout-proof',mode,asset,mint,cycleId:manifest.cycleId,root:manifest.root,signature,slot:tx.slot,feeLamports:tx.meta.fee,receiptRentLamports:receiptRent,
+      recipients:entries.map(([recipient,p])=>({recipient,amount:p.amount,payment:p.payment,index:manifest.leaves.find(l=>l.recipient===recipient).index})),
       feePayer:keys[0],requiredSigners:1,bitmap:plan.receiptMode==='bitmap',digest:createHash('sha256').update(tx.transaction.message.serialize()).digest('hex'),
       finalized:true,balanceDeltaVerified:true});
   }
