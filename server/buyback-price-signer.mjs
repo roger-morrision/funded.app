@@ -40,7 +40,7 @@ export async function cosignBuyback({connection,transaction,program,service,requ
   const response=await request(service.endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(45000),
     headers:{'content-type':'application/json',...(service.token?{authorization:`Bearer ${service.token}`}:{})},body:JSON.stringify({cluster:'devnet',programId:String(program),
       transaction:Buffer.from(transaction.serialize()).toString('base64')})});
-  if(!response.ok)throw Error('The independent price signer declined the buyback.');
+  if(!response.ok)throw Object.assign(Error('The independent price signer declined the buyback.'),{code:'AGENCY_PRICE_SIGNER_DECLINED'});
   const {signature}=await response.json();
   if(typeof signature!=='string'||signature.length!==88)throw Error('Invalid price signature.');
   const bytes=Buffer.from(signature,'base64');

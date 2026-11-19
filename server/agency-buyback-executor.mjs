@@ -1,3 +1,4 @@
+import {agencyPreparationWait} from './agency-preparation-retry.mjs';
 import {DEFAULT_AGENCY_RULES} from '../config/agency-rules.js';
 import {createHash} from 'node:crypto';
 import {PublicKey,TransactionInstruction,VersionedTransaction} from '@solana/web3.js';
@@ -19,8 +20,17 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
   journal=executeAgencyJournal,loadProof=loadFinalizedV3Buyback,now=()=>Date.now(),diagnostics,priceService=buybackPriceService()}){
   const step=(phase,action)=>diagnostics?diagnostics.step(phase,{mint,agent},action):action();
   if(![1,2].includes(agent))throw new Error('An own-coin milestone agent is required.');
-  const state=await step('state-read',()=>store.read()),context=await step('custody',()=>readContext({connection,state,mint,programId,approvedHash,authority:authority.publicKey}));
+  const state=await step('state-read',()=>store.read());
   const key=`agency:${mint}:${agent}:0`,saved=state.v3AgencyExecutions?.[key];
+  const waiting=agencyPreparationWait(saved,now());if(waiting)return {...waiting,mint,agent};
+  // A crashed unsigned preparation has no active owner. Expose recovery even
+  // when market conditions now prevent another attempt.
+  if(saved?.status==='preparing'&&!saved.signature)await store.update(current=>{
+    const row=current.v3AgencyExecutions?.[key];
+    if(row?.token===saved.token&&!row.signature&&!(row.leaseUntil>now()))
+      Object.assign(row,{status:'preparation-interrupted',leaseUntil:0,reasonCode:'preparation-interrupted'});
+  });
+  const context=await step('custody',()=>readContext({connection,state,mint,programId,approvedHash,authority:authority.publicKey}));
   if(!saved&&(!(context.policy.selectedMask&(1<<agent))||context.policy.completedMask&(1<<agent)))return{status:'not-payable',mint,agent};
   const intent=saved?.intent||{cluster:'devnet',mint,programId:String(programId),approvedHash,agent,
     maxBudgetLamports:context.agentRemaining[agent],creator:context.launch.creatorWallet,initialAuthority:context.launch.pumpFeeRoute.initialAuthority};
@@ -38,7 +48,7 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
       observation:{slot:observation.slot,observedAt:observation.observedAt,marketCapUsdMicros:String(observation.marketCapUsdMicros)}};
   }
   const buybackId=createHash('sha256').update(`funded.agency.own-coin.v1:${mint}:${agent}`).digest();
-  return step('execution',()=>journal({store,connection,key,intent,authority,prepare:async()=>{
+  return step('execution',()=>journal({store,connection,key,intent,authority,now,prepare:async()=>{
     const currentState=await step('state-read',()=>store.read());
     const fresh=await step('custody',()=>readContext({connection,state:currentState,mint,programId,approvedHash,authority:authority.publicKey}));
     if(!(fresh.policy.selectedMask&(1<<agent))||fresh.policy.completedMask&(1<<agent)
@@ -64,8 +74,8 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
     // temporary refundable rent. Preserve reserve before, during and after CPI.
     const rents=await Promise.all([connection.getMinimumBalanceForRentExemption(10240,'finalized'),
       connection.getMinimumBalanceForRentExemption(209,'finalized'),connection.getMinimumBalanceForRentExemption(256,'finalized'),connection.getMinimumBalanceForRentExemption(165,'finalized')]);
-    await cosignBuyback({connection,transaction,program:programId,service:priceService});
     return{transaction,priceSigner:priceService.signer,lastValidBlockHeight:latest.lastValidBlockHeight,
+      authorize:tx=>cosignBuyback({connection,transaction:tx,program:programId,service:priceService}),
       estimatedRentLamports:String(BigInt(rents[0])*2n+BigInt(rents[1])+BigInt(rents[2])+BigInt(rents[3])*BigInt(setupInstructions.length)),evidence:{
         priceSigner:priceService.signer.toBase58(),agencyExecution:{...agencyExecution,observationHash:agencyExecution.observationHash.toString('hex')},
         observation:{mint,slot:observation.slot,marketCapUsdMicros:observation.marketCapUsdMicros,observedAt:observation.observedAt,

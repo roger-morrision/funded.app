@@ -1,5 +1,14 @@
 # Devnet price signer
 
+## Current recovery behavior (November 19, 2026)
+
+The signer still reserves before signing. Expired unused reservations are now reclaimed on the next new-message request only after its independent RPC reports confirmed expiry, finalized expiry at or beyond that slot, and no immutable receipt at or beyond the finalized expiry slot. All checks require explicit response contexts. Missing, stale or unavailable evidence keeps the full charge. A receipt that exists keeps the full charge for the rolling 24-hour window. Releases are append-only and fsynced; released messages cannot be signed again. Exact-message retries are idempotent. Existing reservation-only journals remain readable.
+
+Agency preparation now checks transaction size, blockhash and protected payer reserve before requesting the price signature. Preparation failures record a safe reason code and exponential retry delay from two to thirty minutes. Signed attempts retain their original bytes and continue reconciliation. A send timeout never authorizes replacement. An own-coin attempt is retired only after finalized blockhash expiry, a 150-block validity margin, no transaction status or finalized transaction, and absence of its fixed immutable receipt at or beyond the expiry slot. The next worker pass may then prepare a replacement, retaining expiry evidence and the old signature in the journal. Interrupted unsigned preparations recover after their lease expires.
+
+Mainnet activation remains blocked. See the [separate Mainnet review package](mainnet-agency-signer-review.md). The dated deployment sections below are historical evidence, not a statement that this change has been deployed.
+
+
 The signer uses its own key and process. It independently fetches finalized chain and market data; it does not accept a price, reserve balance or RPC endpoint supplied by the app. This is service/key separation under the same operator, not an externally operated custodian or independent security audit.
 
 `scripts/run-price-signer.mjs` starts the service. `compose.price-signer.yml` isolates its key from the app and workers. The endpoint must be behind HTTPS; it has no published container port. A dedicated 32-byte authentication token is required. Mount only this token in the app using `FUNDED_DEVNET_BUYBACK_PRICE_SIGNER_TOKEN_FILE`; never mount the signing key there.
@@ -14,7 +23,7 @@ The service permits at most 1 SOL per order and 5 SOL of reservations over a rol
 
 - Devnet genesis and recent finalized RPC time.
 - Exactly the approved transaction payer and separate price signer.
-- One approved category-6 RICH buy-and-burn instruction. Own-coin agency execution is deliberately unsupported by this service.
+- One approved category-6 RICH buy-and-burn instruction. Category-7 own-coin milestones require explicit allowOwnCoin activation and independent milestone checks.
 - Exact policy, category vault, token accounts, receipt PDA and current router authority.
 - Finalized policy budget equals vault custody above rent; the receipt does not already exist.
 - Current Pump curve or approved PumpSwap pool, canonical accounts and allowlisted fee recipients.
@@ -25,7 +34,7 @@ The service permits at most 1 SOL per order and 5 SOL of reservations over a rol
 
 Only after these checks does the service durably reserve its budget and sign the exact message. It never submits transactions. The app verifies the detached signature and adds the transaction payer signature.
 
-`PRICE_SIGNER_JOURNAL` must be persistent and writable only by the signer user. Run one instance against each journal. Reservations are fsynced before signing, survive restarts, and conservatively consume the daily budget even when a transaction is not submitted. A different transaction for the same fee vault waits until the previous signed blockhash expires. Never delete the journal to work around these checks.
+`PRICE_SIGNER_JOURNAL` must be persistent and writable only by the signer user. Run one instance against each journal. Reservations are fsynced before signing, survive restarts, and conservatively consume the daily budget until independently proven expired and unused, or until the rolling window ends. A different transaction for the same fee vault waits until the previous signed blockhash expires. Never delete the journal to work around these checks.
 
 ## Activation sequence
 

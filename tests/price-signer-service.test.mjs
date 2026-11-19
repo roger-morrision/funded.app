@@ -79,3 +79,17 @@ test('HTTP signer requires auth, refuses failed reviews and signs only after dur
     const {signature}=await result.json();assert(nacl.sign.detached.verify(message.serialize(),Buffer.from(signature,'base64'),keypair.publicKey.toBytes()));
   }finally{await new Promise(resolve=>server.close(resolve));}
 });
+
+
+test('slow budget reconciliation cannot extend independent quote freshness',async()=>{
+  const token='b'.repeat(64);let now=1000;
+  const message=new TransactionMessage({payerKey:authority.publicKey,recentBlockhash:String(Keypair.generate().publicKey),instructions:[]}).compileToV0Message();
+  const server=createPriceSignerServer({connection:{},config,keypair,token,now:()=>now,
+    journal:{reserve:async()=>{now+=35000;}},review:async()=>({transaction:new VersionedTransaction(message)})});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  try{
+    const response=await fetch('http://127.0.0.1:'+server.address().port+'/sign',{method:'POST',
+      headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({programId:program})});
+    assert.equal(response.status,409);assert.equal((await response.json()).signature,undefined);
+  }finally{await new Promise(resolve=>server.close(resolve));}
+});

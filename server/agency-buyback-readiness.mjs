@@ -2,6 +2,8 @@ import {buybackPriceService,priceSignerActivated} from './buyback-price-signer.m
 
 // Deployment/worker readiness does not prove that a milestone can be signed.
 export async function readAgencyBuybackReadiness({connection,programId,env=process.env}) {
+  if(env.SOLANA_CLUSTER&&env.SOLANA_CLUSTER!=='devnet')
+    return {ready:false,reason:'Mainnet agency buybacks await a separately reviewed signer and worker deployment.'};
   if(env.FUNDED_V3_AGENCY_BUYBACK_ENABLED!=='true')
     return {ready:false,reason:'Milestone buybacks are disabled.'};
   try {

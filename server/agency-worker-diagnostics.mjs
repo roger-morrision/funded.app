@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 
 const phases=new Set(['deployment','lookup-table','publisher-account','state-read','custody','promotion',
   'milestone','market-observation','quote','execution','execution-proof','x-dispatch','promotion-billing','heartbeat']);
-const codes={AGENCY_MARKET_NOT_MIGRATED:'awaiting-migration',AGENCY_MARKET_STALE:'market-snapshot-stale',
+const codes={AGENCY_PREPARATION_EXPIRED:'preparation-expired',AGENCY_PRICE_SIGNER_DECLINED:'price-signer-declined',AGENCY_MARKET_NOT_MIGRATED:'awaiting-migration',AGENCY_MARKET_STALE:'market-snapshot-stale',
   AGENCY_PRICE_UNAVAILABLE:'price-reference-unavailable',AGENCY_PRICE_STALE:'price-reference-stale',
   AGENCY_LOOKUP_INACTIVE:'lookup-table-inactive',AGENCY_SIMULATION_FAILED:'simulation-failed'};
 const snapshots=new WeakMap();

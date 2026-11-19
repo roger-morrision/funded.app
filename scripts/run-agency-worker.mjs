@@ -129,7 +129,8 @@ async function executeAgencyCycle({config,store,outbox,connection,authority,publ
         paidLamports:String(context.policy.paidLamports[7]),spentLamports:String(context.policy.withdrawnLamports[7]),
         selectedMask:context.policy.selectedMask,completedMask:context.policy.completedMask,agentRemaining:context.agentRemaining, rules:context.policy.rules || DEFAULT_AGENCY_RULES,
         milestoneChecks:events.filter(event=>event.mint===mint && [1,2].includes(event.agent)).map(event=>({
-          agent:event.agent,status:event.status,...(event.observation?{observation:event.observation}:{})
+          agent:event.agent,status:event.status,...(event.observation?{observation:event.observation}:{}),
+          ...(event.nextAttemptAt?{nextAttemptAt:event.nextAttemptAt,reasonCode:event.reasonCode}:{})
         })),
         scope:'finalized-pump-sources-and-agency-vault',verified:true};
     }

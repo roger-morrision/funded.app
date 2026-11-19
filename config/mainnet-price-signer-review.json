@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "cluster": "mainnet-beta",
+  "status": "awaiting-independent-review",
+  "activationBlocked": true,
+  "releaseManifest": "config/mainnet-program-release.json",
+  "signerPublicKey": null,
+  "authorityPublicKey": null,
+  "httpsEndpoint": null,
+  "maxDailyLamports": "2000000000",
+  "maxOrderLamports": "1000000000",
+  "allowCurve": false,
+  "allowOwnCoin": true,
+  "independentReview": {
+    "reviewer": null,
+    "reference": null,
+    "sourceRevision": null
+  },
+  "requiredEvidence": [
+    "reviewed-program-and-assets",
+    "separate-mainnet-key-token-and-journal",
+    "network-bound-signer-and-worker-review",
+    "finalized-signer-activation",
+    "finalized-buyback-debit-burn-and-receipt",
+    "expiry-reconciliation-and-replay-rejection"
+  ]
+}

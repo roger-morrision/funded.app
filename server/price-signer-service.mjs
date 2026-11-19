@@ -20,7 +20,7 @@ export function validatePriceSignerConfig(config,signer){
   return config;
 }
 
-export function createPriceSignerServer({connection,config,keypair,token,journal,review=reviewBuyback}){
+export function createPriceSignerServer({connection,config,keypair,token,journal,review=reviewBuyback,now=Date.now}){
   validatePriceSignerConfig(config,keypair.publicKey);
   assert(/^[a-f0-9]{64}$/.test(token),'A dedicated authentication token is required.');
   let busy=false;
@@ -38,8 +38,11 @@ export function createPriceSignerServer({connection,config,keypair,token,journal
       let body='';for await(const chunk of req){body+=chunk;assert(Buffer.byteLength(body)<=4096,'Request too large.');}
       const request=JSON.parse(body),approved=config.programs.find(p=>p.programId===request.programId);
       assert(approved,'Program is not allowlisted.');
+      const reviewStartedAt=now();
       const result=await review({connection,config:approved,signer:keypair.publicKey,request});
       await journal.reserve(result,{connection,maxDailyLamports:config.maxDailyLamports});
+      // Reconciliation may wait for finality. It cannot extend quote validity.
+      assert(now()-reviewStartedAt<35000,'Review expired during budget reconciliation.');
       assert(!res.destroyed,'Client disconnected before signing.');
       const signature=nacl.sign.detached(result.transaction.message.serialize(),keypair.secretKey);
       reply(200,{signature:Buffer.from(signature).toString('base64')});
