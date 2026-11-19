@@ -375,3 +375,9 @@ html body #main-content#main-content .coin-community-message .coin-chat-actions 
 html body #main-content#main-content .coin-chat-like[data-liked="true"] { color: #f28bc3; }
 /* Tables: active boost shown as bolt + quantity beside the symbol. */
 html body #main-content#main-content .explore-table-boost { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 1px 6px; border-radius: 999px; color: #f59e6b; background: color-mix(in srgb, #f59e6b 12%, transparent); border: 1px solid color-mix(in srgb, #f59e6b 38%, transparent); font: 600 11px/1.4 var(--fv-font-data); vertical-align: middle; }
+/* Token header: the Boost button is pinned bottom-right, so the icon row stops short of it and wraps instead of running underneath. */
+html body #main-content#main-content #coin-page .coin-identity .coin-socials { flex-wrap: wrap; padding-right: 150px; box-sizing: border-box; }
+@media (max-width: 420px) {
+  html body #main-content#main-content #coin-page .coin-identity .coin-socials { padding-right: 0; }
+  html body #main-content#main-content #coin-page .coin-promotion-details { position: static !important; margin-top: 10px; justify-content: flex-start; }
+}
