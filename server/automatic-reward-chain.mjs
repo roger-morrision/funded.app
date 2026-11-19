@@ -19,6 +19,7 @@ import {requireNativeRewardRecipient} from './native-reward-recipient.mjs';
 import {assertRpcNetwork,requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
 import { signTransaction } from './transaction-signing.mjs';
+import { createRewardBatchSubmitter } from './reward-batch.mjs';
 import {parseProtocolGuard,rewardReviewDelaySeconds,routerHeaderLength} from '../protocol-guard.js';
 export {readProgramDataEvidence};
 
@@ -327,13 +328,13 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return {payment:payment.toBase58(),amount:record.amount,amountReceived:record.receivedAmount,finalized:true};
   }
 
-  async function submitLeaf(plan, leaf) {
+  async function prepareLeaf(plan, leaf) {
     await requireReady(plan);
     if (!verifyRewardProof({ cycleId: plan.manifest.cycleId, asset: plan.manifest.asset, recipient: leaf.recipient, amount: leaf.amount, index: leaf.index, proof: leaf.proof, root: plan.manifest.root })) throw new Error('Refusing to submit an invalid local Merkle proof.');
     const { vault, cycle, payment } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId, recipient: leaf.recipient });
     const prior = await inspectLeaf(plan,leaf);
     if (prior) {
-      return { signature: await recoverPaymentSignature(connection, payment), finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: payment.toBase58(), alreadyPaid: true };
+      return { paid:{ signature: await recoverPaymentSignature(connection, payment), finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: payment.toBase58(), alreadyPaid: true } };
     }
     const proof = Buffer.concat(leaf.proof.map(node => hex32(node, 'proof node')));
     const data = Buffer.concat([discriminator('global', plan.manifest.asset === 'SOL' ? 'payout_reward_sol' : 'payout_reward_token'), u64(leaf.amount), u32(leaf.index), u32(leaf.proof.length), proof]);
@@ -344,7 +345,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       { pubkey: recipient, isSigner: false, isWritable: plan.manifest.asset === 'SOL' }];
     const transaction = new Transaction();
     let before;
-    let vaultTokenAddress = null, vaultTokenBefore = null;
+    let vaultTokenAddress = null, vaultTokenBefore = null, recipientTokenAddress = null;
     if (plan.manifest.asset === 'SOL') {
       before = await connection.getBalance(recipient, 'finalized');
       await requireNativeRewardRecipient(connection,recipient,leaf.amount,before);
@@ -357,12 +358,20 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       const vaultToken = getAssociatedTokenAddressSync(mint, vault, true, tokenProgram);
       vaultTokenAddress = vaultToken;
       const recipientToken = getAssociatedTokenAddressSync(mint, recipient, false, tokenProgram);
+      recipientTokenAddress = recipientToken;
       transaction.add(createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, recipientToken, recipient, mint, tokenProgram));
       try { before = BigInt((await connection.getTokenAccountBalance(recipientToken, 'finalized')).value.amount); } catch { before = 0n; }
       vaultTokenBefore = BigInt((await connection.getTokenAccountBalance(vaultToken, 'finalized')).value.amount);
       keys.push({ pubkey: mint, isSigner: false, isWritable: false }, { pubkey: vaultToken, isSigner: false, isWritable: true }, { pubkey: recipientToken, isSigner: false, isWritable: true }, { pubkey: payment, isSigner: false, isWritable: true }, { pubkey: tokenProgram, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
     }
     transaction.add(new TransactionInstruction({ programId: program, keys, data }));
+    return { leaf, transaction, recipient, payment, cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore, recipientTokenAddress };
+  }
+
+  async function submitLeaf(plan, leaf) {
+    const prepared = await prepareLeaf(plan, leaf);
+    if (prepared.paid) return prepared.paid;
+    const { transaction, recipient, payment, cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore } = prepared;
     const cycleBefore = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
     const reserveBefore = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
     if (!cycleBefore || !reserveBefore) throw new Error('Reward cycle or reserve account is not verified before payout.');
@@ -456,7 +465,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return { address: cycle.toBase58(), expired: true, signature, unpaidAmount: String(unpaid) };
   }
 
-  return { cluster, readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, expireCycle, fundSolVault, fundTokenVault,
+  const submitLeaves = createRewardBatchSubmitter({ cluster, connection, authority, prepareLeaf, inspectLeaf, submitLeaf, send });
+  return { cluster, readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, submitLeaves, expireCycle, fundSolVault, fundTokenVault,
     paymentSignature: payment => recoverPaymentSignature(connection, payment),
     cycleExpiryGraceSeconds: rewardCycleExpiryGraceSeconds(cluster) };
 }

@@ -12,7 +12,7 @@ import { bonusDashboardHistory, readBonusPool } from './daily-bonus-dashboard.mj
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, publicBonusSchedule, bonusWindow } from './daily-bonus-schedule.mjs';
 import {assertBonusSnapshot,appendDailyBonusResidual,bonusAssignmentMatches} from './daily-bonus-reconciliation.mjs';
 import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
-import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
+import { payDailyBonusLeaves } from './daily-bonus-payments.mjs';
 import {createLiveBonusReader} from './daily-bonus-live.mjs';
 import { plannedRewardPayoutAt } from '../protocol-guard.js';
 
@@ -177,29 +177,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         const cycle = await chain.ensureCycle(plan);
         await rewardStore.transaction(state => Object.assign(state.dailyBonusSnapshots[day].payouts[source.collectionSignature],
           { status:'distributing', cycle:cycle.address, ...(cycle.signature ? { cycleSignature:cycle.signature } : {}) }));
-        for (const leaf of manifest.leaves) {
-          const current = (await readLedger()).dailyBonusSnapshots[day];
-          if (current.status !== 'snapshotted' || current.snapshot.hash !== snapshot.hash)
-            throw new Error('Daily bonus snapshot changed or was paused before payment.');
-          const saved = current.payouts[source.collectionSignature].payments[leaf.recipient];
-          if (saved?.finalized === true && saved.balanceDeltaVerified === true) continue;
-          let payment;
-          try { payment = await chain.submitLeaf(plan, leaf); }
-          catch (error) {
-            const pending=nativeRecipientFundingPending(error);if(!pending)throw error;
-            await rewardStore.transaction(state=>{
-              state.dailyBonusSnapshots[day].payouts[source.collectionSignature].payments[leaf.recipient]={
-                ...pending,amount:leaf.amount,checkedAt:new Date(now()*1000).toISOString()};
-            });
-            continue;
-          }
-          if (payment.finalized !== true || payment.balanceDeltaVerified !== true)
-            throw new Error('Daily bonus payment lacks finalized account and balance evidence.');
-          await rewardStore.transaction(state => {
-            state.dailyBonusSnapshots[day].payouts[source.collectionSignature].payments[leaf.recipient] = {
-              ...payment, cluster, amount:leaf.amount, paidAt:new Date(now() * 1000).toISOString() };
-          });
-        }
+        await payDailyBonusLeaves({ chain, plan, readLedger, rewardStore, day, source, snapshot, cluster, now });
         await rewardStore.transaction(state => {
           const row=state.dailyBonusSnapshots[day].payouts[source.collectionSignature];
           row.status=manifest.leaves.every(leaf=>row.payments[leaf.recipient]?.finalized===true

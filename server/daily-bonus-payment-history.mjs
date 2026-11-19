@@ -46,7 +46,7 @@ export function dailyPaymentCandidates(ledger,cluster='devnet') {
   return {candidates,unavailable,checked};
 }
 
-function transactionProof(tx, signature, candidate, program, addresses) {
+export function dailyBonusTransactionProof(tx, signature, candidate, program, addresses) {
   const {leaf,manifest,snapshot,source}=candidate;
   if (!tx || tx.meta?.err !== null || tx.transaction?.signatures?.[0] !== signature
     || !Number.isSafeInteger(tx.slot) || tx.slot <= 0 || !Number.isSafeInteger(tx.blockTime)
@@ -69,6 +69,26 @@ function transactionProof(tx, signature, candidate, program, addresses) {
     return isDeepStrictEqual(actual,expected) && bytes.equals(expectedData);
   });
   if (matching.length !== 1) return null;
+  // One batch can debit this vault for several distinct leaves of this exact
+  // manifest. Validate each instruction against its frozen amount and proof.
+  let batchGross = 0n;
+  const batchRecipients = new Set();
+  for (const ix of instructions) {
+    if (keys[ix.programIdIndex] !== program) continue;
+    const actual = Array.from(ix.accounts || ix.accountKeyIndexes || [], index => keys[index]);
+    if (actual[1] !== address(addresses.vault)) continue;
+    const other = manifest.leaves.find(row => row.recipient === actual[4]);
+    if (!other || batchRecipients.has(other.recipient)) return null;
+    const expectedKeys = [...expected]; expectedKeys[4] = other.recipient;
+    expectedKeys[5] = address(rewardAddresses({ programId:program, authority:keys[0], mint:source.mint,
+      cycleId:manifest.cycleId, recipient:other.recipient }).payment);
+    const bytes = Buffer.from(typeof ix.data === 'string' ? bs58.decode(ix.data) : ix.data || []);
+    const header = Buffer.from(data); header.writeBigUInt64LE(BigInt(other.amount),8);
+    header.writeUInt32LE(other.index,16); header.writeUInt32LE(other.proof.length,20);
+    if (!isDeepStrictEqual(actual,expectedKeys)
+      || !bytes.equals(Buffer.concat([header,...other.proof.map(hex=>Buffer.from(hex,'hex'))]))) return null;
+    batchRecipients.add(other.recipient); batchGross += BigInt(other.amount);
+  }
   const {preBalances:pre,postBalances:post,fee}=tx.meta;
   if (!Array.isArray(pre) || pre.length !== keys.length || post?.length !== keys.length
     || !pre.every(n=>Number.isSafeInteger(n)&&n>=0) || !post.every(n=>Number.isSafeInteger(n)&&n>=0)
@@ -76,7 +96,7 @@ function transactionProof(tx, signature, candidate, program, addresses) {
   const vault=keys.indexOf(address(addresses.vault)), recipient=keys.indexOf(leaf.recipient), payment=keys.indexOf(address(addresses.payment));
   if ([vault,recipient,payment].some(index=>index<0) || pre[payment] !== 0 || post[payment] <= 0) return null;
   const gross=Number(leaf.amount), net=post[recipient]-pre[recipient];
-  if (pre[vault]-post[vault] !== gross || net <= 0 && recipient !== 0
+  if (BigInt(pre[vault])-BigInt(post[vault]) !== batchGross || net <= 0 && recipient !== 0
     || net !== gross-(recipient === 0 ? fee+post[payment] : 0)) return null;
   return {signature,source:'daily-bonus',to:leaf.recipient,mint:source.mint,day:snapshot.day,
     amountLamports:gross,actualReceivedLamports:net,feeLamports:fee,feePayer:keys[0],
@@ -132,7 +152,7 @@ export async function loadDailyPayment({connection,state,candidate,cluster='devn
   }
   for (const signature of signatures) {
     const tx=await connection.getTransaction(signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
-    const proof=transactionProof(tx,signature,candidate,program,addresses);
+    const proof=dailyBonusTransactionProof(tx,signature,candidate,program,addresses);
     // paid_at is the program's Clock value; RPC blockTime is an estimate and
     // can differ even for this exact finalized transaction. The payment PDA,
     // zero pre-balance, unique instruction, Merkle leaf and balance deltas above

@@ -7,7 +7,7 @@ import { canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import { bondingCurvePda } from '@pump-fun/pump-sdk';
 import { PublicKey } from '@solana/web3.js';
 import { QA_HOLDER_POLICY, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
-import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
+import { payRewardSchedule } from './reward-schedule-payments.mjs';
 import { expireUnpayableCycles } from './reward-cycle-expiry.mjs';
 import { plannedRewardPayoutAt, rewardReviewDelaySeconds } from '../protocol-guard.js';
 import { commitReviewedCycles } from './reward-cycle-commit.mjs';
@@ -454,20 +454,8 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
       if (await blockedHolderManifest(plan)) continue;
       const cycle = await chain.ensureCycle(plan);
       await store.transaction(state => { const row = state.schedules[plan.id]; row.cycle = cycle.address; row.cycleSignature ||= cycle.signature || null; row.status = 'distributing'; });
-      for (const leaf of plan.manifest.leaves) {
-        const already = await store.transaction(state => state.schedules[plan.id].payments?.[leaf.recipient]?.status === 'paid');
-        if (already) continue;
-        try {
-          const result = await chain.submitLeaf(plan, leaf);
-          if (!result.finalized || !result.balanceDeltaVerified) throw new Error('Payout lacks finalized state and balance-delta evidence.');
-          await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = { status: 'paid', amount: leaf.amount, amountReceived: result.amountReceived, index: leaf.index, signature: result.signature, payment: result.payment, finalized: true, balanceDeltaVerified: true, paidAt: new Date().toISOString() }; });
-          submitted += result.alreadyPaid ? 0 : 1;
-        } catch (error) {
-          await store.transaction(state => { const row = state.schedules[plan.id]; row.payments[leaf.recipient] = {
-            ...(nativeRecipientFundingPending(error)||{status:'verification-pending',reason:String(error.message||error)}),
-            amount:leaf.amount,index:leaf.index,checkedAt:new Date().toISOString() }; });
-        }
-      }
+      submitted += await payRewardSchedule({ store, chain, plan,
+        batch:onlyIds === null && ['holder', 'community'].includes(plan.kind) });
       await store.transaction(state => {
         const row = state.schedules[plan.id], payments = Object.values(row.payments || {});
         if (payments.length === row.manifest.leaves.length && payments.every(item => item.status === 'paid')) { row.status = 'paid'; row.paidAt = new Date().toISOString(); }
