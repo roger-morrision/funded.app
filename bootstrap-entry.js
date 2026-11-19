@@ -7,10 +7,15 @@ import { mountLaunchReviewDialog } from './launch-review-markup.js';
 import { mountCapitalFlowDiagram } from './src/features/fees/capital-flow-markup.js';
 import { initializeFlowDiagrams } from './src/features/shared/diagram-motion.js';
 import { mountCalloutsPage } from './src/features/callouts/page-markup.js';
+import { mountNetworkDisclosure } from './src/features/shared/network-disclosure.js';
+import './styles/network-disclosure.css';
+import './styles/trade-review-menu.css';
 
 // Initialize Node-compatible globals before loading modules that evaluate Solana SDK code.
 globalThis.Buffer ??= Buffer;
 globalThis.global ??= globalThis;
+mountNetworkDisclosure({ cluster: String(import.meta.env.VITE_SOLANA_CLUSTER || 'devnet'),
+  readOnly: [import.meta.env.VITE_MAINNET_READ_ONLY,import.meta.env.VITE_READ_ONLY_PREVIEW].some(value => String(value).toLowerCase() === 'true') });
 mountHomeStart();
 mountHomeDiscovery();
 mountLaunchReviewDialog();

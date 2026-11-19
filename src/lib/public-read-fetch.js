@@ -6,10 +6,12 @@ const publicPaths = /^\/api\/(?:home\/featured|launches|token-config|listings(?:
 export function createPublicReadFetch(transport = (...args) => fetch(...args), recoveryOptions) {
   const flights = new Map();
   return function read(input, options = {}) {
+    if (input instanceof Request) return transport(input, options);
     const url = new URL(input, globalThis.location?.origin || 'https://funded.invalid');
     const eligible = (options.method || 'GET').toUpperCase() === 'GET' && !options.body
       && ![...new Headers(options.headers).keys()].length && options.credentials !== 'include'
-      && !url.searchParams.has('wallet') && !url.searchParams.has('address')
+      && (!options.cache || options.cache === 'default')
+      && ![...url.searchParams.keys()].some(key => /wallet|address|account|session|payer|owner|user/i.test(key))
       && publicPaths.test(url.pathname);
     if (!eligible) return transport(input, options);
     const { signal } = options;

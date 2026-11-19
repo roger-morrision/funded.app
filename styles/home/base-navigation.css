@@ -77,7 +77,7 @@ body.page-route-overview .hero-section {
   padding: 88px max(32px, calc((100vw - 1540px) / 2)) 42px;
   border: 0;
   border-radius: 0;
-  background: linear-gradient(90deg, #0b1020 0%, #0b1020e8 28%, #0b102080 70%, #0b10206b 100%), linear-gradient(0deg, #0b1020 0%, #0b102000 32%), url('/home-wolf-hero.webp') center right / cover no-repeat, #0b1020;
+  background: linear-gradient(90deg, #0b1020 0%, #0b1020e8 28%, #0b102080 70%, #0b10206b 100%), linear-gradient(0deg, #0b1020 0%, #0b102000 32%), var(--home-hero-art) center right / cover no-repeat, #0b1020;
 }
 body.page-route-overview .hero-section::after { content: none; }
 body.page-route-overview .hero-copy-column { position: relative; z-index: 1; max-width: 690px; }

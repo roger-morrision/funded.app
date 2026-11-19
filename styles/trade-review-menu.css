@@ -1,0 +1,5 @@
+html body > .quick-buy-menu { z-index:1000; width:auto; height:auto; max-width:calc(100vw - 24px); clip-path:none; overflow:visible; font:600 13px/1.4 sans-serif; }
+html body > .quick-buy-menu a.card-review-buy { box-sizing:border-box; padding:10px 12px; min-height:40px; color:var(--fv-text, #e5edf7); text-decoration:none; border-radius:4px; }
+html body > .quick-buy-menu a.card-review-buy:focus-visible { outline:2px solid var(--fv-accent, #ffc247); outline-offset:-2px; }
+html body #main-content .home-launch-card .home-launch-card-actions.has-buy-presets { grid-template-columns:minmax(120px,1fr) 44px 44px; }
+html body #main-content .home-launch-card .quick-buy-toggle { width:100%; min-height:44px; padding:0 10px; font:700 12px/1.3 sans-serif; white-space:nowrap; }

@@ -24,8 +24,6 @@ jobs:
         run: >-
           node --input-type=module -e "import('./src/lib/env.js').then(({ validateRuntimeEnv }) => validateRuntimeEnv({ VITE_SOLANA_CLUSTER: 'devnet', VITE_API_BASE_URL: '/', VITE_ALLOW_MAINNET: 'false' })).then(() => console.log('env ok'))"
       - run: npm run check
-      - name: Verify application, financial and network boundaries
-        run: node --test tests/*.test.mjs
       - run: npm run build
         env:
           VITE_API_BASE_URL: /

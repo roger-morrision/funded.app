@@ -6,6 +6,7 @@ import { icon } from '../../../ui-icons.js';
 import { marketFreshness, marketFacts } from '../explore/market-facts.js';
 import { compactLaunchCard } from './compact-launch-card.js';
 import { quickBuyLinksMarkup } from '../trade/quick-buy-presets.js';
+import { quickBuyMenuMarkup } from '../trade/quick-buy-menu.js';
 
 // Receive current state on every render; the application owns data and wallet lifecycles.
 export function homeLaunchFeeRouteMarkup(
@@ -49,10 +50,11 @@ export function launchCardVolumeUsd(
   } = {}
 ) {
   if (EXPLORE_CLUSTER === 'devnet') {
+    if (item.windowCoverage === 'partial' && !(Number(item.windowVolumeSol) > 0)) return 'Partial history · volume unverified';
     if (item.windowCoverage === 'complete' && item.windowTradeCount != null && Number(item.windowTradeCount) === 0) return 'No trades';
     if (item.windowVolumeSol == null) return '$—';
     return Number.isFinite(coinSolUsdPrice)
-      ? formatDashboardUsd(Number(item.windowVolumeSol) * coinSolUsdPrice, { partial: item.windowCoverage === 'partial' })
+      ? formatDashboardUsd(Number(item.windowVolumeSol) * coinSolUsdPrice, { partial: item.windowCoverage === 'partial', partialLabel:'Partial history · volume unverified' })
       : `${Number(item.windowVolumeSol).toLocaleString(undefined, { maximumFractionDigits: 2 })} SOL`;
   }
   // Compact ($196.71K), like market cap, so the card's stat column never cuts it off.
@@ -282,7 +284,7 @@ export function homeLaunchCardMarkup(
                     ${progressMarkup}
                   </div>
                   ${feeRoute || footerNote ? `<div class="home-card-market-summary">${feeRoute}${footerNote ? `<small class="home-launch-note">${escapeHtml(footerNote)}</small>` : ''}</div>` : ''}
-            <div class="home-launch-card-actions has-buy-presets">${quickBuyLinksMarkup(item, escapeHtml)}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Boost">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
+            <div class="home-launch-card-actions has-buy-presets">${quickBuyMenuMarkup(item, escapeHtml, quickBuyLinksMarkup(item, escapeHtml, undefined, ' role="menuitem"'))}${tokenCardShareMarkup(item.address, item.symbol, item.name)}<button type="button" class="token-card-action-boost" data-boost-mint="${escapeHtml(item.address || '')}" aria-label="Boost ${escapeHtml(item.symbol || 'token')}" title="Promoted placement, not an endorsement">${icon('boost')}<span>Boost</span></button>${extraActions}</div>
     </article>`;
 }
 

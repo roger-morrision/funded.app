@@ -22,7 +22,7 @@ export const EXPLORE_RPC_URL = APP_RPC_URL;
 
 export const APP_IS_MAINNET = APP_CLUSTER === 'mainnet-beta';
 export const APP_EXPLORER_QUERY = APP_IS_MAINNET ? '' : `?cluster=${APP_CLUSTER}`;
-export const APP_ENVIRONMENT_LABEL = APP_IS_MAINNET ? 'Solana Mainnet' : 'Solana';
+export const APP_ENVIRONMENT_LABEL = APP_IS_MAINNET ? 'Solana Mainnet' : 'Solana Devnet · test SOL';
 export const APP_ALLOW_MAINNET = String(import.meta.env.VITE_ALLOW_MAINNET || '').toLowerCase() === 'true';
 export const APP_MAINNET_READ_ONLY = APP_IS_MAINNET && String(import.meta.env.VITE_MAINNET_READ_ONLY || '').toLowerCase() === 'true';
 // Jackpot is an inactive Solana prototype. Keep it out of the product until explicitly enabled.

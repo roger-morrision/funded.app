@@ -1,5 +1,6 @@
 import {SERVICE_TERMS_HTML} from '../../features/help/service-terms.js';
 import { READ_ONLY_PREVIEW } from '../../../deployment-mode.js';
+import { clearLiveCache } from '../../lib/live-cache.js';
 // Dependencies and mutable application state are read live through appState.
 export function createWalletSessionController(appState) {
   // app-source: 575
@@ -198,6 +199,7 @@ export function createWalletSessionController(appState) {
 
   // app-source: 594
   function resetWalletDependentViews(){
+    clearLiveCache();
     appState.walletSignIn.clear();
     appState.communityWalletAllocations.clear();
     appState.communityClaimReview = null;

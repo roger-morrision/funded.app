@@ -32,5 +32,5 @@ export function resetQuickBuyPresets(storage = globalThis.localStorage) {
 // Links the existing quick-buy handler understands (".has-buy-presets a.card-review-buy").
 export function quickBuyLinksMarkup(item, escapeHtml, presets = readQuickBuyPresets(), extra = '') {
   const mint = escapeHtml(item.address || '');
-  return presets.map(amount => `<a class="card-review-buy"${extra} data-review-buy="${mint}" data-review-amount="${amount}" data-symbol="${escapeHtml(item.symbol || '')}" data-dex="${escapeHtml(item.dexId || '')}" data-quote="${escapeHtml(item.quoteMint || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=${amount}" title="Buy ${amount} SOL">Buy ${amount} SOL</a>`).join('');
+  return presets.map(amount => `<a class="card-review-buy"${extra} data-review-buy="${mint}" data-review-amount="${amount}" data-symbol="${escapeHtml(item.symbol || '')}" data-dex="${escapeHtml(item.dexId || '')}" data-quote="${escapeHtml(item.quoteMint || '')}" href="/token/${encodeURIComponent(item.address || '')}?reviewBuy=${amount}" title="Review a ${amount} SOL trade">Review ${amount} SOL</a>`).join('');
 }

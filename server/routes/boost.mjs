@@ -7,6 +7,7 @@ import {boostPricingSnapshot} from '../admin-boost-pricing.mjs';
 import {projectBoostReceipts,STACKED_BOOST_POLICY} from '../../boost-timeline.js';
 import {prepareBoostPayment, registerBoostPayment, expiredBoostPayment} from '../boost-payment-journal.mjs';
 import {createAdminBoostRoute} from './admin-boost.mjs';
+import { readBoostState, updateBoostState } from '../boost-store.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -62,7 +63,7 @@ export function createBoostRoutes({
       try { recipient = new PublicKey(String(process.env.FUNDED_BOOST_PAYMENT_WALLET || '')).toBase58(); }
       catch { return json(res, 503, { error:'The boost payment address is not configured. No payment was requested.' }); }
       if (mint !== input.mint || payer !== input.payer || payer === recipient) return json(res, 400, { error:'A valid token mint and distinct paying wallet are required.' });
-      const state = await store.read(),pricing=boostPricingSnapshot(state);
+      const state = await readBoostState(store,{mint}),pricing=boostPricingSnapshot(state);
       const selected = pricing.packages.find(pack=>pack.id===input.packageId);
       if (!selected) return json(res, 400, { error:'Choose a supported boost package.' });
       const launch = state.launches?.[mint];
@@ -77,7 +78,7 @@ export function createBoostRoutes({
       const quote = { id:id('boost'), mint, payer, recipient, packageId:selected.id, multiplier:selected.multiplier,
         hours:selected.hours, durationPolicy:STACKED_BOOST_POLICY, usd:selected.usd, pricingRevision:pricing.revision, solUsd:price.priceUsd, lamports:boostLamports(selected.usd, price.priceUsd),
         cluster:solanaCluster, paymentProtocol:'journal-v1', createdAt:new Date(now).toISOString(), expiresAt:new Date(now + 5 * 60_000).toISOString() };
-      await store.update(current => {
+      await updateBoostState(store,{mint,quoteId:quote.id},current => {
         current.boostQuotes ||= {};
         // Retain immutable quotes for delayed receipt recovery, including legacy
         // payments whose browser closed before a server journal was available.
@@ -89,7 +90,7 @@ export function createBoostRoutes({
       if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster) || !boostPurchasesEnabled) return json(res,503,{error:'New boost purchases are unavailable.'});
       if (!allowedAuthOrigin(req,process.env.CORS_ORIGIN)) return json(res,403,{error:'Prepare checkout from richpad.fun.'});
       if (!await store.chargeRpcRate(`boost-prepare:${clientKey(req)}`,1,8,Math.floor(Date.now()/60000)*60000)) return json(res,429,{error:'Too many payment preparations. Retry shortly.'});
-      const input=await body(req),quote=(await store.read()).boostQuotes?.[String(input.quoteId||'')];
+      const input=await body(req),quote=(await readBoostState(store,{quoteId:String(input.quoteId||'')})).boostQuotes?.[String(input.quoteId||'')];
       if (!quote) return json(res,404,{error:'Boost quote was not found.'});
       if (Date.now()>=Date.parse(quote.expiresAt)) return json(res,409,{error:'The quote expired. Request a fresh quote.'});
       try {
@@ -105,7 +106,8 @@ export function createBoostRoutes({
       const signature = String(input.signature || '');
       if (!/^boost_\d+_[0-9a-f]{16}$/.test(quoteId) || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature))
         return json(res, 400, { error:'A valid boost quote and Solana signature are required.' });
-      const state = await store.read();
+      const initial = await readBoostState(store,{quoteId,signature});
+      const state = await readBoostState(store,{quoteId,signature,mint:initial.boostQuotes?.[quoteId]?.mint || initial.boostReceipts?.[signature]?.mint});
       const existing = state.boostReceipts?.[signature];
       if (existing) return existing.quoteId === quoteId ? json(res, 200, receiptView(state,signature)) : json(res, 409, { error:'This transaction was already used.' });
       const quote = state.boostQuotes?.[quoteId];
@@ -124,7 +126,7 @@ export function createBoostRoutes({
         if (!transaction) {
           const expired = await expiredBoostPayment(rpc, payment);
           if (expired) {
-            await store.update(current => { if (current.boostPayments?.[signature]?.quoteId === quoteId) current.boostPayments[signature].status='expired'; });
+            await updateBoostState(store,{mint:quote.mint,quoteId,signature},current => { if (current.boostPayments?.[signature]?.quoteId === quoteId) current.boostPayments[signature].status='expired'; });
             return json(res, 200, expired);
           }
           return json(res, 202, {status:'pending', signature, quoteId, cluster:solanaCluster,
@@ -146,7 +148,7 @@ export function createBoostRoutes({
         ...(quote.durationPolicy?{durationPolicy:quote.durationPolicy}:{}) };
       try {
         let created=false;
-        const saved = await store.update(current => {
+        const saved = await updateBoostState(store,{mint:quote.mint,quoteId,signature},current => {
           current.boostReceipts ||= {};
           if (current.boostReceipts[signature]) {
             if (current.boostReceipts[signature].quoteId !== quoteId) throw Object.assign(new Error('This transaction was already used.'), { statusCode:409 });

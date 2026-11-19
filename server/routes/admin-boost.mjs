@@ -4,6 +4,7 @@ import bs58 from 'bs58';
 import { boostPackage } from '../../boost-offer.js';
 import { STACKED_BOOST_POLICY } from '../../boost-timeline.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
+import { updateBoostState } from '../boost-store.mjs';
 
 // Admin wallets (FUNDED_ADMIN_WALLETS) may boost a token without paying. The
 // server identifies the admin only from the admin JWT set at wallet sign-in
@@ -33,7 +34,7 @@ export function createAdminBoostRoute({ body, store, solanaCluster, clientKey, r
       cluster: solanaCluster, status: 'finalized', slot: 0, startsAt,
       expiresAt: new Date(now() + pack.hours * 3_600_000).toISOString(), durationPolicy: STACKED_BOOST_POLICY,
       adminBoost: true, adminSession: admin.jti };
-    const saved = await store.update(current => {
+    const saved = await updateBoostState(store,{mint,quoteId:record.quoteId,signature:key},current => {
       current.boostReceipts ||= {};
       current.boostReceipts[key] = record;
       (current.adminAudit ||= {})[`admin-boost:${key}`] = { wallet: admin.wallet, mint, packageId: pack.id, startsAt, session: admin.jti };

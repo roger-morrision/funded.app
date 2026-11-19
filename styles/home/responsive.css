@@ -18,7 +18,7 @@
 }
 @media (max-width: 900px) {
   body.page-route-overview .main-content { padding: 0 24px 32px; }
- body.page-route-overview .hero-section { width: calc(100% + 48px); min-height: 470px; margin: 0 -24px; padding: 75px 24px 36px; background-image: linear-gradient(90deg, #0b1020ee 0%, #0b1020c9 58%, #0b102059 100%), linear-gradient(0deg, #0b1020 0%, #0b102000 32%), url('/home-wolf-hero.webp'); }
+ body.page-route-overview .hero-section { width: calc(100% + 48px); min-height: 470px; margin: 0 -24px; padding: 75px 24px 36px; background-image: linear-gradient(90deg, #0b1020ee 0%, #0b1020c9 58%, #0b102059 100%), linear-gradient(0deg, #0b1020 0%, #0b102000 32%), var(--home-hero-art); }
   body.page-route-overview .hero-section h1 { white-space: normal; }
   body.page-route-overview .home-hero-facts { max-width: 560px; }
 }

@@ -1,6 +1,7 @@
 import {Transaction, SystemInstruction, SystemProgram, ComputeBudgetProgram} from '@solana/web3.js';
 import bs58 from 'bs58';
 import {BOOST_MEMO_PROGRAM, boostMemo} from '../boost-offer.js';
+import { readBoostState, updateBoostState } from './boost-store.mjs';
 
 const windowKey=(quoteId,blockhash)=>`window:${quoteId}:${blockhash}`;
 export async function prepareBoostPayment({store,rpc,quote,now=Date.now()}) {
@@ -10,7 +11,7 @@ export async function prepareBoostPayment({store,rpc,quote,now=Date.now()}) {
     || !Number.isSafeInteger(latest?.context?.slot) || typeof latest.value.blockhash!=='string') throw Error('Payment expiry verification is unavailable.');
   const record={quoteId:quote.id,blockhash:latest.value.blockhash,expiryUpperBound:latest.value.lastValidBlockHeight,
     observedSlot:latest.context.slot,kind:'prepared',cluster:quote.cluster,expiresAt:quote.expiresAt};
-  await store.update(state=>{state.boostPayments||={};state.boostPayments[windowKey(quote.id,record.blockhash)] ||= record;});
+  await updateBoostState(store,{mint:quote.mint,quoteId:quote.id},state=>{state.boostPayments||={};state.boostPayments[windowKey(quote.id,record.blockhash)] ||= record;});
   return record;
 }
 
@@ -36,19 +37,20 @@ export function decodeBoostPayment(encoded, quote, signature) {
 
 export async function registerBoostPayment({store, rpc, quote, signature, signedTransaction, now=Date.now()}) {
   const identity = decodeBoostPayment(signedTransaction, quote, signature);
-  const existing = (await store.read()).boostPayments?.[signature];
+  const saved = await readBoostState(store,{quoteId:quote.id,signature});
+  const existing = saved.boostPayments?.[signature];
   if (existing) {
     if (existing.quoteId !== quote.id || existing.blockhash !== identity.blockhash) throw Error('Payment identity conflicts with its saved record.');
     return existing;
   }
   // The server saved this exact blockhash and expiry BEFORE wallet signing.
   // A height sent by the client or inferred from another blockhash is not proof.
-  const window=(await store.read()).boostPayments?.[windowKey(quote.id,identity.blockhash)];
+  const window=saved.boostPayments?.[windowKey(quote.id,identity.blockhash)];
   if (!window || !Number.isSafeInteger(window.expiryUpperBound) || !Number.isSafeInteger(window.observedSlot))
     throw Error('The signed payment has no verified preparation record.');
   const record = {...identity, expiryUpperBound:window.expiryUpperBound, observedSlot:window.observedSlot,
     registeredAt:new Date(now).toISOString(), broadcastAllowed:now <= Date.parse(quote.expiresAt), status:'pending'};
-  return store.update(state => {
+  return updateBoostState(store,{mint:quote.mint,quoteId:quote.id,signature},state => {
     state.boostPayments ||= {};
     const current = state.boostPayments[signature];
     if (current && (current.quoteId !== quote.id || current.blockhash !== identity.blockhash)) throw Error('Payment identity conflicts with its saved record.');

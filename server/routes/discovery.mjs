@@ -37,8 +37,9 @@ export function createDiscoveryRoutes({
   };
   // Display-only Birdeye price and logo for wallet holdings; cached briefly per mint.
   const tokenMarketCache = new Map();
-  const birdeyeRetry = (path, params) => fetchBirdeye(path, params)
-    .catch(() => new Promise(done => setTimeout(done, 1300)).then(() => fetchBirdeye(path, params))).catch(() => null);
+  // Provider queues own cooldowns. Do not retry authentication/rate-limit errors
+  // here; retain the last known display data with its observation time instead.
+  const birdeyeRetry = (path, params) => fetchBirdeye(path, params).catch(() => null);
   async function readTokenMarkets(mints) {
     const now = Date.now();
     let missing = mints.filter(mint => !(tokenMarketCache.get(mint)?.expiresAt > now));
@@ -62,6 +63,7 @@ export function createDiscoveryRoutes({
         const logo = typeof info?.logo_uri === 'string' && /^https:\/\//.test(info.logo_uri) ? info.logo_uri : null;
         const prior = tokenMarketCache.get(mint)?.row;
         if (prices?.data || meta?.data) tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { mint,
+          stale: Boolean(prices?.stale || meta?.stale), fetchedAt: prices?.fetchedAt || meta?.fetchedAt || new Date(now).toISOString(),
           priceUsd: Number.isFinite(price) && price > 0 ? price : prior?.priceUsd ?? null, logoUri: logo || prior?.logoUri || null,
           // Birdeye metadata can be missing; keep the free-source identity rather than erase it.
           name: typeof info?.name === 'string' ? info.name.slice(0, 80) : prior?.name ?? null,
@@ -81,12 +83,16 @@ export function createDiscoveryRoutes({
       tokenMarketCache.set(mint, { expiresAt: now + 60_000, row: { ...row, logoUri: row.logoUri || icon,
         name: String(token.name || token.symbol).slice(0, 80), symbol: String(token.symbol).slice(0, 20) } });
     }));
-    return mints.flatMap(mint => tokenMarketCache.get(mint)?.row ? [tokenMarketCache.get(mint).row] : []);
+    return mints.flatMap(mint => {
+      const entry = tokenMarketCache.get(mint);
+      return entry?.row ? [{ ...entry.row, stale: Boolean(entry.row.stale || entry.expiresAt <= Date.now()), fetchedAt: entry.row.fetchedAt || new Date(entry.expiresAt - 60_000).toISOString() }] : [];
+    });
   }
   // Mainnet Explore lists only Richpad tokens: verified app launches and
   // verified paid listings on this cluster, with market fields from the free
   // DexScreener batch (falling back to the discovered-token cache).
   let registryCache = null;
+  const registryFlights = new Map();
   const registryHolders = new Map(), registryHolderChange = new Map(), registryChangePercent = new Map(), registryDexPaid = new Map(), registryAth = new Map(), athCheckedAt = new Map(), holdersCheckedAt = new Map();
   const volumeChange = createVolumeChangeTracker({ store, cluster: solanaCluster });
   let holdersRefresh = null;
@@ -98,7 +104,7 @@ export function createDiscoveryRoutes({
       for (const mint of due) {
         holdersCheckedAt.set(mint, Date.now());
         const jup = await freeMarketData?.jupToken?.(mint).catch(() => null);
-        const count = positive((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count) ?? positive(jup?.holderCount);
+        const count = positive(jup?.holderCount) ?? positive((await freeMarketData?.geckoTokenInfo?.(mint).catch(() => null))?.holders?.count);
         if (count != null) registryHolders.set(mint, count);
         const change = holderChange24h(jup);
         if (change != null) registryHolderChange.set(mint, change); else registryHolderChange.delete(mint);
@@ -106,7 +112,7 @@ export function createDiscoveryRoutes({
         const percent = Number(jup?.stats24h?.holderChange);
         registryChangePercent.set(mint, { holders: jup?.stats24h?.holderChange != null && Number.isFinite(percent) ? percent : null });
         // "DEX paid": an approved DexScreener token profile order.
-        const orders = await freeMarketData?.getJson?.(`https://api.dexscreener.com/orders/v1/solana/${mint}`, { ttlMs: 1_800_000 }).catch(() => null);
+        const orders = await freeMarketData?.getJson?.(`https://api.dexscreener.com/orders/v1/solana/${mint}`, { ttlMs: 86_400_000 }).catch(() => null);
         if (Array.isArray(orders?.orders)) registryDexPaid.set(mint, orders.orders.some(order => order?.type === 'tokenProfile' && order?.status === 'approved'));
       }
       registryCache = null;
@@ -132,9 +138,11 @@ export function createDiscoveryRoutes({
     })().finally(() => { athRefresh = null; });
     return athRefresh;
   }
-  async function mainnetRegistry() {
-    if (registryCache && Date.now() - registryCache.at < 15_000) return registryCache.items;
-    const state = await store.read();
+  async function buildRegistry(pageOptions) {
+    const pageKey = JSON.stringify(pageOptions);
+    if (registryCache?.key === pageKey && Date.now() - registryCache.at < 15_000) return registryCache.result;
+    const registry = typeof store.readDiscoveryRegistry === 'function' ? await store.readDiscoveryRegistry(solanaCluster, pageOptions) : null;
+    const state = registry?.state || await store.read();
     const launches = Object.values(state.launches || {}).filter(item => item?.mint && item.cluster === solanaCluster && item.onchainVerified === true);
     const listings = Object.values(state.listings || {}).filter(item => item?.mint && item.cluster === solanaCluster && item.onchainVerified === true);
     const byMint = new Map();
@@ -157,7 +165,6 @@ export function createDiscoveryRoutes({
     // Holder counts (GeckoTerminal, else Jupiter) refresh in the background every
     // 30 minutes; the list answers immediately with the last known counts.
     const holders = registryHolders;
-    void refreshRegistryHolders(mints.slice(0, 40));
     const items = mints.map(mint => {
       const base = byMint.get(mint), market = dex.get(mint) || cached.get(mint) || {};
       if (dex.get(mint)) fresh.push({ ...(cached.get(mint) || {}), ...dex.get(mint), mint });
@@ -166,7 +173,7 @@ export function createDiscoveryRoutes({
         imageUri: base.imageUri || market.imageUri || null, priceUsd: market.priceUsd ?? null, marketCapUsd: market.marketCapUsd ?? null,
         liquidityUsd: market.liquidityUsd ?? null, volume24hUsd: market.volume24hUsd ?? null, priceChange24hPercent: market.priceChangePercent ?? market.priceChange24hPercent ?? null,
         website: base.website || market.website || null, twitter: base.twitter || market.twitter || null, telegram: base.telegram || market.telegram || null, discord: base.discord || market.discord || null,
-        pairCreatedAt: Number(market.pairCreatedAt) > 0 ? Number(market.pairCreatedAt) : null, dexId: market.dexId || null,
+        pairAddress: market.pairAddress || null, pairCreatedAt: Number(market.pairCreatedAt) > 0 ? Number(market.pairCreatedAt) : null, dexId: market.dexId || null,
         quoteMint: base.quoteMint || market.quoteMint || null, quoteSymbol: base.quoteSymbol || market.quoteSymbol || null,
         buyCount24h: Number.isSafeInteger(market.buyCount24h) ? market.buyCount24h : null, sellCount24h: Number.isSafeInteger(market.sellCount24h) ? market.sellCount24h : null,
         holderCount: Number.isSafeInteger(holders.get(mint)) ? holders.get(mint) : null,
@@ -178,10 +185,15 @@ export function createDiscoveryRoutes({
       item.volumeChange24hPercent = await volumeChange.change(item.mint, item.volume24hUsd).catch(() => null);
       void volumeChange.record(item.mint, item.volume24hUsd).catch(() => {});
     }));
-    void refreshRegistryAth(mints.slice(0, 40).map(mint => ({ mint, ...(dex.get(mint) || cached.get(mint) || {}) })));
     if (fresh.length) void tokenCache?.upsert(fresh);
-    registryCache = { at: Date.now(), items };
-    return items;
+    const result = { items, total: registry?.total ?? items.length, paged: Boolean(registry), mints: registry?.mints };
+    registryCache = { at: Date.now(), key: pageKey, result };
+    return result;
+  }
+  async function mainnetRegistry(options) {
+    const key = JSON.stringify(options);
+    if (!registryFlights.has(key)) registryFlights.set(key, buildRegistry(options).finally(() => registryFlights.delete(key)));
+    return registryFlights.get(key);
   }
   return async function handleDiscoveryRoutes(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/tokens/market') {
@@ -240,11 +252,16 @@ export function createDiscoveryRoutes({
         try { warmMarketActivity(page.map(item => item.mint).filter(mint => !activity[mint])); } catch {}
         return json(res, 200, { provider: 'funded.app-devnet-registry', chain: 'solana', cluster: 'devnet', fetchedAt: new Date().toISOString(), items: page, total:uniqueItems.length, ...(accountSnapshot ? { accountSnapshot } : {}), ...(Object.keys(activity).length ? { marketActivity: activity } : {}) });
       }
-      const items = await mainnetRegistry();
+      const registry = await mainnetRegistry({ limit, offset, sort });
+      const { items } = registry;
       const key = sort === 'market_cap' ? 'marketCapUsd' : sort === 'created_timestamp' ? 'createdTimestamp' : 'volume24hUsd';
-      const sorted = [...items].sort((x, y) => (Number(y[key]) || 0) - (Number(x[key]) || 0));
+      const sorted = registry.paged ? registry.mints.map(mint => items.find(item => item.mint === mint)).filter(Boolean)
+        : [...items].sort((x, y) => (Number(y[key]) || 0) - (Number(x[key]) || 0));
+      const visible = registry.paged ? sorted : sorted.slice(offset, offset + limit);
+      void refreshRegistryHolders(visible.map(item => item.mint));
+      void refreshRegistryAth(visible);
       return json(res, 200, { provider: 'richpad-registry', chain: 'solana', cluster: solanaCluster, fetchedAt: new Date().toISOString(),
-        items: sorted.slice(offset, offset + limit), total: sorted.length, directoryComplete: offset + limit >= sorted.length });
+        items: visible, total: registry.total, directoryComplete: offset + limit >= registry.total });
     }
     return false;
   };

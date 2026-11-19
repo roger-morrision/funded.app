@@ -115,6 +115,7 @@ export async function migrate(pool) {
         WHERE receipt_count_cluster(bucket,payload) IS NOT NULL GROUP BY bucket,receipt_count_cluster(bucket,payload)`);
       await client.query("INSERT INTO read_model_versions(name,version) VALUES('receipt-counts',1)");
     }
+    await client.query(await readFile(resolve(dirname(schemaPath), 'discovery.sql'), 'utf8'));
     await client.query('COMMIT');
   } catch (error) { await client.query('ROLLBACK'); throw error; }
   finally { client.release(); }

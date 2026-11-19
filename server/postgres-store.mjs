@@ -6,6 +6,8 @@ import { createReceiptsRepository } from './postgres/receipts.mjs';
 import { createCreatorsRepository } from './postgres/creators.mjs';
 import { createAccountsRepository } from './postgres/accounts.mjs';
 import { createAssetsRepository } from './postgres/assets.mjs';
+import { createDiscoveryRepository } from './postgres/discovery.mjs';
+import { createBoostRepository } from './postgres/boosts.mjs';
 
 const { Pool } = pg;
 
@@ -24,6 +26,8 @@ export function createPostgresStore(databaseUrl) {
     ...createCreatorsRepository({ pool, ensureReady }),
     ...createAccountsRepository({ pool, ensureReady }),
     ...createAssetsRepository({ pool, ensureReady }),
+    ...createDiscoveryRepository({ pool, ensureReady }),
+    ...createBoostRepository({ pool, ensureReady }),
     async health() { await ensureReady(); await pool.query({ text: 'SELECT 1', query_timeout: 3000 }); return true; },
     async readMarketActivity(mint, cluster) {
       await ensureReady();

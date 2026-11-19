@@ -1,10 +1,11 @@
 // Free public market sources (DexScreener, Jupiter, GeckoTerminal) with a shared
 // response cache, in-flight coalescing and per-host pacing. Callers fall back to
 // the paid Birdeye API only when these return nothing.
+import { createProviderQueue, retryAfterMs } from './provider-queue.mjs';
 const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 export const WSOL = 'So11111111111111111111111111111111111111112';
 
-export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...args), now = Date.now, timeoutMs = 8000, jupiterApiKey = '', jupiterRps = 0 } = {}) {
+export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...args), now = Date.now, sleep, timeoutMs = 8000, jupiterApiKey = '', jupiterRps = 0 } = {}) {
   // Swap quotes use api.jup.ag with the Jupiter API key (portal.jup.ag) when one
   // is configured and fall back to the keyless lite-api lane (a separate limit)
   // when the keyed lane is busy. Price and token lookups always use lite-api so
@@ -12,12 +13,12 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   const JUP = jupiterApiKey ? 'https://api.jup.ag' : 'https://lite-api.jup.ag';
   const jupHeaders = jupiterApiKey ? { 'x-api-key': jupiterApiKey } : {};
   const swapGapMs = Math.max(50, Math.round(1000 / (Number(jupiterRps) > 0 ? Number(jupiterRps) : 0.9)));
-  const cache = new Map(), inflight = new Map(), nextAt = new Map(), cooldownUntil = new Map();
+  const cache = new Map(), inflight = new Map(), queues = new Map(), cooldownUntil = new Map();
+  const counters = { cacheHits:0, coalesced:0, staleHits:0 };
   const spacing = { 'api.dexscreener.com': 220, 'lite-api.jup.ag': 120, 'api.jup.ag': 120, 'api.geckoterminal.com': 2100 };
-  async function pace(host) {
-    const wait = (nextAt.get(host) || 0) - now();
-    nextAt.set(host, Math.max(now(), nextAt.get(host) || 0) + (spacing[host] || 200));
-    if (wait > 0) await new Promise(done => setTimeout(done, Math.min(wait, 5000)));
+  function queueFor(host) {
+    if (!queues.has(host)) queues.set(host, createProviderQueue({ gapMs: spacing[host] || 200, now, sleep }));
+    return queues.get(host);
   }
   // Fresh hits return at once; an expired entry inside its stale window is
   // returned immediately while one background request refreshes it, so page
@@ -42,19 +43,21 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   async function getJson(url, { ttlMs = 30_000, method = 'GET', body = null, staleMs = ttlMs * 6, priority = false } = {}) {
     const key = method + ' ' + url + (body ? ' ' + JSON.stringify(body) : '');
     const hit = cache.get(key);
-    if (hit && hit.expiresAt > now()) return hit.value;
+    if (hit && hit.expiresAt > now()) { counters.cacheHits++; return hit.value; }
     const host = new URL(url).hostname;
     const refresh = () => {
-      if (inflight.has(key)) return inflight.get(key);
+      if (inflight.has(key)) { counters.coalesced++; return inflight.get(key); }
       if (!priority && (cooldownUntil.get(lane(url)) || 0) > now()) return Promise.reject(Error(`${lane(url)} is cooling down`));
-      const call = (async () => {
+      const execute = async () => {
         // Swap quotes skip the shared queue so background price reads never delay a trade.
-        if (priority) await paceLane(lane(url), swapGapMs); else await pace(host);
+        if (priority) await paceLane(lane(url), swapGapMs);
+        if ((cooldownUntil.get(lane(url)) || 0) > now()) throw Error(`${lane(url)} is cooling down`);
         const response = await fetch(url, { method, redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
           headers: { accept: 'application/json', ...(host === 'api.jup.ag' ? jupHeaders : {}), ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
         if (response.status === 429 || response.status >= 500) {
-          const retry = Number(response.headers.get('retry-after'));
-          cooldownUntil.set(lane(url), now() + (Number.isFinite(retry) && retry > 0 ? Math.min(retry * 1000, 60_000) : priority ? 3_000 : 15_000));
+          const delay = retryAfterMs(response.headers.get('retry-after'), now(), priority ? 3_000 : 15_000);
+          cooldownUntil.set(lane(url), now() + delay);
+          if (!priority) queueFor(host).cooldown(delay);
         }
         if (!response.ok) {
           const detail = (await response.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200);
@@ -62,16 +65,17 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
         }
         const value = await response.json();
         if (ttlMs > 0) {
-          if (cache.size > 3000) for (const [k, row] of cache) if (row.staleUntil <= now()) cache.delete(k);
+          if (cache.size >= 3000) cache.delete(cache.keys().next().value);
           cache.set(key, { value, expiresAt: now() + ttlMs, staleUntil: now() + ttlMs + staleMs });
         }
         return value;
-      })().finally(() => inflight.delete(key));
+      };
+      const call = (priority ? execute() : queueFor(host).run(execute)).finally(() => inflight.delete(key));
       inflight.set(key, call);
       return call;
     };
-    if (hit && ttlMs > 0 && hit.staleUntil > now()) { refresh().catch(() => {}); return hit.value; }
-    try { return await refresh(); } catch (error) { if (hit) return hit.value; throw error; }
+    if (hit && ttlMs > 0 && hit.staleUntil > now()) { counters.staleHits++; refresh().catch(() => {}); return hit.value; }
+    return refresh();
   }
   const chunks = (list, size) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, i * size + size));
   const num = value => value != null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
@@ -174,7 +178,8 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
     if (!jupiterApiKey) return read(JUP);
     try { return await read(JUP); } catch (error) { if (error?.status === 400) throw error; return read('https://lite-api.jup.ag'); }
   }
-  return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupToken, jupQuote, jupSwapInstructions, GECKO_FRAMES };
+  return { getJson, dexTokens, jupPrices, geckoOhlcv, geckoTrades, geckoTokenInfo, jupToken, jupQuote, jupSwapInstructions, GECKO_FRAMES,
+    providerStats: () => ({ ...counters, hosts:Object.fromEntries([...queues].map(([host,queue]) => [host,queue.stats()])), billedCredits:null }) };
 }
 
 // Market-activity shape used by the token page, built from DexScreener first.

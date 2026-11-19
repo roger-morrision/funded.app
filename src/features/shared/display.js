@@ -61,20 +61,22 @@ export function formatCompactUsd(value){
   return `$${Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)}`;
 }
 
-export function formatDashboardUsd(value, { partial = false } = {}){
+export function formatDashboardUsd(value, { partial = false, partialLabel = 'Partial history · unverified' } = {}){
   const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return '$—';
-  if (amount > 0 && amount < 0.01) return `${partial ? '≥' : ''}<$0.01`;
+  if (value == null || value === '' || !Number.isFinite(amount) || amount < 0) return '$—';
+  if (partial && amount === 0) return partialLabel;
+  if (amount > 0 && amount < 0.01) return partial ? partialLabel : '<$0.01';
   const formatted = amount >= 1_000_000
     ? Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 }).format(amount)
     : amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${partial ? '≥' : ''}$${formatted}`;
 }
 
-export function formatSmallDashboardUsd(value, { partial = false } = {}){
+export function formatSmallDashboardUsd(value, { partial = false, partialLabel = 'Partial history · unverified' } = {}){
   const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return '$—';
-  if (amount === 0) return `${partial ? '≥' : ''}$0.00`;
+  if (value == null || value === '' || !Number.isFinite(amount) || amount < 0) return '$—';
+  if (partial && amount < 0.01) return partialLabel;
+  if (amount === 0) return '$0.00';
   return `${partial ? '≥' : ''}${amount > 0 && amount < 0.01 ? formatUsd(amount) : formatDashboardUsd(amount)}`;
 }
 

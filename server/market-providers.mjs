@@ -1,3 +1,4 @@
+import { createProviderQueue, retryAfterMs } from './provider-queue.mjs';
 // Created once by the server composition layer; state belongs to this instance.
 export function createMarketProviders({
   birdeyeApiKey,
@@ -7,38 +8,38 @@ export function createMarketProviders({
   pumpApiUrl,
   fetch = (...args) => globalThis.fetch(...args),
   now = Date.now,
+  sleep,
 }) {
-  let birdeyeNextRequestAt = 0;
+  const queue = createProviderQueue({ gapMs: 1100, now, sleep });
   // Shared response cache and in-flight coalescing: identical Birdeye reads from
   // any visitor reuse one upstream call while fresh, saving API credits.
   const birdeyeCache = new Map(), birdeyeInflight = new Map();
+  const counters = { cacheHits:0, coalesced:0, staleHits:0 };
   const birdeyeTtlMs = path => /meta-data/.test(path) ? 3_600_000 : /multi_price|price/.test(path) ? 30_000 : 60_000;
   async function fetchBirdeye(path, params = {}) {
     const key = path + '?' + new URLSearchParams(Object.entries(params).sort(([a], [b]) => a < b ? -1 : 1));
     const hit = birdeyeCache.get(key);
-    if (hit && hit.expiresAt > now()) return hit.value;
-    if (birdeyeInflight.has(key)) return birdeyeInflight.get(key);
+    if (hit && hit.expiresAt > now()) { counters.cacheHits++; return hit.value; }
+    if (birdeyeInflight.has(key)) { counters.coalesced++; return birdeyeInflight.get(key); }
     const call = (async () => {
-      // Wait out the shared pacing slot instead of failing parallel readers.
-      const wait = birdeyeNextRequestAt - now();
-      if (wait > 0 && wait <= 2_500) await new Promise(done => setTimeout(done, wait));
-      const value = await fetchBirdeyeUpstream(path, params);
+      const value = await queue.run(() => fetchBirdeyeUpstream(path, params));
       if (value?.configured) {
-        if (birdeyeCache.size > 2_000) for (const [k, row] of birdeyeCache) if (row.expiresAt <= now()) birdeyeCache.delete(k);
+        if (birdeyeCache.size >= 2_000) birdeyeCache.delete(birdeyeCache.keys().next().value);
         birdeyeCache.set(key, { value, expiresAt: now() + birdeyeTtlMs(path) });
       }
       return value;
     })();
     birdeyeInflight.set(key, call);
-    try { return await call; } catch (error) { if (hit) return hit.value; throw error; } finally { birdeyeInflight.delete(key); }
+    try { return await call; } catch (error) {
+      if (hit && now() - hit.expiresAt < birdeyeTtlMs(path)) { counters.staleHits++; return { ...hit.value, stale: true, fetchedAt: new Date(hit.expiresAt - birdeyeTtlMs(path)).toISOString() }; }
+      throw error;
+    } finally { birdeyeInflight.delete(key); }
   }
   async function fetchBirdeyeUpstream(path, params = {}) {
     if (!birdeyeApiKey) return { configured: false, data: null };
     // Keep credentials on the official HTTPS origin, including on redirects.
     if (new URL(birdeyeBaseUrl).origin !== 'https://public-api.birdeye.so' || !path.startsWith('/defi/'))
       throw new Error('Invalid Birdeye endpoint.');
-    if (now() < birdeyeNextRequestAt) throw new Error('Birdeye is cooling down.');
-    birdeyeNextRequestAt = now() + 1100;
     const query = new URLSearchParams(params);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), birdeyeTimeoutMs);
@@ -46,8 +47,9 @@ export function createMarketProviders({
       const response = await fetch(`${birdeyeBaseUrl}${path}?${query}`, { redirect:'error', headers: { accept: 'application/json', 'X-API-KEY': birdeyeApiKey, 'x-chain': birdeyeChain }, signal: controller.signal });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload.success !== true) {
-        birdeyeNextRequestAt = now() + ([401,403].includes(response.status) ? 300_000 : 30_000);
-        throw new Error(`Birdeye request failed (${response.status}).`);
+        const cooldown = [401,403].includes(response.status) ? 300_000 : retryAfterMs(response.headers?.get('retry-after'), now());
+        queue.cooldown(cooldown);
+        throw Object.assign(new Error(`Birdeye request failed (${response.status}).`), { status: response.status, retryAt: now() + cooldown });
       }
       return { configured: true, data: payload.data || null };
     } finally { clearTimeout(timeout); }
@@ -65,7 +67,7 @@ export function createMarketProviders({
     } finally { clearTimeout(timeout); }
   }
 
-  return { fetchBirdeye, fetchPump };
+  return { fetchBirdeye, fetchPump, providerStats: () => ({ ...queue.stats(), ...counters, billedCredits:null }) };
 }
 
 export function normalizePumpToken(item) {

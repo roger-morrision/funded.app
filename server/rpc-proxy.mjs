@@ -40,7 +40,10 @@ export function createSolanaRpcProxy({
       // forwarding so omitted and explicit capped limits use the same request.
       request.params = [request.params[0], { ...config, limit }];
     }
-    const cacheable = !centralized && !['sendTransaction', 'simulateTransaction', 'requestAirdrop', 'isBlockhashValid'].includes(request.method);
+    // Only immutable finalized proofs may be cached. Balances, accounts,
+    // blockhashes and preflight reads must reflect the latest upstream state.
+    const cacheable = !centralized && ['getTransaction', 'getBlock'].includes(request.method)
+      && request.params?.[1]?.commitment === 'finalized';
     const cacheKey = cacheable ? JSON.stringify([request.method, request.params]) : null;
     const cached = cacheKey && rpcCache.get(cacheKey);
     const client = clientKey(req);
@@ -68,7 +71,7 @@ export function createSolanaRpcProxy({
       const result = await upstream.json().catch(() => null);
       if (upstream.status === 429) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is rate limited; retry shortly.' } });
       if (!result || typeof result !== 'object') return json(res, 502, { jsonrpc: '2.0', id: request.id, error: { code: -32000, message: 'Solana RPC returned an invalid response.' } });
-      if (cacheKey && upstream.ok && !result.error) {
+      if (cacheKey && upstream.ok && !result.error && result.result != null) {
         if (rpcCache.size > 500) rpcCache.clear();
         rpcCache.set(cacheKey, { data: result, expiresAt: Date.now() + (request.method === 'getTransaction' ? 30_000 : request.method === 'getLatestBlockhash' ? 1_000 : 5_000) });
       }
