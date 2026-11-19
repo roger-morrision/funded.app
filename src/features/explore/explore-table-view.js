@@ -28,7 +28,11 @@ export function exploreTableMarkup(records, {
   // Top 100 reuses this table with its own rank numbers and a ranking note per coin.
   rankOf = (item, index) => index + 1, noteMarkup = () => '',
 }) {
+  const boltSvg = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M9 1 3 9h4l-1 6 6-8H8z"/></svg>';
   const rows = records.map((item, index) => {
+    // Active boost: bolt icon and quantity beside the symbol (no separate tag).
+    const boostAmount = String(boostMarkup(item.address) || '').replace(/<[^>]+>/g, '').replace('⚡', '').trim();
+    const boostBadge = boostAmount ? `<span class="explore-table-boost" title="Active boost ${escapeHtml(boostAmount)}">${boltSvg}${escapeHtml(boostAmount)}</span>` : '';
     const mint = escapeHtml(item.address || '');
     const href = `/token/${encodeURIComponent(item.address || '')}`;
     const cap = item.marketCapUsd != null ? formatCompactUsd(item.marketCapUsd) : String(item.value || '—').replace(/^MC · /, '');
@@ -36,7 +40,6 @@ export function exploreTableMarkup(records, {
     const tags = [
       paidListing(item) ? '<span class="explore-table-tag is-listed">Paid listing</span>' : '',
       item.dexPaid === true ? '<span class="explore-table-tag">DEX paid</span>' : '',
-      String(boostMarkup(item.address) || '').replace(/<[^>]+>/g, '').replace('⚡', '').trim() ? `<span class="explore-table-tag is-boosted">Boosted ${escapeHtml(String(boostMarkup(item.address)).replace(/<[^>]+>/g, '').replace('⚡', '').trim())}</span>` : '',
     ].join('');
     // Tier and airdrop exist only for coins launched through richpad.fun; external tokens show a dash.
     const tier = item.benefitPolicyVerified && item.promotionTier ? item.promotionTier.charAt(0).toUpperCase() + item.promotionTier.slice(1) : '—';
@@ -44,7 +47,7 @@ export function exploreTableMarkup(records, {
     const logo = cluster !== 'devnet' && /^https:\/\//.test(String(item.imageUri || '')) ? `<img src="${escapeHtml(item.imageUri)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
     return `<tr data-mint="${mint}" data-logo-mint="${mint}">
       <td class="explore-table-rank">${escapeHtml(String(rankOf(item, index)))}</td>
-      <td class="explore-table-token"><a href="${href}"><span class="home-token-avatar">${escapeHtml(String(item.symbol || 'T').slice(0, 1))}${logo}</span><span class="explore-table-identity"><strong>${escapeHtml(item.symbol || 'TOKEN')}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a>${pairChipMarkup(item, escapeHtml)}${tags}${noteMarkup(item)}</td>
+      <td class="explore-table-token"><a href="${href}"><span class="home-token-avatar">${escapeHtml(String(item.symbol || 'T').slice(0, 1))}${logo}</span><span class="explore-table-identity"><strong>${escapeHtml(item.symbol || 'TOKEN')}${boostBadge}</strong><small>${escapeHtml(item.name || 'Unnamed token')}</small></span></a>${pairChipMarkup(item, escapeHtml)}${tags}${noteMarkup(item)}</td>
       <td class="explore-table-num"><strong>${escapeHtml(cap)}</strong>${percentMarkup(item.priceChange24hPercent ?? Number.parseFloat(item.change))}${Number(item.athMarketCapUsd) > 0 ? `<small class="explore-table-ath">ATH ${escapeHtml(formatCompactUsd(Number(item.athMarketCapUsd)))}</small>` : ''}</td>
       <td class="explore-table-num"><strong>${escapeHtml(volumeValue(item))}</strong>${percentMarkup(item.volumeChange24hPercent)}</td>
       <td class="explore-table-num"><strong>${escapeHtml(holders)}</strong>${percentMarkup(item.holderChange24hPercent)}</td>

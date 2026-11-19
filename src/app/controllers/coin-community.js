@@ -63,7 +63,10 @@ export function createCoinCommunityController(appState) {
   function tokenChatMessageMarkup(item){
       const own = Boolean(appState.connectedWalletAddress && item.author === appState.connectedWalletAddress);
       const deleteBtn = own ? `<button type="button" class="coin-chat-delete" data-chat-delete="${appState.escapeHtml(item.id)}" aria-label="Delete message" title="Delete message">${appState.icon('trash')}</button>` : '';
-      return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div class="coin-community-message-header"><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}<small class="verified-author">✓ wallet</small></strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time>${deleteBtn}</div><p>${appState.escapeHtml(item.text)}</p>${callRow(item)}</article>`;
+      // Like: same heart and endpoint as Coin calls.
+      const me = appState.connectedWalletAddress, liked = Boolean(me && Array.isArray(item.likedBy) && item.likedBy.includes(me));
+      const likeBtn = `<button type="button" class="callout-like coin-chat-like" data-chat-like="${appState.escapeHtml(item.id)}" data-liked="${liked}" aria-pressed="${liked}" aria-label="Like" title="Like">${appState.icon('heart')}<span class="callout-like-count">${Number(item.likeCount) > 0 ? appState.escapeHtml(String(item.likeCount)) : ''}</span></button>`;
+      return `<article class="coin-community-message" data-chat-message="${appState.escapeHtml(item.id)}"><div class="coin-community-message-header"><strong>${walletAddressMarkup(item.author,appState.tokenChatAuthorLabel(item.author))}</strong><time>${appState.escapeHtml(new Date(item.createdAt).toLocaleString())}</time>${deleteBtn}</div><p>${appState.escapeHtml(item.text)}</p>${callRow(item)}<div class="coin-chat-actions">${likeBtn}</div></article>`;
     }
   // app-source-end
 

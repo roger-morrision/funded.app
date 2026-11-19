@@ -368,3 +368,10 @@ html body #main-content#main-content :is(.top100-method-link a, .paid-listing-pr
 /* Remaining text links found by the page audit, so every link reads the same gold. */
 html body #main-content#main-content :is(.coin-breadcrumb > a, .list-back, .docs-guide-link, .proof-totals-head > a, .support-shortcuts > a,
   .portfolio-related > a, .callout-author, .preview-status-drawer > a, .purpose-page-nav > a:not([aria-current])) { color: var(--calm-link) !important; }
+/* Wallet address links use the same gold as other links. */
+html body #main-content#main-content a.wallet-address-link { color: var(--calm-link) !important; text-decoration-color: color-mix(in srgb, var(--calm-link) 45%, transparent); }
+/* Token chat: like button under each message. */
+html body #main-content#main-content .coin-community-message .coin-chat-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+html body #main-content#main-content .coin-chat-like[data-liked="true"] { color: #f28bc3; }
+/* Tables: active boost shown as bolt + quantity beside the symbol. */
+html body #main-content#main-content .explore-table-boost { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 1px 6px; border-radius: 999px; color: #f59e6b; background: color-mix(in srgb, #f59e6b 12%, transparent); border: 1px solid color-mix(in srgb, #f59e6b 38%, transparent); font: 600 11px/1.4 var(--fv-font-data); vertical-align: middle; }

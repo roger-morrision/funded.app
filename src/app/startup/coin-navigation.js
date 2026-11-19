@@ -134,6 +134,18 @@ export function initializeCoinNavigation(appState) {
       finally { reportMessage.disabled = false; }
       return;
     }
+    const likeMessage = event.target.closest('[data-chat-like]');
+    if (likeMessage) {
+      likeMessage.disabled = true;
+      try {
+        const result = await appState.tokenChatRequest('like', { messageId: likeMessage.dataset.chatLike });
+        if (!result?.available) throw new Error(result?.error || 'Could not like this message. Try again.');
+        likeMessage.dataset.liked = String(result.data.liked === true); likeMessage.setAttribute('aria-pressed', likeMessage.dataset.liked);
+        likeMessage.querySelector('.callout-like-count').textContent = result.data.likeCount > 0 ? String(result.data.likeCount) : '';
+      } catch (error) { appState.showToast(error.message || 'Could not like this message.'); }
+      finally { likeMessage.disabled = false; }
+      return;
+    }
     const deleteMessage = event.target.closest('[data-chat-delete]');
     if (deleteMessage) {
       deleteMessage.disabled = true;

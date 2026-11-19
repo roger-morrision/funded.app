@@ -51,7 +51,7 @@ export function initializeTop100(appState) {
       const asset = byMint.get(row.mint) || {address:row.mint, symbol:row.symbol, name:row.name, imageUri:row.imageUri};
       const base = {...asset, holders:asset.holders ?? row.holders ?? null, holderChange24hPercent:asset.holderChange24hPercent ?? null};
       const record = benefits(appState.EXPLORE_CLUSTER === 'devnet' ? withMarketWindow(base, '24h') : enrichMarketRecord(base));
-      return {...record, top100Rank:row.rank, top100Note:filters.sort === 'featured' && (row.paidPriority || row.boost > 0) ? (row.boost > 0 ? 'Boost priority' : 'Paid priority') : ''};
+      return {...record, top100Rank:row.rank};
     });
     const empty = busy || !checked ? 'Loading token data…' : failure ? 'Token rankings are temporarily unavailable. They retry automatically every minute.' : filters.sort === 'boosted' ? appState.verifiedBoostsAvailable ? 'No active boosts match these filters. Boost a token from Market cap or Explore.' : 'Boost data is temporarily unavailable. It retries automatically every minute.' : filters.sort === 'market-cap' && !records.some(row=>row.capGrowthUsd!=null) ? '24h market-cap growth is not available yet. Both opening and current valuations are required.' : 'No ranked tokens match these filters. Reset filters or browse Explore.';
     const html = items.length ? exploreTableMarkup(items, {
@@ -59,7 +59,7 @@ export function initializeTop100(appState) {
       volumeValue:item => appState.launchCardVolumeUsd(item, '24h'), formatAge:appState.formatOnchainAge, watchMarkup:appState.tokenCardWatchMarkup,
       boostMarkup:appState.exploreBoostAmountMarkup,
       paidListing:item => appState.verifiedPaidListingPayment?.(item) || (item.listingPayment?.verified === true && (item.listingPayment.admin === true || item.listingPayment.signature) ? item.listingPayment : null),
-      rankOf:item => item.top100Rank, noteMarkup:item => item.top100Note ? `<small class="top100-paid-priority">${esc(item.top100Note)}</small>` : '',
+      rankOf:item => item.top100Rank,
     }) : `<p class="top100-empty">${esc(empty)}</p>`;
     // Keep keyboard focus and loaded logos intact when a refresh changes no rows.
     if (html !== lastRows) {
