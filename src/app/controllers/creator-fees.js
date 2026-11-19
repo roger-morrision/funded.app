@@ -1,4 +1,5 @@
 import {creatorPayoutActions,creatorActionPath,approveCreatorPayoutBatch} from '../../features/fees/creator-payout-actions.js';
+import {claimCreatorFees} from '../../features/fees/claim-creator-fees.js';
 // Dependencies and mutable application state are read live through appState.
 export function createCreatorFeesController(appState) {
   // app-source: 901
@@ -88,7 +89,7 @@ export function createCreatorFeesController(appState) {
         }
         if (!payable && path === 'creator-reward-funding')
           button.textContent = 'No holder or X allocation for this collection';
-        button.disabled = !signingWallet || overview.gates?.[gate] !== true
+        button.disabled = !(path==='creator-wallet-payout'?Boolean(appState.wallet):signingWallet) || overview.gates?.[gate] !== true
           || row[gate] === 'finalized' || !payable;
         if (!button.disabled) button.onclick = () => { void requestV3FeeAction(button, path, row.signature); };
         section.append(button);
@@ -97,7 +98,7 @@ export function createCreatorFeesController(appState) {
         const extra=!['community-funding','creator-reward-funding','creator-wallet-payout'].includes(action.action);
         const payable=/^[1-9]\d*$/.test(String(action.amount));
         const enabled=signingWallet&&overview.gates?.[action.gate]===true&&!action.finalized&&payable;
-        if(enabled)batch.push({...action,source:row.signature});
+        if(enabled&&action.action!=='creator-wallet-payout')batch.push({...action,source:row.signature});
         if(!extra||!payable&&!action.finalized)continue;
         const button=document.createElement('button');button.type='button';
         button.textContent=action.finalized?`${action.label} · finalized`:action.label;
@@ -123,7 +124,7 @@ export function createCreatorFeesController(appState) {
     const overview = appState.currentCoinFeeOverview;
     if (!session || !mint || overview?.scope !== 'per-mint-v3'
       || session.address !== overview.creatorWallet || appState.creatorClaimsInFlight.has(mint)) return;
-    if (session.provider.readOnly || typeof session.provider.signTransaction !== 'function') {
+    if (action!=='creator-wallet-payout'&&(session.provider.readOnly || typeof session.provider.signTransaction !== 'function')) {
       appState.showToast('Open the launch creator wallet to approve this V3 transaction.'); return;
     }
     const collection = overview.collections?.find(row => row.signature === collectionSignature);
@@ -135,6 +136,16 @@ export function createCreatorFeesController(appState) {
     const originalLabel = button.textContent;
     try {
       button.disabled = true;
+      if(action==='creator-wallet-payout'){
+        button.textContent='Claiming creator fees…';
+        await claimCreatorFees({session,mint,collectionSignature,amountLamports:collection.allocationPlan?.creatorDirected?.walletLamports,
+          ensureSession:s=>appState.walletSignIn.ensure(s),assertCurrent:s=>appState.assertWalletSessionCurrent(s),request:(...args)=>appState.apiRequest(...args)});
+        appState.showToast('Creator fees paid.');
+        const updated=await appState.apiRequest(`/api/tokens/${encodeURIComponent(mint)}/fee-activity`);
+        appState.assertWalletSessionCurrent(session);
+        if(appState.getCoinMintAddress()===mint&&updated.available&&updated.data?.mint===mint)appState.renderCoinFeeDashboard(updated.data.overview);
+        return;
+      }
       button.textContent = 'Reviewing V3 transaction…';
       const path = creatorActionPath(mint,collectionSignature,action);
       const prepared = await appState.apiRequest(path, { method:'POST', body:{} });

@@ -17,6 +17,8 @@ export function creatorActionPath(mint,source,action) {
 }
 
 export async function approveCreatorPayoutBatch(appState,button,actions) {
+  actions=actions.filter(row=>row.action!=='creator-wallet-payout'&&!row.action.startsWith('referral-payout/'));
+  if(!actions.length)return;
   const mint=appState.getCoinMintAddress(),session=appState.captureWalletSession();
   if(!session||session.address!==appState.currentCoinFeeOverview?.creatorWallet||appState.creatorClaimsInFlight.has(mint))return;
   if(typeof session.provider.signAllTransactions!=='function')return;

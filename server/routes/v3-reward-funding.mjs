@@ -73,12 +73,6 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     if (solanaCluster !== 'devnet' || !automatic && !originAllowed(req, env.CORS_ORIGIN)) {
       return json(res, 403, { error:'V3 category disbursement requires the Devnet app origin.' });
     }
-    // Claim clicks use the existing wallet-ownership session. An API token,
-    // connected wallet address, or old claim signature cannot replace it.
-    const claimSession = kind === 'referral' && !automatic ? await referralSession(req) : null;
-    if (kind === 'referral' && !automatic && (!claimSession?.wallet
-      || !Number.isFinite(claimSession.expiresAt) || claimSession.expiresAt <= Date.now()))
-      return json(res, 401, { error:'Sign in with the earning wallet to claim your referral reward.' });
     const enabled = kind === 'referral' ? env.FUNDED_V3_REFERRAL_PAYOUT_ENABLED
       : kind === 'operations' ? env.FUNDED_V3_OPERATIONS_PAYOUT_ENABLED
       : kind === 'community' ? env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED
@@ -101,6 +95,12 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     if(residualHash!==undefined&&(!/^[a-f0-9]{64}$/.test(String(residualHash))
       ||!['creator-wallet','creator-reward'].includes(kind)))
       return json(res,400,{error:'A valid audited residual hash and creator beneficiary are required.'});
+    // User claims use the existing wallet-ownership session. Administrative
+    // residual transfers retain their separate OTP and creator approval flow.
+    const recipientClaim=!automatic&&(kind==='referral'||kind==='creator-wallet'&&residualHash===undefined);
+    const claimSession=recipientClaim?await referralSession(req):null;
+    if(recipientClaim&&(!claimSession?.wallet||!Number.isFinite(claimSession.expiresAt)||claimSession.expiresAt<=Date.now()))
+      return json(res,401,{error:'Sign in with the earning wallet to claim this payout.'});
     const programId = String(env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || '').trim();
     const approvedHash = String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || '').trim();
     if (!programId || !/^[a-f0-9]{64}$/i.test(approvedHash)) {
@@ -110,6 +110,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     try { authority = v3AuthorityKeypair(); } catch {}
     let state = await store.read();
     const launch = state.launches?.[mint];
+    if(recipientClaim&&kind==='creator-wallet'&&claimSession.wallet!==launch?.creatorWallet)
+      return json(res,403,{error:'These creator fees belong to a different wallet.'});
     const feeLock = creatorFeeLock(launch);
     if (kind === 'creator-wallet' && feeLock.locked)
       return json(res, 423, { error:feeLock.unlockAt
@@ -209,9 +211,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const ledgerKey = residual?.ledgerKey||(kind === 'referral' ? `${collectionSignature}:${level}` : collectionSignature);
     const residualMetadata=residualHash?{residualPlanHash:residualHash}:{};
     const protectedPolicy = readiness.protectedPolicy === true;
-    const recipientClaim=kind==='referral'&&!automatic;
     const operatorSigned=automatic||recipientClaim;
-    if(recipientClaim&&!protectedPolicy)return json(res,409,{error:'Manual referral delivery requires a verified protected policy.'});
+    if(recipientClaim&&!protectedPolicy)return json(res,409,{error:'User claims require a verified protected payout policy.'});
     if(operatorSigned&&!protectedPolicy)return json(res,409,{error:'Automatic payouts require protected on-chain shares.'});
     const beneficiary = kind === 'creator-wallet' ? 0 : kind === 'creator-reward' ? 1
       : category + 2;
@@ -357,6 +358,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const signature = bs58.encode(transaction.signature);
     const locked = await store.update(current => {
       if(recipientClaim && claimSession.expiresAt <= Date.now())return false;
+      if(recipientClaim&&kind==='creator-wallet'&&current.launches?.[mint]?.creatorWallet!==claimSession.wallet)return false;
       const row = current[ledger]?.[ledgerKey];
       let currentEntitlement = entitlement;
       if (kind === 'referral') {
