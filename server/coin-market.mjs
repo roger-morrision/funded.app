@@ -16,7 +16,8 @@ export function tradeInSolTerms(trade, solUsd) {
   if (!trade.quoteMint || isSolLikeQuoteMint(new PublicKey(trade.quoteMint))) return trade;
   const micros = Math.round(Number(solUsd?.priceUsd) * 1e6);
   if (!USDC_QUOTES.has(trade.quoteMint) || !Number.isSafeInteger(micros) || micros <= 0) return null;
-  return { ...trade, quoteUnits: trade.solLamports, solLamports: trade.solLamports * 1_000_000_000n / BigInt(micros),
+  const units = trade.quoteAmountRaw > 0n ? trade.quoteAmountRaw : trade.solLamports;
+  return { ...trade, quoteUnits: units, solLamports: units * 1_000_000_000n / BigInt(micros),
     priceRatio: trade.priceRatio * 1e9 / micros, solTerms: 'usdc-converted' };
 }
 
@@ -76,6 +77,8 @@ export function decodePumpTrades(logMessages, mint, { anyQuote = false } = {}) {
         isBuy: Boolean(event.isBuy),
         trader: event.user.toBase58(),
         quoteMint: event.quoteMint ? event.quoteMint.toBase58() : null,
+        // Non-SOL curves report the quote amount here; solAmount stays zero.
+        quoteAmountRaw: event.quoteAmount != null ? BigInt(event.quoteAmount.toString()) : null,
         priceRatio,
       });
     } catch { /* Ignore events from other Pump layouts or programs. */ }

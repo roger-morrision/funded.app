@@ -19,6 +19,9 @@ test('USDC-quoted trades convert volume and price to SOL terms at the SOL/USD pr
   const t = tradeInSolTerms({ ...base, solLamports:500000n, quoteMint:USDC, priceRatio:0.001 }, { priceUsd:100 });
   assert.equal(t.solLamports, 5_000_000n); assert.equal(t.quoteUnits, 500000n);
   assert.ok(Math.abs(t.priceRatio - 0.01) < 1e-12); assert.equal(t.solTerms, 'usdc-converted');
+  // Real USDC curve events carry the amount in quoteAmount with solAmount zero.
+  const real = tradeInSolTerms({ ...base, solLamports:0n, quoteAmountRaw:500000n, quoteMint:USDC, priceRatio:0.001 }, { priceUsd:100 });
+  assert.equal(real.solLamports, 5_000_000n); assert.equal(real.quoteUnits, 500000n);
 });
 
 test('USDC trades are dropped without a usable price; unknown quotes are dropped', () => {
