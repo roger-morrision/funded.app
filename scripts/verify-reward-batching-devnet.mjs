@@ -46,6 +46,8 @@ const chain=createAutomaticRewardChain({connection,programId:process.env.FUNDED_
   expectedProgramDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256,cluster:'devnet'});
 assert.equal((await retryRead(()=>chain.readiness())).constrainedPayouts,true);
 const recipients=Array.from({length:4},()=>Keypair.generate()),qa=Keypair.generate();
+const batchOnly=process.env.REWARD_BATCH_VERIFY_MODE==='batch-only';
+const tokenOnly=process.env.REWARD_BATCH_VERIFY_ASSET==='token';
 let tokenMint;
 const state={schedules:{},programs:{}},store={transaction:async fn=>fn(state),read:async()=>structuredClone(state)};
 const scheduler=createRewardScheduler({store,chain,indexer:{},cluster:'devnet'});
@@ -102,14 +104,16 @@ try {
     SystemProgram.transfer({fromPubkey:keeper.publicKey,toPubkey:qa.publicKey,lamports:30000000}),
     ...recipients.map(k=>SystemProgram.transfer({fromPubkey:keeper.publicKey,toPubkey:k.publicKey,lamports:1000000}))),[keeper],{commitment:'finalized'});
   emit({type:'fixture-funded',signature:funding,lamports:34000000,wallets:[qa,...recipients].map(k=>k.publicKey.toBase58()),build:process.env.FUNDED_BUILD_ID});
-  const mint=Keypair.generate().publicKey.toBase58();await chain.fundSolVault({mint,amount:'80000'});
-  await run(mint,'SOL','single');await run(mint,'SOL','batch');
+  if(!tokenOnly){
+    const mint=Keypair.generate().publicKey.toBase58();await chain.fundSolVault({mint,amount:batchOnly?'40000':'80000'});
+    if(!batchOnly)await run(mint,'SOL','single');await run(mint,'SOL','batch');
+  }
   tokenMint=await createMint(connection,qa,qa.publicKey,null,6,undefined,{commitment:'finalized'});
-  const vault=await chain.ensureVault(tokenMint.toBase58());
+  const vault=await retryRead(()=>chain.ensureVault(tokenMint.toBase58()));
   const account=await getOrCreateAssociatedTokenAccount(connection,qa,tokenMint,vault,true,'finalized',{commitment:'finalized'});
-  await mintTo(connection,qa,tokenMint,account.address,qa,80000,[],{commitment:'finalized'});
-  await run(tokenMint.toBase58(),tokenMint.toBase58(),'single');await run(tokenMint.toBase58(),tokenMint.toBase58(),'batch');
-  for(const asset of ['SOL',tokenMint.toBase58()]) {
+  await mintTo(connection,qa,tokenMint,account.address,qa,batchOnly?40000:80000,[],{commitment:'finalized'});
+  if(!batchOnly)await run(tokenMint.toBase58(),tokenMint.toBase58(),'single');await run(tokenMint.toBase58(),tokenMint.toBase58(),'batch');
+  for(const asset of batchOnly?[]:tokenOnly?[tokenMint.toBase58()]:['SOL',tokenMint.toBase58()]) {
     const single=summaries.find(r=>r.asset===asset&&r.mode==='single'),batch=summaries.find(r=>r.asset===asset&&r.mode==='batch');
     assert(batch.feeLamports<single.feeLamports);assert.equal(batch.receiptRentLamports,single.receiptRentLamports);
     emit({type:'fee-savings',asset,singleFeeLamports:single.feeLamports,batchFeeLamports:batch.feeLamports,
