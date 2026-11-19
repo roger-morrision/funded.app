@@ -144,6 +144,7 @@ export function createXIdentityRoutes({
             && payment?.balanceDeltaVerified === true;
           v3.push({ id:signature, scope:'per-mint-v3', mint:funding.mint,
             status:paid ? 'paid' : claim?.status || 'ready',
+            amountLamports:String(lamports),
             amountSol:lamports <= BigInt(Number.MAX_SAFE_INTEGER)
               ? Number(lamports) / 1_000_000_000 : null,
             receiptVerified:paid, canPrepare:!paid,

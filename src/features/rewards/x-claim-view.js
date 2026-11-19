@@ -11,7 +11,6 @@ export function syncXClaimFlow({
   const xConnected=document.querySelector('#x-sign-in')?.dataset.connected==='true';
   const claimId=String(document.querySelector('#sol-claim-id')?.value||'').trim();
   const address=captureWalletSession()?.address||'';
-  const agreed=Boolean(document.querySelector('#claim-binding-agree')?.checked);
   const readyCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.ready').length;
   const paidCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.paid').length;
   const awaitingCreator=xConnected&&Boolean(document.querySelector('#sol-claim-list [data-claim-status="automatic-awaiting-creator-signature"]'));
@@ -27,16 +26,16 @@ export function syncXClaimFlow({
     const row=selected;
     const summary=document.querySelector('#selected-claim-summary');
     if(summary)summary.textContent=row?.dataset.claimSummary||`Claim ${claimId}`;
-    if(v3Selected)renderTransactionReview(review,{network:APP_CLUSTER,amount:row?.dataset.claimSummary||'See the selected reward',recipient:address,fees:'Wallet verification message: no network fee. Payout costs are determined by the claim service.',result:'Verify wallet ownership and request payment; received only after on-chain confirmation'});
+    if(v3Selected)renderTransactionReview(review,{network:APP_CLUSTER,amount:row?.dataset.claimSummary||'See the selected reward',recipient:address,fees:'The app pays transaction fees. No extra wallet signature or OTP.',result:'Pay this reward to your signed-in wallet; confirmed on chain before showing paid'});
   }
   if(walletReview)walletReview.hidden=!v3Selected;
   if(button){
     button.hidden=!v3Selected;
-    button.disabled=!v3Selected||!xConnected||!address||!agreed;
-    button.textContent='Verify wallet and claim V3 SOL';
+    button.disabled=!v3Selected||!xConnected||!address;
+    button.textContent='Claim';
   }
   const paidOnly=xConnected&&paidCount>0&&readyCount===0&&!claimId;
-  const stepState={x:xConnected,choose:xConnected&&(Boolean(claimId)||paidOnly||awaitingCreator),wallet:xConnected&&((Boolean(claimId)&&Boolean(address&&agreed))||paidOnly||awaitingCreator),paid:paidOnly};
+  const stepState={x:xConnected,choose:xConnected&&(Boolean(claimId)||paidOnly||awaitingCreator),wallet:xConnected&&((Boolean(claimId)&&Boolean(address))||paidOnly||awaitingCreator),paid:paidOnly};
   let foundCurrent=false;
   for(const step of document.querySelectorAll('#x-claim-steps [data-claim-step]')){
     const done=stepState[step.dataset.claimStep]===true;
@@ -93,13 +92,12 @@ export function resetSolClaimStatus({
     const chosen=[...document.querySelectorAll('#sol-claim-list [data-claim-id]')]
       .some(row=>row.dataset.claimId===claimId && row.dataset.claimScope==='per-mint-v3');
     const address=captureWalletSession()?.address;
-    const agreed=document.querySelector('#claim-binding-agree')?.checked;
     const readyCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.ready').length;
     const paidCount=document.querySelectorAll('#sol-claim-list .x-claim-reward-state.paid').length;
     const awaitingCreator=document.querySelector('#sol-claim-list [data-claim-status="automatic-awaiting-creator-signature"]');
     status.textContent=!connected?'Sign in with X to see your rewards.'
-      : chosen ? !address?'Connect the receiving wallet.':!agreed?'Confirm the receiving wallet above.':'Sign a wallet message to verify and submit this claim.'
-      : readyCount?'Select a funded V3 reward to verify your claim.'
+      : chosen ? !address?'Sign in with the receiving wallet.':'Click Claim. The app signs and pays the network fee.'
+      : readyCount?'Select a funded reward to claim.'
       : paidCount?'Verified payments are listed above.'
       : 'No funded V3 X reward is ready for a claim.';
   }

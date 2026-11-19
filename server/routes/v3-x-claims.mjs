@@ -1,6 +1,5 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import nacl from 'tweetnacl';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { createAutomaticRewardChain, rewardAddresses } from '../automatic-reward-chain.mjs';
 import { createRewardScheduler } from '../reward-scheduler.mjs';
@@ -11,22 +10,13 @@ import { allowedAuthOrigin } from '../x-auth.mjs';
 import { verifyMintPolicyV3Account } from '../../mint-router-v3.js';
 import {parseV3SourceKey,v3ResidualAllocation,residualDisbursementId} from '../v3-residual-source.mjs';
 import {financialRecordNetwork} from '../financial-network.mjs';
-import {requireSolanaCluster,SOLANA_GENESIS} from '../../solana-network.js';
+import {SOLANA_GENESIS} from '../../solana-network.js';
 
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
-const CLAIM_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000;
-
-export function v3XClaimStatement(claim, wallet) {
-  const cluster=requireSolanaCluster(claim.cluster||'devnet');
-  if(!financialRecordNetwork(claim,cluster,{legacyDevnet:true}))throw Error('X claim network does not match.');
-  const network=claim.cluster?` network ${cluster} genesis ${SOLANA_GENESIS[cluster]}`:'';
-  return `funded.app V3 SOL reward ${claim.collectionSignature} mint ${claim.mint} X user ${claim.xUserId} wallet ${wallet} nonce ${claim.nonce}${network}`;
-}
-
-// The X OAuth subject, creator-approved allocation, finalized category-0
-// transfer, and recipient wallet signature must all agree before enrollment.
-export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
-  walletSignature, v3AuthorityKeypair, solanaCluster, solanaRpcUrl,
+// Both the X identity and the receiving wallet must already be signed in.
+// A claim binds that wallet once; the app signs and funds the payout fees.
+export function createV3XClaimRoutes({ store, rewardStore, xSession,
+  referralSession = async () => null, v3AuthorityKeypair, solanaCluster, solanaRpcUrl,
   respond, env = process.env,
   connectionFactory = url => new Connection(url, 'finalized'),
   rewardChainFactory = createAutomaticRewardChain,
@@ -55,6 +45,10 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     const session = await xSession(req);
     if (!/^\d{1,24}$/.test(String(session?.user?.id || '')))
       return json(res, 401, { error:'Sign in with the selected X account.' });
+    const walletSession = await referralSession(req);
+    if (!walletSession?.wallet || !Number.isFinite(walletSession.expiresAt) || walletSession.expiresAt <= Date.now())
+      return json(res, 401, { error:'Sign in with your receiving wallet to claim this reward.' });
+    const wallet = walletSession.wallet;
     const state = await store.read();
     const launch = state.launches?.[mint];
     const collection = state.collections?.[collectionSignature];
@@ -78,6 +72,8 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       || !SIGNATURE.test(String(funding.signature || ''))
       || !/^[a-f0-9]{64}$/i.test(approvedHash))
       return json(res, 409, { error:'A matching finalized V3 X allocation and funding record are required.' });
+    if (state.v3XClaims?.[claimKey]?.wallet && state.v3XClaims[claimKey].wallet !== wallet)
+      return json(res, 403, { error:'This X reward is already bound to another wallet.' });
     let authority;
     try { authority = v3AuthorityKeypair(); } catch {}
     if (!authority?.publicKey || authority.publicKey.toBase58() !== launch.pumpFeeRoute.initialAuthority)
@@ -133,71 +129,40 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
     if (!financialRecordNetwork(proof,solanaCluster,{legacyDevnet:true}) || !proof?.balanceDeltaVerified || proof.signature !== funding.signature
       || proof.amount !== String(amount))
       return json(res, 409, { error:'Finalized V3 reward-vault funding proof is unavailable.' });
-    const claim = state.v3XClaims?.[claimKey];
-    if (match[3] === 'prepare') {
-      const input = await body(req);
-      let requestedWallet;
-      try { requestedWallet = new PublicKey(input.wallet).toBase58(); }
-      catch { return json(res, 400, { error:'A valid recipient wallet is required.' }); }
-      const prepared = await store.update(current => {
-        current.v3XClaims ||= {};
-        const existing = current.v3XClaims[claimKey];
-        if (existing && (!financialRecordNetwork(existing,solanaCluster,{legacyDevnet:true}) || existing.mint !== mint || existing.xUserId !== String(session.user.id)
-          || existing.amountLamports !== plan.creatorDirected.xLamports
-          || existing.fundingSignature !== funding.signature)) return null;
-        if (existing && (existing.wallet || Date.parse(existing.expiresAt) > Date.now()))
-          return existing;
-        return current.v3XClaims[claimKey] = {
-          cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],
-          collectionSignature:claimKey,sourceCollectionSignature:collectionSignature,
-          ...(residualPlanHash?{residualPlanHash}:{}),mint, xUserId:String(session.user.id),
-          amountLamports:plan.creatorDirected.xLamports,
-          fundingSignature:funding.signature, wallet:null,
-          nonce:randomBytes(24).toString('hex'), status:'awaiting-wallet',
-          createdAt:new Date().toISOString(),
-          expiresAt:new Date(Date.now() + CLAIM_LIFETIME_MS).toISOString(),
-        };
-      });
-      return prepared ? json(res, 200, { status:prepared.status,
-        amountLamports:prepared.amountLamports, wallet:prepared.wallet || null,
-        statement:prepared.wallet ? null : v3XClaimStatement(prepared, requestedWallet),
-        expiresAt:prepared.expiresAt })
-        : json(res, 409, { error:'The V3 X claim changed during preparation.' });
-    }
-    if (!financialRecordNetwork(claim,solanaCluster,{legacyDevnet:true}) || claim.mint !== mint || claim.xUserId !== String(session.user.id)
-      || claim.amountLamports !== plan.creatorDirected.xLamports
-      || claim.fundingSignature !== funding.signature)
-      return json(res, 409, { error:'Prepare the matching V3 X claim first.' });
-    if (match[3] === 'verify') {
-      const input = await body(req);
-      let wallet;
-      try { wallet = new PublicKey(input.wallet).toBase58(); }
-      catch { return json(res, 400, { error:'A valid recipient wallet is required.' }); }
-      if (claim.wallet && claim.wallet !== wallet)
-        return json(res, 409, { error:'This X claim is bound to another wallet.' });
-      if (!claim.wallet && Date.parse(claim.expiresAt) <= Date.now())
-        return json(res, 409, { error:'The wallet challenge expired; prepare a new one.' });
-      let signature;
-      try { signature = walletSignature(input.signature); }
-      catch { return json(res, 400, { error:'A valid wallet signature is required.' }); }
-      if (!nacl.sign.detached.verify(new TextEncoder().encode(v3XClaimStatement(claim, wallet)),
-        signature, new PublicKey(wallet).toBytes()))
-        return json(res, 401, { error:'The recipient wallet signature is invalid.' });
-      const bound = await store.update(current => {
-        const row = current.v3XClaims?.[claimKey];
-        if (!row || row.nonce !== claim.nonce || row.xUserId !== claim.xUserId
-          || row.wallet && row.wallet !== wallet) return null;
-        row.wallet = wallet;
-        row.status = row.status === 'paid' ? 'paid' : 'ready';
-        row.verifiedAt ||= new Date().toISOString();
-        return row;
-      });
-      return bound ? json(res, 200, { status:bound.status, wallet:bound.wallet,
-        amountLamports:bound.amountLamports })
-        : json(res, 409, { error:'The V3 X claim changed during wallet verification.' });
-    }
-    if (!claim.wallet || !['ready', 'verification-pending', 'paid'].includes(claim.status))
-      return json(res, 409, { error:'A verified recipient wallet is required.' });
+    // RPC verification can be slow. Recheck both sessions before binding funds.
+    const [currentX, currentWallet] = await Promise.all([xSession(req), referralSession(req)]);
+    if (String(currentX?.user?.id || '') !== String(session.user.id)
+      || currentWallet?.wallet !== wallet || !Number.isFinite(currentWallet?.expiresAt)
+      || currentWallet.expiresAt <= Date.now())
+      return json(res, 401, { error:'Your sign-in changed or expired. Sign in again to claim.' });
+    const claim = await store.update(current => {
+      if (currentWallet.expiresAt <= Date.now()
+        || !isDeepStrictEqual(current.launches?.[mint], launch)
+        || !isDeepStrictEqual(current.v3Settlements?.[collectionSignature], settled)
+        || !isDeepStrictEqual(current.v3CreatorRewardFunding?.[claimKey], funding)) return null;
+      current.v3XClaims ||= {};
+      const prior = current.v3XClaims[claimKey];
+      if (prior && (!financialRecordNetwork(prior, solanaCluster, {legacyDevnet:true})
+        || prior.mint !== mint || prior.xUserId !== String(session.user.id)
+        || prior.amountLamports !== plan.creatorDirected.xLamports
+        || prior.fundingSignature !== funding.signature || prior.wallet && prior.wallet !== wallet)) return null;
+      const row = prior || {
+        cluster:solanaCluster, genesisHash:SOLANA_GENESIS[solanaCluster],
+        collectionSignature:claimKey, sourceCollectionSignature:collectionSignature,
+        ...(residualPlanHash ? {residualPlanHash} : {}), mint, xUserId:String(session.user.id),
+        amountLamports:plan.creatorDirected.xLamports, fundingSignature:funding.signature,
+        createdAt:new Date().toISOString(),
+      };
+      row.wallet = wallet;
+      row.status = ['paid','verification-pending'].includes(row.status) ? row.status : 'ready';
+      row.verifiedAt ||= new Date().toISOString();
+      current.v3XClaims[claimKey] = row;
+      return structuredClone(row);
+    });
+    if (!claim) return json(res, 409, {error:'The X reward or receiving wallet changed. Refresh before retrying.'});
+    // Older clients may still call these steps; no new signature is requested.
+    if (match[3] !== 'execute') return json(res, 200, {status:claim.status,
+      wallet:claim.wallet, amountLamports:claim.amountLamports});
     const fundedAt = Math.floor(Date.parse(funding.finalizedAt) / 1000);
     if (!Number.isSafeInteger(fundedAt) || fundedAt <= 0)
       return json(res, 409, { error:'The finalized V3 funding time is unavailable.' });
@@ -227,7 +192,7 @@ export function createV3XClaimRoutes({ body, store, rewardStore, xSession,
       row.paidAt ||= new Date().toISOString();
       return row;
     });
-    return result ? json(res, 200, { status:'paid', wallet:result.wallet,
+    return result ? json(res, 200, { status:'paid', mint, collectionSignature:claimKey, wallet:result.wallet,
       amountLamports:result.amountLamports, payment:result.payment })
       : json(res, 409, { error:'The V3 X claim changed after finalized payout.' });
   };

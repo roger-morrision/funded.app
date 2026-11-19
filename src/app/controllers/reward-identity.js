@@ -1,3 +1,4 @@
+import {claimXReward} from '../../features/rewards/claim-x-reward.js';
 // Dependencies and mutable application state are read live through appState.
 export function createRewardIdentityController(appState) {
   // app-source: 1004
@@ -26,37 +27,15 @@ export function createRewardIdentityController(appState) {
       .find(item=>item.dataset.claimId===signature);
     const session=appState.captureWalletSession();
     const mint=row?.dataset.mint;
-    if (!button || !status || !signature || !mint || row.dataset.claimScope!=='per-mint-v3'
-      || !session?.address || !document.querySelector('#claim-binding-agree')?.checked
-      || typeof session.provider.signMessage!=='function') return;
-    const base=`/api/tokens/${encodeURIComponent(mint)}/v3-x-claim/${encodeURIComponent(signature)}`;
+    if (!button || button.disabled || !status || !signature || !mint || row.dataset.claimScope!=='per-mint-v3'
+      || !session?.address) return;
     button.disabled=true;
     try {
-      status.textContent='Checking finalized V3 allocation and funding…';
-      const prepared=await appState.apiRequest(`${base}/prepare`, { method:'POST', body:{ wallet:session.address } });
-      appState.assertWalletSessionCurrent(session);
-      if (!prepared.available) throw new Error('V3 X claim preparation is unavailable.');
-      if (prepared.data?.wallet && prepared.data.wallet!==session.address)
-        throw new Error('This reward is bound to another wallet.');
-      if (!prepared.data?.wallet) {
-        if (!prepared.data?.statement) throw new Error('The wallet challenge is unavailable.');
-        status.textContent='Sign the wallet message to bind this reward.';
-        const signed=await session.provider.signMessage(new TextEncoder().encode(prepared.data.statement));
-        appState.assertWalletSessionCurrent(session);
-        const verified=await appState.apiRequest(`${base}/verify`, { method:'POST', body:{
-          wallet:session.address, signature:appState.bs58.encode(signed.signature||signed) } });
-        appState.assertWalletSessionCurrent(session);
-        if (!verified.available || !['ready','paid'].includes(verified.data?.status)
-          || verified.data?.wallet!==session.address)
-          throw new Error(verified.data?.error||'The recipient wallet could not be verified.');
-      }
-      status.textContent='Submitting and verifying the Devnet payout…';
-      const paid=await appState.apiRequest(`${base}/execute`, { method:'POST', body:{} });
-      appState.assertWalletSessionCurrent(session);
-      if (!paid.available || paid.data?.status!=='paid' || !paid.data?.payment?.finalized
-        || !paid.data?.payment?.balanceDeltaVerified)
-        throw new Error('The payout is pending finalized on-chain verification.');
-      status.textContent='V3 X payout finalized and verified.';
+      status.textContent='Claiming your X reward. The app pays the network fee…';
+      await claimXReward({session,mint,collectionSignature:signature,amountLamports:row.dataset.amountLamports,
+        ensureSession:s=>appState.walletSignIn.ensure(s),assertCurrent:s=>appState.assertWalletSessionCurrent(s),
+        request:(...args)=>appState.apiRequest(...args)});
+      status.textContent='X reward paid and verified.';
       await appState.refreshXClaims();
     } catch(error) { status.textContent=error.message||'V3 X payout is unavailable.'; }
     finally { button.disabled=false;appState.syncXClaimFlow(); }

@@ -74,6 +74,7 @@ export async function refreshXClaims({
       const row=document.createElement('div');row.className=`x-claim-reward${claim.receiptVerified?' x-claim-reward-paid':''}`;row.dataset.claimId=claim.id;row.dataset.mint=claim.mint;
       row.dataset.claimStatus=claim.status;
       row.dataset.claimScope='per-mint-v3';
+      row.dataset.amountLamports=String(claim.amountLamports || '');
       const state=document.createElement('span');state.className=`x-claim-reward-state ${claim.receiptVerified?'paid':claim.canPrepare?'ready':'pending'}`;
       state.textContent=claim.receiptVerified?'Paid':transactionProgress('claim',claim).stage;
       const copy=document.createElement('div');copy.className='x-claim-reward-copy';
@@ -81,7 +82,7 @@ export async function refreshXClaims({
       const coinLabel=launch?[launch.symbol,launch.name].filter(Boolean).join(' · '):`Coin ${String(claim.mint||'').slice(0,6)}…`;
       const coin=document.createElement('a');coin.className='x-claim-coin';coin.href=`/token/${encodeURIComponent(claim.mint)}`;coin.textContent=coinLabel;
       const amount=document.createElement('strong');amount.textContent=claim.amountSol==null?'Amount unavailable':`${claim.amountSol} SOL`;
-      const context=document.createElement('small');context.textContent=claim.receiptVerified?`To ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Finalized funding recorded. Wallet and on-chain proof required.':'Check funding, eligibility and the existing payment outcome.';
+      const context=document.createElement('small');context.textContent=claim.receiptVerified?`To ${claim.payoutWallet||'verified wallet'}`:claim.canPrepare?'Ready to claim. The app pays the network fee.':'Check funding, eligibility and the existing payment outcome.';
       if(claim.receiptVerified&&claim.payoutWallet)context.title=claim.payoutWallet;
       copy.append(coin,amount,context);
       copy.append(progressView(document,'claim',claim));
