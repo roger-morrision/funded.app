@@ -8,6 +8,9 @@ import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
 import {createSolUsdQuoteReader} from './price-quote.mjs';
 
 const maxAge=60000;
+// One cached reader per process: a 30s TTL keeps quotes inside maxAge while
+// avoiding a fresh CoinGecko request for every milestone and prepare pass.
+const sharedSolUsd=createSolUsdQuoteReader({ttlMs:30000});
 export function agencyMarketCapMicros({supply,baseReserve,quoteReserve,virtualQuoteReserve='0',solUsd}){
   const exact=value=>{if(!/^(0|[1-9]\d{0,19})$/.test(String(value)))throw new Error('Exact pool and supply base units are required.');return BigInt(value);};
   const supplyN=exact(supply),base=exact(baseReserve),quote=exact(quoteReserve)+exact(virtualQuoteReserve),price=String(solUsd);
@@ -22,7 +25,7 @@ export function agencyMarketCapMicros({supply,baseReserve,quoteReserve,virtualQu
 // One finalized bank snapshot binds the canonical pool, mint supply, completed
 // Pump curve and both custody reserves. USD is an off-chain reference, not a
 // contract oracle or a claim that Devnet assets have realizable dollar value.
-export async function readAgencyMarketObservation({connection,mint,readSolUsd=createSolUsdQuoteReader(),now=()=>Date.now(),
+export async function readAgencyMarketObservation({connection,mint,readSolUsd=sharedSolUsd,now=()=>Date.now(),
   decodePool=account=>PUMP_AMM_SDK.decodePool(account),decodeCurve=account=>PUMP_SDK.decodeBondingCurveNullable(account)}){
   const key=new PublicKey(mint),poolKey=canonicalPumpPoolPda(key,NATIVE_MINT),curveKey=bondingCurvePda(key);
   if(await connection.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Agency market observation requires Devnet.');
