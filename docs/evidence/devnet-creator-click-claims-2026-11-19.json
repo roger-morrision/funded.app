@@ -1,0 +1,776 @@
+{
+  "at": "2026-11-19T08:33:30.914Z",
+  "status": "live-verified",
+  "origin": "https://funded.vip",
+  "cluster": "devnet",
+  "enforcement": "all",
+  "deployment": {
+    "release": "181d3c9498b8d104f50d646d7a5a01e78fec327f-ce495ed1-d242-48de-9631-6c66f769bb8a",
+    "revision": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+    "ready": true,
+    "rollbackAvailable": true
+  },
+  "image": "sha256:1f1f246a783bd65c0460ea538146f57c9706445a70ef42b73175c171e35cdbe1",
+  "services": [
+    {
+      "service": "app",
+      "image": "sha256:1f1f246a783bd65c0460ea538146f57c9706445a70ef42b73175c171e35cdbe1",
+      "build": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "revision": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "fee-collector",
+      "image": "sha256:1f1f246a783bd65c0460ea538146f57c9706445a70ef42b73175c171e35cdbe1",
+      "build": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "revision": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "buyback-worker",
+      "image": "sha256:1f1f246a783bd65c0460ea538146f57c9706445a70ef42b73175c171e35cdbe1",
+      "build": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "revision": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "agency-buyback-worker",
+      "image": "sha256:1f1f246a783bd65c0460ea538146f57c9706445a70ef42b73175c171e35cdbe1",
+      "build": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "revision": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "signer",
+      "image": "sha256:1f1f246a783bd65c0460ea538146f57c9706445a70ef42b73175c171e35cdbe1",
+      "build": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "revision": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "price-signer",
+      "image": "sha256:1f1f246a783bd65c0460ea538146f57c9706445a70ef42b73175c171e35cdbe1",
+      "build": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "revision": "181d3c9498b8d104f50d646d7a5a01e78fec327f",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    }
+  ],
+  "tests": {
+    "releaseImage": 56,
+    "local": 56,
+    "sourceCheck": "passed",
+    "productionBuild": "passed"
+  },
+  "fixture": [
+    {
+      "at": "2026-11-19T08:28:27.359Z",
+      "type": "infrastructure-retry",
+      "attempt": 1
+    },
+    {
+      "at": "2026-11-19T08:29:16.306Z",
+      "type": "fund-ephemeral-fixture",
+      "signature": "2NbFD8gc5VUdDRko4MS8GMYuEmLozYgXYEHW4fJ15cjpgAheJQ6nhVqMtYR6MsgPMm1XGwZm94ZDwPztsEE9WRFS",
+      "creator": "7P5ub1RveE8kTQmKvpAsJcYtygD8cbCo8bBdTbtT2Ti8",
+      "referrals": [
+        "AuXnTiJLGpirUE8h4Wf6ka6Yf8kdBu11jBeDG6XVcrVj",
+        "JTi6Hqkahh5ZK7dF3TKjetCdt1KpPx6XmesbXceqRCH",
+        "4Zya8SjrSBT2STGKPgPXxDnGqpxeJjh9hpvbbqsWntts"
+      ],
+      "lamports": 403000000,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T08:29:32.825Z",
+      "type": "launch-status",
+      "message": "Storing signed Solana image and metadata before wallet transaction approval…"
+    },
+    {
+      "at": "2026-11-19T08:30:02.423Z",
+      "type": "launch-status",
+      "message": "Preparing Pump Solana bonding-curve launch…"
+    },
+    {
+      "at": "2026-11-19T08:30:02.423Z",
+      "type": "launch-status",
+      "message": "Preparing the Pump coin creation transaction…"
+    },
+    {
+      "at": "2026-11-19T08:30:05.867Z",
+      "type": "launch-status",
+      "message": "Approve mint router initialization, then approve the Pump launch…"
+    },
+    {
+      "at": "2026-11-19T08:30:08.877Z",
+      "type": "launch-transaction",
+      "state": "broadcasting",
+      "step": "initialize-mint-router",
+      "signature": "279ckeGi2KroaAqqHDR9zzFhcziwKCHnQbJ59cyA7LHFWdFRZSVusGyvtatx17VA2xS5UevDVYbgcntXNqjunrU4"
+    },
+    {
+      "at": "2026-11-19T08:30:11.363Z",
+      "type": "launch-transaction",
+      "state": "submitted",
+      "step": "initialize-mint-router",
+      "signature": "279ckeGi2KroaAqqHDR9zzFhcziwKCHnQbJ59cyA7LHFWdFRZSVusGyvtatx17VA2xS5UevDVYbgcntXNqjunrU4"
+    },
+    {
+      "at": "2026-11-19T08:30:13.372Z",
+      "type": "launch-transaction",
+      "state": "confirmed",
+      "step": "initialize-mint-router",
+      "signature": "279ckeGi2KroaAqqHDR9zzFhcziwKCHnQbJ59cyA7LHFWdFRZSVusGyvtatx17VA2xS5UevDVYbgcntXNqjunrU4"
+    },
+    {
+      "at": "2026-11-19T08:30:15.381Z",
+      "type": "launch-transaction",
+      "state": "broadcasting",
+      "step": "launch",
+      "signature": "Y6uEX983DUP24mYkshBJU7ibhW2eY6x9EVjkUJGGpM9UhLMfy5CsZH4WDhQxhKUeDU6EZeZZTuh8KSrYejqYQkx"
+    },
+    {
+      "at": "2026-11-19T08:30:17.979Z",
+      "type": "launch-transaction",
+      "state": "submitted",
+      "step": "launch",
+      "signature": "Y6uEX983DUP24mYkshBJU7ibhW2eY6x9EVjkUJGGpM9UhLMfy5CsZH4WDhQxhKUeDU6EZeZZTuh8KSrYejqYQkx"
+    },
+    {
+      "at": "2026-11-19T08:30:17.981Z",
+      "type": "infrastructure-retry",
+      "attempt": 1
+    },
+    {
+      "at": "2026-11-19T08:30:17.983Z",
+      "type": "infrastructure-retry",
+      "attempt": 1
+    },
+    {
+      "at": "2026-11-19T08:30:48.854Z",
+      "type": "launch-transaction",
+      "state": "confirmed",
+      "step": "launch",
+      "signature": "Y6uEX983DUP24mYkshBJU7ibhW2eY6x9EVjkUJGGpM9UhLMfy5CsZH4WDhQxhKUeDU6EZeZZTuh8KSrYejqYQkx"
+    },
+    {
+      "at": "2026-11-19T08:30:48.854Z",
+      "type": "launch-transaction",
+      "state": "verification-pending",
+      "signature": "Y6uEX983DUP24mYkshBJU7ibhW2eY6x9EVjkUJGGpM9UhLMfy5CsZH4WDhQxhKUeDU6EZeZZTuh8KSrYejqYQkx"
+    },
+    {
+      "at": "2026-11-19T08:30:50.273Z",
+      "type": "launch-status",
+      "message": "Verifying Pump recorded richpad.fun—not the user—as creator-fee owner…"
+    },
+    {
+      "at": "2026-11-19T08:30:51.842Z",
+      "type": "launch",
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "signature": "Y6uEX983DUP24mYkshBJU7ibhW2eY6x9EVjkUJGGpM9UhLMfy5CsZH4WDhQxhKUeDU6EZeZZTuh8KSrYejqYQkx",
+      "creator": "7P5ub1RveE8kTQmKvpAsJcYtygD8cbCo8bBdTbtT2Ti8",
+      "symbol": "QCREAH4X6"
+    },
+    {
+      "at": "2026-11-19T08:30:58.335Z",
+      "type": "registered",
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA"
+    },
+    {
+      "at": "2026-11-19T08:31:03.531Z",
+      "type": "fee-generating-buy",
+      "signature": "5wEYgT93snNsnQELKfrV3zmw3SbYkU78547HE4JUhawpaMFLic635QvP4451cxwYoVq5tSajthyQMLSTRPtt3sYS",
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T08:31:05.516Z",
+      "type": "fee-generating-sell",
+      "signature": "43gTADZRR2zUroNN8ybKeaSPzEfbocE1H9CzG7dCYDuPMMrBWtdurYnSBaVQ7ARyquroUd8VgBcDJA9iQW5asCQY",
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T08:32:12.539Z",
+      "type": "creator-claim",
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "collection": "5AqTvxYzfPT79VFQZ176BkHfojLM9Sp2JHTRwBwRQsHoFnCuJiEVwUT6NZtQLGr9ubinyGu3cWgpP5PbfZ6ELMdi",
+      "signature": "qCN1iswJREzm4NFBMX5oVcNUeDs8FpASL8DdGViogbrNRug6YDXNrju6PVAvex2CMR2oEuFek9nTsHQeVAHQDf5",
+      "recipient": "7P5ub1RveE8kTQmKvpAsJcYtygD8cbCo8bBdTbtT2Ti8",
+      "amount": "150885",
+      "vault": "96VATBodG9Vb81a8SpTSSByvemhCyL6kYry2sV2hXCEC",
+      "slot": 523931907,
+      "digest": "57f41470f7fe6d40c250fb277574d49f0aca7f2ea0b71c7cb3712073d233f71a",
+      "finalized": true,
+      "claimBody": {},
+      "extraWalletSignatures": 0,
+      "otp": false
+    },
+    {
+      "at": "2026-11-19T08:32:17.054Z",
+      "type": "creator-claim-replay",
+      "sameSignature": true
+    },
+    {
+      "at": "2026-11-19T08:32:27.077Z",
+      "type": "referral-claim",
+      "level": 1,
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "collection": "5AqTvxYzfPT79VFQZ176BkHfojLM9Sp2JHTRwBwRQsHoFnCuJiEVwUT6NZtQLGr9ubinyGu3cWgpP5PbfZ6ELMdi",
+      "signature": "4XPWJioRR7JThZqtMmJ2ZURYWoiZ15tWjtaH6xRewGvwcbye6nUmhHhfpZjmFfSzC21AeKJg9BxnSQfym3GEkr4D",
+      "recipient": "AuXnTiJLGpirUE8h4Wf6ka6Yf8kdBu11jBeDG6XVcrVj",
+      "amount": "2263",
+      "vault": "FgHrVV94s49pqHUzqzUjWUXEnPrmDeWYMCtX6zCi5V1a",
+      "slot": 523931968,
+      "digest": "41280da6f5b12367ad3a25d5188b38cc8245182c7776b06a319c65337afbc025",
+      "recipientDelta": "2263",
+      "finalized": true,
+      "claimBody": {},
+      "extraWalletSignatures": 0,
+      "otp": false
+    },
+    {
+      "at": "2026-11-19T08:32:31.846Z",
+      "type": "claim-replay",
+      "level": 1,
+      "sameSignature": true
+    },
+    {
+      "at": "2026-11-19T08:32:44.933Z",
+      "type": "referral-claim",
+      "level": 2,
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "collection": "5AqTvxYzfPT79VFQZ176BkHfojLM9Sp2JHTRwBwRQsHoFnCuJiEVwUT6NZtQLGr9ubinyGu3cWgpP5PbfZ6ELMdi",
+      "signature": "BR2ywKhJJyiL3dgvkhrrvbosRZr3ZZMfN6cBkyvMcz3w8isdYVbM7WfvEdAtVibuYH3ioLmmXTJG7VhdDqurmqC",
+      "recipient": "JTi6Hqkahh5ZK7dF3TKjetCdt1KpPx6XmesbXceqRCH",
+      "amount": "943",
+      "vault": "3puHm792dqev1WZ1hYBuKqFu9wmNAQNtkPSp7ZeSfnU8",
+      "slot": 523932041,
+      "digest": "9a7dc13c220ca6180f241e231f947ba547bfdcf1e12f2e9857794961a7697288",
+      "recipientDelta": "943",
+      "finalized": true,
+      "claimBody": {},
+      "extraWalletSignatures": 0,
+      "otp": false
+    },
+    {
+      "at": "2026-11-19T08:32:53.486Z",
+      "type": "claim-replay",
+      "level": 2,
+      "sameSignature": true
+    },
+    {
+      "at": "2026-11-19T08:33:03.678Z",
+      "type": "referral-claim",
+      "level": 3,
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "collection": "5AqTvxYzfPT79VFQZ176BkHfojLM9Sp2JHTRwBwRQsHoFnCuJiEVwUT6NZtQLGr9ubinyGu3cWgpP5PbfZ6ELMdi",
+      "signature": "5jCJ1YtzShHD7omk8gSEJ2njh78Et7DKDGiojXJK27uckXn4CFafYajdGjJibVCA3b4pLQCqFwnz5nXWeBAY2Vno",
+      "recipient": "4Zya8SjrSBT2STGKPgPXxDnGqpxeJjh9hpvbbqsWntts",
+      "amount": "566",
+      "vault": "3NPCg9YhUYWbHop5mEmy712MiSAuWxCZcJTXN2d8G5Kh",
+      "slot": 523932120,
+      "digest": "f6bb8dfd043cc3b2b394902e0f5e454c191e989350982c1c60ab2c7ebd70b90a",
+      "recipientDelta": "566",
+      "finalized": true,
+      "claimBody": {},
+      "extraWalletSignatures": 0,
+      "otp": false
+    },
+    {
+      "at": "2026-11-19T08:33:09.833Z",
+      "type": "claim-replay",
+      "level": 3,
+      "sameSignature": true
+    },
+    {
+      "at": "2026-11-19T08:33:14.442Z",
+      "type": "ephemeral-refund",
+      "wallet": "7P5ub1RveE8kTQmKvpAsJcYtygD8cbCo8bBdTbtT2Ti8",
+      "signature": "5opsAFQY2dFenKAXJpXP6U7uQuaM2oqELpALLKZ62x4t2v8sghams4h56icWRd2r4tzR8P4LEYJ72kmh6ghRFgGx",
+      "lamports": 356676808,
+      "balance": 0,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T08:33:17.580Z",
+      "type": "ephemeral-refund",
+      "wallet": "AuXnTiJLGpirUE8h4Wf6ka6Yf8kdBu11jBeDG6XVcrVj",
+      "signature": "2hq7tzJ9YC8a4ouDHd7oZ24jSK76FYDM2vox6SNE5rs6XszC22gazWEYo9dnxnxAud7L8zZ4CKjEK5NxwEiXFdES",
+      "lamports": 997263,
+      "balance": 0,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T08:33:21.049Z",
+      "type": "ephemeral-refund",
+      "wallet": "JTi6Hqkahh5ZK7dF3TKjetCdt1KpPx6XmesbXceqRCH",
+      "signature": "4XxyDLygwrUPw6aAq145JdwQCpgNJ6oNrqBKr3hCvSWfe9UuRnj91bvJ219xVEbyFju1tz3A6cnvr2Q2ByTVsAgT",
+      "lamports": 995943,
+      "balance": 0,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T08:33:24.647Z",
+      "type": "ephemeral-refund",
+      "wallet": "4Zya8SjrSBT2STGKPgPXxDnGqpxeJjh9hpvbbqsWntts",
+      "signature": "593sTdiNMCNs2XbBVSzpQcNoxQPPL4V2UUtTAVG4KK1mrTB8ssTNLeZzDU1byHdBDKxo91yVbh9Fa7JczZ6NDsAm",
+      "lamports": 995566,
+      "balance": 0,
+      "finalized": true
+    }
+  ],
+  "proofs": [
+    {
+      "kind": "referral",
+      "level": 1,
+      "signature": "4XPWJioRR7JThZqtMmJ2ZURYWoiZ15tWjtaH6xRewGvwcbye6nUmhHhfpZjmFfSzC21AeKJg9BxnSQfym3GEkr4D",
+      "cluster": "devnet",
+      "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "slot": 523931968,
+      "blockTime": 1795077144,
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "feeLamports": 5000,
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "category": 2,
+      "amount": "2263",
+      "recipient": "AuXnTiJLGpirUE8h4Wf6ka6Yf8kdBu11jBeDG6XVcrVj",
+      "vault": "FgHrVV94s49pqHUzqzUjWUXEnPrmDeWYMCtX6zCi5V1a",
+      "withdrawal": "DngKNX7Ft3hD7TNKP2pyG1aHq83FJLb8qRZ4a5faE58X",
+      "balanceDeltaVerified": true,
+      "authorization": "immutable-mint-automation",
+      "protectedPolicy": true,
+      "beneficiary": 4,
+      "holderAmount": "0",
+      "approval": "AxKhyNurjfe8b3KNjWtcvq8bCGWuraQpz7Jbo9cgRJ6E",
+      "digest": "41280da6f5b12367ad3a25d5188b38cc8245182c7776b06a319c65337afbc025",
+      "requiredTransactionSigners": 1,
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "signerEntries": [
+        {
+          "at": "2026-11-19T08:32:20.676Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "41280da6f5b12367ad3a25d5188b38cc8245182c7776b06a319c65337afbc025"
+        },
+        {
+          "at": "2026-11-19T08:32:22.080Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "41280da6f5b12367ad3a25d5188b38cc8245182c7776b06a319c65337afbc025"
+        }
+      ]
+    },
+    {
+      "kind": "creator-wallet",
+      "signature": "qCN1iswJREzm4NFBMX5oVcNUeDs8FpASL8DdGViogbrNRug6YDXNrju6PVAvex2CMR2oEuFek9nTsHQeVAHQDf5",
+      "cluster": "devnet",
+      "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "slot": 523931907,
+      "blockTime": 1795077129,
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "feeLamports": 5000,
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "category": 0,
+      "amount": "150885",
+      "recipient": "7P5ub1RveE8kTQmKvpAsJcYtygD8cbCo8bBdTbtT2Ti8",
+      "vault": "96VATBodG9Vb81a8SpTSSByvemhCyL6kYry2sV2hXCEC",
+      "withdrawal": "3g6su9d2tr44oYh99eWjTZq7w31kP6LmoWkw8TN893wJ",
+      "balanceDeltaVerified": true,
+      "authorization": "immutable-mint-automation",
+      "protectedPolicy": true,
+      "beneficiary": 0,
+      "holderAmount": "0",
+      "approval": null,
+      "digest": "57f41470f7fe6d40c250fb277574d49f0aca7f2ea0b71c7cb3712073d233f71a",
+      "requiredTransactionSigners": 1,
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "signerEntries": [
+        {
+          "at": "2026-11-19T08:32:06.500Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1269920",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "57f41470f7fe6d40c250fb277574d49f0aca7f2ea0b71c7cb3712073d233f71a"
+        },
+        {
+          "at": "2026-11-19T08:32:07.675Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1269920",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "57f41470f7fe6d40c250fb277574d49f0aca7f2ea0b71c7cb3712073d233f71a"
+        }
+      ]
+    },
+    {
+      "kind": "referral",
+      "level": 2,
+      "signature": "BR2ywKhJJyiL3dgvkhrrvbosRZr3ZZMfN6cBkyvMcz3w8isdYVbM7WfvEdAtVibuYH3ioLmmXTJG7VhdDqurmqC",
+      "cluster": "devnet",
+      "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "slot": 523932041,
+      "blockTime": 1795077161,
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "feeLamports": 5000,
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "category": 3,
+      "amount": "943",
+      "recipient": "JTi6Hqkahh5ZK7dF3TKjetCdt1KpPx6XmesbXceqRCH",
+      "vault": "3puHm792dqev1WZ1hYBuKqFu9wmNAQNtkPSp7ZeSfnU8",
+      "withdrawal": "3BUuG8GRLSDS2RY2DoaVv32gKN3mqTxDNm23HVDy6T8c",
+      "balanceDeltaVerified": true,
+      "authorization": "immutable-mint-automation",
+      "protectedPolicy": true,
+      "beneficiary": 5,
+      "holderAmount": "0",
+      "approval": "2N8Y1Be9ZWP433inYBUcUUKmXGpzk2i1DeX33cox5LP1",
+      "digest": "9a7dc13c220ca6180f241e231f947ba547bfdcf1e12f2e9857794961a7697288",
+      "requiredTransactionSigners": 1,
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "signerEntries": [
+        {
+          "at": "2026-11-19T08:32:38.737Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "9a7dc13c220ca6180f241e231f947ba547bfdcf1e12f2e9857794961a7697288"
+        },
+        {
+          "at": "2026-11-19T08:32:39.861Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "9a7dc13c220ca6180f241e231f947ba547bfdcf1e12f2e9857794961a7697288"
+        }
+      ]
+    },
+    {
+      "kind": "referral",
+      "level": 3,
+      "signature": "5jCJ1YtzShHD7omk8gSEJ2njh78Et7DKDGiojXJK27uckXn4CFafYajdGjJibVCA3b4pLQCqFwnz5nXWeBAY2Vno",
+      "cluster": "devnet",
+      "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "slot": 523932120,
+      "blockTime": 1795077180,
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "feeLamports": 5000,
+      "mint": "8kGfSp6GuyM6dFgKCphxoRVsGfrmVicZgySsLZ9oPWMA",
+      "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "category": 4,
+      "amount": "566",
+      "recipient": "4Zya8SjrSBT2STGKPgPXxDnGqpxeJjh9hpvbbqsWntts",
+      "vault": "3NPCg9YhUYWbHop5mEmy712MiSAuWxCZcJTXN2d8G5Kh",
+      "withdrawal": "5N9TsAywsJPJM6X6Y7u9Kvn3VrAmtszRHS8Q51WRBLAN",
+      "balanceDeltaVerified": true,
+      "authorization": "immutable-mint-automation",
+      "protectedPolicy": true,
+      "beneficiary": 6,
+      "holderAmount": "0",
+      "approval": "Aex9vz3QJfxUJxGUHYXtR5QPYjTv31VSpssMR9ob8HFd",
+      "digest": "f6bb8dfd043cc3b2b394902e0f5e454c191e989350982c1c60ab2c7ebd70b90a",
+      "requiredTransactionSigners": 1,
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "signerEntries": [
+        {
+          "at": "2026-11-19T08:32:57.819Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "f6bb8dfd043cc3b2b394902e0f5e454c191e989350982c1c60ab2c7ebd70b90a"
+        },
+        {
+          "at": "2026-11-19T08:32:58.934Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "f6bb8dfd043cc3b2b394902e0f5e454c191e989350982c1c60ab2c7ebd70b90a"
+        }
+      ]
+    }
+  ],
+  "authorization": [
+    {
+      "type": "unauthenticated-claim",
+      "http": 401,
+      "error": "Sign in with the earning wallet to claim this payout."
+    },
+    {
+      "type": "different-wallet-claim",
+      "http": 403,
+      "error": "These creator fees belong to a different wallet."
+    },
+    {
+      "type": "wrong-origin-claim",
+      "http": 403,
+      "error": "V3 category disbursement requires the Devnet app origin."
+    },
+    {
+      "type": "revoked-session-claim",
+      "http": 401,
+      "error": "Sign in with the earning wallet to claim this payout."
+    },
+    {
+      "type": "admin-session-required",
+      "http": 401,
+      "error": "Sign in with the configured admin wallet."
+    }
+  ],
+  "mainnet": [
+    {
+      "name": "/richpad-mainnet-app-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:18.036728166Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    },
+    {
+      "name": "/richpad-mainnet-rpc-gateway-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:12.287974509Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    }
+  ],
+  "firstFixtureAttempt": {
+    "status": "failed-before-claim-verification",
+    "reason": "RPC provider rate limited; cleanup failed on the same RPC outage.",
+    "events": [
+      {
+        "at": "2026-11-19T08:22:55.037Z",
+        "type": "fund-ephemeral-fixture",
+        "signature": "4PN2x213zNWYmEkvUoHBhP85qayyHsxSMvHs1dT8EDzUENtGUPYish5gJfa64f2S3X9pSjHiLPFwy2i5Y9ZmERdy",
+        "creator": "H3B2zoSh3RBHpaYcNGR7phNn3ABLjneqBVnJyWtLR291",
+        "referrals": [
+          "3VGPAvk6qJZLeun4Qr9Xq7LHKyVcKzcGQt8rsG3pi1UH",
+          "5wDasbifd2KBMxwG1g9JuC7CTk9F9HZSvxwwQZp3vb9F",
+          "3bASzserjrPw51TmEwYN5EhRv64nYajgiHTkk4k5VFgS"
+        ],
+        "lamports": 403000000,
+        "finalized": true
+      },
+      {
+        "at": "2026-11-19T08:23:15.058Z",
+        "type": "launch-status",
+        "message": "Storing signed Solana image and metadata before wallet transaction approval…"
+      },
+      {
+        "at": "2026-11-19T08:23:37.337Z",
+        "type": "launch-status",
+        "message": "Preparing Pump Solana bonding-curve launch…"
+      },
+      {
+        "at": "2026-11-19T08:23:37.337Z",
+        "type": "launch-status",
+        "message": "Preparing the Pump coin creation transaction…"
+      },
+      {
+        "at": "2026-11-19T08:23:40.160Z",
+        "type": "launch-status",
+        "message": "Approve mint router initialization, then approve the Pump launch…"
+      },
+      {
+        "at": "2026-11-19T08:23:43.168Z",
+        "type": "launch-transaction",
+        "state": "broadcasting",
+        "step": "initialize-mint-router",
+        "signature": "5ckMkvUSaoDomd1qymUyiieyojf74UasRZBuwyyGxFDjpB6qSAaWubxnwkFVNqqZdqiVB1VvbZn6gTTZA23FCjVr"
+      },
+      {
+        "at": "2026-11-19T08:23:47.181Z",
+        "type": "launch-transaction",
+        "state": "submitted",
+        "step": "initialize-mint-router",
+        "signature": "5ckMkvUSaoDomd1qymUyiieyojf74UasRZBuwyyGxFDjpB6qSAaWubxnwkFVNqqZdqiVB1VvbZn6gTTZA23FCjVr"
+      },
+      {
+        "at": "2026-11-19T08:23:52.162Z",
+        "type": "launch-transaction",
+        "state": "confirmed",
+        "step": "initialize-mint-router",
+        "signature": "5ckMkvUSaoDomd1qymUyiieyojf74UasRZBuwyyGxFDjpB6qSAaWubxnwkFVNqqZdqiVB1VvbZn6gTTZA23FCjVr"
+      },
+      {
+        "at": "2026-11-19T08:23:56.679Z",
+        "type": "launch-transaction",
+        "state": "broadcasting",
+        "step": "launch",
+        "signature": "HHda5Dz2v6ZZh5hXPAEuTQxiBeJeK81vt4GFVW22SaMQeGoUb8dQxxpmie5y5yxt9cubmFpLupGKEFJYrmf7Vj4"
+      },
+      {
+        "at": "2026-11-19T08:23:59.672Z",
+        "type": "launch-transaction",
+        "state": "submitted",
+        "step": "launch",
+        "signature": "HHda5Dz2v6ZZh5hXPAEuTQxiBeJeK81vt4GFVW22SaMQeGoUb8dQxxpmie5y5yxt9cubmFpLupGKEFJYrmf7Vj4"
+      },
+      {
+        "at": "2026-11-19T08:24:03.676Z",
+        "type": "launch-transaction",
+        "state": "confirmed",
+        "step": "launch",
+        "signature": "HHda5Dz2v6ZZh5hXPAEuTQxiBeJeK81vt4GFVW22SaMQeGoUb8dQxxpmie5y5yxt9cubmFpLupGKEFJYrmf7Vj4"
+      },
+      {
+        "at": "2026-11-19T08:24:03.676Z",
+        "type": "launch-transaction",
+        "state": "verification-pending",
+        "signature": "HHda5Dz2v6ZZh5hXPAEuTQxiBeJeK81vt4GFVW22SaMQeGoUb8dQxxpmie5y5yxt9cubmFpLupGKEFJYrmf7Vj4"
+      },
+      {
+        "at": "2026-11-19T08:24:09.698Z",
+        "type": "launch-status",
+        "message": "Verifying Pump recorded richpad.fun—not the user—as creator-fee owner…"
+      },
+      {
+        "at": "2026-11-19T08:24:16.187Z",
+        "type": "launch",
+        "mint": "6URBT4UwAP6QZ6gKLKk94mJURrxf54PBsafzMHt4u9VZ",
+        "signature": "HHda5Dz2v6ZZh5hXPAEuTQxiBeJeK81vt4GFVW22SaMQeGoUb8dQxxpmie5y5yxt9cubmFpLupGKEFJYrmf7Vj4",
+        "creator": "H3B2zoSh3RBHpaYcNGR7phNn3ABLjneqBVnJyWtLR291",
+        "symbol": "QCREA90ZX"
+      }
+    ],
+    "cleanup": {
+      "at": "2026-11-19T08:26:43.289Z",
+      "wallets": [
+        {
+          "wallet": "H3B2zoSh3RBHpaYcNGR7phNn3ABLjneqBVnJyWtLR291",
+          "balance": 356495942
+        },
+        {
+          "wallet": "3VGPAvk6qJZLeun4Qr9Xq7LHKyVcKzcGQt8rsG3pi1UH",
+          "balance": 1000000
+        },
+        {
+          "wallet": "5wDasbifd2KBMxwG1g9JuC7CTk9F9HZSvxwwQZp3vb9F",
+          "balance": 1000000
+        },
+        {
+          "wallet": "3bASzserjrPw51TmEwYN5EhRv64nYajgiHTkk4k5VFgS",
+          "balance": 1000000
+        }
+      ],
+      "cleanup": "failed-rpc-rate-limit",
+      "keysPersisted": false,
+      "recoverable": false
+    }
+  },
+  "preflightRetry": {
+    "status": "blocked-before-funding",
+    "reason": "Holder worker readiness unavailable during RPC provider fallback.",
+    "events": [
+      {
+        "at": "2026-11-19T08:25:15.378Z",
+        "type": "infrastructure-retry",
+        "attempt": 1
+      },
+      {
+        "at": "2026-11-19T08:25:45.718Z",
+        "type": "infrastructure-retry",
+        "attempt": 2
+      },
+      {
+        "at": "2026-11-19T08:26:15.742Z",
+        "type": "infrastructure-retry",
+        "attempt": 3
+      },
+      {
+        "at": "2026-11-19T08:26:45.781Z",
+        "type": "infrastructure-retry",
+        "attempt": 4
+      },
+      {
+        "at": "2026-11-19T08:27:15.801Z",
+        "type": "infrastructure-retry",
+        "attempt": 5
+      }
+    ]
+  },
+  "limits": [
+    "Creator and referral claims require an existing unexpired wallet sign-in session; claims request no additional wallet signature or OTP.",
+    "Creator destination and amount are derived from the saved creator identity and finalized allocation.",
+    "Admin withdrawal OTP and transaction co-signature remain required; no successful live admin withdrawal was executed.",
+    "The automated live harness exercised the deployed HTTP routes and finalized transactions. Button behavior was tested in the exact release image, not through a live browser click.",
+    "All QA private keys were generated in memory and never persisted. The first failed fixture left 359495942 Devnet lamports inaccessible across four disposable wallets; the successful fixture refunded all remaining wallet SOL.",
+    "Mainnet activation remains blocked."
+  ]
+}
