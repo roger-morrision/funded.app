@@ -164,6 +164,17 @@ export async function finalizedSend(connection, transaction, signers, { pollMs =
 // commitment; matches REWARD_CYCLE_EXPIRY_GRACE_SECONDS in the program build.
 export function rewardCycleExpiryGraceSeconds(cluster) { return cluster === 'devnet' ? 600 : 30 * 24 * 60 * 60; }
 
+// A payout whose confirmation was missed is later found already paid on-chain.
+// The payment PDA is created by its payout, so the oldest successful finalized
+// signature on that account is the payout transaction. Null when unavailable.
+export async function recoverPaymentSignature(connection, payment) {
+  try {
+    const rows = await connection.getSignaturesForAddress(new PublicKey(payment), { limit: 50 }, 'finalized');
+    const ok = (rows || []).filter(row => row && row.err === null && typeof row.signature === 'string');
+    return rows?.length < 50 ? ok.at(-1)?.signature || null : null;
+  } catch { return null; }
+}
+
 export function createAutomaticRewardChain({ connection, programId, authority, expectedProgramDataSha256, expectedVersion = REWARD_PROGRAM_VERSION, cluster = 'devnet' }) {
   requireSolanaCluster(cluster);
   const program = new PublicKey(programId);
@@ -322,7 +333,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const { vault, cycle, payment } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId, recipient: leaf.recipient });
     const prior = await inspectLeaf(plan,leaf);
     if (prior) {
-      return { signature: null, finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: payment.toBase58(), alreadyPaid: true };
+      return { signature: await recoverPaymentSignature(connection, payment), finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: payment.toBase58(), alreadyPaid: true };
     }
     const proof = Buffer.concat(leaf.proof.map(node => hex32(node, 'proof node')));
     const data = Buffer.concat([discriminator('global', plan.manifest.asset === 'SOL' ? 'payout_reward_sol' : 'payout_reward_token'), u64(leaf.amount), u32(leaf.index), u32(leaf.proof.length), proof]);
@@ -446,5 +457,6 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   }
 
   return { cluster, readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, expireCycle, fundSolVault, fundTokenVault,
+    paymentSignature: payment => recoverPaymentSignature(connection, payment),
     cycleExpiryGraceSeconds: rewardCycleExpiryGraceSeconds(cluster) };
 }

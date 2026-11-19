@@ -11,6 +11,7 @@ import {nativeRecipientFundingPending} from './native-reward-recipient.mjs';
 import { expireUnpayableCycles } from './reward-cycle-expiry.mjs';
 import { plannedRewardPayoutAt, rewardReviewDelaySeconds } from '../protocol-guard.js';
 import { commitReviewedCycles } from './reward-cycle-commit.mjs';
+import { backfillPaymentSignatures } from './reward-signature-backfill.mjs';
 export { unpayableCycleSchedule } from './reward-cycle-expiry.mjs';
 
 const pricedHolderPolicy = config => ['usd-20-hourly-v1', QA_HOLDER_POLICY]
@@ -443,6 +444,7 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
     if (!ready.constrainedPayouts) return { status: 'unavailable', reasons: ready.reasons, submitted: 0 };
     const selected = onlyIds === null ? null : new Set(onlyIds);
     await expireUnpayableCycles({ store, chain, now, selected });
+    await backfillPaymentSignatures({ store, chain }).catch(() => 0);
     await commitReviewedCycles({ store, chain, cluster, now, selected, screen: async plan => !await blockedHolderManifest(plan) });
     const plans = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row =>
       ['prepared', 'distributing'].includes(row.status) && now >= row.payoutAt
