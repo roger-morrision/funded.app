@@ -32,12 +32,19 @@ assert.equal(await connection.getGenesisHash(),'EtWTRABZaYq6iMfeYKouRu166VU2xqa1
 // Use the same finalized transaction provider for this isolated verification.
 // The optional evidence provider has its own connection/limits; the full
 // executable hash and network checks still run through the primary connection.
-process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL='';
+if(process.env.REWARD_BATCH_PRIMARY_EVIDENCE==='true')process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL='';
+const rateLimited=error=>/429|rate limit|too many requests/i.test(String(error?.message||error));
+async function retryRead(read) {
+  for(let attempt=0;;attempt++)try{return await read();}catch(error){
+    if(!rateLimited(error)||attempt>=6)throw error;
+    emit({type:'evidence-retry',attempt:attempt+1});await new Promise(resolve=>setTimeout(resolve,30000));
+  }
+}
 const remote=createRemoteSigner(),authority=remote.handle('authority'),keeper=remote.handle('keeper');
 assert(authority&&keeper);assert(await connection.getBalance(authority.publicKey)>200000000);
 const chain=createAutomaticRewardChain({connection,programId:process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,authority,
   expectedProgramDataSha256:process.env.FUNDED_V3_PROGRAM_DATA_SHA256,cluster:'devnet'});
-assert.equal((await chain.readiness()).constrainedPayouts,true);
+assert.equal((await retryRead(()=>chain.readiness())).constrainedPayouts,true);
 const recipients=Array.from({length:4},()=>Keypair.generate()),qa=Keypair.generate();
 let tokenMint;
 const state={schedules:{},programs:{}},store={transaction:async fn=>fn(state),read:async()=>structuredClone(state)};
@@ -49,7 +56,14 @@ async function run(mint,asset,mode) {
     allocations:recipients.map(k=>({recipient:k.publicKey.toBase58(),amount:'10000'}))});
   const plan={id,cluster:'devnet',kind:'holder',mint,asset,cutoffAt:now-2,payoutAt:now-1,
     manifest,status:'prepared',payments:{},periodStart:now-3};state.schedules[id]=plan;
-  const started=Date.now();await scheduler.execute(now,mode==='single'?[id]:null);
+  const started=Date.now();
+  for(let attempt=0;attempt<7;attempt++){
+    await retryRead(()=>scheduler.execute(now,mode==='single'?[id]:null));
+    if(plan.status==='paid')break;
+    const pending=Object.values(plan.payments).filter(row=>row.status!=='paid');
+    if(!pending.length||pending.some(row=>!rateLimited(row.reason)))break;
+    emit({type:'worker-retry',mode,asset,attempt:attempt+1});await new Promise(resolve=>setTimeout(resolve,30000));
+  }
   assert.equal(plan.status,'paid',JSON.stringify(plan.payments));
   const signatures=[...new Set(Object.values(plan.payments).map(p=>p.signature))];
   let fees=0,rent=0;
@@ -61,7 +75,7 @@ async function run(mint,asset,mode) {
     const entries=Object.entries(plan.payments).filter(([,p])=>p.signature===signature);
     let receiptRent=0;
     for(const [recipient,payment]of entries) {
-      const record=await chain.inspectLeaf(plan,manifest.leaves.find(leaf=>leaf.recipient===recipient));
+      const record=await retryRead(()=>chain.inspectLeaf(plan,manifest.leaves.find(leaf=>leaf.recipient===recipient)));
       assert.equal(record.amountReceived,'10000');assert.equal(record.payment,payment.payment);
       const p=keys.indexOf(payment.payment);assert.equal(tx.meta.preBalances[p],0);receiptRent+=tx.meta.postBalances[p];
       if(asset==='SOL'){const i=keys.indexOf(recipient);assert.equal(tx.meta.postBalances[i]-tx.meta.preBalances[i],10000);}
@@ -77,7 +91,7 @@ async function run(mint,asset,mode) {
       feePayer:keys[0],requiredSigners:1,digest:createHash('sha256').update(tx.transaction.message.serialize()).digest('hex'),
       finalized:true,balanceDeltaVerified:true});
   }
-  const retry=await scheduler.execute(now,mode==='single'?[id]:null);
+  const retry=await retryRead(()=>scheduler.execute(now,mode==='single'?[id]:null));
   assert.equal(retry.submitted,0);
   const summary={type:'case',mode,asset,mint,recipients:4,transactions:signatures.length,feeLamports:fees,
     receiptRentLamports:rent,elapsedMs:Date.now()-started,retrySubmitted:retry.submitted,recipientFees:0};
