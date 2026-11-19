@@ -12,10 +12,10 @@ import {readAgencyBuybackReadiness} from './agency-buyback-readiness.mjs';
 // This exact Devnet ProgramData was verified against the tested protected V3
 // binary and exercised with finalized disposable-wallet payouts. An operator
 // setting cannot make older, unprotected program bytes eligible for launches.
-// 2026-11-17: the same router rebuilt from commit 37675b6f and upgraded in
-// place (AGENCY_REVIEWED_BINARY; slot 523202478). Devnet only.
+// 2026-11-19: the router rebuilt from commit ae6fb256 and upgraded in
+// place (AGENCY_REVIEWED_BINARY; slot 523842644). Devnet only.
 export const PROTECTED_V3_PROGRAM_DATA_SHA256 =
-  '2913b6d0327eeea244c2c96f9349173a63ead1d73b33ababa362080811ec4810';
+  '760d0d9e92ba6ceef7aca824429d30e5669c61d3b36114b0955f93f255ce4a65';
 export const V3_BENEFICIARY_ROUTING_ON_CHAIN_ENFORCED = true;
 export const V3_BENEFICIARY_RELEASE_BLOCKER =
   'Protected V3 beneficiary rules require the exact reviewed Devnet program bytes';
