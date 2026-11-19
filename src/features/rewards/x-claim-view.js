@@ -55,7 +55,7 @@ export function updateClaimBindingReview({
   if(!node)return;
   const address=captureWalletSession()?.address||'';
   const check=document.querySelector('#claim-binding-agree');
-  if(check?.dataset.wallet!==address){check.checked=false;check.dataset.wallet=address;}
+  if(check && check.dataset.wallet!==address){check.checked=false;check.dataset.wallet=address;}
   if(check)check.disabled=!address;
   const destination=document.querySelector('#claim-binding-wallet');
   if(destination)destination.textContent=address?`Solana · ${address}`:'Connect the wallet that should receive this claim.';
