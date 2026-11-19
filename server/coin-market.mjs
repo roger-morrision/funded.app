@@ -5,6 +5,20 @@ import { summarizeTrending } from '../market-trending.js';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
 import {PublicKey} from '@solana/web3.js';
 import {fetchVerifiedPoolSnapshot} from '../pump-trading.js';
+import {createSolUsdQuoteReader} from './price-quote.mjs';
+
+// USDC-quoted Pump curves (Devnet test USDC and Mainnet USDC), 6 decimals.
+const USDC_QUOTES = new Set(['4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v']);
+const sharedSolUsd = createSolUsdQuoteReader();
+// Express a USDC-quoted trade in SOL terms so volume and price stay comparable.
+// Returns null when the trade's quote is unsupported or no SOL/USD price exists.
+export function tradeInSolTerms(trade, solUsd) {
+  if (!trade.quoteMint || isSolLikeQuoteMint(new PublicKey(trade.quoteMint))) return trade;
+  const micros = Math.round(Number(solUsd?.priceUsd) * 1e6);
+  if (!USDC_QUOTES.has(trade.quoteMint) || !Number.isSafeInteger(micros) || micros <= 0) return null;
+  return { ...trade, quoteUnits: trade.solLamports, solLamports: trade.solLamports * 1_000_000_000n / BigInt(micros),
+    priceRatio: trade.priceRatio * 1e9 / micros, solTerms: 'usdc-converted' };
+}
 
 const TRADE_EVENT_DISCRIMINATOR = Buffer.from([189, 219, 127, 211, 78, 230, 97, 238]);
 const DAY_SECONDS = 24 * 60 * 60;
@@ -145,7 +159,7 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
   };
 }
 
-export async function readPumpMarketActivity({ connection, mint, poolAddress, readPool=fetchVerifiedPoolSnapshot,
+export async function readPumpMarketActivity({ connection, mint, poolAddress, readPool=fetchVerifiedPoolSnapshot, readSolUsd=sharedSolUsd,
   nowSeconds = Math.floor(Date.now() / 1000), maxSignatures = 50 }) {
   const cutoffSeconds = nowSeconds - DAY_SECONDS;
   const pool = poolAddress ? new PublicKey(poolAddress) : canonicalPumpPoolPda(mint, NATIVE_MINT);
@@ -165,6 +179,7 @@ export async function readPumpMarketActivity({ connection, mint, poolAddress, re
   if (scans.every(scan => !scan.signatures.length)) return { poolHistoryCoverage: 'unavailable', observedVolumeSol: null, observedTradeCount: null, observedCoverage: 'unavailable', volume24hSol: null, buyVolume24hSol: null, sellVolume24hSol: null, tradeCount24h: null, poolTradeCount24h: 0, buyCount24h: null, sellCount24h: null, recentTrades: [], activityWindows: null, priceChangePercent: null, priceChangeBasis: null, coverage: 'unavailable' };
   const firstOlder = scans.some(scan => scan.signatures.some(item => item.blockTime != null && item.blockTime < cutoffSeconds));
   const selectedBySignature = new Map();
+  let solUsd;
   let omittedHistory=false;
   for (const scan of scans) {
     // Read the current window plus one earlier receipt per route for a possible
@@ -203,8 +218,12 @@ export async function readPumpMarketActivity({ connection, mint, poolAddress, re
         const curve=group[index].routes.has('curve')&&event.program===PUMP_PROGRAM_ID.toBase58();
         const amm=group[index].routes.has('pool')&&event.program===PUMP_AMM_PROGRAM_ID.toBase58();
         if(!curve&&!amm)continue;
-        const trades=curve?decodePumpTrades([event.log],mint):decodePumpSwapTrades([
+        let trades=curve?decodePumpTrades([event.log],mint,{anyQuote:true}):decodePumpSwapTrades([
           `Program ${event.program} invoke [1]`,event.log,`Program ${event.program} success`],pool,decodePoolEvent);
+        if(curve&&trades.some(t=>t.quoteMint&&!isSolLikeQuoteMint(new PublicKey(t.quoteMint)))){
+          solUsd??=await readSolUsd().catch(()=>null);
+          trades=trades.map(t=>tradeInSolTerms(t,solUsd)).filter(Boolean);
+        }
         for(const trade of trades)records.push({...trade,route:curve?'curve':'pool',signature:group[index].signature,blockTime,order:start+index});
       }
     }

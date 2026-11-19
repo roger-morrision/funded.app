@@ -51,8 +51,24 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
       }
     }
     communityAllocated += totals.community;
-    const payouts = [];
+    const payouts = [], tokenPaid = new Map();
     for (const schedule of Object.values(rewardState.schedules || {})) {
+      // Paired coins pay holders in their quote token from v3t pools. Count
+      // those per asset (never as lamports), from balance-verified pools only.
+      if (schedule.mint === mint && schedule.kind === 'holder' && schedule.asset !== 'SOL' && ADDRESS.test(String(schedule.asset))) {
+        const pools = schedule.poolIds || [];
+        if (!pools.length || !pools.every(id => { const pool = rewardState.rewardPools?.[id];
+          return id.startsWith('v3t:') && pool?.mint === mint && pool.asset === schedule.asset
+            && pool.balanceDeltaVerified === true && pool.fundingSignature === id.slice(4); })) continue;
+        for (const [recipient, payment] of Object.entries(schedule.payments || {})) {
+          if (!ADDRESS.test(recipient) || !SIGNATURE.test(String(payment.signature || '')) || payment.status !== 'paid'
+            || payment.finalized !== true || payment.balanceDeltaVerified !== true) continue;
+          const row = tokenPaid.get(schedule.asset) || { asset:schedule.asset, amount:0n, payments:0, wallets:new Set() };
+          row.amount += value(payment.amountReceived ?? payment.amount); row.payments += 1; row.wallets.add(recipient);
+          tokenPaid.set(schedule.asset, row);
+        }
+        continue;
+      }
       if (schedule.mint !== mint || schedule.kind !== 'holder' || schedule.asset !== 'SOL') continue;
       const linkedSources = (schedule.poolIds || []).filter(id => {
         if (!id.startsWith('v3:')) return false;
@@ -140,6 +156,8 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
       collectionCount:collections.length, holderPaidWallets:new Set(holderPaid.map(row => row.wallet)).size,
       holderPayoutCount:holderPaid.length,
       holderPaidLamports:holderPaid.reduce((sum, row) => sum + value(row.amountLamports), 0n).toString(),
+      holderTokenPayouts:[...tokenPaid.values()].map(row => ({ asset:row.asset, amountBaseUnits:row.amount.toString(),
+        payments:row.payments, wallets:row.wallets.size })),
       topHolderRecipients,
       holderRewardPolicy:['usd-20-hourly-v1', 'usd-qa-hourly-v1'].includes(rewardState.programs?.[mint]?.eligibilityPolicy)
         ? { cadence:rewardState.programs[mint].periodSeconds === 300 ? 'five-minutes' : 'hourly',
@@ -158,7 +176,7 @@ export function v3RewardExperience(state = {}, rewards = {}, cluster = 'devnet',
         : null,
       lastHolderPayout, buybackBurnCount:burns.length,
       buybackBurnedBaseUnits:burns.reduce((sum, [, row]) => sum + value(row.burnedBaseUnits), 0n).toString(),
-      status:holderPaid.length ? 'holders-paid' : totals.holder > 0n ? 'holder-fees-allocated'
+      status:holderPaid.length || tokenPaid.size ? 'holders-paid' : totals.holder > 0n ? 'holder-fees-allocated'
         : 'no-holder-share',
       payoutSource:holderPaid.length ? 'verified-v3-fee-funded-cycle' : null };
     tokens.push(token);

@@ -11,6 +11,9 @@ import { formatProofSol, formatProofUsd } from '../proof/proof-totals.js';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const lamports = value => { const number = Number(value); return value != null && value !== '' && Number.isFinite(number) && number >= 0 ? number : null; };
 const CADENCE = { hourly: 'every hour', daily: 'every day' };
+// Paired coins pay holders in their quote token (USDC); show it as USDC, never as SOL.
+const STABLE_DECIMALS = { '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU': 6, 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 6 };
+const formatUsdc = row => `${(Number(row.amountBaseUnits) / 10 ** STABLE_DECIMALS[row.asset]).toLocaleString('en-US', { maximumFractionDigits:6 })} USDC`;
 
 export function holderRewardsSummary(token) {
   const share = Number(token?.holderSharePercent);
@@ -30,6 +33,8 @@ export function holderRewardsSummary(token) {
     funding: token.availableHolderPoolLamports == null ? null : lamports(token.availableHolderPoolLamports),
     poolMinimum: Number(policy.minimumPoolUsd) || null,
     minimumHolderUsd: Number(policy.minimumHolderUsd) > 0 ? Number(policy.minimumHolderUsd) : null,
+    tokenPayouts: (Array.isArray(token.holderTokenPayouts) ? token.holderTokenPayouts : [])
+      .filter(row => STABLE_DECIMALS[row?.asset] != null && /^\d+$/.test(String(row.amountBaseUnits)) && Number(row.payments) > 0),
   };
 }
 
@@ -47,15 +52,16 @@ export function holderRewardsMarkup(summary, { solUsd = null, now = Date.now() }
   if (!summary) return '';
   const usd = value => { const text = formatProofUsd(value, solUsd); return text ? `<em>≈ ${escape(text)}</em>` : ''; };
   const symbol = summary.symbol ? `$${escape(summary.symbol)}` : 'this coin';
-  const rule = `Paid in SOL ${summary.cadence} to eligible holders of ${symbol}${summary.minimumHolderUsd ? ` (at least $${summary.minimumHolderUsd} worth)` : ''}, in proportion to how much they hold.`;
+  const tokens = summary.tokenPayouts || [], inUsdc = tokens.length > 0 && !(summary.paid > 0);
+  const rule = `Paid in ${inUsdc ? 'USDC' : 'SOL'} ${summary.cadence} to eligible holders of ${symbol}${summary.minimumHolderUsd ? ` (at least $${summary.minimumHolderUsd} worth)` : ''}, in proportion to how much they hold.`;
   const gap = summary.funding != null && summary.poolMinimum && Number(solUsd) > 0
     ? Math.max(0, summary.poolMinimum - summary.funding / 1e9 * solUsd) : null;
   const threshold = summary.poolMinimum ? ' Pool minimum $' + summary.poolMinimum + '.' : '';
   const gapText = gap == null ? 'Funding gap unavailable.' : 'Estimated gap to pool minimum: $' + gap.toFixed(2) + ' before distribution costs.';
   return `<header class="holder-rewards-head"><div><p class="eyebrow"><i class="holder-rewards-dot" aria-hidden="true"></i>Holder rewards · active</p><h2 id="holder-rewards-title">${symbol} holders earn ${escape(summary.share)}% of creator fees</h2></div><a class="text-button" href="#payments/history">Receipts →</a></header>
 <div class="holder-rewards-grid">
-<div class="holder-rewards-main"><span>Paid to holders</span><strong>${escape(formatProofSol(summary.paid))}</strong>${usd(summary.paid)}<small>${escape(`${summary.payouts?.toLocaleString('en-US') ?? 'Unverified'} payment${summary.payouts === 1 ? '' : 's'} to ${summary.wallets?.toLocaleString('en-US') ?? 'unverified'} wallet${summary.wallets === 1 ? '' : 's'}`)}</small></div>
-<div><span>Allocated, unpaid</span><strong>${escape(formatProofSol(summary.waiting))}</strong>${usd(summary.waiting)}<small>Paid hourly once the holder pool reaches $20</small></div>
+<div class="holder-rewards-main"><span>Paid to holders</span><strong>${escape(formatProofSol(summary.paid))}</strong>${usd(summary.paid)}<small>${escape(`${summary.payouts?.toLocaleString('en-US') ?? 'Unverified'} payment${summary.payouts === 1 ? '' : 's'} to ${summary.wallets?.toLocaleString('en-US') ?? 'unverified'} wallet${summary.wallets === 1 ? '' : 's'}`)}</small>${tokens.map(row => `<small>${escape(`+ ${formatUsdc(row)} in ${row.payments} payment${row.payments === 1 ? '' : 's'} to ${row.wallets} wallet${row.wallets === 1 ? '' : 's'}`)}</small>`).join('')}</div>
+<div><span>Allocated, unpaid</span><strong>${escape(formatProofSol(summary.waiting))}</strong>${usd(summary.waiting)}<small>${escape(`Paid ${summary.cadence}${summary.poolMinimum ? ` once the holder pool reaches $${summary.poolMinimum}` : ''}`)}</small></div>
 <div><span>Last payout</span><strong>${escape(relativeTime(summary.lastPaidAt, now))}</strong><small>Paid ${escape(summary.cadence)}</small></div>
 </div>
 <p class="holder-rewards-rule">${escape(rule + threshold + " " + gapText)}</p>`;
