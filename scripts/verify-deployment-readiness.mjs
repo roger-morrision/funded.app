@@ -5,8 +5,9 @@ import {resolve} from 'node:path';
 import {localDockerHost} from './check-deployment-capacity.mjs';
 
 export const releaseServices = ['app','fee-collector','buyback-worker','agency-buyback-worker'];
-// The internal signer is a release service once a release's Compose file defines it.
-export const servicesFor = config => config?.services?.signer ? [...releaseServices,'signer'] : releaseServices;
+// The internal signer and the Devnet price signer are release services once a
+// release's Compose file defines them.
+export const servicesFor = config => [...releaseServices,...['signer','price-signer'].filter(name=>config?.services?.[name])];
 export function assessReleaseServices(containers,{project,revision,services:names=releaseServices}) {
   const errors=[],services=[];
   for(const service of names){
