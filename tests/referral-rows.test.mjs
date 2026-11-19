@@ -13,7 +13,7 @@ const state = {
   launches: { mintA: { creatorWallet: A }, mintA2: { creatorWallet: A } },
   v3Settlements: {
     sig1: { status: 'finalized', mint: 'mintA', grossCreatorFees: '2000000000', paid: true },
-    sig2: { status: 'finalized', mint: 'mintA2', grossCreatorFees: '1000000000' },
+    sig2: { status: 'finalized', mint: 'mintA2', expectedLamports: '1000000000', categoryLamports: ['800000000', '200000000'] },
     sig3: { status: 'pending', mint: 'mintA', grossCreatorFees: '9000000000' } },
   v3ReferralPayouts: { 'sig1:1': { recipient: ME, status: 'finalized', signature: 'pay', collectionSignature: 'sig1', level: 1, amount: '20000000' } },
 };

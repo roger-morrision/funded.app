@@ -22,7 +22,8 @@ export function referralRows({ state, wallet, network, qualified, cleanShareSour
     let fees = 0n, earned = 0n, claimable = 0n;
     for (const [source, settlement] of Object.entries(state.v3Settlements || {})) {
       if (settlement?.status !== 'finalized' || !mints.has(settlement.mint)) continue;
-      fees += lamports(settlement.grossCreatorFees);
+      // V3 settlements record the collected amount as expectedLamports.
+      fees += lamports(settlement.grossCreatorFees ?? settlement.expectedLamports);
       for (let step = 1; step <= 3; step++) {
         let owed = null;
         try { owed = entitlement?.({ settlement, plan: settlement.allocationPlan, level: step }); } catch { owed = null; }
