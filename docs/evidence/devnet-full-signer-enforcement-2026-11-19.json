@@ -1,0 +1,511 @@
+{
+  "verifiedAt": "2026-11-19T06:44:00.877Z",
+  "cluster": "devnet",
+  "origin": "https://funded.vip",
+  "change": {
+    "name": "FUNDED_SIGNER_ENFORCE",
+    "before": "treasury",
+    "after": "all"
+  },
+  "release": {
+    "release": "884cb4a5a899856382307b3a8108e8e7bf48f1f1-e65482b1-3317-4984-8455-5e6c3034870e",
+    "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+    "ready": true,
+    "rollbackAvailable": true
+  },
+  "previousRelease": {
+    "priorId": "884cb4a5a899856382307b3a8108e8e7bf48f1f1-800d3de1-fc78-43ff-b789-36c358ae1568",
+    "image": "sha256:28343997ee0a9bce2ed26d6dbbeb2e4febf369a9769572af39eb73f3c0968c53",
+    "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+    "enforce": "treasury"
+  },
+  "services": [
+    {
+      "service": "app",
+      "image": "sha256:28343997ee0a9bce2ed26d6dbbeb2e4febf369a9769572af39eb73f3c0968c53",
+      "build": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "fee-collector",
+      "image": "sha256:28343997ee0a9bce2ed26d6dbbeb2e4febf369a9769572af39eb73f3c0968c53",
+      "build": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "buyback-worker",
+      "image": "sha256:28343997ee0a9bce2ed26d6dbbeb2e4febf369a9769572af39eb73f3c0968c53",
+      "build": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "agency-buyback-worker",
+      "image": "sha256:28343997ee0a9bce2ed26d6dbbeb2e4febf369a9769572af39eb73f3c0968c53",
+      "build": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "signer",
+      "image": "sha256:28343997ee0a9bce2ed26d6dbbeb2e4febf369a9769572af39eb73f3c0968c53",
+      "build": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "price-signer",
+      "image": "sha256:28343997ee0a9bce2ed26d6dbbeb2e4febf369a9769572af39eb73f3c0968c53",
+      "build": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "revision": "884cb4a5a899856382307b3a8108e8e7bf48f1f1",
+      "cluster": "devnet",
+      "state": "running",
+      "health": "healthy"
+    }
+  ],
+  "tests": {
+    "command": "node --test tests/signer-service.test.mjs",
+    "passed": 5
+  },
+  "denials": [
+    {
+      "at": "2026-11-19T06:40:36.005Z",
+      "type": "policy-denial",
+      "role": "keeper",
+      "http": 403,
+      "error": "program-not-allowed:DDxHXL7rAfvZ5HjxY84DzBB3dM76HxrLUvtBcZhQS3P7",
+      "digest": "e8d4e0a37668454a446c430a988b6ca58f8c56986a48aecdee03915c106e0a86",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T06:40:36.764Z",
+      "type": "policy-denial",
+      "role": "authority",
+      "http": 403,
+      "error": "program-not-allowed:2UE9ZfHbHhwJiqnrSAKFAtC97yWfE4GeEZJEKTGd3afU",
+      "digest": "9f314d845e06eb3cde8a62855c895ea69d3abdf7d8f4ac83f9836be529c5baad",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T06:40:37.515Z",
+      "type": "policy-denial",
+      "role": "legacyAuthority",
+      "http": 403,
+      "error": "program-not-allowed:FpuGFx68Dp9VCxX9EmJ7pwyNYoxRM3qUzLcRUPMo9dKo",
+      "digest": "87d99bf582d68f4d92fe8b702f668c4d198d30e3dedd964f69d0d404d41a45bd",
+      "broadcast": false
+    }
+  ],
+  "fixture": [
+    {
+      "at": "2026-11-19T06:40:45.219Z",
+      "type": "ephemeral-fixture-funding",
+      "wallet": "EzVByRySEiBk1V7CrzR3ZRTsH4VmuDdGdm252nfscVNn",
+      "signature": "3h8wxghD6EDT3W3LQFRaYVpJFDywoa87PE7NwQbQ5r2qPENz7hXENq9izcHbj4Nda9g4TMab64gCD3uQLVkDuXoe",
+      "lamports": 80000000,
+      "slot": 523903934,
+      "digest": "487318541e71d80f81de477ac14f90932094a56a3f8def7c71da19457c0ec54b",
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T06:40:50.563Z",
+      "type": "fixture-buy",
+      "signature": "XE2n1GCisfNj5ZG7YWCdAibY24PHjLsMWiJQkJvVhy6sv9i1PaqnzhbkaXGPQ7rPm2gDzi5qqzsMFafYwKx7jVa",
+      "baseUnits": "13706722416595",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T06:40:54.509Z",
+      "type": "fixture-sell",
+      "signature": "5MRVstVedydt6Udf1R94xG8sN9cuMYsTjRsKVCYBibMvqKNy3KT2EdDaGziAj4pg9CFVUiV15LJN3S582FHfE5Y5",
+      "remainingBaseUnits": "0",
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T06:40:56.205Z",
+      "type": "fixture-close-token-account",
+      "signature": "3pmsmNqSaYyynpB3Pawuj4obn82dLHiWppKHe7VFnZyZRgoAsCAvmt1zZDdZmnbHycwu7Eo6QjubxWgVsHzT6kzA"
+    },
+    {
+      "at": "2026-11-19T06:40:58.535Z",
+      "type": "fixture-refund",
+      "signature": "q42aGVLzJW8xqWuVhW3jsnQcKYKanY8y6ZXahW6naUj97Z2Dc8nn3JRJXzQpYUfHUo246Aq5kxYffBtoMinjzcP",
+      "lamports": 77081970,
+      "remainingLamports": 0,
+      "finalized": true
+    }
+  ],
+  "allocation": {
+    "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+    "agency": {
+      "status": "allocated-not-executed",
+      "amountLamports": "7116"
+    },
+    "status": "allocated-not-funded",
+    "protocol": {
+      "buybackLamports": "17793",
+      "referralLamports": [
+        "2134",
+        "890",
+        "534"
+      ],
+      "communityLamports": "14233",
+      "operationsLamports": "28467"
+    },
+    "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "grossLamports": "355839",
+    "creatorDirected": {
+      "xHandle": null,
+      "xUserId": null,
+      "xLamports": "0",
+      "holderLamports": "142336",
+      "walletLamports": "142336"
+    },
+    "allocationVersion": 2,
+    "creatorPoolLamports": "284672",
+    "settlementSignature": "54HfPs6tRaZX7L48FJJx5aV4QzKy6S6aA12iqdsk18YKbzKsSyQwKxd5UYB7VqoCzQhjV4Nfd2rBeLe45KcjGqkt",
+    "creatorPoolAfterLamports": "4054072",
+    "creatorPoolBeforeLamports": "3769400",
+    "sourceCollectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS"
+  },
+  "proofs": [
+    {
+      "type": "independent-payout-proof",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "vault": "8dRGUDJcZ8jmfTpyCsu5fjnrbVWnWG9tkwVovREXmvJf",
+      "status": "finalized",
+      "recipient": "3B1VxxNM5kefNMkbLtZMcWkJan1wEXMyUcehg8nao4Um",
+      "signature": "2WKV6h3kqyES9Ji1o2dVMWQbVRFAMDQ2bKQf8w8D3Ad8t7j2JAe5XyCQxKjdnHkoWS6hdwnTXKD2rFJwzaKxbZkA",
+      "finalizedAt": "2026-11-19T06:41:42.185Z",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "balanceDeltaVerified": true,
+      "kind": "v3CreatorRewardFunding",
+      "amount": 142336,
+      "slot": 523904178,
+      "recipientDelta": 142336,
+      "vaultDelta": -142336,
+      "finalized": true,
+      "digest": "e0e9ce1f15c8fa7dc93ed8ff0fe23e64fc5324f7b92811640891099a909963f4",
+      "internalSignerEntries": [
+        {
+          "at": "2026-11-19T06:41:37.820Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1269920",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "e0e9ce1f15c8fa7dc93ed8ff0fe23e64fc5324f7b92811640891099a909963f4"
+        },
+        {
+          "at": "2026-11-19T06:41:38.878Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1269920",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "e0e9ce1f15c8fa7dc93ed8ff0fe23e64fc5324f7b92811640891099a909963f4"
+        }
+      ]
+    },
+    {
+      "type": "independent-payout-proof",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "vault": "FNoyDEmyLbtoHgJtXmcqW3nqLGzbXF2hVK8QVJNgogW3",
+      "status": "finalized",
+      "recipient": "3B1VxxNM5kefNMkbLtZMcWkJan1wEXMyUcehg8nao4Um",
+      "signature": "JHJMKVBRPZ6M8nQfoZjtzSd5h4CEjWQw9RtCjQ3KVcLUQ6baQ3KBL79mAMY6PijWHrkKjs7ppUHUg1ZUCwE7Loo",
+      "finalizedAt": "2026-11-19T06:41:50.515Z",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "balanceDeltaVerified": true,
+      "kind": "v3CommunityFunding",
+      "amount": 14233,
+      "slot": 523904213,
+      "recipientDelta": 14233,
+      "vaultDelta": -14233,
+      "finalized": true,
+      "digest": "0514f4e1f7a87daef497fd2bb84537b293b891fb0878ea0ccfa997502daefb06",
+      "internalSignerEntries": [
+        {
+          "at": "2026-11-19T06:41:46.244Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1269920",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "0514f4e1f7a87daef497fd2bb84537b293b891fb0878ea0ccfa997502daefb06"
+        },
+        {
+          "at": "2026-11-19T06:41:46.980Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1269920",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "0514f4e1f7a87daef497fd2bb84537b293b891fb0878ea0ccfa997502daefb06"
+        }
+      ]
+    },
+    {
+      "type": "independent-payout-proof",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "vault": "EjPeLbH6j83GZVBCkp2hdTJrXE5GqjDtd7u9bzVtN9Gs",
+      "status": "finalized",
+      "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+      "signature": "5WFdbqucY1sZsAGXHJ96MFREDWoAU7y4CrB28xzgK6nYHZEsGymNGBH2N1BZxkbPJ7rYckw6YejMRhDKaCf7K7gd",
+      "finalizedAt": "2026-11-19T06:41:57.555Z",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "balanceDeltaVerified": true,
+      "kind": "v3OperationsPayout",
+      "amount": 28467,
+      "slot": 523904244,
+      "recipientDelta": 28467,
+      "vaultDelta": -28467,
+      "finalized": true,
+      "digest": "47f5dde7d04e3db0f0b248681d1681d59852bd350bb3a7378f185a859dd5753c",
+      "internalSignerEntries": [
+        {
+          "at": "2026-11-19T06:41:53.978Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "47f5dde7d04e3db0f0b248681d1681d59852bd350bb3a7378f185a859dd5753c"
+        },
+        {
+          "at": "2026-11-19T06:41:54.629Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "2509440",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "47f5dde7d04e3db0f0b248681d1681d59852bd350bb3a7378f185a859dd5753c"
+        }
+      ]
+    },
+    {
+      "type": "independent-buyback-proof",
+      "signature": "5ekfg8CKaJifpBxyziG8Aqyp3AcyYh8Rr8zDfbnTZK7yTM1GNWvzv4cdV2z6xZhWndSGPYAs8HQb3iXkuERDAUkJ",
+      "slot": 523904429,
+      "digest": "653eaa090a9c5582ad6deed40edbf165944df00c06e8491cfe5dc4c76acc5563",
+      "vault": "92UVzYtQck4ygExhiUJwxM4XBcFmhbxf25VggykUPvuA",
+      "vaultDebitLamports": "17793",
+      "receipt": "62ZrKXPSVyNjA12hjE25QsE69Hia64D6qPAqyhhsuP5b",
+      "receiptOwner": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "receiptVerified": true,
+      "burnedBaseUnits": "1459",
+      "finalized": true,
+      "priceSignerReservation": {
+        "type": "reservation",
+        "at": 1795070545816,
+        "messageHash": "653eaa090a9c5582ad6deed40edbf165944df00c06e8491cfe5dc4c76acc5563",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "vault": "92UVzYtQck4ygExhiUJwxM4XBcFmhbxf25VggykUPvuA",
+        "receipt": "62ZrKXPSVyNjA12hjE25QsE69Hia64D6qPAqyhhsuP5b",
+        "blockhash": "HHA77GrkpTpEc2sKYyFW9QPemkbhUvBrgzMsEtp8UG8W",
+        "quote": "17793",
+        "minimum": "1444",
+        "slot": 523904351
+      },
+      "priceSignerDailyCap": "2000000000",
+      "internalSignerEntries": [
+        {
+          "at": "2026-11-19T06:42:37.988Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "ComputeBudget111111111111111111111111111111",
+            "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1721960",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "653eaa090a9c5582ad6deed40edbf165944df00c06e8491cfe5dc4c76acc5563"
+        },
+        {
+          "at": "2026-11-19T06:42:38.741Z",
+          "role": "authority",
+          "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programs": [
+            "ComputeBudget111111111111111111111111111111",
+            "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+            "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+          ],
+          "outflowLamports": "1721960",
+          "simulated": true,
+          "violations": [],
+          "decision": "signed",
+          "digest": "653eaa090a9c5582ad6deed40edbf165944df00c06e8491cfe5dc4c76acc5563"
+        }
+      ]
+    }
+  ],
+  "apiCycle": [
+    {
+      "at": "2026-11-19T06:41:16.217Z",
+      "route": "/api/keeper/collect",
+      "http": 409,
+      "status": "awaiting-automatic-settlement",
+      "error": "Settle the existing V3 collection before collecting more fees. No transaction was submitted.",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS"
+    },
+    {
+      "at": "2026-11-19T06:41:16.225Z",
+      "route": "/api/keeper/collection-candidates",
+      "http": 200
+    },
+    {
+      "at": "2026-11-19T06:41:28.901Z",
+      "route": "/api/keeper/settle-v3",
+      "http": 200,
+      "status": "finalized",
+      "signature": "54HfPs6tRaZX7L48FJJx5aV4QzKy6S6aA12iqdsk18YKbzKsSyQwKxd5UYB7VqoCzQhjV4Nfd2rBeLe45KcjGqkt",
+      "settlementSignature": "54HfPs6tRaZX7L48FJJx5aV4QzKy6S6aA12iqdsk18YKbzKsSyQwKxd5UYB7VqoCzQhjV4Nfd2rBeLe45KcjGqkt",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "slot": 523904097
+    },
+    {
+      "at": "2026-11-19T06:41:28.909Z",
+      "route": "/api/keeper/collection-candidates",
+      "http": 200
+    },
+    {
+      "at": "2026-11-19T06:41:42.308Z",
+      "route": "/api/keeper/disburse-v3",
+      "http": 200,
+      "status": "finalized",
+      "signature": "2WKV6h3kqyES9Ji1o2dVMWQbVRFAMDQ2bKQf8w8D3Ad8t7j2JAe5XyCQxKjdnHkoWS6hdwnTXKD2rFJwzaKxbZkA",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "recipient": "3B1VxxNM5kefNMkbLtZMcWkJan1wEXMyUcehg8nao4Um",
+      "balanceDeltaVerified": true,
+      "slot": 523904178
+    },
+    {
+      "at": "2026-11-19T06:41:50.528Z",
+      "route": "/api/keeper/disburse-v3",
+      "http": 200,
+      "status": "finalized",
+      "signature": "JHJMKVBRPZ6M8nQfoZjtzSd5h4CEjWQw9RtCjQ3KVcLUQ6baQ3KBL79mAMY6PijWHrkKjs7ppUHUg1ZUCwE7Loo",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "recipient": "3B1VxxNM5kefNMkbLtZMcWkJan1wEXMyUcehg8nao4Um",
+      "balanceDeltaVerified": true,
+      "slot": 523904213
+    },
+    {
+      "at": "2026-11-19T06:41:57.569Z",
+      "route": "/api/keeper/disburse-v3",
+      "http": 200,
+      "status": "finalized",
+      "signature": "5WFdbqucY1sZsAGXHJ96MFREDWoAU7y4CrB28xzgK6nYHZEsGymNGBH2N1BZxkbPJ7rYckw6YejMRhDKaCf7K7gd",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "recipient": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+      "balanceDeltaVerified": true,
+      "slot": 523904244
+    },
+    {
+      "at": "2026-11-19T06:41:59.609Z",
+      "route": "/api/buyback/status?wait=worker",
+      "http": 200
+    },
+    {
+      "at": "2026-11-19T06:41:59.609Z",
+      "type": "buyback-eligibility",
+      "ready": true,
+      "triggerReached": true,
+      "pending": [
+        {
+          "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+          "sourceCollectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+          "amountLamports": "17793",
+          "status": "awaiting-v3-buyback-executor"
+        }
+      ]
+    }
+  ],
+  "finalQueues": {
+    "collections": [],
+    "settlements": [],
+    "disbursements": [],
+    "buybacks": []
+  },
+  "mainnet": [
+    {
+      "name": "/richpad-mainnet-app-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:18.036728166Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    },
+    {
+      "name": "/richpad-mainnet-rpc-gateway-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:12.287974509Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    }
+  ],
+  "limitations": [
+    "Live payouts cover automatic creator reward funding, community funding, and operations payout; manual creator/referral claims and treasury withdrawals were not executed.",
+    "Live buyback covers the normal RICH category-6 worker. Already-completed own-coin milestones were not reset.",
+    "The existing Devnet QA collection minimum and buyback trigger were retained. No policy allowlist or spending caps were widened."
+  ]
+}
