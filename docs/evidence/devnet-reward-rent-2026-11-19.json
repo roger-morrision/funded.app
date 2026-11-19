@@ -1,0 +1,1622 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-19T10:58:21.336Z",
+  "cluster": "devnet",
+  "origin": "https://funded.vip",
+  "deployment": {
+    "release": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb-12e77ef4-2528-45a8-a812-3362476ca53f",
+    "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+    "ready": true,
+    "rollbackAvailable": true
+  },
+  "image": {
+    "image": "sha256:61e273882b97b3639d980b992054a9c09ac40bd739b8d64d517458cf14ebe249",
+    "tag": "fundedapp-devnet:reward-rent-3a910ab01a2c",
+    "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+    "priorId": "9384ca0d01a05482d1aca03691018c4e5c6ae563-13ad85ee-d338-483e-b9ee-3626c956646c",
+    "origin": "https://funded.vip"
+  },
+  "verification": {
+    "at": "2026-11-19T10:38:29.303Z",
+    "ready": true,
+    "services": [
+      {
+        "service": "app",
+        "image": "sha256:61e273882b97b3639d980b992054a9c09ac40bd739b8d64d517458cf14ebe249",
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "fee-collector",
+        "image": "sha256:61e273882b97b3639d980b992054a9c09ac40bd739b8d64d517458cf14ebe249",
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "buyback-worker",
+        "image": "sha256:61e273882b97b3639d980b992054a9c09ac40bd739b8d64d517458cf14ebe249",
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "agency-buyback-worker",
+        "image": "sha256:61e273882b97b3639d980b992054a9c09ac40bd739b8d64d517458cf14ebe249",
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "signer",
+        "image": "sha256:61e273882b97b3639d980b992054a9c09ac40bd739b8d64d517458cf14ebe249",
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "price-signer",
+        "image": "sha256:61e273882b97b3639d980b992054a9c09ac40bd739b8d64d517458cf14ebe249",
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "revision": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      }
+    ],
+    "errors": []
+  },
+  "finalVerification": {
+    "at": "2026-11-19T10:57:08.087Z",
+    "ready": true,
+    "services": [
+      {
+        "service": "app",
+        "image": "sha256:724657d3d208c66ed297b4973f765d52d9c2567b9982bd07d728a458486069f5",
+        "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "revision": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "fee-collector",
+        "image": "sha256:724657d3d208c66ed297b4973f765d52d9c2567b9982bd07d728a458486069f5",
+        "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "revision": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "buyback-worker",
+        "image": "sha256:724657d3d208c66ed297b4973f765d52d9c2567b9982bd07d728a458486069f5",
+        "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "revision": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "agency-buyback-worker",
+        "image": "sha256:724657d3d208c66ed297b4973f765d52d9c2567b9982bd07d728a458486069f5",
+        "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "revision": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "signer",
+        "image": "sha256:724657d3d208c66ed297b4973f765d52d9c2567b9982bd07d728a458486069f5",
+        "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "revision": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "price-signer",
+        "image": "sha256:724657d3d208c66ed297b4973f765d52d9c2567b9982bd07d728a458486069f5",
+        "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "revision": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      }
+    ],
+    "errors": []
+  },
+  "qaRuntime": {
+    "image": "sha256:724657d3d208c66ed297b4973f765d52d9c2567b9982bd07d728a458486069f5",
+    "revision": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808"
+  },
+  "program": {
+    "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+    "programData": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+    "slot": 523963000,
+    "sha256": "9a17e6fc6a9077566362f71ab2e12e8cef34ae9a4a6dcce87d548a03c2ec8a88",
+    "binary": {
+      "bytes": 1167656,
+      "sha256": "eece07be313e1a93f5eaacac0531f5495db3dceeaa067a036fcbabe34d78cb42"
+    },
+    "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "capacity": 1306056,
+    "finalized": true
+  },
+  "upgrade": {
+    "signature": "25NakfUtu3u6SgCLobZEm1cAk9ZVjeHpAYhz2bHqVmUzyZALt3ESnKnsE2YYHiXADv39WpMDPdLdC6LiyT8foLJF",
+    "slot": 523963000,
+    "refundLamports": 5932571320,
+    "feeLamports": 5000,
+    "bufferClosed": true,
+    "finalized": true
+  },
+  "productionCodeComparison": {
+    "base": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb",
+    "accepted": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+    "changedFiles": [
+      "scripts/verify-reward-rent-devnet.mjs",
+      "tests/reward-batching.test.mjs",
+      "tests/reward-rent.test.mjs"
+    ],
+    "productionFilesChanged": false
+  },
+  "method": {
+    "fixture": "isolated in-memory ledger, four ephemeral recipients; imported accepted image scheduler and chain modules in a separate temporary container, using live enforced signer; deployment lock held during QA",
+    "evidenceProvider": "primary RPC in the verification process only; independent finalized checks through price signer RPC",
+    "manualClaims": "unchanged, immediate, app-paid; creator/referral/X regression coverage, not fresh authenticated live UI claims",
+    "mainnet": "No Mainnet transactions or deployment. New handlers excluded from Mainnet bytecode."
+  },
+  "live": [
+    {
+      "at": "2026-11-19T10:48:13.744Z",
+      "type": "fixture-funded",
+      "signature": "2ZWH2FmBzWFmoR4qp4bXo57aMW6a5tmgCkdk6sVJ8SYriAy3ej7DtdobRGMiiTJd9Zvz38HXNr5U333mDaKvLQzQ",
+      "lamports": 34000000,
+      "wallets": [
+        "GfA2gKAgW8tvfeSCZ5TpkZb9X84QFzpAZei4srKzM1uc",
+        "9jUUgUvAMCajg47DDBXMjtSqbmQX8QWamJBuihJxGosz",
+        "9Eue7c7Hv7tnybz3PLA72nJHGSVza2sfQetfdFHtP96X",
+        "3gpR7ovMWLDsuGqEddnsC75bGMNK6e6PRGfYAbQVuoQ5",
+        "5UmMkjy58ntkYyXaemggBwPb6QzQYjkGtnf1aE3BgVAt"
+      ],
+      "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808"
+    },
+    {
+      "at": "2026-11-19T10:50:38.240Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "SOL",
+      "mint": "9fbmm1Lfs3vQjUUcYsavEkmqgKFXMSqfLMnuAwkTq55H",
+      "cycleId": "62b2c46543654ecd8d5796fd6fdff3bae6bb8a39b1845866d72cd76fdf64df59",
+      "root": "77c4668cbea8358b9147f1798ab2a465a675fe6265751425ee7ba2f182748e3b",
+      "signature": "3SPFUVNyr5wpTYNKTNSJVVamkZQffZ3MktcywmnWLkX7TWydUb3icSq8GqVnu49mbV6pfL2byNkUQg6J2c93s1yo",
+      "slot": 523966416,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "9jUUgUvAMCajg47DDBXMjtSqbmQX8QWamJBuihJxGosz",
+          "amount": "10000",
+          "payment": "6uWWRnYcthFbfjHw6Dao4fZdKJYDL3KFmMrEbkhwozgK",
+          "index": 0
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "58f89c3c730a589dd33deb727f05019042c915e61acba2d8da169f4f32073557",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:50:39.444Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "SOL",
+      "mint": "9fbmm1Lfs3vQjUUcYsavEkmqgKFXMSqfLMnuAwkTq55H",
+      "cycleId": "62b2c46543654ecd8d5796fd6fdff3bae6bb8a39b1845866d72cd76fdf64df59",
+      "root": "77c4668cbea8358b9147f1798ab2a465a675fe6265751425ee7ba2f182748e3b",
+      "signature": "5RquoirKX1bg6uugcgcGMWYHYZ48T8cmi6kLVREyknUgudieSHgRkFtyPKW7EXntxMNYonV5LYpxoAFLQojDHDSg",
+      "slot": 523966461,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "9Eue7c7Hv7tnybz3PLA72nJHGSVza2sfQetfdFHtP96X",
+          "amount": "10000",
+          "payment": "Hk9jDNZcwoi7jqGygmUokayb25Q2pqdMxnAsH3pNbCBX",
+          "index": 1
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "74e49002926ba78a1497fe2cd38a07c90e6b3aa32d219445bf485e91de9be681",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:50:40.943Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "SOL",
+      "mint": "9fbmm1Lfs3vQjUUcYsavEkmqgKFXMSqfLMnuAwkTq55H",
+      "cycleId": "62b2c46543654ecd8d5796fd6fdff3bae6bb8a39b1845866d72cd76fdf64df59",
+      "root": "77c4668cbea8358b9147f1798ab2a465a675fe6265751425ee7ba2f182748e3b",
+      "signature": "2c7Lqr6wy31C2BUYNtucyjdJSDqZrHaNSt7SJtQyRbkX2mDqhRGcG6keq9SqYXn4vDuNfhdCEU6zXqBs7Gi3EeL2",
+      "slot": 523966532,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "3gpR7ovMWLDsuGqEddnsC75bGMNK6e6PRGfYAbQVuoQ5",
+          "amount": "10000",
+          "payment": "GyZ3DCdkmv4PGYTtKPGmRTUejncZ6oSftSXtKxkF6E26",
+          "index": 2
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "d0f3f69d373cf23fd8baaf12efcaffc528717987c904ca132ff9bd925260321e",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:50:42.876Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "SOL",
+      "mint": "9fbmm1Lfs3vQjUUcYsavEkmqgKFXMSqfLMnuAwkTq55H",
+      "cycleId": "62b2c46543654ecd8d5796fd6fdff3bae6bb8a39b1845866d72cd76fdf64df59",
+      "root": "77c4668cbea8358b9147f1798ab2a465a675fe6265751425ee7ba2f182748e3b",
+      "signature": "5m2MhjBatNnkLn3NNkYLij2x47Ahrp81XBGmFw3tR4Zqi7sE4nkvEt1Mwp9MR1jS8YV6m48gMMHxD5UnFZpfGJst",
+      "slot": 523966629,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "5UmMkjy58ntkYyXaemggBwPb6QzQYjkGtnf1aE3BgVAt",
+          "amount": "10000",
+          "payment": "NmqRsB1uv59diU6r5NuNsThAHHUqMS9yR9fdUW6W7d3",
+          "index": 3
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "9624e5fac1f6b6c6d4039cb2602bdf86405c92bcb00c44265bdd009d3a3e6306",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:50:44.120Z",
+      "type": "case",
+      "mode": "single",
+      "asset": "SOL",
+      "mint": "9fbmm1Lfs3vQjUUcYsavEkmqgKFXMSqfLMnuAwkTq55H",
+      "recipients": 4,
+      "transactions": 4,
+      "feeLamports": 20000,
+      "receiptRentLamports": 4632960,
+      "elapsedMs": 116292,
+      "retrySubmitted": 0,
+      "recipientFees": 0,
+      "cycleRentLamports": 1534160,
+      "cycleBytes": 174
+    },
+    {
+      "at": "2026-11-19T10:50:54.292Z",
+      "type": "cleanup",
+      "asset": "SOL",
+      "cycle": "5MBhCAfnxKWFE4fH815WmMnhJwRLAfyiuZWaoqJx411G",
+      "complete": false,
+      "signature": "rGdYgwfh77fWp3URbc7ErjDF26i6ErLsHkP4VzrqXCHvPDuDpFHAJ7oezYLMJRYbSVUv5Ntcasbdkph4WNsHndK",
+      "refundLamports": "4632960",
+      "feeLamports": 5000,
+      "closed": [
+        "6uWWRnYcthFbfjHw6Dao4fZdKJYDL3KFmMrEbkhwozgK",
+        "Hk9jDNZcwoi7jqGygmUokayb25Q2pqdMxnAsH3pNbCBX",
+        "GyZ3DCdkmv4PGYTtKPGmRTUejncZ6oSftSXtKxkF6E26",
+        "NmqRsB1uv59diU6r5NuNsThAHHUqMS9yR9fdUW6W7d3"
+      ],
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T10:51:01.199Z",
+      "type": "archived-proof",
+      "asset": "SOL",
+      "signature": "3SPFUVNyr5wpTYNKTNSJVVamkZQffZ3MktcywmnWLkX7TWydUb3icSq8GqVnu49mbV6pfL2byNkUQg6J2c93s1yo",
+      "reclaimed": true
+    },
+    {
+      "at": "2026-11-19T10:51:06.166Z",
+      "type": "replay-rejected",
+      "mode": "single",
+      "asset": "SOL",
+      "signature": "4eTyfaP4sfPz2wvkrSLmxjkabCHzLzcpdhU6ocxPcYBfWdyvwGSxSZ1wCANoioKuQGGQdonBwbxTMHKxr5yWSVDd",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6025
+          }
+        ]
+      },
+      "vaultUnchanged": true,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T10:51:45.593Z",
+      "type": "payout-proof",
+      "mode": "batch",
+      "asset": "SOL",
+      "mint": "9fbmm1Lfs3vQjUUcYsavEkmqgKFXMSqfLMnuAwkTq55H",
+      "cycleId": "11a6b9efa2c5ae5efd8305541b91814eca6da62ae8b6adbfe478a0d9c9ff4488",
+      "root": "1ca27de07d3d57676005969f542c70cf9feab50a3f79597599347011008c74a4",
+      "signature": "4jwZXmyKLq595FpMaLG7Co3KQT7ctTpkAsHnsJcTovmwAgMexBrA6Gbh4e4QLPtuRFiUhf8unhHYxNoANoCxSSFb",
+      "slot": 523966894,
+      "feeLamports": 5000,
+      "receiptRentLamports": 0,
+      "recipients": [
+        {
+          "recipient": "9jUUgUvAMCajg47DDBXMjtSqbmQX8QWamJBuihJxGosz",
+          "amount": "10000",
+          "payment": "8YLysacQmLUFepCAHWq2xG6sKG7PqEVmcnHvy12QYnsZ",
+          "index": 0
+        },
+        {
+          "recipient": "9Eue7c7Hv7tnybz3PLA72nJHGSVza2sfQetfdFHtP96X",
+          "amount": "10000",
+          "payment": "8YLysacQmLUFepCAHWq2xG6sKG7PqEVmcnHvy12QYnsZ",
+          "index": 1
+        },
+        {
+          "recipient": "3gpR7ovMWLDsuGqEddnsC75bGMNK6e6PRGfYAbQVuoQ5",
+          "amount": "10000",
+          "payment": "8YLysacQmLUFepCAHWq2xG6sKG7PqEVmcnHvy12QYnsZ",
+          "index": 2
+        },
+        {
+          "recipient": "5UmMkjy58ntkYyXaemggBwPb6QzQYjkGtnf1aE3BgVAt",
+          "amount": "10000",
+          "payment": "8YLysacQmLUFepCAHWq2xG6sKG7PqEVmcnHvy12QYnsZ",
+          "index": 3
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": true,
+      "digest": "d58b5689a6f1838d00ad55629b8c5f138926c8289bf65dcf8f022a53d9e83889",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:51:47.680Z",
+      "type": "case",
+      "mode": "batch",
+      "asset": "SOL",
+      "mint": "9fbmm1Lfs3vQjUUcYsavEkmqgKFXMSqfLMnuAwkTq55H",
+      "recipients": 4,
+      "transactions": 1,
+      "feeLamports": 5000,
+      "receiptRentLamports": 0,
+      "elapsedMs": 41072,
+      "retrySubmitted": 0,
+      "recipientFees": 0,
+      "cycleRentLamports": 1559560,
+      "cycleBytes": 179
+    },
+    {
+      "at": "2026-11-19T10:51:49.105Z",
+      "type": "crash-recovery",
+      "asset": "SOL",
+      "signature": "4jwZXmyKLq595FpMaLG7Co3KQT7ctTpkAsHnsJcTovmwAgMexBrA6Gbh4e4QLPtuRFiUhf8unhHYxNoANoCxSSFb",
+      "alreadyPaid": true
+    },
+    {
+      "at": "2026-11-19T10:52:05.029Z",
+      "type": "replay-rejected",
+      "mode": "batch",
+      "asset": "SOL",
+      "signature": "4cWfJKz8hy3YtmjhVRbw4X87WWfUL7fZ3kx4n1PYhtir8qWPnFKyLTKLPkh84Gmhm4q6vr4ryVxfiQ4iuWTKRcto",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6011
+          }
+        ]
+      },
+      "vaultUnchanged": true,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T10:53:56.861Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "mint": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "cycleId": "f942ccbfe672fd7da6a2fdca95e0624a3902f97ac455b6e513d0bb586694a857",
+      "root": "94c0c31f9aca7e584afeb400cc767fe2a368b822f92b02804167cfdfc966f82c",
+      "signature": "oYomBPvVQtmQftBdEvkQVpBvCKcQkK1tyvhteAaoieVQKkX6CioVmJWr64uFgmJ4xszDAe5j8TCsZLTsTRewzWq",
+      "slot": 523967297,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "9jUUgUvAMCajg47DDBXMjtSqbmQX8QWamJBuihJxGosz",
+          "amount": "10000",
+          "payment": "E1cCWDxSL7ZY74uawNCmHhbBCGZbvBirZLJENRvyBvCw",
+          "index": 0
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "0dae24e05812a8547a55bff425ac53f1d57587586ad16d3795af24a0c69a4796",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:54:00.289Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "mint": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "cycleId": "f942ccbfe672fd7da6a2fdca95e0624a3902f97ac455b6e513d0bb586694a857",
+      "root": "94c0c31f9aca7e584afeb400cc767fe2a368b822f92b02804167cfdfc966f82c",
+      "signature": "5ph27BDNQUsasrTfACYm5PBrbCPBjQxRHPdXk1aSmtwosFabzs1Y9mpmonmkdQvGKLVYoAJz2EtUZdPJWcbXZyyY",
+      "slot": 523967364,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "9Eue7c7Hv7tnybz3PLA72nJHGSVza2sfQetfdFHtP96X",
+          "amount": "10000",
+          "payment": "Aiw1fpBM7ReuaUG2tNAJX6mHTzRg1KG9GQyiLMnxVN4y",
+          "index": 1
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "a77fa17aaf2b5a75d637bc931ffd43975236771da89e6eeb19c39706096eacc4",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:54:03.006Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "mint": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "cycleId": "f942ccbfe672fd7da6a2fdca95e0624a3902f97ac455b6e513d0bb586694a857",
+      "root": "94c0c31f9aca7e584afeb400cc767fe2a368b822f92b02804167cfdfc966f82c",
+      "signature": "2TrfZ7cTWpodt4ZntWFEF9RxuknFVcKaYBnqkEDwLt7etorjZbwmjwV5K2TskoCVGBmjfB6T8GBXQb4rB5pJQHbE",
+      "slot": 523967401,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "3gpR7ovMWLDsuGqEddnsC75bGMNK6e6PRGfYAbQVuoQ5",
+          "amount": "10000",
+          "payment": "7jRBor3NX6CtpGgGdGgGPkYpNKosseEn5zxq93Gw389V",
+          "index": 2
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "ec61eda9b48096bd1e67ba2a657990291896a3e23a77263bbd06c206034ac485",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:54:05.100Z",
+      "type": "payout-proof",
+      "mode": "single",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "mint": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "cycleId": "f942ccbfe672fd7da6a2fdca95e0624a3902f97ac455b6e513d0bb586694a857",
+      "root": "94c0c31f9aca7e584afeb400cc767fe2a368b822f92b02804167cfdfc966f82c",
+      "signature": "2f9X1jaAd2TNGn53DuHTsCJ9q3wEAZtg95yoYSSawvpvfRP2K5YvDFjjhYMd8WfJGL58Jufbgf9ZmekB2UmiQSH4",
+      "slot": 523967447,
+      "feeLamports": 5000,
+      "receiptRentLamports": 1158240,
+      "recipients": [
+        {
+          "recipient": "5UmMkjy58ntkYyXaemggBwPb6QzQYjkGtnf1aE3BgVAt",
+          "amount": "10000",
+          "payment": "F5G4mXf52qvU68wGnPrAhAT2vSUos73ynXLQGGan3t6u",
+          "index": 3
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": false,
+      "digest": "16b6d401ddda2e254148aefd0dce57cdc13f21b3979f4d190389001ccab8f193",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:54:07.219Z",
+      "type": "case",
+      "mode": "single",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "mint": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "recipients": 4,
+      "transactions": 4,
+      "feeLamports": 20000,
+      "receiptRentLamports": 4632960,
+      "elapsedMs": 90015,
+      "retrySubmitted": 0,
+      "recipientFees": 0,
+      "cycleRentLamports": 1534160,
+      "cycleBytes": 174
+    },
+    {
+      "at": "2026-11-19T10:54:32.448Z",
+      "type": "cleanup",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "cycle": "9TCZpMX9wDMhMSjJWYThLyJszJUutke5N8YiCkRQ6A4c",
+      "complete": false,
+      "signature": "2Zuh3BRKjb7AZzZ9iPvic29EKf6eBjKqJ1EodSnZHdweBVXiQgxVWeeDX32W1WqCzGHCiZc9ADnwZN4D4PRyJ5nV",
+      "refundLamports": "4632960",
+      "feeLamports": 5000,
+      "closed": [
+        "E1cCWDxSL7ZY74uawNCmHhbBCGZbvBirZLJENRvyBvCw",
+        "Aiw1fpBM7ReuaUG2tNAJX6mHTzRg1KG9GQyiLMnxVN4y",
+        "7jRBor3NX6CtpGgGdGgGPkYpNKosseEn5zxq93Gw389V",
+        "F5G4mXf52qvU68wGnPrAhAT2vSUos73ynXLQGGan3t6u"
+      ],
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T10:54:45.519Z",
+      "type": "archived-proof",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "signature": "oYomBPvVQtmQftBdEvkQVpBvCKcQkK1tyvhteAaoieVQKkX6CioVmJWr64uFgmJ4xszDAe5j8TCsZLTsTRewzWq",
+      "reclaimed": true
+    },
+    {
+      "at": "2026-11-19T10:54:53.989Z",
+      "type": "replay-rejected",
+      "mode": "single",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "signature": "VrHrJDAic8veFmNvZBebgbTnWLxcnDQQURSyeTUnVLfCqEXkK68W5Z9LnvYmyA7GRwNCgVrWLX1piGe27BTePdV",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6025
+          }
+        ]
+      },
+      "vaultUnchanged": true,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T10:56:09.290Z",
+      "type": "payout-proof",
+      "mode": "batch",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "mint": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "cycleId": "17005172831820caa34de968736107f8d4330a17e970f6041b48302abdcff93d",
+      "root": "8c350d793b7049714dd5c23b08248cd098e3fe16c7869dcdc9f3a3b56b778359",
+      "signature": "3dAyxP6CxgxWUTp6yzk7LQtLTmdB1NvPXBs55Cfd8VUcRUjo6Tvhi5LDWybmEzvj36tSnFUbzkuagEo9F4U3c6YK",
+      "slot": 523967980,
+      "feeLamports": 5000,
+      "receiptRentLamports": 0,
+      "recipients": [
+        {
+          "recipient": "9jUUgUvAMCajg47DDBXMjtSqbmQX8QWamJBuihJxGosz",
+          "amount": "10000",
+          "payment": "4RreuDWJ1TT7omHc85dRNDHorXiY91K4DjPtXwpVLw4o",
+          "index": 0
+        },
+        {
+          "recipient": "9Eue7c7Hv7tnybz3PLA72nJHGSVza2sfQetfdFHtP96X",
+          "amount": "10000",
+          "payment": "4RreuDWJ1TT7omHc85dRNDHorXiY91K4DjPtXwpVLw4o",
+          "index": 1
+        },
+        {
+          "recipient": "3gpR7ovMWLDsuGqEddnsC75bGMNK6e6PRGfYAbQVuoQ5",
+          "amount": "10000",
+          "payment": "4RreuDWJ1TT7omHc85dRNDHorXiY91K4DjPtXwpVLw4o",
+          "index": 2
+        },
+        {
+          "recipient": "5UmMkjy58ntkYyXaemggBwPb6QzQYjkGtnf1aE3BgVAt",
+          "amount": "10000",
+          "payment": "4RreuDWJ1TT7omHc85dRNDHorXiY91K4DjPtXwpVLw4o",
+          "index": 3
+        }
+      ],
+      "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "requiredSigners": 1,
+      "bitmap": true,
+      "digest": "db8e81d109bebcf2b36197165cf2ed484f5742c6458c110da64c7972acd20e86",
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "at": "2026-11-19T10:56:14.835Z",
+      "type": "case",
+      "mode": "batch",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "mint": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "recipients": 4,
+      "transactions": 1,
+      "feeLamports": 5000,
+      "receiptRentLamports": 0,
+      "elapsedMs": 79660,
+      "retrySubmitted": 0,
+      "recipientFees": 0,
+      "cycleRentLamports": 1559560,
+      "cycleBytes": 179
+    },
+    {
+      "at": "2026-11-19T10:56:18.306Z",
+      "type": "crash-recovery",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "signature": "3dAyxP6CxgxWUTp6yzk7LQtLTmdB1NvPXBs55Cfd8VUcRUjo6Tvhi5LDWybmEzvj36tSnFUbzkuagEo9F4U3c6YK",
+      "alreadyPaid": true
+    },
+    {
+      "at": "2026-11-19T10:56:33.024Z",
+      "type": "replay-rejected",
+      "mode": "batch",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "signature": "iakYwVeb3kqbNfPCPossgmj7GYtaa7rCNKu38XibwreRRywR6HxHTijWMik9Q9NsPdsqPJztb7RgL3xBEmREu2q",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6011
+          }
+        ]
+      },
+      "vaultUnchanged": true,
+      "finalized": true
+    },
+    {
+      "at": "2026-11-19T10:56:33.024Z",
+      "type": "fee-savings",
+      "asset": "SOL",
+      "singleFeeLamports": 20000,
+      "batchFeeLamports": 5000,
+      "savedLamports": 15000,
+      "savedPercent": 75,
+      "legacyReceiptRent": 4632960,
+      "bitmapReceiptRent": 0,
+      "extraCycleRent": 25400,
+      "netRentSaved": 4607560,
+      "rentSavedPercent": 99.45175438596492
+    },
+    {
+      "at": "2026-11-19T10:56:33.024Z",
+      "type": "fee-savings",
+      "asset": "9RLL6GKQEQSDjT9J5Z2WLHDAxFMgpGD11y6YcTHQ5aWn",
+      "singleFeeLamports": 20000,
+      "batchFeeLamports": 5000,
+      "savedLamports": 15000,
+      "savedPercent": 75,
+      "legacyReceiptRent": 4632960,
+      "bitmapReceiptRent": 0,
+      "extraCycleRent": 25400,
+      "netRentSaved": 4607560,
+      "rentSavedPercent": 99.45175438596492
+    },
+    {
+      "at": "2026-11-19T10:56:41.608Z",
+      "type": "refund",
+      "wallet": "9jUUgUvAMCajg47DDBXMjtSqbmQX8QWamJBuihJxGosz",
+      "signature": "wpA424cko4MPsjwZGVSUSrJE8yVwYpUzJiSss9Q4d2jVSZuiS85EVEV6Au18zukes3qZhaWt6uoF6kBUhFipKni",
+      "balance": 0
+    },
+    {
+      "at": "2026-11-19T10:56:50.098Z",
+      "type": "refund",
+      "wallet": "9Eue7c7Hv7tnybz3PLA72nJHGSVza2sfQetfdFHtP96X",
+      "signature": "34GGbhNWSvVNzW6M7udmWANW5esMuWboASG8y7kP6t2StY1fSbaVEebwHLXx6xqdCqgJt29fNmjgp3C9v3SCyzqT",
+      "balance": 0
+    },
+    {
+      "at": "2026-11-19T10:56:58.057Z",
+      "type": "refund",
+      "wallet": "3gpR7ovMWLDsuGqEddnsC75bGMNK6e6PRGfYAbQVuoQ5",
+      "signature": "4JABEeeY6nw9BVQ4NAXAJccj9WiaHvcq49TieW4pqLUYZLbmUtfnmhZRdUWGV4afB7BwimkUR4fLpcmGRGunbxgN",
+      "balance": 0
+    },
+    {
+      "at": "2026-11-19T10:57:07.658Z",
+      "type": "refund",
+      "wallet": "5UmMkjy58ntkYyXaemggBwPb6QzQYjkGtnf1aE3BgVAt",
+      "signature": "2ozda8KpnF8rjb4nsTxJtN5DsRctBSbfD44fe74JEykAnJhUpPoAuEfyCzAX4ryghkMvsF4DCvF6v1o4oq54Tisu",
+      "balance": 0
+    },
+    {
+      "at": "2026-11-19T10:57:14.572Z",
+      "type": "refund",
+      "wallet": "GfA2gKAgW8tvfeSCZ5TpkZb9X84QFzpAZei4srKzM1uc",
+      "signature": "3QtFcSveaugF8j4KJQn5etnZpMy94oC9QuHm8hUkQj5xwAp7jCvfQFhW1QXBL2nBrYHvCSY7JekwqMK92a5dZFxY",
+      "balance": 0
+    }
+  ],
+  "independent": [
+    {
+      "type": "independent-payout",
+      "signature": "3SPFUVNyr5wpTYNKTNSJVVamkZQffZ3MktcywmnWLkX7TWydUb3icSq8GqVnu49mbV6pfL2byNkUQg6J2c93s1yo",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 456,
+      "computeUnits": 28879,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "5RquoirKX1bg6uugcgcGMWYHYZ48T8cmi6kLVREyknUgudieSHgRkFtyPKW7EXntxMNYonV5LYpxoAFLQojDHDSg",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 456,
+      "computeUnits": 28871,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "2c7Lqr6wy31C2BUYNtucyjdJSDqZrHaNSt7SJtQyRbkX2mDqhRGcG6keq9SqYXn4vDuNfhdCEU6zXqBs7Gi3EeL2",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 456,
+      "computeUnits": 30363,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "5m2MhjBatNnkLn3NNkYLij2x47Ahrp81XBGmFw3tR4Zqi7sE4nkvEt1Mwp9MR1jS8YV6m48gMMHxD5UnFZpfGJst",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 456,
+      "computeUnits": 28871,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "4jwZXmyKLq595FpMaLG7Co3KQT7ctTpkAsHnsJcTovmwAgMexBrA6Gbh4e4QLPtuRFiUhf8unhHYxNoANoCxSSFb",
+      "bitmap": true,
+      "recipients": 4,
+      "feeLamports": 5000,
+      "wireBytes": 850,
+      "computeUnits": 80714,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "oYomBPvVQtmQftBdEvkQVpBvCKcQkK1tyvhteAaoieVQKkX6CioVmJWr64uFgmJ4xszDAe5j8TCsZLTsTRewzWq",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 630,
+      "computeUnits": 64576,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "5ph27BDNQUsasrTfACYm5PBrbCPBjQxRHPdXk1aSmtwosFabzs1Y9mpmonmkdQvGKLVYoAJz2EtUZdPJWcbXZyyY",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 630,
+      "computeUnits": 66068,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "2TrfZ7cTWpodt4ZntWFEF9RxuknFVcKaYBnqkEDwLt7etorjZbwmjwV5K2TskoCVGBmjfB6T8GBXQb4rB5pJQHbE",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 630,
+      "computeUnits": 66084,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "2f9X1jaAd2TNGn53DuHTsCJ9q3wEAZtg95yoYSSawvpvfRP2K5YvDFjjhYMd8WfJGL58Jufbgf9ZmekB2UmiQSH4",
+      "bitmap": false,
+      "recipients": 1,
+      "feeLamports": 5000,
+      "wireBytes": 630,
+      "computeUnits": 66076,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-payout",
+      "signature": "3dAyxP6CxgxWUTp6yzk7LQtLTmdB1NvPXBs55Cfd8VUcRUjo6Tvhi5LDWybmEzvj36tSnFUbzkuagEo9F4U3c6YK",
+      "bitmap": true,
+      "recipients": 4,
+      "feeLamports": 5000,
+      "wireBytes": 1162,
+      "computeUnits": 190214,
+      "finalized": true,
+      "balanceDeltaVerified": true
+    },
+    {
+      "type": "independent-cleanup",
+      "signature": "rGdYgwfh77fWp3URbc7ErjDF26i6ErLsHkP4VzrqXCHvPDuDpFHAJ7oezYLMJRYbSVUv5Ntcasbdkph4WNsHndK",
+      "refundLamports": "4632960",
+      "feeLamports": 5000,
+      "retainedCycle": true,
+      "finalized": true
+    },
+    {
+      "type": "independent-cleanup",
+      "signature": "2Zuh3BRKjb7AZzZ9iPvic29EKf6eBjKqJ1EodSnZHdweBVXiQgxVWeeDX32W1WqCzGHCiZc9ADnwZN4D4PRyJ5nV",
+      "refundLamports": "4632960",
+      "feeLamports": 5000,
+      "retainedCycle": true,
+      "finalized": true
+    },
+    {
+      "type": "independent-replay-rejection",
+      "signature": "4eTyfaP4sfPz2wvkrSLmxjkabCHzLzcpdhU6ocxPcYBfWdyvwGSxSZ1wCANoioKuQGGQdonBwbxTMHKxr5yWSVDd",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6025
+          }
+        ]
+      },
+      "feeLamports": 5000,
+      "allNonFeeBalancesUnchanged": true,
+      "finalized": true
+    },
+    {
+      "type": "independent-replay-rejection",
+      "signature": "4cWfJKz8hy3YtmjhVRbw4X87WWfUL7fZ3kx4n1PYhtir8qWPnFKyLTKLPkh84Gmhm4q6vr4ryVxfiQ4iuWTKRcto",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6011
+          }
+        ]
+      },
+      "feeLamports": 5000,
+      "allNonFeeBalancesUnchanged": true,
+      "finalized": true
+    },
+    {
+      "type": "independent-replay-rejection",
+      "signature": "VrHrJDAic8veFmNvZBebgbTnWLxcnDQQURSyeTUnVLfCqEXkK68W5Z9LnvYmyA7GRwNCgVrWLX1piGe27BTePdV",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6025
+          }
+        ]
+      },
+      "feeLamports": 5000,
+      "allNonFeeBalancesUnchanged": true,
+      "finalized": true
+    },
+    {
+      "type": "independent-replay-rejection",
+      "signature": "iakYwVeb3kqbNfPCPossgmj7GYtaa7rCNKu38XibwreRRywR6HxHTijWMik9Q9NsPdsqPJztb7RgL3xBEmREu2q",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6011
+          }
+        ]
+      },
+      "feeLamports": 5000,
+      "allNonFeeBalancesUnchanged": true,
+      "finalized": true
+    }
+  ],
+  "signer": {
+    "at": "2026-11-19T10:57:07.128Z",
+    "build": "859fc5898cdfc9fd8878e71ce05735eb9c1d2808",
+    "cluster": "devnet",
+    "enforcement": "all",
+    "rows": [
+      {
+        "at": "2026-11-19T10:49:41.091Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "1163240",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "58f89c3c730a589dd33deb727f05019042c915e61acba2d8da169f4f32073557"
+      },
+      {
+        "at": "2026-11-19T10:49:50.566Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "1163240",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "74e49002926ba78a1497fe2cd38a07c90e6b3aa32d219445bf485e91de9be681"
+      },
+      {
+        "at": "2026-11-19T10:50:07.134Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "1163240",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "d0f3f69d373cf23fd8baaf12efcaffc528717987c904ca132ff9bd925260321e"
+      },
+      {
+        "at": "2026-11-19T10:50:31.158Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "1163240",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "9624e5fac1f6b6c6d4039cb2602bdf86405c92bcb00c44265bdd009d3a3e6306"
+      },
+      {
+        "at": "2026-11-19T10:51:34.626Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "ComputeBudget111111111111111111111111111111",
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "5000",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "d58b5689a6f1838d00ad55629b8c5f138926c8289bf65dcf8f022a53d9e83889"
+      },
+      {
+        "at": "2026-11-19T10:53:10.553Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "2651680",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "0dae24e05812a8547a55bff425ac53f1d57587586ad16d3795af24a0c69a4796"
+      },
+      {
+        "at": "2026-11-19T10:53:27.041Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "2651680",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "a77fa17aaf2b5a75d637bc931ffd43975236771da89e6eeb19c39706096eacc4"
+      },
+      {
+        "at": "2026-11-19T10:53:35.599Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "2651680",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "ec61eda9b48096bd1e67ba2a657990291896a3e23a77263bbd06c206034ac485"
+      },
+      {
+        "at": "2026-11-19T10:53:46.832Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "2651680",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "16b6d401ddda2e254148aefd0dce57cdc13f21b3979f4d190389001ccab8f193"
+      },
+      {
+        "at": "2026-11-19T10:55:55.058Z",
+        "role": "authority",
+        "signer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "programs": [
+          "ComputeBudget111111111111111111111111111111",
+          "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm"
+        ],
+        "outflowLamports": "5000",
+        "simulated": true,
+        "violations": [],
+        "decision": "signed",
+        "digest": "db8e81d109bebcf2b36197165cf2ed484f5742c6458c110da64c7972acd20e86"
+      }
+    ]
+  },
+  "preliminaryAttempt": {
+    "outcome": "Optional evidence RPC returned 429 before vault setup; all five wallets refunded to zero",
+    "receipts": [
+      {
+        "at": "2026-11-19T10:37:08.771Z",
+        "type": "fixture-funded",
+        "signature": "4Ysn1qcx9VLokBtha51KmJNxtSzwgbdTxobaAvMq9VQzz2FeCyT246KhMp1mALhmT6XTkbGtAfKR1tmkq8DM1GBh",
+        "lamports": 34000000,
+        "wallets": [
+          "4yjKfWbEJyLU9PbKUmTjC9N66T5GP8bt7TZbn3J7Npp7",
+          "6wsx8Jkg465C4weCTAvS9robwtixAtVu3ufyQtofkqqz",
+          "Dny68PG6yzKRxUHScx2VwjBrMmt3KojsDhVBjCfRbP76",
+          "7ipXaNHU9P2g4kTGb6yuUxeJLiX3Tm3tzs3gfCyRCp7m",
+          "6sn5rzensYWeCMmTKPpbPkbedPRjtS63Gg1xDhFmkG1w"
+        ],
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb"
+      },
+      {
+        "at": "2026-11-19T10:37:11.186Z",
+        "type": "refund",
+        "wallet": "6wsx8Jkg465C4weCTAvS9robwtixAtVu3ufyQtofkqqz",
+        "signature": "23dy5kA4hudxxHqjj1Br1QfWPgmQeBwMzdHdyfBrrxbkAe1dXMUKsKS2EP1N6AdeUpkJSpNC7k3ueLEtPt6MzZC1",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:37:12.953Z",
+        "type": "refund",
+        "wallet": "Dny68PG6yzKRxUHScx2VwjBrMmt3KojsDhVBjCfRbP76",
+        "signature": "3GmCZ1q2D2sZuLuykhKMicZ8RNxSzNpZSaUqcuhCCETbfoiodAy1DaiGnHEBcbFa9GYuuk69xPD4TW5qToPmx6SN",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:37:14.979Z",
+        "type": "refund",
+        "wallet": "7ipXaNHU9P2g4kTGb6yuUxeJLiX3Tm3tzs3gfCyRCp7m",
+        "signature": "2jSa8RTyxkP2er95ZRzSDkuwCZcVFiusHq98PpwQSoC7DdjUbC5ky6SHvcovzTARRDc64VBzE9fr8fjBtYCr8rbb",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:37:18.035Z",
+        "type": "refund",
+        "wallet": "6sn5rzensYWeCMmTKPpbPkbedPRjtS63Gg1xDhFmkG1w",
+        "signature": "hp2TGdEbc2LyTRzW7LAfDYHzCaknp9tb3XavqYouU3R5qzWL4PnCGTyGwXWbEB4VWGvomLywGLHsVqYnZXmay9p",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:37:24.177Z",
+        "type": "refund",
+        "wallet": "4yjKfWbEJyLU9PbKUmTjC9N66T5GP8bt7TZbn3J7Npp7",
+        "signature": "5eVqC4ioHVRwkYYphbPbfbcHMUCLYYsdSJXngzUNHJ57bYP8ToQ3tSdPTxtmNcxigH1MLTNrih58aqxUmmgMHoGA",
+        "balance": 0
+      }
+    ]
+  },
+  "preliminaryPrimaryAttempt": {
+    "outcome": "SOL legacy and bitmap payouts completed; confirmation subscription threw the expected replay error before the harness could record it. Harness corrected to inspect finalized failed transaction. All five wallets refunded to zero.",
+    "receipts": [
+      {
+        "at": "2026-11-19T10:37:58.837Z",
+        "type": "fixture-funded",
+        "signature": "5qZ3uFD9LiEfvJvrqWENoPnUS7iDc2GLdUnmqFUKf69jywm3Ajq9jSP9Cq4gpnTnV2pTswj3dtXYFdeYNjSxYK3Z",
+        "lamports": 34000000,
+        "wallets": [
+          "FVoBJgsoznrzQAzgt68ity54JY7Nc7EHDpf19mvfEZ7E",
+          "5DUppP1iQrKTJxEDTbMFC6oC6BbDDHzoor6y7NrZgQWU",
+          "9pvxLCdenXMsxXu8gemeeDrbrEYZ4xmkq5YvT6WUnzFR",
+          "7Lu1q5X33VKxLoDAg2rBi61iuDjPncVhRga3gcGLnFez",
+          "4kpxmx7cncoXBqqBY7WkC47GATzXko3NXBb37DnvXhGR"
+        ],
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb"
+      },
+      {
+        "at": "2026-11-19T10:40:00.266Z",
+        "type": "payout-proof",
+        "mode": "single",
+        "asset": "SOL",
+        "mint": "9vt82Wgj7u5EwnqpWv1RdfYBDo1Ln1ZGMhnAtpUDtnfC",
+        "cycleId": "12b1bdc358d2fe3b8584f9ea343d65eb57b56b41f5fd034aa2b7d31f7fa057c0",
+        "root": "a93b707d63a771704ae9783879c174801646acf3aa7ca2845a1ce1b2eac0f77a",
+        "signature": "5TWCaX55ZvRUPf8JqqZ7DkbnSjRNCQ2eHMSo9Wj8GB9QCZSRX3JuGMW3WgJ264Y26DrpQGWVJ2PbrUEiZDyz2NFq",
+        "slot": 523963779,
+        "feeLamports": 5000,
+        "receiptRentLamports": 1158240,
+        "recipients": [
+          {
+            "recipient": "5DUppP1iQrKTJxEDTbMFC6oC6BbDDHzoor6y7NrZgQWU",
+            "amount": "10000",
+            "payment": "8XpSyTfJEveePpoJnDQ95vJxYmgkPp5Wgyh8A1bBkoAK",
+            "index": 0
+          }
+        ],
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "requiredSigners": 1,
+        "bitmap": false,
+        "digest": "7961c28ee5642a8327a1063257a505de338dd52530d92cb5db40dba91abdf4b0",
+        "finalized": true,
+        "balanceDeltaVerified": true
+      },
+      {
+        "at": "2026-11-19T10:40:03.433Z",
+        "type": "payout-proof",
+        "mode": "single",
+        "asset": "SOL",
+        "mint": "9vt82Wgj7u5EwnqpWv1RdfYBDo1Ln1ZGMhnAtpUDtnfC",
+        "cycleId": "12b1bdc358d2fe3b8584f9ea343d65eb57b56b41f5fd034aa2b7d31f7fa057c0",
+        "root": "a93b707d63a771704ae9783879c174801646acf3aa7ca2845a1ce1b2eac0f77a",
+        "signature": "MoWs2eT5GgbS6aLqJqGXqMGMai7dyEZDyF3V6fBxn83qMYn7bhyzPMcGj1anVFr17Z3FMZocJfWzRvHgsSySG4u",
+        "slot": 523963864,
+        "feeLamports": 5000,
+        "receiptRentLamports": 1158240,
+        "recipients": [
+          {
+            "recipient": "9pvxLCdenXMsxXu8gemeeDrbrEYZ4xmkq5YvT6WUnzFR",
+            "amount": "10000",
+            "payment": "53dgj6Ed4jNhVWet12ppoJxsfPHsmsS763aEPyfztnGL",
+            "index": 1
+          }
+        ],
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "requiredSigners": 1,
+        "bitmap": false,
+        "digest": "7cc489142c28fe9bae0d3a50a3e193b57dc17134b14b19008a2618274de6eba9",
+        "finalized": true,
+        "balanceDeltaVerified": true
+      },
+      {
+        "at": "2026-11-19T10:40:08.081Z",
+        "type": "payout-proof",
+        "mode": "single",
+        "asset": "SOL",
+        "mint": "9vt82Wgj7u5EwnqpWv1RdfYBDo1Ln1ZGMhnAtpUDtnfC",
+        "cycleId": "12b1bdc358d2fe3b8584f9ea343d65eb57b56b41f5fd034aa2b7d31f7fa057c0",
+        "root": "a93b707d63a771704ae9783879c174801646acf3aa7ca2845a1ce1b2eac0f77a",
+        "signature": "oCPQdezPPrGzFXFVsGZWDQg3SzQ7T1NfTvVzfJJPPCiuyzyWP11hQ9nQhxTJFmYLPzHRXY7fRSfNU9tzA9NcEtS",
+        "slot": 523963898,
+        "feeLamports": 5000,
+        "receiptRentLamports": 1158240,
+        "recipients": [
+          {
+            "recipient": "7Lu1q5X33VKxLoDAg2rBi61iuDjPncVhRga3gcGLnFez",
+            "amount": "10000",
+            "payment": "8NmHMHXL2CdacUpQ6F2ip72cpsK8m8i9SNcgiaKNPr2f",
+            "index": 2
+          }
+        ],
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "requiredSigners": 1,
+        "bitmap": false,
+        "digest": "c6f8ebd15dbd5f55bc231f21ab58b814a2b245587290b952a6e6810cc4b2bd3d",
+        "finalized": true,
+        "balanceDeltaVerified": true
+      },
+      {
+        "at": "2026-11-19T10:40:10.500Z",
+        "type": "payout-proof",
+        "mode": "single",
+        "asset": "SOL",
+        "mint": "9vt82Wgj7u5EwnqpWv1RdfYBDo1Ln1ZGMhnAtpUDtnfC",
+        "cycleId": "12b1bdc358d2fe3b8584f9ea343d65eb57b56b41f5fd034aa2b7d31f7fa057c0",
+        "root": "a93b707d63a771704ae9783879c174801646acf3aa7ca2845a1ce1b2eac0f77a",
+        "signature": "4DeTzms1kWt75tmgneR4E7ZyKCr32iJx4xxPN3xB7cPqdMZkgSt1p2hc7KrvvDgvLUw4SRaePPVGcVLMiG21BRQ1",
+        "slot": 523963954,
+        "feeLamports": 5000,
+        "receiptRentLamports": 1158240,
+        "recipients": [
+          {
+            "recipient": "4kpxmx7cncoXBqqBY7WkC47GATzXko3NXBb37DnvXhGR",
+            "amount": "10000",
+            "payment": "4JpWyURuhukLyL5iF5T6JaPuVbdc1c8J6py79mxG2roZ",
+            "index": 3
+          }
+        ],
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "requiredSigners": 1,
+        "bitmap": false,
+        "digest": "f47665250addc18d62a1075d52e8cfeec63d559278e1ad687f6426b9ea9c5799",
+        "finalized": true,
+        "balanceDeltaVerified": true
+      },
+      {
+        "at": "2026-11-19T10:40:11.387Z",
+        "type": "case",
+        "mode": "single",
+        "asset": "SOL",
+        "mint": "9vt82Wgj7u5EwnqpWv1RdfYBDo1Ln1ZGMhnAtpUDtnfC",
+        "recipients": 4,
+        "transactions": 4,
+        "feeLamports": 20000,
+        "receiptRentLamports": 4632960,
+        "elapsedMs": 110156,
+        "retrySubmitted": 0,
+        "recipientFees": 0,
+        "cycleRentLamports": 1534160,
+        "cycleBytes": 174
+      },
+      {
+        "at": "2026-11-19T10:40:24.144Z",
+        "type": "cleanup",
+        "asset": "SOL",
+        "cycle": "5QgUSmQ6qCJTwhvPFKexChUD13eZkpoPeacGoRyR4tR8",
+        "complete": false,
+        "signature": "5LRpHFeknGQp4m6k66xM6i7iSdMewp4Vwfb7iHNuxE6DgAG1zLLxLpj3H4WJZ7i5FBPvRo6gx1hLaPEwqGthaWMV",
+        "refundLamports": "4632960",
+        "feeLamports": 5000,
+        "closed": [
+          "8XpSyTfJEveePpoJnDQ95vJxYmgkPp5Wgyh8A1bBkoAK",
+          "53dgj6Ed4jNhVWet12ppoJxsfPHsmsS763aEPyfztnGL",
+          "8NmHMHXL2CdacUpQ6F2ip72cpsK8m8i9SNcgiaKNPr2f",
+          "4JpWyURuhukLyL5iF5T6JaPuVbdc1c8J6py79mxG2roZ"
+        ],
+        "finalized": true
+      },
+      {
+        "at": "2026-11-19T10:40:34.813Z",
+        "type": "archived-proof",
+        "asset": "SOL",
+        "signature": "5TWCaX55ZvRUPf8JqqZ7DkbnSjRNCQ2eHMSo9Wj8GB9QCZSRX3JuGMW3WgJ264Y26DrpQGWVJ2PbrUEiZDyz2NFq",
+        "reclaimed": true
+      },
+      {
+        "at": "2026-11-19T10:40:37.420Z",
+        "type": "replay-rejected",
+        "mode": "single",
+        "asset": "SOL",
+        "signature": "2qyFW9ubJPYnzMHPU7hLGnQ1RePoAxiSxkjyvSwdA81WvbZfVcJRDiJTTD8cWgFb9zv9Zb3ooKKo7X6c3b2j911E",
+        "error": {
+          "InstructionError": [
+            0,
+            {
+              "Custom": 6025
+            }
+          ]
+        },
+        "vaultUnchanged": true,
+        "finalized": true
+      },
+      {
+        "at": "2026-11-19T10:41:20.311Z",
+        "type": "payout-proof",
+        "mode": "batch",
+        "asset": "SOL",
+        "mint": "9vt82Wgj7u5EwnqpWv1RdfYBDo1Ln1ZGMhnAtpUDtnfC",
+        "cycleId": "fbe4e8aaea26d1649001c6c9ee56796c5eca59e643ad9f5c3aa280a1a784311e",
+        "root": "fcd61b2944cb6ba9b5d873f58fc048bddaa44f1cca9c098a4433923a6c278a0d",
+        "signature": "4YaLGQyiKjTqEMHEGED28x8bsWoW1hqXxo8QginBy3y15JuFdvruLq8Mz6bviRV9zJKMnACyCUxNc1kfzQw5dBbB",
+        "slot": 523964261,
+        "feeLamports": 5000,
+        "receiptRentLamports": 0,
+        "recipients": [
+          {
+            "recipient": "5DUppP1iQrKTJxEDTbMFC6oC6BbDDHzoor6y7NrZgQWU",
+            "amount": "10000",
+            "payment": "135w1UBQhp6wTTTdWqG5mYWnnLTx7PTu3hpY9X2iNnfn",
+            "index": 0
+          },
+          {
+            "recipient": "9pvxLCdenXMsxXu8gemeeDrbrEYZ4xmkq5YvT6WUnzFR",
+            "amount": "10000",
+            "payment": "135w1UBQhp6wTTTdWqG5mYWnnLTx7PTu3hpY9X2iNnfn",
+            "index": 1
+          },
+          {
+            "recipient": "7Lu1q5X33VKxLoDAg2rBi61iuDjPncVhRga3gcGLnFez",
+            "amount": "10000",
+            "payment": "135w1UBQhp6wTTTdWqG5mYWnnLTx7PTu3hpY9X2iNnfn",
+            "index": 2
+          },
+          {
+            "recipient": "4kpxmx7cncoXBqqBY7WkC47GATzXko3NXBb37DnvXhGR",
+            "amount": "10000",
+            "payment": "135w1UBQhp6wTTTdWqG5mYWnnLTx7PTu3hpY9X2iNnfn",
+            "index": 3
+          }
+        ],
+        "feePayer": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "requiredSigners": 1,
+        "bitmap": true,
+        "digest": "0aa31378bac6310b4c1e27012b242396c9fe7883fd2499cc344421e08d77bd48",
+        "finalized": true,
+        "balanceDeltaVerified": true
+      },
+      {
+        "at": "2026-11-19T10:41:24.645Z",
+        "type": "case",
+        "mode": "batch",
+        "asset": "SOL",
+        "mint": "9vt82Wgj7u5EwnqpWv1RdfYBDo1Ln1ZGMhnAtpUDtnfC",
+        "recipients": 4,
+        "transactions": 1,
+        "feeLamports": 5000,
+        "receiptRentLamports": 0,
+        "elapsedMs": 46481,
+        "retrySubmitted": 0,
+        "recipientFees": 0,
+        "cycleRentLamports": 1559560,
+        "cycleBytes": 179
+      },
+      {
+        "at": "2026-11-19T10:41:28.408Z",
+        "type": "crash-recovery",
+        "asset": "SOL",
+        "signature": "4YaLGQyiKjTqEMHEGED28x8bsWoW1hqXxo8QginBy3y15JuFdvruLq8Mz6bviRV9zJKMnACyCUxNc1kfzQw5dBbB",
+        "alreadyPaid": true
+      },
+      {
+        "at": "2026-11-19T10:41:37.687Z",
+        "type": "refund",
+        "wallet": "5DUppP1iQrKTJxEDTbMFC6oC6BbDDHzoor6y7NrZgQWU",
+        "signature": "HrfDNitM3XXqbtUZMuLD3gBjwXMcWYD9hANxr8U8XcZWvGUJRcSayrk9EuMhCFKpA4esSgYkiLhoYDU9DHJyvWv",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:41:40.995Z",
+        "type": "refund",
+        "wallet": "9pvxLCdenXMsxXu8gemeeDrbrEYZ4xmkq5YvT6WUnzFR",
+        "signature": "5QcExg7qCdbuU4SiZgpcN1sWM34oTawiActjo6EFUaHvt4DTraGTqesQ5FC8fhhj6np4aNJn6te9kHHyp4jCRHuP",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:41:43.864Z",
+        "type": "refund",
+        "wallet": "7Lu1q5X33VKxLoDAg2rBi61iuDjPncVhRga3gcGLnFez",
+        "signature": "qCFfRwW8YpaemoL9zdk6Q6wAX75PRYGhCDh5r65E1PLrJTu5cADyQqv9ijgyetydHa7UhriT9xTq4Hdt6gjXVfG",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:41:46.845Z",
+        "type": "refund",
+        "wallet": "4kpxmx7cncoXBqqBY7WkC47GATzXko3NXBb37DnvXhGR",
+        "signature": "2sHikN4Q6oKdwPe3EKJNyZn2XyYSa93oiRk9a4yzaGP22G71pHxYE1zFqN2wwmNrRMYmxjnHt67k1Hv7SRPkeaax",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:41:50.029Z",
+        "type": "refund",
+        "wallet": "FVoBJgsoznrzQAzgt68ity54JY7Nc7EHDpf19mvfEZ7E",
+        "signature": "3a5ombbbtKzvQ9hqZdLEtvVho54ox6gmTTMfJEZHfzGxrLFixuaF8BAMCoJcdBQzk8YY49LsUELQYSsW1pttrVxg",
+        "balance": 0
+      }
+    ]
+  },
+  "concurrentDeploymentInterruption": {
+    "at": "2026-11-19T10:46:06.853Z",
+    "outcome": "Container replaced by concurrent deployment; harness terminated with exit 137. Ephemeral keys were in memory and are no longer available.",
+    "wallets": [
+      {
+        "wallet": "FKE1jfKP5NGpD2vwHmx8rdVV3fQacHgyPMWFHfhKWzbB",
+        "balanceLamports": 30000000
+      },
+      {
+        "wallet": "BmgajKTdk9NhkLGYpkyjbVMPVDBgS9a4yWpoLfwZiq6f",
+        "balanceLamports": 1010000
+      },
+      {
+        "wallet": "A5Ltqi1DUTPBYxPGN6yaqj7gXjQxGH1vNqy8dUtAqAzi",
+        "balanceLamports": 1000000
+      },
+      {
+        "wallet": "2NGkAUppBR1Rb5omC2bgETkJ9dwp6pCVZLWc5wfKcRL8",
+        "balanceLamports": 1000000
+      },
+      {
+        "wallet": "8FNiaGb8FG5K4hDLxfrtPfhSaK7VD2mgxWP5mwwzsWks",
+        "balanceLamports": 1000000
+      }
+    ],
+    "fundingSignature": "2euoabABGyTy87xh7NwK2BKBSbGrJ8i7CfajE1JFvwNtdRAoGajNnCbnJnyYdKx9zmLuBM6dNH6CgzxkcmWCS2av",
+    "remainingLamports": 34010000,
+    "receipts": [
+      {
+        "at": "2026-11-19T10:42:20.701Z",
+        "type": "fixture-funded",
+        "signature": "2euoabABGyTy87xh7NwK2BKBSbGrJ8i7CfajE1JFvwNtdRAoGajNnCbnJnyYdKx9zmLuBM6dNH6CgzxkcmWCS2av",
+        "lamports": 34000000,
+        "wallets": [
+          "FKE1jfKP5NGpD2vwHmx8rdVV3fQacHgyPMWFHfhKWzbB",
+          "BmgajKTdk9NhkLGYpkyjbVMPVDBgS9a4yWpoLfwZiq6f",
+          "A5Ltqi1DUTPBYxPGN6yaqj7gXjQxGH1vNqy8dUtAqAzi",
+          "2NGkAUppBR1Rb5omC2bgETkJ9dwp6pCVZLWc5wfKcRL8",
+          "8FNiaGb8FG5K4hDLxfrtPfhSaK7VD2mgxWP5mwwzsWks"
+        ],
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb"
+      }
+    ]
+  },
+  "serviceRestartAttempt": {
+    "outcome": "Isolated harness preserved its wallets during signer restart; signer DNS was temporarily unavailable, and all five wallets were refunded.",
+    "receipts": [
+      {
+        "at": "2026-11-19T10:46:40.829Z",
+        "type": "fixture-funded",
+        "signature": "5EwNeisLudyAPzqB8hx1XQE4NWWSkigGAawBEmW4pqTtoTwd8NERabFfnJRDWAifaPJdGEumFsut46aqNiA6gEZn",
+        "lamports": 34000000,
+        "wallets": [
+          "2nz4gncaB1ZVDTuPzBsb2eqeMA9R3sYaFd9WHCDCqQSW",
+          "G3yGrAbjfMxB7xBgGTcZvJs8HFo8BzGsMotxWG1xmrfN",
+          "HZAUnjp1bRFNtrA1kN7CTwjrnPGSNcEzkjj3x6xZs9ah",
+          "HWJffVfmL4Nf7UCpGQrtzRWatiDGCYDjoymdYTQxoLzr",
+          "37rc4WtAaZaxup5TXoVy8uSz3oFpKYUnokjUAEucWYAJ"
+        ],
+        "build": "3a910ab01a2cc583557a8c1822cd594b4fc4b4eb"
+      },
+      {
+        "at": "2026-11-19T10:46:49.031Z",
+        "type": "refund",
+        "wallet": "G3yGrAbjfMxB7xBgGTcZvJs8HFo8BzGsMotxWG1xmrfN",
+        "signature": "5b2oqtfeFTPTfdv6tLDw7oSuFhKvdvreiAZHiCTYWN2MMdUUWE3f9FqCvKTBqfBEgxZLWSFNZo1H1TLpt6gs893N",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:46:51.188Z",
+        "type": "refund",
+        "wallet": "HZAUnjp1bRFNtrA1kN7CTwjrnPGSNcEzkjj3x6xZs9ah",
+        "signature": "56mEgXigcRwEvUt2ysFiT5yD6NAJZR7HqvRXjGKL4HowL78o1VR2EA3K9Eb6uY9fYC4ME7axgzQ1Y7Eyu8FhTG96",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:46:53.859Z",
+        "type": "refund",
+        "wallet": "HWJffVfmL4Nf7UCpGQrtzRWatiDGCYDjoymdYTQxoLzr",
+        "signature": "4McietivcBJpJWSGYCakmFEdHLffQvSvAxTAM8YGuTDudCPRN2sLp6vyDmkr2AKYmidH2pKhdmytvoGtjE4MMW2w",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:46:57.928Z",
+        "type": "refund",
+        "wallet": "37rc4WtAaZaxup5TXoVy8uSz3oFpKYUnokjUAEucWYAJ",
+        "signature": "4CvzuBswXuTdNztuTmdTMwG6VVVCBAMh1Xm1APzGmzPcn75toEh6k4EcrLAMY5RXs9LRQ5Pofq2nPxGhhsexx12g",
+        "balance": 0
+      },
+      {
+        "at": "2026-11-19T10:47:02.164Z",
+        "type": "refund",
+        "wallet": "2nz4gncaB1ZVDTuPzBsb2eqeMA9R3sYaFd9WHCDCqQSW",
+        "signature": "3uUaCHuDs9nCeU7FSrYuLWYQV49xrDY4KB3YEb57V6cRanev9P3D6Zd3wqeDRoCkffukcQkBSyiQvHQpR81tBovE",
+        "balance": 0
+      }
+    ]
+  },
+  "mainnetReadOnlyCheck": [
+    {
+      "connected": true,
+      "host": "66.29.149.166",
+      "hostKeySha256": "rna20wBNgnP7jYSds0yKGi2ZneaucciLyIVTBTazsfo"
+    },
+    {
+      "name": "/richpad-mainnet-app-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:18.036728166Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    },
+    {
+      "name": "/richpad-mainnet-rpc-gateway-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:12.287974509Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    }
+  ],
+  "validation": {
+    "nodeRegressionPassed": 113,
+    "imageTestsPassed": 19,
+    "devnetCompiledSbfPassed": 8,
+    "mainnetCompiledSbfPassed": 4,
+    "logs": [
+      {
+        "file": "regression-tests.log",
+        "sha256": "032eb9b05c56e8e9e84b2db7e7845c9ccf401411d92886d5a56ff84cf208f503"
+      },
+      {
+        "file": "image-check.log",
+        "sha256": "b757a76aa06a6b2df2edcd272e5fe6e1b56af724f3580d9f2d13c4dc2b160e5c"
+      },
+      {
+        "file": "image-tests.log",
+        "sha256": "58090c1b8427cc3bb0d3e4e178fca78d7945aa4e4e022ac638f76d08d4cdb1ef"
+      },
+      {
+        "file": "rust-tests.log",
+        "sha256": "7fca13b017a66b84428a96e5e5a66b9a842de34aff3dd918a24ea0f22a2167f2"
+      },
+      {
+        "file": "mainnet-gate-tests.log",
+        "sha256": "8db2fe17d8d43db3ac71d3468e52ac9a81ba0475160b4ccf3d8dc5a4508abfb4"
+      },
+      {
+        "file": "build.log",
+        "sha256": "f4e0ead294540f5a4c27c1939c15ae060ae496889cba8e5574d1d01d13332202"
+      },
+      {
+        "file": "smoke.log",
+        "sha256": "78f282cd17fe6530dac3c50e00fe49a96cf3466a95abac4ca7ba0474cd3359bb"
+      }
+    ],
+    "smoke": [
+      "  ok 34 [mobile] › tests\\smoke\\pages.spec.mjs:98:1 › Top 100 keeps its sort in the address (6.7s)\r",
+      "  ok 36 [desktop] › tests\\smoke\\pages.spec.mjs:98:1 › Top 100 keeps its sort in the address (6.7s)\r",
+      "\r",
+      "  2 skipped\r",
+      "  34 passed (2.0m)"
+    ]
+  },
+  "limits": [
+    "Live cases cover SOL and standard SPL token reward cycles; daily bonus integration is locally tested.",
+    "Optional evidence-provider throttling remains an operational risk; no deployment configuration bypass was made.",
+    "Permanent cycle accounts and bitmap storage still consume rent. Token account creation and setup costs are separate.",
+    "Existing incomplete or unarchived legacy cycles are not cleaned. Cleanup is bounded and retries later.",
+    "Do not roll back to pre-bitmap contract bytecode after bitmap cycles exist; use a compatible forward fix."
+  ]
+}

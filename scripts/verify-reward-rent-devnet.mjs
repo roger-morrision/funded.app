@@ -135,8 +135,15 @@ async function rejectReplay(signature,asset,mode,vault){
   const before=asset==='SOL'?await connection.getBalance(vault,'finalized'):(await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(new PublicKey(asset),vault,true),'finalized')).value.amount;
   const latest=await connection.getLatestBlockhash('finalized');transaction.recentBlockhash=latest.blockhash;transaction.feePayer=qa.publicKey;transaction.sign(qa);
   const failed=await connection.sendRawTransaction(transaction.serialize(),{skipPreflight:true,maxRetries:2});
-  const status=await connection.confirmTransaction({...latest,signature:failed},'finalized');assert(status.value.err);
-  const proof=await connection.getTransaction(failed,{commitment:'finalized',maxSupportedTransactionVersion:0});assert(proof.meta.err);
+  // Some RPC subscriptions reject confirmation with the instruction error.
+  // Only the finalized transaction below establishes the expected rejection.
+  await connection.confirmTransaction({...latest,signature:failed},'finalized').catch(()=>null);
+  let proof;
+  for(let attempt=0;attempt<30;attempt++){
+    proof=await connection.getTransaction(failed,{commitment:'finalized',maxSupportedTransactionVersion:0});
+    if(proof)break;await new Promise(resolve=>setTimeout(resolve,2000));
+  }
+  assert(proof?.meta?.err,'Replay must have a finalized failed transaction');
   const after=asset==='SOL'?await connection.getBalance(vault,'finalized'):(await connection.getTokenAccountBalance(getAssociatedTokenAddressSync(new PublicKey(asset),vault,true),'finalized')).value.amount;
   assert.equal(after,before);emit({type:'replay-rejected',mode,asset,signature:failed,error:proof.meta.err,vaultUnchanged:true,finalized:true});
 }
