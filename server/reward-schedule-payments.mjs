@@ -11,7 +11,7 @@ export async function payRewardSchedule({ store, chain, plan, batch }) {
         if (error) throw error;
         if (!result?.finalized || !result.balanceDeltaVerified) throw new Error('Payout lacks finalized state and balance-delta evidence.');
         await store.transaction(state => { state.schedules[plan.id].payments[leaf.recipient] = {
-          status:'paid', amount:leaf.amount, amountReceived:result.amountReceived, index:leaf.index,
+          status:'paid', bitmap:result.bitmap===true, amount:leaf.amount, amountReceived:result.amountReceived, index:leaf.index,
           signature:result.signature, payment:result.payment, finalized:true, balanceDeltaVerified:true,
           ...(result.batch ? { batch:result.batch } : {}), paidAt:new Date().toISOString() }; });
         submitted += result.alreadyPaid ? 0 : 1;

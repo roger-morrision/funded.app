@@ -29,7 +29,7 @@ export async function verifyRewardBatch({ connection, authority, plan, rows, sig
     const record = await inspectLeaf(plan, row.leaf);
     if (!record || record.payment !== row.payment.toBase58()) throw new Error('Reward batch payment receipt is unavailable.');
     const paymentIndex = keys.indexOf(record.payment);
-    if (paymentIndex < 0 || tx.meta.preBalances[paymentIndex] !== 0 || tx.meta.postBalances[paymentIndex] <= 0)
+    if (paymentIndex < 0 || (!row.bitmap && tx.meta.preBalances[paymentIndex] !== 0) || tx.meta.postBalances[paymentIndex] <= 0)
       throw new Error('Reward batch did not create the expected payment receipt.');
     // Operational wallets are excluded by the scheduler. Do not apply the
     // recipient-only delta rule to a self-payment that also paid batch rent.
@@ -38,7 +38,7 @@ export async function verifyRewardBatch({ connection, authority, plan, rows, sig
     if (received !== BigInt(record.amountReceived) || (sol && received !== BigInt(row.leaf.amount)))
       throw new Error('Reward batch lacks an exact recipient credit.');
     results.push({ signature, finalized:true, balanceDeltaVerified:true, vaultBalanceDeltaVerified:true,
-      amountReceived:record.amountReceived, payment:record.payment,
+      amountReceived:record.amountReceived, payment:record.payment,bitmap:row.bitmap===true,
       batch:{ recipients:rows.length, feeLamports:String(tx.meta.fee), slot:tx.slot } });
   }
   return results;

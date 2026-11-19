@@ -70,3 +70,12 @@ pub mod token_convert_v3;
 pub use token_fees_v3::*;
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 pub use token_convert_v3::*;
+
+#[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+pub mod reward_cleanup;
+#[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+pub use reward_cleanup::*;
+#[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+pub mod reward_bitmap;
+#[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+pub use reward_bitmap::*;

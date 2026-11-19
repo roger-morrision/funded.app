@@ -7,6 +7,9 @@ import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { rewardAddresses, rewardReserveAddress } from './automatic-reward-chain.mjs';
 import { bonusHash, dailyBonusManifest } from './daily-bonus.mjs';
 import { verifyBonusSnapshotRevision } from './daily-bonus-reconciliation.mjs';
+import {parseCycleFields} from './reward-account-codec.mjs';
+import {bitmapPaid} from './reward-rent.mjs';
+import {findRewardPayout} from './reward-payout-evidence.mjs';
 
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const discriminator = (space, name) => createHash('sha256').update(`${space}:${name}`).digest().subarray(0,8);
@@ -128,9 +131,23 @@ export async function loadDailyPayment({connection,state,candidate,cluster='devn
   const addresses=rewardAddresses({programId:program,authority,mint:source.mint,cycleId:manifest.cycleId,recipient:leaf.recipient});
   addresses.reserve=rewardReserveAddress({programId:program,vault:addresses.vault,asset:'SOL'});
   if (mint.toBase58() !== source.mint || !addresses.vault.equals(vaultKey)
-    || payout.cycle !== addresses.cycle.toBase58() || payment.payment !== addresses.payment.toBase58())
+    || payout.cycle !== addresses.cycle.toBase58() || payment.payment !== (payment.bitmap?addresses.cycle:addresses.payment).toBase58())
     throw new Error('Daily payment PDA conflicts with its manifest.');
   const [cycleAccount,paymentAccount]=await Promise.all([addresses.cycle,addresses.payment].map(key=>connection.getAccountInfo(key,'finalized')));
+  const saved=parseCycleFields(cycleAccount);
+  if(saved?.bitmap||saved&&!saved.reserved){
+    if(cluster!=='devnet'||address(cycleAccount.owner)!==program||saved.vault!==vaultKey.toBase58()
+      ||saved.cycleId!==manifest.cycleId||saved.root!==manifest.root||saved.asset!=='SOL'
+      ||saved.totalAmount!==manifest.totalAmount||saved.leafCount!==manifest.leaves.length
+      ||saved.cutoffAt!==snapshot.end||saved.payoutAt!==(payout.payoutAt??snapshot.end)
+      ||(saved.bitmap?!bitmapPaid(saved.bitmap,leaf.index):saved.distributedAmount!==saved.totalAmount))
+      throw new Error('Daily payment bitmap or retained cycle conflicts with its manifest.');
+    const proof=await findRewardPayout(connection,{program,cycle:addresses.cycle,vault:addresses.vault,payment:addresses.payment,
+      manifest,leaf,bitmap:Boolean(saved.bitmap)},payment.signature);
+    return {...proof,source:'daily-bonus',to:leaf.recipient,mint:source.mint,day:snapshot.day,
+      amountLamports:Number(leaf.amount),actualReceivedLamports:Number(proof.amountReceived),recipientRentLamports:0,
+      paymentAccount:payment.payment,cycleId:manifest.cycleId,paidAt:proof.blockTime};
+  }
   const cycle=accountData(cycleAccount,program,'RewardCycle',174), receipt=accountData(paymentAccount,program,'RewardPayment',100);
   if (!cycle.subarray(8,40).equals(vaultKey.toBuffer()) || cycle.subarray(40,72).toString('hex') !== manifest.cycleId
     || cycle.subarray(72,104).toString('hex') !== manifest.root || !cycle.subarray(104,136).equals(Buffer.alloc(32))

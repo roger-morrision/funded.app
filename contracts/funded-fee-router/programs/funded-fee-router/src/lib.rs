@@ -1,3 +1,4 @@
+pub mod reward_bitmap_state;
 pub mod developer_escrow;
 pub use developer_escrow::*;
 pub mod constants;
@@ -269,6 +270,31 @@ pub mod funded_fee_router {
     ) -> Result<()> {
         reward::create_cycle_token(ctx, cycle_id, merkle_root, asset_mint, total_amount, cutoff_at, payout_at, leaf_count)
     }
+
+    #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+    pub fn complete_reward_cycle(ctx: Context<CompleteRewardCycle>) -> Result<()> { reward_cleanup::complete(ctx) }
+    #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+    pub fn close_reward_payment(ctx: Context<CloseRewardPayment>) -> Result<()> { reward_cleanup::close_payment(ctx) }
+    #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+    pub fn create_bitmap_cycle(ctx: Context<CreateBitmapCycle>, cycle_id: [u8;32], merkle_root: [u8;32], asset_mint: Pubkey,
+        total_amount:u64, cutoff_at:i64, payout_at:i64, leaf_count:u32) -> Result<()> {
+        reward_bitmap::create_cycle(ctx, cycle_id, merkle_root, asset_mint, total_amount, cutoff_at, payout_at, leaf_count)
+    }
+    #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+    pub fn create_bitmap_cycle_token(ctx: Context<CreateBitmapCycleToken>, cycle_id: [u8;32], merkle_root: [u8;32], asset_mint: Pubkey,
+        total_amount:u64, cutoff_at:i64, payout_at:i64, leaf_count:u32) -> Result<()> {
+        reward_bitmap::create_cycle_token(ctx, cycle_id, merkle_root, asset_mint, total_amount, cutoff_at, payout_at, leaf_count)
+    }
+    #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+    pub fn payout_bitmap_sol(ctx: Context<PayoutBitmapSol>, amount:u64, leaf_index:u32, proof:Vec<[u8;32]>) -> Result<()> {
+        reward_bitmap::payout_sol(ctx, amount, leaf_index, proof)
+    }
+    #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+    pub fn payout_bitmap_token(ctx: Context<PayoutBitmapToken>, amount:u64, leaf_index:u32, proof:Vec<[u8;32]>) -> Result<()> {
+        reward_bitmap::payout_token(ctx, amount, leaf_index, proof)
+    }
+    #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
+    pub fn expire_bitmap_cycle(ctx: Context<ExpireBitmapCycle>) -> Result<()> { reward_bitmap::expire_cycle(ctx) }
 
     pub fn expire_reward_cycle(ctx: Context<ExpireRewardCycle>) -> Result<()> {
         reward::expire_cycle(ctx)

@@ -1,3 +1,4 @@
+import {cleanupDailyReceipts} from './reward-rent.mjs';
 import {assertBonusNetwork,assertBonusLedgerNetwork,assertBonusSnapshotNetwork} from './daily-bonus-network.mjs';
 import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
 import { isDeepStrictEqual } from 'node:util';
@@ -128,9 +129,10 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       if (snapshot.day !== day || snapshot.start !== window.start || snapshot.end !== window.end) throw new Error('Daily bonus requires a completed verified window.');
       const { hash, ...frozen } = snapshot;
       if (snapshot.version !== 1 || hash !== bonusHash(frozen)) throw new Error('Saved daily bonus snapshot evidence changed.');
+      await cleanupDailyReceipts({rewardStore,readLedger,chain,cluster});
       for (const source of snapshot.sources) {
         const prior = (await readLedger()).dailyBonusSnapshots[day].payouts[source.collectionSignature];
-        if (prior?.status === 'paid') continue;
+        if(prior?.status==='paid')continue;
         const manifest = dailyBonusManifest(snapshot, source);
         if (!manifest) continue;
         const app = await store.read(), launch = app.launches?.[source.mint];
@@ -174,9 +176,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
           row.payouts[source.collectionSignature] ||= { manifest, status:'prepared', payments:{}, fundingSignature:funded.signature,
             ...(plan.payoutAt !== snapshot.end ? { payoutAt:plan.payoutAt } : {}) };
         });
-        const cycle = await chain.ensureCycle(plan);
+        const cycle = await chain.ensureCycle(plan,{bitmap:cluster==='devnet'});
         await rewardStore.transaction(state => Object.assign(state.dailyBonusSnapshots[day].payouts[source.collectionSignature],
-          { status:'distributing', cycle:cycle.address, ...(cycle.signature ? { cycleSignature:cycle.signature } : {}) }));
+          { status:'distributing', cycle:cycle.address,receiptMode:cycle.receiptMode, ...(cycle.signature ? { cycleSignature:cycle.signature } : {}) }));
         await payDailyBonusLeaves({ chain, plan, readLedger, rewardStore, day, source, snapshot, cluster, now });
         await rewardStore.transaction(state => {
           const row=state.dailyBonusSnapshots[day].payouts[source.collectionSignature];
@@ -229,7 +231,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       for(const [recipient,payment] of Object.entries(payout?.payments||{})){
         const leaf=manifest.leaves.find(row=>row.recipient===recipient);
         if(!leaf||payment.amount!==leaf.amount||!chain.inspectLeaf)throw new Error('Finalized paid bonus proof is required for reconciliation.');
-        const proof=await chain.inspectLeaf({cluster,mint:source.mint,cutoffAt:prior.snapshot.end,payoutAt:payout?.payoutAt??prior.snapshot.end,manifest},leaf);
+        const proof=await chain.inspectLeaf({cluster,mint:source.mint,cutoffAt:prior.snapshot.end,payoutAt:payout?.payoutAt??prior.snapshot.end,manifest,payments:payout?.payments},leaf);
         if(!proof?.finalized||proof.amount!==payment.amount||proof.payment!==payment.payment
           ||proof.amountReceived!==payment.amountReceived)throw new Error('Finalized paid bonus proof conflicts with its recorded receipt.');
       }

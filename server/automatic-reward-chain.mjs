@@ -1,3 +1,7 @@
+import {parseCycleFields,parseCycle,parseLegacyCycle,parseReserve,parsePayment} from './reward-account-codec.mjs';
+export {parseReserve} from './reward-account-codec.mjs';
+import {rewardBitmap,bitmapPaid,rewardReceiptCleanup} from './reward-rent.mjs';
+import {findRewardPayout} from './reward-payout-evidence.mjs';
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import {
@@ -76,42 +80,6 @@ export function rewardReserveAddress({ programId, vault, asset }) {
 export function communityProgramReserveAddress({ programId, authority }) {
   // The program ID is a reserved vault namespace, never a launched token mint.
   return rewardAddresses({ programId, authority, mint:programId }).vault;
-}
-
-function parseCycleFields(account) {
-  const data = Buffer.from(account?.data || []);
-  if (![173, 174].includes(data.length) || !data.subarray(0, 8).equals(discriminator('account', 'RewardCycle'))) return null;
-  return {
-    vault: new PublicKey(data.subarray(8, 40)).toBase58(),
-    cycleId: data.subarray(40, 72).toString('hex'),
-    root: data.subarray(72, 104).toString('hex'),
-    asset: new PublicKey(data.subarray(104, 136)).toBase58() === SOL_ASSET_MINT ? 'SOL' : new PublicKey(data.subarray(104, 136)).toBase58(),
-    totalAmount: String(data.readBigUInt64LE(136)),
-    distributedAmount: String(data.readBigUInt64LE(144)),
-    cutoffAt: Number(data.readBigInt64LE(152)), payoutAt: Number(data.readBigInt64LE(160)), leafCount: data.readUInt32LE(168),
-    reserved:data.length === 174 && data[173] === 1,
-  };
-}
-function parseCycle(account) {
-  const cycle = parseCycleFields(account);
-  return cycle?.reserved ? cycle : null;
-}
-function parseLegacyCycle(account) {
-  const cycle = parseCycleFields(account);
-  return cycle && !cycle.reserved && Buffer.from(account.data).length === 173 ? cycle : null;
-}
-
-export function parseReserve(account) {
-  const data = Buffer.from(account?.data || []);
-  if (data.length !== 81 || !data.subarray(0, 8).equals(discriminator('account', 'RewardReserve'))) return null;
-  return { vault:new PublicKey(data.subarray(8, 40)).toBase58(), asset:new PublicKey(data.subarray(40, 72)).toBase58(),
-    outstanding:String(data.readBigUInt64LE(72)), bump:data[80] };
-}
-
-function parsePayment(account) {
-  const data = Buffer.from(account?.data || []);
-  if (data.length < 92 || !data.subarray(0, 8).equals(discriminator('account', 'RewardPayment'))) return null;
-  return { cycle: new PublicKey(data.subarray(8, 40)).toBase58(), recipient: new PublicKey(data.subarray(40, 72)).toBase58(), amount: String(data.readBigUInt64LE(72)), leafIndex: data.readUInt32LE(80), paidAt: Number(data.readBigInt64LE(84)), receivedAmount: data.length >= 100 ? String(data.readBigUInt64LE(92)) : null };
 }
 
 export async function finalizedSend(connection, transaction, signers, { pollMs = 1000, timeoutMs = 90_000,
@@ -259,7 +227,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return reserve;
   }
 
-  async function ensureCycle(plan) {
+  async function ensureCycle(plan, {bitmap=false} = {}) {
+    if(bitmap && cluster!=='devnet')throw new Error('Bitmap cycles are Devnet only.');
     await requireReady(plan);
     if (new PublicKey(plan.mint).equals(program)) throw new Error('Community program reserve payouts require a separate published program flow.');
     const vault = await ensureVault(plan.mint);
@@ -274,7 +243,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       for (const key of Object.keys(expected)) if (String((existing || legacy)[key]) !== String(expected[key])) throw new Error(`Existing reward cycle conflicts on ${key}.`);
     }
     if (existing) {
-      return { address: cycle.toBase58(), created: false };
+      plan.receiptMode=existing.receiptMode;
+      return { address: cycle.toBase58(), created: false, receiptMode:existing.receiptMode };
     }
     const asset = plan.manifest.asset === 'SOL' ? SOL_ASSET_MINT : plan.manifest.asset;
     const isSol = plan.manifest.asset === 'SOL';
@@ -295,7 +265,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
     const data = legacy
       ? Buffer.concat([discriminator('global', isSol ? 'migrate_reward_cycle_sol' : 'migrate_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId')])
-      : Buffer.concat([discriminator('global', isSol ? 'create_reward_cycle' : 'create_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
+      : Buffer.concat([discriminator('global', bitmap&&!legacy ? (isSol?'create_bitmap_cycle':'create_bitmap_cycle_token') : (isSol ? 'create_reward_cycle' : 'create_reward_cycle_token')), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
     const instruction = new TransactionInstruction({ programId: program, keys, data });
     const signature = await send(new Transaction().add(instruction));
     const committed = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
@@ -304,7 +274,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const newlyReserved = legacy ? BigInt(legacy.totalAmount) - BigInt(legacy.distributedAmount) : BigInt(plan.manifest.totalAmount);
     if (!reserveAfter || BigInt(reserveAfter.outstanding) - BigInt(reserveBefore.outstanding) !== newlyReserved)
       throw new Error('Reward cycle finalized without the expected reserved liability delta.');
-    return { address: cycle.toBase58(), created: !legacy, migrated: Boolean(legacy), signature };
+    plan.receiptMode=committed.receiptMode;
+    return { address: cycle.toBase58(), created: !legacy, migrated: Boolean(legacy), signature,receiptMode:committed.receiptMode };
   }
 
   async function inspectLeaf(plan, leaf) {
@@ -318,8 +289,25 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const {vault,cycle,payment}=rewardAddresses({programId:program,authority:authority.publicKey,
       mint:plan.mint,cycleId:plan.manifest.cycleId,recipient:leaf.recipient});
     const [cycleAccount,paymentAccount]=await Promise.all([connection.getAccountInfo(cycle,'finalized'),connection.getAccountInfo(payment,'finalized')]);
-    if(!paymentAccount)return null;
-    const record=parsePayment(paymentAccount),saved=parseCycle(cycleAccount);
+    const saved=parseCycleFields(cycleAccount);
+    if(!saved||!cycleAccount.owner.equals(program)||saved.vault!==vault.toBase58()||saved.root!==plan.manifest.root
+      ||saved.cycleId!==plan.manifest.cycleId||saved.asset!==plan.manifest.asset||saved.totalAmount!==plan.manifest.totalAmount
+      ||saved.leafCount!==plan.manifest.leaves.length||saved.cutoffAt!==plan.cutoffAt||saved.payoutAt!==plan.payoutAt)
+      throw new Error('Reward cycle differs from its frozen manifest.');
+    plan.receiptMode=saved.receiptMode;
+    if(saved.bitmap){
+      if(bitmapPaid(saved.bitmap,leaf.index))return {payment:cycle.toBase58(),amount:leaf.amount,amountReceived:leaf.amount,finalized:true,bitmap:true};
+      if(!saved.reserved)throw new Error('Reward cycle permanently closed; unpaid leaf cannot be retried.');
+      return null;
+    }
+    if(!paymentAccount){
+      if(!saved.reserved){
+        const proof=await findRewardPayout(connection,{program,cycle,vault,payment,manifest:plan.manifest,leaf,bitmap:false},plan.payments?.[leaf.recipient]?.signature);
+        return {...proof,payment:payment.toBase58(),reclaimed:true};
+      }
+      return null;
+    }
+    const record=parsePayment(paymentAccount);
     if(!paymentAccount.owner?.equals(program)||!cycleAccount?.owner?.equals(program)
       ||!saved||saved.vault!==vault.toBase58()||saved.cycleId!==plan.manifest.cycleId
       ||saved.root!==plan.manifest.root||saved.totalAmount!==plan.manifest.totalAmount
@@ -338,10 +326,11 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const { vault, cycle, payment } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId, recipient: leaf.recipient });
     const prior = await inspectReadyLeaf(plan,leaf);
     if (prior) {
-      return { paid:{ signature: await recoverPaymentSignature(connection, payment), finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: payment.toBase58(), alreadyPaid: true } };
+      const proof=prior.bitmap?await findRewardPayout(connection,{program,cycle,vault,payment,manifest:plan.manifest,leaf,bitmap:true},plan.payments?.[leaf.recipient]?.signature):null;
+      return { paid:{ signature: proof?.signature||prior.signature||await recoverPaymentSignature(connection,payment), finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: prior.payment, bitmap:prior.bitmap===true, alreadyPaid: true } };
     }
     const proof = Buffer.concat(leaf.proof.map(node => hex32(node, 'proof node')));
-    const data = Buffer.concat([discriminator('global', plan.manifest.asset === 'SOL' ? 'payout_reward_sol' : 'payout_reward_token'), u64(leaf.amount), u32(leaf.index), u32(leaf.proof.length), proof]);
+    const data = Buffer.concat([discriminator('global', plan.receiptMode==='bitmap' ? (plan.manifest.asset==='SOL'?'payout_bitmap_sol':'payout_bitmap_token') : (plan.manifest.asset === 'SOL' ? 'payout_reward_sol' : 'payout_reward_token')), u64(leaf.amount), u32(leaf.index), u32(leaf.proof.length), proof]);
     const recipient = new PublicKey(leaf.recipient);
     const reserve = rewardReserveAddress({programId:program,vault,asset:plan.manifest.asset});
     const keys = [{ pubkey: authority.publicKey, isSigner: true, isWritable: true }, { pubkey: vault, isSigner: false, isWritable: plan.manifest.asset === 'SOL' },
@@ -368,13 +357,18 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       vaultTokenBefore = BigInt((await connection.getTokenAccountBalance(vaultToken, 'finalized')).value.amount);
       keys.push({ pubkey: mint, isSigner: false, isWritable: false }, { pubkey: vaultToken, isSigner: false, isWritable: true }, { pubkey: recipientToken, isSigner: false, isWritable: true }, { pubkey: payment, isSigner: false, isWritable: true }, { pubkey: tokenProgram, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
     }
+    if(plan.receiptMode==='bitmap'){
+      if(recipient.equals(authority.publicKey))throw new Error('Operational authority cannot receive a bitmap reward.');
+      keys.splice(keys.findIndex(k=>k.pubkey.equals(payment)),1);
+    }
     transaction.add(new TransactionInstruction({ programId: program, keys, data }));
-    return { leaf, transaction, recipient, payment, cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore, recipientTokenAddress };
+    return { leaf, transaction, recipient, payment:plan.receiptMode==='bitmap'?cycle:payment,bitmap:plan.receiptMode==='bitmap', cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore, recipientTokenAddress };
   }
 
   async function submitLeaf(plan, leaf) {
     const prepared = await prepareLeaf(plan, leaf);
     if (prepared.paid) return prepared.paid;
+    if(prepared.bitmap){const [outcome]=await submitLeaves(plan,[leaf]);if(outcome.error)throw outcome.error;return outcome.result;}
     const { transaction, recipient, payment, cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore } = prepared;
     const cycleBefore = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
     const reserveBefore = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
@@ -457,7 +451,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const reserveBefore = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
     if (!reserveBefore) throw new Error('Reward reserve is not verified before cycle expiry.');
     const unpaid = BigInt(before.totalAmount) - BigInt(before.distributedAmount);
-    const instruction = new TransactionInstruction({ programId: program, data: discriminator('global', 'expire_reward_cycle'), keys: [
+    const instruction = new TransactionInstruction({ programId: program, data: discriminator('global', before.receiptMode==='bitmap'?'expire_bitmap_cycle':'expire_reward_cycle'), keys: [
       { pubkey: authority.publicKey, isSigner: true, isWritable: false }, { pubkey: vault, isSigner: false, isWritable: false },
       { pubkey: reserve, isSigner: false, isWritable: true }, { pubkey: cycle, isSigner: false, isWritable: true },
       { pubkey: legacyRouter, isSigner: false, isWritable: false }] });
@@ -471,7 +465,10 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
 
   const submitLeaves = createRewardBatchSubmitter({ cluster, connection, authority, requireReady,
     prepareLeaf:(plan, leaf) => prepareLeaf(plan, leaf, true), inspectLeaf:inspectReadyLeaf, submitLeaf, send });
-  return { cluster, readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, submitLeaves, expireCycle, fundSolVault, fundTokenVault,
+  const cleanupReceipts=rewardReceiptCleanup({cluster,connection,program,authority,legacyRouter,parseCycle:parseCycleFields,requireReady,send,
+    verifyArchive:(plan,leaf,signature)=>findRewardPayout(connection,{program,...rewardAddresses({programId:program,authority:authority.publicKey,mint:plan.mint,cycleId:plan.manifest.cycleId,recipient:leaf.recipient}),manifest:plan.manifest,leaf,bitmap:false},signature),
+    addresses:(plan,leaf)=>rewardAddresses({programId:program,authority:authority.publicKey,mint:plan.mint,cycleId:plan.manifest.cycleId,recipient:leaf?.recipient})});
+  return { cleanupReceipts,cluster, readiness, ensureVault, ensureCycle, inspectLeaf, submitLeaf, submitLeaves, expireCycle, fundSolVault, fundTokenVault,
     paymentSignature: payment => recoverPaymentSignature(connection, payment),
     cycleExpiryGraceSeconds: rewardCycleExpiryGraceSeconds(cluster) };
 }

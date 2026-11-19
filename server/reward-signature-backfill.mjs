@@ -6,7 +6,7 @@ const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 export async function backfillPaymentSignatures({ store, chain, limit = 10 }) {
   if (typeof chain?.paymentSignature !== 'function') return 0;
   const missing = await store.transaction(state => Object.values(state.schedules || {}).flatMap(row =>
-    Object.entries(row.payments || {}).filter(([, p]) => p?.status === 'paid' && p.finalized === true && !p.signature && p.payment)
+    Object.entries(row.payments || {}).filter(([, p]) => p?.status === 'paid' && p.bitmap !== true && p.finalized === true && !p.signature && p.payment)
       .map(([recipient, p]) => ({ id: row.id, recipient, payment: p.payment }))).slice(0, limit));
   let filled = 0;
   for (const item of missing) {

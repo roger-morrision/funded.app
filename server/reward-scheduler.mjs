@@ -1,3 +1,4 @@
+import {cleanupPaidSchedules} from './reward-rent.mjs';
 import { AUTOMATIC_REWARDS, allocateHolderPool, holdingWeights } from '../automatic-rewards.js';
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
 import { snapshotsForPeriod } from './holder-history-indexer.mjs';
@@ -452,8 +453,8 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
     let submitted = 0;
     for (const plan of plans) {
       if (await blockedHolderManifest(plan)) continue;
-      const cycle = await chain.ensureCycle(plan);
-      await store.transaction(state => { const row = state.schedules[plan.id]; row.cycle = cycle.address; row.cycleSignature ||= cycle.signature || null; row.status = 'distributing'; });
+      const cycle = await chain.ensureCycle(plan,{bitmap:onlyIds===null&&['holder','community'].includes(plan.kind)&&cluster==='devnet'});
+      await store.transaction(state => { const row = state.schedules[plan.id]; row.cycle = cycle.address; row.receiptMode=cycle.receiptMode; row.cycleSignature ||= cycle.signature || null; row.status = 'distributing'; });
       submitted += await payRewardSchedule({ store, chain, plan,
         batch:onlyIds === null && ['holder', 'community'].includes(plan.kind) });
       await store.transaction(state => {
@@ -461,6 +462,7 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
         if (payments.length === row.manifest.leaves.length && payments.every(item => item.status === 'paid')) { row.status = 'paid'; row.paidAt = new Date().toISOString(); }
       });
     }
+    if(onlyIds===null)await cleanupPaidSchedules({store,chain});
     return { status: plans.length ? 'processed' : 'idle', submitted };
   }
 

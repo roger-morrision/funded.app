@@ -4,11 +4,10 @@ import {mainnetReleaseVerified} from './mainnet-program.mjs';
 // Source-built with platform-tools v1.54 and the devnet-v3-program feature.
 // The loader header/upgrade slot is excluded from this binary commitment;
 // callers separately pin the complete finalized ProgramData account hash.
-// 2026-11-19: Devnet router rebuilt from commit ae6fb256 (Mainnet-guarded agency,
-// conversion and guard changes; Devnet behavior unchanged), upgraded in place at
-// slot 523842644 at the owner's request. Devnet only.
-export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1066000,
-  sha256:'dfd1980eb1c51c6d650e9f2521eec69f6a73f0b3c20eb1c48abfc073847fe27e'});
+// 2026-11-19: Devnet-only receipt reclamation and bitmap reward cycles.
+// Compiled-bytecode replay, rollback, custody and refund checks precede cutover.
+export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1167656,
+  sha256:'eece07be313e1a93f5eaacac0531f5495db3dceeaa067a036fcbabe34d78cb42'});
 export const AGENCY_DEVNET_PROGRAM='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 export function matchesAgencyBinary(data,manifest=AGENCY_REVIEWED_BINARY){
   const bytes=Buffer.from(data||[]);
