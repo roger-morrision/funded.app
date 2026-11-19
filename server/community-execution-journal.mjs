@@ -8,10 +8,19 @@ import {signTransaction} from './transaction-signing.mjs';
 const BUCKET='communityExecutions',RESERVE=3000000000n;
 const snapshot=value=>structuredClone(value);
 const pending=row=>({status:'verification-pending',signature:row.signature,key:row.key});
+// Margin beyond lastValidBlockHeight before a missing receipt counts as final.
+export const UNLANDED_MARGIN_BLOCKS=150;
+async function unlandable(connection,row){
+  if(!Number.isSafeInteger(row.lastValidBlockHeight)||row.lastValidBlockHeight<1)return false;
+  const height=await connection.getBlockHeight('finalized');
+  if(!Number.isSafeInteger(height)||height<=row.lastValidBlockHeight+UNLANDED_MARGIN_BLOCKS)return false;
+  return !await connection.getTransaction(row.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+}
 
 // Internal worker primitive; never expose prepare/prove callbacks to HTTP input.
 // The signed bytes and signature are committed before broadcast. An ambiguous
-// outcome can only rebroadcast those same bytes, never create a replacement.
+// outcome can only rebroadcast those same bytes; a replacement is prepared only
+// after the saved blockhash is provably expired with no finalized receipt.
 export async function executeCommunityJournal({store,connection,key,intent,authority,prepare,prove,
   now=()=>Date.now(),leaseMs=60000,reserveLamports=String(RESERVE)}){
   if(!/^community:[1-9A-HJ-NP-Za-km-z]{32,44}:(open|[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(key)
@@ -57,7 +66,21 @@ export async function executeCommunityJournal({store,connection,key,intent,autho
       return{status:'failed-finalized',signature:row.signature,key};
     }
     if(outcome?.confirmationStatus==='finalized'||!row.signedTransaction)return pending(row);
-    if(!(await connection.isBlockhashValid(row.blockhash,'finalized')).value)return pending(row);
+    if(!(await connection.isBlockhashValid(row.blockhash,'finalized')).value){
+      if(outcome||!await unlandable(connection,row))return pending(row);
+      // Past lastValidBlockHeight (plus margin) with no finalized receipt the
+      // signed bytes can never execute, so this attempt is retired and the next
+      // pass may prepare a fresh transaction.
+      const retired=await store.update(state=>{
+        const active=state[BUCKET]?.[key];
+        if(active?.signature!==row.signature||active.intentHash!==intentHash)return false;
+        const {signature,signedTransaction,blockhash,lastValidBlockHeight,evidence,evidenceHash,...rest}=active;
+        state[BUCKET][key]={...rest,status:'expired-unlanded',leaseUntil:0,
+          expiredAttempts:[...(active.expiredAttempts||[]),{signature,blockhash,lastValidBlockHeight,expiredAt:new Date(now()).toISOString()}].slice(-10)};
+        return true;
+      });
+      return retired?{status:'expired-unlanded',signature:row.signature,key}:pending(row);
+    }
   }else{
     if(!acquired.owned)return{status:'preparation-active',key};
     const built=await prepare(snapshot(row));
