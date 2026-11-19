@@ -2,6 +2,7 @@ import { paginateHistory } from '../../../history-pagination.js';
 import {updateReferralList} from '../../features/referrals/referral-list.js';
 import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled } from '../../../referral-status.js';
 import { formatReferralLamports, readReferralHistory } from '../../../referral-amount.js';
+import {claimReferralReward} from '../../features/referrals/claim-reward.js';
 // Dependencies and mutable application state are read live through appState.
 export function createReferralsController(appState) {
   let authenticatedIdentity = null;
@@ -276,26 +277,9 @@ function updateReferralStatus(state){
         button.addEventListener('click',async()=>{
           button.disabled=true;
           try{
-            appState.assertWalletSessionCurrent(session);
-            const path=`/api/tokens/${encodeURIComponent(claim.mint)}/v3-referral-payout/${encodeURIComponent(claim.collectionSignature)}/${claim.level}`;
-            const prepared=await appState.apiRequest(path,{method:'POST',body:{}});
-            appState.assertWalletSessionCurrent(session);
-            const review=prepared.data;
-            if(!review||review.recipient!==session.address||review.mint!==claim.mint
-              ||review.collectionSignature!==claim.collectionSignature||review.level!==claim.level||review.amount!==String(claim.amountLamports))
-              throw new Error(review?.error||'Referral claim review is unavailable.');
-            if(review.status==='finalized'&&review.signature&&review.balanceDeltaVerified===true){
-              appState.showToast('Referral reward paid.');await refreshReferralClaims();return;
-            }
-            if(review.status!=='awaiting-recipient-signature'||typeof review.statement!=='string')throw new Error('Referral claim review is unavailable.');
-            if(typeof session.provider.signMessage!=='function')throw new Error('Use a wallet that can sign a claim message.');
-            button.textContent='Sign claim in wallet…';
-            const signed=await session.provider.signMessage(new TextEncoder().encode(review.statement),'utf8');
-            appState.assertWalletSessionCurrent(session);button.textContent='Verifying payment…';
-            const result=await appState.apiRequest(path,{method:'POST',body:{claimNonce:review.nonce,
-              recipientSignature:appState.bytesToBase64(signed.signature||signed)}});
-            appState.assertWalletSessionCurrent(session);
-            if(result.data?.status!=='finalized')throw new Error(result.data?.error||'Payment needs verification. Check the existing claim before retrying.');
+            button.textContent='Claiming reward…';
+            await claimReferralReward({session,claim,ensureSession:s=>appState.walletSignIn.ensure(s),
+              assertCurrent:s=>appState.assertWalletSessionCurrent(s),request:(...args)=>appState.apiRequest(...args)});
             appState.showToast('Referral reward paid.');await refreshReferralClaims();
           }catch(error){appState.showToast(error.message||'Referral claim unavailable.');}
           finally{if(button.isConnected){button.disabled=false;button.textContent=claim.status==='claimable'?'Claim reward':'Check pending claim';}}

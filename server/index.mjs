@@ -367,7 +367,7 @@ const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond: json,
 });
 const handleV3Routes = createV3Routes({
-  body, store, rewardStore:automaticRewardStore, xSession, walletSignature,clientKey,requireAuthorized,
+  body, store, rewardStore:automaticRewardStore, xSession, referralSession, walletSignature,clientKey,requireAuthorized,
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair, respond:json,
 });
 const handleAdminRoutes = createAdminRoutes({ store, body, respond:json, solanaCluster,

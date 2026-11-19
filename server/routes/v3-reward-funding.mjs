@@ -1,6 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
 import {ADMIN_EMAIL_AUTHORIZED} from '../admin-email-verification.mjs';
-import {prepareManualReferralPayout,verifyManualReferralPayout} from '../manual-referral-payout.mjs';
 import { creatorFeeLock } from '../launch-protections.mjs';
 import {buildV3PolicyApproval,buildV3PolicyDisbursement} from '../v3-policy-builders.mjs';
 import bs58 from 'bs58';
@@ -34,6 +33,7 @@ import { signTransaction } from '../transaction-signing.mjs';
 
 export function createV3RewardFundingRoutes({ body, store, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, rewardStore, requireAuthorized = () => false, respond, env = process.env,
+  referralSession = async () => null,
   ensureAutomation = ensureMintAutomationV3,
   connectionFactory = url => new Connection(url, 'finalized'),
   verifyReadiness = verifyV3LaunchRouterReadiness,
@@ -73,6 +73,12 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     if (solanaCluster !== 'devnet' || !automatic && !originAllowed(req, env.CORS_ORIGIN)) {
       return json(res, 403, { error:'V3 category disbursement requires the Devnet app origin.' });
     }
+    // Claim clicks use the existing wallet-ownership session. An API token,
+    // connected wallet address, or old claim signature cannot replace it.
+    const claimSession = kind === 'referral' && !automatic ? await referralSession(req) : null;
+    if (kind === 'referral' && !automatic && (!claimSession?.wallet
+      || !Number.isFinite(claimSession.expiresAt) || claimSession.expiresAt <= Date.now()))
+      return json(res, 401, { error:'Sign in with the earning wallet to claim your referral reward.' });
     const enabled = kind === 'referral' ? env.FUNDED_V3_REFERRAL_PAYOUT_ENABLED
       : kind === 'operations' ? env.FUNDED_V3_OPERATIONS_PAYOUT_ENABLED
       : kind === 'community' ? env.FUNDED_V3_COMMUNITY_FUNDING_ENABLED
@@ -179,6 +185,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
       try { entitlement = v3ReferralEntitlement({ settlement:settled, plan, level }); }
       catch { return json(res, 409, { error:'The V3 referral attribution is invalid.' }); }
       if (!entitlement) return json(res, 409, { error:'No inviter frozen at the first qualified V3 fee event has a payable allocation for this level.' });
+      if (claimSession.wallet !== entitlement.recipient)
+        return json(res, 403, { error:'This referral reward belongs to a different wallet.' });
     }
     const amount = kind === 'referral' ? BigInt(entitlement.amount)
       : kind === 'operations' ? BigInt(plan.protocol.operationsLamports)
@@ -202,7 +210,6 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     const residualMetadata=residualHash?{residualPlanHash:residualHash}:{};
     const protectedPolicy = readiness.protectedPolicy === true;
     const recipientClaim=kind==='referral'&&!automatic;
-    const claimIntent={mint,collectionSignature,level,recipient:recipient.toBase58(),amount:String(amount)};
     const operatorSigned=automatic||recipientClaim;
     if(recipientClaim&&!protectedPolicy)return json(res,409,{error:'Manual referral delivery requires a verified protected policy.'});
     if(operatorSigned&&!protectedPolicy)return json(res,409,{error:'Automatic payouts require protected on-chain shares.'});
@@ -303,14 +310,8 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
         blockhash:existing.blockhash,receiptAddress:existing.receiptAddress,lastValidBlockHeight:existing.lastValidBlockHeight });
       if (!retry.retry) return json(res, 409, { error:retry.reason });
     }
-    if(recipientClaim){
-      if(!input.recipientSignature){
-        const claim=await prepareManualReferralPayout(store,claimIntent);
-        return json(res,202,{status:'awaiting-recipient-signature',...claim});
-      }
-      try{verifyManualReferralPayout(await store.read(),claimIntent,input);}
-      catch(error){return json(res,401,{error:error.message});}
-    }
+    if(recipientClaim && claimSession.expiresAt <= Date.now())
+      return json(res,401,{error:'Your wallet sign-in expired. Sign in again to claim.'});
     if(operatorSigned){
       await ensureAutomation({connection,authority,programId,mint,creator:launch.creatorWallet,
         policy:(launch.pumpFeeRoute.protocolSplit?.agencyPercent!==undefined?deriveAgencyPolicyV3:deriveMintPolicyV3)(programId,mint).address,
@@ -355,7 +356,7 @@ export function createV3RewardFundingRoutes({ body, store, solanaCluster, solana
     await signTransaction(transaction, [authority], { mode: 'partial' });
     const signature = bs58.encode(transaction.signature);
     const locked = await store.update(current => {
-      if(recipientClaim)verifyManualReferralPayout(current,claimIntent,input);
+      if(recipientClaim && claimSession.expiresAt <= Date.now())return false;
       const row = current[ledger]?.[ledgerKey];
       let currentEntitlement = entitlement;
       if (kind === 'referral') {

@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {claimReferralReward} from '../src/features/referrals/claim-reward.js';
+const claim={mint:'mint',collectionSignature:'collection',level:1,amountLamports:'2134'};
+const proof={...claim,amount:'2134',recipient:'recipient',status:'finalized',signature:'tx',balanceDeltaVerified:true};
+const session={address:'recipient',provider:{signMessage(){assert.fail('Claim must not prompt for a message signature');},signTransaction(){assert.fail('Claim must not prompt for a transaction signature');}}};
+test('one claim click sends one request without OTP or wallet signing',async()=>{const calls=[];const result=await claimReferralReward({session,claim,ensureSession:async()=>true,assertCurrent:()=>{},request:async(...args)=>{calls.push(args);return{data:proof};}});assert.equal(result.signature,'tx');assert.equal(calls.length,1);assert.deepEqual(calls[0][1],{method:'POST',body:{}});});
+test('expired sign-in stops a claim without prompting or submitting',async()=>{await assert.rejects(claimReferralReward({session,claim,ensureSession:async()=>false,assertCurrent:()=>{},request:async()=>assert.fail('No payout request')}),/Sign in/);});
+for(const changed of [{recipient:'attacker'},{amount:'999'},{balanceDeltaVerified:false},{status:'verification-pending'},{level:2}])test(`claim button does not report an unverified or mismatched receipt ${JSON.stringify(changed)}`,async()=>{await assert.rejects(claimReferralReward({session,claim,ensureSession:async()=>true,assertCurrent:()=>{},request:async()=>({data:{...proof,...changed}})}),/verification/);});
+test('wallet switch while payout is pending prevents stale success UI',async()=>{let current=true;await assert.rejects(claimReferralReward({session,claim,ensureSession:async()=>true,assertCurrent:()=>{if(!current)throw Error('Wallet changed');},request:async()=>{current=false;return{data:proof};}}),/Wallet changed/);});
