@@ -67,7 +67,7 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
             const result=await delivery.open(record);
             if(!['opened','finalized'].includes(result.status)){waiting++;continue;}
             record=await service.prepared(launch.mint);
-          }
+          }else await delivery.open(record);
           // Rotate a bounded page so delayed recipients cannot starve later wallets.
           const count=record.manifest.leaves.length;
           const cursor=Number(ledger.communityDeliveryCursors?.[launch.mint]||0)%Math.max(1,count);

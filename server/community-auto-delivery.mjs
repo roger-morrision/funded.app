@@ -5,7 +5,7 @@ import {executeCommunityJournal} from './community-execution-journal.mjs';
 import {verifyCommunityDelivery} from './community-delivery-proof.mjs';
 
 export function createCommunityAutoDelivery({connection,store,service,authority,programId,approvedHash,
-  execute=executeCommunityJournal,verifyDelivery=verifyCommunityDelivery}) {
+  execute=executeCommunityJournal,verifyDelivery=verifyCommunityDelivery,now=Date.now}) {
   const payer=authority.publicKey;
   async function transaction(instructions,rentSizes){
     const latest=await connection.getLatestBlockhash('finalized');
@@ -21,8 +21,28 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
       intent:{cluster:'devnet',approvedHash,programId,authority:payer.toBase58(),mint:record.mint,
         root:record.manifest.root,snapshotHash:record.manifest.snapshotHash,action:suffix},prepare,prove});
   }
+  // Success is later detected from chain state (drop opened / leaf claimed),
+  // which skips the journal; close its row from the finalized signature status.
+  async function settle(key){
+    try{
+      const row=(await store.read()).communityExecutions?.[key];
+      if(row?.status!=='verification-pending'||!row.signature)return;
+      const s=(await connection.getSignatureStatuses([row.signature],{searchTransactionHistory:true})).value?.[0];
+      if(s?.confirmationStatus!=='finalized'||s.err)return;
+      await store.update(state=>{
+        const active=state.communityExecutions?.[key];
+        if(active?.signature!==row.signature||active.status!=='verification-pending')return;
+        const {signedTransaction,...rest}=active;
+        state.communityExecutions[key]={...rest,status:'finalized',finalizedAt:new Date(now()).toISOString(),reconciledBy:'chain-status'};
+      });
+    }catch{/* Bookkeeping only; delivery state comes from the chain. */}
+  }
   async function open(record){
-    if(record.openingSignature)return {status:'opened'};
+    if(record.openingSignature){await settle(`community:${record.mint}:open`);return {status:'opened'};}
+    // The program rejects snapshot approval after migration + window, so an
+    // unopened drop past its expiry can never open; stop building attempts.
+    const expiresAt=Number(record.manifest?.expiresAt);
+    if(Number.isSafeInteger(expiresAt)&&Math.floor(now()/1000)>=expiresAt)return {status:'expired'};
     const {drop,approval}=communityAddresses({programId,authority:payer,mint:record.mint});
     // Recover earlier operator/worker openings before constructing any new tx.
     if(await connection.getAccountInfo(drop,'finalized')){
@@ -46,7 +66,7 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
   }
   async function pay(record,leaf){
     const proof=await service.recipientProof({mint:record.mint,wallet:leaf.recipient,allowRecentProgramProof:false,forAutomaticDelivery:true});
-    if(proof.status==='claimed')return {status:'already-paid',payment:proof.payment};
+    if(proof.status==='claimed'){await settle(`community:${record.mint}:${leaf.recipient}`);return {status:'already-paid',payment:proof.payment};}
     if(proof.status!=='claimable')return {status:proof.status,reason:proof.reason};
     const built=buildCommunityClaimInstruction({programId,authority:payer,mint:record.mint,tokenProgram:record.tokenProgram,
       manifest:record.manifest,recipient:leaf.recipient,payer,allowProgramRecipient:supportsProgramRecipients(record)});
