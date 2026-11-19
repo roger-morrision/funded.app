@@ -15,6 +15,7 @@ export function validatePriceSignerConfig(config,signer){
     assert(/^[a-f0-9]{64}$/.test(p.programDataSha256),'Reviewed ProgramData hash required.');
     assert(/^[1-9]\d*$/.test(p.maxOrderLamports)&&BigInt(p.maxOrderLamports)<=1000000000n,'Order limit must be at most 1 Devnet SOL.');
     assert(typeof p.allowCurve==='boolean','Explicit curve activation required.');
+    assert(p.allowOwnCoin===undefined||typeof p.allowOwnCoin==='boolean','Own-coin activation must be explicit.');
   }
   return config;
 }

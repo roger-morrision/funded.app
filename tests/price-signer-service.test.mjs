@@ -21,7 +21,12 @@ const requestData=(agency=false)=>{const b=Buffer.alloc(agency?122:64);createHas
 test('signer permits only bounded RICH buy-and-burn encodings',()=>{
   for(const agency of [false,true])assert.equal(decodeBuybackRequest(requestData(agency)).quote,10000n);
   assert.throws(()=>decodeBuybackRequest(Buffer.alloc(64)));
-  const own=requestData(true);own[40]=7;own[41]=1;assert.throws(()=>decodeBuybackRequest(own),/Own-coin/);
+  const own=requestData(true);own[40]=7;own[41]=1;assert.throws(()=>decodeBuybackRequest(own),/own-coin observation/);
+  own.writeBigUInt64LE(5n,42);own.writeBigInt64LE(1700000000n,50);own.writeBigUInt64LE(100000000000n,58);own[66]=9;
+  const decoded=decodeBuybackRequest(own);
+  assert.equal(decoded.ownCoin,true);assert.equal(decoded.agent,1);assert.equal(decoded.observation.marketCapUsdMicros,100000000000n);
+  for(const [category,agent] of [[7,3],[7,255],[6,1],[5,255]]){const bad=Buffer.from(own);bad[40]=category;bad[41]=agent;
+    assert.throws(()=>decodeBuybackRequest(bad),/Unsupported agency/);}
   const hidden=requestData(true);hidden[42]=1;assert.throws(()=>decodeBuybackRequest(hidden));
   const unsafe=requestData();unsafe.writeBigUInt64LE(20000n,56);assert.throws(()=>decodeBuybackRequest(unsafe),/bounded/);
   assert.throws(()=>decodeBuybackRequest(Buffer.concat([requestData(),Buffer.alloc(1)])));

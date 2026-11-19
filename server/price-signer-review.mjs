@@ -4,7 +4,8 @@ import {PublicKey,SystemProgram,ComputeBudgetProgram,TransactionMessage,Versione
 import {getAssociatedTokenAddressSync,NATIVE_MINT,TOKEN_PROGRAM_ID,ASSOCIATED_TOKEN_PROGRAM_ID} from '@solana/spl-token';
 import {deriveFeeRouter,verifyFeeRouterAccount} from '../fee-router.js';
 import {deriveMintPolicyV3,deriveMintVaultsV3,verifyMintPolicyV3Account} from '../mint-router-v3.js';
-import {deriveAgencyPolicyV3,decodeAgencyPolicyV3,agencyDiscriminator,readSolCreditLamportsV3} from '../agency-mint-router-v3.js';
+import {deriveAgencyPolicyV3,deriveAgencyVaultsV3,decodeAgencyPolicyV3,agencyDiscriminator,readSolCreditLamportsV3} from '../agency-mint-router-v3.js';
+import {canonicalPumpPoolPda} from '@pump-fun/pump-swap-sdk';
 import {priceConfigAddress,priceSignerActivated} from './buyback-price-signer.mjs';
 import {v3BuybackFeeSetup,verifyV3BuybackAuthorityReserve} from './v3-buyback-setup.mjs';
 import {independentMarketQuote} from './price-signer-market.mjs';
@@ -19,10 +20,17 @@ export const PRICE_SIGNER_GENESIS='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG'
 export function decodeBuybackRequest(data){
   const agency=data.length===122&&data.subarray(0,8).equals(agencyDiscriminator('buyback_agency_mint_v3'));
   assert(agency||data.length===64&&data.subarray(0,8).equals(disc('global:buyback_mint_v3')),'Only RICH buy-and-burn instructions are permitted.');
-  if(agency)assert(data[40]===6&&data[41]===255&&data.subarray(42,98).equals(Buffer.alloc(56)),'Own-coin agency signing is not enabled.');
+  // Category 6 / agent 255 buys and burns RICH; category 7 / agent 1|2 buys and
+  // burns the launch's own coin at a market-cap milestone.
+  const ownCoin=agency&&data[40]===7&&(data[41]===1||data[41]===2);
+  if(agency)assert(ownCoin||data[40]===6&&data[41]===255&&data.subarray(42,98).equals(Buffer.alloc(56)),'Unsupported agency buyback category.');
   const offset=agency?98:40,quote=data.readBigUInt64LE(offset),minimum=data.readBigUInt64LE(offset+8),limit=data.readBigUInt64LE(offset+16);
   assert(quote>=10000n&&minimum>0n&&limit===quote,'A positive, bounded purchase is required.');
-  return{agency,id:data.subarray(8,40),quote,minimum,limit};
+  const observation=ownCoin?{slot:data.readBigUInt64LE(42),observedAt:data.readBigInt64LE(50),
+    marketCapUsdMicros:data.readBigUInt64LE(58),hash:data.subarray(66,98)}:null;
+  if(ownCoin)assert(observation.slot>0n&&observation.observedAt>0n&&observation.marketCapUsdMicros>0n
+    &&!observation.hash.equals(Buffer.alloc(32)),'A complete own-coin observation is required.');
+  return{agency,ownCoin,agent:ownCoin?data[41]:null,observation,id:data.subarray(8,40),quote,minimum,limit};
 }
 
 export function validateComputeInstructions(instructions){
@@ -75,10 +83,14 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   const args=decodeBuybackRequest(Buffer.from(ix.data));
   assert(args.quote<=BigInt(config.maxOrderLamports),'Order exceeds signer spend limit.');
   assert(ix.keys.length>=36&&ix.keys.length<=45,'Unexpected buyback accounts.');
-  const creator=ix.keys[1].pubkey,sourceMint=ix.keys[2].pubkey,vault=deriveMintVaultsV3(program,sourceMint)[6];
+  assert(!args.ownCoin||config.allowOwnCoin===true,'Own-coin agency signing is not enabled.');
+  const creator=ix.keys[1].pubkey,sourceMint=ix.keys[2].pubkey;
+  const vault=args.ownCoin?deriveAgencyVaultsV3(program,sourceMint)[7]:deriveMintVaultsV3(program,sourceMint)[6];
+  // Own-coin buys purchase the launch mint from its canonical SOL pool only.
+  const target=args.ownCoin?{...config,mint:String(sourceMint),pool:String(canonicalPumpPoolPda(sourceMint,NATIVE_MINT)),allowCurve:false,ownCoin:true}:config;
   const policyKey=(args.agency?deriveAgencyPolicyV3:deriveMintPolicyV3)(program,sourceMint).address;
   const receipt=PublicKey.findProgramAddressSync([Buffer.from('mint-buyback-v3'),sourceMint.toBuffer(),args.id],program)[0];
-  const [policyInfo,vaultInfo,receiptInfo,mintInfo]=await connection.getMultipleAccountsInfo([policyKey,vault,receipt,key(config.mint)],'finalized');
+  const [policyInfo,vaultInfo,receiptInfo,mintInfo]=await connection.getMultipleAccountsInfo([policyKey,vault,receipt,key(target.mint)],'finalized');
   assert(policyInfo?.owner.equals(program)&&policyInfo.data.length>=104,'Fee policy is unavailable.');
   const initialAuthority=key(policyInfo.data.subarray(72,104));
   const policy=args.agency?decodeAgencyPolicyV3(policyInfo,{programId:program,mint:sourceMint,creator,initialAuthority,credited:await readSolCreditLamportsV3(connection,program,sourceMint)}):
@@ -86,17 +98,32 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   const router=await verifyFeeRouterAccount({connection,programId:program,commitment:'finalized'});
   assert(router.verified&&router.authority.equals(authority),'Current router authority differs.');
   assert(policy.verified&&policy.protocolUnits[5]===500000,'Unapproved fee allocation.');
-  const remaining=policy.paidLamports[6]-policy.withdrawnLamports[6],rent=await connection.getMinimumBalanceForRentExemption(0,'finalized');
+  const category=args.ownCoin?7:6,rent=await connection.getMinimumBalanceForRentExemption(0,'finalized');
   assert(!receiptInfo,'Receipt already exists; replay rejected.');
-  assert(vaultInfo?.owner.equals(SystemProgram.programId)&&vaultInfo.data.length===0
-    &&BigInt(vaultInfo.lamports)===BigInt(rent)+remaining&&remaining>=args.limit,'Fee-vault custody or available budget differs.');
-  const quote=await marketQuote({connection,config,vault,quote:args.quote});
+  assert(vaultInfo?.owner.equals(SystemProgram.programId)&&vaultInfo.data.length===0,'Fee-vault custody differs.');
+  if(args.ownCoin){
+    const bit=1<<args.agent,left=policy.agentTargets[args.agent]-policy.agentSpent[args.agent];
+    assert(policy.selectedMask&bit&&!(policy.completedMask&bit)&&left>=args.limit
+      &&BigInt(vaultInfo.lamports)-BigInt(rent)>=args.limit,'Own-coin agent budget or milestone state differs.');
+  }else{
+    const remaining=policy.paidLamports[6]-policy.withdrawnLamports[6];
+    assert(BigInt(vaultInfo.lamports)===BigInt(rent)+remaining&&remaining>=args.limit,'Fee-vault custody or available budget differs.');
+  }
+  const quote=await marketQuote({connection,config:target,vault,quote:args.quote});
   assert(BigInt(quote.spendableQuoteIn)===args.quote&&args.minimum>=BigInt(quote.minBaseAmountOut),'Quote exceeds liquidity limit or output protection is too low.');
+  if(args.ownCoin){
+    // The authority's observation only matters on-chain; the signer requires
+    // its own reading to clear the milestone and to agree within 10%.
+    const threshold=BigInt(policy.rules.marketCapUsd[args.agent-1])*1000000n,own=BigInt(quote.marketCapUsdMicros??-1),seen=args.observation.marketCapUsdMicros;
+    const age=BigInt(Math.floor(now/1000))-args.observation.observedAt;
+    assert(!quote.curve&&own>=threshold&&seen>=threshold&&age>=-5n&&age<=60n
+      &&(own>seen?own-seen:seen-own)*10n<=own,'Independent market cap does not confirm the milestone.');
+  }
   assert(mintInfo?.owner.equals(quote.baseTokenProgram),'Purchased mint owner differs.');
-  const ata=getAssociatedTokenAddressSync(key(config.mint),vault,true,quote.baseTokenProgram);
+  const ata=getAssociatedTokenAddressSync(key(target.mint),vault,true,quote.baseTokenProgram);
   const wsol=getAssociatedTokenAddressSync(NATIVE_MINT,vault,true,TOKEN_PROGRAM_ID);
-  const market=quote.curve?bondingCurvePda(key(config.mint)):key(config.pool);
-  const expected=[authority,creator,sourceMint,deriveFeeRouter(program).address,policyKey,vault,key(config.mint),ata,wsol,market,receipt,
+  const market=quote.curve?bondingCurvePda(key(target.mint)):key(target.pool);
+  const expected=[authority,creator,sourceMint,deriveFeeRouter(program).address,policyKey,vault,key(target.mint),ata,wsol,market,receipt,
     quote.baseTokenProgram,TOKEN_PROGRAM_ID,ASSOCIATED_TOKEN_PROGRAM_ID,quote.pumpBuyInstruction.programId,SystemProgram.programId,priceConfigAddress(program),signer];
   assert(expected.every((p,i)=>ix.keys[i].pubkey.equals(p)),'Buyback custody addresses differ.');
   // The SDK chooses a protocol recipient randomly. Accept only current on-chain
@@ -122,24 +149,25 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   const reserve=await verifyV3BuybackAuthorityReserve({connection,transaction,authority,priceSigner:signer,setupCount:setup.length});
   assert(reserve.ready,'Protected authority reserve is insufficient.');
   const simulation=await connection.simulateTransaction(transaction,{sigVerify:false,replaceRecentBlockhash:true,commitment:'finalized',
-    accounts:{encoding:'base64',addresses:[String(vault),config.mint,String(ata),String(receipt),String(policyKey)]}});
+    accounts:{encoding:'base64',addresses:[String(vault),target.mint,String(ata),String(receipt),String(policyKey)]}});
   assert(!simulation.value.err,'Independent simulation rejected the transaction.');
   const [afterVault,afterMint,afterAta,afterReceipt,afterPolicy]=simulation.value.accounts||[];
   const bytes=a=>Buffer.from(a?.data?.[0]||'','base64');
   const receiptBytes=bytes(afterReceipt),mintBytes=bytes(afterMint),ataBytes=bytes(afterAta),policyBytes=bytes(afterPolicy);
   const spent=BigInt(vaultInfo.lamports)-BigInt(afterVault?.lamports||0);
   assert(afterMint?.owner===String(quote.baseTokenProgram)&&mintBytes.length>=82&&afterAta?.owner===String(quote.baseTokenProgram)
-    &&ataBytes.length>=165&&ataBytes.subarray(0,32).equals(key(config.mint).toBuffer())&&ataBytes.subarray(32,64).equals(vault.toBuffer())
+    &&ataBytes.length>=165&&ataBytes.subarray(0,32).equals(key(target.mint).toBuffer())&&ataBytes.subarray(32,64).equals(vault.toBuffer())
     &&ataBytes.readBigUInt64LE(64)===0n,'Simulated token custody is invalid.');
   const burned=mintInfo.data.readBigUInt64LE(36)-mintBytes.readBigUInt64LE(36);
   assert(afterVault?.owner===String(SystemProgram.programId)&&spent>0n&&spent<=args.quote&&burned>=args.minimum,'Simulated spend or burn differs.');
   assert(afterReceipt?.owner===config.programId&&receiptBytes.length===(args.agency?209:160)
     &&receiptBytes.subarray(0,8).equals(disc(args.agency?'account:AgencyBuybackV3':'account:MintBuybackV3'))
     &&receiptBytes.subarray(8,40).equals(args.id)&&receiptBytes.subarray(40,72).equals(sourceMint.toBuffer())
-    &&receiptBytes.subarray(72,104).equals(key(config.mint).toBuffer())&&receiptBytes.subarray(104,136).equals(market.toBuffer())
+    &&receiptBytes.subarray(72,104).equals(key(target.mint).toBuffer())&&receiptBytes.subarray(104,136).equals(market.toBuffer())
     &&receiptBytes.readBigUInt64LE(136)===spent&&receiptBytes.readBigUInt64LE(144)===burned,'Simulated immutable receipt differs.');
   assert(afterPolicy?.owner===config.programId&&policyBytes.length===policyInfo.data.length
-    &&policyBytes.readBigUInt64LE((args.agency?204:192)+48)===policy.withdrawnLamports[6]+spent,'Simulated policy debit differs.');
+    &&policyBytes.readBigUInt64LE((args.agency?204:192)+category*8)===policy.withdrawnLamports[category]+spent
+    &&(!args.ownCoin||policyBytes.readBigUInt64LE(305+args.agent*8)===policy.agentSpent[args.agent]+spent&&(policyBytes[329]&(1<<args.agent))!==0),'Simulated policy debit differs.');
   assert(Date.now()-started<35000,'Review expired before signing.');
   return{transaction,messageHash:hash(message.serialize()),programId:config.programId,vault:String(vault),receipt:String(receipt),
     quote:String(args.quote),minimum:String(args.minimum),simulatedSpent:String(spent),simulatedBurned:String(burned),slot,

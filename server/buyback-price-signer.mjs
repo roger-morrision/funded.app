@@ -12,7 +12,10 @@ export function buybackPriceService(env=process.env) {
   const key=env.FUNDED_DEVNET_BUYBACK_PRICE_SIGNER, raw=env.FUNDED_DEVNET_BUYBACK_PRICE_SIGNER_URL;
   if(!key||!raw)return null;
   const endpoint=new URL(raw), signer=new PublicKey(key);
-  if(endpoint.protocol!=='https:'||endpoint.username||endpoint.password||endpoint.hash||endpoint.search
+  // HTTPS, or plain HTTP only to a single-label service name on the private
+  // compose network (never a public host or IP literal).
+  const internal=endpoint.protocol==='http:'&&/^[a-z][a-z0-9-]{0,62}$/.test(endpoint.hostname)&&endpoint.hostname!=='localhost';
+  if(endpoint.protocol!=='https:'&&!internal||endpoint.username||endpoint.password||endpoint.hash||endpoint.search
     ||!PublicKey.isOnCurve(signer.toBytes()))throw Error('Invalid independent Devnet buyback signer configuration.');
   const tokenFile=env.FUNDED_DEVNET_BUYBACK_PRICE_SIGNER_TOKEN_FILE;
   const token=tokenFile?readFileSync(tokenFile,'utf8').trim():null;

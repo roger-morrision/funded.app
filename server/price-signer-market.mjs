@@ -6,10 +6,23 @@ import {GLOBAL_PDA,PUMP_SDK} from '@pump-fun/pump-sdk';
 import {readBuybackCurve,quoteCurveBuyback} from './v3-buyback-curve.mjs';
 import {selectV3PumpBuy} from './v3-buyback-setup.mjs';
 import {protectedV3BuybackMinimum} from './v3-buyback-quote.mjs';
+import {unpackMint} from '@solana/spl-token';
+import {agencyMarketCapMicros} from './agency-market-observation.mjs';
+
+// SOL/USD for own-coin milestone checks. Deliberately a different source from
+// the application's CoinGecko reference, so one feed cannot satisfy both.
+export async function krakenSolUsd({request=fetch}={}){
+  const response=await request('https://api.kraken.com/0/public/Ticker?pair=SOLUSD',{redirect:'error',signal:AbortSignal.timeout(8000)});
+  if(!response.ok)throw Error('Independent SOL/USD reference is unavailable.');
+  const body=await response.json(),row=body?.result&&Object.values(body.result)[0];
+  const price=String(row?.c?.[0]||'').replace(/0+$/,'').replace(/\.$/,'');
+  if((body?.error||[]).length||!/^[1-9]\d{0,6}(?:\.\d{1,8})?$/.test(price))throw Error('Independent SOL/USD reference is invalid.');
+  return price;
+}
 
 // Always fetch from the signer's own finalized connection. No price, reserves,
 // market identity, or RPC URL from the HTTP caller is trusted.
-export async function independentMarketQuote({connection,config,vault,quote}){
+export async function independentMarketQuote({connection,config,vault,quote,solUsd=krakenSolUsd}){
   const mint=new PublicKey(config.mint),pool=new PublicKey(config.pool);
   const snapshot=await readBuybackCurve(connection,mint);
   if(snapshot&&!snapshot.curve.complete){
@@ -34,8 +47,13 @@ export async function independentMarketQuote({connection,config,vault,quote}){
     coinCreator:state.pool.coinCreator,creator:state.pool.creator,quoteMint:state.pool.quoteMint,
     isMayhemMode:state.pool.isMayhemMode,creatorFeeBps:state.pool.creatorFeeBps});
   const buy=selectV3PumpBuy(await PUMP_AMM_SDK.buyQuoteInput(state,new BN(String(quote)),1));
+  // Own-coin milestones: market cap from the signer's own finalized reserves,
+  // mint supply and an independent SOL/USD reference.
+  const marketCapUsdMicros=config.ownCoin?agencyMarketCapMicros({supply:String(unpackMint(mint,mintInfo,mintInfo.owner).supply),
+    baseReserve:String(state.poolBaseAmount),quoteReserve:String(state.poolQuoteAmount),
+    virtualQuoteReserve:String(state.pool.virtualQuoteReserves||0),solUsd:await solUsd()}):undefined;
   const choices=new Map([[9,state.globalConfig.protocolFeeRecipients],
     [buy.keys.length-2,state.globalConfig.buybackFeeRecipients]]);
-  return{curve:false,pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,
+  return{curve:false,pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,marketCapUsdMicros,
     spendableQuoteIn:String(quote),minBaseAmountOut:String(protectedV3BuybackMinimum(output.base.toString())),recipientChoices:choices};
 }
