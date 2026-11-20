@@ -65,7 +65,7 @@ export function renderPortfolio(
   const trades = address ? walletDetailTrades(address) : [];
   const history=portfolioTradeHistory?.wallet===address?portfolioTradeHistory:null;
   for (const trade of trades) if (Number.isInteger(trade.decimals)) decimalsByMint.set(trade.mint,trade.decimals);
-  const observed = matchedTradePnl(trades, decimalsByMint);
+  const observed = matchedTradePnl(trades.filter(trade=>!trade.quoteMint), decimalsByMint);
   for (const holding of holdings) if (holding.market?.symbol) rememberTokenIdentity(holding.mint, holding.market);
   const solUsd = solUsdPrice();
   const usdText = sol => solUsd > 0 && Number.isFinite(Number(sol)) ? formatDashboardUsd(Number(sol) * solUsd) : '—';
@@ -73,7 +73,7 @@ export function renderPortfolio(
     pnl.title = observed.matchedSales ? `${observed.matchedSales} sale${observed.matchedSales === 1 ? '' : 's'} matched to buys observed in the last 24 hours. Excludes fees, unmatched trades and open positions.` : 'Cost basis is unavailable for older holdings and unmatched trades.';
     let basis = document.querySelector('#portfolio-calculation-basis');
     if (!basis) { basis = document.createElement('p'); basis.id = 'portfolio-calculation-basis'; basis.className = 'flow-note'; pnl.closest('article, .portfolio-stat')?.append(basis); if (!basis.isConnected) pnl.parentElement?.after(basis); }
-    basis.textContent = `Holdings value covers ${pricedCount} of ${holdings.length} observed tokens${partial ? '; token-account coverage is partial' : ''}. Transferred or older holdings have unknown cost basis; missing values are not zero.`;
+    basis.textContent = `Holdings value covers ${pricedCount} of ${holdings.length} observed tokens${partial ? '; token-account coverage is partial' : ''}. Transferred or older holdings have unknown cost basis; missing values are not zero.${trades.some(trade=>trade.quoteMint) ? ' Paired-token trades are excluded from SOL profit and loss.' : ''}`;
   // Latest trades first.
   txRows.innerHTML = [...trades].sort((a, b) => (Number(b.blockTime) || 0) - (Number(a.blockTime) || 0)).map(trade => {
       const timestamp = Number(trade.blockTime) * 1000;
@@ -85,10 +85,12 @@ export function renderPortfolio(
       // Share this trade's banner (quantity, SOL, and for a matched sale its P&L).
       const matched = trade.side === 'sell' ? observed.bySignature.get(trade.signature) : null;
       const shareButton = `<button type="button" class="portfolio-trade-share" data-share-trade data-signature="${escapeHtml(trade.signature)}" data-mint="${escapeHtml(trade.mint)}" data-side="${escapeHtml(trade.side)}" data-symbol="${escapeHtml(trade.symbol || '')}" data-pnl-sol="${matched ? escapeHtml(String(matched.pnlSol)) : ''}" data-pnl-percent="${matched && matched.basisSol > 0 ? escapeHtml(String(matched.pnlSol / matched.basisSol * 100)) : ''}" aria-label="Share this ${trade.side === 'buy' ? 'buy' : 'sale'}">${icon('share')}</button>`;
-      const pricePerToken = quantity > 0 && Number.isFinite(trade.solAmount) ? (trade.solAmount / quantity).toFixed(6) : '—';
-      const pricePerTokenUsd = solUsd > 0 && pricePerToken !== '—' ? formatDashboardUsd(pricePerToken * solUsd) : '—';
+      const tradedAmount = trade.quoteMint ? trade.quoteAmount : trade.solAmount;
+      const tradedSymbol = trade.quoteMint ? trade.quoteSymbol : 'SOL';
+      const pricePerToken = quantity > 0 && Number.isFinite(tradedAmount) ? (tradedAmount / quantity).toFixed(6) : '—';
+      const pricePerTokenUsd = !trade.quoteMint && solUsd > 0 && pricePerToken !== '—' ? formatDashboardUsd(pricePerToken * solUsd) : '—';
       const traderShort = trade.trader ? `${trade.trader.slice(0,4)}…${trade.trader.slice(-4)}` : '—';
-      return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}" title="${escapeHtml(trade.mint)}">${trade.symbol ? `$${escapeHtml(trade.symbol)}` : tokenIdentityMarkup(trade.mint, escapeHtml, shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${escapeHtml(formatOnChainNumber(trade.solAmount, 5))}</td><td class="numeric">${escapeHtml(usdText(trade.solAmount))}</td><td class="numeric">${escapeHtml(pricePerToken)} SOL / ${escapeHtml(pricePerTokenUsd)}</td><td class="numeric">${(() => { const row = trade.side === 'sell' ? observed.bySignature.get(trade.signature) : null;
+      return `<tr class="portfolio-trade-row"><td><time datetime="${escapeHtml(new Date(timestamp).toISOString())}" title="${escapeHtml(new Date(timestamp).toLocaleString())}">${escapeHtml(formatOnchainAge(timestamp))}</time></td><td><span class="portfolio-trade-side ${trade.side}">${trade.side === 'buy' ? 'Buy' : 'Sell'}</span></td><td><a href="/token/${encodeURIComponent(trade.mint)}" title="${escapeHtml(trade.mint)}">${trade.symbol ? `$${escapeHtml(trade.symbol)}` : tokenIdentityMarkup(trade.mint, escapeHtml, shortAddress(trade.mint))}</a></td><td class="numeric">${escapeHtml(tokenAmount)}</td><td class="numeric">${Number.isFinite(tradedAmount) ? `${escapeHtml(formatOnChainNumber(tradedAmount, 5))} ${escapeHtml(tradedSymbol)}` : '—'}</td><td class="numeric">${trade.quoteMint ? '—' : escapeHtml(usdText(trade.solAmount))}</td><td class="numeric">${escapeHtml(pricePerToken)} ${escapeHtml(tradedSymbol)} / ${escapeHtml(pricePerTokenUsd)}</td><td class="numeric">${(() => { const row = trade.side === 'sell' ? observed.bySignature.get(trade.signature) : null;
         if (!row) return '<span class="portfolio-pnl-none">—</span>';
         const cls = row.pnlSol >= 0 ? 'is-positive' : 'is-negative', sign = row.pnlSol >= 0 ? '+' : '';
         const pct = row.basisSol > 0 ? ` (${sign}${(row.pnlSol / row.basisSol * 100).toFixed(1)}%)` : '';

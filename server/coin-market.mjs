@@ -5,6 +5,7 @@ import { summarizeTrending } from '../market-trending.js';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
 import {PublicKey} from '@solana/web3.js';
 import {fetchVerifiedPoolSnapshot} from '../pump-trading.js';
+import {readCoinDisplaySnapshot} from '../coin-display-snapshot.js';
 import {createSolUsdQuoteReader} from './price-quote.mjs';
 
 // USDC-quoted Pump curves (Devnet test USDC and Mainnet USDC), 6 decimals.
@@ -86,7 +87,7 @@ export function decodePumpTrades(logMessages, mint, { anyQuote = false } = {}) {
   return trades;
 }
 
-export function decodePumpSwapTrades(logMessages, pool, decodeEvent) {
+export function decodePumpSwapTrades(logMessages, pool, decodeEvent, {quoteMint = NATIVE_MINT} = {}) {
   const trades = [];
   const expectedPool = pool.toBase58();
   const ammProgram = PUMP_AMM_PROGRAM_ID.toBase58();
@@ -112,7 +113,9 @@ export function decodePumpSwapTrades(logMessages, pool, decodeEvent) {
       const baseReserves = Number(data.poolBaseTokenReserves.toString());
       const quoteReserves = Number(data.poolQuoteTokenReserves.toString()) + Number(data.virtualQuoteReserves.toString());
       if (solLamports <= 0n || tokenAmountRaw <= 0n) continue;
-      trades.push({ solLamports, tokenAmountRaw, isBuy, trader:data.user.toBase58(),
+      trades.push({ solLamports, quoteMint:quoteMint.toBase58(),
+        quoteAmountRaw:quoteMint.equals(NATIVE_MINT) ? null : solLamports,
+        tokenAmountRaw, isBuy, trader:data.user.toBase58(),
         priceRatio:baseReserves > 0 && quoteReserves > 0 ? quoteReserves / baseReserves : NaN });
     } catch { /* Ignore unrelated or unsupported PumpSwap events. */ }
   }
@@ -165,13 +168,30 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
 export async function readPumpMarketActivity({ connection, mint, poolAddress, readPool=fetchVerifiedPoolSnapshot, readSolUsd=sharedSolUsd,
   nowSeconds = Math.floor(Date.now() / 1000), maxSignatures = 50 }) {
   const cutoffSeconds = nowSeconds - DAY_SECONDS;
-  const pool = poolAddress ? new PublicKey(poolAddress) : canonicalPumpPoolPda(mint, NATIVE_MINT);
+  let quoteMint=NATIVE_MINT, pairedCurveComplete=false;
+  if(!poolAddress){
+    const curveAccount=await connection.getAccountInfo(bondingCurvePda(mint),'confirmed');
+    if(curveAccount?.owner?.equals(PUMP_PROGRAM_ID)){
+      const curve=PUMP_SDK.decodeBondingCurveNullable(curveAccount);
+      if(!curve?.quoteMint)throw new Error('Market quote mint could not be verified.');
+      if(!isSolLikeQuoteMint(curve.quoteMint)){
+        quoteMint=curve.quoteMint;
+        pairedCurveComplete=Boolean(curve.complete);
+      }
+    }
+  }
+  const pool = poolAddress ? new PublicKey(poolAddress) : canonicalPumpPoolPda(mint, quoteMint);
   // The configured platform token can use a noncanonical Devnet pool. Prove
   // its mint, SOL quote and vault custody before accepting its trade history.
   let poolLookupFailed=false;
   const poolAccount = await connection.getAccountInfo?.(pool, 'confirmed').catch(()=>{poolLookupFailed=true;return null;});
   if(poolAddress&&poolAccount)await readPool({connection,mint,poolAddress:pool.toBase58()});
-  const poolVerified = poolAccount?.owner?.equals(PUMP_AMM_PROGRAM_ID) === true;
+  let poolVerified = poolAccount?.owner?.equals(PUMP_AMM_PROGRAM_ID) === true;
+  if(!quoteMint.equals(NATIVE_MINT)){
+    const snapshot=poolVerified ? await readCoinDisplaySnapshot({connection,mint}) : null;
+    poolVerified=Boolean(snapshot?.pool?.pool === pool.toBase58());
+    if(pairedCurveComplete&&!poolVerified)poolLookupFailed=true;
+  }
   const routes = [{ kind:'curve', address:bondingCurvePda(mint) }];
   if (poolVerified) routes.push({ kind:'pool', address:pool });
   const scans = await Promise.all(routes.map(async route => ({
@@ -202,7 +222,7 @@ export async function readPumpMarketActivity({ connection, mint, poolAddress, re
   const poolEventCoder = poolVerified ? getPumpAmmProgram(connection).coder.events : null;
   const decodePoolEvent = poolEventCoder?.decode.bind(poolEventCoder);
   const records = [];
-  let missingTransactions = false,missingRecentTransactions=false;
+  let missingTransactions = false,missingRecentTransactions=false,unpricedTrades=false;
   for (let start = 0; start < selected.length; start += 4) {
     const group = selected.slice(start, start + 4);
     const transactions = await Promise.all(group.map(item => connection.getTransaction(item.signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }).catch(() => null)));
@@ -222,18 +242,20 @@ export async function readPumpMarketActivity({ connection, mint, poolAddress, re
         const amm=group[index].routes.has('pool')&&event.program===PUMP_AMM_PROGRAM_ID.toBase58();
         if(!curve&&!amm)continue;
         let trades=curve?decodePumpTrades([event.log],mint,{anyQuote:true}):decodePumpSwapTrades([
-          `Program ${event.program} invoke [1]`,event.log,`Program ${event.program} success`],pool,decodePoolEvent);
-        if(curve&&trades.some(t=>t.quoteMint&&!isSolLikeQuoteMint(new PublicKey(t.quoteMint)))){
+          `Program ${event.program} invoke [1]`,event.log,`Program ${event.program} success`],pool,decodePoolEvent,{quoteMint});
+        if(trades.some(t=>t.quoteMint&&!isSolLikeQuoteMint(new PublicKey(t.quoteMint)))){
           solUsd??=await readSolUsd().catch(()=>null);
-          trades=trades.map(t=>tradeInSolTerms(t,solUsd)).filter(Boolean);
+          const priced=trades.map(t=>tradeInSolTerms(t,solUsd));
+          if(priced.some(row=>!row))unpricedTrades=true;
+          trades=priced.filter(Boolean);
         }
         for(const trade of trades)records.push({...trade,route:curve?'curve':'pool',signature:group[index].signature,blockTime,order:start+index});
       }
     }
   }
-  const complete = !poolLookupFailed && !missingRecentTransactions && scans.every(scan => !scan.failed && scan.signatures.every(item => item.blockTime != null)
+  const complete = !poolLookupFailed && !unpricedTrades && !missingRecentTransactions && scans.every(scan => !scan.failed && scan.signatures.every(item => item.blockTime != null)
     && (scan.signatures.length < maxSignatures || scan.signatures.some(item => item.blockTime < cutoffSeconds)));
-  const observedComplete = !omittedHistory && !poolLookupFailed && !missingTransactions && scans.every(scan => !scan.failed && scan.signatures.length < maxSignatures
+  const observedComplete = !omittedHistory && !poolLookupFailed && !unpricedTrades && !missingTransactions && scans.every(scan => !scan.failed && scan.signatures.length < maxSignatures
     && scan.signatures.every(item => item.blockTime != null));
   return {
     ...summarizePumpTrades(records, { cutoffSeconds, complete, observedComplete,

@@ -13,7 +13,7 @@ export async function verifyTradeWake({connection,mint,wallet,signature,now=Date
     || now-tx.blockTime*1000>maxAgeMs)throw new Error('A recent finalized trade is required.');
   const coder=getPumpAmmProgram(connection).coder.events;
   const rows=walletTradeRows({transaction:tx,wallet,reference:{signature,slot:tx.slot,confirmationStatus:'finalized'},
-    decodePoolEvent:coder.decode.bind(coder)});
+    decodePoolEvent:coder.decode.bind(coder),anyQuote:true});
   const trade=rows.find(row=>row.mint===mint&&row.trader===wallet);
   if(!trade)throw new Error('The finalized trade does not match this wallet and mint.');
   // Successful program events plus an actual directional recipient-token change.

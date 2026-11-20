@@ -53,7 +53,10 @@ export function createPortfolioController(appState) {
   function walletDetailTrades(address){
     if (!address) return [];
     if (portfolioTradeHistory.wallet===address) return portfolioTradeHistory.status==='ready'
-      ? portfolioTradeHistory.trades.map(trade=>({...trade,solAmount:Number(trade.solLamports)/1_000_000_000,
+      ? portfolioTradeHistory.trades.map(trade=>({...trade,
+        solAmount:trade.quoteMint?NaN:Number(trade.solLamports)/1_000_000_000,
+        quoteAmount:trade.quoteMint?Number(trade.quoteAmountRaw)/10**trade.quoteDecimals:null,
+        quoteSymbol:trade.quoteMint?['4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'].includes(trade.quoteMint)?'USDC':`${trade.quoteMint.slice(0,4)}…`:null,
         symbol:appState.assets.find(asset=>asset.address===trade.mint)?.symbol
           || appState.verifiedLaunchPolicies.find(launch=>launch.mint===trade.mint)?.symbol || ''})) : [];
     return appState.collectRecentTrades(appState.assets, { limit: 1000, since: Math.floor(Date.now() / 1000) - 86400 }).filter(trade => trade.trader === address).slice(0, 100);
@@ -87,7 +90,11 @@ export function createPortfolioController(appState) {
             || !Number.isSafeInteger(trade.blockTime)||trade.blockTime<Math.floor(Date.now()/1000)-86400
             || !Number.isSafeInteger(trade.slot)||trade.slot<1
             || !Number.isInteger(trade.decimals)||trade.decimals<0||trade.decimals>18
-            || !/^[1-9]\d*$/.test(trade.solLamports)||!/^[1-9]\d*$/.test(trade.tokenAmountRaw)))
+            || (trade.quoteMint ? !appState.validateSolanaMint(trade.quoteMint).valid
+              || !Number.isInteger(trade.quoteDecimals)||trade.quoteDecimals<0||trade.quoteDecimals>12
+              || !/^[1-9]\d*$/.test(trade.quoteAmountRaw)||trade.solLamports!==null
+              : !/^[1-9]\d*$/.test(trade.solLamports))
+            || !/^[1-9]\d*$/.test(trade.tokenAmountRaw)))
           throw new Error('Wallet history is unavailable or mismatched.');
         portfolioTradeHistory={...data,status:'ready'};
       } catch {

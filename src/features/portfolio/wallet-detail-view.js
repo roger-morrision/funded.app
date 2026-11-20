@@ -117,6 +117,7 @@ export function renderWalletDetail(
   const history = isSelf && walletHistory?.wallet === address ? walletHistory : { status:'idle', rows:[], coverage:{} };
   const lastActivity = Math.max(0, ...launchTimes, ...tradeTimes, ...history.rows.map(row => row.time || 0));
   const volume = trades.reduce((sum, trade) => sum + Number(trade.solAmount || 0), 0);
+  const hasPairedTrades = trades.some(trade => Boolean(trade.quoteMint));
   const title = document.querySelector('#wallet-page-title');
   const addressNode = document.querySelector('#wallet-page-address');
   const selfBadge = document.querySelector('#wallet-self-badge');
@@ -144,8 +145,8 @@ export function renderWalletDetail(
     setCoinField('#wallet-stat-trades', tradeScanReady ? String(trades.length) : '—');
     setCoinField('#wallet-stat-trades-note', '');
     const hasSolUsdQuote = Number.isFinite(coinSolUsdPrice) && coinSolUsdPrice > 0;
-    setCoinField('#wallet-stat-volume', !tradeScanReady ? '$—' : !trades.length ? '$0.00' : hasSolUsdQuote ? formatDashboardUsd(volume * coinSolUsdPrice) : '$—');
-    setCoinField('#wallet-stat-volume-note', '');
+    setCoinField('#wallet-stat-volume', !tradeScanReady || hasPairedTrades ? '$—' : !trades.length ? '$0.00' : hasSolUsdQuote ? formatDashboardUsd(volume * coinSolUsdPrice) : '$—');
+    setCoinField('#wallet-stat-volume-note', hasPairedTrades ? 'Mixed quote assets; no common USD valuation verified.' : '');
     setCoinField('#wallet-stat-burned', !registryReady ? '—' : burned > 0 ? formatOnChainNumber(burned, 2) : launches.length ? '0' : '—');
     setCoinField('#wallet-stat-last', lastActivity ? formatOnchainAge(lastActivity) : '—');
     // Optional tiles with nothing to show are hidden rather than shown as "—".
@@ -208,7 +209,7 @@ export function renderWalletDetail(
   description.textContent = isSelf
     ? `Your trades, launches, burns and rewards.${shownScanNote}`
     : `Trades from the last 24 hours, plus launches and burns.${shownScanNote}`;
-  const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${trade.symbol ? escapeHtml('$' + trade.symbol) : tokenIdentityMarkup(trade.mint, escapeHtml, 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.solAmount, 4))} SOL<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
+  const tradeRows = trades.map(trade => ({ type:trade.side, time:Number(trade.blockTime) * 1000 || 0, html:`<a class="wallet-activity-row" data-token-mint="${escapeHtml(trade.mint)}" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(trade.signature)}`))}" target="_blank" rel="noopener noreferrer"><span class="wallet-activity-icon ${trade.side}">${trade.side === 'buy' ? '↗' : '↘'}</span><span><strong>${trade.side === 'buy' ? 'Bought' : 'Sold'} ${trade.symbol ? escapeHtml('$' + trade.symbol) : tokenIdentityMarkup(trade.mint, escapeHtml, 'token')}</strong><small>${escapeHtml(shortAddress(trade.mint))}</small></span><b>${escapeHtml(formatOnChainNumber(trade.quoteMint ? trade.quoteAmount : trade.solAmount, 4))} ${escapeHtml(trade.quoteSymbol || 'SOL')}<small>${escapeHtml(formatOnchainAge(Number(trade.blockTime) * 1000))}</small></b></a>` }));
   const seenBurns = new Set();
   const burnRows = launches.flatMap(launch => {
     const burn = launch.creatorLaunchBurn;

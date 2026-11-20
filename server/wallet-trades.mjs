@@ -12,7 +12,7 @@ const address=value=>value?.toBase58?.() || value?.pubkey?.toBase58?.() || Strin
 // Decode only successful, finalized receipts belonging to this wallet. The
 // wallet's token-balance metadata supplies mint/decimal identities; PumpSwap
 // receipts must also identify that mint's canonical SOL pool.
-export function walletTradeRows({transaction,reference,wallet,decodePoolEvent}) {
+export function walletTradeRows({transaction,reference,wallet,decodePoolEvent,anyQuote=false}) {
   if (!transaction || transaction.meta?.err!==null || transaction.slot!==reference.slot
     || !Number.isSafeInteger(transaction.slot)||transaction.slot<1||reference.confirmationStatus!=='finalized'
     || transaction.transaction?.signatures?.[0]!==reference.signature
@@ -37,24 +37,40 @@ export function walletTradeRows({transaction,reference,wallet,decodePoolEvent}) 
     const curve=event.program===PUMP_PROGRAM_ID.toBase58(),pool=event.program===PUMP_AMM_PROGRAM_ID.toBase58();
     if (!curve&&!pool) continue;
     const encoded=event.log.slice('Program data: '.length),bytes=Buffer.from(encoded,'base64');
-    let expectedTrader;
+    let expectedTrader, eventPool;
     if (curve&&bytes.subarray(0,8).equals(Buffer.from([189,219,127,211,78,230,97,238]))) {
       expectedTrader=PUMP_SDK.decodeTradeEventBc(bytes.subarray(8)).user.toBase58();
     } else if (pool) {
       const decoded=decodePoolEvent(encoded);
-      if (['buyEvent','sellEvent'].includes(decoded?.name)) expectedTrader=decoded.data.user.toBase58();
+      if (['buyEvent','sellEvent'].includes(decoded?.name)) {
+        expectedTrader=decoded.data.user.toBase58();eventPool=decoded.data.pool;
+      }
     }
     const before=records.length;
     for (const [mint,{mint:key,decimals}] of mints) {
-      const trades=curve?decodePumpTrades([event.log],key):decodePumpSwapTrades([
-        `Program ${event.program} invoke [1]`,event.log,`Program ${event.program} success`,
-      ],canonicalPumpPoolPda(key,NATIVE_MINT),decodePoolEvent);
+      const quotes=pool&&anyQuote&&eventPool
+        ? [NATIVE_MINT,...[...mints.values()].map(row=>row.mint).filter(candidate=>!candidate.equals(key))]
+        : [NATIVE_MINT];
+      const trades=curve?decodePumpTrades([event.log],key,{anyQuote})
+        : quotes.flatMap(quoteMint=>{
+          const canonical=canonicalPumpPoolPda(key,quoteMint);
+          if(!eventPool?.equals(canonical))return [];
+          return decodePumpSwapTrades([`Program ${event.program} invoke [1]`,event.log,
+            `Program ${event.program} success`],canonical,decodePoolEvent,{quoteMint});
+        });
       for (const trade of trades) {
         if (trade.trader!==wallet) continue;
-        if (trade.solLamports<=0n||trade.tokenAmountRaw<=0n) throw new Error('Invalid wallet trade amounts.');
+        const paired=trade.quoteMint&&!new PublicKey(trade.quoteMint).equals(NATIVE_MINT)
+          &&trade.quoteMint!==PublicKey.default.toBase58();
+        if(paired&&(!anyQuote||!mints.has(trade.quoteMint)||mints.get(trade.quoteMint).decimals>12))
+          throw new Error('Paired wallet trade quote mint is unavailable.');
+        const quoteRaw=paired?trade.quoteAmountRaw:trade.solLamports;
+        if(quoteRaw<=0n||trade.tokenAmountRaw<=0n) throw new Error('Invalid wallet trade amounts.');
         records.push({mint,decimals,trader:wallet,signature:reference.signature,slot:transaction.slot,
           blockTime:transaction.blockTime,logIndex:event.index,route:curve?'curve':'pool',
-          side:trade.isBuy?'buy':'sell',solLamports:String(trade.solLamports),
+          side:trade.isBuy?'buy':'sell',solLamports:paired?null:String(trade.solLamports),
+          ...(paired?{quoteMint:trade.quoteMint,quoteAmountRaw:String(quoteRaw),
+            quoteDecimals:mints.get(trade.quoteMint).decimals}:{}),
           tokenAmountRaw:String(trade.tokenAmountRaw),finalized:true});
       }
     }
@@ -114,7 +130,7 @@ export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.
     const batch=await Promise.all(selected.slice(offset,offset+4).map(async reference=>{
       try {
         const transaction=await connection.getTransaction(reference.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
-        const rows=walletTradeRows({transaction,reference,wallet:owner,decodePoolEvent:coder.decode.bind(coder)});
+        const rows=walletTradeRows({transaction,reference,wallet:owner,decodePoolEvent:coder.decode.bind(coder),anyQuote:true});
         if (transaction.blockTime<cutoff) return [];
         const deltas=new Map();
         for (const [balances,sign] of [[transaction.meta.preTokenBalances||[],-1n],[transaction.meta.postTokenBalances||[],1n]])
