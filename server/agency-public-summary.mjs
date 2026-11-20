@@ -2,6 +2,17 @@ import {agencySelectionMask} from '../agency-mint-router-v3.js';
 import {validateAgencyRules} from '../config/agency-rules.js';
 import {allocationAuditHash} from './allocation-audit-hash.mjs';
 const exact=value=>typeof value==='string'&&/^(0|[1-9]\d{0,19})$/.test(value)&&BigInt(value)<=0xffffffffffffffffn;
+function verifiedHistoricalExecution(row,programId){
+  try{return row?.status==='finalized'&&row.intent?.cluster==='devnet'&&row.intent.programId===programId
+    &&/^[a-f0-9]{64}$/.test(String(row.intent.approvedHash||''))
+    &&allocationAuditHash(row.intent)===row.intentHash&&allocationAuditHash(row.evidence)===row.evidenceHash
+    &&row.proof?.finalized===true&&row.proof.balanceDeltaVerified===true
+    &&row.proof.vaultDebitVerified===true&&row.proof.burnInstructionVerified===true
+    &&row.proof.agencyPolicy===true&&row.proof.category===7&&row.proof.agent===row.intent.agent
+    &&row.proof.sourceMint===row.intent.mint&&row.proof.fundedMint===row.intent.mint
+    &&row.proof.signature===row.signature;}
+  catch{return false;}
+}
 function savedMilestone(row){
   if(![1,2].includes(row.intent?.agent))return null;
   try{
@@ -32,9 +43,11 @@ export function agencyPublicSummary({state,programId,approvedHash,build,mint=nul
     return{...row,...identity,status:'worker-verified-snapshot'};
   });
   const complete=rows.length>0&&rows.every(row=>row.status==='worker-verified-snapshot');
-  const history=Object.values(state.v3AgencyExecutions||{}).filter(row=>(!mint || row.intent?.mint===mint) && row.status==='finalized'
-    &&row.intent?.programId===programId&&row.intent.approvedHash===approvedHash&&row.proof?.finalized===true
-    &&row.proof.balanceDeltaVerified===true&&row.proof.signature===row.signature).map(row=>({mint:row.intent.mint,agent:row.intent.agent,
+  // An upgrade changes the current ProgramData hash, but does not erase finalized
+  // receipts signed under the previously approved bytes of this same program.
+  const history=Object.values(state.v3AgencyExecutions||{}).filter(row=>(!mint || row.intent?.mint===mint)
+    &&verifiedHistoricalExecution(row,programId)).map(row=>({mint:row.intent.mint,agent:row.intent.agent,
+      approvedProgramDataSha256:row.intent.approvedHash,
       signature:row.signature,finalizedAt:row.proof.burnedAt||row.finalizedAt,slot:row.proof.slot,amountLamports:row.proof.amount||row.proof.spentLamports,
       ownCoinBurnVerified:row.proof.fundedMint===row.intent.mint && row.proof.sourceMint===row.intent.mint
         && row.proof.agent===row.intent.agent && row.proof.category===7 && row.proof.agencyPolicy===true
