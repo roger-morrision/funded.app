@@ -151,7 +151,7 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
         catch (error) { failures.push({ mint: launch.mint, reason: String(error.message || error).slice(0, 200) }); }
       }
       logger.log(JSON.stringify({ event: 'v3_paired_token_tick', coins: rows.length,
-        moved: rows.filter(row => row.collected || row.holderFunded || row.creatorPaid || row.converted), failures }));
+        moved: rows.filter(row => row.collected || row.holderFunded || row.creatorPaid || row.protocolPaid || row.converted), failures }));
       return { status: failures.length ? 'degraded' : 'ready', rows, failures };
     } finally { running = false; }
   }
