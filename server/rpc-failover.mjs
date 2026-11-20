@@ -68,7 +68,8 @@ export function createRpcFailoverTransport({primary,publicTransport,recoveryInte
   };
   transport.stats=()=>({enabled:true,cluster,activeProvider:active?`public-${cluster}`:'helius',failovers,recoveryProbes,
     primaryAttempts,publicRequests,nextPrimaryProbeInMs:active?Math.max(0,nextProbeAt-now()):0,
-    publicVerified:fallback.stats().upstreamVerified,publicRateLimited:fallback.stats().rateLimited});
+    publicVerified:fallback.stats().upstreamVerified,publicRateLimited:fallback.stats().rateLimited,
+    ...(primary.stats?{primaryPool:primary.stats()}:{})});
   transport.close=()=>{closed=true;fallback.close();primary.close?.();};
   return transport;
 }
