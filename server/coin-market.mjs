@@ -7,6 +7,7 @@ import {PublicKey} from '@solana/web3.js';
 import {fetchVerifiedPoolSnapshot} from '../pump-trading.js';
 import {readCoinDisplaySnapshot} from '../coin-display-snapshot.js';
 import {createSolUsdQuoteReader} from './price-quote.mjs';
+import {completeFinalizedEventReceipt} from './finalized-event-receipt.mjs';
 
 // USDC-quoted Pump curves (Devnet test USDC and Mainnet USDC), 6 decimals.
 const USDC_QUOTES = new Set(['4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v']);
@@ -166,7 +167,8 @@ export function summarizePumpTrades(records, { cutoffSeconds, complete, sinceLau
 }
 
 export async function readPumpMarketActivity({ connection, mint, poolAddress, readPool=fetchVerifiedPoolSnapshot, readSolUsd=sharedSolUsd,
-  nowSeconds = Math.floor(Date.now() / 1000), maxSignatures = 50 }) {
+  nowSeconds = Math.floor(Date.now() / 1000), maxSignatures = 50, cluster='devnet',
+  completeReceipt=completeFinalizedEventReceipt }) {
   const cutoffSeconds = nowSeconds - DAY_SECONDS;
   let quoteMint=NATIVE_MINT, pairedCurveComplete=false;
   if(!poolAddress){
@@ -227,14 +229,20 @@ export async function readPumpMarketActivity({ connection, mint, poolAddress, re
     const group = selected.slice(start, start + 4);
     const transactions = await Promise.all(group.map(item => connection.getTransaction(item.signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }).catch(() => null)));
     for (let index = 0; index < group.length; index += 1) {
-      const transaction = transactions[index];
+      let transaction = transactions[index];
       let events;
       try{
         if(!transaction||transaction.meta?.err!==null||transaction.slot!==group[index].slot
           ||transaction.transaction?.signatures?.[0]!==group[index].signature
           ||!Number.isSafeInteger(transaction.blockTime)||transaction.blockTime!==group[index].blockTime
           ||transaction.blockTime>nowSeconds)throw Error('Receipt identity differs.');
-        events=successfulEventLogs(transaction.meta.logMessages);
+        try{events=successfulEventLogs(transaction.meta.logMessages);}
+        catch(error){
+          if(!['logs-incomplete','logs-unavailable'].includes(error.reason))throw error;
+          const finalized=await connection.getTransaction(group[index].signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+          transaction=await completeReceipt({connection,transaction:finalized,signature:group[index].signature,cluster});
+          events=successfulEventLogs(transaction.meta.logMessages);
+        }
       }catch{missingTransactions=true;if(group[index].blockTime>=cutoffSeconds)missingRecentTransactions=true;continue;}
       const blockTime = transaction.blockTime;
       for(const event of events){

@@ -233,7 +233,7 @@ export function createTokenMarketRoutes({
                 if (solanaCluster === 'mainnet-beta') { metrics = await readMarketFallback(address); if (!metrics) throw Error('Indexed market data unavailable'); }
                 else {
                 await assertRpcNetwork(connection,solanaCluster);
-                metrics = await readMarketActivity({ connection, mint,
+                metrics = await readMarketActivity({ connection, mint, cluster:solanaCluster,
                   ...(address===env.FUNDED_TOKEN_MINT&&env.FUNDED_SWAP_POOL?{poolAddress:env.FUNDED_SWAP_POOL}:{}) });
                 if (metrics.coverage === 'unavailable') metrics = await readMarketFallback(address) || metrics;
                 }
