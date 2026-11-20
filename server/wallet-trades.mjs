@@ -5,6 +5,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { decodePumpTrades, decodePumpSwapTrades } from './coin-market.mjs';
 import { successfulEventLogs } from './product-trade-index.mjs';
 import {assertRpcNetwork} from '../solana-network.js';
+import {completeFinalizedEventReceipt} from './finalized-event-receipt.mjs';
 
 const DAY=86_400;
 const address=value=>value?.toBase58?.() || value?.pubkey?.toBase58?.() || String(value);
@@ -114,7 +115,8 @@ function balanceDeltaSwap({transaction,keys,wallet,mints}) {
   return {mint,decimals,side:delta>0n?'buy':'sell',solLamports:String(solLamports),tokenAmountRaw:String(tokenAmountRaw)};
 }
 
-export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.floor(Date.now()/1000),maxSignatures=50,cluster='devnet'}) {
+export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.floor(Date.now()/1000),maxSignatures=50,
+  cluster='devnet',completeReceipt=completeFinalizedEventReceipt}) {
   const key=new PublicKey(wallet),owner=key.toBase58(),cutoff=nowSeconds-DAY;
   if (!Number.isInteger(maxSignatures)||maxSignatures<1||maxSignatures>50) throw new Error('Invalid wallet scan bound.');
   await assertRpcNetwork(connection,cluster);
@@ -129,8 +131,14 @@ export async function readWalletTradeHistory({connection,wallet,nowSeconds=Math.
   for (let offset=0;offset<selected.length;offset+=4) {
     const batch=await Promise.all(selected.slice(offset,offset+4).map(async reference=>{
       try {
-        const transaction=await connection.getTransaction(reference.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
-        const rows=walletTradeRows({transaction,reference,wallet:owner,decodePoolEvent:coder.decode.bind(coder),anyQuote:true});
+        let transaction=await connection.getTransaction(reference.signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
+        let rows;
+        try{rows=walletTradeRows({transaction,reference,wallet:owner,decodePoolEvent:coder.decode.bind(coder),anyQuote:true});}
+        catch(error){
+          if(!['logs-incomplete','logs-unavailable'].includes(error.reason))throw error;
+          transaction=await completeReceipt({connection,transaction,signature:reference.signature,cluster});
+          rows=walletTradeRows({transaction,reference,wallet:owner,decodePoolEvent:coder.decode.bind(coder),anyQuote:true});
+        }
         if (transaction.blockTime<cutoff) return [];
         const deltas=new Map();
         for (const [balances,sign] of [[transaction.meta.preTokenBalances||[],-1n],[transaction.meta.postTokenBalances||[],1n]])
