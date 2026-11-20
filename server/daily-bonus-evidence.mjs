@@ -12,6 +12,7 @@ import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { v3AllocationPlan } from './v3-allocation-plan.mjs';
 import { dailyBonusWindow } from './daily-bonus.mjs';
 import { completeFinalizedEventReceipt } from './finalized-event-receipt.mjs';
+import {assertSolQuotedBonusLaunches} from './daily-bonus-quote-gate.mjs';
 
 // A launch can finish its Pump buy before escrow setup exhausts the log budget.
 // Keep original event offsets only if the unobserved instructions cannot invoke
@@ -133,6 +134,7 @@ export async function readDailyBonusEvidence({ connection, state, programId, day
     && row.pumpFeeRoute.programId === programId && row.pumpFeeRoute.verified === true
     && (!window.qa || qaMints === '*' || qaMints?.includes(row.mint))
     && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp < window.end);
+  await assertSolQuotedBonusLaunches({ connection, launches });
   if (launches.length > 200) throw new Error('Daily bonus mint coverage requires a larger reviewed indexer.');
   const byMint = new Map(launches.map(row => [row.mint, row]));
   const candidates = Object.values(state.collections || {}).filter(row => byMint.has(row.mint)

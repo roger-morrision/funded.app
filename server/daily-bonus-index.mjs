@@ -11,6 +11,7 @@ import { dailyBonusWindow, bonusHash } from './daily-bonus.mjs';
 import { dailyBonusSettlementReferences, finalizedBonusSettlementSources } from './daily-bonus-settlements.mjs';
 import {deriveAgencyPolicyV3} from '../agency-mint-router-v3.js';
 import {BONUS_EVIDENCE_COVERAGE_VERSION} from './daily-bonus-evidence-version.mjs';
+import {assertSolQuotedBonusLaunches} from './daily-bonus-quote-gate.mjs';
 
 const signature = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const launchFingerprint = row => bonusHash({ mint:row.mint, creator:row.creatorWallet,
@@ -49,6 +50,7 @@ export function createDailyBonusEvidenceIndex({ rewardStore, pageSize = 100,
       && (!window.qa || qaMints === '*' || qaMints?.includes(row.mint))
       && Number.isSafeInteger(row.createdTimestamp) && row.createdTimestamp < window.end)
       .sort((a,b) => a.mint.localeCompare(b.mint));
+    await assertSolQuotedBonusLaunches({ connection, launches });
     const byMint = new Map(launches.map(row => [row.mint,row]));
     for (const mint of Object.keys(job.mints)) if (!byMint.has(mint))
       throw new Error('An indexed daily bonus launch disappeared; reconcile its evidence.');
