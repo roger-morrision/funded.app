@@ -42,7 +42,8 @@ async function main(){
   const env={...process.env};for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[key];
   const docker=args=>execFileSync('docker',[`--host=${localDockerHost()}`,...args],{env,encoding:'utf8',timeout:15000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
   const ids=docker(['ps','-aq','--filter',`label=com.docker.compose.project=${project}`]).trim().split(/\s+/).filter(Boolean);
-  const report={at:new Date().toISOString(),revision,...assessReleaseServices(ids.length?JSON.parse(docker(['inspect',...ids])):[],{project,revision}),publicChecks:[]};
+  const report={at:new Date().toISOString(),revision,...assessReleaseServices(ids.length?JSON.parse(docker(['inspect',...ids])):[],
+    {project,revision,services:[...releaseServices,'signer','price-signer']}),publicChecks:[]};
   for(const path of ['/api/status','/api/launch-reserve-config','/build-settings.json']){
     try{
       const response=await fetch(origin+path,{signal:AbortSignal.timeout(30000),redirect:'error'}),body=await response.json();
