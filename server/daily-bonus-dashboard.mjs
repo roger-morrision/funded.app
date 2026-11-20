@@ -7,6 +7,7 @@ import { verifyV3PumpCollection } from './v3-collection-proof.mjs';
 import { loadFinalizedV3Settlement } from './v3-settlement-proof.mjs';
 import { DEFAULT_BONUS_SCHEDULE, currentBonusStart, bonusWindowKey } from './daily-bonus-schedule.mjs';
 import {rankLiveBonus} from './daily-bonus-live.mjs';
+import {assertSolQuotedBonusLaunches} from './daily-bonus-quote-gate.mjs';
 
 const integer = value => /^(0|[1-9]\d*)$/.test(String(value)) ? BigInt(value) : null;
 const categories = POLICY.categories;
@@ -104,6 +105,17 @@ export async function readBonusPool({ state, connection, programId, now, signal,
   const start = currentBonusStart(now,schedule);
   signal?.throwIfAborted();
   await assertBonusRpc(connection,cluster,{schedule});
+  const launches=Object.values(state.launches||{}).filter(row=>row.onchainVerified===true
+    &&row.cluster===cluster&&row.pumpFeeRoute?.scope==='per-mint-v3'
+    &&row.pumpFeeRoute.programId===programId&&row.pumpFeeRoute.verified===true
+    &&(!schedule.mints||schedule.mints.includes(row.mint))
+    &&Number.isSafeInteger(row.createdTimestamp)&&row.createdTimestamp<start+schedule.periodSeconds);
+  try{await assertSolQuotedBonusLaunches({connection,launches});}
+  catch(error){
+    if(error.code==='BONUS_PAIRED_PRICE_UNAVAILABLE')return {status:'blocked',reason:error.message,categoryLamports:null,liveRankings:null};
+    throw error;
+  }
+  signal?.throwIfAborted();
   const candidates = Object.values(state.collections || {}).filter(row => {
     const launch = state.launches?.[row.mint], settled = state.v3Settlements?.[row.signature];
     return row.scope === 'per-mint-v3' && row.cluster === cluster && row.programId === programId

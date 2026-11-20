@@ -216,6 +216,8 @@ export function initBonusDashboard(document = globalThis.document) {
     for (const [key] of Object.entries(GROUPS)) animate(home.querySelector(`[data-bonus-pool="${key}"]`), data.pool?.categoryLamports?.[key]);
     poolStatus.textContent = data.pool?.status === 'verified-indexed-settlements'
       ? `${bonusSnapshotLabel(data.pool.day)} · ${data.pool.collections} verified indexed settlement(s) · checked ${new Date(data.poolCheckedAt).toLocaleTimeString('en-GB', { timeZone:'UTC' })} UTC. Updates every 30 seconds.`
+      : data.pool?.status === 'blocked'
+        ? 'Today’s pool is blocked: paired-token bonuses need verified common USD price evidence and token payout support.'
       : 'Today’s settled pool is unavailable. No amount is confirmed here.';
     status.textContent = `${data.snapshots} recorded snapshot(s) · ${data.totalPayments} finalized receipt(s). ${data.unavailableSnapshots ? `${data.unavailableSnapshots} snapshot(s) failed integrity checks and are excluded. ` : ''}${data.unavailableReceipts ? `${data.unavailableReceipts} receipt(s) have unavailable category attribution and are excluded from rankings. ` : ''}${bonusVerificationLabel(data)} A cutoff starts verification; it does not guarantee immediate payment.`;
     leaders.replaceChildren();

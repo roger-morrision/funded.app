@@ -13,7 +13,10 @@ export function renderTodayBonuses(page,data,document=globalThis.document){
   }
   settlePodiumGrid(root,document.defaultView??globalThis);
   const today=data?.today;
-  page.querySelector('[data-bonus-today-status]').textContent=today?.checkedAt?`Updated ${new Date(today.checkedAt).toLocaleTimeString()}`:'';
+  page.querySelector('[data-bonus-today-status]').textContent=today?.status==='blocked'
+    ? 'Today’s rankings are blocked: paired-token trades need verified common USD price evidence.'
+    :today?.status==='partial'?'Checking complete coin coverage before showing ranks.'
+      :today?.checkedAt?`Updated ${new Date(today.checkedAt).toLocaleTimeString()}`:'';
   page.querySelector('[data-today-cutoff]').textContent=data?.schedule?.mode==='devnet-qa-5m'?'Devnet QA snapshot · every 5 minutes':'Snapshot · 00:00 UTC';
 }
 export function tickTodayBonus(page,data,clockBase,performanceNow,inactive=false){
