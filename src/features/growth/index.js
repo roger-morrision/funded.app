@@ -3,6 +3,7 @@
 import {mountProjectUpdates} from '../coin/project-updates.js';
 import { mountExternalTokenMode } from '../coin/external-token.js';
 import { mountCoinHeaderHold } from '../coin/header-hold.js';
+import { mountCreatorAddress } from '../coin/creator-address.js';
 import { mountEarningsHub } from './earnings-hub.js';
 import { mountLaunchAssist } from './launch-assist.js';
 import { mountReferralKit, mountInvitedBanner } from './referral-kit.js';
@@ -18,6 +19,7 @@ export function mountGrowthFeatures(app, document = globalThis.document) {
     ['project-updates', () => mountProjectUpdates(app, document)],
     ['external-token', () => mountExternalTokenMode(app, document)],
     ['coin-header-hold', () => mountCoinHeaderHold(document)],
+    ['coin-creator-address', () => mountCreatorAddress(app, document)],
     ['earnings', () => mountEarningsHub(app, document)],
     ['launch', () => mountLaunchAssist(document)],
     ['referral', () => mountReferralKit(document)],

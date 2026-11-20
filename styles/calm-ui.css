@@ -376,8 +376,20 @@ html body #main-content#main-content .coin-chat-like[data-liked="true"] { color:
 /* Tables: active boost shown as bolt + quantity beside the symbol. */
 html body #main-content#main-content .explore-table-boost { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 1px 6px; border-radius: 999px; color: #f59e6b; background: color-mix(in srgb, #f59e6b 12%, transparent); border: 1px solid color-mix(in srgb, #f59e6b 38%, transparent); font: 600 11px/1.4 var(--fv-font-data); vertical-align: middle; }
 /* Token header: the Boost button is pinned bottom-right, so the icon row stops short of it and wraps instead of running underneath. */
-html body #main-content#main-content #coin-page .coin-identity .coin-socials { flex-wrap: wrap; padding-right: 150px; box-sizing: border-box; }
+html body #main-content#main-content #coin-page .coin-identity .coin-socials { flex-wrap: wrap; padding-right: 104px; box-sizing: border-box; }
+html body #main-content#main-content #coin-page #coin-boost { min-width: 0 !important; width: auto !important; padding: 0 12px !important; gap: 6px; }
 @media (max-width: 420px) {
   html body #main-content#main-content #coin-page .coin-identity .coin-socials { padding-right: 0; }
   html body #main-content#main-content #coin-page .coin-promotion-details { position: static !important; margin-top: 10px; justify-content: flex-start; }
 }
+/* Token header: no Solana Explorer or refresh icon; About shows the description without the fact boxes. */
+html body #main-content#main-content #coin-page :is(#coin-explorer-link, #coin-refresh) { display: none !important; }
+html body #main-content#main-content #coin-page .coin-fact-ribbon { display: none !important; }
+/* Token header: creator wallet beside the token address. */
+html body #main-content#main-content #coin-page .coin-address { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+html body #main-content#main-content #coin-page .coin-creator-address { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; padding-left: 10px; border-left: 1px solid var(--fv-border); }
+html body #main-content#main-content #coin-page .coin-creator-address[hidden] { display: none; }
+html body #main-content#main-content #coin-page .coin-creator-address small { color: var(--calm-label); font-size: 12px; }
+/* Token Boost button: icon sits right next to the word. */
+html body #main-content#main-content #coin-page #coin-boost { justify-content: center !important; gap: 4px !important; }
+html body #main-content#main-content #coin-page #coin-boost > span { margin: 0 !important; }

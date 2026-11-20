@@ -10,6 +10,7 @@ import { readWalletTradeHistory } from '../wallet-trades.mjs';
 import { createExternalTokenMarketReader } from '../external-token-market.mjs';
 import { createOffchainMetadataReader } from '../token-offchain-metadata.mjs';
 import { readVerifiedListingMint } from '../token-metadata.mjs';
+import { createTokenCreatorRoute } from './token-creator.mjs';
 
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
@@ -62,8 +63,10 @@ export function createTokenMarketRoutes({
     return started;
   }
   handleTokenMarketRoutes.warmMarketActivity = warmMarketActivity;
+  const handleTokenCreator = createTokenCreatorRoute({ route, solanaRpcUrl, respond });
   return handleTokenMarketRoutes;
   async function handleTokenMarketRoutes(req, res, url, requestId) {
+    if (await handleTokenCreator(req, res, url)) return true;
     const walletMatch=req.method==='GET'?/^\/api\/wallets\/([^/]+)\/trades$/.exec(url.pathname):null;
     if (walletMatch) {
       let wallet;
