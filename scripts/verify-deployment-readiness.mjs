@@ -17,8 +17,14 @@ export function assessReleaseServices(containers,{project,revision,services:name
     const c=matches[0],env=Object.fromEntries((c.Config.Env||[]).map(row=>{const i=row.indexOf('=');return[row.slice(0,i),row.slice(i+1)];}));
     const row={service,image:c.Image,build:env.FUNDED_BUILD_ID,revision:c.Config.Labels['org.opencontainers.image.revision'],
       cluster:env.SOLANA_CLUSTER,state:c.State?.Status,health:c.State?.Health?.Status||'not-configured'};
+    if(service==='app'){
+      row.frontendRevision=c.Config.Labels['vip.funded.frontend.revision']||null;
+      row.frontendDigest=c.Config.Labels['vip.funded.frontend.digest']||null;
+    }
     services.push(row);
     if(row.build!==revision||row.revision!==revision)errors.push(`${service}: release mismatch`);
+    if(service==='app'&&(row.frontendRevision!==revision||!/^([a-f0-9]{64})$/.test(row.frontendDigest||'')))
+      errors.push('app: frontend release identity mismatch');
     if(row.cluster!=='devnet')errors.push(`${service}: Devnet required`);
     if(row.state!=='running'||!['healthy','not-configured'].includes(row.health))errors.push(`${service}: not healthy/running`);
     if(c.Config.Labels['vip.funded.worker-health']==='cycle-v1'&&row.health==='not-configured')
@@ -37,11 +43,16 @@ async function main(){
   const docker=args=>execFileSync('docker',[`--host=${localDockerHost()}`,...args],{env,encoding:'utf8',timeout:15000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
   const ids=docker(['ps','-aq','--filter',`label=com.docker.compose.project=${project}`]).trim().split(/\s+/).filter(Boolean);
   const report={at:new Date().toISOString(),revision,...assessReleaseServices(ids.length?JSON.parse(docker(['inspect',...ids])):[],{project,revision}),publicChecks:[]};
-  for(const path of ['/api/status','/api/launch-reserve-config']){
+  for(const path of ['/api/status','/api/launch-reserve-config','/build-settings.json']){
     try{
       const response=await fetch(origin+path,{signal:AbortSignal.timeout(30000),redirect:'error'}),body=await response.json();
-      const ok=response.ok&&(path==='/api/status'?body.cluster==='devnet'&&body.build===revision:body.developerTokenLock?.ready===true);
-      report.publicChecks.push({path,status:response.status,ready:ok});
+      const frontend=report.services.find(row=>row.service==='app');
+      const ok=response.ok&&(path==='/api/status'?body.cluster==='devnet'&&body.build===revision
+        :path==='/build-settings.json'?body.cluster==='devnet'&&body.exploreCluster==='devnet'
+          &&body.sourceDigest===frontend?.frontendDigest&&frontend?.frontendRevision===revision
+        :body.developerTokenLock?.ready===true);
+      report.publicChecks.push({path,status:response.status,ready:ok,
+        ...(path==='/build-settings.json'?{sourceDigest:body.sourceDigest||null}:{} )});
       if(!ok)report.errors.push(`${path}: release or launch readiness unavailable`);
     }catch{report.publicChecks.push({path,ready:false});report.errors.push(`${path}: verification unavailable`);}
   }
