@@ -156,18 +156,24 @@ export function createCoinCommunityController(appState) {
   // app-source: 974
   function ensureCoinTradeFilterPanel(){
     const panel = document.querySelector('#coin-trade-refine');
-    if (!panel || panel.dataset.ready) return panel;
+    if (!panel) return panel;
+    const paired = Boolean(appState.coinTradeEstimate?.quoteMint);
+    const mode = paired ? 'paired' : 'sol';
+    if (panel.dataset.ready === mode) return panel;
+    const previous = Object.fromEntries([...panel.querySelectorAll('[data-coin-trade-input]')].map(input => [input.dataset.coinTradeInput, input.value]));
     const range = (label, minKey, maxKey, step = 'any') => `<div class="coin-column-range"><label>Min ${label}<input data-coin-trade-input="${minKey}" type="number" min="0" step="${step}" inputmode="decimal" placeholder="Any" /></label><label>Max ${label}<input data-coin-trade-input="${maxKey}" type="number" min="0" step="${step}" inputmode="decimal" placeholder="Any" /></label></div>`;
     panel.innerHTML = `<div class="coin-column-filter-heading"><strong id="coin-column-filter-title">Filter trades</strong><button type="button" id="coin-trade-clear">Clear all</button></div>
       <div data-coin-filter-panel="date" hidden><div class="coin-column-range"><label>From date<input data-coin-trade-input="dateFrom" type="date" /></label><label>Through date<input data-coin-trade-input="dateTo" type="date" /></label></div></div>
       <div data-coin-filter-panel="type" hidden><label>Trade type<select data-coin-trade-input="side"><option value="all">All trades</option><option value="buy">Buys</option><option value="sell">Sells</option></select></label></div>
       <div data-coin-filter-panel="usd" hidden>${range('USD', 'minUsd', 'maxUsd', '0.01')}</div>
       <div data-coin-filter-panel="token" hidden>${range('tokens', 'minToken', 'maxToken')}</div>
-      <div data-coin-filter-panel="sol" hidden>${range('SOL', 'minSol', 'maxSol')}</div>
+      <div data-coin-filter-panel="sol" hidden>${range(paired ? 'estimated SOL equivalent' : 'SOL', 'minSol', 'maxSol')}</div>
       <div data-coin-filter-panel="price" hidden>${range('USD per token', 'minPrice', 'maxPrice')}</div>
       <div data-coin-filter-panel="txn" hidden><label>Transaction signature<input data-coin-trade-input="signature" type="search" placeholder="Signature or prefix" autocomplete="off" /></label></div>
-      <small>Filters and sorting apply to the latest 20 loaded trades. USD estimates use the current SOL quote.</small>`;
-    panel.dataset.ready = 'true';
+      <small>Filters and sorting apply to the latest 20 loaded trades. ${paired ? 'SOL values are estimates converted from the paired token; they are not SOL transfers.' : 'USD estimates use the current SOL quote.'}</small>`;
+    for (const input of panel.querySelectorAll('[data-coin-trade-input]'))
+      if (previous[input.dataset.coinTradeInput] != null) input.value = previous[input.dataset.coinTradeInput];
+    panel.dataset.ready = mode;
     return panel;
   }
   // app-source-end
@@ -189,13 +195,14 @@ export function createCoinCommunityController(appState) {
     panel.hidden = !appState.coinTradeOpenFilter;
     panel.querySelectorAll('[data-coin-filter-panel]').forEach(section => { section.hidden = section.dataset.coinFilterPanel !== appState.coinTradeOpenFilter; });
     const title = panel.querySelector('#coin-column-filter-title');
-    if (title) title.textContent = `Filter ${appState.COIN_TRADE_COLUMNS.find(([key]) => key === appState.coinTradeOpenFilter)?.[1] || 'trades'}`;
+    if (title) title.textContent = `Filter ${appState.coinTradeOpenFilter === 'sol' && appState.coinTradeEstimate?.quoteMint
+      ? 'estimated SOL equivalent' : appState.COIN_TRADE_COLUMNS.find(([key]) => key === appState.coinTradeOpenFilter)?.[1] || 'trades'}`;
   }
   // app-source-end
 
   // app-source: 977
   function renderCoinActivityTab(){
-    return appState.renderCoinActivityTabView({ coinMarketActivity: appState.coinMarketActivity, coinActivity: appState.coinActivity, COIN_TRADE_COLUMNS: appState.COIN_TRADE_COLUMNS, coinTradeSort: appState.coinTradeSort, coinTradeFilter: appState.coinTradeFilter, coinTradeOpenFilter: appState.coinTradeOpenFilter, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, connectedWalletAddress: appState.connectedWalletAddress }, { updateCoinTradeFilterPanel: appState.updateCoinTradeFilterPanel, apiRequest: appState.apiRequest, renderCoinChat: appState.renderCoinChat, coinTradeFilterValues: appState.coinTradeFilterValues, getCoinMintAddress: appState.getCoinMintAddress, formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, exploreExplorer: appState.exploreExplorer, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
+    return appState.renderCoinActivityTabView({ coinMarketActivity: appState.coinMarketActivity, coinActivity: appState.coinActivity, COIN_TRADE_COLUMNS: appState.COIN_TRADE_COLUMNS, coinTradeSort: appState.coinTradeSort, coinTradeFilter: appState.coinTradeFilter, coinTradeOpenFilter: appState.coinTradeOpenFilter, coinSolUsdValues: appState.coinSolUsdValues, coinSolUsdPrice: appState.coinSolUsdPrice, coinTradeEstimate: appState.coinTradeEstimate, connectedWalletAddress: appState.connectedWalletAddress }, { updateCoinTradeFilterPanel: appState.updateCoinTradeFilterPanel, apiRequest: appState.apiRequest, renderCoinChat: appState.renderCoinChat, coinTradeFilterValues: appState.coinTradeFilterValues, getCoinMintAddress: appState.getCoinMintAddress, formatCoinSnapshotUsd: appState.formatCoinSnapshotUsd, formatOnchainAge: appState.formatOnchainAge, formatCoinUsd: appState.formatCoinUsd, exploreExplorer: appState.exploreExplorer, loadVerifiedTokenLogos: appState.loadVerifiedTokenLogos });
   }
   // app-source-end
 

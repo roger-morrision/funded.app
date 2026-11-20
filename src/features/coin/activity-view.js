@@ -11,7 +11,7 @@ let tradeRowLimit = TRADE_ROW_STEP, tradeRowMint = null;
 const filterKeys=['side','wallet','dateFrom','dateTo','minUsd','maxUsd','minToken','maxToken','minSol','maxSol','minPrice','maxPrice','signature'];
 
 // Presentation only: callers own state, requests, and transaction lifecycles.
-export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_TRADE_COLUMNS, coinTradeSort, coinTradeFilter, coinTradeOpenFilter, coinSolUsdValues, coinSolUsdPrice, connectedWalletAddress = null }, { updateCoinTradeFilterPanel, apiRequest, renderCoinChat, coinTradeFilterValues, getCoinMintAddress, formatCoinSnapshotUsd, formatOnchainAge, formatCoinUsd, exploreExplorer, loadVerifiedTokenLogos, document = globalThis.document } = {}){
+export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_TRADE_COLUMNS, coinTradeSort, coinTradeFilter, coinTradeOpenFilter, coinSolUsdValues, coinSolUsdPrice, coinTradeEstimate, connectedWalletAddress = null }, { updateCoinTradeFilterPanel, apiRequest, renderCoinChat, coinTradeFilterValues, getCoinMintAddress, formatCoinSnapshotUsd, formatOnchainAge, formatCoinUsd, exploreExplorer, loadVerifiedTokenLogos, document = globalThis.document } = {}){
   const activity = document.querySelector('#coin-activity-list');
   if (!activity) return;
   const tab = document.querySelector('[data-coin-tab].active')?.dataset.coinTab || 'trades';
@@ -44,6 +44,7 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
     return;
   }
   if (tab === 'trades') {
+    const paired = Boolean(coinTradeEstimate?.quoteMint);
     const trades = filterAndSortRecentTrades(coinMarketActivity.trades, filters);
     countText(`${trades.length} of ${coinMarketActivity.trades.length} loaded trades`);
     const mint = getCoinMintAddress();
@@ -60,9 +61,10 @@ export function renderCoinActivityTab({ coinMarketActivity, coinActivity, COIN_T
       const side = item.side === 'buy' ? 'Buy' : 'Sell';
       const tokenQuantity = Number.isFinite(tokens) ? formatOnChainNumber(tokens, tokens >= 1 ? 2 : 6) : '—';
       const price = Number.isFinite(sol) && Number.isFinite(tokens) && tokens > 0 ? formatCoinSnapshotUsd(sol / tokens) : '$—';
-      return `<tr class="coin-transaction-row ${item.side === 'buy' ? 'is-buy' : 'is-sell'}" data-logo-mint="${escapeHtml(mint)}"><td><time datetime="${validTime ? new Date(timestamp).toISOString() : ''}" title="${escapeHtml(time)}">${validTime ? escapeHtml(formatOnchainAge(timestamp)) : '—'}</time></td><td><span class="coin-transaction-side"><i aria-hidden="true">${item.side === 'buy' ? '↑' : '↓'}</i>${side}</span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td><span class="coin-transaction-token"><span class="coin-trade-token-avatar" aria-hidden="true">${escapeHtml(symbol.slice(0, 1).toUpperCase())}</span><span>${escapeHtml(tokenQuantity)} <small>${escapeHtml(symbol)}</small></span></span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? escapeHtml(formatOnChainNumber(sol, 6)) : '—'}</td><td class="coin-transaction-number">${escapeHtml(price)}</td><td><a class="coin-transaction-trader" href="/wallet/${encodeURIComponent(item.trader)}" aria-label="View wallet profile for ${escapeHtml(item.trader)}">${escapeHtml(shortAddress(item.trader))}</a></td><td><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(item.signature)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View ${side} ${escapeHtml(symbol)} transaction on Solana Explorer" title="View transaction on Solana Explorer">${explorerIcon}</a></td></tr>`;
+      return `<tr class="coin-transaction-row ${item.side === 'buy' ? 'is-buy' : 'is-sell'}" data-logo-mint="${escapeHtml(mint)}"><td><time datetime="${validTime ? new Date(timestamp).toISOString() : ''}" title="${escapeHtml(time)}">${validTime ? escapeHtml(formatOnchainAge(timestamp)) : '—'}</time></td><td><span class="coin-transaction-side"><i aria-hidden="true">${item.side === 'buy' ? '↑' : '↓'}</i>${side}</span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? escapeHtml(formatCoinUsd(sol)) : '$—'}</td><td><span class="coin-transaction-token"><span class="coin-trade-token-avatar" aria-hidden="true">${escapeHtml(symbol.slice(0, 1).toUpperCase())}</span><span>${escapeHtml(tokenQuantity)} <small>${escapeHtml(symbol)}</small></span></span></td><td class="coin-transaction-number">${Number.isFinite(sol) ? `${paired ? '≈' : ''}${escapeHtml(formatOnChainNumber(sol, 6))}` : '—'}</td><td class="coin-transaction-number">${escapeHtml(price)}</td><td><a class="coin-transaction-trader" href="/wallet/${encodeURIComponent(item.trader)}" aria-label="View wallet profile for ${escapeHtml(item.trader)}">${escapeHtml(shortAddress(item.trader))}</a></td><td><a class="coin-trade-explorer" href="${escapeHtml(exploreExplorer(`tx/${encodeURIComponent(item.signature)}`))}" target="_blank" rel="noopener noreferrer" aria-label="View ${side} ${escapeHtml(symbol)} transaction on Solana Explorer" title="View transaction on Solana Explorer">${explorerIcon}</a></td></tr>`;
     }).join('');
-    const headers = COIN_TRADE_COLUMNS.map(([key, label]) => {
+    const headers = COIN_TRADE_COLUMNS.map(([key, sourceLabel]) => {
+      const label = paired && key === 'sol' ? 'SOL est.' : sourceLabel;
       const active = coinTradeSort.key === key;
       const direction = active ? coinTradeSort.direction : 'none';
       const fieldNames = { date: ['dateFrom', 'dateTo'], type: ['side'], usd: ['minUsd', 'maxUsd'], token: ['minToken', 'maxToken'], sol: ['minSol', 'maxSol'], price: ['minPrice', 'maxPrice'], trader: ['wallet'], txn: ['signature'] };
