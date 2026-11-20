@@ -5,55 +5,90 @@ import { OnlinePumpSdk, creatorVaultPda } from '@pump-fun/pump-sdk';
 import { OnlinePumpAmmSdk, PUMP_AMM_SDK, buyQuoteInput, coinCreatorVaultAuthorityPda, coinCreatorVaultAtaPda } from '@pump-fun/pump-swap-sdk';
 import BN from 'bn.js';
 import { selectV3PumpBuy } from './v3-buyback-setup.mjs';
+import { deriveMintPolicyV3 } from '../mint-router-v3.js';
 import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { buildTokenAccountSetupInstructions, buildTokenLedgerInitializeInstruction, buildTokenSettlementInstruction,
   buildTokenApprovalInstruction, buildTokenDisbursementInstruction, buildTokenConversionInstruction,
   deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3, deriveTokenConversionV3, deriveSolCreditV3,
   decodeTokenLedgerV3, decodeTokenConversionV3, decodeSolCreditV3 } from '../mint-router-v3-token.js';
 
+// Cumulative boundary rounding can temporarily decrease one tiny category's
+// target (for example 1 -> 0), which the deployed contract rejects. Settle the
+// largest safe prefix and retain the remainder in the router for later fees.
+export function safeTokenSettlementAmount({ settled, paid, units, available, agency, scanLimit = 10_000 }) {
+  const rates = units.map(BigInt), prior = paid.map(BigInt), balance = BigInt(available), count = agency ? 8 : 7;
+  if (rates.length !== count - 1 || prior.length < count || balance < 0n
+    || rates.reduce((sum, value) => sum + value, 8_000_000n) !== 10_000_000n
+    || prior.slice(0, count).reduce((sum, value) => sum + value, 0n) !== BigInt(settled))
+    throw new Error('The token policy or settled ledger is inconsistent.');
+  const targets = total => {
+    let cumulative = 8_000_000n, previous = 0n;
+    return Array.from({ length:count }, (_, index) => {
+      if (index) cumulative += rates[index - 1];
+      const boundary = total * cumulative / 10_000_000n, target = boundary - previous;
+      previous = boundary;
+      return target;
+    });
+  };
+  for (let amount = balance, checked = 0; amount > 0n && checked < scanLimit; amount--, checked++) {
+    if (targets(BigInt(settled) + amount).every((target, index) => target >= prior[index])) return amount;
+  }
+  return 0n;
+}
+
 // Keeper step for a coin paired with a token: make sure the router's and vaults'
 // paired-token accounts and the coin's token ledger exist, collect Pump's
 // creator fees in that token into the router, then settle them into the seven
 // category vaults by the coin's policy. The keeper signs as router authority.
-export async function collectAndSettleTokenFees({ connection, programId, keeper, mint, quoteMint, settle = true }) {
+export async function collectAndSettleTokenFees({ connection, programId, keeper, mint, quoteMint, settle = true, collect = true }) {
   const quote = new PublicKey(quoteMint), coin = new PublicKey(mint), program = new PublicKey(programId);
-  const quoteInfo = await connection.getAccountInfo(quote, 'confirmed');
+  const quoteInfo = await connection.getAccountInfo(quote, 'finalized');
   if (!quoteInfo) throw new Error('Paired token not found.');
   const tokenProgram = quoteInfo.owner;
   const accounts = deriveTokenAccountsV3(program, coin, quote, tokenProgram);
   const ledger = deriveTokenLedgerV3(program, coin, quote);
   // Agency launches (all new launches) have an agency policy; older ones a protected policy.
-  const agency = Boolean(await connection.getAccountInfo(deriveAgencyPolicyV3(program, coin), 'confirmed'));
+  const agency = Boolean(await connection.getAccountInfo(deriveAgencyPolicyV3(program, coin), 'finalized'));
   // Only create the paired-token accounts that do not exist yet.
   const owned = [accounts.routerToken, ...accounts.vaultTokens];
-  const present = await connection.getMultipleAccountsInfo(owned, 'confirmed');
+  const present = await connection.getMultipleAccountsInfo(owned, 'finalized');
   const setup = buildTokenAccountSetupInstructions({ programId: program, mint: coin, quoteMint: quote, tokenProgram, payer: keeper.publicKey })
     .filter((_, index) => !present[index]);
-  if (!await connection.getAccountInfo(ledger, 'confirmed'))
+  if (!await connection.getAccountInfo(ledger, 'finalized'))
     setup.push(buildTokenLedgerInitializeInstruction({ programId: program, mint: coin, quoteMint: quote, authority: keeper.publicKey, agency }));
   // PumpSwap fees (after migration) move to Pump's creator vault first; Pump's
   // collection then pays the router's paired-token account.
-  const collect = await new OnlinePumpSdk(connection).collectCoinCreatorFeeV2Instructions(accounts.router, quote, tokenProgram, keeper.publicKey);
+  const collectInstructions = collect ? await new OnlinePumpSdk(connection).collectCoinCreatorFeeV2Instructions(accounts.router, quote, tokenProgram, keeper.publicKey) : [];
   const ammVault = coinCreatorVaultAtaPda(coinCreatorVaultAuthorityPda(accounts.router), quote, tokenProgram);
-  const ammAmount = await connection.getTokenAccountBalance(ammVault, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
+  const ammAmount = collect ? await connection.getTokenAccountBalance(ammVault, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n) : 0n;
   const transfer = ammAmount > 0n ? [await PUMP_AMM_SDK.transferCreatorFeesToPumpV2Instruction({ payer: keeper.publicKey, coinCreator: accounts.router, quoteMint: quote, quoteTokenProgram: tokenProgram })] : [];
-  const before = await connection.getTokenAccountBalance(accounts.routerToken, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
+  const before = await connection.getTokenAccountBalance(accounts.routerToken, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
   // Account setup (nine token accounts and the ledger) is too large for one
   // transaction: send it in small batches, then collect.
   const setupSignatures = [];
   for (let index = 0; index < setup.length; index += 4)
-    setupSignatures.push(await sendAndConfirmTransaction(connection, new Transaction().add(...setup.slice(index, index + 4)), [keeper], { commitment: 'confirmed' }));
-  const collectSignature = await sendAndConfirmTransaction(connection,
-    new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }), ...transfer, ...collect), [keeper], { commitment: 'confirmed' });
-  const balance = BigInt((await connection.getTokenAccountBalance(accounts.routerToken, 'confirmed')).value.amount);
+    setupSignatures.push(await sendAndConfirmTransaction(connection, new Transaction().add(...setup.slice(index, index + 4)), [keeper], { commitment: 'finalized' }));
+  const collectSignature = collect ? await sendAndConfirmTransaction(connection,
+    new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }), ...transfer, ...collectInstructions), [keeper], { commitment: 'finalized' }) : null;
+  const balance = BigInt((await connection.getTokenAccountBalance(accounts.routerToken, 'finalized')).value.amount);
   const result = { tokenProgram: tokenProgram.toBase58(), routerToken: accounts.routerToken.toBase58(), collectSignature,
-    collected: String(balance - before), routerBalance: String(balance), settleSignature: null, settled: '0', agency };
+    collected: String(balance - before), routerBalance: String(balance), settleSignature: null, settled: '0', deferred: '0', agency };
   if (!settle || balance === 0n) return result;
+  const policyAddress = agency ? deriveAgencyPolicyV3(program, coin) : deriveMintPolicyV3(program, coin).address;
+  const [policyInfo, ledgerInfo] = await connection.getMultipleAccountsInfo([policyAddress, ledger], 'finalized');
+  if (!policyInfo?.owner.equals(program) || !ledgerInfo?.owner.equals(program)) throw new Error('The paired-token policy or ledger is unavailable.');
+  const previous = decodeTokenLedgerV3(ledgerInfo.data), count = agency ? 7 : 6;
+  const units = Array.from({ length:count }, (_, index) => BigInt(policyInfo.data.readUInt32LE(104 + index * 4)));
+  const amount = safeTokenSettlementAmount({ settled:previous.settled, paid:previous.paid, units, available:balance, agency });
+  result.deferred = String(balance - amount);
+  if (amount === 0n) return result;
   const claimId = randomBytes(32);
   result.settleSignature = await sendAndConfirmTransaction(connection, new Transaction().add(
-    buildTokenSettlementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey, claimId, amount: balance, agency })),
-  [keeper], { commitment: 'confirmed' });
-  result.settled = String(balance);
+    buildTokenSettlementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey, claimId, amount, agency })),
+  [keeper], { commitment: 'finalized' });
+  const finalizedLedger = decodeTokenLedgerV3((await connection.getAccountInfo(ledger, 'finalized')).data);
+  if (finalizedLedger.settled - previous.settled !== amount) throw new Error(`Finalized token settlement ${result.settleSignature} lacks the exact ledger delta.`);
+  result.settled = String(amount);
   result.claimId = claimId.toString('hex');
   return result;
 }
@@ -64,22 +99,26 @@ export async function collectAndSettleTokenFees({ connection, programId, keeper,
 // token. Signed by the creator when given, otherwise by the automation record.
 export async function fundTokenHolderRewards({ connection, programId, keeper, creator, creatorSigner = null, mint, quoteMint, amount, scheduler, activatedAt }) {
   const quote = new PublicKey(quoteMint), coin = new PublicKey(mint), program = new PublicKey(programId);
-  const tokenProgram = (await connection.getAccountInfo(quote, 'confirmed')).owner;
-  const agency = Boolean(await connection.getAccountInfo(deriveAgencyPolicyV3(program, coin), 'confirmed'));
+  const tokenProgram = (await connection.getAccountInfo(quote, 'finalized')).owner;
+  const agency = Boolean(await connection.getAccountInfo(deriveAgencyPolicyV3(program, coin), 'finalized'));
   const [vault] = PublicKey.findProgramAddressSync([Buffer.from('reward-vault-v1'), keeper.publicKey.toBuffer(), coin.toBuffer()], program);
-  if (!await connection.getAccountInfo(vault, 'confirmed')) throw new Error('The coin has no reward vault.');
+  if (!await connection.getAccountInfo(vault, 'finalized')) throw new Error('The coin has no reward vault.');
   const vaultToken = getAssociatedTokenAddressSync(quote, vault, true, tokenProgram);
-  const ledger = decodeTokenLedgerV3((await connection.getAccountInfo(deriveTokenLedgerV3(program, coin, quote), 'confirmed')).data);
+  const ledgerAddress = deriveTokenLedgerV3(program, coin, quote);
+  const ledger = decodeTokenLedgerV3((await connection.getAccountInfo(ledgerAddress, 'finalized')).data);
   const pay = BigInt(amount);
   if (pay <= 0n || pay > ledger.paid[0] - ledger.withdrawn[0]) throw new Error('The holder amount exceeds the creator-directed budget.');
-  const before = await connection.getTokenAccountBalance(vaultToken, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
+  const before = await connection.getTokenAccountBalance(vaultToken, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
   const signature = await sendAndConfirmTransaction(connection, new Transaction().add(
     createAssociatedTokenAccountIdempotentInstruction(keeper.publicKey, vaultToken, vault, quote, tokenProgram),
     buildTokenDisbursementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey, creator,
       automation: !creatorSigner, recipientOwner: vault, withdrawalId: randomBytes(32), category: 0, beneficiary: 1, amount: pay, holderAmount: pay, agency })),
-  [keeper, ...(creatorSigner ? [creatorSigner] : [])], { commitment: 'confirmed' });
-  const after = BigInt((await connection.getTokenAccountBalance(vaultToken, 'confirmed')).value.amount);
-  if (after - before !== pay) throw new Error('The reward vault did not receive the exact holder amount.');
+  [keeper, ...(creatorSigner ? [creatorSigner] : [])], { commitment: 'finalized' });
+  const after = BigInt((await connection.getTokenAccountBalance(vaultToken, 'finalized')).value.amount);
+  const settled = decodeTokenLedgerV3((await connection.getAccountInfo(ledgerAddress, 'finalized')).data);
+  if (after - before !== pay || settled.withdrawn[0] - ledger.withdrawn[0] !== pay
+    || settled.released[1] - ledger.released[1] !== pay)
+    throw new Error(`Finalized holder funding ${signature} lacks exact vault and ledger deltas.`);
   const fundedAt = Math.floor(Date.now() / 1000);
   if (scheduler) await scheduler.recordFundedPool({ id: `v3t:${signature}`, mint: coin.toBase58(), asset: quote.toBase58(), amount: String(pay),
     fundingSignature: signature, balanceDeltaVerified: true, fundedAt });
@@ -90,13 +129,13 @@ export async function fundTokenHolderRewards({ connection, programId, keeper, cr
 // creator vault plus, after migration, PumpSwap's creator vault.
 export async function pendingTokenFees({ connection, programId, mint, quoteMint, tokenProgram }) {
   const quote = new PublicKey(quoteMint), program = new PublicKey(programId);
-  const owner = tokenProgram ? new PublicKey(tokenProgram) : (await connection.getAccountInfo(quote, 'confirmed')).owner;
-  const { router } = deriveTokenAccountsV3(program, new PublicKey(mint), quote, owner);
-  const read = account => connection.getTokenAccountBalance(account, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
-  const [curve, amm] = await Promise.all([
+  const owner = tokenProgram ? new PublicKey(tokenProgram) : (await connection.getAccountInfo(quote, 'finalized')).owner;
+  const { router, routerToken } = deriveTokenAccountsV3(program, new PublicKey(mint), quote, owner);
+  const read = account => connection.getTokenAccountBalance(account, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
+  const [curve, amm, unallocated] = await Promise.all([
     read(getAssociatedTokenAddressSync(quote, creatorVaultPda(router), true, owner)),
-    read(coinCreatorVaultAtaPda(coinCreatorVaultAuthorityPda(router), quote, owner))]);
-  return { curve, amm, total: curve + amm, tokenProgram: owner.toBase58() };
+    read(coinCreatorVaultAtaPda(coinCreatorVaultAuthorityPda(router), quote, owner)), read(routerToken)]);
+  return { curve, amm, total: curve + amm, unallocated, tokenProgram: owner.toBase58() };
 }
 
 // The creator-directed budget of a paired coin (category 0) split between the
@@ -121,18 +160,23 @@ export async function readDirectedTokenBudget({ connection, programId, mint, quo
 // beneficiary 0) in the paired token, signed by the coin's automation record.
 export async function payTokenCreatorWallet({ connection, programId, keeper, creator, mint, quoteMint, amount }) {
   const quote = new PublicKey(quoteMint), coin = new PublicKey(mint), program = new PublicKey(programId), owner = new PublicKey(creator);
-  const tokenProgram = (await connection.getAccountInfo(quote, 'confirmed')).owner;
+  const tokenProgram = (await connection.getAccountInfo(quote, 'finalized')).owner;
   const pay = BigInt(amount);
   if (pay <= 0n) throw new Error('A positive creator payout is required.');
   const account = getAssociatedTokenAddressSync(quote, owner, false, tokenProgram);
-  const before = await connection.getTokenAccountBalance(account, 'confirmed').then(row => BigInt(row.value.amount)).catch(() => 0n);
+  const ledgerAddress = deriveTokenLedgerV3(program, coin, quote);
+  const ledger = decodeTokenLedgerV3((await connection.getAccountInfo(ledgerAddress, 'finalized')).data);
+  const before = await connection.getTokenAccountBalance(account, 'finalized').then(row => BigInt(row.value.amount)).catch(() => 0n);
   const signature = await sendAndConfirmTransaction(connection, new Transaction().add(
     createAssociatedTokenAccountIdempotentInstruction(keeper.publicKey, account, owner, quote, tokenProgram),
     buildTokenDisbursementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey, creator: owner,
       automation: true, recipientOwner: owner, withdrawalId: randomBytes(32), category: 0, beneficiary: 0, amount: pay, agency: true })),
-  [keeper], { commitment: 'confirmed' });
-  const after = BigInt((await connection.getTokenAccountBalance(account, 'confirmed')).value.amount);
-  if (after - before !== pay) throw new Error('The creator wallet did not receive the exact payout.');
+  [keeper], { commitment: 'finalized' });
+  const after = BigInt((await connection.getTokenAccountBalance(account, 'finalized')).value.amount);
+  const settled = decodeTokenLedgerV3((await connection.getAccountInfo(ledgerAddress, 'finalized')).data);
+  if (after - before !== pay || settled.withdrawn[0] - ledger.withdrawn[0] !== pay
+    || settled.released[0] - ledger.released[0] !== pay)
+    throw new Error(`Finalized creator payout ${signature} lacks exact wallet and ledger deltas.`);
   return { signature, account: account.toBase58(), amount: String(pay) };
 }
 

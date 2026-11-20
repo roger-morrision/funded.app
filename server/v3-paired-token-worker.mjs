@@ -83,10 +83,13 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
     if (!quoteMint) return null;
     const row = { mint: launch.mint, quoteMint };
     const pending = await pendingTokenFees({ connection, programId, mint: launch.mint, quoteMint });
-    row.pending = String(pending.total);
-    if (pending.total >= minimumCollect) {
-      const result = await collectAndSettleTokenFees({ connection, programId, keeper, mint: launch.mint, quoteMint });
-      row.collected = result.collected; row.settled = result.settled;
+    row.pending = String(pending.total); row.unallocated = String(pending.unallocated);
+    if (pending.total >= minimumCollect || pending.unallocated > 0n) {
+      const result = await collectAndSettleTokenFees({ connection, programId, keeper, mint: launch.mint, quoteMint,
+        collect:pending.total >= minimumCollect });
+      if (BigInt(result.collected) > 0n) { row.collected = result.collected; row.collectSignature = result.collectSignature; }
+      if (BigInt(result.settled) > 0n) { row.settled = result.settled; row.settleSignature = result.settleSignature; }
+      if (BigInt(result.deferred) > 0n) row.deferred = result.deferred;
     }
     const budget = await readDirectedTokenBudget({ connection, programId, mint: launch.mint, quoteMint });
     if (!budget) return row;
