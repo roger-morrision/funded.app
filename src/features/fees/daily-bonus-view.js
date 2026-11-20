@@ -7,6 +7,10 @@ const sol = value => {
   const n = BigInt(value || '0');
   return `${n / 1_000_000_000n}.${String(n % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '') || '0'} SOL`;
 };
+const usd = value => {
+  const n = BigInt(value || '0');
+  return `$${n / 1_000_000n}.${String(n % 1_000_000n).padStart(6, '0').replace(/0+$/, '') || '0'}`;
+};
 const short = value => `${value.slice(0, 5)}…${value.slice(-5)}`;
 export function initDailyBonusView(document = globalThis.document) {
   const parent = document?.getElementById?.('capital-flow');
@@ -49,11 +53,12 @@ export function initDailyBonusView(document = globalThis.document) {
     results.append(paidNote);
     for (const [key, label] of Object.entries(GROUPS)) {
       const group = document.createElement('section'), heading = document.createElement('h3'); heading.textContent = label; group.append(heading);
-      const table = document.createElement('table'); table.innerHTML = '<thead><tr><th>Rank · % of category</th><th>Wallet</th><th>Verified SOL basis</th><th>Recorded allocation</th><th>Wallet received · all groups</th></tr></thead>';
+      const commonUsd=snapshot.policy?.scoringBasis==='common-usd-v2';
+      const table = document.createElement('table'); table.innerHTML = `<thead><tr><th>Rank · % of category</th><th>Wallet</th><th>Verified ${commonUsd?'USD':'SOL'} basis</th><th>Recorded allocation</th><th>Wallet received · all groups</th></tr></thead>`;
       const body = document.createElement('tbody');
       for (const winner of snapshot.rankings[key] || []) {
         const row = document.createElement('tr');
-        for (const text of [`#${winner.rank} · ${winner.percentOfCategory}%`, short(winner.wallet), sol(winner.scoreLamports), sol(winner.bonusLamports), !payments.has(winner.wallet) ? 'No finalized receipt' : payments.get(winner.wallet).receivedLamports == null ? 'Received amount unavailable' : sol(payments.get(winner.wallet).receivedLamports)]) {
+        for (const text of [`#${winner.rank} · ${winner.percentOfCategory}%`, short(winner.wallet), commonUsd?usd(winner.scoreUsdMicros):sol(winner.scoreLamports), sol(winner.bonusLamports), !payments.has(winner.wallet) ? 'No finalized receipt' : payments.get(winner.wallet).receivedLamports == null ? 'Received amount unavailable' : sol(payments.get(winner.wallet).receivedLamports)]) {
           const cell = document.createElement('td'); cell.textContent = text; row.append(cell);
         }
         row.children[1].title = winner.wallet; linkWalletText(row.children[1],winner.wallet); body.append(row);

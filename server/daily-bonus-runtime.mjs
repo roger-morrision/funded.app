@@ -1,9 +1,12 @@
 import { Connection } from '@solana/web3.js';
+import { readFileSync } from 'node:fs';
 import { DAILY_BONUS_POLICY } from '../config/daily-bonus.js';
 import { createDailyBonusService } from './daily-bonus-service.mjs';
 import { dailyBonusWork } from './daily-bonus-queue.mjs';
 import { bonusSchedule } from './daily-bonus-schedule.mjs';
 import {financialProgramAllowed} from './financial-network.mjs';
+import { createHeliusBonusPriceReader } from './daily-bonus-helius-price.mjs';
+import { createDailyBonusUsdEvidenceIndex } from './daily-bonus-usd-index.mjs';
 
 export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, solanaRpcUrl,
   v3AuthorityKeypair, env = process.env, logger = console,
@@ -16,11 +19,17 @@ export function createDailyBonusRuntime({ store, rewardStore, solanaCluster, sol
     if (solanaCluster==='devnet'&&financialProgramAllowed(solanaCluster,env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID,env.FUNDED_V3_PROGRAM_DATA_SHA256)
       && env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID
       && /^[a-f0-9]{64}$/i.test(String(env.FUNDED_V3_PROGRAM_DATA_SHA256 || ''))) {
+      const pairedEnabled=env.FUNDED_DAILY_BONUS_PAIRED_ENABLED==='true';
+      const priceFile=String(env.FUNDED_HELIUS_MAINNET_RPC_URL_FILE||'');
+      if (pairedEnabled && !priceFile) throw new Error('A private Helius historical price file is required for paired Daily bonuses.');
+      const readUsdEvidence=pairedEnabled?createDailyBonusUsdEvidenceIndex({rewardStore,store,
+        readPrice:createHeliusBonusPriceReader({rpcUrl:readFileSync(priceFile,'utf8').trim()})}):null;
       service = serviceFactory({ store, rewardStore,
         connection:new Connection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
         programId:env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID, authority:v3AuthorityKeypair(),
         expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,
-        payoutEnabled:env.FUNDED_DAILY_BONUS_PAYOUT_ENABLED === 'true', now, schedule });
+        payoutEnabled:env.FUNDED_DAILY_BONUS_PAYOUT_ENABLED === 'true', now, schedule,
+        scoringBasis:pairedEnabled?'common-usd-v2':'lamports-v1',readUsdEvidence });
     }
   } catch { service = null; }
   let running = false;

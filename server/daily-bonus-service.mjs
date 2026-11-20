@@ -18,11 +18,12 @@ import {createLiveBonusReader} from './daily-bonus-live.mjs';
 import { plannedRewardPayoutAt } from '../protocol-guard.js';
 
 export function createDailyBonusService({ store, rewardStore, connection, programId, authority,
-  expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence,
+  expectedProgramDataSha256, cluster, payoutEnabled = false, readEvidence, readUsdEvidence,
   chainFactory = createAutomaticRewardChain, loadFunding = loadFinalizedV3RewardFunding,
   verifyPolicy = verifyMintPolicyV3Account, now = () => Math.floor(Date.now() / 1000),
-  readPool = readBonusPool, poolTimeoutMs = 12_000, schedule = DEFAULT_BONUS_SCHEDULE, eligibilityBasis='settlement-time-v1' }) {
+  readPool = readBonusPool, poolTimeoutMs = 12_000, schedule = DEFAULT_BONUS_SCHEDULE, eligibilityBasis='settlement-time-v1', scoringBasis='lamports-v1' }) {
   if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
+  if(!['lamports-v1','common-usd-v2'].includes(scoringBasis))throw new Error('Unknown bonus scoring basis.');
   assertBonusNetwork(cluster,{schedule});
   if(!financialProgramAllowed(cluster,programId,expectedProgramDataSha256))throw Error('Daily bonus program requires an independently reviewed release.');
   const readLedger=async(method='read')=>{const state=await (rewardStore[method]?.()||rewardStore.read());assertBonusLedgerNetwork(state,cluster,programId);return state;};
@@ -35,7 +36,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   async function dashboard(options) {
     const at = now();
     const sameDay = poolCache?.day === currentBonusStart(at,schedule);
-    if (!sameDay || at - poolCache.at >= 30) {
+    if (scoringBasis==='common-usd-v2') poolCache={at,day:currentBonusStart(at,schedule),
+      value:{status:'awaiting-finalized-common-usd',categoryLamports:null,liveRankings:null}};
+    else if (!sameDay || at - poolCache.at >= 30) {
       poolRead ||= (async () => {
         let value, timer; const controller = new AbortController();
         try {
@@ -55,8 +58,9 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       if (!sameDay) await poolRead;
     }
     const liveStart=currentBonusStart(now(),schedule);
-    const live=liveBonus(await store.read(),liveStart,liveStart+schedule.periodSeconds);
-    return { cluster, serverTime:new Date(now() * 1000).toISOString(),
+    const live=scoringBasis==='common-usd-v2'?{status:'awaiting-finalized',traders:null,indexedMints:0,totalMints:0,checkedAt:null}
+      :liveBonus(await store.read(),liveStart,liveStart+schedule.periodSeconds);
+    return { cluster, scoringBasis, serverTime:new Date(now() * 1000).toISOString(),
       today:{...live,day:new Date(liveStart*1000).toISOString(),provisional:true,
         creators:poolCache.day===liveStart?poolCache.value.liveRankings?.creators||null:null,
         referrals:poolCache.day===liveStart?poolCache.value.liveRankings?.referrals||null:null},
@@ -74,7 +78,10 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     if (Boolean(window.qa) !== (schedule.periodSeconds === 300)) throw new Error('Snapshot period does not match the active bonus schedule.');
     if (window.qa && window.cohort !== schedule.cohort) throw new Error('Snapshot belongs to a different QA mint cohort.');
     const basis=prior?.snapshot.eligibilityBasis||(prior?'collection-time-v1':eligibilityBasis);
-    const evidence = await readIndexedEvidence({ connection, state:await store.read(), programId, cluster, day, now:now(), qaMints:schedule.allMints ? '*' : schedule.mints,eligibilityBasis:basis });
+    const scoring=prior?.snapshot.policy.scoringBasis|| (prior?'lamports-v1':scoringBasis);
+    const reader=scoring==='common-usd-v2'?readUsdEvidence:readIndexedEvidence;
+    if(!reader)throw new Error('Historical common USD ranking reader is unavailable.');
+    const evidence = await reader({ connection, state:await store.read(), programId, cluster, day, now:now(), qaMints:schedule.allMints ? '*' : schedule.mints,eligibilityBasis:basis });
     if (evidence.complete === false) return evidence;
     const ledger = await readLedger();
     const excluded = evidence.collections
@@ -82,7 +89,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         prior.snapshot.sources.find(source=>source.collectionSignature===row.signature)||{collectionSignature:row.signature},ledger.dailyBonusAssignments[row.signature])))
       .map(row=>row.signature);
     const traderEligibility=prior ? (prior.snapshot.policy.traderEligibility||'all-wallets-v1') : DAILY_BONUS_POLICY.traderEligibility;
-    return { ...evidence,eligibilityBasis:basis,traderEligibility, ...((excluded.length||prior?.snapshot.evidence.excludedCollectionSignatures?.length)
+    return { ...evidence,eligibilityBasis:basis,scoringBasis:scoring,traderEligibility, ...((excluded.length||prior?.snapshot.evidence.excludedCollectionSignatures?.length)
       ? { excludedCollectionSignatures:[...new Set([...excluded,...(prior?.snapshot.evidence.excludedCollectionSignatures||[])])] } : {}) };
   }
   async function capture(day = latestBonusDay(now(),schedule)) {
@@ -198,7 +205,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       &&app.launches?.[row.mint]?.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version===1
       &&app.v3Settlements?.[row.signature]?.status!=='finalized')
       .map(row=>({mint:row.mint,collectionSignature:row.signature,status:'not-eligible',reason:'Awaiting a matching finalized settlement; no bonus window assigned.'}));
-    return { cluster, policy:DAILY_BONUS_POLICY, eligibilityBasis, schedule:publicBonusSchedule(schedule), payoutEnabled,
+    return { cluster, policy:DAILY_BONUS_POLICY, eligibilityBasis, scoringBasis, schedule:publicBonusSchedule(schedule), payoutEnabled,
       pendingSettlementSources,
       indexing:Object.values(state.dailyBonusProgress || {}).sort((a,b) => a.day.localeCompare(b.day)), nextCutoffAt:
       new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),

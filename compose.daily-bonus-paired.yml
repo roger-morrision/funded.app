@@ -1,0 +1,13 @@
+# Devnet paired-token Daily bonus activation. Include only after the category-5
+# router binary and ProgramData hash have been verified on-chain.
+services:
+  app:
+    environment:
+      FUNDED_DAILY_BONUS_PAIRED_ENABLED: "true"
+      FUNDED_HELIUS_MAINNET_RPC_URL_FILE: /run/secrets/helius_bonus_price_rpc_url
+    secrets:
+      - helius_bonus_price_rpc_url
+
+secrets:
+  helius_bonus_price_rpc_url:
+    file: ${FUNDED_HELIUS_MAINNET_RPC_URL_FILE:?Set the private Helius Mainnet price RPC file path}

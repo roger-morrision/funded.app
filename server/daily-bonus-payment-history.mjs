@@ -10,6 +10,10 @@ import { verifyBonusSnapshotRevision } from './daily-bonus-reconciliation.mjs';
 import {parseCycleFields} from './reward-account-codec.mjs';
 import {bitmapPaid} from './reward-rent.mjs';
 import {findRewardPayout} from './reward-payout-evidence.mjs';
+import {loadFinalizedPairedBonusSettlement} from './daily-bonus-paired-settlement.mjs';
+import {verifyStoredPairedBonusConversion} from './daily-bonus-paired-conversion.mjs';
+import {loadFinalizedV3RewardFunding} from './v3-reward-funding-proof.mjs';
+import {v3DisbursementId} from './v3-disbursement-id.mjs';
 
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const discriminator = (space, name) => createHash('sha256').update(`${space}:${name}`).digest().subarray(0,8);
@@ -116,15 +120,50 @@ export async function loadDailyPayment({connection,state,candidate,cluster='devn
   const funding=state.v3CommunityFunding?.[source.collectionSignature];
   if (launch?.onchainVerified !== true || launch.cluster !== cluster || route?.scope !== 'per-mint-v3'
     || launch.feeDistribution?.fixedFunded?.communityRewards?.dailyBonus?.version !== 1
-    || collection?.mint !== source.mint || collection.signature !== source.collectionSignature
-    || collection.cluster !== cluster || collection.programId !== route.programId
-    || collection.scope !== 'per-mint-v3' || collection.onchainVerified !== true || collection.status !== 'collected'
-    || !financialRecordNetwork(settled,cluster,{legacyDevnet:true}) || !financialRecordNetwork(funding,cluster,{legacyDevnet:true})
-    || settled?.status !== 'finalized' || settled.mint !== source.mint
-    || settled.collectionSignature !== source.collectionSignature || settled.settlementSignature !== source.settlementSignature
+    || !financialRecordNetwork(funding,cluster,{legacyDevnet:true})
     || funding?.status !== 'finalized' || funding.balanceDeltaVerified !== true || funding.mint !== source.mint
     || funding.amount !== source.amountLamports || funding.signature !== payout.fundingSignature)
     throw new Error('Daily payment lacks its matching finalized source.');
+  if (funding.pairedSource===true) {
+    const paired=state.v3TokenBonusSources?.[source.collectionSignature];
+    const evidence=snapshot.evidence.collections.find(row=>row.signature===source.collectionSignature);
+    if (!paired || paired.mint!==source.mint || paired.signature!==source.collectionSignature
+      || paired.cluster!==cluster || paired.programId!==route.programId
+      || paired.quoteMint!==evidence?.quoteMint || paired.grossQuoteRaw!==evidence?.amountRaw
+      || source.settlementSignature!==paired.signature)
+      throw new Error('Paired Daily bonus source attribution is unavailable.');
+    const settledProof=await loadFinalizedPairedBonusSettlement({connection,signature:paired.signature,
+      programId:route.programId,mint:source.mint,quoteMint:paired.quoteMint});
+    if(settledProof.bonusQuoteRaw!==paired.bonusQuoteRaw||settledProof.grossQuoteRaw!==paired.grossQuoteRaw)
+      throw new Error('Paired Daily bonus settlement proof changed.');
+    const conversions=Object.values(state.v3TokenBonusConversions||{}).filter(row=>row.status==='finalized'
+      &&row.mint===source.mint&&row.quoteMint===paired.quoteMint
+      &&row.allocations?.some(item=>item.settlementSignature===paired.signature));
+    let spent=0n,received=0n;
+    const sourceMap=new Map(Object.values(state.v3TokenBonusSources||{}).map(row=>[row.signature,row]));
+    for(const conversion of conversions){
+      await verifyStoredPairedBonusConversion({connection,programId:route.programId,
+        cluster,conversion,sources:sourceMap});
+      for(const item of conversion.allocations.filter(row=>row.settlementSignature===paired.signature)){
+        spent+=BigInt(item.spentQuoteRaw);received+=BigInt(item.receivedLamports);
+      }
+    }
+    if(spent!==BigInt(paired.bonusQuoteRaw)||received!==BigInt(source.amountLamports))
+      throw new Error('Paired Daily bonus SOL attribution does not reconcile.');
+    const fundedProof=await loadFinalizedV3RewardFunding({connection,signature:funding.signature,
+      programId:route.programId,mint:source.mint,cluster,authority:funding.feePayer,
+      creator:launch.creatorWallet,initialAuthority:route.initialAuthority,
+      withdrawalId:v3DisbursementId('community',paired.signature),category:5,
+      amount:source.amountLamports,recipient:funding.recipient,split:route.protocolSplit,
+      protectedPolicy:true,beneficiary:7,holderAmount:0n});
+    if(!fundedProof?.balanceDeltaVerified)throw new Error('Paired Daily bonus SOL funding proof is unavailable.');
+  } else if (collection?.mint !== source.mint || collection.signature !== source.collectionSignature
+    || collection.cluster !== cluster || collection.programId !== route.programId
+    || collection.scope !== 'per-mint-v3' || collection.onchainVerified !== true || collection.status !== 'collected'
+    || !financialRecordNetwork(settled,cluster,{legacyDevnet:true})
+    || settled?.status !== 'finalized' || settled.mint !== source.mint
+    || settled.collectionSignature !== source.collectionSignature || settled.settlementSignature !== source.settlementSignature)
+    throw new Error('Daily payment lacks its matching finalized SOL source.');
   const program=route.programId, vaultKey=new PublicKey(funding.recipient);
   const vault=accountData(await connection.getAccountInfo(vaultKey,'finalized'),program,'RewardVault',73);
   const authority=new PublicKey(vault.subarray(8,40)), mint=new PublicKey(vault.subarray(40,72));

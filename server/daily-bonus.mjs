@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import { DAILY_BONUS_POLICY, DAILY_BONUS_PAYOUT_ASSET } from '../config/daily-bonus.js';
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
+import { bonusUsdMicros } from './daily-bonus-helius-price.mjs';
+import { bonusQuoteAsset } from './daily-bonus-usd-score.mjs';
 import { bonusWindow as dailyBonusWindow } from './daily-bonus-schedule.mjs';
 export { bonusWindow as dailyBonusWindow, latestBonusDay } from './daily-bonus-schedule.mjs';
 
@@ -49,9 +51,11 @@ export function allocateDailyBonusSource(row, rankings) {
     retainedLamports:String(budget - paid), allocations:[...allocations].sort((a, b) => compareText(a[0], b[0]))
       .map(([recipient, value]) => ({ recipient, amount:String(value) })) };
 }
-export function buildDailyBonusSnapshot({ day, cluster='devnet', programId, collections, trades, coverage, now, excludedCollectionSignatures = [], eligibilityBasis='collection-time-v1', traderEligibility=DAILY_BONUS_POLICY.traderEligibility }) {
+export function buildDailyBonusSnapshot({ day, cluster='devnet', programId, collections, trades, coverage, now, excludedCollectionSignatures = [], eligibilityBasis='collection-time-v1', traderEligibility=DAILY_BONUS_POLICY.traderEligibility, scoringBasis='lamports-v1' }) {
   if(!['collection-time-v1','settlement-time-v1'].includes(eligibilityBasis))throw new Error('Unknown bonus eligibility basis.');
   if(!['all-wallets-v1','direct-signers-v1'].includes(traderEligibility))throw new Error('Unknown trader bonus eligibility.');
+  if(!['lamports-v1','common-usd-v2'].includes(scoringBasis))throw new Error('Unknown bonus scoring basis.');
+  const commonUsd=scoringBasis==='common-usd-v2';
   const settlementTime=eligibilityBasis==='settlement-time-v1';
   const window = dailyBonusWindow(day, now);
   if (!Array.isArray(coverage) || coverage.some(row => row.complete !== true))
@@ -67,22 +71,33 @@ export function buildDailyBonusSnapshot({ day, cluster='devnet', programId, coll
     if (parsed > 0n) totals[category].set(key, (totals[category].get(key) || 0n) + parsed);
   };
   const inWindow = row => Number.isSafeInteger(row.blockTime) && row.blockTime >= window.start && row.blockTime < window.end;
+  const verifiedScore = (row, at) => {
+    const quote=bonusQuoteAsset(row.quoteMint,cluster);
+    if (row.quoteAsset!==quote.asset || row.quoteDecimals!==quote.decimals
+      || bonusUsdMicros({asset:quote.asset,amountRaw:row.amountRaw,decimals:quote.decimals,
+        tradeTime:at,priceEvidence:row.priceEvidence})!==String(row.scoreUsdMicros))
+      throw new Error('Daily bonus common USD evidence does not reproduce its ranking score.');
+    return row.scoreUsdMicros;
+  };
   for (const row of fees) {
     if (row.finalized !== true || !(settlementTime?inWindow({blockTime:row.settlementBlockTime}):inWindow(row))) throw new Error('Collection does not belong to the finalized UTC day.');
-    include('creators', row.creator, row.amountLamports);
-    if (row.referrer) include('referrals', row.referrer, row.amountLamports);
+    const score=commonUsd?verifiedScore(row,settlementTime?row.settlementBlockTime:row.blockTime):row.amountLamports;
+    include('creators', row.creator, score);
+    if (row.referrer) include('referrals', row.referrer, score);
   }
   for (const row of events) {
     if (row.finalized !== true || !inWindow(row)) throw new Error('Trade does not belong to the finalized UTC day.');
+    const score=commonUsd?verifiedScore(row,row.blockTime):row.amountLamports;
     // Keep excluded trades as verified evidence, but do not let a program address
     // take a rank or dilute the directly signable wallets' category awards.
     if (traderEligibility === 'direct-signers-v1' && !PublicKey.isOnCurve(new PublicKey(row.wallet).toBytes())) continue;
-    include('traders', row.wallet, row.amountLamports);
+    include('traders', row.wallet, score);
   }
   const rankings = Object.fromEntries(DAILY_BONUS_POLICY.categories.map(category => [category,
     [...totals[category]].sort((a, b) => a[1] === b[1] ? compareText(a[0], b[0]) : a[1] > b[1] ? -1 : 1)
       .slice(0, 3).map(([recipient, score], index) => ({ rank:index + 1, wallet:recipient,
-        scoreLamports:String(score), percentOfCategory:DAILY_BONUS_POLICY.rankPercents[index], bonusLamports:'0' }))]));
+        ...(commonUsd?{scoreUsdMicros:String(score)}:{scoreLamports:String(score)}),
+        percentOfCategory:DAILY_BONUS_POLICY.rankPercents[index], bonusLamports:'0' }))]));
   const excluded = [...new Set(excludedCollectionSignatures)].sort();
   if (excluded.some(id=>!fees.some(row=>row.signature === id))) throw new Error('Excluded bonus source is outside the verified window.');
   const sources = fees.filter(row => !excluded.includes(row.signature) && row.dailyBonusVersion === 1 && amount(row.communityLamports) > 0n)
@@ -90,7 +105,9 @@ export function buildDailyBonusSnapshot({ day, cluster='devnet', programId, coll
   const basePolicy={...DAILY_BONUS_POLICY};
   // Snapshots predating this rule must reproduce their original policy and hash.
   if(traderEligibility==='all-wallets-v1')delete basePolicy.traderEligibility;
-  const policy=settlementTime?{...basePolicy,eligibilityBasis,metrics:{...basePolicy.metrics,
+  const policy=commonUsd?{...basePolicy,scoringBasis,metrics:{creators:'settled-creator-fee-usd-micros',
+    referrals:'direct-referred-settled-fee-usd-micros',traders:'finalized-trading-volume-usd-micros'},
+    ...(settlementTime?{eligibilityBasis}:{})}:settlementTime?{...basePolicy,eligibilityBasis,metrics:{...basePolicy.metrics,
     creators:'settled-creator-fee-lamports',referrals:'direct-referred-settled-fee-lamports'}}:basePolicy;
   const snapshot = { version:1, ...window, ...bonusSnapshotIdentity(cluster,programId,window), ...(settlementTime?{eligibilityBasis}:{}), policy:window.qa ? { ...policy, periodSeconds:300, qa:true } : policy, rankings, sources,
     evidence:{ collections:fees, trades:events, coverage:[...coverage].sort((a, b) => compareText(a.mint, b.mint)),

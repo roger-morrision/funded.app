@@ -13,8 +13,8 @@ use crate::{constants::*, error::ErrorCode,
 use super::agency_policy_v3::AGENCY_POLICY_SEED;
 use super::rotate::assert_current_router_authority;
 
-// A coin paired with a token settles its fees in that token. Its buyback (6)
-// and AI-agency (7) budgets are spent by the SOL flows, so the router converts
+// A coin paired with a token settles its fees in that token. Its Daily bonus
+// (5), buyback (6), and AI-agency (7) budgets are spent by the SOL flows, so the router converts
 // them to SOL through one pinned PumpSwap WSOL/<paired token> pool. The SOL
 // lands in the same category's SOL vault and is credited to that category's
 // SOL budget; the credit is recorded so later SOL settlements stay consistent.
@@ -103,7 +103,7 @@ pub fn read_credit(program_id: &Pubkey, mint: &Pubkey, account: Option<&AccountI
 pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversion_id: [u8; 32], category: u8,
     amount_in: u64, min_sol_out: u64) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.authority.key(), ctx.program_id)?;
-    require!(category == 6 || category == 7, ErrorCode::InvalidMintWithdrawalV3);
+    require!((5..=7).contains(&category), ErrorCode::InvalidMintWithdrawalV3);
     require!(amount_in > 0 && min_sol_out > 0, ErrorCode::InvalidAmount);
     let mint = ctx.accounts.mint.key();
     let quote = ctx.accounts.quote_mint.key();

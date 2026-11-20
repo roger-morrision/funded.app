@@ -8,6 +8,10 @@ import { ensureMintAutomationV3 } from './mint-automation-v3.mjs';
 import { v3ReferralUpline } from './v3-referral-entitlement.mjs';
 import { deriveAgencyPolicyV3 } from '../mint-router-v3-token.js';
 import { QA_HOLDER_POLICY, qaHolderMinimums, qaShortHolderMintSelected } from './devnet-qa-minimums.mjs';
+import { bonusQuoteAsset } from './daily-bonus-usd-score.mjs';
+import { scanPairedBonusSettlements } from './daily-bonus-paired-scan.mjs';
+import { processPairedBonusConversion } from './daily-bonus-paired-worker.mjs';
+import { fundPairedBonusSources } from './daily-bonus-paired-funding.mjs';
 
 // Devnet automation for coins paired with a token (USDC, xStocks, ...): collect
 // Pump's paired-token creator fees into the coin's router, settle them across
@@ -136,6 +140,22 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
           cluster: solanaCluster, lookupTable: env.FUNDED_V3_TOKEN_CONVERSION_LOOKUP_TABLE || null });
         (row.converted ||= []).push({ category, spent: converted.spent, lamports: converted.receivedLamports,
           quotedLamports: converted.expectedLamports, balanceDeltaVerified: converted.balanceDeltaVerified, signature: converted.signature });
+      }
+    }
+    if (env.FUNDED_DAILY_BONUS_PAIRED_ENABLED === 'true') {
+      bonusQuoteAsset(quoteMint,solanaCluster);
+      const scan=await scanPairedBonusSettlements({connection:finalizedConnection,store,cluster:solanaCluster,
+        programId,mint:launch.mint,quoteMint,createdTimestamp:Number(launch.createdTimestamp||launch.blockTime)});
+      row.bonusSourceScan=scan;
+      if (scan.complete && env.FUNDED_V3_TOKEN_CONVERSION_ENABLED === 'true')
+        row.bonusConversion=await processPairedBonusConversion({connection:finalizedConnection,store,programId,
+          keeper,mint:launch.mint,quoteMint,cluster:solanaCluster,
+          lookupTable:env.FUNDED_V3_TOKEN_CONVERSION_LOOKUP_TABLE||null,
+          minQuoteRaw:BigInt(env.FUNDED_V3_PAIRED_BONUS_MIN_CONVERT_UNITS||'1')});
+      if (scan.complete) {
+        await ensureAutomation(launch,state);
+        row.bonusFunding=await fundPairedBonusSources({connection:finalizedConnection,store,programId,
+          keeper,launch,expectedProgramDataSha256:env.FUNDED_V3_PROGRAM_DATA_SHA256,cluster:solanaCluster});
       }
     }
     return row;

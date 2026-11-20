@@ -4,10 +4,10 @@ import {mainnetReleaseVerified} from './mainnet-program.mjs';
 // Source-built with platform-tools v1.54 and the devnet-v3-program feature.
 // The loader header/upgrade slot is excluded from this binary commitment;
 // callers separately pin the complete finalized ProgramData account hash.
-// 2026-11-19: Devnet-only receipt reclamation and bitmap reward cycles.
-// Compiled-bytecode replay, rollback, custody and refund checks precede cutover.
-export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1167656,
-  sha256:'eece07be313e1a93f5eaacac0531f5495db3dceeaa067a036fcbabe34d78cb42'});
+// 2026-11-20: Devnet-only category-5 paired-token conversion for SOL Daily bonuses.
+// The app must pin this exact compiled artifact before enabling its payout worker.
+export const AGENCY_REVIEWED_BINARY=Object.freeze({bytes:1168496,
+  sha256:'c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15'});
 export const AGENCY_DEVNET_PROGRAM='9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm';
 export function matchesAgencyBinary(data,manifest=AGENCY_REVIEWED_BINARY){
   const bytes=Buffer.from(data||[]);

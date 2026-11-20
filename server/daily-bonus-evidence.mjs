@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { bondingCurvePda, PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
+import { bondingCurvePda, PUMP_PROGRAM_ID, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
 import { canonicalPumpPoolPda, PUMP_AMM_PROGRAM_ID, getPumpAmmProgram } from '@pump-fun/pump-swap-sdk';
 import { NATIVE_MINT } from '@solana/spl-token';
 import {assertBonusRpc} from './daily-bonus-network.mjs';
@@ -41,7 +41,7 @@ function completeMarketPrefix(transaction) {
   return successfulEventLogs(logs.slice(0, lastStart));
 }
 
-export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePoolEvent) {
+export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePoolEvent, quoteMint = NATIVE_MINT) {
   if (!transaction || transaction.meta?.err !== null || transaction.slot !== reference.slot
     || transaction.transaction?.signatures?.[0] !== reference.signature
     || !Number.isSafeInteger(transaction.blockTime) || transaction.blockTime !== reference.blockTime) throw new Error('Daily bonus trade proof is unavailable.');
@@ -59,12 +59,21 @@ export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePo
     const curve = event.program === PUMP_PROGRAM_ID.toBase58();
     const amm = pool && event.program === PUMP_AMM_PROGRAM_ID.toBase58();
     if (!curve && !amm) continue;
-    const decoded = curve ? decodePumpTrades([event.log], mint) : decodePumpSwapTrades([
-      `Program ${event.program} invoke [1]`, event.log, `Program ${event.program} success`], pool, decodePoolEvent);
-    for (const trade of decoded) rows.push({ signature:reference.signature, logIndex:event.index,
-      mint:mint.toBase58(), wallet:new PublicKey(trade.trader).toBase58(),
-      blockTime:transaction.blockTime, slot:transaction.slot,
-      amountLamports:String(trade.solLamports), finalized:true });
+    const decoded = curve ? decodePumpTrades([event.log], mint, {anyQuote:!quoteMint.equals(NATIVE_MINT)}) : decodePumpSwapTrades([
+      `Program ${event.program} invoke [1]`, event.log, `Program ${event.program} success`], pool, decodePoolEvent,{quoteMint});
+    for (const trade of decoded) {
+      if (trade.quoteMint && !(quoteMint.equals(NATIVE_MINT)
+        ? isSolLikeQuoteMint(new PublicKey(trade.quoteMint))
+        : new PublicKey(trade.quoteMint).equals(quoteMint)))
+        throw new Error('Daily bonus trade quote differs from the finalized launch.');
+      const raw=quoteMint.equals(NATIVE_MINT)?trade.solLamports:trade.quoteAmountRaw;
+      if (raw == null || BigInt(raw)<=0n) throw new Error('Daily bonus trade amount is unavailable.');
+      rows.push({ signature:reference.signature, logIndex:event.index,
+        mint:mint.toBase58(), wallet:new PublicKey(trade.trader).toBase58(),
+        blockTime:transaction.blockTime, slot:transaction.slot,
+        ...(quoteMint.equals(NATIVE_MINT)?{amountLamports:String(raw)}:{quoteMint:quoteMint.toBase58(),amountRaw:String(raw)}),
+        finalized:true });
+    }
   }
   return rows;
 }
@@ -73,12 +82,12 @@ export function dailyBonusTradeRows(transaction, reference, mint, pool, decodePo
 // Only missing logs may be recovered; signature, network and balance evidence
 // must still agree before any trading volume enters the daily snapshot.
 export async function readDailyBonusTradeRows({ connection, transaction, reference, mint, pool,
-  cluster='devnet', decodePoolEvent, decodeTrade = dailyBonusTradeRows, completeReceipt = completeFinalizedEventReceipt }) {
-  try { return await decodeTrade(transaction, reference, mint, pool, decodePoolEvent); }
+  cluster='devnet', quoteMint=NATIVE_MINT, decodePoolEvent, decodeTrade = dailyBonusTradeRows, completeReceipt = completeFinalizedEventReceipt }) {
+  try { return await decodeTrade(transaction, reference, mint, pool, decodePoolEvent, quoteMint); }
   catch (error) {
     if (!['logs-incomplete', 'logs-unavailable'].includes(error.reason)) throw error;
     const complete = await completeReceipt({ connection, transaction, signature:reference.signature, cluster });
-    return await decodeTrade(complete, reference, mint, pool, decodePoolEvent);
+    return await decodeTrade(complete, reference, mint, pool, decodePoolEvent, quoteMint);
   }
 }
 

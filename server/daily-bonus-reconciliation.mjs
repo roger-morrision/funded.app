@@ -18,6 +18,7 @@ export function verifyBonusSnapshotRevision(record){
     const rebuilt=buildDailyBonusSnapshot({day:snapshot.day,...snapshot.evidence,
       cluster:snapshot.cluster||'devnet',programId:snapshot.programId,
       traderEligibility:snapshot.policy.traderEligibility||'all-wallets-v1',
+      scoringBasis:snapshot.policy.scoringBasis||'lamports-v1',
       eligibilityBasis:snapshot.eligibilityBasis||'collection-time-v1',now:snapshot.end});
     if(!snapshot.reconciliation){
       if(!isDeepStrictEqual(snapshot,rebuilt))throw new Error('Invalid daily snapshot.');

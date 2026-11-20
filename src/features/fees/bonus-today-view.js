@@ -6,7 +6,10 @@ export function renderTodayBonuses(page,data,document=globalThis.document){
   const root=page.querySelector('[data-bonus-today]');if(!root)return;
   root.replaceChildren();
   // Every category keeps its podium; categories without rankings show "No candidate" steps.
-  for(const[key,[title,metric]]of Object.entries(groups)){
+  for(const[key,[title,oldMetric]]of Object.entries(groups)){
+    const metric=data?.scoringBasis==='common-usd-v2'?{
+      creators:'Ranked by settled creator fees in USD',referrals:'Ranked by referred settled fees in USD',
+      traders:'Ranked by verified USD trading volume'}[key]:oldMetric;
     const rows=data?.today?.[key];
     root.append(renderBonusPodium(document,{key,title,metric,emptyText:'No eligible activity yet',
       rows:Array.isArray(rows)?rows.slice(0,5).map(row=>({rank:row.rank,wallet:row.wallet,amount:bonusSol(row.scoreLamports),note:row.rank>3?'Outside bonus places':undefined})):null}));
@@ -15,6 +18,7 @@ export function renderTodayBonuses(page,data,document=globalThis.document){
   const today=data?.today;
   page.querySelector('[data-bonus-today-status]').textContent=today?.status==='blocked'
     ? 'Today’s rankings are blocked: paired-token trades need verified common USD price evidence.'
+    :today?.status==='awaiting-finalized'?'Common USD ranks publish after complete finalized evidence at the cutoff.'
     :today?.status==='partial'?'Checking complete coin coverage before showing ranks.'
       :today?.checkedAt?`Updated ${new Date(today.checkedAt).toLocaleTimeString()}`:'';
   page.querySelector('[data-today-cutoff]').textContent=data?.schedule?.mode==='devnet-qa-5m'?'Devnet QA snapshot · every 5 minutes':'Snapshot · 00:00 UTC';

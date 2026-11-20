@@ -18,7 +18,7 @@ import { receiptRetentionOptions,expiredReceiptProofs,receiptRetentionResult } f
 
 export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-store.json'), databaseUrl = process.env.DATABASE_URL) {
   if (databaseUrl) return createPostgresStore(databaseUrl);
-  let state = { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, shareVisits: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  let state = { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3TokenBonusSources: {}, v3TokenBonusConversions: {}, v3TokenBonusScans: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, marketActivity: {}, coinChats: {}, shareVisits: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
   let loaded = false;
   let updateQueue = Promise.resolve();
   const rpcRates = new Map();
@@ -49,6 +49,9 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.xPublicTradeShares ||= {};
     state.collections ||= {};
     state.v3Settlements ||= {};
+    state.v3TokenBonusSources ||= {};
+    state.v3TokenBonusConversions ||= {};
+    state.v3TokenBonusScans ||= {};
     state.v3CommunityFunding ||= {};
     state.v3CreatorRewardFunding ||= {};
     state.v3CreatorWalletPayout ||= {};

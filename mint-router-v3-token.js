@@ -116,6 +116,17 @@ export function decodeTokenLedgerV3(data) {
     settled: bytes.readBigUInt64LE(72), paid: read(80, 8), withdrawn: read(144, 8), released: read(208, 3), bump: bytes[232] };
 }
 
+/** The immutable per-settlement token allocation, in raw quote-token units. */
+export function decodeTokenClaimV3(data) {
+  const raw = Buffer.from(data || []);
+  const discriminator = createHash('sha256').update('account:MintClaimRecordV3').digest().subarray(0, 8);
+  if (raw.length !== 144 || !raw.subarray(0, 8).equals(discriminator))
+    throw new Error('Invalid paired-token settlement claim.');
+  return { claimId:raw.subarray(8, 40).toString('hex'), mint:new PublicKey(raw.subarray(40, 72)).toBase58(),
+    totalQuoteRaw:raw.readBigUInt64LE(72), categoryQuoteRaw:Array.from({length:7},(_,index)=>raw.readBigUInt64LE(80+index*8)),
+    createdAt:raw.readBigInt64LE(136) };
+}
+
 const NATIVE = new PublicKey('So11111111111111111111111111111111111111112');
 const SPL_TOKEN = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 const ATA_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
@@ -145,7 +156,7 @@ export function decodeSolCreditV3(data) {
 }
 
 /**
- * Converts part of a paired coin's buyback (6) or AI-agency (7) token budget to
+ * Converts part of a paired coin's Daily bonus (5), buyback (6), or AI-agency (7) token budget to
  * SOL through the router's pinned PumpSwap WSOL/<token> pool. `pumpBuyInstruction`
  * is the SDK's PumpSwap buy for that pool with the category vault as user; its
  * accounts become the router's CPI accounts.
@@ -153,7 +164,7 @@ export function decodeSolCreditV3(data) {
 // Mainnet builds also require the independent price signer: pass `priceSigner`
 // and the router appends [price config PDA, price signer] after the swap accounts.
 export function buildTokenConversionInstruction({ programId, mint, quoteMint, quoteTokenProgram, authority, conversionId, category, amountIn, minSolOut, pumpBuyInstruction, priceSigner = null }) {
-  if (![6, 7].includes(Number(category))) throw new Error('Only buyback (6) and AI-agency (7) budgets convert to SOL.');
+  if (![5, 6, 7].includes(Number(category))) throw new Error('Only Daily bonus (5), buyback (6), and AI-agency (7) budgets convert to SOL.');
   if (Buffer.from(conversionId || []).length !== 32) throw new Error('A 32-byte conversion ID is required.');
   if (!pumpBuyInstruction?.programId?.equals(PUMP_SWAP)) throw new Error('A PumpSwap buy instruction is required.');
   const program = key(programId), coin = key(mint), quote = key(quoteMint), quoteProgram = key(quoteTokenProgram);

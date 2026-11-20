@@ -230,10 +230,10 @@ export const TOKEN_CONVERSION_POOLS = Object.freeze({
   'mainnet-beta': Object.freeze({}),
 });
 
-// Converts part of a paired coin's buyback (6) or AI-agency (7) token budget
+// Converts part of a paired coin's Daily bonus (5), buyback (6), or AI-agency (7) token budget
 // into SOL in that category's SOL vault, where the SOL buyback and agency flows
 // spend it. The minimum SOL out is the pool quote less `slippageBps`.
-export async function convertTokenBudgetToSol({ connection, programId, keeper, mint, quoteMint, category, amount, cluster = 'devnet', slippageBps = 300, lookupTable = null }) {
+export async function convertTokenBudgetToSol({ connection, programId, keeper, mint, quoteMint, category, amount, cluster = 'devnet', slippageBps = 300, lookupTable = null, conversionId:requestedId = null }) {
   const pool = TOKEN_CONVERSION_POOLS[cluster]?.[String(quoteMint)];
   if (!pool) throw new Error('No reviewed SOL conversion pool exists for this paired token.');
   const quote = new PublicKey(quoteMint), coin = new PublicKey(mint), program = new PublicKey(programId);
@@ -257,7 +257,11 @@ export async function convertTokenBudgetToSol({ connection, programId, keeper, m
     return owner && account && getAssociatedTokenAddressSync(quote, owner, true, quoteProgram).equals(account)
       ? [createAssociatedTokenAccountIdempotentInstruction(keeper.publicKey, account, owner, quote, quoteProgram)] : [];
   });
-  const conversionId = randomBytes(32);
+  const conversionId = requestedId === null ? randomBytes(32) : Buffer.from(requestedId);
+  if (conversionId.length !== 32) throw new Error('A 32-byte token conversion identity is required.');
+  const receiptAddress = deriveTokenConversionV3(program, coin, conversionId);
+  if (await connection.getAccountInfo(receiptAddress, 'finalized'))
+    throw new Error('Token conversion identity already exists; recover its finalized receipt before retrying.');
   const { instruction } = buildTokenConversionInstruction({ programId: program, mint: coin, quoteMint: quote, quoteTokenProgram: quoteProgram,
     authority: keeper.publicKey, conversionId, category, amountIn: amount, minSolOut, pumpBuyInstruction: buy });
   const instructions = [ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }), ...setup, instruction];
@@ -274,7 +278,6 @@ export async function convertTokenBudgetToSol({ connection, programId, keeper, m
     const status = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'finalized');
     if (status.value.err) throw new Error(`Conversion failed: ${JSON.stringify(status.value.err)}`);
   } else signature = await sendAndConfirmTransaction(connection, new Transaction().add(...instructions), [keeper], { commitment: 'finalized' });
-  const receiptAddress = deriveTokenConversionV3(program, coin, conversionId);
   const [receiptInfo, creditInfo, tx] = await Promise.all([
     connection.getAccountInfo(receiptAddress, 'finalized'),
     connection.getAccountInfo(deriveSolCreditV3(program, coin), 'finalized'),

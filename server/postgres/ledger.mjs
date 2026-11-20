@@ -5,7 +5,7 @@ import { creatorDirectoryRecords } from '../creator-directory.mjs';
 import { searchGrams } from '../creator-search.mjs';
 
 const schemaPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'db', 'schema.sql');
-const buckets = ['launches', 'listings', 'listingQuotes', 'boostQuotes', 'boostReceipts', 'launchTierQuotes', 'xPublicTradeShares', 'settlements', 'v3Settlements', 'v3CommunityFunding', 'v3CreatorRewardFunding', 'v3CreatorWalletPayout', 'v3ReferralPayouts', 'v3OperationsPayout', 'v3XClaims', 'v3BuybackOrders', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'burnReceipts', 'buybackOrders', 'communityReserveReceipts', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'shareVisits', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
+const buckets = ['launches', 'listings', 'listingQuotes', 'boostQuotes', 'boostReceipts', 'launchTierQuotes', 'xPublicTradeShares', 'settlements', 'v3Settlements', 'v3TokenBonusSources', 'v3TokenBonusConversions', 'v3TokenBonusScans', 'v3CommunityFunding', 'v3CreatorRewardFunding', 'v3CreatorWalletPayout', 'v3ReferralPayouts', 'v3OperationsPayout', 'v3XClaims', 'v3BuybackOrders', 'obligations', 'claims', 'referralClaims', 'payouts', 'collections', 'burnReceipts', 'buybackOrders', 'communityReserveReceipts', 'launchReviews', 'alerts', 'xIntake', 'coinChats', 'shareVisits', 'referralCodes', 'referralWallets', 'referralAttributions', 'referralChallenges'];
 const referralBuckets = { referralCodes: 'codes', referralWallets: 'wallets', referralAttributions: 'attributions', referralChallenges: 'challenges' };
 buckets.push('creatorProfiles', 'top100Snapshots');
 buckets.push('productIssues');
@@ -26,7 +26,7 @@ buckets.push('mainnetTrades', 'mainnetTradeCursor', 'pairLaunches');
 function entriesFor(state, bucket) { return referralBuckets[bucket] ? state.referrals[referralBuckets[bucket]] : state[bucket]; }
 
 function baseState() {
-  return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
+  return { version: 4, launches: {}, listings: {}, listingQuotes: {}, boostQuotes: {}, boostReceipts: {}, launchTierQuotes: {}, xPublicTradeShares: {}, settlements: {}, v3Settlements: {}, v3TokenBonusSources: {}, v3TokenBonusConversions: {}, v3TokenBonusScans: {}, v3CommunityFunding: {}, v3CreatorRewardFunding: {}, v3CreatorWalletPayout: {}, v3ReferralPayouts: {}, v3OperationsPayout: {}, v3XClaims: {}, v3BuybackOrders: {}, obligations: {}, claims: {}, referralClaims: {}, payouts: {}, collections: {}, burnReceipts: {}, buybackOrders: {}, communityReserveReceipts: {}, launchReviews: {}, alerts: {}, xIntake: {}, coinChats: {}, shareVisits: {}, creatorProfiles: {}, referrals: { codes: {}, wallets: {}, attributions: {}, challenges: {} } };
 }
 
 function initialState() { return { ...baseState(), mainnetTrades:{}, mainnetTradeCursor:{}, pairLaunches:{}, projectUpdates:{}, launchPostEmails:{}, developerTokenReleases:{}, boostPayments:{}, top100Snapshots:{}, productIssues:{}, adminSettings:{}, adminAudit:{}, adminWithdrawalIntents:{}, adminJwtRevocations:{}, adminWithdrawalRequests:{}, outflowWatch:{}, outflowAlerts:{}, launchServiceQuotes:{}, launchSymbolReservations:{}, v3AllocationResidualPlans:{}, v3AgencyExecutions:{}, v3AgencyPromotions:{}, communityExecutions:{}, manualReferralPayoutClaims:{} }; }
@@ -55,6 +55,9 @@ function normalizeState(state) {
   next.xPublicTradeShares ||= {};
   next.settlements ||= {};
   next.v3Settlements ||= {};
+  next.v3TokenBonusSources ||= {};
+  next.v3TokenBonusConversions ||= {};
+  next.v3TokenBonusScans ||= {};
   next.v3CommunityFunding ||= {};
   next.v3CreatorRewardFunding ||= {};
   next.v3CreatorWalletPayout ||= {};
