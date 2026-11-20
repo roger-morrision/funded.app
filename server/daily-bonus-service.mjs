@@ -2,7 +2,7 @@ import {cleanupDailyReceipts} from './reward-rent.mjs';
 import {assertBonusNetwork,assertBonusLedgerNetwork,assertBonusSnapshotNetwork} from './daily-bonus-network.mjs';
 import {financialProgramAllowed,financialRecordNetwork} from './financial-network.mjs';
 import { isDeepStrictEqual } from 'node:util';
-import { DAILY_BONUS_POLICY } from '../config/daily-bonus.js';
+import { DAILY_BONUS_POLICY, DAILY_BONUS_PAYOUT_ASSET } from '../config/daily-bonus.js';
 import { verifyMintPolicyV3Account } from '../mint-router-v3.js';
 import { createAutomaticRewardChain, rewardAddresses } from './automatic-reward-chain.mjs';
 import { buildDailyBonusSnapshot, dailyBonusManifest, latestBonusDay, bonusHash } from './daily-bonus.mjs';
@@ -135,6 +135,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
         if(prior?.status==='paid')continue;
         const manifest = dailyBonusManifest(snapshot, source);
         if (!manifest) continue;
+        if (manifest.asset !== DAILY_BONUS_PAYOUT_ASSET) throw new Error('Daily bonus payout must be SOL.');
         const app = await store.read(), launch = app.launches?.[source.mint];
         const funded = app.v3CommunityFunding?.[source.collectionSignature];
         if (funded?.status !== 'finalized') continue;

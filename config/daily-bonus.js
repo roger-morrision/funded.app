@@ -1,5 +1,7 @@
 // One completed UTC day. Each category receives one third of the base community
 // allocation; unfilled ranks keep their portion in the source reward vault.
+// This is outside the versioned policy object so existing snapshot hashes stay fixed.
+export const DAILY_BONUS_PAYOUT_ASSET = 'SOL';
 export const DAILY_BONUS_POLICY = Object.freeze({
   version: 1,
   periodSeconds: 86_400,

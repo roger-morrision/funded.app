@@ -6,6 +6,10 @@ Product workflows: [all-page guide](product-guide.md). Documentation scope and d
 
 Daily bonuses are **automatic SOL transfers**: winners do not claim or sign a recipient transaction. The worker checks every five minutes for completed UTC days and pending payouts. A day closes at **00:00 UTC** (07:00 Bangkok); the countdown starts verification, not an immediate payment guarantee. Exact source funding is still required after verified settlement, through the active automatic route or any approval required by a manual route. Incomplete history, missing funding, reconciliation or an unavailable worker can delay payment.
 
+Every Daily bonus pays **SOL**, including bonuses earned from coins paired with USDC or another supported quote token. Common USD prices determine cross-coin ranks only; they do not change the payout asset. Paired-token community fees must first be converted into SOL through a reviewed on-chain route, attributed to their exact source and funded into the SOL reward vault with finalized balance proof. Until that route and evidence are available, paired-token bonuses remain blocked; paired quote tokens must never be paid as Daily bonuses.
+
+Historical ranking price evidence uses finalized Pyth SOL/USD and USDC/USD push updates read through Helius Mainnet transaction history. Each candidate is checked against its finalized transaction and signature status, feed identity, publication time and confidence bound before integer USD micro scoring. This read-only price proof does not establish a paired-token fee conversion, a funded SOL source or a paid bonus. Other quote assets require their own reviewed historical feed and remain ineligible until then.
+
 Ordinary three-level referral rewards are separate and require manual claims in Referrals. Creator fees and X rewards also require manual claims. Community token airdrops pay automatically after migration verification, proportional to eligible $RICH holdings at migration.
 
 ## Dashboard and payment history

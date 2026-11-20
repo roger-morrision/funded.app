@@ -1,7 +1,7 @@
 import {bonusSnapshotIdentity} from './daily-bonus-network.mjs';
 import { createHash } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
-import { DAILY_BONUS_POLICY } from '../config/daily-bonus.js';
+import { DAILY_BONUS_POLICY, DAILY_BONUS_PAYOUT_ASSET } from '../config/daily-bonus.js';
 import { buildRewardManifest, createRewardCycleId } from '../reward-merkle.js';
 import { bonusWindow as dailyBonusWindow } from './daily-bonus-schedule.mjs';
 export { bonusWindow as dailyBonusWindow, latestBonusDay } from './daily-bonus-schedule.mjs';
@@ -99,8 +99,14 @@ export function buildDailyBonusSnapshot({ day, cluster='devnet', programId, coll
 }
 export function dailyBonusManifest(snapshot, source) {
   if (!source.allocations.length) return null;
+  // A paired-token collection must be converted and independently proved as
+  // SOL funding before it can become a source. Token units are never a payout.
+  const budget = amount(source.amountLamports);
+  const payable = source.allocations.reduce((sum, row) => sum + amount(row.amount), 0n);
+  if (payable !== amount(source.payableLamports) || payable + amount(source.retainedLamports) !== budget)
+    throw new Error('Daily bonus source is not an exact SOL lamport allocation.');
   const cycleId = createRewardCycleId({ mint:source.mint,
-    kind:`daily-bonus-v1:${source.collectionSignature}`, asset:'SOL',
+    kind:`daily-bonus-v1:${source.collectionSignature}`, asset:DAILY_BONUS_PAYOUT_ASSET,
     periodStart:snapshot.start, periodEnd:snapshot.end });
-  return buildRewardManifest({ cycleId, asset:'SOL', allocations:source.allocations });
+  return buildRewardManifest({ cycleId, asset:DAILY_BONUS_PAYOUT_ASSET, allocations:source.allocations });
 }
