@@ -7,7 +7,8 @@ import BN from 'bn.js';
 import { selectV3PumpBuy } from './v3-buyback-setup.mjs';
 import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { buildTokenAccountSetupInstructions, buildTokenLedgerInitializeInstruction, buildTokenSettlementInstruction,
-  buildTokenDisbursementInstruction, buildTokenConversionInstruction, deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3, decodeTokenLedgerV3 } from '../mint-router-v3-token.js';
+  buildTokenApprovalInstruction, buildTokenDisbursementInstruction, buildTokenConversionInstruction,
+  deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3, decodeTokenLedgerV3 } from '../mint-router-v3-token.js';
 
 // Keeper step for a coin paired with a token: make sure the router's and vaults'
 // paired-token accounts and the coin's token ledger exist, collect Pump's
@@ -132,6 +133,50 @@ export async function payTokenCreatorWallet({ connection, programId, keeper, cre
   const after = BigInt((await connection.getTokenAccountBalance(account, 'confirmed')).value.amount);
   if (after - before !== pay) throw new Error('The creator wallet did not receive the exact payout.');
   return { signature, account: account.toBase58(), amount: String(pay) };
+}
+
+// The immutable automation record fixes operations and referral recipients.
+// Approve and pay the exact remaining category budget in one finalized
+// transaction; the on-chain ledger is the idempotency source on later ticks.
+export async function payTokenProtocolBudget({ connection, programId, keeper, creator, mint, quoteMint, category, recipient, amount }) {
+  if (!Number.isInteger(category) || category < 1 || category > 4) throw new Error('Only operations and referral token budgets use protocol payouts.');
+  const program = new PublicKey(programId), coin = new PublicKey(mint), quote = new PublicKey(quoteMint);
+  const owner = new PublicKey(recipient), creatorKey = new PublicKey(creator), pay = BigInt(amount);
+  if (owner.equals(PublicKey.default) || owner.equals(creatorKey) || pay <= 0n) throw new Error('Invalid token protocol recipient or amount.');
+  const ownerInfo = await connection.getAccountInfo(owner, 'finalized');
+  if (ownerInfo && (!ownerInfo.owner.equals(PublicKey.default) || ownerInfo.data.length))
+    throw new Error('The protocol recipient must be a plain system wallet.');
+  const quoteInfo = await connection.getAccountInfo(quote, 'finalized');
+  if (!quoteInfo) throw new Error('The paired token is unavailable.');
+  const tokenProgram = quoteInfo.owner, accounts = deriveTokenAccountsV3(program, coin, quote, tokenProgram);
+  const ledgerAddress = deriveTokenLedgerV3(program, coin, quote);
+  const ledgerInfo = await connection.getAccountInfo(ledgerAddress, 'finalized');
+  if (!ledgerInfo?.owner.equals(program)) throw new Error('The paired-token ledger is unavailable.');
+  const beforeLedger = decodeTokenLedgerV3(ledgerInfo.data);
+  if (pay > beforeLedger.paid[category] - beforeLedger.withdrawn[category]) throw new Error('The token protocol payout exceeds its category budget.');
+  const destination = getAssociatedTokenAddressSync(quote, owner, false, tokenProgram);
+  const balance = async (address, missingAllowed = false) => {
+    try { return BigInt((await connection.getTokenAccountBalance(address, 'finalized')).value.amount); }
+    catch (error) { if (missingAllowed && !await connection.getAccountInfo(address, 'finalized')) return 0n; throw error; }
+  };
+  const beforeVault = await balance(accounts.vaultTokens[category]), beforeRecipient = await balance(destination, true);
+  const withdrawalId = randomBytes(32);
+  const signature = await sendAndConfirmTransaction(connection, new Transaction().add(
+    createAssociatedTokenAccountIdempotentInstruction(keeper.publicKey, destination, owner, quote, tokenProgram),
+    buildTokenApprovalInstruction({ programId: program, mint: coin, quoteMint: quote, authority: keeper.publicKey,
+      creator: creatorKey, recipient: owner, withdrawalId, category, beneficiary: category + 2, amount: pay, automation: true }),
+    buildTokenDisbursementInstruction({ programId: program, mint: coin, quoteMint: quote, tokenProgram, authority: keeper.publicKey,
+      creator: creatorKey, recipientOwner: owner, withdrawalId, category, beneficiary: category + 2, amount: pay, automation: true })),
+  [keeper], { commitment: 'finalized' });
+  const afterInfo = await connection.getAccountInfo(ledgerAddress, 'finalized');
+  if (!afterInfo?.owner.equals(program)) throw new Error('The finalized token ledger disappeared.');
+  const afterLedger = decodeTokenLedgerV3(afterInfo.data);
+  const afterVault = await balance(accounts.vaultTokens[category]), afterRecipient = await balance(destination);
+  if (afterLedger.withdrawn[category] - beforeLedger.withdrawn[category] !== pay || beforeVault - afterVault !== pay
+    || afterRecipient - beforeRecipient !== pay)
+    throw new Error(`Finalized token protocol payout ${signature} lacks exact ledger, vault and recipient deltas.`);
+  return { signature, category, recipient: owner.toBase58(), amount: String(pay), quoteMint: quote.toBase58(),
+    withdrawalId: withdrawalId.toString('hex'), balanceDeltaVerified: true };
 }
 
 // The router's pinned WSOL/<paired token> PumpSwap pools (must match the program).

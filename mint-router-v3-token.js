@@ -76,13 +76,14 @@ export function buildTokenSettlementInstruction({ programId, mint, quoteMint, to
   ] });
 }
 
-export function buildTokenApprovalInstruction({ programId, mint, quoteMint, authority, creator, recipient, withdrawalId, category, beneficiary, amount, agency = true }) {
+export function buildTokenApprovalInstruction({ programId, mint, quoteMint, authority, creator, recipient, withdrawalId, category, beneficiary, amount, agency = true, automation = false }) {
   const data = Buffer.concat([Buffer.from(DISCRIMINATORS.approve_protected_token_withdrawal_v3, 'hex'), Buffer.from(withdrawalId),
     Buffer.from([category, beneficiary]), u64(amount)]);
   return new TransactionInstruction({ programId: key(programId), data, keys: [
-    meta(authority, true, true), meta(creator, true), meta(mint), meta(quoteMint), meta(deriveFeeRouter(programId).address),
+    meta(authority, true, true), meta(creator, !automation), meta(mint), meta(quoteMint), meta(deriveFeeRouter(programId).address),
     meta(policyAddress(programId, mint, agency)), meta(recipient),
     meta(deriveTokenApprovalV3(programId, mint, quoteMint, withdrawalId), false, true), meta(SystemProgram.programId),
+    ...(automation ? [meta(PublicKey.findProgramAddressSync([seed('mint-automation-v3'), key(mint).toBuffer()], key(programId))[0])] : []),
   ] });
 }
 

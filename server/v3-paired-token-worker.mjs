@@ -1,7 +1,8 @@
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
-import { collectAndSettleTokenFees, convertTokenBudgetToSol, fundTokenHolderRewards, pendingTokenFees, payTokenCreatorWallet, readDirectedTokenBudget } from './v3-token-keeper.mjs';
+import { collectAndSettleTokenFees, convertTokenBudgetToSol, fundTokenHolderRewards, pendingTokenFees,
+  payTokenCreatorWallet, payTokenProtocolBudget, readDirectedTokenBudget } from './v3-token-keeper.mjs';
 import { createRewardScheduler } from './reward-scheduler.mjs';
 import { ensureMintAutomationV3 } from './mint-automation-v3.mjs';
 import { v3ReferralUpline } from './v3-referral-entitlement.mjs';
@@ -28,6 +29,7 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
   const scheduler = createRewardScheduler({ store: automaticRewardStore, chain: {}, indexer: { capture: async () => { throw new Error('unused'); } } });
   const minimumCollect = BigInt(env.FUNDED_V3_PAIRED_MIN_COLLECT_UNITS || '1000');
   const minimumRelease = BigInt(env.FUNDED_V3_PAIRED_MIN_RELEASE_UNITS || '1000');
+  const minimumProtocol = BigInt(env.FUNDED_V3_PAIRED_MIN_PROTOCOL_UNITS || '1');
   const minimumConvert = BigInt(env.FUNDED_V3_PAIRED_MIN_CONVERT_UNITS || '1000');
   const quotes = new Map();
   const quoteOf = async mint => {
@@ -60,19 +62,20 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
   // Automatic payouts need the coin's immutable automation record. Its protocol
   // recipients match the SOL payout path: the operations wallet and the coin's
   // referral upline (frozen at its first settlement, else the current one).
-  const automationReady = new Set();
+  const automationReady = new Map();
   async function ensureAutomation(launch, state) {
-    if (automationReady.has(launch.mint)) return;
+    if (automationReady.has(launch.mint)) return automationReady.get(launch.mint);
     if (!env.FUNDED_V3_OPERATIONS_RECIPIENT) throw new Error('The operations recipient is required for automatic payouts.');
     const first = Object.values(state.v3Settlements || {}).filter(row => row.mint === launch.mint && row.status === 'finalized'
       && Array.isArray(row.referralUpline)).sort((a, b) => a.slot - b.slot)[0];
     let upline = first?.referralUpline;
     if (!upline) try { upline = v3ReferralUpline({ creatorWallet: launch.creatorWallet, attributions: state.referrals?.attributions,
       qualifiedAt: Number(launch.createdTimestamp || launch.blockTime) }); } catch { upline = []; }
+    const recipients = [env.FUNDED_V3_OPERATIONS_RECIPIENT, ...[0, 1, 2].map(index => upline?.[index] || PublicKey.default)];
     await ensureMintAutomationV3({ connection: finalizedConnection, authority: keeper, programId, mint: launch.mint, creator: launch.creatorWallet,
-      policy: deriveAgencyPolicyV3(programId, launch.mint),
-      recipients: [env.FUNDED_V3_OPERATIONS_RECIPIENT, ...[0, 1, 2].map(index => upline?.[index] || PublicKey.default)] });
-    automationReady.add(launch.mint);
+      policy: deriveAgencyPolicyV3(programId, launch.mint), recipients });
+    automationReady.set(launch.mint, recipients);
+    return recipients;
   }
 
   async function processLaunch(launch, state) {
@@ -105,6 +108,19 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
       if (amount >= minimumRelease) {
         const paid = await payTokenCreatorWallet({ connection, programId, keeper, creator, mint: launch.mint, quoteMint, amount });
         row.creatorPaid = paid.amount; row.creatorSignature = paid.signature;
+      }
+    }
+    // The program checks each recipient against the coin's immutable
+    // automation record and consumes a matching approval in the same payment.
+    if (env.FUNDED_V3_PAIRED_PROTOCOL_PAYOUT_ENABLED === 'true' && creator) {
+      const recipients = await ensureAutomation(launch, state);
+      for (let category = 1; category <= 4; category++) {
+        const recipient = recipients[category - 1];
+        const amount = budget.ledger.paid[category] - budget.ledger.withdrawn[category];
+        if (!recipient || new PublicKey(recipient).equals(PublicKey.default) || amount < minimumProtocol) continue;
+        const paid = await payTokenProtocolBudget({ connection: finalizedConnection, programId, keeper, creator,
+          mint: launch.mint, quoteMint, category, recipient, amount });
+        (row.protocolPaid ||= []).push(paid);
       }
     }
     // Buyback (6) and AI-agency (7) budgets are spent in SOL: convert them
