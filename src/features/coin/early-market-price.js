@@ -1,5 +1,6 @@
 // Publish verified price fields independently of holder scans and fee history.
 export function renderEarlyMarketPrice(appState,{mintInfo,curve,pool}) {
+  if (curve?.quoteMint && !['So11111111111111111111111111111111111111112', '11111111111111111111111111111111'].includes(curve.quoteMint)) return;
   const parsed=mintInfo.value.data.parsed.info;
   const supply=Number(parsed.supply)/(10**parsed.decimals);
   const spot=pool?.spotPriceSol ?? (curve?.complete===false && curve.virtualTokenReserves>0

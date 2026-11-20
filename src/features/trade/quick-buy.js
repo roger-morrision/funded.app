@@ -23,6 +23,8 @@ export async function quickBuy(app, { mint, amountSol, symbol = '', dexId = '', 
     const lazy = await import('./lazy-trading.js');
     if (dexId) lazy.setTradeVenueHint?.(mint, dexId);
     if (quoteMint) lazy.setTradeQuoteHint?.(mint, quoteMint);
+    if (app.APP_CLUSTER === 'devnet' && lazy.isTokenPaired(mint))
+      throw new Error('This coin trades against its paired token. Open its token page to review the paired-token amount and fee.');
     const connection = app.connection || (await app.getSolana(), app.connection);
     // Same default slippage as the trade panel, checked against the saved slippage cap.
     const slippagePercent = 1;

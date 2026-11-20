@@ -2,6 +2,7 @@ import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../featur
 import { TRADE_QUOTE_TTL_MS } from '../../../trade-quote-policy.js';
 import {uncertainTrade} from '../../features/experience/trade-recovery-store.js';
 import { ownerMintParsedAccounts } from '../../features/shared/owner-mint-accounts.js';
+import {hasBuyQuoteBalance} from '../../../trade-spend-guard.js';
 // Dependencies and mutable application state are read live through appState.
 export function createTradeStateController(appState) {
   // app-source: 545
@@ -80,7 +81,7 @@ export function createTradeStateController(appState) {
   // app-source: 554
   function resetTradeBalances(){
     appState.tradeBalanceRequest++;
-    appState.tradeBalanceState = { key:'', solLamports:null, tokenRaw:null, tokenDecimals:0 };
+    appState.tradeBalanceState = { key:'', solLamports:null, tokenRaw:null, tokenDecimals:0, quoteRaw:null, quoteDecimals:null };
     appState.renderTradeBalances();
   }
   // app-source-end
@@ -98,14 +99,17 @@ export function createTradeStateController(appState) {
     const mint = document.querySelector('#trade-mint')?.value.trim();
     if (!key || !session || !mint) { appState.resetTradeBalances(); return; }
     const request = ++appState.tradeBalanceRequest;
-    appState.tradeBalanceState = { key, solLamports:null, tokenRaw:null, tokenDecimals:appState.coinTradeEstimate?.mint === mint ? appState.coinTradeEstimate.decimals : 0 };
+    const quoteMint = appState.coinTradeEstimate?.mint === mint ? appState.coinTradeEstimate.quoteMint : null;
+    appState.tradeBalanceState = { key, solLamports:null, tokenRaw:null, tokenDecimals:appState.coinTradeEstimate?.mint === mint ? appState.coinTradeEstimate.decimals : 0, quoteRaw:null, quoteDecimals:null };
     appState.renderTradeBalances();
     try {
       const { PublicKey } = await appState.getSolana();
       const rpc = await appState.getExploreConnection();
-      const [sol, tokens] = await Promise.allSettled([
+      const [sol, tokens, quoteTokens, quoteMintInfo] = await Promise.allSettled([
         rpc.getBalance(session.provider.publicKey, 'confirmed'),
         ownerMintParsedAccounts(rpc, session.provider.publicKey, new PublicKey(mint), 'confirmed'),
+        quoteMint ? ownerMintParsedAccounts(rpc, session.provider.publicKey, new PublicKey(quoteMint), 'confirmed') : Promise.resolve({value:[]}),
+        quoteMint ? rpc.getParsedAccountInfo(new PublicKey(quoteMint), 'confirmed') : Promise.resolve(null),
       ]);
       if (request !== appState.tradeBalanceRequest || !appState.isWalletSessionCurrent(session) || key !== appState.tradeBalanceKey()) return;
       // Reuse this wallet-scoped read so the header and trade form agree after
@@ -117,15 +121,20 @@ export function createTradeStateController(appState) {
       }
       const accounts = tokens.status === 'fulfilled' ? tokens.value.value : [];
       const parsed = accounts.map(account => account.account.data.parsed?.info?.tokenAmount).filter(Boolean);
+      const quoteAccounts = quoteTokens.status === 'fulfilled' ? quoteTokens.value.value : [];
+      const quoteParsed = quoteAccounts.map(account => account.account.data.parsed?.info?.tokenAmount).filter(Boolean);
       appState.tradeBalanceState = {
         key,
         solLamports:sol.status === 'fulfilled' ? BigInt(sol.value) : null,
         tokenRaw:tokens.status === 'fulfilled' ? parsed.reduce((total, token) => total + BigInt(token.amount), 0n) : null,
         tokenDecimals:parsed.length ? Number(parsed[0].decimals) : appState.coinTradeEstimate?.mint === mint ? appState.coinTradeEstimate.decimals : 0,
+        quoteRaw:quoteMint && quoteTokens.status === 'fulfilled' ? quoteParsed.reduce((total, token) => total + BigInt(token.amount), 0n) : null,
+        quoteDecimals:quoteMint ? quoteParsed.length ? Number(quoteParsed[0].decimals)
+          : quoteMintInfo.status === 'fulfilled' ? Number(quoteMintInfo.value?.value?.data?.parsed?.info?.decimals) : null : null,
       };
     } catch {
       if (request !== appState.tradeBalanceRequest || key !== appState.tradeBalanceKey()) return;
-      appState.tradeBalanceState = { key, solLamports:null, tokenRaw:null, tokenDecimals:0 };
+      appState.tradeBalanceState = { key, solLamports:null, tokenRaw:null, tokenDecimals:0, quoteRaw:null, quoteDecimals:null };
     }
     appState.renderTradeBalances();
   }
@@ -176,8 +185,11 @@ export function createTradeStateController(appState) {
     const { side, amount, valid } = inputs;
     const current = Boolean(appState.tradeBalanceState.key && appState.tradeBalanceState.key === appState.tradeBalanceKey());
     const preview = appState.currentTradePreview(inputs);
+    const quoteMint = appState.coinTradeEstimate?.mint === inputs.mint ? appState.coinTradeEstimate.quoteMint : null;
     const sufficient = current && valid && (side === 'buy'
-      ? appState.hasBuyBalance(appState.tradeBalanceState.solLamports, { amountSol:amount, slippagePercent:inputs.slippagePercent, feeBps:appTradeBps(appState), trade:preview?.trade })
+      ? quoteMint ? hasBuyQuoteBalance(appState.tradeBalanceState, {amount, quoteDecimals:appState.tradeBalanceState.quoteDecimals,
+        slippagePercent:inputs.slippagePercent, feeBps:appTradeBps(appState), trade:preview?.trade})
+        : appState.hasBuyBalance(appState.tradeBalanceState.solLamports, { amountSol:amount, slippagePercent:inputs.slippagePercent, feeBps:appTradeBps(appState), trade:preview?.trade })
       : appState.tradeBalanceState.tokenRaw != null && amount <= Number(appState.tradeBalanceState.tokenRaw) / (10 ** appState.tradeBalanceState.tokenDecimals));
     const pending=uncertainTrade(appState.connectedWalletAddress,inputs.mint,appState.pendingTradeVerifications);
     // Buy/Sell stays clickable; the click connects the wallet, checks a saved trade,

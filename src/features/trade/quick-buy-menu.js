@@ -51,7 +51,8 @@ export function mountQuickBuyMenus(document = globalThis.document) {
 
 export function quickBuyMenuMarkup(item, escapeHtml, linksMarkup) {
   const label = escapeHtml(item.symbol || 'token');
-  return `<span class="quick-buy-menu-host has-buy-presets"><button type="button" class="card-review-buy quick-buy-toggle" data-quick-buy-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Review trade for ${label}">Review trade <span aria-hidden="true">▾</span></button><span class="quick-buy-menu" data-quick-buy-menu role="menu" aria-label="Choose trade amount for ${label}" hidden>${linksMarkup}</span></span>`;
+  const paired = item.quoteMint && item.quoteMint !== 'So11111111111111111111111111111111111111112';
+  return `<span class="quick-buy-menu-host has-buy-presets"><button type="button" class="card-review-buy quick-buy-toggle" data-quick-buy-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Review trade for ${label}">Review trade <span aria-hidden="true">▾</span></button><span class="quick-buy-menu" data-quick-buy-menu role="menu" aria-label="${paired ? 'Open paired-token trade' : 'Choose trade amount'} for ${label}" hidden>${linksMarkup}</span></span>`;
 }
 
 // Wallet profile: edit the three quick-buy amounts used across the app.

@@ -118,11 +118,22 @@ export function createCoinLoadingController(appState) {
       appState.renderCoinRewardsPolicy(registeredLaunch, mintAddress);
       const symbol = metadata.symbol || registeredLaunch?.symbol || (isRich?'RICH':`${mintAddress.slice(0, 4)}…`);
       const name = metadata.name || registeredLaunch?.name || (isRich?'RICH':'Unnamed on-chain token');
-      appState.coinTradeEstimate = { mint: mintAddress, symbol, curve, graduatedPool, decimals };
+      const quoteMint = curve?.quoteMint && !['So11111111111111111111111111111111111111112', '11111111111111111111111111111111'].includes(curve.quoteMint)
+        ? curve.quoteMint : null;
+      const quoteSymbol = quoteMint && ['4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'].includes(quoteMint)
+        ? 'USDC' : quoteMint ? `${quoteMint.slice(0, 4)}…` : 'SOL';
+      const priorQuote = appState.coinTradeEstimate?.mint === mintAddress ? appState.coinTradeEstimate.quoteMint : null;
+      appState.coinTradeEstimate = { mint: mintAddress, symbol, curve, graduatedPool, decimals, quoteMint, quoteSymbol };
+      if (quoteMint && priorQuote !== quoteMint) {
+        const input = document.querySelector('#trade-amount');
+        if (input) input.value = '';
+        appState.invalidateTradePreview();
+        appState.setTradeStatus(`This coin trades against ${quoteSymbol}. Enter a ${quoteSymbol} buy amount or a coin sell amount.`);
+      }
       appState.updateTradeAmountLabel();
       void appState.refreshTradeBalances();
       appState.renderTradeAmountEstimate();
-      const spotPriceSol = graduatedPool?.spotPriceSol ?? (curve?.complete === false && curve.virtualTokenReserves > 0 ? curve.virtualQuoteReservesSol / curve.virtualTokenReserves : NaN);
+      const spotPriceSol = quoteMint ? NaN : graduatedPool?.spotPriceSol ?? (curve?.complete === false && curve.virtualTokenReserves > 0 ? curve.virtualQuoteReservesSol / curve.virtualTokenReserves : NaN);
       const marketCapSol = spotPriceSol * supply;
       const accountAvailable = largestResult.status === 'fulfilled';
       const rawSupply = Number(parsedMint.supply);
@@ -140,7 +151,7 @@ export function createCoinLoadingController(appState) {
       const distribution = accountAvailable ? appState.summarizeTokenAccounts(accounts, curveVaultAddress) : null;
       const fullHolderDistribution = accountAvailable
         ? appState.summarizeFullHolderDistribution(largestAccounts, curveVaultAddress, parsedMint.supply) : null;
-      const realQuote = graduatedPool?.quoteReservesSol ?? curve?.realQuoteReservesSol;
+      const realQuote = quoteMint ? NaN : graduatedPool?.quoteReservesSol ?? curve?.realQuoteReservesSol;
       const feeLedger=loadedFeeLedger;
       const ledgerAvailable=Boolean(feeLedger);
       const sharedRouter = linkedSharedRouterFeeCollections(feeLedger, curve?.creator);
@@ -172,14 +183,14 @@ export function createCoinLoadingController(appState) {
       linkWalletText(document.querySelector('#coin-fee-owner'), curve?.creator);
       appState.setCoinFact('#coin-metadata-status', metadataInfo?.data && (metadata.name || metadata.symbol) ? 'On-chain name / symbol' : registeredLaunch ? 'Pump create event verified' : 'No verified name', metadataInfo?.data && (metadata.name || metadata.symbol) || registeredLaunch ? 'clear' : 'unknown');
       if(isRich&&!metadata.name&&!metadata.symbol&&!registeredLaunch)appState.setCoinFact('#coin-metadata-status','Configured platform token','clear');
-      appState.coinSolUsdValues = { spot: spotPriceSol, marketCap: marketCapSol, reserve: realQuote, virtualQuote: curve?.virtualQuoteReservesSol ?? NaN, supply };
+      appState.coinSolUsdValues = { spot: spotPriceSol, marketCap: marketCapSol, reserve: realQuote, virtualQuote: quoteMint ? NaN : curve?.virtualQuoteReservesSol ?? NaN, supply };
       appState.renderCoinSummary();
       appState.setCoinField('#coin-market-cap', appState.formatCoinUsd(marketCapSol)); appState.setCoinField('#coin-change', '24h —');
       appState.setCoinField('#coin-strip-market-cap', appState.formatCoinUsd(marketCapSol));
       appState.setCoinField('#coin-price', appState.formatCoinSnapshotUsd(appState.coinSolUsdValues.spot));
       appState.setCoinField('#coin-volume', curve && appState.EXPLORE_CLUSTER === 'devnet' ? 'Reading trades…' : '$—'); appState.setCoinField('#coin-liquidity', appState.formatCoinSnapshotUsd(spotPriceSol));
       appState.setCoinField('#coin-market-cap-label', graduatedPool ? 'Estimated PumpSwap market cap' : 'Estimated curve market cap');
-      appState.setCoinField('#coin-market-cap-source', graduatedPool ? 'PumpSwap vault ratio · indicative RPC snapshot' : 'Confirmed Pump curve RPC snapshot');
+      appState.setCoinField('#coin-market-cap-source', quoteMint ? 'Paired-token USD price evidence unavailable' : graduatedPool ? 'PumpSwap vault ratio · indicative RPC snapshot' : 'Confirmed Pump curve RPC snapshot');
       appState.setCoinField('#coin-liquidity-label', 'Price');
       appState.setCoinField('#coin-holders', fullHolderDistribution ? `${appState.formatOnChainNumber(fullHolderDistribution.holderShare, 2)}%` : 'Unavailable');
       appState.setCoinField('#coin-holder-count', fullHolderDistribution ? `${fullHolderDistribution.walletCount}` : 'Unavailable');

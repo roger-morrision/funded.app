@@ -21,3 +21,23 @@ export function hasBuyBalance(balanceLamports, inputs) {
   if (balanceLamports == null || required == null) return false;
   return BigInt(balanceLamports) >= required;
 }
+
+export function buyRequiredQuoteUnits({ amount, quoteDecimals, slippagePercent, feeBps, trade = null }) {
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(quoteDecimals) || quoteDecimals < 0 || quoteDecimals > 12
+    || !Number.isFinite(slippagePercent) || slippagePercent < 0.1 || slippagePercent > 10
+    || !Number.isInteger(feeBps) || feeBps < 0 || feeBps > 500) return null;
+  const rounded = Math.ceil(amount * 10 ** quoteDecimals);
+  if (!Number.isSafeInteger(rounded)) return null;
+  const principal = BigInt(rounded), slip = BigInt(Math.ceil(slippagePercent * 100));
+  const maximum = trade?.maximumInputAmount != null ? BigInt(trade.maximumInputAmount.toString())
+    : principal + (principal * slip + 9_999n) / 10_000n;
+  const fee = trade?.feeLamports != null ? BigInt(trade.feeLamports.toString())
+    : (principal * BigInt(feeBps) + 9_999n) / 10_000n;
+  return maximum + fee;
+}
+
+export function hasBuyQuoteBalance({ quoteRaw, solLamports }, inputs) {
+  const required = buyRequiredQuoteUnits(inputs);
+  return required != null && quoteRaw != null && BigInt(quoteRaw) >= required
+    && solLamports != null && BigInt(solLamports) >= TRADE_COST_ALLOWANCE_LAMPORTS;
+}

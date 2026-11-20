@@ -1,5 +1,6 @@
 import { refreshServiceFees, appTradeBps, appTradeRecipient } from '../../features/fees/service-fees-client.js';
-import { buyRequiredLamports } from '../../../trade-spend-guard.js';
+import { buyRequiredLamports, buyRequiredQuoteUnits, hasBuyQuoteBalance } from '../../../trade-spend-guard.js';
+import {ownerMintParsedAccounts} from '../../features/shared/owner-mint-accounts.js';
 import { recordFlowTiming } from '../../features/experience/flow-timing.js';
 import { estimateTradeNetworkFee } from '../../features/experience/trade-costs.js';
 import { recordTradeRecovery,uncertainTrade } from '../../features/experience/trade-recovery-store.js';
@@ -65,6 +66,9 @@ export function createTradeExecutionController(appState) {
       const builder=rich?buildRichTradeTransaction:appState.buildTradeTransaction;
       const trade = await builder({ connection: previewConnection, side, mint, user: session.provider.publicKey, amount, slippagePercent, feeOwner: appTradeRecipient(appState), feeBps: appTradeBps(appState),
         ...(rich?{cluster:appState.APP_CLUSTER,poolAddress:appState.PROTOCOL_FUNDED_SWAP_POOL}:{}) });
+      const expectedQuoteMint = appState.coinTradeEstimate?.mint === mint ? appState.coinTradeEstimate.quoteMint : null;
+      if (expectedQuoteMint && trade.quoteMint !== expectedQuoteMint)
+        throw new Error('The paired quote mint changed. Refresh this token page before trading.');
       appState.assertWalletSessionCurrent(session);
       if (version !== appState.tradeQuoteVersion || !appState.tradeInputs().valid || `${appState.tradeInputs().mint}:${appState.tradeInputs().side}:${appState.tradeInputs().amount}:${appState.tradeInputs().slippagePercent}:${session.address}` !== inputKey) return null;
       const tokenSymbol = tradeTokenSymbol(mint, [
@@ -74,25 +78,30 @@ export function createTradeExecutionController(appState) {
         ...(appState.assets || []),
       ]);
       const quote = appState.describeTradeQuote(trade, slippagePercent, tokenSymbol);
-      if (side === 'sell' && quote.minimumNetSol <= 0) throw new Error('The app fee would exceed the minimum SOL output. Increase the sell amount.');
+      if (side === 'sell' && quote.minimumNet <= 0) throw new Error(`The app fee would exceed the minimum ${quote.quoteSymbol} output. Increase the sell amount.`);
       appState.tradePreview = { trade, inputKey, preparedAt: Date.now() };
       document.querySelector('#trade-live-countdown').innerHTML = appState.quoteCountdownMarkup(appState.tradePreview.preparedAt + TRADE_QUOTE_TTL_MS);
       appState.renderTradeBalances();
-      const outputDigits = quote.outputSymbol === 'SOL' ? 9 : 6;
+      const outputDigits = quote.outputSymbol === 'SOL' ? 9 : trade.quoteMint && trade.quoteMint !== 'So11111111111111111111111111111111111111112' ? quote.quoteDecimals : 6;
       const receiveText = `${quote.expected.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}`;
       const estimateCard = document.querySelector('#trade-live-estimate');
-      estimateCard.querySelector('span').textContent = side === 'sell' ? 'Estimated SOL to wallet' : 'Estimated tokens received';
-      document.querySelector('#trade-live-amount').textContent = `≈ ${side === 'sell' ? `${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL` : receiveText}`;
+      estimateCard.querySelector('span').textContent = side === 'sell' ? `Estimated ${quote.quoteSymbol} to wallet` : 'Estimated tokens received';
+      document.querySelector('#trade-live-amount').textContent = `≈ ${side === 'sell' ? `${quote.expectedNet.toLocaleString('en-US', { maximumFractionDigits:quote.quoteDecimals })} ${quote.quoteSymbol}` : receiveText}`;
       document.querySelector('#trade-live-detail').textContent = side === 'sell'
-        ? `After app fee · minimum after ${slippagePercent}% slippage: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL · network fee additional.`
+        ? `After app fee · minimum after ${slippagePercent}% slippage: ${quote.minimumNet.toLocaleString('en-US', { maximumFractionDigits:quote.quoteDecimals })} ${quote.quoteSymbol} · SOL network fee additional.`
         : `Minimum after ${slippagePercent}% slippage: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits:outputDigits })} ${quote.outputSymbol}.`;
       estimateCard.classList.add('is-ready');
-      const slippageText = quote.maximumSpendSol != null
+      const slippageText = quote.quoteSymbol !== 'SOL'
+        ? side === 'sell' ? `Gross Pump output: ${receiveText}. Estimated to wallet after app fee: ${quote.expectedNet.toFixed(quote.quoteDecimals)} ${quote.quoteSymbol}. Minimum after slippage and app fee: ${quote.minimumNet.toFixed(quote.quoteDecimals)} ${quote.quoteSymbol}.`
+          : `Estimated receive: ${receiveText}. Slippage floor: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits:outputDigits })} ${quote.outputSymbol}.`
+        : quote.maximumSpendSol != null
         ? `Quoted receive: ${receiveText}. Maximum pool spend: ${quote.maximumSpendSol.toFixed(9)} SOL with ${slippagePercent}% slippage.`
         : side === 'sell'
           ? `Gross ${quote.route === 'jupiter' ? 'swap' : 'Pump'} output: ${receiveText}. Estimated to wallet after app fee: ${quote.expectedNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL. Minimum after slippage and app fee: ${quote.minimumNetSol.toLocaleString('en-US', { maximumFractionDigits:9 })} SOL.`
           : `Estimated receive: ${receiveText}. Slippage floor: ${quote.minimum.toLocaleString('en-US', { maximumFractionDigits: outputDigits })} ${quote.outputSymbol}.`;
-      const feeText = quote.maximumSpendSol != null
+      const feeText = quote.quoteSymbol !== 'SOL'
+        ? `App fee: ${quote.appFee.toFixed(quote.quoteDecimals)} ${quote.quoteSymbol}, plus SOL network/account costs and Pump fees.`
+        : quote.maximumSpendSol != null
         ? `Maximum pool spend includes Pump pool fees. App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network/account costs.`
         : `App fee: ${quote.appFeeSol.toFixed(9)} SOL, plus network and ${quote.route === 'jupiter' ? 'pool' : 'Pump'} fees.`;
       document.querySelector('#trade-quote').textContent = `${quote.route === 'jupiter' ? `Jupiter${trade.routes?.length ? ` (${trade.routes.join(' → ')})` : ''}${trade.priceImpactPct > 0.01 ? ` · price impact ${(trade.priceImpactPct * 100).toFixed(2)}%` : ''}` : quote.route === 'graduated-pool' ? 'PumpSwap pool (direct)' : 'Pump.fun curve (direct)'} · ${slippageText} ${feeText}`;
@@ -207,7 +216,20 @@ export function createTradeExecutionController(appState) {
     try {
       const activeConnection = appState.connection || (await appState.getSolana(), appState.connection);
       appState.assertWalletSessionCurrent(session);
-      if (side === 'buy') {
+      if (side === 'buy' && appState.tradePreview.trade.quoteMint && appState.tradePreview.trade.quoteMint !== 'So11111111111111111111111111111111111111112') {
+        const trade = appState.tradePreview.trade;
+        const {PublicKey} = await appState.getSolana();
+        const [sol, accounts] = await Promise.all([
+          activeConnection.getBalance(session.provider.publicKey, 'confirmed'),
+          ownerMintParsedAccounts(activeConnection, session.provider.publicKey, new PublicKey(trade.quoteMint), 'confirmed'),
+        ]);
+        const quoteRaw = accounts.value.reduce((total, row) => total + BigInt(row.account.data.parsed.info.tokenAmount.amount), 0n);
+        const spendInputs = {amount, quoteDecimals:trade.quoteDecimals, slippagePercent, feeBps:appTradeBps(appState), trade};
+        if (!hasBuyQuoteBalance({quoteRaw,solLamports:sol}, spendInputs)) {
+          const needed = buyRequiredQuoteUnits(spendInputs);
+          throw new Error(`Insufficient ${trade.quoteSymbol}: this buy needs up to ${needed == null ? '—' : (Number(needed) / 10 ** trade.quoteDecimals).toFixed(trade.quoteDecimals)} ${trade.quoteSymbol} plus SOL for network/account costs.`);
+        }
+      } else if (side === 'buy') {
         const latestBalance = await activeConnection.getBalance(session.provider.publicKey, 'confirmed');
         const spendInputs = { amountSol:amount, slippagePercent, feeBps:appTradeBps(appState), trade:appState.tradePreview.trade };
         if (!appState.hasBuyBalance(latestBalance, spendInputs)) {

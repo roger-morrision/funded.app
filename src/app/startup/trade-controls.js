@@ -122,7 +122,7 @@ export function initializeTradeControls(appState) {
   document.querySelectorAll('#trade-mint, #trade-amount, #trade-slippage, #trade-side').forEach(input => input.addEventListener('input', () => {
     appState.invalidateTradePreview();
     appState.renderTradeBalances();
-    if (appState.tradeInputs().valid) { appState.setTradeStatus(appState.wallet ? 'Calculating a live quote…' : 'Connect a signing wallet to calculate the SOL amount.'); appState.queueTradeQuote(); }
+    if (appState.tradeInputs().valid) { appState.setTradeStatus(appState.wallet ? 'Calculating a live quote…' : `Connect a signing wallet to calculate the ${appState.coinTradeEstimate?.quoteSymbol || 'SOL'} amount.`); appState.queueTradeQuote(); }
     else appState.setTradeStatus('Enter a positive amount and slippage between 0.1% and 10%.');
   }));
   // app-source-end

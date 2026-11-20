@@ -33,13 +33,12 @@ export async function readCoinDisplaySnapshot({connection,mint,poolAddress,clust
   }
   if (curveInfo?.owner?.equals(PUMP_PROGRAM_ID) && parsed.decimals===6) {
     try {
-      const bondingCurve=decodeCurve(curveInfo), quote=bondingCurve.quoteMint;
-      if (!quote || quote.equals(PublicKey.default) || quote.equals(NATIVE_MINT)) {
-        curve=formatBondingCurveSnapshot({mint:mintKey,bondingCurve,slot,observedAt,initialRealTokenReserves});
-      }
+      const bondingCurve=decodeCurve(curveInfo);
+      curve=formatBondingCurveSnapshot({mint:mintKey,bondingCurve,slot,observedAt,initialRealTokenReserves});
     } catch {}
   }
-  if ((!curve || curve.complete) && (!curveInfo || poolKey.equals(canonicalPool))) {
+  const tokenQuote=curve?.quoteMint && !['So11111111111111111111111111111111111111112', PublicKey.default.toBase58()].includes(curve.quoteMint);
+  if (!tokenQuote && (!curve || curve.complete) && (!curveInfo || poolKey.equals(canonicalPool))) {
     try {
       const decoded=decodePool(poolInfo), baseIndex=mintInfo.owner.equals(TOKEN_PROGRAM_ID)?0:1;
       if (!decoded.poolBaseTokenAccount.equals(baseKeys[baseIndex]) || !decoded.poolQuoteTokenAccount.equals(quoteKey)) throw Error('Pool vault addresses could not be verified.');

@@ -11,18 +11,26 @@ export function tradeTokenSymbol(mint, records = []) {
 }
 
 export function describeTradeQuote(trade, slippagePercent, tokenSymbol = trade.tokenSymbol) {
-  const outputDecimals = trade.side === 'buy' ? trade.tokenDecimals : 9;
+  const quoteDecimals = Number.isInteger(trade.quoteDecimals) ? trade.quoteDecimals : 9;
+  const quoteSymbol = trade.quoteSymbol || 'SOL';
+  const outputDecimals = trade.side === 'buy' ? trade.tokenDecimals : quoteDecimals;
   const expected = Number(trade.outputAmount.toString()) / (10 ** outputDecimals);
   const slippageBps = Math.round(Number(slippagePercent) * 100);
   const floorAmount = trade.minimumOutputAmount || ((BigInt(trade.outputAmount.toString()) * BigInt(10_000 - slippageBps)) / 10_000n);
   const minimum = Number(floorAmount.toString()) / (10 ** outputDecimals);
-  const appFeeLamports = BigInt(trade.feeLamports || 0);
-  const expectedNetSol = trade.side === 'sell' ? Number(BigInt(trade.outputAmount.toString()) - appFeeLamports) / LAMPORTS_PER_SOL : null;
-  const minimumNetSol = trade.side === 'sell' ? Number(BigInt(floorAmount.toString()) - appFeeLamports) / LAMPORTS_PER_SOL : null;
-  const maximumSpendSol = trade.side === 'buy' && trade.maximumInputAmount
-    ? Number(trade.maximumInputAmount.toString()) / LAMPORTS_PER_SOL
-    : null;
-  return { expected, minimum, expectedNetSol, minimumNetSol, maximumSpendSol, outputSymbol: trade.side === 'buy' ? String(tokenSymbol||'tokens').trim() : 'SOL', appFeeSol: trade.feeLamports / LAMPORTS_PER_SOL, route: trade.route || 'curve' };
+  const appFeeUnits = BigInt(trade.feeLamports || 0);
+  const scale = 10 ** quoteDecimals;
+  const expectedNet = trade.side === 'sell' ? Number(BigInt(trade.outputAmount.toString()) - appFeeUnits) / scale : null;
+  const minimumNet = trade.side === 'sell' ? Number(BigInt(floorAmount.toString()) - appFeeUnits) / scale : null;
+  const maximumSpend = trade.side === 'buy' && trade.maximumInputAmount
+    ? Number(trade.maximumInputAmount.toString()) / scale : null;
+  return { expected, minimum, expectedNet, minimumNet, maximumSpend, quoteSymbol, quoteDecimals,
+    expectedNetSol:quoteSymbol === 'SOL' ? expectedNet : null,
+    minimumNetSol:quoteSymbol === 'SOL' ? minimumNet : null,
+    maximumSpendSol:quoteSymbol === 'SOL' ? maximumSpend : null,
+    outputSymbol: trade.side === 'buy' ? String(tokenSymbol||'tokens').trim() : quoteSymbol,
+    appFee:Number(appFeeUnits) / scale, appFeeSol:quoteSymbol === 'SOL' ? Number(appFeeUnits) / LAMPORTS_PER_SOL : null,
+    route: trade.route || 'curve' };
 }
 
 export function estimateBuyTokenAmountFromSnapshot({ amountSol, curveSnapshot = null, graduatedPoolSnapshot = null } = {}) {

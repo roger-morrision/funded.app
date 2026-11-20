@@ -2,7 +2,7 @@ import BN from 'bn.js';
 import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from '@pump-fun/pump-sdk';
 import { OnlinePumpAmmSdk, PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, buyQuoteInput, canonicalPumpPoolPda, poolPda, sellBaseInput } from '@pump-fun/pump-swap-sdk';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
-import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction, createTransferCheckedInstruction } from '@solana/spl-token';
 import bs58 from 'bs58';
 import {inspectPhantomTradeTransaction} from './phantom-mobile-crypto.js';
 import {waitForSignatureConfirmation} from './funded-burn.js';
@@ -47,6 +47,25 @@ function requireMint(mint) {
   return mint instanceof PublicKey ? mint : new PublicKey(String(mint || '').trim());
 }
 
+const quoteSymbolForMint = mint => ['4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'].includes(mint.toBase58())
+  ? 'USDC' : mint.equals(NATIVE_MINT) ? 'SOL' : `${mint.toBase58().slice(0, 4)}…`;
+
+function appendTradeAppFee(instructions, { userKey, feePolicy, quoteMint, quoteTokenProgram, quoteDecimals, gross }) {
+  const feeLamports = calculateTradeFee(gross, feePolicy);
+  if (quoteMint.equals(NATIVE_MINT)) {
+    instructions.push(SystemProgram.transfer({ fromPubkey:userKey, toPubkey:new PublicKey(feePolicy.feeOwner), lamports:feeLamports }));
+  } else {
+    const owner = new PublicKey(feePolicy.feeOwner);
+    const source = getAssociatedTokenAddressSync(quoteMint, userKey, false, quoteTokenProgram);
+    const recipient = getAssociatedTokenAddressSync(quoteMint, owner, false, quoteTokenProgram);
+    instructions.push(createAssociatedTokenAccountIdempotentInstruction(userKey, source, userKey, quoteMint, quoteTokenProgram));
+    instructions.push(createAssociatedTokenAccountIdempotentInstruction(userKey, recipient, owner, quoteMint, quoteTokenProgram));
+    instructions.push(createTransferCheckedInstruction(source, quoteMint, recipient, userKey,
+      BigInt(feeLamports), quoteDecimals, [], quoteTokenProgram));
+  }
+  return feeLamports;
+}
+
 function bnToNumber(value, decimals = 9) {
   return Number(value?.toString?.() || 0) / (10 ** decimals);
 }
@@ -70,6 +89,13 @@ function poolQuoteArgs(state) {
 
 function assertVerifiedSolPool(state, poolKey, mintKey) {
   if (!state.poolAccountInfo?.owner.equals(PUMP_AMM_PROGRAM_ID) || !state.pool.baseMint.equals(mintKey) || !state.pool.quoteMint.equals(NATIVE_MINT) || !poolPda(state.pool.index, state.pool.creator, mintKey, NATIVE_MINT).equals(poolKey) || state.poolBaseAmount.lte(new BN(0)) || state.poolQuoteAmount.lte(new BN(0))) throw new Error('A verified SOL-quoted PumpSwap pool is unavailable.');
+}
+
+function assertVerifiedQuotePool(state, poolKey, mintKey, quoteMint) {
+  if (!state.poolAccountInfo?.owner.equals(PUMP_AMM_PROGRAM_ID) || !state.pool.baseMint.equals(mintKey)
+    || !state.pool.quoteMint.equals(quoteMint) || !poolPda(state.pool.index, state.pool.creator, mintKey, quoteMint).equals(poolKey)
+    || state.poolBaseAmount.lte(new BN(0)) || state.poolQuoteAmount.lte(new BN(0)))
+    throw new Error('A verified paired-token PumpSwap pool is unavailable.');
 }
 
 export async function fetchVerifiedPoolSnapshot({ connection, mint, poolAddress }) {
@@ -108,28 +134,29 @@ export async function fetchVerifiedPoolBuyQuote({ connection, mint, poolAddress,
     tokenDecimals, feeLamports:calculateTradeFee(solAmount, feePolicy), feePolicy, pool:poolKey.toBase58() };
 }
 
-async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, snapshot, poolAddress = null }) {
-  const poolKey = poolAddress ? requireMint(poolAddress) : canonicalPumpPoolPda(mintKey, NATIVE_MINT);
+async function buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, snapshot, poolAddress = null,
+  quoteMint = NATIVE_MINT, quoteDecimals = 9, quoteTokenProgram = TOKEN_PROGRAM_ID }) {
+  const poolKey = poolAddress ? requireMint(poolAddress) : canonicalPumpPoolPda(mintKey, quoteMint);
   const pool = await new OnlinePumpAmmSdk(connection).swapSolanaState(poolKey, userKey);
-  assertVerifiedSolPool(pool, poolKey, mintKey);
+  if (quoteMint.equals(NATIVE_MINT)) assertVerifiedSolPool(pool, poolKey, mintKey);
+  else assertVerifiedQuotePool(pool, poolKey, mintKey, quoteMint);
   const args = poolQuoteArgs(pool);
   const route = poolAddress ? 'verified-pool' : 'graduated-pool';
+  const quoteSymbol = quoteSymbolForMint(quoteMint);
   if (side === 'buy') {
-    const solAmount = tradeUnits(amount, 9);
+    const solAmount = tradeUnits(amount, quoteDecimals);
     const quoted = buyQuoteInput({ ...args, quote: solAmount, slippage });
     if (quoted.base.lte(new BN(0))) throw new Error('The pool quote has no token output.');
     const instructions = await PUMP_AMM_SDK.buyQuoteInput(pool, solAmount, slippage);
-    const feeLamports = calculateTradeFee(solAmount, feePolicy);
-    instructions.push(SystemProgram.transfer({ fromPubkey: userKey, toPubkey: new PublicKey(feePolicy.feeOwner), lamports: feeLamports }));
-    return { route, side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, maximumInputAmount: quoted.maxQuote, outputAmount: quoted.base, minimumOutputAmount: quoted.base, tokenDecimals, feeLamports, feePolicy, snapshot: { ...snapshot, swapQuoteReservesSol:Number(pool.poolQuoteAmount.toString()) / LAMPORTS_PER_SOL }, pool: poolKey.toBase58() };
+    const feeLamports = appendTradeAppFee(instructions, { userKey, feePolicy, quoteMint, quoteTokenProgram, quoteDecimals, gross:solAmount });
+    return { route, side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, maximumInputAmount: quoted.maxQuote, outputAmount: quoted.base, minimumOutputAmount: quoted.base, tokenDecimals, quoteMint:quoteMint.toBase58(), quoteDecimals, quoteSymbol, feeLamports, feePolicy, snapshot: { ...snapshot, ...(quoteMint.equals(NATIVE_MINT) ? {swapQuoteReservesSol:Number(pool.poolQuoteAmount.toString()) / LAMPORTS_PER_SOL} : {}) }, pool: poolKey.toBase58() };
   }
   const tokenAmount = tradeUnits(amount, tokenDecimals);
   const quoted = sellBaseInput({ ...args, base: tokenAmount, slippage });
-  if (quoted.uiQuote.lte(new BN(0)) || quoted.minQuote.lte(new BN(0))) throw new Error('The pool quote has no SOL output.');
+  if (quoted.uiQuote.lte(new BN(0)) || quoted.minQuote.lte(new BN(0))) throw new Error(`The pool quote has no ${quoteSymbol} output.`);
   const instructions = await PUMP_AMM_SDK.sellBaseInput(pool, tokenAmount, slippage);
-  const feeLamports = calculateTradeFee(quoted.uiQuote, feePolicy);
-  instructions.push(SystemProgram.transfer({ fromPubkey: userKey, toPubkey: new PublicKey(feePolicy.feeOwner), lamports: feeLamports }));
-  return { route, side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: quoted.uiQuote, outputAmount: quoted.uiQuote, minimumOutputAmount: quoted.minQuote, tokenDecimals, feeLamports, feePolicy, snapshot, pool: poolKey.toBase58() };
+  const feeLamports = appendTradeAppFee(instructions, { userKey, feePolicy, quoteMint, quoteTokenProgram, quoteDecimals, gross:quoted.uiQuote });
+  return { route, side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: quoted.uiQuote, outputAmount: quoted.uiQuote, minimumOutputAmount: quoted.minQuote, tokenDecimals, quoteMint:quoteMint.toBase58(), quoteDecimals, quoteSymbol, feeLamports, feePolicy, snapshot, pool: poolKey.toBase58() };
 }
 
 export async function buildVerifiedPoolTradeTransaction({ connection, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, poolAddress }) {
@@ -242,14 +269,27 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
   if (!Number.isInteger(tokenDecimals) || tokenDecimals < 0 || tokenDecimals > 18) throw new Error('Token decimals could not be verified.');
   const state = side === 'buy' ? await sdk.fetchBuyState(mintKey, userKey, tokenProgram) : await sdk.fetchSellState(mintKey, userKey, tokenProgram);
   const snapshot = formatBondingCurveSnapshot({ mint: mintKey, bondingCurve: state.bondingCurve });
-  if (state.bondingCurve.complete) return buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals, feePolicy, snapshot });
-  if (!state.quoteMint?.equals?.(NATIVE_MINT)) throw new Error('This trade is not quoted in SOL.');
+  const tokenQuote = !state.quoteMint?.equals?.(NATIVE_MINT);
+  let quoteDecimals = 9;
+  if (tokenQuote) {
+    const quoteAccount = await connection.getParsedAccountInfo(state.quoteMint, 'confirmed');
+    if (!quoteAccount.value || !quoteAccount.value.owner.equals(state.quoteTokenProgram)
+      || ![TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID].some(id => id.equals(state.quoteTokenProgram)))
+      throw new Error('The paired quote mint or token program could not be verified.');
+    quoteDecimals = Number(quoteAccount.value.data?.parsed?.info?.decimals);
+    if (!Number.isInteger(quoteDecimals) || quoteDecimals < 0 || quoteDecimals > 12)
+      throw new Error('The paired quote mint has unsupported decimals.');
+  }
+  const quoteMint = state.quoteMint.toBase58();
+  const quoteSymbol = quoteSymbolForMint(state.quoteMint);
+  if (state.bondingCurve.complete) return buildGraduatedTrade({ connection, side, mintKey, userKey, amount, slippage, tokenDecimals,
+    feePolicy, snapshot, quoteMint:state.quoteMint, quoteDecimals, quoteTokenProgram:state.quoteTokenProgram });
   const feeConfig=await sdk.fetchFeeConfig();
   const mintSupply=new BN(String(mintAccount.value.data.parsed.info.supply));
   const curveQuote={global,feeConfig,mintSupply,bondingCurve:state.bondingCurve,quoteMint:state.quoteMint};
 
   if (side === 'buy') {
-    const solAmount = tradeUnits(amount, 9);
+    const solAmount = tradeUnits(amount, quoteDecimals);
     const tokenAmount = getBuyTokenAmountFromSolAmount({ ...curveQuote, amount: solAmount });
     assertPositiveQuoteAmount(tokenAmount, 'token');
     const instructions = await PUMP_SDK.buyV2Instructions({
@@ -266,14 +306,13 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
       quoteMint: state.quoteMint,
       quoteTokenProgram: state.quoteTokenProgram,
     });
-    const feeLamports = calculateTradeFee(solAmount, feePolicy);
-    instructions.push(SystemProgram.transfer({ fromPubkey: userKey, toPubkey: new PublicKey(feePolicy.feeOwner), lamports: feeLamports }));
-    return { route: 'curve', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: tokenAmount, tokenDecimals, feeLamports, feePolicy, snapshot };
+    const feeLamports = appendTradeAppFee(instructions, { userKey, feePolicy, quoteMint:state.quoteMint, quoteTokenProgram:state.quoteTokenProgram, quoteDecimals, gross:solAmount });
+    return { route: 'curve', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: tokenAmount, tokenDecimals, quoteMint, quoteDecimals, quoteSymbol, feeLamports, feePolicy, snapshot };
   }
 
   const tokenAmount = tradeUnits(amount, tokenDecimals);
   const solAmount = getSellSolAmountFromTokenAmount({ ...curveQuote, amount: tokenAmount });
-  assertPositiveQuoteAmount(solAmount, 'SOL');
+  assertPositiveQuoteAmount(solAmount, quoteSymbol);
   const instructions = await PUMP_SDK.sellV2Instructions({
     global,
     bondingCurveAccountInfo: state.bondingCurveAccountInfo,
@@ -287,9 +326,8 @@ export async function buildTradeTransaction({ connection, side, mint, user, amou
     quoteMint: state.quoteMint,
     quoteTokenProgram: state.quoteTokenProgram,
   });
-  const feeLamports = calculateTradeFee(solAmount, feePolicy);
-  instructions.push(SystemProgram.transfer({ fromPubkey: userKey, toPubkey: new PublicKey(feePolicy.feeOwner), lamports: feeLamports }));
-  return { route: 'curve', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: solAmount, tokenDecimals, feeLamports, feePolicy, snapshot };
+  const feeLamports = appendTradeAppFee(instructions, { userKey, feePolicy, quoteMint:state.quoteMint, quoteTokenProgram:state.quoteTokenProgram, quoteDecimals, gross:solAmount });
+  return { route: 'curve', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, instructions, quoteAmount: solAmount, outputAmount: solAmount, tokenDecimals, quoteMint, quoteDecimals, quoteSymbol, feeLamports, feePolicy, snapshot };
 }
 
 export async function submitTrade({ connection, provider, side, mint, user, amount, slippagePercent = 1, feeOwner, feeBps = DEFAULT_TRADE_FEE_BPS, preparedTrade = null, tokenName = '', tokenSymbol = '', onStatus = () => {}, onPrepared = () => {}, assertWalletCurrent = () => {} }) {
@@ -297,7 +335,9 @@ export async function submitTrade({ connection, provider, side, mint, user, amou
   onStatus(`Reading ${side} quote and Solana state…`);
   const trade = preparedTrade || await buildTradeTransaction({ connection, side, mint, user, amount, slippagePercent, feeOwner, feeBps });
   if (trade.side !== side || !trade.mint.equals(requireMint(mint)) || !trade.user.equals(requireMint(user)) || trade.inputAmount !== Number(amount) || trade.slippagePercent !== Number(slippagePercent)) throw new Error('The trade quote no longer matches the selected trade.');
-  assertPositiveQuoteAmount(trade.outputAmount, side === 'sell' ? 'SOL' : 'token');
+  assertPositiveQuoteAmount(trade.outputAmount, side === 'sell' ? (trade.quoteSymbol || 'SOL') : 'token');
+  if (provider.remoteMobile && trade.quoteMint && trade.quoteMint !== NATIVE_MINT.toBase58())
+    throw new Error('Token-paired trades require a wallet that can review the paired-token fee and transfer instructions in-app.');
   const latest = await connection.getLatestBlockhash('confirmed');
   const transaction = new Transaction({ recentBlockhash: latest.blockhash, feePayer: user }).add(...trade.instructions);
   if (provider.remoteMobile) {

@@ -191,7 +191,7 @@ export function initializeConnections(appState) {
   // app-source-end
 
   // app-source: 177
-  let tradeBalanceState = { key:'', solLamports:null, tokenRaw:null, tokenDecimals:0 };
+  let tradeBalanceState = { key:'', solLamports:null, tokenRaw:null, tokenDecimals:0, quoteRaw:null, quoteDecimals:null };
   initializeAppState(appState, 'tradeBalanceState', tradeBalanceState);
   // app-source-end
 

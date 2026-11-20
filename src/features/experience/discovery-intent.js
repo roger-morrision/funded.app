@@ -13,6 +13,10 @@ export function initializeDiscoveryIntent(app) {
     const link = event.target.closest('[data-review-buy]');
     if (!link) return;
     // Keep ordinary anchor navigation, including open-in-new-tab. No transaction is signed here.
+    if (link.dataset.quote && link.dataset.quote !== 'So11111111111111111111111111111111111111112') {
+      link.href = `/token/${encodeURIComponent(link.dataset.reviewBuy)}`;
+      return;
+    }
     const selected = validReviewAmount(link.dataset.reviewAmount) ? link.dataset.reviewAmount : amount;
     link.href = `/token/${encodeURIComponent(link.dataset.reviewBuy)}?reviewBuy=${encodeURIComponent(selected)}`;
   };
