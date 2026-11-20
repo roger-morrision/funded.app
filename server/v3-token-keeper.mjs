@@ -8,7 +8,8 @@ import { selectV3PumpBuy } from './v3-buyback-setup.mjs';
 import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { buildTokenAccountSetupInstructions, buildTokenLedgerInitializeInstruction, buildTokenSettlementInstruction,
   buildTokenApprovalInstruction, buildTokenDisbursementInstruction, buildTokenConversionInstruction,
-  deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3, decodeTokenLedgerV3 } from '../mint-router-v3-token.js';
+  deriveTokenAccountsV3, deriveTokenLedgerV3, deriveAgencyPolicyV3, deriveTokenConversionV3, deriveSolCreditV3,
+  decodeTokenLedgerV3, decodeTokenConversionV3, decodeSolCreditV3 } from '../mint-router-v3-token.js';
 
 // Keeper step for a coin paired with a token: make sure the router's and vaults'
 // paired-token accounts and the coin's token ledger exist, collect Pump's
@@ -215,7 +216,6 @@ export async function convertTokenBudgetToSol({ connection, programId, keeper, m
   const conversionId = randomBytes(32);
   const { instruction } = buildTokenConversionInstruction({ programId: program, mint: coin, quoteMint: quote, quoteTokenProgram: quoteProgram,
     authority: keeper.publicKey, conversionId, category, amountIn: amount, minSolOut, pumpBuyInstruction: buy });
-  const before = await connection.getBalance(vault, 'confirmed');
   const instructions = [ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }), ...setup, instruction];
   // The PumpSwap CPI accounts exceed a legacy transaction; the reviewed lookup
   // table holds the pool's fixed accounts.
@@ -227,12 +227,42 @@ export async function convertTokenBudgetToSol({ connection, programId, keeper, m
     const tx = new VersionedTransaction(new TransactionMessage({ payerKey: keeper.publicKey, recentBlockhash: blockhash, instructions }).compileToV0Message([table]));
     await signTransaction(tx, [keeper]);
     signature = await connection.sendTransaction(tx, { maxRetries: 5 });
-    const status = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+    const status = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'finalized');
     if (status.value.err) throw new Error(`Conversion failed: ${JSON.stringify(status.value.err)}`);
-  } else signature = await sendAndConfirmTransaction(connection, new Transaction().add(...instructions), [keeper], { commitment: 'confirmed' });
-  const after = await connection.getBalance(vault, 'confirmed');
-  return { signature, vault: vault.toBase58(), spent: String(amount), expectedLamports: String(expected), minSolOut: String(minSolOut),
-    vaultLamportsDelta: String(after - before), conversionId: conversionId.toString('hex') };
+  } else signature = await sendAndConfirmTransaction(connection, new Transaction().add(...instructions), [keeper], { commitment: 'finalized' });
+  const receiptAddress = deriveTokenConversionV3(program, coin, conversionId);
+  const [receiptInfo, creditInfo, tx] = await Promise.all([
+    connection.getAccountInfo(receiptAddress, 'finalized'),
+    connection.getAccountInfo(deriveSolCreditV3(program, coin), 'finalized'),
+    connection.getTransaction(signature, { commitment:'finalized', maxSupportedTransactionVersion:0 }),
+  ]);
+  if (!receiptInfo?.owner.equals(program) || !creditInfo?.owner.equals(program)
+    || !tx || tx.meta?.err !== null || tx.transaction.signatures[0] !== signature)
+    throw new Error(`Finalized token conversion ${signature} lacks its program receipt or transaction.`);
+  const receipt = decodeTokenConversionV3(receiptInfo.data), credit = decodeSolCreditV3(creditInfo.data);
+  if (receipt.conversionId !== conversionId.toString('hex') || receipt.mint !== coin.toBase58()
+    || receipt.quoteMint !== quote.toBase58() || receipt.pool !== pool || receipt.category !== category
+    || receipt.spentQuote <= 0n || receipt.spentQuote > BigInt(amount)
+    || receipt.receivedLamports < minSolOut || credit.mint !== coin.toBase58()
+    || credit.credited[category] < receipt.receivedLamports)
+    throw new Error(`Finalized token conversion ${signature} conflicts with its receipt or credit.`);
+  const keys = [...(tx.transaction.message.accountKeys || tx.transaction.message.staticAccountKeys || []),
+    ...(tx.meta.loadedAddresses?.writable || []), ...(tx.meta.loadedAddresses?.readonly || [])].map(key => key.toBase58());
+  const vaultIndex = keys.indexOf(vault.toBase58());
+  const tokenAccount = getAssociatedTokenAddressSync(quote, vault, true, quoteProgram).toBase58();
+  const tokenIndex = keys.indexOf(tokenAccount);
+  const preToken = tx.meta.preTokenBalances?.find(row => row.accountIndex === tokenIndex);
+  const postToken = tx.meta.postTokenBalances?.find(row => row.accountIndex === tokenIndex);
+  const vaultDelta = vaultIndex < 0 ? -1n : BigInt(tx.meta.postBalances[vaultIndex]) - BigInt(tx.meta.preBalances[vaultIndex]);
+  const tokenDebit = !preToken || !postToken ? -1n
+    : BigInt(preToken.uiTokenAmount.amount) - BigInt(postToken.uiTokenAmount.amount);
+  const rentReserve = BigInt(await connection.getMinimumBalanceForRentExemption(0, 'finalized'));
+  if (tokenDebit !== receipt.spentQuote || vaultDelta < receipt.receivedLamports
+    || vaultDelta - receipt.receivedLamports > rentReserve)
+    throw new Error(`Finalized token conversion ${signature} lacks matching token and SOL vault deltas.`);
+  return { signature, vault: vault.toBase58(), spent: String(receipt.spentQuote),
+    receivedLamports:String(receipt.receivedLamports), expectedLamports: String(expected), minSolOut: String(minSolOut),
+    vaultLamportsDelta: String(vaultDelta), conversionId: conversionId.toString('hex'), balanceDeltaVerified:true };
 }
 
 // The fixed accounts of a conversion (programs, pool and Pump fee accounts) that

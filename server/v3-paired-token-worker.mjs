@@ -131,7 +131,8 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
         if (amount < minimumConvert) continue;
         const converted = await convertTokenBudgetToSol({ connection, programId, keeper, mint: launch.mint, quoteMint, category, amount,
           cluster: solanaCluster, lookupTable: env.FUNDED_V3_TOKEN_CONVERSION_LOOKUP_TABLE || null });
-        (row.converted ||= []).push({ category, spent: converted.spent, lamports: converted.expectedLamports, signature: converted.signature });
+        (row.converted ||= []).push({ category, spent: converted.spent, lamports: converted.receivedLamports,
+          quotedLamports: converted.expectedLamports, balanceDeltaVerified: converted.balanceDeltaVerified, signature: converted.signature });
       }
     }
     return row;

@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+import { createHash } from 'node:crypto';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { deriveFeeRouter } from './fee-router.js';
@@ -124,6 +125,17 @@ export const deriveSolCreditV3 = (programId, mint) =>
   PublicKey.findProgramAddressSync([seed('mint-sol-credit-v3'), key(mint).toBuffer()], key(programId))[0];
 export const deriveTokenConversionV3 = (programId, mint, conversionId) =>
   PublicKey.findProgramAddressSync([seed('mint-token-convert-v3'), key(mint).toBuffer(), Buffer.from(conversionId)], key(programId))[0];
+
+/** Reads the program-owned, replay-protected actual spend and SOL credit. */
+export function decodeTokenConversionV3(data) {
+  const raw = Buffer.from(data || []);
+  const discriminator = createHash('sha256').update('account:MintTokenConversionV3').digest().subarray(0, 8);
+  if (raw.length !== 161 || !raw.subarray(0, 8).equals(discriminator)) throw new Error('Invalid token conversion receipt.');
+  return { conversionId:raw.subarray(8, 40).toString('hex'), mint:new PublicKey(raw.subarray(40, 72)).toBase58(),
+    quoteMint:new PublicKey(raw.subarray(72, 104)).toBase58(), pool:new PublicKey(raw.subarray(104, 136)).toBase58(),
+    category:raw[136], spentQuote:raw.readBigUInt64LE(137), receivedLamports:raw.readBigUInt64LE(145),
+    createdAt:raw.readBigInt64LE(153) };
+}
 
 /** SOL credited per category by paired-token conversions (all zero when the record is absent). */
 export function decodeSolCreditV3(data) {
