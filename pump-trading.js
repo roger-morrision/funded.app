@@ -219,22 +219,27 @@ export async function fetchBondingCurveSnapshot({ connection, mint }) {
   return formatBondingCurveSnapshot({ mint: mintKey, bondingCurve, slot, initialRealTokenReserves });
 }
 
-export function formatGraduatedPoolSnapshot({ mint, poolKey, state, tokenDecimals = 6, slot = null, observedAt = new Date().toISOString() }) {
+export function formatGraduatedPoolSnapshot({ mint, poolKey, state, tokenDecimals = 6,
+  quoteDecimals = 9, slot = null, observedAt = new Date().toISOString() }) {
   if (!state?.pool || !state.poolBaseAmount || !state.poolQuoteAmount) throw new Error('PumpSwap pool data is unavailable.');
   const baseTokenReserves = bnToNumber(state.poolBaseAmount, tokenDecimals);
-  const quoteReservesSol = bnToNumber(state.poolQuoteAmount, 9);
-  const virtualQuoteReservesSol = bnToNumber(state.pool.virtualQuoteReserves, 9);
-  const effectiveQuoteReservesSol = quoteReservesSol + virtualQuoteReservesSol;
+  const quoteReserves = bnToNumber(state.poolQuoteAmount, quoteDecimals);
+  const virtualQuoteReserves = bnToNumber(state.pool.virtualQuoteReserves, quoteDecimals);
+  const effectiveQuoteReserves = quoteReserves + virtualQuoteReserves;
+  const solQuote = state.pool.quoteMint.equals(NATIVE_MINT);
   return {
     mint: requireMint(mint).toBase58(),
     pool: requireMint(poolKey).toBase58(),
     poolBaseTokenAccount: state.pool.poolBaseTokenAccount?.toBase58?.() || String(state.pool.poolBaseTokenAccount || ''),
     poolQuoteTokenAccount: state.pool.poolQuoteTokenAccount?.toBase58?.() || String(state.pool.poolQuoteTokenAccount || ''),
     baseTokenReserves,
-    quoteReservesSol,
-    virtualQuoteReservesSol,
-    effectiveQuoteReservesSol,
-    spotPriceSol: baseTokenReserves > 0 ? effectiveQuoteReservesSol / baseTokenReserves : NaN,
+    quoteMint:state.pool.quoteMint.toBase58(), quoteDecimals,
+    quoteReserves, virtualQuoteReserves, effectiveQuoteReserves,
+    spotPriceQuote:baseTokenReserves > 0 ? effectiveQuoteReserves / baseTokenReserves : NaN,
+    quoteReservesSol:solQuote ? quoteReserves : NaN,
+    virtualQuoteReservesSol:solQuote ? virtualQuoteReserves : NaN,
+    effectiveQuoteReservesSol:solQuote ? effectiveQuoteReserves : NaN,
+    spotPriceSol:solQuote && baseTokenReserves > 0 ? effectiveQuoteReserves / baseTokenReserves : NaN,
     creator: state.pool.creator?.toBase58?.() || String(state.pool.creator || ''),
     coinCreator: state.pool.coinCreator?.toBase58?.() || String(state.pool.coinCreator || ''),
     slot,

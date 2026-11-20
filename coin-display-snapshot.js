@@ -47,6 +47,31 @@ export async function readCoinDisplaySnapshot({connection,mint,poolAddress,clust
       pool=formatGraduatedPoolSnapshot({mint:mintKey,poolKey,state,tokenDecimals,slot,observedAt});
     } catch {}
   }
+  if (tokenQuote && curve.complete && !poolAddress) {
+    try {
+      const quoteMint = new PublicKey(curve.quoteMint), pairedPool = canonicalPumpPoolPda(mintKey,quoteMint);
+      const pairedBase = getAssociatedTokenAddressSync(mintKey,pairedPool,true,mintInfo.owner);
+      const quoteKeys = [TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID]
+        .map(program => getAssociatedTokenAddressSync(quoteMint,pairedPool,true,program));
+      const paired = await connection.getMultipleAccountsInfoAndContext(
+        [pairedPool,quoteMint,pairedBase,...quoteKeys], {commitment:'confirmed',minContextSlot:slot});
+      const [pairedInfo,quoteMintInfo,baseInfo,legacyQuote,extendedQuote] = paired.value;
+      if (![TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID].some(program => quoteMintInfo?.owner?.equals(program)))
+        throw Error('Paired quote mint owner could not be verified.');
+      const quoteState = unpackMint(quoteMint,quoteMintInfo,quoteMintInfo.owner);
+      if (!quoteState.isInitialized || quoteState.decimals > 12) throw Error('Paired quote mint is unavailable.');
+      const decoded = decodePool(pairedInfo);
+      const quoteIndex = quoteMintInfo.owner.equals(TOKEN_PROGRAM_ID) ? 0 : 1;
+      if (!decoded.poolBaseTokenAccount.equals(pairedBase)
+        || !decoded.poolQuoteTokenAccount.equals(quoteKeys[quoteIndex]))
+        throw Error('Paired pool vault addresses could not be verified.');
+      const {state,tokenDecimals}=decodePoolDisplayState({mintKey,poolKey:pairedPool,poolInfo:pairedInfo,
+        mintInfo,baseInfo,quoteInfo:quoteIndex===0?legacyQuote:extendedQuote,slot:paired.context.slot,
+        quoteMint,quoteTokenProgram:quoteMintInfo.owner,decodePool:()=>decoded});
+      pool=formatGraduatedPoolSnapshot({mint:mintKey,poolKey:pairedPool,state,tokenDecimals,
+        quoteDecimals:quoteState.decimals,slot:paired.context.slot,observedAt});
+    } catch {}
+  }
   // Match the parsed mint shape already consumed by the detail controller.
   return {curve,pool,mintInfo:{value:{owner:mintInfo.owner,data:{parsed:{info:{
     isInitialized:parsed.isInitialized,decimals:parsed.decimals,supply:parsed.supply.toString(),

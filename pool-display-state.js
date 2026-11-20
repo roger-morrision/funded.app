@@ -17,15 +17,19 @@ export async function readPoolDisplayState({connection, mintKey, poolKey, decode
 }
 
 // Shared validation for both the pool reader and the atomic token-page snapshot.
-export function decodePoolDisplayState({mintKey,poolKey,poolInfo,mintInfo,baseInfo,quoteInfo,slot,decodePool = info => PUMP_AMM_SDK.decodePool(info)}) {
+export function decodePoolDisplayState({mintKey,poolKey,poolInfo,mintInfo,baseInfo,quoteInfo,slot,
+  quoteMint = NATIVE_MINT, quoteTokenProgram = TOKEN_PROGRAM_ID,
+  decodePool = info => PUMP_AMM_SDK.decodePool(info)}) {
   if (!poolInfo?.owner?.equals(PUMP_AMM_PROGRAM_ID)
-    || !(mintInfo?.owner?.equals(TOKEN_PROGRAM_ID) || mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID))) throw Error('Pool or mint ownership could not be verified.');
+    || !(mintInfo?.owner?.equals(TOKEN_PROGRAM_ID) || mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID))
+    || ![TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID].some(program => program.equals(quoteTokenProgram)))
+    throw Error('Pool or mint ownership could not be verified.');
   const pool = decodePool(poolInfo), mint = unpackMint(mintKey, mintInfo, mintInfo.owner);
-  if (!mint.isInitialized || !pool.baseMint.equals(mintKey) || !pool.quoteMint.equals(NATIVE_MINT)
-    || !poolPda(pool.index,pool.creator,mintKey,NATIVE_MINT).equals(poolKey)) throw Error('Pool identity could not be verified.');
+  if (!mint.isInitialized || !pool.baseMint.equals(mintKey) || !pool.quoteMint.equals(quoteMint)
+    || !poolPda(pool.index,pool.creator,mintKey,quoteMint).equals(poolKey)) throw Error('Pool identity could not be verified.');
   const base = unpackAccount(pool.poolBaseTokenAccount,baseInfo,mintInfo.owner);
-  const quote = unpackAccount(pool.poolQuoteTokenAccount,quoteInfo,TOKEN_PROGRAM_ID);
-  if (!base.isInitialized || !quote.isInitialized || !base.mint.equals(mintKey) || !quote.mint.equals(NATIVE_MINT)
+  const quote = unpackAccount(pool.poolQuoteTokenAccount,quoteInfo,quoteTokenProgram);
+  if (!base.isInitialized || !quote.isInitialized || !base.mint.equals(mintKey) || !quote.mint.equals(quoteMint)
     || !base.owner.equals(poolKey) || !quote.owner.equals(poolKey) || base.amount <= 0n || quote.amount <= 0n) throw Error('Pool vault balances could not be verified.');
   return {slot,tokenDecimals:mint.decimals,state:{pool,poolAccountInfo:poolInfo,baseMint:mintKey,
     poolBaseAmount:new BN(base.amount.toString()),poolQuoteAmount:new BN(quote.amount.toString())}};
