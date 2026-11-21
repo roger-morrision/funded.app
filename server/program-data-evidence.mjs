@@ -55,10 +55,11 @@ export async function readProgramDataEvidence(connection,program,{
       controller.abort();reject(Object.assign(new Error('Program evidence RPC verification timed out.'),{code:'PROGRAM_EVIDENCE_TIMEOUT'}));
     },timeoutMs);})]);
   } catch(error) {
-    // A slow optional provider must not disable a healthy transaction provider.
+    // A slow or rate-limited optional provider must not disable a healthy transaction provider.
     // Re-read full finalized bytes and the network; never fall back on a bad
     // network, malformed account, or mismatched program commitment.
-    if(error.code!=='PROGRAM_EVIDENCE_TIMEOUT'||fallbackTimeoutMs<=0)throw error;
+    const optionalRateLimited=/\b429 Too Many Requests\b|\brate limits exceeded\b/i.test(String(error.message||error));
+    if((error.code!=='PROGRAM_EVIDENCE_TIMEOUT'&&!optionalRateLimited)||fallbackTimeoutMs<=0)throw error;
     let fallbackTimer;
     try{return await Promise.race([(async()=>{
       await assertRpcNetwork(connection,cluster);

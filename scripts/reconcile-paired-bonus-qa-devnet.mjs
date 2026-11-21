@@ -63,8 +63,11 @@ try {
     if (apply) {
       await service.reconcile(day,{expectedHash:review.expectedHash,expectedNewHash:review.expectedNewHash,
         actor:'devnet-paired-bonus-acceptance',reason:'Reprice unused pre-feature QA snapshot with finalized common USD evidence and funded SOL sources.'});
-      const result=await service.execute(day);
-      console.log(JSON.stringify({event:'paired-bonus-qa-executed',day,result}));
+      await service.execute(day);
+      const paid=(await rewardStore.read()).dailyBonusSnapshots?.[day];
+      console.log(JSON.stringify({event:'paired-bonus-qa-executed',day,hash:paid?.snapshot.hash,
+        payoutStatuses:Object.fromEntries(Object.entries(paid?.payouts||{})
+          .map(([signature,row])=>[signature,row.status]))}));
     }
   }
 } finally { await store.close(); }
