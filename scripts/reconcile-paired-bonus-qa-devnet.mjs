@@ -1,8 +1,7 @@
 // Run inside the accepted Devnet app container. Review first; --apply performs
 // the same hash-bound review, then reconciles and executes the named sources.
 import { readFileSync } from 'node:fs';
-import { Connection, Keypair } from '@solana/web3.js';
-import bs58 from 'bs58';
+import { Connection } from '@solana/web3.js';
 import { loadServerEnvironment } from '../server/environment.mjs';
 import { createPostgresStore } from '../server/postgres-store.mjs';
 import { createAutomaticRewardStore } from '../server/automatic-reward-store.mjs';
@@ -11,6 +10,7 @@ import { createDailyBonusService } from '../server/daily-bonus-service.mjs';
 import { bonusSchedule } from '../server/daily-bonus-schedule.mjs';
 import { createDailyBonusUsdEvidenceIndex } from '../server/daily-bonus-usd-index.mjs';
 import { createHeliusBonusPriceReader } from '../server/daily-bonus-helius-price.mjs';
+import { createRemoteSigner } from '../server/remote-signer.mjs';
 
 loadServerEnvironment();
 const apply=process.argv.includes('--apply');
@@ -43,7 +43,8 @@ try {
   }
   const connection=new Connection(process.env.SOLANA_RPC_URL,'finalized');
   const programId=process.env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
-  const authority=Keypair.fromSecretKey(bs58.decode(process.env.FUNDED_V3_ROUTER_AUTHORITY_SECRET_KEY));
+  const authority=createRemoteSigner({env:process.env})?.handle('authority');
+  if (!authority) throw new Error('The reviewed Devnet authority signer is unavailable.');
   const readUsdEvidence=createDailyBonusUsdEvidenceIndex({rewardStore,store,
     readPrice:createHeliusBonusPriceReader({rpcUrl:readFileSync(process.env.FUNDED_HELIUS_MAINNET_RPC_URL_FILE,'utf8').trim()})});
   const service=createDailyBonusService({store,rewardStore,connection,programId,authority,cluster:'devnet',
