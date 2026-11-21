@@ -70,8 +70,24 @@ export async function launchPairedCoin(app, input, say = () => {}) {
     await import('../trade/quick-buy.js').then(module => module.quickBuy(app, { mint: record.mint, amountSol: built.deferredBuySol, symbol })).catch(() => {});
   }
   // 3. List it on richpad.fun after the server checks the coin on-chain.
-  say('Listing your coin on richpad.fun…');
-  await app.apiRequest('/api/pair-launch/record', { method: 'POST', body: { mint: record.mint, signature, name, symbol } }).catch(() => null);
+  let listed = false;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    say(attempt ? 'Waiting for finalized launch proof before listing…' : 'Listing your coin on richpad.fun…');
+    try {
+      await app.apiRequest('/api/pair-launch/record', { method: 'POST', body: { mint: record.mint, signature },
+        signal: AbortSignal.timeout(10_000) });
+      listed = true;
+      break;
+    } catch (error) {
+      if (attempt === 5 || (error.status && ![409, 503].includes(error.status))) break;
+      await new Promise(resolve => setTimeout(resolve, 2_000));
+    }
+  }
+  if (!listed) {
+    say(`Coin created on Solana, but site listing verification is pending. Keep transaction ${signature}.`);
+    app.showToast?.('Coin created on Solana; site listing is pending.');
+    return { mint: record.mint, signature, listingPending: true };
+  }
   say('');
   app.showToast?.(`$${symbol} is live on pump.fun, paired with ${quote.symbol}.`);
   location.assign(`/token/${encodeURIComponent(record.mint)}`);

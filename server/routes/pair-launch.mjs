@@ -1,4 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
+import { PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
+import { assertRpcNetwork } from '../../solana-network.js';
+import { verifyPumpLaunch } from '../launch-verification.mjs';
 
 // Paired launches: a plain pump.fun create_v2 whose bonding curve is quoted in a
 // token the Pump program accepts (SOL, USDC, xStocks, ...). The creator's wallet
@@ -13,25 +16,32 @@ export function pairLaunchEnabled({ solanaCluster, env = process.env }) {
 }
 
 export function createPairLaunchRoutes({ solanaCluster, solanaRpcUrl, store, pairQuotes, body, respond, env = process.env,
-  connectionFactory = url => new Connection(url, 'confirmed'), loadSdk = () => import('@pump-fun/pump-sdk') }) {
+  connectionFactory = url => new Connection(url, 'finalized') }) {
   async function verify({ mint, signature }) {
     const connection = connectionFactory(solanaRpcUrl);
-    const tx = await connection.getTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-    if (!tx || tx.meta?.err) throw Object.assign(new Error('The launch transaction is not confirmed on Solana yet.'), { statusCode: 409 });
-    const keys = tx.transaction.message.getAccountKeys?.({ accountKeysFromLookups: tx.meta?.loadedAddresses }) ?? null;
-    const accounts = keys ? keys.staticAccountKeys.concat(keys.accountKeysFromLookups?.writable || [], keys.accountKeysFromLookups?.readonly || []) : tx.transaction.message.accountKeys;
-    const signer = accounts[0]?.toBase58?.();
-    if (!accounts.some(key => key.toBase58() === mint)) throw Object.assign(new Error('This transaction did not create that coin.'), { statusCode: 400 });
-    const { OnlinePumpSdk } = await loadSdk();
-    const curve = await new OnlinePumpSdk(connection).fetchBondingCurve(new PublicKey(mint)).catch(() => null);
-    if (!curve) throw Object.assign(new Error('No Pump bonding curve exists for this coin.'), { statusCode: 400 });
+    if (solanaCluster === 'devnet') await assertRpcNetwork(connection, solanaCluster);
+    let proof;
+    try { proof = await verifyPumpLaunch({ connection, mint, signature, commitment:'finalized', cluster:solanaCluster }); }
+    catch (error) {
+      if (String(error.message).includes('is not finalized'))
+        throw Object.assign(new Error('The Pump creation transaction is not finalized yet.'), { statusCode:409 });
+      if (String(error.message).includes('no matching Pump creation event'))
+        throw Object.assign(new Error('This transaction did not create that coin.'), { statusCode:400 });
+      throw error;
+    }
+    const account = await connection.getAccountInfo(bondingCurvePda(new PublicKey(mint)), 'finalized');
+    const curve = account && PUMP_SDK.decodeBondingCurveNullable(account);
+    if (!curve) throw Object.assign(new Error('No finalized Pump bonding curve exists for this coin.'), { statusCode: 409 });
     const WSOL = 'So11111111111111111111111111111111111111112';
     const rawQuote = curve.quoteMint?.toBase58?.() || '';
-    const creator = curve.creator.toBase58(), quoteMint = !rawQuote || rawQuote === PublicKey.default.toBase58() ? WSOL : rawQuote;
-    if (creator !== signer) throw Object.assign(new Error('The coin creator is not the wallet that sent the launch.'), { statusCode: 400 });
+    const quoteMint = !rawQuote || rawQuote === PublicKey.default.toBase58() ? WSOL : rawQuote;
+    // Pump can transfer fee ownership after creation. The finalized creation
+    // event, rather than the curve's current creator field, binds the signer.
+    if (proof.creator !== proof.feePayer)
+      throw Object.assign(new Error('The coin creator did not sign its launch.'), { statusCode: 400 });
     const quotes = await pairQuotes.read().catch(() => ({ quotes: [] }));
     const quote = quoteMint === WSOL ? { symbol: 'SOL' } : quotes.quotes.find(row => row.mint === quoteMint) || null;
-    return { mint, signature, creator, quoteMint, quoteSymbol: quote?.symbol || null, blockTime: tx.blockTime || null };
+    return { ...proof, quoteMint, quoteSymbol: quote?.symbol || null };
   }
   return async function handlePairLaunch(req, res, url) {
     if (url.pathname === '/api/pair-launch/status' && req.method === 'GET') {
@@ -45,10 +55,9 @@ export function createPairLaunchRoutes({ solanaCluster, solanaRpcUrl, store, pai
     if (!MINT.test(mint) || !SIGNATURE.test(signature)) { respond(res, 400, { error: 'A coin address and launch signature are required.' }); return true; }
     try {
       const record = await verify({ mint, signature });
-      const name = String(input?.name || '').slice(0, 32), symbol = String(input?.symbol || '').replace(/^\$/, '').slice(0, 10);
       const saved = await store.update(state => {
         state.pairLaunches ||= {};
-        state.pairLaunches[mint] = { ...(state.pairLaunches[mint] || {}), ...record, name: name || null, symbol: symbol || null, cluster: solanaCluster, recordedAt: new Date().toISOString() };
+        state.pairLaunches[mint] = { ...record, recordedAt:state.pairLaunches[mint]?.recordedAt || new Date().toISOString() };
         return state.pairLaunches[mint];
       });
       respond(res, 201, saved);
