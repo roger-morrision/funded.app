@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assertNoLocalKeys } from './remote-signer.mjs';
+import { assertMainnetStagingPolicy } from './mainnet-staging-policy.mjs';
 
 // Mainnet non-program mode reads only service credentials. Signing keys and
 // .env.local are never loaded, so no Richpad program or payout can be signed.
@@ -9,6 +10,7 @@ export const MAINNET_NON_PROGRAM_SECRET_FILES = Object.freeze(['DATABASE_URL_FIL
 function loadMainnetNonProgramSecrets(env, readFile) {
   const signer = Object.keys(env).find(name => /SIGNER|SECRET_KEY|KEYPAIR|PRIVATE_KEY/i.test(name) && env[name]);
   if (signer) throw Error(`Mainnet non-program mode refuses signing configuration (${signer}).`);
+  if (env.FUNDED_SKIP_LOCAL_ENV === 'true') return;
   for (const name of MAINNET_NON_PROGRAM_SECRET_FILES) {
     const filePath = env[name];
     if (!filePath || env[name.slice(0, -5)] != null) continue;
@@ -19,11 +21,15 @@ function loadMainnetNonProgramSecrets(env, readFile) {
 
 // Keep startup precedence: existing environment, secret files, then local values.
 export function loadServerEnvironment({ env = process.env, cwd = process.cwd(), readFile = readFileSync } = {}) {
-  if (env.FUNDED_SKIP_LOCAL_ENV === 'true') return;
-  if([env.SOLANA_CLUSTER,env.VITE_SOLANA_CLUSTER].includes('mainnet-beta') && env.FUNDED_MAINNET_NON_PROGRAM_WRITES === 'true')
+  // Match the network parser's whitespace normalization before any file read.
+  const mainnet = [env.SOLANA_CLUSTER, env.VITE_SOLANA_CLUSTER].some(value => String(value || '').trim() === 'mainnet-beta');
+  if(mainnet && env.FUNDED_MAINNET_NON_PROGRAM_WRITES === 'true')
     return loadMainnetNonProgramSecrets(env, readFile);
-  if([env.SOLANA_CLUSTER,env.VITE_SOLANA_CLUSTER].includes('mainnet-beta'))
+  if(mainnet) {
+    if (env.FUNDED_SKIP_LOCAL_ENV === 'true') return assertMainnetStagingPolicy(env);
     throw Error('Mainnet requires explicit isolated configuration with FUNDED_SKIP_LOCAL_ENV=true; local defaults and signer files were not loaded.');
+  }
+  if (env.FUNDED_SKIP_LOCAL_ENV === 'true') return;
   for (const [name, filePath] of Object.entries(env)) {
     if (!name.endsWith('_FILE') || !filePath || env[name.slice(0, -5)] != null) continue;
     try { env[name.slice(0, -5)] = readFile(filePath, 'utf8').trim(); }

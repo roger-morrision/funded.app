@@ -5,17 +5,20 @@ const BASE = process.env.REVIEW_BASE_URL || 'https://richpad.fun';
 const MINT = '85RhcSEMy15SNhFLmSArNm7udPKXVagVgsq4YmSopump';
 const browser = await chromium.launch();
 const results = [];
+const record = row => { results.push(row); console.log(row); };
 for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
   const page = await browser.newPage({ viewport });
+  page.setDefaultTimeout(8_000);
+  page.setDefaultNavigationTimeout(20_000);
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror ' + e.message.slice(0, 140)));
   page.on('response', r => { const u = new URL(r.url()); if (u.pathname.startsWith('/api/') && r.status() >= 400 && ![404, 429].includes(r.status())) errors.push(`${r.status()} ${u.pathname}`); });
   const go = async path => { await page.goto(BASE + path, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(3500); };
   const step = async (name, fn) => {
     const before = errors.length;
-    try { const out = await fn(); results.push(`${viewport.width} OK   ${name}: ${out ?? ''}`); }
-    catch (e) { results.push(`${viewport.width} FAIL ${name}: ${e.message.split('\n')[0].slice(0, 160)}`); }
-    if (errors.length > before) results.push(`       errors: ${[...new Set(errors.slice(before))].join(' | ')}`);
+    try { const out = await fn(); record(`${viewport.width} OK   ${name}: ${out ?? ''}`); }
+    catch (e) { record(`${viewport.width} FAIL ${name}: ${e.message.split('\n')[0].slice(0, 160)}`); }
+    if (errors.length > before) record(`       errors: ${[...new Set(errors.slice(before))].join(' | ')}`);
   };
   const text = sel => page.locator(sel).first().innerText({ timeout: 3000 }).then(t => t.replace(/\s+/g, ' ').trim());
 
@@ -136,4 +139,5 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
   await page.close();
 }
 await browser.close();
-console.log(results.join('\n'));
+// A printed failure must fail automation, not leave a successful exit status.
+if (results.some(row => / FAIL |^\s+errors:/.test(row))) process.exitCode = 1;

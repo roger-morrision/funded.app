@@ -2,7 +2,8 @@
 // Keep this separate from public identity validation: placeholders are allowed
 // during planning, but credentials and activation flags are not.
 export function transactionSignerSetting(name) {
-  return /SECRET_KEY|PRIVATE_KEY|KEYPAIR|SIGNER_(?:FILE|KEY|PATH)|SIGNING_KEY|PRICE_SIGNER_KEY/i.test(name);
+  return /SECRET_KEY|PRIVATE_KEY|KEYPAIR|SIGNER_(?:FILE|KEY|PATH|URL|TOKEN)|SIGNING_KEY|PRICE_SIGNER_KEY/i.test(name)
+    || /^FUNDED_ADMIN_(?:OPERATIONS|PUMP_REVENUE|TRADE_FEE|SERVICE_FEE|BOOST)_SIGNER$/i.test(name);
 }
 
 export function mainnetStagingProblems(env) {
@@ -12,7 +13,8 @@ export function mainnetStagingProblems(env) {
     if(!value)continue;
     if(transactionSignerSetting(name))problems.push(`Transaction signer setting is forbidden: ${name}`);
     if(['NODE_OPTIONS','NODE_PATH'].includes(key))problems.push(`Runtime hook is forbidden: ${name}`);
-    if((/(?:ENABLED|AUTOCONNECT)$/.test(key)||['VITE_ALLOW_MAINNET','VITE_DEV_MODE','DEV_MODE','DEVNET_TEST_MODE','RPC_ALLOW_AIRDROP'].includes(key))
+    if((/(?:ENABLED|AUTOCONNECT)$/.test(key)||['VITE_ALLOW_MAINNET','VITE_DEV_MODE','DEV_MODE','DEVNET_TEST_MODE','RPC_ALLOW_AIRDROP',
+      'FUNDED_MAINNET_NON_PROGRAM_WRITES','PAIR_LAUNCH_MAINNET'].includes(key))
       && !['false','0','no','off'].includes(value.toLowerCase()))problems.push(`Activation setting must be disabled: ${name}`);
   }
   return problems;
