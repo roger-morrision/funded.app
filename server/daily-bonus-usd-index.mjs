@@ -85,8 +85,9 @@ export function createDailyBonusUsdEvidenceIndex({rewardStore,store,readPrice}) 
       &&(!window.qa||qaMints==='*'||qaMints?.includes(row.mint))
       &&Number.isSafeInteger(row.createdTimestamp)&&row.createdTimestamp<window.end);
     const quotes=await resolveUsdBonusLaunchQuotes({connection,launches,cluster});
-    const solLaunches=launches.filter(row=>quotes.get(row.mint).equals(NATIVE_MINT));
-    const pairedLaunches=launches.filter(row=>!quotes.get(row.mint).equals(NATIVE_MINT));
+    const solLaunches=launches.filter(row=>quotes.get(row.mint)?.equals(NATIVE_MINT));
+    const pairedLaunches=launches.filter(row=>quotes.get(row.mint)&&!quotes.get(row.mint).equals(NATIVE_MINT));
+    const ineligibleLaunches=launches.filter(row=>quotes.get(row.mint)===null);
     const solState={...state,launches:Object.fromEntries(solLaunches.map(row=>[row.mint,row]))};
     const sol=await readSol({connection,state:solState,programId,cluster,day,now,qaMints,eligibilityBasis});
     if(sol.complete===false)return sol;
@@ -96,7 +97,8 @@ export function createDailyBonusUsdEvidenceIndex({rewardStore,store,readPrice}) 
     const trades=[];
     for(const row of sol.trades)trades.push({...row,...await score({quoteMint:NATIVE_MINT,cluster,
       amountRaw:row.amountLamports,at:row.blockTime})});
-    const coverage=[...sol.coverage];
+    const coverage=[...sol.coverage,...ineligibleLaunches.map(row=>({mint:row.mint,complete:true,
+      eligible:false,reason:'no-reviewed-usd-feed-or-sol-conversion'}))];
     for(const launch of pairedLaunches.sort((a,b)=>compare(a.mint,b.mint))) {
       const quoteMint=quotes.get(launch.mint);
       const scanned=await scanPairedBonusSettlements({connection,store,cluster,programId,

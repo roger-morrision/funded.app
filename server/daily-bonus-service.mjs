@@ -211,6 +211,8 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       new Date((currentBonusStart(now(),schedule) + schedule.periodSeconds) * 1000).toISOString(),
       snapshots:Object.values(state.dailyBonusSnapshots || {}).sort((a, b) => b.snapshot.start - a.snapshot.start)
         .slice(0, 30).map(({ snapshot, status:state, reason, payouts }) => ({ day:snapshot.day,cluster,
+          ineligibleMints:snapshot.evidence.coverage.filter(row=>row.eligible===false)
+            .map(row=>({mint:row.mint,reason:row.reason})),
           eligibilityBasis:snapshot.eligibilityBasis||'collection-time-v1',reconciliation:snapshot.reconciliation||null,
           traderEligibility:snapshot.policy.traderEligibility||'all-wallets-v1',
           cutoffAt:new Date(snapshot.end * 1000).toISOString(), hash:snapshot.hash, status:state, reason,

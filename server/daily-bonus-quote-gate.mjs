@@ -28,8 +28,11 @@ export async function resolveUsdBonusLaunchQuotes({ connection, launches, cluste
     const curve=account&&PUMP_SDK.decodeBondingCurveNullable(account);
     if (!curve?.quoteMint) throw new Error(`Daily bonus quote proof is unavailable for ${launch.mint}.`);
     const quote=curve.quoteMint.equals(SystemProgram.programId)?NATIVE_MINT:curve.quoteMint;
-    bonusQuoteAsset(quote,cluster);
-    quotes.set(launch.mint,quote);
+    try { bonusQuoteAsset(quote,cluster); quotes.set(launch.mint,quote); }
+    catch(error) {
+      if (!String(error.message).startsWith('No reviewed historical USD price feed')) throw error;
+      quotes.set(launch.mint,null);
+    }
   }
   return quotes;
 }
