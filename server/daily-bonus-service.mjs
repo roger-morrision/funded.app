@@ -73,12 +73,17 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
   const ready = async () => {
     if (!(await chain.readiness()).constrainedPayouts) throw new Error('Daily bonus requires the reviewed V3 program and authority.');
   };
-  async function evidenceFor(day, prior) {
+  async function evidenceFor(day, prior, { repriceUnused = false } = {}) {
     const window = bonusWindow(day,now());
     if (Boolean(window.qa) !== (schedule.periodSeconds === 300)) throw new Error('Snapshot period does not match the active bonus schedule.');
     if (window.qa && window.cohort !== schedule.cohort) throw new Error('Snapshot belongs to a different QA mint cohort.');
     const basis=prior?.snapshot.eligibilityBasis||(prior?'collection-time-v1':eligibilityBasis);
-    const scoring=prior?.snapshot.policy.scoringBasis|| (prior?'lamports-v1':scoringBasis);
+    // A reviewed, unused QA snapshot may adopt the newly reviewed USD basis.
+    // Paid or reserved snapshots retain their original ranking policy.
+    if (repriceUnused && (!window.qa || prior?.snapshot.sources.length
+      || Object.keys(prior?.payouts || {}).length || scoringBasis !== 'common-usd-v2'))
+      throw new Error('Only an unused Devnet QA snapshot can be repriced.');
+    const scoring=repriceUnused ? scoringBasis : prior?.snapshot.policy.scoringBasis|| (prior?'lamports-v1':scoringBasis);
     const reader=scoring==='common-usd-v2'?readUsdEvidence:readIndexedEvidence;
     if(!reader)throw new Error('Historical common USD ranking reader is unavailable.');
     const evidence = await reader({ connection, state:await store.read(), programId, cluster, day, now:now(), qaMints:schedule.allMints ? '*' : schedule.mints,eligibilityBasis:basis });
@@ -88,7 +93,7 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       .filter(row=>ledger.dailyBonusAssignments?.[row.signature] && !(prior && bonusAssignmentMatches(prior,
         prior.snapshot.sources.find(source=>source.collectionSignature===row.signature)||{collectionSignature:row.signature},ledger.dailyBonusAssignments[row.signature])))
       .map(row=>row.signature);
-    const traderEligibility=prior ? (prior.snapshot.policy.traderEligibility||'all-wallets-v1') : DAILY_BONUS_POLICY.traderEligibility;
+    const traderEligibility=prior && !repriceUnused ? (prior.snapshot.policy.traderEligibility||'all-wallets-v1') : DAILY_BONUS_POLICY.traderEligibility;
     return { ...evidence,eligibilityBasis:basis,scoringBasis:scoring,traderEligibility, ...((excluded.length||prior?.snapshot.evidence.excludedCollectionSignatures?.length)
       ? { excludedCollectionSignatures:[...new Set([...excluded,...(prior?.snapshot.evidence.excludedCollectionSignatures||[])])] } : {}) };
   }
@@ -230,7 +235,10 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
     const { hash, ...frozen } = prior.snapshot;
     if (hash !== bonusHash(frozen)) throw new Error('Saved daily bonus snapshot evidence changed.');
     let reserved=Object.keys(prior.payouts || {}).length>0;
-    const evidence = await evidenceFor(day,prior);
+    const repriceUnused=cluster==='devnet' && prior.snapshot.qa===true
+      && scoringBasis==='common-usd-v2' && prior.snapshot.policy.scoringBasis!=='common-usd-v2'
+      && prior.snapshot.sources.length===0 && !reserved;
+    const evidence = await evidenceFor(day,prior,{repriceUnused});
     if (evidence.complete === false) throw new Error(evidence.reason);
     const rebuilt = buildDailyBonusSnapshot({ day, ...evidence, cluster, programId, now:now() });
     for (const source of prior.snapshot.sources) {
@@ -280,6 +288,8 @@ export function createDailyBonusService({ store, rewardStore, connection, progra
       const { prior, next, reserved } = await reviewReconciliation(day, expectedHash);
       return { day, expectedHash:prior.snapshot.hash, expectedNewHash:next.hash,
         mode:reserved?'append-only-frozen-rankings-v1':'replace-unused-v1',
-        rankings:next.rankings, sources:next.sources.length, previousSources:prior.snapshot.sources.length };
+        rankings:next.rankings, sources:next.sources.length,
+        sourceSignatures:next.sources.map(source=>source.collectionSignature),
+        previousSources:prior.snapshot.sources.length };
     } };
 }
