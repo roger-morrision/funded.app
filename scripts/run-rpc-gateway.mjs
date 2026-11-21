@@ -26,6 +26,10 @@ const primary=rotating?createRotatingRpcTransport({
     :freeUrls.includes(url)?[]:[{name:hostName(url),transport:createRpcUpstreamTransport(url,{maxSockets:pacing.maxConcurrent})}]})
   :createRpcUpstreamTransport(url,{maxSockets:pacing.maxConcurrent});
 const transport=freeUrls.length>0?primary:isHeliusRpc(url)?createRpcFailoverTransport({primary,publicTransport:createRpcUpstreamTransport(publicRpcForCluster(cluster),{maxSockets:2}),cluster,
+  // Public Devnet can rate-limit program and settlement reads. Probe the paid
+  // provider again after its transient cooldown instead of staying on public
+  // RPC for ten minutes after one burst of 429 responses.
+  recoveryIntervalMs:cluster==='devnet'?60_000:600_000,
   // Public Mainnet allows ~10 req/s per IP; stay well below it.
   publicOptions:cluster==='mainnet-beta'?{minIntervalMs:150,maxConcurrent:2}:{}}):primary;
 const gateway=createRpcGateway({transport,sharedCache,cluster,...pacing});
