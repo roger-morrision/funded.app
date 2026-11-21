@@ -1,4 +1,5 @@
 import bs58 from 'bs58';
+import { isDeepStrictEqual } from 'node:util';
 import { PublicKey } from '@solana/web3.js';
 import { deriveTokenLedgerV3 } from '../mint-router-v3-token.js';
 import { loadFinalizedPairedBonusSettlement } from './daily-bonus-paired-settlement.mjs';
@@ -86,11 +87,11 @@ export async function scanPairedBonusSettlements({ connection, store, cluster='d
     current.v3TokenBonusScans ||= {};
     current.v3TokenBonusSources ||= {};
     const prior=current.v3TokenBonusScans[key];
-    if (prior && JSON.stringify(prior)!==JSON.stringify(saved))
+    if (prior && !isDeepStrictEqual(prior,saved))
       throw new Error('Paired bonus scan changed concurrently.');
     for (const row of discoveries) {
       const existing=current.v3TokenBonusSources[row.signature];
-      if (existing && JSON.stringify(existing)!==JSON.stringify(row))
+      if (existing && !isDeepStrictEqual(existing,row))
         throw new Error('Paired bonus settlement source changed after verification.');
       current.v3TokenBonusSources[row.signature] ||= row;
     }

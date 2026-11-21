@@ -1,4 +1,5 @@
 import { deriveTokenLedgerV3, deriveTokenConversionV3, decodeTokenLedgerV3 } from '../mint-router-v3-token.js';
+import { isDeepStrictEqual } from 'node:util';
 import { allocatePairedBonusSol, pairedBonusConversionId,
   loadFinalizedPairedBonusConversion } from './daily-bonus-paired-conversion.mjs';
 import { convertTokenBudgetToSol } from './v3-token-keeper.mjs';
@@ -81,7 +82,7 @@ export async function processPairedBonusConversion({ connection, store, programI
     spentQuoteRaw:proof.spentQuoteRaw,receivedLamports:proof.receivedLamports});
   await store.update(current=>{
     const row=current.v3TokenBonusConversions?.[intent.conversionId];
-    if (!row || row.status!=='prepared' || JSON.stringify(row)!==JSON.stringify(intent))
+    if (!row || row.status!=='prepared' || !isDeepStrictEqual(row,intent))
       throw new Error('Paired bonus conversion intent changed during finalization.');
     current.v3TokenBonusConversions[intent.conversionId]={...row,status:'finalized',...proof,allocations,
       finalizedAt:new Date().toISOString()};
