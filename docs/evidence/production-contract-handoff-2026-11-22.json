@@ -578,6 +578,15 @@
       "assignedRoleEnvelopes": 8922933840,
       "unassignedSetupAndCanary": 94732040,
       "totalIncludingSingleOperatorReserve": 9017665880
+    },
+    "independentReservePlacement": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-reserve-placement-3657d4d9-20261122.json",
+      "sha256": "8244af69841ef62dc0b158f0cc9a59ee0dfa3a136d5c81bd43e531702946e50e",
+      "reviewedContractPacketSource": "3657d4d934d8dff7fc6fdc0b280bd1415998b145",
+      "reviewedAppSource": "8c5d1a0698d4c96bccbd5d9b11210263a089755b",
+      "scope": "Independent source helper and synthetic threshold. Exact required authority balance passes; one lamport below rejects. No E9 or price-attestor balance queried. Draft arithmetic reconciles with a single operator reserve.",
+      "fundingInstructionApproved": false,
+      "open": "Bind actual operator/price/guardian and any distinct worker identities and balances. Assign every final message debit, rent, fee and canary exposure before final top-ups."
     }
   },
   "restrictedBaseline": {
