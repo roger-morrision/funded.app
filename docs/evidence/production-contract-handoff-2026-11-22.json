@@ -1407,5 +1407,32 @@
       "sameIndependentProbe": "Original e04 fails four valid equality cases; corrected commit passes all eight timing controls.",
       "scope": "Synthetic local account/RPC acceptance of original owned-vault/current signer geometry, exact200liability release retaining41, equality/grace/reversed controls. Durable unknown-attempt and archived finalized transaction attribution remain open."
     }
+  },
+  "appExpiryRecoveryReview": {
+    "appSource": "9174aba3062d601101ef5fedf376582e5bdfa6c2",
+    "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "scope": "Contract owner source and synthetic runtime review; independent Node24 acceptance requested.",
+    "runtimeContractSourceDiffLines": 0,
+    "reviewNode": "v26.13.1",
+    "requiredTests": 29,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "rawResult": "tmp/contract-expiry-recovery-review-9174.txt",
+    "sha256": "4d8113c6a5a66fba7deef486a60bfa85b9c6b53b7a109e1875155901a5dc9444",
+    "sourceFindings": [
+      "Broadcast hook awaited after message signatures and before sendRawTransaction. Store uses locked flush-and-rename before allowing send.",
+      "Single original expiry instruction, current signer and immutable original bank snapshot are saved together.",
+      "Prepared attempt recovered before fresh signing readiness, blockhash or submission. Unknown and inactive-unattributed states retain the original attempt.",
+      "Finalized transaction signature/message/status/slot, effective program deployment, operator fee and exact unpaid release are required. Proof is saved before scheduler completion.",
+      "Verified restart returns the retained proof without another send; racing stores cannot install a replacement."
+    ],
+    "limits": [
+      "All financial RPC/bank/finality facts in this suite are synthetic.",
+      "Failed or expired attempt replacement has no automatic approved policy.",
+      "Changes to the original reserve or paid state before reconciliation retain an unresolved original attempt.",
+      "Production roles, live acceptance and archive/scale/funding gates remain open."
+    ]
   }
 }
