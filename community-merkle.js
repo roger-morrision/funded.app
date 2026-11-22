@@ -45,8 +45,13 @@ export function buildCommunityManifest({ drop, launchMint, eligibilityMint, migr
   const weights = accounts.filter(row => row.balance > 0n && !exclusions.includes(row.wallet)).map(row => ({ wallet:row.wallet, weight:String(row.balance) }));
   const allocation = allocateHolderPool(String(amount), weights);
   if (!allocation.allocations.length) throw new Error('No eligible $RICH holder has a payable allocation.');
-  const snapshotHash = hash(SNAPSHOT_DOMAIN, key(launchMint), key(eligibilityMint), u64(migrationSlot), u64(migrationBlockTime), u64(supply), u32(accounts.length),
-    ...accounts.flatMap(row => [key(row.wallet), u64(row.balance)]), u32(exclusions.length), ...exclusions.map(key)).toString('hex');
+  const digest = createHash('sha256');
+  for (const part of [SNAPSHOT_DOMAIN, key(launchMint), key(eligibilityMint), u64(migrationSlot),
+    u64(migrationBlockTime), u64(supply), u32(accounts.length)]) digest.update(part);
+  for (const row of accounts) { digest.update(key(row.wallet)); digest.update(u64(row.balance)); }
+  digest.update(u32(exclusions.length));
+  for (const wallet of exclusions) digest.update(key(wallet));
+  const snapshotHash = digest.digest('hex');
   const leaves = allocation.allocations.map((row, index) => ({ index, recipient:row.wallet, amount:row.amountLamports,
     hash:communityLeaf({ drop, recipient:row.wallet, amount:row.amountLamports, index }) }));
   const levels = [leaves.map(row => row.hash)];

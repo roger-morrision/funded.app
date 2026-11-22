@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-only community manifest scale and compatibility; no new on-chain transaction",
+  "holderCount": 70000,
+  "beforeFix": {
+    "result": "failed",
+    "error": "RangeError: Maximum call stack size exceeded",
+    "cause": "Snapshot hash spread two buffers per holder into one function call"
+  },
+  "afterFix": {
+    "result": "passed",
+    "manifestLeaves": 70000,
+    "firstAndLastMerkleProofsValid": true,
+    "snapshotHash": "3748739e2a023511e6de939d87eea1c64cce4b90c7ce9b075f0860c91f6c63e4",
+    "root": "da5559bd71dd842f42d8e3f3d22c07e386fad4a4803ca70a0d5f441c9491025b"
+  },
+  "compatibility": {
+    "smallFixtureMatchesPriorByteFormat": true,
+    "existingFinalizedDevnetDropMint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+    "existingDropLeafCount": 28,
+    "recomputedRootMatchesStoredFinalizedDrop": true,
+    "recomputedSnapshotHashMatchesStoredFinalizedDrop": true
+  },
+  "limits": [
+    "No 70,000-holder token-account index or finalized historical snapshot was tested.",
+    "No 70,000-recipient transaction payout or 1,000,000-holder manifest was tested.",
+    "The separate automatic holder reward scheduler still blocks more than 1,000 eligible wallets."
+  ]
+}
