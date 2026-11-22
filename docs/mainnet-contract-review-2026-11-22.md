@@ -44,6 +44,18 @@ All following results are **local-only**, using compiled SBF in LiteSVM or host 
 
 Reproduce using the pinned build/test commands in `.github/workflows/contracts.yml` and `npm run test:security`. Public fixture identities in that workflow are intentionally rejected by production runtime release validation.
 
+Clean Linux CI passed for the contract-fix commit `333d94104012a708b25080bd528d27dee9a50e13`: [contract builds, exact hashes and custody tests](https://github.com/roger-morrision/funded.app/actions/runs/44976196983), and [application/security checks plus Docker build](https://github.com/roger-morrision/funded.app/actions/runs/44976197035). The subsequent test-dependency patch is separately revalidated locally below; these CI links do not claim to test a later commit.
+
+## Dependency advisories
+
+`cargo-audit 0.23.0` checked all 423 lockfile packages against RustSec database commit `55e1c3dfbd834237a05bbbf7b50ba3b5be27b662`. It initially reported two vulnerabilities. `ctutils` was updated from 0.4.2 to 0.4.4, resolving [RUSTSEC-2026-0385](https://rustsec.org/advisories/RUSTSEC-2026-0385.html).
+
+[RUSTSEC-2026-0387](https://rustsec.org/advisories/RUSTSEC-2026-0387.html) remains for `crypto-bigint 0.5.5`. The path is LiteSVM → Solana syscalls → secp256k1 recovery → k256/elliptic-curve → crypto-bigint. Both affected packages are outside the normal/build dependency graph for both workspace programs across all targets; they enter through test dependencies. The patched crypto-bigint series is 0.7.6+, incompatible with the existing upstream 0.5 dependency constraint. An upstream SDK/test-runtime migration is still required; no advisory is suppressed or represented as fixed.
+
+The full lockfile audit therefore still exits 1. It also reports maintenance warnings for `ansi_term`, `bincode`, `derivative`, `libsecp256k1` and `paste`; maintenance warnings are distinct from the two timing vulnerabilities. The recorded dependency graph scope does not constitute a general side-channel audit. Tests use ephemeral fixture keys only. Machine-readable results are in `docs/evidence/contract-dependency-review-2026-11-22.json`.
+
+After the `ctutils` patch, both SBF variants were rebuilt and all 33 targeted bytecode tests passed again locally. Both ELF hashes remained exactly as listed above. The dependency patch changes the host test runtime, not the deployed bytecode.
+
 ## Supplied test mint
 
 Read-only finalized Mainnet RPC evidence is stored in `docs/evidence/mainnet-test-mint-2026-11-22.json`.
