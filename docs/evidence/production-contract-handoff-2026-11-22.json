@@ -1897,5 +1897,51 @@
       "artifactsVerified": true,
       "scope": "Local actual scheduler/store per-holder fresh-work selection, injected immutable plans and modeled submitLeaf results. Existing70 payout tests use synthetic bank/RPC/finality. No live financial or whole-worker scale acceptance."
     }
+  },
+  "payoutRecoveryPagingReview": {
+    "appSource": "dc305e596d30da21f947cfb14a647bfa5f7f09d4",
+    "ownerReportGitSha256": "8474909a014d8a6cd9c4b58459a00abc636692adb05de4acb7679bf3e466d0d6",
+    "reviewNode": "v26.13.1",
+    "targetedPassed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "changedGitHashesMatched": 6,
+    "unchangedContextHashesMatched": 11,
+    "rawLog": "tmp/contract-recovery-pages-dc305.log",
+    "rawLogSha256": "14673e75898578c9de6e243bd8b9687e236f225adb4034fc7720e4cf8a4b124a",
+    "sourceAssessment": [
+      "Exactdc305 graph confirms actual recoverSavedRewardPayouts calls bounded selector before same recoveryOnly chain/journal path.",
+      "At most32 tasks across selected schedules; large queue cursor checkpoint happens under existing lock before calls, small queue<=32 retains no-cursor-write path.",
+      "Deterministic circular hint is not a reservation or payment proof. Original unknown/disappearing markers retain conservative handling; unselected malformed schedules excluded before manifest inspection.",
+      "Post-selection completion/error/proof/intent body byte-identical0742; prior affected financial proof acceptance reused by source identity.",
+      "Cursor/cache/race/disk-failure/paused-throwing-readiness/duplicate task cases pass locally; no fresh signing or replacement authority introduced.",
+      "AllAppContractruntime paths remain identical971399ff;3f8/1236prefix and accepted quote reused."
+    ],
+    "measurement": {
+      "scope": "Synthetic two injected1001leaf manifests with marker-only attempts; actual locked store, no production signed-wire payloads or financial finality.",
+      "node": "v26.13.1",
+      "freshElapsedMs": 77.3274,
+      "freshMutatorInsideLockMs": 21.6463,
+      "freshTransactionElapsedMs": 50.2991,
+      "freshInstrumentationSerializeMs": 3.4846,
+      "recoveryInterfaceCalls": 32,
+      "wholeLedgerTransactions": 33,
+      "serializedWriteBytes": 62470800,
+      "recoveryElapsedMs": 634.03,
+      "instrumentationSerializeMs": 99.5925,
+      "maxRssKiB": 190236,
+      "networkCalls": 0,
+      "chainTransactions": 0
+    },
+    "status": "Contract source and11targeted local cases pass; independent exact-source acceptance pending. Measured write amplification remains open.",
+    "nextStorageAcceptance": [
+      "App owns assessment; no competing store implementation.",
+      "Compare actual persisted pre-mutation representation under the same exclusive lock. Preserve missing-file bootstrap and v1->v2 migration writes even when application mutator changes nothing.",
+      "Changed-state persistence/fsync/rename and pre-broadcast awaited durability, proof-before-paid and unchanged-result return semantics remain mandatory.",
+      "Keep queue/drain/lock cleanup, atomic replacement, failure propagation and cached read identity behavior; do not infer Linux power-loss/backup durability from Windows process restart.",
+      "Re-measure actual changed/no-op writes against representative full signed attempts; avoid treating marker-only dataset as final scale acceptance."
+    ],
+    "scope": "Bounds saved payout recovery interface calls only; whole-ledger materialization/O(N), schedule/expiry/fresh work limits, actual signed payload/storage/durability and financial throughput remain open."
   }
 }
