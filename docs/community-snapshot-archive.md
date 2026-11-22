@@ -69,7 +69,8 @@ Node 24 required inventory:
 node scripts/security-tests.mjs --inventory config/community-snapshot-archive-tests.json
 ```
 
-53/53 cases pass, zero failure/skip/TODO: 24 new archive cases plus 29 affected
+63/63 cases pass, zero failure/skip/TODO: 24 original archive cases, 10 layout
+controls and 29 affected
 snapshot/opening/payment cases. The same three capture/qualification bodies fail
 on the exact fe518 source closure with only imports redirected. Tests include both
 atomic paths through actual prepare/write/restart, split fallback refusal, requested
@@ -79,7 +80,18 @@ unopened/expired claim rejection. RPC/bank state and reserve/program checks are
 mocked; signatures use only deterministic in-memory unit keys. No network endpoint,
 real wallet, deployment, spending, on-chain payment or historical recovery occurred.
 
-Independent exact-source verification is requested. Contract `971399ff` / `3f8a`
+The original 53-case slice passed independent PM/E2E review at f1120907. The
+additional FQA-MN-002-ARCHIVE-LAYOUT probe reproduced two malformed classic SPL
+banks qualifying after a valid-hash offline restart. The correction explicitly
+requires classic mint/account lengths 82/165. Token-2022 uses its supported base
+or typed extension layout, SDK decoding, canonical COptions and bounded TLV
+headers/lengths/types; valid metadata-pointer/token-metadata and frozen account
+controls remain supported. Variable token metadata is decoded and round-tripped
+using the already-locked SDK package, now declared as a direct dependency. These
+are archive structure checks, not financial admission of extension behavior.
+The original unchanged three-case QA probe now passes, including both malformed
+banks staying unqualified. Publication rejects invalid layouts before a prepared
+reference. Exact corrected-source independent verification is requested. Contract `971399ff` / `3f8a`
 and its Loader prefix remain unchanged. Previously accepted payout70/expiry43
 evidence is reused by unchanged source identity. Authenticated original archives,
 real current-program 28-leaf delivery, large-cohort scheduling, operational custody

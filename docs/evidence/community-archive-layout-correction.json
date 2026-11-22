@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T19:48:57.882930+00:00",
+  "issueId": "FQA-MN-002-ARCHIVE-LAYOUT",
+  "baseRevision": "f112090717739d8a8edceac443b59c8cd8e54700",
+  "scope": "Local archive publication/offline qualification with synthetic finalized RPC/bank state; independent corrected-source acceptance pending",
+  "node": "v24.22.3",
+  "originalQaProbe": {
+    "sha256": "f1cc9574feb83b56f11815349521638f1fdce4b0cacb91e8ce34f066ab831eaa",
+    "before": {
+      "tests": 3,
+      "pass": 1,
+      "fail": 2,
+      "exit": 1
+    },
+    "after": {
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "exit": 0
+    },
+    "bytes": "Unchanged original QA probe, copied into its fixture directory; same bytes checked in as community-archive-layout-qa.test.mjs"
+  },
+  "required": {
+    "tests": 63,
+    "passed": 63,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "originalCoveredCases": 53,
+    "addedLayoutCases": 10
+  },
+  "changes": [
+    "Explicit owner-specific classic SPL mint82/account165 byte sizes before SDK unpacking",
+    "Token2022 supported base or typed extension layout, canonical COptions and initialized/frozen enum, zero mint padding, bounded/unique owner-appropriate TLV headers and fixed-size bodies",
+    "TokenMetadata variable layout decoded/round-tripped with mint binding; metadata SDK0.1.6 already present in pinned lock now declared direct; no package version/content change",
+    "Both publication and offline read share the same structural validator; invalid publication cannot create a prepared pointer; valid-hash malformed bytes do not qualify",
+    "Preserve valid Token2022 base, MetadataPointer/TokenMetadata, ImmutableOwner/TransferFeeAmount and frozen account structural controls; no extension financial-behavior admission"
+  ],
+  "checks": {
+    "changedSyntax": 4,
+    "priorUnchangedSyntaxCheckedAtBase": 1164,
+    "newJavascriptFiles": 3,
+    "sizeCheck": "Source size budgets passed for 1430 maintained code files (hard maximum: 1000 lines).",
+    "diffCheck": "passed",
+    "dependency": "Node24 npm ls @solana/spl-token-metadata --depth=0 passed; exact0.1.6 matches lock",
+    "contractRuntimeDiffFrom971399ff": 0
+  },
+  "evidence": "data/qa-evidence/mainnet-production-packet-20261122/archive-layout-correction/",
+  "gitLfSourceSha256": {
+    "server/community-bank-layout.mjs": "d53bcc251a4d24acaaff1bc5b841e2ed0a01469581343cc13d581a3c3c7a7ead",
+    "server/community-snapshot-archive.mjs": "6340a943dfe993ccfcfd0aac97ddc09a76db47434cfae9b92fffd4b6130643d9",
+    "tests/readiness/community-archive-layout-qa.test.mjs": "f1cc9574feb83b56f11815349521638f1fdce4b0cacb91e8ce34f066ab831eaa",
+    "tests/readiness/community-bank-layout.test.mjs": "3ae1fc4a8ae297be368e4494eeaba646bc4e9f6de88e7e3c3be8adfc21b2efcb",
+    "config/community-snapshot-archive-tests.json": "b80f61e26d6266f7cb91c38bc4daf9a08aa17ad1736f8f36db7e240aaf353cd7",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc",
+    "docs/community-snapshot-archive.md": "f58d2e0a7535bd3d6016b6753cffac451cadb2e079b4599c287bf1f51273d0d5",
+    "docs/mainnet-production-packet-2026-11-22.md": "79f4dc5312db20db61e18770b43b75cef7ba73d1aa1626a70172bab66c6420d5"
+  },
+  "unchangedScope": [
+    "No snapshot math, Merkle allocation, payout/expiry proof or policy change",
+    "No original Nov19 bank recovery, on-chain delivery, signing/spend, admission or deployment",
+    "Same reviewed Contract971399ff /3f8a and1236-loader prefix; no rebuild/quote required",
+    "Pending holder paging WIP preserved separately, excluded from this correction"
+  ],
+  "nextUsefulAction": "Independent same-probe/layout acceptance at exact frozen commit; resume bounded holder payout paging WIP. Parent archive/live28/scale/roles/final funding stay open."
+}

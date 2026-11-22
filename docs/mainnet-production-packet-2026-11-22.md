@@ -195,8 +195,10 @@ requires exact loader/account evidence; no automatic repeated deployment.
 
 The next MN002 [prospective raw archive candidate](community-snapshot-archive.md)
 wires the actual preparation callback to atomic-bank capture, durable content
-publication and offline replay/manifest checks. Its 53-case inventory passes
-locally. Split mint/program-list reads remain unqualified, old aggregate records
+publication and offline replay/manifest checks. The original 53-case slice passed
+independent local review; the follow-up owner-specific layout correction passes
+63/63 locally, including the unchanged QA malformed-bank probe. Split mint/program-list
+reads remain unqualified, old aggregate records
 are not backfilled, and the existing 99-account atomic-reader limit remains.
 Independent source review and real original-bank/live-delivery evidence are still
 required; this does not close MN002 or authorize Mainnet execution.

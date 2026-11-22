@@ -74,6 +74,26 @@
         "rejects a finalized block list missing all history",
         "rejects an unavailable block advertised in the finalized block list"
       ]
+    },
+    {
+      "path": "tests/readiness/community-archive-layout-qa.test.mjs",
+      "requiredTests": [
+        "archive restart control requires supported raw account layout",
+        "archive restart classic-mint-trailing-byte requires supported raw account layout",
+        "archive restart classic-token-trailing-byte requires supported raw account layout"
+      ]
+    },
+    {
+      "path": "tests/readiness/community-bank-layout.test.mjs",
+      "requiredTests": [
+        "Token2022 base bank publishes and replays offline",
+        "Token2022 extended metadata and account bank publishes and replays offline",
+        "publication refuses classic mint trailing without prepared reference",
+        "publication refuses classic account trailing without prepared reference",
+        "publication refuses classic extended type without prepared reference",
+        "extended bank rejects malformed type padding TLV size ownership and COption structures",
+        "valid hash cannot qualify a malformed Token2022 account after restart"
+      ]
     }
   ]
 }

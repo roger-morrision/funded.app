@@ -7,6 +7,7 @@ import {TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID} from '@solana/spl-token';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import {SOLANA_GENESIS} from '../solana-network.js';
+import {decodeCommunityBankLayout} from './community-bank-layout.mjs';
 import {reverseReplayCommunitySnapshot,verifyPumpMigrationTransaction} from './community-snapshot.mjs';
 
 const digest=b=>createHash('sha256').update(b).digest('hex');
@@ -61,11 +62,12 @@ export function verifyCommunitySnapshotArchive(payload,expected={}){
   const program=bank.mint?.account?.owner;
   assert([String(TOKEN_PROGRAM_ID),String(TOKEN_2022_PROGRAM_ID)].includes(program)&&bank.mint.address===c.eligibilityMint&&e.mint===c.eligibilityMint,'Archive eligibility mint differs.');
   const mint=rawAccount(bank.mint,program);
+  decodeCommunityBankLayout({data:mint,programId:program,address:bank.mint.address,kind:'mint'});
   assert(mint.length>=82&&mint[45]===1&&mint.readUInt32LE(0)===0,'Initialized fixed-supply archive mint required.');
   assert(Array.isArray(bank.accounts)&&bank.accounts.length>0&&bank.accounts.length<=100000,'Bounded complete raw base accounts required.');
   const seen=new Set(),rows=bank.accounts.map(row=>{
     const address=key(row.address);assert(!seen.has(address),'Duplicate raw base account.');seen.add(address);
-    const data=rawAccount(row,program);assert(data.length>=165&&[1,2].includes(data[108])&&key(data.subarray(0,32))===c.eligibilityMint,'Raw token account mint/layout differs.');
+    const data=rawAccount(row,program);decodeCommunityBankLayout({data,programId:program,address,kind:'account'});assert(data.length>=165&&[1,2].includes(data[108])&&key(data.subarray(0,32))===c.eligibilityMint,'Raw token account mint/layout differs.');
     return {account:address,wallet:key(data.subarray(32,64)),balance:String(data.readBigUInt64LE(64))};
   });
   assert(String(mint.readBigUInt64LE(36))===e.supplyBaseUnits
