@@ -2035,5 +2035,87 @@
       "artifactsAndStatesVerified": true,
       "scope": "Synthetic selector/store liveness; no chain/RPC/signing/spend or live exploit claim."
     }
+  },
+  "committedRewardExtensionAcceptance": {
+    "testRevision": "64e411d510f6e986e7b2af374dc1103926b63538",
+    "testedRuntimeSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "elfBytes": 1110424,
+    "testFile": "contracts/funded-fee-router/programs/funded-fee-router/tests/rich_assets/token_reward.rs",
+    "command": "wsl -d Ubuntu -- env PATH=/home/tuan/.rustup/toolchains/1.97.1-x86_64-unknown-linux-gnu/bin:/home/tuan/.local/bin:/usr/bin:/bin CARGO_TARGET_DIR=/home/tuan/rp-host-mainnet FUNDED_MAINNET_CONVERSION_POOLS=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v FUNDED_ROUTER_TEST_SO=/mnt/c/Data/DevApps/funded-mainnet-readiness/tmp/production-contract-freeze/3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50/funded_fee_router.so LEGACY_DEVELOPER_LOCK_TEST_SO=/home/tuan/rp-out/go-live-20261121.7qMGIS/developer_token_lock.so FUNDED_CPI_FIXTURE=/mnt/c/Data/DevApps/funded-mainnet-readiness/tmp/cpi-fixtures/production-primary-20261122 FUNDED_MAINNET_PROGRAM_ID=ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ cargo test --locked --manifest-path contracts/funded-fee-router/Cargo.toml -p funded-fee-router --features mainnet-v3-program  --test rich_assets token_reward:: -- --nocapture",
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0,
+    "filteredOut": 8,
+    "rawLog": "tmp/reward-extension-delivery.log",
+    "rawLogSha256": "0d73e0733fce9bbdf4baba79037ab0449b28854f043b766db2f05b0e5b93ab10",
+    "cases": [
+      {
+        "token": "Classic SPL",
+        "extension": "none",
+        "control": "Existing committed launched-token rotation case retained",
+        "payoutDebit": 336,
+        "payoutSpendableCredit": 336,
+        "payoutWithheld": 0,
+        "reserveBefore": 500,
+        "reserveAfter": 164,
+        "distributedAfter": 336,
+        "receiptAmount": 336,
+        "receiptReceivedAmount": 336,
+        "replay": "Rejected atomically"
+      },
+      {
+        "token": "Token2022",
+        "extension": "MetadataPointer",
+        "controlDebit": 1000,
+        "controlSpendableCredit": 1000,
+        "controlWithheld": 0,
+        "payoutDebit": 336,
+        "payoutSpendableCredit": 336,
+        "payoutWithheld": 0,
+        "reserveAfter": 164,
+        "distributedAfter": 336,
+        "receiptReceivedAmount": 336,
+        "replay": "Rejected atomically"
+      },
+      {
+        "token": "Token2022",
+        "extension": "TransferFeeConfig 0bps",
+        "controlDebit": 1000,
+        "controlSpendableCredit": 1000,
+        "controlWithheld": 0,
+        "payoutDebit": 336,
+        "payoutSpendableCredit": 336,
+        "payoutWithheld": 0,
+        "reserveAfter": 164,
+        "distributedAfter": 336,
+        "receiptReceivedAmount": 336,
+        "replay": "Rejected atomically"
+      },
+      {
+        "token": "Token2022",
+        "extension": "TransferFeeConfig 100bps",
+        "maximumFeeRaw": 5000,
+        "controlDebit": 1000,
+        "controlSpendableCredit": 990,
+        "controlWithheld": 10,
+        "routerAttemptAmount": 336,
+        "result": "InvalidAmount; repeated attempts each atomically reject",
+        "custodyBeforeAndAfter": 500,
+        "recipientBeforeAndAfter": 5,
+        "withheldBeforeAndAfter": 0,
+        "reserveBeforeAndAfter": 500,
+        "distributedBeforeAndAfter": 0,
+        "paymentReceipt": "Absent before and after; all tracked vault/reserve/cycle/mint/custody/recipient/payment account bytes restored"
+      }
+    ],
+    "scope": "Contract-owner local compiled LiteSVM acceptance against retained exact production ELF, synthetic token mints/accounts and ephemeral test keys. Actual SPL/Token2022 program transfers, real router CPI. Independent E2E replay pending. No live financial acceptance or new token-extension policy/authority/runtime admission.",
+    "unchanged": "Test-only change; existing runtime, ELF, Loader prefix and quote retained.",
+    "limits": [
+      "No live selected-mint reward payout or final chain receipts",
+      "No fee epoch-change, transfer-hook or blanket Token2022 extension acceptance",
+      "No production signer/custody role binding or financial spending"
+    ],
+    "testGitSha256": "2380489c9bdbe69a23fa3eb499b8949ef4924c7170490e5a15a5433df68cfbe1"
   }
 }
