@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T21:54:41.852037+00:00",
+  "issueId": "FQA-MN-001",
+  "baseRevision": "a85a64a27fb27657a938db3496f61a6a000ef336",
+  "scope": "Offline synthetic mixed proof records, selected scheduler components under real Linux cgroup limits, controlled checksum-bound separate-process public snapshot restore. Not full-app, production backup, SBF execution or live financial acceptance.",
+  "baselineAcceptance": {
+    "pmSha256": "046c3402e1f41dc2fe360d450c61b25652bf0f20ce67779743a222c377c9a768",
+    "e2eSha256": "91940e651c8b1c369b198365b1720f821174f1db3e513dc8ea893443dfb4e447"
+  },
+  "tests": {
+    "windowsNode": "24.22.3",
+    "windowsPassed": 6,
+    "linuxNode": "24.22.3",
+    "linuxPassed": 6,
+    "failed": 0,
+    "skip": 0,
+    "todo": 0,
+    "missingCurrentElf": {
+      "linuxExit": 1,
+      "requiredCasesPassed": 0
+    }
+  },
+  "checks": {
+    "syntaxFiles": 1181,
+    "sizeFiles": 1444,
+    "sizeFailures": [],
+    "diffCheck": "passed",
+    "unchangedRuntimeContextPins": 23,
+    "containerDependencyLockNonRootEntries": 159
+  },
+  "gitLfSourceSha256": {
+    "tests/readiness/reward-capacity-mixed-fixture.mjs": "5289b9a420a9da2bfeb293e76b9f73bb9735b76ef065459ac6b0f8a2f8cbaa00",
+    "tests/readiness/reward-capacity-mixed.test.mjs": "bd28c40c631874ed829feca7ae932f7dfb66820906df6a4d69dc5ab6f98424f8",
+    "tests/readiness/reward-capacity-bundle.mjs": "de7e250d5ca3c8929fd324b16eec58880d14d98e378eff159f55dc4ec9cf6c08",
+    "tests/readiness/reward-capacity-workload.mjs": "ce98fe304ebd562d5d0213f194f77ce7c4b6a779b05d8b2dd5720fcaefc007f7",
+    "scripts/measure-reward-mixed-capacity.mjs": "96afc193e06468b349c791e93593f48272375cc3e99f7897d415ec96074c897a",
+    "docs/reward-mixed-capacity.md": "505c98379c2bb5bdb6496b4347d532986df91f680dcf0dc388fac72243accc6e",
+    "docs/mainnet-production-packet-2026-11-22.md": "5315b954356e728861f91d0ba0c5fdd8c2fe331fc066799469ff3547861dbeaa"
+  },
+  "unchangedContextSha256": {
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/reward-payout-recovery.mjs": "8260c04f1b62c96c47c96c583867846129e714fd95a81398fd0e6e1b02ec8a97",
+    "server/reward-recovery-page.mjs": "18d432cbf4552e49c7fc87360d3f781dcb7e9e027e9f2635e87f50e43ae8e540",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-cycle-expiry.mjs": "2ff9382d9e1fe644db25f08eaa5fa96eaf92f72e8b6be0ab494c154b441d7aeb",
+    "server/reward-expiry-attempt.mjs": "472649b62ac1c41be5570e415412e63d8bfa4843f42c5bd1d5acfa9c8e3854fa",
+    "server/token-conversion-journal.mjs": "d115a10c3f7b73572e8fbdbfec5493314c8379d804432e85e837c2458ffc5b84",
+    "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+    "server/community-claim-service.mjs": "2d13336716e71906c9ea87ff1c8829c32057ffe9158c31b96f81412a41b76f80",
+    "server/community-snapshot-archive.mjs": "6340a943dfe993ccfcfd0aac97ddc09a76db47434cfae9b92fffd4b6130643d9",
+    "server/community-bank-layout.mjs": "d53bcc251a4d24acaaff1bc5b841e2ed0a01469581343cc13d581a3c3c7a7ead",
+    "automatic-rewards.js": "185a8c013f600bf871b253c04e3f3c3196f0b78c6cd0c459f8185dde60c0c2d8",
+    "reward-merkle.js": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+    "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+    "server/background-maintenance.mjs": "d65a123b78790a742ac98bb4990ff2a7fe69a9be7b2dca92d57338550bc55523",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc",
+    "compose.resources.yml": "e9325be2199a1672db81a6a0e45923eb00dcc76eacc6311355a0701942b39703",
+    "server/automatic-reward-store.mjs": "2c9a1b64809c1a1d015dbf702dff44ec8cd7ed0e7d96a4d7eb6284255732ee46"
+  },
+  "frozenCodeOnlySnapshot": {
+    "manifest": "data/qa-evidence/mainnet-production-packet-20261122/mixed-capacity-linux/snapshot-manifest.json",
+    "tarSha256": "4b27d2f411e7dcdc30de48889d4b48666a5407420bddee9cba59f8ed3743d2f2",
+    "files": 670,
+    "tarBytes": 4413440
+  },
+  "container": {
+    "existingImageId": "sha256:4c9df59dbdd43eb61953233561eecfd4946862f0983b9298fa5dfab1a597c30c",
+    "network": "none",
+    "rootReadonly": true,
+    "capsDropped": "ALL",
+    "noNewPrivileges": true,
+    "memoryBytes": 536870912,
+    "swapBytes": 0,
+    "cpuQuota": "75000 100000",
+    "pidsLimit": 128,
+    "tmpfsMiB": 192,
+    "newImagePull": false,
+    "outcomesSha256": "78b98637d5c8f1cb32441472be9807ce96e2487424002b97d00ede4dd1e2e6c7"
+  },
+  "cohorts": [
+    {
+      "asset": "SOL",
+      "count": 1001,
+      "root": "dbdb3c1d272a563f2330b92ebe678d6ba010517cd4d89c6504b91fd7cc2cde44",
+      "verified": 501,
+      "prepared": 500,
+      "distributed": "54100",
+      "retainedLiability": "54034",
+      "verificationMs": 9497.601646,
+      "planBytes": 4084103,
+      "proofBytes": 403681
+    },
+    {
+      "asset": "USDC",
+      "count": 1001,
+      "root": "d247ea4e91d2022f911942a8f04b37039ee1de38333c22e14a6a17ba66297df4",
+      "verified": 501,
+      "prepared": 500,
+      "distributed": "54100",
+      "retainedLiability": "54034",
+      "verificationMs": 10912.33911999999,
+      "planBytes": 4360455,
+      "proofBytes": 403683
+    }
+  ],
+  "firstProcess": {
+    "node": "v24.22.3",
+    "platform": "linux",
+    "resumedProcess": false,
+    "initialLedgerBytes": 8445023,
+    "finalLedgerBytes": 8536567,
+    "workload": {
+      "execution": {
+        "status": "processed",
+        "submitted": 0
+      },
+      "publicStatus": "active",
+      "publicScheduleRows": 3,
+      "financialSnapshot": {
+        "schedules": 3,
+        "responseBytes": 8445287
+      },
+      "captures": 1,
+      "prepared": 0,
+      "submitInterfaces": 96,
+      "networkCalls": 0,
+      "onChainTransactions": 0,
+      "newBlockhashes": 0,
+      "newMockSends": 0,
+      "elapsedMs": 28508.36306599999,
+      "reads": 99,
+      "transactions": 98,
+      "candidateSerializedBytes": 835453170,
+      "mutatorInsideLockMs": 344.27179799998703,
+      "transactionElapsedMs": 16386.36572400006,
+      "instrumentationSerializationMs": 6116.200058000002,
+      "financialSnapshotReads": 1
+    },
+    "resource": {
+      "peakRssKiB": 285220,
+      "rss": 234225664,
+      "heapTotal": 70156288,
+      "heapUsed": 64599376,
+      "external": 26313940,
+      "arrayBuffers": 23409542,
+      "heapLimitBytes": 271581184,
+      "constrainedMemoryBytes": 536870912,
+      "beforeCgroup": {
+        "memory.max": "536870912",
+        "memory.swap.max": "0",
+        "memory.current": "49803264",
+        "memory.peak": "50036736",
+        "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "cpu.max": "75000 100000",
+        "cpu.stat": "usage_usec 389967\nuser_usec 298698\nsystem_usec 91269\nnr_periods 6\nnr_throttled 4\nthrottled_usec 200783\nnr_bursts 0\nburst_usec 0"
+      },
+      "afterCgroup": {
+        "memory.max": "536870912",
+        "memory.swap.max": "0",
+        "memory.current": "199553024",
+        "memory.peak": "257908736",
+        "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "cpu.max": "75000 100000",
+        "cpu.stat": "usage_usec 85596782\nuser_usec 82104742\nsystem_usec 3492039\nnr_periods 1144\nnr_throttled 1141\nthrottled_usec 68693558\nnr_bursts 0\nburst_usec 0"
+      }
+    }
+  },
+  "restoreProcess": {
+    "node": "v24.22.3",
+    "platform": "linux",
+    "resumedProcess": true,
+    "initialLedgerBytes": 8536567,
+    "finalLedgerBytes": 8627270,
+    "workload": {
+      "execution": {
+        "status": "processed",
+        "submitted": 0
+      },
+      "publicStatus": "active",
+      "publicScheduleRows": 3,
+      "financialSnapshot": {
+        "schedules": 3,
+        "responseBytes": 8461224
+      },
+      "captures": 1,
+      "prepared": 0,
+      "submitInterfaces": 96,
+      "networkCalls": 0,
+      "onChainTransactions": 0,
+      "newBlockhashes": 0,
+      "newMockSends": 0,
+      "elapsedMs": 24889.097014,
+      "reads": 99,
+      "transactions": 98,
+      "candidateSerializedBytes": 844358641,
+      "mutatorInsideLockMs": 288.66987699998026,
+      "transactionElapsedMs": 14458.142695,
+      "instrumentationSerializationMs": 4378.120690999987,
+      "financialSnapshotReads": 1
+    },
+    "resource": {
+      "peakRssKiB": 289100,
+      "rss": 273997824,
+      "heapTotal": 67411968,
+      "heapUsed": 63971096,
+      "external": 33961024,
+      "arrayBuffers": 22429356,
+      "heapLimitBytes": 271581184,
+      "constrainedMemoryBytes": 536870912,
+      "beforeCgroup": {
+        "memory.max": "536870912",
+        "memory.swap.max": "0",
+        "memory.current": "49123328",
+        "memory.peak": "49123328",
+        "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "cpu.max": "75000 100000",
+        "cpu.stat": "usage_usec 369728\nuser_usec 281497\nsystem_usec 88230\nnr_periods 6\nnr_throttled 4\nthrottled_usec 165947\nnr_bursts 0\nburst_usec 0"
+      },
+      "afterCgroup": {
+        "memory.max": "536870912",
+        "memory.swap.max": "0",
+        "memory.current": "237268992",
+        "memory.peak": "262938624",
+        "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "cpu.max": "75000 100000",
+        "cpu.stat": "usage_usec 21397862\nuser_usec 19026187\nsystem_usec 2371674\nnr_periods 287\nnr_throttled 284\nthrottled_usec 34043738\nnr_bursts 0\nburst_usec 0"
+      }
+    }
+  },
+  "publicBundle": {
+    "indexSha256": "72fe8756533a65347289327b7e4c437b68f357b61db1f5c13a3fa0c9cdb90914",
+    "files": {
+      "ledger.json": "567b35e613cbcfbdff618d09ece078bbab125fde314bb13748c092388874d9d7",
+      "bank.json": "22cb3b0170c906e9bb6e5a1a686dac3d44f97e4b4f6f159891a8126cadeea573"
+    },
+    "privateKeyMaterialExported": false,
+    "financialAuthenticity": "Synthetic trusted bank/finality facts and external checksum, not a consensus or production archive proof"
+  },
+  "rawEvidenceSha256": {
+    "mixed-capacity-tests.stdout": "6f69374aa2dea13b7832f7156d2fd11b0f00c265f842faf20799ba0890f20266",
+    "mixed-capacity-tests.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mixed-capacity-33-windows.stdout": "7bda40e70e3bdf8b023457166e5021df54a3ea4ac05f730230fe2d4c1676a851",
+    "mixed-capacity-33-windows.stderr": "c2c59ecad2ec12a877e384d000c3157db20816d4b146f066279c401714a68123",
+    "mixed-capacity-syntax.stdout": "b88bdbc9127c57e13cd91e7e6d63395032e04fac302bc508eca219a83ff58903",
+    "mixed-capacity-syntax.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mixed-capacity-draft-missing-blocktime.stdout": "ef8c767af39a9f96ecc301f1ae45c6d3d6644121bf837811ebe3bc1e577c726a",
+    "mixed-capacity-draft-missing-blocktime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-tests.stdout": "5148ef715dc5417f868ad76e03fc51a5c612402300f7980bea5c7b54859ed688",
+    "linux-tests.stderr": "7e37b332196334d917f310bb46454d1c4df7ed6a2663a13fc86f14050822625a",
+    "linux-missing-elf.stdout": "fc6abb4a6772d8e581930b03bd27f88d193db4ddffdee71cedb6c264c700d2db",
+    "linux-missing-elf.stderr": "7e37b332196334d917f310bb46454d1c4df7ed6a2663a13fc86f14050822625a",
+    "snapshot-manifest.json": "dff53df41aac1507767969b906ebdeb268ad5e1df8e6c3cd7174a9ccc2f266fc",
+    "container-outcomes.json": "78b98637d5c8f1cb32441472be9807ce96e2487424002b97d00ede4dd1e2e6c7",
+    "run-1001/measure.stdout": "70b4f9d81792435af716f83c6ac2df10791b8fd1f7b047251722931833071a55",
+    "run-1001/measure.stderr": "1eb14394fb4f107293cf0f33d6c3f040838dc97c01d45cf39c9c4d47603f0bd6",
+    "run-1001/restore.stdout": "ba6358b1690b59f159a325c96610e20a7731fd0438c6be3e28d7bd3472bad05a",
+    "run-1001/restore.stderr": "db513de21d70972cb3996652331edd29e32552b562d7f79660c1a13f68fe4278",
+    "run-1001/bundle/index.json": "72fe8756533a65347289327b7e4c437b68f357b61db1f5c13a3fa0c9cdb90914"
+  },
+  "evidenceDirectory": "data/qa-evidence/mainnet-production-packet-20261122/mixed-capacity-linux/",
+  "developmentHistory": [
+    "First mixed fixture omitted blockTime. JSON publication correctly dropped undefined and three strict metadata equality tests failed. Fixture now provides its actual synthetic transaction blockTime; no production assertion or runtime changed. Original2pass/3fail output retained.",
+    "Initial sandbox read of Docker engine was denied; existing authorized escalated read discovered the existing local Node24 image. No engine start or image pull was performed."
+  ],
+  "remaining": [
+    "Independent exact-source acceptance of this new bounded mixed/Linux slice",
+    "Whole normal Mainnet worker, HTTP/server/background/expiry/raw-capture load and actual realistic provider/deadline financial throughput",
+    "O(N) ledger parsing/serialization and queue resource bounds across larger admitted schedule sets; cap1000 unchanged",
+    "Linux persistent-disk/power-loss/directory durability and operational production backup/financial restore",
+    "Original Nov19 account bank and actual configured-program live28",
+    "Production operational custody/runtime admission and final per-wallet funding/signing packet"
+  ],
+  "nextUsefulAction": "Independent reproduction of the frozen slice; use observed repeated whole-ledger work and missing normal worker phases to choose the next bounded capacity fix. No admission, quote, contract or live release change."
+}

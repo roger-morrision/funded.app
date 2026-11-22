@@ -280,3 +280,10 @@ the existing locked filesystem store and actual read-only journal recovery.
 This replaces marker-only payloads for one bounded measurement; verified-proof,
 whole-process resource, Linux restore and live financial acceptance remain open.
 No production admission, runtime code or funding quote changes follow.
+
+The next [mixed proof and constrained component measurement](reward-mixed-capacity.md)
+derives synthetic proof records through the actual journal, exercises selected
+scheduler components under Linux 0.75 CPU/512 MiB/no-swap, and reopens a
+checksum-bound public snapshot in a fresh process. It excludes live finality,
+full app/automatic worker and production persistent-disk restore acceptance.
+Independent review remains required; the live cap and release NO-GO are unchanged.
