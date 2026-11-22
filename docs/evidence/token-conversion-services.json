@@ -103,9 +103,11 @@
   "graph": {
     "newDirectEdge": "server/token-conversion-controller.mjs imports actual token-conversion-transport.mjs",
     "newPrivateFactoriesImporters": [
-      "tests/readiness/token-conversion-service-fixture.mjs"
+      "tests/readiness/token-conversion-service-fixture.mjs",
+      "tests/readiness/token-conversion-service.test.mjs"
     ],
-    "unchangedRuntimeEntry": "server/index.mjs/api-financial-workers and both existing Devnet signer launchers unchanged"
+    "unchangedRuntimeEntry": "server/index.mjs/api-financial-workers and both existing Devnet signer launchers unchanged",
+    "sourceRevision": "da44041d39916e05992a9ec486afe0eb75c11c3c"
   },
   "limits": [
     "All bank/RPC/finality and actual-send result are synthetic. Real native HTTP + review/journal/crypto/FS are exercised; no chain/provider transaction.",
@@ -116,5 +118,6 @@
     "No new spending, external financial signing, deployment or user funding request; no CI/full release acceptance claim."
   ],
   "cleanup": "Seven exact own stopped testcontainers removed; ten existing service IDs unchanged. No pull/build/hostport/private or production volume mount.",
-  "contract": "971399ff/3f8ELF1110424/1236Loaderprefix unchanged; no rebuild/requote"
+  "contract": "971399ff/3f8ELF1110424/1236Loaderprefix unchanged; no rebuild/requote",
+  "runtimeRevision": "da44041d39916e05992a9ec486afe0eb75c11c3c"
 }
