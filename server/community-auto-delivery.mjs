@@ -21,20 +21,10 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
       intent:{cluster:'devnet',approvedHash,programId,authority:payer.toBase58(),mint:record.mint,
         root:record.manifest.root,snapshotHash:record.manifest.snapshotHash,action:suffix},prepare,prove,reconcileOnly});
   }
-  // Already-claimed leaves bypass the journal on subsequent passes.
-  async function settle(key){
-    try{
-      const row=(await store.read()).communityExecutions?.[key];
-      if(row?.status!=='verification-pending'||!row.signature)return;
-      const s=(await connection.getSignatureStatuses([row.signature],{searchTransactionHistory:true})).value?.[0];
-      if(s?.confirmationStatus!=='finalized'||s.err)return;
-      await store.update(state=>{
-        const active=state.communityExecutions?.[key];
-        if(active?.signature!==row.signature||active.status!=='verification-pending')return;
-        const {signedTransaction,...rest}=active;
-        state.communityExecutions[key]={...rest,status:'finalized',finalizedAt:new Date(now()).toISOString(),reconciledBy:'chain-status'};
-      });
-    }catch{/* Bookkeeping only; delivery state comes from the chain. */}
+  async function recoverableAttempt(record,action){
+    const row=(await store.read()).communityExecutions?.[`community:${record.mint}:${action}`];
+    return row?.signature&&(row.status==='verification-pending'
+      ||(row.status==='finalized'&&row.reconciledBy==='chain-status'&&!row.proof));
   }
   async function proveOpening(record,row){
     if(record.openingSignature&&record.openingSignature!==row.signature)return null;
@@ -44,8 +34,7 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
     return {signature:row.signature,finalized:true,balanceDeltaVerified:true};
   }
   async function reconcileOpening(record){
-    const row=(await store.read()).communityExecutions?.[`community:${record.mint}:open`];
-    if(row?.status!=='verification-pending'||!row.signature)return null;
+    if(!await recoverableAttempt(record,'open'))return null;
     return run(record,'open',{reconcileOnly:true,prove:entry=>proveOpening(record,entry)});
   }
   async function open(record){
@@ -78,15 +67,22 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
   }
   async function pay(record,leaf){
     const proof=await service.recipientProof({mint:record.mint,wallet:leaf.recipient,allowRecentProgramProof:false,forAutomaticDelivery:true});
-    if(proof.status==='claimed'){await settle(`community:${record.mint}:${leaf.recipient}`);return {status:'already-paid',payment:proof.payment};}
-    if(proof.status!=='claimable')return {status:proof.status,reason:proof.reason};
+    const reconcileOnly=proof.status==='claimed'||proof.status==='expired';
+    if(proof.status!=='claimable'){
+      if(!reconcileOnly||!await recoverableAttempt(record,leaf.recipient)){
+        if(proof.status==='claimed')return {status:'already-paid',payment:proof.payment};
+        return {status:proof.status,reason:proof.reason};
+      }
+    }
     const built=buildCommunityClaimInstruction({programId,authority:payer,mint:record.mint,tokenProgram:record.tokenProgram,
       manifest:record.manifest,recipient:leaf.recipient,payer,allowProgramRecipient:supportsProgramRecipients(record)});
-    return run(record,leaf.recipient,{prepare:async()=>{
+    const result=await run(record,leaf.recipient,{reconcileOnly,prepare:async()=>{
       const ata=createAssociatedTokenAccountIdempotentInstruction(payer,new PublicKey(built.recipientToken),
         new PublicKey(leaf.recipient),new PublicKey(record.mint),new PublicKey(record.tokenProgram));
       return transaction([ata,built.instruction],[512,92]);
     },prove:row=>verifyDelivery({connection,signature:row.signature,built,programId,recipient:leaf.recipient,index:leaf.index})});
+    if(reconcileOnly&&result.status==='verification-pending')return {...result,status:'reconciliation-pending'};
+    return result;
   }
   return {open,pay};
 }
