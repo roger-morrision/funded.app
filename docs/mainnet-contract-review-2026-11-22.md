@@ -100,6 +100,12 @@ Read-only finalized Mainnet RPC evidence is stored in `docs/evidence/mainnet-tes
 
 The canonical SOL PumpSwap pool `B78z5Xp4f8sEDgXnjBB4hxFQiPZDCageod5j3NtBpB5B` and Pump bonding curve `EnUAdYkZQpssfamcu75RAe6smtE9bcWR4gvHmZhB3S25` did not exist at the recorded Mainnet slot. This does not rule out other venues, but this mint cannot yet supply evidence for the contract's supported buyback venues. It was not installed as a production RICH asset.
 
+## Live Devnet migration
+
+The user authorized completing one disposable Devnet QA curve. `Cp83URacwBZpMvVw2fSPtGy3RzWjD35AzF2KcKaYyENp` was bought with an in-memory disposable wallet; its purchase finalized at slot `525047780`, left zero curve tokens and marked the curve complete. Pump's own keeper migrated it at slot `525047790` into the canonical PumpSwap pool `EuAo1FPe5gnagHQgqZtzuTJyh32mx1BWRfq8Z4tCPF5P`, with nonzero token and WSOL reserves. The exact buy signature was reconciled after an RPC blockheight-confirmation timeout; it was never resubmitted. The purchased QA tokens were transferred to the Devnet service authority, the disposable token account was closed, and remaining SOL was returned so the disposable wallet ended at zero. [Finalized transaction and balance evidence](evidence/devnet-migration-2026-11-22.json) is rechecked by `node scripts/verify-devnet-migration-qa.mjs`.
+
+The migration now permits testing its community claim preconditions, but the isolated router still has no approved holder snapshot or community drop, and its reward vault holds no coin tokens. The live signer is allowlisted for the public app router, not this isolated QA router. No community airdrop claim was submitted, and migration alone does not make that acceptance case pass. The public Devnet app also remains on its previous router and ABI.
+
 ## Remaining deployment blockers
 
 1. **Production identities are unavailable.** Select the dedicated program address, production RICH mint and supported pool, guardian, fresh operational/price signers and approved upgrade authority. Compile the dedicated production program identity, reproduce and review the bytes, then initialize the owner-controlled RICH configuration with the supported production mint/market. Subsequent RICH changes do not require recompilation. No private keys should enter this report or repository.

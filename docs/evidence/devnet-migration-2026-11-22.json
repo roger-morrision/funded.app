@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "scope": "finalized Devnet read-only verification",
+  "checkedAt": "2026-11-22T11:00:29.009Z",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "checkedSlot": 525049511,
+  "router": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+  "mint": "Cp83URacwBZpMvVw2fSPtGy3RzWjD35AzF2KcKaYyENp",
+  "buyer": "BqCQc4oZEWKfkdkX3XrBTupA3fCqqmWWWcDeBRZPGbZi",
+  "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+  "signatures": {
+    "funding": {
+      "signature": "KRpq7db2qSGWP9Y327AHQPyAhxo9XAAoTXnfZH1bZahrN3Kiyqtpq5tXzTMSscAVTPgajwxnQ1xjLQHJ5df9MaT",
+      "slot": 525047504,
+      "feeLamports": 5000,
+      "finalized": true,
+      "err": null
+    },
+    "buy": {
+      "signature": "2ntVcCi39TDAoFV8kt1zkW2GvHLedkARvwxrN9DrJh3VqXYd8fpgRaPm7mN87TgbfBb7znvjZFynzZhchFBSZ5Ex",
+      "slot": 525047780,
+      "feeLamports": 5000,
+      "finalized": true,
+      "err": null
+    },
+    "migration": {
+      "signature": "5Jsyr3M4GWhTRioAeFi7N7bTyEXotfQwsYpQwxFRQZ1MFzdcax48eNq6393tMPEPr8eBstVnVJn8AKgJrauseduE",
+      "slot": 525047790,
+      "feeLamports": 145000,
+      "finalized": true,
+      "err": null
+    },
+    "custody": {
+      "signature": "634822pgyCvioKiKP8gafEwJABiSBqcEnHxKubnjVEj8MDQCHNc4Acf8exTwZ9FvEE27UkJNAyipRrCwk8NmA4EV",
+      "slot": 525048793,
+      "feeLamports": 5000,
+      "finalized": true,
+      "err": null
+    },
+    "refund": {
+      "signature": "2cwTaNjqpsWbRbXiTbYdZsm5dFsR1NeVrKhoeVUFCrgvoUxpYzFgyE7sM8TGunwiD39F82UuH2kUuKGWWtswhh6m",
+      "slot": 525049025,
+      "feeLamports": 5000,
+      "finalized": true,
+      "err": null
+    }
+  },
+  "buy": {
+    "quotedLamports": "860395917",
+    "buyerSolDebitLamports": 863260957,
+    "tokensBoughtBaseUnits": "792100000000000",
+    "curveComplete": true,
+    "curveRemainingTokenBaseUnits": "0"
+  },
+  "migration": {
+    "pool": "EuAo1FPe5gnagHQgqZtzuTJyh32mx1BWRfq8Z4tCPF5P",
+    "owner": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+    "baseReserve": "206900000000000",
+    "quoteReserve": "662281007",
+    "blockTime": 1795344813
+  },
+  "custody": {
+    "buyerTokenAccountClosed": true,
+    "authorityTokenBalanceBaseUnits": "793100000000000",
+    "buyerSolAfterRefund": 0
+  },
+  "communityClaim": {
+    "snapshotApproval": "5HocqwBE2ytA1DE57EvXiLoEzDctUsHAfGMwFWsubVLh",
+    "snapshotApprovalExists": false,
+    "drop": "7ZrVbKocyGSiRy7KDL2sM9iVnniiVpmBoXp69anidMB9",
+    "dropExists": false,
+    "rewardVault": "7gkmtcpgEaLZeGzQLvdhcKWepzB8UvFzTfALfgciUJAT",
+    "rewardVaultTokenBalanceBaseUnits": "0",
+    "status": "blocked: isolated router has no approved holder snapshot or funded community reserve; live signer allowlist is pinned to the public app router"
+  },
+  "limits": [
+    "The buy was submitted once; blockheight confirmation timed out, then the exact signature and state deltas reconciled at finalized commitment.",
+    "The automatic Pump migration was signed by its own keeper, not by this QA wallet.",
+    "No community airdrop approval, drop or claim transaction was submitted."
+  ]
+}
