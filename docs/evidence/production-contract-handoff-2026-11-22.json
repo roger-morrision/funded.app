@@ -1564,7 +1564,29 @@
       "observed": "payoutTransactionVerified true,feeLamports5001,stored attempt verified. One expected-rejection probe failed.",
       "sourceAssessment": "Finalized payout verifier validates positive fee and unit deltas, but non-self receipt path does not reconcile fee against native balance conservation or exact payer/rent effects.",
       "scope": "Synthetic verifier consistency. No live exploit or financial effect claimed. Existing45passing cases remain evidence for their covered paths.",
-      "owner": "App Dev with independent E2E Node24 reproduction requested."
+      "owner": "App Dev with independent E2E Node24 reproduction requested.",
+      "issue": "FQA-MN-005-PAYOUT-01",
+      "independentVerification": {
+        "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/payout-native-accounting-finding-969809a0.json",
+        "sha256": "7a9359ff7376666d4f9c730d16e6a3ac51f45801a1a810f52fe3effc1a4f7ed7",
+        "node": "v24.22.3",
+        "matrixCases": 12,
+        "validControlsPassed": 6,
+        "inconsistentFeeWronglyAccepted": 5,
+        "inconsistentNativeSolSelfRejected": 1,
+        "affected": "ordinarySOL,ordinary/selfUSDCandToken2022-address",
+        "probeSha256": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49",
+        "financialEffects": "Synthetic only,one original fixture blockhash/broadcast each,no fresh replacement."
+      }
+    },
+    "coveredIndependentVerification": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-payout-journal-969809a0-20261123.json",
+      "sha256": "9fcf5804b58bd34ef218e58e9aa33198664d1a21310e3a84c8d1047342ca891f",
+      "node": "v24.22.3",
+      "requiredPayoutPassed": 45,
+      "affectedExpiryPassed": 43,
+      "samePriorCasesFailed": 9,
+      "scope": "Covered single receipt durability cases only; additional native accounting finding remains open."
     }
   }
 }
