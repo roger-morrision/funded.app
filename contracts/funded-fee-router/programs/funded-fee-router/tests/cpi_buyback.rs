@@ -125,7 +125,7 @@ fn run(agency:bool,donation:u8){
             delegated_amount:0,close_authority:COption::None},&mut data).unwrap();
         svm.set_account(source_account,solana_account::Account{lamports:10_000_000,data,owner:token,executable:false,rent_epoch:0}).unwrap();
         let mut dust=vec![spl_associated_token_account::instruction::create_associated_token_account_idempotent(&donor.pubkey(),&vault,&mint,&token),
-            spl_token::instruction::transfer_checked(&token,&source_account,&mint,&ata,&donor.pubkey(),&[],base_donation,svm.get_account(&mint).unwrap().data[44]).unwrap()];
+            anchor_spl::token_2022::spl_token_2022::instruction::transfer_checked(&token,&source_account,&mint,&ata,&donor.pubkey(),&[],base_donation,svm.get_account(&mint).unwrap().data[44]).unwrap()];
         let volume_index=if fixture["venue"]=="pool"{20}else{13};
         let volume=pk(fixture["buy"]["keys"][volume_index]["pubkey"].as_str().unwrap());
         dust.push(anchor_lang::solana_program::system_instruction::transfer(&donor.pubkey(),&volume,700_000));

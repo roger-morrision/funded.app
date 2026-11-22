@@ -43,12 +43,12 @@ fn token_amount(svm:&LiteSVM,address:Pubkey)->u64{
 }
 
 #[test]
-#[ignore = "requires finalized public USDC/WSOL pool snapshot and test-only conversion binary"]
+#[ignore = "requires finalized public USDC/WSOL pool snapshot and matching conversion binary"]
 fn paired_token_to_sol_reconciles_dex_custody_and_rejects_replay(){
     run(false);
 }
 #[test]
-#[ignore = "requires finalized public USDC/WSOL pool snapshot and test-only conversion binary"]
+#[ignore = "requires finalized public USDC/WSOL pool snapshot and matching conversion binary"]
 fn prefunded_wsol_is_returned_without_inflating_conversion_credit(){
     run(true);
 }
@@ -58,10 +58,22 @@ fn run(prefund_wsol:bool){
     let key=|field:&str|pk(fixture[field].as_str().unwrap());
     let program=funded_fee_router::id();
     assert_eq!(program,key("routerProgram"));
-    assert_eq!(fixture["venue"],"pool");assert_eq!(fixture["category"],5);
-    assert_eq!(key("mint"),spl_token::native_mint::id());
-    let quote=pk("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
-    assert_eq!(pk(fixture["buy"]["keys"][4]["pubkey"].as_str().unwrap()),quote);
+    let sell = fixture["venue"] == "sell";
+    let swap = if sell { &fixture["sell"] } else { &fixture["buy"] };
+    let category = fixture["category"].as_u64().unwrap() as u8;
+    assert!((5..=7).contains(&category));
+    let index = usize::from(category);
+    let quote = if sell {
+        assert_eq!(key("market"), pk("Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v"));
+        assert_eq!(key("mint"), pk("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"));
+        key("mint")
+    } else {
+        assert_eq!(fixture["venue"], "pool");
+        assert_eq!(key("mint"), spl_token::native_mint::id());
+        pk("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU")
+    };
+    let dex_quote = if sell { spl_token::native_mint::id() } else { quote };
+    assert_eq!(pk(swap["keys"][4]["pubkey"].as_str().unwrap()),dex_quote);
     let mut svm=LiteSVM::new();
     for account in fixture["accounts"].as_array().unwrap(){
         if account["executable"].as_bool().unwrap(){continue;}
@@ -93,7 +105,7 @@ fn run(prefund_wsol:bool){
         selected_agents:0,agent_spent:[0;3],completed_agents:0,last_promotion_at:0,promotion_sequence:0,
         promotion_recipient:Pubkey::default(),config_revision:1,bump:policy_bump});
     let (ledger,ledger_bump)=Pubkey::find_program_address(&[funded_fee_router::MINT_TOKEN_LEDGER_V3_SEED,source.as_ref(),quote.as_ref()],&program);
-    let mut paid=[0;8];paid[5]=1_000_000;
+    let mut paid=[0;8];paid[index]=1_000_000;
     store(&mut svm,ledger,&funded_fee_router::MintTokenLedgerV3{
         mint:source,quote_mint:quote,settled:1_000_000,paid,withdrawn:[0;8],released:[0;3],bump:ledger_bump});
     let quote_ata=get_associated_token_address_with_program_id(&vault,&quote,&spl_token::ID);
@@ -116,23 +128,23 @@ fn run(prefund_wsol:bool){
         quote_token_program:spl_token::ID,associated_token_program:anchor_spl::associated_token::ID,
         pump_swap_program:pk("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"),
         system_program:anchor_lang::system_program::ID}.to_account_metas(None);
-    let buy=fixture["buy"]["keys"].as_array().unwrap();
+    let buy=swap["keys"].as_array().unwrap();
     for account in buy{accounts.push(AccountMeta{
         pubkey:pk(account["pubkey"].as_str().unwrap()),is_signer:false,is_writable:account["isWritable"].as_bool().unwrap()});}
     accounts.push(AccountMeta::new_readonly(price_config,false));
     accounts.push(AccountMeta::new_readonly(price.pubkey(),true));
-    let min_out:u64=fixture["minBaseAmountOut"].as_str().unwrap().parse().unwrap();
+    let min_out:u64=fixture[if sell { "minQuoteOut" } else { "minBaseAmountOut" }].as_str().unwrap().parse().unwrap();
     assert!(min_out>1);
     let ix=Instruction::new_with_bytes(program,&funded_fee_router::instruction::ConvertTokenBudgetV3{
-        conversion_id,category:5,amount_in:1_000_000,min_sol_out:min_out}.data(),accounts);
+        conversion_id,category,amount_in:1_000_000,min_sol_out:min_out}.data(),accounts);
     // The public pool's fee recipients need their quote-token ATAs, not synthetic DEX state.
     let mut setup=vec![];
     for (owner_index,ata_index) in [(9,10),(18,17),(buy.len()-2,buy.len()-1)]{
         let fee_owner=pk(buy[owner_index]["pubkey"].as_str().unwrap());
         let fee_ata=pk(buy[ata_index]["pubkey"].as_str().unwrap());
-        assert_eq!(fee_ata,get_associated_token_address_with_program_id(&fee_owner,&quote,&spl_token::ID));
+        assert_eq!(fee_ata,get_associated_token_address_with_program_id(&fee_owner,&dex_quote,&spl_token::ID));
         setup.push(spl_associated_token_account::instruction::create_associated_token_account_idempotent(
-            &operator.pubkey(),&fee_owner,&quote,&spl_token::ID));
+            &operator.pubkey(),&fee_owner,&dex_quote,&spl_token::ID));
     }
     send(&mut svm,&operator,&[&operator],&setup).unwrap();
     let market_base=pk(buy[7]["pubkey"].as_str().unwrap());
@@ -152,6 +164,17 @@ fn run(prefund_wsol:bool){
     let mut wrong_price=ix.clone();let impostor=Keypair::new();svm.airdrop(&impostor.pubkey(),100_000_000).unwrap();
     *wrong_price.accounts.last_mut().unwrap()=AccountMeta::new_readonly(impostor.pubkey(),true);
     assert!(send(&mut svm,&operator,&[&operator,&impostor],&[wrong_price]).is_err());
+    if sell {
+        for (position, substitute) in [(16, source), (19, spl_token::native_mint::id()), (2, source),
+            (23, market_quote)] {
+            let mut invalid = ix.clone();
+            invalid.accounts[position].pubkey = substitute;
+            assert!(send(&mut svm,&operator,&[&operator,&price],&[invalid]).is_err());
+        }
+        let mut wrong_operator = ix.clone();
+        wrong_operator.accounts[0].pubkey = impostor.pubkey();
+        assert!(send(&mut svm,&impostor,&[&impostor,&price],&[wrong_operator]).is_err());
+    }
     let mut impossible=ix.clone();
     impossible.data[49..57].copy_from_slice(&u64::MAX.to_le_bytes());
     assert!(send(&mut svm,&operator,&[&operator,&price],&[impossible]).is_err());
@@ -162,6 +185,9 @@ fn run(prefund_wsol:bool){
     assert_eq!(svm.get_account(&vault).map_or(0,|a|a.lamports),before_vault);
     assert_eq!(svm.get_account(&wsol_ata).map_or(0,|a|a.lamports),donated_wsol);
     assert!(svm.get_account(&receipt).is_none());
+    assert_eq!(token_amount(&svm,market_base),before_market_base);
+    assert_eq!(token_amount(&svm,market_quote),before_market_quote);
+    assert!(svm.get_account(&credit).is_none());
     let compute=send(&mut svm,&operator,&[&operator,&price],&[ix.clone()]).unwrap();
     let converted=funded_fee_router::MintTokenConversionV3::try_deserialize(&mut &svm.get_account(&receipt).unwrap().data[..]).unwrap();
     let credits=funded_fee_router::MintSolCreditV3::try_deserialize(&mut &svm.get_account(&credit).unwrap().data[..]).unwrap();
@@ -169,17 +195,27 @@ fn run(prefund_wsol:bool){
     let policy_after=funded_fee_router::MintAgencyPolicyV3::try_deserialize(&mut &svm.get_account(&policy).unwrap().data[..]).unwrap();
     assert_eq!(converted.spent_quote,1_000_000-token_amount(&svm,quote_ata));
     assert!(converted.spent_quote>0&&converted.received_lamports>=min_out);
-    assert!(token_amount(&svm,market_base)<before_market_base);
-    assert!(token_amount(&svm,market_quote)>before_market_quote);
-    assert_eq!(credits.credited[5],converted.received_lamports);
-    assert_eq!(ledger_after.withdrawn[5],converted.spent_quote);
-    assert_eq!(policy_after.paid_lamports[5],converted.received_lamports);
+    if sell {
+        assert_eq!(converted.spent_quote, 1_000_000);
+        assert_eq!(token_amount(&svm,market_base)-before_market_base, converted.spent_quote);
+        assert!(before_market_quote-token_amount(&svm,market_quote)>=converted.received_lamports);
+    } else {
+        assert!(token_amount(&svm,market_base)<before_market_base);
+        assert!(token_amount(&svm,market_quote)>before_market_quote);
+    }
+    assert_eq!(converted.pool,pool);
+    assert_eq!(converted.conversion_id,conversion_id);
+    assert_eq!(converted.category,category);
+    assert_eq!(credits.credited[index],converted.received_lamports);
+    assert_eq!(ledger_after.withdrawn[index],converted.spent_quote);
+    assert_eq!(policy_after.paid_lamports[index],converted.received_lamports);
     let reserve=svm.get_sysvar::<Rent>().minimum_balance(0);
     assert_eq!(svm.get_account(&vault).unwrap().lamports-before_vault,converted.received_lamports+reserve+donated_wsol);
     assert!(svm.get_account(&wsol_ata).is_none_or(|a|a.lamports==0));
-    let final_vault=svm.get_account(&vault).unwrap();
+    let tracked = [vault, quote_ata, wsol_ata, market_base, market_quote, pool, ledger, policy, credit, receipt];
+    let final_accounts = tracked.map(|key| svm.get_account(&key));
     assert!(send(&mut svm,&operator,&[&operator,&price],&[ix]).is_err());
-    assert_eq!(svm.get_account(&vault).unwrap(),final_vault);
+    assert_eq!(tracked.map(|key| svm.get_account(&key)),final_accounts);
     println!("CONVERSION_CPI_EVIDENCE slot={} compute={} spent_quote={} received_lamports={} donated_wsol={} receipt={}",
         fixture["slot"],compute,converted.spent_quote,converted.received_lamports,donated_wsol,receipt);
 }
