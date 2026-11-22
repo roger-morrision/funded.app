@@ -8,8 +8,7 @@ import nacl from 'tweetnacl';
 import {decodeTokenConversionV3,decodeSolCreditV3,deriveSolCreditV3,deriveTokenConversionV3} from '../mint-router-v3-token.js';
 import {SOLANA_GENESIS} from '../solana-network.js';
 import {reviewedMainnetManifest} from '../mainnet-program.js';
-import {mainnetReleaseVerified} from './mainnet-program.mjs';
-import {readProgramDataEvidence} from './program-data-evidence.mjs';
+import {finalizedProgramContext} from './finalized-program-context.mjs';
 import {buildReviewedUsdcSellConversion} from './token-conversion-sell.mjs';
 
 const address=value=>typeof value==='string'?value:value?.pubkey?.toBase58?.()||value?.toBase58?.();
@@ -75,16 +74,19 @@ export async function loadFinalizedTokenSell({connection,signature,expected,rele
     const approved=reviewedMainnetManifest(release);
     assert(approved&&approved.programId===String(expected.programId),'Reviewed production context required.');
     assert(await connection.getGenesisHash()===SOLANA_GENESIS['mainnet-beta'],'Mainnet genesis differs.');
-    const evidence=await readProgramDataEvidence(connection,new PublicKey(approved.programId),{cluster:'mainnet-beta',rpcUrl:''});
-    assert(mainnetReleaseVerified(evidence,approved.programId,approved.programDataSha256,approved),'Deployed program context differs.');
     const [tx,status]=await Promise.all([connection.getTransaction(signature,{commitment:'finalized',maxSupportedTransactionVersion:0}),
       connection.getSignatureStatuses([signature],{searchTransactionHistory:true})]);
-    const row=status.value?.[0];assert(row?.confirmationStatus==='finalized'&&row.err===null&&row.slot===tx?.slot,'Finalized exact signature required.');
+    const row=status.value?.[0];assert(Number.isSafeInteger(tx?.slot)&&tx.slot>0&&Number.isSafeInteger(status.context?.slot)&&status.context.slot>=tx.slot
+      &&row?.confirmationStatus==='finalized'&&row.err===null&&row.slot===tx.slot,'Finalized exact signature required.');
+    const evidence=await finalizedProgramContext({connection,release:approved,transactionSlot:tx.slot});
+    const minimumContextSlot=evidence.programDataContextSlot;
     const program=new PublicKey(approved.programId),receipt=deriveTokenConversionV3(program,expected.mint,expected.conversionId),credit=deriveSolCreditV3(program,expected.mint);
-    const [accounts,rent]=await Promise.all([connection.getMultipleAccountsInfoAndContext([receipt,credit],{commitment:'finalized',minContextSlot:tx.slot}),
+    const [accounts,rent]=await Promise.all([connection.getMultipleAccountsInfoAndContext([receipt,credit],{commitment:'finalized',minContextSlot:minimumContextSlot}),
       connection.getMinimumBalanceForRentExemption(0,'finalized')]);
-    assert(accounts.context.slot>=tx.slot,'Receipt evidence predates transaction.');
+    assert(Number.isSafeInteger(accounts.context?.slot)&&accounts.context.slot>=minimumContextSlot,'Receipt evidence predates authenticated context.');
     const facts=tokenSellReceiptFacts({transaction:tx,signature,receiptAccount:accounts.value[0],creditAccount:accounts.value[1],expected,minimumVaultRent:rent});
-    return {...facts,cluster:'mainnet-beta',genesisHash:SOLANA_GENESIS['mainnet-beta'],programDataSha256:approved.programDataSha256,finalized:true};
+    return {...facts,cluster:'mainnet-beta',genesisHash:SOLANA_GENESIS['mainnet-beta'],programDataSha256:approved.programDataSha256,
+      deploymentSlot:evidence.deploymentSlot,programContextSlot:evidence.programContextSlot,programDataContextSlot:evidence.programDataContextSlot,
+      receiptContextSlot:accounts.context.slot,finalized:true};
   }catch{return null;}
 }

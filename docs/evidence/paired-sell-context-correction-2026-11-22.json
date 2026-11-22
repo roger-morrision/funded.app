@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-005-CONTEXT-01",
+  "parentIssue": "FQA-MN-005",
+  "baseRevision": "e89fa742aed461858eea4a657d92fb57ea286b80",
+  "recordedAt": "2026-11-22T15:38:10.173188+00:00",
+  "scope": "local-only correction; synthetic deployment/review/status/financial inputs, no live exploit or chain financial outcome",
+  "rootCause": "Current matching full ProgramData hash did not prove that an older transaction executed those bytes.",
+  "correction": "Transaction/status first; uncached finalized executable/PD reads with monotonic minContextSlot at/after tx; full identity checks; deploymentSlot < tx.slot; receipt context at/after PD context. Unknown/malformed/stale reads return unresolved null.",
+  "tests": {
+    "required": 30,
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "syntaxAffectedFiles": "passed5",
+    "maintainedSourceBudget": "passed1396",
+    "unchangedQaProbe": {
+      "sha256": "d0ad9870d06f4e2cc6110d11bed9837de77b6ac61c516ef6fd2c00639413a2e8",
+      "beforeExit": 1,
+      "afterExit": 0,
+      "ordinaryControlAccepted": true,
+      "predatingDeploymentAccepted": false
+    }
+  },
+  "sourceSha256": {
+    "server/finalized-program-context.mjs": "b142f7d282a0b59338007087641f4177da0a8aeae6bb8ba90f40d77af8896885",
+    "server/token-conversion-sell-proof.mjs": "a5f4eef822e6c03f55f3d25d4d0e1d8410ee53a5e3889b1977a53d8ec6094961",
+    "tests/readiness/token-conversion-sell-context.test.mjs": "459b068d001529791968313f7f885073a4e0d3d46dee4130a8fff663e90692b1",
+    "tests/readiness/token-sell-proof-fixture.mjs": "33691cdc15b4e293a87fa2ccc95ddaa14fc6c372adda3f7514f70d93ae5c7c77",
+    "tests/readiness/token-conversion-sell-proof.test.mjs": "f71bd98ae2205c1bcbf0c78ec82ef525b47faf6be1b7b6836be5db03c737ba22",
+    "config/token-conversion-sell-context-tests.json": "bf08f69172d4390ce3b22eef0e9a92dd78c2de0dda324a9ac725f385c5c13eed",
+    "docs/paired-sell-context-correction-2026-11-22.md": "ad0425c3db1414ba17dc8aa326da7e2a2622202448bdb6082adb6c73e888a451",
+    "docs/paired-sell-proof-2026-11-22.md": "1a598b0a7cf2486a71daa9aadb450851d09734a0cb0f1c6c59f004aa08f70877"
+  },
+  "evidenceSha256": {
+    "qa-context-probe-before.stdout": "a67d1786511fa29eacd83573a6a0a67f005e5097b3630763d380de4308b3c8d9",
+    "qa-context-probe-before.stderr": "117373db3655a8f752d55cb3ee8aa5b5a4d087ba829eb4f130b8dcb75fc6bf1a",
+    "qa-context-probe-after.stdout": "f3a2c1700dbc7cd5b2897dd451088fec68b18874e8804fc40b0316f91240c624",
+    "qa-context-probe-after.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "token-sell-context-result.json": "56e82a0a3966a147f6af6835ddb095f5005002f8dc278c91ee8fc57f79f5e6ed",
+    "context-source-size.stdout": "ec185a5892cc245a9ee4d6849247b3df819cfe3d982cf6b4b8043b925e5e2a85"
+  },
+  "limits": [
+    "Not live or full financial acceptance",
+    "No runtime admission or financial policy changes",
+    "Same-slot deployment rejected because new code becomes effective next slot",
+    "No historical executable inference or cached fallback",
+    "Global ProgramData cache and unrelated consumers unchanged"
+  ]
+}

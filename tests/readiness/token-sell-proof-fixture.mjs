@@ -51,10 +51,14 @@ export function sellProofFixture({category=5,prefund=0,beforeVault=1000}={}){
     upgradeAuthority:String(key(60)),fundedMint:'7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump',fundedPool:'58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV',
     programDataSha256:sha(pdBytes),sourceRevision:'0278fb68a3eb4cae66115bd61a03c0f91ac46c1b',binary:{bytes:elf.length,sha256:sha(elf)},
     independentReview:{reviewer:'UNIT TEST ONLY',reference:'fabricated local validator fixture; not release acceptance',sourceRevision:'0278fb68a3eb4cae66115bd61a03c0f91ac46c1b',binarySha256:sha(elf)},developerLockPeriodsSeconds:DEVELOPER_TOKEN_LOCK_PERIODS};
+  f.programContextSlot=1001;f.programDataContextSlot=1001;f.receiptContextSlot=1001;f.statusContextSlot=1001;f.contextReads=[];
   f.connection={getGenesisHash:async()=>SOLANA_GENESIS['mainnet-beta'],
     getAccountInfo:async address=>String(address)===String(expected.programId)?f.programAccount:String(address)===String(pd)?f.programData:null,
-    getTransaction:async()=>f.tx,getSignatureStatuses:async()=>({value:[{slot:f.tx.slot,err:null,confirmationStatus:'finalized'}]}),
-    getMultipleAccountsInfoAndContext:async(addresses,options)=>{assert.equal(String(addresses[0]),String(deriveTokenConversionV3(expected.programId,expected.mint,expected.conversionId)));assert.equal(String(addresses[1]),String(deriveSolCreditV3(expected.programId,expected.mint)));assert.equal(options.commitment,'finalized');return {context:{slot:1001},value:[f.receiptAccount,f.creditAccount]};},
+    getAccountInfoAndContext:async(address,options)=>{assert.equal(options.commitment,'finalized');f.contextReads.push({address:String(address),minimum:options.minContextSlot});
+      if(String(address)===String(expected.programId))return {context:{slot:f.programContextSlot},value:f.programAccount};
+      if(String(address)===String(pd))return {context:{slot:f.programDataContextSlot},value:f.programData};throw Error('Unknown program account');},
+    getTransaction:async()=>f.tx,getSignatureStatuses:async()=>({context:{slot:f.statusContextSlot},value:[{slot:f.tx.slot,err:null,confirmationStatus:'finalized'}]}),
+    getMultipleAccountsInfoAndContext:async(addresses,options)=>{assert.equal(String(addresses[0]),String(deriveTokenConversionV3(expected.programId,expected.mint,expected.conversionId)));assert.equal(String(addresses[1]),String(deriveSolCreditV3(expected.programId,expected.mint)));assert.equal(options.commitment,'finalized');assert.equal(options.minContextSlot,f.programDataContextSlot);return {context:{slot:f.receiptContextSlot},value:[f.receiptAccount,f.creditAccount]};},
     getMinimumBalanceForRentExemption:async()=>rent,sendRawTransaction:()=>assert.fail('No financial operation permitted')};
   f.adapterArgs=()=>({connection:f.connection,signature:f.signature,expected:f.expected,release:f.release});
   return f;

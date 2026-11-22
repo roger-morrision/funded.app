@@ -16,6 +16,9 @@ This parser returns transaction facts, never asserts finality itself.
 matches Mainnet genesis and complete loader/ProgramData/authority/ELF bytes, reads
 the requested transaction and finalized signature status at the same slot, and
 reads immutable receipt/category credit at a context not older than that slot.
+The subsequent CONTEXT-01 correction replaces cached/noncontextual program reads
+with uncached monotonic finalized reads and verifies that the transaction follows
+the pinned deployment's effective interval; see the dedicated correction report.
 Missing admission, RPC/history/status/account/receipt facts return unresolved null,
 without signing or retry. The expected message hash must come from the future
 durable reviewed intent, not a client's unauthenticated declaration.

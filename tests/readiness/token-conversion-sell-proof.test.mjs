@@ -32,7 +32,7 @@ test('missing or nonfinalized signature status and slot mismatch remain unresolv
   for(const status of [null,{slot:1000,err:null,confirmationStatus:'confirmed'},
     {slot:1000,err:{InstructionError:[0,'test']},confirmationStatus:'finalized'},
     {slot:999,err:null,confirmationStatus:'finalized'}]){
-    const f=sellProofFixture();f.connection.getSignatureStatuses=async()=>({value:[status]});
+    const f=sellProofFixture();f.connection.getSignatureStatuses=async()=>({context:{slot:1001},value:[status]});
     assert.equal(await loadFinalizedTokenSell(f.adapterArgs()),null);
   }
 });

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "scope": "Offline provided-fact parser and admitted RPC adapter unit tests; synthetic ProgramData/review/financial status, no chain release acceptance",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-sell.test.mjs",
+      "requiredTests": [
+        "captured exact USDC sell builds category 5 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 6 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 7 with 57 bytes and 41 canonical metas",
+        "wrong sell payload, changed exact input and weaker output cannot be substituted",
+        "only canonical positive u64 input and minimum amounts and supported categories are accepted",
+        "pool, base/quote, user vault, market vault and fee-program metas cannot be redirected",
+        "unexpected signer, writable privileges, volume tails and missing price separation are rejected",
+        "market owner, pool orientation, coin-creator and special-mode changes are rejected",
+        "fee recipient membership and canonical WSOL custody are required",
+        "conversion decoder rejects unsupported layout, discriminator, category and zero amounts"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "requiredTests": [
+        "mocked admitted finalized sell reconciles category 5 with prefund 0",
+        "mocked admitted finalized sell reconciles category 5 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 6 with prefund 0",
+        "mocked admitted finalized sell reconciles category 6 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 7 with prefund 0",
+        "mocked admitted finalized sell reconciles category 7 with prefund 700000",
+        "committed incomplete release cannot admit a program or even read RPC",
+        "wrong genesis, loader, authority and full ProgramData context cannot authenticate proof",
+        "missing or nonfinalized signature status and slot mismatch remain unresolved",
+        "missing or stale finalized account evidence and RPC errors cannot finalize",
+        "signature, frozen message and failed transaction substitution are rejected",
+        "invalid operator or independent price signature cannot authenticate the transaction",
+        "foreign receipt ownership, wrong immutable identity and category credit do not prove payment",
+        "exact USDC debit and token custody must agree with receipt",
+        "prefund and rent cannot inflate credit and WSOL must close",
+        "exact sell CPI accounts, payload and closure are required"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "requiredTests": [
+        "reviewed deployment effective before tx authenticates with fresh finalized context and no account cache",
+        "a later or same-slot reviewed deployment cannot authenticate the older signed transaction",
+        "stale, backwards and malformed finalized program contexts remain unresolved",
+        "missing contextual RPC, malformed deployment header and stale receipt or status context cannot fall back to cached bytes"
+      ]
+    }
+  ]
+}
