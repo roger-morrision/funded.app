@@ -1302,6 +1302,12 @@
       "custodyDeltaAtExpiry": 0
     },
     "mainnetBuildFromThisTree": "Re-exported and built mainnet-v3-program with the reviewed production identity/pool map. cmp against retained 971399ff artifact passed; byte count and SHA-256 identical. Both bitmap module and entry point require Devnet and exclude Mainnet.",
-    "deployed": false
+    "deployed": false,
+    "independentVerification": {
+      "owner": "End-to-End Devnet Dev & QA",
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-bitmap-expiry-1940ec26-20261122.json",
+      "sha256": "0199518a70543254a3e8f3706b71cbc42f02e6c0237c9fdadb59d69fa4300101",
+      "scope": "Clean 1940ec26 Devnet-feature rebuild matched 55a0 byte-for-byte. Identical successor test failed at authorized expiry on retained 7b4b and passed on 55a0; all three bitmap tests passed. Verified feature gate; no live deployment or admission."
+    }
   }
 }
