@@ -1,0 +1,17 @@
+{
+  "scope": "offline-unsigned-only",
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "programId": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+  "programDataAddress": "4ej89f84gD5MD9uoyUWLDWXqAw68yByBwJcyYSiTecf8",
+  "programDataSha256": "bbf6b99857a9464c23d000caf7fa5cb5f19af7b2ce8ff402c2e9c37c8d68f688",
+  "elfSha256": "7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f",
+  "elfBytes": 1204336,
+  "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+  "contractSourceTree": "dd2f57ffe841adaca9b2e033950633247f64c7ac",
+  "sourceRevision": "e5b3fd479c616540882c43d53afd29f7766d296c",
+  "features": "devnet-v3-program,configurable-rich-assets",
+  "abi": "configured-rich-v1",
+  "signingAllowed": false,
+  "deploymentAllowed": false
+}

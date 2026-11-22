@@ -12,6 +12,7 @@ import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
 import { buildV3BuybackInstruction } from './v3-buyback-instruction.mjs';
 import {assertRpcNetwork,SOLANA_GENESIS} from '../solana-network.js';
 import {isCurveBuy,PUMP_PROGRAM_ID,CURVE_BUY} from './v3-buyback-curve.mjs';
+import {verifyConfiguredDevnet} from './configured-devnet-interface.mjs';
 
 const discriminator = name => createHash('sha256').update(name).digest().subarray(0, 8);
 const address = value => typeof value === 'string' ? value : value?.toBase58?.() || '';
@@ -24,8 +25,12 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
   sourceMint, creator, initialAuthority, authority, baseTokenProgram, priceSigner,
   buybackId, spendableQuoteIn, minBaseAmountOut, maxTotalDebit,
   pumpBuyInstruction, split,agencyPolicy=split?.agencyPercent!==undefined,agencyExecution=null,curveCreatorVaultRentLamports=null,
-  verifyPolicy = verifyMintPolicyV3Account }) {
+  verifyPolicy = verifyMintPolicyV3Account,configuredDevnet=null }) {
   try {
+    if(configuredDevnet){
+      if(cluster!=='devnet')return null;
+      await verifyConfiguredDevnet(connection,configuredDevnet,programId);
+    }
     const tx = await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
     if (!tx || tx.meta?.err !== null || !Number.isSafeInteger(tx.slot)
@@ -39,7 +44,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     if(priceSigner && (String(priceSigner)===String(authority)||!signers.includes(String(priceSigner))))return null;
     const instructions = message.instructions || message.compiledInstructions || [];
     let richAssets=null;
-    if(cluster==='mainnet-beta'){
+    if(cluster==='mainnet-beta'||configuredDevnet){
       await assertRpcNetwork(connection,cluster);
       const router=instructions.filter(ix=>keys[ix.programIdIndex]===String(new PublicKey(programId)));
       if(router.length!==1)return null;
@@ -49,7 +54,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     }
     const expected = buildV3BuybackInstruction({ cluster, programId, sourceMint,
       creator, authority, baseTokenProgram, priceSigner, buybackId, spendableQuoteIn,
-      minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy,agencyExecution,richAssets });
+      minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy,agencyExecution,richAssets,configuredDevnet });
     if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
     const {boughtMint,pool}=expected;
     const curve=isCurveBuy(pumpBuyInstruction);
@@ -159,6 +164,7 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
       fundedMint:boughtMint.toBase58(),
       pool:pool.toBase58(), burnedAt, finalized:true,
       ...(agencyPolicy?{agencyPolicy:true,agent:expected.agent,category}:{}),
-      vaultDebitVerified:true, burnInstructionVerified:true, balanceDeltaVerified:true };
+      vaultDebitVerified:true, burnInstructionVerified:true, balanceDeltaVerified:true,
+      ...(configuredDevnet?{contextHash:configuredDevnet.contextHash,assetsRevision:String(expected.richAssets.revision)}:{}) };
   } catch { return null; }
 }

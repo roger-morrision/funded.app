@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-003",
+  "scope": "local-only unsigned integration; deterministic mocked financial RPC/quote/simulation; not signing or chain acceptance",
+  "recordedAt": "2026-11-22T14:57:59.713339+00:00",
+  "baseRevision": "9636cc90ed3c0bde4ff9f435df0695cb781bed17",
+  "node": "24.22.3",
+  "configuredDevnetContext": {
+    "scope": "offline-unsigned-only",
+    "cluster": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "programId": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+    "programDataAddress": "4ej89f84gD5MD9uoyUWLDWXqAw68yByBwJcyYSiTecf8",
+    "programDataSha256": "bbf6b99857a9464c23d000caf7fa5cb5f19af7b2ce8ff402c2e9c37c8d68f688",
+    "elfSha256": "7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f",
+    "elfBytes": 1204336,
+    "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "contractSourceTree": "dd2f57ffe841adaca9b2e033950633247f64c7ac",
+    "sourceRevision": "e5b3fd479c616540882c43d53afd29f7766d296c",
+    "features": "devnet-v3-program,configurable-rich-assets",
+    "abi": "configured-rich-v1",
+    "signingAllowed": false,
+    "deploymentAllowed": false
+  },
+  "tests": {
+    "required": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "existingNetworkAssetsPassed": 12,
+    "missingArtifactExitCode": 1,
+    "syntax": "passed1118JSfiles plus new exporter checked separately",
+    "sourceStructure": "passed1380maintainedfiles"
+  },
+  "sourceSha256": {
+    "server/buyback-assets.mjs": "2c8fcb6bf5f8b2781729f15b3c554fead435fcdbb2cab099f1b06d337140c7e7",
+    "server/price-review-network.mjs": "a7da8b60f01b3fb9b71ac144bb479b859fb7feae662bb47bd619566a397081da",
+    "server/price-signer-journal.mjs": "2a4d08e8a2c363ed4eb189da9f979756f14639ba37573bb3e09a69f29b5be9f8",
+    "server/price-signer-reconciliation.mjs": "4278245c4a6cafe8a4bff2f4455a94eeed3ceebd9277a97756ab5975a021d7ff",
+    "server/price-signer-review.mjs": "0ebbbf56b21f3a8c93127cbc98b917690a3799fb055f33c954fde31a8b2a853c",
+    "server/v3-buyback-instruction.mjs": "87df4ce243d4364d8fac882e396f00cd2f7ba78475958446d6929797ce88d9c7",
+    "server/v3-buyback-proof.mjs": "cce91b9d2c2cda0e3cc47bddedae9e2058c90fa28bda9d1a308ad203ca468000",
+    "server/configured-devnet-interface.mjs": "add77d424a6dbe2c965e4966c3febd8474b567507c842416723c6259ab44042c",
+    "config/configured-devnet-interface.json": "e412beff833ce9e0f2565c0faf38450821a7028e033c933617dfa658ae060e5c",
+    "config/configured-devnet-unsigned-tests.json": "e61e805cd5bb1803b0c0bb089ef7c2ca3d815e5b7c0b9b1a57cd72a4c02b166d",
+    "scripts/security-tests.mjs": "80b44d94ed6a9046081873d803bc7adb44a369dcda5fa36b4066f282a07c0284",
+    "scripts/export-configured-devnet-unsigned.mjs": "53d56e8ebae08b730eb89d566aada8b7e7ae409cae174ba405d061e9b1006730",
+    "tests/readiness/configured-devnet-fixture.mjs": "a11287cbe121a8dd4aa0d3735177227abe03c6c77240c668b7abb7a015801a9f",
+    "tests/readiness/configured-devnet.test.mjs": "5e8bc8aadc2983fb878de9a4d8b025b2b7aa6e2976dc22be9b633fd71bccd51b",
+    "docs/configured-devnet-unsigned-integration-2026-11-22.md": "67dadfd6fdf8b3bd87a625987872860e4f372e4fc60d61e26d2b10e583259502"
+  },
+  "unchangedAdmissionSourceSha256": {
+    "server/price-signer-service.mjs": "933eaa068b2441782f57a90d249c7e279f4fa493eb4def22ccbb8a25f5084b6a",
+    "server/price-signer-bootstrap.mjs": "e78479b56171015c07ed0f4045ecb3085116acad7f0216b1081abc6cd848ba51",
+    "scripts/run-price-signer.mjs": "c78e2a9127ef1ee01f53babf2bfbe55951524aabbccf7592ee7f7058f5a6cea8",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "package.json": "5536017efeb4f4d17e3e0ac9428a65f68079766d6f0f3bd7347443054521fb6c",
+    "package-lock.json": "e004d111f5f6da0d659d7ffd1f91a06123535d4512191a6b579dcecf0331b32b"
+  },
+  "evidenceSha256": {
+    "unsigned-integration-result.json": "432a68cd5eb33b03fc3cc332ba5c322bb277bd4ef52985bb8b76588d1b0d6349",
+    "missing-artifact-result.json": "2e9fdb0a7519c0092fc8f44e97f4004b6aef4b8006b59aff44a070730b67d639",
+    "source-and-regression-results.json": "9be0b243262214709e11092b9b67049f303d0c60f05e2c03abad5c4b5e98b477",
+    "unsigned-fixtures.json": "1d37c6db201ba96363e37d30a737d54305d2b254545eeb8179baeb4dbb9d28f1",
+    "configured-devnet-accounts.json": "8ae5e723c2cb879eab2aff9ba9a637578f7689d977ab60ae7f6d06aa6e8fd2b9"
+  },
+  "limitations": [
+    "agency wire/meta only, no full agency financial reviewer case",
+    "no live app/signer allowlist activation",
+    "no signing or broadcasts",
+    "no operational landed-reservation closure or historical journal migration",
+    "no full28leaf/paired Mainnet/scale acceptance"
+  ]
+}

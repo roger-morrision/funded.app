@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "scope": "offline unsigned configured Devnet integration; required public artifact/account prerequisites; no live or signing acceptance",
+  "files": [
+    {
+      "path": "tests/readiness/configured-devnet.test.mjs",
+      "requiredTests": [
+        "unsigned configured revision 1 crosses builder reviewer journal and historical proof parser",
+        "unsigned configured revision 2 crosses builder reviewer journal and historical proof parser",
+        "configured agency wire retains 130 bytes and exact revision/config metas for both asset revisions",
+        "ordinary service request fields cannot enable the offline configured interface",
+        "Mainnet cannot be selected with the offline Devnet context",
+        "wrong RPC genesis rejects unsigned review and finalized proof",
+        "a changed ProgramData deployment rejects unsigned review and proof",
+        "stale asset revision cannot obtain a new review after rotation",
+        "wrong config account and writable router metadata are rejected",
+        "nonzero signatures and an underprotected quote are rejected",
+        "an existing receipt prevents a fresh review and cannot be replayed into signing",
+        "missing receipt or wrong vault delta cannot produce finalized credit proof",
+        "offline reservations reject legacy records and changed context/revision without rewriting them",
+        "unknown reservations stay charged until finalized expiry and absent-receipt evidence",
+        "changed immutable interface context is rejected: genesisHash",
+        "changed immutable interface context is rejected: programId",
+        "changed immutable interface context is rejected: programDataSha256",
+        "changed immutable interface context is rejected: elfSha256",
+        "changed immutable interface context is rejected: contractSourceTree",
+        "changed immutable interface context is rejected: sourceRevision"
+      ]
+    }
+  ]
+}

@@ -60,9 +60,9 @@ export async function verifiedProgram(connection,config){
     &&hash(data.data)===config.programDataSha256,'Deployed program or upgrade authority differs from the signer allowlist.');
 }
 
-export async function reviewBuyback({connection,config,signer,request,marketQuote=independentMarketQuote,now=Date.now()}){
+export async function reviewBuyback({connection,config,signer,request,marketQuote=independentMarketQuote,now=Date.now(),configuredDevnet=null}){
   const started=Date.now(),program=key(config.programId),authority=key(config.authority);
-  const network=priceReviewNetwork(config,request);
+  const network=priceReviewNetwork(config,request,{configuredDevnet});
   assert(typeof request.transaction==='string'&&request.transaction.length<=1644,'Invalid transaction size.');
   const raw=Buffer.from(request.transaction,'base64');
   assert(raw.length<=1232&&raw.toString('base64')===request.transaction,'Invalid transaction encoding.');
@@ -86,7 +86,7 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   const ix=ixs.at(-1);assert(ix.programId.equals(program),'Buyback must be the last instruction.');
   const args=decodeBuybackRequest(Buffer.from(ix.data));
   assert(args.quote<=BigInt(config.maxOrderLamports),'Order exceeds signer spend limit.');
-  assert(args.configured===(network.cluster==='mainnet-beta'),'Buyback configuration ABI differs from the approved network.');
+  assert(args.configured===(network.configured===true||network.cluster==='mainnet-beta'),'Buyback configuration ABI differs from the approved network.');
   if(args.configured){
     const assets=await readRichAssets(connection,program);
     assert(assets.revision===args.assetsRevision&&ix.keys.at(-1).pubkey.equals(richAssetsAddress(program)),'RICH configuration changed; refresh quote.');
@@ -183,5 +183,5 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   assert(Date.now()-started<35000,'Review expired before signing.');
   return{transaction,messageHash:hash(message.serialize()),programId:config.programId,vault:String(vault),receipt:String(receipt),
     quote:String(args.quote),minimum:String(args.minimum),simulatedSpent:String(spent),simulatedBurned:String(burned),slot,
-    blockhash:message.recentBlockhash};
+    blockhash:message.recentBlockhash,...(configuredDevnet?{contextHash:configuredDevnet.contextHash,assetsRevision:args.assetsRevision,signingAllowed:false}:{})};
 }
