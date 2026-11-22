@@ -138,3 +138,73 @@ fn bitmap_token_cycle_releases_unpaid_liability_and_rejects_late_payment() {
     assert!(send(&mut svm, &protocol, &[&protocol], &[next]));
     assert_eq!(outstanding(&svm, reserve), 40);
 }
+
+#[test]
+fn bitmap_capacity_and_last_global_sol_leaf() {
+    use anchor_lang::AccountDeserialize;
+    use funded_fee_router::{accounts, instruction, reward_bitmap_state::RewardBitmapCycle};
+    let id = funded_fee_router::id();
+    let mut vm = LiteSVM::new();
+    vm.add_program(id, &support::program_bytes()).unwrap();
+    let now = 1_800_000_000;
+    set_time(&mut vm, now);
+    let payer = Keypair::new();
+    let authority = payer.pubkey();
+    vm.airdrop(&authority, 1_000_000_000).unwrap();
+    let program_data = support::set_upgrade_owner(&mut vm, id, authority);
+    let pda = |seeds: &[&[u8]]| Pubkey::find_program_address(seeds, &id).0;
+    let legacy_router = pda(&[b"funded-fee-router-v1"]);
+    let system_program = anchor_lang::system_program::ID;
+    let coin = Pubkey::new_unique();
+    let sol = Pubkey::default();
+    let vault = pda(&[b"reward-vault-v1", authority.as_ref(), coin.as_ref()]);
+    let reserve = pda(&[b"reward-reserve-v1", vault.as_ref(), sol.as_ref()]);
+    let init = Instruction::new_with_bytes(id, &instruction::Initialize {}.data(), accounts::Initialize {
+        authority, app_owner: authority, router: legacy_router, program: id, program_data, system_program,
+    }.to_account_metas(None));
+    let init_vault = Instruction::new_with_bytes(id, &instruction::InitializeRewardVault {}.data(),
+        accounts::InitializeRewardVault { authority, mint: coin, vault, legacy_router, system_program }.to_account_metas(None));
+    let init_reserve = Instruction::new_with_bytes(id, &instruction::InitializeRewardReserve { asset_mint: sol }.data(),
+        accounts::InitializeRewardReserve { authority, vault, reserve, legacy_router, system_program }.to_account_metas(None));
+    const COUNT: u32 = 65_536;
+    let fund = system_instruction::transfer(&authority, &vault, u64::from(COUNT));
+    assert!(send(&mut vm, &payer, &[&payer], &[init, init_vault, init_reserve, fund]));
+
+    let cycle_id = [29; 32];
+    let cycle = pda(&[b"reward-cycle-v1", vault.as_ref(), &cycle_id]);
+    let holder = |i: u32| Pubkey::new_from_array(hashv(&[b"capacity-fixture", &i.to_le_bytes()]).to_bytes());
+    let mut level: Vec<_> = (0..COUNT).map(|i| reward_leaf(cycle_id, holder(i), sol, 1, i)).collect();
+    let mut proof = Vec::new();
+    while level.len() > 1 {
+        proof.push(level[level.len() - 2]); // Sibling of the last leaf/subtree at this depth.
+        level = level.chunks_exact(2).map(|pair| {
+            let [a, b] = [pair[0], pair[1]];
+            if a < b { hashv(&[&a, &b]) } else { hashv(&[&b, &a]) }.to_bytes()
+        }).collect();
+    }
+    assert_eq!(proof.len(), 16);
+    let create = |leaf_count| Instruction::new_with_bytes(id, &instruction::CreateBitmapCycle {
+        cycle_id, merkle_root: level[0], asset_mint: sol, total_amount: u64::from(COUNT),
+        cutoff_at: now, payout_at: now, leaf_count,
+    }.data(), accounts::CreateBitmapCycle { authority, vault, reserve, cycle, legacy_router, system_program }.to_account_metas(None));
+    assert!(!send(&mut vm, &payer, &[&payer], &[create(COUNT + 1)]));
+    assert!(vm.get_account(&cycle).is_none());
+    assert_eq!(outstanding(&vm, reserve), 0);
+    assert!(send(&mut vm, &payer, &[&payer], &[create(COUNT)]));
+    let recipient = holder(COUNT - 1);
+    vm.airdrop(&recipient, 2_000_000).unwrap();
+    let balance = vm.get_balance(&vault).unwrap();
+    let pay = Instruction::new_with_bytes(id, &instruction::PayoutBitmapSol { amount: 1, leaf_index: COUNT - 1, proof }.data(),
+        accounts::PayoutBitmapSol { payer: authority, vault, reserve, cycle, recipient, system_program }.to_account_metas(None));
+    assert!(send(&mut vm, &payer, &[&payer], std::slice::from_ref(&pay)));
+    let snapshot = |svm: &LiteSVM| [vault, reserve, cycle, recipient].map(|key| svm.get_account(&key).unwrap());
+    let paid = snapshot(&vm);
+    let record = RewardBitmapCycle::try_deserialize(&mut paid[2].data.as_slice()).unwrap();
+    assert_eq!(record.paid.len(), 8192);
+    assert!(record.paid[..8191].iter().all(|b| *b == 0));
+    assert_eq!((record.paid[8191], record.distributed_amount), (0x80, 1));
+    assert_eq!(outstanding(&vm, reserve), 65_535);
+    assert_eq!((balance - paid[0].lamports, paid[3].lamports), (1, 2_000_001));
+    assert!(!send(&mut vm, &payer, &[&payer], &[pay]));
+    assert_eq!(snapshot(&vm), paid);
+}

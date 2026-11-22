@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "scope": "Mainnet public account observations and local-only SBF execution; unsigned release preparation",
+  "testedSource": "e5b3fd479c616540882c43d53afd29f7766d296c",
+  "routerSourceTree": "dd2f57ffe841adaca9b2e033950633247f64c7ac",
+  "frozenBuild": {
+    "package": "funded-fee-router",
+    "agave": "4.1.2",
+    "platformTools": "v1.54",
+    "arch": "v0",
+    "optimization": "z",
+    "strip": true,
+    "locked": true,
+    "lockfileSha256": "d09534a70f3c4f4fa3d70297aa2b8f9b8f3cb38ecc4ee6e62bfd264412f35b33",
+    "comparison": "Clean Git archive and empty Cargo target. Compared each output byte for byte with the retained local artifact.",
+    "artifacts": [
+      {
+        "features": "devnet-v3-program,configurable-rich-assets",
+        "id": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+        "file": "tmp/devnet-isolated/funded_fee_router.so",
+        "bytes": 1204336,
+        "sha256": "7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f"
+      },
+      {
+        "features": "mainnet-v3-program",
+        "id": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
+        "file": "tmp/mainnet-fixture-isolated/funded_fee_router.so",
+        "bytes": 1075328,
+        "sha256": "6bfa0414eaf68b6dd3d2c5cda79e0454c0255e2da4ac80c7466f79e2913ce320"
+      }
+    ],
+    "windowsWorkingCopyLockfileSha256": "fceda32229a9e72f89f2ee8b5254d9d18f7c8b7c941554d327ebd30cdc15e05b",
+    "cargoBuildSbfVersion": "4.1.0",
+    "cargoBuildSbfSha256": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
+    "rustcSha256": "fa2c61467ffa823dc1a64c28cba22c6ce24b2439ebe28fe546609d7fc638569a",
+    "canonicalSource": "git archive, LF Cargo.lock"
+  },
+  "selectedAsset": {
+    "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+    "finalizedSlot": 472579799,
+    "discoverySlot": 472579799,
+    "mint": "7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump",
+    "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "decimals": 6,
+    "supplyRaw": "950448338858829",
+    "mintAuthority": null,
+    "freezeAuthority": null,
+    "extensions": [
+      "MetadataPointer",
+      "TokenMetadata"
+    ],
+    "metadata": [
+      {
+        "source": "TokenMetadata extension",
+        "name": "Singularity",
+        "symbol": "Singularity",
+        "uri": "https://ipfs.io/ipfs/bafkreigxbhchxbrxne43o4jcpc2xxkk24jwix35lmbaqbhta2fdvyhmfvq"
+      }
+    ],
+    "canonicalCurve": "BXx9XXFwxepEnEFTZwTzshKH5XhgV7J4vehwKMBizGUs",
+    "curve": {
+      "complete": 1,
+      "modeFlags": [
+        0,
+        0
+      ],
+      "quoteMint": "11111111111111111111111111111111",
+      "virtualTokenRaw": "0",
+      "virtualQuoteRaw": "0",
+      "realTokenRaw": "0",
+      "realQuoteRaw": "0",
+      "curveAccountLamports": 1493520,
+      "actualTokenVault": "962pBc8d8cXbV7Ckf24etY2BZXjGFas9KCMzrRyK4zXx",
+      "actualTokenVaultRaw": "0"
+    },
+    "canonicalPool": "58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV",
+    "canonicalPoolExists": true,
+    "markets": [
+      {
+        "pool": "58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV",
+        "canonical": true,
+        "modeFlags": [
+          0,
+          0
+        ],
+        "baseVault": "BFJrGT3GeqS687P9tP2PRBsR79cYkGWGeHCKjKMsXpei",
+        "quoteVault": "74ZYuWP3FWeuyMoVUqTUBCjDWsZwkeZXm9vgDNQNwEbv",
+        "baseRaw": "39067271775081",
+        "quoteLamports": "676095416937",
+        "sha256": "fa2f34195cf184b0e61460450cde223928c518b869b95be343884a3ffc4d92f7"
+      }
+    ],
+    "accounts": [
+      {
+        "address": "7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump",
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataBase64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATXOdf21gAwAGAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARIAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAF9P2bSIaZs4455lSksv4HWE8TAh5muLPIYvmcEDPvbfEwC2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAX0/ZtIhpmzjjnmVKSy/gdYTxMCHma4s8hi+ZwQM+9t8LAAAAU2luZ3VsYXJpdHkLAAAAU2luZ3VsYXJpdHlQAAAAaHR0cHM6Ly9pcGZzLmlvL2lwZnMvYmFma3JlaWd4YmhjaHhicnhuZTQzbzRqY3BjMnh4a2syNGp3aXgzNWxtYmFxYmh0YTJmZHZ5aG1mdnEAAAAA",
+        "sha256": "8e3b8a9861552762b3fa9ae2480edeb14685202c9d35ad88e27988d1a4d1389d"
+      },
+      {
+        "address": "BXx9XXFwxepEnEFTZwTzshKH5XhgV7J4vehwKMBizGUs",
+        "owner": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+        "dataBase64": "F7f4N2DYrGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAxqR+jQMAAVr8FyzloEv+u+eBGtGW9VafGJE/ogZnPDEGGHGICmAzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAAKp+46dkEAACjHQ6GAAAAAA==",
+        "sha256": "7a54856031df5eb21801b1e807a4313a69fc7ea873eb88045b81033130f201fa"
+      },
+      {
+        "address": "58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV",
+        "owner": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+        "dataBase64": "8ZptBBGxbbz/AADRSMw7i2hJXAj1mlehAC4LPJgBO2OszBZrPnoPoe6W319P2bSIaZs4455lSksv4HWE8TAh5muLPIYvmcEDPvbfBpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAG2KO+377aSlWroBlZ6flRC3pMOkxqElKflcI+RbPpy8Zg/Lti0H5EUItE6qBdhooEIAQWGTEXqL/3mKT6Kc1H3Wg+rIjUPLJHh6vxoM3UGW6njCkg5BNe0MeXyEOr7BR1RumtZ0AMAAFr8FyzloEv+u+eBGtGW9VafGJE/ogZnPDEGGHGICmAzAACPqW/zAwAAAAAAAAAAAAAAAAAAAAAAAAAAAHvTWwEAAAAAv8VSIwAAAAAAAAAAAAAAAAAAAAAAAA==",
+        "sha256": "fa2f34195cf184b0e61460450cde223928c518b869b95be343884a3ffc4d92f7"
+      }
+    ]
+  },
+  "localBuybacks": {
+    "captureSlot": 472579952,
+    "sourceMint": "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ",
+    "pool": "58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV",
+    "minimumRaw": "56255906",
+    "fixture": "tmp/cpi-fixtures/selected-primary-20261122/fixture.json",
+    "fixtureSha256": "806f03da24ae855805867b5257f675aee1a8c77b8ef4837855c21388c35b5dbc",
+    "externalPrograms": [
+      {
+        "address": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+        "programData": "6naEzKeUuFh1Jeeu51NXQgr5qkXgXtc9WKNct4xynVJc",
+        "file": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA.so",
+        "bytes": 10485715,
+        "sha256": "c75b6c042e6111965915ebafaba02fd4b241ff508326f6d7c83873910bba1722"
+      },
+      {
+        "address": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+        "programData": "75Uu23mqWBb8LM8vDppqC1mQAnCcBuLXhVaDezVMQLRw",
+        "file": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ.so",
+        "bytes": 948944,
+        "sha256": "303fd7a4540bcd42e9ce715cb7ee5bcde9a1dae27605955d6a45228ed9503e73"
+      }
+    ],
+    "protected": {
+      "spentLamports": 1000000,
+      "burnedRaw": 56824148,
+      "computeUnits": 302533
+    },
+    "agency": {
+      "spentLamports": 1000000,
+      "burnedRaw": 56824148,
+      "computeUnits": 305586
+    },
+    "checks": [
+      "receipt and mint supply delta",
+      "category vault debit",
+      "no residual purchased tokens or WSOL",
+      "slippage rollback and replay"
+    ],
+    "liveTransaction": null
+  },
+  "quote": {
+    "cluster": "mainnet-beta",
+    "sizingArtifact": "public Mainnet-feature fixture",
+    "bytes": 1075328,
+    "lockedRentLamports": 5464378200,
+    "uploadFeeAllowanceLamports": 25000000,
+    "marginLamports": 250000000,
+    "setupAllowanceLamports": 50000000,
+    "canaryAllowanceLamports": 50000000,
+    "operatingReserveLamports": 3000000000,
+    "newMintPoolAndLiquidityLamports": 0,
+    "rentFirstConfigAndHistoryLamports": 3098800,
+    "illustrativeTotalLamports": 8839378200,
+    "approvedSpendLamports": 0
+  },
+  "productionProgramId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+  "productionArtifact": {
+    "status": "undeployed restricted production-ID review candidate",
+    "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+    "source": "e5b3fd479c616540882c43d53afd29f7766d296c",
+    "features": "mainnet-v3-program",
+    "conversionPools": "",
+    "conversionState": "no reviewed paired-token conversion binding; full financial release blocked",
+    "sha256": "f284abb9cb495274cd428a08fff9115f66d9afb07022ea1323daa708403bf256",
+    "bytes": 1080032,
+    "file": "tmp/production-contract-freeze/f284abb9cb495274cd428a08fff9115f66d9afb07022ea1323daa708403bf256/funded_fee_router.so",
+    "cleanBuildCount": 2,
+    "binaryCompared": true,
+    "programDataAddress": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
+    "deployedProgramDataSha256": null,
+    "independentReleaseReview": null,
+    "sourceFixture": "tmp/cpi-fixtures/production-primary-20261122/fixture.json",
+    "fixtureSha256": "ac1674083a07338853a9282559bfd0cd397bb381feca9a3f802bec50d9d09e70",
+    "compiledLocalCategory6": {
+      "captureSlot": 472581858,
+      "pool": "58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV",
+      "quoteLamports": "1000000",
+      "minimumRaw": "61287500",
+      "spentLamports": 1000000,
+      "burnedRaw": 61906566,
+      "protectedCU": 272555,
+      "agencyCU": 275608,
+      "caseCount": 2,
+      "sourceMint": "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ",
+      "programs": [
+        {
+          "address": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+          "programData": "6naEzKeUuFh1Jeeu51NXQgr5qkXgXtc9WKNct4xynVJc",
+          "file": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA.so",
+          "bytes": 10485715,
+          "sha256": "c75b6c042e6111965915ebafaba02fd4b241ff508326f6d7c83873910bba1722"
+        },
+        {
+          "address": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+          "programData": "75Uu23mqWBb8LM8vDppqC1mQAnCcBuLXhVaDezVMQLRw",
+          "file": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ.so",
+          "bytes": 948944,
+          "sha256": "303fd7a4540bcd42e9ce715cb7ee5bcde9a1dae27605955d6a45228ed9503e73"
+        }
+      ]
+    },
+    "toolchain": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd"
+  },
+  "productionInit": {
+    "keys": {
+      "program": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+      "programData": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
+      "deploymentPayer": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
+      "adminUpgrade": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+      "router": "67pjQPubkLoeEYNXX5eeCWm8zCM4PBseQRmpAJ4wEND",
+      "priceConfig": "7iUSLh3w4AjEKEsDXSsWoc5LDjySbQxuKwJAhsFrSL25",
+      "richConfig": "2huzE6jPLyaQ4Sx86CZuqSAPR7HWSaQfJ1jeb8P3CKRe",
+      "richHistory1": "6A41tL4Y1NZiVyAnif62fYWEt6WzeS5HyDoAu4hzFcxT",
+      "mint": "7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump",
+      "pool": "58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV",
+      "system": "11111111111111111111111111111111"
+    },
+    "existence": {
+      "finalizedSlot": 472582019,
+      "allSixProgramAndBootstrapAccountsAbsent": true
+    },
+    "format": "ordered initial router instructions with signing and writable requirements; unmarked accounts are read-only nonsigners",
+    "instructions": [
+      {
+        "name": "initialize",
+        "discriminator": "afaf6d1f0d989bed",
+        "dataAfterDiscriminator": [],
+        "orderedMetas": [
+          "operator (writable signer)",
+          "adminUpgrade (signer)",
+          "router (writable)",
+          "program",
+          "programData",
+          "system"
+        ],
+        "rentPayer": "operator",
+        "creates": [
+          [
+            "router",
+            131
+          ]
+        ]
+      },
+      {
+        "name": "configure_protocol_guard",
+        "discriminator": "589be76edab76ac5",
+        "dataAfterDiscriminator": [
+          "daily_cap_lamports:u64LE"
+        ],
+        "orderedMetas": [
+          "adminUpgrade (signer)",
+          "guardian",
+          "router (writable)",
+          "program",
+          "programData"
+        ],
+        "rentPayer": null,
+        "creates": []
+      },
+      {
+        "name": "configure_buyback_price_signer",
+        "discriminator": "20e254b713e15c56",
+        "dataAfterDiscriminator": [],
+        "orderedMetas": [
+          "adminUpgrade (writable signer)",
+          "priceSigner (signer)",
+          "program",
+          "programData",
+          "priceConfig (writable)",
+          "system"
+        ],
+        "rentPayer": "adminUpgrade",
+        "creates": [
+          [
+            "priceConfig",
+            40
+          ]
+        ]
+      },
+      {
+        "name": "configure_rich_assets",
+        "discriminator": "340a47441468b59c",
+        "dataAfterDiscriminator": [
+          "revision:u64LE=1",
+          "venue:u8=0"
+        ],
+        "orderedMetas": [
+          "adminUpgrade (writable signer)",
+          "program",
+          "programData",
+          "richConfig (writable)",
+          "richHistory1 (writable)",
+          "mint",
+          "pool",
+          "system"
+        ],
+        "rentPayer": "adminUpgrade",
+        "creates": [
+          [
+            "richConfig",
+            177
+          ],
+          [
+            "richHistory1",
+            177
+          ]
+        ]
+      }
+    ],
+    "rent": [
+      {
+        "bytes": 36,
+        "lamports": 833120
+      },
+      {
+        "bytes": 40,
+        "lamports": 853440
+      },
+      {
+        "bytes": 131,
+        "lamports": 1315720
+      },
+      {
+        "bytes": 177,
+        "lamports": 1549400
+      }
+    ],
+    "richConfiguration": {
+      "dataHex": "340a47441468b59c010000000000000000",
+      "signatures": 2,
+      "readOnlyFeeQuoteSlot": 472582020,
+      "baseFeeLamports": 10000
+    },
+    "unresolved": [
+      "operator public key and access",
+      "guardian public key and access",
+      "independent price signer public key and access",
+      "approved administrative daily spending policy (distinct from removed deployment budget cap)",
+      "ER7 authorization mechanism"
+    ],
+    "deployed": false
+  },
+  "conversionDiscovery": [
+    {
+      "base": "So11111111111111111111111111111111111111112",
+      "quote": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "discoverySlot": 472582370,
+      "poolCount": 2,
+      "topByUsdc": [
+        {
+          "pool": "6ef59PhPsXgre7d8BUB2J6GGK6RM3ABek6XSR7J3Z6kX",
+          "finalizedSlot": 472582370,
+          "flags": [
+            0,
+            0
+          ],
+          "wsolLamports": "228993644",
+          "usdcRaw": "16055014"
+        },
+        {
+          "pool": "53W23c9mtDXgnhqpHJiRmYSKwpRf5mtwHeJM83FDxWFm",
+          "finalizedSlot": 472582370,
+          "flags": [
+            0,
+            0
+          ],
+          "wsolLamports": "7101016",
+          "usdcRaw": "498477"
+        }
+      ]
+    },
+    {
+      "base": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "quote": "So11111111111111111111111111111111111111112",
+      "discoverySlot": 472582371,
+      "poolCount": 119,
+      "topByUsdc": [
+        {
+          "pool": "Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v",
+          "finalizedSlot": 472582372,
+          "flags": [
+            0,
+            0
+          ],
+          "wsolLamports": "39168096413686",
+          "usdcRaw": "2750566696834"
+        },
+        {
+          "pool": "3aSmj1W5gaRgnJdv7FUdKroVoUgUvM6beSF8wMacCTD8",
+          "finalizedSlot": 472582371,
+          "flags": [
+            0,
+            0
+          ],
+          "wsolLamports": "2155973831",
+          "usdcRaw": "151219575"
+        },
+        {
+          "pool": "EGajH9xTYb98RAH1uAGW6HVk63yfwuGfBuHeXaGDof7A",
+          "finalizedSlot": 472582371,
+          "flags": [
+            0,
+            0
+          ],
+          "wsolLamports": "1372183091",
+          "usdcRaw": "96190615"
+        }
+      ]
+    }
+  ],
+  "productionQuote": {
+    "rpc": "https://api.mainnet-beta.solana.com",
+    "checkedAt": "2026-11-22T14:59:15.129Z",
+    "elfSha256": "f284abb9cb495274cd428a08fff9115f66d9afb07022ea1323daa708403bf256",
+    "bytes": 1080032,
+    "exactAllocatedProgramDataBytes": 1080077,
+    "programRentLamports": 833120,
+    "programDataRentLamports": 5487441400,
+    "lockedRentLamports": 5488274520,
+    "bufferRentLamports": 5487400760,
+    "bufferAccounting": "reusable at same-payer fresh deployment; quote temporary funding in transaction order",
+    "estimatedWriteTransactions": 1201,
+    "estimatedUploadBaseFeeLamports": 12040000,
+    "uploadFeeAllowanceLamports": 25000000,
+    "bootstrapAccountRentLamports": 5267960,
+    "setupAllowanceInclusiveOfBootstrapRentLamports": 50000000,
+    "contingencyLamports": 250000000,
+    "canaryAllowanceLamports": 50000000,
+    "operatingReserveLamports": 3000000000,
+    "newMintPoolAndLPLamports": 0,
+    "planningTotalLamports": 8863274520,
+    "approvedSpendLamports": 0,
+    "exclusions": [
+      "offchain hosting and independent services if incurred",
+      "unpriced later per-launch and operational transactions"
+    ],
+    "finalMessageFees": "pending final signer roles, message inventory and live priority fee quotes"
+  }
+}
