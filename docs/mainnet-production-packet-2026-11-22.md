@@ -294,3 +294,15 @@ including no-ops and recursive bootstrap. Post-rename failure remains uncertain
 and cannot authorize re-signing or broadcast. This is an API-level durability
 correction; production persistent-disk/power-loss and full release acceptance
 remain separate, with no Contract artifact or financial policy change.
+
+The actual API startup check found an initialization-order failure in the
+readiness branch: `primaryRichRuntime` read `solanaCluster` before its declaration.
+The declaration now follows environment loading and precedes its first use.
+Run `node scripts/check-api-entrypoint.mjs` for five required real child-process
+and HTTP cases. Exact raw-Git baseline fails all five; corrected Windows and
+Linux Node 24.22.3 pass all five, with unavailable loopback RPC, isolated file
+stores and financial workers disabled. Both Mainnet profiles still reject
+launch writes and report activation unauthorized. This is startup/API evidence,
+not production database, worker, finalized financial or release acceptance.
+See [source and raw evidence](evidence/api-entrypoint-startup.json). Earlier
+Windows CRLF export hashes are distinguished from raw Git blob/archive hashes.

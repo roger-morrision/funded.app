@@ -92,6 +92,7 @@ import { createReferralAuth } from './referral-auth.mjs';
 
 loadServerEnvironment();
 
+const solanaCluster = deploymentCluster(process.env);
 const port = Number(process.env.PORT || 8787);
 const host = String(process.env.HOST || '127.0.0.1');
 const staticRoot = resolve(process.cwd(), 'dist');
@@ -128,7 +129,6 @@ publicPostPaths.add('/api/x-public-trade-shares/consent');
 publicPostPaths.add('/api/trades/finalized');
 publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/client-errors'); publicPostPaths.add('/api/pair-launch/record');
 
-const solanaCluster = deploymentCluster(process.env);
 // Admin authentication (JWT in an HttpOnly cookie) shared by every admin API.
 const adminJwt = createAdminJwt({ cluster: solanaCluster, store });
 const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';

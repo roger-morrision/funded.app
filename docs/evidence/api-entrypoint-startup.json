@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "issue": "FQA-MN-006",
+  "scope": "Actual API entrypoint startup and isolated HTTP failure/readiness regression; source-local only",
+  "baseRevision": "37468637884317dc5b8ead46da68cb4857d0cdd3",
+  "observedAt": "2026-11-22T22:55:47.376970+00:00",
+  "runtimeChange": "Move the existing deploymentCluster binding immediately after loadServerEnvironment and before its first primaryRichRuntime use. No new policy/flags/signing admission.",
+  "reproduction": {
+    "baseline": "Linux Node24.22.3 exact raw Git startup exits1 ReferenceError at index114; same five regression bodies fail5/5",
+    "candidate": "Linux and Windows Node24.22.3 actual child process/HTTP checked inventory5/5,0fail/skip/TODO",
+    "command": "node scripts/check-api-entrypoint.mjs"
+  },
+  "checks": {
+    "syntax": "Syntax checked 1188 JavaScript files.",
+    "size": "Source size budgets passed for 1451 maintained code files (hard maximum: 1000 lines).",
+    "diffCheck": "pass"
+  },
+  "testProfiles": [
+    "Devnet",
+    "Mainnet read-only",
+    "Mainnet existing non-program",
+    "mismatched client/server refusal",
+    "invalid network refusal"
+  ],
+  "financialSafety": {
+    "externalNetwork": 0,
+    "wallets": 0,
+    "financialRpcCalls": 0,
+    "apiOnly": true,
+    "liveData": false,
+    "MainnetLaunchWrite": "403 in both Mainnet profiles",
+    "MainnetActivationAuthorized": false,
+    "readiness": "unconfigured/blocked; store operational; RPC unavailable"
+  },
+  "sourcePins": {
+    "server/index.mjs": "2d117d0c162b56fc71f56ea76167e28c0424dab23b4ff74503478fd317ec6a70",
+    "tests/readiness/api-entrypoint-fixture.mjs": "e90ae6c7e1eb75e3b0fa636374788df63f5eb5d8b8374ff1f4f3fb57b942dbbb",
+    "tests/readiness/api-entrypoint.test.mjs": "801014f0f9c2e056543847b58c52de5e5e2090042debdc8a4d380cde954263a2",
+    "scripts/check-api-entrypoint.mjs": "104ad2d02ee4bb6ba7c5a6eb6763a6c9c06c968eea592f578b9fce1141812852",
+    "config/api-entrypoint-tests.json": "10746e5e5f83f4fdf99fe2686494099ab6b6843a62981bf1b59ba0102b6d1911",
+    "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+    "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+    "server/primary-rich.mjs": "7053118437a479c6a18db58e14b6b3a934d5af0ab979bcd3ca88208a53f61480",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc"
+  },
+  "rawArtifacts": {
+    "linux-baseline.stdout": "5bf84d3508c928978a13c8eb2978183b749e64e14bd7626849866dad8b2741c0",
+    "linux-baseline.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-candidate.stdout": "a934a7655854f2149b686035ecfcc78c51da9381ec9784034c834b7cc77f6d8a",
+    "linux-candidate.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "windows-candidate.stdout": "6d39a7dfe09d56749c8c0feb1d9965030196c46be8189ed84b2854309ddb2a8f",
+    "windows-candidate.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source.stdout": "3d3cdbbe82f0d5122810100a2b464074dd0e8090639e6922e487a202357a4092",
+    "source.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size.stdout": "7fa18a5cd2264f0e7efd9bbe1bb98055a7d62fa407a547cd4d3090ab6a629f21",
+    "size.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "entrypoint-source-manifest.json": "3aa1b2ef93d61be8f24ce2f89e1bc35e423b905e6fb981754f11eacd5459c3dc",
+    "container-cleanup.json": "66805bdfd3e01c0511341eccc8e0115f7848a8643eeed02eaa0c990120a4cc4e"
+  },
+  "archiveProvenance": {
+    "earlierCompleteCode": "Windows Git archive export applies CRLF; its byte digest is not raw Git digest. Members match only after line-ending normalization.",
+    "regressionArchives": {
+      "baseline": {
+        "sha256": "e60ecbb1afef5615a8156ebaec3f260dbdbaac270cd13c1cd0b4913c1f342155",
+        "files": 1230
+      },
+      "candidate": {
+        "sha256": "12bdc991c375c482b7a631c2318c4329e78c40a40052ce9fb5861dcaeff5080c",
+        "files": 1230
+      }
+    },
+    "rawGitBaselineIndexSha256": "691c4961ff6a715798c012b1923f278bf94b6cc64cd5bee3f54fae262197632d",
+    "independentQaRawGitArchiveSha256": "20a9830483716d4ffa9081e825af63db2c8cd2844589b068e15a07138754348c",
+    "rejectedHarness": "partial-source-baseline omitted src dependency; retained but not startup defect proof"
+  },
+  "independentBaseline": "data/qa-evidence/mainnet-pm-20261122/service-startup-37468637/qa-finding.json",
+  "cleanup": "Five exact task-owned containers removed after evidence; unrelated running IDs unchanged; no pull/build/host port or production mount",
+  "reusedAcceptance": {
+    "directoryFenceRevision": "37468637884317dc5b8ead46da68cb4857d0cdd3",
+    "e2eSha256": "395da22c6352ab9b95adf00c24269954bfb992a89506fc3e0b0dafb9526bc2f3",
+    "contract": "971399ff /3f8 ELF/1236-message prefix unchanged, no rebuild/quote"
+  },
+  "limitations": [
+    "NODE_ENV=test file-store backend, not production Postgres or production service acceptance",
+    "API-only means no financial worker execution; normal full-service workload remains open",
+    "RPC is an unavailable test-owned loopback, not finalized on-chain evidence",
+    "No signing, funds, deployment, cap or admission changes",
+    "Mainnet remains NO-GO; independent source correction review required"
+  ]
+}

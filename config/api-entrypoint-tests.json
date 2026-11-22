@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "scope": "Actual API child process and HTTP stack with isolated file stores and unavailable test-owned loopback RPC; no financial worker or production acceptance",
+  "files": [{
+    "path": "tests/readiness/api-entrypoint.test.mjs",
+    "requiredTests": [
+      "API entrypoint initializes network before runtime and serves honest Devnet status",
+      "API entrypoint initializes network before runtime and serves honest Mainnet read-only status",
+      "API entrypoint initializes network before runtime and serves honest Mainnet existing non-program status",
+      "API entrypoint refuses mismatched server and browser networks before listening",
+      "API entrypoint refuses an unsupported network before runtime construction"
+    ]
+  }]
+}
