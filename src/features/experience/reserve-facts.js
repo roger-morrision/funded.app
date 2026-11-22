@@ -10,7 +10,7 @@ export function reserveFacts(data,mint){
 }
 export function mountReserveFacts(root,app){
   const box=el('section');box.dataset.reserveFacts='';root.append(box);let serial=0,last='';
-  async function refresh(){const mint=app.getCoinMintAddress();if(!root.open||!address(mint)||last===mint)return;last=mint;const id=++serial;box.replaceChildren(el('h3','Checking reserve custody…'));
+  async function refresh(){const mint=app.getCoinMintAddress();if((root.tagName==='DETAILS'&&!root.open)||!address(mint)||last===mint)return;last=mint;const id=++serial;box.replaceChildren(el('h3','Checking reserve custody…'));
     try{const response=await app.apiRequest('/api/airdrops/reserves?mint='+encodeURIComponent(mint),{signal:AbortSignal.timeout(45000)});
       if(id!==serial||mint!==app.getCoinMintAddress())return;
       const row=response.available?reserveFacts(response.data,mint):null;
@@ -20,7 +20,7 @@ export function mountReserveFacts(root,app){
       if(row)box.append(el('p','Delivery status: '+airdropClaimState(row).label));
       box.append(link('Check your allocation', `/?airdropMint=${encodeURIComponent(mint)}#airdrops`));
       if(!row)last='';
-    }catch{if(id===serial){box.replaceChildren(el('p','Reserve verification unavailable. Close and reopen these facts to retry.'));last='';}}
+    }catch{if(id===serial){const retry=el('button','Retry airdrop details');retry.type='button';retry.addEventListener('click',()=>void refresh());box.replaceChildren(el('p','Reserve verification unavailable.'),retry);last='';}}
   }
   window.addEventListener('funded:coin-facts-loading',()=>{serial++;last='';box.replaceChildren();});root.addEventListener('toggle',()=>{last='';serial++;void refresh();});window.addEventListener('funded:coin-facts',()=>void refresh());
 }

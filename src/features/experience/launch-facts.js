@@ -1,7 +1,7 @@
-import {savedFeeDistributionChart,savedFeeDistributionRows} from '../fees/saved-distribution-chart.js';
+import {savedFeeDistributionRows} from '../fees/saved-distribution-chart.js';
 import {feeBenefitDetailsMarkup} from '../fees/benefit-details.js';
 import { mountReserveFacts } from './reserve-facts.js';
-import { link, el, address, reportContextLink } from './view-utils.js';
+import { link, el, address } from './view-utils.js';
 export function identityMatches(candidate, launches) {
   const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const name = normalize(candidate.name), symbol = normalize(candidate.symbol);
@@ -10,32 +10,18 @@ export function identityMatches(candidate, launches) {
 }
 export function initializeLaunchFacts(app) {
   const coin = document.querySelector('#coin-page'); if (!coin) return;
-  const root = document.createElement('details'); root.className = 'flow-panel launch-facts';
-  // Kept short by request: the coin's saved fee distribution and its airdrop rule.
-  root.innerHTML = '<summary>Fee distribution &amp; airdrop rule</summary><p data-facts-status hidden></p><dl></dl><details class="fee-distribution-details" data-facts-benefits hidden><summary>Benefits &amp; policy details</summary><div></div></details>';
-  (coin.querySelector('.coin-main-column') || coin).append(root);
+  const panel = coin.querySelector('#coin-fee-distribution'); if (!panel) return;
+  const root = document.createElement('div'); root.className = 'coin-fee-policy launch-facts';
+  // The parent panel owns the saved allocation chart; keep its supporting rules together.
+  root.innerHTML = '<details class="fee-distribution-details" data-facts-benefits hidden><summary>Benefits &amp; policy details</summary><div></div></details>';
+  panel.append(root);
   mountReserveFacts(root,app);
-  const report=reportContextLink('Report this coin');
-  const reset = () => { root.querySelector('dl').replaceChildren(); root.querySelector('[data-facts-benefits]').hidden=true; root.querySelector('[data-facts-status]').textContent = 'Checking this token’s RPC snapshot…'; };
+  const reset = () => { const benefits=root.querySelector('[data-facts-benefits]'); benefits.hidden=true; benefits.open=false; benefits.querySelector('div').replaceChildren(); };
   window.addEventListener('funded:coin-facts-loading', reset);
   window.addEventListener('funded:coin-facts', event => {
-    const { mint, parsedMint, launch, checkedAt, error } = event.detail;
-    report.dataset.reportContext=location.href;
+    const { mint, launch, error } = event.detail;
     if (mint !== app.getCoinMintAddress()) return;
-    const status = root.querySelector('[data-facts-status]');
-    if (error) { reset(); status.textContent = 'Current RPC facts unavailable. Refresh the token to retry.'; return; }
-    status.textContent = `RPC snapshot · confirmed commitment · checked ${new Date(checkedAt).toLocaleString()}. Saved launch policy is recorded evidence.`;
-    const list = root.querySelector('dl'); list.replaceChildren();
-    const fact = (label, text, href) => {
-      const term = document.createElement('dt'); term.textContent = label;
-      const value = document.createElement('dd'); value.textContent = text;
-      if (href) { const link = document.createElement('a'); link.href = href; link.textContent = ' Inspect source ↗'; link.target = '_blank'; link.rel = 'noopener noreferrer'; value.append(link); }
-      list.append(term, value);
-      return value;
-    };
-    const chart = savedFeeDistributionChart(launch);
-    const distribution = fact('Fee distribution', chart ? '' : 'Saved fee distribution unavailable');
-    if (chart) distribution.innerHTML = chart;
+    if (error) { reset(); return; }
     const rows=savedFeeDistributionRows(launch),benefits=root.querySelector('[data-facts-benefits]');
     benefits.hidden=!rows;
     if(rows)benefits.querySelector('div').innerHTML=feeBenefitDetailsMarkup([

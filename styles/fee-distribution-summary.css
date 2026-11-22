@@ -53,3 +53,6 @@ html body .fee-distribution-details > p { color: #a7bad0; font-size: 12px; line-
 .coin-fee-distribution-panel { min-width:0; }
 .coin-fee-distribution-panel h2 { margin:0 0 16px; }
 .coin-fee-distribution-panel .coin-fee-distribution-empty { margin:0; color:var(--fv-text-muted,#9bb0c8); font-size:14px; line-height:1.6; }
+.coin-fee-policy { min-width:0; margin-top:16px; }
+.coin-fee-policy [data-reserve-facts] { border-top:1px solid var(--fv-border); padding-top:16px; font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+.coin-fee-policy [data-reserve-facts] h3 { margin:0 0 12px; }

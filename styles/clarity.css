@@ -205,7 +205,7 @@ html body #main-content #coin-page .coin-stat-strip #coin-strip-market-cap { col
   html body #main-content #coin-page .coin-side-column { position: sticky; top: 80px; display: grid; gap: var(--fv-space-4); }
 }
 @media (max-width: 1099px) {
-  /* Narrow screens: buy right after the chart, not after every table. */
+  /* Mobile panel order. */
   html body #main-content #coin-page .coin-layout { display: flex; flex-direction: column; gap: var(--fv-space-4); }
   html body #main-content #coin-page .coin-main-column,
   html body #main-content #coin-page .coin-side-column { display: contents; }
