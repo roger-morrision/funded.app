@@ -3393,5 +3393,34 @@
       "rawArtifactsVerified": 30,
       "scope": "API-level Linux directory and same-filesystem ancestor persistence fence independently accepted within documented stable namespace/mount and cooperating-writer preconditions. Parent Mainnet release remains NO-GO."
     }
+  },
+  "apiEntrypointReview": {
+    "appSource": "61963da537cf94da4e92712970d195edd93a119c",
+    "ownerReportGitSha256": "7dc947590de5e2498a96ef315763ea3072ce487d9299702d4ce0f6fbf5fe55c0",
+    "reviewNode": "v26.13.1",
+    "reviewPlatform": "win32",
+    "requiredPassed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "sourceContextGitPinsMatched": 10,
+    "ownerRawArtifactsVerified": 12,
+    "rawTests": "tmp/contract-api-startup-6196.log",
+    "rawTestsSha256": "ef54a37e41774c6a96dbaf44f8c05a608d239a816583e6cc62a2133916ea927f",
+    "sourceAssessment": [
+      "Only runtime change moves existing deploymentCluster binding immediately after environment load and before first primaryRichRuntime use; removes TDZ without new flags or policy.",
+      "Actual fixture starts child API/HTTP on ephemeral loopback with isolated test stores, credential allowlisted environment, local-env loading skipped, API-only workers disabled and unavailable fixture RPC.",
+      "Devnet/Mainnet-readonly/existing-nonprogram profiles listen and serve readiness/status with configurationComplete=false, ready=false, degraded network, settlementVerified=false and activationAuthorized=false.",
+      "Both Mainnet profiles keep launchPOST403; mismatched/invalid clusters exit before listen with no RPC methods. No external provider or financial RPC/keys involved.",
+      "Graph variable query was ambiguous/stale; actual index source order and exact narrow diff reviewed directly.",
+      "Store/durability/primary-rich/package context pins unchanged3746; reuse independent directory fence. Contract runtime identical971399ff/3f8/1236prefix; no quote/rebuild."
+    ],
+    "status": "Contract narrow startup source review and5actual Windows entrypoint/HTTP cases pass; independent exact-source Linux/Windows acceptance pending.",
+    "scope": "Isolated actual child API+HTTP with NODE_ENV=test file-store and mock unavailable loopback RPC, not production Postgres/full worker/live financial or parent release acceptance.",
+    "remaining": [
+      "Normal full-service/worker workload and operational persistent-volume restore remain open.",
+      "Raw-Git regression archive provenance distinct from prior CRLF export; do not conflate source digests.",
+      "Originalbank/live28/scale/roles/runtime/finalwallet funding and MainnetNO-GO remain open."
+    ]
   }
 }
