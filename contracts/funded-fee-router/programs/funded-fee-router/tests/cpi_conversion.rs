@@ -1,7 +1,7 @@
 //! Real captured PumpSwap CPI with synthetic paired-fee custody in LiteSVM.
 //! Opt in with a public fixture and a test-only binary containing its pool.
 #![cfg(feature = "mainnet-v3-program")]
-use anchor_lang::{prelude::Pubkey, AccountDeserialize, AccountSerialize, InstructionData, ToAccountMetas,
+use anchor_lang::{prelude::{Pubkey,Rent}, AccountDeserialize, AccountSerialize, InstructionData, ToAccountMetas,
     solana_program::{instruction::{AccountMeta, Instruction}, program_option::COption, program_pack::Pack}};
 use anchor_spl::{associated_token::{get_associated_token_address_with_program_id,spl_associated_token_account}, token::spl_token};
 use litesvm::LiteSVM;
@@ -152,7 +152,8 @@ fn paired_token_to_sol_reconciles_dex_custody_and_rejects_replay(){
     assert_eq!(credits.credited[5],converted.received_lamports);
     assert_eq!(ledger_after.withdrawn[5],converted.spent_quote);
     assert_eq!(policy_after.paid_lamports[5],converted.received_lamports);
-    assert_eq!(svm.get_account(&vault).unwrap().lamports-before_vault,converted.received_lamports);
+    let reserve=svm.get_sysvar::<Rent>().minimum_balance(0);
+    assert_eq!(svm.get_account(&vault).unwrap().lamports-before_vault,converted.received_lamports+reserve);
     assert!(svm.get_account(&wsol_ata).is_none_or(|a|a.lamports==0));
     let final_vault=svm.get_account(&vault).unwrap();
     assert!(send(&mut svm,&operator,&[&operator,&price],&[ix]).is_err());
