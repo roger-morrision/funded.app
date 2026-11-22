@@ -1396,7 +1396,16 @@
       "probeSha256": "8da9420807a35fa2f05ab23881851fae2c9524aebf8759683c58380046704037",
       "inventoryResult": "tmp/expiry-equality-review-corrected.txt",
       "inventorySha256": "0b3c11ef8f5274ba2e458aca309a176eff93a0f689774699b8ca241dce2c9f07",
-      "ownerNode24": "App owner reports 12 required passes and both original helper equality controls fail. Independent E2E Node24 verification requested."
+      "ownerNode24": "Independent E2E Node24 accepted the corrected source; see independentVerification."
+    },
+    "independentVerification": {
+      "source": "2ca05602422121eb6695ffbca9b846365988e3ec",
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-app-expiry-2ca05602-20261122.json",
+      "sha256": "57c46fe32a970ed486bb2b70b63ae266a1e7af367b80abe69b882157bc699bd0",
+      "node": "v24.22.3",
+      "requiredPassed": 12,
+      "sameIndependentProbe": "Original e04 fails four valid equality cases; corrected commit passes all eight timing controls.",
+      "scope": "Synthetic local account/RPC acceptance of original owned-vault/current signer geometry, exact200liability release retaining41, equality/grace/reversed controls. Durable unknown-attempt and archived finalized transaction attribution remain open."
     }
   }
 }
