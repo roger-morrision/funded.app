@@ -440,11 +440,12 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
   }
 
   async function execute(now = Math.floor(Date.now() / 1000), onlyIds = null) {
+    const selected = onlyIds === null ? null : new Set(onlyIds);
+    await expireUnpayableCycles({store,chain,now,selected,recoveryOnly:true});
     const ready = await chain.readiness();
     await store.transaction(state => { state.serviceStatus = { constrainedPayouts: ready.constrainedPayouts === true, reasons: ready.reasons || [], reason: ready.constrainedPayouts ? null : `On-chain automatic payout is unavailable: ${(ready.reasons || []).join(', ')}`, checkedAt: new Date().toISOString() }; });
     if (!ready.constrainedPayouts) return { status: 'unavailable', reasons: ready.reasons, submitted: 0 };
-    const selected = onlyIds === null ? null : new Set(onlyIds);
-    await expireUnpayableCycles({ store, chain, now, selected });
+    await expireUnpayableCycles({ store, chain, now, selected, skipSavedAttempts:true });
     await backfillPaymentSignatures({ store, chain }).catch(() => 0);
     await commitReviewedCycles({ store, chain, cluster, now, selected, screen: async plan => !await blockedHolderManifest(plan) });
     const plans = await store.transaction(state => structuredClone(Object.values(state.schedules || {}).filter(row =>

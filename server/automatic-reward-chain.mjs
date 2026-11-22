@@ -444,9 +444,9 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
 
   // Release the unpaid part of a reserved cycle that can never be fully paid.
   // Tokens stay in the vault; the program rejects every later payout of the cycle.
-  async function expireCycle(plan,{store}={}) {
+  async function expireCycle(plan,{store,recoveryOnly=false}={}) {
     return executeRewardExpiry({store,plan,connection,programId:program,currentAuthority:authority.publicKey,
-      cluster,expectedProgramDataSha256,send,requireReady});
+      cluster,expectedProgramDataSha256,send,requireReady,recoveryOnly});
   }
 
   const submitLeaves = createRewardBatchSubmitter({ cluster, connection, authority, requireReady,

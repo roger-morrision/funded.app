@@ -151,6 +151,10 @@ transactions before completion. Twenty-nine focused local cases pass, including
 three original regressions on prior source. Independent review of this new
 transport, historical payout/cleanup binding and live financial acceptance remain
 open. Inactive state alone cannot close a saved attempt or permit a fresh signature.
+The [scheduler reachability correction](expiry-scheduler-readiness.md) adds a
+saved-attempt-only recovery pass before fresh readiness, enforced again in the
+chain/journal layer. Its 43 focused local cases include selection and race guards;
+independent acceptance of that delta remains pending.
 
 ## Custody, infrastructure and execution packet
 

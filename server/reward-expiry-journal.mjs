@@ -8,14 +8,16 @@ import {expiryDigest,expiryObjectHash,expiryPlanHash,expirySnapshot,requireExpir
 // Persist signed bytes in the existing locked schedule journal BEFORE submission.
 // An unknown attempt is never replaced, even if its cycle is now inactive.
 export async function executeRewardExpiry({store,plan,connection,programId,currentAuthority,cluster,expectedProgramDataSha256,
-  send,requireReady,release=reviewedMainnetManifest()}){
+  send,requireReady,release=reviewedMainnetManifest(),recoveryOnly=false}){
   plan=structuredClone(plan);
+  assert(typeof recoveryOnly==='boolean','Explicit expiry recovery mode required.');
   expectedProgramDataSha256=String(expectedProgramDataSha256||'').toLowerCase();
   assert(/^[a-f0-9]{64}$/.test(expectedProgramDataSha256),'Pinned expiry ProgramData hash required.');
   assert(store?.read&&store?.transaction&&typeof plan?.id==='string'&&plan.id,'Durable expiry schedule store and ID required.');
   const options={connection,plan,programId,currentAuthority,cluster,expectedProgramDataSha256,release};
   const row=state=>{const saved=state.schedules?.[plan.id];assert(saved&&expiryPlanHash(saved)===expiryPlanHash(plan),'Saved expiry schedule changed.');return saved;};
-  const prior=row(await store.read()).expiryAttempt;
+  const savedRow=row(await store.read()),prior=savedRow.expiryAttempt;
+  if(Object.hasOwn(savedRow,'expiryAttempt'))assert(prior&&typeof prior==='object'&&!Array.isArray(prior),'Invalid saved expiry attempt; reconciliation required.');
   const finish=async attempt=>{
     requireExpiryAttempt(attempt,options);
     if(attempt.state==='verified'){
@@ -39,6 +41,7 @@ export async function executeRewardExpiry({store,plan,connection,programId,curre
     });
   };
   if(prior)return finish(prior);
+  if(recoveryOnly)return {expired:false,status:'no-saved-expiry-attempt'};
   await requireReady(plan);
   const before=await readRewardExpiryContext(options);
   if(!before.record.reserved)return {expired:false,status:'inactive-cycle-without-attributed-expiry',address:before.cycle};

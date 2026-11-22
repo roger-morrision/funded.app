@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T17:11:30.318750+00:00",
+  "baseRevision": "9174aba3062d601101ef5fedf376582e5bdfa6c2",
+  "issueId": "FQA-MN-005-EXPIRY-02",
+  "scope": "Local-only actual scheduler/chain/locked journal reachability with synthetic financial RPC; no live financial or release acceptance",
+  "node": "v24.22.3",
+  "required": 43,
+  "requiredPassed": 43,
+  "counts": {
+    "tests": 43,
+    "passed": 43,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "unchangedQaProbe": {
+    "sha256": "472c51bfd1ea078353896709886e0dc8e03c595188595e9396d389ddb94f88c8",
+    "before": {
+      "exit": 1,
+      "recoveryCalls": 0,
+      "savedState": "prepared"
+    },
+    "after": {
+      "exit": 0,
+      "recoveryCalls": 1,
+      "savedState": "verified",
+      "schedulerStatus": "unavailable",
+      "reportedSubmissions": 0,
+      "newBlockhashCalls": 0,
+      "newBroadcasts": 0
+    }
+  },
+  "coverage": [
+    "selected and empty ID filters",
+    "false and throwing fresh readiness",
+    "landed/unknown/missing proof/no attempt",
+    "concurrent missing attempt and removed/replaced schedule",
+    "immutable original attempt retention across later healthy runs",
+    "falsy saved metadata fails closed",
+    "classification/local grace independence",
+    "fresh authorized expiry and no duplicate proof work"
+  ],
+  "negativeGate": {
+    "missingCurrentElfExit": 1,
+    "requiredPassed": 0,
+    "required": 43
+  },
+  "sourceChecks": {
+    "changedJsSyntaxFiles": 5,
+    "sizeFiles": 1411,
+    "gitDiffCheck": "passed"
+  },
+  "unchanged": {
+    "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "elfBytes": 1110424,
+    "loaderMessages": 1236,
+    "mainnetAdmission": "disabled",
+    "spending": "none"
+  },
+  "sourceSha256Lf": {
+    "server/reward-scheduler.mjs": "bb84ae0e4806b9f2e711982180ea573b80a334a2caefd7adf414799a17fd5598",
+    "server/reward-cycle-expiry.mjs": "2ff9382d9e1fe644db25f08eaa5fa96eaf92f72e8b6be0ab494c154b441d7aeb",
+    "server/automatic-reward-chain.mjs": "36d75169c0755775b18b51d123d7bec6c913361f0e462ad74cc133cdbf074927",
+    "server/reward-expiry-journal.mjs": "edbe68e40272d3c25a0bed22ab506fb1af6ff431f9644e4a55bce4328334ecad",
+    "tests/readiness/reward-expiry-readiness.test.mjs": "d6b92c45b4d3b932800a841371a4369eee2384d540519b5134fd3161ae1d1fe2",
+    "config/reward-expiry-readiness-tests.json": "31858f003296cd20ffb4783ae103c1067b596aae407485c691485c77a4f7883b",
+    "docs/expiry-scheduler-readiness.md": "128727bbceae34838321054d04dc35ee39674650645dda799aa902d68c80bd68",
+    "docs/reward-expiry-recovery-2026-11-22.md": "43a994e77698e6bd4adb31f42b510a508f65b8c6f752c4d9b78d11fa49829423",
+    "docs/mainnet-production-packet-2026-11-22.md": "7c7a5796c678bb8567223a179deff2e638d3fb5511d42e2d25d453db0a7f4df9"
+  },
+  "evidenceSha256": {
+    "missing-elf.json": "3177c8cc7c79882410527deba8f938583087d107a1edfe0101f67e831f1c7c6c",
+    "probe-after-initial.txt": "b379e8ccb3240b142ee273e05190ecc95b6aba088f3cff374df3bbf6a054a463",
+    "probe-after.txt": "4456b97bc7cd66ab054333182800df8d1f66f40e6a50c53370dba99e00d81a74",
+    "probe-before.txt": "295df8f27e890f26daf09b332c3822080935d5b5f21569ed1c08ba529ed0937f",
+    "result.json": "52bf0e2e1bbad13ecefbb58c54c15db2a47b796aa8e9adcf46b54cd0286ce074",
+    "unchanged-qa-probe.test.mjs": "472c51bfd1ea078353896709886e0dc8e03c595188595e9396d389ddb94f88c8"
+  }
+}

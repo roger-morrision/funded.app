@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "scope": "FQA-MN-005-EXPIRY-02 scheduler reachability and existing expiry transport; local synthetic financial RPC, no live acceptance",
+  "files": [
+    {
+      "path": "tests/readiness/reward-expiry-context.test.mjs",
+      "requiredTests": [
+        "historical expiry authenticates original namespace and current signer for SOL",
+        "historical expiry authenticates original namespace and current signer for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "missing saved cycle or unreviewed Mainnet release cannot select a fresh successor namespace",
+        "wrong genesis, plan network and changed reviewed program context reject historical expiry",
+        "changed immutable root, amount, time, asset and leaf count cannot authorize expiry",
+        "foreign or malformed original vault, cycle and reserve cannot be relabeled as historical state",
+        "old operator, paused guard, premature grace and missing time cannot construct expiry",
+        "equal cutoff and payout admit exact grace but reject reversed times for SOL",
+        "equal cutoff and payout admit exact grace but reject reversed times for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "stale reads, unknown cycle layout and invalid unpaid liabilities remain unresolved",
+        "expiry verification rejects wrong release, changed custody, paid amount and unrelated reserve fields",
+        "mocked Devnet adapter attributes the saved original cycle to the successor signature"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-expiry-journal.test.mjs",
+      "requiredTests": [
+        "expiry signed message is durable before broadcast and exact proof survives restart without another send",
+        "landed timeout remains pending until its exact finalized transaction is available",
+        "unknown unlanded attempts block fresh signatures until the original transaction can reconcile",
+        "repeated unknown recovery never obtains a refreshed blockhash or broadcasts another attempt",
+        "inactive state without a saved attributed attempt cannot report expiry completion",
+        "durable write failure cannot broadcast or silently create an expiry attempt",
+        "changed finalized message, signature, fee or balance evidence cannot attribute an inactive cycle",
+        "failed or status-only finalized attempts remain unresolved without new broadcasts",
+        "wrong genesis, later deployment and stale finalized program reads cannot complete an attempt",
+        "changed unpaid release or custody after a successful-looking status stays pending",
+        "corrupt saved signatures, foreign plan and altered verified facts cannot authorize new attempts",
+        "two locked schedule stores cannot race into a second expiry broadcast",
+        "expiry preparation protects the operator reserve including the complete quoted fee",
+        "expiry scheduler refuses unattributed inactive flags but records an attributed exact release",
+        "paused Mainnet context permits read-only recovery while fresh expiry construction remains forbidden",
+        "synthetic Mainnet exact transaction proof reconciles through pause without admitting a fresh expiry",
+        "incomplete production admission rejects expiry before RPC, signing or durable broadcast hooks"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-expiry-readiness.test.mjs",
+      "requiredTests": [
+        "unavailable execute reconciles only saved attempts and still reports zero submissions",
+        "saved reconciliation precedes a throwing fresh readiness check without signing",
+        "selected schedule IDs isolate recovery and leave unselected saved attempts untouched",
+        "missing transaction proof stays pending and readiness cannot authorize another attempt",
+        "rows without saved attempts are excluded even when fresh expiry would otherwise be due",
+        "a concurrently missing attempt cannot fall through to readiness, signing or broadcast",
+        "restored original attempt also blocks replacement after fresh readiness becomes healthy",
+        "lower chain recovery-only mode rejects absent attempts before fresh readiness",
+        "falsy saved-attempt corruption cannot be treated as a fresh signing authorization",
+        "a concurrently removed schedule is not recreated and cannot trigger a fresh attempt",
+        "replaced immutable schedule cannot inherit an older verified expiry completion",
+        "saved recovery ignores current classification, local grace and missing fresh grace configuration",
+        "healthy execute does not repeat saved recovery in the fresh expiry pass",
+        "healthy execute retains the normal authorized fresh expiry pass"
+      ]
+    }
+  ]
+}

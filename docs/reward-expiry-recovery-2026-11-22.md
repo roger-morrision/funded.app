@@ -74,6 +74,12 @@ an execution path could instantiate a network evidence provider.
 
 ## Remaining release work
 
+FQA-MN-005-EXPIRY-02 subsequently fixes the scheduler readiness reachability gap;
+see [the scoped scheduler handoff](expiry-scheduler-readiness.md). Saved recovery
+runs before fresh readiness, with a lower-layer recovery-only mode that cannot
+fall through to signing when the saved attempt is absent. This preserves the
+covered transport proofs while adding actual scheduler boundary coverage.
+
 Independent review of this exact source and actual configured-program live
 financial acceptance remain required. The existing historical payout/receipt
 cleanup derivations, authenticated original bank/complete replay inputs, full
