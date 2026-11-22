@@ -70,6 +70,8 @@ function systemOutflow(ix, signer) {
 
 export function evaluate({ role, signer, decoded, env = process.env, usage, now = Date.now(), adminWallets = new Set(), simulatedOutflow = null }) {
   const violations = [], limits = signerLimits(env), programs = allowedPrograms(env);
+  const routers = new Set([env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID, env.FUNDED_FEE_ROUTER_PROGRAM_ID,
+    ...String(env.FUNDED_SIGNER_EXTRA_PROGRAMS || '').split(',').map(value => value.trim())].filter(Boolean));
   if (!decoded.signers.includes(signer)) violations.push('signer-not-required');
   let explicit = 0n;
   for (const ix of decoded.instructions) {
@@ -78,7 +80,7 @@ export function evaluate({ role, signer, decoded, env = process.env, usage, now 
     if (ix.program === SYSTEM && ix.data.length >= 4 && [1, 5, 7, 10].includes(ix.data.readUInt32LE(0)) && ix.accounts.includes(signer))
       violations.push('system-authority-change');
     const denied = ix.data.length >= 8 && DENIED_DISCRIMINATORS.get(ix.data.subarray(0, 8).toString('hex'));
-    if (denied && (ix.program === env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID || ix.program === env.FUNDED_FEE_ROUTER_PROGRAM_ID)) violations.push(`router-${denied}`);
+    if (denied && routers.has(ix.program)) violations.push(`router-${denied}`);
     explicit += systemOutflow(ix, signer);
   }
   const outflow = simulatedOutflow !== null && simulatedOutflow > explicit ? simulatedOutflow : explicit;

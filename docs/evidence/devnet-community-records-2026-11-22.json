@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "scope": "read-only finalized Devnet community re-verification",
+  "checkedAt": "2026-11-22T11:19:15.519Z",
+  "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+  "programDataSha256": "ac28f8e9002e6d42efd6e8bd320665192900b3232e00503edb7f757299456425",
+  "drops": [
+    {
+      "mint": "6keEVQn7yY59e7Fpnt1jeaWmk9XkyaCgXiH4SLn91a3y",
+      "basis": "devnet-qa-cutoff",
+      "migrationSlot": 523850407,
+      "openingSignature": "238qaaAR3LbZqaU8M4zCdviPnAACyKbETAGhV3govWP5GRcNq3MSe6KwoFrXZnyBjqtWAeXG2eAqccTA7WpR78zN",
+      "status": "drop-closed",
+      "reservedBaseUnits": "30000000000000",
+      "claimedBaseUnits": "0",
+      "claimedWalletCount": 0,
+      "leafCount": 28,
+      "expired": true
+    },
+    {
+      "mint": "Kj2yDt7s3g58KP8bcMTkLPZSPWYZBcdK8MpzqUQNj3c",
+      "basis": "pump-migration",
+      "migrationSlot": 523851480,
+      "openingSignature": null,
+      "status": "funded",
+      "reservedBaseUnits": "30000000000000",
+      "claimedBaseUnits": "0",
+      "claimedWalletCount": 0,
+      "leafCount": 28,
+      "expired": true
+    },
+    {
+      "mint": "FazNkvyhEmu8jMPzDpe9cPwbLS6VBpxSsi6LpHNPk3uH",
+      "basis": "pump-migration",
+      "migrationSlot": 523857109,
+      "openingSignature": null,
+      "status": "funded",
+      "reservedBaseUnits": "30000000000000",
+      "claimedBaseUnits": "0",
+      "claimedWalletCount": 0,
+      "leafCount": 28,
+      "expired": true
+    },
+    {
+      "mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+      "basis": "pump-migration",
+      "migrationSlot": 523869728,
+      "openingSignature": "3dwKMfBaXLJjURk4qJqt3u4si5ZJHvkF3s6uSt86FTdE7dEJ9ZqxGTrgwtpwDkBvYXuofC3FRxxZZnaAkLXHSvjZ",
+      "status": "drop-closed",
+      "reservedBaseUnits": "30000000000000",
+      "claimedBaseUnits": "876464",
+      "claimedWalletCount": 3,
+      "leafCount": 28,
+      "expired": true
+    }
+  ],
+  "payments": [
+    {
+      "mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+      "signature": "42VZcnFY7h2X6Rj3nNaaGherbHSzf9nS61HEursE5AGN1QmZ5E9mc4HiZEBT3mFdX21fWKnxQxxyJtNFATqUwyET",
+      "recipient": "2HwjRn8f8Lq8Bq2ZMWcxkHG1zxCNf3EBPh44nB35xC6x",
+      "amountBaseUnits": "37918",
+      "payment": "HwccgkcN8dGhetg9gQWWHPxGRaYRdtMKri2M3qTFC4rx"
+    },
+    {
+      "mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+      "signature": "yhM8VJooJHTXZJVH1NjkXdJdvMKmKJcH7VNQWedPhRgbtvompPxTFTPhKAe9xF2FXuan6dzPEUWXdCeesrn1Piz",
+      "recipient": "3xp4upujxb9EYJKJh27xs27Nzp1p58788pA2QUEbH5mi",
+      "amountBaseUnits": "800499",
+      "payment": "4m3NXMq4VjMkZJSG37cc5PMJTt5umfM8U3jjuNAT32Bk"
+    },
+    {
+      "mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+      "signature": "381bCqX65BisnyZciQ29yqk5bZoCAiXi9q3NVeQD3kZBKX6k2E4tzGxNGxuw2hcqJPCHAGpfdQjLcDiP4CWHxqFW",
+      "recipient": "2g3UKQwFvdKeHcPTzZLWc8tVXKD1ejh4PLs9Kghgpzjj",
+      "amountBaseUnits": "38047",
+      "payment": "4Uf5TcaBKEiNgNkmrpLpzDMseMgsxpphXRmVZDVFv9w9"
+    }
+  ]
+}

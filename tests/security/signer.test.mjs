@@ -9,11 +9,12 @@ import {createSigner,replayJournal,appendSignerJournal} from '../../server/signe
 import {DENIED_ROUTER_INSTRUCTIONS} from '../../server/signer-policy.mjs';
 
 const role='treasury-operations',now=1_800_000_000_000;
-function fixture(journal=()=>{}) {
+function fixture(journal=()=>{},extraProgram=null) {
   const key=Keypair.generate(),admin=Keypair.generate(),program=Keypair.generate().publicKey;
   const env={FUNDED_SIGNER_TOKEN:'test-only-token-'.repeat(4),FUNDED_ADMIN_WALLETS:String(admin.publicKey),
     FUNDED_ADMIN_WITHDRAW_MAX_LAMPORTS:'100',FUNDED_ADMIN_WITHDRAW_DAILY_LAMPORTS:'150',
-    FUNDED_V3_FEE_ROUTER_PROGRAM_ID:String(program),FUNDED_SIGNER_ENFORCE:'treasury'};
+    FUNDED_V3_FEE_ROUTER_PROGRAM_ID:String(program),FUNDED_SIGNER_ENFORCE:'treasury',
+    ...(extraProgram?{FUNDED_SIGNER_EXTRA_PROGRAMS:String(extraProgram)}:{})};
   const signer=createSigner({env,keys:new Map([[role,key],['authority',key]]),now:()=>now,journal});
   const request=(ix,payer=admin.publicKey,which=role)=>({role:which,version:'legacy',message:new Transaction({
     feePayer:payer,recentBlockhash:String(Keypair.generate().publicKey)}).add(ix).serializeMessage().toString('base64')});
@@ -39,6 +40,19 @@ test('hot signer cannot execute any router administrative instruction in observe
     assert.equal(result.status,403,name);
     assert.match(result.body.error,/router-/);
   }
+});
+test('an extra allowlisted router cannot use the hot signer for administration',async()=>{
+  const extra=Keypair.generate().publicKey,f=fixture(()=>{},extra);
+  for(const name of DENIED_ROUTER_INSTRUCTIONS){
+    const ix=new TransactionInstruction({programId:extra,keys:[{pubkey:f.key.publicKey,isSigner:true,isWritable:true}],
+      data:createHash('sha256').update(`global:${name}`).digest().subarray(0,8)});
+    const result=await f.signer.sign(f.request(ix,f.key.publicKey,'authority'));
+    assert.equal(result.status,403,name);
+    assert.match(result.body.error,/router-/);
+  }
+  const ordinary=new TransactionInstruction({programId:extra,keys:[{pubkey:f.key.publicKey,isSigner:true,isWritable:true}],
+    data:createHash('sha256').update('global:claim_community_airdrop').digest().subarray(0,8)});
+  assert.equal((await f.signer.sign(f.request(ordinary,f.key.publicKey,'authority'))).status,200);
 });
 test('journal failure latches signing closed and makes health fail',async()=>{
   const f=fixture(()=>{throw Error('disk unavailable');});

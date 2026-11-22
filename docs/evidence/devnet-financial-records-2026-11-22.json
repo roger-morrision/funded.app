@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "scope": "read-only finalized Devnet financial re-verification",
+  "checkedAt": "2026-11-22T11:17:21.089Z",
+  "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+  "programDataSha256": "ac28f8e9002e6d42efd6e8bd320665192900b3232e00503edb7f757299456425",
+  "conversions": [
+    {
+      "id": "4e945f8ea1a0652c7b473a72ade360449d5563e708d0c8bbed0e939cac26ba5c",
+      "signature": "2PiFVdAdBwop7RxYhkUA8V3a21DDL3iKGRECKAfLL7afkG19uBdzF8JJLMZG4NFwDgsiamQoLSUBE9o7Sas4nr9b",
+      "slot": 524640580,
+      "mint": "HpYowqdwGWhPC9xbfdzS5UbGsDtjhieE96oATGGkMgo",
+      "spentQuoteRaw": "103",
+      "receivedLamports": "57257",
+      "allocationCount": 2
+    },
+    {
+      "id": "c5895d730a7ee8ba935d401f8fbea4fc1db71570e55ec0f0e014e1e16f6e111d",
+      "signature": "25pbY3t7W8qeivbei9QtWkgW42PxsA6dHBzmwSHuVCMHcbMvFbCU6yCgTbzvfvu8ugxnxxbABjs5r3RDrLjNpJGP",
+      "slot": 524640656,
+      "mint": "5jp6iPdAxuUe9q3K6bfGBJzLrNWFZVQ68ahgovujT4uu",
+      "spentQuoteRaw": "27",
+      "receivedLamports": "13739",
+      "allocationCount": 1
+    },
+    {
+      "id": "c05337fe11f91abb6b8550dc0bb2bb5786df6c48ffafb5863a3578a0c5833eff",
+      "signature": "WwgBxgUfsnBnDHpbM57XfEdVXZzrzCw1vEUmBvHtQ4iQKcULS9YMb6nzjQS7gA5LjXK5TCNJbMFa29CsMc7Xs5h",
+      "slot": 524640424,
+      "mint": "7pYoZgrURo5m2mjnmirbZTQCPod8x1iroAtZQ3uC9EpB",
+      "spentQuoteRaw": "19",
+      "receivedLamports": "9162",
+      "allocationCount": 2
+    }
+  ],
+  "milestones": [
+    {
+      "key": "agency:6keEVQn7yY59e7Fpnt1jeaWmk9XkyaCgXiH4SLn91a3y:2:0",
+      "signature": "By1nvPdQJHbLVQFcM5kAkVA7hdM4xMKsyNCa3zn7Cp2Qt3LqudYwYdpymf9gWctvvBgcPpH3y2WqAcpA8G8muHf",
+      "slot": 523882837,
+      "mint": "6keEVQn7yY59e7Fpnt1jeaWmk9XkyaCgXiH4SLn91a3y",
+      "agent": 2,
+      "spentLamports": "83368",
+      "burnedBaseUnits": "20398258281"
+    },
+    {
+      "key": "agency:GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb:2:0",
+      "signature": "4ztJqc6aL1x62EyHLPWe391dxdgmZ5F8DZneHCkavxiTSToLkjnCWjfbFiEb5gH3ZrJDGS79Qoaj4xYLA3kfoq4i",
+      "slot": 523899194,
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "agent": 2,
+      "spentLamports": "47118",
+      "burnedBaseUnits": "11527733308"
+    },
+    {
+      "key": "agency:oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X:1:0",
+      "signature": "phN63RmtfeLx2YJF8xnnGr7L53tkoVj6WJmFVzb9nwSAK2jen2p4j7M7GUNqqG7w3asqEqT7ig8uTQxXtmLvuJc",
+      "slot": 523881625,
+      "mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+      "agent": 1,
+      "spentLamports": "25502",
+      "burnedBaseUnits": "6239614467"
+    },
+    {
+      "key": "agency:FazNkvyhEmu8jMPzDpe9cPwbLS6VBpxSsi6LpHNPk3uH:1:0",
+      "signature": "4bFAdGkvT5PPD3gXAMur17ExfwubgjbXb9BGNitKb4UwrVoQEjyZU1ptBsp3bhc9mcA817kAhbqmZ12xUkkDsz6p",
+      "slot": 523880796,
+      "mint": "FazNkvyhEmu8jMPzDpe9cPwbLS6VBpxSsi6LpHNPk3uH",
+      "agent": 1,
+      "spentLamports": "17001",
+      "burnedBaseUnits": "4159454435"
+    },
+    {
+      "key": "agency:GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb:1:0",
+      "signature": "5mHzfgi8s3r6LHXYyLUxHN4eKDDUTwN2P3KW8BEpb8K1Q8sVqhG3m6kb4fCKs1Wzi5Mn3hrgTNTB77c6GvnAgw54",
+      "slot": 523885588,
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "agent": 1,
+      "spentLamports": "47118",
+      "burnedBaseUnits": "11529018244"
+    },
+    {
+      "key": "agency:Kj2yDt7s3g58KP8bcMTkLPZSPWYZBcdK8MpzqUQNj3c:1:0",
+      "signature": "5C3uNgbWBceb56DxWdjBZ7L82E9F4anuGEL6VpWnY9tVcQx9cgcpbqcXLjGDaKduKssv9QxaVaCpmmRBZ8KKeYk2",
+      "slot": 523886303,
+      "mint": "Kj2yDt7s3g58KP8bcMTkLPZSPWYZBcdK8MpzqUQNj3c",
+      "agent": 1,
+      "spentLamports": "36812",
+      "burnedBaseUnits": "9006200670"
+    },
+    {
+      "key": "agency:Kj2yDt7s3g58KP8bcMTkLPZSPWYZBcdK8MpzqUQNj3c:2:0",
+      "signature": "592fV24ZgeXNcs2pqGydBtyTTBscLyUW63LyxvZkp1eKKmDTrG4hHnB1Sc8e3rc2ZmdpqQAMgssA4J8gFkTNM1CY",
+      "slot": 523881843,
+      "mint": "Kj2yDt7s3g58KP8bcMTkLPZSPWYZBcdK8MpzqUQNj3c",
+      "agent": 2,
+      "spentLamports": "36813",
+      "burnedBaseUnits": "9007232704"
+    },
+    {
+      "key": "agency:6keEVQn7yY59e7Fpnt1jeaWmk9XkyaCgXiH4SLn91a3y:1:0",
+      "signature": "93fzki1Y6dPpGMXFLPUDYfqYBHYkq97TCDVAYpNKiCZnTsgvqexELBYx8JbExPTejvN8axLvVoJuWzCZE1WuEP9",
+      "slot": 523885100,
+      "mint": "6keEVQn7yY59e7Fpnt1jeaWmk9XkyaCgXiH4SLn91a3y",
+      "agent": 1,
+      "spentLamports": "83367",
+      "burnedBaseUnits": "20393988441"
+    },
+    {
+      "key": "agency:FazNkvyhEmu8jMPzDpe9cPwbLS6VBpxSsi6LpHNPk3uH:2:0",
+      "signature": "63cwcPCbhVhHfWuJRahtZ2XbMHtk3tab4F5xrjSmFtJ6YZao9u25c8sxcQuBvsN3MFsfThJHa9BcaMd1kJV7RSr3",
+      "slot": 523885358,
+      "mint": "FazNkvyhEmu8jMPzDpe9cPwbLS6VBpxSsi6LpHNPk3uH",
+      "agent": 2,
+      "spentLamports": "17002",
+      "burnedBaseUnits": "4159534921"
+    },
+    {
+      "key": "agency:oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X:2:0",
+      "signature": "Wej3bHS9hjMtqs9dxKL4pg1imH6sEQ3vt4eyoQ3wS2wHsTqkhHMpsCe15GCkk3Pq3RfSFSLBDM1nRLgCwnvq7dH",
+      "slot": 523886559,
+      "mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+      "agent": 2,
+      "spentLamports": "25502",
+      "burnedBaseUnits": "6239238082"
+    }
+  ]
+}
