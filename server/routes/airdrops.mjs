@@ -63,12 +63,15 @@ export function createAirdropsRoutes({
             if (!evidence.account?.executable || evidence.sha256 !== config.expectedHash)
               throw new Error('Reward program identity or bytecode could not be verified.');
             const claim = claimLedger.communityDrops?.[launch.mint];
+            if (claim && claim.eligibilityMint !== claim.manifest?.eligibilityMint)
+              throw new Error('Stored community eligibility mint differs from its manifest.');
             const recorded = state.communityReserveReceipts?.[launch.mint]?.signature
               || configuredReceipts[launch.mint] || claim?.fundingSignature;
             const reserve = await readCommunityReserveStatus({ connection, programId, authority:config.authority,
               fundingAuthority:launch.creatorWallet, mint:launch.mint, reservedTokens:Number(launch.communityAirdrop.reservedTokens),
               fundingSignature:typeof recorded === 'string' ? recorded : null,
-              expectedEligibilityMint:fundedTokenMint, dropOpeningSignature:claim?.openingSignature || null });
+              expectedEligibilityMint:claim?.eligibilityMint || fundedTokenMint,
+              dropOpeningSignature:claim?.openingSignature || null });
             let claimedWalletCount = null;
             if (reserve.verified && ['drop-active', 'drop-closed'].includes(reserve.status)) {
               try { claimedWalletCount = await verifiedCommunityClaimedWalletCount({ connection, programId,

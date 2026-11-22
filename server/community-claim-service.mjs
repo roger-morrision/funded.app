@@ -62,7 +62,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
   async function readReserve(row, openingSignature = null) {
     return reserveReader({ connection, programId:program, authority:issuer, fundingAuthority:row.creator,
       mint:row.mint, reservedTokens:row.reservedTokens, fundingSignature:row.fundingSignature,
-      expectedEligibilityMint:eligible, dropOpeningSignature:openingSignature });
+      expectedEligibilityMint:new PublicKey(row.eligibilityMint), dropOpeningSignature:openingSignature });
   }
 
   async function prepared(mint) {
@@ -92,7 +92,8 @@ export function createCommunityClaimService({ connection, store, programId, auth
     if (!mintInfo || (!mintInfo.owner.equals(TOKEN_PROGRAM_ID) && !mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID))
       || mintInfo.data.length < 45 || mintInfo.data[44] > 9) throw new Error('Launch mint is not a finalized supported SPL mint.');
     const amount = u64(BigInt(reservedTokens) * 10n ** BigInt(mintInfo.data[44]));
-    const base = { mint:launchMint.toBase58(), creator:creatorAddress, reservedTokens, fundingSignature, migrationSignature };
+    const base = { mint:launchMint.toBase58(), creator:creatorAddress, reservedTokens, fundingSignature, migrationSignature,
+      eligibilityMint:eligible.toBase58() };
     const reserve = await readReserve(base);
     if (reserve.status !== 'funded' || reserve.verified !== true)
       throw new Error('Launch reserve lacks a verified finalized funding receipt and full vault balance.');
@@ -155,7 +156,8 @@ export function createCommunityClaimService({ connection, store, programId, auth
     if(prior){
       if(prior.creator!==args.creator||prior.reservedTokens!==args.reservedTokens||prior.fundingSignature!==args.fundingSignature
         ||prior.migrationSignature!==args.migrationSignature||(prior.snapshotBasis||'pump-migration')!==args.snapshotBasis
-        ||prior.programId!==program.toBase58()||prior.authority!==issuer.toBase58()||prior.eligibilityMint!==eligible.toBase58())
+        ||prior.programId!==program.toBase58()||prior.authority!==issuer.toBase58()
+        ||prior.eligibilityMint!==prior.manifest?.eligibilityMint)
         throw new Error('Community manifest for this mint is immutable and conflicts with new preparation inputs.');
       return structuredClone(prior);
     }
@@ -184,7 +186,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
       new PublicKey(record.tokenProgram));
     const source = await connection.getTokenAccountBalance(tokenAccount, 'finalized');
     return buildCommunityInitializeInstruction({ programId:program, authority:issuer,
-      creator:record.creator, mint:record.mint, eligibilityMint:eligible, tokenProgram:record.tokenProgram,
+      creator:record.creator, mint:record.mint, eligibilityMint:record.eligibilityMint, tokenProgram:record.tokenProgram,
       manifest:record.manifest, sourceVaultBalance:source.value.amount, accountSetup });
   }
 
@@ -200,7 +202,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
       throw new Error('Snapshot approval must be signed by the current program upgrade owner.');
     return buildCommunitySnapshotApprovalInstruction({programId:program,appOwner,
       programData:evidence.programDataAddress,authority:issuer,creator:record.creator,mint:record.mint,
-      eligibilityMint:eligible,manifest:record.manifest});
+      eligibilityMint:record.eligibilityMint,manifest:record.manifest});
   }
 
   async function recordOpening({ mint, signature }) {

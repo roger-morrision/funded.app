@@ -55,13 +55,13 @@ export async function indexCommunityClaims({ connection, ledger, programId, auth
     if (!record?.openingSignature || record.programId !== program.toBase58()) continue;
     if ((record.cluster || 'devnet')!==cluster) throw new Error('Community manifest network differs from the selected network.');
     if (record.authority !== issuer.toBase58()
-      || record.eligibilityMint !== eligible.toBase58()
+      || record.eligibilityMint !== record.manifest?.eligibilityMint
       || !Array.isArray(record.manifest?.leaves) || !positive(record.reservedBaseUnits))
       throw new Error('Opened community manifest has an invalid program or eligibility identity.');
     const { drop } = communityAddresses({ programId:program, authority:issuer, mint:record.mint });
     if (record.manifest.drop !== drop.toBase58()) throw new Error('Opened community manifest has an invalid drop address.');
     const info = await connection.getAccountInfo(drop, 'finalized');
-    const claimed = checkedDrop(info, record, program, issuer, eligible);
+    const claimed = checkedDrop(info, record, program, issuer, new PublicKey(record.eligibilityMint));
     const leaves = record.manifest.leaves, paymentStart = payments.length;
     const recipients = new Set(), indexes = new Set();
     let paid = 0n;
@@ -88,7 +88,8 @@ export async function indexCommunityClaims({ connection, ledger, programId, auth
       }
     }
     if (paid !== claimed) throw new Error('Finalized community payments do not reconcile with the drop claimed total.');
-    drops.push({ mint:record.mint, drop:drop.toBase58(), claimCount:payments.length - paymentStart,
+    drops.push({ mint:record.mint, eligibilityMint:record.eligibilityMint,
+      drop:drop.toBase58(), claimCount:payments.length - paymentStart,
       claimedBaseUnits:claimed.toString() });
   }
   const result = { cluster, programId:program.toBase58(), eligibilityMint:eligible.toBase58(),
