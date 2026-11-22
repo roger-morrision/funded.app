@@ -1411,7 +1411,7 @@
   "appExpiryRecoveryReview": {
     "appSource": "9174aba3062d601101ef5fedf376582e5bdfa6c2",
     "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
-    "scope": "Contract owner source and synthetic runtime review; independent Node24 acceptance requested.",
+    "scope": "Contract owner source and synthetic runtime review; independent Node24 accepted for the stated local scope.",
     "runtimeContractSourceDiffLines": 0,
     "reviewNode": "v26.13.1",
     "requiredTests": 29,
@@ -1433,6 +1433,23 @@
       "Failed or expired attempt replacement has no automatic approved policy.",
       "Changes to the original reserve or paid state before reconciliation retain an unresolved original attempt.",
       "Production roles, live acceptance and archive/scale/funding gates remain open."
-    ]
+    ],
+    "independentVerification": {
+      "source": "9174aba3062d601101ef5fedf376582e5bdfa6c2",
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-expiry-recovery-9174aba3-20261122.json",
+      "sha256": "35ef8babbf5c2b93f4fd989c4b3e3fb572672669a6fc6138e370e12855865512",
+      "node": "v24.22.3",
+      "requiredPass": 29,
+      "priorSameThreeBodiesFail": 3,
+      "missingCurrentElf": "Exit1,0/29required passed",
+      "scope": "Synthetic local runtime persistence and exact attribution; no live execution or whole release acceptance."
+    },
+    "nextAffectedAppScope": {
+      "owner": "App Dev",
+      "issue": "Committed historical payout construction",
+      "source": "At9174 scheduler calls ensureCycle for retained commitments; ensureCycle/inspectReadyLeaf/prepareLeaf derive current-authority namespace. Contract payout accepts original stored-authority vault and uses current operator guard.",
+      "action": "Resolve authenticated retained cycle/vault/payment addresses for existing commitments; preserve successor fresh funding namespaces and immutable proof/receipt/paid accounting.",
+      "cleanupCapability": "complete_reward_cycle and close_reward_payment are Devnet-only in lib.rs306-309; reward-rent also rejects/skips outside Devnet. This optional cleanup capability does not add a required Mainnet entry point."
+    }
   }
 }
