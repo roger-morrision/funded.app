@@ -1565,7 +1565,7 @@
       "sourceAssessment": "Finalized payout verifier validates positive fee and unit deltas, but non-self receipt path does not reconcile fee against native balance conservation or exact payer/rent effects.",
       "scope": "Synthetic verifier consistency. No live exploit or financial effect claimed. Existing45passing cases remain evidence for their covered paths.",
       "owner": "App Dev with independent E2E Node24 reproduction requested.",
-      "issue": "FQA-MN-005-PAYOUT-01",
+      "issue": "FQA-MN-005-PAYOUT-02",
       "independentVerification": {
         "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/payout-native-accounting-finding-969809a0.json",
         "sha256": "7a9359ff7376666d4f9c730d16e6a3ac51f45801a1a810f52fe3effc1a4f7ed7",
@@ -1577,6 +1577,14 @@
         "affected": "ordinarySOL,ordinary/selfUSDCandToken2022-address",
         "probeSha256": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49",
         "financialEffects": "Synthetic only,one original fixture blockhash/broadcast each,no fresh replacement."
+      },
+      "canonicalIdCorrection": {
+        "previousReportedId": "FQA-MN-005-PAYOUT-01",
+        "canonicalId": "FQA-MN-005-PAYOUT-02",
+        "separateIssue": "PAYOUT-01 tracks clean-restart paidAt/receipt-mode metadata loss.",
+        "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/payout-native-accounting-id-correction-20261123.json",
+        "sha256": "b5ce46f8a59778e6753aa118df95472d575b2124464f2877aa57d18676e623f6",
+        "scope": "Canonical identifier correction only; original independent finding preserved by its original hash; no acceptance or runtime change."
       }
     },
     "coveredIndependentVerification": {
