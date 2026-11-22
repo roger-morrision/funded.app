@@ -19,7 +19,8 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
     if(record.authority!==payer.toBase58()||record.programId!==programId)throw new Error('Community delivery authority differs from the saved manifest.');
     return execute({store,connection,authority,key:`community:${record.mint}:${suffix}`,
       intent:{cluster:'devnet',approvedHash,programId,authority:payer.toBase58(),mint:record.mint,
-        root:record.manifest.root,snapshotHash:record.manifest.snapshotHash,action:suffix},prepare,prove,reconcileOnly});
+        root:record.manifest.root,snapshotHash:record.manifest.snapshotHash,action:suffix},prepare,prove,reconcileOnly,
+      expiresAt:Number(record.manifest.expiresAt),now});
   }
   async function recoverableAttempt(record,action){
     const row=(await store.read()).communityExecutions?.[`community:${record.mint}:${action}`];
@@ -76,13 +77,11 @@ export function createCommunityAutoDelivery({connection,store,service,authority,
     }
     const built=buildCommunityClaimInstruction({programId,authority:payer,mint:record.mint,tokenProgram:record.tokenProgram,
       manifest:record.manifest,recipient:leaf.recipient,payer,allowProgramRecipient:supportsProgramRecipients(record)});
-    const result=await run(record,leaf.recipient,{reconcileOnly,prepare:async()=>{
+    return run(record,leaf.recipient,{reconcileOnly,prepare:async()=>{
       const ata=createAssociatedTokenAccountIdempotentInstruction(payer,new PublicKey(built.recipientToken),
         new PublicKey(leaf.recipient),new PublicKey(record.mint),new PublicKey(record.tokenProgram));
       return transaction([ata,built.instruction],[512,92]);
     },prove:row=>verifyDelivery({connection,signature:row.signature,built,programId,recipient:leaf.recipient,index:leaf.index})});
-    if(reconcileOnly&&result.status==='verification-pending')return {...result,status:'reconciliation-pending'};
-    return result;
   }
   return {open,pay};
 }
