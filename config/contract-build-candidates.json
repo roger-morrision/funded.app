@@ -10,8 +10,8 @@
     "feature": "devnet-v3-program",
     "optimization": "z",
     "strip": true,
-    "bytes": 1168120,
-    "sha256": "1bd06db87d6e5b4f1a84875695daec6d223f00c8820e8b06f9c18a2f3be7bda3",
+    "bytes": 1168216,
+    "sha256": "7bbf17a0cb16f6fe00d6fac1c38e050ecc3d2897d9aaa3713db9d7af4df37365",
     "developerLockPeriodsSeconds": [
       300,
       21600,
@@ -24,8 +24,8 @@
     "feature": "mainnet-v3-program",
     "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
     "identityScope": "public-test-fixture-only",
-    "bytes": 1075200,
-    "sha256": "78d7d66b237bffe6a189ab69f293e3a0d970730371dc98bd8a505cb5dd4293ea",
+    "bytes": 1075328,
+    "sha256": "b619ab3162d476d6cc42f916f06c2c09927942d787c1fef53f0c3756f6284e52",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [
@@ -44,8 +44,8 @@
     "feature": "devnet-v3-program,configurable-rich-assets",
     "optimization": "z",
     "strip": true,
-    "bytes": 1204240,
-    "sha256": "65373cf3cb62b7cfa5998bd3d31b55b489311fb09f80564da4883acb849c8d5c",
+    "bytes": 1204336,
+    "sha256": "113881a532214b5649b3c5088b3549cc6e4d03d828680f5cc1e1b6bb6aa5097f",
     "developerLockPeriodsSeconds": [
       300,
       21600,

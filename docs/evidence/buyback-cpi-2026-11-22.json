@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "local-only SBF execution; public Devnet snapshots; synthetic policies and funding; ephemeral in-memory signers",
-  "routerBinarySha256": "78d7d66b237bffe6a189ab69f293e3a0d970730371dc98bd8a505cb5dd4293ea",
+  "routerBinarySha256": "b619ab3162d476d6cc42f916f06c2c09927942d787c1fef53f0c3756f6284e52",
   "fixtures": [
     {
       "venue": "pool",

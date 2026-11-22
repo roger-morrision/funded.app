@@ -173,7 +173,7 @@ pub fn initialize_drop_from_reward_vault(
     leaf_count: u32,
 ) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.protocol_authority.key(), ctx.program_id)?;
-    assert_empty_drop_vault(&ctx.accounts.vault_token_account)?;
+    assert_safe_drop_vault(&ctx.accounts.vault_token_account)?;
     require!(ctx.accounts.reward_vault.authority == ctx.accounts.protocol_authority.key(), ErrorCode::InvalidRotationAuthority);
     let reserve_info = ctx.accounts.reward_reserve.to_account_info();
     if reserve_info.owner == ctx.program_id {
@@ -184,12 +184,14 @@ pub fn initialize_drop_from_reward_vault(
     } else {
         require!(reserve_info.data_is_empty() && reserve_info.lamports() == 0, ErrorCode::RewardReserveExceeded);
     }
-    require!(ctx.accounts.reward_vault_token_account.amount == total_amount, ErrorCode::InvalidAmount);
+    require!(ctx.accounts.reward_vault_token_account.amount >= total_amount, ErrorCode::InvalidAmount);
     fill_drop(&mut ctx.accounts.drop, ctx.accounts.protocol_authority.key(), ctx.accounts.creator.key(),
         ctx.accounts.app_owner.key(), ctx.accounts.mint.key(), ctx.accounts.eligibility_mint.key(),
         merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at,
         total_amount, leaf_count, ctx.bumps.drop, configured_window(ctx.program_id, &ctx.accounts.mint.key(), ctx.remaining_accounts)?)?;
     assert_snapshot_approval(&ctx.accounts.snapshot_approval, &ctx.accounts.drop)?;
+    let destination_before = ctx.accounts.vault_token_account.amount;
+    let source_before = ctx.accounts.reward_vault_token_account.amount;
     let authority = ctx.accounts.reward_vault.authority;
     let mint = ctx.accounts.reward_vault.mint;
     let bump = [ctx.accounts.reward_vault.bump];
@@ -202,7 +204,8 @@ pub fn initialize_drop_from_reward_vault(
     ), total_amount, ctx.accounts.mint.decimals)?;
     ctx.accounts.reward_vault_token_account.reload()?;
     ctx.accounts.vault_token_account.reload()?;
-    require!(ctx.accounts.reward_vault_token_account.amount == 0 && ctx.accounts.vault_token_account.amount == total_amount, ErrorCode::InvalidAmount);
+    require!(source_before.checked_sub(ctx.accounts.reward_vault_token_account.amount) == Some(total_amount)
+        && ctx.accounts.vault_token_account.amount.checked_sub(destination_before) == Some(total_amount), ErrorCode::InvalidAmount);
     emit!(CommunityDropOpened { drop:ctx.accounts.drop.key(), mint:ctx.accounts.mint.key(), creator:ctx.accounts.creator.key(),
         eligibility_mint:ctx.accounts.eligibility_mint.key(), migration_slot, snapshot_slot, snapshot_hash,
         merkle_root, total_amount, expires_at:ctx.accounts.drop.expires_at, app_owner:ctx.accounts.app_owner.key() });
@@ -243,8 +246,8 @@ fn fill_drop(drop: &mut Account<CommunityDrop>, protocol_authority: Pubkey, crea
 
 // The service creates the canonical ATA before opening the drop. It cannot
 // supply a funded or delegated vault in place of the formerly fresh account.
-fn assert_empty_drop_vault(vault: &TokenAccount) -> Result<()> {
-    require!(vault.amount == 0 && vault.delegate.is_none() && vault.close_authority.is_none(),
+fn assert_safe_drop_vault(vault: &TokenAccount) -> Result<()> {
+    require!(vault.delegate.is_none() && vault.close_authority.is_none(),
         ErrorCode::InvalidRewardTokenAccount);
     Ok(())
 }
@@ -262,12 +265,13 @@ pub fn initialize_drop(
     leaf_count: u32,
 ) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(), &ctx.accounts.protocol_authority.key(), ctx.program_id)?;
-    assert_empty_drop_vault(&ctx.accounts.vault_token_account)?;
+    assert_safe_drop_vault(&ctx.accounts.vault_token_account)?;
     fill_drop(&mut ctx.accounts.drop, ctx.accounts.protocol_authority.key(), ctx.accounts.creator.key(),
         ctx.accounts.app_owner.key(), ctx.accounts.mint.key(), ctx.accounts.eligibility_mint.key(),
         merkle_root, snapshot_hash, migration_signature, migration_slot, snapshot_slot, migration_at,
         total_amount, leaf_count, ctx.bumps.drop, configured_window(ctx.program_id, &ctx.accounts.mint.key(), ctx.remaining_accounts)?)?;
     assert_snapshot_approval(&ctx.accounts.snapshot_approval, &ctx.accounts.drop)?;
+    let destination_before = ctx.accounts.vault_token_account.amount;
     token_interface::transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.key(),
@@ -282,7 +286,7 @@ pub fn initialize_drop(
         ctx.accounts.mint.decimals,
     )?;
     ctx.accounts.vault_token_account.reload()?;
-    require!(ctx.accounts.vault_token_account.amount == total_amount, ErrorCode::InvalidAmount);
+    require!(ctx.accounts.vault_token_account.amount.checked_sub(destination_before) == Some(total_amount), ErrorCode::InvalidAmount);
     emit!(CommunityDropOpened { drop:ctx.accounts.drop.key(), mint:ctx.accounts.mint.key(), creator:ctx.accounts.creator.key(), eligibility_mint:ctx.accounts.eligibility_mint.key(),
         migration_slot, snapshot_slot, snapshot_hash, merkle_root, total_amount, expires_at:ctx.accounts.drop.expires_at, app_owner:ctx.accounts.app_owner.key() });
     Ok(())

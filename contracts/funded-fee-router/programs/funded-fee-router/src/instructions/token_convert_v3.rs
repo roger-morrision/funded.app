@@ -156,7 +156,7 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
     let volume = remaining[20].clone();
     let (expected_volume, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", vault.key().as_ref()], &pump);
     require!(volume.key() == expected_volume, ErrorCode::InvalidMintBuybackV3);
-    if volume.lamports() == 0 {
+    if volume.data_is_empty() && volume.owner == &System::id() {
         let event = remaining[15].clone();
         invoke(&Instruction { program_id:pump, accounts:vec![
             AccountMeta::new(authority.key(), true), AccountMeta::new_readonly(vault.key(), false),
@@ -170,12 +170,15 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
     // Temporary WSOL account controlled by the vault; the authority fronts its
     // rent and receives exactly that rent back after the close.
     let wsol = ctx.accounts.wsol_token.to_account_info();
-    require!(wsol.lamports() == 0 && wsol.data_is_empty(), ErrorCode::InvalidMintBuybackV3);
+    let quote_prefund = wsol.lamports();
+    let payer_before_quote = authority.lamports();
     invoke(&anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account_idempotent(
         &authority.key(), &vault.key(), &native, &token_program), &[authority.clone(), wsol.clone(), vault.to_account_info(),
         remaining[3].clone(), system.clone(), ctx.accounts.token_program.to_account_info(),
         ctx.accounts.associated_token_program.to_account_info()])?;
-    let wsol_rent = Rent::get()?.minimum_balance(wsol.data_len());
+    let wsol_rent = payer_before_quote.checked_sub(authority.lamports())
+        .ok_or(ErrorCode::InvalidMintBuybackV3)?;
+    let wsol_before = amount_at(&wsol, 64)?;
     let lamports_before = vault.lamports();
 
     let mut data = Vec::with_capacity(25);
@@ -188,7 +191,8 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
         else { AccountMeta::new_readonly(account.key(), i == 1 || account.is_signer) }
     }).collect();
     invoke_signed(&Instruction { program_id:pump, accounts:metas, data }, remaining, signers)?;
-    let bought = amount_at(&wsol, 64)?;
+    let bought = amount_at(&wsol, 64)?.checked_sub(wsol_before)
+        .ok_or(ErrorCode::InvalidMintBuybackV3)?;
     require!(bought >= min_sol_out, ErrorCode::MintBuybackBurnFailedV3);
     invoke_signed(&anchor_spl::token::spl_token::instruction::close_account(&token_program, &wsol.key(), &vault.key(), &vault.key(), &[])?,
         &[wsol, vault.to_account_info(), vault.to_account_info(), ctx.accounts.token_program.to_account_info()], signers)?;
@@ -196,7 +200,9 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
         &[vault.to_account_info(), authority, system], signers)?;
 
     let spent = token_before.checked_sub(amount_at(&ctx.accounts.vault_token, 64)?).ok_or(ErrorCode::InvalidMintBuybackV3)?;
-    let received = vault.lamports().checked_sub(lamports_before).ok_or(ErrorCode::InvalidMintBuybackV3)?;
+    let received = vault.lamports().checked_sub(lamports_before)
+        .and_then(|delta| delta.checked_sub(quote_prefund))
+        .ok_or(ErrorCode::InvalidMintBuybackV3)?;
     require!(spent > 0 && spent <= amount_in && received == bought, ErrorCode::InvalidMintBuybackV3);
 
     let ledger = &mut ctx.accounts.ledger;

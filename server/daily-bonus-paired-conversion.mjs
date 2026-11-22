@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
-import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { getAssociatedTokenAddressSync, NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { decodeTokenConversionV3, decodeSolCreditV3, deriveTokenConversionV3,
   deriveSolCreditV3 } from '../mint-router-v3-token.js';
 import { TOKEN_CONVERSION_POOLS } from './v3-token-keeper.mjs';
@@ -146,12 +146,16 @@ export async function loadFinalizedPairedBonusConversion({ connection, programId
       });
     if(!instruction)continue;
     const vaultIndex=keys.indexOf(vault.toBase58()), tokenIndex=keys.indexOf(tokenAccount);
+    const wsolIndex=keys.indexOf(getAssociatedTokenAddressSync(NATIVE_MINT,vault,true,TOKEN_PROGRAM_ID).toBase58());
     const pre=tx.meta.preTokenBalances?.find(row=>row.accountIndex===tokenIndex);
     const post=tx.meta.postTokenBalances?.find(row=>row.accountIndex===tokenIndex);
     if (vaultIndex<0 || tokenIndex<0 || !pre || !post || pre.mint!==quote.toBase58()
       || post.mint!==pre.mint) continue;
     const tokenDebit=BigInt(pre.uiTokenAmount.amount)-BigInt(post.uiTokenAmount.amount);
-    const vaultDelta=BigInt(tx.meta.postBalances[vaultIndex])-BigInt(tx.meta.preBalances[vaultIndex]);
+    if(wsolIndex<0||!Number.isSafeInteger(tx.meta.preBalances?.[wsolIndex])
+      ||tx.meta.postBalances?.[wsolIndex]!==0)continue;
+    const quotePrefund=BigInt(tx.meta.preBalances[wsolIndex]);
+    const vaultDelta=BigInt(tx.meta.postBalances[vaultIndex])-BigInt(tx.meta.preBalances[vaultIndex])-quotePrefund;
     const reserve=BigInt(await connection.getMinimumBalanceForRentExemption(0,'finalized'));
     if (tokenDebit!==receipt.spentQuote || vaultDelta<receipt.receivedLamports
       || vaultDelta-receipt.receivedLamports>reserve) continue;

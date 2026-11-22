@@ -28,8 +28,8 @@
   "currentPlaceholderBuild": {
     "variant": "productionBuildCheck",
     "identityScope": "public-test-fixture-only",
-    "bytes": 1075200,
-    "sha256": "78d7d66b237bffe6a189ab69f293e3a0d970730371dc98bd8a505cb5dd4293ea",
+    "bytes": 1075328,
+    "sha256": "b619ab3162d476d6cc42f916f06c2c09927942d787c1fef53f0c3756f6284e52",
     "deployEligible": false,
     "evidence": "docs/evidence/mainnet-contract-rent-2026-11-22.json"
   },

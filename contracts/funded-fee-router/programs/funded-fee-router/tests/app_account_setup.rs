@@ -44,16 +44,19 @@ fn leaf(drop: Pubkey, recipient: Pubkey, amount: u64, index: u32) -> [u8; 32] {
 }
 
 #[test]
-fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() { community_flow(90*86400, false); }
+fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() { community_flow(90*86400, false, false); }
 
 #[test]
-fn reward_vault_opening_preserves_reserve_and_claim_guards() { community_flow(90*86400, true); }
+fn reward_vault_opening_preserves_reserve_and_claim_guards() { community_flow(90*86400, true, false); }
 
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 #[test]
-fn configured_five_minute_claim_window_is_enforced_by_program() { community_flow(300, true); }
+fn configured_five_minute_claim_window_is_enforced_by_program() { community_flow(300, true, false); }
 
-fn community_flow(window: i64, from_reward: bool) {
+#[test]
+fn community_drop_preserves_unrelated_token_donation() { community_flow(90*86400, false, true); }
+
+fn community_flow(window: i64, from_reward: bool, donation: bool) {
     let program_id = funded_fee_router::id();
     let mut svm = LiteSVM::new();
     svm.add_program(program_id, &support::program_bytes()).unwrap();
@@ -173,12 +176,11 @@ fn community_flow(window: i64, from_reward: bool) {
     assert!(svm.get_account(&vault).is_none());
     assert!(send(&mut svm, &creator, &[&creator], &[setup.clone()]));
     let clean = svm.get_account(&vault).unwrap();
-    for mode in 0..5 {
+    for mode in 1..5 {
         let mut forged = clean.clone();
         let mut token = spl_token::state::Account::unpack(&forged.data).unwrap();
         use anchor_lang::solana_program::program_option::COption;
         match mode {
-            0 => token.amount = 1,
             1 => token.delegate = COption::Some(attacker.pubkey()),
             2 => token.close_authority = COption::Some(attacker.pubkey()),
             3 => token.mint = eligibility.pubkey(),
@@ -192,6 +194,13 @@ fn community_flow(window: i64, from_reward: bool) {
         assert_eq!(token_amount(&svm, source), 100);
     }
     svm.set_account(vault, clean).unwrap();
+    if donation {
+        // A third party can transfer into the canonical ATA before the drop opens.
+        let extra = spl_token::instruction::mint_to(&token_program,&mint.pubkey(),&source,&creator.pubkey(),&[],1).unwrap();
+        let send_donation = spl_token::instruction::transfer(&token_program,&source,&vault,&creator.pubkey(),&[],1).unwrap();
+        assert!(send(&mut svm,&creator,&[&creator],&[extra,send_donation]));
+    }
+
     let alternate = Pubkey::new_unique();
     svm.set_account(alternate, svm.get_account(&vault).unwrap()).unwrap();
     let mut redirected = initialize.clone();
@@ -202,7 +211,7 @@ fn community_flow(window: i64, from_reward: bool) {
     svm.expire_blockhash();
     assert!(send(&mut svm, &creator, &[&creator, &protocol], &[setup, initialize]));
     assert_eq!(token_amount(&svm, source), 0);
-    assert_eq!(token_amount(&svm, vault), 100);
+    assert_eq!(token_amount(&svm, vault), 100+u64::from(donation));
 
     let recipient_a_token = get_associated_token_address(&eligible_a.pubkey(), &mint.pubkey());
     let recipient_b_token = get_associated_token_address(&eligible_b.pubkey(), &mint.pubkey());
@@ -216,10 +225,10 @@ fn community_flow(window: i64, from_reward: bool) {
             recipient_token_account:recipient_a_token, payment:payment_a, token_program, system_program:anchor_lang::system_program::ID }.to_account_metas(None));
     assert!(send(&mut svm, &creator, &[&creator], &[claim_a.clone()]));
     assert_eq!(token_amount(&svm, recipient_a_token), 40);
-    assert_eq!(token_amount(&svm, vault), 60);
+    assert_eq!(token_amount(&svm, vault), 60+u64::from(donation));
     assert!(!send(&mut svm, &creator, &[&creator], &[system_instruction::transfer(&creator.pubkey(), &protocol.pubkey(), 1), claim_a]));
     assert_eq!(token_amount(&svm, recipient_a_token), 40);
-    assert_eq!(token_amount(&svm, vault), 60);
+    assert_eq!(token_amount(&svm, vault), 60+u64::from(donation));
 
     let invalid_payment = Pubkey::find_program_address(&[b"community-pay-v1", drop.as_ref(), ineligible.pubkey().as_ref()], &program_id).0;
     let invalid_claim = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::ClaimCommunityDrop { amount:60, leaf_index:1, proof:vec![root_a] }.data(),
@@ -228,7 +237,7 @@ fn community_flow(window: i64, from_reward: bool) {
     assert!(!send(&mut svm, &creator, &[&creator], &[invalid_claim]));
     assert!(svm.get_account(&invalid_payment).is_none());
     assert_eq!(token_amount(&svm, ineligible_token), 0);
-    assert_eq!(token_amount(&svm, vault), 60);
+    assert_eq!(token_amount(&svm, vault), 60+u64::from(donation));
 
     let mut clock = svm.get_sysvar::<Clock>();
     clock.unix_timestamp = migration_at + window;
@@ -239,7 +248,7 @@ fn community_flow(window: i64, from_reward: bool) {
     assert!(!send(&mut svm, &creator, &[&creator], &[claim_b]));
     assert!(svm.get_account(&payment_b).is_none());
     assert_eq!(token_amount(&svm, recipient_b_token), 0);
-    assert_eq!(token_amount(&svm, vault), 60);
+    assert_eq!(token_amount(&svm, vault), 60+u64::from(donation));
 
     let app_owner = protocol.pubkey();
     let owner_token = get_associated_token_address(&app_owner, &mint.pubkey());
@@ -258,18 +267,18 @@ fn community_flow(window: i64, from_reward: bool) {
         funded_fee_router::accounts::CloseCommunityDrop { caller:creator.pubkey(), drop, mint:mint.pubkey(),
             vault_token_account:alternate_vault.pubkey(), remainder_token_account:owner_token, token_program }.to_account_metas(None));
     assert!(!send(&mut svm, &creator, &[&creator], &[alternate_close]));
-    assert_eq!(token_amount(&svm, vault), 60);
+    assert_eq!(token_amount(&svm, vault), 60+u64::from(donation));
     let wrong_destination = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::CloseCommunityDrop {}.data(),
         funded_fee_router::accounts::CloseCommunityDrop { caller:creator.pubkey(), drop, mint:mint.pubkey(), vault_token_account:vault,
             remainder_token_account:source, token_program }.to_account_metas(None));
     assert!(!send(&mut svm, &creator, &[&creator], &[wrong_destination]));
-    assert_eq!(token_amount(&svm, vault), 60);
+    assert_eq!(token_amount(&svm, vault), 60+u64::from(donation));
     let close = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::CloseCommunityDrop {}.data(),
         funded_fee_router::accounts::CloseCommunityDrop { caller:creator.pubkey(), drop, mint:mint.pubkey(), vault_token_account:vault,
             remainder_token_account:owner_token, token_program }.to_account_metas(None));
     assert!(send(&mut svm, &creator, &[&creator], &[close.clone()]));
     assert_eq!(token_amount(&svm, vault), 0);
-    assert_eq!(token_amount(&svm, owner_token), 60);
+    assert_eq!(token_amount(&svm, owner_token), 60+u64::from(donation));
     assert_eq!(token_amount(&svm, recipient_a_token), 40);
     assert!(!send(&mut svm, &creator, &[&creator], &[system_instruction::transfer(&creator.pubkey(), &protocol.pubkey(), 2), close]));
 }

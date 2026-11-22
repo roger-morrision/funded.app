@@ -8,9 +8,9 @@ Base source for this update: `d297a78cca667f9f3ae6f51cbe8f22748d298cb5`, plus th
 
 | Candidate | Bytes | SHA-256 |
 | --- | ---: | --- |
-| Mainnet-feature public fixture | 1,075,200 | `78d7d66b237bffe6a189ab69f293e3a0d970730371dc98bd8a505cb5dd4293ea` |
-| Optional configurable Devnet candidate | 1,204,240 | `65373cf3cb62b7cfa5998bd3d31b55b489311fb09f80564da4883acb849c8d5c` |
-| Legacy-ABI Devnet candidate | 1,168,120 | `1bd06db87d6e5b4f1a84875695daec6d223f00c8820e8b06f9c18a2f3be7bda3` |
+| Mainnet-feature public fixture | 1,075,328 | `b619ab3162d476d6cc42f916f06c2c09927942d787c1fef53f0c3756f6284e52` |
+| Optional configurable Devnet candidate | 1,204,336 | `113881a532214b5649b3c5088b3549cc6e4d03d828680f5cc1e1b6bb6aa5097f` |
+| Legacy-ABI Devnet candidate | 1,168,216 | `7bbf17a0cb16f6fe00d6fac1c38e050ecc3d2897d9aaa3713db9d7af4df37365` |
 
 None of these candidates is approved for deployment. `config/contract-build-candidates.json` records build evidence separately from runtime trust. The deployed Devnet commitment remains unchanged. The production manifest remains incomplete and disabled.
 
@@ -26,6 +26,7 @@ Build tools: Agave 4.1.2 distribution, whose compiler reports `cargo-build-sbf 4
 | A shared daily cap could delay funded user entitlements. | Policy correction requested by user | Reward commitments and user payouts are exempt. Tests pay queued cycles on the same day above the administrative cap while retaining pause, reserve solvency and replay protection. Operations, promotions and buybacks remain capped. |
 | Primary RICH addresses were compiled into the binary. | Enhancement | Owner-controlled, validated, versioned on-chain configuration replaces embedded assets. Immutable history supports old receipts; stale signed revisions and old buyback entrypoints are rejected. See [configuration runbook](primary-rich-configuration.md). |
 | RICH changes depended on the program upgrade authority forever. | Enhancement / administration | Revision 1 is bootstrapped by the upgrade owner; subsequent mint updates use a separate RICH administrator. Two-step transfer, cancellation, stale authority rejection and continued configuration after code immutability pass against both compiled network variants. |
+| Pre-funded paired-conversion WSOL and community drop accounts could reject legitimate work or misstate credited output. | Medium (availability/accounting) | Conversion subtracts preexisting WSOL and repays only rent actually spent; community drop credits the exact transfer delta while preserving unrelated tokens for closeout. Community donation regression passes in compiled SBF. Conversion has no completed DEX CPI fixture, so its full path remains unverified. |
 | Public token/WSOL donations and pre-funded volume PDAs could permanently block buybacks. | Medium (availability) | Delta-based burns preserve existing tokens. Idempotent WSOL setup refunds actual operator rent; donated native SOL returns to the category vault and is excluded from purchase accounting. Volume PDAs initialize when pre-funded but system-owned. New regressions fail against the previous binary and pass for both policies and both venues; the finalized receipt verifier validates quote-account closure and adjusted spend. |
 | Both protected/agency buybacks and agency promotion billing omitted global SOL accounting. | High | Both buyback venues now account for the actual spent lamports within the same atomic transaction; promotion billing accounts before transfer. The promotion test exercises pause, writable guard, replay, daily limit and rollback. Protected and agency category-6 buybacks now execute real captured PumpSwap and Pump bytecode locally; spent/burned deltas, slippage rollback and replay pass. Live financial acceptance remains incomplete. |
 | Signer health stayed healthy after a journal failure had disabled signing. | Medium | Health returns 503 after the journal failure latch. Tests verify no signature is returned, later requests stay disabled, and health reflects the fault. |
@@ -38,10 +39,10 @@ Client compatibility: Mainnet reward builders append a read-only guard account f
 
 All following results are **local-only**, using compiled SBF in LiteSVM or host tests. Router policies/funding are synthetic. The DEX cases execute captured public Devnet venue/fee bytecode and market state; the DEX itself is not mocked. No live transaction is implied.
 
-- Mainnet-feature SBF: 23 passing cases — community custody/claims (3), developer escrow (7), protocol guard/reward/promotion controls (7), RICH configuration, handoff and stale-order controls (5), and excluded entrypoints (1 test checking 20 entrypoint names).
+- Mainnet-feature SBF: 24 passing cases — community custody/claims (3), developer escrow (7), protocol guard/reward/promotion controls (7), RICH configuration, handoff and stale-order controls (5), and excluded entrypoints (1 test checking 20 entrypoint names).
 - Optional configurable Devnet SBF: 5 passing administration/market/stale-order/legacy-bypass cases.
 - Protected/agency buy-and-burn: 8 passing external-program tests (10 flow executions, including donations) across PumpSwap and Pump curve; see the table below.
-- Legacy-ABI Devnet SBF: 15 passing cases — community claims (3), developer escrow (7), token bitmap payout (1), unpaid-cycle expiry (1), receipt/bitmap rent and replay checks (3).
+- Legacy-ABI Devnet SBF: 16 passing cases — community claims (3), developer escrow (7), token bitmap payout (1), unpaid-cycle expiry (1), receipt/bitmap rent and replay checks (3).
 - Host contract test: 1 passing curve-account validation case. It stops before CPI and is not evidence of a completed swap.
 - JavaScript security: 17 passing cases, including current/historical configuration decoding, owner instruction encoding, signed revision bytes, app fail-closed behavior and pricing-cache invalidation.
 - Eleven invalid build configurations rejected; the valid explicit program fixture builds without embedded asset addresses.
@@ -85,7 +86,7 @@ Normal CI now captures public Devnet PumpSwap state and explicitly executes the 
 
 The full lockfile audit therefore still exits 1. It also reports maintenance warnings for `ansi_term`, `bincode`, `derivative`, `libsecp256k1` and `paste`; maintenance warnings are distinct from the two timing vulnerabilities. The recorded dependency graph scope does not constitute a general side-channel audit. Tests use ephemeral fixture keys only. Machine-readable results are in `docs/evidence/contract-dependency-review-2026-11-22.json`.
 
-After the `ctutils` patch, the earlier 33 targeted bytecode tests passed with unchanged earlier ELF hashes. The current three variants and eight external-program tests total 51 passing SBF test executions, with hashes listed above. The dependency patch itself changes only the host test runtime.
+After the `ctutils` patch, the earlier 33 targeted bytecode tests passed with unchanged earlier ELF hashes. The current three variants and eight external-program tests total 53 passing SBF test executions, with hashes listed above. The dependency patch itself changes only the host test runtime.
 
 ## Supplied test mint
 
@@ -98,29 +99,29 @@ The canonical SOL PumpSwap pool `B78z5Xp4f8sEDgXnjBB4hxFQiPZDCageod5j3NtBpB5B` a
 ## Remaining deployment blockers
 
 1. **Production identities are unavailable.** Select the dedicated program address, production RICH mint and supported pool, guardian, fresh operational/price signers and approved upgrade authority. Compile the dedicated production program identity, reproduce and review the bytes, then initialize the owner-controlled RICH configuration with the supported production mint/market. Subsequent RICH changes do not require recompilation. No private keys should enter this report or repository.
-2. **The configured budget is insufficient for the current fixture.** A fresh Mainnet RPC quote gives 5.463727960 SOL locked rent with exact-size allocation, before fees, initialization, liquidity or the plan's 3 SOL operating reserve. The total plan currently caps spending at 5 SOL. Evidence is in `docs/evidence/mainnet-contract-rent-2026-11-22.json`. Final production bytes need a fresh quote; the user's budget was not increased.
+2. **The configured budget is insufficient for the current fixture.** A fresh Mainnet RPC quote gives 5.464378200 SOL locked rent with exact-size allocation, before fees, initialization, liquidity or the plan's 3 SOL operating reserve. The total plan currently caps spending at 5 SOL. Evidence is in `docs/evidence/mainnet-contract-rent-2026-11-22.json`. Final production bytes need a fresh quote; the user's budget was not increased.
 3. **End-to-end financial acceptance remains incomplete.** Local protected/agency category-6 CPI/burn and RICH administration now pass. Paired-token conversion with the independent signer, category-7 milestone buybacks, every fee category, the full token-extension matrix, operational authority recovery and a capped live canary still lack complete current acceptance evidence. Compiling these paths is not proof they execute successfully.
 4. **Mainnet application signing/worker integration remains blocked.** The operational signer and price-signer bootstrap still reject non-Devnet operation. Launch/registration, metadata, workers and journals retain network gates. Their restrictions were preserved; switching a cluster string would not constitute a safe implementation.
 5. **Full independent review is outstanding.** The production release configuration requires a review tied to exact source/binary hashes. This self-review does not satisfy that gate. Do not fill those fields with this report to bypass it.
 
 ## SOL funding estimate
 
-The fresh merged-program deployment uses **5.463727960 SOL** of rent at the finalized Mainnet quote. It does not need a separate developer-escrow program. Exact-size allocation is assumed.
+The fresh merged-program deployment uses **5.464378200 SOL** of rent at the finalized Mainnet quote. It does not need a separate developer-escrow program. Exact-size allocation is assumed.
 
 | Component | SOL | Basis |
 | --- | ---: | --- |
-| Program + ProgramData rent | 5.463727960 | Live RPC, 1,075,200-byte fixture |
+| Program + ProgramData rent | 5.464378200 | Live RPC, 1,075,328-byte fixture |
 | Upload/transaction fee allowance | 0.025 | Base-fee estimate 0.01198; allowance for retries |
 | Deployment contingency | 0.250 | Existing plan |
 | Initial accounts and setup | 0.050 | Provisional allowance, inventory not final |
 | Small canary | 0.050 | Provisional allowance, trades not specified |
 | Operating reserve | 3.000 | Existing plan |
-| **Illustrative technical funding** | **8.838727960** | Excludes token launch/liquidity |
+| **Illustrative technical funding** | **8.839378200** | Excludes token launch/liquidity |
 | **Suggested technical wallet budget** | **10.000** | Rounded planning headroom |
 
 The first RICH configuration plus revision account costs 0.0030988 SOL rent; each later revision currently adds 0.0015494 SOL plus its transaction fee. Two-step administrator handoff creates no additional account. Refresh prices immediately before execution.
 
-Buffer rent (5.462854200 SOL) is reusable at fresh same-payer Loader-v3 finalization, not a second permanent rent charge: [Agave's loader implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259) returns it to the payer before creating ProgramData. Upload fees depend on actual messages/retries and priority prices; the base fee is [5,000 lamports per signature](https://solana.com/docs/core/fees). The current 5 SOL spending cap is unchanged and insufficient. This is a technical estimate, not authorization to spend 10 SOL. Total launch funding remains **10 SOL plus the separately chosen token launch/liquidity allocation**, with hosting and review priced separately.
+Buffer rent (5.463504440 SOL) is reusable at fresh same-payer Loader-v3 finalization, not a second permanent rent charge: [Agave's loader implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259) returns it to the payer before creating ProgramData. Upload fees depend on actual messages/retries and priority prices; the base fee is [5,000 lamports per signature](https://solana.com/docs/core/fees). The current 5 SOL spending cap is unchanged and insufficient. This is a technical estimate, not authorization to spend 10 SOL. Total launch funding remains **10 SOL plus the separately chosen token launch/liquidity allocation**, with hosting and review priced separately.
 
 Run `node scripts/quote-mainnet-contract-budget.mjs` to refresh public rent evidence. Final production identities can alter bytes; re-quote the exact reviewed artifact and transaction plan. The proposed SBF-v0 deployment-disable feature was absent at the recorded Mainnet slot; [feature evidence](evidence/mainnet-sbf-features-2026-11-22.json) must also be refreshed before release.
 
