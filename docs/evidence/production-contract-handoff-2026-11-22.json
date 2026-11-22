@@ -4012,7 +4012,7 @@
       "Graph importers reports only readiness test but index HEAD metadata is stale6196; exact source rg confirms sole import in readiness test at c4e. No operational worker/service/signer allowlist integration exists.",
       "Injectable distinct handles and cryptographic roles do not prove organizational custody independence; production backend/worker wiring, admission and exact live financial proof remain open."
     ],
-    "status": "Contract source review and local Node26 targeted suite pass; independent E2E Node24 acceptance pending.",
+    "status": "Independent E2E Node24 Linux/Windows injectable transport preparation accepted; operational integration and parent release gates remain open.",
     "scope": "Synthetic signer callbacks/bank/finality/send only. No real keys, external financial network, activation, spending, ABI or Contract runtime change.",
     "unchanged": "Contract971399ff/3f8 ELF1110424/1236Loaderprefix and existing financial policy, rawUSDC budgets and reserve protections unchanged; no rebuild/requote.",
     "verifiedArtifacts": {
@@ -4020,6 +4020,118 @@
       "gitSourcePins": 21,
       "rawArtifacts": 14,
       "rawGitArchiveMembers": 1236
+    },
+    "independentVerification": {
+      "path": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-conversion-transport-c4e0081a-20261123.json",
+      "sha256": "b0340f6b553d69899af51188a3eea4d0e9c1cf62c79be1d5329b4abd88ba9939",
+      "rawArtifactsVerified": 20,
+      "tests": {
+        "linuxRequired": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 28,
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "requiredPassed": 28,
+          "success": true
+        },
+        "windowsRequired": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 28,
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "requiredPassed": 28,
+          "success": true
+        },
+        "linuxAffectedConversionInventory": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 72,
+            "passed": 72,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "requiredPassed": 72,
+          "success": true
+        },
+        "missingCurrentReviewElf": {
+          "exit": 1,
+          "requiredPassed": 0,
+          "success": false
+        },
+        "additionalIndependentPublicationFaults": {
+          "passed": 3,
+          "failed": 0,
+          "skip": 0,
+          "todo": 0,
+          "stages": [
+            "reserve",
+            "signing-marker",
+            "signed-wire"
+          ],
+          "assertions": "Real locked publication completes then reports error; second-store restart retains identical row and no new sign/send. Reserve/signing0callbacks, signed stage exactly1price+1operator/no send."
+        }
+      },
+      "sourceVerification": {
+        "revision": "c4e0081afdbe005b10d8d773a17fd2fed309b8de",
+        "reportGitSha256": "a8d3df5566a1f3bfe47d220b846e8dad8d8b0893cd9510aa093d2789a8bfc893",
+        "sourcePins": {
+          "server/token-conversion-journal.mjs": "1df5336a2d3a87c3c58a626fc4b178889c9d60ee15f2f4d6d73f5d8c8472cf75",
+          "server/token-conversion-transport.mjs": "a90946344dc92c02e329d427f192011fbd5ee950098af05b1a74137966567eb2",
+          "tests/readiness/token-conversion-transport.test.mjs": "553509137d7c18f7e1d4262d9946a30a14023e777b5916b413da76f06a14eb05",
+          "config/token-conversion-transport-tests.json": "ead38b0be20f7ea48616081dd096517887861648eb41428c59db60ab9d3fef08",
+          "scripts/check-token-conversion-transport.mjs": "8caa55342ec391f897577e39e847d9a8e792db4b6539b78685733c68c5db7f56"
+        },
+        "unchangedContextPins": {
+          "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+          "server/token-conversion-reservation.mjs": "df60b6459fb5158c469e4738fa7b0bb269809dd6c48b10c1d76bb3f2cecffb6c",
+          "server/token-conversion-sell-proof.mjs": "a5f4eef822e6c03f55f3d25d4d0e1d8410ee53a5e3889b1977a53d8ec6094961",
+          "server/token-conversion-sell-quote.mjs": "2a5bb7769c66c03ff00a674a1ac6358b3b254dfea52a43c8e95e476648836f62",
+          "server/token-conversion-sell.mjs": "7483acdf5d611b8bb3633c040a4aa47ab57ebb1991a3367c04c3892516b4535d",
+          "server/token-conversion-intent.mjs": "79e16e8c6320498544a6567d1171ad3e6d7597717bec1e5b53e5685290ac44c9",
+          "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+          "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+          "server/remote-signer.mjs": "c608c741dfaeb7ad26be9468eb9c719c4865ec42b274e037f57da7f8d0035c65",
+          "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+          "server/v3-paired-token-worker.mjs": "5c9aa4cb73734fac1ed00c629239420eacd173bfe95f8989cd2b0d990e5cd594",
+          "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+          "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+          "config/token-conversion-integration-tests.json": "88ad41d00fff51ebc04c7ad8097358a08cb8a7b7a1d8ac418b6d48c4e2706766",
+          "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+          "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc"
+        },
+        "all1236ArchiveMembersEqualRawGit": true,
+        "qaSourceTarSha256": "ad78241722cf8ea3e1137f32b7b30427e6baee414cd5eaf1b5416b3dcc7e50ac",
+        "extraProbeSha256": {
+          "tests/readiness/qa-c4e0-transport-fixture.mjs": "a0ec5d9b84200f2021e2f4915be78c35c9b92e8c28d57fb082862d4d946d429c",
+          "tests/readiness/qa-c4e0-postpublication.test.mjs": "f8d918e95ed01ee40c63aa11bb7b0fe55b3ccbe8b8787f8e20f3d10d73c35b4e"
+        },
+        "extraFixtureProvenance": "Exact original test imports/fixture function prefix; appended export only, no body rewrite. Extra QA tests are separate from28required."
+      },
+      "review": [
+        "All21 report pins and1236 source archive members independently matched frozen raw Git. QA regenerated source-only tar plus separately hashed3-case QA probe/fixture closure.16 existing reviewer/proof/quote/store/durability/runtime/package contexts unchanged.",
+        "New reservation creator is returned only after locked persistence; a durable atomic signing marker precedes price callback. Only fresh creator proceeds, two-store race yields one owner, old rows always exact reconciliation irrespective of caller request.",
+        "Callbacks receive copied exact message/hash/intent/wire/role and abort signal; public key is rechecked against durable intent, both64-byte Ed25519 signatures verified, price precedes operator. Mutable caller request is cloned before await. No callback identity alone establishes independent custody.",
+        "Both signatures/immutable wire persist before re-running actual read-only reviewer/simulation and one-time send-intent claim. Freshness checked after signing and persistence fences. Preflightfinalized/maxRetries0 used; no getLatestBlockhash or automatic replacement construction.",
+        "Existing unsigned/signing/signed/send-intent rows, late/unknown signer result, RPC timeout/mismatch, postpublication failure and missing exact proof never authorize another sign/send. Send-intent is not submission/payment. Finalized signature/message/receipt/custody/context proof alone settles; existing authenticated expiry/absence semantics remain.",
+        "Reviewer simulation uses its existing simulation-only replacement blockhash option; actual saved/sent transaction blockhash and bytes are never refreshed. Actual second review catches changed solvency/policy and leaves signed attempt unresolved.",
+        "Graph at exactc4e and repository import scan show transport is imported ONLY by readiness test; it calls actual createTokenConversionJournal/reviewer/proof. No service/worker/controller/signer allowlist/backend/activation registration is accepted."
+      ],
+      "limits": [
+        "Deterministic ephemeral in-memory signer keys and synthetic market/account bank/RPC/simulation/finality/send callbacks. Not live Mainnet/Devnet financial or compiled SBF execution. Current3f8 public ELF is actual byte input inside synthetic reviewed program context.",
+        "Actual independent price/operator secure backend enforcement, custody/role identities, worker/controller admission and full normal operational transport remain open. Injected signer callback must independently enforce reviewed message/policy/context, not trust controller-supplied approval.",
+        "Crashes can strand unsent attempts until authenticated proof/expiry-absence reconciliation. No automatic replacement builder or permission to clear uncertainty is added.",
+        "Original historical bank/current-program live28, whole-worker scale/resource/operational financial restore and final fresh wallet funding/signing packet remain open/MainnetNO-GO. No financial action, key persistence, merge/deploy, cap1000/policy/allowlist/authority change.",
+        "Store3746/startup6196 and Contract9713/ExUNA3f8/1110424bytes/1236-loader-prefix unchanged; reuse prior accepted slices with no broad healthy rebuild/requote/UI replay."
+      ]
     }
   }
 }
