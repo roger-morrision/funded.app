@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T02:23:48.740Z",
+  "cluster": "mainnet-beta",
+  "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+  "scope": "read-only-public-rpc-fixture-sizing",
+  "productionRelease": false,
+  "bytes": 1039832,
+  "sha256": "bd55ad107c008ea26eec70b76f7ed391409646b089e89b83e44fc4c0be28732b",
+  "exactAllocation": true,
+  "programRentLamports": 833120,
+  "programDataRentLamports": 5283225400,
+  "bufferRentLamports": 5283184760,
+  "lockedRentLamports": 5284058520,
+  "configuredTotalBudgetLamports": 5000000000,
+  "configuredOperatingReserveLamports": 3000000000,
+  "rentFitsTotalBudget": false,
+  "excludes": [
+    "transaction fees",
+    "initialization",
+    "liquidity",
+    "canary",
+    "operating reserve"
+  ],
+  "note": "Buffer rent is reported separately; this is not a second permanent rent charge. Final production bytes must be re-quoted."
+}

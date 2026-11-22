@@ -136,7 +136,8 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
     if(!quote.curve)buy.keys[index+1]={...buy.keys[index+1],pubkey:getAssociatedTokenAddressSync(NATIVE_MINT,candidate,true,TOKEN_PROGRAM_ID)};
   }
   assert(ix.keys.length===18+buy.keys.length&&buy.keys.every((k,i)=>ix.keys[18+i].pubkey.equals(k.pubkey)),'Pump accounts differ from finalized market.');
-  const metas=expected.map((pubkey,i)=>({pubkey,isSigner:i===0||i===17,isWritable:[0,4,5,6,7,8,9,10].includes(i)}));
+  const metas=expected.map((pubkey,i)=>({pubkey,isSigner:i===0||i===17,
+    isWritable:[0,4,5,6,7,8,9,10].includes(i)||(i===3&&config.cluster==='mainnet-beta')}));
   metas.push(...buy.keys.map((k,i)=>({...k,isSigner:i===(quote.curve?6:1)?false:k.isSigner})));
   const setup=v3BuybackFeeSetup({pumpBuyInstruction:buy,authority,
     curveCreatorVaultRentLamports:quote.curveCreatorVaultRentLamports||'0'}),before=ixs.slice(0,-1);

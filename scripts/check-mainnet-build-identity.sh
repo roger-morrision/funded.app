@@ -2,7 +2,7 @@
 set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 guard_dir="$(mktemp -d)"
-trap 'rm -f "$guard_dir/guard" "$guard_dir/result" "$guard_dir/mainnet_id.rs" "$guard_dir/mainnet_assets.rs"; rmdir "$guard_dir"' EXIT
+trap 'rm -f "$guard_dir/guard" "$guard_dir/result" "$guard_dir/mainnet_id.rs" "$guard_dir/mainnet_assets.rs" "$guard_dir/mainnet_conversion.rs"; rmdir "$guard_dir"' EXIT
 rustc --edition=2021 "$repo_root/contracts/funded-fee-router/programs/funded-fee-router/build.rs" -o "$guard_dir/guard"
 expect_failure() {
   local label="$1"; shift
@@ -29,10 +29,14 @@ expect_failure wrong-decoded-length "${fixture[@]}" FUNDED_MAINNET_FUNDED_MINT=2
 expect_failure identical-assets "${fixture[@]}" FUNDED_MAINNET_FUNDED_POOL=3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ
 expect_failure program-as-mint "${fixture[@]}" FUNDED_MAINNET_FUNDED_MINT=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh
 expect_failure asset-source-injection "${fixture[@]}" 'FUNDED_MAINNET_FUNDED_MINT="; panic!("invalid'
+expect_failure malformed-conversion "${fixture[@]}" FUNDED_MAINNET_CONVERSION_POOLS=invalid
+expect_failure devnet-conversion "${fixture[@]}" FUNDED_MAINNET_CONVERSION_POOLS=C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64:3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7
+expect_failure program-as-conversion-pool "${fixture[@]}" FUNDED_MAINNET_CONVERSION_POOLS=3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ:3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh
 env -i OUT_DIR="$guard_dir" CARGO_FEATURE_MAINNET_V3_PROGRAM=1 \
   "${fixture[@]}" "$guard_dir/guard" > "$guard_dir/result"
 test -s "$guard_dir/mainnet_id.rs"
 test -s "$guard_dir/mainnet_assets.rs"
 grep -q '3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ' "$guard_dir/mainnet_assets.rs"
 grep -q '3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7' "$guard_dir/mainnet_assets.rs"
-echo 'Accepted explicit test identities; fourteen invalid configurations rejected.'
+test -s "$guard_dir/mainnet_conversion.rs"
+echo 'Accepted explicit test identities; seventeen invalid configurations rejected.'

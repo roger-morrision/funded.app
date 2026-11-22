@@ -156,6 +156,8 @@ pub fn bill_promotion(ctx: Context<BillAgencyPromotionV3>, post_id: u64, deliver
     require!(recipient.key() != router, ErrorCode::InvalidMintWithdrawalV3);
     for category in 0..8 { let (other, _) = Pubkey::find_program_address(&[MINT_VAULT_V3_SEED, mint.as_ref(), &[category]], ctx.program_id);
         require!(recipient.key() != other, ErrorCode::InvalidMintWithdrawalV3); }
+    #[cfg(feature = "mainnet-v3-program")]
+    super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), amount)?;
     invoke_signed(&system_instruction::transfer(&vault.key(), &recipient.key(), amount),
         &[vault.to_account_info(), recipient.to_account_info(), ctx.accounts.system_program.to_account_info()],
         &[&[MINT_VAULT_V3_SEED, mint.as_ref(), &[7], &[ctx.bumps.vault]]])?;

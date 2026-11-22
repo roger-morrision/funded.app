@@ -62,6 +62,7 @@ jobs:
           cache: npm
       # verify-contract-candidate.mjs imports @solana/web3.js through server modules.
       - run: npm ci
+      - run: npm run test:security
       - name: Verify candidates without changing deployed program trust
         run: |
           node scripts/verify-contract-candidate.mjs contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so devnet
@@ -81,7 +82,7 @@ jobs:
           FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/devnet-v3/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test reward_rent --test reward_bitmap_token
           LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/devnet-v3/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program --test developer_escrow
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test app_account_setup
-          FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test protocol_guard
+          FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --lib --test protocol_guard
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test reward_mainnet_gates
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test developer_escrow
       - name: Record source and bytecode hashes

@@ -122,6 +122,8 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
             associated:ctx.accounts.associated_token_program.to_account_info(), system:ctx.accounts.system_program.to_account_info(),
             pump:ctx.accounts.pump_swap_program.to_account_info(),
         }, ctx.remaining_accounts, signer, remaining, spendable_quote_in, min_base_amount_out, max_total_debit)?;
+        #[cfg(feature = "mainnet-v3-program")]
+        super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), spent)?;
         ctx.accounts.policy.withdrawn_lamports[6] = ctx.accounts.policy.withdrawn_lamports[6]
             .checked_add(spent).ok_or(ErrorCode::AmountOverflow)?;
         let receipt = &mut ctx.accounts.receipt;
@@ -268,6 +270,8 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         .ok_or(ErrorCode::InvalidMintBuybackV3)?;
     require!(spent > 0 && spent <= max_total_debit,
         ErrorCode::InvalidMintBuybackV3);
+    #[cfg(feature = "mainnet-v3-program")]
+    super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), spent)?;
     let policy = &mut ctx.accounts.policy;
     policy.withdrawn_lamports[6] = policy.withdrawn_lamports[6]
         .checked_add(spent).ok_or(ErrorCode::AmountOverflow)?;

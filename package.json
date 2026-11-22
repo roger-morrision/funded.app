@@ -29,6 +29,7 @@
     "x:posts": "node scripts/run-x-post-worker.mjs",
     "check:structure": "node scripts/check-source-size.mjs",
     "test:smoke": "playwright test",
+    "test:security": "node --test tests/security/*.test.mjs",
     "review:build": "node scripts/review/build-mainnet.mjs",
     "review:local": "node scripts/review/build-mainnet.mjs && node scripts/review/with-server.mjs npx playwright test",
     "review:pages": "node scripts/review/pages.mjs",

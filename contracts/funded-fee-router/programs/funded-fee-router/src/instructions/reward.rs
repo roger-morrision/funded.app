@@ -344,6 +344,8 @@ pub struct PayoutRewardSol<'info> {
 }
 
 pub fn payout_sol(ctx: Context<PayoutRewardSol>, amount: u64, leaf_index: u32, proof: Vec<[u8; 32]>) -> Result<()> {
+    #[cfg(feature = "mainnet-v3-program")]
+    super::guard::check_reward_payout(ctx.program_id, ctx.remaining_accounts, Some(amount))?;
     require!(ctx.accounts.cycle.asset_mint == Pubkey::default(), ErrorCode::InvalidRewardAsset);
     require_keys_neq!(ctx.accounts.recipient.key(), ctx.accounts.vault.key(), ErrorCode::InvalidDestination);
     let paid_at = validate_payment(&mut ctx.accounts.cycle, &ctx.accounts.recipient.key(), amount, leaf_index, &proof)?;
@@ -404,6 +406,8 @@ pub struct PayoutRewardToken<'info> {
 }
 
 pub fn payout_token(ctx: Context<PayoutRewardToken>, amount: u64, leaf_index: u32, proof: Vec<[u8; 32]>) -> Result<()> {
+    #[cfg(feature = "mainnet-v3-program")]
+    super::guard::check_reward_payout(ctx.program_id, ctx.remaining_accounts, None)?;
     require!(ctx.accounts.cycle.asset_mint != Pubkey::default(), ErrorCode::InvalidRewardAsset);
     let paid_at = validate_payment(&mut ctx.accounts.cycle, &ctx.accounts.recipient.key(), amount, leaf_index, &proof)?;
     ctx.accounts.reserve.outstanding = ctx.accounts.reserve.outstanding.checked_sub(amount).ok_or(ErrorCode::RewardReserveExceeded)?;

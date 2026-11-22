@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T02:20:01.509Z",
+  "scope": "read-only-public-rpc",
+  "cluster": "mainnet-beta",
+  "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+  "slot": 472371102,
+  "testingOnly": true,
+  "productionAssetApproval": false,
+  "accounts": [
+    {
+      "kind": "mint",
+      "address": "Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr",
+      "exists": true,
+      "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "dataBase64": "AAAAAAeDqBUmIQ+UoOjoTSCHADs6QmDSnOedrP4hpOp3H6YohhQCzMIFAwAGAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    {
+      "kind": "canonical-sol-pool",
+      "address": "B78z5Xp4f8sEDgXnjBB4hxFQiPZDCageod5j3NtBpB5B",
+      "exists": false,
+      "owner": null,
+      "dataBase64": null
+    },
+    {
+      "kind": "bonding-curve",
+      "address": "EnUAdYkZQpssfamcu75RAe6smtE9bcWR4gvHmZhB3S25",
+      "exists": false,
+      "owner": null,
+      "dataBase64": null
+    }
+  ]
+}

@@ -107,7 +107,7 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
     { pubkey:new PublicKey(authority), isSigner:true, isWritable:true },
     { pubkey:new PublicKey(creator), isSigner:false, isWritable:false },
     { pubkey:mint, isSigner:false, isWritable:false },
-    { pubkey:legacy, isSigner:false, isWritable:false },
+    { pubkey:legacy, isSigner:false, isWritable:cluster==='mainnet-beta' },
     { pubkey:policy, isSigner:false, isWritable:true },
     { pubkey:vault, isSigner:false, isWritable:true },
     { pubkey:boughtMint, isSigner:false, isWritable:true },

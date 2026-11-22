@@ -7,7 +7,7 @@
 //   authority-driven action and cancel unpaid reward cycles;
 // - only the program upgrade owner (the wallet that can replace the program
 //   anyway) can unpause, change the guardian or change the daily cap;
-// - external SOL outflows approved by the authority count against a daily cap,
+// - external SOL outflows and new SOL reward commitments share a daily cap,
 //   which is zero (nothing may leave) until the upgrade owner configures it.
 //
 // The module is compiled only into the Mainnet build, so Devnet and legacy
@@ -43,28 +43,42 @@ fn read_u64(data: &[u8], offset: usize) -> u64 {
 /// Rejects authority-driven actions while the protocol is paused. The caller
 /// has already validated the header layout.
 pub(crate) fn assert_not_paused(data: &[u8]) -> Result<()> {
-        require!(data[GUARD_PAUSED] == 0, GuardError::ProtocolPaused);
+    require!(data[GUARD_PAUSED] == 0, GuardError::ProtocolPaused);
     Ok(())
 }
 
-/// Counts one external SOL outflow against the daily cap. The caller has
+/// Counts an external SOL outflow or a new SOL reward commitment against the
+/// shared daily cap. A reservation does not exempt a later payout: both consume
+/// their respective UTC day's budget. The caller has
 /// already validated the router header through assert_current_router_authority;
 /// the header must be passed writable on Mainnet.
 pub(crate) fn record_outflow(router: &AccountInfo, amount: u64) -> Result<()> {
-        {
-        require!(router.is_writable, ErrorCode::InvalidRouterHeader);
-        let mut data = router.try_borrow_mut_data()?;
-        require!(data.len() == ROUTER_DATA_LEN, ErrorCode::InvalidRouterHeader);
-        let day = Clock::get()?.unix_timestamp.div_euclid(SECONDS_PER_DAY);
-        let cap = read_u64(&data, GUARD_DAILY_CAP);
-        let stored_day = read_u64(&data, GUARD_WINDOW_DAY) as i64;
-        let spent = if stored_day == day { read_u64(&data, GUARD_WINDOW_SPENT) } else { 0 };
-        let next = spent.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
-        require!(next <= cap, GuardError::DailyOutflowCapExceeded);
-        data[GUARD_WINDOW_DAY..GUARD_WINDOW_DAY + 8].copy_from_slice(&day.to_le_bytes());
-        data[GUARD_WINDOW_SPENT..GUARD_WINDOW_SPENT + 8].copy_from_slice(&next.to_le_bytes());
+    require!(router.is_writable, ErrorCode::InvalidRouterHeader);
+    let mut data = router.try_borrow_mut_data()?;
+    require!(data.len() == ROUTER_DATA_LEN, ErrorCode::InvalidRouterHeader);
+    assert_not_paused(&data)?;
+    let day = Clock::get()?.unix_timestamp.div_euclid(SECONDS_PER_DAY);
+    let cap = read_u64(&data, GUARD_DAILY_CAP);
+    let stored_day = read_u64(&data, GUARD_WINDOW_DAY) as i64;
+    let spent = if stored_day == day { read_u64(&data, GUARD_WINDOW_SPENT) } else { 0 };
+    let next = spent.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
+    require!(next <= cap, GuardError::DailyOutflowCapExceeded);
+    data[GUARD_WINDOW_DAY..GUARD_WINDOW_DAY + 8].copy_from_slice(&day.to_le_bytes());
+    data[GUARD_WINDOW_SPENT..GUARD_WINDOW_SPENT + 8].copy_from_slice(&next.to_le_bytes());
+    Ok(())
+}
+
+/// Permissionless payouts must still obey the canonical protocol guard.
+/// A trailing account keeps the legacy and Devnet account ABI unchanged.
+pub(crate) fn check_reward_payout(program_id: &Pubkey, remaining: &[AccountInfo],
+    sol_amount: Option<u64>) -> Result<()> {
+    require!(remaining.len() == 1, ErrorCode::InvalidRouterHeader);
+    let router = &remaining[0];
+    header_guardian(router, program_id)?;
+    assert_not_paused(&router.try_borrow_data()?)?;
+    if let Some(amount) = sol_amount {
+        record_outflow(router, amount)?;
     }
-    let _ = (router, amount);
     Ok(())
 }
 

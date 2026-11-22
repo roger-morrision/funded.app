@@ -92,7 +92,8 @@ export function createSigner({ env = process.env, keys = loadSignerKeys(env), co
   async function handle(req, res) {
     const reply = (status, body) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)); };
     try {
-      if (req.method === 'GET' && req.url === '/health') return reply(200, { ok: true, roles: keys.size });
+      if (req.method === 'GET' && req.url === '/health')
+        return reply(journalFailed ? 503 : 200, { ok: !journalFailed, roles: keys.size });
       if (!authorized(req)) return reply(401, { error: 'Unauthorized.' });
       if (req.method === 'GET' && req.url === '/keys')
         return reply(200, { keys: Object.fromEntries([...keys].map(([role, key]) => [role, key.publicKey.toBase58()])) });

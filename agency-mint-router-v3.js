@@ -137,7 +137,7 @@ function adaptProtected(input,approval){
 }
 export const buildAgencyMintV3ApprovalInstruction=input=>adaptProtected(input,true);
 export const buildAgencyMintV3DisbursementInstruction=input=>adaptProtected(input,false);
-export function buildAgencyPromotionV3Instruction({programId,mint,authority,promotionRecipient,postId,deliveryHash,sequence,amount,postedAt}){
+export function buildAgencyPromotionV3Instruction({cluster='devnet',programId,mint,authority,promotionRecipient,postId,deliveryHash,sequence,amount,postedAt}){
   const hash=Buffer.from(deliveryHash),seq=Buffer.alloc(4),time=Buffer.alloc(8);
   if(hash.length!==32||hash.equals(Buffer.alloc(32))||!Number.isSafeInteger(sequence)||sequence<0||sequence>0xffffffff
     ||agencyU64(postId,{positive:true})===0n||!Number.isSafeInteger(postedAt)||postedAt<1)throw new Error('Verified agency delivery identity is required.');
@@ -145,7 +145,7 @@ export function buildAgencyPromotionV3Instruction({programId,mint,authority,prom
   const receipt=deriveAgencyPromotionV3(programId,mint,postId),policy=deriveAgencyPolicyV3(programId,mint),vault=deriveAgencyVaultsV3(programId,mint)[7];
   return{receipt,policy,vault,instruction:new TransactionInstruction({programId:key(programId),
     data:Buffer.concat([agencyDiscriminator('bill_agency_promotion_v3'),u64(postId),hash,seq,u64(amount),time]),
-    keys:[meta(authority,true,true),meta(mint),meta(deriveFeeRouter(programId).address),meta(policy.address,false,true),meta(vault,false,true),
+    keys:[meta(authority,true,true),meta(mint),meta(deriveFeeRouter(programId).address,false,cluster==='mainnet-beta'),meta(policy.address,false,true),meta(vault,false,true),
       meta(promotionRecipient,false,true),meta(receipt,false,true),meta(SystemProgram.programId)]})};
 }
 

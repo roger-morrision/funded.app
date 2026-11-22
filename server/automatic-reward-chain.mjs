@@ -361,6 +361,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       if(recipient.equals(authority.publicKey))throw new Error('Operational authority cannot receive a bitmap reward.');
       keys.splice(keys.findIndex(k=>k.pubkey.equals(payment)),1);
     }
+    if (cluster === 'mainnet-beta') keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: plan.manifest.asset === 'SOL' });
     transaction.add(new TransactionInstruction({ programId: program, keys, data }));
     return { leaf, transaction, recipient, payment:plan.receiptMode==='bitmap'?cycle:payment,bitmap:plan.receiptMode==='bitmap', cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore, recipientTokenAddress };
   }
