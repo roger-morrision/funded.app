@@ -56,3 +56,6 @@ html body .fee-distribution-details > p { color: #a7bad0; font-size: 12px; line-
 .coin-fee-policy { min-width:0; margin-top:16px; }
 .coin-fee-policy [data-reserve-facts] { border-top:1px solid var(--fv-border); padding-top:16px; font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
 .coin-fee-policy [data-reserve-facts] h3 { margin:0 0 12px; }
+html body #coin-fee-distribution .airdrop-allocation-link { display:flex; align-items:center; justify-content:center; box-sizing:border-box; width:100%; min-height:44px; margin-top:16px; padding:10px 16px; border:1px solid var(--fv-border); border-radius:8px; background:var(--fv-surface-raised); color:var(--fv-text); font:600 14px/1.4 var(--fv-font-ui); text-align:center; text-decoration:none; }
+html body #coin-fee-distribution .airdrop-allocation-link:hover { border-color:var(--fv-accent); color:var(--fv-accent); }
+html body #coin-fee-distribution .airdrop-allocation-link:focus-visible { outline:2px solid var(--fv-accent); outline-offset:3px; }
