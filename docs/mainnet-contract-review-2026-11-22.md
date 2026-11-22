@@ -121,6 +121,21 @@ The community manifest's snapshot-hash stack overflow is fixed locally. A [70,00
 
 A separate [70,000-holder reward manifest regression](evidence/reward-payout-scale-2026-11-22.json) passes edge-proof verification. This narrows the automatic reward scale blocker to eligibility, indexing, execution and persistence rather than Merkle construction. The current worker batches at most four recipients per Devnet transaction and submits one per Mainnet transaction. It records each payment through a locked rewrite of the entire reward ledger; five-minute holder snapshots also store complete balances there. At 70,000 recipients, current widths imply at least 17,500 Devnet or 70,000 Mainnet transactions before retries. These are code-derived lower bounds, not a throughput test. Do not raise the 1,000-holder gate without paged durable progress, capacity tests and a reviewed payout design.
 
+## Administrator handoff during mint rotation
+
+**RICH-HANDOFF-01 — local-only.** The compiled-SBF regression now rotates back to the second mint while a successor is nominated. Revision 4 captured the outgoing administrator and pending successor. Acceptance changed only the active authority fields, cleared the nomination, preserved configuration rent and left the revision 4 account intact. The outgoing administrator's revision 5 update failed without creating a history account. The successor's update succeeded and the original revision 1 account still matched. The case passed once on each ELF below. Live handoff remains unverified and requires the isolated router's current administrator to authorize the transfer.
+
+| Tested input | Exact identity |
+| --- | --- |
+| Contract source | Base commit `1d3bbf40447f71430d20ccdfd49ad8503c8b8f89`, router `src` Git tree `dd2f57ffe841adaca9b2e033950633247f64c7ac` |
+| Regression | `rich_assets.rs` Git blob `6795e02c603d67830178dea40cb4ee1336c25efe` |
+| Mainnet-feature public fixture ELF SHA-256 | `6bfa0414eaf68b6dd3d2c5cda79e0454c0255e2da4ac80c7466f79e2913ce320` |
+| Isolated configurable Devnet ELF SHA-256 | `7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f` |
+
+From `contracts/funded-fee-router`, with `FUNDED_ROUTER_TEST_SO` set to the matching ELF and the public fixture program ID set as in [the candidate manifest](../config/contract-build-candidates.json), run `cargo test --locked -p funded-fee-router --features <features> --test rich_assets asset_admin_can_rotate_after_immutability_and_handoff_preserves_history -- --exact` for `mainnet-v3-program` and `devnet-v3-program,configurable-rich-assets`. From the repository root, `node --test tests/security/rich-assets.test.mjs` passed all seven cases and `npm run check:structure` passed.
+
+**Live-verified identities.** A read-only finalized Devnet account batch at slot `525063603` matched both executable Loader-v3 program pointers, ELF hashes and full ProgramData hashes to the [isolated router record](evidence/devnet-configurable-rich-2026-11-22.json) and [public app record](evidence/devnet-financial-records-2026-11-22.json). The public app ELF SHA-256 was `c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15`. No transaction was submitted. Next case: establish whether an entitlement created before rotation was paid after rotation, using finalized transaction ordering and custody and recipient deltas.
+
 ## Remaining deployment blockers
 
 1. **Production identities are unavailable.** Select the dedicated program address, production RICH mint and supported pool, guardian, fresh operational/price signers and approved upgrade authority. Compile the dedicated production program identity, reproduce and review the bytes, then initialize the owner-controlled RICH configuration with the supported production mint/market. Subsequent RICH changes do not require recompilation. No private keys should enter this report or repository.

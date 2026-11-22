@@ -80,9 +80,27 @@ fn asset_admin_can_rotate_after_immutability_and_handoff_preserves_history(){
     assert!(send(&mut svm,&stranger,&[&stranger],accept(stranger.pubkey())).is_err(),"cancelled successor cannot accept");
     send(&mut svm,&owner,&[&owner],propose(stranger.pubkey())).unwrap();
     assert!(send(&mut svm,&stranger,&[&stranger],configure(stranger.pubkey(),program_data,mint,pool,4,0)).is_err());
+    // The current administrator may still rotate the asset while acceptance is pending.
+    send(&mut svm, &owner, &[&owner], configure(owner.pubkey(), program_data, second, second_pool, 4, 0)).unwrap();
+    let revision_four = svm.get_account(&history(4)).unwrap();
+    let pending = RichAssetConfig::try_deserialize(&mut revision_four.data.as_slice()).unwrap();
+    assert_eq!((pending.authority, pending.pending_authority), (owner.pubkey(), stranger.pubkey()));
+    assert_eq!((pending.mint, pending.market, pending.revision), (second, second_pool, 4));
+    let before_handoff = svm.get_account(&config_address()).unwrap();
+    assert_eq!(before_handoff.data, revision_four.data);
     send(&mut svm,&stranger,&[&stranger],accept(stranger.pubkey())).unwrap();
-    assert!(send(&mut svm,&owner,&[&owner],configure(owner.pubkey(),program_data,mint,pool,4,0)).is_err());
-    send(&mut svm,&stranger,&[&stranger],configure(stranger.pubkey(),program_data,mint,pool,4,0)).unwrap();
+    let after_handoff = svm.get_account(&config_address()).unwrap();
+    let mut expected = pending;
+    expected.authority = stranger.pubkey();
+    expected.pending_authority = Pubkey::default();
+    let mut expected_data = Vec::new();
+    expected.try_serialize(&mut expected_data).unwrap();
+    assert_eq!(after_handoff.data, expected_data);
+    assert_eq!(after_handoff.lamports, before_handoff.lamports);
+    assert_eq!(svm.get_account(&history(4)).unwrap(), revision_four);
+    assert!(send(&mut svm,&owner,&[&owner],configure(owner.pubkey(),program_data,mint,pool,5,0)).is_err());
+    assert!(svm.get_account(&history(5)).is_none());
+    send(&mut svm,&stranger,&[&stranger],configure(stranger.pubkey(),program_data,mint,pool,5,0)).unwrap();
     assert_eq!(svm.get_account(&history(1)).unwrap(),first);
 
 }
