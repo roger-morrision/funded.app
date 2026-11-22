@@ -1774,7 +1774,7 @@
       "Graph indexed prior fe518; actual f112 service/snapshot/archive source reviewed directly to resolve stale graph limits.",
       "Contract runtime paths are byte-identical971399ff; production3f8/accepted1236Loaderprefix unaffected."
     ],
-    "status": "Covered archive cases retained; c096 owner-specific raw-layout correction source reviewed and63local cases pass, independent corrected-source acceptance pending.",
+    "status": "Independent E2E accepted exactc096 owner-specific raw-layout correction and covered prospective capture/publication/offline replay slice locally. Parent MN002 remains open.",
     "limits": [
       "Prospective raw input retention only; no missing Nov19 bank reconstruction or live current-program28delivery.",
       "Windows directory fsync unavailable and explicitly recorded; Linux power-loss and backup restore remain unverified.",
@@ -1792,7 +1792,7 @@
     "rawLayoutFinding": {
       "id": "FQA-MN-002-ARCHIVE-LAYOUT",
       "title": "Malformed SPL account layout qualifies through valid-hash offline restart",
-      "status": "Baseline reproduced on f112; corrected c096 source passes original3probe and required63 in Contract review; independent corrected-source acceptance pending.",
+      "status": "Corrected and independently accepted at exactc096 for local archive raw-layout scope; originalf112baseline evidence retained.",
       "trigger": "Append one0x63 byte to classic mint82->83 or classic token165->166 raw base64; preserve all raw fields/normalized supply/snapshot/manifest/context/signatures. Recompute content hash and pointer, disable RPC, reopen actual service.prepared.",
       "observed": "Installed SPL SDK rejects mint TokenInvalidAccountSizeError and token TokenInvalidAccountError; archive reader nevertheless accepts both as qualified. Unchanged control accepts.",
       "counts": {
@@ -1826,7 +1826,23 @@
           "Valid Token2022 base/metadata/account extension/frozen structural controls preserved; no extension financial behavior admission.",
           "Existing metadata0.1.6 package becomes explicit direct dependency without changing resolved package bytes; include package/lock in final App identity.",
           "App Contract runtime source remains identical971399ff; no new ELF/Loader/quote needed."
-        ]
+        ],
+        "independentVerification": {
+          "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-community-archive-layout-c096573d-20261123.json",
+          "sha256": "773389ec4a2ea0521ca4944d2b25cad06606af094c70e1c2570365a41a7cebac",
+          "node": "v24.22.3",
+          "requiredPassed": 63,
+          "failed": 0,
+          "skipped": 0,
+          "todo": 0,
+          "originalProbePassed": 3,
+          "originalBaselinePassed": 1,
+          "originalBaselineFailed": 2,
+          "gitSourceHashesMatched": 9,
+          "nonRootResolvedLockEntriesUnchanged": 159,
+          "artifactsVerified": true,
+          "scope": "Independent prospective raw archive source/local capture-publication-offline restart qualification with synthetic trusted finalized RPC/bank. No historical bank recovery or live financial acceptance."
+        }
       }
     }
   }
