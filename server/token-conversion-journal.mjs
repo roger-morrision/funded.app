@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {VersionedTransaction} from '@solana/web3.js';
+import nacl from 'tweetnacl';
 import {deriveTokenConversionV3} from '../mint-router-v3-token.js';
 import {buildReviewedUsdcSellConversion,decodeTokenConversionIntent} from './token-conversion-sell.mjs';
 import {reviewedMainnetManifest} from '../mainnet-program.js';
@@ -15,6 +16,13 @@ const identity=row=>`${row.programId}:${row.mint}:${row.conversionId}`;
 const immutable=row=>tokenPricePolicyHash({programId:row.programId,mint:row.mint,conversionId:row.conversionId,
   category:row.category,amountIn:row.amountIn,authority:row.authority,priceSigner:row.priceSigner});
 const slots=(...values)=>values.every(value=>Number.isSafeInteger(value)&&value>0);
+const roleIndex=role=>role==='operator'?0:role==='price-attestation'?1:-1;
+function roleSignature(row,role,value){
+  const index=roleIndex(role);assert(index>=0&&typeof value==='string'&&value.length===88,'Canonical role signature required.');
+  const signature=Buffer.from(value,'base64'),tx=VersionedTransaction.deserialize(Buffer.from(row.unsignedTransaction,'base64'));
+  assert(signature.length===64&&signature.toString('base64')===value
+    &&nacl.sign.detached.verify(tx.message.serialize(),signature,tx.message.staticAccountKeys[index].toBytes()),'Role signature differs from durable reviewed message.');
+}
 
 // Dedicated durable store with transactional lock/fsync BEFORE a price signature
 // may leave its caller. No method signs or broadcasts. Reuse the existing locked
@@ -58,6 +66,10 @@ export function createTokenConversionJournal({store,connection,config,release=re
         &&Number.isSafeInteger(row.broadcastAttemptedAt)&&row.broadcastAttemptedAt>=row.submittedAt&&row.broadcastAttemptedAt<=journal.clock
         &&Number.isSafeInteger(row.broadcastReviewedAt)&&row.broadcastReviewedAt<=row.broadcastAttemptedAt
         &&row.broadcastReviewedAt>=row.at&&row.broadcastAttemptedAt-row.broadcastReviewedAt<35000,'Invalid durable broadcast marker.');
+      if(row.roleSignatures!==undefined){
+        assert(row.signingStartedAt!==undefined&&row.roleSignatures&&typeof row.roleSignatures==='object'&&!Array.isArray(row.roleSignatures),'Invalid role signature cache.');
+        for(const [role,value]of Object.entries(row.roleSignatures))roleSignature(row,role,value);
+      }
       if(row.status==='submitted')assert(row.signature&&row.signedTransaction,'Submitted conversion lacks durable signed bytes.');
       if(row.status==='reserved')assert(!row.signature&&!row.signedTransaction,'Unsigned reservation has unexpected signature state.');
       if(row.status==='settled')assert(row.proof?.finalized===true&&row.proof.messageHash===hash&&row.proof.balanceDeltaVerified===true
@@ -114,6 +126,12 @@ export function createTokenConversionJournal({store,connection,config,release=re
       const row=journal.attempts[messageHash];assert(row?.status==='reserved','No unsigned conversion reservation.');
       if(row.signingStartedAt!==undefined)return {claimed:false,reservation:row};
       row.signingStartedAt=at;return {claimed:true,reservation:row};
+    }),
+    recordRoleSignature:({messageHash,role,signatureBase64})=>transaction(journal=>{
+      const row=journal.attempts[messageHash];assert(row?.status==='reserved'&&row.signingStartedAt!==undefined,'No signer-owned reservation.');
+      roleSignature(row,role,signatureBase64);row.roleSignatures||={};
+      assert(!row.roleSignatures[role]||row.roleSignatures[role]===signatureBase64,'Role signature cache is immutable.');
+      row.roleSignatures[role]=signatureBase64;return row;
     }),
     recordSigned:({messageHash,transactionBase64})=>transaction((journal,at)=>{
       const row=journal.attempts[messageHash];assert(row&&['reserved','submitted'].includes(row.status),'No active conversion reservation.');

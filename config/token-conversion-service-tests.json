@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "scope": "Actual loopback HTTP controller and separately reviewing role backends; synthetic bank/RPC/custody signers and no runtime activation",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-service.test.mjs",
+      "requiredTests": [
+        "HTTP controller missing recovery attempt cannot contact signers",
+        "HTTP authentication rejects controller and both custody requests before review",
+        "HTTP schema and changed message hash refuse without a reservation",
+        "HTTP cached role signature survives backend restart with actual fresh review and no new custody call",
+        "HTTP unknown custody result cannot sign again after backend restart",
+        "HTTP role signature disk failure cannot expose a usable response or invoke the operator",
+        "HTTP postpublication role signature failure is cache-recoverable without another custody signature",
+        "HTTP two backend instances share durable one-time custody admission",
+        "HTTP controller unknown send restarts read-only then attributes the exact original transaction",
+        "HTTP unavailable backend reconciliation cannot erase durable worker proof",
+        "HTTP forged custody signature or identity cannot reach broadcast",
+        "HTTP corrupted cached role signature prevents backend restart without rewriting it",
+        "HTTP service refuses missing production admission or wrong custody identity before review",
+        "HTTP remote custody origin rejects public HTTP and credential-bearing endpoints",
+        "HTTP native redirect refusal does not forward custody authentication",
+        "HTTP oversized request and response remain fail-closed without custody or broadcast",
+        "HTTP custody completion after review expiry persists but does not expose its signature",
+        "HTTP accidentally shared role journal cannot admit both custody signatures",
+        "HTTP conversion independently reviews signs and reconciles category 5 across three journals",
+        "HTTP conversion independently reviews signs and reconciles category 6 across three journals",
+        "HTTP conversion independently reviews signs and reconciles category 7 across three journals",
+        "HTTP price-attestation own wrong-genesis reader refuses a worker-approved request",
+        "HTTP operator own wrong-genesis reader refuses a worker-approved request"
+      ]
+    }
+  ]
+}

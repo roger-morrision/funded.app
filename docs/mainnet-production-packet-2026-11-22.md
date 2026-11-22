@@ -312,5 +312,15 @@ the actual admitted reviewer/journal/proof with injected operator and price
 signers. Durable one-time signing/send-intent markers precede external actions;
 restart is read-only recovery, including unsigned and signed unsent attempts.
 Twenty-eight required synthetic transport cases plus the existing 72 conversion
-cases pass. This module is not registered with an operational worker, signer
-backend or Mainnet admission path. See the [source evidence](evidence/token-conversion-transport.json).
+cases pass. Production worker registration, custody provisioning and Mainnet
+admission remain open. See the [source evidence](evidence/token-conversion-transport.json).
+
+The [private HTTP service integration](token-conversion-services.md) connects
+that transport to authenticated controller and role-backend factories. Each
+backend reviews through its own supplied RPC and durably caches its verified
+role signature before replying. Actual loopback HTTP tests cover 23 required
+cases, with 28 transport and 72 conversion cases also passing on both platforms.
+The separate RPC readers, RAM test keys and synthetic bank do not establish
+independent production custody or live financial acceptance. No existing
+launcher, worker, public route, allowlist or activation setting is changed.
+See the [service source evidence](evidence/token-conversion-services.json).
