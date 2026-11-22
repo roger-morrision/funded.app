@@ -211,7 +211,7 @@ html body #main-content #coin-page .coin-stat-strip #coin-strip-market-cap { col
   html body #main-content #coin-page .coin-side-column { display: contents; }
   html body #main-content #coin-page .coin-chart-panel { order: 1; }
   html body #main-content #coin-page .trading-panel { order: 2; }
-  html body #main-content #coin-page .coin-pulse-panel { order: 3; }
+  html body #main-content #coin-page :is(.coin-pulse-panel, .coin-fee-distribution-panel) { order: 3; }
   html body #main-content #coin-page .coin-tabs-panel { order: 4; }
   html body #main-content #coin-page .coin-policy-card { order: 5; }
   html body #main-content #coin-page .coin-main-column > .launch-facts { order: 6; }
