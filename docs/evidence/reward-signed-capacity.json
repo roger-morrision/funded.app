@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T21:32:28.735655+00:00",
+  "issueId": "FQA-MN-001",
+  "baseRevision": "94c01b6745de630dbb84c914eda9116c93fefd5a",
+  "scope": "Offline coherent signed prepared-attempt input and actual filesystem/read-only recovery measurement; no runtime change or production capacity acceptance",
+  "node": "24.22.3",
+  "tests": {
+    "command": "node --test tests/readiness/reward-capacity.test.mjs",
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "missingReviewedElf": {
+      "exit": 1,
+      "requiredCasesPassed": 0
+    }
+  },
+  "checks": {
+    "syntaxFiles": 1176,
+    "sourceSizeFiles": 1439,
+    "sourceSizeFailures": [],
+    "diffCheck": "passed",
+    "unchangedContextFiles": 23
+  },
+  "gitLfSourceSha256": {
+    "tests/readiness/reward-capacity-fixture.mjs": "ec2e58fd3848fe6a43b42488dd859fe5a6bef50e7f4448148984266edc5c0596",
+    "tests/readiness/reward-capacity.test.mjs": "00d284057d06b0451a0f8e2b7c57319abc6c4d7a0c51470741018c9660827b35",
+    "scripts/measure-reward-signed-capacity.mjs": "1426fbb6d9fde4fdd9e93d1c0e3c8fb52600be67e72b74c6be838e76feeb34e7",
+    "docs/reward-signed-capacity.md": "52b3be4a2cd0343c03983eebd91fd8e69dfd0efd2242c9c59b790fd77f63990c",
+    "docs/mainnet-production-packet-2026-11-22.md": "708c4c19e3b1b495dd3053125a71ae77c414782d25420a8f7a35ae8dae0947c7"
+  },
+  "unchangedContextSha256": {
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/reward-payout-recovery.mjs": "8260c04f1b62c96c47c96c583867846129e714fd95a81398fd0e6e1b02ec8a97",
+    "server/reward-recovery-page.mjs": "18d432cbf4552e49c7fc87360d3f781dcb7e9e027e9f2635e87f50e43ae8e540",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-cycle-expiry.mjs": "2ff9382d9e1fe644db25f08eaa5fa96eaf92f72e8b6be0ab494c154b441d7aeb",
+    "server/reward-expiry-attempt.mjs": "472649b62ac1c41be5570e415412e63d8bfa4843f42c5bd1d5acfa9c8e3854fa",
+    "server/token-conversion-journal.mjs": "d115a10c3f7b73572e8fbdbfec5493314c8379d804432e85e837c2458ffc5b84",
+    "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+    "server/community-claim-service.mjs": "2d13336716e71906c9ea87ff1c8829c32057ffe9158c31b96f81412a41b76f80",
+    "server/community-snapshot-archive.mjs": "6340a943dfe993ccfcfd0aac97ddc09a76db47434cfae9b92fffd4b6130643d9",
+    "server/community-bank-layout.mjs": "d53bcc251a4d24acaaff1bc5b841e2ed0a01469581343cc13d581a3c3c7a7ead",
+    "automatic-rewards.js": "185a8c013f600bf871b253c04e3f3c3196f0b78c6cd0c459f8185dde60c0c2d8",
+    "reward-merkle.js": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+    "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+    "server/background-maintenance.mjs": "d65a123b78790a742ac98bb4990ff2a7fe69a9be7b2dca92d57338550bc55523",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc",
+    "compose.resources.yml": "e9325be2199a1672db81a6a0e45923eb00dcc76eacc6311355a0701942b39703",
+    "server/automatic-reward-store.mjs": "2c9a1b64809c1a1d015dbf702dff44ec8cd7ed0e7d96a4d7eb6284255732ee46"
+  },
+  "measurements": {
+    "33": {
+      "scope": "offline-canonical-prepared-wires-not-finalized-proof-or-production-capacity",
+      "node": "v24.22.3",
+      "countPerCohort": 33,
+      "assets": [
+        "SOL",
+        "USDC"
+      ],
+      "nodeExecArgv": [
+        "--max-old-space-size=256"
+      ],
+      "cohorts": [
+        {
+          "asset": "SOL",
+          "count": 33,
+          "root": "fc01cf1cd65738655d6d4db15731d3c8fe70f375e99cdce22ab51e5510c93d24",
+          "totalAmount": "3556",
+          "proofDepths": [
+            1,
+            6
+          ],
+          "uniqueSignatures": 33,
+          "uniqueWires": 33,
+          "minWire": 424,
+          "maxWire": 585,
+          "attemptBytes": 80402,
+          "planBytes": 99459,
+          "constructionMs": 732.8331999999999,
+          "mockedSendCalls": 33,
+          "networkCalls": 0,
+          "onChainTransactions": 0
+        },
+        {
+          "asset": "USDC",
+          "count": 33,
+          "root": "003fa2f9d32036d09b333d57a745a562b5b104af720275d6acb7273b344c6554",
+          "totalAmount": "3556",
+          "proofDepths": [
+            1,
+            6
+          ],
+          "uniqueSignatures": 33,
+          "uniqueWires": 33,
+          "minWire": 598,
+          "maxWire": 759,
+          "attemptBytes": 89508,
+          "planBytes": 108648,
+          "constructionMs": 744.7261000000001,
+          "mockedSendCalls": 33,
+          "networkCalls": 0,
+          "onChainTransactions": 0
+        }
+      ],
+      "ledgerBytes": 208285,
+      "fresh": {
+        "reads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 208413,
+        "ledgerReplacements": 1,
+        "ledgerWriteBytes": 208413,
+        "mutatorInsideLockMs": 0.8306000000002314,
+        "transactionElapsedMs": 8.982099999999718,
+        "instrumentationSerializeMs": 0.3243000000002212,
+        "elapsedMs": 10.349299999999857,
+        "maxRssKiB": 132732
+      },
+      "recovery": {
+        "reads": 33,
+        "transactions": 33,
+        "serializedCandidateBytes": 6885112,
+        "ledgerReplacements": 2,
+        "ledgerWriteBytes": 417179,
+        "mutatorInsideLockMs": 1.7827999999990425,
+        "transactionElapsedMs": 116.21950000000106,
+        "instrumentationSerializeMs": 8.25840000000062,
+        "elapsedMs": 376.75559999999996,
+        "interfaceCalls": 32,
+        "rpcMethods": {
+          "getGenesisHash": 32,
+          "getSignatureStatuses": 32,
+          "getTransaction": 32
+        },
+        "maxRssKiB": 136072
+      },
+      "memory": {
+        "maxRssKiB": 136100,
+        "rss": 139366400,
+        "heapTotal": 69857280,
+        "heapUsed": 41430336,
+        "external": 10605903,
+        "arrayBuffers": 7684832,
+        "v8HeapLimitBytes": 469762048
+      },
+      "networkCalls": 0,
+      "onChainTransactions": 0,
+      "additionalSigningOrMockBroadcastsDuringRecovery": 0,
+      "limits": "A Node old-space flag is not a 512MiB container/RSS/CPU limit. No full-app, finalized-proof, whole-worker, Linux durability, live throughput or admission claim.",
+      "instrumentation": "Transaction elapsed includes candidate JSON byte-count overhead plus stat observers; mutator time is a subset inside the lock, not full lock hold. RSS includes fixture construction and all retained source bank/manifest objects."
+    },
+    "1001": {
+      "scope": "offline-canonical-prepared-wires-not-finalized-proof-or-production-capacity",
+      "node": "v24.22.3",
+      "countPerCohort": 1001,
+      "assets": [
+        "SOL",
+        "USDC"
+      ],
+      "nodeExecArgv": [
+        "--max-old-space-size=256"
+      ],
+      "cohorts": [
+        {
+          "asset": "SOL",
+          "count": 1001,
+          "root": "dbdb3c1d272a563f2330b92ebe678d6ba010517cd4d89c6504b91fd7cc2cde44",
+          "totalAmount": "108093",
+          "proofDepths": [
+            6,
+            9,
+            10
+          ],
+          "uniqueSignatures": 1001,
+          "uniqueWires": 1001,
+          "minWire": 585,
+          "maxWire": 713,
+          "attemptBytes": 2616803,
+          "planBytes": 3459173,
+          "constructionMs": 22674.973100000003,
+          "mockedSendCalls": 1001,
+          "networkCalls": 0,
+          "onChainTransactions": 0
+        },
+        {
+          "asset": "USDC",
+          "count": 1001,
+          "root": "d247ea4e91d2022f911942a8f04b37039ee1de38333c22e14a6a17ba66297df4",
+          "totalAmount": "108093",
+          "proofDepths": [
+            6,
+            9,
+            10
+          ],
+          "uniqueSignatures": 1001,
+          "uniqueWires": 1001,
+          "minWire": 759,
+          "maxWire": 887,
+          "attemptBytes": 2893068,
+          "planBytes": 3735521,
+          "constructionMs": 25206.502200000003,
+          "mockedSendCalls": 1001,
+          "networkCalls": 0,
+          "onChainTransactions": 0
+        }
+      ],
+      "ledgerBytes": 7194872,
+      "fresh": {
+        "reads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 7195000,
+        "ledgerReplacements": 1,
+        "ledgerWriteBytes": 7195000,
+        "mutatorInsideLockMs": 28.387199999997392,
+        "transactionElapsedMs": 95.87089999999444,
+        "instrumentationSerializeMs": 11.58520000000135,
+        "elapsedMs": 116.34339999999793,
+        "maxRssKiB": 319940
+      },
+      "recovery": {
+        "reads": 33,
+        "transactions": 33,
+        "serializedCandidateBytes": 237442549,
+        "ledgerReplacements": 2,
+        "ledgerWriteBytes": 14390357,
+        "mutatorInsideLockMs": 9.339400000004389,
+        "transactionElapsedMs": 1393.2066999999952,
+        "instrumentationSerializeMs": 372.1857999999993,
+        "elapsedMs": 2580.686499999996,
+        "interfaceCalls": 32,
+        "rpcMethods": {
+          "getGenesisHash": 32,
+          "getSignatureStatuses": 32,
+          "getTransaction": 32
+        },
+        "maxRssKiB": 394560
+      },
+      "memory": {
+        "maxRssKiB": 394560,
+        "rss": 322318336,
+        "heapTotal": 195555328,
+        "heapUsed": 74874320,
+        "external": 58549941,
+        "arrayBuffers": 26785823,
+        "v8HeapLimitBytes": 469762048
+      },
+      "networkCalls": 0,
+      "onChainTransactions": 0,
+      "additionalSigningOrMockBroadcastsDuringRecovery": 0,
+      "limits": "A Node old-space flag is not a 512MiB container/RSS/CPU limit. No full-app, finalized-proof, whole-worker, Linux durability, live throughput or admission claim.",
+      "instrumentation": "Transaction elapsed includes candidate JSON byte-count overhead plus stat observers; mutator time is a subset inside the lock, not full lock hold. RSS includes fixture construction and all retained source bank/manifest objects."
+    }
+  },
+  "rawEvidence": {
+    "signed-capacity-tests.stdout": "c45e6213639673a7efd42789f0840c1f22eb18dc55e6452f8c6cde4026a056f0",
+    "signed-capacity-tests.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "signed-capacity-33.stdout": "01eedc2b6dcea9842205beb848ed95720e5fac4a285158e123098f6d4f90ffa6",
+    "signed-capacity-33.stderr": "f06db9d808ce395d0204270aba102c959b478693c46271d2e915011ea04b89c4",
+    "signed-capacity-1001.stdout": "21d23264966e1c8578248f3c31386a587e1efe99f9691c1efdde2f0d18388c20",
+    "signed-capacity-1001.stderr": "3c423c686079afe1d91e752c59a23888fc2bb3d36aa0620dfc2ed064b948576a",
+    "signed-capacity-missing-elf.stdout": "49dc012e8f638407aa522ea109bcf9af789de02b7a4bab01f7908fae59397828",
+    "signed-capacity-missing-elf.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "signed-capacity-syntax.stdout": "9f357f8aa9bd5c57ef20d222aa59f455fa34c7a58934518001591025f0d59887",
+    "signed-capacity-syntax.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "signed-capacity-draft-shared-cycle.stdout": "4b63b805941d6d19b33a3adb7f20a55f892e6ae29571cfedf3c422533c8b93a9",
+    "signed-capacity-draft-shared-cycle.stderr": "dc94baa2677c81d8b01bc233b7746c0f4fbef462a4ee8d9ea394ea9d2a742aef"
+  },
+  "evidenceDirectory": "data/qa-evidence/mainnet-production-packet-20261122/signed-capacity",
+  "developmentHistory": [
+    "Initial four-case fixture passed; first measurement used distinct synthetic asset banks at one cycle address. Owner review tightened this before freeze: unique asset/count cycle IDs, correct PDA bump, shared-account byte consistency test. Draft outputs retained as superseded, not production evidence.",
+    "Five current tests passed after the namespace correction. Both declared cohort measurements rerun on corrected source."
+  ],
+  "remaining": [
+    "Verified finalized-proof payload and whole app/worker/expiry/capture resource mix",
+    "Actual 512MiB/CPU constrained Linux process/cgroup measurement and production backup/restore",
+    "Whole-ledger O(N) reads/serialization plus complete resource/deadline financial scale acceptance",
+    "Original Nov19 account bank and actual configured-program live28 delivery",
+    "Operational custody roles/runtime admission and final wallet funding packet"
+  ],
+  "nextUsefulAction": "Independently reproduce exact source and canonical per-leaf construction. Extend to verified-proof/mixed workload and actual intended Linux resource limits without widening cap1000 or runtime admission."
+}

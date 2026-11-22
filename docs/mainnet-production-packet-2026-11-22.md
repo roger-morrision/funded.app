@@ -273,3 +273,10 @@ publication. Bootstrap, migration, proof-before-status, cache and failure contro
 are included in its dedicated affected-inventory gate. Physical-write reductions
 are local synthetic observations; whole-ledger O(N), real payload/throughput,
 backup/restore and all financial/live release criteria remain open.
+
+The MN001 [signed prepared-attempt capacity fixture](reward-signed-capacity.md)
+constructs distinct canonical messages for coherent global cohorts and measures
+the existing locked filesystem store and actual read-only journal recovery.
+This replaces marker-only payloads for one bounded measurement; verified-proof,
+whole-process resource, Linux restore and live financial acceptance remain open.
+No production admission, runtime code or funding quote changes follow.
