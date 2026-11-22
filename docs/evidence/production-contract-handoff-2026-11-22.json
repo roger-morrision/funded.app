@@ -2424,5 +2424,140 @@
       "artifactsVerified": true,
       "scope": "Generic exact-byte ledger persistence and failure semantics with actual locked filesystem/store and synthetic financial fixtures. No live financial/production capacity/release acceptance."
     }
+  },
+  "signedPreparedCapacityReview": {
+    "appSource": "a85a64a27fb27657a938db3496f61a6a000ef336",
+    "ownerReportGitSha256": "f8bcd5e895c7374173dd77cc4026509aa127cb765f00aea37d94f6585f31b645",
+    "reviewNode": "v26.13.1",
+    "targetedPassed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "sourceGitHashesMatched": 5,
+    "unchangedContextHashesMatched": 23,
+    "runtimeChanged": false,
+    "rawTests": "tmp/contract-signed-capacity-a85a-tests.log",
+    "rawTestsSha256": "3d41f1dbce01105f79b0b604b107f14647a4446a711eadcc052b8d46f530873c",
+    "rawMeasurement": "tmp/contract-signed-capacity-a85a-1001.json",
+    "rawMeasurementSha256": "ac7d6a65d8af45fb4c64f88ce97e65c9c2cec2edd6f45f2c574c10b56f5f68ae",
+    "rawConstruction": "tmp/contract-signed-capacity-a85a-1001.stderr.log",
+    "rawConstructionSha256": "3e7b9a8d38901e1d7db5483f82f6941af63b5b66cfcb3feb65228f0e1c75c1de",
+    "sourceAssessment": [
+      "Actual chain and existing journal construct/sign different global leaves in serial in-memory staging; each canonical prepared intent/message/snapshot validates before filesystem measurement.",
+      "Asset-specific cycle IDs/PDAs bind full roots/counts/total and owned synthetic reserve/cycle bytes. Explicit test verifies compatible shared-address records across SOL and USDC fixtures.",
+      "2002unique wires/signatures, original global proof depths6/9/10. Devnet receipt-mode geometry max713SOL/887USDC, no production admission or live financial claim.",
+      "Measured real locked/fsynced store publishes full prepared rows, then actual chain recoveryOnly reopens/reads saved attempts; all original attempts preserved, empty payments, no new nonce/sign/send during recovery.",
+      "Fixture staging and mocked financial/status/genesis methods are separate from actual network.32calls each are mock interface counts.",
+      "Graph indexed prior94c and new helper was unavailable; actual new fixture/measurement source inspected directly. All server runtime and23context pins unchanged94c, Contract paths identical971399ff; accepted3f8/Loaderquote reused."
+    ],
+    "status": "Contract source-only prepared-input/storage review,5local cases and1001SOL/USDC run pass; independent exact-source acceptance pending.",
+    "scope": "Offline canonical signed prepared attempt input and real Windows store measurement only, trusted synthetic bank/RPC facts. No finalized payment proof, admission change, live financial or whole-app capacity acceptance.",
+    "remaining": [
+      "Verified-proof/mixed worker and expiry/capture payloads not measured.",
+      "Old-space256 flag is not process/container512MiB or CPU enforcement; Node26 reported heap limit differs from owner's Node24.",
+      "RSS includes fixture construction/retained banks/artifacts; no production headroom/SLA inferred.",
+      "Whole-ledger O(N), real constrained Linux/powerloss/restore/originalbank/live28/roles/final funding remain open."
+    ],
+    "measurement": {
+      "scope": "offline-canonical-prepared-wires-not-finalized-proof-or-production-capacity",
+      "node": "v26.13.1",
+      "countPerCohort": 1001,
+      "assets": [
+        "SOL",
+        "USDC"
+      ],
+      "nodeExecArgv": [
+        "--max-old-space-size=256"
+      ],
+      "cohorts": [
+        {
+          "asset": "SOL",
+          "count": 1001,
+          "root": "dbdb3c1d272a563f2330b92ebe678d6ba010517cd4d89c6504b91fd7cc2cde44",
+          "totalAmount": "108093",
+          "proofDepths": [
+            6,
+            9,
+            10
+          ],
+          "uniqueSignatures": 1001,
+          "uniqueWires": 1001,
+          "minWire": 585,
+          "maxWire": 713,
+          "attemptBytes": 2616803,
+          "planBytes": 3459173,
+          "constructionMs": 20088.738400000002,
+          "mockedSendCalls": 1001,
+          "networkCalls": 0,
+          "onChainTransactions": 0
+        },
+        {
+          "asset": "USDC",
+          "count": 1001,
+          "root": "d247ea4e91d2022f911942a8f04b37039ee1de38333c22e14a6a17ba66297df4",
+          "totalAmount": "108093",
+          "proofDepths": [
+            6,
+            9,
+            10
+          ],
+          "uniqueSignatures": 1001,
+          "uniqueWires": 1001,
+          "minWire": 759,
+          "maxWire": 887,
+          "attemptBytes": 2893068,
+          "planBytes": 3735521,
+          "constructionMs": 22855.337900000002,
+          "mockedSendCalls": 1001,
+          "networkCalls": 0,
+          "onChainTransactions": 0
+        }
+      ],
+      "ledgerBytes": 7194872,
+      "fresh": {
+        "reads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 7195000,
+        "ledgerReplacements": 1,
+        "ledgerWriteBytes": 7195000,
+        "mutatorInsideLockMs": 27.814900000004855,
+        "transactionElapsedMs": 93.79660000000149,
+        "instrumentationSerializeMs": 14.820100000004459,
+        "elapsedMs": 112.8035000000018,
+        "maxRssKiB": 222304
+      },
+      "recovery": {
+        "reads": 33,
+        "transactions": 33,
+        "serializedCandidateBytes": 237442549,
+        "ledgerReplacements": 2,
+        "ledgerWriteBytes": 14390357,
+        "mutatorInsideLockMs": 10.790899999985413,
+        "transactionElapsedMs": 1341.1183000000165,
+        "instrumentationSerializeMs": 316.0583000000188,
+        "elapsedMs": 2409.261000000006,
+        "interfaceCalls": 32,
+        "rpcMethods": {
+          "getGenesisHash": 32,
+          "getSignatureStatuses": 32,
+          "getTransaction": 32
+        },
+        "maxRssKiB": 278144
+      },
+      "memory": {
+        "maxRssKiB": 278144,
+        "rss": 252166144,
+        "heapTotal": 127721472,
+        "heapUsed": 89053600,
+        "external": 44468394,
+        "arrayBuffers": 26786647,
+        "v8HeapLimitBytes": 369098752
+      },
+      "networkCalls": 0,
+      "onChainTransactions": 0,
+      "additionalSigningOrMockBroadcastsDuringRecovery": 0,
+      "limits": "A Node old-space flag is not a 512MiB container/RSS/CPU limit. No full-app, finalized-proof, whole-worker, Linux durability, live throughput or admission claim.",
+      "instrumentation": "Transaction elapsed includes candidate JSON byte-count overhead plus stat observers; mutator time is a subset inside the lock, not full lock hold. RSS includes fixture construction and all retained source bank/manifest objects."
+    }
   }
 }
