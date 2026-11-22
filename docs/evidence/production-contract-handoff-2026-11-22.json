@@ -1553,7 +1553,7 @@
       "No automatic failed/expired replacement policy.",
       "Parent live, archive, roles, scale and final funding readiness remain open."
     ],
-    "status": "Covered45-case source/runtime review passed; additional transaction fee/native balance consistency probe failed expected rejection. Correction requested.",
+    "status": "Historical969809review found native and cached accounting gaps; see payoutCorrectionsReview for independently accepted finalb785 source.",
     "feeConsistencyFinding": {
       "source": "969809a0939b033353c757649e933c018a76d407",
       "rawProbe": "tmp/contract-payout-fee-probe-9698.txt",
@@ -1608,7 +1608,7 @@
         "scope": "Exact frozen baseline supplement; independent correction retest pending."
       },
       "correctionSource": "b785e5a5cc31479a907b253cb2ab4cd36eaa6b0b",
-      "correctionStatus": "Original native/cache probes pass in exact-source Contract review; independent final Node24 retest requested."
+      "correctionStatus": "FocusedPAYOUT-02 corrected in exactb785 and independently accepted locally onNode24; parent/live financial gates remain open."
     },
     "coveredIndependentVerification": {
       "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-payout-journal-969809a0-20261123.json",
@@ -1646,7 +1646,24 @@
       "Cached verified proof binds fee value, payer and amount to authenticated prepared intent without new RPC, signatures or submission.",
       "Contract runtime remains identical971399ff; reuse existing3f8binary and accepted1236messageprefix."
     ],
-    "status": "Contract exact-source review passed; independentNode24final correction acceptance pending.",
-    "scope": "Actual App/scheduler/store and SDK with synthetic financial bank/RPC/finality. Existing roles/live/archive/scale/final funding remain open; no automatic attempt replacement."
+    "status": "Exactb785 correction independently accepted on Node24 for local metadata/native/cached accounting scope.",
+    "scope": "Actual App/scheduler/store and SDK with synthetic financial bank/RPC/finality. Existing roles/live/archive/scale/final funding remain open; no automatic attempt replacement.",
+    "independentVerification": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-payout-corrections-b785e5a5-20261123.json",
+      "sha256": "c268566263b79d98c410a178d95075ee5f102957cf65c95d6f163150892eab92",
+      "node": "v24.22.3",
+      "requiredPassed": 70,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "unchangedNativeProbePassed": 12,
+      "unchangedCacheProbePassed": 3,
+      "nativeBaseline": "7pass5failon969809",
+      "cachedBaseline": "1pass2failon969809",
+      "gitSourceHashesMatched": 13,
+      "missingCurrentElf": "Exit1,0of70requiredpassed",
+      "expiryReuse": "Independent prior43expiry results reused by actual unchanged6filebyteidentity.",
+      "scope": "PAYOUT-02 native/cached correction accepted locally. Original metadata controls also pass; PAYOUT-01 PM acceptance at7108 remains separately attributed. Synthetic bank/RPC/finality only."
+    }
   }
 }
