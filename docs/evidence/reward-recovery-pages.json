@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T20:14:16.418414+00:00",
+  "issueId": "FQA-MN-001",
+  "baseRevision": "0742d416925a98fca4cafbcce94eb91b6391c302",
+  "scope": "Bound saved-attempt read-only recovery interface calls across selected schedules; actual scheduler/locked store with synthetic chain outcomes, not financial finality or whole-worker boundedness; independent exact-source verification pending",
+  "node": "v24.22.3",
+  "changes": [
+    "At most32 saved payout tasks selected before readiness, with deterministic circular locked/fsynced progress across selected schedules",
+    "Every task still goes through existing recoveryOnly chain/journal; preserve exact same completion/error/proof/attribution body after task selection",
+    "Small sets<=32 use existing read-only path without cursor transactions; large sets re-read under lock and persist the fair cursor before any recovery calls",
+    "Respect selected IDs before touching unselected manifests; reject duplicate/invalid task/cursor identities; preserve unknown or disappeared original markers conservatively"
+  ],
+  "tests": {
+    "required": 90,
+    "passed": 90,
+    "failed": 0,
+    "skip": 0,
+    "todo": 0,
+    "newRecoveryCases": 11,
+    "affectedAcceptedCases": 79,
+    "durationMs": 46057.5775,
+    "sameControlledBaseline": {
+      "source": "0742d416:server/reward-payout-recovery.mjs",
+      "before": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 1,
+        "firstPassCalls": 65
+      },
+      "after": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "firstPassCalls": 32
+      },
+      "redirect": "Only recovery function import redirected to exact previous Git source; selected original case body unchanged"
+    },
+    "covered": [
+      "Cross-schedule fair restart/unknown preservation",
+      "Actual scheduler false+throwing readiness with submitted0 and no fresh work",
+      "Selected IDs including malformed unselected record",
+      "Two locked stores select disjoint initial pages",
+      "No cursor writes for small cached sets",
+      "Failed cursor persistence prevents calls",
+      "Corrupt/duplicate cursor/task rejection",
+      "Disappeared original marker retained without new attempt",
+      "Measured lock work/whole-ledger writes for two injected1001 cohorts"
+    ]
+  },
+  "measurement": {
+    "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+    "node": "v24.22.3",
+    "cohorts": 2,
+    "leavesPerCohort": 1001,
+    "fresh": {
+      "publicReads": 0,
+      "transactions": 1,
+      "serializedWriteBytes": 1892885,
+      "mutatorInsideLockMs": 25.1570999999999,
+      "transactionElapsedMs": 82.4067,
+      "instrumentationSerializeMs": 3.4279999999998836,
+      "elapsedMs": 113.6369000000002
+    },
+    "recovery": {
+      "publicReads": 1,
+      "transactions": 33,
+      "serializedWriteBytes": 62470800,
+      "mutatorInsideLockMs": 5.631200000001172,
+      "transactionElapsedMs": 697.3238000000003,
+      "instrumentationSerializeMs": 105.97030000000063,
+      "elapsedMs": 711.4695999999999,
+      "interfaceCalls": 32
+    },
+    "maxRssKiB": 175248,
+    "networkCalls": 0,
+    "transactionsSent": 0,
+    "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead. Whole-ledger O(N) remains."
+  },
+  "measurementQualification": {
+    "attemptDataset": "Marker-only saved attempts, not full production wire/proof payload sizes; two injected1001-leaf manifests",
+    "instrumentation": "Actual store mutator work timing inside lock; transaction elapsed includes queue/read/serialization/fsync/rename/unlock. Extra JSON byte counting overhead separately reported. No power-loss/Linux durability or live financial/throughput result.",
+    "derivedLedgerReadInvocations": 34,
+    "actualLedgerWriteCalls": 33,
+    "finding": "32 unresolved recovery calls still cause33 whole-ledger writes and62470800serializedbytes in this dataset. Retain as a measured storage bottleneck, not a fullscale success."
+  },
+  "checks": {
+    "changedSyntax": 3,
+    "sizeCheck": "Source size budgets passed for 1434 maintained code files (hard maximum: 1000 lines).",
+    "diffCheck": "passed",
+    "completionAndErrorBodyUnchangedSha256": "8da0a9944ed6b4a4262979f7779631e78d89fdcfa1ca5a52685e4e824abee297",
+    "contractRuntimeDiffFrom971399ff": 0,
+    "admissionCapUnchanged": 1000
+  },
+  "gitLfSourceSha256": {
+    "server/reward-recovery-page.mjs": "952545c55c76c4364d69c5e75f74fd45bf0f592e0dd0d4798c3b6d748f2b505d",
+    "server/reward-payout-recovery.mjs": "8260c04f1b62c96c47c96c583867846129e714fd95a81398fd0e6e1b02ec8a97",
+    "tests/readiness/reward-recovery-page.test.mjs": "2b56b34b0f3514b6a7ed2e623e17a85e6ab6f19e677388bd154b1c5bfc469926",
+    "config/reward-recovery-page-tests.json": "24a07f48a9076687d7dc444a41dde330c0b1a1b94721cf09a33b40cde7c62919",
+    "docs/reward-recovery-pages.md": "a6ca7c8bcd6d1daed4032f2bda9c256a91775f9978a21b0187195167e1ac260f",
+    "docs/mainnet-production-packet-2026-11-22.md": "0e6834a74ef5bbf2bc83661106163f892a2794720b06b8eb3c6055bcc3894ea4"
+  },
+  "unchangedContextSha256": {
+    "automatic-rewards.js": "185a8c013f600bf871b253c04e3f3c3196f0b78c6cd0c459f8185dde60c0c2d8",
+    "reward-merkle.js": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+    "server/holder-payout-page.mjs": "01f8d75f7a277ed497f843dc6fac110b553f17bd8fe1c5397b973bc32fab19f6",
+    "server/reward-schedule-payments.mjs": "146afef3a8cd686de592f1df99ef1db7275d37938136c6d7d5c32f5ed90733b3",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/automatic-reward-store.mjs": "38c64132dc325960d26fdce8a395ca0547c620febc8a4325f832205a7287100a",
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-cycle-expiry.mjs": "2ff9382d9e1fe644db25f08eaa5fa96eaf92f72e8b6be0ab494c154b441d7aeb",
+    "server/community-snapshot-archive.mjs": "6340a943dfe993ccfcfd0aac97ddc09a76db47434cfae9b92fffd4b6130643d9"
+  },
+  "evidence": "data/qa-evidence/mainnet-production-packet-20261122/payout-recovery-pages/",
+  "remaining": [
+    "Whole-ledger parsing/clone/materialization and writes remain O(N); realistic full signed-attempt datasets require further storage acceptance",
+    "Expiry recovery, schedule enumeration/commitment, fresh work across many schedules and capture remain outside this phase bound",
+    "No cap/admission/signing/receipt/solvency/expiry/replay policy or financial authority widened",
+    "Original Nov19 bank, real current-program delivery28/financial scale, operational custody and final wallet quote remain open",
+    "No network transaction, new endpoint, signing service, spending, merge or deployment occurred"
+  ],
+  "nextUsefulAction": "Independent bounded recovery/measurement review; assess avoiding byte-identical ledger rewrites under the same lock and proof-before-status contract, with explicit persistence/failure/cache/restore tests before changing the store."
+}

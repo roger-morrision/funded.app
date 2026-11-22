@@ -1,14 +1,14 @@
 import {payoutIntentHash} from './reward-payout-journal.mjs';
 import {completedRewardPayment} from './reward-paid-record.mjs';
+import {selectRewardPayoutRecoveries} from './reward-recovery-page.mjs';
 
 // Read-only recovery is selected independently of today's due/blocked/paid state.
 // It cannot create an attempt even if the persisted marker disappears mid-read.
 export async function recoverSavedRewardPayouts({store,chain,selected=null}){
   if(typeof chain.submitLeaf!=='function')return 0;
-  const state=await store.read(),rows=structuredClone(Object.values(state.schedules||{}).filter(row=>
-    (selected===null||selected.has(row.id))&&Object.keys(row.payoutAttempts||{}).length));
+  const tasks=await selectRewardPayoutRecoveries({store,selected});
   let recovered=0;
-  for(const plan of rows)for(const leaf of plan.manifest.leaves.filter(l=>Object.hasOwn(plan.payoutAttempts,l.recipient))){
+  for(const {plan,leaf} of tasks){
     const original=plan.payoutAttempts[leaf.recipient],intent=payoutIntentHash(plan,leaf);
     try{
       const result=await chain.submitLeaf(plan,leaf,{store,recoveryOnly:true});
