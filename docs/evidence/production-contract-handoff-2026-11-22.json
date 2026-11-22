@@ -1527,5 +1527,32 @@
       "unchangedSpans": "finalizedSend/readiness/expireCycle byte-identical to1e516416",
       "scope": "Historical namespace routing and synthetic remaining payout state. No extension-specific compiled transfer, live delivery or durable signed unknown-payout attribution is established."
     }
+  },
+  "appDurablePayoutReview": {
+    "appSource": "969809a0939b033353c757649e933c018a76d407",
+    "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "ownerReportGitSha256": "d2450d78123c030ac9dfe2b0cf61a2d58fff5740396d3dd822f5bd1b330942a1",
+    "reviewNode": "v26.13.1",
+    "requiredPassed": 45,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "rawResult": "tmp/contract-payout-journal-review-9698.txt",
+    "sha256": "cad998299d5fdd1b2ada2f040d99868c437b7dbcc9f215e848677f1b7fa25472",
+    "sourceAssessment": [
+      "Actual single receipt submitLeaf reaches the durable journal with the real schedule store. Selected saved recovery runs before fresh readiness.",
+      "Signed canonical original-vault receipt payout, immutable leaf/manifest intent, snapshot and pinned full ProgramData stored before broadcast.",
+      "Saved attempts are reconciled before fresh preparation. Unknown, failed, expired or proof-unavailable outcomes retain their attempt and cannot automatically refresh or replace it.",
+      "Exact successful finalized transaction signature/message/status/slot and effective uncached program context are required. Transaction-local custody/recipient proof, new owned100byte receipt and compatible original accounting bind the payment.",
+      "Verified proof stored before paid scheduler row; row intent and saved signature checked. Operator fee, receipt rent and bounded actual token-account rent remain above3SOLreserve."
+    ],
+    "limits": [
+      "Synthetic financial bank/RPC/finality and in-memory fixture signers.",
+      "Single receipt-mode paths only; Devnet batch/bitmap/legacy durability acceptance is separate.",
+      "Old Mainnet paid state without a signed attempt still requires authenticated archive.",
+      "No automatic failed/expired replacement policy.",
+      "Parent live, archive, roles, scale and final funding readiness remain open."
+    ],
+    "status": "Contract source/runtime review passed; independentNode24 acceptance pending."
   }
 }
