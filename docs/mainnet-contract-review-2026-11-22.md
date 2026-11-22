@@ -201,7 +201,7 @@ Tested base `9636cc90ed3c0bde4ff9f435df0695cb781bed17`, router source tree `dd2f
 
 ## Production contract handoff
 
-**Release status — preparation only.** The selected primary mint is now `7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump`. Its on-chain name and symbol are **Singularity**. ER7 remains the admin/upgrade address. The new E9tQ deployment payer is a separate wallet. The previous Bv1a/FLOAT investigation is historical. [Public account snapshots, build hashes and execution results](evidence/production-contract-handoff-2026-11-22.json)
+**Release status — preparation only.** The selected primary mint is now `7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump`. Its on-chain name and symbol are **Singularity**. 5Thg is the selected fresh admin/upgrade address. The new E9tQ deployment payer is a separate wallet. The previous Bv1a/FLOAT investigation is historical. [Public account snapshots, build hashes and execution results](evidence/production-contract-handoff-2026-11-22.json)
 
 **Selected venue — live-verified reads, local-only execution.** At finalized Mainnet slot 472579799 the selected six-decimal Token-2022 mint had no mint or freeze authority. Its only extensions were MetadataPointer and TokenMetadata. Its canonical Pump curve was complete with zero real reserves. The canonical PumpSwap pool `58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV` passed the venue-0 owner, discriminator, mint/WSOL ordering and mode checks. Both vaults belonged to the pool. Their balances were 39,067,271.775081 Singularity and 676.095416937 WSOL. These balances are a point-in-time observation.
 
@@ -219,14 +219,14 @@ The protected and agency category-6 paths both passed against captured Mainnet p
 
 **Reproduction.** Export the pinned revision's `contracts` directory. From `contracts/funded-fee-router`, use separate output directories, a fresh target for the isolated build, and the Agave 4.1.2 distribution. Its `cargo-build-sbf --version` reports 4.1.0 with platform-tools v1.54. Set `CARGO_PROFILE_RELEASE_OPT_LEVEL=z`, `CARGO_PROFILE_RELEASE_STRIP=true` and the network-specific program ID. Run `cargo-build-sbf --manifest-path programs/funded-fee-router/Cargo.toml --sbf-out-dir <output> --offline --arch v0 --tools-version v1.54 --no-rustup-override -- --locked --features <features>`. Use `devnet-v3-program,configurable-rich-assets` with `FUNDED_DEVNET_PROGRAM_ID` for the isolated program. For the public fixture use `mainnet-v3-program`, its `FUNDED_MAINNET_PROGRAM_ID` and empty `FUNDED_MAINNET_CONVERSION_POOLS`. The local build-driver SHA-256 is `e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd`; this is a local provenance measurement. The two bitmap acceptance tests and 13 host security checks passed.
 
-**Dedicated production artifact and quote.** Build with the separately provisioned production program ID and the reviewed paired-token conversion pool list. The primary mint and pool are selected. The router configuration transaction is pending. Freeze and independently reproduce the exact source and ELF before deployment. Derive the expected ProgramData address from the dedicated ID and loader; verify the full ProgramData bytes, actual deployment slot, loader pointer and authority after finalization before app admission. Required signer roles include ER7 admin/upgrade, the deployment payer, a separate operational signer and price signer, and a guardian distinct from the operational signer.
+**Dedicated production artifact and quote.** Build with the separately provisioned production program ID and the reviewed paired-token conversion pool list. The primary mint and pool are selected. The router configuration transaction is pending. Freeze and independently reproduce the exact source and ELF before deployment. Derive the expected ProgramData address from the dedicated ID and loader; verify the full ProgramData bytes, actual deployment slot, loader pointer and authority after finalization before app admission. Required signer roles include 5Thg admin/upgrade, the deployment payer, a separate operational signer and price signer, and a guardian distinct from the operational signer.
 
-The new payer is `E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL`. Admin/upgrade is `ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC`. The first RICH instruction uses the admin as the payer of its two account rents, so the unsigned inventory must show that 0.0030988 SOL debit separately from deployment-payer fees. The finalized fixture-size rent refresh confirmed 5.4643782 SOL for program plus ProgramData. The planning total below includes 3 SOL operating reserve and no new mint, pool creation or liquidity contribution. Requote final bytes and each unsigned message, including who pays account rent, fees and how the temporary buffer is funded. Production spend authorized for this packet is zero.
+The new payer is `E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL`. Fresh admin/upgrade is `5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi`. At finalized slot 472585859 both had zero lamports and the program and bootstrap PDAs were absent. Admin directly pays 0.003098800 SOL for the first RICH revision and 0.000853440 SOL for price configuration. The operator pays 0.001315720 SOL for the router. E9 pays transaction fees.
 
 ## Remaining deployment blockers
 
 1. **Production identity is fixed. Signer custody and final bytes remain open.** The primary mint, compatible market, admin/upgrade address and deployment payer are selected. Use ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ and bind the guardian and operational/price signers to their custody controls, compile and independently review the final artifact, and verify initialization on the deployed program.
-2. **Final funding is unquoted.** A Mainnet RPC quote gives 5.464378200 SOL locked rent for the current test fixture, before fees, initialization, liquidity or the plan's 3 SOL operating reserve. The user removed the aggregate deployment spending cap. Evidence is in `docs/evidence/mainnet-contract-rent-2026-11-22.json`. Final production bytes and the full transaction inventory need a fresh quote.
+2. **The deployment prefix is priced.** The full funding decision depends on operator, guardian, price signer, administrative daily cap, setup and canary messages. The aggregate deployment cap remains removed.
 3. **End-to-end financial acceptance remains incomplete.** Local protected/agency category-6 CPI/burn, paired-token conversion, category-7 milestone buyback and RICH administration pass. The existing public Devnet app has three finalized conversion and ten finalized milestone transactions reverified above, but the isolated configurable router and Mainnet-feature binary have no matching live acceptance. Every fee category, the full token-extension matrix, operational authority recovery and a live canary still lack complete current acceptance evidence. Compiling or simulating these paths is not proof they execute successfully on a live cluster.
 4. **Mainnet application signing/worker integration remains blocked.** The operational signer and price-signer bootstrap still reject non-Devnet operation. Launch/registration, metadata, workers and journals retain network gates. Their restrictions were preserved; switching a cluster string would not constitute a safe implementation.
 5. **Full independent review is outstanding.** The production release configuration requires a review tied to exact source/binary hashes. This self-review does not satisfy that gate. Do not fill those fields with this report to bypass it.
@@ -235,21 +235,21 @@ The new payer is `E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL`. Admin/upgrade i
 
 ## SOL funding estimate
 
-The restricted ExUNA baseline from e5b3fd479 reproduced twice at 1,080,032 bytes, SHA-256 `f284abb9cb495274cd428a08fff9115f66d9afb07022ea1323daa708403bf256`. Its compile-time conversion map is empty. The paired sell build requires a fresh quote. [Public build, initialization inventory and quote](evidence/production-contract-handoff-2026-11-22.json).
+The pair-enabled ExUNA candidate is 1,109,672 bytes, SHA-256 `e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e`, from source `575b294793afe2a3732fd4d5ebade1f68adb9539`. Its only configured pair is classic SPL USDC and the Gf7 PumpSwap pool. The 57-byte router command selects the 24-byte Pump sell operation for this pair. All six compiled category 5/6/7 runs debited exactly one synthetic USDC. Their SOL credits matched the observed swaps, including when a pre-existing WSOL donation was excluded. Protected and agency primary buybacks burned 61.906566 Singularity per 0.001 synthetic SOL at the captured slot, including donated-account cases. [Build inputs, public captures, quote and unsigned manifest digest](evidence/production-contract-handoff-2026-11-22.json)
 
-| Restricted baseline planning component | SOL |
+| Candidate planning component | SOL |
 | --- | ---: |
-| Exact-size program and ProgramData rent | 5.488274520 |
-| Upload/transaction allowance (base projection 0.01204) | 0.025 |
+| Program and ProgramData rent | 5.638845720 |
+| Upload/transaction allowance, including 0.012350000 base projection | 0.025 |
 | Deployment contingency | 0.250 |
-| Account setup allowance, including 0.005267960 bootstrap rent | 0.050 |
-| Canary allowance | 0.050 |
+| Account setup allowance, including 0.005267960 known bootstrap rent | 0.050 |
+| Canary exposure allowance | 0.050 |
 | Protected operating reserve | 3.000 |
-| **Illustrative funding including reserve** | **8.863274520** |
+| **Illustrative total including reserve** | **9.013845720** |
 
-Temporary buffer rent is 5.487400760 SOL. The estimate assumes same-payer loader finalization that recycles that deposit. First RICH configuration rents debit ER7 by 0.003098800 SOL. No new token, pool or liquidity contribution is proposed. Final fees and signer debits depend on the actual messages. Production spend approval is pending.
+The proposed unsigned deployment prefix contains one buffer creation, 1,233 writes and one atomic program creation/deploy message. E9 pays all fees. The 5Thg authority signs writes and deployment. ExUNA signs the deployment message and requires zero direct transfer. Native Loader-v3 returned 5.637971960 SOL of temporary buffer rent before funding ProgramData in the compiled local rehearsal. The incremental ProgramData cash debit after the refund is 0.000040640 SOL. [Agave implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259-L280)
 
-Run `node scripts/quote-mainnet-contract-budget.mjs` to refresh public rent evidence. Final production identities can alter bytes; re-quote the exact reviewed artifact and transaction plan. The proposed SBF-v0 deployment-disable feature was absent at the recorded Mainnet slot; [feature evidence](evidence/mainnet-sbf-features-2026-11-22.json) must also be refreshed before release.
+For an illustrative split with bootstrap roles funded separately, E9 would hold 9.008577760 SOL including the protected reserve, 5Thg would hold 0.003952240 SOL for direct initial rents and the operator would need 0.001315720 SOL for its initial rent. These figures include planning allowances. The operator identity, its balance and remaining execution messages are still open. The selected route has zero new token, pool or LP principal. Requote before any approval or transfer.
 
 ## Guard policy and residual trust
 
