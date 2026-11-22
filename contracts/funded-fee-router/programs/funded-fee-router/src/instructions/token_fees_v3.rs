@@ -136,6 +136,7 @@ pub fn settle_mint_token_v3_handler<'info>(ctx: Context<'info, SettleMintTokenV3
     let targets = view.targets(new_total)?;
     let router_bump = [ctx.bumps.router];
     let router_seeds: &[&[u8]] = &[MINT_ROUTER_V3_SEED, mint.as_ref(), &router_bump];
+    let router_before = ctx.accounts.router_token.amount;
     let mut paid = [0u64; VAULTS];
     for index in 0..view.vaults() {
         let allocation = targets[index].checked_sub(ledger.paid[index]).ok_or(ErrorCode::AmountOverflow)?;
@@ -144,19 +145,26 @@ pub fn settle_mint_token_v3_handler<'info>(ctx: Context<'info, SettleMintTokenV3
         // this coin's vault PDA for that category.
         let (vault_owner, _) = vault_address(ctx.program_id, &mint, index as u8);
         require!(vault_info.owner == &ctx.accounts.token_program.key(), ErrorCode::InvalidMintFeeVaultV3);
-        {
+        let vault_before = {
             let data = vault_info.try_borrow_data()?;
             let account = TokenAccount::try_deserialize(&mut &data[..]).map_err(|_| ErrorCode::InvalidMintFeeVaultV3)?;
             require!(account.mint == quote && account.owner == vault_owner, ErrorCode::InvalidMintFeeVaultV3);
-        }
+            account.amount
+        };
         if allocation > 0 {
             token_interface::transfer_checked(CpiContext::new_with_signer(ctx.accounts.token_program.key(),
                 TransferChecked { from: ctx.accounts.router_token.to_account_info(), mint: ctx.accounts.quote_mint.to_account_info(),
                     to: vault_info.clone(), authority: ctx.accounts.router.to_account_info() }, &[router_seeds]), allocation, decimals)?;
+            let data = vault_info.try_borrow_data()?;
+            let received = TokenAccount::try_deserialize(&mut &data[..])?.amount.checked_sub(vault_before);
+            require!(received == Some(allocation), ErrorCode::MintClaimAmountMismatchV3);
         }
         paid[index] = allocation;
         ledger.paid[index] = targets[index];
     }
+    ctx.accounts.router_token.reload()?;
+    require!(router_before.checked_sub(ctx.accounts.router_token.amount) == Some(expected_amount),
+        ErrorCode::MintClaimAmountMismatchV3);
     ledger.settled = new_total;
     let claim = &mut ctx.accounts.claim;
     claim.claim_id = claim_id;
@@ -318,10 +326,17 @@ pub fn disburse_protected_mint_token_v3_handler(ctx: Context<DisburseProtectedMi
     let category_seed = [category];
     let vault_bump = [ctx.bumps.vault];
     let vault_seeds: &[&[u8]] = &[MINT_VAULT_V3_SEED, mint.as_ref(), &category_seed, &vault_bump];
+    let source_before = ctx.accounts.vault_token.amount;
+    let recipient_before = ctx.accounts.recipient_token.amount;
     token_interface::transfer_checked(CpiContext::new_with_signer(ctx.accounts.token_program.key(),
         TransferChecked { from: ctx.accounts.vault_token.to_account_info(), mint: ctx.accounts.quote_mint.to_account_info(),
             to: ctx.accounts.recipient_token.to_account_info(), authority: ctx.accounts.vault.to_account_info() }, &[vault_seeds]),
         amount, ctx.accounts.quote_mint.decimals)?;
+    ctx.accounts.vault_token.reload()?;
+    ctx.accounts.recipient_token.reload()?;
+    require!(source_before.checked_sub(ctx.accounts.vault_token.amount) == Some(amount)
+        && ctx.accounts.recipient_token.amount.checked_sub(recipient_before) == Some(amount),
+        ErrorCode::MintClaimAmountMismatchV3);
     ledger.withdrawn[index] = new_withdrawn;
     let receipt = &mut ctx.accounts.withdrawal;
     receipt.withdrawal_id = withdrawal_id;
