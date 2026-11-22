@@ -7,7 +7,6 @@ import {signTransaction} from './transaction-signing.mjs';
 
 const BUCKET='communityExecutions',RESERVE=3000000000n;
 const snapshot=value=>structuredClone(value);
-const pending=row=>({status:'verification-pending',signature:row.signature,key:row.key});
 // Margin beyond lastValidBlockHeight before a missing receipt counts as final.
 export const UNLANDED_MARGIN_BLOCKS=150;
 async function unlandable(connection,row){
@@ -22,26 +21,29 @@ async function unlandable(connection,row){
 // outcome can only rebroadcast those same bytes; a replacement is prepared only
 // after the saved blockhash is provably expired with no finalized receipt.
 export async function executeCommunityJournal({store,connection,key,intent,authority,prepare,prove,
-  now=()=>Date.now(),leaseMs=60000,reserveLamports=String(RESERVE),reconcileOnly=false}){
+  now=()=>Date.now(),leaseMs=60000,reserveLamports=String(RESERVE),reconcileOnly=false,expiresAt}){
   if(!/^community:[1-9A-HJ-NP-Za-km-z]{32,44}:(open|[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(key)
     ||intent?.cluster!=='devnet'||!/^[a-f0-9]{64}$/.test(String(intent.approvedHash))
     ||(!reconcileOnly&&typeof prepare!=='function')||typeof prove!=='function'||BigInt(reserveLamports)<RESERVE)
     throw new Error('A bounded, approved Devnet community execution is required.');
   if(await connection.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Community execution requires Devnet.');
   const intentHash=allocationAuditHash(intent),token=randomUUID(),at=now();
+  const deadlinePassed=()=>Number.isSafeInteger(expiresAt)&&Math.floor(now()/1000)>=expiresAt;
+  const lookupOnly=()=>reconcileOnly||deadlinePassed();
+  const pending=row=>({status:lookupOnly()?'reconciliation-pending':'verification-pending',signature:row.signature,key:row.key});
   function acquire(state){
     const existing=state[BUCKET]?.[key];
     if(existing&&(existing.intentHash!==intentHash||allocationAuditHash(existing.intent)!==intentHash))
       throw new Error('The immutable community execution intent changed.');
-    if(reconcileOnly)return {owned:false,row:existing};
+    if(lookupOnly())return {owned:false,row:existing};
     if(existing?.signature||existing?.leaseUntil>at)return{owned:false,row:snapshot(existing)};
     const row={...existing,key,intent:snapshot(intent),intentHash,status:'preparing',token,leaseUntil:at+leaseMs,
       createdAt:existing?.createdAt||new Date(at).toISOString()};
     (state[BUCKET]||={})[key]=row;return{owned:true,row:snapshot(row)};
   }
-  const acquired=reconcileOnly?acquire(await store.read()):await store.update(acquire);
+  const acquired=lookupOnly()?acquire(await store.read()):await store.update(acquire);
   let row=acquired.row;
-  if(reconcileOnly&&!row?.signature)return {status:'no-saved-signature',key};
+  if(!row?.signature&&lookupOnly())return {status:reconcileOnly?'no-saved-signature':'expired',key};
   if(row.evidence!==undefined&&allocationAuditHash(row.evidence)!==row.evidenceHash)
     throw new Error('Saved community execution evidence changed.');
   const reconcile=async current=>{
@@ -87,6 +89,7 @@ export async function executeCommunityJournal({store,connection,key,intent,autho
   }else{
     if(!acquired.owned)return{status:'preparation-active',key};
     const built=await prepare(snapshot(row));
+    if(deadlinePassed())return {status:'expired',key};
     if(!(built?.transaction instanceof VersionedTransaction)||!Number.isSafeInteger(built.lastValidBlockHeight)
       ||built.lastValidBlockHeight<1||!/^(0|[1-9]\d*)$/.test(String(built.estimatedRentLamports)))
       throw new Error('An exact bounded community transaction and rent estimate are required.');
@@ -95,6 +98,7 @@ export async function executeCommunityJournal({store,connection,key,intent,autho
       ||tx.serialize().length>1232)throw new Error('The community authority must be the only fee payer and signer.');
     const[fee,balance,valid]=await Promise.all([connection.getFeeForMessage(tx.message,'confirmed'),
       connection.getBalance(signer,'finalized'),connection.isBlockhashValid(tx.message.recentBlockhash,'finalized')]);
+    if(deadlinePassed())return {status:'expired',key};
     if(!valid.value||!Number.isSafeInteger(fee.value)||fee.value<0||!Number.isSafeInteger(balance)
       ||BigInt(balance)-BigInt(fee.value)-BigInt(built.estimatedRentLamports)<BigInt(reserveLamports))
       throw new Error('Community execution would breach the protected payer reserve or its quote expired.');
@@ -110,7 +114,8 @@ export async function executeCommunityJournal({store,connection,key,intent,autho
     });
     if(!saved)return{status:'preparation-superseded',key};row=snapshot(saved);
   }
-  if(reconcileOnly)return pending(row);
+  // RPC, quoting and signing may have crossed the deadline since the first read.
+  if(lookupOnly())return pending(row);
   // Saved signed bytes are immutable. Neither a timeout nor a process restart
   // authorizes a fresh signature, quote, X post, or debit for this action key.
   try{

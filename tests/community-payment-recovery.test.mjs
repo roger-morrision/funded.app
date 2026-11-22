@@ -15,7 +15,8 @@ const blockhash=address(4).toBase58(),recipient=address(5).toBase58(),signature=
 const approvedHash='a'.repeat(64),deadline=1_800_000_300,executionKey=`community:${mint}:${recipient}`;
 const leaf={recipient,index:0,amount:'100',proof:[]};
 
-function fixture(t,{eligibility='claimed',receipt='success',visible=true,valid=false,legacy=false,existing=true}={}){
+function fixture(t,{eligibility='claimed',receipt='success',visible=true,valid=false,legacy=false,existing=true,
+  now=()=>deadline*1000,remoteSign}={}){
   const issuer=authority.publicKey.toBase58();
   const drop=communityAddresses({programId,authority:issuer,mint}).drop.toBase58();
   const manifest={drop,root:communityLeaf({drop,...leaf}).toString('hex'),snapshotHash:'b'.repeat(64),
@@ -53,8 +54,7 @@ function fixture(t,{eligibility='claimed',receipt='success',visible=true,valid=f
     sendRawTransaction:t.mock.fn(async()=>assert.fail('Recovery attempted a broadcast')),
   };
   const service={recipientProof:async()=>({status:eligibility,payment:built.payment})};
-  const restart=()=>createCommunityAutoDelivery({connection,store,service,authority,programId,approvedHash,
-    now:()=>deadline*1000});
+  const restart=()=>createCommunityAutoDelivery({connection,store,service,authority:{...authority,remoteSign},programId,approvedHash,now});
   return {connection,record,state,restart};
 }
 
@@ -120,5 +120,42 @@ test('a paid leaf without a journal remains already paid without transaction loo
   assert.equal((await f.restart().pay(f.record,leaf)).status,'already-paid');
   assert.deepEqual(f.state.communityExecutions,{});
   assert.equal(f.connection.getTransaction.mock.callCount(),0);
+  assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
+});
+
+test('a stale claimable result cannot start a new attempt once the manifest expires',async t=>{
+  const f=fixture(t,{eligibility:'claimable',existing:false});
+  assert.equal((await f.restart().pay(f.record,leaf)).status,'expired');
+  assert.deepEqual(f.state.communityExecutions,{});
+  assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
+});
+
+test('expiry while quoting prevents a fresh attempt from reaching the signer',async t=>{
+  let clock=deadline*1000-1;
+  const remoteSign=t.mock.fn(async()=>assert.fail('Expired attempt called the signer'));
+  const f=fixture(t,{eligibility:'claimable',existing:false,now:()=>clock,remoteSign,valid:true});
+  f.connection.getLatestBlockhash=async()=>({blockhash,lastValidBlockHeight:1000});
+  f.connection.getMinimumBalanceForRentExemption=async()=>10;
+  f.connection.getBalance=async()=>3_100_000_000;
+  f.connection.getFeeForMessage=async()=>{
+    clock=deadline*1000;
+    return {value:5000};
+  };
+  assert.equal((await f.restart().pay(f.record,leaf)).status,'expired');
+  assert.equal(remoteSign.mock.callCount(),0);
+  assert.equal(f.state.communityExecutions[executionKey].signature,undefined);
+  assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
+});
+
+test('expiry during blockhash verification prevents rebroadcasting saved bytes',async t=>{
+  let clock=deadline*1000-1;
+  const f=fixture(t,{eligibility:'claimable',receipt:'missing',visible:false,now:()=>clock});
+  f.connection.isBlockhashValid=async()=>{
+    clock=deadline*1000;
+    return {value:true};
+  };
+  const before=structuredClone(f.state);
+  assert.equal((await f.restart().pay(f.record,leaf)).status,'reconciliation-pending');
+  assert.deepEqual(f.state,before);
   assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
 });
