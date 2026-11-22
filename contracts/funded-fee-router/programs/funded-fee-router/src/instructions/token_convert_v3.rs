@@ -20,6 +20,8 @@ use super::rotate::assert_current_router_authority;
 // SOL budget; the credit is recorded so later SOL settlements stay consistent.
 const PUMP_SWAP: &str = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA";
 const BUY_EXACT_QUOTE_IN: [u8; 8] = [198, 46, 21, 82, 180, 217, 232, 112];
+const SELL_EXACT_BASE_IN: [u8; 8] = [51, 230, 133, 164, 1, 127, 131, 173];
+const SELL_WRITABLE: [usize; 9] = [0, 1, 5, 6, 7, 8, 10, 17, 22];
 const INIT_USER_VOLUME: [u8; 8] = [94, 6, 202, 115, 255, 96, 232, 183];
 const BUY_ACCOUNTS: usize = 23;
 
@@ -88,6 +90,37 @@ fn pinned_pool(quote: &Pubkey) -> Result<Pubkey> {
     err!(ErrorCode::InvalidMintBuybackV3)
 }
 
+// This reviewed pair uses classic SPL USDC as base and WSOL as quote.
+#[cfg(feature = "mainnet-v3-program")]
+fn is_reviewed_sell(quote: Pubkey, pool: Pubkey) -> Result<bool> {
+    Ok(quote == Pubkey::from_str("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v").map_err(|_| ErrorCode::InvalidMintBuybackV3)?
+        && pool == Pubkey::from_str("Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v").map_err(|_| ErrorCode::InvalidMintBuybackV3)?)
+}
+
+fn validate_sell_accounts(accounts: &[AccountInfo], base: Pubkey, native: Pubkey, pump: Pubkey) -> Result<()> {
+    let pool = accounts[0].try_borrow_data()?;
+    require!(pool.len() >= 245 && pool[..8] == [241,154,109,4,17,177,109,188]
+        && pool[43..75] == base.to_bytes() && pool[75..107] == native.to_bytes()
+        && pool[139..171] == accounts[7].key.to_bytes() && pool[171..203] == accounts[8].key.to_bytes()
+        && pool[211..243] == [0; 32] && pool[243..245] == [0, 0], ErrorCode::InvalidMintBuybackV3);
+    let spl = anchor_spl::token::ID;
+    for (index, mint, owner) in [(5, base, accounts[1].key()), (7, base, accounts[0].key()), (8, native, accounts[0].key())] {
+        let account = &accounts[index];
+        let data = account.try_borrow_data()?;
+        require!(account.owner == &spl && data.len() == 165 && data[..32] == mint.to_bytes()
+            && data[32..64] == owner.to_bytes(), ErrorCode::InvalidMintBuybackV3);
+    }
+    let pda = |seed: &[u8]| Pubkey::find_program_address(&[seed], &pump).0;
+    require!(accounts[2].key() == pda(b"global_config") && accounts[15].key() == pda(b"__event_authority"),
+        ErrorCode::InvalidMintBuybackV3);
+    // PumpSwap checks recipient membership in its current fee configuration.
+    for (owner, account) in [(9,10), (18,17), (21,22)] {
+        let ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(accounts[owner].key, &native, &spl);
+        require!(accounts[account].key() == ata && accounts[owner].key() != accounts[1].key(), ErrorCode::InvalidMintBuybackV3);
+    }
+    Ok(())
+}
+
 /// SOL credited to each category by token conversions; zero when the coin has
 /// none. Settlements of a coin with conversions pass its credit record as the
 /// ninth remaining account.
@@ -123,14 +156,29 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
     require!(ctx.accounts.vault_token.key() == ata(&vault.key(), &quote, &quote_program)
         && ctx.accounts.wsol_token.key() == ata(&vault.key(), &native, &token_program), ErrorCode::InvalidMintBuybackV3);
     #[cfg(feature = "mainnet-v3-program")] let remaining = super::guard::split_price_signer(ctx.program_id, ctx.remaining_accounts, &ctx.accounts.authority.key())?; #[cfg(not(feature = "mainnet-v3-program"))] let remaining = ctx.remaining_accounts;
-    require!(remaining.len() >= BUY_ACCOUNTS + 2 && remaining.len() <= BUY_ACCOUNTS + 4, ErrorCode::InvalidMintBuybackV3);
-    for (index, key) in [(0, pool), (1, vault.key()), (3, native), (4, quote), (5, ctx.accounts.wsol_token.key()),
-        (6, ctx.accounts.vault_token.key()), (11, token_program), (12, quote_program), (13, ctx.accounts.system_program.key()),
+    #[cfg(feature = "mainnet-v3-program")]
+    let sell = is_reviewed_sell(quote, pool)?;
+    #[cfg(not(feature = "mainnet-v3-program"))]
+    let sell = false;
+    let (base, dex_quote, user_base, user_quote, base_program, dex_quote_program) = if sell {
+        require!(remaining.len() == 23 && quote_program == token_program, ErrorCode::InvalidMintBuybackV3);
+        (quote, native, ctx.accounts.vault_token.key(), ctx.accounts.wsol_token.key(), quote_program, token_program)
+    } else {
+        require!((BUY_ACCOUNTS + 2..=BUY_ACCOUNTS + 4).contains(&remaining.len()), ErrorCode::InvalidMintBuybackV3);
+        (native, quote, ctx.accounts.wsol_token.key(), ctx.accounts.vault_token.key(), token_program, quote_program)
+    };
+    for (index, key) in [(0, pool), (1, vault.key()), (3, base), (4, dex_quote), (5, user_base),
+        (6, user_quote), (11, base_program), (12, dex_quote_program), (13, ctx.accounts.system_program.key()),
         (14, ctx.accounts.associated_token_program.key()), (16, pump)] {
         require!(remaining[index].key() == key, ErrorCode::InvalidMintBuybackV3);
     }
     require!(remaining[0].owner == &pump && remaining[1].is_writable && remaining[5].is_writable
-        && remaining[6].is_writable && remaining[20].is_writable, ErrorCode::InvalidMintBuybackV3);
+        && remaining[6].is_writable, ErrorCode::InvalidMintBuybackV3);
+    if sell {
+        validate_sell_accounts(remaining, base, native, pump)?;
+    } else {
+        require!(remaining[20].is_writable, ErrorCode::InvalidMintBuybackV3);
+    }
 
     // Budget: the category's settled paired-token fees not yet spent.
     let index = usize::from(category);
@@ -153,19 +201,21 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
     let signers: &[&[&[u8]]] = &[signer];
 
     // PumpSwap's per-user volume record is paid by the authority, never the budget.
-    let volume = remaining[20].clone();
-    let (expected_volume, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", vault.key().as_ref()], &pump);
-    require!(volume.key() == expected_volume, ErrorCode::InvalidMintBuybackV3);
-    if volume.data_is_empty() && volume.owner == &System::id() {
-        let event = remaining[15].clone();
-        invoke(&Instruction { program_id:pump, accounts:vec![
-            AccountMeta::new(authority.key(), true), AccountMeta::new_readonly(vault.key(), false),
-            AccountMeta::new(volume.key(), false), AccountMeta::new_readonly(system.key(), false),
-            AccountMeta::new_readonly(event.key(), false), AccountMeta::new_readonly(pump, false),
-        ], data:INIT_USER_VOLUME.to_vec() }, &[authority.clone(), vault.to_account_info(), volume.clone(), system.clone(), event,
-            ctx.accounts.pump_swap_program.to_account_info()])?;
+    if !sell {
+        let volume = remaining[20].clone();
+        let (expected_volume, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", vault.key().as_ref()], &pump);
+        require!(volume.key() == expected_volume, ErrorCode::InvalidMintBuybackV3);
+        if volume.data_is_empty() && volume.owner == &System::id() {
+            let event = remaining[15].clone();
+            invoke(&Instruction { program_id:pump, accounts:vec![
+                AccountMeta::new(authority.key(), true), AccountMeta::new_readonly(vault.key(), false),
+                AccountMeta::new(volume.key(), false), AccountMeta::new_readonly(system.key(), false),
+                AccountMeta::new_readonly(event.key(), false), AccountMeta::new_readonly(pump, false),
+            ], data:INIT_USER_VOLUME.to_vec() }, &[authority.clone(), vault.to_account_info(), volume.clone(), system.clone(), event,
+                ctx.accounts.pump_swap_program.to_account_info()])?;
+        }
+        require!(volume.owner == &pump && !volume.data_is_empty(), ErrorCode::InvalidMintBuybackV3);
     }
-    require!(volume.owner == &pump && !volume.data_is_empty(), ErrorCode::InvalidMintBuybackV3);
 
     // Temporary WSOL account controlled by the vault; the authority fronts its
     // rent and receives exactly that rent back after the close.
@@ -174,7 +224,7 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
     let payer_before_quote = authority.lamports();
     invoke(&anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account_idempotent(
         &authority.key(), &vault.key(), &native, &token_program), &[authority.clone(), wsol.clone(), vault.to_account_info(),
-        remaining[3].clone(), system.clone(), ctx.accounts.token_program.to_account_info(),
+        remaining[if sell { 4 } else { 3 }].clone(), system.clone(), ctx.accounts.token_program.to_account_info(),
         ctx.accounts.associated_token_program.to_account_info()])?;
     let wsol_rent = payer_before_quote.checked_sub(authority.lamports())
         .ok_or(ErrorCode::InvalidMintBuybackV3)?;
@@ -182,13 +232,14 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
     let lamports_before = vault.lamports();
 
     let mut data = Vec::with_capacity(25);
-    data.extend_from_slice(&BUY_EXACT_QUOTE_IN);
+    data.extend_from_slice(if sell { &SELL_EXACT_BASE_IN } else { &BUY_EXACT_QUOTE_IN });
     data.extend_from_slice(&amount_in.to_le_bytes());
     data.extend_from_slice(&min_sol_out.to_le_bytes());
-    data.push(0); // OptionBool(false): no volume tracking.
+    if !sell { data.push(0); } // OptionBool(false): no volume tracking.
     let metas = remaining.iter().enumerate().map(|(i, account)| {
-        if account.is_writable { AccountMeta::new(account.key(), i == 1 || account.is_signer) }
-        else { AccountMeta::new_readonly(account.key(), i == 1 || account.is_signer) }
+        let writable = if sell { SELL_WRITABLE.contains(&i) } else { account.is_writable };
+        let signer = i == 1 || (!sell && account.is_signer);
+        if writable { AccountMeta::new(account.key(), signer) } else { AccountMeta::new_readonly(account.key(), signer) }
     }).collect();
     invoke_signed(&Instruction { program_id:pump, accounts:metas, data }, remaining, signers)?;
     let bought = amount_at(&wsol, 64)?.checked_sub(wsol_before)
@@ -204,6 +255,8 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
         .and_then(|delta| delta.checked_sub(quote_prefund))
         .ok_or(ErrorCode::InvalidMintBuybackV3)?;
     require!(spent > 0 && spent <= amount_in && received == bought, ErrorCode::InvalidMintBuybackV3);
+
+    if sell { require!(spent == amount_in, ErrorCode::InvalidMintBuybackV3); }
 
     let ledger = &mut ctx.accounts.ledger;
     ledger.withdrawn[index] = ledger.withdrawn[index].checked_add(spent).ok_or(ErrorCode::AmountOverflow)?;
