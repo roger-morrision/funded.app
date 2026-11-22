@@ -1753,5 +1753,33 @@
       "scope": "Independently accepted local compiled referral-cap separation slice only.",
       "rawArtifactsVerified": true
     }
+  },
+  "prospectiveArchiveReview": {
+    "appSource": "f112090717739d8a8edceac443b59c8cd8e54700",
+    "ownerReportGitSha256": "cf18137b1c2d24170a5b580cfb48c1e474f2cba6edfab54d5dd16dc2388484df",
+    "reviewNode": "v26.13.1",
+    "requiredPassed": 53,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "gitSourceHashesMatched": 10,
+    "rawInventory": "tmp/contract-community-archive-f112.log",
+    "rawInventorySha256": "811f3684f5e745095af2dddbd730d575499c0485174f6417cabe4803918e4393",
+    "sourceAssessment": [
+      "Actual service prepareFresh passes an awaited evidence callback; archive verifies and fsyncs content before returning pointer and publishing prepared ledger row.",
+      "Indexed/largest retain actual atomic finalized mint/account bank context. Split fallback preserves distinct provenance and normalized capture while archive qualification refuses it.",
+      "Signed legacy/v0 migration message binds first transaction signature to requested ID, verifies all required signatures and canonical initial pool creation plus matching captured finalized status/slot.",
+      "Verify-on-read checks raw program ownership, flags, initialized state, mint authority, unique account identity, complete supply, normalized equivalence and bounded unchanged replay.",
+      "Restart revalidates saved immutable context and reconstructs manifest/root/amount/deadline without current balances. Content hash establishes byte integrity under trusted finalized RPC assumptions.",
+      "Graph indexed prior fe518; actual f112 service/snapshot/archive source reviewed directly to resolve stale graph limits.",
+      "Contract runtime paths are byte-identical971399ff; production3f8/accepted1236Loaderprefix unaffected."
+    ],
+    "status": "Contract source review and53local synthetic cases pass; independent E2E exact-source review pending.",
+    "limits": [
+      "Prospective raw input retention only; no missing Nov19 bank reconstruction or live current-program28delivery.",
+      "Windows directory fsync unavailable and explicitly recorded; Linux power-loss and backup restore remain unverified.",
+      "Indexed atomic99account capacity remains; realistic cohort history size/performance and paging open.",
+      "Expected ProgramData is a declared pin; no new deployment, financial acceptance, custody role binding or funding request."
+    ]
   }
 }
