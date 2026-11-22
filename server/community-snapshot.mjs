@@ -198,10 +198,18 @@ export function reverseReplayCommunitySnapshot({ mint, migrationSlot, migrationB
   const orderedSlots = [...(blockSlots || [])];
   if (orderedSlots.some((slot, index) => !Number.isSafeInteger(slot) || slot <= migrationSlot || slot > baseSlot
     || (index && slot <= orderedSlots[index - 1]))) throw new Error('Finalized block slot list is invalid.');
+  if ((orderedSlots.at(-1) ?? migrationSlot) !== baseSlot) {
+    throw new Error('Finalized replay history is incomplete: the holder base slot is missing.');
+  }
   if (!blocks || orderedSlots.some(slot => !blocks.has(slot))) throw new Error('At least one finalized replay block is missing.');
   for (let blockIndex = orderedSlots.length - 1; blockIndex >= 0; blockIndex -= 1) {
     const slot = orderedSlots[blockIndex], block = blocks.get(slot);
     if (!Array.isArray(block?.transactions)) throw new Error(`Finalized block ${slot} lacks complete transactions.`);
+    // Skipped slots are valid, but every produced parent back to the cutoff must be present.
+    const previousSlot = blockIndex === 0 ? migrationSlot : orderedSlots[blockIndex - 1];
+    if (block.parentSlot !== previousSlot) {
+      throw new Error(`Finalized replay history is incomplete: block ${slot} does not link to slot ${previousSlot}.`);
+    }
     for (let txIndex = block.transactions.length - 1; txIndex >= 0; txIndex -= 1) {
       const tx = block.transactions[txIndex];
       const post = rowsFromTransaction(tx, mintKey, 'postTokenBalances');
