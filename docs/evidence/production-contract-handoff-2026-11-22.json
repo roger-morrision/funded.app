@@ -2423,7 +2423,8 @@
       },
       "artifactsVerified": true,
       "scope": "Generic exact-byte ledger persistence and failure semantics with actual locked filesystem/store and synthetic financial fixtures. No live financial/production capacity/release acceptance."
-    }
+    },
+    "relatedDurabilityGap": "See persistentStoreAssessmentReview: generic file-level no-op/publication acceptance remains scoped; Linux parent-directory fence not yet implemented."
   },
   "signedPreparedCapacityReview": {
     "appSource": "a85a64a27fb27657a938db3496f61a6a000ef336",
@@ -3069,5 +3070,41 @@
       "rawArtifactsVerified": 22,
       "scope": "Bounded synthetic mixed-proof/selected-scheduler/Linux-cgroup/fresh-process checksum-restore slice independently accepted. Parent scale and Mainnet release remain NO-GO."
     }
+  },
+  "persistentStoreAssessmentReview": {
+    "appSource": "09022a66599b8a8cd8b14c17ff0dc400172c07bf",
+    "assessmentFile": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-production-packet-20261122/persistent-store-assessment/assessment.json",
+    "assessmentSha256": "8d1645f0d298d7dbbaf1456a59c24752260dbf91cd1716f294e4fb1d517f0948",
+    "runtimeStoreGitSha256": "2c9a1b64809c1a1d015dbf702dff44ec8cd7ed0e7d96a4d7eb6284255732ee46",
+    "rawArtifactsVerified": 24,
+    "reportedProcessRuns": 7,
+    "reportedCrashExits": [
+      137,
+      137
+    ],
+    "reportedOomKills": 0,
+    "reportedOriginalAttemptsPreserved": 2002,
+    "reportedDirectorySyncCalls": 0,
+    "status": "Source-confirmed missing parent-directory fsync fence under existing durability scope; App implementation pending. Process-loss/byte-copy results are retained owner observations, not power-loss reproduction.",
+    "primarySource": {
+      "url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
+      "verified": "Linux man-pages explicitly distinguishes file inode/data fsync from the directory-entry flush requiring a directory descriptor sync."
+    },
+    "sourceAssessment": [
+      "Current store syncs temp file, renames canonical ledger, cleans temp/lock and returns; no directory sync occurs in source or retained trace.",
+      "Owner uses fresh local ext4 Docker volumes, actual--init childPID>1/SIGKILL137 and manual stopped-process metadata-only cleanup. Reviewed raw hashes; Contract has not counted this as an independent process-crash run.",
+      "Pre-rename old canonical vs post-rename new canonical is process-loss behavior; none is host-powerloss/data-loss reproduction.",
+      "Parent-directory fence before success must cover publication and relevant cleanup/no-op paths, fail closed on Linux open/sync errors and preserve cache/queue/drain/error context.",
+      "After-rename failure may leave new state visible; retain uncertain-attempt reconciliation with no fresh signing, blind retry, stale-lock expiration or orphan promotion.",
+      "Recursive mkdir requires explicit preexisting ledger-root assumption, or created ancestor metadata fencing if broader bootstrap durability is promised.",
+      "App remains sole implementation owner. No Contract runtime/ELF/Loader/quote or financial changes."
+    ],
+    "scope": "Contract source/design review and hashed owner persistent-volume process-loss assessment, not independent power-loss or production financial backup acceptance.",
+    "remaining": [
+      "Linux directory metadata fence and affected persistence/fault tests pending exact source freeze and independent acceptance.",
+      "Windows directory-sync capability stays explicitly limited; no Linux unsupported-error swallowing.",
+      "Existing process-loss/no-op/mixed/Linux accepted slices remain source-scoped.",
+      "Normal worker/O(N), operational restore, originalbank/live28, roles/runtime/final wallet packet remain open."
+    ]
   }
 }
