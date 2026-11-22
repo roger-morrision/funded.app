@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-only reward manifest test and source-level payout scale review; no large on-chain payout",
+  "holderCount": 70000,
+  "rewardManifest": {
+    "result": "passed",
+    "totalAmountBaseUnits": "70000",
+    "firstAndLastMerkleProofsValid": true,
+    "test": "tests/security/reward-scale.test.mjs"
+  },
+  "currentExecutionLimits": {
+    "eligibleWalletGate": 1000,
+    "devnetMaxRecipientsPerTransaction": 4,
+    "mainnetRecipientsPerSubmission": 1,
+    "paymentPersistence": "Each recipient outcome causes a locked, read-modify-write transaction that serializes and replaces the entire automatic reward ledger.",
+    "holderSnapshotPersistence": "Each finalized capture stores complete holder balances in the same ledger; the five-minute sampling plan calls for 288 full snapshots per day."
+  },
+  "inferences": [
+    "At 70,000 recipients the present submission widths imply at least 17,500 Devnet transactions or 70,000 Mainnet transactions, before retries and any transaction-size splitting.",
+    "At 1,000,000 recipients the Mainnet single-recipient path implies at least 1,000,000 transactions; this is arithmetic from current code, not a load-test result."
+  ],
+  "unverified": [
+    "Complete finalized indexing for a large live holder population.",
+    "Durable payout progress and recovery at large scale.",
+    "Mainnet transaction throughput, fees, RPC capacity and completion time."
+  ]
+}
