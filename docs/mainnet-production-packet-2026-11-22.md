@@ -193,6 +193,16 @@ requires exact loader/account evidence; no automatic repeated deployment.
 
 ## Remaining critical work and evidence
 
+Historical committed payout namespace correction is now available for independent
+source review: [scope and reproduction](historical-committed-payouts.md),
+`docs/evidence/historical-committed-payouts.json`. The selected cycle, vault,
+reserve and receipts remain bound to original custody while the current operator
+signs. Nine baseline regressions fail; the synthetic local inventory passes
+23/23. This is separate from durable payout transport/finalized attribution and
+does not close MN005 or admit Mainnet. The preceding `1e516416` expiry scheduler
+correction is independently accepted locally by PM and E2E; no repeated Contract
+build, Loader quote or healthy UI verification is required for this App slice.
+
 | ID | Owner | Remaining acceptance |
 | --- | --- | --- |
 | MN-001 | App + Contract + E2E | Durable authenticated paging/scheduling beyond current 1,000 gate; realistic cohort timing/RSS/RPC/transaction evidence; preserve entitlements and bitmap bounds |

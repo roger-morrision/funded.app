@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "scope": "Historical committed payout namespace/account binding; actual App/SDK with synthetic financial bank/RPC, no compiled or live Mainnet acceptance",
+  "files": [
+    {
+      "path": "tests/readiness/reward-historical-payout.test.mjs",
+      "requiredTests": [
+        "existing SOL commitment resolves original cycle without initializing successor accounts",
+        "historical SOL paid receipt is inspected in the original namespace",
+        "historical SOL remaining entitlement uses current signer and original custody once",
+        "existing USDC commitment resolves original cycle without initializing successor accounts",
+        "historical USDC paid receipt is inspected in the original namespace",
+        "historical USDC remaining entitlement uses current signer and original custody once",
+        "existing Token2022 commitment resolves original cycle without initializing successor accounts",
+        "historical Token2022 paid receipt is inspected in the original namespace",
+        "historical Token2022 remaining entitlement uses current signer and original custody once",
+        "current-operator existing commitment still binds the caller plan for immediate payout use",
+        "current-operator cycle binding rejects a foreign account before claiming a commitment",
+        "fresh creation binds only an authenticated finalized current-operator cycle",
+        "same-operator legacy migration remains supported without moving another authority vault",
+        "unreserved legacy commitment owned by an outgoing authority cannot be silently migrated",
+        "known previous commitment without a saved cycle never falls into successor initialization",
+        "changed immutable commitment fields cannot reach namespace initialization or payout",
+        "owned vault/cycle/reserve seeds and current router cannot be substituted",
+        "stale snapshots and wrong network or original authority remain unresolved without signing",
+        "namespace resolution does not clone or enumerate cohort leaves per recipient",
+        "manifest mutation during an awaited namespace read cannot bind or pay a changed intent",
+        "closed cycles and foreign or conflicting paid receipts cannot authorize a fresh payout",
+        "Mainnet namespace reader preserves default admission, current guard and bitmap exclusion",
+        "actual scheduler retains historical commitment and records only the remaining payout"
+      ]
+    }
+  ]
+}

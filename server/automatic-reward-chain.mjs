@@ -26,6 +26,7 @@ import { signTransaction } from './transaction-signing.mjs';
 import { createRewardBatchSubmitter } from './reward-batch.mjs';
 import {parseProtocolGuard,rewardReviewDelaySeconds,routerHeaderLength} from '../protocol-guard.js';
 import {executeRewardExpiry} from './reward-expiry-journal.mjs';
+import {readCommittedRewardContext} from './reward-committed-context.mjs';
 export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
@@ -230,14 +231,29 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return reserve;
   }
 
+  const committedContext=(plan,leaf)=>readCommittedRewardContext({connection,programId:program,currentAuthority:authority.publicKey,
+    plan,cluster,recipient:leaf?.recipient,expectedProgramDataSha256});
+
   async function ensureCycle(plan, {bitmap=false} = {}) {
     if(bitmap && cluster!=='devnet')throw new Error('Bitmap cycles are Devnet only.');
     await requireReady(plan);
     if (new PublicKey(plan.mint).equals(program)) throw new Error('Community program reserve payouts require a separate published program flow.');
+    if(plan.cycle){
+      const saved=await committedContext(plan);
+      if(!saved.legacy){
+        if(!saved.record.reserved)throw new Error('Committed reward cycle is closed; no new payout may be prepared.');
+        plan.receiptMode=saved.record.receiptMode;
+        return {address:saved.cycle.toBase58(),created:false,receiptMode:saved.record.receiptMode};
+      }
+      if(!saved.originalAuthority.equals(authority.publicKey))throw new Error('Historical unreserved cycle migration requires authenticated original-authority handling.');
+    }else if(plan.cycleSignature||Object.keys(plan.payments||{}).length||['distributing','paid','expired'].includes(plan.status)){
+      throw new Error('Prior commitment lacks its saved cycle binding; reconcile before initialization.');
+    }
     const vault = await ensureVault(plan.mint);
     const reserve = await ensureReserve(vault, plan.manifest.asset);
     const { cycle } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId });
     const cycleAccount = await connection.getAccountInfo(cycle, 'finalized');
+    if(cycleAccount&&!cycleAccount.owner?.equals(program))throw new Error('Existing reward cycle is not owned by the configured program.');
     const existing = parseCycle(cycleAccount);
     const legacy = parseLegacyCycle(cycleAccount);
     if (cycleAccount && !existing && !legacy) throw new Error('Existing reward cycle has an unrecognized layout.');
@@ -247,6 +263,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     }
     if (existing) {
       plan.receiptMode=existing.receiptMode;
+      plan.cycle=cycle.toBase58();
       return { address: cycle.toBase58(), created: false, receiptMode:existing.receiptMode };
     }
     const asset = plan.manifest.asset === 'SOL' ? SOL_ASSET_MINT : plan.manifest.asset;
@@ -271,13 +288,14 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       : Buffer.concat([discriminator('global', bitmap&&!legacy ? (isSol?'create_bitmap_cycle':'create_bitmap_cycle_token') : (isSol ? 'create_reward_cycle' : 'create_reward_cycle_token')), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
     const instruction = new TransactionInstruction({ programId: program, keys, data });
     const signature = await send(new Transaction().add(instruction));
-    const committed = parseCycle(await connection.getAccountInfo(cycle, 'finalized'));
-    if (!committed || committed.root !== expected.root || committed.totalAmount !== expected.totalAmount) throw new Error('Reward cycle transaction finalized without the expected state delta.');
+    const committedAccount=await connection.getAccountInfo(cycle,'finalized'),committed=parseCycle(committedAccount);
+    if (!committedAccount?.owner?.equals(program)||!committed || committed.root !== expected.root || committed.totalAmount !== expected.totalAmount) throw new Error('Reward cycle transaction finalized without the expected state delta.');
     const reserveAfter = parseReserve(await connection.getAccountInfo(reserve, 'finalized'));
     const newlyReserved = legacy ? BigInt(legacy.totalAmount) - BigInt(legacy.distributedAmount) : BigInt(plan.manifest.totalAmount);
     if (!reserveAfter || BigInt(reserveAfter.outstanding) - BigInt(reserveBefore.outstanding) !== newlyReserved)
       throw new Error('Reward cycle finalized without the expected reserved liability delta.');
     plan.receiptMode=committed.receiptMode;
+    plan.cycle=cycle.toBase58();
     return { address: cycle.toBase58(), created: !legacy, migrated: Boolean(legacy), signature,receiptMode:committed.receiptMode };
   }
 
@@ -286,13 +304,11 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     return inspectReadyLeaf(plan, leaf);
   }
 
-  async function inspectReadyLeaf(plan, leaf) {
+  async function inspectReadyLeaf(plan, leaf,context=null) {
     if (!verifyRewardProof({cycleId:plan.manifest.cycleId,asset:plan.manifest.asset,recipient:leaf.recipient,
       amount:leaf.amount,index:leaf.index,proof:leaf.proof,root:plan.manifest.root})) throw new Error('Invalid reviewed reward Merkle proof.');
-    const {vault,cycle,payment}=rewardAddresses({programId:program,authority:authority.publicKey,
-      mint:plan.mint,cycleId:plan.manifest.cycleId,recipient:leaf.recipient});
-    const [cycleAccount,paymentAccount]=await Promise.all([connection.getAccountInfo(cycle,'finalized'),connection.getAccountInfo(payment,'finalized')]);
-    const saved=parseCycleFields(cycleAccount);
+    const resolved=context||await committedContext(plan,leaf);
+    const {vault,cycle,payment,cycleInfo:cycleAccount,paymentInfo:paymentAccount,record:saved}=resolved;
     if(!saved||!cycleAccount.owner.equals(program)||saved.vault!==vault.toBase58()||saved.root!==plan.manifest.root
       ||saved.cycleId!==plan.manifest.cycleId||saved.asset!==plan.manifest.asset||saved.totalAmount!==plan.manifest.totalAmount
       ||saved.leafCount!==plan.manifest.leaves.length||saved.cutoffAt!==plan.cutoffAt||saved.payoutAt!==plan.payoutAt)
@@ -326,8 +342,8 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
   async function prepareLeaf(plan, leaf, readyChecked = false) {
     if (!readyChecked) await requireReady(plan);
     if (!verifyRewardProof({ cycleId: plan.manifest.cycleId, asset: plan.manifest.asset, recipient: leaf.recipient, amount: leaf.amount, index: leaf.index, proof: leaf.proof, root: plan.manifest.root })) throw new Error('Refusing to submit an invalid local Merkle proof.');
-    const { vault, cycle, payment } = rewardAddresses({ programId: program, authority: authority.publicKey, mint: plan.mint, cycleId: plan.manifest.cycleId, recipient: leaf.recipient });
-    const prior = await inspectReadyLeaf(plan,leaf);
+    const context=await committedContext(plan,leaf),{vault,cycle,payment}=context;
+    const prior = await inspectReadyLeaf(plan,leaf,context);
     if (prior) {
       const proof=prior.bitmap?await findRewardPayout(connection,{program,cycle,vault,payment,manifest:plan.manifest,leaf,bitmap:true},plan.payments?.[leaf.recipient]?.signature):null;
       return { paid:{ signature: proof?.signature||prior.signature||await recoverPaymentSignature(connection,payment), finalized: true, balanceDeltaVerified: true, amountReceived: prior.amountReceived, payment: prior.payment, bitmap:prior.bitmap===true, alreadyPaid: true } };

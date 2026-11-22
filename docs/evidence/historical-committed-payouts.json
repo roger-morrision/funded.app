@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T17:41:07.713672+00:00",
+  "issueId": "FQA-MN-005",
+  "baseRevision": "1e516416f8fb02ba7840c078e48d0f29721d91ea",
+  "scope": "Actual App scheduler/SDK/parsers with synthetic bank/RPC/finality only; no compiled or live financial acceptance",
+  "node": "v24.22.3",
+  "baseline": {
+    "exit": 1,
+    "tests": 9,
+    "passed": 0,
+    "failed": 9,
+    "method": "Exact baseline chain Git bytes; original nine test bodies with fixture/chain import prefixes redirected only"
+  },
+  "candidate": {
+    "required": 23,
+    "requiredPassed": 23,
+    "counts": {
+      "tests": 23,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "exit": 0
+  },
+  "negativeGate": {
+    "missingCurrentReviewElfExit": 1,
+    "required": 23,
+    "requiredPassed": 0
+  },
+  "sourceChecks": {
+    "changedJavaScriptSyntax": 4,
+    "allJavaScriptSyntax": 1154,
+    "sizeMaintainedFiles": 1417,
+    "note": "Full checks included three retained temporary baseline export files, subsequently removed without changing tested source."
+  },
+  "unchangedFunctionSha256Lf": {
+    "finalizedSend": "729c0a5b4af1bc2b964f08072c46a381684137a4a9329a0f3d6bfa9ad79b5689",
+    "readiness": "0b20b6608408bc0613742d524c3059d4c2385142dde9f33e8d4547428626dcfe",
+    "expiry": "1d393b6d3be1b4dfc7720b2b4dc1959f2644264aa5755ed707425a5cb8cab22d"
+  },
+  "contract": {
+    "runtimeSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "elfBytes": 1110424,
+    "loaderMessages": 1236
+  },
+  "inputs": {
+    "captureSha256": "e0a2d89f34bcf94421c225f2d5fe2ae2ab27c2c9fa4b162396a3eb38805e6aa3",
+    "captureSlot": 472584037,
+    "historicalProofElfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
+  },
+  "coverage": [
+    "Original-authority namespace for SOL/classic USDC/metadata-only Token2022",
+    "Prior100 receipt unchanged, remaining200 paid once, unrelated41 liability retained",
+    "Current-operator existing/fresh creation and same-operator legacy migration controls",
+    "Foreign ownership/seed/bump/mint/router, immutable mutation, stale context, wrong network/original authority",
+    "No cohort enumeration per recipient",
+    "Closed/missing commitment and conflicting receipt rejection",
+    "Actual scheduler and locked store route",
+    "Default Mainnet admission remains off; standalone synthetic Mainnet guard and bitmap exclusions"
+  ],
+  "sourceSha256Lf": {
+    "server/automatic-reward-chain.mjs": "0cfd298dc263d28fbf70a7c4d5cedfff49eb4d701259513730384c0966d81964",
+    "server/reward-committed-context.mjs": "aa83af9cc29a011ef02fc897e70ce56fe7e2bb06c617a885647631ac8845ac3e",
+    "tests/readiness/reward-payout-fixture.mjs": "ff06b81cd5f54953e07f25ed102f9be0993c020e64deaaef1abce26c8e9112ab",
+    "tests/readiness/reward-historical-payout.test.mjs": "d3e5833e5f3e6af52097ca92cc442bd028641bd43fd91d45868396717f648a73",
+    "config/reward-historical-payout-tests.json": "983d8f932fa1ac33ab42da4dda91f91f5f300296f469e985e643101e5eb585ba",
+    "docs/historical-committed-payouts.md": "1d4ce59fc843dcc58e70799255e9d92aa096e50d4e831199018307083d896133",
+    "docs/mainnet-production-packet-2026-11-22.md": "1bfbf652f7daba703cc87f228bbd520621a43ede186f7ae01591c23e0172ab44"
+  },
+  "evidenceSha256": {
+    "baseline-chain.mjs": "36d75169c0755775b18b51d123d7bec6c913361f0e462ad74cc133cdbf074927",
+    "baseline-final.txt": "d2c1ebcbe88a0065816703e2cce60ed7fa54cf468e105ea9c3a097bb12547a23",
+    "baseline-fixture.mjs": "4141dc85bd7124bce0bb32c17e89ecc56e6b0aec6077a7107b78f5ecbaf3df34",
+    "baseline-initial.txt": "4963d4fb977fc249ddd4457ec81cee7c8d442208c95e294888890a1dc9a8b9d4",
+    "baseline.test.mjs": "9d38851e866088cb790fd16032b27909a8b447da5f2b76a35a01f7492891d6c9",
+    "initial-nine-after.txt": "c09dbffc40996e72de95f1a797039cb398872696e0fa8ff0b6a5d35211a5a695",
+    "missing-elf.json": "7756e44f68629c68718f154e70cf34e8beff0f70255338902c7e17dcbe07ea23",
+    "result.json": "fe457a986fcdaf0426a9b18813a52a6f521c46558ca0c88ba696f9ce9054f62a",
+    "unchanged-functions.json": "3ec117db1a9e9937b15752a4c5ee2f77e926ce7a69be87b620ee6ebcdecef15e"
+  },
+  "limitations": [
+    "Synthetic Devnet bank with public Mainnet review ELF is not compiled profile or live acceptance",
+    "Durable payout unknown-attempt transport/exact transaction attribution remains open",
+    "No automatic outgoing legacy migration, historical free-fund transfer or privileged cleanup",
+    "No runtime admission, cap, allowlist, policy, signer authority, deployment or spend change",
+    "Authenticated archive/live28, scale, operational custody and final funding packet remain open"
+  ]
+}
