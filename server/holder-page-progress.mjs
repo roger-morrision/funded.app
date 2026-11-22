@@ -7,6 +7,9 @@ const pageAt = (plan, index) => {
   return plan.pages[index];
 };
 const validAttempt = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,96}$/.test(value);
+const RECEIPT_FACTS = ['digest', 'cycleId', 'asset', 'root', 'index', 'recipient', 'amount',
+  'signature', 'finalized', 'balanceDeltaVerified', 'executedAt'];
+const sameReceiptFacts = (prior, receipt) => RECEIPT_FACTS.every(key => prior[key] === receipt[key]);
 function checkReceipt(plan, page, progress, receipt) {
   const leaf = page.leaves.find(item => item.index === receipt?.index);
   if (!leaf || receipt.cycleId !== plan.cycleId || receipt.asset !== plan.asset
@@ -92,8 +95,9 @@ export function createHolderPageProgress({ store, plan }) {
         const identity = receipt.signature + ':' + receipt.index;
         if (row.receipts[identity] !== undefined && row.receipts[identity] !== index) throw new Error('Receipt replay.');
         const prior = progress.paid[receipt.index];
-        if (prior && JSON.stringify(prior) !== JSON.stringify(receipt)) throw new Error('Conflicting finalized receipt.');
-        progress.paid[receipt.index] = copy(receipt);
+        if (prior && !sameReceiptFacts(prior, receipt)) throw new Error('Conflicting finalized receipt.');
+        // Preserve the original record for a semantically identical duplicate.
+        progress.paid[receipt.index] ||= copy(receipt);
         row.receipts[identity] = index;
       }
       if (Object.keys(progress.paid).length === page.leaves.length) progress.status = 'finalized';

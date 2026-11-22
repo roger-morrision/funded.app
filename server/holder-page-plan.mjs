@@ -11,6 +11,12 @@ const units = value => {
     throw new Error('Expected canonical u64 base units.');
   return BigInt(value);
 };
+// balance * duration is a relative allocation weight, not a u64 payment amount.
+const temporalWeight = value => {
+  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value))
+    throw new Error('Expected a canonical positive temporal weight.');
+  return BigInt(value);
+};
 
 export function buildHolderPagePlan({ cycleId, asset, pool, weights, expiresAt, pageSize = 32 }) {
   if (!Array.isArray(weights) || !weights.length || weights.length > HOLDER_PAGE_LIMITS.recipients)
@@ -20,8 +26,7 @@ export function buildHolderPagePlan({ cycleId, asset, pool, weights, expiresAt, 
   if (!Number.isSafeInteger(expiresAt) || expiresAt <= 0) throw new Error('Invalid expiry.');
   const canonicalAsset = asset === 'SOL' ? 'SOL' : new PublicKey(asset).toBase58();
   const ordered = weights.map(row => {
-    const weight = units(row.weight);
-    if (!weight) throw new Error('Positive holder weights required.');
+    const weight = temporalWeight(row.weight);
     const key = new PublicKey(row.wallet);
     return { wallet:key.toBase58(), key:key.toBuffer(), weight:String(weight) };
   }).sort((a, b) => Buffer.compare(a.key, b.key));

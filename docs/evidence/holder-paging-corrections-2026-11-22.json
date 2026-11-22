@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-22",
+  "issueIds": [
+    "FQA-MN-001-A",
+    "FQA-MN-001-B"
+  ],
+  "baseRevision": "fd9f532538df4270d8ee20b772a3b3fbb4cb78d1",
+  "scope": "Local-only offline prototype corrections; no production admission, signer, ledger, deployment or financial policy change.",
+  "qaSourceReview": {
+    "path": "data\\qa-evidence\\mainnet-pm-20261122\\holder-paging-fd9f532\\qa-source-review.json",
+    "sha256": "e61de8a15477e2220ee8a70af4f4a4608f16dc537c9eb068708f7587c04821f7"
+  },
+  "reproduction": {
+    "baselineRevision": "fd9f532538df4270d8ee20b772a3b3fbb4cb78d1",
+    "baseline": [
+      {
+        "probe": "large-weight",
+        "exitCode": 1
+      },
+      {
+        "probe": "receipt-order",
+        "exitCode": 1
+      }
+    ],
+    "corrected": [
+      {
+        "probe": "large-weight",
+        "exitCode": 0
+      },
+      {
+        "probe": "receipt-order",
+        "exitCode": 0
+      }
+    ]
+  },
+  "corrections": {
+    "FQA-MN-001-A": "Validate positive canonical temporal weights independently of u64 monetary amounts; actual holdingWeights producer produces3.6e21 weights and pool101 yields50/50 plus1 retained dust for SOL and paired assets.",
+    "FQA-MN-001-B": "Compare validated receipt fields, ignoring insertion order; preserve original receipt on a semantic duplicate. Reordered duplicates before/after restart and page finalization leave disk/accounting unchanged; identity, signature, time, recipient and amount conflicts still reject atomically."
+  },
+  "focusedTests": 14,
+  "securityTests": 39,
+  "rootUnitTests": 9,
+  "sourceSha256": {
+    "server/holder-page-plan.mjs": "eaa826dffe5cf267bd5b91ff16c1d8a60b913862d6fab0618379d4c8548762f1",
+    "server/holder-page-progress.mjs": "c7770ed9f86b7838cbf9fa22d8c5a2cd3db76024d1f7ec7eea6bff2641411bbf",
+    "tests/security/holder-page-plan.test.mjs": "17d2b3ebae9b1eed0fe58ec9cf6f2e07b9ad7f14cc04769b19070f0759f48455"
+  },
+  "rawEvidenceDirectory": "data/qa-evidence/holder-paging-corrections-20261122",
+  "limits": [
+    "Mocked receipt facts are not authenticated chain evidence.",
+    "No cap increase; maxEligibleHolders1000 unchanged.",
+    "No main merge, deployment, live transaction, new contract ABI or Mainnet activation.",
+    "Exact genesis/program/ELF/ProgramData binding, authenticated finalized adapter and contract bitmap/proof review remain subsequent dependencies.",
+    "Independent QA acceptance remains pending."
+  ],
+  "sourceGates": {
+    "node": "v24.22.3",
+    "results": [
+      {
+        "name": "check",
+        "exitCode": 0,
+        "seconds": 74.91624769987538
+      },
+      {
+        "name": "structure",
+        "exitCode": 0,
+        "seconds": 0.5568838999606669
+      },
+      {
+        "name": "unit",
+        "exitCode": 0,
+        "seconds": 0.6030862000770867
+      },
+      {
+        "name": "security",
+        "exitCode": 0,
+        "seconds": 12.0754892998375
+      },
+      {
+        "name": "review-build",
+        "exitCode": 0,
+        "seconds": 1.8383917999453843
+      }
+    ]
+  },
+  "browserEvidenceReuse": {
+    "beforeRevision": "fd9f532538df4270d8ee20b772a3b3fbb4cb78d1",
+    "allBrowserFilesByteIdentical": true,
+    "reusedEvidence": "data/qa-evidence/holder-paging-20261122/review-gates.json and public-smoke.json",
+    "boundary": "Browser checks reused by exact byte identity; no new UI or financial acceptance claimed.",
+    "identicalFileCount": 223,
+    "freshUiChecksRun": false
+  }
+}

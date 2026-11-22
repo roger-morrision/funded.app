@@ -4,6 +4,13 @@ Status: experimental offline slice for review, not enabled in the application.
 Base: `1d3bbf40447f71430d20ccdfd49ad8503c8b8f89` on the protected readiness branch.
 The existing `maxEligibleHolders = 1000` gate, financial policies and signer remain unchanged.
 
+QA corrections to the first prototype are recorded in
+[the correction evidence](evidence/holder-paging-corrections-2026-11-22.json).
+Temporal weights are canonical positive integers and may exceed u64; pools and
+payments retain their u64 bounds. Duplicate reconciliation compares validated
+receipt facts independently of property order and preserves the original record.
+This correction remains subject to independent QA re-verification.
+
 ## Scope and invariants
 
 The planner supports at most **1,001 eligible recipients**, with pages of at most
