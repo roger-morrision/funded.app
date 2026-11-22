@@ -3069,7 +3069,8 @@
       },
       "rawArtifactsVerified": 22,
       "scope": "Bounded synthetic mixed-proof/selected-scheduler/Linux-cgroup/fresh-process checksum-restore slice independently accepted. Parent scale and Mainnet release remain NO-GO."
-    }
+    },
+    "laterStoreDependencyChange": "37468637 adds directory fence;0902component resource measurements remain exact-source historical evidence and are not new3746full-service capacity acceptance."
   },
   "persistentStoreAssessmentReview": {
     "appSource": "09022a66599b8a8cd8b14c17ff0dc400172c07bf",
@@ -3085,7 +3086,7 @@
     "reportedOomKills": 0,
     "reportedOriginalAttemptsPreserved": 2002,
     "reportedDirectorySyncCalls": 0,
-    "status": "Missing Linux directory fence independently confirmed;7process-loss/controlled-backup cases independently reproduced. Nested bootstrap ancestor probe fails baseline; App correction pending, no powerloss/production acceptance.",
+    "status": "Baseline missing directory/ancestor fence independently confirmed; correction3746 source reviewed andWindows288pass, independent exactLinux correction acceptance pending.",
     "primarySource": {
       "url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
       "verified": "Linux man-pages explicitly distinguishes file inode/data fsync from the directory-entry flush requiring a directory descriptor sync."
@@ -3168,5 +3169,45 @@
       "rawArtifactsVerified": 26,
       "scope": "Independent source/design review and process-crash/persistent-volume byte-copy feasibility; missing directory durability fence remains OPEN"
     }
+  },
+  "directoryDurabilityCorrectionReview": {
+    "appSource": "37468637884317dc5b8ead46da68cb4857d0cdd3",
+    "ownerReportGitSha256": "e101871b9da24a83a4fb561d99eb997b2b12a232aa3016f62dd27a54d80de0a9",
+    "reviewNode": "v26.13.1",
+    "reviewPlatform": "win32",
+    "affectedRequiredPassed": 288,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "windowsLinuxGate": {
+      "exit": 1,
+      "result": "Explicitly unavailable; not Linux directory-fsync acceptance."
+    },
+    "sourceGitHashesMatched": 9,
+    "unchangedContextHashesMatched": 22,
+    "ownerRawArtifactsVerified": 37,
+    "ownerCheckedTarSha256": "85723cd072406c24bb6d945850360aa0163177618c7aaab529d861b0ec71e0ea",
+    "ownerCheckedTarFilesVerified": 820,
+    "rawAffected": "tmp/contract-directory-3746-persistence.log",
+    "rawAffectedSha256": "005464e7d6e297b240a6242a5c4859d68f651f2ca625e00880477797789b4c83",
+    "rawWindowsUnavailable": "tmp/contract-directory-3746-windows-unavailable.log",
+    "rawWindowsUnavailableSha256": "4e9edf0b116ae8a049c40ec3586c2d1e7cc2698703a7845c97f026ef73b2912b",
+    "sourceAssessment": [
+      "Exact3746 graph confirms transaction directly calls internal directory fence. Changed publication and byte-identical paths both complete cleanup and fence before success.",
+      "Resolve real ledger directory, sync/close each same-filesystem ancestor, stop at filesystem root or before differing parent device. Existing mount/symlink namespace linkage remains explicitly infrastructure-provisioned.",
+      "Linux open/stat/sync/close errors propagate. Windows deliberately retains file-only behavior; Linux checked entry refuses unsupported platform.",
+      "Primary mutation/publication and secondary file-close/temp/lock/fence errors retained, original single error identity and first numeric status/statusCode preserved.",
+      "Cache invalidates immediately after successful rename. Published-but-unacknowledged state remains visible to another store and cannot authorize next dependent broadcast or automatic replacement.",
+      "Failed lock close retains marker; no stale-lock expiration/orphan promotion. Read/cache/lock/drain prefix and public API/queue tail actually compared identical0902.",
+      "Owner retained actual Linux10/same-body9failure baseline/original ancestor probe and both288 outputs verified by hash; Contract personally ran Windows288 only. Independent Linux exact-source acceptance pending.",
+      "Contract runtime identical971399ff;3f8/1236prefix/fees/quote unchanged. Older0902 resource timings remain tied to old exact store dependency."
+    ],
+    "status": "Contract source review and288Windows affected cases pass; owner Linux retained evidence reviewed, independent exact3746Linux/fault/ancestor acceptance pending.",
+    "scope": "API-level directory metadata fence and failure semantics only. No host-powerloss/device-cache/persistent production financial backup or normal full-worker/resource acceptance.",
+    "remaining": [
+      "Independent exactLinux10/originalancestor/failure/journal retest pending.",
+      "Preserve post-publication uncertainty; failed fence is not rollback or retry authorization.",
+      "Normal service/fullworker/O(N)/actual mount and permissions/operational backup plus originalbank/live28/roles/runtime/finalfunding remain open."
+    ]
   }
 }
