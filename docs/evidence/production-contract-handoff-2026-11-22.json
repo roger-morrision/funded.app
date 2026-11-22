@@ -1508,9 +1508,24 @@
     "rawResult": "tmp/contract-historical-payout-review-47ab.txt",
     "sha256": "2405327e0fb35592d97434dace67821cfb89636117a206fdd8aac61f1f77a1a0",
     "sourceAssessment": "Authenticated original owned vault/cycle/reserve/payment PDAs and immutable manifest tuple agree with the frozen payout ABI. Existing commitments return before successor initialization. Current operator guard and default program admission retained.",
-    "tested": "SOL, classic USDC and metadata-only Token2022 fixtures retain100paid receipt and pay200 once from original custody while unrelated41remains. Actual scheduler, locked store and SDK signing are used with synthetic financial RPC/bank/finality.",
+    "tested": "SOL, classic USDC and Token2022-address/mint-owner routing fixtures retain100paid receipt and pay200 once from original custody while unrelated41remains. Actual scheduler, locked store and SDK signing are used with synthetic financial RPC/bank/finality. The Token2022 fixture has minimal mint bytes and does not prove an extension-specific compiled transfer.",
     "legacyBoundary": "Current-operator fresh/existing and same-operator173legacy migration retained. Historical unreserved outgoing-operator cycle refuses unresolved.",
-    "status": "Scoped Contract review passed; independentNode24 acceptance pending.",
-    "remaining": "Durable payout unknown-attempt persistence and exact finalized transaction attribution, live delivery, authenticated archive, roles/scale and final funding remain open."
+    "status": "Scoped original namespace/source integration accepted independently on Node24; parent/live financial acceptance remains open.",
+    "remaining": "Durable payout unknown-attempt persistence and exact finalized transaction attribution, live delivery, authenticated archive, roles/scale and final funding remain open.",
+    "independentVerification": {
+      "source": "47ab8d9599a01223d2b4bb048db8cc9f37f08326",
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-historical-payout-47ab8d95-20261123.json",
+      "sha256": "590f6f95b5e15bc7327f379fa686b6e224d3fbb424982df58c74d471ffc6ad88",
+      "node": "v24.22.3",
+      "requiredPassed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "samePriorCasesFailed": 9,
+      "gitSourceHashesMatched": 7,
+      "missingCurrentElf": "Exit1with0requiredpassed",
+      "unchangedSpans": "finalizedSend/readiness/expireCycle byte-identical to1e516416",
+      "scope": "Historical namespace routing and synthetic remaining payout state. No extension-specific compiled transfer, live delivery or durable signed unknown-payout attribution is established."
+    }
   }
 }
