@@ -1365,5 +1365,25 @@
     "retainedLimit": "Aggregated wallet balances lack account identities and replay inputs. One closed original-router drop authenticates its saved root with 876464 raw claimed, while the other two drops are absent. All original windows expired.",
     "scope": "Historical original 9H1 public-router records; excludes current 9E7 full-cohort live acceptance. Current balances and ordinary minContextSlot requests cannot authenticate the historical bank.",
     "next": "App Dev owns existing raw capture/provider inventory and durable authenticated export/ingestion; E2E verifies supplied bank completeness, supply and parent-linked replay. Existing references are checked before any paid provider or new financial fixture proposal."
+  },
+  "appHistoricalExpiryReview": {
+    "reviewedAppSource": "e04a28cbdf6644a4a483abb7c223093d9a3a0c52",
+    "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "disposition": "Original account geometry agrees; equal cutoff/payout compatibility fix requested from App owner.",
+    "verifiedBySource": "Five metas select current signer and original vault/reserve/cycle, use typed original PDA identities and immutable manifest fields, and verify exact unpaid liability release while preserving paid data.",
+    "finding": {
+      "file": "server/reward-expiry-context.mjs",
+      "condition": "plan.payoutAt > plan.cutoffAt",
+      "contractRule": "Both SOL and token cycle constructors require payout_at >= cutoff_at. Review delay is relative to the creation clock.",
+      "probe": "Used actual new suite fixture, set saved and owned cycle payout time equal to cutoff, clock at payout plus grace. Expected valid context rejected before send.",
+      "tests": 1,
+      "expectedValidFailures": 1,
+      "node": "v26.13.1",
+      "rawEvidence": "tmp/expiry-equality-app-review.txt",
+      "sha256": "b31a9ad3610842870adce9d9e3e723a5f2db522d36cc1e6b132f6dd74a3abb5c",
+      "owner": "App Dev",
+      "requestedRegression": "Accept equality, reject reversed ordering; validate on required Node24."
+    },
+    "remaining": "Durable unknown expiry-attempt journal and finalized archived transaction reconciliation remain an App integration gate. Synthetic account review does not establish deployed acceptance."
   }
 }
