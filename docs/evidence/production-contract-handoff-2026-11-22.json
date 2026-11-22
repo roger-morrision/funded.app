@@ -172,14 +172,14 @@
     "status": "pair-enabled candidate awaiting independent review",
     "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
     "programDataAddress": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
-    "source": "575b294793afe2a3732fd4d5ebade1f68adb9539",
+    "source": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
     "package": "funded-fee-router",
-    "contractWorkspaceTree": "98ba9010c38b0c260864812497dcb966eaff87be",
+    "contractWorkspaceTree": "f785b0ca09fae9c1d42af605cc938fc432ef829c",
     "features": "mainnet-v3-program",
     "conversionPools": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v",
-    "bytes": 1109672,
-    "sha256": "e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e",
-    "file": "tmp/production-contract-freeze/e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e/funded_fee_router.so",
+    "bytes": 1110880,
+    "sha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+    "file": "tmp/production-contract-freeze/8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd/funded_fee_router.so",
     "toolchain": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
     "deployedProgramDataSha256": null,
     "independentReleaseReview": null
@@ -311,12 +311,12 @@
     "richConfiguration": {
       "dataHex": "340a47441468b59c010000000000000000",
       "signatures": 2,
-      "readOnlyFeeQuoteSlot": 472585859,
+      "readOnlyFeeQuoteSlot": 472588767,
       "baseFeeLamports": 10000,
-      "messageSha256": "8a7c63da3ed8ebd2ae56bba36f88ad4e088f9b41b3bdab45612cae7b53af369f",
-      "unsignedMessageBase64": "AgAFCcNutOle2bNU9MabN1ao9in/MgbNAqLfC3oXhfT24xe5QkXXm+cKDF5e2HJlNqNa6pPbmnOyQZCStT4kdm51TnEZVtTcalE6vQ/Y2UCGsAOjoU7ZMENUdOs6tnqd9OnJdUycEj8xx0TY05w40lZskyMnlWPiyo2iBRUIPtZNxMn8z13Q7c4SSfVIs/7KZ7Fs+fM6ejIuktzW5YSB6Bi6yFzH4zVUjUshm0PoMnzBnlmEUG3p6eARh2HrlYCmwcvFEF9P2bSIaZs4455lSksv4HWE8TAh5muLPIYvmcEDPvbfPVyuG6wIaVObT82GLRsd/mMD9HZj92iloVN+DMRG+BQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIZhEQIbiR632yVDvvyW46hq0uEWMAitpZPtE8Jv544cAQQIAQQFAgMGBwgRNApHRBRotZwBAAAAAAAAAAA=",
-      "blockhash": "A3ZUhUmxbCnZgkudVPALf5npRANZf8U3hd2n8AJAKqCX",
-      "lastValidBlockHeight": 450599880,
+      "messageSha256": "40f246570fe1aed4820d724e17a4b9939cea15266a7c529776e52474094c9c97",
+      "unsignedMessageBase64": "AgAFCcNutOle2bNU9MabN1ao9in/MgbNAqLfC3oXhfT24xe5QkXXm+cKDF5e2HJlNqNa6pPbmnOyQZCStT4kdm51TnEZVtTcalE6vQ/Y2UCGsAOjoU7ZMENUdOs6tnqd9OnJdUycEj8xx0TY05w40lZskyMnlWPiyo2iBRUIPtZNxMn8z13Q7c4SSfVIs/7KZ7Fs+fM6ejIuktzW5YSB6Bi6yFzH4zVUjUshm0PoMnzBnlmEUG3p6eARh2HrlYCmwcvFEF9P2bSIaZs4455lSksv4HWE8TAh5muLPIYvmcEDPvbfPVyuG6wIaVObT82GLRsd/mMD9HZj92iloVN+DMRG+BQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKeaz0XuTnUnPvPhW9EervDHJ6oT0h4vUzBVt8T+isasAQQIAQQFAgMGBwgRNApHRBRotZwBAAAAAAAAAAA=",
+      "blockhash": "CHFzzv7PcZ3quo8KVSGMDHFrETidPGe1aLH24yo3SrRH",
+      "lastValidBlockHeight": 450602787,
       "executionStatus": "illustrative unsigned quote; refresh entire signing set before use"
     },
     "unresolved": [
@@ -407,9 +407,9 @@
     }
   ],
   "productionQuote": {
-    "checkedAt": "2026-11-22T15:09:47.840Z",
+    "checkedAt": "2026-11-22T15:20:14.915Z",
     "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
-    "finalizedAccountSlot": 472585859,
+    "finalizedAccountSlot": 472588766,
     "accounts": {
       "deploymentPayer": {
         "key": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
@@ -452,8 +452,8 @@
         "lamports": 0
       }
     },
-    "elfSha256": "e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e",
-    "bytes": 1109672,
+    "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+    "bytes": 1110880,
     "exactAllocation": true,
     "rentExemptByDataBytes": {
       "0": 650240,
@@ -462,22 +462,22 @@
       "131": 1315720,
       "165": 1488440,
       "177": 1549400,
-      "1109709": 5637971960,
-      "1109717": 5638012600
+      "1110917": 5644108600,
+      "1110925": 5644149240
     },
     "programRentLamports": 833120,
-    "programDataRentLamports": 5638012600,
-    "lockedRentLamports": 5638845720,
-    "temporaryReusableBufferRentLamports": 5637971960,
+    "programDataRentLamports": 5644149240,
+    "lockedRentLamports": 5644982360,
+    "temporaryReusableBufferRentLamports": 5644108600,
     "bufferTreatment": "Same-payer fresh Loader-v3 finalization returns buffer funding before creating ProgramData.",
-    "estimatedWriteCount900ByteChunks": 1233,
-    "estimatedUploadBaseFeeLamports": 12360000,
+    "estimatedWriteCount900ByteChunks": 1235,
+    "estimatedUploadBaseFeeLamports": 12380000,
     "uploadFeeAllowanceLamports": 25000000,
     "priorityFeeSample": {
       "count": 150,
       "unit": "micro-lamports/CU",
-      "firstSlot": 472585711,
-      "lastSlot": 472585860,
+      "firstSlot": 472588618,
+      "lastSlot": 472588767,
       "median": 0,
       "max": 0
     },
@@ -490,24 +490,23 @@
     "canaryExposureAllowanceLamports": 50000000,
     "reserveLamports": 3000000000,
     "tokenPoolLpPrincipal": 0,
-    "illustrativeFundingBeforeReserve": 6013845720,
-    "illustrativeTotalIncludingReserve": 9013845720,
-    "illustrativeTotalLessPayerBalance": 9013845720,
+    "illustrativeFundingBeforeReserve": 6019982360,
+    "illustrativeTotalIncludingReserve": 9019982360,
+    "illustrativeTotalLessPayerBalance": 9019982360,
     "roleFunding": "Aggregate assumes E9 sources all planned funding including direct admin/operator rents. Fund admin/operator before bootstrap, count those rents once. Program identity signs fresh deployment only.",
     "conditions": [
       "Unpriced final wire messages and priority bids, lookup table and canary transaction selection.",
       "Refresh rent, balances, unwritten target accounts, fee quote and blockhash prior to signing.",
       "No deployment or spend approved."
     ],
-    "deploymentProjectionFromMessages": 12350000,
     "fundingByWalletDraft": [
       {
         "role": "deployment payer",
         "address": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
         "observedBalance": 0,
         "allocatedReserve": 3000000000,
-        "requiredIfDirectlyFundingRolesSeparately": 9008577760,
-        "temporaryBufferRent": 5637971960,
+        "requiredIfDirectlyFundingRolesSeparately": 9014714400,
+        "temporaryBufferRent": 5644108600,
         "debits": [
           "buffer create",
           "upload and deployment fees",
@@ -542,7 +541,8 @@
         "directTransferRequired": 0,
         "debits": []
       }
-    ]
+    ],
+    "deploymentProjectionFromMessages": 12370000
   },
   "restrictedBaseline": {
     "status": "undeployed restricted production-ID review candidate",
@@ -1080,50 +1080,125 @@
       "execution": "Local SBF against captured PumpSwap/fee ELF; synthetic balances. Recorded pool/user debit, vault credit, closed WSOL, proof of replay rejection and failed transaction rollback."
     }
   ],
+  "previousPairCandidate": {
+    "status": "pair-enabled candidate awaiting independent review",
+    "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+    "programDataAddress": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
+    "source": "575b294793afe2a3732fd4d5ebade1f68adb9539",
+    "package": "funded-fee-router",
+    "contractWorkspaceTree": "98ba9010c38b0c260864812497dcb966eaff87be",
+    "features": "mainnet-v3-program",
+    "conversionPools": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v",
+    "bytes": 1109672,
+    "sha256": "e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e",
+    "file": "tmp/production-contract-freeze/e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e/funded_fee_router.so",
+    "toolchain": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
+    "deployedProgramDataSha256": null,
+    "independentReleaseReview": null,
+    "packetCommit": "23df01d408ee8ccc995bd4060efa029118e43ed9"
+  },
   "loaderMessages": {
-    "file": "tmp/production-contract-freeze/e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e/unsigned-loader-Gkxr564rMsXmMtA6RqJ1vU1DCXjQzWrfF5gAKRYt9yyj.json",
-    "sha256": "7724f4c8043ea87ba8ea994b6eb835901844889636adb9f68de06902c5a5d44d",
-    "messages": 1235,
-    "buffer": "FAoUf4jEvKXJWpwCx88P9Aqo4gJgtoxmqBqUHFgVVQse",
-    "blockhash": "Gkxr564rMsXmMtA6RqJ1vU1DCXjQzWrfF5gAKRYt9yyj",
-    "lastValidBlockHeight": 450600831,
-    "slot": 472586810,
-    "quotedAt": "2026-11-22T15:13:17.255Z",
+    "file": "tmp/production-contract-freeze/8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd/unsigned-loader-4N4GbGh953jZQYJV9pDwBgVF3PPn7PgKYjPw8kngwVX3.json",
+    "sha256": "465a764bfe12551c4bd780e8b60b964d2aa85eaf0516c4d62cee56889d981425",
+    "messages": 1237,
+    "buffer": "FJrPJcqgDi7TMuarFaf3U6Qz1enoWJMA4wNZbvJL6maV",
+    "blockhash": "4N4GbGh953jZQYJV9pDwBgVF3PPn7PgKYjPw8kngwVX3",
+    "lastValidBlockHeight": 450602801,
+    "slot": 472588780,
+    "quotedAt": "2026-11-22T15:20:21.012Z",
     "fees": {
       "create-buffer": {
         "sampleLamports": 5000,
-        "slot": 472586822,
+        "slot": 472588795,
         "count": 1
       },
       "write": {
         "sampleLamports": 10000,
-        "slot": 472586823,
-        "count": 1232
+        "slot": 472588795,
+        "count": 1234
       },
       "write-remainder": {
         "sampleLamports": 10000,
-        "slot": 472586822,
+        "slot": 472588795,
         "count": 1
       },
       "deploy": {
         "sampleLamports": 15000,
-        "slot": 472586823,
+        "slot": 472588795,
         "count": 1
       }
     },
-    "feeSum": 12350000,
+    "feeSum": 12370000,
     "largestWire": 1216,
     "scope": "Unsigned fresh deployment prefix. Fees sampled per instruction class at one blockhash; zero priority bid. Refresh the signing set for sequential batches.",
     "source": "https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259-L280",
-    "nativeRehearsal": "Synthetic accounts and signers at 5080 lamports/byte, all 1233 native loader writes and finalize. ExUNA program account preallocated locally. Payer had insufficient cash to front ProgramData without the buffer. Asserted payer delta plus fee, buffer zero, program executable, ProgramData owner/authority and every deployed ELF byte.",
+    "nativeRehearsal": "Synthetic accounts and signers at 5080 lamports/byte, all 1235 native loader writes and finalize. ExUNA program account preallocated locally. Payer had insufficient cash to front ProgramData without the buffer. Asserted payer delta plus fee, buffer zero, program executable, ProgramData owner/authority and every deployed ELF byte.",
     "baseFeeIncludesAllProductionSignatures": true
   },
   "hostAcceptance": {
-    "harness": "c00547969f020df70ce811d22682a55d75b466d6",
-    "mainnetDefaultPassed": 30,
-    "sellCases": 6,
-    "buybackTests": 4,
+    "candidateSource": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
+    "pairedHarness": "ef9029ccff3633d2dd5f316979492273641e8179",
+    "mainnetDefaultPassed": 32,
+    "additionalOperatorHandoffTests": 1,
+    "separatelyRunSellCases": 6,
+    "separatelyRunBuybackTests": 4,
     "buybackExecutions": 6,
-    "independentStatus": "owner execution; independent signoff pending"
+    "npmCheck": "1115 JS syntax checks; source-size budgets passed",
+    "independentStatus": "Independent review requested; cross-owner source reproduction is tracked separately."
+  },
+  "pairedDelivery": {
+    "invariant": "Only spendable units received fund and discharge category liabilities. The finalized app keeper requires exact credits and debits.",
+    "appChecks": [
+      "server/daily-bonus-paired-settlement.mjs:71",
+      "server/v3-token-keeper.mjs:121",
+      "server/v3-token-keeper.mjs:222"
+    ],
+    "oldCandidateFinding": "Source inspection: settlement assigned target allocation and withdrawal assigned receipt amount without a post-transfer spendable balance check. No owner pre-change compiled reproduction is claimed.",
+    "compiledControls": [
+      {
+        "mint": "classic SPL USDC, local synthetic state",
+        "basisPoints": 0,
+        "controlDebit": 1000,
+        "controlSpendableCredit": 1000,
+        "controlWithheldFee": 0,
+        "routerSettlementAndWithdrawal": "passed; replay rejected"
+      },
+      {
+        "mint": "Token-2022 MetadataPointer only",
+        "basisPoints": 0,
+        "controlDebit": 1000,
+        "controlSpendableCredit": 1000,
+        "controlWithheldFee": 0,
+        "routerSettlementAndWithdrawal": "passed; replay rejected"
+      },
+      {
+        "mint": "Token-2022 TransferFeeConfig",
+        "basisPoints": 0,
+        "controlDebit": 1000,
+        "controlSpendableCredit": 1000,
+        "controlWithheldFee": 0,
+        "routerSettlementAndWithdrawal": "passed; replay rejected"
+      },
+      {
+        "mint": "Token-2022 TransferFeeConfig",
+        "basisPoints": 100,
+        "maximumFeeRaw": 5000,
+        "controlDebit": 1000,
+        "controlSpendableCredit": 990,
+        "controlWithheldFee": 10,
+        "routerSettlementAndWithdrawal": "Both rejected on MintClaimAmountMismatchV3; all affected balances, withheld balances, ledger and receipts remained byte-identical."
+      }
+    ],
+    "supportedToken2022Primary": "MetadataPointer + TokenMetadata on the captured Singularity mint; both protected and agency compiled burn flows passed."
+  },
+  "operatorRecovery": {
+    "scope": "local-only exact revised ELF; assumes current signer recoverable",
+    "steps": [
+      "Owner configured guardian and cap. Prior operator committed a 600-lamport reward. Guardian paused.",
+      "Missing each of outgoing, successor or upgrade-owner signatures rejected rotation. Three-party rotation while paused changed only the header authority bytes.",
+      "Matured payout remained blocked while paused. Upgrade owner resumed. Old operator could not open a new cycle.",
+      "Successor fee payer paid original entitlement to original recipient; 600 lamports delivered, outstanding reduced to zero, replay rejected."
+    ],
+    "open": "No tested recovery of a permanently lost old signing key or claim of live backup/restore; the standard rotation instruction requires all three signatures."
   }
 }

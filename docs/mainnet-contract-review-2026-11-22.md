@@ -221,7 +221,7 @@ The protected and agency category-6 paths both passed against captured Mainnet p
 
 **Dedicated production artifact and quote.** Build with the separately provisioned production program ID and the reviewed paired-token conversion pool list. The primary mint and pool are selected. The router configuration transaction is pending. Freeze and independently reproduce the exact source and ELF before deployment. Derive the expected ProgramData address from the dedicated ID and loader; verify the full ProgramData bytes, actual deployment slot, loader pointer and authority after finalization before app admission. Required signer roles include 5Thg admin/upgrade, the deployment payer, a separate operational signer and price signer, and a guardian distinct from the operational signer.
 
-The new payer is `E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL`. Fresh admin/upgrade is `5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi`. At finalized slot 472585859 both had zero lamports and the program and bootstrap PDAs were absent. Admin directly pays 0.003098800 SOL for the first RICH revision and 0.000853440 SOL for price configuration. The operator pays 0.001315720 SOL for the router. E9 pays transaction fees.
+The new payer is `E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL`. Fresh admin/upgrade is `5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi`. At finalized slot 472588766 both had zero lamports and the program and bootstrap PDAs were absent. Admin directly pays 0.003098800 SOL for the first RICH revision and 0.000853440 SOL for price configuration. The operator pays 0.001315720 SOL for the router. E9 pays transaction fees.
 
 ## Remaining deployment blockers
 
@@ -235,21 +235,23 @@ The new payer is `E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL`. Fresh admin/upg
 
 ## SOL funding estimate
 
-The pair-enabled ExUNA candidate is 1,109,672 bytes, SHA-256 `e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e`, from source `575b294793afe2a3732fd4d5ebade1f68adb9539`. Its only configured pair is classic SPL USDC and the Gf7 PumpSwap pool. The 57-byte router command selects the 24-byte Pump sell operation for this pair. All six compiled category 5/6/7 runs debited exactly one synthetic USDC. Their SOL credits matched the observed swaps, including when a pre-existing WSOL donation was excluded. Protected and agency primary buybacks burned 61.906566 Singularity per 0.001 synthetic SOL at the captured slot, including donated-account cases. [Build inputs, public captures, quote and unsigned manifest digest](evidence/production-contract-handoff-2026-11-22.json)
+The pair-enabled ExUNA candidate is 1,110,880 bytes, SHA-256 `8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd`, from source `0278fb68a3eb4cae66115bd61a03c0f91ac46c1b`. Its only configured pair is classic SPL USDC and the Gf7 PumpSwap pool. The 57-byte router command selects the 24-byte Pump sell operation for this pair. All six compiled category 5/6/7 runs debited exactly one synthetic USDC. Their SOL credits matched the observed swaps, including when a pre-existing WSOL donation was excluded. Protected and agency primary buybacks burned 61.906566 Singularity per 0.001 synthetic SOL at the captured slot, including donated-account cases. [Build inputs, public captures, quote and unsigned manifest digest](evidence/production-contract-handoff-2026-11-22.json)
+
+Paired settlement and disbursement now compare spendable token balances before posting category credits and receipts. Classic USDC, metadata-only and zero-fee controls delivered exact amounts. A native Token-2022 control withheld 10 of 1,000 raw units. Both contract operations rejected short delivery and restored custody, withheld amounts, ledger and receipt state. A separate paused operator rotation preserved all guard state and a committed reward. The original recipient received exactly 600 lamports after resumption, with replay rejected. This recovery path requires access to the outgoing operator signer.
 
 | Candidate planning component | SOL |
 | --- | ---: |
-| Program and ProgramData rent | 5.638845720 |
-| Upload/transaction allowance, including 0.012350000 base projection | 0.025 |
+| Program and ProgramData rent | 5.644982360 |
+| Upload/transaction allowance, including 0.012370000 base projection | 0.025 |
 | Deployment contingency | 0.250 |
 | Account setup allowance, including 0.005267960 known bootstrap rent | 0.050 |
 | Canary exposure allowance | 0.050 |
 | Protected operating reserve | 3.000 |
-| **Illustrative total including reserve** | **9.013845720** |
+| **Illustrative total including reserve** | **9.019982360** |
 
-The proposed unsigned deployment prefix contains one buffer creation, 1,233 writes and one atomic program creation/deploy message. E9 pays all fees. The 5Thg authority signs writes and deployment. ExUNA signs the deployment message and requires zero direct transfer. Native Loader-v3 returned 5.637971960 SOL of temporary buffer rent before funding ProgramData in the compiled local rehearsal. The incremental ProgramData cash debit after the refund is 0.000040640 SOL. [Agave implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259-L280)
+The proposed unsigned deployment prefix contains one buffer creation, 1,235 writes and one atomic program creation/deploy message. E9 pays all fees. The 5Thg authority signs writes and deployment. ExUNA signs the deployment message and requires zero direct transfer. Native Loader-v3 returned 5.644108600 SOL of temporary buffer rent before funding ProgramData in the compiled local rehearsal. The incremental ProgramData cash debit after the refund is 0.000040640 SOL. [Agave implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259-L280)
 
-For an illustrative split with bootstrap roles funded separately, E9 would hold 9.008577760 SOL including the protected reserve, 5Thg would hold 0.003952240 SOL for direct initial rents and the operator would need 0.001315720 SOL for its initial rent. These figures include planning allowances. The operator identity, its balance and remaining execution messages are still open. The selected route has zero new token, pool or LP principal. Requote before any approval or transfer.
+For an illustrative split with bootstrap roles funded separately, E9 would hold 9.014714400 SOL including the protected reserve, 5Thg would hold 0.003952240 SOL for direct initial rents and the operator would need 0.001315720 SOL for its initial rent. These figures include planning allowances. The operator identity, its balance and remaining execution messages are still open. The selected route has zero new token, pool or LP principal. Requote before any approval or transfer.
 
 ## Guard policy and residual trust
 
