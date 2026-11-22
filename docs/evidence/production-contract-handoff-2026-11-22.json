@@ -2640,7 +2640,7 @@
       "Owner Linux run is reviewed retained evidence here; Contract personally ran WindowsNode26sixcases and separate33leaf process/export/new-process restore, not a duplicate independent Linux1001run.",
       "All server runtime remains unchangeda85a; Contract paths identical971399ff. Accepted3f8/1236prefix/quote reused."
     ],
-    "status": "Contract source/evidence review and6Windows cases plus separate33leaf process restore pass; independent exact-source Linux acceptance pending.",
+    "status": "Independent E2E accepted exact0902 bounded synthetic mixed-proof/selected-component/Linux-cgroup/fresh-process checksum-restore scope; parent release remains NO-GO.",
     "scope": "Synthetic per-cohort bank/finality with real parsers, Windows filesystem/process restore and retained owner Linux cgroup/component evidence review. No SBF/live financial, unified-bank solvency, full HTTP/automatic worker/expiry/raw capture, persistent-disk/powerloss or production backup acceptance.",
     "rawTests": "tmp/contract-mixed-0902-tests.log",
     "rawTestsSha256": "5756e89088f115b1672e460c7aa31d970fea155affe6fd6adbbb0002bae6278b",
@@ -2921,6 +2921,153 @@
       "onChainTransactions": 0,
       "limits": "Actual scheduler captureDue/prepare/selected execute/status and financial snapshot; normalized capture callback and bank/finality are synthetic. No automatic Devnet batch, HTTP server, other service loop, Mainnet activation or full-app capacity acceptance.",
       "instrumentation": "Candidate JSON observer adds measured serialization inside the lock. Transaction elapsed aggregates overlapping queue waits; do not treat it as wall time or add it to worker elapsed. Physical replacement counts are not inferred during concurrent activity. Linux tmpfs/controlled public bundle copying is not production disk/power-loss/financial restore acceptance."
+    },
+    "independentVerification": {
+      "file": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-mixed-linux-09022a66-20261123.json",
+      "sha256": "12bccd7958705d2246b4539329e0c68717af99f4c36f4d4ebd40324f26cd9996",
+      "node": "24.22.3",
+      "platform": "linux",
+      "targetedPassed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "missingCurrentElf": {
+        "exit": 1,
+        "casesPassed": 0
+      },
+      "wrongMemoryLimit": {
+        "exit": 1,
+        "actualMemoryBytes": 402653184,
+        "requiredMemoryBytes": 536870912,
+        "rejectedBeforeCohortConstruction": true
+      },
+      "gitSourcePinsMatched": 30,
+      "sourceTarMembersMatchedGit": 670,
+      "unchangedContextPins": 23,
+      "publicBundle": {
+        "observedAt": "2026-11-22T22:01:50.692255+00:00",
+        "indexSha256": "91649b0e8037ace624c5a1a0c70870c32a54bcf6a7ff3bf48fa20666c6e8d9d1",
+        "files": {
+          "ledger.json": "3dd072a167976c5765b6297edf3e5cad60bc13f864fd655d7ecfb93e48e01216",
+          "bank.json": "85f549b837cd9fdb9affc2fcd912888f5899ba38d7b53755b193df8969471bb4"
+        }
+      },
+      "first": {
+        "workload": {
+          "execution": {
+            "status": "processed",
+            "submitted": 0
+          },
+          "publicStatus": "active",
+          "publicScheduleRows": 3,
+          "financialSnapshot": {
+            "schedules": 3,
+            "responseBytes": 8445287
+          },
+          "captures": 1,
+          "prepared": 0,
+          "submitInterfaces": 96,
+          "networkCalls": 0,
+          "onChainTransactions": 0,
+          "newBlockhashes": 0,
+          "newMockSends": 0,
+          "elapsedMs": 29376.762487999993,
+          "reads": 99,
+          "transactions": 98,
+          "candidateSerializedBytes": 835453170,
+          "mutatorInsideLockMs": 485.464055000004,
+          "transactionElapsedMs": 17134.778400000054,
+          "instrumentationSerializationMs": 5329.253531000009,
+          "financialSnapshotReads": 1
+        },
+        "resource": {
+          "peakRssKiB": 275908,
+          "rss": 233033728,
+          "heapTotal": 69369856,
+          "heapUsed": 64596184,
+          "external": 26313947,
+          "arrayBuffers": 23409549,
+          "heapLimitBytes": 271581184,
+          "constrainedMemoryBytes": 536870912,
+          "beforeCgroup": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.current": "50298880",
+            "memory.peak": "50298880",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 397002\nuser_usec 326249\nsystem_usec 70752\nnr_periods 6\nnr_throttled 4\nthrottled_usec 302991\nnr_bursts 0\nburst_usec 0"
+          },
+          "afterCgroup": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.current": "198328320",
+            "memory.peak": "248356864",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 86644126\nuser_usec 83027914\nsystem_usec 3616211\nnr_periods 1158\nnr_throttled 1155\nthrottled_usec 72110613\nnr_bursts 0\nburst_usec 0"
+          }
+        }
+      },
+      "restored": {
+        "workload": {
+          "execution": {
+            "status": "processed",
+            "submitted": 0
+          },
+          "publicStatus": "active",
+          "publicScheduleRows": 3,
+          "financialSnapshot": {
+            "schedules": 3,
+            "responseBytes": 8461224
+          },
+          "captures": 1,
+          "prepared": 0,
+          "submitInterfaces": 96,
+          "networkCalls": 0,
+          "onChainTransactions": 0,
+          "newBlockhashes": 0,
+          "newMockSends": 0,
+          "elapsedMs": 25899.083468,
+          "reads": 99,
+          "transactions": 98,
+          "candidateSerializedBytes": 844358641,
+          "mutatorInsideLockMs": 315.96064100000467,
+          "transactionElapsedMs": 15214.148913,
+          "instrumentationSerializationMs": 4442.322937000012,
+          "financialSnapshotReads": 1
+        },
+        "resource": {
+          "peakRssKiB": 289612,
+          "rss": 251428864,
+          "heapTotal": 71225344,
+          "heapUsed": 66925864,
+          "external": 33961024,
+          "arrayBuffers": 22429356,
+          "heapLimitBytes": 271581184,
+          "constrainedMemoryBytes": 536870912,
+          "beforeCgroup": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.current": "50634752",
+            "memory.peak": "50634752",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 392134\nuser_usec 316237\nsystem_usec 75896\nnr_periods 7\nnr_throttled 4\nthrottled_usec 182415\nnr_bursts 0\nburst_usec 0"
+          },
+          "afterCgroup": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.current": "211243008",
+            "memory.peak": "262701056",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 22238791\nuser_usec 19730453\nsystem_usec 2508337\nnr_periods 299\nnr_throttled 295\nthrottled_usec 34149157\nnr_bursts 0\nburst_usec 0"
+          }
+        }
+      },
+      "rawArtifactsVerified": 22,
+      "scope": "Bounded synthetic mixed-proof/selected-scheduler/Linux-cgroup/fresh-process checksum-restore slice independently accepted. Parent scale and Mainnet release remain NO-GO."
     }
   }
 }
