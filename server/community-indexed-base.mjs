@@ -1,9 +1,10 @@
 import {PublicKey} from '@solana/web3.js';
 import {TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID} from '@solana/spl-token';
+import {communityBankEvidence} from './community-bank-evidence.mjs';
 
 // The index supplies addresses only. Eligibility balances and mint supply must
 // come from one finalized bank; partial pagination can never establish coverage.
-export async function readIndexedCommunityBase({connection,mintKey,fetchImpl=fetch}) {
+export async function readIndexedCommunityBase({connection,mintKey,fetchImpl=fetch,retainEvidence=false}) {
   if(typeof connection.rpcEndpoint!=='string')return null;
   const endpoint=new URL(connection.rpcEndpoint);
   if(!['http:','https:'].includes(endpoint.protocol))throw new Error('Invalid holder index RPC');
@@ -43,5 +44,6 @@ export async function readIndexedCommunityBase({connection,mintKey,fetchImpl=fet
     return{account:keys[index].toBase58(),wallet:new PublicKey(data.subarray(32,64)).toBase58(),balance:data.readBigUInt64LE(64)};
   });
   if(accounts.reduce((sum,row)=>sum+row.balance,0n)!==supply)throw new Error('Indexed community accounts do not cover the full fixed supply');
-  return{slot:view.context.slot,accounts,supply};
+  return{slot:view.context.slot,accounts,supply,...(retainEvidence?{bankEvidence:communityBankEvidence({source:'indexed-atomic-bank',slot:view.context.slot,context:view.context,
+    mintKey,mintInfo:mint,addresses:keys,infos:view.value.slice(1),sameBank:true})}:{})};
 }

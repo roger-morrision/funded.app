@@ -193,6 +193,14 @@ requires exact loader/account evidence; no automatic repeated deployment.
 
 ## Remaining critical work and evidence
 
+The next MN002 [prospective raw archive candidate](community-snapshot-archive.md)
+wires the actual preparation callback to atomic-bank capture, durable content
+publication and offline replay/manifest checks. Its 53-case inventory passes
+locally. Split mint/program-list reads remain unqualified, old aggregate records
+are not backfilled, and the existing 99-account atomic-reader limit remains.
+Independent source review and real original-bank/live-delivery evidence are still
+required; this does not close MN002 or authorize Mainnet execution.
+
 Historical committed payout namespace correction is now available for independent
 source review: [scope and reproduction](historical-committed-payouts.md),
 `docs/evidence/historical-committed-payouts.json`. The selected cycle, vault,

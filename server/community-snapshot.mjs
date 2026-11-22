@@ -5,6 +5,7 @@ import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/sp
 import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import {readIndexedCommunityBase} from './community-indexed-base.mjs';
+import {communityBankEvidence} from './community-bank-evidence.mjs';
 
 const TOKEN_ACCOUNT_MIN_SIZE = 165;
 const MAX_REPLAY_SLOTS = 256;
@@ -128,10 +129,10 @@ function sum(rows) {
   return positive(rows).reduce((total, row) => total + row.balance, 0n);
 }
 
-async function completeFinalizedBase(connection, mintKey) {
+async function completeFinalizedBase(connection, mintKey,retainEvidence=false) {
   const mintAddress = mintKey.toBase58();
   try {
-    const indexed=await readIndexedCommunityBase({connection,mintKey});
+    const indexed=await readIndexedCommunityBase({connection,mintKey,retainEvidence});
     if(indexed)return indexed;
   } catch(error) {
     if(/mint authority/.test(String(error?.message||error)))throw error;
@@ -154,7 +155,8 @@ async function completeFinalizedBase(connection, mintKey) {
         return tokenAccount(addresses[index], row.data, mintKey);
       });
       if (accounts.reduce((total, row) => total + row.balance, 0n) === supply) {
-        return { slot:batch.context.slot, accounts, supply };
+        return { slot:batch.context.slot, accounts, supply,...(retainEvidence?{bankEvidence:communityBankEvidence({source:'largest-atomic-bank',
+          slot:batch.context.slot,context:batch.context,mintKey,mintInfo,addresses,infos:batch.value.slice(1),sameBank:true})}:{}) };
       }
     }
   } catch (error) {
@@ -174,7 +176,8 @@ async function completeFinalizedBase(connection, mintKey) {
   if (accounts.reduce((total, row) => total + row.balance, 0n) !== supply) {
     throw new Error('Atomic token-account base does not cover the full fixed supply.');
   }
-  return { slot:listed.context.slot, accounts, supply };
+  return { slot:listed.context.slot, accounts, supply,...(retainEvidence?{bankEvidence:communityBankEvidence({source:'split-mint-program-list',
+    slot:listed.context.slot,context:listed.context,mintKey,mintInfo,addresses:listed.value.map(row=>row.pubkey),infos:listed.value.map(row=>row.account),sameBank:false})}:{}) };
 }
 
 // A current RPC account read is never presented as a historical snapshot. Every
@@ -241,7 +244,8 @@ export async function captureExactCommunitySnapshot({ connection, mint, launchMi
   const { pool } = verifyPumpMigrationTransaction({ transaction, launchMint:launchKey });
   const poolInfo = await connection.getAccountInfo(pool, 'finalized');
   if (!poolInfo?.owner.equals(PUMP_AMM_PROGRAM_ID)) throw new Error('Canonical migrated pool is unavailable or has the wrong owner.');
-  return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots, onEvidence });
+  const migrationStatus=onEvidence?await connection.getSignatureStatuses([migrationSignature],{searchTransactionHistory:true}):null;
+  return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots, onEvidence,migrationStatus });
 }
 
 export async function captureQaCommunitySnapshot({ connection, mint, launchMint, migrationSignature,
@@ -253,13 +257,13 @@ export async function captureQaCommunitySnapshot({ connection, mint, launchMint,
   return captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots });
 }
 
-async function captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots, onEvidence }) {
+async function captureAtFinalizedSlot({ connection, mintKey, mintAddress, transaction, maxReplaySlots, onEvidence,migrationStatus }) {
   const migrationSlot = transaction.slot;
   const finalizedTip = await connection.getSlot('finalized');
   if (finalizedTip < migrationSlot || finalizedTip - migrationSlot > Math.min(maxReplaySlots, MAX_REPLAY_SLOTS)) {
     throw new Error('Migration is outside the bounded historical replay window; an archival exact-slot snapshot is required.');
   }
-  const base = await completeFinalizedBase(connection, mintKey);
+  const base = await completeFinalizedBase(connection, mintKey,Boolean(onEvidence));
   const baseSlot = base.slot;
   if (baseSlot < migrationSlot || baseSlot - migrationSlot > Math.min(maxReplaySlots, MAX_REPLAY_SLOTS)) {
     throw new Error('Migration is outside the bounded historical replay window; an archival exact-slot snapshot is required.');
@@ -277,6 +281,7 @@ async function captureAtFinalizedSlot({ connection, mintKey, mintAddress, transa
     baseSlot, baseAccounts:base.accounts, supplyBaseUnits:String(base.supply), blockSlots:slots, blocks };
   const snapshot = reverseReplayCommunitySnapshot(input);
   // An auditor can retain the complete replay inputs without expanding the live ledger.
-  if (onEvidence) await onEvidence({ version:1, ...input, blocks:[...blocks], migrationTransaction:transaction });
+  if (onEvidence) await onEvidence({ version:1, ...input, blocks:[...blocks],bankEvidence:base.bankEvidence,migrationTransaction:transaction,migrationStatus,
+    migrationMessageBase64:typeof transaction.transaction?.message?.serialize==='function'?Buffer.from(transaction.transaction.message.serialize()).toString('base64'):null },snapshot);
   return snapshot;
 }

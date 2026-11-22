@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T19:35:02.576708+00:00",
+  "issueId": "FQA-MN-002",
+  "baseRevision": "fe51809d68b7c6a9a06f25ae69756956aeee26f1",
+  "scope": "Prospective capture through actual service/callback/store/archive with synthetic finalized RPC and bank state; independent exact-source QA pending; no financial/chain/live/old-bank acceptance",
+  "node": "v24.22.3",
+  "implementation": [
+    "Retain raw mint/token accounts and actual common batch context from indexed/largest readers only when evidence requested",
+    "Retain actual split fallback provenance without exact-bank qualification; preserve normalized legacy capture",
+    "Bind requested migration signature to all signed message signatures, canonical pool initializer and captured finalized status/cutoff",
+    "Await canonical content-addressed file fsync/atomic publication inside capture callback before producer returns; publish ledger pointer only after complete capture",
+    "Verify-on-read raw ownership, flags, initialized/frozen account state, disabled mint authority, complete supply, unique identities and full parent-linked replay; rebuild original manifest and frozen deadline",
+    "Read-only restart/offline replay never substitutes current balances or makes unopened/expired claims payable"
+  ],
+  "tests": {
+    "required": 53,
+    "passed": 53,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "newArchiveCases": 24,
+    "affectedExistingSnapshotOpeningPayment": 29,
+    "sameBodiesAgainstBase": {
+      "tests": 3,
+      "passed": 0,
+      "failed": 3,
+      "exitCode": 1,
+      "change": "Only fixture import prefixes redirected to frozen fe518 service/snapshot/indexed Git closure"
+    },
+    "command": "node scripts/security-tests.mjs --inventory config/community-snapshot-archive-tests.json",
+    "rawEvidence": "data/qa-evidence/mainnet-production-packet-20261122/community-snapshot-archive/"
+  },
+  "checks": {
+    "changedFileSyntax": 7,
+    "diffCheck": "passed",
+    "reverseReplayUnchanged": true,
+    "reverseReplaySpanSha256": "fc8702e037acb6d3731cae365d61c76a7fb48b1fd2d2c0406c633a30f0f3d9dd",
+    "merkleProducerUnchanged": true,
+    "contractRuntimeUnchangedFrom": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "allJavascriptSyntax": 1164,
+    "sizeMaintainedFiles": 1427,
+    "contractSourcePathsCompared": 31
+  },
+  "declaredLimits": {
+    "maxReplaySlots": 256,
+    "defaultArtifactBytes": 33554432,
+    "maxConfiguredArtifactBytes": 134217728,
+    "atomicIndexedTokenAccounts": 99,
+    "maxCanonicalNesting": 40,
+    "archiveModeAddsSignatureStatusRequests": 1,
+    "storage": "Append-only per configured directory; capacity/retention/backup must be provisioned for production"
+  },
+  "localMeasurement": {
+    "scope": "synthetic-two-account-bank-not-live-or-scale-SLA",
+    "artifactBytes": 5864,
+    "rawAccounts": 2,
+    "replayBlocks": 2,
+    "prepareElapsedMs": 43.13840000000005,
+    "rssBefore": 111181824,
+    "rssAfter": 119070720,
+    "maxRssKiB": 116288,
+    "publication": {
+      "fileFsync": true,
+      "directoryFsync": false
+    },
+    "openingSignature": null
+  },
+  "trustAndLimitations": [
+    "Finalized account bank, status, loaded addresses and replay metadata rely on the selected trusted finalized RPC; signatures/content hash do not prove consensus bank finality",
+    "Expected ProgramData context is a declared reviewed pin, not an observed new deployment",
+    "Windows file fsync/process restart checked; directory fsync unavailable on this platform; Linux power-loss/backup restore not established",
+    "32MiB default storage is bounded; realistic large-cohort history size/performance not established",
+    "No missing Nov19 bank reconstructed; original history/live current-program 28-leaf acceptance remains open",
+    "Strict mode rejects aggregate-only existing records; configure fresh isolated ledger/archive namespace for release preparation",
+    "No Mainnet admission, holder cap/rate/signing policy, contract ELF, financial policy or live service configuration changed; no chain transaction or spending"
+  ],
+  "reusedUnchangedAcceptance": {
+    "payoutCorrections": "b785e5a5cc31479a907b253cb2ab4cd36eaa6b0b local70/70; native12/cache3",
+    "expiryScheduler": "1e516416f8fb02ba7840c078e48d0f29721d91ea local43/43",
+    "contractElf": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "loaderPrefixMessages": 1236
+  },
+  "gitLfSourceSha256": {
+    "server/community-bank-evidence.mjs": "fdcaf85af378c0b5f47eae2741e30d15f3a389d44ad2a2478843604084f79fb0",
+    "server/community-indexed-base.mjs": "23217e38299f349bc0d7e1c0fad0002b978e0a5bac5c5a921fc939c2dede117c",
+    "server/community-snapshot.mjs": "8ef2d3fada32bbeedad31bbb84e96d48565d3b7cf2144e49c7c1b18fbb1df508",
+    "server/community-snapshot-archive.mjs": "710e65cc6214f1a4966d0e4b5c1aacef2a86e426bf0b94b326dc4cd61fcd52af",
+    "server/community-claim-service.mjs": "2d13336716e71906c9ea87ff1c8829c32057ffe9158c31b96f81412a41b76f80",
+    "tests/readiness/community-archive-fixture.mjs": "36310d6329573c8c3b72ce0569768e5f49106b8326d6d3cf4a34584a09f54914",
+    "tests/readiness/community-archive.test.mjs": "3ba75dc3652d482da21c36d01d08f1c54c7c549ea968bab42d1830febc32b47b",
+    "config/community-snapshot-archive-tests.json": "335d9195a2c57d67d5d6f07b4ef33ffeb5ed8d50d66b669875ff4710b37ed9ae",
+    "docs/community-snapshot-archive.md": "1ac1276965179a1f3036c5b9daa113210ba3b843045b3e5113d717b7bfada6bd",
+    "docs/mainnet-production-packet-2026-11-22.md": "6eaa7c578e9aa1952f9aa4a0ffd96ae385b550b94cf525da4df1f031f62016e0"
+  },
+  "nextUsefulAction": "Independent exact-source capture/restart/replay verification; continue authenticated original-bank dependency, realistic holder paging, operational custody and complete costed release packet without activating runtime."
+}

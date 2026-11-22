@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "scope": "MN002 prospective same-bank archive capture, durable publication and offline replay with synthetic finalized RPC; not consensus bank proof or live financial acceptance",
+  "files": [
+    {
+      "path": "tests/community-opening-recovery.test.mjs",
+      "requiredTests": [
+        "recovers a finalized opening saved before the 300-second deadline after worker restart",
+        "retires an expired unlanded opening without creating another attempt",
+        "keeps an uncertain opening untouched after the deadline while the blockhash remains valid",
+        "keeps a journal pending when a saved opening has status but lacks its receipt",
+        "a recovered opening lets the restarted worker visit all 28 leaves without paying after expiry",
+        "wrong genesis rejects opening reconciliation without changing state or broadcasting",
+        "changed immutable root rejects opening reconciliation without changing state or broadcasting",
+        "rejected opening proof cannot finalize a journal or broadcast",
+        "expired opening with an empty journal cannot prepare or broadcast"
+      ]
+    },
+    {
+      "path": "tests/community-payment-recovery.test.mjs",
+      "requiredTests": [
+        "a paid recipient reconciles its saved attempt with exact receipt and balances",
+        "finalized signature status alone leaves a paid recipient attempt pending",
+        "recipient receipt with an incorrect token delta cannot reconcile",
+        "a legacy status-only finalized row receives transaction proof on restart",
+        "an expired unpaid leaf retires a proven unlanded attempt without sending",
+        "an expired unpaid leaf classifies a failed finalized attempt without sending",
+        "an expired unpaid leaf preserves an uncertain attempt without rebroadcast",
+        "a paid leaf without a journal remains already paid without transaction lookup",
+        "a stale claimable result cannot start a new attempt once the manifest expires",
+        "expiry while quoting prevents a fresh attempt from reaching the signer",
+        "expiry during blockhash verification prevents rebroadcasting saved bytes"
+      ]
+    },
+    {
+      "path": "tests/readiness/community-archive.test.mjs",
+      "requiredTests": [
+        "prepareFresh durably publishes raw atomic bank evidence then replays after restart without RPC",
+        "split-read program fallback preserves legacy capture but cannot qualify an exact-bank archive",
+        "indexed base retains mint and token bytes from the same atomic context",
+        "damaged file hash cannot become a prepared record after restart",
+        "valid-content hashes do not authenticate changed network signature raw owner or missing history",
+        "archive publication rejection prevents prepared ledger state",
+        "existing aggregate-only record is not silently backfilled from current balances",
+        "archive save is idempotent and expired claim settings survive offline replay",
+        "indexed capture qualifies through prepareFresh durable publication and offline restart",
+        "archival replay does not make an unopened drop claimable",
+        "offline archive replay preserves an expired claim deadline without reopening",
+        "requested migration identity mismatch cannot publish through prepareFresh",
+        "a valid file hash still rejects mismatched retained transaction ID during offline restart",
+        "raw bank flags authority layout supply and duplicate identities are checked on ingestion",
+        "filesystem publication failure does not persist a prepared archive reference",
+        "pointer context corruption and missing configured verifier fail closed after restart",
+        "a capture that omits raw evidence cannot publish an archive reference",
+        "saved archive binds rebuilt allocations root amount and original deadline",
+        "explicit archive byte budget fails before any ledger publication",
+        "configured storage path uses the actual service archive factory without enabling a new worker",
+        "signed v0 migration with loaded addresses survives canonical serialization and offline replay",
+        "captured migration status must be finalized successful and match the exact transaction slot",
+        "capture callback flushes evidence before a later preparation interruption",
+        "changed returned snapshot cannot overwrite the already captured bank intent"
+      ]
+    },
+    {
+      "path": "tests/community-snapshot.test.mjs",
+      "requiredTests": [
+        "reconstructs migration-slot holdings with a finalized base 0 slots later",
+        "reconstructs migration-slot holdings with a finalized base 255 slots later",
+        "reconstructs migration-slot holdings with a finalized base 256 slots later",
+        "requires archival evidence when the finalized tip is 257 slots past migration",
+        "requires archival evidence when the holder base advances past the 256-slot window",
+        "rejects a finalized block list missing interior history",
+        "rejects a finalized block list missing base history",
+        "rejects a finalized block list missing all history",
+        "rejects an unavailable block advertised in the finalized block list"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import {requireSolanaCluster,assertRpcNetwork} from '../solana-network.js';
+import {requireSolanaCluster,assertRpcNetwork,SOLANA_GENESIS} from '../solana-network.js';
 import {deriveAgencyPolicyV3,agencyDiscriminator} from '../agency-mint-router-v3.js';
 import {decodeAgencyRules} from '../agency-rules-v3.js';
 import { createHash } from 'node:crypto';
@@ -9,6 +9,8 @@ import { readProgramDataEvidence, rewardAddresses } from './automatic-reward-cha
 import { buildCommunityClaimInstruction, buildCommunityInitializeInstruction, buildCommunitySnapshotApprovalInstruction, communityAddresses, supportsProgramRecipients } from './community-claim-chain.mjs';
 import { readCommunityReserveStatus } from './community-reserve-status.mjs';
 import { captureExactCommunitySnapshot, captureQaCommunitySnapshot } from './community-snapshot.mjs';
+import {createCommunitySnapshotArchive} from './community-snapshot-archive.mjs';
+import {isDeepStrictEqual} from 'node:util';
 
 const key = value => new PublicKey(value).toBase58();
 const recentReadProgramProofs = new Map();
@@ -26,14 +28,17 @@ export function createCommunityClaimService({ connection, store, programId, auth
   cluster = 'devnet', expectedCommunityProgramDataSha256, accountSetup = 'program',
   captureSnapshot = captureExactCommunitySnapshot, captureQaSnapshot = captureQaCommunitySnapshot,
   qaCutoffMint = '', qaCutoffAuthority = '', reserveReader = readCommunityReserveStatus,
-  programEvidence = readProgramDataEvidence }) {
+  programEvidence = readProgramDataEvidence,
+  snapshotArchive=process.env.FUNDED_COMMUNITY_SNAPSHOT_ARCHIVE_DIR?createCommunitySnapshotArchive({directory:process.env.FUNDED_COMMUNITY_SNAPSHOT_ARCHIVE_DIR}):null }) {
   requireSolanaCluster(cluster);
   if(cluster!=='devnet'&&(qaCutoffMint||qaCutoffAuthority)) throw new Error('QA snapshot settings are forbidden outside Devnet.');
   if (!store?.transaction || !store?.read) throw new Error('An atomic persistent reward store is required.');
+  if(snapshotArchive&&(!/^[a-f0-9]{64}$/.test(snapshotArchive.identity)||typeof snapshotArchive.save!=='function'||typeof snapshotArchive.read!=='function'))
+    throw new Error('An explicit durable snapshot archive adapter is required.');
   const program = new PublicKey(programId), issuer = new PublicKey(authority), eligible = new PublicKey(eligibilityMint);
 
   async function assertNetwork() {
-    await assertRpcNetwork(connection,cluster);
+    return assertRpcNetwork(connection,cluster);
   }
 
   async function assertReviewedProgram(allowRecentRead = false) {
@@ -65,19 +70,43 @@ export function createCommunityClaimService({ connection, store, programId, auth
       expectedEligibilityMint:new PublicKey(row.eligibilityMint), dropOpeningSignature:openingSignature });
   }
 
+  const archiveContext=row=>({cluster,genesisHash:row.genesisHash||SOLANA_GENESIS[cluster],commitment:'finalized',programId:row.programId,
+    authority:row.authority,launchMint:row.mint,eligibilityMint:row.eligibilityMint,migrationSignature:row.migrationSignature,
+    creator:row.creator,fundingSignature:row.fundingSignature,snapshotBasis:row.snapshotBasis,automaticDeliveryVersion:row.automaticDeliveryVersion,
+    expectedProgramDataSha256:row.snapshotEvidence?.expectedProgramDataSha256||expectedCommunityProgramDataSha256,
+    reservedBaseUnits:row.reservedBaseUnits,manifestRoot:row.manifest?.root,snapshotHash:row.manifest?.snapshotHash,
+    claimWindowSeconds:row.manifest?.claimWindowSeconds,expiresAt:row.manifest?.expiresAt});
+  async function verifyArchive(record){
+    if(!record)return record;
+    if(record.snapshotEvidence){
+      if(!snapshotArchive)throw new Error('Saved snapshot requires its archive verifier; no current-balance fallback.');
+      if(record.snapshotBasis!=='pump-migration'||record.automaticDeliveryVersion!==2)throw new Error('Saved archive migration mode differs.');
+      await snapshotArchive.read(record.snapshotEvidence,{context:archiveContext(record),snapshot:record.snapshot});
+      const {vault}=rewardAddresses({programId:record.programId,authority:record.authority,mint:record.mint});
+      const {drop}=communityAddresses({programId:record.programId,authority:record.authority,mint:record.mint});
+      const rebuilt=buildCommunityManifest({drop:String(drop),launchMint:record.mint,eligibilityMint:record.eligibilityMint,
+        migrationSignature:record.migrationSignature,migrationSlot:record.snapshot.slot,migrationBlockTime:record.snapshot.blockTime,
+        snapshot:record.snapshot,amountBaseUnits:record.reservedBaseUnits,excludedWallets:[record.authority,String(vault),String(drop)]});
+      const {claimWindowSeconds,expiresAt,...published}=record.manifest;
+      if(!isDeepStrictEqual(published,rebuilt)||!Number.isSafeInteger(claimWindowSeconds)||claimWindowSeconds<=0
+        ||expiresAt!==record.snapshot.blockTime+claimWindowSeconds)throw new Error('Community manifest differs from its raw archive or frozen deadline.');
+    }else if(snapshotArchive)throw new Error('Existing snapshot lacks its original raw bank archive; it cannot be recaptured from current balances.');
+    return record;
+  }
   async function prepared(mint) {
     const records = (await store.read()).communityDrops || {};
     const record=records[key(mint)] || null;
     if(record&&(record.cluster||'devnet')!==cluster)throw new Error('Community manifest network differs from the selected network.');
-    return record;
+    return verifyArchive(record);
   }
 
   async function prepareFresh({ mint, creator, reservedTokens, fundingSignature, migrationSignature,
     snapshotBasis = 'pump-migration' }) {
-    await assertNetwork();
+    const genesisHash=await assertNetwork();
     const launchMint = new PublicKey(mint), creatorAddress = key(creator);
     if (!['pump-migration', 'devnet-qa-cutoff'].includes(snapshotBasis))
       throw new Error('Unsupported community snapshot basis.');
+    if(snapshotArchive&&snapshotBasis!=='pump-migration')throw new Error('A QA cutoff cannot qualify as an archived genuine migration.');
     if (snapshotBasis === 'devnet-qa-cutoff') {
       if(cluster!=='devnet')throw new Error('QA snapshots are forbidden outside Devnet.');
       const allowed = String(qaCutoffMint || '').split(',').map(value => value.trim()).filter(Boolean);
@@ -97,30 +126,45 @@ export function createCommunityClaimService({ connection, store, programId, auth
     const reserve = await readReserve(base);
     if (reserve.status !== 'funded' || reserve.verified !== true)
       throw new Error('Launch reserve lacks a verified finalized funding receipt and full vault balance.');
-    const snapshot = snapshotBasis === 'devnet-qa-cutoff'
-      ? await captureQaSnapshot({ connection, mint:eligible, launchMint, migrationSignature,
-        qaAuthority:qaCutoffAuthority })
-      : await captureSnapshot({ connection, mint:eligible, launchMint, migrationSignature });
     const { drop } = communityAddresses({ programId:program, authority:issuer, mint:launchMint });
     const { vault } = rewardAddresses({ programId:program, authority:issuer, mint:launchMint });
-    const policyAccount=await connection.getAccountInfo(deriveAgencyPolicyV3(program,launchMint).address,'finalized');
-    let claimWindowSeconds=90*86400;
-    if(policyAccount){
+    const readWindow=async()=>{
+      const policyAccount=await connection.getAccountInfo(deriveAgencyPolicyV3(program,launchMint).address,'finalized');
+      if(!policyAccount)return 90*86400;
       const bytes=Buffer.from(policyAccount.data||[]);
       if(!policyAccount.owner.equals(program)||policyAccount.executable||![383,423].includes(bytes.length)
         ||!bytes.subarray(0,8).equals(agencyDiscriminator('MintAgencyPolicyV3'))
         ||!bytes.subarray(8,40).equals(launchMint.toBuffer()))throw new Error('Community launch settings are not verified.');
-      claimWindowSeconds=decodeAgencyRules(bytes,383).communityWindowSeconds;
+      return decodeAgencyRules(bytes,383).communityWindowSeconds;
+    };
+    // In archive mode validate settings first, then flush the complete evidence
+    // inside the capture callback, before another RPC or preparation step can fail.
+    let claimWindowSeconds=snapshotArchive?await readWindow():null,captureInvoked=false,capturedRecord=null,archivePointer=null;
+    const makeRecord=snapshot=>{
+      const manifest=buildCommunityManifest({drop:String(drop),launchMint:String(launchMint),eligibilityMint:String(eligible),migrationSignature,
+        migrationSlot:snapshot.slot,migrationBlockTime:snapshot.blockTime,snapshot,amountBaseUnits:String(amount),excludedWallets:[String(issuer),String(vault),String(drop)]});
+      manifest.claimWindowSeconds=claimWindowSeconds;manifest.expiresAt=snapshot.blockTime+claimWindowSeconds;
+      return {...base,cluster,snapshotBasis,...(snapshotBasis==='pump-migration'?{automaticDeliveryVersion:2}:{}),eligibilityMint:String(eligible),
+        programId:String(program),authority:String(issuer),tokenProgram:mintInfo.owner.toBase58(),reservedBaseUnits:String(amount),snapshot,manifest,
+        openingSignature:null,preparedAt:new Date().toISOString()};
+    };
+    const snapshot=snapshotBasis==='devnet-qa-cutoff'
+      ?await captureQaSnapshot({connection,mint:eligible,launchMint,migrationSignature,qaAuthority:qaCutoffAuthority})
+      :await captureSnapshot({connection,mint:eligible,launchMint,migrationSignature,...(snapshotArchive?{onEvidence:async(evidence,capturedSnapshot)=>{
+        if(captureInvoked)throw new Error('Duplicate capture evidence.');captureInvoked=true;
+        if(!evidence||!capturedSnapshot)throw new Error('Complete raw capture evidence was not retained.');
+        capturedRecord=makeRecord(structuredClone(capturedSnapshot));capturedRecord.genesisHash=genesisHash;
+        archivePointer=await snapshotArchive.save({context:archiveContext(capturedRecord),evidence,snapshot:capturedRecord.snapshot});
+      }}:{})});
+    if(!snapshotArchive)claimWindowSeconds=await readWindow();
+    const record=snapshotArchive?capturedRecord:makeRecord(snapshot);
+    if(snapshotArchive){
+      if(!record||!archivePointer)throw new Error('Complete raw capture evidence was not retained.');
+      if(!isDeepStrictEqual(record.snapshot,snapshot))throw new Error('Returned snapshot differs from durably captured evidence.');
+      record.snapshotEvidence=archivePointer;
     }
-    const manifest = buildCommunityManifest({ drop:drop.toBase58(), launchMint:launchMint.toBase58(),
-      eligibilityMint:eligible.toBase58(), migrationSignature, migrationSlot:snapshot.slot,
-      migrationBlockTime:snapshot.blockTime, snapshot, amountBaseUnits:String(amount),
-      excludedWallets:[issuer.toBase58(), vault.toBase58(), drop.toBase58()] });
-    manifest.claimWindowSeconds=claimWindowSeconds;manifest.expiresAt=snapshot.blockTime+claimWindowSeconds;
-    const record = { ...base, cluster, snapshotBasis, ...(snapshotBasis==='pump-migration'?{automaticDeliveryVersion:2}:{}), eligibilityMint:eligible.toBase58(), programId:program.toBase58(), authority:issuer.toBase58(),
-      tokenProgram:mintInfo.owner.toBase58(), reservedBaseUnits:String(amount), snapshot,
-      manifest, openingSignature:null, preparedAt:new Date().toISOString() };
-    return store.transaction(state => {
+    const manifest=record.manifest;
+    const saved=await store.transaction(state => {
       state.communityDrops ||= {};
       const prior = state.communityDrops[record.mint];
       if (prior) {
@@ -136,6 +180,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
       state.communityDrops[record.mint] = record;
       return structuredClone(record);
     });
+    return verifyArchive(saved);
   }
 
   async function prepare(input) {
@@ -165,7 +210,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
     // intent for this persistent store and verified program configuration.
     let jobs=pendingPreparations.get(store);if(!jobs){jobs=new Map();pendingPreparations.set(store,jobs);}
     const scope=JSON.stringify([program.toBase58(),issuer.toBase58(),eligible.toBase58(),expectedCommunityProgramDataSha256,
-      qaCutoffMint,qaCutoffAuthority,args.mint]),identity=JSON.stringify(args),existing=jobs.get(scope);
+      qaCutoffMint,qaCutoffAuthority,args.mint,snapshotArchive?.identity||'no-archive']),identity=JSON.stringify(args),existing=jobs.get(scope);
     if(existing){
       if(existing.identity!==identity)throw new Error('An immutable community preparation with different inputs is already in progress.');
       return structuredClone(await existing.promise);
