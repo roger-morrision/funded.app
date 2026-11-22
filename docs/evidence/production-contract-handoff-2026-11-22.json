@@ -2197,5 +2197,39 @@
       "scope": "Independently accepted local compiled committed Token2022 exact-delivery/atomic rejection slice.",
       "fees": "Tracked reward rollback only; failed-transaction payer fees not claimed refunded."
     }
+  },
+  "artifactRoleIndex": {
+    "productionCandidate": {
+      "record": "productionArtifact",
+      "purpose": "Dedicated ExUNA Mainnet candidate, source971399ff and exact3f8ELF. Final release acceptance remains incomplete; not deployed."
+    },
+    "configuredDevnetRetainedBuild": {
+      "record": "frozenBuild.artifacts[0]",
+      "sourceRecord": "testedSource / routerSourceTree",
+      "purpose": "Retained9E7configured Devnet build7b4b, historical deployed-account evidence and reproducible source/build provenance. Not the dedicated production candidate."
+    },
+    "publicMainnetFeatureFixture": {
+      "record": "frozenBuild.artifacts[1]",
+      "sourceRecord": "testedSource / routerSourceTree",
+      "purpose": "Historical3qbMainnet-feature public fixture6bfa only; never substitute for ExUNAproduction bytes."
+    },
+    "productionPredecessors": {
+      "records": [
+        "previousPairCandidate",
+        "previousExpiryCandidate",
+        "previousIndependentCompiledVerification",
+        "hostAcceptance",
+        "pairedDelivery"
+      ],
+      "purpose": "Historical source/ELF-scoped acceptance; reuse only by explicit unchanged-source or independent current-artifact evidence."
+    },
+    "postDeploymentIdentity": {
+      "record": "productionArtifact.deployedProgramDataSha256",
+      "purpose": "Null until actual finalized deployment and full ProgramData/loader/authority verification. Predeployment ELF digest is not full ProgramData digest."
+    },
+    "fundingAndSigners": {
+      "record": "productionInit / productionQuote",
+      "purpose": "Unsigned draft intent and dated quote only; final operator/attestor/guardian and actual transaction inventory remain unresolved. No funding request or spending authorization."
+    }
   }
 }
