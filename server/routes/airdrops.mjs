@@ -31,13 +31,7 @@ export function createAirdropsRoutes({
       }
       const scope = mint || '*', epoch = reserveEpoch;
       if (mint && mintSnapshots.get(mint)?.expiresAt > Date.now()) return json(res, 200, mintSnapshots.get(mint).value);
-      if (mint && reserveReads.has('*')) {
-        try {
-          const snapshot = await reserveReads.get('*');
-          const row = snapshot.reserves.find(item => item.mint === mint);
-          if (row && epoch === reserveEpoch) return json(res, 200, {cluster:solanaCluster, checkedAt:snapshot.checkedAt, reserves:[row]});
-        } catch { /* A failed directory read may still permit a selected-mint retry. */ }
-      }
+      // A selected mint can finish while unrelated directory rows are still being verified.
       if (!reserveReads.has(scope)) {
         const work = (async () => {
         const connection = makeReserveConnection(solanaRpcUrl);
