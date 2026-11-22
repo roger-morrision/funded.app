@@ -4133,5 +4133,78 @@
         "Store3746/startup6196 and Contract9713/ExUNA3f8/1110424bytes/1236-loader-prefix unchanged; reuse prior accepted slices with no broad healthy rebuild/requote/UI replay."
       ]
     }
+  },
+  "conversionServicesReview": {
+    "appReviewHead": "c2106c4e834ac0230d6ba3a571961987ebf82fe1",
+    "runtimeRevision": "da44041d39916e05992a9ec486afe0eb75c11c3c",
+    "reportSha256": "fbf9e1fa89af87dd8a1e4db5f79974cc2ccf395880eeb81422cbb49d34a797e2",
+    "verifiedArtifacts": {
+      "gitPins": 37,
+      "rawArtifacts": 21,
+      "rawGitArchiveMembers": 1244,
+      "followUpOnlyReportChanged": true
+    },
+    "localTests": {
+      "node": "26.13.1",
+      "command": "node scripts/check-token-conversion-service.mjs",
+      "requiredPassed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "rawPath": "C:\\Data\\DevApps\\funded-mainnet-readiness\\tmp\\contract-conversion-services-c2106c4e.json",
+      "rawSha256": "b5863811563b4ab3425b5d812010dd555ef4d38e6336673b29debc4fabc916ea"
+    },
+    "sourcePins": {
+      "server/token-conversion-journal.mjs": "b9a743392cb7c03d8e0eb0909039ec5ecc9692d64cc4e676cb1a5198b294eb3c",
+      "server/token-conversion-http.mjs": "2cdc9d3b194e9c007dffd87848f2a0b3eda4544c566a4adf07e0c5bffa1940b4",
+      "server/token-conversion-signing-service.mjs": "146e0949e5d095f00f09c9b6f3024386f8546f20d95e7bdc607b8af5a057a5b4",
+      "server/token-conversion-remote-signers.mjs": "94dbd14047c1e2d599cd1aa7dd0ed1ff1e48e38785f115794f2b80e02a0e112c",
+      "server/token-conversion-controller.mjs": "ffc1bc52e418a8be51b5175c3840038c435a12fd4af39ceba834304a5fa6b0f8",
+      "tests/readiness/token-conversion-service-fixture.mjs": "3e80f5939ada4763d8c25c0b9ee5cdc221d3c011f89383ddfb4312af6d8c5d24",
+      "tests/readiness/token-conversion-service.test.mjs": "d69e7b98de4f54c6cd7357d1ded3cf1eb5e787f5a784c628813edb2a0e50127d",
+      "config/token-conversion-service-tests.json": "9e72a179dfc39478945299ffbc7c2667f0772796fba26752698b41cc0fa10e86",
+      "scripts/check-token-conversion-service.mjs": "332cd376140c90c6c3dac64375c35ff7bb9598f6d7e4682192931567f329ee5e"
+    },
+    "unchangedContextPins": {
+      "server/token-conversion-transport.mjs": "a90946344dc92c02e329d427f192011fbd5ee950098af05b1a74137966567eb2",
+      "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+      "server/token-conversion-reservation.mjs": "df60b6459fb5158c469e4738fa7b0bb269809dd6c48b10c1d76bb3f2cecffb6c",
+      "server/token-conversion-sell-proof.mjs": "a5f4eef822e6c03f55f3d25d4d0e1d8410ee53a5e3889b1977a53d8ec6094961",
+      "server/token-conversion-sell-quote.mjs": "2a5bb7769c66c03ff00a674a1ac6358b3b254dfea52a43c8e95e476648836f62",
+      "server/token-conversion-sell-simulation.mjs": "de68e51784069006e63faa6c932f6b8c7c3011c88943c460b54efddb247bc9bb",
+      "server/token-conversion-sell.mjs": "7483acdf5d611b8bb3633c040a4aa47ab57ebb1991a3367c04c3892516b4535d",
+      "server/token-conversion-intent.mjs": "79e16e8c6320498544a6567d1171ad3e6d7597717bec1e5b53e5685290ac44c9",
+      "server/finalized-program-context.mjs": "bfb825f2f1b89fdafb5e3561e3da5128ac7bac7d9315138a7cfd8d48d72cac3b",
+      "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+      "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+      "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+      "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+      "config/mainnet-deployment-plan.json": "162d58ea91206fc3777a369b1e90638227c9fca2170783d9f3791e81b4ea915d",
+      "server/index.mjs": "2d117d0c162b56fc71f56ea76167e28c0424dab23b4ff74503478fd317ec6a70",
+      "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+      "server/background-maintenance.mjs": "d65a123b78790a742ac98bb4990ff2a7fe69a9be7b2dca92d57338550bc55523",
+      "server/signer-service.mjs": "924eae51d96a98bdf96949ab7287fb31c96eb19e6ebebeff66971a15a3257d80",
+      "server/signer-policy.mjs": "1b3dfa6d63495c5381b2676e3e1f2840a1492fe5cbff594a636dcb509b99e718",
+      "server/remote-signer.mjs": "c608c741dfaeb7ad26be9468eb9c719c4865ec42b274e037f57da7f8d0035c65",
+      "server/buyback-price-signer.mjs": "85be4dfbf114780a046d997a44565778ea77daa32ab7a1e174ef676faf82a2a8",
+      "server/price-signer-service.mjs": "933eaa068b2441782f57a90d249c7e279f4fa493eb4def22ccbb8a25f5084b6a",
+      "server/price-signer-bootstrap.mjs": "e78479b56171015c07ed0f4045ecb3085116acad7f0216b1081abc6cd848ba51",
+      "scripts/run-price-signer.mjs": "c78e2a9127ef1ee01f53babf2bfbe55951524aabbccf7592ee7f7058f5a6cea8",
+      "config/token-conversion-transport-tests.json": "ead38b0be20f7ea48616081dd096517887861648eb41428c59db60ab9d3fef08",
+      "config/token-conversion-integration-tests.json": "88ad41d00fff51ebc04c7ad8097358a08cb8a7b7a1d8ac418b6d48c4e2706766",
+      "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+      "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc"
+    },
+    "review": [
+      "Actual private controller composes accepted transport with separate HTTP role adapters. Exact canonical schema/body/response bounds, bearer digest comparison and Ed25519 signature/message/role checks reviewed; redirect:error retained.",
+      "Each role service invokes actual full reviewer, quote, simulation, reserve and context checks against its separately supplied connection before custody callback. No controller supplied reviewed/paid boolean admits signing.",
+      "One-time locked signing claim precedes callback. Exact role signatures are cryptographically checked and durably cached before response; duplicates require a fresh full review before returning cache. Unknown signing state cannot silently create another signature.",
+      "Controller finalized proof is durable before independent backend reconciliation; Promise.allSettled marks pending backend reconciliation without removing local proof. Saved-hash retry only reconciles.",
+      "Graph built at runtime da44041d shows controller only imported by test fixture; c210 follow-up changes report only. No operational key/env loader, worker/public API registration or launch activation is present.",
+      "HTTPS/internal hostname origin checks are configuration validation; production network isolation/auth/custody are still deployment obligations. Separate test keys/servers/RPC handles do not establish administrative independence."
+    ],
+    "status": "Contract source and local Node26 HTTP targeted review pass; independent E2E exact Node24 acceptance pending.",
+    "scope": "Real loopback HTTP and actual reviewer/journal/crypto/filesystem with synthetic RAM custody, bank, RPC/finality/send; no operational production activation or live financial acceptance.",
+    "unchanged": "Contract971399ff/3f8 ELF1110424/1236Loaderprefix and existing public API/worker launchers/policy/package/store unchanged; no rebuild/requote."
   }
 }
