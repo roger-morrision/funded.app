@@ -3421,6 +3421,21 @@
       "Normal full-service/worker workload and operational persistent-volume restore remain open.",
       "Raw-Git regression archive provenance distinct from prior CRLF export; do not conflate source digests.",
       "Originalbank/live28/scale/roles/runtime/finalwallet funding and MainnetNO-GO remain open."
-    ]
+    ],
+    "regressionArchivesVerified": {
+      "baseline": {
+        "file": "service-startup/entrypoint-baseline.tar",
+        "sha256": "e60ecbb1afef5615a8156ebaec3f260dbdbaac270cd13c1cd0b4913c1f342155",
+        "files": 1230,
+        "entrypointGitRevision": "37468637884317dc5b8ead46da68cb4857d0cdd3"
+      },
+      "candidate": {
+        "file": "service-startup/entrypoint-candidate.tar",
+        "sha256": "12bdc991c375c482b7a631c2318c4329e78c40a40052ce9fb5861dcaeff5080c",
+        "files": 1230,
+        "entrypointGitRevision": "61963da537cf94da4e92712970d195edd93a119c"
+      },
+      "checks": "Both entire tar hashes and file counts verified; server/index matches corresponding raw Git, same two new fixture/test bodies match candidate raw Git in both archives. Not conflated with canonical-baseline or earlier CRLF exports."
+    }
   }
 }
