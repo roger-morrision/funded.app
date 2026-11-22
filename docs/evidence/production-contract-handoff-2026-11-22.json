@@ -1686,5 +1686,31 @@
     "funding": "Operator reserve remains single3000000000lamports plus known1315720router rent and additional unpriced operator costs. Attestor zero known direct debit conditional on actual readonly cosigning messages.",
     "engineeringResponsibilities": "Production signer/worker admission, infrastructure independence, custody backup/restore, transaction inventory, independent live/archive/scale acceptance remain team-owned.",
     "approvalBoundary": "Provisioning roles, recipient decisions and itemized guard/price/funding/canary proposal require actual owner decisions. Existing admin/payer/program choices remain fixed. This reference introduces no funding instruction or policy approval."
+  },
+  "archiveBoundaryCompositionReview": {
+    "appSource": "fe51809d68b7c6a9a06f25ae69756956aeee26f1",
+    "scope": "Exact composition of previously accepted source; raw durable archive implementation remains App-owned.",
+    "sourceSha256": "73988b04cf976de7262d1e79b141ea93b696253ca3f423edfd02a8605f3ba6c1",
+    "testSha256": "022592b785ca7379e57200fb71fe4831e0efbcebafc41b37251648060710aeff",
+    "contractOwnerCheck": "Both Git files equal accepted45e0cc9a; no healthy source tests repeated.",
+    "independentVerification": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-archive-boundary-fe51809d-20261123.json",
+      "sha256": "14bac31a898ca520da1536e452ebde2c5cfb9e6a0dfcec62fb205836d1fdb180",
+      "node": "v24.22.3",
+      "requiredPassed": 9,
+      "boundaries": "0/255/256 accepted,257tip/base and omitted/unavailable produced history refused."
+    },
+    "remainingRawCapture": {
+      "owner": "App Dev",
+      "callSite": "community-claim-service.prepareFresh omits onEvidence. Current callback exports normalized base/replay data.",
+      "rawPaths": "Indexed/largest paths have atomic raw mint/account reads. Preserve owners/flags/lamports/bytes/pubkeys/context at return. Fallback has distinct uncontextual mint read and contextual token-account read; no invented atomic mint slot.",
+      "identity": "Bind expected caller network/genesis,eligibility/launch mint,requested migration signature to actual returned signature/status/canonical initializer/cutoff. Current initializer verifier lacks requested signature membership check.",
+      "replay": "Complete raw produced-slot/block/transaction-token metadata and parent links. Canonical durable serialization retains Buffer/PublicKey/BigInt/Map identity. Offline restart must reconstruct same raw base,supply and root without current RPC/balances.",
+      "publication": "Versioned content-addressed atomic fsynced immutable bundle outside ledger. Verify hash/schema/expected identity/raw owner/flags/layout/fixed supply/unique account identities and replay before publishing or loading a reference. Failed/damaged publication must leave archival success unavailable.",
+      "trust": "A content hash authenticates stored bytes, not account-bank finality. Retain finalized-RPC provenance and explicit completeness assumptions.",
+      "preservation": "Keep existing capture semantics and original256window/actualexpiry. Non-atomic fallback needs honest distinct provenance and reviewed completeness or archival qualification unavailable. No reopening."
+    },
+    "originalHistoricalArchive": "Retained Nov19 bank/replay data still missing; this composition does not establish live9E7full28delivery.",
+    "contractChanges": false
   }
 }
