@@ -2450,7 +2450,7 @@
       "Fixture staging and mocked financial/status/genesis methods are separate from actual network.32calls each are mock interface counts.",
       "Graph indexed prior94c and new helper was unavailable; actual new fixture/measurement source inspected directly. All server runtime and23context pins unchanged94c, Contract paths identical971399ff; accepted3f8/Loaderquote reused."
     ],
-    "status": "Contract source-only prepared-input/storage review,5local cases and1001SOL/USDC run pass; independent exact-source acceptance pending.",
+    "status": "Independent E2E accepted exacta85a offline canonical prepared-input and Windows storage/recovery measurement slice; parent capacity/readiness remains open.",
     "scope": "Offline canonical signed prepared attempt input and real Windows store measurement only, trusted synthetic bank/RPC facts. No finalized payment proof, admission change, live financial or whole-app capacity acceptance.",
     "remaining": [
       "Verified-proof/mixed worker and expiry/capture payloads not measured.",
@@ -2558,6 +2558,62 @@
       "additionalSigningOrMockBroadcastsDuringRecovery": 0,
       "limits": "A Node old-space flag is not a 512MiB container/RSS/CPU limit. No full-app, finalized-proof, whole-worker, Linux durability, live throughput or admission claim.",
       "instrumentation": "Transaction elapsed includes candidate JSON byte-count overhead plus stat observers; mutator time is a subset inside the lock, not full lock hold. RSS includes fixture construction and all retained source bank/manifest objects."
+    },
+    "independentVerification": {
+      "file": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-signed-capacity-a85a64a2-20261123.json",
+      "sha256": "91940e651c8b1c369b198365b1720f821174f1db3e513dc8ea893443dfb4e447",
+      "node": "24.22.3",
+      "targetedPassed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "missingCurrentElfExit": 1,
+      "missingCurrentElfPassed": 0,
+      "gitSourceHashesMatched": 28,
+      "unchangedContextHashesMatched": 23,
+      "both33And1001Reproduced": true,
+      "ledgerBytes": 7194872,
+      "fresh": {
+        "reads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 7195000,
+        "ledgerReplacements": 1,
+        "ledgerWriteBytes": 7195000,
+        "mutatorInsideLockMs": 24.59360000000015,
+        "transactionElapsedMs": 98.15209999999934,
+        "instrumentationSerializeMs": 11.514900000001944,
+        "elapsedMs": 120.85040000000299,
+        "maxRssKiB": 318316
+      },
+      "recovery": {
+        "reads": 33,
+        "transactions": 33,
+        "serializedCandidateBytes": 237442549,
+        "ledgerReplacements": 2,
+        "ledgerWriteBytes": 14390357,
+        "mutatorInsideLockMs": 11.652399999991758,
+        "transactionElapsedMs": 1451.5862999999954,
+        "instrumentationSerializeMs": 391.3712999999698,
+        "elapsedMs": 2665.497199999998,
+        "interfaceCalls": 32,
+        "rpcMethods": {
+          "getGenesisHash": 32,
+          "getSignatureStatuses": 32,
+          "getTransaction": 32
+        },
+        "maxRssKiB": 377864
+      },
+      "memory": {
+        "maxRssKiB": 377864,
+        "rss": 306077696,
+        "heapTotal": 194768896,
+        "heapUsed": 74866032,
+        "external": 58648924,
+        "arrayBuffers": 26785823,
+        "v8HeapLimitBytes": 469762048
+      },
+      "rawArtifactsVerified": 9,
+      "scope": "accepted within offline prepared-input and real local filesystem/recovery measurement scope; parent Mainnet release remains NO-GO"
     }
   }
 }
