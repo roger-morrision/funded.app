@@ -1845,5 +1845,29 @@
         }
       }
     }
+  },
+  "holderPagingReview": {
+    "appSource": "0742d416925a98fca4cafbcce94eb91b6391c302",
+    "ownerReportGitSha256": "622e55b69304ad812c002f1d0b2f6ef18fe772ad50fa299596821e09f307b4bf",
+    "reviewNode": "v26.13.1",
+    "targetedPassed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "changedGitHashesMatched": 6,
+    "unchangedContextHashesMatched": 9,
+    "rawLog": "tmp/contract-holder-pages-0742.log",
+    "rawLogSha256": "b19bc38bfc9f494e8ca58a7e62aca41a6c054cd3464cad9fd8e5c6ba07989566",
+    "sourceAssessment": [
+      "Exact0742 graph confirms actual payRewardSchedule calls selector, then existing rewardPayoutGroups. Scheduler source remains unchanged.",
+      "Locked cursor validates original full manifest identity/proofs/u64 total and selects at most32 unpaid global leaves; cursor is work hint, not reservation or paid proof.",
+      "Original global indexes, amounts, root/proofs retained through restarted real store. Unknown early attempt preserves original marker and later page progresses.",
+      "Post-selection payout completion/error body is byte-identicalc096; chain/journal/recovery/expiry/Merkle/admission context files match pinned source. Prior70financial proof acceptance reused by identity without a redundant broad replay.",
+      "1001SOL/paired fixtures are injected plans with mock attributed chain results. Live admission remains1000; no1001financial receipts or capacity admission inferred.",
+      "Mainnet single recipient and Devnet4recipient transaction grouping preserved; partial schedule remains distributing until all original payments paid.",
+      "Contract runtime matches971399ff;3f8/1236Loaderprefix unchanged."
+    ],
+    "status": "Contract bounded selection/restart source review and9local targeted cases pass; independent exact-source acceptance pending.",
+    "scope": "Per-schedule fresh holder selection only with synthetic attributed submitLeaf results. Whole-worker enumeration/recovery, O(N) proof/ledger work, actual financial deadline throughput, realistic census/capture/scale remain open."
   }
 }
