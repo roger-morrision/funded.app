@@ -2141,13 +2141,26 @@
         "paymentReceipt": "Absent before and after; all tracked vault/reserve/cycle/mint/custody/recipient/payment account bytes restored"
       }
     ],
-    "scope": "Contract-owner local compiled LiteSVM acceptance against retained exact production ELF, synthetic token mints/accounts and ephemeral test keys. Actual SPL/Token2022 program transfers, real router CPI. Independent E2E replay pending. No live financial acceptance or new token-extension policy/authority/runtime admission.",
+    "scope": "Contract-owner and independent E2E local compiled LiteSVM exact-delivery/rejection acceptance, synthetic mint/accounts and ephemeral keys with actual SPL programs/router CPI. No live financial acceptance or new financial policy/authority/admission.",
     "unchanged": "Test-only change; existing runtime, ELF, Loader prefix and quote retained.",
     "limits": [
       "No live selected-mint reward payout or final chain receipts",
       "No fee epoch-change, transfer-hook or blanket Token2022 extension acceptance",
       "No production signer/custody role binding or financial spending"
     ],
-    "testGitSha256": "2380489c9bdbe69a23fa3eb499b8949ef4924c7170490e5a15a5433df68cfbe1"
+    "testGitSha256": "2380489c9bdbe69a23fa3eb499b8949ef4924c7170490e5a15a5433df68cfbe1",
+    "independentVerification": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-committed-token-64e411d5-20261123.json",
+      "sha256": "46947b47e719a3940f54e02772e6e09c72977cd16cea71d31c7a442f62ed0852",
+      "testRevision": "64e411d510f6e986e7b2af374dc1103926b63538",
+      "testGitSha256": "2380489c9bdbe69a23fa3eb499b8949ef4924c7170490e5a15a5433df68cfbe1",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "filteredOut": 8,
+      "artifactsVerified": true,
+      "scope": "Independently accepted local compiled committed Token2022 exact-delivery/atomic rejection slice.",
+      "fees": "Tracked reward rollback only; failed-transaction payer fees not claimed refunded."
+    }
   }
 }
