@@ -1354,5 +1354,16 @@
       "sha256": "0199518a70543254a3e8f3706b71cbc42f02e6c0237c9fdadb59d69fa4300101",
       "scope": "Clean 1940ec26 Devnet-feature rebuild matched 55a0 byte-for-byte. Identical successor test failed at authorized expiry on retained 7b4b and passed on 55a0; all three bitmap tests passed. Verified feature gate; no live deployment or admission."
     }
+  },
+  "historicalArchiveDependency": {
+    "issue": "FQA-MN-002",
+    "owner": "Independent E2E QA with App Dev",
+    "evidence": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/mn002-archive-dependency-20261122.json",
+    "sha256": "47eceda3d225b65f147defb0459b5e0e96f126aed6be10cd23d637caccdb0748",
+    "verified": "Three retained aggregate captures at 37, 50 and 75 slots after migration were within the original 256-slot limit. All 28 proofs/roots regenerate for each. Finalized canonical migration receipts and base block headers are available.",
+    "missing": "Authenticated complete per-token-account bank state at the migration slot, or complete original atomic base account bytes and mint/supply context plus all produced finalized replay blocks, token pre/post metadata and parent ancestry to that cutoff.",
+    "retainedLimit": "Aggregated wallet balances lack account identities and replay inputs. One closed original-router drop authenticates its saved root with 876464 raw claimed, while the other two drops are absent. All original windows expired.",
+    "scope": "Historical original 9H1 public-router records; excludes current 9E7 full-cohort live acceptance. Current balances and ordinary minContextSlot requests cannot authenticate the historical bank.",
+    "next": "App Dev owns existing raw capture/provider inventory and durable authenticated export/ingestion; E2E verifies supplied bank completeness, supply and parent-linked replay. Existing references are checked before any paid provider or new financial fixture proposal."
   }
 }
