@@ -10,7 +10,7 @@ import {mainnetReleaseVerified} from '../../server/mainnet-program.mjs';
 // Fabricated review metadata for validator unit tests only. This fixture is
 // never written to release configuration or used to enable network signing.
 const key=()=>String(Keypair.generate().publicKey);
-function release(){return {schemaVersion:1,cluster:'mainnet-beta',status:'reviewed',
+function release(){return {schemaVersion:1,cluster:'mainnet-beta',status:'reviewed',assetConfiguration:'onchain-v1',
   programId:key(),upgradeAuthority:key(),fundedMint:key(),fundedPool:key(),programDataSha256:'a'.repeat(64),
   sourceRevision:'b'.repeat(40),binary:{bytes:1000,sha256:'c'.repeat(64)},
   independentReview:{reviewer:'unit-test fixture',reference:'test-only',sourceRevision:'b'.repeat(40),binarySha256:'c'.repeat(64)},
@@ -23,11 +23,11 @@ test('release validation rejects stale reviews and nonproduction identities',()=
     r=>{r.cluster='devnet';},r=>{r.developerLockPeriodsSeconds.push(300);},r=>{r.programDataSha256=null;}];
   for(const mutate of mutations){const copy=structuredClone(valid);mutate(copy);assert.equal(reviewedMainnetManifest(copy),null);}
 });
-test('price review binds network, program, deployed bytes, authority and assets',()=>{
+test('price review binds network, deployed program and on-chain asset configuration ABI',()=>{
   const r=release(),config={cluster:r.cluster,programId:r.programId,programDataSha256:r.programDataSha256,
-    upgradeAuthority:r.upgradeAuthority,mint:r.fundedMint,pool:r.fundedPool},request={cluster:r.cluster,programId:r.programId};
+    upgradeAuthority:r.upgradeAuthority,assetConfiguration:r.assetConfiguration},request={cluster:r.cluster,programId:r.programId};
   assert.equal(priceReviewNetwork(config,request,{release:r}).cluster,'mainnet-beta');
-  for(const field of ['programId','programDataSha256','upgradeAuthority','mint','pool'])
+  for(const field of ['programId','programDataSha256','upgradeAuthority','assetConfiguration'])
     assert.throws(()=>priceReviewNetwork({...config,[field]:key()},request,{release:r}));
   assert.throws(()=>priceReviewNetwork(config,{...request,cluster:'devnet'},{release:r}));
   assert.throws(()=>priceReviewNetwork(config,request,{release:null}));

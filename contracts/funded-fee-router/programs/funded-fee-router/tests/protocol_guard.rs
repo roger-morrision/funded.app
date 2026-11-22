@@ -106,11 +106,11 @@ fn leaf(cycle_id: [u8; 32], recipient: Pubkey, amount: u64) -> [u8; 32] {
 }
 
 #[test]
-fn outflows_stay_closed_until_the_upgrade_owner_configures_the_guard() {
+fn reward_entitlements_do_not_require_an_administrative_cap() {
     let mut f = fixture();
     let ix = create_cycle(&f, 1, [1; 32], 100, START + DAY, true);
     let op = f.operator.insecure_clone();
-    assert!(!send(&mut f.svm, &op, &[&op], &[ix]), "the default daily cap is zero");
+    assert!(send(&mut f.svm, &op, &[&op], &[ix]), "user commitments are independent of the administrative cap");
 
     // Neither the hot operator nor the guardian may configure the guard, and
     // the guardian may not be the operator itself.
@@ -124,7 +124,7 @@ fn outflows_stay_closed_until_the_upgrade_owner_configures_the_guard() {
 }
 
 #[test]
-fn reward_cycles_need_the_review_delay_and_respect_the_daily_cap() {
+fn reward_cycles_keep_review_delay_and_reserve_solvency_without_daily_cap() {
     let mut f = fixture();
     let (op, owner) = (f.operator.insecure_clone(), f.owner.insecure_clone());
     let ix = configure(&f, owner.pubkey(), f.guardian.pubkey(), 1_000);
@@ -132,20 +132,14 @@ fn reward_cycles_need_the_review_delay_and_respect_the_daily_cap() {
 
     let too_soon = create_cycle(&f, 1, [1; 32], 600, START + DAY - 1, true);
     assert!(!send(&mut f.svm, &op, &[&op], &[too_soon]), "payout inside the 24h review delay");
-    let read_only = create_cycle(&f, 1, [1; 32], 600, START + DAY, false);
-    assert!(!send(&mut f.svm, &op, &[&op], &[read_only]), "cap accounting needs the writable header");
-    let first = create_cycle(&f, 1, [1; 32], 600, START + DAY, true);
+    let first = create_cycle(&f, 1, [1; 32], 60_000_000, START + DAY, false);
     assert!(send(&mut f.svm, &op, &[&op], &[first]));
-    let over = create_cycle(&f, 2, [1; 32], 401, START + DAY, true);
-    assert!(!send(&mut f.svm, &op, &[&op], &[over]), "600 + 401 exceeds the 1,000 daily cap");
-    let fill = create_cycle(&f, 2, [1; 32], 400, START + DAY, true);
-    assert!(send(&mut f.svm, &op, &[&op], &[fill]));
-    assert_eq!(outstanding(&f.svm, f.reserve), 1_000);
+    let over = create_cycle(&f, 2, [1; 32], 60_000_000, START + DAY, false);
+    assert!(!send(&mut f.svm, &op, &[&op], &[over]), "cannot overcommit the funded reserve");
+    let second = create_cycle(&f, 2, [1; 32], 1_000_000, START + DAY, false);
+    assert!(send(&mut f.svm, &op, &[&op], &[second]));
+    assert_eq!(outstanding(&f.svm, f.reserve), 61_000_000);
 
-    // The window resets on the next UTC day.
-    set_time(&mut f.svm, START + DAY);
-    let next_day = create_cycle(&f, 3, [1; 32], 900, START + 2 * DAY, true);
-    assert!(send(&mut f.svm, &op, &[&op], &[next_day]));
 }
 
 #[test]
@@ -232,7 +226,7 @@ fn assert_rejected_without_payout(f: &mut Fixture, ix: Instruction) {
 }
 
 #[test]
-fn mature_payout_requires_the_real_writable_unpaused_guard() {
+fn mature_payout_requires_the_real_unpaused_guard_without_write_contention() {
     let mut f = fixture();
     let (op, owner, guardian) = (f.operator.insecure_clone(), f.owner.insecure_clone(), f.guardian.insecure_clone());
     let recipient = Pubkey::new_unique();
@@ -242,11 +236,10 @@ fn mature_payout_requires_the_real_writable_unpaused_guard() {
     assert!(send(&mut f.svm, &owner, &[&owner], &[configure]));
     assert!(send(&mut f.svm, &op, &[&op], &[create]));
     set_time(&mut f.svm, START + DAY);
-    let valid = payout(&f, 1, recipient, 600);
+    let mut valid = payout(&f, 1, recipient, 600);
+    valid.accounts.last_mut().unwrap().is_writable = false;
     let mut missing = valid.clone(); missing.accounts.pop();
     assert_rejected_without_payout(&mut f, missing);
-    let mut read_only = valid.clone(); read_only.accounts.last_mut().unwrap().is_writable = false;
-    assert_rejected_without_payout(&mut f, read_only);
     let fake = Pubkey::new_unique();
     f.svm.set_account(fake, f.svm.get_account(&f.legacy_router).unwrap()).unwrap();
     let mut forged = valid.clone(); forged.accounts.last_mut().unwrap().pubkey = fake;
@@ -263,7 +256,7 @@ fn mature_payout_requires_the_real_writable_unpaused_guard() {
 }
 
 #[test]
-fn queued_cycles_cannot_bypass_the_actual_payout_days_cap() {
+fn queued_user_payouts_are_not_delayed_by_the_administrative_cap() {
     let mut f = fixture();
     let (op, owner) = (f.operator.insecure_clone(), f.owner.insecure_clone());
     let recipient = Pubkey::new_unique();
@@ -279,9 +272,6 @@ fn queued_cycles_cannot_bypass_the_actual_payout_days_cap() {
     let first = payout(&f, 1, recipient, 600);
     assert!(send(&mut f.svm, &op, &[&op], &[first]));
     let second = payout(&f, 2, recipient, 600);
-    assert_rejected_without_payout(&mut f, second.clone());
-    assert_eq!(outstanding(&f.svm, f.reserve), 600);
-    set_time(&mut f.svm, START + 3 * DAY);
     assert!(send(&mut f.svm, &op, &[&op], &[second]));
     assert_eq!(outstanding(&f.svm, f.reserve), 0);
     assert_eq!(f.svm.get_account(&recipient).unwrap().lamports, 1_001_200);

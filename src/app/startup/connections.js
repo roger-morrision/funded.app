@@ -2,7 +2,7 @@ import { initializeAppState } from '../runtime.js';
 import { mountRichTokenShortcut, mountWalletMenuNotifications } from '../../features/shared/rich-token-shortcut.js';
 
 // Startup runs in the order declared in start.js.
-export function initializeConnections(appState) {
+export function initializeConnections(appState, primaryRich) {
   // app-source: 140
   const explorer = (path) => `https://explorer.solana.com/${path}${appState.APP_EXPLORER_QUERY}`;
   initializeAppState(appState, 'explorer', explorer);
@@ -334,14 +334,14 @@ export function initializeConnections(appState) {
   // app-source-end
 
   // app-source: 206
-  const PROTOCOL_FUNDED_MINT = String(import.meta.env.VITE_FUNDED_TOKEN_MINT || '').trim();
+  const PROTOCOL_FUNDED_MINT = primaryRich ? primaryRich.fundedMint : String(import.meta.env.VITE_FUNDED_TOKEN_MINT || '').trim();
   initializeAppState(appState, 'PROTOCOL_FUNDED_MINT', PROTOCOL_FUNDED_MINT);
   mountRichTokenShortcut(PROTOCOL_FUNDED_MINT, globalThis.document, { mainnet: import.meta.env?.VITE_SOLANA_CLUSTER === 'mainnet-beta' });
   mountWalletMenuNotifications();
   // app-source-end
 
   // app-source: 207
-  const PROTOCOL_FUNDED_SWAP_POOL = String(import.meta.env.VITE_FUNDED_SWAP_POOL || '').trim();
+  const PROTOCOL_FUNDED_SWAP_POOL = primaryRich ? primaryRich.pool || '' : String(import.meta.env.VITE_FUNDED_SWAP_POOL || '').trim();
   initializeAppState(appState, 'PROTOCOL_FUNDED_SWAP_POOL', PROTOCOL_FUNDED_SWAP_POOL);
   // app-source-end
 

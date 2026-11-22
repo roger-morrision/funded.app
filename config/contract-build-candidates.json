@@ -10,8 +10,8 @@
     "feature": "devnet-v3-program",
     "optimization": "z",
     "strip": true,
-    "bytes": 1168496,
-    "sha256": "dab0d591d569bd417b8460f0aa555c06b498cf25bf34f271a7edaf117d1f5c96",
+    "bytes": 1168752,
+    "sha256": "2471016f40f9fdd59127b1c89c84ca0719b4b1880c1637c1b7d3c0b3fdf20c2f",
     "developerLockPeriodsSeconds": [
       300,
       21600,
@@ -23,11 +23,9 @@
   "productionBuildCheck": {
     "feature": "mainnet-v3-program",
     "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
-    "fundedMint": "3uWi9x2SRpmjztkpkr2WWeBoVq3exjXG2YfDWLvm8KsQ",
-    "fundedPool": "3yS1JFVT284y8z1LC9MRoWxZjzFrdoD5axKsZiyMsfC7",
     "identityScope": "public-test-fixture-only",
-    "bytes": 1039832,
-    "sha256": "bd55ad107c008ea26eec70b76f7ed391409646b089e89b83e44fc4c0be28732b",
+    "bytes": 1067664,
+    "sha256": "501dc05e04419ca65f76fa7c59f7a76549baaacb56bf95c371c57f0c19b7cdd6",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [
@@ -35,7 +33,8 @@
       43200,
       86400,
       172800
-    ]
+    ],
+    "assetConfiguration": "onchain-v1"
   },
   "retainedDevnetRuntimeCommitment": {
     "bytes": 1168496,

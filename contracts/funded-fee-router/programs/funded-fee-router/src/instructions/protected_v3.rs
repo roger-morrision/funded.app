@@ -276,10 +276,10 @@ pub fn disburse_protected_mint_v3_handler(ctx: Context<DisburseProtectedMintV3>,
             &[MINT_VAULT_V3_SEED, mint.as_ref(), &[other]], ctx.program_id);
         require!(recipient_key != vault_key, ErrorCode::InvalidMintWithdrawalV3);
     }
-    // Moves into this program's reward vault stay inside the protocol; every
-    // other destination is an external outflow under the daily cap.
+    // Only operations spending consumes the administrative cap. Creator,
+    // X-account, referral and holder entitlements remain uncapped.
     #[cfg(feature = "mainnet-v3-program")]
-    if !(category == 0 && beneficiary == 1 || category == 5) {
+    if category == 1 {
         super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), amount)?;
     }
     let category_seed = [category];

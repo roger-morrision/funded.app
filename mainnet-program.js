@@ -16,7 +16,7 @@ export function reviewedMainnetManifest(value=manifest){
     const program=new PublicKey(value.programId).toBase58(),authority=new PublicKey(value.upgradeAuthority).toBase58();
     const mint=new PublicKey(value.fundedMint).toBase58(),pool=new PublicKey(value.fundedPool).toBase58();
     const review=value.independentReview,binary=value.binary;
-    if(value.schemaVersion!==1||value.cluster!=='mainnet-beta'||value.status!=='reviewed'
+    if(value.assetConfiguration!=='onchain-v1'||value.schemaVersion!==1||value.cluster!=='mainnet-beta'||value.status!=='reviewed'
       ||forbidden.has(program)||forbidden.has(authority)||program===authority
       ||forbiddenAssets.has(mint)||forbiddenAssets.has(pool)||new Set([program,authority,mint,pool]).size!==4
       ||!hash(value.programDataSha256)||!revision(value.sourceRevision)

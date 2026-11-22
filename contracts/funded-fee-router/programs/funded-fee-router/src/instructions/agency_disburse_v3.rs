@@ -108,7 +108,7 @@ pub fn disburse(ctx: Context<DisburseAgencyMintV3>, withdrawal_id: [u8; 32], cat
     for other in 0..8 {
         let (key, _) = Pubkey::find_program_address(&[MINT_VAULT_V3_SEED, mint.as_ref(), &[other]], ctx.program_id);
         require!(recipient_key != key, ErrorCode::InvalidMintWithdrawalV3);
-    } #[cfg(feature = "mainnet-v3-program")] if !(category == 0 && beneficiary == 1 || category == 5) { super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), amount)?; }
+    } #[cfg(feature = "mainnet-v3-program")] if category == 1 { super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), amount)?; }
     invoke_signed(&system_instruction::transfer(&vault.key(), &recipient_key, amount),
         &[vault.to_account_info(), recipient.to_account_info(), ctx.accounts.system_program.to_account_info()],
         &[&[MINT_VAULT_V3_SEED, mint.as_ref(), &[category], &[ctx.bumps.vault]]])?;

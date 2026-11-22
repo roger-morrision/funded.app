@@ -68,7 +68,7 @@ export function createOutflowWatcher({store,connection,accounts,programId=null,e
     const result={router:routerInfo?.data?.length>=73?new PublicKey(routerInfo.data.subarray(41,73)).toBase58():null,upgrade:null};
     // Mainnet header: guardian, pause flag and daily outflow cap.
     const guard=parseProtocolGuard(routerInfo?.data);
-    if(guard)Object.assign(result,{guardian:guard.guardian,paused:guard.paused?'paused':'running',dailyCap:`${guard.dailyCapLamports} lamports`});
+    if(guard)Object.assign(result,{guardian:guard.guardian,paused:guard.paused?'paused':'running',administrativeDailyCap:`${guard.dailyCapLamports} lamports`});
     if(programInfo?.owner?.equals?.(LOADER)&&programInfo.data?.length>=36){
       const data=(await connection().getAccountInfo(new PublicKey(programInfo.data.subarray(4,36)),{commitment:'finalized',dataSlice:{offset:0,length:45}}))?.data;
       result.upgrade=data?.length>=45?(data[12]===1?new PublicKey(data.subarray(13,45)).toBase58():'immutable'):null;

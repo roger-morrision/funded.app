@@ -118,7 +118,7 @@ export function createLaunchRegistrationRoutes({
         ? (await store.read()).launchTierQuotes?.[String(promotionClaim.quoteId)] : null;
       if (paidClaim && !existingLaunch && (!promotionQuote
         || promotionQuote.tier !== promotionClaim.tier || promotionQuote.payer !== policy.creatorWallet
-        || promotionQuote.fundedMint !== fundedTokenMint || promotionQuote.amountTokens !== promotionClaim.amountTokens))
+        || promotionQuote.amountTokens !== promotionClaim.amountTokens))
         return json(res, 409, { error:'A saved $RICH launch quote matching this wallet and burn is required.' });
       const promotionTiers = createLaunchBurnTiers({
         boostAmount:Number(process.env.VITE_FUNDED_BOOST_BURN_AMOUNT || 25_000),
@@ -126,7 +126,7 @@ export function createLaunchRegistrationRoutes({
         premierAmount:Number(process.env.VITE_FUNDED_PREMIER_BURN_AMOUNT || 250_000),
       });
       const proof = await verifyPumpLaunch({ connection: new Connection(solanaRpcUrl, 'finalized'), mint: input.mint, signature: input.signature || input.pumpFeeRoute?.transaction,
-        promotionClaim, promotionQuote, fundedMint: fundedTokenMint, promotionTiers,
+        promotionClaim, promotionQuote, fundedMint: promotionQuote?.fundedMint || fundedTokenMint, promotionTiers,
         commitment:'finalized',cluster:solanaCluster });
       const preparedMetadata = await store.readMetadata(proof.mint);
       let serviceFeeReceipt = existingLaunch?.launchServiceFee;

@@ -19,7 +19,7 @@ const BUY_EXACT_QUOTE_IN: [u8; 8] = [198, 46, 21, 82, 180, 217, 232, 112];
 const INIT_USER_VOLUME: [u8; 8] = [94, 6, 202, 115, 255, 96, 232, 183];
 const BUY_ACCOUNTS: usize = 23;
 const BUYBACK_CATEGORY: u8 = 6;
-#[cfg(feature = "mainnet-v3-program")] include!(concat!(env!("OUT_DIR"), "/mainnet_assets.rs"));
+
 #[derive(Accounts)]
 #[instruction(buyback_id: [u8; 32])]
 pub struct BuybackMintV3<'info> {
@@ -101,13 +101,22 @@ fn require_pump_accounts(accounts: &[AccountInfo], ctx: &BuybackMintV3) -> Resul
 
 pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     buyback_id: [u8; 32], spendable_quote_in: u64,
-    min_base_amount_out: u64, max_total_debit: u64) -> Result<()> {
+    min_base_amount_out: u64, max_total_debit: u64, _assets_revision: u64) -> Result<()> {
     assert_current_router_authority(&ctx.accounts.legacy_router.to_account_info(),
         &ctx.accounts.authority.key(), ctx.program_id)?;
     require!(spendable_quote_in > 0 && min_base_amount_out > 0
         && max_total_debit >= spendable_quote_in,
         ErrorCode::InvalidAmount);
-    let funded_mint = Pubkey::from_str(FUNDED_MINT).map_err(|_| ErrorCode::InvalidMintBuybackV3)?;
+    #[cfg(feature = "mainnet-v3-program")]
+    let (assets, swap_accounts) = super::rich_assets::resolve(ctx.program_id, ctx.remaining_accounts, _assets_revision,
+        &ctx.accounts.funded_mint.key(), &ctx.accounts.pool.to_account_info(), &ctx.accounts.base_token_program.key(),
+        &ctx.accounts.pump_swap_program.key(), false)?;
+    #[cfg(feature = "mainnet-v3-program")]
+    let (funded_mint, pool) = (assets.mint, assets.market);
+    #[cfg(not(feature = "mainnet-v3-program"))]
+    let (funded_mint, pool, swap_accounts) = (
+        Pubkey::from_str(FUNDED_MINT).map_err(|_| ErrorCode::InvalidMintBuybackV3)?,
+        Pubkey::from_str(FUNDED_POOL).map_err(|_| ErrorCode::InvalidMintBuybackV3)?, ctx.remaining_accounts);
     if ctx.accounts.pump_swap_program.key() == super::buyback_curve_v3::PUMP {
         require!(ctx.accounts.funded_mint.key() == funded_mint, ErrorCode::InvalidMintBuybackV3);
         let source = ctx.accounts.mint.key();
@@ -121,7 +130,7 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
             curve:ctx.accounts.pool.to_account_info(), base:ctx.accounts.base_token_program.to_account_info(),
             associated:ctx.accounts.associated_token_program.to_account_info(), system:ctx.accounts.system_program.to_account_info(),
             pump:ctx.accounts.pump_swap_program.to_account_info(),
-        }, ctx.remaining_accounts, signer, remaining, spendable_quote_in, min_base_amount_out, max_total_debit)?;
+        }, swap_accounts, signer, remaining, spendable_quote_in, min_base_amount_out, max_total_debit)?;
         #[cfg(feature = "mainnet-v3-program")]
         super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), spent)?;
         ctx.accounts.policy.withdrawn_lamports[6] = ctx.accounts.policy.withdrawn_lamports[6]
@@ -134,7 +143,6 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         emit!(MintBuybackV3Event { source_mint:source, buyback_id, spent_lamports:spent, burned_base_units:bought });
         return Ok(());
     }
-    let pool = Pubkey::from_str(FUNDED_POOL).map_err(|_| ErrorCode::InvalidMintBuybackV3)?;
     let pump = Pubkey::from_str(PUMP_SWAP).map_err(|_| ErrorCode::InvalidMintBuybackV3)?;
     let vault = &ctx.accounts.vault;
     let mint = ctx.accounts.mint.key();
@@ -155,7 +163,7 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         && ctx.accounts.quote_token_account.key()
             == expected_ata(&native_mint, &vault.key(), &quote_program),
         ErrorCode::InvalidMintBuybackV3);
-    require_pump_accounts(ctx.remaining_accounts, &ctx.accounts)?;
+    require_pump_accounts(swap_accounts, &ctx.accounts)?;
     let policy = &ctx.accounts.policy;
     let remaining = policy.paid_lamports[6]
         .checked_sub(policy.withdrawn_lamports[6])
@@ -177,17 +185,17 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     let funded_ata = ctx.accounts.funded_token_account.to_account_info();
     let wsol_ata = ctx.accounts.quote_token_account.to_account_info();
     let funded_mint_info = ctx.accounts.funded_mint.to_account_info();
-    let native_mint_info = ctx.remaining_accounts[4].clone();
+    let native_mint_info = swap_accounts[4].clone();
 
     // PumpSwap creates this user-volume PDA with the swap user as payer even
     // when track_volume is false. Create it first with the authority as payer
     // so its persistent rent never consumes category-6 fee funds.
-    let volume = ctx.remaining_accounts[20].clone();
+    let volume = swap_accounts[20].clone();
     let (expected_volume, _) = Pubkey::find_program_address(
         &[b"user_volume_accumulator", vault.key().as_ref()], &pump);
     require!(volume.key() == expected_volume, ErrorCode::InvalidMintBuybackV3);
     if volume.lamports() == 0 {
-        let event = ctx.remaining_accounts[15].clone();
+        let event = swap_accounts[15].clone();
         let init_volume = Instruction { program_id:pump,
             accounts:vec![
                 AccountMeta::new(ctx.accounts.authority.key(), true),
@@ -238,12 +246,12 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     data.extend_from_slice(&spendable_quote_in.to_le_bytes());
     data.extend_from_slice(&min_base_amount_out.to_le_bytes());
     data.push(0); // PumpSwap OptionBool(false): no vault-funded volume accumulator.
-    let metas = ctx.remaining_accounts.iter().enumerate().map(|(index, account)| {
+    let metas = swap_accounts.iter().enumerate().map(|(index, account)| {
         if account.is_writable { AccountMeta::new(account.key(), index == 1 || account.is_signer) }
         else { AccountMeta::new_readonly(account.key(), index == 1 || account.is_signer) }
     }).collect();
     invoke_signed(&Instruction { program_id:pump, accounts:metas, data },
-        ctx.remaining_accounts, signers)?;
+        swap_accounts, signers)?;
     let bought = amount_at(&funded_ata, 64)?;
     require!(bought >= min_base_amount_out, ErrorCode::MintBuybackBurnFailedV3);
     let decimals = funded_mint_info.try_borrow_data()?

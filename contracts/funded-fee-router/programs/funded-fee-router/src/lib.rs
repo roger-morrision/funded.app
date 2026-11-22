@@ -19,6 +19,11 @@ declare_id!("9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm");
 
 #[program]
 pub mod funded_fee_router {
+    #[cfg(feature = "mainnet-v3-program")]
+    pub fn configure_rich_assets(ctx: Context<ConfigureRichAssets>, revision: u64, venue: u8) -> Result<()> {
+        instructions::rich_assets::configure(ctx, revision, venue)
+    }
+
     use super::*;
 
     pub fn initialize_and_lock(ctx: Context<InitializeAndLock>, amount: u64) -> Result<()> {
@@ -78,13 +83,22 @@ pub mod funded_fee_router {
     pub fn bill_agency_promotion_v3(ctx: Context<BillAgencyPromotionV3>, post_id: u64, delivery_hash: [u8; 32], sequence: u32, amount: u64, posted_at: i64) -> Result<()> {
         agency_disburse_v3::bill_promotion(ctx, post_id, delivery_hash, sequence, amount, posted_at)
     }
-    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+    #[cfg(feature = "devnet-v3-program")]
     pub fn buyback_agency_mint_v3<'info>(ctx: Context<'info, BuybackAgencyMintV3<'info>>,
         buyback_id: [u8; 32], category: u8, agent: u8, observation_slot: u64, observed_at: i64,
         market_cap_usd_micros: u64, observation_hash: [u8; 32], spendable_quote_in: u64,
         min_base_amount_out: u64, max_total_debit: u64) -> Result<()> {
         agency_buyback_v3::handler(ctx, buyback_id, category, agent, observation_slot, observed_at,
-            market_cap_usd_micros, observation_hash, spendable_quote_in, min_base_amount_out, max_total_debit)
+            market_cap_usd_micros, observation_hash, spendable_quote_in, min_base_amount_out, max_total_debit, 0)
+    }
+
+    #[cfg(feature = "mainnet-v3-program")]
+    pub fn buyback_configured_agency_mint_v3<'info>(ctx: Context<'info, BuybackAgencyMintV3<'info>>,
+        buyback_id: [u8; 32], category: u8, agent: u8, observation_slot: u64, observed_at: i64,
+        market_cap_usd_micros: u64, observation_hash: [u8; 32], spendable_quote_in: u64,
+        min_base_amount_out: u64, max_total_debit: u64, assets_revision: u64) -> Result<()> {
+        agency_buyback_v3::handler(ctx, buyback_id, category, agent, observation_slot, observed_at,
+            market_cap_usd_micros, observation_hash, spendable_quote_in, min_base_amount_out, max_total_debit, assets_revision)
     }
 
     #[cfg(not(any(feature = "devnet-v3-program", feature = "mainnet-v3-program")))]
@@ -173,12 +187,20 @@ pub mod funded_fee_router {
             beneficiary, amount, holder_amount)
     }
 
-    #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+    #[cfg(feature = "devnet-v3-program")]
     pub fn buyback_mint_v3<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         buyback_id: [u8; 32], spendable_quote_in: u64,
         min_base_amount_out: u64, max_total_debit: u64) -> Result<()> {
         buyback_v3::handler(ctx, buyback_id, spendable_quote_in,
-            min_base_amount_out, max_total_debit)
+            min_base_amount_out, max_total_debit, 0)
+    }
+
+    #[cfg(feature = "mainnet-v3-program")]
+    pub fn buyback_configured_mint_v3<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
+        buyback_id: [u8; 32], spendable_quote_in: u64,
+        min_base_amount_out: u64, max_total_debit: u64, assets_revision: u64) -> Result<()> {
+        buyback_v3::handler(ctx, buyback_id, spendable_quote_in,
+            min_base_amount_out, max_total_debit, assets_revision)
     }
 
     #[cfg(not(any(feature = "devnet-v3-program", feature = "mainnet-v3-program")))]

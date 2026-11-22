@@ -258,11 +258,11 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       keys.push({pubkey:new PublicKey(asset),isSigner:false,isWritable:false},
         {pubkey:getAssociatedTokenAddressSync(new PublicKey(asset),vault,true,mintInfo.owner),isSigner:false,isWritable:false});
     }
-    // Mainnet: a new cycle must leave the guardian's review window, and a SOL
-    // cycle is counted against the daily outflow cap kept in the router header.
+    // Mainnet cycles retain the guardian review window. User entitlements
+    // do not consume the administrative spending cap.
     if (!legacy && rewardReviewDelaySeconds(cluster) && Number(plan.payoutAt) < Math.floor(Date.now() / 1000) + rewardReviewDelaySeconds(cluster))
       throw new Error('Reward cycle payout is inside the Mainnet review delay; plan it with plannedRewardPayoutAt.');
-    keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
+    keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
     const data = legacy
       ? Buffer.concat([discriminator('global', isSol ? 'migrate_reward_cycle_sol' : 'migrate_reward_cycle_token'), hex32(plan.manifest.cycleId, 'cycleId')])
       : Buffer.concat([discriminator('global', bitmap&&!legacy ? (isSol?'create_bitmap_cycle':'create_bitmap_cycle_token') : (isSol ? 'create_reward_cycle' : 'create_reward_cycle_token')), hex32(plan.manifest.cycleId, 'cycleId'), hex32(plan.manifest.root, 'root'), new PublicKey(asset).toBuffer(), u64(plan.manifest.totalAmount), i64(plan.cutoffAt), i64(plan.payoutAt), u32(plan.manifest.leaves.length)]);
@@ -361,7 +361,7 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
       if(recipient.equals(authority.publicKey))throw new Error('Operational authority cannot receive a bitmap reward.');
       keys.splice(keys.findIndex(k=>k.pubkey.equals(payment)),1);
     }
-    if (cluster === 'mainnet-beta') keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: plan.manifest.asset === 'SOL' });
+    if (cluster === 'mainnet-beta') keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: false });
     transaction.add(new TransactionInstruction({ programId: program, keys, data }));
     return { leaf, transaction, recipient, payment:plan.receiptMode==='bitmap'?cycle:payment,bitmap:plan.receiptMode==='bitmap', cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore, recipientTokenAddress };
   }

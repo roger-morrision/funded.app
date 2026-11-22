@@ -45,9 +45,9 @@ export function v3BuybackOnchainId(mint, round = 1) {
 // constructs its own exact-quote CPI and verifies every custody address.
 export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceMint, authority, priceSigner,
   creator, baseTokenProgram, buybackId, spendableQuoteIn,
-  minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy=false,agencyExecution=null }) {
+  minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy=false,agencyExecution=null,richAssets=null }) {
   const program = new PublicKey(programId);
-  const assets=buybackAssets(cluster,{programId:program});
+  const assets=buybackAssets(cluster,{programId:program,richAssets});
   const mint = new PublicKey(sourceMint);
   const baseProgram = new PublicKey(baseTokenProgram);
   if (!baseProgram.equals(TOKEN_PROGRAM_ID) && !baseProgram.equals(TOKEN_2022_PROGRAM_ID))
@@ -67,6 +67,8 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
   if(curve&&(!priceSigner||new PublicKey(priceSigner).equals(new PublicKey(authority))))
     throw new Error('Curve buybacks require an independent price signer.');
   if(curve&&own)throw new Error('Own-coin milestone buybacks require their verified AMM observation.');
+  if(cluster==='mainnet-beta'&&!own&&(assets.venue!==(curve?1:0)||!assets.tokenProgram.equals(baseProgram)))
+    throw Error('Quote venue or mint owner differs from the RICH configuration.');
   const boughtMint=own?mint:assets.mint,pool=curve?bondingCurvePda(boughtMint):own?new PublicKey(agencyExecution.pool):assets.pool;
   const vault = (agencyPolicy?deriveAgencyVaultsV3:deriveMintVaultsV3)(program, mint)[category];
   const fundedAta = getAssociatedTokenAddressSync(boughtMint,
@@ -101,8 +103,9 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
         ||cap<BigInt(validateAgencyRules(agencyExecution.rules||DEFAULT_AGENCY_RULES).marketCapUsd[agent-1])*1000000n)throw new Error('A verified milestone observation is required.');
       attest.writeBigUInt64LE(slot,2);attest.writeBigInt64LE(BigInt(time),10);attest.writeBigUInt64LE(cap,18);hash.copy(attest,26);
     }
-    data=Buffer.concat([agencyDiscriminator('buyback_agency_mint_v3'),id,attest,quote,floor,limit]);
-  }else data=Buffer.concat([createHash('sha256').update('global:buyback_mint_v3').digest().subarray(0,8),id,quote,floor,limit]);
+    data=Buffer.concat([cluster==='mainnet-beta'?Buffer.from('b09a28854e0fb459','hex'):agencyDiscriminator('buyback_agency_mint_v3'),id,attest,quote,floor,limit]);
+  }else data=Buffer.concat([createHash('sha256').update(cluster==='mainnet-beta'?'global:buyback_configured_mint_v3':'global:buyback_mint_v3').digest().subarray(0,8),id,quote,floor,limit]);
+  if(cluster==='mainnet-beta')data=Buffer.concat([data,u64(assets.revision,'RICH revision')]);
   const keys = [
     { pubkey:new PublicKey(authority), isSigner:true, isWritable:true },
     { pubkey:new PublicKey(creator), isSigner:false, isWritable:false },
@@ -127,7 +130,8 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
     ...buy.keys.map((entry, index) => ({ ...entry,
       isSigner:index === (curve?6:1) ? false : entry.isSigner })),
   ];
-  return { instruction:new TransactionInstruction({ programId:program, keys, data }),
+  if(cluster==='mainnet-beta')keys.push({pubkey:assets.configAddress,isSigner:false,isWritable:false});
+  return { richAssets:cluster==='mainnet-beta'?assets:null,instruction:new TransactionInstruction({ programId:program, keys, data }),
     vault, fundedAta, quoteAta, policy, receipt, buybackId:id, boughtMint, pool,
     spendableQuoteIn:String(spendableQuoteIn), minBaseAmountOut:String(minBaseAmountOut),
     maxTotalDebit:String(maxTotalDebit),...(agencyPolicy?{agencyPolicy:true,category,agent,boughtMint,pool}: {}) };

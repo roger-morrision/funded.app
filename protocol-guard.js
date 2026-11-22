@@ -53,7 +53,7 @@ export function parseProtocolGuard(data){
   };
 }
 
-// Lamports the authority may still move out today; null when unguarded.
+// Administrative SOL spending available today; user entitlements are exempt.
 export function remainingDailyOutflow(guard,nowSeconds=Math.floor(Date.now()/1000)){
   if(!guard)return null;
   const day=Math.floor(nowSeconds/86400);

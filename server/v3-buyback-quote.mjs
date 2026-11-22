@@ -3,7 +3,7 @@ import { OnlinePumpAmmSdk, PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK,
   buyQuoteInput } from '@pump-fun/pump-swap-sdk';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { BUYBACK_POLICY } from '../buyback-policy.js';
-import {buybackAssets} from './buyback-assets.mjs';
+import {loadBuybackAssets} from './buyback-assets.mjs';
 import {assertRpcNetwork,SOLANA_GENESIS} from '../solana-network.js';
 import { MIN_V3_BUYBACK_ORDER_LAMPORTS } from './v3-buyback-worker-policy.mjs';
 import {selectV3PumpBuy} from './v3-buyback-setup.mjs';
@@ -25,16 +25,18 @@ export function protectedV3BuybackMinimum(estimatedBase) {
 
 export async function quoteV3Buyback({ connection, vault, budgetLamports, cluster='devnet', programId,
   curveEnabled=false,readCurve=readBuybackCurve,quoteCurve=quoteCurveBuyback }) {
-  const assets=buybackAssets(cluster,{programId});
   await assertRpcNetwork(connection,cluster);
+  const assets=await loadBuybackAssets(connection,cluster,programId);
+  const richAssets=cluster==='mainnet-beta'?assets:null;
   const budget=BigInt(budgetLamports);
   if (budget<MIN_V3_BUYBACK_ORDER_LAMPORTS || budget>BigInt(Number.MAX_SAFE_INTEGER))
     throw Object.assign(new Error('V3 buyback budget must be at least 10,000 lamports and within the bounded range.'), { statusCode:409 });
-  const snapshot=await readCurve(connection,assets.mint);
+  const snapshot=assets.venue===0?null:await readCurve(connection,assets.mint);
+  if(assets.venue===1&&(!snapshot||snapshot.curve.complete))throw Error('Configured RICH curve migrated; the owner must select its SOL pool.');
   if(snapshot&&!snapshot.curve.complete){
     if(!curveEnabled)throw Error('Pre-migration $RICH buybacks await activation of the reviewed curve-capable fee-router. Funds remain in custody.');
     const quote=await quoteCurve({connection,mint:assets.mint,vault,budgetLamports,snapshot});
-    return {...quote,cluster,genesisHash:SOLANA_GENESIS[cluster]};
+    return {...quote,richAssets,cluster,genesisHash:SOLANA_GENESIS[cluster]};
   }
   const [state,mintInfo]=await Promise.all([
     new OnlinePumpAmmSdk(connection).swapSolanaState(assets.pool,vault),
@@ -63,7 +65,7 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports, cluste
   if (minimum<=0n) throw new Error('The protected $RICH output quote is empty.');
   const instructions=await PUMP_AMM_SDK.buyQuoteInput(state,new BN(String(quote)),1);
   const buy=selectV3PumpBuy(instructions);
-  return { cluster,genesisHash:SOLANA_GENESIS[cluster],pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,
+  return { richAssets,cluster,genesisHash:SOLANA_GENESIS[cluster],pumpBuyInstruction:buy,baseTokenProgram:mintInfo.owner,
     spendableQuoteIn:String(quote),minBaseAmountOut:String(minimum),
     maxTotalDebit:String(quote) };
 }

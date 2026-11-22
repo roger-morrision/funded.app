@@ -1,3 +1,4 @@
+import {primaryRichRuntime} from './primary-rich.mjs';
 import {publicState} from './public-state.mjs';
 import {createCommunityNameRoutes} from './routes/community-names.mjs';
 import {createAgencyProgressReader} from './agency-progress.mjs';
@@ -110,9 +111,7 @@ const birdeyeBaseUrl = String(process.env.BIRDEYE_API_URL || 'https://public-api
 const birdeyeChain = String(process.env.BIRDEYE_CHAIN || 'solana').trim();
 const birdeyeTimeoutMs = 10_000;
 const pumpApiUrl = String(process.env.PUMP_API_URL || 'https://frontend-api-v3.pump.fun').replace(/\/$/, '');
-const solanaRpcUrl = String(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com').trim();
-const fundedTokenMint = String(process.env.FUNDED_TOKEN_MINT || process.env.VITE_FUNDED_TOKEN_MINT || '').trim();
-const fundedSwapPool = String(process.env.FUNDED_SWAP_POOL || process.env.VITE_FUNDED_SWAP_POOL || '').trim();
+const {solanaRpcUrl,fundedTokenMint,fundedSwapPool,getPrimaryRich}=primaryRichRuntime(process.env,solanaCluster);
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getGenesisHash', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'isBlockhashValid', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/referrals/session/prepare', '/api/referrals/session/verify', '/api/referrals/session/logout', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata', '/api/token-metadata']);
 publicPostPaths.add('/api/airdrops/reserves/receipt');
@@ -328,7 +327,7 @@ const handleQuoteAssetsRoutes = createQuoteAssetsRoutes({
   configuredQuoteAssets, solanaRpcUrl, solanaCluster, respond: json,
 });
 const handleDirectoryRoutes = createDirectoryRoutes({
-  store, solanaCluster, route, fundedTokenMint, currentLaunchTierPricing: () => currentLaunchTierPricing(), solanaRpcUrl, walletKey, respond: json,
+  getPrimaryRich, store, solanaCluster, route, fundedTokenMint, currentLaunchTierPricing: () => currentLaunchTierPricing(), solanaRpcUrl, walletKey, respond: json,
 });
 const dailyBonusRuntime = createDailyBonusRuntime({ store, rewardStore:automaticRewardStore,
   solanaCluster, solanaRpcUrl, v3AuthorityKeypair });
@@ -344,13 +343,13 @@ const handlePairRoutes = createPairRoutes({ solanaCluster, solanaRpcUrl, store, 
 const handleMainnetMarketRoutes = createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free: freeMarketData, tokenCache, fetchBirdeye,
   readMarketFallback: readBirdeyeMarket, store, clientKey, body, respond: json });
 const { proxySolanaRpc } = createSolanaRpcProxy({ store, solanaRpcUrl, solanaCluster, body, authorized, clientKey, json, rpcMethods });
-const { currentLaunchTierPricing } = createLaunchTierPricing({ solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote, readIndexedPriceUsd: mint => freeMarketData.jupPrices([mint]).then(m => m.get(mint)?.priceUsd) });
+const { currentLaunchTierPricing } = createLaunchTierPricing({ getPrimaryRich,solanaCluster, fundedTokenMint, fundedSwapPool, solanaRpcUrl, readSolUsdQuote, readIndexedPriceUsd: mint => freeMarketData.jupPrices([mint]).then(m => m.get(mint)?.priceUsd) });
 
 const handleKeeperCollectionRoutes = createKeeperCollectionRoutes({
   requireAuthorized, body, fetchPump, normalizePumpToken, store, solanaCluster, collectPumpCreatorFees, solanaRpcUrl, respond: json,
 });
 const handleListingPaymentsRoutes = createListingPaymentsRoutes({
-  body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed,
+  getPrimaryRich, body, fundedTokenMint, walletKey, store, solanaCluster, solanaRpcUrl, listingBurnAlreadyUsed,
   currentLaunchTierPricing, clientKey, id, respond: json, adminJwt,
 });
 const v3LaunchConfig = createV3LaunchConfig({ solanaCluster, solanaRpcUrl,
@@ -378,7 +377,7 @@ const handleDiscoveryRoutes = createDiscoveryRoutes({
   warmMarketActivity: mints => handleTokenMarketRoutes.warmMarketActivity(mints),
 });
 const handleLaunchQuoteRoutes = createLaunchQuoteRoutes({
-  store, solanaCluster, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id, respond: json,
+  getPrimaryRich, store, solanaCluster, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id, respond: json,
 });
 const handleDevnetMetadataRoutes = createDevnetMetadataRoutes({store,solanaCluster,solanaRpcUrl,devnetMetadataOrigin,body,respond:json,allowMainnetPublishing:pairLaunchEnabled({solanaCluster})});
 const handleRewardStatusRoutes = createRewardStatusRoutes({

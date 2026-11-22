@@ -14,7 +14,7 @@ import {featuredTokens,FEATURED_WINDOW_MS} from '../../src/features/home/feature
 // Return true only after sending a response; false lets the router continue.
 export function createDirectoryRoutes({
   store, solanaCluster, route, fundedTokenMint, currentLaunchTierPricing, solanaRpcUrl, walletKey,
-  respond,
+  respond,getPrimaryRich,
 }) {
 
   const json = (...args) => { respond(...args); return true; };
@@ -41,7 +41,8 @@ export function createDirectoryRoutes({
           boosts:Object.values(state.boostReceipts||{}),cluster:solanaCluster,now})});
     }
     if (req.method === 'GET' && url.pathname === '/api/token-config') {
-      return json(res, 200, {cluster:solanaCluster, fundedMint:fundedTokenMint || null});
+      try{return json(res,200,getPrimaryRich?await getPrimaryRich():{cluster:solanaCluster,fundedMint:fundedTokenMint||null});}
+      catch{return json(res,503,{cluster:solanaCluster,fundedMint:null,error:'Primary RICH configuration is unavailable.'});}
     }
     if(req.method==='GET' && url.pathname==='/api/tokens/metadata'){
       let mints;
@@ -92,8 +93,8 @@ export function createDirectoryRoutes({
       const fees = await readServiceFees(store);
       let pricing = null;
       try { pricing = await currentLaunchTierPricing(); } catch { /* A listing cannot be paid without a verified price. */ }
-      const enabled = Object.hasOwn(SOLANA_GENESIS, solanaCluster) && Boolean(fundedTokenMint) && Boolean(pricing);
-      return json(res, 200, { cluster: solanaCluster, enabled, fundedMint: fundedTokenMint || null,
+      const enabled = Object.hasOwn(SOLANA_GENESIS, solanaCluster) && Boolean(pricing?.fundedMint) && Boolean(pricing);
+      return json(res, 200, { cluster: solanaCluster, enabled, fundedMint: pricing?.fundedMint || null,
         usd: fees.policy.listingUsd, burnTokens: enabled ? listingBurnTokens(pricing.tokenPriceUsd,fees.policy.listingUsd) : null,
         serviceFees:fees,
         tokenPriceUsd: enabled ? pricing.tokenPriceUsd : null, observedAt: enabled ? pricing.observedAt : null,

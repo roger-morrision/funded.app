@@ -14,7 +14,7 @@ import { createAdminListingRoutes } from './admin-listing.mjs';
 // Return true only after sending a response; false lets the router continue.
 export function createListingPaymentsRoutes({
   body,
-  fundedTokenMint,
+  fundedTokenMint: configuredFundedMint,getPrimaryRich,
   walletKey,
   store,
   solanaCluster,
@@ -35,6 +35,9 @@ export function createListingPaymentsRoutes({
   const handleAdminListing = createAdminListingRoutes({ body, store, solanaCluster, solanaRpcUrl, clientKey, respond, env, connectionFactory, readListingMint, adminJwt });
   return async function handleListingPaymentsRoutes(req, res, url) {
     if (await handleAdminListing(req, res, url)) return true;
+    if(!['/api/listings/quote','/api/listings','/api/burn-receipts'].includes(url.pathname))return false;
+    let fundedTokenMint=configuredFundedMint,richAssetsRevision=null;
+    if(getPrimaryRich){try{const current=await getPrimaryRich();fundedTokenMint=current.fundedMint;richAssetsRevision=current.revision||null;}catch{return json(res,503,{error:'Primary RICH configuration is unavailable.'});}}
     if (req.method === 'POST' && url.pathname === '/api/listings/quote') {
       if (!Object.hasOwn(SOLANA_GENESIS, solanaCluster) || !fundedTokenMint) return json(res, 503, { error:'Paid listings are unavailable on this network.' });
       if (!allowedAuthOrigin(req, env.CORS_ORIGIN)) return json(res, 403, { error:'Request a listing quote from richpad.fun.' });
@@ -60,8 +63,9 @@ export function createListingPaymentsRoutes({
       const fees = await readServiceFees(store);
       try { amountBaseUnits = listingBurnBaseUnitsForUsd(pricing.tokenPriceUsd, decimals,fees.policy.listingUsd); }
       catch (error) { return json(res, 503, { error:error.message }); }
+      if(pricing.fundedMint!==fundedTokenMint||richAssetsRevision&&pricing.richAssetsRevision!==richAssetsRevision)return json(res,409,{error:'RICH configuration changed. Refresh your quote.'});
       const now = Date.now();
-      const quote = { id:id('listing'), mint, payer, fundedMint:fundedTokenMint, usd:fees.policy.listingUsd, serviceFeeHash:fees.hash,
+      const quote = { id:id('listing'), mint, payer, fundedMint:fundedTokenMint,richAssetsRevision:pricing.richAssetsRevision||null, usd:fees.policy.listingUsd, serviceFeeHash:fees.hash,
         decimals, amountBaseUnits:amountBaseUnits.toString(), amountTokens:Number(amountBaseUnits) / (10 ** decimals),
         tokenPriceUsd:pricing.tokenPriceUsd,
         pool:pricing.pool, market:pricing.market,bondingCurve:pricing.bondingCurve,slot:pricing.slot, source:pricing.source,
@@ -134,6 +138,9 @@ export function createListingPaymentsRoutes({
       if (listingBurnAlreadyUsed(priorState, signature))
         return json(res, 409, { error: 'This burn signature has already been used.' });
       const quote = priorState.listingQuotes?.[quoteId];
+      // Fulfill the stored, time-bounded quote using its original mint, even
+      // after a later owner rotation. The request cannot choose that mint.
+      if(quote?.fundedMint)fundedTokenMint=quote.fundedMint;
       if (!listingQuoteCurrent(quote, { mint, payer:burnWallet, fundedMint:fundedTokenMint, now:Date.parse(quote?.createdAt), usd:quote?.usd }))
         return json(res, 409, { error:'A matching priced listing quote is required. Recover the original signed quote or request a new quote before paying.' });
       const rpc = connectionFactory(solanaRpcUrl, 'finalized');

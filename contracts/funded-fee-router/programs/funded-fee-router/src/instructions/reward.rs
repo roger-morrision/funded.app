@@ -188,12 +188,10 @@ pub fn create_cycle(
     require!(total_amount > 0 && leaf_count > 0, ErrorCode::InvalidAmount);
     require!(merkle_root != [0; 32], ErrorCode::InvalidRewardProof);
     require!(payout_at >= cutoff_at && cutoff_at > 0, ErrorCode::InvalidRewardTiming);
-    // Mainnet: leave the guardian review delay, and count the SOL commitment
-    // that later leaves the vault against the daily outflow cap.
+    // Mainnet retains guardian review, without limiting funded user entitlements.
     #[cfg(feature = "mainnet-v3-program")]
     {
         super::guard::assert_review_delay(payout_at)?;
-        super::guard::record_outflow(&ctx.accounts.legacy_router.to_account_info(), total_amount)?;
     }
     let rent = Rent::get()?.minimum_balance(8 + RewardVault::INIT_SPACE);
     let balance = ctx.accounts.vault.to_account_info().lamports().saturating_sub(rent);
@@ -345,7 +343,7 @@ pub struct PayoutRewardSol<'info> {
 
 pub fn payout_sol(ctx: Context<PayoutRewardSol>, amount: u64, leaf_index: u32, proof: Vec<[u8; 32]>) -> Result<()> {
     #[cfg(feature = "mainnet-v3-program")]
-    super::guard::check_reward_payout(ctx.program_id, ctx.remaining_accounts, Some(amount))?;
+    super::guard::check_reward_payout(ctx.program_id, ctx.remaining_accounts)?;
     require!(ctx.accounts.cycle.asset_mint == Pubkey::default(), ErrorCode::InvalidRewardAsset);
     require_keys_neq!(ctx.accounts.recipient.key(), ctx.accounts.vault.key(), ErrorCode::InvalidDestination);
     let paid_at = validate_payment(&mut ctx.accounts.cycle, &ctx.accounts.recipient.key(), amount, leaf_index, &proof)?;
@@ -407,7 +405,7 @@ pub struct PayoutRewardToken<'info> {
 
 pub fn payout_token(ctx: Context<PayoutRewardToken>, amount: u64, leaf_index: u32, proof: Vec<[u8; 32]>) -> Result<()> {
     #[cfg(feature = "mainnet-v3-program")]
-    super::guard::check_reward_payout(ctx.program_id, ctx.remaining_accounts, None)?;
+    super::guard::check_reward_payout(ctx.program_id, ctx.remaining_accounts)?;
     require!(ctx.accounts.cycle.asset_mint != Pubkey::default(), ErrorCode::InvalidRewardAsset);
     let paid_at = validate_payment(&mut ctx.accounts.cycle, &ctx.accounts.recipient.key(), amount, leaf_index, &proof)?;
     ctx.accounts.reserve.outstanding = ctx.accounts.reserve.outstanding.checked_sub(amount).ok_or(ErrorCode::RewardReserveExceeded)?;

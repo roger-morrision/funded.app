@@ -8,14 +8,16 @@ import { launchTierAmounts } from '../../launch-tier-quote.js';
 // Dispatch after shared authorization and rate checks; preserve caller route order.
 export function createLaunchQuoteRoutes({
   store, body, clientKey, currentLaunchTierPricing, fundedTokenMint, id,
-  respond,
+  respond,getPrimaryRich,
   env = process.env,
   solanaCluster = String(env.VITE_SOLANA_CLUSTER || env.SOLANA_CLUSTER || 'devnet').trim(),
 }) {
   const json = (...args) => { respond(...args); return true; };
   const checkedPricing=async()=>{
     const pricing=await currentLaunchTierPricing();assertQuoteNetwork(pricing,solanaCluster);
-    if(pricing.fundedMint!==fundedTokenMint)throw Error('Pricing mint differs from the configured launch mint.');
+    const current=getPrimaryRich?await getPrimaryRich():{fundedMint:fundedTokenMint};
+    if(pricing.fundedMint!==current.fundedMint||current.revision&&pricing.richAssetsRevision!==current.revision)
+      throw Error('RICH configuration changed. Refresh the launch quote.');
     return pricing;
   };
   return async function handleLaunchQuoteRoutes(req, res, url) {
@@ -60,7 +62,7 @@ export function createLaunchQuoteRoutes({
       catch (error) { return json(res, 503, { error:String(error.message || 'The $RICH tier price is unavailable.') }); }
       const now = Date.now();
       const fees = await readServiceFees(store);
-      const quote = { id:id('launch_tier'), cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],tier, payer, fundedMint:fundedTokenMint,
+      const quote = { id:id('launch_tier'), cluster:solanaCluster,genesisHash:SOLANA_GENESIS[solanaCluster],tier, payer, fundedMint:pricing.fundedMint,richAssetsRevision:pricing.richAssetsRevision||null,
         amountTokens:launchTierAmounts(pricing.tokenPriceUsd,fees.policy)[tier], usd:tier === 'pro' ? fees.policy.proUsd : fees.policy.premierUsd, tokenPriceUsd:pricing.tokenPriceUsd,
         serviceFeeHash:fees.hash,
         pool:pricing.pool, market:pricing.market,bondingCurve:pricing.bondingCurve,slot:pricing.slot, source:pricing.source,

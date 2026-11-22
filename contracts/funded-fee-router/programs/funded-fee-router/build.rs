@@ -31,8 +31,6 @@ fn public_key(name: &str) -> String {
 
 fn main() {
     println!("cargo:rerun-if-env-changed=FUNDED_MAINNET_PROGRAM_ID");
-    println!("cargo:rerun-if-env-changed=FUNDED_MAINNET_FUNDED_MINT");
-    println!("cargo:rerun-if-env-changed=FUNDED_MAINNET_FUNDED_POOL");
     println!("cargo:rerun-if-changed=build.rs");
     let production = env::var_os("CARGO_FEATURE_MAINNET_V3_PROGRAM").is_some();
     let devnet = env::var_os("CARGO_FEATURE_DEVNET_V3_PROGRAM").is_some();
@@ -41,14 +39,8 @@ fn main() {
         "Historical QA recovery must never be compiled into Mainnet");
     if !production { return; }
     let id = public_key("FUNDED_MAINNET_PROGRAM_ID");
-    let mint = public_key("FUNDED_MAINNET_FUNDED_MINT");
-    let pool = public_key("FUNDED_MAINNET_FUNDED_POOL");
-    assert!(id != mint && id != pool && mint != pool, "Mainnet program, mint and pool must be distinct");
     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("mainnet_id.rs"),
         format!("declare_id!(\"{id}\");\n")).expect("write production program identity");
-    fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("mainnet_assets.rs"),
-        format!("const FUNDED_MINT: &str = \"{mint}\";\nconst FUNDED_POOL: &str = \"{pool}\";\n"))
-        .expect("write production buyback assets");
     // Reviewed WSOL/<paired token> PumpSwap pools for token-budget conversion:
     // FUNDED_MAINNET_CONVERSION_POOLS="<paired mint>:<pool>,...". Empty means
     // conversion stays unavailable until pools are reviewed.
@@ -61,7 +53,7 @@ fn main() {
         let paired = public_key("FUNDED_CONVERSION_ENTRY");
         env::set_var("FUNDED_CONVERSION_ENTRY", pool_key);
         let pool_key = public_key("FUNDED_CONVERSION_ENTRY");
-        assert!(paired != pool_key && pool_key != pool && pool_key != id, "conversion pool must be a distinct pool address");
+        assert!(paired != pool_key && pool_key != id, "conversion pool must be a distinct pool address");
         pools.push(format!("(\"{paired}\", \"{pool_key}\")"));
     }
     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("mainnet_conversion.rs"),

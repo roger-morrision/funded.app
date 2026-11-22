@@ -15,7 +15,7 @@ fn devnet_and_unprotected_entrypoints_are_absent_from_mainnet_build(){
     for name in ["complete_reward_cycle","close_reward_payment","create_bitmap_cycle","create_bitmap_cycle_token",
         "payout_bitmap_sol","payout_bitmap_token","expire_bitmap_cycle","initialize_mint_v3","disburse_mint_v3",
         "recover_qa_settlement_v3","migrate_reward_cycle_sol","migrate_reward_cycle_token","repair_header",
-        "initialize_mint","settle","settle_mint","recover_mint_wrapped_sol","migrate_mint_fee_ledger"]{
+        "initialize_mint","settle","settle_mint","recover_mint_wrapped_sol","migrate_mint_fee_ledger","buyback_mint_v3","buyback_agency_mint_v3"]{
         let hash=hashv(&[format!("global:{}",name).as_bytes()]).to_bytes();
         let ix=Instruction::new_with_bytes(id,&hash[..8],vec![]);
         let message=Message::new_with_blockhash(&[ix],Some(&payer.pubkey()),&svm.latest_blockhash());

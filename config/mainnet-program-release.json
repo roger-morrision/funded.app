@@ -8,7 +8,21 @@
   "upgradeAuthority": null,
   "programDataSha256": null,
   "sourceRevision": null,
-  "binary": {"bytes": null, "sha256": null},
-  "independentReview": {"reviewer": null, "reference": null, "sourceRevision": null, "binarySha256": null},
-  "developerLockPeriodsSeconds": [21600, 43200, 86400, 172800]
+  "binary": {
+    "bytes": null,
+    "sha256": null
+  },
+  "independentReview": {
+    "reviewer": null,
+    "reference": null,
+    "sourceRevision": null,
+    "binarySha256": null
+  },
+  "developerLockPeriodsSeconds": [
+    21600,
+    43200,
+    86400,
+    172800
+  ],
+  "assetConfiguration": "onchain-v1"
 }

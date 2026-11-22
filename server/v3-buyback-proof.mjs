@@ -1,3 +1,5 @@
+import {readRichAssets} from '../rich-assets.js';
+import {decodeBuybackRequest} from './price-signer-review.mjs';
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
@@ -23,13 +25,6 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
   pumpBuyInstruction, split,agencyPolicy=split?.agencyPercent!==undefined,agencyExecution=null,curveCreatorVaultRentLamports=null,
   verifyPolicy = verifyMintPolicyV3Account }) {
   try {
-    const expected = buildV3BuybackInstruction({ cluster, programId, sourceMint,
-      creator, authority, baseTokenProgram, priceSigner, buybackId, spendableQuoteIn,
-      minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy,agencyExecution });
-    if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
-    const {boughtMint,pool}=expected;
-    const curve=isCurveBuy(pumpBuyInstruction);
-    const category=expected.category??6;
     const tx = await connection.getTransaction(signature, {
       commitment:'finalized', maxSupportedTransactionVersion:0 });
     if (!tx || tx.meta?.err !== null || !Number.isSafeInteger(tx.slot)
@@ -42,6 +37,23 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     if (!signers.includes(new PublicKey(authority).toBase58())) return null;
     if(priceSigner && (String(priceSigner)===String(authority)||!signers.includes(String(priceSigner))))return null;
     const instructions = message.instructions || message.compiledInstructions || [];
+    let richAssets=null;
+    if(cluster==='mainnet-beta'){
+      await assertRpcNetwork(connection,cluster);
+      const router=instructions.filter(ix=>keys[ix.programIdIndex]===String(new PublicKey(programId)));
+      if(router.length!==1)return null;
+      const args=decodeBuybackRequest(bytes(router[0].data));
+      if(!args.configured)return null;
+      richAssets=await readRichAssets(connection,programId,{revision:args.assetsRevision});
+    }
+    const expected = buildV3BuybackInstruction({ cluster, programId, sourceMint,
+      creator, authority, baseTokenProgram, priceSigner, buybackId, spendableQuoteIn,
+      minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy,agencyExecution,richAssets });
+    if(cluster==='mainnet-beta')await assertRpcNetwork(connection,cluster);
+    const {boughtMint,pool}=expected;
+    const curve=isCurveBuy(pumpBuyInstruction);
+    const category=expected.category??6;
+
     let routerIndex = -1,setupIndex=0;
     // Older/discovered receipts have no local setup field. Infer only an exact
     // bounded authority -> canonical Pump creator-vault transfer from the tx.

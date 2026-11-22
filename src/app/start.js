@@ -1,3 +1,4 @@
+import {loadPrimaryRichForApp} from './startup/primary-rich.js';
 import {initializeTop100} from '../features/explore/top100.js';
 import { initializeInitialState } from './startup/initial-state.js';
 import { initializeProductFlows } from '../features/experience/index.js';
@@ -45,7 +46,7 @@ import { initializeDeferredArtwork } from './startup/deferred-artwork.js';
 // Preserve initialization and listener registration order across feature boundaries.
 export async function startApp(appState) {
   initializeInitialState(appState);
-  initializeConnections(appState);
+  initializeConnections(appState,await loadPrimaryRichForApp(appState.APP_CLUSTER));
   initializeLaunchPolicy(appState);
   initializeReferrals(appState);
   initializeShareConsent(appState);

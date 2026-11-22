@@ -24,7 +24,8 @@ export async function krakenSolUsd({request=fetch}={}){
 // market identity, or RPC URL from the HTTP caller is trusted.
 export async function independentMarketQuote({connection,config,vault,quote,solUsd=krakenSolUsd}){
   const mint=new PublicKey(config.mint),pool=new PublicKey(config.pool);
-  const snapshot=await readBuybackCurve(connection,mint);
+  const snapshot=config.venue===0?null:await readBuybackCurve(connection,mint);
+  if(config.venue===1&&(!snapshot||snapshot.curve.complete))throw Error('Configured RICH curve is no longer tradable.');
   if(snapshot&&!snapshot.curve.complete){
     if(!config.allowCurve)throw Error('Curve signing is disabled.');
     const result=await quoteCurveBuyback({connection,mint,vault,budgetLamports:quote,snapshot});

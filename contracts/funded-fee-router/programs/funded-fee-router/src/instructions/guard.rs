@@ -7,8 +7,8 @@
 //   authority-driven action and cancel unpaid reward cycles;
 // - only the program upgrade owner (the wallet that can replace the program
 //   anyway) can unpause, change the guardian or change the daily cap;
-// - external SOL outflows and new SOL reward commitments share a daily cap,
-//   which is zero (nothing may leave) until the upgrade owner configures it.
+// - operations, promotion and buyback spending share a daily SOL cap.
+//   Verified user entitlements and reward commitments never consume this cap.
 //
 // The module is compiled only into the Mainnet build, so Devnet and legacy
 // bytecode, account layouts and callers are unchanged.
@@ -47,9 +47,8 @@ pub(crate) fn assert_not_paused(data: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// Counts an external SOL outflow or a new SOL reward commitment against the
-/// shared daily cap. A reservation does not exempt a later payout: both consume
-/// their respective UTC day's budget. The caller has
+/// Counts administrative spending against the daily cap. User entitlements
+/// and reward commitments are exempt. The caller has
 /// already validated the router header through assert_current_router_authority;
 /// the header must be passed writable on Mainnet.
 pub(crate) fn record_outflow(router: &AccountInfo, amount: u64) -> Result<()> {
@@ -70,15 +69,11 @@ pub(crate) fn record_outflow(router: &AccountInfo, amount: u64) -> Result<()> {
 
 /// Permissionless payouts must still obey the canonical protocol guard.
 /// A trailing account keeps the legacy and Devnet account ABI unchanged.
-pub(crate) fn check_reward_payout(program_id: &Pubkey, remaining: &[AccountInfo],
-    sol_amount: Option<u64>) -> Result<()> {
+pub(crate) fn check_reward_payout(program_id: &Pubkey, remaining: &[AccountInfo]) -> Result<()> {
     require!(remaining.len() == 1, ErrorCode::InvalidRouterHeader);
     let router = &remaining[0];
     header_guardian(router, program_id)?;
     assert_not_paused(&router.try_borrow_data()?)?;
-    if let Some(amount) = sol_amount {
-        record_outflow(router, amount)?;
-    }
     Ok(())
 }
 

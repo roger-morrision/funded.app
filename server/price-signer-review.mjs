@@ -1,3 +1,4 @@
+import {readRichAssets,richAssetsAddress} from '../rich-assets.js';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {PublicKey,SystemProgram,ComputeBudgetProgram,TransactionMessage,VersionedTransaction} from '@solana/web3.js';
@@ -18,8 +19,11 @@ const disc=name=>createHash('sha256').update(name).digest().subarray(0,8);
 export const PRICE_SIGNER_GENESIS='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 
 export function decodeBuybackRequest(data){
-  const agency=data.length===122&&data.subarray(0,8).equals(agencyDiscriminator('buyback_agency_mint_v3'));
-  assert(agency||data.length===64&&data.subarray(0,8).equals(disc('global:buyback_mint_v3')),'Only RICH buy-and-burn instructions are permitted.');
+  const configured=(data.length===72&&data.subarray(0,8).equals(disc('global:buyback_configured_mint_v3')))
+    ||(data.length===130&&data.subarray(0,8).equals(disc('global:buyback_configured_agency_mint_v3')));
+  const assetsRevision=configured?String(data.readBigUInt64LE(data.length-8)):null;
+  const agency=configured?data.length===130:data.length===122&&data.subarray(0,8).equals(agencyDiscriminator('buyback_agency_mint_v3'));
+  assert(configured||agency||data.length===64&&data.subarray(0,8).equals(disc('global:buyback_mint_v3')),'Only RICH buy-and-burn instructions are permitted.');
   // Category 6 / agent 255 buys and burns RICH; category 7 / agent 1|2 buys and
   // burns the launch's own coin at a market-cap milestone.
   const ownCoin=agency&&data[40]===7&&(data[41]===1||data[41]===2);
@@ -30,7 +34,7 @@ export function decodeBuybackRequest(data){
     marketCapUsdMicros:data.readBigUInt64LE(58),hash:data.subarray(66,98)}:null;
   if(ownCoin)assert(observation.slot>0n&&observation.observedAt>0n&&observation.marketCapUsdMicros>0n
     &&!observation.hash.equals(Buffer.alloc(32)),'A complete own-coin observation is required.');
-  return{agency,ownCoin,agent:ownCoin?data[41]:null,observation,id:data.subarray(8,40),quote,minimum,limit};
+  return{configured,assetsRevision,agency,ownCoin,agent:ownCoin?data[41]:null,observation,id:data.subarray(8,40),quote,minimum,limit};
 }
 
 export function validateComputeInstructions(instructions){
@@ -82,12 +86,18 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
   const ix=ixs.at(-1);assert(ix.programId.equals(program),'Buyback must be the last instruction.');
   const args=decodeBuybackRequest(Buffer.from(ix.data));
   assert(args.quote<=BigInt(config.maxOrderLamports),'Order exceeds signer spend limit.');
-  assert(ix.keys.length>=36&&ix.keys.length<=45,'Unexpected buyback accounts.');
+  assert(args.configured===(network.cluster==='mainnet-beta'),'Buyback configuration ABI differs from the approved network.');
+  if(args.configured){
+    const assets=await readRichAssets(connection,program);
+    assert(assets.revision===args.assetsRevision&&ix.keys.at(-1).pubkey.equals(richAssetsAddress(program)),'RICH configuration changed; refresh quote.');
+    config={...config,mint:String(assets.mint),pool:String(assets.pool),venue:assets.venue,allowCurve:config.allowCurve&&assets.venue===1};
+  }
+  assert(ix.keys.length>=36&&ix.keys.length<=(args.configured?46:45),'Unexpected buyback accounts.');
   assert(!args.ownCoin||config.allowOwnCoin===true,'Own-coin agency signing is not enabled.');
   const creator=ix.keys[1].pubkey,sourceMint=ix.keys[2].pubkey;
   const vault=args.ownCoin?deriveAgencyVaultsV3(program,sourceMint)[7]:deriveMintVaultsV3(program,sourceMint)[6];
   // Own-coin buys purchase the launch mint from its canonical SOL pool only.
-  const target=args.ownCoin?{...config,mint:String(sourceMint),pool:String(canonicalPumpPoolPda(sourceMint,NATIVE_MINT)),allowCurve:false,ownCoin:true}:config;
+  const target=args.ownCoin?{...config,mint:String(sourceMint),pool:String(canonicalPumpPoolPda(sourceMint,NATIVE_MINT)),allowCurve:false,venue:0,ownCoin:true}:config;
   const policyKey=(args.agency?deriveAgencyPolicyV3:deriveMintPolicyV3)(program,sourceMint).address;
   const receipt=PublicKey.findProgramAddressSync([Buffer.from('mint-buyback-v3'),sourceMint.toBuffer(),args.id],program)[0];
   const [policyInfo,vaultInfo,receiptInfo,mintInfo]=await connection.getMultipleAccountsInfo([policyKey,vault,receipt,key(target.mint)],'finalized');
@@ -135,10 +145,11 @@ export async function reviewBuyback({connection,config,signer,request,marketQuot
     buy.keys[index]={...buy.keys[index],pubkey:candidate};
     if(!quote.curve)buy.keys[index+1]={...buy.keys[index+1],pubkey:getAssociatedTokenAddressSync(NATIVE_MINT,candidate,true,TOKEN_PROGRAM_ID)};
   }
-  assert(ix.keys.length===18+buy.keys.length&&buy.keys.every((k,i)=>ix.keys[18+i].pubkey.equals(k.pubkey)),'Pump accounts differ from finalized market.');
+  assert(ix.keys.length===18+buy.keys.length+(args.configured?1:0)&&buy.keys.every((k,i)=>ix.keys[18+i].pubkey.equals(k.pubkey)),'Pump accounts differ from finalized market.');
   const metas=expected.map((pubkey,i)=>({pubkey,isSigner:i===0||i===17,
     isWritable:[0,4,5,6,7,8,9,10].includes(i)||(i===3&&config.cluster==='mainnet-beta')}));
   metas.push(...buy.keys.map((k,i)=>({...k,isSigner:i===(quote.curve?6:1)?false:k.isSigner})));
+  if(args.configured)metas.push({pubkey:richAssetsAddress(program),isSigner:false,isWritable:false});
   const setup=v3BuybackFeeSetup({pumpBuyInstruction:buy,authority,
     curveCreatorVaultRentLamports:quote.curveCreatorVaultRentLamports||'0'}),before=ixs.slice(0,-1);
   const compute=before.filter(i=>i.programId.equals(ComputeBudgetProgram.programId));

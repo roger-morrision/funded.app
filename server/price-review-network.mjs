@@ -10,8 +10,8 @@ export function priceReviewNetwork(config,request,{release=reviewedMainnetManife
   if(cluster==='mainnet-beta') {
     const approved=reviewedMainnetManifest(release);
     assert(approved&&approved.programId===config.programId&&approved.programDataSha256===config.programDataSha256
-      &&approved.upgradeAuthority===config.upgradeAuthority&&approved.fundedMint===config.mint
-      &&approved.fundedPool===config.pool,'Mainnet price review requires the exact independently reviewed release and assets.');
+      &&approved.upgradeAuthority===config.upgradeAuthority&&approved.assetConfiguration==='onchain-v1'
+      &&config.assetConfiguration==='onchain-v1','Mainnet price review requires the exact independently reviewed release and assets.');
   }
   return {cluster,genesisHash:SOLANA_GENESIS[cluster]};
 }
