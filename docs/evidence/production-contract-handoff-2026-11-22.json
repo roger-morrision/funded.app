@@ -492,8 +492,7 @@
     "tokenPoolLpPrincipal": 0,
     "illustrativeFundingBeforeReserve": 6017665880,
     "illustrativeTotalIncludingReserve": 9017665880,
-    "illustrativeTotalLessPayerBalance": 9017665880,
-    "roleFunding": "Aggregate assumes E9 sources all planned funding including direct admin/operator rents. Fund admin/operator before bootstrap, count those rents once. Program identity signs fresh deployment only.",
+    "roleFunding": "E9 is deployment payer only. Allocate the protected 3 SOL to the operator that pays worker fees and rents. Fund admin direct rents separately. Assign remaining setup/canary costs from existing allowances according to actual messages, without duplication.",
     "conditions": [
       "Unpriced final wire messages and priority bids, lookup table and canary transaction selection.",
       "Refresh rent, balances, unwritten target accounts, fee quote and blockhash prior to signing.",
@@ -504,16 +503,16 @@
         "role": "deployment payer",
         "address": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
         "observedBalance": 0,
-        "allocatedReserve": 3000000000,
-        "requiredIfDirectlyFundingRolesSeparately": 9012397920,
+        "allocatedReserve": 0,
         "temporaryBufferRent": 5641792120,
         "debits": [
-          "buffer create",
-          "upload and deployment fees",
-          "program account and ProgramData",
-          "bootstrap fees",
-          "provisional setup/contingency/canary"
-        ]
+          "buffer creation and upload fees",
+          "program and ProgramData rent via recycled buffer",
+          "owner/bootstrap message fees charged to E9 when shown in final messages"
+        ],
+        "quotedDeploymentPrefixRentAndBaseFee": 5655025880,
+        "proposedDeploymentEnvelope": 5917665880,
+        "debitScope": "Deployment envelope includes fee allowance and contingency. Bootstrap fees are to be reconciled within final assigned allowances."
       },
       {
         "role": "admin and upgrade authority",
@@ -531,8 +530,12 @@
         "observedBalance": null,
         "knownDirectRent": 1315720,
         "debits": [
-          "router initialization"
-        ]
+          "router initialization rent",
+          "operator-paid setup accounts, worker/canary transaction fees and bounded rent from final message inventory"
+        ],
+        "allocatedReserve": 3000000000,
+        "minimumKnownBalanceBeforeRouterInit": 3001315720,
+        "additionalFunding": "Unpriced operator obligations must be added above the protected reserve; their assigned portions consume the existing unassigned allowances once."
       },
       {
         "role": "program identity",
@@ -540,9 +543,42 @@
         "observedBalance": 0,
         "directTransferRequired": 0,
         "debits": []
+      },
+      {
+        "role": "independent price attestor",
+        "address": null,
+        "observedBalance": null,
+        "allocatedReserve": 0,
+        "directFundingFromKnownMessages": 0,
+        "debits": [],
+        "condition": "Zero direct funding applies only when all final messages make it a readonly co-signer, with E9 or operator paying fees and rents."
       }
     ],
-    "deploymentProjectionFromMessages": 12360000
+    "deploymentProjectionFromMessages": 12360000,
+    "unassignedAllowances": {
+      "setupAfterKnownBootstrapRent": 44732040,
+      "canaryExposure": 50000000,
+      "status": "Assign each debit to its actual payer once final messages exist. The existing 3 SOL reserve is additional to these spendable amounts."
+    },
+    "illustrativeAggregateLessObservedDeploymentPayerBalance": 9017665880,
+    "aggregateShortfallLimit": "Only E9 and admin balances are observed. Operator/attestor/guardian addresses and balances remain unknown. This aggregate planning figure cannot be used as an E9 top-up instruction.",
+    "reserveEnforcement": {
+      "walletRole": "operator",
+      "lamports": 3000000000,
+      "balanceRule": "Operator balance minus quoted fee and maximum rent must retain at least 3000000000 lamports.",
+      "sources": [
+        "server/v3-buyback-setup.mjs:41-55",
+        "server/routes/v3-buyback.mjs:309",
+        "server/price-signer-review.mjs:161",
+        "server/community-execution-journal.mjs"
+      ],
+      "scope": "Current source enforcement. Runtime production admission remains separately reviewed."
+    },
+    "walletAllocationReconciliation": {
+      "assignedRoleEnvelopes": 8922933840,
+      "unassignedSetupAndCanary": 94732040,
+      "totalIncludingSingleOperatorReserve": 9017665880
+    }
   },
   "restrictedBaseline": {
     "status": "undeployed restricted production-ID review candidate",

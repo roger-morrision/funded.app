@@ -251,7 +251,18 @@ Paired settlement and disbursement now compare spendable token balances before p
 
 The proposed unsigned deployment prefix contains one buffer creation, 1,234 writes and one atomic program creation/deploy message. E9 pays all fees. The 5Thg authority signs writes and deployment. ExUNA signs the deployment message and requires zero direct transfer. Native Loader-v3 returned 5.641792120 SOL of temporary buffer rent before funding ProgramData in the compiled local rehearsal. The incremental ProgramData cash debit after the refund is 0.000040640 SOL. [Agave implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259-L280)
 
-For an illustrative split with bootstrap roles funded separately, E9 would hold 9.012397920 SOL including the protected reserve, 5Thg would hold 0.003952240 SOL for direct initial rents and the operator would need 0.001315720 SOL for its initial rent. These figures include planning allowances. The operator identity, its balance and remaining execution messages are still open. The selected route has zero new token, pool or LP principal. Requote before any approval or transfer.
+The existing 3 SOL protected reserve belongs to the operator whose balance the worker checks before paying transaction fees and account rent. The current buyback route and independent reviewer both call `verifyV3BuybackAuthorityReserve`. Community execution also checks its authority payer. E9's deployment role has zero assigned operating reserve.
+
+| Draft allocation using existing allowances | SOL |
+| --- | ---: |
+| E9 deployment rent, fee allowance and contingency | 5.917665880 |
+| 5Thg direct initial RICH/history/price rents | 0.003952240 |
+| Operator reserve plus known router rent | 3.001315720 |
+| Remaining setup allowance awaiting actual payer assignment | 0.044732040 |
+| Canary allowance awaiting actual payer assignment | 0.050000000 |
+| **Total including one operator reserve** | **9.017665880** |
+
+The operator needs its actual setup, worker and canary debits above the 3 SOL reserve. Assign those amounts from the existing allowances after inspecting the messages. The independent price attestor has zero known direct debit when it only co-signs and E9 or the operator pays the fee and rent. Its funding depends on the final messages. The operator, attestor and guardian addresses and balances are unresolved. ExUNA needs zero direct transfer. These figures are a planning draft. Requote final balances and each message before approving top-ups.
 
 ## Operator custody and reward-vault handoff
 
