@@ -189,7 +189,15 @@ Tested base `97e878b6a595d8669505a967535d2431c6f4923e`, router source tree `dd2f
 
 **Devnet and app QA handoff.** At finalized slot 525093953 both Loader-v3 pointers, full ProgramData hashes and sized ELF hashes matched the [isolated router](evidence/devnet-configurable-rich-2026-11-22.json) and [public app](evidence/devnet-financial-records-2026-11-22.json) pins. Existing bonus receipts cover post-rotation commitment. Live acceptance of this ordering still requires an authorized isolated rotation between commitment and payout. The ranking inputs were synthetic. Live indexing and worker scheduling remain with app QA.
 
-**Next contract case.** Exercise a protected category-1 operations approval at the Mainnet-feature daily cap. Reconcile cap usage, payout, approval consumption and residual category custody.
+## Protected operations withdrawals at the daily cap
+
+**FEE-OPS-01 — local-only.** A 1,000-lamport protected settlement allocated 200 lamports to operations (category 1) and 800 to the creator. With the shared cap set to 100, all 99 positive two-payment splits of 100 succeeded. Each payment debited the operations vault, credited the approved recipient by the same amount, consumed its approval and recorded a matching withdrawal. The creator vault stayed intact. One second before UTC midnight a separately approved additional lamport failed with `DailyOutflowCapExceeded`. The failed payment preserved the guard, policy, custody, recipient and approval and created no receipt. At midnight the same approval paid once. The new window showed 1 spent, the recipient had gained 101 overall and 99 spendable lamports remained in operations custody.
+
+Tested base `9636cc90ed3c0bde4ff9f435df0695cb781bed17`, router source tree `dd2f57ffe841adaca9b2e033950633247f64c7ac`, Mainnet-feature fixture ELF SHA-256 `6bfa0414eaf68b6dd3d2c5cda79e0454c0255e2da4ac80c7466f79e2913ce320`. With the fixture environment documented above, run `cargo test --locked -p funded-fee-router --features mainnet-v3-program --test protocol_guard operations::protected_operations_cap_and_midnight_retry -- --exact`. The [compiled regression](../contracts/funded-fee-router/programs/funded-fee-router/tests/protocol_guard/operations.rs) passed all 99 partitions, blob `9d0ebc59d8322dfdcc6ccc337d10a8e1833dc081`. The [host security suite](../tests/security/mainnet-release.test.mjs), blob `c340cb3f75206817cceade1074a394caa28de76f`, checked the app's co-signed approval and payout builders, including the writable spending guard. All six cases passed with `node --test tests/security/mainnet-release.test.mjs`.
+
+`npm run check` passed the JavaScript syntax and source-size checks. **Live coverage unavailable.** The deployed Devnet builds omit the Mainnet guard. Read-only Loader-v3 header checks at finalized slot 525100967 confirmed the expected pointers and last deployment slots of 524977616 (isolated) and 524639163 (public app). Both predate the full byte verification at slot 525093953 recorded above. No transaction was submitted.
+
+**Next contract case.** Reconcile a protected category-2 referral payout when the operations cap is exhausted, including the approval, recipient credit, referral custody and guard counter.
 
 ## Remaining deployment blockers
 

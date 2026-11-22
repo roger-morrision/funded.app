@@ -5,6 +5,8 @@ import {createHash} from 'node:crypto';
 import {reviewedMainnetManifest} from '../../mainnet-program.js';
 import {priceReviewNetwork} from '../../server/price-review-network.mjs';
 import {buildAgencyPromotionV3Instruction} from '../../agency-mint-router-v3.js';
+import {buildProtectedMintV3ApprovalInstruction, buildProtectedMintV3DisbursementInstruction} from '../../protected-mint-router-v3.js';
+import {deriveFeeRouter} from '../../fee-router.js';
 import {mainnetReleaseVerified} from '../../server/mainnet-program.mjs';
 
 // Fabricated review metadata for validator unit tests only. This fixture is
@@ -37,6 +39,24 @@ test('promotion builder supplies writable Mainnet guard and preserves Devnet fla
     deliveryHash:Buffer.alloc(32,1),sequence:0,amount:100,postedAt:1_800_000_000};
   assert.equal(buildAgencyPromotionV3Instruction({...input,cluster:'mainnet-beta'}).instruction.keys[2].isWritable,true);
   assert.equal(buildAgencyPromotionV3Instruction(input).instruction.keys[2].isWritable,false);
+});
+test('protected operations approval and payout bind the same terms and writable spending guard', () => {
+  const input = { programId:key(), authority:key(), creator:key(), mint:key(), recipient:key(),
+    withdrawalId:Buffer.alloc(32, 3), amount:63n, category:1, beneficiary:3 };
+  const { instruction:approve, approval } = buildProtectedMintV3ApprovalInstruction(input);
+  const { instruction:pay } = buildProtectedMintV3DisbursementInstruction(input);
+  for (const ix of [approve, pay]) {
+    assert(ix.keys[1].pubkey.equals(new PublicKey(input.creator)) && ix.keys[1].isSigner);
+    assert(ix.keys[3].pubkey.equals(deriveFeeRouter(input.programId).address));
+    assert.deepEqual(ix.data.subarray(8, 40), input.withdrawalId);
+    assert.deepEqual([...ix.data.subarray(40, 42)], [1, 3]);
+    assert.equal(ix.data.readBigUInt64LE(42), input.amount);
+  }
+  assert.equal(approve.keys[3].isWritable, false);
+  assert.equal(pay.keys[3].isWritable, true);
+  assert(approve.keys[5].pubkey.equals(new PublicKey(input.recipient)));
+  assert(pay.keys[6].pubkey.equals(approve.keys[5].pubkey));
+  assert(approve.keys[6].pubkey.equals(approval) && pay.keys[7].pubkey.equals(approval));
 });
 test('runtime trust verifies loader, canonical ProgramData, owner, exact ELF and trailing bytes',()=>{
   const r=release(),loader=new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');

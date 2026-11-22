@@ -11,6 +11,8 @@ use {
     solana_transaction_lite::versioned::VersionedTransaction,
 };
 mod support;
+#[path = "protocol_guard/operations.rs"]
+mod operations;
 
 const DAY: i64 = 24 * 60 * 60;
 const START: i64 = 1_800_000_000;
