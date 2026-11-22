@@ -1553,6 +1553,18 @@
       "No automatic failed/expired replacement policy.",
       "Parent live, archive, roles, scale and final funding readiness remain open."
     ],
-    "status": "Contract source/runtime review passed; independentNode24 acceptance pending."
+    "status": "Covered45-case source/runtime review passed; additional transaction fee/native balance consistency probe failed expected rejection. Correction requested.",
+    "feeConsistencyFinding": {
+      "source": "969809a0939b033353c757649e933c018a76d407",
+      "rawProbe": "tmp/contract-payout-fee-probe-9698.txt",
+      "sha256": "33c3dddae2543425494bee8c40ced67fa73cb4bc04d3cecc5588e9f8e34abd3d",
+      "node": "v26.13.1",
+      "setup": "Actual payout journal/store and default non-self SOL fixture. Land prepared attempt with proof unavailable; change only reported tx.meta.fee5000to5001 while signed message/status/prepostbalances/receipt stay unchanged. Expose proof and recover original attempt.",
+      "expected": "Inconsistent transaction-native fee accounting remains unresolved.",
+      "observed": "payoutTransactionVerified true,feeLamports5001,stored attempt verified. One expected-rejection probe failed.",
+      "sourceAssessment": "Finalized payout verifier validates positive fee and unit deltas, but non-self receipt path does not reconcile fee against native balance conservation or exact payer/rent effects.",
+      "scope": "Synthetic verifier consistency. No live exploit or financial effect claimed. Existing45passing cases remain evidence for their covered paths.",
+      "owner": "App Dev with independent E2E Node24 reproduction requested."
+    }
   }
 }
