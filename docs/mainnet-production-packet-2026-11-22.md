@@ -34,12 +34,14 @@ requires **zero new token launch, pool creation or LP principal**.
 ## Exact artifacts and tested App slices
 
 The current pair-enabled Contract candidate is source
-`575b294793afe2a3732fd4d5ebade1f68adb9539`, ELF **1,109,672 bytes**, SHA-256
-`e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e`.
+`0278fb68a3eb4cae66115bd61a03c0f91ac46c1b`, ELF **1,110,880 bytes**, SHA-256
+`8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd`.
 Its build uses `mainnet-v3-program`, explicit ExUNA program ID, and explicit
 `USDC:Gf7` conversion binding. App independently hashes the retained public ELF.
-Final independent compiled/financial release acceptance is still pending.
-The smaller f284/empty-conversion candidate and 3qb public fixture are excluded
+E2E independently reproduced the rebuild and the exact-transfer custody fix,
+including the same regression failing on e55. Full integrated/live release
+acceptance is still pending. Superseded e55, the smaller f284/empty-conversion
+candidate and 3qb public fixture are excluded
 from full-feature release. An admin-only intent change does not alter these
 compile-time inputs; do not fabricate a needless binary change.
 
@@ -67,15 +69,22 @@ custody and independently read fee membership. Ten focused cases pass across
 categories 5/6/7 and rejection cases. Full independent reviewer, durable typed
 reservation, keeper and finalized proof integration remain in progress. This
 helper is not imported by a runtime worker/signing service and changes no pool map.
+The next receipt slice passes 16 additional cases (26 total with builder coverage):
+both Ed25519 signatures and frozen message, exact sell CPI/receipt/category,
+USDC debit, SOL credit excluding WSOL prefund and vault rent top-up, and closure.
+An actual finalized RPC adapter requires the reviewed full program context and
+matching finalized status/slot; the committed incomplete release rejects before
+RPC. Positive adapter tests use explicitly synthetic ProgramData/review/status
+fixtures. These are not independent production review or chain evidence.
 
 ## Current costs: quote inputs, not a funding request
 
-Fresh App quote at finalized slots **472585682–472585684**, tied to e55 above:
+Fresh App quote at finalized slots **472590082–472590083**, tied to 8f6 above:
 
 | Item | Lamports | Accounting |
 | --- | ---: | --- |
-| Program + exact-size ProgramData | 5,638,845,720 | Locked rent, not a transaction fee |
-| Upload buffer | 5,637,971,960 | Temporary/reusable deposit; never add twice as permanent spend |
+| Program + exact-size ProgramData | 5,644,982,360 | Locked rent, not a transaction fee |
+| Upload buffer | 5,644,108,600 | Temporary/reusable deposit; never add twice as permanent spend |
 | Initial router, 131 bytes | 1,315,720 | Debited to the future operator by account constraints |
 | RICH current + history, 177 bytes each | 3,098,800 | Direct new-admin rent debit |
 | Independent price configuration, 40 bytes | 853,440 | Direct new-admin rent debit |
@@ -90,11 +99,13 @@ passed all upload bytes, recycled-buffer funding, payer delta and deployed ident
 assertions. Independent rehearsal review is still required. For that same-payer
 sequence, peak rent funding uses the recycled buffer: PD minus buffer is 40,640
 lamports, plus separate 833,120 program rent. The original quote's unrecycled
-11,276,817,680-lamport upper bound is retained as historical conservative evidence,
+11,289,090,960-lamport upper bound is retained as historical conservative evidence,
 not the intended requested peak or permanent spend.
 
-Contract also prepared 1,235 unsigned loader messages, largest 1,216 bytes, with
-zero-priority fee projection **12,350,000 lamports** from four RPC message classes.
+Contract's revised `e8233abe61ab47c99c4fa61d21605edf39d9e710` packet prepared
+1,237 unsigned loader messages, largest 1,216 bytes, with zero-priority fee
+projection **12,370,000 lamports** from four RPC message classes, and repeated
+the native upload/recycling/finalization rehearsal for 8f6.
 App still needs to bind/review that inventory and account for all setup/canary
 messages. Neither the rent nor loader fee subtotal is the final requested top-up.
 
@@ -102,7 +113,7 @@ The final wallet table must replace every unknown with the real message inventor
 
 | Recipient | Current finalized balance | Required final calculation |
 | --- | ---: | --- |
-| E9 payer (full address above) | 0, slot 472585682–684 | Upload/deploy fees and peak recycled rent, E9-paid setup/canary fees; approved contingency |
+| E9 payer (full address above) | 0, slot 472590082–83 | Upload/deploy fees and peak recycled rent, E9-paid setup/canary fees; approved contingency |
 | 5Thg admin (full address above) | 0, same quote | 3,952,240 direct initial config rent plus any explicitly admin-paid fees/actions |
 | Fresh operator | Identity not provisioned | 1,315,720 router rent, exact operational setup/ATA/ALT/canary costs, assigned protected reserve |
 | Independent price signer | Identity not provisioned | Exact configuration/operating fee obligations, if any; do not assume it is a fee payer |
@@ -162,11 +173,13 @@ requires exact loader/account evidence; no automatic repeated deployment.
 | MN-006 | App + independent QA | Clean source/CI/build identities, backup/restore, serialized rollout, bounded canary and live acceptance |
 
 Shared App evidence: `data/qa-evidence/mainnet-production-packet-20261122/`.
-Relevant files: `selected-mainnet-token*.json`, `current-production-cost-quote.json`,
-`unsigned-production-rich-init.json`, `namespace-preparation.json`,
+Relevant files: `selected-mainnet-token*.json`, `production-cost-8f6b661e.json`,
+`unsigned-production-rich-init-8f6b661e.json`, `namespace-preparation.json`,
 `unsigned-source-evidence.json`, `unsigned-fixtures.json`,
 `integrated-community-deadline.stdout`, `usdc-sell-capture.json`, and
-`usdc-sell-builder-result.json`. Original failed and superseded evidence is retained.
+`usdc-sell-builder-result.json`, `token-sell-proof-result.json` and
+`missing-proof-elf-result.json`. Original failed and superseded evidence is retained;
+the earlier `current-production-cost-quote.json` belongs to historical e55.
 
 Source references: [Solana transaction fees](https://solana.com/docs/core/fees),
 [rent RPC](https://solana.com/docs/rpc/http/getminimumbalanceforrentexemption),

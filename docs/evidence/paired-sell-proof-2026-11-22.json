@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-005",
+  "baseRevision": "fa95d5b9069a18bf90f942e2d06afe33950309b5",
+  "recordedAt": "2026-11-22T15:27:49.214525+00:00",
+  "scope": "local-only transaction fact parser and real RPC adapter against synthetic status/ProgramData/review metadata, captured public market and retained ELF; not actual review/finality/signing admission",
+  "tests": {
+    "required": 26,
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "missingProofElf": "exit1; existing10builderpasses cannot mask missing16proofcases",
+    "syntaxChangedFiles": "passed5",
+    "maintainedSourceSizes": "passed1389"
+  },
+  "sourceSha256": {
+    "server/token-conversion-sell-proof.mjs": "c579cefeb24bd401e720663201ddf7c9524e8dc9a0061d3b7bb8b8f085a0ab7f",
+    "tests/readiness/token-conversion-sell-proof.test.mjs": "51ce9ba4ec64150023201f86d11d048745a59db29fd57e68206832834b8e4123",
+    "tests/readiness/token-sell-proof-fixture.mjs": "fe6ca423c2ba6dd6e089568c174705b0a6b3be4f68a067aa40fe78b0406dc670",
+    "tests/readiness/token-sell-capture-fixture.mjs": "5f0b0aa4824514f4b3c58f835c10c9eece6196ce983adf782ae33ec073490da2",
+    "tests/readiness/token-conversion-sell.test.mjs": "1476617b32caf50e3f84f7490a88112d7ba312c17792ff5d395ec5b971fbdeea",
+    "config/token-conversion-sell-proof-tests.json": "8c99e466a5c54911d1cb7ea308df6c02e29b62de1b14790d16a6b5b7eeabd74f",
+    "docs/paired-sell-proof-2026-11-22.md": "204c7fb9a2df843efa8e1cd727b6567ce4a8243322e3d5aa921fe565ae3cb457",
+    "docs/mainnet-production-packet-2026-11-22.md": "0aeb67e7f2ce834d742ccef7c3c92fbdc8f14635b3d426d8c57c2ebbe3f5a962"
+  },
+  "unchangedAdmissionSha256": {
+    "server/token-conversion-sell.mjs": "7483acdf5d611b8bb3633c040a4aa47ab57ebb1991a3367c04c3892516b4535d",
+    "server/price-signer-service.mjs": "933eaa068b2441782f57a90d249c7e279f4fa493eb4def22ccbb8a25f5084b6a",
+    "server/v3-token-keeper.mjs": "d530111a5a6c1426725f2c577b176f4c0321111c57d6156645046c9486a600eb",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "package.json": "5536017efeb4f4d17e3e0ac9428a65f68079766d6f0f3bd7347443054521fb6c",
+    "package-lock.json": "e004d111f5f6da0d659d7ffd1f91a06123535d4512191a6b579dcecf0331b32b"
+  },
+  "evidenceSha256": {
+    "token-sell-proof-result.json": "31164cdca6ed5f1e2d002edcb016b92975e6cbe6ce9a70cd77857e770c551285",
+    "missing-proof-elf-result.json": "feb5e8c52a0e6d49811c7a11300ba4d86c412e4452bae1fdbc1f1e5c05d5e259",
+    "usdc-sell-capture.json": "e0a2d89f34bcf94421c225f2d5fe2ae2ab27c2c9fa4b162396a3eb38805e6aa3",
+    "production-cost-8f6b661e.json": "ed178923dcb4cf0a7e3841a0c2aa84592de00586807559d5621cec95fd3a935f",
+    "unsigned-production-rich-init-8f6b661e.json": "1a55ebbe6ed593bf3209baaca27971c33337231a8e052efb3477ddc912930ed2"
+  },
+  "candidate": {
+    "source": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
+    "bytes": 1110880,
+    "sha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
+  },
+  "limitations": [
+    "No active worker/signing-service imports",
+    "Expected message hash must originate from durable reviewed intent, not client claim",
+    "Core parser does not assert finality; admitted adapter checks real finalized RPC in production",
+    "Positive adapter unit fixture fabricates review metadata/header/status and never writes it to production config",
+    "Full independent price review, typed journal, keeper/recovery and actual financial integration remain open"
+  ]
+}
