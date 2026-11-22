@@ -8,7 +8,7 @@ import {PublicKey} from '@solana/web3.js';
 // change after delivery. The payment PDA is the on-chain once-per-wallet guard.
 export async function verifyCommunityDelivery({connection,signature,built,programId,recipient,index}) {
   const tx=await connection.getTransaction(signature,{commitment:'finalized',maxSupportedTransactionVersion:0});
-  if(!tx)return null;
+  if(!tx||tx.meta?.err)return null;
   assert(tx.meta?.err===null&&tx.transaction.signatures.includes(signature),'A finalized successful delivery is required.');
   const message=tx.transaction.message;
   const keys=[...(message.accountKeys||message.staticAccountKeys||[]),

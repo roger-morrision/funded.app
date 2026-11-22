@@ -82,7 +82,7 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
               const result=await delivery.pay(record,leaf);
               if(result.status==='finalized'||result.status==='already-paid'){paid++;remember(proofKey);}
               else if(result.status==='verification-pending')submitted++;
-              else if(['expired','ineligible','unavailable','expired-unlanded'].includes(result.status))waiting++;
+              else if(['expired','ineligible','unavailable','expired-unlanded','reconciliation-pending'].includes(result.status))waiting++;
               else failures.push({mint:launch.mint,recipient:leaf.recipient,reason:result.status});
             }catch(error){
               if(unavailableRpc(error))throw error;
