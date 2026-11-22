@@ -34,13 +34,14 @@ requires **zero new token launch, pool creation or LP principal**.
 ## Exact artifacts and tested App slices
 
 The current pair-enabled Contract candidate is source
-`0278fb68a3eb4cae66115bd61a03c0f91ac46c1b`, ELF **1,110,880 bytes**, SHA-256
-`8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd`.
+`971399ff4e2ebdeca76a3e16a80273db38a8bfa0`, ELF **1,110,424 bytes**, SHA-256
+`3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50`.
 Its build uses `mainnet-v3-program`, explicit ExUNA program ID, and explicit
 `USDC:Gf7` conversion binding. App independently hashes the retained public ELF.
-E2E independently reproduced the rebuild and the exact-transfer custody fix,
-including the same regression failing on e55. Full integrated/live release
-acceptance is still pending. Superseded e55, the smaller f284/empty-conversion
+E2E independently accepted the preceding 8f6 exact-transfer custody fix and the
+current 3f8 historical receipt-expiry correction and deployment prefix. App
+historical address construction and full integrated/live acceptance remain
+pending. Superseded 8f6/e55, the smaller f284/empty-conversion
 candidate and 3qb public fixture are excluded
 from full-feature release. An admin-only intent change does not alter these
 compile-time inputs; do not fabricate a needless binary change.
@@ -79,52 +80,66 @@ fixtures. These are not independent production review or chain evidence.
 
 ## Current costs: quote inputs, not a funding request
 
-Fresh App quote at finalized slots **472590082–472590083**, tied to 8f6 above:
+Current Contract quote at finalized slot **472592348**, tied to 3f8 above;
+independent E2E accepted the exact unsigned prefix. These are retained quote
+inputs, not current funding instructions; refresh actual balances/fees before
+execution.
 
 | Item | Lamports | Accounting |
 | --- | ---: | --- |
-| Program + exact-size ProgramData | 5,644,982,360 | Locked rent, not a transaction fee |
-| Upload buffer | 5,644,108,600 | Temporary/reusable deposit; never add twice as permanent spend |
-| Initial router, 131 bytes | 1,315,720 | Debited to the future operator by account constraints |
+| Program + exact-size ProgramData | 5,642,665,880 | Locked rent, not a transaction fee |
+| Upload buffer | 5,641,792,120 | Temporary/recycled deposit, not a second permanent cost |
+| 1,236 unsigned deployment-prefix messages / 1,234 writes | 12,360,000 | Zero-priority base-fee projection, max wire 1,216 bytes |
+| Initial router, 131 bytes | 1,315,720 | Future operator debit |
 | RICH current + history, 177 bytes each | 3,098,800 | Direct new-admin rent debit |
-| Independent price configuration, 40 bytes | 853,440 | Direct new-admin rent debit |
-| Prepared RICH-init message fee | 10,000 | E9 fee payer, E9 + 5Thg required signatures |
-| Existing protected operating reserve | 3,000,000,000 | Separate available balance, not permission to spend |
+| Price configuration, 40 bytes | 853,440 | Direct new-admin rent debit |
+| Retained RICH-init message fee | 10,000 | E9 fee payer; E9 + 5Thg signatures |
+| Protected operating reserve | 3,000,000,000 | Assigned ONCE to the operator, unavailable for routine spending |
 | New token / pool / LP principal | 0 | Existing supported markets |
 
-The fresh-DeployWithMaxDataLen Loader source refunds the buffer to the same payer
-before rent-funding ProgramData (App independently read Agave 4.1.2 lines 259–280).
-Contract's native local rehearsal at `23df01d408ee8ccc995bd4060efa029118e43ed9`
-passed all upload bytes, recycled-buffer funding, payer delta and deployed identity
-assertions. Independent rehearsal review is still required. For that same-payer
-sequence, peak rent funding uses the recycled buffer: PD minus buffer is 40,640
-lamports, plus separate 833,120 program rent. The original quote's unrecycled
-11,289,090,960-lamport upper bound is retained as historical conservative evidence,
-not the intended requested peak or permanent spend.
+Prefix SHA-256:
+`ac4e2708c14bbc7d341268bbe44d133ae0c54ce2e1789645f3b9dbf28d64dd5a`.
+The Loader refunds the buffer to the SAME payer before ProgramData rent funding.
+Native full-upload/finalization evidence and independent prefix decoding support
+this ordering; no second full buffer rent is added to the permanent total.
 
-Contract's revised `e8233abe61ab47c99c4fa61d21605edf39d9e710` packet prepared
-1,237 unsigned loader messages, largest 1,216 bytes, with zero-priority fee
-projection **12,370,000 lamports** from four RPC message classes, and repeated
-the native upload/recycling/finalization rehearsal for 8f6.
-App still needs to bind/review that inventory and account for all setup/canary
-messages. Neither the rent nor loader fee subtotal is the final requested top-up.
+Contract's corrected reserve allocation at `3657d4d934d8dff7fc6fdc0b280bd1415998b145`
+is independently verified by E2E. The unchanged App source checks authority-payer
+balance after maximum fees/rent: threshold 3 SOL + fee + maximum rent passes;
+one lamport less rejects. E9 and price-attestor balances do not supply that reserve.
+
+The **draft** 9.017665880 SOL envelope is allocated as E9 5.917665880 (rent plus
+0.025 fee allowance and 0.25 contingency), admin 0.003952240 known direct rent,
+operator 3.001315720 known reserve/router minimum, and 0.094732040 still unassigned
+setup/canary. Actual operational expenses consume these allowances once; they
+cannot consume the protected reserve. This is not a final top-up or funding
+request: operational/price/guardian roles, balances and remaining messages are
+unresolved. Source-only reserve corrections and the Devnet-only bitmap fix do
+not change 3f8 bytes or require another unchanged Loader quote.
 
 The final wallet table must replace every unknown with the real message inventory:
 
 | Recipient | Current finalized balance | Required final calculation |
 | --- | ---: | --- |
-| E9 payer (full address above) | 0, slot 472590082–83 | Upload/deploy fees and peak recycled rent, E9-paid setup/canary fees; approved contingency |
+| E9 payer (full address above) | 0, slot 472590082â€“83 | Upload/deploy fees and peak recycled rent, E9-paid setup/canary fees; approved contingency |
 | 5Thg admin (full address above) | 0, same quote | 3,952,240 direct initial config rent plus any explicitly admin-paid fees/actions |
-| Fresh operator | Identity not provisioned | 1,315,720 router rent, exact operational setup/ATA/ALT/canary costs, assigned protected reserve |
+| Fresh operator | Identity not provisioned | 1,315,720 router rent, exact operational setup/ATA/ALT/canary costs, the single 3 SOL protected reserve plus expenses above it |
 | Independent price signer | Identity not provisioned | Exact configuration/operating fee obligations, if any; do not assume it is a fee payer |
 | ExUNA program identity | No direct top-up proposed | Rent is funded through reviewed payer instructions, not a blind transfer to this address |
 
 For every real funding wallet, proposed top-up is `max(0, peak required balance -
 fresh finalized balance)`. Final values need real upload/init/guard/ATA/ALT/canary
-messages, reviewed limits and per-wallet reserve allocation. Fees vary; capture
+messages, reviewed limits and operational-role funding allocation. Fees vary; capture
 quote time/slot, message hash, fee inputs and expiry, then re-quote before signing.
 The removed aggregate deployment cap stays removed. The administrative daily cap
 is a separate financial-policy decision and must not be silently selected.
+
+The new independent quote/reviewer/durable journal integration is documented in
+[the scoped source handoff](paired-sell-review-journal-2026-11-22.md). It passes
+72 required local cases, with new review/journal fixtures binding current 3f8,
+while all financial/RPC/review facts remain explicitly synthetic. Runtime signer
+and worker admission remain disabled. Exact signed bytes must be durably saved
+before any future broadcast; unknown attempts cannot be replaced blindly.
 
 ## Custody, infrastructure and execution packet
 
@@ -174,7 +189,7 @@ requires exact loader/account evidence; no automatic repeated deployment.
 
 Shared App evidence: `data/qa-evidence/mainnet-production-packet-20261122/`.
 Relevant files: `selected-mainnet-token*.json`, `production-cost-8f6b661e.json`,
-`unsigned-production-rich-init-8f6b661e.json`, `namespace-preparation.json`,
+`unsigned-production-rich-init-8f6b661e.json` (retained message review; old rent quote), `namespace-preparation.json`,
 `unsigned-source-evidence.json`, `unsigned-fixtures.json`,
 `integrated-community-deadline.stdout`, `usdc-sell-capture.json`, and
 `usdc-sell-builder-result.json`, `token-sell-proof-result.json` and

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T16:09:56.227676+00:00",
+  "baseRevision": "8c5d1a0698d4c96bccbd5d9b11210263a089755b",
+  "scope": "Local-only independent quote/reviewer/locked durable reservation/exact finalized reconciliation; deterministic financial RPC, no runtime admission/signing/broadcast",
+  "node": "v24.22.3",
+  "counts": {
+    "tests": 72,
+    "passed": 72,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "required": 72,
+  "requiredPassed": 72,
+  "inputs": {
+    "publicMarketCaptureSha256": "e0a2d89f34bcf94421c225f2d5fe2ae2ab27c2c9fa4b162396a3eb38805e6aa3",
+    "existingProofElfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+    "currentReviewElfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "currentReviewElfBytes": 1110424,
+    "currentContractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "financialReviewMetadata": "SYNTHETIC unit-only; not independent production acceptance"
+  },
+  "negativeGates": [
+    {
+      "name": "token-conversion-integration-missing-elf.json",
+      "exit": 1,
+      "requiredPassed": 38,
+      "required": 72
+    },
+    {
+      "name": "token-conversion-integration-wrong-elf.json",
+      "exit": 1,
+      "requiredPassed": 38,
+      "required": 72
+    }
+  ],
+  "sourceChecks": {
+    "fullSyntaxFiles": 1140,
+    "subsequentChangedThreeFilesSyntax": "passed",
+    "maintainedSizeFiles": 1403,
+    "gitDiffCheck": "passed"
+  },
+  "evidence": {
+    "token-conversion-integration-result.json": "a7e6baf34003d74d4b33d375c91737912d92962d82cb941dcfe597c4cb4eca8d",
+    "token-conversion-integration-missing-elf.json": "42a39b662cae912c0d3c6e21985b6a2ee48c201cdc15b34dc177ae78642aa75a",
+    "token-conversion-integration-wrong-elf.json": "111afd9955bfa81ab161a69561b4fccc5108f9edfbb7ddf73bf86bd6dd5d6189"
+  },
+  "sourceSha256Lf": {
+    "server/finalized-program-context.mjs": "bfb825f2f1b89fdafb5e3561e3da5128ac7bac7d9315138a7cfd8d48d72cac3b",
+    "server/token-conversion-intent.mjs": "79e16e8c6320498544a6567d1171ad3e6d7597717bec1e5b53e5685290ac44c9",
+    "server/token-conversion-journal.mjs": "d115a10c3f7b73572e8fbdbfec5493314c8379d804432e85e837c2458ffc5b84",
+    "server/token-conversion-reservation.mjs": "df60b6459fb5158c469e4738fa7b0bb269809dd6c48b10c1d76bb3f2cecffb6c",
+    "server/token-conversion-sell-quote.mjs": "2a5bb7769c66c03ff00a674a1ac6358b3b254dfea52a43c8e95e476648836f62",
+    "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+    "server/token-conversion-sell-simulation.mjs": "de68e51784069006e63faa6c932f6b8c7c3011c88943c460b54efddb247bc9bb",
+    "tests/readiness/token-conversion-journal.test.mjs": "98b4b68739bae9af8f0b304ff56047e4ca9bde1ceddece884a7e803f0b624380",
+    "tests/readiness/token-conversion-sell-quote.test.mjs": "50d5f674b9a833ecdd9ebcdf9c67ee5bd69a1e0d8281ad58d6adc30a127fe507",
+    "tests/readiness/token-conversion-sell-review.test.mjs": "5d015347d100df4bf6851b8f16aeb961da94fe18cc81effab037c3dee7e9c8b9",
+    "tests/readiness/token-conversion-sell-context.test.mjs": "9113f1efb68af4951de7a255881012bc6afd803172a494bfcae407633ee9c516",
+    "tests/readiness/token-sell-quote-fixture.mjs": "95bcd1bd8557eecd53d39d81393086bb00ec21c0029efaa399a5d130a9db0ab4",
+    "tests/readiness/token-sell-review-fixture.mjs": "b7696a5d7b6d74394312f33af4452238968f8dab4de391fdeab4fa82d1331fc9",
+    "config/token-conversion-integration-tests.json": "88ad41d00fff51ebc04c7ad8097358a08cb8a7b7a1d8ac418b6d48c4e2706766",
+    "docs/paired-sell-review-journal-2026-11-22.md": "908c3ab819ec9933db76b5024c39943b893bfb2c9cbbb9edfc8e504bb56f7fd6",
+    "docs/mainnet-production-packet-2026-11-22.md": "596cf3086051eacbc2ad05a353f9904ab218f3d113a9e98125cd1e6e93f3b0b7"
+  }
+}

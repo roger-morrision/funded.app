@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "scope": "Local-only independent USDC quote/reviewer/durable reservation/finalized reconciliation with synthetic financial RPC and review metadata; no runtime admission, signing or chain acceptance",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-sell.test.mjs",
+      "requiredTests": [
+        "captured exact USDC sell builds category 5 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 6 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 7 with 57 bytes and 41 canonical metas",
+        "wrong sell payload, changed exact input and weaker output cannot be substituted",
+        "only canonical positive u64 input and minimum amounts and supported categories are accepted",
+        "pool, base/quote, user vault, market vault and fee-program metas cannot be redirected",
+        "unexpected signer, writable privileges, volume tails and missing price separation are rejected",
+        "market owner, pool orientation, coin-creator and special-mode changes are rejected",
+        "fee recipient membership and canonical WSOL custody are required",
+        "conversion decoder rejects unsupported layout, discriminator, category and zero amounts"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "requiredTests": [
+        "mocked admitted finalized sell reconciles category 5 with prefund 0",
+        "mocked admitted finalized sell reconciles category 5 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 6 with prefund 0",
+        "mocked admitted finalized sell reconciles category 6 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 7 with prefund 0",
+        "mocked admitted finalized sell reconciles category 7 with prefund 700000",
+        "committed incomplete release cannot admit a program or even read RPC",
+        "wrong genesis, loader, authority and full ProgramData context cannot authenticate proof",
+        "missing or nonfinalized signature status and slot mismatch remain unresolved",
+        "missing or stale finalized account evidence and RPC errors cannot finalize",
+        "signature, frozen message and failed transaction substitution are rejected",
+        "invalid operator or independent price signature cannot authenticate the transaction",
+        "foreign receipt ownership, wrong immutable identity and category credit do not prove payment",
+        "exact USDC debit and token custody must agree with receipt",
+        "prefund and rent cannot inflate credit and WSOL must close",
+        "exact sell CPI accounts, payload and closure are required"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "requiredTests": [
+        "reviewed deployment effective before tx authenticates with fresh finalized context and no account cache",
+        "a later or same-slot reviewed deployment cannot authenticate the older signed transaction",
+        "stale, backwards and malformed finalized program contexts remain unresolved",
+        "missing contextual RPC, malformed deployment header and stale receipt or status context cannot fall back to cached bytes",
+        "later absence checks retain the original deployment interval and require the requested fresh context floor"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "requiredTests": [
+        "independent sell pricing recomputes captured SDK output and policy floor from finalized raw accounts",
+        "unreviewed market, noncanonical limits and widened slippage or liquidity cannot enter pricing",
+        "wrong genesis, over-order input and absent market prevent any usable price",
+        "pool/global/fee configuration owners and pool custody must authenticate",
+        "reserve token owners, mint decimals, vault authority and frozen accounts cannot be substituted",
+        "empty reserves and inputs exceeding the actual liquidity clip cannot be priced",
+        "backwards or stale finalized snapshots and unavailable reads stay unavailable"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "requiredTests": [
+        "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 700000",
+        "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 700000",
+        "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 700000",
+        "incomplete release and absent independent typed policy review cannot trigger RPC review",
+        "changed policy, policy digest, role separation or requested program cannot enter review",
+        "actual reviewer rejects a pre-signed message and wrong genesis before market reads",
+        "caller quote, reserve and recipient hints cannot replace independent raw market pricing",
+        "paused guard, wrong current operator, inactive price signer and used receipt reject new review",
+        "category spend cannot exceed token balance or its actual settled allocation",
+        "wrong USDC custody or malformed WSOL prefund cannot reach simulation",
+        "extra transfers, changed writable privileges and reordered fee setup are not canonical",
+        "unapproved priority fee, unavailable or changed lookup table cannot be reviewed",
+        "expired blockhash, stale accounting snapshot and protected reserve shortage reject",
+        "simulation failure or mismatched receipt, debit, credit, category or closure cannot produce a review",
+        "deployment changes during simulation cannot escape the final uncached context check"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-journal.test.mjs",
+      "requiredTests": [
+        "durable actual review reserves signs and reconciles category 5 then permits the next nonce",
+        "durable actual review reserves signs and reconciles category 6 then permits the next nonce",
+        "durable actual review reserves signs and reconciles category 7 then permits the next nonce",
+        "same reviewed message is idempotent before and after durable store restart",
+        "unknown old attempts block replacement even outside the rolling budget window",
+        "two locked store instances cannot race past the typed USDC daily bound",
+        "only both valid signatures on the exact durable message can be recorded for submission",
+        "finalized expiry plus absent receipt releases only raw conversion budget and permits a fresh blockhash",
+        "stale program context, unavailable receipt and a live blockhash preserve reservations",
+        "a finalized status without the exact transaction proof cannot clear or release the reservation",
+        "an externally recovered signature cannot bypass unresolved finalized transaction evidence",
+        "a finalized failed attempt releases conversion budget without claiming a fee refund",
+        "clock rollback cannot mutate a signed reservation or authorize a replacement",
+        "legacy context, corrupt reservation and array-shaped attempt storage are rejected without rewriting disk",
+        "no independent policy admission or legacy budget denomination can create a production journal",
+        "a review delayed before the durable write cannot reserve stale signing intent"
+      ]
+    }
+  ]
+}

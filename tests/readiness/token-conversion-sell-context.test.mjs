@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {loadFinalizedTokenSell} from '../../server/token-conversion-sell-proof.mjs';
 import {sellProofFixture} from './token-sell-proof-fixture.mjs';
+import {finalizedProgramContext} from '../../server/finalized-program-context.mjs';
 
 function deployment(f,slot){f.programData.data.writeBigUInt64LE(slot,4);f.release.programDataSha256=createHash('sha256').update(f.programData.data).digest('hex');}
 
@@ -35,4 +36,18 @@ test('missing contextual RPC, malformed deployment header and stale receipt or s
     f=>{f.connection.getAccountInfoAndContext=async()=>{throw Error('context unavailable');};}]){
     const f=sellProofFixture();mutate(f);assert.equal(await loadFinalizedTokenSell(f.adapterArgs()),null);
   }
+});
+
+test('later absence checks retain the original deployment interval and require the requested fresh context floor',async()=>{
+  const f=sellProofFixture();f.programContextSlot=1200;f.programDataContextSlot=1201;
+  const args={connection:f.connection,release:f.release,transactionSlot:1000,minimumContextSlot:1200};
+  assert.equal((await finalizedProgramContext(args)).programDataContextSlot,1201);
+  assert.deepEqual(f.contextReads.map(r=>r.minimum),[1200,1200]);
+  for(const floor of [999,undefined,NaN,'1200',Infinity]){
+    if(floor===undefined)continue;
+    await assert.rejects(finalizedProgramContext({...args,minimumContextSlot:floor}));
+  }
+  f.programContextSlot=1199;await assert.rejects(finalizedProgramContext(args),/stale/);
+  f.programContextSlot=1200;deployment(f,1100n);
+  await assert.rejects(finalizedProgramContext(args),/predates/);
 });

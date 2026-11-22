@@ -14,12 +14,13 @@ const contextSlot=(result,minimum)=>{
 // Both account reads are finalized at/after that transaction. The ProgramData
 // header must place deployment BEFORE the transaction: Loader-v3 programs become
 // effective one slot after deploy/upgrade, not during the deployment slot.
-export async function finalizedProgramContext({connection,release,transactionSlot}){
+export async function finalizedProgramContext({connection,release,transactionSlot,minimumContextSlot=transactionSlot}){
   const approved=reviewedMainnetManifest(release);
-  assert(approved&&Number.isSafeInteger(transactionSlot)&&transactionSlot>0,'Reviewed transaction interval required.');
+  assert(approved&&Number.isSafeInteger(transactionSlot)&&transactionSlot>0&&Number.isSafeInteger(minimumContextSlot)
+    &&minimumContextSlot>=transactionSlot,'Reviewed transaction interval required.');
   const program=new PublicKey(approved.programId),address=PublicKey.findProgramAddressSync([program.toBuffer()],loader)[0];
-  const programRead=await connection.getAccountInfoAndContext(program,{commitment:'finalized',minContextSlot:transactionSlot});
-  const programContextSlot=contextSlot(programRead,transactionSlot),account=programRead.value;
+  const programRead=await connection.getAccountInfoAndContext(program,{commitment:'finalized',minContextSlot:minimumContextSlot});
+  const programContextSlot=contextSlot(programRead,minimumContextSlot),account=programRead.value;
   assert(account?.executable===true&&account.owner.equals(loader)&&account.data.length===36&&account.data.readUInt32LE(0)===2
     &&new PublicKey(account.data.subarray(4)).equals(address),'Finalized executable/ProgramData pointer differs.');
   const dataRead=await connection.getAccountInfoAndContext(address,{commitment:'finalized',minContextSlot:programContextSlot});
