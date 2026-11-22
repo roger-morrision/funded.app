@@ -1934,7 +1934,7 @@
       "networkCalls": 0,
       "chainTransactions": 0
     },
-    "status": "Independent E2E accepted exactdc305 <=32 saved recovery interface-call scope locally. Measured write amplification and parent MN001 remain open.",
+    "status": "Independent <=32 call-bound and covered90cases retained; mixed full/filtered cursor fairness finding RECOVERY-01 and storage amplification remain open.",
     "nextStorageAcceptance": [
       "App owns assessment; no competing store implementation.",
       "Compare actual persisted pre-mutation representation under the same exclusive lock. Preserve missing-file bootstrap and v1->v2 migration writes even when application mutator changes nothing.",
@@ -2001,6 +2001,39 @@
       },
       "artifactsVerified": true,
       "scope": "Local bounded saved payout recovery selection/actual scheduler/store with synthetic outcomes and marker-only attempts. No live financial, whole-worker or production-scale acceptance."
+    },
+    "mixedScopeFinding": {
+      "id": "FQA-MN-001-RECOVERY-01",
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-mixed-recovery-scope-dc305e59-20261123.json",
+      "sha256": "6e2504bc90e7324d69b668c9a47e1deb4cd834eb529d7bd5639b01a57f08012c",
+      "sourceCommit": "dc305e596d30da21f947cfb14a647bfa5f7f09d4",
+      "node": "v24.22.3",
+      "probeSha256": "1ff3695419a04f0453fe38e4037cf7ab8aa7472bea8b2b351a9febfd6b8b22ae",
+      "status": "Independently reproduced; App correction pending",
+      "result": {
+        "exit": 1,
+        "fullOnly": {
+          "fullPasses": 12,
+          "selectedPasses": 0,
+          "distinctVisited": 128,
+          "visitedB": 64
+        },
+        "interleaved": {
+          "fullPasses": 12,
+          "selectedPasses": 12,
+          "distinctVisited": 96,
+          "visitedB": 32,
+          "unvisitedB": 32
+        },
+        "perCallBound": 32,
+        "reopenedStoreEveryCall": true,
+        "attemptIdentitiesPreserved": true
+      },
+      "sourceConfirmation": "Task discovery applies selected schedule filter but cursor(state) and checkpoint share one global rewardPayoutRecoveryCursor across full and filtered runs.",
+      "acceptance": "Full and filtered recovery progress must not reset one another across restarts. Preserve <=32 calls and exact saved attempt identities, no new signing/attempt authorization. Rerun original PM case against frozen App fix.",
+      "implementationOwner": "App Dev",
+      "artifactsAndStatesVerified": true,
+      "scope": "Synthetic selector/store liveness; no chain/RPC/signing/spend or live exploit claim."
     }
   }
 }
