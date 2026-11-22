@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-only compiled-SBF execution against captured public finalized Devnet account state and PumpSwap/fee-program bytecode",
+  "clusterWritePerformed": false,
+  "routerProgramIdentity": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
+  "routerBinary": {
+    "sha256": "63397837e620f25116e2937b1bf5cf790223630378231af4952cbb926b41b9c5",
+    "purpose": "isolated Mainnet-feature test binary with pinned Devnet QA conversion pool; not a production release artifact"
+  },
+  "externalPrograms": [
+    {
+      "address": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "sha256": "494d2257ed4a9a2bc3eb210b22cdb5058d77e17f1ba5095b636e96c86b1fd4ef"
+    },
+    {
+      "address": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+      "sha256": "446db24678fa22700d8eda86c48ba361b325a084e319c0c66f780c953520b317"
+    }
+  ],
+  "tests": [
+    {
+      "id": "paired-usdc-to-sol-clean",
+      "snapshotSlot": 524996309,
+      "pool": "BT8wc5m9pkTQ1wwVYTzsqrBwSYWxuPEQ4t8ZwHcwd7SR",
+      "category": 5,
+      "inputUsdcBaseUnits": 1000000,
+      "creditedLamports": 228059467,
+      "computeUnits": 247011,
+      "checks": ["paired-token vault debit", "DEX pool state", "conversion receipt", "SOL category credit", "policy and ledger accounting", "separate vault rent reserve", "wrong price signer", "impossible slippage rollback", "replay rejection", "1232-byte packet limit"],
+      "result": "passed in isolated Docker LiteSVM"
+    },
+    {
+      "id": "paired-usdc-to-sol-prefunded-wsol",
+      "snapshotSlot": 524996309,
+      "pool": "BT8wc5m9pkTQ1wwVYTzsqrBwSYWxuPEQ4t8ZwHcwd7SR",
+      "category": 5,
+      "inputUsdcBaseUnits": 1000000,
+      "creditedLamports": 228059467,
+      "preexistingWsolAddressLamports": 700000,
+      "computeUnits": 250092,
+      "checks": ["donated WSOL returns to vault", "donation excluded from credited conversion proceeds", "receipt and ledger match actual USDC debit", "slippage rollback", "replay rejection"],
+      "result": "passed in isolated Docker LiteSVM"
+    },
+    {
+      "id": "agency-own-coin-milestone-buyback",
+      "snapshotSlot": 524999463,
+      "pool": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+      "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+      "category": 7,
+      "agent": 1,
+      "spentLamports": 1000000,
+      "burnedTokenBaseUnits": 82029,
+      "computeUnits": 256635,
+      "checks": ["own-coin mint supply reduction", "fee vault debit", "selected agent completion", "receipt", "slippage rollback", "replay rejection", "1232-byte packet limit"],
+      "result": "passed in isolated Docker LiteSVM"
+    }
+  ],
+  "limits": [
+    "Synthetic router authority, policy and fee funding; no Devnet financial transaction was submitted by these tests.",
+    "The price signer is ephemeral in the test; the independent price review service and live worker are not tested.",
+    "No real migrated community airdrop claim or Mainnet transaction is established."
+  ]
+}

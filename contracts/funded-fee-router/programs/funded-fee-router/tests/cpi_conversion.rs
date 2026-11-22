@@ -45,6 +45,14 @@ fn token_amount(svm:&LiteSVM,address:Pubkey)->u64{
 #[test]
 #[ignore = "requires finalized public USDC/WSOL pool snapshot and test-only conversion binary"]
 fn paired_token_to_sol_reconciles_dex_custody_and_rejects_replay(){
+    run(false);
+}
+#[test]
+#[ignore = "requires finalized public USDC/WSOL pool snapshot and test-only conversion binary"]
+fn prefunded_wsol_is_returned_without_inflating_conversion_credit(){
+    run(true);
+}
+fn run(prefund_wsol:bool){
     let directory=PathBuf::from(std::env::var("FUNDED_CPI_FIXTURE").expect("snapshot directory"));
     let fixture:Value=serde_json::from_slice(&std::fs::read(directory.join("fixture.json")).unwrap()).unwrap();
     let key=|field:&str|pk(fixture[field].as_str().unwrap());
@@ -127,6 +135,16 @@ fn paired_token_to_sol_reconciles_dex_custody_and_rejects_replay(){
             &operator.pubkey(),&fee_owner,&quote,&spl_token::ID));
     }
     send(&mut svm,&operator,&[&operator],&setup).unwrap();
+    let market_base=pk(buy[7]["pubkey"].as_str().unwrap());
+    let market_quote=pk(buy[8]["pubkey"].as_str().unwrap());
+    let before_market_base=token_amount(&svm,market_base);
+    let before_market_quote=token_amount(&svm,market_quote);
+    let donated_wsol=if prefund_wsol{700_000}else{0};
+    if donated_wsol>0{
+        let donor=Keypair::new();svm.airdrop(&donor.pubkey(),100_000_000).unwrap();
+        let donation=anchor_lang::solana_program::system_instruction::transfer(&donor.pubkey(),&wsol_ata,donated_wsol);
+        send(&mut svm,&donor,&[&donor],&[donation]).unwrap();
+    }
     let before_pool=svm.get_account(&pool).unwrap();
     let before_policy=svm.get_account(&policy).unwrap();
     let before_ledger=svm.get_account(&ledger).unwrap();
@@ -142,6 +160,7 @@ fn paired_token_to_sol_reconciles_dex_custody_and_rejects_replay(){
     assert_eq!(svm.get_account(&ledger).unwrap(),before_ledger);
     assert_eq!(token_amount(&svm,quote_ata),1_000_000);
     assert_eq!(svm.get_account(&vault).map_or(0,|a|a.lamports),before_vault);
+    assert_eq!(svm.get_account(&wsol_ata).map_or(0,|a|a.lamports),donated_wsol);
     assert!(svm.get_account(&receipt).is_none());
     let compute=send(&mut svm,&operator,&[&operator,&price],&[ix.clone()]).unwrap();
     let converted=funded_fee_router::MintTokenConversionV3::try_deserialize(&mut &svm.get_account(&receipt).unwrap().data[..]).unwrap();
@@ -150,15 +169,17 @@ fn paired_token_to_sol_reconciles_dex_custody_and_rejects_replay(){
     let policy_after=funded_fee_router::MintAgencyPolicyV3::try_deserialize(&mut &svm.get_account(&policy).unwrap().data[..]).unwrap();
     assert_eq!(converted.spent_quote,1_000_000-token_amount(&svm,quote_ata));
     assert!(converted.spent_quote>0&&converted.received_lamports>=min_out);
+    assert!(token_amount(&svm,market_base)<before_market_base);
+    assert!(token_amount(&svm,market_quote)>before_market_quote);
     assert_eq!(credits.credited[5],converted.received_lamports);
     assert_eq!(ledger_after.withdrawn[5],converted.spent_quote);
     assert_eq!(policy_after.paid_lamports[5],converted.received_lamports);
     let reserve=svm.get_sysvar::<Rent>().minimum_balance(0);
-    assert_eq!(svm.get_account(&vault).unwrap().lamports-before_vault,converted.received_lamports+reserve);
+    assert_eq!(svm.get_account(&vault).unwrap().lamports-before_vault,converted.received_lamports+reserve+donated_wsol);
     assert!(svm.get_account(&wsol_ata).is_none_or(|a|a.lamports==0));
     let final_vault=svm.get_account(&vault).unwrap();
     assert!(send(&mut svm,&operator,&[&operator,&price],&[ix]).is_err());
     assert_eq!(svm.get_account(&vault).unwrap(),final_vault);
-    println!("CONVERSION_CPI_EVIDENCE slot={} compute={} spent_quote={} received_lamports={} receipt={}",
-        fixture["slot"],compute,converted.spent_quote,converted.received_lamports,receipt);
+    println!("CONVERSION_CPI_EVIDENCE slot={} compute={} spent_quote={} received_lamports={} donated_wsol={} receipt={}",
+        fixture["slot"],compute,converted.spent_quote,converted.received_lamports,donated_wsol,receipt);
 }
