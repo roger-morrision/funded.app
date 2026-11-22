@@ -10,6 +10,8 @@ use solana_signer_lite::Signer;
 use solana_message_lite::{Message,VersionedMessage};
 use solana_transaction_lite::versioned::VersionedTransaction;
 mod support;
+#[path = "rich_assets/holder_reward.rs"]
+mod holder_reward;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], ix: Instruction) -> Result<(),String> {
     let message=Message::new_with_blockhash(&[ix],Some(&payer.pubkey()),&svm.latest_blockhash());
