@@ -3965,5 +3965,61 @@
         "Startup6196/directory3746/Contract9713/3f8/1236prefix unchanged; reuse existing acceptance without broad healthy tests/rebuild/requote. No keys, spending, Mainnetactivation/policy/cap/allowlist/authority change or funding request."
       ]
     }
+  },
+  "conversionTransportReview": {
+    "appSource": "c4e0081afdbe005b10d8d773a17fd2fed309b8de",
+    "reportSha256": "a8d3df5566a1f3bfe47d220b846e8dad8d8b0893cd9510aa093d2789a8bfc893",
+    "localTests": {
+      "command": "node scripts/check-token-conversion-transport.mjs",
+      "node": "26.13.1",
+      "requiredPassed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "rawPath": "C:\\Data\\DevApps\\funded-mainnet-readiness\\tmp\\contract-conversion-transport-c4e0081a.json",
+      "rawSha256": "8205c966000df7cc671433fbed67712486b12f9bad926b06d6efb976cf8e3711"
+    },
+    "sourcePins": {
+      "server/token-conversion-journal.mjs": "1df5336a2d3a87c3c58a626fc4b178889c9d60ee15f2f4d6d73f5d8c8472cf75",
+      "server/token-conversion-transport.mjs": "a90946344dc92c02e329d427f192011fbd5ee950098af05b1a74137966567eb2",
+      "tests/readiness/token-conversion-transport.test.mjs": "553509137d7c18f7e1d4262d9946a30a14023e777b5916b413da76f06a14eb05",
+      "config/token-conversion-transport-tests.json": "ead38b0be20f7ea48616081dd096517887861648eb41428c59db60ab9d3fef08",
+      "scripts/check-token-conversion-transport.mjs": "8caa55342ec391f897577e39e847d9a8e792db4b6539b78685733c68c5db7f56"
+    },
+    "unchangedContextPins": {
+      "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+      "server/token-conversion-reservation.mjs": "df60b6459fb5158c469e4738fa7b0bb269809dd6c48b10c1d76bb3f2cecffb6c",
+      "server/token-conversion-sell-proof.mjs": "a5f4eef822e6c03f55f3d25d4d0e1d8410ee53a5e3889b1977a53d8ec6094961",
+      "server/token-conversion-sell-quote.mjs": "2a5bb7769c66c03ff00a674a1ac6358b3b254dfea52a43c8e95e476648836f62",
+      "server/token-conversion-sell.mjs": "7483acdf5d611b8bb3633c040a4aa47ab57ebb1991a3367c04c3892516b4535d",
+      "server/token-conversion-intent.mjs": "79e16e8c6320498544a6567d1171ad3e6d7597717bec1e5b53e5685290ac44c9",
+      "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+      "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+      "server/remote-signer.mjs": "c608c741dfaeb7ad26be9468eb9c719c4865ec42b274e037f57da7f8d0035c65",
+      "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+      "server/v3-paired-token-worker.mjs": "5c9aa4cb73734fac1ed00c629239420eacd173bfe95f8989cd2b0d990e5cd594",
+      "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+      "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+      "config/token-conversion-integration-tests.json": "88ad41d00fff51ebc04c7ad8097358a08cb8a7b7a1d8ac418b6d48c4e2706766",
+      "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+      "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc"
+    },
+    "review": [
+      "First durable reservation returns created ownership under existing exclusive store lock; existing rows enter reconciliation before signing and recoveryOnly cannot create an attempt.",
+      "One-time signing marker is durably awaited before price callback. Each role identity and detached signature are verified against immutable reviewed message bytes; callback receives a copy.",
+      "Both signatures are durably recorded before actual second review/simulation, then a one-time send-intent marker is awaited. Age checks after signing and durability fences prevent stale sends. maxRetries=0 and preflight retained.",
+      "Unsigned/signed prior rows, timeouts, unknown response and visible-but-unacknowledged publication remain unresolved without automatic new signature, blockhash or broadcast. Send intent is not proof of submission or payment.",
+      "Graph importers reports only readiness test but index HEAD metadata is stale6196; exact source rg confirms sole import in readiness test at c4e. No operational worker/service/signer allowlist integration exists.",
+      "Injectable distinct handles and cryptographic roles do not prove organizational custody independence; production backend/worker wiring, admission and exact live financial proof remain open."
+    ],
+    "status": "Contract source review and local Node26 targeted suite pass; independent E2E Node24 acceptance pending.",
+    "scope": "Synthetic signer callbacks/bank/finality/send only. No real keys, external financial network, activation, spending, ABI or Contract runtime change.",
+    "unchanged": "Contract971399ff/3f8 ELF1110424/1236Loaderprefix and existing financial policy, rawUSDC budgets and reserve protections unchanged; no rebuild/requote.",
+    "verifiedArtifacts": {
+      "report": true,
+      "gitSourcePins": 21,
+      "rawArtifacts": 14,
+      "rawGitArchiveMembers": 1236
+    }
   }
 }
