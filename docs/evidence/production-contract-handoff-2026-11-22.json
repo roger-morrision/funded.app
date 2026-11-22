@@ -1495,5 +1495,22 @@
         }
       }
     }
+  },
+  "appHistoricalPayoutReview": {
+    "appSource": "47ab8d9599a01223d2b4bb048db8cc9f37f08326",
+    "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "ownerReportGitSha256": "ac3c8dda7aeb2847406a99705c7c49e0a1eed180524ee80383a9494d7b731bfa",
+    "reviewNode": "v26.13.1",
+    "requiredPassed": 23,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "rawResult": "tmp/contract-historical-payout-review-47ab.txt",
+    "sha256": "2405327e0fb35592d97434dace67821cfb89636117a206fdd8aac61f1f77a1a0",
+    "sourceAssessment": "Authenticated original owned vault/cycle/reserve/payment PDAs and immutable manifest tuple agree with the frozen payout ABI. Existing commitments return before successor initialization. Current operator guard and default program admission retained.",
+    "tested": "SOL, classic USDC and metadata-only Token2022 fixtures retain100paid receipt and pay200 once from original custody while unrelated41remains. Actual scheduler, locked store and SDK signing are used with synthetic financial RPC/bank/finality.",
+    "legacyBoundary": "Current-operator fresh/existing and same-operator173legacy migration retained. Historical unreserved outgoing-operator cycle refuses unresolved.",
+    "status": "Scoped Contract review passed; independentNode24 acceptance pending.",
+    "remaining": "Durable payout unknown-attempt persistence and exact finalized transaction attribution, live delivery, authenticated archive, roles/scale and final funding remain open."
   }
 }
