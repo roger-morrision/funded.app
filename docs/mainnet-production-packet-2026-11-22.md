@@ -212,7 +212,7 @@ review is pending; no live financial closure or operational admission follows.
 
 The independent review additionally found payment metadata loss after restart
 and inconsistent native fee/rent evidence (`FQA-MN-005-PAYOUT-01` / `02`). The
-[scoped correction](payout-recovery-corrections.md) passes 69 local required cases,
+[scoped correction](payout-recovery-corrections.md) passes 70 local required cases,
 including both unchanged QA probes and wrapped-native controls. Independent
 correction acceptance remains pending; the earlier 45-case result alone does
 not close either finding.

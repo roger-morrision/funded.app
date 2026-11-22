@@ -165,6 +165,7 @@ export async function executeRewardPayout({store,plan,leaf,connection,programId,
       const proof=attempt.proof;assert(proof?.payoutTransactionVerified===true&&proof.finalized===true&&proof.balanceDeltaVerified===true
         &&proof.vaultBalanceDeltaVerified===true&&proof.signature===attempt.signature&&proof.messageHash===attempt.messageHash
         &&proof.payment===attempt.before.payment&&proof.programDataSha256===expectedProgramDataSha256&&proof.amountReceived===leaf.amount
+        &&proof.amount===leaf.amount&&String(proof.feeLamports)===String(attempt.before.feeLamports)&&proof.feePayer===String(currentAuthority)
         &&proof.programId===String(programId)&&proof.genesisHash===SOLANA_GENESIS[cluster]
         &&[proof.transactionSlot,proof.programDataContextSlot,proof.accountContextSlot].every(Number.isSafeInteger)
         &&proof.transactionSlot>=attempt.before.slot&&proof.programDataContextSlot>=proof.transactionSlot

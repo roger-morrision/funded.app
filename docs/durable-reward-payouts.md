@@ -48,7 +48,7 @@ node scripts/security-tests.mjs --inventory config/reward-payout-journal-tests.j
 
 The original inventory contained 23 affected namespace cases and 22
 transport/recovery cases: 45/45 passed. The current inventory adds the metadata,
-native fee/rent and wrapped-native corrections, for 69/69 with zero failures,
+native fee/rent and wrapped-native corrections, for 70/70 with zero failures,
 skips or TODOs. The same first nine original new bodies fail on
 the exact `47ab8d95` chain export with only import prefixes redirected. Missing
 current review ELF fails closed with zero required passes. The affected expiry

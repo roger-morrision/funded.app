@@ -70,7 +70,8 @@
       "requiredTests": [
         "matching verified completed payment preserves custom metadata without any recovery write",
         "incomplete paid metadata is enriched once while original timestamp and mode survive",
-        "conflicting paid financial identity is retained for review without overwrite or new submission"
+        "conflicting paid financial identity is retained for review without overwrite or new submission",
+        "cached payout fee payer and amount facts remain bound to the authenticated signed attempt"
       ]
     },
     {

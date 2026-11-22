@@ -38,10 +38,15 @@ mapping now drops that marker and retains immutable-owner/required extensions;
 a synthetic mint with MetadataPointer/TokenMetadata TLVs covers this quotation
 boundary, without claiming compiled extension-specific transfer acceptance.
 
-The combined required inventory has **69/69** passing cases, zero failures,
+Cached verified proof also binds its fee, payer and amount to the authenticated
+attempt; changing those cached facts cannot bypass fresh-proof checks or trigger
+an RPC read, signing or send. Positive cached recovery remains idempotent.
+
+The combined required inventory has **70/70** passing cases, zero failures,
 skips or TODOs: the previous 45, three unchanged metadata-restart probes, three
-metadata completion boundaries, twelve unchanged native-fee probes and six
-additional native/WSOL/rent boundaries. Public review-ELF absence fails closed.
+metadata completion boundaries, twelve unchanged native-fee probes, six
+additional native/WSOL/rent boundaries and the cached-accounting boundary. Public
+review-ELF absence fails closed.
 Existing expiry acceptance is reused by unchanged source identity; no Contract
 source, ELF, Loader quote, financial policy, cap, allowlist or runtime admission
 changes. Independent review of this exact correction is pending. Mainnet remains

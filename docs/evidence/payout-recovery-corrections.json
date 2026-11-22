@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-22T18:12:05.705608+00:00",
+  "observedAt": "2026-11-22T18:15:16.656204+00:00",
   "baseRevision": "969809a0939b033353c757649e933c018a76d407",
   "scope": "Actual App single-payout recovery with synthetic bank/RPC/finality; independent exact-source correction acceptance pending",
   "node": "v24.22.3",
@@ -19,7 +19,8 @@
         "failed": 0,
         "exit": 0
       },
-      "change": "Shared first-success/recovery paid facts preserve timestamp, receipt mode and metadata; matching complete record has no recovery write; incomplete records enriched once; financial conflicts retained"
+      "change": "Shared first-success/recovery paid facts preserve timestamp, receipt mode and metadata; matching complete record has no recovery write; incomplete records enriched once; financial conflicts retained",
+      "independentPmAcceptance": "7108af03; data/qa-evidence/mainnet-pm-20261122/payout-corrections-7108af03/qa-review.json"
     },
     "FQA-MN-005-PAYOUT-02": {
       "unchangedProbeSha256": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49",
@@ -35,15 +36,31 @@
         "failed": 0,
         "exit": 0
       },
-      "change": "Native conservation, exact frozen fee and canonical payer/receipt/ATA rent including classic and Token2022 wrapped-native backing movements; inconsistent proof stays prepared with no replacement"
+      "change": "Native conservation, exact frozen fee and canonical payer/receipt/ATA rent including classic and Token2022 wrapped-native backing movements; inconsistent proof stays prepared with no replacement",
+      "cachedSupplement": {
+        "originalProbeSha256": "de6b1a3987a266e7f2ac25902540be4be869bf6d1d4076815f80347ec8c4fb82",
+        "baselineIndependentE2E": {
+          "tests": 3,
+          "passed": 1,
+          "failed": 2,
+          "reference": "data/qa-evidence/mainnet-e2e-20261122/payout-cached-accounting-supplement-20261123.json"
+        },
+        "candidate": {
+          "tests": 3,
+          "passed": 3,
+          "failed": 0,
+          "rpcOrSigningCalls": 0
+        },
+        "scope": "Cached fee equals authenticated signed-attempt quote, payer equals authority, amount equals reviewed leaf; normal numeric/string fee representations retain exact canonical value"
+      }
     }
   },
   "requiredInventory": {
-    "required": 69,
-    "passed": 69,
+    "required": 70,
+    "passed": 70,
     "counts": {
-      "tests": 69,
-      "passed": 69,
+      "tests": 70,
+      "passed": 70,
       "failed": 0,
       "skipped": 0,
       "todo": 0
@@ -58,7 +75,7 @@
   },
   "missingReviewElf": {
     "exit": 1,
-    "required": 69,
+    "required": 70,
     "passed": 0
   },
   "additionalCoverage": [
@@ -71,10 +88,11 @@
     "fullSyntaxFiles": 1159,
     "finalChangedFilesSyntax": 3,
     "finalSizeMaintainedFiles": 1422,
-    "gitDiffCheck": "passed"
+    "gitDiffCheck": "passed",
+    "finalCachedChangedFilesSyntax": 2
   },
   "sourceSha256Lf": {
-    "server/reward-payout-journal.mjs": "825de02d320295cd7f8a11863bdd9ad4ee6462910c0ffaa8148b6bb8a03cde91",
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
     "server/reward-paid-record.mjs": "60b13803fcec35c56dc9dd5171b8a3a3e9560ac5ade08438bb838830248bc487",
     "server/reward-payout-recovery.mjs": "da351cac94b983ee1b7f8111bb4e9056ab04cdf15f9416bc1c10c391fb857c7e",
     "server/reward-schedule-payments.mjs": "c383288eb1429bd22c4cd9b0c3287f45ef2e433091a7ba96bfd76ed5f28f7db4",
@@ -82,19 +100,23 @@
     "tests/readiness/reward-payout-restart.test.mjs": "477c3e5eb0e2aed28074cd20de0e1a56c7f2b349bcd8e2264ef1f13b858430f4",
     "tests/readiness/reward-payout-native-accounting.test.mjs": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49",
     "tests/readiness/reward-payout-native-boundaries.test.mjs": "4f302e2137ec84c46ee8666f5b1ca85a01520f65206f409d07f947becb3e7a87",
-    "tests/readiness/reward-paid-record.test.mjs": "be626222e2e8bb10293c70c52c30d73a98a183e68b8f5b3b3f1bf219787f8918",
-    "config/reward-payout-journal-tests.json": "b451eec1e0577755bd84da6d3fb1abeef9c9cf11522ca363e7c0bdf5d3563a1a",
-    "docs/payout-recovery-corrections.md": "fc9d2fd9f80a13a123891089f45adb4c3d77ecc0ca25498838b91788326ba3af",
-    "docs/durable-reward-payouts.md": "88d5c3b69c9d2d5454f67f06b631e1a30218912a2f5b3d1059764a354ba4bb54",
-    "docs/mainnet-production-packet-2026-11-22.md": "f1ef318ca63c3eaf8af5d4f93d87e9bfa17ee81df614d7ad936c3b96c3e8f750"
+    "tests/readiness/reward-paid-record.test.mjs": "d2e1542cb9ff4ef318ff797a50c24fd18b7c1ad5fdc7400f24e30d29f7cbc287",
+    "config/reward-payout-journal-tests.json": "c725c41de144e2380023595d5995d3b7fb16cf756bdd55e899f718cec28038e8",
+    "docs/payout-recovery-corrections.md": "02a36d91968c6589d5e967bc7855b706494bd41ce5507820ccbff5e8ab3cb391",
+    "docs/durable-reward-payouts.md": "d1e020f6c25eda8d59a704e5aab4c7824626aade73efcf86aadaa95303e71387",
+    "docs/mainnet-production-packet-2026-11-22.md": "4f4f13d9b48a0fa699fcdc407ba9a6d457d46e2275a9598fb0445f33f68a8ddb"
   },
   "evidenceSha256": {
+    "cache-qa-after.txt": "bb39b27de2bcb58fd257f33cf70e9985d5e7996407ac031e16aaee9674a6b53f",
     "expiry.json": "d25264f1d87769330b764f891266df00a864b1ffe5f6e7c88998a684a7b0f620",
     "initial-owner-fee-probe.test.mjs": "df726543c8bfe200d251a340366cc8d55719f337577c5fb12d2a6d5b6fd7af57",
     "metadata-initial-51.json": "f59b352aced3f0ca612b8f4881f36a86882bcbb074500b8ccedd7535926fd11a",
+    "metadata-qa-after-70.txt": "0fa9a8f8c2d50c4ae0aa5d0282e42aa7d1c1c71d2f5e604472649bfdd3178005",
     "metadata-rent-before.txt": "5eccd9f74d88c78245efadffd7e0956c4c57c9d0dac67e1b9e00ac27f41d4992",
+    "missing-elf-70.json": "9042ea3b4e1362d0086402926bb92aa4185a7e8a544d3035681ce81536d69a8c",
     "missing-elf-final.json": "b97db53489798135233b6a21405e68c9d1a3ef659395f0be1f96fe0dfd4d31f0",
     "missing-elf.json": "0268e6bd6db8e758c5adb46ffd61eeb690d4baf25e5053c18875bf292be5e2dc",
+    "native-qa-after-70.txt": "b138262b24f487dc4727fb3a182de8f803b96bcf81b2ac39f77c0e780eb45e5b",
     "native-qa-after.txt": "08a81aaad4f9d069ebeed9f1953e47ed1af40193e776f65a596869e8935a15de",
     "native-qa-before.txt": "30b75aecfe349da400173e43cbac600e9abc3f08de1fde74b69e9bef991a0cda",
     "native-qa-final.txt": "8508be7ec53db554d1c259cb4e5c67917312a4f5c55f022bf965698ae9e99b73",
@@ -103,10 +125,12 @@
     "restart-after.txt": "04c8212bdfe6c3815ac2db6bf9dc295f0910e9886b9ec079d115edc03f255e81",
     "restart-before.txt": "b952d294936cbc57c5a1887bbb7d5f8c0f60d6d2e2a1a437f6ee5e9a7cc75337",
     "restart-final.txt": "7ba2164a0040284217857ee97dd078afd8a5ee88fa9cff1013d0f98e39e66106",
+    "result-70.json": "366a135bd176e83602a697fd2e7d2958c1ced35609fc4a1cd884be968d75120a",
     "result-final.json": "68f6800842cd2a16ed5517eb0cf07ce8d6776d64251089dd1ab528c2a8375e65",
     "result.json": "2b098998c7380c64ce0129345a502adfbd8d1757f67683a0eba43575c50bc4b3",
     "size-check.txt": "0b5e1981f6dc83130380e23653caa5f53d073fde3e14d170c4aaaa5f0145f533",
-    "source-check.txt": "4001820c5ea77af5854aef18ec30624545f8b031749d6e4f8ad9283c794a1ead"
+    "source-check.txt": "4001820c5ea77af5854aef18ec30624545f8b031749d6e4f8ad9283c794a1ead",
+    "unchanged-cache-qa-probe.test.mjs": "de6b1a3987a266e7f2ac25902540be4be869bf6d1d4076815f80347ec8c4fb82"
   },
   "unchanged": {
     "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
@@ -121,5 +145,11 @@
     "Old attempts missing cost evidence remain unresolved, never automatically re-signed",
     "Devnet batch/bitmap/legacy paths remain separate",
     "Archive/live28, scale, operational custody and final release/funding gates remain open"
-  ]
+  ],
+  "followUpBaseRevision": "7108af03502639f8bf3ac42b8785c5c0c3b33d56",
+  "probeGitBlobSha256Lf": {
+    "tests/readiness/reward-payout-restart.test.mjs": "477c3e5eb0e2aed28074cd20de0e1a56c7f2b349bcd8e2264ef1f13b858430f4",
+    "tests/readiness/reward-payout-native-accounting.test.mjs": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49"
+  },
+  "probeLineEndings": "Unchanged original QA probe bytes executed in working tree; Git normalizes CRLF to LF. Bodies are identical; both raw provenance and LF Git hashes retained."
 }
