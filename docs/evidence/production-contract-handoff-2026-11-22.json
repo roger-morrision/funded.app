@@ -1774,7 +1774,7 @@
       "Graph indexed prior fe518; actual f112 service/snapshot/archive source reviewed directly to resolve stale graph limits.",
       "Contract runtime paths are byte-identical971399ff; production3f8/accepted1236Loaderprefix unaffected."
     ],
-    "status": "Independent E2E53required cases accepted; additional raw-layout criterion remains open after reproduced malformed classic SPL bank qualification.",
+    "status": "Covered archive cases retained; c096 owner-specific raw-layout correction source reviewed and63local cases pass, independent corrected-source acceptance pending.",
     "limits": [
       "Prospective raw input retention only; no missing Nov19 bank reconstruction or live current-program28delivery.",
       "Windows directory fsync unavailable and explicitly recorded; Linux power-loss and backup restore remain unverified.",
@@ -1792,7 +1792,7 @@
     "rawLayoutFinding": {
       "id": "FQA-MN-002-ARCHIVE-LAYOUT",
       "title": "Malformed SPL account layout qualifies through valid-hash offline restart",
-      "status": "Reproduced on exactf112, App correction requested",
+      "status": "Baseline reproduced on f112; corrected c096 source passes original3probe and required63 in Contract review; independent corrected-source acceptance pending.",
       "trigger": "Append one0x63 byte to classic mint82->83 or classic token165->166 raw base64; preserve all raw fields/normalized supply/snapshot/manifest/context/signatures. Recompute content hash and pointer, disable RPC, reopen actual service.prepared.",
       "observed": "Installed SPL SDK rejects mint TokenInvalidAccountSizeError and token TokenInvalidAccountError; archive reader nevertheless accepts both as qualified. Unchanged control accepts.",
       "counts": {
@@ -1806,7 +1806,28 @@
       "sourceConfirmation": "Exactf112 archive validates minimum lengths>=82/>=165 rather than classic owner-specific exact layout bounds. Installed SDK rejects the specific appended-byte probes.",
       "implementationOwner": "App Dev",
       "independentRetestOwner": "E2E QA",
-      "contractRuntimeAffected": false
+      "contractRuntimeAffected": false,
+      "correctionReview": {
+        "appSource": "c096573ddae8a8e8f6b490e6c3e92c515b5ab415",
+        "ownerReportGitSha256": "1a5c3d163e56e502fccaf4e2d2b613397386c9c315d8ae9905a80ccc5ed16a8a",
+        "reviewNode": "v26.13.1",
+        "requiredPassed": 63,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0,
+        "originalProbeSha256": "f1cc9574feb83b56f11815349521638f1fdce4b0cacb91e8ce34f066ab831eaa",
+        "originalProbePassed": 3,
+        "gitSourceHashesMatched": 9,
+        "rawInventory": "tmp/contract-archive-layout-c096.log",
+        "rawInventorySha256": "b64463d9dfed6507a0a8e0514417977a142a6ec8934ede8c0870db572a9f1690",
+        "sourceAssessment": [
+          "Explicit classic SPL mint82/account165 exact sizes before SDK unpackers.",
+          "Shared archive save/read decoder checks Token2022 base/type/COption/state/padding and unique owner-appropriate bounded TLV. Metadata decode-roundtrip binds the mint.",
+          "Valid Token2022 base/metadata/account extension/frozen structural controls preserved; no extension financial behavior admission.",
+          "Existing metadata0.1.6 package becomes explicit direct dependency without changing resolved package bytes; include package/lock in final App identity.",
+          "App Contract runtime source remains identical971399ff; no new ELF/Loader/quote needed."
+        ]
+      }
     }
   }
 }
