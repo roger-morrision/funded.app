@@ -17,9 +17,10 @@ export const PAYOUT_ASSETS=[{name:'SOL',asset:'SOL'},
 
 // Actual SDK PDAs, Merkle producer, account codecs, instructions and in-memory
 // signatures. All financial RPC/bank state is synthetic and never submitted.
-export function historicalPayoutFixture({asset='SOL',tokenProgram=TOKEN_PROGRAM_ID}={}){
+export function historicalPayoutFixture({asset='SOL',tokenProgram=TOKEN_PROGRAM_ID,self=false}={}){
   assert(!process.env.FUNDED_PROGRAM_EVIDENCE_RPC_URL&&!process.env.FUNDED_MAINNET_PROGRAM_EVIDENCE_RPC_URL,'Offline payout fixtures cannot configure network evidence providers.');
-  const f=sellReviewFixture(),program=f.expected.programId,mint=f.expected.mint,operator=f.expected.authority,original=key(32),paidRecipient=key(37),recipient=key(38);
+  const f=sellReviewFixture(),program=f.expected.programId,mint=f.expected.mint,operator=f.expected.authority,original=key(32),paidRecipient=key(37),recipient=self?operator:key(38);
+  f.autoLand=true;f.proofAvailable=true;
   const cycleId=Buffer.alloc(32,88).toString('hex'),manifest=buildRewardManifest({cycleId,asset,allocations:[{recipient:String(paidRecipient),amount:'100'},{recipient:String(recipient),amount:'200'}]});
   const {vault,cycle}=rewardAddresses({programId:program,authority:original,mint,cycleId}),reserve=rewardReserveAddress({programId:program,vault,asset}),router=deriveRouterHeader(program);
   const info=(owner,data,lamports=1000)=>({owner,data:Buffer.from(data),lamports,executable:false});
@@ -37,6 +38,7 @@ export function historicalPayoutFixture({asset='SOL',tokenProgram=TOKEN_PROGRAM_
   f.leaf=manifest.leaves.find(l=>l.recipient===String(recipient));f.paidLeaf=manifest.leaves.find(l=>l.recipient===String(paidRecipient));
   Object.assign(f,{program,mint,operator,original,vault,cycle,reserve,router,recipient,asset,tokenProgram,slot:f.market.slot,sends:0,latestCalls:0});
   f.balances=new Map([[String(operator),3100000000],[String(recipient),10000],[String(paidRecipient),10100]]);f.tokens=new Map();f.signatures=new Map();
+  if(self)f.balances.set(String(operator),3100000000);
   f.payment=leaf=>rewardAddresses({programId:program,authority:original,mint,cycleId,recipient:leaf.recipient}).payment;
   f.receipt=(leaf,receiptCycle=cycle)=>{
     const bytes=Buffer.alloc(100);disc('RewardPayment').copy(bytes);receiptCycle.toBuffer().copy(bytes,8);new PublicKey(leaf.recipient).toBuffer().copy(bytes,40);
@@ -57,11 +59,18 @@ export function historicalPayoutFixture({asset='SOL',tokenProgram=TOKEN_PROGRAM_
   f.connection.getBalance=async address=>f.rows.get(String(address))?.lamports??f.balances.get(String(address))??0;
   f.connection.getTokenAccountBalance=async address=>{assert(f.tokens.has(String(address)),'Token account unavailable');return {context:{slot:f.slot},value:{amount:String(f.tokens.get(String(address)))}};};
   f.connection.getSignaturesForAddress=async address=>f.signatures.has(String(address))?[{signature:f.signatures.get(String(address)),err:null}]:[];
-  f.connection.getTransaction=async()=>null;
+  f.connection.getTransaction=async signature=>f.proofAvailable&&signature===f.signature?f.payoutTransaction:null;
+  f.connection.getFeeForMessage=async()=>({context:{slot:f.slot},value:5000});
+  f.connection.getMinimumBalanceForRentExemption=async()=>1000;
   f.connection.getLatestBlockhash=async()=>{f.latestCalls++;return {blockhash:String(key(91)),lastValidBlockHeight:999};};
   f.connection.getBlockHeight=async()=>1000;f.connection.getBlockTime=async()=>200010;
   f.connection.sendRawTransaction=async wire=>{
     const tx=Transaction.from(wire);assert.ok(tx.verifySignatures());assert.equal(String(tx.feePayer),String(operator));
+    await f.beforeSend?.(wire);
+    f.sends++;f.wire=Buffer.from(wire);f.signature=bs58.encode(tx.signature);
+    if(!f.autoLand)return f.signature;
+    const message=tx.compileMessage(),pre=message.accountKeys.map(a=>f.rows.get(String(a))?.lamports??f.balances.get(String(a))??0);
+    const preToken=new Map(f.tokens);
     const ix=tx.instructions.find(i=>i.programId.equals(program));assert(ix);
     assert.ok(ix.data.subarray(0,8).equals(createHash('sha256').update('global:'+(asset==='SOL'?'payout_reward_sol':'payout_reward_token')).digest().subarray(0,8)),'Historical payout must not initialize successor namespace');
     assert.deepEqual(ix.keys.slice(0,5).map(k=>String(k.pubkey)),[String(operator),String(vault),String(reserve),String(cycle),String(recipient)]);
@@ -75,9 +84,13 @@ export function historicalPayoutFixture({asset='SOL',tokenProgram=TOKEN_PROGRAM_
     cycleBytes.writeBigUInt64LE(300n,144);reserveBytes.writeBigUInt64LE(41n,72);
     f.rows.get(String(cycle)).data=Buffer.from(cycleBytes);f.rows.get(String(reserve)).data=Buffer.from(reserveBytes);
     const signature=bs58.encode(tx.signature);f.rows.set(String(f.payment(f.leaf)),f.receipt(f.leaf));f.signatures.set(String(f.payment(f.leaf)),signature);
-    f.sends++;f.signature=signature;return signature;
+    const post=message.accountKeys.map(a=>f.rows.get(String(a))?.lamports??f.balances.get(String(a))??0);post[0]-=6000;
+    const tokenRows=values=>message.accountKeys.flatMap((a,accountIndex)=>values.has(String(a))?[{accountIndex,mint:asset,uiTokenAmount:{amount:String(values.get(String(a)))}}]:[]);
+    f.payoutTransaction={slot:f.slot,transaction:{signatures:[signature],message},meta:{err:null,fee:5000,preBalances:pre,postBalances:post,
+      preTokenBalances:tokenRows(preToken),postTokenBalances:tokenRows(f.tokens)}};
+    if(f.transportFailure)throw Error('network timed out after payout broadcast');return signature;
   };
-  f.connection.getSignatureStatuses=async()=>({context:{slot:f.slot},value:[{slot:f.slot,err:null,confirmationStatus:'finalized'}]});
+  f.connection.getSignatureStatuses=async()=>({context:{slot:f.slot},value:[f.autoLand?{slot:f.slot,err:null,confirmationStatus:'finalized'}:null]});
   f.chain=()=>createAutomaticRewardChain({connection:f.connection,programId:program,authority:Keypair.fromSeed(new Uint8Array(32).fill(33)),cluster:'devnet',expectedProgramDataSha256:f.release.programDataSha256});
   return f;
 }

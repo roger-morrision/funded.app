@@ -13,6 +13,7 @@ import { expireUnpayableCycles } from './reward-cycle-expiry.mjs';
 import { plannedRewardPayoutAt, rewardReviewDelaySeconds } from '../protocol-guard.js';
 import { commitReviewedCycles } from './reward-cycle-commit.mjs';
 import { backfillPaymentSignatures } from './reward-signature-backfill.mjs';
+import {recoverSavedRewardPayouts} from './reward-payout-recovery.mjs';
 export { unpayableCycleSchedule } from './reward-cycle-expiry.mjs';
 
 const pricedHolderPolicy = config => ['usd-20-hourly-v1', QA_HOLDER_POLICY]
@@ -442,6 +443,7 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
   async function execute(now = Math.floor(Date.now() / 1000), onlyIds = null) {
     const selected = onlyIds === null ? null : new Set(onlyIds);
     await expireUnpayableCycles({store,chain,now,selected,recoveryOnly:true});
+    await recoverSavedRewardPayouts({store,chain,selected});
     const ready = await chain.readiness();
     await store.transaction(state => { state.serviceStatus = { constrainedPayouts: ready.constrainedPayouts === true, reasons: ready.reasons || [], reason: ready.constrainedPayouts ? null : `On-chain automatic payout is unavailable: ${(ready.reasons || []).join(', ')}`, checkedAt: new Date().toISOString() }; });
     if (!ready.constrainedPayouts) return { status: 'unavailable', reasons: ready.reasons, submitted: 0 };

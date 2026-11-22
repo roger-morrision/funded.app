@@ -1,0 +1,32 @@
+import {payoutIntentHash} from './reward-payout-journal.mjs';
+
+// Read-only recovery is selected independently of today's due/blocked/paid state.
+// It cannot create an attempt even if the persisted marker disappears mid-read.
+export async function recoverSavedRewardPayouts({store,chain,selected=null}){
+  if(typeof chain.submitLeaf!=='function')return 0;
+  const rows=await store.transaction(state=>structuredClone(Object.values(state.schedules||{}).filter(row=>
+    (selected===null||selected.has(row.id))&&Object.keys(row.payoutAttempts||{}).length)));
+  let recovered=0;
+  for(const plan of rows)for(const leaf of plan.manifest.leaves.filter(l=>Object.hasOwn(plan.payoutAttempts,l.recipient))){
+    const original=plan.payoutAttempts[leaf.recipient],intent=payoutIntentHash(plan,leaf);
+    try{
+      const result=await chain.submitLeaf(plan,leaf,{store,recoveryOnly:true});
+      if(!result?.payoutTransactionVerified)throw Error('Payout needs exact saved-attempt reconciliation.');
+      await store.transaction(state=>{
+        const row=state.schedules?.[plan.id],saved=row?.payoutAttempts?.[leaf.recipient];
+        if(!row||payoutIntentHash(row,leaf)!==intent||saved?.state!=='verified'||saved.signature!==result.signature)
+          throw Error('Payout schedule changed before attributed completion.');
+        row.payments||={};row.payments[leaf.recipient]={status:'paid',amount:leaf.amount,amountReceived:result.amountReceived,index:leaf.index,
+          signature:result.signature,payment:result.payment,finalized:true,balanceDeltaVerified:true,payoutTransactionVerified:true};
+      });recovered++;
+    }catch(error){
+      await store.transaction(state=>{
+        const row=state.schedules?.[plan.id];if(!row||payoutIntentHash(row,leaf)!==intent)return;
+        row.payoutAttempts||={};
+        if(!Object.hasOwn(row.payoutAttempts,leaf.recipient))row.payoutAttempts[leaf.recipient]=structuredClone(original);
+        row.payoutRecoveryError=String(error.message||error).slice(0,180);
+      });
+    }
+  }
+  return recovered;
+}

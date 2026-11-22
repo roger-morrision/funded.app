@@ -76,14 +76,14 @@ export function createRewardBatchSubmitter({ cluster, connection, authority, pre
 
 // Manual requests supply selected schedule IDs and use submitLeaf immediately.
 // Automatic callers recheck saved/paused state before every bounded group.
-export async function* rewardPayoutGroups({ chain, plan, leaves, batch = true }) {
+export async function* rewardPayoutGroups({ chain, plan, leaves, batch = true, store }) {
   const enabled = batch && chain.cluster === 'devnet' && typeof chain.submitLeaves === 'function';
   const width = enabled ? REWARD_BATCH_LIMITS.recipients : 1;
   for (let offset = 0; offset < leaves.length; offset += width) {
     const group = leaves.slice(offset, offset + width);
     yield { leaves:group, submit:() => enabled ? chain.submitLeaves(plan, group)
       : Promise.all(group.map(async leaf => {
-        try { return { leaf, result:await chain.submitLeaf(plan, leaf) }; }
+        try { return { leaf, result:await chain.submitLeaf(plan, leaf,{store}) }; }
         catch (error) { return { leaf, error }; }
       })) };
   }

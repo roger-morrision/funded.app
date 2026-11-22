@@ -27,6 +27,7 @@ import { createRewardBatchSubmitter } from './reward-batch.mjs';
 import {parseProtocolGuard,rewardReviewDelaySeconds,routerHeaderLength} from '../protocol-guard.js';
 import {executeRewardExpiry} from './reward-expiry-journal.mjs';
 import {readCommittedRewardContext} from './reward-committed-context.mjs';
+import {executeRewardPayout} from './reward-payout-journal.mjs';
 export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
@@ -382,10 +383,17 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     }
     if (cluster === 'mainnet-beta') keys.push({ pubkey: legacyRouter, isSigner: false, isWritable: false });
     transaction.add(new TransactionInstruction({ programId: program, keys, data }));
-    return { leaf, transaction, recipient, payment:plan.receiptMode==='bitmap'?cycle:payment,bitmap:plan.receiptMode==='bitmap', cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore, recipientTokenAddress };
+    return { leaf, transaction, recipient, payment:plan.receiptMode==='bitmap'?cycle:payment,bitmap:plan.receiptMode==='bitmap', cycle, reserve, vault, before, vaultTokenAddress, vaultTokenBefore, recipientTokenAddress,context };
   }
 
-  async function submitLeaf(plan, leaf) {
+  async function submitLeaf(plan,leaf,{store,recoveryOnly=false}={}){
+    if(store)return executeRewardPayout({store,plan,leaf,connection,programId:program,currentAuthority:authority.publicKey,
+      cluster,expectedProgramDataSha256,prepareLeaf,send,recoveryOnly,submitBitmap:submitUnjournaledLeaf});
+    if(recoveryOnly||cluster==='mainnet-beta')throw new Error('Durable payout store required; no fresh signing authorized.');
+    return submitUnjournaledLeaf(plan,leaf);
+  }
+
+  async function submitUnjournaledLeaf(plan, leaf) {
     const prepared = await prepareLeaf(plan, leaf);
     if (prepared.paid) return prepared.paid;
     if(prepared.bitmap){const [outcome]=await submitLeaves(plan,[leaf]);if(outcome.error)throw outcome.error;return outcome.result;}

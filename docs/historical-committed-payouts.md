@@ -4,7 +4,7 @@ FQA-MN-005, application source slice. A planned operator rotation must preserve
 already committed entitlements in the original vault/cycle namespace. The current
 operator authorizes payouts; it does not become the seed for historical custody.
 
-The nine SOL, classic USDC and metadata-only Token-2022 regression bodies fail
+The nine SOL, classic USDC and Token-2022 address/owner regression bodies fail
 against exact `1e516416` chain source with only fixture imports redirected. The
 old implementation tries successor initialization or cannot find the saved cycle
 and paid receipt. The corrected required inventory passes 23/23 on Node 24.22.3,

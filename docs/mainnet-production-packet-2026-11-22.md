@@ -203,6 +203,13 @@ does not close MN005 or admit Mainnet. The preceding `1e516416` expiry scheduler
 correction is independently accepted locally by PM and E2E; no repeated Contract
 build, Loader quote or healthy UI verification is required for this App slice.
 
+The namespace correction itself is now independently accepted at `47ab8d95`.
+The next [durable single-payout candidate](durable-reward-payouts.md) binds the
+actual scheduler/locked store to signed-before-broadcast persistence and exact
+finalized transaction attribution. Its 45-case required inventory and affected
+43-case expiry inventory pass locally with synthetic bank/RPC/finality. Independent
+review is pending; no live financial closure or operational admission follows.
+
 | ID | Owner | Remaining acceptance |
 | --- | --- | --- |
 | MN-001 | App + Contract + E2E | Durable authenticated paging/scheduling beyond current 1,000 gate; realistic cohort timing/RSS/RPC/transaction evidence; preserve entitlements and bitmap bounds |

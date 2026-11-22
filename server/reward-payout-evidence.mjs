@@ -32,7 +32,18 @@ export function rewardPayoutProof(tx,{program,cycle,vault,manifest,leaf,bitmap})
   const delta=address=>{const i=keys.indexOf(String(address));return i<0?null:BigInt(tx.meta.postBalances[i])-BigInt(tx.meta.preBalances[i]);};
   const tokenDelta=address=>{const i=keys.indexOf(String(address)),before=tx.meta.preTokenBalances?.find(r=>r.accountIndex===i&&r.mint===manifest.asset),after=tx.meta.postTokenBalances?.find(r=>r.accountIndex===i&&r.mint===manifest.asset);
     return !after?null:BigInt(after.uiTokenAmount.amount)-BigInt(before?.uiTokenAmount.amount||0);};
-  if(sol){if(delta(vault)!==-total||delta(leaf.recipient)!==BigInt(leaf.amount))return null;}
+  if(sol){
+    if(delta(vault)!==-total)return null;
+    if(keys[0]===leaf.recipient){
+      // Single receipt-mode self-payment also pays its exact new receipt rent
+      // and transaction fee. No other native movements may subsidize the credit.
+      const payment=target[5],i=keys.indexOf(payment),rent=delta(payment);
+      if(bitmap||matches.length!==1||i<0||tx.meta.preBalances[i]!==0||rent<=0n
+        ||!Number.isSafeInteger(tx.meta.fee)||tx.meta.fee<=0
+        ||keys.some(k=>![String(vault),leaf.recipient,payment].includes(k)&&delta(k)!==0n)
+        ||delta(leaf.recipient)!==BigInt(leaf.amount)-BigInt(tx.meta.fee)-rent)return null;
+    }else if(delta(leaf.recipient)!==BigInt(leaf.amount))return null;
+  }
   else{
     const tokenProgram=new PublicKey(target[bitmap?8:9]),mint=new PublicKey(manifest.asset);
     if(target[5]!==manifest.asset||target[6]!==getAssociatedTokenAddressSync(mint,new PublicKey(vault),true,tokenProgram).toBase58()

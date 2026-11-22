@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "scope": "Durable single receipt-mode payout transport and recovery; synthetic bank/RPC/finality only",
+  "files": [
+    {
+      "path": "tests/readiness/reward-historical-payout.test.mjs",
+      "requiredTests": [
+        "existing SOL commitment resolves original cycle without initializing successor accounts",
+        "historical SOL paid receipt is inspected in the original namespace",
+        "historical SOL remaining entitlement uses current signer and original custody once",
+        "existing USDC commitment resolves original cycle without initializing successor accounts",
+        "historical USDC paid receipt is inspected in the original namespace",
+        "historical USDC remaining entitlement uses current signer and original custody once",
+        "existing Token2022 commitment resolves original cycle without initializing successor accounts",
+        "historical Token2022 paid receipt is inspected in the original namespace",
+        "historical Token2022 remaining entitlement uses current signer and original custody once",
+        "current-operator existing commitment still binds the caller plan for immediate payout use",
+        "current-operator cycle binding rejects a foreign account before claiming a commitment",
+        "fresh creation binds only an authenticated finalized current-operator cycle",
+        "same-operator legacy migration remains supported without moving another authority vault",
+        "unreserved legacy commitment owned by an outgoing authority cannot be silently migrated",
+        "known previous commitment without a saved cycle never falls into successor initialization",
+        "changed immutable commitment fields cannot reach namespace initialization or payout",
+        "owned vault/cycle/reserve seeds and current router cannot be substituted",
+        "stale snapshots and wrong network or original authority remain unresolved without signing",
+        "namespace resolution does not clone or enumerate cohort leaves per recipient",
+        "manifest mutation during an awaited namespace read cannot bind or pay a changed intent",
+        "closed cycles and foreign or conflicting paid receipts cannot authorize a fresh payout",
+        "Mainnet namespace reader preserves default admission, current guard and bitmap exclusion",
+        "actual scheduler retains historical commitment and records only the remaining payout"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-journal.test.mjs",
+      "requiredTests": [
+        "SOL signed payout is persisted before broadcast and exact finalized proof survives restart",
+        "SOL unknown unlanded attempt never refreshes blockhash or broadcasts after restart",
+        "SOL landed attempt with missing archival transaction stays pending until exact proof returns",
+        "USDC signed payout is persisted before broadcast and exact finalized proof survives restart",
+        "USDC unknown unlanded attempt never refreshes blockhash or broadcasts after restart",
+        "USDC landed attempt with missing archival transaction stays pending until exact proof returns",
+        "Token2022 signed payout is persisted before broadcast and exact finalized proof survives restart",
+        "Token2022 unknown unlanded attempt never refreshes blockhash or broadcasts after restart",
+        "Token2022 landed attempt with missing archival transaction stays pending until exact proof returns",
+        "disk write rejection prevents payout broadcast",
+        "saved payout recovery does not call fresh readiness or signing",
+        "recovery-only missing attempt cannot fall through to preparation",
+        "selected recovery ignores other schedules and retains a disappeared original attempt",
+        "changed transaction, signature, receipt or custody deltas never close an attempt",
+        "corrupt or changed immutable payout journal refuses before fresh signing",
+        "corrupt root attempt container cannot be reinterpreted as fresh authorization",
+        "observed in-flight attempt owns the leaf across a second store instance",
+        "fee and actual Token2022 ATA rent remain above the single protected reserve",
+        "wrong network, stale status and failed finalized transaction leave the original attempt unresolved",
+        "throwing readiness still permits only saved read-only payout recovery and respects empty ID selection",
+        "receipt-mode self-payout retains exact fee and receipt-rent accounting",
+        "cached completion with corrupted verification facts cannot become a paid scheduler row"
+      ]
+    }
+  ]
+}

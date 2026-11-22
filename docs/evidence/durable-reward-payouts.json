@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T17:57:16.413214+00:00",
+  "issueId": "FQA-MN-005",
+  "baseRevision": "47ab8d9599a01223d2b4bb048db8cc9f37f08326",
+  "scope": "Actual single receipt-mode App scheduler/chain/locked store with synthetic bank/RPC/finality, not compiled/live acceptance",
+  "node": "v24.22.3",
+  "candidate": {
+    "required": 45,
+    "requiredPassed": 45,
+    "counts": {
+      "tests": 45,
+      "passed": 45,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "affectedExpiry": {
+    "required": 43,
+    "requiredPassed": 43,
+    "counts": {
+      "tests": 43,
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "baseline": {
+    "exit": 1,
+    "tests": 9,
+    "passed": 0,
+    "failed": 9,
+    "method": "Exact47abchain Gitbytes; same first nine new bodies with only current fixture/chain import prefixes redirected"
+  },
+  "negativeGate": {
+    "missingCurrentReviewElfExit": 1,
+    "requiredPassed": 0,
+    "required": 45
+  },
+  "sourceChecks": {
+    "fullSyntaxFiles": 1157,
+    "finalChangedJavaScriptSyntaxFiles": 11,
+    "sizeMaintainedFiles": 1420,
+    "gitDiffCheck": "passed",
+    "note": "Full source/size checks include three retained then removed temporary baseline exports.",
+    "finalSizeMaintainedFiles": 1417
+  },
+  "unchangedFunctionsSha256Lf": {
+    "finalizedSend": "729c0a5b4af1bc2b964f08072c46a381684137a4a9329a0f3d6bfa9ad79b5689",
+    "readiness": "0b20b6608408bc0613742d524c3059d4c2385142dde9f33e8d4547428626dcfe",
+    "expiry": "1d393b6d3be1b4dfc7720b2b4dc1959f2644264aa5755ed707425a5cb8cab22d"
+  },
+  "contract": {
+    "source": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "elfBytes": 1110424,
+    "loaderPrefixMessages": 1236
+  },
+  "coverage": [
+    "Signed-before-broadcast fsynced receipt-mode attempt for SOL/USDC/Token2022-address routing",
+    "Unknown and missing archival evidence cannot cause a fresh nonce/send; landed proof can reconcile after restart",
+    "Exact signed message/signature, successful finalized status/slot, effective ProgramData, native/token debit/credit and owned receipt",
+    "Read-only saved recovery before unavailable/throwing readiness and selected/empty IDs",
+    "Absent/disappearing/corrupt/changed intent and second-store in-flight ownership",
+    "Protected operator reserve plus fee/receipt rent and actual Token2022 immutable-owner ATA rent",
+    "Single receipt-mode self-payment exact fee/rent accounting",
+    "Existing accepted namespace and affected expiry behavior"
+  ],
+  "sourceSha256Lf": {
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-batch.mjs": "77d16c63c70f58cdca87158304a75a9887240aec5c43e935cd01ca7166f8d9d2",
+    "server/reward-committed-context.mjs": "46eef48ac6505ccf12716b45062109af7430b3e7b886a0cdd7c011ed2a639bb8",
+    "server/reward-expiry-attempt.mjs": "472649b62ac1c41be5570e415412e63d8bfa4843f42c5bd1d5acfa9c8e3854fa",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/reward-schedule-payments.mjs": "02fce55bf7b408f6b2bc196ca3887a2a9862d37f0e53621530acff7ac804944f",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/reward-payout-journal.mjs": "41dfee36dc5916421242646766e27475be09fa4589660d4cfe99dfea7d4b5096",
+    "server/reward-payout-recovery.mjs": "aa0ba1df33e891016fc6a38761c780d7a6ccd298f222221d18b86c12bb328e5a",
+    "tests/readiness/reward-payout-fixture.mjs": "20ead57208e30e33aae4e86f2451b6e18706173bfe8a6ba0482c0d37103176fd",
+    "tests/readiness/reward-payout-journal.test.mjs": "fe82a07ecbf514b70f3c02e78f7bebd229158dbf515cce5a6662fc62683423b0",
+    "config/reward-payout-journal-tests.json": "a1c3e1a7db6ff8b215db60d7cf5abe132bd7cf907f49662714dd9ecbfe1c3500",
+    "docs/durable-reward-payouts.md": "e3050cdaa028b7766fa3a49aef486f2ee2671a0043dedde00cb8ffb558e001bf",
+    "docs/historical-committed-payouts.md": "02615393c16867a1ef20febe47c248fdc00e09d7bde1c93c2ffa2e37b3fb508c",
+    "docs/mainnet-production-packet-2026-11-22.md": "e2ed4c249b890a9012dcb5f8be0f0a3ad221b49cb1080f5961e6bba5e891aee3"
+  },
+  "evidenceSha256": {
+    "baseline-chain.mjs": "0cfd298dc263d28fbf70a7c4d5cedfff49eb4d701259513730384c0966d81964",
+    "baseline-fixture.mjs": "3d473e67ee87133ac8e0b5b724fa47bdf7319df7e7e627f159034fb593f2613b",
+    "baseline.test.mjs": "07a4430ecd1a4372e3318763a5353ba57482695f093555882a59e29685e5680e",
+    "baseline.txt": "5bf2cab56dcdf5e801043bf2b9a7bd60b90e2096eb8df11acd153a7930501463",
+    "existing-expiry.json": "47ea3ed780d97bc76d695feae15c22811827a6ec6052bf077c07fc0b53734002",
+    "initial-15.txt": "0dd20228d06377a73875bc8f0de1322cb00dbb37944e38f2818e2b17f6bc270a",
+    "initial-38.txt": "b8dccb587bec3bad8d9bbb25a328e82025b4c2f7f3179138404f59c864f4be6a",
+    "missing-elf.json": "37a37c69d694c311037936a5b5ace493ce36f5048abf622748036f6d23f57f3a",
+    "result.json": "86df57168c9e01aeda08ef7bfbec9e1fdd782958710b5d6def82f142e9ed98f0",
+    "source-check.txt": "e1ba4739c201d10702ea3f24950a409c4ccf04a0ee07c2e9f0f6c63f426bb023",
+    "unchanged-functions.json": "3ec117db1a9e9937b15752a4c5ee2f77e926ce7a69be87b620ee6ebcdecef15e"
+  },
+  "limitations": [
+    "Synthetic financial RPC/bank/finality; no actual transactions or external endpoint",
+    "Minimal Token2022 mint/address/owner fixtures do not prove extension-specific compiled transfer",
+    "Devnet bitmap/batch and legacy paid-without-attempt paths retain separate behavior, not covered durability",
+    "Historical Mainnet payment without signed saved attempt remains archival dependency",
+    "Intervening unverifiable state and failed/expired/unknown attempts remain unresolved with no automatic replacement",
+    "No cap, financial policy, signer allowlist, runtime admission, Contract ABI, deployment or spend change",
+    "Production operational custody, archive/live28, scale and final costed release remain open"
+  ]
+}

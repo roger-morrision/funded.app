@@ -75,6 +75,8 @@ async function programAtTransaction({connection,cluster,programId,expectedProgra
     &&expiryDigest(pd.value.data)===expectedProgramDataSha256,'Expiry ProgramData context differs.');
   return {programDataContextSlot:pd.context.slot};
 }
+// Same uncached effective-code check for durable reward payout reconciliation.
+export {programAtTransaction as finalizedRewardProgramContext};
 
 // A finalized status or inactive cycle alone is insufficient. This attributes
 // the exact successful transaction, frozen message and resulting unpaid release.

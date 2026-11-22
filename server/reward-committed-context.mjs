@@ -18,7 +18,8 @@ const equal=(a,b)=>immutable.every(name=>String(a[name])===String(b[name]));
 // key. The chain's normal readiness/ProgramData gate remains mandatory; this is
 // account/namespace authentication, not a new program or financial admission.
 export async function readCommittedRewardContext({connection,programId,currentAuthority,plan,cluster,recipient,
-  expectedProgramDataSha256,release=reviewedMainnetManifest()}){
+  expectedProgramDataSha256,release=reviewedMainnetManifest(),readOnlyRecovery=false}){
+  assert(typeof readOnlyRecovery==='boolean','Explicit committed reward recovery mode required.');
   const input=plan,source=plan?.manifest;
   // Only the immutable tuple and count are needed here. Copying every Merkle
   // leaf for each recipient would make a complete cohort quadratic in size.
@@ -64,7 +65,7 @@ export async function readCommittedRewardContext({connection,programId,currentAu
   assert(unpaid>=0n&&(!record.reserved||BigInt(liability.outstanding)>=unpaid),'Committed reward liability is inconsistent.');
   assert(owned(routerInfo,program)&&routerInfo.data.length===routerHeaderLength(cluster)&&routerInfo.data.subarray(0,8).toString()==='FUNDFEE1'
     &&routerInfo.data.subarray(41,73).equals(operator.toBuffer()),'Committed payout current operator/router differs.');
-  if(cluster==='mainnet-beta')assert(parseProtocolGuard(routerInfo.data)?.paused===false,'Committed reward payouts are paused.');
+  if(cluster==='mainnet-beta'&&!readOnlyRecovery)assert(parseProtocolGuard(routerInfo.data)?.paused===false,'Committed reward payouts are paused.');
   assert(['cycle','mint','asset','cluster','genesisHash','originalAuthority','cutoffAt','payoutAt'].every(name=>String(input[name])===String(plan[name]))
     &&['cycleId','root','asset','totalAmount'].every(name=>String(input.manifest?.[name])===String(manifest[name]))
     &&Array.isArray(input.manifest?.leaves)&&input.manifest.leaves.length===manifest.leafCount,'Committed plan changed during namespace review.');
