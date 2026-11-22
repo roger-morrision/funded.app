@@ -1461,8 +1461,26 @@
       "observed": "False constrainedPayouts returns before expiry recovery. Actual saved landed attempt remains prepared with zero recovery calls; same chain directly verifies with no new blockhash/broadcast.",
       "requestedFix": "Saved-attempt-only recovery before fresh-work readiness, enforced by recovery-only chain/journal entry that never falls through to fresh signing for a missing attempt. Preserve original message and exact attribution; unrelated fresh work remains blocked.",
       "owner": "App Dev",
-      "status": "Independent Node24 reproduction and Contract source confirmation; pending bounded App correction.",
-      "priorAcceptance": "The prior 29-case chain-level acceptance remains scoped to its covered path; complete scheduler reachability remains open."
+      "status": "Corrected in exact App1e516416; scoped Contract source/runtime review passed; independent Node24 requested.",
+      "priorAcceptance": "The prior 29-case chain-level acceptance remains scoped to its covered path; complete scheduler reachability remains open.",
+      "correction": {
+        "appSource": "1e516416f8fb02ba7840c078e48d0f29721d91ea",
+        "ownerReportGitSha256": "965ac4588c77e834a2c147fd898baa32ce4250eb87799d319403d15e0587e806",
+        "reviewNode": "v26.13.1",
+        "requiredPassed": 43,
+        "failures": 0,
+        "skipped": 0,
+        "todo": 0,
+        "runtimeHashBinding": "All four reviewed runtime files byte-identical to the committed Git source after LF normalization.",
+        "probeSha256": "472c51bfd1ea078353896709886e0dc8e03c595188595e9396d389ddb94f88c8",
+        "sameOriginalProbe": "Passed1/1; unavailable with zero submissions; prepared to verified; one recovery call; zero new blockhash/broadcast.",
+        "rawProbe": "tmp/contract-expiry-readiness-original-probe.txt",
+        "rawProbeSha256": "0b4cd24a14148aaa7377a16875616220d5a9c880f22ffbb447b97e9f1daa724a",
+        "rawInventory": "tmp/contract-expiry-readiness-review.txt",
+        "rawInventorySha256": "0c06723e1fec159fb99b702ded98a322fc99bb5fc2338cb7128a01eb993c799b",
+        "boundedBehavior": "Saved-only pass before readiness. Missing attempt returns inside lower journal before signing readiness. Corrupt present markers remain unresolved. Removed/replaced immutable rows cannot inherit completion. Fresh expiry pass stays behind readiness and excludes saved attempts.",
+        "scope": "Synthetic scheduler/chain/store/RPC. Existing production binary and prefix reused. Live, custody/role, archive/scale and final funding gates remain open."
+      }
     }
   }
 }
