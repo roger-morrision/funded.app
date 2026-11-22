@@ -1665,5 +1665,26 @@
       "expiryReuse": "Independent prior43expiry results reused by actual unchanged6filebyteidentity.",
       "scope": "PAYOUT-02 native/cached correction accepted locally. Original metadata controls also pass; PAYOUT-01 PM acceptance at7108 remains separately attributed. Synthetic bank/RPC/finality only."
     }
+  },
+  "operationalCustodyProposal": {
+    "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-production-packet-20261122/operational-custody-proposal.json",
+    "sha256": "f52d0bed9568d3d0d49dc2752331dd939d80286078cb91d17b47951031438c25",
+    "appSource": "969809a0939b033353c757649e933c018a76d407",
+    "status": "Existing App proposal and PM owner-input request, no new authorities provisioned.",
+    "unresolvedRoles": [
+      "automationOperator",
+      "independentPriceAttestor",
+      "offlineGuardian"
+    ],
+    "unresolvedRecipientMappings": [
+      "operationsTreasury",
+      "tradeFeeTreasury",
+      "boostTreasury",
+      "revenueTreasury",
+      "feeRecipient"
+    ],
+    "funding": "Operator reserve remains single3000000000lamports plus known1315720router rent and additional unpriced operator costs. Attestor zero known direct debit conditional on actual readonly cosigning messages.",
+    "engineeringResponsibilities": "Production signer/worker admission, infrastructure independence, custody backup/restore, transaction inventory, independent live/archive/scale acceptance remain team-owned.",
+    "approvalBoundary": "Provisioning roles, recipient decisions and itemized guard/price/funding/canary proposal require actual owner decisions. Existing admin/payer/program choices remain fixed. This reference introduces no funding instruction or policy approval."
   }
 }
