@@ -3086,7 +3086,7 @@
     "reportedOomKills": 0,
     "reportedOriginalAttemptsPreserved": 2002,
     "reportedDirectorySyncCalls": 0,
-    "status": "Baseline missing directory/ancestor fence independently confirmed; correction3746 source reviewed andWindows288pass, independent exactLinux correction acceptance pending.",
+    "status": "Original0902 missing directory/ancestor fence baseline retained.3746API-level correction independently accepted; source-scoped process-loss evidence and production powerloss/operational restore limits retained.",
     "primarySource": {
       "url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
       "verified": "Linux man-pages explicitly distinguishes file inode/data fsync from the directory-entry flush requiring a directory descriptor sync."
@@ -3202,12 +3202,196 @@
       "Owner retained actual Linux10/same-body9failure baseline/original ancestor probe and both288 outputs verified by hash; Contract personally ran Windows288 only. Independent Linux exact-source acceptance pending.",
       "Contract runtime identical971399ff;3f8/1236prefix/fees/quote unchanged. Older0902 resource timings remain tied to old exact store dependency."
     ],
-    "status": "Contract source review and288Windows affected cases pass; owner Linux retained evidence reviewed, independent exact3746Linux/fault/ancestor acceptance pending.",
+    "status": "Independent E2E accepted exact3746 API-level directory/same-filesystem ancestor fence within stable mount/namespace/cooperating-writer assumptions. Host-powerloss/production recovery/full-worker gates remain open.",
     "scope": "API-level directory metadata fence and failure semantics only. No host-powerloss/device-cache/persistent production financial backup or normal full-worker/resource acceptance.",
     "remaining": [
       "Independent exactLinux10/originalancestor/failure/journal retest pending.",
       "Preserve post-publication uncertainty; failed fence is not rollback or retry authorization.",
       "Normal service/fullworker/O(N)/actual mount and permissions/operational backup plus originalbank/live28/roles/runtime/finalfunding remain open."
-    ]
+    ],
+    "independentVerification": {
+      "file": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-directory-fence-37468637-20261123.json",
+      "sha256": "395da22c6352ab9b95adf00c24269954bfb992a89506fc3e0b0dafb9526bc2f3",
+      "gitSourcePinsMatched": 31,
+      "sourceTarGitMembersMatched": 820,
+      "unchangedContextPins": 22,
+      "tests": {
+        "linuxRequired": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 10,
+            "passed": 10,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "required": 10,
+          "requiredPassed": 10,
+          "success": true
+        },
+        "sameTenBodiesWithOnlyPriorStoreBytes": {
+          "counts": {
+            "tests": 10,
+            "passed": 1,
+            "failed": 9,
+            "skipped": 0,
+            "todo": 0
+          },
+          "success": false,
+          "exit": 1
+        },
+        "originalUnchangedBootstrapProbe": {
+          "sha256": "acc94fa9c251264837114f289454f8b3f2c585b89d8201362e5b6172934f7504",
+          "passed": true,
+          "outcome": {
+            "scope": "metadata-only-nested-bootstrap-directory-boundary-not-powerloss",
+            "required": [
+              "/app/data/durable-bootstrap-fixture",
+              "/app/data/durable-bootstrap-fixture/new-parent",
+              "/app/data/durable-bootstrap-fixture/new-parent/new-child"
+            ],
+            "missing": [],
+            "events": [
+              {
+                "event": "directory-synced",
+                "path": "/app/data/durable-bootstrap-fixture/new-parent/new-child"
+              },
+              {
+                "event": "directory-synced",
+                "path": "/app/data/durable-bootstrap-fixture/new-parent"
+              },
+              {
+                "event": "directory-synced",
+                "path": "/app/data/durable-bootstrap-fixture"
+              },
+              {
+                "event": "directory-synced",
+                "path": "/app/data"
+              },
+              {
+                "event": "transaction-returned"
+              }
+            ]
+          }
+        },
+        "linuxAffectedPersistenceInventory": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 288,
+            "passed": 288,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "required": 288,
+          "requiredPassed": 288,
+          "success": true
+        },
+        "windowsAffectedPersistenceInventory": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 288,
+            "passed": 288,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "required": 288,
+          "requiredPassed": 288,
+          "success": true
+        },
+        "additionalLinuxPreparedAndMixedCapacityCases": {
+          "passed": 11,
+          "failed": 0,
+          "skip": 0,
+          "todo": 0
+        },
+        "windowsLinuxGate": {
+          "exit": 1,
+          "classification": "unavailable as expected; not directory-fsync evidence"
+        }
+      },
+      "controlledExt4Metrics": {
+        "metric-baseline": {
+          "metrics": {
+            "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+            "node": "v24.22.3",
+            "cohorts": 2,
+            "leavesPerCohort": 1001,
+            "fresh": {
+              "publicReads": 0,
+              "transactions": 1,
+              "serializedCandidateBytes": 1892885,
+              "actualLedgerReplacements": 1,
+              "actualLedgerWriteBytes": 1892885,
+              "mutatorInsideLockMs": 33.56276500000013,
+              "transactionElapsedMs": 114.31482699999992,
+              "instrumentationSerializeMs": 5.189270000000079,
+              "elapsedMs": 183.69746299999997
+            },
+            "recovery": {
+              "publicReads": 1,
+              "transactions": 33,
+              "serializedCandidateBytes": 62470800,
+              "actualLedgerReplacements": 2,
+              "actualLedgerWriteBytes": 3786064,
+              "mutatorInsideLockMs": 7.8015529999993305,
+              "transactionElapsedMs": 1313.047305000001,
+              "instrumentationSerializeMs": 272.30903200000034,
+              "elapsedMs": 1401.306181,
+              "interfaceCalls": 32
+            },
+            "maxRssKiB": 128940,
+            "networkCalls": 0,
+            "transactionsSent": 0,
+            "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+          },
+          "directorySyncCounts": [
+            0
+          ]
+        },
+        "metric-current": {
+          "metrics": {
+            "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+            "node": "v24.22.3",
+            "cohorts": 2,
+            "leavesPerCohort": 1001,
+            "fresh": {
+              "publicReads": 0,
+              "transactions": 1,
+              "serializedCandidateBytes": 1892885,
+              "actualLedgerReplacements": 1,
+              "actualLedgerWriteBytes": 1892885,
+              "mutatorInsideLockMs": 96.99852600000008,
+              "transactionElapsedMs": 142.33697200000006,
+              "instrumentationSerializeMs": 3.972301000000016,
+              "elapsedMs": 210.02531699999986
+            },
+            "recovery": {
+              "publicReads": 1,
+              "transactions": 33,
+              "serializedCandidateBytes": 62470800,
+              "actualLedgerReplacements": 2,
+              "actualLedgerWriteBytes": 3786064,
+              "mutatorInsideLockMs": 6.8526020000017525,
+              "transactionElapsedMs": 1502.9325170000002,
+              "instrumentationSerializeMs": 233.9398979999994,
+              "elapsedMs": 1569.0633480000001,
+              "interfaceCalls": 32
+            },
+            "maxRssKiB": 130120,
+            "networkCalls": 0,
+            "transactionsSent": 0,
+            "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+          },
+          "directorySyncCounts": [
+            105
+          ]
+        }
+      },
+      "metricInterpretation": "Same marker-only two1001 cohort body on fresh ext4 volumes under0.75CPU/512MiB/networknone.32unknown interfaces and33 recovery store calls still2ledger replacements/3786064bytes; directory observer0->105 includes35total bootstrap/fresh/recovery transactions across3dirs. Instrumented single-run timing/RSS do not establish speedup, resource headroom, SLA or Solana fee savings.",
+      "rawArtifactsVerified": 30,
+      "scope": "API-level Linux directory and same-filesystem ancestor persistence fence independently accepted within documented stable namespace/mount and cooperating-writer preconditions. Parent Mainnet release remains NO-GO."
+    }
   }
 }
