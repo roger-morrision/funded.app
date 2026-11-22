@@ -1934,7 +1934,7 @@
       "networkCalls": 0,
       "chainTransactions": 0
     },
-    "status": "Independent E2E accepted926a mixed-scope fairness correction and95covered cases locally; storage amplification and parent scale/readiness remain open.",
+    "status": "Historical dc30533-write baseline retained;926a fairness independently accepted.94c exact-byte store publication reduction independently accepted separately; O(N)/memory/realistic capacity and parent gates remain open.",
     "nextStorageAcceptance": [
       "App owns assessment; no competing store implementation.",
       "Compare actual persisted pre-mutation representation under the same exclusive lock. Preserve missing-file bootstrap and v1->v2 migration writes even when application mutator changes nothing.",
@@ -2252,7 +2252,7 @@
       "Invalid UTF8/noncanonical JSON normalizes once, not mistaken for raw byte identity. Corrupt unsupported state, serialization, rename, concurrent-store, active-drain and cached clone cases pass.",
       "All22financial/context/package/admission/resource pins and AppContractruntime paths unchanged; reuse9713/3f8/1236Loaderprefix, no quote/signing inventory change."
     ],
-    "status": "Contract exact-source generic persistence review and288local affected cases pass. Independent exact-source acceptance pending.",
+    "status": "Independent E2E accepted exact94c generic-store no-op correctness and physical ledger publication reduction locally. O(N)/memory/full-payload/whole-worker/durability/parent release gates remain open.",
     "scope": "Actual Windows filesystem/store with synthetic financial bank/RPC/attempts. Local persistence and physical ledger write reduction only; not live finality, Linux power-loss/backup, realistic payload/memory headroom or whole-worker capacity acceptance.",
     "remaining": [
       "Whole-ledger discovery/parse/comparison/serialization and memory remainO(N).",
@@ -2295,6 +2295,134 @@
       "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
     },
     "rawMeasurement": "tmp/contract-store-noop-metrics-94c0.log",
-    "rawMeasurementSha256": "0d46578960ba39c12fe15aa2f894e230195f0565c495c483dbac6fb1d2092b77"
+    "rawMeasurementSha256": "0d46578960ba39c12fe15aa2f894e230195f0565c495c483dbac6fb1d2092b77",
+    "independentVerification": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-store-noop-94c01b67-20261123.json",
+      "sha256": "fa2faa7a0fc379cb0995bd419c642b43678d9aa4b1fd70216b3eb672dba6d996",
+      "node": "v24.22.3",
+      "checkedCommand": "node scripts/check-reward-store-persistence.mjs",
+      "requiredPassed": 288,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "gitSourceHashesMatched": 30,
+      "files": 24,
+      "directPersistenceCases": 15,
+      "controlledMeasurement": {
+        "method": "Same current benchmark body/data/selectors/recovery; ONLY store import redirected to exact926a Git bytes for baseline. Both isolated --test-name-pattern executions; actual stat inode+post-file size observation.",
+        "baselineExit": 1,
+        "candidateExit": 0,
+        "baselineExpectedFailure": "Actual ledger replacements33 versus candidate assertion2; no other body change.",
+        "before": {
+          "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+          "node": "v24.22.3",
+          "cohorts": 2,
+          "leavesPerCohort": 1001,
+          "fresh": {
+            "publicReads": 0,
+            "transactions": 1,
+            "serializedCandidateBytes": 1892885,
+            "actualLedgerReplacements": 1,
+            "actualLedgerWriteBytes": 1892885,
+            "mutatorInsideLockMs": 27.473100000000045,
+            "transactionElapsedMs": 51.84260000000006,
+            "instrumentationSerializeMs": 3.5430999999999813,
+            "elapsedMs": 83.77440000000001
+          },
+          "recovery": {
+            "publicReads": 1,
+            "transactions": 33,
+            "serializedCandidateBytes": 62470800,
+            "actualLedgerReplacements": 33,
+            "actualLedgerWriteBytes": 62470800,
+            "mutatorInsideLockMs": 4.160399999999868,
+            "transactionElapsedMs": 767.5645000000002,
+            "instrumentationSerializeMs": 115.9675000000002,
+            "elapsedMs": 785.1736000000001,
+            "interfaceCalls": 32
+          },
+          "maxRssKiB": 166676,
+          "networkCalls": 0,
+          "transactionsSent": 0,
+          "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+        },
+        "after": {
+          "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+          "node": "v24.22.3",
+          "cohorts": 2,
+          "leavesPerCohort": 1001,
+          "fresh": {
+            "publicReads": 0,
+            "transactions": 1,
+            "serializedCandidateBytes": 1892885,
+            "actualLedgerReplacements": 1,
+            "actualLedgerWriteBytes": 1892885,
+            "mutatorInsideLockMs": 26.469600000000014,
+            "transactionElapsedMs": 52.614799999999946,
+            "instrumentationSerializeMs": 3.6229999999999336,
+            "elapsedMs": 82.85730000000001
+          },
+          "recovery": {
+            "publicReads": 1,
+            "transactions": 33,
+            "serializedCandidateBytes": 62470800,
+            "actualLedgerReplacements": 2,
+            "actualLedgerWriteBytes": 3786064,
+            "mutatorInsideLockMs": 4.624399999999923,
+            "transactionElapsedMs": 482.9102999999998,
+            "instrumentationSerializeMs": 112.31550000000016,
+            "elapsedMs": 506.57619999999986,
+            "interfaceCalls": 32
+          },
+          "maxRssKiB": 248484,
+          "networkCalls": 0,
+          "transactionsSent": 0,
+          "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+        },
+        "fullGateObservation": {
+          "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+          "node": "v24.22.3",
+          "cohorts": 2,
+          "leavesPerCohort": 1001,
+          "fresh": {
+            "publicReads": 0,
+            "transactions": 1,
+            "serializedCandidateBytes": 1892885,
+            "actualLedgerReplacements": 1,
+            "actualLedgerWriteBytes": 1892885,
+            "mutatorInsideLockMs": 21.987699999999904,
+            "transactionElapsedMs": 63.093799999999874,
+            "instrumentationSerializeMs": 3.6340000000000146,
+            "elapsedMs": 94.14799999999991
+          },
+          "recovery": {
+            "publicReads": 1,
+            "transactions": 33,
+            "serializedCandidateBytes": 62470800,
+            "actualLedgerReplacements": 2,
+            "actualLedgerWriteBytes": 3786064,
+            "mutatorInsideLockMs": 4.291899999999714,
+            "transactionElapsedMs": 534.3060999999989,
+            "instrumentationSerializeMs": 111.50440000000026,
+            "elapsedMs": 553.1220000000001,
+            "interfaceCalls": 32
+          },
+          "maxRssKiB": 230892,
+          "networkCalls": 0,
+          "transactionsSent": 0,
+          "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+        },
+        "ledgerDataReductionPercent": 93.93946611857059,
+        "candidateBytesUnchanged": true,
+        "notes": [
+          "32 synthetic unresolved calls still33transaction invocations and62470800candidate serializedbytes.",
+          "Actual ledger replacements33->2 and bytes62470800->3786064 reproduced. Lock-file metadata I/O excluded. These are disk writes, not Solana transactions or fee savings.",
+          "Mutator time is not total lock hold. Transaction elapsed includes JSON instrumentation; extra stat observers add I/O. Local timing is not a production SLA.",
+          "Controlled RSS166676->248484KiB; full-gate observation separately recorded. Higher memory remains an explicit tradeoff, not capacity acceptance."
+        ]
+      },
+      "artifactsVerified": true,
+      "scope": "Generic exact-byte ledger persistence and failure semantics with actual locked filesystem/store and synthetic financial fixtures. No live financial/production capacity/release acceptance."
+    }
   }
 }
