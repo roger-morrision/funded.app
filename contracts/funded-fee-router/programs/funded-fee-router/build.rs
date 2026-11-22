@@ -1,7 +1,7 @@
 use std::{env, fs, path::PathBuf};
 
 fn public_key(name: &str) -> String {
-    let value = env::var(name).unwrap_or_else(|_| panic!("Mainnet builds require explicit {name}; there is no default"));
+    let value = env::var(name).unwrap_or_else(|_| panic!("Network builds require explicit {name}; there is no default"));
     let alphabet = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     assert!((32..=44).contains(&value.len()), "{name} must be a 32-byte base58 public key");
     // Decode without build dependencies so the same guard runs standalone in CI.
@@ -25,12 +25,13 @@ fn public_key(name: &str) -> String {
         "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
         "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
         "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
-    ].contains(&value.as_str()), "{name} requires a dedicated Mainnet identity");
+    ].contains(&value.as_str()), "{name} requires a dedicated program identity");
     value
 }
 
 fn main() {
     println!("cargo:rerun-if-env-changed=FUNDED_MAINNET_PROGRAM_ID");
+    println!("cargo:rerun-if-env-changed=FUNDED_DEVNET_PROGRAM_ID");
     println!("cargo:rerun-if-changed=build.rs");
     let production = env::var_os("CARGO_FEATURE_MAINNET_V3_PROGRAM").is_some();
     let devnet = env::var_os("CARGO_FEATURE_DEVNET_V3_PROGRAM").is_some();
@@ -39,6 +40,11 @@ fn main() {
         "Historical QA recovery must never be compiled into Mainnet");
     assert!(production || devnet || env::var_os("CARGO_FEATURE_CONFIGURABLE_RICH_ASSETS").is_none(),
         "Configurable RICH assets require a V3 network feature");
+    if devnet && env::var_os("CARGO_FEATURE_CONFIGURABLE_RICH_ASSETS").is_some() {
+        let id = public_key("FUNDED_DEVNET_PROGRAM_ID");
+        fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("devnet_id.rs"),
+            format!("declare_id!(\"{id}\");\n")).expect("write Devnet program identity");
+    }
     if !production { return; }
     let id = public_key("FUNDED_MAINNET_PROGRAM_ID");
     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("mainnet_id.rs"),

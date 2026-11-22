@@ -14,8 +14,10 @@ pub use state::*;
 
 #[cfg(not(any(feature = "devnet-v3-program", feature = "mainnet-v3-program")))]
 declare_id!("61EQ3onuS2jKzjUDhXdkwKNGiG8Djss3an5vPN3vwYYa");
-#[cfg(feature = "devnet-v3-program")]
+#[cfg(all(feature = "devnet-v3-program", not(feature = "configurable-rich-assets")))]
 declare_id!("9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm");
+#[cfg(all(feature = "devnet-v3-program", feature = "configurable-rich-assets"))]
+include!(concat!(env!("OUT_DIR"), "/devnet_id.rs"));
 
 #[program]
 pub mod funded_fee_router {

@@ -42,10 +42,11 @@
   },
   "devnetConfigurable": {
     "feature": "devnet-v3-program,configurable-rich-assets",
+    "programId": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
     "optimization": "z",
     "strip": true,
     "bytes": 1204336,
-    "sha256": "113881a532214b5649b3c5088b3549cc6e4d03d828680f5cc1e1b6bb6aa5097f",
+    "sha256": "7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f",
     "developerLockPeriodsSeconds": [
       300,
       21600,
@@ -54,6 +55,6 @@
       172800
     ],
     "assetConfiguration": "onchain-v1",
-    "activation": "candidate-only; requires coordinated client and signer release"
+    "activation": "isolated Devnet program deployed; client and signer remain on the prior program"
   }
 }

@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-22T06:32:21.335Z",
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "scope": "isolated on-chain configurable RICH lifecycle and small-value fee/reward smoke tests; no public app activation",
+  "program": {
+    "id": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+    "programDataAddress": "4ej89f84gD5MD9uoyUWLDWXqAw68yByBwJcyYSiTecf8",
+    "upgradeAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+    "elfSha256": "7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f",
+    "elfBytes": 1204336,
+    "programDataSha256": "bbf6b99857a9464c23d000caf7fa5cb5f19af7b2ce8ff402c2e9c37c8d68f688",
+    "deploymentSignature": "2av5ZG1RuBJENnBGezeEdRN4aCYATutoJcDkTSdihu1UVwfB1yAY6v8fQE7idCf8zgPRaBb3ZE4eakaqCXHnyLSV",
+    "verifiedExactBytes": true
+  },
+  "configuration": {
+    "active": {
+      "mint": "8FmsUFC9aPepfDtQ6ffM2eTbDBzCWTypRLvZbx65Nvex",
+      "market": "9q91H5TaaP4HpPCWNtAy1umf5wR9zM8EXc5nnaUAaqQC",
+      "revision": "2",
+      "historyAddress": "BQfENRUBCc3KPFkDhyV62kiStumf56U3kpH6fX9jvcMi",
+      "venue": 0,
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+    },
+    "revision1": {
+      "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+      "market": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+      "revision": "1",
+      "historyAddress": "DVWYBa2FysvoYGyezVwS72LxihLBHVv5G8CVohukZBqz",
+      "venue": 0,
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+    },
+    "revision2": {
+      "mint": "8FmsUFC9aPepfDtQ6ffM2eTbDBzCWTypRLvZbx65Nvex",
+      "market": "9q91H5TaaP4HpPCWNtAy1umf5wR9zM8EXc5nnaUAaqQC",
+      "revision": "2",
+      "historyAddress": "BQfENRUBCc3KPFkDhyV62kiStumf56U3kpH6fX9jvcMi",
+      "venue": 0,
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y"
+    },
+    "initialSignature": "3borkRYq6qqixMxBEKQzJBfQA6qg62XYRbnkM9gP3wFmNAUQh1z5xpr46bRh6A8u9vtbAxSPz2g7jrY8zurkwQjD",
+    "newMintSignature": "3vYV3JmP1Kc9wvYvtw58A58b7QMqYm63fxnVnyFkAgxxRpduAYe6FUNs4s3eKzkzGnFFWsxGCja88jD2bsttZ1Bw",
+    "newPoolSignature": "64MHZzGSJ3HXjyrLFFZtiyv3539ZT4UsYPP8GSynvVBtvRoHscHmBEwVGiYvB3SzTzewTaxzyzXHcFucMiRKKCL4",
+    "rotationSignature": "469L31P4VeMjjqL1BSkurZYpNtifndUb4CpRFeUSPty7W6b6H96wYcrjywQ1PJgVF6rqYKQ1SxhVx2d7ovFmgbVK"
+  },
+  "cohorts": {
+    "old": {
+      "mint": "Cp83URacwBZpMvVw2fSPtGy3RzWjD35AzF2KcKaYyENp",
+      "router": "99WNArsq4Fpjt36kw5odvdx5mgRYgUSbfpeGPKds1itk",
+      "policy": "EGfhdYtuvP8KaboQnPtbxgmawRzZXikDXtDJzW9gYJNS",
+      "launchSignature": "5NbinxWkHDSFi3ogHjaUkhiej6iufZxjyvfcznGcnzr9gQJJWUAe7Ede8GEmd3daf3d4g5jWhqE1gyvsbjbHe64e",
+      "collectionSignature": "p5U96MVzjnmeuauqRvBoe8ytaunj44m4JpFdYv8FqbLVma3kRhSELK9nngfybrLg1rvKPZKkNz4w9ArLWYHQ6f7",
+      "collectedLamports": 840,
+      "settlementSignature": "2pzSYVqKbSzBgsuVaUpo4CJeyScA21a6p3vz9cjNSZXEsE1HADzSCHe7dWk725wLBmh2hMgPTZNXsp6x4C5MFyXm",
+      "claim": "GbU8aAmN441tdhQZcMfyRQEGJL76nVhQnPA24s21vnME",
+      "categoryLamports": [
+        "672",
+        "67",
+        "17",
+        "5",
+        "3",
+        "34",
+        "42"
+      ],
+      "creatorPayout": {
+        "signature": "19D3LKxrNbxj526gSMQHSSurKbphcRcnqypF3M5z7D4pYYTCLXoBE2ZAGrihSTW6VrPXMnQ5sBZGMYb3avuGWXp",
+        "amountLamports": "336"
+      },
+      "holderReward": {
+        "cycle": "4q1zRCL93w2Ng1AmkfmZHoikrYscmPeSDzni5ZE2dAEe",
+        "payment": "QbW1aNFmTDNg8fcCPxsb4eBDdDeFxpy34whzvo9xde6",
+        "amountLamports": "336",
+        "createSignature": "3pmBS9FduGAzSPGZugi2XbRjxCyoNo3DfMkAanM8s5GCVLUgMYw8zR3ph4jTfatqoXRoY9xJWToJA4vxRbGwcPKi",
+        "paymentSignature": "ah3GQ1CP38AUunA361cq4V1QBa16QG6YAVyYQsSfeahpuA7yZb8Xep9whmdJ5xMfiuu7aCTyAG1b5SMPgP5xEgC"
+      },
+      "bonusPayout": {
+        "cycle": "CEgqkFY7TDf4ja7oQC4saZrfeapjkorbqbpX7CCxU9Ez",
+        "payment": "CgiJBEN3kjNZBatcTspCxNAxXbQDgjgrEhZ4BSJhHMN1",
+        "amountLamports": "34",
+        "createSignature": "4R8fRQfoPX1RnWT3Z6rL8oMgQivSu2qUNgK6ZBVx3ZcnXUMWqkgeW2v9iqXZoKDgCF16VzeumNurth8mqrZYNeiN",
+        "paymentSignature": "59ttyCdwpRKjxB2pL3qncXQQzPrAvKh5fG6TB2Rf4py1LnBZEkUrF3K325o4dEnJQSXaRZn96zAc7yURuRd68Sop"
+      },
+      "launchedTokenReward": {
+        "fundSignature": "25MR36UMjkskj9CEJDLHT1KVLsAcmvLqTHUAXFAAjST2mxhswjmbJK7ETaD5VUQdFajCAinoBkjQMekQiwj5gXvp",
+        "cycle": "4hbwirFKMaKLZGN8JWWToSavERDoxB1P6EbZwiS4Gj6c",
+        "payment": "BW3J114DqHUzHCABHZwwd7f16zLxBJuGHQ9Ve1xiiVJB",
+        "amountBaseUnits": "100000000",
+        "createSignature": "61QjMWKxdXiRVSYbHQiMvZuwwP38NXc9LZFG7FXVyj9i5qP3p6rhk8k3rBDQtxtANdRetXgw3gXD5f8SHAa8iH19",
+        "paymentSignature": "4AtjNQLn1aXcbcXQ9Y5aqZjNswJqRwmpZTMVLEhdHqVmm33TeBCAa4g7PcPBfr77uNfrJ222hrM6EasTU4wP9dFm"
+      }
+    },
+    "new": {
+      "mint": "C1K3w4SPjpPgPGEwBpbmtcetqGWFTMo4j6U7z1TLrSPU",
+      "router": "6q61vjskiM5yJSZd9aWSsy8QdcrE9bjiuj2fvHGRhrm4",
+      "policy": "DsuN8CbYgtVq1DGv11EvZGuQv6kcX86MTVqz3BfZDBbb",
+      "launchSignature": "66XC49rt1qgwxqbuD6HQNdDwif4dKfNQiBoPTLRhyyAxaBJ1bqjRF9wp9BReZ2QsCKYa8PnuZ45yRhKkQmLL7ggz",
+      "collectionSignature": "2xCnVXVAzidDLkvDHV2SuUJHEjF1CVbFCkQkXtWTfXkkeHJqGZRoG24Dsp9fjcxDaSPoNLgZ5toZ1cY3DQigRdBi",
+      "collectedLamports": 840,
+      "settlementSignature": "5Bt1i33jCHcWCnrKaoebnuJ2rszDqTqhrvS8jtnw1JmtaWSf3NCCCJbktxRdCuixvYz4Su7DG8EcGqd8jELY6WAH",
+      "claim": "59R4THPZbeS436DEkuCSh8TLkjNA6kF6R8Ag1PKqKsje",
+      "categoryLamports": [
+        "672",
+        "67",
+        "17",
+        "5",
+        "3",
+        "34",
+        "42"
+      ],
+      "creatorPayout": {
+        "signature": "3AdxB2wwDZfJwMkhU5vHEY7aE296JitWxt3yyaSf3fomxYT33CkQ7LwZEpumnVDHaFMKLGX6BcbdY791pN12xQVH",
+        "amountLamports": "336"
+      },
+      "holderReward": {
+        "cycle": "12UrfHEy1fDGhKpypLif426hbcapREdNSjkTT9tiwkz",
+        "payment": "AQqnWhg62RCUDX2yYQ5ZuyMvR1aRyE1nhiX4Psh5D3gp",
+        "amountLamports": "336",
+        "createSignature": "1ZtnE7qt84JHtVDsppJiHtqfDDHrKVYC3fPBJcCMiXpVwV32KtF23BBCui6u31TCouYSs2cvhmWhvGWmjb6BHEp",
+        "paymentSignature": "4oiBnTdGC3Sy9Paz9W5dxzsHFbvpKXHaA24zE2VfW9SZ1nES8rzGL9xjxvREDkyCkC6ra3YFJmHV26MHQTRJaoV5"
+      },
+      "bonusPayout": {
+        "cycle": "7xkcmTCU34S7m9mXr2TRmQDQDsepMkrj32kaeCgx4aCC",
+        "payment": "5aVKkN7nP4HaXn6cU8KURk1UcxgfbSzNZ6CHiXs3BWdF",
+        "amountLamports": "34",
+        "createSignature": "3px2Th4HSCXSbb5FeQgbHTQGPQeSX419PbccCGhQkw9EaYGr7de3nteqrPnhNYEU7txcvRTe4uSWSWpk5CEgxbdt",
+        "paymentSignature": "5kB9A6umf4Jk8quSytXg9JppqqhQTfrE9eSH5Kjn9VYF6qpwJee3iBduumTyPYCHn4QDBrYatncV9ay4iN3nmBqN"
+      },
+      "launchedTokenReward": {
+        "fundSignature": "5EDcEQFdSydhqdrgQGUGKALYzC6uetWRBUKdMYwrxzhJ1WivDFMvsbLAbNqJ29b1c6CjnVJe8ztfr8NpoBhaqpBR",
+        "cycle": "CkCMBaAPywXS97PhkdWNXJFitfsw7wJ4zhZEtQ3svPgP",
+        "payment": "9DC2c8HYNx81WGhLXMDtXLeMPFagijLBk4FVX1RpDDAz",
+        "amountBaseUnits": "100000000",
+        "createSignature": "3Hz6fcBwEkZimNt3Z65niKzaruVFqnK8L4Qkq9j9dkfHgN4AAMaVRHZwfBrsdvfHCdsyfibrB8vZNtii3Af3u7Xh",
+        "paymentSignature": "5xQVY8vg7t17xHLfoBHSReGFsUg7KUnCDJLkr56rErwbc3tgp2EfTP23uo1RXAGMgwxD6R2U1cfp5U65gHqsC3Bc"
+      }
+    }
+  },
+  "verifiedFinalizedSignatures": 40,
+  "validation": {
+    "byteForByteRebuild": true,
+    "candidateHashCheck": "passed",
+    "securityTests": {
+      "passed": 17,
+      "failed": 0
+    },
+    "compiledSbfTests": {
+      "passed": 21,
+      "failed": 0,
+      "suites": [
+        "rich_assets",
+        "app_account_setup",
+        "developer_escrow",
+        "reward_rent",
+        "reward_bitmap_token",
+        "reward_cycle_expiry"
+      ]
+    }
+  },
+  "eligibilityLimits": [
+    "SOL holder and bonus cycles used one QA wallet with manually constructed Merkle leaves. They verify contract payouts but do not verify production holder indexing, staking snapshots, Daily bonus ranking, or scheduled distribution.",
+    "Launched-token rewards were manually funded 100-token Merkle cycles. They do not verify migration-gated community airdrop eligibility.",
+    "These launches use the isolated program and were not registered with the public app or its keeper/signing service."
+  ],
+  "remaining": {
+    "migrationCommunityAirdrop": "blocked: neither new QA coin has migrated; a real migration transaction and holder snapshot are required for end-to-end approval and claim",
+    "applicationIntegration": "unavailable: live Devnet app remains pinned to the previous fee-router program and ABI",
+    "mainnetReadiness": "not implied by Devnet smoke tests"
+  }
+}
