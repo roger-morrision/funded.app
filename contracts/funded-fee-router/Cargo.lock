@@ -1365,6 +1365,7 @@ dependencies = [
  "anchor-lang",
  "anchor-spl",
  "litesvm",
+ "serde_json",
  "solana-account",
  "solana-keypair 3.1.2",
  "solana-keypair 4.0.0",

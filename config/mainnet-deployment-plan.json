@@ -24,19 +24,19 @@
   "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "mainnetActivationAuthorized": false,
   "productionReleaseRevision": null,
-  "referenceArtifactStatus": "Historical sizing references only; freeze and reproduce new production bytes after public identities are selected",
+  "referenceArtifactStatus": "Current sizing candidate is recorded in contract-build-candidates.json; production source/CI identity stays unset until a reviewed production release exists.",
   "currentPlaceholderBuild": {
     "variant": "productionBuildCheck",
     "identityScope": "public-test-fixture-only",
-    "bytes": 915704,
-    "sha256": "1d13df0ee7b5dba55701a304ab9b975f426128c4eeadc5745a93d86abafaf135",
+    "bytes": 1075760,
+    "sha256": "7073be14d9cfb48ea9b557c250bf385e6efe42dec3d441c57396b2c08ee2cc7d",
     "deployEligible": false,
-    "evidence": "docs/evidence/mainnet-placeholder-preparation-2026-11-09.json"
+    "evidence": "docs/evidence/mainnet-contract-rent-2026-11-22.json"
   },
   "upgradeable": true,
-  "sourceRevision": "e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",
-  "ciRun": "https://github.com/roger-morrision/funded.app/actions/runs/42349176721",
-  "ciArtifact": "contract-bytecode-e3d08082c6d5674e5b87ea86c34fc36c5f0655a9",
+  "sourceRevision": null,
+  "ciRun": null,
+  "ciArtifact": null,
   "targetLayout": "merged-v3",
   "intendedFeatureSet": "Agency features equivalent to the current Devnet app, subject to production implementation and review",
   "roles": [

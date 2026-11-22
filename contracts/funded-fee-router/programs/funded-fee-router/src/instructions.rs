@@ -80,7 +80,7 @@ pub mod reward_bitmap;
 #[cfg(all(feature="devnet-v3-program", not(feature="mainnet-v3-program")))]
 pub use reward_bitmap::*;
 
-#[cfg(feature = "mainnet-v3-program")]
+#[cfg(feature = "configurable-rich-assets")]
 pub mod rich_assets;
-#[cfg(feature = "mainnet-v3-program")]
+#[cfg(feature = "configurable-rich-assets")]
 pub use rich_assets::*;

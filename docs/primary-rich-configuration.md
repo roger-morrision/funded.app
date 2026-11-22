@@ -4,7 +4,7 @@ Implemented in the Mainnet-feature candidate on 22 November 2026. This is not a 
 
 ## Changing the mint or market
 
-The current configuration PDA uses `rich-assets-v1` under the router program. It contains the mint, token program, supported market, venue and increasing revision. Only the current upgrade owner can call `configure_rich_assets`. Automated server signers explicitly refuse this instruction. Use the governance wallet or multisig that holds that authority.
+The current configuration PDA uses `rich-assets-v1` under the router program. It contains the mint, token program, supported market, venue, increasing revision, administrator and pending administrator (177 bytes including the discriminator). The upgrade owner bootstraps revision 1. Later updates require the separately stored RICH administrator, even if the program upgrade authority changes or becomes immutable. Automated server signers refuse configuration and administrator-transfer instructions. Use the governance wallet or multisig that holds the RICH administrator role.
 
 The account at `rich-assets-revision-v1` plus the little-endian revision is an immutable historical record. Every update creates one record. The update must specify exactly the current revision plus one. Concurrent updates cannot silently overwrite each other.
 
@@ -13,7 +13,7 @@ Supported markets are a PumpSwap pool whose base is RICH and quote is native SOL
 After production identities and the exact binary have passed release review:
 
 ```powershell
-node scripts/prepare-rich-assets.mjs --rpc <MAINNET_RPC> --owner <UPGRADE_OWNER_PUBLIC_KEY> --mint <RICH_MINT> --market <SOL_POOL_OR_CURVE> --venue pool
+node scripts/prepare-rich-assets.mjs --rpc <MAINNET_RPC> --owner <RICH_ADMIN_PUBLIC_KEY> --mint <RICH_MINT> --market <SOL_POOL_OR_CURVE> --venue pool
 ```
 
 Use `--venue curve` for a canonical Pump bonding curve. This tool verifies the approved network and deployed program, reads the current revision, and outputs an **unsigned** transaction with old/new addresses and revision. It never loads a secret key or broadcasts. Its blockhash expires; prepare it immediately before the owner wallet signs. The shared `buildConfigureRichAssets` function in `rich-assets.js` can also be used by a wallet or multisig integration. The owner funds transaction fees and the new configuration-history account's rent.
@@ -21,6 +21,20 @@ Use `--venue curve` for a canonical Pump bonding curve. This tool verifies the a
 After the owner submits it, wait for finalization and read both the current and new history PDAs. Confirm their mint, market, token program and revision match the requested change. A submitted signature alone is not verification. The first configuration must be initialized before any configured Mainnet buyback can execute.
 
 Changing from a bonding curve to its migrated pool also requires an owner update and a new revision. While the configured curve is complete, quotes fail closed until the supported SOL pool is selected. To roll back, create another revision with the earlier addresses; never reuse an old revision.
+
+## Administrator handoff and contract inventory
+
+Call `propose_rich_authority` from the current administrator, then `accept_rich_authority` from the nominated successor. Proposing the current administrator cancels a pending transfer; the zero address is rejected. Until acceptance, the old administrator remains in control. After acceptance, its mint-update authority is revoked. Handoffs do not rewrite asset revisions or historical receipts.
+
+The unsigned preparation tool also supports `--action propose --successor <PUBLIC_KEY>` and `--action accept`, using `--owner` for the signing administrator/successor. Shared wallet builders are `buildProposeRichAuthority` and `buildAcceptRichAuthority`. Re-read current administrator, pending administrator and assets after finalization. No private keys are loaded by the tool.
+
+The contract-level independence of RICH administration does **not** recommend making the whole protocol immutable: guard recovery still uses the upgrade owner, and runtime trust pins the loader authority and full ProgramData hash. Any code-authority change needs its own reviewed operational release before automated trading resumes.
+
+- Mainnet merged V3 router: `mainnet-v3-program` includes `configurable-rich-assets`; both protected and agency RICH buybacks use this configuration. Old buyback entrypoints are absent.
+- Existing Devnet router: a separately built `devnet-v3-program,configurable-rich-assets` upgrade candidate provides the same administration and removes the old buyback ABI. It is tested but not deployed or activated. Current app/signer Devnet defaults still target the preserved legacy release; a coordinated client/signer release is required before upgrading that deployment.
+- Standalone legacy router and developer-token-lock: no compiled global RICH address to replace. Escrow locks, reward cycles and community drops record their own asset; their existing liabilities must stay tied to that asset. The production plan uses the merged program, so a second escrow deployment is unnecessary.
+
+The prior 113-byte configuration was an undeployed candidate. This revision uses 177 bytes; no deployed account migration is claimed. If an out-of-band deployment initialized the earlier candidate, it requires an explicit reviewed migration before this binary is installed.
 
 ## Pending orders and existing obligations
 

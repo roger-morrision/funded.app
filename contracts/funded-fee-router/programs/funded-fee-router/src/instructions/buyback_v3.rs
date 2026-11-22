@@ -12,8 +12,8 @@ use crate::{constants::*, error::ErrorCode, state::{MintBuybackV3, MintFeePolicy
 use super::rotate::assert_current_router_authority;
 
 // Devnet pilot assets. The production program cannot inherit these addresses.
-#[cfg(not(feature = "mainnet-v3-program"))] const FUNDED_MINT: &str = "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64";
-#[cfg(not(feature = "mainnet-v3-program"))] const FUNDED_POOL: &str = "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32";
+#[cfg(not(feature = "configurable-rich-assets"))] const FUNDED_MINT: &str = "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64";
+#[cfg(not(feature = "configurable-rich-assets"))] const FUNDED_POOL: &str = "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32";
 const PUMP_SWAP: &str = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA";
 const BUY_EXACT_QUOTE_IN: [u8; 8] = [198, 46, 21, 82, 180, 217, 232, 112];
 const INIT_USER_VOLUME: [u8; 8] = [94, 6, 202, 115, 255, 96, 232, 183];
@@ -107,13 +107,13 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     require!(spendable_quote_in > 0 && min_base_amount_out > 0
         && max_total_debit >= spendable_quote_in,
         ErrorCode::InvalidAmount);
-    #[cfg(feature = "mainnet-v3-program")]
+    #[cfg(feature = "configurable-rich-assets")]
     let (assets, swap_accounts) = super::rich_assets::resolve(ctx.program_id, ctx.remaining_accounts, _assets_revision,
         &ctx.accounts.funded_mint.key(), &ctx.accounts.pool.to_account_info(), &ctx.accounts.base_token_program.key(),
         &ctx.accounts.pump_swap_program.key(), false)?;
-    #[cfg(feature = "mainnet-v3-program")]
+    #[cfg(feature = "configurable-rich-assets")]
     let (funded_mint, pool) = (assets.mint, assets.market);
-    #[cfg(not(feature = "mainnet-v3-program"))]
+    #[cfg(not(feature = "configurable-rich-assets"))]
     let (funded_mint, pool, swap_accounts) = (
         Pubkey::from_str(FUNDED_MINT).map_err(|_| ErrorCode::InvalidMintBuybackV3)?,
         Pubkey::from_str(FUNDED_POOL).map_err(|_| ErrorCode::InvalidMintBuybackV3)?, ctx.remaining_accounts);

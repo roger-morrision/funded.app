@@ -11,6 +11,7 @@ expect_failure() {
   fi
   echo "Rejected: $label"
 }
+expect_failure configurable-without-network CARGO_FEATURE_CONFIGURABLE_RICH_ASSETS=1
 expect_failure missing-identity CARGO_FEATURE_MAINNET_V3_PROGRAM=1
 expect_failure conflicting-networks CARGO_FEATURE_MAINNET_V3_PROGRAM=1 CARGO_FEATURE_DEVNET_V3_PROGRAM=1
 expect_failure qa-recovery CARGO_FEATURE_MAINNET_V3_PROGRAM=1 CARGO_FEATURE_HISTORICAL_QA_RECOVERY=1
@@ -28,4 +29,4 @@ env -i OUT_DIR="$guard_dir" CARGO_FEATURE_MAINNET_V3_PROGRAM=1 \
 test -s "$guard_dir/mainnet_id.rs"
 test -s "$guard_dir/mainnet_conversion.rs"
 test ! -e "$guard_dir/mainnet_assets.rs"
-echo 'Accepted program identity without embedded assets; ten invalid configurations rejected.'
+echo 'Accepted program identity without embedded assets; eleven invalid configurations rejected.'

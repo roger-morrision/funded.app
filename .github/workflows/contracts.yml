@@ -44,6 +44,13 @@ jobs:
           CARGO_PROFILE_RELEASE_STRIP: 'true'
         run: |
           CARGO_TARGET_DIR="$RUNNER_TEMP/agency-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --features devnet-v3-program --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy/devnet-v3" -- --locked
+      - name: Build optional configurable Devnet upgrade candidate
+        working-directory: contracts/funded-fee-router
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: z
+          CARGO_PROFILE_RELEASE_STRIP: 'true'
+        run: |
+          CARGO_TARGET_DIR="$RUNNER_TEMP/agency-configurable-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --features devnet-v3-program,configurable-rich-assets --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy/devnet-configurable" -- --locked
       - name: Build production feature with a test-only program identity
         working-directory: contracts/funded-fee-router
         # This public fixture has no deployment signer. It verifies the production
@@ -64,6 +71,7 @@ jobs:
       - name: Verify candidates without changing deployed program trust
         run: |
           node scripts/verify-contract-candidate.mjs contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so devnet
+          node scripts/verify-contract-candidate.mjs contracts/funded-fee-router/target/deploy/devnet-configurable/funded_fee_router.so devnetConfigurable
           node scripts/verify-contract-candidate.mjs contracts/funded-fee-router/target/deploy/mainnet-build-check/funded_fee_router.so productionBuildCheck
       - name: Verify account setup and custody against compiled bytecode
         working-directory: contracts/funded-fee-router
@@ -80,6 +88,10 @@ jobs:
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --lib --test rich_assets --test protocol_guard
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test reward_mainnet_gates
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test developer_escrow
+      - name: Verify configurable Devnet administration and stale-order rejection
+        working-directory: contracts/funded-fee-router
+        run: |
+          FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/devnet-configurable/funded_fee_router.so" cargo test --locked -p funded-fee-router --features devnet-v3-program,configurable-rich-assets --test rich_assets
       - name: Record source and bytecode hashes
         working-directory: contracts/funded-fee-router
         run: |
@@ -87,8 +99,9 @@ jobs:
           sha256sum target/deploy/funded_fee_router.so > target/deploy/bytecode.sha256
           sha256sum target/deploy/developer_token_lock.so >> target/deploy/bytecode.sha256
           sha256sum target/deploy/devnet-v3/funded_fee_router.so >> target/deploy/bytecode.sha256
+          sha256sum target/deploy/devnet-configurable/funded_fee_router.so >> target/deploy/bytecode.sha256
           sha256sum target/deploy/mainnet-build-check/funded_fee_router.so >> target/deploy/bytecode.sha256
-          wc -c target/deploy/funded_fee_router.so target/deploy/developer_token_lock.so target/deploy/devnet-v3/funded_fee_router.so target/deploy/mainnet-build-check/funded_fee_router.so > target/deploy/bytecode-sizes.txt
+          wc -c target/deploy/funded_fee_router.so target/deploy/developer_token_lock.so target/deploy/devnet-v3/funded_fee_router.so target/deploy/mainnet-build-check/funded_fee_router.so target/deploy/devnet-configurable/funded_fee_router.so > target/deploy/bytecode-sizes.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: contract-bytecode-${{ github.sha }}
@@ -96,6 +109,7 @@ jobs:
             contracts/funded-fee-router/target/deploy/funded_fee_router.so
             contracts/funded-fee-router/target/deploy/developer_token_lock.so
             contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so
+            contracts/funded-fee-router/target/deploy/devnet-configurable/funded_fee_router.so
             contracts/funded-fee-router/target/deploy/mainnet-build-check/funded_fee_router.so
             contracts/funded-fee-router/target/deploy/source-revision.txt
             contracts/funded-fee-router/target/deploy/bytecode.sha256

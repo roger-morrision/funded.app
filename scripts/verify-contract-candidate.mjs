@@ -10,8 +10,8 @@ assert.equal(manifest.deployEligible,false);
 assert.deepEqual(AGENCY_REVIEWED_BINARY,manifest.retainedDevnetRuntimeCommitment,
   'Runtime trust changed independently of the recorded candidate. Review the release explicitly.');
 const [path,variant='devnet',...extra]=process.argv.slice(2);
-assert(path && !extra.length && ['devnet','productionBuildCheck'].includes(variant),
-  'Usage: node scripts/verify-contract-candidate.mjs BINARY [devnet|productionBuildCheck]');
+assert(path && !extra.length && ['devnet','productionBuildCheck','devnetConfigurable'].includes(variant),
+  'Usage: node scripts/verify-contract-candidate.mjs BINARY [devnet|productionBuildCheck|devnetConfigurable]');
 const expected=manifest[variant],bytes=readFileSync(path);
 assert.equal(bytes.subarray(0,4).toString('hex'),'7f454c46','Expected ELF bytecode');
 assert.equal(bytes.length,expected.bytes,'Candidate size differs from recorded evidence');

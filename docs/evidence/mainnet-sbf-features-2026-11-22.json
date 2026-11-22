@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-11-22T04:57:41.129Z",
+  "slot": 472415042,
+  "cluster": "mainnet-beta",
+  "source": "https://github.com/anza-xyz/agave/blob/v4.1.2/feature-set/src/lib.rs",
+  "features": [
+    {
+      "address": "B8JJXCy5amZyWG9r7EnUYLwzXSXTxG7GZ1qZ1qggo83g",
+      "name": "disable_sbpf_v0_v1_v2_deployment",
+      "exists": false,
+      "owner": null,
+      "activationSlot": null
+    },
+    {
+      "address": "5cC3foj77CWun58pC51ebHFUWavHWKarWyR5UUik7dnC",
+      "name": "enable_sbpf_v3_deployment_and_execution",
+      "exists": true,
+      "owner": "Feature111111111111111111111111111111111111",
+      "dataHex": "0180a7911900000000",
+      "activationSlot": "428976000"
+    }
+  ]
+}

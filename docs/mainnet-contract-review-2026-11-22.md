@@ -4,16 +4,17 @@
 
 ## Scope and release identity
 
-Base source for this update: `bc818de225afc7b03f5a1bf08185d68ecc1ac04f`, plus the changes in the commit containing this report. The intended release is the merged `mainnet-v3-program` router, including developer escrow. A separate legacy router/escrow deployment is not required by the current deployment plan.
+Base source for this update: `d297a78cca667f9f3ae6f51cbe8f22748d298cb5`, plus the changes in the commit containing this report. The intended release is the merged `mainnet-v3-program` router, including developer escrow. A separate legacy router/escrow deployment is not required by the current deployment plan.
 
 | Candidate | Bytes | SHA-256 |
 | --- | ---: | --- |
-| Mainnet-feature public fixture | 1,067,664 | `501dc05e04419ca65f76fa7c59f7a76549baaacb56bf95c371c57f0c19b7cdd6` |
-| Devnet-feature candidate | 1,168,752 | `2471016f40f9fdd59127b1c89c84ca0719b4b1880c1637c1b7d3c0b3fdf20c2f` |
+| Mainnet-feature public fixture | 1,075,760 | `7073be14d9cfb48ea9b557c250bf385e6efe42dec3d441c57396b2c08ee2cc7d` |
+| Optional configurable Devnet candidate | 1,204,808 | `4153ee3b9faf5bfb1259dde13518d2d8a47aea674fdc99ff87b2803c758f9177` |
+| Preserved Devnet-feature candidate | 1,168,752 | `2471016f40f9fdd59127b1c89c84ca0719b4b1880c1637c1b7d3c0b3fdf20c2f` |
 
-Neither candidate is approved for deployment. `config/contract-build-candidates.json` records build evidence separately from runtime trust. The deployed Devnet commitment remains unchanged. The production manifest remains incomplete and disabled.
+None of these candidates is approved for deployment. `config/contract-build-candidates.json` records build evidence separately from runtime trust. The deployed Devnet commitment remains unchanged. The production manifest remains incomplete and disabled.
 
-The candidate manifest's retained-runtime field was stale at the base revision. It now matches the existing `server/agency-release.mjs` commitment (`c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15`, 1,168,496 bytes). The runtime module itself was not changed, and neither new candidate was added to runtime trust.
+The existing deployed Devnet runtime commitment remains `c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15`, 1,168,496 bytes. No candidate is added to runtime trust.
 
 Build tools: Agave 4.1.2 distribution, whose compiler reports `cargo-build-sbf 4.1.0`; platform tools v1.54; SBF v0; locked Cargo dependencies; size optimization `z`; stripped output. Host tests use Rust 1.97.1 and Node 24.22.3. The Mainnet-feature binary was recompiled from a second source directory and matched byte for byte; dependency caches were reused. This is local reproducibility evidence, not an independent verified build service.
 
@@ -24,28 +25,54 @@ Build tools: Agave 4.1.2 distribution, whose compiler reports `cargo-build-sbf 4
 | Mature SOL/token reward payouts did not consult the global pause. | High | Payouts now require the canonical router guard as a trailing account and reject a paused guard. Compiled-bytecode tests verify rejected transfers leave custody, reserves, recipients and receipts unchanged. |
 | A shared daily cap could delay funded user entitlements. | Policy correction requested by user | Reward commitments and user payouts are exempt. Tests pay queued cycles on the same day above the administrative cap while retaining pause, reserve solvency and replay protection. Operations, promotions and buybacks remain capped. |
 | Primary RICH addresses were compiled into the binary. | Enhancement | Owner-controlled, validated, versioned on-chain configuration replaces embedded assets. Immutable history supports old receipts; stale signed revisions and old buyback entrypoints are rejected. See [configuration runbook](primary-rich-configuration.md). |
-| Both protected/agency buybacks and agency promotion billing omitted global SOL accounting. | High | Both buyback venues now account for the actual spent lamports within the same atomic transaction; promotion billing accounts before transfer. The promotion test exercises pause, writable guard, replay, daily limit and rollback. Buyback changes are compiled and reviewed; complete external AMM execution remains unverified. |
+| RICH changes depended on the program upgrade authority forever. | Enhancement / administration | Revision 1 is bootstrapped by the upgrade owner; subsequent mint updates use a separate RICH administrator. Two-step transfer, cancellation, stale authority rejection and continued configuration after code immutability pass against both compiled network variants. |
+| Both protected/agency buybacks and agency promotion billing omitted global SOL accounting. | High | Both buyback venues now account for the actual spent lamports within the same atomic transaction; promotion billing accounts before transfer. The promotion test exercises pause, writable guard, replay, daily limit and rollback. Protected and agency category-6 buybacks now execute real captured PumpSwap and Pump bytecode locally; spent/burned deltas, slippage rollback and replay pass. Live financial acceptance remains incomplete. |
 | Signer health stayed healthy after a journal failure had disabled signing. | Medium | Health returns 503 after the journal failure latch. Tests verify no signature is returned, later requests stay disabled, and health reflects the fault. |
-| The build-identity check leaked `mainnet_conversion.rs`, causing its cleanup trap to fail after successful validation. | Medium | Cleanup includes the generated conversion file. Ten invalid program identity/feature/conversion configurations are rejected and the valid fixture exits successfully. Shell files are pinned to LF for Windows/WSL checkouts. |
+| The build-identity check leaked `mainnet_conversion.rs`, causing its cleanup trap to fail after successful validation. | Medium | Cleanup includes the generated conversion file. Eleven invalid program identity/feature/conversion configurations are rejected and the valid fixture exits successfully. Shell files are pinned to LF for Windows/WSL checkouts. |
 | Security regression tests were not a required application CI step. | Medium | Added `npm run test:security` to application and contract workflows. Tests cover signer budget concurrency, admin restrictions, durable-journal restoration, corrupt journals, release identity binding, deployed-byte verification and account flags. |
 
 Client compatibility: Mainnet reward builders append a read-only guard account for both SOL and tokens. Mainnet buyback builders and independent price-review canonicalization agree on writable guard flags. The promotion builder accepts an explicit Mainnet cluster and marks its guard writable. Devnet instruction account layouts remain unchanged.
 
 ## Executed verification
 
-All following results are **local-only**, using compiled SBF in LiteSVM or host tests. Fixture accounts and balances are **mocked**; no live transaction is implied.
+All following results are **local-only**, using compiled SBF in LiteSVM or host tests. Router policies/funding are synthetic. The four DEX cases execute captured public Devnet venue/fee bytecode and market state; the DEX itself is not mocked. No live transaction is implied.
 
-- Mainnet-feature SBF: 22 passing cases — community custody/claims (3), developer escrow (7), protocol guard/reward/promotion controls (7), RICH configuration and stale-order controls (4), and excluded entrypoints (1 test checking 20 entrypoint names).
-- Devnet-feature SBF: 15 passing cases — community claims (3), developer escrow (7), token bitmap payout (1), unpaid-cycle expiry (1), receipt/bitmap rent and replay checks (3).
+- Mainnet-feature SBF: 23 passing cases — community custody/claims (3), developer escrow (7), protocol guard/reward/promotion controls (7), RICH configuration, handoff and stale-order controls (5), and excluded entrypoints (1 test checking 20 entrypoint names).
+- Optional configurable Devnet SBF: 5 passing administration/market/stale-order/legacy-bypass cases.
+- Protected/agency buy-and-burn: 4 passing real external-program cases across PumpSwap and Pump curve; see the table below.
+- Preserved Devnet-feature SBF: 15 passing cases — community claims (3), developer escrow (7), token bitmap payout (1), unpaid-cycle expiry (1), receipt/bitmap rent and replay checks (3).
 - Host contract test: 1 passing curve-account validation case. It stops before CPI and is not evidence of a completed swap.
-- JavaScript security: 15 passing cases, including current/historical configuration decoding, owner instruction encoding, signed revision bytes, app fail-closed behavior and pricing-cache invalidation.
-- Ten invalid build configurations rejected; the valid explicit program fixture builds without embedded asset addresses.
+- JavaScript security: 16 passing cases, including current/historical configuration decoding, owner instruction encoding, signed revision bytes, app fail-closed behavior and pricing-cache invalidation.
+- Eleven invalid build configurations rejected; the valid explicit program fixture builds without embedded asset addresses.
 - JavaScript syntax, source-size budgets and Vite production build pass.
-- Historical verification from the earlier pause/cap patch: its two SOL payout regressions were run against the original pre-fix bytecode (`d2006da19720c2c9c6383cad05e9d684ea19591eacc737a06012e03ef1c676dc`) and both failed as expected. That earlier result does not certify the subsequently revised cap policy; the current uncapped-user policy is covered by the 37 tests above.
+- Historical verification from the earlier pause/cap patch: its two SOL payout regressions were run against the original pre-fix bytecode (`d2006da19720c2c9c6383cad05e9d684ea19591eacc737a06012e03ef1c676dc`) and both failed as expected. That earlier result does not certify the subsequently revised cap policy; the current uncapped-user policy is covered by the current tests above.
 
 Reproduce using the pinned build/test commands in `.github/workflows/contracts.yml` and `npm run test:security`. Public fixture identities in that workflow are intentionally rejected by production runtime release validation.
 
-Clean Linux CI passed for the contract-fix commit `333d94104012a708b25080bd528d27dee9a50e13`: [contract builds, exact hashes and custody tests](https://github.com/roger-morrision/funded.app/actions/runs/44976196983), and [application/security checks plus Docker build](https://github.com/roger-morrision/funded.app/actions/runs/44976197035). The subsequent test-dependency patch is separately revalidated locally below; these CI links do not claim to test a later commit.
+Historical exact-head CI for the base commit `d297a78cca667f9f3ae6f51cbe8f22748d298cb5` passed [contract checks](https://github.com/roger-morrision/funded.app/actions/runs/44982994276) and [application/Docker checks](https://github.com/roger-morrision/funded.app/actions/runs/44982994497). These historical links do not claim to verify this later patch; run the workflows against its exact commit.
+
+## Executed external-program buybacks
+
+| Captured venue | Router policy | Spent lamports | Burned raw token units | Compute units |
+| --- | --- | ---: | ---: | ---: |
+| PumpSwap | Protected | 1,000,000 | 82,029 | 260,196 |
+| PumpSwap | Agency category 6 | 1,000,000 | 82,029 | 263,256 |
+| Pump curve | Protected | 989,999 | 16,813,522,243 | 187,237 |
+| Pump curve | Agency category 6 | 989,999 | 16,813,522,243 | 190,079 |
+
+Each case uses the protected output quote, executes purchase and burn, verifies receipt against mint-supply and vault-balance changes, checks empty token custody/closed WSOL, rejects impossible slippage atomically and rejects replay. The versioned transaction uses a synthetic local address lookup table and must fit 1,232 bytes. The price co-signer is an ephemeral fixture key; this does not claim independent quote-review service coverage. Captured sysvars refresh the VM rent/clock cache, avoiding a mismatch between current Devnet rent and LiteSVM defaults.
+
+Public snapshot/program hashes and explicit exclusions are recorded in [CPI evidence](evidence/buyback-cpi-2026-11-22.json). Binary snapshots remain in ignored `tmp/cpi-fixtures`. To capture current public state (which may change) and repeat:
+
+```sh
+node scripts/capture-cpi-fixture.mjs pool EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32 tmp/cpi-fixtures/pool devnet
+node scripts/capture-cpi-fixture.mjs curve hW9zSUFAVDpAQURJuYu5S4jBw2SRW53mCuvQPQyYEDF tmp/cpi-fixtures/curve devnet
+# Build the Mainnet-feature fixture with the pinned workflow, then for each venue:
+FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO=/absolute/path/funded_fee_router.so FUNDED_CPI_FIXTURE=/absolute/path/tmp/cpi-fixtures/pool cargo test --locked --manifest-path contracts/funded-fee-router/Cargo.toml -p funded-fee-router --features mainnet-v3-program --test cpi_buyback -- --ignored --nocapture
+```
+
+These opt-in DEX cases are not silently counted as executed by normal CI. They were explicitly run for this review. A completed/migrated curve needs another public live-curve snapshot, not a mocked success.
+
 
 ## Dependency advisories
 
@@ -55,7 +82,7 @@ Clean Linux CI passed for the contract-fix commit `333d94104012a708b25080bd528d2
 
 The full lockfile audit therefore still exits 1. It also reports maintenance warnings for `ansi_term`, `bincode`, `derivative`, `libsecp256k1` and `paste`; maintenance warnings are distinct from the two timing vulnerabilities. The recorded dependency graph scope does not constitute a general side-channel audit. Tests use ephemeral fixture keys only. Machine-readable results are in `docs/evidence/contract-dependency-review-2026-11-22.json`.
 
-After the `ctutils` patch, the earlier 33 targeted bytecode tests passed with unchanged earlier ELF hashes. The later payout/configuration changes in this update add four tests: all 37 pass locally, with the new hashes listed above. The dependency patch itself changes only the host test runtime.
+After the `ctutils` patch, the earlier 33 targeted bytecode tests passed with unchanged earlier ELF hashes. The current three variants and four external-program cases total 47 passing SBF test executions, with hashes listed above. The dependency patch itself changes only the host test runtime.
 
 ## Supplied test mint
 
@@ -68,10 +95,31 @@ The canonical SOL PumpSwap pool `B78z5Xp4f8sEDgXnjBB4hxFQiPZDCageod5j3NtBpB5B` a
 ## Remaining deployment blockers
 
 1. **Production identities are unavailable.** Select the dedicated program address, production RICH mint and supported pool, guardian, fresh operational/price signers and approved upgrade authority. Compile the dedicated production program identity, reproduce and review the bytes, then initialize the owner-controlled RICH configuration with the supported production mint/market. Subsequent RICH changes do not require recompilation. No private keys should enter this report or repository.
-2. **The configured budget is insufficient for the current fixture.** A fresh Mainnet RPC quote gives 5.425445080 SOL locked rent with exact-size allocation, before fees, initialization, liquidity or the plan's 3 SOL operating reserve. The total plan currently caps spending at 5 SOL. Evidence is in `docs/evidence/mainnet-contract-rent-2026-11-22.json`. Final production bytes need a fresh quote; the user's budget was not increased.
-3. **End-to-end financial acceptance remains incomplete.** Buyback CPI/burn, paired-token conversion with the independent signer, fee collection/disbursement across every category, token extensions, compute ceilings, authority rotation/recovery and a capped deployment canary need current finalized transaction and state/balance-delta evidence. Compiling these paths is not proof they execute successfully.
+2. **The configured budget is insufficient for the current fixture.** A fresh Mainnet RPC quote gives 5.466572760 SOL locked rent with exact-size allocation, before fees, initialization, liquidity or the plan's 3 SOL operating reserve. The total plan currently caps spending at 5 SOL. Evidence is in `docs/evidence/mainnet-contract-rent-2026-11-22.json`. Final production bytes need a fresh quote; the user's budget was not increased.
+3. **End-to-end financial acceptance remains incomplete.** Local protected/agency category-6 CPI/burn and RICH administration now pass. Paired-token conversion with the independent signer, category-7 milestone buybacks, every fee category, the full token-extension matrix, operational authority recovery and a capped live canary still lack complete current acceptance evidence. Compiling these paths is not proof they execute successfully.
 4. **Mainnet application signing/worker integration remains blocked.** The operational signer and price-signer bootstrap still reject non-Devnet operation. Launch/registration, metadata, workers and journals retain network gates. Their restrictions were preserved; switching a cluster string would not constitute a safe implementation.
 5. **Full independent review is outstanding.** The production release configuration requires a review tied to exact source/binary hashes. This self-review does not satisfy that gate. Do not fill those fields with this report to bypass it.
+
+## SOL funding estimate
+
+The fresh merged-program deployment uses **5.466572760 SOL** of rent at the finalized Mainnet quote. It does not need a separate developer-escrow program. Exact-size allocation is assumed.
+
+| Component | SOL | Basis |
+| --- | ---: | --- |
+| Program + ProgramData rent | 5.466572760 | Live RPC, 1,075,760-byte fixture |
+| Upload/transaction fee allowance | 0.025 | Base-fee estimate 0.01199; allowance for retries |
+| Deployment contingency | 0.250 | Existing plan |
+| Initial accounts and setup | 0.050 | Provisional allowance, inventory not final |
+| Small canary | 0.050 | Provisional allowance, trades not specified |
+| Operating reserve | 3.000 | Existing plan |
+| **Illustrative technical funding** | **8.841572760** | Excludes token launch/liquidity |
+| **Suggested technical wallet budget** | **10.000** | Rounded planning headroom |
+
+The first RICH configuration plus revision account costs 0.0030988 SOL rent; each later revision currently adds 0.0015494 SOL plus its transaction fee. Two-step administrator handoff creates no additional account. Refresh prices immediately before execution.
+
+Buffer rent (5.465699 SOL) is reusable at fresh same-payer Loader-v3 finalization, not a second permanent rent charge: [Agave's loader implementation](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259) returns it to the payer before creating ProgramData. Upload fees depend on actual messages/retries and priority prices; the base fee is [5,000 lamports per signature](https://solana.com/docs/core/fees). The current 5 SOL spending cap is unchanged and insufficient. This is a technical estimate, not authorization to spend 10 SOL. Total launch funding remains **10 SOL plus the separately chosen token launch/liquidity allocation**, with hosting and review priced separately.
+
+Run `node scripts/quote-mainnet-contract-budget.mjs` to refresh public rent evidence. Final production identities can alter bytes; re-quote the exact reviewed artifact and transaction plan. The proposed SBF-v0 deployment-disable feature was absent at the recorded Mainnet slot; [feature evidence](evidence/mainnet-sbf-features-2026-11-22.json) must also be refreshed before release.
 
 ## Guard policy and residual trust
 

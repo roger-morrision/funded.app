@@ -1,5 +1,5 @@
 //! Synthetic accounts, real compiled Mainnet-feature bytecode. No network funds.
-#![cfg(feature = "mainnet-v3-program")]
+#![cfg(feature = "configurable-rich-assets")]
 use anchor_lang::{prelude::Pubkey, AccountDeserialize, AccountSerialize, InstructionData, ToAccountMetas,
     solana_program::{instruction::{Instruction, AccountMeta}, program_pack::Pack, program_option::COption}};
 use anchor_spl::token::spl_token;
@@ -34,7 +34,7 @@ fn config_address()->Pubkey{Pubkey::find_program_address(&[RICH_ASSETS_SEED],&fu
 fn history(revision:u64)->Pubkey{Pubkey::find_program_address(&[RICH_REVISION_SEED,&revision.to_le_bytes()],&funded_fee_router::id()).0}
 fn configure(owner:Pubkey,program_data:Pubkey,mint:Pubkey,market:Pubkey,revision:u64,venue:u8)->Instruction{
     Instruction::new_with_bytes(funded_fee_router::id(),&funded_fee_router::instruction::ConfigureRichAssets {revision,venue}.data(),
-        funded_fee_router::accounts::ConfigureRichAssets {upgrade_owner:owner,program:funded_fee_router::id(),program_data,
+        funded_fee_router::accounts::ConfigureRichAssets {asset_authority:owner,program:funded_fee_router::id(),program_data,
             config:config_address(),history:history(revision),mint,market,system_program:anchor_lang::system_program::ID}.to_account_metas(None))
 }
 fn fixture()->(LiteSVM,Keypair,Pubkey){
@@ -44,7 +44,7 @@ fn fixture()->(LiteSVM,Keypair,Pubkey){
 }
 
 #[test]
-fn only_current_upgrade_owner_can_rotate_assets_and_history_is_immutable(){
+fn asset_admin_can_rotate_after_immutability_and_handoff_preserves_history(){
     let (mut svm,owner,program_data)=fixture();let (mint,pool)=asset(&mut svm);
     let stranger=Keypair::new();svm.airdrop(&stranger.pubkey(),100_000_000).unwrap();
     assert!(send(&mut svm,&stranger,&[&stranger],configure(stranger.pubkey(),program_data,mint,pool,1,0)).is_err());
@@ -65,12 +65,26 @@ fn only_current_upgrade_owner_can_rotate_assets_and_history_is_immutable(){
     assert_eq!((saved.mint,saved.market,saved.revision),(second,second_pool,2));
     assert_eq!(svm.get_account(&history(1)).unwrap(),first);
     assert_eq!(svm.get_account(&program_data).unwrap(),binary,"rotation must not change deployed bytecode");
-    // Changing loader authority immediately revokes the previous owner's access.
-    let mut rotated=svm.get_account(&program_data).unwrap();
-    rotated.data[13..45].copy_from_slice(stranger.pubkey().as_ref());
-    svm.set_account(program_data,rotated).unwrap();
-    assert!(send(&mut svm,&owner,&[&owner],configure(owner.pubkey(),program_data,mint,pool,3,0)).is_err());
-    send(&mut svm,&stranger,&[&stranger],configure(stranger.pubkey(),program_data,mint,pool,3,0)).unwrap();
+    // Freezing code upgrades does not freeze independently administered assets.
+    let mut immutable=svm.get_account(&program_data).unwrap();
+    immutable.data[12]=0;
+    svm.set_account(program_data,immutable).unwrap();
+    send(&mut svm,&owner,&[&owner],configure(owner.pubkey(),program_data,mint,pool,3,0)).unwrap();
+    let manage=|authority|funded_fee_router::accounts::ManageRichAuthority {authority,config:config_address()}.to_account_metas(None);
+    let accept=|authority|Instruction::new_with_bytes(funded_fee_router::id(),&funded_fee_router::instruction::AcceptRichAuthority {}.data(),manage(authority));
+    assert!(send(&mut svm,&stranger,&[&stranger],accept(stranger.pubkey())).is_err());
+    let propose=|successor|Instruction::new_with_bytes(funded_fee_router::id(),&funded_fee_router::instruction::ProposeRichAuthority {successor}.data(),manage(owner.pubkey()));
+    assert!(send(&mut svm,&owner,&[&owner],propose(Pubkey::default())).is_err());
+    send(&mut svm,&owner,&[&owner],propose(stranger.pubkey())).unwrap();
+    send(&mut svm,&owner,&[&owner],propose(owner.pubkey())).unwrap();
+    assert!(send(&mut svm,&stranger,&[&stranger],accept(stranger.pubkey())).is_err(),"cancelled successor cannot accept");
+    send(&mut svm,&owner,&[&owner],propose(stranger.pubkey())).unwrap();
+    assert!(send(&mut svm,&stranger,&[&stranger],configure(stranger.pubkey(),program_data,mint,pool,4,0)).is_err());
+    send(&mut svm,&stranger,&[&stranger],accept(stranger.pubkey())).unwrap();
+    assert!(send(&mut svm,&owner,&[&owner],configure(owner.pubkey(),program_data,mint,pool,4,0)).is_err());
+    send(&mut svm,&stranger,&[&stranger],configure(stranger.pubkey(),program_data,mint,pool,4,0)).unwrap();
+    assert_eq!(svm.get_account(&history(1)).unwrap(),first);
+
 }
 
 #[test]
@@ -139,4 +153,14 @@ fn queued_orders_reject_stale_revision_even_after_switching_back(){
     assert_eq!(svm.get_account(&policy).unwrap(),before);assert!(svm.get_account(&receipt).is_none());
     let current=send(&mut svm,&operator,&[&operator,&price],ix(3)).unwrap_err();
     assert!(!current.contains("StaleRevision"),"current revision must reach subsequent custody checks");
+}
+
+#[test]
+fn legacy_buyback_cannot_bypass_configured_assets(){
+    let (mut svm,owner,_)=fixture();
+    for name in ["buyback_mint_v3","buyback_agency_mint_v3"] {
+        let hash=solana_sha256_hasher::hashv(&[format!("global:{name}").as_bytes()]).to_bytes();
+        let error=send(&mut svm,&owner,&[&owner],Instruction::new_with_bytes(funded_fee_router::id(),&hash[..8],vec![])).unwrap_err();
+        assert!(error.contains("Custom(101)"),"legacy instruction must be absent: {error}");
+    }
 }

@@ -18,7 +18,7 @@ const anchor = name => createHash('sha256').update(`global:${name}`).digest().su
 export const DENIED_ROUTER_INSTRUCTIONS = Object.freeze(['rotate_authority', 'repair_header', 'configure_buyback_price_signer',
   'migrate_mint_fee_ledger', 'initialize', 'recover_qa_settlement_v3',
   // Mainnet guard: only the upgrade owner wallet and the offline guardian sign these.
-  'configure_rich_assets', 'configure_protocol_guard', 'set_protocol_pause', 'cancel_reward_cycle']);
+  'configure_rich_assets', 'propose_rich_authority', 'accept_rich_authority', 'configure_protocol_guard', 'set_protocol_pause', 'cancel_reward_cycle']);
 const DENIED_DISCRIMINATORS = new Map(DENIED_ROUTER_INSTRUCTIONS.map(name => [anchor(name), name]));
 const LOADERS = new Set(['BPFLoaderUpgradeab1e11111111111111111111111', 'BPFLoader2111111111111111111111111111111111',
   'BPFLoader1111111111111111111111111111111111', 'LoaderV411111111111111111111111111111111111', 'NativeLoader1111111111111111111111111111111']);

@@ -19,7 +19,8 @@ anchor-debug = []
 custom-heap = []
 custom-panic = []
 devnet-v3-program = []
-mainnet-v3-program = []
+mainnet-v3-program = ["configurable-rich-assets"]
+configurable-rich-assets = []
 historical-qa-recovery = ["devnet-v3-program"]
 
 
@@ -29,6 +30,7 @@ anchor-spl = "=1.2.0"
 solana-sha256-hasher = "3.1.0"
 
 [dev-dependencies]
+serde_json = "=1.0.151"
 litesvm = "0.17.0"
 solana-message = "5.0.0"
 solana-transaction = "5.0.0"

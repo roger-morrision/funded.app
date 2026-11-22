@@ -24,8 +24,8 @@
     "feature": "mainnet-v3-program",
     "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
     "identityScope": "public-test-fixture-only",
-    "bytes": 1067664,
-    "sha256": "501dc05e04419ca65f76fa7c59f7a76549baaacb56bf95c371c57f0c19b7cdd6",
+    "bytes": 1075760,
+    "sha256": "7073be14d9cfb48ea9b557c250bf385e6efe42dec3d441c57396b2c08ee2cc7d",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [
@@ -39,5 +39,21 @@
   "retainedDevnetRuntimeCommitment": {
     "bytes": 1168496,
     "sha256": "c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15"
+  },
+  "devnetConfigurable": {
+    "feature": "devnet-v3-program,configurable-rich-assets",
+    "optimization": "z",
+    "strip": true,
+    "bytes": 1204808,
+    "sha256": "4153ee3b9faf5bfb1259dde13518d2d8a47aea674fdc99ff87b2803c758f9177",
+    "developerLockPeriodsSeconds": [
+      300,
+      21600,
+      43200,
+      86400,
+      172800
+    ],
+    "assetConfiguration": "onchain-v1",
+    "activation": "candidate-only; requires coordinated client and signer release"
   }
 }

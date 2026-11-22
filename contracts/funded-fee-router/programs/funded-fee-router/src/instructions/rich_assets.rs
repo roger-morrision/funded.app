@@ -16,6 +16,8 @@ pub struct RichAssetConfig {
     pub token_program: Pubkey,
     pub revision: u64,
     pub venue: u8, // 0: PumpSwap SOL pool, 1: Pump SOL bonding curve
+    pub authority: Pubkey,
+    pub pending_authority: Pubkey,
 }
 
 #[error_code(offset = 6200)]
@@ -24,21 +26,23 @@ pub enum RichAssetError {
     InvalidMarket,
     #[msg("RICH configuration changed; request a new quote")]
     StaleRevision,
+    #[msg("Only the current RICH administrator or nominated successor may perform this action")]
+    InvalidAuthority,
 }
 
 #[derive(Accounts)]
 #[instruction(revision: u64)]
 pub struct ConfigureRichAssets<'info> {
     #[account(mut)]
-    pub upgrade_owner: Signer<'info>,
-    /// CHECK: Verified against this executable and its upgrade authority.
+    pub asset_authority: Signer<'info>,
+    /// CHECK: Upgrade owner bootstrap verified on first configuration only.
     pub program: UncheckedAccount<'info>,
     /// CHECK: Verified loader state, not a caller-supplied authority.
     pub program_data: UncheckedAccount<'info>,
-    #[account(init_if_needed, payer = upgrade_owner, space = 8 + RichAssetConfig::INIT_SPACE,
+    #[account(init_if_needed, payer = asset_authority, space = 8 + RichAssetConfig::INIT_SPACE,
         seeds = [RICH_ASSETS_SEED], bump)]
     pub config: Account<'info, RichAssetConfig>,
-    #[account(init, payer = upgrade_owner, space = 8 + RichAssetConfig::INIT_SPACE,
+    #[account(init, payer = asset_authority, space = 8 + RichAssetConfig::INIT_SPACE,
         seeds = [RICH_REVISION_SEED, &revision.to_le_bytes()], bump)]
     pub history: Account<'info, RichAssetConfig>,
     pub mint: InterfaceAccount<'info, Mint>,
@@ -48,18 +52,57 @@ pub struct ConfigureRichAssets<'info> {
 }
 
 pub fn configure(ctx: Context<ConfigureRichAssets>, revision: u64, venue: u8) -> Result<()> {
-    assert_upgrade_owner(&ctx.accounts.program.to_account_info(), &ctx.accounts.program_data.to_account_info(),
-        &ctx.accounts.upgrade_owner.key(), ctx.program_id)?;
+    let authority = ctx.accounts.asset_authority.key();
+    if ctx.accounts.config.revision == 0 {
+        assert_upgrade_owner(&ctx.accounts.program.to_account_info(), &ctx.accounts.program_data.to_account_info(),
+            &authority, ctx.program_id)?;
+    } else {
+        require!(ctx.accounts.config.authority == authority, RichAssetError::InvalidAuthority);
+    }
     require!(ctx.accounts.config.revision.checked_add(1) == Some(revision), RichAssetError::StaleRevision);
     validate_market(&ctx.accounts.mint.key(), &ctx.accounts.market.to_account_info(), venue)?;
     let old_mint = ctx.accounts.config.mint;
+    let pending_authority = ctx.accounts.config.pending_authority;
     for state in [&mut ctx.accounts.config, &mut ctx.accounts.history] {
         state.set_inner(RichAssetConfig { mint:ctx.accounts.mint.key(), market:ctx.accounts.market.key(),
-            token_program:*ctx.accounts.mint.to_account_info().owner, revision, venue });
+            token_program:*ctx.accounts.mint.to_account_info().owner, revision, venue, authority, pending_authority });
     }
     emit!(RichAssetChanged { old_mint, mint:ctx.accounts.mint.key(), market:ctx.accounts.market.key(), revision, venue });
     Ok(())
 }
+
+#[derive(Accounts)]
+pub struct ManageRichAuthority<'info> {
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [RICH_ASSETS_SEED], bump)]
+    pub config: Account<'info, RichAssetConfig>,
+}
+
+pub fn propose_authority(ctx: Context<ManageRichAuthority>, successor: Pubkey) -> Result<()> {
+    require!(ctx.accounts.config.authority == ctx.accounts.authority.key(), RichAssetError::InvalidAuthority);
+    // Proposing the current authority cancels a pending transfer. Never permit
+    // a zero administrator: recovery requires a new, explicitly accepted owner.
+    require!(successor != Pubkey::default(), RichAssetError::InvalidAuthority);
+    ctx.accounts.config.pending_authority = if successor == ctx.accounts.config.authority { Pubkey::default() } else { successor };
+    emit!(RichAuthorityProposed { authority:ctx.accounts.config.authority, successor });
+    Ok(())
+}
+
+pub fn accept_authority(ctx: Context<ManageRichAuthority>) -> Result<()> {
+    let successor = ctx.accounts.authority.key();
+    require!(successor != Pubkey::default() && ctx.accounts.config.pending_authority == successor,
+        RichAssetError::InvalidAuthority);
+    let prior = ctx.accounts.config.authority;
+    ctx.accounts.config.authority = successor;
+    ctx.accounts.config.pending_authority = Pubkey::default();
+    emit!(RichAuthorityAccepted { prior, successor });
+    Ok(())
+}
+
+#[event]
+pub struct RichAuthorityProposed { pub authority: Pubkey, pub successor: Pubkey }
+#[event]
+pub struct RichAuthorityAccepted { pub prior: Pubkey, pub successor: Pubkey }
 
 pub(crate) fn validate_market(mint: &Pubkey, market: &AccountInfo, venue: u8) -> Result<()> {
     let data = market.try_borrow_data()?;

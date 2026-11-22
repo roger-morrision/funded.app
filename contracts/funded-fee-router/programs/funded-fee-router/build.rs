@@ -37,6 +37,8 @@ fn main() {
     assert!(!(production && devnet), "Mainnet and Devnet program features are mutually exclusive");
     assert!(!production || env::var_os("CARGO_FEATURE_HISTORICAL_QA_RECOVERY").is_none(),
         "Historical QA recovery must never be compiled into Mainnet");
+    assert!(production || devnet || env::var_os("CARGO_FEATURE_CONFIGURABLE_RICH_ASSETS").is_none(),
+        "Configurable RICH assets require a V3 network feature");
     if !production { return; }
     let id = public_key("FUNDED_MAINNET_PROGRAM_ID");
     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("mainnet_id.rs"),

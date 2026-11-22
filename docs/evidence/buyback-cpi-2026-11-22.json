@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-only SBF execution; public Devnet snapshots; synthetic policies and funding; ephemeral in-memory signers",
+  "routerBinarySha256": "7073be14d9cfb48ea9b557c250bf385e6efe42dec3d441c57396b2c08ee2cc7d",
+  "fixtures": [
+    {
+      "venue": "pool",
+      "cluster": "devnet",
+      "observedAt": "2026-11-22T04:46:29.619Z",
+      "slot": 524956195,
+      "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+      "market": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+      "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "minBaseAmountOut": "81208",
+      "programs": [
+        {
+          "address": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+          "programData": "6naEzKeUuFh1Jeeu51NXQgr5qkXgXtc9WKNct4xynVJc",
+          "file": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA.so",
+          "bytes": 1234704,
+          "sha256": "494d2257ed4a9a2bc3eb210b22cdb5058d77e17f1ba5095b636e96c86b1fd4ef"
+        },
+        {
+          "address": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+          "programData": "75Uu23mqWBb8LM8vDppqC1mQAnCcBuLXhVaDezVMQLRw",
+          "file": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ.so",
+          "bytes": 920008,
+          "sha256": "446db24678fa22700d8eda86c48ba361b325a084e319c0c66f780c953520b317"
+        }
+      ],
+      "snapshotSha256": "6f70892dc3d058d48d55ef8be16f07583fd12e100b50ed7cfe96c661f76e7447",
+      "testResults": [
+        {
+          "agency": false,
+          "computeUnits": 260196,
+          "spentLamports": 1000000,
+          "burnedBaseUnits": 82029,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
+          "agency": true,
+          "computeUnits": 263256,
+          "spentLamports": 1000000,
+          "burnedBaseUnits": 82029,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        }
+      ]
+    },
+    {
+      "venue": "curve",
+      "cluster": "devnet",
+      "observedAt": "2026-11-22T04:53:44.329Z",
+      "slot": 524958009,
+      "mint": "hW9zSUFAVDpAQURJuYu5S4jBw2SRW53mCuvQPQyYEDF",
+      "market": "83k5CeapGhF2uxE9y9LrXZZXx8XirwFqibop7NttkSUw",
+      "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "minBaseAmountOut": "16813522243",
+      "programs": [
+        {
+          "address": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+          "programData": "B5MvUwXdiW1NMM6QFFD3ssPKBujD4zMohncbM73Z2BQu",
+          "file": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P.so",
+          "bytes": 1996760,
+          "sha256": "bcee35d3eeb158090dd08764a8c5c03a2852c3cee553a0ce61dd5482469a5ec7"
+        },
+        {
+          "address": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+          "programData": "75Uu23mqWBb8LM8vDppqC1mQAnCcBuLXhVaDezVMQLRw",
+          "file": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ.so",
+          "bytes": 920008,
+          "sha256": "446db24678fa22700d8eda86c48ba361b325a084e319c0c66f780c953520b317"
+        }
+      ],
+      "snapshotSha256": "a565b8663d5ef771026a6703ac44eac328d03eb7e413e02e967a794d91d0f1a5",
+      "testResults": [
+        {
+          "agency": true,
+          "computeUnits": 190079,
+          "spentLamports": 989999,
+          "burnedBaseUnits": 16813522243,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
+          "agency": false,
+          "computeUnits": 187237,
+          "spentLamports": 989999,
+          "burnedBaseUnits": 16813522243,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        }
+      ]
+    }
+  ],
+  "assertions": [
+    "real external venue and fee bytecode executes CPI",
+    "actual quote minimum exceeds one unit",
+    "mint supply decreases by receipt burn amount",
+    "vault lamports decrease by receipt spend",
+    "purchased-token ATA ends empty",
+    "wrapped SOL account closes",
+    "impossible slippage leaves policy, pool, supply and vault unchanged",
+    "receipt replay rejected without custody changes",
+    "versioned transactions fit the 1232-byte network packet limit with a synthetic local ALT"
+  ],
+  "notVerified": [
+    "live transaction confirmation",
+    "independent price-signer request review",
+    "category 7 own-coin milestones",
+    "paired-token conversion",
+    "all fee categories",
+    "production application workers",
+    "complete Token-2022 extension matrix",
+    "production canary"
+  ]
+}

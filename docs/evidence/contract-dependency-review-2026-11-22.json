@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-22T02:40:59.3621266Z",
+  "observedAt": "2026-11-22T04:59:05.141063+00:00",
   "tool": "cargo-audit 0.23.0",
   "database": {
     "advisory-count": 1555,
     "last-commit": "55e1c3dfbd834237a05bbbf7b50ba3b5be27b662",
-    "last-updated": "2026-11-21T16:28:03+07:00"
+    "last-updated": "2026-11-21T10:28:03+01:00"
   },
   "scope": "full-workspace-lockfile",
   "packagesScanned": 423,
@@ -62,5 +62,6 @@
   ],
   "fullLockfileAuditExitCode": 1,
   "productionReachabilityCheck": "cargo tree --workspace --features funded-fee-router/mainnet-v3-program --target all --edges normal,build -i PACKAGE: no path for crypto-bigint or ctutils",
-  "independentAudit": false
+  "independentAudit": false,
+  "auditOutputSha256": "c68ffee0d6768075703f7acc5e14cc7abe79b6c8fa9390ef016bcc9f4d0cc0da"
 }

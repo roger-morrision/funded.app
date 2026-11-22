@@ -1,26 +1,42 @@
 {
-  "schemaVersion": 1,
-  "observedAt": "2026-11-22T03:55:14.149Z",
+  "schemaVersion": 2,
+  "observedAt": "2026-11-22T04:57:08.744Z",
   "cluster": "mainnet-beta",
   "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "scope": "read-only-public-rpc-fixture-sizing",
   "productionRelease": false,
-  "bytes": 1067664,
-  "sha256": "501dc05e04419ca65f76fa7c59f7a76549baaacb56bf95c371c57f0c19b7cdd6",
+  "bytes": 1075760,
+  "sha256": "7073be14d9cfb48ea9b557c250bf385e6efe42dec3d441c57396b2c08ee2cc7d",
   "exactAllocation": true,
   "programRentLamports": 833120,
-  "programDataRentLamports": 5424611960,
-  "bufferRentLamports": 5424571320,
-  "lockedRentLamports": 5425445080,
+  "programDataRentLamports": 5465739640,
+  "bufferRentLamports": 5465699000,
+  "lockedRentLamports": 5466572760,
+  "richConfigAccountBytes": 177,
+  "richConfigRentLamports": 1549400,
+  "firstRichConfigurationRentLamports": 3098800,
+  "estimatedUploadBaseFeesLamports": 11990000,
+  "feeAllowanceLamports": 25000000,
+  "marginLamports": 250000000,
+  "illustrativeInitializationAllowanceLamports": 50000000,
+  "illustrativeCanaryAllowanceLamports": 50000000,
   "configuredTotalBudgetLamports": 5000000000,
   "configuredOperatingReserveLamports": 3000000000,
+  "illustrativeContractLaunchFundingLamports": 8841572760,
+  "recommendedTechnicalWalletFundingLamports": 10000000000,
   "rentFitsTotalBudget": false,
-  "excludes": [
-    "transaction fees",
-    "initialization",
-    "liquidity",
-    "canary",
-    "operating reserve"
+  "finalTransactionFeesVerified": false,
+  "deploymentAuthorized": false,
+  "unknown": [
+    "production binary sizing",
+    "actual initialization inventory",
+    "actual canary plan",
+    "token launch and liquidity budget"
   ],
-  "note": "Buffer rent is reported separately; this is not a second permanent rent charge. Final production bytes must be re-quoted."
+  "excludes": [
+    "token launch and liquidity",
+    "off-chain infrastructure",
+    "independent review"
+  ],
+  "note": "10 SOL is a planning estimate, not an authorized spending-cap increase. Includes the existing 3 SOL operating reserve; 0.05 SOL each for setup/canary are provisional allowances. Buffer rent is reusable at fresh same-payer Loader-v3 finalization; do not add it twice as permanent rent. Final production bytes and exact transactions must be re-quoted."
 }

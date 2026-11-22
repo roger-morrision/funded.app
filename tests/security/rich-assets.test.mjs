@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {Keypair} from '@solana/web3.js';
 import {TOKEN_PROGRAM_ID} from '@solana/spl-token';
-import {decodeRichAssets,readRichAssets,richAssetsAddress,buildConfigureRichAssets} from '../../rich-assets.js';
+import {decodeRichAssets,readRichAssets,richAssetsAddress,buildConfigureRichAssets,buildProposeRichAuthority,buildAcceptRichAuthority} from '../../rich-assets.js';
 import {decodeBuybackRequest} from '../../server/price-signer-review.mjs';
 import {createPrimaryRichReader} from '../../server/primary-rich.mjs';
 import {createLaunchTierPricing} from '../../server/launch-tier-pricing.mjs';
@@ -12,15 +12,16 @@ import {SOLANA_GENESIS} from '../../solana-network.js';
 
 const key=()=>Keypair.generate().publicKey;
 function account(program,mint=key(),pool=key(),revision=1n){
-  const data=Buffer.alloc(113);Buffer.from('aac69639f52c60c5','hex').copy(data);
+  const data=Buffer.alloc(177);Buffer.from('aac69639f52c60c5','hex').copy(data);
   mint.toBuffer().copy(data,8);pool.toBuffer().copy(data,40);TOKEN_PROGRAM_ID.toBuffer().copy(data,72);data.writeBigUInt64LE(revision,104);
+  key().toBuffer().copy(data,113);
   return{owner:program,executable:false,data};
 }
 test('RICH decoder rejects foreign owners, invalid layouts, token programs and revisions',()=>{
   const program=key(),valid=account(program),decode=info=>decodeRichAssets(info,{programId:program});
   assert.equal(decode(valid).revision,'1');
   assert.throws(()=>decode({...valid,owner:key()}));assert.throws(()=>decode({...valid,executable:true}));
-  for(const length of [0,112,114])assert.throws(()=>decode({...valid,data:Buffer.alloc(length)}));
+  for(const length of [0,113,176,178])assert.throws(()=>decode({...valid,data:Buffer.alloc(length)}));
   for(const [offset,value] of [[0,0],[72,0],[104,0],[112,2]]){
     const data=Buffer.from(valid.data);data[offset]=value;assert.throws(()=>decode({...valid,data}));
   }
@@ -78,4 +79,18 @@ test('tier pricing invalidates its cache on RICH revision or mint changes',async
   assert.equal((await currentLaunchTierPricing()).richAssetsRevision,'1');await currentLaunchTierPricing();assert.equal(reads,1);
   revision='2';assert.equal((await currentLaunchTierPricing()).richAssetsRevision,'2');assert.equal(reads,2);
   mint=String(key());revision='3';assert.equal((await currentLaunchTierPricing()).fundedMint,mint);assert.equal(reads,3);
+});
+
+test('administrator handoff binds the successor and requires a separate acceptance signature',()=>{
+  const program=key(),authority=key(),successor=key();
+  const propose=buildProposeRichAuthority({programId:program,authority,successor});
+  const accept=buildAcceptRichAuthority({programId:program,authority:successor});
+  assert(propose.data.subarray(8).equals(successor.toBuffer()));
+  for(const [ix,name,signer] of [[propose,'propose_rich_authority',authority],[accept,'accept_rich_authority',successor]]){
+    assert(ix.data.subarray(0,8).equals(createHash('sha256').update(`global:${name}`).digest().subarray(0,8)));
+    assert.deepEqual(ix.keys.filter(k=>k.isSigner).map(k=>String(k.pubkey)),[String(signer)]);
+    assert(ix.keys[1].pubkey.equals(richAssetsAddress(program)));
+  }
+  const info=account(program);info.data.fill(0,113,145);
+  assert.throws(()=>decodeRichAssets(info,{programId:program}));
 });
