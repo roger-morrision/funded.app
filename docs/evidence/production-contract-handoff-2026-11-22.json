@@ -1934,7 +1934,7 @@
       "networkCalls": 0,
       "chainTransactions": 0
     },
-    "status": "Independent <=32 call-bound and covered90cases retained; mixed full/filtered cursor fairness finding RECOVERY-01 and storage amplification remain open.",
+    "status": "Covered90cases/call bound retained.926a mixed-scope correction passes Contract original probe and16targeted cases; independent corrected-source acceptance pending. Storage amplification remains open.",
     "nextStorageAcceptance": [
       "App owns assessment; no competing store implementation.",
       "Compare actual persisted pre-mutation representation under the same exclusive lock. Preserve missing-file bootstrap and v1->v2 migration writes even when application mutator changes nothing.",
@@ -2009,7 +2009,7 @@
       "sourceCommit": "dc305e596d30da21f947cfb14a647bfa5f7f09d4",
       "node": "v24.22.3",
       "probeSha256": "1ff3695419a04f0453fe38e4037cf7ab8aa7472bea8b2b351a9febfd6b8b22ae",
-      "status": "Independently reproduced; App correction pending",
+      "status": "Correction source reviewed; original unchanged PM probe and16targeted cases pass locally on926a, independent acceptance pending.",
       "result": {
         "exit": 1,
         "fullOnly": {
@@ -2033,7 +2033,39 @@
       "acceptance": "Full and filtered recovery progress must not reset one another across restarts. Preserve <=32 calls and exact saved attempt identities, no new signing/attempt authorization. Rerun original PM case against frozen App fix.",
       "implementationOwner": "App Dev",
       "artifactsAndStatesVerified": true,
-      "scope": "Synthetic selector/store liveness; no chain/RPC/signing/spend or live exploit claim."
+      "scope": "Synthetic selector/store liveness; no chain/RPC/signing/spend or live exploit claim.",
+      "correctionReview": {
+        "appSource": "926a1d1031f60f968085279b4f9f1739e8471a46",
+        "ownerReportGitSha256": "d91d5ad04f96fec64d1b934e2ed95e7b93e5ab3260ff101bf12020240f756f28",
+        "reviewNode": "v26.13.1",
+        "targetedPassed": 16,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0,
+        "originalProbeSha256": "1ff3695419a04f0453fe38e4037cf7ab8aa7472bea8b2b351a9febfd6b8b22ae",
+        "originalProbeCopiedUnchanged": true,
+        "originalProbeExport": "tmp/recovery-scope-926a/",
+        "originalProbeResult": {
+          "exit": 0,
+          "fullOnlyVisited": 128,
+          "fullOnlyB": 64,
+          "mixedFullVisited": 128,
+          "mixedFullB": 64
+        },
+        "changedGitHashesMatched": 5,
+        "unchangedContextHashesMatched": 10,
+        "rawTargeted": "tmp/contract-recovery-scope-926a.log",
+        "rawTargetedSha256": "7c39d0137073a766e58f658aa48a7ec30f209e2327260e7f0ec8a5ef3a0767a6",
+        "rawOriginalProbe": "tmp/contract-original-recovery-scope-926a.log",
+        "rawOriginalProbeSha256": "3899f2444b0126c6a69838f94ab4392b0340315b5ac33be80cdebf6292281086",
+        "sourceAssessment": [
+          "Only full selection advances full cursor; filtered runs maintain per-existing-schedule original-leaf position plus global least-recently-served sequence.",
+          "One progress record per existing schedule bounds storage independently of arbitrary requested subsets; overlapping requests share collective underlying schedule progress.",
+          "Same exclusive lock and<=32bound preserved; selected small queues retain no-cursor-write path. Corrupt progress refuses.",
+          "Runtime recovery/chain/journal/store/scheduler/financial guards unchanged; AppContractruntime remains identical971399ff; no productionELF/Loaderquote changes.",
+          "Graph indexed dc305 caller; frozen unchanged caller source plus actual926a helper examined directly."
+        ]
+      }
     }
   },
   "committedRewardExtensionAcceptance": {
