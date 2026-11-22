@@ -120,3 +120,81 @@ fn protected_operations_cap_and_midnight_retry() {
         }
     }
 }
+
+#[test]
+fn earned_referrals_remain_payable_when_operations_cap_is_exhausted() {
+    let mut f = fixture();
+    let op = &f.operator;
+    let authority = op.pubkey();
+    let creator_key = Keypair::new();
+    let creator = creator_key.pubkey();
+    let coin = Keypair::new();
+    let mint = coin.pubkey();
+    let recipient = Pubkey::new_unique();
+    let other = Pubkey::new_unique();
+    for key in [creator, recipient, other] { f.svm.airdrop(&key, 50_000_000).unwrap(); }
+    let system_program = anchor_lang::system_program::ID;
+    let legacy_router = f.legacy_router;
+    let pda = |seeds: &[&[u8]]| Pubkey::find_program_address(seeds, &f.program_id).0;
+    let policy = pda(&[funded_fee_router::MINT_POLICY_V3_SEED, mint.as_ref()]);
+    let router = pda(&[funded_fee_router::MINT_ROUTER_V3_SEED, mint.as_ref()]);
+    let guard = configure(&f, f.owner.pubkey(), f.guardian.pubkey(), 100);
+    assert!(send(&mut f.svm, &f.owner, &[&f.owner], &[guard]));
+    let init = ix(instruction::InitializeProtectedMintV3 {
+        protocol_units: [500_000, 500_000, 500_000, 500_000, 0, 0],
+        directed_units: [8_000_000, 0, 0],
+    }, accounts::InitializeProtectedMintV3 { authority, creator, mint, legacy_router, router, policy, system_program });
+    assert!(send(&mut f.svm, &creator_key, &[&creator_key, &coin], &[init]));
+    let claim_id = [19; 32];
+    let claim = pda(&[funded_fee_router::MINT_CLAIM_V3_SEED, mint.as_ref(), &claim_id]);
+    let mut settle = ix(instruction::SettleMintV3 { claim_id, expected_lamports: 5_000 },
+        accounts::SettleMintV3 { authority, creator, mint, legacy_router, router, policy, claim, system_program });
+    let vaults: [Pubkey; 7] = std::array::from_fn(|n| pda(&[funded_fee_router::MINT_VAULT_V3_SEED, mint.as_ref(), &[n as u8]]));
+    settle.accounts.extend(vaults.map(|key| AccountMeta::new(key, false)));
+    let fund = system_instruction::transfer(&authority, &router, 5_000);
+    assert!(send(&mut f.svm, op, &[op, &creator_key], &[fund, settle]));
+    assert_eq!(read::<MintFeePolicyV3>(&f.svm, policy).paid_lamports, [4_000, 250, 250, 250, 250, 0, 0]);
+    let creator_vault = f.svm.get_account(&vaults[0]).unwrap();
+    let recipient_before = f.svm.get_balance(&recipient).unwrap();
+    for category in 1..=4u8 {
+        let amount = if category == 1 { 100 } else { 250 };
+        let withdrawal_id = [category; 32];
+        let approval = pda(&[funded_fee_router::MINT_APPROVAL_V3_SEED, mint.as_ref(), &withdrawal_id]);
+        let withdrawal = pda(&[funded_fee_router::MINT_WITHDRAWAL_V3_SEED, mint.as_ref(), &withdrawal_id]);
+        let mut approve = ix(instruction::ApproveProtectedWithdrawalV3 {
+            withdrawal_id, category, beneficiary: category + 2, amount,
+        }, accounts::ApproveProtectedWithdrawalV3 { authority, creator, mint, legacy_router, policy, recipient, approval, system_program });
+        approve.accounts[1].is_signer = true;
+        assert!(send(&mut f.svm, op, &[op, &creator_key], &[approve]));
+        let mut pay = ix(instruction::DisburseProtectedMintV3 {
+            withdrawal_id, category, beneficiary: category + 2, amount, holder_amount: 0,
+        }, accounts::DisburseProtectedMintV3 { authority, creator, mint, legacy_router, policy,
+            vault: vaults[usize::from(category)], recipient, approval, withdrawal, system_program });
+        pay.accounts[1].is_signer = true;
+        pay.accounts[3].is_writable = category == 1;
+        if category > 1 {
+            let tracked = [legacy_router, policy, vaults[usize::from(category)], recipient, other, approval, withdrawal];
+            let before = tracked.map(|key| f.svm.get_account(&key));
+            let mut redirected = pay.clone();
+            redirected.accounts[6].pubkey = other;
+            assert!(!send(&mut f.svm, op, &[op, &creator_key], &[redirected]));
+            assert_eq!(tracked.map(|key| f.svm.get_account(&key)), before);
+            assert!(!read::<MintWithdrawalApprovalV3>(&f.svm, approval).consumed);
+        }
+        let vault_before = f.svm.get_balance(&vaults[usize::from(category)]).unwrap();
+        assert!(send(&mut f.svm, op, &[op, &creator_key], &[pay.clone()]));
+        assert_eq!(f.svm.get_balance(&vaults[usize::from(category)]).unwrap(), vault_before - amount);
+        assert_eq!(window(&f.svm, legacy_router), (START.div_euclid(DAY) as u64, 100));
+        let receipt: MintWithdrawalV3 = read(&f.svm, withdrawal);
+        assert_eq!((receipt.category, receipt.amount, receipt.recipient), (category, amount, recipient));
+        assert!(read::<MintWithdrawalApprovalV3>(&f.svm, approval).consumed);
+        let before_replay = [legacy_router, policy, vaults[usize::from(category)], recipient, approval, withdrawal]
+            .map(|key| f.svm.get_account(&key));
+        assert!(!send(&mut f.svm, op, &[op, &creator_key], &[pay]));
+        assert_eq!([legacy_router, policy, vaults[usize::from(category)], recipient, approval, withdrawal]
+            .map(|key| f.svm.get_account(&key)), before_replay);
+    }
+    assert_eq!(f.svm.get_balance(&recipient).unwrap() - recipient_before, 850);
+    assert_eq!(read::<MintFeePolicyV3>(&f.svm, policy).withdrawn_lamports, [0, 100, 250, 250, 250, 0, 0]);
+    assert_eq!(f.svm.get_account(&vaults[0]).unwrap(), creator_vault);
+}
