@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "scope": "MN001 exact-byte no-op store persistence; current payout/recovery/expiry/archive/conversion-journal regressions with synthetic bank/RPC facts, not livefinancialacceptance",
+  "files": [
+    {
+      "path": "tests/readiness/reward-historical-payout.test.mjs",
+      "requiredTests": [
+        "existing SOL commitment resolves original cycle without initializing successor accounts",
+        "historical SOL paid receipt is inspected in the original namespace",
+        "historical SOL remaining entitlement uses current signer and original custody once",
+        "existing USDC commitment resolves original cycle without initializing successor accounts",
+        "historical USDC paid receipt is inspected in the original namespace",
+        "historical USDC remaining entitlement uses current signer and original custody once",
+        "existing Token2022 commitment resolves original cycle without initializing successor accounts",
+        "historical Token2022 paid receipt is inspected in the original namespace",
+        "historical Token2022 remaining entitlement uses current signer and original custody once",
+        "current-operator existing commitment still binds the caller plan for immediate payout use",
+        "current-operator cycle binding rejects a foreign account before claiming a commitment",
+        "fresh creation binds only an authenticated finalized current-operator cycle",
+        "same-operator legacy migration remains supported without moving another authority vault",
+        "unreserved legacy commitment owned by an outgoing authority cannot be silently migrated",
+        "known previous commitment without a saved cycle never falls into successor initialization",
+        "changed immutable commitment fields cannot reach namespace initialization or payout",
+        "owned vault/cycle/reserve seeds and current router cannot be substituted",
+        "stale snapshots and wrong network or original authority remain unresolved without signing",
+        "namespace resolution does not clone or enumerate cohort leaves per recipient",
+        "manifest mutation during an awaited namespace read cannot bind or pay a changed intent",
+        "closed cycles and foreign or conflicting paid receipts cannot authorize a fresh payout",
+        "Mainnet namespace reader preserves default admission, current guard and bitmap exclusion",
+        "actual scheduler retains historical commitment and records only the remaining payout"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-journal.test.mjs",
+      "requiredTests": [
+        "SOL signed payout is persisted before broadcast and exact finalized proof survives restart",
+        "SOL unknown unlanded attempt never refreshes blockhash or broadcasts after restart",
+        "SOL landed attempt with missing archival transaction stays pending until exact proof returns",
+        "USDC signed payout is persisted before broadcast and exact finalized proof survives restart",
+        "USDC unknown unlanded attempt never refreshes blockhash or broadcasts after restart",
+        "USDC landed attempt with missing archival transaction stays pending until exact proof returns",
+        "Token2022 signed payout is persisted before broadcast and exact finalized proof survives restart",
+        "Token2022 unknown unlanded attempt never refreshes blockhash or broadcasts after restart",
+        "Token2022 landed attempt with missing archival transaction stays pending until exact proof returns",
+        "disk write rejection prevents payout broadcast",
+        "saved payout recovery does not call fresh readiness or signing",
+        "recovery-only missing attempt cannot fall through to preparation",
+        "selected recovery ignores other schedules and retains a disappeared original attempt",
+        "changed transaction, signature, receipt or custody deltas never close an attempt",
+        "corrupt or changed immutable payout journal refuses before fresh signing",
+        "corrupt root attempt container cannot be reinterpreted as fresh authorization",
+        "observed in-flight attempt owns the leaf across a second store instance",
+        "fee and actual Token2022 ATA rent remain above the single protected reserve",
+        "wrong network, stale status and failed finalized transaction leave the original attempt unresolved",
+        "throwing readiness still permits only saved read-only payout recovery and respects empty ID selection",
+        "receipt-mode self-payout retains exact fee and receipt-rent accounting",
+        "cached completion with corrupted verification facts cannot become a paid scheduler row"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-restart.test.mjs",
+      "requiredTests": [
+        "SOL committed payout after scheduler restart",
+        "USDC committed payout after scheduler restart",
+        "Token2022 committed payout after scheduler restart"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-paid-record.test.mjs",
+      "requiredTests": [
+        "matching verified completed payment preserves custom metadata without any recovery write",
+        "incomplete paid metadata is enriched once while original timestamp and mode survive",
+        "conflicting paid financial identity is retained for review without overwrite or new submission",
+        "cached payout fee payer and amount facts remain bound to the authenticated signed attempt"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-native-accounting.test.mjs",
+      "requiredTests": [
+        "SOL self=false feeChanged=false requires exact native accounting",
+        "SOL self=false feeChanged=true requires exact native accounting",
+        "SOL self=true feeChanged=false requires exact native accounting",
+        "SOL self=true feeChanged=true requires exact native accounting",
+        "USDC self=false feeChanged=false requires exact native accounting",
+        "USDC self=false feeChanged=true requires exact native accounting",
+        "USDC self=true feeChanged=false requires exact native accounting",
+        "USDC self=true feeChanged=true requires exact native accounting",
+        "Token2022 self=false feeChanged=false requires exact native accounting",
+        "Token2022 self=false feeChanged=true requires exact native accounting",
+        "Token2022 self=true feeChanged=false requires exact native accounting",
+        "Token2022 self=true feeChanged=true requires exact native accounting"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-native-boundaries.test.mjs",
+      "requiredTests": [
+        "WSOL self=false reconciles backing lamports plus receipt and ATA rent",
+        "WSOL self=true reconciles backing lamports plus receipt and ATA rent",
+        "Native2022 self=false reconciles backing lamports plus receipt and ATA rent",
+        "Native2022 self=true reconciles backing lamports plus receipt and ATA rent",
+        "native conservation and canonical fee rent accounts reject inconsistent evidence",
+        "metadata-only Token2022 mint quotes only required ATA storage and immutable owner"
+      ]
+    },
+    {
+      "path": "tests/readiness/holder-payout-page.test.mjs",
+      "requiredTests": [
+        "1001 global SOL entitlements finish in bounded restartable scheduler pages",
+        "1001 global paired entitlements finish in bounded restartable scheduler pages",
+        "unknown first page does not starve later leaves or replace its original signed attempt",
+        "crash after page selection defers work but preserves all global entitlements for the next round",
+        "two locked-store selectors cannot claim the same initial page and restart preserves cursor",
+        "changed immutable schedule and corrupt cursor fail before selecting fresh work",
+        "page and isolated cohort bounds cannot be widened by caller input",
+        "actual scheduler preserves partial status across bounded selected-ID runs and read-only unavailable states",
+        "Devnet batching remains four leaves per transaction inside the bounded work page"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-recovery-page.test.mjs",
+      "requiredTests": [
+        "saved recovery is bounded fairly across schedules and restart without replacing unknown attempts",
+        "paused and throwing scheduler readiness still performs only bounded read-only saved recovery",
+        "explicit selected schedule IDs constrain recovery before applying the shared work bound",
+        "competing store instances select disjoint initial recovery pages under the same lock",
+        "small cached recovery sets do not introduce a ledger cursor write",
+        "cursor persistence failure prevents calls and preserves every original marker",
+        "corrupt recovery cursor cannot fall through to unbounded or fresh work",
+        "concurrently removed original attempt stays recovery-only and is conservatively retained",
+        "measure full manifest lock work and bounded recovery ledger writes across two injected cohorts",
+        "unselected malformed schedules do not block selected saved-attempt recovery",
+        "duplicate task identities are refused before any saved-attempt call",
+        "filtered recovery cannot rewind full-queue progress across process-style store reopens",
+        "overlapping filtered requests collectively progress every eligible schedule without starvation",
+        "competing filtered stores preserve per-schedule leaf progress and leave the full cursor untouched",
+        "arbitrary filtered subsets store only one progress record per existing schedule",
+        "invalid filtered progress refuses recovery without resetting or rewriting its state"
+      ]
+    },
+    {
+      "path": "tests/community-opening-recovery.test.mjs",
+      "requiredTests": [
+        "recovers a finalized opening saved before the 300-second deadline after worker restart",
+        "retires an expired unlanded opening without creating another attempt",
+        "keeps an uncertain opening untouched after the deadline while the blockhash remains valid",
+        "keeps a journal pending when a saved opening has status but lacks its receipt",
+        "a recovered opening lets the restarted worker visit all 28 leaves without paying after expiry",
+        "wrong genesis rejects opening reconciliation without changing state or broadcasting",
+        "changed immutable root rejects opening reconciliation without changing state or broadcasting",
+        "rejected opening proof cannot finalize a journal or broadcast",
+        "expired opening with an empty journal cannot prepare or broadcast"
+      ]
+    },
+    {
+      "path": "tests/community-payment-recovery.test.mjs",
+      "requiredTests": [
+        "a paid recipient reconciles its saved attempt with exact receipt and balances",
+        "finalized signature status alone leaves a paid recipient attempt pending",
+        "recipient receipt with an incorrect token delta cannot reconcile",
+        "a legacy status-only finalized row receives transaction proof on restart",
+        "an expired unpaid leaf retires a proven unlanded attempt without sending",
+        "an expired unpaid leaf classifies a failed finalized attempt without sending",
+        "an expired unpaid leaf preserves an uncertain attempt without rebroadcast",
+        "a paid leaf without a journal remains already paid without transaction lookup",
+        "a stale claimable result cannot start a new attempt once the manifest expires",
+        "expiry while quoting prevents a fresh attempt from reaching the signer",
+        "expiry during blockhash verification prevents rebroadcasting saved bytes"
+      ]
+    },
+    {
+      "path": "tests/readiness/community-archive.test.mjs",
+      "requiredTests": [
+        "prepareFresh durably publishes raw atomic bank evidence then replays after restart without RPC",
+        "split-read program fallback preserves legacy capture but cannot qualify an exact-bank archive",
+        "indexed base retains mint and token bytes from the same atomic context",
+        "damaged file hash cannot become a prepared record after restart",
+        "valid-content hashes do not authenticate changed network signature raw owner or missing history",
+        "archive publication rejection prevents prepared ledger state",
+        "existing aggregate-only record is not silently backfilled from current balances",
+        "archive save is idempotent and expired claim settings survive offline replay",
+        "indexed capture qualifies through prepareFresh durable publication and offline restart",
+        "archival replay does not make an unopened drop claimable",
+        "offline archive replay preserves an expired claim deadline without reopening",
+        "requested migration identity mismatch cannot publish through prepareFresh",
+        "a valid file hash still rejects mismatched retained transaction ID during offline restart",
+        "raw bank flags authority layout supply and duplicate identities are checked on ingestion",
+        "filesystem publication failure does not persist a prepared archive reference",
+        "pointer context corruption and missing configured verifier fail closed after restart",
+        "a capture that omits raw evidence cannot publish an archive reference",
+        "saved archive binds rebuilt allocations root amount and original deadline",
+        "explicit archive byte budget fails before any ledger publication",
+        "configured storage path uses the actual service archive factory without enabling a new worker",
+        "signed v0 migration with loaded addresses survives canonical serialization and offline replay",
+        "captured migration status must be finalized successful and match the exact transaction slot",
+        "capture callback flushes evidence before a later preparation interruption",
+        "changed returned snapshot cannot overwrite the already captured bank intent"
+      ]
+    },
+    {
+      "path": "tests/community-snapshot.test.mjs",
+      "requiredTests": [
+        "reconstructs migration-slot holdings with a finalized base 0 slots later",
+        "reconstructs migration-slot holdings with a finalized base 255 slots later",
+        "reconstructs migration-slot holdings with a finalized base 256 slots later",
+        "requires archival evidence when the finalized tip is 257 slots past migration",
+        "requires archival evidence when the holder base advances past the 256-slot window",
+        "rejects a finalized block list missing interior history",
+        "rejects a finalized block list missing base history",
+        "rejects a finalized block list missing all history",
+        "rejects an unavailable block advertised in the finalized block list"
+      ]
+    },
+    {
+      "path": "tests/readiness/community-archive-layout-qa.test.mjs",
+      "requiredTests": [
+        "archive restart control requires supported raw account layout",
+        "archive restart classic-mint-trailing-byte requires supported raw account layout",
+        "archive restart classic-token-trailing-byte requires supported raw account layout"
+      ]
+    },
+    {
+      "path": "tests/readiness/community-bank-layout.test.mjs",
+      "requiredTests": [
+        "Token2022 base bank publishes and replays offline",
+        "Token2022 extended metadata and account bank publishes and replays offline",
+        "publication refuses classic mint trailing without prepared reference",
+        "publication refuses classic account trailing without prepared reference",
+        "publication refuses classic extended type without prepared reference",
+        "extended bank rejects malformed type padding TLV size ownership and COption structures",
+        "valid hash cannot qualify a malformed Token2022 account after restart"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-expiry-context.test.mjs",
+      "requiredTests": [
+        "historical expiry authenticates original namespace and current signer for SOL",
+        "historical expiry authenticates original namespace and current signer for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "missing saved cycle or unreviewed Mainnet release cannot select a fresh successor namespace",
+        "wrong genesis, plan network and changed reviewed program context reject historical expiry",
+        "changed immutable root, amount, time, asset and leaf count cannot authorize expiry",
+        "foreign or malformed original vault, cycle and reserve cannot be relabeled as historical state",
+        "old operator, paused guard, premature grace and missing time cannot construct expiry",
+        "equal cutoff and payout admit exact grace but reject reversed times for SOL",
+        "equal cutoff and payout admit exact grace but reject reversed times for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "stale reads, unknown cycle layout and invalid unpaid liabilities remain unresolved",
+        "expiry verification rejects wrong release, changed custody, paid amount and unrelated reserve fields",
+        "mocked Devnet adapter attributes the saved original cycle to the successor signature"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-expiry-journal.test.mjs",
+      "requiredTests": [
+        "expiry signed message is durable before broadcast and exact proof survives restart without another send",
+        "landed timeout remains pending until its exact finalized transaction is available",
+        "unknown unlanded attempts block fresh signatures until the original transaction can reconcile",
+        "repeated unknown recovery never obtains a refreshed blockhash or broadcasts another attempt",
+        "inactive state without a saved attributed attempt cannot report expiry completion",
+        "durable write failure cannot broadcast or silently create an expiry attempt",
+        "changed finalized message, signature, fee or balance evidence cannot attribute an inactive cycle",
+        "failed or status-only finalized attempts remain unresolved without new broadcasts",
+        "wrong genesis, later deployment and stale finalized program reads cannot complete an attempt",
+        "changed unpaid release or custody after a successful-looking status stays pending",
+        "corrupt saved signatures, foreign plan and altered verified facts cannot authorize new attempts",
+        "two locked schedule stores cannot race into a second expiry broadcast",
+        "expiry preparation protects the operator reserve including the complete quoted fee",
+        "expiry scheduler refuses unattributed inactive flags but records an attributed exact release",
+        "paused Mainnet context permits read-only recovery while fresh expiry construction remains forbidden",
+        "synthetic Mainnet exact transaction proof reconciles through pause without admitting a fresh expiry",
+        "incomplete production admission rejects expiry before RPC, signing or durable broadcast hooks"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-expiry-readiness.test.mjs",
+      "requiredTests": [
+        "unavailable execute reconciles only saved attempts and still reports zero submissions",
+        "saved reconciliation precedes a throwing fresh readiness check without signing",
+        "selected schedule IDs isolate recovery and leave unselected saved attempts untouched",
+        "missing transaction proof stays pending and readiness cannot authorize another attempt",
+        "rows without saved attempts are excluded even when fresh expiry would otherwise be due",
+        "a concurrently missing attempt cannot fall through to readiness, signing or broadcast",
+        "restored original attempt also blocks replacement after fresh readiness becomes healthy",
+        "lower chain recovery-only mode rejects absent attempts before fresh readiness",
+        "falsy saved-attempt corruption cannot be treated as a fresh signing authorization",
+        "a concurrently removed schedule is not recreated and cannot trigger a fresh attempt",
+        "replaced immutable schedule cannot inherit an older verified expiry completion",
+        "saved recovery ignores current classification, local grace and missing fresh grace configuration",
+        "healthy execute does not repeat saved recovery in the fresh expiry pass",
+        "healthy execute retains the normal authorized fresh expiry pass"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell.test.mjs",
+      "requiredTests": [
+        "captured exact USDC sell builds category 5 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 6 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 7 with 57 bytes and 41 canonical metas",
+        "wrong sell payload, changed exact input and weaker output cannot be substituted",
+        "only canonical positive u64 input and minimum amounts and supported categories are accepted",
+        "pool, base/quote, user vault, market vault and fee-program metas cannot be redirected",
+        "unexpected signer, writable privileges, volume tails and missing price separation are rejected",
+        "market owner, pool orientation, coin-creator and special-mode changes are rejected",
+        "fee recipient membership and canonical WSOL custody are required",
+        "conversion decoder rejects unsupported layout, discriminator, category and zero amounts"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "requiredTests": [
+        "mocked admitted finalized sell reconciles category 5 with prefund 0",
+        "mocked admitted finalized sell reconciles category 5 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 6 with prefund 0",
+        "mocked admitted finalized sell reconciles category 6 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 7 with prefund 0",
+        "mocked admitted finalized sell reconciles category 7 with prefund 700000",
+        "committed incomplete release cannot admit a program or even read RPC",
+        "wrong genesis, loader, authority and full ProgramData context cannot authenticate proof",
+        "missing or nonfinalized signature status and slot mismatch remain unresolved",
+        "missing or stale finalized account evidence and RPC errors cannot finalize",
+        "signature, frozen message and failed transaction substitution are rejected",
+        "invalid operator or independent price signature cannot authenticate the transaction",
+        "foreign receipt ownership, wrong immutable identity and category credit do not prove payment",
+        "exact USDC debit and token custody must agree with receipt",
+        "prefund and rent cannot inflate credit and WSOL must close",
+        "exact sell CPI accounts, payload and closure are required"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "requiredTests": [
+        "reviewed deployment effective before tx authenticates with fresh finalized context and no account cache",
+        "a later or same-slot reviewed deployment cannot authenticate the older signed transaction",
+        "stale, backwards and malformed finalized program contexts remain unresolved",
+        "missing contextual RPC, malformed deployment header and stale receipt or status context cannot fall back to cached bytes",
+        "later absence checks retain the original deployment interval and require the requested fresh context floor"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "requiredTests": [
+        "independent sell pricing recomputes captured SDK output and policy floor from finalized raw accounts",
+        "unreviewed market, noncanonical limits and widened slippage or liquidity cannot enter pricing",
+        "wrong genesis, over-order input and absent market prevent any usable price",
+        "pool/global/fee configuration owners and pool custody must authenticate",
+        "reserve token owners, mint decimals, vault authority and frozen accounts cannot be substituted",
+        "empty reserves and inputs exceeding the actual liquidity clip cannot be priced",
+        "backwards or stale finalized snapshots and unavailable reads stay unavailable"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "requiredTests": [
+        "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 700000",
+        "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 700000",
+        "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 700000",
+        "incomplete release and absent independent typed policy review cannot trigger RPC review",
+        "changed policy, policy digest, role separation or requested program cannot enter review",
+        "actual reviewer rejects a pre-signed message and wrong genesis before market reads",
+        "caller quote, reserve and recipient hints cannot replace independent raw market pricing",
+        "paused guard, wrong current operator, inactive price signer and used receipt reject new review",
+        "category spend cannot exceed token balance or its actual settled allocation",
+        "wrong USDC custody or malformed WSOL prefund cannot reach simulation",
+        "extra transfers, changed writable privileges and reordered fee setup are not canonical",
+        "unapproved priority fee, unavailable or changed lookup table cannot be reviewed",
+        "expired blockhash, stale accounting snapshot and protected reserve shortage reject",
+        "simulation failure or mismatched receipt, debit, credit, category or closure cannot produce a review",
+        "deployment changes during simulation cannot escape the final uncached context check"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-journal.test.mjs",
+      "requiredTests": [
+        "durable actual review reserves signs and reconciles category 5 then permits the next nonce",
+        "durable actual review reserves signs and reconciles category 6 then permits the next nonce",
+        "durable actual review reserves signs and reconciles category 7 then permits the next nonce",
+        "same reviewed message is idempotent before and after durable store restart",
+        "unknown old attempts block replacement even outside the rolling budget window",
+        "two locked store instances cannot race past the typed USDC daily bound",
+        "only both valid signatures on the exact durable message can be recorded for submission",
+        "finalized expiry plus absent receipt releases only raw conversion budget and permits a fresh blockhash",
+        "stale program context, unavailable receipt and a live blockhash preserve reservations",
+        "a finalized status without the exact transaction proof cannot clear or release the reservation",
+        "an externally recovered signature cannot bypass unresolved finalized transaction evidence",
+        "a finalized failed attempt releases conversion budget without claiming a fee refund",
+        "clock rollback cannot mutate a signed reservation or authorize a replacement",
+        "legacy context, corrupt reservation and array-shaped attempt storage are rejected without rewriting disk",
+        "no independent policy admission or legacy budget denomination can create a production journal",
+        "a review delayed before the durable write cannot reserve stale signing intent"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-store-noop.test.mjs",
+      "requiredTests": [
+        "byte-identical transaction preserves the actual ledger inode bytes and return value",
+        "missing-file read-only transaction still bootstraps a durable version2 ledger",
+        "version1 migration persists even when the caller changes no financial field",
+        "changed proof bytes persist before transaction return and a simulated broadcast callback",
+        "a falsey mutator result cannot suppress a changed financial record",
+        "serialization failures preserve prior bytes release locks and prevent subsequent action",
+        "mutator failure cannot publish partial state or leave a stale writer lock",
+        "actual changed-state rename failure prevents publication and releases temporary files",
+        "competing stores retain all changed increments when byte-identical calls interleave",
+        "public read cache remains correct across no-op changed-state and caller mutations",
+        "noncanonical persisted JSON is normalized once then exact-byte no-op stays unchanged",
+        "malformed or unsupported persisted state is not overwritten as a no-op or bootstrap",
+        "offline byte-copy reopen retains the saved record without authorizing financial recovery",
+        "drain waits for active changed publication and continues rejecting new transactions",
+        "invalid UTF8 is normalized rather than mistaken for identical persisted bytes"
+      ]
+    }
+  ]
+}

@@ -41,27 +41,33 @@ export function createAutomaticRewardStore(path) {
       }
     }
   }
-  async function readState() {
+  async function readSnapshot() {
     try {
-      const state = JSON.parse(await readFile(path, 'utf8'));
+      const encoded=await readFile(path),state=JSON.parse(encoded.toString('utf8'));
       if (![1, 2].includes(state.version)) throw new Error('Unsupported ledger version.');
-      return state;
+      return {state,encoded};
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
-      return { version: 2, obligations: {}, batches: {}, programs: {}, schedules: {}, holderSnapshots: {}, rewardPools: {}, buyOrders: {}, fundingRequests: {} };
+      return {encoded:null,state:{ version: 2, obligations: {}, batches: {}, programs: {}, schedules: {}, holderSnapshots: {}, rewardPools: {}, buyOrders: {}, fundingRequests: {} }};
     }
   }
+  async function readState(){return (await readSnapshot()).state;}
   async function transaction(mutator) {
     await mkdir(dirname(path), { recursive: true });
     const lock = await acquireLock();
     const temp = `${path}.${randomUUID()}.tmp`;
     try {
-      const state = await readState();
+      const {state,encoded:prior}=await readSnapshot();
       if (![1, 2].includes(state.version)) throw new Error('Unsupported ledger version.');
       if (state.version === 1) state.version = 2;
       const result = await mutator(state);
+      // Compare final bytes under the SAME lock. Only an existing, byte-identical
+      // ledger can skip publication; bootstrap, migration and every changed proof
+      // still serialize, fsync and rename before the transaction returns.
+      const encoded=Buffer.from(JSON.stringify(state),'utf8');
+      if(prior!==null&&encoded.equals(prior))return result;
       const file = await open(temp, 'wx');
-      try { await file.writeFile(JSON.stringify(state)); await file.sync(); } finally { await file.close(); }
+      try { await file.writeFile(encoded); await file.sync(); } finally { await file.close(); }
       await rename(temp, path);
       publicRead=null;
       return result;

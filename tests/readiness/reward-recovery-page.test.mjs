@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,rm,appendFile} from 'node:fs/promises';
+import {mkdtemp,realpath,rm,appendFile,stat} from 'node:fs/promises';
 import {join,resolve,sep,basename} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
@@ -21,7 +21,7 @@ async function fixture(t,counts=[33,32]){
       payoutAttempts:Object.fromEntries(manifest.leaves.map(l=>[l.recipient,{state:'prepared',signature:'original-'+id+'-'+l.index}]))};
   });
   await store.transaction(s=>{s.schedules=Object.fromEntries(plans.map(p=>[p.id,p]));});
-  return{store,plans,reopen:()=>createAutomaticRewardStore(path)};
+  return{store,plans,path,reopen:()=>createAutomaticRewardStore(path)};
 }
 const taskKey=(plan,leaf)=>JSON.stringify([plan.id,leaf.index,leaf.recipient]);
 
@@ -81,21 +81,22 @@ test('concurrently removed original attempt stays recovery-only and is conservat
 
 test('measure full manifest lock work and bounded recovery ledger writes across two injected cohorts',async t=>{
   const f=await fixture(t,[1001,1001]);let counters;
-  const reset=()=>{counters={publicReads:0,transactions:0,serializedWriteBytes:0,mutatorInsideLockMs:0,transactionElapsedMs:0,instrumentationSerializeMs:0};};reset();
-  const measured={read:async()=>{counters.publicReads++;return f.store.read();},transaction:async mutator=>{const start=performance.now();
+  const reset=()=>{counters={publicReads:0,transactions:0,serializedCandidateBytes:0,actualLedgerReplacements:0,actualLedgerWriteBytes:0,mutatorInsideLockMs:0,transactionElapsedMs:0,instrumentationSerializeMs:0};};reset();
+  const measured={read:async()=>{counters.publicReads++;return f.store.read();},transaction:async mutator=>{const before=await stat(f.path,{bigint:true}),start=performance.now();assert(before.ino>0n);
     try{return await f.store.transaction(async state=>{const lockStart=performance.now(),result=await mutator(state);counters.mutatorInsideLockMs+=performance.now()-lockStart;
-      const cost=performance.now();counters.serializedWriteBytes+=Buffer.byteLength(JSON.stringify(state));counters.instrumentationSerializeMs+=performance.now()-cost;return result;});}
-    finally{counters.transactions++;counters.transactionElapsedMs+=performance.now()-start;}}};
+      const cost=performance.now();counters.serializedCandidateBytes+=Buffer.byteLength(JSON.stringify(state));counters.instrumentationSerializeMs+=performance.now()-cost;return result;});}
+    finally{const after=await stat(f.path,{bigint:true});if(after.ino!==before.ino){counters.actualLedgerReplacements++;counters.actualLedgerWriteBytes+=Number(after.size);}
+      counters.transactions++;counters.transactionElapsedMs+=performance.now()-start;}}};
   let start=performance.now();assert.equal((await selectHolderPayoutPage({store:measured,plan:f.plans[0]})).length,32);
-  const fresh={...counters,elapsedMs:performance.now()-start};reset();let calls=0;start=performance.now();
+  assert.equal(counters.actualLedgerReplacements,1);const fresh={...counters,elapsedMs:performance.now()-start};reset();let calls=0;start=performance.now();
   await recoverSavedRewardPayouts({store:measured,chain:{submitLeaf:async(_plan,_leaf,options)=>{assert(options.recoveryOnly);calls++;throw Error('Synthetic missing proof');}}});
   assert.equal(calls,32);assert.equal(counters.publicReads,1);assert.equal(counters.transactions,33);
   const metrics={scope:'synthetic-two-injected-1001-cohorts-no-financial-finality',node:process.version,cohorts:2,leavesPerCohort:1001,
     fresh,recovery:{...counters,elapsedMs:performance.now()-start,interfaceCalls:calls},maxRssKiB:process.resourceUsage().maxRSS,networkCalls:0,transactionsSent:0,
-    limitation:'Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead. Whole-ledger O(N) remains.'};
+    limitation:'Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains.'};
   if(process.env.FUNDED_RECOVERY_METRICS_PATH){const path=resolve(process.env.FUNDED_RECOVERY_METRICS_PATH),root=resolve(process.cwd());
     assert(path.startsWith(root+sep)&&basename(path).startsWith('tmp-reward-recovery-metrics'));await appendFile(path,JSON.stringify(metrics)+'\n');}
-  t.diagnostic(JSON.stringify(metrics));
+  t.diagnostic(JSON.stringify(metrics));assert.equal(counters.actualLedgerReplacements,2);
 });
 
 

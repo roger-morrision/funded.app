@@ -49,10 +49,11 @@ reported serialization overhead. Lock-mutator time excludes that instrumentation
 transaction elapsed also includes queue/read/serialize/fsync/rename/unlock work.
 No network call or chain transaction is sent.
 
-The observed 1.89 MB ledger still incurs about 62.47 MB of whole-ledger writes
-while 32 unresolved attempts reconcile. This exposes an outstanding storage cost;
-paging alone does not solve it. Reducing redundant writes while preserving exact
-proof-before-status durability is the next storage assessment. Independent
+The earlier dc305/926 measurement of a 1.89 MB ledger incurred about 62.47 MB
+of whole-ledger writes while 32 unresolved attempts reconciled. Paging alone did
+not solve that cost. The following [exact-byte store candidate](reward-store-noop.md)
+reduces unchanged ledger publication while preserving the proof-before-status
+contract; whole-ledger processing and realistic scale acceptance remain open. Independent
 corrected-source review, realistic financial throughput/expiry, original archives,
 live delivery, operational custody and the final funding packet remain open.
 Contract971399ff/3f8a and the reviewed Loader prefix are unchanged.

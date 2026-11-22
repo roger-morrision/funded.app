@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T21:01:15.357298+00:00",
+  "issueId": "FQA-MN-001",
+  "baseRevision": "926a1d1031f60f968085279b4f9f1739e8471a46",
+  "scope": "Local exact-byte ledger publication and failure semantics; actual filesystem/locked store with synthetic financial fixtures. Independent source review pending; no live financial/scale/release acceptance",
+  "node": "v24.22.3",
+  "implementation": [
+    "Read original raw bytes under the same exclusive lock, parse with legacy UTF8 semantics, serialize final state to a UTF8 Buffer and skip publication only on exact Buffer equality",
+    "No caller-controlled no-op flag; missing file and version1 migration always publish, every changed attempt/proof/status retains awaited file fsync+rename before return",
+    "Queue/drain/lock/cleanup and public snapshot APIs remain byte-identical; cached public data remains valid on exact no-op and invalidates on actual replacement",
+    "Checked file entry point unconditionally invokes existing inventory validator and fails missing/zero required coverage; no eval-only Node flags"
+  ],
+  "tests": {
+    "command": "node scripts/check-reward-store-persistence.mjs",
+    "required": 288,
+    "passed": 288,
+    "failed": 0,
+    "skip": 0,
+    "todo": 0,
+    "files": 24,
+    "directStoreCases": 15,
+    "affectedOtherCases": 273,
+    "durationMs": 66860.8711,
+    "covered": [
+      "Actual byte/inode preservation for no-op including valid nonASCII data",
+      "Missing bootstrap and version1 migration publication",
+      "Changed proof persisted before simulated next action; falsey result cannot bypass persistence",
+      "Serialization/circular state and actual rename failure preserve prior data/prevent action/clean locks",
+      "Concurrent stores and interleaved changed/no-op operations retain all increments",
+      "Public cache and caller clone mutations, one-time noncanonical JSON and invalid UTF8 normalization",
+      "Malformed/unsupported file refusal, isolated byte-copy reopen, active drain and503 admission",
+      "Current payout/expiry/archive/conversion journal and bounded/mixed-scope recovery regressions"
+    ],
+    "samePhysicalProbeBefore": {
+      "exit": 1,
+      "result": {
+        "scope": "isolated-local-storage-assessment-no-financial-or-network-action",
+        "node": "v24.22.3",
+        "ledgerBytes": 189,
+        "contentSha256": "72681d463d8eac3ad5e0fe800334b01e8f289bac3099a2847fc07d2b8f8adf45",
+        "contentUnchanged": true,
+        "ledgerFileReplaced": true,
+        "identityBefore": "5066549584887385",
+        "identityAfter": "5066549584887386",
+        "elapsedMs": 18.332300000000004
+      }
+    },
+    "samePhysicalProbeAfter": {
+      "exit": 0,
+      "result": {
+        "scope": "isolated-local-storage-assessment-no-financial-or-network-action",
+        "node": "v24.22.3",
+        "ledgerBytes": 189,
+        "contentSha256": "72681d463d8eac3ad5e0fe800334b01e8f289bac3099a2847fc07d2b8f8adf45",
+        "contentUnchanged": true,
+        "ledgerFileReplaced": false,
+        "identityBefore": "19140298420420230",
+        "identityAfter": "19140298420420230",
+        "elapsedMs": 3.9339999999999975
+      }
+    },
+    "sameBenchmarkCaseExceptStoreImport": true,
+    "oldStoreBenchmarkExit": 1,
+    "candidateBenchmarkExit": 0
+  },
+  "controlledMeasurement": {
+    "before": {
+      "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+      "node": "v24.22.3",
+      "cohorts": 2,
+      "leavesPerCohort": 1001,
+      "fresh": {
+        "publicReads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 1892885,
+        "actualLedgerReplacements": 1,
+        "actualLedgerWriteBytes": 1892885,
+        "mutatorInsideLockMs": 24.099000000000046,
+        "transactionElapsedMs": 50.91330000000005,
+        "instrumentationSerializeMs": 3.0720999999999776,
+        "elapsedMs": 82.17309999999998
+      },
+      "recovery": {
+        "publicReads": 1,
+        "transactions": 33,
+        "serializedCandidateBytes": 62470800,
+        "actualLedgerReplacements": 33,
+        "actualLedgerWriteBytes": 62470800,
+        "mutatorInsideLockMs": 4.261899999999514,
+        "transactionElapsedMs": 678.7076000000004,
+        "instrumentationSerializeMs": 106.84030000000052,
+        "elapsedMs": 697.3217,
+        "interfaceCalls": 32
+      },
+      "maxRssKiB": 174688,
+      "networkCalls": 0,
+      "transactionsSent": 0,
+      "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+    },
+    "after": {
+      "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+      "node": "v24.22.3",
+      "cohorts": 2,
+      "leavesPerCohort": 1001,
+      "fresh": {
+        "publicReads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 1892885,
+        "actualLedgerReplacements": 1,
+        "actualLedgerWriteBytes": 1892885,
+        "mutatorInsideLockMs": 24.23230000000001,
+        "transactionElapsedMs": 57.580100000000016,
+        "instrumentationSerializeMs": 3.5,
+        "elapsedMs": 86.19999999999993
+      },
+      "recovery": {
+        "publicReads": 1,
+        "transactions": 33,
+        "serializedCandidateBytes": 62470800,
+        "actualLedgerReplacements": 2,
+        "actualLedgerWriteBytes": 3786064,
+        "mutatorInsideLockMs": 4.465499999999679,
+        "transactionElapsedMs": 469.23960000000034,
+        "instrumentationSerializeMs": 108.0462999999994,
+        "elapsedMs": 488.5299,
+        "interfaceCalls": 32
+      },
+      "maxRssKiB": 244488,
+      "networkCalls": 0,
+      "transactionsSent": 0,
+      "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+    },
+    "fullGateObservation": {
+      "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+      "node": "v24.22.3",
+      "cohorts": 2,
+      "leavesPerCohort": 1001,
+      "fresh": {
+        "publicReads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 1892885,
+        "actualLedgerReplacements": 1,
+        "actualLedgerWriteBytes": 1892885,
+        "mutatorInsideLockMs": 22.03670000000011,
+        "transactionElapsedMs": 51.372499999999945,
+        "instrumentationSerializeMs": 3.3350000000000364,
+        "elapsedMs": 80.69620000000009
+      },
+      "recovery": {
+        "publicReads": 1,
+        "transactions": 33,
+        "serializedCandidateBytes": 62470800,
+        "actualLedgerReplacements": 2,
+        "actualLedgerWriteBytes": 3786064,
+        "mutatorInsideLockMs": 5.079499999999598,
+        "transactionElapsedMs": 468.6088999999997,
+        "instrumentationSerializeMs": 104.36989999999946,
+        "elapsedMs": 488.62030000000004,
+        "interfaceCalls": 32
+      },
+      "maxRssKiB": 264736,
+      "networkCalls": 0,
+      "transactionsSent": 0,
+      "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+    },
+    "actualLedgerBytesReductionPercent": 93.93946611857059,
+    "interpretation": [
+      "32synthetic unresolved calls still33store transactions and62470800candidate serializedbytes; actual ledger replacements33-to2 and disk ledger bytes62470800-to3786064",
+      "Physical counters use real ledger inode changes and post-write sizes; lock-file metadata is not counted",
+      "Same benchmark body and target inputs with only store import redirected; no actual network/chain transactions",
+      "Marker-only attempts; full production signed-wire/proof sizes not established; observers add stat/JSON overhead",
+      "Controlled peakRSS174688-to244488KiB and fullgate264736KiB: no lower-memory or production capacity claim",
+      "Repository overlay declares512MiB app; actual loaded production headroom/realistic cohort acceptance remains unverified"
+    ]
+  },
+  "checks": {
+    "fullJavascriptSyntaxFiles": 1172,
+    "newCheckedEntrypointSyntax": 1,
+    "allCurrentJavascriptSyntaxCovered": 1173,
+    "sourceSize": {
+      "files": 1436,
+      "failures": []
+    },
+    "diffCheck": "passed",
+    "drainLockCachePrefixSha256": "ee0e366e39bc0e7c3443509cec0f71ab6b9df7fad2b5dd0feee70674b54c13ea",
+    "queueCleanupApiTailSha256": "dd68a2aa571fc896835d888f1ff0136c9f37d6f4ae1bc6b3ca75d788fdedb2d6",
+    "contractRuntimeDiffFrom971399ff": 0,
+    "admissionCapUnchanged": 1000
+  },
+  "developmentValidationHistory": [
+    "A287-case string-comparison draft passed its then-current controls; a new invalidUTF8 case exposed lossy decoded-string equality. Final raw Buffer comparison restores byte accuracy and prior normalization semantics; failure retained.",
+    "One direct CLI invocation returned no structured summary and was rejected as no evidence; no successful test count was inferred from exit0.",
+    "An eval-based runner attempt inherited --input-type into test-file children and failed with0passing cases; ERR_INPUT_TYPE_NOT_ALLOWED reproduced and retained. Final checked .mjs entry point has no eval-only flags and emitted actual288required passes.",
+    "Final Buffer code passed both explicit file API wrapper and the checked-in release entry point; no assertions were removed to force a pass."
+  ],
+  "gitLfSourceSha256": {
+    "server/automatic-reward-store.mjs": "2c9a1b64809c1a1d015dbf702dff44ec8cd7ed0e7d96a4d7eb6284255732ee46",
+    "tests/readiness/reward-store-noop.test.mjs": "0c3f41b785dd30ad66803c23769c54d0386246a1bb09f2027668fd9b61eb6d19",
+    "tests/readiness/reward-recovery-page.test.mjs": "95c51f30fe75b4f7f624c42922bc41e9e32310b0ee994d0e7c50dd33539c9a6f",
+    "scripts/check-reward-store-persistence.mjs": "a96cc150dc91bd80fa8e75083d9dca8038183c8beb5346725aec69e61d888d87",
+    "config/reward-store-noop-tests.json": "f89f0f7bf9e008a62a0c65398acb412bce61ce63614cc1861b519908ebedff42",
+    "docs/reward-store-noop.md": "2c743276022af9b81ea15ca7582a3b41bcc5fda74157392d5c47bb95256b80a9",
+    "docs/reward-recovery-pages.md": "fb1d36ea0962b5f7ee0172106a40edf90b8c2556b1fd33ea50e3579c44d20028",
+    "docs/mainnet-production-packet-2026-11-22.md": "7d116b2eed38413a01c150d7de1987b97ba86bfba13d63738e36208ebd683612"
+  },
+  "unchangedContextSha256": {
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/reward-payout-recovery.mjs": "8260c04f1b62c96c47c96c583867846129e714fd95a81398fd0e6e1b02ec8a97",
+    "server/reward-recovery-page.mjs": "18d432cbf4552e49c7fc87360d3f781dcb7e9e027e9f2635e87f50e43ae8e540",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-cycle-expiry.mjs": "2ff9382d9e1fe644db25f08eaa5fa96eaf92f72e8b6be0ab494c154b441d7aeb",
+    "server/reward-expiry-attempt.mjs": "472649b62ac1c41be5570e415412e63d8bfa4843f42c5bd1d5acfa9c8e3854fa",
+    "server/token-conversion-journal.mjs": "d115a10c3f7b73572e8fbdbfec5493314c8379d804432e85e837c2458ffc5b84",
+    "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+    "server/community-claim-service.mjs": "2d13336716e71906c9ea87ff1c8829c32057ffe9158c31b96f81412a41b76f80",
+    "server/community-snapshot-archive.mjs": "6340a943dfe993ccfcfd0aac97ddc09a76db47434cfae9b92fffd4b6130643d9",
+    "server/community-bank-layout.mjs": "d53bcc251a4d24acaaff1bc5b841e2ed0a01469581343cc13d581a3c3c7a7ead",
+    "automatic-rewards.js": "185a8c013f600bf871b253c04e3f3c3196f0b78c6cd0c459f8185dde60c0c2d8",
+    "reward-merkle.js": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+    "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+    "server/background-maintenance.mjs": "d65a123b78790a742ac98bb4990ff2a7fe69a9be7b2dca92d57338550bc55523",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc",
+    "compose.resources.yml": "e9325be2199a1672db81a6a0e45923eb00dcc76eacc6311355a0701942b39703"
+  },
+  "evidence": "data/qa-evidence/mainnet-production-packet-20261122/storage-noop/",
+  "remaining": [
+    "Whole-ledger discovery/parse/comparison/serialization/memory remainO(N); memory headroom and actual full-payload cohorts remain open",
+    "All writers must respect the existing lock; no Linux power-loss/directory-fsync or production backup/restore acceptance is added",
+    "No financial schema/entitlement/signing/admission/allowlist/cap policy, chain instruction, SOL fee/rent or signing inventory changed",
+    "No merge/deployment/new spending/transaction/provider or real wallet action occurred; Contract9713/3f8/1236prefix reused",
+    "ParentMN001/originalbank/current-programlive28/operational roles/final wallet funding remain open"
+  ],
+  "nextUsefulAction": "Independent exact-source persistence/failure/physical-write/measurement review, then continue realistic full-payload memory and broader worker capacity integration without changing cap or activating Mainnet."
+}

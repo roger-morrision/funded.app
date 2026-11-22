@@ -265,3 +265,11 @@ full-versus-filtered progress isolation and bounded overlapping-filter state. A 
 measurement records actual lock work and exposes remaining whole-ledger write
 amplification; full worker/storage and authenticated financial scale acceptance
 remain open. No admission cap or signing authority was widened.
+
+
+The MN001 [exact-byte store candidate](reward-store-noop.md) preserves the same
+lock and changed-state fsync/rename contract while avoiding byte-identical ledger
+publication. Bootstrap, migration, proof-before-status, cache and failure controls
+are included in its dedicated affected-inventory gate. Physical-write reductions
+are local synthetic observations; whole-ledger O(N), real payload/throughput,
+backup/restore and all financial/live release criteria remain open.
