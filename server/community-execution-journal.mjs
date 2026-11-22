@@ -22,23 +22,26 @@ async function unlandable(connection,row){
 // outcome can only rebroadcast those same bytes; a replacement is prepared only
 // after the saved blockhash is provably expired with no finalized receipt.
 export async function executeCommunityJournal({store,connection,key,intent,authority,prepare,prove,
-  now=()=>Date.now(),leaseMs=60000,reserveLamports=String(RESERVE)}){
+  now=()=>Date.now(),leaseMs=60000,reserveLamports=String(RESERVE),reconcileOnly=false}){
   if(!/^community:[1-9A-HJ-NP-Za-km-z]{32,44}:(open|[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(key)
     ||intent?.cluster!=='devnet'||!/^[a-f0-9]{64}$/.test(String(intent.approvedHash))
-    ||typeof prepare!=='function'||typeof prove!=='function'||BigInt(reserveLamports)<RESERVE)
+    ||(!reconcileOnly&&typeof prepare!=='function')||typeof prove!=='function'||BigInt(reserveLamports)<RESERVE)
     throw new Error('A bounded, approved Devnet community execution is required.');
   if(await connection.getGenesisHash()!==DEVNET_GENESIS_HASH)throw new Error('Community execution requires Devnet.');
   const intentHash=allocationAuditHash(intent),token=randomUUID(),at=now();
-  const acquired=await store.update(state=>{
-    state[BUCKET]||={};const existing=state[BUCKET][key];
+  function acquire(state){
+    const existing=state[BUCKET]?.[key];
     if(existing&&(existing.intentHash!==intentHash||allocationAuditHash(existing.intent)!==intentHash))
       throw new Error('The immutable community execution intent changed.');
+    if(reconcileOnly)return {owned:false,row:existing};
     if(existing?.signature||existing?.leaseUntil>at)return{owned:false,row:snapshot(existing)};
     const row={...existing,key,intent:snapshot(intent),intentHash,status:'preparing',token,leaseUntil:at+leaseMs,
       createdAt:existing?.createdAt||new Date(at).toISOString()};
-    state[BUCKET][key]=row;return{owned:true,row:snapshot(row)};
-  });
+    (state[BUCKET]||={})[key]=row;return{owned:true,row:snapshot(row)};
+  }
+  const acquired=reconcileOnly?acquire(await store.read()):await store.update(acquire);
   let row=acquired.row;
+  if(reconcileOnly&&!row?.signature)return {status:'no-saved-signature',key};
   if(row.evidence!==undefined&&allocationAuditHash(row.evidence)!==row.evidenceHash)
     throw new Error('Saved community execution evidence changed.');
   const reconcile=async current=>{
@@ -107,6 +110,7 @@ export async function executeCommunityJournal({store,connection,key,intent,autho
     });
     if(!saved)return{status:'preparation-superseded',key};row=snapshot(saved);
   }
+  if(reconcileOnly)return pending(row);
   // Saved signed bytes are immutable. Neither a timeout nor a process restart
   // authorizes a fresh signature, quote, X post, or debit for this action key.
   try{
