@@ -52,6 +52,12 @@ export function createTokenConversionJournal({store,connection,config,release=re
       const id=identity(row.proofIntent),facts=immutable(row.proofIntent);assert(!intents.has(id)||intents.get(id)===facts,'Conversion nonce was reclassified.');intents.set(id,facts);
       if(['reserved','submitted'].includes(row.status)){assert(!activeVaults.has(row.vault),'Multiple unresolved reservations share a vault.');activeVaults.add(row.vault);}
       if(row.signedTransaction)assert(signedTokenSellBytes(row.signedTransaction,row).signature===row.signature,'Stored conversion signatures differ.');
+      if(row.signingStartedAt!==undefined)assert(Number.isSafeInteger(row.signingStartedAt)&&row.signingStartedAt>=row.at
+        &&row.signingStartedAt<=journal.clock,'Invalid durable signing marker.');
+      if(row.broadcastAttemptedAt!==undefined)assert(row.signedTransaction&&row.signingStartedAt!==undefined
+        &&Number.isSafeInteger(row.broadcastAttemptedAt)&&row.broadcastAttemptedAt>=row.submittedAt&&row.broadcastAttemptedAt<=journal.clock
+        &&Number.isSafeInteger(row.broadcastReviewedAt)&&row.broadcastReviewedAt<=row.broadcastAttemptedAt
+        &&row.broadcastReviewedAt>=row.at&&row.broadcastAttemptedAt-row.broadcastReviewedAt<35000,'Invalid durable broadcast marker.');
       if(row.status==='submitted')assert(row.signature&&row.signedTransaction,'Submitted conversion lacks durable signed bytes.');
       if(row.status==='reserved')assert(!row.signature&&!row.signedTransaction,'Unsigned reservation has unexpected signature state.');
       if(row.status==='settled')assert(row.proof?.finalized===true&&row.proof.messageHash===hash&&row.proof.balanceDeltaVerified===true
@@ -87,10 +93,10 @@ export function createTokenConversionJournal({store,connection,config,release=re
       const proofIntent=copy(review.proofIntent),digest=tokenPricePolicyHash(proofIntent),id=identity(proofIntent);
       assert(review.messageHash===createHash('sha256').update(review.transaction.message.serialize()).digest('hex')
         &&review.messageHash===proofIntent.messageHash&&review.amountIn===proofIntent.amountIn,'Reviewed conversion changed before reservation.');
-      const reservation=await transaction((journal,at)=>{
+      const result=await transaction((journal,at)=>{
         assert(Number.isSafeInteger(review.reviewedAt)&&at>=review.reviewedAt&&at-review.reviewedAt<35000,'Conversion review expired before durable reservation.');
         const prior=journal.attempts[review.messageHash];
-        if(prior){assert(prior.intentDigest===digest&&!['settled','released-no-conversion'].includes(prior.status),'Finished or changed conversion message cannot be signed again.');return prior;}
+        if(prior){assert(prior.intentDigest===digest&&!['settled','released-no-conversion'].includes(prior.status),'Finished or changed conversion message cannot be signed again.');return {reservation:prior,created:false};}
         const rows=Object.values(journal.attempts),same=rows.filter(row=>identity(row.proofIntent)===id);
         assert(same.every(row=>immutable(row.proofIntent)===immutable(proofIntent)),'Conversion nonce cannot change asset, category or input.');
         assert(same.every(row=>row.status==='released-no-conversion'),'Existing conversion needs exact finalized reconciliation before replacement.');
@@ -100,15 +106,26 @@ export function createTokenConversionJournal({store,connection,config,release=re
         const row={contextHash,messageHash:review.messageHash,proofIntent,intentDigest:digest,status:'reserved',at,slot:review.slot,
           blockhash:review.blockhash,vault:review.vault,receipt:review.receipt,budgetAsset:review.budgetAsset,amountIn:review.amountIn,
           unsignedTransaction:Buffer.from(review.transaction.serialize()).toString('base64')};
-        journal.attempts[row.messageHash]=row;return row;
+        journal.attempts[row.messageHash]=row;return {reservation:row,created:true};
       });
-      return {reservation,review};
+      return {...result,review};
     },
+    claimSigning:({messageHash})=>transaction((journal,at)=>{
+      const row=journal.attempts[messageHash];assert(row?.status==='reserved','No unsigned conversion reservation.');
+      if(row.signingStartedAt!==undefined)return {claimed:false,reservation:row};
+      row.signingStartedAt=at;return {claimed:true,reservation:row};
+    }),
     recordSigned:({messageHash,transactionBase64})=>transaction((journal,at)=>{
       const row=journal.attempts[messageHash];assert(row&&['reserved','submitted'].includes(row.status),'No active conversion reservation.');
       const signed=signedTokenSellBytes(transactionBase64,row);
       if(row.signedTransaction){assert(row.signedTransaction===signed.signedTransaction&&row.signature===signed.signature,'Signed conversion bytes are immutable.');return row;}
       Object.assign(row,signed,{status:'submitted',submittedAt:at});return row;
+    }),
+    claimBroadcast:({messageHash,reviewedAt})=>transaction((journal,at)=>{
+      const row=journal.attempts[messageHash];assert(row?.status==='submitted'&&row.signingStartedAt!==undefined,'No transport-owned signed reservation.');
+      if(row.broadcastAttemptedAt!==undefined)return {claimed:false,reservation:row};
+      assert(Number.isSafeInteger(reviewedAt)&&reviewedAt>=row.at&&reviewedAt<=at&&at-reviewedAt<35000,'Conversion review expired before broadcast claim.');
+      row.broadcastAttemptedAt=at;row.broadcastReviewedAt=reviewedAt;return {claimed:true,reservation:row};
     }),
     async reconcile({messageHash,signature=null}){
       const row=checked(await store.read()).attempts[messageHash];assert(row,'Unknown conversion reservation.');

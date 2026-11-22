@@ -306,3 +306,11 @@ launch writes and report activation unauthorized. This is startup/API evidence,
 not production database, worker, finalized financial or release acceptance.
 See [source and raw evidence](evidence/api-entrypoint-startup.json). Earlier
 Windows CRLF export hashes are distinguished from raw Git blob/archive hashes.
+
+The [conversion transport preparation](token-conversion-transport.md) composes
+the actual admitted reviewer/journal/proof with injected operator and price
+signers. Durable one-time signing/send-intent markers precede external actions;
+restart is read-only recovery, including unsigned and signed unsent attempts.
+Twenty-eight required synthetic transport cases plus the existing 72 conversion
+cases pass. This module is not registered with an operational worker, signer
+backend or Mainnet admission path. See the [source evidence](evidence/token-conversion-transport.json).

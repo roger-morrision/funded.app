@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "scope": "Injectable transport actual reviewer+journal with synthetic signers/RPC; no service/worker admission or chain execution",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-transport.test.mjs",
+      "requiredTests": [
+        "transport unknown submission recovers exact original wire after restart without signing or sending again",
+        "transport saved unsigned reservation is recovery-only after restart",
+        "transport absent recovery attempt cannot fall through to signing",
+        "transport two store instances admit only one signing and broadcast owner",
+        "transport post-publication broadcast fence failure retains identity and forbids retry",
+        "transport callback message mutation cannot redirect a signature",
+        "transport expired price review prevents operator signing",
+        "transport expired operator review preserves signed bytes without broadcast",
+        "transport timed-out signer keeps a durable unknown marker across restart",
+        "transport changed provider signature cannot mark completion",
+        "transport corrupt broadcast marker is rejected before any signer or send",
+        "transport wrong signer identity is refused before journal initialization",
+        "transport delayed signing fence cannot expose a stale price request",
+        "transport delayed broadcast fence cannot send stale signed bytes",
+        "transport actual second review catches changed operator solvency before send",
+        "transport snapshots caller request before the first await",
+        "transport unavailable operator never permits automatic signing replacement",
+        "transport mutated signer handle is checked against the durable role",
+        "transport durably reviews and saves both exact signatures before category 5 send",
+        "transport durably reviews and saves both exact signatures before category 6 send",
+        "transport durably reviews and saves both exact signatures before category 7 send",
+        "transport reserve persistence failure suppresses dependent external action",
+        "transport signing persistence failure suppresses dependent external action",
+        "transport signed persistence failure suppresses dependent external action",
+        "transport broadcast persistence failure suppresses dependent external action",
+        "transport invalid priceSigner signature never broadcasts",
+        "transport invalid operator signature never broadcasts",
+        "transport historical signed journal without a send marker is never automatically broadcast"
+      ]
+    }
+  ]
+}

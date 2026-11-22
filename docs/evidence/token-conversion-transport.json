@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "issueIds": [
+    "FQA-MN-003",
+    "FQA-MN-005"
+  ],
+  "state": "source-local-transport-preparation-awaiting-independent-QA",
+  "baseRevision": "61963da537cf94da4e92712970d195edd93a119c",
+  "observedAt": "2026-11-22T23:25:21.473343+00:00",
+  "change": "Compose actual admitted reviewer/journal/proof with bounded injected dual-signature transport. Atomically identify the reservation creator and persist one-time signing and send-intent markers under the existing lock/fsync.",
+  "scope": "Reusable injected orchestration, NOT registered runtime worker/service/admission/allowlist or operational custody",
+  "tests": {
+    "command": "node scripts/check-token-conversion-transport.mjs",
+    "WindowsNode24": "28/28required,0fail/skip/TODO",
+    "LinuxNode24": "28/28required,0fail/skip/TODO,networknone",
+    "missingCurrentReviewElf": "Linuxexit1,0of28required passed",
+    "affectedExistingInventory": "72/72required,0fail/skip/TODO; actual unchanged integration inventory",
+    "syntax": "Syntax checked 1191 JavaScript files.",
+    "size": "Source size budgets passed for 1454 maintained code files (hard maximum: 1000 lines).",
+    "diff": "pass"
+  },
+  "acceptanceCovered": [
+    "Category5/6/7 actual review twice and exact cryptographic role signatures; durable markers/wire precede callback/send",
+    "Race between two locked stores yields one fresh signer/broadcast owner",
+    "Unknown response, unsigned/signed prior row, signer timeout and postpublication failure recover same identity without new signing/send/blockhash",
+    "Every persistence stage and postpublication failure suppresses its next external action",
+    "Malformed/mutated signer/message/provider result cannot produce completion; exact saved proof still required",
+    "Age checks after signing and both durable fences, changed solvency rejected by actual second review",
+    "Recovery-only missing attempt cannot fall through; original typed rawUSDC policy and finalized proof/release rules retained"
+  ],
+  "limitations": [
+    "Signer adapters and bank/finality/send are synthetic; deterministic in-memory fixture keys only, no real network/chain/signing credentials",
+    "No new service/worker import, signer backend, price-policy allowlist, Mainnet flag or cap change. Graph finds only new test importing transport.",
+    "Existing journal submitted status means durable signed pending bytes, not confirmed broadcast/payment. One-time broadcast marker means send intent only.",
+    "Crash after reservation/signing/send-intent may leave an unsent unresolved row. No automatic replacement/resend; authenticated finalized proof or existing expiry/absence rules govern recovery.",
+    "Adapters must independently enforce their reviewed production policy/custody; separate callbacks/keys do not establish administrative independence.",
+    "Full operational integration, realistic wholeworker scale, originalbank/live28 and final funding remain open/MainnetNO-GO."
+  ],
+  "sourcePins": {
+    "server/token-conversion-journal.mjs": "1df5336a2d3a87c3c58a626fc4b178889c9d60ee15f2f4d6d73f5d8c8472cf75",
+    "server/token-conversion-transport.mjs": "a90946344dc92c02e329d427f192011fbd5ee950098af05b1a74137966567eb2",
+    "tests/readiness/token-conversion-transport.test.mjs": "553509137d7c18f7e1d4262d9946a30a14023e777b5916b413da76f06a14eb05",
+    "config/token-conversion-transport-tests.json": "ead38b0be20f7ea48616081dd096517887861648eb41428c59db60ab9d3fef08",
+    "scripts/check-token-conversion-transport.mjs": "8caa55342ec391f897577e39e847d9a8e792db4b6539b78685733c68c5db7f56"
+  },
+  "unchangedContextPins": {
+    "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+    "server/token-conversion-reservation.mjs": "df60b6459fb5158c469e4738fa7b0bb269809dd6c48b10c1d76bb3f2cecffb6c",
+    "server/token-conversion-sell-proof.mjs": "a5f4eef822e6c03f55f3d25d4d0e1d8410ee53a5e3889b1977a53d8ec6094961",
+    "server/token-conversion-sell-quote.mjs": "2a5bb7769c66c03ff00a674a1ac6358b3b254dfea52a43c8e95e476648836f62",
+    "server/token-conversion-sell.mjs": "7483acdf5d611b8bb3633c040a4aa47ab57ebb1991a3367c04c3892516b4535d",
+    "server/token-conversion-intent.mjs": "79e16e8c6320498544a6567d1171ad3e6d7597717bec1e5b53e5685290ac44c9",
+    "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+    "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+    "server/remote-signer.mjs": "c608c741dfaeb7ad26be9468eb9c719c4865ec42b274e037f57da7f8d0035c65",
+    "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+    "server/v3-paired-token-worker.mjs": "5c9aa4cb73734fac1ed00c629239420eacd173bfe95f8989cd2b0d990e5cd594",
+    "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "config/token-conversion-integration-tests.json": "88ad41d00fff51ebc04c7ad8097358a08cb8a7b7a1d8ac418b6d48c4e2706766",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc"
+  },
+  "rawArtifacts": {
+    "linux-final.stdout": "52b51fa63200d129bfcd6efd13e593fe7a660e6aa1c2d01e0ca86eb08b1689f0",
+    "linux-final.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-missing.stdout": "cba4873a9ba0fbf20d8e2c31812e3ffe40061fec472d6dd0ab207e07ba20dc08",
+    "linux-missing.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "windows-final.stdout": "37d86f33f4bb3ba75a857539828d0372248257c2440a23125c511de51c47eaf5",
+    "windows-final.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "affected72.stdout": "92011b356a5f702432e9bf7b8213604529efd2aba7dbe96c14f668c77a7de01e",
+    "affected72.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source.stdout": "f464e46dad5607a64ff432fe875aa1d584d016b9caca7c40fc54316c54429362",
+    "source.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size.stdout": "b4e85caca9b0fd0f9111980910708b020a4f445deaeab8da708e87c474a92bf7",
+    "size.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source-final-manifest.json": "6696637a42a0c31b47841134e6f5e39fa523e0d2ffedfabba5b77bb42b9a62f0",
+    "container-outcomes.json": "9fbf354827c5e16af6364195b06d90e5b51576d2f1b93caab2b502cf0e5f7ec2"
+  },
+  "archive": {
+    "path": "source-final.tar",
+    "files": 1236,
+    "sha256": "e392fc651cacb8054a1b2fa33e3916b5fba42416058a0634f5b63b077e8516bc",
+    "provenance": "Raw6196Git source/schema closure with exactly five current source/test/inventory replacements/additions; LF pins independent of Windows checkout bytes"
+  },
+  "graph": {
+    "transportImporters": [
+      "tests/readiness/token-conversion-transport.test.mjs"
+    ],
+    "actualNewEdge": "transport calls existing real createTokenConversionJournal and journal review/proof, not a mocked verified flag"
+  },
+  "cleanup": "3exactownstoppedcontainersremoved, existing10servicesunchanged; no pull/build/hostports/productionmounts",
+  "financialExecution": "No external financial signatures, chain transactions, spending or deployment. Tests inject deterministic synthetic signer callbacks and send stub.",
+  "contract": "971399ff /3f8 ELF1110424 /1236Loaderprefix unchanged; no rebuild or quote refresh"
+}
