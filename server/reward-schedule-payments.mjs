@@ -1,6 +1,7 @@
 import { rewardPayoutGroups } from './reward-batch.mjs';
 import { nativeRecipientFundingPending } from './native-reward-recipient.mjs';
 import {payoutIntentHash} from './reward-payout-journal.mjs';
+import {completedRewardPayment} from './reward-paid-record.mjs';
 
 export async function payRewardSchedule({ store, chain, plan, batch }) {
   const saved = await store.transaction(state => structuredClone(state.schedules[plan.id].payments || {}));
@@ -16,10 +17,8 @@ export async function payRewardSchedule({ store, chain, plan, batch }) {
           if(!row||payoutIntentHash(row,leaf)!==payoutIntentHash(plan,leaf))throw Error('Payout schedule changed before completion.');
           if(result.payoutTransactionVerified&&!(row.payoutAttempts?.[leaf.recipient]?.state==='verified'
             &&row.payoutAttempts[leaf.recipient].signature===result.signature))throw Error('Payout lacks durable attributed proof.');
-          row.payments[leaf.recipient] = {
-          status:'paid', bitmap:result.bitmap===true, amount:leaf.amount, amountReceived:result.amountReceived, index:leaf.index,
-          signature:result.signature, payment:result.payment, finalized:true, balanceDeltaVerified:true,
-          ...(result.batch ? { batch:result.batch } : {}), paidAt:new Date().toISOString() }; });
+          const completed=completedRewardPayment(row.payments[leaf.recipient],leaf,result);
+          if(completed.changed)row.payments[leaf.recipient]=completed.record; });
         submitted += result.alreadyPaid ? 0 : 1;
       } catch (failure) {
         await store.transaction(state => {

@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRewardScheduler} from '../../server/reward-scheduler.mjs';
+import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
+import {expiryExecutionStore} from './reward-expiry-execution-fixture.mjs';
+import {historicalPayoutFixture,PAYOUT_ASSETS} from './reward-payout-fixture.mjs';
+for (const asset of PAYOUT_ASSETS) test(asset.name+' committed payout after scheduler restart', async t => {
+  const f=historicalPayoutFixture(asset);
+  const {store,path}=await expiryExecutionStore(t,f);
+  const execute=(s,time)=>createRewardScheduler({store:s,chain:f.chain(),indexer:{},cluster:'devnet'}).execute(time,[f.plan.id]);
+  const first=await execute(store,200010);
+  assert.equal(first.submitted,1);
+  const before=(await store.read()).schedules[f.plan.id];
+  assert.equal(before.status,'paid'); assert.equal(before.cycle,String(f.cycle));
+  const reopened=createAutomaticRewardStore(path);
+  const second=await execute(reopened,200011);
+  const after=(await reopened.read()).schedules[f.plan.id];
+  assert.equal(second.submitted,0); assert.equal(f.sends,1);
+  assert.equal(after.cycle,before.cycle); assert.deepEqual(after.payments,before.payments);
+  assert.equal(f.rows.get(String(f.reserve)).data.readBigUInt64LE(72),41n);
+});

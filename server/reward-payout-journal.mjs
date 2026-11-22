@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {PublicKey,SystemProgram,Transaction,TransactionInstruction} from '@solana/web3.js';
 import {TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID,getAssociatedTokenAddressSync,createAssociatedTokenAccountIdempotentInstruction,
-  unpackMint,getAccountLen,getExtensionTypes,getAccountTypeOfMintType,ExtensionType} from '@solana/spl-token';
+  unpackMint,getAccountLen,getExtensionTypes,getAccountTypeOfMintType,ExtensionType,NATIVE_MINT,NATIVE_MINT_2022} from '@solana/spl-token';
 import bs58 from 'bs58';
 import {SOLANA_GENESIS} from '../solana-network.js';
 import {verifyRewardProof,SOL_ASSET_MINT} from '../reward-merkle.js';
@@ -73,6 +73,8 @@ export function requirePayoutAttempt(attempt,options){
     &&liability?.vault===before.vault&&BigInt(liability.outstanding)>=BigInt(leaf.amount)
     &&BigInt(record.distributedAmount)+BigInt(leaf.amount)<=BigInt(record.totalAmount)
     &&Number.isSafeInteger(before.slot)&&before.slot>0,'Saved payout accounting differs.');
+  assert([before.feeLamports,before.receiptRentLamports,before.tokenRentLamports].every(n=>Number.isSafeInteger(n)&&n>=0)
+    &&before.feeLamports>0&&before.receiptRentLamports>0,'Saved payout cost quote is missing; reconcile without replacement.');
   assert(typeof attempt.transactionBase64==='string'&&attempt.transactionBase64.length<=1644,'Bounded payout wire required.');
   const raw=Buffer.from(attempt.transactionBase64,'base64');assert(raw.length<=1232&&raw.toString('base64')===attempt.transactionBase64,'Noncanonical payout wire.');
   const tx=Transaction.from(raw),message=tx.serializeMessage();
@@ -81,6 +83,30 @@ export function requirePayoutAttempt(attempt,options){
     &&Number.isSafeInteger(attempt.lastValidBlockHeight)&&attempt.lastValidBlockHeight>0
     &&canonicalTransaction({...options,attempt}).serializeMessage().equals(message),'Saved payout signature or immutable message differs.');
   return {transaction:tx,message,record,liability};
+}
+
+function nativeAccounting(tx,attempt,plan,leaf){
+  const keys=tx.transaction.message.accountKeys,pre=tx.meta.preBalances,post=tx.meta.postBalances,fee=BigInt(tx.meta.fee);
+  if(pre.reduce((sum,n,i)=>sum+BigInt(n)-BigInt(post[i]),0n)!==fee||tx.meta.fee!==attempt.before.feeLamports)return false;
+  const expected=new Map(keys.map(k=>[String(k),0n]));
+  const add=(address,n)=>{const name=String(address);if(!expected.has(name))throw Error('Missing native accounting account.');expected.set(name,expected.get(name)+n);};
+  const balance=(array,address)=>BigInt(array[keys.findIndex(k=>String(k)===String(address))]);
+  const before=attempt.before,rent=balance(post,before.payment)-balance(pre,before.payment);
+  if(rent!==BigInt(before.receiptRentLamports))return false;
+  add(keys[0],-fee-rent);add(before.payment,rent);
+  const amount=BigInt(leaf.amount),sol=plan.manifest.asset==='SOL';
+  if(sol){add(before.vault,-amount);add(leaf.recipient,amount);}
+  else{
+    const tokenProgram=key(before.tokenProgram),mint=key(plan.manifest.asset);
+    const source=getAssociatedTokenAddressSync(mint,key(before.vault),true,tokenProgram),destination=getAssociatedTokenAddressSync(mint,key(leaf.recipient),false,tokenProgram);
+    const destinationIndex=keys.findIndex(k=>k.equals(destination));
+    const existed=tx.meta.preTokenBalances?.some(b=>b.accountIndex===destinationIndex&&b.mint===plan.manifest.asset);
+    const old=balance(pre,destination),deposit=existed?0n:BigInt(before.tokenRentLamports)>old?BigInt(before.tokenRentLamports)-old:0n;
+    add(keys[0],-deposit);add(destination,deposit);
+    // Wrapped-native transfers move both token units AND backing lamports.
+    if(mint.equals(tokenProgram.equals(TOKEN_PROGRAM_ID)?NATIVE_MINT:NATIVE_MINT_2022)){add(source,-amount);add(destination,amount);}
+  }
+  return keys.every((k,i)=>BigInt(post[i])-BigInt(pre[i])===expected.get(String(k)));
 }
 
 export async function finalizedPayoutAttempt(options){
@@ -99,6 +125,7 @@ export async function finalizedPayoutAttempt(options){
       ||!Number.isSafeInteger(tx.meta.fee)||tx.meta.fee<=0)return null;
     const paymentIndex=keys.findIndex(k=>String(k)===attempt.before.payment);
     if(paymentIndex<0||tx.meta.preBalances[paymentIndex]!==0||tx.meta.postBalances[paymentIndex]<=0)return null;
+    if(!nativeAccounting(tx,attempt,plan,leaf))return null;
     const proof=rewardPayoutProof(tx,{program:key(programId),cycle:key(plan.cycle),vault:key(attempt.before.vault),manifest:plan.manifest,leaf,bitmap:false});
     if(!proof||proof.signature!==attempt.signature)return null;
     const context=await finalizedRewardProgramContext({...options,transactionSlot:tx.slot});
@@ -172,13 +199,15 @@ export async function executeRewardPayout({store,plan,leaf,connection,programId,
       if(plan.manifest.asset!=='SOL'){
         const mint=key(plan.manifest.asset),mintInfo=await connection.getAccountInfo(mint,'finalized');
         const tokenProgram=prepared.transaction.instructions[0].keys[5].pubkey;
-        const parsed=unpackMint(mint,mintInfo,tokenProgram),extensions=getExtensionTypes(parsed.tlvData).map(getAccountTypeOfMintType);
+        const parsed=unpackMint(mint,mintInfo,tokenProgram),extensions=getExtensionTypes(parsed.tlvData)
+          .map(getAccountTypeOfMintType).filter(type=>type!==ExtensionType.Uninitialized);
         if(tokenProgram.equals(TOKEN_2022_PROGRAM_ID))extensions.push(ExtensionType.ImmutableOwner);
         tokenRent=await connection.getMinimumBalanceForRentExemption(getAccountLen([...new Set(extensions)]),'finalized');
       }
       assert([fee?.value,balance,paymentRent,tokenRent].every(n=>Number.isSafeInteger(n)&&n>=0)
         &&BigInt(balance)>=3000000000n+BigInt(fee.value)+BigInt(paymentRent)+BigInt(tokenRent),'Protected operator reserve cannot fund payout fee/rent.');
       const before={vault:String(c.vault),reserve:String(c.reserve),payment:String(c.payment),originalAuthority:String(c.originalAuthority),slot:c.slot,
+        feeLamports:fee.value,receiptRentLamports:paymentRent,tokenRentLamports:tokenRent,
         cycleInfo:account(c.cycleInfo),reserveInfo:account(c.reserveInfo),tokenProgram:plan.manifest.asset==='SOL'?null:String(prepared.transaction.instructions[0].keys[5].pubkey)};
       attempt={version:1,state:'prepared',cluster,genesisHash:SOLANA_GENESIS[cluster],programId:String(programId),programDataSha256:expectedProgramDataSha256,
         intentHash:intent,before,snapshotHash:expiryObjectHash(before),...payload,messageHash:digest(tx.serializeMessage())};

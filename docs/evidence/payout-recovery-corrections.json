@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T18:12:05.705608+00:00",
+  "baseRevision": "969809a0939b033353c757649e933c018a76d407",
+  "scope": "Actual App single-payout recovery with synthetic bank/RPC/finality; independent exact-source correction acceptance pending",
+  "node": "v24.22.3",
+  "issues": {
+    "FQA-MN-005-PAYOUT-01": {
+      "unchangedProbeSha256": "0d7acd9b06112730b7d55132ad11305b5a06e024d0697e42530a123febd9d504",
+      "before": {
+        "tests": 3,
+        "passed": 0,
+        "failed": 3,
+        "exit": 1
+      },
+      "after": {
+        "tests": 3,
+        "passed": 3,
+        "failed": 0,
+        "exit": 0
+      },
+      "change": "Shared first-success/recovery paid facts preserve timestamp, receipt mode and metadata; matching complete record has no recovery write; incomplete records enriched once; financial conflicts retained"
+    },
+    "FQA-MN-005-PAYOUT-02": {
+      "unchangedProbeSha256": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49",
+      "before": {
+        "tests": 12,
+        "passed": 7,
+        "failed": 5,
+        "exit": 1
+      },
+      "after": {
+        "tests": 12,
+        "passed": 12,
+        "failed": 0,
+        "exit": 0
+      },
+      "change": "Native conservation, exact frozen fee and canonical payer/receipt/ATA rent including classic and Token2022 wrapped-native backing movements; inconsistent proof stays prepared with no replacement"
+    }
+  },
+  "requiredInventory": {
+    "required": 69,
+    "passed": 69,
+    "counts": {
+      "tests": 69,
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "affectedExpiry": {
+    "required": 43,
+    "passed": 43,
+    "fail": 0,
+    "skip": 0,
+    "todo": 0
+  },
+  "missingReviewElf": {
+    "exit": 1,
+    "required": 69,
+    "passed": 0
+  },
+  "additionalCoverage": [
+    "Three payment metadata enrichment/conflict/no-write controls",
+    "Four native-token ordinary/self controls",
+    "Native sum/extra reserve/receipt-rent inconsistencies",
+    "MetadataPointer/TokenMetadata mint ATA rent excludes no-extension marker:174before vs170required; synthetic shape only"
+  ],
+  "sourceChecks": {
+    "fullSyntaxFiles": 1159,
+    "finalChangedFilesSyntax": 3,
+    "finalSizeMaintainedFiles": 1422,
+    "gitDiffCheck": "passed"
+  },
+  "sourceSha256Lf": {
+    "server/reward-payout-journal.mjs": "825de02d320295cd7f8a11863bdd9ad4ee6462910c0ffaa8148b6bb8a03cde91",
+    "server/reward-paid-record.mjs": "60b13803fcec35c56dc9dd5171b8a3a3e9560ac5ade08438bb838830248bc487",
+    "server/reward-payout-recovery.mjs": "da351cac94b983ee1b7f8111bb4e9056ab04cdf15f9416bc1c10c391fb857c7e",
+    "server/reward-schedule-payments.mjs": "c383288eb1429bd22c4cd9b0c3287f45ef2e433091a7ba96bfd76ed5f28f7db4",
+    "tests/readiness/reward-payout-fixture.mjs": "67c863d9e62c42e0cde7e0735cbcfc55e443e436bc72ff00b30222e47e68bb8f",
+    "tests/readiness/reward-payout-restart.test.mjs": "477c3e5eb0e2aed28074cd20de0e1a56c7f2b349bcd8e2264ef1f13b858430f4",
+    "tests/readiness/reward-payout-native-accounting.test.mjs": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49",
+    "tests/readiness/reward-payout-native-boundaries.test.mjs": "4f302e2137ec84c46ee8666f5b1ca85a01520f65206f409d07f947becb3e7a87",
+    "tests/readiness/reward-paid-record.test.mjs": "be626222e2e8bb10293c70c52c30d73a98a183e68b8f5b3b3f1bf219787f8918",
+    "config/reward-payout-journal-tests.json": "b451eec1e0577755bd84da6d3fb1abeef9c9cf11522ca363e7c0bdf5d3563a1a",
+    "docs/payout-recovery-corrections.md": "fc9d2fd9f80a13a123891089f45adb4c3d77ecc0ca25498838b91788326ba3af",
+    "docs/durable-reward-payouts.md": "88d5c3b69c9d2d5454f67f06b631e1a30218912a2f5b3d1059764a354ba4bb54",
+    "docs/mainnet-production-packet-2026-11-22.md": "f1ef318ca63c3eaf8af5d4f93d87e9bfa17ee81df614d7ad936c3b96c3e8f750"
+  },
+  "evidenceSha256": {
+    "expiry.json": "d25264f1d87769330b764f891266df00a864b1ffe5f6e7c88998a684a7b0f620",
+    "initial-owner-fee-probe.test.mjs": "df726543c8bfe200d251a340366cc8d55719f337577c5fb12d2a6d5b6fd7af57",
+    "metadata-initial-51.json": "f59b352aced3f0ca612b8f4881f36a86882bcbb074500b8ccedd7535926fd11a",
+    "metadata-rent-before.txt": "5eccd9f74d88c78245efadffd7e0956c4c57c9d0dac67e1b9e00ac27f41d4992",
+    "missing-elf-final.json": "b97db53489798135233b6a21405e68c9d1a3ef659395f0be1f96fe0dfd4d31f0",
+    "missing-elf.json": "0268e6bd6db8e758c5adb46ffd61eeb690d4baf25e5053c18875bf292be5e2dc",
+    "native-qa-after.txt": "08a81aaad4f9d069ebeed9f1953e47ed1af40193e776f65a596869e8935a15de",
+    "native-qa-before.txt": "30b75aecfe349da400173e43cbac600e9abc3f08de1fde74b69e9bef991a0cda",
+    "native-qa-final.txt": "8508be7ec53db554d1c259cb4e5c67917312a4f5c55f022bf965698ae9e99b73",
+    "owner-fee-before.txt": "33869d04bb77616c435d2930ebda8e267d062d817ff2e6bb4dca0a50abd13481",
+    "restart-after-initial.txt": "a82959696a741ece85313be6e8adda2ec3619f2286acfa2d6dadbeb85c724b0a",
+    "restart-after.txt": "04c8212bdfe6c3815ac2db6bf9dc295f0910e9886b9ec079d115edc03f255e81",
+    "restart-before.txt": "b952d294936cbc57c5a1887bbb7d5f8c0f60d6d2e2a1a437f6ee5e9a7cc75337",
+    "restart-final.txt": "7ba2164a0040284217857ee97dd078afd8a5ee88fa9cff1013d0f98e39e66106",
+    "result-final.json": "68f6800842cd2a16ed5517eb0cf07ce8d6776d64251089dd1ab528c2a8375e65",
+    "result.json": "2b098998c7380c64ce0129345a502adfbd8d1757f67683a0eba43575c50bc4b3",
+    "size-check.txt": "0b5e1981f6dc83130380e23653caa5f53d073fde3e14d170c4aaaa5f0145f533",
+    "source-check.txt": "4001820c5ea77af5854aef18ec30624545f8b031749d6e4f8ad9283c794a1ead"
+  },
+  "unchanged": {
+    "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "elfBytes": 1110424,
+    "loaderPrefixMessages": 1236,
+    "activation": "off",
+    "newSpending": "none"
+  },
+  "limitations": [
+    "Synthetic balances/RPC/finality, not compiled or live financial acceptance",
+    "Old attempts missing cost evidence remain unresolved, never automatically re-signed",
+    "Devnet batch/bitmap/legacy paths remain separate",
+    "Archive/live28, scale, operational custody and final release/funding gates remain open"
+  ]
+}

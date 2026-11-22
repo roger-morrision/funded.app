@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {Keypair,PublicKey,Transaction} from '@solana/web3.js';
-import {TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID,getAssociatedTokenAddressSync} from '@solana/spl-token';
+import {TOKEN_PROGRAM_ID,TOKEN_2022_PROGRAM_ID,getAssociatedTokenAddressSync,NATIVE_MINT,NATIVE_MINT_2022} from '@solana/spl-token';
 import bs58 from 'bs58';
 import {SOLANA_GENESIS} from '../../solana-network.js';
 import {buildRewardManifest,SOL_ASSET_MINT,verifyRewardProof} from '../../reward-merkle.js';
@@ -50,6 +50,7 @@ export function historicalPayoutFixture({asset='SOL',tokenProgram=TOKEN_PROGRAM_
     const bytes=Buffer.alloc(82);bytes[44]=6;bytes[45]=1;f.rows.set(asset,info(tokenProgram,bytes));
     f.vaultToken=getAssociatedTokenAddressSync(new PublicKey(asset),vault,true,tokenProgram);f.recipientToken=getAssociatedTokenAddressSync(new PublicKey(asset),recipient,false,tokenProgram);
     f.tokens.set(String(f.vaultToken),1000n);
+    if([String(NATIVE_MINT),String(NATIVE_MINT_2022)].includes(asset))f.balances.set(String(f.vaultToken),2000);
   }
   const baseRead=f.connection.getAccountInfo,baseContext=f.connection.getAccountInfoAndContext;
   f.connection.getGenesisHash=async()=>SOLANA_GENESIS.devnet;
@@ -80,11 +81,16 @@ export function historicalPayoutFixture({asset='SOL',tokenProgram=TOKEN_PROGRAM_
     assert.equal(cycleBytes[173],1);assert(!f.rows.has(String(f.payment(f.leaf))));
     if(asset==='SOL'){f.rows.get(String(vault)).lamports-=Number(amount);f.balances.set(String(recipient),f.balances.get(String(recipient))+Number(amount));}
     else{assert.equal(String(ix.keys[6].pubkey),String(f.vaultToken));assert.equal(String(ix.keys[7].pubkey),String(f.recipientToken));assert.equal(String(ix.keys[9].pubkey),String(tokenProgram));
-      f.tokens.set(String(f.vaultToken),f.tokens.get(String(f.vaultToken))-amount);f.tokens.set(String(f.recipientToken),(f.tokens.get(String(f.recipientToken))||0n)+amount);}
+      f.tokens.set(String(f.vaultToken),f.tokens.get(String(f.vaultToken))-amount);f.tokens.set(String(f.recipientToken),(f.tokens.get(String(f.recipientToken))||0n)+amount);
+      if([String(NATIVE_MINT),String(NATIVE_MINT_2022)].includes(asset)){
+        f.balances.set(String(f.vaultToken),f.balances.get(String(f.vaultToken))-Number(amount));f.balances.set(String(f.recipientToken),(f.balances.get(String(f.recipientToken))||0)+Number(amount));}}
     cycleBytes.writeBigUInt64LE(300n,144);reserveBytes.writeBigUInt64LE(41n,72);
     f.rows.get(String(cycle)).data=Buffer.from(cycleBytes);f.rows.get(String(reserve)).data=Buffer.from(reserveBytes);
     const signature=bs58.encode(tx.signature);f.rows.set(String(f.payment(f.leaf)),f.receipt(f.leaf));f.signatures.set(String(f.payment(f.leaf)),signature);
-    const post=message.accountKeys.map(a=>f.rows.get(String(a))?.lamports??f.balances.get(String(a))??0);post[0]-=6000;
+    let costs=6000;
+    if(asset!=='SOL'&&!preToken.has(String(f.recipientToken))){f.balances.set(String(f.recipientToken),(f.balances.get(String(f.recipientToken))||0)+1000);costs+=1000;}
+    f.balances.set(String(operator),f.balances.get(String(operator))-costs);
+    const post=message.accountKeys.map(a=>f.rows.get(String(a))?.lamports??f.balances.get(String(a))??0);
     const tokenRows=values=>message.accountKeys.flatMap((a,accountIndex)=>values.has(String(a))?[{accountIndex,mint:asset,uiTokenAmount:{amount:String(values.get(String(a)))}}]:[]);
     f.payoutTransaction={slot:f.slot,transaction:{signatures:[signature],message},meta:{err:null,fee:5000,preBalances:pre,postBalances:post,
       preTokenBalances:tokenRows(preToken),postTokenBalances:tokenRows(f.tokens)}};

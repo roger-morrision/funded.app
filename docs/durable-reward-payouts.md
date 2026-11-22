@@ -1,6 +1,8 @@
 # Durable single-recipient reward payouts
 
-FQA-MN-005 application integration candidate; independent acceptance pending.
+FQA-MN-005 application integration slice. Independent QA accepted its covered
+45 cases at `969809a0`; the additional [recovery corrections](payout-recovery-corrections.md)
+remain pending separate acceptance.
 This extends the original-custody namespace correction accepted at `47ab8d95`.
 It changes no production admission, signer allowlist, entitlement or deployment.
 
@@ -44,8 +46,10 @@ The required Node 24 inventory is:
 node scripts/security-tests.mjs --inventory config/reward-payout-journal-tests.json
 ```
 
-It contains 23 affected namespace cases and 22 transport/recovery cases: 45/45
-pass with zero failures, skips or TODOs. The same first nine new bodies fail on
+The original inventory contained 23 affected namespace cases and 22
+transport/recovery cases: 45/45 passed. The current inventory adds the metadata,
+native fee/rent and wrapped-native corrections, for 69/69 with zero failures,
+skips or TODOs. The same first nine original new bodies fail on
 the exact `47ab8d95` chain export with only import prefixes redirected. Missing
 current review ELF fails closed with zero required passes. The affected expiry
 inventory also passes 43/43 because the scheduler recovery entry point changed.

@@ -56,6 +56,50 @@
         "receipt-mode self-payout retains exact fee and receipt-rent accounting",
         "cached completion with corrupted verification facts cannot become a paid scheduler row"
       ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-restart.test.mjs",
+      "requiredTests": [
+        "SOL committed payout after scheduler restart",
+        "USDC committed payout after scheduler restart",
+        "Token2022 committed payout after scheduler restart"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-paid-record.test.mjs",
+      "requiredTests": [
+        "matching verified completed payment preserves custom metadata without any recovery write",
+        "incomplete paid metadata is enriched once while original timestamp and mode survive",
+        "conflicting paid financial identity is retained for review without overwrite or new submission"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-native-accounting.test.mjs",
+      "requiredTests": [
+        "SOL self=false feeChanged=false requires exact native accounting",
+        "SOL self=false feeChanged=true requires exact native accounting",
+        "SOL self=true feeChanged=false requires exact native accounting",
+        "SOL self=true feeChanged=true requires exact native accounting",
+        "USDC self=false feeChanged=false requires exact native accounting",
+        "USDC self=false feeChanged=true requires exact native accounting",
+        "USDC self=true feeChanged=false requires exact native accounting",
+        "USDC self=true feeChanged=true requires exact native accounting",
+        "Token2022 self=false feeChanged=false requires exact native accounting",
+        "Token2022 self=false feeChanged=true requires exact native accounting",
+        "Token2022 self=true feeChanged=false requires exact native accounting",
+        "Token2022 self=true feeChanged=true requires exact native accounting"
+      ]
+    },
+    {
+      "path": "tests/readiness/reward-payout-native-boundaries.test.mjs",
+      "requiredTests": [
+        "WSOL self=false reconciles backing lamports plus receipt and ATA rent",
+        "WSOL self=true reconciles backing lamports plus receipt and ATA rent",
+        "Native2022 self=false reconciles backing lamports plus receipt and ATA rent",
+        "Native2022 self=true reconciles backing lamports plus receipt and ATA rent",
+        "native conservation and canonical fee rent accounts reject inconsistent evidence",
+        "metadata-only Token2022 mint quotes only required ATA storage and immutable owner"
+      ]
     }
   ]
 }
