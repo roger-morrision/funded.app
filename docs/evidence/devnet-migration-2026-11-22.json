@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "scope": "finalized Devnet read-only verification",
-  "checkedAt": "2026-11-22T11:00:29.009Z",
+  "checkedAt": "2026-11-22T11:05:08.945Z",
   "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
-  "checkedSlot": 525049511,
+  "checkedSlot": 525050683,
   "router": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
   "mint": "Cp83URacwBZpMvVw2fSPtGy3RzWjD35AzF2KcKaYyENp",
   "buyer": "BqCQc4oZEWKfkdkX3XrBTupA3fCqqmWWWcDeBRZPGbZi",
@@ -63,6 +63,12 @@
     "buyerTokenAccountClosed": true,
     "authorityTokenBalanceBaseUnits": "793100000000000",
     "buyerSolAfterRefund": 0
+  },
+  "holderSnapshotGate": {
+    "status": "blocked",
+    "deltaSlots": 2893,
+    "replayWindowSlots": 256,
+    "reason": "Migration is outside the bounded historical replay window; an archival exact-slot snapshot is required."
   },
   "communityClaim": {
     "snapshotApproval": "5HocqwBE2ytA1DE57EvXiLoEzDctUsHAfGMwFWsubVLh",

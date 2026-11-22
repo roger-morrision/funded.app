@@ -5,6 +5,7 @@ import {Connection,PublicKey} from '@solana/web3.js';
 import {bondingCurvePda,PUMP_SDK} from '@pump-fun/pump-sdk';
 import {canonicalPumpPoolPda,OnlinePumpAmmSdk,PUMP_AMM_PROGRAM_ID} from '@pump-fun/pump-swap-sdk';
 import {getAssociatedTokenAddressSync,TOKEN_2022_PROGRAM_ID,unpackAccount} from '@solana/spl-token';
+import {captureExactCommunitySnapshot,verifyPumpMigrationTransaction} from '../server/community-snapshot.mjs';
 
 const connection=new Connection('https://api.devnet.solana.com',{commitment:'finalized',disableRetryOnRateLimit:true});
 const mint=new PublicKey('Cp83URacwBZpMvVw2fSPtGy3RzWjD35AzF2KcKaYyENp');
@@ -36,6 +37,7 @@ const token=(transaction,owner,kind)=>transaction.meta[kind==='before'?'preToken
   .find(row=>row.owner===owner.toBase58()&&row.mint===mint.toBase58())?.uiTokenAmount.amount;
 const funded=transactions.funding,bought=transactions.buy,migrated=transactions.migration,
   custody=transactions.custody,refunded=transactions.refund;
+const verifiedMigration=verifyPumpMigrationTransaction({transaction:migrated,launchMint:mint});
 assert.equal(balance(funded,buyer,'after')-balance(funded,buyer,'before'),1_200_000_000);
 assert.equal(balance(funded,authority,'before')-balance(funded,authority,'after'),1_200_000_000+funded.meta.fee);
 assert.equal(balance(bought,buyer,'before'),1_200_000_000);
@@ -51,6 +53,7 @@ assert.equal(balance(refunded,authority,'after')-balance(refunded,authority,'bef
   balance(refunded,buyer,'before')-refunded.meta.fee);
 const pool=canonicalPumpPoolPda(mint),buyerAta=getAssociatedTokenAddressSync(mint,buyer,false,TOKEN_2022_PROGRAM_ID),
   authorityAta=getAssociatedTokenAddressSync(mint,authority,false,TOKEN_2022_PROGRAM_ID);
+assert(verifiedMigration.pool.equals(pool));
 const approval=PublicKey.findProgramAddressSync([Buffer.from('snapshot-approval-v1'),authority.toBuffer(),mint.toBuffer()],router)[0];
 const drop=PublicKey.findProgramAddressSync([Buffer.from('community-drop-v1'),authority.toBuffer(),mint.toBuffer()],router)[0];
 const rewardVault=PublicKey.findProgramAddressSync([Buffer.from('reward-vault-v1'),authority.toBuffer(),mint.toBuffer()],router)[0];
@@ -66,6 +69,17 @@ assert.equal(buyerTokenAccount,null);
 const poolState=await new OnlinePumpAmmSdk(connection).swapSolanaState(pool,authority);
 assert(poolState.pool.baseMint.equals(mint));
 assert(BigInt(poolState.poolBaseAmount.toString())>0n&&BigInt(poolState.poolQuoteAmount.toString())>0n);
+const replayWindowSlots=256,deltaSlots=accounts.context.slot-migrated.slot;
+assert(deltaSlots>replayWindowSlots);
+let holderSnapshotGate;
+try{
+  await captureExactCommunitySnapshot({connection,mint:'8FmsUFC9aPepfDtQ6ffM2eTbDBzCWTypRLvZbx65Nvex',
+    launchMint:mint,migrationSignature:signatures.migration});
+  throw new Error('Historical snapshot unexpectedly passed the bounded replay gate.');
+}catch(error){
+  assert.equal(error.message,'Migration is outside the bounded historical replay window; an archival exact-slot snapshot is required.');
+  holderSnapshotGate={status:'blocked',deltaSlots,replayWindowSlots,reason:error.message};
+}
 console.log(JSON.stringify({schemaVersion:1,scope:'finalized Devnet read-only verification',checkedAt:new Date().toISOString(),
   genesisHash:'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',checkedSlot:accounts.context.slot,
   router:router.toBase58(),mint:mint.toBase58(),buyer:buyer.toBase58(),authority:authority.toBase58(),
@@ -77,6 +91,7 @@ console.log(JSON.stringify({schemaVersion:1,scope:'finalized Devnet read-only ve
     quoteReserve:poolState.poolQuoteAmount.toString(),blockTime:migrated.blockTime},
   custody:{buyerTokenAccountClosed:true,authorityTokenBalanceBaseUnits:unpackAccount(authorityAta,authorityTokenAccount,TOKEN_2022_PROGRAM_ID).amount.toString(),
     buyerSolAfterRefund:buyerAccount?.lamports||0},
+  holderSnapshotGate,
   communityClaim:{snapshotApproval:approval.toBase58(),snapshotApprovalExists:!!approvalAccount,
     drop:drop.toBase58(),dropExists:!!dropAccount,rewardVault:rewardVault.toBase58(),
     rewardVaultTokenBalanceBaseUnits:rewardTokenAccount?unpackAccount(rewardAta,rewardTokenAccount,TOKEN_2022_PROGRAM_ID).amount.toString():null,
