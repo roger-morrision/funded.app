@@ -57,3 +57,8 @@ do not prove Linux power-loss durability, external backup restoration or complet
 on-chain recovery. Existing directory-fsync/backup and realistic-scale gates remain
 open. No schema, entitlement, receipt verification, signing/admission/cap or financial
 policy was changed; live services and Contract9713/3f8/Loader quote are unchanged.
+
+The subsequent [Linux namespace fence](reward-store-directory-durability.md)
+adds directory/ancestor sync after cleanup before a successful transaction return,
+including no-ops. The byte-identical data-publication reduction remains in force;
+directory flush cost and Windows capability are recorded separately.

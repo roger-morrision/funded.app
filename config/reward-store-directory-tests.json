@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "scope": "Required actual-Linux directory durability boundaries; synthetic signed attempt, not live chain or host power-loss acceptance",
+  "files": [{
+    "path": "tests/readiness/reward-directory-fence.test.mjs",
+    "requiredTests": [
+      "Linux directory durability: nested bootstrap fences leaf and ancestor names before returning",
+      "Linux directory durability: byte-identical return retains inode but fences directory metadata",
+      "Linux directory durability: version migration fences published state",
+      "Linux directory durability: post-rename fence failure leaves visible immutable state but suppresses the dependent action",
+      "Linux directory durability: directory-open errors are not silently swallowed",
+      "Linux directory durability: directory-close errors are not silently swallowed",
+      "Linux directory durability: primary mutation and durability failures preserve both errors and status",
+      "Linux directory durability: write sync close and directory failures retain every cause",
+      "Linux directory durability: lock-close failure retains its marker while reporting the failure",
+      "Linux directory durability: post-rename signed-wire failure cannot broadcast or replace its saved attempt"
+    ]
+  }]
+}

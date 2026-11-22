@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T22:34:49.555003+00:00",
+  "issueIds": [
+    "FQA-MN-001",
+    "FQA-MN-006"
+  ],
+  "baseRevision": "09022a66599b8a8cd8b14c17ff0dc400172c07bf",
+  "scope": "Linux directory/same-filesystem ancestor commit fence; actual filesystem/fault tests plus synthetic payout persistence. Not host-powerloss or production financial restore acceptance.",
+  "implementation": {
+    "runtimePaths": [
+      "server/automatic-reward-store.mjs",
+      "server/reward-store-durability.mjs"
+    ],
+    "fence": "After publication and temp/lock cleanup, before successful transaction promise resolution, including no-op. Resolve real path and sync same-device directory ancestry through filesystem root or mounted-device boundary.",
+    "preconditions": "Provisioned stable mount/symlink namespace and cooperating filesystem writers. Existing cross-device mount linkage is infrastructure-owned.",
+    "postRenameFailure": "Canonical state may be visible while acknowledgment rejects; invalidate cache, retain original journal and prohibit replacement/re-signing inference.",
+    "errors": "Preserve primary and secondary causes/status fields; failed lock close retains marker.",
+    "windows": "Legacy file sync retained, directory-descriptor capability unavailable and required Linux gate rejects Windows.",
+    "callerBypass": false
+  },
+  "tests": {
+    "linuxRequired": 10,
+    "linuxPassed": 10,
+    "linuxFailureSkipTodo": 0,
+    "sameBodiesOnPriorStore": {
+      "passed": 1,
+      "failed": 9,
+      "exit": 1
+    },
+    "originalQaBootstrapProbeSha256": "acc94fa9c251264837114f289454f8b3f2c585b89d8201362e5b6172934f7504",
+    "originalQaProbeOutcome": "all3required leaf/ancestor fences observed before return; unchanged bytes",
+    "existingWindowsAffectedRequiredPassed": 288,
+    "existingLinuxAffectedRequiredPassed": 288,
+    "affectedFailuresSkipsTodo": 0,
+    "windowsDirectoryGate": "expected exit1/unavailable, not a directory-fsync pass",
+    "actualSyntheticSignedJournal": "Directory sync fails after saved canonical replacement; second store retains prepared signature, sends0/latestBlockhash1; recoveryOnly cannot replace"
+  },
+  "checks": {
+    "fullSyntaxFiles": 1184,
+    "additionalCheckedEntrypointSyntax": 1,
+    "currentJavaScriptFiles": 1185,
+    "sourceSizeFiles": 1448,
+    "sourceSizeFailures": [],
+    "diffCheck": "passed"
+  },
+  "gitLfSourceSha256": {
+    "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+    "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+    "tests/readiness/reward-directory-fence-child.mjs": "be34806887b86bf78ead665166a63deb361374db6428344e1f8178258ab02451",
+    "tests/readiness/reward-directory-fence.test.mjs": "0f45f45790f71905abbb415bcc359c433e2961ba3c7f366784bb517822081b57",
+    "scripts/check-reward-store-directory.mjs": "db7467665a8897f2d43a51c3447316635a84df2e354fba370caf0b1a97a9d733",
+    "config/reward-store-directory-tests.json": "26c1df278db49512449a9ea2b47838bbaddb6bbf4c033cf9726748624b684279",
+    "docs/reward-store-directory-durability.md": "605542b3c170fabc9ba617cfbccb63f787797378260dc68c3520167ff22b470d",
+    "docs/reward-store-noop.md": "f916abae433d79ca30512e0e5a9e17d93db96a758a283c835ce1640e6b466bd5",
+    "docs/mainnet-production-packet-2026-11-22.md": "743404076a62113eca49e023d9d9675ae5568c231c6a55bfed5266f289613eb8"
+  },
+  "unchangedContextSha256": {
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/reward-payout-recovery.mjs": "8260c04f1b62c96c47c96c583867846129e714fd95a81398fd0e6e1b02ec8a97",
+    "server/reward-recovery-page.mjs": "18d432cbf4552e49c7fc87360d3f781dcb7e9e027e9f2635e87f50e43ae8e540",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-cycle-expiry.mjs": "2ff9382d9e1fe644db25f08eaa5fa96eaf92f72e8b6be0ab494c154b441d7aeb",
+    "server/reward-expiry-attempt.mjs": "472649b62ac1c41be5570e415412e63d8bfa4843f42c5bd1d5acfa9c8e3854fa",
+    "server/token-conversion-journal.mjs": "d115a10c3f7b73572e8fbdbfec5493314c8379d804432e85e837c2458ffc5b84",
+    "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+    "server/community-claim-service.mjs": "2d13336716e71906c9ea87ff1c8829c32057ffe9158c31b96f81412a41b76f80",
+    "server/community-snapshot-archive.mjs": "6340a943dfe993ccfcfd0aac97ddc09a76db47434cfae9b92fffd4b6130643d9",
+    "server/community-bank-layout.mjs": "d53bcc251a4d24acaaff1bc5b841e2ed0a01469581343cc13d581a3c3c7a7ead",
+    "automatic-rewards.js": "185a8c013f600bf871b253c04e3f3c3196f0b78c6cd0c459f8185dde60c0c2d8",
+    "reward-merkle.js": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+    "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+    "server/background-maintenance.mjs": "d65a123b78790a742ac98bb4990ff2a7fe69a9be7b2dca92d57338550bc55523",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc",
+    "compose.resources.yml": "e9325be2199a1672db81a6a0e45923eb00dcc76eacc6311355a0701942b39703"
+  },
+  "unchangedStoreSpans": {
+    "readCacheLockDrainPrefix": "a6d3b68c4b2a2e26e0c4ef3812559cbb98616d27d869eade1b68d47e5f4fcafe",
+    "publicApiQueueTail": "230390547e7a5fe9b69ab2f8e3bae5f9d647f16821adb405b11f328f8d05d0fb"
+  },
+  "frozenCode": {
+    "manifest": "data/qa-evidence/mainnet-production-packet-20261122/directory-fence/checked-snapshot-manifest.json",
+    "files": 820,
+    "tarSha256": "85723cd072406c24bb6d945850360aa0163177618c7aaab529d861b0ec71e0ea",
+    "initialCoreArchiveSha256": "987a058cb67b22e4ac22f7c91fef2e3e98171d779e48c9b5bdd1aca47181afc6",
+    "baselineChangesOnly": "server/automatic-reward-store.mjs replaced with exact09022 bytes; same new test bodies"
+  },
+  "controlledExt4Measurement": {
+    "prior": {
+      "metrics": {
+        "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+        "node": "v24.22.3",
+        "cohorts": 2,
+        "leavesPerCohort": 1001,
+        "fresh": {
+          "publicReads": 0,
+          "transactions": 1,
+          "serializedCandidateBytes": 1892885,
+          "actualLedgerReplacements": 1,
+          "actualLedgerWriteBytes": 1892885,
+          "mutatorInsideLockMs": 28.44595000000004,
+          "transactionElapsedMs": 114.07745599999987,
+          "instrumentationSerializeMs": 5.120149999999967,
+          "elapsedMs": 191.01311599999997
+        },
+        "recovery": {
+          "publicReads": 1,
+          "transactions": 33,
+          "serializedCandidateBytes": 62470800,
+          "actualLedgerReplacements": 2,
+          "actualLedgerWriteBytes": 3786064,
+          "mutatorInsideLockMs": 6.943390000000136,
+          "transactionElapsedMs": 1277.5060289999985,
+          "instrumentationSerializeMs": 545.713861,
+          "elapsedMs": 1302.4614749999998,
+          "interfaceCalls": 32
+        },
+        "maxRssKiB": 131064,
+        "networkCalls": 0,
+        "transactionsSent": 0,
+        "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+      },
+      "observedDirectorySyncCounts": [
+        0
+      ]
+    },
+    "current": {
+      "metrics": {
+        "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+        "node": "v24.22.3",
+        "cohorts": 2,
+        "leavesPerCohort": 1001,
+        "fresh": {
+          "publicReads": 0,
+          "transactions": 1,
+          "serializedCandidateBytes": 1892885,
+          "actualLedgerReplacements": 1,
+          "actualLedgerWriteBytes": 1892885,
+          "mutatorInsideLockMs": 68.68964399999993,
+          "transactionElapsedMs": 111.25595299999986,
+          "instrumentationSerializeMs": 4.572101999999859,
+          "elapsedMs": 188.08390400000008
+        },
+        "recovery": {
+          "publicReads": 1,
+          "transactions": 33,
+          "serializedCandidateBytes": 62470800,
+          "actualLedgerReplacements": 2,
+          "actualLedgerWriteBytes": 3786064,
+          "mutatorInsideLockMs": 6.3110719999988305,
+          "transactionElapsedMs": 1268.5223389999992,
+          "instrumentationSerializeMs": 154.9878269999997,
+          "elapsedMs": 1290.2472329999998,
+          "interfaceCalls": 32
+        },
+        "maxRssKiB": 126324,
+        "networkCalls": 0,
+        "transactionsSent": 0,
+        "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+      },
+      "observedDirectorySyncCounts": [
+        105
+      ]
+    },
+    "interpretation": "Marker-only fixture,32unknown recovery calls/33transactions/two ledger replacements3786064B remain. Directory observer105 includes35total bootstrap+fresh+recovery transactions times3directories. Single elapsed/RSS observations are not speedup/headroom/SLA; observers add overhead. No chain fee savings."
+  },
+  "primaryReference": "https://man7.org/linux/man-pages/man2/fsync.2.html",
+  "rawEvidenceSha256": {
+    "active-resource.json": "e1e07f46d25477cb34d5207f2bae138e4a59988b84a4c1b263efb6e2f837d462",
+    "baseline-resource.json": "6ebba34f078d049102fb8e5fe6e8660e308ce3adedb7e6d5346a4c90343e8526",
+    "baseline-tests.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseline-tests.stdout": "e8bf8134a52e158b5242b5ce1c921ef6b84fe5ab872b1fb6171be7502735a686",
+    "checked-resource.json": "77e2d320f184924db1bf8721583a21e8bd2cb82dfb73d3474d1a3b07bbbeebbd",
+    "checked-snapshot-manifest.json": "c6ad80a36d735b42de63f891114b4bf77eed4baf9d0c55fb0d3b139f1cce71aa",
+    "container-outcomes.json": "01e567ee3c59c01226b646ad27434acefcd2665a0c578ded97c01cd2f10516b3",
+    "count-directory-syncs.mjs": "e449faf88b3cdb15d8c6e1577d0d8176eb03ae8fabfcc3b6de14fa6eabe2e158",
+    "directory-fence-syntax.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "directory-fence-syntax.stdout": "b40c890c9b00d8f731e8443ecbe67eb799466e9a28b02a4a0a67edb06bfc83c2",
+    "directory-fence-windows-288.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "directory-fence-windows-288.stdout": "4db0f5400c3c9fef7fc639ab0a58dfab8bb0e30cf46f508576a05d664fae757f",
+    "directory-fence-windows-capability.stdout": "ef460956357108294f4c5f41c218a6d920a81004972021773d1e409efbc74f58",
+    "directory-fence-windows-unavailable.stderr": "4e9edf0b116ae8a049c40ec3586c2d1e7cc2698703a7845c97f026ef73b2912b",
+    "directory-fence-windows-unavailable.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "gate-resource.json": "ef916c75189f824108cdc3262449c841daafeccdbfa173c3f924e2ce21e4ab9e",
+    "linux-288.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-288.stdout": "4eeadb1e5abeae8017f53e7968d7757847e21e5be9161cfe9b6c83acacb88c34",
+    "linux-checked.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-checked.stdout": "8068832419a1dd1438b6180bf795aed28e6e660b4b507539ee89c2bf7491be13",
+    "linux-tests.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-tests.stdout": "1bda9741fc3ba8d8c2181dcff31ca1f26cd8435ed9948cd78e49f10539d0d58b",
+    "measure-baseline.sh": "b6fbf8c64975c7cf54a64c5ed96e05cbdbccf896669d238aca76eb6cfd6e108a",
+    "measure-current.sh": "e61c91d8bc32a96d2460983a2e1d75a00ebccf88f5763f730eaf714283559491",
+    "metric-baseline.json": "0f474a7af72796e89e5e56eb5df2b88b85731f3badd882895dd9ee1357942e3d",
+    "metric-baseline.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "metric-baseline.stdout": "1bc2dbd5d6e019dff69e3ef0e324880b0f2e28a0ea58f0d0636e4a7c18708e91",
+    "metric-current.json": "78f5ea00068cd42d317c9c6f763dd4f2a281a4237b4b7cb2899188efdde3738a",
+    "metric-current.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "metric-current.stdout": "df64b56c5aab61d96324b0a12e9d3d1477775c43a8aaa47521419a83a4ad1330",
+    "metric-resources.json": "8f5da8711682ea4f182cdb0a31500a2a164509159ceb44e9a3650decdded078c",
+    "original-qa-bootstrap.mjs": "acc94fa9c251264837114f289454f8b3f2c585b89d8201362e5b6172934f7504",
+    "run-baseline.sh": "a7c02e1b0256014043ac8b0a6f717de41c19a0f1252718418fdee646977dc487",
+    "run-checked.sh": "4a5c999329a42aec0515fcd8adb95702bc3388265a2b6124b60f19d5a42358f4",
+    "run-gate.sh": "6cafce7f6a3e0215f3522ab8c55e76de35ae6a60f811b45b1afe00573fc2314b",
+    "run.sh": "f2fa91202e619c0e24565c215179610e97cf4907f0e24d7f1ee29c029b31c483",
+    "snapshot-manifest.json": "49939fd226119c9368be5a87e2af4a486c3d3f274110e97ad647e5a72014c972"
+  },
+  "evidenceDirectory": "data/qa-evidence/mainnet-production-packet-20261122/directory-fence/",
+  "developmentValidationNotes": [
+    "One host cp1252 print failed after raw Linux outputs were saved. Actual inspected container exit0 and retained10pass plus originalQAprobe establish success, not that rendering error.",
+    "An unprivileged parsed-metric artifact write was denied; exact existing raw results were parsed and retained through scoped authorized access. Benchmarks themselves exited0."
+  ],
+  "remaining": [
+    "Independent exact-source directory correction acceptance",
+    "Actual final release persistent mount/backend and permissions binding; no physical powerloss/hardware claim",
+    "Full normal service/HTTP/expiry/raw capture bounds, O(N) serialization and operational financial backup/restore",
+    "Original Nov19 bank/current-program live28, operational roles/runtime admission and final funding packet"
+  ],
+  "financialActions": 0,
+  "networkCallsInTests": 0,
+  "mainnetReady": false
+}

@@ -287,3 +287,10 @@ scheduler components under Linux 0.75 CPU/512 MiB/no-swap, and reopens a
 checksum-bound public snapshot in a fresh process. It excludes live finality,
 full app/automatic worker and production persistent-disk restore acceptance.
 Independent review remains required; the live cap and release NO-GO are unchanged.
+
+The [Linux ledger directory fence](reward-store-directory-durability.md) covers
+publication/cleanup plus same-filesystem ancestor entries before commit return,
+including no-ops and recursive bootstrap. Post-rename failure remains uncertain
+and cannot authorize re-signing or broadcast. This is an API-level durability
+correction; production persistent-disk/power-loss and full release acceptance
+remain separate, with no Contract artifact or financial policy change.

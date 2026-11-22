@@ -2,6 +2,7 @@ import { mkdir, open, readFile, rename, unlink, stat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
+import {fenceRewardLedgerDirectory,rewardStoreFailure} from './reward-store-durability.mjs';
 
 const activeTransactions=new Set();
 const writeQueues=new Map();
@@ -56,25 +57,36 @@ export function createAutomaticRewardStore(path) {
     await mkdir(dirname(path), { recursive: true });
     const lock = await acquireLock();
     const temp = `${path}.${randomUUID()}.tmp`;
+    let result;const errors=[];
     try {
       const {state,encoded:prior}=await readSnapshot();
       if (![1, 2].includes(state.version)) throw new Error('Unsupported ledger version.');
       if (state.version === 1) state.version = 2;
-      const result = await mutator(state);
+      result = await mutator(state);
       // Compare final bytes under the SAME lock. Only an existing, byte-identical
       // ledger can skip publication; bootstrap, migration and every changed proof
       // still serialize, fsync and rename before the transaction returns.
       const encoded=Buffer.from(JSON.stringify(state),'utf8');
-      if(prior!==null&&encoded.equals(prior))return result;
-      const file = await open(temp, 'wx');
-      try { await file.writeFile(encoded); await file.sync(); } finally { await file.close(); }
-      await rename(temp, path);
-      publicRead=null;
-      return result;
-    } finally {
-      try { await unlink(temp).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
-      finally { await lock.close(); await unlink(`${path}.lock`); }
-    }
+      if(prior===null||!encoded.equals(prior)){
+        const file = await open(temp, 'wx'),writeErrors=[];
+        try { await file.writeFile(encoded); await file.sync(); } catch(error){writeErrors.push(error);}
+        try { await file.close(); } catch(error){writeErrors.push(error);}
+        if(writeErrors.length)throw rewardStoreFailure(writeErrors);
+        await rename(temp, path);
+        // Publication can be visible even if the later durability fence fails.
+        publicRead=null;
+      }
+    } catch(error){errors.push(error);}
+    try { await unlink(temp); } catch(error){if(error.code!=='ENOENT')errors.push(error);}
+    let closed=false;try{await lock.close();closed=true;}catch(error){errors.push(error);}
+    // A failed close retains the crash marker for investigation, as before.
+    if(closed)try{await unlink(`${path}.lock`);}catch(error){errors.push(error);}
+    // Include no-ops, cleanup and same-filesystem ancestor creation. The promise
+    // is not a successful commit until this completes; never undo a visible
+    // journal or authorize another financial attempt after a fence failure.
+    try{await fenceRewardLedgerDirectory(dirname(path));}catch(error){errors.push(error);}
+    if(errors.length)throw rewardStoreFailure(errors);
+    return result;
   }
   return {async read(){return structuredClone(await readState());},
   readFinancialSnapshot:()=>project(['version','programs','schedules','rewardPools','dailyBonusSnapshots']),
