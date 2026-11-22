@@ -11,7 +11,7 @@
     "optimization": "z",
     "strip": true,
     "bytes": 1168216,
-    "sha256": "7bbf17a0cb16f6fe00d6fac1c38e050ecc3d2897d9aaa3713db9d7af4df37365",
+    "sha256": "f326026d33e462e3598fa8ece05846cbcb2c95b7da9e2b945858b9b568adf5b2",
     "developerLockPeriodsSeconds": [
       300,
       21600,
@@ -25,7 +25,7 @@
     "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
     "identityScope": "public-test-fixture-only",
     "bytes": 1075328,
-    "sha256": "b619ab3162d476d6cc42f916f06c2c09927942d787c1fef53f0c3756f6284e52",
+    "sha256": "6bfa0414eaf68b6dd3d2c5cda79e0454c0255e2da4ac80c7466f79e2913ce320",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [
