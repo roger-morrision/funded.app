@@ -1595,6 +1595,17 @@
         "observed": "Reported5001andpayoutTransactionVerifiedtrue; one expected-rejection probe fails.",
         "request": "Compare cached verified proof fee and payer to authenticated prepared-attempt fee and signer, preserving unchanged-cache no-RPC idempotence.",
         "owner": "App Dev, same PAYOUT-02 correction; no new queue or financial policy."
+      },
+      "frozenBaselineCacheSupplement": {
+        "source": "969809a0939b033353c757649e933c018a76d407",
+        "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/payout-cached-accounting-supplement-20261123.json",
+        "sha256": "79568d48849a2018ce1aa62457261f97493ee73c3c153c44079180e6e5f14547",
+        "node": "v24.22.3",
+        "controlPassed": 1,
+        "expectedRejectionsFailed": 2,
+        "finding": "Unchanged cached completion passed without RPC. Separately corrupting only feeLamports or feePayer still returned verified.",
+        "probeSha256": "de6b1a3987a266e7f2ac25902540be4be869bf6d1d4076815f80347ec8c4fb82",
+        "scope": "Exact frozen baseline supplement; independent correction retest pending."
       }
     },
     "coveredIndependentVerification": {
