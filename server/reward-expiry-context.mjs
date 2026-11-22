@@ -17,7 +17,7 @@ const sameCycle=(a,b)=>fields.every(field=>String(a[field])===String(b[field]));
 
 // The saved cycle, not the successor's key, selects the historical namespace.
 // This constructs no transaction signature and cannot admit a program release.
-export async function readRewardExpiryContext({connection,programId,currentAuthority,plan,cluster,release=reviewedMainnetManifest()}){
+export async function readRewardExpiryContext({connection,programId,currentAuthority,plan,cluster,release=reviewedMainnetManifest(),readOnlyRecovery=false}){
   plan=structuredClone(plan);requireSolanaCluster(cluster);
   const approved=cluster==='mainnet-beta'?reviewedMainnetManifest(release):null;
   assert(cluster!=='mainnet-beta'||approved?.programId===String(programId),'Reviewed expiry program required.');
@@ -53,7 +53,7 @@ export async function readRewardExpiryContext({connection,programId,currentAutho
   assert(owned(reserveInfo,program)&&liability?.vault===String(vault)&&liability.asset===String(asset)&&liability.bump===reserveBump,'Historical reserve identity differs.');
   assert(owned(routerInfo,program)&&routerInfo.data.length===routerHeaderLength(cluster)&&routerInfo.data.subarray(0,8).toString()==='FUNDFEE1'
     &&routerInfo.data.subarray(41,73).equals(operator.toBuffer()),'Current expiry operator/router differs.');
-  if(cluster==='mainnet-beta')assert(parseProtocolGuard(routerInfo.data)?.paused===false,'Reward expiry is paused.');
+  if(cluster==='mainnet-beta')assert(parseProtocolGuard(routerInfo.data)?.paused===false||readOnlyRecovery===true,'Reward expiry is paused.');
   const unpaid=BigInt(record.totalAmount)-BigInt(record.distributedAmount);
   assert(unpaid>=0n&&(!record.reserved||BigInt(liability.outstanding)>=unpaid),'Invalid unpaid reward liability.');
   const time=await connection.getBlockTime(contextSlot),grace=cluster==='devnet'?600:30*24*60*60;

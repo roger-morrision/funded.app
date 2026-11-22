@@ -1,0 +1,34 @@
+import {createHash} from 'node:crypto';
+import {PublicKey} from '@solana/web3.js';
+import {buildRewardManifest,SOL_ASSET_MINT} from '../../reward-merkle.js';
+import {deriveRouterHeader} from '../../protocol-guard.js';
+import {rewardAddresses,rewardReserveAddress} from '../../server/automatic-reward-chain.mjs';
+import {sellReviewFixture} from './token-sell-review-fixture.mjs';
+const key=n=>new PublicKey(new Uint8Array(32).fill(n));
+const disc=name=>createHash('sha256').update('account:'+name).digest().subarray(0,8);
+export function rewardExpiryFixture(asset='SOL'){
+  const f=sellReviewFixture(),program=f.expected.programId,mint=f.expected.mint,original=key(77),operator=f.expected.authority;
+  const cycleId=Buffer.alloc(32,88).toString('hex'),manifest=buildRewardManifest({cycleId,asset,allocations:[{recipient:String(key(71)),amount:'300'}]});
+  const {vault,cycle}=rewardAddresses({programId:program,authority:original,mint,cycleId}),assetKey=new PublicKey(asset==='SOL'?SOL_ASSET_MINT:asset);
+  const reserve=rewardReserveAddress({programId:program,vault,asset}),router=deriveRouterHeader(program);
+  f.plan={id:'historical-expiry-fixture',cluster:'mainnet-beta',cycle:String(cycle),mint:String(mint),asset,manifest,cutoffAt:100000,payoutAt:200000};
+  const cycleBytes=Buffer.alloc(174);disc('RewardCycle').copy(cycleBytes);vault.toBuffer().copy(cycleBytes,8);Buffer.from(cycleId,'hex').copy(cycleBytes,40);
+  Buffer.from(manifest.root,'hex').copy(cycleBytes,72);assetKey.toBuffer().copy(cycleBytes,104);cycleBytes.writeBigUInt64LE(300n,136);cycleBytes.writeBigUInt64LE(100n,144);
+  cycleBytes.writeBigInt64LE(100000n,152);cycleBytes.writeBigInt64LE(200000n,160);cycleBytes.writeUInt32LE(1,168);
+  cycleBytes[172]=PublicKey.findProgramAddressSync([Buffer.from('reward-cycle-v1'),vault.toBuffer(),Buffer.from(cycleId,'hex')],program)[1];cycleBytes[173]=1;
+  const vaultBytes=Buffer.alloc(73);disc('RewardVault').copy(vaultBytes);original.toBuffer().copy(vaultBytes,8);mint.toBuffer().copy(vaultBytes,40);
+  vaultBytes[72]=PublicKey.findProgramAddressSync([Buffer.from('reward-vault-v1'),original.toBuffer(),mint.toBuffer()],program)[1];
+  const reserveBytes=Buffer.alloc(81);disc('RewardReserve').copy(reserveBytes);vault.toBuffer().copy(reserveBytes,8);assetKey.toBuffer().copy(reserveBytes,40);reserveBytes.writeBigUInt64LE(241n,72);
+  reserveBytes[80]=PublicKey.findProgramAddressSync([Buffer.from('reward-reserve-v1'),vault.toBuffer(),assetKey.toBuffer()],program)[1];
+  const routerBytes=Buffer.alloc(131);Buffer.from('FUNDFEE1').copy(routerBytes);operator.toBuffer().copy(routerBytes,41);key(60).toBuffer().copy(routerBytes,74);
+  f.rows=new Map([[String(cycle),cycleBytes],[String(vault),vaultBytes],[String(reserve),reserveBytes],[String(router),routerBytes]].map(([address,data])=>[address,{owner:program,executable:false,data,lamports:1000}]));
+  f.original=original;f.operator=operator;f.program=program;f.vault=vault;f.cycle=cycle;f.reserve=reserve;f.router=router;
+  f.time=200000+30*24*60*60;f.slot=f.market.slot;
+  const contextual=f.connection.getAccountInfoAndContext;
+  f.connection.getAccountInfoAndContext=async(address,options)=>f.rows.has(String(address))?{context:{slot:f.slot},value:f.rows.get(String(address))}:contextual(address,options);
+  f.connection.getMultipleAccountsInfoAndContext=async addresses=>({context:{slot:f.slot},value:addresses.map(a=>f.rows.get(String(a))||null)});
+  f.connection.getBlockTime=async()=>f.time;
+  f.args=()=>({connection:f.connection,programId:program,currentAuthority:operator,plan:f.plan,cluster:'mainnet-beta',release:f.release});
+  f.expire=()=>{f.rows.get(String(cycle)).data[173]=0;f.rows.get(String(reserve)).data.writeBigUInt64LE(41n,72);};
+  return f;
+}

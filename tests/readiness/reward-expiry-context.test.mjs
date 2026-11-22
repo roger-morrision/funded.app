@@ -1,43 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
-import {PublicKey,Keypair,Transaction} from '@solana/web3.js';
-import bs58 from 'bs58';
-import {buildRewardManifest,SOL_ASSET_MINT} from '../../reward-merkle.js';
-import {deriveRouterHeader} from '../../protocol-guard.js';
-import {rewardAddresses,rewardReserveAddress,createAutomaticRewardChain} from '../../server/automatic-reward-chain.mjs';
-import {SOLANA_GENESIS} from '../../solana-network.js';
+import {PublicKey} from '@solana/web3.js';
+import {rewardAddresses} from '../../server/automatic-reward-chain.mjs';
 import {readRewardExpiryContext,verifyRewardExpiryTransition} from '../../server/reward-expiry-context.mjs';
-import {sellReviewFixture} from './token-sell-review-fixture.mjs';
+import {rewardExpiryFixture as fixture} from './reward-expiry-fixture.mjs';
+import {expiryExecutionFixture,expiryExecutionStore} from './reward-expiry-execution-fixture.mjs';
 
 const key=n=>new PublicKey(new Uint8Array(32).fill(n));
-const disc=name=>createHash('sha256').update('account:'+name).digest().subarray(0,8);
-function fixture(asset='SOL'){
-  const f=sellReviewFixture(),program=f.expected.programId,mint=f.expected.mint,original=key(77),operator=f.expected.authority;
-  const cycleId=Buffer.alloc(32,88).toString('hex'),manifest=buildRewardManifest({cycleId,asset,allocations:[{recipient:String(key(71)),amount:'300'}]});
-  const {vault,cycle}=rewardAddresses({programId:program,authority:original,mint,cycleId}),assetKey=new PublicKey(asset==='SOL'?SOL_ASSET_MINT:asset);
-  const reserve=rewardReserveAddress({programId:program,vault,asset}),router=deriveRouterHeader(program);
-  f.plan={cluster:'mainnet-beta',cycle:String(cycle),mint:String(mint),asset,manifest,cutoffAt:100000,payoutAt:200000};
-  const cycleBytes=Buffer.alloc(174);disc('RewardCycle').copy(cycleBytes);vault.toBuffer().copy(cycleBytes,8);Buffer.from(cycleId,'hex').copy(cycleBytes,40);
-  Buffer.from(manifest.root,'hex').copy(cycleBytes,72);assetKey.toBuffer().copy(cycleBytes,104);cycleBytes.writeBigUInt64LE(300n,136);cycleBytes.writeBigUInt64LE(100n,144);
-  cycleBytes.writeBigInt64LE(100000n,152);cycleBytes.writeBigInt64LE(200000n,160);cycleBytes.writeUInt32LE(1,168);
-  cycleBytes[172]=PublicKey.findProgramAddressSync([Buffer.from('reward-cycle-v1'),vault.toBuffer(),Buffer.from(cycleId,'hex')],program)[1];cycleBytes[173]=1;
-  const vaultBytes=Buffer.alloc(73);disc('RewardVault').copy(vaultBytes);original.toBuffer().copy(vaultBytes,8);mint.toBuffer().copy(vaultBytes,40);
-  vaultBytes[72]=PublicKey.findProgramAddressSync([Buffer.from('reward-vault-v1'),original.toBuffer(),mint.toBuffer()],program)[1];
-  const reserveBytes=Buffer.alloc(81);disc('RewardReserve').copy(reserveBytes);vault.toBuffer().copy(reserveBytes,8);assetKey.toBuffer().copy(reserveBytes,40);reserveBytes.writeBigUInt64LE(241n,72);
-  reserveBytes[80]=PublicKey.findProgramAddressSync([Buffer.from('reward-reserve-v1'),vault.toBuffer(),assetKey.toBuffer()],program)[1];
-  const routerBytes=Buffer.alloc(131);Buffer.from('FUNDFEE1').copy(routerBytes);operator.toBuffer().copy(routerBytes,41);key(60).toBuffer().copy(routerBytes,74);
-  f.rows=new Map([[String(cycle),cycleBytes],[String(vault),vaultBytes],[String(reserve),reserveBytes],[String(router),routerBytes]].map(([address,data])=>[address,{owner:program,executable:false,data,lamports:1000}]));
-  f.original=original;f.operator=operator;f.program=program;f.vault=vault;f.cycle=cycle;f.reserve=reserve;f.router=router;
-  f.time=200000+30*24*60*60;f.slot=f.market.slot;
-  const contextual=f.connection.getAccountInfoAndContext;
-  f.connection.getAccountInfoAndContext=async(address,options)=>f.rows.has(String(address))?{context:{slot:f.slot},value:f.rows.get(String(address))}:contextual(address,options);
-  f.connection.getMultipleAccountsInfoAndContext=async addresses=>({context:{slot:f.slot},value:addresses.map(a=>f.rows.get(String(a))||null)});
-  f.connection.getBlockTime=async()=>f.time;
-  f.args=()=>({connection:f.connection,programId:program,currentAuthority:operator,plan:f.plan,cluster:'mainnet-beta',release:f.release});
-  f.expire=()=>{f.rows.get(String(cycle)).data[173]=0;f.rows.get(String(reserve)).data.writeBigUInt64LE(41n,72);};
-  return f;
-}
 
 for(const asset of ['SOL','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'])test('historical expiry authenticates original namespace and current signer for '+asset,async()=>{
   const f=fixture(asset),before=await readRewardExpiryContext(f.args()),ix=before.instruction;
@@ -115,21 +84,9 @@ test('expiry verification rejects wrong release, changed custody, paid amount an
   }
 });
 
-test('mocked Devnet adapter expires the saved original cycle using the successor signature',async()=>{
-  const f=fixture();f.plan.cluster='devnet';f.rows.get(String(f.router)).data=Buffer.from(f.rows.get(String(f.router)).data.subarray(0,74));
-  const read=f.connection.getAccountInfo;
-  f.connection.getAccountInfo=async(address,...options)=>f.rows.has(String(address))?f.rows.get(String(address)):read(address,...options);
-  f.connection.getGenesisHash=async()=>SOLANA_GENESIS.devnet;
-  f.connection.getLatestBlockhash=async()=>({blockhash:String(key(91)),lastValidBlockHeight:999999});
-  let submitted=0;
-  f.connection.sendRawTransaction=async wire=>{
-    const signed=Transaction.from(wire);assert.ok(signed.verifySignatures());assert.equal(String(signed.signatures[0].publicKey),String(f.operator));
-    assert.equal(String(signed.instructions[0].keys[1].pubkey),String(f.vault));assert.equal(String(signed.instructions[0].keys[3].pubkey),String(f.cycle));
-    submitted++;f.expire();return bs58.encode(signed.signature);
-  };
-  f.connection.getSignatureStatuses=async()=>({context:{slot:f.slot},value:[{slot:f.slot,err:null,confirmationStatus:'finalized'}]});
-  const chain=createAutomaticRewardChain({connection:f.connection,programId:f.program,authority:Keypair.fromSeed(new Uint8Array(32).fill(33)),
-    cluster:'devnet',expectedProgramDataSha256:f.release.programDataSha256});
-  const result=await chain.expireCycle(f.plan);assert.equal(result.unpaidAmount,'200');assert.equal(submitted,1);
-  assert.equal((await chain.expireCycle(f.plan)).alreadyExpired,true);assert.equal(submitted,1);
+test('mocked Devnet adapter attributes the saved original cycle to the successor signature',async t=>{
+  const f=expiryExecutionFixture(),{store}=await expiryExecutionStore(t,f),chain=f.chain();
+  const result=await chain.expireCycle(f.plan,{store});assert.equal(result.unpaidAmount,'200');assert.equal(f.submitted,1);
+  assert.equal(result.expiryTransactionVerified,true);
+  const recovered=await f.chain().expireCycle(f.plan,{store});assert.equal(recovered.signature,result.signature);assert.equal(f.submitted,1);
 });

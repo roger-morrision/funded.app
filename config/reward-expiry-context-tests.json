@@ -16,7 +16,7 @@
         "equal cutoff and payout admit exact grace but reject reversed times for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
         "stale reads, unknown cycle layout and invalid unpaid liabilities remain unresolved",
         "expiry verification rejects wrong release, changed custody, paid amount and unrelated reserve fields",
-        "mocked Devnet adapter expires the saved original cycle using the successor signature"
+        "mocked Devnet adapter attributes the saved original cycle to the successor signature"
       ]
     }
   ]

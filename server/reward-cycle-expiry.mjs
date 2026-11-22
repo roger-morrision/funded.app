@@ -25,7 +25,9 @@ export async function expireUnpayableCycles({ store, chain, now, selected = null
   let expired = 0;
   for (const row of rows) {
     try {
-      const result = await chain.expireCycle(row);
+      const result = await chain.expireCycle(row,{store});
+      if(result?.expired!==true||result.expiryTransactionVerified!==true)
+        throw new Error('Expiry needs attributed finalized transaction reconciliation; no new attempt authorized.');
       await store.transaction(state => Object.assign(state.schedules[row.id], { status:'expired',
         reason:'Unpayable cycle liability released; funds remain in the original vault and need custody reconciliation before reuse.',
         expiryVault:result.vault || null, expiryOriginalAuthority:result.originalAuthority || null,

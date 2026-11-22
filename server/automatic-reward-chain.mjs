@@ -25,7 +25,7 @@ import {financialProgramAllowed,financialRecordNetwork} from './financial-networ
 import { signTransaction } from './transaction-signing.mjs';
 import { createRewardBatchSubmitter } from './reward-batch.mjs';
 import {parseProtocolGuard,rewardReviewDelaySeconds,routerHeaderLength} from '../protocol-guard.js';
-import {readRewardExpiryContext,verifyRewardExpiryTransition} from './reward-expiry-context.mjs';
+import {executeRewardExpiry} from './reward-expiry-journal.mjs';
 export {readProgramDataEvidence};
 
 // Solana may be reset. Keep this value aligned with the current official
@@ -84,7 +84,7 @@ export function communityProgramReserveAddress({ programId, authority }) {
 }
 
 export async function finalizedSend(connection, transaction, signers, { pollMs = 1000, timeoutMs = 90_000,
-  cluster = 'devnet', programId, expectedProgramDataSha256 } = {}) {
+  cluster = 'devnet', programId, expectedProgramDataSha256, beforeBroadcast } = {}) {
   if (!Array.isArray(signers) || !signers.length) throw new Error('A reward transaction signer is required.');
   if (!financialProgramAllowed(cluster,programId,expectedProgramDataSha256)) throw new Error('Reward program has no reviewed release for this network.');
   await assertRpcNetwork(connection,cluster);
@@ -98,8 +98,10 @@ export async function finalizedSend(connection, transaction, signers, { pollMs =
     recentBlockhash:latest.blockhash }).add(...transaction.instructions);
   await signTransaction(fresh, signers);
   const signature = bs58.encode(fresh.signature);
+  const wire=fresh.serialize();
+  if(beforeBroadcast)await beforeBroadcast({signature,transactionBase64:wire.toString('base64'),blockhash:latest.blockhash,lastValidBlockHeight:latest.lastValidBlockHeight});
   try {
-    const submitted = await connection.sendRawTransaction(fresh.serialize(), {
+    const submitted = await connection.sendRawTransaction(wire, {
       skipPreflight:false, preflightCommitment:'confirmed', maxRetries:2 });
     if (submitted !== signature) throw new Error('RPC returned a different reward transaction signature.');
   } catch (error) {
@@ -174,9 +176,9 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
     const ready = await readiness();
     if (!ready.constrainedPayouts) throw new Error(`Reward chain unavailable: ${ready.reasons.join(', ')}`);
   }
-  async function send(transaction) {
+  async function send(transaction,options={}) {
     await requireReady();
-    return finalizedSend(connection,transaction,[authority],{cluster,programId:program.toBase58(),expectedProgramDataSha256});
+    return finalizedSend(connection,transaction,[authority],{cluster,programId:program.toBase58(),expectedProgramDataSha256,...options});
   }
 
   async function ensureVault(mint) {
@@ -442,14 +444,9 @@ export function createAutomaticRewardChain({ connection, programId, authority, e
 
   // Release the unpaid part of a reserved cycle that can never be fully paid.
   // Tokens stay in the vault; the program rejects every later payout of the cycle.
-  async function expireCycle(plan) {
-    await requireReady(plan);
-    const context=()=>readRewardExpiryContext({connection,programId:program,currentAuthority:authority.publicKey,plan,cluster});
-    const before=await context();
-    if(!before.record.reserved)return {address:before.cycle,vault:before.vault,originalAuthority:before.originalAuthority,expired:true,alreadyExpired:true,unpaidAmount:null};
-    const signature=await send(new Transaction().add(before.instruction));
-    const after=await context();
-    return {...verifyRewardExpiryTransition(before,after),signature};
+  async function expireCycle(plan,{store}={}) {
+    return executeRewardExpiry({store,plan,connection,programId:program,currentAuthority:authority.publicKey,
+      cluster,expectedProgramDataSha256,send,requireReady});
   }
 
   const submitLeaves = createRewardBatchSubmitter({ cluster, connection, authority, requireReady,

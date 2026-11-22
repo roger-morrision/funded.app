@@ -144,8 +144,13 @@ before any future broadcast; unknown attempts cannot be replaced blindly.
 The [historical expiry source candidate](historical-reward-expiry-2026-11-22.md)
 now binds original vault/cycle/reserve while the current operator signs. Twelve local
 cases pass, including the adapter regression that fails on preceding App source.
-Independent review, durable expiry-attempt recovery and historical payout/cleanup
-binding remain open; this is not operational financial acceptance.
+This construction/equality slice is independently accepted at `2ca05602`.
+The [durable expiry recovery candidate](reward-expiry-recovery-2026-11-22.md)
+now persists signed messages before submission and attributes exact finalized
+transactions before completion. Twenty-nine focused local cases pass, including
+three original regressions on prior source. Independent review of this new
+transport, historical payout/cleanup binding and live financial acceptance remain
+open. Inactive state alone cannot close a saved attempt or permit a fresh signature.
 
 ## Custody, infrastructure and execution packet
 

@@ -44,13 +44,13 @@ manifest, owner/seeds, old signer, pause/grace, stale state and incorrect releas
 custody deltas are covered. Four changed JS syntax checks and 1,405 source-size
 checks pass. Original failing output is retained alongside the passing inventory.
 
-This addresses the construction/state delta candidate only. Existing expiry
-transport still needs durable signed-attempt persistence and exact archived
-transaction reconciliation before unknown submissions can be safely retried.
-Status plus state reads do not close that remaining task. Historical payout and
-receipt-cleanup paths also still derive current-authority addresses. Mainnet
-admission remains disabled; retain old custody, entitlement and proof records.
-Independent source review and parent MN003/MN005/full release gates remain open.
+This addresses construction/state delta only, independently accepted at 2ca05602.
+The subsequent [recovery candidate](reward-expiry-recovery-2026-11-22.md) adds
+durable signed-attempt persistence and exact transaction attribution; its separate
+local tests do not close live financial acceptance or authorize unknown retries.
+Historical payout/receipt-cleanup paths remain open. Mainnet admission remains
+disabled; retain old custody, entitlement and proof records. Parent MN003/MN005
+and full release gates remain open.
 
 FQA-MN-005-EXPIRY-01 correction after Contract/E2E review: creation permits payout equal to
 cutoff. App admission now uses `payoutAt >= cutoffAt`, preserving the separate

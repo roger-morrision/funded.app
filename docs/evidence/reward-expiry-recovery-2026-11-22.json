@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T16:47:31.947263+00:00",
+  "baseRevision": "2ca05602422121eb6695ffbca9b846365988e3ec",
+  "issueIds": [
+    "FQA-MN-005",
+    "FQA-MN-003"
+  ],
+  "scope": "Local-only actual runtime signed expiry persistence and exact finalized attribution using synthetic financial RPC and ephemeral in-memory keys; no release admission or live financial result",
+  "node": "v24.22.3",
+  "required": 29,
+  "requiredPassed": 29,
+  "counts": {
+    "tests": 29,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "baseline": {
+    "sourceRevision": "2ca05602422121eb6695ffbca9b846365988e3ec",
+    "chainGitSha256": "b723f853733f5e61467673b212fed1992dad427efefffe5697c6017dd8813210",
+    "failedCases": 3,
+    "testChanges": "Only exact chain/test fixture import prefixes redirected; no verifier stubs",
+    "failures": [
+      "unknown attempt refreshed blockhash and resubmitted",
+      "inactive cycle accepted without attributed attempt",
+      "durable store write failure did not prevent submission"
+    ]
+  },
+  "negativeGate": {
+    "input": "missing current public ELF",
+    "exit": 1,
+    "requiredPassed": 0,
+    "required": 29
+  },
+  "checks": {
+    "syntaxFiles": 1147,
+    "subsequentChangedFilesSyntax": 4,
+    "maintainedSizeFiles": 1410,
+    "gitDiffCheck": "passed"
+  },
+  "unchanged": {
+    "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "elfBytes": 1110424,
+    "sourceOnlyNoQuoteRefresh": true,
+    "mainnetAdmission": "disabled",
+    "spending": "none"
+  },
+  "sourceSha256Lf": {
+    "config/reward-expiry-context-tests.json": "a61a8261771c54c68e1947f86e9eaf7bc99b3516f02ade31e0d8b1c5f2c48d15",
+    "config/reward-expiry-recovery-tests.json": "157c04182cfffd9c53313b4099bf888c4a31e2af0b62459cdee74563bf938d57",
+    "server/automatic-reward-chain.mjs": "6fde3258238f53f54203d09af0276439246f1fb70d49184bf0d247a6e1bc5ba9",
+    "server/reward-cycle-expiry.mjs": "34b49aef18090a27578c4ccb4bb03a83738878fb712706dc01979119ef499f79",
+    "server/reward-expiry-context.mjs": "e83a7e9b2523e4e873e2da59817d40f7568ff7eab0896ba2ff15d223df0f7820",
+    "server/reward-expiry-attempt.mjs": "1f18918becd69f88e34eda3abab8e89b76330e903af31efd089d1f595bb73d73",
+    "server/reward-expiry-journal.mjs": "ea6ef58404ba38c80b8b2f3d27b2a03504b37463b35f10969fbcb4ba96a827a5",
+    "tests/readiness/reward-expiry-context.test.mjs": "c5c11f0b0e0dd3ba9edd9f8cf5e0baae082fffa684c00ef91243d6bb6b815f69",
+    "tests/readiness/reward-expiry-fixture.mjs": "743d14035ef449687fa808c6dd4f80bf6090813f217b83b19489a3c1cbbee3f8",
+    "tests/readiness/reward-expiry-execution-fixture.mjs": "a09a013a35e0d6320b767075372f569deff4468420404709d7aec399cff17fe3",
+    "tests/readiness/reward-expiry-journal.test.mjs": "1ba5188c8a5a985f5b90623a10043dceee20abd2d081f371a3c042dccbb49122",
+    "docs/reward-expiry-recovery-2026-11-22.md": "cbad5c5f3c20b33bd5353c34bf65dfa51618d9e6ffba642864befcf7ee424895",
+    "docs/historical-reward-expiry-2026-11-22.md": "908e67e7060189a4dcb02000c91648bc2571cdd3d2174d0444f4f355b026f2f5",
+    "docs/mainnet-production-packet-2026-11-22.md": "f446e70cfec79ed9d653c714428b177e2fe40d6263739d21640e8a80aa139d68"
+  },
+  "evidenceSha256": {
+    "2ca-chain.mjs": "b723f853733f5e61467673b212fed1992dad427efefffe5697c6017dd8813210",
+    "baseline-execution-fixture.mjs": "6d7c63bc31393b184a1b6b4f77718fc34fd0fc28d67eb68dcaa6b935332707fc",
+    "baseline-regressions.test.mjs": "476cc2797bcf912b8012f896bc4d82730d3c9e0dd702b8a6b68208312ca24eb6",
+    "baseline-three-failures.txt": "bdf28d8293e26e8f2248dbbe5184b10a22b0dbb7aa428b2ae5d2313843020711",
+    "first-adapter-result.txt": "23c749a72d21bce7c96482d42a630cbfa0ba54a7447a6b53ee55981815c76a45",
+    "missing-elf.json": "3250e305da052fd0f4c4d5db8af59d3717117c6c719ce9cbcef88d8e903eb18b",
+    "result.json": "cfb5fa51ac03d7824a22f6d432632b1c2883d13bf976fb3a462dd8afb1c9f355",
+    "source-check.txt": "195a18dac786ff9e2015e26ba1f26f4435e8c3e7271fd47b87cc83567f9efb8d"
+  },
+  "openDependencies": [
+    "independent exact-source recovery review",
+    "failed/expired attempt replacement requires explicit reviewed policy; no automatic clearing",
+    "historical payout/cleanup binding",
+    "authenticated original bank and full replay inputs",
+    "current-program financial/live28 and holder-scale acceptance",
+    "operational/price/guardian custody and final wallet-specific release quote/approval"
+  ]
+}
