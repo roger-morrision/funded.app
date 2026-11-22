@@ -296,3 +296,9 @@ The administrative cap is denominated in **SOL** and applies to operations withd
 Token payouts obey pause and immutable per-cycle liabilities, but the global SOL cap does not cap raw token units. Token valuation/per-asset risk limits require a separate policy decision and review. Community snapshots require owner authorization; developer escrow release and user entitlement claims retain their separate custody rules. A global worker pause is not a promise to freeze every user-owned asset.
 
 The retained upgrade authority can replace the code. Operational controls, guardian monitoring, independent price signing and recovery rehearsals remain part of the security model. No Mainnet signing, deployment, funding or runtime activation occurred during this review.
+
+## Earned referrals after the administrative cap
+
+Test-only revision 5ec9eeb6 verifies the retained 971399ff production ELF without changing runtime bytes. A local compiled settlement funded operations and each of the three referral categories. After an operations payment exhausted the configured administrative cap, every earned referral paid its approved amount with the canonical header read-only and the cap window unchanged. Changed recipients and replay rejected with tracked account bytes unchanged. The creator vault remained intact. The focused test passed once against the current 3f8aaffc production ELF.
+
+This is Contract-owner LiteSVM acceptance with synthetic accounts. Independent E2E replay is pending. Existing pause and liability coverage remains separately scoped. Production custody, live acceptance and final funding remain open. The exact command and raw-output hash are in the [handoff evidence](evidence/production-contract-handoff-2026-11-22.json).
