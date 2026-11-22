@@ -41,18 +41,28 @@ fn reward_leaf(cycle_id: [u8; 32], recipient: Pubkey, asset: Pubkey, amount: u64
 // standing in for an owner that cannot hold a token account).
 #[test]
 fn bitmap_token_cycle_releases_unpaid_liability_and_rejects_late_payment() {
+    verify_bitmap_expiry(false);
+}
+
+#[test]
+fn successor_expires_original_bitmap_cycle_without_moving_tokens() {
+    verify_bitmap_expiry(true);
+}
+
+fn verify_bitmap_expiry(rotate: bool) {
     let program_id = funded_fee_router::id();
     let mut svm = LiteSVM::new();
     svm.add_program(program_id, &support::program_bytes()).unwrap();
     set_time(&mut svm, 1_800_000_000);
     let protocol = Keypair::new();
-    let program_data = support::set_upgrade_owner(&mut svm, program_id, protocol.pubkey());
+    let owner = Keypair::new();
+    let program_data = support::set_upgrade_owner(&mut svm, program_id, owner.pubkey());
     svm.airdrop(&protocol.pubkey(), 1_000_000_000).unwrap();
     let (legacy_router, _) = Pubkey::find_program_address(&[b"funded-fee-router-v1"], &program_id);
     let init_router = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::Initialize {}.data(),
-        funded_fee_router::accounts::Initialize { authority:protocol.pubkey(), app_owner:protocol.pubkey(), router:legacy_router,
+        funded_fee_router::accounts::Initialize { authority:protocol.pubkey(), app_owner:owner.pubkey(), router:legacy_router,
             program:program_id, program_data, system_program:anchor_lang::system_program::ID }.to_account_metas(None));
-    assert!(send(&mut svm, &protocol, &[&protocol], &[init_router]));
+    assert!(send(&mut svm, &protocol, &[&protocol,&owner], &[init_router]));
 
     let coin = Keypair::new();
     let asset = Keypair::new();
@@ -103,22 +113,50 @@ fn bitmap_token_cycle_releases_unpaid_liability_and_rejects_late_payment() {
     assert!(send(&mut svm, &protocol, &[&protocol], &[holder_ata, payout]));
     assert_eq!(outstanding(&svm, reserve), 40);
 
+    let successor = Keypair::new();
+    let current = if rotate {
+        svm.airdrop(&successor.pubkey(),10_000_000).unwrap();
+        let rotate_ix = Instruction::new_with_bytes(program_id,&funded_fee_router::instruction::RotateAuthority{}.data(),
+            funded_fee_router::accounts::RotateAuthority{old_authority:protocol.pubkey(),new_authority:successor.pubkey(),
+                app_owner:owner.pubkey(),legacy_router,program:program_id,program_data}.to_account_metas(None));
+        assert!(send(&mut svm,&protocol,&[&protocol,&successor,&owner],&[rotate_ix]));
+        &successor
+    } else { &protocol };
     let expire = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::ExpireBitmapCycle {}.data(),
-        funded_fee_router::accounts::ExpireBitmapCycle { authority:protocol.pubkey(), vault, reserve, cycle, legacy_router }.to_account_metas(None));
-    // Before the grace period ends the commitment cannot be released.
-    assert!(!send(&mut svm, &protocol, &[&protocol], &[expire.clone()]));
-    set_time(&mut svm, now + funded_fee_router::REWARD_CYCLE_EXPIRY_GRACE_SECONDS);
-    // Only the current router authority may expire a cycle.
-    let attacker = Keypair::new();
-    svm.airdrop(&attacker.pubkey(), 10_000_000).unwrap();
-    let mut forged = expire.clone();
-    forged.accounts[0].pubkey = attacker.pubkey();
-    assert!(!send(&mut svm, &attacker, &[&attacker], &[forged]));
-    assert!(send(&mut svm, &protocol, &[&protocol], &[expire.clone()]));
-    assert_eq!(outstanding(&svm, reserve), 0, "only the unpaid 40 is released");
-    assert_eq!(token_amount(&svm, vault_token), 40, "tokens stay in the vault");
-    // A second expiry fails, and so does any later payout of the expired cycle.
-    assert!(!send(&mut svm, &protocol, &[&protocol], &[expire]));
+        funded_fee_router::accounts::ExpireBitmapCycle { authority:current.pubkey(), vault, reserve, cycle, legacy_router }.to_account_metas(None));
+    let snapshot = |svm:&LiteSVM| [cycle,reserve,vault,vault_token,holder_token].map(|address|svm.get_account(&address).unwrap());
+    let before = snapshot(&svm);
+    let deadline = now + funded_fee_router::REWARD_CYCLE_EXPIRY_GRACE_SECONDS;
+    set_time(&mut svm,deadline-1);
+    assert!(!send(&mut svm,current,&[current],&[expire.clone()]));
+    assert_eq!(snapshot(&svm),before);
+    set_time(&mut svm,deadline);
+    let stranger = Keypair::new();
+    svm.airdrop(&stranger.pubkey(),10_000_000).unwrap();
+    let retired_or_stranger = if rotate { &protocol } else { &stranger };
+    let mut invalid = expire.clone();
+    invalid.accounts[0].pubkey = retired_or_stranger.pubkey();
+    assert!(!send(&mut svm,retired_or_stranger,&[retired_or_stranger],&[invalid]));
+    assert_eq!(snapshot(&svm),before);
+    for index in [1,2,3,4] {
+        let mut invalid=expire.clone();
+        let alternate=Pubkey::new_unique();
+        svm.set_account(alternate,svm.get_account(&invalid.accounts[index].pubkey).unwrap()).unwrap();
+        invalid.accounts[index].pubkey=alternate;
+        assert!(!send(&mut svm,current,&[current],&[invalid]));
+        assert_eq!(snapshot(&svm),before);
+    }
+    assert!(send(&mut svm,current,&[current],&[expire.clone()]));
+    assert_eq!(outstanding(&svm,reserve),0);
+    let after = snapshot(&svm);
+    assert_eq!(after[2..],before[2..]);
+    let mut expected = before[0].data.clone();
+    assert_eq!(expected[173],1);
+    expected[173]=0;
+    assert_eq!(after[0].data,expected);
+    assert_eq!(token_amount(&svm,vault_token),40);
+    assert!(!send(&mut svm,current,&[current],&[expire]));
+    assert_eq!(snapshot(&svm),after);
     let _stuck_payment = Pubkey::find_program_address(&[b"reward-payment-v1", cycle.as_ref(), stuck.as_ref()], &program_id).0;
     let stuck_token = get_associated_token_address(&stuck, &asset.pubkey());
     let stuck_ata = spl_associated_token_account::instruction::create_associated_token_account_idempotent(&protocol.pubkey(), &stuck, &asset.pubkey(), &token_program);
@@ -128,15 +166,19 @@ fn bitmap_token_cycle_releases_unpaid_liability_and_rejects_late_payment() {
             system_program:anchor_lang::system_program::ID }.to_account_metas(None));
     assert!(send(&mut svm, &protocol, &[&protocol], &[stuck_ata]));
     assert!(!send(&mut svm, &protocol, &[&protocol], &[late]));
-    // The released 40 funds the next cycle.
+    assert_eq!(snapshot(&svm),after);
+    // With the same operator, the released 40 funds the next cycle. A successor
+    // can expire the old cycle, but cannot allocate from the historical vault.
+
     let next_id = [4u8; 32];
     let next_cycle = Pubkey::find_program_address(&[b"reward-cycle-v1", vault.as_ref(), &next_id], &program_id).0;
-    let next = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::CreateBitmapCycleToken {
+    let mut next = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::CreateBitmapCycleToken {
         cycle_id:next_id, merkle_root:[1; 32], asset_mint:asset.pubkey(), total_amount:40, cutoff_at:now, payout_at:now, leaf_count:1 }.data(),
         funded_fee_router::accounts::CreateBitmapCycleToken { authority:protocol.pubkey(), vault, reserve, cycle:next_cycle, token_mint:asset.pubkey(),
             vault_token_account:vault_token, legacy_router, system_program:anchor_lang::system_program::ID }.to_account_metas(None));
-    assert!(send(&mut svm, &protocol, &[&protocol], &[next]));
-    assert_eq!(outstanding(&svm, reserve), 40);
+    next.accounts[0].pubkey = current.pubkey();
+    assert_eq!(send(&mut svm,current,&[current],&[next]), !rotate);
+    assert_eq!(outstanding(&svm,reserve),if rotate { 0 } else { 40 });
 }
 
 #[test]
