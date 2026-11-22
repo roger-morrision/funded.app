@@ -1585,6 +1585,16 @@
         "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/payout-native-accounting-id-correction-20261123.json",
         "sha256": "b5ce46f8a59778e6753aa118df95472d575b2124464f2877aa57d18676e623f6",
         "scope": "Canonical identifier correction only; original independent finding preserved by its original hash; no acceptance or runtime change."
+      },
+      "pendingCorrectionCacheFinding": {
+        "source": "Unpublished App correction based on969809; pending final source freeze.",
+        "rawProbe": "tmp/contract-cached-payout-fee-probe.txt",
+        "sha256": "cad5e34d7ee57d06c39c0bb989eccee98fcc648c03e145bec7714c5518bbf396",
+        "node": "v26.13.1",
+        "setup": "Successfully prepare and verify actual fixture payout with5000fee. Change only saved verified proof.feeLamports to5001. Recover in recoveryOnlymode.",
+        "observed": "Reported5001andpayoutTransactionVerifiedtrue; one expected-rejection probe fails.",
+        "request": "Compare cached verified proof fee and payer to authenticated prepared-attempt fee and signer, preserving unchanged-cache no-RPC idempotence.",
+        "owner": "App Dev, same PAYOUT-02 correction; no new queue or financial policy."
       }
     },
     "coveredIndependentVerification": {
