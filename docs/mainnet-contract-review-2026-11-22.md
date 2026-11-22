@@ -161,7 +161,22 @@ The [compiled-SBF regression](../contracts/funded-fee-router/programs/funded-fee
 
 **Devnet identity check.** At finalized slot 525078861 both Loader-v3 addresses, executable pointers, full ProgramData hashes and ELF hashes matched the [isolated router](evidence/devnet-configurable-rich-2026-11-22.json) and [public app](evidence/devnet-financial-records-2026-11-22.json) pins. This run used read-only RPC. A live holder result still requires an authorized isolated rotation between commitment and payout.
 
-**Next case.** Pay a launched-token reward committed before rotation. Reconcile token custody, recipient credit and remaining liability on the pinned binaries.
+## Launched-token reward committed before primary RICH rotation
+
+**RICH-ENTITLEMENT-03 — local-only.** Under RICH revision 1 the launched-token vault committed 500 raw SPL units across two holders. Rotation to revision 2 preserved the vault, token accounts, mint, cycle and reserve byte for byte. At maturity the original proof moved 336 units. Custody fell from 500 to 164, the recipient rose from 5 to 341, mint supply stayed at 505, and the reserve retained 164 for the second holder. The receipt recorded 336 units delivered. Replay with a fresh blockhash failed and preserved the balances, liability and receipt.
+
+Tested base `220e05d008dfa8021ea25000e52fc38df47047a0`, router source tree `dd2f57ffe841adaca9b2e033950633247f64c7ac`, [regression](../contracts/funded-fee-router/programs/funded-fee-router/tests/rich_assets/token_reward.rs) blob `51884f0cbbd8a1c7e8b0a90c0e455b6725b0f612`. With the fixture IDs and `FUNDED_ROUTER_TEST_SO` set as in the handoff case, `cargo test --locked -p funded-fee-router --features <features> --test rich_assets token_reward::committed_launched_token_pays_after_rotation -- --exact` passed once per ELF.
+
+| Feature set | Tested ELF SHA-256 |
+| --- | --- |
+| `mainnet-v3-program` | `6bfa0414eaf68b6dd3d2c5cda79e0454c0255e2da4ac80c7466f79e2913ce320` |
+| `devnet-v3-program,configurable-rich-assets` | `7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f` |
+
+Host checks with `buildRewardManifest` and `verifyRewardProof` verified both proofs for each of the 499 positive two-holder splits of 500 units. The 336/164 split supplied the regression's root and proof. `node --test tests/security/rich-assets.test.mjs` passed seven cases and `npm run check:structure` passed.
+
+**Devnet identity and live blocker.** A read-only finalized account batch at slot 525085856 matched both loader pointers, full ProgramData hashes and ELF hashes against the [isolated router](evidence/devnet-configurable-rich-2026-11-22.json) and [public app](evidence/devnet-financial-records-2026-11-22.json) pins. The public ELF SHA-256 was `c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15`. Live acceptance requires an authorized isolated rotation between commitment and payout.
+
+**Next case.** Check that a daily bonus committed before rotation pays the original winner and debits the correct bonus vault. Reuse the existing SOL payout coverage and exercise the bonus-specific funding and winner selection.
 
 ## Remaining deployment blockers
 
