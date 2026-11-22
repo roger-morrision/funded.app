@@ -1606,7 +1606,9 @@
         "finding": "Unchanged cached completion passed without RPC. Separately corrupting only feeLamports or feePayer still returned verified.",
         "probeSha256": "de6b1a3987a266e7f2ac25902540be4be869bf6d1d4076815f80347ec8c4fb82",
         "scope": "Exact frozen baseline supplement; independent correction retest pending."
-      }
+      },
+      "correctionSource": "b785e5a5cc31479a907b253cb2ab4cd36eaa6b0b",
+      "correctionStatus": "Original native/cache probes pass in exact-source Contract review; independent final Node24 retest requested."
     },
     "coveredIndependentVerification": {
       "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-payout-journal-969809a0-20261123.json",
@@ -1617,5 +1619,34 @@
       "samePriorCasesFailed": 9,
       "scope": "Covered single receipt durability cases only; additional native accounting finding remains open."
     }
+  },
+  "payoutCorrectionsReview": {
+    "appSource": "b785e5a5cc31479a907b253cb2ab4cd36eaa6b0b",
+    "parentCorrection": "7108af03502639f8bf3ac42b8785c5c0c3b33d56",
+    "issues": [
+      "FQA-MN-005-PAYOUT-01",
+      "FQA-MN-005-PAYOUT-02"
+    ],
+    "ownerReportGitSha256": "96745eaf4261aa4c89ebc11765c08f12d6b86e58a02024b7a24e0d0f989f8665",
+    "reviewNode": "v26.13.1",
+    "requiredPassed": 70,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "unchangedNativeAndCacheProbeCasesPassed": 15,
+    "nativeProbeSha256": "bc9302e9882ad24d2abd790e3c45a0dc38225ef3f74a5af7189472206fe4ac49",
+    "cachedProbeSha256": "de6b1a3987a266e7f2ac25902540be4be869bf6d1d4076815f80347ec8c4fb82",
+    "rawInventory": "tmp/contract-payout-review-b785.txt",
+    "rawInventorySha256": "6353019b4755d5c935d9417cd8cc6bcc40a5d894cf7b6bd8518c8615b2d8ad14",
+    "rawProbes": "tmp/contract-payout-original-probes-b785.txt",
+    "rawProbesSha256": "6ba6b57a317153aabd10bcab614540c6fbabf60d12a1e76cbb85fab1abcaad2e",
+    "sourceAssessment": [
+      "Completed records preserve paidAt, bitmap mode and custom metadata, enrich missing facts once, retain financial conflicts and avoid matching-completion writes. Shared helper unchanged7108tofinalb785.",
+      "Fresh proof reconciles exact native conservation, prepared fee quote, payer debit, receipt/ATA rent and every canonical account effect. Both wrapped-native token programs preserve backing lamport movement.",
+      "Cached verified proof binds fee value, payer and amount to authenticated prepared intent without new RPC, signatures or submission.",
+      "Contract runtime remains identical971399ff; reuse existing3f8binary and accepted1236messageprefix."
+    ],
+    "status": "Contract exact-source review passed; independentNode24final correction acceptance pending.",
+    "scope": "Actual App/scheduler/store and SDK with synthetic financial bank/RPC/finality. Existing roles/live/archive/scale/final funding remain open; no automatic attempt replacement."
   }
 }
