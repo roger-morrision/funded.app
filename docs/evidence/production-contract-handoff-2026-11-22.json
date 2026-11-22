@@ -1144,7 +1144,7 @@
     "separatelyRunBuybackTests": 4,
     "buybackExecutions": 6,
     "npmCheck": "1115 JS syntax checks; source-size budgets passed",
-    "independentStatus": "Independent review requested; cross-owner source reproduction is tracked separately."
+    "independentStatus": "See independentCompiledVerification for scoped clean rebuild, compiled financial cases and loader-prefix acceptance."
   },
   "pairedDelivery": {
     "invariant": "Only spendable units received fund and discharge category liabilities. The finalized app keeper requires exact credits and debits.",
@@ -1197,8 +1197,24 @@
       "Owner configured guardian and cap. Prior operator committed a 600-lamport reward. Guardian paused.",
       "Missing each of outgoing, successor or upgrade-owner signatures rejected rotation. Three-party rotation while paused changed only the header authority bytes.",
       "Matured payout remained blocked while paused. Upgrade owner resumed. Old operator could not open a new cycle.",
-      "Successor fee payer paid original entitlement to original recipient; 600 lamports delivered, outstanding reduced to zero, replay rejected."
+      "Successor paid the original 600-lamport entitlement once. A separate pre-rotation 300-lamport entitlement remained outstanding. Neither operator could normally expire it after grace; the successor could not commit free funds in the historical vault; balances/reserve unchanged."
     ],
-    "open": "No tested recovery of a permanently lost old signing key or claim of live backup/restore; the standard rotation instruction requires all three signatures."
+    "open": "No tested recovery of a permanently lost old signing key or claim of live backup/restore; the standard rotation instruction requires all three signatures.",
+    "runbook": "docs/mainnet-contract-review-2026-11-22.md#operator-custody-and-reward-vault-handoff"
+  },
+  "independentCompiledVerification": {
+    "owner": "End-to-End Devnet Dev & QA",
+    "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-production-rehearsal-20261122.json",
+    "sha256": "95769f0cd09dea6e656178515c140af6e9645d5d03eaa49ee6fff86bc8d26ac4",
+    "source": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
+    "elf": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+    "verified": [
+      "Independent clean build, same-length byte equality",
+      "Identical ef9029cc paired-delivery suite failed on prior e55 and passed on revised 8f6",
+      "Six USDC sells, two Singularity primary burns and one captured category-7 local execution",
+      "Decoded all 1237 unsigned messages, every ELF chunk and signer class",
+      "Finalized slot 472589897 observed zero balances for E9 and 5Thg and absent program, ProgramData and buffer"
+    ],
+    "releaseSignoff": false
   }
 }
