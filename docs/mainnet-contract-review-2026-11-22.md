@@ -2,6 +2,8 @@
 
 **Decision: NO-GO for production deployment.** This is an implementation security review by Codex, including review of its own patches. It is not an independent third-party audit, certification, or a claim that every vulnerability has been found. The user's supplied mint is approved for testing only.
 
+**Later Devnet update:** An isolated configurable router was deployed and exercised on Devnet. Its finalized transactions, byte-for-byte verification, and test limits are recorded in [Devnet lifecycle evidence](evidence/devnet-configurable-rich-2026-11-22.json). The binary table below records the builds from this review; current candidate hashes are in `config/contract-build-candidates.json`. The application remains on its earlier Devnet program. The production decision above is unchanged.
+
 ## Scope and release identity
 
 Base source for this update: `d297a78cca667f9f3ae6f51cbe8f22748d298cb5`, plus the changes in the commit containing this report. The intended release is the merged `mainnet-v3-program` router, including developer escrow. A separate legacy router/escrow deployment is not required by the current deployment plan.

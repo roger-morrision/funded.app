@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "checkedAt": "2026-11-22T06:32:21.335Z",
+  "checkedAt": "2026-11-22T07:01:20.219Z",
   "cluster": "devnet",
   "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
   "scope": "isolated on-chain configurable RICH lifecycle and small-value fee/reward smoke tests; no public app activation",
@@ -141,7 +141,7 @@
     "byteForByteRebuild": true,
     "candidateHashCheck": "passed",
     "securityTests": {
-      "passed": 17,
+      "passed": 19,
       "failed": 0
     },
     "compiledSbfTests": {
