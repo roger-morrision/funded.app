@@ -3415,7 +3415,7 @@
       "Graph variable query was ambiguous/stale; actual index source order and exact narrow diff reviewed directly.",
       "Store/durability/primary-rich/package context pins unchanged3746; reuse independent directory fence. Contract runtime identical971399ff/3f8/1236prefix; no quote/rebuild."
     ],
-    "status": "Contract narrow startup source review and5actual Windows entrypoint/HTTP cases pass; independent exact-source Linux/Windows acceptance pending.",
+    "status": "Independent E2E accepted exact6196 isolated API startup/HTTP declaration-order correction on Linux and Windows. Production database/full-worker/live financial/parent release remain open.",
     "scope": "Isolated actual child API+HTTP with NODE_ENV=test file-store and mock unavailable loopback RPC, not production Postgres/full worker/live financial or parent release acceptance.",
     "remaining": [
       "Normal full-service/worker workload and operational persistent-volume restore remain open.",
@@ -3436,6 +3436,53 @@
         "entrypointGitRevision": "61963da537cf94da4e92712970d195edd93a119c"
       },
       "checks": "Both entire tar hashes and file counts verified; server/index matches corresponding raw Git, same two new fixture/test bodies match candidate raw Git in both archives. Not conflated with canonical-baseline or earlier CRLF exports."
+    },
+    "independentVerification": {
+      "file": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-api-startup-61963da5-20261123.json",
+      "sha256": "5e501d4e706210867ed2693316572be7115d85f3e601bdc213749a0688a05838",
+      "sourceGitPinsMatched": 10,
+      "rawCandidateTarMembersMatchedGit": 1230,
+      "tests": {
+        "command": "node scripts/check-api-entrypoint.mjs",
+        "linuxCandidate": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 5,
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "requiredPassed": 5,
+          "success": true
+        },
+        "windowsCandidate": {
+          "node": "v24.22.3",
+          "counts": {
+            "tests": 5,
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          "requiredPassed": 5,
+          "success": true
+        },
+        "sameBodiesPriorRawSource": {
+          "counts": {
+            "tests": 5,
+            "passed": 0,
+            "failed": 5,
+            "skipped": 0,
+            "todo": 0
+          },
+          "requiredPassed": 0,
+          "exit": 1,
+          "success": false
+        }
+      },
+      "rawArtifactsVerified": 12,
+      "scope": "Source-scoped API entrypoint declaration-order/startup correction independently accepted. Full service, production and parent Mainnet readiness remain open."
     }
   }
 }
