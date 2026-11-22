@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "issueIds": [
+    "FQA-MN-003",
+    "FQA-MN-004",
+    "FQA-MN-005",
+    "FQA-MN-006"
+  ],
+  "scope": "source/local-only unsigned sell builder parity and production preparation; no activation/signing/financial acceptance",
+  "recordedAt": "2026-11-22T15:16:51.043928+00:00",
+  "baseRevision": "b61a483bb76f08bc84be5150cd9f77363094b8a9",
+  "node": "24.22.3",
+  "sourceSha256": {
+    "server/token-conversion-sell.mjs": "7483acdf5d611b8bb3633c040a4aa47ab57ebb1991a3367c04c3892516b4535d",
+    "tests/readiness/token-conversion-sell.test.mjs": "fc9053127bfd655fb8fbacd1b69cb6918c196228e5d7b41f8bea32538a6f8ce5",
+    "config/token-conversion-sell-tests.json": "9ff68b056bd31ea02ad2fbda36b31132345214f82a254f53b7dab08b877b7897",
+    "docs/mainnet-production-packet-2026-11-22.md": "cd6db1b8f08fadf48cd29897fb078c4464b560caebde0520a92e74c3d1922950"
+  },
+  "tests": {
+    "required": 10,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "syntaxNewFiles": "passed",
+    "sourceStructure": "passed1385maintainedfiles",
+    "composedOpeningPaymentDeadline": {
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "exactContributor": "4a7d905a4b09cbe0f9e08c4b8e0e3026bbb7b72f"
+    }
+  },
+  "evidenceSha256": {
+    "usdc-sell-capture.json": "e0a2d89f34bcf94421c225f2d5fe2ae2ab27c2c9fa4b162396a3eb38805e6aa3",
+    "usdc-sell-builder-result.json": "82f349bd6237a203fbc76f4e49bd82ba831f65e57d668777407d4b44b0e24b72",
+    "integrated-community-deadline.stdout": "28deca2d68c51098673581acde0b5488cca2358557957d7451345fe91c61b408",
+    "current-production-cost-quote.json": "6404e3e8002d05f80f2aa1cbcf84c39b1f5e54920cc1848fbd3ade0c224434b3",
+    "unsigned-production-rich-init.json": "8d4df98e45125bea013c2612e7272d43634a02c7755e494b149deed3c030625b",
+    "namespace-preparation.json": "81a6e3990c2e64b65e7e34d4a828935b3ce7280058166f6f232fb074866675fd",
+    "selected-mainnet-token.json": "3f8ccc4b5addcfd10b52b48a4588c6eff7ac25f93e7196554a8e06c6d1da715b",
+    "selected-mainnet-token-metadata.json": "c3e69c092da2e15a9197bf16a12a28780b33cdb2ecff02476ddc26fec592bd85"
+  },
+  "publicIdentity": {
+    "program": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+    "payer": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
+    "adminUpgrade": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+    "mint": "7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump"
+  },
+  "candidate": {
+    "source": "575b294793afe2a3732fd4d5ebade1f68adb9539",
+    "bytes": 1109672,
+    "elfSha256": "e55d793e4e2aa69320010de2d6550dfa4c5858acb2bf73095a718cf4b46a8d1e",
+    "deployed": false,
+    "fullProgramDataSha256": null,
+    "independentFinalAcceptance": false
+  },
+  "unresolved": [
+    "independent price reviewer, typed reservation, keeper and finalized conversion proof integration",
+    "holder runtime paging and realistic scale",
+    "authenticated archive and complete28leaf delivery",
+    "fresh operator and independent price role custody/policy",
+    "final compiled-byte independent acceptance",
+    "final wallet-specific message/fee/canary/backup/rollback packet and cost approval"
+  ]
+}

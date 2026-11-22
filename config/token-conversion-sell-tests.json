@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "scope": "public-capture unsigned builder parity only; no runtime admission or financial proof",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-sell.test.mjs",
+      "requiredTests": [
+        "captured exact USDC sell builds category 5 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 6 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 7 with 57 bytes and 41 canonical metas",
+        "wrong sell payload, changed exact input and weaker output cannot be substituted",
+        "only canonical positive u64 input and minimum amounts and supported categories are accepted",
+        "pool, base/quote, user vault, market vault and fee-program metas cannot be redirected",
+        "unexpected signer, writable privileges, volume tails and missing price separation are rejected",
+        "market owner, pool orientation, coin-creator and special-mode changes are rejected",
+        "fee recipient membership and canonical WSOL custody are required",
+        "conversion decoder rejects unsupported layout, discriminator, category and zero amounts"
+      ]
+    }
+  ]
+}
