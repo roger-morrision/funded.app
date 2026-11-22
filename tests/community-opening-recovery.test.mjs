@@ -119,3 +119,24 @@ test('a recovered opening lets the restarted worker visit all 28 leaves without 
   assert.equal(service.recordOpening.mock.callCount(),1);
   assert.equal(connection.sendRawTransaction.mock.callCount(),0);
 });
+
+test('wrong genesis rejects opening reconciliation without changing state or broadcasting',async t=>{
+  const f=fixture(t);f.connection.getGenesisHash=async()=>'wrong-genesis';const before=structuredClone(f.state);
+  await assert.rejects(f.restart().open(f.record),/requires Devnet/);
+  assert.deepEqual(f.state,before);assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
+});
+test('changed immutable root rejects opening reconciliation without changing state or broadcasting',async t=>{
+  const f=fixture(t);f.record.manifest.root='changed-root';const before=structuredClone(f.state);
+  await assert.rejects(f.restart().open(f.record),/immutable community execution intent changed/);
+  assert.deepEqual(f.state,before);assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
+});
+test('rejected opening proof cannot finalize a journal or broadcast',async t=>{
+  const f=fixture(t);f.service.recordOpening=async()=>{throw Error('immutable receipt mismatch');};const before=structuredClone(f.state);
+  await assert.rejects(f.restart().open(f.record),/immutable receipt mismatch/);
+  assert.deepEqual(f.state,before);assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
+});
+test('expired opening with an empty journal cannot prepare or broadcast',async t=>{
+  const f=fixture(t);delete f.state.communityExecutions[executionKey];const before=structuredClone(f.state);
+  assert.equal((await f.restart().open(f.record)).status,'expired');assert.deepEqual(f.state,before);
+  assert.equal(f.connection.getTransaction.mock.callCount(),0);assert.equal(f.connection.sendRawTransaction.mock.callCount(),0);
+});
