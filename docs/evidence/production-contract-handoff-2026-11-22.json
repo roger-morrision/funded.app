@@ -3085,7 +3085,7 @@
     "reportedOomKills": 0,
     "reportedOriginalAttemptsPreserved": 2002,
     "reportedDirectorySyncCalls": 0,
-    "status": "Source-confirmed missing parent-directory fsync fence under existing durability scope; App implementation pending. Process-loss/byte-copy results are retained owner observations, not power-loss reproduction.",
+    "status": "Missing Linux directory fence independently confirmed;7process-loss/controlled-backup cases independently reproduced. Nested bootstrap ancestor probe fails baseline; App correction pending, no powerloss/production acceptance.",
     "primarySource": {
       "url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
       "verified": "Linux man-pages explicitly distinguishes file inode/data fsync from the directory-entry flush requiring a directory descriptor sync."
@@ -3105,6 +3105,68 @@
       "Windows directory-sync capability stays explicitly limited; no Linux unsupported-error swallowing.",
       "Existing process-loss/no-op/mixed/Linux accepted slices remain source-scoped.",
       "Normal worker/O(N), operational restore, originalbank/live28, roles/runtime/final wallet packet remain open."
-    ]
+    ],
+    "independentVerification": {
+      "file": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-persistent-assessment-09022a66-20261123.json",
+      "sha256": "dce9c483d34c7908307bfb8b805944b617c5bc1cecafb9fba22393aceb87301a",
+      "originalOwnerProbeSha256": "7cf1d4c08f92cee2c12dca6ce5f9c8432f094a3479c0207e4fe68fb9ba301bc0",
+      "results": {
+        "observedAt": "2026-11-22T22:11:26.492249+00:00",
+        "allExpectedAssertionsPassed": true,
+        "servicesUnchanged": true,
+        "ownerAssessmentSha256": "8d1645f0d298d7dbbaf1456a59c24752260dbf91cd1716f294e4fb1d517f0948",
+        "identicalOwnerProbeSha256": "7cf1d4c08f92cee2c12dca6ce5f9c8432f094a3479c0207e4fe68fb9ba301bc0",
+        "runtimeStoreSha256": "2c9a1b64809c1a1d015dbf702dff44ec8cd7ed0e7d96a4d7eb6284255732ee46",
+        "identity": "9dda84799c5c5f7c1db8a5079598c7b177c108663679a783a20588c8b22dc206",
+        "backupRestoreSha256": "6360843fba3db6241584f37aaab8a508a4cca038c40de876ffdd26e12c8324c1",
+        "runs": 7
+      },
+      "bootstrapAncestorControl": {
+        "baselineRevision": "09022a66599b8a8cd8b14c17ff0dc400172c07bf",
+        "probeSha256": "acc94fa9c251264837114f289454f8b3f2c585b89d8201362e5b6172934f7504",
+        "exit": 1,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 1,
+          "Error": "",
+          "StartedAt": "2026-11-22T22:12:17.003397128Z",
+          "FinishedAt": "2026-11-22T22:12:17.312369943Z"
+        },
+        "result": {
+          "scope": "metadata-only-nested-bootstrap-directory-boundary-not-powerloss",
+          "required": [
+            "/app/data/durable-bootstrap-fixture",
+            "/app/data/durable-bootstrap-fixture/new-parent",
+            "/app/data/durable-bootstrap-fixture/new-parent/new-child"
+          ],
+          "missing": [
+            "/app/data/durable-bootstrap-fixture",
+            "/app/data/durable-bootstrap-fixture/new-parent",
+            "/app/data/durable-bootstrap-fixture/new-parent/new-child"
+          ],
+          "events": [
+            {
+              "event": "transaction-returned"
+            }
+          ]
+        }
+      },
+      "bootstrapInterpretation": "Expected-valid successful nested bootstrap control fails baseline because all three required directory fences are absent. A future fix that syncs only the ledger directory still omits its newly created ancestor entries. Either fence newly created entries up to the known durable parent, or validate/evidence a pre-provisioned durable directory as an explicit supported precondition.",
+      "implementationReviewCriteria": [
+        "Linux directory fence must finish before successful transaction promise resolution, on bootstrap/migration/changed proof-wire-status and byte-identical no-op; no caller bypass or unsupported Linux error suppression.",
+        "Scope recursive mkdir bootstrap: persist newly created directory entries in their parents, up to a previously durable existing boundary. Retained original probe is reusable unchanged against frozen fix.",
+        "Directory open/sync/close failures block next action; distinguish rename already published from fully acknowledged durability, retain immutable attempts and uncertainty, preserve original mutator/write/rename errors if cleanup/fence additionally fails.",
+        "Keep cross-instance lock exclusion, queue/drain/admission/cache semantics. Do not auto-expire crash locks, promote orphan temporaries, clear unknowns or re-sign/re-broadcast after published-but-unacknowledged state.",
+        "Windows capability remains explicit. Persistent Linux directory-fence cost measured on same bounded fixture, with appropriate affected generic-store/journal tests; no financial fee-savings inference."
+      ],
+      "rawArtifactsVerified": 26,
+      "scope": "Independent source/design review and process-crash/persistent-volume byte-copy feasibility; missing directory durability fence remains OPEN"
+    }
   }
 }
