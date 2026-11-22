@@ -1733,13 +1733,25 @@
       "Changed recipient rejects atomically without consuming approval. Authorized category payout records exact recipient/category/amount and exact vault debit.",
       "Every category replay rejects with tracked account bytes unchanged. Recipient receives850 total, withdrawn ledger is[0,100,250,250,250,0,0], creator vault unchanged."
     ],
-    "scope": "Contract-owner local compiled acceptance against retained exact production ELF in LiteSVM with synthetic accounts and ephemeral test keys. Independent E2E replay pending. No live acceptance, production role binding, spending or runtime source change.",
+    "scope": "Contract-owner and independent E2E local compiled acceptance against retained exact production ELF in LiteSVM with synthetic accounts and ephemeral test keys. No live acceptance, production role binding, spending or runtime source change.",
     "untestedHere": [
       "Live Mainnet signing and transactions",
       "Production custody roles",
       "New pause or overbudget cases",
       "Global cap policy changes"
     ],
-    "testGitSha256": "fa34512eb5770c19f7d6e1449c6750c602af33416f823c9107eb043eaf3d8385"
+    "testGitSha256": "fa34512eb5770c19f7d6e1449c6750c602af33416f823c9107eb043eaf3d8385",
+    "independentVerification": {
+      "file": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-earned-referrals-5ec9eeb6-20261123.json",
+      "sha256": "2c28054c80d07968efde1febc067d7f2c9588ae2f62d390e1f9ea6916a068504",
+      "testRevision": "5ec9eeb6b13cb7e46d1d16fa9864d08f4881ea11",
+      "testGitSha256": "fa34512eb5770c19f7d6e1449c6750c602af33416f823c9107eb043eaf3d8385",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filteredOut": 9,
+      "scope": "Independently accepted local compiled referral-cap separation slice only.",
+      "rawArtifactsVerified": true
+    }
   }
 }
