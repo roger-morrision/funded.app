@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T16:19:35.438433+00:00",
+  "baseAppRevision": "ffa3b12e4e43fbcd6224a9f4d73ed47169d7313d",
+  "contractComposition": "f7f8497869b35f46849583a0d97dfa973c62d261",
+  "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+  "runtimeContractSourceDirectoryMatches": true,
+  "scope": "Local-only historical namespace construction and exact state/liability delta; unknown signed expiry attempts and archive proof remain open",
+  "node": "v24.22.3",
+  "counts": {
+    "tests": 10,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "requiredPassed": 10,
+  "baseline": {
+    "adapterCases": 1,
+    "failed": 1,
+    "chainSourceSha256": "e73258fea364bb689225c67e3a48bc696645f6a362eb079fc0b47a5ce31a9084",
+    "reason": "Reward cycle is missing or has an unrecognized layout.",
+    "sendCalls": 0
+  },
+  "inputs": {
+    "currentElfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "currentElfBytes": 1110424,
+    "financialRpcAndReview": "SYNTHETIC; no actual network/signing/broadcast or deployed Devnet acceptance"
+  },
+  "checks": {
+    "changedJsSyntax": 4,
+    "sizeFiles": 1405,
+    "diffCheck": "passed"
+  },
+  "sourceSha256Lf": {
+    "server/automatic-reward-chain.mjs": "b723f853733f5e61467673b212fed1992dad427efefffe5697c6017dd8813210",
+    "server/reward-expiry-context.mjs": "c53841358621c096a636feb5c00c708f846d6d1daee9c04e56fdddf3137a74da",
+    "server/reward-cycle-expiry.mjs": "278ecec9398c20ed12872426c75c39fa7cc08d93b2d687861de943f133230cbe",
+    "tests/readiness/reward-expiry-context.test.mjs": "41fa1293377dc753402875dcc0a1c65afb46d6ca2e85da8d4a14386bde5d0c04",
+    "config/reward-expiry-context-tests.json": "25576f958de2a24285a4bfee7da62121206ef966cdcb3b9f5f34aebaed15ae6e",
+    "docs/historical-reward-expiry-2026-11-22.md": "d7105e6ab37999e8ac38dd6db713e7cabff41d44ae6d6a2852afe06013954425",
+    "docs/mainnet-production-packet-2026-11-22.md": "aaadd802146498029549c22c1b5b0b149ecf49e425fd365de25a748313dc9ba6"
+  },
+  "rawEvidence": {
+    "reward-expiry-context-result.json": "e45355dd18645b1d8b837267a1a271a39e57fd638b3f987fffaf504f7f261493",
+    "reward-expiry-adapter-baseline.txt": "f97a9b14ac84df20c9b9fdb9fea651484818bffce630da9b4d1b877811b28342"
+  }
+}

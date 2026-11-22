@@ -27,7 +27,8 @@ export async function expireUnpayableCycles({ store, chain, now, selected = null
     try {
       const result = await chain.expireCycle(row);
       await store.transaction(state => Object.assign(state.schedules[row.id], { status:'expired',
-        reason:'Unpayable reward cycle expired on-chain; its unpaid amount stays in the vault for later periods.',
+        reason:'Unpayable cycle liability released; funds remain in the original vault and need custody reconciliation before reuse.',
+        expiryVault:result.vault || null, expiryOriginalAuthority:result.originalAuthority || null,
         expiredUnpaidAmount:result.unpaidAmount, expirySignature:result.signature || null, expiredAt:new Date().toISOString() }));
       expired += 1;
     } catch (error) {

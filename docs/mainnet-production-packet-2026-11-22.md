@@ -141,6 +141,12 @@ while all financial/RPC/review facts remain explicitly synthetic. Runtime signer
 and worker admission remain disabled. Exact signed bytes must be durably saved
 before any future broadcast; unknown attempts cannot be replaced blindly.
 
+The [historical expiry source candidate](historical-reward-expiry-2026-11-22.md)
+now binds original vault/cycle/reserve while the current operator signs. Ten local
+cases pass, including the adapter regression that fails on preceding App source.
+Independent review, durable expiry-attempt recovery and historical payout/cleanup
+binding remain open; this is not operational financial acceptance.
+
 ## Custody, infrastructure and execution packet
 
 E9 and ExUNA remain local deployment signers. 5Thg is the local admin/upgrade
