@@ -2,10 +2,15 @@ import { rewardPayoutGroups } from './reward-batch.mjs';
 import { nativeRecipientFundingPending } from './native-reward-recipient.mjs';
 import {payoutIntentHash} from './reward-payout-journal.mjs';
 import {completedRewardPayment} from './reward-paid-record.mjs';
+import {selectHolderPayoutPage} from './holder-payout-page.mjs';
 
 export async function payRewardSchedule({ store, chain, plan, batch }) {
-  const saved = await store.transaction(state => structuredClone(state.schedules[plan.id].payments || {}));
-  const leaves = plan.manifest.leaves.filter(leaf => saved[leaf.recipient]?.status !== 'paid');
+  let leaves;
+  if(plan.kind==='holder')leaves=await selectHolderPayoutPage({store,plan});
+  else{
+    const saved=await store.transaction(state=>structuredClone(state.schedules[plan.id].payments||{}));
+    leaves=plan.manifest.leaves.filter(leaf=>saved[leaf.recipient]?.status!=='paid');
+  }
   let submitted = 0;
   for await (const group of rewardPayoutGroups({ chain, plan, leaves, batch,store })) {
     for (const { leaf, result, error } of await group.submit()) {

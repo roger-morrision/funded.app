@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T19:57:53.864746+00:00",
+  "issueId": "FQA-MN-001",
+  "baseRevision": "c096573ddae8a8e8f6b490e6c3e92c515b5ab415",
+  "scope": "Bounded per-holder-schedule work selection plus actual scheduler/store plumbing; synthetic attributed chain-result interface, not1001 authenticated financial receipts or live throughput; independent source acceptance pending",
+  "node": "v24.22.3",
+  "implementation": [
+    "Preserve immutable full global manifest/index/proof/amount; select at most32 unpaid leaves per holder schedule call",
+    "Locked fsynced cursor rotates fairly with immutable identity and full proof/accounting checks; cursor is scheduling hint, not financial proof/reservation",
+    "Existing submitLeaf journal/signature/fee/custody proof path unchanged; unknown attempt cannot be replaced by cursor progress",
+    "Actual scheduler keeps partial status distributing, preserves selected IDs and readiness and marks paid only when original payment records complete",
+    "Non-holder flow unchanged; single-recipient Mainnet and four-leaf Devnet transaction bounds unchanged"
+  ],
+  "tests": {
+    "required": 79,
+    "passed": 79,
+    "failed": 0,
+    "skip": 0,
+    "todo": 0,
+    "newPageCases": 9,
+    "affectedExistingPayoutCases": 70,
+    "durationMs": 46932.2629,
+    "controlledUnpagedBaseline": {
+      "source": "c096573d:server/reward-schedule-payments.mjs",
+      "sameBody": "unknown first page does not starve later leaves or replace its original signed attempt",
+      "before": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 1,
+        "interfaceCalls": 65
+      },
+      "after": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "firstPageInterfaceCalls": 32
+      },
+      "redirect": "Only the payment function import points to exact Git baseline; other original case bytes unchanged"
+    },
+    "solAndPairedEach": {
+      "recipients": 1001,
+      "boundedCalls": 32,
+      "submitInterfaceCalls": 1001,
+      "globalLastIndex": 1000,
+      "repeatAfterCompletionCalls": 0,
+      "rootAndTotalUnchanged": true,
+      "storeReopenedBetweenCalls": true
+    }
+  },
+  "checks": {
+    "changedSyntax": 3,
+    "sizeCheck": "Source size budgets passed for 1432 maintained code files (hard maximum: 1000 lines).",
+    "diffCheck": "passed",
+    "admissionCapUnchanged": 1000,
+    "contractRuntimeDiffFrom971399ff": 0
+  },
+  "limits": {
+    "selectedFreshWorkLeavesPerHolderScheduleCall": 32,
+    "isolatedIntegrationCohort": 1001,
+    "liveAdmissionLimit": 1000,
+    "wholeWorkerSchedulesAndRecovery": "Not bounded by this slice; still an open release dependency",
+    "snapshotAndManifestStorage": "Full original manifest and whole ledger retained; O(N) serialization and proof scanning remain",
+    "crashDeferral": "May defer a selected page until next circular round;32 selection calls for1001 leaves; worker cadence and actual expiry acceptance remain open"
+  },
+  "developmentMeasurementBeforeFreeze": {
+    "sourceCheckpoint": ".worktrees/mainnet-production-packet/tmp/holder-paging-wip-f112/",
+    "scope": "Initial7-case WIP observation, not a final-revision benchmark or live SLA",
+    "sol": {
+      "elapsedMs": 15594.345,
+      "maxRssKiB": 329360
+    },
+    "paired": {
+      "elapsedMs": 17058.2442,
+      "maxRssKiB": 343556
+    },
+    "networkRpc": 0,
+    "chainTransactions": 0
+  },
+  "evidence": "data/qa-evidence/mainnet-production-packet-20261122/holder-payout-pages/",
+  "gitLfSourceSha256": {
+    "server/holder-payout-page.mjs": "01f8d75f7a277ed497f843dc6fac110b553f17bd8fe1c5397b973bc32fab19f6",
+    "server/reward-schedule-payments.mjs": "146afef3a8cd686de592f1df99ef1db7275d37938136c6d7d5c32f5ed90733b3",
+    "tests/readiness/holder-payout-page.test.mjs": "33e610662c0108898730aacf9da143ae2945f5804302218e39fc12069e54804e",
+    "config/holder-payout-page-tests.json": "a5a915d99f47afea997b363464cbe3ce06a6a170dedc7cbe76f5c85ab1b36d86",
+    "docs/holder-payout-pages.md": "8a57d1d8af57b38541aad2aa2026db3cbd0a5d8296dd1aaecd9d29b8c01efcb1",
+    "docs/mainnet-production-packet-2026-11-22.md": "7d2650ac7328ebfdb76a6d2f385df441a74e3b64a91f40289d665f1f8cb4f703"
+  },
+  "unchangedContextSha256": {
+    "automatic-rewards.js": "185a8c013f600bf871b253c04e3f3c3196f0b78c6cd0c459f8185dde60c0c2d8",
+    "reward-merkle.js": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/reward-payout-recovery.mjs": "da351cac94b983ee1b7f8111bb4e9056ab04cdf15f9416bc1c10c391fb857c7e",
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-cycle-expiry.mjs": "2ff9382d9e1fe644db25f08eaa5fa96eaf92f72e8b6be0ab494c154b441d7aeb",
+    "server/reward-expiry-attempt.mjs": "472649b62ac1c41be5570e415412e63d8bfa4843f42c5bd1d5acfa9c8e3854fa"
+  },
+  "remaining": [
+    "Admission cap1000 remains; no million-holder claim",
+    "1001 fixtures inject immutable prepared plans and mocked attributed results; do not establish larger-cohort eligibility, genuine finalized receipts or live financial effects",
+    "Realistic census/history same-bank capture, whole-worker/recovery bounds, deadline throughput, storage/RSS/backup and authenticated finalized financial scale acceptance remain open",
+    "Operational custody, original Nov19 archive/current-program28 and final exact funding/signing packet remain open",
+    "No merge/deployment/signing service/new spending or runtime activation occurred"
+  ],
+  "nextUsefulAction": "Independent exact-source bounded selection/restart review, then continue whole-worker/recovery and realistic finalized financial scale integration; retain cap pending complete safety evidence."
+}

@@ -248,3 +248,11 @@ the earlier `current-production-cost-quote.json` belongs to historical e55.
 Source references: [Solana transaction fees](https://solana.com/docs/core/fees),
 [rent RPC](https://solana.com/docs/rpc/http/getminimumbalanceforrentexemption),
 [Agave 4.1.2 Loader ordering](https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259).
+
+
+The MN001 [bounded holder payout selector](holder-payout-pages.md) now checkpoints
+at most 32 fresh-work leaves per holder schedule call, preserving the single
+original global commitment and existing per-leaf journal. Nine scheduler/selection
+cases plus 70 affected payout cases pass locally. The 1,001-leaf injected fixture
+does not increase admission beyond 1,000 or prove live financial throughput;
+whole-worker/recovery bounds and realistic cohort evidence remain open.
