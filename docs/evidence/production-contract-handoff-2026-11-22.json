@@ -1461,7 +1461,7 @@
       "observed": "False constrainedPayouts returns before expiry recovery. Actual saved landed attempt remains prepared with zero recovery calls; same chain directly verifies with no new blockhash/broadcast.",
       "requestedFix": "Saved-attempt-only recovery before fresh-work readiness, enforced by recovery-only chain/journal entry that never falls through to fresh signing for a missing attempt. Preserve original message and exact attribution; unrelated fresh work remains blocked.",
       "owner": "App Dev",
-      "status": "Corrected in exact App1e516416; scoped Contract source/runtime review passed; independent Node24 requested.",
+      "status": "Focused EXPIRY-02 correction independently accepted on exact App1e516416, synthetic local runtime only.",
       "priorAcceptance": "The prior 29-case chain-level acceptance remains scoped to its covered path; complete scheduler reachability remains open.",
       "correction": {
         "appSource": "1e516416f8fb02ba7840c078e48d0f29721d91ea",
@@ -1479,7 +1479,20 @@
         "rawInventory": "tmp/contract-expiry-readiness-review.txt",
         "rawInventorySha256": "0c06723e1fec159fb99b702ded98a322fc99bb5fc2338cb7128a01eb993c799b",
         "boundedBehavior": "Saved-only pass before readiness. Missing attempt returns inside lower journal before signing readiness. Corrupt present markers remain unresolved. Removed/replaced immutable rows cannot inherit completion. Fresh expiry pass stays behind readiness and excludes saved attempts.",
-        "scope": "Synthetic scheduler/chain/store/RPC. Existing production binary and prefix reused. Live, custody/role, archive/scale and final funding gates remain open."
+        "scope": "Synthetic scheduler/chain/store/RPC. Existing production binary and prefix reused. Live, custody/role, archive/scale and final funding gates remain open.",
+        "independentVerification": {
+          "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-expiry-readiness-1e516416-20261123.json",
+          "sha256": "ed44c0ead4b90b6b14321702b2d7773dd172713e4b23bcf603cbb9f45fff6f31",
+          "node": "v24.22.3",
+          "requiredPassed": 43,
+          "failed": 0,
+          "skipped": 0,
+          "todo": 0,
+          "unchangedProbe": "Original472c51bf exits0 on exact1e516; prior9174 exits1. Unavailable result, verified saved attempt, recoveryCalls1, zero new blockhash/broadcast.",
+          "missingCurrentElf": "Exit1 with0required passes",
+          "gitSourceHashesMatched": 9,
+          "scope": "Selected saved-only pre-readiness recovery and lower absence guard; corrupt/disappearing/removed/replaced state protection, duplicate-work exclusion and authorized fresh expiry isolation. Parent/live readiness remain open."
+        }
       }
     }
   }
