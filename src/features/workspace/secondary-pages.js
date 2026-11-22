@@ -57,7 +57,9 @@ export function secondaryPages() {
     const heroLayout=node('div','airdrop-hero-layout');
     const heroArt=node('figure','airdrop-hero-art');
     heroArt.innerHTML=`<img src="${airdropWolfDropUrl}" alt="A black wolf watching a descending community supply parcel" loading="lazy" />`;
-    intro?.after(heroLayout);
+    const heroAnchor = intro || heading;
+    if (heroAnchor) heroAnchor.after(heroLayout);
+    else airdrops.prepend(heroLayout);
     heroLayout.append(walletGate,heroArt);
     const syncAirdropWallet=()=>{const address=document.documentElement.dataset.connectedWallet;walletGate.querySelector('.airdrop-wallet-gate-top strong').textContent=address?`${address.slice(0,4)}…${address.slice(-4)}`:'Not connected';linkWalletText(walletGate.querySelector('.airdrop-wallet-gate-top strong'),address);walletGate.querySelector('h3').textContent=address?'Wallet connected':'Check your airdrops';walletGate.querySelector('p').textContent=address?'Choose a launch to check your $RICH snapshot allocation.':'Connect the wallet that held $RICH at the snapshot.';walletGate.querySelector('button').hidden=Boolean(address);};
     window.addEventListener('funded:reward-identity-change',syncAirdropWallet);syncAirdropWallet();

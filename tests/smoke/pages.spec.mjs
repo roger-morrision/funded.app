@@ -75,6 +75,18 @@ for (const { path, title } of PAGES) {
   });
 }
 
+test('Airdrops keeps the wallet gate and searchable directory attached', async ({ page }) => {
+  await page.goto('/#airdrops', { waitUntil: 'domcontentloaded' });
+  const airdrops = page.locator('#airdrops');
+  await expect(airdrops.getByRole('heading', { name: 'Airdrops', exact: true })).toBeVisible();
+  await expect(airdrops.getByRole('region', { name: 'Wallet eligibility' })
+    .getByRole('button', { name: 'Connect wallet' })).toBeVisible({ timeout: 10_000 });
+  const search = airdrops.getByRole('searchbox', { name: 'Search airdrops by name, ticker, or token address' });
+  await expect(search).toBeVisible();
+  await search.fill('Example launch');
+  await expect(search).toHaveValue('Example launch');
+});
+
 // Token and wallet pages need a real address; take them from the live directory.
 test('token page for an Explore coin', async ({ page, request, baseURL }) => {
   const feed = await (await request.get('/api/pump/explore?limit=10&sort=last_trade_timestamp')).json();
