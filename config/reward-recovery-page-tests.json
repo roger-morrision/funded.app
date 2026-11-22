@@ -129,7 +129,12 @@
         "concurrently removed original attempt stays recovery-only and is conservatively retained",
         "measure full manifest lock work and bounded recovery ledger writes across two injected cohorts",
         "unselected malformed schedules do not block selected saved-attempt recovery",
-        "duplicate task identities are refused before any saved-attempt call"
+        "duplicate task identities are refused before any saved-attempt call",
+        "filtered recovery cannot rewind full-queue progress across process-style store reopens",
+        "overlapping filtered requests collectively progress every eligible schedule without starvation",
+        "competing filtered stores preserve per-schedule leaf progress and leave the full cursor untouched",
+        "arbitrary filtered subsets store only one progress record per existing schedule",
+        "invalid filtered progress refuses recovery without resetting or rewriting its state"
       ]
     }
   ]

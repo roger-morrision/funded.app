@@ -33,7 +33,7 @@ Node 24 required inventory:
 node scripts/security-tests.mjs --inventory config/reward-recovery-page-tests.json
 ```
 
-90/90 pass, zero failure/skip/TODO: 11 recovery cases plus the affected 79 holder
+95/95 pass, zero failure/skip/TODO: 16 recovery cases plus the affected 79 holder
 selection and payout cases using the same public reviewed artifact inputs. The
 same controlled 65-attempt case fails against the previous recovery function
 (65 calls instead of 32). Restart, two-store fairness, selected IDs, cached no-write,
@@ -56,3 +56,24 @@ proof-before-status durability is the next storage assessment. Independent
 corrected-source review, realistic financial throughput/expiry, original archives,
 live delivery, operational custody and the final funding packet remain open.
 Contract971399ff/3f8a and the reviewed Loader prefix are unchanged.
+
+
+FQA-MN-001-RECOVERY-01 corrected a shared-cursor liveness failure at dc305e59.
+The unchanged independent probe showed twelve full runs reaching only 96/128
+tasks (32/64 in B) when A-only runs rewound their shared position. Full runs now
+have a cursor that filtered requests never mutate. Filtered requests keep one
+leaf position per existing schedule and choose least-recently-served schedules
+using a persisted monotonic sequence. Progress is shared for the same underlying
+schedule across overlapping requests, not reset by another filter. Fairness is
+collective work progress; an individual request need not revisit work already
+being serviced by another overlapping request. All original attempt proof and
+replacement rules remain unchanged.
+
+This stores at most one filtered progress object per existing schedule, plus one
+sequence and the full-queue cursor. There is no map keyed by arbitrary subsets.
+The original unchanged probe now reaches 128/128 and B64/64 with and without
+interleaving. Five added controls cover reopened stores, overlapping filters,
+competing filtered stores, 126 distinct-subset requests without cursor-map growth,
+and corrupt progress refusing any automatic reset. The original 90 covered cases
+and storage-bottleneck evidence remain valid; independent corrected-source
+verification is requested before accepting the mixed-scope criterion.

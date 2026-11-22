@@ -110,3 +110,62 @@ test('duplicate task identities are refused before any saved-attempt call',async
   const f=await fixture(t);await f.store.transaction(s=>{s.schedules['duplicate-map-key']=structuredClone(s.schedules['schedule-0']);});let calls=0;
   await assert.rejects(recoverSavedRewardPayouts({store:f.store,chain:{submitLeaf:async()=>{calls++;}}}),/duplicate saved payout recovery task/);assert.equal(calls,0);
 });
+
+
+test('filtered recovery cannot rewind full-queue progress across process-style store reopens',async t=>{
+  const f=await fixture(t,[64,64]),seen=new Set(),b=new Set();
+  for(let i=0;i<12;i++){
+    const page=await selectRewardPayoutRecoveries({store:f.reopen()});assert.equal(page.length,32);
+    for(const x of page){seen.add(taskKey(x.plan,x.leaf));if(x.plan.id==='schedule-1')b.add(x.leaf.index);}
+    const before=(await f.store.read()).rewardPayoutRecoveryCursor;
+    const filtered=await selectRewardPayoutRecoveries({store:f.reopen(),selected:new Set(['schedule-0'])});assert.equal(filtered.length,32);
+    assert(filtered.every(x=>x.plan.id==='schedule-0'));assert.deepEqual((await f.store.read()).rewardPayoutRecoveryCursor,before);
+  }
+  assert.equal(seen.size,128);assert.equal(b.size,64);
+});
+
+test('overlapping filtered requests collectively progress every eligible schedule without starvation',async t=>{
+  for(const pattern of [[[0,1,2],[0]],[[0,1],[1,2]]]){
+    const f=await fixture(t,[64,64,64]),seen=new Map(f.plans.map(p=>[p.id,new Set()]));
+    for(let i=0;i<24;i++)for(const members of pattern){
+      const ids=new Set(members.map(n=>'schedule-'+n)),page=await selectRewardPayoutRecoveries({store:f.reopen(),selected:ids});assert.equal(page.length,32);
+      for(const x of page){assert(ids.has(x.plan.id));seen.get(x.plan.id).add(x.leaf.index);}
+    }
+    for(const values of seen.values())assert.equal(values.size,64);
+    assert.equal((await f.store.read()).rewardPayoutRecoveryCursor,undefined);
+  }
+});
+
+test('competing filtered stores preserve per-schedule leaf progress and leave the full cursor untouched',async t=>{
+  const f=await fixture(t,[64,64]),selected=new Set(f.plans.map(p=>p.id));
+  const [a,b]=await Promise.all([selectRewardPayoutRecoveries({store:f.store,selected}),selectRewardPayoutRecoveries({store:f.reopen(),selected})]);
+  assert.equal(new Set([...a,...b].map(x=>taskKey(x.plan,x.leaf))).size,64);
+  const original=[...a,...b].filter(x=>x.plan.id==='schedule-0');assert.equal(original.length,32);
+  const next=await selectRewardPayoutRecoveries({store:f.reopen(),selected:new Set(['schedule-0'])});
+  assert.equal(new Set([...original,...next].map(x=>x.leaf.index)).size,64);
+  assert.equal((await f.store.read()).rewardPayoutRecoveryCursor,undefined);
+});
+
+test('arbitrary filtered subsets store only one progress record per existing schedule',async t=>{
+  const f=await fixture(t,[33,33,33,33,33,33]),before=await f.store.read(),rootKeys=Object.keys(before);
+  for(let round=0;round<2;round++)for(let mask=1;mask<64;mask++){
+    const selected=new Set(f.plans.filter((_,i)=>mask&(1<<i)).map(p=>p.id));assert.equal((await selectRewardPayoutRecoveries({store:f.reopen(),selected})).length,32);
+  }
+  const saved=await f.store.read();assert.equal(Object.keys(saved.schedules).length,6);
+  assert.deepEqual(Object.keys(saved).filter(k=>!rootKeys.includes(k)),['rewardPayoutFilteredSequence']);
+  for(const row of Object.values(saved.schedules)){
+    assert.deepEqual(Object.keys(row).filter(k=>!Object.hasOwn(before.schedules[row.id],k)),['filteredPayoutRecoveryCursor']);
+    assert.deepEqual(row.payoutAttempts,before.schedules[row.id].payoutAttempts);
+    assert.equal(row.filteredPayoutRecoveryCursor.version,1);
+  }
+});
+
+test('invalid filtered progress refuses recovery without resetting or rewriting its state',async t=>{
+  for(const field of ['missing-sequence','future-service','foreign-plan','bad-root-sequence']){
+    const f=await fixture(t,[64]),selected=new Set(['schedule-0']);await selectRewardPayoutRecoveries({store:f.store,selected});
+    await f.store.transaction(s=>{const p=s.schedules['schedule-0'].filteredPayoutRecoveryCursor;
+      if(field==='missing-sequence')delete p.servedAt;if(field==='future-service')p.servedAt=s.rewardPayoutFilteredSequence+1;
+      if(field==='foreign-plan')p.after=JSON.stringify(['different',0,keys[0]]);if(field==='bad-root-sequence')s.rewardPayoutFilteredSequence='bad';});
+    const before=await f.store.read();await assert.rejects(selectRewardPayoutRecoveries({store:f.reopen(),selected}));assert.deepEqual(await f.store.read(),before);
+  }
+});

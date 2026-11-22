@@ -260,7 +260,8 @@ whole-worker/recovery bounds and realistic cohort evidence remain open.
 
 The next MN001 [saved payout recovery page](reward-recovery-pages.md) bounds that
 read-only interface phase to 32 attempts across selected schedules, including
-paused readiness. Its 90-case inventory passes locally. A two-cohort synthetic
+paused readiness. Its corrected 95-case inventory passes locally, including
+full-versus-filtered progress isolation and bounded overlapping-filter state. A two-cohort synthetic
 measurement records actual lock work and exposes remaining whole-ledger write
 amplification; full worker/storage and authenticated financial scale acceptance
 remain open. No admission cap or signing authority was widened.

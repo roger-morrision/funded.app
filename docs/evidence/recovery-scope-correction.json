@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T20:27:41.695020+00:00",
+  "issueId": "FQA-MN-001-RECOVERY-01",
+  "baseRevision": "dc305e596d30da21f947cfb14a647bfa5f7f09d4",
+  "scope": "Mixed full/filtered saved-only recovery liveness; actual locked store/reopens and synthetic pending markers only, no financial or live outcome; independent correction acceptance pending",
+  "node": "v24.22.3",
+  "originalQaProbe": {
+    "sha256": "1ff3695419a04f0453fe38e4037cf7ab8aa7472bea8b2b351a9febfd6b8b22ae",
+    "bytes": "Original unchanged PM probe; exact three-file source closure under its original relative paths, no import/body rewrite",
+    "beforeExit": 1,
+    "afterExit": 0,
+    "before": {
+      "control": {
+        "fullPasses": 12,
+        "selectedPasses": 0,
+        "distinctVisitedByFullPasses": 128,
+        "visitedInB": 64,
+        "cursorAfterFinalThree": [
+          "[\"A\",9,\"RyrXuMze4wtk6wrGRm7Vycp9ijq6nuPeNa5jW7fJ5KG\"]",
+          "[\"B\",37,\"3MYvnejf7cYoMk2YGjYSo9aj7xpuQiMW71XoU4R2jAzo\"]",
+          "[\"B\",9,\"5AjyskJmfoAyHWDYzRZXubthbRG9EAHL8jUPovJurCcQ\"]"
+        ]
+      },
+      "mixed": {
+        "fullPasses": 12,
+        "selectedPasses": 12,
+        "distinctVisitedByFullPasses": 96,
+        "visitedInB": 32,
+        "cursorAfterFinalThree": [
+          "[\"A\",37,\"Dvu6xxPF41iGeYeqZR5sL3sakwV1K8Jo6DPMqubLF99p\"]",
+          "[\"A\",37,\"Dvu6xxPF41iGeYeqZR5sL3sakwV1K8Jo6DPMqubLF99p\"]",
+          "[\"A\",37,\"Dvu6xxPF41iGeYeqZR5sL3sakwV1K8Jo6DPMqubLF99p\"]"
+        ]
+      }
+    },
+    "after": {
+      "control": {
+        "fullPasses": 12,
+        "selectedPasses": 0,
+        "distinctVisitedByFullPasses": 128,
+        "visitedInB": 64,
+        "cursorAfterFinalThree": [
+          "[\"A\",9,\"RyrXuMze4wtk6wrGRm7Vycp9ijq6nuPeNa5jW7fJ5KG\"]",
+          "[\"B\",37,\"3MYvnejf7cYoMk2YGjYSo9aj7xpuQiMW71XoU4R2jAzo\"]",
+          "[\"B\",9,\"5AjyskJmfoAyHWDYzRZXubthbRG9EAHL8jUPovJurCcQ\"]"
+        ]
+      },
+      "mixed": {
+        "fullPasses": 12,
+        "selectedPasses": 12,
+        "distinctVisitedByFullPasses": 128,
+        "visitedInB": 64,
+        "cursorAfterFinalThree": [
+          "[\"A\",9,\"RyrXuMze4wtk6wrGRm7Vycp9ijq6nuPeNa5jW7fJ5KG\"]",
+          "[\"B\",37,\"3MYvnejf7cYoMk2YGjYSo9aj7xpuQiMW71XoU4R2jAzo\"]",
+          "[\"B\",9,\"5AjyskJmfoAyHWDYzRZXubthbRG9EAHL8jUPovJurCcQ\"]"
+        ]
+      }
+    }
+  },
+  "change": [
+    "Full-queue cursor only advances for selected=null; filtered runs never rewrite its progress",
+    "Filtered work maintains one original-leaf position per existing schedule and least-recently-served progress with one monotonic persisted sequence",
+    "Overlapping requests share progress for the same underlying schedule, so narrower requests do not rewind other schedules; collective fairness rather than duplicate per-filter visitation guarantees",
+    "No per-subset map/cache; at most one bounded progress record per existing schedule plus one sequence and the full cursor",
+    "Maintain<=32 tasks, exclusive lock, small-set no-cursor-write path, immutable original attempt markers and unchanged recoveryOnly chain/completion/proof body"
+  ],
+  "tests": {
+    "required": 95,
+    "passed": 95,
+    "failed": 0,
+    "skip": 0,
+    "todo": 0,
+    "priorCoveredCases": 90,
+    "addedMixedScopeCases": 5,
+    "durationMs": 55527.3128,
+    "covered": [
+      "Original12full+12A-only probe with store reopen: full visits128/128 and B64/64 instead of96/128 andB32/64",
+      "Full cursor byte equality before/after every filtered call",
+      "Overlapping[A,B,C]/[A] and[A,B]/[B,C] collectively visit every64-task schedule",
+      "Concurrent filtered stores and restart preserve disjoint initial and per-schedule continuation",
+      "126subset requests across6existing schedules add exactly6row progress objects and one sequence, no scope map",
+      "Malformed stored filtered progress refuses without resetting state"
+    ],
+    "developmentCheckHistory": "Initial full run94/95 exposed a test assuming which concurrent store acquired the lock. The corrected assertion uses both pages and additionally requires exactly32 original schedule-A tasks; no runtime guard was relaxed. Initial raw output retained."
+  },
+  "checks": {
+    "changedSyntax": 2,
+    "sizeCheck": "Source size budgets passed for 1434 maintained code files (hard maximum: 1000 lines).",
+    "diffCheck": "passed",
+    "contractRuntimeDiffFrom971399ff": 0,
+    "admissionCapUnchanged": 1000
+  },
+  "gitLfSourceSha256": {
+    "server/reward-recovery-page.mjs": "18d432cbf4552e49c7fc87360d3f781dcb7e9e027e9f2635e87f50e43ae8e540",
+    "tests/readiness/reward-recovery-page.test.mjs": "8fe4cac10bb8a7cbc512f8bb8423d359d1f9103b2a93e2bce63d915b00d07338",
+    "config/reward-recovery-page-tests.json": "30a89017152ee6c04c7bfb49d3a8f4a8e72fee5558657c97efe1064dea9a2a97",
+    "docs/reward-recovery-pages.md": "f82259b1e68e0359151cbe7e2119a131685e7b8478c3331297ba815c4f632d2c",
+    "docs/mainnet-production-packet-2026-11-22.md": "406daa31951b8ad9c9282544f1f51f35e45c3ed219480faf7e8a70f69dbc2eeb"
+  },
+  "unchangedContextSha256": {
+    "server/reward-payout-recovery.mjs": "8260c04f1b62c96c47c96c583867846129e714fd95a81398fd0e6e1b02ec8a97",
+    "server/automatic-reward-store.mjs": "38c64132dc325960d26fdce8a395ca0547c620febc8a4325f832205a7287100a",
+    "server/reward-payout-journal.mjs": "bf9ed810fdce5eb6fcd72e4e172e1bef3f24808a70aa4d8ef8a1320bb415f361",
+    "server/reward-payout-evidence.mjs": "33a79a6dc1c522f8cd621c02f889886cb9a6967c93bf8c15b0b26ef85e4b2d00",
+    "server/automatic-reward-chain.mjs": "c126811dee3c8f30ae9a7406e1c34592c84944359e37373adef4ea4b8b7a0d6e",
+    "server/reward-scheduler.mjs": "e2e6283e0805eba61b1b67e6b9e01591cd3eb3dbfa3a135d9e6fcb18eb94f4c1",
+    "server/holder-payout-page.mjs": "01f8d75f7a277ed497f843dc6fac110b553f17bd8fe1c5397b973bc32fab19f6",
+    "server/reward-schedule-payments.mjs": "146afef3a8cd686de592f1df99ef1db7275d37938136c6d7d5c32f5ed90733b3",
+    "automatic-rewards.js": "185a8c013f600bf871b253c04e3f3c3196f0b78c6cd0c459f8185dde60c0c2d8",
+    "reward-merkle.js": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26"
+  },
+  "evidence": "data/qa-evidence/mainnet-production-packet-20261122/recovery-scope-correction/",
+  "remaining": [
+    "The covered90 interface/measurement cases remain valid; their62.47MB whole-ledger amplification is not fixed by this scheduling correction",
+    "No per-filter independent revisit guarantee: already-serviced tasks may progress through another overlapping request; full-queue progress remains isolated",
+    "Whole-worker/expiry/capture bounds, full signed-payload realistic scale, originalbank/live28, custody and final funding remain open",
+    "No signing service, transaction, spending, admission/cap/policy/allowlist change, contract rebuild/quote, merge or deployment"
+  ],
+  "nextUsefulAction": "Independent original-probe and overlapping-scope retest, then continue already-owned byte-identical ledger persistence assessment preserving same-lock bootstrap/version migration/changed-state fsync/proof-before-status/cache/failure/restore semantics."
+}
