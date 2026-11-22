@@ -1,3 +1,4 @@
+import {buybackVaultSpend} from './buyback-balance-proof.mjs';
 import {readRichAssets} from '../rich-assets.js';
 import {decodeBuybackRequest} from './price-signer-review.mjs';
 import { createHash } from 'node:crypto';
@@ -17,7 +18,7 @@ const address = value => typeof value === 'string' ? value : value?.toBase58?.()
 const bytes = value => typeof value === 'string' ? Buffer.from(bs58.decode(value)) : Buffer.from(value || []);
 
 // A successful transaction signature alone cannot establish a token burn.
-// The finality proof binds the category-vault debit, PumpSwap exact-quote CPI,
+// The finality proof binds the donation-adjusted vault debit, exact-quote CPI,
 // token burn CPI, immutable router receipt, and current policy budget.
 export async function loadFinalizedV3Buyback({ connection, signature, programId, cluster='devnet',
   sourceMint, creator, initialAuthority, authority, baseTokenProgram, priceSigner,
@@ -93,11 +94,14 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     }
     if (routerIndex < 0||setupIndex&&setupIndex!==setup().length||curve&&setupIndex!==setup().length) return null;
     const inner = tx.meta.innerInstructions?.find(group => group.index === routerIndex)?.instructions || [];
-    let pumpSeen = false, burnSeen = false;
+    let pumpSeen = false, burnSeen = false, quoteClosed = false;
     for (const ix of inner) {
       const program = keys[ix.programIdIndex];
       const data = bytes(ix.data);
       const accounts = (ix.accounts || ix.accountKeyIndexes || []).map(index => keys[index]);
+      if(program===TOKEN_PROGRAM_ID.toBase58()&&data.length===1&&data[0]===9
+        &&accounts[0]===expected.quoteAta.toBase58()&&accounts[1]===expected.vault.toBase58()
+        &&accounts[2]===expected.vault.toBase58())quoteClosed=true;
       if (curve&&program===PUMP_PROGRAM_ID.toBase58()
         &&data.length===25&&data[24]===0&&data.subarray(0,8).equals(CURVE_BUY)
         &&data.readBigUInt64LE(8)===BigInt(minBaseAmountOut)
@@ -122,10 +126,10 @@ export async function loadFinalizedV3Buyback({ connection, signature, programId,
     if (!pumpSeen || typeof burnSeen !== 'bigint' || burnSeen < BigInt(minBaseAmountOut)) return null;
     const vaultIndex = keys.indexOf(expected.vault.toBase58());
     const before = tx.meta.preBalances?.[vaultIndex], after = tx.meta.postBalances?.[vaultIndex];
-    if (vaultIndex < 0 || !Number.isSafeInteger(before) || !Number.isSafeInteger(after)
-      || before <= after) return null;
-    const spent = BigInt(before) - BigInt(after);
-    if (spent > BigInt(maxTotalDebit)) return null;
+    const quoteIndex=keys.indexOf(expected.quoteAta.toBase58());
+    const spent=buybackVaultSpend({before,after,curve,quoteClosed,
+      quoteBefore:tx.meta.preBalances?.[quoteIndex],quoteAfter:tx.meta.postBalances?.[quoteIndex]});
+    if(vaultIndex<0||spent===null||spent>BigInt(maxTotalDebit))return null;
     const [receiptInfo, policy] = await Promise.all([
       connection.getAccountInfo(expected.receipt, 'finalized'),
       verifyPolicy({ connection, programId, mint:sourceMint, creator,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "local-only SBF execution; public Devnet snapshots; synthetic policies and funding; ephemeral in-memory signers",
-  "routerBinarySha256": "7073be14d9cfb48ea9b557c250bf385e6efe42dec3d441c57396b2c08ee2cc7d",
+  "routerBinarySha256": "78d7d66b237bffe6a189ab69f293e3a0d970730371dc98bd8a505cb5dd4293ea",
   "fixtures": [
     {
       "venue": "pool",
@@ -31,15 +31,49 @@
       "snapshotSha256": "6f70892dc3d058d48d55ef8be16f07583fd12e100b50ed7cfe96c661f76e7447",
       "testResults": [
         {
-          "agency": false,
-          "computeUnits": 260196,
+          "agency": true,
+          "donationMode": 1,
+          "computeUnits": 260279,
           "spentLamports": 1000000,
           "burnedBaseUnits": 82029,
           "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
         },
         {
           "agency": true,
-          "computeUnits": 263256,
+          "donationMode": 0,
+          "computeUnits": 262796,
+          "spentLamports": 1000000,
+          "burnedBaseUnits": 82029,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
+          "agency": false,
+          "donationMode": 1,
+          "computeUnits": 257226,
+          "spentLamports": 1000000,
+          "burnedBaseUnits": 82029,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
+          "agency": false,
+          "donationMode": 0,
+          "computeUnits": 259743,
+          "spentLamports": 1000000,
+          "burnedBaseUnits": 82029,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
+          "agency": true,
+          "donationMode": 2,
+          "computeUnits": 248116,
+          "spentLamports": 1000000,
+          "burnedBaseUnits": 82029,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
+          "agency": false,
+          "donationMode": 2,
+          "computeUnits": 245063,
           "spentLamports": 1000000,
           "burnedBaseUnits": 82029,
           "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
@@ -74,15 +108,33 @@
       "snapshotSha256": "a565b8663d5ef771026a6703ac44eac328d03eb7e413e02e967a794d91d0f1a5",
       "testResults": [
         {
+          "agency": false,
+          "donationMode": 0,
+          "computeUnits": 187291,
+          "spentLamports": 989999,
+          "burnedBaseUnits": 16813522243,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
           "agency": true,
-          "computeUnits": 190079,
+          "donationMode": 1,
+          "computeUnits": 184544,
           "spentLamports": 989999,
           "burnedBaseUnits": 16813522243,
           "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
         },
         {
           "agency": false,
-          "computeUnits": 187237,
+          "donationMode": 1,
+          "computeUnits": 181693,
+          "spentLamports": 989999,
+          "burnedBaseUnits": 16813522243,
+          "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
+        },
+        {
+          "agency": true,
+          "donationMode": 0,
+          "computeUnits": 190142,
           "spentLamports": 989999,
           "burnedBaseUnits": 16813522243,
           "receipt": "HVrD73ZdAZkCo8HAVjtxiUeLSDvyqLFFiLsHm822qjf4"
@@ -94,12 +146,14 @@
     "real external venue and fee bytecode executes CPI",
     "actual quote minimum exceeds one unit",
     "mint supply decreases by receipt burn amount",
-    "vault lamports decrease by receipt spend",
-    "purchased-token ATA ends empty",
+    "vault plus preexisting WSOL lamports decrease by receipt spend",
+    "purchased-token ATA preserves its prior balance; only new purchases burn",
     "wrapped SOL account closes",
     "impossible slippage leaves policy, pool, supply and vault unchanged",
     "receipt replay rejected without custody changes",
-    "versioned transactions fit the 1232-byte network packet limit with a synthetic local ALT"
+    "versioned transactions fit the 1232-byte network packet limit with a synthetic local ALT",
+    "third-party token transfers and pre-funded volume PDAs cannot prevent the trade",
+    "operator rent refund equals actual quote-ATA creation debit"
   ],
   "notVerified": [
     "live transaction confirmation",
@@ -110,5 +164,18 @@
     "production application workers",
     "complete Token-2022 extension matrix",
     "production canary"
-  ]
+  ],
+  "donationModes": {
+    "0": "clean",
+    "1": "three base-token units and pre-funded volume PDA; pool also has 700000 lamports at uninitialized WSOL ATA",
+    "2": "three base-token units, pre-funded volume PDA and existing WSOL ATA with 3000000 donated lamports in addition to rent"
+  },
+  "regressionBefore": {
+    "binarySha256": "7073be14d9cfb48ea9b557c250bf385e6efe42dec3d441c57396b2c08ee2cc7d",
+    "venue": "pool",
+    "cleanPassed": 2,
+    "donationCasesFailed": 2,
+    "error": "InvalidMintBuybackV3",
+    "logSha256": "9b8b7d0e22098d52047e42f066a85f18cfc463e5433e3454e9f7683125eca2ff"
+  }
 }

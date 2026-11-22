@@ -59,7 +59,7 @@ pub fn execute<'info>(ctx: CurveAccounts<'info>, accounts: &[AccountInfo<'info>]
     let volume = &accounts[13];
     require!(volume.key() == Pubkey::find_program_address(&[b"user_volume_accumulator", ctx.vault.key.as_ref()], &PUMP).0,
         ErrorCode::InvalidMintBuybackV3);
-    if volume.lamports() == 0 {
+    if volume.data_is_empty() && volume.owner == &System::id() {
         let ix = Instruction { program_id:PUMP, accounts:vec![
             AccountMeta::new(ctx.authority.key(), true), AccountMeta::new_readonly(ctx.vault.key(), false),
             AccountMeta::new(volume.key(), false), AccountMeta::new_readonly(ctx.system.key(), false),
@@ -71,20 +71,20 @@ pub fn execute<'info>(ctx: CurveAccounts<'info>, accounts: &[AccountInfo<'info>]
     let create = anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account_idempotent(
         &ctx.authority.key(), &ctx.vault.key(), &ctx.mint.key(), &base);
     invoke(&create, &[ctx.authority.clone(),ctx.ata.clone(),ctx.vault.clone(),ctx.mint.clone(),ctx.system.clone(),ctx.base.clone(),ctx.associated.clone()])?;
-    require!(amount(&ctx.ata,64)? == 0, ErrorCode::InvalidMintBuybackV3);
+    let base_before = amount(&ctx.ata,64)?;
     let supply = amount(&ctx.mint,36)?;
     let mut data = BUY.to_vec(); data.extend_from_slice(&minimum.to_le_bytes());
     data.extend_from_slice(&quote.to_le_bytes()); data.push(0);
     let metas = accounts.iter().enumerate().map(|(i,a)| if a.is_writable {
         AccountMeta::new(a.key(), i == 6) } else { AccountMeta::new_readonly(a.key(), i == 6) }).collect();
     invoke_signed(&Instruction { program_id:PUMP, accounts:metas, data }, accounts, &[signer])?;
-    let bought = amount(&ctx.ata,64)?;
+    let bought = amount(&ctx.ata,64)?.checked_sub(base_before).ok_or(ErrorCode::MintBuybackBurnFailedV3)?;
     require!(bought >= minimum, ErrorCode::MintBuybackBurnFailedV3);
     let decimals = *ctx.mint.try_borrow_data()?.get(44).ok_or(ErrorCode::InvalidMintBuybackV3)?;
     let burn = anchor_spl::token_2022::spl_token_2022::instruction::burn_checked(
         &base, &ctx.ata.key(), &ctx.mint.key(), &ctx.vault.key(), &[], bought, decimals)?;
     invoke_signed(&burn, &[ctx.ata.clone(),ctx.mint.clone(),ctx.vault.clone(),ctx.base.clone()], &[signer])?;
-    require!(amount(&ctx.ata,64)? == 0 && supply.checked_sub(amount(&ctx.mint,36)?) == Some(bought),
+    require!(amount(&ctx.ata,64)? == base_before && supply.checked_sub(amount(&ctx.mint,36)?) == Some(bought),
         ErrorCode::MintBuybackBurnFailedV3);
     let spent = before.checked_sub(ctx.vault.lamports()).ok_or(ErrorCode::InvalidMintBuybackV3)?;
     require!(spent > 0 && spent <= quote && spent <= limit, ErrorCode::MintWithdrawalBudgetExceededV3);

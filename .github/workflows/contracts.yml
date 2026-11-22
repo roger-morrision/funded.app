@@ -88,6 +88,12 @@ jobs:
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --lib --test rich_assets --test protocol_guard
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test reward_mainnet_gates
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh LEGACY_DEVELOPER_LOCK_TEST_SO="$PWD/target/deploy/developer_token_lock.so" FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test developer_escrow
+      - name: Capture public Devnet pool and external program fixtures
+        run: node scripts/capture-cpi-fixture.mjs pool EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32 "$RUNNER_TEMP/buyback-pool-fixture" devnet
+      - name: Execute real PumpSwap buybacks, burns and donation regressions
+        working-directory: contracts/funded-fee-router
+        run: |
+          FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" FUNDED_CPI_FIXTURE="$RUNNER_TEMP/buyback-pool-fixture" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test cpi_buyback -- --ignored --nocapture
       - name: Verify configurable Devnet administration and stale-order rejection
         working-directory: contracts/funded-fee-router
         run: |
@@ -114,4 +120,5 @@ jobs:
             contracts/funded-fee-router/target/deploy/source-revision.txt
             contracts/funded-fee-router/target/deploy/bytecode.sha256
             contracts/funded-fee-router/target/deploy/bytecode-sizes.txt
+            ${{ runner.temp }}/buyback-pool-fixture/
           retention-days: 30

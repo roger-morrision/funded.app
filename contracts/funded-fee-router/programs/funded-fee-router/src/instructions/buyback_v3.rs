@@ -194,7 +194,7 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     let (expected_volume, _) = Pubkey::find_program_address(
         &[b"user_volume_accumulator", vault.key().as_ref()], &pump);
     require!(volume.key() == expected_volume, ErrorCode::InvalidMintBuybackV3);
-    if volume.lamports() == 0 {
+    if volume.data_is_empty() && volume.owner == &System::id() {
         let event = swap_accounts[15].clone();
         let init_volume = Instruction { program_id:pump,
             accounts:vec![
@@ -223,17 +223,19 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         ctx.accounts.authority.to_account_info(), funded_ata.clone(), vault.to_account_info(),
         funded_mint_info.clone(), system.clone(), base.clone(), ata_program.clone(),
     ])?;
-    require!(wsol_ata.lamports() == 0 && wsol_ata.data_is_empty(),
-        ErrorCode::InvalidMintBuybackV3);
+    // Anyone can pre-create/fund this ATA. Preserve donations in the vault and
+    // reimburse only the lamports this operator actually supplies for creation.
+    let quote_prefund = wsol_ata.lamports();
+    let payer_before_quote = ctx.accounts.authority.lamports();
     let create_quote = anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account_idempotent(
         &ctx.accounts.authority.key(), &vault.key(), &native_mint, &quote_program);
     invoke(&create_quote, &[
         ctx.accounts.authority.to_account_info(), wsol_ata.clone(), vault.to_account_info(),
         native_mint_info, system.clone(), quote.clone(), ata_program,
     ])?;
-    let quote_rent = Rent::get()?.minimum_balance(wsol_ata.data_len());
-    require!(amount_at(&funded_ata, 64)? == 0 && amount_at(&wsol_ata, 64)? == 0,
-        ErrorCode::InvalidMintBuybackV3);
+    let quote_rent = payer_before_quote.checked_sub(ctx.accounts.authority.lamports())
+        .ok_or(ErrorCode::InvalidMintBuybackV3)?;
+    let base_before = amount_at(&funded_ata, 64)?;
     let supply_before = amount_at(&funded_mint_info, 36)?;
     invoke_signed(&system_instruction::transfer(&vault.key(), &wsol_ata.key(), spendable_quote_in),
         &[vault.to_account_info(), wsol_ata.clone(), system], signers)?;
@@ -252,7 +254,8 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     }).collect();
     invoke_signed(&Instruction { program_id:pump, accounts:metas, data },
         swap_accounts, signers)?;
-    let bought = amount_at(&funded_ata, 64)?;
+    let bought = amount_at(&funded_ata, 64)?.checked_sub(base_before)
+        .ok_or(ErrorCode::MintBuybackBurnFailedV3)?;
     require!(bought >= min_base_amount_out, ErrorCode::MintBuybackBurnFailedV3);
     let decimals = funded_mint_info.try_borrow_data()?
         .get(44).copied().ok_or(ErrorCode::InvalidMintBuybackV3)?;
@@ -261,7 +264,7 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
     invoke_signed(&burn, &[
         funded_ata.clone(), funded_mint_info.clone(), vault.to_account_info(), base,
     ], signers)?;
-    require!(amount_at(&funded_ata, 64)? == 0
+    require!(amount_at(&funded_ata, 64)? == base_before
         && supply_before.checked_sub(amount_at(&funded_mint_info, 36)?) == Some(bought),
         ErrorCode::MintBuybackBurnFailedV3);
     let close = anchor_spl::token::spl_token::instruction::close_account(
@@ -274,7 +277,7 @@ pub fn handler<'info>(ctx: Context<'info, BuybackMintV3<'info>>,
         vault.to_account_info(), ctx.accounts.authority.to_account_info(),
         ctx.accounts.system_program.to_account_info(),
     ], signers)?;
-    let spent = before_lamports.checked_sub(vault.lamports())
+    let spent = before_lamports.checked_add(quote_prefund).and_then(|before| before.checked_sub(vault.lamports()))
         .ok_or(ErrorCode::InvalidMintBuybackV3)?;
     require!(spent > 0 && spent <= max_total_debit,
         ErrorCode::InvalidMintBuybackV3);

@@ -2,7 +2,7 @@
 //! Explicit opt-in: public snapshots, synthetic policy/funding, local-only VM.
 #![cfg(feature="mainnet-v3-program")]
 use anchor_lang::{prelude::Pubkey, AccountSerialize, AccountDeserialize, InstructionData, ToAccountMetas,
-    solana_program::instruction::{Instruction,AccountMeta}};
+    solana_program::{instruction::{Instruction,AccountMeta},program_pack::Pack,program_option::COption}};
 use anchor_spl::{token::spl_token,associated_token::{get_associated_token_address_with_program_id,spl_associated_token_account}};
 use litesvm::LiteSVM;
 use solana_keypair_lite::Keypair;
@@ -41,11 +41,20 @@ fn amount(svm:&LiteSVM,address:Pubkey,offset:usize)->u64{u64::from_le_bytes(svm.
 
 #[test]
 #[ignore = "requires explicit public DEX snapshots; run with FUNDED_CPI_FIXTURE and --ignored"]
-fn real_dex_purchase_burn_replay_and_custody(){run(false);}
+fn real_dex_purchase_burn_replay_and_custody(){run(false,0);}
 #[test]
 #[ignore = "requires explicit public DEX snapshots; run with FUNDED_CPI_FIXTURE and --ignored"]
-fn agency_real_dex_purchase_burn_replay_and_custody(){run(true);}
-fn run(agency:bool){
+fn agency_real_dex_purchase_burn_replay_and_custody(){run(true,0);}
+#[test]
+#[ignore = "requires explicit public DEX snapshots"]
+fn donated_accounts_cannot_block_protected_buybacks(){run(false,1);if pool_fixture(){run(false,2);}}
+#[test]
+#[ignore = "requires explicit public DEX snapshots"]
+fn donated_accounts_cannot_block_agency_buybacks(){run(true,1);if pool_fixture(){run(true,2);}}
+fn pool_fixture()->bool{
+    let f:Value=serde_json::from_slice(&std::fs::read(PathBuf::from(std::env::var("FUNDED_CPI_FIXTURE").unwrap()).join("fixture.json")).unwrap()).unwrap();f["venue"]=="pool"
+}
+fn run(agency:bool,donation:u8){
     let directory=PathBuf::from(std::env::var("FUNDED_CPI_FIXTURE").expect("snapshot directory"));
     let fixture:Value=serde_json::from_slice(&std::fs::read(directory.join("fixture.json")).unwrap()).unwrap();
     let key=|field:&str|pk(fixture[field].as_str().unwrap());
@@ -98,6 +107,28 @@ fn run(agency:bool){
     let (token,mint,pool)=(key("tokenProgram"),key("mint"),key("market"));
     let ata=get_associated_token_address_with_program_id(&vault,&mint,&token);
     let wsol=get_associated_token_address_with_program_id(&vault,&spl_token::native_mint::id(),&spl_token::ID);
+    let base_donation=if donation>0{3}else{0};
+    if donation>0{
+        // An unrelated payer can create canonical vault ATAs and transfer dust.
+        let donor=Keypair::new();svm.airdrop(&donor.pubkey(),1_000_000_000).unwrap();
+        let source_account=Pubkey::new_unique();let mut data=vec![0;spl_token::state::Account::LEN];
+        spl_token::state::Account::pack(spl_token::state::Account{mint,owner:donor.pubkey(),amount:base_donation,
+            delegate:COption::None,state:spl_token::state::AccountState::Initialized,is_native:COption::None,
+            delegated_amount:0,close_authority:COption::None},&mut data).unwrap();
+        svm.set_account(source_account,solana_account::Account{lamports:10_000_000,data,owner:token,executable:false,rent_epoch:0}).unwrap();
+        let mut dust=vec![spl_associated_token_account::instruction::create_associated_token_account_idempotent(&donor.pubkey(),&vault,&mint,&token),
+            spl_token::instruction::transfer_checked(&token,&source_account,&mint,&ata,&donor.pubkey(),&[],base_donation,svm.get_account(&mint).unwrap().data[44]).unwrap()];
+        let volume_index=if fixture["venue"]=="pool"{20}else{13};
+        let volume=pk(fixture["buy"]["keys"][volume_index]["pubkey"].as_str().unwrap());
+        dust.push(anchor_lang::solana_program::system_instruction::transfer(&donor.pubkey(),&volume,700_000));
+        if fixture["venue"]=="pool"{
+            if donation==2{dust.push(spl_associated_token_account::instruction::create_associated_token_account_idempotent(&donor.pubkey(),&vault,&spl_token::native_mint::id(),&spl_token::ID));}
+            dust.push(anchor_lang::solana_program::system_instruction::transfer(&donor.pubkey(),&wsol,if donation==2{3_000_000}else{700_000}));
+            if donation==2{dust.push(spl_token::instruction::sync_native(&spl_token::ID,&wsol).unwrap());}
+        }
+        send(&mut svm,&donor,&[&donor],&dust).unwrap();
+    }
+    let quote_donation=if fixture["venue"]=="pool"{svm.get_account(&wsol).map_or(0,|a|a.lamports)}else{0};
     let receipt=Pubkey::find_program_address(&[b"mint-buyback-v3",source.as_ref(),&[7;32]],&program).0;
     let mut accounts=funded_fee_router::accounts::BuybackMintV3{authority:op.pubkey(),creator,mint:source,legacy_router:router,policy,vault,
         funded_mint:mint,funded_token_account:ata,quote_token_account:wsol,pool,receipt,base_token_program:token,quote_token_program:spl_token::ID,
@@ -144,10 +175,10 @@ fn run(agency:bool){
         else{let saved=funded_fee_router::MintBuybackV3::try_deserialize(&mut &receipt_account.data[..]).unwrap();(saved.spent_lamports,saved.burned_base_units)};
     assert!(burned>0&&spent>0&&spent<=1_000_000);
     assert_eq!(before_supply-amount(&svm,mint,36),burned);
-    assert_eq!(before_vault-svm.get_account(&vault).unwrap().lamports,spent);
-    assert_eq!(amount(&svm,ata,64),0);assert!(svm.get_account(&wsol).is_none_or(|a|a.lamports==0));
+    assert_eq!(before_vault+quote_donation-svm.get_account(&vault).unwrap().lamports,spent);
+    assert_eq!(amount(&svm,ata,64),base_donation);assert!(svm.get_account(&wsol).is_none_or(|a|a.lamports==0));
     let final_policy=svm.get_account(&policy).unwrap();let final_vault=svm.get_account(&vault).unwrap();
     assert!(send(&mut svm,&op,&[&op,&price],&[ix]).is_err());
     assert_eq!(svm.get_account(&policy).unwrap(),final_policy);assert_eq!(svm.get_account(&vault).unwrap(),final_vault);
-    println!("CPI_EVIDENCE venue={} agency={} compute_units={} spent={} burned={} receipt={} fixture_slot={}",fixture["venue"],agency,compute,spent,burned,receipt,fixture["slot"]);
+    println!("CPI_EVIDENCE venue={} agency={} donation={} compute_units={} spent={} burned={} receipt={} fixture_slot={}",fixture["venue"],agency,donation,compute,spent,burned,receipt,fixture["slot"]);
 }
