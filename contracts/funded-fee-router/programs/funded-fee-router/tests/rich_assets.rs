@@ -17,6 +17,9 @@ mod holder_reward;
 mod daily_bonus;
 #[path = "rich_assets/token_reward.rs"]
 mod token_reward;
+#[cfg(feature = "mainnet-v3-program")]
+#[path = "rich_assets/paired_delivery.rs"]
+mod paired_delivery;
 
 fn send(svm: &mut LiteSVM, payer: &Keypair, signers: &[&Keypair], ix: Instruction) -> Result<(),String> {
     let message=Message::new_with_blockhash(&[ix],Some(&payer.pubkey()),&svm.latest_blockhash());
