@@ -83,6 +83,21 @@ test('old operator, paused guard, premature grace and missing time cannot constr
   const i=fixture();i.time=null;await assert.rejects(readRewardExpiryContext(i.args()),/time/);
 });
 
+for(const asset of ['SOL','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'])test('equal cutoff and payout admit exact grace but reject reversed times for '+asset,async()=>{
+  const equal=fixture(asset);equal.plan.payoutAt=equal.plan.cutoffAt;
+  equal.rows.get(String(equal.cycle)).data.writeBigInt64LE(BigInt(equal.plan.payoutAt),160);
+  equal.time=equal.plan.payoutAt+30*24*60*60;
+  const before=await readRewardExpiryContext(equal.args());assert.equal(before.record.payoutAt,before.record.cutoffAt);
+  equal.time--;await assert.rejects(readRewardExpiryContext(equal.args()),/grace/);
+  equal.time+=2;assert.equal((await readRewardExpiryContext(equal.args())).record.reserved,true);
+  equal.expire();assert.equal(verifyRewardExpiryTransition(before,await readRewardExpiryContext(equal.args())).unpaidAmount,'200');
+  const reversed=fixture(asset);reversed.plan.payoutAt=reversed.plan.cutoffAt-1;
+  reversed.rows.get(String(reversed.cycle)).data.writeBigInt64LE(BigInt(reversed.plan.payoutAt),160);
+  reversed.time=reversed.plan.payoutAt+30*24*60*60;
+  let reads=0;reversed.connection.getGenesisHash=async()=>{reads++;throw Error('No RPC permitted for reversed times');};
+  await assert.rejects(readRewardExpiryContext(reversed.args()),/immutable reward cycle/);assert.equal(reads,0);
+});
+
 test('stale reads, unknown cycle layout and invalid unpaid liabilities remain unresolved',async()=>{
   const f=fixture(),read=f.connection.getMultipleAccountsInfoAndContext;f.connection.getMultipleAccountsInfoAndContext=async(...args)=>({...await read(...args),context:{slot:f.slot-1}});
   await assert.rejects(readRewardExpiryContext(f.args()),/Stale/);

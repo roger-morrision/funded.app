@@ -26,7 +26,7 @@ export async function readRewardExpiryContext({connection,programId,currentAutho
   assert(plan?.cycle&&manifest&&/^[a-f0-9]{64}$/.test(manifest.cycleId)&&/^[a-f0-9]{64}$/.test(manifest.root)
     &&/^[1-9]\d*$/.test(manifest.totalAmount)&&BigInt(manifest.totalAmount)<=0xffffffffffffffffn
     &&Array.isArray(manifest.leaves)&&manifest.leaves.length>0&&Number.isSafeInteger(plan.cutoffAt)&&plan.cutoffAt>0
-    &&Number.isSafeInteger(plan.payoutAt)&&plan.payoutAt>plan.cutoffAt,'Saved immutable reward cycle and manifest required.');
+    &&Number.isSafeInteger(plan.payoutAt)&&plan.payoutAt>=plan.cutoffAt,'Saved immutable reward cycle and manifest required.');
   const cycle=key(plan.cycle),mint=key(plan.mint),asset=key(manifest.asset==='SOL'?SOL_ASSET_MINT:manifest.asset),router=deriveRouterHeader(program);
   if(plan.asset!==undefined)assert(plan.asset===manifest.asset,'Saved reward asset differs.');
   await assertRpcNetwork(connection,cluster);

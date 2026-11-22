@@ -121,7 +121,7 @@ The final wallet table must replace every unknown with the real message inventor
 
 | Recipient | Current finalized balance | Required final calculation |
 | --- | ---: | --- |
-| E9 payer (full address above) | 0, slot 472590082â€“83 | Upload/deploy fees and peak recycled rent, E9-paid setup/canary fees; approved contingency |
+| E9 payer (full address above) | 0, slot 472590082Ã¢â‚¬â€œ83 | Upload/deploy fees and peak recycled rent, E9-paid setup/canary fees; approved contingency |
 | 5Thg admin (full address above) | 0, same quote | 3,952,240 direct initial config rent plus any explicitly admin-paid fees/actions |
 | Fresh operator | Identity not provisioned | 1,315,720 router rent, exact operational setup/ATA/ALT/canary costs, the single 3 SOL protected reserve plus expenses above it |
 | Independent price signer | Identity not provisioned | Exact configuration/operating fee obligations, if any; do not assume it is a fee payer |
@@ -142,7 +142,7 @@ and worker admission remain disabled. Exact signed bytes must be durably saved
 before any future broadcast; unknown attempts cannot be replaced blindly.
 
 The [historical expiry source candidate](historical-reward-expiry-2026-11-22.md)
-now binds original vault/cycle/reserve while the current operator signs. Ten local
+now binds original vault/cycle/reserve while the current operator signs. Twelve local
 cases pass, including the adapter regression that fails on preceding App source.
 Independent review, durable expiry-attempt recovery and historical payout/cleanup
 binding remain open; this is not operational financial acceptance.

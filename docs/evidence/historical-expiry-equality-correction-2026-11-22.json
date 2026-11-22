@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-22T16:24:48.103554+00:00",
+  "baseRevision": "e04a28cbdf6644a4a483abb7c223093d9a3a0c52",
+  "scope": "Local-only equality compatibility correction; no admission/financial/contract change",
+  "node": "v24.22.3",
+  "baseline": {
+    "failed": 2,
+    "exit": 1,
+    "sourceSha256": "c53841358621c096a636feb5c00c708f846d6d1daee9c04e56fdddf3137a74da",
+    "testChange": "Only helper import prefix redirected to exact e04 helper bytes"
+  },
+  "current": {
+    "requiredPassed": 12,
+    "counts": {
+      "tests": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "assets": [
+      "SOL",
+      "USDC"
+    ],
+    "equalTime": "accepted with exact expiry delta",
+    "graceBoundary": "one second before rejects; exactly at and one second after accepts",
+    "reversedTime": "both reject before RPC"
+  },
+  "sourceSha256Lf": {
+    "server/reward-expiry-context.mjs": "67c137de670ee893559eaf5e42f2c088e4c2565054b415b45ad0df1d9906ce15",
+    "tests/readiness/reward-expiry-context.test.mjs": "13567674fd1499cc25a5d7c82ddc8a35f8a5f1f26008bede24c076100e451ad5",
+    "config/reward-expiry-context-tests.json": "b4312d5763a0a6407b0b2394751dd0ec5d7642da944bb465364b3f2f9a1244bc",
+    "docs/historical-reward-expiry-2026-11-22.md": "8dc7b275dcdbc3288d10763510da78156f71b21d5ddd8b2f2a6648a12c98711c",
+    "docs/mainnet-production-packet-2026-11-22.md": "a0692c403774bf65e1cc59a6d8011f7cdfc8384281ff5c312045a46fd66b85ae"
+  },
+  "evidenceSha256": {
+    "baseline-probe-sol-usdc.mjs": "fcb9bb4d9fa8752061451bdd58a871395f2d7ec6237d53baeeecdd38b2ffb65d",
+    "baseline-probe.mjs": "e06127d9ece4b48577a66e367adc9d88cd7047998d47009a75c14f1e70b30741",
+    "baseline-sol-usdc.txt": "07d15784dba6bef9d94aea741850b1996a5fad7514c556281d810d9fa7ad89ee",
+    "baseline.txt": "792846295ce43650e2a9405d467f8a26163bc4e418f5640bd2d64722be9983b4",
+    "e04-source.mjs": "c53841358621c096a636feb5c00c708f846d6d1daee9c04e56fdddf3137a74da",
+    "result-sol-usdc.json": "d1eefa7a0bb0be81e788af37d1d1e014ccda79774bd3386076e97fbe0e90cd4c",
+    "result.json": "4b90c71dfd6e19b7fefa214f935c974f43c42beaec6066ebcc934ca6c6fac26b"
+  },
+  "remaining": "Durable unknown expiry attempt journal, archived exact transaction proof and full Mainnet readiness remain open",
+  "issueId": "FQA-MN-005-EXPIRY-01"
+}

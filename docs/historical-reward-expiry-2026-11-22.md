@@ -51,3 +51,13 @@ Status plus state reads do not close that remaining task. Historical payout and
 receipt-cleanup paths also still derive current-authority addresses. Mainnet
 admission remains disabled; retain old custody, entitlement and proof records.
 Independent source review and parent MN003/MN005/full release gates remain open.
+
+FQA-MN-005-EXPIRY-01 correction after Contract/E2E review: creation permits payout equal to
+cutoff. App admission now uses `payoutAt >= cutoffAt`, preserving the separate
+review-delay/grace checks. The equal-time regression fails on exact e04 helper
+bytes under Node 24 (only its test import prefix redirected), then passes on the
+corrected source; SOL and paired USDC both reject one second before grace, accept
+exactly at and after grace, and reject reversed times before RPC. The updated inventory
+passes 12/12, zero failure/skip/TODO. Contract bytes/quote and all other acceptance
+scope remain unchanged. Original failure and correction evidence are retained in
+`docs/evidence/historical-expiry-equality-correction-2026-11-22.json`.
