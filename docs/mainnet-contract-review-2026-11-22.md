@@ -176,7 +176,20 @@ Host checks with `buildRewardManifest` and `verifyRewardProof` verified both pro
 
 **Devnet identity and live blocker.** A read-only finalized account batch at slot 525085856 matched both loader pointers, full ProgramData hashes and ELF hashes against the [isolated router](evidence/devnet-configurable-rich-2026-11-22.json) and [public app](evidence/devnet-financial-records-2026-11-22.json) pins. The public ELF SHA-256 was `c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15`. Live acceptance requires an authorized isolated rotation between commitment and payout.
 
-**Next case.** Check that a daily bonus committed before rotation pays the original winner and debits the correct bonus vault. Reuse the existing SOL payout coverage and exercise the bonus-specific funding and winner selection.
+## Ranked daily bonus committed before primary RICH rotation
+
+**RICH-ENTITLEMENT-04 — local-only.** In a synthetic protected-policy settlement of 3,000 lamports, category 5 transferred its 600 lamports to the launched coin's reward vault. The withdrawal receipt recorded the mint, category, amount and destination. The app ranked two traders by aggregate volume (70 and 60) and reproduced the same snapshot for all six input orderings. The revision-1 cycle committed 260 lamports to three leaves. Rotation to revision 2 preserved the committed accounts. After the review interval, the original first-ranked trader gained 100 lamports and the reward vault lost 100. That left 160 owed to the other winners and 340 retained for unfilled ranks. The runner-up's balance and the creator fee vault stayed intact. Replay preserved balances and liabilities.
+
+| Compiled fixture | Receipt checked | ELF SHA-256 |
+| --- | --- | --- |
+| Mainnet-feature public fixture | Recipient payment account | `6bfa0414eaf68b6dd3d2c5cda79e0454c0255e2da4ac80c7466f79e2913ce320` |
+| Isolated configurable Devnet | Paid leaf bit in cycle | `7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f` |
+
+Tested base `97e878b6a595d8669505a967535d2431c6f4923e`, router source tree `dd2f57ffe841adaca9b2e033950633247f64c7ac`, [SBF regression](../contracts/funded-fee-router/programs/funded-fee-router/tests/rich_assets/daily_bonus.rs) blob `44bd901533ee97c1a571a4bba267b3a64dae8209`, [host ranking fixture](../contracts/funded-fee-router/programs/funded-fee-router/tests/rich_assets/daily_bonus_manifest.mjs) blob `5a0bf00992dc3f3d0ae71a58c6ce71be2a799734`. With Node and the repository dependencies available, use the fixture IDs and matching ELF from the handoff case and run `cargo test --locked -p funded-fee-router --features <features> --test rich_assets daily_bonus::ranked_bonus_pays_from_original_cohort_after_rotation -- --exact`. One test passed per feature set. All seven `node --test tests/security/rich-assets.test.mjs` checks and `npm run check` passed.
+
+**Devnet and app QA handoff.** At finalized slot 525093953 both Loader-v3 pointers, full ProgramData hashes and sized ELF hashes matched the [isolated router](evidence/devnet-configurable-rich-2026-11-22.json) and [public app](evidence/devnet-financial-records-2026-11-22.json) pins. Existing bonus receipts cover post-rotation commitment. Live acceptance of this ordering still requires an authorized isolated rotation between commitment and payout. The ranking inputs were synthetic. Live indexing and worker scheduling remain with app QA.
+
+**Next contract case.** Exercise a protected category-1 operations approval at the Mainnet-feature daily cap. Reconcile cap usage, payout, approval consumption and residual category custody.
 
 ## Remaining deployment blockers
 

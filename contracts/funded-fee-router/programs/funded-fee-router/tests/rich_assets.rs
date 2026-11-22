@@ -12,6 +12,9 @@ use solana_transaction_lite::versioned::VersionedTransaction;
 mod support;
 #[path = "rich_assets/holder_reward.rs"]
 mod holder_reward;
+#[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
+#[path = "rich_assets/daily_bonus.rs"]
+mod daily_bonus;
 #[path = "rich_assets/token_reward.rs"]
 mod token_reward;
 
