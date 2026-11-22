@@ -3484,5 +3484,216 @@
       "rawArtifactsVerified": 12,
       "scope": "Source-scoped API entrypoint declaration-order/startup correction independently accepted. Full service, production and parent Mainnet readiness remain open."
     }
+  },
+  "serviceWorkloadAssessmentReview": {
+    "appSource": "61963da537cf94da4e92712970d195edd93a119c",
+    "assessmentFile": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-production-packet-20261122/service-workload/assessment.json",
+    "assessmentSha256": "627eb2669f65b10bcb5615bbe3f340b7d65b63713223057f4eff14f1c5299f99",
+    "rawArtifactsVerified": 24,
+    "rawGitSourceTarMembersMatched": 1232,
+    "workloadSha256": "831c49629379b589af831adaf6d454c17eddc8c72db1ce28c67591b740a09124",
+    "driverSha256": "889394dba1bc493d0f251de57d284e13534625bb168d2b6c159e2733bd5a8e34",
+    "sourceAssessment": [
+      "Actual NODE_ENVproduction API uses fresh Postgres while selected synthetic Devnet scheduler components share the constrained app cgroup. API-only/Mainnet financial guard and unavailable owned loopback RPC retained.",
+      "Four-client60request burst per phase checks real HTTP while24actual Postgres nonfinancial counter updates run concurrently with96synthetic recovery interfaces; no new nonce/send/chain action.",
+      "Workload awaits components/clients/mutations, SIGTERMs actual API, asserts graceful ledger drain+exit0, closes SQL pool before driver exports closed ledger and pg_dump.",
+      "Driver checks backup digest, restores ledger to different fresh volume and reads it back before workload; pg_restore into different fresh DB retains24 before24more updates reach48.",
+      "All2002 original attempt/proof/payment identities retained through controlled restore; SQL counter is not financial state and financial attempts remain separate JSON ledger.",
+      "Resource/mount/network/cleanup orchestration reviewed without executing fixed-name script; independent QA should use its own names/labels/resources.",
+      "App+driver512MiB/.75CPU and DB384MiB/.5CPU are separate budgets; DBpeak not observed, no combined-headroom or sustained SLA claim.",
+      "Existing startup6196/store3746/Contract9713/3f8/1236prefix unchanged; no test/build/quote or financial policy changes."
+    ],
+    "status": "Contract read-only source/evidence assessment passes within retained owner experiment scope; independent reproduction/acceptance pending.",
+    "scope": "Owner actual production-mode Postgres API and constrained concurrent selected synthetic scheduler, controlled logical-dump/closed-ledger restore only. No normal Mainnet financial transport, fullworker/expiry/raw capture, production financial backup or host-powerloss acceptance.",
+    "remaining": [
+      "Single local burst latency and cgroup peaks are not sustained traffic/throughput/deadline/headroom acceptance.",
+      "Database contains only one synthetic nonfinancial counter; persistent JSON financial ledger consistency here is controlled, not operational financial backup policy.",
+      "No fixed-name rerun performed by Contract; no competing orchestration owner.",
+      "Originalbank/live28/operational roles/runtime/fullworker/finalwallet funding and MainnetNO-GO remain open."
+    ],
+    "ownerResults": {
+      "first": {
+        "scope": "Production-Postgres API concurrent with selected synthetic Devnet scheduler components; NOT admitted Mainnet financial workers or live financial proof",
+        "sourceRevision": "61963da537cf94da4e92712970d195edd93a119c",
+        "node": "v24.22.3",
+        "resume": false,
+        "elapsedMs": 27860.62514,
+        "http": {
+          "requests": 60,
+          "statuses": {
+            "/api/health": 20,
+            "/api/readiness": 20,
+            "/api/status": 20
+          },
+          "p50Ms": 84.53775399999995,
+          "p95Ms": 661.3356400000002,
+          "maxMs": 849.4549500000003,
+          "MainnetWriteStatus": 403
+        },
+        "db": {
+          "backend": "Postgres",
+          "retainedBefore": 0,
+          "updatesAfter": 24
+        },
+        "worker": {
+          "execution": {
+            "status": "processed",
+            "submitted": 0
+          },
+          "publicStatus": "active",
+          "publicScheduleRows": 3,
+          "financialSnapshot": {
+            "schedules": 3,
+            "responseBytes": 8461224
+          },
+          "captures": 1,
+          "prepared": 0,
+          "submitInterfaces": 96,
+          "networkCalls": 0,
+          "onChainTransactions": 0,
+          "newBlockhashes": 0,
+          "newMockSends": 0
+        },
+        "ledger": {
+          "sha256": "f06a7102bed1c3a26fe614a5e4efe7371c54ade4198a89d723c967113d2bac1a",
+          "bytes": 8627270,
+          "signedAttempts": 2002
+        },
+        "rpcCalls": 1,
+        "financialRpc": 0,
+        "newChainTransactions": 0,
+        "resource": {
+          "before": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.peak": "100843520",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 2683742\nuser_usec 2551416\nsystem_usec 132326\nnr_periods 38\nnr_throttled 33\nthrottled_usec 1155977\nnr_bursts 0\nburst_usec 0"
+          },
+          "after": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.peak": "455819264",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 23001703\nuser_usec 21101512\nsystem_usec 1900191\nnr_periods 329\nnr_throttled 274\nthrottled_usec 33589780\nnr_bursts 0\nburst_usec 0"
+          },
+          "driverPeakRssKiB": 306292
+        },
+        "shutdown": {
+          "code": 0,
+          "signal": null
+        },
+        "limitations": [
+          "Financial bank/finality/scheduler capture are synthetic; original public 2002-attempt bundle",
+          "API NODE_ENVproduction uses actual Postgres, but API-only and Mainnet financial guard retained",
+          "Selected Devnet scheduler runs beside Mainnet read-only API in one cgroup; this is a concurrency experiment, not complete Mainnet operational workload",
+          "No server image build/static frontend/production data/host powerloss claim"
+        ]
+      },
+      "restore": {
+        "scope": "Production-Postgres API concurrent with selected synthetic Devnet scheduler components; NOT admitted Mainnet financial workers or live financial proof",
+        "sourceRevision": "61963da537cf94da4e92712970d195edd93a119c",
+        "node": "v24.22.3",
+        "resume": true,
+        "elapsedMs": 26482.331904,
+        "http": {
+          "requests": 60,
+          "statuses": {
+            "/api/health": 20,
+            "/api/readiness": 20,
+            "/api/status": 20
+          },
+          "p50Ms": 69.08931200000006,
+          "p95Ms": 544.9546200000004,
+          "maxMs": 549.0538470000001,
+          "MainnetWriteStatus": 403
+        },
+        "db": {
+          "backend": "Postgres",
+          "retainedBefore": 24,
+          "updatesAfter": 48
+        },
+        "worker": {
+          "execution": {
+            "status": "processed",
+            "submitted": 0
+          },
+          "publicStatus": "active",
+          "publicScheduleRows": 3,
+          "financialSnapshot": {
+            "schedules": 3,
+            "responseBytes": 8476862
+          },
+          "captures": 1,
+          "prepared": 0,
+          "submitInterfaces": 96,
+          "networkCalls": 0,
+          "onChainTransactions": 0,
+          "newBlockhashes": 0,
+          "newMockSends": 0
+        },
+        "ledger": {
+          "sha256": "062772cbd9ea2f41369e63b6b43411ccf4c28e60b4bddf147135ebb8d81c61c3",
+          "bytes": 8717755,
+          "signedAttempts": 2002
+        },
+        "rpcCalls": 1,
+        "financialRpc": 0,
+        "newChainTransactions": 0,
+        "resource": {
+          "before": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.peak": "112058368",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 2723966\nuser_usec 2576185\nsystem_usec 147781\nnr_periods 39\nnr_throttled 34\nthrottled_usec 1238524\nnr_bursts 0\nburst_usec 0"
+          },
+          "after": {
+            "memory.max": "536870912",
+            "memory.swap.max": "0",
+            "memory.peak": "422391808",
+            "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+            "cpu.max": "75000 100000",
+            "cpu.stat": "usage_usec 23194244\nuser_usec 21367864\nsystem_usec 1826380\nnr_periods 315\nnr_throttled 303\nthrottled_usec 35769845\nnr_bursts 0\nburst_usec 0"
+          },
+          "driverPeakRssKiB": 299524
+        },
+        "shutdown": {
+          "code": 0,
+          "signal": null
+        },
+        "limitations": [
+          "Financial bank/finality/scheduler capture are synthetic; original public 2002-attempt bundle",
+          "API NODE_ENVproduction uses actual Postgres, but API-only and Mainnet financial guard retained",
+          "Selected Devnet scheduler runs beside Mainnet read-only API in one cgroup; this is a concurrency experiment, not complete Mainnet operational workload",
+          "No server image build/static frontend/production data/host powerloss claim"
+        ]
+      }
+    },
+    "ownerBackup": {
+      "scope": "Public synthetic isolated Postgres consistent dump plus closed ledger, not production financial backup",
+      "sourceRevision": "61963da537cf94da4e92712970d195edd93a119c",
+      "ledgerSha256": "f06a7102bed1c3a26fe614a5e4efe7371c54ade4198a89d723c967113d2bac1a",
+      "databaseDumpSha256": "397bf299362fdd5d38830e77272ab43d9d6c6199d4f1ef820a4f95cdf8c98d74",
+      "bundleIndexSha256": "72fe8756533a65347289327b7e4c437b68f357b61db1f5c13a3fa0c9cdb90914"
+    },
+    "ownerResources": {
+      "appCpu": ".75",
+      "appMemoryBytes": 536870912,
+      "appExtraSwap": 0,
+      "databaseCpu": ".50",
+      "databaseMemoryBytes": 402653184,
+      "databaseExtraSwap": 0,
+      "network": "New Docker internal-only bridge, no published host ports; API RPC test-owned loopback unavailable; no operational signer credentials",
+      "observedAppCgroupPeakBytes": [
+        455819264,
+        422391808
+      ],
+      "oom": "Both app phases cgroup memory.events0OOM; all six container states OOMKilledfalse",
+      "dbPeakMemory": "Not measured; configured DB limit and stopped exit0 observed only"
+    }
   }
 }
