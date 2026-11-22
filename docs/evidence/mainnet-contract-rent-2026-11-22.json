@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 2,
-  "observedAt": "2026-11-22T06:57:54.488Z",
+  "schemaVersion": 3,
+  "observedAt": "2026-11-22T07:19:28.695Z",
   "cluster": "mainnet-beta",
   "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "scope": "read-only-public-rpc-fixture-sizing",
@@ -20,11 +20,10 @@
   "marginLamports": 250000000,
   "illustrativeInitializationAllowanceLamports": 50000000,
   "illustrativeCanaryAllowanceLamports": 50000000,
-  "configuredTotalBudgetLamports": 5000000000,
+  "deploymentSpendCapLamports": null,
   "configuredOperatingReserveLamports": 3000000000,
   "illustrativeContractLaunchFundingLamports": 8839378200,
   "recommendedTechnicalWalletFundingLamports": 10000000000,
-  "rentFitsTotalBudget": false,
   "finalTransactionFeesVerified": false,
   "deploymentAuthorized": false,
   "unknown": [
@@ -38,5 +37,5 @@
     "off-chain infrastructure",
     "independent review"
   ],
-  "note": "10 SOL is a planning estimate, not an authorized spending-cap increase. Includes the existing 3 SOL operating reserve; 0.05 SOL each for setup/canary are provisional allowances. Buffer rent is reusable at fresh same-payer Loader-v3 finalization; do not add it twice as permanent rent. Final production bytes and exact transactions must be re-quoted."
+  "note": "The aggregate Mainnet deployment spending cap was removed at the user's request. 10 SOL remains a planning estimate, not deployment authorization. It includes the existing 3 SOL operating reserve; 0.05 SOL each for setup/canary are provisional allowances. Buffer rent is reusable at fresh same-payer Loader-v3 finalization; do not add it twice as permanent rent. Final production bytes and exact transactions must be re-quoted."
 }

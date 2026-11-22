@@ -10,11 +10,11 @@ export function assessMainnetFunding(plan,{lockedLamports,feeAllowanceLamports,m
     const value=amount(plan[field]);
     if(value===null)missing.push(field);else known+=value;
   }
-  if(cap===null)missing.push('maximumTotalSpendLamports');
+  if(plan.maximumTotalSpendLamports!==null&&cap===null)missing.push('maximumTotalSpendLamports');
   if(reserve===null)missing.push('minimumOperatingReserveLamports');
   const fits=cap===null?null:known<=cap;
-  return {status:fits===false?'over-approved-cap':missing.length?'incomplete':'estimated-within-cap',
-    approvedSpendCapLamports:cap===null?null:String(cap),knownMaximumSpendLamports:String(known),
+  return {status:fits===false?'over-approved-cap':missing.length?'incomplete':cap===null?'estimated-no-cap':'estimated-within-cap',
+    approvedSpendCapLamports:cap===null?null:String(cap),knownEstimatedSpendLamports:String(known),
     knownCostsWithinCap:fits,remainingUnderCapLamports:cap===null?null:String(cap-known),
     minimumOperatingReserveLamports:reserve===null?null:String(reserve),
     minimumFundingIncludingReserveLamports:reserve===null?null:String(known+reserve),

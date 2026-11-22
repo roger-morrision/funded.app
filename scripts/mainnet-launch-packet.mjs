@@ -39,16 +39,15 @@ export async function buildMainnetLaunchPacket({plan,acceptance,manifest,config,
       :['automationAuthority','priceAttestation','operationsTreasury','tradeFeeTreasury','boostTreasury','revenueTreasury'];
     for(const field of fields)if(!present(plan[group]?.[field]))missing.push(`${group}.${field}`);
   }
-  checks.boundedSpend=budget(plan.maximumTotalSpendLamports)
+  checks.uncappedDeploymentSpend=plan.maximumTotalSpendLamports===null
+    &&acceptance.maximumTotalSpendLamports===null
     &&(plan.maximumPriorityFeeLamports==='0'||budget(plan.maximumPriorityFeeLamports))
-    &&BigInt(plan.maximumPriorityFeeLamports)<BigInt(plan.maximumTotalSpendLamports)
-    &&acceptance.maximumTotalSpendLamports===plan.maximumTotalSpendLamports
     &&acceptance.maximumPriorityFeeLamports===plan.maximumPriorityFeeLamports;
   checks.adminIdentity=key(plan.adminWallet)&&acceptance.adminWallet===plan.adminWallet
     &&config.FUNDED_ADMIN_WALLETS===plan.adminWallet;
   checks.selectedAuthority=key(plan.upgradeAuthority)&&acceptance.upgradeAuthority===plan.upgradeAuthority
     &&config.MAINNET_APPROVED_UPGRADE_AUTHORITY===plan.upgradeAuthority;
-  checks.configuredSpend=checks.boundedSpend&&config.MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS===plan.maximumTotalSpendLamports
+  checks.configuredSpend=checks.uncappedDeploymentSpend&&config.MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS===undefined
     &&config.MAINNET_MAXIMUM_PRIORITY_FEE_LAMPORTS===plan.maximumPriorityFeeLamports;
   const reviewed=reviewedMainnetManifest(manifest);
   checks.reviewedExactRelease=Boolean(reviewed&&reviewed.sourceRevision===sourceRevision

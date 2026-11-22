@@ -9,7 +9,7 @@
   "programDataSha256": null,
   "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "payerSignerReference": null,
-  "maximumTotalSpendLamports": "5000000000",
+  "maximumTotalSpendLamports": null,
   "maximumPriorityFeeLamports": "0",
   "independentReviewReference": null,
   "independentReviewer": null,

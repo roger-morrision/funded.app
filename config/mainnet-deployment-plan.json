@@ -65,7 +65,7 @@
     "launchTransactionSignature": null,
     "migrationTransactionSignature": null
   },
-  "maximumTotalSpendLamports": "5000000000",
+  "maximumTotalSpendLamports": null,
   "maximumPriorityFeeLamports": "0",
   "minimumOperatingReserveLamports": "3000000000",
   "initializationBudgetLamports": null,
@@ -107,7 +107,7 @@
     "Implement and review production network paths and agency custody; retain Mainnet write guards during preparation.",
     "Build the exact production artifact with pinned tools, verify program identity and reproduce executable hash in CI.",
     "Rerun custody, financial-path and transaction-size tests against that artifact, then refresh rent and fee quotes.",
-    "Present the exact binary, program ID, authority, payer and spending cap for explicit Mainnet deployment approval.",
+    "Present the exact binary, program ID, authority, payer and refreshed funding estimate for explicit Mainnet deployment approval.",
     "After approval, deploy once through Loader-v3 with explicit Mainnet URL and exact max-len; journal signatures before submission.",
     "Verify finalized deployed bytes, loader ownership, authority, ProgramData hash and rent deltas before initializing application state.",
     "Point both V3-router and developer-escrow roles to the same verified production program and full ProgramData hash.",

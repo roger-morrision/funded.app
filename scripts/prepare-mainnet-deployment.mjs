@@ -69,7 +69,7 @@ export async function prepareMainnetDeployment(plan,{artifactDir,connection,now=
     missingInputs:required.filter(key=>!plan[key]),
     remainingGates:['Select and review an actual production program identity and build; reference binaries are not Mainnet releases.',
       'Implement and verify production network paths, agency custody, metadata, launch registration and financial workers.',
-      'Verify isolated infrastructure, independent custody review, deployment spend cap and explicit Mainnet approval.',
+      'Verify isolated infrastructure, independent custody review, final funding estimate and explicit Mainnet approval.',
       'Verify finalized deployed bytes and initialize state, then run an approved capped canary before enabling writes.'],
     excludedCosts:plan.excludedCosts,sequence:plan.sequence,
     sources:{loader:'https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L260-L280',
