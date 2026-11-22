@@ -1371,6 +1371,7 @@ dependencies = [
  "solana-keypair 4.0.0",
  "solana-message 4.6.0",
  "solana-message 5.0.0",
+ "solana-rent 4.4.0",
  "solana-sha256-hasher",
  "solana-signer 3.0.1",
  "solana-signer 4.0.0",

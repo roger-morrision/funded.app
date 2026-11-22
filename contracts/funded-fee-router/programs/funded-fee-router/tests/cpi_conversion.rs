@@ -1,7 +1,7 @@
 //! Real captured PumpSwap CPI with synthetic paired-fee custody in LiteSVM.
 //! Opt in with a public fixture and a test-only binary containing its pool.
 #![cfg(feature = "mainnet-v3-program")]
-use anchor_lang::{prelude::{Pubkey,Rent}, AccountDeserialize, AccountSerialize, InstructionData, ToAccountMetas,
+use anchor_lang::{prelude::Pubkey, AccountDeserialize, AccountSerialize, InstructionData, ToAccountMetas,
     solana_program::{instruction::{AccountMeta, Instruction}, program_option::COption, program_pack::Pack}};
 use anchor_spl::{associated_token::{get_associated_token_address_with_program_id,spl_associated_token_account}, token::spl_token};
 use litesvm::LiteSVM;
@@ -9,6 +9,7 @@ use serde_json::Value;
 use solana_keypair_lite::Keypair;
 use solana_message_lite::{v0,AddressLookupTableAccount,Message,VersionedMessage};
 use solana_signer_lite::Signer;
+use solana_rent::Rent;
 use solana_transaction_lite::versioned::VersionedTransaction;
 use std::{path::PathBuf,str::FromStr};
 mod support;
