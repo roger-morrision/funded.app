@@ -1934,7 +1934,7 @@
       "networkCalls": 0,
       "chainTransactions": 0
     },
-    "status": "Covered90cases/call bound retained.926a mixed-scope correction passes Contract original probe and16targeted cases; independent corrected-source acceptance pending. Storage amplification remains open.",
+    "status": "Independent E2E accepted926a mixed-scope fairness correction and95covered cases locally; storage amplification and parent scale/readiness remain open.",
     "nextStorageAcceptance": [
       "App owns assessment; no competing store implementation.",
       "Compare actual persisted pre-mutation representation under the same exclusive lock. Preserve missing-file bootstrap and v1->v2 migration writes even when application mutator changes nothing.",
@@ -2009,7 +2009,7 @@
       "sourceCommit": "dc305e596d30da21f947cfb14a647bfa5f7f09d4",
       "node": "v24.22.3",
       "probeSha256": "1ff3695419a04f0453fe38e4037cf7ab8aa7472bea8b2b351a9febfd6b8b22ae",
-      "status": "Correction source reviewed; original unchanged PM probe and16targeted cases pass locally on926a, independent acceptance pending.",
+      "status": "Corrected and independently accepted exact926a for local mixed-scope recovery progress; originaldc305failure retained.",
       "result": {
         "exit": 1,
         "fullOnly": {
@@ -2064,7 +2064,42 @@
           "Same exclusive lock and<=32bound preserved; selected small queues retain no-cursor-write path. Corrupt progress refuses.",
           "Runtime recovery/chain/journal/store/scheduler/financial guards unchanged; AppContractruntime remains identical971399ff; no productionELF/Loaderquote changes.",
           "Graph indexed dc305 caller; frozen unchanged caller source plus actual926a helper examined directly."
-        ]
+        ],
+        "independentVerification": {
+          "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-recovery-scope-926a1d10-20261123.json",
+          "sha256": "168c67e324928c66a07de13f4487899b238a28dcf57df727a3f0bb7300cb6c6c",
+          "node": "v24.22.3",
+          "requiredPassed": 95,
+          "failed": 0,
+          "skipped": 0,
+          "todo": 0,
+          "gitSourceHashesMatched": 15,
+          "unchangedFinancialRuntimeFiles": 7,
+          "originalProbe": {
+            "sha256": "1ff3695419a04f0453fe38e4037cf7ab8aa7472bea8b2b351a9febfd6b8b22ae",
+            "sourceClosure": "Exact four Git files under original relative paths, no imports/body rewritten.",
+            "baseline": {
+              "exit": 1,
+              "fullDistinct": 128,
+              "fullB": 64,
+              "mixedDistinct": 96,
+              "mixedB": 32
+            },
+            "corrected": {
+              "exit": 0,
+              "fullDistinct": 128,
+              "fullB": 64,
+              "mixedDistinct": 128,
+              "mixedB": 64
+            },
+            "boundPerCall": 32,
+            "reopenedStoreEachCall": true,
+            "savedMarkerIdentities": "All128 original prepared/signature markers preserved in each final ledger."
+          },
+          "storageDisposition": "Still open: full-queue marker fixture again causes33 ledger writes/62470800serializedbytes for32unresolved calls. Cursor fairness correction is not no-op write optimization.",
+          "artifactsVerified": true,
+          "scope": "Local mixed-scope saved-only recovery selection with actual locked store/restarts and synthetic marker/outcome fixtures, not financial or whole-worker acceptance."
+        }
       }
     }
   },
