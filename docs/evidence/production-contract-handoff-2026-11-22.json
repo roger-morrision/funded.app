@@ -1774,12 +1774,39 @@
       "Graph indexed prior fe518; actual f112 service/snapshot/archive source reviewed directly to resolve stale graph limits.",
       "Contract runtime paths are byte-identical971399ff; production3f8/accepted1236Loaderprefix unaffected."
     ],
-    "status": "Contract source review and53local synthetic cases pass; independent E2E exact-source review pending.",
+    "status": "Independent E2E53required cases accepted; additional raw-layout criterion remains open after reproduced malformed classic SPL bank qualification.",
     "limits": [
       "Prospective raw input retention only; no missing Nov19 bank reconstruction or live current-program28delivery.",
       "Windows directory fsync unavailable and explicitly recorded; Linux power-loss and backup restore remain unverified.",
       "Indexed atomic99account capacity remains; realistic cohort history size/performance and paging open.",
       "Expected ProgramData is a declared pin; no new deployment, financial acceptance, custody role binding or funding request."
-    ]
+    ],
+    "independentVerification": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-community-archive-f1120907-20261123.json",
+      "sha256": "37f9f0a00d76441077ba333d417a075692c0be5074ca3985a97c0ea17cd5c190",
+      "node": "v24.22.3",
+      "requiredPassed": 53,
+      "failedRequired": 0,
+      "artifactsVerified": true
+    },
+    "rawLayoutFinding": {
+      "id": "FQA-MN-002-ARCHIVE-LAYOUT",
+      "title": "Malformed SPL account layout qualifies through valid-hash offline restart",
+      "status": "Reproduced on exactf112, App correction requested",
+      "trigger": "Append one0x63 byte to classic mint82->83 or classic token165->166 raw base64; preserve all raw fields/normalized supply/snapshot/manifest/context/signatures. Recompute content hash and pointer, disable RPC, reopen actual service.prepared.",
+      "observed": "Installed SPL SDK rejects mint TokenInvalidAccountSizeError and token TokenInvalidAccountError; archive reader nevertheless accepts both as qualified. Unchanged control accepts.",
+      "counts": {
+        "tests": 3,
+        "passed": 1,
+        "failed": 2,
+        "exit": 1
+      },
+      "expected": "Raw supported owner-specific mint/token size/type/layout must validate before archive qualification on save and read. Preserve valid Token2022 base/extension cases; malformed evidence stays unavailable, no recapture.",
+      "probeSha256": "f1cc9574feb83b56f11815349521638f1fdce4b0cacb91e8ce34f066ab831eaa",
+      "sourceConfirmation": "Exactf112 archive validates minimum lengths>=82/>=165 rather than classic owner-specific exact layout bounds. Installed SDK rejects the specific appended-byte probes.",
+      "implementationOwner": "App Dev",
+      "independentRetestOwner": "E2E QA",
+      "contractRuntimeAffected": false
+    }
   }
 }
