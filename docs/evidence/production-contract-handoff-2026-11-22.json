@@ -1369,7 +1369,7 @@
   "appHistoricalExpiryReview": {
     "reviewedAppSource": "e04a28cbdf6644a4a483abb7c223093d9a3a0c52",
     "contractSource": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
-    "disposition": "Original account geometry agrees; equal cutoff/payout compatibility fix requested from App owner.",
+    "disposition": "Historical namespace and contract timing compatibility accepted in scoped Contract source/synthetic review after correction.",
     "verifiedBySource": "Five metas select current signer and original vault/reserve/cycle, use typed original PDA identities and immutable manifest fields, and verify exact unpaid liability release while preserving paid data.",
     "finding": {
       "file": "server/reward-expiry-context.mjs",
@@ -1384,6 +1384,19 @@
       "owner": "App Dev",
       "requestedRegression": "Accept equality, reject reversed ordering; validate on required Node24."
     },
-    "remaining": "Durable unknown expiry-attempt journal and finalized archived transaction reconciliation remain an App integration gate. Synthetic account review does not establish deployed acceptance."
+    "remaining": "Durable unknown expiry-attempt journal and finalized archived transaction reconciliation remain an App integration gate. Synthetic account review does not establish deployed acceptance.",
+    "correctedAppSource": "2ca05602422121eb6695ffbca9b846365988e3ec",
+    "correction": {
+      "runtimeDiff": "Single > to >= admission change, matching contract payout_at >= cutoff_at.",
+      "reviewerNode": "v26.13.1",
+      "originalFailingProbe": "Same one expected-valid probe passes on corrected commit; failed on original e04 helper.",
+      "requiredInventoryPassed": 12,
+      "failed": 0,
+      "rawProbe": "tmp/expiry-equality-app-review-fixed.txt",
+      "probeSha256": "8da9420807a35fa2f05ab23881851fae2c9524aebf8759683c58380046704037",
+      "inventoryResult": "tmp/expiry-equality-review-corrected.txt",
+      "inventorySha256": "0b3c11ef8f5274ba2e458aca309a176eff93a0f689774699b8ca241dce2c9f07",
+      "ownerNode24": "App owner reports 12 required passes and both original helper equality controls fail. Independent E2E Node24 verification requested."
+    }
   }
 }
