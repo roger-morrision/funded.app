@@ -73,7 +73,7 @@
   ],
   "stopConditions": [
     "RPC genesis, deployed bytes, authority, program ID or configuration differs from reviewed release",
-    "Planned maximum spend exceeds remaining approved budget",
+    "Final deployment funding estimate or required operating reserve is unavailable",
     "Any financial delta or receipt does not reconcile",
     "Transaction finality is unknown; reconcile before any retry",
     "Worker readiness is stale, metadata unavailable or database persistence fails"

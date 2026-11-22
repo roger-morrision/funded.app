@@ -10,15 +10,17 @@ import {selectV3PumpBuy} from '../server/v3-buyback-setup.mjs';
 import {readBuybackCurve,quoteCurveBuyback} from '../server/v3-buyback-curve.mjs';
 import {assertRpcNetwork} from '../solana-network.js';
 
-const [venue='pool',market='EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32',directory='tmp/cpi-fixtures/pool',cluster='devnet']=process.argv.slice(2);
+const [venue='pool',market='EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32',directory='tmp/cpi-fixtures/pool',cluster='devnet',categoryText='6',sourceText='Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr']=process.argv.slice(2);
 if(!['devnet','mainnet-beta'].includes(cluster))throw Error('Expected devnet or mainnet-beta.');
 if(!['pool','curve'].includes(venue))throw Error('Expected pool or curve.');
+if(!['5','6','7'].includes(categoryText)||venue==='curve'&&categoryText!=='6')throw Error('Expected pool category 5, 6, or 7; curve supports only 6.');
 const rpc=new Connection(cluster==='devnet'?'https://api.devnet.solana.com':'https://api.mainnet-beta.solana.com',
   {commitment:'finalized',disableRetryOnRateLimit:true,fetch:(url,init)=>fetch(url,{...init,signal:AbortSignal.timeout(30000)})});
 await assertRpcNetwork(rpc,cluster);
 const program=new PublicKey('3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh');
-const source=new PublicKey('Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr');
-const vault=PublicKey.findProgramAddressSync([Buffer.from('mint-fee-vault-v3'),source.toBuffer(),Buffer.from([6])],program)[0];
+const source=new PublicKey(sourceText);
+const category=Number(categoryText);
+const vault=PublicKey.findProgramAddressSync([Buffer.from('mint-fee-vault-v3'),source.toBuffer(),Buffer.from([category])],program)[0];
 let buy,mint,pool,tokenProgram,creatorRent='0';
 if(venue==='pool'){
   pool=new PublicKey(market);
@@ -54,7 +56,7 @@ if(!['66063d1201daebea','c62e1552b4d9e870'].includes(buyDiscriminator))throw Err
 const output=buyData.readBigUInt64LE(buyDiscriminator==='66063d1201daebea'?8:16);
 const minimum=venue==='pool'?output*99n/100n:output;
 const fixture={schemaVersion:1,scope:'public-snapshot-for-local-only-execution',cluster,observedAt:new Date().toISOString(),slot:result.context.slot,
-  venue,routerProgram:String(program),sourceMint:String(source),mint:String(mint),market:String(pool),tokenProgram:String(tokenProgram),
+  venue,category,routerProgram:String(program),sourceMint:String(source),mint:String(mint),market:String(pool),tokenProgram:String(tokenProgram),
   vault:String(vault),quoteLamports:'1000000',minBaseAmountOut:String(minimum),creatorRent,programs,accounts,
   buy:{programId:String(buy.programId),dataHex:Buffer.from(buy.data).toString('hex'),keys:buy.keys.map(k=>({...k,pubkey:String(k.pubkey)}))}};
 await writeFile(resolve(out,'fixture.json'),JSON.stringify(fixture,null,2)+'\n');

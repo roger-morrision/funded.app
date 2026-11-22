@@ -22,6 +22,7 @@ devnet-v3-program = []
 mainnet-v3-program = ["configurable-rich-assets"]
 configurable-rich-assets = []
 historical-qa-recovery = ["devnet-v3-program"]
+cpi-milestone-fixture-test = []
 
 
 [dependencies]

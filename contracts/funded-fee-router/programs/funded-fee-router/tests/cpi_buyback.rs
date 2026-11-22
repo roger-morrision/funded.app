@@ -1,7 +1,7 @@
 //! Complete router -> captured external DEX/fee SBF -> SPL transfer/burn CPIs.
 //! Explicit opt-in: public snapshots, synthetic policy/funding, local-only VM.
 #![cfg(feature="mainnet-v3-program")]
-use anchor_lang::{prelude::Pubkey, AccountSerialize, AccountDeserialize, InstructionData, ToAccountMetas,
+use anchor_lang::{prelude::{Pubkey,Clock}, AccountSerialize, AccountDeserialize, InstructionData, ToAccountMetas,
     solana_program::{instruction::{Instruction,AccountMeta},program_pack::Pack,program_option::COption}};
 use anchor_spl::{token::spl_token,associated_token::{get_associated_token_address_with_program_id,spl_associated_token_account}};
 use litesvm::LiteSVM;
@@ -51,12 +51,18 @@ fn donated_accounts_cannot_block_protected_buybacks(){run(false,1);if pool_fixtu
 #[test]
 #[ignore = "requires explicit public DEX snapshots"]
 fn donated_accounts_cannot_block_agency_buybacks(){run(true,1);if pool_fixture(){run(true,2);}}
+#[cfg(feature="cpi-milestone-fixture-test")]
+#[test]
+#[ignore = "requires a public own-coin PumpSwap pool snapshot"]
+fn agency_milestone_buyback_burns_own_coin_and_marks_agent_complete(){run(true,0);}
 fn pool_fixture()->bool{
     let f:Value=serde_json::from_slice(&std::fs::read(PathBuf::from(std::env::var("FUNDED_CPI_FIXTURE").unwrap()).join("fixture.json")).unwrap()).unwrap();f["venue"]=="pool"
 }
 fn run(agency:bool,donation:u8){
     let directory=PathBuf::from(std::env::var("FUNDED_CPI_FIXTURE").expect("snapshot directory"));
     let fixture:Value=serde_json::from_slice(&std::fs::read(directory.join("fixture.json")).unwrap()).unwrap();
+    let milestone=fixture["category"].as_u64()==Some(7);
+    assert!(!milestone || agency && fixture["venue"]=="pool");
     let key=|field:&str|pk(fixture[field].as_str().unwrap());
     let program=funded_fee_router::id();assert_eq!(program,key("routerProgram"));
     let mut svm=LiteSVM::new();
@@ -91,11 +97,13 @@ fn run(agency:bool,donation:u8){
         funded_fee_router::accounts::ConfigureRichAssets {asset_authority:owner.pubkey(),program,program_data,config,history,
             mint:key("mint"),market:key("market"),system_program:anchor_lang::system_program::ID}.to_account_metas(None));
     send(&mut svm,&owner,&[&owner],&[configure]).unwrap();
-    let source=key("sourceMint");let creator=Pubkey::new_unique();let (policy,bump)=Pubkey::find_program_address(&[if agency{b"mint-agency-policy-v3"}else{funded_fee_router::MINT_POLICY_V3_SEED},source.as_ref()],&program);
+    let source=key("sourceMint");let creator=Pubkey::new_unique();
+    if milestone{assert_eq!(source,key("mint"));}
+    let (policy,bump)=Pubkey::find_program_address(&[if agency{b"mint-agency-policy-v3"}else{funded_fee_router::MINT_POLICY_V3_SEED},source.as_ref()],&program);
     if agency{
-        let mut paid=[0;8];paid[6]=1_000_000;
+        let mut paid=[0;8];paid[if milestone{7}else{6}]=1_000_000;
         store(&mut svm,policy,&funded_fee_router::MintAgencyPolicyV3{mint:source,creator,authority:op.pubkey(),protocol_units:[0;7],settled_lamports:1_000_000,
-            paid_lamports:paid,withdrawn_lamports:[0;8],directed_units:[0;3],directed_released:[0;3],selected_agents:0,agent_spent:[0;3],
+            paid_lamports:paid,withdrawn_lamports:[0;8],directed_units:[0;3],directed_released:[0;3],selected_agents:if milestone{2}else{0},agent_spent:[0;3],
             completed_agents:0,last_promotion_at:0,promotion_sequence:0,promotion_recipient:Pubkey::default(),config_revision:1,bump});
     }else{
         let mut paid=[0;7];paid[6]=1_000_000;
@@ -140,8 +148,10 @@ fn run(agency:bool,donation:u8){
     accounts.push(AccountMeta::new_readonly(config,false));
     let minimum:u64=fixture["minBaseAmountOut"].as_str().unwrap().parse().unwrap();
     assert!(minimum>1,"use the actual protected quote, not a one-unit placeholder");
-    let data=if agency {funded_fee_router::instruction::BuybackConfiguredAgencyMintV3{buyback_id:[7;32],category:6,agent:255,
-        observation_slot:0,observed_at:0,market_cap_usd_micros:0,observation_hash:[0;32],spendable_quote_in:1_000_000,
+    let clock=svm.get_sysvar::<Clock>();
+    let data=if agency {funded_fee_router::instruction::BuybackConfiguredAgencyMintV3{buyback_id:[7;32],category:if milestone{7}else{6},agent:if milestone{1}else{255},
+        observation_slot:if milestone{clock.slot}else{0},observed_at:if milestone{clock.unix_timestamp}else{0},
+        market_cap_usd_micros:if milestone{100_000_000_000}else{0},observation_hash:if milestone{[1;32]}else{[0;32]},spendable_quote_in:1_000_000,
         min_base_amount_out:minimum,max_total_debit:1_000_000,assets_revision:1}.data()}
         else{funded_fee_router::instruction::BuybackConfiguredMintV3{buyback_id:[7;32],spendable_quote_in:1_000_000,
         min_base_amount_out:minimum,max_total_debit:1_000_000,assets_revision:1}.data()};
@@ -177,8 +187,13 @@ fn run(agency:bool,donation:u8){
     assert_eq!(before_supply-amount(&svm,mint,36),burned);
     assert_eq!(before_vault+quote_donation-svm.get_account(&vault).unwrap().lamports,spent);
     assert_eq!(amount(&svm,ata,64),base_donation);assert!(svm.get_account(&wsol).is_none_or(|a|a.lamports==0));
+    if milestone{
+        let saved=funded_fee_router::MintAgencyPolicyV3::try_deserialize(&mut &svm.get_account(&policy).unwrap().data[..]).unwrap();
+        assert_eq!(saved.completed_agents&2,2);assert_eq!(saved.agent_spent[1],spent);
+        assert_eq!(saved.withdrawn_lamports[7],spent);
+    }
     let final_policy=svm.get_account(&policy).unwrap();let final_vault=svm.get_account(&vault).unwrap();
     assert!(send(&mut svm,&op,&[&op,&price],&[ix]).is_err());
     assert_eq!(svm.get_account(&policy).unwrap(),final_policy);assert_eq!(svm.get_account(&vault).unwrap(),final_vault);
-    println!("CPI_EVIDENCE venue={} agency={} donation={} compute_units={} spent={} burned={} receipt={} fixture_slot={}",fixture["venue"],agency,donation,compute,spent,burned,receipt,fixture["slot"]);
+    println!("CPI_EVIDENCE venue={} agency={} milestone={} donation={} compute_units={} spent={} burned={} receipt={} fixture_slot={}",fixture["venue"],agency,milestone,donation,compute,spent,burned,receipt,fixture["slot"]);
 }

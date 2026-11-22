@@ -95,6 +95,28 @@ jobs:
         working-directory: contracts/funded-fee-router
         run: |
           FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/mainnet-build-check/funded_fee_router.so" FUNDED_CPI_FIXTURE="$RUNNER_TEMP/buyback-pool-fixture" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test cpi_buyback -- --ignored --nocapture
+      - name: Capture public paired-token and agency milestone pool fixtures
+        run: |
+          node scripts/capture-cpi-fixture.mjs pool BT8wc5m9pkTQ1wwVYTzsqrBwSYWxuPEQ4t8ZwHcwd7SR "$RUNNER_TEMP/conversion-fixture" devnet 5
+          node scripts/capture-cpi-fixture.mjs pool EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32 "$RUNNER_TEMP/agency-milestone-fixture" devnet 7 C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64
+      - name: Build isolated production-feature conversion binary
+        working-directory: contracts/funded-fee-router
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: z
+          CARGO_PROFILE_RELEASE_STRIP: 'true'
+          FUNDED_MAINNET_PROGRAM_ID: 3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh
+          FUNDED_MAINNET_CONVERSION_POOLS: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU:BT8wc5m9pkTQ1wwVYTzsqrBwSYWxuPEQ4t8ZwHcwd7SR
+        run: |
+          CARGO_TARGET_DIR="$RUNNER_TEMP/financial-cpi-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --features mainnet-v3-program --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy/financial-fixture" -- --locked
+          sha256sum target/deploy/financial-fixture/funded_fee_router.so
+      - name: Execute paired-token conversion through captured PumpSwap program
+        working-directory: contracts/funded-fee-router
+        run: |
+          FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/financial-fixture/funded_fee_router.so" FUNDED_CPI_FIXTURE="$RUNNER_TEMP/conversion-fixture" cargo test --locked -p funded-fee-router --features mainnet-v3-program --test cpi_conversion -- --ignored --nocapture
+      - name: Execute agency milestone buyback and burn through captured PumpSwap program
+        working-directory: contracts/funded-fee-router
+        run: |
+          FUNDED_MAINNET_PROGRAM_ID=3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh FUNDED_ROUTER_TEST_SO="$PWD/target/deploy/financial-fixture/funded_fee_router.so" FUNDED_CPI_FIXTURE="$RUNNER_TEMP/agency-milestone-fixture" cargo test --locked -p funded-fee-router --features mainnet-v3-program,cpi-milestone-fixture-test --test cpi_buyback agency_milestone_buyback_burns_own_coin_and_marks_agent_complete -- --ignored --nocapture
       - name: Verify configurable Devnet administration and stale-order rejection
         working-directory: contracts/funded-fee-router
         env:
@@ -124,4 +146,6 @@ jobs:
             contracts/funded-fee-router/target/deploy/bytecode.sha256
             contracts/funded-fee-router/target/deploy/bytecode-sizes.txt
             ${{ runner.temp }}/buyback-pool-fixture/
+            ${{ runner.temp }}/conversion-fixture/
+            ${{ runner.temp }}/agency-milestone-fixture/
           retention-days: 30
