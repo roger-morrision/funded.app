@@ -13,12 +13,17 @@ export function mountAdminListingButton({ anchor, getSession, onListed, setStatu
   anchor.after(button);
   const status = { wallet: null, admin: false, checkedAt: 0, pending: null };
   let current = { mint: null, ready: false }, busy = false;
+  let generation = 0;
   const check = wallet => {
     if (!wallet || status.pending || (status.wallet === wallet && Date.now() - status.checkedAt < 30_000)) return;
+    const requestedGeneration = generation;
     status.pending = apiRequest('/api/auth/admin', { signal: AbortSignal.timeout(8000) })
       .then(result => result.data?.admin === true && result.data.wallet === wallet)
       .catch(() => false)
-      .then(admin => { Object.assign(status, { wallet, admin, checkedAt: Date.now(), pending: null }); update(current); });
+      .then(admin => {
+        if (requestedGeneration !== generation) return;
+        Object.assign(status, { wallet, admin, checkedAt: Date.now(), pending: null }); update(current);
+      });
   };
   const update = next => {
     current = next;
@@ -32,7 +37,7 @@ export function mountAdminListingButton({ anchor, getSession, onListed, setStatu
   };
   // Signing in (or switching wallets) changes the server's answer; check again at once
   // instead of keeping a "not admin" result from before the signature.
-  const recheck = () => { Object.assign(status, { wallet: null, admin: false, checkedAt: 0 }); update(current); };
+  const recheck = () => { generation++; Object.assign(status, { wallet: null, admin: false, checkedAt: 0, pending: null }); update(current); };
   globalThis.addEventListener?.('funded:wallet-authenticated', recheck);
   globalThis.addEventListener?.('funded:reward-identity-change', recheck);
   button.addEventListener('click', async () => {

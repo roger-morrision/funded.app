@@ -2,7 +2,6 @@ import {icon} from '../../../ui-icons.js';
 import { activeBoostMultiplier, activeBoostPackages } from '../../../boost-offer.js';
 import { coinDetailPackage } from '../../../promotion-badge.js';
 import { verifiedCoinRewardsPolicy, formatPolicyPercent } from '../../../coin-rewards-policy.js';
-import {feeDistributionMarkup} from '../fees/distribution-summary.js';
 import { savedFeeDistributionChart } from '../fees/saved-distribution-chart.js';
 import { renderCoinHeaderLabels } from './header-labels.js';
 
@@ -123,15 +122,11 @@ export function renderCoinRewardsPolicy(
   summary.parentElement?.classList.toggle('has-fee-allocation', Boolean(verified));
   value.replaceChildren();
   document.querySelectorAll('#coin-page .coin-fixed-fee-details').forEach(node=>node.remove());
-  // Full fee distribution bar (same chart as the launch page) under the stat strip,
-  // drawn only from this coin's saved, verified launch policy.
-  document.querySelector('#coin-fee-distribution')?.remove();
-  const chart=verified?[coinSummaryLaunch,verifiedLaunchPolicyForMint(mint),policy].map(row=>savedFeeDistributionChart(row)).find(Boolean):'';
-  if(chart&&summary.parentElement){
-    const bar=document.createElement('div');bar.id='coin-fee-distribution';bar.className='coin-fee-distribution';
-    bar.innerHTML=`<span class="coin-fee-distribution-label">Creator fee distribution</span>${chart}`;
-    summary.parentElement.after(bar);
-  }
+  // The dedicated panel below Trade Volumes uses only this token's saved policy.
+  const chart=verified?[policy,coinSummaryLaunch,verifiedLaunchPolicyForMint(mint)]
+    .filter(row=>verifiedCoinRewardsPolicy(row,mint,EXPLORE_CLUSTER)).map(savedFeeDistributionChart).find(Boolean):'';
+  const distribution=document.querySelector('#coin-fee-distribution-content');
+  if(distribution) distribution.innerHTML=chart||'<p class="coin-fee-distribution-empty">No verified creator-fee distribution is available for this token.</p>';
   if(!verified)return;
   const shares = [];
   if (verified.creator > 0) shares.push(document.createTextNode(`Creator ${formatPolicyPercent(verified.creator)}`));

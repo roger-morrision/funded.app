@@ -30,6 +30,8 @@ export function createCoinLoadingController(appState) {
     rememberCoinJourney({mint:mintAddress,status:'loading'});
     renderCoinBurnDashboard({mint:mintAddress,status:mintAddress?'loading':'unavailable',cluster:appState.EXPLORE_CLUSTER});
     globalThis.window?.dispatchEvent?.(new Event('funded:coin-facts-loading'));
+    const distribution=document.querySelector('#coin-fee-distribution-content');
+    if(distribution) distribution.textContent='Checking this token’s saved fee distribution…';
     if (!mintAddress){ appState.renderOnChainUnavailable('Choose a token from Explore to see its details.'); return; }
     // Off Devnet, a token with no verified richpad launch has no fee ledger; skip the request (it would 404).
     // On a direct page load the policies may still be loading, so wait for them first.
@@ -252,6 +254,7 @@ export function createCoinLoadingController(appState) {
       globalThis.window?.dispatchEvent?.(new CustomEvent('funded:coin-facts', {detail:{mint:mintAddress, error:true}}));
       console.error('On-chain token detail failed', detail);
       appState.renderOnChainUnavailable(detail);
+      appState.renderCoinRewardsPolicy(null, mintAddress);
       appState.renderCoinRegistryIdentity(mintAddress);
       if (appState.EXPLORE_CLUSTER === 'mainnet-beta') {
         const fallback = await marketRequest;

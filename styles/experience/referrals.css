@@ -19,6 +19,8 @@
 #referral-command-center .referral-link-box { display: block; padding: 14px; border: 1px solid #39394f; border-radius: 8px; background: #0e1120; }
 #referral-command-center .referral-link-box strong { display: block; font-size: 12px; line-height: 1.5; }
 #referral-command-center .referral-share-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0 0; }
+#referral-command-center #referral-referrer { display:grid; gap:6px; margin:16px 0 0; overflow-wrap:anywhere; line-height:1.5; }
+#referral-command-center .referral-referrer-label { color:var(--fv-text,#edf1f7); font-size:13px; }
 #referral-command-center .referral-share-tools button { min-height: 40px; font-size: 12px; }
 #referral-command-center .referral-share-tools .text-button { padding: 8px 4px; color: #adb8d2; background: none; border: 0; cursor: pointer; }
 #referral-command-center .share-insights { margin-top: 18px; padding-top: 14px; border-top: 1px solid #34344e; }

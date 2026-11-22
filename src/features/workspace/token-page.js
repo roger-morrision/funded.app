@@ -153,6 +153,8 @@ export function tokenPage() {
   const priceLine=$('.coin-identity .coin-price-line',root);
   if(curve&&priceLine){curve.classList.add('coin-header-curve');curve.querySelector('span').textContent='to migration';priceLine.append(curve);}
   if(pulse&&trade)trade.after(pulse);
+  const feeDistribution=$('#coin-fee-distribution',root);
+  if(pulse&&feeDistribution)pulse.after(feeDistribution);
   const policy=$('.coin-policy-card',root);
   const distribution=$('#coin-account-distribution',root);
   if(side&&policy&&distribution){

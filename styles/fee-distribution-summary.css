@@ -50,3 +50,6 @@ html body .fee-distribution-details > p { color: #a7bad0; font-size: 12px; line-
 .fee-distribution-details .fee-benefit-facts { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
 .fee-distribution-details .fee-benefit-facts li { display:grid; gap:3px; margin:0; padding:0; min-width:0; font-size:12px; line-height:1.6; }
 .fee-distribution-details .fee-benefit-facts strong { color:#dbe7f7; font-size:12px; }
+.coin-fee-distribution-panel { min-width:0; }
+.coin-fee-distribution-panel h2 { margin:0 0 16px; }
+.coin-fee-distribution-panel .coin-fee-distribution-empty { margin:0; color:var(--fv-text-muted,#9bb0c8); font-size:14px; line-height:1.6; }

@@ -7,13 +7,16 @@ import { apiRequest } from '../../../client.js';
 const status = { wallet: null, admin: false, checkedAt: 0, pending: null };
 let busy = false;
 const FRESH_MS = 30_000;
+let generation = 0;
 
 function refreshAdmin(appState, wallet) {
   if (status.pending) return;
+  const requestedGeneration = generation;
   status.pending = apiRequest('/api/auth/admin', { signal: AbortSignal.timeout(8000) })
     .then(result => result.data?.admin === true && result.data.wallet === wallet)
     .catch(() => false)
     .then(admin => {
+      if (requestedGeneration !== generation) return;
       const changed = admin !== status.admin || status.wallet !== wallet;
       Object.assign(status, { wallet, admin, checkedAt: Date.now(), pending: null });
       if (changed) appState.renderExploreBoostDialog();
@@ -24,7 +27,8 @@ function refreshAdmin(appState, wallet) {
 // instead of keeping a "not admin" result from before the signature.
 let lastAppState = null;
 const recheck = () => {
-  Object.assign(status, { wallet: null, admin: false, checkedAt: 0 });
+  generation++;
+  Object.assign(status, { wallet: null, admin: false, checkedAt: 0, pending: null });
   lastAppState?.renderExploreBoostDialog?.();
 };
 globalThis.addEventListener?.('funded:wallet-authenticated', recheck);

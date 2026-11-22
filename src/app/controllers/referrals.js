@@ -1,11 +1,13 @@
 import { paginateHistory } from '../../../history-pagination.js';
 import {updateReferralList} from '../../features/referrals/referral-list.js';
+import {renderReferrer as renderReferrerView} from '../../features/referrals/referrer-view.js';
 import { referralStatusLabel, referralClaimStatusLabel, isReferralSignInCancelled } from '../../../referral-status.js';
 import { formatReferralLamports, readReferralHistory } from '../../../referral-amount.js';
 import {claimReferralReward} from '../../features/referrals/claim-reward.js';
 // Dependencies and mutable application state are read live through appState.
 export function createReferralsController(appState) {
   let authenticatedIdentity = null;
+  let referrerWallet = null;
   // app-source: 232
   function getAppReferralAttribution(){
     try {
@@ -211,13 +213,16 @@ function updateReferralStatus(state){
   async function refreshReferralClaims({ interactive = false } = {}){
     const session = appState.captureWalletSession();
     const walletAddress = session?.address; const dashboard = document.querySelector('#referral-command-center');
-    if (!session || !dashboard) return;
+    if (!dashboard) return;
+    if (!session) { renderReferrer(null, 'disconnected'); return; }
+    renderReferrer(null, 'checking');
     updateReferralStatus('checking');
     try {
       if (!await appState.ensureReferralSession(session, { interactive })) {
         if (appState.isWalletSessionCurrent(session)) {
           clearReferralMetrics();
           updateReferralStatus('verification');
+          renderReferrer(null, 'verification');
           appState.renderReferralClaimPrompt('Sign in with wallet to view referral rewards', 'Approve one free sign-in message. Your session works across referrals and token discussions for one hour.', true);
           appState.renderReferralActivityEmpty('Wallet verification needed', 'Verify your wallet to check referral activity.');
           appState.renderReferralLedgerEmpty('Wallet verification needed', 'Verify your wallet to check payout receipts.');
@@ -229,6 +234,7 @@ function updateReferralStatus(state){
         clearReferralMetrics();
         const cancelled = isReferralSignInCancelled(error);
         updateReferralStatus(cancelled ? 'cancelled' : 'unavailable');
+        renderReferrer(null, cancelled ? 'verification' : 'unavailable');
         appState.renderReferralClaimPrompt(cancelled ? 'Wallet connected · sign-in cancelled' : 'Wallet connected · sign-in unavailable',
           cancelled ? 'The message was not signed. You can try again when ready. Signing in is free and does not move funds.' : 'We could not complete sign-in. Please try again shortly.', true);
         appState.renderReferralActivityEmpty('Sign in to see activity', 'Your wallet is connected. Sign in to view your private referral activity.');
@@ -243,7 +249,8 @@ function updateReferralStatus(state){
     ]);
     if (!appState.isWalletSessionCurrent(session)) return;
     appState.renderShareInsights(dashboardResult);
-    renderReferrer(dashboardResult.available && dashboardResult.data?.wallet === walletAddress ? dashboardResult.data.referrer : null);
+    const referralAvailable = dashboardResult.available && dashboardResult.data?.wallet === walletAddress && Object.hasOwn(dashboardResult.data, 'referrer');
+    renderReferrer(referralAvailable ? dashboardResult.data.referrer : null, referralAvailable ? 'ready' : 'unavailable');
     updateReferralList(dashboardResult.available&&dashboardResult.data?.wallet===walletAddress?dashboardResult.data:null,'unavailable');
     if (dashboardResult.available) {
       const creators = Number(dashboardResult.data.networkCreators || 0);
@@ -338,6 +345,7 @@ function updateReferralStatus(state){
 
   // app-source: 244
   function updateReferralLink(){
+    if (referrerWallet !== (appState.connectedWalletAddress || null)) renderReferrer(null, appState.connectedWalletAddress ? 'checking' : 'disconnected');
     const code = appState.getReferralCode();
     const value = code ? appState.buildReferralUrl(code) : 'Your link appears here';
     document.querySelectorAll('[data-referral-link]').forEach(node => { node.textContent = value; });
@@ -379,16 +387,9 @@ function updateReferralStatus(state){
 
   // app-source: 248
   // "Referred by" line: the wallet whose link this wallet joined through.
-  function renderReferrer(referrer){
-    const host = document.querySelector('#referral-command-center .referral-kpi-grid') || document.querySelector('#referral-command-center');
-    let node = document.querySelector('#referral-referrer');
-    if (!host) return;
-    if (!referrer?.wallet || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(referrer.wallet)) { if (node) node.hidden = true; return; }
-    if (!node) { node = document.createElement('p'); node.id = 'referral-referrer'; node.className = 'referral-referrer'; host.before(node); }
-    const short = `${referrer.wallet.slice(0, 4)}…${referrer.wallet.slice(-4)}`;
-    const since = Date.parse(referrer.since);
-    node.hidden = false;
-    node.innerHTML = `Referred by <a href="/wallet/${encodeURIComponent(referrer.wallet)}">${appState.escapeHtml(short)}</a>${referrer.code ? ` · code <strong>${appState.escapeHtml(referrer.code)}</strong>` : ''}${Number.isFinite(since) ? ` · since ${appState.escapeHtml(new Date(since).toLocaleDateString())}` : ''}`;
+  function renderReferrer(referrer, state = 'ready'){
+    referrerWallet = appState.connectedWalletAddress || null;
+    renderReferrerView(referrer, state);
   }
   async function openCoinShare(mint, symbol = 'Coin', name = ''){
     if (!appState.validateSolanaMint(mint).valid) return appState.showToast('A valid token mint is required to share.');

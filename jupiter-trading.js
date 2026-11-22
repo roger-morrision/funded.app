@@ -92,6 +92,7 @@ export async function buildJupiterTrade({ side, mint, user, amount, slippagePerc
   const lookupTables = data.lookupTables.map(table => new AddressLookupTableAccount({ key: new PublicKey(table.key),
     state: { deactivationSlot: BigInt('18446744073709551615'), lastExtendedSlot: 0, lastExtendedSlotStartIndex: 0, authority: undefined, addresses: table.addresses.map(key => new PublicKey(key)) } }));
   return { route: 'jupiter', side, mint: mintKey, user: userKey, inputAmount: Number(amount), slippagePercent: slippage, tokenDecimals: data.decimals,
+    quoteMint: NATIVE_MINT.toBase58(), quoteDecimals: 9, quoteSymbol: 'SOL',
     quoteAmount: side === 'buy' ? inAmount : minimum, outputAmount: outAmount, minimumOutputAmount: minimum, maximumInputAmount: null,
     feeLamports: Number(feeLamports), feePolicy: { enabled: true, feeOwner: feeOwnerKey.toBase58(), feeBps: bps },
     priceImpactPct: Number(data.quote.priceImpactPct) || 0, routes: data.quote.routes || [],

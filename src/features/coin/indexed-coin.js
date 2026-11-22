@@ -1,6 +1,7 @@
 import { renderIndexedMarket } from './indexed-market.js';
 import { formatTinyDecimal } from '../shared/display.js';
 import { tokenPair, pairChipMarkup, loadPairQuotes } from '../shared/pair-label.js';
+import { indexedTradeEstimate } from '../trade/indexed-trade-estimate.js';
 
 // Mainnet token page without per-visitor RPC reads: the server's cached
 // overview (DexScreener/Jupiter first, Birdeye fallback) fills the header,
@@ -17,6 +18,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   const overview = await overviewRequest;
   if (!current()) return;
   const data = overview.available && overview.data?.mint === mint ? overview.data : null;
+  appState.renderCoinRewardsPolicy?.(null, mint);
   if (!data) {
     appState.renderOnChainUnavailable('Market data for this token is not available yet. Try Refresh in a moment.');
     appState.renderCoinRegistryIdentity?.(mint);
@@ -63,7 +65,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     if (chartFooter) { const span = document.createElement('span'); span.textContent = Number.isFinite(supply) ? `Indexed candles · supply ≈ ${appState.formatOnChainNumber(supply, 0)}` : 'Indexed candles'; chartFooter.replaceChildren(span); }
     const solUsd = await solRequest;
     if (!current()) return;
-    appState.coinTradeEstimate = { mint, symbol, curve: null, graduatedPool: null, decimals: Number.isInteger(data.decimals) ? data.decimals : 6, priceUsd: data.priceUsd, solUsd, dexId: data.dexId || null, quoteMint: data.quoteMint || null, quoteSymbol: data.quoteSymbol || null };
+    appState.coinTradeEstimate = indexedTradeEstimate(data, solUsd);
     if (data.dexId || data.quoteMint) void import('../trade/lazy-trading.js').then(module => { module.setTradeVenueHint(mint, data.dexId); module.setTradeQuoteHint?.(mint, data.quoteMint); }).catch(() => {});
     appState.renderTradeAmountEstimate?.();
     appState.updateTradeAmountLabel?.();
