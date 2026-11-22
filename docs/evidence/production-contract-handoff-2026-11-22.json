@@ -1934,7 +1934,7 @@
       "networkCalls": 0,
       "chainTransactions": 0
     },
-    "status": "Contract source and11targeted local cases pass; independent exact-source acceptance pending. Measured write amplification remains open.",
+    "status": "Independent E2E accepted exactdc305 <=32 saved recovery interface-call scope locally. Measured write amplification and parent MN001 remain open.",
     "nextStorageAcceptance": [
       "App owns assessment; no competing store implementation.",
       "Compare actual persisted pre-mutation representation under the same exclusive lock. Preserve missing-file bootstrap and v1->v2 migration writes even when application mutator changes nothing.",
@@ -1942,6 +1942,65 @@
       "Keep queue/drain/lock cleanup, atomic replacement, failure propagation and cached read identity behavior; do not infer Linux power-loss/backup durability from Windows process restart.",
       "Re-measure actual changed/no-op writes against representative full signed attempts; avoid treating marker-only dataset as final scale acceptance."
     ],
-    "scope": "Bounds saved payout recovery interface calls only; whole-ledger materialization/O(N), schedule/expiry/fresh work limits, actual signed payload/storage/durability and financial throughput remain open."
+    "scope": "Bounds saved payout recovery interface calls only; whole-ledger materialization/O(N), schedule/expiry/fresh work limits, actual signed payload/storage/durability and financial throughput remain open.",
+    "independentVerification": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-recovery-pages-dc305e59-20261123.json",
+      "sha256": "51dbf3f33d9c735e78e26a56e48ae16e26e0fffe29727b585957aa2d40bc87c2",
+      "node": "v24.22.3",
+      "requiredPassed": 90,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "gitSourceHashesMatched": 17,
+      "sameBodyBaseline": {
+        "exit": 1,
+        "tests": 1,
+        "passed": 0,
+        "failed": 1,
+        "actualFirstPassCalls": 65,
+        "expectedMax": 32,
+        "method": "Exact0742 recovery-function Git export; same controlled65-attempt test body with only function import redirected."
+      },
+      "measurement": {
+        "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+        "node": "v24.22.3",
+        "cohorts": 2,
+        "leavesPerCohort": 1001,
+        "fresh": {
+          "publicReads": 0,
+          "transactions": 1,
+          "serializedWriteBytes": 1892885,
+          "mutatorInsideLockMs": 26.503600000000006,
+          "transactionElapsedMs": 51.5947000000001,
+          "instrumentationSerializeMs": 3.7079000000001088,
+          "elapsedMs": 81.6108999999999
+        },
+        "recovery": {
+          "publicReads": 1,
+          "transactions": 33,
+          "serializedWriteBytes": 62470800,
+          "mutatorInsideLockMs": 5.625299999999697,
+          "transactionElapsedMs": 773.7594000000004,
+          "instrumentationSerializeMs": 119.79870000000028,
+          "elapsedMs": 787.8573999999999,
+          "interfaceCalls": 32
+        },
+        "maxRssKiB": 175028,
+        "networkCalls": 0,
+        "transactionsSent": 0,
+        "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead. Whole-ledger O(N) remains."
+      },
+      "measurementQualification": {
+        "dataset": "Two injected1001-leaf global manifests; marker-only attempts, not production signed-wire/proof payload sizing.",
+        "actualWriteCalls": 33,
+        "actualSerializedWriteBytes": 62470800,
+        "derivedLedgerReadInvocations": 34,
+        "derivation": "Unchanged actual store reads ledger once per transaction; plus one public read.34 is derived, not a separate low-level IO trace.",
+        "timing": "mutatorInsideLockMs measures only callback work inside lock, not total lock hold. transactionElapsedMs includes queue/read/serialize/fsync/rename/unlock AND reported JSON instrumentation overhead; do not add instrumentation to that total again.",
+        "independentResult": "32 unresolved recovery calls still cause33 whole-ledger writes and62470800serializedbytes; storage blocker independently reproduced. Timings/RSS single local run, not throughput/SLA/finality."
+      },
+      "artifactsVerified": true,
+      "scope": "Local bounded saved payout recovery selection/actual scheduler/store with synthetic outcomes and marker-only attempts. No live financial, whole-worker or production-scale acceptance."
+    }
   }
 }
