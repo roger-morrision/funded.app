@@ -17,6 +17,7 @@ fn paused_operator_handoff_preserves_guard_and_committed_rewards() {
     let create = create_cycle(&f, 31, leaf([31;32],recipient,600),600,START+DAY,true);
     assert!(send(&mut f.svm, &old, &[&old], &[create]));
     let outstanding_recipient = Pubkey::new_unique();
+    f.svm.airdrop(&outstanding_recipient, 1_000_000).unwrap();
     let paid_leaf = leaf([33;32], recipient, 100);
     let unpaid_leaf = hashv(&[b"funded-reward-leaf-v1", &[33;32], outstanding_recipient.as_ref(),
         Pubkey::default().as_ref(), &200u64.to_le_bytes(), &1u32.to_le_bytes()]).to_bytes();
@@ -124,4 +125,17 @@ fn paused_operator_handoff_preserves_guard_and_committed_rewards() {
     assert_eq!(after[2].data,encoded);
     assert!(!send(&mut f.svm,&successor,&[&successor],&[expire]));
     assert_eq!(snapshot(&f.svm),after);
+    let mut late = payout(&f,33,outstanding_recipient,200);
+    late.accounts[0] = AccountMeta::new(successor.pubkey(),true);
+    late.accounts.last_mut().unwrap().is_writable = false;
+    late.data = funded_fee_router::instruction::PayoutRewardSol { amount:200, leaf_index:1, proof:vec![paid_leaf] }.data();
+    assert!(!send(&mut f.svm,&successor,&[&successor],&[late]));
+    assert_eq!(snapshot(&f.svm),after);
+    assert_eq!(f.svm.get_account(&outstanding_recipient).unwrap().lamports,1_000_000);
+    let mut other = payout(&f,35,recipient,41);
+    other.accounts[0] = AccountMeta::new(successor.pubkey(),true);
+    other.accounts.last_mut().unwrap().is_writable = false;
+    assert!(send(&mut f.svm,&successor,&[&successor],&[other]));
+    assert_eq!(outstanding(&f.svm,f.reserve),0);
+    assert_eq!(f.svm.get_account(&recipient).unwrap().lamports,1_000_741);
 }

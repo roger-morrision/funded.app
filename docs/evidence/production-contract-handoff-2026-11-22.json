@@ -169,17 +169,17 @@
   },
   "productionProgramId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
   "productionArtifact": {
-    "status": "pair-enabled candidate awaiting independent review",
+    "status": "expiry-corrected candidate; independent current-byte review requested",
     "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
     "programDataAddress": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
-    "source": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
+    "source": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
     "package": "funded-fee-router",
-    "contractWorkspaceTree": "f785b0ca09fae9c1d42af605cc938fc432ef829c",
+    "contractWorkspaceTree": "818b8957cd6b6cd12aab519a8eda5893d22f2850",
     "features": "mainnet-v3-program",
     "conversionPools": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v",
-    "bytes": 1110880,
-    "sha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
-    "file": "tmp/production-contract-freeze/8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd/funded_fee_router.so",
+    "bytes": 1110424,
+    "sha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "file": "tmp/production-contract-freeze/3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50/funded_fee_router.so",
     "toolchain": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
     "deployedProgramDataSha256": null,
     "independentReleaseReview": null
@@ -311,12 +311,12 @@
     "richConfiguration": {
       "dataHex": "340a47441468b59c010000000000000000",
       "signatures": 2,
-      "readOnlyFeeQuoteSlot": 472588767,
+      "readOnlyFeeQuoteSlot": 472592349,
       "baseFeeLamports": 10000,
-      "messageSha256": "40f246570fe1aed4820d724e17a4b9939cea15266a7c529776e52474094c9c97",
-      "unsignedMessageBase64": "AgAFCcNutOle2bNU9MabN1ao9in/MgbNAqLfC3oXhfT24xe5QkXXm+cKDF5e2HJlNqNa6pPbmnOyQZCStT4kdm51TnEZVtTcalE6vQ/Y2UCGsAOjoU7ZMENUdOs6tnqd9OnJdUycEj8xx0TY05w40lZskyMnlWPiyo2iBRUIPtZNxMn8z13Q7c4SSfVIs/7KZ7Fs+fM6ejIuktzW5YSB6Bi6yFzH4zVUjUshm0PoMnzBnlmEUG3p6eARh2HrlYCmwcvFEF9P2bSIaZs4455lSksv4HWE8TAh5muLPIYvmcEDPvbfPVyuG6wIaVObT82GLRsd/mMD9HZj92iloVN+DMRG+BQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKeaz0XuTnUnPvPhW9EervDHJ6oT0h4vUzBVt8T+isasAQQIAQQFAgMGBwgRNApHRBRotZwBAAAAAAAAAAA=",
-      "blockhash": "CHFzzv7PcZ3quo8KVSGMDHFrETidPGe1aLH24yo3SrRH",
-      "lastValidBlockHeight": 450602787,
+      "messageSha256": "b1e3e1b28cafec0361c7a4a16a3e045a5d9b21c3109c27c562ae44a1005eb9d2",
+      "unsignedMessageBase64": "AgAFCcNutOle2bNU9MabN1ao9in/MgbNAqLfC3oXhfT24xe5QkXXm+cKDF5e2HJlNqNa6pPbmnOyQZCStT4kdm51TnEZVtTcalE6vQ/Y2UCGsAOjoU7ZMENUdOs6tnqd9OnJdUycEj8xx0TY05w40lZskyMnlWPiyo2iBRUIPtZNxMn8z13Q7c4SSfVIs/7KZ7Fs+fM6ejIuktzW5YSB6Bi6yFzH4zVUjUshm0PoMnzBnlmEUG3p6eARh2HrlYCmwcvFEF9P2bSIaZs4455lSksv4HWE8TAh5muLPIYvmcEDPvbfPVyuG6wIaVObT82GLRsd/mMD9HZj92iloVN+DMRG+BQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAF4EpjhysM+lYgqOAFhW2KMS+u28sDpFCYpJfnqtrUc9AQQIAQQFAgMGBwgRNApHRBRotZwBAAAAAAAAAAA=",
+      "blockhash": "7L1SFs7FM1Y9c3fjDutt1qdvNbjwwrSc78R9hWSzuvvx",
+      "lastValidBlockHeight": 450606369,
       "executionStatus": "illustrative unsigned quote; refresh entire signing set before use"
     },
     "unresolved": [
@@ -407,9 +407,9 @@
     }
   ],
   "productionQuote": {
-    "checkedAt": "2026-11-22T15:20:14.915Z",
+    "checkedAt": "2026-11-22T15:33:03.906Z",
     "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
-    "finalizedAccountSlot": 472588766,
+    "finalizedAccountSlot": 472592348,
     "accounts": {
       "deploymentPayer": {
         "key": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
@@ -452,8 +452,8 @@
         "lamports": 0
       }
     },
-    "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
-    "bytes": 1110880,
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "bytes": 1110424,
     "exactAllocation": true,
     "rentExemptByDataBytes": {
       "0": 650240,
@@ -462,22 +462,22 @@
       "131": 1315720,
       "165": 1488440,
       "177": 1549400,
-      "1110917": 5644108600,
-      "1110925": 5644149240
+      "1110461": 5641792120,
+      "1110469": 5641832760
     },
     "programRentLamports": 833120,
-    "programDataRentLamports": 5644149240,
-    "lockedRentLamports": 5644982360,
-    "temporaryReusableBufferRentLamports": 5644108600,
+    "programDataRentLamports": 5641832760,
+    "lockedRentLamports": 5642665880,
+    "temporaryReusableBufferRentLamports": 5641792120,
     "bufferTreatment": "Same-payer fresh Loader-v3 finalization returns buffer funding before creating ProgramData.",
-    "estimatedWriteCount900ByteChunks": 1235,
-    "estimatedUploadBaseFeeLamports": 12380000,
+    "estimatedWriteCount900ByteChunks": 1234,
+    "estimatedUploadBaseFeeLamports": 12370000,
     "uploadFeeAllowanceLamports": 25000000,
     "priorityFeeSample": {
       "count": 150,
       "unit": "micro-lamports/CU",
-      "firstSlot": 472588618,
-      "lastSlot": 472588767,
+      "firstSlot": 472592200,
+      "lastSlot": 472592349,
       "median": 0,
       "max": 0
     },
@@ -490,9 +490,9 @@
     "canaryExposureAllowanceLamports": 50000000,
     "reserveLamports": 3000000000,
     "tokenPoolLpPrincipal": 0,
-    "illustrativeFundingBeforeReserve": 6019982360,
-    "illustrativeTotalIncludingReserve": 9019982360,
-    "illustrativeTotalLessPayerBalance": 9019982360,
+    "illustrativeFundingBeforeReserve": 6017665880,
+    "illustrativeTotalIncludingReserve": 9017665880,
+    "illustrativeTotalLessPayerBalance": 9017665880,
     "roleFunding": "Aggregate assumes E9 sources all planned funding including direct admin/operator rents. Fund admin/operator before bootstrap, count those rents once. Program identity signs fresh deployment only.",
     "conditions": [
       "Unpriced final wire messages and priority bids, lookup table and canary transaction selection.",
@@ -505,8 +505,8 @@
         "address": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
         "observedBalance": 0,
         "allocatedReserve": 3000000000,
-        "requiredIfDirectlyFundingRolesSeparately": 9014714400,
-        "temporaryBufferRent": 5644108600,
+        "requiredIfDirectlyFundingRolesSeparately": 9012397920,
+        "temporaryBufferRent": 5641792120,
         "debits": [
           "buffer create",
           "upload and deployment fees",
@@ -542,7 +542,7 @@
         "debits": []
       }
     ],
-    "deploymentProjectionFromMessages": 12370000
+    "deploymentProjectionFromMessages": 12360000
   },
   "restrictedBaseline": {
     "status": "undeployed restricted production-ID review candidate",
@@ -771,7 +771,8 @@
           }
         ]
       },
-      "execution": "Local SBF against captured PumpSwap/fee ELF; synthetic balances. Recorded pool/user debit, vault credit, closed WSOL, proof of replay rejection and failed transaction rollback."
+      "execution": "Local SBF against captured PumpSwap/fee ELF; synthetic balances. Recorded pool/user debit, vault credit, closed WSOL, proof of replay rejection and failed transaction rollback.",
+      "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
     },
     {
       "category": 6,
@@ -924,7 +925,8 @@
           }
         ]
       },
-      "execution": "Local SBF against captured PumpSwap/fee ELF; synthetic balances. Recorded pool/user debit, vault credit, closed WSOL, proof of replay rejection and failed transaction rollback."
+      "execution": "Local SBF against captured PumpSwap/fee ELF; synthetic balances. Recorded pool/user debit, vault credit, closed WSOL, proof of replay rejection and failed transaction rollback.",
+      "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
     },
     {
       "category": 7,
@@ -1077,7 +1079,8 @@
           }
         ]
       },
-      "execution": "Local SBF against captured PumpSwap/fee ELF; synthetic balances. Recorded pool/user debit, vault credit, closed WSOL, proof of replay rejection and failed transaction rollback."
+      "execution": "Local SBF against captured PumpSwap/fee ELF; synthetic balances. Recorded pool/user debit, vault credit, closed WSOL, proof of replay rejection and failed transaction rollback.",
+      "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
     }
   ],
   "previousPairCandidate": {
@@ -1097,44 +1100,6 @@
     "independentReleaseReview": null,
     "packetCommit": "23df01d408ee8ccc995bd4060efa029118e43ed9"
   },
-  "loaderMessages": {
-    "file": "tmp/production-contract-freeze/8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd/unsigned-loader-4N4GbGh953jZQYJV9pDwBgVF3PPn7PgKYjPw8kngwVX3.json",
-    "sha256": "465a764bfe12551c4bd780e8b60b964d2aa85eaf0516c4d62cee56889d981425",
-    "messages": 1237,
-    "buffer": "FJrPJcqgDi7TMuarFaf3U6Qz1enoWJMA4wNZbvJL6maV",
-    "blockhash": "4N4GbGh953jZQYJV9pDwBgVF3PPn7PgKYjPw8kngwVX3",
-    "lastValidBlockHeight": 450602801,
-    "slot": 472588780,
-    "quotedAt": "2026-11-22T15:20:21.012Z",
-    "fees": {
-      "create-buffer": {
-        "sampleLamports": 5000,
-        "slot": 472588795,
-        "count": 1
-      },
-      "write": {
-        "sampleLamports": 10000,
-        "slot": 472588795,
-        "count": 1234
-      },
-      "write-remainder": {
-        "sampleLamports": 10000,
-        "slot": 472588795,
-        "count": 1
-      },
-      "deploy": {
-        "sampleLamports": 15000,
-        "slot": 472588795,
-        "count": 1
-      }
-    },
-    "feeSum": 12370000,
-    "largestWire": 1216,
-    "scope": "Unsigned fresh deployment prefix. Fees sampled per instruction class at one blockhash; zero priority bid. Refresh the signing set for sequential batches.",
-    "source": "https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259-L280",
-    "nativeRehearsal": "Synthetic accounts and signers at 5080 lamports/byte, all 1235 native loader writes and finalize. ExUNA program account preallocated locally. Payer had insufficient cash to front ProgramData without the buffer. Asserted payer delta plus fee, buffer zero, program executable, ProgramData owner/authority and every deployed ELF byte.",
-    "baseFeeIncludesAllProductionSignatures": true
-  },
   "hostAcceptance": {
     "candidateSource": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
     "pairedHarness": "ef9029ccff3633d2dd5f316979492273641e8179",
@@ -1144,7 +1109,8 @@
     "separatelyRunBuybackTests": 4,
     "buybackExecutions": 6,
     "npmCheck": "1115 JS syntax checks; source-size budgets passed",
-    "independentStatus": "See independentCompiledVerification for scoped clean rebuild, compiled financial cases and loader-prefix acceptance."
+    "independentStatus": "See independentCompiledVerification for scoped clean rebuild, compiled financial cases and loader-prefix acceptance.",
+    "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
   },
   "pairedDelivery": {
     "invariant": "Only spendable units received fund and discharge category liabilities. The finalized app keeper requires exact credits and debits.",
@@ -1189,17 +1155,36 @@
         "routerSettlementAndWithdrawal": "Both rejected on MintClaimAmountMismatchV3; all affected balances, withheld balances, ledger and receipts remained byte-identical."
       }
     ],
-    "supportedToken2022Primary": "MetadataPointer + TokenMetadata on the captured Singularity mint; both protected and agency compiled burn flows passed."
+    "supportedToken2022Primary": "MetadataPointer + TokenMetadata on the captured Singularity mint; both protected and agency compiled burn flows passed.",
+    "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
   },
   "operatorRecovery": {
-    "scope": "local-only exact revised ELF; assumes current signer recoverable",
-    "steps": [
-      "Owner configured guardian and cap. Prior operator committed a 600-lamport reward. Guardian paused.",
-      "Missing each of outgoing, successor or upgrade-owner signatures rejected rotation. Three-party rotation while paused changed only the header authority bytes.",
-      "Matured payout remained blocked while paused. Upgrade owner resumed. Old operator could not open a new cycle.",
-      "Successor paid the original 600-lamport entitlement once. A separate pre-rotation 300-lamport entitlement remained outstanding. Neither operator could normally expire it after grace; the successor could not commit free funds in the historical vault; balances/reserve unchanged."
+    "source": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "scope": "Local compiled handoff, existing normal SPL token expiry and native full loader rehearsal. Mainnet receipt-mode expiry ABI unchanged.",
+    "before": "Original-vault expiry refused for both operators on the 8f6 candidate, independently reproduced in independent-operator-handoff-20261122.json, SHA-256 93c9c748eb6211655becadc087421565a6884667f55a912db2e3554b3fda0ba8.",
+    "change": "Derive vault from immutable stored vault authority, mint and bump. Authenticate current signer against canonical unpaused router. Existing cycle/vault and reserve/vault/asset constraints, grace and exact checked unpaid subtraction retained.",
+    "payerClaimLamports": 600,
+    "historicalCycle": {
+      "total": 300,
+      "paid": 100,
+      "released": 200,
+      "unrelatedOutstanding": 41,
+      "reserveBefore": 241,
+      "reserveAfter": 41,
+      "custodyDeltaOnExpiry": 0,
+      "unrelatedClaimLaterPaid": 41,
+      "terminalReserve": 0
+    },
+    "rejections": [
+      "one second before grace",
+      "paused at exact deadline",
+      "outgoing operator",
+      "alternate address for vault, reserve, cycle or header",
+      "expiry replay",
+      "unpaid leaf after expiry"
     ],
-    "open": "No tested recovery of a permanently lost old signing key or claim of live backup/restore; the standard rotation instruction requires all three signatures.",
+    "scopeLimit": "Free balance stays in original vault. New allocations and withdrawals from historical free funds and permanent key loss are separate.",
     "runbook": "docs/mainnet-contract-review-2026-11-22.md#operator-custody-and-reward-vault-handoff"
   },
   "independentCompiledVerification": {
@@ -1216,5 +1201,72 @@
       "Finalized slot 472589897 observed zero balances for E9 and 5Thg and absent program, ProgramData and buffer"
     ],
     "releaseSignoff": false
+  },
+  "previousExpiryCandidate": {
+    "status": "pair-enabled candidate awaiting independent review",
+    "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+    "programDataAddress": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
+    "source": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
+    "package": "funded-fee-router",
+    "contractWorkspaceTree": "f785b0ca09fae9c1d42af605cc938fc432ef829c",
+    "features": "mainnet-v3-program",
+    "conversionPools": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v",
+    "bytes": 1110880,
+    "sha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+    "file": "tmp/production-contract-freeze/8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd/funded_fee_router.so",
+    "toolchain": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
+    "deployedProgramDataSha256": null,
+    "independentReleaseReview": null,
+    "packetCommit": "ec206034afa0794580aefb6ad91d3a68cc5504dd"
+  },
+  "loaderMessages": {
+    "file": "tmp/production-contract-freeze/3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50/unsigned-loader-4N3P8GZN83YUzidVmTEQVTJXF5xPJ3USjVEGJVbYrGHG.json",
+    "sha256": "ac4e2708c14bbc7d341268bbe44d133ae0c54ce2e1789645f3b9dbf28d64dd5a",
+    "messages": 1236,
+    "buffer": "AveNoMB6JhRyYQ8h6FT31zvroqWvNZdNnma98xZxGPnv",
+    "blockhash": "4N3P8GZN83YUzidVmTEQVTJXF5xPJ3USjVEGJVbYrGHG",
+    "lastValidBlockHeight": 450606379,
+    "slot": 472592359,
+    "quotedAt": "2026-11-22T15:33:09.368Z",
+    "fees": {
+      "create-buffer": {
+        "sampleLamports": 5000,
+        "slot": 472592374,
+        "count": 1
+      },
+      "write": {
+        "sampleLamports": 10000,
+        "slot": 472592374,
+        "count": 1233
+      },
+      "write-remainder": {
+        "sampleLamports": 10000,
+        "slot": 472592374,
+        "count": 1
+      },
+      "deploy": {
+        "sampleLamports": 15000,
+        "slot": 472592375,
+        "count": 1
+      }
+    },
+    "feeSum": 12360000,
+    "largestWire": 1216,
+    "scope": "Unsigned fresh deployment prefix. Fees sampled per instruction class at one blockhash; zero priority bid. Refresh the signing set for sequential batches.",
+    "source": "https://github.com/anza-xyz/agave/blob/v4.1.2/programs/bpf_loader/src/lib.rs#L259-L280",
+    "nativeRehearsal": "Synthetic accounts and signers at 5080 lamports/byte, all 1234 native loader writes and finalize. ExUNA program account preallocated locally. Payer had insufficient cash to front ProgramData without the buffer. Asserted payer delta plus fee, buffer zero, program executable, ProgramData owner/authority and every deployed ELF byte.",
+    "baseFeeIncludesAllProductionSignatures": true
+  },
+  "previousOperatorRecovery": {
+    "scope": "local-only exact revised ELF; assumes current signer recoverable",
+    "steps": [
+      "Owner configured guardian and cap. Prior operator committed a 600-lamport reward. Guardian paused.",
+      "Missing each of outgoing, successor or upgrade-owner signatures rejected rotation. Three-party rotation while paused changed only the header authority bytes.",
+      "Matured payout remained blocked while paused. Upgrade owner resumed. Old operator could not open a new cycle.",
+      "Successor paid the original 600-lamport entitlement once. A separate pre-rotation 300-lamport entitlement remained outstanding. Neither operator could normally expire it after grace; the successor could not commit free funds in the historical vault; balances/reserve unchanged."
+    ],
+    "open": "No tested recovery of a permanently lost old signing key or claim of live backup/restore; the standard rotation instruction requires all three signatures.",
+    "runbook": "docs/mainnet-contract-review-2026-11-22.md#operator-custody-and-reward-vault-handoff",
+    "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
   }
 }
