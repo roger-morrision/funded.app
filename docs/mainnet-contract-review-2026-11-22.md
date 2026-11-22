@@ -136,6 +136,23 @@ From `contracts/funded-fee-router`, with `FUNDED_ROUTER_TEST_SO` set to the matc
 
 **Live-verified identities.** A read-only finalized Devnet account batch at slot `525063603` matched both executable Loader-v3 program pointers, ELF hashes and full ProgramData hashes to the [isolated router record](evidence/devnet-configurable-rich-2026-11-22.json) and [public app record](evidence/devnet-financial-records-2026-11-22.json). The public app ELF SHA-256 was `c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15`. No transaction was submitted. Next case: establish whether an entitlement created before rotation was paid after rotation, using finalized transaction ordering and custody and recipient deltas.
 
+## Creator entitlement paid across primary RICH rotation
+
+**RICH-ENTITLEMENT-01 — live-verified on the isolated Devnet router.** The old cohort's protected policy allocated 4,000,000 of 8,000,000 directed units to the creator. During revision 1, settlement debited 840 lamports from the cohort router and credited 672 fee lamports to its category-0 vault, establishing a 336-lamport creator share. After revision 2 changed the primary RICH mint, the same policy and vault paid that share in SOL. The finalized claim and withdrawal accounts matched their derived addresses, mint, and amounts. The withdrawal also matched category 0 and the creator recipient.
+
+| Finalized Devnet receipt | Slot | Observed change |
+| --- | ---: | --- |
+| [Configure revision 1](https://explorer.solana.com/tx/3borkRYq6qqixMxBEKQzJBfQA6qg62XYRbnkM9gP3wFmNAUQh1z5xpr46bRh6A8u9vtbAxSPz2g7jrY8zurkwQjD?cluster=devnet) | 524977848 | Revision 1 history recorded the original RICH mint and market. |
+| [Settle old cohort](https://explorer.solana.com/tx/2pzSYVqKbSzBgsuVaUpo4CJeyScA21a6p3vz9cjNSZXEsE1HADzSCHe7dWk725wLBmh2hMgPTZNXsp6x4C5MFyXm?cluster=devnet) | 524979123 | Category-0 vault rose from 0 to 650,912 lamports, including 650,240 rent. |
+| [Configure revision 2](https://explorer.solana.com/tx/469L31P4VeMjjqL1BSkurZYpNtifndUb4CpRFeUSPty7W6b6H96wYcrjywQ1PJgVF6rqYKQ1SxhVx2d7ovFmgbVK?cluster=devnet) | 524979397 | Revision 2 history recorded the replacement mint and market. |
+| [Pay old cohort's creator](https://explorer.solana.com/tx/19D3LKxrNbxj526gSMQHSSurKbphcRcnqypF3M5z7D4pYYTCLXoBE2ZAGrihSTW6VrPXMnQ5sBZGMYb3avuGWXp?cluster=devnet) | 524980272 | Vault fell from 650,912 to 650,576. The inner System Program transfer credited the creator 336 lamports. |
+
+The creator also paid the 5,000-lamport fee and funded the withdrawal receipt with 1,264,920 lamports. Its wallet moved from 4,810,187,595 to 4,808,918,011 lamports. Adding those costs to the wallet delta recovers exactly 336 lamports. The withdrawal receipt was `B4g6AKG8AuBw64JYBr5s9YKhrKYVA1qZVwcGQruqAyB3`.
+
+At source revision `ff2aac18e10612211f9d78817a7316ab504ac999` (contract source tree `dd2f57ffe841adaca9b2e033950633247f64c7ac`), read-only Devnet RPC calls used `getGenesisHash`, finalized `getTransaction` with `jsonParsed`, and finalized account reads. At slot 525071189 both executable loader pointers and full ProgramData hashes matched the [isolated](evidence/devnet-configurable-rich-2026-11-22.json) and [public app](evidence/devnet-financial-records-2026-11-22.json) records. The isolated router's last deployment slot was 524977616, before all four receipts. Its ELF SHA-256 was `7b4b6bab3605135fb251894ca558f425f8bdc4c42e0de46ebfb00e135247c25f`. The public app ELF matched `c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15`. Local check `node --test tests/security/rich-assets.test.mjs` passed all seven tests.
+
+**Next case:** pay a holder entitlement whose Merkle root was committed before rotation. The old cohort's pinned holder, bonus and launched-token cycles were created at slots 524980307, 524980328 and 524981104, all after rotation. Cross-rotation payment for those cycles remains unverified. An isolated compiled-SBF fixture can cover the ordering without changing the live configuration.
+
 ## Remaining deployment blockers
 
 1. **Production identities are unavailable.** Select the dedicated program address, production RICH mint and supported pool, guardian, fresh operational/price signers and approved upgrade authority. Compile the dedicated production program identity, reproduce and review the bytes, then initialize the owner-controlled RICH configuration with the supported production mint/market. Subsequent RICH changes do not require recompilation. No private keys should enter this report or repository.
