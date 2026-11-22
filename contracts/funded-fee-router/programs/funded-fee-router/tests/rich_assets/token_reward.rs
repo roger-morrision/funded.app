@@ -7,7 +7,9 @@ use anchor_lang::{
     },
     AccountDeserialize, InstructionData, ToAccountMetas,
 };
-use anchor_spl::{associated_token::get_associated_token_address, token::spl_token};
+use anchor_spl::{associated_token::{get_associated_token_address_with_program_id, spl_associated_token_account},
+    token::spl_token, token_2022::spl_token_2022 as spl22};
+use spl22::extension::{BaseStateWithExtensions, ExtensionType, StateWithExtensions, transfer_fee::TransferFeeAmount};
 use funded_fee_router::instructions::rich_assets::RichAssetConfig;
 use funded_fee_router::{accounts, instruction, RewardCycle, RewardPayment, RewardReserve};
 use litesvm::LiteSVM;
@@ -26,6 +28,27 @@ fn read<T: AccountDeserialize>(svm: &LiteSVM, key: Pubkey) -> T {
 
 #[test]
 fn committed_launched_token_pays_after_rotation() {
+    committed_token_case(spl_token::ID, None, 0);
+}
+
+#[test]
+fn committed_token_reward_requires_exact_spendable_extension_delivery() {
+    for (extension, bps) in [
+        (ExtensionType::MetadataPointer, 0),
+        (ExtensionType::TransferFeeConfig, 0),
+        (ExtensionType::TransferFeeConfig, 100),
+    ] {
+        committed_token_case(spl22::ID, Some(extension), bps);
+    }
+}
+
+fn token_units(svm: &LiteSVM, address: Pubkey) -> (u64, u64) {
+    let account = svm.get_account(&address).unwrap();
+    let token = StateWithExtensions::<spl22::state::Account>::unpack(&account.data).unwrap();
+    (token.base.amount, token.get_extension::<TransferFeeAmount>().map_or(0, |fee| u64::from(fee.withheld_amount)))
+}
+
+fn committed_token_case(token_program: Pubkey, extension: Option<ExtensionType>, bps: u16) {
     let (mut svm, payer, program_data) = fixture();
     let authority = payer.pubkey();
     let id = funded_fee_router::id();
@@ -38,16 +61,44 @@ fn committed_launched_token_pays_after_rotation() {
     let vault = pda(&[b"reward-vault-v1", authority.as_ref(), mint.as_ref()]);
     let reserve = pda(&[b"reward-reserve-v1", vault.as_ref(), mint.as_ref()]);
     let recipient = Pubkey::new_from_array([22; 32]);
-    let custody = get_associated_token_address(&vault, &mint);
-    let destination = get_associated_token_address(&recipient, &mint);
-    put_spl(&mut svm, mint, Mint { supply: 505, decimals: 6, is_initialized: true, ..Mint::default() });
-    for (key, owner, amount) in [(custody, vault, 500), (destination, recipient, 5)] {
-        put_spl(
-            &mut svm,
-            key,
-            TokenAccount { mint, owner, amount, state: AccountState::Initialized, ..TokenAccount::default() },
-        );
-    }
+    let ata = |owner: Pubkey| get_associated_token_address_with_program_id(&owner, &mint, &token_program);
+    let custody = ata(vault);
+    let destination = ata(recipient);
+    let expected_supply = if let Some(extension) = extension {
+        let size = ExtensionType::try_calculate_account_len::<spl22::state::Mint>(&[extension]).unwrap();
+        store(&mut svm, mint, token_program, vec![0; size]);
+        let initialize_extension = if extension == ExtensionType::TransferFeeConfig {
+            spl22::extension::transfer_fee::instruction::initialize_transfer_fee_config(
+                &token_program, &mint, None, None, bps, 5_000).unwrap()
+        } else {
+            spl22::extension::metadata_pointer::instruction::initialize(
+                &token_program, &mint, None, Some(mint)).unwrap()
+        };
+        send(&mut svm, &payer, &[&payer], initialize_extension).unwrap();
+        send(&mut svm, &payer, &[&payer], spl22::instruction::initialize_mint2(
+            &token_program, &mint, &authority, None, 6).unwrap()).unwrap();
+        let control_recipient = Pubkey::new_unique();
+        for owner in [vault, recipient, authority, control_recipient] {
+            send(&mut svm, &payer, &[&payer], spl_associated_token_account::instruction::create_associated_token_account_idempotent(
+                &authority, &owner, &mint, &token_program)).unwrap();
+        }
+        for (account, amount) in [(custody, 500), (destination, 5), (ata(authority), 1_000)] {
+            send(&mut svm, &payer, &[&payer], spl22::instruction::mint_to(
+                &token_program, &mint, &account, &authority, &[], amount).unwrap()).unwrap();
+        }
+        send(&mut svm, &payer, &[&payer], spl22::instruction::transfer_checked(
+            &token_program, &ata(authority), &mint, &ata(control_recipient), &authority, &[], 1_000, 6).unwrap()).unwrap();
+        let fee = if bps == 0 { 0 } else { 10 };
+        assert_eq!(token_units(&svm, ata(authority)), (0, 0));
+        assert_eq!(token_units(&svm, ata(control_recipient)), (1_000 - fee, fee));
+        1_505
+    } else {
+        put_spl(&mut svm, mint, Mint { supply: 505, decimals: 6, is_initialized: true, ..Mint::default() });
+        for (key, owner, amount) in [(custody, vault, 500), (destination, recipient, 5)] {
+            put_spl(&mut svm, key, TokenAccount { mint, owner, amount, state: AccountState::Initialized, ..TokenAccount::default() });
+        }
+        505
+    };
     let ix = |data: Vec<u8>, metas| Instruction::new_with_bytes(id, &data, metas);
     for action in [
         ix(
@@ -149,7 +200,7 @@ fn committed_launched_token_pays_after_rotation() {
         vault_token_account: custody,
         recipient_token_account: destination,
         payment,
-        token_program: spl_token::ID,
+        token_program,
         system_program,
     }
     .to_account_metas(None);
@@ -160,12 +211,30 @@ fn committed_launched_token_pays_after_rotation() {
         ix(instruction::PayoutRewardToken { amount: 336, leaf_index: 0, proof: vec![sibling] }.data(), metas);
     let balances = |vm: &LiteSVM| {
         [custody, destination]
-            .map(|key| TokenAccount::unpack(&vm.get_account(&key).unwrap().data).unwrap().amount)
+            .map(|key| token_units(vm, key).0)
     };
     assert_eq!(balances(&svm), [500, 5]);
+    if bps > 0 {
+        let tracked = [vault, reserve, cycle, mint, custody, destination, payment];
+        let before = tracked.map(|key| svm.get_account(&key));
+        for _ in 0..2 {
+            let error = send(&mut svm, &payer, &[&payer], pay.clone()).unwrap_err();
+            assert!(error.contains("InvalidAmount"), "{error}");
+            assert_eq!(tracked.map(|key| svm.get_account(&key)), before);
+            assert_eq!(token_units(&svm, custody), (500, 0));
+            assert_eq!(token_units(&svm, destination), (5, 0));
+            assert_eq!(read::<RewardReserve>(&svm, reserve).outstanding, 500);
+            assert_eq!(read::<RewardCycle>(&svm, cycle).distributed_amount, 0);
+            assert!(svm.get_account(&payment).is_none());
+        }
+        return;
+    }
     send(&mut svm, &payer, &[&payer], pay.clone()).unwrap();
     assert_eq!(balances(&svm), [164, 341]);
-    assert_eq!(Mint::unpack(&svm.get_account(&mint).unwrap().data).unwrap().supply, 505);
+    assert_eq!(token_units(&svm, custody), (164, 0));
+    assert_eq!(token_units(&svm, destination), (341, 0));
+    let mint_account = svm.get_account(&mint).unwrap();
+    assert_eq!(StateWithExtensions::<spl22::state::Mint>::unpack(&mint_account.data).unwrap().base.supply, expected_supply);
     assert_eq!(read::<RewardReserve>(&svm, reserve).outstanding, 164);
     assert_eq!(read::<RewardCycle>(&svm, cycle).distributed_amount, 336);
     let receipt: RewardPayment = read(&svm, payment);
