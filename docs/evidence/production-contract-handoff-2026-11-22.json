@@ -2231,5 +2231,70 @@
       "record": "productionInit / productionQuote",
       "purpose": "Unsigned draft intent and dated quote only; final operator/attestor/guardian and actual transaction inventory remain unresolved. No funding request or spending authorization."
     }
+  },
+  "storePersistenceReview": {
+    "appSource": "94c01b6745de630dbb84c914eda9116c93fefd5a",
+    "ownerReportGitSha256": "58cef78402311c1e6cfb7f5f3d012ed723a85b7150555dbf390fed207784e29c",
+    "reviewNode": "v26.13.1",
+    "requiredPassed": 288,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "changedGitHashesMatched": 8,
+    "unchangedContextHashesMatched": 22,
+    "rawInventory": "tmp/contract-store-noop-94c0.log",
+    "rawInventorySha256": "533c90c28fe0fa749b750550433ba86146318a1a533e1ea5c7d9a155a621c83a",
+    "sourceAssessment": [
+      "Exact94c graph shows generic store callers; actual diff examined for broad persistence impact, so complete288affected gate executed.",
+      "Original persisted Buffer read under same exclusive lock; legacy UTF8 parse semantics retained. Final JSON UTF8 Buffer compared exactly with original bytes; no caller skip flag.",
+      "Only existing exact byte equality skips publication. Missing bootstrap and normal version1->2 migration still publish; falsey mutator result cannot suppress changed-state persistence.",
+      "Changed wire/proof/status still serialize, exclusive-temp write, fsync and atomic rename before return. Errors propagate and cleanup, queue/drain/lock/cache/API prefix+tail byte-identical926a.",
+      "Invalid UTF8/noncanonical JSON normalizes once, not mistaken for raw byte identity. Corrupt unsupported state, serialization, rename, concurrent-store, active-drain and cached clone cases pass.",
+      "All22financial/context/package/admission/resource pins and AppContractruntime paths unchanged; reuse9713/3f8/1236Loaderprefix, no quote/signing inventory change."
+    ],
+    "status": "Contract exact-source generic persistence review and288local affected cases pass. Independent exact-source acceptance pending.",
+    "scope": "Actual Windows filesystem/store with synthetic financial bank/RPC/attempts. Local persistence and physical ledger write reduction only; not live finality, Linux power-loss/backup, realistic payload/memory headroom or whole-worker capacity acceptance.",
+    "remaining": [
+      "Whole-ledger discovery/parse/comparison/serialization and memory remainO(N).",
+      "Raw byte retention increases observed memory;512MiB overlay is not full-process headroom proof.",
+      "Marker-only attempts do not represent complete production signed wire/proof payloads.",
+      "Cooperating writer lock assumption, Linux directoryfsync/powerloss and production restore still open.",
+      "Originalbank/live28/worker bounds/operational roles/final funding and release packet remain open."
+    ],
+    "focusedMeasurement": {
+      "scope": "synthetic-two-injected-1001-cohorts-no-financial-finality",
+      "node": "v26.13.1",
+      "cohorts": 2,
+      "leavesPerCohort": 1001,
+      "fresh": {
+        "publicReads": 0,
+        "transactions": 1,
+        "serializedCandidateBytes": 1892885,
+        "actualLedgerReplacements": 1,
+        "actualLedgerWriteBytes": 1892885,
+        "mutatorInsideLockMs": 26.940600000000018,
+        "transactionElapsedMs": 59.49270000000001,
+        "instrumentationSerializeMs": 3.3115999999999985,
+        "elapsedMs": 84.745
+      },
+      "recovery": {
+        "publicReads": 1,
+        "transactions": 33,
+        "serializedCandidateBytes": 62470800,
+        "actualLedgerReplacements": 2,
+        "actualLedgerWriteBytes": 3786064,
+        "mutatorInsideLockMs": 4.5671000000002095,
+        "transactionElapsedMs": 471.3369000000007,
+        "instrumentationSerializeMs": 104.46959999999979,
+        "elapsedMs": 489.28419999999994,
+        "interfaceCalls": 32
+      },
+      "maxRssKiB": 254032,
+      "networkCalls": 0,
+      "transactionsSent": 0,
+      "limitation": "Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains."
+    },
+    "rawMeasurement": "tmp/contract-store-noop-metrics-94c0.log",
+    "rawMeasurementSha256": "0d46578960ba39c12fe15aa2f894e230195f0565c495c483dbac6fb1d2092b77"
   }
 }
