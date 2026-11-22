@@ -1450,6 +1450,19 @@
       "source": "At9174 scheduler calls ensureCycle for retained commitments; ensureCycle/inspectReadyLeaf/prepareLeaf derive current-authority namespace. Contract payout accepts original stored-authority vault and uses current operator guard.",
       "action": "Resolve authenticated retained cycle/vault/payment addresses for existing commitments; preserve successor fresh funding namespaces and immutable proof/receipt/paid accounting.",
       "cleanupCapability": "complete_reward_cycle and close_reward_payment are Devnet-only in lib.rs306-309; reward-rent also rejects/skips outside Devnet. This optional cleanup capability does not add a required Mainnet entry point."
+    },
+    "schedulerReachabilityFinding": {
+      "issue": "FQA-MN-005-EXPIRY-02",
+      "appSource": "9174aba3062d601101ef5fedf376582e5bdfa6c2",
+      "file": "server/reward-scheduler.mjs",
+      "line": 445,
+      "independentEvidence": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/expiry-scheduler-readiness-finding-9174aba3.json",
+      "sha256": "d1f978ba1d5bfa2e559631d5d1f4cfe2252d0d29e3aa8738bf8d4bb43c9f2141",
+      "observed": "False constrainedPayouts returns before expiry recovery. Actual saved landed attempt remains prepared with zero recovery calls; same chain directly verifies with no new blockhash/broadcast.",
+      "requestedFix": "Saved-attempt-only recovery before fresh-work readiness, enforced by recovery-only chain/journal entry that never falls through to fresh signing for a missing attempt. Preserve original message and exact attribution; unrelated fresh work remains blocked.",
+      "owner": "App Dev",
+      "status": "Independent Node24 reproduction and Contract source confirmation; pending bounded App correction.",
+      "priorAcceptance": "The prior 29-case chain-level acceptance remains scoped to its covered path; complete scheduler reachability remains open."
     }
   }
 }
