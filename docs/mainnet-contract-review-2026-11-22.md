@@ -114,6 +114,8 @@ Four public-app community manifests were rechecked against the funded reserve an
 
 The hot signer also now denies router administrative instructions on extra allowlisted programs. A regression checks every denied instruction against an extra QA router while allowing an ordinary claim instruction. This closes an allowlist policy gap; the extra QA router has **not** been enabled in the live signer.
 
+A separate [local holder-scale boundary check](evidence/holder-scale-gate-2026-11-22.json) confirms that automatic holder eligibility and funding both accept 1,000 recipients and reject 1,001. This is an application scheduling limit, separate from the removed SOL payout cap. It blocks a reward cycle for a larger eligible cohort; no million-holder payout has been verified. Raising the constant without a reviewed paged distribution, durable progress and realistic load tests would not establish safe scale.
+
 ## Remaining deployment blockers
 
 1. **Production identities are unavailable.** Select the dedicated program address, production RICH mint and supported pool, guardian, fresh operational/price signers and approved upgrade authority. Compile the dedicated production program identity, reproduce and review the bytes, then initialize the owner-controlled RICH configuration with the supported production mint/market. Subsequent RICH changes do not require recompilation. No private keys should enter this report or repository.
@@ -122,6 +124,7 @@ The hot signer also now denies router administrative instructions on extra allow
 4. **Mainnet application signing/worker integration remains blocked.** The operational signer and price-signer bootstrap still reject non-Devnet operation. Launch/registration, metadata, workers and journals retain network gates. Their restrictions were preserved; switching a cluster string would not constitute a safe implementation.
 5. **Full independent review is outstanding.** The production release configuration requires a review tied to exact source/binary hashes. This self-review does not satisfy that gate. Do not fill those fields with this report to bypass it.
 6. **Migration snapshot recovery and scale are unproven.** The live QA migration missed the 256-slot reverse-replay window and cannot produce an exact holder snapshot from current balances. The worker also searches only that recent window. Before release, verify the funded-reserve-to-migration-to-snapshot timing with a fresh coin and test a trustworthy archival recovery path and realistic holder counts; otherwise an eligible airdrop can become permanently unavailable.
+7. **Automatic holder rewards have a 1,000-recipient gate.** The scheduler rejects 1,001 eligible wallets before preparing a cycle. A million-user payout needs a reviewed paged or sharded entitlement model, complete holder indexing, durable recovery and scale acceptance; changing the limit alone is unsafe.
 
 ## SOL funding estimate
 

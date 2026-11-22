@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-only current holder scheduler boundary",
+  "checkedAt": "2026-11-22T11:26:15.318Z",
+  "maxEligibleHolders": 1000,
+  "acceptedHolders": 1000,
+  "rejectedHolders": 1001,
+  "eligibilityAndPoolMinimumRejectAboveLimit": true,
+  "implication": "A reward cycle with more than this many eligible holders is blocked before payout."
+}
