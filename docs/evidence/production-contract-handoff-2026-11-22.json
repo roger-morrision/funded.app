@@ -169,7 +169,7 @@
   },
   "productionProgramId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
   "productionArtifact": {
-    "status": "expiry-corrected candidate; independent current-byte review requested",
+    "status": "Mainnet-feature candidate independently reproduced and accepted for historical receipt expiry and unsigned loader prefix.",
     "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
     "programDataAddress": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
     "source": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
@@ -1109,7 +1109,7 @@
     "separatelyRunBuybackTests": 4,
     "buybackExecutions": 6,
     "npmCheck": "1115 JS syntax checks; source-size budgets passed",
-    "independentStatus": "See independentCompiledVerification for scoped clean rebuild, compiled financial cases and loader-prefix acceptance.",
+    "independentStatus": "Historical 8f6 scope; see previousIndependentCompiledVerification.",
     "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
   },
   "pairedDelivery": {
@@ -1189,16 +1189,16 @@
   },
   "independentCompiledVerification": {
     "owner": "End-to-End Devnet Dev & QA",
-    "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-production-rehearsal-20261122.json",
-    "sha256": "95769f0cd09dea6e656178515c140af6e9645d5d03eaa49ee6fff86bc8d26ac4",
-    "source": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
-    "elf": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+    "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-historical-expiry-971399ff-20261122.json",
+    "sha256": "df468f410f90874745ecccdb00d95c3fbb025ada4b97211cf73f54667e733397",
+    "source": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "elf": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
     "verified": [
-      "Independent clean build, same-length byte equality",
-      "Identical ef9029cc paired-delivery suite failed on prior e55 and passed on revised 8f6",
-      "Six USDC sells, two Singularity primary burns and one captured category-7 local execution",
-      "Decoded all 1237 unsigned messages, every ELF chunk and signer class",
-      "Finalized slot 472589897 observed zero balances for E9 and 5Thg and absent program, ProgramData and buffer"
+      "Clean canonical 971399ff build equals retained 3f8a bytes",
+      "Identical historical expiry suite fails on 8f6 at authorized expiry; passes on 3f8a",
+      "Unrotated expiry and complete 23851f21 handoff case pass; reserve 241 to 41; separate 41 payable",
+      "All 1236 unsigned messages, account/signature roles, every uploaded byte and fee classes",
+      "At slot 472593028 projected zero-priority deployment base fees 12360000 lamports; account rents agree with owner quote"
     ],
     "releaseSignoff": false
   },
@@ -1268,5 +1268,40 @@
     "open": "No tested recovery of a permanently lost old signing key or claim of live backup/restore; the standard rotation instruction requires all three signatures.",
     "runbook": "docs/mainnet-contract-review-2026-11-22.md#operator-custody-and-reward-vault-handoff",
     "elfSha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
+  },
+  "previousIndependentCompiledVerification": {
+    "owner": "End-to-End Devnet Dev & QA",
+    "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-e2e-20261122/independent-production-rehearsal-20261122.json",
+    "sha256": "95769f0cd09dea6e656178515c140af6e9645d5d03eaa49ee6fff86bc8d26ac4",
+    "source": "0278fb68a3eb4cae66115bd61a03c0f91ac46c1b",
+    "elf": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+    "verified": [
+      "Independent clean build, same-length byte equality",
+      "Identical ef9029cc paired-delivery suite failed on prior e55 and passed on revised 8f6",
+      "Six USDC sells, two Singularity primary burns and one captured category-7 local execution",
+      "Decoded all 1237 unsigned messages, every ELF chunk and signer class",
+      "Finalized slot 472589897 observed zero balances for E9 and 5Thg and absent program, ProgramData and buffer"
+    ],
+    "releaseSignoff": false
+  },
+  "localDevnetBitmapExpiry": {
+    "buildSource": "1940ec26883fa43fa0cf63d051fca951e696d480",
+    "contractWorkspaceTree": "d57b2441ce3aba119841481db00531810a47ab09",
+    "testSource": "51310668ff80d703ab7bc5287b1e526d5501720c",
+    "program": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+    "features": "devnet-v3-program,configurable-rich-assets",
+    "sha256": "55a07af3f185f0dd42c7d80785438ec502e3c74d2382fb7910a7d66827c646e7",
+    "bytes": 1206176,
+    "file": "tmp/devnet-bitmap-expiry/55a07af3f185f0dd42c7d80785438ec502e3c74d2382fb7910a7d66827c646e7/funded_fee_router.so",
+    "comparison": "Host test successor_expires_original_bitmap_cycle_without_moving_tokens failed at successor expiry on retained 7b4b; passed on local 55a0. All three reward_bitmap_token tests passed on 55a0.",
+    "units": {
+      "total": 100,
+      "paid": 60,
+      "liabilityReleased": 40,
+      "vaultTokensAfterExpiry": 40,
+      "custodyDeltaAtExpiry": 0
+    },
+    "mainnetBuildFromThisTree": "Re-exported and built mainnet-v3-program with the reviewed production identity/pool map. cmp against retained 971399ff artifact passed; byte count and SHA-256 identical. Both bitmap module and entry point require Devnet and exclude Mainnet.",
+    "deployed": false
   }
 }
