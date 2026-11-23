@@ -1,0 +1,4 @@
+import {runSecurityTests} from './security-tests.mjs';
+const result=await runSecurityTests({root:process.cwd(),inventory:'config/token-conversion-bootstrap-tests.json'});
+process.stdout.write(JSON.stringify(result,null,2)+'\n');
+if(!result.success||result.required!==20||result.requiredPassed!==20)process.exitCode=1;

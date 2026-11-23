@@ -21,7 +21,7 @@ export async function conversionServiceFixture(t,{category=5,send='land',signTim
   const tokens={'price-attestation':'a'.repeat(64),operator:'b'.repeat(64),worker:'c'.repeat(64)},calls={'price-attestation':0,operator:0,send:0};
   const origins={},backends={},hooks={},responses={},requests=[];
   const bind=async server=>{servers.push(server);await new Promise(r=>server.listen(0,'127.0.0.1',r));return 'http://127.0.0.1:'+server.address().port;};
-  const c={dir,all,paths,tokens,calls,origins,backends,hooks,responses,requests,wire:null};
+  const c={dir,all,paths,tokens,calls,origins,backends,hooks,responses,requests,wire:null,bind};
   c.makeBackend=async(role,override={})=>{
     const f=all[role],store=createAutomaticRewardStore(paths[role]);
     const service=createTokenConversionSigningService({store,connection:f.connection,config:f.config,release:f.release,role,token:tokens[role],now:()=>f.now,signTimeoutMs,

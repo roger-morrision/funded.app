@@ -324,3 +324,12 @@ The separate RPC readers, RAM test keys and synthetic bank do not establish
 independent production custody or live financial acceptance. No existing
 launcher, worker, public route, allowlist or activation setting is changed.
 See the [service source evidence](evidence/token-conversion-services.json).
+
+The [trusted runtime preparation](token-conversion-bootstrap.md) now checks public
+policy/references and finalized program/global-account context before journal or
+service-authentication resolution. It defaults to fixed recovery-only mode;
+explicit signing preparation still defers custody until a reviewed, durably
+claimed request and rechecks context around the lazy custody resolver. Twenty
+bootstrap and 23 affected HTTP cases pass on both platforms. No listener,
+production resolver, worker, key file or Mainnet activation is installed.
+See the [bootstrap evidence](evidence/token-conversion-bootstrap.json).

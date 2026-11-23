@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "issueIds": [
+    "FQA-MN-003",
+    "FQA-MN-005"
+  ],
+  "state": "recovery-first-bootstrap-source-local-awaiting-independent-QA",
+  "baseRevision": "c2106c4e834ac0230d6ba3a571961987ebf82fe1",
+  "observedAt": "2026-11-23T02:30:56.609354+00:00",
+  "scope": "Explicit trusted-resolver runtime preparation returning unbound existing private factories; no actual production resolver, listener, worker or activation",
+  "change": "Validate reviewed public policy and references, finalized executable/ProgramData/owned global accounts and increasing slots before journal/service-auth resolution. Default recovery-only; lazy own-role custody rechecks context before and after resolution.",
+  "tests": {
+    "command": "node scripts/check-token-conversion-bootstrap.mjs",
+    "WindowsNode24": "20/20required0fail/skip/TODO",
+    "LinuxNode24": "20/20required0fail/skip/TODO/networknone",
+    "affectedHTTP": "23/23required on both Windows and Linux0fail/skip/TODO",
+    "missingCurrentReviewElf": "Linuxexit1/0of20required passed",
+    "source": "Syntax checked 1201 JavaScript files.",
+    "size": "Source size budgets passed for 1464 maintained code files (hard maximum: 1000 lines).",
+    "diff": "pass",
+    "unchanged100": "Prior accepted28transport/72conversion reused by unchanged journal/review/proof dependencies, not rerun or counted as new acceptance."
+  },
+  "covered": [
+    "No resolver call before public identity/policy/reference validation",
+    "No service-auth/custody callback before finalized genesis, effective executable/fullProgramData/ELF/upgrade authority and owned global-account checks",
+    "Default recovery mode fixed at factory and cannot be overridden in request; never loads custody",
+    "Explicit signing preparation requires current unpaused operator/price; custody remains lazy after actual independent request review and durable signing claim",
+    "Context mutation after claim or during custody resolution prevents custody access/use; mismatched handles cannot sign",
+    "Paused/rotated read-only saved-proof recovery remains reachable at same reviewed code context",
+    "Three actual loopback services prepared from trusted resolvers complete synthetic exact-proof flow without eager key loading"
+  ],
+  "sourcePins": {
+    "server/token-conversion-bootstrap.mjs": "f6f98e68f923935f55f8e56e772c18fee4c9554b8e9b4165a40ef66f353a7d57",
+    "server/token-conversion-controller.mjs": "14054b65b95e1f55560b6c3ce77f71a1136a397c59d78e37166b984b8006af12",
+    "server/token-conversion-remote-signers.mjs": "54937d7d289bc09f07370d758a4b8ecc19ec8a2b7a675d57702331744b0401b3",
+    "server/token-conversion-signing-service.mjs": "b47e412b7b2cac92c3a7aa90eab19d7928f1115c4bcbc94b9faf411174648375",
+    "tests/readiness/token-conversion-bootstrap.test.mjs": "f5aacab41e56ccce73e6ccea82b9a3082349a925228beb4fe64f4db28af437a8",
+    "tests/readiness/token-conversion-service-fixture.mjs": "9cfcf80c34be7a98ddefdeb79bdb5c76a0fba59bfcb136f61947eaf6df7f8733",
+    "scripts/check-token-conversion-bootstrap.mjs": "d65bf0462cbb12fe276ecd92d6e9a3ac443fa93410446adfd3267eb4295879e7",
+    "config/token-conversion-bootstrap-tests.json": "e0951f818832be5b5f044cf28c26164633476cb8e265b03a79ff74f643a89878"
+  },
+  "unchangedContextPins": {
+    "server/token-conversion-journal.mjs": "b9a743392cb7c03d8e0eb0909039ec5ecc9692d64cc4e676cb1a5198b294eb3c",
+    "server/token-conversion-transport.mjs": "a90946344dc92c02e329d427f192011fbd5ee950098af05b1a74137966567eb2",
+    "server/token-conversion-http.mjs": "2cdc9d3b194e9c007dffd87848f2a0b3eda4544c566a4adf07e0c5bffa1940b4",
+    "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+    "server/token-conversion-sell-proof.mjs": "a5f4eef822e6c03f55f3d25d4d0e1d8410ee53a5e3889b1977a53d8ec6094961",
+    "server/token-conversion-reservation.mjs": "df60b6459fb5158c469e4738fa7b0bb269809dd6c48b10c1d76bb3f2cecffb6c",
+    "server/finalized-program-context.mjs": "bfb825f2f1b89fdafb5e3561e3da5128ac7bac7d9315138a7cfd8d48d72cac3b",
+    "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+    "server/mainnet-program.mjs": "266e963512a2f9cd3fc44eba31f2fa953e066c1fe6dfbeac0c4863c6163119e9",
+    "fee-router.js": "53bac0aa285292fb8e65782a3175f0e4789186df874aa16dff3faaccc80e31c3",
+    "protocol-guard.js": "eb8a432755453b0ad24625875bf06334b0624399b7aace43dcecde9fe88007f8",
+    "server/buyback-price-signer.mjs": "85be4dfbf114780a046d997a44565778ea77daa32ab7a1e174ef676faf82a2a8",
+    "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+    "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+    "server/index.mjs": "2d117d0c162b56fc71f56ea76167e28c0424dab23b4ff74503478fd317ec6a70",
+    "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+    "server/price-signer-bootstrap.mjs": "e78479b56171015c07ed0f4045ecb3085116acad7f0216b1081abc6cd848ba51",
+    "server/signer-service.mjs": "924eae51d96a98bdf96949ab7287fb31c96eb19e6ebebeff66971a15a3257d80",
+    "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+    "config/mainnet-deployment-plan.json": "162d58ea91206fc3777a369b1e90638227c9fca2170783d9f3791e81b4ea915d",
+    "config/token-conversion-transport-tests.json": "ead38b0be20f7ea48616081dd096517887861648eb41428c59db60ab9d3fef08",
+    "config/token-conversion-integration-tests.json": "88ad41d00fff51ebc04c7ad8097358a08cb8a7b7a1d8ac418b6d48c4e2706766",
+    "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+    "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc"
+  },
+  "rawArtifacts": {
+    "linux-new.stdout": "64f67d13511a43c4d10f039f394a4f10ab1f6798e5422cdab4e394df1fe205f4",
+    "linux-new.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-http.stdout": "68beb45e75e33caea0a392597c1aa26291f962b3d9436ab91f1aee1c5821636b",
+    "linux-http.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-missing.stdout": "5f64e20a63884a8183a1339957b2522003b8ca99be4ab911ee6d047e7699bd76",
+    "linux-missing.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "windows-new.stdout": "aafc6abfe34aa67cdbbe1c05b5dc23faccf11f38827d8df74695df2bc6e49314",
+    "windows-new.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "windows-http23.stdout": "a7288f155771745b1b52eddeb42cfbd2679e0f549029800f95a6d0354f84c742",
+    "windows-http23.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source.stdout": "51e21f9f9eaec49fd50d1a4759b606971afb32495ab731c9b30a43186eaf7359",
+    "source.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size.stdout": "e88cfbeb740d6cbfcfb97fe45b09d0682a90809deb8288b11aa6a02c886fb97d",
+    "size.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source-manifest.json": "67eee7c7a0352ff0a148e4c6dbbc719aa83648c35353cfd95e8e8bf777543d2f",
+    "container-outcomes.json": "a9ea9dfebf82ac941d51ba52fad9e2714ebcd3e7eb2fd9355c5335d18d7dd111",
+    "run-new.sh": "b771a54e9eb090185c05a9bbc96ff44cf26d2da962630deba87576e39fb4dd25",
+    "run-http.sh": "ff02b25b0bafe8f57cdc19ff0a8f051bd705323948be3f90a2f398f94d1958b9"
+  },
+  "archive": {
+    "path": "source.tar",
+    "members": 1248,
+    "sha256": "8740326d70cd17ec4a9fd7a4dca608baef32d38062bb6fe36dd08a6db7bc9880",
+    "provenance": "Raw-base source/schema closure plus eight current source/test/inventory pins; no environment/private files"
+  },
+  "limits": [
+    "Synthetic bank/finality/RPC and RAM fixture custody only; actual HTTP/FS/crypto, no chain transaction or production key access",
+    "Resolvers must be provided by an approved trusted runtime, including bounded provider calls; no credential/key file loader implemented",
+    "Explicit signing preparation is not spending or deployment authorization; current unadmitted production manifest still blocks preparation",
+    "Separate public references/test services do not prove administrative custody independence",
+    "Admission facts are snapshots, not financial proof; new ProgramData context/historical missing proof stays unresolved",
+    "Production identities/custody, listener/worker selection/admission, financial restore/live28/originalbank/wholeworker scale/finalfunding remain open/MainnetNO-GO"
+  ],
+  "runtimeRecovery": {
+    "evidence": "data/qa-evidence/mainnet-production-packet-20261122/runtime-recovery/recovery.json",
+    "sha256": "fff6f0e6eefd79775885bbd30deb21e08f92bc83dbfc5b534964958346a8b58f",
+    "initialLinuxAttempts": "No tests ran: stopped Docker pipes, retained engine-unavailable stderr",
+    "action": "docker desktop start resumed same10existingcontainers/images; no build/config/forcedcycle",
+    "publicAfter": "funded.vip health/status200 previous45e0Devnet; richpad200 existingd5nonprogramMainnet. QA independently confirmed narrow health/build recovery; no financial acceptance."
+  },
+  "cleanup": "3ownstoppedtestcontainers removed; recovered10existingserviceIDs preserved through tests. Pre-existing Devnet workers resumed by separate infrastructure restoration, no test-forced cycle.",
+  "contract": "971399ff/3f8ELF1110424/1236Loaderprefix unchanged; no rebuild/requote or financial activation"
+}

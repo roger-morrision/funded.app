@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "scope": "Verified-context-before-secrets private runtime preparation, default recovery-only; synthetic financial RPC and RAM fixture custody",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "requiredTests": [
+        "bootstrap prepares three real HTTP services and loads each approved role lazily after verified claims",
+        "bootstrap malformed public references or unadmitted policy cannot invoke any resolver",
+        "bootstrap journal failure is sanitized before authentication access",
+        "bootstrap authentication failure is sanitized without custody access",
+        "bootstrap signing mode refuses a paused or rotated current authority before secret access",
+        "bootstrap recovery mode preserves saved proof through pause and operator rotation without custody",
+        "bootstrap program changed after durable signing claim cannot reach custody loader",
+        "bootstrap wrong loaded custody identity cannot produce a signature",
+        "bootstrap context changed during custody resolution prevents use of the loaded handle",
+        "bootstrap defaults controller to recovery without touching custody or listening",
+        "bootstrap defaults operator to recovery without touching custody or listening",
+        "bootstrap defaults price-attestation to recovery without touching custody or listening",
+        "bootstrap genesis fails before authentication or custody access",
+        "bootstrap program-data fails before authentication or custody access",
+        "bootstrap program-owner fails before authentication or custody access",
+        "bootstrap pointer fails before authentication or custody access",
+        "bootstrap stale-program fails before authentication or custody access",
+        "bootstrap stale-accounts fails before authentication or custody access",
+        "bootstrap global-owner fails before authentication or custody access",
+        "bootstrap price-owner fails before authentication or custody access"
+      ]
+    }
+  ]
+}

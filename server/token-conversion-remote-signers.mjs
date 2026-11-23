@@ -5,11 +5,15 @@ import {conversionJson,conversionObject,unsignedConversionHash} from './token-co
 
 // Endpoint/token references are supplied by the trusted runtime, never an HTTP
 // conversion request. This does not load custody keys or admit a production role.
-export function createTokenConversionRemoteSigner({endpoint,token,publicKey,programId,role,request=fetch}){
-  const url=new URL(endpoint),key=new PublicKey(publicKey);
+export function conversionServiceOrigin(endpoint){
+  const url=new URL(endpoint);
   const internal=url.protocol==='http:'&&/^[a-z][a-z0-9-]{0,62}$/.test(url.hostname)&&url.hostname!=='localhost';
   assert((url.protocol==='https:'||internal)&&!url.username&&!url.password&&!url.hash&&!url.search&&url.pathname==='/',
     'Explicit HTTPS or internal service origin required.');
+  return url;
+}
+export function createTokenConversionRemoteSigner({endpoint,token,publicKey,programId,role,request=fetch}){
+  const url=conversionServiceOrigin(endpoint),key=new PublicKey(publicKey);
   assert(typeof token==='string'&&token.length===64&&/^[a-f0-9]{64}$/.test(token)&&['operator','price-attestation'].includes(role),'Dedicated exact-role service authentication required.');
   async function post(path,body,signal){
     try{

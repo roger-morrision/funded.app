@@ -6,7 +6,8 @@ import {conversionAuthorization,conversionReply,conversionJson,conversionObject,
 
 // Passive private controller, not registered with the public API or worker.
 // Holds service authentication references, never an operator/price private key.
-export function createTokenConversionController({store,connection,config,release,priceService,operatorService,token,now=Date.now}){
+export function createTokenConversionController({store,connection,config,release,priceService,operatorService,token,now=Date.now,recoveryOnly=false}){
+  assert(typeof recoveryOnly==='boolean','Explicit recovery mode required.');
   config=structuredClone(config);release=structuredClone(release);
   const priceSigner=createTokenConversionRemoteSigner({...priceService,publicKey:config.priceSigner,programId:config.programId,role:'price-attestation'});
   const operator=createTokenConversionRemoteSigner({...operatorService,publicKey:config.authority,programId:config.programId,role:'operator'});
@@ -20,7 +21,8 @@ export function createTokenConversionController({store,connection,config,release
       assert(req.headers['content-type']==='application/json','JSON required.');
       const body=conversionObject(await conversionJson(req),['schemaVersion','request','messageHash','recoveryOnly']);
       if(body.messageHash!==undefined)assert(typeof body.messageHash==='string'&&body.messageHash.length===64&&/^[a-f0-9]{64}$/.test(body.messageHash),'Exact saved hash required.');
-      const result=await transport.run({request:body.request,messageHash:body.messageHash,recoveryOnly:body.recoveryOnly??false});
+      assert(body.recoveryOnly===undefined||typeof body.recoveryOnly==='boolean','Explicit recovery request required.');
+      const result=await transport.run({request:body.request,messageHash:body.messageHash,recoveryOnly:recoveryOnly||(body.recoveryOnly??false)});
       let signerReconciliation='not-required';
       if(result.status==='settled'){
         // Payment proof is already durable locally. Backends independently
