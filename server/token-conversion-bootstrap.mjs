@@ -100,17 +100,19 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
         if(role===spec.role){selected=candidate;ownResult={contextHash:result.contextHash};}
       }
       // A missing file is obvious; a restored older valid same-context file
-      // is not. Compare durable cross-role intents before any auth or custody.
+      // is not. Match the signed message and role signatures before custody.
+      // Each role independently reviews a finalized market snapshot, so its
+      // snapshot digest may differ while the signed message stays identical.
       const controller=facts.controller;
       for(const [role,index] of [['operator',0],['price-attestation',1]]){
         for(const [hash,saved] of Object.entries(facts[role])){
           const original=controller[hash];
-          assert(original&&original.intentDigest===saved.intentDigest
-            &&original.unsignedDigest===saved.unsignedDigest,'Conversion journal set lost an original attempt.');
+          assert(original&&original.unsignedDigest===saved.unsignedDigest,
+            'Conversion journal set lost an original attempt.');
         }
         for(const [hash,original] of Object.entries(controller))if(original.signedSignatures){
           const saved=facts[role][hash];
-          assert(saved&&saved.intentDigest===original.intentDigest&&saved.unsignedDigest===original.unsignedDigest
+          assert(saved&&saved.unsignedDigest===original.unsignedDigest
             &&saved.roleSignature===original.signedSignatures[index],
           'Conversion journal set lost an original role signature.');
         }

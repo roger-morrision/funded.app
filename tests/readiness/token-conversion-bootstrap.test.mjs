@@ -112,6 +112,21 @@ test('partial restore of a valid older role journal cannot erase an unknown sign
   assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
 });
 
+test('independent pool-supply snapshots may differ while exact signed conversion message agrees',async t=>{
+  const {c,options}=await setup(t,{send:'unknown'}),o=options('controller');
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  await createAutomaticRewardStore(c.paths.operator).transaction(state=>{
+    const row=Object.values(state.tokenConversionPriceJournalV1.attempts)[0];
+    // PumpSwap Pool account: 8-byte discriminator, bump/index and six keys;
+    // lp_supply at offset 203 can change without changing message accounts.
+    const bytes=Buffer.from(row.proofIntent.pool.dataBase64,'base64');
+    bytes.writeBigUInt64LE(bytes.readBigUInt64LE(203)+1n,203);
+    row.proofIntent.pool.dataBase64=bytes.toString('base64');
+    row.intentDigest=tokenPricePolicyHash(row.proofIntent);
+  });
+  assert.equal((await prepareTokenConversionRuntime(o)).admission.mode,'recovery-only');
+});
+
 test('resume refuses a corrupt third journal before authentication or custody',async t=>{
   const {c,counts,options}=await setup(t);
   await writeFile(c.paths['price-attestation'],'{not-json');
