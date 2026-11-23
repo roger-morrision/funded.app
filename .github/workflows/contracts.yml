@@ -35,6 +35,21 @@ jobs:
         run: |
           bash scripts/check-mainnet-build-identity.sh
           bash scripts/check-mainnet-build-provenance.sh
+      - name: Reproduce selected production review candidate
+        shell: bash
+        env:
+          CARGO_BUILD_JOBS: 2
+        run: |
+          export CARGO_BUILD_SBF="$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/production-review-build"
+          export PATH="$HOME/.cache/solana/v1.54/platform-tools/rust/bin:$PATH"
+          export FUNDED_MAINNET_PROGRAM_ID="$(node -p "require('./config/mainnet-deployment-plan.json').mainnetProgramId")"
+          export FUNDED_MAINNET_CONVERSION_POOLS="$(node -p "require('./docs/evidence/production-contract-handoff-2026-11-22.json').productionArtifact.conversionPools")"
+          node -e "const p=require('./config/mainnet-deployment-plan.json'), a=require('./docs/evidence/production-contract-handoff-2026-11-22.json').productionArtifact; if(p.mainnetProgramId!==a.programId || !a.conversionPools) throw Error('Selected candidate build inputs differ');"
+          candidate="$GITHUB_WORKSPACE/contracts/funded-fee-router/target/deploy/production-review"
+          bash scripts/build-mainnet-contract.sh "$candidate"
+          expected="$(node -p "require('./docs/evidence/production-contract-handoff-2026-11-22.json').productionArtifact.sha256")"
+          printf '%s  %s\n' "$expected" "$candidate/funded_fee_router.so" | sha256sum --check
       - name: Build developer token lock bytecode
         working-directory: contracts/funded-fee-router
         run: |
