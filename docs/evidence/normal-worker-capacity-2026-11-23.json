@@ -66,12 +66,24 @@
     "rawStdoutSha256": "19ae470c34faa606f40a44b9cd3c07237af709f546fd8c8ab60d536c33230118",
     "rawStderrSha256": "51da8bf9fa3ec51387b9b9a714c976a4c1d633a1df7058e7e26f151d7d29f87d"
   },
+  "memoryAccounting": {
+    "processMaxRssBytes": 341958656,
+    "cgroupPeakBytes": 314834944,
+    "observedDifferenceBytes": 27123712,
+    "interpretation": "Linux ru_maxrss is the process resident-set high-water mark; memory.peak is the cgroup-charged high-water mark. They are different accounting scopes and are not directly comparable. Shared file-backed pages may be resident in this process but charged to another cgroup; this run did not inspect page ownership, so that is a possible explanation, not a proven attribution. Do not subtract either measurement from 512 MiB to claim production headroom. The cgroup recorded zero OOM kills for this isolated run only.",
+    "references": [
+      "https://man7.org/linux/man-pages/man2/getrusage.2.html",
+      "https://www.kernel.org/doc/html/v6.10/admin-guide/cgroup-v2.html#memory-ownership",
+      "https://kernel.org/doc/html/v6.15/admin-guide/cgroup-v2.html"
+    ]
+  },
   "findings": [
     "All 1,001 mocked fresh outcomes completed in 32 bounded pages; the live 1,000-holder admission cap was not changed or exercised.",
     "The two original 1,001-member mixed cohorts retained every saved signed attempt and verified proof; no new nonce, signature or mocked send occurred.",
     "The actual whole-ledger path serialized 14.24 GB of candidate JSON across 1,473 store transactions. This is a material scaling cost despite the 32-leaf page and no-op physical-write reduction.",
     "Aggregate transaction elapsed includes queue wait, lock acquisition, ledger read, JSON encoding, file publication and directory fencing, and can overlap across callers. Callback and instrumentation JSON serialization are measured inside the lock; none is a live payment SLA.",
-    "The synthetic scheduler clock was held at 200010 seconds, so this run does not establish expiration, blockhash, quote or real on-chain deadline safety."
+    "The synthetic scheduler clock was held at 200010 seconds, so this run does not establish expiration, blockhash, quote or real on-chain deadline safety.",
+    "Process RSS and cgroup memory.peak are retained as separately sourced diagnostics; their 27,123,712-byte gap is not a capacity-headroom calculation."
   ],
   "remaining": [
     "Optimize and independently verify whole-ledger read/serialization cost for representative financial payloads without weakening durability or exact attempt attribution.",
