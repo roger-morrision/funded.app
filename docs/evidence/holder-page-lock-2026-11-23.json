@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-001",
+  "recordedAt": "2026-11-23T05:03:52Z",
+  "baseRevision": "95adc3775e92a6f9f392a5f1ce5eb15f8770f811",
+  "scope": "Bounded holder payout page selection under the existing 1,000-holder production admission cap",
+  "finding": "The page selector verified every global leaf's public key, accounting and Merkle proof a second time while holding the exclusive ledger transaction. A 1,001-leaf injected cohort selected at most 32 leaves per call, but the lock callback performed a full proof scan for each call.",
+  "change": "Validate all global leaves and proofs before acquiring the store lock, then compare the exact validated leaf-array SHA-256 digest and immutable metadata to the locked row. The durable version-1 cursor identity, selected page bound, original proofs and financial submission path remain unchanged.",
+  "validation": {
+    "node": "24.22.3",
+    "holderPageTests": "10/10 pass, 0 fail, 0 skip, 0 TODO; SOL and paired 1,001-leaf restart rounds, 65-leaf scheduler, Devnet four-leaf grouping, unknown attempt, concurrent selector, changed amount/proof guards and a manifest change between validation and lock acquisition",
+    "admissionGate": "check-holder-scale-gate accepts 1000 and rejects 1001 in eligibility and pool minimum",
+    "sourceCheck": "Changed source and test pass node --check; 1465 maintained code files pass size check; git diff --check passes",
+    "callbackBenchmark": {
+      "baselineSourceSha256": "01f8d75f7a277ed497f843dc6fac110b553f17bd8fe1c5397b973bc32fab19f6",
+      "candidateSourceSha256": "03fb70d935cc5317db700053fd632410d19925f5a2e88efbc6779b4adbe6eda7",
+      "recipientCount": 1001,
+      "roundsEach": 3,
+      "medianExclusiveCallbackMs": {"baseline": 24.5055, "candidate": 1.0331},
+      "localRawResult": "data/qa-evidence/holder-lock-95adc/result.json"
+    }
+  },
+  "limits": [
+    "Callback measurement uses an in-memory store wrapper. It excludes filesystem lock wait, JSON serialization, actual worker scheduling, network, signing and finalized payment.",
+    "This source slice reduces proof work inside the lock but still scans the full immutable manifest outside it and hashes all leaves inside it; whole-ledger O(N) parse and serialization remain.",
+    "The 1,001-leaf plans are injected synthetic controls. Current production admission remains 1,000 and no larger-cohort financial acceptance is claimed.",
+    "No wallet, chain transaction, funding, deployment or Mainnet activation occurred."
+  ],
+  "nextAction": "Independent exact-source review, followed by a bounded normal-worker mixed prepared/verified cohort and Linux resource/restore measurement before any cap decision."
+}

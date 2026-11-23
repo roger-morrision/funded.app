@@ -69,12 +69,29 @@ test('two locked-store selectors cannot claim the same initial page and restart 
 });
 
 test('changed immutable schedule and corrupt cursor fail before selecting fresh work',async t=>{
-  for(const field of ['root','index','payoutAt','cursor','cluster']){
+  for(const field of ['root','index','amounts','proof','payoutAt','cursor','cluster']){
     const f=await fixture(t,'SOL',3);await selectHolderPayoutPage({store:f.store,plan:f.plan});
     await f.store.transaction(s=>{const r=s.schedules[f.plan.id];if(field==='root')r.manifest.root='00'.repeat(32);if(field==='index')r.manifest.leaves[1].index=0;
+      if(field==='amounts'){
+        const first=r.manifest.leaves[0].amount;r.manifest.leaves[0].amount=r.manifest.leaves[1].amount;r.manifest.leaves[1].amount=first;
+      }
+      if(field==='proof')r.manifest.leaves[1].proof[0]='00'.repeat(32);
       if(field==='payoutAt')r.payoutAt++;if(field==='cursor')r.holderPayoutCursor.nextIndex=3;if(field==='cluster')r.cluster='mainnet-beta';});
     await assert.rejects(selectHolderPayoutPage({store:f.reopen(),plan:f.plan}));
   }
+});
+
+test('manifest change while waiting for the ledger lock cannot select from a stale validated plan',async t=>{
+  const f=await fixture(t,'SOL',3),other=f.reopen();
+  const delayed={transaction:async mutator=>{
+    await other.transaction(state=>{
+      const leaves=state.schedules[f.plan.id].manifest.leaves;
+      [leaves[0].amount,leaves[1].amount]=[leaves[1].amount,leaves[0].amount];
+    });
+    return f.store.transaction(mutator);
+  }};
+  await assert.rejects(selectHolderPayoutPage({store:delayed,plan:f.plan}),/Holder page schedule changed/);
+  assert.equal((await f.store.read()).schedules[f.plan.id].holderPayoutCursor,undefined);
 });
 
 test('page and isolated cohort bounds cannot be widened by caller input',async t=>{
