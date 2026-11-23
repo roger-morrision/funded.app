@@ -17,7 +17,7 @@ const ROUTES = [
   ['terms', '/#terms'], ['privacy', '/#privacy'],
   ['token-rich', '/token/7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump'],
   ['token-ext', '/token/77HqxiDCgYfXUsDXDD6YVefPhTTz1Z2n8jX4gTxipump'],
-  ['wallet', '/wallet/ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC'],
+  ['wallet', '/wallet/5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi'],
 ];
 const VIEWPORTS = { desktop: { width: 1280, height: 800 }, phone: { width: 390, height: 844, isMobile: true, hasTouch: true } };
 
