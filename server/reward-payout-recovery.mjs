@@ -1,6 +1,7 @@
 import {payoutIntentHash} from './reward-payout-journal.mjs';
 import {completedRewardPayment} from './reward-paid-record.mjs';
 import {selectRewardPayoutRecoveries} from './reward-recovery-page.mjs';
+import {REWARD_LEDGER_UNCHANGED} from './automatic-reward-store.mjs';
 
 // Read-only recovery is selected independently of today's due/blocked/paid state.
 // It cannot create an attempt even if the persisted marker disappears mid-read.
@@ -22,11 +23,14 @@ export async function recoverSavedRewardPayouts({store,chain,selected=null}){
         if(completed.changed)row.payments[leaf.recipient]=completed.record;
       });recovered++;
     }catch(error){
+      const message=String(error.message||error).slice(0,180);
       await store.transaction(state=>{
-        const row=state.schedules?.[plan.id];if(!row||payoutIntentHash(row,leaf)!==intent)return;
+        const row=state.schedules?.[plan.id];if(!row||payoutIntentHash(row,leaf)!==intent)return REWARD_LEDGER_UNCHANGED;
+        if(Object.hasOwn(row.payoutAttempts||{},leaf.recipient)&&row.payoutRecoveryError===message)
+          return REWARD_LEDGER_UNCHANGED;
         row.payoutAttempts||={};
         if(!Object.hasOwn(row.payoutAttempts,leaf.recipient))row.payoutAttempts[leaf.recipient]=structuredClone(original);
-        row.payoutRecoveryError=String(error.message||error).slice(0,180);
+        row.payoutRecoveryError=message;
       });
     }
   }

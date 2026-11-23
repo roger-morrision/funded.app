@@ -10,6 +10,7 @@ import {getHeapStatistics} from 'node:v8';
 import {Keypair} from '@solana/web3.js';
 import {buildRewardManifest} from '../reward-merkle.js';
 import {createAutomaticRewardStore} from '../server/automatic-reward-store.mjs';
+import {REWARD_LEDGER_UNCHANGED} from '../server/automatic-reward-store.mjs';
 import {createRewardScheduler} from '../server/reward-scheduler.mjs';
 import {mixedCapacityCohort} from '../tests/readiness/reward-capacity-mixed-fixture.mjs';
 import {capacityProgram,assertCapacityRecords} from '../tests/readiness/reward-capacity-workload.mjs';
@@ -39,11 +40,12 @@ try{
   await store.transaction(s=>{s.schedules={...Object.fromEntries(cohorts.map(c=>[c.plan.id,c.plan])),[fresh.id]:fresh};
     s.programs[original.mint]=capacityProgram(original.mint);});
   const initialBytes=Number((await stat(path)).size),metrics={transactions:0,reads:0,financialSnapshotReads:0,
-    candidateSerializedBytes:0,instrumentationSerializationMs:0,mutatorInsideLockMs:0,transactionElapsedMs:0};
+    candidateSerializedBytes:0,hintedUnchanged:0,instrumentationSerializationMs:0,mutatorInsideLockMs:0,transactionElapsedMs:0};
   const measured={...store,read:async()=>{metrics.reads++;return store.read();},
     readFinancialSnapshot:async()=>{metrics.financialSnapshotReads++;return store.readFinancialSnapshot();},
     transaction:async mutate=>{const start=performance.now();try{return await store.transaction(async state=>{
       const began=performance.now(),result=await mutate(state);metrics.mutatorInsideLockMs+=performance.now()-began;
+      if(result===REWARD_LEDGER_UNCHANGED){metrics.hintedUnchanged++;return result;}
       const serialize=performance.now();metrics.candidateSerializedBytes+=Buffer.byteLength(JSON.stringify(state));
       metrics.instrumentationSerializationMs+=performance.now()-serialize;return result;
     });}finally{metrics.transactions++;metrics.transactionElapsedMs+=performance.now()-start;}}};
