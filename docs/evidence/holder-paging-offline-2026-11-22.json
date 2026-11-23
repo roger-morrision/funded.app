@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-001",
+  "date": "2026-11-22",
+  "baseRevision": "1d3bbf40447f71430d20ccdfd49ad8503c8b8f89",
+  "scope": "Experimental offline bounded planner and durable journal; mocked receipts, no RPC, no signer, no deployment, no admission change.",
+  "sourceSha256": {
+    "server/holder-page-plan.mjs": "648ddfbc6a5677a6d3a1d0c5919ae3e7186be030b081189d2462cc992de9c253",
+    "server/holder-page-progress.mjs": "0274eba7a9cbec99a00259b1a4e4b75467c7146a2ac3d34ee320905266fd1557",
+    "tests/security/holder-page-plan.test.mjs": "983483f4b91da2040aab98bc517510679b02b2493f423a8a45967a14223f3d77",
+    "scripts/measure-holder-page-plan.mjs": "1f68628c2faf3fb572848f61ea120f42384f9e9402c7583a45536bf68ff91ab5"
+  },
+  "focusedTests": 9,
+  "allSecurityTests": 34,
+  "rootUnitTests": 9,
+  "sourceGates": {
+    "node": "v24.22.3",
+    "results": [
+      {
+        "name": "check",
+        "exitCode": 0,
+        "seconds": 74.24570360034704
+      },
+      {
+        "name": "security",
+        "exitCode": 0,
+        "seconds": 10.37942390004173
+      },
+      {
+        "name": "structure",
+        "exitCode": 0,
+        "seconds": 0.6827091001905501
+      },
+      {
+        "name": "unit",
+        "exitCode": 0,
+        "seconds": 0.6053675003349781
+      },
+      {
+        "name": "build",
+        "exitCode": 0,
+        "seconds": 1.7662760997191072
+      }
+    ]
+  },
+  "scaleBaseline": {
+    "scope": "local-only; mocked receipt progression; no network or chain execution",
+    "results": [
+      {
+        "schemaVersion": 1,
+        "scope": "local-only mocked receipts; no chain execution",
+        "node": "v24.22.3",
+        "platform": "win32",
+        "arch": "x64",
+        "count": 1000,
+        "asset": "SOL",
+        "limits": {
+          "maxRecipients": 1001,
+          "maxPageSize": 32,
+          "planMs": 1000,
+          "journalMs": 30000,
+          "peakRssBytes": 268435456,
+          "ledgerBytes": 8388608
+        },
+        "withinLimits": true,
+        "planMs": 26.79140000000001,
+        "journalMs": 2983.8624999999997,
+        "peakRssBytes": 171220992,
+        "ledgerBytes": 1290038,
+        "pages": 32,
+        "fileTransactions": 66,
+        "fileReadCount": 65,
+        "serializedBytesRead": 69469677,
+        "serializedBytesWritten": 70759715,
+        "databaseQueries": 0,
+        "rpcCalls": 0,
+        "chainTransactions": 0,
+        "projectedCurrentTransportMinimums": {
+          "devnetAtMostFourRecipients": 250,
+          "mainnetSingleRecipient": 1000,
+          "status": "arithmetic lower bounds; excludes setup, retries and size splits"
+        },
+        "accounting": {
+          "pool": "1000000007",
+          "paid": "999999209",
+          "retainedDust": "798"
+        }
+      },
+      {
+        "schemaVersion": 1,
+        "scope": "local-only mocked receipts; no chain execution",
+        "node": "v24.22.3",
+        "platform": "win32",
+        "arch": "x64",
+        "count": 1000,
+        "asset": "So11111111111111111111111111111111111111112",
+        "limits": {
+          "maxRecipients": 1001,
+          "maxPageSize": 32,
+          "planMs": 1000,
+          "journalMs": 30000,
+          "peakRssBytes": 268435456,
+          "ledgerBytes": 8388608
+        },
+        "withinLimits": true,
+        "planMs": 32.35929999999999,
+        "journalMs": 2859.3613,
+        "peakRssBytes": 181518336,
+        "ledgerBytes": 1330078,
+        "pages": 32,
+        "fileTransactions": 66,
+        "fileReadCount": 65,
+        "serializedBytesRead": 70782037,
+        "serializedBytesWritten": 72112115,
+        "databaseQueries": 0,
+        "rpcCalls": 0,
+        "chainTransactions": 0,
+        "projectedCurrentTransportMinimums": {
+          "devnetAtMostFourRecipients": 250,
+          "mainnetSingleRecipient": 1000,
+          "status": "arithmetic lower bounds; excludes setup, retries and size splits"
+        },
+        "accounting": {
+          "pool": "1000000007",
+          "paid": "999999209",
+          "retainedDust": "798"
+        }
+      },
+      {
+        "schemaVersion": 1,
+        "scope": "local-only mocked receipts; no chain execution",
+        "node": "v24.22.3",
+        "platform": "win32",
+        "arch": "x64",
+        "count": 1001,
+        "asset": "SOL",
+        "limits": {
+          "maxRecipients": 1001,
+          "maxPageSize": 32,
+          "planMs": 1000,
+          "journalMs": 30000,
+          "peakRssBytes": 268435456,
+          "ledgerBytes": 8388608
+        },
+        "withinLimits": true,
+        "planMs": 27.924000000000007,
+        "journalMs": 3098.6420000000003,
+        "peakRssBytes": 181657600,
+        "ledgerBytes": 1291601,
+        "pages": 32,
+        "fileTransactions": 66,
+        "fileReadCount": 65,
+        "serializedBytesRead": 69542536,
+        "serializedBytesWritten": 70834137,
+        "databaseQueries": 0,
+        "rpcCalls": 0,
+        "chainTransactions": 0,
+        "projectedCurrentTransportMinimums": {
+          "devnetAtMostFourRecipients": 251,
+          "mainnetSingleRecipient": 1001,
+          "status": "arithmetic lower bounds; excludes setup, retries and size splits"
+        },
+        "accounting": {
+          "pool": "1000000007",
+          "paid": "999999535",
+          "retainedDust": "472"
+        }
+      },
+      {
+        "schemaVersion": 1,
+        "scope": "local-only mocked receipts; no chain execution",
+        "node": "v24.22.3",
+        "platform": "win32",
+        "arch": "x64",
+        "count": 1001,
+        "asset": "So11111111111111111111111111111111111111112",
+        "limits": {
+          "maxRecipients": 1001,
+          "maxPageSize": 32,
+          "planMs": 1000,
+          "journalMs": 30000,
+          "peakRssBytes": 268435456,
+          "ledgerBytes": 8388608
+        },
+        "withinLimits": true,
+        "planMs": 31.06710000000001,
+        "journalMs": 3207.689,
+        "peakRssBytes": 200228864,
+        "ledgerBytes": 1331681,
+        "pages": 32,
+        "fileTransactions": 66,
+        "fileReadCount": 65,
+        "serializedBytesRead": 70854936,
+        "serializedBytesWritten": 72186617,
+        "databaseQueries": 0,
+        "rpcCalls": 0,
+        "chainTransactions": 0,
+        "projectedCurrentTransportMinimums": {
+          "devnetAtMostFourRecipients": 251,
+          "mainnetSingleRecipient": 1001,
+          "status": "arithmetic lower bounds; excludes setup, retries and size splits"
+        },
+        "accounting": {
+          "pool": "1000000007",
+          "paid": "999999535",
+          "retainedDust": "472"
+        }
+      }
+    ]
+  },
+  "remainingAcceptance": [
+    "Independent design review",
+    "Exact configurable-program and cluster binding",
+    "Authenticated finalized reconciliation adapter",
+    "Compiled-SBF and live Devnet recovery with explicit fixture authority",
+    "Database/RPC/transaction throughput and financial cost budgets",
+    "Existing 1000-holder cap stays in place; issue remains open"
+  ],
+  "reviewGates": [
+    {
+      "name": "review-build",
+      "exitCode": 0,
+      "seconds": 1.7768945000134408
+    },
+    {
+      "name": "review-local",
+      "exitCode": 0,
+      "seconds": 116.0017845002003
+    }
+  ],
+  "localDesktopMobileSmokeTests": 36,
+  "publicReadonlySmoke": {
+    "name": "public-readonly-smoke",
+    "target": "https://richpad.fun",
+    "exitCode": 0,
+    "seconds": 134.05912959994748,
+    "scope": "Required disconnected read-only smoke of existing public app, not new-router or payout acceptance",
+    "passedTests": 36
+  },
+  "publicBuildIdentities": {
+    "checkedAt": "2026-11-22T11:55:21.149789+00:00",
+    "method": "Node24 public GET /api/status; read-only identity only",
+    "funded.vip": {
+      "status": 200,
+      "build": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "cluster": "devnet"
+    },
+    "richpad.fun": {
+      "status": 200,
+      "build": "d5cf43d6c926f8945e1ed06e1d89019e0f432366",
+      "cluster": "mainnet-beta"
+    },
+    "deploymentPerformed": false
+  },
+  "dependencies": "Existing workspace node_modules reused through a local junction; no lockfile or dependency changes, no fresh npm ci or CI dispatch claimed."
+}

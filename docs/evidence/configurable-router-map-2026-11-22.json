@@ -1,0 +1,703 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-003",
+  "scope": "Source/interface compatibility map only",
+  "observedAt": "2026-11-22T12:21:30.925344+00:00",
+  "revisions": {
+    "app": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+    "publicMainnet": "d5cf43d6c926f8945e1ed06e1d89019e0f432366",
+    "contract": "ff2aac18e10612211f9d78817a7316ab504ac999",
+    "model": "aa848f70b44d8d1168299062d7fbe6a40aa97be9"
+  },
+  "sourceInventoryPath": "data/qa-evidence/router-compatibility-map-20261122/source-inventory.json",
+  "sourceInventorySha256": "032ff1ef55b044d5bcd4122c199e2ad2ce9d36fbe36ef467353388bb24231b7c",
+  "references": [
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "config/contract-build-candidates.json",
+      "present": true,
+      "sha256": "b07c3f1a0e899ac4fc7d3c80b4f2c77da670d6c7862263556ab0b34c549e318a",
+      "bytes": 1618,
+      "symbolOrField": "\"devnetConfigurable\":",
+      "line": 43
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "docs/evidence/devnet-configurable-rich-2026-11-22.json",
+      "present": true,
+      "sha256": "a7a24bdd103c52593d2655da6f3e708b20c52ff6b569c51848703a061af3885b",
+      "bytes": 8539,
+      "symbolOrField": "\"programDataSha256\":",
+      "line": 13
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/agency-release.mjs",
+      "present": true,
+      "sha256": "2bce32109d3c9958ee2e0da892a728292da2ebcb6b7a8df706e0c25bf4e6a82c",
+      "bytes": 1606,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export const AGENCY_REVIEWED_BINARY=",
+      "line": 9
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "solana-network.js",
+      "present": true,
+      "sha256": "4c3c4487e8b521195fabb8b7a82210567392098f08067a01194fd7929c84dbc3",
+      "bytes": 1599,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export async function assertRpcNetwork",
+      "line": 9
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/program-data-evidence.mjs",
+      "present": true,
+      "sha256": "3a3c833bc1c042492279ae29b6b852830e9a6d80a77212471a32661c2cd14f60",
+      "bytes": 5091,
+      "symbolOrField": "const evidence=",
+      "line": 44
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/agency-release.mjs",
+      "present": true,
+      "sha256": "2bce32109d3c9958ee2e0da892a728292da2ebcb6b7a8df706e0c25bf4e6a82c",
+      "bytes": 1606,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function matchesAgencyBinary",
+      "line": 12
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "config/mainnet-program-release.json",
+      "present": true,
+      "sha256": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+      "bytes": 576,
+      "symbolOrField": "\"status\":",
+      "line": 4
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "src/app/startup/connections.js",
+      "present": true,
+      "sha256": "2e741817ba2ebe738d171e73232307600cc3a884fdff74e321fcdd7c86a326d6",
+      "bytes": 14323,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "const PROTOCOL_FUNDED_MINT =",
+      "line": 337
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "src/app/startup/primary-rich.js",
+      "present": true,
+      "sha256": "f6786c8d14f1bfcd190484059d04ec7eac97bb6d90b5eb4b2e022f8e3c0779aa",
+      "bytes": 909,
+      "symbolOrField": "export async function loadPrimaryRichForApp",
+      "line": 3
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/routes/launch-quotes.mjs",
+      "present": true,
+      "sha256": "eb7e800815c12aa232350930e7da24bab6ec955c4f11481fe325269f68ba5934",
+      "bytes": 6027,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "fundedMint:fundedTokenMint,",
+      "line": 63
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/primary-rich.mjs",
+      "present": true,
+      "sha256": "7053118437a479c6a18db58e14b6b3a934d5af0ab979bcd3ca88208a53f61480",
+      "bytes": 1608,
+      "symbolOrField": "export function createPrimaryRichReader",
+      "line": 8
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/routes/launch-quotes.mjs",
+      "present": true,
+      "sha256": "cc2e1290f04b8ba2c17ca2c6987bfebaccaec2edb697c87a7209e22dcf4f436e",
+      "bytes": 6258,
+      "symbolOrField": "richAssetsRevision:",
+      "line": 65
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "rich-assets.js",
+      "present": true,
+      "sha256": "15b2adf8451075e5e3ce6d28fe503a7f38f4b1a3e2e2208e00f650552c597763",
+      "bytes": 3584,
+      "symbolOrField": "export function decodeRichAssets",
+      "line": 12
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "rich-assets.js",
+      "present": true,
+      "sha256": "15b2adf8451075e5e3ce6d28fe503a7f38f4b1a3e2e2208e00f650552c597763",
+      "bytes": 3584,
+      "symbolOrField": "export function buildConfigureRichAssets",
+      "line": 30
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "rich-assets.js",
+      "present": true,
+      "sha256": "15b2adf8451075e5e3ce6d28fe503a7f38f4b1a3e2e2208e00f650552c597763",
+      "bytes": 3584,
+      "symbolOrField": "export function buildProposeRichAuthority",
+      "line": 40
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "contracts/funded-fee-router/programs/funded-fee-router/src/instructions/rich_assets.rs",
+      "present": true,
+      "sha256": "9ede5cca8c7c61c3d0cc9e76e311ccae77a8324ffc5b9d6fdc1a143924f91cc9",
+      "bytes": 7505,
+      "symbolOrField": "pub fn propose_authority(",
+      "line": 81
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "contracts/funded-fee-router/programs/funded-fee-router/src/instructions/rich_assets.rs",
+      "present": true,
+      "sha256": "9ede5cca8c7c61c3d0cc9e76e311ccae77a8324ffc5b9d6fdc1a143924f91cc9",
+      "bytes": 7505,
+      "symbolOrField": "pub fn accept_authority(",
+      "line": 91
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "contracts/funded-fee-router/programs/funded-fee-router/src/instructions/rich_assets.rs",
+      "present": true,
+      "sha256": "9ede5cca8c7c61c3d0cc9e76e311ccae77a8324ffc5b9d6fdc1a143924f91cc9",
+      "bytes": 7505,
+      "symbolOrField": "pub struct RichAssetConfig",
+      "line": 13
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "mint-router-v3.js",
+      "present": true,
+      "sha256": "5427358f88c233694d33c5c82de38015187ea451e439cff2a5ecbed4659c84c2",
+      "bytes": 19779,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function buildProtectedMintRouterV3InitializeInstruction",
+      "line": 166
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "mint-router-v3.js",
+      "present": true,
+      "sha256": "5427358f88c233694d33c5c82de38015187ea451e439cff2a5ecbed4659c84c2",
+      "bytes": 19779,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function buildMintRouterV3SettlementInstruction",
+      "line": 270
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "agency-mint-router-v3.js",
+      "present": true,
+      "sha256": "927b80de7e1eb19c8cf56903930067348e5a0e13cae2d5fa2b92e9640ccabaef",
+      "bytes": 15733,
+      "symbolOrField": "export function decodeAgencyPolicyV3",
+      "line": 73
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/automatic-reward-chain.mjs",
+      "present": true,
+      "sha256": "e73258fea364bb689225c67e3a48bc696645f6a362eb079fc0b47a5ce31a9084",
+      "bytes": 35862,
+      "symbolOrField": "if (cluster === 'mainnet-beta') keys.push",
+      "line": 364
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/v3-launch-config.mjs",
+      "present": true,
+      "sha256": "6957d9b60dd320d5ab2208c386815e4a930ddc51d87d508faec504f2f595901e",
+      "bytes": 11098,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export const PROTECTED_V3_PROGRAM_DATA_SHA256",
+      "line": 17
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/agency-release.mjs",
+      "present": true,
+      "sha256": "2bce32109d3c9958ee2e0da892a728292da2ebcb6b7a8df706e0c25bf4e6a82c",
+      "bytes": 1606,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function agencyReleaseVerified",
+      "line": 19
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/buyback-assets.mjs",
+      "present": true,
+      "sha256": "15b6880a58df7276f833e4fa782161a1e97f5e141b4644c4f686d2cbdbbed891",
+      "bytes": 1012,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function buybackAssets",
+      "line": 10
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/v3-buyback-instruction.mjs",
+      "present": true,
+      "sha256": "9826be07dba8cadd41fa88374bcca23c0b7655d2bd1216c127ae3198baa9f1e6",
+      "bytes": 8418,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "global:buyback_mint_v3",
+      "line": 105
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "contracts/funded-fee-router/programs/funded-fee-router/src/lib.rs",
+      "present": true,
+      "sha256": "54e1a25fe7c8f5c9592c40ba2f65145115a553dd45ca6d588ac4252209b5d3ba",
+      "bytes": 20180,
+      "symbolOrField": "pub fn buyback_configured_mint_v3",
+      "line": 209
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/v3-buyback-instruction.mjs",
+      "present": true,
+      "sha256": "407bab5787241056b8f0e117eb26132eeb0b189165f93b3082e66e033c2dc4c6",
+      "bytes": 9027,
+      "symbolOrField": "data=Buffer.concat([data,u64(assets.revision",
+      "line": 108
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/price-signer-review.mjs",
+      "present": true,
+      "sha256": "034bd93f093511bedfaf1b32ad11d92833b04422a0ff7d68b41e4c24982f04b1",
+      "bytes": 15191,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function decodeBuybackRequest",
+      "line": 20
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/price-signer-review.mjs",
+      "present": true,
+      "sha256": "1f4b04a96837c8ba4d6ccd648cedfa3f725c87858fff895c2652a1b88a1078fb",
+      "bytes": 16329,
+      "symbolOrField": "Buyback configuration ABI differs",
+      "line": 89
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/v3-buyback-proof.mjs",
+      "present": true,
+      "sha256": "a6afb47889fb343d987d3862e745d60b034555162a977f39b4b5a0ce575923d8",
+      "bytes": 10586,
+      "symbolOrField": "richAssets=await readRichAssets",
+      "line": 48
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/remote-signer.mjs",
+      "present": true,
+      "sha256": "c608c741dfaeb7ad26be9468eb9c719c4865ec42b274e037f57da7f8d0035c65",
+      "bytes": 3734,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function createRemoteSigner",
+      "line": 36
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/signer-service.mjs",
+      "present": true,
+      "sha256": "f35b18bc6a48be26606f8fb05821e735bbcbce971340d9ff9850b8c791e0fb34",
+      "bytes": 9429,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "const blocking =",
+      "line": 78
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/signer-policy.mjs",
+      "present": true,
+      "sha256": "1b3dfa6d63495c5381b2676e3e1f2840a1492fe5cbff594a636dcb509b99e718",
+      "bytes": 7824,
+      "symbolOrField": "export const DENIED_ROUTER_INSTRUCTIONS",
+      "line": 18
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/signer-policy.mjs",
+      "present": true,
+      "sha256": "1b3dfa6d63495c5381b2676e3e1f2840a1492fe5cbff594a636dcb509b99e718",
+      "bytes": 7824,
+      "symbolOrField": "const routers =",
+      "line": 73
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/price-signer-review.mjs",
+      "present": true,
+      "sha256": "034bd93f093511bedfaf1b32ad11d92833b04422a0ff7d68b41e4c24982f04b1",
+      "bytes": 15191,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "message.header.numRequiredSignatures===2",
+      "line": 66
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/price-signer-review.mjs",
+      "present": true,
+      "sha256": "034bd93f093511bedfaf1b32ad11d92833b04422a0ff7d68b41e4c24982f04b1",
+      "bytes": 15191,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "const metas=",
+      "line": 139
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/price-signer-review.mjs",
+      "present": true,
+      "sha256": "1f4b04a96837c8ba4d6ccd648cedfa3f725c87858fff895c2652a1b88a1078fb",
+      "bytes": 16329,
+      "symbolOrField": "if(args.configured)metas.push",
+      "line": 152
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/price-signer-bootstrap.mjs",
+      "present": true,
+      "sha256": "e78479b56171015c07ed0f4045ecb3085116acad7f0216b1081abc6cd848ba51",
+      "bytes": 2269,
+      "symbolOrField": "Mainnet price signing is disabled",
+      "line": 17
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/price-signer-service.mjs",
+      "present": true,
+      "sha256": "933eaa068b2441782f57a90d249c7e279f4fa493eb4def22ccbb8a25f5084b6a",
+      "bytes": 4191,
+      "symbolOrField": "Explicit Devnet signer allowlist required",
+      "line": 8
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/buyback-price-signer.mjs",
+      "present": true,
+      "sha256": "85be4dfbf114780a046d997a44565778ea77daa32ab7a1e174ef676faf82a2a8",
+      "bytes": 3365,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export async function cosignBuyback",
+      "line": 34
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "server/price-review-network.mjs",
+      "present": true,
+      "sha256": "eb0d153510a1b5a8faf4f611ffa8897e400187ff4f9e28abf7c238eba15082a2",
+      "bytes": 1086,
+      "symbolOrField": "export function priceReviewNetwork",
+      "line": 7
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/price-signer-journal.mjs",
+      "present": true,
+      "sha256": "52e4d83a75e1e239b87c467709fe092a58663f2604afdc40db038dccf3b38a3d",
+      "bytes": 3678,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "const row={type:",
+      "line": 51
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/agency-execution-journal.mjs",
+      "present": true,
+      "sha256": "d0db4b63224afc53b232b0bc8ff6c837e49c0c687e515853e8cb48e2db833dc9",
+      "bytes": 8594,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "status:'verification-pending',signature,signedTransaction",
+      "line": 107
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/community-execution-journal.mjs",
+      "present": true,
+      "sha256": "f3c8ea480fc1bf1dec747dc0afd5e8848a75cd1ed0dd833b09ec917f20bcf576",
+      "bytes": 8112,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "const intentHash=",
+      "line": 31
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/price-signer-reconciliation.mjs",
+      "present": true,
+      "sha256": "aea7b0f9b607e383ccf0d90bfb01f554c99489734a1dc72113fefd15457a31e6",
+      "bytes": 1195,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export async function unusedPriceReservation",
+      "line": 5
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/background-maintenance.mjs",
+      "present": true,
+      "sha256": "d65a123b78790a742ac98bb4990ff2a7fe69a9be7b2dca92d57338550bc55523",
+      "bytes": 7527,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function startV3HolderRewardWorker",
+      "line": 60
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "scripts/run-v3-buyback-worker.mjs",
+      "present": true,
+      "sha256": "210fe59f0974115c395c2d5f68fb17bad261504ca06b839aebd528a4dfc15854",
+      "bytes": 4598,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "request('/api/buyback/status?wait=worker')",
+      "line": 30
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "scripts/run-agency-buyback-worker.mjs",
+      "present": true,
+      "sha256": "7bb781451c4564104585c88b6ef338620b3b1eaf385f554274d2793a7d6f00ab",
+      "bytes": 4554,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function agencyBuybackConfig",
+      "line": 12
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/agency-buyback-executor.mjs",
+      "present": true,
+      "sha256": "7e1013acd510de16e37a2f067314672617a71f7631f014e86e33413d1c021ebc",
+      "bytes": 9370,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "intent=saved?.intent",
+      "line": 35
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/network-write-policy.mjs",
+      "present": true,
+      "sha256": "17671e9e0d495c8960ca21054945d7a586c02052d1d944e01c66c035409a4375",
+      "bytes": 3446,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export const MAINNET_NON_PROGRAM_POSTS",
+      "line": 14
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "reward-merkle.js",
+      "present": true,
+      "sha256": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+      "bytes": 4146,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function createRewardCycleId",
+      "line": 42
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "reward-merkle.js",
+      "present": true,
+      "sha256": "4fdca4c9fc97d05a50ce77b65e6c26e8969ec8625630210cbf076f1d30900e26",
+      "bytes": 4146,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function rewardLeaf",
+      "line": 33
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "contracts/funded-fee-router/programs/funded-fee-router/src/instructions/reward.rs",
+      "present": true,
+      "sha256": "bf73b385b3c166c03f316c1c223ddf7a9a82b33831d5240c796618efaa689c17",
+      "bytes": 26073,
+      "symbolOrField": "fn validate_payment(",
+      "line": 288
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "contracts/funded-fee-router/programs/funded-fee-router/src/instructions/reward_bitmap.rs",
+      "present": true,
+      "sha256": "dc7a97d9e8bcaab434a84440090ad7d609353e892005834eac3c6bec384902a0",
+      "bytes": 17441,
+      "symbolOrField": "fn validate_payment(",
+      "line": 153
+    },
+    {
+      "scope": "contract",
+      "revision": "ff2aac18e10612211f9d78817a7316ab504ac999",
+      "path": "contracts/funded-fee-router/programs/funded-fee-router/src/reward_bitmap_state.rs",
+      "present": true,
+      "sha256": "e4948b5cb99bce27aa6b76e81bc179687b13e7d8b6de31ad739e185b1e93d5d7",
+      "bytes": 551,
+      "symbolOrField": "pub const MAX_LEAVES:",
+      "line": 20
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/reward-rent.mjs",
+      "present": true,
+      "sha256": "0929125e1c765b1523a79065c11d84aeb59d1d70c5a0191164b0fc4578fc0b98",
+      "bytes": 7074,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export const MAX_BITMAP_LEAVES",
+      "line": 4
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/reward-batch.mjs",
+      "present": true,
+      "sha256": "b8c26e3c0b08633da7c0944e301bc66c68221b17f14960c89cd3affad3d5f4b1",
+      "bytes": 5331,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export const REWARD_BATCH_LIMITS",
+      "line": 4
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/automatic-reward-chain.mjs",
+      "present": true,
+      "sha256": "fe8df334e0e5b4ff46c6b9f51de8634824599bc7f1c5a66d5b20d8441c6a72c5",
+      "bytes": 35782,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "async function readiness()",
+      "line": 153
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/automatic-reward-chain.mjs",
+      "present": true,
+      "sha256": "fe8df334e0e5b4ff46c6b9f51de8634824599bc7f1c5a66d5b20d8441c6a72c5",
+      "bytes": 35782,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "async function inspectReadyLeaf(",
+      "line": 286
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/reward-payout-evidence.mjs",
+      "present": true,
+      "sha256": "60a03b91f29042bbd012462255820f1acef72473db52944a3d9608c321d0e6ba",
+      "bytes": 4327,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export function rewardPayoutProof",
+      "line": 9
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/reward-batch-proof.mjs",
+      "present": true,
+      "sha256": "36c82edab44d2cf556a84eb87d9adeb0a5603e736a058dba485cc04319205429",
+      "bytes": 3495,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export async function verifyRewardBatch",
+      "line": 3
+    },
+    {
+      "scope": "app",
+      "revision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+      "path": "server/reward-payout-evidence.mjs",
+      "present": true,
+      "sha256": "60a03b91f29042bbd012462255820f1acef72473db52944a3d9608c321d0e6ba",
+      "bytes": 4327,
+      "sameAtPublicMainnetRevision": true,
+      "symbolOrField": "export async function findRewardPayout",
+      "line": 46
+    }
+  ],
+  "manifestConsistency": {
+    "programIdMatches": true,
+    "elfHashMatches": true,
+    "localElf": {
+      "path": "C:\\Data\\DevApps\\funded-mainnet-readiness\\contracts\\funded-fee-router\\target\\deploy\\devnet-configurable\\funded_fee_router.so",
+      "available": false
+    },
+    "freshChainVerification": false
+  },
+  "decoderProbe": {
+    "scope": "local-only pure byte decoder compatibility probe; no RPC, keys, signing or program execution",
+    "node": "v24.22.3",
+    "bytes": 72,
+    "appRejectsConfigured": true,
+    "readinessDecodesConfigured": true,
+    "assetsRevision": "2",
+    "reviewAdmissionTested": false
+  },
+  "runtimeChanges": false,
+  "signingOrFinancialOperations": false,
+  "mainnetDecision": "NO-GO",
+  "nextAction": "Contract shared-record answers and QA review before scoped isolated integration."
+}
