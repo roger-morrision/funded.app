@@ -60,9 +60,9 @@ still need restricted read access.
 
 This is a **usage model**, not a spending approval or a guaranteed bill. An
 [AWS November 2026 example](https://docs.aws.amazon.com/solutions/latest/prebid-server-deployment-on-aws/cost1.html)
-uses **$0.023/GiB-month** for S3 Standard in US East (N. Virginia); an
-[AWS CloudWatch pricing example](https://aws.amazon.com/cloudwatch/pricing/)
-uses **$0.005 per 1,000 PUT**, and the S3 price page gives **$0.0004 per
+uses **$0.023/GiB-month** for S3 Standard in US East (N. Virginia); the
+[AWS S3 price page](https://aws.amazon.com/s3/pricing/)
+uses **$0.005 per 1,000 PUT**, and gives **$0.0004 per
 1,000 GET**. The S3 price page bills LIST like PUT and says there is no
 minimum charge. Price and chosen Region must be rechecked before
 provisioning. Assume 10,000 attempts/month, eight immutable 4 KiB events per
