@@ -4621,5 +4621,26 @@
     ],
     "unchanged": "Contract9713/3f8 ELF/1236 Loader prefix and financial policy unchanged; no build or quote refresh.",
     "status": "Narrow Contract source review passed; independent E2E acceptance pending."
+  },
+  "conversionSavedRecoveryCursorReview": {
+    "appSource": "1244cdfc31b9614b023f9b6af74e582126e855fc",
+    "parentSource": "413013612187abf6dc0eb5c597564631aede451a",
+    "sourcePins": {
+      "server/token-conversion-controller.mjs": "02ab743946f6c59ef6298a87017383b5c5d95a4e8c8a28af53d7174e3b2098b0",
+      "tests/readiness/token-conversion-service.test.mjs": "77f5d4a615e3df3dda7e46777e460b8a34f2ece5cc00bc5d799886ddbb4736a4",
+      "config/token-conversion-service-tests.json": "00151845030b5b52310e253d830dd96f75642db1da3b28ee894d31c3c393f545",
+      "scripts/check-token-conversion-service.mjs": "c171d2d1b4defe895f67a8e49bffcb97e67623636c3c7813230ad50fdae7484a",
+      "docs/token-conversion-bootstrap.md": "c09521fa712b842a2277c421ef49218b26fce86e16d35bd7a43fbb7e8d8df6c7"
+    },
+    "review": "Narrow Contract-side source and ABI review found no new authority or financial path. recoverNext validates the existing journal through transport.status, then claims a bounded page and context-hash-bound cursor under the same exclusive store transaction before calling transport.run for saved message hashes with recoveryOnly true. A second instance uses the same lock and sees the first committed cursor. An unknown send retains its original reservation; the existing transport reconciles old hashes before any fresh signing path. Invalid cursor/context fails before recovery calls. The cursor is work progress, not a transaction or financial proof.",
+    "tests": "PM reports maintained Node24 checked 27/27 pass, exit0. Contract did not independently rerun it. Added tests cover an empty no-write, one unknown saved attempt over restart without a new signature/send, and changed progress context refusal; they do not exercise two live controller instances with multiple distinct saved attempts.",
+    "limits": [
+      "Independent E2E exact-revision acceptance remains pending due to the reported usage limit.",
+      "The cursor claim serializes page selection but does not grant per-attempt exclusive processing after wrap; concurrent read-only reconciliations may repeat a hash. Existing journal proof and transaction guards remain authoritative.",
+      "Both transport.status and store.transaction still read and validate or scan the whole journal; no whole-worker capacity claim is supported.",
+      "No worker registration, trusted custody provisioning, live finalized financial acceptance, or Mainnet activation."
+    ],
+    "unchanged": "Conversion transport/journal/store and Contract runtime/ABI, ExUNA3f8 ELF/Loader prefix and quote are unchanged by this five-path App diff.",
+    "status": "Narrow Contract source review passed; independent E2E acceptance pending."
   }
 }
