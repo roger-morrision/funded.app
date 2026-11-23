@@ -190,6 +190,9 @@
       "programData": "ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT",
       "deploymentPayer": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
       "adminUpgrade": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+      "operator": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+      "priceSigner": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+      "guardian": "Dmf2SqmWybu1KF4PjmqfJcfszJQq8UnS7zH8ZAYNqHQQ",
       "router": "67pjQPubkLoeEYNXX5eeCWm8zCM4PBseQRmpAJ4wEND",
       "priceConfig": "7iUSLh3w4AjEKEsDXSsWoc5LDjySbQxuKwJAhsFrSL25",
       "richConfig": "2huzE6jPLyaQ4Sx86CZuqSAPR7HWSaQfJ1jeb8P3CKRe",
@@ -320,9 +323,9 @@
       "executionStatus": "illustrative unsigned quote; refresh entire signing set before use"
     },
     "unresolved": [
-      "operator public key and access",
-      "guardian public key and access",
-      "independent price signer public key and access",
+      "operator secure signing access, backup and controlled restore",
+      "guardian offline custody and review operation",
+      "independent price signer administration, backend admission and signing access",
       "approved administrative daily spending policy (distinct from removed deployment budget cap)"
     ],
     "deployed": false,
@@ -408,6 +411,15 @@
   ],
   "productionQuote": {
     "checkedAt": "2026-11-22T15:33:03.906Z",
+    "balanceRefresh": {
+      "observedAtUtc": "2026-11-23T03:16:43.580869+00:00",
+      "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+      "commitment": "finalized",
+      "slot": 472788634,
+      "file": "docs/evidence/mainnet-role-balances-2026-11-23.json",
+      "sha256": "95d7258ec7a67252f2e250181c83c1e51ae1670e357a45e9f747e748b305c220",
+      "scope": "Six current public accounts read in one finalized RPC response; all absent and zero lamports. This refreshes balances only, not the earlier rent, fee or priority quote."
+    },
     "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
     "finalizedAccountSlot": 472592348,
     "accounts": {
@@ -526,8 +538,8 @@
       },
       {
         "role": "operator",
-        "address": null,
-        "observedBalance": null,
+        "address": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+        "observedBalance": 0,
         "knownDirectRent": 1315720,
         "debits": [
           "router initialization rent",
@@ -546,12 +558,21 @@
       },
       {
         "role": "independent price attestor",
-        "address": null,
-        "observedBalance": null,
+        "address": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+        "observedBalance": 0,
         "allocatedReserve": 0,
         "directFundingFromKnownMessages": 0,
         "debits": [],
-        "condition": "Zero direct funding applies only when all final messages make it a readonly co-signer, with E9 or operator paying fees and rents."
+        "condition": "Zero known direct funding applies only when all final messages make it a readonly co-signer, with E9 or operator paying fees and rents. Independent administrative custody is not yet established."
+      },
+      {
+        "role": "offline guardian",
+        "address": "Dmf2SqmWybu1KF4PjmqfJcfszJQq8UnS7zH8ZAYNqHQQ",
+        "observedBalance": 0,
+        "allocatedReserve": 0,
+        "directFundingFromKnownMessages": 0,
+        "debits": [],
+        "condition": "The reviewed guard configuration lists guardian as a readonly nonsigner; operational review or later messages may change funding needs. Offline custody and policy acceptance remain open."
       }
     ],
     "deploymentProjectionFromMessages": 12360000,
@@ -561,7 +582,7 @@
       "status": "Assign each debit to its actual payer once final messages exist. The existing 3 SOL reserve is additional to these spendable amounts."
     },
     "illustrativeAggregateLessObservedDeploymentPayerBalance": 9017665880,
-    "aggregateShortfallLimit": "Only E9 and admin balances are observed. Operator/attestor/guardian addresses and balances remain unknown. This aggregate planning figure cannot be used as an E9 top-up instruction.",
+    "aggregateShortfallLimit": "All six public role/account balances were refreshed separately at finalized slot 472788634, but this aged rent/fee envelope lacks final ordered messages, priority bids and canary exposure. It is not a final per-wallet funding or E9 top-up instruction.",
     "reserveEnforcement": {
       "walletRole": "operator",
       "lamports": 3000000000,
@@ -1666,15 +1687,26 @@
       "scope": "PAYOUT-02 native/cached correction accepted locally. Original metadata controls also pass; PAYOUT-01 PM acceptance at7108 remains separately attributed. Synthetic bank/RPC/finality only."
     }
   },
+  "productionOperationalIdentities": {
+    "sourceFile": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-production-packet-20261122/operational-identities-public.json",
+    "sourceSha256": "dadbf1a00c21acfd1f450b37ebbc99e4d8fb0c50d93b2ac42e6738aac79c7949",
+    "authorization": "Human selected Prepare fresh distinct identities; public role inventory only.",
+    "operator": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+    "priceAttestor": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+    "offlineGuardian": "Dmf2SqmWybu1KF4PjmqfJcfszJQq8UnS7zH8ZAYNqHQQ",
+    "custody": "Three distinct local identities were generated and reload-verified, but share the same user administration. Independent price custody, backup/restore and production signer admission remain unverified.",
+    "funding": "Finalized slot 472788634 showed all three absent and zero lamports. Operator known minimum before router initialization is 3001315720 lamports (single protected 3 SOL reserve plus 1315720 router rent), excluding unpriced fees and other obligations. Price attestor and guardian have zero known direct debit in reviewed bootstrap messages, conditional on final message inventory.",
+    "execution": "No funding, signing, transaction, deployment or activation. This public identity selection is not role policy approval or final top-up instruction."
+  },
   "operationalCustodyProposal": {
     "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-production-packet-20261122/operational-custody-proposal.json",
     "sha256": "f52d0bed9568d3d0d49dc2752331dd939d80286078cb91d17b47951031438c25",
     "appSource": "969809a0939b033353c757649e933c018a76d407",
-    "status": "Existing App proposal and PM owner-input request, no new authorities provisioned.",
+    "status": "Historical App proposal retained; public identities have since been generated, but no on-chain authority, production custody admission or independent administration is established.",
     "unresolvedRoles": [
-      "automationOperator",
-      "independentPriceAttestor",
-      "offlineGuardian"
+      "automationOperator secure access, backup and restore",
+      "independentPriceAttestor separate administration and backend admission",
+      "offlineGuardian offline custody and review process"
     ],
     "unresolvedRecipientMappings": [
       "operationsTreasury",
@@ -1685,7 +1717,7 @@
     ],
     "funding": "Operator reserve remains single3000000000lamports plus known1315720router rent and additional unpriced operator costs. Attestor zero known direct debit conditional on actual readonly cosigning messages.",
     "engineeringResponsibilities": "Production signer/worker admission, infrastructure independence, custody backup/restore, transaction inventory, independent live/archive/scale acceptance remain team-owned.",
-    "approvalBoundary": "Provisioning roles, recipient decisions and itemized guard/price/funding/canary proposal require actual owner decisions. Existing admin/payer/program choices remain fixed. This reference introduces no funding instruction or policy approval."
+    "approvalBoundary": "Human selected public role identities. Independent custody, recipient decisions and itemized guard/price/funding/canary proposal remain open. Existing admin/payer/program choices stay fixed. This reference introduces no funding instruction or policy approval."
   },
   "archiveBoundaryCompositionReview": {
     "appSource": "fe51809d68b7c6a9a06f25ae69756956aeee26f1",
