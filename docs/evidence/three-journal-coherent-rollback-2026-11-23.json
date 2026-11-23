@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "checkedAtUtc": "2026-11-23T07:57:37Z",
+  "sourceRevision": "cc14fa5c59ec503e5d5327befa26e518c4598758",
+  "scope": "Synthetic local three-journal rollback boundary; no live keys, RPC, transaction or Mainnet activation",
+  "inputs": {
+    "node": "24.22.3",
+    "reviewElf": {
+      "bytes": 1110424,
+      "sha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50"
+    },
+    "productionFixtureElf": {
+      "bytes": 1110880,
+      "sha256": "8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd"
+    },
+    "publicPoolCaptureSha256": "e0a2d89f34bcf94421c225f2d5fe2ae2ab27c2c9fa4b162396a3eb38805e6aa3"
+  },
+  "probe": {
+    "fixture": "tests/readiness/token-conversion-bootstrap.test.mjs setup() and conversionServiceFixture({send:'unknown'})",
+    "steps": [
+      "Copy all three published empty role-labelled journal files.",
+      "Run one conversion through the actual fixture controller and role services until an unknown send has persisted both signatures and one broadcast attempt.",
+      "Restore all three earlier valid journal files while retaining the same program, policy and journal references.",
+      "Call prepareTokenConversionRuntime for the controller in recovery-only mode and require rejection before authentication."
+    ],
+    "expected": "Conversion journal reference unavailable or incompatible; no authentication or custody load",
+    "observed": "prepareTokenConversionRuntime resolved; Node test exit 1 with Missing expected rejection at the new assertion",
+    "baseline": "The same source rejects a missing, corrupt, wrong-context or single-role-rollback journal; coherent rollback removes all cross-journal evidence together."
+  },
+  "releaseDecision": "Open blocker: an intact older set cannot prove that no later signed attempt existed.",
+  "requiredBoundary": [
+    "Use a separately durable and independently restored monotonic attempt anchor that records each role's signed attempt before its signature leaves the signer and records the controller wire before broadcast.",
+    "Quiesce all three services for a consistent backup, restore all role journals plus the external anchor together, then reconcile unknown attempts before fresh signing.",
+    "Reject missing, stale, corrupt or contradictory anchor evidence before authentication or custody; do not treat a caller-supplied digest or three mutually consistent files as independent proof."
+  ],
+  "missingOperationalInput": "config/mainnet-deployment-plan.json has freshInfrastructure.backupReference null; no approved external monotonic journal anchor or production three-store restore has been supplied.",
+  "changes": "Evidence only. No runtime code, signer policy, contract binary or live service changed."
+}
