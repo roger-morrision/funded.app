@@ -1,0 +1,82 @@
+{
+  "issue": "FQA-MN-001",
+  "scope": "Selected normal scheduler phases with mixed saved signed attempts and mocked fresh holder outcomes; synthetic bank and finality only",
+  "baseSource": "c66cccedf44f2f43b2afee3d9c0c426e3f705712",
+  "scriptGitBlobs": {
+    "scripts/measure-reward-normal-worker.mjs": "29a1acb977b32bd1b124a0d38456640566076fc8",
+    "scripts/verify-reward-normal-worker-restart.mjs": "9c8c7e0faa09124f250425d3452fda421f5ec801"
+  },
+  "execution": {
+    "node": "24.22.3",
+    "linuxImageIdPrefix": "4c9df59dbdd4",
+    "linuxLimits": {
+      "cpu": "0.75 CPU (cgroup cpu.max 75000 100000)",
+      "memoryBytes": 536870912,
+      "swapBytes": 0,
+      "network": "none",
+      "rootFilesystem": "read-only",
+      "tmpfs": "/tmp, 128 MiB",
+      "capabilities": "all dropped",
+      "newPrivileges": false
+    },
+    "phases": ["real store setup", "captureDue", "prepare", "32-leaf selected execute rounds", "status", "financial snapshot", "store reopen", "fresh Node process digest check"],
+    "mockBoundary": "The fresh payout result interface returns deterministic finalized/balance-delta flags. Mixed saved-attempt recovery uses the existing synthetic RPC and actual parser/journal code. No network, chain transaction, production signer or live wallet was used."
+  },
+  "control33Windows": {
+    "countPerCohort": 33,
+    "freshSubmitted": 33,
+    "rounds": 2,
+    "savedAttemptsRecoveredInFreshProcess": 66,
+    "allPaymentRowsRecoveredInFreshProcess": 99,
+    "elapsedMs": 2325.1562,
+    "storeTransactions": 84,
+    "storeReads": 131,
+    "candidateSerializedBytes": 23725593,
+    "instrumentedJsonSerializationMsInsideLock": 43.3862,
+    "mutatorCallbackMsInsideLock": 13.0058,
+    "aggregateTransactionElapsedMsIncludingQueueAndFence": 615.523,
+    "rawStdoutSha256": "a974792bb8a4bb8ed1513db5778d68c8f5971b36cfbea19d54e46f49d4929024",
+    "rawStderrSha256": "244615d24fca663646ba76d94432a56348f0e5d94394ea2fc1c9f4a41ad463ba"
+  },
+  "constrained1001Linux": {
+    "countPerCohort": 1001,
+    "freshSubmitted": 1001,
+    "rounds": 32,
+    "savedSignedAttemptsRecoveredInFreshProcess": 2002,
+    "allPaymentRowsRecoveredInFreshProcess": 3003,
+    "freshProcessScheduleDigestSha256": "8508ff5dead88a933cb7db4477fb8559593f26615ca8aac276e13701ae61bfdf",
+    "initialLedgerBytes": 9287444,
+    "finalLedgerBytes": 9850914,
+    "elapsedMsAfterFixtureConstruction": 750401.273698,
+    "rawWallFileTimestampsUtc": ["2026-11-23T06:12:50Z", "2026-11-23T06:26:55Z"],
+    "storeTransactions": 1473,
+    "storeReads": 3105,
+    "financialSnapshotReads": 1,
+    "candidateSerializedBytes": 14238880765,
+    "instrumentedJsonSerializationMsInsideLock": 90481.927682,
+    "mutatorCallbackMsInsideLock": 6095.147189,
+    "aggregateTransactionElapsedMsIncludingQueueAndFence": 266203.65682,
+    "mixedReadOnlySubmitInterfaces": 3072,
+    "peakProcessRssKiB": 333944,
+    "cgroupMemoryPeakBytes": 314834944,
+    "cgroupOomKills": 0,
+    "cgroupCpuUsageMicroseconds": 632268471,
+    "cgroupThrottledPeriods": 8444,
+    "cgroupTotalPeriods": 8453,
+    "rawStdoutSha256": "19ae470c34faa606f40a44b9cd3c07237af709f546fd8c8ab60d536c33230118",
+    "rawStderrSha256": "51da8bf9fa3ec51387b9b9a714c976a4c1d633a1df7058e7e26f151d7d29f87d"
+  },
+  "findings": [
+    "All 1,001 mocked fresh outcomes completed in 32 bounded pages; the live 1,000-holder admission cap was not changed or exercised.",
+    "The two original 1,001-member mixed cohorts retained every saved signed attempt and verified proof; no new nonce, signature or mocked send occurred.",
+    "The actual whole-ledger path serialized 14.24 GB of candidate JSON across 1,473 store transactions. This is a material scaling cost despite the 32-leaf page and no-op physical-write reduction.",
+    "Aggregate transaction elapsed includes queue wait, lock acquisition, ledger read, JSON encoding, file publication and directory fencing, and can overlap across callers. Callback and instrumentation JSON serialization are measured inside the lock; none is a live payment SLA.",
+    "The synthetic scheduler clock was held at 200010 seconds, so this run does not establish expiration, blockhash, quote or real on-chain deadline safety."
+  ],
+  "remaining": [
+    "Optimize and independently verify whole-ledger read/serialization cost for representative financial payloads without weakening durability or exact attempt attribution.",
+    "Run full normal background worker and API under intended production process mix and persistent volume with restore/reconciliation.",
+    "Authenticate actual finalized financial receipts and meet real distribution deadlines before any increase in admission or Mainnet release claim."
+  ],
+  "historicalHarnessCorrection": "An initial full-size run reached all fresh leaves but rejected its own assumed mixed-interface count 3072 != 2048 before final metrics. The corrected exact-source run above exited 0; no production source changed."
+}
