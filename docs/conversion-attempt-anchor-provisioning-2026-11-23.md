@@ -5,6 +5,29 @@ signer, transaction or service has been provisioned. This document does not
 authorize Mainnet signing or activation. The source-linked failure is described
 in [the attempt-anchor design](token-conversion-attempt-anchor-proposal.md).
 
+## Owner-selected Docker test scope
+
+The owner selected the existing single Docker host for a **local test** of the
+two-store adapter. Two test containers with separate named volumes can exercise
+conditional writes, version/delete-marker inventory, partial acknowledgment,
+fork refusal and journal restore. They do not establish two independently
+administered immutable copies: [Docker volumes](https://docs.docker.com/engine/storage/volumes/)
+are stored on the daemon host, and [daemon access](https://docs.docker.com/engine/security/)
+can control host storage. A coherent host or administrator rollback could erase
+both test volumes. Do not put production signer credentials or financial attempts
+in this local fixture.
+
+A Docker-based production design would need separately administered hosts and
+storage domains, each with versioned WORM retention and independent recovery
+access, or one Docker store plus a separately administered remote immutable
+store. An S3-compatible service such as
+[MinIO AIStor](https://docs.min.io/aistor/administration/object-locking-and-immutability/)
+documents compliance retention and
+[conditional PUT](https://docs.min.io/aistor/developers/s3-api-compatibility/),
+but its license, hosts, backup and operating costs are not quoted here. The
+current plan's production database, backup and signer references remain null;
+the local Docker choice is not a production provisioning decision.
+
 ## Recommended smallest dedicated service
 
 Use two **new, private S3 Standard buckets in separately administered AWS

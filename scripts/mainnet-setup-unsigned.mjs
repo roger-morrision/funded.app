@@ -9,6 +9,7 @@ const LOADER=new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const INITIALIZE=Buffer.from(createHash('sha256').update('global:initialize').digest().subarray(0,8));
 const PRICE=Buffer.from(createHash('sha256').update('global:configure_buyback_price_signer').digest().subarray(0,8));
 const U64_MAX=(1n<<64n)-1n;
+const NO_PRACTICAL_DAILY_CAP_LAMPORTS=U64_MAX.toString();
 const address=(value,name)=>{
   if(typeof value!=='string')throw Error(`${name} must be a public address.`);
   const key=new PublicKey(value);
@@ -30,7 +31,8 @@ const unsignedMessage=(ix,payer,blockhash)=>{
     instruction:decoded(compiledInstruction),feeQuoteLamports:null,feeQuoteContextSlot:null};
 };
 
-export function buildMainnetSetupInventory({plan,dailyCapLamports=null,feePayers={},recentBlockhash=null}={}){
+export function buildMainnetSetupInventory({plan,dailyCapLamports=NO_PRACTICAL_DAILY_CAP_LAMPORTS,
+  feePayers={},recentBlockhash=null}={}){
   if(plan?.cluster!=='mainnet-beta'||plan?.deploymentMode!=='fresh-isolated-mainnet'
     ||plan.mainnetActivationAuthorized!==false)throw Error('A fresh, inactive Mainnet deployment plan is required.');
   const ids=plan.selectedPublicIdentities;
@@ -47,17 +49,19 @@ export function buildMainnetSetupInventory({plan,dailyCapLamports=null,feePayers
   if(feePayers===null||typeof feePayers!=='object'||Array.isArray(feePayers))throw Error('Explicit fee payer mapping required.');
   const known=new Set(['initializeRouter','configureGuard','configurePriceSigner','configurePrimaryAsset']);
   for(const step of Object.keys(feePayers))if(!known.has(step))throw Error(`Unknown setup step: ${step}.`);
-  const cap=dailyCapLamports===null?null:dailyCapLamports;
-  if(cap!==null&&(typeof cap!=='string'||!/^(0|[1-9]\d*)$/.test(cap)||BigInt(cap)>U64_MAX))
-    throw Error('A reviewed u64 daily cap in lamports is required.');
+  // The owner selected no practical daily guard ceiling for this fresh plan.
+  // The current Contract ABI always stores a u64 and counts outflows, so its
+  // maximum is the only encoding that preserves those bytes without a rebuild.
+  if(dailyCapLamports!==NO_PRACTICAL_DAILY_CAP_LAMPORTS)
+    throw Error('The reviewed Mainnet guard choice requires u64::MAX lamports.');
   const pd=programData(program),router=deriveRouterHeader(program);
   const steps=[
     {name:'initializeRouter',purpose:'Create the fresh router; operator pays its account rent.',
       ix:new TransactionInstruction({programId:program,data:INITIALIZE,
         keys:[meta(operator,true,true),meta(owner,true),meta(router,false,true),meta(program),meta(pd),meta(SystemProgram.programId)]})},
-    {name:'configureGuard',purpose:'Set guardian and reviewed daily SOL outflow cap.',
-      ix:cap===null?null:buildConfigureProtocolGuard({programId:program,upgradeOwner:owner,guardian,dailyCapLamports:cap}),
-      missing:cap===null?['reviewedDailyCapLamports']:[]},
+    {name:'configureGuard',purpose:'Set guardian and the owner-selected u64::MAX practical no-cap value.',
+      ix:buildConfigureProtocolGuard({programId:program,upgradeOwner:owner,guardian,
+        dailyCapLamports:NO_PRACTICAL_DAILY_CAP_LAMPORTS})},
     {name:'configurePriceSigner',purpose:'Create price signer configuration; admin pays its account rent.',
       ix:new TransactionInstruction({programId:program,data:PRICE,
         keys:[meta(owner,true,true),meta(signer,true),meta(program),meta(pd),meta(priceConfig(program),false,true),meta(SystemProgram.programId)]})},
@@ -66,6 +70,8 @@ export function buildMainnetSetupInventory({plan,dailyCapLamports=null,feePayers
   ];
   const block=recentBlockhash===null?null:address(recentBlockhash,'recentBlockhash').toBase58();
   return {status:'offline-unsigned-preparation',cluster:'mainnet-beta',programId:program.toBase58(),
+    guardPolicy:{mode:'no-practical-daily-cap',dailyCapLamports:NO_PRACTICAL_DAILY_CAP_LAMPORTS,
+      semantics:'The Contract still counts u64 daily outflows and rejects arithmetic overflow; guardian pause remains active.'},
     programData:pd.toBase58(),preconditions:[
       'The selected ExUNA program is freshly deployed and finalized with the independently reviewed ELF and upgrade authority.',
       'Router, guard, price config, current asset config and revision 1 are absent before their respective instructions.',

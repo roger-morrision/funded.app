@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {VersionedMessage,TransactionMessage,PublicKey} from '@solana/web3.js';
 import plan from '../../config/mainnet-deployment-plan.json' with {type:'json'};
 import {buildMainnetSetupInventory} from '../../scripts/mainnet-setup-unsigned.mjs';
+import {buildConfigureProtocolGuard} from '../../protocol-guard.js';
 
 const ids=plan.selectedPublicIdentities;
 const names=['initializeRouter','configureGuard','configurePriceSigner','configurePrimaryAsset'];
@@ -10,7 +11,7 @@ const feePayers=Object.fromEntries(names.map(name=>[name,ids.deploymentPayer]));
 const blockhash='11111111111111111111111111111111'; // Syntax-only fixture, never a live signing blockhash.
 
 test('fresh selected setup instructions expose the exact signed and writable account geometry',()=>{
-  const inventory=buildMainnetSetupInventory({plan,dailyCapLamports:'9000000'});
+  const inventory=buildMainnetSetupInventory({plan});
   assert.deepEqual(inventory.steps.map(step=>step.name),names);
   assert.equal(inventory.programData,'ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT');
   const [router,guard,price,asset]=inventory.steps;
@@ -21,7 +22,7 @@ test('fresh selected setup instructions expose the exact signed and writable acc
   ]);
   assert.deepEqual(guard.instruction.accounts.map(x=>[x.signer,x.writable]),
     [[true,false],[false,false],[false,true],[false,false],[false,false]]);
-  assert.equal(Buffer.from(guard.instruction.dataBase64,'base64').readBigUInt64LE(8),9000000n);
+  assert.equal(Buffer.from(guard.instruction.dataBase64,'base64').readBigUInt64LE(8),(1n<<64n)-1n);
   assert.deepEqual(price.instruction.accounts.map(x=>[x.signer,x.writable]),
     [[true,true],[true,false],[false,false],[false,false],[false,true],[false,false]]);
   assert.deepEqual(asset.instruction.accounts.map(x=>[x.signer,x.writable]),
@@ -34,16 +35,28 @@ test('fresh selected setup instructions expose the exact signed and writable acc
   assert.ok(inventory.steps.every(x=>x.message===null));
 });
 
-test('missing cap and message inputs remain explicit unresolved work',()=>{
+test('owner-selected practical no-cap guard is built while message inputs remain unresolved',()=>{
   const inventory=buildMainnetSetupInventory({plan});
-  assert.equal(inventory.steps[1].instruction,null);
-  assert.equal(inventory.steps[1].status,'missing-reviewed-policy');
-  assert.deepEqual(inventory.steps[1].unresolved,['reviewedDailyCapLamports','feePayer','recentBlockhash']);
+  assert.equal(inventory.steps[1].status,'instruction-built');
+  assert.deepEqual(inventory.steps[1].unresolved,['feePayer','recentBlockhash']);
+  assert.deepEqual(inventory.guardPolicy.mode,'no-practical-daily-cap');
+  assert.equal(inventory.guardPolicy.dailyCapLamports,'18446744073709551615');
   assert.ok(inventory.steps.every(x=>x.message===null));
 });
 
+test('zero would block positive Contract outflow while selected maximum encodes eight ff bytes',()=>{
+  const zero=buildConfigureProtocolGuard({programId:ids.program,upgradeOwner:ids.adminUpgrade,
+    guardian:ids.offlineGuardian,dailyCapLamports:'0'});
+  const zeroCap=zero.data.readBigUInt64LE(8);
+  assert.equal(zeroCap,0n);
+  assert.equal(1n>zeroCap,true); // Contract record_outflow rejects next > cap.
+  const selected=Buffer.from(buildMainnetSetupInventory({plan}).steps[1].instruction.dataBase64,'base64');
+  assert.equal(selected.subarray(8,16).toString('hex'),'ffffffffffffffff');
+  assert.equal(selected.readBigUInt64LE(8),(1n<<64n)-1n);
+});
+
 test('explicit payers and blockhash create decodable unsigned messages only',()=>{
-  const inventory=buildMainnetSetupInventory({plan,dailyCapLamports:'9000000',feePayers,recentBlockhash:blockhash});
+  const inventory=buildMainnetSetupInventory({plan,feePayers,recentBlockhash:blockhash});
   assert.equal(inventory.steps.length,4);
   for(const step of inventory.steps){
     assert.deepEqual(step.unresolved,[]);
@@ -64,18 +77,18 @@ test('explicit payers and blockhash create decodable unsigned messages only',()=
 
 test('compiled message decoder reflects writable fee payer coalescing',()=>{
   const ownerPayers=Object.fromEntries(names.map(name=>[name,ids.adminUpgrade]));
-  const inventory=buildMainnetSetupInventory({plan,dailyCapLamports:'9000000',feePayers:ownerPayers,recentBlockhash:blockhash});
+  const inventory=buildMainnetSetupInventory({plan,feePayers:ownerPayers,recentBlockhash:blockhash});
   const guard=inventory.steps[1];
   assert.equal(guard.instruction.accounts[0].writable,false);
   assert.equal(guard.message.instruction.accounts[0].writable,true);
   assert.deepEqual(guard.message.requiredSigners,[ids.adminUpgrade]);
 });
 
-test('mismatched identities and invalid reviewed cap fail closed',()=>{
+test('mismatched identities and a guard value other than owner-selected maximum fail closed',()=>{
   assert.throws(()=>buildMainnetSetupInventory({plan:{...plan,mainnetProgramId:ids.deploymentPayer}}),/match the public plan/);
   assert.throws(()=>buildMainnetSetupInventory({plan:{...plan,mainnetActivationAuthorized:true}}),/fresh, inactive/);
-  for(const cap of ['-1','01','1.5','18446744073709551616',9_000_000])
-    assert.throws(()=>buildMainnetSetupInventory({plan,dailyCapLamports:cap}),/reviewed u64 daily cap/);
+  for(const cap of ['0','9000000','-1','01','1.5','18446744073709551616',9_000_000,null])
+    assert.throws(()=>buildMainnetSetupInventory({plan,dailyCapLamports:cap}),/requires u64::MAX/);
   assert.throws(()=>buildMainnetSetupInventory({plan,feePayers:{unknown:ids.deploymentPayer}}),/Unknown setup step/);
   assert.throws(()=>buildMainnetSetupInventory({plan,feePayers:{initializeRouter:'bad-key'},recentBlockhash:blockhash}));
   assert.equal(PublicKey.isOnCurve(new PublicKey(ids.priceAttestor).toBytes()),true);

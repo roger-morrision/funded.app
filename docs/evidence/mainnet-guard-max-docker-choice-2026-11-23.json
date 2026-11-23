@@ -1,0 +1,24 @@
+{
+  "scope": "Offline Mainnet setup policy and local Docker anchor test choice",
+  "baseRevision": "436df9418af2f5d99c4d522cb0fb00c5759ea48a",
+  "guardChoice": {
+    "ownerDirection": "No practical daily SOL outflow cap",
+    "currentAbi": "configure_protocol_guard(daily_cap_lamports: u64)",
+    "encodedLamports": "18446744073709551615",
+    "encodedInstructionHex": "589be76edab76ac5ffffffffffffffff",
+    "remainingSemantics": "The Contract still counts daily outflows, checks u64 overflow and retains guardian pause. A zero cap would reject positive guarded outflow.",
+    "otherPolicies": "The separate off-chain buyback daily policy is unchanged."
+  },
+  "localDockerChoice": {
+    "scope": "Existing single Docker host for synthetic two-store adapter tests only",
+    "productionIndependentCopiesAccepted": false,
+    "reason": "Two containers or volumes on one daemon share host storage and administrator rollback control.",
+    "productionReferences": "Database, backup and signer references remain null in the deployment plan."
+  },
+  "focusedChecks": {
+    "windowsNode26": "6 passed, 0 failed",
+    "isolatedDockerNode24": "6 passed, 0 failed; existing image, no network, read-only mounts, no secrets or service changes",
+    "defaultCli": "Four setup instructions; guard built at u64::MAX; zero signable messages without fee payers and blockhash"
+  },
+  "limits": "Offline unsigned planning only. No Contract ELF change, signed message, RPC write, deployment, final fee quote, canary approval or live financial acceptance."
+}
