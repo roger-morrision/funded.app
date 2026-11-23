@@ -4691,5 +4691,26 @@
     ],
     "unchanged": "Contract9713/ExUNA3f8 ELF/1236 Loader prefix and cost quote unchanged; no rebuild or re-quote.",
     "status": "Narrow Contract source review passed; independent E2E acceptance pending."
+  },
+  "conversionJournalProvisioningReview": {
+    "appSource": "5aa2439672e135558af3b268d5a84556394a156f",
+    "parentSource": "e1a79865d9c2eaa76187257a74df130e84208a22",
+    "appReportSha256": "e6cca5461470d7c06d353985a144262cb9032333c8fc07c88cab843cfcdb661a",
+    "sourcePins": {
+      "server/token-conversion-bootstrap.mjs": "d6c161167786084e2642e1d72ece7e28cc0dd8ba149b025484b9c3ad90701222",
+      "server/token-conversion-journal.mjs": "a5452b1a5faee26817149acb30f01a85ddbed4147684bda9ca9248953223f5bd",
+      "server/automatic-reward-store.mjs": "bfd33d379d15363c0381460b55f2ea05833b49208d88b9c762f42589a718f2c2",
+      "server/token-conversion-controller.mjs": "02ab743946f6c59ef6298a87017383b5c5d95a4e8c8a28af53d7174e3b2098b0"
+    },
+    "acceptedSourceScope": "Normal prepare checks all three existing role-labelled journals before authentication or custody; missing, corrupt, wrong-context and wrong-role files reject. Explicit separate first provisioning checks all three unpublished stores and writes labels under the existing locked store. Its three writes are non-atomic; partial failure requires manual review and complete restore.",
+    "finding": "The frozen prepare return spreads runtime.initialize unchanged. Controller initialize reaches transport.initialize and journal.initialize, whose no-argument path still creates an empty journal when its file disappears after a successful prepare. The same path exists on signing services. A later initializer call can therefore defeat the intended resume-only boundary without a first-provisioning review. App's uncommitted verifyJournalSet override is not frozen acceptance.",
+    "focusedProbe": {
+      "file": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-contract-20261123/provisioning-postprepare-initialize-probe.mjs",
+      "sha256": "9e9758260e160c1d1098701272ddf09cd126bb02b2c2cc69543fd7bf05123703",
+      "stdoutSha256": "9e0b947c9c723ee766495155cc06a6bbfcb3bedb3714848c60e197504dd68b07",
+      "scope": "Node26 local synthetic fixture: unchanged raw controller initializer resolved after file removal and recreated zero attempts from one; zero additional signatures or sends. Current uncommitted prepared-wrapper override rejected the same loss. This is component/source evidence, not an exact frozen integration test or live data loss."
+    },
+    "reviewBoundary": "Caller-supplied review.evidenceSha256 is syntax-checked metadata, not proof of independent review or custody separation. No actual production provisioning or restore occurred.",
+    "status": "Frozen 5aa post-prepare resume bypass found; App correction and independent exact-revision QA pending. Contract ABI/ELF/Loader/quote unchanged; Mainnet NO-GO."
   }
 }
