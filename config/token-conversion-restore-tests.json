@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "scope": "Closed local three-journal copy and fresh-process recovery with synthetic signed and verified conversion evidence",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-three-journal-restore.test.mjs",
+      "requiredTests": [
+        "closed three-journal unknown and verified copies survive fresh-process recovery without new signing",
+        "partial corrupt and wrong-context copies fail before authentication; coherent older copy needs an external witness"
+      ]
+    }
+  ]
+}
