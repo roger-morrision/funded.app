@@ -34,6 +34,15 @@
     }
   },
   "candidateManifestUpdatedFromObservedBuild": true,
-  "compiledRegressionAfterManifestUpdate": "pending",
+  "finalVerification": {
+    "workflowRun": "https://github.com/roger-morrision/funded.app/actions/runs/45141756205",
+    "headCommit": "fc66551022eb8b5caec5737572c449493120417f",
+    "conclusion": "success",
+    "unchangedCandidateVerifier": "passed",
+    "compiledDevnetBitmapExpiry": "passed 3/3",
+    "financialCpiChecks": "passed both",
+    "productionIdentityScope": "public-test-fixture-only"
+  },
+  "compiledRegressionAfterManifestUpdate": "passed",
   "deployEligible": false
 }
