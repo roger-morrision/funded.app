@@ -183,6 +183,9 @@ jobs:
             contracts/funded-fee-router/target/deploy/devnet-v3/funded_fee_router.so
             contracts/funded-fee-router/target/deploy/devnet-configurable/funded_fee_router.so
             contracts/funded-fee-router/target/deploy/mainnet-build-check/funded_fee_router.so
+            contracts/funded-fee-router/target/deploy/production-review/funded_fee_router.so
+            contracts/funded-fee-router/target/deploy/production-review/*.txt
+            contracts/funded-fee-router/target/deploy/production-review/*.sha256
             contracts/funded-fee-router/target/deploy/source-revision.txt
             contracts/funded-fee-router/target/deploy/bytecode.sha256
             contracts/funded-fee-router/target/deploy/bytecode-sizes.txt
