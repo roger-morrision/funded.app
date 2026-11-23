@@ -49,7 +49,9 @@ RUN if [ "$VITE_SOLANA_CLUSTER" = "devnet" ] && [ -z "$VITE_API_BASE_URL" ]; the
     fi && cp package-lock.json /tmp/funded-build-package-lock.json \
     && npm run build && npm prune --omit=dev --ignore-scripts --offline --no-audit --no-fund \
     && cp /tmp/funded-build-package-lock.json package-lock.json && rm /tmp/funded-build-package-lock.json \
-    && chmod -R a+rX /app
+    # Avoid copying up every dependency inode just to reapply its existing mode.
+    && find /app -type d ! -perm -0555 -exec chmod a+rx {} \; \
+    && find /app -type f \( ! -perm -0444 -o \( -perm /111 ! -perm -0111 \) \) -exec chmod a+rX {} +
 
 FROM ${NODE_IMAGE}
 ARG VITE_DEVNET_METADATA_ORIGIN=https://richpad.fun

@@ -2,8 +2,10 @@
 services:
   app:
     cpus: 0.75
-    mem_limit: 512m
-    memswap_limit: 512m
+    # The combined HTTP/background service exceeded 512 MiB on Devnet.
+    # This is separate from the isolated payout worker's 512 MiB test budget.
+    mem_limit: 1g
+    memswap_limit: 1g
   db:
     cpus: 0.50
     mem_limit: 384m
