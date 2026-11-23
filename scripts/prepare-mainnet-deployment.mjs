@@ -67,7 +67,9 @@ export async function prepareMainnetDeployment(plan,{artifactDir,connection,now=
     layout:{physicalPrograms:1,roles:plan.roles,legacyRouterRequired:false,separateEscrowRequired:false},rows,
     fundingModel:'Fresh Loader-v3 deployment returns the buffer lamports to the same payer before funding ProgramData. Do not add buffer rent twice. Assumes exact allocation, one program, no abandoned buffers and the same deployment payer.',
     missingInputs:required.filter(key=>!plan[key]),
-    remainingGates:['Select and review an actual production program identity and build; reference binaries are not Mainnet releases.',
+    remainingGates:[plan.mainnetProgramId
+      ?'The selected program identity and isolated candidate still require exact integrated App/ELF/CI binding, independent release review and reviewed unsigned messages; reference binaries are not Mainnet releases.'
+      :'Select and review an actual production program identity and build; reference binaries are not Mainnet releases.',
       'Implement and verify production network paths, agency custody, metadata, launch registration and financial workers.',
       'Verify isolated infrastructure, independent custody review, final funding estimate and explicit Mainnet approval.',
       'Verify finalized deployed bytes and initialize state, then run an approved capped canary before enabling writes.'],

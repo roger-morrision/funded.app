@@ -79,5 +79,6 @@
     "Explicit human approval of the final costed proposal before any new spending or Mainnet deployment."
   ],
   "outcome": "Planning references now use the selected public identities and existing mint/pool. Mainnet activation remains false and all budgets, actual signer references, release revision and full ProgramData binding remain unset.",
+  "plannerGate": "Read-only preparation distinguishes a selected public program ID from a final integrated App/ELF/CI release. Synthetic artifact case passes 3/3 security tests and still returns ready=false, activation=false; the current plan intentionally leaves sourceRevision and actual signing references unset.",
   "nextAction": "App Dev composes the final reviewed message/cost/rollback packet after runtime and independent QA gates; refresh finalized balances and fees immediately before requesting cost approval."
 }

@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createHash} from 'node:crypto';
 import {assessMainnetFunding} from '../../scripts/mainnet-funding-plan.mjs';
+import {prepareMainnetDeployment} from '../../scripts/prepare-mainnet-deployment.mjs';
 import {buildMainnetLaunchPacket} from '../../scripts/mainnet-launch-packet.mjs';
 import {loadMainnetConfig} from '../../scripts/mainnet-config.mjs';
 
@@ -42,4 +47,18 @@ test('release packet accepts uncapped planning but cannot authorize Mainnet',asy
 
   const obsoleteCap=await buildMainnetLaunchPacket({...input,config:{...config,MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS:'5000000000'}});
   assert.equal(obsoleteCap.checks.configuredSpend,false);
+});
+
+test('read-only cost planner distinguishes selected identity from final release approval',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'funded-mainnet-plan-'));
+  try{
+    const bytes=Buffer.from([0x7f,0x45,0x4c,0x46]);await writeFile(join(dir,'candidate.so'),bytes);
+    const plan={...read('config/mainnet-deployment-plan.json'),sourceRevision:'a'.repeat(40),
+      referenceArtifacts:[{file:'candidate.so',bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),deployEligible:false}]};
+    const selected=await prepareMainnetDeployment(plan,{artifactDir:dir});
+    assert.equal(selected.ready,false);assert.equal(selected.mainnetActivationAuthorized,false);
+    assert.match(selected.remainingGates[0],/selected program identity.*integrated App\/ELF\/CI binding/);
+    const missing=await prepareMainnetDeployment({...plan,mainnetProgramId:null},{artifactDir:dir});
+    assert.match(missing.remainingGates[0],/Select and review an actual production program identity/);
+  }finally{await rm(dir,{recursive:true,force:true});}
 });
