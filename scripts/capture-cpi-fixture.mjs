@@ -10,7 +10,8 @@ import {selectV3PumpBuy} from '../server/v3-buyback-setup.mjs';
 import {readBuybackCurve,quoteCurveBuyback} from '../server/v3-buyback-curve.mjs';
 import {assertRpcNetwork} from '../solana-network.js';
 
-const [venue='pool',market='EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32',directory='tmp/cpi-fixtures/pool',cluster='devnet',categoryText='6',sourceText='Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr']=process.argv.slice(2);
+const [venue='pool',market='EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32',directory='tmp/cpi-fixtures/pool',cluster='devnet',categoryText='6',sourceText='Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr',
+  routerProgramId='3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh']=process.argv.slice(2);
 if(!['devnet','mainnet-beta'].includes(cluster))throw Error('Expected devnet or mainnet-beta.');
 const sell=venue==='sell';
 if(!['pool','curve','sell'].includes(venue))throw Error('Expected pool, curve or sell.');
@@ -18,7 +19,7 @@ if(!['5','6','7'].includes(categoryText)||venue==='curve'&&categoryText!=='6')th
 const rpc=new Connection(cluster==='devnet'?'https://api.devnet.solana.com':'https://api.mainnet-beta.solana.com',
   {commitment:'finalized',disableRetryOnRateLimit:true,fetch:(url,init)=>fetch(url,{...init,signal:AbortSignal.timeout(30000)})});
 await assertRpcNetwork(rpc,cluster);
-const program=new PublicKey('3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh');
+const program=new PublicKey(routerProgramId);
 const source=new PublicKey(sourceText);
 const category=Number(categoryText);
 const vault=PublicKey.findProgramAddressSync([Buffer.from('mint-fee-vault-v3'),source.toBuffer(),Buffer.from([category])],program)[0];

@@ -85,13 +85,16 @@ fn unpaid_reward_cycle_releases_only_its_unpaid_commitment_after_grace() {
     let root = if a <= b { hashv(&[&a, &b]).to_bytes() } else { hashv(&[&b, &a]).to_bytes() };
     let cycle = Pubkey::find_program_address(&[b"reward-cycle-v1", vault.as_ref(), &cycle_id], &program_id).0;
     let now = 1_800_000_000;
+    let review_delay = if cfg!(feature = "mainnet-v3-program") { funded_fee_router::REWARD_CYCLE_MIN_DELAY_SECONDS } else { 0 };
+    let payout_at = now + review_delay;
     let create = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::CreateRewardCycleToken {
-        cycle_id, merkle_root:root, asset_mint:asset.pubkey(), total_amount:100, cutoff_at:now, payout_at:now, leaf_count:2 }.data(),
+        cycle_id, merkle_root:root, asset_mint:asset.pubkey(), total_amount:100, cutoff_at:now, payout_at, leaf_count:2 }.data(),
         funded_fee_router::accounts::CreateRewardCycleToken { authority:protocol.pubkey(), vault, reserve, cycle, token_mint:asset.pubkey(),
             vault_token_account:vault_token, legacy_router, system_program:anchor_lang::system_program::ID }.to_account_metas(None));
     assert!(send(&mut svm, &protocol, &[&protocol], &[create]));
     assert_eq!(outstanding(&svm, reserve), 100);
 
+    set_time(&mut svm, payout_at);
     let holder_token = get_associated_token_address(&holder.pubkey(), &asset.pubkey());
     let holder_ata = spl_associated_token_account::instruction::create_associated_token_account_idempotent(&protocol.pubkey(), &holder.pubkey(), &asset.pubkey(), &token_program);
     let payment = Pubkey::find_program_address(&[b"reward-payment-v1", cycle.as_ref(), holder.pubkey().as_ref()], &program_id).0;
@@ -99,14 +102,21 @@ fn unpaid_reward_cycle_releases_only_its_unpaid_commitment_after_grace() {
         funded_fee_router::accounts::PayoutRewardToken { payer:protocol.pubkey(), vault, reserve, cycle, recipient:holder.pubkey(),
             asset_mint:asset.pubkey(), vault_token_account:vault_token, recipient_token_account:holder_token, payment, token_program,
             system_program:anchor_lang::system_program::ID }.to_account_metas(None));
-    assert!(send(&mut svm, &protocol, &[&protocol], &[holder_ata, payout]));
+    let with_guard = |ix: Instruction| {
+        #[cfg(feature = "mainnet-v3-program")]
+        { let mut ix = ix; ix.accounts.push(anchor_lang::solana_program::instruction::AccountMeta::new_readonly(legacy_router, false)); ix }
+        #[cfg(not(feature = "mainnet-v3-program"))]
+        { ix }
+    };
+    assert!(send(&mut svm, &protocol, &[&protocol], &[holder_ata, with_guard(payout)]));
     assert_eq!(outstanding(&svm, reserve), 40);
 
     let expire = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::ExpireRewardCycle {}.data(),
         funded_fee_router::accounts::ExpireRewardCycle { authority:protocol.pubkey(), vault, reserve, cycle, legacy_router }.to_account_metas(None));
     // Before the grace period ends the commitment cannot be released.
     assert!(!send(&mut svm, &protocol, &[&protocol], &[expire.clone()]));
-    set_time(&mut svm, now + funded_fee_router::REWARD_CYCLE_EXPIRY_GRACE_SECONDS);
+    let expiry = payout_at + funded_fee_router::REWARD_CYCLE_EXPIRY_GRACE_SECONDS;
+    set_time(&mut svm, expiry);
     // Only the current router authority may expire a cycle.
     let attacker = Keypair::new();
     svm.airdrop(&attacker.pubkey(), 10_000_000).unwrap();
@@ -126,12 +136,12 @@ fn unpaid_reward_cycle_releases_only_its_unpaid_commitment_after_grace() {
             asset_mint:asset.pubkey(), vault_token_account:vault_token, recipient_token_account:stuck_token, payment:stuck_payment, token_program,
             system_program:anchor_lang::system_program::ID }.to_account_metas(None));
     assert!(send(&mut svm, &protocol, &[&protocol], &[stuck_ata]));
-    assert!(!send(&mut svm, &protocol, &[&protocol], &[late]));
+    assert!(!send(&mut svm, &protocol, &[&protocol], &[with_guard(late)]));
     // The released 40 funds the next cycle.
     let next_id = [4u8; 32];
     let next_cycle = Pubkey::find_program_address(&[b"reward-cycle-v1", vault.as_ref(), &next_id], &program_id).0;
     let next = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::CreateRewardCycleToken {
-        cycle_id:next_id, merkle_root:[1; 32], asset_mint:asset.pubkey(), total_amount:40, cutoff_at:now, payout_at:now, leaf_count:1 }.data(),
+        cycle_id:next_id, merkle_root:[1; 32], asset_mint:asset.pubkey(), total_amount:40, cutoff_at:expiry, payout_at:expiry+review_delay, leaf_count:1 }.data(),
         funded_fee_router::accounts::CreateRewardCycleToken { authority:protocol.pubkey(), vault, reserve, cycle:next_cycle, token_mint:asset.pubkey(),
             vault_token_account:vault_token, legacy_router, system_program:anchor_lang::system_program::ID }.to_account_metas(None));
     assert!(send(&mut svm, &protocol, &[&protocol], &[next]));

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-11-23T03:16:43.580869+00:00",
+  "rpcEndpoint": "https://api.mainnet-beta.solana.com",
+  "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+  "commitment": "finalized",
+  "contextSlot": 472788634,
+  "accounts": {
+    "deploymentPayer": {
+      "publicKey": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
+      "exists": false,
+      "lamports": 0,
+      "owner": null
+    },
+    "adminUpgrade": {
+      "publicKey": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+      "exists": false,
+      "lamports": 0,
+      "owner": null
+    },
+    "programIdentity": {
+      "publicKey": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+      "exists": false,
+      "lamports": 0,
+      "owner": null
+    },
+    "automationOperator": {
+      "publicKey": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+      "exists": false,
+      "lamports": 0,
+      "owner": null
+    },
+    "independentPriceAttestor": {
+      "publicKey": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+      "exists": false,
+      "lamports": 0,
+      "owner": null
+    },
+    "offlineGuardian": {
+      "publicKey": "Dmf2SqmWybu1KF4PjmqfJcfszJQq8UnS7zH8ZAYNqHQQ",
+      "exists": false,
+      "lamports": 0,
+      "owner": null
+    }
+  },
+  "sourceRoleRecord": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-production-packet-20261122/operational-identities-public.json",
+  "scope": "Read-only account existence/balance capture for draft funding inputs; not a fee/rent quote, custody review, transaction or release approval."
+}
