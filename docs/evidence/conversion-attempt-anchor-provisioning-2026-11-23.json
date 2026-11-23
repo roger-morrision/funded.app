@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-23",
+  "status": "costed-proposal-only-no-go",
+  "baseSourceRevision": "f344f16cd43364ad0d432079a2af02f7268addea",
+  "proposal": "docs/conversion-attempt-anchor-provisioning-2026-11-23.md",
+  "recommendedReferenceDesign": {
+    "service": "Amazon S3 Standard",
+    "buckets": 2,
+    "billingAccounts": 2,
+    "administration": "separate from each other and the application host",
+    "referenceRegion": "us-east-1 for both buckets; cross-region backup requires refreshed regional price",
+    "versioning": true,
+    "objectLockMode": "COMPLIANCE",
+    "proposedRetentionDays": 365,
+    "acknowledgment": "synchronous success from both buckets before any role signature or send",
+    "provisioned": false,
+    "credentialResolverApproved": false,
+    "restoreDrillPassed": false
+  },
+  "illustrativeMonthlyUsage": {
+    "attempts": 10000,
+    "immutableEventsPerAttempt": 8,
+    "bytesPerEvent": 4096,
+    "retainedMonthlyCohorts": 12,
+    "bucketCopies": 2,
+    "putRequests": 160000,
+    "getRequests": 40000,
+    "listRequests": 2000,
+    "steadyRetainedGiB": 7.32421875
+  },
+  "referenceUnitRatesUsd": {
+    "storagePerGiBMonth": 0.023,
+    "putPerThousand": 0.005,
+    "getPerThousand": 0.0004,
+    "listPerThousand": 0.005
+  },
+  "illustrativeMonthlyUsd": {
+    "storage": 0.16845703125,
+    "put": 0.8,
+    "get": 0.016,
+    "list": 0.01,
+    "subtotal": 0.99445703125,
+    "excludes": [
+      "network egress and recovery reads beyond modeled GETs",
+      "monitoring and access logging",
+      "taxes, support and human administration",
+      "regional differences and extra versions or attempts",
+      "customer-managed KMS if selected"
+    ]
+  },
+  "requiredOwnerChoices": [
+    "primary and backup AWS billing accounts and separate administrators",
+    "backup Region and common-region failure tolerance",
+    "immutable retention period and spend ceiling",
+    "approved credential resolver and restore operator"
+  ],
+  "sources": [
+    "https://docs.aws.amazon.com/solutions/latest/prebid-server-deployment-on-aws/cost1.html",
+    "https://aws.amazon.com/cloudwatch/pricing/",
+    "https://aws.amazon.com/s3/pricing/",
+    "https://aws.amazon.com/s3/faqs/",
+    "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html",
+    "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html#ConsistencyModel",
+    "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html",
+    "https://developers.cloudflare.com/r2/pricing/",
+    "https://developers.cloudflare.com/r2/buckets/bucket-locks/"
+  ],
+  "mainnetActivationAuthorized": false,
+  "transactionsSubmitted": 0
+}
