@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {Keypair} from '@solana/web3.js';
 import {buildRewardManifest} from '../../reward-merkle.js';
-import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
+import {createAutomaticRewardStore,REWARD_LEDGER_UNCHANGED} from '../../server/automatic-reward-store.mjs';
 import {recoverSavedRewardPayouts} from '../../server/reward-payout-recovery.mjs';
 import {selectRewardPayoutRecoveries} from '../../server/reward-recovery-page.mjs';
 import {selectHolderPayoutPage} from '../../server/holder-payout-page.mjs';
@@ -31,6 +31,20 @@ test('saved recovery is bounded fairly across schedules and restart without repl
   for(let i=0;i<3;i++){const before=seen.length;assert.equal(await recoverSavedRewardPayouts({store:f.reopen(),chain}),0);assert.equal(seen.length-before,32);}
   assert.equal(new Set(seen.slice(0,65)).size,65);
   const after=(await f.store.read()).schedules;for(const p of f.plans){assert.deepEqual(after[p.id].payoutAttempts,original[p.id].payoutAttempts);assert.deepEqual(after[p.id].payments,{});}
+});
+
+test('repeated unknown recovery declares only proven unchanged locked outcomes',async t=>{
+  const f=await fixture(t,[33,32]),original=(await f.store.read()).schedules;let hinted=0,calls=0;
+  const measured={...f.store,transaction:mutator=>f.store.transaction(async state=>{
+    const result=await mutator(state);if(result===REWARD_LEDGER_UNCHANGED)hinted++;return result;
+  })};
+  const chain={submitLeaf:async(_plan,_leaf,options)=>{assert.equal(options.recoveryOnly,true);calls++;throw Error('Proof unavailable; original attempt pending');}};
+  await recoverSavedRewardPayouts({store:measured,chain});const first=hinted;
+  await recoverSavedRewardPayouts({store:measured,chain});
+  assert.equal(calls,64);assert(first>=31);assert(hinted>=first+31);
+  const after=(await f.reopen().read()).schedules;
+  for(const plan of f.plans){assert.deepEqual(after[plan.id].payoutAttempts,original[plan.id].payoutAttempts);
+    assert.deepEqual(after[plan.id].payments,{});}
 });
 
 test('paused and throwing scheduler readiness still performs only bounded read-only saved recovery',async t=>{
