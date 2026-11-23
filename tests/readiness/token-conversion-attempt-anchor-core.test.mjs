@@ -5,6 +5,10 @@ import {buildAttemptAnchorProvisioningMarker,createTokenConversionAttemptAnchorC
   from '../../server/token-conversion-attempt-anchor-core.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const canonical=value=>value&&typeof value==='object'
+  ?Array.isArray(value)?`[${value.map(canonical).join(',')}]`
+    :`{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+  :JSON.stringify(value);
 const context={genesisHash:'synthetic-mainnet-genesis',programId:'synthetic-program',
   programDataSha256:'a'.repeat(64),policyHash:'b'.repeat(64),controller:'controller-public',
   operator:'operator-public',priceAttestor:'price-public',sourceRevision:'c'.repeat(40)};
@@ -127,6 +131,23 @@ test('fresh work requires an explicit matching provisioning marker and context',
   const wrong=createTokenConversionAttemptAnchorCore({primary,secondary,context:{...context,programId:'other-program'}});
   await assert.rejects(wrong.load(),/release context differs/);
   await prepared(anchor);assert.equal((await anchor.load()).length,2);
+});
+
+test('valid digests cannot hide unreviewed provisioning or event fields',async()=>{
+  for(const mutate of [
+    event=>{event.payload.extra='unreviewed';},
+    event=>{event.extra='unreviewed';},
+  ]){
+    const {primary,secondary,anchor}=await fixture();
+    const event=JSON.parse(primary.entries.get('000000000000'));
+    mutate(event);
+    const {digest:oldDigest,...body}=event;
+    assert.equal(oldDigest.length,64);
+    const forged=canonical({...body,digest:sha(canonical(body))});
+    primary.entries.set('000000000000',forged);
+    secondary.entries.set('000000000000',forged);
+    await assert.rejects(anchor.load(),/reviewed public anchor event fields|Reviewed provisioning marker/);
+  }
 });
 
 test('same-sequence competing writers cannot both anchor different messages',async()=>{

@@ -20,6 +20,7 @@ const payloadFields={
   'finalized-proof':['proofBase64','proofSha256'],
   'finalized-absence':['absenceBase64','absenceSha256'],
 };
+const eventFields=['version','sequence','priorDigest','contextHash','messageHash','stage','payload','digest'];
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)
   &&Object.getPrototypeOf(value)===Object.prototype;
 const canonical=value=>{
@@ -44,6 +45,8 @@ const decode=(text,expectedKey)=>{
   assert(object(event)&&canonical(event)===text&&Number.isSafeInteger(event.sequence)
     &&event.sequence>=0&&key(event.sequence)===expectedKey&&HEX.test(event.digest),
   'Noncanonical or misplaced anchor entry.');
+  assert.deepEqual(Object.keys(event).sort(),[...eventFields].sort(),
+    'Only reviewed public anchor event fields are permitted.');
   const {digest,...body}=event;
   assert(sha(canonical(body))===digest,'Anchor entry digest differs.');
   return event;
@@ -115,6 +118,8 @@ const validateEvents=(entries,contextHash)=>{
       'Anchor sequence, predecessor or release context differs.');
     if(index===0){
       assert(event.stage==='provision'&&event.messageHash===null&&object(event.payload)
+        &&Object.keys(event.payload).length===1
+        &&Object.hasOwn(event.payload,'reviewDigest')
         &&HEX.test(event.payload.reviewDigest),'Reviewed provisioning marker required.');
     }else{
       assert(stages.has(event.stage)&&HEX.test(event.messageHash),'Typed anchored attempt required.');
