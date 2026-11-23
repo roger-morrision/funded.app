@@ -1,0 +1,33 @@
+{
+  "scope": "FQA-MN-001 bounded saved-payout recovery error publication",
+  "parentCommit": "7dde33f62b0b04daf1fef7890447c83e3f243ae6",
+  "change": "For one <=32-attempt recovery page, record each failed saved attempt's original marker and diagnostic, then publish all errors in one locked ledger transaction. Successful exact proof persists immediately as before. Missing original markers are restored in the same batch. Every attempt remains recoveryOnly and no automatic replacement is introduced.",
+  "focusedTests": {
+    "node": "26.13.1",
+    "cases": "57/57 passed, 0 failed, 0 skipped, 0 TODO",
+    "coverage": "Signed payout proof/restart, same-store and competing-writer missing-marker restoration, failed error-batch publication, 32-bound and filtered cursor fairness, byte-identical store no-op and drain behavior.",
+    "stdoutSha256": "9d83a8aa8a5a6dd7e626a9d75a63fd587b83d0a06f3d0e34b87e1eca5a774442",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "freshProcessComparison": {
+    "method": "Separate Windows Node 26.13.1 processes, --max-old-space-size=256, 1001 SOL plus 1001 USDC canonical signed prepared attempts, 32 unknown recovery interfaces. Baseline uses the previous commit's legacy read path and per-attempt error writes; candidate uses targeted reads and one error batch. Both retain every original attempt and no extra signing or mocked broadcast.",
+    "baseline": {
+      "recoveryElapsedMs": 2211.8841,
+      "recoveryTransactions": 33,
+      "candidateSerializedBytes": 237442549,
+      "maxRssKiB": 285900,
+      "stdoutSha256": "0073ba4b0554de8a73877bb54b29d40092b40a941f8746133218cb673b91a4dc"
+    },
+    "candidate": {
+      "recoveryElapsedMs": 914.8983,
+      "recoveryTransactions": 2,
+      "fullReads": 1,
+      "targetedReads": 32,
+      "candidateSerializedBytes": 14390357,
+      "maxRssKiB": 261616,
+      "stdoutSha256": "444168e6a10cdb27277a2ad3a51d3839c33e0b2969dd65d52eb199f9504eaf43",
+      "stderrSha256": "ea0c8b1568b8f6ad5d276cb8639d773151f5c64d9130600e9d514648dab8e069"
+    }
+  },
+  "limits": "Single-run local timing and RSS observations are not SLA or 512 MiB Linux capacity evidence. Each remaining transaction and whole-worker discovery still parse/serialize O(N) ledger state. The 1001+1001 signed attempts are injected offline; production holder admission stays at 1000. No live finality, authenticated financial receipts, normal full-service load, backup/restore or Mainnet readiness is established."
+}

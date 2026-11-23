@@ -7,7 +7,7 @@ import {selectRewardPayoutRecoveries} from './reward-recovery-page.mjs';
 export async function recoverSavedRewardPayouts({store,chain,selected=null}){
   if(typeof chain.submitLeaf!=='function')return 0;
   const tasks=await selectRewardPayoutRecoveries({store,selected});
-  let recovered=0;
+  let recovered=0;const failures=[];
   for(const {plan,leaf} of tasks){
     const original=plan.payoutAttempts[leaf.recipient],intent=payoutIntentHash(plan,leaf);
     try{
@@ -22,13 +22,20 @@ export async function recoverSavedRewardPayouts({store,chain,selected=null}){
         if(completed.changed)row.payments[leaf.recipient]=completed.record;
       });recovered++;
     }catch(error){
-      await store.transaction(state=>{
-        const row=state.schedules?.[plan.id];if(!row||payoutIntentHash(row,leaf)!==intent)return;
-        row.payoutAttempts||={};
-        if(!Object.hasOwn(row.payoutAttempts,leaf.recipient))row.payoutAttempts[leaf.recipient]=structuredClone(original);
-        row.payoutRecoveryError=String(error.message||error).slice(0,180);
-      });
+      failures.push({planId:plan.id,leaf:structuredClone(leaf),original:structuredClone(original),intent,
+        message:String(error.message||error).slice(0,180)});
     }
   }
+  // All selected attempts are already durably saved. Publish diagnostic errors
+  // and restore any disappeared marker in one locked transaction per page,
+  // rather than reserializing the whole ledger for every unknown result.
+  if(failures.length)await store.transaction(state=>{
+    for(const {planId,leaf,original,intent,message} of failures){
+      const row=state.schedules?.[planId];if(!row||payoutIntentHash(row,leaf)!==intent)continue;
+      row.payoutAttempts||={};
+      if(!Object.hasOwn(row.payoutAttempts,leaf.recipient))row.payoutAttempts[leaf.recipient]=original;
+      row.payoutRecoveryError=message;
+    }
+  });
   return recovered;
 }

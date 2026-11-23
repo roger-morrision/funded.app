@@ -33,6 +33,29 @@ test('saved recovery is bounded fairly across schedules and restart without repl
   const after=(await f.store.read()).schedules;for(const p of f.plans){assert.deepEqual(after[p.id].payoutAttempts,original[p.id].payoutAttempts);assert.deepEqual(after[p.id].payments,{});}
 });
 
+test('unknown recovery records one durable error batch without replacing signed attempts',async t=>{
+  const f=await fixture(t,[33]),original=(await f.store.read()).schedules[f.plans[0].id].payoutAttempts;
+  let transactions=0,calls=0;
+  const store={read:()=>f.store.read(),transaction:mutator=>{transactions++;return f.store.transaction(mutator);}};
+  await recoverSavedRewardPayouts({store,chain:{submitLeaf:async(_plan,_leaf,options)=>{
+    assert.equal(options.recoveryOnly,true);calls++;throw Error('Exact proof unavailable');}}});
+  assert.equal(calls,32);assert.equal(transactions,2,'One cursor and one error publication for a bounded page.');
+  const row=(await f.reopen().read()).schedules[f.plans[0].id];
+  assert.deepEqual(row.payoutAttempts,original);assert.equal(row.payoutRecoveryError,'Exact proof unavailable');
+});
+
+test('failed error batch leaves every saved attempt unchanged and surfaces the disk error',async t=>{
+  const f=await fixture(t,[33]),original=(await f.store.read()).schedules[f.plans[0].id].payoutAttempts;
+  let transactions=0,calls=0;
+  const store={read:()=>f.store.read(),transaction:mutator=>{
+    if(++transactions===2)throw Error('Error batch disk write refused');return f.store.transaction(mutator);
+  }};
+  await assert.rejects(recoverSavedRewardPayouts({store,chain:{submitLeaf:async(_plan,_leaf,options)=>{
+    assert.equal(options.recoveryOnly,true);calls++;throw Error('Exact proof unavailable');}}}),/Error batch disk write refused/);
+  assert.equal(calls,32);assert.equal(transactions,2);
+  assert.deepEqual((await f.reopen().read()).schedules[f.plans[0].id].payoutAttempts,original);
+});
+
 test('paused and throwing scheduler readiness still performs only bounded read-only saved recovery',async t=>{
   const f=await fixture(t);let calls=0,throws=false,fresh=0;
   const chain={cluster:'devnet',readiness:async()=>{if(throws)throw Error('Readiness unavailable');return{constrainedPayouts:false,reasons:['protocol-paused']};},
@@ -90,7 +113,7 @@ test('measure full manifest lock work and bounded recovery ledger writes across 
   let start=performance.now();assert.equal((await selectHolderPayoutPage({store:measured,plan:f.plans[0]})).length,32);
   assert.equal(counters.actualLedgerReplacements,1);const fresh={...counters,elapsedMs:performance.now()-start};reset();let calls=0;start=performance.now();
   await recoverSavedRewardPayouts({store:measured,chain:{submitLeaf:async(_plan,_leaf,options)=>{assert(options.recoveryOnly);calls++;throw Error('Synthetic missing proof');}}});
-  assert.equal(calls,32);assert.equal(counters.publicReads,1);assert.equal(counters.transactions,33);
+  assert.equal(calls,32);assert.equal(counters.publicReads,1);assert.equal(counters.transactions,2);
   const metrics={scope:'synthetic-two-injected-1001-cohorts-no-financial-finality',node:process.version,cohorts:2,leavesPerCohort:1001,
     fresh,recovery:{...counters,elapsedMs:performance.now()-start,interfaceCalls:calls},maxRssKiB:process.resourceUsage().maxRSS,networkCalls:0,transactionsSent:0,
     limitation:'Mutator timing is inside the actual lock; transaction time includes queue/read/serialize/fsync/rename/unlock. Byte counting adds measured JSON instrumentation overhead; stat observers add I/O. Physical ledger replacements exclude lock-file metadata. Attempts are marker-only, not full signed payloads. Whole-ledger O(N) remains.'};
