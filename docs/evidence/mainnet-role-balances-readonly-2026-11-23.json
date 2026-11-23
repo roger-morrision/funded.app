@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-11-23T05:57:52.2375535Z",
+  "rpc": "https://api.mainnet-beta.solana.com",
+  "commitment": "finalized",
+  "slot": 472833674,
+  "requestOrder": [
+    "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
+    "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+    "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+    "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+    "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+    "Dmf2SqmWybu1KF4PjmqfJcfszJQq8UnS7zH8ZAYNqHQQ"
+  ],
+  "accounts": [
+    {
+      "exists": false,
+      "lamports": 0
+    },
+    {
+      "exists": false,
+      "lamports": 0
+    },
+    {
+      "exists": false,
+      "lamports": 0
+    },
+    {
+      "exists": false,
+      "lamports": 0
+    },
+    {
+      "exists": false,
+      "lamports": 0
+    },
+    {
+      "exists": false,
+      "lamports": 0
+    }
+  ]
+}

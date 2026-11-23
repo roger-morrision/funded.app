@@ -17,7 +17,7 @@ The Contract's native Loader rehearsal demonstrates same-payer buffer recycling 
 
 ## Read-only balance refresh
 
-At approximately **2026-11-23 05:55 UTC**, a single public Mainnet `getMultipleAccounts` query with `commitment=finalized` and zero-length data slices returned context slot **472833006**. In request order E9, 5Thg, ExUNA, Ahqt, CDCG, Dmf2, all six account entries were absent and their balances were **0 lamports**. This refresh establishes balances only; it does not refresh rent, priority bids, executable bytes, pool liquidity, ownership, or finality of any transaction. Refresh accounts and quote immediately before signing.
+At **2026-11-23 05:57:52 UTC**, a single public Mainnet `getMultipleAccounts` query with `commitment=finalized` and zero-length data slices returned context slot **472833674**. In request order E9, 5Thg, ExUNA, Ahqt, CDCG, Dmf2, all six account entries were absent and their balances were **0 lamports**. The minimized public capture is `docs/evidence/mainnet-role-balances-readonly-2026-11-23.json`, SHA-256 `35b67569aaeceeaf8dcf8381353cb89c2571c197567e51446c33eb9a2b9cb6c4`. This refresh establishes balances only; it does not refresh rent, priority bids, executable bytes, pool liquidity, ownership, or finality of any transaction. Refresh accounts and quote immediately before signing.
 
 ## Ordered messages and cost boundary
 
@@ -36,7 +36,7 @@ Loader-prefix base fees total **12,360,000 lamports** (1 × 5,000 + 1,234 × 10,
 
 ## Wallet-by-wallet known minimum, not final top-up
 
-| Role and full public address | Finalized balance at slot 472833006 | Known direct debit / protected reserve | Known minimum available balance from retained quote | Final top-up |
+| Role and full public address | Finalized balance at slot 472833674 | Known direct debit / protected reserve | Known minimum available balance from retained quote | Final top-up |
 | --- | ---: | --- | ---: | --- |
 | Deployment payer `E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL` | 0 | 5,642,665,880 permanent Loader rent; 12,360,000 quoted Loader-prefix base fees; 5,641,792,120 temporary buffer recycled | **5,655,025,880 lamports**, conditional on unchanged rent/fees and same-payer recycling | **Undetermined** |
 | Admin and upgrade `5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi` | 0 | 853,440 price config + 3,098,800 primary current/history rents | **3,952,240 lamports**, before any assigned fees | **Undetermined** |
