@@ -44,19 +44,23 @@ fn leaf(drop: Pubkey, recipient: Pubkey, amount: u64, index: u32) -> [u8; 32] {
 }
 
 #[test]
-fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() { community_flow(90*86400, false, false); }
+fn community_claim_duplicate_ineligible_expiry_and_owner_closeout() { community_flow(90*86400, false, false, false); }
 
 #[test]
-fn reward_vault_opening_preserves_reserve_and_claim_guards() { community_flow(90*86400, true, false); }
+fn reward_vault_opening_preserves_reserve_and_claim_guards() { community_flow(90*86400, true, false, false); }
 
 #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
 #[test]
-fn configured_five_minute_claim_window_is_enforced_by_program() { community_flow(300, true, false); }
+fn configured_five_minute_claim_window_is_enforced_by_program() { community_flow(300, true, false, false); }
+
+#[cfg(feature = "devnet-v3-program")]
+#[test]
+fn configured_devnet_pays_all_28_sponsored_leaves_before_expiry() { community_flow(300, true, false, true); }
 
 #[test]
-fn community_drop_preserves_unrelated_token_donation() { community_flow(90*86400, false, true); }
+fn community_drop_preserves_unrelated_token_donation() { community_flow(90*86400, false, true, false); }
 
-fn community_flow(window: i64, from_reward: bool, donation: bool) {
+fn community_flow(window: i64, from_reward: bool, donation: bool, full_delivery: bool) {
     let program_id = funded_fee_router::id();
     let mut svm = LiteSVM::new();
     svm.add_program(program_id, &support::program_bytes()).unwrap();
@@ -72,7 +76,7 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
     let eligible_b = Keypair::new();
     let ineligible = Keypair::new();
     svm.airdrop(&creator.pubkey(), 1_000_000_000).unwrap();
-    svm.airdrop(&protocol.pubkey(), 100_000_000).unwrap();
+    svm.airdrop(&protocol.pubkey(), if full_delivery { 3_200_000_000 } else { 100_000_000 }).unwrap();
     let (legacy_router, _) = Pubkey::find_program_address(&[b"funded-fee-router-v1"], &program_id);
     let initialize_router = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::Initialize {}.data(),
         funded_fee_router::accounts::Initialize { authority:protocol.pubkey(), app_owner:protocol.pubkey(), router:legacy_router,
@@ -82,14 +86,16 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
     for token_mint in [&mint, &eligibility] {
         let instructions = [
             system_instruction::create_account(&creator.pubkey(), &token_mint.pubkey(), 2_000_000, spl_token::state::Mint::LEN as u64, &token_program),
-            spl_token::instruction::initialize_mint2(&token_program, &token_mint.pubkey(), &creator.pubkey(), None, 0).unwrap(),
+            spl_token::instruction::initialize_mint2(&token_program, &token_mint.pubkey(), &creator.pubkey(),
+                None, if full_delivery { 6 } else { 0 }).unwrap(),
         ];
         assert!(send(&mut svm, &creator, &[&creator, token_mint], &instructions));
     }
     let source = get_associated_token_address(&creator.pubkey(), &mint.pubkey());
     let source_create = spl_associated_token_account::instruction::create_associated_token_account(&creator.pubkey(), &creator.pubkey(), &mint.pubkey(), &token_program);
     assert!(send(&mut svm, &creator, &[&creator], &[source_create]));
-    assert!(send(&mut svm, &creator, &[&creator], &[spl_token::instruction::mint_to(&token_program, &mint.pubkey(), &source, &creator.pubkey(), &[], 100).unwrap()]));
+    let total = if full_delivery { 30_000_000_000_000u64 } else { 100 };
+    assert!(send(&mut svm, &creator, &[&creator], &[spl_token::instruction::mint_to(&token_program, &mint.pubkey(), &source, &creator.pubkey(), &[], total).unwrap()]));
 
     let (drop, _) = Pubkey::find_program_address(&[b"community-drop-v1", protocol.pubkey().as_ref(), mint.pubkey().as_ref()], &program_id);
     let (snapshot_approval, _) = Pubkey::find_program_address(&[b"snapshot-approval-v1", protocol.pubkey().as_ref(), mint.pubkey().as_ref()], &program_id);
@@ -98,7 +104,17 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
     let payment_b = Pubkey::find_program_address(&[b"community-pay-v1", drop.as_ref(), eligible_b.pubkey().as_ref()], &program_id).0;
     let root_a = leaf(drop, eligible_a.pubkey(), 40, 0);
     let root_b = leaf(drop, eligible_b.pubkey(), 60, 1);
-    let root = if root_a <= root_b { hashv(&[&root_a, &root_b]).to_bytes() } else { hashv(&[&root_b, &root_a]).to_bytes() };
+    let allocations: Vec<_> = if full_delivery {
+        (0u64..28).map(|index| {
+            let recipient = Pubkey::find_program_address(&[b"qa-community-recipient", &index.to_le_bytes()], &program_id).0;
+            (recipient, total / 28 + u64::from(index < total % 28))
+        }).collect()
+    } else { vec![(eligible_a.pubkey(), 40), (eligible_b.pubkey(), 60)] };
+    let levels = merkle_levels(allocations.iter().enumerate().map(|(index, (recipient, amount))| {
+        leaf(drop, *recipient, *amount, index as u32)
+    }).collect());
+    let root = levels.last().unwrap()[0];
+    let leaf_count = allocations.len() as u32;
     let migration_at = svm.get_sysvar::<Clock>().unix_timestamp;
     #[cfg(any(feature = "devnet-v3-program", feature = "mainnet-v3-program"))]
     if window != 90*86400 {
@@ -116,7 +132,7 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
 
     let approve = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::ApproveCommunitySnapshot {
         merkle_root:root, snapshot_hash:[9; 32], migration_signature:[7; 64], migration_slot:1234,
-        migration_at, total_amount:100, leaf_count:2,
+        migration_at, total_amount:total, leaf_count,
     }.data(), funded_fee_router::accounts::ApproveCommunitySnapshot {
         app_owner:protocol.pubkey(), protocol_authority:protocol.pubkey(), creator:creator.pubkey(),
         mint:mint.pubkey(), eligibility_mint:eligibility.pubkey(), approval:snapshot_approval,
@@ -131,7 +147,7 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
     assert!(send(&mut svm, &protocol, &[&protocol], &[approve]));
     let mut initialize = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::InitializeCommunityDrop {
         merkle_root:root, snapshot_hash:[9; 32], migration_signature:[7; 64], migration_slot:1234, snapshot_slot:1234,
-        migration_at, total_amount:100, leaf_count:2,
+        migration_at, total_amount:total, leaf_count,
     }.data(), funded_fee_router::accounts::InitializeCommunityDrop {
         protocol_authority:protocol.pubkey(), creator:creator.pubkey(), app_owner:protocol.pubkey(), legacy_router, mint:mint.pubkey(), eligibility_mint:eligibility.pubkey(),
         drop, snapshot_approval, creator_token_account:source, vault_token_account:vault, token_program,
@@ -147,11 +163,11 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
         assert!(send(&mut svm, &protocol, &[&protocol], &[init_reward]));
         let ata = spl_associated_token_account::instruction::create_associated_token_account_idempotent(
             &creator.pubkey(), &reward_vault, &mint.pubkey(), &token_program);
-        let transfer = spl_token::instruction::transfer(&token_program, &source, &reward_token, &creator.pubkey(), &[], 100).unwrap();
+        let transfer = spl_token::instruction::transfer(&token_program, &source, &reward_token, &creator.pubkey(), &[], total).unwrap();
         assert!(send(&mut svm, &creator, &[&creator], &[ata, transfer]));
         initialize = Instruction::new_with_bytes(program_id, &funded_fee_router::instruction::InitializeCommunityDropFromRewardVault {
             merkle_root:root, snapshot_hash:[9;32], migration_signature:[7;64], migration_slot:1234, snapshot_slot:1234,
-            migration_at, total_amount:100, leaf_count:2,
+            migration_at, total_amount:total, leaf_count,
         }.data(), funded_fee_router::accounts::InitializeCommunityDropFromRewardVault {
             protocol_authority:protocol.pubkey(), creator:creator.pubkey(), app_owner:protocol.pubkey(), mint:mint.pubkey(),
             eligibility_mint:eligibility.pubkey(), reward_vault, reward_reserve:reserve, reward_vault_token_account:reward_token,
@@ -191,7 +207,7 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
         svm.expire_blockhash();
         assert!(!send(&mut svm, &creator, &[&creator, &protocol], &[initialize.clone()]));
         assert!(svm.get_account(&drop).is_none());
-        assert_eq!(token_amount(&svm, source), 100);
+        assert_eq!(token_amount(&svm, source), total);
     }
     svm.set_account(vault, clean).unwrap();
     if donation {
@@ -207,11 +223,15 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
     redirected.accounts[if from_reward {10} else {9}].pubkey = alternate;
     assert!(!send(&mut svm, &creator, &[&creator, &protocol], &[redirected]));
     assert!(svm.get_account(&drop).is_none());
-    assert_eq!(token_amount(&svm, source), 100);
+    assert_eq!(token_amount(&svm, source), total);
     svm.expire_blockhash();
     assert!(send(&mut svm, &creator, &[&creator, &protocol], &[setup, initialize]));
     assert_eq!(token_amount(&svm, source), 0);
-    assert_eq!(token_amount(&svm, vault), 100+u64::from(donation));
+    assert_eq!(token_amount(&svm, vault), total+u64::from(donation));
+    if full_delivery {
+        verify_sponsored_delivery(&mut svm, &protocol, mint.pubkey(), drop, vault, migration_at, &allocations, &levels);
+        return;
+    }
 
     let recipient_a_token = get_associated_token_address(&eligible_a.pubkey(), &mint.pubkey());
     let recipient_b_token = get_associated_token_address(&eligible_b.pubkey(), &mint.pubkey());
@@ -281,4 +301,73 @@ fn community_flow(window: i64, from_reward: bool, donation: bool) {
     assert_eq!(token_amount(&svm, owner_token), 60+u64::from(donation));
     assert_eq!(token_amount(&svm, recipient_a_token), 40);
     assert!(!send(&mut svm, &creator, &[&creator], &[system_instruction::transfer(&creator.pubkey(), &protocol.pubkey(), 2), close]));
+}
+
+fn merkle_levels(leaves: Vec<[u8; 32]>) -> Vec<Vec<[u8; 32]>> {
+    let mut levels = vec![leaves];
+    while levels.last().unwrap().len() > 1 {
+        let parents = levels.last().unwrap().chunks(2).map(|children| {
+            match children {
+                [left, right] if left <= right => hashv(&[left, right]).to_bytes(),
+                [left, right] => hashv(&[right, left]).to_bytes(),
+                [only] => *only,
+                _ => unreachable!(),
+            }
+        }).collect();
+        levels.push(parents);
+    }
+    levels
+}
+
+fn verify_sponsored_delivery(svm: &mut LiteSVM, payer: &Keypair, mint: Pubkey, drop: Pubkey, vault: Pubkey,
+    migration_at: i64, allocations: &[(Pubkey, u64)], levels: &[Vec<[u8; 32]>]) {
+    use anchor_lang::AccountDeserialize;
+    let program_id = funded_fee_router::id();
+    let token_program = spl_token::ID;
+    let supply = |svm: &LiteSVM| spl_token::state::Mint::unpack(&svm.get_account(&mint).unwrap().data).unwrap().supply;
+    let original_supply = supply(svm);
+    let payer_before = svm.get_balance(&payer.pubkey()).unwrap();
+    let mut vault_balance = token_amount(svm, vault);
+    let mut paid = 0;
+    for (index, &(recipient, amount)) in allocations.iter().enumerate() {
+        let mut clock = svm.get_sysvar::<Clock>();
+        clock.unix_timestamp = migration_at + 10 * index as i64;
+        svm.set_sysvar(&clock);
+        let proof = levels[..levels.len() - 1].iter().enumerate().filter_map(|(depth, level)| {
+            level.get((index >> depth) ^ 1).copied()
+        }).collect();
+        let recipient_token = get_associated_token_address(&recipient, &mint);
+        let payment = Pubkey::find_program_address(&[b"community-pay-v1", drop.as_ref(), recipient.as_ref()], &program_id).0;
+        assert!(svm.get_account(&payment).is_none());
+        assert!(svm.get_account(&recipient_token).is_none());
+        let ata = spl_associated_token_account::instruction::create_associated_token_account_idempotent(
+            &payer.pubkey(), &recipient, &mint, &token_program);
+        let claim = Instruction::new_with_bytes(program_id,
+            &funded_fee_router::instruction::ClaimCommunityDrop { amount, leaf_index:index as u32, proof }.data(),
+            funded_fee_router::accounts::ClaimCommunityDrop { payer:payer.pubkey(), drop, recipient, mint,
+                vault_token_account:vault, recipient_token_account:recipient_token, payment, token_program,
+                system_program:anchor_lang::system_program::ID }.to_account_metas(None));
+        assert!(send(svm, payer, &[payer], &[ata, claim.clone()]));
+        vault_balance -= amount;
+        paid += amount;
+        assert_eq!(token_amount(svm, vault), vault_balance);
+        assert_eq!(token_amount(svm, recipient_token), amount);
+        let account = svm.get_account(&payment).unwrap();
+        assert_eq!(account.owner, program_id);
+        let receipt = funded_fee_router::CommunityPayment::try_deserialize(&mut &account.data[..]).unwrap();
+        assert_eq!((receipt.drop, receipt.recipient, receipt.amount, receipt.leaf_index), (drop, recipient, amount, index as u32));
+        assert_eq!(receipt.paid_at, clock.unix_timestamp);
+        if index == 0 {
+            svm.expire_blockhash();
+            assert!(!send(svm, payer, &[payer], &[claim]));
+            assert_eq!(token_amount(svm, vault), vault_balance);
+            assert_eq!(token_amount(svm, recipient_token), amount);
+        }
+    }
+    let payer_after = svm.get_balance(&payer.pubkey()).unwrap();
+    assert!(payer_after >= 3_000_000_000 && payer_after < payer_before);
+    assert_eq!(paid, original_supply);
+    assert_eq!(supply(svm), original_supply);
+    assert_eq!(vault_balance, 0);
+    println!("COMMUNITY_28 local_clock_last_seconds=270 paid={paid} vault_final={vault_balance} payer_before={payer_before} payer_after={payer_after}");
 }
