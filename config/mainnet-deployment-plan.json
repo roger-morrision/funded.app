@@ -40,10 +40,10 @@
   "currentPlaceholderBuild": {
     "variant": "productionBuildCheck",
     "identityScope": "public-test-fixture-only",
-    "bytes": 1075328,
-    "sha256": "6bfa0414eaf68b6dd3d2c5cda79e0454c0255e2da4ac80c7466f79e2913ce320",
+    "bytes": 1076080,
+    "sha256": "04f08fc5ffeffa4d90ccb78a8b31fbd8f3b428661a5c1db6d4c49b504be6cbd0",
     "deployEligible": false,
-    "evidence": "docs/evidence/mainnet-contract-rent-2026-11-22.json"
+    "evidence": "docs/evidence/devnet-contract-candidate-ci-2026-11-23.json"
   },
   "upgradeable": true,
   "sourceRevision": null,
