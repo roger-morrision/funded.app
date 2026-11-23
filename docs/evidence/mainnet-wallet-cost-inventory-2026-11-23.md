@@ -9,11 +9,11 @@ This proposal pins the public release identities and the currently reproducible 
 | App source for this inventory | `c66cccedf44f2f43b2afee3d9c0c426e3f705712` |
 | App public deployment plan | `config/mainnet-deployment-plan.json`, SHA-256 `5646de2feff7740d35d7f55ba8a7c54175da007acf5fcf3df8a054b67f5ef596` |
 | Contract source / artifact | `971399ff4e2ebdeca76a3e16a80273db38a8bfa0` / ExUNA ELF 1,110,424 bytes, SHA-256 `3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50` |
-| Contract packet | `docs/evidence/production-contract-handoff-2026-11-22.json` in the Contract checkout at `af2e997d3685616ebc6c96113a0bdd5a456dd8d2`, SHA-256 `a732b307a745fc1bcff522bdd1267b2f93728855e9a0cbc24ca2fde08a154cd3` |
+| Contract packet | `docs/evidence/production-contract-handoff-2026-11-22.json` at `af2e997d3685616ebc6c96113a0bdd5a456dd8d2`, raw Git-blob SHA-256 `c7a9d8a9982c552b2c951487bdbc202d971e32179e9f21d95247b58c3df76e05` (CRLF checkout-byte SHA-256 `a732b307a745fc1bcff522bdd1267b2f93728855e9a0cbc24ca2fde08a154cd3`) |
 | Unsigned Loader prefix | 1,236 messages, retained JSON SHA-256 `ac4e2708c14bbc7d341268bbe44d133ae0c54ce2e1789645f3b9dbf28d64dd5a`; Contract packet `productionQuote.deploymentProjectionFromMessages` |
 | Genesis / program / ProgramData | `5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d` / `ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ` / `ETH5QpSQrKAqS1y2RDntJzXeTU9D79u1gz8hCUY4zsQT` |
 
-The Contract's native Loader rehearsal demonstrates same-payer buffer recycling for these bytes. Its full *deployed* ProgramData hash is necessarily unknown before finalized deployment and must be compared afterward. The retained fee and rent quote was observed at finalized slot 472592348 on 2026-11-22, so it must be refreshed before execution. The unsigned messages contain expired blockhashes and are review fixtures, never reusable signing requests.
+The Contract's native Loader rehearsal demonstrates same-payer buffer recycling for these bytes. Its full *deployed* ProgramData hash is necessarily unknown before finalized deployment and must be compared afterward. The retained account-state context was finalized slot 472592348; the rent table was checked at 2026-11-22T15:33:03.906Z without a returned rent RPC context slot. Loader fee classes were sampled at finalized slots 472592374 and 472592375, and unsigned messages captured at slot 472592359. All values must be refreshed before execution. The unsigned messages contain expired blockhashes and are review fixtures, never reusable signing requests.
 
 ## Read-only balance refresh
 
