@@ -35,6 +35,11 @@ must match the controller's exact unsigned message, and a controller's signed
 transaction must retain both exact role signatures. Each role's own quote and
 market snapshot is validated within its journal; valid independently finalized
 pool snapshots can differ between roles while their signed message agrees.
+If a role has a durable signature but the controller lacks the matching signed
+wire, resume refuses the set before authentication or custody. This can also
+refuse a genuinely interrupted signing sequence before the controller saved
+its wire; an operator must reconcile or restore the complete set rather than
+automatically signing or sending again.
 An older but otherwise valid single-role
 backup therefore cannot silently erase an unknown signed attempt. Restoring
 all three files to a mutually consistent older point still needs external
@@ -89,7 +94,7 @@ checks context again before using the handle. Unknown/mismatched resolver result
 cannot cause another automatic load or signature. Existing per-request policy,
 reserve, quote age, immutable message and finalized-proof rules remain enforced.
 
-Run `node scripts/check-token-conversion-bootstrap.mjs` for 29 required cases.
+Run `node scripts/check-token-conversion-bootstrap.mjs` for 30 required cases.
 Tests include actual three-service loopback execution, context changes around
 custody access, fail-before-secret ordering, and paused/rotated read-only proof
 recovery. Financial RPC/finality and approved custody resolvers are synthetic;

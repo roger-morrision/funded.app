@@ -109,6 +109,11 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
           const original=controller[hash];
           assert(original&&original.unsignedDigest===saved.unsignedDigest,
             'Conversion journal set lost an original attempt.');
+          // A role may have durably signed just before the controller journal
+          // was rolled back. Without the controller's matching signed wire,
+          // that set cannot establish a complete restart boundary.
+          if(saved.roleSignature)assert(original.signedSignatures?.[index]===saved.roleSignature,
+            'Conversion journal set lost a signed controller wire.');
         }
         for(const [hash,original] of Object.entries(controller))if(original.signedSignatures){
           const saved=facts[role][hash];

@@ -9,10 +9,11 @@
     "node": "24.22.3",
     "focusedBefore": "1 expected-rejection case failed on parent source",
     "focusedAfter": "1/1 passed across controller, operator and price-attestation partial-restore controls",
-    "bootstrap": "29/29 required passed, 0 failed, 0 skipped, 0 TODO",
+    "bootstrap": "30/30 required passed, 0 failed, 0 skipped, 0 TODO",
     "directJournal": "16/16 passed, 0 failed, 0 skipped, 0 TODO"
   },
   "marketSnapshotCompatibility": "The prior cross-role intentDigest equality rejected a valid same-message signing sequence when only PumpSwap lpSupply in one role's independently finalized pool snapshot changed. The focused positive regression changed the pool's u64 lpSupply at offset 203, recomputed that role's internally valid intentDigest, retained exact signed message and role signature, and reproduced the prior bootstrap refusal. The correction admits the three fully validated journals while retaining exact unsigned-message and signature matching.",
+  "sameAttemptControllerRollback": "After an unknown signed send, restoring only the controller's pre-sign file while both role journals retain exact signatures previously passed the unsigned-message check. The new focused expected-rejection case failed on 69d9 source, then passed after requiring every cached role signature to equal a signature on the controller's matching signed wire. A genuinely interrupted sequence after role signing but before controller wire publication also fails closed and requires manual reconciliation or intact restore; it does not authorize a replacement or new send.",
   "limits": [
     "This detects a partial rollback among the three files, not an all-three rollback to a mutually consistent older backup.",
     "A production backup must prove no signed attempt after its snapshot or remain recovery-only until complete authenticated chain reconciliation and an explicitly reviewed restart.",

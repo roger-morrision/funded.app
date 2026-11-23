@@ -127,6 +127,25 @@ test('independent pool-supply snapshots may differ while exact signed conversion
   assert.equal((await prepareTokenConversionRuntime(o)).admission.mode,'recovery-only');
 });
 
+test('controller rollback before role signatures refuses resume without custody or new send',async t=>{
+  const {c,counts,options}=await setup(t,{send:'unknown'});
+  let controllerBeforeSign;
+  const key=Keypair.fromSeed(new Uint8Array(32).fill(34));
+  c.hooks['price-attestation']=async args=>{
+    controllerBeforeSign=await readFile(c.paths.worker);
+    return nacl.sign.detached(args.message,key.secretKey);
+  };
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  const signedController=await readFile(c.paths.worker);
+  assert(controllerBeforeSign&&c.wire);
+  await writeFile(c.paths.worker,controllerBeforeSign);
+  await assert.rejects(prepareTokenConversionRuntime(options('controller')),/Conversion journal reference unavailable/);
+  assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+  await writeFile(c.paths.worker,signedController);
+  assert.equal((await prepareTokenConversionRuntime(options('controller'))).admission.mode,'recovery-only');
+});
+
 test('resume refuses a corrupt third journal before authentication or custody',async t=>{
   const {c,counts,options}=await setup(t);
   await writeFile(c.paths['price-attestation'],'{not-json');
