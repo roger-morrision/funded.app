@@ -127,7 +127,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await go('/#portfolio');
     const input = page.locator('#portfolio-wallet-lookup');
     if (!await input.isVisible().catch(() => false)) throw new Error('lookup box not visible');
-    await input.fill('ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC'); await input.press('Enter');
+    await input.fill('5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi'); await input.press('Enter');
     await page.waitForURL(/\/wallet\//, { timeout: 8000 }); await page.waitForTimeout(3000);
     return `opened ${new URL(page.url()).pathname.slice(0, 20)}… title="${await page.title()}"`;
   });
