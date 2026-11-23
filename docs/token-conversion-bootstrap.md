@@ -8,6 +8,24 @@ The approved deployment runtime must supply its own bounded RPC, journal,
 authentication and custody resolvers; no actual production references are
 provisioned by this code.
 
+First provisioning is a separate trusted operation. The release operator must
+review an exact digest of the production release, signer policy and three
+distinct journal references, retain the accepted evidence hash, then call
+`provisionFreshTokenConversionJournals` once against three unpublished stores.
+The helper checks all three are absent before writing and labels each role's
+durable journal. A partial failure stops; it cannot be retried as a normal
+startup. The digest and evidence hash identify the review inputs but do not
+themselves prove independent review or authorize signing.
+
+`prepareTokenConversionRuntime` is always a resume path. It validates the
+controller, operator and price-attestation journal files, role labels, immutable
+release context and saved rows before service authentication or custody access.
+Missing, corrupt, wrong-context or aliased role journals fail closed. An HTTP
+request, absent file or ordinary retry cannot choose first provisioning. Restore
+must preserve the original three journal files and reconcile unresolved signed
+attempts before any new reviewed work. No automatic empty-history reset exists
+in this production bootstrap.
+
 Before journal or service-authentication access, preparation validates the existing
 reviewed release/policy tuple, distinct role journal/authentication references and service origins, plus the
 own price-RPC reference. It authenticates finalized genesis, executable pointer,
@@ -57,7 +75,7 @@ checks context again before using the handle. Unknown/mismatched resolver result
 cannot cause another automatic load or signature. Existing per-request policy,
 reserve, quote age, immutable message and finalized-proof rules remain enforced.
 
-Run `node scripts/check-token-conversion-bootstrap.mjs` for 20 required cases.
+Run `node scripts/check-token-conversion-bootstrap.mjs` for 26 required cases.
 Tests include actual three-service loopback execution, context changes around
 custody access, fail-before-secret ordering, and paused/rotated read-only proof
 recovery. Financial RPC/finality and approved custody resolvers are synthetic;

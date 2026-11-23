@@ -5,6 +5,12 @@
     {
       "path": "tests/readiness/token-conversion-bootstrap.test.mjs",
       "requiredTests": [
+        "explicit first provisioning binds three absent role journals to the reviewed release",
+        "first provisioning refuses one published role before creating any other journal",
+        "resume refuses each missing or wrong-context role journal before authentication or custody",
+        "resume refuses a corrupt third journal before authentication or custody",
+        "resume refuses aliased role stores despite distinct public references",
+        "intact three-journal resume recovers saved signed intent and proof without a new send",
         "bootstrap prepares three real HTTP services and loads each approved role lazily after verified claims",
         "bootstrap malformed public references or unadmitted policy cannot invoke any resolver",
         "bootstrap journal failure is sanitized before authentication access",

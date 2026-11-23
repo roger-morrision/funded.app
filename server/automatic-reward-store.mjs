@@ -1,4 +1,4 @@
-import { mkdir, open, readFile, rename, unlink, stat } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, unlink, stat, lstat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -62,7 +62,7 @@ export function createAutomaticRewardStore(path) {
       const {state,encoded:prior}=await readSnapshot();
       if (![1, 2].includes(state.version)) throw new Error('Unsupported ledger version.');
       if (state.version === 1) state.version = 2;
-      result = await mutator(state);
+      result = await mutator(state,{published:prior!==null});
       // Compare final bytes under the SAME lock. Only an existing, byte-identical
       // ledger can skip publication; bootstrap, migration and every changed proof
       // still serialize, fsync and rename before the transaction returns.
@@ -89,6 +89,7 @@ export function createAutomaticRewardStore(path) {
     return result;
   }
   return {async read(){return structuredClone(await readState());},
+  async hasPublishedFile(){try{await lstat(path);return true;}catch(error){if(error.code==='ENOENT')return false;throw error;}},
   readFinancialSnapshot:()=>project(['version','programs','schedules','rewardPools','dailyBonusSnapshots']),
   readStatusSnapshot:()=>project(['serviceStatus','schedules']),
   readAutomationSnapshot:()=>project(['serviceStatus','schedules','communityClaimIndex','communityDrops','buybackWorkerHeartbeat']),

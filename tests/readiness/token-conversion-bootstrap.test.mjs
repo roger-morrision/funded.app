@@ -1,14 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Keypair,PublicKey} from '@solana/web3.js';
+import {join} from 'node:path';
+import {writeFile} from 'node:fs/promises';
 import nacl from 'tweetnacl';
 import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
-import {prepareTokenConversionRuntime} from '../../server/token-conversion-bootstrap.mjs';
+import {prepareTokenConversionRuntime,provisionFreshTokenConversionJournals,tokenConversionProvisioningDigest} from '../../server/token-conversion-bootstrap.mjs';
 import {tokenPricePolicyHash} from '../../server/token-conversion-sell-review.mjs';
 import {conversionServiceFixture} from './token-conversion-service-fixture.mjs';
 
-async function setup(t){
-  const c=await conversionServiceFixture(t),roles=['controller','operator','price-attestation'],events=[];
+async function setup(t,fixtureOptions={}){
+  const c=await conversionServiceFixture(t,fixtureOptions),roles=['controller','operator','price-attestation'],events=[];
+  for(const role of roles)await createAutomaticRewardStore(c.paths[role==='controller'?'worker':role]).transaction(state=>{
+    state.tokenConversionPriceJournalV1.provisionedRole=role;
+  });
   const counts={connection:0,store:0,authentication:0,custody:0,sign:0,remote:0};
   const options=(role,mode)=>{
     const f=c.all[role==='controller'?'worker':role],spec={schemaVersion:1,cluster:'mainnet-beta',role,mode,programId:f.config.programId,
@@ -20,7 +25,8 @@ async function setup(t){
     for(const method of ['getGenesisHash','getSlot','getAccountInfoAndContext','getMultipleAccountsInfoAndContext'])connection[method]=async(...args)=>{events.push(method);return f.connection[method](...args);};
     return {spec,policy:f.config,release:f.release,now:()=>f.now,
       connectionFactory:async ref=>{counts.connection++;events.push('connection');assert.equal(ref,spec.rpcReferences[role]);return connection;},
-      storeFactory:async ref=>{counts.store++;events.push('store');assert(events.includes('getMultipleAccountsInfoAndContext'));assert.equal(ref,spec.journalReferences[role]);return createAutomaticRewardStore(c.paths[role==='controller'?'worker':role]);},
+      storeFactory:async ref=>{counts.store++;events.push('store');assert(events.includes('getMultipleAccountsInfoAndContext'));
+        const selected=roles.find(r=>spec.journalReferences[r]===ref);assert(selected);return createAutomaticRewardStore(c.paths[selected==='controller'?'worker':selected]);},
       loadAuthentication:async ref=>{counts.authentication++;events.push('authentication');assert(events.indexOf('store')<events.lastIndexOf('authentication'));
         const r=roles.find(r=>spec.authenticationReferences[r]===ref);assert(r);return c.tokens[r==='controller'?'worker':r];},
       loadCustody:async(ref,expected)=>{counts.custody++;events.push('custody');assert.equal(ref,spec.custodyReference);assert.equal(expected.role,role);
@@ -34,6 +40,87 @@ async function setup(t){
     c.origins[key]=await c.bind(runtime.server);if(key==='worker')c.controller=runtime;else c.backends[key]=runtime;return runtime;};
   return {c,events,counts,options,install};
 }
+
+test('explicit first provisioning binds three absent role journals to the reviewed release',async t=>{
+  const {c,counts,options}=await setup(t),o=options('controller'),roles=['controller','operator','price-attestation'];
+  const stores=Object.fromEntries(roles.map(role=>[role,createAutomaticRewardStore(join(c.dir,'fresh-'+role+'.json'))]));
+  o.spec.journalReferences=Object.fromEntries(roles.map(role=>[role,'fresh-journal-'+role]));
+  o.storeFactory=async ref=>stores[roles.find(role=>o.spec.journalReferences[role]===ref)];
+  const digest=tokenConversionProvisioningDigest(o),review={mode:'first-provisioning',digest,evidenceSha256:'a'.repeat(64)};
+  await assert.rejects(provisionFreshTokenConversionJournals({...o,review:{...review,digest:'0'.repeat(64)}}));
+  assert.deepEqual(await Promise.all(roles.map(role=>stores[role].hasPublishedFile())),[false,false,false]);
+  assert.deepEqual(await provisionFreshTokenConversionJournals({...o,review}),{digest,roles});
+  for(const role of roles){
+    const state=await stores[role].read();assert.equal(state.tokenConversionPriceJournalV1.provisionedRole,role);
+    assert.equal(Object.keys(state.tokenConversionPriceJournalV1.attempts).length,0);
+  }
+  assert.equal((await prepareTokenConversionRuntime(o)).admission.mode,'recovery-only');
+  assert.equal(counts.custody,0);assert.equal(counts.sign,0);
+  await assert.rejects(provisionFreshTokenConversionJournals({...o,review}),/genuinely unpublished/);
+  await assert.rejects(prepareTokenConversionRuntime({...o,spec:{...o.spec,journalStartup:{mode:'first-provisioning'}}}),/cannot select first provisioning/);
+});
+
+test('first provisioning refuses one published role before creating any other journal',async t=>{
+  const {c,options}=await setup(t),o=options('controller'),roles=['controller','operator','price-attestation'];
+  const stores=Object.fromEntries(roles.map(role=>[role,createAutomaticRewardStore(join(c.dir,'partial-'+role+'.json'))]));
+  o.spec.journalReferences=Object.fromEntries(roles.map(role=>[role,'partial-journal-'+role]));
+  o.storeFactory=async ref=>stores[roles.find(role=>o.spec.journalReferences[role]===ref)];
+  await stores.operator.transaction(()=>{}); // Existing empty file is not genuinely absent.
+  const review={mode:'first-provisioning',digest:tokenConversionProvisioningDigest(o),evidenceSha256:'b'.repeat(64)};
+  await assert.rejects(provisionFreshTokenConversionJournals({...o,review}),/genuinely unpublished/);
+  assert.equal(await stores.controller.hasPublishedFile(),false);
+  assert.equal(await stores['price-attestation'].hasPublishedFile(),false);
+});
+
+test('resume refuses each missing or wrong-context role journal before authentication or custody',async t=>{
+  const {c,counts,options}=await setup(t,{send:'unknown'}),o=options('controller');
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  const originalFactory=o.storeFactory;
+  for(const missing of ['controller','operator','price-attestation']){
+    o.storeFactory=async ref=>ref===o.spec.journalReferences[missing]
+      ?createAutomaticRewardStore(join(c.dir,'missing-'+missing+'.json')):originalFactory(ref);
+    await assert.rejects(prepareTokenConversionRuntime(o),/Conversion journal reference unavailable/);
+    assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+  }
+  o.storeFactory=originalFactory;
+  await createAutomaticRewardStore(c.paths.operator).transaction(state=>{state.tokenConversionPriceJournalV1.context.programId='wrong';});
+  await assert.rejects(prepareTokenConversionRuntime(o),/Conversion journal reference unavailable/);
+  assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
+
+test('resume refuses a corrupt third journal before authentication or custody',async t=>{
+  const {c,counts,options}=await setup(t);
+  await writeFile(c.paths['price-attestation'],'{not-json');
+  await assert.rejects(prepareTokenConversionRuntime(options('controller')),/Conversion journal reference unavailable/);
+  assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+  assert.deepEqual(c.calls,{'price-attestation':0,operator:0,send:0});
+});
+
+test('resume refuses aliased role stores despite distinct public references',async t=>{
+  const {c,counts,options}=await setup(t),o=options('controller');
+  o.storeFactory=async()=>createAutomaticRewardStore(c.paths.worker);
+  await assert.rejects(prepareTokenConversionRuntime(o),/Conversion journal reference unavailable/);
+  assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+});
+
+test('intact three-journal resume recovers saved signed intent and proof without a new send',async t=>{
+  const {c,options}=await setup(t,{send:'unknown'}),o=options('controller');
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  const before=Object.fromEntries(await Promise.all(['worker','operator','price-attestation'].map(async role=>[role,await c.row(role)])));
+  const runtime=await prepareTokenConversionRuntime(o);
+  assert.equal((await runtime.recoveryWorker.tick()).attempts[0].messageHash,c.hash);
+  c.land();
+  const recovered=await runtime.recoveryWorker.tick();assert.equal(recovered.attempts[0].status,'settled');
+  const after=Object.fromEntries(await Promise.all(['worker','operator','price-attestation'].map(async role=>[role,await c.row(role)])));
+  for(const role of ['worker','operator','price-attestation']){
+    assert.equal(after[role].messageHash,before[role].messageHash);
+    assert.equal(after[role].signedTransaction,before[role].signedTransaction);
+    assert.equal(after[role].signature,before[role].signature);
+  }
+  assert.equal(after.worker.proof.finalized,true);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
 
 for(const role of ['controller','operator','price-attestation'])test('bootstrap defaults '+role+' to recovery without touching custody or listening',async t=>{
   const {c,counts,options}=await setup(t),o=options(role),runtime=await prepareTokenConversionRuntime(o);
@@ -112,7 +199,9 @@ test('bootstrap recovery mode preserves saved proof through pause and operator r
 
 test('bootstrap program changed after durable signing claim cannot reach custody loader',async t=>{
   const {c,counts,options}=await setup(t),o=options('price-attestation','signing'),f=c.all['price-attestation'],base=createAutomaticRewardStore(c.paths['price-attestation']);let changed=false;
-  o.storeFactory=async()=>({read:()=>base.read(),transaction:async mutate=>{const result=await base.transaction(mutate);const rows=Object.values((await base.read()).tokenConversionPriceJournalV1.attempts);
+  const originalFactory=o.storeFactory;
+  o.storeFactory=async ref=>ref!==o.spec.journalReferences['price-attestation']?originalFactory(ref):
+    ({read:()=>base.read(),transaction:async mutate=>{const result=await base.transaction(mutate);const rows=Object.values((await base.read()).tokenConversionPriceJournalV1.attempts);
     if(!changed&&rows.some(r=>r.signingStartedAt)){changed=true;f.programData.data[50]^=1;}return result;}});
   const runtime=await prepareTokenConversionRuntime(o);c.origins['price-attestation']=await c.bind(runtime.server);
   assert.equal((await c.post('price-attestation','/sign',c.signBody('price-attestation'))).status,409);assert.equal(counts.custody,0);assert.equal(counts.sign,0);

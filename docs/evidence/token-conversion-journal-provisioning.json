@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "issueIds": ["FQA-MN-003", "FQA-MN-006"],
+  "parentRevision": "e1a79865d9c2eaa76187257a74df130e84208a22",
+  "scope": "Offline first-provisioning and production resume boundary for three private conversion journals",
+  "baselineObservation": {
+    "probe": "data/qa-evidence/mainnet-production-packet-20261122/restore-feasibility-probe.mjs",
+    "probeSha256": "d3cbf93ff194968accb4c665db376012de5ad9ad296ec07c5fbbd52a21aaea40",
+    "result": "One saved unknown signed attempt, then a same-context missing-file journal initialized empty; no new signature or broadcast. Local synthetic fixture only."
+  },
+  "implementation": [
+    "Normal prepareTokenConversionRuntime always verifies all three published role-labelled journals before service authentication or custody access.",
+    "A separate explicit first-provisioning helper binds the exact release, signer policy and three distinct journal references to a reviewed digest and evidence hash, checks all three files are absent, and writes each role label under the locked durable store.",
+    "Missing, corrupt, wrong-context or wrong-role journals cannot resume; a partial first-provisioning failure cannot be silently retried as a normal runtime startup.",
+    "The public HTTP request body has no first-provisioning path. Existing signed attempts and finalized proof are reconciled from intact journals without a new send."
+  ],
+  "localValidation": {
+    "node": "24.22.3",
+    "bootstrap": "26/26 required passed, 0 failed, 0 skipped, 0 TODO",
+    "service": "30/30 required passed, 0 failed, 0 skipped, 0 TODO",
+    "storePersistence": "288/288 required passed, 0 failed, 0 skipped, 0 TODO",
+    "sourceSyntax": "1202 JavaScript files passed",
+    "sourceSize": "1465 maintained code files within budget",
+    "diffCheck": "git diff --check exit 0"
+  },
+  "limits": [
+    "The digest and evidence hash identify reviewed inputs; they are not cryptographic proof that an independent review occurred.",
+    "No actual production journal has been provisioned, restored or admitted.",
+    "Three-store publication is not an atomic multi-file transaction; a partial failure requires manual review and complete restore before retry.",
+    "Independent exact-source QA, operational backup/restore, independent signer custody, live finality and Mainnet release acceptance remain open.",
+    "No wallet key, signing, broadcast, deployment, funding or activation was used."
+  ]
+}

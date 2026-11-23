@@ -17,6 +17,35 @@ const roles=['controller','operator','price-attestation'];
 const reference=value=>typeof value==='string'&&value.trim()===value&&/^[A-Za-z][A-Za-z0-9._:-]{0,127}$/.test(value);
 const disc=createHash('sha256').update('account:BuybackPriceConfig').digest().subarray(0,8);
 
+export function tokenConversionProvisioningDigest({spec,policy,release}){
+  requireReviewedTokenSignerPolicy(policy,release);
+  assert(spec?.schemaVersion===1&&spec.cluster==='mainnet-beta'&&spec.programId===policy.programId
+    &&spec.programDataSha256===policy.programDataSha256&&spec.policyHash===tokenPricePolicyHash(policy)
+    &&Object.keys(spec.journalReferences??{}).length===roles.length
+    &&roles.every(role=>reference(spec.journalReferences?.[role]))
+    &&new Set(roles.map(role=>spec.journalReferences[role])).size===3,'Exact distinct conversion provisioning context required.');
+  return tokenPricePolicyHash({version:1,cluster:spec.cluster,programId:spec.programId,
+    programDataSha256:spec.programDataSha256,policyHash:spec.policyHash,
+    releaseHash:tokenPricePolicyHash(release),journalReferences:spec.journalReferences});
+}
+
+// Separate explicit first-use ceremony. The caller must supply the reviewed
+// digest/evidence from its release packet; a normal runtime never calls this.
+export async function provisionFreshTokenConversionJournals({spec,policy,release,storeFactory,review,now=Date.now}){
+  const digest=tokenConversionProvisioningDigest({spec,policy,release});
+  assert(review?.mode==='first-provisioning'&&review.digest===digest
+    &&typeof review.evidenceSha256==='string'&&/^[a-f0-9]{64}$/.test(review.evidenceSha256),
+    'Explicit reviewed first-provisioning record required.');
+  assert(typeof storeFactory==='function','Dedicated journal store resolver required.');
+  const stores={};
+  for(const role of roles)stores[role]=await storeFactory(spec.journalReferences[role]);
+  for(const role of roles)assert(typeof stores[role]?.hasPublishedFile==='function'
+    &&await stores[role].hasPublishedFile()===false,'First provisioning requires three genuinely unpublished stores.');
+  for(const role of roles)await createTokenConversionJournal({store:stores[role],connection:null,config:policy,release,now})
+    .initialize({firstProvisioningRole:role});
+  return {digest,roles:[...roles]};
+}
+
 // No environment/private-file/key loader, listener, timer or production registration.
 // Resolvers are supplied by the trusted runtime after approved provisioning.
 export async function prepareTokenConversionRuntime({spec,policy,release,connectionFactory,storeFactory,loadAuthentication,loadCustody,now=Date.now,request=fetch}){
@@ -24,6 +53,7 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
   requireReviewedTokenSignerPolicy(policy,release);
   assert(spec?.schemaVersion===1&&spec.cluster==='mainnet-beta'&&roles.includes(spec.role)
     &&['recovery-only','signing'].includes(spec.mode??'recovery-only'),'Explicit private conversion runtime required.');
+  assert(spec.journalStartup===undefined||spec.journalStartup?.mode==='resume','Runtime cannot select first provisioning.');
   const recoveryOnly=(spec.mode??'recovery-only')==='recovery-only';
   assert(spec.programId===policy.programId&&spec.programDataSha256===policy.programDataSha256
     &&spec.policyHash===tokenPricePolicyHash(policy),'Runtime public identity/policy differs.');
@@ -60,8 +90,11 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
   }
   const admission=await verifyContext(!recoveryOnly);
   let store;try{
-    store=await storeFactory(spec.journalReferences[spec.role]);
-    await createTokenConversionJournal({store,connection,config:policy,release,now}).initialize();
+    for(const role of roles){
+      const candidate=await storeFactory(spec.journalReferences[role]);
+      await createTokenConversionJournal({store:candidate,connection,config:policy,release,now}).verifyExisting({role});
+      if(role===spec.role)store=candidate;
+    }
   }catch{throw Error('Conversion journal reference unavailable or incompatible.');}
   const authentication=async role=>{
     let token;try{token=await loadAuthentication(spec.authenticationReferences[role]);}catch{throw Error('Conversion authentication reference unavailable.');}

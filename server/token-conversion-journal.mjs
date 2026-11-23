@@ -94,8 +94,16 @@ export function createTokenConversionJournal({store,connection,config,release=re
     const result=mutate(journal,at);journal.clock=at;checked(state);return copy(result);
   });
   return {
-    initialize:()=>store.transaction(state=>{
+    initialize:({firstProvisioningRole=null}={})=>store.transaction((state,publication)=>{
+      if(firstProvisioningRole!==null)assert(['controller','operator','price-attestation'].includes(firstProvisioningRole)
+        &&publication?.published===false&&!Object.hasOwn(state,bucket),'First provisioning requires a genuinely unpublished journal.');
       if(!Object.hasOwn(state,bucket)){const at=now();assert(Number.isSafeInteger(at)&&at>0,'Valid journal clock required.');state[bucket]={context:copy(context),clock:at,attempts:{}};}
+      if(firstProvisioningRole!==null)state[bucket].provisionedRole=firstProvisioningRole;
+      checked(state);return {contextHash};
+    }),
+    verifyExisting:({role})=>store.transaction((state,publication)=>{
+      assert(publication?.published===true&&['controller','operator','price-attestation'].includes(role)
+        &&state[bucket]?.provisionedRole===role,'Missing or mismatched provisioned conversion journal.');
       checked(state);return {contextHash};
     }),
     async reserve(request){
