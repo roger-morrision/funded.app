@@ -1,0 +1,42 @@
+{
+  "issue": "FQA-MN-002",
+  "sourceRevision": "cc14fa5c59ec503e5d5327befa26e518c4598758",
+  "scope": "Read-only inventory of retained November 19 Devnet community snapshot inputs and current prospective archive implementation; no RPC, signing, funding, transaction, deployment or live claim",
+  "sourceGitBlobs": {
+    "server/community-snapshot-archive.mjs": "c87e97185ef3d4a79e2ad54ba53648ba5af56509",
+    "server/community-snapshot.mjs": "86b4af7809f87f6b88eb7466207aae5009545914",
+    "server/community-claim-service.mjs": "c8256761107ae5b302e742d56e77ea490821f0bc",
+    "server/explore-account-snapshot.mjs": "5ee3585909d440e7195708c4970f9a23f9f5c967"
+  },
+  "retainedInputs": {
+    "capture": "data/qa-evidence/mainnet-e2e-20261122/retained-28-leaf-captures-20261122.json",
+    "captureSha256": "93cac1469986c41c87f1faaadd2a523df106e6d76a417ac011792da5a7a2d188",
+    "drops": [
+      {"mint": "Kj2yDt7s3g58KP8bcMTkLPZSPWYZBcdK8MpzqUQNj3c", "migrationSlot": 523851480, "baseSlot": 523851517, "distanceSlots": 37, "walletAggregates": 29, "leaves": 28},
+      {"mint": "FazNkvyhEmu8jMPzDpe9cPwbLS6VBpxSsi6LpHNPk3uH", "migrationSlot": 523857109, "baseSlot": 523857159, "distanceSlots": 50, "walletAggregates": 29, "leaves": 28},
+      {"mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X", "migrationSlot": 523869728, "baseSlot": 523869803, "distanceSlots": 75, "walletAggregates": 29, "leaves": 28}
+    ],
+    "migrationReceipts": "Finalized canonical initialization receipts retained separately for all three mints",
+    "recomputedRootsAndProofs": true,
+    "originalRawBaseAccounts": false,
+    "originalBlockSlotsAndProducedBlocks": false,
+    "originalMigrationTransactionInsideSnapshot": false
+  },
+  "qualification": {
+    "retainedWalletRows": "Snapshot accounts are wallet and balance aggregates, without token account public keys, program owners, raw bytes or a complete account-bank provenance proof.",
+    "rootLimit": "Recomputing a retained root proves consistency of the retained aggregates; it does not prove that the original eligibility bank was complete.",
+    "currentRpcLimit": "A present-day minContextSlot is a lower bound, not a historical bank selector; current balances cannot be substituted.",
+    "prospectiveCapture": "The merged source can retain future raw finalized inputs and verify them after restart, but cannot synthesize the missing original bank or replay blocks.",
+    "status": "Historical exact-bank qualification unavailable from inspected local evidence; existing expired windows cannot be reopened. Configured-program 28/28 live delivery remains unverified."
+  },
+  "acceptableReadOnlyInputs": [
+    "An authenticated complete finalized raw token-account bank and mint state at the exact migration slot, with identity, owner, layout, zero/closed handling and supply completeness.",
+    "The original atomic finalized raw base at the recorded base slot plus every produced finalized parent-linked block and token pre/post metadata back to the requested canonical migration transaction."
+  ],
+  "nextAction": "If an existing immutable capture or historical-bank provider is identified, ingest it through the existing archive validator, regenerate balances, manifest and root offline, and have independent QA verify provenance and all rejections. A new live 28-recipient configured-program delivery would be a separate scoped financial operation requiring its own quote and approval.",
+  "supportingEvidence": [
+    {"path": "data/qa-evidence/mainnet-e2e-20261122/mn002-archive-dependency-20261122.json", "sha256": "47eceda3d225b65f147defb0459b5e0e96f126aed6be10cd23d637caccdb0748"},
+    {"path": "data/qa-evidence/mainnet-archive-linux-20261123/nov19-archive-dependency-audit.json", "sha256": "c1b66b921ac34a410d8893391c4c2f48168d9925d84cd74fa8b83760f94b1951"}
+  ],
+  "acceptance": "Dependency inventory only; no historical bank, current-program financial delivery or Mainnet release acceptance"
+}
