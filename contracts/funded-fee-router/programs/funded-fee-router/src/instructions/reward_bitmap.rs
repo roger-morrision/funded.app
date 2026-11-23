@@ -286,7 +286,7 @@ fn exact_token_delivery(vault_before: u64, vault_after: u64, recipient_before: u
 #[derive(Accounts)]
 pub struct ExpireBitmapCycle<'info> {
     pub authority: Signer<'info>,
-    #[account(seeds = [REWARD_VAULT_SEED, authority.key().as_ref(), vault.mint.as_ref()], bump = vault.bump, has_one = authority)]
+    #[account(seeds = [REWARD_VAULT_SEED, vault.authority.as_ref(), vault.mint.as_ref()], bump = vault.bump)]
     pub vault: Account<'info, RewardVault>,
     #[account(mut, seeds = [REWARD_RESERVE_SEED, vault.key().as_ref(), cycle.asset_mint.as_ref()], bump = reserve.bump,
         constraint = reserve.vault == vault.key() && reserve.asset_mint == cycle.asset_mint @ ErrorCode::InvalidRewardAsset)]
