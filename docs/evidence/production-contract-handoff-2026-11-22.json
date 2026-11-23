@@ -4366,5 +4366,34 @@
         "Cap1000/policy/allowlists/spending authority unchanged. Store3746/startup6196/Contract9713/ExUNA3f8/1110424bytes/1236Loaderprefix unchanged; no SBF rebuild/requote/UI/deploy/financial action or user funding request."
       ]
     }
+  },
+  "existingRuntimeRecoveryReview": {
+    "independentEvidence": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-runtime-recovery-20261123.json",
+    "independentEvidenceSha256": "cc21394c568458e3f89f9ccbbfefb630f62de00397f00c225bf021a1e2a3f78a",
+    "ownerEvidence": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-production-packet-20261122\\runtime-recovery\\recovery.json",
+    "ownerEvidenceSha256": "fff6f0e6eefd79775885bbd30deb21e08f92bc83dbfc5b534964958346a8b58f",
+    "observedAt": "2026-11-23T02:28:44.046627+00:00",
+    "checks": {
+      "allFourHttp200": true,
+      "tenOriginalContainers": true,
+      "allRunning": true,
+      "nineHealthy": true,
+      "tunnelRunning": true,
+      "devnetBuildPreserved": true,
+      "oldRouterPreserved": true,
+      "legacyMainnetBuildPreserved": true,
+      "legacyNonProgramPreserved": true,
+      "bothMainnetActivationFalse": true,
+      "bothStorageNetworkOperational": true
+    },
+    "scope": "Fresh native HTTPS public health/status and local container identity/health verification only",
+    "outageAttribution": "Owner-reported530/error1033 and stopped engine evidence hash checked; E2E did not observe the original outage live.",
+    "financialLimits": "Endpoint settlementVerified is only its current report for the existing deployed scope. No independent chain/financial reconciliation, new release journey or canary was run.",
+    "limits": [
+      "Existing ten containers/images preserved; changed StartedAt is expected after runtime resume. E2E performed read-only commands/HTTPS only, no restart/build/config/deploy/forcedworker.",
+      "funded.vip remains old45e/Devnet9H1; richpad remains d5/nonprogramMainnet. Neither is unreleased ExUNA3f8/current candidate admission.",
+      "MainnetNO-GO remains. Current settlement boolean may vary with endpoint cache/background verification and does not establish new Mainnet financial acceptance."
+    ],
+    "recordVerification": "Contract verified retained report hashes and owner/independent container ID/image equality. Fresh network/container observation belongs to independent E2E; Contract did not repeat live checks or restart runtime."
   }
 }
