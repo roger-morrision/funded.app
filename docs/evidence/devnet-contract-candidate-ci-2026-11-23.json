@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "scope": "pinned GitHub CI build of corrected candidate; no deployment or financial acceptance",
+  "source": {
+    "remoteCommit": "cb330a7aefaad3b5ae59f736162bfb407b89a2e1",
+    "localCandidate": "5b422ce43741edc2639376b9a0c4fa846e60a887",
+    "treeSha": "e6047e90829bb5528b0faa53ffac740f655cfe72",
+    "routerSourceAndLockMatch": "1940ec26883fa43fa0cf63d051fca951e696d480"
+  },
+  "build": {
+    "workflowRun": "https://github.com/roger-morrision/funded.app/actions/runs/45139952241",
+    "jobId": 137575198281,
+    "agaveVersion": "4.1.2",
+    "agaveTarSha256": "5991d027a686eb419a709a479178b33eb83501e8a2bfbf599a81a286bfcbf770",
+    "platformTools": "v1.54",
+    "arch": "v0",
+    "rustToolchain": "1.97.1",
+    "fingerprintsRecordedBeforeUnchangedVerifier": true,
+    "binaries": {
+      "devnet": {
+        "bytes": 1170056,
+        "sha256": "8846d6e61644db50a941b11a8dafc9b6eb6da5c91578f6a116605ff4048d55aa"
+      },
+      "devnetConfigurable": {
+        "bytes": 1206176,
+        "sha256": "55a07af3f185f0dd42c7d80785438ec502e3c74d2382fb7910a7d66827c646e7",
+        "matchesRetainedAcceptedElf": true
+      },
+      "productionBuildCheck": {
+        "bytes": 1076080,
+        "sha256": "04f08fc5ffeffa4d90ccb78a8b31fbd8f3b428661a5c1db6d4c49b504be6cbd0",
+        "identityScope": "public-test-fixture-only"
+      }
+    }
+  },
+  "candidateManifestUpdatedFromObservedBuild": true,
+  "compiledRegressionAfterManifestUpdate": "pending",
+  "deployEligible": false
+}
