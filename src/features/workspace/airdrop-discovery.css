@@ -73,3 +73,53 @@ body.page-route-airdrops #airdrops .airdrop-public-programs :is(button,input,a):
   body.page-route-airdrops #airdrops .holder-airdrop-row { padding:14px; grid-template-columns:minmax(0,1fr) 110px; }
   body.page-route-airdrops #airdrops .airdrop-directory-pagination { gap:8px; font-size:9px; }
 }
+
+/* Keep expanded directory details readable without stacking each address and action. */
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .directory-project-info { gap:4px; }
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .token-card-more[open] .token-card-addresses {
+  margin:4px 0 6px;
+  gap:4px;
+}
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .token-card-more .token-card-addresses > span {
+  grid-template-columns:minmax(58px,76px) minmax(0,1fr) 44px;
+  grid-template-rows:auto;
+  align-items:center;
+  gap:6px;
+  min-height:44px;
+}
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .token-card-more .token-card-addresses > span small {
+  grid-column:1;
+  margin:0;
+  font-size:11px;
+  line-height:1.25;
+}
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .token-card-more .token-card-addresses > span code {
+  grid-column:2;
+  font-size:11px;
+}
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .token-card-more .token-card-addresses > span .token-card-copy-address {
+  grid-column:3;
+  grid-row:1;
+  width:44px;
+  height:44px;
+  min-height:44px;
+}
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .directory-detail-meta {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:4px;
+}
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .directory-detail-meta .explore-social-links { flex:none; margin:0; }
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .directory-detail-meta .explore-social-link {
+  width:40px;
+  height:40px;
+  min-height:40px;
+}
+html body.product-experience-style.page-route-airdrops #main-content #airdrop-directory .directory-detail-meta > small {
+  flex:1;
+  min-width:0;
+  margin:0;
+  color:#a5b9c6;
+  font:11px/1.4 var(--ui-font,system-ui);
+}
