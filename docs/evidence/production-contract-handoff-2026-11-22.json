@@ -4730,5 +4730,24 @@
     },
     "reviewBoundary": "Caller-supplied review.evidenceSha256 is syntax-checked metadata, not proof of independent review or custody separation. No actual production provisioning or restore occurred.",
     "status": "Frozen 5aa post-prepare bypass corrected at 95adc in narrow source/local synthetic acceptance; independent E2E and parent release gates pending. Contract ABI/ELF/Loader/quote unchanged; Mainnet NO-GO."
+  },
+  "conversionJournalRollbackReview": {
+    "appSource": "ce5982deb4bf26a1095217e7905a5ec987aed69e",
+    "sourcePins": {
+      "server/token-conversion-bootstrap.mjs": "31989d4558862592128a3b877647ef810e63a3e858bc4945439d93df4d3c62cc",
+      "server/token-conversion-journal.mjs": "83ea88d97f8a523f765505e98e7cc31d5b5c2e284e6f1f14c646652af48c6ffd",
+      "server/token-conversion-intent.mjs": "79e16e8c6320498544a6567d1171ad3e6d7597717bec1e5b53e5685290ac44c9"
+    },
+    "acceptedBoundary": "A controller-saved fully signed wire normally follows each role's fsynced signature cache; comparing exact unsigned wire and each role signature against the signed controller wire is a valid missing-role-journal rollback check. A role row may legitimately precede the controller signed state.",
+    "finding": "verifyJournalSet also requires identical intentDigest across controller, operator and price-attestation journals. Each backend independently reviews finalized market state. proofIntent includes raw PumpSwap pool account bytes; therefore identical valid transaction messages can acquire distinct intentDigest values if a mutable pool field changes between backend reviews. The strict cross-role digest equality rejects the legitimate signed set on restart before authentication or custody.",
+    "focusedReproduction": {
+      "kind": "Local synthetic full reviewer, retained public Gf7 market capture, 8f6 production fixture ELF and 3f8 review ELF; no network, signing or transaction",
+      "change": "Increment only the decoded pool lpSupply u64 at pool-data offset 203 by one between finalized fixture slots 472584037 and 472584040; keep the unsigned conversion request identical.",
+      "result": "Both reviewTokenSellConversion calls accepted; messageHash and minimum output remained identical. First intentDigest bd1e8d93144d85fe4f95aafa4225510bfd5bf80e45c54daeec52087132d887ad, second c133b0bac06cfe25eba8c2000370b71729d7959ce866e0819a553c239b8bfcd7.",
+      "limits": "Synthetic fixture mutation establishes reviewer acceptance and digest divergence, not a witnessed live LP event or full HTTP three-journal restart. App owns exact corrected-source regression and independent QA."
+    },
+    "concurrencyFinding": "The three journal files are read sequentially, without a shared snapshot or quiescent barrier. A concurrent new controller reservation followed by role cache publication after the controller read can appear as a role-only attempt and fail startup. This is fail-closed availability; reviewed quiescence or retry must not weaken rollback checks.",
+    "requiredCorrection": "Bind cross-role rollback evidence to immutable transaction/message and cryptographically verified role signatures while retaining each independent review's own market evidence, or enforce and prove a common immutable snapshot before signing. Retest ordinary signed restart, older-role rollback, interleaved valid market snapshots and concurrent startup.",
+    "status": "Source-local false-refusal reproduced; ce5982 bootstrap journal rollback slice is not accepted. Contract ABI/ELF/Loader/quote unchanged; no financial action; Mainnet NO-GO."
   }
 }
