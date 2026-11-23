@@ -5,6 +5,17 @@ import {startFinancialFlowMonitor} from './financial-flow-monitor.mjs';
 import {createCommunityDeliveryRuntime} from './community-delivery-runtime.mjs';
 import {createDeveloperAutoRelease} from './developer-auto-release.mjs';
 import {startV3PairedTokenWorker} from './v3-paired-token-worker.mjs';
+import {selectPreparedTokenConversionRecovery} from './token-conversion-bootstrap.mjs';
+
+// The public server currently supplies no private conversion runtime. An
+// explicitly injected, reviewed recovery-only controller can be selected for
+// manual pages; selection never starts its timer or opens a signing route.
+export function selectMainnetTokenConversionRecovery(context){
+  const runtime=context.preparedTokenConversionRuntime;
+  if(runtime===undefined)return null;
+  if(context.solanaCluster!=='mainnet-beta')throw Error('Private conversion recovery requires Mainnet context.');
+  return selectPreparedTokenConversionRecovery(runtime);
+}
 
 // An API-only acceptance instance retains all signed routes and readiness
 // checks; the primary app remains the sole internal payout scheduler.
@@ -17,9 +28,12 @@ export function startApiFinancialWorkers({env=process.env,startCommunity,startHo
 }
 
 export function startApiFinancialWorkerServices(context) {
+  const privateRecovery=selectMainnetTokenConversionRecovery(context);
   // Outflow alerts watch treasuries on every network, including Mainnet.
   try{startOutflowAlerts(context);}catch{console.error(JSON.stringify({event:'outflow_alerts_start_failed'}));}
-  if(context.solanaCluster==='mainnet-beta')return{mode:'mainnet-read-only',started:[]};
+  if(context.solanaCluster==='mainnet-beta')return privateRecovery
+    ?{mode:'mainnet-read-only',started:[],privateRecoveryWorker:privateRecovery}
+    :{mode:'mainnet-read-only',started:[]};
   let holder;
   const result=startApiFinancialWorkers({env:context.env,
     startCommunity:()=>startCommunityClaimIndex(context),
