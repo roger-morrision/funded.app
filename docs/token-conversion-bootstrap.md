@@ -39,6 +39,15 @@ the cursor wraps, but it cannot create a new attempt or retry a send. The cursor
 is bound to the journal context and survives a controller restart. An empty
 journal does not create progress metadata.
 
+The prepared recovery-only controller exposes `recoveryWorker`. It is inert
+until a trusted private runtime calls `start()` or `tick()`. Each tick invokes
+only `recoverNext` for at most 32 saved attempts. Concurrent ticks share one
+in-flight page; `stop()` drains it. A journal/context fault stops scheduling
+and requires a fresh reviewed worker instance. The worker has no fresh request,
+custody, signing or broadcast method and is not registered in the public API
+or production launcher. Whole-journal scans and operational role provisioning
+remain open.
+
 Explicit signing preparation requires current unpaused operator/price bindings
 and an approved own-role custody reference. It still loads no custody at startup.
 The role backend first completes its existing actual independent review and

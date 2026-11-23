@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "scope": "Private saved-attempt recovery scheduler; local synthetic RPC and custody fixtures only",
+  "parentRevision": "1244cdfc31b9614b023f9b6af74e582126e855fc",
+  "implementation": {
+    "entry": "server/token-conversion-recovery-worker.mjs",
+    "bootstrap": "server/token-conversion-bootstrap.mjs",
+    "mode": "recovery-only controller only; explicit start or tick; no production launcher or public API registration",
+    "pageLimit": 32,
+    "behavior": "One in-flight page, durable controller cursor, restart-safe saved-attempt reconciliation, stop drains, faults latch and stop scheduling"
+  },
+  "validation": {
+    "node": "24.22.3",
+    "checkedService": "scripts/check-token-conversion-service.mjs: 30 required passed, 0 failed, 0 skipped, 0 TODO, exit 0",
+    "checkedBootstrap": "scripts/check-token-conversion-bootstrap.mjs: 20 required passed, 0 failed, 0 skipped, 0 TODO, exit 0",
+    "sourceSyntax": "scripts/check-source.mjs: 1202 JavaScript files passed, exit 0",
+    "sourceSize": "scripts/check-source-size.mjs: 1465 maintained code files within budget, exit 0",
+    "diffCheck": "git diff --check: exit 0"
+  },
+  "limits": [
+    "No production timer has been started or registered",
+    "Synthetic finalized bank and role-signature fixtures are not live financial acceptance",
+    "Whole-journal scanning, approved independent custody, operational three-journal restore and Mainnet admission remain open",
+    "No wallet funding, signing, Solana transaction, deployment or activation occurred"
+  ]
+}

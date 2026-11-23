@@ -9,6 +9,7 @@ import {finalizedProgramContext} from './finalized-program-context.mjs';
 import {requireReviewedTokenSignerPolicy,tokenPricePolicyHash} from './token-conversion-sell-review.mjs';
 import {createTokenConversionJournal} from './token-conversion-journal.mjs';
 import {createTokenConversionController} from './token-conversion-controller.mjs';
+import {createTokenConversionRecoveryWorker} from './token-conversion-recovery-worker.mjs';
 import {createTokenConversionSigningService} from './token-conversion-signing-service.mjs';
 import {conversionServiceOrigin} from './token-conversion-remote-signers.mjs';
 
@@ -82,6 +83,7 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
     }};
     runtime=createTokenConversionSigningService({store,connection,config:policy,release,role:spec.role,signer,token:await authentication(spec.role),now,recoveryOnly});
   }
-  return {...runtime,admission:{...admission,role:spec.role,mode:recoveryOnly?'recovery-only':'signing'},
+  return {...runtime,recoveryWorker:spec.role==='controller'&&recoveryOnly?createTokenConversionRecoveryWorker({controller:runtime}):undefined,
+    admission:{...admission,role:spec.role,mode:recoveryOnly?'recovery-only':'signing'},
     scope:'prepared private runtime; no listener or worker activation, custody is lazy and requires fresh verified context'};
 }

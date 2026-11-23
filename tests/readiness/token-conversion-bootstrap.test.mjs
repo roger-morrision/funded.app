@@ -38,6 +38,8 @@ async function setup(t){
 for(const role of ['controller','operator','price-attestation'])test('bootstrap defaults '+role+' to recovery without touching custody or listening',async t=>{
   const {c,counts,options}=await setup(t),o=options(role),runtime=await prepareTokenConversionRuntime(o);
   assert.equal(runtime.admission.mode,'recovery-only');assert.equal(runtime.server.listening,false);assert.equal(counts.custody,0);assert.equal(counts.sign,0);
+  assert.equal(typeof runtime.recoveryWorker?.tick,role==='controller'?'function':'undefined');
+  if(role==='controller')assert.deepEqual(runtime.recoveryWorker.status(),{running:false,faulted:false,lastResult:null});
   const origin=await c.bind(runtime.server),body=role==='controller'?{schemaVersion:1,request:c.all.worker.request,recoveryOnly:false}:c.signBody(role);
   const response=await fetch(origin+(role==='controller'?'/run':'/sign'),{method:'POST',headers:{authorization:'Bearer '+c.tokens[role==='controller'?'worker':role],'content-type':'application/json'},body:JSON.stringify(body)});
   assert.equal(response.status,role==='controller'?200:503);if(role==='controller')assert.equal((await response.json()).status,'unavailable');

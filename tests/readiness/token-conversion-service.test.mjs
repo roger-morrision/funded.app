@@ -4,6 +4,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {createTokenConversionSigningService} from '../../server/token-conversion-signing-service.mjs';
 import {selectSavedConversionPage} from '../../server/token-conversion-controller.mjs';
+import {createTokenConversionRecoveryWorker} from '../../server/token-conversion-recovery-worker.mjs';
 import {createTokenConversionRemoteSigner} from '../../server/token-conversion-remote-signers.mjs';
 import {conversionSignature} from '../../server/token-conversion-http.mjs';
 import {conversionServiceFixture,conversionBucket} from './token-conversion-service-fixture.mjs';
@@ -71,6 +72,53 @@ test('Private recovery refuses a changed persisted context before touching a sav
   await assert.rejects(()=>c.controller.recoverNext({limit:1}),/Incompatible recovery progress/);
   assert.equal(await readFile(c.paths.worker,'utf8'),before);
   assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
+
+test('Private recovery worker drains only saved attempts across restart without a second send',async t=>{
+  const c=await conversionServiceFixture(t,{send:'unknown'});
+  const firstWorker=createTokenConversionRecoveryWorker({controller:c.controller,limit:1});
+  assert.deepEqual(firstWorker.status(),{running:false,faulted:false,lastResult:null});
+  assert.deepEqual(await firstWorker.tick(),{attempts:[],nextAfter:null,remaining:0});
+  assert.deepEqual(c.calls,{'price-attestation':0,operator:0,send:0});
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  await c.restartController();
+  const secondWorker=createTokenConversionRecoveryWorker({controller:c.controller,limit:1});
+  const result=await secondWorker.tick();
+  assert.deepEqual(result,{attempts:[{messageHash:c.hash,status:'reconciliation-pending'}],nextAfter:c.hash,remaining:1});
+  assert.deepEqual(secondWorker.status(),{running:false,faulted:false,lastResult:{attempts:1,remaining:1}});
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
+
+test('Private recovery worker coalesces concurrent ticks and latches a journal fault',async t=>{
+  const c=await conversionServiceFixture(t,{send:'unknown'});
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  let calls=0,release;
+  const original=c.controller.recoverNext;
+  const controller={recoverNext:async args=>{calls++;if(calls===1)await new Promise(resolve=>{release=resolve;});return original(args);}};
+  const worker=createTokenConversionRecoveryWorker({controller,limit:1});
+  const first=worker.tick(),second=worker.tick();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(calls,1);release();
+  assert.deepEqual(await first,await second);
+  assert.equal(calls,1);
+  await c.stores().worker.transaction(state=>{state.tokenConversionRecoveryProgressV1.contextHash='0'.repeat(64);});
+  await assert.rejects(worker.tick(),/Incompatible recovery progress/);
+  assert.deepEqual(worker.status().faulted,true);
+  await assert.rejects(worker.tick(),/Incompatible recovery progress/);
+  assert.equal(calls,2); // The latched fault never calls the controller again.
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
+
+test('Private recovery worker start is explicit and stop drains its in-flight page',async()=>{
+  let calls=0,release;
+  const worker=createTokenConversionRecoveryWorker({controller:{recoverNext:async()=>{
+    calls++;await new Promise(resolve=>{release=resolve;});return {attempts:[],remaining:0};
+  }},intervalMs:1000});
+  assert.equal(calls,0);worker.start();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(calls,1);const stopping=worker.stop();release();await stopping;
+  assert.deepEqual(worker.status(),{running:false,faulted:false,lastResult:{attempts:0,remaining:0}});
+  assert.equal(calls,1);
 });
 
 test('HTTP authentication rejects controller and both custody requests before review',async t=>{
