@@ -4710,7 +4710,25 @@
       "stdoutSha256": "9e0b947c9c723ee766495155cc06a6bbfcb3bedb3714848c60e197504dd68b07",
       "scope": "Node26 local synthetic fixture: unchanged raw controller initializer resolved after file removal and recreated zero attempts from one; zero additional signatures or sends. Current uncommitted prepared-wrapper override rejected the same loss. This is component/source evidence, not an exact frozen integration test or live data loss."
     },
+    "correction": {
+      "appSource": "95adc3775e92a6f9f392a5f1ce5eb15f8770f811",
+      "sourcePins": {
+        "server/token-conversion-bootstrap.mjs": "6dfc31a25f3522b1fde72c772adef8e06cb12035534f41753fa687247c4e1ba5",
+        "server/token-conversion-journal.mjs": "d9cd79fb39fbce9093c5f4741d9db20e6599f06996f53d94268fb31642e6cace",
+        "tests/readiness/token-conversion-bootstrap.test.mjs": "aa8510918a140613c79e088d2816131693b0477adbee54f5a343a731cb8ce880"
+      },
+      "review": "Prepared initialize now rechecks finalized context and all three published role-labelled journals. Raw journal initialize without firstProvisioningRole rejects an absent published file or missing bucket; explicit first provisioning retains the separate branch. No new Contract ABI, financial admission or signing path appears in the correction.",
+      "ownerTests": "App reports Node24 bootstrap27/27, service30/30, transport28/28 and direct journal16/16 pass. Contract did not rerun the healthy suites.",
+      "contractProbe": {
+        "originalUnchanged": "Original 9e975826 probe stopped at expected raw initializer rejection before its old status observation; its exit1 is a probe-harness assumption after the correction, not product failure.",
+        "observationOnlyCopy": "C:/Data/DevApps/funded.app/data/qa-evidence/mainnet-contract-20261123/provisioning-postprepare-initialize-rejection-probe.mjs",
+        "copySha256": "b6885dabf18ee28bd6a798f59570f143fb9511cb2e0f2e5dd3e16f7a639cfeab",
+        "stdoutSha256": "7ab174a2a1466f0143074d59472cdb8be5e731057d50f6883ee543f91001f148",
+        "scope": "Node26 local synthetic fixture 2/2 pass: prepared and raw controller initializers both reject missing file, original saved attempt count1 and absent store count0, no new price/operator signatures or broadcast. This is affected local acceptance only."
+      },
+      "limits": "Independent E2E exact-revision acceptance, signer administrative custody, actual production three-journal restore, live finality and release remain open."
+    },
     "reviewBoundary": "Caller-supplied review.evidenceSha256 is syntax-checked metadata, not proof of independent review or custody separation. No actual production provisioning or restore occurred.",
-    "status": "Frozen 5aa post-prepare resume bypass found; App correction and independent exact-revision QA pending. Contract ABI/ELF/Loader/quote unchanged; Mainnet NO-GO."
+    "status": "Frozen 5aa post-prepare bypass corrected at 95adc in narrow source/local synthetic acceptance; independent E2E and parent release gates pending. Contract ABI/ELF/Loader/quote unchanged; Mainnet NO-GO."
   }
 }
