@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "issueIds": ["FQA-MN-003", "FQA-MN-006"],
+  "parentRevision": "c66cccedf44f2f43b2afee3d9c0c426e3f705712",
+  "scope": "Fail-closed detection of a single older, valid, same-context conversion role journal during resume",
+  "baselineReproduction": "After an unknown signed conversion attempt, replacing only the controller, operator or price-attestation journal with its original empty but valid role-labelled bytes caused prepareTokenConversionRuntime to accept an incomplete three-journal set. The focused expected-rejection test failed on the parent source. No additional signature or send occurred in the test.",
+  "correction": "Under each journal's exclusive store transaction, verify the full typed row and return compact immutable attempt facts to private bootstrap. Before authentication or custody access, bootstrap requires every signer-role attempt to match a controller message/intent and every controller signed transaction to retain both exact signer-role cached signatures. The public initialize result still exposes only contextHash.",
+  "localValidation": {
+    "node": "24.22.3",
+    "focusedBefore": "1 expected-rejection case failed on parent source",
+    "focusedAfter": "1/1 passed across controller, operator and price-attestation partial-restore controls",
+    "bootstrap": "28/28 required passed, 0 failed, 0 skipped, 0 TODO",
+    "directJournal": "16/16 passed, 0 failed, 0 skipped, 0 TODO"
+  },
+  "limits": [
+    "This detects a partial rollback among the three files, not an all-three rollback to a mutually consistent older backup.",
+    "A production backup must prove no signed attempt after its snapshot or remain recovery-only until complete authenticated chain reconciliation and an explicitly reviewed restart.",
+    "Journals are read sequentially while services should be quiesced; a concurrent legitimate write can fail closed and require another review.",
+    "Financial RPC, signatures, bank and finality are synthetic. No production service, wallet, chain transaction, funding or Mainnet activation was used."
+  ]
+}

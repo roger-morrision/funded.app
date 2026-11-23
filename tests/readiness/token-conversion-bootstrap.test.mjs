@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Keypair,PublicKey} from '@solana/web3.js';
 import {join} from 'node:path';
-import {writeFile,rename} from 'node:fs/promises';
+import {writeFile,readFile,rename} from 'node:fs/promises';
 import nacl from 'tweetnacl';
 import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
 import {createTokenConversionJournal} from '../../server/token-conversion-journal.mjs';
@@ -87,6 +87,28 @@ test('resume refuses each missing or wrong-context role journal before authentic
   await createAutomaticRewardStore(c.paths.operator).transaction(state=>{state.tokenConversionPriceJournalV1.context.programId='wrong';});
   await assert.rejects(prepareTokenConversionRuntime(o),/Conversion journal reference unavailable/);
   assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
+
+test('partial restore of a valid older role journal cannot erase an unknown signed attempt',async t=>{
+  const {c,counts,options}=await setup(t,{send:'unknown'}),o=options('controller');
+  const names=['worker','operator','price-attestation'];
+  const empty=Object.fromEntries(await Promise.all(names.map(async name=>[name,await readFile(c.paths[name])])));
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  const signed=Object.fromEntries(await Promise.all(names.map(async name=>[name,await readFile(c.paths[name])])));
+  for(const name of names){
+    await writeFile(c.paths[name],empty[name]);
+    await assert.rejects(prepareTokenConversionRuntime(o),/Conversion journal reference unavailable/);
+    assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+    await writeFile(c.paths[name],signed[name]);
+  }
+  const runtime=await prepareTokenConversionRuntime(o);assert.equal(runtime.admission.mode,'recovery-only');
+  for(const name of names){
+    await writeFile(c.paths[name],empty[name]);
+    await assert.rejects(runtime.initialize(),/Conversion journal reference unavailable/);
+    await writeFile(c.paths[name],signed[name]);
+  }
+  assert.equal(counts.authentication,3);assert.equal(counts.custody,0);
   assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
 });
 

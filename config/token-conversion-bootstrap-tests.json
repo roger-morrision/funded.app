@@ -8,6 +8,7 @@
         "explicit first provisioning binds three absent role journals to the reviewed release",
         "first provisioning refuses one published role before creating any other journal",
         "resume refuses each missing or wrong-context role journal before authentication or custody",
+        "partial restore of a valid older role journal cannot erase an unknown signed attempt",
         "resume refuses a corrupt third journal before authentication or custody",
         "resume refuses aliased role stores despite distinct public references",
         "prepared runtime initializers cannot recreate missing signed role journals",

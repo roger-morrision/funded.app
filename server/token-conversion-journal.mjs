@@ -104,10 +104,20 @@ export function createTokenConversionJournal({store,connection,config,release=re
         'Missing conversion journal requires reviewed first provisioning.');
       checked(state);return {contextHash};
     }),
-    verifyExisting:({role})=>store.transaction((state,publication)=>{
+    verifyExisting:({role,includeAttemptFacts=false})=>store.transaction((state,publication)=>{
       assert(publication?.published===true&&['controller','operator','price-attestation'].includes(role)
         &&state[bucket]?.provisionedRole===role,'Missing or mismatched provisioned conversion journal.');
-      checked(state);return {contextHash};
+      const journal=checked(state);
+      if(!includeAttemptFacts)return {contextHash};
+      const attemptFacts={};
+      for(const [hash,row] of Object.entries(journal.attempts)){
+        const signed=row.signedTransaction?VersionedTransaction.deserialize(Buffer.from(row.signedTransaction,'base64')):null;
+        attemptFacts[hash]={intentDigest:row.intentDigest,
+          unsignedDigest:createHash('sha256').update(row.unsignedTransaction).digest('hex'),
+          roleSignature:row.roleSignatures?.[role]??null,
+          signedSignatures:signed?.signatures.map(signature=>Buffer.from(signature).toString('base64'))??null};
+      }
+      return {contextHash,attemptFacts};
     }),
     async reserve(request){
       checked(await store.read());

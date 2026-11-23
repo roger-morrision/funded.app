@@ -30,6 +30,12 @@ checks; it cannot recreate a file removed after preparation.
 The underlying journal's default `initialize()` also requires an existing
 published file. Only the explicit reviewed first-provisioning call may create
 a new role journal.
+Resume also compares the three validated journals: each signer-role attempt
+must match a controller intent, and a controller's signed transaction must
+retain both exact role signatures. An older but otherwise valid single-role
+backup therefore cannot silently erase an unknown signed attempt. Restoring
+all three files to a mutually consistent older point still needs external
+no-loss backup evidence and chain reconciliation before fresh signing.
 
 Before journal or service-authentication access, preparation validates the existing
 reviewed release/policy tuple, distinct role journal/authentication references and service origins, plus the
@@ -80,7 +86,7 @@ checks context again before using the handle. Unknown/mismatched resolver result
 cannot cause another automatic load or signature. Existing per-request policy,
 reserve, quote age, immutable message and finalized-proof rules remain enforced.
 
-Run `node scripts/check-token-conversion-bootstrap.mjs` for 27 required cases.
+Run `node scripts/check-token-conversion-bootstrap.mjs` for 28 required cases.
 Tests include actual three-service loopback execution, context changes around
 custody access, fail-before-secret ordering, and paused/rotated read-only proof
 recovery. Financial RPC/finality and approved custody resolvers are synthetic;

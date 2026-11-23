@@ -90,12 +90,30 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
   }
   const admission=await verifyContext(!recoveryOnly);
   async function verifyJournalSet(){
-    let selected,ownResult;
+    let selected,ownResult;const facts={};
     try{
       for(const role of roles){
         const candidate=await storeFactory(spec.journalReferences[role]);
-        const result=await createTokenConversionJournal({store:candidate,connection,config:policy,release,now}).verifyExisting({role});
-        if(role===spec.role){selected=candidate;ownResult=result;}
+        const result=await createTokenConversionJournal({store:candidate,connection,config:policy,release,now})
+          .verifyExisting({role,includeAttemptFacts:true});
+        facts[role]=result.attemptFacts;
+        if(role===spec.role){selected=candidate;ownResult={contextHash:result.contextHash};}
+      }
+      // A missing file is obvious; a restored older valid same-context file
+      // is not. Compare durable cross-role intents before any auth or custody.
+      const controller=facts.controller;
+      for(const [role,index] of [['operator',0],['price-attestation',1]]){
+        for(const [hash,saved] of Object.entries(facts[role])){
+          const original=controller[hash];
+          assert(original&&original.intentDigest===saved.intentDigest
+            &&original.unsignedDigest===saved.unsignedDigest,'Conversion journal set lost an original attempt.');
+        }
+        for(const [hash,original] of Object.entries(controller))if(original.signedSignatures){
+          const saved=facts[role][hash];
+          assert(saved&&saved.intentDigest===original.intentDigest&&saved.unsignedDigest===original.unsignedDigest
+            &&saved.roleSignature===original.signedSignatures[index],
+          'Conversion journal set lost an original role signature.');
+        }
       }
     }catch{throw Error('Conversion journal reference unavailable or incompatible.');}
     return {store:selected,result:ownResult};
