@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "parentRevision": "0c77013739e9f63a5d91259b1c86b9ea664e84f3",
+  "scope": "Closed local three-journal copy and fresh-process restore rehearsal; synthetic conversion evidence only",
+  "entrypoint": "node scripts/check-token-conversion-restore.mjs",
+  "fixture": "The retained public Gf7 market capture, ExUNA 8f6 fixture ELF and current 3f8 review ELF are checked by the existing synthetic fixture. No production credential or transaction is loaded.",
+  "procedure": [
+    "Create three distinct controller/operator/price-attestation journals with the exact reviewed release context.",
+    "Complete a synthetic unknown signed attempt and a separate synthetic verified-proof attempt; close all three HTTP servers before reading either copy.",
+    "Copy and file-sync each role journal, retain per-file SHA-256 and a controller-attempt digest, then restore bytes into a new directory and verify them in a fresh Node process.",
+    "The fresh process uses the real prepareTokenConversionRuntime and the private API recovery selector with synthetic finalized account/RPC responses. Custody, remote-signing request and send callbacks are hard failures.",
+    "Restore one valid older role file at a time, a corrupt role file, a wrong-context file and all three coherent older files against the later witness."
+  ],
+  "observed": {
+    "node": "24.22.3",
+    "checkedRequired": "2/2 passed, 0 failed, 0 skipped, 0 TODO",
+    "freshProcessUnknown": "All three file hashes and the original signed attempt matched; one recovery-only page remained pending; authentication 3, custody 0, signer requests 0, sends 0.",
+    "freshProcessVerified": "All three file hashes and verified proof matched; no new recovery attempt or send; authentication 3, custody 0, signer requests 0, sends 0.",
+    "partialAndDamaged": "Each of controller/operator/price valid older single-file restore, one corrupt role file and one wrong-context file was rejected before authentication or custody; zero signer requests and sends.",
+    "coherentOlder": "All three mutually consistent older journals were accepted by local source validation but failed the separately retained later file hashes and attempt digest. Operational qualification is false without an external no-loss witness.",
+    "missingElfControl": "The checked command exited 1 with zero required cases passed when the current review ELF was absent."
+  },
+  "rawEvidence": {
+    "checkedStdout": "data/qa-evidence/mainnet-journal-restore-20261123/checked.stdout",
+    "checkedStdoutSha256": "a34b88dc3304f1ecdf64455e07dcd05b12e2a2dd2bb46240c7025edd9786022e",
+    "directStdout": "data/qa-evidence/mainnet-journal-restore-20261123/direct.stdout",
+    "directStdoutSha256": "f602952c5acbf9cf1d14d8b0e352661d40d33629c4c6748fee65f554ec1e7371",
+    "missingElfStdout": "data/qa-evidence/mainnet-journal-restore-20261123/missing-elf.stdout",
+    "missingElfStdoutSha256": "e32230bc2dc61d01863f3e9e48c633eda24a6e1784380bff3ecb85e5d4b6e44e"
+  },
+  "limits": [
+    "The copy is made after closing synthetic services. This is a process-restart and byte-integrity rehearsal, not a host power-loss or production-volume durability result.",
+    "An all-three coherent rollback cannot be detected by these journals alone. A production immutable no-loss witness or complete authenticated chain reconciliation remains necessary before signing mode or replacement.",
+    "Synthetic RPC, bank, finalized status and test-only ephemeral signatures do not prove live Mainnet financial delivery or independent production custody.",
+    "No real network request, funding, signing, broadcast, deployment, worker activation or public service change occurred."
+  ]
+}
